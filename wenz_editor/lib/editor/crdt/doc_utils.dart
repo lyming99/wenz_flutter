@@ -1,0 +1,209 @@
+import 'dart:collection';
+import 'dart:convert';
+
+import 'package:wenz_editor/editor/block/code/code.dart';
+import 'package:wenz_editor/editor/block/element/element.dart';
+import 'package:wenz_editor/editor/block/image/image_element.dart';
+import 'package:wenz_editor/editor/block/line/line_element.dart';
+import 'package:wenz_editor/editor/block/table/table_element.dart';
+import 'package:wenz_editor/editor/block/text/text.dart';
+import 'package:ydart/ydart.dart';
+
+void applyYTextToTextElement(YText? yText, WenTextElement text) {
+  if (yText == null) {
+    return;
+  }
+  var delta = yText.toDelta();
+  var elements = <WenTextElement>[];
+  for (var item in delta) {
+    ///attributes
+    var element = WenTextElement();
+    var insert = item.insert;
+    if (insert is String) {
+      element.text = insert;
+    } else if (insert is Map) {
+      element.itemType = insert["itemType"];
+      element.text = insert["text"];
+    } else {
+      continue;
+    }
+    elements.add(element);
+    if (item.attributes == null) {
+      continue;
+    }
+    var attr = item.attributes!;
+    element.background = attr['background'] as int?;
+    element.color = attr['color'] as int?;
+    element.url = attr['url'] as String?;
+    element.underline = attr['underline'] as bool?;
+    element.lineThrough = attr['lineThrough'] as bool?;
+    element.bold = attr['bold'] as bool?;
+    element.fontSize = attr['fontSize'] as double?;
+    element.italic = attr['italic'] as bool?;
+  }
+  text.children = elements;
+  text.calcLength();
+}
+
+WenElement? createWenElementFromYMap(YMap map) {
+  var type = map.get("type");
+  if (type == "text" || type == "quote") {
+    var textElement = WenTextElement();
+    applyYMapToElement(map, textElement);
+    return textElement;
+  } else if (type == "title") {
+    var textElement = WenTextElement();
+    applyYMapToElement(map, textElement);
+    return textElement;
+  } else if (type == "image") {
+    var imageElement = WenImageElement(
+      id: map.get("id") as String,
+      file: map.get("id") as String,
+      width: map.get("width") as int,
+      height: map.get("height") as int,
+      showWidth: map.get("showWidth") as double?,
+      showHeight: map.get("showHeight") as double?,
+    )..indent = map.get("indent") as int?;
+    return imageElement;
+  } else if (type == "line") {
+    return LineElement();
+  } else if (type == "code") {
+    return WenCodeElement(
+      code: (map.get("code") as YText).toString(),
+      language: (map.get("language") as String?) ?? "text",
+    );
+  } else if (type == "table") {
+    var element = WenTableElement();
+    applyYMapToElement(map, element);
+    return element;
+  }
+  return null;
+}
+
+YDoc jsonToYDoc(int clientId, String? json) {
+  YDoc doc = YDoc();
+  doc.clientId = clientId;
+  var blocks = doc.getArray("blocks");
+  if (json == null || json.isEmpty) {
+    return doc;
+  }
+  var jsonArray = jsonDecode(json);
+  if (jsonArray is! List) {
+    return doc;
+  }
+  var elements = jsonArray
+      .map((e) => WenElement.parseJson(e))
+      .map((e) => e.getYMap())
+      .toList();
+  blocks.insert(0, elements);
+  return doc;
+}
+
+String yDocToJson(YDoc? doc) {
+  if (doc == null) {
+    return "";
+  }
+  var elements = yDocToWenElements(doc);
+  var list = elements.map((e) => e.toJson()).toList();
+  return jsonEncode(list);
+}
+
+Future<YDoc> elementsToYDoc(List<WenElement> elements) async {
+  YDoc doc = YDoc();
+  var blocks = doc.getArray("blocks");
+  blocks.insert(0, elements.map((e) => e.getYMap()).toList());
+  return doc;
+}
+
+void applyYMapToElement(
+  YMap map,
+  WenElement element,
+) {
+  switch (element.runtimeType) {
+    case WenCodeElement:
+      var code = map.get("code");
+      if (code is YText) {
+        var codeElement = (element as WenCodeElement);
+        codeElement.code = code.toString();
+        codeElement.language = (map.get("language") as String?) ?? "text";
+      }
+      break;
+    case WenTextElement:
+      var text = element as WenTextElement;
+      text.level = (map.get("level") as int?) ?? 0;
+      text.checked = map.get("checked") as bool?;
+      text.itemType = map.get("itemType") as String?;
+      text.alignment = map.get("alignment") as String?;
+      text.indent = map.get("indent") as int?;
+      text.type = (map.get("type") as String?) ?? "text";
+      if (map.containsKey("text")) {
+        applyYTextToTextElement(map.get("text") as YText, text);
+      }
+      break;
+    case WenImageElement:
+      element.alignment = map.get("alignment") as String?;
+      element.indent = map.get("indent") as int?;
+      break;
+    case WenTableElement:
+      var table = element as WenTableElement;
+      if (map.containsKey("alignments")) {
+        var alignments = map.get("alignments") as YMap;
+        var old = table.alignments;
+        old ??= HashMap();
+        for (var en in alignments.typeMapEnumerateValues().entries) {
+          if (en.value == null) {
+            old.remove(int.parse(en.key));
+          } else {
+            old[int.parse(en.key)] = en.value as String;
+          }
+        }
+        table.alignments = old;
+      } else {
+        table.alignments = {};
+      }
+      var tableRows = <List<WenElement>>[];
+      if (map.containsKey("rows")) {
+        var rows = map.get("rows") as YArray;
+        for (var arr in rows.enumerateList()) {
+          var tableRow = <WenElement>[];
+          tableRows.add(tableRow);
+          var row = arr as YArray;
+          for (var item in row.enumerateList()) {
+            var cell = item as YMap;
+            String type = cell.get("type") as String;
+            if (type == "image") {
+              var imageElement = WenImageElement(
+                id: cell.get("id") as String,
+                file: cell.get("id") as String,
+                width: cell.get("width") as int,
+                height: cell.get("height") as int,
+                showWidth: cell.get("showWidth") as double?,
+                showHeight: cell.get("showHeight") as double?,
+              );
+              tableRow.add(imageElement);
+            } else {
+              var textElement = WenTextElement();
+              applyYMapToElement(cell, textElement);
+              tableRow.add(textElement);
+            }
+          }
+        }
+      }
+      table.rows = tableRows;
+      break;
+  }
+}
+
+List<WenElement> yDocToWenElements(YDoc? doc) {
+  var res = <WenElement>[];
+  if (doc != null) {
+    var array = doc.getArray("blocks");
+    for (var value in array.enumerateList()) {
+      var item = createWenElementFromYMap(value as YMap);
+      if (item != null) {
+        res.add(item);
+      }
+    }
+  }
+  return res;
+}
