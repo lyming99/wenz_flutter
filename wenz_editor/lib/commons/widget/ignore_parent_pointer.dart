@@ -52,14 +52,16 @@ class IgnoreParentMousePointerContainerRender
     try {
       return super.hitTest(result, position: position);
     } finally {
-      var list = result.path as List<HitTestEntry>;
-      int i = list.indexWhere(
-          (element) => element.target is IgnoreParentMousePointerRender);
-      if (i != -1) {
-        var item = list[i].target as IgnoreParentMousePointerRender;
-        var ignore = item.ignorePointer(position);
-        if (ignore) {
-          list.removeRange(i, list.length);
+      if (result.path != null) {
+        var list = result.path as List<HitTestEntry>;
+        int i = list.indexWhere(
+                (element) => element.target is IgnoreParentMousePointerRender);
+        if (i != -1) {
+          var item = list[i].target as IgnoreParentMousePointerRender;
+          var ignore = item.ignorePointer(position);
+          if (ignore) {
+            list.removeRange(i, list.length);
+          }
         }
       }
     }
