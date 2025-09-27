@@ -38,6 +38,8 @@ dependencies:
   image_picker: ^1.1.2
   flutter_colorpicker: ^1.0.3
   file_saver: ^0.2.14
+  wenz_ui:
+    path: ../wenz_ui
 dev_dependencies:
   flutter_test:
     sdk: flutter

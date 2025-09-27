@@ -177,6 +177,14 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "3.1.7"
+  dbus:
+    dependency: transitive
+    description:
+      name: dbus
+      sha256: "79e0c23480ff85dc68de79e2cd6334add97e48f7f4865d17686dd6ea81a47e8c"
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "0.7.11"
   device_info_plus:
     dependency: transitive
     description:
@@ -257,6 +265,14 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "7.0.1"
+  file_picker:
+    dependency: transitive
+    description:
+      name: file_picker
+      sha256: f2d9f173c2c14635cc0e9b14c143c49ef30b4934e8d1d274d6206fcb0086a06f
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "10.3.3"
   file_saver:
     dependency: "direct main"
     description:
@@ -400,6 +416,14 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "2.1.3"
+  go_router:
+    dependency: transitive
+    description:
+      name: go_router
+      sha256: eb059dfe59f08546e9787f895bd01652076f996bcbf485a8609ef990419ad227
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "16.2.1"
   hashcodes:
     dependency: transitive
     description:
@@ -536,6 +560,14 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "2.4.0"
+  intl:
+    dependency: transitive
+    description:
+      name: intl
+      sha256: "3df61194eb431efc39c4ceba583b95633a403f46c9fd341e550ce0bfa50e9aa5"
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "0.20.2"
   io:
     dependency: transitive
     description:
@@ -1238,6 +1270,13 @@ packages:
       url: "https://github.com/lyming99/wenz_flutter_html.git"
     source: git
     version: "2.2.1"
+  wenz_ui:
+    dependency: "direct main"
+    description:
+      path: "../wenz_ui"
+      relative: true
+    source: path
+    version: "1.0.0+1"
   win32:
     dependency: transitive
     description:
@@ -1295,4 +1334,4 @@ packages:
     version: "1.0.0+1"
 sdks:
   dart: ">=3.7.0 <4.0.0"
-  flutter: ">=3.27.0"
+  flutter: ">=3.29.0"

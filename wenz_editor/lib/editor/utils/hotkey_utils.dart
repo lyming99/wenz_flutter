@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:wenz_editor/editor/edit_controller.dart';
@@ -61,7 +62,13 @@ class HotKeyUtils {
         controller.toPageUp();
         return KeyEventResult.handled;
       }
-
+      if (kIsWeb) {
+        if (event.physicalKey == PhysicalKeyboardKey.space) {
+          //空格
+          controller.onInputText(const TextEditingValue(text: " "));
+          return KeyEventResult.handled;
+        }
+      }
       if (event.physicalKey == PhysicalKeyboardKey.home) {
         //home
         controller.toHome();

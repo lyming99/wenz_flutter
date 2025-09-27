@@ -7,6 +7,7 @@ import 'dart:typed_data';
 import 'package:bot_toast/bot_toast.dart';
 import 'package:easy_image_viewer/easy_image_viewer.dart';
 import 'package:file_saver/file_saver.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:pasteboard/pasteboard.dart';
@@ -45,9 +46,12 @@ class ImageBlock extends WenzBlock {
   }
 
   void readImageId() async {
+    if (kIsWeb) {
+      return;
+    }
     if (element.file == "" || !File(element.file).existsSync()) {
-      element.file =
-          (await editController.fileManager.getImageFile(element.id)) ?? "";
+      var info = await editController.fileManager.getFileInfo(element.id);
+      element.file = info?.path ?? '';
       relayoutFlag = true;
       editController.updateWidgetState();
     }
@@ -112,16 +116,12 @@ class ImageBlock extends WenzBlock {
                       imageId: element.id,
                       reader: (id) async {
                         try {
-                          var imageFile = await editController.fileManager
-                              .getImageFile(element.id);
-
-                          if (imageFile == null || imageFile == "") {
-                            return Uint8List(0);
+                          var bytes =
+                              await editController.fileManager.readFile(id);
+                          if (bytes != null) {
+                            return bytes;
                           }
-                          if (!File(imageFile).existsSync()) {
-                            return Uint8List(0);
-                          }
-                          return File(imageFile).readAsBytes();
+                          return Uint8List(0);
                         } catch (e) {
                           print(e);
                           return Uint8List(0);
@@ -179,9 +179,10 @@ class ImageBlock extends WenzBlock {
                   image: MultiSourceFileImage(
                       imageId: element.id,
                       reader: (id) async {
-                        var imageFile = await editController.fileManager
-                            .getImageFile(element.id);
-                        if (imageFile == null) {
+                        var fileInfo =
+                            await editController.fileManager.getFileInfo(id);
+                        var imageFile = fileInfo?.path;
+                        if (imageFile == null || imageFile.isEmpty) {
                           return Uint8List(0);
                         }
                         return File(imageFile).readAsBytes();
@@ -411,7 +412,8 @@ class ImageBlock extends WenzBlock {
 
   void saveImageToLocal(BuildContext context) async {
     try {
-      var imageFile = await editController.fileManager.getImageFile(element.id);
+      var fileInfo = await editController.fileManager.getFileInfo(element.id);
+      var imageFile = fileInfo?.path;
       if (imageFile == null || imageFile.isEmpty) {
         BotToast.showText(text: "找不到图片文件");
         return;
@@ -465,16 +467,18 @@ class ImageBlock extends WenzBlock {
   }
 
   void openImagePath(BuildContext context) async {
-    var file = await editController.fileManager.getImageFile(element.id);
-    if (file == null) {
+    var fileInfo = await editController.fileManager.getFileInfo(element.id);
+    var file = fileInfo?.path;
+    if (file == null || file.isEmpty) {
       return;
     }
     FileUtils.openFile(file);
   }
 
   void openImageDir(BuildContext context) async {
-    var file = await editController.fileManager.getImageFile(element.id);
-    if (file == null) {
+    var fileInfo = await editController.fileManager.getFileInfo(element.id);
+    var file = fileInfo?.path;
+    if (file == null || file.isEmpty) {
       return;
     }
     var dir = File(file).parent;

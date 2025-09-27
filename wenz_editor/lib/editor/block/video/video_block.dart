@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 
@@ -27,8 +28,12 @@ class VideoBlock extends WenzBlock {
   }
 
   void readImageId() async {
-    element.file =
-        (await editController.fileManager.getImageFile(element.id)) ?? "";
+    if(kIsWeb){
+      return;
+    }
+    var fileInfo = await editController.fileManager.getFileInfo(element.id);
+    var imageFile = fileInfo?.path;
+    element.file = imageFile ?? "";
     relayoutFlag = true;
     editController.updateWidgetState();
   }

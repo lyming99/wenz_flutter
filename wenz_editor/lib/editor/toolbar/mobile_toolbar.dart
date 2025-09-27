@@ -1,8 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
-import 'package:wenz_editor/commons/mvc/controller.dart';
-import 'package:wenz_editor/commons/mvc/view.dart';
+import 'package:wenz_ui/utils/mvc.dart';
 import 'package:wenz_editor/editor/widget/view_insets_observer.dart';
 
 class MobileToolbarController extends MvcController {

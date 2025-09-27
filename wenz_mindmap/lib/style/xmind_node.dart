@@ -312,6 +312,8 @@ class _XMindNodeWidgetState extends State<XMindNodeWidget> {
       builder: (context) {
         nodeChildContext = context;
         return Container(
+          width: controller.node.widgetSize.width,
+          height: controller.node.widgetSize.height,
           padding: padding,
           alignment: Alignment.center,
           // text field 有 border side，统一宽度高度
@@ -345,7 +347,7 @@ class _XMindNodeWidgetState extends State<XMindNodeWidget> {
                       : buildTextNodeContent(textStyle),
                 ),
               ),
-              if (controller.hasChildInfo(context, controller.node))
+              if (controller.hasChildInfo(context, controller.node)&&!controller.controller.isCaptureMode)
                 HoverDropDownMenu(
                   menuAlignment: MenuAlignment.right,
                   bubbleArrowEndOffset: 24,

@@ -50,16 +50,11 @@ Future<List<MindNode>> readTextClipboard([String? text]) async {
     }
     var tabCount = getTabCount(line);
     var parent = getParentNode(nodes, tabCount);
-    var node = MindNode(
-      info: MindNodeInfo(
-        content: line.substring(tabCount),
-      ),
-    )..setProperty("tabCount", tabCount);
+    var node = MindNode(info: MindNodeInfo(content: line.substring(tabCount)))
+      ..setProperty("tabCount", tabCount);
     nodes.add(node);
     if (parent == null) {
-      result.add(
-        node,
-      );
+      result.add(node);
     } else {
       parent.addNodeToChildren(node);
     }
@@ -80,7 +75,7 @@ Future<void> writeTextClipboard(List<MindNode> nodes) async {
 
 Future<void> writeRichClipboard(
   List<MindNode> nodes, {
-  required WenzFileManager fileManager,
+  required WenzAssetsFileManager fileManager,
   required CopyService copyService,
 }) async {
   var elements = <WenElement>[];
@@ -104,11 +99,13 @@ Future<void> writeRichClipboard(
 /// 5.子笔记✅
 /// 6.缩进&标题
 Future<WenElement?> nodeToElement(
-    MindNode node, WenzFileManager fileManager) async {
+  MindNode node,
+  WenzAssetsFileManager fileManager,
+) async {
   // 如果小于等于6，转换为 h
   // 否则，转换为indent + text
   if (node.isImage) {
-    var imageFile = await fileManager.getImageFile(node.info?.image);
+    var imageFile = await fileManager.getFileInfo(node.info?.image ?? '');
     if (imageFile == null) {
       return null;
     }
@@ -116,7 +113,7 @@ Future<WenElement?> nodeToElement(
       width: node.info?.imageWidth ?? 0,
       height: node.info?.imageHeight ?? 0,
       id: node.info?.image ?? "",
-      file: imageFile,
+      file: imageFile.path ?? '',
       checked: node.info?.isChecked,
       childNote: node.info?.note,
     );
@@ -125,12 +122,7 @@ Future<WenElement?> nodeToElement(
       itemType: node.isTodo ? "check" : "text",
       checked: node.info?.isChecked,
       childNote: node.info?.note,
-      children: [
-        WenTextElement(
-          itemType: "formula",
-          text: node.info?.formula,
-        ),
-      ],
+      children: [WenTextElement(itemType: "formula", text: node.info?.formula)],
     );
   }
   var level = 0;
@@ -159,7 +151,7 @@ Future<WenElement?> nodeToElement(
 /// 5.文件解析 ❌
 Future<List<MindNode>> readRichClipboard({
   required BuildContext context,
-  required WenzFileManager fileManager,
+  required WenzAssetsFileManager fileManager,
   bool pasteText = false,
   bool pasteHtml = false,
   bool pasteMarkdown = false,
@@ -222,10 +214,11 @@ Future<List<MindNode>> readRichClipboard({
   }
   // 富文本解析
   var elements = await parseCopyIdElement(
-      context: context,
-      copyService: copyService,
-      fileManager: fileManager,
-      html: html);
+    context: context,
+    copyService: copyService,
+    fileManager: fileManager,
+    html: html,
+  );
   elements ??= await parseHtmlToBlockElement(context, html, fileManager);
   return await elementsToNodes(elements, fileManager);
   // 文件解析
@@ -235,7 +228,9 @@ Future<List<MindNode>> readRichClipboard({
 /// 1.element转换 ✅
 /// 2.构建树 ✅
 Future<List<MindNode>> elementsToNodes(
-    List<WenElement> elements, WenzFileManager fileManager) async {
+  List<WenElement> elements,
+  WenzAssetsFileManager fileManager,
+) async {
   var nodes = <MindNode>[];
   for (var item in elements) {
     var node = await elementToNode(item, fileManager);
@@ -266,7 +261,7 @@ Future<List<MindNode>> elementsToNodes(
 /// 6.子笔记 ❌
 Future<MindNode?> elementToNode(
   WenElement element,
-  WenzFileManager fileManager,
+  WenzAssetsFileManager fileManager,
 ) async {
   var level = element.level;
   var indent = element.indent;

@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:wenz_editor/commons/entity/wenz_assets_file.dart';
 import 'package:wenz_editor/commons/service/file_manager.dart';
 import 'package:wenz_editor/editor/widget/drag_resize_container.dart';
 import 'package:wenz_mindmap/controller/mind_doc_controller.dart';
@@ -14,6 +15,7 @@ class DocImageNode extends StatefulWidget {
   final String? docId;
   final String? noteId;
   final OnResized? onResized;
+  final WenzAssetsFileManager? fileManager;
 
   const DocImageNode({
     super.key,
@@ -24,6 +26,7 @@ class DocImageNode extends StatefulWidget {
     this.docRootDir,
     this.noteId,
     this.docId,
+    this.fileManager,
   });
 
   @override
@@ -32,7 +35,7 @@ class DocImageNode extends StatefulWidget {
 
 class _DocImageNodeState extends State<DocImageNode> {
   bool isError = false;
-  File? imageFile;
+  WenzAssetsFile? imageFile;
 
   @override
   void initState() {
@@ -55,52 +58,34 @@ class _DocImageNodeState extends State<DocImageNode> {
     }
     String? rootDir = widget.docRootDir;
     rootDir ??= docController.getRootDir();
-    var fileManager = DirectoryFileManager(
-      rootDir: rootDir,
-      uploadFileCallback: docController.uploadFile,
-      downloadFileCallback: docController. downloadFile,
-      docId: widget.docId,
-      noteId: widget.noteId,
-    );
-    var file = await fileManager.getImageFile(widget.imageId);
-    if (file != null) {
-      if (File(file).existsSync()) {
-        setState(() {
-          imageFile = File(file);
-        });
-        return;
-      }
-    }
+    var fileManager = widget.fileManager;
+    var file = await fileManager?.getFileInfo(widget.imageId ?? '');
     setState(() {
-      isError = true;
+      imageFile = file;
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    if (imageFile == null) {
+    var path = imageFile?.path;
+    if (path == null) {
       return isError
           ? SizedBox(
               width: widget.width,
               height: widget.height,
-              child: const Center(
-                child: Text(
-                  "error.",
-                ),
-              ),
+              child: const Center(child: Text("error.")),
             )
           : Container();
     }
+    Image image;
+    if (path.startsWith("http")) {
+      image = Image.network(path, fit: BoxFit.cover);
+    } else {
+      image = Image.file(File(path), fit: BoxFit.cover);
+    }
     return DragResizeContainer(
       onResized: widget.onResized,
-      child: SizedBox(
-        width: widget.width,
-        height: widget.height,
-        child: Image.file(
-          imageFile!,
-          fit: BoxFit.cover,
-        ),
-      ),
+      child: SizedBox(width: widget.width, height: widget.height, child: image),
     );
   }
 }

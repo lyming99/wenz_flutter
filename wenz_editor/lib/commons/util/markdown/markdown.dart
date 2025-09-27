@@ -23,7 +23,7 @@ class MarkdownFileInfo {
 }
 
 Future<MarkdownFileInfo?> readMarkdownInfo(
-    WenzFileManager fileManager, String filepath) async {
+    WenzAssetsFileManager fileManager, String filepath) async {
   var file = File(filepath);
   var stat = file.statSync();
   if (stat.type != FileSystemEntityType.file) {
@@ -54,7 +54,7 @@ Future<MarkdownFileInfo?> readMarkdownInfo(
 }
 
 Future<List<WenElement>> parseMarkdown(
-    WenzFileManager fileManager, String content,
+    WenzAssetsFileManager fileManager, String content,
     [String fileDir = ""]) async {
   var markdown = Markdown(
     enableTaskList: true,
@@ -86,17 +86,17 @@ List<WenElement> getElements(List<Node> nodes) {
 }
 
 Future<void> readImageFile(
-    WenzFileManager fileManager, String dir, List<WenElement> elements) async {
+    WenzAssetsFileManager fileManager, String dir, List<WenElement> elements) async {
   for (var element in elements) {
     try {
       if (element is WenImageElement) {
         var filepath = join(dir, element.file);
-        var file = await fileManager.downloadImageFile(filepath);
+        var file = await fileManager.parseFile(filepath);
         if (file == null) {
           continue;
         }
-        var imageFile = await fileManager.getImageFile(file.uuid);
-        if (imageFile == null) {
+        var imageFile = file.path;
+        if (imageFile == null || imageFile.isEmpty) {
           continue;
         }
         var size = await readImageFileSize(File(imageFile));

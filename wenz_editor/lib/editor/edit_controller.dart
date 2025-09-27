@@ -15,11 +15,13 @@ import 'package:image_size_getter/image_size_getter.dart' as image_size;
 import 'package:pasteboard/pasteboard.dart';
 import 'package:super_clipboard/super_clipboard.dart';
 import 'package:super_drag_and_drop/super_drag_and_drop.dart';
+import 'package:wenz_editor/commons/entity/wenz_assets_file.dart';
 import 'package:wenz_editor/commons/service/copy_service.dart';
 import 'package:wenz_editor/commons/service/file_manager.dart';
 import 'package:wenz_editor/commons/util/file_utils.dart';
 import 'package:wenz_editor/commons/util/html/html.dart';
 import 'package:wenz_editor/commons/util/image.dart';
+import 'package:wenz_editor/commons/util/image_utils.dart';
 import 'package:wenz_editor/commons/util/markdown/markdown.dart';
 import 'package:wenz_editor/commons/util/platform_util.dart';
 import 'package:wenz_editor/commons/widget/popup_stack.dart';
@@ -77,7 +79,7 @@ class WenzEditController with ChangeNotifier {
   LinkFloatBuilder? linkFloatBuilder;
   PreferredSizeWidget? topWidget;
   CopyService copyService;
-  WenzFileManager fileManager;
+  WenzAssetsFileManager fileManager;
   Function? onContentChanged;
   ModalController modalController = ModalController();
 
@@ -2217,24 +2219,35 @@ class WenzEditController with ChangeNotifier {
       insertContent(null, text);
       record();
     } else if (image != null) {
-      var fileId = await showMobileDialog(
-          context: viewContext,
-          builder: (context) =>
-              FutureProgressDialog(
-                fileManager.writeImage(image!),
-              ));
-      if (fileId != null) {
-        var filepath = await fileManager.getImageFile(fileId.uuid);
-        if (filepath == null) {
+      Future writeImage() async {
+        return await fileManager.createFile(
+            'image.png', (await ImageUtils.toPng(image!)) ?? Uint8List(0));
+      }
+
+      var fileInfo = await showMobileDialog(
+        context: viewContext,
+        builder: (context) => FutureProgressDialog(writeImage()),
+      );
+      if (fileInfo is WenzAssetsFile) {
+        var uuid = fileInfo.uuid;
+        if (uuid == null) {
           return;
         }
-        var size = await readImageFileSize(File(filepath));
+        var bytes = await fileManager.readFile(uuid);
+        if (bytes == null) {
+          return;
+        }
+        var filepath = fileInfo.path;
+        if (filepath == null || filepath.isEmpty) {
+          return;
+        }
+        var size = await readImageBytesSize(bytes);
         insertContent([
           ImageBlock(
               editController: this,
               context: viewContext,
               element: WenImageElement(
-                id: fileId.uuid,
+                id: uuid,
                 file: filepath,
                 width: size.width,
                 height: size.height,
@@ -2253,15 +2266,15 @@ class WenzEditController with ChangeNotifier {
     if (!isImage) {
       return;
     }
-    var fileItem = await fileManager.writeImage(
+    var fileItem = await fileManager.createFile(
+      "image.png",
       image,
-      suffix: suffix,
     );
     if (fileItem == null) {
       return;
     }
-    var imageFile = await fileManager.getImageFile(fileItem.uuid);
-    if (imageFile == null) {
+    var imageFile = fileItem.path;
+    if (imageFile == null || imageFile.isEmpty) {
       return;
     }
     var size = await readImageFileSize(File(imageFile));
@@ -2280,16 +2293,12 @@ class WenzEditController with ChangeNotifier {
   }
 
   Future<void> pasteImageFile(String path) async {
-    var isImage = isValidImage(FileInput(File(path)));
-    if (!isImage) {
-      // return;
-    }
-    var fileItem = await fileManager.writeImageFile(path);
+    var fileItem = await fileManager.parseFile(path);
     if (fileItem == null) {
       return;
     }
-    var imageFile = await fileManager.getImageFile(fileItem.uuid);
-    if (imageFile == null) {
+    var imageFile = fileItem.path;
+    if (imageFile == null || imageFile.isEmpty) {
       return;
     }
     var size = await readImageFileSize(File(imageFile));

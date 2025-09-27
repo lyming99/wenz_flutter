@@ -1,4 +1,6 @@
 import 'dart:io';
+import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -7,10 +9,13 @@ import 'package:wenz_ui/index.dart';
 
 import '../mindmap.dart';
 
-Future exportMindPng(BuildContext context, MindMapController controller) async {
-  var devicePixelRatio = MediaQuery.of(context).devicePixelRatio;
+Future exportMindPng(BuildContext context, MindMapController controller,
+    [Future?Function(Uint8List bytes)? savePng]) async {
+  var devicePixelRatio = MediaQuery
+      .of(context)
+      .devicePixelRatio;
   var content = controller.getContent();
-  var exportController = MindMapController();
+  var exportController = MindMapController(isCaptureMode: true);
   exportController.setContent(content, null, true);
   exportController.root.visitChildren((element) {
     element.info?.expand = true;
@@ -18,6 +23,7 @@ Future exportMindPng(BuildContext context, MindMapController controller) async {
   exportController.defaultTextStyle = controller.defaultTextStyle;
   exportController.layout();
   var size = exportController.root.nodeContentSize;
+  print(size);
   var widgets = <Widget>[];
   var toolWidgets = <Widget>[];
   var linePaths = <LinePath>[];
@@ -39,14 +45,6 @@ Future exportMindPng(BuildContext context, MindMapController controller) async {
           ),
         );
       });
-  var file = await FilePicker.platform.saveFile(
-    type: FileType.custom,
-    allowedExtensions: ["png"],
-    fileName: "${exportController.root.info?.content ?? "export"}.png",
-  );
-  if (file == null) {
-    return;
-  }
   ScreenshotController screenshotController = ScreenshotController();
   var capture = await screenshotController.captureFromLongWidget(
     pixelRatio: devicePixelRatio,
@@ -69,17 +67,17 @@ Future exportMindPng(BuildContext context, MindMapController controller) async {
       ),
     ),
   );
-  await File(file).writeAsBytes(capture);
-
-  WidgetsBinding.instance.scheduleFrameCallback((time) {
-    if (!context.mounted) {
+  if (savePng != null) {
+    await savePng.call(capture);
+  } else {
+    var file = await FilePicker.platform.saveFile(
+      type: FileType.custom,
+      allowedExtensions: ["png"],
+      fileName: "${exportController.root.info?.content ?? "export"}.png",
+    );
+    if (file == null) {
       return;
     }
-    showConfirmDialog(
-      context,
-      title: '提示',
-      contentWidget: SelectableText("导出完成：$file"),
-      onConfirm: () {},
-    );
-  });
+    await File(file).writeAsBytes(capture);
+  }
 }

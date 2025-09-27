@@ -1,10 +1,12 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:super_clipboard/super_clipboard.dart';
 import 'package:uuid/uuid.dart';
+import 'package:wenz_editor/commons/util/web/index.dart';
 import 'package:ydart/ydart.dart';
 
 import '../../editor/block/element/element.dart';
@@ -14,9 +16,14 @@ import 'file_manager.dart';
 
 final copyService = CopyService();
 
+typedef CopyCacheReader = Future<String> Function();
+typedef CopyCacheWriter = Future<void> Function(String);
+
 class CopyService {
   String? copyId;
   List<WenElement>? _copyElements;
+  CopyCacheReader? copyCacheReader;
+  CopyCacheWriter? copyCacheWriter;
 
   String generateCopyId() {
     return const Uuid().v1();
@@ -49,14 +56,33 @@ class CopyService {
       "copyContent": jsonEncode(copyContent),
     };
     var saveJson = jsonEncode(map);
-    var document = await getApplicationDocumentsDirectory();
-    copyCacheDir ??= document.path;
-    File("$copyCacheDir/copyCache").writeAsString(saveJson);
+    if (copyCacheWriter != null) {
+      await copyCacheWriter!(saveJson);
+    } else {
+      if (kIsWeb) {
+        writeLocalStorage("copyCache", saveJson);
+      } else {
+        var document = await getApplicationDocumentsDirectory();
+        copyCacheDir ??= document.path;
+        await File("$copyCacheDir/copyCache").writeAsString(saveJson);
+      }
+    }
   }
 
   Future<void> readCopyCache(String copyCacheDir) async {
-    if (File("$copyCacheDir/copyCache").existsSync()) {
-      var saveJson = await File("$copyCacheDir/copyCache").readAsString();
+    String? saveJson;
+    if (copyCacheReader != null) {
+      saveJson = await copyCacheReader!();
+    } else {
+      if (kIsWeb) {
+        saveJson = readLocalStorage("copyCache");
+      } else {
+        if (File("$copyCacheDir/copyCache").existsSync()) {
+          saveJson = await File("$copyCacheDir/copyCache").readAsString();
+        }
+      }
+    }
+    if (saveJson != null) {
       Map content = jsonDecode(saveJson);
       copyId = content["copyId"];
       var copyContent = content["copyContent"] as String?;
@@ -96,14 +122,15 @@ class CopyService {
   }
 
   Future<void> copyMarkdownContent(
-      YDoc? doc, WenzFileManager fileManager) async {
+      YDoc? doc, WenzAssetsFileManager fileManager) async {
     StringBuffer markdown = StringBuffer();
     var copyElements = yDocToWenElements(doc);
     for (var element in copyElements) {
       var filePath = "";
       if (element is WenImageElement) {
         var imageId = element.id;
-        filePath = (await fileManager.getImageFile(imageId)) ?? "";
+        var info = await fileManager.getFileInfo(imageId);
+        filePath = info?.path ?? "";
       }
       markdown.writeln(element.getMarkDown(filePathBuilder: (uuid) {
         return filePath;
@@ -142,7 +169,7 @@ class CopyService {
       return;
     }
     final item = DataWriterItem();
-    if(!copyPlanText) {
+    if (!copyPlanText) {
       item.add(Formats.htmlText(html.toString()));
     }
     item.add(Formats.plainText(text.toString()));

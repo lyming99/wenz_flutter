@@ -875,22 +875,11 @@ class MindMapState extends State<MindMap> {
     if (!Platform.isMacOS && !Platform.isWindows && !Platform.isLinux) {
       return result;
     }
-    var docController = findController<MindDocController>(context);
-    if (docController == null) {
-      return result;
-    }
-    var rootDir = docController.getRootDir();
-    var fileManager = DirectoryFileManager(
-      rootDir: rootDir,
-      uploadFileCallback: docController.uploadFile,
-      downloadFileCallback: docController.downloadFile,
-      docId: docController.docId,
-      noteId: null,
-    );
+    var fileManager = controller.fileManager;
     var dpr = MediaQuery.of(context).devicePixelRatio;
     var image = await Pasteboard.image;
     if (image != null) {
-      var imageFile = await fileManager.writeImage(image);
+      var imageFile = await fileManager?.writeImage(image);
       var path = imageFile?.path;
       if (path != null) {
         var imageId = imageFile?.uuid;
@@ -916,7 +905,7 @@ class MindMapState extends State<MindMap> {
           file.endsWith(".bmp") ||
           file.endsWith(".webp") ||
           file.endsWith(".tif")) {
-        var imageFile = await fileManager.writeImageFile(file);
+        var imageFile = await fileManager?.parseFile(file);
         var path = imageFile?.path;
         if (path != null) {
           var imageId = imageFile?.uuid;

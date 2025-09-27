@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 class FileUtils {
   FileUtils._();
+
   /// 删除文件，如果文件不存在则忽略
   static Future<void> deleteFile(String filePath) async {
     final file = File(filePath);
@@ -88,7 +89,11 @@ class FileUtils {
   }
 
   static String getFileSuffix(String file) {
-    var index = file.lastIndexOf(".");
+    file = file.replaceAll("\\\\", "/");
+    if (file.contains("/")) {
+      file = file.substring(file.lastIndexOf("/") + 1);
+    }
+    var index = file.indexOf(".");
     if (index != -1) {
       return file.substring(index);
     }

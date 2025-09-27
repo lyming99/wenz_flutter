@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
@@ -50,4 +51,9 @@ Future<ImageSize> readImageFileSize(File file) async{
     var image = await decodeImageFromList(file.readAsBytesSync());
     return ImageSize(width: image.width, height: image.height);
   }
+}
+
+Future<ImageSize> readImageBytesSize(Uint8List file) async{
+  var image = await decodeImageFromList(file);
+  return ImageSize(width: image.width, height: image.height);
 }

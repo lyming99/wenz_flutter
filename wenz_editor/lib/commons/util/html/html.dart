@@ -27,7 +27,7 @@ List<String> get _htmlTags => new List<String>.from(STYLED_ELEMENTS)
 Future<List<WenzBlock>> parseHtmlBlock({
   required WenzEditController editController,
   required CopyService copyService,
-  required WenzFileManager fileManager,
+  required WenzAssetsFileManager fileManager,
   required BuildContext context,
   required String html,
 }) async {
@@ -121,7 +121,7 @@ Future<List<WenzBlock>> parseHtmlBlock({
 Future<List<WenElement>> parseHtmlToBlockElement(
   BuildContext context,
   String html,
-  WenzFileManager fileManager,
+  WenzAssetsFileManager fileManager,
 ) async {
   var result = <WenElement>[];
   WenElementStyle blockElementStyle = WenElementStyle();
@@ -140,7 +140,7 @@ Future<List<WenElement>> parseHtmlToBlockElement(
 Future<List<WenElement>?> parseCopyIdElement({
   required BuildContext context,
   required CopyService copyService,
-  required WenzFileManager fileManager,
+  required WenzAssetsFileManager fileManager,
   required String html,
 }) async {
   var dom = HtmlParser.parseHTML(html);
@@ -154,7 +154,7 @@ Future<List<WenElement>?> parseCopyIdElement({
         return copyService.copyElements;
       } else {
         await copyService
-            .readCopyCache(await fileManager.getAndCreateSaveDir());
+            .readCopyCache(await fileManager.getRootDir());
         if (copyId == copyService.copyId) {
           return copyService.copyElements;
         }
@@ -193,7 +193,7 @@ Future<void> _parseHtmlToBlockElement(
   StyledElement element,
   List<WenElement> result,
   WenElementStyle style,
-  WenzFileManager fileManager,
+  WenzAssetsFileManager fileManager,
 ) async {
   if (element is TextContentElement) {
     if (element.style.textDecoration != null) {
@@ -236,7 +236,8 @@ Future<void> _parseHtmlToBlockElement(
   } else if (element.name == 'img') {
     var id = element.elementId;
     var src = element.attributes["src"];
-    var imageFile = await fileManager.getImageFile(id);
+    var fileInfo = await fileManager.getFileInfo(id);
+    var imageFile = fileInfo?.path;
     if (imageFile != null && File(imageFile).existsSync()) {
       var size = await readImageFileSize(File(imageFile));
       result.add(WenImageElement(
@@ -248,10 +249,10 @@ Future<void> _parseHtmlToBlockElement(
       return;
     }
     if (src != null) {
-      var fileItem = await fileManager.downloadImageFile(src);
+      var fileItem = await fileManager.parseFile(src);
       if (fileItem != null) {
-        var imageFile = await fileManager.getImageFile(fileItem.uuid);
-        if (imageFile != null) {
+        var imageFile = fileItem.path;
+        if (imageFile != null && imageFile.isNotEmpty) {
           var size = await readImageFileSize(File(imageFile));
           result.add(WenImageElement(
             id: fileItem.uuid!,

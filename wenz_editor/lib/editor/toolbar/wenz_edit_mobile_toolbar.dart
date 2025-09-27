@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:wenz_editor/commons/mvc/controller.dart';
-import 'package:wenz_editor/commons/mvc/view.dart';
+import 'package:wenz_ui/utils/mvc.dart';
 import 'package:wenz_editor/commons/util/platform_util.dart';
 import 'package:wenz_editor/editor/toolbar/mobile_toolbar.dart';
 import 'package:image_picker/image_picker.dart';
@@ -55,8 +54,8 @@ class WenzEditMobileToolbarController extends MvcController {
   }
 
   @override
-  void onInitState(BuildContext context) {
-    super.onInitState(context);
+  void onInitState(BuildContext context,MvcViewState state) {
+    super.onInitState(context,state);
     editController.cursorState.addListener(onSelectChanged);
     editController.selectState.addListener(onSelectChanged);
   }
