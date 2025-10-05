@@ -101,7 +101,7 @@ class FileUtils {
   }
 
   static String getFileName(String file) {
-    file = file.replaceAll("\\\\", "/");
+    file = file.replaceAll("\\", "/");
     var index = file.lastIndexOf("/");
     if (index != -1) {
       return file.substring(index + 1);

@@ -11,4 +11,17 @@ class PlatformUtils {
     if (kIsWeb) return true;
     return Platform.isWindows || Platform.isMacOS || Platform.isLinux;
   }
+
+  static bool get isWindows {
+    if (kIsWeb) return false;
+    return Platform.isWindows;
+  }
+  static bool get isMacOS {
+    if (kIsWeb) return false;
+    return Platform.isMacOS;
+  }
+  static bool get isLinux {
+    if (kIsWeb) return false;
+    return Platform.isLinux;
+  }
 }

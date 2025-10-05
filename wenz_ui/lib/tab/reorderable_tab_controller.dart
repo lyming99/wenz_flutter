@@ -103,7 +103,9 @@ class ReorderableTabController extends MvcController {
     final TabItem item = items.removeAt(oldIndex);
     items.insert(newIndex, item);
     if (newIndex == selectedIndex) {
-      pageController.jumpToPage(newIndex);
+      if (pageController.hasClients) {
+        pageController.jumpToPage(newIndex);
+      }
     }
     onReorder?.call(oldIndex, newIndex);
     updateView();
@@ -113,11 +115,13 @@ class ReorderableTabController extends MvcController {
     selectedItem = item;
     onTabChanged?.call(selectedIndex);
     scrollToCenter(selectedIndex);
-    pageController.animateToPage(
-      selectedIndex,
-      duration: const Duration(milliseconds: 200),
-      curve: Curves.ease,
-    );
+    if (pageController.hasClients) {
+      pageController.animateToPage(
+        selectedIndex,
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.ease,
+      );
+    }
     updateView();
   }
 
@@ -213,9 +217,9 @@ class ReorderableTabController extends MvcController {
       return items[index].titleWidth!;
     }
     return
-        items[index]
-            .measureTitleSize(context)
-            .width;
+      items[index]
+          .measureTitleSize(context)
+          .width;
   }
 
   double getIndicatorPosition(double Function(int) getTabWidth) {

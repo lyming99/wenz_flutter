@@ -54,7 +54,7 @@ class AppColor {
 
   Color get navTextColor => Colors.grey.shade100;
 
-  Color get navIndicatorColor => const Color.fromARGB(255, 18, 130, 217);
+  Color get navIndicatorColor => const Color.fromARGB(255, 65, 149, 214);
 
   // Color get tableHeaderColor => Colors.blue.shade50;          // 标题栏极浅蓝色
   // Color get tableHeaderTextColor => Colors.black;     // 标题栏文字深蓝色

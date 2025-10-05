@@ -25,6 +25,14 @@ T? findController<T extends MvcController>(BuildContext context) {
   return mvcController;
 }
 
+mixin MvcMixin {
+  void onInit(BuildContext context, MvcViewState state);
+
+  void onReplace(BuildContext context, covariant MvcController oldController);
+
+  Future refresh();
+}
+
 class MvcControllerProvider extends StatelessWidget {
   final MvcController? controller;
   final Widget child;
@@ -123,7 +131,12 @@ class MvcController with ChangeNotifier {
 
   /// 组件初始化时会触发此方法
   @mustCallSuper
-  void onInitState(BuildContext context, MvcViewState state) {}
+  void onInitState(BuildContext context, MvcViewState state) {
+    if (this is MvcMixin) {
+      var repace = this as MvcMixin;
+      repace.onInit(context, state);
+    }
+  }
 
   Future<T?> loading<T>(Future<T?> Function() future) async {
     try {
@@ -160,6 +173,10 @@ class MvcController with ChangeNotifier {
     oldController.clearListen();
     isLoading = oldController.isLoading;
     mounted = oldController.mounted;
+    if (this is MvcMixin) {
+      var repace = this as MvcMixin;
+      repace.onReplace(context, oldController);
+    }
   }
 
   /// widget树中，若节点的父级结构中的层级 或 父级结构中的任一节点的widget类型有变化，节点会调用didChangeDependencies；
