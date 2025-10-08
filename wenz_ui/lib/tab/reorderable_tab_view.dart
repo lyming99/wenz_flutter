@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:wenz_ui/utils/color_utils.dart';
 import 'package:wenz_ui/utils/device_util.dart';
 import 'package:wenz_ui/utils/mvc.dart';
 import 'reorderable_tab_controller.dart';
@@ -46,6 +47,7 @@ class ReorderableTabBar extends StatelessWidget {
             var spaceSize = addButtonBuilder != null
                 ? cons.maxWidth - totalWidth - kButtonWidth
                 : cons.maxWidth - totalWidth;
+            controller.viewSize = Size(cons.maxWidth, cons.maxHeight);
             return Row(
               children: [
                 Expanded(
@@ -268,7 +270,7 @@ class ReorderableTabView extends MvcView<ReorderableTabController> {
         for (var item in controller.items)
           Container(
             key: ValueKey(item.id),
-            child: item.builder?.call(context, item) ??
+            child:   controller.buildItemView(context,item)??
                 Center(
                   child: Text(
                     item.id ?? '',
@@ -286,7 +288,7 @@ class ReorderableTabView extends MvcView<ReorderableTabController> {
       height: tabHeight,
       tabHeight: tabHeight,
       indicatorHeight: indicatorHeight,
-      indicatorColor: indicatorColor,
+      indicatorColor: controller.hasFocus ? indicatorColor : Colors.grey,
       selectedLabelColor: selectedLabelColor,
       unselectedLabelColor: unselectedLabelColor,
       startBuilder: tabBarStartBuilder,
@@ -297,12 +299,19 @@ class ReorderableTabView extends MvcView<ReorderableTabController> {
     if (tabBuilder != null) {
       tabChild = tabBuilder!.call(context, tabChild);
     }
-    return Column(
-      children: [
-        tabChild,
-        if (divider != null) divider!,
-        Expanded(child: pageChild),
-      ],
+    return FocusScope(
+      node: controller.focusScopeNode,
+      autofocus: true,
+      onFocusChange: (value) {
+        controller.updateView();
+      },
+      child: Column(
+        children: [
+          tabChild,
+          if (divider != null) divider!,
+          Expanded(child: pageChild),
+        ],
+      ),
     );
   }
 }

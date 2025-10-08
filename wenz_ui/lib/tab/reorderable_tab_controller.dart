@@ -11,6 +11,7 @@ typedef OnTabRemoved = void Function(TabItem tab, int index);
 typedef OnTabAdded = void Function(TabItem tab);
 
 class ReorderableTabController extends MvcController {
+  Map<String, Widget> widgetCache = {};
   List<TabItem> items;
   TabItem? selectedItem;
   OnReorderCallback? onReorder;
@@ -28,6 +29,9 @@ class ReorderableTabController extends MvcController {
   ScrollController scrollController = ScrollController();
   PageController pageController = PageController();
 
+  Size viewSize = Size.zero;
+
+  var focusScopeNode = FocusScopeNode();
 
   ReorderableTabController({
     required this.items,
@@ -48,16 +52,17 @@ class ReorderableTabController extends MvcController {
 
   int get dragItemIndex => dragItem == null ? 0 : items.indexOf(dragItem!);
 
+  bool get hasFocus => focusScopeNode.hasFocus;
+
   @override
   void onInitState(BuildContext context, MvcViewState state) {
     super.onInitState(context, state);
     pageController = PageController(initialPage: selectedIndex);
   }
 
-
   @override
-  void onDidUpdateWidget(BuildContext context,
-      covariant ReorderableTabController oldController) {
+  void onDidUpdateWidget(
+      BuildContext context, covariant ReorderableTabController oldController) {
     super.onDidUpdateWidget(context, oldController);
     items = oldController.items;
     selectedItem = oldController.selectedItem;
@@ -73,27 +78,17 @@ class ReorderableTabController extends MvcController {
     dragStartItemPosition = oldController.dragStartItemPosition;
     dragItemPosition = oldController.dragItemPosition;
     scrollController = oldController.scrollController;
-  }
-
-  @override
-  void onDispose() {
-    scrollController.dispose();
-    pageController.dispose();
-    super.onDispose();
+    focusScopeNode = oldController.focusScopeNode;
   }
 
   void setItems(List<TabItem> newItems) {
     items = newItems;
-    selectedItem = newItems
-        .where((e) => e.id == selectedItem?.id)
-        .firstOrNull;
+    selectedItem = newItems.where((e) => e.id == selectedItem?.id).firstOrNull;
     updateView();
   }
 
   TabItem? getItem(String id) {
-    return items
-        .where((e) => e.id == id)
-        .firstOrNull;
+    return items.where((e) => e.id == id).firstOrNull;
   }
 
   void handleReorder(int oldIndex, int newIndex) {
@@ -143,17 +138,22 @@ class ReorderableTabController extends MvcController {
     items.add(tab);
     onTabAdded?.call(tab);
     selectedItem = tab;
+    onTabChanged?.call(selectedIndex);
     if (pageController.hasClients) {
       pageController.jumpToPage(selectedIndex);
     }
     updateView();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      scrollToCenter(selectedIndex);
+    });
   }
 
-  void removeTab(TabItem tab) {
+  void removeTab(TabItem tab, [bool keepOneTab = true]) {
+    widgetCache.remove(tab.id);
     final index = items.indexOf(tab);
     if (index == -1) return;
 
-    if (items.length <= 1) {
+    if (items.length <= 1 && keepOneTab) {
       // 不允许删除最后一个标签
       return;
     }
@@ -162,14 +162,18 @@ class ReorderableTabController extends MvcController {
     onTabRemoved?.call(tab, index);
     // 如果删除的是当前选中的标签
     if (tab == selectedItem) {
-      // 选择前一个标签，如果没有前一个就选择第一个
-      final newIndex = min(index, items.length - 1);
-      selectedItem = items[newIndex];
-      pageController.jumpToPage(newIndex);
-      onTabChanged?.call(newIndex);
-      scrollToCenter(newIndex);
+      if (items.isEmpty) {
+        selectedItem = null;
+      } else {
+        // 选择前一个标签，如果没有前一个就选择第一个
+        final newIndex = min(index, items.length - 1);
+        selectedItem = items[newIndex];
+        pageController.jumpToPage(newIndex);
+        onTabChanged?.call(newIndex);
+        scrollToCenter(newIndex);
+      }
     }
-    if (pageController.hasClients) {
+    if (items.isNotEmpty && pageController.hasClients) {
       pageController.jumpToPage(selectedIndex);
     }
     updateView();
@@ -186,17 +190,17 @@ class ReorderableTabController extends MvcController {
     double targetWidth = items[index].titleWidth ?? 0;
 
     // 计算滚动视图的中心位置
-    double viewportWidth = scrollController.position.viewportDimension;
-    double targetCenter = targetPosition + targetWidth / 2;
-    double scrollCenter = viewportWidth / 2;
 
+    // double viewportWidth = scrollController.position.viewportDimension;
+    double maxScrollExtent = scrollController.position.maxScrollExtent;
+    double viewportWidth = viewSize.width;
+    double newPos = (targetPosition + targetWidth / 2) - viewportWidth / 2;
     // 计算需要滚动的偏移量
-    double offset = targetCenter - scrollCenter;
-    offset = offset.clamp(0, scrollController.position.maxScrollExtent);
+    newPos = newPos.clamp(0, maxScrollExtent);
     if (scrollController.hasClients) {
       // 执行滚动动画
       scrollController.animateTo(
-        offset,
+        newPos,
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
       );
@@ -216,10 +220,7 @@ class ReorderableTabController extends MvcController {
     if (items[index].titleWidth != null) {
       return items[index].titleWidth!;
     }
-    return
-      items[index]
-          .measureTitleSize(context)
-          .width;
+    return items[index].measureTitleSize(context).width;
   }
 
   double getIndicatorPosition(double Function(int) getTabWidth) {
@@ -234,5 +235,10 @@ class ReorderableTabController extends MvcController {
   double getIndicatorWidth(double Function(int) getTabWidth) {
     if (selectedIndex >= items.length) return 0;
     return getTabWidth(selectedIndex);
+  }
+
+  Widget buildItemView(BuildContext context, TabItem<dynamic> item) {
+    return widgetCache.putIfAbsent(
+        item.id, () => item.builder?.call(context, item) ?? Container());
   }
 }

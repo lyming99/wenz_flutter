@@ -121,9 +121,8 @@ class WenzEditController with ChangeNotifier {
 
   EdgeInsets get originPadding => _padding;
 
-  EdgeInsets get padding =>
-      _padding.copyWith(
-          top: _padding.top + (topWidget?.preferredSize.height ?? 0));
+  EdgeInsets get padding => _padding.copyWith(
+      top: _padding.top + (topWidget?.preferredSize.height ?? 0));
 
   static WenzEditController of(BuildContext context) {
     var widget = context.widget;
@@ -342,10 +341,10 @@ class WenzEditController with ChangeNotifier {
                 padding.left, block.top - scrollOffset + padding.top);
             //边界运算
             boxRect = Rect.fromLTWH(
-                padding.left - 1,
-                0,
-                visionWidth + 2 - padding.left - padding.right,
-                visionHeight)
+                    padding.left - 1,
+                    0,
+                    visionWidth + 2 - padding.left - padding.right,
+                    visionHeight)
                 .intersect(boxRect);
             if (boxRect.width > 0 && boxRect.height > 0) {
               ret.add(Positioned(
@@ -411,7 +410,7 @@ class WenzEditController with ChangeNotifier {
               .translate(padding.left, block.top - scrollOffset + padding.top);
           //边界运算
           boxRect = Rect.fromLTWH(padding.left - 1, 0,
-              visionWidth + 2 - padding.left - padding.right, visionHeight)
+                  visionWidth + 2 - padding.left - padding.right, visionHeight)
               .intersect(boxRect);
           if (boxRect.width > 0 && boxRect.height > 0) {
             ret.add(Positioned(
@@ -420,10 +419,7 @@ class WenzEditController with ChangeNotifier {
               width: boxRect.width,
               height: boxRect.height,
               child: Container(
-                color: Theme
-                    .of(context)
-                    .colorScheme
-                    .primaryContainer,
+                color: Theme.of(context).colorScheme.primaryContainer,
               ),
             ));
           }
@@ -478,7 +474,7 @@ class WenzEditController with ChangeNotifier {
       double cursorY = block.top - scrollOffset;
       var cursorRect = rect.translate(padding.left, cursorY + padding.top);
       cursorRect = Rect.fromLTWH(padding.left - 1, 0,
-          visionWidth + 2 - padding.left - padding.right, visionHeight)
+              visionWidth + 2 - padding.left - padding.right, visionHeight)
           .intersect(cursorRect);
       return AnimatedPositioned(
         key: ValueKey(this),
@@ -490,13 +486,11 @@ class WenzEditController with ChangeNotifier {
         duration: const Duration(milliseconds: 30),
         child: AnimatedOpacity(
           opacity:
-          !focusNode.hasFocus ? 0.2 : (cursorState.freshShowing ? 1 : 0),
+              !focusNode.hasFocus ? 0.2 : (cursorState.freshShowing ? 1 : 0),
           duration: const Duration(milliseconds: 500),
           curve: Curves.easeIn,
           child: Container(
-            color: EditTheme
-                .of(viewContext)
-                .cursorColor,
+            color: EditTheme.of(viewContext).cursorColor,
           ),
         ),
       );
@@ -537,9 +531,9 @@ class WenzEditController with ChangeNotifier {
     }
     var result = <PopupPositionWidget>[];
     var startCursorSelectWidget =
-    buildCursorSelectWidget(selectState.realStart, true);
+        buildCursorSelectWidget(selectState.realStart, true);
     var endCursorSelectWidget =
-    buildCursorSelectWidget(selectState.realEnd, false);
+        buildCursorSelectWidget(selectState.realEnd, false);
     if (startCursorSelectWidget != null) {
       result.add(startCursorSelectWidget);
     }
@@ -549,8 +543,8 @@ class WenzEditController with ChangeNotifier {
     return result;
   }
 
-  PopupPositionWidget? buildCursorSelectWidget(CursorPosition? position,
-      bool isStartMode) {
+  PopupPositionWidget? buildCursorSelectWidget(
+      CursorPosition? position, bool isStartMode) {
     if (position == null) {
       return null;
     }
@@ -567,7 +561,7 @@ class WenzEditController with ChangeNotifier {
       return null;
     }
     final cursorEventStart =
-    rect.bottomCenter.translate(0, block.top - scrollOffset - 10);
+        rect.bottomCenter.translate(0, block.top - scrollOffset - 10);
     rect = rect.translate(
         padding.left, padding.top + block.top - scrollOffset + rect.height);
     if (isStartMode) {
@@ -671,9 +665,9 @@ class WenzEditController with ChangeNotifier {
                 color: Colors.deepOrange.withOpacity(0.8),
                 borderRadius: BorderRadius.only(
                   topLeft:
-                  isStartMode ? Radius.circular(24) : Radius.circular(0),
+                      isStartMode ? Radius.circular(24) : Radius.circular(0),
                   topRight:
-                  isStartMode ? Radius.circular(0) : Radius.circular(24),
+                      isStartMode ? Radius.circular(0) : Radius.circular(24),
                   bottomLeft: Radius.circular(24),
                   bottomRight: Radius.circular(24),
                 )),
@@ -730,9 +724,7 @@ class WenzEditController with ChangeNotifier {
       if (event.buttons == 1) {
         mouseKeyboardState.mouseLeftDown = true;
         mouseKeyboardState.mouseDownTime =
-            DateTime
-                .now()
-                .millisecondsSinceEpoch;
+            DateTime.now().millisecondsSinceEpoch;
         mouseKeyboardState.mouseDownOffset = event.localPosition;
         if (!isMobile) {
           var position = getCursorPosition(event.localPosition);
@@ -779,22 +771,18 @@ class WenzEditController with ChangeNotifier {
     }
     if (event is PointerUpEvent) {
       if (mouseKeyboardState.mouseLeftDown) {
-        if (DateTime
-            .now()
-            .millisecondsSinceEpoch -
-            mouseKeyboardState.mouseDownTime <
+        if (DateTime.now().millisecondsSinceEpoch -
+                mouseKeyboardState.mouseDownTime <
             300) {
           var dis = calcDistance(
               event.localPosition, mouseKeyboardState.mouseDownOffset);
           if (dis < 10) {
             //click
             if (calcDistance(mouseKeyboardState.mouseClickPosition,
-                event.localPosition) <
-                10 &&
-                DateTime
-                    .now()
-                    .millisecondsSinceEpoch -
-                    mouseKeyboardState.mouseClickTime <
+                        event.localPosition) <
+                    10 &&
+                DateTime.now().millisecondsSinceEpoch -
+                        mouseKeyboardState.mouseClickTime <
                     300) {
               mouseKeyboardState.mouseClickCount++;
               if (mouseKeyboardState.mouseClickCount == 2) {
@@ -805,9 +793,7 @@ class WenzEditController with ChangeNotifier {
               onOneClick(event.localPosition);
             }
             mouseKeyboardState.mouseClickTime =
-                DateTime
-                    .now()
-                    .millisecondsSinceEpoch;
+                DateTime.now().millisecondsSinceEpoch;
             mouseKeyboardState.mouseClickPosition = event.localPosition;
           } else {
             mouseKeyboardState.mouseClickCount = 0;
@@ -891,7 +877,7 @@ class WenzEditController with ChangeNotifier {
     cursorRecord.updateCursorWindowPosition(position, scrollOffset);
     updateCursor(position, applyUpdate: true);
     visitSelectElement(
-          (block, element) {
+      (block, element) {
         if (block is TextBlock) {
           block.textElement.hideText = false;
         }
@@ -919,14 +905,16 @@ class WenzEditController with ChangeNotifier {
   void calcMouseScrollSpeed(Offset position) {
     cursorState.mouseEventPosition = position;
     var dy = position.dy;
-    if (dy < 0) {} else if (dy > visionHeight) {
+    if (dy < 0) {
+    } else if (dy > visionHeight) {
       dy -= visionHeight;
     } else {
       dy = 0;
     }
     dy /= 10;
     var dx = position.dx;
-    if (dx < 0) {} else if (dx > visionWidth - padding.left - padding.right) {
+    if (dx < 0) {
+    } else if (dx > visionWidth - padding.left - padding.right) {
       dx -= (visionWidth - padding.left - padding.right);
     } else {
       dx = 0;
@@ -946,26 +934,26 @@ class WenzEditController with ChangeNotifier {
     }
     mouseKeyboardState.mouseScrollTimer =
         Timer.periodic(const Duration(milliseconds: 10), (timer) {
-          //根据速度滚动
-          if (mouseKeyboardState.mouseScrollSpeedY != 0 ||
-              mouseKeyboardState.mouseScrollSpeedX != 0) {
-            scrollVertical(mouseKeyboardState.mouseScrollSpeedY);
-            scrollHorizontal(mouseKeyboardState.mouseScrollSpeedX);
-            if (isMobile) {
-              return;
-            }
-            var eventPosition = cursorState.mouseEventPosition;
-            if (eventPosition != null) {
-              var position = getCursorPosition(eventPosition);
-              if (position.isValid) {
-                //鼠标滑动事件：更新cursor位置
-                updateCursor(position, applyUpdate: true);
-                recordSelectEnd(position);
-                updateWidgetState();
-              }
-            }
+      //根据速度滚动
+      if (mouseKeyboardState.mouseScrollSpeedY != 0 ||
+          mouseKeyboardState.mouseScrollSpeedX != 0) {
+        scrollVertical(mouseKeyboardState.mouseScrollSpeedY);
+        scrollHorizontal(mouseKeyboardState.mouseScrollSpeedX);
+        if (isMobile) {
+          return;
+        }
+        var eventPosition = cursorState.mouseEventPosition;
+        if (eventPosition != null) {
+          var position = getCursorPosition(eventPosition);
+          if (position.isValid) {
+            //鼠标滑动事件：更新cursor位置
+            updateCursor(position, applyUpdate: true);
+            recordSelectEnd(position);
+            updateWidgetState();
           }
-        });
+        }
+      }
+    });
   }
 
   /// 更新选择的光标
@@ -1029,6 +1017,26 @@ class WenzEditController with ChangeNotifier {
     }
   }
 
+  void jumpToLine(int line) {
+    if (line < 0 || line >= blockManager.blocks.length) {
+      return;
+    }
+    blockManager.layoutNextBlockWithHeight(
+        viewContext, Size(visionWidth, visionHeight), line, visionHeight * 2);
+    WidgetsBinding.instance.scheduleFrameCallback((_) {
+      if (scrollController == null) {
+        return;
+      }
+      if (!scrollController!.hasClients) {
+        return;
+      }
+      var block = blockManager.blocks[line];
+      var minExtent = scrollController!.position.minScrollExtent ?? 0;
+      var maxExtent = scrollController!.position.maxScrollExtent ?? 0;
+      scrollController!.jumpTo(block.top.clamp(minExtent, maxExtent));
+    });
+  }
+
   ///更新鼠标划过位置：用于计算链接是否被划过，滚动时需要更新，鼠标移动时需要更新
   void updateHoverCursorPosition() {
     var event = <PointerEvent>[];
@@ -1072,7 +1080,7 @@ class WenzEditController with ChangeNotifier {
     if (position != null && block != null) {
       var composingLength = inputManager.composing?.text.length ?? 0;
       var inputPos =
-      max(0, (position.textPosition?.offset ?? 0) - composingLength);
+          max(0, (position.textPosition?.offset ?? 0) - composingLength);
       var inputRect = block.getCursorRect(TextPosition(offset: inputPos));
       if (inputRect == null) {
         return;
@@ -1084,7 +1092,7 @@ class WenzEditController with ChangeNotifier {
             .shift(visionOffset),
         getComposingRect()
             ?.shift(
-            Offset(padding.left, block.top - scrollOffset + padding.top))
+                Offset(padding.left, block.top - scrollOffset + padding.top))
             .shift(visionOffset),
       );
     }
@@ -1094,7 +1102,7 @@ class WenzEditController with ChangeNotifier {
     var composingLength = inputManager.composing?.text.length ?? 0;
     var position = cursorState.cursorPosition;
     var composingPos =
-    max(0, (position?.textPosition?.offset ?? 0) - composingLength);
+        max(0, (position?.textPosition?.offset ?? 0) - composingLength);
     var boxes = position?.block?.getBoxesForSelection(TextSelection(
         baseOffset: composingPos,
         extentOffset: composingPos + composingLength));
@@ -1213,9 +1221,11 @@ class WenzEditController with ChangeNotifier {
   }
 
   ///布局构建事件
-  void onLayoutBuild(BuildContext context,
-      BoxConstraints parentConstrains,
-      BoxConstraints constrains,) {
+  void onLayoutBuild(
+    BuildContext context,
+    BoxConstraints parentConstrains,
+    BoxConstraints constrains,
+  ) {
     viewContext = context;
     inputManager.context = context;
     for (var block in blockManager.blocks) {
@@ -1270,8 +1280,8 @@ class WenzEditController with ChangeNotifier {
     }
   }
 
-  void visitElement(WenzElementVisitor visitor, CursorPosition start,
-      CursorPosition end) {
+  void visitElement(
+      WenzElementVisitor visitor, CursorPosition start, CursorPosition end) {
     if (start.block! == end.block) {
       start.block!
           .visitElement(start.textPosition!, end.textPosition!, visitor);
@@ -1414,18 +1424,17 @@ class WenzEditController with ChangeNotifier {
     }
     showMobileDialog(
       context: viewContext,
-      builder: (context) =>
-          FutureProgressDialog(
-                () async {
-              for (var file in fileList) {
-                var stat = File(file).statSync();
-                if (stat.type == FileSystemEntityType.file) {
-                  await pasteImage(File(file).readAsBytesSync(),
-                      suffix: FileUtils.getFileSuffix(file));
-                }
-              }
-            }(),
-          ),
+      builder: (context) => FutureProgressDialog(
+        () async {
+          for (var file in fileList) {
+            var stat = File(file).statSync();
+            if (stat.type == FileSystemEntityType.file) {
+              await pasteImage(File(file).readAsBytesSync(),
+                  suffix: FileUtils.getFileSuffix(file));
+            }
+          }
+        }(),
+      ),
     );
   }
 
@@ -1618,15 +1627,12 @@ class WenzEditController with ChangeNotifier {
     } else {
       //上一行
       int pos = lineBoundary.start - 1;
-      var y = block
-          .getCursorRect(TextPosition(offset: pos))
-          ?.center
-          .dy;
+      var y = block.getCursorRect(TextPosition(offset: pos))?.center.dy;
       if (y == null) {
         return;
       }
       var upTextPosition =
-      block.getPositionForOffset(Offset(cursorRecord.recordWindowX, y))!;
+          block.getPositionForOffset(Offset(cursorRecord.recordWindowX, y))!;
       var upRect = block.getCursorRect(upTextPosition);
       toPosition(
           CursorPosition(
@@ -1667,7 +1673,7 @@ class WenzEditController with ChangeNotifier {
       }
       var nextBlock = blockManager.blocks[curIndex + 1];
       var nextBlockPosition =
-      nextBlock.getPositionForOffset(Offset(cursorRecord.recordWindowX, 0));
+          nextBlock.getPositionForOffset(Offset(cursorRecord.recordWindowX, 0));
       if (nextBlockPosition == null) {
         return;
       }
@@ -1682,15 +1688,12 @@ class WenzEditController with ChangeNotifier {
     } else {
       //下一行
       int pos = lineBoundary.end + 1;
-      var y = block
-          .getCursorRect(TextPosition(offset: pos))
-          ?.center
-          .dy;
+      var y = block.getCursorRect(TextPosition(offset: pos))?.center.dy;
       if (y == null) {
         return;
       }
       var nextTextPosition =
-      block.getPositionForOffset(Offset(cursorRecord.recordWindowX, y));
+          block.getPositionForOffset(Offset(cursorRecord.recordWindowX, y));
       if (nextTextPosition == null) {
         return;
       }
@@ -1837,8 +1840,8 @@ class WenzEditController with ChangeNotifier {
   }
 
   ///对指定的index的block进行布局，并且在布局后改变的大小进行锚block定位
-  void layoutBlock(WenzBlock anchorBlock, int startBlockIndex,
-      int endBlockIndex,
+  void layoutBlock(
+      WenzBlock anchorBlock, int startBlockIndex, int endBlockIndex,
       {bool jump = false}) {
     try {
       startBlockIndex = blockManager.getValidIndex(startBlockIndex);
@@ -1995,7 +1998,7 @@ class WenzEditController with ChangeNotifier {
       var end = selectState.realEnd;
       if (start!.block! == end!.block) {
         WenElement element =
-        start.block!.copyElement(start.textPosition!, end.textPosition!);
+            start.block!.copyElement(start.textPosition!, end.textPosition!);
         return element.getText();
       } else {
         String text = "";
@@ -2008,7 +2011,7 @@ class WenzEditController with ChangeNotifier {
           text += "\n" + blockManager.blocks[i].element.getText();
         }
         var endSub =
-        end.block!.copyElement(end.block!.startPosition, end.textPosition!);
+            end.block!.copyElement(end.block!.startPosition, end.textPosition!);
         text += "\n" + endSub.getText();
         return text;
       }
@@ -2183,7 +2186,7 @@ class WenzEditController with ChangeNotifier {
     if (pasteMarkdown) {
       var elements = await parseMarkdown(fileManager, text ?? "");
       var blocks =
-      elements.map((e) => createWenzBlock(viewContext, this, e)).toList();
+          elements.map((e) => createWenzBlock(viewContext, this, e)).toList();
       insertContent(blocks, null);
       record();
       return;
@@ -2193,8 +2196,7 @@ class WenzEditController with ChangeNotifier {
     if (html != null) {
       List<WenzBlock>? blocks = await showDialog(
           context: viewContext,
-          builder: (ctx) =>
-              FutureProgressDialog(
+          builder: (ctx) => FutureProgressDialog(
                 parseHtmlBlock(
                   editController: this,
                   copyService: copyService,
@@ -2259,7 +2261,8 @@ class WenzEditController with ChangeNotifier {
   }
 
   /// 粘贴图片
-  Future<void> pasteImage(Uint8List image, {
+  Future<void> pasteImage(
+    Uint8List image, {
     String suffix = ".png",
   }) async {
     var isImage = isValidImage(image_size.MemoryInput(image));
@@ -2994,9 +2997,7 @@ class WenzEditController with ChangeNotifier {
         toPosition(newCursorBlock.getCursorPosition(newCursorPosition), true);
       } else {
         if (cursorBlock.isEmpty) {
-          first.top = blockManager.blocks
-              .removeAt(blockIndex)
-              .top;
+          first.top = blockManager.blocks.removeAt(blockIndex).top;
           blockManager.blocks.insert(blockIndex, first);
           if (insertBlocks.isNotEmpty) {
             blockManager.blocks.insertAll(blockIndex + 1, insertBlocks);
@@ -3278,9 +3279,7 @@ class WenzEditController with ChangeNotifier {
         context: viewContext,
         builder: (context) {
           return Container(
-            padding: MediaQuery
-                .of(context)
-                .viewInsets,
+            padding: MediaQuery.of(context).viewInsets,
             child: AlertDialog(
               title: const Text("添加链接"),
               content: SizedBox(
@@ -3370,9 +3369,7 @@ class WenzEditController with ChangeNotifier {
         context: viewContext,
         builder: (context) {
           return Container(
-            padding: MediaQuery
-                .of(context)
-                .viewInsets,
+            padding: MediaQuery.of(context).viewInsets,
             child: AlertDialog(
               title: const Text("添加链接"),
               content: SizedBox(
@@ -3383,8 +3380,7 @@ class WenzEditController with ChangeNotifier {
                     Container(
                       margin: const EdgeInsets.only(bottom: 10, top: 10),
                       child: TextField(
-                        decoration: const InputDecoration(
-                            hintText: "请输入链接文字"),
+                        decoration: const InputDecoration(hintText: "请输入链接文字"),
                         onSubmitted: (inputText) {
                           ok = true;
                           Navigator.pop(context, '取消');
@@ -3456,13 +3452,13 @@ class WenzEditController with ChangeNotifier {
         insertContent([
           textElement.level == 0
               ? TextBlock(
-              editController: this,
-              context: viewContext,
-              textElement: linkElement)
+                  editController: this,
+                  context: viewContext,
+                  textElement: linkElement)
               : TitleBlock(
-              editController: this,
-              context: viewContext,
-              textElement: linkElement),
+                  editController: this,
+                  context: viewContext,
+                  textElement: linkElement),
         ], null);
         record();
       }
@@ -3778,9 +3774,7 @@ class WenzEditController with ChangeNotifier {
         return;
       }
       if (block is TableBaseCell) {
-        var table = TableBaseCell
-            .of(block)
-            .tableBlock;
+        var table = TableBaseCell.of(block).tableBlock;
         visitor.call(table, element);
         block.relayoutFlag = true;
       } else {
@@ -3889,8 +3883,8 @@ class WenzEditController with ChangeNotifier {
     });
   }
 
-  void onSystemInputText(TextEditingValue value,
-      TextRange? replaceRange) async {
+  void onSystemInputText(
+      TextEditingValue value, TextRange? replaceRange) async {
     if (!value.text.contains("\n")) {
       if (replaceRange != null) {
         if (!selectState.hasSelect) {
@@ -3901,7 +3895,7 @@ class WenzEditController with ChangeNotifier {
                 replaceRange.end +
                 replaceRange.start;
             var start =
-            block.getCursorPosition(TextPosition(offset: startOffset));
+                block.getCursorPosition(TextPosition(offset: startOffset));
             selectState.start = start;
             selectState.end = cursor;
           }
@@ -3945,8 +3939,8 @@ class WenzEditController with ChangeNotifier {
     return false;
   }
 
-  void onUpdateImageSize(ImageBlock block, double imageWidth,
-      double imageHeight) {
+  void onUpdateImageSize(
+      ImageBlock block, double imageWidth, double imageHeight) {
     record();
   }
 }

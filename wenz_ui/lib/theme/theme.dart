@@ -21,7 +21,7 @@ class AppColor {
   Color get surfaceContainerLowest =>
       themeData.colorScheme.surfaceContainerLowest;
 
-  Color get windowBorderColor => hintColor.withAlpha(20);
+  Color get windowBorderColor => splitColor;
 
   Color get dialogBorderColor => themeData.colorScheme.primary;
 

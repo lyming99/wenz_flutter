@@ -13,6 +13,7 @@ class TabItem<T> {
   TabWidgetBuilder? builder;
   double? titleWidth;
   T? data;
+  TextStyle? titleStyle;
 
   TabItem({
     required this.id,
@@ -21,22 +22,25 @@ class TabItem<T> {
     this.builder,
     this.title,
     this.titleWidth,
+    this.titleStyle,
   }) : key = ValueKey(id);
 
   Size measureTitleSize(BuildContext context) {
     final textPainter = TextPainter(
       text: TextSpan(
         text: title,
-        style: const TextStyle(),
+        style: titleStyle ?? const TextStyle(),
       ),
       textDirection: TextDirection.ltr,
     )
       ..layout();
 
-    return Size(
-      min(textPainter.width + 32.0, 180),
+    var size = Size(
+      min(textPainter.width + 54.0, 280),
       textPainter.height + 16.0,
     );
+    titleWidth = size.width;
+    return size;
   }
 
   Widget buildTitleWidget(BuildContext context, Color textColor) {

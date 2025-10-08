@@ -103,9 +103,9 @@ class SplitLayoutController extends MvcController {
     keepPrimary = splitLayout.keepPrimary;
     var position = this.position;
     if (position != 0) {
-      if(isHorizontal) {
+      if (isHorizontal) {
         position = min(viewWidth, position);
-      }else{
+      } else {
         position = min(viewHeight, position);
       }
     }
@@ -312,6 +312,23 @@ class SplitLayoutController extends MvcController {
     notifyListeners();
   }
 
+  void restoreSize() {
+    if (isHorizontal) {
+      if (position >= viewWidth - 10) {
+        position = primaryMinSize;
+      }
+    } else {
+      if (position >= viewHeight - 10) {
+        position = primaryMinSize;
+      }
+    }
+    if (position < 10) {
+      position = primaryMinSize;
+    }
+
+    notifyListeners();
+  }
+
   bool get isHorizontal => isHorizontalDirection(primaryPosition);
 }
 
@@ -326,13 +343,16 @@ class SplitLayout extends MvcView<SplitLayoutController> {
   final Color? splitColor;
   final bool keepPrimary;
   final bool isDrawerGesture;
+  final bool initPrimaryPosition;
   final Pane? onlyShowPosition;
+  final bool keepPositionOnChangeSize;
 
   const SplitLayout({
     super.key,
     required super.controller,
     required this.primary,
     required this.secondary,
+    this.onlyShowPosition,
     this.splitWidth = 8,
     this.primarySize = 0,
     this.primaryMinSize = 0,
@@ -341,18 +361,38 @@ class SplitLayout extends MvcView<SplitLayoutController> {
     this.splitColor,
     this.keepPrimary = false,
     this.isDrawerGesture = false,
-    this.onlyShowPosition,
+    this.initPrimaryPosition = true,
+    this.keepPositionOnChangeSize = false,
   });
 
   @override
   void onInitState() {
     super.onInitState();
-    controller.updatePosition(primarySize);
+    if (initPrimaryPosition) {
+      controller.updatePosition(primarySize);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(builder: (context, cons) {
+      if (keepPositionOnChangeSize) {
+        if (primaryPosition == PrimaryPosition.right ||
+            primaryPosition == PrimaryPosition.left) {
+          var newWidth = cons.maxWidth;
+          var oldWidth = controller.viewWidth;
+          if (oldWidth != 0) {
+            // newWidth/oldWidth = newPosition/oldPosition;
+            controller.position = (newWidth / oldWidth * controller.position);
+          }
+        } else {
+          var newHeight = cons.maxHeight;
+          var oldHeight = controller.viewHeight;
+          if (oldHeight != 0) {
+            controller.position = (newHeight / oldHeight * controller.position);
+          }
+        }
+      }
       controller.onBuildLayout(
         splitLayout: this,
         viewWidth: cons.maxWidth,
@@ -361,6 +401,19 @@ class SplitLayout extends MvcView<SplitLayoutController> {
       var primaryRect = controller.primaryRect;
       var secondaryRect = controller.secondaryRect;
       var splitRect = controller.splitRect;
+      if (onlyShowPosition != null) {
+        const unShowRect = Rect.fromLTWH(-1000, -1000, 800, 800);
+        if (Pane.primary == onlyShowPosition) {
+          primaryRect = Rect.fromLTWH(0, 0, cons.maxWidth, cons.maxHeight);
+          secondaryRect = unShowRect;
+          splitRect = unShowRect;
+        }
+        if (Pane.secondary == onlyShowPosition) {
+          secondaryRect = Rect.fromLTWH(0, 0, cons.maxWidth, cons.maxHeight);
+          primaryRect = unShowRect;
+          splitRect = unShowRect;
+        }
+      }
       return Stack(
         children: [
           buildAnimatedPositioned(
