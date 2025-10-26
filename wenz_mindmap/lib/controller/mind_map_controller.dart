@@ -589,9 +589,10 @@ class MindMapController with ChangeNotifier {
 
   void initTextStyle(BuildContext context) {
     var theme = Theme.of(context);
-    defaultTextStyle = theme.useMaterial3
-        ? theme.textTheme.bodyLarge!
-        : theme.textTheme.titleMedium!;
+    // defaultTextStyle = theme.useMaterial3
+    //     ? theme.textTheme.bodyLarge!
+    //     : theme.textTheme.titleMedium!;
+    defaultTextStyle = theme.textTheme.bodyMedium!;
   }
 
   void openChildNote(BuildContext context, String uuid, [MindNode? node]) {

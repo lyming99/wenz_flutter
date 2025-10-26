@@ -86,19 +86,37 @@ class _XMindNodeWidgetState extends State<XMindNodeWidget> {
 
   @override
   Widget build(BuildContext context) {
-    var textStyle = TextStyle(
-      color: controller.controller.document?.style?.getFontColor(
-        controller.node,
-      ),
-      fontSize: controller.controller.document?.style?.getFontSize(
-        controller.node,
-      ),
-      fontFamily: controller.controller.document?.style?.getFontFamily(
-        controller.node,
-      ),
-      height: 1.6,
-      letterSpacing: 0.5,
-    );
+    var dStyle = controller.controller.defaultTextStyle;
+    TextStyle textStyle;
+    if (dStyle != null) {
+      textStyle = dStyle.copyWith(
+        color: controller.controller.document?.style?.getFontColor(
+          controller.node,
+        ),
+        fontSize: controller.controller.document?.style?.getFontSize(
+          controller.node,
+        ),
+        fontFamily: controller.controller.document?.style?.getFontFamily(
+          controller.node,
+        ),
+      );
+    } else {
+      textStyle = TextStyle(
+        color: controller.controller.document?.style?.getFontColor(
+          controller.node,
+        ),
+        fontSize: controller.controller.document?.style?.getFontSize(
+          controller.node,
+        ),
+        fontFamily: controller.controller.document?.style?.getFontFamily(
+          controller.node,
+        ),
+        height: 1.6,
+        letterSpacing: 0.5,
+      );
+    }
+    // controller.controller.document?.style?;
+
     var padding = EdgeInsets.symmetric(
       horizontal:
           controller.controller.document?.style?.getHorizontalPadding(
@@ -347,7 +365,8 @@ class _XMindNodeWidgetState extends State<XMindNodeWidget> {
                       : buildTextNodeContent(textStyle),
                 ),
               ),
-              if (controller.hasChildInfo(context, controller.node)&&!controller.controller.isCaptureMode)
+              if (controller.hasChildInfo(context, controller.node) &&
+                  !controller.controller.isCaptureMode)
                 HoverDropDownMenu(
                   menuAlignment: MenuAlignment.right,
                   bubbleArrowEndOffset: 24,
