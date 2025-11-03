@@ -21,7 +21,8 @@ import 'package:wenz_editor/commons/service/copy_service.dart';
 import 'package:wenz_editor/commons/service/file_manager.dart';
 import 'package:wenz_editor/commons/util/file_utils.dart';
 import 'package:wenz_editor/commons/util/html/html.dart';
-import 'package:wenz_editor/commons/util/image.dart' hide readImageBytesSize, isValidImage, readImageFileSize;
+import 'package:wenz_editor/commons/util/image.dart'
+    hide readImageBytesSize, isValidImage, readImageFileSize;
 import 'package:wenz_editor/commons/util/image_utils.dart';
 import 'package:wenz_editor/commons/util/markdown/markdown.dart';
 import 'package:wenz_editor/commons/util/platform_util.dart';
@@ -2277,18 +2278,14 @@ class WenzEditController with ChangeNotifier {
     if (fileItem == null) {
       return;
     }
-    var imageFile = fileItem.path;
-    if (imageFile == null || imageFile.isEmpty) {
-      return;
-    }
-    var size = await readImageFileSize(File(imageFile));
+    var size = await readImageBytesSize(image);
     insertContent([
       ImageBlock(
           editController: this,
           context: viewContext,
           element: WenImageElement(
             id: fileItem.uuid!,
-            file: imageFile,
+            file: fileItem.path ?? "image.png",
             width: size.width,
             height: size.height,
           ))
