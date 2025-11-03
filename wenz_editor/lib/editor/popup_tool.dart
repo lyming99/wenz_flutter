@@ -1,8 +1,8 @@
 import 'dart:io';
 import 'dart:math';
-import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
+import 'package:wenz_ui/utils/index.dart';
 import 'package:flutter/material.dart';
 import 'package:wenz_editor/editor/block/text/text.dart';
 import 'package:wenz_editor/editor/cursor/cursor.dart';
@@ -45,7 +45,7 @@ class WenPopupTool {
           text: ("标题一"),
           keys: ["biaoti1", "bt1", "h1", "head1", "标题1", "title1", "t1"],
           description:
-              kIsWeb ? '' : (Platform.isMacOS ? "Command + 1" : "Ctrl + 1"),
+              kIsWeb ? '' : (PlatformUtils.isMacOS ? "Command + 1" : "Ctrl + 1"),
           callback: () {
             addTitle(1);
           },
@@ -54,7 +54,7 @@ class WenPopupTool {
           text: ("标题二"),
           keys: ["biaoti2", "bt2", "h2", "head2", "标题2", "title2", "t2"],
           description:
-              kIsWeb ? '' : (Platform.isMacOS ? "Command + 2" : "Ctrl + 2"),
+              kIsWeb ? '' : (PlatformUtils.isMacOS ? "Command + 2" : "Ctrl + 2"),
           callback: () {
             addTitle(2);
           },
@@ -63,7 +63,7 @@ class WenPopupTool {
           text: ("标题三"),
           keys: ["biaoti3", "bt3", "h3", "head3", "标题3", "title3", "t3"],
           description:
-              kIsWeb ? '' : (Platform.isMacOS ? "Command + 3" : "Ctrl + 3"),
+              kIsWeb ? '' : (PlatformUtils.isMacOS ? "Command + 3" : "Ctrl + 3"),
           callback: () {
             addTitle(3);
           },
@@ -72,7 +72,7 @@ class WenPopupTool {
           text: ("标题四"),
           keys: ["biaoti4", "bt4", "h4", "head4", "标题4", "title4", "t4"],
           description:
-              kIsWeb ? '' : (Platform.isMacOS ? "Command + 4" : "Ctrl + 4"),
+              kIsWeb ? '' : (PlatformUtils.isMacOS ? "Command + 4" : "Ctrl + 4"),
           callback: () {
             addTitle(4);
           },
@@ -81,7 +81,7 @@ class WenPopupTool {
           text: ("标题五"),
           keys: ["biaoti5", "bt5", "h5", "head5", "标题5", "title5", "t5"],
           description:
-              kIsWeb ? '' : (Platform.isMacOS ? "Command + 5" : "Ctrl + 5"),
+              kIsWeb ? '' : (PlatformUtils.isMacOS ? "Command + 5" : "Ctrl + 5"),
           callback: () {
             addTitle(5);
           },
@@ -90,7 +90,7 @@ class WenPopupTool {
           text: ("标题六"),
           keys: ["biaoti6", "bt6", "h6", "head6", "标题6", "title6", "t6"],
           description:
-              kIsWeb ? '' : (Platform.isMacOS ? "Command + 6" : "Ctrl + 6"),
+              kIsWeb ? '' : (PlatformUtils.isMacOS ? "Command + 6" : "Ctrl + 6"),
           callback: () {
             addTitle(6);
           },
@@ -99,7 +99,7 @@ class WenPopupTool {
           text: ("无序列表"),
           keys: ["wuxuliebiao", "wxlb", "li", "item"],
           description:
-              kIsWeb ? '' : (Platform.isMacOS ? "Command + I" : "Ctrl + I"),
+              kIsWeb ? '' : (PlatformUtils.isMacOS ? "Command + I" : "Ctrl + I"),
           callback: () {
             addItemType("li");
           },
@@ -108,7 +108,7 @@ class WenPopupTool {
           text: ("任务列表"),
           keys: ["renwuliebiao", "rwlb", "todo", "task", "check"],
           description:
-              kIsWeb ? '' : (Platform.isMacOS ? "Command + T" : "Ctrl + T"),
+              kIsWeb ? '' : (PlatformUtils.isMacOS ? "Command + T" : "Ctrl + T"),
           callback: () {
             addItemType("check");
           },
@@ -118,7 +118,7 @@ class WenPopupTool {
           keys: ["url", "lianjie", "lj", "href", "src", "link"],
           description: kIsWeb
               ? ''
-              : (Platform.isMacOS ? "Command + Shift + L" : "Ctrl + Shift + L"),
+              : (PlatformUtils.isMacOS ? "Command + Shift + L" : "Ctrl + Shift + L"),
           callback: () {
             addLink();
           },
@@ -127,7 +127,7 @@ class WenPopupTool {
           text: ("引用"),
           keys: ["yinyong", "yy", "quote", "mark"],
           description:
-              kIsWeb ? '' : (Platform.isMacOS ? "Command + 8" : "Ctrl + 8"),
+              kIsWeb ? '' : (PlatformUtils.isMacOS ? "Command + 8" : "Ctrl + 8"),
           callback: () {
             addQuote();
           },
@@ -136,7 +136,7 @@ class WenPopupTool {
           text: ("公式"),
           keys: ["formula", "gs", "gongshi"],
           description:
-              kIsWeb ? '' : (Platform.isMacOS ? "Command + 9" : "Ctrl + 9"),
+              kIsWeb ? '' : (PlatformUtils.isMacOS ? "Command + 9" : "Ctrl + 9"),
           callback: () {
             addFormula();
           },
@@ -146,7 +146,7 @@ class WenPopupTool {
           keys: ["code", "daimakuai", "dm"],
           description: kIsWeb
               ? ''
-              : (Platform.isMacOS ? "Command + Alt + K" : "Ctrl + Alt + K"),
+              : (PlatformUtils.isMacOS ? "Command + Alt + K" : "Ctrl + Alt + K"),
           callback: () {
             addCode();
           },
@@ -156,7 +156,7 @@ class WenPopupTool {
           keys: ["table", "bg", "biaoge"],
           description: kIsWeb
               ? ''
-              : (Platform.isMacOS ? "Command + Shift + T" : "Ctrl + Shift + T"),
+              : (PlatformUtils.isMacOS ? "Command + Shift + T" : "Ctrl + Shift + T"),
           callback: () {
             addTable();
           },

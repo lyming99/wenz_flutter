@@ -3,6 +3,7 @@ import 'dart:io';
 import "dart:ui" as ui show ImageByteFormat;
 
 import 'package:dio/dio.dart';
+import 'package:wenz_ui/utils/index.dart' hide readImageSize;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:image_size_getter/image_size_getter.dart';
@@ -72,7 +73,7 @@ class WenzAssetsFileManager extends WenzAssetsFileProvider {
     // - `NSDocumentDirectory` on iOS and macOS.
     // - The Flutter engine's `PathUtils.getDataDirectory` API on Android.
     var document = (await getApplicationDocumentsDirectory()).path;
-    if (Platform.isMacOS) {
+    if (PlatformUtils.isMacOS) {
       await Directory("$document/WenzDoc").create(recursive: true);
       return "$document/WenzDoc";
     }

@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:wenz_editor/editor/edit_controller.dart';
+import 'package:wenz_ui/utils/index.dart';
 
 import '../widget/drop_menu.dart';
 
@@ -270,7 +271,7 @@ class MenuUtils {
               ),
             ),
             description: Text(
-              Platform.isMacOS ? "Command + Z" : "Ctrl + Z",
+              PlatformUtils.isMacOS ? "Command + Z" : "Ctrl + Z",
               style: editController.canUndo
                   ? null
                   : TextStyle(
@@ -300,7 +301,7 @@ class MenuUtils {
               ),
             ),
             description: Text(
-              Platform.isMacOS ? "Command + Y" : "Ctrl + Y",
+              PlatformUtils.isMacOS ? "Command + Y" : "Ctrl + Y",
               style: editController.canRedo
                   ? null
                   : TextStyle(
@@ -322,7 +323,7 @@ class MenuUtils {
               ),
               child: Text("上方添加段"),
             ),
-            description: Text(Platform.isMacOS
+            description: Text(PlatformUtils.isMacOS
                 ? "Command + Shift + Enter"
                 : "Ctrl + Shift + Enter"),
             onPress: (ctx) {
@@ -338,7 +339,7 @@ class MenuUtils {
               child: Text("下方添加段"),
             ),
             description:
-                Text(Platform.isMacOS ? "Command + Enter" : "Ctrl + Enter"),
+                Text(PlatformUtils.isMacOS ? "Command + Enter" : "Ctrl + Enter"),
             onPress: (ctx) {
               editController.addTextBlock();
               hideDropMenu(ctx);

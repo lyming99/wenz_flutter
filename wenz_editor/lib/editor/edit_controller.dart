@@ -5,6 +5,7 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:flutter/foundation.dart';
+import 'package:wenz_ui/utils/index.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
@@ -20,7 +21,7 @@ import 'package:wenz_editor/commons/service/copy_service.dart';
 import 'package:wenz_editor/commons/service/file_manager.dart';
 import 'package:wenz_editor/commons/util/file_utils.dart';
 import 'package:wenz_editor/commons/util/html/html.dart';
-import 'package:wenz_editor/commons/util/image.dart';
+import 'package:wenz_editor/commons/util/image.dart' hide readImageBytesSize, isValidImage, readImageFileSize;
 import 'package:wenz_editor/commons/util/image_utils.dart';
 import 'package:wenz_editor/commons/util/markdown/markdown.dart';
 import 'package:wenz_editor/commons/util/platform_util.dart';
@@ -1068,7 +1069,7 @@ class WenzEditController with ChangeNotifier {
   void updateInputMethodWindowPosition() {
     if (!(kIsWeb ||
         Platform.isLinux ||
-        Platform.isMacOS ||
+        PlatformUtils.isMacOS ||
         Platform.isWindows)) {
       return;
     }
