@@ -27,6 +27,7 @@ class MindNodeInfo {
   String? note;
 
   String? linkTitle;
+  String? wenzLink;
 
   String? image;
   int? imageWidth;
@@ -62,6 +63,7 @@ class MindNodeInfo {
     this.isTodo,
     this.linkTitle,
     this.note,
+    this.wenzLink,
     this.image,
     this.imageWidth,
     this.imageHeight,
@@ -91,6 +93,7 @@ class MindNodeInfo {
     double? padding,
     double? margin,
     String? link,
+    String? wenzLink,
     bool? expand,
     double? rootX,
     double? rootY,
@@ -124,6 +127,7 @@ class MindNodeInfo {
       padding: padding ?? this.padding,
       margin: margin ?? this.margin,
       link: link ?? this.link,
+      wenzLink: wenzLink ?? this.wenzLink,
       expand: expand ?? this.expand,
       rootX: rootX ?? this.rootX,
       rootY: rootY ?? this.rootY,
@@ -160,6 +164,7 @@ class MindNodeInfo {
       padding: json['padding']?.toDouble(),
       margin: json['margin']?.toDouble(),
       link: json['link'] as String?,
+      wenzLink: json['wenzLink'] as String?,
       expand: json['expand'] as bool?,
       rootX: json['rootX']?.toDouble(),
       rootY: json['rootY']?.toDouble(),
@@ -196,6 +201,7 @@ class MindNodeInfo {
       'padding': padding,
       'margin': margin,
       'link': link,
+      'wenzLink': wenzLink,
       'expand': expand,
       'rootX': rootX,
       'rootY': rootY,

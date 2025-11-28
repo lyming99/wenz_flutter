@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:math';
+import 'dart:nativewrappers/_internal/vm/lib/ffi_allocation_patch.dart';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -25,12 +26,15 @@ Widget defaultBuilder(BuildContext context, NodeEditController controller) {
   );
 }
 
+typedef OnNodeClick = void Function(MindNode node);
+
 class MindMap extends StatefulWidget {
   final MindMapController controller;
   final NodeContentBuilder? nodeContentBuilder;
   final Color selectBorderColor;
   final Color unSelectBorderColor;
   final MindStyle style;
+  final OnNodeClick? onNodeClick;
 
   const MindMap({
     super.key,
@@ -39,6 +43,7 @@ class MindMap extends StatefulWidget {
     this.selectBorderColor = Colors.red,
     this.unSelectBorderColor = Colors.transparent,
     this.nodeContentBuilder = defaultBuilder,
+    this.onNodeClick,
   });
 
   @override
@@ -635,6 +640,7 @@ class MindMapState extends State<MindMap> {
             if (noteList.isNotEmpty) {
               controller.openChildNote(context, noteList.first, node);
             }
+            widget.onNodeClick?.call(node);
           },
           onChanged: (value) {
             controller.updateNodeLabel(node, value);

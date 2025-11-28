@@ -125,10 +125,7 @@ class MindMapController with ChangeNotifier {
 
   void addNext([MindNode? selectNode]) {
     selectNode ??= selectState.selectNode;
-    var newNode = MindNode(
-      info: MindNodeInfo(),
-    )
-      ..editing = true;
+    var newNode = MindNode(info: MindNodeInfo())..editing = true;
     if (selectNode?.isRoot == true) {
       selectNode?.addNodeToChildren(newNode);
     } else {
@@ -148,10 +145,7 @@ class MindMapController with ChangeNotifier {
 
   void addChild([MindNode? selectNode]) {
     selectNode ??= selectState.selectNode;
-    var newNode = MindNode(
-      info: MindNodeInfo(),
-    )
-      ..editing = true;
+    var newNode = MindNode(info: MindNodeInfo())..editing = true;
     selectNode?.addNodeToChildren(newNode);
     selectState.selectNode?.closeEdit();
     selectState.selectNode?.expand = true;
@@ -242,10 +236,7 @@ class MindMapController with ChangeNotifier {
       });
       var oldInfoList = oldNodeInfo[i];
       updateList.add(
-        UpdateInfo(
-          oldInfo: oldInfoList,
-          newInfo: root.getNodeInfoList(),
-        ),
+        UpdateInfo(oldInfo: oldInfoList, newInfo: root.getNodeInfoList()),
       );
     }
     undoManager.onDragMove(updateList);
@@ -261,10 +252,7 @@ class MindMapController with ChangeNotifier {
     node.toggleExpanded();
     var newInfo = node.createNodeInfo();
     undoManager.onUpdateNode(
-      UpdateInfo(
-        oldInfo: [oldInfo],
-        newInfo: [newInfo],
-      ),
+      UpdateInfo(oldInfo: [oldInfo], newInfo: [newInfo]),
     );
     layout();
     fireOnChange();
@@ -287,17 +275,14 @@ class MindMapController with ChangeNotifier {
   }
 
   void addLink(String title, String url, [MindNode? node]) {
-    updateSelectNodeInfo(
-          (node) {
-        node.setLink(title, url);
-      },
-      currentNode: node,
-    );
+    updateSelectNodeInfo((node) {
+      node.setLink(title, url);
+    }, currentNode: node);
   }
 
   void updateImageShowSize(double dx, double dy, [MindNode? node]) {
     updateSelectNodeInfo(
-          (node) {
+      (node) {
         node.updateImageSize(dx, dy);
       },
       currentNode: node,
@@ -309,10 +294,10 @@ class MindMapController with ChangeNotifier {
     var nodes = node != null
         ? [node]
         : (selectState.selectNodes.isNotEmpty
-        ? selectState.selectNodes
-        : <MindNode>[
-      if (selectState.selectNode != null) selectState.selectNode!
-    ]);
+              ? selectState.selectNodes
+              : <MindNode>[
+                  if (selectState.selectNode != null) selectState.selectNode!,
+                ]);
     return nodes.firstOrNull;
   }
 
@@ -320,10 +305,10 @@ class MindMapController with ChangeNotifier {
     var nodes = node != null
         ? [node]
         : (selectState.selectNodes.isNotEmpty
-        ? selectState.selectNodes
-        : <MindNode>[
-      if (selectState.selectNode != null) selectState.selectNode!
-    ]);
+              ? selectState.selectNodes
+              : <MindNode>[
+                  if (selectState.selectNode != null) selectState.selectNode!,
+                ]);
     if (nodes.isEmpty) {
       return false;
     }
@@ -331,81 +316,72 @@ class MindMapController with ChangeNotifier {
   }
 
   void addTodo([MindNode? node]) {
-    updateSelectNodeInfo(
-          (node) {
-        node.setTodo(true);
-      },
-      currentNode: node,
-    );
+    updateSelectNodeInfo((node) {
+      node.setTodo(true);
+    }, currentNode: node);
   }
 
   void toggleTodo([MindNode? node]) {
     bool value = !isSelectAllTodo(node);
-    updateSelectNodeInfo(
-          (node) {
-        node.setTodo(value);
-      },
-      currentNode: node,
-    );
+    updateSelectNodeInfo((node) {
+      node.setTodo(value);
+    }, currentNode: node);
   }
 
-  void addImage(BuildContext context, String imageId, ImageSize size,
-      [MindNode? node]) {
-    updateSelectNodeInfo(
-          (node) {
-        node.setImage(context, imageId, size);
-      },
-      currentNode: node,
-    );
+  void addImage(
+    BuildContext context,
+    String imageId,
+    ImageSize size, [
+    MindNode? node,
+  ]) {
+    updateSelectNodeInfo((node) {
+      node.setImage(context, imageId, size);
+    }, currentNode: node);
   }
 
-  void addFormula(String formula, double width, double height,
-      [MindNode? node]) {
-    updateSelectNodeInfo(
-          (node) {
-        node.setFormula(formula, width, height);
-      },
-      currentNode: node,
-    );
+  void addFormula(
+    String formula,
+    double width,
+    double height, [
+    MindNode? node,
+  ]) {
+    updateSelectNodeInfo((node) {
+      node.setFormula(formula, width, height);
+    }, currentNode: node);
+  }
+
+  void addWenzLink(String linkId, [MindNode? node]) {
+    updateSelectNodeInfo((node) {
+      node.setWenzLink(linkId);
+    }, currentNode: node);
   }
 
   void removeTodo([MindNode? node]) {
-    updateSelectNodeInfo(
-          (node) {
-        node.setTodo(null);
-      },
-      currentNode: node,
-    );
+    updateSelectNodeInfo((node) {
+      node.setTodo(null);
+    }, currentNode: node);
   }
 
   void removeLink([MindNode? node]) {
-    updateSelectNodeInfo(
-          (node) {
-        node.removeLink();
-      },
-      currentNode: node,
-    );
+    updateSelectNodeInfo((node) {
+      node.removeLink();
+    }, currentNode: node);
   }
 
   void removeNote([MindNode? node, String? uuid]) {
-    updateSelectNodeInfo(
-          (node) {
-        node.removeNote(uuid);
-      },
-      currentNode: node,
-    );
+    updateSelectNodeInfo((node) {
+      node.removeNote(uuid);
+    }, currentNode: node);
   }
 
   void setChecked(MindNode node, bool? value) {
-    updateSelectNodeInfo(
-          (node) {
-        node.setChecked(value);
-      },
-      currentNode: node,
-    );
+    updateSelectNodeInfo((node) {
+      node.setChecked(value);
+    }, currentNode: node);
   }
 
-  void updateSelectNodeInfo(Function(MindNode) update, {
+  void updateSelectNodeInfo(
+    Function(MindNode) update, {
     MindNode? currentNode,
     bool isUndoAction = true,
   }) {
@@ -414,10 +390,10 @@ class MindMapController with ChangeNotifier {
     var nodes = currentNode != null
         ? [currentNode]
         : (selectState.selectNodes.isNotEmpty
-        ? selectState.selectNodes
-        : <MindNode>[
-      if (selectState.selectNode != null) selectState.selectNode!
-    ]);
+              ? selectState.selectNodes
+              : <MindNode>[
+                  if (selectState.selectNode != null) selectState.selectNode!,
+                ]);
     for (var item in nodes) {
       oldInfo.add(item.createNodeInfo());
       update.call(item);
@@ -494,8 +470,11 @@ class MindMapController with ChangeNotifier {
     selectState.selectNode?.closeEdit();
   }
 
-  void setContent(MindDocument content, MindMapStateHolder? stateHolder,
-      [bool init = false]) {
+  void setContent(
+    MindDocument content,
+    MindMapStateHolder? stateHolder, [
+    bool init = false,
+  ]) {
     if (stateHolder != null) {
       this.stateHolder = stateHolder;
     }
@@ -526,10 +505,7 @@ class MindMapController with ChangeNotifier {
   }
 
   MindDocument getContent() {
-    var res = MindDocument(
-      docId: document?.docId,
-      noteId: document?.noteId,
-    );
+    var res = MindDocument(docId: document?.docId, noteId: document?.noteId);
     res.primaryRootId = root.uuid;
     res.nodes = [];
     res.xScrollOffset = scrollState.xOffset?.pixels;
@@ -576,7 +552,7 @@ class MindMapController with ChangeNotifier {
     var style = document?.style;
     var newSize =
         style?.getNodeSize(node, defaultTextStyle: defaultTextStyle) ??
-            node.measureWidgetSize();
+        node.measureWidgetSize();
     var oldWidth = node.info?.width;
     var oldHeight = node.info?.height;
     if (oldWidth != newSize.width || oldHeight != newSize.height) {
@@ -657,9 +633,7 @@ class MindMapController with ChangeNotifier {
       return result;
     }
 
-    var dpr = MediaQuery
-        .of(context)
-        .devicePixelRatio;
+    var dpr = MediaQuery.of(context).devicePixelRatio;
     var image = await Pasteboard.image;
     if (image != null) {
       var imageFile = await fileManager?.writeImage(image);
@@ -710,9 +684,7 @@ class MindMapController with ChangeNotifier {
   }
 
   static MindMapController? of(BuildContext context) {
-    return context
-        .findAncestorStateOfType<MindMapState>()
-        ?.controller;
+    return context.findAncestorStateOfType<MindMapState>()?.controller;
   }
 
   void clearSelects() {

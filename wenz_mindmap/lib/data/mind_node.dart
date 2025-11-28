@@ -1114,6 +1114,12 @@ class MindNode with ChangeNotifier {
     notifyListeners();
   }
 
+  void setWenzLink(String linkId){
+    info?.wenzLink = linkId;
+    markNeedLayout();
+    notifyListeners();
+  }
+
   void updateTapSelected(bool selected) {
     tapSelected = selected;
     notifyListeners();
