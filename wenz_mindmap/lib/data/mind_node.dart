@@ -426,6 +426,8 @@ class MindNode with ChangeNotifier {
 
   bool get isTodo => info?.isTodo == true;
 
+  bool get isWenzLink => info?.wenzLink != null && info!.wenzLink!.isNotEmpty;
+
   bool get hasSuffix => hasLink || hasNote;
 
   bool get hasLink => info?.link != null;
@@ -1114,7 +1116,7 @@ class MindNode with ChangeNotifier {
     notifyListeners();
   }
 
-  void setWenzLink(String linkId){
+  void setWenzLink(String linkId) {
     info?.wenzLink = linkId;
     markNeedLayout();
     notifyListeners();

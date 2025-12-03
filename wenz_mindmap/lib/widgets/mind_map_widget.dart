@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:math';
-import 'dart:nativewrappers/_internal/vm/lib/ffi_allocation_patch.dart';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -12,7 +11,6 @@ import 'package:wenz_ui/drag/index.dart';
 import 'package:wenz_ui/scroll/two_direction_scrollable.dart';
 import 'package:wenz_ui/utils/device_util.dart';
 import 'package:wenz_ui/utils/mvc.dart';
-import 'package:wenz_editor/commons/service/file_manager.dart';
 import 'package:wenz_editor/commons/util/image.dart';
 import 'package:wenz_editor/commons/widget/ignore_parent_pointer.dart';
 import 'package:wenz_editor/editor/widget/drag_resize_container.dart';

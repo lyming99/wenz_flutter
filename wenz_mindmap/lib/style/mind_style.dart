@@ -49,27 +49,43 @@ abstract class MindStyle {
       var imageWidth = node.info?.imageShowWidth ?? 0;
       var imageHeight = node.info?.imageShowHeight ?? 0;
       widgetSize = getWithBorderSize(
-          node,
-          Size(widgetSize.width + imageWidth,
-              max(imageHeight, widgetSize.height)));
+        node,
+        Size(
+          widgetSize.width + imageWidth,
+          max(imageHeight, widgetSize.height),
+        ),
+      );
     } else if (node.isFormula) {
       var formulaWidth = node.info?.formulaWidth ?? 0;
       var formulaHeight = node.info?.formulaHeight ?? 0;
       widgetSize = getWithBorderSize(
-          node,
-          Size(widgetSize.width + formulaWidth,
-              max(formulaHeight, widgetSize.height)));
+        node,
+        Size(
+          widgetSize.width + formulaWidth,
+          max(formulaHeight, widgetSize.height),
+        ),
+      );
     } else {
       widgetSize = getTextSize(node, defaultTextStyle);
     }
     Size buttonSize = getIconButtonSize(node);
     if (node.hasLink || node.hasNote) {
-      widgetSize = Size(widgetSize.width + buttonSize.width,
-          max(buttonSize.height, widgetSize.height));
+      widgetSize = Size(
+        widgetSize.width + buttonSize.width,
+        max(buttonSize.height, widgetSize.height),
+      );
     }
     if (node.isTodo) {
-      widgetSize = Size(widgetSize.width + buttonSize.width,
-          max(buttonSize.height, widgetSize.height));
+      widgetSize = Size(
+        widgetSize.width + buttonSize.width,
+        max(buttonSize.height, widgetSize.height),
+      );
+    }
+    if (node.isWenzLink) {
+      widgetSize = Size(
+        widgetSize.width + buttonSize.width,
+        max(buttonSize.height, widgetSize.height),
+      );
     }
     // link、 待办、 formula、image、note
     node.info?.width = widgetSize.width;
@@ -78,7 +94,7 @@ abstract class MindStyle {
   }
 
   Size getIconButtonSize(MindNode node) {
-    return const Size(40, 40);
+    return const Size(32, 32);
   }
 
   Size getTextSize(MindNode node, TextStyle? defaultTextStyle) {
@@ -90,10 +106,7 @@ abstract class MindStyle {
       textStyle = defaultTextStyle.merge(textStyle);
     }
     var painter = TextPainter(
-      text: TextSpan(
-        text: node.info?.content,
-        style: textStyle,
-      ),
+      text: TextSpan(text: node.info?.content, style: textStyle),
       maxLines: 1,
       textDirection: TextDirection.ltr,
     )..layout();
@@ -113,10 +126,7 @@ abstract class MindStyle {
     var borderWidth =
         getBorderWidth(node) + selectBorderWidth * 2 + getMargin(node) + 1;
     return Size(
-      max(
-        60,
-        size.width + getHorizontalPadding(node) * 2 + borderWidth * 2,
-      ),
+      max(60, size.width + getHorizontalPadding(node) * 2 + borderWidth * 2),
       size.height + getVerticalPadding(node) * 2 + borderWidth * 2,
     );
   }
@@ -126,18 +136,18 @@ abstract class MindStyle {
     if (parent == null) {
       return null;
     }
-    var start = (parent.widgetPosition & parent.widgetSize)
-        .centerRight
+    var start = (parent.widgetPosition & parent.widgetSize).centerRight
         .translate(offset.dx, offset.dy);
-    var end = (node.widgetPosition & node.widgetSize)
-        .centerLeft
-        .translate(offset.dx, offset.dy);
+    var end = (node.widgetPosition & node.widgetSize).centerLeft.translate(
+      offset.dx,
+      offset.dy,
+    );
     var borderWidth =
         getBorderWidth(node) + selectBorderWidth + getMargin(node);
     return LinePath(
       scale: scale,
-      start: start.translate(-borderWidth*scale, 0),
-      end: end.translate(borderWidth*scale, 0),
+      start: start.translate(-borderWidth * scale, 0),
+      end: end.translate(borderWidth * scale, 0),
       node: node,
     );
   }
@@ -174,9 +184,7 @@ abstract class MindStyle {
             child: FittedBox(
               child: SizedBox(
                 width: (78 + 64),
-                child: NodeToolWidget(
-                  node: element,
-                ),
+                child: NodeToolWidget(node: element),
               ),
             ),
           ),

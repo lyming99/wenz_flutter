@@ -699,4 +699,8 @@ class MindMapController with ChangeNotifier {
     await stateHolder?.writeState(document);
     onChanged?.call();
   }
+
+  double getIconSize(MindNode node) {
+    return document?.style?.getIconButtonSize(node).width ?? 32;
+  }
 }

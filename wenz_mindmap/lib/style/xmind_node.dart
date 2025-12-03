@@ -326,6 +326,7 @@ class _XMindNodeWidgetState extends State<XMindNodeWidget> {
       controller.node,
     );
     var isChecked = controller.node.info?.isChecked ?? false;
+    var iconSize = controller.controller.getIconSize(controller.node);
     return Builder(
       builder: (context) {
         nodeChildContext = context;
@@ -339,8 +340,8 @@ class _XMindNodeWidgetState extends State<XMindNodeWidget> {
             children: [
               if (controller.node.info?.isTodo ?? false)
                 SizedBox(
-                  width: 32,
-                  height: 32,
+                  width: iconSize,
+                  height: iconSize,
                   child: Checkbox(
                     checkColor: isChecked ? Colors.white : iconColor,
                     activeColor: iconColor,
@@ -354,6 +355,12 @@ class _XMindNodeWidgetState extends State<XMindNodeWidget> {
                       controller.controller.setChecked(controller.node, value);
                     },
                   ),
+                ),
+              if (controller.node.isWenzLink)
+                SizedBox(
+                  width: iconSize,
+                  height: iconSize,
+                  child: Icon(Icons.all_inclusive, color: iconColor),
                 ),
               Expanded(
                 child: Padding(
