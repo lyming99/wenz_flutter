@@ -21,8 +21,7 @@ class MobileToolbarController extends MvcController {
 
   void showBottomPane(BuildContext context, int index) {
     bottomIndex.value = index;
-    var keyboardHeight = View.of(context).viewInsets.bottom /
-        MediaQuery.of(context).devicePixelRatio;
+    var keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
     if (keyboardHeight == 0) {
       return;
     }
@@ -86,7 +85,7 @@ class MobileToolbar extends MvcView<MobileToolbarController> {
                 ],
               );
               var currentKeyboardHeight =
-                  viewInsets.bottom / MediaQuery.of(context).devicePixelRatio;
+                  viewInsets.bottom ;
               var keyboardHeight = currentKeyboardHeight;
               bool isKeyboardOpen = viewInsets.bottom > 0;
               if (keyboardHeight >= controller.keyboardHeight &&
@@ -97,6 +96,9 @@ class MobileToolbar extends MvcView<MobileToolbarController> {
               double toolHeight = controller.isShowBottomPane || isKeyboardOpen
                   ? keyboardHeight + 48
                   : 0;
+
+              var caonimaPadding = MediaQuery.of(context).padding.bottom;
+              var caonimaBottom = MediaQuery.of(context).viewInsets.bottom;
               return Column(
                 children: [
                   Expanded(child: child),

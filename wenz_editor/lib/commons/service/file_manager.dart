@@ -41,7 +41,7 @@ class WenzAssetsFileManager extends WenzAssetsFileProvider {
     );
     File(filepath).copySync(savePath);
     uploadFile(id, savePath);
-    return WenzAssetsFile(path: filepath, uuid: id);
+    return WenzAssetsFile(path: savePath, uuid: id);
   }
 
   Future<String> _getOldImageFile(String? id) async {
@@ -252,7 +252,9 @@ class WenzAssetsFileManager extends WenzAssetsFileProvider {
       }
     } else {
       if (File(urlOrPath).existsSync()) {
-        return _copyFile(urlOrPath);
+        var fileSize = File(urlOrPath).lengthSync();
+        var ret =  _copyFile(urlOrPath);
+        return ret;
       }
     }
     return null;

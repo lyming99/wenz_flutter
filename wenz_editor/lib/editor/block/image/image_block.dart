@@ -81,6 +81,20 @@ class ImageBlock extends WenzBlock {
     }
     var alignment = calcAlignment();
     var offsetX = calcIndentWidth();
+    ImageProvider provider = MultiSourceFileImage(
+        imageId: element.id,
+        reader: (id) async {
+          try {
+            var bytes = await editController.fileManager.readFile(id);
+            if (bytes != null) {
+              return bytes;
+            }
+            return Uint8List(0);
+          } catch (e) {
+            print(e);
+            return Uint8List(0);
+          }
+        });
     return Container(
       padding: offsetX > 0 ? EdgeInsets.only(left: offsetX) : null,
       height: height,
@@ -103,30 +117,17 @@ class ImageBlock extends WenzBlock {
                   colorBlendMode: isSelected ? BlendMode.darken : null,
                   width: element.width.toDouble(),
                   height: element.height.toDouble(),
-                  placeholderBuilder: (context) => Container(
-                    color: Colors.black.withOpacity(0.6),
-                    child: Center(
-                      child: SizedBox(
-                        width: min(100, min(width, height)),
-                        height: min(100, min(width, height)),
+                  placeholderBuilder: (context) =>
+                      Container(
+                        color: Colors.black.withOpacity(0.6),
+                        child: Center(
+                          child: SizedBox(
+                            width: min(100, min(width, height)),
+                            height: min(100, min(width, height)),
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                  image: MultiSourceFileImage(
-                      imageId: element.id,
-                      reader: (id) async {
-                        try {
-                          var bytes =
-                              await editController.fileManager.readFile(id);
-                          if (bytes != null) {
-                            return bytes;
-                          }
-                          return Uint8List(0);
-                        } catch (e) {
-                          print(e);
-                          return Uint8List(0);
-                        }
-                      }),
+                  image: provider,
                 ),
               ),
             ),
@@ -139,7 +140,8 @@ class ImageBlock extends WenzBlock {
   Future<Uint8List> createImageData(Color color) async {
     final recorder = ui.PictureRecorder();
     final canvas = Canvas(recorder);
-    final paint = Paint()..color = color;
+    final paint = Paint()
+      ..color = color;
     canvas.drawOval(const Rect.fromLTWH(0, 0, 200, 200), paint);
     final picture = recorder.endRecording();
     final image = await picture.toImage(200, 200);
@@ -150,7 +152,7 @@ class ImageBlock extends WenzBlock {
   Future<void> showImageViewerModal(BuildContext context) async {
     var controller = ModalController.of(context);
     await controller?.showModal(
-      (ctx) {
+          (ctx) {
         return GestureDetector(
           onTap: () {
             controller.pop();
@@ -166,21 +168,22 @@ class ImageBlock extends WenzBlock {
                 child: OctoImage(
                   // width: element.width.toDouble(),
                   // height: element.height.toDouble(),
-                  placeholderBuilder: (context) => Container(
-                    color: Colors.black.withOpacity(0.6),
-                    child: Center(
-                      child: Container(
-                        width: min(100, min(width, height)),
-                        height: min(100, min(width, height)),
-                        child: CircularProgressIndicator(),
+                  placeholderBuilder: (context) =>
+                      Container(
+                        color: Colors.black.withOpacity(0.6),
+                        child: Center(
+                          child: Container(
+                            width: min(100, min(width, height)),
+                            height: min(100, min(width, height)),
+                            child: CircularProgressIndicator(),
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
                   image: MultiSourceFileImage(
                       imageId: element.id,
                       reader: (id) async {
                         var fileInfo =
-                            await editController.fileManager.getFileInfo(id);
+                        await editController.fileManager.getFileInfo(id);
                         var imageFile = fileInfo?.path;
                         if (imageFile == null || imageFile.isEmpty) {
                           return Uint8List(0);
@@ -331,8 +334,8 @@ class ImageBlock extends WenzBlock {
   }
 
   @override
-  void visitElement(
-      TextPosition start, TextPosition end, WenzElementVisitor visit) {
+  void visitElement(TextPosition start, TextPosition end,
+      WenzElementVisitor visit) {
     if (start.offset == 0 && end.offset == 1) {
       visit.call(this, element);
     }
@@ -391,7 +394,8 @@ class ImageBlock extends WenzBlock {
     await editController.copyService.saveCopyCache([element]);
     String html = "<!DOCTYPE html>\n"
         "<html>\n<head>\n"
-        "<meta charset=\"utf-8\"></meta></head><body copyid='${editController.copyService.copyId}'>";
+        "<meta charset=\"utf-8\"></meta></head><body copyid='${editController
+        .copyService.copyId}'>";
     html += element.getHtml();
     html += "</body></html>";
     // RichClipboard.setData(
@@ -420,8 +424,13 @@ class ImageBlock extends WenzBlock {
       }
 
       // 获取文件名和扩展名
-      String fileName = imageFile.split(Platform.pathSeparator).last;
-      String ext = fileName.split('.').last.toLowerCase();
+      String fileName = imageFile
+          .split(Platform.pathSeparator)
+          .last;
+      String ext = fileName
+          .split('.')
+          .last
+          .toLowerCase();
 
       // 读取文件内容
       Uint8List bytes = await File(imageFile).readAsBytes();
@@ -440,7 +449,7 @@ class ImageBlock extends WenzBlock {
           mimeType = MimeType.gif;
           break;
         case 'webp':
-          // file_saver 包可能不直接支持 webp 类型，使用其他类型
+        // file_saver 包可能不直接支持 webp 类型，使用其他类型
           mimeType = MimeType.other;
           break;
         default:
@@ -449,7 +458,9 @@ class ImageBlock extends WenzBlock {
 
       // 使用系统对话框选择保存位置
       String? result = await FileSaver.instance.saveFile(
-        name: fileName.split('.').first, // 不包含扩展名的文件名
+        name: fileName
+            .split('.')
+            .first, // 不包含扩展名的文件名
         bytes: bytes,
         ext: ext,
         mimeType: mimeType,
@@ -461,7 +472,10 @@ class ImageBlock extends WenzBlock {
         BotToast.showText(text: "保存已取消");
       }
     } catch (e) {
-      BotToast.showText(text: "保存失败: ${e.toString().split('\n').first}");
+      BotToast.showText(text: "保存失败: ${e
+          .toString()
+          .split('\n')
+          .first}");
       print("Save image error: $e");
     }
   }
@@ -500,7 +514,8 @@ class ImageBlock extends WenzBlock {
               ),
               title: Text("图片信息"),
               content: SelectableText(
-                  "文件名：${element.file}\n\n 尺寸：${element.width} * ${element.height}"),
+                  "文件名：${element.file}\n\n 尺寸：${element.width} * ${element
+                      .height}"),
               actions: [
                 TextButton(
                   child: Text("确定"),
@@ -556,9 +571,15 @@ class ImageBlock extends WenzBlock {
               padding,
           right: width - imageWidth - padding + editController.padding.right,
           child: Builder(builder: (context) {
-            var textColor = Theme.of(context).colorScheme.primary;
+            var textColor = Theme
+                .of(context)
+                .colorScheme
+                .primary;
             var cardColor =
-                Theme.of(context).colorScheme.surfaceContainerHighest;
+                Theme
+                    .of(context)
+                    .colorScheme
+                    .surfaceContainerHighest;
             return Card(
               margin: EdgeInsets.zero,
               color: cardColor,

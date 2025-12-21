@@ -30,7 +30,7 @@ mixin MvcMixin {
 
   void onReplace(BuildContext context, covariant MvcController oldController);
 
-  Future refresh();
+  Future refresh() async {}
 }
 
 class MvcControllerProvider extends StatelessWidget {
@@ -81,13 +81,12 @@ class MvcViewState extends State<MvcView>
   }
 
   void onChanged() {
-    if (mounted) {
-      try {
+    try {
+      if (mounted) {
         setState(() {});
-      } catch (e) {
-        // 在build阶段调用会抛出异常，忽略之
-        print(e);
       }
+    } catch (e) {
+      // 在build阶段调用会抛出异常，忽略之
     }
   }
 
@@ -196,7 +195,9 @@ class MvcController with ChangeNotifier {
   }
 
   void updateView() {
-    notifyListeners();
+    try {
+      notifyListeners();
+    } catch (e) {}
   }
 
   static T of<T extends MvcController>(BuildContext context) {

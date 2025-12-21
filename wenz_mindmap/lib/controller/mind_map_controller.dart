@@ -565,9 +565,6 @@ class MindMapController with ChangeNotifier {
 
   void initTextStyle(BuildContext context) {
     var theme = Theme.of(context);
-    // defaultTextStyle = theme.useMaterial3
-    //     ? theme.textTheme.bodyLarge!
-    //     : theme.textTheme.titleMedium!;
     defaultTextStyle = theme.textTheme.bodyMedium!;
   }
 
@@ -696,8 +693,11 @@ class MindMapController with ChangeNotifier {
   void fireOnChange() async {
     document?.xScrollOffset = scrollState.xOffset?.pixels;
     document?.yScrollOffset = scrollState.yOffset?.pixels;
-    await stateHolder?.writeState(document);
     onChanged?.call();
+  }
+
+  void firePositionChange() async {
+    await stateHolder?.writeState(document);
   }
 
   double getIconSize(MindNode node) {

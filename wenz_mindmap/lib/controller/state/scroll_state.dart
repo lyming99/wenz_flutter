@@ -181,7 +181,7 @@ class MindScrollState with ChangeNotifier {
           xScrollEndRecord = offset.dx;
           yScrollEndRecord = offset.dy;
           notifyListeners();
-          controller.fireOnChange();
+          controller.firePositionChange();
         }
       },
     );

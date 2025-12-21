@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'dart:ui' as ui;
-
+import 'package:image/image.dart' as img;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -29,33 +29,34 @@ class MultiSourceFileImage extends ImageProvider<MultiSourceFileImage> {
   }
 
   @override
-  ImageStreamCompleter loadImage(
-      MultiSourceFileImage key, ImageDecoderCallback decode) {
+  ImageStreamCompleter loadImage(MultiSourceFileImage key,
+      ImageDecoderCallback decode) {
     return MultiFrameImageStreamCompleter(
       codec: _loadAsync(key, null, decode),
       scale: key.scale,
       debugLabel: key.imageId,
-      informationCollector: () => <DiagnosticsNode>[
+      informationCollector: () =>
+      <DiagnosticsNode>[
         ErrorDescription('imageId: ${imageId}'),
       ],
     );
   }
 
   @override
-  ImageStreamCompleter loadBuffer(
-      MultiSourceFileImage key, DecoderBufferCallback decode) {
+  ImageStreamCompleter loadBuffer(MultiSourceFileImage key,
+      DecoderBufferCallback decode) {
     return MultiFrameImageStreamCompleter(
       codec: _loadAsync(key, decode, null),
       scale: key.scale,
       debugLabel: key.imageId,
-      informationCollector: () => <DiagnosticsNode>[
+      informationCollector: () =>
+      <DiagnosticsNode>[
         ErrorDescription('image id: ${imageId}'),
       ],
     );
   }
 
-  Future<ui.Codec> _loadAsync(
-      MultiSourceFileImage key,
+  Future<ui.Codec> _loadAsync(MultiSourceFileImage key,
       DecoderBufferCallback? decode,
       ImageDecoderCallback? decodeDeprecated) async {
     assert(key == this);
@@ -67,11 +68,16 @@ class MultiSourceFileImage extends ImageProvider<MultiSourceFileImage> {
       throw StateError(
           'image: $imageId is empty and cannot be loaded as an image.');
     }
-
-    if (decode != null) {
-      return decode(await ui.ImmutableBuffer.fromUint8List(bytes));
+    try {
+      if (decode != null) {
+        return decode(await ui.ImmutableBuffer.fromUint8List(bytes));
+      }
+      return decodeDeprecated!(await ui.ImmutableBuffer.fromUint8List(bytes));
+    } catch (e) {
+      print(e);
+      // 用第三方解码器
+      rethrow;
     }
-    return decodeDeprecated!(await ui.ImmutableBuffer.fromUint8List(bytes));
   }
 
   @override
@@ -89,5 +95,6 @@ class MultiSourceFileImage extends ImageProvider<MultiSourceFileImage> {
 
   @override
   String toString() =>
-      '${objectRuntimeType(this, 'MultiSourceImageFile')}("${imageId}", scale: $scale)';
+      '${objectRuntimeType(
+          this, 'MultiSourceImageFile')}("${imageId}", scale: $scale)';
 }

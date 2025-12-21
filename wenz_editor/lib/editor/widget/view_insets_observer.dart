@@ -2,11 +2,13 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
-typedef ViewInsetsBuilder = Widget Function(BuildContext context, ViewPadding viewInsets);
+typedef ViewInsetsBuilder = Widget Function(
+    BuildContext context, EdgeInsets viewInsets);
 
 class ViewInsetsObserver extends StatefulWidget {
   final ViewInsetsBuilder builder;
-  final bool Function(ViewPadding oldInsets, ViewPadding newInsets)? shouldRebuild;
+  final bool Function(EdgeInsets oldInsets, EdgeInsets newInsets)?
+      shouldRebuild;
 
   const ViewInsetsObserver({
     super.key,
@@ -18,8 +20,9 @@ class ViewInsetsObserver extends StatefulWidget {
   State<ViewInsetsObserver> createState() => _ViewInsetsObserverState();
 }
 
-class _ViewInsetsObserverState extends State<ViewInsetsObserver> with WidgetsBindingObserver {
-  ViewPadding? _viewInsets;
+class _ViewInsetsObserverState extends State<ViewInsetsObserver>
+    with WidgetsBindingObserver {
+  EdgeInsets? _viewInsets;
 
   @override
   void initState() {
@@ -30,7 +33,7 @@ class _ViewInsetsObserverState extends State<ViewInsetsObserver> with WidgetsBin
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _viewInsets = View.of(context).viewInsets;
+    _viewInsets = MediaQuery.of(context).viewInsets;
   }
 
   @override
@@ -41,8 +44,9 @@ class _ViewInsetsObserverState extends State<ViewInsetsObserver> with WidgetsBin
 
   @override
   void didChangeMetrics() {
-    final newInsets = View.of(context).viewInsets;
-    if (widget.shouldRebuild?.call(_viewInsets ?? newInsets, newInsets) ?? true) {
+    final newInsets = MediaQuery.of(context).viewInsets;
+    if (widget.shouldRebuild?.call(_viewInsets ?? newInsets, newInsets) ??
+        true) {
       setState(() {
         _viewInsets = newInsets;
       });
@@ -51,6 +55,6 @@ class _ViewInsetsObserverState extends State<ViewInsetsObserver> with WidgetsBin
 
   @override
   Widget build(BuildContext context) {
-    return widget.builder(context, _viewInsets ?? View.of(context).viewInsets);
+    return widget.builder(context, _viewInsets ?? MediaQuery.of(context).viewInsets);
   }
 }

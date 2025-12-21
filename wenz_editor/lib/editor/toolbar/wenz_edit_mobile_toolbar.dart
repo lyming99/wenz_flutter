@@ -54,8 +54,8 @@ class WenzEditMobileToolbarController extends MvcController {
   }
 
   @override
-  void onInitState(BuildContext context,MvcViewState state) {
-    super.onInitState(context,state);
+  void onInitState(BuildContext context, MvcViewState state) {
+    super.onInitState(context, state);
     editController.cursorState.addListener(onSelectChanged);
     editController.selectState.addListener(onSelectChanged);
   }

@@ -48,6 +48,7 @@ class SplitLayoutController extends MvcController {
   double viewWidth = 0;
   double viewHeight = 0;
   PrimaryPosition primaryPosition = PrimaryPosition.left;
+  VoidCallback? onPoistionChanged;
 
   void openPrimary() {
     try {
@@ -55,6 +56,7 @@ class SplitLayoutController extends MvcController {
       showAnimate = true;
       position = max(primaryMinSize, recordPosition);
       notifyListeners();
+      onPoistionChanged?.call();
     } finally {
       WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
         animateDuration = 50;
@@ -69,6 +71,7 @@ class SplitLayoutController extends MvcController {
       recordPosition = position;
       position = 0;
       notifyListeners();
+      onPoistionChanged?.call();
     } finally {
       WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
         animateDuration = 50;
@@ -80,16 +83,18 @@ class SplitLayoutController extends MvcController {
     showAnimate = true;
     position = max(primaryMinSize, recordPosition);
     notifyListeners();
+    onPoistionChanged?.call();
   }
 
   void closeSecondary() {
     showAnimate = true;
     recordPosition = position;
     position = primaryPosition == PrimaryPosition.left ||
-            primaryPosition == PrimaryPosition.right
+        primaryPosition == PrimaryPosition.right
         ? viewWidth
         : viewHeight;
     notifyListeners();
+    onPoistionChanged?.call();
   }
 
   void onBuildLayout({
@@ -97,6 +102,7 @@ class SplitLayoutController extends MvcController {
     required double viewWidth,
     required double viewHeight,
   }) {
+    onPoistionChanged = splitLayout.onPoistionChanged;
     primaryPosition = splitLayout.primaryPosition;
     this.viewWidth = viewWidth;
     this.viewHeight = viewHeight;
@@ -116,7 +122,7 @@ class SplitLayoutController extends MvcController {
       case PrimaryPosition.left:
         var primaryWidth = max(splitLayout.primaryMinSize, position);
         var secondaryWidth =
-            max(splitLayout.secondaryMinSize, viewWidth - position);
+        max(splitLayout.secondaryMinSize, viewWidth - position);
         double primaryLeft = position - primaryWidth;
         double secondaryLeft = position;
         isPrimaryHide = position == 0;
@@ -143,7 +149,7 @@ class SplitLayoutController extends MvcController {
       case PrimaryPosition.right:
         var primaryWidth = max(splitLayout.primaryMinSize, position);
         var secondaryWidth =
-            max(splitLayout.secondaryMinSize, viewWidth - position);
+        max(splitLayout.secondaryMinSize, viewWidth - position);
         double primaryLeft = viewWidth - position;
         double secondaryLeft = primaryLeft - secondaryWidth;
         isPrimaryHide = position == 0;
@@ -170,7 +176,7 @@ class SplitLayoutController extends MvcController {
       case PrimaryPosition.top:
         var primaryHeight = max(splitLayout.primaryMinSize, position);
         var secondaryHeight =
-            max(splitLayout.secondaryMinSize, viewHeight - position);
+        max(splitLayout.secondaryMinSize, viewHeight - position);
         double primaryTop = position - primaryHeight;
         double secondaryTop = position;
         isPrimaryHide = position == 0;
@@ -198,7 +204,7 @@ class SplitLayoutController extends MvcController {
       case PrimaryPosition.bottom:
         var primaryHeight = max(splitLayout.primaryMinSize, position);
         var secondaryHeight =
-            max(splitLayout.secondaryMinSize, viewHeight - position);
+        max(splitLayout.secondaryMinSize, viewHeight - position);
         double primaryTop = viewHeight - position;
         double secondaryTop = primaryTop - secondaryHeight;
         isPrimaryHide = position == 0;
@@ -239,12 +245,14 @@ class SplitLayoutController extends MvcController {
     showAnimate = true;
     this.position = position;
     notifyListeners();
+    onPoistionChanged?.call();
   }
 
   void updatePanStatus(bool isPanning) {
     isSplitPanStatus = isPanning;
     showAnimate = isPanning;
     notifyListeners();
+    onPoistionChanged?.call();
   }
 
   void togglePrimary() {
@@ -278,6 +286,7 @@ class SplitLayoutController extends MvcController {
       } else {
         position = layout.primaryMinSize;
       }
+      onPoistionChanged?.call();
     }
   }
 
@@ -287,6 +296,7 @@ class SplitLayoutController extends MvcController {
     } else {
       position = layout.primaryMinSize;
       notifyListeners();
+      onPoistionChanged?.call();
     }
   }
 
@@ -299,14 +309,17 @@ class SplitLayoutController extends MvcController {
     if (isHorizontal) {
       if (viewWidth - position < secondaryMinSize) {
         position = viewWidth - secondaryMinSize;
+        onPoistionChanged?.call();
       }
     } else {
       if (viewHeight - position < secondaryMinSize) {
         position = viewHeight - secondaryMinSize;
+        onPoistionChanged?.call();
       }
     }
     if (position < primaryMinSize) {
       position = primaryMinSize;
+      onPoistionChanged?.call();
     }
 
     notifyListeners();
@@ -325,8 +338,8 @@ class SplitLayoutController extends MvcController {
     if (position < 10) {
       position = primaryMinSize;
     }
-
     notifyListeners();
+    onPoistionChanged?.call();
   }
 
   bool get isHorizontal => isHorizontalDirection(primaryPosition);
@@ -346,6 +359,7 @@ class SplitLayout extends MvcView<SplitLayoutController> {
   final bool initPrimaryPosition;
   final Pane? onlyShowPosition;
   final bool keepPositionOnChangeSize;
+  final VoidCallback? onPoistionChanged;
 
   const SplitLayout({
     super.key,
@@ -363,6 +377,7 @@ class SplitLayout extends MvcView<SplitLayoutController> {
     this.isDrawerGesture = false,
     this.initPrimaryPosition = true,
     this.keepPositionOnChangeSize = false,
+    this.onPoistionChanged,
   });
 
   @override
@@ -426,8 +441,8 @@ class SplitLayout extends MvcView<SplitLayoutController> {
     });
   }
 
-  Widget buildDrawerGesture(
-      BuildContext context, BoxConstraints cons, Widget child) {
+  Widget buildDrawerGesture(BuildContext context, BoxConstraints cons,
+      Widget child) {
     if (!isDrawerGesture) {
       return child;
     }
@@ -478,8 +493,8 @@ class SplitLayout extends MvcView<SplitLayoutController> {
     );
   }
 
-  Widget buildAnimatedPositioned(
-      BoxConstraints boxConstraints, Rect rect, Widget child) {
+  Widget buildAnimatedPositioned(BoxConstraints boxConstraints, Rect rect,
+      Widget child) {
     return AnimatedPositioned(
       left: rect.left,
       top: rect.top,
@@ -493,7 +508,13 @@ class SplitLayout extends MvcView<SplitLayoutController> {
           controller.showAnimate = false;
         }
       },
-      child: SizedBox(width: rect.width, height: rect.height, child: child),
+      child: Container(
+        width: rect.width,
+        height: rect.height,
+        clipBehavior: Clip.hardEdge,
+        decoration: BoxDecoration(),
+        child: child,
+      ),
     );
   }
 
@@ -557,18 +578,18 @@ class SplitLayout extends MvcView<SplitLayoutController> {
         child: buildSide
             ? buildOpenPane(context)
             : IgnorePointer(
-                child: Center(
-                  child: Container(
-                    width: cursor == SystemMouseCursors.resizeColumn
-                        ? splitSize
-                        : double.infinity,
-                    height: cursor == SystemMouseCursors.resizeRow
-                        ? splitSize
-                        : double.infinity,
-                    color: splitColor,
-                  ),
-                ),
-              ),
+          child: Center(
+            child: Container(
+              width: cursor == SystemMouseCursors.resizeColumn
+                  ? splitSize
+                  : double.infinity,
+              height: cursor == SystemMouseCursors.resizeRow
+                  ? splitSize
+                  : double.infinity,
+              color: splitColor,
+            ),
+          ),
+        ),
       ),
     );
   }
