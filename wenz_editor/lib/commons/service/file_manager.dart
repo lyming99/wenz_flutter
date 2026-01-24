@@ -39,8 +39,8 @@ class WenzAssetsFileManager extends WenzAssetsFileProvider {
       id + FileUtils.getFileSuffix(filename),
       null,
     );
-    File(filepath).copySync(savePath);
-    uploadFile(id, savePath);
+    await File(filepath).copy(savePath);
+    await uploadFile(id, savePath);
     return WenzAssetsFile(path: savePath, uuid: id);
   }
 
@@ -184,7 +184,7 @@ class WenzAssetsFileManager extends WenzAssetsFileProvider {
       }
       return null;
     }
-    return File(path).readAsBytesSync();
+    return await File(path).readAsBytes();
   }
 
   /// 直接通过二进制创建文件，会根据filename后缀创建uuid+后缀的附件
@@ -252,7 +252,6 @@ class WenzAssetsFileManager extends WenzAssetsFileProvider {
       }
     } else {
       if (File(urlOrPath).existsSync()) {
-        var fileSize = File(urlOrPath).lengthSync();
         var ret =  _copyFile(urlOrPath);
         return ret;
       }

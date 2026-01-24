@@ -2323,11 +2323,6 @@ class WenzEditController with ChangeNotifier {
     }
 
     var size = await readImageFileSize(File(imageFile));
-    var imageMemory = Image.file(
-      File(imageFile),
-      cacheWidth: size.width,
-      cacheHeight: size.height,
-    );
     insertContent([
       ImageBlock(
           editController: this,
