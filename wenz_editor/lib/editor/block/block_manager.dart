@@ -140,7 +140,7 @@ class BlockManager {
     int left = 0;
     int right = blocks.length - 1;
     while (left < right) {
-      int mid = (left + right) ~/ 2;
+      int mid = (left + right) >> 1;
       var block = blocks[mid];
       if (offset < block.top - divideWidth / 2) {
         right = mid - 1;
@@ -194,6 +194,7 @@ class BlockManager {
       layoutBlocks = blocks.sublist(first, end);
       return layoutBlocks;
     } catch (e) {
+      print(e);
       return layoutBlocks;
     }
   }

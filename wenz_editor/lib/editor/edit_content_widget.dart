@@ -17,6 +17,7 @@ class EditContentWidget extends StatefulWidget {
   final ViewportOffset viewportOffset;
   final PreferredSizeWidget? topWidget;
   final ValueChanged<bool>? onFocusChanged;
+  final String? hintText;
 
   const EditContentWidget({
     super.key,
@@ -24,6 +25,7 @@ class EditContentWidget extends StatefulWidget {
     required this.controller,
     required this.viewportOffset,
     this.onFocusChanged,
+    this.hintText,
   });
 
   @override
@@ -35,6 +37,8 @@ class EditContentWidgetState extends State<EditContentWidget> {
     return context.findRootAncestorStateOfType<EditContentWidgetState>()!;
   }
 
+  int? _lastUpdateTime;
+
   @override
   void initState() {
     super.initState();
@@ -44,7 +48,18 @@ class EditContentWidgetState extends State<EditContentWidget> {
   }
 
   void updateState() {
-    setState(() {});
+    if (_lastUpdateTime != null &&
+        DateTime.now().millisecondsSinceEpoch - _lastUpdateTime! < 10) {
+      return;
+    }
+    _lastUpdateTime = DateTime.now().millisecondsSinceEpoch;
+    try {
+      if (context.mounted) {
+        setState(() {});
+      }
+    } catch (e) {
+      print(e);
+    }
   }
 
   @override
@@ -107,7 +122,7 @@ class EditContentWidgetState extends State<EditContentWidget> {
                 top: widget.controller.padding.top,
                 height: 32,
                 child: Text(
-                  "请输入内容",
+                  widget.hintText ?? "请输入内容",
                   style: Theme.of(context)
                       .textTheme
                       .bodyMedium

@@ -260,7 +260,9 @@ class TableBlock extends WenzBlock {
         double cellWidth = 0;
         try {
           cellWidth = ((rows[i][j] as TableBaseCell).originWidth ?? 0);
-        } catch (e) {}
+        } catch (e) {
+          print(e);
+        }
         var a = max(cellWidth + cellPadding * 2, minCellWidth);
         var b = min(maxCellWidth, a);
         maxOriginWidths[j] = max(b, maxOriginWidths[j]);
@@ -282,7 +284,9 @@ class TableBlock extends WenzBlock {
         try {
           rows[i][j].layout(context,
               Size(columnWidths[j] - cellPadding * 2, double.infinity));
-        } catch (e) {}
+        } catch (e) {
+          print(e);
+        }
       }
     }
     var rowHeights = List.filled(rows.length, 0.0);
@@ -378,7 +382,7 @@ class TableBlock extends WenzBlock {
                     bool pressed) {
                   return Container(
                     color: hover ? theme.fontColor.withOpacity(0.1) : null,
-                    padding: EdgeInsets.all(4),
+                    padding: const EdgeInsets.all(4),
                     child: Icon(
                       Icons.format_align_left,
                       color: theme.fontColor.withOpacity(0.8),
@@ -394,7 +398,7 @@ class TableBlock extends WenzBlock {
                     bool pressed) {
                   return Container(
                     color: hover ? theme.fontColor.withOpacity(0.1) : null,
-                    padding: EdgeInsets.all(4),
+                    padding: const EdgeInsets.all(4),
                     child: Icon(
                       Icons.format_align_center,
                       color: theme.fontColor.withOpacity(0.8),
@@ -410,7 +414,7 @@ class TableBlock extends WenzBlock {
                     bool pressed) {
                   return Container(
                     color: hover ? theme.fontColor.withOpacity(0.1) : null,
-                    padding: EdgeInsets.all(4),
+                    padding: const EdgeInsets.all(4),
                     child: Icon(
                       Icons.format_align_right,
                       color: theme.fontColor.withOpacity(0.8),
@@ -2035,6 +2039,8 @@ class _TableContainerState extends State<TableContainer> {
 
   void onScrollChanged() {
     widget.tableController.recordScrollOffset = offset?.pixels ?? 0;
-    widget.tableBlock.editController.updateWidgetState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      widget.tableBlock.editController.updateWidgetState();
+    });
   }
 }

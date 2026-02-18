@@ -4,20 +4,20 @@ import '../../mouse/mouse.dart';
 import '../../theme/theme.dart';
 
 class CustomScrollBar extends StatefulWidget {
-  Axis direction;
-  Function(ScrollBarInfo info)? calcSize;
-  Function(ScrollBarInfo info)? toPageUp;
-  Function(ScrollBarInfo info)? toPageDown;
-  Function(ScrollBarInfo info, double delta)? scroll;
+  final Axis direction;
+  final Function(ScrollBarInfo info)? calcSize;
+  final Function(ScrollBarInfo info)? toPageUp;
+  final Function(ScrollBarInfo info)? toPageDown;
+  final Function(ScrollBarInfo info, double delta)? scroll;
 
-  CustomScrollBar({
-    Key? key,
+  const CustomScrollBar({
+    super.key,
     this.direction = Axis.vertical,
     this.calcSize,
     this.toPageUp,
     this.toPageDown,
     this.scroll,
-  }) : super(key: key);
+  });
 
   @override
   State<CustomScrollBar> createState() => _CustomScrollBarState();

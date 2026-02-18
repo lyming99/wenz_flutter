@@ -21,6 +21,9 @@ import 'package:ydart/ydart.dart';
 
 import 'YsTree.dart';
 
+class WenzContentNotification extends Notification {
+}
+
 class YsEditController extends WenzEditController {
   YsEditController({
     super.reader,
@@ -53,6 +56,7 @@ class YsEditController extends WenzEditController {
       {bool initContent = false}) async {
     if (initContent) {
       ysTree.init();
+      WenzContentNotification().dispatch(context);
     }
     SchedulerBinding.instance.scheduleFrameCallback((timeStamp) {
       notifyListeners();
@@ -66,7 +70,7 @@ class YsEditController extends WenzEditController {
   @override
   void onInputAction(TextInputAction action) {
     if (action == TextInputAction.newline) {
-      if(!kIsWeb) {
+      if (!kIsWeb) {
         if (Platform.isAndroid || Platform.isIOS) {
           enter();
           WidgetsBinding.instance.scheduleFrameCallback((timeStamp) {
@@ -235,7 +239,7 @@ class YsEditController extends WenzEditController {
           return AlertDialog(
             title: const Text("添加链接"),
             shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             content: SizedBox(
               width: isMobile ? 300 : 320,
               child: Column(
@@ -445,8 +449,7 @@ class YsEditController extends WenzEditController {
   }
 
   @override
-  void updateCursor(
-    CursorPosition position, {
+  void updateCursor(CursorPosition position, {
     bool scrollToShowCursor = true,
     bool applyUpdate = false,
   }) {
@@ -628,8 +631,8 @@ class YsEditController extends WenzEditController {
   }
 
   @override
-  void onUpdateImageSize(
-      ImageBlock block, double imageWidth, double imageHeight) {
+  void onUpdateImageSize(ImageBlock block, double imageWidth,
+      double imageHeight) {
     ysTree.updateImageSize(block, imageWidth, imageHeight);
     record();
   }

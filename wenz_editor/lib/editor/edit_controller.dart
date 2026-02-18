@@ -12,7 +12,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:future_progress_dialog/future_progress_dialog.dart';
-import 'package:image_size_getter/file_input.dart';
 import 'package:image_size_getter/image_size_getter.dart' as image_size;
 import 'package:pasteboard/pasteboard.dart';
 import 'package:super_clipboard/super_clipboard.dart';
@@ -22,8 +21,6 @@ import 'package:wenz_editor/commons/service/copy_service.dart';
 import 'package:wenz_editor/commons/service/file_manager.dart';
 import 'package:wenz_editor/commons/util/file_utils.dart';
 import 'package:wenz_editor/commons/util/html/html.dart';
-import 'package:wenz_editor/commons/util/image.dart'
-    hide readImageBytesSize, isValidImage, readImageFileSize;
 import 'package:wenz_editor/commons/util/image_utils.dart';
 import 'package:wenz_editor/commons/util/markdown/markdown.dart';
 import 'package:wenz_editor/commons/util/platform_util.dart';
@@ -1181,7 +1178,11 @@ class WenzEditController with ChangeNotifier {
         return null;
       }
       var pos = clickPosition.translate(0, -cursorBlock.top);
-      textPosition = cursorBlock.getPositionForOffset(pos);
+      try {
+        textPosition = cursorBlock.getPositionForOffset(pos);
+      } catch (e) {
+        print(e);
+      }
       if (textPosition != null) {
         var boxes = cursorBlock.getBoxesForSelection(TextSelection(
             baseOffset: max(textPosition.offset - 1, 0),
@@ -1888,7 +1889,9 @@ class WenzEditController with ChangeNotifier {
       if (jump == true) {
         scrollController?.jumpTo(newScrollOffset);
       }
-    } catch (e) {}
+    } catch (e) {
+      print(e);
+    }
   }
 
   ///布局前10个block

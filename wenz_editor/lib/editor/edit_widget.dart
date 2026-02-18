@@ -14,6 +14,7 @@ class WenzEditWidget extends StatefulWidget {
   final WenzEditController controller;
   final EditTheme? editTheme;
   final TextStyle? textStyle;
+  final String? hintText;
 
   final PreferredSizeWidget? topWidget;
 
@@ -26,6 +27,7 @@ class WenzEditWidget extends StatefulWidget {
     this.textStyle,
     this.topWidget,
     this.onFocusChanged,
+    this.hintText,
   });
 
   @override
@@ -168,6 +170,7 @@ class WenzEditState extends State<WenzEditWidget> {
                 controller: widget.controller,
                 viewportOffset: viewportOffset,
                 onFocusChanged: widget.onFocusChanged,
+                hintText: widget.hintText,
               );
             });
       }),

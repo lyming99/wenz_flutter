@@ -87,6 +87,7 @@ class MvcViewState extends State<MvcView>
       }
     } catch (e) {
       // 在build阶段调用会抛出异常，忽略之
+      print(e);
     }
   }
 
@@ -127,6 +128,7 @@ class MvcController with ChangeNotifier {
   final List<VoidCallback> _disposeCallbacks = [];
 
   bool get wantKeepAlive => false;
+  int?_lastUpdateTime;
 
   /// 组件初始化时会触发此方法
   @mustCallSuper
@@ -140,7 +142,7 @@ class MvcController with ChangeNotifier {
   Future<T?> loading<T>(Future<T?> Function() future) async {
     try {
       isLoading = true;
-      notifyListeners();
+      updateView();
       var result = await future.call();
       return result;
     } catch (e) {
@@ -148,7 +150,7 @@ class MvcController with ChangeNotifier {
       return null;
     } finally {
       isLoading = false;
-      notifyListeners();
+      updateView();
     }
   }
 
@@ -195,9 +197,17 @@ class MvcController with ChangeNotifier {
   }
 
   void updateView() {
+    if (_lastUpdateTime != null && DateTime
+        .now()
+        .millisecondsSinceEpoch - _lastUpdateTime! < 5) {
+      return;
+    }
+    _lastUpdateTime = DateTime.now().millisecondsSinceEpoch;
     try {
       notifyListeners();
-    } catch (e) {}
+    } catch (e) {
+      print(e);
+    }
   }
 
   static T of<T extends MvcController>(BuildContext context) {
@@ -216,6 +226,7 @@ class MvcController with ChangeNotifier {
     });
     return mvcController as T;
   }
+
 }
 
 class MvcContextController extends MvcController {
