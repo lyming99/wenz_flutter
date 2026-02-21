@@ -147,14 +147,18 @@ class WenzEditState extends State<WenzEditWidget> {
   Widget buildScrollable() {
     return IgnoreParentPointer(
       ignorePointer: (box, offset) {
-        var extend =
-            widget.controller.scrollController?.position.maxScrollExtent;
-        if (extend == 0) {
-          return false;
-        }
-        var g = box.localToGlobal(Offset(box.size.width, box.size.height));
-        if (offset.dx > g.dx - 14 && offset.dx < g.dx) {
-          return true;
+        try {
+          var extend =
+                      widget.controller.scrollController?.position.maxScrollExtent;
+          if (extend == 0) {
+                    return false;
+                  }
+          var g = box.localToGlobal(Offset(box.size.width, box.size.height));
+          if (offset.dx > g.dx - 14 && offset.dx < g.dx) {
+                    return true;
+                  }
+        } catch (e) {
+          print(e);
         }
         return false;
       },
