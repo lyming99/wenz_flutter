@@ -1412,6 +1412,10 @@ class WenzEditController with ChangeNotifier {
     CopyUtils.copySelect(controller: this, copyText: copyText);
   }
 
+  void copySelectText() {
+    CopyUtils.copySelectText(controller: this);
+  }
+
   void copySelectMarkdown() {
     CopyUtils.copySelectMarkdown(controller: this);
   }

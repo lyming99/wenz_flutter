@@ -53,7 +53,7 @@ class MenuUtils {
                   ),
                   onPress: (ctx) {
                     if (editController.selectState.hasSelect) {
-                      editController.copySelect(copyText: true);
+                      editController.copySelectText();
                       hideDropMenu(ctx);
                     }
                   },
