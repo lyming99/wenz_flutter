@@ -85,29 +85,66 @@ List<WenElement> getElements(List<Node> nodes) {
   return elements;
 }
 
+/// 读取 markdown 中的图片文件
+/// 支持三种类型的图片路径：
+/// 1. 网络图片：http:// 或 https:// 开头的 URL
+/// 2. 本地绝对路径：以盘符开头的 Windows 路径（如 C:/）或 / 开头的 Unix 路径
+/// 3. 相对路径：相对于 markdown 文件目录的路径
 Future<void> readImageFile(
     WenzAssetsFileManager fileManager, String dir, List<WenElement> elements) async {
   for (var element in elements) {
     try {
       if (element is WenImageElement) {
-        var filepath = join(dir, element.file);
+        var imagePath = element.file;
+
+        // 判断图片路径类型
+        String? filepath;
+
+        if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+          // 网络图片：直接使用 URL
+          filepath = imagePath;
+          print('[Markdown] 检测到网络图片: $imagePath');
+        } else if (_isAbsolutePath(imagePath)) {
+          // 本地绝对路径
+          filepath = imagePath;
+          print('[Markdown] 检测到本地绝对路径图片: $imagePath');
+        } else {
+          // 相对路径：拼接目录路径
+          filepath = join(dir, imagePath);
+          print('[Markdown] 检测到相对路径图片: $imagePath，完整路径: $filepath');
+        }
+
+        // 解析文件：下载网络图片或复制本地文件到系统
         var file = await fileManager.parseFile(filepath);
         if (file == null) {
+          print('[Markdown] 图片处理失败，已跳过: $filepath');
           continue;
         }
+
         var imageFile = file.path;
         if (imageFile == null || imageFile.isEmpty) {
+          print('[Markdown] 图片路径为空，已跳过: $filepath');
           continue;
         }
+
+        // 读取图片尺寸
         var size = await readImageFileSize(File(imageFile));
+
+        // 更新图片元素信息
         element.id = file.uuid ?? "";
         element.file = imageFile;
         element.width = size.width;
         element.height = size.height;
+
+        print('[Markdown] 图片处理成功: ${file.name} -> ID: ${element.id}, 尺寸: ${size.width}x${size.height}');
       }
     } on Exception catch (e) {
-      break;
+      // 改进：使用 continue 而不是 break，让一个图片失败不影响其他图片
+      print('[Markdown] 处理图片时发生异常: $e');
+      continue;
     }
+
+    // 递归处理表格中的图片
     if (element is WenTableElement) {
       var rows = element.rows;
       if (rows != null) {
@@ -117,9 +154,26 @@ Future<void> readImageFile(
       }
     }
   }
+
+  // 移除处理失败的图片元素
   elements.removeWhere((element) =>
       element is WenImageElement &&
       (element.id.isEmpty || element.width == 0 || element.height == 0));
+}
+
+/// 判断是否为绝对路径
+/// Windows 绝对路径：如 C:/path/to/file, D:\path\to\file
+/// Unix 绝对路径：如 /path/to/file
+bool _isAbsolutePath(String path) {
+  if (path.startsWith('/')) {
+    return true; // Unix 绝对路径
+  }
+  // Windows 绝对路径：盘符字母 + : 开头
+  if (path.length >= 2 && path[1] == ':') {
+    final firstChar = path[0].toLowerCase().codeUnitAt(0);
+    return firstChar >= 'a'.codeUnitAt(0) && firstChar <= 'z'.codeUnitAt(0);
+  }
+  return false;
 }
 
 /// 标题：h1-h6

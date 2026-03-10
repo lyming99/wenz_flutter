@@ -21,28 +21,72 @@ class MenuUtils {
         // margin: 4,
         menus: [
           DropMenu(
-            enable: editController.selectState.hasSelect,
-            text: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 8,
+              enable: editController.selectState.hasSelect,
+              text: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 8,
+                ),
+                child: Text(
+                  "复制",
+                  style: editController.selectState.hasSelect
+                      ? null
+                      : TextStyle(
+                          color:
+                              editController.editTheme.fontColor.withOpacity(0.2),
+                        ),
+                ),
               ),
-              child: Text(
-                "复制",
-                style: editController.selectState.hasSelect
-                    ? null
-                    : TextStyle(
-                        color:
-                            editController.editTheme.fontColor.withOpacity(0.2),
-                      ),
-              ),
-            ),
-            onPress: (ctx) {
-              if (editController.selectState.hasSelect) {
-                editController.copySelect();
-                hideDropMenu(ctx);
-              }
-            },
-          ),
+              childrenWidth: 200,
+              onPress: (ctx) {
+                if (editController.selectState.hasSelect) {
+                  editController.copySelect();
+                  hideDropMenu(ctx);
+                }
+              },
+              children: [
+                DropMenu(
+                  text: const Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 8,
+                    ),
+                    child: Text("复制纯文本"),
+                  ),
+                  onPress: (ctx) {
+                    if (editController.selectState.hasSelect) {
+                      editController.copySelect(copyText: true);
+                      hideDropMenu(ctx);
+                    }
+                  },
+                ),
+                DropMenu(
+                  text: const Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 8,
+                    ),
+                    child: Text("复制富文本"),
+                  ),
+                  onPress: (ctx) {
+                    if (editController.selectState.hasSelect) {
+                      editController.copySelect();
+                      hideDropMenu(ctx);
+                    }
+                  },
+                ),
+                DropMenu(
+                  text: const Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 8,
+                    ),
+                    child: Text("复制 Markdown"),
+                  ),
+                  onPress: (ctx) {
+                    if (editController.selectState.hasSelect) {
+                      editController.copySelectMarkdown();
+                      hideDropMenu(ctx);
+                    }
+                  },
+                ),
+              ]),
           DropMenu(
             text: Padding(
               padding: const EdgeInsets.symmetric(

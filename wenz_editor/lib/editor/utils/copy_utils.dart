@@ -138,4 +138,76 @@ class CopyUtils {
       }
     }
   }
+
+  static void copySelectText({
+    required WenzEditController controller,
+  }) async {
+    if (controller.selectState.hasSelect) {
+      var start = controller.selectState.realStart;
+      var end = controller.selectState.realEnd;
+      String text = "";
+      if (start!.block! == end!.block) {
+        WenElement element =
+            start.block!.copyElement(start.textPosition!, end.textPosition!);
+        text = element.getText();
+      } else {
+        var startSubElement = start.block!
+            .copyElement(start.textPosition!, start.block!.endPosition);
+        text = startSubElement.getText();
+        int startIndex =
+            controller.blockManager.indexOfBlockByBlock(start.block!);
+        int endIndex = controller.blockManager.indexOfBlockByBlock(end.block!);
+        for (int i = startIndex + 1; i < endIndex; i++) {
+          var element = controller.blockManager.blocks[i].element;
+          text += "\n" + element.getText();
+        }
+        var endSubElement =
+            end.block!.copyElement(end.block!.startPosition, end.textPosition!);
+        text += "\n" + endSubElement.getText();
+      }
+      final clipboard = SystemClipboard.instance;
+      if (clipboard == null) {
+        return;
+      }
+      final item = DataWriterItem();
+      item.add(Formats.plainText(text));
+      await clipboard.write([item]);
+    }
+  }
+
+  static void copySelectMarkdown({
+    required WenzEditController controller,
+  }) async {
+    if (controller.selectState.hasSelect) {
+      var start = controller.selectState.realStart;
+      var end = controller.selectState.realEnd;
+      String markdown = "";
+      if (start!.block! == end!.block) {
+        WenElement element =
+            start.block!.copyElement(start.textPosition!, end.textPosition!);
+        markdown = element.getMarkDown();
+      } else {
+        var startSubElement = start.block!
+            .copyElement(start.textPosition!, start.block!.endPosition);
+        markdown = startSubElement.getMarkDown();
+        int startIndex =
+            controller.blockManager.indexOfBlockByBlock(start.block!);
+        int endIndex = controller.blockManager.indexOfBlockByBlock(end.block!);
+        for (int i = startIndex + 1; i < endIndex; i++) {
+          var element = controller.blockManager.blocks[i].element;
+          markdown += "\n\n" + element.getMarkDown();
+        }
+        var endSubElement =
+            end.block!.copyElement(end.block!.startPosition, end.textPosition!);
+        markdown += "\n\n" + endSubElement.getMarkDown();
+      }
+      final clipboard = SystemClipboard.instance;
+      if (clipboard == null) {
+        return;
+      }
+      final item = DataWriterItem();
+      item.add(Formats.plainText(markdown));
+      await clipboard.write([item]);
+    }
+  }
 }

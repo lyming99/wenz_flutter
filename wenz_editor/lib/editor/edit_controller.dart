@@ -878,6 +878,41 @@ class WenzEditController with ChangeNotifier {
 
   ///单击
   void onOneClick(Offset location) {
+    var position = getCursorPosition(location);
+    // 移动端：检测是否点击在链接上
+    bool clickedOnLink = false;
+    if (isMobile && position.isValid && position.textPosition != null) {
+      var block = position.block;
+      if (block != null) {
+        var link = block.getLink(position.textPosition!);
+        if (link != null && link.textElement.url != null) {
+          clickedOnLink = true;
+          // 点击在链接上，显示链接菜单
+          var hover = cursorState.hoverPosition;
+          var hoverBlock = hover?.block;
+          if (hoverBlock != null) {
+            hoverBlock.relayoutFlag = true;
+            hoverBlock.hoverPosition = null;
+          }
+          cursorState.hoverPosition = position;
+          if (position.block != null) {
+            position.block!.relayoutFlag = true;
+            position.block!.hoverPosition = position.textPosition;
+          }
+        }
+      }
+    }
+    // 移动端：如果没点击链接，清除 hoverPosition
+    if (isMobile && !clickedOnLink) {
+      var hover = cursorState.hoverPosition;
+      var hoverBlock = hover?.block;
+      if (hoverBlock != null) {
+        hoverBlock.relayoutFlag = true;
+        hoverBlock.hoverPosition = null;
+      }
+      cursorState.hoverPosition = null;
+    }
+
     //弹出输入法
     requestFocus();
     if (editable) {
@@ -888,7 +923,6 @@ class WenzEditController with ChangeNotifier {
     if (!selectState.shiftDown) {
       selectState.clearSelect();
     }
-    var position = getCursorPosition(location);
     cursorRecord.updateCursorWindowPosition(position, scrollOffset);
     updateCursor(position, applyUpdate: true);
     visitSelectElement(
@@ -906,6 +940,10 @@ class WenzEditController with ChangeNotifier {
       if (!blockManager.lastIsText) {
         addTextBlock();
       }
+    }
+    // 移动端：更新界面显示或隐藏菜单
+    if (isMobile) {
+      updateWidgetState();
     }
   }
 
@@ -1055,6 +1093,10 @@ class WenzEditController with ChangeNotifier {
     var event = <PointerEvent>[];
     if (mouseKeyboardState.mouseHoverEvent.isNotEmpty) {
       event.add(mouseKeyboardState.mouseHoverEvent.last);
+    }
+    // 移动端使用 PointerMoveEvent 替代 PointerHoverEvent
+    if (event.isEmpty && isMobile && mouseKeyboardState.mouseMoveEvent1.isNotEmpty) {
+      event.add(mouseKeyboardState.mouseMoveEvent1.last);
     }
     if (event.isEmpty) {
       return;
@@ -1368,6 +1410,10 @@ class WenzEditController with ChangeNotifier {
     bool copyText = false,
   }) {
     CopyUtils.copySelect(controller: this, copyText: copyText);
+  }
+
+  void copySelectMarkdown() {
+    CopyUtils.copySelectMarkdown(controller: this);
   }
 
   void copyAllText({
