@@ -2202,6 +2202,9 @@ class WenzEditController with ChangeNotifier {
   void onInputAction(TextInputAction action) {
     if (action == TextInputAction.newline || action == TextInputAction.done) {
       if (!kIsWeb && Platform.isAndroid || !kIsWeb && Platform.isIOS) {
+        if(enterReject){
+          return;
+        }
         enter();
         record();
         WidgetsBinding.instance.scheduleFrameCallback((timeStamp) {

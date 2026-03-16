@@ -120,7 +120,9 @@ class HotKeyUtils {
             controller.addTextBlock();
           }
         } else {
-          controller.enter();
+          if(!controller.enterReject){
+            controller.enter();
+          }
         }
         controller.record();
         WidgetsBinding.instance.scheduleFrameCallback((timeStamp) {
