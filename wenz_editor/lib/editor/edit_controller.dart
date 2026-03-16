@@ -90,6 +90,7 @@ class WenzEditController with ChangeNotifier {
   State? state;
   bool initFocus = false;
   bool editable = true;
+  bool enterReject = false;
   bool showTextLength = false;
   bool rightMenuShowing = false;
   PointerEvent? rightMenuEvent;
@@ -140,6 +141,7 @@ class WenzEditController with ChangeNotifier {
     this.writer,
     this.initFocus = false,
     this.editable = true,
+    this.enterReject = false,
     this.linkFloatBuilder,
     this.hideTextModes,
     EdgeInsets padding = EdgeInsets.zero,

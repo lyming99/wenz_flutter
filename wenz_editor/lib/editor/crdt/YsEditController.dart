@@ -31,6 +31,7 @@ class YsEditController extends WenzEditController {
     super.writer,
     super.initFocus = false,
     super.editable = true,
+    super.enterReject = false,
     super.hideTextModes,
     super.padding = EdgeInsets.zero,
     super.initBlockIndex,
