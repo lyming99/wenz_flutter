@@ -128,7 +128,6 @@ class MvcController with ChangeNotifier {
   final List<VoidCallback> _disposeCallbacks = [];
 
   bool get wantKeepAlive => false;
-  int?_lastUpdateTime;
 
   /// 组件初始化时会触发此方法
   @mustCallSuper
@@ -197,12 +196,6 @@ class MvcController with ChangeNotifier {
   }
 
   void updateView() {
-    if (_lastUpdateTime != null && DateTime
-        .now()
-        .millisecondsSinceEpoch - _lastUpdateTime! < 5) {
-      return;
-    }
-    _lastUpdateTime = DateTime.now().millisecondsSinceEpoch;
     try {
       notifyListeners();
     } catch (e) {

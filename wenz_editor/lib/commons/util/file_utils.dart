@@ -140,4 +140,10 @@ class FileUtils {
       }
     }
   }
+  static Future createParentDir(String path) async {
+    var parentDir = Directory(path).parent;
+    if (!await parentDir.exists()) {
+      await parentDir.create(recursive: true);
+    }
+  }
 }

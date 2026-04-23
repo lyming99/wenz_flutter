@@ -37,7 +37,6 @@ class EditContentWidgetState extends State<EditContentWidget> {
     return context.findRootAncestorStateOfType<EditContentWidgetState>()!;
   }
 
-  int? _lastUpdateTime;
 
   @override
   void initState() {
@@ -48,11 +47,6 @@ class EditContentWidgetState extends State<EditContentWidget> {
   }
 
   void updateState() {
-    if (_lastUpdateTime != null &&
-        DateTime.now().millisecondsSinceEpoch - _lastUpdateTime! < 10) {
-      return;
-    }
-    _lastUpdateTime = DateTime.now().millisecondsSinceEpoch;
     try {
       if (context.mounted) {
         setState(() {});
