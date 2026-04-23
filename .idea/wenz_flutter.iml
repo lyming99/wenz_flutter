@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module type="JAVA_MODULE" version="4">
+  <component name="NewModuleRootManager" inherit-compiler-output="true">
+    <exclude-output />
+    <content url="file://$MODULE_DIR$">
+      <excludeFolder url="file://$MODULE_DIR$/wenz_draw/.dart_tool" />
+      <excludeFolder url="file://$MODULE_DIR$/wenz_draw/.pub" />
+      <excludeFolder url="file://$MODULE_DIR$/wenz_draw/build" />
+      <excludeFolder url="file://$MODULE_DIR$/wenz_draw/example/.dart_tool" />
+      <excludeFolder url="file://$MODULE_DIR$/wenz_draw/example/.pub" />
+      <excludeFolder url="file://$MODULE_DIR$/wenz_draw/example/build" />
+      <excludeFolder url="file://$MODULE_DIR$/wenz_editor/.dart_tool" />
+      <excludeFolder url="file://$MODULE_DIR$/wenz_editor/.pub" />
+      <excludeFolder url="file://$MODULE_DIR$/wenz_editor/build" />
+      <excludeFolder url="file://$MODULE_DIR$/wenz_mindmap/.dart_tool" />
+      <excludeFolder url="file://$MODULE_DIR$/wenz_mindmap/.pub" />
+      <excludeFolder url="file://$MODULE_DIR$/wenz_mindmap/build" />
+      <excludeFolder url="file://$MODULE_DIR$/wenz_ui/.dart_tool" />
+      <excludeFolder url="file://$MODULE_DIR$/wenz_ui/.pub" />
+      <excludeFolder url="file://$MODULE_DIR$/wenz_ui/build" />
+      <excludeFolder url="file://$MODULE_DIR$/ydart/.dart_tool" />
+      <excludeFolder url="file://$MODULE_DIR$/ydart/.pub" />
+      <excludeFolder url="file://$MODULE_DIR$/ydart/build" />
+    </content>
+    <orderEntry type="inheritedJdk" />
+    <orderEntry type="sourceFolder" forTests="false" />
+  </component>
+</module>
