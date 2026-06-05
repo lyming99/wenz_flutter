@@ -64,6 +64,10 @@ typedef EditWriter = Future Function(List content);
 
 typedef EditReader = Future<List> Function();
 
+Color _editorSelectionColor(BuildContext context) {
+  return EditTheme.of(context).selectionColor;
+}
+
 class WenzEditController with ChangeNotifier {
   late BuildContext viewContext;
   late EventManager eventManager;
@@ -422,12 +426,7 @@ class WenzEditController with ChangeNotifier {
               top: boxRect.top,
               width: boxRect.width,
               height: boxRect.height,
-              child: Container(
-                color: Theme
-                    .of(context)
-                    .colorScheme
-                    .primaryContainer,
-              ),
+              child: Container(color: _editorSelectionColor(context)),
             ));
           }
         }

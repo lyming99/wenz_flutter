@@ -12,6 +12,7 @@ class EditTheme {
   final Color fontColor2;
   final Color linkColor;
   final Color cursorColor;
+  final Color selectionColor;
   final Color navIndicateColor;
   final Color navUnSelectColor;
   final Color treeItemSelectColor;
@@ -46,6 +47,7 @@ class EditTheme {
     required this.fontColor2,
     required this.linkColor,
     required this.cursorColor,
+    required this.selectionColor,
     required this.navIndicateColor,
     required this.navUnSelectColor,
     required this.treeItemSelectColor,
@@ -82,6 +84,7 @@ class EditTheme {
     Color? fontColor2,
     Color? linkColor,
     Color? cursorColor,
+    Color? selectionColor,
     Color? navIndicateColor,
     Color? navUnSelectColor,
     Color? treeItemSelectColor,
@@ -116,6 +119,9 @@ class EditTheme {
         fontColor2: fontColor2 ?? this.fontColor2,
         linkColor: linkColor ?? this.linkColor,
         cursorColor: cursorColor ?? this.cursorColor,
+        selectionColor: selectionColor ??
+            cursorColor?.withValues(alpha: 0.4) ??
+            this.selectionColor,
         navIndicateColor: navIndicateColor ?? this.navIndicateColor,
         navUnSelectColor: navUnSelectColor ?? this.navUnSelectColor,
         treeItemSelectColor: treeItemSelectColor ?? this.treeItemSelectColor,
@@ -179,6 +185,7 @@ class EditTheme {
     fontColor2: Color(0xffd2d2d2),
     linkColor: Colors.blue,
     cursorColor: Color(0xfffa5902),
+    selectionColor: Color(0x66FA5902),
     navIndicateColor: Color(0xff002085),
     navUnSelectColor: Color(0xffa6a6a6),
     codeBgColor: Color(0xff494949),
@@ -215,6 +222,7 @@ class EditTheme {
     linkColor: Colors.blue,
     codeBgColor: const Color(0xffefefef),
     cursorColor: const Color(0xfffa5902),
+    selectionColor: const Color(0x66FA5902),
     navIndicateColor: const Color(0xff002085),
     navUnSelectColor: const Color(0xffa6a6a6),
     treeItemSelectColor: const Color(0xffD8E8FA),
