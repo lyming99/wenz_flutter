@@ -2007,8 +2007,7 @@ class _TableContainerState extends State<TableContainer> {
         if (extend == 0) {
           return false;
         }
-        var g = box.localToGlobal(Offset(0, box.size.height));
-        if (offset.dy > g.dy - 14 && offset.dy < g.dy) {
+        if (offset.dy > box.size.height - 14 && offset.dy < box.size.height) {
           return true;
         }
         return false;

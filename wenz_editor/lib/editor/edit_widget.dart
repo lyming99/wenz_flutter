@@ -97,7 +97,8 @@ class WenzEditState extends State<WenzEditWidget> {
               child: Listener(
                 onPointerDown: (event) {
                   if (event.buttons == 2) {
-                    MenuUtils.showContextMenu(widget.controller, event.localPosition);
+                    MenuUtils.showContextMenu(
+                        widget.controller, event.localPosition);
                   }
                 },
                 child: Stack(
@@ -124,8 +125,7 @@ class WenzEditState extends State<WenzEditWidget> {
                             child: Text(
                               "字数统计: ${widget.controller.textLength}",
                               style: TextStyle(
-                                color:
-                                    systemColor(context, "textLengthColor"),
+                                color: systemColor(context, "textLengthColor"),
                                 fontSize: 10,
                               ),
                             ),
@@ -149,14 +149,13 @@ class WenzEditState extends State<WenzEditWidget> {
       ignorePointer: (box, offset) {
         try {
           var extend =
-                      widget.controller.scrollController?.position.maxScrollExtent;
+              widget.controller.scrollController?.position.maxScrollExtent;
           if (extend == 0) {
-                    return false;
-                  }
-          var g = box.localToGlobal(Offset(box.size.width, box.size.height));
-          if (offset.dx > g.dx - 14 && offset.dx < g.dx) {
-                    return true;
-                  }
+            return false;
+          }
+          if (offset.dx > box.size.width - 14 && offset.dx < box.size.width) {
+            return true;
+          }
         } catch (e) {
           print(e);
         }
