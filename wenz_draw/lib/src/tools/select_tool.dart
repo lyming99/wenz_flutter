@@ -4,6 +4,7 @@ import '../canvas/canvas_controller.dart';
 import '../elements/canvas_element.dart';
 import '../elements/ellipse_element.dart';
 import '../elements/line_element.dart';
+import '../elements/polyline_element.dart';
 import '../elements/rect_element.dart';
 import '../elements/text_element.dart';
 import '../elements/arrow_element.dart';
@@ -11,6 +12,7 @@ import '../history/commands/batch_command.dart';
 import '../history/commands/update_element_command.dart';
 import '../infinite_canvas/canvas_event.dart';
 import '../snap/snap_resolver.dart';
+import '../utils/orthogonal_router.dart';
 import '../utils/math_utils.dart';
 import 'canvas_tool.dart';
 
@@ -26,8 +28,10 @@ class SelectTool extends CanvasTool {
   bool _resizingText = false;
   bool _scalingElement = false;
   bool _draggingLineEndpoint = false;
+  bool _draggingPolylinePoint = false;
   _SelectionResizeHandle? _resizeHandle;
   _LineEndpoint? _lineEndpoint;
+  int? _polylinePointIndex;
   TextElement? _resizeBefore;
   CanvasElement? _scaleBefore;
   CanvasElement? _lineEndpointBefore;
@@ -54,8 +58,10 @@ class SelectTool extends CanvasTool {
     _resizingText = false;
     _scalingElement = false;
     _draggingLineEndpoint = false;
+    _draggingPolylinePoint = false;
     _resizeHandle = null;
     _lineEndpoint = null;
+    _polylinePointIndex = null;
     _resizeBefore = null;
     _scaleBefore = null;
     _lineEndpointBefore = null;
@@ -68,18 +74,34 @@ class SelectTool extends CanvasTool {
   ToolResult handleEvent(CanvasEvent event, CanvasController controller) {
     switch (event) {
       case CanvasPointerDownEvent():
-        final lineEndpointTarget = _lineEndpointTargetAt(controller, event);
-        final resizeTarget = lineEndpointTarget == null
+        final polylinePointTarget = _polylinePointTargetAt(controller, event);
+        final lineEndpointTarget = polylinePointTarget == null
+            ? _lineEndpointTargetAt(controller, event)
+            : null;
+        final resizeTarget =
+            lineEndpointTarget == null && polylinePointTarget == null
             ? _resizeTargetAt(controller, event)
             : null;
         _dragStart = event.worldPoint;
         _lastPoint = event.worldPoint;
+        if (polylinePointTarget != null) {
+          controller.setSelection({polylinePointTarget.element.id});
+          _movingSelection = false;
+          _resizingText = false;
+          _scalingElement = false;
+          _draggingLineEndpoint = false;
+          _draggingPolylinePoint = true;
+          _polylinePointIndex = polylinePointTarget.pointIndex;
+          _lineEndpointBefore = polylinePointTarget.element;
+          return const ToolResultConsumed();
+        }
         if (lineEndpointTarget != null) {
           controller.setSelection({lineEndpointTarget.element.id});
           _movingSelection = false;
           _resizingText = false;
           _scalingElement = false;
           _draggingLineEndpoint = true;
+          _draggingPolylinePoint = false;
           _lineEndpoint = lineEndpointTarget.endpoint;
           _lineEndpointBefore = lineEndpointTarget.element;
           return const ToolResultConsumed();
@@ -139,6 +161,11 @@ class SelectTool extends CanvasTool {
           _lastPoint = event.worldPoint;
           return const ToolResultConsumed();
         }
+        if (_draggingPolylinePoint) {
+          _dragPolylinePoint(controller, event.worldPoint);
+          _lastPoint = event.worldPoint;
+          return const ToolResultConsumed();
+        }
         if (_draggingLineEndpoint) {
           _dragLineEndpoint(
             controller,
@@ -165,6 +192,11 @@ class SelectTool extends CanvasTool {
         }
         if (_scalingElement) {
           _recordScale(controller);
+          cancel(controller);
+          return const ToolResultConsumed();
+        }
+        if (_draggingPolylinePoint) {
+          _recordLineEndpointDrag(controller);
           cancel(controller);
           return const ToolResultConsumed();
         }
@@ -200,6 +232,24 @@ class SelectTool extends CanvasTool {
     }
   }
 
+  _PolylinePointTarget? _polylinePointTargetAt(
+    CanvasController controller,
+    CanvasPointerDownEvent event,
+  ) {
+    final tolerance = 10 / event.transform.scale;
+    for (final element in controller.selectedElements.reversed) {
+      if (element is! PolylineElement || element.points.length <= 2) {
+        continue;
+      }
+      for (var i = 1; i < element.points.length - 1; i++) {
+        if ((event.worldPoint - element.points[i]).distance <= tolerance) {
+          return _PolylinePointTarget(element, i);
+        }
+      }
+    }
+    return null;
+  }
+
   _LineEndpointTarget? _lineEndpointTargetAt(
     CanvasController controller,
     CanvasPointerDownEvent event,
@@ -209,6 +259,14 @@ class SelectTool extends CanvasTool {
       if (element is LineElement) {
         for (final endpoint in _LineEndpoint.values) {
           if ((event.worldPoint - endpoint.pointForLine(element)).distance <=
+              tolerance) {
+            return _LineEndpointTarget(element, endpoint);
+          }
+        }
+      } else if (element is PolylineElement) {
+        for (final endpoint in _LineEndpoint.values) {
+          if ((event.worldPoint - endpoint.pointForPolyline(element))
+                  .distance <=
               tolerance) {
             return _LineEndpointTarget(element, endpoint);
           }
@@ -349,6 +407,18 @@ class SelectTool extends CanvasTool {
       );
       return;
     }
+    if (before is PolylineElement) {
+      final current = controller.elementById(before.id);
+      if (current is! PolylineElement) {
+        return;
+      }
+      controller.updateElement(
+        before.id,
+        endpoint.applyToPolyline(controller, current, nextPoint, binding),
+        record: false,
+      );
+      return;
+    }
     if (before is ArrowElement) {
       final current = controller.elementById(before.id);
       if (current is! ArrowElement) {
@@ -360,6 +430,81 @@ class SelectTool extends CanvasTool {
         record: false,
       );
     }
+  }
+
+  void _dragPolylinePoint(CanvasController controller, Offset worldPoint) {
+    final before = _lineEndpointBefore;
+    final index = _polylinePointIndex;
+    if (before is! PolylineElement || index == null) {
+      return;
+    }
+    final current = controller.elementById(before.id);
+    if (current is! PolylineElement ||
+        index <= 0 ||
+        index >= current.points.length - 1) {
+      return;
+    }
+    final points = List<Offset>.of(current.points);
+    final previous = points[index - 1];
+    final next = points[index + 1];
+    final horizontalIn = (previous.dy - points[index].dy).abs() < 0.0001;
+    final horizontalOut = (next.dy - points[index].dy).abs() < 0.0001;
+
+    if (horizontalIn && horizontalOut) {
+      final y = worldPoint.dy;
+      points[index - 1] = Offset(previous.dx, y);
+      points[index] = Offset(worldPoint.dx, y);
+      points[index + 1] = Offset(next.dx, y);
+    } else if (!horizontalIn && !horizontalOut) {
+      final x = worldPoint.dx;
+      points[index - 1] = Offset(x, previous.dy);
+      points[index] = Offset(x, worldPoint.dy);
+      points[index + 1] = Offset(x, next.dy);
+    } else if (horizontalIn) {
+      points[index] = Offset(worldPoint.dx, previous.dy);
+      points[index + 1] = Offset(worldPoint.dx, next.dy);
+    } else if (horizontalOut) {
+      points[index - 1] = Offset(worldPoint.dx, previous.dy);
+      points[index] = Offset(worldPoint.dx, next.dy);
+    } else {
+      points[index] = worldPoint;
+    }
+
+    controller.updateElement(
+      before.id,
+      current.copyWith(points: _simplifyPolylinePoints(points)),
+      record: false,
+    );
+  }
+
+  List<Offset> _simplifyPolylinePoints(List<Offset> points) {
+    final result = <Offset>[];
+    for (final point in points) {
+      if (result.isEmpty || (result.last - point).distance > 0.0001) {
+        result.add(point);
+      }
+    }
+    if (result.length <= 2) {
+      return result;
+    }
+    final simplified = <Offset>[];
+    for (final point in result) {
+      simplified.add(point);
+      while (simplified.length >= 3) {
+        final a = simplified[simplified.length - 3];
+        final b = simplified[simplified.length - 2];
+        final c = simplified[simplified.length - 1];
+        final sameX =
+            (a.dx - b.dx).abs() < 0.0001 && (b.dx - c.dx).abs() < 0.0001;
+        final sameY =
+            (a.dy - b.dy).abs() < 0.0001 && (b.dy - c.dy).abs() < 0.0001;
+        if (!sameX && !sameY) {
+          break;
+        }
+        simplified.removeAt(simplified.length - 2);
+      }
+    }
+    return simplified;
   }
 
   void _recordLineEndpointDrag(CanvasController controller) {
@@ -482,6 +627,13 @@ extension on _LineEndpoint {
     };
   }
 
+  Offset pointForPolyline(PolylineElement element) {
+    return switch (this) {
+      _LineEndpoint.start => element.start,
+      _LineEndpoint.end => element.end,
+    };
+  }
+
   Offset pointForArrow(ArrowElement element) {
     return switch (this) {
       _LineEndpoint.start => element.start,
@@ -503,6 +655,72 @@ extension on _LineEndpoint {
     };
   }
 
+  PolylineElement applyToPolyline(
+    CanvasController controller,
+    PolylineElement element,
+    Offset point,
+    SnapBinding? binding,
+  ) {
+    if (element.points.isEmpty) {
+      return element;
+    }
+    final startBinding = this == _LineEndpoint.start
+        ? binding
+        : element.startBinding;
+    final endBinding = this == _LineEndpoint.end ? binding : element.endBinding;
+    final start = this == _LineEndpoint.start ? point : element.start;
+    final end = this == _LineEndpoint.end ? point : element.end;
+    final excludeIds = {
+      element.id,
+      startBinding?.elementId,
+      endBinding?.elementId,
+    };
+    final points = OrthogonalRouter.route(
+      start: start,
+      end: end,
+      sourceBounds: _boundsForBinding(controller, startBinding),
+      targetBounds: _boundsForBinding(controller, endBinding),
+      obstacles: _routingObstacles(controller, start, end, excludeIds),
+    );
+    return switch (this) {
+      _LineEndpoint.start => element.copyWith(
+        points: points,
+        startBinding: binding,
+      ),
+      _LineEndpoint.end => element.copyWith(
+        points: points,
+        endBinding: binding,
+      ),
+    };
+  }
+
+  Iterable<Rect> _routingObstacles(
+    CanvasController controller,
+    Offset start,
+    Offset end,
+    Set<String?> excludeIds,
+  ) {
+    final queryRect = Rect.fromPoints(start, end).inflate(320);
+    return [
+      for (final element in controller.elementsNear(queryRect))
+        if (!excludeIds.contains(element.id)) element.bounds,
+    ];
+  }
+
+  Rect? _boundsForBinding(CanvasController controller, SnapBinding? binding) {
+    if (binding == null) {
+      return null;
+    }
+    final target = controller.elementById(binding.elementId);
+    if (target == null ||
+        !target.visible ||
+        !controller.isLayerVisible(target.layerId) ||
+        controller.isLayerLocked(target.layerId)) {
+      return null;
+    }
+    return target.bounds;
+  }
+
   ArrowElement applyToArrow(
     ArrowElement element,
     Offset point,
@@ -516,6 +734,13 @@ extension on _LineEndpoint {
       _LineEndpoint.end => element.copyWith(end: point, endBinding: binding),
     };
   }
+}
+
+class _PolylinePointTarget {
+  const _PolylinePointTarget(this.element, this.pointIndex);
+
+  final PolylineElement element;
+  final int pointIndex;
 }
 
 class _LineEndpointTarget {

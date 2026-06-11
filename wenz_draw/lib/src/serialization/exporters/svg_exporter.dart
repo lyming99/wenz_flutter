@@ -6,6 +6,7 @@ import '../../elements/ellipse_element.dart';
 import '../../elements/image_element.dart';
 import '../../elements/line_element.dart';
 import '../../elements/path_element.dart';
+import '../../elements/polyline_element.dart';
 import '../../elements/rect_element.dart';
 import '../../elements/shape_label_painter.dart';
 import '../../elements/text_element.dart';
@@ -41,6 +42,7 @@ class SvgExporter {
   static String _elementSvg(CanvasElement element) {
     return switch (element) {
       final PathElement e => _path(e),
+      final PolylineElement e => _polyline(e),
       final LineElement e => _line(e),
       final RectElement e => _rect(e),
       final EllipseElement e => _ellipse(e),
@@ -65,6 +67,15 @@ class SvgExporter {
   static String _line(dynamic e) {
     final style = e.style;
     return '<line x1="${e.start.dx}" y1="${e.start.dy}" x2="${e.end.dx}" y2="${e.end.dy}" stroke="${_color(style.color)}" stroke-width="${style.strokeWidth}" opacity="${e.opacity * style.opacity}" stroke-linecap="round"/>';
+  }
+
+  static String _polyline(PolylineElement e) {
+    if (e.points.length < 2) {
+      return '';
+    }
+    final style = e.style;
+    final points = e.points.map((point) => '${point.dx},${point.dy}').join(' ');
+    return '<polyline points="$points" fill="none" stroke="${_color(style.color)}" stroke-width="${style.strokeWidth}" opacity="${e.opacity * style.opacity}" stroke-linecap="round" stroke-linejoin="round"/>';
   }
 
   static String _rect(RectElement e) {

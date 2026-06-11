@@ -5,6 +5,7 @@ import '../elements/canvas_element.dart';
 import '../elements/element_registry.dart';
 import '../elements/ellipse_element.dart';
 import '../elements/line_element.dart';
+import '../elements/polyline_element.dart';
 import '../elements/rect_element.dart';
 import '../elements/text_element.dart';
 import '../history/commands/add_element_command.dart';
@@ -26,11 +27,13 @@ import '../tools/highlighter_tool.dart';
 import '../tools/line_tool.dart';
 import '../tools/pan_tool.dart';
 import '../tools/pen_tool.dart';
+import '../tools/polyline_tool.dart';
 import '../tools/rect_tool.dart';
 import '../tools/select_tool.dart';
 import '../tools/text_tool.dart';
 import '../tools/arrow_tool.dart';
 import '../tools/tool_manager.dart';
+import '../utils/orthogonal_router.dart';
 import 'canvas_state.dart';
 import 'element_manager.dart';
 import 'spatial_index.dart';
@@ -199,6 +202,39 @@ class CanvasController extends ChangeNotifier {
         end: end ?? element.end,
       );
     }
+    if (element is PolylineElement) {
+      final start = element.startBinding?.elementId == changedElementId
+          ? _resolveSnapBindingFrom(elementsById, element.startBinding)
+          : null;
+      final end = element.endBinding?.elementId == changedElementId
+          ? _resolveSnapBindingFrom(elementsById, element.endBinding)
+          : null;
+      if (start == null && end == null || element.points.isEmpty) {
+        return element;
+      }
+      final nextStart = start ?? element.start;
+      final nextEnd = end ?? element.end;
+      return element.copyWith(
+        points: OrthogonalRouter.route(
+          start: nextStart,
+          end: nextEnd,
+          sourceBounds: _boundsForBindingFrom(
+            elementsById,
+            element.startBinding,
+          ),
+          targetBounds: _boundsForBindingFrom(elementsById, element.endBinding),
+          obstacles: _routingObstacles(
+            elementsById,
+            excludeIds: {
+              element.id,
+              element.startBinding?.elementId,
+              element.endBinding?.elementId,
+            },
+            queryRect: Rect.fromPoints(nextStart, nextEnd).inflate(320),
+          ),
+        ),
+      );
+    }
     if (element is ArrowElement) {
       final start = element.startBinding?.elementId == changedElementId
           ? _resolveSnapBindingFrom(elementsById, element.startBinding)
@@ -237,6 +273,48 @@ class CanvasController extends ChangeNotifier {
       }
     }
     return null;
+  }
+
+  Iterable<Rect> _routingObstacles(
+    Map<String, CanvasElement> elementsById, {
+    required Set<String?> excludeIds,
+    required Rect queryRect,
+  }) {
+    return [
+      for (final element in _nearbyElementsForRouting(elementsById, queryRect))
+        if (element.visible &&
+            isLayerVisible(element.layerId) &&
+            !isLayerLocked(element.layerId) &&
+            !excludeIds.contains(element.id))
+          element.bounds,
+    ];
+  }
+
+  Iterable<CanvasElement> _nearbyElementsForRouting(
+    Map<String, CanvasElement> elementsById,
+    Rect queryRect,
+  ) {
+    if (identical(elementsById.values, _state.elements)) {
+      return elementsNear(queryRect);
+    }
+    return _spatialIndex.query(elementsById.values, queryRect);
+  }
+
+  Rect? _boundsForBindingFrom(
+    Map<String, CanvasElement> elementsById,
+    SnapBinding? binding,
+  ) {
+    if (binding == null) {
+      return null;
+    }
+    final target = elementsById[binding.elementId];
+    if (target == null ||
+        !target.visible ||
+        !isLayerVisible(target.layerId) ||
+        isLayerLocked(target.layerId)) {
+      return null;
+    }
+    return target.bounds;
   }
 
   void replaceElements(
@@ -331,6 +409,17 @@ class CanvasController extends ChangeNotifier {
       tolerance: tolerance,
       layerRank: (element) => layerManager.layerIndexOf(element.layerId),
     );
+  }
+
+  Iterable<CanvasElement> elementsNear(Rect worldRect) {
+    return _spatialIndex
+        .query(_state.elements, worldRect)
+        .where(
+          (element) =>
+              element.visible &&
+              isLayerVisible(element.layerId) &&
+              !isLayerLocked(element.layerId),
+        );
   }
 
   CanvasElement? elementById(String id) {
@@ -817,6 +906,7 @@ class CanvasController extends ChangeNotifier {
       ..registerTool(PenTool())
       ..registerTool(HighlighterTool())
       ..registerTool(LineTool())
+      ..registerTool(PolylineTool())
       ..registerTool(RectTool())
       ..registerTool(EllipseTool())
       ..registerTool(ArrowTool())

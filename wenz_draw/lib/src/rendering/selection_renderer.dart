@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../canvas/canvas_controller.dart';
 import '../elements/arrow_element.dart';
 import '../elements/line_element.dart';
+import '../elements/polyline_element.dart';
 import '../infinite_canvas/canvas_transform.dart';
 
 class SelectionRenderer {
@@ -44,6 +45,7 @@ class SelectionRenderer {
       canvas.drawRect(bounds, paint);
       final handlePoints = switch (element) {
         LineElement e => [e.start, e.end],
+        PolylineElement e => e.points,
         ArrowElement e => [e.start, e.end],
         _ => [
           bounds.topLeft,

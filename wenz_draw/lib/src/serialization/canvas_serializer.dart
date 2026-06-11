@@ -8,6 +8,7 @@ import '../elements/ellipse_element.dart';
 import '../elements/image_element.dart';
 import '../elements/line_element.dart';
 import '../elements/path_element.dart';
+import '../elements/polyline_element.dart';
 import '../elements/rect_element.dart';
 import '../elements/shape_label_painter.dart';
 import '../elements/text_element.dart';
@@ -83,6 +84,21 @@ class CanvasSerializer {
           zIndex: zIndex,
           start: _point(json['start']),
           end: _point(json['end']),
+          style: _style(json['style']),
+          startBinding: SnapBinding.fromJson(json['startBinding']),
+          endBinding: SnapBinding.fromJson(json['endBinding']),
+        );
+      case PolylineElement.elementType:
+        return PolylineElement(
+          id: id,
+          layerId: layerId,
+          visible: visible,
+          opacity: opacity,
+          zIndex: zIndex,
+          points: [
+            for (final point in json['points'] as List<dynamic>? ?? const [])
+              _point(point),
+          ],
           style: _style(json['style']),
           startBinding: SnapBinding.fromJson(json['startBinding']),
           endBinding: SnapBinding.fromJson(json['endBinding']),

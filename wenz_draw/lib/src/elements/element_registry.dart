@@ -7,6 +7,7 @@ import 'ellipse_element.dart';
 import 'image_element.dart';
 import 'line_element.dart';
 import 'path_element.dart';
+import 'polyline_element.dart';
 import 'rect_element.dart';
 import 'text_element.dart';
 
@@ -50,6 +51,7 @@ class ElementRendererRegistry {
     _builtInsRegistered = true;
     register(PathElement.elementType, const PathElementRenderer());
     register(LineElement.elementType, const LineElementRenderer());
+    register(PolylineElement.elementType, const PolylineElementRenderer());
     register(RectElement.elementType, const RectElementRenderer());
     register(EllipseElement.elementType, const EllipseElementRenderer());
     register(ArrowElement.elementType, const ArrowElementRenderer());

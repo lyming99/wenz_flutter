@@ -6,6 +6,7 @@ import '../canvas/canvas_controller.dart';
 import '../elements/arrow_element.dart';
 import '../elements/canvas_element.dart';
 import '../elements/line_element.dart';
+import '../elements/polyline_element.dart';
 
 class SnapSettings {
   const SnapSettings({
@@ -172,6 +173,30 @@ class SnapResolver {
       );
       return;
     }
+    if (element is PolylineElement) {
+      if (!settings.includeLinePoints || element.points.length < 2) {
+        return;
+      }
+      yield SnapPoint(
+        elementId: element.id,
+        anchorId: 'start',
+        position: element.start,
+        kind: SnapPointKind.endpoint,
+      );
+      yield SnapPoint(
+        elementId: element.id,
+        anchorId: 'end',
+        position: element.end,
+        kind: SnapPointKind.endpoint,
+      );
+      yield SnapPoint(
+        elementId: element.id,
+        anchorId: 'midpoint',
+        position: _polylineMidpoint(element.points),
+        kind: SnapPointKind.midpoint,
+      );
+      return;
+    }
     if (element is ArrowElement) {
       if (!settings.includeLinePoints) {
         return;
@@ -261,5 +286,25 @@ class SnapResolver {
         kind: SnapPointKind.corner,
       );
     }
+  }
+
+  Offset _polylineMidpoint(List<Offset> points) {
+    var total = 0.0;
+    for (var i = 0; i < points.length - 1; i++) {
+      total += (points[i + 1] - points[i]).distance;
+    }
+    if (total <= 0) {
+      return points.first;
+    }
+    var travelled = 0.0;
+    for (var i = 0; i < points.length - 1; i++) {
+      final length = (points[i + 1] - points[i]).distance;
+      if (travelled + length >= total / 2) {
+        final t = (total / 2 - travelled) / length;
+        return Offset.lerp(points[i], points[i + 1], t)!;
+      }
+      travelled += length;
+    }
+    return points.last;
   }
 }
