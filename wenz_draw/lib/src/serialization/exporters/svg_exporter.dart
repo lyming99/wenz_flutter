@@ -1,318 +1,121 @@
-import 'dart:math' as math show cos, pi, sin;
-import 'dart:ui' show Offset, Rect;
+import 'package:flutter/material.dart';
 
 import '../../elements/arrow_element.dart';
 import '../../elements/canvas_element.dart';
 import '../../elements/ellipse_element.dart';
+import '../../elements/image_element.dart';
 import '../../elements/line_element.dart';
 import '../../elements/path_element.dart';
 import '../../elements/rect_element.dart';
 import '../../elements/text_element.dart';
+import '../../elements/widget_element.dart';
 
-// ---------------------------------------------------------------------------
-// SvgExporter
-// ---------------------------------------------------------------------------
-
-/// SVG 导出器。
-///
-/// 将 [CanvasElement] 列表转换为 SVG 字符串。
 class SvgExporter {
-  /// 将元素列表导出为 SVG 字符串。
-  ///
-  /// [elements] 要导出的元素列表。
-  /// [contentBounds] 内容包围盒（世界坐标）。
-  /// [backgroundColor] 背景颜色（ARGB 32-bit），默认白色。
-  static String exportToSvg({
-    required List<CanvasElement> elements,
-    required Rect contentBounds,
-    int backgroundColor = 0xFFFFFFFF,
+  const SvgExporter._();
+
+  static String exportElements({
+    required Iterable<CanvasElement> elements,
+    Rect? bounds,
+    Color backgroundColor = Colors.white,
   }) {
-    final buffer = StringBuffer();
+    final elementList = elements.toList(growable: false)
+      ..sort((a, b) => a.zIndex.compareTo(b.zIndex));
+    final exportBounds = bounds ?? _contentBounds(elementList).inflate(24);
+    final buffer = StringBuffer()
+      ..writeln(
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="${exportBounds.left} ${exportBounds.top} ${exportBounds.width} ${exportBounds.height}">',
+      )
+      ..writeln(
+        '<rect x="${exportBounds.left}" y="${exportBounds.top}" width="${exportBounds.width}" height="${exportBounds.height}" fill="${_color(backgroundColor)}"/>',
+      );
 
-    // SVG 头部
-    buffer.writeln('<?xml version="1.0" encoding="UTF-8"?>');
-    buffer.writeln(
-      '<svg xmlns="http://www.w3.org/2000/svg" '
-      'width="${_fmt(contentBounds.width)}" '
-      'height="${_fmt(contentBounds.height)}" '
-      'viewBox="${_fmt(contentBounds.left)} ${_fmt(contentBounds.top)} '
-      '${_fmt(contentBounds.width)} ${_fmt(contentBounds.height)}">',
-    );
-
-    // 背景
-    buffer.writeln(
-      '  <rect x="${_fmt(contentBounds.left)}" '
-      'y="${_fmt(contentBounds.top)}" '
-      'width="${_fmt(contentBounds.width)}" '
-      'height="${_fmt(contentBounds.height)}" '
-      'fill="${_colorToHex(backgroundColor)}" />',
-    );
-
-    // 遍历元素
-    for (final element in elements) {
-      if (!element.visible) continue;
-      _writeElement(buffer, element);
+    for (final element in elementList) {
+      buffer.writeln(_elementSvg(element));
     }
 
     buffer.writeln('</svg>');
     return buffer.toString();
   }
 
-  // ─── 元素分发 ─────────────────────────────────────────────
+  static String _elementSvg(CanvasElement element) {
+    return switch (element) {
+      final PathElement e => _path(e),
+      final LineElement e => _line(e),
+      final RectElement e => _rect(e),
+      final EllipseElement e => _ellipse(e),
+      final ArrowElement e => '${_line(e)}${_arrowHead(e)}',
+      final TextElement e => _text(e),
+      final ImageElement e => _imagePlaceholder(e),
+      final CanvasWidgetElement e => _widgetPlaceholder(e),
+      _ => '',
+    };
+  }
 
-  static void _writeElement(StringBuffer buffer, CanvasElement element) {
-    switch (element) {
-      case PathElement():
-        _writePath(buffer, element);
-      case LineElement():
-        _writeLine(buffer, element);
-      case RectElement():
-        _writeRect(buffer, element);
-      case EllipseElement():
-        _writeEllipse(buffer, element);
-      case ArrowElement():
-        _writeArrow(buffer, element);
-      case TextElement():
-        _writeText(buffer, element);
+  static String _path(PathElement e) {
+    if (e.points.isEmpty) return '';
+    final d = StringBuffer()
+      ..write('M ${e.points.first.position.dx} ${e.points.first.position.dy}');
+    for (final point in e.points.skip(1)) {
+      d.write(' L ${point.position.dx} ${point.position.dy}');
     }
+    return '<path d="$d" fill="none" stroke="${_color(e.style.color)}" stroke-width="${e.style.strokeWidth}" opacity="${e.opacity * e.style.opacity}" stroke-linecap="round" stroke-linejoin="round"/>';
   }
 
-  // ─── PathElement ──────────────────────────────────────────
-
-  static void _writePath(StringBuffer buffer, PathElement element) {
-    if (element.points.isEmpty) return;
-
-    final pointsStr = element.points
-        .map((p) => '${_fmt(p.position.dx)},${_fmt(p.position.dy)}')
-        .join(' ');
-
-    final style = element.style;
-    final alpha = (style.opacity * element.opacity).clamp(0.0, 1.0);
-
-    buffer.writeln(
-      '  <polyline points="$pointsStr" '
-      'stroke="${_colorToHex(style.color)}" '
-      'stroke-width="${_fmt(style.strokeWidth)}" '
-      'fill="none" '
-      'stroke-linecap="${_strokeCap(style.strokeCap)}" '
-      'stroke-linejoin="${_strokeJoin(style.strokeJoin)}" '
-      'opacity="${_fmt(alpha)}" />',
-    );
+  static String _line(dynamic e) {
+    final style = e.style;
+    return '<line x1="${e.start.dx}" y1="${e.start.dy}" x2="${e.end.dx}" y2="${e.end.dy}" stroke="${_color(style.color)}" stroke-width="${style.strokeWidth}" opacity="${e.opacity * style.opacity}" stroke-linecap="round"/>';
   }
 
-  // ─── LineElement ──────────────────────────────────────────
-
-  static void _writeLine(StringBuffer buffer, LineElement element) {
-    final style = element.style;
-    final alpha = (style.opacity * element.opacity).clamp(0.0, 1.0);
-
-    buffer.writeln(
-      '  <line '
-      'x1="${_fmt(element.start.dx)}" y1="${_fmt(element.start.dy)}" '
-      'x2="${_fmt(element.end.dx)}" y2="${_fmt(element.end.dy)}" '
-      'stroke="${_colorToHex(style.color)}" '
-      'stroke-width="${_fmt(style.strokeWidth)}" '
-      'stroke-linecap="${_strokeCap(style.strokeCap)}" '
-      'opacity="${_fmt(alpha)}" />',
-    );
+  static String _rect(RectElement e) {
+    final fill = e.fillStyle == null ? 'none' : _color(e.fillStyle!.color);
+    return '<rect x="${e.rect.left}" y="${e.rect.top}" width="${e.rect.width}" height="${e.rect.height}" rx="${e.borderRadius}" fill="$fill" stroke="${_color(e.strokeStyle.color)}" stroke-width="${e.strokeStyle.strokeWidth}" opacity="${e.opacity}"/>';
   }
 
-  // ─── RectElement ──────────────────────────────────────────
-
-  static void _writeRect(StringBuffer buffer, RectElement element) {
-    final strokeStyle = element.stroke;
-    final strokeAlpha = (strokeStyle.opacity * element.opacity)
-        .clamp(0.0, 1.0);
-
-    final fillAttr = element.fill != null
-        ? 'fill="${_colorToHex(element.fill!.color)}" '
-            'fill-opacity="${_fmt(element.fill!.opacity * element.opacity)}"'
-        : 'fill="none"';
-
-    final rxAttr = element.borderRadius > 0
-        ? 'rx="${_fmt(element.borderRadius)}" ry="${_fmt(element.borderRadius)}" '
-        : '';
-
-    buffer.writeln(
-      '  <rect '
-      'x="${_fmt(element.rect.left)}" y="${_fmt(element.rect.top)}" '
-      'width="${_fmt(element.rect.width)}" height="${_fmt(element.rect.height)}" '
-      '$rxAttr'
-      'stroke="${_colorToHex(strokeStyle.color)}" '
-      'stroke-width="${_fmt(strokeStyle.strokeWidth)}" '
-      'stroke-linecap="${_strokeCap(strokeStyle.strokeCap)}" '
-      'stroke-linejoin="${_strokeJoin(strokeStyle.strokeJoin)}" '
-      'stroke-opacity="${_fmt(strokeAlpha)}" '
-      '$fillAttr />',
-    );
+  static String _ellipse(EllipseElement e) {
+    final fill = e.fillStyle == null ? 'none' : _color(e.fillStyle!.color);
+    return '<ellipse cx="${e.rect.center.dx}" cy="${e.rect.center.dy}" rx="${e.rect.width / 2}" ry="${e.rect.height / 2}" fill="$fill" stroke="${_color(e.strokeStyle.color)}" stroke-width="${e.strokeStyle.strokeWidth}" opacity="${e.opacity}"/>';
   }
 
-  // ─── EllipseElement ───────────────────────────────────────
-
-  static void _writeEllipse(StringBuffer buffer, EllipseElement element) {
-    final cx = element.rect.center.dx;
-    final cy = element.rect.center.dy;
-    final rx = element.rect.width / 2;
-    final ry = element.rect.height / 2;
-
-    final strokeStyle = element.stroke;
-    final strokeAlpha = (strokeStyle.opacity * element.opacity)
-        .clamp(0.0, 1.0);
-
-    final fillAttr = element.fill != null
-        ? 'fill="${_colorToHex(element.fill!.color)}" '
-            'fill-opacity="${_fmt(element.fill!.opacity * element.opacity)}"'
-        : 'fill="none"';
-
-    buffer.writeln(
-      '  <ellipse '
-      'cx="${_fmt(cx)}" cy="${_fmt(cy)}" '
-      'rx="${_fmt(rx)}" ry="${_fmt(ry)}" '
-      'stroke="${_colorToHex(strokeStyle.color)}" '
-      'stroke-width="${_fmt(strokeStyle.strokeWidth)}" '
-      'stroke-linecap="${_strokeCap(strokeStyle.strokeCap)}" '
-      'stroke-linejoin="${_strokeJoin(strokeStyle.strokeJoin)}" '
-      'stroke-opacity="${_fmt(strokeAlpha)}" '
-      '$fillAttr />',
-    );
+  static String _arrowHead(ArrowElement e) {
+    return '<circle cx="${e.end.dx}" cy="${e.end.dy}" r="${e.style.strokeWidth * 1.25}" fill="${_color(e.style.color)}" opacity="${e.opacity * e.style.opacity}"/>';
   }
 
-  // ─── ArrowElement ─────────────────────────────────────────
+  static String _text(TextElement e) {
+    final color = e.style.color ?? Colors.black;
+    final size = e.style.fontSize ?? 24;
+    return '<text x="${e.position.dx}" y="${e.position.dy + size}" fill="${_color(color)}" font-size="$size" opacity="${e.opacity}">${_escape(e.text)}</text>';
+  }
 
-  static void _writeArrow(StringBuffer buffer, ArrowElement element) {
-    final style = element.style;
-    final alpha = (style.opacity * element.opacity).clamp(0.0, 1.0);
+  static String _imagePlaceholder(ImageElement e) {
+    return '<rect x="${e.rect.left}" y="${e.rect.top}" width="${e.rect.width}" height="${e.rect.height}" fill="#e5e7eb" stroke="#64748b"/>';
+  }
 
-    // 线段
-    buffer.writeln(
-      '  <line '
-      'x1="${_fmt(element.start.dx)}" y1="${_fmt(element.start.dy)}" '
-      'x2="${_fmt(element.end.dx)}" y2="${_fmt(element.end.dy)}" '
-      'stroke="${_colorToHex(style.color)}" '
-      'stroke-width="${_fmt(style.strokeWidth)}" '
-      'stroke-linecap="${_strokeCap(style.strokeCap)}" '
-      'opacity="${_fmt(alpha)}" />',
-    );
+  static String _widgetPlaceholder(CanvasWidgetElement e) {
+    return '<rect x="${e.worldRect.left}" y="${e.worldRect.top}" width="${e.worldRect.width}" height="${e.worldRect.height}" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1.5" rx="4"/>'
+        '<text x="${e.worldRect.center.dx}" y="${e.worldRect.center.dy}" fill="#6b7280" font-size="14" text-anchor="middle" dominant-baseline="central">${_escape(e.widgetType)}</text>';
+  }
 
-    // 箭头头部（三角形）
-    final arrowPoints = _buildArrowHeadPoints(
-      element.end,
-      element.start,
-      element.arrowHeadSize,
-    );
-    if (arrowPoints != null) {
-      buffer.writeln(
-        '  <polygon '
-        'points="$arrowPoints" '
-        'fill="${_colorToHex(style.color)}" '
-        'opacity="${_fmt(alpha)}" />',
-      );
+  static Rect _contentBounds(List<CanvasElement> elements) {
+    if (elements.isEmpty) {
+      return const Rect.fromLTWH(0, 0, 1, 1);
     }
-  }
-
-  // ─── TextElement ──────────────────────────────────────────
-
-  static void _writeText(StringBuffer buffer, TextElement element) {
-    final alpha = element.opacity.clamp(0.0, 1.0);
-    final escapedText = _escapeXml(element.text);
-
-    buffer.writeln(
-      '  <text '
-      'x="${_fmt(element.position.dx)}" '
-      'y="${_fmt(element.position.dy + element.fontSize)}" '
-      'font-size="${_fmt(element.fontSize)}" '
-      'fill="${_colorToHex(element.color)}" '
-      'opacity="${_fmt(alpha)}"'
-      '${element.bold ? ' font-weight="bold"' : ''}>'
-      '$escapedText</text>',
-    );
-  }
-
-  // ─── 箭头头部计算 ──────────────────────────────────────────
-
-  /// 计算箭头头部三角形的三个顶点，返回 SVG points 字符串。
-  static String? _buildArrowHeadPoints(
-    Offset tip,
-    Offset from,
-    double size,
-  ) {
-    final direction = tip - from;
-    final length = direction.distance;
-    if (length == 0) return null;
-
-    final unitDir = direction / length;
-    const angle = 25.0 * math.pi / 180.0;
-
-    final cosA = math.cos(angle);
-    final sinA = math.sin(angle);
-
-    final dir1 = Offset(
-      unitDir.dx * cosA - unitDir.dy * sinA,
-      unitDir.dx * sinA + unitDir.dy * cosA,
-    );
-    final dir2 = Offset(
-      unitDir.dx * cosA + unitDir.dy * sinA,
-      -unitDir.dx * sinA + unitDir.dy * cosA,
-    );
-
-    final p1 = tip - dir1 * size;
-    final p2 = tip - dir2 * size;
-
-    return '${_fmt(tip.dx)},${_fmt(tip.dy)} '
-        '${_fmt(p1.dx)},${_fmt(p1.dy)} '
-        '${_fmt(p2.dx)},${_fmt(p2.dy)}';
-  }
-
-  // ─── 工具方法 ─────────────────────────────────────────────
-
-  /// 将 ARGB 32-bit 颜色转为 `#RRGGBB` 字符串。
-  static String _colorToHex(int color) {
-    return '#${(color & 0x00FFFFFF).toRadixString(16).padLeft(6, '0')}';
-  }
-
-  /// 线帽样式映射。
-  static String _strokeCap(int cap) {
-    switch (cap) {
-      case 0:
-        return 'butt';
-      case 1:
-        return 'round';
-      case 2:
-        return 'square';
-      default:
-        return 'round';
+    var bounds = elements.first.bounds;
+    for (final element in elements.skip(1)) {
+      bounds = bounds.expandToInclude(element.bounds);
     }
+    return bounds;
   }
 
-  /// 线连接样式映射。
-  static String _strokeJoin(int join) {
-    switch (join) {
-      case 0:
-        return 'miter';
-      case 1:
-        return 'round';
-      case 2:
-        return 'bevel';
-      default:
-        return 'round';
-    }
+  static String _color(Color color) {
+    final value = color.toARGB32();
+    return '#${(value & 0xFFFFFF).toRadixString(16).padLeft(6, '0')}';
   }
 
-  /// 格式化浮点数（去掉尾部多余零）。
-  static String _fmt(double value) {
-    if (value == value.truncateToDouble()) {
-      return value.toInt().toString();
-    }
-    return value.toStringAsFixed(2);
-  }
-
-  /// XML 特殊字符转义。
-  static String _escapeXml(String text) {
-    return text
+  static String _escape(String value) {
+    return value
         .replaceAll('&', '&amp;')
         .replaceAll('<', '&lt;')
         .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&apos;');
+        .replaceAll('"', '&quot;');
   }
 }

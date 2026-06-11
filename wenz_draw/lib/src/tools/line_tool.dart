@@ -1,98 +1,75 @@
-import 'dart:ui' show Canvas, Offset, Size;
+import 'package:flutter/material.dart';
 
+import '../canvas/canvas_controller.dart';
 import '../elements/line_element.dart';
 import '../infinite_canvas/canvas_event.dart';
-import '../infinite_canvas/canvas_transform.dart';
-import 'brush_settings.dart';
+import '../utils/uuid_generator.dart';
 import 'canvas_tool.dart';
 
-/// 直线工具。
-///
-/// 按下记录起点，拖动预览直线，松手提交最终直线元素。
 class LineTool extends CanvasTool {
-  final BrushSettings Function() getBrushSettings;
+  LineTool();
 
-  bool _isDrawing = false;
-  Offset? _startPoint;
-  LineElement? _previewElement;
+  static const idValue = 'line';
 
-  final LineElementRenderer _renderer = LineElementRenderer();
-
-  LineTool({required this.getBrushSettings});
+  Offset? _start;
+  Offset? _current;
 
   @override
-  String get id => 'line';
+  String get id => idValue;
 
   @override
-  String get name => '直线';
+  String get name => 'Line';
 
   @override
-  String get iconName => 'show_chart';
+  IconData get icon => Icons.show_chart;
 
   @override
-  void onActivate() {
-    _reset();
+  void cancel(CanvasController controller) {
+    _start = null;
+    _current = null;
   }
 
   @override
-  void onDeactivate() {
-    _reset();
-  }
-
-  @override
-  ToolResult handleEvent(CanvasEvent event) {
-    if (event is CanvasPointerDownEvent) {
-      _isDrawing = true;
-      _startPoint = event.worldPoint;
-      _previewElement = null;
-      return const ToolResultConsumed();
-    }
-
-    if (event is CanvasPointerMoveEvent && _isDrawing && _startPoint != null) {
-      _previewElement = LineElement.create(
-        start: _startPoint!,
-        end: event.worldPoint,
-        style: getBrushSettings().toPaintStyle(),
-        opacity: 0.7,
-      );
-      return ToolResultPreview(_previewElement!);
-    }
-
-    if (event is CanvasPointerUpEvent && _isDrawing && _startPoint != null) {
-      _isDrawing = false;
-
-      final start = _startPoint!;
-      final end = event.worldPoint;
-
-      _previewElement = null;
-      _startPoint = null;
-
-      // 起点终点重合则忽略
-      if ((start - end).distance < 1.0) {
+  ToolResult handleEvent(CanvasEvent event, CanvasController controller) {
+    switch (event) {
+      case CanvasPointerDownEvent():
+        _start = event.worldPoint;
+        _current = event.worldPoint;
+        return ToolResultPreview(_buildPreview(controller));
+      case CanvasPointerMoveEvent():
+        if (_start == null) {
+          return const ToolResultNone();
+        }
+        _current = event.worldPoint;
+        return ToolResultPreview(_buildPreview(controller));
+      case CanvasPointerUpEvent():
+        final start = _start;
+        final end = event.worldPoint;
+        _start = null;
+        _current = null;
+        if (start == null || (start - end).distance < 1) {
+          return const ToolResultNone();
+        }
+        return ToolResultElement(
+          LineElement(
+            id: UuidGenerator.create(),
+            start: start,
+            end: end,
+            style: controller.brushSettings.strokeStyle,
+          ),
+        );
+      default:
         return const ToolResultNone();
-      }
-
-      final element = LineElement.create(
-        start: start,
-        end: end,
-        style: getBrushSettings().toPaintStyle(),
-      );
-      return ToolResultElement(element);
-    }
-
-    return const ToolResultNone();
-  }
-
-  @override
-  void paintPreview(Canvas canvas, Size size, CanvasTransform transform) {
-    if (_previewElement != null) {
-      _renderer.render(canvas, _previewElement!);
     }
   }
 
-  void _reset() {
-    _isDrawing = false;
-    _startPoint = null;
-    _previewElement = null;
+  LineElement _buildPreview(CanvasController controller) {
+    final start = _start ?? Offset.zero;
+    return LineElement(
+      id: '__preview_line__',
+      start: start,
+      end: _current ?? start,
+      style: controller.brushSettings.strokeStyle.copyWith(opacity: 0.72),
+    );
   }
 }

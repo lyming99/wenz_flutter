@@ -1,111 +1,87 @@
-import 'dart:ui' show Canvas, Size;
+import 'package:flutter/material.dart';
 
 import '../canvas/paint_style.dart';
+import '../canvas/canvas_controller.dart';
 import '../elements/path_element.dart';
-import '../elements/path_point.dart';
 import '../infinite_canvas/canvas_event.dart';
-import '../infinite_canvas/canvas_transform.dart';
 import '../utils/path_simplifier.dart';
-import 'brush_settings.dart';
+import '../utils/uuid_generator.dart';
 import 'canvas_tool.dart';
 
-/// 荧光笔工具。
-///
-/// 和 [PenTool] 类似，但默认宽度更大、透明度更低，模拟荧光笔效果。
 class HighlighterTool extends CanvasTool {
-  final BrushSettings Function() getBrushSettings;
+  HighlighterTool();
 
-  bool _isDrawing = false;
-  List<PathPoint> _points = [];
-  PathElement? _previewElement;
+  static const idValue = 'highlighter';
 
-  final PathElementRenderer _renderer = PathElementRenderer();
-
-  HighlighterTool({required this.getBrushSettings});
+  final List<PathPoint> _points = [];
 
   @override
-  String get id => 'highlighter';
+  String get id => idValue;
 
   @override
-  String get name => '荧光笔';
+  String get name => 'Highlighter';
 
   @override
-  String get iconName => 'highlight';
+  IconData get icon => Icons.brush_outlined;
 
   @override
-  void onActivate() {
-    _reset();
+  void cancel(CanvasController controller) {
+    _points.clear();
   }
 
   @override
-  void onDeactivate() {
-    _reset();
-  }
-
-  @override
-  ToolResult handleEvent(CanvasEvent event) {
-    if (event is CanvasPointerDownEvent) {
-      _isDrawing = true;
-      _points = [
-        PathPoint(position: event.worldPoint),
-      ];
-      _previewElement = null;
-      return const ToolResultConsumed();
-    }
-
-    if (event is CanvasPointerMoveEvent && _isDrawing) {
-      _points.add(PathPoint(position: event.worldPoint));
-      _previewElement = PathElement.create(
-        points: _points,
-        style: _highlighterStyle(),
-        opacity: 0.3,
-      );
-      return ToolResultPreview(_previewElement!);
-    }
-
-    if (event is CanvasPointerUpEvent && _isDrawing) {
-      _isDrawing = false;
-
-      if (_points.length < 2) {
-        _previewElement = null;
-        return const ToolResultNone();
-      }
-
-      // 简化路径
-      final simplified = PathSimplifier.simplify(_points, epsilon: 2.0);
-      final element = PathElement.create(
-        points: simplified,
-        style: _highlighterStyle(),
-        opacity: 0.3,
-      );
-
-      _previewElement = null;
-      _points = [];
-      return ToolResultElement(element);
-    }
-
-    return const ToolResultNone();
-  }
-
-  @override
-  void paintPreview(Canvas canvas, Size size, CanvasTransform transform) {
-    if (_previewElement != null) {
-      _renderer.render(canvas, _previewElement!);
-    }
-  }
-
-  /// 构建荧光笔样式：宽度更大，透明度更低。
-  PaintStyle _highlighterStyle() {
-    final settings = getBrushSettings();
-    return settings.toPaintStyle().copyWith(
-          strokeWidth: 16.0,
-          opacity: 0.3,
+  ToolResult handleEvent(CanvasEvent event, CanvasController controller) {
+    switch (event) {
+      case CanvasPointerDownEvent():
+        _points
+          ..clear()
+          ..add(
+            PathPoint(position: event.worldPoint, pressure: event.pressure),
+          );
+        return ToolResultPreview(_preview(controller));
+      case CanvasPointerMoveEvent():
+        if (_points.isEmpty) {
+          return const ToolResultNone();
+        }
+        if ((_points.last.position - event.worldPoint).distance < 0.5) {
+          return const ToolResultConsumed();
+        }
+        _points.add(
+          PathPoint(position: event.worldPoint, pressure: event.pressure),
         );
+        return ToolResultPreview(_preview(controller));
+      case CanvasPointerUpEvent():
+        if (_points.length < 2) {
+          cancel(controller);
+          return const ToolResultPreview(null);
+        }
+        final simplified = PathSimplifier.simplify([
+          for (final point in _points) point.position,
+        ], tolerance: 0.8);
+        final element = PathElement(
+          id: UuidGenerator.create(),
+          points: [for (final point in simplified) PathPoint(position: point)],
+          style: _style(controller),
+        );
+        cancel(controller);
+        return ToolResultElement(element);
+      default:
+        return const ToolResultNone();
+    }
   }
 
-  void _reset() {
-    _isDrawing = false;
-    _points = [];
-    _previewElement = null;
+  PathElement _preview(CanvasController controller) {
+    return PathElement(
+      id: '__preview_highlighter__',
+      points: _points,
+      style: _style(controller).copyWith(opacity: 0.25),
+    );
+  }
+
+  PaintStyle _style(CanvasController controller) {
+    return controller.brushSettings.strokeStyle.copyWith(
+      strokeWidth: controller.brushSettings.strokeWidth * 3,
+      opacity: 0.35,
+    );
   }
 }

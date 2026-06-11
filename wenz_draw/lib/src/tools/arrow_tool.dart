@@ -1,98 +1,74 @@
-import 'dart:ui' show Canvas, Offset, Size;
+import 'package:flutter/material.dart';
 
+import '../canvas/canvas_controller.dart';
 import '../elements/arrow_element.dart';
 import '../infinite_canvas/canvas_event.dart';
-import '../infinite_canvas/canvas_transform.dart';
-import 'brush_settings.dart';
+import '../utils/uuid_generator.dart';
 import 'canvas_tool.dart';
 
-/// 箭头工具。
-///
-/// 按下记录起点，拖动预览箭头，松手提交最终箭头元素。
 class ArrowTool extends CanvasTool {
-  final BrushSettings Function() getBrushSettings;
+  ArrowTool();
 
-  bool _isDrawing = false;
-  Offset? _startPoint;
-  ArrowElement? _previewElement;
+  static const idValue = 'arrow';
 
-  final ArrowElementRenderer _renderer = ArrowElementRenderer();
-
-  ArrowTool({required this.getBrushSettings});
+  Offset? _start;
+  Offset? _current;
 
   @override
-  String get id => 'arrow';
+  String get id => idValue;
 
   @override
-  String get name => '箭头';
+  String get name => 'Arrow';
 
   @override
-  String get iconName => 'arrow_forward';
+  IconData get icon => Icons.arrow_outward;
 
   @override
-  void onActivate() {
-    _reset();
+  void cancel(CanvasController controller) {
+    _start = null;
+    _current = null;
   }
 
   @override
-  void onDeactivate() {
-    _reset();
-  }
-
-  @override
-  ToolResult handleEvent(CanvasEvent event) {
-    if (event is CanvasPointerDownEvent) {
-      _isDrawing = true;
-      _startPoint = event.worldPoint;
-      _previewElement = null;
-      return const ToolResultConsumed();
-    }
-
-    if (event is CanvasPointerMoveEvent && _isDrawing && _startPoint != null) {
-      _previewElement = ArrowElement.create(
-        start: _startPoint!,
-        end: event.worldPoint,
-        style: getBrushSettings().toPaintStyle(),
-        opacity: 0.7,
-      );
-      return ToolResultPreview(_previewElement!);
-    }
-
-    if (event is CanvasPointerUpEvent && _isDrawing && _startPoint != null) {
-      _isDrawing = false;
-
-      final start = _startPoint!;
-      final end = event.worldPoint;
-
-      _previewElement = null;
-      _startPoint = null;
-
-      // 起点终点重合则忽略
-      if ((start - end).distance < 1.0) {
+  ToolResult handleEvent(CanvasEvent event, CanvasController controller) {
+    switch (event) {
+      case CanvasPointerDownEvent():
+        _start = event.worldPoint;
+        _current = event.worldPoint;
+        return ToolResultPreview(_buildPreview(controller));
+      case CanvasPointerMoveEvent():
+        if (_start == null) {
+          return const ToolResultNone();
+        }
+        _current = event.worldPoint;
+        return ToolResultPreview(_buildPreview(controller));
+      case CanvasPointerUpEvent():
+        final start = _start;
+        final end = event.worldPoint;
+        cancel(controller);
+        if (start == null || (start - end).distance < 1) {
+          return const ToolResultNone();
+        }
+        return ToolResultElement(
+          ArrowElement(
+            id: UuidGenerator.create(),
+            start: start,
+            end: end,
+            style: controller.brushSettings.strokeStyle,
+          ),
+        );
+      default:
         return const ToolResultNone();
-      }
-
-      final element = ArrowElement.create(
-        start: start,
-        end: end,
-        style: getBrushSettings().toPaintStyle(),
-      );
-      return ToolResultElement(element);
-    }
-
-    return const ToolResultNone();
-  }
-
-  @override
-  void paintPreview(Canvas canvas, Size size, CanvasTransform transform) {
-    if (_previewElement != null) {
-      _renderer.render(canvas, _previewElement!);
     }
   }
 
-  void _reset() {
-    _isDrawing = false;
-    _startPoint = null;
-    _previewElement = null;
+  ArrowElement _buildPreview(CanvasController controller) {
+    final start = _start ?? Offset.zero;
+    return ArrowElement(
+      id: '__preview_arrow__',
+      start: start,
+      end: _current ?? start,
+      style: controller.brushSettings.strokeStyle.copyWith(opacity: 0.72),
+    );
   }
 }

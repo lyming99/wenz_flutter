@@ -1,126 +1,119 @@
 import 'package:flutter/foundation.dart';
 
+import '../utils/uuid_generator.dart';
 import 'canvas_layer.dart';
 
-/// 图层管理器。
-///
-/// 管理画布图层的增删改查、排序、可见性等。
 class LayerManager extends ChangeNotifier {
-  final List<CanvasLayer> _layers = [];
-  String? _activeLayerId;
-  int _layerCounter = 0;
+  LayerManager({List<CanvasLayer>? layers, String? activeLayerId})
+    : _layers = List<CanvasLayer>.from(
+        layers ??
+            const [
+              CanvasLayer(id: CanvasLayer.defaultLayerId, name: 'Layer 1'),
+            ],
+      ),
+      _activeLayerId = activeLayerId ?? CanvasLayer.defaultLayerId;
 
-  /// 获取所有图层。
-  List<CanvasLayer> get layers => List.unmodifiable(_layers);
+  final List<CanvasLayer> _layers;
+  String _activeLayerId;
 
-  /// 当前活跃图层。
-  CanvasLayer? get activeLayer =>
-      _layers.where((l) => l.id == _activeLayerId).firstOrNull;
+  List<CanvasLayer> get layers => List<CanvasLayer>.unmodifiable(_layers);
+  String get activeLayerId => _activeLayerId;
 
-  /// 当前活跃图层 ID。
-  String? get activeLayerId => _activeLayerId;
+  CanvasLayer get activeLayer {
+    return _layers.firstWhere(
+      (layer) => layer.id == _activeLayerId,
+      orElse: () => _layers.first,
+    );
+  }
 
-  /// 可见图层列表。
-  List<CanvasLayer> get visibleLayers =>
-      _layers.where((l) => l.isVisible).toList();
+  List<CanvasLayer> get visibleLayers {
+    return List<CanvasLayer>.unmodifiable(
+      _layers.where((layer) => layer.isVisible),
+    );
+  }
 
-  /// 图层数量。
-  int get count => _layers.length;
-
-  /// 添加新图层。
-  CanvasLayer addLayer({String? name}) {
-    _layerCounter++;
+  void addLayer({String? name}) {
     final layer = CanvasLayer(
-      id: 'layer_$_layerCounter',
-      name: name ?? '图层 $_layerCounter',
+      id: UuidGenerator.create(),
+      name: name ?? 'Layer ${_layers.length + 1}',
     );
     _layers.add(layer);
-    _activeLayerId ??= layer.id;
+    _activeLayerId = layer.id;
     notifyListeners();
-    return layer;
   }
 
-  /// 移除图层。
   void removeLayer(String id) {
-    final index = _layers.indexWhere((l) => l.id == id);
-    if (index < 0) return;
-    _layers.removeAt(index);
-
+    if (_layers.length == 1) {
+      return;
+    }
+    _layers.removeWhere((layer) => layer.id == id);
     if (_activeLayerId == id) {
-      _activeLayerId = _layers.isNotEmpty ? _layers.last.id : null;
+      _activeLayerId = _layers.last.id;
     }
     notifyListeners();
   }
 
-  /// 设置活跃图层。
   void setActiveLayer(String id) {
-    if (_layers.any((l) => l.id == id)) {
-      _activeLayerId = id;
-      notifyListeners();
+    if (_activeLayerId == id || !_layers.any((layer) => layer.id == id)) {
+      return;
     }
+    _activeLayerId = id;
+    notifyListeners();
   }
 
-  /// 切换可见性。
   void toggleVisibility(String id) {
-    final index = _layers.indexWhere((l) => l.id == id);
-    if (index < 0) return;
-    _layers[index] = _layers[index].copyWith(isVisible: !_layers[index].isVisible);
-    notifyListeners();
+    _updateLayer(id, (layer) => layer.copyWith(isVisible: !layer.isVisible));
   }
 
-  /// 切换锁定。
   void toggleLock(String id) {
-    final index = _layers.indexWhere((l) => l.id == id);
-    if (index < 0) return;
-    _layers[index] = _layers[index].copyWith(isLocked: !_layers[index].isLocked);
-    notifyListeners();
+    _updateLayer(id, (layer) => layer.copyWith(isLocked: !layer.isLocked));
   }
 
-  /// 设置透明度。
   void setOpacity(String id, double opacity) {
-    final index = _layers.indexWhere((l) => l.id == id);
-    if (index < 0) return;
-    _layers[index] = _layers[index].copyWith(opacity: opacity.clamp(0.0, 1.0));
-    notifyListeners();
-  }
-
-  /// 重排图层顺序。
-  void reorder(int oldIndex, int newIndex) {
-    if (oldIndex < newIndex) newIndex--;
-    final layer = _layers.removeAt(oldIndex);
-    _layers.insert(newIndex, layer);
-    notifyListeners();
-  }
-
-  /// 向下合并图层。
-  void mergeDown(String id) {
-    final index = _layers.indexWhere((l) => l.id == id);
-    if (index <= 0) return; // 没有下方图层
-
-    final upper = _layers[index];
-    final lower = _layers[index - 1];
-
-    // 合并元素 ID
-    final merged = lower.copyWith(
-      elementIds: [...lower.elementIds, ...upper.elementIds],
+    _updateLayer(
+      id,
+      (layer) => layer.copyWith(opacity: opacity.clamp(0.0, 1.0)),
     );
-    _layers[index - 1] = merged;
-    _layers.removeAt(index);
+  }
 
-    if (_activeLayerId == id) {
-      _activeLayerId = merged.id;
+  void reorder(int oldIndex, int newIndex) {
+    if (oldIndex < 0 || oldIndex >= _layers.length) {
+      return;
     }
+    final targetIndex = newIndex.clamp(0, _layers.length - 1);
+    final layer = _layers.removeAt(oldIndex);
+    _layers.insert(targetIndex, layer);
     notifyListeners();
   }
 
-  /// 获取指定 ID 的图层。
-  CanvasLayer? getLayer(String id) =>
-      _layers.where((l) => l.id == id).firstOrNull;
+  int layerIndexOf(String id) {
+    final index = _layers.indexWhere((layer) => layer.id == id);
+    return index == -1 ? 0 : index;
+  }
 
-  /// 清除所有图层。
-  void clear() {
-    _layers.clear();
-    _activeLayerId = null;
+  CanvasLayer? layerById(String id) {
+    for (final layer in _layers) {
+      if (layer.id == id) {
+        return layer;
+      }
+    }
+    return null;
+  }
+
+  bool isLayerVisible(String id) {
+    return layerById(id)?.isVisible ?? true;
+  }
+
+  bool isLayerLocked(String id) {
+    return layerById(id)?.isLocked ?? false;
+  }
+
+  void _updateLayer(String id, CanvasLayer Function(CanvasLayer) update) {
+    final index = _layers.indexWhere((layer) => layer.id == id);
+    if (index == -1) {
+      return;
+    }
+    _layers[index] = update(_layers[index]);
     notifyListeners();
   }
 }

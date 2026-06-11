@@ -1,34 +1,28 @@
+import '../../canvas/canvas_controller.dart';
 import '../canvas_command.dart';
 
-/// 批量命令（组合模式）。
-///
-/// 将多个命令组合为一个原子操作，支持一次性执行/撤销。
-/// undo 时按反序撤销所有子命令。
-class BatchCommand implements CanvasCommand {
-  final List<CanvasCommand> _commands;
-  final String _description;
+class BatchCommand extends CanvasCommand {
+  const BatchCommand({
+    required this.commands,
+    this.description = 'Batch operation',
+  });
 
-  BatchCommand(List<CanvasCommand> commands, {String? description})
-      : _commands = List.unmodifiable(commands),
-        _description = description ?? '批量操作 (${commands.length} 个)';
-
-  /// 子命令列表（不可变）。
-  List<CanvasCommand> get commands => _commands;
+  final List<CanvasCommand> commands;
 
   @override
-  void execute() {
-    for (final command in _commands) {
-      command.execute();
+  final String description;
+
+  @override
+  void execute(CanvasController controller) {
+    for (final command in commands) {
+      command.execute(controller);
     }
   }
 
   @override
-  void undo() {
-    for (final command in _commands.reversed) {
-      command.undo();
+  void undo(CanvasController controller) {
+    for (final command in commands.reversed) {
+      command.undo(controller);
     }
   }
-
-  @override
-  String get description => _description;
 }

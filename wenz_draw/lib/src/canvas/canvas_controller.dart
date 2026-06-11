@@ -1,230 +1,455 @@
-import 'dart:ui' show Offset, Rect;
-
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 
 import '../elements/canvas_element.dart';
-import '../elements/path_element.dart';
-import '../elements/line_element.dart';
-import '../elements/rect_element.dart';
-import '../elements/ellipse_element.dart';
-import '../elements/arrow_element.dart';
-import '../elements/text_element.dart';
+import '../elements/element_registry.dart';
 import '../history/commands/add_element_command.dart';
+import '../history/commands/batch_command.dart';
 import '../history/commands/remove_element_command.dart';
+import '../history/commands/update_element_command.dart';
+import '../history/canvas_command.dart';
 import '../history/history_manager.dart';
+import '../infinite_canvas/canvas_event.dart';
+import '../layers/canvas_layer.dart';
+import '../layers/layer_manager.dart';
 import '../tools/brush_settings.dart';
 import '../tools/canvas_tool.dart';
+import '../tools/ellipse_tool.dart';
+import '../tools/eraser_tool.dart';
+import '../tools/highlighter_tool.dart';
+import '../tools/line_tool.dart';
+import '../tools/pan_tool.dart';
+import '../tools/pen_tool.dart';
+import '../tools/rect_tool.dart';
+import '../tools/select_tool.dart';
+import '../tools/text_tool.dart';
+import '../tools/arrow_tool.dart';
 import '../tools/tool_manager.dart';
+import 'canvas_state.dart';
 import 'element_manager.dart';
-import 'selection_manager.dart';
 
-/// 核心画布控制器。
-///
-/// 协调 ElementManager、SelectionManager、ToolManager、HistoryManager 等子模块，
-/// 提供元素 CRUD、选择、工具管理、撤销/重做、序列化等核心 API。
 class CanvasController extends ChangeNotifier {
-  final ElementManager _elementManager;
-  final SelectionManager _selectionManager;
-  final ToolManager _toolManager;
-  final HistoryManager _historyManager;
-
   CanvasController({
-    ElementManager? elementManager,
-    SelectionManager? selectionManager,
+    CanvasState initialState = const CanvasState(),
     ToolManager? toolManager,
     HistoryManager? historyManager,
-  })  : _elementManager = elementManager ?? ElementManager(),
-        _selectionManager = selectionManager ?? SelectionManager(),
-        _toolManager = toolManager ?? ToolManager(),
-        _historyManager = historyManager ?? HistoryManager();
+    LayerManager? layerManager,
+  }) : _state = initialState,
+       toolManager = toolManager ?? ToolManager(),
+       historyManager = historyManager ?? HistoryManager(),
+       layerManager = layerManager ?? LayerManager() {
+    ElementRendererRegistry.ensureBuiltInsRegistered();
+    _registerBuiltInTools();
+    this.historyManager.addListener(notifyListeners);
+    this.layerManager.addListener(notifyListeners);
+    setTool(PenTool.idValue);
+  }
 
-  // ─── 子管理器访问 ─────────────────────────────────────────
+  final ElementManager _elementManager = const ElementManager();
+  final ToolManager toolManager;
+  final HistoryManager historyManager;
+  final LayerManager layerManager;
 
-  ElementManager get elementManager => _elementManager;
-  SelectionManager get selectionManager => _selectionManager;
-  ToolManager get toolManager => _toolManager;
-  HistoryManager get historyManager => _historyManager;
+  CanvasState _state;
 
-  // ─── 元素 CRUD ─────────────────────────────────────────────
+  CanvasState get state => _state;
+  List<CanvasElement> get elements => _state.elements;
+  CanvasElement? get previewElement => _state.previewElement;
+  Set<String> get selectedIds => _state.selectedIds;
+  Rect? get selectionRect => _state.selectionRect;
+  BrushSettings get brushSettings => toolManager.brushSettings;
+  CanvasTool? get currentTool => toolManager.activeTool;
+  bool get canUndo => historyManager.canUndo;
+  bool get canRedo => historyManager.canRedo;
+  List<CanvasLayer> get layers => layerManager.layers;
+  String get activeLayerId => layerManager.activeLayerId;
 
-  /// 添加元素（通过历史记录）。
-  void addElement(CanvasElement element) {
-    _historyManager.execute(AddElementCommand(_elementManager, element));
+  void addElement(
+    CanvasElement element, {
+    bool record = true,
+    bool bringToFront = false,
+  }) {
+    final prepared = _prepareElementForInsert(
+      element,
+      bringToFront: bringToFront,
+    );
+    if (record) {
+      historyManager.execute(AddElementCommand(prepared), this);
+      return;
+    }
+    applyElementAdded(prepared);
+  }
+
+  void applyElementAdded(CanvasElement element) {
+    _state = _state.copyWith(
+      elements: _elementManager.add(_state.elements, element),
+      previewElement: null,
+    );
     notifyListeners();
   }
 
-  /// 移除元素（通过历史记录）。
-  void removeElement(String id) {
-    final element = _elementManager.getElement(id);
-    if (element != null) {
-      _historyManager
-          .execute(RemoveElementCommand(_elementManager, element));
-      _selectionManager.removeFromSelection(id);
+  void removeElement(String id, {bool record = true}) {
+    final element = elementById(id);
+    if (element == null) {
+      return;
+    }
+    if (record) {
+      historyManager.execute(RemoveElementCommand(element), this);
+      return;
+    }
+    applyElementRemoved(id);
+  }
+
+  void applyElementRemoved(String id) {
+    _state = _state.copyWith(
+      elements: _elementManager.remove(_state.elements, id),
+      selectedIds: {..._state.selectedIds}..remove(id),
+      previewElement: null,
+    );
+    notifyListeners();
+  }
+
+  void updateElement(String id, CanvasElement element, {bool record = true}) {
+    final before = elementById(id);
+    if (before == null) {
+      return;
+    }
+    if (record) {
+      historyManager.execute(
+        UpdateElementCommand(before: before, after: element),
+        this,
+      );
+      return;
+    }
+    applyElementUpdated(id, element);
+  }
+
+  void applyElementUpdated(String id, CanvasElement element) {
+    _state = _state.copyWith(
+      elements: _elementManager.update(_state.elements, id, element),
+    );
+    notifyListeners();
+  }
+
+  void replaceElements(
+    List<CanvasElement> elements, {
+    bool clearHistory = true,
+  }) {
+    _state = _state.copyWith(
+      elements: List<CanvasElement>.unmodifiable(elements),
+      previewElement: null,
+      selectedIds: const <String>{},
+      selectionRect: null,
+    );
+    if (clearHistory) {
+      historyManager.clear();
     }
     notifyListeners();
   }
 
-  /// 更新元素。
-  void updateElement(String id, CanvasElement element) {
-    _elementManager.updateElement(id, element);
+  void setPreviewElement(CanvasElement? element) {
+    _state = _state.copyWith(previewElement: element);
     notifyListeners();
   }
 
-  /// 获取元素。
-  CanvasElement? getElement(String id) => _elementManager.getElement(id);
-
-  /// 获取所有元素（按 zIndex 排序）。
-  List<CanvasElement> get elements => _elementManager.elements;
-
-  /// 获取视口内可见元素。
-  List<CanvasElement> getVisibleElements(Rect visibleRect) {
-    return _elementManager.getVisibleElements(visibleRect);
-  }
-
-  // ─── 选择 ─────────────────────────────────────────────────
-
-  /// 选中元素。
-  void select(String? id, {bool addToSelection = false}) {
-    if (id == null) {
-      _selectionManager.deselectAll();
-    } else {
-      _selectionManager.select(id, addToSelection: addToSelection);
+  void clearPreview() {
+    if (_state.previewElement == null) {
+      return;
     }
+    _state = _state.copyWith(previewElement: null);
     notifyListeners();
   }
 
-  /// 框选。
-  void selectInRect(Rect worldRect) {
-    _selectionManager.selectInRect(worldRect, elements);
+  void setSelectionRect(Rect? rect) {
+    _state = _state.copyWith(selectionRect: rect);
     notifyListeners();
   }
 
-  /// 全选。
-  void selectAll() {
-    _selectionManager.selectAll(elements);
-    notifyListeners();
+  void cancelCurrentInteraction() {
+    toolManager.cancelActiveTool(this);
+    clearPreview();
   }
 
-  /// 取消选择。
-  void deselectAll() {
-    _selectionManager.deselectAll();
-    notifyListeners();
+  List<CanvasElement> orderedElements({bool visibleOnly = false}) {
+    final ordered =
+        [
+          for (var i = 0; i < _state.elements.length; i++)
+            if (!visibleOnly ||
+                (_state.elements[i].visible &&
+                    isLayerVisible(_state.elements[i].layerId)))
+              MapEntry(i, _state.elements[i]),
+        ]..sort((a, b) {
+          final layerOrder = layerIndexOf(
+            a.value.layerId,
+          ).compareTo(layerIndexOf(b.value.layerId));
+          if (layerOrder != 0) {
+            return layerOrder;
+          }
+
+          final zOrder = a.value.zIndex.compareTo(b.value.zIndex);
+          if (zOrder != 0) {
+            return zOrder;
+          }
+          return a.key.compareTo(b.key);
+        });
+
+    return [for (final entry in ordered) entry.value];
   }
 
-  /// 删除选中元素。
-  void deleteSelected() {
-    for (final id in _selectionManager.selectedIds.toList()) {
-      _elementManager.removeElement(id);
-    }
-    _selectionManager.clear();
-    notifyListeners();
+  CanvasElement? hitTest(Offset worldPoint, {double tolerance = 5}) {
+    return _elementManager.hitTest(
+      _state.elements.where((element) => isLayerVisible(element.layerId)),
+      worldPoint,
+      tolerance: tolerance,
+      layerRank: (element) => layerManager.layerIndexOf(element.layerId),
+    );
   }
 
-  /// 获取选中的元素。
-  List<CanvasElement> get selectedElements =>
-      _selectionManager.getSelectedElements(elements);
-
-  /// 是否有选中元素。
-  bool get hasSelection => _selectionManager.hasSelection;
-
-  /// 获取选中元素的统一包围盒。
-  Rect? get selectionBounds =>
-      _selectionManager.getSelectionBounds(elements);
-
-  // ─── 工具管理 ─────────────────────────────────────────────
-
-  /// 设置当前工具。
-  void setTool(String toolId) {
-    _toolManager.setActiveTool(toolId);
-    notifyListeners();
-  }
-
-  /// 获取当前工具。
-  CanvasTool? get currentTool => _toolManager.activeTool;
-
-  /// 获取所有已注册工具。
-  List<CanvasTool> get tools => _toolManager.tools;
-
-  /// 获取/设置画笔配置。
-  BrushSettings get brushSettings => _toolManager.brushSettings;
-
-  void updateBrushSettings(BrushSettings settings) {
-    _toolManager.updateBrushSettings(settings);
-    notifyListeners();
-  }
-
-  // ─── 撤销/重做 ─────────────────────────────────────────────
-
-  /// 撤销最近一次操作。
-  void undo() {
-    _historyManager.undo();
-    notifyListeners();
-  }
-
-  /// 重做最近一次撤销的操作。
-  void redo() {
-    _historyManager.redo();
-    notifyListeners();
-  }
-
-  /// 是否可以撤销。
-  bool get canUndo => _historyManager.canUndo;
-
-  /// 是否可以重做。
-  bool get canRedo => _historyManager.canRedo;
-
-  // ─── 序列化 ─────────────────────────────────────────────
-
-  Map<String, dynamic> toJson() {
-    return {
-      'version': '1.0',
-      'elements': _elementManager.elements.map((e) => e.toJson()).toList(),
-    };
-  }
-
-  void fromJson(Map<String, dynamic> json) {
-    _elementManager.clear();
-    _selectionManager.clear();
-
-    final elementsJson = json['elements'] as List?;
-    if (elementsJson != null) {
-      for (final elemJson in elementsJson) {
-        final element = _deserializeElement(elemJson as Map<String, dynamic>);
-        if (element != null) {
-          _elementManager.addElement(element);
-        }
+  CanvasElement? elementById(String id) {
+    for (final element in _state.elements) {
+      if (element.id == id) {
+        return element;
       }
-    }
-    notifyListeners();
-  }
-
-  static CanvasElement? _deserializeElement(Map<String, dynamic> json) {
-    final type = json['type'] as String?;
-    switch (type) {
-      case 'path':
-        try { return PathElement.fromJson(json); } catch (_) {}
-      case 'line':
-        try { return LineElement.fromJson(json); } catch (_) {}
-      case 'rect':
-        try { return RectElement.fromJson(json); } catch (_) {}
-      case 'ellipse':
-        try { return EllipseElement.fromJson(json); } catch (_) {}
-      case 'arrow':
-        try { return ArrowElement.fromJson(json); } catch (_) {}
-      case 'text':
-        try { return TextElement.fromJson(json); } catch (_) {}
     }
     return null;
   }
 
-  // ─── 生命周期 ─────────────────────────────────────────────
+  void select(String? id, {bool addToSelection = false}) {
+    final next = <String>{
+      if (addToSelection) ..._state.selectedIds,
+      if (id != null) id,
+    };
+    _state = _state.copyWith(selectedIds: next);
+    notifyListeners();
+  }
+
+  void setSelection(Set<String> ids) {
+    _state = _state.copyWith(selectedIds: Set<String>.unmodifiable(ids));
+    notifyListeners();
+  }
+
+  void selectInRect(Rect worldRect) {
+    setSelection({
+      for (final element in elements)
+        if (element.visible &&
+            isLayerVisible(element.layerId) &&
+            element.bounds.overlaps(worldRect))
+          element.id,
+    });
+  }
+
+  void deselectAll() {
+    if (_state.selectedIds.isEmpty) {
+      return;
+    }
+    _state = _state.copyWith(selectedIds: const <String>{});
+    notifyListeners();
+  }
+
+  List<CanvasElement> get selectedElements {
+    return [
+      for (final element in elements)
+        if (_state.selectedIds.contains(element.id)) element,
+    ];
+  }
+
+  void moveSelected(Offset delta, {bool record = true}) {
+    if (delta == Offset.zero || selectedIds.isEmpty) {
+      return;
+    }
+
+    final commands = [
+      for (final element in selectedElements)
+        UpdateElementCommand(
+          before: element,
+          after: element.translate(delta),
+          description: 'Move ${element.type}',
+        ),
+    ];
+
+    if (commands.isEmpty) {
+      return;
+    }
+
+    if (record) {
+      historyManager.execute(
+        BatchCommand(commands: commands, description: 'Move selection'),
+        this,
+      );
+      return;
+    }
+
+    for (final command in commands) {
+      command.execute(this);
+    }
+  }
+
+  void removeSelected() {
+    final commands = [
+      for (final element in selectedElements) RemoveElementCommand(element),
+    ];
+    if (commands.isEmpty) {
+      return;
+    }
+    historyManager.execute(
+      BatchCommand(commands: commands, description: 'Remove selection'),
+      this,
+    );
+  }
+
+  void clear({bool record = true}) {
+    final commands = [
+      for (final element in elements) RemoveElementCommand(element),
+    ];
+    if (commands.isEmpty) {
+      return;
+    }
+    if (record) {
+      historyManager.execute(
+        BatchCommand(commands: commands, description: 'Clear canvas'),
+        this,
+      );
+    } else {
+      replaceElements(const <CanvasElement>[]);
+    }
+  }
+
+  void setTool(String toolId) {
+    clearPreview();
+    toolManager.setActiveTool(toolId, this);
+    notifyListeners();
+  }
+
+  void updateBrushSettings(BrushSettings settings) {
+    toolManager.updateBrushSettings(settings);
+    notifyListeners();
+  }
+
+  void dispatchCanvasEvent(CanvasEvent event) {
+    final result = toolManager.dispatch(event, this);
+    _handleToolResult(result);
+  }
+
+  void undo() {
+    cancelCurrentInteraction();
+    historyManager.undo(this);
+  }
+
+  void redo() {
+    cancelCurrentInteraction();
+    historyManager.redo(this);
+  }
+
+  void recordCommand(CanvasCommand command) {
+    historyManager.record(command);
+  }
+
+  void addLayer({String? name}) => layerManager.addLayer(name: name);
+
+  void removeLayer(String id) {
+    if (layers.length == 1) {
+      return;
+    }
+    final commands = [
+      for (final element in elements)
+        if (element.layerId == id) RemoveElementCommand(element),
+    ];
+    if (commands.isNotEmpty) {
+      historyManager.execute(
+        BatchCommand(commands: commands, description: 'Remove layer elements'),
+        this,
+      );
+    }
+    layerManager.removeLayer(id);
+  }
+
+  void setActiveLayer(String id) => layerManager.setActiveLayer(id);
+
+  void toggleLayerVisibility(String id) => layerManager.toggleVisibility(id);
+
+  void toggleLayerLock(String id) => layerManager.toggleLock(id);
+
+  void setLayerOpacity(String id, double opacity) {
+    layerManager.setOpacity(id, opacity);
+  }
+
+  int layerIndexOf(String id) => layerManager.layerIndexOf(id);
+
+  bool isLayerVisible(String id) => layerManager.isLayerVisible(id);
+
+  bool isLayerLocked(String id) => layerManager.isLayerLocked(id);
+
+  Map<String, dynamic> toJson() {
+    return {
+      'version': '0.1.0',
+      'layers': [for (final layer in layers) layer.toJson()],
+      'elements': [for (final element in elements) element.toJson()],
+    };
+  }
+
+  void _handleToolResult(ToolResult result) {
+    switch (result) {
+      case ToolResultNone():
+        break;
+      case ToolResultConsumed():
+        break;
+      case ToolResultPreview(:final preview):
+        setPreviewElement(preview);
+      case ToolResultElement(:final element):
+        addElement(element, bringToFront: true);
+      case ToolResultSelect(:final selectedIds):
+        setSelection(selectedIds);
+    }
+  }
+
+  void _registerBuiltInTools() {
+    if (toolManager.tools.isNotEmpty) {
+      return;
+    }
+
+    toolManager
+      ..registerTool(SelectTool())
+      ..registerTool(PenTool())
+      ..registerTool(HighlighterTool())
+      ..registerTool(LineTool())
+      ..registerTool(RectTool())
+      ..registerTool(EllipseTool())
+      ..registerTool(ArrowTool())
+      ..registerTool(const TextTool())
+      ..registerTool(const EraserTool())
+      ..registerTool(const PanTool());
+  }
+
+  CanvasElement _prepareElementForInsert(
+    CanvasElement element, {
+    bool bringToFront = false,
+  }) {
+    var prepared = element;
+    if (layerManager.layerById(prepared.layerId) == null ||
+        (prepared.layerId == CanvasLayer.defaultLayerId &&
+            activeLayerId != CanvasLayer.defaultLayerId)) {
+      prepared = prepared.copyWith(layerId: activeLayerId);
+    }
+
+    if (bringToFront) {
+      prepared = prepared.copyWith(zIndex: nextZIndex(prepared.layerId));
+    }
+    return prepared;
+  }
+
+  int nextZIndex(String layerId) {
+    var maxZ = 0;
+    for (final element in elements) {
+      if (element.layerId == layerId && element.zIndex > maxZ) {
+        maxZ = element.zIndex;
+      }
+    }
+    return maxZ + 1;
+  }
 
   @override
   void dispose() {
-    _elementManager.dispose();
-    _selectionManager.dispose();
-    _toolManager.dispose();
-    _historyManager.dispose();
+    historyManager.removeListener(notifyListeners);
+    layerManager.removeListener(notifyListeners);
     super.dispose();
   }
 }

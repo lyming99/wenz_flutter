@@ -1,61 +1,58 @@
-import '../infinite_canvas/canvas_transform.dart';
+import 'package:flutter/material.dart';
 
-/// 画布全局不可变状态。
-///
-/// 作为唯一状态源，所有修改通过 copyWith 返回新实例。
+import '../elements/canvas_element.dart';
+
+@immutable
 class CanvasState {
-  /// 当前视图变换
-  final CanvasTransform transform;
-
-  /// 是否正在拖拽中
-  final bool isDragging;
-
-  /// 是否正在缩放中
-  final bool isScaling;
-
-  /// 脏标记：是否有未渲染的变更
-  final bool isDirty;
-
   const CanvasState({
-    this.transform = const CanvasTransform(),
-    this.isDragging = false,
-    this.isScaling = false,
-    this.isDirty = false,
+    this.elements = const <CanvasElement>[],
+    this.previewElement,
+    this.selectionRect,
+    this.selectedIds = const <String>{},
+    this.backgroundColor = Colors.white,
+    this.revision = 0,
   });
 
-  /// 初始默认状态
-  static const initial = CanvasState();
+  static const _unset = Object();
 
-  /// 复制并修改部分字段。
+  final List<CanvasElement> elements;
+  final CanvasElement? previewElement;
+  final Rect? selectionRect;
+  final Set<String> selectedIds;
+  final Color backgroundColor;
+  final int revision;
+
   CanvasState copyWith({
-    CanvasTransform? transform,
-    bool? isDragging,
-    bool? isScaling,
-    bool? isDirty,
+    List<CanvasElement>? elements,
+    Object? previewElement = _unset,
+    Object? selectionRect = _unset,
+    Set<String>? selectedIds,
+    Color? backgroundColor,
+    bool bumpRevision = true,
   }) {
     return CanvasState(
-      transform: transform ?? this.transform,
-      isDragging: isDragging ?? this.isDragging,
-      isScaling: isScaling ?? this.isScaling,
-      isDirty: isDirty ?? this.isDirty,
+      elements: elements ?? this.elements,
+      previewElement: identical(previewElement, _unset)
+          ? this.previewElement
+          : previewElement as CanvasElement?,
+      selectionRect: identical(selectionRect, _unset)
+          ? this.selectionRect
+          : selectionRect as Rect?,
+      selectedIds: selectedIds ?? this.selectedIds,
+      backgroundColor: backgroundColor ?? this.backgroundColor,
+      revision: revision + (bumpRevision ? 1 : 0),
     );
   }
 
-  @override
-  bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-    return other is CanvasState &&
-        other.transform == transform &&
-        other.isDragging == isDragging &&
-        other.isScaling == isScaling &&
-        other.isDirty == isDirty;
+  Rect? get contentBounds {
+    if (elements.isEmpty) {
+      return null;
+    }
+
+    var bounds = elements.first.bounds;
+    for (final element in elements.skip(1)) {
+      bounds = bounds.expandToInclude(element.bounds);
+    }
+    return bounds;
   }
-
-  @override
-  int get hashCode => Object.hash(transform, isDragging, isScaling, isDirty);
-
-  @override
-  String toString() =>
-      'CanvasState(transform: $transform, isDragging: $isDragging, '
-      'isScaling: $isScaling, isDirty: $isDirty)';
 }

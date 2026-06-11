@@ -5,56 +5,93 @@ import 'package:flutter/material.dart';
 
 import '../../elements/canvas_element.dart';
 import '../../elements/element_registry.dart';
+import '../../elements/widget_element.dart';
 
-// ---------------------------------------------------------------------------
-// PngExporter
-// ---------------------------------------------------------------------------
-
-/// PNG 导出器。
-///
-/// 将 [CanvasElement] 列表渲染为 PNG 图片字节。
 class PngExporter {
-  /// 将元素列表导出为 PNG 图片的原始字节。
-  ///
-  /// [elements] 要导出的元素列表。
-  /// [contentBounds] 内容包围盒（世界坐标）。
-  /// [pixelRatio] 像素比，默认 2.0（高清）。
-  /// [backgroundColor] 背景颜色（ARGB 32-bit），默认白色。
-  ///
-  /// 返回 PNG 字节。
-  static Future<Uint8List?> exportToPng({
-    required List<CanvasElement> elements,
-    required Rect contentBounds,
-    double pixelRatio = 2.0,
-    int backgroundColor = 0xFFFFFFFF,
+  const PngExporter._();
+
+  static Future<Uint8List> exportElements({
+    required Iterable<CanvasElement> elements,
+    Rect? bounds,
+    Color backgroundColor = Colors.white,
+    double pixelRatio = 1,
   }) async {
-    final width = (contentBounds.width * pixelRatio).ceil();
-    final height = (contentBounds.height * pixelRatio).ceil();
-    if (width <= 0 || height <= 0) return null;
+    final elementList = elements.toList(growable: false)
+      ..sort((a, b) => a.zIndex.compareTo(b.zIndex));
+    final exportBounds = bounds ?? _contentBounds(elementList).inflate(24);
+    final width = (exportBounds.width * pixelRatio).ceil().clamp(1, 32768);
+    final height = (exportBounds.height * pixelRatio).ceil().clamp(1, 32768);
 
     final recorder = ui.PictureRecorder();
     final canvas = Canvas(recorder);
-
-    // 绘制背景
-    canvas.drawColor(Color(backgroundColor), BlendMode.srcOver);
-
-    // 平移使内容从 (0,0) 开始绘制
-    canvas.translate(-contentBounds.left, -contentBounds.top);
-
-    // 渲染每个元素
-    for (final element in elements) {
-      if (!element.visible) continue;
-      final renderer = ElementRendererRegistry.getRenderer(element.type);
-      if (renderer != null) {
-        renderer.render(canvas, element);
+    canvas.scale(pixelRatio);
+    canvas.drawRect(
+      Offset.zero & exportBounds.size,
+      Paint()..color = backgroundColor,
+    );
+    canvas.translate(-exportBounds.left, -exportBounds.top);
+    for (final element in elementList) {
+      if (element is CanvasWidgetElement) {
+        _drawWidgetPlaceholder(canvas, element);
+      } else {
+        ElementRendererRegistry.render(canvas, element);
       }
     }
-
     final picture = recorder.endRecording();
-
     final image = await picture.toImage(width, height);
-    final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+    final data = await image.toByteData(format: ui.ImageByteFormat.png);
+    picture.dispose();
+    image.dispose();
+    return data!.buffer.asUint8List();
+  }
 
-    return byteData?.buffer.asUint8List();
+  static void _drawWidgetPlaceholder(
+    Canvas canvas,
+    CanvasWidgetElement element,
+  ) {
+    final rect = element.worldRect;
+    canvas.drawRect(
+      rect,
+      Paint()
+        ..color = const Color(0xFFF3F4F6)
+        ..style = PaintingStyle.fill,
+    );
+    canvas.drawRect(
+      rect,
+      Paint()
+        ..color = const Color(0xFF9CA3AF)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.5,
+    );
+
+    final textPainter = TextPainter(
+      text: TextSpan(
+        text: element.widgetType,
+        style: const TextStyle(
+          color: Color(0xFF6B7280),
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+      maxLines: 1,
+      ellipsis: '...',
+    );
+    textPainter.layout(maxWidth: rect.width - 8);
+    textPainter.paint(
+      canvas,
+      rect.center - Offset(textPainter.width / 2, textPainter.height / 2),
+    );
+  }
+
+  static Rect _contentBounds(List<CanvasElement> elements) {
+    if (elements.isEmpty) {
+      return const Rect.fromLTWH(0, 0, 1, 1);
+    }
+    var bounds = elements.first.bounds;
+    for (final element in elements.skip(1)) {
+      bounds = bounds.expandToInclude(element.bounds);
+    }
+    return bounds;
   }
 }

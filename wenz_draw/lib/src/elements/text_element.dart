@@ -1,21 +1,34 @@
-import 'dart:ui' show Canvas, Color, Offset, Rect, TextDirection;
+import 'package:flutter/material.dart';
 
-import 'package:flutter/material.dart' show FontWeight, TextPainter, TextStyle, TextSpan;
-import 'package:uuid/uuid.dart';
-
+import '../utils/math_utils.dart';
 import 'canvas_element.dart';
 import 'element_renderer.dart';
 
-const _uuid = Uuid();
-
-// ---------------------------------------------------------------------------
-// TextElement
-// ---------------------------------------------------------------------------
-
-/// 文本元素（不可变）。
+@immutable
 class TextElement extends CanvasElement {
+  const TextElement({
+    required this.id,
+    required this.position,
+    required this.text,
+    this.style = const TextStyle(
+      color: Colors.black,
+      fontSize: 24,
+      height: 1.2,
+    ),
+    this.layerId = 'default',
+    this.visible = true,
+    this.opacity = 1,
+    this.zIndex = 0,
+  });
+
+  static const elementType = 'text';
+
   @override
   final String id;
+  final Offset position;
+  final String text;
+  final TextStyle style;
+
   @override
   final String layerId;
   @override
@@ -25,127 +38,36 @@ class TextElement extends CanvasElement {
   @override
   final int zIndex;
 
-  /// 文本位置（左上角）
-  final Offset position;
-
-  /// 文本内容
-  final String text;
-
-  /// 字号
-  final double fontSize;
-
-  /// 颜色（ARGB 32-bit）
-  final int color;
-
-  /// 是否加粗
-  final bool bold;
-
   @override
-  String get type => 'text';
-
-  TextElement._({
-    required this.id,
-    required this.position,
-    required this.text,
-    this.fontSize = 16.0,
-    this.color = 0xFF000000,
-    this.bold = false,
-    this.layerId = 'default',
-    this.visible = true,
-    this.opacity = 1.0,
-    this.zIndex = 0,
-  });
-
-  /// 工厂创建方法（内部生成 UUID）。
-  static TextElement create({
-    required Offset position,
-    required String text,
-    double fontSize = 16.0,
-    int color = 0xFF000000,
-    bool bold = false,
-    String layerId = 'default',
-    bool visible = true,
-    double opacity = 1.0,
-    int zIndex = 0,
-  }) {
-    return TextElement._(
-      id: _uuid.v4(),
-      position: position,
-      text: text,
-      fontSize: fontSize,
-      color: color,
-      bold: bold,
-      layerId: layerId,
-      visible: visible,
-      opacity: opacity,
-      zIndex: zIndex,
-    );
-  }
+  String get type => elementType;
 
   @override
   Rect get bounds {
-    final width = fontSize * text.length * 0.6;
-    final height = fontSize * 1.2;
-    return Rect.fromLTWH(position.dx, position.dy, width, height);
+    final painter = _textPainter();
+    return position & painter.size;
   }
 
   @override
   bool hitTest(Offset worldPoint, {double tolerance = 5.0}) {
-    return bounds.contains(worldPoint);
+    return bounds.inflate(tolerance).contains(worldPoint);
   }
-
-  @override
-  Map<String, dynamic> toJson() => {
-        'id': id,
-        'type': type,
-        'layerId': layerId,
-        'visible': visible,
-        'opacity': opacity,
-        'zIndex': zIndex,
-        'x': position.dx,
-        'y': position.dy,
-        'text': text,
-        'fontSize': fontSize,
-        'color': color,
-        'bold': bold,
-      };
-
-  factory TextElement.fromJson(Map<String, dynamic> json) => TextElement._(
-        id: json['id'] as String,
-        position: Offset(
-          (json['x'] as num).toDouble(),
-          (json['y'] as num).toDouble(),
-        ),
-        text: json['text'] as String,
-        fontSize: (json['fontSize'] as num?)?.toDouble() ?? 16.0,
-        color: json['color'] as int? ?? 0xFF000000,
-        bold: json['bold'] as bool? ?? false,
-        layerId: json['layerId'] as String? ?? 'default',
-        visible: json['visible'] as bool? ?? true,
-        opacity: (json['opacity'] as num?)?.toDouble() ?? 1.0,
-        zIndex: json['zIndex'] as int? ?? 0,
-      );
 
   @override
   TextElement copyWith({
     String? id,
+    Offset? position,
+    String? text,
+    TextStyle? style,
     String? layerId,
     bool? visible,
     double? opacity,
     int? zIndex,
-    Offset? position,
-    String? text,
-    double? fontSize,
-    int? color,
-    bool? bold,
   }) {
-    return TextElement._(
+    return TextElement(
       id: id ?? this.id,
       position: position ?? this.position,
       text: text ?? this.text,
-      fontSize: fontSize ?? this.fontSize,
-      color: color ?? this.color,
-      bold: bold ?? this.bold,
+      style: style ?? this.style,
       layerId: layerId ?? this.layerId,
       visible: visible ?? this.visible,
       opacity: opacity ?? this.opacity,
@@ -155,68 +77,64 @@ class TextElement extends CanvasElement {
 
   @override
   TextElement translate(Offset delta) {
-    return TextElement._(
-      id: id,
-      position: position + delta,
-      text: text,
-      fontSize: fontSize,
-      color: color,
-      bold: bold,
-      layerId: layerId,
-      visible: visible,
-      opacity: opacity,
-      zIndex: zIndex,
-    );
+    return copyWith(position: position + delta);
   }
 
   @override
   TextElement scaleElement(double factor, {Offset? pivot}) {
-    final effectivePivot = pivot ?? bounds.center;
-    return TextElement._(
-      id: id,
-      position: effectivePivot + (position - effectivePivot) * factor,
-      text: text,
-      fontSize: fontSize * factor,
-      color: color,
-      bold: bold,
-      layerId: layerId,
-      visible: visible,
-      opacity: opacity,
-      zIndex: zIndex,
+    final origin = pivot ?? bounds.center;
+    return copyWith(
+      position: scalePoint(position, factor, origin),
+      style: style.copyWith(fontSize: (style.fontSize ?? 24) * factor.abs()),
     );
+  }
+
+  @override
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'type': type,
+      'layerId': layerId,
+      'visible': visible,
+      'opacity': opacity,
+      'zIndex': zIndex,
+      'position': {'x': position.dx, 'y': position.dy},
+      'text': text,
+      'style': {
+        'color': (style.color ?? Colors.black).toARGB32(),
+        'fontSize': style.fontSize ?? 24,
+      },
+    };
+  }
+
+  TextPainter _textPainter() {
+    final painter = TextPainter(
+      text: TextSpan(text: text, style: style),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    return painter;
   }
 }
 
-// ---------------------------------------------------------------------------
-// TextElementRenderer
-// ---------------------------------------------------------------------------
-
-/// [TextElement] 的渲染器。
 class TextElementRenderer extends ElementRenderer<TextElement> {
+  const TextElementRenderer();
+
   @override
   void render(Canvas canvas, TextElement element) {
-    if (element.text.isEmpty) return;
-
-    final alpha =
-        ((element.opacity * 255).round()).clamp(0, 255);
-    final colorValue = (element.color & 0x00FFFFFF) | (alpha << 24);
-
-    final textStyle = TextStyle(
-      fontSize: element.fontSize,
-      color: Color(colorValue),
-      fontWeight:
-          element.bold ? FontWeight.bold : FontWeight.normal,
-    );
-
-    final textSpan = TextSpan(text: element.text, style: textStyle);
-
-    final textPainter = TextPainter(
-      text: textSpan,
+    if (!element.visible || element.text.isEmpty) {
+      return;
+    }
+    final color = element.style.color ?? Colors.black;
+    final painter = TextPainter(
+      text: TextSpan(
+        text: element.text,
+        style: element.style.copyWith(
+          color: color.withValues(alpha: element.opacity),
+        ),
+      ),
       textDirection: TextDirection.ltr,
-    );
-    textPainter.layout();
-
-    textPainter.paint(canvas, element.position);
+    )..layout();
+    painter.paint(canvas, element.position);
   }
 
   @override

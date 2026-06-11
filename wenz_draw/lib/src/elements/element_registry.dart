@@ -1,43 +1,81 @@
+import 'package:flutter/widgets.dart';
+
+import 'arrow_element.dart';
 import 'canvas_element.dart';
 import 'element_renderer.dart';
+import 'ellipse_element.dart';
+import 'image_element.dart';
+import 'line_element.dart';
+import 'path_element.dart';
+import 'rect_element.dart';
+import 'text_element.dart';
 
-/// 元素渲染器注册中心。
-///
-/// 每种元素类型（通过 [CanvasElement.type] 标识）注册一个对应的渲染器。
-/// 渲染管线通过 [getRenderer] 查找渲染器来绘制元素。
-///
-/// 使用方式：
-/// ```dart
-/// ElementRendererRegistry.register<PathElement>('path', PathElementRenderer());
-/// final renderer = ElementRendererRegistry.getRenderer('path');
-/// ```
 class ElementRendererRegistry {
-  static final Map<String, ElementRenderer> _renderers = {};
+  ElementRendererRegistry._();
 
-  /// 注册渲染器。
-  ///
-  /// [type] 元素类型标识，与 [CanvasElement.type] 对应。
-  /// [renderer] 渲染器实例。
+  static final Map<String, ElementRenderer<CanvasElement>> _renderers = {};
+  static bool _builtInsRegistered = false;
+
   static void register<T extends CanvasElement>(
     String type,
     ElementRenderer<T> renderer,
   ) {
-    _renderers[type] = renderer;
+    _renderers[type] = _RendererAdapter<T>(renderer);
   }
 
-  /// 获取指定类型的渲染器。
-  ///
-  /// 返回 null 表示未注册。
-  static ElementRenderer? getRenderer(String type) {
+  static ElementRenderer<CanvasElement>? getRenderer(String type) {
+    ensureBuiltInsRegistered();
     return _renderers[type];
   }
 
-  /// 是否已注册指定类型。
-  static bool hasRenderer(String type) => _renderers.containsKey(type);
+  static void render(Canvas canvas, CanvasElement element) {
+    final renderer = getRenderer(element.type);
+    renderer?.render(canvas, element);
+  }
 
-  /// 获取所有已注册的类型。
-  static Set<String> get registeredTypes => _renderers.keys.toSet();
+  static bool hitTest(
+    CanvasElement element,
+    Offset worldPoint, {
+    double tolerance = 5,
+  }) {
+    final renderer = getRenderer(element.type);
+    return renderer?.hitTest(element, worldPoint, tolerance) ??
+        element.hitTest(worldPoint, tolerance: tolerance);
+  }
 
-  /// 清除所有注册（主要用于测试）。
-  static void clear() => _renderers.clear();
+  static void ensureBuiltInsRegistered() {
+    if (_builtInsRegistered) {
+      return;
+    }
+    _builtInsRegistered = true;
+    register(PathElement.elementType, const PathElementRenderer());
+    register(LineElement.elementType, const LineElementRenderer());
+    register(RectElement.elementType, const RectElementRenderer());
+    register(EllipseElement.elementType, const EllipseElementRenderer());
+    register(ArrowElement.elementType, const ArrowElementRenderer());
+    register(TextElement.elementType, const TextElementRenderer());
+    register(ImageElement.elementType, const ImageElementRenderer());
+  }
+}
+
+class _RendererAdapter<T extends CanvasElement>
+    extends ElementRenderer<CanvasElement> {
+  const _RendererAdapter(this.inner);
+
+  final ElementRenderer<T> inner;
+
+  @override
+  void render(Canvas canvas, CanvasElement element) {
+    if (element is T) {
+      inner.render(canvas, element);
+    }
+  }
+
+  @override
+  bool hitTest(CanvasElement element, Offset worldPoint, double tolerance) {
+    if (element is T) {
+      return inner.hitTest(element, worldPoint, tolerance);
+    }
+    return false;
+  }
 }

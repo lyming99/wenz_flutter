@@ -1,107 +1,76 @@
-import 'dart:math' as math show min, max;
-import 'dart:ui' show Canvas, Offset, Rect, Size;
+import 'package:flutter/material.dart';
 
+import '../canvas/canvas_controller.dart';
 import '../elements/ellipse_element.dart';
 import '../infinite_canvas/canvas_event.dart';
-import '../infinite_canvas/canvas_transform.dart';
-import 'brush_settings.dart';
+import '../utils/math_utils.dart';
+import '../utils/uuid_generator.dart';
 import 'canvas_tool.dart';
 
-/// 椭圆工具。
-///
-/// 按下记录起点，拖动预览椭圆（外接矩形），松手提交最终椭圆元素。
-/// 支持任意方向拖动（自动处理负方向）。
 class EllipseTool extends CanvasTool {
-  final BrushSettings Function() getBrushSettings;
+  EllipseTool();
 
-  bool _isDrawing = false;
-  Offset? _startPoint;
-  EllipseElement? _previewElement;
+  static const idValue = 'ellipse';
 
-  final EllipseElementRenderer _renderer = EllipseElementRenderer();
-
-  EllipseTool({required this.getBrushSettings});
+  Offset? _start;
+  Offset? _current;
 
   @override
-  String get id => 'ellipse';
+  String get id => idValue;
 
   @override
-  String get name => '椭圆';
+  String get name => 'Ellipse';
 
   @override
-  String get iconName => 'radio_button_unchecked';
+  IconData get icon => Icons.circle_outlined;
 
   @override
-  void onActivate() {
-    _reset();
+  void cancel(CanvasController controller) {
+    _start = null;
+    _current = null;
   }
 
   @override
-  void onDeactivate() {
-    _reset();
-  }
-
-  @override
-  ToolResult handleEvent(CanvasEvent event) {
-    if (event is CanvasPointerDownEvent) {
-      _isDrawing = true;
-      _startPoint = event.worldPoint;
-      _previewElement = null;
-      return const ToolResultConsumed();
-    }
-
-    if (event is CanvasPointerMoveEvent && _isDrawing && _startPoint != null) {
-      final rect = _buildRect(_startPoint!, event.worldPoint);
-      _previewElement = EllipseElement.create(
-        rect: rect,
-        stroke: getBrushSettings().toPaintStyle(),
-        opacity: 0.7,
-      );
-      return ToolResultPreview(_previewElement!);
-    }
-
-    if (event is CanvasPointerUpEvent && _isDrawing && _startPoint != null) {
-      _isDrawing = false;
-
-      final rect = _buildRect(_startPoint!, event.worldPoint);
-      _previewElement = null;
-      _startPoint = null;
-
-      // 外接矩形太小则忽略
-      if (rect.width < 1.0 || rect.height < 1.0) {
+  ToolResult handleEvent(CanvasEvent event, CanvasController controller) {
+    switch (event) {
+      case CanvasPointerDownEvent():
+        _start = event.worldPoint;
+        _current = event.worldPoint;
+        return ToolResultPreview(_buildPreview(controller));
+      case CanvasPointerMoveEvent():
+        if (_start == null) {
+          return const ToolResultNone();
+        }
+        _current = event.worldPoint;
+        return ToolResultPreview(_buildPreview(controller));
+      case CanvasPointerUpEvent():
+        final start = _start;
+        final end = event.worldPoint;
+        _start = null;
+        _current = null;
+        if (start == null || (start - end).distance < 1) {
+          return const ToolResultNone();
+        }
+        return ToolResultElement(
+          EllipseElement(
+            id: UuidGenerator.create(),
+            rect: normalizedRectFromPoints(start, end),
+            strokeStyle: controller.brushSettings.strokeStyle,
+            fillStyle: controller.brushSettings.fillStyle,
+          ),
+        );
+      default:
         return const ToolResultNone();
-      }
-
-      final element = EllipseElement.create(
-        rect: rect,
-        stroke: getBrushSettings().toPaintStyle(),
-      );
-      return ToolResultElement(element);
-    }
-
-    return const ToolResultNone();
-  }
-
-  @override
-  void paintPreview(Canvas canvas, Size size, CanvasTransform transform) {
-    if (_previewElement != null) {
-      _renderer.render(canvas, _previewElement!);
     }
   }
 
-  /// 从两个对角点构建标准化矩形（处理负方向）。
-  Rect _buildRect(Offset p1, Offset p2) {
-    return Rect.fromLTRB(
-      math.min(p1.dx, p2.dx),
-      math.min(p1.dy, p2.dy),
-      math.max(p1.dx, p2.dx),
-      math.max(p1.dy, p2.dy),
+  EllipseElement _buildPreview(CanvasController controller) {
+    final start = _start ?? Offset.zero;
+    return EllipseElement(
+      id: '__preview_ellipse__',
+      rect: normalizedRectFromPoints(start, _current ?? start),
+      strokeStyle: controller.brushSettings.strokeStyle.copyWith(opacity: 0.72),
+      fillStyle: controller.brushSettings.fillStyle,
     );
-  }
-
-  void _reset() {
-    _isDrawing = false;
-    _startPoint = null;
-    _previewElement = null;
   }
 }

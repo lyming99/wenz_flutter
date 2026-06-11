@@ -1,27 +1,22 @@
-import '../../canvas/element_manager.dart';
+import '../../canvas/canvas_controller.dart';
 import '../../elements/canvas_element.dart';
 import '../canvas_command.dart';
 
-/// 添加元素命令。
-///
-/// execute: 将元素添加到 ElementManager。
-/// undo: 从 ElementManager 中移除该元素。
-class AddElementCommand implements CanvasCommand {
-  final ElementManager _manager;
-  final CanvasElement _element;
+class AddElementCommand extends CanvasCommand {
+  const AddElementCommand(this.element);
 
-  AddElementCommand(this._manager, this._element);
+  final CanvasElement element;
 
   @override
-  void execute() {
-    _manager.addElement(_element);
+  String get description => 'Add ${element.type}';
+
+  @override
+  void execute(CanvasController controller) {
+    controller.applyElementAdded(element);
   }
 
   @override
-  void undo() {
-    _manager.removeElement(_element.id);
+  void undo(CanvasController controller) {
+    controller.applyElementRemoved(element.id);
   }
-
-  @override
-  String get description => '添加元素 (${_element.type})';
 }

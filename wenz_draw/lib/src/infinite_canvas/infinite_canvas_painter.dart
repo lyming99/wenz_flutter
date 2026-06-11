@@ -1,128 +1,116 @@
 import 'package:flutter/material.dart';
 
-import '../canvas/canvas_controller.dart';
 import '../elements/canvas_element.dart';
 import '../elements/element_registry.dart';
+import '../elements/widget_element.dart';
+import '../layers/canvas_layer.dart';
 import '../rendering/grid_renderer.dart';
 import '../rendering/selection_renderer.dart';
+import '../rendering/viewport_culling.dart';
+import 'infinite_canvas_config.dart';
 import 'infinite_canvas_controller.dart';
 
-/// 无限画布配置
-class InfiniteCanvasConfig {
-  /// 是否显示网格
-  final bool showGrid;
-
-  /// 网格类型
-  final GridType gridType;
-
-  /// 背景颜色
-  final Color backgroundColor;
-
-  /// 网格颜色
-  final Color gridColor;
-
-  const InfiniteCanvasConfig({
-    this.showGrid = true,
-    this.gridType = GridType.dots,
-    this.backgroundColor = const Color(0xFFFFFFFF),
-    this.gridColor = const Color(0xFFE0E0E0),
-  });
-}
-
-/// 无限画布主渲染器（CustomPainter）。
-///
-/// 分层渲染架构：
-/// - Layer 1: 背景色 + 网格
-/// - Layer 2: 绘图元素（视口裁剪 + 渲染器）
-/// - Layer 3: 工具预览
-/// - Layer 4: 选中装饰（Phase 3）
-/// - Layer 5: UI 叠加层（Phase 5）
 class InfiniteCanvasPainter extends CustomPainter {
-  final InfiniteCanvasController controller;
-  final InfiniteCanvasConfig config;
-
-  /// 当前工具的预览元素（由 Widget 层设置）
-  CanvasElement? previewElement;
-
-  /// 缓存的网格渲染器
-  final GridRenderer _gridRenderer;
-
   InfiniteCanvasPainter({
     required this.controller,
-    this.previewElement,
     this.config = const InfiniteCanvasConfig(),
-  }) : _gridRenderer = GridRenderer(
-         color: config.gridColor,
-         gridType: config.gridType,
-       );
+  }) : revision = controller.canvasController.state.revision;
+
+  final InfiniteCanvasController controller;
+  final InfiniteCanvasConfig config;
+  final int revision;
+
+  static const _gridRenderer = GridRenderer();
+  static const _selectionRenderer = SelectionRenderer();
 
   @override
   void paint(Canvas canvas, Size size) {
     final transform = controller.transform;
-    final canvasCtrl = controller.canvasController;
+    final canvasController = controller.canvasController;
 
-    // ── Layer 1: 背景 ─────────────────────────────────────
-    canvas.drawColor(config.backgroundColor, BlendMode.srcOver);
+    canvas.drawColor(config.backgroundColor, BlendMode.src);
+    _gridRenderer.render(canvas, size, transform, config);
 
-    // ── Layer 1b: 网格 ────────────────────────────────────
-    if (config.showGrid) {
-      _gridRenderer.paint(
-        canvas,
-        size,
-        transform.offset,
-        transform.scale,
-      );
-    }
-
-    // ── Layer 2: 绘图元素 ──────────────────────────────────
     canvas.save();
     canvas.translate(transform.offset.dx, transform.offset.dy);
     canvas.scale(transform.scale);
 
-    // 视口裁剪：只绘制可见元素
     final visibleRect = transform.visibleWorldRect(size);
-    final visibleElements = canvasCtrl.getVisibleElements(visibleRect);
+    final visibleElements =
+        ViewportCulling.visibleElements(
+          canvasController.elements.where(
+            (element) =>
+                canvasController.isLayerVisible(element.layerId) &&
+                element is! CanvasWidgetElement,
+          ),
+          visibleRect,
+        ).toList()..sort((a, b) {
+          final layerOrder = canvasController
+              .layerIndexOf(a.layerId)
+              .compareTo(canvasController.layerIndexOf(b.layerId));
+          if (layerOrder != 0) {
+            return layerOrder;
+          }
+          return a.zIndex.compareTo(b.zIndex);
+        });
 
-    for (final element in visibleElements) {
-      final renderer = ElementRendererRegistry.getRenderer(element.type);
-      if (renderer != null) {
-        if (element.opacity < 1.0) {
-          canvas.saveLayer(null, Paint());
-        }
-        renderer.render(canvas, element);
-        if (element.opacity < 1.0) {
-          canvas.restore();
-        }
+    for (final layer in canvasController.layers) {
+      if (!layer.isVisible) {
+        continue;
       }
+      _paintLayer(
+        canvas,
+        visibleElements.where((element) => element.layerId == layer.id),
+        layer,
+      );
     }
 
-    // ── Layer 3: 工具预览 ──────────────────────────────────
-    if (previewElement != null) {
-      final renderer = ElementRendererRegistry.getRenderer(previewElement!.type);
-      if (renderer != null) {
-        canvas.saveLayer(null, Paint());
-        renderer.render(canvas, previewElement!);
-        canvas.restore();
-      }
+    final unknownLayerElements = visibleElements.where(
+      (element) =>
+          canvasController.layerManager.layerById(element.layerId) == null,
+    );
+    _paintLayer(canvas, unknownLayerElements, null);
+
+    final preview = canvasController.previewElement;
+    if (preview != null && preview is! CanvasWidgetElement) {
+      ElementRendererRegistry.render(canvas, preview);
     }
 
-    // ── Layer 4: 选中装饰 ──────────────────────────────────
-    if (canvasCtrl.hasSelection) {
-      SelectionRenderer.paint(canvas, canvasCtrl, transform.scale);
-    }
-
+    _selectionRenderer.render(canvas, canvasController, transform);
     canvas.restore();
+  }
 
-    // ── Layer 5: UI 叠加层（不参与变换） ─────────────────────
-    // TODO: Phase 5 - 小地图、缩放指示器等
+  void _paintLayer(
+    Canvas canvas,
+    Iterable<CanvasElement> elements,
+    CanvasLayer? layer,
+  ) {
+    final opacity = (layer?.opacity ?? 1).clamp(0.0, 1.0).toDouble();
+    final blendMode = layer?.blendMode ?? BlendMode.srcOver;
+    final needsLayer = opacity < 1 || blendMode != BlendMode.srcOver;
+
+    if (needsLayer) {
+      canvas.saveLayer(
+        null,
+        Paint()
+          ..color = Color.fromRGBO(255, 255, 255, opacity)
+          ..blendMode = blendMode,
+      );
+    }
+
+    for (final element in elements) {
+      ElementRendererRegistry.render(canvas, element);
+    }
+
+    if (needsLayer) {
+      canvas.restore();
+    }
   }
 
   @override
-  bool shouldRepaint(InfiniteCanvasPainter oldDelegate) {
-    return oldDelegate.controller.transform != controller.transform ||
-        oldDelegate.config != config ||
-        oldDelegate.previewElement != previewElement ||
-        oldDelegate.controller.canvasController.elements.length !=
-            controller.canvasController.elements.length;
+  bool shouldRepaint(covariant InfiniteCanvasPainter oldDelegate) {
+    return oldDelegate.revision != revision ||
+        oldDelegate.controller.transform != controller.transform ||
+        oldDelegate.config != config;
   }
 }

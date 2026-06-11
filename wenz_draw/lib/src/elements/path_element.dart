@@ -1,142 +1,130 @@
-import 'dart:math' as math show sqrt;
-import 'dart:ui' show Canvas, Color, Offset, Paint, PaintingStyle, Rect, StrokeCap, StrokeJoin;
-
-import 'package:uuid/uuid.dart';
+import 'package:flutter/widgets.dart';
 
 import '../canvas/paint_style.dart';
+import '../utils/math_utils.dart';
 import 'canvas_element.dart';
 import 'element_renderer.dart';
-import 'path_point.dart';
 
-const _uuid = Uuid();
-
-// ---------------------------------------------------------------------------
-// PathElement
-// ---------------------------------------------------------------------------
-
-/// 自由路径元素（不可变）。
-///
-/// 由一系列 [PathPoint] 连接而成的自由绘制路径。
-class PathElement extends CanvasElement {
-  @override
-  final String id;
-  @override
-  final String layerId;
-  @override
-  final bool visible;
-  @override
-  final double opacity;
-  @override
-  final int zIndex;
-
-  /// 路径点序列
-  final List<PathPoint> points;
-
-  /// 画笔样式
-  final PaintStyle style;
-
-  @override
-  String get type => 'path';
-
-  PathElement._({
-    required this.id,
-    required this.points,
-    required this.style,
-    this.layerId = 'default',
-    this.visible = true,
-    this.opacity = 1.0,
-    this.zIndex = 0,
+@immutable
+class PathPoint {
+  const PathPoint({
+    required this.position,
+    this.pressure = 0.5,
+    this.timestamp = 0,
   });
 
-  /// 工厂创建方法（内部生成 UUID）。
-  static PathElement create({
-    required List<PathPoint> points,
-    required PaintStyle style,
-    String layerId = 'default',
-    bool visible = true,
-    double opacity = 1.0,
-    int zIndex = 0,
-  }) {
-    return PathElement._(
-      id: _uuid.v4(),
-      points: List.unmodifiable(points),
-      style: style,
-      layerId: layerId,
-      visible: visible,
-      opacity: opacity,
-      zIndex: zIndex,
+  final Offset position;
+  final double pressure;
+  final double timestamp;
+
+  PathPoint translate(Offset delta) {
+    return PathPoint(
+      position: position + delta,
+      pressure: pressure,
+      timestamp: timestamp,
     );
   }
 
+  PathPoint scale(double factor, Offset pivot) {
+    return PathPoint(
+      position: scalePoint(position, factor, pivot),
+      pressure: pressure,
+      timestamp: timestamp,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'x': position.dx,
+      'y': position.dy,
+      'pressure': pressure,
+      'timestamp': timestamp,
+    };
+  }
+}
+
+@immutable
+class PathElement extends CanvasElement {
+  PathElement({
+    required this.id,
+    required List<PathPoint> points,
+    this.style = const PaintStyle(),
+    this.layerId = 'default',
+    this.visible = true,
+    this.opacity = 1,
+    this.zIndex = 0,
+  }) : points = List<PathPoint>.unmodifiable(points);
+
+  static const elementType = 'path';
+
+  @override
+  final String id;
+
+  final List<PathPoint> points;
+  final PaintStyle style;
+
+  @override
+  final String layerId;
+
+  @override
+  final bool visible;
+
+  @override
+  final double opacity;
+
+  @override
+  final int zIndex;
+
+  @override
+  String get type => elementType;
+
   @override
   Rect get bounds {
-    if (points.isEmpty) return Rect.zero;
-    double minX = double.infinity;
-    double minY = double.infinity;
-    double maxX = double.negativeInfinity;
-    double maxY = double.negativeInfinity;
-    for (final p in points) {
-      final dx = p.position.dx;
-      final dy = p.position.dy;
-      if (dx < minX) minX = dx;
-      if (dy < minY) minY = dy;
-      if (dx > maxX) maxX = dx;
-      if (dy > maxY) maxY = dy;
+    if (points.isEmpty) {
+      return Rect.zero;
     }
-    return Rect.fromLTRB(minX, minY, maxX, maxY);
+    return boundsForPoints(
+      points.map((point) => point.position),
+    ).inflate(style.strokeWidth / 2);
   }
 
   @override
   bool hitTest(Offset worldPoint, {double tolerance = 5.0}) {
-    if (points.length < 2) return false;
-    for (int i = 0; i < points.length - 1; i++) {
-      final dist = _pointToSegmentDistance(
-        worldPoint,
-        points[i].position,
-        points[i + 1].position,
-      );
-      if (dist <= tolerance) return true;
+    if (points.isEmpty) {
+      return false;
+    }
+    if (points.length == 1) {
+      return (points.first.position - worldPoint).distance <=
+          tolerance + style.strokeWidth / 2;
+    }
+
+    final threshold = tolerance + style.strokeWidth / 2;
+    for (var i = 0; i < points.length - 1; i++) {
+      if (distanceToSegment(
+            worldPoint,
+            points[i].position,
+            points[i + 1].position,
+          ) <=
+          threshold) {
+        return true;
+      }
     }
     return false;
   }
 
   @override
-  Map<String, dynamic> toJson() => {
-        'id': id,
-        'type': type,
-        'layerId': layerId,
-        'visible': visible,
-        'opacity': opacity,
-        'zIndex': zIndex,
-        'points': points.map((p) => p.toJson()).toList(),
-        'style': style.toJson(),
-      };
-
-  factory PathElement.fromJson(Map<String, dynamic> json) => PathElement._(
-        id: json['id'] as String,
-        points: (json['points'] as List)
-            .map((e) => PathPoint.fromJson(e as Map<String, dynamic>))
-            .toList(),
-        style: PaintStyle.fromJson(json['style'] as Map<String, dynamic>),
-        layerId: json['layerId'] as String? ?? 'default',
-        visible: json['visible'] as bool? ?? true,
-        opacity: (json['opacity'] as num?)?.toDouble() ?? 1.0,
-        zIndex: json['zIndex'] as int? ?? 0,
-      );
-
-  @override
   PathElement copyWith({
     String? id,
+    List<PathPoint>? points,
+    PaintStyle? style,
     String? layerId,
     bool? visible,
     double? opacity,
     int? zIndex,
-    List<PathPoint>? points,
-    PaintStyle? style,
   }) {
-    return PathElement._(
+    return PathElement(
       id: id ?? this.id,
-      points: points != null ? List.unmodifiable(points) : this.points,
+      points: points ?? this.points,
       style: style ?? this.style,
       layerId: layerId ?? this.layerId,
       visible: visible ?? this.visible,
@@ -147,98 +135,70 @@ class PathElement extends CanvasElement {
 
   @override
   PathElement translate(Offset delta) {
-    return PathElement._(
-      id: id,
-      points: List.unmodifiable(
-        points.map((p) => p.copyWith(position: p.position + delta)),
-      ),
-      style: style,
-      layerId: layerId,
-      visible: visible,
-      opacity: opacity,
-      zIndex: zIndex,
+    return copyWith(
+      points: [for (final point in points) point.translate(delta)],
     );
   }
 
   @override
   PathElement scaleElement(double factor, {Offset? pivot}) {
-    final effectivePivot = pivot ?? bounds.center;
-    return PathElement._(
-      id: id,
-      points: List.unmodifiable(
-        points.map(
-          (p) => p.copyWith(
-            position:
-                effectivePivot + (p.position - effectivePivot) * factor,
-          ),
-        ),
-      ),
-      style: style.copyWith(
-        strokeWidth: style.strokeWidth * factor,
-      ),
-      layerId: layerId,
-      visible: visible,
-      opacity: opacity,
-      zIndex: zIndex,
+    final origin = pivot ?? bounds.center;
+    return copyWith(
+      points: [for (final point in points) point.scale(factor, origin)],
+      style: style.copyWith(strokeWidth: style.strokeWidth * factor.abs()),
     );
+  }
+
+  @override
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'type': type,
+      'layerId': layerId,
+      'visible': visible,
+      'opacity': opacity,
+      'zIndex': zIndex,
+      'points': [for (final point in points) point.toJson()],
+      'style': style.toJson(),
+    };
   }
 }
 
-// ---------------------------------------------------------------------------
-// PathElementRenderer
-// ---------------------------------------------------------------------------
-
-/// [PathElement] 的渲染器。
 class PathElementRenderer extends ElementRenderer<PathElement> {
+  const PathElementRenderer();
+
   @override
   void render(Canvas canvas, PathElement element) {
-    final pts = element.points;
-    if (pts.length < 2) return;
-
-    final paint = _buildPaint(element.style, element.opacity);
-    for (int i = 0; i < pts.length - 1; i++) {
-      canvas.drawLine(pts[i].position, pts[i + 1].position, paint);
+    if (element.points.isEmpty || !element.visible) {
+      return;
     }
+
+    final paint = element.style
+        .copyWith(opacity: element.style.opacity * element.opacity)
+        .toPaint();
+
+    if (element.points.length == 1) {
+      canvas.drawCircle(
+        element.points.first.position,
+        element.style.strokeWidth / 2,
+        paint,
+      );
+      return;
+    }
+
+    final path = Path()
+      ..moveTo(
+        element.points.first.position.dx,
+        element.points.first.position.dy,
+      );
+    for (final point in element.points.skip(1)) {
+      path.lineTo(point.position.dx, point.position.dy);
+    }
+    canvas.drawPath(path, paint);
   }
 
   @override
   bool hitTest(PathElement element, Offset worldPoint, double tolerance) {
     return element.hitTest(worldPoint, tolerance: tolerance);
   }
-}
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-/// 从 [PaintStyle] 构建 [Paint]。
-Paint _buildPaint(PaintStyle style, double elementOpacity) {
-  final alpha = ((style.opacity * elementOpacity * 255).round())
-      .clamp(0, 255);
-  final colorValue = (style.color & 0x00FFFFFF) | (alpha << 24);
-  return Paint()
-    ..color = Color(colorValue)
-    ..strokeWidth = style.strokeWidth
-    ..strokeCap = StrokeCap.values[style.strokeCap.clamp(0, 2)]
-    ..strokeJoin = StrokeJoin.values[style.strokeJoin.clamp(0, 2)]
-    ..style = PaintingStyle.stroke
-    ..isAntiAlias = true;
-}
-
-/// 点到线段的距离。
-double _pointToSegmentDistance(Offset p, Offset a, Offset b) {
-  final dx = b.dx - a.dx;
-  final dy = b.dy - a.dy;
-  final lenSq = dx * dx + dy * dy;
-  if (lenSq == 0) {
-    // 退化为点
-    return (p - a).distance;
-  }
-  final t = (((p.dx - a.dx) * dx + (p.dy - a.dy) * dy) / lenSq)
-      .clamp(0.0, 1.0);
-  final projX = a.dx + t * dx;
-  final projY = a.dy + t * dy;
-  final ddx = p.dx - projX;
-  final ddy = p.dy - projY;
-  return math.sqrt(ddx * ddx + ddy * ddy);
 }

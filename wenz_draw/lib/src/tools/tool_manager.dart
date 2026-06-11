@@ -1,81 +1,49 @@
 import 'package:flutter/foundation.dart';
 
+import '../canvas/canvas_controller.dart';
+import '../infinite_canvas/canvas_event.dart';
 import 'brush_settings.dart';
 import 'canvas_tool.dart';
-import '../infinite_canvas/canvas_event.dart';
 
-/// 工具管理器。
-///
-/// 管理所有注册的工具，维护当前活跃工具和画笔配置。
 class ToolManager extends ChangeNotifier {
   final Map<String, CanvasTool> _tools = {};
   CanvasTool? _activeTool;
   BrushSettings _brushSettings = const BrushSettings();
 
-  /// 注册工具。
   void registerTool(CanvasTool tool) {
     _tools[tool.id] = tool;
-  }
-
-  /// 批量注册工具。
-  void registerTools(List<CanvasTool> tools) {
-    for (final tool in tools) {
-      _tools[tool.id] = tool;
-    }
-  }
-
-  /// 设置当前活跃工具。
-  void setActiveTool(String toolId) {
-    final tool = _tools[toolId];
-    if (tool == null) return;
-
-    // 停用旧工具
-    _activeTool?.onDeactivate();
-
-    _activeTool = tool;
-    tool.onActivate();
+    _activeTool ??= tool;
     notifyListeners();
   }
 
-  /// 获取当前活跃工具。
+  void setActiveTool(String toolId, CanvasController controller) {
+    final next = _tools[toolId];
+    if (next == null || identical(next, _activeTool)) {
+      return;
+    }
+    _activeTool?.onDeactivate(controller);
+    _activeTool = next;
+    _activeTool?.onActivate(controller);
+    notifyListeners();
+  }
+
   CanvasTool? get activeTool => _activeTool;
 
-  /// 获取所有已注册工具。
-  List<CanvasTool> get tools => List.unmodifiable(_tools.values);
+  List<CanvasTool> get tools => List<CanvasTool>.unmodifiable(_tools.values);
 
-  /// 获取所有工具 ID。
-  List<String> get toolIds => _tools.keys.toList();
-
-  /// 将事件分发到当前活跃工具。
-  ToolResult dispatch(CanvasEvent event) {
-    if (_activeTool == null) return const ToolResultNone();
-    return _activeTool!.handleEvent(event);
+  ToolResult dispatch(CanvasEvent event, CanvasController controller) {
+    return _activeTool?.handleEvent(event, controller) ??
+        const ToolResultNone();
   }
 
-  /// 当前画笔配置。
+  void cancelActiveTool(CanvasController controller) {
+    _activeTool?.cancel(controller);
+  }
+
   BrushSettings get brushSettings => _brushSettings;
 
-  /// 更新画笔配置。
   void updateBrushSettings(BrushSettings settings) {
     _brushSettings = settings;
-    notifyListeners();
-  }
-
-  /// 取消注册工具。
-  void unregisterTool(String toolId) {
-    if (_activeTool?.id == toolId) {
-      _activeTool?.onDeactivate();
-      _activeTool = null;
-    }
-    _tools.remove(toolId);
-    notifyListeners();
-  }
-
-  /// 清除所有工具。
-  void clear() {
-    _activeTool?.onDeactivate();
-    _activeTool = null;
-    _tools.clear();
     notifyListeners();
   }
 }

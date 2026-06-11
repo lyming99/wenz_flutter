@@ -1,334 +1,387 @@
+import 'dart:math' as math;
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../elements/canvas_element.dart';
-import '../gestures/canvas_gesture_handler.dart';
-import '../gestures/gesture_resolver.dart';
-import '../tools/canvas_tool.dart';
+import '../elements/widget_element.dart';
+import '../tools/pan_tool.dart';
+import '../tools/select_tool.dart';
+import '../widgets/canvas_widget_layer.dart';
 import 'canvas_event.dart';
+import 'infinite_canvas_config.dart';
 import 'infinite_canvas_controller.dart';
-import 'infinite_canvas_painter.dart';
 
-/// 无限画布 Widget。
-///
-/// 使用方式：
-/// ```dart
-/// final controller = InfiniteCanvasController();
-/// InfiniteCanvasWidget(
-///   controller: controller,
-///   config: const InfiniteCanvasConfig(),
-/// )
-/// ```
 class InfiniteCanvasWidget extends StatefulWidget {
-  /// 视图变换控制器
-  final InfiniteCanvasController controller;
-
-  /// 画布配置
-  final InfiniteCanvasConfig config;
-
   const InfiniteCanvasWidget({
     super.key,
     required this.controller,
     this.config = const InfiniteCanvasConfig(),
+    this.clipBehavior = Clip.hardEdge,
   });
+
+  final InfiniteCanvasController controller;
+  final InfiniteCanvasConfig config;
+  final Clip clipBehavior;
 
   @override
   State<InfiniteCanvasWidget> createState() => _InfiniteCanvasWidgetState();
 }
 
-class _InfiniteCanvasWidgetState extends State<InfiniteCanvasWidget>
-    with SingleTickerProviderStateMixin {
-  late CanvasGestureHandler _gestureHandler;
-  late GestureResolver _gestureResolver;
+class _InfiniteCanvasWidgetState extends State<InfiniteCanvasWidget> {
+  final Map<int, Offset> _pointers = {};
+  final Set<int> _widgetGesturePointers = {};
+  final Map<int, _DeferredWidgetGesture> _deferredWidgetGestures = {};
+  late final FocusNode _focusNode;
 
-  /// 用于接收 ScaleGestureRecognizer 的手势
-  late final ScaleGestureRecognizer _scaleRecognizer;
-
-  /// 双指缩放是否激活
-  bool _isScaling = false;
-
-  /// 当前工具预览元素
-  CanvasElement? _previewElement;
-
-  /// 上一次指针位置（用于计算 delta）
-  Offset _lastScreenPoint = Offset.zero;
+  Offset? _lastPinchCentroid;
+  double? _lastPinchDistance;
+  bool _toolSuppressedUntilClear = false;
 
   @override
   void initState() {
     super.initState();
-    _gestureResolver = GestureResolver();
-    _gestureHandler = CanvasGestureHandler(
-      controller: widget.controller,
-      resolver: _gestureResolver,
-    );
-
-    _scaleRecognizer = ScaleGestureRecognizer()
-      ..onStart = _handleScaleStart
-      ..onUpdate = _handleScaleUpdate
-      ..onEnd = _handleScaleEnd;
-
-    // 监听画布控制器变更（元素增删等）
-    widget.controller.canvasController.addListener(_onCanvasChanged);
-    widget.controller.addListener(_onCanvasChanged);
+    _focusNode = FocusNode(debugLabel: 'InfiniteCanvasWidget');
   }
 
   @override
   void dispose() {
-    widget.controller.removeListener(_onCanvasChanged);
-    widget.controller.canvasController.removeListener(_onCanvasChanged);
-    _scaleRecognizer.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
   @override
-  void didUpdateWidget(InfiniteCanvasWidget oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.controller != widget.controller) {
-      oldWidget.controller.removeListener(_onCanvasChanged);
-      oldWidget.controller.canvasController.removeListener(_onCanvasChanged);
-      widget.controller.addListener(_onCanvasChanged);
-      widget.controller.canvasController.addListener(_onCanvasChanged);
-      _gestureHandler = CanvasGestureHandler(
-        controller: widget.controller,
-        resolver: _gestureResolver,
-      );
-    }
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final size = Size(
+          constraints.maxWidth.isFinite ? constraints.maxWidth : 0,
+          constraints.maxHeight.isFinite ? constraints.maxHeight : 0,
+        );
+        if (size != widget.controller.viewportSize) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              widget.controller.setViewportSize(size);
+            }
+          });
+        }
+
+        return ClipRect(
+          clipBehavior: widget.clipBehavior,
+          child: KeyboardListener(
+            focusNode: _focusNode,
+            autofocus: true,
+            onKeyEvent: _handleKeyEvent,
+            child: Listener(
+              behavior: HitTestBehavior.opaque,
+              onPointerDown: _handlePointerDown,
+              onPointerMove: _handlePointerMove,
+              onPointerUp: _handlePointerUp,
+              onPointerCancel: _handlePointerCancel,
+              onPointerSignal: _handlePointerSignal,
+              child: AnimatedBuilder(
+                animation: Listenable.merge([
+                  widget.controller,
+                  widget.controller.canvasController,
+                ]),
+                builder: (context, _) {
+                  return SizedBox.expand(
+                    child: CanvasWidgetLayer(
+                      controller: widget.controller,
+                      config: widget.config,
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
-
-  void _onCanvasChanged() {
-    setState(() {});
-  }
-
-  // ─── 工具事件分发 ─────────────────────────────────────────
-
-  /// 将 PointerEvent 转为 CanvasEvent 并分发到当前工具。
-  ToolResult _dispatchToTool(CanvasEvent canvasEvent) {
-    final tool = widget.controller.canvasController.currentTool;
-    if (tool == null) return const ToolResultNone();
-
-    final result = tool.handleEvent(canvasEvent);
-
-    // 处理结果
-    switch (result) {
-      case ToolResultPreview(:final preview):
-        setState(() {
-          _previewElement = preview;
-        });
-      case ToolResultElement(:final element):
-        widget.controller.canvasController.addElement(element);
-        setState(() {
-          _previewElement = null;
-        });
-      case ToolResultNone():
-        break;
-      case ToolResultConsumed():
-        break;
-      case ToolResultSelect():
-        break;
-    }
-
-    return result;
-  }
-
-  // ─── 手势回调 ─────────────────────────────────────────────
-
-  void _handleScaleStart(ScaleStartDetails details) {
-    _isScaling = true;
-    _gestureHandler.handleScaleStart(details.focalPoint);
-  }
-
-  void _handleScaleUpdate(ScaleUpdateDetails details) {
-    if (details.pointerCount >= 2) {
-      _gestureHandler.handleScaleUpdate(details.scale, details.focalPoint);
-    }
-  }
-
-  void _handleScaleEnd(ScaleEndDetails details) {
-    _isScaling = false;
-    if (details.velocity.pixelsPerSecond.distanceSquared > 100) {
-      widget.controller.startFling(details.velocity.pixelsPerSecond * 0.016);
-    }
-  }
-
-  // ─── 指针事件 ─────────────────────────────────────────────
 
   void _handlePointerDown(PointerDownEvent event) {
-    _lastScreenPoint = event.position;
-    _gestureHandler.handlePointerDown(event);
-    _scaleRecognizer.addPointer(event);
+    _focusNode.requestFocus();
+    if (_shouldDeferToWidget(event.localPosition)) {
+      _widgetGesturePointers.add(event.pointer);
+      _deferredWidgetGestures[event.pointer] = _DeferredWidgetGesture(
+        screenPoint: event.localPosition,
+        kind: event.kind,
+        buttons: event.buttons,
+        pressure: event.pressure,
+      );
+      return;
+    }
 
-    // 分发到工具
-    final canvasEvent = CanvasPointerDownEvent(
-      screenPoint: event.position,
-      worldPoint: widget.controller.screenToWorld(event.position),
-      transform: widget.controller.transform,
+    _pointers[event.pointer] = event.localPosition;
+    if (_pointers.length > 1) {
+      _toolSuppressedUntilClear = true;
+      widget.controller.canvasController.cancelCurrentInteraction();
+      _updatePinchBaseline();
+      return;
+    }
+
+    if (_toolSuppressedUntilClear) {
+      return;
+    }
+
+    _dispatch(
+      CanvasPointerDownEvent(
+        screenPoint: event.localPosition,
+        worldPoint: widget.controller.screenToWorld(event.localPosition),
+        transform: widget.controller.transform,
+        pointerCount: _pointers.length,
+        pointer: event.pointer,
+        kind: event.kind,
+        buttons: event.buttons,
+        pressure: event.pressure,
+      ),
     );
-    _dispatchToTool(canvasEvent);
+  }
+
+  bool _shouldDeferToWidget(Offset screenPoint) {
+    final canvasController = widget.controller.canvasController;
+    if (canvasController.currentTool?.id != SelectTool.idValue) {
+      return false;
+    }
+
+    final worldPoint = widget.controller.screenToWorld(screenPoint);
+    final hit = canvasController.hitTest(worldPoint);
+    return hit is CanvasWidgetElement &&
+        !hit.isLocked &&
+        hit.interactive &&
+        hit.hitTest(worldPoint);
   }
 
   void _handlePointerMove(PointerMoveEvent event) {
-    if (_isScaling) return;
-
-    final delta = event.position - _lastScreenPoint;
-    _lastScreenPoint = event.position;
-
-    // 先分发到工具
-    final canvasEvent = CanvasPointerMoveEvent(
-      screenPoint: event.position,
-      worldPoint: widget.controller.screenToWorld(event.position),
-      transform: widget.controller.transform,
-      delta: delta,
-      worldDelta: Offset(delta.dx, delta.dy) / widget.controller.transform.scale,
-    );
-    final result = _dispatchToTool(canvasEvent);
-
-    // 如果工具没有消费事件，交给手势处理器（画布平移）
-    if (result is ToolResultNone) {
-      _gestureHandler.handlePointerMove(event);
+    if (_widgetGesturePointers.contains(event.pointer)) {
+      if (!_promoteDeferredWidgetGestureIfNeeded(event)) {
+        return;
+      }
     }
+    if (!_pointers.containsKey(event.pointer)) {
+      return;
+    }
+
+    _pointers[event.pointer] = event.localPosition;
+
+    if (_pointers.length > 1) {
+      _handlePinchPanZoom();
+      return;
+    }
+
+    if (_toolSuppressedUntilClear) {
+      return;
+    }
+
+    final shouldPan =
+        widget.controller.canvasController.currentTool?.id == PanTool.idValue ||
+        event.buttons == kMiddleMouseButton ||
+        event.buttons == kSecondaryMouseButton;
+    if (shouldPan) {
+      widget.controller.pan(event.delta);
+      return;
+    }
+
+    _dispatch(
+      CanvasPointerMoveEvent(
+        screenPoint: event.localPosition,
+        worldPoint: widget.controller.screenToWorld(event.localPosition),
+        transform: widget.controller.transform,
+        delta: event.delta,
+        pointerCount: _pointers.length,
+        pointer: event.pointer,
+        kind: event.kind,
+        buttons: event.buttons,
+        pressure: event.pressure,
+      ),
+    );
   }
 
   void _handlePointerUp(PointerUpEvent event) {
-    _gestureHandler.handlePointerUp(event);
+    _deferredWidgetGestures.remove(event.pointer);
+    if (_widgetGesturePointers.remove(event.pointer)) {
+      return;
+    }
 
-    // 分发到工具
-    final canvasEvent = CanvasPointerUpEvent(
-      screenPoint: event.position,
-      worldPoint: widget.controller.screenToWorld(event.position),
-      transform: widget.controller.transform,
-    );
-    _dispatchToTool(canvasEvent);
+    final shouldDispatch = _pointers.length == 1 && !_toolSuppressedUntilClear;
+    if (shouldDispatch) {
+      _dispatch(
+        CanvasPointerUpEvent(
+          screenPoint: event.localPosition,
+          worldPoint: widget.controller.screenToWorld(event.localPosition),
+          transform: widget.controller.transform,
+          pointerCount: _pointers.length,
+          pointer: event.pointer,
+          kind: event.kind,
+        ),
+      );
+    }
+
+    _pointers.remove(event.pointer);
+    _resetPinchIfNeeded();
   }
 
   void _handlePointerCancel(PointerCancelEvent event) {
-    _gestureHandler.handlePointerUp(
-      PointerUpEvent(
-        pointer: event.pointer,
-        position: event.position,
-      ),
-    );
+    _deferredWidgetGestures.remove(event.pointer);
+    if (_widgetGesturePointers.remove(event.pointer)) {
+      return;
+    }
 
-    // 清除预览
-    setState(() {
-      _previewElement = null;
-    });
+    _pointers.remove(event.pointer);
+    widget.controller.canvasController.cancelCurrentInteraction();
+    _resetPinchIfNeeded();
   }
 
   void _handlePointerSignal(PointerSignalEvent event) {
-    if (event is PointerScrollEvent) {
-      _gestureHandler.handleScroll(event);
+    if (event is! PointerScrollEvent) {
+      return;
     }
-  }
 
-  // ─── 键盘事件 ─────────────────────────────────────────────
+    final factor = math.exp(
+      -event.scrollDelta.dy * widget.config.scrollZoomSensitivity,
+    );
+    widget.controller.zoomBy(factor, focalPoint: event.localPosition);
+  }
 
   void _handleKeyEvent(KeyEvent event) {
-    if (event is! KeyDownEvent) return; // 只处理 KeyDown
-
-    final ctrl = widget.controller.canvasController;
-
-    // 空格 → 临时平移
-    if (event.logicalKey == LogicalKeyboardKey.space) {
-      _gestureResolver.setSpacePressed(true);
+    if (event is! KeyDownEvent) {
       return;
     }
 
-    // Ctrl+Z → undo
-    if (event.logicalKey == LogicalKeyboardKey.keyZ &&
-        (HardwareKeyboard.instance.isControlPressed || HardwareKeyboard.instance.isMetaPressed)) {
-      ctrl.undo();
-      return;
-    }
+    final canvasController = widget.controller.canvasController;
+    final key = event.logicalKey;
+    final controlPressed =
+        HardwareKeyboard.instance.isControlPressed ||
+        HardwareKeyboard.instance.isMetaPressed;
 
-    // Ctrl+Y / Ctrl+Shift+Z → redo
-    if ((event.logicalKey == LogicalKeyboardKey.keyY ||
-            event.logicalKey == LogicalKeyboardKey.keyZ) &&
-        (HardwareKeyboard.instance.isControlPressed || HardwareKeyboard.instance.isMetaPressed) &&
-        HardwareKeyboard.instance.isShiftPressed) {
-      ctrl.redo();
+    if (controlPressed && key == LogicalKeyboardKey.keyZ) {
+      canvasController.undo();
       return;
     }
-    if (event.logicalKey == LogicalKeyboardKey.keyY &&
-        (HardwareKeyboard.instance.isControlPressed || HardwareKeyboard.instance.isMetaPressed)) {
-      ctrl.redo();
+    if (controlPressed && key == LogicalKeyboardKey.keyY) {
+      canvasController.redo();
       return;
     }
-
-    // Delete / Backspace → 删除选中
-    if (event.logicalKey == LogicalKeyboardKey.delete ||
-        event.logicalKey == LogicalKeyboardKey.backspace) {
-      ctrl.deleteSelected();
-      setState(() {});
+    if (controlPressed && key == LogicalKeyboardKey.keyA) {
+      canvasController.setSelection({
+        for (final element in canvasController.elements) element.id,
+      });
       return;
     }
-
-    // Ctrl+A → 全选
-    if (event.logicalKey == LogicalKeyboardKey.keyA &&
-        (HardwareKeyboard.instance.isControlPressed || HardwareKeyboard.instance.isMetaPressed)) {
-      ctrl.selectAll();
-      setState(() {});
-      return;
-    }
-
-    // Escape → 取消选择
-    if (event.logicalKey == LogicalKeyboardKey.escape) {
-      ctrl.deselectAll();
-      setState(() {});
-      return;
+    if (key == LogicalKeyboardKey.delete ||
+        key == LogicalKeyboardKey.backspace) {
+      canvasController.removeSelected();
     }
   }
 
-  // 处理 KeyUp 事件（空格释放）
-  void _handleKeyUp(KeyEvent event) {
-    if (event.logicalKey == LogicalKeyboardKey.space) {
-      _gestureResolver.setSpacePressed(false);
+  bool _promoteDeferredWidgetGestureIfNeeded(PointerMoveEvent event) {
+    final deferred = _deferredWidgetGestures[event.pointer];
+    if (deferred == null) {
+      _widgetGesturePointers.remove(event.pointer);
+      return true;
     }
-  }
 
-  // ─── 构建 ─────────────────────────────────────────────────
+    if ((event.localPosition - deferred.screenPoint).distance < 4) {
+      return false;
+    }
 
-  @override
-  Widget build(BuildContext context) {
-    return KeyboardListener(
-      focusNode: FocusNode(),
-      onKeyEvent: (event) {
-        if (event is KeyDownEvent) {
-          _handleKeyEvent(event);
-        } else if (event is KeyUpEvent) {
-          _handleKeyUp(event);
-        }
-      },
-      child: Listener(
-        onPointerDown: _handlePointerDown,
-        onPointerMove: _handlePointerMove,
-        onPointerUp: _handlePointerUp,
-        onPointerCancel: _handlePointerCancel,
-        onPointerSignal: _handlePointerSignal,
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            if (constraints.maxWidth <= 0 || constraints.maxHeight <= 0) {
-              return const SizedBox.shrink();
-            }
-            final size = Size(constraints.maxWidth, constraints.maxHeight);
-            // 延迟注入视口尺寸，避免在 build 中触发 setState
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              widget.controller.updateViewportSize(size);
-            });
+    _deferredWidgetGestures.remove(event.pointer);
+    _widgetGesturePointers.remove(event.pointer);
+    _pointers[event.pointer] = deferred.screenPoint;
+    _toolSuppressedUntilClear = false;
 
-            return RepaintBoundary(
-              child: CustomPaint(
-                size: size,
-                painter: InfiniteCanvasPainter(
-                  controller: widget.controller,
-                  previewElement: _previewElement,
-                  config: widget.config,
-                ),
-              ),
-            );
-          },
-        ),
+    _dispatch(
+      CanvasPointerDownEvent(
+        screenPoint: deferred.screenPoint,
+        worldPoint: widget.controller.screenToWorld(deferred.screenPoint),
+        transform: widget.controller.transform,
+        pointerCount: _pointers.length,
+        pointer: event.pointer,
+        kind: deferred.kind,
+        buttons: deferred.buttons,
+        pressure: deferred.pressure,
       ),
     );
+    return true;
   }
+
+  void _handlePinchPanZoom() {
+    final centroid = _centroid();
+    final distance = _averageDistanceTo(centroid);
+    final previousCentroid = _lastPinchCentroid;
+    final previousDistance = _lastPinchDistance;
+
+    if (previousCentroid != null) {
+      widget.controller.pan(centroid - previousCentroid);
+    }
+
+    if (previousDistance != null && previousDistance > 0 && distance > 0) {
+      widget.controller.zoomBy(
+        distance / previousDistance,
+        focalPoint: centroid,
+      );
+    }
+
+    _lastPinchCentroid = centroid;
+    _lastPinchDistance = distance;
+  }
+
+  void _updatePinchBaseline() {
+    if (_pointers.length < 2) {
+      _lastPinchCentroid = null;
+      _lastPinchDistance = null;
+      return;
+    }
+    final centroid = _centroid();
+    _lastPinchCentroid = centroid;
+    _lastPinchDistance = _averageDistanceTo(centroid);
+  }
+
+  void _resetPinchIfNeeded() {
+    if (_pointers.isEmpty) {
+      _toolSuppressedUntilClear = false;
+      _lastPinchCentroid = null;
+      _lastPinchDistance = null;
+      return;
+    }
+    _updatePinchBaseline();
+  }
+
+  Offset _centroid() {
+    final sum = _pointers.values.fold<Offset>(
+      Offset.zero,
+      (previous, point) => previous + point,
+    );
+    return sum / _pointers.length.toDouble();
+  }
+
+  double _averageDistanceTo(Offset point) {
+    if (_pointers.isEmpty) {
+      return 0;
+    }
+    final distance = _pointers.values.fold<double>(
+      0,
+      (previous, value) => previous + (value - point).distance,
+    );
+    return distance / _pointers.length;
+  }
+
+  void _dispatch(CanvasEvent event) {
+    widget.controller.canvasController.dispatchCanvasEvent(event);
+  }
+}
+
+class _DeferredWidgetGesture {
+  const _DeferredWidgetGesture({
+    required this.screenPoint,
+    required this.kind,
+    required this.buttons,
+    required this.pressure,
+  });
+
+  final Offset screenPoint;
+  final PointerDeviceKind kind;
+  final int buttons;
+  final double pressure;
 }

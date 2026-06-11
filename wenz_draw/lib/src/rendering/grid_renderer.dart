@@ -1,118 +1,104 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
-/// 网格类型
-enum GridType {
-  /// 点阵网格
-  dots,
+import '../infinite_canvas/canvas_transform.dart';
+import '../infinite_canvas/infinite_canvas_config.dart';
 
-  /// 线条网格
-  lines,
-}
-
-/// 自适应网格渲染器。
-///
-/// 根据当前缩放级别自动调整网格密度，只绘制视口内可见的网格元素。
 class GridRenderer {
-  /// 基础网格间距（世界坐标系）
-  static const double baseGridSize = 50.0;
+  const GridRenderer();
 
-  /// 网格颜色
-  final Color color;
+  void render(
+    Canvas canvas,
+    Size size,
+    CanvasTransform transform,
+    InfiniteCanvasConfig config,
+  ) {
+    if (!config.showGrid || config.gridType == GridType.none) {
+      return;
+    }
 
-  /// 网格类型
-  final GridType gridType;
+    final visibleRect = transform.visibleWorldRect(size);
+    final gridSize = _gridSize(transform.scale, config.gridBaseSize);
+    final minorPaint = Paint()
+      ..color = config.gridColor
+      ..strokeWidth = 1 / transform.scale;
+    final majorPaint = Paint()
+      ..color = config.majorGridColor
+      ..strokeWidth = 1.2 / transform.scale;
 
-  /// 点阵半径（仅 GridType.dots 时有效）
-  final double dotRadius;
+    canvas.save();
+    canvas.translate(transform.offset.dx, transform.offset.dy);
+    canvas.scale(transform.scale);
 
-  /// 线条宽度（仅 GridType.lines 时有效）
-  final double strokeWidth;
+    switch (config.gridType) {
+      case GridType.lines:
+        _drawLineGrid(canvas, visibleRect, gridSize, minorPaint, majorPaint);
+      case GridType.dots:
+        _drawDotGrid(canvas, visibleRect, gridSize, minorPaint, majorPaint);
+      case GridType.none:
+        break;
+    }
 
-  const GridRenderer({
-    this.color = const Color(0xFFE0E0E0),
-    this.gridType = GridType.dots,
-    this.dotRadius = 1.5,
-    this.strokeWidth = 0.5,
-  });
-
-  /// 根据缩放级别计算自适应的网格间距。
-  ///
-  /// 缩放越小（看越远），网格越稀疏；缩放越大（看越近），网格越密。
-  double getGridSize(double scale) {
-    if (scale < 0.25) return baseGridSize * 8;
-    if (scale < 0.5) return baseGridSize * 4;
-    if (scale < 1.0) return baseGridSize * 2;
-    if (scale < 2.0) return baseGridSize;
-    if (scale < 4.0) return baseGridSize / 2;
-    return baseGridSize / 4;
+    canvas.restore();
   }
 
-  /// 绘制网格。
-  ///
-  /// [canvas] 画布（已处于屏幕坐标系）。
-  /// [size] 视口尺寸。
-  /// [offset] 当前平移偏移（屏幕坐标系）。
-  /// [scale] 当前缩放比例。
-  void paint(Canvas canvas, Size size, Offset offset, double scale) {
-    if (scale <= 0) return;
+  double _gridSize(double scale, double base) {
+    if (scale < 0.25) return base * 8;
+    if (scale < 0.5) return base * 4;
+    if (scale < 1.0) return base * 2;
+    if (scale < 2.0) return base;
+    if (scale < 4.0) return base / 2;
+    return base / 4;
+  }
 
-    final gridSize = getGridSize(scale);
-    final scaledGridSize = gridSize * scale;
+  void _drawLineGrid(
+    Canvas canvas,
+    Rect visibleRect,
+    double gridSize,
+    Paint minorPaint,
+    Paint majorPaint,
+  ) {
+    final startX = (visibleRect.left / gridSize).floor() * gridSize;
+    final endX = (visibleRect.right / gridSize).ceil() * gridSize;
+    final startY = (visibleRect.top / gridSize).floor() * gridSize;
+    final endY = (visibleRect.bottom / gridSize).ceil() * gridSize;
 
-    // 避免网格过密导致性能问题
-    if (scaledGridSize < 8.0) return;
+    for (var x = startX; x <= endX; x += gridSize) {
+      final paint = _isMajorLine(x, gridSize) ? majorPaint : minorPaint;
+      canvas.drawLine(Offset(x, startY), Offset(x, endY), paint);
+    }
 
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = strokeWidth
-      ..style = gridType == GridType.dots
-          ? PaintingStyle.fill
-          : PaintingStyle.stroke;
-
-    // 计算视口内可见网格的起止位置
-    final double startX = offset.dx % scaledGridSize;
-    final double startY = offset.dy % scaledGridSize;
-
-    switch (gridType) {
-      case GridType.dots:
-        _drawDots(canvas, size, startX, startY, scaledGridSize, paint);
-      case GridType.lines:
-        _drawLines(canvas, size, startX, startY, scaledGridSize, paint);
+    for (var y = startY; y <= endY; y += gridSize) {
+      final paint = _isMajorLine(y, gridSize) ? majorPaint : minorPaint;
+      canvas.drawLine(Offset(startX, y), Offset(endX, y), paint);
     }
   }
 
-  /// 绘制点阵网格
-  void _drawDots(
+  void _drawDotGrid(
     Canvas canvas,
-    Size size,
-    double startX,
-    double startY,
-    double scaledGridSize,
-    Paint paint,
+    Rect visibleRect,
+    double gridSize,
+    Paint minorPaint,
+    Paint majorPaint,
   ) {
-    for (double x = startX; x < size.width; x += scaledGridSize) {
-      for (double y = startY; y < size.height; y += scaledGridSize) {
-        canvas.drawCircle(Offset(x, y), dotRadius, paint);
+    final startX = (visibleRect.left / gridSize).floor() * gridSize;
+    final endX = (visibleRect.right / gridSize).ceil() * gridSize;
+    final startY = (visibleRect.top / gridSize).floor() * gridSize;
+    final endY = (visibleRect.bottom / gridSize).ceil() * gridSize;
+    final radius = math.max(1.2 * minorPaint.strokeWidth, 0.5);
+
+    for (var x = startX; x <= endX; x += gridSize) {
+      for (var y = startY; y <= endY; y += gridSize) {
+        final major = _isMajorLine(x, gridSize) && _isMajorLine(y, gridSize);
+        final paint = major ? majorPaint : minorPaint;
+        canvas.drawCircle(Offset(x, y), major ? radius * 1.35 : radius, paint);
       }
     }
   }
 
-  /// 绘制线条网格
-  void _drawLines(
-    Canvas canvas,
-    Size size,
-    double startX,
-    double startY,
-    double scaledGridSize,
-    Paint paint,
-  ) {
-    // 竖线
-    for (double x = startX; x < size.width; x += scaledGridSize) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
-    }
-    // 横线
-    for (double y = startY; y < size.height; y += scaledGridSize) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
-    }
+  bool _isMajorLine(double value, double gridSize) {
+    final index = (value / gridSize).round();
+    return index % 4 == 0;
   }
 }

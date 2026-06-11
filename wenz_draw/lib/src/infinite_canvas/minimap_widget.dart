@@ -2,243 +2,181 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-import '../canvas/canvas_controller.dart';
 import '../elements/element_registry.dart';
 import 'infinite_canvas_controller.dart';
-import 'canvas_transform.dart';
 
-/// 小地图 Widget。
-///
-/// 显示画布全局缩略图，当前视口位置用蓝色矩形标识。
-/// 支持点击/拖拽快速导航到指定位置。
 class MinimapWidget extends StatelessWidget {
-  final InfiniteCanvasController controller;
-  final Size size;
-  final Color borderColor;
-  final Color viewportColor;
-  final Color backgroundColor;
-
   const MinimapWidget({
     super.key,
     required this.controller,
-    this.size = const Size(160, 120),
-    this.borderColor = const Color(0xFFCCCCCC),
-    this.viewportColor = const Color(0x402196F3),
-    this.backgroundColor = const Color(0xFFF5F5F5),
+    this.size = const Size(180, 120),
+    this.backgroundColor = const Color(0xF2FFFFFF),
   });
+
+  final InfiniteCanvasController controller;
+  final Size size;
+  final Color backgroundColor;
 
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
-      animation: controller,
+      animation: Listenable.merge([controller, controller.canvasController]),
       builder: (context, _) {
-        return Container(
-          width: size.width,
-          height: size.height,
-          decoration: BoxDecoration(
-            color: backgroundColor,
-            border: Border.all(color: borderColor),
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: GestureDetector(
-            onTapDown: _handleTap,
-            onPanUpdate: _handlePan,
+        return SizedBox.fromSize(
+          size: size,
+          child: _MinimapGestureLayer(
+            controller: controller,
+            size: size,
             child: CustomPaint(
-              size: size,
-              painter: _MinimapPainter(
-                controller: controller,
-                viewportColor: viewportColor,
-              ),
+              painter: _MinimapPainter(controller, backgroundColor),
             ),
           ),
         );
       },
     );
   }
+}
 
-  void _handleTap(TapDownDetails details) {
-    _navigateToPoint(details.localPosition);
-  }
+class _MinimapGestureLayer extends StatelessWidget {
+  const _MinimapGestureLayer({
+    required this.controller,
+    required this.size,
+    required this.child,
+  });
 
-  void _handlePan(DragUpdateDetails details) {
-    _navigateToPoint(details.localPosition);
-  }
+  final InfiniteCanvasController controller;
+  final Size size;
+  final Widget child;
 
-  void _navigateToPoint(Offset localPoint) {
-    final contentBounds = _getContentBounds();
-    if (contentBounds == null) return;
-
-    final mapping = _getContentMapping(contentBounds);
-    if (mapping == null) return;
-
-    // 小地图坐标 → 世界坐标
-    final worldX = (localPoint.dx - mapping.offsetX) / mapping.scale;
-    final worldY = (localPoint.dy - mapping.offsetY) / mapping.scale;
-
-    // 将该世界坐标点移到视口中心
-    final vp = controller.viewportSize;
-    if (vp == null) return;
-
-    final newOffset = Offset(
-      vp.width / 2 - worldX * controller.transform.scale,
-      vp.height / 2 - worldY * controller.transform.scale,
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTapDown: (details) => _moveViewport(details.localPosition),
+      onPanStart: (details) => _moveViewport(details.localPosition),
+      onPanUpdate: (details) => _moveViewport(details.localPosition),
+      child: child,
     );
-
-    controller.setTransform(CanvasTransform(
-      scale: controller.transform.scale,
-      offset: newOffset,
-    ));
   }
 
-  /// 获取所有元素的内容包围盒。
-  Rect? _getContentBounds() {
-    final elements = controller.canvasController.elements;
-    if (elements.isEmpty) return null;
-
-    double left = double.infinity;
-    double top = double.infinity;
-    double right = double.negativeInfinity;
-    double bottom = double.negativeInfinity;
-
-    for (final element in elements) {
-      final bounds = element.bounds;
-      if (bounds.left < left) left = bounds.left;
-      if (bounds.top < top) top = bounds.top;
-      if (bounds.right > right) right = bounds.right;
-      if (bounds.bottom > bottom) bottom = bounds.bottom;
-    }
-
-    return Rect.fromLTRB(left, top, right, bottom);
-  }
-
-  /// 计算内容到小地图的映射关系。
-  _MinimapMapping? _getContentMapping(Rect contentBounds) {
-    final padding = 8.0;
-    final availableWidth = size.width - padding * 2;
-    final availableHeight = size.height - padding * 2;
-
-    final contentWidth = contentBounds.width;
-    final contentHeight = contentBounds.height;
-    if (contentWidth <= 0 || contentHeight <= 0) return null;
-
-    final scaleX = availableWidth / contentWidth;
-    final scaleY = availableHeight / contentHeight;
-    final scale = math.min(scaleX, scaleY);
-
-    final mappedWidth = contentWidth * scale;
-    final mappedHeight = contentHeight * scale;
-    final offsetX = (size.width - mappedWidth) / 2;
-    final offsetY = (size.height - mappedHeight) / 2;
-
-    return _MinimapMapping(
-      scale: scale,
-      offsetX: offsetX - contentBounds.left * scale,
-      offsetY: offsetY - contentBounds.top * scale,
+  void _moveViewport(Offset localPosition) {
+    final contentBounds = controller.canvasController.state.contentBounds;
+    final visible = controller.visibleWorldRect();
+    final layout = MinimapLayout.resolve(
+      contentBounds: contentBounds,
+      visibleWorldRect: visible,
+      minimapSize: size,
     );
+    controller.centerOnWorld(layout.screenToWorld(localPosition));
   }
 }
 
-class _MinimapMapping {
-  final double scale;
-  final double offsetX;
-  final double offsetY;
-  const _MinimapMapping({
+class MinimapLayout {
+  const MinimapLayout({
+    required this.worldBounds,
     required this.scale,
-    required this.offsetX,
-    required this.offsetY,
+    required this.offset,
+    required this.viewportRect,
   });
+
+  final Rect worldBounds;
+  final double scale;
+  final Offset offset;
+  final Rect viewportRect;
+
+  Offset screenToWorld(Offset minimapPoint) {
+    return Offset(
+      (minimapPoint.dx - offset.dx) / scale,
+      (minimapPoint.dy - offset.dy) / scale,
+    );
+  }
+
+  static MinimapLayout resolve({
+    required Rect? contentBounds,
+    required Rect visibleWorldRect,
+    required Size minimapSize,
+    double worldPadding = 80,
+  }) {
+    final baseBounds = contentBounds == null || contentBounds.isEmpty
+        ? visibleWorldRect
+        : contentBounds.expandToInclude(visibleWorldRect);
+    final worldBounds = baseBounds.inflate(worldPadding);
+    final scale = math.min(
+      minimapSize.width / worldBounds.width,
+      minimapSize.height / worldBounds.height,
+    );
+    final offset = Offset(
+      (minimapSize.width - worldBounds.width * scale) / 2 -
+          worldBounds.left * scale,
+      (minimapSize.height - worldBounds.height * scale) / 2 -
+          worldBounds.top * scale,
+    );
+
+    return MinimapLayout(
+      worldBounds: worldBounds,
+      scale: scale,
+      offset: offset,
+      viewportRect: _mapRect(visibleWorldRect, scale, offset),
+    );
+  }
+
+  static Rect _mapRect(Rect worldRect, double scale, Offset offset) {
+    return Rect.fromLTWH(
+      worldRect.left * scale + offset.dx,
+      worldRect.top * scale + offset.dy,
+      worldRect.width * scale,
+      worldRect.height * scale,
+    );
+  }
 }
 
 class _MinimapPainter extends CustomPainter {
-  final InfiniteCanvasController controller;
-  final Color viewportColor;
+  const _MinimapPainter(this.controller, this.backgroundColor);
 
-  _MinimapPainter({
-    required this.controller,
-    required this.viewportColor,
-  });
+  final InfiniteCanvasController controller;
+  final Color backgroundColor;
 
   @override
   void paint(Canvas canvas, Size size) {
     final elements = controller.canvasController.elements;
-    if (elements.isEmpty) return;
+    final contentBounds = controller.canvasController.state.contentBounds;
+    final visible = controller.visibleWorldRect();
+    final background = RRect.fromRectAndRadius(
+      Offset.zero & size,
+      const Radius.circular(8),
+    );
+    canvas.drawRRect(background, Paint()..color = backgroundColor);
 
-    // 计算内容包围盒
-    double left = double.infinity;
-    double top = double.infinity;
-    double right = double.negativeInfinity;
-    double bottom = double.negativeInfinity;
+    final layout = MinimapLayout.resolve(
+      contentBounds: contentBounds,
+      visibleWorldRect: visible,
+      minimapSize: size,
+    );
 
-    for (final element in elements) {
-      final bounds = element.bounds;
-      if (bounds.left < left) left = bounds.left;
-      if (bounds.top < top) top = bounds.top;
-      if (bounds.right > right) right = bounds.right;
-      if (bounds.bottom > bottom) bottom = bounds.bottom;
-    }
-
-    final contentBounds = Rect.fromLTRB(left, top, right, bottom);
-    final contentWidth = contentBounds.width;
-    final contentHeight = contentBounds.height;
-    if (contentWidth <= 0 || contentHeight <= 0) return;
-
-    // 计算缩放和偏移
-    final padding = 8.0;
-    final scaleX = (size.width - padding * 2) / contentWidth;
-    final scaleY = (size.height - padding * 2) / contentHeight;
-    final minimapScale = math.min(scaleX, scaleY);
-
-    final mappedWidth = contentWidth * minimapScale;
-    final mappedHeight = contentHeight * minimapScale;
-    final ox = (size.width - mappedWidth) / 2 - contentBounds.left * minimapScale;
-    final oy = (size.height - mappedHeight) / 2 - contentBounds.top * minimapScale;
-
-    // 绘制元素缩略图
     canvas.save();
-    canvas.translate(ox, oy);
-    canvas.scale(minimapScale);
-
-    final elementPaint = Paint()
-      ..color = const Color(0xFF666666)
-      ..strokeWidth = 1.0 / minimapScale
-      ..style = PaintingStyle.stroke;
-
+    canvas.clipRRect(background);
+    canvas.save();
+    canvas.translate(layout.offset.dx, layout.offset.dy);
+    canvas.scale(layout.scale);
     for (final element in elements) {
-      if (!element.visible) continue;
-      canvas.drawRect(element.bounds, elementPaint);
+      ElementRendererRegistry.render(canvas, element);
     }
-
     canvas.restore();
 
-    // 绘制视口矩形
-    final vp = controller.viewportSize;
-    if (vp == null) return;
-
-    final transform = controller.transform;
-    final visibleRect = transform.visibleWorldRect(vp);
-
-    final vpLeft = visibleRect.left * minimapScale + ox;
-    final vpTop = visibleRect.top * minimapScale + oy;
-    final vpWidth = visibleRect.width * minimapScale;
-    final vpHeight = visibleRect.height * minimapScale;
-
-    final vpPaint = Paint()
-      ..color = viewportColor
-      ..style = PaintingStyle.fill;
-    final vpStrokePaint = Paint()
-      ..color = const Color(0xFF2196F3)
-      ..strokeWidth = 1.5
-      ..style = PaintingStyle.stroke;
-
-    final vpRect = Rect.fromLTWH(vpLeft, vpTop, vpWidth, vpHeight);
-    canvas.drawRect(vpRect, vpPaint);
-    canvas.drawRect(vpRect, vpStrokePaint);
+    canvas.drawRect(
+      layout.viewportRect,
+      Paint()
+        ..color = const Color(0xFF2563EB)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.2,
+    );
+    canvas.restore();
   }
 
   @override
-  bool shouldRepaint(_MinimapPainter oldDelegate) {
+  bool shouldRepaint(covariant _MinimapPainter oldDelegate) {
     return oldDelegate.controller.transform != controller.transform ||
-        oldDelegate.controller.canvasController.elements.length !=
-            controller.canvasController.elements.length;
+        oldDelegate.controller.canvasController.state.revision !=
+            controller.canvasController.state.revision;
   }
 }

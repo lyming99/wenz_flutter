@@ -1,38 +1,43 @@
+import 'package:flutter/material.dart';
+
+import '../canvas/canvas_controller.dart';
 import '../elements/text_element.dart';
 import '../infinite_canvas/canvas_event.dart';
-import 'brush_settings.dart';
+import '../utils/uuid_generator.dart';
 import 'canvas_tool.dart';
 
-/// 文本工具。
-///
-/// 点击位置直接创建默认文本元素。
 class TextTool extends CanvasTool {
-  final BrushSettings Function() getBrushSettings;
+  const TextTool({this.defaultText = 'Text'});
 
-  TextTool({required this.getBrushSettings});
+  static const idValue = 'text';
 
-  @override
-  String get id => 'text';
-
-  @override
-  String get name => '文本';
+  final String defaultText;
 
   @override
-  String get iconName => 'text_fields';
+  String get id => idValue;
 
   @override
-  ToolResult handleEvent(CanvasEvent event) {
-    if (event is CanvasPointerDownEvent) {
-      final settings = getBrushSettings();
-      final element = TextElement.create(
-        position: event.worldPoint,
-        text: '文本',
-        fontSize: 16.0,
-        color: settings.color.toARGB32(),
-      );
-      return ToolResultElement(element);
+  String get name => 'Text';
+
+  @override
+  IconData get icon => Icons.text_fields;
+
+  @override
+  ToolResult handleEvent(CanvasEvent event, CanvasController controller) {
+    if (event is! CanvasPointerDownEvent) {
+      return const ToolResultNone();
     }
-
-    return const ToolResultNone();
+    return ToolResultElement(
+      TextElement(
+        id: UuidGenerator.create(),
+        position: event.worldPoint,
+        text: defaultText,
+        style: TextStyle(
+          color: controller.brushSettings.color,
+          fontSize: controller.brushSettings.strokeWidth * 8,
+          height: 1.2,
+        ),
+      ),
+    );
   }
 }

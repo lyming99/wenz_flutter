@@ -1,120 +1,271 @@
-import 'dart:convert';
-import 'dart:ui' show Offset, Rect;
+import 'package:flutter/material.dart';
 
 import '../canvas/canvas_controller.dart';
-import '../elements/canvas_element.dart';
-import '../elements/path_element.dart';
-import '../elements/line_element.dart';
-import '../elements/rect_element.dart';
-import '../elements/ellipse_element.dart';
+import '../canvas/paint_style.dart';
 import '../elements/arrow_element.dart';
+import '../elements/canvas_element.dart';
+import '../elements/ellipse_element.dart';
+import '../elements/image_element.dart';
+import '../elements/line_element.dart';
+import '../elements/path_element.dart';
+import '../elements/rect_element.dart';
 import '../elements/text_element.dart';
-import '../infinite_canvas/canvas_transform.dart';
+import '../elements/widget_element.dart';
+import '../layers/canvas_layer.dart';
+import 'canvas_document.dart';
 
-/// 画布序列化器。
-///
-/// 将画布状态（元素、图层、视图变换）序列化为 JSON，
-/// 并支持从 JSON 反序列化恢复完整画布状态。
 class CanvasSerializer {
-  static const String version = '1.0';
+  const CanvasSerializer._();
 
-  /// 序列化画布状态为 JSON 字符串。
-  static String toJsonString(CanvasController controller) {
-    final json = toJson(controller);
-    return const JsonEncoder.withIndent('  ').convert(json);
-  }
-
-  /// 序列化画布状态为 Map。
   static Map<String, dynamic> toJson(CanvasController controller) {
-    return {
-      'version': version,
-      'elements': controller.elements.map((e) => _serializeElement(e)).toList(),
-      'transform': {
-        'scale': controller.elementManager.toString(), // placeholder
-      },
-    };
+    return CanvasDocument(
+      layers: controller.layers,
+      elements: controller.elements,
+    ).toJson();
   }
 
-  /// 序列化完整画布（含视图变换）。
-  static Map<String, dynamic> toJsonFull(
-    CanvasController controller,
-    CanvasTransform transform,
-  ) {
-    return {
-      'version': version,
-      'transform': {
-        'scale': transform.scale,
-        'offset': {'dx': transform.offset.dx, 'dy': transform.offset.dy},
-      },
-      'elements': controller.elements.map((e) => _serializeElement(e)).toList(),
-    };
+  static CanvasDocument fromJson(Map<String, dynamic> json) {
+    final layerJson = json['layers'] as List<dynamic>? ?? const [];
+    final elementJson = json['elements'] as List<dynamic>? ?? const [];
+    return CanvasDocument(
+      version: json['version'] as String? ?? '1.0',
+      layers: [
+        for (final layer in layerJson)
+          if (layer is Map<String, dynamic>) _layerFromJson(layer),
+      ],
+      elements: [
+        for (final element in elementJson)
+          if (element is Map<String, dynamic>) elementFromJson(element),
+      ],
+    );
   }
 
-  /// 从 JSON 字符串反序列化。
-  static void fromJsonString(String jsonString, CanvasController controller) {
-    final json = jsonDecode(jsonString) as Map<String, dynamic>;
-    fromJson(json, controller);
+  static void load(CanvasController controller, Map<String, dynamic> json) {
+    final document = fromJson(json);
+    controller.replaceElements(document.elements);
   }
 
-  /// 从 JSON Map 反序列化。
-  static void fromJson(Map<String, dynamic> json, CanvasController controller) {
-    controller.elementManager.clear();
-    controller.deselectAll();
+  static CanvasElement elementFromJson(Map<String, dynamic> json) {
+    final id = json['id'] as String? ?? '';
+    final layerId = json['layerId'] as String? ?? CanvasLayer.defaultLayerId;
+    final visible = json['visible'] as bool? ?? true;
+    final opacity = (json['opacity'] as num?)?.toDouble() ?? 1;
+    final zIndex = (json['zIndex'] as num?)?.toInt() ?? 0;
+    final type = json['type'] as String? ?? '';
 
-    final elementsJson = json['elements'] as List?;
-    if (elementsJson != null) {
-      for (final elemJson in elementsJson) {
-        final element = _deserializeElement(elemJson as Map<String, dynamic>);
-        if (element != null) {
-          controller.elementManager.addElement(element);
-        }
-      }
+    switch (type) {
+      case PathElement.elementType:
+        return PathElement(
+          id: id,
+          layerId: layerId,
+          visible: visible,
+          opacity: opacity,
+          zIndex: zIndex,
+          points: [
+            for (final point in json['points'] as List<dynamic>? ?? const [])
+              if (point is Map<String, dynamic>)
+                PathPoint(
+                  position: _point(point),
+                  pressure: (point['pressure'] as num?)?.toDouble() ?? 0.5,
+                  timestamp: (point['timestamp'] as num?)?.toDouble() ?? 0,
+                ),
+          ],
+          style: _style(json['style']),
+        );
+      case LineElement.elementType:
+        return LineElement(
+          id: id,
+          layerId: layerId,
+          visible: visible,
+          opacity: opacity,
+          zIndex: zIndex,
+          start: _point(json['start']),
+          end: _point(json['end']),
+          style: _style(json['style']),
+        );
+      case RectElement.elementType:
+        return RectElement(
+          id: id,
+          layerId: layerId,
+          visible: visible,
+          opacity: opacity,
+          zIndex: zIndex,
+          rect: _rect(json['rect']),
+          borderRadius: (json['borderRadius'] as num?)?.toDouble() ?? 0,
+          strokeStyle: _style(json['strokeStyle']),
+          fillStyle: _nullableStyle(json['fillStyle']),
+        );
+      case EllipseElement.elementType:
+        return EllipseElement(
+          id: id,
+          layerId: layerId,
+          visible: visible,
+          opacity: opacity,
+          zIndex: zIndex,
+          rect: _rect(json['rect']),
+          strokeStyle: _style(json['strokeStyle']),
+          fillStyle: _nullableStyle(json['fillStyle']),
+        );
+      case ArrowElement.elementType:
+        return ArrowElement(
+          id: id,
+          layerId: layerId,
+          visible: visible,
+          opacity: opacity,
+          zIndex: zIndex,
+          start: _point(json['start']),
+          end: _point(json['end']),
+          headSize: (json['headSize'] as num?)?.toDouble() ?? 14,
+          style: _style(json['style']),
+        );
+      case TextElement.elementType:
+        final styleJson = json['style'];
+        final style = styleJson is Map<String, dynamic>
+            ? TextStyle(
+                color: Color(
+                  (styleJson['color'] as num?)?.toInt() ??
+                      Colors.black.toARGB32(),
+                ),
+                fontSize: (styleJson['fontSize'] as num?)?.toDouble() ?? 24,
+                height: 1.2,
+              )
+            : const TextStyle(color: Colors.black, fontSize: 24, height: 1.2);
+        return TextElement(
+          id: id,
+          layerId: layerId,
+          visible: visible,
+          opacity: opacity,
+          zIndex: zIndex,
+          position: _point(json['position']),
+          text: json['text'] as String? ?? '',
+          style: style,
+        );
+      case ImageElement.elementType:
+        return ImageElement(
+          id: id,
+          layerId: layerId,
+          visible: visible,
+          opacity: opacity,
+          zIndex: zIndex,
+          rect: _rect(json['rect']),
+        );
+      case CanvasWidgetElement.elementType:
+        return CanvasWidgetElement(
+          id: id,
+          worldRect: _rect(json['worldRect']),
+          widgetType: json['widgetType'] as String? ?? '',
+          widgetData: _stringMap(json['widgetData']),
+          layerId: layerId,
+          visible: visible,
+          opacity: opacity,
+          zIndex: zIndex,
+          isLocked: json['isLocked'] as bool? ?? false,
+          interactive: json['interactive'] as bool? ?? true,
+          scaleMode: _scaleModeFromString(json['scaleMode'] as String?),
+          renderMode: _renderModeFromString(json['renderMode'] as String?),
+          minScreenSize: _size(json['minScreenSize']),
+          maxScreenSize: _size(json['maxScreenSize']),
+          clipBehavior: _clipFromString(json['clipBehavior'] as String?),
+        );
+      default:
+        return LineElement(id: id, start: Offset.zero, end: Offset.zero);
     }
   }
 
-  /// 从 JSON 恢复完整画布（含视图变换）。
-  static CanvasTransform? fromJsonFull(
-    Map<String, dynamic> json,
-    CanvasController controller,
-  ) {
-    fromJson(json, controller);
+  static CanvasLayer _layerFromJson(Map<String, dynamic> json) {
+    return CanvasLayer(
+      id: json['id'] as String? ?? CanvasLayer.defaultLayerId,
+      name: json['name'] as String? ?? 'Layer',
+      isVisible: json['visible'] as bool? ?? true,
+      isLocked: json['locked'] as bool? ?? false,
+      opacity: (json['opacity'] as num?)?.toDouble() ?? 1,
+    );
+  }
 
-    final transformJson = json['transform'] as Map<String, dynamic>?;
-    if (transformJson != null) {
-      return CanvasTransform(
-        scale: (transformJson['scale'] as num?)?.toDouble() ?? 1.0,
-        offset: Offset(
-          ((transformJson['offset'] as Map?)?['dx'] as num?)?.toDouble() ?? 0,
-          ((transformJson['offset'] as Map?)?['dy'] as num?)?.toDouble() ?? 0,
-        ),
+  static CanvasWidgetScaleMode _scaleModeFromString(String? value) {
+    switch (value) {
+      case 'paintScale':
+        return CanvasWidgetScaleMode.paintScale;
+      case 'fixedScreenSize':
+        return CanvasWidgetScaleMode.fixedScreenSize;
+      case 'layoutScale':
+      default:
+        return CanvasWidgetScaleMode.layoutScale;
+    }
+  }
+
+  static CanvasWidgetRenderMode _renderModeFromString(String? value) {
+    switch (value) {
+      case 'live':
+        return CanvasWidgetRenderMode.live;
+      case 'snapshot':
+      default:
+        return CanvasWidgetRenderMode.snapshot;
+    }
+  }
+
+  static Offset _point(Object? json) {
+    if (json is Map<String, dynamic>) {
+      return Offset(
+        (json['x'] as num?)?.toDouble() ?? 0,
+        (json['y'] as num?)?.toDouble() ?? 0,
       );
+    }
+    return Offset.zero;
+  }
+
+  static Rect _rect(Object? json) {
+    if (json is Map<String, dynamic>) {
+      return Rect.fromLTRB(
+        (json['left'] as num?)?.toDouble() ?? 0,
+        (json['top'] as num?)?.toDouble() ?? 0,
+        (json['right'] as num?)?.toDouble() ?? 0,
+        (json['bottom'] as num?)?.toDouble() ?? 0,
+      );
+    }
+    return Rect.zero;
+  }
+
+  static Size? _size(Object? json) {
+    if (json is Map<String, dynamic>) {
+      final width = (json['width'] as num?)?.toDouble();
+      final height = (json['height'] as num?)?.toDouble();
+      if (width == null || height == null) {
+        return null;
+      }
+      return Size(width, height);
     }
     return null;
   }
 
-  /// 序列化单个元素。
-  static Map<String, dynamic> _serializeElement(CanvasElement element) {
-    return element.toJson();
+  static PaintStyle _style(Object? json) {
+    return json is Map<String, dynamic>
+        ? PaintStyle.fromJson(json)
+        : const PaintStyle();
   }
 
-  /// 反序列化单个元素。
-  static CanvasElement? _deserializeElement(Map<String, dynamic> json) {
-    final type = json['type'] as String?;
-    switch (type) {
-      case 'path':
-        return PathElement.fromJson(json);
-      case 'line':
-        return LineElement.fromJson(json);
-      case 'rect':
-        return RectElement.fromJson(json);
-      case 'ellipse':
-        return EllipseElement.fromJson(json);
-      case 'arrow':
-        return ArrowElement.fromJson(json);
-      case 'text':
-        return TextElement.fromJson(json);
-      default:
-        return null; // 未知类型跳过
+  static PaintStyle? _nullableStyle(Object? json) {
+    return json is Map<String, dynamic> ? PaintStyle.fromJson(json) : null;
+  }
+
+  static Map<String, dynamic> _stringMap(Object? json) {
+    if (json is Map<String, dynamic>) {
+      return Map<String, dynamic>.unmodifiable(json);
     }
+    if (json is Map) {
+      return Map<String, dynamic>.unmodifiable(
+        json.map((key, value) => MapEntry(key.toString(), value)),
+      );
+    }
+    return const <String, dynamic>{};
+  }
+
+  static Clip _clipFromString(String? value) {
+    for (final clip in Clip.values) {
+      if (clip.name == value) {
+        return clip;
+      }
+    }
+    return Clip.hardEdge;
   }
 }

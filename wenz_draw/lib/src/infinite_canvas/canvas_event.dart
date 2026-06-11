@@ -1,113 +1,114 @@
-import 'dart:ui' show Offset, Rect, Size;
+import 'package:flutter/gestures.dart';
+import 'package:flutter/services.dart';
 
-import '../infinite_canvas/canvas_transform.dart';
+import 'canvas_transform.dart';
 
-/// 画布事件基类（sealed）。
-///
-/// 所有工具接收的事件类型。包含屏幕坐标和世界坐标。
 sealed class CanvasEvent {
-  /// 屏幕坐标
-  final Offset screenPoint;
-
-  /// 世界坐标
-  final Offset worldPoint;
-
-  /// 当前视图变换
-  final CanvasTransform transform;
-
-  /// 当前指针数量
-  final int pointerCount;
-
   const CanvasEvent({
     required this.screenPoint,
     required this.worldPoint,
     required this.transform,
     this.pointerCount = 1,
   });
+
+  final Offset screenPoint;
+  final Offset worldPoint;
+  final CanvasTransform transform;
+  final int pointerCount;
 }
 
-/// 指针按下
 class CanvasPointerDownEvent extends CanvasEvent {
   const CanvasPointerDownEvent({
     required super.screenPoint,
     required super.worldPoint,
     required super.transform,
     super.pointerCount,
+    this.pointer,
+    this.kind,
+    this.buttons = 0,
+    this.pressure = 0.5,
   });
+
+  final int? pointer;
+  final PointerDeviceKind? kind;
+  final int buttons;
+  final double pressure;
 }
 
-/// 指针移动
 class CanvasPointerMoveEvent extends CanvasEvent {
-  /// 移动增量（屏幕坐标）
-  final Offset delta;
-
-  /// 移动增量（世界坐标）
-  final Offset worldDelta;
-
   const CanvasPointerMoveEvent({
     required super.screenPoint,
     required super.worldPoint,
     required super.transform,
+    required this.delta,
     super.pointerCount,
-    this.delta = Offset.zero,
-    this.worldDelta = Offset.zero,
+    this.pointer,
+    this.kind,
+    this.buttons = 0,
+    this.pressure = 0.5,
   });
+
+  final Offset delta;
+  final int? pointer;
+  final PointerDeviceKind? kind;
+  final int buttons;
+  final double pressure;
 }
 
-/// 指针抬起
 class CanvasPointerUpEvent extends CanvasEvent {
   const CanvasPointerUpEvent({
     required super.screenPoint,
     required super.worldPoint,
     required super.transform,
     super.pointerCount,
+    this.pointer,
+    this.kind,
   });
+
+  final int? pointer;
+  final PointerDeviceKind? kind;
 }
 
-/// 双击
 class CanvasDoubleTapEvent extends CanvasEvent {
   const CanvasDoubleTapEvent({
     required super.screenPoint,
     required super.worldPoint,
     required super.transform,
+    super.pointerCount,
   });
 }
 
-/// 长按
 class CanvasLongPressEvent extends CanvasEvent {
   const CanvasLongPressEvent({
     required super.screenPoint,
     required super.worldPoint,
     required super.transform,
+    super.pointerCount,
   });
 }
 
-/// 滚轮事件
 class CanvasScrollEvent extends CanvasEvent {
-  /// 滚轮偏移
-  final Offset scrollDelta;
-
   const CanvasScrollEvent({
     required super.screenPoint,
     required super.worldPoint,
     required super.transform,
     required this.scrollDelta,
+    super.pointerCount,
   });
+
+  final Offset scrollDelta;
 }
 
-/// 键盘事件
 class CanvasKeyEvent extends CanvasEvent {
-  /// 按键
-  final String key;
-
-  /// 是否按下（true=KeyDown, false=KeyUp）
-  final bool isKeyDown;
-
   const CanvasKeyEvent({
     required super.screenPoint,
     required super.worldPoint,
     required super.transform,
     required this.key,
     required this.isKeyDown,
+    super.pointerCount,
   });
+
+  final LogicalKeyboardKey key;
+  final bool isKeyDown;
 }

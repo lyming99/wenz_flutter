@@ -1,299 +1,702 @@
-import 'dart:convert';
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:wenz_draw/wenz_draw.dart';
 
 void main() {
-  WenzDraw.registerBuiltinRenderers();
-  runApp(const MyApp());
+  WidgetElementRegistry.register('sticky_note', const StickyNoteBuilder());
+  WidgetElementRegistry.register(
+    'counter_button',
+    const CounterButtonBuilder(),
+  );
+  runApp(const WenzDrawExampleApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class StickyNoteBuilder extends WidgetElementBuilder {
+  const StickyNoteBuilder();
+
+  @override
+  Widget build(
+    BuildContext context,
+    CanvasWidgetElement element, {
+    required CanvasWidgetBuildContext canvas,
+  }) {
+    final text = element.widgetData['text'] as String? ?? 'Double tap to edit';
+    final colorValue =
+        int.tryParse(element.widgetData['color'] as String? ?? '0xFFFFEB3B') ??
+        0xFFFFEB3B;
+
+    if (canvas.renderDetail != CanvasWidgetRenderDetail.full) {
+      return _buildPreview(text, Color(colorValue), canvas.renderDetail);
+    }
+
+    return GestureDetector(
+      onDoubleTap: () => _showEditDialog(context, element, canvas),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Color(colorValue),
+          borderRadius: BorderRadius.circular(4),
+          border: canvas.selected
+              ? Border.all(color: const Color(0xFF2563EB), width: 1.5)
+              : null,
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x1A000000),
+              blurRadius: 4,
+              offset: Offset(1, 2),
+            ),
+          ],
+        ),
+        child: Text(
+          text,
+          style: const TextStyle(
+            fontSize: 14,
+            color: Color(0xFF1F2937),
+            height: 1.4,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPreview(
+    String text,
+    Color color,
+    CanvasWidgetRenderDetail detail,
+  ) {
+    return switch (detail) {
+      CanvasWidgetRenderDetail.color => ColoredBox(color: color),
+      CanvasWidgetRenderDetail.colorWithText => ColoredBox(
+        color: color,
+        child: Center(
+          child: Text(
+            text,
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF1F2937),
+            ),
+          ),
+        ),
+      ),
+      CanvasWidgetRenderDetail.thumbnail => DecoratedBox(
+        decoration: BoxDecoration(
+          color: color,
+          border: Border.all(color: const Color(0x33000000)),
+          borderRadius: BorderRadius.circular(3),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(6),
+          child: Align(
+            alignment: Alignment.topLeft,
+            child: Text(
+              text,
+              overflow: TextOverflow.ellipsis,
+              maxLines: 3,
+              style: const TextStyle(
+                fontSize: 11,
+                height: 1.2,
+                color: Color(0xFF1F2937),
+              ),
+            ),
+          ),
+        ),
+      ),
+      CanvasWidgetRenderDetail.full => ColoredBox(color: color),
+    };
+  }
+
+  void _showEditDialog(
+    BuildContext context,
+    CanvasWidgetElement element,
+    CanvasWidgetBuildContext canvas,
+  ) {
+    final controller = TextEditingController(
+      text: element.widgetData['text'] as String? ?? '',
+    );
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Edit note'),
+        content: TextField(
+          controller: controller,
+          maxLines: 3,
+          decoration: const InputDecoration(
+            hintText: 'Note text',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              canvas.updateProps(element.id, {
+                ...element.widgetData,
+                'text': controller.text,
+              });
+              Navigator.pop(dialogContext);
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class CounterButtonBuilder extends WidgetElementBuilder {
+  const CounterButtonBuilder();
+
+  @override
+  Widget build(
+    BuildContext context,
+    CanvasWidgetElement element, {
+    required CanvasWidgetBuildContext canvas,
+  }) {
+    final count = element.widgetData['count'] as int? ?? 0;
+    final label = element.widgetData['label'] as String? ?? 'Clicks';
+    final colorValue =
+        int.tryParse(element.widgetData['color'] as String? ?? '0xFF2563EB') ??
+        0xFF2563EB;
+
+    if (canvas.renderDetail != CanvasWidgetRenderDetail.full) {
+      return _buildPreview(
+        count: count,
+        label: label,
+        color: Color(colorValue),
+        detail: canvas.renderDetail,
+      );
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Color(colorValue),
+        borderRadius: BorderRadius.circular(8),
+        border: canvas.selected
+            ? Border.all(color: Colors.white, width: 2)
+            : null,
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(8),
+          onTap: () {
+            canvas.updateProps(element.id, {
+              ...element.widgetData,
+              'count': count + 1,
+            });
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  '$count',
+                  style: const TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFFBFDBFE),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPreview({
+    required int count,
+    required String label,
+    required Color color,
+    required CanvasWidgetRenderDetail detail,
+  }) {
+    return switch (detail) {
+      CanvasWidgetRenderDetail.color => ColoredBox(color: color),
+      CanvasWidgetRenderDetail.colorWithText => ColoredBox(
+        color: color,
+        child: Center(
+          child: Text(
+            '$count',
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+              color: Colors.white,
+            ),
+          ),
+        ),
+      ),
+      CanvasWidgetRenderDetail.thumbnail => DecoratedBox(
+        decoration: BoxDecoration(
+          color: color,
+          border: Border.all(color: const Color(0x33000000)),
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              '$count',
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: Colors.white,
+              ),
+            ),
+            Text(
+              label,
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+              style: const TextStyle(fontSize: 9, color: Color(0xFFBFDBFE)),
+            ),
+          ],
+        ),
+      ),
+      CanvasWidgetRenderDetail.full => ColoredBox(color: color),
+    };
+  }
+}
+
+class WenzDrawExampleApp extends StatelessWidget {
+  const WenzDrawExampleApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'wenz_draw 无限画布示例',
+      debugShowCheckedModeBanner: false,
+      title: 'wenz_draw',
       theme: ThemeData(
-        colorSchemeSeed: Colors.blue,
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF2563EB)),
         useMaterial3: true,
       ),
-      home: const InfiniteCanvasDemo(),
+      home: const CanvasDemoPage(),
     );
   }
 }
 
-class InfiniteCanvasDemo extends StatefulWidget {
-  const InfiniteCanvasDemo({super.key});
+class CanvasDemoPage extends StatefulWidget {
+  const CanvasDemoPage({super.key});
 
   @override
-  State<InfiniteCanvasDemo> createState() => _InfiniteCanvasDemoState();
+  State<CanvasDemoPage> createState() => _CanvasDemoPageState();
 }
 
-class _InfiniteCanvasDemoState extends State<InfiniteCanvasDemo> {
-  late InfiniteCanvasController _controller;
-  late List<CanvasTool> _tools;
-  String _activeToolId = 'pen';
+class _CanvasDemoPageState extends State<CanvasDemoPage> {
+  late final CanvasController _canvasController;
+  late final InfiniteCanvasController _viewController;
 
   @override
   void initState() {
     super.initState();
-    _controller = InfiniteCanvasController();
-
-    _tools = [
-      SelectTool(getController: () => _controller.canvasController),
-      PenTool(getBrushSettings: () => _controller.canvasController.brushSettings),
-      HighlighterTool(getBrushSettings: () => _controller.canvasController.brushSettings),
-      LineTool(getBrushSettings: () => _controller.canvasController.brushSettings),
-      ArrowTool(getBrushSettings: () => _controller.canvasController.brushSettings),
-      RectTool(getBrushSettings: () => _controller.canvasController.brushSettings),
-      EllipseTool(getBrushSettings: () => _controller.canvasController.brushSettings),
-      TextTool(getBrushSettings: () => _controller.canvasController.brushSettings),
-      EraserTool(getController: () => _controller.canvasController),
-    ];
-
-    for (final tool in _tools) {
-      _controller.canvasController.toolManager.registerTool(tool);
-    }
-    _controller.canvasController.setTool('pen');
+    _canvasController = CanvasController();
+    _viewController = InfiniteCanvasController(
+      canvasController: _canvasController,
+    );
+    _addDemoWidgets();
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _viewController.dispose();
+    _canvasController.dispose();
     super.dispose();
-  }
-
-  void _setTool(String toolId) {
-    setState(() {
-      _activeToolId = toolId;
-    });
-    _controller.canvasController.setTool(toolId);
-  }
-
-  IconData _getToolIcon(String iconName) {
-    const iconMap = {
-      'near_me': Icons.near_me,
-      'edit': Icons.edit,
-      'highlight': Icons.highlight,
-      'show_chart': Icons.show_chart,
-      'arrow_forward': Icons.arrow_forward,
-      'crop_square': Icons.crop_square,
-      'radio_button_unchecked': Icons.radio_button_unchecked,
-      'text_fields': Icons.text_fields,
-      'auto_fix_high': Icons.auto_fix_high,
-    };
-    return iconMap[iconName] ?? Icons.brush;
-  }
-
-  Future<void> _exportPng() async {
-    final elements = _controller.canvasController.elements;
-    if (elements.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('画布为空，无法导出')),
-      );
-      return;
-    }
-
-    final bounds = _controller.canvasController.selectionBounds ??
-        _computeContentBounds(elements);
-
-    try {
-      final bytes = await PngExporter.exportToPng(
-        elements: elements,
-        contentBounds: bounds,
-      );
-      if (bytes != null && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('PNG 导出成功 (${bytes.length ~/ 1024} KB)')),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('导出失败: $e')),
-        );
-      }
-    }
-  }
-
-  void _exportSvg() {
-    final elements = _controller.canvasController.elements;
-    if (elements.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('画布为空，无法导出')),
-      );
-      return;
-    }
-
-    final bounds = _computeContentBounds(elements);
-    final svg = SvgExporter.exportToSvg(
-      elements: elements,
-      contentBounds: bounds,
-    );
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('SVG 导出成功 (${svg.length ~/ 1024} KB)')),
-    );
-  }
-
-  void _exportJson() {
-    final json = _controller.canvasController.toJson();
-    final jsonString = const JsonEncoder.withIndent('  ').convert(json);
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('JSON 导出成功 (${jsonString.length ~/ 1024} KB)')),
-    );
-  }
-
-  Rect _computeContentBounds(List<CanvasElement> elements) {
-    if (elements.isEmpty) return Rect.zero;
-    double left = double.infinity, top = double.infinity;
-    double right = double.negativeInfinity, bottom = double.negativeInfinity;
-    for (final e in elements) {
-      if (e.bounds.left < left) left = e.bounds.left;
-      if (e.bounds.top < top) top = e.bounds.top;
-      if (e.bounds.right > right) right = e.bounds.right;
-      if (e.bounds.bottom > bottom) bottom = e.bounds.bottom;
-    }
-    return Rect.fromLTRB(left, top, right, bottom);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('wenz_draw 无限画布'),
-        actions: [
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert),
-            tooltip: '更多操作',
-            onSelected: (value) {
-              switch (value) {
-                case 'export_png': _exportPng(); break;
-                case 'export_svg': _exportSvg(); break;
-                case 'export_json': _exportJson(); break;
-                case 'clear':
-                  _controller.canvasController.elementManager.clear();
-                  _controller.canvasController.deselectAll();
-                  setState(() {});
-                  break;
-              }
-            },
-            itemBuilder: (context) => [
-              const PopupMenuItem(value: 'export_png', child: Text('导出 PNG')),
-              const PopupMenuItem(value: 'export_svg', child: Text('导出 SVG')),
-              const PopupMenuItem(value: 'export_json', child: Text('导出 JSON')),
-              const PopupMenuDivider(),
-              const PopupMenuItem(value: 'clear', child: Text('清除画布')),
-            ],
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          // 工具栏
-          Container(
-            height: 48,
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surfaceContainerHighest,
-              border: Border(
-                bottom: BorderSide(color: Theme.of(context).dividerColor),
+      body: SafeArea(
+        child: Column(
+          children: [
+            _Toolbar(
+              canvasController: _canvasController,
+              viewController: _viewController,
+              onAddStickyNote: _addStickyNote,
+              onAddCounter: _addCounter,
+            ),
+            Expanded(
+              child: Stack(
+                children: [
+                  InfiniteCanvasWidget(
+                    controller: _viewController,
+                    config: const InfiniteCanvasConfig(
+                      gridType: GridType.dots,
+                      backgroundColor: Color(0xFFFBFCFE),
+                    ),
+                  ),
+                  Positioned(
+                    right: 16,
+                    bottom: 16,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        border: Border.all(color: const Color(0xFFE5E7EB)),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: MinimapWidget(controller: _viewController),
+                    ),
+                  ),
+                ],
               ),
             ),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: IntrinsicHeight(
-                child: Row(
-                  children: [
-                    const SizedBox(width: 4),
-                    ..._tools.map((tool) {
-                      final isActive = tool.id == _activeToolId;
-                      return _toolButton(tool, isActive);
-                    }),
-                    const SizedBox(width: 4),
-                    Container(width: 1, height: 28, color: Theme.of(context).dividerColor),
-                    const SizedBox(width: 4),
-                    _colorButton(Colors.black, '黑色'),
-                    _colorButton(const Color(0xFFD32F2F), '红色'),
-                    _colorButton(const Color(0xFF1976D2), '蓝色'),
-                    const SizedBox(width: 4),
-                    // 缩放控制
-                    IconButton(
-                      icon: const Icon(Icons.zoom_in, size: 20),
-                      tooltip: '放大',
-                      constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                      padding: EdgeInsets.zero,
-                      onPressed: () => _controller.zoomIn(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _addDemoWidgets() {
+    const columns = 25;
+    const rows = 20;
+    const cellW = 80.0;
+    const cellH = 48.0;
+    const gap = 4.0;
+    final rng = math.Random(42);
+
+    // Build all elements first, then add in one batch for speed.
+    for (int row = 0; row < rows; row++) {
+      for (int col = 0; col < columns; col++) {
+        final index = row * columns + col;
+        final x = col * (cellW + gap);
+        final y = row * (cellH + gap);
+        final hue = rng.nextInt(360);
+        final color = HSLColor.fromAHSL(
+          0.85,
+          hue.toDouble(),
+          0.45,
+          0.80,
+        ).toColor().toARGB32();
+        final colorHex =
+            '0x${color.toRadixString(16).padLeft(8, '0').toUpperCase()}';
+
+        _canvasController.addElement(
+          CanvasWidgetElement(
+            id: 'perf-$index',
+            worldRect: Rect.fromLTWH(x, y, cellW, cellH),
+            widgetType: index.isEven ? 'sticky_note' : 'counter_button',
+            widgetData: index.isEven
+                ? {'text': '$col,$row', 'color': colorHex}
+                : {'count': index, 'label': '$col,$row', 'color': colorHex},
+            zIndex: -10000 + index,
+            scaleMode: index.isEven
+                ? CanvasWidgetScaleMode.layoutScale
+                : CanvasWidgetScaleMode.paintScale,
+          ),
+          record: false,
+        );
+      }
+    }
+  }
+
+  void _addStickyNote() {
+    final center = _viewController.visibleWorldRect().center;
+    _canvasController.addElement(
+      CanvasWidgetElement(
+        id: 'sticky-${DateTime.now().millisecondsSinceEpoch}',
+        worldRect: Rect.fromCenter(center: center, width: 200, height: 140),
+        widgetType: 'sticky_note',
+        widgetData: const {'text': 'New note', 'color': '0xFFFFEB3B'},
+        zIndex: _canvasController.elements.length + 1,
+      ),
+    );
+  }
+
+  void _addCounter() {
+    final center = _viewController.visibleWorldRect().center;
+    _canvasController.addElement(
+      CanvasWidgetElement(
+        id: 'counter-${DateTime.now().millisecondsSinceEpoch}',
+        worldRect: Rect.fromCenter(center: center, width: 140, height: 100),
+        widgetType: 'counter_button',
+        widgetData: const {
+          'count': 0,
+          'label': 'Clicks',
+          'color': '0xFF2563EB',
+        },
+        zIndex: _canvasController.elements.length + 1,
+      ),
+    );
+  }
+}
+
+class _LayerButton extends StatelessWidget {
+  const _LayerButton({required this.controller});
+
+  final CanvasController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<String>(
+      tooltip: 'Layers',
+      icon: const Icon(Icons.layers_outlined),
+      onSelected: (value) {
+        if (value == '__add__') {
+          controller.addLayer();
+        } else {
+          controller.setActiveLayer(value);
+        }
+      },
+      itemBuilder: (context) {
+        return [
+          for (final layer in controller.layers)
+            PopupMenuItem(
+              value: layer.id,
+              child: Row(
+                children: [
+                  Icon(
+                    controller.activeLayerId == layer.id
+                        ? Icons.radio_button_checked
+                        : Icons.radio_button_unchecked,
+                    size: 18,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(layer.name),
+                  const Spacer(),
+                  IconButton(
+                    tooltip: layer.isVisible ? 'Hide' : 'Show',
+                    icon: Icon(
+                      layer.isVisible ? Icons.visibility : Icons.visibility_off,
                     ),
-                    AnimatedBuilder(
-                      animation: _controller,
-                      builder: (context, _) {
-                        final scale = _controller.transform.scale;
-                        final count = _controller.canvasController.elements.length;
-                        return Text(
-                          '${(scale * 100).toStringAsFixed(0)}% | $count',
-                          style: Theme.of(context).textTheme.bodySmall,
-                        );
-                      },
+                    onPressed: () {
+                      Navigator.pop(context);
+                      controller.toggleLayerVisibility(layer.id);
+                    },
+                  ),
+                ],
+              ),
+            ),
+          const PopupMenuDivider(),
+          const PopupMenuItem(
+            value: '__add__',
+            child: Row(
+              children: [Icon(Icons.add), SizedBox(width: 8), Text('Layer')],
+            ),
+          ),
+        ];
+      },
+    );
+  }
+}
+
+class _Toolbar extends StatelessWidget {
+  const _Toolbar({
+    required this.canvasController,
+    required this.viewController,
+    required this.onAddStickyNote,
+    required this.onAddCounter,
+  });
+
+  final CanvasController canvasController;
+  final InfiniteCanvasController viewController;
+  final VoidCallback onAddStickyNote;
+  final VoidCallback onAddCounter;
+
+  static const _colors = [
+    Colors.black,
+    Color(0xFF2563EB),
+    Color(0xFF16A34A),
+    Color(0xFFDC2626),
+    Color(0xFF9333EA),
+    Color(0xFFF59E0B),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: Listenable.merge([canvasController, viewController]),
+      builder: (context, _) {
+        final activeTool = canvasController.currentTool?.id;
+        final brush = canvasController.brushSettings;
+
+        return Container(
+          height: 64,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            border: Border(bottom: BorderSide(color: Color(0xFFE5E7EB))),
+          ),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (final tool in canvasController.toolManager.tools)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 4),
+                    child: Tooltip(
+                      message: tool.name,
+                      child: IconButton(
+                        isSelected: activeTool == tool.id,
+                        icon: Icon(tool.icon),
+                        selectedIcon: Icon(tool.icon),
+                        onPressed: () => canvasController.setTool(tool.id),
+                      ),
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.zoom_out, size: 20),
-                      tooltip: '缩小',
-                      constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                      padding: EdgeInsets.zero,
-                      onPressed: () => _controller.zoomOut(),
-                    ),
-                    const SizedBox(width: 4),
-                  ],
+                  ),
+                const VerticalDivider(width: 20),
+                for (final color in _colors)
+                  _ColorSwatch(
+                    color: color,
+                    selected: brush.color == color,
+                    onPressed: () {
+                      canvasController.updateBrushSettings(
+                        brush.copyWith(color: color),
+                      );
+                    },
+                  ),
+                const SizedBox(width: 16),
+                SizedBox(
+                  width: 160,
+                  child: Slider(
+                    value: brush.strokeWidth,
+                    min: 1,
+                    max: 20,
+                    divisions: 19,
+                    onChanged: (value) {
+                      canvasController.updateBrushSettings(
+                        brush.copyWith(strokeWidth: value),
+                      );
+                    },
+                  ),
                 ),
-              ),
+                const SizedBox(width: 16),
+                Tooltip(
+                  message: 'Zoom out',
+                  child: IconButton(
+                    icon: const Icon(Icons.remove),
+                    onPressed: viewController.zoomOut,
+                  ),
+                ),
+                Text('${(viewController.transform.scale * 100).round()}%'),
+                Tooltip(
+                  message: 'Zoom in',
+                  child: IconButton(
+                    icon: const Icon(Icons.add),
+                    onPressed: viewController.zoomIn,
+                  ),
+                ),
+                Tooltip(
+                  message: 'Reset view',
+                  child: IconButton(
+                    icon: const Icon(Icons.center_focus_strong),
+                    onPressed: viewController.resetView,
+                  ),
+                ),
+                const VerticalDivider(width: 20),
+                Tooltip(
+                  message: 'Add sticky note',
+                  child: IconButton(
+                    icon: const Icon(Icons.note_add_outlined),
+                    onPressed: onAddStickyNote,
+                  ),
+                ),
+                Tooltip(
+                  message: 'Add counter',
+                  child: IconButton(
+                    icon: const Icon(Icons.plus_one),
+                    onPressed: onAddCounter,
+                  ),
+                ),
+                const VerticalDivider(width: 20),
+                Tooltip(
+                  message: 'Undo',
+                  child: IconButton(
+                    icon: const Icon(Icons.undo),
+                    onPressed: canvasController.canUndo
+                        ? canvasController.undo
+                        : null,
+                  ),
+                ),
+                Tooltip(
+                  message: 'Redo',
+                  child: IconButton(
+                    icon: const Icon(Icons.redo),
+                    onPressed: canvasController.canRedo
+                        ? canvasController.redo
+                        : null,
+                  ),
+                ),
+                _LayerButton(controller: canvasController),
+                Tooltip(
+                  message: 'Clear',
+                  child: IconButton(
+                    icon: const Icon(Icons.delete_outline),
+                    onPressed: canvasController.elements.isEmpty
+                        ? null
+                        : () => canvasController.clear(),
+                  ),
+                ),
+              ],
             ),
           ),
-          // 画布 + 小地图
-          Expanded(
-            child: InfiniteCanvasWidget(
-              controller: _controller,
-              config: const InfiniteCanvasConfig(
-                showGrid: true,
-                gridType: GridType.dots,
-                backgroundColor: Color(0xFFFFFFFF),
+        );
+      },
+    );
+  }
+}
+
+class _ColorSwatch extends StatelessWidget {
+  const _ColorSwatch({
+    required this.color,
+    required this.selected,
+    required this.onPressed,
+  });
+
+  final Color color;
+  final bool selected;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 6),
+      child: Tooltip(
+        message: '#${color.toARGB32().toRadixString(16).padLeft(8, '0')}',
+        child: InkResponse(
+          onTap: onPressed,
+          radius: 17,
+          child: Container(
+            width: 24,
+            height: 24,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: color,
+              border: Border.all(
+                color: selected ? const Color(0xFF111827) : Colors.white,
+                width: selected ? 3 : 2,
               ),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x1A000000),
+                  blurRadius: 4,
+                  offset: Offset(0, 1),
+                ),
+              ],
             ),
           ),
-        ],
+        ),
       ),
-    );
-  }
-
-  Widget _colorButton(Color color, String tooltip) {
-    return IconButton(
-      icon: Icon(Icons.circle, color: color, size: 16),
-      tooltip: tooltip,
-      constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-      padding: EdgeInsets.zero,
-      onPressed: () => _controller.canvasController.updateBrushSettings(
-        BrushSettings(color: color),
-      ),
-    );
-  }
-
-  Widget _toolButton(CanvasTool tool, bool isActive) {
-    return IconButton(
-      icon: Icon(_getToolIcon(tool.iconName)),
-      tooltip: tool.name,
-      iconSize: 22,
-      constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
-      padding: EdgeInsets.zero,
-      style: IconButton.styleFrom(
-        backgroundColor: isActive
-            ? Theme.of(context).colorScheme.primaryContainer
-            : null,
-        foregroundColor: isActive
-            ? Theme.of(context).colorScheme.onPrimaryContainer
-            : null,
-      ),
-      onPressed: () => _setTool(tool.id),
     );
   }
 }
