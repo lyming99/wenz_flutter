@@ -3,11 +3,14 @@ import 'package:flutter/material.dart';
 import '../canvas/canvas_controller.dart';
 import '../elements/canvas_element.dart';
 import '../elements/ellipse_element.dart';
+import '../elements/line_element.dart';
 import '../elements/rect_element.dart';
 import '../elements/text_element.dart';
+import '../elements/arrow_element.dart';
 import '../history/commands/batch_command.dart';
 import '../history/commands/update_element_command.dart';
 import '../infinite_canvas/canvas_event.dart';
+import '../snap/snap_resolver.dart';
 import '../utils/math_utils.dart';
 import 'canvas_tool.dart';
 
@@ -22,9 +25,12 @@ class SelectTool extends CanvasTool {
   bool _movingSelection = false;
   bool _resizingText = false;
   bool _scalingElement = false;
+  bool _draggingLineEndpoint = false;
   _SelectionResizeHandle? _resizeHandle;
+  _LineEndpoint? _lineEndpoint;
   TextElement? _resizeBefore;
   CanvasElement? _scaleBefore;
+  CanvasElement? _lineEndpointBefore;
   Offset? _resizeAnchor;
   static const double _minTextBoxWidth = 24;
   static const double _minTextBoxHeight = 24;
@@ -47,9 +53,12 @@ class SelectTool extends CanvasTool {
     _movingSelection = false;
     _resizingText = false;
     _scalingElement = false;
+    _draggingLineEndpoint = false;
     _resizeHandle = null;
+    _lineEndpoint = null;
     _resizeBefore = null;
     _scaleBefore = null;
+    _lineEndpointBefore = null;
     _resizeAnchor = null;
     _moveBefore = const {};
     controller.setSelectionRect(null);
@@ -59,9 +68,22 @@ class SelectTool extends CanvasTool {
   ToolResult handleEvent(CanvasEvent event, CanvasController controller) {
     switch (event) {
       case CanvasPointerDownEvent():
-        final resizeTarget = _resizeTargetAt(controller, event);
+        final lineEndpointTarget = _lineEndpointTargetAt(controller, event);
+        final resizeTarget = lineEndpointTarget == null
+            ? _resizeTargetAt(controller, event)
+            : null;
         _dragStart = event.worldPoint;
         _lastPoint = event.worldPoint;
+        if (lineEndpointTarget != null) {
+          controller.setSelection({lineEndpointTarget.element.id});
+          _movingSelection = false;
+          _resizingText = false;
+          _scalingElement = false;
+          _draggingLineEndpoint = true;
+          _lineEndpoint = lineEndpointTarget.endpoint;
+          _lineEndpointBefore = lineEndpointTarget.element;
+          return const ToolResultConsumed();
+        }
         if (resizeTarget != null) {
           controller.setSelection({resizeTarget.element.id});
           _movingSelection = false;
@@ -117,6 +139,15 @@ class SelectTool extends CanvasTool {
           _lastPoint = event.worldPoint;
           return const ToolResultConsumed();
         }
+        if (_draggingLineEndpoint) {
+          _dragLineEndpoint(
+            controller,
+            event.worldPoint,
+            event.transform.scale,
+          );
+          _lastPoint = event.worldPoint;
+          return const ToolResultConsumed();
+        }
         if (_movingSelection) {
           final delta = event.worldPoint - last;
           controller.moveSelected(delta, record: false);
@@ -134,6 +165,11 @@ class SelectTool extends CanvasTool {
         }
         if (_scalingElement) {
           _recordScale(controller);
+          cancel(controller);
+          return const ToolResultConsumed();
+        }
+        if (_draggingLineEndpoint) {
+          _recordLineEndpointDrag(controller);
           cancel(controller);
           return const ToolResultConsumed();
         }
@@ -162,6 +198,31 @@ class SelectTool extends CanvasTool {
       default:
         return const ToolResultNone();
     }
+  }
+
+  _LineEndpointTarget? _lineEndpointTargetAt(
+    CanvasController controller,
+    CanvasPointerDownEvent event,
+  ) {
+    final tolerance = 10 / event.transform.scale;
+    for (final element in controller.selectedElements.reversed) {
+      if (element is LineElement) {
+        for (final endpoint in _LineEndpoint.values) {
+          if ((event.worldPoint - endpoint.pointForLine(element)).distance <=
+              tolerance) {
+            return _LineEndpointTarget(element, endpoint);
+          }
+        }
+      } else if (element is ArrowElement) {
+        for (final endpoint in _LineEndpoint.values) {
+          if ((event.worldPoint - endpoint.pointForArrow(element)).distance <=
+              tolerance) {
+            return _LineEndpointTarget(element, endpoint);
+          }
+        }
+      }
+    }
+    return null;
   }
 
   _ResizeTarget? _resizeTargetAt(
@@ -256,6 +317,71 @@ class SelectTool extends CanvasTool {
     return rect.topLeft;
   }
 
+  void _dragLineEndpoint(
+    CanvasController controller,
+    Offset worldPoint,
+    double scale,
+  ) {
+    final before = _lineEndpointBefore;
+    final endpoint = _lineEndpoint;
+    if (before == null || endpoint == null) {
+      return;
+    }
+    final snap = controller.snapResolver.resolve(
+      controller,
+      worldPoint,
+      scale: scale,
+      excludeElementIds: {before.id},
+    );
+    controller.setSnapPreview(snap);
+    final nextPoint = snap?.position ?? worldPoint;
+    final binding = snap?.binding;
+
+    if (before is LineElement) {
+      final current = controller.elementById(before.id);
+      if (current is! LineElement) {
+        return;
+      }
+      controller.updateElement(
+        before.id,
+        endpoint.applyToLine(current, nextPoint, binding),
+        record: false,
+      );
+      return;
+    }
+    if (before is ArrowElement) {
+      final current = controller.elementById(before.id);
+      if (current is! ArrowElement) {
+        return;
+      }
+      controller.updateElement(
+        before.id,
+        endpoint.applyToArrow(current, nextPoint, binding),
+        record: false,
+      );
+    }
+  }
+
+  void _recordLineEndpointDrag(CanvasController controller) {
+    controller.setSnapPreview(null);
+    final before = _lineEndpointBefore;
+    if (before == null) {
+      return;
+    }
+    final after = controller.elementById(before.id);
+    if (after == null ||
+        after.toJson().toString() == before.toJson().toString()) {
+      return;
+    }
+    controller.recordCommand(
+      UpdateElementCommand(
+        before: before,
+        after: after,
+        description: 'Edit ${after.type} endpoint',
+      ),
+    );
+  }
+
   void _recordScale(CanvasController controller) {
     final before = _scaleBefore;
     if (before == null) {
@@ -344,6 +470,59 @@ enum _SelectionResizeHandle {
       bottomRight => rect.topLeft,
     };
   }
+}
+
+enum _LineEndpoint { start, end }
+
+extension on _LineEndpoint {
+  Offset pointForLine(LineElement element) {
+    return switch (this) {
+      _LineEndpoint.start => element.start,
+      _LineEndpoint.end => element.end,
+    };
+  }
+
+  Offset pointForArrow(ArrowElement element) {
+    return switch (this) {
+      _LineEndpoint.start => element.start,
+      _LineEndpoint.end => element.end,
+    };
+  }
+
+  LineElement applyToLine(
+    LineElement element,
+    Offset point,
+    SnapBinding? binding,
+  ) {
+    return switch (this) {
+      _LineEndpoint.start => element.copyWith(
+        start: point,
+        startBinding: binding,
+      ),
+      _LineEndpoint.end => element.copyWith(end: point, endBinding: binding),
+    };
+  }
+
+  ArrowElement applyToArrow(
+    ArrowElement element,
+    Offset point,
+    SnapBinding? binding,
+  ) {
+    return switch (this) {
+      _LineEndpoint.start => element.copyWith(
+        start: point,
+        startBinding: binding,
+      ),
+      _LineEndpoint.end => element.copyWith(end: point, endBinding: binding),
+    };
+  }
+}
+
+class _LineEndpointTarget {
+  const _LineEndpointTarget(this.element, this.endpoint);
+
+  final CanvasElement element;
+  final _LineEndpoint endpoint;
 }
 
 class _ResizeTarget {

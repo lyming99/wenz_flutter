@@ -13,6 +13,7 @@ import '../elements/shape_label_painter.dart';
 import '../elements/text_element.dart';
 import '../elements/widget_element.dart';
 import '../layers/canvas_layer.dart';
+import '../snap/snap_resolver.dart';
 import 'canvas_document.dart';
 
 class CanvasSerializer {
@@ -83,6 +84,8 @@ class CanvasSerializer {
           start: _point(json['start']),
           end: _point(json['end']),
           style: _style(json['style']),
+          startBinding: SnapBinding.fromJson(json['startBinding']),
+          endBinding: SnapBinding.fromJson(json['endBinding']),
         );
       case RectElement.elementType:
         return RectElement(
@@ -129,6 +132,8 @@ class CanvasSerializer {
           end: _point(json['end']),
           headSize: (json['headSize'] as num?)?.toDouble() ?? 14,
           style: _style(json['style']),
+          startBinding: SnapBinding.fromJson(json['startBinding']),
+          endBinding: SnapBinding.fromJson(json['endBinding']),
         );
       case TextElement.elementType:
         final styleJson = json['style'];

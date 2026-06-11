@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 
 import '../canvas/paint_style.dart';
+import '../snap/snap_resolver.dart';
 import '../utils/math_utils.dart';
 import 'canvas_element.dart';
 import 'element_renderer.dart';
@@ -12,6 +13,8 @@ class LineElement extends CanvasElement {
     required this.start,
     required this.end,
     this.style = const PaintStyle(),
+    this.startBinding,
+    this.endBinding,
     this.layerId = 'default',
     this.visible = true,
     this.opacity = 1,
@@ -26,6 +29,8 @@ class LineElement extends CanvasElement {
   final Offset start;
   final Offset end;
   final PaintStyle style;
+  final SnapBinding? startBinding;
+  final SnapBinding? endBinding;
 
   @override
   final String layerId;
@@ -58,6 +63,8 @@ class LineElement extends CanvasElement {
     Offset? start,
     Offset? end,
     PaintStyle? style,
+    Object? startBinding = _unset,
+    Object? endBinding = _unset,
     String? layerId,
     bool? visible,
     double? opacity,
@@ -68,6 +75,12 @@ class LineElement extends CanvasElement {
       start: start ?? this.start,
       end: end ?? this.end,
       style: style ?? this.style,
+      startBinding: identical(startBinding, _unset)
+          ? this.startBinding
+          : startBinding as SnapBinding?,
+      endBinding: identical(endBinding, _unset)
+          ? this.endBinding
+          : endBinding as SnapBinding?,
       layerId: layerId ?? this.layerId,
       visible: visible ?? this.visible,
       opacity: opacity ?? this.opacity,
@@ -102,8 +115,12 @@ class LineElement extends CanvasElement {
       'start': {'x': start.dx, 'y': start.dy},
       'end': {'x': end.dx, 'y': end.dy},
       'style': style.toJson(),
+      if (startBinding != null) 'startBinding': startBinding!.toJson(),
+      if (endBinding != null) 'endBinding': endBinding!.toJson(),
     };
   }
+
+  static const _unset = Object();
 }
 
 class LineElementRenderer extends ElementRenderer<LineElement> {

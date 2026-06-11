@@ -1,8 +1,10 @@
 import 'package:flutter/widgets.dart';
 
+import '../elements/arrow_element.dart';
 import '../elements/canvas_element.dart';
 import '../elements/element_registry.dart';
 import '../elements/ellipse_element.dart';
+import '../elements/line_element.dart';
 import '../elements/rect_element.dart';
 import '../elements/text_element.dart';
 import '../history/commands/add_element_command.dart';
@@ -15,6 +17,7 @@ import '../infinite_canvas/canvas_event.dart';
 import '../layers/auto_layering.dart';
 import '../layers/canvas_layer.dart';
 import '../layers/layer_manager.dart';
+import '../snap/snap_resolver.dart';
 import '../tools/brush_settings.dart';
 import '../tools/canvas_tool.dart';
 import '../tools/ellipse_tool.dart';
@@ -39,10 +42,12 @@ class CanvasController extends ChangeNotifier {
     HistoryManager? historyManager,
     LayerManager? layerManager,
     this.autoLayeringPolicy = const AutoLayeringPolicy.activeLayer(),
+    SnapSettings snapSettings = const SnapSettings(),
   }) : _state = initialState,
        toolManager = toolManager ?? ToolManager(),
        historyManager = historyManager ?? HistoryManager(),
-       layerManager = layerManager ?? LayerManager() {
+       layerManager = layerManager ?? LayerManager(),
+       snapResolver = SnapResolver(settings: snapSettings) {
     ElementRendererRegistry.ensureBuiltInsRegistered();
     _registerBuiltInTools();
     this.historyManager.addListener(notifyListeners);
@@ -58,6 +63,7 @@ class CanvasController extends ChangeNotifier {
   final HistoryManager historyManager;
   final LayerManager layerManager;
   final AutoLayeringPolicy autoLayeringPolicy;
+  SnapResolver snapResolver;
 
   CanvasState _state;
   String? _editingTextElementId;
@@ -65,9 +71,12 @@ class CanvasController extends ChangeNotifier {
   String? _editingShapeLabelElementId;
   CanvasElement? _editingShapeLabelOriginal;
 
+  SnapResult? _snapPreview;
+
   CanvasState get state => _state;
   String? get editingTextElementId => _editingTextElementId;
   String? get editingShapeLabelElementId => _editingShapeLabelElementId;
+  SnapResult? get snapPreview => _snapPreview;
   List<CanvasElement> get elements => _state.elements;
   CanvasElement? get previewElement => _state.previewElement;
   Set<String> get selectedIds => _state.selectedIds;
@@ -122,6 +131,9 @@ class CanvasController extends ChangeNotifier {
       selectedIds: {..._state.selectedIds}..remove(id),
       previewElement: null,
     );
+    if (_snapPreview?.point.elementId == id) {
+      _snapPreview = null;
+    }
     _spatialIndex.invalidate();
     notifyListeners();
   }
@@ -143,10 +155,88 @@ class CanvasController extends ChangeNotifier {
 
   void applyElementUpdated(String id, CanvasElement element) {
     _state = _state.copyWith(
-      elements: _elementManager.update(_state.elements, id, element),
+      elements: _syncSnapBoundElements(
+        _elementManager.update(_state.elements, id, element),
+        changedElementId: id,
+      ),
     );
     _spatialIndex.invalidate();
     notifyListeners();
+  }
+
+  List<CanvasElement> _syncSnapBoundElements(
+    List<CanvasElement> elements, {
+    required String changedElementId,
+  }) {
+    final byId = {for (final element in elements) element.id: element};
+    final resolved = <CanvasElement>[];
+    var changed = false;
+    for (final element in elements) {
+      final next = _resolveSnapBoundElement(element, changedElementId, byId);
+      resolved.add(next);
+      changed = changed || !identical(next, element);
+    }
+    return changed ? List<CanvasElement>.unmodifiable(resolved) : elements;
+  }
+
+  CanvasElement _resolveSnapBoundElement(
+    CanvasElement element,
+    String changedElementId,
+    Map<String, CanvasElement> elementsById,
+  ) {
+    if (element is LineElement) {
+      final start = element.startBinding?.elementId == changedElementId
+          ? _resolveSnapBindingFrom(elementsById, element.startBinding)
+          : null;
+      final end = element.endBinding?.elementId == changedElementId
+          ? _resolveSnapBindingFrom(elementsById, element.endBinding)
+          : null;
+      if (start == null && end == null) {
+        return element;
+      }
+      return element.copyWith(
+        start: start ?? element.start,
+        end: end ?? element.end,
+      );
+    }
+    if (element is ArrowElement) {
+      final start = element.startBinding?.elementId == changedElementId
+          ? _resolveSnapBindingFrom(elementsById, element.startBinding)
+          : null;
+      final end = element.endBinding?.elementId == changedElementId
+          ? _resolveSnapBindingFrom(elementsById, element.endBinding)
+          : null;
+      if (start == null && end == null) {
+        return element;
+      }
+      return element.copyWith(
+        start: start ?? element.start,
+        end: end ?? element.end,
+      );
+    }
+    return element;
+  }
+
+  Offset? _resolveSnapBindingFrom(
+    Map<String, CanvasElement> elementsById,
+    SnapBinding? binding,
+  ) {
+    if (binding == null) {
+      return null;
+    }
+    final target = elementsById[binding.elementId];
+    if (target == null ||
+        !target.visible ||
+        !isLayerVisible(target.layerId) ||
+        isLayerLocked(target.layerId)) {
+      return null;
+    }
+    for (final point in snapResolver.pointsForElement(target)) {
+      if (point.anchorId == binding.anchorId) {
+        return point.position;
+      }
+    }
+    return null;
   }
 
   void replaceElements(
@@ -157,6 +247,7 @@ class CanvasController extends ChangeNotifier {
     _editingTextOriginal = null;
     _editingShapeLabelElementId = null;
     _editingShapeLabelOriginal = null;
+    _snapPreview = null;
     _state = _state.copyWith(
       elements: List<CanvasElement>.unmodifiable(elements),
       previewElement: null,
@@ -180,6 +271,18 @@ class CanvasController extends ChangeNotifier {
       return;
     }
     _state = _state.copyWith(previewElement: null);
+    _snapPreview = null;
+    notifyListeners();
+  }
+
+  void setSnapPreview(SnapResult? result) {
+    _snapPreview = result;
+    notifyListeners();
+  }
+
+  void updateSnapSettings(SnapSettings settings) {
+    snapResolver = SnapResolver(settings: settings);
+    _snapPreview = null;
     notifyListeners();
   }
 

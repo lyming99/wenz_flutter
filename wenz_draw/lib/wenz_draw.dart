@@ -43,6 +43,7 @@ export 'src/serialization/canvas_document.dart';
 export 'src/serialization/canvas_serializer.dart';
 export 'src/serialization/exporters/png_exporter.dart';
 export 'src/serialization/exporters/svg_exporter.dart';
+export 'src/snap/snap_resolver.dart';
 export 'src/tools/arrow_tool.dart';
 export 'src/tools/brush_settings.dart';
 export 'src/tools/canvas_tool.dart';

@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/widgets.dart';
 
 import '../canvas/paint_style.dart';
+import '../snap/snap_resolver.dart';
 import '../utils/math_utils.dart';
 import 'canvas_element.dart';
 import 'element_renderer.dart';
@@ -15,6 +16,8 @@ class ArrowElement extends CanvasElement {
     required this.end,
     this.style = const PaintStyle(),
     this.headSize = 14,
+    this.startBinding,
+    this.endBinding,
     this.layerId = 'default',
     this.visible = true,
     this.opacity = 1,
@@ -29,6 +32,8 @@ class ArrowElement extends CanvasElement {
   final Offset end;
   final PaintStyle style;
   final double headSize;
+  final SnapBinding? startBinding;
+  final SnapBinding? endBinding;
 
   @override
   final String layerId;
@@ -58,6 +63,8 @@ class ArrowElement extends CanvasElement {
     Offset? end,
     PaintStyle? style,
     double? headSize,
+    Object? startBinding = _unset,
+    Object? endBinding = _unset,
     String? layerId,
     bool? visible,
     double? opacity,
@@ -69,6 +76,12 @@ class ArrowElement extends CanvasElement {
       end: end ?? this.end,
       style: style ?? this.style,
       headSize: headSize ?? this.headSize,
+      startBinding: identical(startBinding, _unset)
+          ? this.startBinding
+          : startBinding as SnapBinding?,
+      endBinding: identical(endBinding, _unset)
+          ? this.endBinding
+          : endBinding as SnapBinding?,
       layerId: layerId ?? this.layerId,
       visible: visible ?? this.visible,
       opacity: opacity ?? this.opacity,
@@ -105,8 +118,12 @@ class ArrowElement extends CanvasElement {
       'end': {'x': end.dx, 'y': end.dy},
       'headSize': headSize,
       'style': style.toJson(),
+      if (startBinding != null) 'startBinding': startBinding!.toJson(),
+      if (endBinding != null) 'endBinding': endBinding!.toJson(),
     };
   }
+
+  static const _unset = Object();
 }
 
 class ArrowElementRenderer extends ElementRenderer<ArrowElement> {

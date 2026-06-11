@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../canvas/canvas_controller.dart';
+import '../elements/arrow_element.dart';
+import '../elements/line_element.dart';
 import '../infinite_canvas/canvas_transform.dart';
 
 class SelectionRenderer {
@@ -13,6 +15,7 @@ class SelectionRenderer {
   ) {
     if (controller.selectedIds.isEmpty) {
       _drawSelectionRect(canvas, controller, transform);
+      _drawSnapPreview(canvas, controller, transform);
       return;
     }
 
@@ -39,12 +42,17 @@ class SelectionRenderer {
       }
       final bounds = element.bounds.inflate(4 / transform.scale);
       canvas.drawRect(bounds, paint);
-      for (final point in [
-        bounds.topLeft,
-        bounds.topRight,
-        bounds.bottomLeft,
-        bounds.bottomRight,
-      ]) {
+      final handlePoints = switch (element) {
+        LineElement e => [e.start, e.end],
+        ArrowElement e => [e.start, e.end],
+        _ => [
+          bounds.topLeft,
+          bounds.topRight,
+          bounds.bottomLeft,
+          bounds.bottomRight,
+        ],
+      };
+      for (final point in handlePoints) {
         final handle = Rect.fromCenter(
           center: point,
           width: handleSize,
@@ -55,6 +63,7 @@ class SelectionRenderer {
       }
     }
     _drawSelectionRect(canvas, controller, transform);
+    _drawSnapPreview(canvas, controller, transform);
   }
 
   void _drawSelectionRect(
@@ -75,5 +84,42 @@ class SelectionRenderer {
       ..strokeWidth = 1 / transform.scale;
     canvas.drawRect(rect, fillPaint);
     canvas.drawRect(rect, strokePaint);
+  }
+
+  void _drawSnapPreview(
+    Canvas canvas,
+    CanvasController controller,
+    CanvasTransform transform,
+  ) {
+    final snap = controller.snapPreview;
+    if (snap == null) {
+      return;
+    }
+    final point = snap.position;
+    final radius = 5 / transform.scale;
+    final paint = Paint()
+      ..color = const Color(0xFFEF4444)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5 / transform.scale;
+    final fillPaint = Paint()
+      ..color = const Color(0xFFEF4444).withValues(alpha: 0.12)
+      ..style = PaintingStyle.fill;
+    final guidePaint = Paint()
+      ..color = const Color(0xFFEF4444).withValues(alpha: 0.45)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1 / transform.scale;
+
+    canvas.drawCircle(point, radius * 1.8, fillPaint);
+    canvas.drawCircle(point, radius, paint);
+    canvas.drawLine(
+      point - Offset(radius * 2.4, 0),
+      point + Offset(radius * 2.4, 0),
+      guidePaint,
+    );
+    canvas.drawLine(
+      point - Offset(0, radius * 2.4),
+      point + Offset(0, radius * 2.4),
+      guidePaint,
+    );
   }
 }
