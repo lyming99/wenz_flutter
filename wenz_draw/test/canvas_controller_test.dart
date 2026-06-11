@@ -330,4 +330,94 @@ void main() {
 
     expect(controller.elementById('near-widget')!.zIndex, 2000001);
   });
+  test('select tool drags selection handles to scale widget elements', () {
+    final controller = CanvasController();
+    controller.addElement(
+      const CanvasWidgetElement(
+        id: 'widget-1',
+        worldRect: Rect.fromLTWH(0, 0, 100, 50),
+        widgetType: 'test-widget',
+      ),
+      record: false,
+    );
+    controller
+      ..setTool(SelectTool.idValue)
+      ..setSelection({'widget-1'});
+
+    controller.dispatchCanvasEvent(
+      const CanvasPointerDownEvent(
+        screenPoint: Offset(100, 50),
+        worldPoint: Offset(100, 50),
+        transform: CanvasTransform.identity,
+      ),
+    );
+    controller.dispatchCanvasEvent(
+      const CanvasPointerMoveEvent(
+        screenPoint: Offset(200, 100),
+        worldPoint: Offset(200, 100),
+        transform: CanvasTransform.identity,
+        delta: Offset(100, 50),
+      ),
+    );
+    controller.dispatchCanvasEvent(
+      const CanvasPointerUpEvent(
+        screenPoint: Offset(200, 100),
+        worldPoint: Offset(200, 100),
+        transform: CanvasTransform.identity,
+      ),
+    );
+
+    final element = controller.elementById('widget-1') as CanvasWidgetElement;
+    expect(element.worldRect, const Rect.fromLTWH(0, 0, 200, 100));
+    expect(controller.canUndo, isTrue);
+    controller.undo();
+    expect(
+      (controller.elementById('widget-1') as CanvasWidgetElement).worldRect,
+      const Rect.fromLTWH(0, 0, 100, 50),
+    );
+  });
+
+  test('select tool scales shape labels with their shape', () {
+    final controller = CanvasController();
+    controller.addElement(
+      const RectElement(
+        id: 'rect-1',
+        rect: Rect.fromLTWH(0, 0, 100, 50),
+        strokeStyle: PaintStyle(strokeWidth: 0),
+        label: 'Label',
+        labelStyle: TextStyle(fontSize: 16),
+      ),
+      record: false,
+    );
+    controller
+      ..setTool(SelectTool.idValue)
+      ..setSelection({'rect-1'});
+
+    controller.dispatchCanvasEvent(
+      const CanvasPointerDownEvent(
+        screenPoint: Offset(100, 50),
+        worldPoint: Offset(100, 50),
+        transform: CanvasTransform.identity,
+      ),
+    );
+    controller.dispatchCanvasEvent(
+      const CanvasPointerMoveEvent(
+        screenPoint: Offset(200, 100),
+        worldPoint: Offset(200, 100),
+        transform: CanvasTransform.identity,
+        delta: Offset(100, 50),
+      ),
+    );
+    controller.dispatchCanvasEvent(
+      const CanvasPointerUpEvent(
+        screenPoint: Offset(200, 100),
+        worldPoint: Offset(200, 100),
+        transform: CanvasTransform.identity,
+      ),
+    );
+
+    final element = controller.elementById('rect-1') as RectElement;
+    expect(element.rect, const Rect.fromLTWH(0, 0, 200, 100));
+    expect(element.labelStyle.fontSize, 32);
+  });
 }

@@ -9,6 +9,7 @@ import '../elements/image_element.dart';
 import '../elements/line_element.dart';
 import '../elements/path_element.dart';
 import '../elements/rect_element.dart';
+import '../elements/shape_label_painter.dart';
 import '../elements/text_element.dart';
 import '../elements/widget_element.dart';
 import '../layers/canvas_layer.dart';
@@ -91,9 +92,14 @@ class CanvasSerializer {
           opacity: opacity,
           zIndex: zIndex,
           rect: _rect(json['rect']),
-          borderRadius: (json['borderRadius'] as num?)?.toDouble() ?? 0,
           strokeStyle: _style(json['strokeStyle']),
           fillStyle: _nullableStyle(json['fillStyle']),
+          label: json['label'] as String?,
+          labelStyle: ShapeLabelPainter.styleFromJson(json['labelStyle']),
+          labelAlign: ShapeLabelPainter.textAlignFromString(
+            json['labelAlign'] as String?,
+          ),
+          labelPadding: ShapeLabelPainter.paddingFromJson(json['labelPadding']),
         );
       case EllipseElement.elementType:
         return EllipseElement(
@@ -105,6 +111,12 @@ class CanvasSerializer {
           rect: _rect(json['rect']),
           strokeStyle: _style(json['strokeStyle']),
           fillStyle: _nullableStyle(json['fillStyle']),
+          label: json['label'] as String?,
+          labelStyle: ShapeLabelPainter.styleFromJson(json['labelStyle']),
+          labelAlign: ShapeLabelPainter.textAlignFromString(
+            json['labelAlign'] as String?,
+          ),
+          labelPadding: ShapeLabelPainter.paddingFromJson(json['labelPadding']),
         );
       case ArrowElement.elementType:
         return ArrowElement(

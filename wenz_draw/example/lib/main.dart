@@ -314,6 +314,7 @@ class _CanvasDemoPageState extends State<CanvasDemoPage> {
     _viewController = InfiniteCanvasController(
       canvasController: _canvasController,
     );
+    _addLabeledShapes();
     _addDemoWidgets();
   }
 
@@ -364,6 +365,48 @@ class _CanvasDemoPageState extends State<CanvasDemoPage> {
         ),
       ),
     );
+  }
+
+  void _addLabeledShapes() {
+    _canvasController
+      ..addElement(
+        const RectElement(
+          id: 'demo-labeled-rect',
+          rect: Rect.fromLTWH(-320, -180, 220, 120),
+          borderRadius: 12,
+          fillStyle: PaintStyle(color: Color(0xFFE0F2FE)),
+          strokeStyle: PaintStyle(color: Color(0xFF0284C7), strokeWidth: 2),
+          label: 'Embedded\ntext',
+          labelStyle: TextStyle(
+            color: Color(0xFF0F172A),
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            height: 1.15,
+          ),
+          labelAlign: TextAlign.center,
+          labelPadding: EdgeInsets.all(16),
+          zIndex: -20010,
+        ),
+        record: false,
+      )
+      ..addElement(
+        const EllipseElement(
+          id: 'demo-labeled-ellipse',
+          rect: Rect.fromLTWH(-60, -180, 220, 120),
+          fillStyle: PaintStyle(color: Color(0xFFDCFCE7)),
+          strokeStyle: PaintStyle(color: Color(0xFF16A34A), strokeWidth: 2),
+          label: 'Aligned right',
+          labelStyle: TextStyle(
+            color: Color(0xFF14532D),
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+          ),
+          labelAlign: TextAlign.right,
+          labelPadding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          zIndex: -20009,
+        ),
+        record: false,
+      );
   }
 
   void _addDemoWidgets() {

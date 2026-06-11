@@ -2,6 +2,8 @@ import 'package:flutter/widgets.dart';
 
 import '../elements/canvas_element.dart';
 import '../elements/element_registry.dart';
+import '../elements/ellipse_element.dart';
+import '../elements/rect_element.dart';
 import '../elements/text_element.dart';
 import '../history/commands/add_element_command.dart';
 import '../history/commands/batch_command.dart';
@@ -60,9 +62,12 @@ class CanvasController extends ChangeNotifier {
   CanvasState _state;
   String? _editingTextElementId;
   TextElement? _editingTextOriginal;
+  String? _editingShapeLabelElementId;
+  CanvasElement? _editingShapeLabelOriginal;
 
   CanvasState get state => _state;
   String? get editingTextElementId => _editingTextElementId;
+  String? get editingShapeLabelElementId => _editingShapeLabelElementId;
   List<CanvasElement> get elements => _state.elements;
   CanvasElement? get previewElement => _state.previewElement;
   Set<String> get selectedIds => _state.selectedIds;
@@ -149,6 +154,9 @@ class CanvasController extends ChangeNotifier {
     bool clearHistory = true,
   }) {
     _editingTextElementId = null;
+    _editingTextOriginal = null;
+    _editingShapeLabelElementId = null;
+    _editingShapeLabelOriginal = null;
     _state = _state.copyWith(
       elements: List<CanvasElement>.unmodifiable(elements),
       previewElement: null,
@@ -397,6 +405,7 @@ class CanvasController extends ChangeNotifier {
   bool isLayerLocked(String id) => layerManager.isLayerLocked(id);
 
   static const _unsetTextStyleValue = Object();
+  static const unsetTextStyleValue = _unsetTextStyleValue;
 
   void updateTextElementStyle(
     String id, {
@@ -436,6 +445,57 @@ class CanvasController extends ChangeNotifier {
     );
   }
 
+  void updateShapeLabelStyle(
+    String id, {
+    Color? color,
+    double? fontSize,
+    FontWeight? fontWeight,
+    TextAlign? textAlign,
+    double? lineHeight,
+    Object? fontFamily = _unsetTextStyleValue,
+    bool record = true,
+  }) {
+    final element = elementById(id);
+    if (element is! RectElement && element is! EllipseElement) {
+      return;
+    }
+    final style = switch (element) {
+      RectElement e => e.labelStyle,
+      EllipseElement e => e.labelStyle,
+      _ => const TextStyle(),
+    };
+    final nextFontFamily = identical(fontFamily, _unsetTextStyleValue)
+        ? style.fontFamily
+        : fontFamily as String?;
+    final nextStyle = TextStyle(
+      color: color ?? style.color,
+      fontSize: fontSize ?? style.fontSize,
+      fontWeight: fontWeight ?? style.fontWeight,
+      height: lineHeight ?? style.height,
+      fontFamily: nextFontFamily,
+    );
+    switch (element) {
+      case RectElement e:
+        updateElement(
+          id,
+          e.copyWith(
+            labelStyle: nextStyle,
+            labelAlign: textAlign ?? e.labelAlign,
+          ),
+          record: record,
+        );
+      case EllipseElement e:
+        updateElement(
+          id,
+          e.copyWith(
+            labelStyle: nextStyle,
+            labelAlign: textAlign ?? e.labelAlign,
+          ),
+          record: record,
+        );
+    }
+  }
+
   void resizeTextElement(
     String id,
     Size boxSize, {
@@ -462,6 +522,9 @@ class CanvasController extends ChangeNotifier {
     final element = elementById(id);
     if (element is! TextElement) {
       return;
+    }
+    if (_editingShapeLabelElementId != null) {
+      endShapeLabelEditing();
     }
     if (_editingTextElementId == id) {
       return;
@@ -529,6 +592,86 @@ class CanvasController extends ChangeNotifier {
     _editingTextElementId = null;
     _editingTextOriginal = null;
     notifyListeners();
+  }
+
+  void beginShapeLabelEditing(String id) {
+    final element = elementById(id);
+    if (element is! RectElement && element is! EllipseElement) {
+      return;
+    }
+    if (_editingTextElementId != null) {
+      endTextEditing();
+    }
+    if (_editingShapeLabelElementId == id) {
+      return;
+    }
+    _editingShapeLabelElementId = id;
+    _editingShapeLabelOriginal = element;
+    select(id);
+  }
+
+  void updateEditingShapeLabel(String text, {bool clearWhenEmpty = true}) {
+    final id = _editingShapeLabelElementId;
+    if (id == null) {
+      return;
+    }
+    final element = elementById(id);
+    if (element == null) {
+      return;
+    }
+    final label = text.trim().isEmpty && clearWhenEmpty ? null : text;
+    final next = _copyWithShapeLabel(element, label);
+    if (next == null ||
+        next.toJson().toString() == element.toJson().toString()) {
+      return;
+    }
+    updateElement(id, next, record: false);
+  }
+
+  void endShapeLabelEditing({String? text}) {
+    final id = _editingShapeLabelElementId;
+    if (id == null) {
+      return;
+    }
+    if (text != null) {
+      updateEditingShapeLabel(text, clearWhenEmpty: false);
+    }
+    _editingShapeLabelElementId = null;
+    final original = _editingShapeLabelOriginal;
+    _editingShapeLabelOriginal = null;
+    final element = elementById(id);
+    if (original != null &&
+        element != null &&
+        original.toJson().toString() != element.toJson().toString()) {
+      historyManager.record(
+        UpdateElementCommand(
+          before: original,
+          after: element,
+          description: 'Edit shape label',
+        ),
+      );
+      return;
+    }
+    notifyListeners();
+  }
+
+  void cancelShapeLabelEditing() {
+    if (_editingShapeLabelElementId == null) {
+      return;
+    }
+    _editingShapeLabelElementId = null;
+    _editingShapeLabelOriginal = null;
+    notifyListeners();
+  }
+
+  CanvasElement? _copyWithShapeLabel(CanvasElement element, String? label) {
+    if (element is RectElement) {
+      return element.copyWith(label: label);
+    }
+    if (element is EllipseElement) {
+      return element.copyWith(label: label);
+    }
+    return null;
   }
 
   bool _sameTextElement(TextElement a, TextElement b) {

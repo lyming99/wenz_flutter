@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../canvas/canvas_controller.dart';
 import '../elements/canvas_element.dart';
+import '../elements/ellipse_element.dart';
+import '../elements/rect_element.dart';
 import '../elements/text_element.dart';
 import '../history/commands/batch_command.dart';
 import '../history/commands/update_element_command.dart';
@@ -19,8 +21,10 @@ class SelectTool extends CanvasTool {
   Rect? _selectionRect;
   bool _movingSelection = false;
   bool _resizingText = false;
-  _TextResizeHandle? _resizeHandle;
+  bool _scalingElement = false;
+  _SelectionResizeHandle? _resizeHandle;
   TextElement? _resizeBefore;
+  CanvasElement? _scaleBefore;
   Offset? _resizeAnchor;
   static const double _minTextBoxWidth = 24;
   static const double _minTextBoxHeight = 24;
@@ -42,8 +46,10 @@ class SelectTool extends CanvasTool {
     _selectionRect = null;
     _movingSelection = false;
     _resizingText = false;
+    _scalingElement = false;
     _resizeHandle = null;
     _resizeBefore = null;
+    _scaleBefore = null;
     _resizeAnchor = null;
     _moveBefore = const {};
     controller.setSelectionRect(null);
@@ -58,13 +64,23 @@ class SelectTool extends CanvasTool {
         _lastPoint = event.worldPoint;
         if (resizeTarget != null) {
           controller.setSelection({resizeTarget.element.id});
-          _resizingText = true;
           _movingSelection = false;
           _resizeHandle = resizeTarget.handle;
-          _resizeBefore = resizeTarget.element;
           _resizeAnchor = resizeTarget.handle.anchorFor(
             resizeTarget.element.bounds,
           );
+          if (resizeTarget.element is TextElement &&
+              (resizeTarget.element as TextElement).boxSize != null) {
+            _resizingText = true;
+            _scalingElement = false;
+            _resizeBefore = resizeTarget.element as TextElement;
+            _scaleBefore = null;
+          } else {
+            _resizingText = false;
+            _scalingElement = true;
+            _resizeBefore = null;
+            _scaleBefore = resizeTarget.element;
+          }
           return const ToolResultConsumed();
         }
 
@@ -96,6 +112,11 @@ class SelectTool extends CanvasTool {
           _lastPoint = event.worldPoint;
           return const ToolResultConsumed();
         }
+        if (_scalingElement) {
+          _scaleElement(controller, event.worldPoint);
+          _lastPoint = event.worldPoint;
+          return const ToolResultConsumed();
+        }
         if (_movingSelection) {
           final delta = event.worldPoint - last;
           controller.moveSelected(delta, record: false);
@@ -108,6 +129,11 @@ class SelectTool extends CanvasTool {
       case CanvasPointerUpEvent():
         if (_resizingText) {
           _recordResize(controller);
+          cancel(controller);
+          return const ToolResultConsumed();
+        }
+        if (_scalingElement) {
+          _recordScale(controller);
           cancel(controller);
           return const ToolResultConsumed();
         }
@@ -128,25 +154,26 @@ class SelectTool extends CanvasTool {
           controller.beginTextEditing(hit.id);
           return const ToolResultConsumed();
         }
+        if (hit case RectElement(:final id) || EllipseElement(:final id)) {
+          controller.beginShapeLabelEditing(id);
+          return const ToolResultConsumed();
+        }
         return const ToolResultNone();
       default:
         return const ToolResultNone();
     }
   }
 
-  _TextResizeTarget? _resizeTargetAt(
+  _ResizeTarget? _resizeTargetAt(
     CanvasController controller,
     CanvasPointerDownEvent event,
   ) {
     final tolerance = 10 / event.transform.scale;
     for (final element in controller.selectedElements.reversed) {
-      if (element is! TextElement || element.boxSize == null) {
-        continue;
-      }
-      for (final handle in _TextResizeHandle.values) {
+      for (final handle in _SelectionResizeHandle.values) {
         if ((event.worldPoint - handle.pointFor(element.bounds)).distance <=
             tolerance) {
-          return _TextResizeTarget(element, handle);
+          return _ResizeTarget(element, handle);
         }
       }
     }
@@ -194,6 +221,60 @@ class SelectTool extends CanvasTool {
     );
   }
 
+  void _scaleElement(CanvasController controller, Offset worldPoint) {
+    final before = _scaleBefore;
+    final anchor = _resizeAnchor;
+    if (before == null || anchor == null) {
+      return;
+    }
+
+    final beforePoint = _oppositePoint(before.bounds, anchor);
+    final beforeDistance = (beforePoint - anchor).distance;
+    if (beforeDistance <= 0.0001) {
+      return;
+    }
+    final nextDistance = (worldPoint - anchor).distance;
+    final factor = (nextDistance / beforeDistance).clamp(0.05, 100.0);
+    final scaled = before.scaleElement(factor, pivot: anchor);
+    if (scaled.bounds.width < _minTextBoxWidth ||
+        scaled.bounds.height < _minTextBoxHeight) {
+      return;
+    }
+    controller.updateElement(before.id, scaled, record: false);
+  }
+
+  Offset _oppositePoint(Rect rect, Offset anchor) {
+    if (anchor == rect.topLeft) {
+      return rect.bottomRight;
+    }
+    if (anchor == rect.topRight) {
+      return rect.bottomLeft;
+    }
+    if (anchor == rect.bottomLeft) {
+      return rect.topRight;
+    }
+    return rect.topLeft;
+  }
+
+  void _recordScale(CanvasController controller) {
+    final before = _scaleBefore;
+    if (before == null) {
+      return;
+    }
+    final after = controller.elementById(before.id);
+    if (after == null ||
+        after.toJson().toString() == before.toJson().toString()) {
+      return;
+    }
+    controller.recordCommand(
+      UpdateElementCommand(
+        before: before,
+        after: after,
+        description: 'Scale ${after.type}',
+      ),
+    );
+  }
+
   void _recordResize(CanvasController controller) {
     final before = _resizeBefore;
     if (before == null) {
@@ -237,7 +318,7 @@ class SelectTool extends CanvasTool {
   }
 }
 
-enum _TextResizeHandle {
+enum _SelectionResizeHandle {
   topLeft,
   topRight,
   bottomLeft,
@@ -265,9 +346,9 @@ enum _TextResizeHandle {
   }
 }
 
-class _TextResizeTarget {
-  const _TextResizeTarget(this.element, this.handle);
+class _ResizeTarget {
+  const _ResizeTarget(this.element, this.handle);
 
-  final TextElement element;
-  final _TextResizeHandle handle;
+  final CanvasElement element;
+  final _SelectionResizeHandle handle;
 }

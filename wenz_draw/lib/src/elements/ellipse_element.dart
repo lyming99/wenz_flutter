@@ -1,11 +1,12 @@
 import 'dart:math' as math;
 
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 
 import '../canvas/paint_style.dart';
 import '../utils/math_utils.dart';
 import 'canvas_element.dart';
 import 'element_renderer.dart';
+import 'shape_label_painter.dart';
 
 @immutable
 class EllipseElement extends CanvasElement {
@@ -14,6 +15,10 @@ class EllipseElement extends CanvasElement {
     required this.rect,
     this.strokeStyle = const PaintStyle(),
     this.fillStyle,
+    this.label,
+    this.labelStyle = ShapeLabelPainter.defaultStyle,
+    this.labelAlign = TextAlign.center,
+    this.labelPadding = ShapeLabelPainter.defaultPadding,
     this.layerId = 'default',
     this.visible = true,
     this.opacity = 1,
@@ -28,6 +33,10 @@ class EllipseElement extends CanvasElement {
   final Rect rect;
   final PaintStyle strokeStyle;
   final PaintStyle? fillStyle;
+  final String? label;
+  final TextStyle labelStyle;
+  final TextAlign labelAlign;
+  final EdgeInsets labelPadding;
 
   @override
   final String layerId;
@@ -75,7 +84,11 @@ class EllipseElement extends CanvasElement {
     String? id,
     Rect? rect,
     PaintStyle? strokeStyle,
-    PaintStyle? fillStyle,
+    Object? fillStyle = _unset,
+    Object? label = _unset,
+    TextStyle? labelStyle,
+    TextAlign? labelAlign,
+    EdgeInsets? labelPadding,
     String? layerId,
     bool? visible,
     double? opacity,
@@ -85,7 +98,13 @@ class EllipseElement extends CanvasElement {
       id: id ?? this.id,
       rect: rect ?? this.rect,
       strokeStyle: strokeStyle ?? this.strokeStyle,
-      fillStyle: fillStyle ?? this.fillStyle,
+      fillStyle: identical(fillStyle, _unset)
+          ? this.fillStyle
+          : fillStyle as PaintStyle?,
+      label: identical(label, _unset) ? this.label : label as String?,
+      labelStyle: labelStyle ?? this.labelStyle,
+      labelAlign: labelAlign ?? this.labelAlign,
+      labelPadding: labelPadding ?? this.labelPadding,
       layerId: layerId ?? this.layerId,
       visible: visible ?? this.visible,
       opacity: opacity ?? this.opacity,
@@ -109,6 +128,10 @@ class EllipseElement extends CanvasElement {
       strokeStyle: strokeStyle.copyWith(
         strokeWidth: strokeStyle.strokeWidth * factor.abs(),
       ),
+      labelStyle: labelStyle.copyWith(
+        fontSize: (labelStyle.fontSize ?? 16) * factor.abs(),
+      ),
+      labelPadding: labelPadding * factor.abs(),
     );
   }
 
@@ -129,8 +152,14 @@ class EllipseElement extends CanvasElement {
       },
       'strokeStyle': strokeStyle.toJson(),
       'fillStyle': fillStyle?.toJson(),
+      if (label != null) 'label': label,
+      'labelStyle': ShapeLabelPainter.styleToJson(labelStyle),
+      'labelAlign': labelAlign.name,
+      'labelPadding': ShapeLabelPainter.paddingToJson(labelPadding),
     };
   }
+
+  static const _unset = Object();
 }
 
 class EllipseElementRenderer extends ElementRenderer<EllipseElement> {
@@ -160,6 +189,16 @@ class EllipseElementRenderer extends ElementRenderer<EllipseElement> {
       element.strokeStyle
           .copyWith(opacity: element.strokeStyle.opacity * element.opacity)
           .toPaint(),
+    );
+
+    ShapeLabelPainter.paint(
+      canvas,
+      rect: element.rect,
+      label: element.label,
+      style: element.labelStyle,
+      textAlign: element.labelAlign,
+      padding: element.labelPadding,
+      opacity: element.opacity,
     );
   }
 

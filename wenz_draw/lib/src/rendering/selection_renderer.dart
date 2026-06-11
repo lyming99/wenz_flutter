@@ -33,7 +33,8 @@ class SelectionRenderer {
       if (!controller.selectedIds.contains(element.id)) {
         continue;
       }
-      if (controller.editingTextElementId == element.id) {
+      if (controller.editingTextElementId == element.id ||
+          controller.editingShapeLabelElementId == element.id) {
         continue;
       }
       final bounds = element.bounds.inflate(4 / transform.scale);

@@ -1,9 +1,10 @@
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 
 import '../canvas/paint_style.dart';
 import '../utils/math_utils.dart';
 import 'canvas_element.dart';
 import 'element_renderer.dart';
+import 'shape_label_painter.dart';
 
 @immutable
 class RectElement extends CanvasElement {
@@ -13,6 +14,10 @@ class RectElement extends CanvasElement {
     this.borderRadius = 0,
     this.strokeStyle = const PaintStyle(),
     this.fillStyle,
+    this.label,
+    this.labelStyle = ShapeLabelPainter.defaultStyle,
+    this.labelAlign = TextAlign.center,
+    this.labelPadding = ShapeLabelPainter.defaultPadding,
     this.layerId = 'default',
     this.visible = true,
     this.opacity = 1,
@@ -28,6 +33,10 @@ class RectElement extends CanvasElement {
   final double borderRadius;
   final PaintStyle strokeStyle;
   final PaintStyle? fillStyle;
+  final String? label;
+  final TextStyle labelStyle;
+  final TextAlign labelAlign;
+  final EdgeInsets labelPadding;
 
   @override
   final String layerId;
@@ -64,7 +73,11 @@ class RectElement extends CanvasElement {
     Rect? rect,
     double? borderRadius,
     PaintStyle? strokeStyle,
-    PaintStyle? fillStyle,
+    Object? fillStyle = _unset,
+    Object? label = _unset,
+    TextStyle? labelStyle,
+    TextAlign? labelAlign,
+    EdgeInsets? labelPadding,
     String? layerId,
     bool? visible,
     double? opacity,
@@ -75,7 +88,13 @@ class RectElement extends CanvasElement {
       rect: rect ?? this.rect,
       borderRadius: borderRadius ?? this.borderRadius,
       strokeStyle: strokeStyle ?? this.strokeStyle,
-      fillStyle: fillStyle ?? this.fillStyle,
+      fillStyle: identical(fillStyle, _unset)
+          ? this.fillStyle
+          : fillStyle as PaintStyle?,
+      label: identical(label, _unset) ? this.label : label as String?,
+      labelStyle: labelStyle ?? this.labelStyle,
+      labelAlign: labelAlign ?? this.labelAlign,
+      labelPadding: labelPadding ?? this.labelPadding,
       layerId: layerId ?? this.layerId,
       visible: visible ?? this.visible,
       opacity: opacity ?? this.opacity,
@@ -99,6 +118,10 @@ class RectElement extends CanvasElement {
       strokeStyle: strokeStyle.copyWith(
         strokeWidth: strokeStyle.strokeWidth * factor.abs(),
       ),
+      labelStyle: labelStyle.copyWith(
+        fontSize: (labelStyle.fontSize ?? 16) * factor.abs(),
+      ),
+      labelPadding: labelPadding * factor.abs(),
     );
   }
 
@@ -120,8 +143,14 @@ class RectElement extends CanvasElement {
       'borderRadius': borderRadius,
       'strokeStyle': strokeStyle.toJson(),
       'fillStyle': fillStyle?.toJson(),
+      if (label != null) 'label': label,
+      'labelStyle': ShapeLabelPainter.styleToJson(labelStyle),
+      'labelAlign': labelAlign.name,
+      'labelPadding': ShapeLabelPainter.paddingToJson(labelPadding),
     };
   }
+
+  static const _unset = Object();
 }
 
 class RectElementRenderer extends ElementRenderer<RectElement> {
@@ -156,6 +185,16 @@ class RectElementRenderer extends ElementRenderer<RectElement> {
       element.strokeStyle
           .copyWith(opacity: element.strokeStyle.opacity * element.opacity)
           .toPaint(),
+    );
+
+    ShapeLabelPainter.paint(
+      canvas,
+      rect: element.rect,
+      label: element.label,
+      style: element.labelStyle,
+      textAlign: element.labelAlign,
+      padding: element.labelPadding,
+      opacity: element.opacity,
     );
   }
 

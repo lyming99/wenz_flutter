@@ -4,6 +4,10 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../canvas/canvas_controller.dart';
+import '../elements/ellipse_element.dart';
+import '../elements/rect_element.dart';
+import '../elements/shape_label_painter.dart';
 import '../elements/text_element.dart';
 import '../elements/widget_element.dart';
 import '../history/commands/update_element_command.dart';
@@ -181,11 +185,16 @@ class _InfiniteCanvasWidgetState extends State<InfiniteCanvasWidget> {
   bool _handleEditingPointerDown(PointerDownEvent event) {
     final canvasController = widget.controller.canvasController;
     final editingId = canvasController.editingTextElementId;
-    if (editingId == null) {
+    final editingShapeId = canvasController.editingShapeLabelElementId;
+    if (editingId == null && editingShapeId == null) {
       return false;
     }
 
-    final element = canvasController.elementById(editingId);
+    if (editingShapeId != null) {
+      return _handleShapeLabelEditingPointerDown(event, editingShapeId);
+    }
+
+    final element = canvasController.elementById(editingId!);
     if (element is! TextElement) {
       canvasController.endTextEditing();
       return true;
@@ -217,13 +226,48 @@ class _InfiniteCanvasWidgetState extends State<InfiniteCanvasWidget> {
 
     final hit = canvasController.hitTest(worldPoint);
     if (hit is TextElement) {
-      canvasController.endTextEditing();
+      canvasController.endTextEditing(removeIfEmpty: false);
       canvasController.beginTextEditing(hit.id);
       return true;
     }
 
-    canvasController.endTextEditing();
-    return true;
+    canvasController.endTextEditing(removeIfEmpty: false);
+    return false;
+  }
+
+  bool _handleShapeLabelEditingPointerDown(
+    PointerDownEvent event,
+    String editingShapeId,
+  ) {
+    final canvasController = widget.controller.canvasController;
+    final element = canvasController.elementById(editingShapeId);
+    if (element is! RectElement && element is! EllipseElement) {
+      canvasController.endShapeLabelEditing();
+      return true;
+    }
+
+    final worldPoint = widget.controller.screenToWorld(event.localPosition);
+    final bounds = switch (element) {
+      RectElement e => e.labelPadding.deflateRect(e.rect),
+      EllipseElement e => e.labelPadding.deflateRect(e.rect),
+      _ => Rect.zero,
+    };
+    final toolbarRect = Rect.fromLTWH(
+      bounds.left - 8 / widget.controller.transform.scale,
+      bounds.top - 48 / widget.controller.transform.scale,
+      bounds.width + 16 / widget.controller.transform.scale,
+      40 / widget.controller.transform.scale,
+    );
+
+    if (toolbarRect.contains(worldPoint) ||
+        bounds
+            .inflate(14 / widget.controller.transform.scale)
+            .contains(worldPoint)) {
+      return true;
+    }
+
+    canvasController.endShapeLabelEditing();
+    return false;
   }
 
   _EditingTextResizeHandle? _editingResizeHandleAt(
@@ -473,9 +517,14 @@ class _InfiniteCanvasWidgetState extends State<InfiniteCanvasWidget> {
     }
 
     final canvasController = widget.controller.canvasController;
-    if (canvasController.editingTextElementId != null) {
+    if (canvasController.editingTextElementId != null ||
+        canvasController.editingShapeLabelElementId != null) {
       if (event.logicalKey == LogicalKeyboardKey.escape) {
-        canvasController.endTextEditing();
+        if (canvasController.editingTextElementId != null) {
+          canvasController.endTextEditing(removeIfEmpty: false);
+        } else {
+          canvasController.endShapeLabelEditing();
+        }
       }
       return;
     }
@@ -633,17 +682,26 @@ class _TextEditingOverlayState extends State<_TextEditingOverlay> {
   Widget build(BuildContext context) {
     final canvasController = widget.controller.canvasController;
     final editingId = canvasController.editingTextElementId;
+    final editingShapeId = canvasController.editingShapeLabelElementId;
     final element = editingId == null
         ? null
         : canvasController.elementById(editingId);
-    if (element is! TextElement) {
+    final shapeLabelElement = editingShapeId == null
+        ? null
+        : canvasController.elementById(editingShapeId);
+    if (element is! TextElement &&
+        !ShapeLabelEditingTarget.canEdit(shapeLabelElement)) {
       _editingId = null;
       return const SizedBox.shrink();
     }
 
-    if (_editingId != element.id) {
-      _editingId = element.id;
-      _textController.text = element.text;
+    final target = element is TextElement
+        ? TextEditingTarget(canvasController, element)
+        : ShapeLabelEditingTarget(canvasController, shapeLabelElement!);
+
+    if (_editingId != target.id) {
+      _editingId = target.id;
+      _textController.text = target.text;
       _textController.selection = TextSelection(
         baseOffset: 0,
         extentOffset: _textController.text.length,
@@ -657,8 +715,8 @@ class _TextEditingOverlayState extends State<_TextEditingOverlay> {
 
     final transform = widget.controller.transform;
     final textRect = Rect.fromPoints(
-      transform.worldToScreen(element.bounds.topLeft),
-      transform.worldToScreen(element.bounds.bottomRight),
+      transform.worldToScreen(target.bounds.topLeft),
+      transform.worldToScreen(target.bounds.bottomRight),
     );
     const toolbarWidth = 320.0;
     final toolbarLeft = (textRect.width - toolbarWidth) / 2;
@@ -668,8 +726,8 @@ class _TextEditingOverlayState extends State<_TextEditingOverlay> {
       toolbarWidth,
       textRect.height + 48,
     );
-    final fontSize = (element.style.fontSize ?? 24) * transform.scale;
-    final lineHeight = element.style.height ?? 1.2;
+    final fontSize = target.fontSize * transform.scale;
+    final lineHeight = target.lineHeight;
     final contentPadding = 4.0 * transform.scale;
     const handleSize = 7.0;
     final textLeft = -toolbarLeft;
@@ -692,7 +750,7 @@ class _TextEditingOverlayState extends State<_TextEditingOverlay> {
             height: 40,
             child: _TextEditToolbar(
               controller: widget.controller,
-              element: element,
+              element: target,
               onInteraction: () => _focusNode.requestFocus(),
             ),
           ),
@@ -711,8 +769,8 @@ class _TextEditingOverlayState extends State<_TextEditingOverlay> {
                 maxLines: null,
                 minLines: null,
                 expands: true,
-                textAlign: element.textAlign,
-                style: element.style.copyWith(
+                textAlign: target.textAlign,
+                style: target.style.copyWith(
                   fontSize: fontSize,
                   height: lineHeight,
                 ),
@@ -724,7 +782,7 @@ class _TextEditingOverlayState extends State<_TextEditingOverlay> {
                   border: const OutlineInputBorder(),
                 ),
                 onSubmitted: (_) => _commit(),
-                onChanged: widget.controller.canvasController.updateEditingText,
+                onChanged: target.updateText,
               ),
             ),
           ),
@@ -749,8 +807,159 @@ class _TextEditingOverlayState extends State<_TextEditingOverlay> {
   }
 
   void _commit() {
-    widget.controller.canvasController.endTextEditing(
-      text: _textController.text,
+    final canvasController = widget.controller.canvasController;
+    if (canvasController.editingTextElementId != null) {
+      canvasController.endTextEditing(
+        text: _textController.text,
+        removeIfEmpty: false,
+      );
+    } else if (canvasController.editingShapeLabelElementId != null) {
+      canvasController.endShapeLabelEditing(text: _textController.text);
+    }
+  }
+}
+
+abstract class _TextEditingTarget {
+  String get id;
+  String get text;
+  Rect get bounds;
+  TextStyle get style;
+  TextAlign get textAlign;
+  double get fontSize;
+  double get lineHeight;
+  void updateText(String text);
+  void updateStyle({
+    Color? color,
+    double? fontSize,
+    FontWeight? fontWeight,
+    TextAlign? textAlign,
+    double? lineHeight,
+    Object? fontFamily,
+  });
+}
+
+class TextEditingTarget implements _TextEditingTarget {
+  TextEditingTarget(this.controller, this.element);
+
+  final CanvasController controller;
+  final TextElement element;
+
+  @override
+  String get id => element.id;
+  @override
+  String get text => element.text;
+  @override
+  Rect get bounds => element.bounds;
+  @override
+  TextStyle get style => element.style;
+  @override
+  TextAlign get textAlign => element.textAlign;
+  @override
+  double get fontSize => element.style.fontSize ?? 24;
+  @override
+  double get lineHeight => element.style.height ?? 1.2;
+
+  @override
+  void updateText(String text) {
+    controller.updateEditingText(text);
+  }
+
+  @override
+  void updateStyle({
+    Color? color,
+    double? fontSize,
+    FontWeight? fontWeight,
+    TextAlign? textAlign,
+    double? lineHeight,
+    Object? fontFamily,
+  }) {
+    controller.updateTextElementStyle(
+      id,
+      color: color,
+      fontSize: fontSize,
+      fontWeight: fontWeight,
+      textAlign: textAlign,
+      lineHeight: lineHeight,
+      fontFamily: fontFamily ?? CanvasController.unsetTextStyleValue,
+      record: false,
+    );
+  }
+}
+
+class ShapeLabelEditingTarget implements _TextEditingTarget {
+  ShapeLabelEditingTarget(this.controller, this.element);
+
+  final CanvasController controller;
+  final Object element;
+
+  static bool canEdit(Object? element) {
+    return element is RectElement || element is EllipseElement;
+  }
+
+  @override
+  String get id => switch (element) {
+    RectElement e => e.id,
+    EllipseElement e => e.id,
+    _ => '',
+  };
+
+  @override
+  String get text => switch (element) {
+    RectElement e => e.label ?? '',
+    EllipseElement e => e.label ?? '',
+    _ => '',
+  };
+
+  @override
+  Rect get bounds => switch (element) {
+    RectElement e => e.labelPadding.deflateRect(e.rect),
+    EllipseElement e => e.labelPadding.deflateRect(e.rect),
+    _ => Rect.zero,
+  };
+
+  @override
+  TextStyle get style => switch (element) {
+    RectElement e => e.labelStyle,
+    EllipseElement e => e.labelStyle,
+    _ => ShapeLabelPainter.defaultStyle,
+  };
+
+  @override
+  TextAlign get textAlign => switch (element) {
+    RectElement e => e.labelAlign,
+    EllipseElement e => e.labelAlign,
+    _ => TextAlign.center,
+  };
+
+  @override
+  double get fontSize => style.fontSize ?? 16;
+
+  @override
+  double get lineHeight => style.height ?? 1.2;
+
+  @override
+  void updateText(String text) {
+    controller.updateEditingShapeLabel(text);
+  }
+
+  @override
+  void updateStyle({
+    Color? color,
+    double? fontSize,
+    FontWeight? fontWeight,
+    TextAlign? textAlign,
+    double? lineHeight,
+    Object? fontFamily,
+  }) {
+    controller.updateShapeLabelStyle(
+      id,
+      color: color,
+      fontSize: fontSize,
+      fontWeight: fontWeight,
+      textAlign: textAlign,
+      lineHeight: lineHeight,
+      fontFamily: fontFamily ?? CanvasController.unsetTextStyleValue,
+      record: false,
     );
   }
 }
@@ -763,7 +972,7 @@ class _TextEditToolbar extends StatelessWidget {
   });
 
   final InfiniteCanvasController controller;
-  final TextElement element;
+  final _TextEditingTarget element;
   final VoidCallback onInteraction;
 
   static const _defaultColors = <Color>[
@@ -904,12 +1113,10 @@ class _TextEditToolbar extends StatelessWidget {
   }
 
   void _update({Color? color, double? fontSize, String? fontFamily}) {
-    controller.canvasController.updateTextElementStyle(
-      element.id,
+    element.updateStyle(
       color: color,
       fontSize: fontSize,
       fontFamily: fontFamily,
-      record: false,
     );
     onInteraction();
   }

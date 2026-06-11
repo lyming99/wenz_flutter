@@ -7,6 +7,7 @@ import '../../elements/image_element.dart';
 import '../../elements/line_element.dart';
 import '../../elements/path_element.dart';
 import '../../elements/rect_element.dart';
+import '../../elements/shape_label_painter.dart';
 import '../../elements/text_element.dart';
 import '../../elements/widget_element.dart';
 
@@ -68,16 +69,61 @@ class SvgExporter {
 
   static String _rect(RectElement e) {
     final fill = e.fillStyle == null ? 'none' : _color(e.fillStyle!.color);
-    return '<rect x="${e.rect.left}" y="${e.rect.top}" width="${e.rect.width}" height="${e.rect.height}" rx="${e.borderRadius}" fill="$fill" stroke="${_color(e.strokeStyle.color)}" stroke-width="${e.strokeStyle.strokeWidth}" opacity="${e.opacity}"/>';
+    final shape =
+        '<rect x="${e.rect.left}" y="${e.rect.top}" width="${e.rect.width}" height="${e.rect.height}" rx="${e.borderRadius}" fill="$fill" stroke="${_color(e.strokeStyle.color)}" stroke-width="${e.strokeStyle.strokeWidth}" opacity="${e.opacity}"/>';
+    return '$shape${_shapeLabel(e.rect, e.label, e.labelStyle, e.labelAlign, e.labelPadding, e.opacity)}';
   }
 
   static String _ellipse(EllipseElement e) {
     final fill = e.fillStyle == null ? 'none' : _color(e.fillStyle!.color);
-    return '<ellipse cx="${e.rect.center.dx}" cy="${e.rect.center.dy}" rx="${e.rect.width / 2}" ry="${e.rect.height / 2}" fill="$fill" stroke="${_color(e.strokeStyle.color)}" stroke-width="${e.strokeStyle.strokeWidth}" opacity="${e.opacity}"/>';
+    final shape =
+        '<ellipse cx="${e.rect.center.dx}" cy="${e.rect.center.dy}" rx="${e.rect.width / 2}" ry="${e.rect.height / 2}" fill="$fill" stroke="${_color(e.strokeStyle.color)}" stroke-width="${e.strokeStyle.strokeWidth}" opacity="${e.opacity}"/>';
+    return '$shape${_shapeLabel(e.rect, e.label, e.labelStyle, e.labelAlign, e.labelPadding, e.opacity)}';
   }
 
   static String _arrowHead(ArrowElement e) {
     return '<circle cx="${e.end.dx}" cy="${e.end.dy}" r="${e.style.strokeWidth * 1.25}" fill="${_color(e.style.color)}" opacity="${e.opacity * e.style.opacity}"/>';
+  }
+
+  static String _shapeLabel(
+    Rect rect,
+    String? label,
+    TextStyle style,
+    TextAlign align,
+    EdgeInsets padding,
+    double opacity,
+  ) {
+    if (label == null || label.isEmpty) {
+      return '';
+    }
+    final contentRect = padding.deflateRect(rect);
+    if (contentRect.width <= 0 || contentRect.height <= 0) {
+      return '';
+    }
+    final color = style.color ?? Colors.black;
+    final size =
+        style.fontSize ?? ShapeLabelPainter.defaultStyle.fontSize ?? 16;
+    final weight = style.fontWeight?.value ?? FontWeight.normal.value;
+    final anchor = switch (align) {
+      TextAlign.center => 'middle',
+      TextAlign.right || TextAlign.end => 'end',
+      _ => 'start',
+    };
+    final x = switch (align) {
+      TextAlign.center => contentRect.center.dx,
+      TextAlign.right || TextAlign.end => contentRect.right,
+      _ => contentRect.left,
+    };
+    final lines = label.split('\n');
+    final lineHeight = size * (style.height ?? 1.2);
+    final totalHeight = size + (lines.length - 1) * lineHeight;
+    final firstBaseline = contentRect.center.dy - totalHeight / 2 + size;
+    return [
+      '<text x="$x" y="$firstBaseline" fill="${_color(color)}" font-size="$size" font-weight="$weight" opacity="$opacity" text-anchor="$anchor">',
+      for (var i = 0; i < lines.length; i++)
+        '<tspan x="$x" dy="${i == 0 ? 0 : lineHeight}">${_escape(lines[i])}</tspan>',
+      '</text>',
+    ].join();
   }
 
   static String _text(TextElement e) {

@@ -15,6 +15,7 @@ export 'src/elements/image_element.dart';
 export 'src/elements/line_element.dart';
 export 'src/elements/path_element.dart';
 export 'src/elements/rect_element.dart';
+export 'src/elements/shape_label_painter.dart';
 export 'src/elements/text_element.dart';
 export 'src/elements/widget_element.dart';
 export 'src/history/canvas_command.dart';
