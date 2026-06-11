@@ -367,8 +367,8 @@ class _CanvasDemoPageState extends State<CanvasDemoPage> {
   }
 
   void _addDemoWidgets() {
-    const columns = 25;
-    const rows = 20;
+    const columns = 40;
+    const rows = 25;
     const cellW = 80.0;
     const cellH = 48.0;
     const gap = 4.0;
