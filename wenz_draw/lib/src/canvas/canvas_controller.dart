@@ -9,6 +9,7 @@ import '../history/commands/update_element_command.dart';
 import '../history/canvas_command.dart';
 import '../history/history_manager.dart';
 import '../infinite_canvas/canvas_event.dart';
+import '../layers/auto_layering.dart';
 import '../layers/canvas_layer.dart';
 import '../layers/layer_manager.dart';
 import '../tools/brush_settings.dart';
@@ -33,6 +34,7 @@ class CanvasController extends ChangeNotifier {
     ToolManager? toolManager,
     HistoryManager? historyManager,
     LayerManager? layerManager,
+    this.autoLayeringPolicy = const AutoLayeringPolicy.activeLayer(),
   }) : _state = initialState,
        toolManager = toolManager ?? ToolManager(),
        historyManager = historyManager ?? HistoryManager(),
@@ -45,9 +47,12 @@ class CanvasController extends ChangeNotifier {
   }
 
   final ElementManager _elementManager = const ElementManager();
+  final AutoLayeringResolver _autoLayeringResolver =
+      const AutoLayeringResolver();
   final ToolManager toolManager;
   final HistoryManager historyManager;
   final LayerManager layerManager;
+  final AutoLayeringPolicy autoLayeringPolicy;
 
   CanvasState _state;
 
@@ -423,16 +428,14 @@ class CanvasController extends ChangeNotifier {
     CanvasElement element, {
     bool bringToFront = false,
   }) {
-    var prepared = element;
-    if (layerManager.layerById(prepared.layerId) == null ||
-        (prepared.layerId == CanvasLayer.defaultLayerId &&
-            activeLayerId != CanvasLayer.defaultLayerId)) {
-      prepared = prepared.copyWith(layerId: activeLayerId);
-    }
-
-    if (bringToFront) {
-      prepared = prepared.copyWith(zIndex: nextZIndex(prepared.layerId));
-    }
+    var prepared = _autoLayeringResolver.resolve(
+      element: element,
+      existingElements: elements,
+      activeLayerId: activeLayerId,
+      layerExists: (layerId) => layerManager.layerById(layerId) != null,
+      policy: autoLayeringPolicy,
+      bringToFront: bringToFront,
+    );
     return prepared;
   }
 

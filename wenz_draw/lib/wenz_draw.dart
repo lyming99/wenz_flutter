@@ -32,6 +32,7 @@ export 'src/infinite_canvas/infinite_canvas_painter.dart';
 export 'src/infinite_canvas/infinite_canvas_widget.dart';
 export 'src/infinite_canvas/minimap_widget.dart';
 export 'src/infinite_canvas/zoom_controls.dart';
+export 'src/layers/auto_layering.dart';
 export 'src/layers/canvas_layer.dart';
 export 'src/layers/layer_manager.dart';
 export 'src/rendering/grid_renderer.dart';

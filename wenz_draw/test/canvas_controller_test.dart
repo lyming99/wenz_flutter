@@ -12,7 +12,7 @@ void main() {
     );
 
     controller.addElement(element);
-    expect(controller.elements, [element]);
+    expect(controller.elements.single.id, 'line-1');
 
     controller.select('line-1');
     expect(controller.selectedIds, {'line-1'});
@@ -137,7 +137,9 @@ void main() {
   });
 
   test('hitTest prefers elements on higher layers', () {
-    final controller = CanvasController();
+    final controller = CanvasController(
+      autoLayeringPolicy: const AutoLayeringPolicy.manual(),
+    );
     controller.addLayer(name: 'Top');
     final topLayerId = controller.activeLayerId;
     controller
@@ -168,29 +170,32 @@ void main() {
   test(
     'orderedElements keeps mixed elements stable by layer, zIndex, insertion',
     () {
-      final controller = CanvasController()
-        ..addElement(
-          const RectElement(
-            id: 'rect-a',
-            rect: Rect.fromLTWH(0, 0, 10, 10),
-            zIndex: 1,
-          ),
-        )
-        ..addElement(
-          const CanvasWidgetElement(
-            id: 'widget-b',
-            worldRect: Rect.fromLTWH(0, 0, 10, 10),
-            widgetType: 'test-widget',
-            zIndex: 1,
-          ),
-        )
-        ..addElement(
-          const RectElement(
-            id: 'rect-c',
-            rect: Rect.fromLTWH(0, 0, 10, 10),
-            zIndex: 0,
-          ),
-        );
+      final controller =
+          CanvasController(
+              autoLayeringPolicy: const AutoLayeringPolicy.manual(),
+            )
+            ..addElement(
+              const RectElement(
+                id: 'rect-a',
+                rect: Rect.fromLTWH(0, 0, 10, 10),
+                zIndex: 1,
+              ),
+            )
+            ..addElement(
+              const CanvasWidgetElement(
+                id: 'widget-b',
+                worldRect: Rect.fromLTWH(0, 0, 10, 10),
+                widgetType: 'test-widget',
+                zIndex: 1,
+              ),
+            )
+            ..addElement(
+              const RectElement(
+                id: 'rect-c',
+                rect: Rect.fromLTWH(0, 0, 10, 10),
+                zIndex: 0,
+              ),
+            );
 
       expect(controller.orderedElements().map((element) => element.id), [
         'rect-c',
@@ -199,4 +204,130 @@ void main() {
       ]);
     },
   );
+  test('manual auto layering preserves explicit layer and zIndex', () {
+    final controller = CanvasController(
+      autoLayeringPolicy: const AutoLayeringPolicy.manual(),
+    );
+    controller.addLayer(name: 'Other');
+
+    controller.addElement(
+      const CanvasWidgetElement(
+        id: 'manual-widget',
+        worldRect: Rect.fromLTWH(0, 0, 10, 10),
+        widgetType: 'test-widget',
+        layerId: 'default',
+        zIndex: 7,
+      ),
+      record: false,
+    );
+
+    final element = controller.elements.single;
+    expect(element.layerId, 'default');
+    expect(element.zIndex, 7);
+  });
+
+  test(
+    'active-layer auto layering inserts into active layer and next zIndex',
+    () {
+      final controller = CanvasController(
+        autoLayeringPolicy: const AutoLayeringPolicy.activeLayer(
+          assignZIndex: true,
+        ),
+      );
+      controller.addLayer(name: 'Active');
+      final activeLayerId = controller.activeLayerId;
+
+      controller.addElement(
+        RectElement(
+          id: 'first',
+          rect: const Rect.fromLTWH(0, 0, 10, 10),
+          layerId: activeLayerId,
+          zIndex: 5,
+        ),
+        record: false,
+      );
+      controller.updateElement(
+        'first',
+        RectElement(
+          id: 'first',
+          rect: const Rect.fromLTWH(0, 0, 10, 10),
+          layerId: activeLayerId,
+          zIndex: 5,
+        ),
+        record: false,
+      );
+      controller.addElement(
+        const CanvasWidgetElement(
+          id: 'second',
+          worldRect: Rect.fromLTWH(0, 0, 10, 10),
+          widgetType: 'test-widget',
+          layerId: 'default',
+        ),
+        record: false,
+      );
+
+      final second = controller.elementById('second')!;
+      expect(second.layerId, activeLayerId);
+      expect(second.zIndex, 6);
+    },
+  );
+
+  test('type-lane auto layering gives widgets and text higher lanes', () {
+    final controller = CanvasController(
+      autoLayeringPolicy: const AutoLayeringPolicy.typeLane(),
+    );
+
+    controller
+      ..addElement(
+        const RectElement(id: 'shape', rect: Rect.fromLTWH(0, 0, 10, 10)),
+        record: false,
+      )
+      ..addElement(
+        const CanvasWidgetElement(
+          id: 'widget',
+          worldRect: Rect.fromLTWH(0, 0, 10, 10),
+          widgetType: 'test-widget',
+        ),
+        record: false,
+      )
+      ..addElement(
+        const TextElement(id: 'text', position: Offset.zero, text: 'Label'),
+        record: false,
+      );
+
+    expect(controller.elementById('shape')!.zIndex, 1000001);
+    expect(controller.elementById('widget')!.zIndex, 2000001);
+    expect(controller.elementById('text')!.zIndex, 4000001);
+    expect(controller.orderedElements().map((e) => e.id), [
+      'shape',
+      'widget',
+      'text',
+    ]);
+  });
+
+  test('overlap-aware auto layering only stacks over overlapping elements', () {
+    final controller = CanvasController(
+      autoLayeringPolicy: const AutoLayeringPolicy.typeLane(overlapAware: true),
+    );
+
+    controller
+      ..addElement(
+        const RectElement(
+          id: 'far-widget-lane-shape',
+          rect: Rect.fromLTWH(100, 100, 10, 10),
+          zIndex: 2000099,
+        ),
+        record: false,
+      )
+      ..addElement(
+        const CanvasWidgetElement(
+          id: 'near-widget',
+          worldRect: Rect.fromLTWH(0, 0, 10, 10),
+          widgetType: 'test-widget',
+        ),
+        record: false,
+      );
+
+    expect(controller.elementById('near-widget')!.zIndex, 2000001);
+  });
 }
