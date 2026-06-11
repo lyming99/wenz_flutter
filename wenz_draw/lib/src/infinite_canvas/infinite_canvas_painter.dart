@@ -37,22 +37,32 @@ class InfiniteCanvasPainter extends CustomPainter {
 
     final visibleRect = transform.visibleWorldRect(size);
     final visibleElements =
-        ViewportCulling.visibleElements(
-          canvasController.elements.where(
-            (element) =>
-                canvasController.isLayerVisible(element.layerId) &&
-                element is! CanvasWidgetElement,
-          ),
-          visibleRect,
-        ).toList()..sort((a, b) {
-          final layerOrder = canvasController
-              .layerIndexOf(a.layerId)
-              .compareTo(canvasController.layerIndexOf(b.layerId));
-          if (layerOrder != 0) {
-            return layerOrder;
-          }
-          return a.zIndex.compareTo(b.zIndex);
-        });
+        ViewportCulling.visibleElements(canvasController.elements, visibleRect)
+            .where(
+              (element) =>
+                  canvasController.isLayerVisible(element.layerId) &&
+                  element is! CanvasWidgetElement,
+            )
+            .toList()
+          ..sort((a, b) {
+            final layerOrder = canvasController
+                .layerIndexOf(a.layerId)
+                .compareTo(canvasController.layerIndexOf(b.layerId));
+            if (layerOrder != 0) {
+              return layerOrder;
+            }
+            return a.zIndex.compareTo(b.zIndex);
+          });
+
+    final elementsByLayer = <String, List<CanvasElement>>{};
+    final unknownLayerElements = <CanvasElement>[];
+    for (final element in visibleElements) {
+      if (canvasController.layerManager.layerById(element.layerId) == null) {
+        unknownLayerElements.add(element);
+      } else {
+        (elementsByLayer[element.layerId] ??= <CanvasElement>[]).add(element);
+      }
+    }
 
     for (final layer in canvasController.layers) {
       if (!layer.isVisible) {
@@ -60,15 +70,11 @@ class InfiniteCanvasPainter extends CustomPainter {
       }
       _paintLayer(
         canvas,
-        visibleElements.where((element) => element.layerId == layer.id),
+        elementsByLayer[layer.id] ?? const <CanvasElement>[],
         layer,
       );
     }
 
-    final unknownLayerElements = visibleElements.where(
-      (element) =>
-          canvasController.layerManager.layerById(element.layerId) == null,
-    );
     _paintLayer(canvas, unknownLayerElements, null);
 
     final preview = canvasController.previewElement;

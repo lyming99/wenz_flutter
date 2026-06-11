@@ -27,6 +27,7 @@ import '../tools/arrow_tool.dart';
 import '../tools/tool_manager.dart';
 import 'canvas_state.dart';
 import 'element_manager.dart';
+import 'spatial_index.dart';
 
 class CanvasController extends ChangeNotifier {
   CanvasController({
@@ -47,6 +48,7 @@ class CanvasController extends ChangeNotifier {
   }
 
   final ElementManager _elementManager = const ElementManager();
+  final SpatialIndex _spatialIndex = SpatialIndex();
   final AutoLayeringResolver _autoLayeringResolver =
       const AutoLayeringResolver();
   final ToolManager toolManager;
@@ -89,6 +91,7 @@ class CanvasController extends ChangeNotifier {
       elements: _elementManager.add(_state.elements, element),
       previewElement: null,
     );
+    _spatialIndex.invalidate();
     notifyListeners();
   }
 
@@ -110,6 +113,7 @@ class CanvasController extends ChangeNotifier {
       selectedIds: {..._state.selectedIds}..remove(id),
       previewElement: null,
     );
+    _spatialIndex.invalidate();
     notifyListeners();
   }
 
@@ -132,6 +136,7 @@ class CanvasController extends ChangeNotifier {
     _state = _state.copyWith(
       elements: _elementManager.update(_state.elements, id, element),
     );
+    _spatialIndex.invalidate();
     notifyListeners();
   }
 
@@ -145,6 +150,7 @@ class CanvasController extends ChangeNotifier {
       selectedIds: const <String>{},
       selectionRect: null,
     );
+    _spatialIndex.invalidate();
     if (clearHistory) {
       historyManager.clear();
     }
@@ -202,7 +208,9 @@ class CanvasController extends ChangeNotifier {
 
   CanvasElement? hitTest(Offset worldPoint, {double tolerance = 5}) {
     return _elementManager.hitTest(
-      _state.elements.where((element) => isLayerVisible(element.layerId)),
+      _spatialIndex
+          .queryPoint(_state.elements, worldPoint, tolerance: tolerance)
+          .where((element) => isLayerVisible(element.layerId)),
       worldPoint,
       tolerance: tolerance,
       layerRank: (element) => layerManager.layerIndexOf(element.layerId),

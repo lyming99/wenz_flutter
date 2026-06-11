@@ -10,12 +10,21 @@ import 'package:wenz_draw/wenz_draw.dart';
 class PerfBoxBuilder extends WidgetElementBuilder {
   const PerfBoxBuilder();
 
+  static int buildCount = 0;
+  static int previewCount = 0;
+
+  static void reset() {
+    buildCount = 0;
+    previewCount = 0;
+  }
+
   @override
   Widget build(
     BuildContext context,
     CanvasWidgetElement element, {
     required CanvasWidgetBuildContext canvas,
   }) {
+    buildCount++;
     final colorValue =
         int.tryParse(element.widgetData['color'] as String? ?? '0xFFE5E7EB') ??
         0xFFE5E7EB;
@@ -34,6 +43,16 @@ class PerfBoxBuilder extends WidgetElementBuilder {
         maxLines: 1,
       ),
     );
+  }
+
+  @override
+  Widget buildPreview(
+    BuildContext context,
+    CanvasWidgetElement element, {
+    required CanvasWidgetBuildContext canvas,
+  }) {
+    previewCount++;
+    return super.buildPreview(context, element, canvas: canvas);
   }
 }
 
@@ -56,9 +75,12 @@ void main() {
         final y = row * (cellHeight + 4);
         // Pick a random light pastel hue for visual variety.
         final hue = rng.nextInt(360);
-        final color = HSLColor.fromAHSL(0.9, hue.toDouble(), 0.5, 0.85)
-            .toColor()
-            .toARGB32();
+        final color = HSLColor.fromAHSL(
+          0.9,
+          hue.toDouble(),
+          0.5,
+          0.85,
+        ).toColor().toARGB32();
 
         elements.add(
           CanvasWidgetElement(
@@ -66,7 +88,8 @@ void main() {
             worldRect: Rect.fromLTWH(x, y, cellWidth, cellHeight),
             widgetType: 'perf_box',
             widgetData: {
-              'color': '0x${color.toRadixString(16).padLeft(8, '0').toUpperCase()}',
+              'color':
+                  '0x${color.toRadixString(16).padLeft(8, '0').toUpperCase()}',
               'label': '$col,$row',
             },
             zIndex: row * columns + col,
@@ -97,12 +120,15 @@ void main() {
       expect(stopwatch.elapsedMilliseconds, lessThan(500));
 
       // ignore: avoid_print (this is a performance report)
-      print('  → Added 500 elements in ${stopwatch.elapsedMilliseconds} ms');
+      print('  -> Added 500 elements in ${stopwatch.elapsedMilliseconds} ms');
     });
 
     test('hit-testing 500 stacked elements', () {
       final controller = CanvasController();
-      final elements = _make500Elements(columns: 1, rows: 500); // vertical stack
+      final elements = _make500Elements(
+        columns: 1,
+        rows: 500,
+      ); // vertical stack
       for (final e in elements) {
         controller.addElement(e, record: false);
       }
@@ -113,12 +139,13 @@ void main() {
         controller.hitTest(const Offset(40, 24));
       }
       stopwatch.stop();
-      final avgUs =
-          (stopwatch.elapsedMicroseconds / 100).toStringAsFixed(0);
+      final avgUs = (stopwatch.elapsedMicroseconds / 100).toStringAsFixed(0);
       expect(stopwatch.elapsedMilliseconds, lessThan(500));
 
-      print('  → 100 hit-tests on 500 stacked elements: '
-          '${stopwatch.elapsedMilliseconds} ms ($avgUs µs avg)');
+      print(
+        '  -> 100 hit-tests on 500 stacked elements: '
+        '${stopwatch.elapsedMilliseconds} ms ($avgUs us avg)',
+      );
     });
 
     test('viewport culling: only visible elements returned', () {
@@ -136,7 +163,26 @@ void main() {
           .toList();
 
       expect(visible.length, lessThan(500));
-      print('  → Viewport (250×150) sees ${visible.length} / 500 elements');
+      print('  -> Viewport (250x150) sees ${visible.length} / 500 elements');
+    });
+
+    test('shared spatial index keeps 500-element culling stable', () {
+      final elements = _make500Elements();
+      const viewport = Rect.fromLTWH(0, 0, 250, 150);
+      final stopwatch = Stopwatch()..start();
+
+      var visible = const <CanvasElement>[];
+      for (var i = 0; i < 100; i++) {
+        visible = ViewportCulling.visibleElements(elements, viewport).toList();
+      }
+      stopwatch.stop();
+
+      expect(visible.length, lessThan(500));
+      expect(stopwatch.elapsedMilliseconds, lessThan(500));
+      print(
+        '  -> 100 indexed viewport queries over 500 elements: '
+        '${stopwatch.elapsedMilliseconds} ms (${visible.length} visible)',
+      );
     });
 
     test('serialize / deserialize 500 elements', () {
@@ -153,8 +199,10 @@ void main() {
       expect(doc.elements.length, 500);
       expect(stopwatch.elapsedMilliseconds, lessThan(2000));
 
-      print('  → Serialize + deserialize 500 elements in '
-          '${stopwatch.elapsedMilliseconds} ms');
+      print(
+        '  -> Serialize + deserialize 500 elements in '
+        '${stopwatch.elapsedMilliseconds} ms',
+      );
     });
 
     test('undo stack stays within bounds', () {
@@ -168,8 +216,8 @@ void main() {
       // After 500 individual adds the undo stack should be pruned.
       expect(controller.canUndo, isTrue);
       final undoCount = _countUndos(controller);
-      print('  → Undo stack depth after 500 adds: $undoCount');
-      // Should have been capped (default is usually 50–100).
+      print('  -> Undo stack depth after 500 adds: $undoCount');
+      // Should have been capped (default is usually 50-100).
       expect(undoCount, lessThanOrEqualTo(200));
     });
   });
@@ -181,14 +229,47 @@ void main() {
     // Ensure the builder is registered before widget tests run.
     setUpAll(() {
       WidgetElementRegistry.register('perf_box', const PerfBoxBuilder());
+      PerfBoxBuilder.reset();
     });
 
     tearDownAll(() {
       WidgetElementRegistry.unregister('perf_box');
     });
 
-    testWidgets('initial layout with 500 widgets does not crash',
-        (tester) async {
+    testWidgets(
+      'uses preview LOD instead of full widget builds at default zoom',
+      (tester) async {
+        final canvasController = CanvasController();
+        final viewController = InfiniteCanvasController(
+          canvasController: canvasController,
+        );
+
+        for (final e in _make500Elements()) {
+          canvasController.addElement(e, record: false);
+        }
+        PerfBoxBuilder.reset();
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: InfiniteCanvasWidget(
+                controller: viewController,
+                config: const InfiniteCanvasConfig(gridType: GridType.none),
+              ),
+            ),
+          ),
+        );
+        await tester.pump();
+
+        expect(tester.takeException(), isNull);
+        expect(PerfBoxBuilder.buildCount, 0);
+        expect(PerfBoxBuilder.previewCount, greaterThan(0));
+      },
+    );
+
+    testWidgets('initial layout with 500 widgets does not crash', (
+      tester,
+    ) async {
       final canvasController = CanvasController();
       final viewController = InfiniteCanvasController(
         canvasController: canvasController,
@@ -227,8 +308,10 @@ void main() {
       // The widget tree should still be alive.
       expect(viewController.viewportSize, isNotNull);
 
-      print('  → First-frame layout + 2 pump cycles with 500 elements: '
-          '${stopwatch.elapsedMilliseconds} ms');
+      print(
+        '  -> First-frame layout + 2 pump cycles with 500 elements: '
+        '${stopwatch.elapsedMilliseconds} ms',
+      );
     });
 
     testWidgets('scroll/pan performance with 500 widgets', (tester) async {
@@ -270,8 +353,10 @@ void main() {
       stopwatch.stop();
 
       expect(tester.takeException(), isNull);
-      print('  → Pan across 2000 world-units with 500 elements: '
-          '${stopwatch.elapsedMilliseconds} ms');
+      print(
+        '  -> Pan across 2000 world-units with 500 elements: '
+        '${stopwatch.elapsedMilliseconds} ms',
+      );
     });
 
     testWidgets('zoom performance with 500 widgets', (tester) async {
@@ -315,57 +400,62 @@ void main() {
       stopwatch.stop();
 
       expect(tester.takeException(), isNull);
-      print('  → Zoom in/out ×10 with 500 elements: '
-          '${stopwatch.elapsedMilliseconds} ms');
+      print(
+        '  -> Zoom in/out x10 with 500 elements: '
+        '${stopwatch.elapsedMilliseconds} ms',
+      );
     });
 
-    testWidgets('full-frame rasterization timing', (tester) async {
-      final canvasController = CanvasController();
-      final viewController = InfiniteCanvasController(
-        canvasController: canvasController,
-      );
+    testWidgets(
+      'full-frame rasterization timing',
+      (tester) async {
+        final canvasController = CanvasController();
+        final viewController = InfiniteCanvasController(
+          canvasController: canvasController,
+        );
 
-      for (final e in _make500Elements()) {
-        canvasController.addElement(e, record: false);
-      }
+        for (final e in _make500Elements()) {
+          canvasController.addElement(e, record: false);
+        }
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: InfiniteCanvasWidget(
-              controller: viewController,
-              config: const InfiniteCanvasConfig(
-                gridType: GridType.none,
-                backgroundColor: Color(0xFFFFFFFF),
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: InfiniteCanvasWidget(
+                controller: viewController,
+                config: const InfiniteCanvasConfig(
+                  gridType: GridType.none,
+                  backgroundColor: Color(0xFFFFFFFF),
+                ),
               ),
             ),
           ),
-        ),
-      );
-      await tester.pump(const Duration(seconds: 1));
+        );
+        await tester.pump(const Duration(seconds: 1));
 
-      // Measure how long a single frame takes to rasterize.
-      final durations = <Duration>[];
+        // Measure how long a single frame takes to rasterize.
+        final durations = <Duration>[];
 
-      for (int i = 0; i < 5; i++) {
-        final stopwatch = Stopwatch()..start();
-        await tester.pump(const Duration(milliseconds: 16));
-        stopwatch.stop();
-        durations.add(stopwatch.elapsed);
-      }
+        for (int i = 0; i < 5; i++) {
+          final stopwatch = Stopwatch()..start();
+          await tester.pump(const Duration(milliseconds: 16));
+          stopwatch.stop();
+          durations.add(stopwatch.elapsed);
+        }
 
-      final avgMs = (durations
-              .map((d) => d.inMicroseconds)
-              .reduce((a, b) => a + b) /
-          durations.length /
-          1000)
-          .toStringAsFixed(1);
+        final avgMs =
+            (durations.map((d) => d.inMicroseconds).reduce((a, b) => a + b) /
+                    durations.length /
+                    1000)
+                .toStringAsFixed(1);
 
-      print('  → Avg pump() time across 5 frames: $avgMs ms');
-      // On a reasonable machine this should be well under 100 ms per pump
-      // (pump includes the full build/layout/paint/composite cycle).
-      expect(tester.takeException(), isNull);
-    }, timeout: const Timeout(Duration(minutes: 2)));
+        print('  -> Avg pump() time across 5 frames: $avgMs ms');
+        // On a reasonable machine this should be well under 100 ms per pump
+        // (pump includes the full build/layout/paint/composite cycle).
+        expect(tester.takeException(), isNull);
+      },
+      timeout: const Timeout(Duration(minutes: 2)),
+    );
   });
 }
 

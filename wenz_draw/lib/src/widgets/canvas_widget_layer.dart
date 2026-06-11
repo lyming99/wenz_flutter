@@ -36,6 +36,7 @@ class CanvasWidgetLayer extends StatefulWidget {
 class _CanvasWidgetLayerState extends State<CanvasWidgetLayer> {
   final Map<String, ui.Image> _snapshots = {};
   final Map<String, int> _snapshotRevisions = {};
+  final Map<String, int> _pendingSnapshotRevisions = {};
   int _captureGeneration = 0;
 
   @override
@@ -51,8 +52,23 @@ class _CanvasWidgetLayerState extends State<CanvasWidgetLayer> {
     final controller = widget.controller;
     final canvasController = controller.canvasController;
     final visibleRect = controller.visibleWorldRect();
-    _scheduleSnapshotCaptures(canvasController.state.revision, visibleRect);
-    final selectedSnapshotWidgetIds = _selectedSnapshotWidgetIds(visibleRect);
+    final orderedVisibleElements = canvasController
+        .orderedElements(visibleOnly: true)
+        .where((element) => element.bounds.overlaps(visibleRect))
+        .toList(growable: false);
+    final visibleWidgetElements = orderedVisibleElements
+        .whereType<CanvasWidgetElement>()
+        .toList(growable: false);
+    _scheduleSnapshotCaptures(
+      canvasController.state.revision,
+      visibleRect,
+      visibleWidgetElements,
+    );
+    final selectedSnapshotWidgetIds = _selectedSnapshotWidgetIds(
+      visibleRect,
+      visibleWidgetElements,
+    );
+    _pruneSnapshots(visibleWidgetElements.map((element) => element.id).toSet());
     final liveOverlayIds = {for (final id in selectedSnapshotWidgetIds) id};
     final children = <Widget>[
       Positioned.fill(
@@ -67,8 +83,22 @@ class _CanvasWidgetLayerState extends State<CanvasWidgetLayer> {
       ),
     ];
 
+    final elementsByLayer = <String, List<CanvasElement>>{};
+    final unknownLayerElements = <CanvasElement>[];
+    for (final element in orderedVisibleElements) {
+      if (canvasController.layerManager.layerById(element.layerId) == null) {
+        unknownLayerElements.add(element);
+      } else {
+        (elementsByLayer[element.layerId] ??= <CanvasElement>[]).add(element);
+      }
+    }
+
     for (final layer in canvasController.layers) {
       if (!layer.isVisible) {
+        continue;
+      }
+      final layerElements = elementsByLayer[layer.id];
+      if (layerElements == null || layerElements.isEmpty) {
         continue;
       }
       children.add(
@@ -77,6 +107,7 @@ class _CanvasWidgetLayerState extends State<CanvasWidgetLayer> {
             controller: controller,
             layer: layer,
             visibleRect: visibleRect,
+            elements: layerElements,
             snapshots: _snapshots,
             liveOverlayIds: liveOverlayIds,
           ),
@@ -84,13 +115,6 @@ class _CanvasWidgetLayerState extends State<CanvasWidgetLayer> {
       );
     }
 
-    final unknownLayerElements = canvasController
-        .orderedElements(visibleOnly: true)
-        .where(
-          (element) =>
-              canvasController.layerManager.layerById(element.layerId) == null,
-        )
-        .toList(growable: false);
     if (unknownLayerElements.isNotEmpty) {
       children.add(
         Positioned.fill(
@@ -135,10 +159,11 @@ class _CanvasWidgetLayerState extends State<CanvasWidgetLayer> {
     return Stack(clipBehavior: Clip.none, children: children);
   }
 
-  List<CanvasWidgetElement> _snapshotElements(Rect visibleRect) {
-    return widget.controller.canvasController
-        .orderedElements(visibleOnly: true)
-        .whereType<CanvasWidgetElement>()
+  List<CanvasWidgetElement> _snapshotElements(
+    Rect visibleRect,
+    List<CanvasWidgetElement> visibleWidgetElements,
+  ) {
+    return visibleWidgetElements
         .where(
           (element) =>
               element.renderMode == CanvasWidgetRenderMode.snapshot &&
@@ -147,38 +172,71 @@ class _CanvasWidgetLayerState extends State<CanvasWidgetLayer> {
         .toList(growable: false);
   }
 
-  Set<String> _selectedSnapshotWidgetIds(Rect visibleRect) {
+  Set<String> _selectedSnapshotWidgetIds(
+    Rect visibleRect,
+    List<CanvasWidgetElement> visibleWidgetElements,
+  ) {
     final canvasController = widget.controller.canvasController;
-    return _snapshotElements(visibleRect)
+    return _snapshotElements(visibleRect, visibleWidgetElements)
         .where((element) => canvasController.selectedIds.contains(element.id))
         .map((element) => element.id)
         .toSet();
   }
 
-  void _scheduleSnapshotCaptures(int revision, Rect visibleRect) {
+  void _pruneSnapshots(Set<String> visibleWidgetIds) {
+    final staleIds = [
+      for (final id in _snapshots.keys)
+        if (!visibleWidgetIds.contains(id)) id,
+    ];
+    if (staleIds.isEmpty) {
+      return;
+    }
+    for (final id in staleIds) {
+      _snapshots.remove(id)?.dispose();
+      _snapshotRevisions.remove(id);
+      _pendingSnapshotRevisions.remove(id);
+    }
+  }
+
+  void _scheduleSnapshotCaptures(
+    int revision,
+    Rect visibleRect,
+    List<CanvasWidgetElement> visibleWidgetElements,
+  ) {
     final generation = ++_captureGeneration;
-    final elements = _snapshotElements(visibleRect)
+    final elements = _snapshotElements(visibleRect, visibleWidgetElements)
         .where(
           (e) =>
               CanvasWidgetLayout.resolve(
                 e,
                 widget.controller.transform,
               ).detail ==
-              CanvasWidgetRenderDetail.thumbnail,
+              CanvasWidgetRenderDetail.full,
         )
-        .where((e) => _snapshotRevisions[e.id] != revision)
+        .where(
+          (e) =>
+              _snapshotRevisions[e.id] != revision &&
+              _pendingSnapshotRevisions[e.id] != revision,
+        )
         .toList(growable: false);
     if (elements.isEmpty) {
       return;
+    }
+    for (final element in elements) {
+      _pendingSnapshotRevisions[element.id] = revision;
     }
     // Defer capture to after the current frame to avoid calling
     // RenderRepaintBoundary.toImage during the layout/paint phase.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || generation != _captureGeneration) {
+        for (final element in elements) {
+          _pendingSnapshotRevisions.remove(element.id);
+        }
         return;
       }
       for (final element in elements) {
         if (_snapshotRevisions[element.id] == revision) {
+          _pendingSnapshotRevisions.remove(element.id);
           continue;
         }
         unawaited(_captureSnapshot(element, revision, generation));
@@ -208,16 +266,19 @@ class _CanvasWidgetLayerState extends State<CanvasWidgetLayer> {
     );
     if (!mounted || generation != _captureGeneration) {
       image?.dispose();
+      _pendingSnapshotRevisions.remove(element.id);
       return;
     }
     final previous = _snapshots[element.id];
     setState(() {
       if (image == null) {
-        _snapshots.remove(element.id);
+        _snapshots.remove(element.id)?.dispose();
         _snapshotRevisions.remove(element.id);
+        _pendingSnapshotRevisions.remove(element.id);
       } else {
         _snapshots[element.id] = image;
         _snapshotRevisions[element.id] = revision;
+        _pendingSnapshotRevisions.remove(element.id);
       }
     });
     if (previous != null && previous != image) {
@@ -231,6 +292,7 @@ class _LayerMixedStack extends StatelessWidget {
     required this.controller,
     required this.layer,
     required this.visibleRect,
+    required this.elements,
     required this.snapshots,
     required this.liveOverlayIds,
   });
@@ -238,6 +300,7 @@ class _LayerMixedStack extends StatelessWidget {
   final InfiniteCanvasController controller;
   final CanvasLayer layer;
   final Rect visibleRect;
+  final List<CanvasElement> elements;
   final Map<String, ui.Image> snapshots;
   final Set<String> liveOverlayIds;
 
@@ -248,10 +311,7 @@ class _LayerMixedStack extends StatelessWidget {
       controller: controller,
       layer: layer,
       visibleRect: visibleRect,
-      elements: controller.canvasController
-          .orderedElements(visibleOnly: true)
-          .where((element) => element.layerId == layer.id)
-          .toList(growable: false),
+      elements: elements,
       snapshots: snapshots,
       liveOverlayIds: liveOverlayIds,
     );
@@ -303,16 +363,13 @@ class _MixedElementStack extends StatelessWidget {
     }
 
     for (final element in elements) {
-      if (!element.bounds.overlaps(visibleRect)) {
-        continue;
-      }
       if (element is CanvasWidgetElement) {
         final layout = CanvasWidgetLayout.resolve(
           element,
           controller.transform,
         );
         if (element.renderMode == CanvasWidgetRenderMode.snapshot &&
-            layout.detail == CanvasWidgetRenderDetail.thumbnail) {
+            layout.detail == CanvasWidgetRenderDetail.full) {
           final image = snapshots[element.id];
           if (image != null && !liveOverlayIds.contains(element.id)) {
             paintBatch.add(SnapshotWidgetElement.fromWidget(element, image));
