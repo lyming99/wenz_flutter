@@ -127,7 +127,9 @@ class CanvasSerializer {
                       Colors.black.toARGB32(),
                 ),
                 fontSize: (styleJson['fontSize'] as num?)?.toDouble() ?? 24,
-                height: 1.2,
+                fontWeight: _fontWeight(styleJson['fontWeight']),
+                height: (styleJson['height'] as num?)?.toDouble() ?? 1.2,
+                fontFamily: styleJson['fontFamily'] as String?,
               )
             : const TextStyle(color: Colors.black, fontSize: 24, height: 1.2);
         return TextElement(
@@ -139,6 +141,9 @@ class CanvasSerializer {
           position: _point(json['position']),
           text: json['text'] as String? ?? '',
           style: style,
+          maxWidth: (json['maxWidth'] as num?)?.toDouble(),
+          boxSize: _size(json['boxSize']),
+          textAlign: _textAlign(json['textAlign'] as String?),
         );
       case ImageElement.elementType:
         return ImageElement(
@@ -267,5 +272,23 @@ class CanvasSerializer {
       }
     }
     return Clip.hardEdge;
+  }
+
+  static TextAlign _textAlign(String? value) {
+    for (final align in TextAlign.values) {
+      if (align.name == value) {
+        return align;
+      }
+    }
+    return TextAlign.left;
+  }
+
+  static FontWeight _fontWeight(Object? value) {
+    final weight = value is num ? value.toInt() : FontWeight.normal.value;
+    return FontWeight.values.reduce((previous, current) {
+      return (current.value - weight).abs() < (previous.value - weight).abs()
+          ? current
+          : previous;
+    });
   }
 }

@@ -291,7 +291,7 @@ void main() {
         record: false,
       )
       ..addElement(
-        const TextElement(id: 'text', position: Offset.zero, text: 'Label'),
+        TextElement(id: 'text', position: Offset.zero, text: 'Label'),
         record: false,
       );
 

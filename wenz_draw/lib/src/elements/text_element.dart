@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../utils/math_utils.dart';
@@ -6,7 +8,7 @@ import 'element_renderer.dart';
 
 @immutable
 class TextElement extends CanvasElement {
-  const TextElement({
+  TextElement({
     required this.id,
     required this.position,
     required this.text,
@@ -15,6 +17,9 @@ class TextElement extends CanvasElement {
       fontSize: 24,
       height: 1.2,
     ),
+    this.maxWidth,
+    this.boxSize,
+    this.textAlign = TextAlign.left,
     this.layerId = 'default',
     this.visible = true,
     this.opacity = 1,
@@ -28,6 +33,9 @@ class TextElement extends CanvasElement {
   final Offset position;
   final String text;
   final TextStyle style;
+  final double? maxWidth;
+  final Size? boxSize;
+  final TextAlign textAlign;
 
   @override
   final String layerId;
@@ -38,18 +46,41 @@ class TextElement extends CanvasElement {
   @override
   final int zIndex;
 
+  late final Size _laidOutSize = _layoutSize();
+
   @override
   String get type => elementType;
 
+  double? get layoutMaxWidth => boxSize?.width ?? maxWidth;
+
   @override
   Rect get bounds {
-    final painter = _textPainter();
-    return position & painter.size;
+    final size = boxSize ?? _laidOutSize;
+    final fallbackHeight = style.fontSize ?? 24;
+    return position &
+        Size(math.max(size.width, 1), math.max(size.height, fallbackHeight));
   }
 
   @override
   bool hitTest(Offset worldPoint, {double tolerance = 5.0}) {
     return bounds.inflate(tolerance).contains(worldPoint);
+  }
+
+  TextPainter createTextPainter({Color? color, double opacity = 1}) {
+    final resolvedColor = color ?? style.color ?? Colors.black;
+    final painter = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: style.copyWith(
+          color: resolvedColor.withValues(alpha: opacity.clamp(0.0, 1.0)),
+        ),
+      ),
+      textAlign: textAlign,
+      textDirection: TextDirection.ltr,
+    );
+    final width = layoutMaxWidth;
+    painter.layout(maxWidth: width ?? double.infinity);
+    return painter;
   }
 
   @override
@@ -58,6 +89,9 @@ class TextElement extends CanvasElement {
     Offset? position,
     String? text,
     TextStyle? style,
+    Object? maxWidth = _unset,
+    Object? boxSize = _unset,
+    TextAlign? textAlign,
     String? layerId,
     bool? visible,
     double? opacity,
@@ -68,6 +102,11 @@ class TextElement extends CanvasElement {
       position: position ?? this.position,
       text: text ?? this.text,
       style: style ?? this.style,
+      maxWidth: identical(maxWidth, _unset)
+          ? this.maxWidth
+          : maxWidth as double?,
+      boxSize: identical(boxSize, _unset) ? this.boxSize : boxSize as Size?,
+      textAlign: textAlign ?? this.textAlign,
       layerId: layerId ?? this.layerId,
       visible: visible ?? this.visible,
       opacity: opacity ?? this.opacity,
@@ -86,6 +125,8 @@ class TextElement extends CanvasElement {
     return copyWith(
       position: scalePoint(position, factor, origin),
       style: style.copyWith(fontSize: (style.fontSize ?? 24) * factor.abs()),
+      maxWidth: maxWidth == null ? null : maxWidth! * factor.abs(),
+      boxSize: boxSize == null ? null : boxSize! * factor.abs(),
     );
   }
 
@@ -100,19 +141,35 @@ class TextElement extends CanvasElement {
       'zIndex': zIndex,
       'position': {'x': position.dx, 'y': position.dy},
       'text': text,
+      if (maxWidth != null) 'maxWidth': maxWidth,
+      if (boxSize != null) 'boxSize': _sizeToJson(boxSize!),
+      'textAlign': textAlign.name,
       'style': {
         'color': (style.color ?? Colors.black).toARGB32(),
         'fontSize': style.fontSize ?? 24,
+        'fontWeight': _fontWeightToJson(style.fontWeight),
+        'height': style.height ?? 1.2,
+        if (style.fontFamily != null) 'fontFamily': style.fontFamily,
       },
     };
   }
 
-  TextPainter _textPainter() {
-    final painter = TextPainter(
-      text: TextSpan(text: text, style: style),
-      textDirection: TextDirection.ltr,
-    )..layout();
-    return painter;
+  Size _layoutSize() {
+    if (text.isEmpty) {
+      final height = style.fontSize ?? 24;
+      return Size(layoutMaxWidth ?? 1, height);
+    }
+    return createTextPainter(opacity: 1).size;
+  }
+
+  static const _unset = Object();
+
+  static Map<String, double> _sizeToJson(Size size) {
+    return {'width': size.width, 'height': size.height};
+  }
+
+  static int _fontWeightToJson(FontWeight? fontWeight) {
+    return fontWeight?.value ?? FontWeight.normal.value;
   }
 }
 
@@ -124,16 +181,18 @@ class TextElementRenderer extends ElementRenderer<TextElement> {
     if (!element.visible || element.text.isEmpty) {
       return;
     }
-    final color = element.style.color ?? Colors.black;
-    final painter = TextPainter(
-      text: TextSpan(
-        text: element.text,
-        style: element.style.copyWith(
-          color: color.withValues(alpha: element.opacity),
-        ),
-      ),
-      textDirection: TextDirection.ltr,
-    )..layout();
+    final painter = element.createTextPainter(
+      color: element.style.color ?? Colors.black,
+      opacity: element.opacity,
+    );
+    final boxSize = element.boxSize;
+    if (boxSize != null) {
+      canvas.save();
+      canvas.clipRect(element.position & boxSize);
+      painter.paint(canvas, element.position);
+      canvas.restore();
+      return;
+    }
     painter.paint(canvas, element.position);
   }
 

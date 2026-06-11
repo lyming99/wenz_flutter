@@ -9,7 +9,6 @@ class SpatialIndex {
   final int threshold;
 
   List<CanvasElement>? _cachedElements;
-  Rect? _cachedBounds;
   QuadTree<CanvasElement>? _cachedTree;
 
   Iterable<CanvasElement> query(
@@ -39,7 +38,6 @@ class SpatialIndex {
 
   void invalidate() {
     _cachedElements = null;
-    _cachedBounds = null;
     _cachedTree = null;
   }
 
@@ -65,7 +63,6 @@ class SpatialIndex {
     }
 
     _cachedElements = elements;
-    _cachedBounds = bounds;
     _cachedTree = tree;
     return tree;
   }

@@ -83,7 +83,25 @@ class SvgExporter {
   static String _text(TextElement e) {
     final color = e.style.color ?? Colors.black;
     final size = e.style.fontSize ?? 24;
-    return '<text x="${e.position.dx}" y="${e.position.dy + size}" fill="${_color(color)}" font-size="$size" opacity="${e.opacity}">${_escape(e.text)}</text>';
+    final weight = e.style.fontWeight?.value ?? FontWeight.normal.value;
+    final anchor = switch (e.textAlign) {
+      TextAlign.center => 'middle',
+      TextAlign.right || TextAlign.end => 'end',
+      _ => 'start',
+    };
+    final x = switch (e.textAlign) {
+      TextAlign.center => e.bounds.center.dx,
+      TextAlign.right || TextAlign.end => e.bounds.right,
+      _ => e.position.dx,
+    };
+    final lines = e.text.split('\n');
+    final lineHeight = size * (e.style.height ?? 1.2);
+    return [
+      '<text x="$x" y="${e.position.dy + size}" fill="${_color(color)}" font-size="$size" font-weight="$weight" opacity="${e.opacity}" text-anchor="$anchor">',
+      for (var i = 0; i < lines.length; i++)
+        '<tspan x="$x" dy="${i == 0 ? 0 : lineHeight}">${_escape(lines[i])}</tspan>',
+      '</text>',
+    ].join();
   }
 
   static String _imagePlaceholder(ImageElement e) {

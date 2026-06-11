@@ -4,9 +4,12 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../elements/text_element.dart';
 import '../elements/widget_element.dart';
+import '../history/commands/update_element_command.dart';
 import '../tools/pan_tool.dart';
 import '../tools/select_tool.dart';
+import '../tools/text_tool.dart';
 import '../widgets/canvas_widget_layer.dart';
 import 'canvas_event.dart';
 import 'infinite_canvas_config.dart';
@@ -34,9 +37,16 @@ class _InfiniteCanvasWidgetState extends State<InfiniteCanvasWidget> {
   final Map<int, _DeferredWidgetGesture> _deferredWidgetGestures = {};
   late final FocusNode _focusNode;
 
+  Offset? _lastTapPosition;
+  DateTime? _lastTapTime;
+
   Offset? _lastPinchCentroid;
   double? _lastPinchDistance;
   bool _toolSuppressedUntilClear = false;
+  int? _editingResizePointer;
+  TextElement? _editingResizeBefore;
+  _EditingTextResizeHandle? _editingResizeHandle;
+  Offset? _editingResizeAnchor;
 
   @override
   void initState() {
@@ -86,9 +96,23 @@ class _InfiniteCanvasWidgetState extends State<InfiniteCanvasWidget> {
                 ]),
                 builder: (context, _) {
                   return SizedBox.expand(
-                    child: CanvasWidgetLayer(
-                      controller: widget.controller,
-                      config: widget.config,
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        CanvasWidgetLayer(
+                          controller: widget.controller,
+                          config: widget.config,
+                        ),
+                        _TextEditingOverlay(
+                          key: ValueKey(
+                            widget
+                                .controller
+                                .canvasController
+                                .editingTextElementId,
+                          ),
+                          controller: widget.controller,
+                        ),
+                      ],
                     ),
                   );
                 },
@@ -102,6 +126,12 @@ class _InfiniteCanvasWidgetState extends State<InfiniteCanvasWidget> {
 
   void _handlePointerDown(PointerDownEvent event) {
     _focusNode.requestFocus();
+    if (_handleEditingPointerDown(event)) {
+      return;
+    }
+    if (_dispatchDoubleTapIfNeeded(event)) {
+      return;
+    }
     if (_shouldDeferToWidget(event.localPosition)) {
       _widgetGesturePointers.add(event.pointer);
       _deferredWidgetGestures[event.pointer] = _DeferredWidgetGesture(
@@ -125,10 +155,19 @@ class _InfiniteCanvasWidgetState extends State<InfiniteCanvasWidget> {
       return;
     }
 
+    final worldPoint = widget.controller.screenToWorld(event.localPosition);
+    final canvasController = widget.controller.canvasController;
+    if (canvasController.currentTool?.id == TextTool.idValue) {
+      final hit = canvasController.hitTest(worldPoint);
+      if (hit is TextElement) {
+        canvasController.beginTextEditing(hit.id);
+        return;
+      }
+    }
     _dispatch(
       CanvasPointerDownEvent(
         screenPoint: event.localPosition,
-        worldPoint: widget.controller.screenToWorld(event.localPosition),
+        worldPoint: worldPoint,
         transform: widget.controller.transform,
         pointerCount: _pointers.length,
         pointer: event.pointer,
@@ -137,6 +176,181 @@ class _InfiniteCanvasWidgetState extends State<InfiniteCanvasWidget> {
         pressure: event.pressure,
       ),
     );
+  }
+
+  bool _handleEditingPointerDown(PointerDownEvent event) {
+    final canvasController = widget.controller.canvasController;
+    final editingId = canvasController.editingTextElementId;
+    if (editingId == null) {
+      return false;
+    }
+
+    final element = canvasController.elementById(editingId);
+    if (element is! TextElement) {
+      canvasController.endTextEditing();
+      return true;
+    }
+
+    final worldPoint = widget.controller.screenToWorld(event.localPosition);
+    final handle = _editingResizeHandleAt(element, worldPoint);
+    if (handle != null) {
+      _editingResizePointer = event.pointer;
+      _editingResizeBefore = element;
+      _editingResizeHandle = handle;
+      _editingResizeAnchor = handle.anchorFor(element.bounds);
+      return true;
+    }
+
+    final toolbarRect = Rect.fromLTWH(
+      element.bounds.left - 8 / widget.controller.transform.scale,
+      element.bounds.top - 48 / widget.controller.transform.scale,
+      element.bounds.width + 16 / widget.controller.transform.scale,
+      40 / widget.controller.transform.scale,
+    );
+
+    if (toolbarRect.contains(worldPoint) ||
+        element.bounds
+            .inflate(14 / widget.controller.transform.scale)
+            .contains(worldPoint)) {
+      return true;
+    }
+
+    final hit = canvasController.hitTest(worldPoint);
+    if (hit is TextElement) {
+      canvasController.endTextEditing();
+      canvasController.beginTextEditing(hit.id);
+      return true;
+    }
+
+    canvasController.endTextEditing();
+    return true;
+  }
+
+  _EditingTextResizeHandle? _editingResizeHandleAt(
+    TextElement element,
+    Offset worldPoint,
+  ) {
+    final tolerance = 10 / widget.controller.transform.scale;
+    for (final handle in _EditingTextResizeHandle.values) {
+      if ((worldPoint - handle.pointFor(element.bounds)).distance <=
+          tolerance) {
+        return handle;
+      }
+    }
+    return null;
+  }
+
+  bool _handleEditingResizeMove(PointerMoveEvent event) {
+    if (_editingResizePointer != event.pointer) {
+      return false;
+    }
+    final before = _editingResizeBefore;
+    final handle = _editingResizeHandle;
+    final anchor = _editingResizeAnchor;
+    if (before == null || handle == null || anchor == null) {
+      return true;
+    }
+
+    final worldPoint = widget.controller.screenToWorld(event.localPosition);
+    final rect = _constrainedResizeRect(anchor, worldPoint, handle);
+    final element = widget.controller.canvasController.elementById(before.id);
+    if (element is TextElement) {
+      widget.controller.canvasController.updateElement(
+        before.id,
+        element.copyWith(
+          position: rect.topLeft,
+          maxWidth: rect.width,
+          boxSize: rect.size,
+        ),
+        record: false,
+      );
+    }
+    return true;
+  }
+
+  bool _handleEditingResizeEnd(PointerEvent event) {
+    if (_editingResizePointer != event.pointer) {
+      return false;
+    }
+    final before = _editingResizeBefore;
+    final after = before == null
+        ? null
+        : widget.controller.canvasController.elementById(before.id);
+    if (before != null &&
+        after is TextElement &&
+        (before.position != after.position ||
+            before.boxSize != after.boxSize)) {
+      widget.controller.canvasController.recordCommand(
+        UpdateElementCommand(
+          before: before,
+          after: after,
+          description: 'Resize text',
+        ),
+      );
+    }
+    _editingResizePointer = null;
+    _editingResizeBefore = null;
+    _editingResizeHandle = null;
+    _editingResizeAnchor = null;
+    return true;
+  }
+
+  Rect _constrainedResizeRect(
+    Offset anchor,
+    Offset worldPoint,
+    _EditingTextResizeHandle handle,
+  ) {
+    final rawRect = Rect.fromPoints(anchor, worldPoint);
+    var left = rawRect.left;
+    var top = rawRect.top;
+    var right = rawRect.right;
+    var bottom = rawRect.bottom;
+    const minWidth = 24.0;
+    const minHeight = 24.0;
+
+    if (rawRect.width < minWidth) {
+      if (handle.isLeft) {
+        left = right - minWidth;
+      } else {
+        right = left + minWidth;
+      }
+    }
+    if (rawRect.height < minHeight) {
+      if (handle.isTop) {
+        top = bottom - minHeight;
+      } else {
+        bottom = top + minHeight;
+      }
+    }
+    return Rect.fromLTRB(left, top, right, bottom);
+  }
+
+  bool _dispatchDoubleTapIfNeeded(PointerDownEvent event) {
+    final previousPosition = _lastTapPosition;
+    final previousTime = _lastTapTime;
+    final now = DateTime.now();
+    _lastTapPosition = event.localPosition;
+    _lastTapTime = now;
+
+    if (previousPosition == null || previousTime == null) {
+      return false;
+    }
+    if (now.difference(previousTime) > const Duration(milliseconds: 350)) {
+      return false;
+    }
+    if ((event.localPosition - previousPosition).distance > 8) {
+      return false;
+    }
+
+    _dispatch(
+      CanvasDoubleTapEvent(
+        screenPoint: event.localPosition,
+        worldPoint: widget.controller.screenToWorld(event.localPosition),
+        transform: widget.controller.transform,
+        pointerCount: _pointers.length + 1,
+      ),
+    );
+    return widget.controller.canvasController.editingTextElementId != null;
   }
 
   bool _shouldDeferToWidget(Offset screenPoint) {
@@ -154,6 +368,9 @@ class _InfiniteCanvasWidgetState extends State<InfiniteCanvasWidget> {
   }
 
   void _handlePointerMove(PointerMoveEvent event) {
+    if (_handleEditingResizeMove(event)) {
+      return;
+    }
     if (_widgetGesturePointers.contains(event.pointer)) {
       if (!_promoteDeferredWidgetGestureIfNeeded(event)) {
         return;
@@ -199,6 +416,9 @@ class _InfiniteCanvasWidgetState extends State<InfiniteCanvasWidget> {
   }
 
   void _handlePointerUp(PointerUpEvent event) {
+    if (_handleEditingResizeEnd(event)) {
+      return;
+    }
     _deferredWidgetGestures.remove(event.pointer);
     if (_widgetGesturePointers.remove(event.pointer)) {
       return;
@@ -223,6 +443,9 @@ class _InfiniteCanvasWidgetState extends State<InfiniteCanvasWidget> {
   }
 
   void _handlePointerCancel(PointerCancelEvent event) {
+    if (_handleEditingResizeEnd(event)) {
+      return;
+    }
     _deferredWidgetGestures.remove(event.pointer);
     if (_widgetGesturePointers.remove(event.pointer)) {
       return;
@@ -250,6 +473,12 @@ class _InfiniteCanvasWidgetState extends State<InfiniteCanvasWidget> {
     }
 
     final canvasController = widget.controller.canvasController;
+    if (canvasController.editingTextElementId != null) {
+      if (event.logicalKey == LogicalKeyboardKey.escape) {
+        canvasController.endTextEditing();
+      }
+      return;
+    }
     final key = event.logicalKey;
     final controlPressed =
         HardwareKeyboard.instance.isControlPressed ||
@@ -369,6 +598,715 @@ class _InfiniteCanvasWidgetState extends State<InfiniteCanvasWidget> {
 
   void _dispatch(CanvasEvent event) {
     widget.controller.canvasController.dispatchCanvasEvent(event);
+  }
+}
+
+class _TextEditingOverlay extends StatefulWidget {
+  const _TextEditingOverlay({super.key, required this.controller});
+
+  final InfiniteCanvasController controller;
+
+  @override
+  State<_TextEditingOverlay> createState() => _TextEditingOverlayState();
+}
+
+class _TextEditingOverlayState extends State<_TextEditingOverlay> {
+  late final TextEditingController _textController;
+  late final FocusNode _focusNode;
+  String? _editingId;
+
+  @override
+  void initState() {
+    super.initState();
+    _textController = TextEditingController();
+    _focusNode = FocusNode(debugLabel: 'TextEditingOverlay');
+  }
+
+  @override
+  void dispose() {
+    _textController.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final canvasController = widget.controller.canvasController;
+    final editingId = canvasController.editingTextElementId;
+    final element = editingId == null
+        ? null
+        : canvasController.elementById(editingId);
+    if (element is! TextElement) {
+      _editingId = null;
+      return const SizedBox.shrink();
+    }
+
+    if (_editingId != element.id) {
+      _editingId = element.id;
+      _textController.text = element.text;
+      _textController.selection = TextSelection(
+        baseOffset: 0,
+        extentOffset: _textController.text.length,
+      );
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _focusNode.requestFocus();
+        }
+      });
+    }
+
+    final transform = widget.controller.transform;
+    final textRect = Rect.fromPoints(
+      transform.worldToScreen(element.bounds.topLeft),
+      transform.worldToScreen(element.bounds.bottomRight),
+    );
+    const toolbarWidth = 320.0;
+    final toolbarLeft = (textRect.width - toolbarWidth) / 2;
+    final rect = Rect.fromLTWH(
+      textRect.left + toolbarLeft,
+      textRect.top - 48,
+      toolbarWidth,
+      textRect.height + 48,
+    );
+    final fontSize = (element.style.fontSize ?? 24) * transform.scale;
+    final lineHeight = element.style.height ?? 1.2;
+    final contentPadding = 4.0 * transform.scale;
+    const handleSize = 7.0;
+    final textLeft = -toolbarLeft;
+    const textTop = 48.0;
+    final handleCenters = [
+      Offset(textLeft, textTop),
+      Offset(textLeft + textRect.width, textTop),
+      Offset(textLeft, textTop + textRect.height),
+      Offset(textLeft + textRect.width, textTop + textRect.height),
+    ];
+    return Positioned.fromRect(
+      rect: rect,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Positioned(
+            left: 0,
+            top: 0,
+            width: toolbarWidth,
+            height: 40,
+            child: _TextEditToolbar(
+              controller: widget.controller,
+              element: element,
+              onInteraction: () => _focusNode.requestFocus(),
+            ),
+          ),
+          Positioned(
+            left: textLeft,
+            top: textTop,
+            width: textRect.width,
+            height: textRect.height,
+            child: Material(
+              color: Colors.transparent,
+              child: TextField(
+                controller: _textController,
+                focusNode: _focusNode,
+                autofocus: true,
+                keyboardType: TextInputType.multiline,
+                maxLines: null,
+                minLines: null,
+                expands: true,
+                textAlign: element.textAlign,
+                style: element.style.copyWith(
+                  fontSize: fontSize,
+                  height: lineHeight,
+                ),
+                decoration: InputDecoration(
+                  isDense: true,
+                  filled: true,
+                  fillColor: Colors.white.withValues(alpha: 0.82),
+                  contentPadding: EdgeInsets.all(contentPadding),
+                  border: const OutlineInputBorder(),
+                ),
+                onSubmitted: (_) => _commit(),
+                onChanged: widget.controller.canvasController.updateEditingText,
+              ),
+            ),
+          ),
+          for (final center in handleCenters)
+            Positioned(
+              left: center.dx - handleSize / 2,
+              top: center.dy - handleSize / 2,
+              width: handleSize,
+              height: handleSize,
+              child: IgnorePointer(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    border: Border.all(color: const Color(0xFF2563EB)),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  void _commit() {
+    widget.controller.canvasController.endTextEditing(
+      text: _textController.text,
+    );
+  }
+}
+
+class _TextEditToolbar extends StatelessWidget {
+  const _TextEditToolbar({
+    required this.controller,
+    required this.element,
+    required this.onInteraction,
+  });
+
+  final InfiniteCanvasController controller;
+  final TextElement element;
+  final VoidCallback onInteraction;
+
+  static const _defaultColors = <Color>[
+    Colors.black,
+    Colors.white,
+    Color(0xFFEF4444),
+    Color(0xFF3B82F6),
+    Color(0xFF22C55E),
+  ];
+
+  static const _colors = <Color>[
+    Colors.black,
+    Colors.white,
+    Color(0xFF6B7280),
+    Color(0xFFEF4444),
+    Color(0xFFF97316),
+    Color(0xFFF59E0B),
+    Color(0xFFEAB308),
+    Color(0xFF84CC16),
+    Color(0xFF22C55E),
+    Color(0xFF10B981),
+    Color(0xFF14B8A6),
+    Color(0xFF06B6D4),
+    Color(0xFF0EA5E9),
+    Color(0xFF3B82F6),
+    Color(0xFF6366F1),
+    Color(0xFF8B5CF6),
+    Color(0xFFA855F7),
+    Color(0xFFD946EF),
+    Color(0xFFEC4899),
+    Color(0xFFF43F5E),
+  ];
+
+  static const _fontSizes = <double>[14, 18, 24, 32, 48];
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      elevation: 2,
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(6),
+      clipBehavior: Clip.hardEdge,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final color in _defaultColors)
+                Padding(
+                  padding: const EdgeInsets.only(right: 4),
+                  child: InkResponse(
+                    radius: 13,
+                    onTap: () => _update(color: color),
+                    child: _ColorDot(
+                      color: color,
+                      selected: (element.style.color ?? Colors.black) == color,
+                    ),
+                  ),
+                ),
+              IconButton(
+                tooltip: 'Custom color',
+                padding: EdgeInsets.zero,
+                icon: const Icon(Icons.palette_outlined, size: 20),
+                onPressed: () => _showColorPicker(context),
+              ),
+              const VerticalDivider(width: 10),
+              DropdownButton<double>(
+                value: _nearestFontSize(element.style.fontSize ?? 24),
+                underline: const SizedBox.shrink(),
+                items: [
+                  for (final size in _fontSizes)
+                    DropdownMenuItem(
+                      value: size,
+                      child: Text(size.round().toString()),
+                    ),
+                ],
+                onChanged: (value) {
+                  if (value != null) {
+                    _update(fontSize: value);
+                  }
+                },
+              ),
+              const SizedBox(width: 8),
+              DropdownButton<String>(
+                value: _fontFamilyValue(element.style.fontFamily),
+                underline: const SizedBox.shrink(),
+                items: const [
+                  DropdownMenuItem(value: 'sans', child: Text('Sans')),
+                  DropdownMenuItem(value: 'serif', child: Text('Serif')),
+                  DropdownMenuItem(value: 'mono', child: Text('Mono')),
+                ],
+                onChanged: (value) => _update(
+                  fontFamily: switch (value) {
+                    'serif' => 'Times New Roman',
+                    'mono' => 'Consolas',
+                    _ => null,
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _fontFamilyValue(String? fontFamily) {
+    return switch (fontFamily) {
+      'Times New Roman' => 'serif',
+      'Consolas' => 'mono',
+      _ => 'sans',
+    };
+  }
+
+  Future<void> _showColorPicker(BuildContext context) async {
+    final color = await showDialog<Color>(
+      context: context,
+      builder: (context) => _ColorPickerDialog(
+        initialColor: element.style.color ?? Colors.black,
+        swatches: _colors,
+      ),
+    );
+    if (color != null) {
+      _update(color: color);
+    } else {
+      onInteraction();
+    }
+  }
+
+  double _nearestFontSize(double size) {
+    return _fontSizes.reduce((previous, current) {
+      return (current - size).abs() < (previous - size).abs()
+          ? current
+          : previous;
+    });
+  }
+
+  void _update({Color? color, double? fontSize, String? fontFamily}) {
+    controller.canvasController.updateTextElementStyle(
+      element.id,
+      color: color,
+      fontSize: fontSize,
+      fontFamily: fontFamily,
+      record: false,
+    );
+    onInteraction();
+  }
+}
+
+class _ColorDot extends StatelessWidget {
+  const _ColorDot({required this.color, required this.selected});
+
+  final Color color;
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: color,
+        border: Border.all(
+          color: selected ? const Color(0xFF111827) : const Color(0xFFE5E7EB),
+          width: selected ? 2.5 : 1.5,
+        ),
+      ),
+      child: const SizedBox.square(dimension: 22),
+    );
+  }
+}
+
+class _ColorPickerDialog extends StatefulWidget {
+  const _ColorPickerDialog({
+    required this.initialColor,
+    required this.swatches,
+  });
+
+  final Color initialColor;
+  final List<Color> swatches;
+
+  @override
+  State<_ColorPickerDialog> createState() => _ColorPickerDialogState();
+}
+
+class _ColorPickerDialogState extends State<_ColorPickerDialog> {
+  late double _hue;
+  late double _saturation;
+  late double _value;
+  late final TextEditingController _hexController;
+
+  @override
+  void initState() {
+    super.initState();
+    final hsv = HSVColor.fromColor(widget.initialColor);
+    _hue = hsv.hue;
+    _saturation = hsv.saturation;
+    _value = hsv.value;
+    _hexController = TextEditingController(text: _hexFor(_color));
+  }
+
+  @override
+  void dispose() {
+    _hexController.dispose();
+    super.dispose();
+  }
+
+  Color get _color => HSVColor.fromAHSV(1, _hue, _saturation, _value).toColor();
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Text color'),
+      content: SizedBox(
+        width: 280,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final color in widget.swatches)
+                  InkResponse(
+                    radius: 14,
+                    onTap: () => _setColor(color),
+                    child: _ColorDot(color: color, selected: color == _color),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            _RgbSpectrumPicker(
+              hue: _hue,
+              saturation: _saturation,
+              value: _value,
+              onChanged: _setSpectrumColor,
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                _ColorDot(color: _color, selected: true),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextField(
+                    controller: _hexController,
+                    decoration: const InputDecoration(
+                      labelText: 'HEX',
+                      prefixText: '#',
+                      isDense: true,
+                    ),
+                    onChanged: _setHex,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(context, _color),
+          child: const Text('Apply'),
+        ),
+      ],
+    );
+  }
+
+  void _setColor(Color color) {
+    final hsv = HSVColor.fromColor(color);
+    setState(() {
+      _hue = hsv.hue;
+      _saturation = hsv.saturation;
+      _value = hsv.value;
+      _hexController.text = _hexFor(_color);
+    });
+  }
+
+  void _setSpectrumColor(double hue, double saturation, double value) {
+    setState(() {
+      _hue = hue;
+      _saturation = saturation;
+      _value = value;
+      _hexController.text = _hexFor(_color);
+    });
+  }
+
+  void _setHex(String value) {
+    final color = _parseHex(value);
+    if (color != null) {
+      _setColor(color);
+    }
+  }
+
+  static String _hexFor(Color color) {
+    return (color.toARGB32() & 0xFFFFFF)
+        .toRadixString(16)
+        .padLeft(6, '0')
+        .toUpperCase();
+  }
+
+  static Color? _parseHex(String value) {
+    final normalized = value.replaceAll('#', '').trim();
+    if (normalized.length != 6 && normalized.length != 8) {
+      return null;
+    }
+    final parsed = int.tryParse(normalized, radix: 16);
+    if (parsed == null) {
+      return null;
+    }
+    return Color(normalized.length == 6 ? 0xFF000000 | parsed : parsed);
+  }
+}
+
+class _RgbSpectrumPicker extends StatelessWidget {
+  const _RgbSpectrumPicker({
+    required this.hue,
+    required this.saturation,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final double hue;
+  final double saturation;
+  final double value;
+  final void Function(double hue, double saturation, double value) onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('RGB spectrum', style: Theme.of(context).textTheme.labelSmall),
+        const SizedBox(height: 6),
+        GestureDetector(
+          onPanDown: (details) => _pickSv(details.localPosition),
+          onPanUpdate: (details) => _pickSv(details.localPosition),
+          child: SizedBox(
+            width: 240,
+            height: 150,
+            child: CustomPaint(
+              painter: _RgbSpectrumPainter(hue: hue),
+              foregroundPainter: _SpectrumThumbPainter(
+                x: saturation,
+                y: 1 - value,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        GestureDetector(
+          onPanDown: (details) => _pickHue(details.localPosition),
+          onPanUpdate: (details) => _pickHue(details.localPosition),
+          child: SizedBox(
+            width: 240,
+            height: 18,
+            child: CustomPaint(
+              painter: const _HueBarPainter(),
+              foregroundPainter: _HueThumbPainter(hue: hue),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _pickSv(Offset localPosition) {
+    final nextSaturation = (localPosition.dx / 240).clamp(0.0, 1.0).toDouble();
+    final nextValue = (1 - localPosition.dy / 150).clamp(0.0, 1.0).toDouble();
+    onChanged(hue, nextSaturation, nextValue);
+  }
+
+  void _pickHue(Offset localPosition) {
+    final nextHue = (localPosition.dx / 240 * 360).clamp(0.0, 360.0).toDouble();
+    onChanged(nextHue, saturation, value);
+  }
+}
+
+class _RgbSpectrumPainter extends CustomPainter {
+  const _RgbSpectrumPainter({required this.hue});
+
+  final double hue;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final hueColor = HSVColor.fromAHSV(1, hue, 1, 1).toColor();
+    canvas.drawRect(
+      Offset.zero & size,
+      Paint()
+        ..shader = LinearGradient(
+          colors: [Colors.white, hueColor],
+        ).createShader(Offset.zero & size),
+    );
+    canvas.drawRect(
+      Offset.zero & size,
+      Paint()
+        ..shader = const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Colors.transparent, Colors.black],
+        ).createShader(Offset.zero & size),
+    );
+    canvas.drawRect(
+      Offset.zero & size,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..color = const Color(0xFF9CA3AF),
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _RgbSpectrumPainter oldDelegate) {
+    return oldDelegate.hue != hue;
+  }
+}
+
+class _SpectrumThumbPainter extends CustomPainter {
+  const _SpectrumThumbPainter({required this.x, required this.y});
+
+  final double x;
+  final double y;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(x * size.width, y * size.height);
+    canvas
+      ..drawCircle(
+        center,
+        6,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2
+          ..color = Colors.white,
+      )
+      ..drawCircle(
+        center,
+        7,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..color = Colors.black,
+      );
+  }
+
+  @override
+  bool shouldRepaint(covariant _SpectrumThumbPainter oldDelegate) {
+    return oldDelegate.x != x || oldDelegate.y != y;
+  }
+}
+
+class _HueBarPainter extends CustomPainter {
+  const _HueBarPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.drawRect(
+      Offset.zero & size,
+      Paint()
+        ..shader = const LinearGradient(
+          colors: [
+            Colors.red,
+            Colors.yellow,
+            Colors.green,
+            Colors.cyan,
+            Colors.blue,
+            Colors.purple,
+            Colors.red,
+          ],
+        ).createShader(Offset.zero & size),
+    );
+    canvas.drawRect(
+      Offset.zero & size,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..color = const Color(0xFF9CA3AF),
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _HueBarPainter oldDelegate) => false;
+}
+
+class _HueThumbPainter extends CustomPainter {
+  const _HueThumbPainter({required this.hue});
+
+  final double hue;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final x = hue / 360 * size.width;
+    final rect = Rect.fromCenter(
+      center: Offset(x, size.height / 2),
+      width: 6,
+      height: size.height + 6,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(rect, const Radius.circular(2)),
+      Paint()
+        ..color = Colors.white
+        ..style = PaintingStyle.fill,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(rect, const Radius.circular(2)),
+      Paint()
+        ..color = Colors.black
+        ..style = PaintingStyle.stroke,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _HueThumbPainter oldDelegate) {
+    return oldDelegate.hue != hue;
+  }
+}
+
+enum _EditingTextResizeHandle {
+  topLeft,
+  topRight,
+  bottomLeft,
+  bottomRight;
+
+  bool get isLeft => this == topLeft || this == bottomLeft;
+  bool get isTop => this == topLeft || this == topRight;
+
+  Offset pointFor(Rect rect) {
+    return switch (this) {
+      topLeft => rect.topLeft,
+      topRight => rect.topRight,
+      bottomLeft => rect.bottomLeft,
+      bottomRight => rect.bottomRight,
+    };
+  }
+
+  Offset anchorFor(Rect rect) {
+    return switch (this) {
+      topLeft => rect.bottomRight,
+      topRight => rect.bottomLeft,
+      bottomLeft => rect.topRight,
+      bottomRight => rect.topLeft,
+    };
   }
 }
 

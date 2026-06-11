@@ -1,7 +1,8 @@
+// ignore_for_file: avoid_print
+
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wenz_draw/wenz_draw.dart';
 
@@ -119,7 +120,6 @@ void main() {
       // Should be well under 500 ms on any modern machine.
       expect(stopwatch.elapsedMilliseconds, lessThan(500));
 
-      // ignore: avoid_print (this is a performance report)
       print('  -> Added 500 elements in ${stopwatch.elapsedMilliseconds} ms');
     });
 

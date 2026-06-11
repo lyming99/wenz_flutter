@@ -32,6 +32,8 @@ class TextTool extends CanvasTool {
         id: UuidGenerator.create(),
         position: event.worldPoint,
         text: defaultText,
+        maxWidth: 240,
+        boxSize: const Size(240, 96),
         style: TextStyle(
           color: controller.brushSettings.color,
           fontSize: controller.brushSettings.strokeWidth * 8,

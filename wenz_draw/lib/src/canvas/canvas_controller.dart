@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 
 import '../elements/canvas_element.dart';
 import '../elements/element_registry.dart';
+import '../elements/text_element.dart';
 import '../history/commands/add_element_command.dart';
 import '../history/commands/batch_command.dart';
 import '../history/commands/remove_element_command.dart';
@@ -57,8 +58,11 @@ class CanvasController extends ChangeNotifier {
   final AutoLayeringPolicy autoLayeringPolicy;
 
   CanvasState _state;
+  String? _editingTextElementId;
+  TextElement? _editingTextOriginal;
 
   CanvasState get state => _state;
+  String? get editingTextElementId => _editingTextElementId;
   List<CanvasElement> get elements => _state.elements;
   CanvasElement? get previewElement => _state.previewElement;
   Set<String> get selectedIds => _state.selectedIds;
@@ -144,6 +148,7 @@ class CanvasController extends ChangeNotifier {
     List<CanvasElement> elements, {
     bool clearHistory = true,
   }) {
+    _editingTextElementId = null;
     _state = _state.copyWith(
       elements: List<CanvasElement>.unmodifiable(elements),
       previewElement: null,
@@ -391,6 +396,145 @@ class CanvasController extends ChangeNotifier {
 
   bool isLayerLocked(String id) => layerManager.isLayerLocked(id);
 
+  static const _unsetTextStyleValue = Object();
+
+  void updateTextElementStyle(
+    String id, {
+    Color? color,
+    double? fontSize,
+    FontWeight? fontWeight,
+    TextAlign? textAlign,
+    double? lineHeight,
+    Object? fontFamily = _unsetTextStyleValue,
+    double? maxWidth,
+    Size? boxSize,
+    bool record = true,
+  }) {
+    final element = elementById(id);
+    if (element is! TextElement) {
+      return;
+    }
+    final nextFontFamily = identical(fontFamily, _unsetTextStyleValue)
+        ? element.style.fontFamily
+        : fontFamily as String?;
+    final nextStyle = TextStyle(
+      color: color ?? element.style.color,
+      fontSize: fontSize ?? element.style.fontSize,
+      fontWeight: fontWeight ?? element.style.fontWeight,
+      height: lineHeight ?? element.style.height,
+      fontFamily: nextFontFamily,
+    );
+    updateElement(
+      id,
+      element.copyWith(
+        style: nextStyle,
+        textAlign: textAlign,
+        maxWidth: maxWidth ?? element.maxWidth,
+        boxSize: boxSize ?? element.boxSize,
+      ),
+      record: record,
+    );
+  }
+
+  void resizeTextElement(
+    String id,
+    Size boxSize, {
+    bool record = true,
+    double minWidth = 24,
+    double minHeight = 24,
+  }) {
+    final element = elementById(id);
+    if (element is! TextElement) {
+      return;
+    }
+    final constrained = Size(
+      boxSize.width < minWidth ? minWidth : boxSize.width,
+      boxSize.height < minHeight ? minHeight : boxSize.height,
+    );
+    updateElement(
+      id,
+      element.copyWith(maxWidth: constrained.width, boxSize: constrained),
+      record: record,
+    );
+  }
+
+  void beginTextEditing(String id) {
+    final element = elementById(id);
+    if (element is! TextElement) {
+      return;
+    }
+    if (_editingTextElementId == id) {
+      return;
+    }
+    _editingTextElementId = id;
+    _editingTextOriginal = element;
+    select(id);
+  }
+
+  void updateEditingText(String text) {
+    final id = _editingTextElementId;
+    if (id == null) {
+      return;
+    }
+    final element = elementById(id);
+    if (element is! TextElement || element.text == text) {
+      return;
+    }
+    updateElement(id, element.copyWith(text: text), record: false);
+  }
+
+  void endTextEditing({String? text, bool removeIfEmpty = true}) {
+    final id = _editingTextElementId;
+    if (id == null) {
+      return;
+    }
+    if (text != null) {
+      updateEditingText(text);
+    }
+    final currentBeforeCommit = elementById(id);
+    final changedBeforeCommit =
+        currentBeforeCommit is TextElement &&
+        _editingTextOriginal?.text != currentBeforeCommit.text;
+
+    _editingTextElementId = null;
+    final original = _editingTextOriginal;
+    _editingTextOriginal = null;
+    final element = elementById(id);
+    if (element is TextElement) {
+      if (removeIfEmpty && element.text.trim().isEmpty) {
+        removeElement(id);
+        return;
+      }
+      if (original != null && !_sameTextElement(original, element)) {
+        historyManager.record(
+          UpdateElementCommand(
+            before: original,
+            after: element,
+            description: 'Edit text',
+          ),
+        );
+        if (!changedBeforeCommit) {
+          notifyListeners();
+        }
+        return;
+      }
+    }
+    notifyListeners();
+  }
+
+  void cancelTextEditing() {
+    if (_editingTextElementId == null) {
+      return;
+    }
+    _editingTextElementId = null;
+    _editingTextOriginal = null;
+    notifyListeners();
+  }
+
+  bool _sameTextElement(TextElement a, TextElement b) {
+    return a.toJson().toString() == b.toJson().toString();
+  }
+
   Map<String, dynamic> toJson() {
     return {
       'version': '0.1.0',
@@ -409,6 +553,9 @@ class CanvasController extends ChangeNotifier {
         setPreviewElement(preview);
       case ToolResultElement(:final element):
         addElement(element, bringToFront: true);
+        if (element is TextElement) {
+          beginTextEditing(element.id);
+        }
       case ToolResultSelect(:final selectedIds):
         setSelection(selectedIds);
     }
@@ -436,7 +583,7 @@ class CanvasController extends ChangeNotifier {
     CanvasElement element, {
     bool bringToFront = false,
   }) {
-    var prepared = _autoLayeringResolver.resolve(
+    final prepared = _autoLayeringResolver.resolve(
       element: element,
       existingElements: elements,
       activeLayerId: activeLayerId,

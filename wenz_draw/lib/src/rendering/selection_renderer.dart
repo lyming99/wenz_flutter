@@ -33,6 +33,9 @@ class SelectionRenderer {
       if (!controller.selectedIds.contains(element.id)) {
         continue;
       }
+      if (controller.editingTextElementId == element.id) {
+        continue;
+      }
       final bounds = element.bounds.inflate(4 / transform.scale);
       canvas.drawRect(bounds, paint);
       for (final point in [
