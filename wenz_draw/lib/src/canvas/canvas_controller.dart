@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 
+import '../canvas/paint_style.dart';
 import '../elements/arrow_element.dart';
 import '../elements/canvas_element.dart';
 import '../elements/drawio_shape_element.dart';
@@ -654,25 +655,34 @@ class CanvasController extends ChangeNotifier {
     bool clearFill = false,
     Color? strokeColor,
     double? strokeWidth,
+    double? opacity,
     bool record = true,
   }) {
     final element = elementById(id);
+    PaintStyle? nextFill(PaintStyle? current) {
+      if (clearFill) {
+        return null;
+      }
+      if (fillColor == null && opacity == null) {
+        return current;
+      }
+      return (current ?? const PaintStyle()).copyWith(
+        color: fillColor,
+        opacity: opacity,
+        paintingStyle: PaintingStyle.fill,
+        strokeWidth: 0,
+      );
+    }
+
     switch (element) {
       case DrawioShapeElement e:
         updateElement(
           id,
           e.copyWith(
-            fillStyle: clearFill
-                ? null
-                : (fillColor == null
-                      ? e.fillStyle
-                      : (e.fillStyle ?? const PaintStyle()).copyWith(
-                          color: fillColor,
-                          paintingStyle: PaintingStyle.fill,
-                          strokeWidth: 0,
-                        )),
+            fillStyle: nextFill(e.fillStyle),
             strokeStyle: e.strokeStyle.copyWith(
               color: strokeColor,
+              opacity: opacity,
               strokeWidth: strokeWidth,
             ),
           ),
@@ -682,17 +692,10 @@ class CanvasController extends ChangeNotifier {
         updateElement(
           id,
           e.copyWith(
-            fillStyle: clearFill
-                ? null
-                : (fillColor == null
-                      ? e.fillStyle
-                      : (e.fillStyle ?? const PaintStyle()).copyWith(
-                          color: fillColor,
-                          paintingStyle: PaintingStyle.fill,
-                          strokeWidth: 0,
-                        )),
+            fillStyle: nextFill(e.fillStyle),
             strokeStyle: e.strokeStyle.copyWith(
               color: strokeColor,
+              opacity: opacity,
               strokeWidth: strokeWidth,
             ),
           ),
@@ -702,17 +705,10 @@ class CanvasController extends ChangeNotifier {
         updateElement(
           id,
           e.copyWith(
-            fillStyle: clearFill
-                ? null
-                : (fillColor == null
-                      ? e.fillStyle
-                      : (e.fillStyle ?? const PaintStyle()).copyWith(
-                          color: fillColor,
-                          paintingStyle: PaintingStyle.fill,
-                          strokeWidth: 0,
-                        )),
+            fillStyle: nextFill(e.fillStyle),
             strokeStyle: e.strokeStyle.copyWith(
               color: strokeColor,
+              opacity: opacity,
               strokeWidth: strokeWidth,
             ),
           ),

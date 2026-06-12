@@ -1177,9 +1177,11 @@ class _RightInspectorPanel extends StatelessWidget {
       builder: (context, _) {
         final selected = canvasController.selectedElements.firstOrNull;
         final bounds = selected?.bounds;
+        final brush = canvasController.brushSettings;
         final selectedFill = _fillColorOf(selected) ?? brush.fillColor;
         final selectedStroke = _strokeColorOf(selected) ?? brush.color;
-        final selectedStrokeWidth = _strokeWidthOf(selected) ?? brush.strokeWidth;
+        final selectedStrokeWidth =
+            _strokeWidthOf(selected) ?? brush.strokeWidth;
         return Container(
           width: 292,
           color: _UiColors.panel,
@@ -1373,18 +1375,27 @@ class _RightInspectorPanel extends StatelessWidget {
                       const SizedBox(height: 12),
                       _SliderField(
                         label: '透明度',
-                        value: brush.opacity,
+                        value: _opacityOf(selected) ?? brush.opacity,
                         min: 0,
                         max: 1,
                         fractionDigits: 2,
                         onChanged: (value) {
-                          canvasController.updateBrushSettings(
-                            brush.copyWith(opacity: value),
-                          );
+                          if (_canEditPaint(selected)) {
+                            canvasController.updateShapePaint(
+                              selected!.id,
+                              fillColor: _fillColorOf(selected),
+                              strokeColor: _strokeColorOf(selected),
+                              strokeWidth: _strokeWidthOf(selected),
+                              opacity: value,
+                            );
+                          } else {
+                            canvasController.updateBrushSettings(
+                              brush.copyWith(opacity: value),
+                            );
+                          }
                         },
                       ),
                       const SizedBox(height: 12),
-                      _SliderField(
                     ],
                   ),
                 ],
@@ -1437,6 +1448,15 @@ class _RightInspectorPanel extends StatelessWidget {
     Color(0xFFF7E6EE),
     Color(0xFF263442),
   ];
+
+  static double? _opacityOf(CanvasElement? element) {
+    return switch (element) {
+      DrawioShapeElement e => e.strokeStyle.opacity,
+      RectElement e => e.strokeStyle.opacity,
+      EllipseElement e => e.strokeStyle.opacity,
+      _ => null,
+    };
+  }
 
   static double _rotationDegreesOf(CanvasElement? element) {
     if (element is DrawioShapeElement) {
@@ -1842,6 +1862,65 @@ class _ColorField extends StatelessWidget {
                 color: color ?? Colors.white,
                 border: Border.all(color: const Color(0x3318232E)),
                 borderRadius: BorderRadius.circular(3),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ColorButtonField extends StatelessWidget {
+  const _ColorButtonField({
+    required this.label,
+    required this.color,
+    required this.enabled,
+    required this.onPressed,
+  });
+
+  final String label;
+  final Color? color;
+  final bool enabled;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _FieldLabel(label),
+        const SizedBox(height: 6),
+        Expanded(
+          child: Material(
+            color: _UiColors.panelSoft,
+            shape: RoundedRectangleBorder(
+              side: const BorderSide(color: _UiColors.line),
+              borderRadius: BorderRadius.circular(7),
+            ),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(7),
+              onTap: enabled ? onPressed : null,
+              child: Padding(
+                padding: const EdgeInsets.all(4),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: color ?? Colors.transparent,
+                    border: Border.all(color: const Color(0x3318232E)),
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                  child: Center(
+                    child: color == null
+                        ? Icon(
+                            Icons.format_color_reset_outlined,
+                            size: 16,
+                            color: enabled
+                                ? _UiColors.muted
+                                : const Color(0xFFB8C2CC),
+                          )
+                        : null,
+                  ),
+                ),
               ),
             ),
           ),
@@ -2357,6 +2436,31 @@ Future<T?> _showAnchoredMenu<T>({
     Offset.zero & overlay.size,
   );
   return showMenu<T>(context: context, position: position, items: items);
+}
+
+Future<void> _showShapeColorPicker(
+  BuildContext context,
+  CanvasElement selected,
+  CanvasController controller, {
+  required bool fill,
+}) async {
+  final initialColor = fill
+      ? _RightInspectorPanel._fillColorOf(selected) ?? Colors.white
+      : _RightInspectorPanel._strokeColorOf(selected) ?? Colors.black;
+  final color = await showDialog<Color>(
+    context: context,
+    builder: (context) => _ColorPickerDialog(
+      initialColor: initialColor,
+      swatches: _toolbarColorSwatches,
+    ),
+  );
+  if (color != null) {
+    controller.updateShapePaint(
+      selected.id,
+      fillColor: fill ? color : null,
+      strokeColor: fill ? null : color,
+    );
+  }
 }
 
 Future<void> _showColorMenu(
