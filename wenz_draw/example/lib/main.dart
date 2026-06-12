@@ -310,7 +310,12 @@ class _CanvasDemoPageState extends State<CanvasDemoPage> {
   @override
   void initState() {
     super.initState();
-    _canvasController = CanvasController();
+    _canvasController = CanvasController(
+      // 与 draw.io 一致：边的默认样式即 OrthConnector（正交查表路由）
+      connectorRoutingOptions: const ConnectorRoutingOptions(
+        mode: ConnectorRoutingMode.orthConnector,
+      ),
+    );
     _viewController = InfiniteCanvasController(
       canvasController: _canvasController,
     );

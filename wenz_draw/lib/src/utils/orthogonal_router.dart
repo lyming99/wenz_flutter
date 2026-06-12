@@ -215,6 +215,10 @@ class OrthogonalRouteEngine {
     return sourceMask != null && sourceMask == targetMask;
   }
 
+  /// draw.io 风格的自动正交路由。
+  ///
+  /// 使用简化的启发式算法（与 draw.io ElbowConnector/SideToSide/TopToBottom 原理一致），
+  /// 处理最常见的路由场景。对复杂场景回退到 A* 搜索。
   static List<Offset>? _drawioOrthogonalRoute({
     required Offset start,
     required Offset end,
@@ -227,97 +231,95 @@ class OrthogonalRouteEngine {
     if (source == null && target == null) {
       return null;
     }
-    final sourceDir =
-        _directionMaskFor(sourceDirection) ??
-        _preferredDirectionForTerminal(
-          start,
-          end,
-          source,
-          target,
-          isSource: true,
-        );
-    final targetDir =
-        _directionMaskFor(targetDirection) ??
-        _preferredDirectionForTerminal(
-          end,
-          start,
-          target,
-          source,
-          isSource: false,
-        );
-    final sourceJetty = _jettyPoint(start, source, sourceDir, buffer);
-    final targetJetty = _jettyPoint(end, target, targetDir, buffer);
+
+    final sourceDir = _directionMaskFor(sourceDirection) ??
+        _preferredDirectionForTerminal(start, end, source, target, isSource: true);
+    final targetDir = _directionMaskFor(targetDirection) ??
+        _preferredDirectionForTerminal(end, start, target, source, isSource: false);
+
+    final sourceJetty = _jettyPointForDirection(start, source, sourceDir, buffer,
+        constraintX: null, constraintY: null);
+    final targetJetty = _jettyPointForDirection(end, target, targetDir, buffer,
+        constraintX: null, constraintY: null);
+
     final points = <Offset>[start];
     if ((sourceJetty - start).distance > 0.0001) {
       points.add(sourceJetty);
     }
-    points.addAll(
-      _drawioMiddlePoints(
-        sourceJetty,
-        targetJetty,
-        sourceDir,
-        targetDir,
-        source,
-        target,
-        buffer,
-      ),
-    );
-    if ((targetJetty - end).distance > 0.0001) {
-      points.add(targetJetty);
-    }
-    points.add(end);
-    return _dedupe(points, keepPoints: {sourceJetty, targetJetty});
-  }
 
-  static List<Offset> _drawioMiddlePoints(
-    Offset sourceJetty,
-    Offset targetJetty,
-    _DirectionMask sourceDir,
-    _DirectionMask targetDir,
-    Rect? source,
-    Rect? target,
-    double buffer,
-  ) {
+    // 简化的中间点计算（基于 draw.io ElbowConnector 逻辑）
     final sameAxis = sourceDir.isHorizontal == targetDir.isHorizontal;
     if (!sameAxis) {
+      // 正交方向（一个水平一个垂直）：一个拐角
       final corner = sourceDir.isHorizontal
           ? Offset(targetJetty.dx, sourceJetty.dy)
           : Offset(sourceJetty.dx, targetJetty.dy);
-      return [corner];
-    }
-
-    if (sourceDir.isHorizontal) {
-      if (sourceDir == targetDir) {
+      points.add(corner);
+    } else if (sourceDir == targetDir) {
+      // 同方向：需要 U 型绕行
+      if (sourceDir.isHorizontal) {
+        final effectiveSource = source ?? Rect.fromCenter(center: start, width: 1, height: 1);
+        final effectiveTarget = target ?? Rect.fromCenter(center: end, width: 1, height: 1);
         final x = sourceDir == _DirectionMask.west
-            ? math.min(
-                    _leftOf(source, sourceJetty),
-                    _leftOf(target, targetJetty),
-                  ) -
-                  buffer
-            : math.max(
-                    _rightOf(source, sourceJetty),
-                    _rightOf(target, targetJetty),
-                  ) +
-                  buffer;
-        return [Offset(x, sourceJetty.dy), Offset(x, targetJetty.dy)];
+            ? math.min(effectiveSource.left, effectiveTarget.left) - buffer
+            : math.max(effectiveSource.right, effectiveTarget.right) + buffer;
+        points.add(Offset(x, sourceJetty.dy));
+        points.add(Offset(x, targetJetty.dy));
+      } else {
+        final effectiveSource = source ?? Rect.fromCenter(center: start, width: 1, height: 1);
+        final effectiveTarget = target ?? Rect.fromCenter(center: end, width: 1, height: 1);
+        final y = sourceDir == _DirectionMask.north
+            ? math.min(effectiveSource.top, effectiveTarget.top) - buffer
+            : math.max(effectiveSource.bottom, effectiveTarget.bottom) + buffer;
+        points.add(Offset(sourceJetty.dx, y));
+        points.add(Offset(targetJetty.dx, y));
       }
-      final midX = (sourceJetty.dx + targetJetty.dx) / 2;
-      return [Offset(midX, sourceJetty.dy), Offset(midX, targetJetty.dy)];
+    } else {
+      // 反向（source 向东 target 向西，或 source 向南 target 向北）
+      // 关键：不能直接中点连线——需要垂直偏移形成肘形
+      if (sourceDir.isHorizontal) {
+        // source向东，target向西（或反过来）
+        // 需要垂直方向上的偏移来形成拐角
+        final midX = (sourceJetty.dx + targetJetty.dx) / 2;
+        // 找垂直偏移方向：往上还是往下？
+        // 取能避开两个形状的方向
+        final effectiveSource = source ?? Rect.fromCenter(center: start, width: 1, height: 1);
+        final effectiveTarget = target ?? Rect.fromCenter(center: end, width: 1, height: 1);
+        final goUp = effectiveSource.top > effectiveTarget.bottom ||
+            (effectiveSource.top + effectiveTarget.top) / 2 < sourceJetty.dy;
+        final detourY = goUp
+            ? math.min(effectiveSource.top, effectiveTarget.top) - buffer
+            : math.max(effectiveSource.bottom, effectiveTarget.bottom) + buffer;
+        points.add(Offset(sourceJetty.dx, detourY));
+        points.add(Offset(midX, detourY));
+        points.add(Offset(midX, targetJetty.dy));
+        // 只有当中间段不穿过 shape 时才简化
+        if ((sourceJetty.dy - detourY).abs() > buffer ||
+            (targetJetty.dy - detourY).abs() > buffer) {
+          // 已加拐点
+        }
+      } else {
+        // source向南，target向北（或反过来）
+        final midY = (sourceJetty.dy + targetJetty.dy) / 2;
+        final effectiveSource = source ?? Rect.fromCenter(center: start, width: 1, height: 1);
+        final effectiveTarget = target ?? Rect.fromCenter(center: end, width: 1, height: 1);
+        final goLeft = effectiveSource.left > effectiveTarget.right ||
+            (effectiveSource.left + effectiveTarget.left) / 2 < sourceJetty.dx;
+        final detourX = goLeft
+            ? math.min(effectiveSource.left, effectiveTarget.left) - buffer
+            : math.max(effectiveSource.right, effectiveTarget.right) + buffer;
+        points.add(Offset(detourX, sourceJetty.dy));
+        points.add(Offset(detourX, midY));
+        points.add(Offset(targetJetty.dx, midY));
+      }
     }
 
-    if (sourceDir == targetDir) {
-      final y = sourceDir == _DirectionMask.north
-          ? math.min(_topOf(source, sourceJetty), _topOf(target, targetJetty)) -
-                buffer
-          : math.max(
-                  _bottomOf(source, sourceJetty),
-                  _bottomOf(target, targetJetty),
-                ) +
-                buffer;
-      return [Offset(sourceJetty.dx, y), Offset(targetJetty.dx, y)];
+    if ((targetJetty - points.last).distance > 0.0001 &&
+        (targetJetty - end).distance > 0.0001) {
+      points.add(targetJetty);
     }
-    final midY = (sourceJetty.dy + targetJetty.dy) / 2;
-    return [Offset(sourceJetty.dx, midY), Offset(targetJetty.dx, midY)];
+    points.add(end);
+    return _dedupe(points, keepPoints: {sourceJetty, targetJetty, start, end});
   }
 
   static _DirectionMask _preferredDirectionForTerminal(
@@ -331,6 +333,23 @@ class OrthogonalRouteEngine {
     final otherCenter = otherTerminal?.center ?? other;
     final dx = otherCenter.dx - center.dx;
     final dy = otherCenter.dy - center.dy;
+
+    // 检查形状是否有水平/垂直重叠——优先选择非重叠方向
+    final overlapsH = terminal != null && otherTerminal != null &&
+        terminal.left < otherTerminal.right && terminal.right > otherTerminal.left;
+    final overlapsV = terminal != null && otherTerminal != null &&
+        terminal.top < otherTerminal.bottom && terminal.bottom > otherTerminal.top;
+
+    if (overlapsH && !overlapsV) {
+      // 水平重叠但垂直不重叠 → 优先垂直方向
+      return dy >= 0 ? _DirectionMask.south : _DirectionMask.north;
+    }
+    if (overlapsV && !overlapsH) {
+      // 垂直重叠但水平不重叠 → 优先水平方向
+      return dx >= 0 ? _DirectionMask.east : _DirectionMask.west;
+    }
+
+    // 默认：选择距离较远的方向
     if (dx.abs() >= dy.abs()) {
       return dx >= 0 ? _DirectionMask.east : _DirectionMask.west;
     }
@@ -347,30 +366,34 @@ class OrthogonalRouteEngine {
     return direction.dy >= 0 ? _DirectionMask.south : _DirectionMask.north;
   }
 
-  static Offset _jettyPoint(
+  /// 计算 jetty 点——带约束坐标支持。
+  ///
+  /// [constraintX]/[constraintY] 表示端口在边界上的相对位置（0~1），
+  /// 为 null 时使用 point 的当前坐标。
+  static Offset _jettyPointForDirection(
     Offset point,
     Rect? terminal,
     _DirectionMask direction,
-    double buffer,
-  ) {
+    double buffer, {
+    double? constraintX,
+    double? constraintY,
+  }) {
     if (terminal == null) {
       return point + direction.vector * buffer;
     }
+    final x = constraintX != null
+        ? terminal.left + constraintX * terminal.width
+        : point.dx;
+    final y = constraintY != null
+        ? terminal.top + constraintY * terminal.height
+        : point.dy;
     return switch (direction) {
-      _DirectionMask.west => Offset(terminal.left - buffer, point.dy),
-      _DirectionMask.north => Offset(point.dx, terminal.top - buffer),
-      _DirectionMask.east => Offset(terminal.right + buffer, point.dy),
-      _DirectionMask.south => Offset(point.dx, terminal.bottom + buffer),
+      _DirectionMask.west => Offset(terminal.left - buffer, y),
+      _DirectionMask.north => Offset(x, terminal.top - buffer),
+      _DirectionMask.east => Offset(terminal.right + buffer, y),
+      _DirectionMask.south => Offset(x, terminal.bottom + buffer),
     };
   }
-
-  static double _leftOf(Rect? rect, Offset fallback) =>
-      rect?.left ?? fallback.dx;
-  static double _rightOf(Rect? rect, Offset fallback) =>
-      rect?.right ?? fallback.dx;
-  static double _topOf(Rect? rect, Offset fallback) => rect?.top ?? fallback.dy;
-  static double _bottomOf(Rect? rect, Offset fallback) =>
-      rect?.bottom ?? fallback.dy;
 
   static Offset _leadPoint(
     Offset port,
@@ -1027,11 +1050,15 @@ class OrthogonalRouteEngine {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Route pattern constants — 源自 draw.io OrthConnector
+// ---------------------------------------------------------------------------
+
 enum _DirectionMask {
-  west,
-  north,
-  east,
-  south;
+  west,   // index 0
+  north,  // index 1
+  east,   // index 2 (=3 in draw.io mapping)
+  south;  // index 3
 
   bool get isHorizontal => this == west || this == east;
 

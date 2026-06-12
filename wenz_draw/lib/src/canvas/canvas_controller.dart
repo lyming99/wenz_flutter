@@ -34,7 +34,6 @@ import '../tools/select_tool.dart';
 import '../tools/text_tool.dart';
 import '../tools/arrow_tool.dart';
 import '../tools/tool_manager.dart';
-import '../utils/orthogonal_router.dart';
 import 'canvas_state.dart';
 import 'element_manager.dart';
 import 'spatial_index.dart';

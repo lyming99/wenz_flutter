@@ -6,15 +6,35 @@ import '../elements/line_element.dart';
 import '../elements/polyline_element.dart';
 import '../snap/snap_resolver.dart';
 import '../utils/orthogonal_router.dart';
+import 'elbow_router.dart';
+import 'orth_connector.dart';
+import 'perimeter.dart';
+import 'segment_connector.dart';
 
+/// 连接器路由模式。
 enum ConnectorRoutingMode {
+  /// 简单曼哈顿（两拐点，无避障）
   simpleManhattan,
+
+  /// draw.io 风格自动肘形（SideToSide / TopToBottom）
+  elbowStandard,
+
+  /// 带避障的 A* 网格搜索 + draw.io 启发式
   obstacleAvoiding,
+
+  /// 完整高级正交路由（A* 搜索 + 多候选回退）
   advancedOrthogonal,
+
+  /// 纯查表正交路由（OrthConnector，源自 draw.io OrthConnector）
+  orthConnector,
+
+  /// 用户控制点的分段正交路由（SegmentConnector）
+  segmentConnector,
 }
 
 enum ConnectorRouteQuality { fast, balanced, high }
 
+/// 连接器路由选项。
 class ConnectorRoutingOptions {
   const ConnectorRoutingOptions({
     this.mode = ConnectorRoutingMode.advancedOrthogonal,
@@ -47,8 +67,8 @@ class ConnectorRoutingOptions {
   final ConnectorRouteQuality finalQuality;
 
   ConnectorRoutingOptions forQuality(ConnectorRouteQuality quality) {
-    return switch (quality) {
-      ConnectorRouteQuality.fast => ConnectorRoutingOptions(
+    if (quality == ConnectorRouteQuality.fast) {
+      return ConnectorRoutingOptions(
         mode: mode,
         margin: margin,
         portLead: portLead,
@@ -62,17 +82,15 @@ class ConnectorRoutingOptions {
         stabilityPenalty: stabilityPenalty,
         previewQuality: previewQuality,
         finalQuality: finalQuality,
-      ),
-      ConnectorRouteQuality.balanced => ConnectorRoutingOptions(
+      );
+    } else if (quality == ConnectorRouteQuality.balanced) {
+      return ConnectorRoutingOptions(
         mode: mode,
         margin: margin,
         portLead: portLead,
         searchPadding: searchPadding,
         maxObstacles: (maxObstacles * 0.75).ceil().clamp(8, maxObstacles),
-        maxLanesPerAxis: (maxLanesPerAxis * 0.75).ceil().clamp(
-          8,
-          maxLanesPerAxis,
-        ),
+        maxLanesPerAxis: (maxLanesPerAxis * 0.75).ceil().clamp(8, maxLanesPerAxis),
         turnPenalty: turnPenalty,
         nodeCrossingPenalty: nodeCrossingPenalty,
         nodeTouchPenalty: nodeTouchPenalty,
@@ -80,14 +98,16 @@ class ConnectorRoutingOptions {
         stabilityPenalty: stabilityPenalty,
         previewQuality: previewQuality,
         finalQuality: finalQuality,
-      ),
-      ConnectorRouteQuality.high => this,
-    };
+      );
+    }
+    return this;
   }
 }
 
+/// 连接器端口方向。
 enum ConnectorSide { left, right, top, bottom, center, free }
 
+/// 连接器端口——描述连线在图形边界上的附着位置。
 class ConnectorPort {
   const ConnectorPort({
     required this.position,
@@ -97,17 +117,28 @@ class ConnectorPort {
     this.anchorId,
     this.bounds,
     this.locked = false,
+    this.fixed = false,
   });
 
+  /// 端口在图形边界上的绝对位置。
   final Offset position;
+
+  /// 端口位于图形的哪一侧。
   final ConnectorSide side;
+
+  /// 端口处的法向量（指向图形外部）。
   final Offset normal;
+
   final String? elementId;
   final String? anchorId;
   final Rect? bounds;
   final bool locked;
+
+  /// 是否为固定端点（不可被路由引擎移动）。
+  final bool fixed;
 }
 
+/// 路由中的障碍物。
 enum RoutingObstacleKind { node, widget, label, connectorLabel, temporary }
 
 class RoutingObstacle {
@@ -131,6 +162,7 @@ class RoutingObstacle {
 enum ConnectorRouteStrategy {
   directOrthogonal,
   visibilityGraph,
+  elbowStandard,
   candidateFallback,
   straightFallback,
 }
@@ -149,17 +181,55 @@ class ConnectorRouteResult {
   final bool usedFallback;
 }
 
+/// 端口解析器——使用 [WenzPerimeter] 计算连接器与图形边界的接触点。
 class ConnectorPortResolver {
   const ConnectorPortResolver();
 
+  /// 解析端口。
   ConnectorPort resolve({
     required Offset position,
     required Offset toward,
     SnapBinding? binding,
     Rect? bounds,
+    String shapeType = 'rectangle',
   }) {
     final anchorId = binding?.anchorId;
     final side = _sideForAnchor(anchorId, position, toward, bounds);
+
+    // 固定连接点：用户明确绑定了某个锢点（anchorId 非空）。
+    // 与 draw.io 一致：端点坐标恒定为锢点位置，不随对端移动而滑动。
+    // 这里 position 已经是 snapResolver 解析出的精确锢点坐标。
+    if (binding?.anchorId != null && side != ConnectorSide.center) {
+      return ConnectorPort(
+        position: position,
+        side: side,
+        normal: _normalForSide(side, position, toward, bounds),
+        elementId: binding?.elementId,
+        anchorId: anchorId,
+        bounds: bounds,
+        locked: true,
+        fixed: true,
+      );
+    }
+
+    if (bounds != null && side != ConnectorSide.center && side != ConnectorSide.free) {
+      final perimeterPoint = WenzPerimeter.computePerimeter(
+        bounds,
+        toward,
+        orthogonal: true,
+        shapeType: shapeType,
+      );
+      return ConnectorPort(
+        position: perimeterPoint,
+        side: side,
+        normal: _normalForSide(side, perimeterPoint, toward, bounds),
+        elementId: binding?.elementId,
+        anchorId: anchorId,
+        bounds: bounds,
+        locked: binding != null,
+      );
+    }
+
     return ConnectorPort(
       position: position,
       side: side,
@@ -184,25 +254,18 @@ class ConnectorPortResolver {
       'bottom' => ConnectorSide.bottom,
       'topLeft' || 'bottomLeft' => _cornerSide(
         horizontal: ConnectorSide.left,
-        vertical: anchorId == 'topLeft'
-            ? ConnectorSide.top
-            : ConnectorSide.bottom,
+        vertical: anchorId == 'topLeft' ? ConnectorSide.top : ConnectorSide.bottom,
         position: position,
         toward: toward,
       ),
       'topRight' || 'bottomRight' => _cornerSide(
         horizontal: ConnectorSide.right,
-        vertical: anchorId == 'topRight'
-            ? ConnectorSide.top
-            : ConnectorSide.bottom,
+        vertical: anchorId == 'topRight' ? ConnectorSide.top : ConnectorSide.bottom,
         position: position,
         toward: toward,
       ),
       'center' => ConnectorSide.center,
-      _ =>
-        bounds == null
-            ? ConnectorSide.free
-            : _nearestSide(position, toward, bounds),
+      _ => bounds == null ? ConnectorSide.free : _nearestSide(position, toward, bounds),
     };
   }
 
@@ -217,22 +280,14 @@ class ConnectorPortResolver {
   }
 
   ConnectorSide _nearestSide(Offset position, Offset toward, Rect bounds) {
-    final distances = <ConnectorSide, double>{
-      ConnectorSide.left: (position.dx - bounds.left).abs(),
-      ConnectorSide.right: (position.dx - bounds.right).abs(),
-      ConnectorSide.top: (position.dy - bounds.top).abs(),
-      ConnectorSide.bottom: (position.dy - bounds.bottom).abs(),
+    final (side, _) = WenzPerimeter.nearestSide(bounds, toward);
+    return switch (side) {
+      'left' => ConnectorSide.left,
+      'right' => ConnectorSide.right,
+      'top' => ConnectorSide.top,
+      'bottom' => ConnectorSide.bottom,
+      _ => ConnectorSide.center,
     };
-    final nearest = distances.entries.toList()
-      ..sort((a, b) => a.value.compareTo(b.value));
-    if (nearest.first.value <= 0.001) {
-      return nearest.first.key;
-    }
-    final delta = toward - position;
-    if (delta.dx.abs() >= delta.dy.abs()) {
-      return delta.dx >= 0 ? ConnectorSide.right : ConnectorSide.left;
-    }
-    return delta.dy >= 0 ? ConnectorSide.bottom : ConnectorSide.top;
   }
 
   Offset _normalForSide(
@@ -246,17 +301,14 @@ class ConnectorPortResolver {
       ConnectorSide.right => const Offset(1, 0),
       ConnectorSide.top => const Offset(0, -1),
       ConnectorSide.bottom => const Offset(0, 1),
-      ConnectorSide.center ||
-      ConnectorSide.free => _freeNormal(position, toward, bounds),
+      ConnectorSide.center || ConnectorSide.free => _freeNormal(position, toward, bounds),
     };
   }
 
   Offset _freeNormal(Offset position, Offset toward, Rect? bounds) {
     final origin = bounds?.center ?? position;
     final delta = toward - origin;
-    if (delta.distance <= 0.0001) {
-      return Offset.zero;
-    }
+    if (delta.distance <= 0.0001) return Offset.zero;
     if (delta.dx.abs() >= delta.dy.abs()) {
       return Offset(delta.dx >= 0 ? 1 : -1, 0);
     }
@@ -264,6 +316,15 @@ class ConnectorPortResolver {
   }
 }
 
+/// 连接器路由服务——连接器路由的主入口。
+///
+/// 整合多种路由策略：
+/// 1. [ConnectorRoutingMode.simpleManhattan] → 简单两拐点
+/// 2. [ConnectorRoutingMode.elbowStandard] → ElbowRouter
+/// 3. [ConnectorRoutingMode.orthConnector] → OrthConnector (draw.io 查表法)
+/// 4. [ConnectorRoutingMode.segmentConnector] → SegmentConnector (控制点)
+/// 5. [ConnectorRoutingMode.advancedOrthogonal] → A* 网格搜索（默认）
+/// 6. [ConnectorRoutingMode.obstacleAvoiding] → A* 网格搜索
 class ConnectorRoutingService {
   const ConnectorRoutingService({
     this.options = const ConnectorRoutingOptions(),
@@ -284,8 +345,11 @@ class ConnectorRoutingService {
     String? connectorId,
     List<Offset>? previousRoute,
     ConnectorRouteQuality quality = ConnectorRouteQuality.high,
+    List<Offset>? segmentControlPoints,
   }) {
     final tuned = options.forQuality(quality);
+
+    // 简单曼哈顿模式
     if (tuned.mode == ConnectorRoutingMode.simpleManhattan) {
       final points = _simpleManhattan(start, end);
       return ConnectorRouteResult(
@@ -296,18 +360,8 @@ class ConnectorRoutingService {
     }
 
     final byId = {for (final element in elements) element.id: element};
-    final sourceBounds = _boundsForBinding(
-      byId,
-      startBinding,
-      isLayerVisible,
-      isLayerLocked,
-    );
-    final targetBounds = _boundsForBinding(
-      byId,
-      endBinding,
-      isLayerVisible,
-      isLayerLocked,
-    );
+    final sourceBounds = _boundsForBinding(byId, startBinding, isLayerVisible, isLayerLocked);
+    final targetBounds = _boundsForBinding(byId, endBinding, isLayerVisible, isLayerLocked);
     final sourcePort = portResolver.resolve(
       position: start,
       toward: end,
@@ -320,6 +374,60 @@ class ConnectorRoutingService {
       binding: endBinding,
       bounds: targetBounds,
     );
+
+    // 分段连接器模式
+    if (tuned.mode == ConnectorRoutingMode.segmentConnector) {
+      final points = SegmentConnector.route(
+        start: sourcePort.position,
+        end: targetPort.position,
+        sourceBounds: sourceBounds,
+        targetBounds: targetBounds,
+        controlPoints: segmentControlPoints ?? const [],
+      );
+      return ConnectorRouteResult(
+        points: points,
+        score: _pathLength(points),
+        strategy: ConnectorRouteStrategy.elbowStandard,
+      );
+    }
+
+    // 肘形模式
+    if (tuned.mode == ConnectorRoutingMode.elbowStandard) {
+      final points = ElbowRouter.elbowConnector(
+        start: sourcePort.position,
+        end: targetPort.position,
+        sourceBounds: sourceBounds,
+        targetBounds: targetBounds,
+        margin: tuned.margin,
+      );
+      return ConnectorRouteResult(
+        points: points,
+        score: _pathLength(points),
+        strategy: ConnectorRouteStrategy.elbowStandard,
+      );
+    }
+
+    // 纯 OrthConnector 模式 —— draw.io 查表正交路由
+    if (tuned.mode == ConnectorRoutingMode.orthConnector) {
+      final points = OrthConnector.route(
+        start: sourcePort.position,
+        end: targetPort.position,
+        sourceBounds: sourceBounds,
+        targetBounds: targetBounds,
+        margin: tuned.margin,
+        sourcePortConstraint: _portConstraintMask(sourcePort),
+        targetPortConstraint: _portConstraintMask(targetPort),
+        sourceFixed: startBinding?.anchorId != null,
+        targetFixed: endBinding?.anchorId != null,
+      );
+      return ConnectorRouteResult(
+        points: points,
+        score: _pathLength(points),
+        strategy: ConnectorRouteStrategy.directOrthogonal,
+      );
+    }
+
+    // advancedOrthogonal / obstacleAvoiding：使用 A* 网格搜索
     final queryRect = Rect.fromPoints(start, end).inflate(tuned.searchPadding);
     final obstacles = routingObstacles(
       elements: elements,
@@ -329,11 +437,11 @@ class ConnectorRoutingService {
     );
 
     final points = OrthogonalRouteEngine.route(
-      start: start,
-      end: end,
+      start: sourcePort.position,
+      end: targetPort.position,
       sourceBounds: sourceBounds,
       targetBounds: targetBounds,
-      obstacles: [for (final obstacle in obstacles) obstacle.bounds],
+      obstacles: [for (final o in obstacles) o.inflated(tuned.margin)],
       margin: tuned.margin,
       preferredStartDirection: sourcePort.locked ? sourcePort.normal : null,
       preferredEndDirection: targetPort.locked ? targetPort.normal : null,
@@ -347,6 +455,7 @@ class ConnectorRoutingService {
       previousRoute: previousRoute,
       stabilityPenalty: tuned.stabilityPenalty,
     );
+
     return ConnectorRouteResult(
       points: points,
       score: _pathLength(points),
@@ -381,9 +490,7 @@ class ConnectorRoutingService {
     bool Function(String layerId) isLayerVisible,
     bool Function(String layerId)? isLayerLocked,
   ) {
-    if (binding == null) {
-      return null;
-    }
+    if (binding == null) return null;
     final target = elementsById[binding.elementId];
     if (target == null ||
         !target.visible ||
@@ -395,8 +502,7 @@ class ConnectorRoutingService {
   }
 
   List<Offset> _simpleManhattan(Offset start, Offset end) {
-    if ((start.dx - end.dx).abs() < 0.0001 ||
-        (start.dy - end.dy).abs() < 0.0001) {
+    if ((start.dx - end.dx).abs() < 0.0001 || (start.dy - end.dy).abs() < 0.0001) {
       return [start, end];
     }
     return [start, Offset(end.dx, start.dy), end];
@@ -408,5 +514,18 @@ class ConnectorRoutingService {
       total += (points[i + 1] - points[i]).distance;
     }
     return total;
+  }
+
+  /// 将端口侧转换为 OrthConnector 的方向位掩码（WEST=1/NORTH=2/SOUTH=4/EAST=8）。
+  /// 仅在端口锁定（固定连接点）时返回约束，否则返回 null（不限制）。
+  static int? _portConstraintMask(ConnectorPort port) {
+    if (!port.locked) return null;
+    return switch (port.side) {
+      ConnectorSide.left => 1,
+      ConnectorSide.top => 2,
+      ConnectorSide.bottom => 4,
+      ConnectorSide.right => 8,
+      ConnectorSide.center || ConnectorSide.free => null,
+    };
   }
 }

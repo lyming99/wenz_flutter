@@ -108,7 +108,7 @@ class PolylineTool extends CanvasTool {
         end,
         _startSnap?.binding,
         _currentSnap?.binding,
-        quality: controller.connectorRoutingOptions.previewQuality,
+        quality: controller.connectorRoutingOptions.finalQuality,
       ),
       style: controller.brushSettings.strokeStyle.copyWith(opacity: 0.72),
     );
