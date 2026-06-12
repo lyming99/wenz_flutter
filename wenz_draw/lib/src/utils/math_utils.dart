@@ -51,6 +51,33 @@ Offset scalePoint(Offset point, double factor, Offset pivot) {
   return pivot + (point - pivot) * factor;
 }
 
+Offset rotatePoint(Offset point, double radians, Offset pivot) {
+  final translated = point - pivot;
+  final cosTheta = math.cos(radians);
+  final sinTheta = math.sin(radians);
+  return Offset(
+    pivot.dx + translated.dx * cosTheta - translated.dy * sinTheta,
+    pivot.dy + translated.dx * sinTheta + translated.dy * cosTheta,
+  );
+}
+
+Rect rotatedRectBounds(Rect rect, double radians) {
+  if (radians == 0) {
+    return rect;
+  }
+  final center = rect.center;
+  return boundsForPoints([
+    rotatePoint(rect.topLeft, radians, center),
+    rotatePoint(rect.topRight, radians, center),
+    rotatePoint(rect.bottomRight, radians, center),
+    rotatePoint(rect.bottomLeft, radians, center),
+  ]);
+}
+
+Offset inverseRotatePoint(Offset point, double radians, Offset pivot) {
+  return rotatePoint(point, -radians, pivot);
+}
+
 Rect normalizedRectFromPoints(Offset a, Offset b) {
   return Rect.fromLTRB(
     math.min(a.dx, b.dx),

@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../canvas/canvas_controller.dart';
@@ -27,6 +29,7 @@ class SelectTool extends CanvasTool {
   bool _movingSelection = false;
   bool _resizingText = false;
   bool _scalingElement = false;
+  bool _rotatingSelection = false;
   bool _draggingLineEndpoint = false;
   bool _draggingPolylinePoint = false;
   bool _draggingPolylineSegment = false;
@@ -41,6 +44,9 @@ class SelectTool extends CanvasTool {
   static const double _minTextBoxWidth = 24;
   static const double _minTextBoxHeight = 24;
   Map<String, CanvasElement> _moveBefore = const {};
+  Map<String, CanvasElement> _rotateBefore = const {};
+  Offset? _rotationCenter;
+  double? _rotationStartAngle;
 
   @override
   String get id => idValue;
@@ -59,6 +65,7 @@ class SelectTool extends CanvasTool {
     _movingSelection = false;
     _resizingText = false;
     _scalingElement = false;
+    _rotatingSelection = false;
     _draggingLineEndpoint = false;
     _draggingPolylinePoint = false;
     _draggingPolylineSegment = false;
@@ -71,6 +78,9 @@ class SelectTool extends CanvasTool {
     _lineEndpointBefore = null;
     _resizeAnchor = null;
     _moveBefore = const {};
+    _rotateBefore = const {};
+    _rotationCenter = null;
+    _rotationStartAngle = null;
     controller.setSelectionRect(null);
   }
 
@@ -86,8 +96,15 @@ class SelectTool extends CanvasTool {
             polylinePointTarget == null && lineEndpointTarget == null
             ? _polylineSegmentTargetAt(controller, event)
             : null;
-        final resizeTarget =
+        final rotateTarget =
             lineEndpointTarget == null &&
+                polylinePointTarget == null &&
+                polylineSegmentTarget == null
+            ? _rotateTargetAt(controller, event)
+            : null;
+        final resizeTarget =
+            rotateTarget == null &&
+                lineEndpointTarget == null &&
                 polylinePointTarget == null &&
                 polylineSegmentTarget == null
             ? _resizeTargetAt(controller, event)
@@ -130,6 +147,22 @@ class SelectTool extends CanvasTool {
           _lineEndpointBefore = polylineSegmentTarget.element;
           return const ToolResultConsumed();
         }
+        if (rotateTarget != null) {
+          _movingSelection = false;
+          _resizingText = false;
+          _scalingElement = false;
+          _rotatingSelection = true;
+          _draggingLineEndpoint = false;
+          _draggingPolylinePoint = false;
+          _draggingPolylineSegment = false;
+          _rotationCenter = rotateTarget.center;
+          _rotationStartAngle = _angle(rotateTarget.center, event.worldPoint);
+          _rotateBefore = {
+            for (final element in controller.selectedElements)
+              element.id: element,
+          };
+          return const ToolResultConsumed();
+        }
         if (resizeTarget != null) {
           controller.setSelection({resizeTarget.element.id});
           _movingSelection = false;
@@ -149,6 +182,17 @@ class SelectTool extends CanvasTool {
             _resizeBefore = null;
             _scaleBefore = resizeTarget.element;
           }
+          return const ToolResultConsumed();
+        }
+
+        final selectionBounds = _selectionBounds(controller);
+        if (selectionBounds != null &&
+            selectionBounds.contains(event.worldPoint)) {
+          _movingSelection = true;
+          _moveBefore = {
+            for (final element in controller.selectedElements)
+              element.id: element,
+          };
           return const ToolResultConsumed();
         }
 
@@ -174,6 +218,11 @@ class SelectTool extends CanvasTool {
         final last = _lastPoint;
         if (start == null || last == null) {
           return const ToolResultNone();
+        }
+        if (_rotatingSelection) {
+          _rotateSelection(controller, event.worldPoint);
+          _lastPoint = event.worldPoint;
+          return const ToolResultConsumed();
         }
         if (_resizingText) {
           _resizeText(controller, event.worldPoint);
@@ -214,6 +263,11 @@ class SelectTool extends CanvasTool {
         controller.setSelectionRect(_selectionRect);
         return const ToolResultConsumed();
       case CanvasPointerUpEvent():
+        if (_rotatingSelection) {
+          _recordRotation(controller);
+          cancel(controller);
+          return const ToolResultConsumed();
+        }
         if (_resizingText) {
           _recordResize(controller);
           cancel(controller);
@@ -252,11 +306,13 @@ class SelectTool extends CanvasTool {
         return const ToolResultConsumed();
       case CanvasDoubleTapEvent():
         final hit = controller.hitTest(event.worldPoint);
-        if (hit is TextElement) {
-          controller.beginTextEditing(hit.id);
+        final labelTarget =
+            hit ?? _labelEditableElementAt(controller, event.worldPoint);
+        if (labelTarget is TextElement) {
+          controller.beginTextEditing(labelTarget.id);
           return const ToolResultConsumed();
         }
-        if (hit
+        if (labelTarget
             case DrawioShapeElement(:final id) ||
                 RectElement(:final id) ||
                 EllipseElement(:final id) ||
@@ -270,6 +326,39 @@ class SelectTool extends CanvasTool {
       default:
         return const ToolResultNone();
     }
+  }
+
+  CanvasElement? _labelEditableElementAt(
+    CanvasController controller,
+    Offset worldPoint,
+  ) {
+    for (final element in controller.orderedElements().toList().reversed) {
+      if (!element.visible ||
+          !controller.isLayerVisible(element.layerId) ||
+          controller.isLayerLocked(element.layerId)) {
+        continue;
+      }
+      if (element is DrawioShapeElement && element.rect.contains(worldPoint)) {
+        return element;
+      }
+      if (element is RectElement && element.rect.contains(worldPoint)) {
+        return element;
+      }
+      if (element is EllipseElement && element.rect.contains(worldPoint)) {
+        return element;
+      }
+    }
+    return null;
+  }
+
+  Rect? _selectionBounds(CanvasController controller) {
+    Rect? bounds;
+    for (final element in controller.selectedElements) {
+      bounds = bounds == null
+          ? element.bounds
+          : bounds.expandToInclude(element.bounds);
+    }
+    return bounds;
   }
 
   _PolylinePointTarget? _polylinePointTargetAt(
@@ -346,6 +435,73 @@ class SelectTool extends CanvasTool {
     return null;
   }
 
+  _RotateTarget? _rotateTargetAt(
+    CanvasController controller,
+    CanvasPointerDownEvent event,
+  ) {
+    final geometry = _rotateHandleGeometry(controller, event.transform.scale);
+    if (geometry == null) {
+      return null;
+    }
+    final tolerance = 12 / event.transform.scale;
+    final handleRect = Rect.fromCenter(
+      center: geometry.handle,
+      width: 28 / event.transform.scale,
+      height: 28 / event.transform.scale,
+    );
+    if (handleRect.contains(event.worldPoint) ||
+        distanceToSegment(event.worldPoint, geometry.anchor, geometry.handle) <=
+            tolerance) {
+      return _RotateTarget(geometry.center);
+    }
+    return null;
+  }
+
+  _RotateHandleGeometry? _rotateHandleGeometry(
+    CanvasController controller,
+    double scale,
+  ) {
+    if (controller.selectedIds.isEmpty) {
+      return null;
+    }
+    if (controller.selectedElements.length == 1) {
+      final element = controller.selectedElements.first;
+      if (element is DrawioShapeElement && element.rotation != 0) {
+        final rect = element.rect.inflate(
+          4 / scale + element.strokeStyle.strokeWidth / 2,
+        );
+        final center = element.rect.center;
+        final anchor = rotatePoint(
+          Offset(rect.center.dx, rect.top),
+          element.rotation,
+          center,
+        );
+        final direction = anchor - center;
+        final distance = direction.distance;
+        final normal = distance <= 0.0001
+            ? const Offset(0, -1)
+            : direction / distance;
+        return _RotateHandleGeometry(
+          center: center,
+          anchor: anchor,
+          handle: anchor + normal * (24 / scale),
+        );
+      }
+    }
+
+    final bounds = _selectionBounds(controller)?.inflate(4 / scale);
+    if (bounds == null) {
+      return null;
+    }
+    final center = bounds.center;
+    final anchor = Offset(center.dx, bounds.top);
+    return _RotateHandleGeometry(
+      center: center,
+      anchor: anchor,
+      handle: Offset(center.dx, bounds.top - 24 / scale),
+    );
+  }
+
   _ResizeTarget? _resizeTargetAt(
     CanvasController controller,
     CanvasPointerDownEvent event,
@@ -360,6 +516,24 @@ class SelectTool extends CanvasTool {
       }
     }
     return null;
+  }
+
+  void _rotateSelection(CanvasController controller, Offset worldPoint) {
+    final center = _rotationCenter;
+    final startAngle = _rotationStartAngle;
+    if (center == null || startAngle == null || _rotateBefore.isEmpty) {
+      return;
+    }
+    final radians = _angle(center, worldPoint) - startAngle;
+    for (final before in _rotateBefore.values) {
+      final next = before.rotateElement(radians, pivot: center);
+      controller.updateElement(before.id, next, record: false);
+    }
+  }
+
+  double _angle(Offset center, Offset point) {
+    final vector = point - center;
+    return math.atan2(vector.dy, vector.dx);
   }
 
   void _resizeText(CanvasController controller, Offset worldPoint) {
@@ -703,6 +877,29 @@ class SelectTool extends CanvasTool {
     );
   }
 
+  void _recordRotation(CanvasController controller) {
+    final commands = <UpdateElementCommand>[];
+    for (final after in controller.selectedElements) {
+      final before = _rotateBefore[after.id];
+      if (before != null &&
+          before.toJson().toString() != after.toJson().toString()) {
+        commands.add(
+          UpdateElementCommand(
+            before: before,
+            after: after,
+            description: 'Rotate ${after.type}',
+          ),
+        );
+      }
+    }
+    if (commands.isEmpty) {
+      return;
+    }
+    controller.recordCommand(
+      BatchCommand(commands: commands, description: 'Rotate selection'),
+    );
+  }
+
   void _recordScale(CanvasController controller) {
     final before = _scaleBefore;
     if (before == null) {
@@ -976,6 +1173,24 @@ class _LineEndpointTarget {
 
   final CanvasElement element;
   final _LineEndpoint endpoint;
+}
+
+class _RotateHandleGeometry {
+  const _RotateHandleGeometry({
+    required this.center,
+    required this.anchor,
+    required this.handle,
+  });
+
+  final Offset center;
+  final Offset anchor;
+  final Offset handle;
+}
+
+class _RotateTarget {
+  const _RotateTarget(this.center);
+
+  final Offset center;
 }
 
 class _ResizeTarget {

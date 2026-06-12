@@ -114,10 +114,7 @@ class _InfiniteCanvasWidgetState extends State<InfiniteCanvasWidget> {
                         ),
                         _TextEditingOverlay(
                           key: ValueKey(
-                            widget
-                                .controller
-                                .canvasController
-                                .editingTextElementId,
+                            '${widget.controller.canvasController.editingTextElementId ?? ''}:${widget.controller.canvasController.editingShapeLabelElementId ?? ''}',
                           ),
                           controller: widget.controller,
                         ),
@@ -278,7 +275,7 @@ class _InfiniteCanvasWidgetState extends State<InfiniteCanvasWidget> {
 
   Rect _shapeLabelEditingBounds(Object? element) {
     final bounds = switch (element) {
-      DrawioShapeElement e => e.labelPadding.deflateRect(e.rect),
+      DrawioShapeElement e => e.rect,
       RectElement e => e.labelPadding.deflateRect(e.rect),
       EllipseElement e => e.labelPadding.deflateRect(e.rect),
       LineElement e => LineLabelPainter.labelBounds(
@@ -455,7 +452,9 @@ class _InfiniteCanvasWidgetState extends State<InfiniteCanvasWidget> {
         pointerCount: _pointers.length + 1,
       ),
     );
-    return widget.controller.canvasController.editingTextElementId != null;
+    final canvasController = widget.controller.canvasController;
+    return canvasController.editingTextElementId != null ||
+        canvasController.editingShapeLabelElementId != null;
   }
 
   bool _shouldDeferToWidget(Offset screenPoint) {
@@ -986,7 +985,7 @@ class ShapeLabelEditingTarget implements _TextEditingTarget {
 
   @override
   Rect get bounds => switch (element) {
-    DrawioShapeElement e => e.labelPadding.deflateRect(e.rect),
+    DrawioShapeElement e => e.rect,
     RectElement e => e.labelPadding.deflateRect(e.rect),
     EllipseElement e => e.labelPadding.deflateRect(e.rect),
     LineElement e => _lineLabelBounds(

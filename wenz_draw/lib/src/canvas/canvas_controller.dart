@@ -597,6 +597,10 @@ class CanvasController extends ChangeNotifier {
     layerManager.setOpacity(id, opacity);
   }
 
+  void reorderLayer(int oldIndex, int newIndex) {
+    layerManager.reorder(oldIndex, newIndex);
+  }
+
   int layerIndexOf(String id) => layerManager.layerIndexOf(id);
 
   bool isLayerVisible(String id) => layerManager.isLayerVisible(id);
@@ -642,6 +646,79 @@ class CanvasController extends ChangeNotifier {
       ),
       record: record,
     );
+  }
+
+  void updateShapePaint(
+    String id, {
+    Color? fillColor,
+    bool clearFill = false,
+    Color? strokeColor,
+    double? strokeWidth,
+    bool record = true,
+  }) {
+    final element = elementById(id);
+    switch (element) {
+      case DrawioShapeElement e:
+        updateElement(
+          id,
+          e.copyWith(
+            fillStyle: clearFill
+                ? null
+                : (fillColor == null
+                      ? e.fillStyle
+                      : (e.fillStyle ?? const PaintStyle()).copyWith(
+                          color: fillColor,
+                          paintingStyle: PaintingStyle.fill,
+                          strokeWidth: 0,
+                        )),
+            strokeStyle: e.strokeStyle.copyWith(
+              color: strokeColor,
+              strokeWidth: strokeWidth,
+            ),
+          ),
+          record: record,
+        );
+      case RectElement e:
+        updateElement(
+          id,
+          e.copyWith(
+            fillStyle: clearFill
+                ? null
+                : (fillColor == null
+                      ? e.fillStyle
+                      : (e.fillStyle ?? const PaintStyle()).copyWith(
+                          color: fillColor,
+                          paintingStyle: PaintingStyle.fill,
+                          strokeWidth: 0,
+                        )),
+            strokeStyle: e.strokeStyle.copyWith(
+              color: strokeColor,
+              strokeWidth: strokeWidth,
+            ),
+          ),
+          record: record,
+        );
+      case EllipseElement e:
+        updateElement(
+          id,
+          e.copyWith(
+            fillStyle: clearFill
+                ? null
+                : (fillColor == null
+                      ? e.fillStyle
+                      : (e.fillStyle ?? const PaintStyle()).copyWith(
+                          color: fillColor,
+                          paintingStyle: PaintingStyle.fill,
+                          strokeWidth: 0,
+                        )),
+            strokeStyle: e.strokeStyle.copyWith(
+              color: strokeColor,
+              strokeWidth: strokeWidth,
+            ),
+          ),
+          record: record,
+        );
+    }
   }
 
   void updateShapeLabelStyle(
@@ -739,6 +816,31 @@ class CanvasController extends ChangeNotifier {
       element.copyWith(maxWidth: constrained.width, boxSize: constrained),
       record: record,
     );
+  }
+
+  void updateElementRotation(String id, double radians, {bool record = true}) {
+    final element = elementById(id);
+    if (element is DrawioShapeElement) {
+      updateElement(id, element.copyWith(rotation: radians), record: record);
+    }
+  }
+
+  void updateTextContent(String id, String text, {bool record = true}) {
+    final element = elementById(id);
+    if (element is TextElement) {
+      updateElement(id, element.copyWith(text: text), record: record);
+      return;
+    }
+    if (element == null) {
+      return;
+    }
+    final next = _copyWithShapeLabel(
+      element,
+      text.trim().isEmpty ? null : text,
+    );
+    if (next != null) {
+      updateElement(id, next, record: record);
+    }
   }
 
   void beginTextEditing(String id) {

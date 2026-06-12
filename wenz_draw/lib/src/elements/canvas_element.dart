@@ -11,6 +11,8 @@ abstract class CanvasElement {
   double get opacity;
   int get zIndex;
 
+  double get rotation => 0;
+
   bool hitTest(Offset worldPoint, {double tolerance = 5.0});
 
   Map<String, dynamic> toJson();
@@ -26,4 +28,8 @@ abstract class CanvasElement {
   CanvasElement translate(Offset delta);
 
   CanvasElement scaleElement(double factor, {Offset? pivot});
+
+  CanvasElement rotateElement(double radians, {Offset? pivot}) {
+    return this;
+  }
 }

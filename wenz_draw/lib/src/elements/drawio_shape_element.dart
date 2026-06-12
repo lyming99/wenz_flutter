@@ -22,6 +22,7 @@ class DrawioShapeElement extends CanvasElement {
     this.labelStyle = ShapeLabelPainter.defaultStyle,
     this.labelAlign = TextAlign.center,
     this.labelPadding = ShapeLabelPainter.defaultPadding,
+    this.rotation = 0,
     this.layerId = 'default',
     this.visible = true,
     this.opacity = 1,
@@ -42,6 +43,8 @@ class DrawioShapeElement extends CanvasElement {
   final TextStyle labelStyle;
   final TextAlign labelAlign;
   final EdgeInsets labelPadding;
+  @override
+  final double rotation;
 
   @override
   final String layerId;
@@ -59,15 +62,17 @@ class DrawioShapeElement extends CanvasElement {
   String get type => elementType;
 
   @override
-  Rect get bounds => rect.inflate(strokeStyle.strokeWidth / 2);
+  Rect get bounds =>
+      rotatedRectBounds(rect.inflate(strokeStyle.strokeWidth / 2), rotation);
 
   @override
   bool hitTest(Offset worldPoint, {double tolerance = 5.0}) {
     ensureDrawioShapeDefinitionsRegistered();
+    final localPoint = inverseRotatePoint(worldPoint, rotation, rect.center);
     return ShapeDefinitionRegistry.definitionFor(shapeKey).hitTest(
       rect,
       properties,
-      worldPoint,
+      localPoint,
       strokeStyle: strokeStyle,
       fillStyle: fillStyle,
       tolerance: tolerance,
@@ -85,6 +90,7 @@ class DrawioShapeElement extends CanvasElement {
     Object? label = _unset,
     TextStyle? labelStyle,
     TextAlign? labelAlign,
+    double? rotation,
     EdgeInsets? labelPadding,
     String? layerId,
     bool? visible,
@@ -106,6 +112,7 @@ class DrawioShapeElement extends CanvasElement {
       labelStyle: labelStyle ?? this.labelStyle,
       labelAlign: labelAlign ?? this.labelAlign,
       labelPadding: labelPadding ?? this.labelPadding,
+      rotation: rotation ?? this.rotation,
       layerId: layerId ?? this.layerId,
       visible: visible ?? this.visible,
       opacity: opacity ?? this.opacity,
@@ -160,7 +167,22 @@ class DrawioShapeElement extends CanvasElement {
       'labelStyle': ShapeLabelPainter.styleToJson(labelStyle),
       'labelAlign': labelAlign.name,
       'labelPadding': ShapeLabelPainter.paddingToJson(labelPadding),
+      if (rotation != 0) 'rotation': rotation,
     };
+  }
+
+  @override
+  DrawioShapeElement rotateElement(double radians, {Offset? pivot}) {
+    final origin = pivot ?? rect.center;
+    final nextCenter = rotatePoint(rect.center, radians, origin);
+    return copyWith(
+      rect: Rect.fromCenter(
+        center: nextCenter,
+        width: rect.width,
+        height: rect.height,
+      ),
+      rotation: rotation + radians,
+    );
   }
 
   Map<String, dynamic> _scaledProperties(double factor) {
@@ -190,6 +212,10 @@ class DrawioShapeElementRenderer extends ElementRenderer<DrawioShapeElement> {
     }
     ensureDrawioShapeDefinitionsRegistered();
     final definition = ShapeDefinitionRegistry.definitionFor(element.shapeKey);
+    canvas.save();
+    canvas.translate(element.rect.center.dx, element.rect.center.dy);
+    canvas.rotate(element.rotation);
+    canvas.translate(-element.rect.center.dx, -element.rect.center.dy);
     definition.paint(
       canvas,
       element.rect,
@@ -198,7 +224,12 @@ class DrawioShapeElementRenderer extends ElementRenderer<DrawioShapeElement> {
       fillStyle: element.fillStyle,
       opacity: element.opacity,
     );
+    canvas.restore();
 
+    canvas.save();
+    canvas.translate(element.rect.center.dx, element.rect.center.dy);
+    canvas.rotate(element.rotation);
+    canvas.translate(-element.rect.center.dx, -element.rect.center.dy);
     ShapeLabelPainter.paint(
       canvas,
       rect: definition.labelRectFor(element.rect, element.properties),
@@ -208,6 +239,7 @@ class DrawioShapeElementRenderer extends ElementRenderer<DrawioShapeElement> {
       padding: element.labelPadding,
       opacity: element.opacity,
     );
+    canvas.restore();
   }
 
   @override

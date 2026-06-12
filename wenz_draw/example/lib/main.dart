@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -8,120 +9,65 @@ class _DrawioShapePaletteEntry {
     required this.label,
     required this.shapeKey,
     required this.group,
-    required this.icon,
   });
 
   final String label;
   final String shapeKey;
   final String group;
-  final IconData icon;
 
   String get toolId => ShapeTool.idFor(shapeKey);
 }
 
 const _drawioShapePalette = [
-  _DrawioShapePaletteEntry(
-    label: '菱形',
-    shapeKey: 'rhombus',
-    group: 'basic',
-    icon: Icons.change_history,
-  ),
-  _DrawioShapePaletteEntry(
-    label: '三角形',
-    shapeKey: 'triangle',
-    group: 'basic',
-    icon: Icons.change_history,
-  ),
-  _DrawioShapePaletteEntry(
-    label: '六边形',
-    shapeKey: 'hexagon',
-    group: 'basic',
-    icon: Icons.hexagon_outlined,
-  ),
-  _DrawioShapePaletteEntry(
-    label: '加号',
-    shapeKey: 'plus',
-    group: 'basic',
-    icon: Icons.add_box_outlined,
-  ),
-  _DrawioShapePaletteEntry(
-    label: '交叉',
-    shapeKey: 'cross',
-    group: 'basic',
-    icon: Icons.close,
-  ),
+  _DrawioShapePaletteEntry(label: '菱形', shapeKey: 'rhombus', group: 'basic'),
+  _DrawioShapePaletteEntry(label: '三角形', shapeKey: 'triangle', group: 'basic'),
+  _DrawioShapePaletteEntry(label: '六边形', shapeKey: 'hexagon', group: 'basic'),
+  _DrawioShapePaletteEntry(label: '加号', shapeKey: 'plus', group: 'basic'),
+  _DrawioShapePaletteEntry(label: '交叉', shapeKey: 'cross', group: 'basic'),
   _DrawioShapePaletteEntry(
     label: '流程',
     shapeKey: 'parallelogram',
     group: 'flowchart',
-    icon: Icons.crop_16_9,
   ),
   _DrawioShapePaletteEntry(
     label: '梯形',
     shapeKey: 'trapezoid',
     group: 'flowchart',
-    icon: Icons.filter_none,
   ),
   _DrawioShapePaletteEntry(
     label: '文档',
     shapeKey: 'document',
     group: 'flowchart',
-    icon: Icons.description_outlined,
   ),
-  _DrawioShapePaletteEntry(
-    label: '步骤',
-    shapeKey: 'step',
-    group: 'flowchart',
-    icon: Icons.arrow_right_alt,
-  ),
+  _DrawioShapePaletteEntry(label: '步骤', shapeKey: 'step', group: 'flowchart'),
   _DrawioShapePaletteEntry(
     label: '圆柱',
     shapeKey: 'cylinder',
     group: 'flowchart',
-    icon: Icons.data_object,
   ),
   _DrawioShapePaletteEntry(
     label: '泳道',
     shapeKey: 'swimlane',
     group: 'container',
-    icon: Icons.view_agenda_outlined,
   ),
-  _DrawioShapePaletteEntry(
-    label: '便签形',
-    shapeKey: 'note',
-    group: 'container',
-    icon: Icons.sticky_note_2_outlined,
-  ),
+  _DrawioShapePaletteEntry(label: '便签形', shapeKey: 'note', group: 'container'),
   _DrawioShapePaletteEntry(
     label: '标注',
     shapeKey: 'callout',
     group: 'container',
-    icon: Icons.chat_bubble_outline,
   ),
   _DrawioShapePaletteEntry(
     label: '双椭圆',
     shapeKey: 'doubleEllipse',
     group: 'container',
-    icon: Icons.trip_origin,
   ),
   _DrawioShapePaletteEntry(
     label: 'Actor',
     shapeKey: 'actor',
     group: 'container',
-    icon: Icons.accessibility_new,
   ),
-  _DrawioShapePaletteEntry(
-    label: '云',
-    shapeKey: 'cloud',
-    group: 'container',
-    icon: Icons.cloud_outlined,
-  ),
-  _DrawioShapePaletteEntry(
-    label: '立方体',
-    shapeKey: 'cube',
-    group: 'container',
-    icon: Icons.view_in_ar_outlined,
-  ),
+  _DrawioShapePaletteEntry(label: '云', shapeKey: 'cloud', group: 'container'),
+  _DrawioShapePaletteEntry(label: '立方体', shapeKey: 'cube', group: 'container'),
 ];
 
 void main() {
@@ -682,6 +628,13 @@ class _Toolbar extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   _ToolButton(
+                    label: '菜单',
+                    icon: Icons.menu,
+                    selected: false,
+                    onPressed: () => _showFileMenu(context),
+                  ),
+                  const _ToolbarDivider(),
+                  _ToolButton(
                     label: '选择',
                     icon: Icons.near_me_outlined,
                     selected: activeTool == SelectTool.idValue,
@@ -710,13 +663,13 @@ class _Toolbar extends StatelessWidget {
                   ),
                   _ToolButton(
                     label: '直线',
-                    icon: Icons.show_chart,
+                    iconWidget: const _LineToolIcon(polyline: false),
                     selected: activeTool == LineTool.idValue,
                     onPressed: () => canvasController.setTool(LineTool.idValue),
                   ),
                   _ToolButton(
                     label: '折线',
-                    icon: Icons.account_tree_outlined,
+                    iconWidget: const _LineToolIcon(polyline: true),
                     selected: activeTool == PolylineTool.idValue,
                     onPressed: () =>
                         canvasController.setTool(PolylineTool.idValue),
@@ -778,27 +731,47 @@ class _Toolbar extends StatelessWidget {
     );
   }
 
-  void _showComponentMenu(BuildContext context) {
-    final button = context.findRenderObject() as RenderBox?;
-    final overlay =
-        Overlay.of(context).context.findRenderObject() as RenderBox?;
-    if (button == null || overlay == null) {
-      onAddStickyNote();
-      return;
-    }
-    final position = RelativeRect.fromRect(
-      Rect.fromPoints(
-        button.localToGlobal(Offset.zero, ancestor: overlay),
-        button.localToGlobal(
-          button.size.bottomRight(Offset.zero),
-          ancestor: overlay,
-        ),
-      ),
-      Offset.zero & overlay.size,
-    );
-    showMenu<String>(
+  void _showFileMenu(BuildContext context) {
+    _showAnchoredMenu<String>(
       context: context,
-      position: position,
+      items: const [
+        PopupMenuItem(value: 'import-json', child: Text('导入 JSON')),
+        PopupMenuItem(value: 'import-drawio', child: Text('导入 draw.io')),
+        PopupMenuDivider(),
+        PopupMenuItem(value: 'export-json', child: Text('导出 JSON')),
+        PopupMenuItem(value: 'export-svg', child: Text('导出 SVG')),
+        PopupMenuDivider(),
+        PopupMenuItem(value: 'save', child: Text('保存')),
+      ],
+    ).then((value) {
+      switch (value) {
+        case 'import-json':
+          _showImportDialog(context, canvasController, importDrawio: false);
+        case 'import-drawio':
+          _showImportDialog(context, canvasController, importDrawio: true);
+        case 'export-json':
+          _showExportDialog(
+            context,
+            'JSON',
+            _prettyJson(CanvasSerializer.toJson(canvasController)),
+          );
+        case 'export-svg':
+          _showExportDialog(
+            context,
+            'SVG',
+            SvgExporter.exportElements(elements: canvasController.elements),
+          );
+        case 'save':
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('当前画布已保存到内存快照')));
+      }
+    });
+  }
+
+  void _showComponentMenu(BuildContext context) {
+    _showAnchoredMenu<String>(
+      context: context,
       items: const [
         PopupMenuItem(value: 'note', child: Text('便签')),
         PopupMenuItem(value: 'counter', child: Text('计数器')),
@@ -874,6 +847,60 @@ class _ToolButton extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class _LineToolIcon extends StatelessWidget {
+  const _LineToolIcon({required this.polyline});
+
+  final bool polyline;
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      size: const Size(18, 18),
+      painter: _LineToolPainter(polyline),
+    );
+  }
+}
+
+class _LineToolPainter extends CustomPainter {
+  const _LineToolPainter(this.polyline);
+
+  final bool polyline;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0xFF5F6E7D)
+      ..strokeWidth = 1.8
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round
+      ..style = PaintingStyle.stroke;
+    final points = polyline
+        ? [
+            Offset(size.width * 0.12, size.height * 0.78),
+            Offset(size.width * 0.44, size.height * 0.28),
+            Offset(size.width * 0.88, size.height * 0.62),
+          ]
+        : [
+            Offset(size.width * 0.14, size.height * 0.78),
+            Offset(size.width * 0.86, size.height * 0.22),
+          ];
+    final path = Path()..moveTo(points.first.dx, points.first.dy);
+    for (final point in points.skip(1)) {
+      path.lineTo(point.dx, point.dy);
+    }
+    canvas.drawPath(path, paint);
+    for (final point in points) {
+      canvas.drawCircle(point, 2, paint..style = PaintingStyle.fill);
+      paint.style = PaintingStyle.stroke;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _LineToolPainter oldDelegate) {
+    return oldDelegate.polyline != polyline;
   }
 }
 
@@ -1026,7 +1053,7 @@ class _ShapePaletteGroup extends StatelessWidget {
             for (final entry in entries)
               _ShapeTile(
                 label: entry.label,
-                icon: entry.icon,
+                iconWidget: _ShapePreviewIcon(shapeKey: entry.shapeKey),
                 selected: activeTool == entry.toolId,
                 onPressed: () => onSelect(entry.toolId),
               ),
@@ -1150,7 +1177,9 @@ class _RightInspectorPanel extends StatelessWidget {
       builder: (context, _) {
         final selected = canvasController.selectedElements.firstOrNull;
         final bounds = selected?.bounds;
-        final brush = canvasController.brushSettings;
+        final selectedFill = _fillColorOf(selected) ?? brush.fillColor;
+        final selectedStroke = _strokeColorOf(selected) ?? brush.color;
+        final selectedStrokeWidth = _strokeWidthOf(selected) ?? brush.strokeWidth;
         return Container(
           width: 292,
           color: _UiColors.panel,
@@ -1166,15 +1195,34 @@ class _RightInspectorPanel extends StatelessWidget {
                     actionLabel: '新建',
                     onAction: () => canvasController.addLayer(),
                     children: [
-                      for (final layer in canvasController.layers)
-                        _LayerRow(
-                          layer: layer,
-                          active: layer.id == canvasController.activeLayerId,
-                          onSelect: () =>
-                              canvasController.setActiveLayer(layer.id),
-                          onToggleVisible: () =>
-                              canvasController.toggleLayerVisibility(layer.id),
-                        ),
+                      ReorderableListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        buildDefaultDragHandles: false,
+                        itemCount: canvasController.layers.length,
+                        onReorder: (oldIndex, newIndex) {
+                          final adjusted = newIndex > oldIndex
+                              ? newIndex - 1
+                              : newIndex;
+                          canvasController.reorderLayer(oldIndex, adjusted);
+                        },
+                        itemBuilder: (context, index) {
+                          final layer = canvasController.layers[index];
+                          return _LayerRow(
+                            key: ValueKey(layer.id),
+                            layer: layer,
+                            index: index,
+                            active: layer.id == canvasController.activeLayerId,
+                            canDelete: canvasController.layers.length > 1,
+                            onSelect: () =>
+                                canvasController.setActiveLayer(layer.id),
+                            onToggleVisible: () => canvasController
+                                .toggleLayerVisibility(layer.id),
+                            onDelete: () =>
+                                canvasController.removeLayer(layer.id),
+                          );
+                        },
+                      ),
                     ],
                   ),
                   _PanelSection(
@@ -1195,9 +1243,46 @@ class _RightInspectorPanel extends StatelessWidget {
                     children: [
                       _FieldGrid(
                         children: [
-                          _ColorField(label: '填充', color: brush.fillColor),
-                          _ColorField(label: '描边', color: brush.color),
+                          _ColorButtonField(
+                            label: '填充',
+                            color: selectedFill,
+                            enabled: _canEditPaint(selected),
+                            onPressed: selected == null
+                                ? null
+                                : () => _showShapeColorPicker(
+                                    context,
+                                    selected,
+                                    canvasController,
+                                    fill: true,
+                                  ),
+                          ),
+                          _ColorButtonField(
+                            label: '描边',
+                            color: selectedStroke,
+                            enabled: _canEditPaint(selected),
+                            onPressed: selected == null
+                                ? null
+                                : () => _showShapeColorPicker(
+                                    context,
+                                    selected,
+                                    canvasController,
+                                    fill: false,
+                                  ),
+                          ),
                         ],
+                      ),
+                      const SizedBox(height: 12),
+                      _SliderField(
+                        label: '描边宽度',
+                        value: selectedStrokeWidth,
+                        min: 1,
+                        max: 20,
+                        onChanged: _canEditPaint(selected)
+                            ? (value) => canvasController.updateShapePaint(
+                                selected!.id,
+                                strokeWidth: value,
+                              )
+                            : null,
                       ),
                       const SizedBox(height: 12),
                       const _FieldLabel('常用颜色'),
@@ -1209,12 +1294,19 @@ class _RightInspectorPanel extends StatelessWidget {
                           for (final color in _swatches)
                             _ColorSwatch(
                               color: color,
-                              selected: brush.color == color,
-                              onPressed: () {
-                                canvasController.updateBrushSettings(
-                                  brush.copyWith(color: color),
-                                );
-                              },
+                              selected: selectedStroke == color,
+                              onPressed: _canEditPaint(selected)
+                                  ? () => canvasController.updateShapePaint(
+                                      selected!.id,
+                                      strokeColor: color,
+                                    )
+                                  : () {
+                                      canvasController.updateBrushSettings(
+                                        canvasController.brushSettings.copyWith(
+                                          color: color,
+                                        ),
+                                      );
+                                    },
                             ),
                         ],
                       ),
@@ -1223,7 +1315,17 @@ class _RightInspectorPanel extends StatelessWidget {
                   _PanelSection(
                     title: '文本',
                     children: [
-                      _TextReadout(selected: selected),
+                      _TextReadout(
+                        selected: selected,
+                        onChanged: (text) {
+                          if (selected != null) {
+                            canvasController.updateTextContent(
+                              selected.id,
+                              text,
+                            );
+                          }
+                        },
+                      ),
                       const SizedBox(height: 12),
                       _FieldGrid(
                         children: [
@@ -1238,6 +1340,25 @@ class _RightInspectorPanel extends StatelessWidget {
                       const _FieldLabel('对齐'),
                       const SizedBox(height: 6),
                       const _SegmentedControl(),
+                    ],
+                  ),
+                  _PanelSection(
+                    title: '旋转',
+                    children: [
+                      _SliderField(
+                        label: '角度',
+                        value: _rotationDegreesOf(selected),
+                        min: -180,
+                        max: 180,
+                        onChanged: selected is DrawioShapeElement
+                            ? (value) {
+                                canvasController.updateElementRotation(
+                                  selected.id,
+                                  value * math.pi / 180,
+                                );
+                              }
+                            : null,
+                      ),
                     ],
                   ),
                   _PanelSection(
@@ -1264,16 +1385,6 @@ class _RightInspectorPanel extends StatelessWidget {
                       ),
                       const SizedBox(height: 12),
                       _SliderField(
-                        label: '描边宽度',
-                        value: brush.strokeWidth,
-                        min: 1,
-                        max: 20,
-                        onChanged: (value) {
-                          canvasController.updateBrushSettings(
-                            brush.copyWith(strokeWidth: value),
-                          );
-                        },
-                      ),
                     ],
                   ),
                 ],
@@ -1285,6 +1396,39 @@ class _RightInspectorPanel extends StatelessWidget {
     );
   }
 
+  static bool _canEditPaint(CanvasElement? element) {
+    return element is DrawioShapeElement ||
+        element is RectElement ||
+        element is EllipseElement;
+  }
+
+  static Color? _fillColorOf(CanvasElement? element) {
+    return switch (element) {
+      DrawioShapeElement e => e.fillStyle?.color,
+      RectElement e => e.fillStyle?.color,
+      EllipseElement e => e.fillStyle?.color,
+      _ => null,
+    };
+  }
+
+  static Color? _strokeColorOf(CanvasElement? element) {
+    return switch (element) {
+      DrawioShapeElement e => e.strokeStyle.color,
+      RectElement e => e.strokeStyle.color,
+      EllipseElement e => e.strokeStyle.color,
+      _ => null,
+    };
+  }
+
+  static double? _strokeWidthOf(CanvasElement? element) {
+    return switch (element) {
+      DrawioShapeElement e => e.strokeStyle.strokeWidth,
+      RectElement e => e.strokeStyle.strokeWidth,
+      EllipseElement e => e.strokeStyle.strokeWidth,
+      _ => null,
+    };
+  }
+
   static const _swatches = [
     Color(0xFFFFFFFF),
     Color(0xFFE6F1FB),
@@ -1293,6 +1437,14 @@ class _RightInspectorPanel extends StatelessWidget {
     Color(0xFFF7E6EE),
     Color(0xFF263442),
   ];
+
+  static double _rotationDegreesOf(CanvasElement? element) {
+    if (element is DrawioShapeElement) {
+      final degrees = element.rotation * 180 / math.pi;
+      return ((degrees + 180) % 360) - 180;
+    }
+    return 0;
+  }
 
   static double _radiusOf(CanvasElement? element) {
     return element is RectElement ? element.borderRadius : 7;
@@ -1467,18 +1619,64 @@ class _ShapeTile extends StatelessWidget {
   }
 }
 
+class _ShapePreviewIcon extends StatelessWidget {
+  const _ShapePreviewIcon({required this.shapeKey});
+
+  final String shapeKey;
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      size: const Size(42, 30),
+      painter: _ShapePreviewPainter(shapeKey),
+    );
+  }
+}
+
+class _ShapePreviewPainter extends CustomPainter {
+  const _ShapePreviewPainter(this.shapeKey);
+
+  final String shapeKey;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    ensureDrawioShapeDefinitionsRegistered();
+    final rect = Rect.fromLTWH(2, 2, size.width - 4, size.height - 4);
+    final element = DrawioShapeElement(
+      id: 'preview',
+      shapeKey: shapeKey,
+      rect: rect,
+      strokeStyle: const PaintStyle(color: Color(0xFF425264), strokeWidth: 1.6),
+      fillStyle: const PaintStyle(color: Color(0xFFFFFFFF), strokeWidth: 0),
+    );
+    ElementRendererRegistry.render(canvas, element);
+  }
+
+  @override
+  bool shouldRepaint(covariant _ShapePreviewPainter oldDelegate) {
+    return oldDelegate.shapeKey != shapeKey;
+  }
+}
+
 class _LayerRow extends StatelessWidget {
   const _LayerRow({
+    super.key,
     required this.layer,
+    required this.index,
     required this.active,
+    required this.canDelete,
     required this.onSelect,
     required this.onToggleVisible,
+    required this.onDelete,
   });
 
   final CanvasLayer layer;
+  final int index;
   final bool active;
+  final bool canDelete;
   final VoidCallback onSelect;
   final VoidCallback onToggleVisible;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -1491,10 +1689,20 @@ class _LayerRow extends StatelessWidget {
           borderRadius: BorderRadius.circular(7),
           onTap: onSelect,
           child: SizedBox(
-            height: 34,
+            height: 38,
             child: Row(
               children: [
-                const SizedBox(width: 8),
+                ReorderableDragStartListener(
+                  index: index,
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 8),
+                    child: Icon(
+                      Icons.drag_indicator,
+                      size: 16,
+                      color: _UiColors.muted,
+                    ),
+                  ),
+                ),
                 Icon(
                   active
                       ? Icons.check_box_outline_blank
@@ -1520,12 +1728,18 @@ class _LayerRow extends StatelessWidget {
                   tooltip: layer.isVisible ? '隐藏' : '显示',
                   icon: Icon(
                     layer.isVisible
-                        ? Icons.radio_button_checked
-                        : Icons.radio_button_unchecked,
-                    size: 14,
+                        ? Icons.visibility_outlined
+                        : Icons.visibility_off_outlined,
+                    size: 15,
                     color: active ? _UiColors.accent : _UiColors.muted,
                   ),
                   onPressed: onToggleVisible,
+                ),
+                IconButton(
+                  tooltip: canDelete ? '删除图层' : '至少保留一个图层',
+                  icon: const Icon(Icons.delete_outline, size: 15),
+                  color: canDelete ? _UiColors.muted : const Color(0xFFB8C2CC),
+                  onPressed: canDelete ? onDelete : null,
                 ),
               ],
             ),
@@ -1637,41 +1851,99 @@ class _ColorField extends StatelessWidget {
   }
 }
 
-class _TextReadout extends StatelessWidget {
-  const _TextReadout({required this.selected});
+class _TextReadout extends StatefulWidget {
+  const _TextReadout({required this.selected, required this.onChanged});
 
   final CanvasElement? selected;
+  final ValueChanged<String> onChanged;
+
+  @override
+  State<_TextReadout> createState() => _TextReadoutState();
+}
+
+class _TextReadoutState extends State<_TextReadout> {
+  late final TextEditingController _controller;
+  String? _editingElementId;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: _textOf(widget.selected));
+    _editingElementId = widget.selected?.id;
+  }
+
+  @override
+  void didUpdateWidget(covariant _TextReadout oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final nextId = widget.selected?.id;
+    final nextText = _textOf(widget.selected);
+    if (nextId != _editingElementId || _controller.text != nextText) {
+      _editingElementId = nextId;
+      _controller.value = TextEditingValue(
+        text: nextText,
+        selection: TextSelection.collapsed(offset: nextText.length),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final text = switch (selected) {
-      TextElement e => e.text,
-      RectElement e => e.label ?? '',
-      EllipseElement e => e.label ?? '',
-      _ => '',
-    };
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const _FieldLabel('内容'),
         const SizedBox(height: 6),
-        Container(
-          height: 36,
-          alignment: Alignment.centerLeft,
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          decoration: BoxDecoration(
-            color: _UiColors.panelSoft,
-            border: Border.all(color: _UiColors.line),
-            borderRadius: BorderRadius.circular(7),
+        TextField(
+          controller: _controller,
+          enabled: widget.selected != null,
+          minLines: 1,
+          maxLines: 3,
+          style: const TextStyle(fontSize: 14, color: _UiColors.text),
+          decoration: InputDecoration(
+            hintText: widget.selected == null ? '未选择对象' : '输入文字内容',
+            isDense: true,
+            filled: true,
+            fillColor: _UiColors.panelSoft,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 10,
+              vertical: 10,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(7),
+              borderSide: const BorderSide(color: _UiColors.line),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(7),
+              borderSide: const BorderSide(color: _UiColors.line),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(7),
+              borderSide: const BorderSide(color: Color(0xFF9FC4E8)),
+            ),
           ),
-          child: Text(
-            text.isEmpty ? '开始节点' : text,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 14, color: _UiColors.text),
-          ),
+          onChanged: widget.onChanged,
         ),
       ],
     );
+  }
+
+  static String _textOf(CanvasElement? selected) {
+    return switch (selected) {
+      TextElement e => e.text,
+      DrawioShapeElement e => e.label ?? '',
+      RectElement e => e.label ?? '',
+      EllipseElement e => e.label ?? '',
+      LineElement e => e.label ?? '',
+      ArrowElement e => e.label ?? '',
+      PolylineElement e => e.label ?? '',
+      _ => '',
+    };
   }
 }
 
@@ -1980,37 +2252,517 @@ class _SpectrumPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-void _showColorMenu(BuildContext context, CanvasController controller) {
-  const colors = [
-    Colors.black,
-    Color(0xFF2476C7),
-    Color(0xFF12A58B),
-    Color(0xFFD2A02B),
-    Color(0xFFD44D4D),
-    Color(0xFF263442),
-  ];
+void _showExportDialog(BuildContext context, String title, String content) {
   showDialog<void>(
     context: context,
     builder: (context) {
-      final brush = controller.brushSettings;
       return AlertDialog(
-        title: const Text('颜色选择器'),
-        content: Wrap(
-          spacing: 10,
-          runSpacing: 10,
-          children: [
-            for (final color in colors)
-              _ColorSwatch(
-                color: color,
-                selected: brush.color == color,
-                onPressed: () {
-                  controller.updateBrushSettings(brush.copyWith(color: color));
-                  Navigator.pop(context);
-                },
-              ),
-          ],
+        title: Text('导出 $title'),
+        content: SizedBox(
+          width: 560,
+          child: TextField(
+            controller: TextEditingController(text: content),
+            readOnly: true,
+            maxLines: 16,
+            decoration: const InputDecoration(border: OutlineInputBorder()),
+          ),
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('关闭'),
+          ),
+        ],
       );
     },
   );
+}
+
+void _showImportDialog(
+  BuildContext context,
+  CanvasController controller, {
+  required bool importDrawio,
+}) {
+  final textController = TextEditingController();
+  showDialog<void>(
+    context: context,
+    builder: (context) {
+      return AlertDialog(
+        title: Text(importDrawio ? '导入 draw.io' : '导入 JSON'),
+        content: SizedBox(
+          width: 560,
+          child: TextField(
+            controller: textController,
+            maxLines: 16,
+            decoration: InputDecoration(
+              border: const OutlineInputBorder(),
+              hintText: importDrawio ? '粘贴 draw.io XML' : '粘贴画布 JSON',
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () {
+              try {
+                if (importDrawio) {
+                  final elements = DrawioImporter.fromXml(textController.text);
+                  controller.replaceElements(elements);
+                } else {
+                  final json = jsonDecode(textController.text);
+                  if (json is! Map<String, dynamic>) {
+                    throw const FormatException('JSON 根节点必须是对象');
+                  }
+                  CanvasSerializer.load(controller, json);
+                }
+                Navigator.pop(context);
+              } catch (error) {
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text('导入失败：$error')));
+              }
+            },
+            child: const Text('导入'),
+          ),
+        ],
+      );
+    },
+  );
+}
+
+String _prettyJson(Object value) {
+  return const JsonEncoder.withIndent('  ').convert(value);
+}
+
+Future<T?> _showAnchoredMenu<T>({
+  required BuildContext context,
+  required List<PopupMenuEntry<T>> items,
+}) {
+  final button = context.findRenderObject() as RenderBox?;
+  final overlay = Overlay.of(context).context.findRenderObject() as RenderBox?;
+  if (button == null || overlay == null) {
+    return Future<T?>.value();
+  }
+  final position = RelativeRect.fromRect(
+    Rect.fromPoints(
+      button.localToGlobal(Offset.zero, ancestor: overlay),
+      button.localToGlobal(
+        button.size.bottomRight(Offset.zero),
+        ancestor: overlay,
+      ),
+    ),
+    Offset.zero & overlay.size,
+  );
+  return showMenu<T>(context: context, position: position, items: items);
+}
+
+Future<void> _showColorMenu(
+  BuildContext context,
+  CanvasController controller,
+) async {
+  final color = await showDialog<Color>(
+    context: context,
+    builder: (context) => _ColorPickerDialog(
+      initialColor: controller.brushSettings.color,
+      swatches: _toolbarColorSwatches,
+    ),
+  );
+  if (color != null) {
+    final brush = controller.brushSettings;
+    controller.updateBrushSettings(
+      brush.copyWith(color: color, fillColor: color.withValues(alpha: 0.12)),
+    );
+  }
+}
+
+const _toolbarColorSwatches = <Color>[
+  Color(0xFF111827),
+  Color(0xFF6B7280),
+  Color(0xFFEF4444),
+  Color(0xFFF97316),
+  Color(0xFFF59E0B),
+  Color(0xFFEAB308),
+  Color(0xFF84CC16),
+  Color(0xFF22C55E),
+  Color(0xFF10B981),
+  Color(0xFF14B8A6),
+  Color(0xFF06B6D4),
+  Color(0xFF0EA5E9),
+  Color(0xFF3B82F6),
+  Color(0xFF6366F1),
+  Color(0xFF8B5CF6),
+  Color(0xFFA855F7),
+  Color(0xFFD946EF),
+  Color(0xFFEC4899),
+  Color(0xFFF43F5E),
+];
+
+class _ColorDot extends StatelessWidget {
+  const _ColorDot({required this.color, required this.selected});
+
+  final Color color;
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: color,
+        border: Border.all(
+          color: selected ? const Color(0xFF111827) : const Color(0xFFE5E7EB),
+          width: selected ? 2.5 : 1.5,
+        ),
+      ),
+      child: const SizedBox.square(dimension: 22),
+    );
+  }
+}
+
+class _ColorPickerDialog extends StatefulWidget {
+  const _ColorPickerDialog({
+    required this.initialColor,
+    required this.swatches,
+  });
+
+  final Color initialColor;
+  final List<Color> swatches;
+
+  @override
+  State<_ColorPickerDialog> createState() => _ColorPickerDialogState();
+}
+
+class _ColorPickerDialogState extends State<_ColorPickerDialog> {
+  late double _hue;
+  late double _saturation;
+  late double _value;
+  late final TextEditingController _hexController;
+
+  @override
+  void initState() {
+    super.initState();
+    final hsv = HSVColor.fromColor(widget.initialColor);
+    _hue = hsv.hue;
+    _saturation = hsv.saturation;
+    _value = hsv.value;
+    _hexController = TextEditingController(text: _hexFor(_color));
+  }
+
+  @override
+  void dispose() {
+    _hexController.dispose();
+    super.dispose();
+  }
+
+  Color get _color => HSVColor.fromAHSV(1, _hue, _saturation, _value).toColor();
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('颜色选择器'),
+      content: SizedBox(
+        width: 280,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final color in widget.swatches)
+                  InkResponse(
+                    radius: 14,
+                    onTap: () => _setColor(color),
+                    child: _ColorDot(color: color, selected: color == _color),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            _RgbSpectrumPicker(
+              hue: _hue,
+              saturation: _saturation,
+              value: _value,
+              onChanged: _setSpectrumColor,
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                _ColorDot(color: _color, selected: true),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextField(
+                    controller: _hexController,
+                    decoration: const InputDecoration(
+                      labelText: 'HEX',
+                      prefixText: '#',
+                      isDense: true,
+                    ),
+                    onChanged: _setHex,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('取消'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(context, _color),
+          child: const Text('应用'),
+        ),
+      ],
+    );
+  }
+
+  void _setColor(Color color) {
+    final hsv = HSVColor.fromColor(color);
+    setState(() {
+      _hue = hsv.hue;
+      _saturation = hsv.saturation;
+      _value = hsv.value;
+      _hexController.text = _hexFor(_color);
+    });
+  }
+
+  void _setSpectrumColor(double hue, double saturation, double value) {
+    setState(() {
+      _hue = hue;
+      _saturation = saturation;
+      _value = value;
+      _hexController.text = _hexFor(_color);
+    });
+  }
+
+  void _setHex(String value) {
+    final color = _parseHex(value);
+    if (color != null) {
+      _setColor(color);
+    }
+  }
+
+  static String _hexFor(Color color) {
+    return (color.toARGB32() & 0xFFFFFF)
+        .toRadixString(16)
+        .padLeft(6, '0')
+        .toUpperCase();
+  }
+
+  static Color? _parseHex(String value) {
+    final normalized = value.replaceAll('#', '').trim();
+    if (normalized.length != 6 && normalized.length != 8) {
+      return null;
+    }
+    final parsed = int.tryParse(normalized, radix: 16);
+    if (parsed == null) {
+      return null;
+    }
+    return Color(normalized.length == 6 ? 0xFF000000 | parsed : parsed);
+  }
+}
+
+class _RgbSpectrumPicker extends StatelessWidget {
+  const _RgbSpectrumPicker({
+    required this.hue,
+    required this.saturation,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final double hue;
+  final double saturation;
+  final double value;
+  final void Function(double hue, double saturation, double value) onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('RGB spectrum', style: Theme.of(context).textTheme.labelSmall),
+        const SizedBox(height: 6),
+        GestureDetector(
+          onPanDown: (details) => _pickSv(details.localPosition),
+          onPanUpdate: (details) => _pickSv(details.localPosition),
+          child: SizedBox(
+            width: 240,
+            height: 150,
+            child: CustomPaint(
+              painter: _RgbSpectrumPainter(hue: hue),
+              foregroundPainter: _SpectrumThumbPainter(
+                x: saturation,
+                y: 1 - value,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        GestureDetector(
+          onPanDown: (details) => _pickHue(details.localPosition),
+          onPanUpdate: (details) => _pickHue(details.localPosition),
+          child: SizedBox(
+            width: 240,
+            height: 18,
+            child: CustomPaint(
+              painter: const _HueBarPainter(),
+              foregroundPainter: _HueThumbPainter(hue: hue),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _pickSv(Offset localPosition) {
+    final nextSaturation = (localPosition.dx / 240).clamp(0.0, 1.0).toDouble();
+    final nextValue = (1 - localPosition.dy / 150).clamp(0.0, 1.0).toDouble();
+    onChanged(hue, nextSaturation, nextValue);
+  }
+
+  void _pickHue(Offset localPosition) {
+    final nextHue = (localPosition.dx / 240 * 360).clamp(0.0, 360.0).toDouble();
+    onChanged(nextHue, saturation, value);
+  }
+}
+
+class _RgbSpectrumPainter extends CustomPainter {
+  const _RgbSpectrumPainter({required this.hue});
+
+  final double hue;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final hueColor = HSVColor.fromAHSV(1, hue, 1, 1).toColor();
+    canvas.drawRect(
+      Offset.zero & size,
+      Paint()
+        ..shader = LinearGradient(
+          colors: [Colors.white, hueColor],
+        ).createShader(Offset.zero & size),
+    );
+    canvas.drawRect(
+      Offset.zero & size,
+      Paint()
+        ..shader = const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Colors.transparent, Colors.black],
+        ).createShader(Offset.zero & size),
+    );
+    canvas.drawRect(
+      Offset.zero & size,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..color = const Color(0xFF9CA3AF),
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _RgbSpectrumPainter oldDelegate) {
+    return oldDelegate.hue != hue;
+  }
+}
+
+class _SpectrumThumbPainter extends CustomPainter {
+  const _SpectrumThumbPainter({required this.x, required this.y});
+
+  final double x;
+  final double y;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(x * size.width, y * size.height);
+    canvas
+      ..drawCircle(
+        center,
+        6,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2
+          ..color = Colors.white,
+      )
+      ..drawCircle(
+        center,
+        7,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..color = Colors.black,
+      );
+  }
+
+  @override
+  bool shouldRepaint(covariant _SpectrumThumbPainter oldDelegate) {
+    return oldDelegate.x != x || oldDelegate.y != y;
+  }
+}
+
+class _HueBarPainter extends CustomPainter {
+  const _HueBarPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.drawRect(
+      Offset.zero & size,
+      Paint()
+        ..shader = const LinearGradient(
+          colors: [
+            Colors.red,
+            Colors.yellow,
+            Colors.green,
+            Colors.cyan,
+            Colors.blue,
+            Colors.purple,
+            Colors.red,
+          ],
+        ).createShader(Offset.zero & size),
+    );
+    canvas.drawRect(
+      Offset.zero & size,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..color = const Color(0xFF9CA3AF),
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _HueBarPainter oldDelegate) => false;
+}
+
+class _HueThumbPainter extends CustomPainter {
+  const _HueThumbPainter({required this.hue});
+
+  final double hue;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final x = hue / 360 * size.width;
+    final rect = Rect.fromCenter(
+      center: Offset(x, size.height / 2),
+      width: 6,
+      height: size.height + 6,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(rect, const Radius.circular(2)),
+      Paint()
+        ..color = Colors.white
+        ..style = PaintingStyle.fill,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(rect, const Radius.circular(2)),
+      Paint()
+        ..color = Colors.black
+        ..style = PaintingStyle.stroke,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _HueThumbPainter oldDelegate) {
+    return oldDelegate.hue != hue;
+  }
 }

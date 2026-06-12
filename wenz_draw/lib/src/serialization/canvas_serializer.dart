@@ -138,6 +138,7 @@ class CanvasSerializer {
             json['labelAlign'] as String?,
           ),
           labelPadding: ShapeLabelPainter.paddingFromJson(json['labelPadding']),
+          rotation: (json['rotation'] as num?)?.toDouble() ?? 0,
         );
       case RectElement.elementType:
         return RectElement(

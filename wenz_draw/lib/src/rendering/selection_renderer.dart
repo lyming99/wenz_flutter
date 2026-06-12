@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../canvas/canvas_controller.dart';
 import '../elements/arrow_element.dart';
+import '../elements/drawio_shape_element.dart';
 import '../elements/line_element.dart';
 import '../elements/polyline_element.dart';
 import '../infinite_canvas/canvas_transform.dart';
+import '../utils/math_utils.dart';
 
 class SelectionRenderer {
   const SelectionRenderer();
@@ -41,18 +43,28 @@ class SelectionRenderer {
           controller.editingShapeLabelElementId == element.id) {
         continue;
       }
-      final bounds = element.bounds.inflate(4 / transform.scale);
-      canvas.drawRect(bounds, paint);
+      final selectionGeometry = _selectionGeometryFor(element, transform);
+      canvas.drawPath(selectionGeometry.path, paint);
+      canvas.drawLine(
+        selectionGeometry.topCenter,
+        selectionGeometry.rotateHandle,
+        paint,
+      );
+      canvas.drawCircle(
+        selectionGeometry.rotateHandle,
+        handleSize * 0.62,
+        handlePaint,
+      );
+      canvas.drawCircle(
+        selectionGeometry.rotateHandle,
+        handleSize * 0.62,
+        handleBorderPaint,
+      );
       final handlePoints = switch (element) {
         LineElement e => [e.start, e.end],
         PolylineElement e => e.points,
         ArrowElement e => [e.start, e.end],
-        _ => [
-          bounds.topLeft,
-          bounds.topRight,
-          bounds.bottomLeft,
-          bounds.bottomRight,
-        ],
+        _ => selectionGeometry.corners,
       };
       for (final point in handlePoints) {
         final handle = Rect.fromCenter(
@@ -66,6 +78,52 @@ class SelectionRenderer {
     }
     _drawSelectionRect(canvas, controller, transform);
     _drawSnapPreview(canvas, controller, transform);
+  }
+
+  _SelectionGeometry _selectionGeometryFor(
+    dynamic element,
+    CanvasTransform transform,
+  ) {
+    final padding = 4 / transform.scale;
+    if (element is DrawioShapeElement && element.rotation != 0) {
+      final rect = element.rect.inflate(
+        padding + element.strokeStyle.strokeWidth / 2,
+      );
+      final center = element.rect.center;
+      final corners = [
+        rotatePoint(rect.topLeft, element.rotation, center),
+        rotatePoint(rect.topRight, element.rotation, center),
+        rotatePoint(rect.bottomRight, element.rotation, center),
+        rotatePoint(rect.bottomLeft, element.rotation, center),
+      ];
+      final topCenter = rotatePoint(
+        Offset(rect.center.dx, rect.top),
+        element.rotation,
+        center,
+      );
+      final direction = topCenter - center;
+      final distance = direction.distance;
+      final normal = distance <= 0.0001
+          ? const Offset(0, -1)
+          : direction / distance;
+      return _SelectionGeometry(
+        corners: corners,
+        topCenter: topCenter,
+        rotateHandle: topCenter + normal * (24 / transform.scale),
+      );
+    }
+
+    final bounds = element.bounds.inflate(padding);
+    return _SelectionGeometry(
+      corners: [
+        bounds.topLeft,
+        bounds.topRight,
+        bounds.bottomRight,
+        bounds.bottomLeft,
+      ],
+      topCenter: Offset(bounds.center.dx, bounds.top),
+      rotateHandle: Offset(bounds.center.dx, bounds.top - 24 / transform.scale),
+    );
   }
 
   void _drawSelectionRect(
@@ -123,5 +181,26 @@ class SelectionRenderer {
       point + Offset(0, radius * 2.4),
       guidePaint,
     );
+  }
+}
+
+class _SelectionGeometry {
+  const _SelectionGeometry({
+    required this.corners,
+    required this.topCenter,
+    required this.rotateHandle,
+  });
+
+  final List<Offset> corners;
+  final Offset topCenter;
+  final Offset rotateHandle;
+
+  Path get path {
+    return Path()
+      ..moveTo(corners[0].dx, corners[0].dy)
+      ..lineTo(corners[1].dx, corners[1].dy)
+      ..lineTo(corners[2].dx, corners[2].dy)
+      ..lineTo(corners[3].dx, corners[3].dy)
+      ..close();
   }
 }
