@@ -1,0 +1,1276 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wenz Draw Canvas</title>
+  <style>
+    :root {
+      --bg: #f3f6f8;
+      --panel: #ffffff;
+      --panel-soft: #f7f9fb;
+      --line: #d9e1e8;
+      --line-strong: #bdc8d3;
+      --text: #18232e;
+      --muted: #61707f;
+      --accent: #2476c7;
+      --accent-soft: #e6f1fb;
+      --danger: #d44d4d;
+      --shadow: 0 10px 30px rgba(24, 35, 46, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      overflow: hidden;
+      color: var(--text);
+      font-family: Inter, "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
+      background: var(--bg);
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    button {
+      border: 0;
+      cursor: pointer;
+      color: inherit;
+      background: transparent;
+    }
+
+    .app {
+      display: grid;
+      grid-template-rows: 44px 1fr;
+      height: 100vh;
+    }
+
+    .toolbar {
+      position: relative;
+      z-index: 5;
+      display: grid;
+      grid-template-columns: 1fr;
+      align-items: center;
+      gap: 10px;
+      height: 44px;
+      padding: 0 12px;
+      background: rgba(255, 255, 255, 0.96);
+      border-bottom: 1px solid var(--line);
+      box-shadow: 0 1px 0 rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(14px);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+      font-weight: 700;
+    }
+
+    .brand-mark {
+      display: grid;
+      width: 28px;
+      height: 28px;
+      place-items: center;
+      color: #ffffff;
+      background: linear-gradient(135deg, #2476c7, #12a58b);
+      border-radius: 6px;
+      box-shadow: 0 6px 14px rgba(36, 118, 199, 0.22);
+      font-size: 13px;
+    }
+
+    .brand-text {
+      min-width: 0;
+    }
+
+    .brand-title {
+      overflow: hidden;
+      font-size: 14px;
+      line-height: 16px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .brand-subtitle {
+      overflow: hidden;
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 500;
+      line-height: 12px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .tool-group {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      min-width: 0;
+    }
+
+    .toolbar-center {
+      justify-content: center;
+    }
+
+    .toolbar-right {
+      justify-content: flex-end;
+    }
+
+    .icon-button,
+    .command-button {
+      display: inline-grid;
+      align-items: center;
+      justify-items: center;
+      min-width: 30px;
+      height: 30px;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      color: var(--muted);
+      transition: background 140ms ease, border-color 140ms ease, color 140ms ease, transform 140ms ease;
+    }
+
+    .icon-button:hover,
+    .command-button:hover,
+    .icon-button.active {
+      color: var(--accent);
+      background: var(--accent-soft);
+      border-color: #c7ddf2;
+    }
+
+    .icon-button:active,
+    .command-button:active {
+      transform: translateY(1px);
+    }
+
+    .command-button {
+      grid-auto-flow: column;
+      gap: 6px;
+      width: auto;
+      padding: 0 10px;
+      color: var(--text);
+      background: var(--panel-soft);
+      border-color: var(--line);
+      font-size: 13px;
+    }
+
+    .command-button.primary {
+      color: #ffffff;
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .spectrum-button {
+      overflow: hidden;
+      border-color: #b9c6d2;
+    }
+
+    .tool-icon {
+      width: 16px;
+      height: 16px;
+      display: block;
+      color: currentColor;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .tool-icon .filled {
+      fill: currentColor;
+      stroke: none;
+    }
+
+    .tool-icon .soft-fill {
+      fill: currentColor;
+      opacity: 0.18;
+    }
+
+    .tool-icon.color-wheel {
+      width: 18px;
+      height: 18px;
+      stroke: none;
+    }
+
+    .divider {
+      width: 1px;
+      height: 18px;
+      margin: 0 5px;
+      background: var(--line);
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: 244px 1fr 292px;
+      min-height: 0;
+    }
+
+    .sidebar,
+    .inspector {
+      position: relative;
+      z-index: 3;
+      min-height: 0;
+      overflow: auto;
+      background: rgba(255, 255, 255, 0.96);
+      backdrop-filter: blur(14px);
+    }
+
+    .sidebar {
+      border-right: 1px solid var(--line);
+    }
+
+    .inspector {
+      border-left: 1px solid var(--line);
+    }
+
+    .panel-section {
+      padding: 16px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .section-title {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0;
+      text-transform: uppercase;
+      color: #465667;
+    }
+
+    .section-action {
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .search {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+      height: 34px;
+      margin-bottom: 14px;
+      padding: 0 10px;
+      background: var(--panel-soft);
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      transition: border-color 140ms ease, box-shadow 140ms ease, background 140ms ease;
+    }
+
+    .search:focus-within {
+      background: #ffffff;
+      border-color: #9fc4e8;
+      box-shadow: 0 0 0 2px rgba(36, 118, 199, 0.1);
+    }
+
+    .search input {
+      width: 100%;
+      height: 100%;
+      min-width: 0;
+      padding: 0;
+      color: var(--text);
+      background: transparent;
+      border: 0;
+      outline: none;
+    }
+
+    .search input::placeholder {
+      color: #8795a3;
+    }
+
+    .search .mini-icon {
+      position: static;
+      flex: 0 0 auto;
+      color: #7d8c99;
+    }
+
+    .search input::-webkit-search-decoration,
+    .search input::-webkit-search-cancel-button {
+      appearance: none;
+    }
+
+    .shape-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .shape-tile {
+      display: grid;
+      min-height: 78px;
+      padding: 10px 8px 8px;
+      align-content: center;
+      justify-items: center;
+      gap: 8px;
+      color: #425264;
+      background: var(--panel-soft);
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      transition: border-color 140ms ease, background 140ms ease, box-shadow 140ms ease;
+    }
+
+    .shape-tile:hover,
+    .shape-tile.selected {
+      background: #ffffff;
+      border-color: #9fc4e8;
+      box-shadow: 0 8px 18px rgba(36, 118, 199, 0.12);
+    }
+
+    .shape-icon {
+      position: relative;
+      width: 34px;
+      height: 28px;
+    }
+
+    .shape-icon.rectangle {
+      border: 2px solid currentColor;
+      border-radius: 4px;
+    }
+
+    .shape-icon.ellipse {
+      border: 2px solid currentColor;
+      border-radius: 999px;
+    }
+
+    .shape-icon.diamond {
+      width: 28px;
+      height: 28px;
+      border: 2px solid currentColor;
+      transform: rotate(45deg);
+    }
+
+    .shape-icon.arrow::before,
+    .shape-icon.arrow::after {
+      position: absolute;
+      content: "";
+      background: currentColor;
+    }
+
+    .shape-icon.arrow::before {
+      top: 13px;
+      left: 2px;
+      width: 26px;
+      height: 2px;
+    }
+
+    .shape-icon.arrow::after {
+      top: 7px;
+      right: 3px;
+      width: 12px;
+      height: 12px;
+      border-top: 2px solid currentColor;
+      border-right: 2px solid currentColor;
+      background: transparent;
+      transform: rotate(45deg);
+    }
+
+    .shape-icon.note {
+      border: 2px solid currentColor;
+      border-radius: 4px;
+    }
+
+    .shape-icon.note::after {
+      position: absolute;
+      right: -2px;
+      bottom: -2px;
+      width: 12px;
+      height: 12px;
+      content: "";
+      background: var(--panel-soft);
+      border-top: 2px solid currentColor;
+      border-left: 2px solid currentColor;
+    }
+
+    .shape-icon.text {
+      display: grid;
+      place-items: center;
+      font-size: 23px;
+      font-weight: 700;
+    }
+
+    .shape-label {
+      overflow: hidden;
+      max-width: 100%;
+      font-size: 12px;
+      font-weight: 600;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .layer-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .layer-row {
+      display: grid;
+      grid-template-columns: 22px 1fr 20px;
+      align-items: center;
+      gap: 8px;
+      min-height: 34px;
+      padding: 0 8px;
+      background: var(--panel-soft);
+      border: 1px solid transparent;
+      border-radius: 7px;
+      color: #415162;
+      font-size: 12px;
+    }
+
+    .layer-row.active {
+      background: var(--accent-soft);
+      border-color: #c7ddf2;
+      color: var(--accent);
+    }
+
+    .canvas-shell {
+      position: relative;
+      min-width: 0;
+      min-height: 0;
+      overflow: hidden;
+      background: #eef3f7;
+    }
+
+    .canvas {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      cursor: grab;
+      background-color: #eef3f7;
+      background-image:
+        linear-gradient(rgba(95, 116, 139, 0.16) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(95, 116, 139, 0.16) 1px, transparent 1px),
+        linear-gradient(rgba(95, 116, 139, 0.08) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(95, 116, 139, 0.08) 1px, transparent 1px);
+      background-position:
+        var(--grid-x, 0px) var(--grid-y, 0px),
+        var(--grid-x, 0px) var(--grid-y, 0px),
+        var(--grid-x, 0px) var(--grid-y, 0px),
+        var(--grid-x, 0px) var(--grid-y, 0px);
+      background-size:
+        calc(160px * var(--zoom, 1)) calc(160px * var(--zoom, 1)),
+        calc(160px * var(--zoom, 1)) calc(160px * var(--zoom, 1)),
+        calc(20px * var(--zoom, 1)) calc(20px * var(--zoom, 1)),
+        calc(20px * var(--zoom, 1)) calc(20px * var(--zoom, 1));
+    }
+
+    .canvas.dragging {
+      cursor: grabbing;
+    }
+
+    .board {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 2400px;
+      height: 1600px;
+      transform: translate(var(--pan-x), var(--pan-y)) scale(var(--zoom));
+      transform-origin: 0 0;
+    }
+
+    .node {
+      position: absolute;
+      display: grid;
+      place-items: center;
+      min-width: 60px;
+      min-height: 44px;
+      padding: 10px;
+      color: #263442;
+      background: #ffffff;
+      border: 2px solid #2476c7;
+      box-shadow: 0 12px 28px rgba(37, 64, 92, 0.12);
+      user-select: none;
+    }
+
+    .node.selected {
+      outline: 2px solid rgba(36, 118, 199, 0.3);
+      outline-offset: 4px;
+    }
+
+    .node.rectangle {
+      width: 158px;
+      height: 86px;
+      border-radius: 7px;
+    }
+
+    .node.ellipse {
+      width: 150px;
+      height: 86px;
+      border-radius: 999px;
+    }
+
+    .node.diamond {
+      width: 96px;
+      height: 96px;
+      transform: rotate(45deg);
+    }
+
+    .node.diamond span {
+      transform: rotate(-45deg);
+    }
+
+    .node.note {
+      width: 168px;
+      height: 104px;
+      align-content: start;
+      justify-items: start;
+      border-color: #d2a02b;
+      background: #fff6d6;
+    }
+
+    .node.note::after {
+      position: absolute;
+      right: -2px;
+      bottom: -2px;
+      width: 20px;
+      height: 20px;
+      content: "";
+      background: #f1dfa7;
+      border-top: 2px solid #d2a02b;
+      border-left: 2px solid #d2a02b;
+    }
+
+    .node.text {
+      width: 180px;
+      min-height: 44px;
+      justify-items: start;
+      padding: 8px 10px;
+      background: transparent;
+      border-color: transparent;
+      box-shadow: none;
+      font-size: 22px;
+      font-weight: 700;
+    }
+
+    .node.arrow {
+      width: 146px;
+      height: 42px;
+      background: transparent;
+      border: 0;
+      box-shadow: none;
+    }
+
+    .node.arrow::before {
+      position: absolute;
+      top: 20px;
+      left: 0;
+      width: 128px;
+      height: 4px;
+      content: "";
+      background: #2476c7;
+      border-radius: 999px;
+    }
+
+    .node.arrow::after {
+      position: absolute;
+      top: 11px;
+      right: 2px;
+      width: 18px;
+      height: 18px;
+      content: "";
+      border-top: 4px solid #2476c7;
+      border-right: 4px solid #2476c7;
+      transform: rotate(45deg);
+    }
+
+    .connector {
+      position: absolute;
+      left: 415px;
+      top: 264px;
+      width: 250px;
+      height: 112px;
+      pointer-events: none;
+    }
+
+    .minimap {
+      position: absolute;
+      right: 18px;
+      bottom: 18px;
+      width: 176px;
+      height: 116px;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.88);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+    }
+
+    .minimap-grid {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(95, 116, 139, 0.12) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(95, 116, 139, 0.12) 1px, transparent 1px);
+      background-size: 22px 22px;
+    }
+
+    .minimap-node {
+      position: absolute;
+      background: #7eb3e7;
+      border-radius: 2px;
+    }
+
+    .viewport-mark {
+      position: absolute;
+      left: 58px;
+      top: 31px;
+      width: 72px;
+      height: 44px;
+      border: 2px solid var(--accent);
+      border-radius: 4px;
+      background: rgba(36, 118, 199, 0.08);
+    }
+
+    .zoom-pill {
+      position: absolute;
+      left: 18px;
+      bottom: 18px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      height: 38px;
+      padding: 0 8px;
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+    }
+
+    .zoom-value {
+      width: 54px;
+      text-align: center;
+      color: #425264;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .field-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .field {
+      display: grid;
+      gap: 6px;
+      min-width: 0;
+    }
+
+    .field.full {
+      grid-column: 1 / -1;
+    }
+
+    .label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .control {
+      width: 100%;
+      height: 34px;
+      min-width: 0;
+      padding: 0 10px;
+      color: var(--text);
+      background: var(--panel-soft);
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      outline: none;
+    }
+
+    .control:focus {
+      border-color: #91bce6;
+      box-shadow: 0 0 0 3px rgba(36, 118, 199, 0.12);
+    }
+
+    input[type="color"].control {
+      padding: 4px;
+    }
+
+    .segmented {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 3px;
+      padding: 3px;
+      background: var(--panel-soft);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+
+    .segment {
+      display: grid;
+      height: 28px;
+      place-items: center;
+      border-radius: 5px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .segment.active {
+      color: var(--accent);
+      background: #ffffff;
+      box-shadow: 0 1px 3px rgba(24, 35, 46, 0.08);
+    }
+
+    .slider-row {
+      display: grid;
+      grid-template-columns: 1fr 44px;
+      align-items: center;
+      gap: 10px;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent);
+    }
+
+    .swatches {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 7px;
+    }
+
+    .swatch {
+      height: 26px;
+      border: 1px solid rgba(24, 35, 46, 0.16);
+      border-radius: 6px;
+      box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.4);
+    }
+
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      min-height: 36px;
+      font-size: 13px;
+      color: #405164;
+    }
+
+    .switch {
+      position: relative;
+      width: 42px;
+      height: 24px;
+      flex: 0 0 auto;
+      border-radius: 999px;
+      background: #c9d3dd;
+    }
+
+    .switch::after {
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 18px;
+      height: 18px;
+      content: "";
+      background: #ffffff;
+      border-radius: 999px;
+      box-shadow: 0 1px 3px rgba(24, 35, 46, 0.2);
+      transition: transform 140ms ease;
+    }
+
+    .switch.on {
+      background: var(--accent);
+    }
+
+    .switch.on::after {
+      transform: translateX(18px);
+    }
+
+    .mini-icon {
+      display: inline-grid;
+      width: 15px;
+      height: 15px;
+      place-items: center;
+      font-size: 13px;
+      line-height: 1;
+    }
+
+    .status-bar {
+      position: absolute;
+      top: 14px;
+      left: 18px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      color: #405164;
+      background: rgba(255, 255, 255, 0.86);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      font-size: 12px;
+      font-weight: 600;
+      backdrop-filter: blur(12px);
+      pointer-events: none;
+    }
+
+    @media (max-width: 980px) {
+      .toolbar {
+        grid-template-columns: 190px 1fr;
+      }
+
+      .toolbar-right {
+        display: none;
+      }
+
+      .workspace {
+        grid-template-columns: 204px 1fr;
+      }
+
+      .inspector {
+        display: none;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .toolbar {
+        grid-template-columns: 1fr;
+        height: auto;
+        min-height: 44px;
+        padding: 7px 10px;
+      }
+
+      .brand {
+        display: none;
+      }
+
+      .toolbar-center {
+        justify-content: start;
+        overflow-x: auto;
+      }
+
+      .workspace {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        display: none;
+      }
+
+      .minimap {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="toolbar" aria-label="顶部工具栏">
+      <nav class="tool-group toolbar-center" aria-label="画布工具">
+        <button class="icon-button active" title="选择" aria-label="选择">
+          <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M5 4l11 8-5 1.4 3.2 5.5-2.8 1.6-3.1-5.4L5 18V4z" />
+          </svg>
+        </button>
+        <button class="icon-button" title="拖拽" aria-label="拖拽">
+          <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M12 3v18M3 12h18" />
+            <path d="M12 3l-3 3M12 3l3 3M12 21l-3-3M12 21l3-3M3 12l3-3M3 12l3 3M21 12l-3-3M21 12l-3 3" />
+          </svg>
+        </button>
+        <span class="divider" aria-hidden="true"></span>
+        <button class="icon-button" title="画笔" aria-label="画笔">
+          <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M15.6 4.4l4 4L9.5 18.5 5 19l.5-4.5L15.6 4.4z" />
+            <path d="M14 6l4 4" />
+          </svg>
+        </button>
+        <button class="icon-button" title="荧光笔" aria-label="荧光笔">
+          <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M14.8 4.2l5 5-8.6 8.6-5.2.8.8-5.2 8-9.2z" />
+            <path d="M13.2 6.2l4.6 4.6" />
+            <path d="M4 20h8" />
+            <path class="soft-fill" d="M7 13.5l3.5 3.5-4.5.7.7-4.2z" />
+          </svg>
+        </button>
+        <button class="icon-button" title="直线" aria-label="直线">
+          <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M5 19L19 5" />
+          </svg>
+        </button>
+        <button class="icon-button" title="折线" aria-label="折线">
+          <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <polyline points="4 17 9 8 15 14 20 6" />
+          </svg>
+        </button>
+        <button class="icon-button" title="曲线" aria-label="曲线">
+          <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M4 16c4-9 8 7 16-4" />
+          </svg>
+        </button>
+        <span class="divider" aria-hidden="true"></span>
+        <button class="icon-button" title="图形" aria-label="图形">
+          <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <rect x="5" y="5" width="14" height="14" rx="2" />
+          </svg>
+        </button>
+        <button class="icon-button" title="文字" aria-label="文字">
+          <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M5 6h14M12 6v12M9 18h6" />
+          </svg>
+        </button>
+        <button class="icon-button" title="橡皮擦" aria-label="橡皮擦">
+          <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M7.5 16.5L4 13l8.5-8.5a2.1 2.1 0 0 1 3 0l4 4a2.1 2.1 0 0 1 0 3L14 17H8.5z" />
+            <path d="M10.5 8.5l5 5M14 17h6" />
+          </svg>
+        </button>
+        <button class="icon-button spectrum-button" title="颜色选择器 (RGB 光谱)" aria-label="颜色选择器 (RGB 光谱)">
+          <svg class="tool-icon color-wheel" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <defs>
+              <linearGradient id="rgb-spectrum-x" x1="0%" y1="50%" x2="100%" y2="50%">
+                <stop offset="0%" stop-color="#ff3b30" />
+                <stop offset="18%" stop-color="#ffcc00" />
+                <stop offset="34%" stop-color="#34c759" />
+                <stop offset="52%" stop-color="#00c7be" />
+                <stop offset="70%" stop-color="#007aff" />
+                <stop offset="86%" stop-color="#af52de" />
+                <stop offset="100%" stop-color="#ff2d55" />
+              </linearGradient>
+              <radialGradient id="rgb-spectrum-light" cx="50%" cy="42%" r="58%">
+                <stop offset="0%" stop-color="#ffffff" stop-opacity="0.95" />
+                <stop offset="48%" stop-color="#ffffff" stop-opacity="0.2" />
+                <stop offset="100%" stop-color="#000000" stop-opacity="0.22" />
+              </radialGradient>
+            </defs>
+            <circle cx="12" cy="12" r="8.5" fill="url(#rgb-spectrum-x)" />
+            <circle cx="12" cy="12" r="8.5" fill="url(#rgb-spectrum-light)" />
+            <circle cx="12" cy="12" r="8.5" fill="none" stroke="rgba(24, 35, 46, 0.2)" stroke-width="1.2" />
+          </svg>
+        </button>
+        <span class="divider" aria-hidden="true"></span>
+        <button class="icon-button" title="特殊组件创建" aria-label="特殊组件创建">
+          <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M12 5v14M5 12h14" />
+          </svg>
+        </button>
+        <button class="icon-button" title="图层" aria-label="图层">
+          <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M12 4l8 4-8 4-8-4 8-4z" />
+            <path d="M4 12l8 4 8-4M4 16l8 4 8-4" />
+          </svg>
+        </button>
+      </nav>
+    </header>
+
+    <main class="workspace">
+      <aside class="sidebar" aria-label="左侧图形选择面板">
+        <section class="panel-section">
+          <div class="section-head">
+            <div class="section-title">图形</div>
+            <button class="section-action" type="button">管理</button>
+          </div>
+          <label class="search">
+            <span class="mini-icon">⌕</span>
+            <input type="search" placeholder="搜索图形" aria-label="搜索图形" />
+          </label>
+          <div class="shape-grid" id="shapeGrid">
+            <button class="shape-tile selected" type="button" data-shape="rectangle">
+              <span class="shape-icon rectangle" aria-hidden="true"></span>
+              <span class="shape-label">矩形</span>
+            </button>
+            <button class="shape-tile" type="button" data-shape="ellipse">
+              <span class="shape-icon ellipse" aria-hidden="true"></span>
+              <span class="shape-label">圆形</span>
+            </button>
+            <button class="shape-tile" type="button" data-shape="diamond">
+              <span class="shape-icon diamond" aria-hidden="true"></span>
+              <span class="shape-label">菱形</span>
+            </button>
+            <button class="shape-tile" type="button" data-shape="arrow">
+              <span class="shape-icon arrow" aria-hidden="true"></span>
+              <span class="shape-label">箭头</span>
+            </button>
+            <button class="shape-tile" type="button" data-shape="note">
+              <span class="shape-icon note" aria-hidden="true"></span>
+              <span class="shape-label">便签</span>
+            </button>
+            <button class="shape-tile" type="button" data-shape="text">
+              <span class="shape-icon text" aria-hidden="true">T</span>
+              <span class="shape-label">文本</span>
+            </button>
+          </div>
+        </section>
+
+      </aside>
+
+      <section class="canvas-shell" aria-label="无限画布">
+        <div class="canvas" id="canvas">
+          <div class="board" id="board">
+            <svg class="connector" viewBox="0 0 250 112" aria-hidden="true">
+              <path d="M4 18 C80 18 78 94 150 94 L230 94" fill="none" stroke="#2476c7" stroke-width="3" stroke-linecap="round" />
+              <path d="M230 94 L216 86 M230 94 L216 102" fill="none" stroke="#2476c7" stroke-width="3" stroke-linecap="round" />
+            </svg>
+            <div class="node rectangle selected" style="left: 260px; top: 210px;"><span>开始节点</span></div>
+            <div class="node diamond" style="left: 500px; top: 224px;"><span>判断</span></div>
+            <div class="node ellipse" style="left: 738px; top: 332px;"><span>完成</span></div>
+            <div class="node note" style="left: 322px; top: 394px;"><span>拖动画布可平移，滚轮可缩放。</span></div>
+            <div class="node text" style="left: 714px; top: 190px;"><span>流程草图</span></div>
+          </div>
+        </div>
+
+        <div class="status-bar" aria-hidden="true">
+          <span>选择工具</span>
+          <span>5 个对象</span>
+          <span id="coords">X 0, Y 0</span>
+        </div>
+
+        <div class="zoom-pill" aria-label="缩放控制">
+          <button class="icon-button" id="zoomOut" title="缩小" aria-label="缩小"><span class="mini-icon">−</span></button>
+          <span class="zoom-value" id="zoomValue">100%</span>
+          <button class="icon-button" id="zoomIn" title="放大" aria-label="放大"><span class="mini-icon">＋</span></button>
+        </div>
+
+        <div class="minimap" aria-hidden="true">
+          <div class="minimap-grid"></div>
+          <div class="minimap-node" style="left: 46px; top: 30px; width: 28px; height: 16px;"></div>
+          <div class="minimap-node" style="left: 84px; top: 32px; width: 18px; height: 18px; transform: rotate(45deg);"></div>
+          <div class="minimap-node" style="left: 125px; top: 55px; width: 26px; height: 15px;"></div>
+          <div class="viewport-mark"></div>
+        </div>
+      </section>
+
+      <aside class="inspector" aria-label="右侧图层与样式配置面板">
+        <section class="panel-section">
+          <div class="section-head">
+            <div class="section-title">图层</div>
+            <button class="section-action" type="button">新建</button>
+          </div>
+          <div class="layer-list">
+            <div class="layer-row active"><span>▣</span><span>产品流程</span><span>●</span></div>
+            <div class="layer-row"><span>□</span><span>注释</span><span>○</span></div>
+            <div class="layer-row"><span>◇</span><span>草稿</span><span>○</span></div>
+          </div>
+        </section>
+
+        <section class="panel-section">
+          <div class="section-head">
+            <div class="section-title">位置与尺寸</div>
+          </div>
+          <div class="field-grid">
+            <label class="field">
+              <span class="label">X</span>
+              <input class="control" type="number" value="260" />
+            </label>
+            <label class="field">
+              <span class="label">Y</span>
+              <input class="control" type="number" value="210" />
+            </label>
+            <label class="field">
+              <span class="label">宽</span>
+              <input class="control" type="number" value="158" />
+            </label>
+            <label class="field">
+              <span class="label">高</span>
+              <input class="control" type="number" value="86" />
+            </label>
+          </div>
+        </section>
+
+        <section class="panel-section">
+          <div class="section-head">
+            <div class="section-title">填充与描边</div>
+          </div>
+          <div class="field-grid">
+            <label class="field">
+              <span class="label">填充</span>
+              <input class="control" type="color" value="#ffffff" />
+            </label>
+            <label class="field">
+              <span class="label">描边</span>
+              <input class="control" type="color" value="#2476c7" />
+            </label>
+            <label class="field full">
+              <span class="label">常用颜色</span>
+              <span class="swatches">
+                <button class="swatch" style="background:#ffffff" aria-label="白色"></button>
+                <button class="swatch" style="background:#e6f1fb" aria-label="浅蓝"></button>
+                <button class="swatch" style="background:#dff4ee" aria-label="浅绿"></button>
+                <button class="swatch" style="background:#fff6d6" aria-label="浅黄"></button>
+                <button class="swatch" style="background:#f7e6ee" aria-label="浅红"></button>
+                <button class="swatch" style="background:#263442" aria-label="深色"></button>
+              </span>
+            </label>
+          </div>
+        </section>
+
+        <section class="panel-section">
+          <div class="section-head">
+            <div class="section-title">文本</div>
+          </div>
+          <div class="field-grid">
+            <label class="field full">
+              <span class="label">内容</span>
+              <input class="control" type="text" value="开始节点" />
+            </label>
+            <label class="field">
+              <span class="label">字号</span>
+              <input class="control" type="number" value="14" />
+            </label>
+            <label class="field">
+              <span class="label">字重</span>
+              <select class="control">
+                <option>常规</option>
+                <option selected>半粗</option>
+                <option>粗体</option>
+              </select>
+            </label>
+            <label class="field full">
+              <span class="label">对齐</span>
+              <span class="segmented">
+                <button class="segment active" type="button">左</button>
+                <button class="segment" type="button">中</button>
+                <button class="segment" type="button">右</button>
+              </span>
+            </label>
+          </div>
+        </section>
+
+        <section class="panel-section">
+          <div class="section-head">
+            <div class="section-title">外观</div>
+          </div>
+          <div class="field full">
+            <span class="label">圆角</span>
+            <div class="slider-row">
+              <input type="range" min="0" max="24" value="7" />
+              <input class="control" type="number" value="7" />
+            </div>
+          </div>
+          <div class="field full" style="margin-top: 12px;">
+            <span class="label">透明度</span>
+            <div class="slider-row">
+              <input type="range" min="0" max="100" value="100" />
+              <input class="control" type="number" value="100" />
+            </div>
+          </div>
+        </section>
+      </aside>
+    </main>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("canvas");
+    const board = document.getElementById("board");
+    const zoomValue = document.getElementById("zoomValue");
+    const coords = document.getElementById("coords");
+    const zoomIn = document.getElementById("zoomIn");
+    const zoomOut = document.getElementById("zoomOut");
+    const shapeGrid = document.getElementById("shapeGrid");
+
+    const state = {
+      panX: 120,
+      panY: 64,
+      zoom: 1,
+      selectedShape: "rectangle",
+      dragging: false,
+      startX: 0,
+      startY: 0,
+      startPanX: 0,
+      startPanY: 0
+    };
+
+    function syncCanvas() {
+      board.style.setProperty("--pan-x", `${state.panX}px`);
+      board.style.setProperty("--pan-y", `${state.panY}px`);
+      board.style.setProperty("--zoom", state.zoom);
+      canvas.style.setProperty("--zoom", state.zoom);
+      canvas.style.setProperty("--grid-x", `${state.panX % (20 * state.zoom)}px`);
+      canvas.style.setProperty("--grid-y", `${state.panY % (20 * state.zoom)}px`);
+      zoomValue.textContent = `${Math.round(state.zoom * 100)}%`;
+    }
+
+    function setZoom(nextZoom, originX = canvas.clientWidth / 2, originY = canvas.clientHeight / 2) {
+      const clamped = Math.min(2.4, Math.max(0.35, nextZoom));
+      const worldX = (originX - state.panX) / state.zoom;
+      const worldY = (originY - state.panY) / state.zoom;
+      state.zoom = clamped;
+      state.panX = originX - worldX * state.zoom;
+      state.panY = originY - worldY * state.zoom;
+      syncCanvas();
+    }
+
+    canvas.addEventListener("pointerdown", (event) => {
+      if (event.target.closest(".node")) return;
+      state.dragging = true;
+      state.startX = event.clientX;
+      state.startY = event.clientY;
+      state.startPanX = state.panX;
+      state.startPanY = state.panY;
+      canvas.classList.add("dragging");
+      canvas.setPointerCapture(event.pointerId);
+    });
+
+    canvas.addEventListener("pointermove", (event) => {
+      const rect = canvas.getBoundingClientRect();
+      const worldX = Math.round((event.clientX - rect.left - state.panX) / state.zoom);
+      const worldY = Math.round((event.clientY - rect.top - state.panY) / state.zoom);
+      coords.textContent = `X ${worldX}, Y ${worldY}`;
+
+      if (!state.dragging) return;
+      state.panX = state.startPanX + event.clientX - state.startX;
+      state.panY = state.startPanY + event.clientY - state.startY;
+      syncCanvas();
+    });
+
+    canvas.addEventListener("pointerup", (event) => {
+      state.dragging = false;
+      canvas.classList.remove("dragging");
+      if (canvas.hasPointerCapture(event.pointerId)) {
+        canvas.releasePointerCapture(event.pointerId);
+      }
+    });
+
+    canvas.addEventListener("wheel", (event) => {
+      event.preventDefault();
+      const rect = canvas.getBoundingClientRect();
+      const direction = event.deltaY > 0 ? -1 : 1;
+      const nextZoom = state.zoom * (direction > 0 ? 1.08 : 0.92);
+      setZoom(nextZoom, event.clientX - rect.left, event.clientY - rect.top);
+    }, { passive: false });
+
+    zoomIn.addEventListener("click", () => setZoom(state.zoom * 1.12));
+    zoomOut.addEventListener("click", () => setZoom(state.zoom * 0.88));
+
+    shapeGrid.addEventListener("click", (event) => {
+      const tile = event.target.closest(".shape-tile");
+      if (!tile) return;
+      state.selectedShape = tile.dataset.shape;
+      document.querySelectorAll(".shape-tile").forEach((item) => item.classList.remove("selected"));
+      tile.classList.add("selected");
+    });
+
+    document.querySelectorAll(".switch").forEach((switcher) => {
+      switcher.addEventListener("click", () => switcher.classList.toggle("on"));
+    });
+
+    document.querySelectorAll(".node").forEach((node) => {
+      node.addEventListener("pointerdown", (event) => {
+        event.stopPropagation();
+        document.querySelectorAll(".node").forEach((item) => item.classList.remove("selected"));
+        node.classList.add("selected");
+      });
+    });
+
+    syncCanvas();
+  </script>
+</body>
+</html>
