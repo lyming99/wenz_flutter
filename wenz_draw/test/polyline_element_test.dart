@@ -3,74 +3,56 @@ import 'package:flutter/widgets.dart';
 import 'package:wenz_draw/wenz_draw.dart';
 
 void main() {
-  test('orthogonal router creates right-angle polyline', () {
-    final points = OrthogonalRouter.route(
-      start: Offset.zero,
-      end: const Offset(100, 60),
-    );
+  test('connector routing service creates right-angle polyline', () {
+    final points = _route(start: Offset.zero, end: const Offset(100, 60));
 
     expect(points.first, Offset.zero);
     expect(points.last, const Offset(100, 60));
     expect(points.length, greaterThanOrEqualTo(3));
-    for (var i = 0; i < points.length - 1; i++) {
-      expect(
-        points[i].dx == points[i + 1].dx || points[i].dy == points[i + 1].dy,
-        isTrue,
-      );
-    }
+    _expectOrthogonal(points);
   });
 
-  test('orthogonal router avoids intermediate obstacles with extra bends', () {
-    final obstacle = Rect.fromLTWH(40, -20, 40, 40);
-    final points = OrthogonalRouter.route(
+  test('connector routing service avoids intermediate obstacles', () {
+    const obstacle = Rect.fromLTWH(40, -20, 40, 40);
+    final points = _route(
       start: Offset.zero,
       end: const Offset(120, 0),
-      obstacles: [obstacle],
-      margin: 8,
+      elements: const [RectElement(id: 'obstacle', rect: obstacle)],
+      options: const ConnectorRoutingOptions(margin: 8),
     );
 
     expect(points.first, Offset.zero);
     expect(points.last, const Offset(120, 0));
     expect(points.length, greaterThanOrEqualTo(4));
-    for (var i = 0; i < points.length - 1; i++) {
-      expect(
-        points[i].dx == points[i + 1].dx || points[i].dy == points[i + 1].dy,
-        isTrue,
-      );
-      expect(
-        OrthogonalRouter.segmentIntersectsRectInterior(
-          points[i],
-          points[i + 1],
-          obstacle,
-        ),
-        isFalse,
-      );
-    }
+    _expectOrthogonal(points);
+    _expectAvoids(points, obstacle);
   });
 
-  test('orthogonal router exits bound elements before routing', () {
+  test('connector routing service exits bound elements before routing', () {
     const source = Rect.fromLTWH(0, 0, 100, 80);
     const target = Rect.fromLTWH(200, 0, 100, 80);
-    final points = OrthogonalRouter.route(
+    final points = _route(
       start: source.center,
       end: target.center,
-      sourceBounds: source,
-      targetBounds: target,
-      margin: 8,
+      elements: const [
+        RectElement(id: 'source', rect: source),
+        RectElement(id: 'target', rect: target),
+      ],
+      startBinding: const SnapBinding(elementId: 'source', anchorId: 'center'),
+      endBinding: const SnapBinding(elementId: 'target', anchorId: 'center'),
+      options: const ConnectorRoutingOptions(margin: 8),
     );
 
     expect(points.first, source.center);
     expect(points.last, target.center);
     expect(points.length, greaterThanOrEqualTo(4));
-    for (var i = 0; i < points.length - 1; i++) {
-      final a = points[i];
-      final b = points[i + 1];
-      expect(a.dx == b.dx || a.dy == b.dy, isTrue);
-      if (i > 0) {
+    _expectOrthogonal(points);
+    for (var i = 1; i < points.length - 1; i++) {
+      if (i > 1) {
         expect(
-          OrthogonalRouter.segmentIntersectsRectInterior(
-            a,
-            b,
+          _segmentIntersectsRectInterior(
+            points[i - 1],
+            points[i],
             source.inflate(8),
           ),
           isFalse,
@@ -78,9 +60,9 @@ void main() {
       }
       if (i < points.length - 2) {
         expect(
-          OrthogonalRouter.segmentIntersectsRectInterior(
-            a,
-            b,
+          _segmentIntersectsRectInterior(
+            points[i],
+            points[i + 1],
             target.inflate(8),
           ),
           isFalse,
@@ -89,75 +71,70 @@ void main() {
     }
   });
 
-  test('orthogonal router avoids nearby element blocking bound components', () {
-    const source = Rect.fromLTWH(0, 0, 100, 80);
-    const target = Rect.fromLTWH(220, 0, 100, 80);
-    const obstacle = Rect.fromLTWH(130, 20, 60, 60);
-    final points = OrthogonalRouter.route(
-      start: source.center,
-      end: target.center,
-      sourceBounds: source,
-      targetBounds: target,
-      obstacles: const [obstacle],
-      margin: 8,
-    );
-
-    for (var i = 0; i < points.length - 1; i++) {
-      final a = points[i];
-      final b = points[i + 1];
-      expect(a.dx == b.dx || a.dy == b.dy, isTrue);
-      expect(
-        OrthogonalRouter.segmentIntersectsRectInterior(
-          a,
-          b,
-          obstacle.inflate(8),
+  test(
+    'connector routing service avoids nearby element blocking components',
+    () {
+      const source = Rect.fromLTWH(0, 0, 100, 80);
+      const target = Rect.fromLTWH(220, 0, 100, 80);
+      const obstacle = Rect.fromLTWH(130, 20, 60, 60);
+      final points = _route(
+        start: source.center,
+        end: target.center,
+        elements: const [
+          RectElement(id: 'source', rect: source),
+          RectElement(id: 'target', rect: target),
+          RectElement(id: 'obstacle', rect: obstacle),
+        ],
+        startBinding: const SnapBinding(
+          elementId: 'source',
+          anchorId: 'center',
         ),
-        isFalse,
+        endBinding: const SnapBinding(elementId: 'target', anchorId: 'center'),
+        options: const ConnectorRoutingOptions(margin: 8),
       );
-      if (i > 0) {
-        expect(
-          OrthogonalRouter.segmentIntersectsRectInterior(
-            a,
-            b,
-            source.inflate(8),
-          ),
-          isFalse,
-        );
-      }
-      if (i < points.length - 2) {
-        expect(
-          OrthogonalRouter.segmentIntersectsRectInterior(
-            a,
-            b,
-            target.inflate(8),
-          ),
-          isFalse,
-        );
-      }
-    }
-  });
 
-  test('orthogonal router chooses the shortest valid avoiding route', () {
-    const obstacle = Rect.fromLTWH(40, -10, 40, 20);
-    final points = OrthogonalRouter.route(
-      start: Offset.zero,
-      end: const Offset(120, 0),
-      obstacles: const [obstacle],
-      margin: 10,
-    );
+      _expectOrthogonal(points);
+      _expectAvoids(points, obstacle.inflate(8));
+      for (var i = 1; i < points.length - 1; i++) {
+        if (i > 1) {
+          expect(
+            _segmentIntersectsRectInterior(
+              points[i - 1],
+              points[i],
+              source.inflate(8),
+            ),
+            isFalse,
+          );
+        }
+        if (i < points.length - 2) {
+          expect(
+            _segmentIntersectsRectInterior(
+              points[i],
+              points[i + 1],
+              target.inflate(8),
+            ),
+            isFalse,
+          );
+        }
+      }
+    },
+  );
 
-    expect(_pathLength(points), 160);
-    for (var i = 0; i < points.length - 1; i++) {
-      expect(
-        OrthogonalRouter.segmentIntersectsRectInterior(
-          points[i],
-          points[i + 1],
-          obstacle.inflate(10),
-        ),
-        isFalse,
+  test(
+    'connector routing service chooses the shortest valid avoiding route',
+    () {
+      const obstacle = Rect.fromLTWH(40, -10, 40, 20);
+      final points = _route(
+        start: Offset.zero,
+        end: const Offset(120, 0),
+        elements: const [RectElement(id: 'obstacle', rect: obstacle)],
+        options: const ConnectorRoutingOptions(margin: 10),
       );
-    }
-  });
+
+      expect(_pathLength(points), closeTo(160, 2));
+      _expectAvoids(points, obstacle.inflate(10));
+    },
+  );
 
   test('polyline element bounds hitTest translate and scale', () {
     const element = PolylineElement(
@@ -248,10 +225,145 @@ void main() {
     expect(polyline.points.length, greaterThanOrEqualTo(4));
     for (var i = 0; i < polyline.points.length - 1; i++) {
       expect(
-        OrthogonalRouter.segmentIntersectsRectInterior(
+        _segmentIntersectsRectInterior(
           polyline.points[i],
           polyline.points[i + 1],
           obstacle,
+        ),
+        isFalse,
+      );
+    }
+  });
+
+  test('connector routing service respects locked edge port direction', () {
+    const source = RectElement(
+      id: 'source',
+      rect: Rect.fromLTWH(0, 0, 100, 80),
+    );
+    const target = RectElement(
+      id: 'target',
+      rect: Rect.fromLTWH(220, 0, 100, 80),
+    );
+    const obstacle = RectElement(
+      id: 'obstacle',
+      rect: Rect.fromLTWH(130, -20, 60, 80),
+    );
+    const service = ConnectorRoutingService();
+
+    final result = service.route(
+      start: const Offset(100, 40),
+      end: const Offset(220, 40),
+      elements: const [source, target, obstacle],
+      isLayerVisible: (_) => true,
+      startBinding: const SnapBinding(elementId: 'source', anchorId: 'right'),
+      endBinding: const SnapBinding(elementId: 'target', anchorId: 'left'),
+    );
+
+    expect(result.points.first, const Offset(100, 40));
+    expect(result.points.last, const Offset(220, 40));
+    expect(
+      result.points.any((point) => point.dx > result.points.first.dx),
+      isTrue,
+    );
+    for (var i = 0; i < result.points.length - 1; i++) {
+      expect(
+        _segmentIntersectsRectInterior(
+          result.points[i],
+          result.points[i + 1],
+          obstacle.rect.inflate(16),
+        ),
+        isFalse,
+      );
+    }
+  });
+
+  test('same side ports share an outside trunk before returning', () {
+    const source = RectElement(
+      id: 'source',
+      rect: Rect.fromLTWH(0, 0, 80, 120),
+    );
+    const target = RectElement(
+      id: 'target',
+      rect: Rect.fromLTWH(160, 0, 80, 120),
+    );
+    const service = ConnectorRoutingService();
+
+    final route = service.route(
+      start: const Offset(80, 30),
+      end: const Offset(240, 90),
+      elements: const [source, target],
+      isLayerVisible: (_) => true,
+      startBinding: const SnapBinding(elementId: 'source', anchorId: 'right'),
+      endBinding: const SnapBinding(elementId: 'target', anchorId: 'right'),
+    );
+
+    final outsideX = route.points
+        .map((point) => point.dx)
+        .reduce((a, b) => a > b ? a : b);
+    expect(outsideX, greaterThan(target.rect.right));
+    expect(_hasOrthogonalSegment(route.points, outsideX), isTrue);
+  });
+
+  test('mind map sibling branches may overlap existing connector trunk', () {
+    final controller = CanvasController()
+      ..addElement(
+        const RectElement(id: 'root', rect: Rect.fromLTWH(0, 0, 80, 120)),
+        record: false,
+      )
+      ..addElement(
+        const RectElement(id: 'top', rect: Rect.fromLTWH(180, 0, 80, 40)),
+        record: false,
+      )
+      ..addElement(
+        const RectElement(id: 'bottom', rect: Rect.fromLTWH(180, 80, 80, 40)),
+        record: false,
+      );
+
+    final topPoints = controller.routeConnector(
+      start: const Offset(80, 60),
+      end: const Offset(180, 20),
+      startBinding: const SnapBinding(elementId: 'root', anchorId: 'right'),
+      endBinding: const SnapBinding(elementId: 'top', anchorId: 'left'),
+    );
+    controller.addElement(
+      PolylineElement(
+        id: 'top-connector',
+        points: topPoints,
+        startBinding: const SnapBinding(elementId: 'root', anchorId: 'right'),
+        endBinding: const SnapBinding(elementId: 'top', anchorId: 'left'),
+      ),
+      record: false,
+    );
+
+    final bottomPoints = controller.routeConnector(
+      start: const Offset(80, 60),
+      end: const Offset(180, 100),
+      startBinding: const SnapBinding(elementId: 'root', anchorId: 'right'),
+      endBinding: const SnapBinding(elementId: 'bottom', anchorId: 'left'),
+    );
+
+    expect(_overlapLength(topPoints, bottomPoints), greaterThan(0));
+  });
+
+  test('canvas controller routeConnector uses nearby obstacles', () {
+    final controller = CanvasController()
+      ..addElement(
+        const RectElement(id: 'obstacle', rect: Rect.fromLTWH(90, 20, 60, 60)),
+        record: false,
+      );
+
+    final points = controller.routeConnector(
+      start: const Offset(0, 50),
+      end: const Offset(220, 50),
+    );
+
+    expect(points.length, greaterThanOrEqualTo(4));
+    for (var i = 0; i < points.length - 1; i++) {
+      expect(
+        _segmentIntersectsRectInterior(
+          points[i],
+          points[i + 1],
+          const Rect.fromLTWH(90, 20, 60, 60).inflate(16),
         ),
         isFalse,
       );
@@ -320,8 +432,147 @@ void main() {
       Offset(0, 0),
       Offset(80, 0),
       Offset(80, 40),
+      Offset(50, 40),
     ]);
     expect(controller.historyManager.canUndo, isTrue);
+  });
+
+  test('dragging polyline middle point keeps endpoints fixed', () {
+    final controller = CanvasController()
+      ..addElement(
+        const PolylineElement(
+          id: 'poly-1',
+          points: [
+            Offset(0, 0),
+            Offset(50, 0),
+            Offset(50, 40),
+            Offset(100, 40),
+          ],
+        ),
+        record: false,
+      )
+      ..setTool(SelectTool.idValue)
+      ..setSelection({'poly-1'});
+
+    controller.dispatchCanvasEvent(
+      const CanvasPointerDownEvent(
+        screenPoint: Offset(50, 0),
+        worldPoint: Offset(50, 0),
+        transform: CanvasTransform.identity,
+      ),
+    );
+    controller.dispatchCanvasEvent(
+      const CanvasPointerMoveEvent(
+        screenPoint: Offset(80, -30),
+        worldPoint: Offset(80, -30),
+        transform: CanvasTransform.identity,
+        delta: Offset(30, -30),
+      ),
+    );
+
+    final polyline = controller.elementById('poly-1') as PolylineElement;
+    expect(polyline.points.first, Offset.zero);
+    expect(polyline.points.last, const Offset(100, 40));
+  });
+
+  test('dragging polyline vertical segment moves it horizontally', () {
+    final controller = CanvasController()
+      ..addElement(
+        const PolylineElement(
+          id: 'poly-1',
+          points: [
+            Offset(0, 0),
+            Offset(50, 0),
+            Offset(50, 40),
+            Offset(100, 40),
+          ],
+        ),
+        record: false,
+      )
+      ..setTool(SelectTool.idValue)
+      ..setSelection({'poly-1'});
+
+    controller.dispatchCanvasEvent(
+      const CanvasPointerDownEvent(
+        screenPoint: Offset(50, 20),
+        worldPoint: Offset(50, 20),
+        transform: CanvasTransform.identity,
+      ),
+    );
+    controller.dispatchCanvasEvent(
+      const CanvasPointerMoveEvent(
+        screenPoint: Offset(80, 25),
+        worldPoint: Offset(80, 25),
+        transform: CanvasTransform.identity,
+        delta: Offset(30, 5),
+      ),
+    );
+    controller.dispatchCanvasEvent(
+      const CanvasPointerUpEvent(
+        screenPoint: Offset(80, 25),
+        worldPoint: Offset(80, 25),
+        transform: CanvasTransform.identity,
+      ),
+    );
+
+    final polyline = controller.elementById('poly-1') as PolylineElement;
+    expect(polyline.points, const [
+      Offset(0, 0),
+      Offset(80, 0),
+      Offset(80, 40),
+      Offset(100, 40),
+    ]);
+    expect(controller.historyManager.canUndo, isTrue);
+  });
+
+  test('dragging polyline horizontal segment moves it vertically', () {
+    final controller = CanvasController()
+      ..addElement(
+        const PolylineElement(
+          id: 'poly-1',
+          points: [
+            Offset(0, 0),
+            Offset(50, 0),
+            Offset(50, 40),
+            Offset(100, 40),
+          ],
+        ),
+        record: false,
+      )
+      ..setTool(SelectTool.idValue)
+      ..setSelection({'poly-1'});
+
+    controller.dispatchCanvasEvent(
+      const CanvasPointerDownEvent(
+        screenPoint: Offset(75, 40),
+        worldPoint: Offset(75, 40),
+        transform: CanvasTransform.identity,
+      ),
+    );
+    controller.dispatchCanvasEvent(
+      const CanvasPointerMoveEvent(
+        screenPoint: Offset(76, 70),
+        worldPoint: Offset(76, 70),
+        transform: CanvasTransform.identity,
+        delta: Offset(1, 30),
+      ),
+    );
+    controller.dispatchCanvasEvent(
+      const CanvasPointerUpEvent(
+        screenPoint: Offset(76, 70),
+        worldPoint: Offset(76, 70),
+        transform: CanvasTransform.identity,
+      ),
+    );
+
+    final polyline = controller.elementById('poly-1') as PolylineElement;
+    expect(polyline.points, const [
+      Offset(0, 0),
+      Offset(50, 0),
+      Offset(50, 70),
+      Offset(100, 70),
+      Offset(100, 40),
+    ]);
   });
 
   test(
@@ -373,7 +624,7 @@ void main() {
           isTrue,
         );
         expect(
-          OrthogonalRouter.segmentIntersectsRectInterior(
+          _segmentIntersectsRectInterior(
             polyline.points[i],
             polyline.points[i + 1],
             obstacle.inflate(16),
@@ -385,10 +636,95 @@ void main() {
   );
 }
 
-double _pathLength(List<Offset> points) {
+double _overlapLength(List<Offset> a, List<Offset> b) {
+  var total = 0.0;
+  for (var i = 0; i < a.length - 1; i++) {
+    for (var j = 0; j < b.length - 1; j++) {
+      total += _segmentOverlapLength(a[i], a[i + 1], b[j], b[j + 1]);
+    }
+  }
+  return total;
+}
+
+ double _segmentOverlapLength(List<Offset> points) {
   var total = 0.0;
   for (var i = 0; i < points.length - 1; i++) {
     total += (points[i + 1] - points[i]).distance;
   }
   return total;
+}
+
+void _expectOrthogonal(List<Offset> points) {
+  for (var i = 0; i < points.length - 1; i++) {
+    expect(
+      points[i].dx == points[i + 1].dx || points[i].dy == points[i + 1].dy,
+      isTrue,
+    );
+  }
+}
+
+void _expectAvoids(List<Offset> points, Rect obstacle) {
+  for (var i = 0; i < points.length - 1; i++) {
+    expect(
+      _segmentIntersectsRectInterior(points[i], points[i + 1], obstacle),
+      isFalse,
+    );
+  }
+}
+
+bool _hasOrthogonalSegment(List<Offset> points, double x) {
+  for (var i = 0; i < points.length - 1; i++) {
+    if ((points[i].dx - x).abs() < 0.0001 &&
+        (points[i + 1].dx - x).abs() < 0.0001 &&
+        (points[i].dy - points[i + 1].dy).abs() > 0.0001) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool _segmentIntersectsRectInterior(Offset a, Offset b, Rect rect) {
+  final inner = rect.deflate(0.001);
+  if (inner.isEmpty) {
+    return false;
+  }
+  if ((a.dx - b.dx).abs() < 0.0001) {
+    final x = a.dx;
+    if (x <= inner.left || x >= inner.right) {
+      return false;
+    }
+    final top = a.dy < b.dy ? a.dy : b.dy;
+    final bottom = a.dy > b.dy ? a.dy : b.dy;
+    return bottom > inner.top && top < inner.bottom;
+  }
+  if ((a.dy - b.dy).abs() < 0.0001) {
+    final y = a.dy;
+    if (y <= inner.top || y >= inner.bottom) {
+      return false;
+    }
+    final left = a.dx < b.dx ? a.dx : b.dx;
+    final right = a.dx > b.dx ? a.dx : b.dx;
+    return right > inner.left && left < inner.right;
+  }
+  return false;
+}
+
+List<Offset> _route({
+  required Offset start,
+  required Offset end,
+  Iterable<CanvasElement> elements = const <CanvasElement>[],
+  SnapBinding? startBinding,
+  SnapBinding? endBinding,
+  ConnectorRoutingOptions options = const ConnectorRoutingOptions(),
+}) {
+  return ConnectorRoutingService(options: options)
+      .route(
+        start: start,
+        end: end,
+        elements: elements,
+        isLayerVisible: (_) => true,
+        startBinding: startBinding,
+        endBinding: endBinding,
+      )
+      .points;
 }

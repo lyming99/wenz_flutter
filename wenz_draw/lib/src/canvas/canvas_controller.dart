@@ -18,6 +18,7 @@ import '../infinite_canvas/canvas_event.dart';
 import '../layers/auto_layering.dart';
 import '../layers/canvas_layer.dart';
 import '../layers/layer_manager.dart';
+import '../routing/connector_routing.dart';
 import '../snap/snap_resolver.dart';
 import '../tools/brush_settings.dart';
 import '../tools/canvas_tool.dart';
@@ -46,6 +47,7 @@ class CanvasController extends ChangeNotifier {
     LayerManager? layerManager,
     this.autoLayeringPolicy = const AutoLayeringPolicy.activeLayer(),
     SnapSettings snapSettings = const SnapSettings(),
+    this.connectorRoutingOptions = const ConnectorRoutingOptions(),
   }) : _state = initialState,
        toolManager = toolManager ?? ToolManager(),
        historyManager = historyManager ?? HistoryManager(),
@@ -66,6 +68,7 @@ class CanvasController extends ChangeNotifier {
   final HistoryManager historyManager;
   final LayerManager layerManager;
   final AutoLayeringPolicy autoLayeringPolicy;
+  final ConnectorRoutingOptions connectorRoutingOptions;
   SnapResolver snapResolver;
 
   CanvasState _state;
@@ -215,23 +218,15 @@ class CanvasController extends ChangeNotifier {
       final nextStart = start ?? element.start;
       final nextEnd = end ?? element.end;
       return element.copyWith(
-        points: OrthogonalRouter.route(
+        points: routeConnector(
           start: nextStart,
           end: nextEnd,
-          sourceBounds: _boundsForBindingFrom(
-            elementsById,
-            element.startBinding,
-          ),
-          targetBounds: _boundsForBindingFrom(elementsById, element.endBinding),
-          obstacles: _routingObstacles(
-            elementsById,
-            excludeIds: {
-              element.id,
-              element.startBinding?.elementId,
-              element.endBinding?.elementId,
-            },
-            queryRect: Rect.fromPoints(nextStart, nextEnd).inflate(320),
-          ),
+          startBinding: element.startBinding,
+          endBinding: element.endBinding,
+          connectorId: element.id,
+          previousRoute: element.points,
+          quality: connectorRoutingOptions.finalQuality,
+          elementsOverride: elements,
         ),
       );
     }
@@ -275,46 +270,31 @@ class CanvasController extends ChangeNotifier {
     return null;
   }
 
-  Iterable<Rect> _routingObstacles(
-    Map<String, CanvasElement> elementsById, {
-    required Set<String?> excludeIds,
-    required Rect queryRect,
+  List<Offset> routeConnector({
+    required Offset start,
+    required Offset end,
+    SnapBinding? startBinding,
+    SnapBinding? endBinding,
+    String? connectorId,
+    List<Offset>? previousRoute,
+    ConnectorRouteQuality quality = ConnectorRouteQuality.high,
+    Iterable<CanvasElement>? elementsOverride,
   }) {
-    return [
-      for (final element in _nearbyElementsForRouting(elementsById, queryRect))
-        if (element.visible &&
-            isLayerVisible(element.layerId) &&
-            !isLayerLocked(element.layerId) &&
-            !excludeIds.contains(element.id))
-          element.bounds,
-    ];
-  }
-
-  Iterable<CanvasElement> _nearbyElementsForRouting(
-    Map<String, CanvasElement> elementsById,
-    Rect queryRect,
-  ) {
-    if (identical(elementsById.values, _state.elements)) {
-      return elementsNear(queryRect);
-    }
-    return _spatialIndex.query(elementsById.values, queryRect);
-  }
-
-  Rect? _boundsForBindingFrom(
-    Map<String, CanvasElement> elementsById,
-    SnapBinding? binding,
-  ) {
-    if (binding == null) {
-      return null;
-    }
-    final target = elementsById[binding.elementId];
-    if (target == null ||
-        !target.visible ||
-        !isLayerVisible(target.layerId) ||
-        isLayerLocked(target.layerId)) {
-      return null;
-    }
-    return target.bounds;
+    final service = ConnectorRoutingService(options: connectorRoutingOptions);
+    return service
+        .route(
+          start: start,
+          end: end,
+          elements: elementsOverride ?? _state.elements,
+          isLayerVisible: isLayerVisible,
+          isLayerLocked: isLayerLocked,
+          startBinding: startBinding,
+          endBinding: endBinding,
+          connectorId: connectorId,
+          previousRoute: previousRoute,
+          quality: quality,
+        )
+        .points;
   }
 
   void replaceElements(
@@ -648,12 +628,19 @@ class CanvasController extends ChangeNotifier {
     bool record = true,
   }) {
     final element = elementById(id);
-    if (element is! RectElement && element is! EllipseElement) {
+    if (element is! RectElement &&
+        element is! EllipseElement &&
+        element is! LineElement &&
+        element is! ArrowElement &&
+        element is! PolylineElement) {
       return;
     }
     final style = switch (element) {
       RectElement e => e.labelStyle,
       EllipseElement e => e.labelStyle,
+      LineElement e => e.labelStyle,
+      ArrowElement e => e.labelStyle,
+      PolylineElement e => e.labelStyle,
       _ => const TextStyle(),
     };
     final nextFontFamily = identical(fontFamily, _unsetTextStyleValue)
@@ -685,6 +672,12 @@ class CanvasController extends ChangeNotifier {
           ),
           record: record,
         );
+      case LineElement e:
+        updateElement(id, e.copyWith(labelStyle: nextStyle), record: record);
+      case ArrowElement e:
+        updateElement(id, e.copyWith(labelStyle: nextStyle), record: record);
+      case PolylineElement e:
+        updateElement(id, e.copyWith(labelStyle: nextStyle), record: record);
     }
   }
 
@@ -788,7 +781,11 @@ class CanvasController extends ChangeNotifier {
 
   void beginShapeLabelEditing(String id) {
     final element = elementById(id);
-    if (element is! RectElement && element is! EllipseElement) {
+    if (element is! RectElement &&
+        element is! EllipseElement &&
+        element is! LineElement &&
+        element is! ArrowElement &&
+        element is! PolylineElement) {
       return;
     }
     if (_editingTextElementId != null) {
@@ -861,6 +858,15 @@ class CanvasController extends ChangeNotifier {
       return element.copyWith(label: label);
     }
     if (element is EllipseElement) {
+      return element.copyWith(label: label);
+    }
+    if (element is LineElement) {
+      return element.copyWith(label: label);
+    }
+    if (element is ArrowElement) {
+      return element.copyWith(label: label);
+    }
+    if (element is PolylineElement) {
       return element.copyWith(label: label);
     }
     return null;

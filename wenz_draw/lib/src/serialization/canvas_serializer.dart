@@ -7,6 +7,7 @@ import '../elements/canvas_element.dart';
 import '../elements/ellipse_element.dart';
 import '../elements/image_element.dart';
 import '../elements/line_element.dart';
+import '../elements/line_label_painter.dart';
 import '../elements/path_element.dart';
 import '../elements/polyline_element.dart';
 import '../elements/rect_element.dart';
@@ -87,6 +88,13 @@ class CanvasSerializer {
           style: _style(json['style']),
           startBinding: SnapBinding.fromJson(json['startBinding']),
           endBinding: SnapBinding.fromJson(json['endBinding']),
+          label: json['label'] as String?,
+          labelStyle: LineLabelPainter.styleFromJson(json['labelStyle']),
+          labelPosition:
+              (json['labelPosition'] as num?)?.toDouble() ??
+              LineLabelPainter.defaultPosition,
+          labelOffset: LineLabelPainter.offsetFromJson(json['labelOffset']),
+          labelBackground: _colorFromJson(json['labelBackground']),
         );
       case PolylineElement.elementType:
         return PolylineElement(
@@ -102,6 +110,13 @@ class CanvasSerializer {
           style: _style(json['style']),
           startBinding: SnapBinding.fromJson(json['startBinding']),
           endBinding: SnapBinding.fromJson(json['endBinding']),
+          label: json['label'] as String?,
+          labelStyle: LineLabelPainter.styleFromJson(json['labelStyle']),
+          labelPosition:
+              (json['labelPosition'] as num?)?.toDouble() ??
+              LineLabelPainter.defaultPosition,
+          labelOffset: LineLabelPainter.offsetFromJson(json['labelOffset']),
+          labelBackground: _colorFromJson(json['labelBackground']),
         );
       case RectElement.elementType:
         return RectElement(
@@ -150,6 +165,13 @@ class CanvasSerializer {
           style: _style(json['style']),
           startBinding: SnapBinding.fromJson(json['startBinding']),
           endBinding: SnapBinding.fromJson(json['endBinding']),
+          label: json['label'] as String?,
+          labelStyle: LineLabelPainter.styleFromJson(json['labelStyle']),
+          labelPosition:
+              (json['labelPosition'] as num?)?.toDouble() ??
+              LineLabelPainter.defaultPosition,
+          labelOffset: LineLabelPainter.offsetFromJson(json['labelOffset']),
+          labelBackground: _colorFromJson(json['labelBackground']),
         );
       case TextElement.elementType:
         final styleJson = json['style'];
@@ -284,6 +306,10 @@ class CanvasSerializer {
 
   static PaintStyle? _nullableStyle(Object? json) {
     return json is Map<String, dynamic> ? PaintStyle.fromJson(json) : null;
+  }
+
+  static Color? _colorFromJson(Object? value) {
+    return value is num ? Color(value.toInt()) : null;
   }
 
   static Map<String, dynamic> _stringMap(Object? json) {

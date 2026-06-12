@@ -5,7 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../canvas/canvas_controller.dart';
+import '../elements/arrow_element.dart';
 import '../elements/ellipse_element.dart';
+import '../elements/line_element.dart';
+import '../elements/line_label_painter.dart';
+import '../elements/polyline_element.dart';
 import '../elements/rect_element.dart';
 import '../elements/shape_label_painter.dart';
 import '../elements/text_element.dart';
@@ -241,17 +245,17 @@ class _InfiniteCanvasWidgetState extends State<InfiniteCanvasWidget> {
   ) {
     final canvasController = widget.controller.canvasController;
     final element = canvasController.elementById(editingShapeId);
-    if (element is! RectElement && element is! EllipseElement) {
+    if (element is! RectElement &&
+        element is! EllipseElement &&
+        element is! LineElement &&
+        element is! ArrowElement &&
+        element is! PolylineElement) {
       canvasController.endShapeLabelEditing();
       return true;
     }
 
     final worldPoint = widget.controller.screenToWorld(event.localPosition);
-    final bounds = switch (element) {
-      RectElement e => e.labelPadding.deflateRect(e.rect),
-      EllipseElement e => e.labelPadding.deflateRect(e.rect),
-      _ => Rect.zero,
-    };
+    final bounds = _shapeLabelEditingBounds(element);
     final toolbarRect = Rect.fromLTWH(
       bounds.left - 8 / widget.controller.transform.scale,
       bounds.top - 48 / widget.controller.transform.scale,
@@ -268,6 +272,60 @@ class _InfiniteCanvasWidgetState extends State<InfiniteCanvasWidget> {
 
     canvasController.endShapeLabelEditing();
     return false;
+  }
+
+  Rect _shapeLabelEditingBounds(Object? element) {
+    final bounds = switch (element) {
+      RectElement e => e.labelPadding.deflateRect(e.rect),
+      EllipseElement e => e.labelPadding.deflateRect(e.rect),
+      LineElement e => LineLabelPainter.labelBounds(
+        points: [e.start, e.end],
+        label: e.label?.isEmpty ?? true ? ' ' : e.label,
+        style: e.labelStyle,
+        labelPosition: e.labelPosition,
+        labelOffset: e.labelOffset,
+        labelBackground: e.labelBackground,
+      ),
+      ArrowElement e => LineLabelPainter.labelBounds(
+        points: [e.start, e.end],
+        label: e.label?.isEmpty ?? true ? ' ' : e.label,
+        style: e.labelStyle,
+        labelPosition: e.labelPosition,
+        labelOffset: e.labelOffset,
+        labelBackground: e.labelBackground,
+      ),
+      PolylineElement e => LineLabelPainter.labelBounds(
+        points: e.points,
+        label: e.label?.isEmpty ?? true ? ' ' : e.label,
+        style: e.labelStyle,
+        labelPosition: e.labelPosition,
+        labelOffset: e.labelOffset,
+        labelBackground: e.labelBackground,
+      ),
+      _ => Rect.zero,
+    };
+    if (!bounds.isEmpty) {
+      return bounds;
+    }
+    final center = switch (element) {
+      LineElement e => LineLabelPainter.labelCenter(
+        [e.start, e.end],
+        labelPosition: e.labelPosition,
+        labelOffset: e.labelOffset,
+      ),
+      ArrowElement e => LineLabelPainter.labelCenter(
+        [e.start, e.end],
+        labelPosition: e.labelPosition,
+        labelOffset: e.labelOffset,
+      ),
+      PolylineElement e => LineLabelPainter.labelCenter(
+        e.points,
+        labelPosition: e.labelPosition,
+        labelOffset: e.labelOffset,
+      ),
+      _ => Offset.zero,
+    };
+    return Rect.fromCenter(center: center, width: 80, height: 24);
   }
 
   _EditingTextResizeHandle? _editingResizeHandleAt(
@@ -893,13 +951,20 @@ class ShapeLabelEditingTarget implements _TextEditingTarget {
   final Object element;
 
   static bool canEdit(Object? element) {
-    return element is RectElement || element is EllipseElement;
+    return element is RectElement ||
+        element is EllipseElement ||
+        element is LineElement ||
+        element is ArrowElement ||
+        element is PolylineElement;
   }
 
   @override
   String get id => switch (element) {
     RectElement e => e.id,
     EllipseElement e => e.id,
+    LineElement e => e.id,
+    ArrowElement e => e.id,
+    PolylineElement e => e.id,
     _ => '',
   };
 
@@ -907,6 +972,9 @@ class ShapeLabelEditingTarget implements _TextEditingTarget {
   String get text => switch (element) {
     RectElement e => e.label ?? '',
     EllipseElement e => e.label ?? '',
+    LineElement e => e.label ?? '',
+    ArrowElement e => e.label ?? '',
+    PolylineElement e => e.label ?? '',
     _ => '',
   };
 
@@ -914,13 +982,67 @@ class ShapeLabelEditingTarget implements _TextEditingTarget {
   Rect get bounds => switch (element) {
     RectElement e => e.labelPadding.deflateRect(e.rect),
     EllipseElement e => e.labelPadding.deflateRect(e.rect),
+    LineElement e => _lineLabelBounds(
+      [e.start, e.end],
+      e.label,
+      e.labelStyle,
+      e.labelPosition,
+      e.labelOffset,
+      e.labelBackground,
+    ),
+    ArrowElement e => _lineLabelBounds(
+      [e.start, e.end],
+      e.label,
+      e.labelStyle,
+      e.labelPosition,
+      e.labelOffset,
+      e.labelBackground,
+    ),
+    PolylineElement e => _lineLabelBounds(
+      e.points,
+      e.label,
+      e.labelStyle,
+      e.labelPosition,
+      e.labelOffset,
+      e.labelBackground,
+    ),
     _ => Rect.zero,
   };
+
+  Rect _lineLabelBounds(
+    List<Offset> points,
+    String? label,
+    TextStyle style,
+    double labelPosition,
+    Offset labelOffset,
+    Color? labelBackground,
+  ) {
+    final bounds = LineLabelPainter.labelBounds(
+      points: points,
+      label: label?.isEmpty ?? true ? ' ' : label,
+      style: style,
+      labelPosition: labelPosition,
+      labelOffset: labelOffset,
+      labelBackground: labelBackground,
+    );
+    if (!bounds.isEmpty) {
+      return bounds;
+    }
+    final center = LineLabelPainter.labelCenter(
+      points,
+      labelPosition: labelPosition,
+      labelOffset: labelOffset,
+    );
+    return Rect.fromCenter(center: center, width: 80, height: 24);
+  }
 
   @override
   TextStyle get style => switch (element) {
     RectElement e => e.labelStyle,
     EllipseElement e => e.labelStyle,
+    LineElement e => e.labelStyle,
+    ArrowElement e => e.labelStyle,
+    PolylineElement e => e.labelStyle,
     _ => ShapeLabelPainter.defaultStyle,
   };
 
@@ -932,7 +1054,7 @@ class ShapeLabelEditingTarget implements _TextEditingTarget {
   };
 
   @override
-  double get fontSize => style.fontSize ?? 16;
+  double get fontSize => style.fontSize ?? 14;
 
   @override
   double get lineHeight => style.height ?? 1.2;

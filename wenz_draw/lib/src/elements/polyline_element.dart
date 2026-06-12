@@ -1,3 +1,5 @@
+import 'dart:ui' show ClipOp;
+
 import 'package:flutter/widgets.dart';
 
 import '../canvas/paint_style.dart';
@@ -5,6 +7,7 @@ import '../snap/snap_resolver.dart';
 import '../utils/math_utils.dart';
 import 'canvas_element.dart';
 import 'element_renderer.dart';
+import 'line_label_painter.dart';
 
 @immutable
 class PolylineElement extends CanvasElement {
@@ -14,6 +17,11 @@ class PolylineElement extends CanvasElement {
     this.style = const PaintStyle(),
     this.startBinding,
     this.endBinding,
+    this.label,
+    this.labelStyle = LineLabelPainter.defaultStyle,
+    this.labelPosition = LineLabelPainter.defaultPosition,
+    this.labelOffset = LineLabelPainter.defaultOffset,
+    this.labelBackground,
     this.layerId = 'default',
     this.visible = true,
     this.opacity = 1,
@@ -28,6 +36,11 @@ class PolylineElement extends CanvasElement {
   final PaintStyle style;
   final SnapBinding? startBinding;
   final SnapBinding? endBinding;
+  final String? label;
+  final TextStyle labelStyle;
+  final double labelPosition;
+  final Offset labelOffset;
+  final Color? labelBackground;
 
   @override
   final String layerId;
@@ -49,7 +62,18 @@ class PolylineElement extends CanvasElement {
     if (points.isEmpty) {
       return Rect.zero;
     }
-    return boundsForPoints(points).inflate(style.strokeWidth / 2);
+    final lineBounds = boundsForPoints(points).inflate(style.strokeWidth / 2);
+    final labelBounds = LineLabelPainter.labelBounds(
+      points: points,
+      label: label,
+      style: labelStyle,
+      labelPosition: labelPosition,
+      labelOffset: labelOffset,
+      labelBackground: labelBackground,
+    );
+    return labelBounds.isEmpty
+        ? lineBounds
+        : lineBounds.expandToInclude(labelBounds);
   }
 
   @override
@@ -73,6 +97,11 @@ class PolylineElement extends CanvasElement {
     PaintStyle? style,
     Object? startBinding = _unset,
     Object? endBinding = _unset,
+    Object? label = _unset,
+    TextStyle? labelStyle,
+    double? labelPosition,
+    Offset? labelOffset,
+    Object? labelBackground = _unset,
     String? layerId,
     bool? visible,
     double? opacity,
@@ -88,6 +117,13 @@ class PolylineElement extends CanvasElement {
       endBinding: identical(endBinding, _unset)
           ? this.endBinding
           : endBinding as SnapBinding?,
+      label: identical(label, _unset) ? this.label : label as String?,
+      labelStyle: labelStyle ?? this.labelStyle,
+      labelPosition: labelPosition ?? this.labelPosition,
+      labelOffset: labelOffset ?? this.labelOffset,
+      labelBackground: identical(labelBackground, _unset)
+          ? this.labelBackground
+          : labelBackground as Color?,
       layerId: layerId ?? this.layerId,
       visible: visible ?? this.visible,
       opacity: opacity ?? this.opacity,
@@ -106,6 +142,10 @@ class PolylineElement extends CanvasElement {
     return copyWith(
       points: [for (final point in points) scalePoint(point, factor, origin)],
       style: style.copyWith(strokeWidth: style.strokeWidth * factor.abs()),
+      labelStyle: labelStyle.copyWith(
+        fontSize: (labelStyle.fontSize ?? 14) * factor.abs(),
+      ),
+      labelOffset: labelOffset * factor.abs(),
     );
   }
 
@@ -124,6 +164,12 @@ class PolylineElement extends CanvasElement {
       'style': style.toJson(),
       if (startBinding != null) 'startBinding': startBinding!.toJson(),
       if (endBinding != null) 'endBinding': endBinding!.toJson(),
+      if (label != null) 'label': label,
+      'labelStyle': LineLabelPainter.styleToJson(labelStyle),
+      'labelPosition': labelPosition,
+      'labelOffset': LineLabelPainter.offsetToJson(labelOffset),
+      if (labelBackground != null)
+        'labelBackground': labelBackground!.toARGB32(),
     };
   }
 
@@ -146,7 +192,32 @@ class PolylineElementRenderer extends ElementRenderer<PolylineElement> {
     final paint = element.style
         .copyWith(opacity: element.style.opacity * element.opacity)
         .toPaint();
-    canvas.drawPath(path, paint);
+    final labelBounds = LineLabelPainter.labelBounds(
+      points: element.points,
+      label: element.label,
+      style: element.labelStyle,
+      labelPosition: element.labelPosition,
+      labelOffset: element.labelOffset,
+      labelBackground: element.labelBackground,
+    );
+    if (labelBounds.isEmpty) {
+      canvas.drawPath(path, paint);
+    } else {
+      canvas.save();
+      canvas.clipRect(labelBounds.inflate(2), clipOp: ClipOp.difference);
+      canvas.drawPath(path, paint);
+      canvas.restore();
+    }
+    LineLabelPainter.paint(
+      canvas,
+      points: element.points,
+      label: element.label,
+      style: element.labelStyle,
+      labelPosition: element.labelPosition,
+      labelOffset: element.labelOffset,
+      labelBackground: element.labelBackground,
+      opacity: element.opacity,
+    );
   }
 
   @override

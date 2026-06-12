@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../elements/arrow_element.dart';
@@ -5,6 +7,7 @@ import '../../elements/canvas_element.dart';
 import '../../elements/ellipse_element.dart';
 import '../../elements/image_element.dart';
 import '../../elements/line_element.dart';
+import '../../elements/line_label_painter.dart';
 import '../../elements/path_element.dart';
 import '../../elements/polyline_element.dart';
 import '../../elements/rect_element.dart';
@@ -43,10 +46,11 @@ class SvgExporter {
     return switch (element) {
       final PathElement e => _path(e),
       final PolylineElement e => _polyline(e),
-      final LineElement e => _line(e),
+      final LineElement e => _lineWithLabel(e, [e.start, e.end]),
       final RectElement e => _rect(e),
       final EllipseElement e => _ellipse(e),
-      final ArrowElement e => '${_line(e)}${_arrowHead(e)}',
+      final ArrowElement e =>
+        '${_lineWithLabel(e, [e.start, e.end])}${_arrowHead(e)}',
       final TextElement e => _text(e),
       final ImageElement e => _imagePlaceholder(e),
       final CanvasWidgetElement e => _widgetPlaceholder(e),
@@ -69,13 +73,19 @@ class SvgExporter {
     return '<line x1="${e.start.dx}" y1="${e.start.dy}" x2="${e.end.dx}" y2="${e.end.dy}" stroke="${_color(style.color)}" stroke-width="${style.strokeWidth}" opacity="${e.opacity * style.opacity}" stroke-linecap="round"/>';
   }
 
+  static String _lineWithLabel(dynamic e, List<Offset> points) {
+    return '${_line(e)}${_lineLabel(e, points)}';
+  }
+
   static String _polyline(PolylineElement e) {
     if (e.points.length < 2) {
       return '';
     }
     final style = e.style;
     final points = e.points.map((point) => '${point.dx},${point.dy}').join(' ');
-    return '<polyline points="$points" fill="none" stroke="${_color(style.color)}" stroke-width="${style.strokeWidth}" opacity="${e.opacity * style.opacity}" stroke-linecap="round" stroke-linejoin="round"/>';
+    final shape =
+        '<polyline points="$points" fill="none" stroke="${_color(style.color)}" stroke-width="${style.strokeWidth}" opacity="${e.opacity * style.opacity}" stroke-linecap="round" stroke-linejoin="round"/>';
+    return '$shape${_lineLabel(e, e.points)}';
   }
 
   static String _rect(RectElement e) {
@@ -94,6 +104,40 @@ class SvgExporter {
 
   static String _arrowHead(ArrowElement e) {
     return '<circle cx="${e.end.dx}" cy="${e.end.dy}" r="${e.style.strokeWidth * 1.25}" fill="${_color(e.style.color)}" opacity="${e.opacity * e.style.opacity}"/>';
+  }
+
+  static String _lineLabel(dynamic e, List<Offset> points) {
+    final label = e.label as String?;
+    if (label == null || label.isEmpty || points.isEmpty) {
+      return '';
+    }
+    final style = e.labelStyle as TextStyle;
+    final position = e.labelPosition as double;
+    final offset = e.labelOffset as Offset;
+    final background = e.labelBackground as Color?;
+    final center = LineLabelPainter.labelCenter(
+      points,
+      labelPosition: position,
+      labelOffset: offset,
+    );
+    final color = style.color ?? Colors.black;
+    final size = style.fontSize ?? LineLabelPainter.defaultStyle.fontSize ?? 14;
+    final weight = style.fontWeight?.value ?? FontWeight.normal.value;
+    final lineHeight = size * (style.height ?? 1.2);
+    final lines = label.split('\n');
+    final escapedLines = [
+      for (var i = 0; i < lines.length; i++)
+        '<tspan x="${center.dx}" dy="${i == 0 ? 0 : lineHeight}">${_escape(lines[i])}</tspan>',
+    ].join();
+    final estimatedWidth = lines.fold<double>(
+      0,
+      (max, line) => math.max(max, line.length * size * 0.6),
+    );
+    final totalHeight = size + (lines.length - 1) * lineHeight;
+    final backgroundSvg = background == null
+        ? ''
+        : '<rect x="${center.dx - estimatedWidth / 2 - 4}" y="${center.dy - totalHeight / 2 - 2}" width="${estimatedWidth + 8}" height="${totalHeight + 4}" fill="${_color(background)}" opacity="${e.opacity}" rx="3"/>';
+    return '$backgroundSvg<text x="${center.dx}" y="${center.dy - totalHeight / 2 + size}" fill="${_color(color)}" font-size="$size" font-weight="$weight" opacity="${e.opacity}" text-anchor="middle">$escapedLines</text>';
   }
 
   static String _shapeLabel(

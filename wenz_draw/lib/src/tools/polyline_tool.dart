@@ -4,7 +4,7 @@ import '../canvas/canvas_controller.dart';
 import '../elements/polyline_element.dart';
 import '../infinite_canvas/canvas_event.dart';
 import '../snap/snap_resolver.dart';
-import '../utils/orthogonal_router.dart';
+import '../routing/connector_routing.dart';
 import '../utils/uuid_generator.dart';
 import 'canvas_tool.dart';
 
@@ -79,7 +79,14 @@ class PolylineTool extends CanvasTool {
         return ToolResultElement(
           PolylineElement(
             id: UuidGenerator.create(),
-            points: _route(controller, start, end, startBinding, endBinding),
+            points: _route(
+              controller,
+              start,
+              end,
+              startBinding,
+              endBinding,
+              quality: controller.connectorRoutingOptions.finalQuality,
+            ),
             style: controller.brushSettings.strokeStyle,
             startBinding: startBinding,
             endBinding: endBinding,
@@ -101,6 +108,7 @@ class PolylineTool extends CanvasTool {
         end,
         _startSnap?.binding,
         _currentSnap?.binding,
+        quality: controller.connectorRoutingOptions.previewQuality,
       ),
       style: controller.brushSettings.strokeStyle.copyWith(opacity: 0.72),
     );
@@ -111,40 +119,17 @@ class PolylineTool extends CanvasTool {
     Offset start,
     Offset end,
     SnapBinding? startBinding,
-    SnapBinding? endBinding,
-  ) {
-    return OrthogonalRouter.route(
+    SnapBinding? endBinding, {
+    ConnectorRouteQuality quality = ConnectorRouteQuality.high,
+  }) {
+    return controller.routeConnector(
       start: start,
       end: end,
-      sourceBounds: _boundsForBinding(controller, startBinding),
-      targetBounds: _boundsForBinding(controller, endBinding),
-      obstacles: _obstacles(controller, start, end, {
-        startBinding?.elementId,
-        endBinding?.elementId,
-      }),
+      startBinding: startBinding,
+      endBinding: endBinding,
+      connectorId: '__preview_polyline__',
+      quality: quality,
     );
-  }
-
-  Iterable<Rect> _obstacles(
-    CanvasController controller,
-    Offset start,
-    Offset end,
-    Set<String?> excludeIds,
-  ) {
-    final queryRect = Rect.fromPoints(start, end).inflate(320);
-    return [
-      for (final element in controller.elementsNear(queryRect))
-        if (!excludeIds.contains(element.id) &&
-            element.id != '__preview_polyline__')
-          element.bounds,
-    ];
-  }
-
-  Rect? _boundsForBinding(CanvasController controller, SnapBinding? binding) {
-    if (binding == null) {
-      return null;
-    }
-    return controller.elementById(binding.elementId)?.bounds;
   }
 
   SnapResult? _resolveSnap(

@@ -12,7 +12,6 @@ import '../history/commands/batch_command.dart';
 import '../history/commands/update_element_command.dart';
 import '../infinite_canvas/canvas_event.dart';
 import '../snap/snap_resolver.dart';
-import '../utils/orthogonal_router.dart';
 import '../utils/math_utils.dart';
 import 'canvas_tool.dart';
 
@@ -29,9 +28,11 @@ class SelectTool extends CanvasTool {
   bool _scalingElement = false;
   bool _draggingLineEndpoint = false;
   bool _draggingPolylinePoint = false;
+  bool _draggingPolylineSegment = false;
   _SelectionResizeHandle? _resizeHandle;
   _LineEndpoint? _lineEndpoint;
   int? _polylinePointIndex;
+  int? _polylineSegmentIndex;
   TextElement? _resizeBefore;
   CanvasElement? _scaleBefore;
   CanvasElement? _lineEndpointBefore;
@@ -59,9 +60,11 @@ class SelectTool extends CanvasTool {
     _scalingElement = false;
     _draggingLineEndpoint = false;
     _draggingPolylinePoint = false;
+    _draggingPolylineSegment = false;
     _resizeHandle = null;
     _lineEndpoint = null;
     _polylinePointIndex = null;
+    _polylineSegmentIndex = null;
     _resizeBefore = null;
     _scaleBefore = null;
     _lineEndpointBefore = null;
@@ -78,8 +81,14 @@ class SelectTool extends CanvasTool {
         final lineEndpointTarget = polylinePointTarget == null
             ? _lineEndpointTargetAt(controller, event)
             : null;
+        final polylineSegmentTarget =
+            polylinePointTarget == null && lineEndpointTarget == null
+            ? _polylineSegmentTargetAt(controller, event)
+            : null;
         final resizeTarget =
-            lineEndpointTarget == null && polylinePointTarget == null
+            lineEndpointTarget == null &&
+                polylinePointTarget == null &&
+                polylineSegmentTarget == null
             ? _resizeTargetAt(controller, event)
             : null;
         _dragStart = event.worldPoint;
@@ -91,6 +100,7 @@ class SelectTool extends CanvasTool {
           _scalingElement = false;
           _draggingLineEndpoint = false;
           _draggingPolylinePoint = true;
+          _draggingPolylineSegment = false;
           _polylinePointIndex = polylinePointTarget.pointIndex;
           _lineEndpointBefore = polylinePointTarget.element;
           return const ToolResultConsumed();
@@ -102,8 +112,21 @@ class SelectTool extends CanvasTool {
           _scalingElement = false;
           _draggingLineEndpoint = true;
           _draggingPolylinePoint = false;
+          _draggingPolylineSegment = false;
           _lineEndpoint = lineEndpointTarget.endpoint;
           _lineEndpointBefore = lineEndpointTarget.element;
+          return const ToolResultConsumed();
+        }
+        if (polylineSegmentTarget != null) {
+          controller.setSelection({polylineSegmentTarget.element.id});
+          _movingSelection = false;
+          _resizingText = false;
+          _scalingElement = false;
+          _draggingLineEndpoint = false;
+          _draggingPolylinePoint = false;
+          _draggingPolylineSegment = true;
+          _polylineSegmentIndex = polylineSegmentTarget.segmentIndex;
+          _lineEndpointBefore = polylineSegmentTarget.element;
           return const ToolResultConsumed();
         }
         if (resizeTarget != null) {
@@ -166,6 +189,11 @@ class SelectTool extends CanvasTool {
           _lastPoint = event.worldPoint;
           return const ToolResultConsumed();
         }
+        if (_draggingPolylineSegment) {
+          _dragPolylineSegment(controller, event.worldPoint);
+          _lastPoint = event.worldPoint;
+          return const ToolResultConsumed();
+        }
         if (_draggingLineEndpoint) {
           _dragLineEndpoint(
             controller,
@@ -200,6 +228,11 @@ class SelectTool extends CanvasTool {
           cancel(controller);
           return const ToolResultConsumed();
         }
+        if (_draggingPolylineSegment) {
+          _recordLineEndpointDrag(controller);
+          cancel(controller);
+          return const ToolResultConsumed();
+        }
         if (_draggingLineEndpoint) {
           _recordLineEndpointDrag(controller);
           cancel(controller);
@@ -222,7 +255,12 @@ class SelectTool extends CanvasTool {
           controller.beginTextEditing(hit.id);
           return const ToolResultConsumed();
         }
-        if (hit case RectElement(:final id) || EllipseElement(:final id)) {
+        if (hit
+            case RectElement(:final id) ||
+                EllipseElement(:final id) ||
+                LineElement(:final id) ||
+                ArrowElement(:final id) ||
+                PolylineElement(:final id)) {
           controller.beginShapeLabelEditing(id);
           return const ToolResultConsumed();
         }
@@ -244,6 +282,29 @@ class SelectTool extends CanvasTool {
       for (var i = 1; i < element.points.length - 1; i++) {
         if ((event.worldPoint - element.points[i]).distance <= tolerance) {
           return _PolylinePointTarget(element, i);
+        }
+      }
+    }
+    return null;
+  }
+
+  _PolylineSegmentTarget? _polylineSegmentTargetAt(
+    CanvasController controller,
+    CanvasPointerDownEvent event,
+  ) {
+    final tolerance = 8 / event.transform.scale;
+    for (final element in controller.selectedElements.reversed) {
+      if (element is! PolylineElement || element.points.length < 2) {
+        continue;
+      }
+      for (var i = 0; i < element.points.length - 1; i++) {
+        final a = element.points[i];
+        final b = element.points[i + 1];
+        if ((b - a).distance <= 0.0001) {
+          continue;
+        }
+        if (distanceToSegment(event.worldPoint, a, b) <= tolerance) {
+          return _PolylineSegmentTarget(element, i);
         }
       }
     }
@@ -414,7 +475,7 @@ class SelectTool extends CanvasTool {
       }
       controller.updateElement(
         before.id,
-        endpoint.applyToPolyline(controller, current, nextPoint, binding),
+        endpoint.applyToPolylineLocally(current, nextPoint, binding),
         record: false,
       );
       return;
@@ -445,29 +506,123 @@ class SelectTool extends CanvasTool {
       return;
     }
     final points = List<Offset>.of(current.points);
+    final fixedStart = current.points.first;
+    final fixedEnd = current.points.last;
     final previous = points[index - 1];
+    final currentPoint = points[index];
     final next = points[index + 1];
-    final horizontalIn = (previous.dy - points[index].dy).abs() < 0.0001;
-    final horizontalOut = (next.dy - points[index].dy).abs() < 0.0001;
+    final previousHorizontal = _isHorizontal(previous, currentPoint);
+    final nextHorizontal = _isHorizontal(currentPoint, next);
+    final previousVertical = _isVertical(previous, currentPoint);
+    final nextVertical = _isVertical(currentPoint, next);
 
-    if (horizontalIn && horizontalOut) {
-      final y = worldPoint.dy;
-      points[index - 1] = Offset(previous.dx, y);
-      points[index] = Offset(worldPoint.dx, y);
-      points[index + 1] = Offset(next.dx, y);
-    } else if (!horizontalIn && !horizontalOut) {
+    if (previousHorizontal && nextVertical) {
       final x = worldPoint.dx;
-      points[index - 1] = Offset(x, previous.dy);
-      points[index] = Offset(x, worldPoint.dy);
-      points[index + 1] = Offset(x, next.dy);
-    } else if (horizontalIn) {
+      final y = index - 1 == 0 ? previous.dy : worldPoint.dy;
+      if (index - 1 != 0) {
+        points[index - 1] = Offset(previous.dx, y);
+      }
+      points[index] = Offset(x, y);
+      if (index + 1 == points.length - 1) {
+        points.insert(index + 1, Offset(x, next.dy));
+      } else {
+        points[index + 1] = Offset(x, next.dy);
+      }
+    } else if (previousVertical && nextHorizontal) {
+      final x = index - 1 == 0 ? previous.dx : worldPoint.dx;
+      final y = worldPoint.dy;
+      if (index - 1 != 0) {
+        points[index - 1] = Offset(x, previous.dy);
+      }
+      points[index] = Offset(x, y);
+      if (index + 1 == points.length - 1) {
+        points.insert(index + 1, Offset(next.dx, y));
+      } else {
+        points[index + 1] = Offset(next.dx, y);
+      }
+    } else if (previousHorizontal && nextHorizontal) {
+      points[index - 1] = Offset(previous.dx, worldPoint.dy);
+      points[index] = Offset(worldPoint.dx, worldPoint.dy);
+      points[index + 1] = Offset(next.dx, worldPoint.dy);
+    } else if (previousVertical && nextVertical) {
+      points[index - 1] = Offset(worldPoint.dx, previous.dy);
+      points[index] = Offset(worldPoint.dx, worldPoint.dy);
+      points[index + 1] = Offset(worldPoint.dx, next.dy);
+    } else if (previousHorizontal) {
       points[index] = Offset(worldPoint.dx, previous.dy);
       points[index + 1] = Offset(worldPoint.dx, next.dy);
-    } else if (horizontalOut) {
+    } else if (nextHorizontal) {
       points[index - 1] = Offset(worldPoint.dx, previous.dy);
       points[index] = Offset(worldPoint.dx, next.dy);
     } else {
       points[index] = worldPoint;
+    }
+
+    points[0] = fixedStart;
+    points[points.length - 1] = fixedEnd;
+
+    controller.updateElement(
+      before.id,
+      current.copyWith(points: _simplifyPolylinePoints(points)),
+      record: false,
+    );
+  }
+
+  void _dragPolylineSegment(CanvasController controller, Offset worldPoint) {
+    final before = _lineEndpointBefore;
+    final start = _dragStart;
+    final index = _polylineSegmentIndex;
+    if (before is! PolylineElement || start == null || index == null) {
+      return;
+    }
+    final current = controller.elementById(before.id);
+    if (current is! PolylineElement || index >= before.points.length - 1) {
+      return;
+    }
+
+    final points = List<Offset>.of(before.points);
+    final fixedStart = before.points.first;
+    final fixedEnd = before.points.last;
+    final a = before.points[index];
+    final b = before.points[index + 1];
+    if (_isHorizontal(a, b)) {
+      final dy = worldPoint.dy - start.dy;
+      final movedA = Offset(a.dx, a.dy + dy);
+      final movedB = Offset(b.dx, b.dy + dy);
+      if (index == 0) {
+        points[0] = fixedStart;
+        points[1] = movedB;
+        points.insert(1, Offset(fixedStart.dx, movedB.dy));
+      } else if (index + 1 == before.points.length - 1) {
+        points[index] = movedA;
+        points.insert(index + 1, Offset(fixedEnd.dx, movedA.dy));
+        points[points.length - 1] = fixedEnd;
+      } else {
+        points[index] = movedA;
+        points[index + 1] = movedB;
+      }
+    } else if (_isVertical(a, b)) {
+      final dx = worldPoint.dx - start.dx;
+      final movedA = Offset(a.dx + dx, a.dy);
+      final movedB = Offset(b.dx + dx, b.dy);
+      if (index == 0) {
+        points[0] = fixedStart;
+        points[1] = movedB;
+        points.insert(1, Offset(movedB.dx, fixedStart.dy));
+      } else if (index + 1 == before.points.length - 1) {
+        points[index] = movedA;
+        points.insert(index + 1, Offset(movedA.dx, fixedEnd.dy));
+        points[points.length - 1] = fixedEnd;
+      } else {
+        points[index] = movedA;
+        points[index + 1] = movedB;
+      }
+    } else {
+      final delta = worldPoint - start;
+      points[index] = a + delta;
+      points[index + 1] = b + delta;
+      points[0] = fixedStart;
+      points[points.length - 1] = fixedEnd;
     }
 
     controller.updateElement(
@@ -476,6 +631,10 @@ class SelectTool extends CanvasTool {
       record: false,
     );
   }
+
+  bool _isHorizontal(Offset a, Offset b) => (a.dy - b.dy).abs() < 0.0001;
+
+  bool _isVertical(Offset a, Offset b) => (a.dx - b.dx).abs() < 0.0001;
 
   List<Offset> _simplifyPolylinePoints(List<Offset> points) {
     final result = <Offset>[];
@@ -512,6 +671,21 @@ class SelectTool extends CanvasTool {
     final before = _lineEndpointBefore;
     if (before == null) {
       return;
+    }
+    final endpoint = _lineEndpoint;
+    if (before is PolylineElement && endpoint != null) {
+      final current = controller.elementById(before.id);
+      if (current is PolylineElement) {
+        final point = endpoint.pointForPolyline(current);
+        final binding = endpoint == _LineEndpoint.start
+            ? current.startBinding
+            : current.endBinding;
+        controller.updateElement(
+          before.id,
+          endpoint.applyToPolyline(controller, current, point, binding),
+          record: false,
+        );
+      }
     }
     final after = controller.elementById(before.id);
     if (after == null ||
@@ -655,6 +829,39 @@ extension on _LineEndpoint {
     };
   }
 
+  PolylineElement applyToPolylineLocally(
+    PolylineElement element,
+    Offset point,
+    SnapBinding? binding,
+  ) {
+    if (element.points.length < 2) {
+      return element;
+    }
+    final points = List<Offset>.of(element.points);
+    if (this == _LineEndpoint.start) {
+      points[0] = point;
+      final next = points[1];
+      final horizontal = (next.dy - element.start.dy).abs() < 0.0001;
+      points[1] = horizontal
+          ? Offset(next.dx, point.dy)
+          : Offset(point.dx, next.dy);
+      return element.copyWith(
+        points: _simplifyEndpointPoints(points),
+        startBinding: binding,
+      );
+    }
+    points[points.length - 1] = point;
+    final previous = points[points.length - 2];
+    final horizontal = (previous.dy - element.end.dy).abs() < 0.0001;
+    points[points.length - 2] = horizontal
+        ? Offset(previous.dx, point.dy)
+        : Offset(point.dx, previous.dy);
+    return element.copyWith(
+      points: _simplifyEndpointPoints(points),
+      endBinding: binding,
+    );
+  }
+
   PolylineElement applyToPolyline(
     CanvasController controller,
     PolylineElement element,
@@ -670,55 +877,67 @@ extension on _LineEndpoint {
     final endBinding = this == _LineEndpoint.end ? binding : element.endBinding;
     final start = this == _LineEndpoint.start ? point : element.start;
     final end = this == _LineEndpoint.end ? point : element.end;
-    final excludeIds = {
-      element.id,
-      startBinding?.elementId,
-      endBinding?.elementId,
-    };
-    final points = OrthogonalRouter.route(
-      start: start,
-      end: end,
-      sourceBounds: _boundsForBinding(controller, startBinding),
-      targetBounds: _boundsForBinding(controller, endBinding),
-      obstacles: _routingObstacles(controller, start, end, excludeIds),
-    );
+    final nextPoints = binding == null
+        ? _replaceDraggedEndpoint(element, point)
+        : controller.routeConnector(
+            start: start,
+            end: end,
+            startBinding: startBinding,
+            endBinding: endBinding,
+            connectorId: element.id,
+            previousRoute: element.points,
+            quality: controller.connectorRoutingOptions.finalQuality,
+          );
     return switch (this) {
       _LineEndpoint.start => element.copyWith(
-        points: points,
+        points: nextPoints,
         startBinding: binding,
       ),
       _LineEndpoint.end => element.copyWith(
-        points: points,
+        points: nextPoints,
         endBinding: binding,
       ),
     };
   }
 
-  Iterable<Rect> _routingObstacles(
-    CanvasController controller,
-    Offset start,
-    Offset end,
-    Set<String?> excludeIds,
-  ) {
-    final queryRect = Rect.fromPoints(start, end).inflate(320);
-    return [
-      for (final element in controller.elementsNear(queryRect))
-        if (!excludeIds.contains(element.id)) element.bounds,
-    ];
+  List<Offset> _replaceDraggedEndpoint(PolylineElement element, Offset point) {
+    final points = List<Offset>.of(element.points);
+    if (this == _LineEndpoint.start) {
+      points[0] = point;
+    } else {
+      points[points.length - 1] = point;
+    }
+    return _simplifyEndpointPoints(points);
   }
 
-  Rect? _boundsForBinding(CanvasController controller, SnapBinding? binding) {
-    if (binding == null) {
-      return null;
+  List<Offset> _simplifyEndpointPoints(List<Offset> points) {
+    final result = <Offset>[];
+    for (final point in points) {
+      if (result.isEmpty || (result.last - point).distance > 0.0001) {
+        result.add(point);
+      }
     }
-    final target = controller.elementById(binding.elementId);
-    if (target == null ||
-        !target.visible ||
-        !controller.isLayerVisible(target.layerId) ||
-        controller.isLayerLocked(target.layerId)) {
-      return null;
+    if (result.length <= 2) {
+      return result;
     }
-    return target.bounds;
+    final simplified = <Offset>[];
+    for (final point in result) {
+      simplified.add(point);
+      while (simplified.length >= 3) {
+        final a = simplified[simplified.length - 3];
+        final b = simplified[simplified.length - 2];
+        final c = simplified[simplified.length - 1];
+        final sameX =
+            (a.dx - b.dx).abs() < 0.0001 && (b.dx - c.dx).abs() < 0.0001;
+        final sameY =
+            (a.dy - b.dy).abs() < 0.0001 && (b.dy - c.dy).abs() < 0.0001;
+        if (!sameX && !sameY) {
+          break;
+        }
+        simplified.removeAt(simplified.length - 2);
+      }
+    }
+    return simplified;
   }
 
   ArrowElement applyToArrow(
@@ -741,6 +960,13 @@ class _PolylinePointTarget {
 
   final PolylineElement element;
   final int pointIndex;
+}
+
+class _PolylineSegmentTarget {
+  const _PolylineSegmentTarget(this.element, this.segmentIndex);
+
+  final PolylineElement element;
+  final int segmentIndex;
 }
 
 class _LineEndpointTarget {
