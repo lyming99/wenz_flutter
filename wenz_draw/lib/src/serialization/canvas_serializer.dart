@@ -4,6 +4,7 @@ import '../canvas/canvas_controller.dart';
 import '../canvas/paint_style.dart';
 import '../elements/arrow_element.dart';
 import '../elements/canvas_element.dart';
+import '../elements/drawio_shape_element.dart';
 import '../elements/ellipse_element.dart';
 import '../elements/image_element.dart';
 import '../elements/line_element.dart';
@@ -23,6 +24,7 @@ class CanvasSerializer {
 
   static Map<String, dynamic> toJson(CanvasController controller) {
     return CanvasDocument(
+      version: CanvasDocument.currentVersion,
       layers: controller.layers,
       elements: controller.elements,
     ).toJson();
@@ -32,7 +34,7 @@ class CanvasSerializer {
     final layerJson = json['layers'] as List<dynamic>? ?? const [];
     final elementJson = json['elements'] as List<dynamic>? ?? const [];
     return CanvasDocument(
-      version: json['version'] as String? ?? '1.0',
+      version: _version(json['version']),
       layers: [
         for (final layer in layerJson)
           if (layer is Map<String, dynamic>) _layerFromJson(layer),
@@ -117,6 +119,25 @@ class CanvasSerializer {
               LineLabelPainter.defaultPosition,
           labelOffset: LineLabelPainter.offsetFromJson(json['labelOffset']),
           labelBackground: _colorFromJson(json['labelBackground']),
+        );
+      case DrawioShapeElement.elementType:
+        return DrawioShapeElement(
+          id: id,
+          layerId: layerId,
+          visible: visible,
+          opacity: opacity,
+          zIndex: zIndex,
+          shapeKey: _shapeKey(json['shapeKey']),
+          rect: _rect(json['rect']),
+          strokeStyle: _style(json['strokeStyle']),
+          fillStyle: _nullableStyle(json['fillStyle']),
+          properties: _stringMap(json['properties']),
+          label: json['label'] as String?,
+          labelStyle: ShapeLabelPainter.styleFromJson(json['labelStyle']),
+          labelAlign: ShapeLabelPainter.textAlignFromString(
+            json['labelAlign'] as String?,
+          ),
+          labelPadding: ShapeLabelPainter.paddingFromJson(json['labelPadding']),
         );
       case RectElement.elementType:
         return RectElement(
@@ -230,6 +251,16 @@ class CanvasSerializer {
       default:
         return LineElement(id: id, start: Offset.zero, end: Offset.zero);
     }
+  }
+
+  static String _version(Object? value) {
+    final text = value?.toString();
+    return text == null || text.isEmpty ? '1.0' : text;
+  }
+
+  static String _shapeKey(Object? value) {
+    final text = value?.toString().trim();
+    return text == null || text.isEmpty ? 'rectangle' : text;
   }
 
   static CanvasLayer _layerFromJson(Map<String, dynamic> json) {

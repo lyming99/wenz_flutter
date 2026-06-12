@@ -3,6 +3,7 @@ import 'package:flutter/widgets.dart';
 import 'arrow_element.dart';
 import 'canvas_element.dart';
 import 'element_renderer.dart';
+import 'drawio_shape_element.dart';
 import 'ellipse_element.dart';
 import 'image_element.dart';
 import 'line_element.dart';
@@ -52,6 +53,7 @@ class ElementRendererRegistry {
     register(PathElement.elementType, const PathElementRenderer());
     register(LineElement.elementType, const LineElementRenderer());
     register(PolylineElement.elementType, const PolylineElementRenderer());
+    register(DrawioShapeElement.elementType, const DrawioShapeElementRenderer());
     register(RectElement.elementType, const RectElementRenderer());
     register(EllipseElement.elementType, const EllipseElementRenderer());
     register(ArrowElement.elementType, const ArrowElementRenderer());

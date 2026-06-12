@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 
 import '../canvas/canvas_controller.dart';
 import '../elements/arrow_element.dart';
+import '../elements/drawio_shape_element.dart';
 import '../elements/ellipse_element.dart';
 import '../elements/line_element.dart';
 import '../elements/line_label_painter.dart';
@@ -245,7 +246,8 @@ class _InfiniteCanvasWidgetState extends State<InfiniteCanvasWidget> {
   ) {
     final canvasController = widget.controller.canvasController;
     final element = canvasController.elementById(editingShapeId);
-    if (element is! RectElement &&
+    if (element is! DrawioShapeElement &&
+        element is! RectElement &&
         element is! EllipseElement &&
         element is! LineElement &&
         element is! ArrowElement &&
@@ -276,6 +278,7 @@ class _InfiniteCanvasWidgetState extends State<InfiniteCanvasWidget> {
 
   Rect _shapeLabelEditingBounds(Object? element) {
     final bounds = switch (element) {
+      DrawioShapeElement e => e.labelPadding.deflateRect(e.rect),
       RectElement e => e.labelPadding.deflateRect(e.rect),
       EllipseElement e => e.labelPadding.deflateRect(e.rect),
       LineElement e => LineLabelPainter.labelBounds(
@@ -951,7 +954,8 @@ class ShapeLabelEditingTarget implements _TextEditingTarget {
   final Object element;
 
   static bool canEdit(Object? element) {
-    return element is RectElement ||
+    return element is DrawioShapeElement ||
+        element is RectElement ||
         element is EllipseElement ||
         element is LineElement ||
         element is ArrowElement ||
@@ -960,6 +964,7 @@ class ShapeLabelEditingTarget implements _TextEditingTarget {
 
   @override
   String get id => switch (element) {
+    DrawioShapeElement e => e.id,
     RectElement e => e.id,
     EllipseElement e => e.id,
     LineElement e => e.id,
@@ -970,6 +975,7 @@ class ShapeLabelEditingTarget implements _TextEditingTarget {
 
   @override
   String get text => switch (element) {
+    DrawioShapeElement e => e.label ?? '',
     RectElement e => e.label ?? '',
     EllipseElement e => e.label ?? '',
     LineElement e => e.label ?? '',
@@ -980,6 +986,7 @@ class ShapeLabelEditingTarget implements _TextEditingTarget {
 
   @override
   Rect get bounds => switch (element) {
+    DrawioShapeElement e => e.labelPadding.deflateRect(e.rect),
     RectElement e => e.labelPadding.deflateRect(e.rect),
     EllipseElement e => e.labelPadding.deflateRect(e.rect),
     LineElement e => _lineLabelBounds(
@@ -1038,6 +1045,7 @@ class ShapeLabelEditingTarget implements _TextEditingTarget {
 
   @override
   TextStyle get style => switch (element) {
+    DrawioShapeElement e => e.labelStyle,
     RectElement e => e.labelStyle,
     EllipseElement e => e.labelStyle,
     LineElement e => e.labelStyle,
@@ -1048,6 +1056,7 @@ class ShapeLabelEditingTarget implements _TextEditingTarget {
 
   @override
   TextAlign get textAlign => switch (element) {
+    DrawioShapeElement e => e.labelAlign,
     RectElement e => e.labelAlign,
     EllipseElement e => e.labelAlign,
     _ => TextAlign.center,

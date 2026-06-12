@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 
 import '../elements/arrow_element.dart';
 import '../elements/canvas_element.dart';
+import '../elements/drawio_shape_element.dart';
 import '../elements/element_registry.dart';
 import '../elements/ellipse_element.dart';
 import '../elements/line_element.dart';
@@ -31,6 +32,7 @@ import '../tools/pen_tool.dart';
 import '../tools/polyline_tool.dart';
 import '../tools/rect_tool.dart';
 import '../tools/select_tool.dart';
+import '../tools/shape_tool.dart';
 import '../tools/text_tool.dart';
 import '../tools/arrow_tool.dart';
 import '../tools/tool_manager.dart';
@@ -379,6 +381,32 @@ class CanvasController extends ChangeNotifier {
     return [for (final entry in ordered) entry.value];
   }
 
+  Iterable<CanvasElement> elementsInViewport(Rect worldRect) {
+    final visible =
+        _spatialIndex
+            .query(_state.elements, worldRect)
+            .where(
+              (element) => element.visible && isLayerVisible(element.layerId),
+            )
+            .toList()
+          ..sort((a, b) {
+            final layerOrder = layerIndexOf(
+              a.layerId,
+            ).compareTo(layerIndexOf(b.layerId));
+            if (layerOrder != 0) {
+              return layerOrder;
+            }
+            final zOrder = a.zIndex.compareTo(b.zIndex);
+            if (zOrder != 0) {
+              return zOrder;
+            }
+            return _state.elements
+                .indexOf(a)
+                .compareTo(_state.elements.indexOf(b));
+          });
+    return visible;
+  }
+
   CanvasElement? hitTest(Offset worldPoint, {double tolerance = 5}) {
     return _elementManager.hitTest(
       _spatialIndex
@@ -627,7 +655,8 @@ class CanvasController extends ChangeNotifier {
     bool record = true,
   }) {
     final element = elementById(id);
-    if (element is! RectElement &&
+    if (element is! DrawioShapeElement &&
+        element is! RectElement &&
         element is! EllipseElement &&
         element is! LineElement &&
         element is! ArrowElement &&
@@ -635,6 +664,7 @@ class CanvasController extends ChangeNotifier {
       return;
     }
     final style = switch (element) {
+      DrawioShapeElement e => e.labelStyle,
       RectElement e => e.labelStyle,
       EllipseElement e => e.labelStyle,
       LineElement e => e.labelStyle,
@@ -653,6 +683,15 @@ class CanvasController extends ChangeNotifier {
       fontFamily: nextFontFamily,
     );
     switch (element) {
+      case DrawioShapeElement e:
+        updateElement(
+          id,
+          e.copyWith(
+            labelStyle: nextStyle,
+            labelAlign: textAlign ?? e.labelAlign,
+          ),
+          record: record,
+        );
       case RectElement e:
         updateElement(
           id,
@@ -780,7 +819,8 @@ class CanvasController extends ChangeNotifier {
 
   void beginShapeLabelEditing(String id) {
     final element = elementById(id);
-    if (element is! RectElement &&
+    if (element is! DrawioShapeElement &&
+        element is! RectElement &&
         element is! EllipseElement &&
         element is! LineElement &&
         element is! ArrowElement &&
@@ -853,6 +893,9 @@ class CanvasController extends ChangeNotifier {
   }
 
   CanvasElement? _copyWithShapeLabel(CanvasElement element, String? label) {
+    if (element is DrawioShapeElement) {
+      return element.copyWith(label: label);
+    }
     if (element is RectElement) {
       return element.copyWith(label: label);
     }
@@ -914,6 +957,27 @@ class CanvasController extends ChangeNotifier {
       ..registerTool(PolylineTool())
       ..registerTool(RectTool())
       ..registerTool(EllipseTool())
+      ..registerTool(ShapeTool(shapeKey: 'rhombus', name: 'Rhombus'))
+      ..registerTool(ShapeTool(shapeKey: 'triangle', name: 'Triangle'))
+      ..registerTool(ShapeTool(shapeKey: 'hexagon', name: 'Hexagon'))
+      ..registerTool(
+        ShapeTool(shapeKey: 'parallelogram', name: 'Parallelogram'),
+      )
+      ..registerTool(ShapeTool(shapeKey: 'trapezoid', name: 'Trapezoid'))
+      ..registerTool(ShapeTool(shapeKey: 'cylinder', name: 'Cylinder'))
+      ..registerTool(
+        ShapeTool(shapeKey: 'doubleEllipse', name: 'Double Ellipse'),
+      )
+      ..registerTool(ShapeTool(shapeKey: 'actor', name: 'Actor'))
+      ..registerTool(ShapeTool(shapeKey: 'cloud', name: 'Cloud'))
+      ..registerTool(ShapeTool(shapeKey: 'swimlane', name: 'Swimlane'))
+      ..registerTool(ShapeTool(shapeKey: 'document', name: 'Document'))
+      ..registerTool(ShapeTool(shapeKey: 'note', name: 'Note'))
+      ..registerTool(ShapeTool(shapeKey: 'callout', name: 'Callout'))
+      ..registerTool(ShapeTool(shapeKey: 'plus', name: 'Plus'))
+      ..registerTool(ShapeTool(shapeKey: 'cross', name: 'Cross'))
+      ..registerTool(ShapeTool(shapeKey: 'step', name: 'Step'))
+      ..registerTool(ShapeTool(shapeKey: 'cube', name: 'Cube'))
       ..registerTool(ArrowTool())
       ..registerTool(const TextTool())
       ..registerTool(const EraserTool())

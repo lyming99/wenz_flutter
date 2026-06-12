@@ -3,6 +3,116 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:wenz_draw/wenz_draw.dart';
 
 void main() {
+  test('drawio shape exposes shape-specific snap anchors', () {
+    final controller = CanvasController(
+      snapSettings: const SnapSettings(thresholdScreenPx: 12),
+    );
+    controller.addElement(
+      const DrawioShapeElement(
+        id: 'diamond-1',
+        shapeKey: 'rhombus',
+        rect: Rect.fromLTWH(0, 0, 100, 80),
+      ),
+      record: false,
+    );
+
+    final topVertex = controller.snapResolver.resolve(
+      controller,
+      const Offset(49, 1),
+      scale: 1,
+    );
+    expect(topVertex?.position, const Offset(50, 0));
+    expect(topVertex?.point.anchorId, 'vertex0');
+
+    final edgeMidpoint = controller.snapResolver.resolve(
+      controller,
+      const Offset(76, 18),
+      scale: 1,
+    );
+    expect(edgeMidpoint?.position, const Offset(75, 20));
+    expect(edgeMidpoint?.point.anchorId, 'edge0');
+  });
+
+  test('drawio swimlane exposes header and body anchors', () {
+    final controller = CanvasController(
+      snapSettings: const SnapSettings(thresholdScreenPx: 12),
+    );
+    controller.addElement(
+      const DrawioShapeElement(
+        id: 'lane-1',
+        shapeKey: 'swimlane',
+        rect: Rect.fromLTWH(0, 0, 200, 120),
+        properties: {'headerHeight': 40.0},
+      ),
+      record: false,
+    );
+
+    final header = controller.snapResolver.resolve(
+      controller,
+      const Offset(100, 22),
+      scale: 1,
+    );
+    expect(header?.position, const Offset(100, 20));
+    expect(header?.point.anchorId, 'headerCenter');
+
+    final body = controller.snapResolver.resolve(
+      controller,
+      const Offset(100, 82),
+      scale: 1,
+    );
+    expect(body?.position, const Offset(100, 80));
+    expect(body?.point.anchorId, 'bodyCenter');
+  });
+
+  test('snap-bound connector endpoint follows moved drawio shape anchor', () {
+    final controller = CanvasController(
+      snapSettings: const SnapSettings(thresholdScreenPx: 12),
+    );
+    controller
+      ..addElement(
+        const DrawioShapeElement(
+          id: 'hex-1',
+          shapeKey: 'hexagon',
+          rect: Rect.fromLTWH(0, 0, 100, 80),
+        ),
+        record: false,
+      )
+      ..addElement(
+        const RectElement(id: 'rect-1', rect: Rect.fromLTWH(200, 0, 100, 80)),
+        record: false,
+      )
+      ..setTool(LineTool.idValue);
+
+    controller.dispatchCanvasEvent(
+      const CanvasPointerDownEvent(
+        screenPoint: Offset(100, 40),
+        worldPoint: Offset(100, 40),
+        transform: CanvasTransform.identity,
+      ),
+    );
+    controller.dispatchCanvasEvent(
+      const CanvasPointerUpEvent(
+        screenPoint: Offset(248, 38),
+        worldPoint: Offset(248, 38),
+        transform: CanvasTransform.identity,
+      ),
+    );
+
+    final line = controller.elements.whereType<PolylineElement>().single;
+    expect(line.points.first, const Offset(100, 40));
+    expect(line.startBinding?.elementId, 'hex-1');
+    expect(line.startBinding?.anchorId, 'vertex2');
+
+    controller
+      ..setTool(SelectTool.idValue)
+      ..setSelection({'hex-1'});
+    controller.moveSelected(const Offset(20, 10), record: false);
+
+    final movedLine = controller.elementById(line.id) as PolylineElement;
+    expect(movedLine.points.first, const Offset(120, 50));
+    expect(movedLine.startBinding?.anchorId, 'vertex2');
+  });
+
   test('snap resolver uses screen threshold converted by scale', () {
     final controller = CanvasController(
       snapSettings: const SnapSettings(thresholdScreenPx: 10),

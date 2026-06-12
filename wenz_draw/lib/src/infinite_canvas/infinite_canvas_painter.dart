@@ -36,23 +36,10 @@ class InfiniteCanvasPainter extends CustomPainter {
     canvas.scale(transform.scale);
 
     final visibleRect = transform.visibleWorldRect(size);
-    final visibleElements =
-        ViewportCulling.visibleElements(canvasController.elements, visibleRect)
-            .where(
-              (element) =>
-                  canvasController.isLayerVisible(element.layerId) &&
-                  element is! CanvasWidgetElement,
-            )
-            .toList()
-          ..sort((a, b) {
-            final layerOrder = canvasController
-                .layerIndexOf(a.layerId)
-                .compareTo(canvasController.layerIndexOf(b.layerId));
-            if (layerOrder != 0) {
-              return layerOrder;
-            }
-            return a.zIndex.compareTo(b.zIndex);
-          });
+    final visibleElements = canvasController
+        .elementsInViewport(visibleRect)
+        .where((element) => element is! CanvasWidgetElement)
+        .toList();
 
     final elementsByLayer = <String, List<CanvasElement>>{};
     final unknownLayerElements = <CanvasElement>[];

@@ -102,6 +102,78 @@ void main() {
     return elements;
   }
 
+  List<CanvasElement> _makeMixed500Elements({
+    double cellWidth = 80,
+    double cellHeight = 48,
+    int columns = 25,
+    int rows = 20,
+  }) {
+    final elements = <CanvasElement>[];
+    const shapeKeys = <String>[
+      'rhombus',
+      'triangle',
+      'hexagon',
+      'cylinder',
+      'cloud',
+    ];
+    for (int row = 0; row < rows; row++) {
+      for (int col = 0; col < columns; col++) {
+        final index = row * columns + col;
+        final x = col * (cellWidth + 4);
+        final y = row * (cellHeight + 4);
+        switch (index % 4) {
+          case 0:
+            elements.add(
+              DrawioShapeElement(
+                id: 'shape-$index',
+                shapeKey: shapeKeys[index % shapeKeys.length],
+                rect: Rect.fromLTWH(x, y, cellWidth, cellHeight),
+                strokeStyle: const PaintStyle(
+                  color: Color(0xFF1F2937),
+                  strokeWidth: 1.5,
+                ),
+                fillStyle: const PaintStyle(color: Color(0xFFE0F2FE)),
+                label: 'S$index',
+                zIndex: index,
+              ),
+            );
+          case 1:
+            elements.add(
+              RectElement(
+                id: 'rect-$index',
+                rect: Rect.fromLTWH(x, y, cellWidth, cellHeight),
+                fillStyle: const PaintStyle(color: Color(0xFFFDE68A)),
+                label: 'R$index',
+                zIndex: index,
+              ),
+            );
+          case 2:
+            elements.add(
+              EllipseElement(
+                id: 'ellipse-$index',
+                rect: Rect.fromLTWH(x, y, cellWidth, cellHeight),
+                fillStyle: const PaintStyle(color: Color(0xFFDCFCE7)),
+                label: 'E$index',
+                zIndex: index,
+              ),
+            );
+          default:
+            elements.add(
+              CanvasWidgetElement(
+                id: 'widget-$index',
+                worldRect: Rect.fromLTWH(x, y, cellWidth, cellHeight),
+                widgetType: 'perf_box',
+                widgetData: {'label': 'W$index'},
+                zIndex: index,
+                scaleMode: CanvasWidgetScaleMode.layoutScale,
+              ),
+            );
+        }
+      }
+    }
+    return elements;
+  }
+
   // -----------------------------------------------------------------
   // 1) Pure data-layer performance (no widget tree).
   // -----------------------------------------------------------------
@@ -184,6 +256,88 @@ void main() {
         '${stopwatch.elapsedMilliseconds} ms (${visible.length} visible)',
       );
     });
+
+    test('mixed 500 elements keep drawio shapes serializable and cullable', () {
+      final controller = CanvasController();
+      final elements = _makeMixed500Elements();
+      for (final e in elements) {
+        controller.addElement(e, record: false);
+      }
+
+      expect(controller.elements.length, 500);
+      expect(controller.elements.whereType<DrawioShapeElement>().length, 125);
+
+      const viewport = Rect.fromLTWH(0, 0, 360, 220);
+      final visible = controller.elementsInViewport(viewport).toList();
+      expect(visible.length, lessThan(500));
+      expect(visible.any((e) => e is DrawioShapeElement), isTrue);
+      expect(
+        visible.every(
+          (element) => element.visible && element.bounds.overlaps(viewport),
+        ),
+        isTrue,
+      );
+
+      final json = CanvasSerializer.toJson(controller);
+      final doc = CanvasSerializer.fromJson(json);
+      expect(doc.elements.length, 500);
+      expect(doc.elements.whereType<DrawioShapeElement>().length, 125);
+    });
+
+    test(
+      'mixed 500 elements can pan, zoom, select, and hit-test drawio shapes',
+      () {
+        final canvasController = CanvasController();
+        final viewController = InfiniteCanvasController(
+          canvasController: canvasController,
+        );
+        for (final e in _makeMixed500Elements()) {
+          canvasController.addElement(e, record: false);
+        }
+
+        viewController.pan(const Offset(-240, -160));
+        viewController.zoomBy(1.5, focalPoint: const Offset(400, 300));
+
+        final firstShape = canvasController.elements
+            .whereType<DrawioShapeElement>()
+            .first;
+        expect(canvasController.hitTest(firstShape.rect.center), firstShape);
+
+        canvasController
+          ..setTool(SelectTool.idValue)
+          ..setSelection({firstShape.id});
+        canvasController.moveSelected(const Offset(12, 8), record: false);
+
+        final moved =
+            canvasController.elementById(firstShape.id) as DrawioShapeElement;
+        expect(
+          moved.rect.topLeft,
+          firstShape.rect.topLeft + const Offset(12, 8),
+        );
+      },
+    );
+
+    test(
+      'viewport culling excludes offscreen drawio shapes from indexed queries',
+      () {
+        final elements = _makeMixed500Elements();
+        const viewport = Rect.fromLTWH(0, 0, 260, 160);
+
+        final visible = ViewportCulling.visibleElements(
+          elements,
+          viewport,
+        ).toList();
+        expect(visible.length, lessThan(500));
+        expect(
+          visible.whereType<DrawioShapeElement>().length,
+          greaterThanOrEqualTo(1),
+        );
+        expect(
+          visible.every((element) => element.bounds.overlaps(viewport)),
+          isTrue,
+        );
+      },
+    );
 
     test('serialize / deserialize 500 elements', () {
       final controller = CanvasController();

@@ -164,21 +164,59 @@ class WenzPerimeter {
     double tx = cx;
     double ty = cy;
     if (orthogonal) {
-      if (px >= bounds.left && px <= bounds.right) tx = px;
-      else if (py >= bounds.top && py <= bounds.bottom) ty = py;
+      if (px >= bounds.left && px <= bounds.right)
+        tx = px;
+      else if (py >= bounds.top && py <= bounds.bottom)
+        ty = py;
     }
 
     // 四象限判断
     if (px < cx) {
       if (py < cy) {
-        return _lineIntersection(px, py, tx, ty, cx, bounds.top, bounds.left, cy);
+        return _lineIntersection(
+          px,
+          py,
+          tx,
+          ty,
+          cx,
+          bounds.top,
+          bounds.left,
+          cy,
+        );
       } else {
-        return _lineIntersection(px, py, tx, ty, cx, bounds.bottom, bounds.left, cy);
+        return _lineIntersection(
+          px,
+          py,
+          tx,
+          ty,
+          cx,
+          bounds.bottom,
+          bounds.left,
+          cy,
+        );
       }
     } else if (py < cy) {
-      return _lineIntersection(px, py, tx, ty, cx, bounds.top, bounds.right, cy);
+      return _lineIntersection(
+        px,
+        py,
+        tx,
+        ty,
+        cx,
+        bounds.top,
+        bounds.right,
+        cy,
+      );
     } else {
-      return _lineIntersection(px, py, tx, ty, cx, bounds.bottom, bounds.right, cy);
+      return _lineIntersection(
+        px,
+        py,
+        tx,
+        ty,
+        cx,
+        bounds.bottom,
+        bounds.right,
+        cy,
+      );
     }
   }
 
@@ -264,10 +302,7 @@ class WenzPerimeter {
     if (orthogonal) {
       Offset pt = Offset(cx, cy);
       if (next.dy >= y && next.dy <= y + h) {
-        pt = Offset(
-          vertical ? cx : (direction == 'west' ? x + w : x),
-          next.dy,
-        );
+        pt = Offset(vertical ? cx : (direction == 'west' ? x + w : x), next.dy);
       } else if (next.dx >= x && next.dx <= x + w) {
         pt = Offset(
           next.dx,
@@ -278,25 +313,49 @@ class WenzPerimeter {
       final dyy = next.dy - pt.dy;
       if ((vertical && dxx <= 0) || (!vertical && dyy <= 0)) {
         return _lineIntersection(
-          next.dx, next.dy, pt.dx, pt.dy,
-          start.dx, start.dy, corner.dx, corner.dy,
+          next.dx,
+          next.dy,
+          pt.dx,
+          pt.dy,
+          start.dx,
+          start.dy,
+          corner.dx,
+          corner.dy,
         );
       }
       return _lineIntersection(
-        next.dx, next.dy, pt.dx, pt.dy,
-        corner.dx, corner.dy, end.dx, end.dy,
+        next.dx,
+        next.dy,
+        pt.dx,
+        pt.dy,
+        corner.dx,
+        corner.dy,
+        end.dx,
+        end.dy,
       );
     }
 
     if ((vertical && next.dx <= cx) || (!vertical && next.dy <= cy)) {
       return _lineIntersection(
-        next.dx, next.dy, cx, cy,
-        start.dx, start.dy, corner.dx, corner.dy,
+        next.dx,
+        next.dy,
+        cx,
+        cy,
+        start.dx,
+        start.dy,
+        corner.dx,
+        corner.dy,
       );
     }
     return _lineIntersection(
-      next.dx, next.dy, cx, cy,
-      corner.dx, corner.dy, end.dx, end.dy,
+      next.dx,
+      next.dy,
+      cx,
+      cy,
+      corner.dx,
+      corner.dy,
+      end.dx,
+      end.dy,
     );
   }
 
@@ -306,8 +365,14 @@ class WenzPerimeter {
 
   /// 两条线段 (x1,y1)-(x2,y2) 与 (x3,y3)-(x4,y4) 的交点。
   static Offset _lineIntersection(
-    double x1, double y1, double x2, double y2,
-    double x3, double y3, double x4, double y4,
+    double x1,
+    double y1,
+    double x2,
+    double y2,
+    double x3,
+    double y3,
+    double x4,
+    double y4,
   ) {
     final denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
     if (denom.abs() < 0.0000001) {
@@ -342,12 +407,12 @@ class WenzPerimeter {
     // 六边形顶点（顺时针，从上左开始）
     // 使用 1/4 宽度的偏移量（标准六边形比例）
     final offset = w * 0.25;
-    final p0 = Offset(x + offset, y);              // 顶左
-    final p1 = Offset(x + w - offset, y);           // 顶右
-    final p2 = Offset(x + w, cy);                    // 右中
-    final p3 = Offset(x + w - offset, y + h);       // 底右
-    final p4 = Offset(x + offset, y + h);            // 底左
-    final p5 = Offset(x, cy);                         // 左中
+    final p0 = Offset(x + offset, y); // 顶左
+    final p1 = Offset(x + w - offset, y); // 顶右
+    final p2 = Offset(x + w, cy); // 右中
+    final p3 = Offset(x + w - offset, y + h); // 底右
+    final p4 = Offset(x + offset, y + h); // 底左
+    final p5 = Offset(x, cy); // 左中
 
     final px = next.dx;
     final py = next.dy;
@@ -381,8 +446,10 @@ class WenzPerimeter {
         }
       } else if (px >= x && px <= x + w) {
         // 在水平范围内，投影到顶或底
-        return Offset(px.clamp(x + offset, x + w - offset),
-            py <= cy ? y : y + h);
+        return Offset(
+          px.clamp(x + offset, x + w - offset),
+          py <= cy ? y : y + h,
+        );
       }
     }
 
@@ -421,10 +488,54 @@ class WenzPerimeter {
     }
   }
 
+  // ---------------------------------------------------------------------------
+  // Cylinder perimeter
+  // ---------------------------------------------------------------------------
+
+  /// 圆柱周长。
+  ///
+  /// 连接点沿外轮廓吸附，左右侧按竖边处理，顶部/底部按椭圆帽近似。
+  static Offset cylinderPerimeter(
+    Rect bounds,
+    Offset next, {
+    bool orthogonal = false,
+  }) {
+    final cap = math.min(bounds.height * 0.18, bounds.width / 3);
+    final center = bounds.center;
+    if (next.dy < bounds.top + cap) {
+      return ellipsePerimeter(
+        Rect.fromLTWH(bounds.left, bounds.top, bounds.width, cap * 2),
+        next,
+        orthogonal: orthogonal,
+      );
+    }
+    if (next.dy > bounds.bottom - cap) {
+      return ellipsePerimeter(
+        Rect.fromLTWH(
+          bounds.left,
+          bounds.bottom - cap * 2,
+          bounds.width,
+          cap * 2,
+        ),
+        next,
+        orthogonal: orthogonal,
+      );
+    }
+    return next.dx < center.dx
+        ? Offset(
+            bounds.left,
+            next.dy.clamp(bounds.top + cap, bounds.bottom - cap),
+          )
+        : Offset(
+            bounds.right,
+            next.dy.clamp(bounds.top + cap, bounds.bottom - cap),
+          );
+  }
+
   /// 根据形状类型选择合适的 perimeter 函数。
   ///
-  /// [shapeType] 可选值：'rectangle', 'ellipse', 'diamond', 'triangle', 'hexagon'
-  /// 默认使用 rectangle。
+  /// [shapeType] 可选值：'rectangle', 'ellipse', 'diamond', 'triangle', 'hexagon',
+  /// 'cylinder', 'doubleEllipse'。默认使用 rectangle。
   static Offset computePerimeter(
     Rect bounds,
     Offset next, {
@@ -433,15 +544,20 @@ class WenzPerimeter {
     String direction = 'east',
   }) {
     return switch (shapeType) {
-      'ellipse' || 'circle' => ellipsePerimeter(bounds, next, orthogonal: orthogonal),
-      'diamond' || 'rhombus' => diamondPerimeter(bounds, next, orthogonal: orthogonal),
+      'ellipse' ||
+      'circle' ||
+      'doubleEllipse' => ellipsePerimeter(bounds, next, orthogonal: orthogonal),
+      'diamond' ||
+      'rhombus' => diamondPerimeter(bounds, next, orthogonal: orthogonal),
       'triangle' => trianglePerimeter(
         bounds,
         next,
         orthogonal: orthogonal,
         direction: direction,
       ),
-      'hexagon' || 'hexagon' => hexagonPerimeter(bounds, next, orthogonal: orthogonal),
+      'hexagon' => hexagonPerimeter(bounds, next, orthogonal: orthogonal),
+      'cylinder' ||
+      'cylinder3' => cylinderPerimeter(bounds, next, orthogonal: orthogonal),
       _ => rectanglePerimeter(bounds, next, orthogonal: orthogonal),
     };
   }
@@ -472,10 +588,16 @@ class WenzPerimeter {
       return ('top', Offset(x.clamp(bounds.left, bounds.right), bounds.top));
     } else if (alpha < t) {
       final y = cy + bounds.width * math.tan(alpha) / 2;
-      return ('right', Offset(bounds.right, y.clamp(bounds.top, bounds.bottom)));
+      return (
+        'right',
+        Offset(bounds.right, y.clamp(bounds.top, bounds.bottom)),
+      );
     } else {
       final x = cx + bounds.height * math.tan(pi / 2 - alpha) / 2;
-      return ('bottom', Offset(x.clamp(bounds.left, bounds.right), bounds.bottom));
+      return (
+        'bottom',
+        Offset(x.clamp(bounds.left, bounds.right), bounds.bottom),
+      );
     }
   }
 }

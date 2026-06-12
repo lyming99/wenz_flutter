@@ -135,4 +135,69 @@ void main() {
       'New label',
     );
   });
+  test('drawio shape label can be edited and styled through controller', () {
+    final controller = CanvasController();
+    controller.addElement(
+      const DrawioShapeElement(
+        id: 'shape-1',
+        shapeKey: 'rhombus',
+        rect: Rect.fromLTWH(0, 0, 120, 80),
+        fillStyle: PaintStyle(color: Color(0xFFE0F2FE)),
+        label: 'Old',
+      ),
+      record: false,
+    );
+
+    controller.beginShapeLabelEditing('shape-1');
+    expect(controller.editingShapeLabelElementId, 'shape-1');
+    controller.updateShapeLabelStyle(
+      'shape-1',
+      color: const Color(0xFF1D4ED8),
+      fontSize: 20,
+      textAlign: TextAlign.right,
+      record: false,
+    );
+    controller.endShapeLabelEditing(text: 'New');
+
+    final element = controller.elementById('shape-1') as DrawioShapeElement;
+    expect(element.label, 'New');
+    expect(element.labelStyle.color, const Color(0xFF1D4ED8));
+    expect(element.labelStyle.fontSize, 20);
+    expect(element.labelAlign, TextAlign.right);
+    expect(controller.canUndo, isTrue);
+    controller.undo();
+    expect(
+      (controller.elementById('shape-1') as DrawioShapeElement).label,
+      'Old',
+    );
+  });
+
+  test('double tapping drawio shape begins label editing', () {
+    final controller = CanvasController();
+    controller.addElement(
+      const DrawioShapeElement(
+        id: 'shape-1',
+        shapeKey: 'hexagon',
+        rect: Rect.fromLTWH(0, 0, 120, 80),
+        fillStyle: PaintStyle(color: Color(0xFFFFFFFF)),
+      ),
+      record: false,
+    );
+    controller.setTool(SelectTool.idValue);
+
+    controller.dispatchCanvasEvent(
+      const CanvasDoubleTapEvent(
+        screenPoint: Offset(60, 40),
+        worldPoint: Offset(60, 40),
+        transform: CanvasTransform.identity,
+      ),
+    );
+
+    expect(controller.editingShapeLabelElementId, 'shape-1');
+    controller.endShapeLabelEditing(text: 'Shape label');
+    expect(
+      (controller.elementById('shape-1') as DrawioShapeElement).label,
+      'Shape label',
+    );
+  });
 }

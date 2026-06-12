@@ -1,10 +1,6 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:wenz_draw/src/routing/orth_connector.dart';
-import 'package:wenz_draw/src/routing/elbow_router.dart';
-import 'package:wenz_draw/src/routing/perimeter.dart';
-import 'package:wenz_draw/src/routing/segment_connector.dart';
-import 'package:wenz_draw/src/routing/connector_routing.dart';
+import 'package:wenz_draw/wenz_draw.dart';
 
 void main() {
   // ===========================================================================
@@ -34,8 +30,11 @@ void main() {
         final b = path[i + 1];
         final horizontal = (a.dy - b.dy).abs() < 0.01;
         final vertical = (a.dx - b.dx).abs() < 0.01;
-        expect(horizontal || vertical, isTrue,
-            reason: 'Segment $i from $a to $b is not orthogonal');
+        expect(
+          horizontal || vertical,
+          isTrue,
+          reason: 'Segment $i from $a to $b is not orthogonal',
+        );
       }
     });
 
@@ -306,8 +305,11 @@ void main() {
       final bounds = const Rect.fromLTWH(0, 0, 100, 100);
       final next = Offset(200, 50);
 
-      final result =
-          WenzPerimeter.rectanglePerimeter(bounds, next, orthogonal: false);
+      final result = WenzPerimeter.rectanglePerimeter(
+        bounds,
+        next,
+        orthogonal: false,
+      );
 
       // 应该在右边界上
       expect(result.dx, closeTo(100, 0.01));
@@ -318,8 +320,11 @@ void main() {
       final bounds = const Rect.fromLTWH(0, 0, 100, 100);
       final next = Offset(-50, 50);
 
-      final result =
-          WenzPerimeter.rectanglePerimeter(bounds, next, orthogonal: false);
+      final result = WenzPerimeter.rectanglePerimeter(
+        bounds,
+        next,
+        orthogonal: false,
+      );
 
       expect(result.dx, closeTo(0, 0.01));
       expect(result.dy, closeTo(50, 0.01));
@@ -329,8 +334,11 @@ void main() {
       final bounds = const Rect.fromLTWH(0, 0, 100, 100);
       final next = Offset(50, -50);
 
-      final result =
-          WenzPerimeter.rectanglePerimeter(bounds, next, orthogonal: false);
+      final result = WenzPerimeter.rectanglePerimeter(
+        bounds,
+        next,
+        orthogonal: false,
+      );
 
       expect(result.dy, closeTo(0, 0.01));
       expect(result.dx, closeTo(50, 0.01));
@@ -340,8 +348,11 @@ void main() {
       final bounds = const Rect.fromLTWH(0, 0, 100, 100);
       final next = Offset(50, 200);
 
-      final result =
-          WenzPerimeter.rectanglePerimeter(bounds, next, orthogonal: false);
+      final result = WenzPerimeter.rectanglePerimeter(
+        bounds,
+        next,
+        orthogonal: false,
+      );
 
       expect(result.dy, closeTo(100, 0.01));
       expect(result.dx, closeTo(50, 0.01));
@@ -352,8 +363,11 @@ void main() {
       // next 点在矩形右上方
       final next = Offset(150, 30);
 
-      final result =
-          WenzPerimeter.rectanglePerimeter(bounds, next, orthogonal: true);
+      final result = WenzPerimeter.rectanglePerimeter(
+        bounds,
+        next,
+        orthogonal: true,
+      );
 
       // 正交模式下，next.dy 在矩形垂直范围内 → 锁定 y
       expect(result.dx, closeTo(100, 0.01));
@@ -364,8 +378,11 @@ void main() {
       final bounds = const Rect.fromLTWH(0, 0, 100, 100);
       final next = Offset(200, 50);
 
-      final result =
-          WenzPerimeter.ellipsePerimeter(bounds, next, orthogonal: false);
+      final result = WenzPerimeter.ellipsePerimeter(
+        bounds,
+        next,
+        orthogonal: false,
+      );
 
       // 应该落在椭圆边界上
       // 对于 cx=50, cy=50, rx=50, ry=50 的圆，右边交点应在 (100, 50)
@@ -377,8 +394,11 @@ void main() {
       final bounds = const Rect.fromLTWH(0, 0, 100, 100);
       final next = Offset(200, 200);
 
-      final result =
-          WenzPerimeter.ellipsePerimeter(bounds, next, orthogonal: false);
+      final result = WenzPerimeter.ellipsePerimeter(
+        bounds,
+        next,
+        orthogonal: false,
+      );
 
       // 45度角，交点应在圆上：cx+rx*cos(45°), cy+ry*sin(45°)
       // 50+50*0.707 ≈ 85.35
@@ -390,8 +410,11 @@ void main() {
       final bounds = const Rect.fromLTWH(0, 0, 100, 100);
       final next = Offset(200, 50);
 
-      final result =
-          WenzPerimeter.diamondPerimeter(bounds, next, orthogonal: false);
+      final result = WenzPerimeter.diamondPerimeter(
+        bounds,
+        next,
+        orthogonal: false,
+      );
 
       // 菱形右顶点在 (100, 50)
       expect(result.dx, closeTo(100, 0.01));
@@ -417,8 +440,11 @@ void main() {
       final bounds = const Rect.fromLTWH(0, 0, 100, 100);
       final next = Offset(200, 50);
 
-      final result =
-          WenzPerimeter.hexagonPerimeter(bounds, next, orthogonal: false);
+      final result = WenzPerimeter.hexagonPerimeter(
+        bounds,
+        next,
+        orthogonal: false,
+      );
 
       // 应该在右边界的某个位置
       expect(result.dx, closeTo(100, 0.01));
@@ -429,8 +455,11 @@ void main() {
       final bounds = const Rect.fromLTWH(0, 0, 100, 100);
       final next = Offset(150, 20);
 
-      final result =
-          WenzPerimeter.hexagonPerimeter(bounds, next, orthogonal: true);
+      final result = WenzPerimeter.hexagonPerimeter(
+        bounds,
+        next,
+        orthogonal: true,
+      );
 
       // 结果应在六边形边界上
       expect(result.dx, greaterThan(0));
@@ -442,13 +471,25 @@ void main() {
       final next = Offset(200, 50);
 
       final rect = WenzPerimeter.computePerimeter(
-          bounds, next, shapeType: 'rectangle');
+        bounds,
+        next,
+        shapeType: 'rectangle',
+      );
       final ellipse = WenzPerimeter.computePerimeter(
-          bounds, next, shapeType: 'ellipse');
+        bounds,
+        next,
+        shapeType: 'ellipse',
+      );
       final diamond = WenzPerimeter.computePerimeter(
-          bounds, next, shapeType: 'diamond');
+        bounds,
+        next,
+        shapeType: 'diamond',
+      );
       final hexagon = WenzPerimeter.computePerimeter(
-          bounds, next, shapeType: 'hexagon');
+        bounds,
+        next,
+        shapeType: 'hexagon',
+      );
 
       // 不同形状应该产生不同的交点
       // rectangle: (100, 50)
@@ -467,9 +508,15 @@ void main() {
       final next = Offset(200, 50);
 
       final rect = WenzPerimeter.computePerimeter(
-          bounds, next, shapeType: 'rectangle');
+        bounds,
+        next,
+        shapeType: 'rectangle',
+      );
       final ellipse = WenzPerimeter.computePerimeter(
-          bounds, next, shapeType: 'ellipse');
+        bounds,
+        next,
+        shapeType: 'ellipse',
+      );
 
       // 矩形右侧交点 y 由角度计算
       expect(rect.dx, closeTo(100, 0.01));
@@ -480,6 +527,65 @@ void main() {
 
       // 椭圆和矩形的交点应该不同（因为曲线 vs 直线）
       // 但不一定，对于同一角度射线，交点取决于形状
+    });
+
+    test('computePerimeter supports cylinder and double ellipse aliases', () {
+      final bounds = const Rect.fromLTWH(0, 0, 120, 80);
+      final cylinder = WenzPerimeter.computePerimeter(
+        bounds,
+        const Offset(200, 40),
+        shapeType: 'cylinder',
+        orthogonal: true,
+      );
+      final doubleEllipse = WenzPerimeter.computePerimeter(
+        bounds,
+        const Offset(200, 40),
+        shapeType: 'doubleEllipse',
+      );
+
+      expect(cylinder.dx, closeTo(120, 0.01));
+      expect(cylinder.dy, closeTo(40, 0.01));
+      expect(doubleEllipse.dx, closeTo(120, 0.01));
+      expect(doubleEllipse.dy, closeTo(40, 0.01));
+    });
+
+    test('connector routing resolves drawio shape perimeter from binding', () {
+      const service = ConnectorRoutingService(
+        options: ConnectorRoutingOptions(
+          mode: ConnectorRoutingMode.simpleManhattan,
+        ),
+      );
+      const diamond = DrawioShapeElement(
+        id: 'diamond-1',
+        shapeKey: 'rhombus',
+        rect: Rect.fromLTWH(0, 0, 100, 100),
+      );
+      const target = DrawioShapeElement(
+        id: 'target-1',
+        shapeKey: 'ellipse',
+        rect: Rect.fromLTWH(200, 0, 100, 100),
+      );
+
+      final route = service.route(
+        start: diamond.rect.center,
+        end: target.rect.center,
+        elements: const [diamond, target],
+        isLayerVisible: (_) => true,
+        isLayerLocked: (_) => false,
+        startBinding: const SnapBinding(
+          elementId: 'diamond-1',
+          anchorId: 'center',
+        ),
+        endBinding: const SnapBinding(
+          elementId: 'target-1',
+          anchorId: 'center',
+        ),
+      );
+
+      expect(route.points.first.dx, closeTo(100, 1.5));
+      expect(route.points.first.dy, closeTo(50, 1.5));
+      expect(route.points.last.dx, closeTo(200, 1.5));
+      expect(route.points.last.dy, closeTo(50, 1.5));
     });
 
     test('nearestSide 返回正确的边', () {
@@ -562,11 +668,7 @@ void main() {
         end: target.center,
         sourceBounds: source,
         targetBounds: target,
-        controlPoints: [
-          Offset(150, 50),
-          Offset(150, 150),
-          Offset(250, 150),
-        ],
+        controlPoints: [Offset(150, 50), Offset(150, 150), Offset(250, 150)],
       );
 
       expect(path.isNotEmpty, isTrue);

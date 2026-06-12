@@ -3,6 +3,65 @@ import 'package:flutter/widgets.dart';
 import 'package:wenz_draw/wenz_draw.dart';
 
 void main() {
+  test(
+    'built-in shape tools create drawio shape elements from drag gestures',
+    () {
+      final controller = CanvasController();
+      controller
+        ..updateBrushSettings(
+          const BrushSettings(
+            color: Color(0xFF1D4ED8),
+            strokeWidth: 3,
+            fillColor: Color(0xFFE0F2FE),
+          ),
+        )
+        ..setTool(ShapeTool.idFor('rhombus'));
+
+      controller.dispatchCanvasEvent(
+        const CanvasPointerDownEvent(
+          pointer: 1,
+          screenPoint: Offset(20, 30),
+          worldPoint: Offset(20, 30),
+          transform: CanvasTransform.identity,
+          buttons: 1,
+        ),
+      );
+
+      expect(controller.previewElement, isA<DrawioShapeElement>());
+      expect(
+        (controller.previewElement! as DrawioShapeElement).shapeKey,
+        'rhombus',
+      );
+
+      controller.dispatchCanvasEvent(
+        const CanvasPointerMoveEvent(
+          pointer: 1,
+          screenPoint: Offset(120, 90),
+          worldPoint: Offset(120, 90),
+          transform: CanvasTransform.identity,
+          delta: Offset(100, 60),
+          buttons: 1,
+        ),
+      );
+      controller.dispatchCanvasEvent(
+        const CanvasPointerUpEvent(
+          pointer: 1,
+          screenPoint: Offset(120, 90),
+          worldPoint: Offset(120, 90),
+          transform: CanvasTransform.identity,
+        ),
+      );
+
+      final element = controller.elements.single as DrawioShapeElement;
+      expect(element.shapeKey, 'rhombus');
+      expect(element.rect, const Rect.fromLTWH(20, 30, 100, 60));
+      expect(element.strokeStyle.color, const Color(0xFF1D4ED8));
+      expect(element.strokeStyle.strokeWidth, 3);
+      expect(element.fillStyle!.color, const Color(0xFFE0F2FE));
+      expect(controller.previewElement, isNull);
+    },
+  );
+
   test('adds, selects, and removes elements', () {
     final controller = CanvasController();
     const element = LineElement(

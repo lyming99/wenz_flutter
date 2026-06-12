@@ -3,10 +3,12 @@ import '../layers/canvas_layer.dart';
 
 class CanvasDocument {
   const CanvasDocument({
-    this.version = '1.0',
+    this.version = currentVersion,
     this.layers = const <CanvasLayer>[],
     this.elements = const <CanvasElement>[],
   });
+
+  static const currentVersion = '1.1';
 
   final String version;
   final List<CanvasLayer> layers;

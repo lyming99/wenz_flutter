@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 
 import '../elements/arrow_element.dart';
 import '../elements/canvas_element.dart';
+import '../elements/drawio_shape_element.dart';
 import '../elements/line_element.dart';
 import '../elements/polyline_element.dart';
 import '../snap/snap_resolver.dart';
@@ -90,7 +91,10 @@ class ConnectorRoutingOptions {
         portLead: portLead,
         searchPadding: searchPadding,
         maxObstacles: (maxObstacles * 0.75).ceil().clamp(8, maxObstacles),
-        maxLanesPerAxis: (maxLanesPerAxis * 0.75).ceil().clamp(8, maxLanesPerAxis),
+        maxLanesPerAxis: (maxLanesPerAxis * 0.75).ceil().clamp(
+          8,
+          maxLanesPerAxis,
+        ),
         turnPenalty: turnPenalty,
         nodeCrossingPenalty: nodeCrossingPenalty,
         nodeTouchPenalty: nodeTouchPenalty,
@@ -192,14 +196,24 @@ class ConnectorPortResolver {
     SnapBinding? binding,
     Rect? bounds,
     String shapeType = 'rectangle',
+    String direction = 'east',
   }) {
     final anchorId = binding?.anchorId;
-    final side = _sideForAnchor(anchorId, position, toward, bounds);
+    final side = _effectiveSide(
+      _sideForAnchor(anchorId, position, toward, bounds),
+      anchorId: anchorId,
+      position: position,
+      toward: toward,
+      bounds: bounds,
+      shapeType: shapeType,
+    );
 
     // 固定连接点：用户明确绑定了某个锢点（anchorId 非空）。
     // 与 draw.io 一致：端点坐标恒定为锢点位置，不随对端移动而滑动。
     // 这里 position 已经是 snapResolver 解析出的精确锢点坐标。
-    if (binding?.anchorId != null && side != ConnectorSide.center) {
+    if (binding?.anchorId != null &&
+        side != ConnectorSide.center &&
+        anchorId != 'center') {
       return ConnectorPort(
         position: position,
         side: side,
@@ -212,12 +226,15 @@ class ConnectorPortResolver {
       );
     }
 
-    if (bounds != null && side != ConnectorSide.center && side != ConnectorSide.free) {
+    if (bounds != null &&
+        side != ConnectorSide.center &&
+        side != ConnectorSide.free) {
       final perimeterPoint = WenzPerimeter.computePerimeter(
         bounds,
         toward,
         orthogonal: true,
         shapeType: shapeType,
+        direction: direction,
       );
       return ConnectorPort(
         position: perimeterPoint,
@@ -254,19 +271,42 @@ class ConnectorPortResolver {
       'bottom' => ConnectorSide.bottom,
       'topLeft' || 'bottomLeft' => _cornerSide(
         horizontal: ConnectorSide.left,
-        vertical: anchorId == 'topLeft' ? ConnectorSide.top : ConnectorSide.bottom,
+        vertical: anchorId == 'topLeft'
+            ? ConnectorSide.top
+            : ConnectorSide.bottom,
         position: position,
         toward: toward,
       ),
       'topRight' || 'bottomRight' => _cornerSide(
         horizontal: ConnectorSide.right,
-        vertical: anchorId == 'topRight' ? ConnectorSide.top : ConnectorSide.bottom,
+        vertical: anchorId == 'topRight'
+            ? ConnectorSide.top
+            : ConnectorSide.bottom,
         position: position,
         toward: toward,
       ),
       'center' => ConnectorSide.center,
-      _ => bounds == null ? ConnectorSide.free : _nearestSide(position, toward, bounds),
+      _ =>
+        bounds == null
+            ? ConnectorSide.free
+            : _nearestSide(position, toward, bounds),
     };
+  }
+
+  ConnectorSide _effectiveSide(
+    ConnectorSide side, {
+    required String? anchorId,
+    required Offset position,
+    required Offset toward,
+    required Rect? bounds,
+    required String shapeType,
+  }) {
+    if (anchorId == 'center' && bounds != null) {
+      return shapeType == 'rectangle'
+          ? side
+          : _nearestSide(position, toward, bounds);
+    }
+    return side;
   }
 
   ConnectorSide _cornerSide({
@@ -301,7 +341,8 @@ class ConnectorPortResolver {
       ConnectorSide.right => const Offset(1, 0),
       ConnectorSide.top => const Offset(0, -1),
       ConnectorSide.bottom => const Offset(0, 1),
-      ConnectorSide.center || ConnectorSide.free => _freeNormal(position, toward, bounds),
+      ConnectorSide.center ||
+      ConnectorSide.free => _freeNormal(position, toward, bounds),
     };
   }
 
@@ -349,31 +390,49 @@ class ConnectorRoutingService {
   }) {
     final tuned = options.forQuality(quality);
 
-    // 简单曼哈顿模式
-    if (tuned.mode == ConnectorRoutingMode.simpleManhattan) {
-      final points = _simpleManhattan(start, end);
-      return ConnectorRouteResult(
-        points: points,
-        score: _pathLength(points),
-        strategy: ConnectorRouteStrategy.directOrthogonal,
-      );
-    }
-
     final byId = {for (final element in elements) element.id: element};
-    final sourceBounds = _boundsForBinding(byId, startBinding, isLayerVisible, isLayerLocked);
-    final targetBounds = _boundsForBinding(byId, endBinding, isLayerVisible, isLayerLocked);
+    final sourceBounds = _boundsForBinding(
+      byId,
+      startBinding,
+      isLayerVisible,
+      isLayerLocked,
+    );
+    final targetBounds = _boundsForBinding(
+      byId,
+      endBinding,
+      isLayerVisible,
+      isLayerLocked,
+    );
+    final sourceShape = _shapeTypeForBinding(byId, startBinding);
+    final targetShape = _shapeTypeForBinding(byId, endBinding);
+    final sourceDirection = _shapeDirectionForBinding(byId, startBinding);
+    final targetDirection = _shapeDirectionForBinding(byId, endBinding);
     final sourcePort = portResolver.resolve(
       position: start,
       toward: end,
       binding: startBinding,
       bounds: sourceBounds,
+      shapeType: sourceShape,
+      direction: sourceDirection,
     );
     final targetPort = portResolver.resolve(
       position: end,
       toward: start,
       binding: endBinding,
       bounds: targetBounds,
+      shapeType: targetShape,
+      direction: targetDirection,
     );
+
+    // 简单曼哈顿模式
+    if (tuned.mode == ConnectorRoutingMode.simpleManhattan) {
+      final points = _simpleManhattan(sourcePort.position, targetPort.position);
+      return ConnectorRouteResult(
+        points: points,
+        score: _pathLength(points),
+        strategy: ConnectorRouteStrategy.directOrthogonal,
+      );
+    }
 
     // 分段连接器模式
     if (tuned.mode == ConnectorRoutingMode.segmentConnector) {
@@ -441,7 +500,7 @@ class ConnectorRoutingService {
       end: targetPort.position,
       sourceBounds: sourceBounds,
       targetBounds: targetBounds,
-      obstacles: [for (final o in obstacles) o.inflated(tuned.margin)],
+      obstacles: [for (final o in obstacles) o.bounds],
       margin: tuned.margin,
       preferredStartDirection: sourcePort.locked ? sourcePort.normal : null,
       preferredEndDirection: targetPort.locked ? targetPort.normal : null,
@@ -470,7 +529,9 @@ class ConnectorRoutingService {
     Set<String?> excludeIds = const <String?>{},
   }) sync* {
     for (final element in elements) {
-      if (element is LineElement || element is ArrowElement || element is PolylineElement) {
+      if (element is LineElement ||
+          element is ArrowElement ||
+          element is PolylineElement) {
         continue;
       }
       if (!element.visible ||
@@ -498,11 +559,42 @@ class ConnectorRoutingService {
         (isLayerLocked?.call(target.layerId) ?? false)) {
       return null;
     }
+    if (target is DrawioShapeElement) {
+      return target.rect;
+    }
     return target.bounds;
   }
 
+  String _shapeTypeForBinding(
+    Map<String, CanvasElement> elementsById,
+    SnapBinding? binding,
+  ) {
+    if (binding == null) return 'rectangle';
+    final target = elementsById[binding.elementId];
+    if (target is DrawioShapeElement) {
+      return target.shapeKey;
+    }
+    return 'rectangle';
+  }
+
+  String _shapeDirectionForBinding(
+    Map<String, CanvasElement> elementsById,
+    SnapBinding? binding,
+  ) {
+    if (binding == null) return 'east';
+    final target = elementsById[binding.elementId];
+    if (target is DrawioShapeElement) {
+      final direction = target.properties['direction'];
+      if (direction is String) {
+        return direction;
+      }
+    }
+    return 'east';
+  }
+
   List<Offset> _simpleManhattan(Offset start, Offset end) {
-    if ((start.dx - end.dx).abs() < 0.0001 || (start.dy - end.dy).abs() < 0.0001) {
+    if ((start.dx - end.dx).abs() < 0.0001 ||
+        (start.dy - end.dy).abs() < 0.0001) {
       return [start, end];
     }
     return [start, Offset(end.dx, start.dy), end];

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../canvas/canvas_controller.dart';
 import '../elements/canvas_element.dart';
+import '../elements/drawio_shape_element.dart';
 import '../elements/ellipse_element.dart';
 import '../elements/line_element.dart';
 import '../elements/polyline_element.dart';
@@ -256,7 +257,8 @@ class SelectTool extends CanvasTool {
           return const ToolResultConsumed();
         }
         if (hit
-            case RectElement(:final id) ||
+            case DrawioShapeElement(:final id) ||
+                RectElement(:final id) ||
                 EllipseElement(:final id) ||
                 LineElement(:final id) ||
                 ArrowElement(:final id) ||

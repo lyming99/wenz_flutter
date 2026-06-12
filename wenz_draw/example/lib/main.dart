@@ -3,6 +3,127 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:wenz_draw/wenz_draw.dart';
 
+class _DrawioShapePaletteEntry {
+  const _DrawioShapePaletteEntry({
+    required this.label,
+    required this.shapeKey,
+    required this.group,
+    required this.icon,
+  });
+
+  final String label;
+  final String shapeKey;
+  final String group;
+  final IconData icon;
+
+  String get toolId => ShapeTool.idFor(shapeKey);
+}
+
+const _drawioShapePalette = [
+  _DrawioShapePaletteEntry(
+    label: '菱形',
+    shapeKey: 'rhombus',
+    group: 'basic',
+    icon: Icons.change_history,
+  ),
+  _DrawioShapePaletteEntry(
+    label: '三角形',
+    shapeKey: 'triangle',
+    group: 'basic',
+    icon: Icons.change_history,
+  ),
+  _DrawioShapePaletteEntry(
+    label: '六边形',
+    shapeKey: 'hexagon',
+    group: 'basic',
+    icon: Icons.hexagon_outlined,
+  ),
+  _DrawioShapePaletteEntry(
+    label: '加号',
+    shapeKey: 'plus',
+    group: 'basic',
+    icon: Icons.add_box_outlined,
+  ),
+  _DrawioShapePaletteEntry(
+    label: '交叉',
+    shapeKey: 'cross',
+    group: 'basic',
+    icon: Icons.close,
+  ),
+  _DrawioShapePaletteEntry(
+    label: '流程',
+    shapeKey: 'parallelogram',
+    group: 'flowchart',
+    icon: Icons.crop_16_9,
+  ),
+  _DrawioShapePaletteEntry(
+    label: '梯形',
+    shapeKey: 'trapezoid',
+    group: 'flowchart',
+    icon: Icons.filter_none,
+  ),
+  _DrawioShapePaletteEntry(
+    label: '文档',
+    shapeKey: 'document',
+    group: 'flowchart',
+    icon: Icons.description_outlined,
+  ),
+  _DrawioShapePaletteEntry(
+    label: '步骤',
+    shapeKey: 'step',
+    group: 'flowchart',
+    icon: Icons.arrow_right_alt,
+  ),
+  _DrawioShapePaletteEntry(
+    label: '圆柱',
+    shapeKey: 'cylinder',
+    group: 'flowchart',
+    icon: Icons.data_object,
+  ),
+  _DrawioShapePaletteEntry(
+    label: '泳道',
+    shapeKey: 'swimlane',
+    group: 'container',
+    icon: Icons.view_agenda_outlined,
+  ),
+  _DrawioShapePaletteEntry(
+    label: '便签形',
+    shapeKey: 'note',
+    group: 'container',
+    icon: Icons.sticky_note_2_outlined,
+  ),
+  _DrawioShapePaletteEntry(
+    label: '标注',
+    shapeKey: 'callout',
+    group: 'container',
+    icon: Icons.chat_bubble_outline,
+  ),
+  _DrawioShapePaletteEntry(
+    label: '双椭圆',
+    shapeKey: 'doubleEllipse',
+    group: 'container',
+    icon: Icons.trip_origin,
+  ),
+  _DrawioShapePaletteEntry(
+    label: 'Actor',
+    shapeKey: 'actor',
+    group: 'container',
+    icon: Icons.accessibility_new,
+  ),
+  _DrawioShapePaletteEntry(
+    label: '云',
+    shapeKey: 'cloud',
+    group: 'container',
+    icon: Icons.cloud_outlined,
+  ),
+  _DrawioShapePaletteEntry(
+    label: '立方体',
+    shapeKey: 'cube',
+    group: 'container',
+    icon: Icons.view_in_ar_outlined,
+  ),
+];
+
 void main() {
   WidgetElementRegistry.register('sticky_note', const StickyNoteBuilder());
   WidgetElementRegistry.register(
@@ -327,8 +448,7 @@ class _CanvasDemoPageState extends State<CanvasDemoPage> {
     _viewController = InfiniteCanvasController(
       canvasController: _canvasController,
     );
-    _addLabeledShapes();
-    _addDemoWidgets();
+    _addExampleDiagram();
   }
 
   @override
@@ -373,89 +493,113 @@ class _CanvasDemoPageState extends State<CanvasDemoPage> {
     );
   }
 
-  void _addLabeledShapes() {
+  void _addExampleDiagram() {
     _canvasController
       ..addElement(
         const RectElement(
-          id: 'demo-labeled-rect',
-          rect: Rect.fromLTWH(-320, -180, 220, 120),
-          borderRadius: 12,
-          fillStyle: PaintStyle(color: Color(0xFFE0F2FE)),
-          strokeStyle: PaintStyle(color: Color(0xFF0284C7), strokeWidth: 2),
-          label: 'Embedded\ntext',
+          id: 'demo-start',
+          rect: Rect.fromLTWH(0, 60, 180, 92),
+          borderRadius: 7,
+          fillStyle: PaintStyle(color: Color(0xFFFFFFFF)),
+          strokeStyle: PaintStyle(color: Color(0xFF2476C7), strokeWidth: 2),
+          label: 'Start',
           labelStyle: TextStyle(
-            color: Color(0xFF0F172A),
-            fontSize: 20,
-            fontWeight: FontWeight.w700,
-            height: 1.15,
+            color: Color(0xFF263442),
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
           ),
           labelAlign: TextAlign.center,
-          labelPadding: EdgeInsets.all(16),
-          zIndex: -20010,
+          zIndex: 1,
+        ),
+        record: false,
+      )
+      ..addElement(
+        const RectElement(
+          id: 'demo-decision',
+          rect: Rect.fromLTWH(310, 68, 130, 130),
+          borderRadius: 4,
+          fillStyle: PaintStyle(color: Color(0xFFFFFFFF)),
+          strokeStyle: PaintStyle(color: Color(0xFF2476C7), strokeWidth: 2),
+          label: 'Decision',
+          labelStyle: TextStyle(
+            color: Color(0xFF263442),
+            fontSize: 17,
+            fontWeight: FontWeight.w600,
+          ),
+          labelAlign: TextAlign.center,
+          zIndex: 2,
         ),
         record: false,
       )
       ..addElement(
         const EllipseElement(
-          id: 'demo-labeled-ellipse',
-          rect: Rect.fromLTWH(-60, -180, 220, 120),
-          fillStyle: PaintStyle(color: Color(0xFFDCFCE7)),
-          strokeStyle: PaintStyle(color: Color(0xFF16A34A), strokeWidth: 2),
-          label: 'Aligned right',
+          id: 'demo-finish',
+          rect: Rect.fromLTWH(540, 226, 164, 90),
+          fillStyle: PaintStyle(color: Color(0xFFFFFFFF)),
+          strokeStyle: PaintStyle(color: Color(0xFF2476C7), strokeWidth: 2),
+          label: 'Done',
           labelStyle: TextStyle(
-            color: Color(0xFF14532D),
-            fontSize: 18,
+            color: Color(0xFF263442),
+            fontSize: 17,
             fontWeight: FontWeight.w600,
           ),
-          labelAlign: TextAlign.right,
-          labelPadding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          zIndex: -20009,
+          labelAlign: TextAlign.center,
+          zIndex: 3,
+        ),
+        record: false,
+      )
+      ..addElement(
+        const PolylineElement(
+          id: 'demo-connector',
+          points: [
+            Offset(180, 106),
+            Offset(242, 106),
+            Offset(242, 133),
+            Offset(310, 133),
+          ],
+          style: PaintStyle(color: Color(0xFF2476C7), strokeWidth: 3),
+          zIndex: 0,
+        ),
+        record: false,
+      )
+      ..addElement(
+        const PolylineElement(
+          id: 'demo-connector-2',
+          points: [
+            Offset(440, 140),
+            Offset(488, 140),
+            Offset(488, 271),
+            Offset(540, 271),
+          ],
+          style: PaintStyle(color: Color(0xFF2476C7), strokeWidth: 3),
+          zIndex: 0,
+        ),
+        record: false,
+      )
+      ..addElement(
+        const CanvasWidgetElement(
+          id: 'demo-note',
+          worldRect: Rect.fromLTWH(75, 278, 200, 116),
+          widgetType: 'sticky_note',
+          widgetData: {'text': '拖动画布可平移，滚轮可缩放。', 'color': '0xFFFFF6D6'},
+          zIndex: 4,
+        ),
+        record: false,
+      )
+      ..addElement(
+        TextElement(
+          id: 'demo-title',
+          position: const Offset(520, -25),
+          text: 'Flow Sketch',
+          style: const TextStyle(
+            color: Color(0xFF263442),
+            fontSize: 24,
+            fontWeight: FontWeight.w700,
+          ),
+          zIndex: 5,
         ),
         record: false,
       );
-  }
-
-  void _addDemoWidgets() {
-    const columns = 40;
-    const rows = 25;
-    const cellW = 80.0;
-    const cellH = 48.0;
-    const gap = 4.0;
-    final rng = math.Random(42);
-
-    // Build all elements first, then add in one batch for speed.
-    for (int row = 0; row < rows; row++) {
-      for (int col = 0; col < columns; col++) {
-        final index = row * columns + col;
-        final x = col * (cellW + gap);
-        final y = row * (cellH + gap);
-        final hue = rng.nextInt(360);
-        final color = HSLColor.fromAHSL(
-          0.85,
-          hue.toDouble(),
-          0.45,
-          0.80,
-        ).toColor().toARGB32();
-        final colorHex =
-            '0x${color.toRadixString(16).padLeft(8, '0').toUpperCase()}';
-
-        _canvasController.addElement(
-          CanvasWidgetElement(
-            id: 'perf-$index',
-            worldRect: Rect.fromLTWH(x, y, cellW, cellH),
-            widgetType: index.isEven ? 'sticky_note' : 'counter_button',
-            widgetData: index.isEven
-                ? {'text': '$col,$row', 'color': colorHex}
-                : {'count': index, 'label': '$col,$row', 'color': colorHex},
-            zIndex: -10000 + index,
-            scaleMode: index.isEven
-                ? CanvasWidgetScaleMode.layoutScale
-                : CanvasWidgetScaleMode.paintScale,
-          ),
-          record: false,
-        );
-      }
-    }
   }
 
   void _addStickyNote() {
@@ -586,10 +730,11 @@ class _Toolbar extends StatelessWidget {
                   const _ToolbarDivider(),
                   _ToolButton(
                     label: '图形',
-                    icon: Icons.crop_square,
+                    icon: Icons.category_outlined,
                     selected:
                         activeTool == RectTool.idValue ||
-                        activeTool == EllipseTool.idValue,
+                        activeTool == EllipseTool.idValue ||
+                        (activeTool?.startsWith(ShapeTool.idPrefix) ?? false),
                     onPressed: () => canvasController.setTool(RectTool.idValue),
                   ),
                   _ToolButton(
@@ -760,6 +905,32 @@ class _LeftShapePanel extends StatelessWidget {
                 actionLabel: '管理',
                 children: [
                   const _SearchBox(),
+                  _ShapePaletteGroup(
+                    title: 'Basic',
+                    entries: _drawioShapePalette
+                        .where((entry) => entry.group == 'basic')
+                        .toList(growable: false),
+                    activeTool: activeTool,
+                    onSelect: canvasController.setTool,
+                  ),
+                  _ShapePaletteGroup(
+                    title: 'Flowchart',
+                    entries: _drawioShapePalette
+                        .where((entry) => entry.group == 'flowchart')
+                        .toList(growable: false),
+                    activeTool: activeTool,
+                    onSelect: canvasController.setTool,
+                  ),
+                  _ShapePaletteGroup(
+                    title: 'Container',
+                    entries: _drawioShapePalette
+                        .where((entry) => entry.group == 'container')
+                        .toList(growable: false),
+                    activeTool: activeTool,
+                    onSelect: canvasController.setTool,
+                  ),
+                  const SizedBox(height: 6),
+                  const _PaletteSubhead('Legacy'),
                   GridView.count(
                     crossAxisCount: 2,
                     shrinkWrap: true,
@@ -788,9 +959,10 @@ class _LeftShapePanel extends StatelessWidget {
                           angle: math.pi / 4,
                           child: const Icon(Icons.crop_square, size: 32),
                         ),
-                        selected: false,
-                        onPressed: () =>
-                            canvasController.setTool(RectTool.idValue),
+                        selected: activeTool == ShapeTool.idFor('rhombus'),
+                        onPressed: () => canvasController.setTool(
+                          ShapeTool.idFor('rhombus'),
+                        ),
                       ),
                       _ShapeTile(
                         label: '箭头',
@@ -820,6 +992,69 @@ class _LeftShapePanel extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+class _ShapePaletteGroup extends StatelessWidget {
+  const _ShapePaletteGroup({
+    required this.title,
+    required this.entries,
+    required this.activeTool,
+    required this.onSelect,
+  });
+
+  final String title;
+  final List<_DrawioShapePaletteEntry> entries;
+  final String? activeTool;
+  final ValueChanged<String> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _PaletteSubhead(title),
+        GridView.count(
+          crossAxisCount: 2,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          mainAxisSpacing: 8,
+          crossAxisSpacing: 8,
+          childAspectRatio: 1.35,
+          children: [
+            for (final entry in entries)
+              _ShapeTile(
+                label: entry.label,
+                icon: entry.icon,
+                selected: activeTool == entry.toolId,
+                onPressed: () => onSelect(entry.toolId),
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _PaletteSubhead extends StatelessWidget {
+  const _PaletteSubhead(this.title);
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 10, bottom: 7),
+      child: Text(
+        title,
+        style: const TextStyle(
+          color: _UiColors.muted,
+          fontSize: 11,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 0.8,
+        ),
+      ),
     );
   }
 }

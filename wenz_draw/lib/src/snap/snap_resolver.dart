@@ -5,8 +5,11 @@ import 'package:flutter/widgets.dart';
 import '../canvas/canvas_controller.dart';
 import '../elements/arrow_element.dart';
 import '../elements/canvas_element.dart';
+import '../elements/drawio_shape_element.dart';
 import '../elements/line_element.dart';
 import '../elements/polyline_element.dart';
+import '../elements/shape_definition.dart';
+import '../elements/shape_definition_registry.dart';
 
 class SnapSettings {
   const SnapSettings({
@@ -222,6 +225,28 @@ class SnapResolver {
       return;
     }
 
+    if (element is DrawioShapeElement) {
+      ensureDrawioShapeDefinitionsRegistered();
+      final definition = ShapeDefinitionRegistry.definitionFor(
+        element.shapeKey,
+      );
+      for (final point in definition.connectionPointsFor(
+        element.rect,
+        element.properties,
+      )) {
+        if (!_snapKindEnabled(point.kind)) {
+          continue;
+        }
+        yield SnapPoint(
+          elementId: element.id,
+          anchorId: point.anchorId,
+          position: point.position,
+          kind: _snapKindForShapePoint(point.kind),
+        );
+      }
+      return;
+    }
+
     final bounds = element.bounds;
     if (bounds.isEmpty) {
       return;
@@ -286,6 +311,24 @@ class SnapResolver {
         kind: SnapPointKind.corner,
       );
     }
+  }
+
+  bool _snapKindEnabled(ShapeConnectionPointKind kind) {
+    return switch (kind) {
+      ShapeConnectionPointKind.center ||
+      ShapeConnectionPointKind.body => settings.includeCenters,
+      ShapeConnectionPointKind.edge => settings.includeEdges,
+      ShapeConnectionPointKind.corner => settings.includeCorners,
+    };
+  }
+
+  SnapPointKind _snapKindForShapePoint(ShapeConnectionPointKind kind) {
+    return switch (kind) {
+      ShapeConnectionPointKind.center ||
+      ShapeConnectionPointKind.body => SnapPointKind.center,
+      ShapeConnectionPointKind.edge => SnapPointKind.edge,
+      ShapeConnectionPointKind.corner => SnapPointKind.corner,
+    };
   }
 
   Offset _polylineMidpoint(List<Offset> points) {

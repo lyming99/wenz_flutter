@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../elements/arrow_element.dart';
 import '../../elements/canvas_element.dart';
+import '../../elements/drawio_shape_element.dart';
 import '../../elements/ellipse_element.dart';
 import '../../elements/image_element.dart';
 import '../../elements/line_element.dart';
@@ -11,6 +12,7 @@ import '../../elements/line_label_painter.dart';
 import '../../elements/path_element.dart';
 import '../../elements/polyline_element.dart';
 import '../../elements/rect_element.dart';
+import '../../elements/shape_definition_registry.dart';
 import '../../elements/shape_label_painter.dart';
 import '../../elements/text_element.dart';
 import '../../elements/widget_element.dart';
@@ -47,6 +49,7 @@ class SvgExporter {
       final PathElement e => _path(e),
       final PolylineElement e => _polyline(e),
       final LineElement e => _lineWithLabel(e, [e.start, e.end]),
+      final DrawioShapeElement e => _drawioShape(e),
       final RectElement e => _rect(e),
       final EllipseElement e => _ellipse(e),
       final ArrowElement e =>
@@ -88,17 +91,42 @@ class SvgExporter {
     return '$shape${_lineLabel(e, e.points)}';
   }
 
+  static String _drawioShape(DrawioShapeElement e) {
+    ensureDrawioShapeDefinitionsRegistered();
+    final definition = ShapeDefinitionRegistry.definitionFor(e.shapeKey);
+    final fill = e.fillStyle == null ? 'none' : _color(e.fillStyle!.color);
+    final fillOpacity = e.fillStyle?.opacity ?? 0;
+    final stroke = e.strokeStyle.strokeWidth <= 0 || e.strokeStyle.opacity <= 0
+        ? 'none'
+        : _color(e.strokeStyle.color);
+    final shape =
+        '<path d="${definition.svgPathFor(e.rect, e.properties)}" fill="$fill" stroke="$stroke" stroke-width="${e.strokeStyle.strokeWidth}" opacity="${e.opacity}" fill-opacity="$fillOpacity" stroke-opacity="${e.strokeStyle.opacity}" stroke-linejoin="round"/>';
+    final foreground = [
+      for (final path in definition.foregroundSvgPathsFor(e.rect, e.properties))
+        '<path d="$path" fill="none" stroke="$stroke" stroke-width="${e.strokeStyle.strokeWidth}" opacity="${e.opacity}" stroke-opacity="${e.strokeStyle.opacity}" stroke-linejoin="round"/>',
+    ].join();
+    return '$shape$foreground${_shapeLabel(definition.labelRectFor(e.rect, e.properties), e.label, e.labelStyle, e.labelAlign, e.labelPadding, e.opacity)}';
+  }
+
   static String _rect(RectElement e) {
     final fill = e.fillStyle == null ? 'none' : _color(e.fillStyle!.color);
+    final fillOpacity = e.fillStyle?.opacity ?? 0;
+    final stroke = e.strokeStyle.strokeWidth <= 0 || e.strokeStyle.opacity <= 0
+        ? 'none'
+        : _color(e.strokeStyle.color);
     final shape =
-        '<rect x="${e.rect.left}" y="${e.rect.top}" width="${e.rect.width}" height="${e.rect.height}" rx="${e.borderRadius}" fill="$fill" stroke="${_color(e.strokeStyle.color)}" stroke-width="${e.strokeStyle.strokeWidth}" opacity="${e.opacity}"/>';
+        '<rect x="${e.rect.left}" y="${e.rect.top}" width="${e.rect.width}" height="${e.rect.height}" rx="${e.borderRadius}" fill="$fill" stroke="$stroke" stroke-width="${e.strokeStyle.strokeWidth}" opacity="${e.opacity}" fill-opacity="$fillOpacity" stroke-opacity="${e.strokeStyle.opacity}"/>';
     return '$shape${_shapeLabel(e.rect, e.label, e.labelStyle, e.labelAlign, e.labelPadding, e.opacity)}';
   }
 
   static String _ellipse(EllipseElement e) {
     final fill = e.fillStyle == null ? 'none' : _color(e.fillStyle!.color);
+    final fillOpacity = e.fillStyle?.opacity ?? 0;
+    final stroke = e.strokeStyle.strokeWidth <= 0 || e.strokeStyle.opacity <= 0
+        ? 'none'
+        : _color(e.strokeStyle.color);
     final shape =
-        '<ellipse cx="${e.rect.center.dx}" cy="${e.rect.center.dy}" rx="${e.rect.width / 2}" ry="${e.rect.height / 2}" fill="$fill" stroke="${_color(e.strokeStyle.color)}" stroke-width="${e.strokeStyle.strokeWidth}" opacity="${e.opacity}"/>';
+        '<ellipse cx="${e.rect.center.dx}" cy="${e.rect.center.dy}" rx="${e.rect.width / 2}" ry="${e.rect.height / 2}" fill="$fill" stroke="$stroke" stroke-width="${e.strokeStyle.strokeWidth}" opacity="${e.opacity}" fill-opacity="$fillOpacity" stroke-opacity="${e.strokeStyle.opacity}"/>';
     return '$shape${_shapeLabel(e.rect, e.label, e.labelStyle, e.labelAlign, e.labelPadding, e.opacity)}';
   }
 
