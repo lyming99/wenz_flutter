@@ -21,6 +21,15 @@ typedef ShapeConnectionPointsBuilder =
       Map<String, dynamic> properties,
     );
 
+typedef ShapeForegroundPainter = void Function(
+  Canvas canvas,
+  Rect rect,
+  Map<String, dynamic> properties, {
+  required PaintStyle strokeStyle,
+  PaintStyle? fillStyle,
+  required double opacity,
+});
+
 @immutable
 class ShapeConnectionPoint {
   const ShapeConnectionPoint({
@@ -44,6 +53,7 @@ class ShapeDefinition {
     required this.buildSvgPath,
     this.buildForegroundPaths,
     this.buildForegroundSvgPaths,
+    this.paintForeground,
     this.buildLabelRect,
     this.buildOutline,
     this.buildConnectionPoints,
@@ -56,6 +66,7 @@ class ShapeDefinition {
   buildForegroundPaths;
   final List<String> Function(Rect rect, Map<String, dynamic> properties)?
   buildForegroundSvgPaths;
+  final ShapeForegroundPainter? paintForeground;
   final ShapeLabelRectBuilder? buildLabelRect;
   final ShapeOutlineBuilder? buildOutline;
   final ShapeConnectionPointsBuilder? buildConnectionPoints;
@@ -209,8 +220,24 @@ class ShapeDefinition {
         .copyWith(opacity: strokeStyle.opacity * opacity)
         .toPaint();
     canvas.drawPath(path, strokePaint);
-    for (final foreground in foregroundPathsFor(rect, properties)) {
-      canvas.drawPath(foreground, strokePaint);
+
+    if (paintForeground != null) {
+      paintForeground!(
+        canvas,
+        rect,
+        properties,
+        strokeStyle: strokeStyle.copyWith(
+          opacity: strokeStyle.opacity * opacity,
+        ),
+        fillStyle: fillStyle?.copyWith(
+          opacity: fillStyle.opacity * opacity,
+        ),
+        opacity: opacity,
+      );
+    } else {
+      for (final foreground in foregroundPathsFor(rect, properties)) {
+        canvas.drawPath(foreground, strokePaint);
+      }
     }
   }
 }
