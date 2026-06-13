@@ -1,0 +1,5508 @@
+{
+  "library": "gcp2",
+  "group": "GCP",
+  "shapeCount": 297,
+  "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+  "sourceSizeBytes": 1151829,
+  "generatedAt": "2026-06-13T16:52:48.308435Z",
+  "shapes": [
+    {
+      "key": "gcp2.a7Power",
+      "label": "a7 power",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 154.99,
+      "defaultHeight": 154.97,
+      "tags": [
+        "gcp",
+        "a7",
+        "power"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.a7Power",
+        "mxgraph.gcp2.a7_power",
+        "mxgraph.gcp2.a7-power",
+        "mxgraph.gcp2.a7 power"
+      ]
+    },
+    {
+      "key": "gcp2.adminConnected",
+      "label": "admin connected",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 162.7,
+      "defaultHeight": 162.7,
+      "tags": [
+        "gcp",
+        "admin",
+        "connected"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.adminConnected",
+        "mxgraph.gcp2.admin_connected",
+        "mxgraph.gcp2.admin-connected",
+        "mxgraph.gcp2.admin connected"
+      ]
+    },
+    {
+      "key": "gcp2.admob",
+      "label": "AdMob",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 48.03,
+      "defaultHeight": 47.88,
+      "tags": [
+        "gcp",
+        "admob"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.admob",
+        "mxgraph.gcp2.AdMob"
+      ]
+    },
+    {
+      "key": "gcp2.advancedSolutionsLab",
+      "label": "Advanced Solutions Lab",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "advanced",
+        "solutions",
+        "lab"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.advancedSolutionsLab",
+        "mxgraph.gcp2.advanced_solutions_lab",
+        "mxgraph.gcp2.advanced-solutions-lab",
+        "mxgraph.gcp2.Advanced Solutions Lab"
+      ]
+    },
+    {
+      "key": "gcp2.aiHub",
+      "label": "ai hub",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "ai",
+        "hub"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.aiHub",
+        "mxgraph.gcp2.ai_hub",
+        "mxgraph.gcp2.ai-hub",
+        "mxgraph.gcp2.ai hub"
+      ]
+    },
+    {
+      "key": "gcp2.anomalyDetection",
+      "label": "anomaly detection",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 109.21,
+      "defaultHeight": 118.19,
+      "tags": [
+        "gcp",
+        "anomaly",
+        "detection"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.anomalyDetection",
+        "mxgraph.gcp2.anomaly_detection",
+        "mxgraph.gcp2.anomaly-detection",
+        "mxgraph.gcp2.anomaly detection"
+      ]
+    },
+    {
+      "key": "gcp2.apigeeApiPlatform",
+      "label": "Apigee API Platform",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "apigee",
+        "api",
+        "platform"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.apigeeApiPlatform",
+        "mxgraph.gcp2.apigee_api_platform",
+        "mxgraph.gcp2.apigee-api-platform",
+        "mxgraph.gcp2.Apigee API Platform"
+      ]
+    },
+    {
+      "key": "gcp2.apigeeSense",
+      "label": "Apigee Sense",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "apigee",
+        "sense"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.apigeeSense",
+        "mxgraph.gcp2.apigee_sense",
+        "mxgraph.gcp2.apigee-sense",
+        "mxgraph.gcp2.Apigee Sense"
+      ]
+    },
+    {
+      "key": "gcp2.apiAnalytics",
+      "label": "API Analytics",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.76,
+      "tags": [
+        "gcp",
+        "api",
+        "analytics"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.apiAnalytics",
+        "mxgraph.gcp2.api_analytics",
+        "mxgraph.gcp2.api-analytics",
+        "mxgraph.gcp2.API Analytics"
+      ]
+    },
+    {
+      "key": "gcp2.apiMonetization",
+      "label": "API Monetization",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.8,
+      "tags": [
+        "gcp",
+        "api",
+        "monetization"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.apiMonetization",
+        "mxgraph.gcp2.api_monetization",
+        "mxgraph.gcp2.api-monetization",
+        "mxgraph.gcp2.API Monetization"
+      ]
+    },
+    {
+      "key": "gcp2.application",
+      "label": "Application",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 31.63,
+      "defaultHeight": 25.38,
+      "tags": [
+        "gcp",
+        "application"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.application",
+        "mxgraph.gcp2.Application"
+      ]
+    },
+    {
+      "key": "gcp2.applicationSystem",
+      "label": "Application System",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 98.75,
+      "defaultHeight": 98.75,
+      "tags": [
+        "gcp",
+        "application",
+        "system"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.applicationSystem",
+        "mxgraph.gcp2.application_system",
+        "mxgraph.gcp2.application-system",
+        "mxgraph.gcp2.Application System"
+      ]
+    },
+    {
+      "key": "gcp2.appEngine",
+      "label": "App Engine",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "app",
+        "engine"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.appEngine",
+        "mxgraph.gcp2.app_engine",
+        "mxgraph.gcp2.app-engine",
+        "mxgraph.gcp2.App Engine"
+      ]
+    },
+    {
+      "key": "gcp2.appEngineIcon",
+      "label": "App Engine Icon",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 21.03,
+      "defaultHeight": 17.01,
+      "tags": [
+        "gcp",
+        "app",
+        "engine",
+        "icon"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.appEngineIcon",
+        "mxgraph.gcp2.app_engine_icon",
+        "mxgraph.gcp2.app-engine-icon",
+        "mxgraph.gcp2.App Engine Icon"
+      ]
+    },
+    {
+      "key": "gcp2.arrowsSystem",
+      "label": "arrows system",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 128.56,
+      "defaultHeight": 121.96,
+      "tags": [
+        "gcp",
+        "arrows",
+        "system"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.arrowsSystem",
+        "mxgraph.gcp2.arrows_system",
+        "mxgraph.gcp2.arrows-system",
+        "mxgraph.gcp2.arrows system"
+      ]
+    },
+    {
+      "key": "gcp2.arrowCycle",
+      "label": "arrow cycle",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 126.72,
+      "defaultHeight": 120.23,
+      "tags": [
+        "gcp",
+        "arrow",
+        "cycle"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.arrowCycle",
+        "mxgraph.gcp2.arrow_cycle",
+        "mxgraph.gcp2.arrow-cycle",
+        "mxgraph.gcp2.arrow cycle"
+      ]
+    },
+    {
+      "key": "gcp2.aspectRatio",
+      "label": "aspect ratio",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 111.92,
+      "defaultHeight": 102.66,
+      "tags": [
+        "gcp",
+        "aspect",
+        "ratio"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.aspectRatio",
+        "mxgraph.gcp2.aspect_ratio",
+        "mxgraph.gcp2.aspect-ratio",
+        "mxgraph.gcp2.aspect ratio"
+      ]
+    },
+    {
+      "key": "gcp2.automlNaturalLanguage",
+      "label": "AutoML Natural Language",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "automl",
+        "natural",
+        "language"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.automlNaturalLanguage",
+        "mxgraph.gcp2.automl_natural_language",
+        "mxgraph.gcp2.automl-natural-language",
+        "mxgraph.gcp2.AutoML Natural Language"
+      ]
+    },
+    {
+      "key": "gcp2.automlTables",
+      "label": "AutoML Tables",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "automl",
+        "tables"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.automlTables",
+        "mxgraph.gcp2.automl_tables",
+        "mxgraph.gcp2.automl-tables",
+        "mxgraph.gcp2.AutoML Tables"
+      ]
+    },
+    {
+      "key": "gcp2.automlTranslation",
+      "label": "AutoML Translation",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "automl",
+        "translation"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.automlTranslation",
+        "mxgraph.gcp2.automl_translation",
+        "mxgraph.gcp2.automl-translation",
+        "mxgraph.gcp2.AutoML Translation"
+      ]
+    },
+    {
+      "key": "gcp2.automlVideoIntelligence",
+      "label": "AutoML Video Intelligence",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "automl",
+        "video",
+        "intelligence"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.automlVideoIntelligence",
+        "mxgraph.gcp2.automl_video_intelligence",
+        "mxgraph.gcp2.automl-video-intelligence",
+        "mxgraph.gcp2.AutoML Video Intelligence"
+      ]
+    },
+    {
+      "key": "gcp2.automlVision",
+      "label": "AutoML Vision",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "automl",
+        "vision"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.automlVision",
+        "mxgraph.gcp2.automl_vision",
+        "mxgraph.gcp2.automl-vision",
+        "mxgraph.gcp2.AutoML Vision"
+      ]
+    },
+    {
+      "key": "gcp2.avere",
+      "label": "Avere",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 189.19,
+      "defaultHeight": 62.99,
+      "tags": [
+        "gcp",
+        "avere"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.avere",
+        "mxgraph.gcp2.Avere"
+      ]
+    },
+    {
+      "key": "gcp2.beacon",
+      "label": "Beacon",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 24.28,
+      "defaultHeight": 33.26,
+      "tags": [
+        "gcp",
+        "beacon"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.beacon",
+        "mxgraph.gcp2.Beacon"
+      ]
+    },
+    {
+      "key": "gcp2.beyondcorp",
+      "label": "BeyondCorp",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "beyondcorp"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.beyondcorp",
+        "mxgraph.gcp2.BeyondCorp"
+      ]
+    },
+    {
+      "key": "gcp2.bigquery",
+      "label": "BigQuery",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.82,
+      "tags": [
+        "gcp",
+        "bigquery"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.bigquery",
+        "mxgraph.gcp2.BigQuery"
+      ]
+    },
+    {
+      "key": "gcp2.bigQuery",
+      "label": "big query",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 146.36,
+      "defaultHeight": 146.82,
+      "tags": [
+        "gcp",
+        "big",
+        "query"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.bigQuery",
+        "mxgraph.gcp2.big_query",
+        "mxgraph.gcp2.big-query",
+        "mxgraph.gcp2.big query"
+      ]
+    },
+    {
+      "key": "gcp2.biomedicalBeaker",
+      "label": "biomedical beaker",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 105.03,
+      "defaultHeight": 152.42,
+      "tags": [
+        "gcp",
+        "biomedical",
+        "beaker"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.biomedicalBeaker",
+        "mxgraph.gcp2.biomedical_beaker",
+        "mxgraph.gcp2.biomedical-beaker",
+        "mxgraph.gcp2.biomedical beaker"
+      ]
+    },
+    {
+      "key": "gcp2.biomedicalTestTube",
+      "label": "biomedical test tube",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 29.83,
+      "defaultHeight": 97.84,
+      "tags": [
+        "gcp",
+        "biomedical",
+        "test",
+        "tube"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.biomedicalTestTube",
+        "mxgraph.gcp2.biomedical_test_tube",
+        "mxgraph.gcp2.biomedical-test-tube",
+        "mxgraph.gcp2.biomedical test tube"
+      ]
+    },
+    {
+      "key": "gcp2.biomedicalTrio",
+      "label": "biomedical trio",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 143.91,
+      "defaultHeight": 97.57,
+      "tags": [
+        "gcp",
+        "biomedical",
+        "trio"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.biomedicalTrio",
+        "mxgraph.gcp2.biomedical_trio",
+        "mxgraph.gcp2.biomedical-trio",
+        "mxgraph.gcp2.biomedical trio"
+      ]
+    },
+    {
+      "key": "gcp2.blank",
+      "label": "Blank",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 98.75,
+      "defaultHeight": 98.75,
+      "tags": [
+        "gcp",
+        "blank"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.blank",
+        "mxgraph.gcp2.Blank"
+      ]
+    },
+    {
+      "key": "gcp2.blueHexagon",
+      "label": "Blue Hexagon",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "blue",
+        "hexagon"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.blueHexagon",
+        "mxgraph.gcp2.blue_hexagon",
+        "mxgraph.gcp2.blue-hexagon",
+        "mxgraph.gcp2.Blue Hexagon"
+      ]
+    },
+    {
+      "key": "gcp2.bucket",
+      "label": "Bucket",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 98.75,
+      "defaultHeight": 98.75,
+      "tags": [
+        "gcp",
+        "bucket"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.bucket",
+        "mxgraph.gcp2.Bucket"
+      ]
+    },
+    {
+      "key": "gcp2.bucketScale",
+      "label": "bucket scale",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 178.29,
+      "defaultHeight": 144.74,
+      "tags": [
+        "gcp",
+        "bucket",
+        "scale"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.bucketScale",
+        "mxgraph.gcp2.bucket_scale",
+        "mxgraph.gcp2.bucket-scale",
+        "mxgraph.gcp2.bucket scale"
+      ]
+    },
+    {
+      "key": "gcp2.calculator",
+      "label": "calculator",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 177.89,
+      "defaultHeight": 131.89,
+      "tags": [
+        "gcp",
+        "calculator"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.calculator"
+      ]
+    },
+    {
+      "key": "gcp2.campaignManager",
+      "label": "Campaign Manager",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 98.96,
+      "defaultHeight": 99.09,
+      "tags": [
+        "gcp",
+        "campaign",
+        "manager"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.campaignManager",
+        "mxgraph.gcp2.campaign_manager",
+        "mxgraph.gcp2.campaign-manager",
+        "mxgraph.gcp2.Campaign Manager"
+      ]
+    },
+    {
+      "key": "gcp2.capabilities",
+      "label": "capabilities",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 238.98,
+      "defaultHeight": 181.97,
+      "tags": [
+        "gcp",
+        "capabilities"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.capabilities"
+      ]
+    },
+    {
+      "key": "gcp2.certifiedIndustryStandard",
+      "label": "certified industry standard",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 171.44,
+      "defaultHeight": 133.64,
+      "tags": [
+        "gcp",
+        "certified",
+        "industry",
+        "standard"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.certifiedIndustryStandard",
+        "mxgraph.gcp2.certified_industry_standard",
+        "mxgraph.gcp2.certified-industry-standard",
+        "mxgraph.gcp2.certified industry standard"
+      ]
+    },
+    {
+      "key": "gcp2.check",
+      "label": "check",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 114.72,
+      "defaultHeight": 91.84,
+      "tags": [
+        "gcp",
+        "check"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.check"
+      ]
+    },
+    {
+      "key": "gcp2.check2",
+      "label": "check 2",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 157.99,
+      "defaultHeight": 157.99,
+      "tags": [
+        "gcp",
+        "check",
+        "2"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.check2",
+        "mxgraph.gcp2.check_2",
+        "mxgraph.gcp2.check-2",
+        "mxgraph.gcp2.check 2"
+      ]
+    },
+    {
+      "key": "gcp2.checkAvailable",
+      "label": "check available",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 201.21,
+      "defaultHeight": 174.37,
+      "tags": [
+        "gcp",
+        "check",
+        "available"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.checkAvailable",
+        "mxgraph.gcp2.check_available",
+        "mxgraph.gcp2.check-available",
+        "mxgraph.gcp2.check available"
+      ]
+    },
+    {
+      "key": "gcp2.checkScale",
+      "label": "check scale",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 206.59,
+      "defaultHeight": 154.97,
+      "tags": [
+        "gcp",
+        "check",
+        "scale"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.checkScale",
+        "mxgraph.gcp2.check_scale",
+        "mxgraph.gcp2.check-scale",
+        "mxgraph.gcp2.check scale"
+      ]
+    },
+    {
+      "key": "gcp2.circuitBoard",
+      "label": "Circuit Board",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 119.78,
+      "defaultHeight": 107.98,
+      "tags": [
+        "gcp",
+        "circuit",
+        "board"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.circuitBoard",
+        "mxgraph.gcp2.circuit_board",
+        "mxgraph.gcp2.circuit-board",
+        "mxgraph.gcp2.Circuit Board"
+      ]
+    },
+    {
+      "key": "gcp2.clock",
+      "label": "clock",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 183.52,
+      "defaultHeight": 183.75,
+      "tags": [
+        "gcp",
+        "clock"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.clock"
+      ]
+    },
+    {
+      "key": "gcp2.cloud",
+      "label": "cloud",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 146.62,
+      "defaultHeight": 101.1,
+      "tags": [
+        "gcp",
+        "cloud"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.cloud"
+      ]
+    },
+    {
+      "key": "gcp2.cloudApis",
+      "label": "Cloud APIs",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "cloud",
+        "apis"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.cloudApis",
+        "mxgraph.gcp2.cloud_apis",
+        "mxgraph.gcp2.cloud-apis",
+        "mxgraph.gcp2.Cloud APIs"
+      ]
+    },
+    {
+      "key": "gcp2.cloudArmor",
+      "label": "Cloud Armor",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "cloud",
+        "armor"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.cloudArmor",
+        "mxgraph.gcp2.cloud_armor",
+        "mxgraph.gcp2.cloud-armor",
+        "mxgraph.gcp2.Cloud Armor"
+      ]
+    },
+    {
+      "key": "gcp2.cloudAutoml",
+      "label": "Cloud AutoML",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "cloud",
+        "automl"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.cloudAutoml",
+        "mxgraph.gcp2.cloud_automl",
+        "mxgraph.gcp2.cloud-automl",
+        "mxgraph.gcp2.Cloud AutoML"
+      ]
+    },
+    {
+      "key": "gcp2.cloudBigtable",
+      "label": "Cloud Bigtable",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "cloud",
+        "bigtable"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.cloudBigtable",
+        "mxgraph.gcp2.cloud_bigtable",
+        "mxgraph.gcp2.cloud-bigtable",
+        "mxgraph.gcp2.Cloud Bigtable"
+      ]
+    },
+    {
+      "key": "gcp2.cloudCdn",
+      "label": "Cloud CDN",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "cloud",
+        "cdn"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.cloudCdn",
+        "mxgraph.gcp2.cloud_cdn",
+        "mxgraph.gcp2.cloud-cdn",
+        "mxgraph.gcp2.Cloud CDN"
+      ]
+    },
+    {
+      "key": "gcp2.cloudCheckmark",
+      "label": "cloud checkmark",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 138.51,
+      "defaultHeight": 92.63,
+      "tags": [
+        "gcp",
+        "cloud",
+        "checkmark"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.cloudCheckmark",
+        "mxgraph.gcp2.cloud_checkmark",
+        "mxgraph.gcp2.cloud-checkmark",
+        "mxgraph.gcp2.cloud checkmark"
+      ]
+    },
+    {
+      "key": "gcp2.cloudCode",
+      "label": "Cloud Code",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "cloud",
+        "code"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.cloudCode",
+        "mxgraph.gcp2.cloud_code",
+        "mxgraph.gcp2.cloud-code",
+        "mxgraph.gcp2.Cloud Code"
+      ]
+    },
+    {
+      "key": "gcp2.cloudComposer",
+      "label": "Cloud Composer",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "cloud",
+        "composer"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.cloudComposer",
+        "mxgraph.gcp2.cloud_composer",
+        "mxgraph.gcp2.cloud-composer",
+        "mxgraph.gcp2.Cloud Composer"
+      ]
+    },
+    {
+      "key": "gcp2.cloudComputer",
+      "label": "cloud computer",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 135.9,
+      "defaultHeight": 118.76,
+      "tags": [
+        "gcp",
+        "cloud",
+        "computer"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.cloudComputer",
+        "mxgraph.gcp2.cloud_computer",
+        "mxgraph.gcp2.cloud-computer",
+        "mxgraph.gcp2.cloud computer"
+      ]
+    },
+    {
+      "key": "gcp2.cloudConnectedInsight",
+      "label": "cloud connected insight",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 159.78,
+      "defaultHeight": 144.5,
+      "tags": [
+        "gcp",
+        "cloud",
+        "connected",
+        "insight"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.cloudConnectedInsight",
+        "mxgraph.gcp2.cloud_connected_insight",
+        "mxgraph.gcp2.cloud-connected-insight",
+        "mxgraph.gcp2.cloud connected insight"
+      ]
+    },
+    {
+      "key": "gcp2.cloudDataflow",
+      "label": "Cloud Dataflow",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "cloud",
+        "dataflow"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.cloudDataflow",
+        "mxgraph.gcp2.cloud_dataflow",
+        "mxgraph.gcp2.cloud-dataflow",
+        "mxgraph.gcp2.Cloud Dataflow"
+      ]
+    },
+    {
+      "key": "gcp2.cloudDataflowIcon",
+      "label": "Cloud Dataflow icon",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 15.23,
+      "defaultHeight": 21.34,
+      "tags": [
+        "gcp",
+        "cloud",
+        "dataflow",
+        "icon"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.cloudDataflowIcon",
+        "mxgraph.gcp2.cloud_dataflow_icon",
+        "mxgraph.gcp2.cloud-dataflow-icon",
+        "mxgraph.gcp2.Cloud Dataflow icon"
+      ]
+    },
+    {
+      "key": "gcp2.cloudDatalab",
+      "label": "Cloud Datalab",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "cloud",
+        "datalab"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.cloudDatalab",
+        "mxgraph.gcp2.cloud_datalab",
+        "mxgraph.gcp2.cloud-datalab",
+        "mxgraph.gcp2.Cloud Datalab"
+      ]
+    },
+    {
+      "key": "gcp2.cloudDataprep",
+      "label": "Cloud Dataprep",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "cloud",
+        "dataprep"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.cloudDataprep",
+        "mxgraph.gcp2.cloud_dataprep",
+        "mxgraph.gcp2.cloud-dataprep",
+        "mxgraph.gcp2.Cloud Dataprep"
+      ]
+    },
+    {
+      "key": "gcp2.cloudDataproc",
+      "label": "Cloud Dataproc",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "cloud",
+        "dataproc"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.cloudDataproc",
+        "mxgraph.gcp2.cloud_dataproc",
+        "mxgraph.gcp2.cloud-dataproc",
+        "mxgraph.gcp2.Cloud Dataproc"
+      ]
+    },
+    {
+      "key": "gcp2.cloudDataprocIcon",
+      "label": "Cloud Dataproc icon",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 21.31,
+      "defaultHeight": 19.71,
+      "tags": [
+        "gcp",
+        "cloud",
+        "dataproc",
+        "icon"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.cloudDataprocIcon",
+        "mxgraph.gcp2.cloud_dataproc_icon",
+        "mxgraph.gcp2.cloud-dataproc-icon",
+        "mxgraph.gcp2.Cloud Dataproc icon"
+      ]
+    },
+    {
+      "key": "gcp2.cloudDatastore",
+      "label": "Cloud Datastore",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "cloud",
+        "datastore"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.cloudDatastore",
+        "mxgraph.gcp2.cloud_datastore",
+        "mxgraph.gcp2.cloud-datastore",
+        "mxgraph.gcp2.Cloud Datastore"
+      ]
+    },
+    {
+      "key": "gcp2.cloudDataCatalog",
+      "label": "Cloud Data Catalog",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "cloud",
+        "data",
+        "catalog"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.cloudDataCatalog",
+        "mxgraph.gcp2.cloud_data_catalog",
+        "mxgraph.gcp2.cloud-data-catalog",
+        "mxgraph.gcp2.Cloud Data Catalog"
+      ]
+    },
+    {
+      "key": "gcp2.cloudDataFusion",
+      "label": "Cloud Data Fusion",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "cloud",
+        "data",
+        "fusion"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.cloudDataFusion",
+        "mxgraph.gcp2.cloud_data_fusion",
+        "mxgraph.gcp2.cloud-data-fusion",
+        "mxgraph.gcp2.Cloud Data Fusion"
+      ]
+    },
+    {
+      "key": "gcp2.cloudDeploymentManager",
+      "label": "Cloud Deployment Manager",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "cloud",
+        "deployment",
+        "manager"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.cloudDeploymentManager",
+        "mxgraph.gcp2.cloud_deployment_manager",
+        "mxgraph.gcp2.cloud-deployment-manager",
+        "mxgraph.gcp2.Cloud Deployment Manager"
+      ]
+    },
+    {
+      "key": "gcp2.cloudDns",
+      "label": "Cloud DNS",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "cloud",
+        "dns"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.cloudDns",
+        "mxgraph.gcp2.cloud_dns",
+        "mxgraph.gcp2.cloud-dns",
+        "mxgraph.gcp2.Cloud DNS"
+      ]
+    },
+    {
+      "key": "gcp2.cloudEndpoints",
+      "label": "Cloud Endpoints",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "cloud",
+        "endpoints"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.cloudEndpoints",
+        "mxgraph.gcp2.cloud_endpoints",
+        "mxgraph.gcp2.cloud-endpoints",
+        "mxgraph.gcp2.Cloud Endpoints"
+      ]
+    },
+    {
+      "key": "gcp2.cloudExternalIpAddresses",
+      "label": "Cloud External IP Addresses",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "cloud",
+        "external",
+        "ip",
+        "addresses"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.cloudExternalIpAddresses",
+        "mxgraph.gcp2.cloud_external_ip_addresses",
+        "mxgraph.gcp2.cloud-external-ip-addresses",
+        "mxgraph.gcp2.Cloud External IP Addresses"
+      ]
+    },
+    {
+      "key": "gcp2.cloudFilestore",
+      "label": "Cloud Filestore",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "cloud",
+        "filestore"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.cloudFilestore",
+        "mxgraph.gcp2.cloud_filestore",
+        "mxgraph.gcp2.cloud-filestore",
+        "mxgraph.gcp2.Cloud Filestore"
+      ]
+    },
+    {
+      "key": "gcp2.cloudFirestore",
+      "label": "cloud firestore",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.82,
+      "tags": [
+        "gcp",
+        "cloud",
+        "firestore"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.cloudFirestore",
+        "mxgraph.gcp2.cloud_firestore",
+        "mxgraph.gcp2.cloud-firestore",
+        "mxgraph.gcp2.cloud firestore"
+      ]
+    },
+    {
+      "key": "gcp2.cloudFirewallRules",
+      "label": "Cloud Firewall Rules",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "cloud",
+        "firewall",
+        "rules"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.cloudFirewallRules",
+        "mxgraph.gcp2.cloud_firewall_rules",
+        "mxgraph.gcp2.cloud-firewall-rules",
+        "mxgraph.gcp2.Cloud Firewall Rules"
+      ]
+    },
+    {
+      "key": "gcp2.cloudFunctions",
+      "label": "Cloud Functions",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "cloud",
+        "functions"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.cloudFunctions",
+        "mxgraph.gcp2.cloud_functions",
+        "mxgraph.gcp2.cloud-functions",
+        "mxgraph.gcp2.Cloud Functions"
+      ]
+    },
+    {
+      "key": "gcp2.cloudIam",
+      "label": "Cloud IAM",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "cloud",
+        "iam"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.cloudIam",
+        "mxgraph.gcp2.cloud_iam",
+        "mxgraph.gcp2.cloud-iam",
+        "mxgraph.gcp2.Cloud IAM"
+      ]
+    },
+    {
+      "key": "gcp2.cloudInferenceApi",
+      "label": "Cloud Inference API",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "cloud",
+        "inference",
+        "api"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.cloudInferenceApi",
+        "mxgraph.gcp2.cloud_inference_api",
+        "mxgraph.gcp2.cloud-inference-api",
+        "mxgraph.gcp2.Cloud Inference API"
+      ]
+    },
+    {
+      "key": "gcp2.cloudInformation",
+      "label": "cloud information",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 201.94,
+      "defaultHeight": 159.88,
+      "tags": [
+        "gcp",
+        "cloud",
+        "information"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.cloudInformation",
+        "mxgraph.gcp2.cloud_information",
+        "mxgraph.gcp2.cloud-information",
+        "mxgraph.gcp2.cloud information"
+      ]
+    },
+    {
+      "key": "gcp2.cloudIotCore",
+      "label": "Cloud IoT Core",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "cloud",
+        "iot",
+        "core"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.cloudIotCore",
+        "mxgraph.gcp2.cloud_iot_core",
+        "mxgraph.gcp2.cloud-iot-core",
+        "mxgraph.gcp2.Cloud IoT Core"
+      ]
+    },
+    {
+      "key": "gcp2.cloudIotEdge",
+      "label": "Cloud IoT Edge",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "cloud",
+        "iot",
+        "edge"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.cloudIotEdge",
+        "mxgraph.gcp2.cloud_iot_edge",
+        "mxgraph.gcp2.cloud-iot-edge",
+        "mxgraph.gcp2.Cloud IoT Edge"
+      ]
+    },
+    {
+      "key": "gcp2.cloudJobsApi",
+      "label": "Cloud Jobs API",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "cloud",
+        "jobs",
+        "api"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.cloudJobsApi",
+        "mxgraph.gcp2.cloud_jobs_api",
+        "mxgraph.gcp2.cloud-jobs-api",
+        "mxgraph.gcp2.Cloud Jobs API"
+      ]
+    },
+    {
+      "key": "gcp2.cloudLoadBalancing",
+      "label": "Cloud Load Balancing",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "cloud",
+        "load",
+        "balancing"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.cloudLoadBalancing",
+        "mxgraph.gcp2.cloud_load_balancing",
+        "mxgraph.gcp2.cloud-load-balancing",
+        "mxgraph.gcp2.Cloud Load Balancing"
+      ]
+    },
+    {
+      "key": "gcp2.cloudMachineLearning",
+      "label": "Cloud Machine Learning",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "cloud",
+        "machine",
+        "learning"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.cloudMachineLearning",
+        "mxgraph.gcp2.cloud_machine_learning",
+        "mxgraph.gcp2.cloud-machine-learning",
+        "mxgraph.gcp2.Cloud Machine Learning"
+      ]
+    },
+    {
+      "key": "gcp2.cloudMemorystore",
+      "label": "Cloud Memorystore",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "cloud",
+        "memorystore"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.cloudMemorystore",
+        "mxgraph.gcp2.cloud_memorystore",
+        "mxgraph.gcp2.cloud-memorystore",
+        "mxgraph.gcp2.Cloud Memorystore"
+      ]
+    },
+    {
+      "key": "gcp2.cloudMessaging",
+      "label": "cloud messaging",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 154.25,
+      "defaultHeight": 99.36,
+      "tags": [
+        "gcp",
+        "cloud",
+        "messaging"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.cloudMessaging",
+        "mxgraph.gcp2.cloud_messaging",
+        "mxgraph.gcp2.cloud-messaging",
+        "mxgraph.gcp2.cloud messaging"
+      ]
+    },
+    {
+      "key": "gcp2.cloudMonitoring",
+      "label": "cloud monitoring",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 78.97,
+      "defaultHeight": 87.57,
+      "tags": [
+        "gcp",
+        "cloud",
+        "monitoring"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.cloudMonitoring",
+        "mxgraph.gcp2.cloud_monitoring",
+        "mxgraph.gcp2.cloud-monitoring",
+        "mxgraph.gcp2.cloud monitoring"
+      ]
+    },
+    {
+      "key": "gcp2.cloudNat",
+      "label": "Cloud NAT",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "cloud",
+        "nat"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.cloudNat",
+        "mxgraph.gcp2.cloud_nat",
+        "mxgraph.gcp2.cloud-nat",
+        "mxgraph.gcp2.Cloud NAT"
+      ]
+    },
+    {
+      "key": "gcp2.cloudNaturalLanguageApi",
+      "label": "Cloud Natural Language API",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "cloud",
+        "natural",
+        "language",
+        "api"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.cloudNaturalLanguageApi",
+        "mxgraph.gcp2.cloud_natural_language_api",
+        "mxgraph.gcp2.cloud-natural-language-api",
+        "mxgraph.gcp2.Cloud Natural Language API"
+      ]
+    },
+    {
+      "key": "gcp2.cloudNetwork",
+      "label": "Cloud Network",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "cloud",
+        "network"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.cloudNetwork",
+        "mxgraph.gcp2.cloud_network",
+        "mxgraph.gcp2.cloud-network",
+        "mxgraph.gcp2.Cloud Network"
+      ]
+    },
+    {
+      "key": "gcp2.cloudPubsub",
+      "label": "Cloud PubSub",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "cloud",
+        "pubsub"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.cloudPubsub",
+        "mxgraph.gcp2.cloud_pubsub",
+        "mxgraph.gcp2.cloud-pubsub",
+        "mxgraph.gcp2.Cloud PubSub"
+      ]
+    },
+    {
+      "key": "gcp2.cloudRouter",
+      "label": "Cloud Router",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "cloud",
+        "router"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.cloudRouter",
+        "mxgraph.gcp2.cloud_router",
+        "mxgraph.gcp2.cloud-router",
+        "mxgraph.gcp2.Cloud Router"
+      ]
+    },
+    {
+      "key": "gcp2.cloudRoutes",
+      "label": "Cloud Routes",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "cloud",
+        "routes"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.cloudRoutes",
+        "mxgraph.gcp2.cloud_routes",
+        "mxgraph.gcp2.cloud-routes",
+        "mxgraph.gcp2.Cloud Routes"
+      ]
+    },
+    {
+      "key": "gcp2.cloudRun",
+      "label": "Cloud Run",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "cloud",
+        "run"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.cloudRun",
+        "mxgraph.gcp2.cloud_run",
+        "mxgraph.gcp2.cloud-run",
+        "mxgraph.gcp2.Cloud Run"
+      ]
+    },
+    {
+      "key": "gcp2.cloudScheduler",
+      "label": "Cloud Scheduler",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 113.65,
+      "defaultHeight": 122.3,
+      "tags": [
+        "gcp",
+        "cloud",
+        "scheduler"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.cloudScheduler",
+        "mxgraph.gcp2.cloud_scheduler",
+        "mxgraph.gcp2.cloud-scheduler",
+        "mxgraph.gcp2.Cloud Scheduler"
+      ]
+    },
+    {
+      "key": "gcp2.cloudSecurity",
+      "label": "cloud security",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 155.48,
+      "defaultHeight": 108.58,
+      "tags": [
+        "gcp",
+        "cloud",
+        "security"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.cloudSecurity",
+        "mxgraph.gcp2.cloud_security",
+        "mxgraph.gcp2.cloud-security",
+        "mxgraph.gcp2.cloud security"
+      ]
+    },
+    {
+      "key": "gcp2.cloudSecurityCommandCenter",
+      "label": "Cloud Security Command Center",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "cloud",
+        "security",
+        "command",
+        "center"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.cloudSecurityCommandCenter",
+        "mxgraph.gcp2.cloud_security_command_center",
+        "mxgraph.gcp2.cloud-security-command-center",
+        "mxgraph.gcp2.Cloud Security Command Center"
+      ]
+    },
+    {
+      "key": "gcp2.cloudSecurityScanner",
+      "label": "Cloud Security Scanner",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "cloud",
+        "security",
+        "scanner"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.cloudSecurityScanner",
+        "mxgraph.gcp2.cloud_security_scanner",
+        "mxgraph.gcp2.cloud-security-scanner",
+        "mxgraph.gcp2.Cloud Security Scanner"
+      ]
+    },
+    {
+      "key": "gcp2.cloudServer",
+      "label": "cloud server",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 161.24,
+      "defaultHeight": 143.98,
+      "tags": [
+        "gcp",
+        "cloud",
+        "server"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.cloudServer",
+        "mxgraph.gcp2.cloud_server",
+        "mxgraph.gcp2.cloud-server",
+        "mxgraph.gcp2.cloud server"
+      ]
+    },
+    {
+      "key": "gcp2.cloudServiceMesh",
+      "label": "Cloud Service Mesh",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "cloud",
+        "service",
+        "mesh"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.cloudServiceMesh",
+        "mxgraph.gcp2.cloud_service_mesh",
+        "mxgraph.gcp2.cloud-service-mesh",
+        "mxgraph.gcp2.Cloud Service Mesh"
+      ]
+    },
+    {
+      "key": "gcp2.cloudSpanner",
+      "label": "Cloud Spanner",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "cloud",
+        "spanner"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.cloudSpanner",
+        "mxgraph.gcp2.cloud_spanner",
+        "mxgraph.gcp2.cloud-spanner",
+        "mxgraph.gcp2.Cloud Spanner"
+      ]
+    },
+    {
+      "key": "gcp2.cloudSpeechApi",
+      "label": "Cloud Speech API",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "cloud",
+        "speech",
+        "api"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.cloudSpeechApi",
+        "mxgraph.gcp2.cloud_speech_api",
+        "mxgraph.gcp2.cloud-speech-api",
+        "mxgraph.gcp2.Cloud Speech API"
+      ]
+    },
+    {
+      "key": "gcp2.cloudSql",
+      "label": "Cloud SQL",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "cloud",
+        "sql"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.cloudSql",
+        "mxgraph.gcp2.cloud_sql",
+        "mxgraph.gcp2.cloud-sql",
+        "mxgraph.gcp2.Cloud SQL"
+      ]
+    },
+    {
+      "key": "gcp2.cloudStorage",
+      "label": "Cloud Storage",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "cloud",
+        "storage"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.cloudStorage",
+        "mxgraph.gcp2.cloud_storage",
+        "mxgraph.gcp2.cloud-storage",
+        "mxgraph.gcp2.Cloud Storage"
+      ]
+    },
+    {
+      "key": "gcp2.cloudSubPub",
+      "label": "Cloud Sub Pub",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "cloud",
+        "sub",
+        "pub"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.cloudSubPub",
+        "mxgraph.gcp2.cloud_sub_pub",
+        "mxgraph.gcp2.cloud-sub-pub",
+        "mxgraph.gcp2.Cloud Sub Pub"
+      ]
+    },
+    {
+      "key": "gcp2.cloudTasks",
+      "label": "Cloud Tasks",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "cloud",
+        "tasks"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.cloudTasks",
+        "mxgraph.gcp2.cloud_tasks",
+        "mxgraph.gcp2.cloud-tasks",
+        "mxgraph.gcp2.Cloud Tasks"
+      ]
+    },
+    {
+      "key": "gcp2.cloudTestLab",
+      "label": "Cloud Test Lab",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "cloud",
+        "test",
+        "lab"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.cloudTestLab",
+        "mxgraph.gcp2.cloud_test_lab",
+        "mxgraph.gcp2.cloud-test-lab",
+        "mxgraph.gcp2.Cloud Test Lab"
+      ]
+    },
+    {
+      "key": "gcp2.cloudTextToSpeech",
+      "label": "Cloud Text to Speech",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "cloud",
+        "text",
+        "to",
+        "speech"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.cloudTextToSpeech",
+        "mxgraph.gcp2.cloud_text_to_speech",
+        "mxgraph.gcp2.cloud-text-to-speech",
+        "mxgraph.gcp2.Cloud Text to Speech"
+      ]
+    },
+    {
+      "key": "gcp2.cloudToolsForPowershell",
+      "label": "Cloud Tools for PowerShell",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "cloud",
+        "tools",
+        "for",
+        "powershell"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.cloudToolsForPowershell",
+        "mxgraph.gcp2.cloud_tools_for_powershell",
+        "mxgraph.gcp2.cloud-tools-for-powershell",
+        "mxgraph.gcp2.Cloud Tools for PowerShell"
+      ]
+    },
+    {
+      "key": "gcp2.cloudTpu",
+      "label": "Cloud TPU",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "cloud",
+        "tpu"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.cloudTpu",
+        "mxgraph.gcp2.cloud_tpu",
+        "mxgraph.gcp2.cloud-tpu",
+        "mxgraph.gcp2.Cloud TPU"
+      ]
+    },
+    {
+      "key": "gcp2.cloudTranslationApi",
+      "label": "Cloud Translation API",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "cloud",
+        "translation",
+        "api"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.cloudTranslationApi",
+        "mxgraph.gcp2.cloud_translation_api",
+        "mxgraph.gcp2.cloud-translation-api",
+        "mxgraph.gcp2.Cloud Translation API"
+      ]
+    },
+    {
+      "key": "gcp2.cloudVideoIntelligenceApi",
+      "label": "Cloud Video Intelligence API",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "cloud",
+        "video",
+        "intelligence",
+        "api"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.cloudVideoIntelligenceApi",
+        "mxgraph.gcp2.cloud_video_intelligence_api",
+        "mxgraph.gcp2.cloud-video-intelligence-api",
+        "mxgraph.gcp2.Cloud Video Intelligence API"
+      ]
+    },
+    {
+      "key": "gcp2.cloudVisionApi",
+      "label": "Cloud Vision API",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "cloud",
+        "vision",
+        "api"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.cloudVisionApi",
+        "mxgraph.gcp2.cloud_vision_api",
+        "mxgraph.gcp2.cloud-vision-api",
+        "mxgraph.gcp2.Cloud Vision API"
+      ]
+    },
+    {
+      "key": "gcp2.cloudVpn",
+      "label": "Cloud VPN",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "cloud",
+        "vpn"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.cloudVpn",
+        "mxgraph.gcp2.cloud_vpn",
+        "mxgraph.gcp2.cloud-vpn",
+        "mxgraph.gcp2.Cloud VPN"
+      ]
+    },
+    {
+      "key": "gcp2.cluster",
+      "label": "Cluster",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 98.75,
+      "defaultHeight": 98.75,
+      "tags": [
+        "gcp",
+        "cluster"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.cluster",
+        "mxgraph.gcp2.Cluster"
+      ]
+    },
+    {
+      "key": "gcp2.computeEngine",
+      "label": "Compute Engine",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "compute",
+        "engine"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.computeEngine",
+        "mxgraph.gcp2.compute_engine",
+        "mxgraph.gcp2.compute-engine",
+        "mxgraph.gcp2.Compute Engine"
+      ]
+    },
+    {
+      "key": "gcp2.computeEngine2",
+      "label": "compute engine 2",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 59.98,
+      "defaultHeight": 110.89,
+      "tags": [
+        "gcp",
+        "compute",
+        "engine",
+        "2"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.computeEngine2",
+        "mxgraph.gcp2.compute_engine_2",
+        "mxgraph.gcp2.compute-engine-2",
+        "mxgraph.gcp2.compute engine 2"
+      ]
+    },
+    {
+      "key": "gcp2.computeEngineIcon",
+      "label": "Compute Engine icon",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 20.79,
+      "defaultHeight": 20.9,
+      "tags": [
+        "gcp",
+        "compute",
+        "engine",
+        "icon"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.computeEngineIcon",
+        "mxgraph.gcp2.compute_engine_icon",
+        "mxgraph.gcp2.compute-engine-icon",
+        "mxgraph.gcp2.Compute Engine icon"
+      ]
+    },
+    {
+      "key": "gcp2.connected",
+      "label": "connected",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 165.55,
+      "defaultHeight": 118.26,
+      "tags": [
+        "gcp",
+        "connected"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.connected"
+      ]
+    },
+    {
+      "key": "gcp2.containerBuilder",
+      "label": "Container Builder",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "container",
+        "builder"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.containerBuilder",
+        "mxgraph.gcp2.container_builder",
+        "mxgraph.gcp2.container-builder",
+        "mxgraph.gcp2.Container Builder"
+      ]
+    },
+    {
+      "key": "gcp2.containerEngine",
+      "label": "Container Engine",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "container",
+        "engine"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.containerEngine",
+        "mxgraph.gcp2.container_engine",
+        "mxgraph.gcp2.container-engine",
+        "mxgraph.gcp2.Container Engine"
+      ]
+    },
+    {
+      "key": "gcp2.containerEngineIcon",
+      "label": "Container Engine icon",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 18.61,
+      "defaultHeight": 21.33,
+      "tags": [
+        "gcp",
+        "container",
+        "engine",
+        "icon"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.containerEngineIcon",
+        "mxgraph.gcp2.container_engine_icon",
+        "mxgraph.gcp2.container-engine-icon",
+        "mxgraph.gcp2.Container Engine icon"
+      ]
+    },
+    {
+      "key": "gcp2.containerOptimizedOs",
+      "label": "Container Optimized OS",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "container",
+        "optimized",
+        "os"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.containerOptimizedOs",
+        "mxgraph.gcp2.container_optimized_os",
+        "mxgraph.gcp2.container-optimized-os",
+        "mxgraph.gcp2.Container Optimized OS"
+      ]
+    },
+    {
+      "key": "gcp2.containerRegistry",
+      "label": "Container Registry",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "container",
+        "registry"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.containerRegistry",
+        "mxgraph.gcp2.container_registry",
+        "mxgraph.gcp2.container-registry",
+        "mxgraph.gcp2.Container Registry"
+      ]
+    },
+    {
+      "key": "gcp2.cost",
+      "label": "cost",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 115.13,
+      "defaultHeight": 136.94,
+      "tags": [
+        "gcp",
+        "cost"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.cost"
+      ]
+    },
+    {
+      "key": "gcp2.costArrows",
+      "label": "cost arrows",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 94.2,
+      "defaultHeight": 123.9,
+      "tags": [
+        "gcp",
+        "cost",
+        "arrows"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.costArrows",
+        "mxgraph.gcp2.cost_arrows",
+        "mxgraph.gcp2.cost-arrows",
+        "mxgraph.gcp2.cost arrows"
+      ]
+    },
+    {
+      "key": "gcp2.costSavings",
+      "label": "cost savings",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 93.28,
+      "defaultHeight": 140.27,
+      "tags": [
+        "gcp",
+        "cost",
+        "savings"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.costSavings",
+        "mxgraph.gcp2.cost_savings",
+        "mxgraph.gcp2.cost-savings",
+        "mxgraph.gcp2.cost savings"
+      ]
+    },
+    {
+      "key": "gcp2.database",
+      "label": "Database",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 31.6,
+      "defaultHeight": 28.47,
+      "tags": [
+        "gcp",
+        "database"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.database",
+        "mxgraph.gcp2.Database"
+      ]
+    },
+    {
+      "key": "gcp2.database2",
+      "label": "database 2",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 107.41,
+      "defaultHeight": 137.73,
+      "tags": [
+        "gcp",
+        "database",
+        "2"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.database2",
+        "mxgraph.gcp2.database_2",
+        "mxgraph.gcp2.database-2",
+        "mxgraph.gcp2.database 2"
+      ]
+    },
+    {
+      "key": "gcp2.database3",
+      "label": "database 3",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 100.18,
+      "defaultHeight": 143.69,
+      "tags": [
+        "gcp",
+        "database",
+        "3"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.database3",
+        "mxgraph.gcp2.database_3",
+        "mxgraph.gcp2.database-3",
+        "mxgraph.gcp2.database 3"
+      ]
+    },
+    {
+      "key": "gcp2.databaseCycle",
+      "label": "database cycle",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 131.61,
+      "defaultHeight": 128.22,
+      "tags": [
+        "gcp",
+        "database",
+        "cycle"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.databaseCycle",
+        "mxgraph.gcp2.database_cycle",
+        "mxgraph.gcp2.database-cycle",
+        "mxgraph.gcp2.database cycle"
+      ]
+    },
+    {
+      "key": "gcp2.databaseSpeed",
+      "label": "database speed",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 122.14,
+      "defaultHeight": 177.23,
+      "tags": [
+        "gcp",
+        "database",
+        "speed"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.databaseSpeed",
+        "mxgraph.gcp2.database_speed",
+        "mxgraph.gcp2.database-speed",
+        "mxgraph.gcp2.database speed"
+      ]
+    },
+    {
+      "key": "gcp2.databaseUploading",
+      "label": "database uploading",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 165.25,
+      "defaultHeight": 139.56,
+      "tags": [
+        "gcp",
+        "database",
+        "uploading"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.databaseUploading",
+        "mxgraph.gcp2.database_uploading",
+        "mxgraph.gcp2.database-uploading",
+        "mxgraph.gcp2.database uploading"
+      ]
+    },
+    {
+      "key": "gcp2.dataAccess",
+      "label": "data access",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 155.55,
+      "defaultHeight": 168.01,
+      "tags": [
+        "gcp",
+        "data",
+        "access"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.dataAccess",
+        "mxgraph.gcp2.data_access",
+        "mxgraph.gcp2.data-access",
+        "mxgraph.gcp2.data access"
+      ]
+    },
+    {
+      "key": "gcp2.dataIncrease",
+      "label": "data increase",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 107.41,
+      "defaultHeight": 137.73,
+      "tags": [
+        "gcp",
+        "data",
+        "increase"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.dataIncrease",
+        "mxgraph.gcp2.data_increase",
+        "mxgraph.gcp2.data-increase",
+        "mxgraph.gcp2.data increase"
+      ]
+    },
+    {
+      "key": "gcp2.dataLossPreventionApi",
+      "label": "Data Loss Prevention API",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "data",
+        "loss",
+        "prevention",
+        "api"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.dataLossPreventionApi",
+        "mxgraph.gcp2.data_loss_prevention_api",
+        "mxgraph.gcp2.data-loss-prevention-api",
+        "mxgraph.gcp2.Data Loss Prevention API"
+      ]
+    },
+    {
+      "key": "gcp2.dataStorageCost",
+      "label": "data storage cost",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 107.41,
+      "defaultHeight": 137.73,
+      "tags": [
+        "gcp",
+        "data",
+        "storage",
+        "cost"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.dataStorageCost",
+        "mxgraph.gcp2.data_storage_cost",
+        "mxgraph.gcp2.data-storage-cost",
+        "mxgraph.gcp2.data storage cost"
+      ]
+    },
+    {
+      "key": "gcp2.dataStudio",
+      "label": "Data Studio",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "data",
+        "studio"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.dataStudio",
+        "mxgraph.gcp2.data_studio",
+        "mxgraph.gcp2.data-studio",
+        "mxgraph.gcp2.Data Studio"
+      ]
+    },
+    {
+      "key": "gcp2.debugger",
+      "label": "Debugger",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "debugger"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.debugger",
+        "mxgraph.gcp2.Debugger"
+      ]
+    },
+    {
+      "key": "gcp2.dedicatedGameServer",
+      "label": "Dedicated Game Server",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 98.75,
+      "defaultHeight": 98.75,
+      "tags": [
+        "gcp",
+        "dedicated",
+        "game",
+        "server"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.dedicatedGameServer",
+        "mxgraph.gcp2.dedicated_game_server",
+        "mxgraph.gcp2.dedicated-game-server",
+        "mxgraph.gcp2.Dedicated Game Server"
+      ]
+    },
+    {
+      "key": "gcp2.dedicatedInterconnect",
+      "label": "Dedicated Interconnect",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "dedicated",
+        "interconnect"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.dedicatedInterconnect",
+        "mxgraph.gcp2.dedicated_interconnect",
+        "mxgraph.gcp2.dedicated-interconnect",
+        "mxgraph.gcp2.Dedicated Interconnect"
+      ]
+    },
+    {
+      "key": "gcp2.desktop",
+      "label": "Desktop",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 34.78,
+      "defaultHeight": 31.59,
+      "tags": [
+        "gcp",
+        "desktop"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.desktop",
+        "mxgraph.gcp2.Desktop"
+      ]
+    },
+    {
+      "key": "gcp2.desktopAndMobile",
+      "label": "Desktop and Mobile",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 37.98,
+      "defaultHeight": 25.24,
+      "tags": [
+        "gcp",
+        "desktop",
+        "and",
+        "mobile"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.desktopAndMobile",
+        "mxgraph.gcp2.desktop_and_mobile",
+        "mxgraph.gcp2.desktop-and-mobile",
+        "mxgraph.gcp2.Desktop and Mobile"
+      ]
+    },
+    {
+      "key": "gcp2.developerPortal",
+      "label": "Developer Portal",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "developer",
+        "portal"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.developerPortal",
+        "mxgraph.gcp2.developer_portal",
+        "mxgraph.gcp2.developer-portal",
+        "mxgraph.gcp2.Developer Portal"
+      ]
+    },
+    {
+      "key": "gcp2.dialogflowEnterpriseEdition",
+      "label": "Dialogflow Enterprise Edition",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "dialogflow",
+        "enterprise",
+        "edition"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.dialogflowEnterpriseEdition",
+        "mxgraph.gcp2.dialogflow_enterprise_edition",
+        "mxgraph.gcp2.dialogflow-enterprise-edition",
+        "mxgraph.gcp2.Dialogflow Enterprise Edition"
+      ]
+    },
+    {
+      "key": "gcp2.enhanceUi",
+      "label": "enhance ui",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 104.36,
+      "defaultHeight": 137.63,
+      "tags": [
+        "gcp",
+        "enhance",
+        "ui"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.enhanceUi",
+        "mxgraph.gcp2.enhance_ui",
+        "mxgraph.gcp2.enhance-ui",
+        "mxgraph.gcp2.enhance ui"
+      ]
+    },
+    {
+      "key": "gcp2.enhanceUi2",
+      "label": "enhance ui 2",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 198.18,
+      "defaultHeight": 180.7,
+      "tags": [
+        "gcp",
+        "enhance",
+        "ui",
+        "2"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.enhanceUi2",
+        "mxgraph.gcp2.enhance_ui_2",
+        "mxgraph.gcp2.enhance-ui-2",
+        "mxgraph.gcp2.enhance ui 2"
+      ]
+    },
+    {
+      "key": "gcp2.errorReporting",
+      "label": "Error Reporting",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "error",
+        "reporting"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.errorReporting",
+        "mxgraph.gcp2.error_reporting",
+        "mxgraph.gcp2.error-reporting",
+        "mxgraph.gcp2.Error Reporting"
+      ]
+    },
+    {
+      "key": "gcp2.externalDataCenter",
+      "label": "external data center",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 135.1,
+      "defaultHeight": 175.67,
+      "tags": [
+        "gcp",
+        "external",
+        "data",
+        "center"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.externalDataCenter",
+        "mxgraph.gcp2.external_data_center",
+        "mxgraph.gcp2.external-data-center",
+        "mxgraph.gcp2.external data center"
+      ]
+    },
+    {
+      "key": "gcp2.externalDataResource",
+      "label": "external data resource",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 111.05,
+      "defaultHeight": 140.58,
+      "tags": [
+        "gcp",
+        "external",
+        "data",
+        "resource"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.externalDataResource",
+        "mxgraph.gcp2.external_data_resource",
+        "mxgraph.gcp2.external-data-resource",
+        "mxgraph.gcp2.external data resource"
+      ]
+    },
+    {
+      "key": "gcp2.externalPaymentForm",
+      "label": "External Payment Form",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 98.75,
+      "defaultHeight": 98.75,
+      "tags": [
+        "gcp",
+        "external",
+        "payment",
+        "form"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.externalPaymentForm",
+        "mxgraph.gcp2.external_payment_form",
+        "mxgraph.gcp2.external-payment-form",
+        "mxgraph.gcp2.External Payment Form"
+      ]
+    },
+    {
+      "key": "gcp2.fastly",
+      "label": "Fastly",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 135.42,
+      "defaultHeight": 52.53,
+      "tags": [
+        "gcp",
+        "fastly"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.fastly",
+        "mxgraph.gcp2.Fastly"
+      ]
+    },
+    {
+      "key": "gcp2.files",
+      "label": "files",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 92.6,
+      "defaultHeight": 90.05,
+      "tags": [
+        "gcp",
+        "files"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.files"
+      ]
+    },
+    {
+      "key": "gcp2.firebase",
+      "label": "Firebase",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 62.05,
+      "defaultHeight": 86.33,
+      "tags": [
+        "gcp",
+        "firebase"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.firebase",
+        "mxgraph.gcp2.Firebase"
+      ]
+    },
+    {
+      "key": "gcp2.folders",
+      "label": "folders",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 148.5,
+      "defaultHeight": 126.04,
+      "tags": [
+        "gcp",
+        "folders"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.folders"
+      ]
+    },
+    {
+      "key": "gcp2.forsetiLockup",
+      "label": "Forseti lockup",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 98.31,
+      "defaultHeight": 58.48,
+      "tags": [
+        "gcp",
+        "forseti",
+        "lockup"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.forsetiLockup",
+        "mxgraph.gcp2.forseti_lockup",
+        "mxgraph.gcp2.forseti-lockup",
+        "mxgraph.gcp2.Forseti lockup"
+      ]
+    },
+    {
+      "key": "gcp2.forsetiLogo",
+      "label": "Forseti logo",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 67.7,
+      "defaultHeight": 68.86,
+      "tags": [
+        "gcp",
+        "forseti",
+        "logo"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.forsetiLogo",
+        "mxgraph.gcp2.forseti_logo",
+        "mxgraph.gcp2.forseti-logo",
+        "mxgraph.gcp2.Forseti logo"
+      ]
+    },
+    {
+      "key": "gcp2.frontendPlatformServices",
+      "label": "Frontend Platform Services",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 98.75,
+      "defaultHeight": 98.75,
+      "tags": [
+        "gcp",
+        "frontend",
+        "platform",
+        "services"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.frontendPlatformServices",
+        "mxgraph.gcp2.frontend_platform_services",
+        "mxgraph.gcp2.frontend-platform-services",
+        "mxgraph.gcp2.Frontend Platform Services"
+      ]
+    },
+    {
+      "key": "gcp2.game",
+      "label": "Game",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 34.78,
+      "defaultHeight": 18.89,
+      "tags": [
+        "gcp",
+        "game"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.game",
+        "mxgraph.gcp2.Game"
+      ]
+    },
+    {
+      "key": "gcp2.gateway",
+      "label": "Gateway",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 98.75,
+      "defaultHeight": 98.75,
+      "tags": [
+        "gcp",
+        "gateway"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.gateway",
+        "mxgraph.gcp2.Gateway"
+      ]
+    },
+    {
+      "key": "gcp2.gatewayIcon",
+      "label": "Gateway icon",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 28.47,
+      "defaultHeight": 12.59,
+      "tags": [
+        "gcp",
+        "gateway",
+        "icon"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.gatewayIcon",
+        "mxgraph.gcp2.gateway_icon",
+        "mxgraph.gcp2.gateway-icon",
+        "mxgraph.gcp2.Gateway icon"
+      ]
+    },
+    {
+      "key": "gcp2.gear",
+      "label": "gear",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 147.44,
+      "defaultHeight": 147.04,
+      "tags": [
+        "gcp",
+        "gear"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.gear"
+      ]
+    },
+    {
+      "key": "gcp2.gearArrow",
+      "label": "gear arrow",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 198.54,
+      "defaultHeight": 121.27,
+      "tags": [
+        "gcp",
+        "gear",
+        "arrow"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.gearArrow",
+        "mxgraph.gcp2.gear_arrow",
+        "mxgraph.gcp2.gear-arrow",
+        "mxgraph.gcp2.gear arrow"
+      ]
+    },
+    {
+      "key": "gcp2.gearChain",
+      "label": "gear chain",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 181.92,
+      "defaultHeight": 181.43,
+      "tags": [
+        "gcp",
+        "gear",
+        "chain"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.gearChain",
+        "mxgraph.gcp2.gear_chain",
+        "mxgraph.gcp2.gear-chain",
+        "mxgraph.gcp2.gear chain"
+      ]
+    },
+    {
+      "key": "gcp2.gearLoad",
+      "label": "gear load",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 119.17,
+      "defaultHeight": 110.39,
+      "tags": [
+        "gcp",
+        "gear",
+        "load"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.gearLoad",
+        "mxgraph.gcp2.gear_load",
+        "mxgraph.gcp2.gear-load",
+        "mxgraph.gcp2.gear load"
+      ]
+    },
+    {
+      "key": "gcp2.genomics",
+      "label": "Genomics",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "genomics"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.genomics",
+        "mxgraph.gcp2.Genomics"
+      ]
+    },
+    {
+      "key": "gcp2.gkeOnPrem",
+      "label": "GKE on Prem",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "gke",
+        "on",
+        "prem"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.gkeOnPrem",
+        "mxgraph.gcp2.gke_on_prem",
+        "mxgraph.gcp2.gke-on-prem",
+        "mxgraph.gcp2.GKE on Prem"
+      ]
+    },
+    {
+      "key": "gcp2.globeWorld",
+      "label": "globe world",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 162.84,
+      "defaultHeight": 154.5,
+      "tags": [
+        "gcp",
+        "globe",
+        "world"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.globeWorld",
+        "mxgraph.gcp2.globe_world",
+        "mxgraph.gcp2.globe-world",
+        "mxgraph.gcp2.globe world"
+      ]
+    },
+    {
+      "key": "gcp2.googleAds",
+      "label": "Google Ads",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 98.71,
+      "defaultHeight": 88.46,
+      "tags": [
+        "gcp",
+        "google",
+        "ads"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.googleAds",
+        "mxgraph.gcp2.google_ads",
+        "mxgraph.gcp2.google-ads",
+        "mxgraph.gcp2.Google Ads"
+      ]
+    },
+    {
+      "key": "gcp2.googleAdManager",
+      "label": "Google Ad Manager",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 101.51,
+      "defaultHeight": 101.03,
+      "tags": [
+        "gcp",
+        "google",
+        "ad",
+        "manager"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.googleAdManager",
+        "mxgraph.gcp2.google_ad_manager",
+        "mxgraph.gcp2.google-ad-manager",
+        "mxgraph.gcp2.Google Ad Manager"
+      ]
+    },
+    {
+      "key": "gcp2.googleAnalytics",
+      "label": "Google Analytics",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 87.5,
+      "defaultHeight": 99.86,
+      "tags": [
+        "gcp",
+        "google",
+        "analytics"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.googleAnalytics",
+        "mxgraph.gcp2.google_analytics",
+        "mxgraph.gcp2.google-analytics",
+        "mxgraph.gcp2.Google Analytics"
+      ]
+    },
+    {
+      "key": "gcp2.googleAnalytics360",
+      "label": "Google Analytics 360",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 104.41,
+      "defaultHeight": 101.83,
+      "tags": [
+        "gcp",
+        "google",
+        "analytics",
+        "360"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.googleAnalytics360",
+        "mxgraph.gcp2.google_analytics_360",
+        "mxgraph.gcp2.google-analytics-360",
+        "mxgraph.gcp2.Google Analytics 360"
+      ]
+    },
+    {
+      "key": "gcp2.googleCloudPlatform",
+      "label": "Google Cloud Platform",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 483.26,
+      "defaultHeight": 426.28,
+      "tags": [
+        "gcp",
+        "google",
+        "cloud",
+        "platform"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.googleCloudPlatform",
+        "mxgraph.gcp2.google_cloud_platform",
+        "mxgraph.gcp2.google-cloud-platform",
+        "mxgraph.gcp2.Google Cloud Platform"
+      ]
+    },
+    {
+      "key": "gcp2.googleCloudPlatformLockup",
+      "label": "Google Cloud Platform lockup",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 306.96,
+      "defaultHeight": 33.28,
+      "tags": [
+        "gcp",
+        "google",
+        "cloud",
+        "platform",
+        "lockup"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.googleCloudPlatformLockup",
+        "mxgraph.gcp2.google_cloud_platform_lockup",
+        "mxgraph.gcp2.google-cloud-platform-lockup",
+        "mxgraph.gcp2.Google Cloud Platform lockup"
+      ]
+    },
+    {
+      "key": "gcp2.googleNetwork",
+      "label": "google network",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 126.99,
+      "defaultHeight": 126.96,
+      "tags": [
+        "gcp",
+        "google",
+        "network"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.googleNetwork",
+        "mxgraph.gcp2.google_network",
+        "mxgraph.gcp2.google-network",
+        "mxgraph.gcp2.google network"
+      ]
+    },
+    {
+      "key": "gcp2.googleNetworkEdgeCache",
+      "label": "Google Network Edge Cache",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 98.75,
+      "defaultHeight": 98.75,
+      "tags": [
+        "gcp",
+        "google",
+        "network",
+        "edge",
+        "cache"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.googleNetworkEdgeCache",
+        "mxgraph.gcp2.google_network_edge_cache",
+        "mxgraph.gcp2.google-network-edge-cache",
+        "mxgraph.gcp2.Google Network Edge Cache"
+      ]
+    },
+    {
+      "key": "gcp2.googlePlayGameService",
+      "label": "Google Play Game Service",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 122.31,
+      "defaultHeight": 84.5,
+      "tags": [
+        "gcp",
+        "google",
+        "play",
+        "game",
+        "service"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.googlePlayGameService",
+        "mxgraph.gcp2.google_play_game_service",
+        "mxgraph.gcp2.google-play-game-service",
+        "mxgraph.gcp2.Google Play Game Service"
+      ]
+    },
+    {
+      "key": "gcp2.gpu",
+      "label": "GPU",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "gpu"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.gpu",
+        "mxgraph.gcp2.GPU"
+      ]
+    },
+    {
+      "key": "gcp2.halfCloud",
+      "label": "half cloud",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 294.1,
+      "defaultHeight": 146.45,
+      "tags": [
+        "gcp",
+        "half",
+        "cloud"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.halfCloud",
+        "mxgraph.gcp2.half_cloud",
+        "mxgraph.gcp2.half-cloud",
+        "mxgraph.gcp2.half cloud"
+      ]
+    },
+    {
+      "key": "gcp2.httpsLoadBalancer",
+      "label": "HTTPS Load Balancer",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 98.75,
+      "defaultHeight": 98.75,
+      "tags": [
+        "gcp",
+        "https",
+        "load",
+        "balancer"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.httpsLoadBalancer",
+        "mxgraph.gcp2.https_load_balancer",
+        "mxgraph.gcp2.https-load-balancer",
+        "mxgraph.gcp2.HTTPS Load Balancer"
+      ]
+    },
+    {
+      "key": "gcp2.identityAwareProxy",
+      "label": "Identity Aware Proxy",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "identity",
+        "aware",
+        "proxy"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.identityAwareProxy",
+        "mxgraph.gcp2.identity_aware_proxy",
+        "mxgraph.gcp2.identity-aware-proxy",
+        "mxgraph.gcp2.Identity Aware Proxy"
+      ]
+    },
+    {
+      "key": "gcp2.imageServices",
+      "label": "Image Services",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 373.21,
+      "defaultHeight": 373.21,
+      "tags": [
+        "gcp",
+        "image",
+        "services"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.imageServices",
+        "mxgraph.gcp2.image_services",
+        "mxgraph.gcp2.image-services",
+        "mxgraph.gcp2.Image Services"
+      ]
+    },
+    {
+      "key": "gcp2.increaseCostArrows",
+      "label": "increase cost arrows",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 135.87,
+      "defaultHeight": 125.23,
+      "tags": [
+        "gcp",
+        "increase",
+        "cost",
+        "arrows"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.increaseCostArrows",
+        "mxgraph.gcp2.increase_cost_arrows",
+        "mxgraph.gcp2.increase-cost-arrows",
+        "mxgraph.gcp2.increase cost arrows"
+      ]
+    },
+    {
+      "key": "gcp2.internalPaymentAuthorization",
+      "label": "Internal Payment Authorization",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 98.75,
+      "defaultHeight": 98.75,
+      "tags": [
+        "gcp",
+        "internal",
+        "payment",
+        "authorization"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.internalPaymentAuthorization",
+        "mxgraph.gcp2.internal_payment_authorization",
+        "mxgraph.gcp2.internal-payment-authorization",
+        "mxgraph.gcp2.Internal Payment Authorization"
+      ]
+    },
+    {
+      "key": "gcp2.internetConnection",
+      "label": "internet connection",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 192.31,
+      "defaultHeight": 159.25,
+      "tags": [
+        "gcp",
+        "internet",
+        "connection"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.internetConnection",
+        "mxgraph.gcp2.internet_connection",
+        "mxgraph.gcp2.internet-connection",
+        "mxgraph.gcp2.internet connection"
+      ]
+    },
+    {
+      "key": "gcp2.istioLogo",
+      "label": "Istio logo",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 213.01,
+      "defaultHeight": 319.79,
+      "tags": [
+        "gcp",
+        "istio",
+        "logo"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.istioLogo",
+        "mxgraph.gcp2.istio_logo",
+        "mxgraph.gcp2.istio-logo",
+        "mxgraph.gcp2.Istio logo"
+      ]
+    },
+    {
+      "key": "gcp2.key",
+      "label": "key",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 116.94,
+      "defaultHeight": 54.81,
+      "tags": [
+        "gcp",
+        "key"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.key"
+      ]
+    },
+    {
+      "key": "gcp2.keyManagementService",
+      "label": "Key Management Service",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "key",
+        "management",
+        "service"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.keyManagementService",
+        "mxgraph.gcp2.key_management_service",
+        "mxgraph.gcp2.key-management-service",
+        "mxgraph.gcp2.Key Management Service"
+      ]
+    },
+    {
+      "key": "gcp2.kubernetesLogo",
+      "label": "Kubernetes logo",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 946.98,
+      "defaultHeight": 918.14,
+      "tags": [
+        "gcp",
+        "kubernetes",
+        "logo"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.kubernetesLogo",
+        "mxgraph.gcp2.kubernetes_logo",
+        "mxgraph.gcp2.kubernetes-logo",
+        "mxgraph.gcp2.Kubernetes logo"
+      ]
+    },
+    {
+      "key": "gcp2.kubernetesName",
+      "label": "Kubernetes name",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 768.81,
+      "defaultHeight": 114.45,
+      "tags": [
+        "gcp",
+        "kubernetes",
+        "name"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.kubernetesName",
+        "mxgraph.gcp2.kubernetes_name",
+        "mxgraph.gcp2.kubernetes-name",
+        "mxgraph.gcp2.Kubernetes name"
+      ]
+    },
+    {
+      "key": "gcp2.laptop",
+      "label": "Laptop",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 38.02,
+      "defaultHeight": 25.23,
+      "tags": [
+        "gcp",
+        "laptop"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.laptop",
+        "mxgraph.gcp2.Laptop"
+      ]
+    },
+    {
+      "key": "gcp2.legacyCloud",
+      "label": "legacy cloud",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 163.13,
+      "defaultHeight": 112.85,
+      "tags": [
+        "gcp",
+        "legacy",
+        "cloud"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.legacyCloud",
+        "mxgraph.gcp2.legacy_cloud",
+        "mxgraph.gcp2.legacy-cloud",
+        "mxgraph.gcp2.legacy cloud"
+      ]
+    },
+    {
+      "key": "gcp2.legacyCloud2",
+      "label": "legacy cloud 2",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 163.13,
+      "defaultHeight": 112.85,
+      "tags": [
+        "gcp",
+        "legacy",
+        "cloud",
+        "2"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.legacyCloud2",
+        "mxgraph.gcp2.legacy_cloud_2",
+        "mxgraph.gcp2.legacy-cloud-2",
+        "mxgraph.gcp2.legacy cloud 2"
+      ]
+    },
+    {
+      "key": "gcp2.lifecycle",
+      "label": "lifecycle",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 450.36,
+      "defaultHeight": 450.27,
+      "tags": [
+        "gcp",
+        "lifecycle"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.lifecycle"
+      ]
+    },
+    {
+      "key": "gcp2.lightbulb",
+      "label": "Lightbulb",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 84.02,
+      "defaultHeight": 119.69,
+      "tags": [
+        "gcp",
+        "lightbulb"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.lightbulb",
+        "mxgraph.gcp2.Lightbulb"
+      ]
+    },
+    {
+      "key": "gcp2.list",
+      "label": "List",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 25.3,
+      "defaultHeight": 28.52,
+      "tags": [
+        "gcp",
+        "list"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.list",
+        "mxgraph.gcp2.List"
+      ]
+    },
+    {
+      "key": "gcp2.live",
+      "label": "Live",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 84.79,
+      "defaultHeight": 114.12,
+      "tags": [
+        "gcp",
+        "live"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.live",
+        "mxgraph.gcp2.Live"
+      ]
+    },
+    {
+      "key": "gcp2.loading",
+      "label": "loading",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 130.59,
+      "defaultHeight": 130.48,
+      "tags": [
+        "gcp",
+        "loading"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.loading"
+      ]
+    },
+    {
+      "key": "gcp2.loading2",
+      "label": "loading 2",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 147.71,
+      "defaultHeight": 158.67,
+      "tags": [
+        "gcp",
+        "loading",
+        "2"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.loading2",
+        "mxgraph.gcp2.loading_2",
+        "mxgraph.gcp2.loading-2",
+        "mxgraph.gcp2.loading 2"
+      ]
+    },
+    {
+      "key": "gcp2.loading3",
+      "label": "loading 3",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 157.58,
+      "defaultHeight": 157.58,
+      "tags": [
+        "gcp",
+        "loading",
+        "3"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.loading3",
+        "mxgraph.gcp2.loading_3",
+        "mxgraph.gcp2.loading-3",
+        "mxgraph.gcp2.loading 3"
+      ]
+    },
+    {
+      "key": "gcp2.loadBalancing",
+      "label": "load balancing",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 184.45,
+      "defaultHeight": 48.5,
+      "tags": [
+        "gcp",
+        "load",
+        "balancing"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.loadBalancing",
+        "mxgraph.gcp2.load_balancing",
+        "mxgraph.gcp2.load-balancing",
+        "mxgraph.gcp2.load balancing"
+      ]
+    },
+    {
+      "key": "gcp2.lock",
+      "label": "lock",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 108.22,
+      "defaultHeight": 138.62,
+      "tags": [
+        "gcp",
+        "lock"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.lock"
+      ]
+    },
+    {
+      "key": "gcp2.logging",
+      "label": "Logging",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "logging"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.logging",
+        "mxgraph.gcp2.Logging"
+      ]
+    },
+    {
+      "key": "gcp2.logsApi",
+      "label": "Logs API",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 98.75,
+      "defaultHeight": 98.75,
+      "tags": [
+        "gcp",
+        "logs",
+        "api"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.logsApi",
+        "mxgraph.gcp2.logs_api",
+        "mxgraph.gcp2.logs-api",
+        "mxgraph.gcp2.Logs API"
+      ]
+    },
+    {
+      "key": "gcp2.managementSecurity",
+      "label": "management security",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 158.19,
+      "defaultHeight": 158.19,
+      "tags": [
+        "gcp",
+        "management",
+        "security"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.managementSecurity",
+        "mxgraph.gcp2.management_security",
+        "mxgraph.gcp2.management-security",
+        "mxgraph.gcp2.management security"
+      ]
+    },
+    {
+      "key": "gcp2.mapsApi",
+      "label": "maps api",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 83.01,
+      "defaultHeight": 134.75,
+      "tags": [
+        "gcp",
+        "maps",
+        "api"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.mapsApi",
+        "mxgraph.gcp2.maps_api",
+        "mxgraph.gcp2.maps-api",
+        "mxgraph.gcp2.maps api"
+      ]
+    },
+    {
+      "key": "gcp2.memcache",
+      "label": "Memcache",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 98.75,
+      "defaultHeight": 98.75,
+      "tags": [
+        "gcp",
+        "memcache"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.memcache",
+        "mxgraph.gcp2.Memcache"
+      ]
+    },
+    {
+      "key": "gcp2.memoryCard",
+      "label": "memory card",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 127.4,
+      "defaultHeight": 135.75,
+      "tags": [
+        "gcp",
+        "memory",
+        "card"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.memoryCard",
+        "mxgraph.gcp2.memory_card",
+        "mxgraph.gcp2.memory-card",
+        "mxgraph.gcp2.memory card"
+      ]
+    },
+    {
+      "key": "gcp2.memInstances",
+      "label": "mem instances",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 151.28,
+      "defaultHeight": 132.26,
+      "tags": [
+        "gcp",
+        "mem",
+        "instances"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.memInstances",
+        "mxgraph.gcp2.mem_instances",
+        "mxgraph.gcp2.mem-instances",
+        "mxgraph.gcp2.mem instances"
+      ]
+    },
+    {
+      "key": "gcp2.mobileDevices",
+      "label": "Mobile Devices",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 34.75,
+      "defaultHeight": 25.37,
+      "tags": [
+        "gcp",
+        "mobile",
+        "devices"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.mobileDevices",
+        "mxgraph.gcp2.mobile_devices",
+        "mxgraph.gcp2.mobile-devices",
+        "mxgraph.gcp2.Mobile Devices"
+      ]
+    },
+    {
+      "key": "gcp2.modifiersAutoscaling",
+      "label": "modifiers autoscaling",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 24.0,
+      "defaultHeight": 23.92,
+      "tags": [
+        "gcp",
+        "modifiers",
+        "autoscaling"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.modifiersAutoscaling",
+        "mxgraph.gcp2.modifiers_autoscaling",
+        "mxgraph.gcp2.modifiers-autoscaling",
+        "mxgraph.gcp2.modifiers autoscaling"
+      ]
+    },
+    {
+      "key": "gcp2.modifiersCustomVirtualMachine",
+      "label": "modifiers custom virtual machine",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 26.55,
+      "defaultHeight": 26.59,
+      "tags": [
+        "gcp",
+        "modifiers",
+        "custom",
+        "virtual",
+        "machine"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.modifiersCustomVirtualMachine",
+        "mxgraph.gcp2.modifiers_custom_virtual_machine",
+        "mxgraph.gcp2.modifiers-custom-virtual-machine",
+        "mxgraph.gcp2.modifiers custom virtual machine"
+      ]
+    },
+    {
+      "key": "gcp2.modifiersHighCpuMachine",
+      "label": "modifiers high CPU machine",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 22.6,
+      "defaultHeight": 20.03,
+      "tags": [
+        "gcp",
+        "modifiers",
+        "high",
+        "cpu",
+        "machine"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.modifiersHighCpuMachine",
+        "mxgraph.gcp2.modifiers_high_cpu_machine",
+        "mxgraph.gcp2.modifiers-high-cpu-machine",
+        "mxgraph.gcp2.modifiers high CPU machine"
+      ]
+    },
+    {
+      "key": "gcp2.modifiersHighMemoryMachine",
+      "label": "modifiers high memory machine",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 26.57,
+      "defaultHeight": 19.97,
+      "tags": [
+        "gcp",
+        "modifiers",
+        "high",
+        "memory",
+        "machine"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.modifiersHighMemoryMachine",
+        "mxgraph.gcp2.modifiers_high_memory_machine",
+        "mxgraph.gcp2.modifiers-high-memory-machine",
+        "mxgraph.gcp2.modifiers high memory machine"
+      ]
+    },
+    {
+      "key": "gcp2.modifiersPreemptableVm",
+      "label": "modifiers preemptable vm",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 22.57,
+      "defaultHeight": 23.87,
+      "tags": [
+        "gcp",
+        "modifiers",
+        "preemptable",
+        "vm"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.modifiersPreemptableVm",
+        "mxgraph.gcp2.modifiers_preemptable_vm",
+        "mxgraph.gcp2.modifiers-preemptable-vm",
+        "mxgraph.gcp2.modifiers preemptable vm"
+      ]
+    },
+    {
+      "key": "gcp2.modifiersSharedCoreMachineF1",
+      "label": "modifiers shared core machine F1",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 23.9,
+      "defaultHeight": 23.9,
+      "tags": [
+        "gcp",
+        "modifiers",
+        "shared",
+        "core",
+        "machine",
+        "f1"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.modifiersSharedCoreMachineF1",
+        "mxgraph.gcp2.modifiers_shared_core_machine_f1",
+        "mxgraph.gcp2.modifiers-shared-core-machine-f1",
+        "mxgraph.gcp2.modifiers shared core machine F1"
+      ]
+    },
+    {
+      "key": "gcp2.modifiersSharedCoreMachineG1",
+      "label": "modifiers shared core machine G1",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 23.9,
+      "defaultHeight": 23.9,
+      "tags": [
+        "gcp",
+        "modifiers",
+        "shared",
+        "core",
+        "machine",
+        "g1"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.modifiersSharedCoreMachineG1",
+        "mxgraph.gcp2.modifiers_shared_core_machine_g1",
+        "mxgraph.gcp2.modifiers-shared-core-machine-g1",
+        "mxgraph.gcp2.modifiers shared core machine G1"
+      ]
+    },
+    {
+      "key": "gcp2.modifiersStandardMachine",
+      "label": "modifiers standard machine",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 23.91,
+      "defaultHeight": 23.88,
+      "tags": [
+        "gcp",
+        "modifiers",
+        "standard",
+        "machine"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.modifiersStandardMachine",
+        "mxgraph.gcp2.modifiers_standard_machine",
+        "mxgraph.gcp2.modifiers-standard-machine",
+        "mxgraph.gcp2.modifiers standard machine"
+      ]
+    },
+    {
+      "key": "gcp2.modifiersStorage",
+      "label": "modifiers storage",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 26.57,
+      "defaultHeight": 21.24,
+      "tags": [
+        "gcp",
+        "modifiers",
+        "storage"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.modifiersStorage",
+        "mxgraph.gcp2.modifiers_storage",
+        "mxgraph.gcp2.modifiers-storage",
+        "mxgraph.gcp2.modifiers storage"
+      ]
+    },
+    {
+      "key": "gcp2.monitor",
+      "label": "monitor",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 182.7,
+      "defaultHeight": 158.97,
+      "tags": [
+        "gcp",
+        "monitor"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.monitor"
+      ]
+    },
+    {
+      "key": "gcp2.monitor2",
+      "label": "monitor 2",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 182.7,
+      "defaultHeight": 158.97,
+      "tags": [
+        "gcp",
+        "monitor",
+        "2"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.monitor2",
+        "mxgraph.gcp2.monitor_2",
+        "mxgraph.gcp2.monitor-2",
+        "mxgraph.gcp2.monitor 2"
+      ]
+    },
+    {
+      "key": "gcp2.nat",
+      "label": "NAT",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 98.75,
+      "defaultHeight": 98.75,
+      "tags": [
+        "gcp",
+        "nat"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.nat",
+        "mxgraph.gcp2.NAT"
+      ]
+    },
+    {
+      "key": "gcp2.network",
+      "label": "network",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 478.67,
+      "defaultHeight": 478.67,
+      "tags": [
+        "gcp",
+        "network"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.network"
+      ]
+    },
+    {
+      "key": "gcp2.networkLoadBalancer",
+      "label": "Network Load Balancer",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 98.75,
+      "defaultHeight": 98.75,
+      "tags": [
+        "gcp",
+        "network",
+        "load",
+        "balancer"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.networkLoadBalancer",
+        "mxgraph.gcp2.network_load_balancer",
+        "mxgraph.gcp2.network-load-balancer",
+        "mxgraph.gcp2.Network Load Balancer"
+      ]
+    },
+    {
+      "key": "gcp2.node",
+      "label": "node",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 104.3,
+      "defaultHeight": 130.2,
+      "tags": [
+        "gcp",
+        "node"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.node"
+      ]
+    },
+    {
+      "key": "gcp2.outlineBlank1",
+      "label": "outline blank 1",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "outline",
+        "blank",
+        "1"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.outlineBlank1",
+        "mxgraph.gcp2.outline_blank_1",
+        "mxgraph.gcp2.outline-blank-1",
+        "mxgraph.gcp2.outline blank 1"
+      ]
+    },
+    {
+      "key": "gcp2.outlineBlank2",
+      "label": "outline blank 2",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 152.79,
+      "defaultHeight": 172.47,
+      "tags": [
+        "gcp",
+        "outline",
+        "blank",
+        "2"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.outlineBlank2",
+        "mxgraph.gcp2.outline_blank_2",
+        "mxgraph.gcp2.outline-blank-2",
+        "mxgraph.gcp2.outline blank 2"
+      ]
+    },
+    {
+      "key": "gcp2.outlineBlank3",
+      "label": "outline blank 3",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 168.09,
+      "defaultHeight": 168.31,
+      "tags": [
+        "gcp",
+        "outline",
+        "blank",
+        "3"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.outlineBlank3",
+        "mxgraph.gcp2.outline_blank_3",
+        "mxgraph.gcp2.outline-blank-3",
+        "mxgraph.gcp2.outline blank 3"
+      ]
+    },
+    {
+      "key": "gcp2.outlineHighcomp",
+      "label": "outline highcomp",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 263.5,
+      "defaultHeight": 59.7,
+      "tags": [
+        "gcp",
+        "outline",
+        "highcomp"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.outlineHighcomp",
+        "mxgraph.gcp2.outline_highcomp",
+        "mxgraph.gcp2.outline-highcomp",
+        "mxgraph.gcp2.outline highcomp"
+      ]
+    },
+    {
+      "key": "gcp2.outlineHighmem",
+      "label": "outline highmem",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 263.5,
+      "defaultHeight": 59.7,
+      "tags": [
+        "gcp",
+        "outline",
+        "highmem"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.outlineHighmem",
+        "mxgraph.gcp2.outline_highmem",
+        "mxgraph.gcp2.outline-highmem",
+        "mxgraph.gcp2.outline highmem"
+      ]
+    },
+    {
+      "key": "gcp2.partnerInterconnect",
+      "label": "Partner Interconnect",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "partner",
+        "interconnect"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.partnerInterconnect",
+        "mxgraph.gcp2.partner_interconnect",
+        "mxgraph.gcp2.partner-interconnect",
+        "mxgraph.gcp2.Partner Interconnect"
+      ]
+    },
+    {
+      "key": "gcp2.payment",
+      "label": "Payment",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 31.67,
+      "defaultHeight": 25.32,
+      "tags": [
+        "gcp",
+        "payment"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.payment",
+        "mxgraph.gcp2.Payment"
+      ]
+    },
+    {
+      "key": "gcp2.peopleSecurityManagement",
+      "label": "people security management",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 156.62,
+      "defaultHeight": 156.62,
+      "tags": [
+        "gcp",
+        "people",
+        "security",
+        "management"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.peopleSecurityManagement",
+        "mxgraph.gcp2.people_security_management",
+        "mxgraph.gcp2.people-security-management",
+        "mxgraph.gcp2.people security management"
+      ]
+    },
+    {
+      "key": "gcp2.persistentDisk",
+      "label": "Persistent Disk",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "persistent",
+        "disk"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.persistentDisk",
+        "mxgraph.gcp2.persistent_disk",
+        "mxgraph.gcp2.persistent-disk",
+        "mxgraph.gcp2.Persistent Disk"
+      ]
+    },
+    {
+      "key": "gcp2.persistentDiskSnapshot",
+      "label": "Persistent Disk Snapshot",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 98.75,
+      "defaultHeight": 98.75,
+      "tags": [
+        "gcp",
+        "persistent",
+        "disk",
+        "snapshot"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.persistentDiskSnapshot",
+        "mxgraph.gcp2.persistent_disk_snapshot",
+        "mxgraph.gcp2.persistent-disk-snapshot",
+        "mxgraph.gcp2.Persistent Disk Snapshot"
+      ]
+    },
+    {
+      "key": "gcp2.phone",
+      "label": "Phone",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 22.13,
+      "defaultHeight": 34.84,
+      "tags": [
+        "gcp",
+        "phone"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.phone",
+        "mxgraph.gcp2.Phone"
+      ]
+    },
+    {
+      "key": "gcp2.phoneAndroid",
+      "label": "phone android",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 96.32,
+      "defaultHeight": 169.87,
+      "tags": [
+        "gcp",
+        "phone",
+        "android"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.phoneAndroid",
+        "mxgraph.gcp2.phone_android",
+        "mxgraph.gcp2.phone-android",
+        "mxgraph.gcp2.phone android"
+      ]
+    },
+    {
+      "key": "gcp2.placeholder",
+      "label": "Placeholder",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "placeholder"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.placeholder",
+        "mxgraph.gcp2.Placeholder"
+      ]
+    },
+    {
+      "key": "gcp2.playGear",
+      "label": "play gear",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 149.08,
+      "defaultHeight": 149.39,
+      "tags": [
+        "gcp",
+        "play",
+        "gear"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.playGear",
+        "mxgraph.gcp2.play_gear",
+        "mxgraph.gcp2.play-gear",
+        "mxgraph.gcp2.play gear"
+      ]
+    },
+    {
+      "key": "gcp2.playStart",
+      "label": "play start",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 112.08,
+      "defaultHeight": 112.08,
+      "tags": [
+        "gcp",
+        "play",
+        "start"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.playStart",
+        "mxgraph.gcp2.play_start",
+        "mxgraph.gcp2.play-start",
+        "mxgraph.gcp2.play start"
+      ]
+    },
+    {
+      "key": "gcp2.predictionApi",
+      "label": "Prediction API",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "prediction",
+        "api"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.predictionApi",
+        "mxgraph.gcp2.prediction_api",
+        "mxgraph.gcp2.prediction-api",
+        "mxgraph.gcp2.Prediction API"
+      ]
+    },
+    {
+      "key": "gcp2.premiumNetworkTier",
+      "label": "Premium Network Tier",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "premium",
+        "network",
+        "tier"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.premiumNetworkTier",
+        "mxgraph.gcp2.premium_network_tier",
+        "mxgraph.gcp2.premium-network-tier",
+        "mxgraph.gcp2.Premium Network Tier"
+      ]
+    },
+    {
+      "key": "gcp2.primary",
+      "label": "primary",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 94.43,
+      "defaultHeight": 14.08,
+      "tags": [
+        "gcp",
+        "primary"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.primary"
+      ]
+    },
+    {
+      "key": "gcp2.process",
+      "label": "process",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 130.43,
+      "defaultHeight": 155.55,
+      "tags": [
+        "gcp",
+        "process"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.process"
+      ]
+    },
+    {
+      "key": "gcp2.profiler",
+      "label": "Profiler",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "profiler"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.profiler",
+        "mxgraph.gcp2.Profiler"
+      ]
+    },
+    {
+      "key": "gcp2.pushNotificationService",
+      "label": "Push Notification Service",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 98.75,
+      "defaultHeight": 98.75,
+      "tags": [
+        "gcp",
+        "push",
+        "notification",
+        "service"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.pushNotificationService",
+        "mxgraph.gcp2.push_notification_service",
+        "mxgraph.gcp2.push-notification-service",
+        "mxgraph.gcp2.Push Notification Service"
+      ]
+    },
+    {
+      "key": "gcp2.recommendationsAi",
+      "label": "Recommendations AI",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "recommendations",
+        "ai"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.recommendationsAi",
+        "mxgraph.gcp2.recommendations_ai",
+        "mxgraph.gcp2.recommendations-ai",
+        "mxgraph.gcp2.Recommendations AI"
+      ]
+    },
+    {
+      "key": "gcp2.record",
+      "label": "Record",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 28.47,
+      "defaultHeight": 18.92,
+      "tags": [
+        "gcp",
+        "record"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.record",
+        "mxgraph.gcp2.Record"
+      ]
+    },
+    {
+      "key": "gcp2.replicationController",
+      "label": "replication controller",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 112.73,
+      "defaultHeight": 103.32,
+      "tags": [
+        "gcp",
+        "replication",
+        "controller"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.replicationController",
+        "mxgraph.gcp2.replication_controller",
+        "mxgraph.gcp2.replication-controller",
+        "mxgraph.gcp2.replication controller"
+      ]
+    },
+    {
+      "key": "gcp2.replicationController2",
+      "label": "replication controller 2",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 113.32,
+      "defaultHeight": 103.53,
+      "tags": [
+        "gcp",
+        "replication",
+        "controller",
+        "2"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.replicationController2",
+        "mxgraph.gcp2.replication_controller_2",
+        "mxgraph.gcp2.replication-controller-2",
+        "mxgraph.gcp2.replication controller 2"
+      ]
+    },
+    {
+      "key": "gcp2.replicationController3",
+      "label": "replication controller 3",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 140.72,
+      "defaultHeight": 93.05,
+      "tags": [
+        "gcp",
+        "replication",
+        "controller",
+        "3"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.replicationController3",
+        "mxgraph.gcp2.replication_controller_3",
+        "mxgraph.gcp2.replication-controller-3",
+        "mxgraph.gcp2.replication controller 3"
+      ]
+    },
+    {
+      "key": "gcp2.report",
+      "label": "Report",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 31.57,
+      "defaultHeight": 31.6,
+      "tags": [
+        "gcp",
+        "report"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.report",
+        "mxgraph.gcp2.Report"
+      ]
+    },
+    {
+      "key": "gcp2.repository",
+      "label": "repository",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 103.42,
+      "defaultHeight": 173.2,
+      "tags": [
+        "gcp",
+        "repository"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.repository"
+      ]
+    },
+    {
+      "key": "gcp2.repository2",
+      "label": "repository 2",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 137.31,
+      "defaultHeight": 145.77,
+      "tags": [
+        "gcp",
+        "repository",
+        "2"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.repository2",
+        "mxgraph.gcp2.repository_2",
+        "mxgraph.gcp2.repository-2",
+        "mxgraph.gcp2.repository 2"
+      ]
+    },
+    {
+      "key": "gcp2.repository3",
+      "label": "repository 3",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 144.46,
+      "defaultHeight": 144.46,
+      "tags": [
+        "gcp",
+        "repository",
+        "3"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.repository3",
+        "mxgraph.gcp2.repository_3",
+        "mxgraph.gcp2.repository-3",
+        "mxgraph.gcp2.repository 3"
+      ]
+    },
+    {
+      "key": "gcp2.repositoryPrimary",
+      "label": "repository primary",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 144.15,
+      "defaultHeight": 144.26,
+      "tags": [
+        "gcp",
+        "repository",
+        "primary"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.repositoryPrimary",
+        "mxgraph.gcp2.repository_primary",
+        "mxgraph.gcp2.repository-primary",
+        "mxgraph.gcp2.repository primary"
+      ]
+    },
+    {
+      "key": "gcp2.retail",
+      "label": "Retail",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 28.4,
+      "defaultHeight": 25.35,
+      "tags": [
+        "gcp",
+        "retail"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.retail",
+        "mxgraph.gcp2.Retail"
+      ]
+    },
+    {
+      "key": "gcp2.safety",
+      "label": "safety",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 155.58,
+      "defaultHeight": 148.45,
+      "tags": [
+        "gcp",
+        "safety"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.safety"
+      ]
+    },
+    {
+      "key": "gcp2.save",
+      "label": "save",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.1,
+      "defaultHeight": 144.84,
+      "tags": [
+        "gcp",
+        "save"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.save"
+      ]
+    },
+    {
+      "key": "gcp2.scale",
+      "label": "scale",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 87.19,
+      "defaultHeight": 79.83,
+      "tags": [
+        "gcp",
+        "scale"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.scale"
+      ]
+    },
+    {
+      "key": "gcp2.scheduledTasks",
+      "label": "Scheduled Tasks",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 98.75,
+      "defaultHeight": 98.75,
+      "tags": [
+        "gcp",
+        "scheduled",
+        "tasks"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.scheduledTasks",
+        "mxgraph.gcp2.scheduled_tasks",
+        "mxgraph.gcp2.scheduled-tasks",
+        "mxgraph.gcp2.Scheduled Tasks"
+      ]
+    },
+    {
+      "key": "gcp2.search",
+      "label": "search",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 146.36,
+      "defaultHeight": 146.82,
+      "tags": [
+        "gcp",
+        "search"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.search"
+      ]
+    },
+    {
+      "key": "gcp2.searchApi",
+      "label": "search api",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 139.14,
+      "defaultHeight": 139.57,
+      "tags": [
+        "gcp",
+        "search",
+        "api"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.searchApi",
+        "mxgraph.gcp2.search_api",
+        "mxgraph.gcp2.search-api",
+        "mxgraph.gcp2.search api"
+      ]
+    },
+    {
+      "key": "gcp2.securityKeyEnforcement",
+      "label": "Security Key Enforcement",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "security",
+        "key",
+        "enforcement"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.securityKeyEnforcement",
+        "mxgraph.gcp2.security_key_enforcement",
+        "mxgraph.gcp2.security-key-enforcement",
+        "mxgraph.gcp2.Security Key Enforcement"
+      ]
+    },
+    {
+      "key": "gcp2.segments",
+      "label": "segments",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 143.72,
+      "defaultHeight": 143.73,
+      "tags": [
+        "gcp",
+        "segments"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.segments"
+      ]
+    },
+    {
+      "key": "gcp2.segments2",
+      "label": "segments 2",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 156.65,
+      "defaultHeight": 143.98,
+      "tags": [
+        "gcp",
+        "segments",
+        "2"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.segments2",
+        "mxgraph.gcp2.segments_2",
+        "mxgraph.gcp2.segments-2",
+        "mxgraph.gcp2.segments 2"
+      ]
+    },
+    {
+      "key": "gcp2.segmentsOverlap",
+      "label": "segments overlap",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 141.45,
+      "defaultHeight": 141.3,
+      "tags": [
+        "gcp",
+        "segments",
+        "overlap"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.segmentsOverlap",
+        "mxgraph.gcp2.segments_overlap",
+        "mxgraph.gcp2.segments-overlap",
+        "mxgraph.gcp2.segments overlap"
+      ]
+    },
+    {
+      "key": "gcp2.serversStacked",
+      "label": "servers stacked",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 144.98,
+      "defaultHeight": 145.36,
+      "tags": [
+        "gcp",
+        "servers",
+        "stacked"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.serversStacked",
+        "mxgraph.gcp2.servers_stacked",
+        "mxgraph.gcp2.servers-stacked",
+        "mxgraph.gcp2.servers stacked"
+      ]
+    },
+    {
+      "key": "gcp2.service",
+      "label": "service",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 100.71,
+      "defaultHeight": 145.07,
+      "tags": [
+        "gcp",
+        "service"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.service"
+      ]
+    },
+    {
+      "key": "gcp2.serviceDiscovery",
+      "label": "Service Discovery",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 98.75,
+      "defaultHeight": 98.75,
+      "tags": [
+        "gcp",
+        "service",
+        "discovery"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.serviceDiscovery",
+        "mxgraph.gcp2.service_discovery",
+        "mxgraph.gcp2.service-discovery",
+        "mxgraph.gcp2.Service Discovery"
+      ]
+    },
+    {
+      "key": "gcp2.socialMediaTime",
+      "label": "social media time",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 142.69,
+      "defaultHeight": 147.33,
+      "tags": [
+        "gcp",
+        "social",
+        "media",
+        "time"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.socialMediaTime",
+        "mxgraph.gcp2.social_media_time",
+        "mxgraph.gcp2.social-media-time",
+        "mxgraph.gcp2.social media time"
+      ]
+    },
+    {
+      "key": "gcp2.solution",
+      "label": "solution",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 146.36,
+      "defaultHeight": 146.82,
+      "tags": [
+        "gcp",
+        "solution"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.solution"
+      ]
+    },
+    {
+      "key": "gcp2.speaker",
+      "label": "Speaker",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 22.09,
+      "defaultHeight": 31.61,
+      "tags": [
+        "gcp",
+        "speaker"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.speaker",
+        "mxgraph.gcp2.Speaker"
+      ]
+    },
+    {
+      "key": "gcp2.speed",
+      "label": "speed",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 294.21,
+      "defaultHeight": 168.24,
+      "tags": [
+        "gcp",
+        "speed"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.speed"
+      ]
+    },
+    {
+      "key": "gcp2.squidProxy",
+      "label": "Squid Proxy",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 373.21,
+      "defaultHeight": 373.21,
+      "tags": [
+        "gcp",
+        "squid",
+        "proxy"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.squidProxy",
+        "mxgraph.gcp2.squid_proxy",
+        "mxgraph.gcp2.squid-proxy",
+        "mxgraph.gcp2.Squid Proxy"
+      ]
+    },
+    {
+      "key": "gcp2.stackdriver",
+      "label": "Stackdriver",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "stackdriver"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.stackdriver",
+        "mxgraph.gcp2.Stackdriver"
+      ]
+    },
+    {
+      "key": "gcp2.stackedOwnership",
+      "label": "stacked ownership",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 157.44,
+      "defaultHeight": 157.44,
+      "tags": [
+        "gcp",
+        "stacked",
+        "ownership"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.stackedOwnership",
+        "mxgraph.gcp2.stacked_ownership",
+        "mxgraph.gcp2.stacked-ownership",
+        "mxgraph.gcp2.stacked ownership"
+      ]
+    },
+    {
+      "key": "gcp2.standardNetworkTier",
+      "label": "Standard Network Tier",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "standard",
+        "network",
+        "tier"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.standardNetworkTier",
+        "mxgraph.gcp2.standard_network_tier",
+        "mxgraph.gcp2.standard-network-tier",
+        "mxgraph.gcp2.Standard Network Tier"
+      ]
+    },
+    {
+      "key": "gcp2.storage",
+      "label": "Storage",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 31.65,
+      "defaultHeight": 25.26,
+      "tags": [
+        "gcp",
+        "storage"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.storage",
+        "mxgraph.gcp2.Storage"
+      ]
+    },
+    {
+      "key": "gcp2.stream",
+      "label": "Stream",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 34.82,
+      "defaultHeight": 28.51,
+      "tags": [
+        "gcp",
+        "stream"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.stream",
+        "mxgraph.gcp2.Stream"
+      ]
+    },
+    {
+      "key": "gcp2.swap",
+      "label": "swap",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 234.99,
+      "defaultHeight": 120.78,
+      "tags": [
+        "gcp",
+        "swap"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.swap"
+      ]
+    },
+    {
+      "key": "gcp2.systemsCheck",
+      "label": "systems check",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 155.9,
+      "defaultHeight": 157.77,
+      "tags": [
+        "gcp",
+        "systems",
+        "check"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.systemsCheck",
+        "mxgraph.gcp2.systems_check",
+        "mxgraph.gcp2.systems-check",
+        "mxgraph.gcp2.systems check"
+      ]
+    },
+    {
+      "key": "gcp2.tapeRecord",
+      "label": "tape record",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 188.78,
+      "defaultHeight": 133.69,
+      "tags": [
+        "gcp",
+        "tape",
+        "record"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.tapeRecord",
+        "mxgraph.gcp2.tape_record",
+        "mxgraph.gcp2.tape-record",
+        "mxgraph.gcp2.tape record"
+      ]
+    },
+    {
+      "key": "gcp2.taskQueues",
+      "label": "Task Queues",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 98.75,
+      "defaultHeight": 98.75,
+      "tags": [
+        "gcp",
+        "task",
+        "queues"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.taskQueues",
+        "mxgraph.gcp2.task_queues",
+        "mxgraph.gcp2.task-queues",
+        "mxgraph.gcp2.Task Queues"
+      ]
+    },
+    {
+      "key": "gcp2.taskQueues2",
+      "label": "task queues 2",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 183.64,
+      "defaultHeight": 111.31,
+      "tags": [
+        "gcp",
+        "task",
+        "queues",
+        "2"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.taskQueues2",
+        "mxgraph.gcp2.task_queues_2",
+        "mxgraph.gcp2.task-queues-2",
+        "mxgraph.gcp2.task queues 2"
+      ]
+    },
+    {
+      "key": "gcp2.tensorflowLockup",
+      "label": "TensorFlow lockup",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 1359.09,
+      "defaultHeight": 922.78,
+      "tags": [
+        "gcp",
+        "tensorflow",
+        "lockup"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.tensorflowLockup",
+        "mxgraph.gcp2.tensorflow_lockup",
+        "mxgraph.gcp2.tensorflow-lockup",
+        "mxgraph.gcp2.TensorFlow lockup"
+      ]
+    },
+    {
+      "key": "gcp2.tensorflowLogo",
+      "label": "TensorFlow logo",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 152.98,
+      "defaultHeight": 162.59,
+      "tags": [
+        "gcp",
+        "tensorflow",
+        "logo"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.tensorflowLogo",
+        "mxgraph.gcp2.tensorflow_logo",
+        "mxgraph.gcp2.tensorflow-logo",
+        "mxgraph.gcp2.TensorFlow logo"
+      ]
+    },
+    {
+      "key": "gcp2.thumbsUp",
+      "label": "thumbs up",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 119.16,
+      "defaultHeight": 119.13,
+      "tags": [
+        "gcp",
+        "thumbs",
+        "up"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.thumbsUp",
+        "mxgraph.gcp2.thumbs_up",
+        "mxgraph.gcp2.thumbs-up",
+        "mxgraph.gcp2.thumbs up"
+      ]
+    },
+    {
+      "key": "gcp2.timeClock",
+      "label": "time clock",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 108.74,
+      "defaultHeight": 122.2,
+      "tags": [
+        "gcp",
+        "time",
+        "clock"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.timeClock",
+        "mxgraph.gcp2.time_clock",
+        "mxgraph.gcp2.time-clock",
+        "mxgraph.gcp2.time clock"
+      ]
+    },
+    {
+      "key": "gcp2.trace",
+      "label": "Trace",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "trace"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.trace",
+        "mxgraph.gcp2.Trace"
+      ]
+    },
+    {
+      "key": "gcp2.trafficDirector",
+      "label": "Traffic Director",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "traffic",
+        "director"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.trafficDirector",
+        "mxgraph.gcp2.traffic_director",
+        "mxgraph.gcp2.traffic-director",
+        "mxgraph.gcp2.Traffic Director"
+      ]
+    },
+    {
+      "key": "gcp2.transferAppliance",
+      "label": "Transfer Appliance",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "transfer",
+        "appliance"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.transferAppliance",
+        "mxgraph.gcp2.transfer_appliance",
+        "mxgraph.gcp2.transfer-appliance",
+        "mxgraph.gcp2.Transfer Appliance"
+      ]
+    },
+    {
+      "key": "gcp2.users",
+      "label": "Users",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 34.77,
+      "defaultHeight": 22.06,
+      "tags": [
+        "gcp",
+        "users"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.users",
+        "mxgraph.gcp2.Users"
+      ]
+    },
+    {
+      "key": "gcp2.viewList",
+      "label": "view list",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 96.04,
+      "defaultHeight": 118.53,
+      "tags": [
+        "gcp",
+        "view",
+        "list"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.viewList",
+        "mxgraph.gcp2.view_list",
+        "mxgraph.gcp2.view-list",
+        "mxgraph.gcp2.view list"
+      ]
+    },
+    {
+      "key": "gcp2.virtualFileSystem",
+      "label": "Virtual File System",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 98.75,
+      "defaultHeight": 98.75,
+      "tags": [
+        "gcp",
+        "virtual",
+        "file",
+        "system"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.virtualFileSystem",
+        "mxgraph.gcp2.virtual_file_system",
+        "mxgraph.gcp2.virtual-file-system",
+        "mxgraph.gcp2.Virtual File System"
+      ]
+    },
+    {
+      "key": "gcp2.virtualPrivateCloud",
+      "label": "Virtual Private Cloud",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 172.47,
+      "defaultHeight": 152.79,
+      "tags": [
+        "gcp",
+        "virtual",
+        "private",
+        "cloud"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.virtualPrivateCloud",
+        "mxgraph.gcp2.virtual_private_cloud",
+        "mxgraph.gcp2.virtual-private-cloud",
+        "mxgraph.gcp2.Virtual Private Cloud"
+      ]
+    },
+    {
+      "key": "gcp2.visibility",
+      "label": "visibility",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 136.94,
+      "defaultHeight": 128.92,
+      "tags": [
+        "gcp",
+        "visibility"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.visibility"
+      ]
+    },
+    {
+      "key": "gcp2.vpn",
+      "label": "vpn",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 201.34,
+      "defaultHeight": 100.91,
+      "tags": [
+        "gcp",
+        "vpn"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.vpn"
+      ]
+    },
+    {
+      "key": "gcp2.vpnGateway",
+      "label": "VPN Gateway",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 98.75,
+      "defaultHeight": 98.75,
+      "tags": [
+        "gcp",
+        "vpn",
+        "gateway"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.vpnGateway",
+        "mxgraph.gcp2.vpn_gateway",
+        "mxgraph.gcp2.vpn-gateway",
+        "mxgraph.gcp2.VPN Gateway"
+      ]
+    },
+    {
+      "key": "gcp2.webcam",
+      "label": "Webcam",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 15.89,
+      "defaultHeight": 31.53,
+      "tags": [
+        "gcp",
+        "webcam"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.webcam",
+        "mxgraph.gcp2.Webcam"
+      ]
+    },
+    {
+      "key": "gcp2.website",
+      "label": "website",
+      "group": "GCP",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\gcp2.xml",
+      "defaultWidth": 155.69,
+      "defaultHeight": 150.65,
+      "tags": [
+        "gcp",
+        "website"
+      ],
+      "aliases": [
+        "mxgraph.gcp2.website"
+      ]
+    }
+  ]
+}

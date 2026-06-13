@@ -113,7 +113,19 @@ class SvgExporter {
       for (final path in definition.foregroundSvgPathsFor(e.rect, e.properties))
         '<path d="$path" fill="none" stroke="$stroke" stroke-width="${e.strokeStyle.strokeWidth}" opacity="${e.opacity}" stroke-opacity="${e.strokeStyle.opacity}" stroke-linejoin="round"/>',
     ].join();
-    return '$shape$foreground${_shapeLabel(definition.labelRectFor(e.rect, e.properties), e.label, e.labelStyle, e.labelAlign, e.labelPadding, e.opacity)}';
+    final shapeWithTransform = _flipGroup(e, '$shape$foreground');
+    return '$shapeWithTransform${_shapeLabel(definition.labelRectFor(e.rect, e.properties), e.label, e.labelStyle, e.labelAlign, e.labelPadding, e.opacity, verticalAlign: e.properties['verticalAlign'] as String?, labelPosition: e.properties['labelPosition'] as String?, verticalLabelPosition: e.properties['verticalLabelPosition'] as String?)}';
+  }
+
+  static String _flipGroup(DrawioShapeElement e, String svg) {
+    final flipH = _boolProperty(e.properties['flipH']);
+    final flipV = _boolProperty(e.properties['flipV']);
+    if (!flipH && !flipV) {
+      return svg;
+    }
+    final sx = flipH ? -1.0 : 1.0;
+    final sy = flipV ? -1.0 : 1.0;
+    return '<g transform="translate(${e.rect.center.dx} ${e.rect.center.dy}) scale($sx $sy) translate(${-e.rect.center.dx} ${-e.rect.center.dy})">$svg</g>';
   }
 
   static String _rect(RectElement e) {
@@ -182,8 +194,11 @@ class SvgExporter {
     TextStyle style,
     TextAlign align,
     EdgeInsets padding,
-    double opacity,
-  ) {
+    double opacity, {
+    String? verticalAlign,
+    String? labelPosition,
+    String? verticalLabelPosition,
+  }) {
     if (label == null || label.isEmpty) {
       return '';
     }
@@ -195,20 +210,36 @@ class SvgExporter {
     final size =
         style.fontSize ?? ShapeLabelPainter.defaultStyle.fontSize ?? 16;
     final weight = style.fontWeight?.value ?? FontWeight.normal.value;
-    final anchor = switch (align) {
-      TextAlign.center => 'middle',
-      TextAlign.right || TextAlign.end => 'end',
-      _ => 'start',
+    final horizontal = labelPosition ?? align.name;
+    final anchor = switch (horizontal) {
+      'center' || 'middle' => 'middle',
+      'right' => 'end',
+      'left' => 'start',
+      _ => switch (align) {
+        TextAlign.center => 'middle',
+        TextAlign.right || TextAlign.end => 'end',
+        _ => 'start',
+      },
     };
-    final x = switch (align) {
-      TextAlign.center => contentRect.center.dx,
-      TextAlign.right || TextAlign.end => contentRect.right,
-      _ => contentRect.left,
+    final x = switch (horizontal) {
+      'center' || 'middle' => contentRect.center.dx,
+      'right' => contentRect.right,
+      'left' => contentRect.left,
+      _ => switch (align) {
+        TextAlign.center => contentRect.center.dx,
+        TextAlign.right || TextAlign.end => contentRect.right,
+        _ => contentRect.left,
+      },
     };
     final lines = label.split('\n');
     final lineHeight = size * (style.height ?? 1.2);
     final totalHeight = size + (lines.length - 1) * lineHeight;
-    final firstBaseline = contentRect.center.dy - totalHeight / 2 + size;
+    final vertical = verticalAlign ?? verticalLabelPosition;
+    final firstBaseline = switch (vertical) {
+      'top' => contentRect.top + size,
+      'bottom' => contentRect.bottom - totalHeight + size,
+      _ => contentRect.center.dy - totalHeight / 2 + size,
+    };
     return [
       '<text x="$x" y="$firstBaseline" fill="${_color(color)}" font-size="$size" font-weight="$weight" opacity="$opacity" text-anchor="$anchor">',
       for (var i = 0; i < lines.length; i++)
@@ -264,6 +295,17 @@ class SvgExporter {
   static String _color(Color color) {
     final value = color.toARGB32();
     return '#${(value & 0xFFFFFF).toRadixString(16).padLeft(6, '0')}';
+  }
+
+  static bool _boolProperty(Object? value) {
+    if (value is bool) {
+      return value;
+    }
+    if (value == null) {
+      return false;
+    }
+    final text = value.toString().toLowerCase();
+    return text == '1' || text == 'true';
   }
 
   static String _escape(String value) {

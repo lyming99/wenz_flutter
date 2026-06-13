@@ -76,4 +76,37 @@ void main() {
     expect(svg, contains('<path d="M 60.0 0.0'));
     expect(svg, contains('L 120.0 40.0'));
   });
+
+  test('svg exporter preserves drawio flip transform and label positions', () {
+    const element = DrawioShapeElement(
+      id: 'stage4-1',
+      shapeKey: 'flowchart.process',
+      rect: Rect.fromLTWH(10, 20, 120, 80),
+      strokeStyle: PaintStyle(color: Color(0xFF1F2937), strokeWidth: 1.5),
+      fillStyle: PaintStyle(color: Color(0xFFFFFFFF)),
+      label: 'Bottom Right',
+      labelAlign: TextAlign.left,
+      labelPadding: EdgeInsets.zero,
+      properties: {
+        'flipH': true,
+        'flipV': true,
+        'labelPosition': 'right',
+        'verticalAlign': 'bottom',
+      },
+    );
+
+    final svg = SvgExporter.exportElements(
+      elements: const [element],
+      bounds: const Rect.fromLTWH(0, 0, 160, 130),
+    );
+
+    expect(() => XmlDocument.parse(svg), returnsNormally);
+    expect(
+      svg,
+      contains('<g transform="translate(70.0 60.0) scale(-1.0 -1.0)'),
+    );
+    expect(svg, contains('text-anchor="end"'));
+    expect(svg, contains('x="130.0"'));
+    expect(svg, contains('Bottom Right'));
+  });
 }

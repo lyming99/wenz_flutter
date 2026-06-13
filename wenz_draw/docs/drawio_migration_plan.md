@@ -542,3 +542,76 @@ cisco19.xml
 5. 更新 example palette。
 6. 增加注册和 SVG export 测试。
 ```
+
+## 11. 阶段 5：高级库预研与批量生成工具
+
+阶段 5 的目标不是立即把所有大型库纳入运行时包，而是先建立可重复的抽取、统计、草稿生成流程，避免继续手工维护上千段 XML 字符串。
+
+### 11.1 新增工具
+
+```text
+tool/drawio_stencil_extract.dart
+tool/drawio_stencil_manifest.dart
+tool/generated_stencils/README.md
+```
+
+`drawio_stencil_extract.dart` 可从本地 draw.io stencil XML 中提取：
+
+- `key`：内部推荐 key，例如 `bpmn.userTask`、`aws4.lambda`。
+- `label`：draw.io 原始 shape name。
+- `group`：建议 palette 分组。
+- `sourceFile`：来源 XML 文件。
+- `defaultWidth` / `defaultHeight`：来自 `<shape w="..." h="...">`。
+- `tags`：由 group 与 label 自动生成的搜索标签。
+- `aliases`：自动生成 `mxgraph.<library>.<camelCase/snake_case/kebab-case/original label>`。
+
+示例：
+
+```powershell
+dart run tool/drawio_stencil_extract.dart `
+  --input D:\project\GitHub\drawio\src\main\webapp\stencils\bpmn.xml `
+  --library bpmn `
+  --group BPMN `
+  --out-manifest tool\generated_stencils\bpmn_manifest.json `
+  --out-dart tool\generated_stencils\bpmn_stencils.dart
+```
+
+`drawio_stencil_manifest.dart` 可读取一个或多个 manifest，输出 shape/alias 数量、source XML 体积、分组概览与粗略迁移建议：
+
+```powershell
+dart run tool/drawio_stencil_manifest.dart tool\generated_stencils\bpmn_manifest.json
+```
+
+### 11.2 本轮候选库统计
+
+| 库 | source XML | source size | shapes | aliases | 工具建议 | 初步结论 |
+| --- | --- | ---: | ---: | ---: | --- | --- |
+| BPMN | `bpmn.xml` | 43.8 KB | 39 | 148 | small / 可 eager | 规模小，建议作为下一批正式迁移候选 |
+| AWS | `aws4.xml` | 6.3 MB | 1037 | 3374 | large / lazy | 规模很大，不建议 eager 注册；需要懒加载、搜索式 palette 与体积评估 |
+| GCP | `gcp2.xml` | 1.1 MB | 297 | 1014 | large / lazy | 中大型，建议等懒加载机制完成后迁移 |
+| Alibaba Cloud | `alibaba_cloud.xml` | 1.3 MB | 310 | 1062 | large / lazy | 中大型，建议等懒加载机制完成后迁移 |
+| Cisco | `cisco19.xml` | 1.8 MB | 232 | 716 | medium / benchmark | 中型，适合在网络设备专题中迁移 |
+| Networks | `networks2.xml` | 1.0 MB | 115 | 361 | medium / benchmark | 中型，可作为 Cisco 前置试点 |
+| Web Icons | `webicons.xml` | 847.1 KB | 176 | 396 | medium / benchmark | 图标类库，需确认实际渲染质量和授权 |
+| Web Logos | `weblogos.xml` | 678.6 KB | 178 | 404 | medium / benchmark | logo 类库，需重点确认授权和品牌资产风险 |
+
+本轮候选合计：`2384` shapes、`7475` aliases、约 `13.0 MB` source XML。
+
+### 11.3 性能与体积评估
+
+初步结论：
+
+1. `BPMN` 仅 39 个 shape，体量接近 `flowchart/basic/arrows`，可以进入正式迁移。
+2. `AWS4` 单库超过 1000 个 shape，且源 XML 约 6.6MB；若转为 Dart const 字符串并 eager 注册，会明显增加包体、编译时间和启动注册耗时。
+3. 云厂商/网络/图标类库应采用 manifest 驱动：先加载 metadata，用于搜索和 palette；用户实际选择某个库或某个 shape 时再解析 XML。
+4. example palette 不应一次性渲染数千个按钮；需要分组折叠、搜索过滤、虚拟列表或分页。
+5. `weblogos` / `webicons` 涉及品牌图标，进入正式包前应单独确认 draw.io stencil 资源许可证与商标使用边界。
+
+### 11.4 后续建议
+
+下一阶段建议顺序：
+
+1. 将 `BPMN` 作为第一个阶段 5 后续正式迁移库，验证工具生成的 Dart 草稿能直接接入 `StencilLibraryRegistry`。
+2. 为大型库新增懒加载接口，例如 `StencilLibraryRegistry.registerLazyManifest(...)` 或库级按需注册。
+3. example palette 改造为 metadata-driven：按 manifest 展示 label/tags，搜索命中后再加载 XML。
+4. 对 `AWS4` / `GCP2` / `Alibaba Cloud` 分别做包体和注册耗时基准，再决定是否随包发布或作为可选扩展包。

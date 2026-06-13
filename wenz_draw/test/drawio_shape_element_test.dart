@@ -131,4 +131,198 @@ void main() {
     expect(svg, contains('stroke="#1d4ed8"'));
     expect(svg, contains('Database'));
   });
+
+  test('all flowchart stencils are registered and export non-empty SVG', () {
+    ensureDrawioShapeDefinitionsRegistered();
+    const rect = Rect.fromLTWH(0, 0, 120, 80);
+
+    expect(FlowchartStencils.keys, hasLength(34));
+    for (final key in FlowchartStencils.keys) {
+      expect(ShapeDefinitionRegistry.contains(key), isTrue, reason: key);
+      final definition = ShapeDefinitionRegistry.definitionFor(key);
+      expect(
+        definition.pathFor(rect, const {}).getBounds().isEmpty,
+        isFalse,
+        reason: key,
+      );
+      expect(definition.svgPathFor(rect, const {}), isNotEmpty, reason: key);
+
+      final svg = SvgExporter.exportElements(
+        elements: [
+          DrawioShapeElement(
+            id: key,
+            shapeKey: key,
+            rect: rect,
+            fillStyle: const PaintStyle(color: Colors.white),
+          ),
+        ],
+        bounds: const Rect.fromLTWH(0, 0, 160, 120),
+      );
+      expect(svg, contains('<path'), reason: key);
+    }
+  });
+
+  test('flowchart aliases and drawio adapter map to registered shapes', () {
+    ensureDrawioShapeDefinitionsRegistered();
+
+    expect(ShapeDefinitionRegistry.contains('stencil.process'), isTrue);
+    expect(
+      ShapeDefinitionRegistry.contains('mxgraph.flowchart.manual_input'),
+      isTrue,
+    );
+    expect(
+      ShapeDefinitionRegistry.contains('mxgraph.flowchart.manual-input'),
+      isTrue,
+    );
+
+    final mxgraph = DrawioShapeAdapter.fromStyleString(
+      id: 'fc-1',
+      rect: const Rect.fromLTWH(0, 0, 120, 80),
+      style: 'shape=mxgraph.flowchart.decision;',
+    );
+    expect(mxgraph.shapeKey, 'flowchart.decision');
+
+    final legacy = DrawioShapeAdapter.fromStyleString(
+      id: 'fc-2',
+      rect: const Rect.fromLTWH(0, 0, 120, 80),
+      style: 'shape=manualInput;',
+    );
+    expect(legacy.shapeKey, 'flowchart.manualInput');
+  });
+
+  test('all basic stencils are registered and export non-empty SVG', () {
+    ensureDrawioShapeDefinitionsRegistered();
+    const rect = Rect.fromLTWH(0, 0, 120, 100);
+
+    expect(BasicStencils.keys, hasLength(30));
+    for (final key in BasicStencils.keys) {
+      expect(ShapeDefinitionRegistry.contains(key), isTrue, reason: key);
+      final definition = ShapeDefinitionRegistry.definitionFor(key);
+      expect(
+        definition.pathFor(rect, const {}).getBounds().isEmpty,
+        isFalse,
+        reason: key,
+      );
+      expect(definition.svgPathFor(rect, const {}), isNotEmpty, reason: key);
+
+      final svg = SvgExporter.exportElements(
+        elements: [
+          DrawioShapeElement(
+            id: key,
+            shapeKey: key,
+            rect: rect,
+            fillStyle: const PaintStyle(color: Colors.white),
+          ),
+        ],
+        bounds: const Rect.fromLTWH(0, 0, 160, 130),
+      );
+      expect(svg, contains('<path'), reason: key);
+    }
+  });
+
+  test('complex basic symbols keep visible foreground and aliases', () {
+    ensureDrawioShapeDefinitionsRegistered();
+    const rect = Rect.fromLTWH(0, 0, 120, 100);
+    const complexKeys = <String>[
+      'basic.smiley',
+      'basic.sun',
+      'basic.cloudCallout',
+    ];
+
+    for (final key in complexKeys) {
+      final definition = ShapeDefinitionRegistry.definitionFor(key);
+      expect(
+        definition.foregroundPathsFor(rect, const {}),
+        isNotEmpty,
+        reason: key,
+      );
+      expect(
+        definition.foregroundSvgPathsFor(rect, const {}),
+        isNotEmpty,
+        reason: key,
+      );
+    }
+
+    final noSymbol = ShapeDefinitionRegistry.definitionFor('basic.noSymbol');
+    expect(
+      noSymbol.pathFor(rect, const {}).getBounds().isEmpty,
+      isFalse,
+      reason: 'basic.noSymbol',
+    );
+
+    expect(
+      ShapeDefinitionRegistry.contains('mxgraph.basic.cloud_callout'),
+      isTrue,
+    );
+    expect(ShapeDefinitionRegistry.contains('mxgraph.basic.no-symbol'), isTrue);
+    expect(ShapeDefinitionRegistry.contains('star'), isTrue);
+
+    final element = DrawioShapeAdapter.fromStyleString(
+      id: 'basic-1',
+      rect: rect,
+      style: 'shape=mxgraph.basic.cloud_callout;',
+    );
+    expect(element.shapeKey, 'basic.cloudCallout');
+  });
+
+  test('all arrows stencils are registered and export non-empty SVG', () {
+    ensureDrawioShapeDefinitionsRegistered();
+    const rect = Rect.fromLTWH(0, 0, 140, 100);
+
+    expect(ArrowStencils.keys, hasLength(34));
+    for (final key in ArrowStencils.keys) {
+      expect(ShapeDefinitionRegistry.contains(key), isTrue, reason: key);
+      final definition = ShapeDefinitionRegistry.definitionFor(key);
+      expect(
+        definition.pathFor(rect, const {}).getBounds().isEmpty,
+        isFalse,
+        reason: key,
+      );
+      expect(definition.svgPathFor(rect, const {}), isNotEmpty, reason: key);
+
+      final svg = SvgExporter.exportElements(
+        elements: [
+          DrawioShapeElement(
+            id: key,
+            shapeKey: key,
+            rect: rect,
+            fillStyle: const PaintStyle(color: Colors.white),
+          ),
+        ],
+        bounds: const Rect.fromLTWH(0, 0, 180, 140),
+      );
+      expect(svg, contains('<path'), reason: key);
+    }
+  });
+
+  test('arrows aliases and drawio adapter map block arrows', () {
+    ensureDrawioShapeDefinitionsRegistered();
+
+    expect(
+      ShapeDefinitionRegistry.contains('mxgraph.arrows.arrowRight'),
+      isTrue,
+    );
+    expect(
+      ShapeDefinitionRegistry.contains('mxgraph.arrows.arrow_right'),
+      isTrue,
+    );
+    expect(
+      ShapeDefinitionRegistry.contains('mxgraph.arrows.arrow-right'),
+      isTrue,
+    );
+
+    final camel = DrawioShapeAdapter.fromStyleString(
+      id: 'arr-1',
+      rect: const Rect.fromLTWH(0, 0, 120, 80),
+      style: 'shape=mxgraph.arrows.arrowRight;',
+    );
+    expect(camel.shapeKey, 'arrows.arrowRight');
+
+    final snake = DrawioShapeAdapter.fromStyleString(
+      id: 'arr-2',
+      rect: const Rect.fromLTWH(0, 0, 120, 80),
+      style: 'shape=mxgraph.arrows.u_turn_left_arrow;',
+    );
+    expect(snake.shapeKey, 'arrows.uTurnLeftArrow');
+  });
 }

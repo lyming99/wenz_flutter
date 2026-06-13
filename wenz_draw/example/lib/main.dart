@@ -18,6 +18,33 @@ class _DrawioShapePaletteEntry {
   String get toolId => ShapeTool.idFor(shapeKey);
 }
 
+final _flowchartShapePalette = [
+  for (final key in FlowchartStencils.keys)
+    _DrawioShapePaletteEntry(
+      label: FlowchartStencils.labels[key] ?? key,
+      shapeKey: key,
+      group: 'flowchart',
+    ),
+];
+
+final _basicSymbolShapePalette = [
+  for (final key in BasicStencils.keys)
+    _DrawioShapePaletteEntry(
+      label: BasicStencils.labels[key] ?? key,
+      shapeKey: key,
+      group: 'basicSymbols',
+    ),
+];
+
+final _arrowShapePalette = [
+  for (final key in ArrowStencils.keys)
+    _DrawioShapePaletteEntry(
+      label: ArrowStencils.labels[key] ?? key,
+      shapeKey: key,
+      group: 'arrows',
+    ),
+];
+
 const _drawioShapePalette = [
   _DrawioShapePaletteEntry(label: '菱形', shapeKey: 'rhombus', group: 'basic'),
   _DrawioShapePaletteEntry(label: '三角形', shapeKey: 'triangle', group: 'basic'),
@@ -942,10 +969,20 @@ class _LeftShapePanel extends StatelessWidget {
                     onSelect: canvasController.setTool,
                   ),
                   _ShapePaletteGroup(
+                    title: 'Basic Symbols',
+                    entries: _basicSymbolShapePalette,
+                    activeTool: activeTool,
+                    onSelect: canvasController.setTool,
+                  ),
+                  _ShapePaletteGroup(
                     title: 'Flowchart',
-                    entries: _drawioShapePalette
-                        .where((entry) => entry.group == 'flowchart')
-                        .toList(growable: false),
+                    entries: _flowchartShapePalette,
+                    activeTool: activeTool,
+                    onSelect: canvasController.setTool,
+                  ),
+                  _ShapePaletteGroup(
+                    title: 'Arrows',
+                    entries: _arrowShapePalette,
                     activeTool: activeTool,
                     onSelect: canvasController.setTool,
                   ),

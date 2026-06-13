@@ -19,6 +19,9 @@ class ShapeLabelPainter {
     required TextAlign textAlign,
     required EdgeInsets padding,
     required double opacity,
+    String? verticalAlign,
+    String? labelPosition,
+    String? verticalLabelPosition,
   }) {
     if (label == null || label.isEmpty || rect.isEmpty) {
       return;
@@ -43,13 +46,23 @@ class ShapeLabelPainter {
       ellipsis: '...',
     )..layout(maxWidth: contentRect.width);
 
-    final dx = switch (textAlign) {
-      TextAlign.center =>
-        contentRect.left + (contentRect.width - textPainter.width) / 2,
-      TextAlign.right || TextAlign.end => contentRect.right - textPainter.width,
-      _ => contentRect.left,
+    final horizontal = labelPosition ?? textAlign.name;
+    final dx = switch (horizontal) {
+      'right' => contentRect.right - textPainter.width,
+      'left' => contentRect.left,
+      _ => switch (textAlign) {
+        TextAlign.right ||
+        TextAlign.end => contentRect.right - textPainter.width,
+        TextAlign.left || TextAlign.start => contentRect.left,
+        _ => contentRect.left + (contentRect.width - textPainter.width) / 2,
+      },
     };
-    final dy = contentRect.top + (contentRect.height - textPainter.height) / 2;
+    final vertical = verticalAlign ?? verticalLabelPosition;
+    final dy = switch (vertical) {
+      'top' => contentRect.top,
+      'bottom' => contentRect.bottom - textPainter.height,
+      _ => contentRect.top + (contentRect.height - textPainter.height) / 2,
+    };
 
     canvas.save();
     canvas.clipRect(contentRect);

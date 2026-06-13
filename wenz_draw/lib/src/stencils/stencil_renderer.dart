@@ -161,6 +161,7 @@ class StencilRenderer {
           includeForeground: true,
         );
       case StencilTextCommand _:
+      case StencilStyleCommand _:
       case StencilUnsupportedCommand _:
         return Path();
     }
@@ -193,9 +194,19 @@ class StencilRenderer {
           path.cubicTo(p1.dx, p1.dy, p2.dx, p2.dy, current.dx, current.dy);
         case final StencilArcTo o:
           final target = _mapPoint(stencil, Offset(o.x, o.y), rect, properties);
+          // Use independent X/Y scales for arc radii to match how path points
+          // are scaled. The old uniform min() scale distorted arcs when the
+          // target rect aspect differs from the stencil aspect.
+          final mappedRect = _mappedContentRect(stencil, rect);
+          final scaleX = stencil.width > 0
+              ? mappedRect.width / stencil.width
+              : 1.0;
+          final scaleY = stencil.height > 0
+              ? mappedRect.height / stencil.height
+              : 1.0;
           final radius = Radius.elliptical(
-            o.rx * _scaleForRadius(stencil, rect),
-            o.ry * _scaleForRadius(stencil, rect),
+            o.rx * scaleX,
+            o.ry * scaleY,
           );
           path.arcToPoint(
             target,
@@ -237,6 +248,7 @@ class StencilRenderer {
       case StencilIncludeShapeCommand _:
         return _pathToSvg(_pathForCommand(stencil, command, rect, properties));
       case StencilTextCommand _:
+      case StencilStyleCommand _:
       case StencilUnsupportedCommand _:
         return '';
     }

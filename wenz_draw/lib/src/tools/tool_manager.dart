@@ -4,6 +4,7 @@ import '../canvas/canvas_controller.dart';
 import '../infinite_canvas/canvas_event.dart';
 import 'brush_settings.dart';
 import 'canvas_tool.dart';
+import 'shape_tool.dart';
 
 class ToolManager extends ChangeNotifier {
   final Map<String, CanvasTool> _tools = {};
@@ -17,7 +18,18 @@ class ToolManager extends ChangeNotifier {
   }
 
   void setActiveTool(String toolId, CanvasController controller) {
-    final next = _tools[toolId];
+    var next = _tools[toolId];
+
+    // Dynamically create ShapeTool for unregistered `shape:` toolIds.
+    // This supports stencil-library shapes (flowchart, basic, arrows, etc.)
+    // without requiring every shape key to be pre-registered.
+    if (next == null && toolId.startsWith(ShapeTool.idPrefix)) {
+      final shapeKey = toolId.substring(ShapeTool.idPrefix.length);
+      final tool = ShapeTool(shapeKey: shapeKey, name: shapeKey);
+      registerTool(tool);
+      next = tool;
+    }
+
     if (next == null || identical(next, _activeTool)) {
       return;
     }

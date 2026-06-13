@@ -1,0 +1,2933 @@
+{
+  "library": "weblogos",
+  "group": "WebLogos",
+  "shapeCount": 178,
+  "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+  "sourceSizeBytes": 694848,
+  "generatedAt": "2026-06-13T16:53:15.735598Z",
+  "shapes": [
+    {
+      "key": "weblogos.adfty",
+      "label": "Adfty",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 455.82,
+      "defaultHeight": 458.18,
+      "tags": [
+        "weblogos",
+        "adfty"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.adfty",
+        "mxgraph.weblogos.Adfty"
+      ]
+    },
+    {
+      "key": "weblogos.adobePdf",
+      "label": "Adobe PDF",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 346.82,
+      "defaultHeight": 338.36,
+      "tags": [
+        "weblogos",
+        "adobe",
+        "pdf"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.adobePdf",
+        "mxgraph.weblogos.adobe_pdf",
+        "mxgraph.weblogos.adobe-pdf",
+        "mxgraph.weblogos.Adobe PDF"
+      ]
+    },
+    {
+      "key": "weblogos.aim",
+      "label": "Aim",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 311.61,
+      "defaultHeight": 342.29,
+      "tags": [
+        "weblogos",
+        "aim"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.aim",
+        "mxgraph.weblogos.Aim"
+      ]
+    },
+    {
+      "key": "weblogos.allvoices",
+      "label": "Allvoices",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 419.49,
+      "defaultHeight": 397.83,
+      "tags": [
+        "weblogos",
+        "allvoices"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.allvoices",
+        "mxgraph.weblogos.Allvoices"
+      ]
+    },
+    {
+      "key": "weblogos.amazon",
+      "label": "Amazon",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 314.36,
+      "defaultHeight": 340.65,
+      "tags": [
+        "weblogos",
+        "amazon"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.amazon",
+        "mxgraph.weblogos.Amazon"
+      ]
+    },
+    {
+      "key": "weblogos.android",
+      "label": "Android",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 338.53,
+      "defaultHeight": 400.75,
+      "tags": [
+        "weblogos",
+        "android"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.android",
+        "mxgraph.weblogos.Android"
+      ]
+    },
+    {
+      "key": "weblogos.apache",
+      "label": "Apache",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 213.12,
+      "defaultHeight": 426.14,
+      "tags": [
+        "weblogos",
+        "apache"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.apache",
+        "mxgraph.weblogos.Apache"
+      ]
+    },
+    {
+      "key": "weblogos.apple",
+      "label": "Apple",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 312.13,
+      "defaultHeight": 381.07,
+      "tags": [
+        "weblogos",
+        "apple"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.apple",
+        "mxgraph.weblogos.Apple"
+      ]
+    },
+    {
+      "key": "weblogos.appleClassic",
+      "label": "Apple classic",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 307.27,
+      "defaultHeight": 366.03,
+      "tags": [
+        "weblogos",
+        "apple",
+        "classic"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.appleClassic",
+        "mxgraph.weblogos.apple_classic",
+        "mxgraph.weblogos.apple-classic",
+        "mxgraph.weblogos.Apple classic"
+      ]
+    },
+    {
+      "key": "weblogos.appStore",
+      "label": "App Store",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 152.96,
+      "defaultHeight": 49.8,
+      "tags": [
+        "weblogos",
+        "app",
+        "store"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.appStore",
+        "mxgraph.weblogos.app_store",
+        "mxgraph.weblogos.app-store",
+        "mxgraph.weblogos.App Store"
+      ]
+    },
+    {
+      "key": "weblogos.appStoreIphone",
+      "label": "App Store iPhone",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 152.96,
+      "defaultHeight": 49.8,
+      "tags": [
+        "weblogos",
+        "app",
+        "store",
+        "iphone"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.appStoreIphone",
+        "mxgraph.weblogos.app_store_iphone",
+        "mxgraph.weblogos.app-store-iphone",
+        "mxgraph.weblogos.App Store iPhone"
+      ]
+    },
+    {
+      "key": "weblogos.arduino",
+      "label": "Arduino",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 337.0,
+      "defaultHeight": 159.91,
+      "tags": [
+        "weblogos",
+        "arduino"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.arduino",
+        "mxgraph.weblogos.Arduino"
+      ]
+    },
+    {
+      "key": "weblogos.ask",
+      "label": "Ask",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 343.2,
+      "defaultHeight": 253.09,
+      "tags": [
+        "weblogos",
+        "ask"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.ask",
+        "mxgraph.weblogos.Ask"
+      ]
+    },
+    {
+      "key": "weblogos.atlassian",
+      "label": "Atlassian",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 301.45,
+      "defaultHeight": 274.49,
+      "tags": [
+        "weblogos",
+        "atlassian"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.atlassian",
+        "mxgraph.weblogos.Atlassian"
+      ]
+    },
+    {
+      "key": "weblogos.audioboo",
+      "label": "Audioboo",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 269.76,
+      "defaultHeight": 396.55,
+      "tags": [
+        "weblogos",
+        "audioboo"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.audioboo",
+        "mxgraph.weblogos.Audioboo"
+      ]
+    },
+    {
+      "key": "weblogos.aws",
+      "label": "AWS",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 317.49,
+      "defaultHeight": 291.83,
+      "tags": [
+        "weblogos",
+        "aws"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.aws",
+        "mxgraph.weblogos.AWS"
+      ]
+    },
+    {
+      "key": "weblogos.awsS3",
+      "label": "AWS S3",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 307.73,
+      "defaultHeight": 287.44,
+      "tags": [
+        "weblogos",
+        "aws",
+        "s3"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.awsS3",
+        "mxgraph.weblogos.aws_s3",
+        "mxgraph.weblogos.aws-s3",
+        "mxgraph.weblogos.AWS S3"
+      ]
+    },
+    {
+      "key": "weblogos.baidu",
+      "label": "Baidu",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 355.0,
+      "defaultHeight": 385.24,
+      "tags": [
+        "weblogos",
+        "baidu"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.baidu",
+        "mxgraph.weblogos.Baidu"
+      ]
+    },
+    {
+      "key": "weblogos.bebo",
+      "label": "Bebo",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 279.08,
+      "defaultHeight": 356.91,
+      "tags": [
+        "weblogos",
+        "bebo"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.bebo",
+        "mxgraph.weblogos.Bebo"
+      ]
+    },
+    {
+      "key": "weblogos.behance",
+      "label": "Behance",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 368.98,
+      "defaultHeight": 228.37,
+      "tags": [
+        "weblogos",
+        "behance"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.behance",
+        "mxgraph.weblogos.Behance"
+      ]
+    },
+    {
+      "key": "weblogos.bing",
+      "label": "Bing",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 251.67,
+      "defaultHeight": 360.36,
+      "tags": [
+        "weblogos",
+        "bing"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.bing",
+        "mxgraph.weblogos.Bing"
+      ]
+    },
+    {
+      "key": "weblogos.bitbucket",
+      "label": "Bitbucket",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 325.55,
+      "defaultHeight": 373.84,
+      "tags": [
+        "weblogos",
+        "bitbucket"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.bitbucket",
+        "mxgraph.weblogos.Bitbucket"
+      ]
+    },
+    {
+      "key": "weblogos.blinklist",
+      "label": "Blinklist",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 405.68,
+      "defaultHeight": 359.18,
+      "tags": [
+        "weblogos",
+        "blinklist"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.blinklist",
+        "mxgraph.weblogos.Blinklist"
+      ]
+    },
+    {
+      "key": "weblogos.blogger",
+      "label": "Blogger",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 289.71,
+      "defaultHeight": 291.1,
+      "tags": [
+        "weblogos",
+        "blogger"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.blogger",
+        "mxgraph.weblogos.Blogger"
+      ]
+    },
+    {
+      "key": "weblogos.blogmarks",
+      "label": "Blogmarks",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 188.42,
+      "defaultHeight": 322.11,
+      "tags": [
+        "weblogos",
+        "blogmarks"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.blogmarks",
+        "mxgraph.weblogos.Blogmarks"
+      ]
+    },
+    {
+      "key": "weblogos.bookmarksFr",
+      "label": "Bookmarks.fr",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 351.31,
+      "defaultHeight": 313.69,
+      "tags": [
+        "weblogos",
+        "bookmarks",
+        "fr"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.bookmarksFr",
+        "mxgraph.weblogos.bookmarks_fr",
+        "mxgraph.weblogos.bookmarks-fr",
+        "mxgraph.weblogos.Bookmarks.fr"
+      ]
+    },
+    {
+      "key": "weblogos.box",
+      "label": "Box",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 223.09,
+      "defaultHeight": 320.61,
+      "tags": [
+        "weblogos",
+        "box"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.box",
+        "mxgraph.weblogos.Box"
+      ]
+    },
+    {
+      "key": "weblogos.buddymarks",
+      "label": "Buddymarks",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 396.77,
+      "defaultHeight": 284.77,
+      "tags": [
+        "weblogos",
+        "buddymarks"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.buddymarks",
+        "mxgraph.weblogos.Buddymarks"
+      ]
+    },
+    {
+      "key": "weblogos.buffer",
+      "label": "Buffer",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 352.07,
+      "defaultHeight": 302.21,
+      "tags": [
+        "weblogos",
+        "buffer"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.buffer",
+        "mxgraph.weblogos.Buffer"
+      ]
+    },
+    {
+      "key": "weblogos.buzzfeed",
+      "label": "Buzzfeed",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 392.52,
+      "defaultHeight": 393.24,
+      "tags": [
+        "weblogos",
+        "buzzfeed"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.buzzfeed",
+        "mxgraph.weblogos.Buzzfeed"
+      ]
+    },
+    {
+      "key": "weblogos.chrome",
+      "label": "Chrome",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 374.33,
+      "defaultHeight": 377.76,
+      "tags": [
+        "weblogos",
+        "chrome"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.chrome",
+        "mxgraph.weblogos.Chrome"
+      ]
+    },
+    {
+      "key": "weblogos.citeulike",
+      "label": "Citeulike",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 377.09,
+      "defaultHeight": 179.45,
+      "tags": [
+        "weblogos",
+        "citeulike"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.citeulike",
+        "mxgraph.weblogos.Citeulike"
+      ]
+    },
+    {
+      "key": "weblogos.confluence",
+      "label": "Confluence",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 388.37,
+      "defaultHeight": 333.57,
+      "tags": [
+        "weblogos",
+        "confluence"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.confluence",
+        "mxgraph.weblogos.Confluence"
+      ]
+    },
+    {
+      "key": "weblogos.connotea",
+      "label": "Connotea",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 404.41,
+      "defaultHeight": 412.76,
+      "tags": [
+        "weblogos",
+        "connotea"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.connotea",
+        "mxgraph.weblogos.Connotea"
+      ]
+    },
+    {
+      "key": "weblogos.dealsplus",
+      "label": "Dealsplus",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 379.63,
+      "defaultHeight": 333.3,
+      "tags": [
+        "weblogos",
+        "dealsplus"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.dealsplus",
+        "mxgraph.weblogos.Dealsplus"
+      ]
+    },
+    {
+      "key": "weblogos.designfloat",
+      "label": "Designfloat",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 359.02,
+      "defaultHeight": 359.41,
+      "tags": [
+        "weblogos",
+        "designfloat"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.designfloat",
+        "mxgraph.weblogos.Designfloat"
+      ]
+    },
+    {
+      "key": "weblogos.deviantart",
+      "label": "Deviantart",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 309.6,
+      "defaultHeight": 432.0,
+      "tags": [
+        "weblogos",
+        "deviantart"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.deviantart",
+        "mxgraph.weblogos.Deviantart"
+      ]
+    },
+    {
+      "key": "weblogos.digg",
+      "label": "Digg",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 290.45,
+      "defaultHeight": 280.26,
+      "tags": [
+        "weblogos",
+        "digg"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.digg",
+        "mxgraph.weblogos.Digg"
+      ]
+    },
+    {
+      "key": "weblogos.diigo",
+      "label": "Diigo",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 305.52,
+      "defaultHeight": 343.86,
+      "tags": [
+        "weblogos",
+        "diigo"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.diigo",
+        "mxgraph.weblogos.Diigo"
+      ]
+    },
+    {
+      "key": "weblogos.dopplr",
+      "label": "Dopplr",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 335.13,
+      "defaultHeight": 336.81,
+      "tags": [
+        "weblogos",
+        "dopplr"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.dopplr",
+        "mxgraph.weblogos.Dopplr"
+      ]
+    },
+    {
+      "key": "weblogos.drawio1",
+      "label": "Drawio1",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 248.35,
+      "defaultHeight": 340.84,
+      "tags": [
+        "weblogos",
+        "drawio1"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.drawio1",
+        "mxgraph.weblogos.Drawio1"
+      ]
+    },
+    {
+      "key": "weblogos.drawio2",
+      "label": "Drawio2",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 261.17,
+      "defaultHeight": 353.72,
+      "tags": [
+        "weblogos",
+        "drawio2"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.drawio2",
+        "mxgraph.weblogos.Drawio2"
+      ]
+    },
+    {
+      "key": "weblogos.drawio3",
+      "label": "Drawio3",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 259.99,
+      "defaultHeight": 260.35,
+      "tags": [
+        "weblogos",
+        "drawio3"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.drawio3",
+        "mxgraph.weblogos.Drawio3"
+      ]
+    },
+    {
+      "key": "weblogos.drawio4",
+      "label": "Drawio4",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 259.99,
+      "defaultHeight": 260.35,
+      "tags": [
+        "weblogos",
+        "drawio4"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.drawio4",
+        "mxgraph.weblogos.Drawio4"
+      ]
+    },
+    {
+      "key": "weblogos.dribbble",
+      "label": "Dribbble",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 337.0,
+      "defaultHeight": 335.96,
+      "tags": [
+        "weblogos",
+        "dribbble"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.dribbble",
+        "mxgraph.weblogos.Dribbble"
+      ]
+    },
+    {
+      "key": "weblogos.dropbox",
+      "label": "Dropbox",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 336.6,
+      "defaultHeight": 309.52,
+      "tags": [
+        "weblogos",
+        "dropbox"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.dropbox",
+        "mxgraph.weblogos.Dropbox"
+      ]
+    },
+    {
+      "key": "weblogos.drupal",
+      "label": "Drupal",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 302.55,
+      "defaultHeight": 344.84,
+      "tags": [
+        "weblogos",
+        "drupal"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.drupal",
+        "mxgraph.weblogos.Drupal"
+      ]
+    },
+    {
+      "key": "weblogos.dzone",
+      "label": "Dzone",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 438.32,
+      "defaultHeight": 305.82,
+      "tags": [
+        "weblogos",
+        "dzone"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.dzone",
+        "mxgraph.weblogos.Dzone"
+      ]
+    },
+    {
+      "key": "weblogos.ebay",
+      "label": "Ebay",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 414.03,
+      "defaultHeight": 164.75,
+      "tags": [
+        "weblogos",
+        "ebay"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.ebay",
+        "mxgraph.weblogos.Ebay"
+      ]
+    },
+    {
+      "key": "weblogos.edmodo",
+      "label": "Edmodo",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 346.38,
+      "defaultHeight": 368.76,
+      "tags": [
+        "weblogos",
+        "edmodo"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.edmodo",
+        "mxgraph.weblogos.Edmodo"
+      ]
+    },
+    {
+      "key": "weblogos.evernote",
+      "label": "Evernote",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 316.75,
+      "defaultHeight": 376.29,
+      "tags": [
+        "weblogos",
+        "evernote"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.evernote",
+        "mxgraph.weblogos.Evernote"
+      ]
+    },
+    {
+      "key": "weblogos.fancy",
+      "label": "Fancy",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 195.91,
+      "defaultHeight": 395.13,
+      "tags": [
+        "weblogos",
+        "fancy"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.fancy",
+        "mxgraph.weblogos.Fancy"
+      ]
+    },
+    {
+      "key": "weblogos.fark",
+      "label": "Fark",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 221.29,
+      "defaultHeight": 351.25,
+      "tags": [
+        "weblogos",
+        "fark"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.fark",
+        "mxgraph.weblogos.Fark"
+      ]
+    },
+    {
+      "key": "weblogos.fashiolista",
+      "label": "Fashiolista",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 387.73,
+      "defaultHeight": 365.57,
+      "tags": [
+        "weblogos",
+        "fashiolista"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.fashiolista",
+        "mxgraph.weblogos.Fashiolista"
+      ]
+    },
+    {
+      "key": "weblogos.feed",
+      "label": "Feed",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 301.69,
+      "defaultHeight": 295.97,
+      "tags": [
+        "weblogos",
+        "feed"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.feed",
+        "mxgraph.weblogos.Feed"
+      ]
+    },
+    {
+      "key": "weblogos.feedburner",
+      "label": "Feedburner",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 342.53,
+      "defaultHeight": 372.21,
+      "tags": [
+        "weblogos",
+        "feedburner"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.feedburner",
+        "mxgraph.weblogos.Feedburner"
+      ]
+    },
+    {
+      "key": "weblogos.flickr",
+      "label": "Flickr",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 356.1,
+      "defaultHeight": 155.6,
+      "tags": [
+        "weblogos",
+        "flickr"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.flickr",
+        "mxgraph.weblogos.Flickr"
+      ]
+    },
+    {
+      "key": "weblogos.folkd",
+      "label": "Folkd",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 419.03,
+      "defaultHeight": 217.56,
+      "tags": [
+        "weblogos",
+        "folkd"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.folkd",
+        "mxgraph.weblogos.Folkd"
+      ]
+    },
+    {
+      "key": "weblogos.forrst",
+      "label": "Forrst",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 264.19,
+      "defaultHeight": 365.81,
+      "tags": [
+        "weblogos",
+        "forrst"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.forrst",
+        "mxgraph.weblogos.Forrst"
+      ]
+    },
+    {
+      "key": "weblogos.fotolog",
+      "label": "Fotolog",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 238.0,
+      "defaultHeight": 238.0,
+      "tags": [
+        "weblogos",
+        "fotolog"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.fotolog",
+        "mxgraph.weblogos.Fotolog"
+      ]
+    },
+    {
+      "key": "weblogos.freshbump",
+      "label": "Freshbump",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 356.08,
+      "defaultHeight": 379.46,
+      "tags": [
+        "weblogos",
+        "freshbump"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.freshbump",
+        "mxgraph.weblogos.Freshbump"
+      ]
+    },
+    {
+      "key": "weblogos.fresqui",
+      "label": "Fresqui",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 380.67,
+      "defaultHeight": 426.27,
+      "tags": [
+        "weblogos",
+        "fresqui"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.fresqui",
+        "mxgraph.weblogos.Fresqui"
+      ]
+    },
+    {
+      "key": "weblogos.friendfeed",
+      "label": "Friendfeed",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 369.44,
+      "defaultHeight": 355.32,
+      "tags": [
+        "weblogos",
+        "friendfeed"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.friendfeed",
+        "mxgraph.weblogos.Friendfeed"
+      ]
+    },
+    {
+      "key": "weblogos.funp",
+      "label": "Funp",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 375.09,
+      "defaultHeight": 199.66,
+      "tags": [
+        "weblogos",
+        "funp"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.funp",
+        "mxgraph.weblogos.Funp"
+      ]
+    },
+    {
+      "key": "weblogos.fwisp",
+      "label": "Fwisp",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 327.46,
+      "defaultHeight": 330.76,
+      "tags": [
+        "weblogos",
+        "fwisp"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.fwisp",
+        "mxgraph.weblogos.Fwisp"
+      ]
+    },
+    {
+      "key": "weblogos.gabbr",
+      "label": "Gabbr",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 321.52,
+      "defaultHeight": 329.36,
+      "tags": [
+        "weblogos",
+        "gabbr"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.gabbr",
+        "mxgraph.weblogos.Gabbr"
+      ]
+    },
+    {
+      "key": "weblogos.gamespot",
+      "label": "Gamespot",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 407.59,
+      "defaultHeight": 408.23,
+      "tags": [
+        "weblogos",
+        "gamespot"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.gamespot",
+        "mxgraph.weblogos.Gamespot"
+      ]
+    },
+    {
+      "key": "weblogos.github",
+      "label": "Github",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 374.9,
+      "defaultHeight": 375.43,
+      "tags": [
+        "weblogos",
+        "github"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.github",
+        "mxgraph.weblogos.Github"
+      ]
+    },
+    {
+      "key": "weblogos.gmail",
+      "label": "Gmail",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 323.88,
+      "defaultHeight": 234.16,
+      "tags": [
+        "weblogos",
+        "gmail"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.gmail",
+        "mxgraph.weblogos.Gmail"
+      ]
+    },
+    {
+      "key": "weblogos.google",
+      "label": "Google",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 325.95,
+      "defaultHeight": 347.0,
+      "tags": [
+        "weblogos",
+        "google"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.google",
+        "mxgraph.weblogos.Google"
+      ]
+    },
+    {
+      "key": "weblogos.googleDrive",
+      "label": "Google Drive",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 332.12,
+      "defaultHeight": 290.05,
+      "tags": [
+        "weblogos",
+        "google",
+        "drive"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.googleDrive",
+        "mxgraph.weblogos.google_drive",
+        "mxgraph.weblogos.google-drive",
+        "mxgraph.weblogos.Google Drive"
+      ]
+    },
+    {
+      "key": "weblogos.googleHangout",
+      "label": "Google Hangout",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 324.39,
+      "defaultHeight": 377.53,
+      "tags": [
+        "weblogos",
+        "google",
+        "hangout"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.googleHangout",
+        "mxgraph.weblogos.google_hangout",
+        "mxgraph.weblogos.google-hangout",
+        "mxgraph.weblogos.Google Hangout"
+      ]
+    },
+    {
+      "key": "weblogos.googlePhotos",
+      "label": "Google Photos",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 435.75,
+      "defaultHeight": 436.39,
+      "tags": [
+        "weblogos",
+        "google",
+        "photos"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.googlePhotos",
+        "mxgraph.weblogos.google_photos",
+        "mxgraph.weblogos.google-photos",
+        "mxgraph.weblogos.Google Photos"
+      ]
+    },
+    {
+      "key": "weblogos.googlePlay",
+      "label": "Google Play",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 347.35,
+      "defaultHeight": 102.84,
+      "tags": [
+        "weblogos",
+        "google",
+        "play"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.googlePlay",
+        "mxgraph.weblogos.google_play",
+        "mxgraph.weblogos.google-play",
+        "mxgraph.weblogos.Google Play"
+      ]
+    },
+    {
+      "key": "weblogos.googlePlayLight",
+      "label": "Google Play Light",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 299.58,
+      "defaultHeight": 52.57,
+      "tags": [
+        "weblogos",
+        "google",
+        "play",
+        "light"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.googlePlayLight",
+        "mxgraph.weblogos.google_play_light",
+        "mxgraph.weblogos.google-play-light",
+        "mxgraph.weblogos.Google Play Light"
+      ]
+    },
+    {
+      "key": "weblogos.googlePlus",
+      "label": "Google Plus",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 327.89,
+      "defaultHeight": 220.18,
+      "tags": [
+        "weblogos",
+        "google",
+        "plus"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.googlePlus",
+        "mxgraph.weblogos.google_plus",
+        "mxgraph.weblogos.google-plus",
+        "mxgraph.weblogos.Google Plus"
+      ]
+    },
+    {
+      "key": "weblogos.grooveshark",
+      "label": "Grooveshark",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 310.91,
+      "defaultHeight": 310.76,
+      "tags": [
+        "weblogos",
+        "grooveshark"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.grooveshark",
+        "mxgraph.weblogos.Grooveshark"
+      ]
+    },
+    {
+      "key": "weblogos.hatena",
+      "label": "Hatena",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 430.69,
+      "defaultHeight": 221.36,
+      "tags": [
+        "weblogos",
+        "hatena"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.hatena",
+        "mxgraph.weblogos.Hatena"
+      ]
+    },
+    {
+      "key": "weblogos.html5",
+      "label": "HTML5",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 262.2,
+      "defaultHeight": 369.9,
+      "tags": [
+        "weblogos",
+        "html5"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.html5",
+        "mxgraph.weblogos.HTML5"
+      ]
+    },
+    {
+      "key": "weblogos.identiCa",
+      "label": "Identi.ca",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 371.01,
+      "defaultHeight": 237.86,
+      "tags": [
+        "weblogos",
+        "identi",
+        "ca"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.identiCa",
+        "mxgraph.weblogos.identi_ca",
+        "mxgraph.weblogos.identi-ca",
+        "mxgraph.weblogos.Identi.ca"
+      ]
+    },
+    {
+      "key": "weblogos.instagram",
+      "label": "Instagram",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 360.95,
+      "defaultHeight": 361.39,
+      "tags": [
+        "weblogos",
+        "instagram"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.instagram",
+        "mxgraph.weblogos.Instagram"
+      ]
+    },
+    {
+      "key": "weblogos.instapaper",
+      "label": "Instapaper",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 138.55,
+      "defaultHeight": 351.42,
+      "tags": [
+        "weblogos",
+        "instapaper"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.instapaper",
+        "mxgraph.weblogos.Instapaper"
+      ]
+    },
+    {
+      "key": "weblogos.ios",
+      "label": "iOS",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 367.77,
+      "defaultHeight": 197.18,
+      "tags": [
+        "weblogos",
+        "ios"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.ios",
+        "mxgraph.weblogos.iOS"
+      ]
+    },
+    {
+      "key": "weblogos.jamespot",
+      "label": "Jamespot",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 389.93,
+      "defaultHeight": 390.02,
+      "tags": [
+        "weblogos",
+        "jamespot"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.jamespot",
+        "mxgraph.weblogos.Jamespot"
+      ]
+    },
+    {
+      "key": "weblogos.java",
+      "label": "Java",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 171.48,
+      "defaultHeight": 324.85,
+      "tags": [
+        "weblogos",
+        "java"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.java",
+        "mxgraph.weblogos.Java"
+      ]
+    },
+    {
+      "key": "weblogos.joomla",
+      "label": "Joomla",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 330.15,
+      "defaultHeight": 327.96,
+      "tags": [
+        "weblogos",
+        "joomla"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.joomla",
+        "mxgraph.weblogos.Joomla"
+      ]
+    },
+    {
+      "key": "weblogos.jquery",
+      "label": "Jquery",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 369.05,
+      "defaultHeight": 335.06,
+      "tags": [
+        "weblogos",
+        "jquery"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.jquery",
+        "mxgraph.weblogos.Jquery"
+      ]
+    },
+    {
+      "key": "weblogos.json",
+      "label": "JSON",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 349.94,
+      "defaultHeight": 379.32,
+      "tags": [
+        "weblogos",
+        "json"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.json",
+        "mxgraph.weblogos.JSON"
+      ]
+    },
+    {
+      "key": "weblogos.json2",
+      "label": "JSON 2",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 401.78,
+      "defaultHeight": 126.31,
+      "tags": [
+        "weblogos",
+        "json",
+        "2"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.json2",
+        "mxgraph.weblogos.json_2",
+        "mxgraph.weblogos.json-2",
+        "mxgraph.weblogos.JSON 2"
+      ]
+    },
+    {
+      "key": "weblogos.lastFm",
+      "label": "Last.fm",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 415.09,
+      "defaultHeight": 249.08,
+      "tags": [
+        "weblogos",
+        "last",
+        "fm"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.lastFm",
+        "mxgraph.weblogos.last_fm",
+        "mxgraph.weblogos.last-fm",
+        "mxgraph.weblogos.Last.fm"
+      ]
+    },
+    {
+      "key": "weblogos.linkagogo",
+      "label": "Linkagogo",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 511.39,
+      "defaultHeight": 399.54,
+      "tags": [
+        "weblogos",
+        "linkagogo"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.linkagogo",
+        "mxgraph.weblogos.Linkagogo"
+      ]
+    },
+    {
+      "key": "weblogos.linkedin",
+      "label": "LinkedIn",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 287.07,
+      "defaultHeight": 302.98,
+      "tags": [
+        "weblogos",
+        "linkedin"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.linkedin",
+        "mxgraph.weblogos.LinkedIn"
+      ]
+    },
+    {
+      "key": "weblogos.livejournal",
+      "label": "Livejournal",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 320.12,
+      "defaultHeight": 342.97,
+      "tags": [
+        "weblogos",
+        "livejournal"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.livejournal",
+        "mxgraph.weblogos.Livejournal"
+      ]
+    },
+    {
+      "key": "weblogos.mailRu",
+      "label": "Mail.ru",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 406.39,
+      "defaultHeight": 393.52,
+      "tags": [
+        "weblogos",
+        "mail",
+        "ru"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.mailRu",
+        "mxgraph.weblogos.mail_ru",
+        "mxgraph.weblogos.mail-ru",
+        "mxgraph.weblogos.Mail.ru"
+      ]
+    },
+    {
+      "key": "weblogos.mathoverflow",
+      "label": "MathOverflow",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 295.35,
+      "defaultHeight": 241.17,
+      "tags": [
+        "weblogos",
+        "mathoverflow"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.mathoverflow",
+        "mxgraph.weblogos.MathOverflow"
+      ]
+    },
+    {
+      "key": "weblogos.meetup",
+      "label": "Meetup",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 373.85,
+      "defaultHeight": 149.83,
+      "tags": [
+        "weblogos",
+        "meetup"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.meetup",
+        "mxgraph.weblogos.Meetup"
+      ]
+    },
+    {
+      "key": "weblogos.meneame",
+      "label": "Meneame",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 379.01,
+      "defaultHeight": 337.22,
+      "tags": [
+        "weblogos",
+        "meneame"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.meneame",
+        "mxgraph.weblogos.Meneame"
+      ]
+    },
+    {
+      "key": "weblogos.messenger",
+      "label": "Messenger",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 412.7,
+      "defaultHeight": 383.9,
+      "tags": [
+        "weblogos",
+        "messenger"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.messenger",
+        "mxgraph.weblogos.Messenger"
+      ]
+    },
+    {
+      "key": "weblogos.messenger2",
+      "label": "Messenger 2",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 322.0,
+      "defaultHeight": 324.0,
+      "tags": [
+        "weblogos",
+        "messenger",
+        "2"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.messenger2",
+        "mxgraph.weblogos.messenger_2",
+        "mxgraph.weblogos.messenger-2",
+        "mxgraph.weblogos.Messenger 2"
+      ]
+    },
+    {
+      "key": "weblogos.messenger3",
+      "label": "Messenger 3",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 322.07,
+      "defaultHeight": 324.23,
+      "tags": [
+        "weblogos",
+        "messenger",
+        "3"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.messenger3",
+        "mxgraph.weblogos.messenger_3",
+        "mxgraph.weblogos.messenger-3",
+        "mxgraph.weblogos.Messenger 3"
+      ]
+    },
+    {
+      "key": "weblogos.mindBodyGreen",
+      "label": "Mind Body Green",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 407.15,
+      "defaultHeight": 464.34,
+      "tags": [
+        "weblogos",
+        "mind",
+        "body",
+        "green"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.mindBodyGreen",
+        "mxgraph.weblogos.mind_body_green",
+        "mxgraph.weblogos.mind-body-green",
+        "mxgraph.weblogos.Mind Body Green"
+      ]
+    },
+    {
+      "key": "weblogos.mongodb",
+      "label": "MongoDb",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 206.1,
+      "defaultHeight": 430.92,
+      "tags": [
+        "weblogos",
+        "mongodb"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.mongodb",
+        "mxgraph.weblogos.MongoDb"
+      ]
+    },
+    {
+      "key": "weblogos.myspace",
+      "label": "MySpace",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 315.45,
+      "defaultHeight": 351.07,
+      "tags": [
+        "weblogos",
+        "myspace"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.myspace",
+        "mxgraph.weblogos.MySpace"
+      ]
+    },
+    {
+      "key": "weblogos.n4g",
+      "label": "N4g",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 440.53,
+      "defaultHeight": 158.82,
+      "tags": [
+        "weblogos",
+        "n4g"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.n4g",
+        "mxgraph.weblogos.N4g"
+      ]
+    },
+    {
+      "key": "weblogos.netlog",
+      "label": "Netlog",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 382.6,
+      "defaultHeight": 343.99,
+      "tags": [
+        "weblogos",
+        "netlog"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.netlog",
+        "mxgraph.weblogos.Netlog"
+      ]
+    },
+    {
+      "key": "weblogos.netvibes",
+      "label": "Netvibes",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 309.14,
+      "defaultHeight": 309.19,
+      "tags": [
+        "weblogos",
+        "netvibes"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.netvibes",
+        "mxgraph.weblogos.Netvibes"
+      ]
+    },
+    {
+      "key": "weblogos.netvouz",
+      "label": "Netvouz",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 285.76,
+      "defaultHeight": 286.78,
+      "tags": [
+        "weblogos",
+        "netvouz"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.netvouz",
+        "mxgraph.weblogos.Netvouz"
+      ]
+    },
+    {
+      "key": "weblogos.networkedblogs",
+      "label": "Networkedblogs",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 393.87,
+      "defaultHeight": 393.64,
+      "tags": [
+        "weblogos",
+        "networkedblogs"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.networkedblogs",
+        "mxgraph.weblogos.Networkedblogs"
+      ]
+    },
+    {
+      "key": "weblogos.newsvine",
+      "label": "Newsvine",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 203.08,
+      "defaultHeight": 386.41,
+      "tags": [
+        "weblogos",
+        "newsvine"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.newsvine",
+        "mxgraph.weblogos.Newsvine"
+      ]
+    },
+    {
+      "key": "weblogos.odnoklassniki",
+      "label": "Odnoklassniki",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 246.48,
+      "defaultHeight": 409.2,
+      "tags": [
+        "weblogos",
+        "odnoklassniki"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.odnoklassniki",
+        "mxgraph.weblogos.Odnoklassniki"
+      ]
+    },
+    {
+      "key": "weblogos.oknotizie",
+      "label": "Oknotizie",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 236.96,
+      "defaultHeight": 352.05,
+      "tags": [
+        "weblogos",
+        "oknotizie"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.oknotizie",
+        "mxgraph.weblogos.Oknotizie"
+      ]
+    },
+    {
+      "key": "weblogos.onedrive",
+      "label": "OneDrive",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 356.57,
+      "defaultHeight": 216.76,
+      "tags": [
+        "weblogos",
+        "onedrive"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.onedrive",
+        "mxgraph.weblogos.OneDrive"
+      ]
+    },
+    {
+      "key": "weblogos.oracle",
+      "label": "Oracle",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 448.92,
+      "defaultHeight": 114.66,
+      "tags": [
+        "weblogos",
+        "oracle"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.oracle",
+        "mxgraph.weblogos.Oracle"
+      ]
+    },
+    {
+      "key": "weblogos.paypal",
+      "label": "Paypal",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 256.0,
+      "defaultHeight": 290.03,
+      "tags": [
+        "weblogos",
+        "paypal"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.paypal",
+        "mxgraph.weblogos.Paypal"
+      ]
+    },
+    {
+      "key": "weblogos.phone",
+      "label": "Phone",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 289.23,
+      "defaultHeight": 271.29,
+      "tags": [
+        "weblogos",
+        "phone"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.phone",
+        "mxgraph.weblogos.Phone"
+      ]
+    },
+    {
+      "key": "weblogos.phonefavs",
+      "label": "Phonefavs",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 322.4,
+      "defaultHeight": 394.1,
+      "tags": [
+        "weblogos",
+        "phonefavs"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.phonefavs",
+        "mxgraph.weblogos.Phonefavs"
+      ]
+    },
+    {
+      "key": "weblogos.pinterest",
+      "label": "Pinterest",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 384.22,
+      "defaultHeight": 372.04,
+      "tags": [
+        "weblogos",
+        "pinterest"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.pinterest",
+        "mxgraph.weblogos.Pinterest"
+      ]
+    },
+    {
+      "key": "weblogos.plaxo",
+      "label": "Plaxo",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 398.97,
+      "defaultHeight": 399.93,
+      "tags": [
+        "weblogos",
+        "plaxo"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.plaxo",
+        "mxgraph.weblogos.Plaxo"
+      ]
+    },
+    {
+      "key": "weblogos.playfire",
+      "label": "Playfire",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 309.71,
+      "defaultHeight": 307.34,
+      "tags": [
+        "weblogos",
+        "playfire"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.playfire",
+        "mxgraph.weblogos.Playfire"
+      ]
+    },
+    {
+      "key": "weblogos.plurk",
+      "label": "Plurk",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 510.05,
+      "defaultHeight": 509.85,
+      "tags": [
+        "weblogos",
+        "plurk"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.plurk",
+        "mxgraph.weblogos.Plurk"
+      ]
+    },
+    {
+      "key": "weblogos.pocket",
+      "label": "Pocket",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 313.54,
+      "defaultHeight": 288.73,
+      "tags": [
+        "weblogos",
+        "pocket"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.pocket",
+        "mxgraph.weblogos.Pocket"
+      ]
+    },
+    {
+      "key": "weblogos.protopage",
+      "label": "Protopage",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 392.47,
+      "defaultHeight": 398.45,
+      "tags": [
+        "weblogos",
+        "protopage"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.protopage",
+        "mxgraph.weblogos.Protopage"
+      ]
+    },
+    {
+      "key": "weblogos.readernaut",
+      "label": "Readernaut",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 360.44,
+      "defaultHeight": 360.51,
+      "tags": [
+        "weblogos",
+        "readernaut"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.readernaut",
+        "mxgraph.weblogos.Readernaut"
+      ]
+    },
+    {
+      "key": "weblogos.reddit",
+      "label": "Reddit",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 439.9,
+      "defaultHeight": 367.63,
+      "tags": [
+        "weblogos",
+        "reddit"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.reddit",
+        "mxgraph.weblogos.Reddit"
+      ]
+    },
+    {
+      "key": "weblogos.rss",
+      "label": "RSS",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 408.2,
+      "defaultHeight": 407.88,
+      "tags": [
+        "weblogos",
+        "rss"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.rss",
+        "mxgraph.weblogos.RSS"
+      ]
+    },
+    {
+      "key": "weblogos.scoopit",
+      "label": "Scoopit",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 290.98,
+      "defaultHeight": 350.97,
+      "tags": [
+        "weblogos",
+        "scoopit"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.scoopit",
+        "mxgraph.weblogos.Scoopit"
+      ]
+    },
+    {
+      "key": "weblogos.scribd",
+      "label": "Scribd",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 289.24,
+      "defaultHeight": 346.37,
+      "tags": [
+        "weblogos",
+        "scribd"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.scribd",
+        "mxgraph.weblogos.Scribd"
+      ]
+    },
+    {
+      "key": "weblogos.segnalo",
+      "label": "Segnalo",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 402.78,
+      "defaultHeight": 388.53,
+      "tags": [
+        "weblogos",
+        "segnalo"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.segnalo",
+        "mxgraph.weblogos.Segnalo"
+      ]
+    },
+    {
+      "key": "weblogos.sina",
+      "label": "Sina",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 464.14,
+      "defaultHeight": 333.64,
+      "tags": [
+        "weblogos",
+        "sina"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.sina",
+        "mxgraph.weblogos.Sina"
+      ]
+    },
+    {
+      "key": "weblogos.sitejot",
+      "label": "Sitejot",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 385.79,
+      "defaultHeight": 329.92,
+      "tags": [
+        "weblogos",
+        "sitejot"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.sitejot",
+        "mxgraph.weblogos.Sitejot"
+      ]
+    },
+    {
+      "key": "weblogos.skype",
+      "label": "Skype",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 387.73,
+      "defaultHeight": 393.38,
+      "tags": [
+        "weblogos",
+        "skype"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.skype",
+        "mxgraph.weblogos.Skype"
+      ]
+    },
+    {
+      "key": "weblogos.skyrock",
+      "label": "Skyrock",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 338.87,
+      "defaultHeight": 351.41,
+      "tags": [
+        "weblogos",
+        "skyrock"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.skyrock",
+        "mxgraph.weblogos.Skyrock"
+      ]
+    },
+    {
+      "key": "weblogos.slashdot",
+      "label": "Slashdot",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 262.41,
+      "defaultHeight": 310.5,
+      "tags": [
+        "weblogos",
+        "slashdot"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.slashdot",
+        "mxgraph.weblogos.Slashdot"
+      ]
+    },
+    {
+      "key": "weblogos.sms",
+      "label": "SMS",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 346.19,
+      "defaultHeight": 320.57,
+      "tags": [
+        "weblogos",
+        "sms"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.sms",
+        "mxgraph.weblogos.SMS"
+      ]
+    },
+    {
+      "key": "weblogos.socialvibe",
+      "label": "Socialvibe",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 247.23,
+      "defaultHeight": 247.56,
+      "tags": [
+        "weblogos",
+        "socialvibe"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.socialvibe",
+        "mxgraph.weblogos.Socialvibe"
+      ]
+    },
+    {
+      "key": "weblogos.society6",
+      "label": "Society6",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 374.59,
+      "defaultHeight": 265.27,
+      "tags": [
+        "weblogos",
+        "society6"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.society6",
+        "mxgraph.weblogos.Society6"
+      ]
+    },
+    {
+      "key": "weblogos.sonico",
+      "label": "Sonico",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 345.66,
+      "defaultHeight": 315.51,
+      "tags": [
+        "weblogos",
+        "sonico"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.sonico",
+        "mxgraph.weblogos.Sonico"
+      ]
+    },
+    {
+      "key": "weblogos.soundcloud",
+      "label": "Soundcloud",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 366.85,
+      "defaultHeight": 162.61,
+      "tags": [
+        "weblogos",
+        "soundcloud"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.soundcloud",
+        "mxgraph.weblogos.Soundcloud"
+      ]
+    },
+    {
+      "key": "weblogos.sourceforge",
+      "label": "Sourceforge",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 371.1,
+      "defaultHeight": 372.45,
+      "tags": [
+        "weblogos",
+        "sourceforge"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.sourceforge",
+        "mxgraph.weblogos.Sourceforge"
+      ]
+    },
+    {
+      "key": "weblogos.sourceforge2",
+      "label": "Sourceforge 2",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 315.69,
+      "defaultHeight": 233.75,
+      "tags": [
+        "weblogos",
+        "sourceforge",
+        "2"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.sourceforge2",
+        "mxgraph.weblogos.sourceforge_2",
+        "mxgraph.weblogos.sourceforge-2",
+        "mxgraph.weblogos.Sourceforge 2"
+      ]
+    },
+    {
+      "key": "weblogos.springMe",
+      "label": "Spring.me",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 366.44,
+      "defaultHeight": 158.26,
+      "tags": [
+        "weblogos",
+        "spring",
+        "me"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.springMe",
+        "mxgraph.weblogos.spring_me",
+        "mxgraph.weblogos.spring-me",
+        "mxgraph.weblogos.Spring.me"
+      ]
+    },
+    {
+      "key": "weblogos.stackexchange",
+      "label": "Stackexchange",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 319.18,
+      "defaultHeight": 395.2,
+      "tags": [
+        "weblogos",
+        "stackexchange"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.stackexchange",
+        "mxgraph.weblogos.Stackexchange"
+      ]
+    },
+    {
+      "key": "weblogos.stackoverflow",
+      "label": "StackOverflow",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 271.68,
+      "defaultHeight": 320.5,
+      "tags": [
+        "weblogos",
+        "stackoverflow"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.stackoverflow",
+        "mxgraph.weblogos.StackOverflow"
+      ]
+    },
+    {
+      "key": "weblogos.startaid",
+      "label": "Startaid",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 206.19,
+      "defaultHeight": 213.38,
+      "tags": [
+        "weblogos",
+        "startaid"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.startaid",
+        "mxgraph.weblogos.Startaid"
+      ]
+    },
+    {
+      "key": "weblogos.startlap",
+      "label": "Startlap",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 410.01,
+      "defaultHeight": 421.05,
+      "tags": [
+        "weblogos",
+        "startlap"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.startlap",
+        "mxgraph.weblogos.Startlap"
+      ]
+    },
+    {
+      "key": "weblogos.steam",
+      "label": "Steam",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 426.45,
+      "defaultHeight": 198.13,
+      "tags": [
+        "weblogos",
+        "steam"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.steam",
+        "mxgraph.weblogos.Steam"
+      ]
+    },
+    {
+      "key": "weblogos.stumbleupon",
+      "label": "StumbleUpon",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 511.15,
+      "defaultHeight": 511.01,
+      "tags": [
+        "weblogos",
+        "stumbleupon"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.stumbleupon",
+        "mxgraph.weblogos.StumbleUpon"
+      ]
+    },
+    {
+      "key": "weblogos.stumpedia",
+      "label": "Stumpedia",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 334.54,
+      "defaultHeight": 337.62,
+      "tags": [
+        "weblogos",
+        "stumpedia"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.stumpedia",
+        "mxgraph.weblogos.Stumpedia"
+      ]
+    },
+    {
+      "key": "weblogos.translate",
+      "label": "Translate",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 382.39,
+      "defaultHeight": 382.31,
+      "tags": [
+        "weblogos",
+        "translate"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.translate",
+        "mxgraph.weblogos.Translate"
+      ]
+    },
+    {
+      "key": "weblogos.tumblr",
+      "label": "Tumblr",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 203.39,
+      "defaultHeight": 325.67,
+      "tags": [
+        "weblogos",
+        "tumblr"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.tumblr",
+        "mxgraph.weblogos.Tumblr"
+      ]
+    },
+    {
+      "key": "weblogos.tunein",
+      "label": "Tunein",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 349.45,
+      "defaultHeight": 349.45,
+      "tags": [
+        "weblogos",
+        "tunein"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.tunein",
+        "mxgraph.weblogos.Tunein"
+      ]
+    },
+    {
+      "key": "weblogos.twitter",
+      "label": "Twitter",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 400.4,
+      "defaultHeight": 350.19,
+      "tags": [
+        "weblogos",
+        "twitter"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.twitter",
+        "mxgraph.weblogos.Twitter"
+      ]
+    },
+    {
+      "key": "weblogos.two",
+      "label": "Two",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 377.19,
+      "defaultHeight": 100.48,
+      "tags": [
+        "weblogos",
+        "two"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.two",
+        "mxgraph.weblogos.Two"
+      ]
+    },
+    {
+      "key": "weblogos.typepad",
+      "label": "Typepad",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 323.62,
+      "defaultHeight": 191.46,
+      "tags": [
+        "weblogos",
+        "typepad"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.typepad",
+        "mxgraph.weblogos.Typepad"
+      ]
+    },
+    {
+      "key": "weblogos.viadeo",
+      "label": "Viadeo",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 367.42,
+      "defaultHeight": 420.82,
+      "tags": [
+        "weblogos",
+        "viadeo"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.viadeo",
+        "mxgraph.weblogos.Viadeo"
+      ]
+    },
+    {
+      "key": "weblogos.viber",
+      "label": "Viber",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 386.96,
+      "defaultHeight": 426.09,
+      "tags": [
+        "weblogos",
+        "viber"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.viber",
+        "mxgraph.weblogos.Viber"
+      ]
+    },
+    {
+      "key": "weblogos.viddler",
+      "label": "Viddler",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 409.87,
+      "defaultHeight": 106.03,
+      "tags": [
+        "weblogos",
+        "viddler"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.viddler",
+        "mxgraph.weblogos.Viddler"
+      ]
+    },
+    {
+      "key": "weblogos.vimeo",
+      "label": "Vimeo",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 312.89,
+      "defaultHeight": 290.06,
+      "tags": [
+        "weblogos",
+        "vimeo"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.vimeo",
+        "mxgraph.weblogos.Vimeo"
+      ]
+    },
+    {
+      "key": "weblogos.virb",
+      "label": "Virb",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 330.64,
+      "defaultHeight": 353.64,
+      "tags": [
+        "weblogos",
+        "virb"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.virb",
+        "mxgraph.weblogos.Virb"
+      ]
+    },
+    {
+      "key": "weblogos.vkontakte",
+      "label": "Vkontakte",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 351.68,
+      "defaultHeight": 200.14,
+      "tags": [
+        "weblogos",
+        "vkontakte"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.vkontakte",
+        "mxgraph.weblogos.Vkontakte"
+      ]
+    },
+    {
+      "key": "weblogos.wakoopa",
+      "label": "Wakoopa",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 413.23,
+      "defaultHeight": 224.43,
+      "tags": [
+        "weblogos",
+        "wakoopa"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.wakoopa",
+        "mxgraph.weblogos.Wakoopa"
+      ]
+    },
+    {
+      "key": "weblogos.weheartit",
+      "label": "Weheartit",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 410.79,
+      "defaultHeight": 347.99,
+      "tags": [
+        "weblogos",
+        "weheartit"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.weheartit",
+        "mxgraph.weblogos.Weheartit"
+      ]
+    },
+    {
+      "key": "weblogos.whatsapp",
+      "label": "Whatsapp",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 371.65,
+      "defaultHeight": 373.81,
+      "tags": [
+        "weblogos",
+        "whatsapp"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.whatsapp",
+        "mxgraph.weblogos.Whatsapp"
+      ]
+    },
+    {
+      "key": "weblogos.wix",
+      "label": "Wix",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 370.65,
+      "defaultHeight": 308.75,
+      "tags": [
+        "weblogos",
+        "wix"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.wix",
+        "mxgraph.weblogos.Wix"
+      ]
+    },
+    {
+      "key": "weblogos.wordpress",
+      "label": "Wordpress",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 333.54,
+      "defaultHeight": 327.26,
+      "tags": [
+        "weblogos",
+        "wordpress"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.wordpress",
+        "mxgraph.weblogos.Wordpress"
+      ]
+    },
+    {
+      "key": "weblogos.wordpress2",
+      "label": "Wordpress 2",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 343.69,
+      "defaultHeight": 344.05,
+      "tags": [
+        "weblogos",
+        "wordpress",
+        "2"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.wordpress2",
+        "mxgraph.weblogos.wordpress_2",
+        "mxgraph.weblogos.wordpress-2",
+        "mxgraph.weblogos.Wordpress 2"
+      ]
+    },
+    {
+      "key": "weblogos.xanga",
+      "label": "Xanga",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 349.6,
+      "defaultHeight": 189.69,
+      "tags": [
+        "weblogos",
+        "xanga"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.xanga",
+        "mxgraph.weblogos.Xanga"
+      ]
+    },
+    {
+      "key": "weblogos.xerpi",
+      "label": "Xerpi",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 351.36,
+      "defaultHeight": 328.12,
+      "tags": [
+        "weblogos",
+        "xerpi"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.xerpi",
+        "mxgraph.weblogos.Xerpi"
+      ]
+    },
+    {
+      "key": "weblogos.xing",
+      "label": "Xing",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 324.71,
+      "defaultHeight": 368.88,
+      "tags": [
+        "weblogos",
+        "xing"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.xing",
+        "mxgraph.weblogos.Xing"
+      ]
+    },
+    {
+      "key": "weblogos.yahoo",
+      "label": "Yahoo",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 372.44,
+      "defaultHeight": 218.16,
+      "tags": [
+        "weblogos",
+        "yahoo"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.yahoo",
+        "mxgraph.weblogos.Yahoo"
+      ]
+    },
+    {
+      "key": "weblogos.yahoo2",
+      "label": "Yahoo 2",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 398.75,
+      "defaultHeight": 231.83,
+      "tags": [
+        "weblogos",
+        "yahoo",
+        "2"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.yahoo2",
+        "mxgraph.weblogos.yahoo_2",
+        "mxgraph.weblogos.yahoo-2",
+        "mxgraph.weblogos.Yahoo 2"
+      ]
+    },
+    {
+      "key": "weblogos.yammer",
+      "label": "Yammer",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 348.16,
+      "defaultHeight": 298.31,
+      "tags": [
+        "weblogos",
+        "yammer"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.yammer",
+        "mxgraph.weblogos.Yammer"
+      ]
+    },
+    {
+      "key": "weblogos.yandex",
+      "label": "Yandex",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 158.66,
+      "defaultHeight": 331.84,
+      "tags": [
+        "weblogos",
+        "yandex"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.yandex",
+        "mxgraph.weblogos.Yandex"
+      ]
+    },
+    {
+      "key": "weblogos.yelp",
+      "label": "Yelp",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 317.28,
+      "defaultHeight": 415.23,
+      "tags": [
+        "weblogos",
+        "yelp"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.yelp",
+        "mxgraph.weblogos.Yelp"
+      ]
+    },
+    {
+      "key": "weblogos.yoolink",
+      "label": "Yoolink",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 396.13,
+      "defaultHeight": 396.1,
+      "tags": [
+        "weblogos",
+        "yoolink"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.yoolink",
+        "mxgraph.weblogos.Yoolink"
+      ]
+    },
+    {
+      "key": "weblogos.youmob",
+      "label": "Youmob",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 379.65,
+      "defaultHeight": 380.89,
+      "tags": [
+        "weblogos",
+        "youmob"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.youmob",
+        "mxgraph.weblogos.Youmob"
+      ]
+    },
+    {
+      "key": "weblogos.youtube",
+      "label": "Youtube",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 785.75,
+      "defaultHeight": 328.73,
+      "tags": [
+        "weblogos",
+        "youtube"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.youtube",
+        "mxgraph.weblogos.Youtube"
+      ]
+    },
+    {
+      "key": "weblogos.youtube2",
+      "label": "Youtube 2",
+      "group": "WebLogos",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\weblogos.xml",
+      "defaultWidth": 231.63,
+      "defaultHeight": 162.54,
+      "tags": [
+        "weblogos",
+        "youtube",
+        "2"
+      ],
+      "aliases": [
+        "mxgraph.weblogos.youtube2",
+        "mxgraph.weblogos.youtube_2",
+        "mxgraph.weblogos.youtube-2",
+        "mxgraph.weblogos.Youtube 2"
+      ]
+    }
+  ]
+}

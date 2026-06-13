@@ -84,4 +84,39 @@ void main() {
       expect(restored.hitTest(const Offset(50, 30)), isTrue);
     },
   );
+
+  test('imports official mxgraph style aliases and preserves stage 4 fields', () {
+    final elements = DrawioImporter.fromJson([
+      {
+        'id': 'flow-1',
+        'vertex': true,
+        'value': 'Manual Op',
+        'style':
+            'shape=mxgraph.flowchart.manual_operation;direction=west;flipH=1;flipV=1;size=20;arcSize=8;absoluteArcSize=1;boundedLbl=1;backgroundOutline=1;labelPosition=right;verticalLabelPosition=bottom;verticalAlign=bottom;futureField=kept;',
+        'geometry': {'x': 5, 'y': 6, 'width': 110, 'height': 70},
+      },
+      {
+        'id': 'arrow-block',
+        'vertex': true,
+        'style': 'shape=mxgraph.arrows.u-turn-up-arrow;',
+        'geometry': {'x': 0, 'y': 0, 'width': 90, 'height': 50},
+      },
+    ]);
+
+    expect(elements, hasLength(2));
+    expect(elements.first.shapeKey, 'flowchart.manualOperation');
+    expect(elements.first.properties['direction'], 'west');
+    expect(elements.first.properties['flipH'], isTrue);
+    expect(elements.first.properties['flipV'], isTrue);
+    expect(elements.first.properties['size'], 20);
+    expect(elements.first.properties['arcSize'], 8);
+    expect(elements.first.properties['absoluteArcSize'], isTrue);
+    expect(elements.first.properties['boundedLbl'], isTrue);
+    expect(elements.first.properties['backgroundOutline'], isTrue);
+    expect(elements.first.properties['labelPosition'], 'right');
+    expect(elements.first.properties['verticalLabelPosition'], 'bottom');
+    expect(elements.first.properties['verticalAlign'], 'bottom');
+    expect(elements.first.properties['futureField'], 'kept');
+    expect(elements.last.shapeKey, 'arrows.uTurnUpArrow');
+  });
 }

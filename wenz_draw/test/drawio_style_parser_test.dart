@@ -59,7 +59,7 @@ void main() {
           'shape=manualInput;fillColor=none;strokeColor=none;opacity=50;rounded=1;',
     );
 
-    expect(element.shapeKey, 'parallelogram');
+    expect(element.shapeKey, 'flowchart.manualInput');
     expect(element.fillStyle, isNull);
     expect(element.strokeStyle.strokeWidth, 0);
     expect(element.strokeStyle.opacity, 0);
@@ -69,7 +69,7 @@ void main() {
     final restored =
         CanvasSerializer.elementFromJson(element.toJson())
             as DrawioShapeElement;
-    expect(restored.shapeKey, 'parallelogram');
+    expect(restored.shapeKey, 'flowchart.manualInput');
     expect(restored.properties['drawioStyle'], contains('shape=manualInput'));
   });
 
@@ -82,5 +82,75 @@ void main() {
 
     expect(element.shapeKey, 'roundedRectangle');
     expect(element.hitTest(const Offset(50, 30)), isTrue);
+  });
+
+  test('adapter preserves stage 4 drawio style fields as properties', () {
+    final element = DrawioShapeAdapter.fromStyleString(
+      id: 'style-4',
+      rect: const Rect.fromLTWH(0, 0, 100, 60),
+      style:
+          'shape=mxgraph.flowchart.manual-operation;direction=south;flipH=1;flipV=0;size=18;arcSize=12;absoluteArcSize=1;boundedLbl=1;backgroundOutline=0;verticalLabelPosition=bottom;verticalAlign=top;labelPosition=left;fontFamily=Courier New;fontStyle=7;customKeep=yes;',
+    );
+
+    expect(element.shapeKey, 'flowchart.manualOperation');
+    expect(element.properties['direction'], 'south');
+    expect(element.properties['flipH'], isTrue);
+    expect(element.properties['flipV'], '0');
+    expect(element.properties['size'], 18);
+    expect(element.properties['arcSize'], 12);
+    expect(element.properties['absoluteArcSize'], isTrue);
+    expect(element.properties['boundedLbl'], isTrue);
+    expect(element.properties['backgroundOutline'], '0');
+    expect(element.properties['verticalLabelPosition'], 'bottom');
+    expect(element.properties['verticalAlign'], 'top');
+    expect(element.properties['labelPosition'], 'left');
+    expect(element.properties['customKeep'], 'yes');
+    expect(element.labelStyle.fontFamily, 'Courier New');
+    expect(element.labelStyle.fontWeight, FontWeight.bold);
+    expect(element.labelStyle.fontStyle, FontStyle.italic);
+    expect(element.labelStyle.decoration, TextDecoration.underline);
+  });
+
+  test('adapter maps mxgraph basic and arrows snake/kebab aliases', () {
+    final basic = DrawioShapeAdapter.fromStyleString(
+      id: 'basic-1',
+      rect: const Rect.fromLTWH(0, 0, 100, 60),
+      style: 'shape=mxgraph.basic.rounded-rectangular-callout;',
+    );
+    final arrow = DrawioShapeAdapter.fromStyleString(
+      id: 'arrow-1',
+      rect: const Rect.fromLTWH(0, 0, 100, 60),
+      style: 'shape=mxgraph.arrows.u_turn_left_arrow;',
+    );
+
+    expect(basic.shapeKey, 'basic.roundedRectangularCallout');
+    expect(arrow.shapeKey, 'arrows.uTurnLeftArrow');
+  });
+
+  test('adapter maps advanced built-in flowchart aliases', () {
+    final cases = <String, String>{
+      'card': 'flowchart.card',
+      'tape': 'flowchart.paperTape',
+      'delay': 'flowchart.delay',
+      'data': 'flowchart.data',
+      'database': 'flowchart.database',
+      'document': 'flowchart.document',
+      'decision': 'flowchart.decision',
+      'terminator': 'flowchart.terminator',
+      'preparation': 'flowchart.preparation',
+      'manual_input': 'flowchart.manualInput',
+      'mxgraph.flowchart.sequential-data': 'flowchart.sequentialData',
+      'mxgraph.basic.cloud_rect': 'basic.cloudRect',
+      'mxgraph.arrows.two-way-arrow-vertical': 'arrows.twoWayArrowVertical',
+    };
+
+    for (final entry in cases.entries) {
+      final element = DrawioShapeAdapter.fromStyleString(
+        id: entry.key,
+        rect: const Rect.fromLTWH(0, 0, 100, 60),
+        style: 'shape=${entry.key};',
+      );
+      expect(element.shapeKey, entry.value, reason: entry.key);
+    }
   });
 }

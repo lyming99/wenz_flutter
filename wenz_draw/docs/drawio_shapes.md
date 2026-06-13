@@ -42,11 +42,36 @@ final element = DrawioShapeAdapter.fromStyleString(
 
 ## Supported Built-in Shapes
 
-Basic:
+Basic MVP:
 
 - rectangle, roundedRectangle, ellipse
 - rhombus, triangle, hexagon
 - plus, cross
+
+Official Basic stencil library (`basic.*`, with `mxgraph.basic.*` aliases):
+
+- 4 Point Star, 6 Point Star, 8 Point Star
+- Banner, Cloud Callout, Cloud Rect
+- Cone, Cross, Document, Flash, Half Circle, Heart
+- Loud Callout, Moon, No Symbol, Octagon, Orthogonal Triangle
+- Oval Callout, Parallelepiped, Pentagon, Pointed Oval
+- Rectangular Callout, Rounded Rectangular Callout
+- Smiley, Star, Sun, Tick, Trapezoid, Wave, X
+
+Official Arrows stencil library (`arrows.*`, with `mxgraph.arrows.*` aliases) contains draw.io block-arrow shapes. These are fillable vertex shapes, separate from ArrowElement connector arrows:
+
+- Arrow Down, Arrow Left, Arrow Right, Arrow Up
+- Bent Left Arrow, Bent Right Arrow, Bent Up Arrow
+- Callout Double Arrow, Callout Quad Arrow, Callout Up Arrow
+- Chevron Arrow, Circular Arrow
+- Jump-in Arrow 1, Jump-in Arrow 2
+- Left and Up Arrow, Left Sharp Edged Head Arrow
+- Notched Signal-in Arrow, Right Notched Arrow, Signal-in Arrow
+- Quad Arrow, Sharp Edged Arrow
+- Slender Left Arrow, Slender Two Way Arrow, Slender Wide Tailed Arrow
+- Striped Arrow, Stylised Notched Arrow, Triad Arrow
+- Two Way Arrow Horizontal, Two Way Arrow Vertical
+- U Turn Arrow, U Turn Down Arrow, U Turn Left Arrow, U Turn Right Arrow, U Turn Up Arrow
 
 Flowchart:
 
@@ -60,7 +85,7 @@ Container and diagram shapes:
 - actor, cloud
 - cube, isoRectangle alias
 
-Draw.io aliases currently include rect, process, rounded, circle, diamond, manualInput, cylinder3, and isoRectangle.
+Draw.io aliases currently include rect, process, rounded, circle, diamond, manualInput, cylinder3, isoRectangle, `mxgraph.flowchart.*`, `mxgraph.basic.*`, and `mxgraph.arrows.*` (camelCase, snake_case, and kebab-case variants where applicable).
 
 ## Style Compatibility
 
@@ -70,7 +95,7 @@ The draw.io style parser supports key=value; pairs and bare keys. Common fields 
 
 ## Example Palette
 
-The example app includes a left palette with Basic, Flowchart, and Container groups. Selecting an entry activates ShapeTool for that shape; dragging on the canvas creates the matching DrawioShapeElement with the current brush fill and stroke.
+The example app includes a left palette with Basic, Basic Symbols, Flowchart, Arrows, and Container groups. Selecting an entry activates ShapeTool for that shape; dragging on the canvas creates the matching DrawioShapeElement with the current brush fill and stroke.
 
 ## Visual Acceptance
 
@@ -78,7 +103,9 @@ Fixed-size examples are available in the example palette and in the shape render
 
 Acceptance set:
 
-- Basic: rectangle, roundedRectangle, ellipse, rhombus, triangle, hexagon, plus, cross.
+- Basic MVP: rectangle, roundedRectangle, ellipse, rhombus, triangle, hexagon, plus, cross.
+- Basic stencil library: all 30 `BasicStencils.keys` entries, with focused checks for Smiley, Sun, Cloud Callout, and No Symbol.
+- Arrows stencil library: all 34 `ArrowStencils.keys` entries, including horizontal/vertical, U Turn, Circular, callout, and slender arrow variants.
 - Flowchart: parallelogram, trapezoid, document, step, cylinder, doubleEllipse.
 - Container and diagram shapes: swimlane, note, callout, actor, cloud, cube.
 - Stencil subset: stencil.process, stencil.decision, stencil.document and the registered basic/flowchart static stencil entries.

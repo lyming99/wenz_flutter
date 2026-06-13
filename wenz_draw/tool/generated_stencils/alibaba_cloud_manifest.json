@@ -1,0 +1,5986 @@
+{
+  "library": "alibabaCloud",
+  "group": "AlibabaCloud",
+  "shapeCount": 310,
+  "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+  "sourceSizeBytes": 1371221,
+  "generatedAt": "2026-06-13T16:52:56.710700Z",
+  "shapes": [
+    {
+      "key": "alibabaCloud.abapBusinessApplicationPlatform",
+      "label": "ABAP Business Application Platform",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 182.308,
+      "defaultHeight": 165.205,
+      "tags": [
+        "alibabacloud",
+        "abap",
+        "business",
+        "application",
+        "platform"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.abapBusinessApplicationPlatform",
+        "mxgraph.alibabaCloud.abap_business_application_platform",
+        "mxgraph.alibabaCloud.abap-business-application-platform",
+        "mxgraph.alibabaCloud.ABAP Business Application Platform"
+      ]
+    },
+    {
+      "key": "alibabaCloud.acmsApplicationConfigurationManangement",
+      "label": "ACMS Application Configuration Manangement",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 169.7,
+      "defaultHeight": 157.8,
+      "tags": [
+        "alibabacloud",
+        "acms",
+        "application",
+        "configuration",
+        "manangement"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.acmsApplicationConfigurationManangement",
+        "mxgraph.alibabaCloud.acms_application_configuration_manangement",
+        "mxgraph.alibabaCloud.acms-application-configuration-manangement",
+        "mxgraph.alibabaCloud.ACMS Application Configuration Manangement"
+      ]
+    },
+    {
+      "key": "alibabaCloud.acrCloudContainerRegistry",
+      "label": "ACR Cloud Container Registry",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 162.398,
+      "defaultHeight": 187.602,
+      "tags": [
+        "alibabacloud",
+        "acr",
+        "cloud",
+        "container",
+        "registry"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.acrCloudContainerRegistry",
+        "mxgraph.alibabaCloud.acr_cloud_container_registry",
+        "mxgraph.alibabaCloud.acr-cloud-container-registry",
+        "mxgraph.alibabaCloud.ACR Cloud Container Registry"
+      ]
+    },
+    {
+      "key": "alibabaCloud.actiontrail",
+      "label": "ActionTrail",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 166.667,
+      "defaultHeight": 166.667,
+      "tags": [
+        "alibabacloud",
+        "actiontrail"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.actiontrail",
+        "mxgraph.alibabaCloud.ActionTrail"
+      ]
+    },
+    {
+      "key": "alibabaCloud.adamAdvancedDatabaseAndApplicationMigration",
+      "label": "ADAM Advanced Database and Application Migration",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 142.9,
+      "defaultHeight": 170.9,
+      "tags": [
+        "alibabacloud",
+        "adam",
+        "advanced",
+        "database",
+        "and",
+        "application",
+        "migration"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.adamAdvancedDatabaseAndApplicationMigration",
+        "mxgraph.alibabaCloud.adam_advanced_database_and_application_migration",
+        "mxgraph.alibabaCloud.adam-advanced-database-and-application-migration",
+        "mxgraph.alibabaCloud.ADAM Advanced Database and Application Migration"
+      ]
+    },
+    {
+      "key": "alibabaCloud.adbAnalyticdbForMysql",
+      "label": "ADB AnalyticDB for MySQL",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 162.558,
+      "defaultHeight": 183.333,
+      "tags": [
+        "alibabacloud",
+        "adb",
+        "analyticdb",
+        "for",
+        "mysql"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.adbAnalyticdbForMysql",
+        "mxgraph.alibabaCloud.adb_analyticdb_for_mysql",
+        "mxgraph.alibabaCloud.adb-analyticdb-for-mysql",
+        "mxgraph.alibabaCloud.ADB AnalyticDB for MySQL"
+      ]
+    },
+    {
+      "key": "alibabaCloud.addressPurification",
+      "label": "Address Purification",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 168.751,
+      "defaultHeight": 178.788,
+      "tags": [
+        "alibabacloud",
+        "address",
+        "purification"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.addressPurification",
+        "mxgraph.alibabaCloud.address_purification",
+        "mxgraph.alibabaCloud.address-purification",
+        "mxgraph.alibabaCloud.Address Purification"
+      ]
+    },
+    {
+      "key": "alibabaCloud.afsFraudService",
+      "label": "AFS Fraud Service",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 146.8,
+      "defaultHeight": 166.4,
+      "tags": [
+        "alibabacloud",
+        "afs",
+        "fraud",
+        "service"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.afsFraudService",
+        "mxgraph.alibabaCloud.afs_fraud_service",
+        "mxgraph.alibabaCloud.afs-fraud-service",
+        "mxgraph.alibabaCloud.AFS Fraud Service"
+      ]
+    },
+    {
+      "key": "alibabaCloud.agwAligateway",
+      "label": "AGW AliGateWay",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 156.725,
+      "defaultHeight": 131.611,
+      "tags": [
+        "alibabacloud",
+        "agw",
+        "aligateway"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.agwAligateway",
+        "mxgraph.alibabaCloud.agw_aligateway",
+        "mxgraph.alibabaCloud.agw-aligateway",
+        "mxgraph.alibabaCloud.AGW AliGateWay"
+      ]
+    },
+    {
+      "key": "alibabaCloud.ahasApplicationHighAvailabilityService",
+      "label": "AHAS Application High Availability Service",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 154.941,
+      "defaultHeight": 178.812,
+      "tags": [
+        "alibabacloud",
+        "ahas",
+        "application",
+        "high",
+        "availability",
+        "service"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.ahasApplicationHighAvailabilityService",
+        "mxgraph.alibabaCloud.ahas_application_high_availability_service",
+        "mxgraph.alibabaCloud.ahas-application-high-availability-service",
+        "mxgraph.alibabaCloud.AHAS Application High Availability Service"
+      ]
+    },
+    {
+      "key": "alibabaCloud.airecArtificialIntelligenceRecommendation",
+      "label": "AIRec Artificial Intelligence Recommendation",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 200.0,
+      "defaultHeight": 200.0,
+      "tags": [
+        "alibabacloud",
+        "airec",
+        "artificial",
+        "intelligence",
+        "recommendation"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.airecArtificialIntelligenceRecommendation",
+        "mxgraph.alibabaCloud.airec_artificial_intelligence_recommendation",
+        "mxgraph.alibabaCloud.airec-artificial-intelligence-recommendation",
+        "mxgraph.alibabaCloud.AIRec Artificial Intelligence Recommendation"
+      ]
+    },
+    {
+      "key": "alibabaCloud.albApplicationLoadBalancer01",
+      "label": "ALB Application Load Balancer 01",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 158.332,
+      "defaultHeight": 134.427,
+      "tags": [
+        "alibabacloud",
+        "alb",
+        "application",
+        "load",
+        "balancer",
+        "01"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.albApplicationLoadBalancer01",
+        "mxgraph.alibabaCloud.alb_application_load_balancer_01",
+        "mxgraph.alibabaCloud.alb-application-load-balancer-01",
+        "mxgraph.alibabaCloud.ALB Application Load Balancer 01"
+      ]
+    },
+    {
+      "key": "alibabaCloud.albApplicationLoadBalancer02",
+      "label": "ALB Application Load Balancer 02",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 200.0,
+      "defaultHeight": 200.0,
+      "tags": [
+        "alibabacloud",
+        "alb",
+        "application",
+        "load",
+        "balancer",
+        "02"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.albApplicationLoadBalancer02",
+        "mxgraph.alibabaCloud.alb_application_load_balancer_02",
+        "mxgraph.alibabaCloud.alb-application-load-balancer-02",
+        "mxgraph.alibabaCloud.ALB Application Load Balancer 02"
+      ]
+    },
+    {
+      "key": "alibabaCloud.alibabaCloudLogoChinese",
+      "label": "Alibaba Cloud Logo Chinese",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 512.488,
+      "defaultHeight": 114.398,
+      "tags": [
+        "alibabacloud",
+        "alibaba",
+        "cloud",
+        "logo",
+        "chinese"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.alibabaCloudLogoChinese",
+        "mxgraph.alibabaCloud.alibaba_cloud_logo_chinese",
+        "mxgraph.alibabaCloud.alibaba-cloud-logo-chinese",
+        "mxgraph.alibabaCloud.Alibaba Cloud Logo Chinese"
+      ]
+    },
+    {
+      "key": "alibabaCloud.alibabaCloudLogoEnglish",
+      "label": "Alibaba Cloud Logo English",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 515.775,
+      "defaultHeight": 65.0,
+      "tags": [
+        "alibabacloud",
+        "alibaba",
+        "cloud",
+        "logo",
+        "english"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.alibabaCloudLogoEnglish",
+        "mxgraph.alibabaCloud.alibaba_cloud_logo_english",
+        "mxgraph.alibabaCloud.alibaba-cloud-logo-english",
+        "mxgraph.alibabaCloud.Alibaba Cloud Logo English"
+      ]
+    },
+    {
+      "key": "alibabaCloud.alibabaCloudLogo",
+      "label": "Alibaba Cloud Logo",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 322.271,
+      "defaultHeight": 199.721,
+      "tags": [
+        "alibabacloud",
+        "alibaba",
+        "cloud",
+        "logo"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.alibabaCloudLogo",
+        "mxgraph.alibabaCloud.alibaba_cloud_logo",
+        "mxgraph.alibabaCloud.alibaba-cloud-logo",
+        "mxgraph.alibabaCloud.Alibaba Cloud Logo"
+      ]
+    },
+    {
+      "key": "alibabaCloud.alimail",
+      "label": "AliMail",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 191.7,
+      "defaultHeight": 130.5,
+      "tags": [
+        "alibabacloud",
+        "alimail"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.alimail",
+        "mxgraph.alibabaCloud.AliMail"
+      ]
+    },
+    {
+      "key": "alibabaCloud.alimtMachineTranslation",
+      "label": "AliMT Machine Translation",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 158.399,
+      "defaultHeight": 159.4,
+      "tags": [
+        "alibabacloud",
+        "alimt",
+        "machine",
+        "translation"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.alimtMachineTranslation",
+        "mxgraph.alibabaCloud.alimt_machine_translation",
+        "mxgraph.alibabaCloud.alimt-machine-translation",
+        "mxgraph.alibabaCloud.AliMT Machine Translation"
+      ]
+    },
+    {
+      "key": "alibabaCloud.aliyunLinux",
+      "label": "Aliyun Linux",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 175.0,
+      "defaultHeight": 175.0,
+      "tags": [
+        "alibabacloud",
+        "aliyun",
+        "linux"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.aliyunLinux",
+        "mxgraph.alibabaCloud.aliyun_linux",
+        "mxgraph.alibabaCloud.aliyun-linux",
+        "mxgraph.alibabaCloud.Aliyun Linux"
+      ]
+    },
+    {
+      "key": "alibabaCloud.amqpAdvancedMessageQueuingProtocol",
+      "label": "AMQP Advanced Message Queuing Protocol",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 153.398,
+      "defaultHeight": 160.0,
+      "tags": [
+        "alibabacloud",
+        "amqp",
+        "advanced",
+        "message",
+        "queuing",
+        "protocol"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.amqpAdvancedMessageQueuingProtocol",
+        "mxgraph.alibabaCloud.amqp_advanced_message_queuing_protocol",
+        "mxgraph.alibabaCloud.amqp-advanced-message-queuing-protocol",
+        "mxgraph.alibabaCloud.AMQP Advanced Message Queuing Protocol"
+      ]
+    },
+    {
+      "key": "alibabaCloud.amscloudapp",
+      "label": "AMSCloudApp",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 189.001,
+      "defaultHeight": 132.114,
+      "tags": [
+        "alibabacloud",
+        "amscloudapp"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.amscloudapp",
+        "mxgraph.alibabaCloud.AMSCloudApp"
+      ]
+    },
+    {
+      "key": "alibabaCloud.analyticdbForPostgresql",
+      "label": "AnalyticDB for PostgreSQL",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 167.159,
+      "defaultHeight": 164.661,
+      "tags": [
+        "alibabacloud",
+        "analyticdb",
+        "for",
+        "postgresql"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.analyticdbForPostgresql",
+        "mxgraph.alibabaCloud.analyticdb_for_postgresql",
+        "mxgraph.alibabaCloud.analyticdb-for-postgresql",
+        "mxgraph.alibabaCloud.AnalyticDB for PostgreSQL"
+      ]
+    },
+    {
+      "key": "alibabaCloud.antibot",
+      "label": "AntiBot",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 185.0,
+      "defaultHeight": 165.175,
+      "tags": [
+        "alibabacloud",
+        "antibot"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.antibot",
+        "mxgraph.alibabaCloud.AntiBot"
+      ]
+    },
+    {
+      "key": "alibabaCloud.apigateway",
+      "label": "APIGateway",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 144.0,
+      "defaultHeight": 139.018,
+      "tags": [
+        "alibabacloud",
+        "apigateway"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.apigateway",
+        "mxgraph.alibabaCloud.APIGateway"
+      ]
+    },
+    {
+      "key": "alibabaCloud.apsaraFileStorageForHdfs",
+      "label": "Apsara File Storage for HDFS",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 160.298,
+      "defaultHeight": 158.299,
+      "tags": [
+        "alibabacloud",
+        "apsara",
+        "file",
+        "storage",
+        "for",
+        "hdfs"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.apsaraFileStorageForHdfs",
+        "mxgraph.alibabaCloud.apsara_file_storage_for_hdfs",
+        "mxgraph.alibabaCloud.apsara-file-storage-for-hdfs",
+        "mxgraph.alibabaCloud.Apsara File Storage for HDFS"
+      ]
+    },
+    {
+      "key": "alibabaCloud.apsaravideoVod",
+      "label": "ApsaraVideo VOD",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 178.6,
+      "defaultHeight": 129.6,
+      "tags": [
+        "alibabacloud",
+        "apsaravideo",
+        "vod"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.apsaravideoVod",
+        "mxgraph.alibabaCloud.apsaravideo_vod",
+        "mxgraph.alibabaCloud.apsaravideo-vod",
+        "mxgraph.alibabaCloud.ApsaraVideo VOD"
+      ]
+    },
+    {
+      "key": "alibabaCloud.armsApplicationRealTimeMonitoringService",
+      "label": "ARMS Application Real-Time Monitoring Service",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 183.3,
+      "defaultHeight": 88.5,
+      "tags": [
+        "alibabacloud",
+        "arms",
+        "application",
+        "real",
+        "time",
+        "monitoring",
+        "service"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.armsApplicationRealTimeMonitoringService",
+        "mxgraph.alibabaCloud.arms_application_real_time_monitoring_service",
+        "mxgraph.alibabaCloud.arms-application-real-time-monitoring-service",
+        "mxgraph.alibabaCloud.ARMS Application Real-Time Monitoring Service"
+      ]
+    },
+    {
+      "key": "alibabaCloud.askAckContainerServiceForKubernetes",
+      "label": "ASK ACK Container Service for Kubernetes",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 148.9,
+      "defaultHeight": 170.8,
+      "tags": [
+        "alibabacloud",
+        "ask",
+        "ack",
+        "container",
+        "service",
+        "for",
+        "kubernetes"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.askAckContainerServiceForKubernetes",
+        "mxgraph.alibabaCloud.ask_ack_container_service_for_kubernetes",
+        "mxgraph.alibabaCloud.ask-ack-container-service-for-kubernetes",
+        "mxgraph.alibabaCloud.ASK ACK Container Service for Kubernetes"
+      ]
+    },
+    {
+      "key": "alibabaCloud.asmServiceMesh",
+      "label": "ASM Service Mesh",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 144.167,
+      "defaultHeight": 166.667,
+      "tags": [
+        "alibabacloud",
+        "asm",
+        "service",
+        "mesh"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.asmServiceMesh",
+        "mxgraph.alibabaCloud.asm_service_mesh",
+        "mxgraph.alibabaCloud.asm-service-mesh",
+        "mxgraph.alibabaCloud.ASM Service Mesh"
+      ]
+    },
+    {
+      "key": "alibabaCloud.assettech",
+      "label": "AssetTech",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 144.0,
+      "defaultHeight": 139.016,
+      "tags": [
+        "alibabacloud",
+        "assettech"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.assettech",
+        "mxgraph.alibabaCloud.AssetTech"
+      ]
+    },
+    {
+      "key": "alibabaCloud.avdsVulnerabilityDbScanning",
+      "label": "AVDS Vulnerability DB Scanning",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 183.4,
+      "defaultHeight": 183.398,
+      "tags": [
+        "alibabacloud",
+        "avds",
+        "vulnerability",
+        "db",
+        "scanning"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.avdsVulnerabilityDbScanning",
+        "mxgraph.alibabaCloud.avds_vulnerability_db_scanning",
+        "mxgraph.alibabaCloud.avds-vulnerability-db-scanning",
+        "mxgraph.alibabaCloud.AVDS Vulnerability DB Scanning"
+      ]
+    },
+    {
+      "key": "alibabaCloud.baasBlockchainAsAService",
+      "label": "BaaS Blockchain as a Service",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 144.2,
+      "defaultHeight": 158.4,
+      "tags": [
+        "alibabacloud",
+        "baas",
+        "blockchain",
+        "as",
+        "a",
+        "service"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.baasBlockchainAsAService",
+        "mxgraph.alibabaCloud.baas_blockchain_as_a_service",
+        "mxgraph.alibabaCloud.baas-blockchain-as-a-service",
+        "mxgraph.alibabaCloud.BaaS Blockchain as a Service"
+      ]
+    },
+    {
+      "key": "alibabaCloud.bandwidthBag",
+      "label": "Bandwidth Bag",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 182.654,
+      "defaultHeight": 133.35,
+      "tags": [
+        "alibabacloud",
+        "bandwidth",
+        "bag"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.bandwidthBag",
+        "mxgraph.alibabaCloud.bandwidth_bag",
+        "mxgraph.alibabaCloud.bandwidth-bag",
+        "mxgraph.alibabaCloud.Bandwidth Bag"
+      ]
+    },
+    {
+      "key": "alibabaCloud.bastionhost",
+      "label": "BastionHost",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 167.546,
+      "defaultHeight": 133.476,
+      "tags": [
+        "alibabacloud",
+        "bastionhost"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.bastionhost",
+        "mxgraph.alibabaCloud.BastionHost"
+      ]
+    },
+    {
+      "key": "alibabaCloud.batchcompute",
+      "label": "BatchCompute",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 156.3,
+      "defaultHeight": 160.2,
+      "tags": [
+        "alibabacloud",
+        "batchcompute"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.batchcompute",
+        "mxgraph.alibabaCloud.BatchCompute"
+      ]
+    },
+    {
+      "key": "alibabaCloud.bccluster",
+      "label": "BCCluster",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 166.668,
+      "defaultHeight": 124.02,
+      "tags": [
+        "alibabacloud",
+        "bccluster"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.bccluster",
+        "mxgraph.alibabaCloud.BCCluster"
+      ]
+    },
+    {
+      "key": "alibabaCloud.beebot",
+      "label": "BeeBot",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 198.815,
+      "defaultHeight": 183.241,
+      "tags": [
+        "alibabacloud",
+        "beebot"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.beebot",
+        "mxgraph.alibabaCloud.BeeBot"
+      ]
+    },
+    {
+      "key": "alibabaCloud.beian",
+      "label": "Beian",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 157.0,
+      "defaultHeight": 161.0,
+      "tags": [
+        "alibabacloud",
+        "beian"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.beian",
+        "mxgraph.alibabaCloud.Beian"
+      ]
+    },
+    {
+      "key": "alibabaCloud.bizdevops",
+      "label": "BizDevOps",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 201.2,
+      "defaultHeight": 167.4,
+      "tags": [
+        "alibabacloud",
+        "bizdevops"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.bizdevops",
+        "mxgraph.alibabaCloud.BizDevOps"
+      ]
+    },
+    {
+      "key": "alibabaCloud.bizworks",
+      "label": "BizWorks",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 144.0,
+      "defaultHeight": 139.017,
+      "tags": [
+        "alibabacloud",
+        "bizworks"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.bizworks",
+        "mxgraph.alibabaCloud.BizWorks"
+      ]
+    },
+    {
+      "key": "alibabaCloud.bpstudio",
+      "label": "BPStudio",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 166.668,
+      "defaultHeight": 121.217,
+      "tags": [
+        "alibabacloud",
+        "bpstudio"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.bpstudio",
+        "mxgraph.alibabaCloud.BPStudio"
+      ]
+    },
+    {
+      "key": "alibabaCloud.casSslCentralAuthenticationService",
+      "label": "CAS SSL Central Authentication Service",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 145.7,
+      "defaultHeight": 164.9,
+      "tags": [
+        "alibabacloud",
+        "cas",
+        "ssl",
+        "central",
+        "authentication",
+        "service"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.casSslCentralAuthenticationService",
+        "mxgraph.alibabaCloud.cas_ssl_central_authentication_service",
+        "mxgraph.alibabaCloud.cas-ssl-central-authentication-service",
+        "mxgraph.alibabaCloud.CAS SSL Central Authentication Service"
+      ]
+    },
+    {
+      "key": "alibabaCloud.cassandraWideColumnDatabase01",
+      "label": "Cassandra Wide-Column Database 01",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 145.9,
+      "defaultHeight": 156.4,
+      "tags": [
+        "alibabacloud",
+        "cassandra",
+        "wide",
+        "column",
+        "database",
+        "01"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.cassandraWideColumnDatabase01",
+        "mxgraph.alibabaCloud.cassandra_wide_column_database_01",
+        "mxgraph.alibabaCloud.cassandra-wide-column-database-01",
+        "mxgraph.alibabaCloud.Cassandra Wide-Column Database 01"
+      ]
+    },
+    {
+      "key": "alibabaCloud.cassandraWideColumnDatabase02",
+      "label": "Cassandra Wide-Column Database 02",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 171.25,
+      "defaultHeight": 183.333,
+      "tags": [
+        "alibabacloud",
+        "cassandra",
+        "wide",
+        "column",
+        "database",
+        "02"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.cassandraWideColumnDatabase02",
+        "mxgraph.alibabaCloud.cassandra_wide_column_database_02",
+        "mxgraph.alibabaCloud.cassandra-wide-column-database-02",
+        "mxgraph.alibabaCloud.Cassandra Wide-Column Database 02"
+      ]
+    },
+    {
+      "key": "alibabaCloud.cccCloudCallCenter",
+      "label": "CCC Cloud Call Center",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 179.199,
+      "defaultHeight": 174.1,
+      "tags": [
+        "alibabacloud",
+        "ccc",
+        "cloud",
+        "call",
+        "center"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.cccCloudCallCenter",
+        "mxgraph.alibabaCloud.ccc_cloud_call_center",
+        "mxgraph.alibabaCloud.ccc-cloud-call-center",
+        "mxgraph.alibabaCloud.CCC Cloud Call Center"
+      ]
+    },
+    {
+      "key": "alibabaCloud.ccnCloudConnectNetwork",
+      "label": "CCN Cloud Connect Network",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 187.183,
+      "defaultHeight": 152.558,
+      "tags": [
+        "alibabacloud",
+        "ccn",
+        "cloud",
+        "connect",
+        "network"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.ccnCloudConnectNetwork",
+        "mxgraph.alibabaCloud.ccn_cloud_connect_network",
+        "mxgraph.alibabaCloud.ccn-cloud-connect-network",
+        "mxgraph.alibabaCloud.CCN Cloud Connect Network"
+      ]
+    },
+    {
+      "key": "alibabaCloud.ccsCustomerService01",
+      "label": "CCS Customer Service 01",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 180.171,
+      "defaultHeight": 181.874,
+      "tags": [
+        "alibabacloud",
+        "ccs",
+        "customer",
+        "service",
+        "01"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.ccsCustomerService01",
+        "mxgraph.alibabaCloud.ccs_customer_service_01",
+        "mxgraph.alibabaCloud.ccs-customer-service-01",
+        "mxgraph.alibabaCloud.CCS Customer Service 01"
+      ]
+    },
+    {
+      "key": "alibabaCloud.ccsCustomerService02",
+      "label": "CCS Customer Service 02",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 174.167,
+      "defaultHeight": 183.75,
+      "tags": [
+        "alibabacloud",
+        "ccs",
+        "customer",
+        "service",
+        "02"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.ccsCustomerService02",
+        "mxgraph.alibabaCloud.ccs_customer_service_02",
+        "mxgraph.alibabaCloud.ccs-customer-service-02",
+        "mxgraph.alibabaCloud.CCS Customer Service 02"
+      ]
+    },
+    {
+      "key": "alibabaCloud.cddcCloudDatabaseDedicatedCluster",
+      "label": "CDDC Cloud Database Dedicated Cluster",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 167.551,
+      "defaultHeight": 152.388,
+      "tags": [
+        "alibabacloud",
+        "cddc",
+        "cloud",
+        "database",
+        "dedicated",
+        "cluster"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.cddcCloudDatabaseDedicatedCluster",
+        "mxgraph.alibabaCloud.cddc_cloud_database_dedicated_cluster",
+        "mxgraph.alibabaCloud.cddc-cloud-database-dedicated-cluster",
+        "mxgraph.alibabaCloud.CDDC Cloud Database Dedicated Cluster"
+      ]
+    },
+    {
+      "key": "alibabaCloud.cdnContentDistributionNetwork",
+      "label": "CDN Content Distribution Network",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 169.6,
+      "defaultHeight": 140.7,
+      "tags": [
+        "alibabacloud",
+        "cdn",
+        "content",
+        "distribution",
+        "network"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.cdnContentDistributionNetwork",
+        "mxgraph.alibabaCloud.cdn_content_distribution_network",
+        "mxgraph.alibabaCloud.cdn-content-distribution-network",
+        "mxgraph.alibabaCloud.CDN Content Distribution Network"
+      ]
+    },
+    {
+      "key": "alibabaCloud.cdpClouderaCdp",
+      "label": "CDP Cloudera CDP",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 183.333,
+      "defaultHeight": 114.167,
+      "tags": [
+        "alibabacloud",
+        "cdp",
+        "cloudera"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.cdpClouderaCdp",
+        "mxgraph.alibabaCloud.cdp_cloudera_cdp",
+        "mxgraph.alibabaCloud.cdp-cloudera-cdp",
+        "mxgraph.alibabaCloud.CDP Cloudera CDP"
+      ]
+    },
+    {
+      "key": "alibabaCloud.cdtCloudDatatransfer",
+      "label": "CDT Cloud DataTransfer",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 166.668,
+      "defaultHeight": 141.301,
+      "tags": [
+        "alibabacloud",
+        "cdt",
+        "cloud",
+        "datatransfer"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.cdtCloudDatatransfer",
+        "mxgraph.alibabaCloud.cdt_cloud_datatransfer",
+        "mxgraph.alibabaCloud.cdt-cloud-datatransfer",
+        "mxgraph.alibabaCloud.CDT Cloud DataTransfer"
+      ]
+    },
+    {
+      "key": "alibabaCloud.cenCloudEnterpriseNetwork",
+      "label": "CEN Cloud Enterprise Network",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 177.9,
+      "defaultHeight": 183.301,
+      "tags": [
+        "alibabacloud",
+        "cen",
+        "cloud",
+        "enterprise",
+        "network"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.cenCloudEnterpriseNetwork",
+        "mxgraph.alibabaCloud.cen_cloud_enterprise_network",
+        "mxgraph.alibabaCloud.cen-cloud-enterprise-network",
+        "mxgraph.alibabaCloud.CEN Cloud Enterprise Network"
+      ]
+    },
+    {
+      "key": "alibabaCloud.cfwCloudFirewall",
+      "label": "CFW Cloud Firewall",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 185.201,
+      "defaultHeight": 130.33,
+      "tags": [
+        "alibabacloud",
+        "cfw",
+        "cloud",
+        "firewall"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.cfwCloudFirewall",
+        "mxgraph.alibabaCloud.cfw_cloud_firewall",
+        "mxgraph.alibabaCloud.cfw-cloud-firewall",
+        "mxgraph.alibabaCloud.CFW Cloud Firewall"
+      ]
+    },
+    {
+      "key": "alibabaCloud.cityvisual",
+      "label": "CityVisual",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 175.1,
+      "defaultHeight": 123.1,
+      "tags": [
+        "alibabacloud",
+        "cityvisual"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.cityvisual",
+        "mxgraph.alibabaCloud.CityVisual"
+      ]
+    },
+    {
+      "key": "alibabaCloud.clbClassicLoadBalancer01",
+      "label": "CLB Classic Load Balancer 01",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 158.332,
+      "defaultHeight": 134.427,
+      "tags": [
+        "alibabacloud",
+        "clb",
+        "classic",
+        "load",
+        "balancer",
+        "01"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.clbClassicLoadBalancer01",
+        "mxgraph.alibabaCloud.clb_classic_load_balancer_01",
+        "mxgraph.alibabaCloud.clb-classic-load-balancer-01",
+        "mxgraph.alibabaCloud.CLB Classic Load Balancer 01"
+      ]
+    },
+    {
+      "key": "alibabaCloud.clbClassicLoadBalancer02",
+      "label": "CLB Classic Load Balancer 02",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 200.0,
+      "defaultHeight": 200.0,
+      "tags": [
+        "alibabacloud",
+        "clb",
+        "classic",
+        "load",
+        "balancer",
+        "02"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.clbClassicLoadBalancer02",
+        "mxgraph.alibabaCloud.clb_classic_load_balancer_02",
+        "mxgraph.alibabaCloud.clb-classic-load-balancer-02",
+        "mxgraph.alibabaCloud.CLB Classic Load Balancer 02"
+      ]
+    },
+    {
+      "key": "alibabaCloud.clickhouse",
+      "label": "ClickHouse",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 159.917,
+      "defaultHeight": 183.333,
+      "tags": [
+        "alibabacloud",
+        "clickhouse"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.clickhouse",
+        "mxgraph.alibabaCloud.ClickHouse"
+      ]
+    },
+    {
+      "key": "alibabaCloud.cloudAuth",
+      "label": "Cloud Auth",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 200.0,
+      "defaultHeight": 181.6,
+      "tags": [
+        "alibabacloud",
+        "cloud",
+        "auth"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.cloudAuth",
+        "mxgraph.alibabaCloud.cloud_auth",
+        "mxgraph.alibabaCloud.cloud-auth",
+        "mxgraph.alibabaCloud.Cloud Auth"
+      ]
+    },
+    {
+      "key": "alibabaCloud.cloudConfig",
+      "label": "Cloud Config",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 158.5,
+      "defaultHeight": 160.0,
+      "tags": [
+        "alibabacloud",
+        "cloud",
+        "config"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.cloudConfig",
+        "mxgraph.alibabaCloud.cloud_config",
+        "mxgraph.alibabaCloud.cloud-config",
+        "mxgraph.alibabaCloud.Cloud Config"
+      ]
+    },
+    {
+      "key": "alibabaCloud.cloudDisplay",
+      "label": "Cloud Display",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 183.0,
+      "defaultHeight": 144.5,
+      "tags": [
+        "alibabacloud",
+        "cloud",
+        "display"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.cloudDisplay",
+        "mxgraph.alibabaCloud.cloud_display",
+        "mxgraph.alibabaCloud.cloud-display",
+        "mxgraph.alibabaCloud.Cloud Display"
+      ]
+    },
+    {
+      "key": "alibabaCloud.cloudGovernanceCenter",
+      "label": "Cloud Governance Center",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 166.666,
+      "defaultHeight": 144.752,
+      "tags": [
+        "alibabacloud",
+        "cloud",
+        "governance",
+        "center"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.cloudGovernanceCenter",
+        "mxgraph.alibabaCloud.cloud_governance_center",
+        "mxgraph.alibabaCloud.cloud-governance-center",
+        "mxgraph.alibabaCloud.Cloud Governance Center"
+      ]
+    },
+    {
+      "key": "alibabaCloud.cloudSecurityCenter",
+      "label": "Cloud Security Center",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 144.2,
+      "defaultHeight": 163.1,
+      "tags": [
+        "alibabacloud",
+        "cloud",
+        "security",
+        "center"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.cloudSecurityCenter",
+        "mxgraph.alibabaCloud.cloud_security_center",
+        "mxgraph.alibabaCloud.cloud-security-center",
+        "mxgraph.alibabaCloud.Cloud Security Center"
+      ]
+    },
+    {
+      "key": "alibabaCloud.cloudShield",
+      "label": "Cloud Shield",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 151.7,
+      "defaultHeight": 162.9,
+      "tags": [
+        "alibabacloud",
+        "cloud",
+        "shield"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.cloudShield",
+        "mxgraph.alibabaCloud.cloud_shield",
+        "mxgraph.alibabaCloud.cloud-shield",
+        "mxgraph.alibabaCloud.Cloud Shield"
+      ]
+    },
+    {
+      "key": "alibabaCloud.cloudap",
+      "label": "CloudAP",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 183.299,
+      "defaultHeight": 183.6,
+      "tags": [
+        "alibabacloud",
+        "cloudap"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.cloudap",
+        "mxgraph.alibabaCloud.CloudAP"
+      ]
+    },
+    {
+      "key": "alibabaCloud.cloudbox",
+      "label": "CloudBox",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 158.3,
+      "defaultHeight": 183.333,
+      "tags": [
+        "alibabacloud",
+        "cloudbox"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.cloudbox",
+        "mxgraph.alibabaCloud.CloudBox"
+      ]
+    },
+    {
+      "key": "alibabaCloud.clouddesktop",
+      "label": "CloudDesktop",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 183.4,
+      "defaultHeight": 183.8,
+      "tags": [
+        "alibabacloud",
+        "clouddesktop"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.clouddesktop",
+        "mxgraph.alibabaCloud.CloudDesktop"
+      ]
+    },
+    {
+      "key": "alibabaCloud.clouddev",
+      "label": "CloudDev",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 189.001,
+      "defaultHeight": 134.614,
+      "tags": [
+        "alibabacloud",
+        "clouddev"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.clouddev",
+        "mxgraph.alibabaCloud.CloudDev"
+      ]
+    },
+    {
+      "key": "alibabaCloud.cloudphoto",
+      "label": "CloudPhoto",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 149.7,
+      "defaultHeight": 149.7,
+      "tags": [
+        "alibabacloud",
+        "cloudphoto"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.cloudphoto",
+        "mxgraph.alibabaCloud.CloudPhoto"
+      ]
+    },
+    {
+      "key": "alibabaCloud.cloudproc",
+      "label": "CloudProc",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 143.998,
+      "defaultHeight": 139.018,
+      "tags": [
+        "alibabacloud",
+        "cloudproc"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.cloudproc",
+        "mxgraph.alibabaCloud.CloudProc"
+      ]
+    },
+    {
+      "key": "alibabaCloud.cloudshell",
+      "label": "CloudShell",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 158.398,
+      "defaultHeight": 126.398,
+      "tags": [
+        "alibabacloud",
+        "cloudshell"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.cloudshell",
+        "mxgraph.alibabaCloud.CloudShell"
+      ]
+    },
+    {
+      "key": "alibabaCloud.cmnCloudManagedNetwork",
+      "label": "CMN Cloud Managed Network",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 173.354,
+      "defaultHeight": 125.747,
+      "tags": [
+        "alibabacloud",
+        "cmn",
+        "cloud",
+        "managed",
+        "network"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.cmnCloudManagedNetwork",
+        "mxgraph.alibabaCloud.cmn_cloud_managed_network",
+        "mxgraph.alibabaCloud.cmn-cloud-managed-network",
+        "mxgraph.alibabaCloud.CMN Cloud Managed Network"
+      ]
+    },
+    {
+      "key": "alibabaCloud.cmpCloudMobilePush",
+      "label": "CMP Cloud Mobile Push",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 163.658,
+      "defaultHeight": 119.025,
+      "tags": [
+        "alibabacloud",
+        "cmp",
+        "cloud",
+        "mobile",
+        "push"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.cmpCloudMobilePush",
+        "mxgraph.alibabaCloud.cmp_cloud_mobile_push",
+        "mxgraph.alibabaCloud.cmp-cloud-mobile-push",
+        "mxgraph.alibabaCloud.CMP Cloud Mobile Push"
+      ]
+    },
+    {
+      "key": "alibabaCloud.cmsCloudMonitorService",
+      "label": "CMS Cloud Monitor Service",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 173.8,
+      "defaultHeight": 137.8,
+      "tags": [
+        "alibabacloud",
+        "cms",
+        "cloud",
+        "monitor",
+        "service"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.cmsCloudMonitorService",
+        "mxgraph.alibabaCloud.cms_cloud_monitor_service",
+        "mxgraph.alibabaCloud.cms-cloud-monitor-service",
+        "mxgraph.alibabaCloud.CMS Cloud Monitor Service"
+      ]
+    },
+    {
+      "key": "alibabaCloud.codepipeline",
+      "label": "CodePipeline",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 136.699,
+      "defaultHeight": 174.199,
+      "tags": [
+        "alibabacloud",
+        "codepipeline"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.codepipeline",
+        "mxgraph.alibabaCloud.CodePipeline"
+      ]
+    },
+    {
+      "key": "alibabaCloud.codestore",
+      "label": "CodeStore",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 144.0,
+      "defaultHeight": 139.017,
+      "tags": [
+        "alibabacloud",
+        "codestore"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.codestore",
+        "mxgraph.alibabaCloud.CodeStore"
+      ]
+    },
+    {
+      "key": "alibabaCloud.companyreg",
+      "label": "CompanyReg",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 158.4,
+      "defaultHeight": 175.0,
+      "tags": [
+        "alibabacloud",
+        "companyreg"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.companyreg",
+        "mxgraph.alibabaCloud.CompanyReg"
+      ]
+    },
+    {
+      "key": "alibabaCloud.computenest",
+      "label": "ComputeNest",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 166.629,
+      "defaultHeight": 147.578,
+      "tags": [
+        "alibabacloud",
+        "computenest"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.computenest",
+        "mxgraph.alibabaCloud.ComputeNest"
+      ]
+    },
+    {
+      "key": "alibabaCloud.contentSecurity",
+      "label": "Content Security",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 155.5,
+      "defaultHeight": 157.4,
+      "tags": [
+        "alibabacloud",
+        "content",
+        "security"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.contentSecurity",
+        "mxgraph.alibabaCloud.content_security",
+        "mxgraph.alibabaCloud.content-security",
+        "mxgraph.alibabaCloud.Content Security"
+      ]
+    },
+    {
+      "key": "alibabaCloud.coo",
+      "label": "COO",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 145.5,
+      "defaultHeight": 158.199,
+      "tags": [
+        "alibabacloud",
+        "coo"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.coo",
+        "mxgraph.alibabaCloud.COO"
+      ]
+    },
+    {
+      "key": "alibabaCloud.cpnsCellPhoneNumberService",
+      "label": "CPNS Cell Phone Number Service",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 133.332,
+      "defaultHeight": 183.333,
+      "tags": [
+        "alibabacloud",
+        "cpns",
+        "cell",
+        "phone",
+        "number",
+        "service"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.cpnsCellPhoneNumberService",
+        "mxgraph.alibabaCloud.cpns_cell_phone_number_service",
+        "mxgraph.alibabaCloud.cpns-cell-phone-number-service",
+        "mxgraph.alibabaCloud.CPNS Cell Phone Number Service"
+      ]
+    },
+    {
+      "key": "alibabaCloud.csasCloudSecurityAccessService",
+      "label": "CSAS Cloud Security Access Service",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 144.334,
+      "defaultHeight": 166.668,
+      "tags": [
+        "alibabacloud",
+        "csas",
+        "cloud",
+        "security",
+        "access",
+        "service"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.csasCloudSecurityAccessService",
+        "mxgraph.alibabaCloud.csas_cloud_security_access_service",
+        "mxgraph.alibabaCloud.csas-cloud-security-access-service",
+        "mxgraph.alibabaCloud.CSAS Cloud Security Access Service"
+      ]
+    },
+    {
+      "key": "alibabaCloud.cvcCloudVideoConferencing",
+      "label": "CVC Cloud Video Conferencing",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 133.334,
+      "defaultHeight": 181.668,
+      "tags": [
+        "alibabacloud",
+        "cvc",
+        "cloud",
+        "video",
+        "conferencing"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.cvcCloudVideoConferencing",
+        "mxgraph.alibabaCloud.cvc_cloud_video_conferencing",
+        "mxgraph.alibabaCloud.cvc-cloud-video-conferencing",
+        "mxgraph.alibabaCloud.CVC Cloud Video Conferencing"
+      ]
+    },
+    {
+      "key": "alibabaCloud.cwhCloudWebHosting",
+      "label": "CWH Cloud Web Hosting",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 165.601,
+      "defaultHeight": 151.95,
+      "tags": [
+        "alibabacloud",
+        "cwh",
+        "cloud",
+        "web",
+        "hosting"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.cwhCloudWebHosting",
+        "mxgraph.alibabaCloud.cwh_cloud_web_hosting",
+        "mxgraph.alibabaCloud.cwh-cloud-web-hosting",
+        "mxgraph.alibabaCloud.CWH Cloud Web Hosting"
+      ]
+    },
+    {
+      "key": "alibabaCloud.dasDatabaseAutonomyService",
+      "label": "DAS Database Autonomy Service",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 158.333,
+      "defaultHeight": 158.333,
+      "tags": [
+        "alibabacloud",
+        "das",
+        "database",
+        "autonomy",
+        "service"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.dasDatabaseAutonomyService",
+        "mxgraph.alibabaCloud.das_database_autonomy_service",
+        "mxgraph.alibabaCloud.das-database-autonomy-service",
+        "mxgraph.alibabaCloud.DAS Database Autonomy Service"
+      ]
+    },
+    {
+      "key": "alibabaCloud.databot",
+      "label": "DataBot",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 150.833,
+      "defaultHeight": 173.75,
+      "tags": [
+        "alibabacloud",
+        "databot"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.databot",
+        "mxgraph.alibabaCloud.DataBot"
+      ]
+    },
+    {
+      "key": "alibabaCloud.datahub",
+      "label": "DataHub",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 158.999,
+      "defaultHeight": 159.0,
+      "tags": [
+        "alibabacloud",
+        "datahub"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.datahub",
+        "mxgraph.alibabaCloud.DataHub"
+      ]
+    },
+    {
+      "key": "alibabaCloud.dataphin",
+      "label": "Dataphin",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 181.699,
+      "defaultHeight": 181.699,
+      "tags": [
+        "alibabacloud",
+        "dataphin"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.dataphin",
+        "mxgraph.alibabaCloud.Dataphin"
+      ]
+    },
+    {
+      "key": "alibabaCloud.dataquotient",
+      "label": "DataQuotient",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 160.547,
+      "defaultHeight": 160.547,
+      "tags": [
+        "alibabacloud",
+        "dataquotient"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.dataquotient",
+        "mxgraph.alibabaCloud.DataQuotient"
+      ]
+    },
+    {
+      "key": "alibabaCloud.datav",
+      "label": "DataV",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 164.5,
+      "defaultHeight": 148.3,
+      "tags": [
+        "alibabacloud",
+        "datav"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.datav",
+        "mxgraph.alibabaCloud.DataV"
+      ]
+    },
+    {
+      "key": "alibabaCloud.dataworksDataide",
+      "label": "DataWorks DataIDE",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 152.5,
+      "defaultHeight": 175.0,
+      "tags": [
+        "alibabacloud",
+        "dataworks",
+        "dataide"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.dataworksDataide",
+        "mxgraph.alibabaCloud.dataworks_dataide",
+        "mxgraph.alibabaCloud.dataworks-dataide",
+        "mxgraph.alibabaCloud.DataWorks DataIDE"
+      ]
+    },
+    {
+      "key": "alibabaCloud.dbaudit",
+      "label": "DBAudit",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 162.6,
+      "defaultHeight": 162.9,
+      "tags": [
+        "alibabacloud",
+        "dbaudit"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.dbaudit",
+        "mxgraph.alibabaCloud.DBAudit"
+      ]
+    },
+    {
+      "key": "alibabaCloud.dbesDatabaseExpertService",
+      "label": "DBES Database Expert Service",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 158.299,
+      "defaultHeight": 158.398,
+      "tags": [
+        "alibabacloud",
+        "dbes",
+        "database",
+        "expert",
+        "service"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.dbesDatabaseExpertService",
+        "mxgraph.alibabaCloud.dbes_database_expert_service",
+        "mxgraph.alibabaCloud.dbes-database-expert-service",
+        "mxgraph.alibabaCloud.DBES Database Expert Service"
+      ]
+    },
+    {
+      "key": "alibabaCloud.dbfsDatabaseFileSystem",
+      "label": "DBFS Database File System",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 158.398,
+      "defaultHeight": 160.0,
+      "tags": [
+        "alibabacloud",
+        "dbfs",
+        "database",
+        "file",
+        "system"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.dbfsDatabaseFileSystem",
+        "mxgraph.alibabaCloud.dbfs_database_file_system",
+        "mxgraph.alibabaCloud.dbfs-database-file-system",
+        "mxgraph.alibabaCloud.DBFS Database File System"
+      ]
+    },
+    {
+      "key": "alibabaCloud.dbsDatabaseBackup",
+      "label": "DBS Database Backup",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 228.319,
+      "defaultHeight": 213.125,
+      "tags": [
+        "alibabacloud",
+        "dbs",
+        "database",
+        "backup"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.dbsDatabaseBackup",
+        "mxgraph.alibabaCloud.dbs_database_backup",
+        "mxgraph.alibabaCloud.dbs-database-backup",
+        "mxgraph.alibabaCloud.DBS Database Backup"
+      ]
+    },
+    {
+      "key": "alibabaCloud.dcdnDynamicRouteForCdn",
+      "label": "DCDN Dynamic Route for CDN",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 155.5,
+      "defaultHeight": 182.6,
+      "tags": [
+        "alibabacloud",
+        "dcdn",
+        "dynamic",
+        "route",
+        "for",
+        "cdn"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.dcdnDynamicRouteForCdn",
+        "mxgraph.alibabaCloud.dcdn_dynamic_route_for_cdn",
+        "mxgraph.alibabaCloud.dcdn-dynamic-route-for-cdn",
+        "mxgraph.alibabaCloud.DCDN Dynamic Route for CDN"
+      ]
+    },
+    {
+      "key": "alibabaCloud.ddhDedicatedHost",
+      "label": "DDH Dedicated Host",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 158.398,
+      "defaultHeight": 158.398,
+      "tags": [
+        "alibabacloud",
+        "ddh",
+        "dedicated",
+        "host"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.ddhDedicatedHost",
+        "mxgraph.alibabaCloud.ddh_dedicated_host",
+        "mxgraph.alibabaCloud.ddh-dedicated-host",
+        "mxgraph.alibabaCloud.DDH Dedicated Host"
+      ]
+    },
+    {
+      "key": "alibabaCloud.ddosProtection",
+      "label": "DDoS Protection",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 138.199,
+      "defaultHeight": 158.398,
+      "tags": [
+        "alibabacloud",
+        "ddos",
+        "protection"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.ddosProtection",
+        "mxgraph.alibabaCloud.ddos_protection",
+        "mxgraph.alibabaCloud.ddos-protection",
+        "mxgraph.alibabaCloud.DDoS Protection"
+      ]
+    },
+    {
+      "key": "alibabaCloud.ddosBgp",
+      "label": "DDoS-BGP",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 158.4,
+      "defaultHeight": 157.5,
+      "tags": [
+        "alibabacloud",
+        "ddos",
+        "bgp"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.ddosBgp",
+        "mxgraph.alibabaCloud.ddos_bgp",
+        "mxgraph.alibabaCloud.ddos-bgp",
+        "mxgraph.alibabaCloud.DDoS-BGP"
+      ]
+    },
+    {
+      "key": "alibabaCloud.ddosDip",
+      "label": "DDoS-DIP",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 161.201,
+      "defaultHeight": 184.199,
+      "tags": [
+        "alibabacloud",
+        "ddos",
+        "dip"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.ddosDip",
+        "mxgraph.alibabaCloud.ddos_dip",
+        "mxgraph.alibabaCloud.ddos-dip",
+        "mxgraph.alibabaCloud.DDoS-DIP"
+      ]
+    },
+    {
+      "key": "alibabaCloud.ddosPro",
+      "label": "DDoS-Pro",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 158.8,
+      "defaultHeight": 156.4,
+      "tags": [
+        "alibabacloud",
+        "ddos",
+        "pro"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.ddosPro",
+        "mxgraph.alibabaCloud.ddos_pro",
+        "mxgraph.alibabaCloud.ddos-pro",
+        "mxgraph.alibabaCloud.DDoS-Pro"
+      ]
+    },
+    {
+      "key": "alibabaCloud.devops",
+      "label": "DevOps",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 199.983,
+      "defaultHeight": 199.983,
+      "tags": [
+        "alibabacloud",
+        "devops"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.devops",
+        "mxgraph.alibabaCloud.DevOps"
+      ]
+    },
+    {
+      "key": "alibabaCloud.dgDatabaseGateway",
+      "label": "DG Database Gateway",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 133.398,
+      "defaultHeight": 183.398,
+      "tags": [
+        "alibabacloud",
+        "dg",
+        "database",
+        "gateway"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.dgDatabaseGateway",
+        "mxgraph.alibabaCloud.dg_database_gateway",
+        "mxgraph.alibabaCloud.dg-database-gateway",
+        "mxgraph.alibabaCloud.DG Database Gateway"
+      ]
+    },
+    {
+      "key": "alibabaCloud.directmail",
+      "label": "DirectMail",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 175.0,
+      "defaultHeight": 115.701,
+      "tags": [
+        "alibabacloud",
+        "directmail"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.directmail",
+        "mxgraph.alibabaCloud.DirectMail"
+      ]
+    },
+    {
+      "key": "alibabaCloud.diskBlockStorage",
+      "label": "Disk Block Storage",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 172.4,
+      "defaultHeight": 138.0,
+      "tags": [
+        "alibabacloud",
+        "disk",
+        "block",
+        "storage"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.diskBlockStorage",
+        "mxgraph.alibabaCloud.disk_block_storage",
+        "mxgraph.alibabaCloud.disk-block-storage",
+        "mxgraph.alibabaCloud.Disk Block Storage"
+      ]
+    },
+    {
+      "key": "alibabaCloud.dlfDataLakeFormation",
+      "label": "DLF Data Lake Formation",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 178.259,
+      "defaultHeight": 166.668,
+      "tags": [
+        "alibabacloud",
+        "dlf",
+        "data",
+        "lake",
+        "formation"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.dlfDataLakeFormation",
+        "mxgraph.alibabaCloud.dlf_data_lake_formation",
+        "mxgraph.alibabaCloud.dlf-data-lake-formation",
+        "mxgraph.alibabaCloud.DLF Data Lake Formation"
+      ]
+    },
+    {
+      "key": "alibabaCloud.dmsDataManagementService",
+      "label": "DMS Data Management Service",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 153.1,
+      "defaultHeight": 158.301,
+      "tags": [
+        "alibabacloud",
+        "dms",
+        "data",
+        "management",
+        "service"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.dmsDataManagementService",
+        "mxgraph.alibabaCloud.dms_data_management_service",
+        "mxgraph.alibabaCloud.dms-data-management-service",
+        "mxgraph.alibabaCloud.DMS Data Management Service"
+      ]
+    },
+    {
+      "key": "alibabaCloud.dnsDomainNameSystem",
+      "label": "DNS Domain Name System",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 186.298,
+      "defaultHeight": 183.399,
+      "tags": [
+        "alibabacloud",
+        "dns",
+        "domain",
+        "name",
+        "system"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.dnsDomainNameSystem",
+        "mxgraph.alibabaCloud.dns_domain_name_system",
+        "mxgraph.alibabaCloud.dns-domain-name-system",
+        "mxgraph.alibabaCloud.DNS Domain Name System"
+      ]
+    },
+    {
+      "key": "alibabaCloud.dnsPrivatezone01",
+      "label": "DNS PrivateZone 01",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 186.2,
+      "defaultHeight": 183.4,
+      "tags": [
+        "alibabacloud",
+        "dns",
+        "privatezone",
+        "01"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.dnsPrivatezone01",
+        "mxgraph.alibabaCloud.dns_privatezone_01",
+        "mxgraph.alibabaCloud.dns-privatezone-01",
+        "mxgraph.alibabaCloud.DNS PrivateZone 01"
+      ]
+    },
+    {
+      "key": "alibabaCloud.dnsPrivatezone02",
+      "label": "DNS PrivateZone 02",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 166.428,
+      "defaultHeight": 174.195,
+      "tags": [
+        "alibabacloud",
+        "dns",
+        "privatezone",
+        "02"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.dnsPrivatezone02",
+        "mxgraph.alibabaCloud.dns_privatezone_02",
+        "mxgraph.alibabaCloud.dns-privatezone-02",
+        "mxgraph.alibabaCloud.DNS PrivateZone 02"
+      ]
+    },
+    {
+      "key": "alibabaCloud.domainAndWebsite",
+      "label": "Domain and Website",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 170.901,
+      "defaultHeight": 138.0,
+      "tags": [
+        "alibabacloud",
+        "domain",
+        "and",
+        "website"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.domainAndWebsite",
+        "mxgraph.alibabaCloud.domain_and_website",
+        "mxgraph.alibabaCloud.domain-and-website",
+        "mxgraph.alibabaCloud.Domain and Website"
+      ]
+    },
+    {
+      "key": "alibabaCloud.domain",
+      "label": "Domain",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 183.4,
+      "defaultHeight": 183.4,
+      "tags": [
+        "alibabacloud",
+        "domain"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.domain",
+        "mxgraph.alibabaCloud.Domain"
+      ]
+    },
+    {
+      "key": "alibabaCloud.drdsDistributeRelationalDatabaseService",
+      "label": "DRDS Distribute Relational Database Service",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 148.4,
+      "defaultHeight": 158.1,
+      "tags": [
+        "alibabacloud",
+        "drds",
+        "distribute",
+        "relational",
+        "database",
+        "service"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.drdsDistributeRelationalDatabaseService",
+        "mxgraph.alibabaCloud.drds_distribute_relational_database_service",
+        "mxgraph.alibabaCloud.drds-distribute-relational-database-service",
+        "mxgraph.alibabaCloud.DRDS Distribute Relational Database Service"
+      ]
+    },
+    {
+      "key": "alibabaCloud.dsiDataSecurityInsurance",
+      "label": "DSI Data Security Insurance",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 145.5,
+      "defaultHeight": 171.199,
+      "tags": [
+        "alibabacloud",
+        "dsi",
+        "data",
+        "security",
+        "insurance"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.dsiDataSecurityInsurance",
+        "mxgraph.alibabaCloud.dsi_data_security_insurance",
+        "mxgraph.alibabaCloud.dsi-data-security-insurance",
+        "mxgraph.alibabaCloud.DSI Data Security Insurance"
+      ]
+    },
+    {
+      "key": "alibabaCloud.dtsDataTransmissionService",
+      "label": "DTS Data Transmission Service",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 159.8,
+      "defaultHeight": 158.1,
+      "tags": [
+        "alibabacloud",
+        "dts",
+        "data",
+        "transmission",
+        "service"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.dtsDataTransmissionService",
+        "mxgraph.alibabaCloud.dts_data_transmission_service",
+        "mxgraph.alibabaCloud.dts-data-transmission-service",
+        "mxgraph.alibabaCloud.DTS Data Transmission Service"
+      ]
+    },
+    {
+      "key": "alibabaCloud.eMapreduce",
+      "label": "E-MapReduce",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 199.463,
+      "defaultHeight": 199.463,
+      "tags": [
+        "alibabacloud",
+        "e",
+        "mapreduce"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.eMapreduce",
+        "mxgraph.alibabaCloud.e_mapreduce",
+        "mxgraph.alibabaCloud.e-mapreduce",
+        "mxgraph.alibabaCloud.E-MapReduce"
+      ]
+    },
+    {
+      "key": "alibabaCloud.eaisElasticAcceleratedComputingInstances",
+      "label": "EAIS Elastic Accelerated Computing Instances",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 173.029,
+      "defaultHeight": 120.326,
+      "tags": [
+        "alibabacloud",
+        "eais",
+        "elastic",
+        "accelerated",
+        "computing",
+        "instances"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.eaisElasticAcceleratedComputingInstances",
+        "mxgraph.alibabaCloud.eais_elastic_accelerated_computing_instances",
+        "mxgraph.alibabaCloud.eais-elastic-accelerated-computing-instances",
+        "mxgraph.alibabaCloud.EAIS Elastic Accelerated Computing Instances"
+      ]
+    },
+    {
+      "key": "alibabaCloud.eciElasticContainerInstance",
+      "label": "ECI Elastic Container Instance",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 183.333,
+      "defaultHeight": 127.917,
+      "tags": [
+        "alibabacloud",
+        "eci",
+        "elastic",
+        "container",
+        "instance"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.eciElasticContainerInstance",
+        "mxgraph.alibabaCloud.eci_elastic_container_instance",
+        "mxgraph.alibabaCloud.eci-elastic-container-instance",
+        "mxgraph.alibabaCloud.ECI Elastic Container Instance"
+      ]
+    },
+    {
+      "key": "alibabaCloud.ecsElasticComputeService",
+      "label": "ECS Elastic Compute Service",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 162.5,
+      "defaultHeight": 151.5,
+      "tags": [
+        "alibabacloud",
+        "ecs",
+        "elastic",
+        "compute",
+        "service"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.ecsElasticComputeService",
+        "mxgraph.alibabaCloud.ecs_elastic_compute_service",
+        "mxgraph.alibabaCloud.ecs-elastic-compute-service",
+        "mxgraph.alibabaCloud.ECS Elastic Compute Service"
+      ]
+    },
+    {
+      "key": "alibabaCloud.edasEnterpriseDistributedApplicationService",
+      "label": "EDAS Enterprise Distributed Application Service",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 154.9,
+      "defaultHeight": 157.9,
+      "tags": [
+        "alibabacloud",
+        "edas",
+        "enterprise",
+        "distributed",
+        "application",
+        "service"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.edasEnterpriseDistributedApplicationService",
+        "mxgraph.alibabaCloud.edas_enterprise_distributed_application_service",
+        "mxgraph.alibabaCloud.edas-enterprise-distributed-application-service",
+        "mxgraph.alibabaCloud.EDAS Enterprise Distributed Application Service"
+      ]
+    },
+    {
+      "key": "alibabaCloud.ehpcElasticHighPerformanceComputing",
+      "label": "EHPC Elastic High Performance Computing",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 144.5,
+      "defaultHeight": 159.1,
+      "tags": [
+        "alibabacloud",
+        "ehpc",
+        "elastic",
+        "high",
+        "performance",
+        "computing"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.ehpcElasticHighPerformanceComputing",
+        "mxgraph.alibabaCloud.ehpc_elastic_high_performance_computing",
+        "mxgraph.alibabaCloud.ehpc-elastic-high-performance-computing",
+        "mxgraph.alibabaCloud.EHPC Elastic High Performance Computing"
+      ]
+    },
+    {
+      "key": "alibabaCloud.eipElasticIpAddress",
+      "label": "EIP Elastic IP Address",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 158.2,
+      "defaultHeight": 155.1,
+      "tags": [
+        "alibabacloud",
+        "eip",
+        "elastic",
+        "ip",
+        "address"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.eipElasticIpAddress",
+        "mxgraph.alibabaCloud.eip_elastic_ip_address",
+        "mxgraph.alibabaCloud.eip-elastic-ip-address",
+        "mxgraph.alibabaCloud.EIP Elastic IP Address"
+      ]
+    },
+    {
+      "key": "alibabaCloud.elasticWebHosting",
+      "label": "Elastic Web Hosting",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 178.4,
+      "defaultHeight": 171.2,
+      "tags": [
+        "alibabacloud",
+        "elastic",
+        "web",
+        "hosting"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.elasticWebHosting",
+        "mxgraph.alibabaCloud.elastic_web_hosting",
+        "mxgraph.alibabaCloud.elastic-web-hosting",
+        "mxgraph.alibabaCloud.Elastic Web Hosting"
+      ]
+    },
+    {
+      "key": "alibabaCloud.elasticsearch",
+      "label": "Elasticsearch",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 152.917,
+      "defaultHeight": 166.667,
+      "tags": [
+        "alibabacloud",
+        "elasticsearch"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.elasticsearch",
+        "mxgraph.alibabaCloud.Elasticsearch"
+      ]
+    },
+    {
+      "key": "alibabaCloud.emasEnterpriseMobileApplicationStudio",
+      "label": "EMAS Enterprise Mobile Application Studio",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 144.0,
+      "defaultHeight": 139.017,
+      "tags": [
+        "alibabacloud",
+        "emas",
+        "enterprise",
+        "mobile",
+        "application",
+        "studio"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.emasEnterpriseMobileApplicationStudio",
+        "mxgraph.alibabaCloud.emas_enterprise_mobile_application_studio",
+        "mxgraph.alibabaCloud.emas-enterprise-mobile-application-studio",
+        "mxgraph.alibabaCloud.EMAS Enterprise Mobile Application Studio"
+      ]
+    },
+    {
+      "key": "alibabaCloud.energyexpert",
+      "label": "EnergyExpert",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 144.0,
+      "defaultHeight": 139.018,
+      "tags": [
+        "alibabacloud",
+        "energyexpert"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.energyexpert",
+        "mxgraph.alibabaCloud.EnergyExpert"
+      ]
+    },
+    {
+      "key": "alibabaCloud.ensEdgeNodeService",
+      "label": "ENS Edge Node Service",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 183.398,
+      "defaultHeight": 183.398,
+      "tags": [
+        "alibabacloud",
+        "ens",
+        "edge",
+        "node",
+        "service"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.ensEdgeNodeService",
+        "mxgraph.alibabaCloud.ens_edge_node_service",
+        "mxgraph.alibabaCloud.ens-edge-node-service",
+        "mxgraph.alibabaCloud.ENS Edge Node Service"
+      ]
+    },
+    {
+      "key": "alibabaCloud.enterpriseWebsite",
+      "label": "Enterprise Website",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 176.801,
+      "defaultHeight": 137.801,
+      "tags": [
+        "alibabacloud",
+        "enterprise",
+        "website"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.enterpriseWebsite",
+        "mxgraph.alibabaCloud.enterprise_website",
+        "mxgraph.alibabaCloud.enterprise-website",
+        "mxgraph.alibabaCloud.Enterprise Website"
+      ]
+    },
+    {
+      "key": "alibabaCloud.eprofile",
+      "label": "EProfile",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 166.602,
+      "defaultHeight": 144.1,
+      "tags": [
+        "alibabacloud",
+        "eprofile"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.eprofile",
+        "mxgraph.alibabaCloud.EProfile"
+      ]
+    },
+    {
+      "key": "alibabaCloud.esign",
+      "label": "eSign",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 139.2,
+      "defaultHeight": 153.201,
+      "tags": [
+        "alibabacloud",
+        "esign"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.esign",
+        "mxgraph.alibabaCloud.eSign"
+      ]
+    },
+    {
+      "key": "alibabaCloud.essElasticScalingService",
+      "label": "ESS Elastic Scaling Service",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 184.039,
+      "defaultHeight": 101.197,
+      "tags": [
+        "alibabacloud",
+        "ess",
+        "elastic",
+        "scaling",
+        "service"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.essElasticScalingService",
+        "mxgraph.alibabaCloud.ess_elastic_scaling_service",
+        "mxgraph.alibabaCloud.ess-elastic-scaling-service",
+        "mxgraph.alibabaCloud.ESS Elastic Scaling Service"
+      ]
+    },
+    {
+      "key": "alibabaCloud.eventbridge",
+      "label": "EventBridge",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 162.864,
+      "defaultHeight": 163.249,
+      "tags": [
+        "alibabacloud",
+        "eventbridge"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.eventbridge",
+        "mxgraph.alibabaCloud.EventBridge"
+      ]
+    },
+    {
+      "key": "alibabaCloud.expressConnect",
+      "label": "Express Connect",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 172.0,
+      "defaultHeight": 157.9,
+      "tags": [
+        "alibabacloud",
+        "express",
+        "connect"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.expressConnect",
+        "mxgraph.alibabaCloud.express_connect",
+        "mxgraph.alibabaCloud.express-connect",
+        "mxgraph.alibabaCloud.Express Connect"
+      ]
+    },
+    {
+      "key": "alibabaCloud.faceRecognition",
+      "label": "Face Recognition",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 158.299,
+      "defaultHeight": 156.199,
+      "tags": [
+        "alibabacloud",
+        "face",
+        "recognition"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.faceRecognition",
+        "mxgraph.alibabaCloud.face_recognition",
+        "mxgraph.alibabaCloud.face-recognition",
+        "mxgraph.alibabaCloud.Face Recognition"
+      ]
+    },
+    {
+      "key": "alibabaCloud.fcFunctionCompute",
+      "label": "FC Function Compute",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 171.9,
+      "defaultHeight": 170.5,
+      "tags": [
+        "alibabacloud",
+        "fc",
+        "function",
+        "compute"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.fcFunctionCompute",
+        "mxgraph.alibabaCloud.fc_function_compute",
+        "mxgraph.alibabaCloud.fc-function-compute",
+        "mxgraph.alibabaCloud.FC Function Compute"
+      ]
+    },
+    {
+      "key": "alibabaCloud.flowService",
+      "label": "Flow Service",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 132.602,
+      "defaultHeight": 175.0,
+      "tags": [
+        "alibabacloud",
+        "flow",
+        "service"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.flowService",
+        "mxgraph.alibabaCloud.flow_service",
+        "mxgraph.alibabaCloud.flow-service",
+        "mxgraph.alibabaCloud.Flow Service"
+      ]
+    },
+    {
+      "key": "alibabaCloud.flowbag",
+      "label": "Flowbag",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 183.7,
+      "defaultHeight": 117.6,
+      "tags": [
+        "alibabacloud",
+        "flowbag"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.flowbag",
+        "mxgraph.alibabaCloud.Flowbag"
+      ]
+    },
+    {
+      "key": "alibabaCloud.fnfServerlessFunctionFlow",
+      "label": "FNF Serverless Function Flow",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 160.4,
+      "defaultHeight": 185.4,
+      "tags": [
+        "alibabacloud",
+        "fnf",
+        "serverless",
+        "function",
+        "flow"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.fnfServerlessFunctionFlow",
+        "mxgraph.alibabaCloud.fnf_serverless_function_flow",
+        "mxgraph.alibabaCloud.fnf-serverless-function-flow",
+        "mxgraph.alibabaCloud.FNF Serverless Function Flow"
+      ]
+    },
+    {
+      "key": "alibabaCloud.fpgaFieldProgrammableGateArray",
+      "label": "FPGA Field Programmable Gate Array",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 152.4,
+      "defaultHeight": 151.1,
+      "tags": [
+        "alibabacloud",
+        "fpga",
+        "field",
+        "programmable",
+        "gate",
+        "array"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.fpgaFieldProgrammableGateArray",
+        "mxgraph.alibabaCloud.fpga_field_programmable_gate_array",
+        "mxgraph.alibabaCloud.fpga-field-programmable-gate-array",
+        "mxgraph.alibabaCloud.FPGA Field Programmable Gate Array"
+      ]
+    },
+    {
+      "key": "alibabaCloud.fraudDetection",
+      "label": "Fraud Detection",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 158.299,
+      "defaultHeight": 158.398,
+      "tags": [
+        "alibabacloud",
+        "fraud",
+        "detection"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.fraudDetection",
+        "mxgraph.alibabaCloud.fraud_detection",
+        "mxgraph.alibabaCloud.fraud-detection",
+        "mxgraph.alibabaCloud.Fraud Detection"
+      ]
+    },
+    {
+      "key": "alibabaCloud.gaGlobalAccelerator",
+      "label": "GA Global Accelerator",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 183.4,
+      "defaultHeight": 183.4,
+      "tags": [
+        "alibabacloud",
+        "ga",
+        "global",
+        "accelerator"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.gaGlobalAccelerator",
+        "mxgraph.alibabaCloud.ga_global_accelerator",
+        "mxgraph.alibabaCloud.ga-global-accelerator",
+        "mxgraph.alibabaCloud.GA Global Accelerator"
+      ]
+    },
+    {
+      "key": "alibabaCloud.gameshield",
+      "label": "GameShield",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 171.201,
+      "defaultHeight": 148.4,
+      "tags": [
+        "alibabacloud",
+        "gameshield"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.gameshield",
+        "mxgraph.alibabaCloud.GameShield"
+      ]
+    },
+    {
+      "key": "alibabaCloud.gdbGraphDatabase",
+      "label": "GDB Graph Database",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 183.399,
+      "defaultHeight": 158.4,
+      "tags": [
+        "alibabacloud",
+        "gdb",
+        "graph",
+        "database"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.gdbGraphDatabase",
+        "mxgraph.alibabaCloud.gdb_graph_database",
+        "mxgraph.alibabaCloud.gdb-graph-database",
+        "mxgraph.alibabaCloud.GDB Graph Database"
+      ]
+    },
+    {
+      "key": "alibabaCloud.graphanalytics",
+      "label": "GraphAnalytics",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 133.4,
+      "defaultHeight": 166.0,
+      "tags": [
+        "alibabacloud",
+        "graphanalytics"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.graphanalytics",
+        "mxgraph.alibabaCloud.GraphAnalytics"
+      ]
+    },
+    {
+      "key": "alibabaCloud.graphcompute",
+      "label": "GraphCompute",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 166.25,
+      "defaultHeight": 166.667,
+      "tags": [
+        "alibabacloud",
+        "graphcompute"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.graphcompute",
+        "mxgraph.alibabaCloud.GraphCompute"
+      ]
+    },
+    {
+      "key": "alibabaCloud.gtmGlobalTrafficManager",
+      "label": "GTM Global Traffic Manager",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 185.4,
+      "defaultHeight": 181.2,
+      "tags": [
+        "alibabacloud",
+        "gtm",
+        "global",
+        "traffic",
+        "manager"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.gtmGlobalTrafficManager",
+        "mxgraph.alibabaCloud.gtm_global_traffic_manager",
+        "mxgraph.alibabaCloud.gtm-global-traffic-manager",
+        "mxgraph.alibabaCloud.GTM Global Traffic Manager"
+      ]
+    },
+    {
+      "key": "alibabaCloud.gtsGlobalTransactionService",
+      "label": "GTS Global Transaction Service",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 157.6,
+      "defaultHeight": 160.0,
+      "tags": [
+        "alibabacloud",
+        "gts",
+        "global",
+        "transaction",
+        "service"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.gtsGlobalTransactionService",
+        "mxgraph.alibabaCloud.gts_global_transaction_service",
+        "mxgraph.alibabaCloud.gts-global-transaction-service",
+        "mxgraph.alibabaCloud.GTS Global Transaction Service"
+      ]
+    },
+    {
+      "key": "alibabaCloud.gwsGraphicWorkstation",
+      "label": "GWS Graphic Workstation",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 158.399,
+      "defaultHeight": 158.398,
+      "tags": [
+        "alibabacloud",
+        "gws",
+        "graphic",
+        "workstation"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.gwsGraphicWorkstation",
+        "mxgraph.alibabaCloud.gws_graphic_workstation",
+        "mxgraph.alibabaCloud.gws-graphic-workstation",
+        "mxgraph.alibabaCloud.GWS Graphic Workstation"
+      ]
+    },
+    {
+      "key": "alibabaCloud.havipHighAvailabilityVirtualIpAddress",
+      "label": "HaVip High-Availability Virtual IP Address",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 175.054,
+      "defaultHeight": 175.011,
+      "tags": [
+        "alibabacloud",
+        "havip",
+        "high",
+        "availability",
+        "virtual",
+        "ip",
+        "address"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.havipHighAvailabilityVirtualIpAddress",
+        "mxgraph.alibabaCloud.havip_high_availability_virtual_ip_address",
+        "mxgraph.alibabaCloud.havip-high-availability-virtual-ip-address",
+        "mxgraph.alibabaCloud.HaVip High-Availability Virtual IP Address"
+      ]
+    },
+    {
+      "key": "alibabaCloud.hbase",
+      "label": "HBase",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 151.5,
+      "defaultHeight": 152.299,
+      "tags": [
+        "alibabacloud",
+        "hbase"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.hbase",
+        "mxgraph.alibabaCloud.HBase"
+      ]
+    },
+    {
+      "key": "alibabaCloud.hbrHybridBackupRecovery",
+      "label": "HBR Hybrid Backup Recovery",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 160.9,
+      "defaultHeight": 183.398,
+      "tags": [
+        "alibabacloud",
+        "hbr",
+        "hybrid",
+        "backup",
+        "recovery"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.hbrHybridBackupRecovery",
+        "mxgraph.alibabaCloud.hbr_hybrid_backup_recovery",
+        "mxgraph.alibabaCloud.hbr-hybrid-backup-recovery",
+        "mxgraph.alibabaCloud.HBR Hybrid Backup Recovery"
+      ]
+    },
+    {
+      "key": "alibabaCloud.hcsHgwHybridCloudStorageArray",
+      "label": "HCS-HGW Hybrid Cloud Storage Array",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 135.1,
+      "defaultHeight": 157.1,
+      "tags": [
+        "alibabacloud",
+        "hcs",
+        "hgw",
+        "hybrid",
+        "cloud",
+        "storage",
+        "array"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.hcsHgwHybridCloudStorageArray",
+        "mxgraph.alibabaCloud.hcs_hgw_hybrid_cloud_storage_array",
+        "mxgraph.alibabaCloud.hcs-hgw-hybrid-cloud-storage-array",
+        "mxgraph.alibabaCloud.HCS-HGW Hybrid Cloud Storage Array"
+      ]
+    },
+    {
+      "key": "alibabaCloud.hcsMgwHybridCloudStorageDatatransport",
+      "label": "HCS-MGW Hybrid Cloud Storage Datatransport",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 168.701,
+      "defaultHeight": 135.301,
+      "tags": [
+        "alibabacloud",
+        "hcs",
+        "mgw",
+        "hybrid",
+        "cloud",
+        "storage",
+        "datatransport"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.hcsMgwHybridCloudStorageDatatransport",
+        "mxgraph.alibabaCloud.hcs_mgw_hybrid_cloud_storage_datatransport",
+        "mxgraph.alibabaCloud.hcs-mgw-hybrid-cloud-storage-datatransport",
+        "mxgraph.alibabaCloud.HCS-MGW Hybrid Cloud Storage Datatransport"
+      ]
+    },
+    {
+      "key": "alibabaCloud.hcsSgwHybridCloudStorageGateway",
+      "label": "HCS-SGW Hybrid Cloud Storage Gateway",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 169.6,
+      "defaultHeight": 133.108,
+      "tags": [
+        "alibabacloud",
+        "hcs",
+        "sgw",
+        "hybrid",
+        "cloud",
+        "storage",
+        "gateway"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.hcsSgwHybridCloudStorageGateway",
+        "mxgraph.alibabaCloud.hcs_sgw_hybrid_cloud_storage_gateway",
+        "mxgraph.alibabaCloud.hcs-sgw-hybrid-cloud-storage-gateway",
+        "mxgraph.alibabaCloud.HCS-SGW Hybrid Cloud Storage Gateway"
+      ]
+    },
+    {
+      "key": "alibabaCloud.hdrHybridDisasterRecovery",
+      "label": "HDR Hybrid Disaster Recovery",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 158.3,
+      "defaultHeight": 158.4,
+      "tags": [
+        "alibabacloud",
+        "hdr",
+        "hybrid",
+        "disaster",
+        "recovery"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.hdrHybridDisasterRecovery",
+        "mxgraph.alibabaCloud.hdr_hybrid_disaster_recovery",
+        "mxgraph.alibabaCloud.hdr-hybrid-disaster-recovery",
+        "mxgraph.alibabaCloud.HDR Hybrid Disaster Recovery"
+      ]
+    },
+    {
+      "key": "alibabaCloud.hologres",
+      "label": "Hologres",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 183.333,
+      "defaultHeight": 166.667,
+      "tags": [
+        "alibabacloud",
+        "hologres"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.hologres",
+        "mxgraph.alibabaCloud.Hologres"
+      ]
+    },
+    {
+      "key": "alibabaCloud.holowatcher",
+      "label": "HoloWatcher",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 144.375,
+      "defaultHeight": 167.125,
+      "tags": [
+        "alibabacloud",
+        "holowatcher"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.holowatcher",
+        "mxgraph.alibabaCloud.HoloWatcher"
+      ]
+    },
+    {
+      "key": "alibabaCloud.hsmHardwareSecurityModule",
+      "label": "HSM Hardware Security Module",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 155.101,
+      "defaultHeight": 165.301,
+      "tags": [
+        "alibabacloud",
+        "hsm",
+        "hardware",
+        "security",
+        "module"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.hsmHardwareSecurityModule",
+        "mxgraph.alibabaCloud.hsm_hardware_security_module",
+        "mxgraph.alibabaCloud.hsm-hardware-security-module",
+        "mxgraph.alibabaCloud.HSM Hardware Security Module"
+      ]
+    },
+    {
+      "key": "alibabaCloud.httpdns",
+      "label": "HTTPDNS",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 166.668,
+      "defaultHeight": 121.213,
+      "tags": [
+        "alibabacloud",
+        "httpdns"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.httpdns",
+        "mxgraph.alibabaCloud.HTTPDNS"
+      ]
+    },
+    {
+      "key": "alibabaCloud.idrsservice",
+      "label": "IDRSService",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 186.66,
+      "defaultHeight": 186.604,
+      "tags": [
+        "alibabacloud",
+        "idrsservice"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.idrsservice",
+        "mxgraph.alibabaCloud.IDRSService"
+      ]
+    },
+    {
+      "key": "alibabaCloud.imageRecognition",
+      "label": "Image Recognition",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 162.799,
+      "defaultHeight": 158.699,
+      "tags": [
+        "alibabacloud",
+        "image",
+        "recognition"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.imageRecognition",
+        "mxgraph.alibabaCloud.image_recognition",
+        "mxgraph.alibabaCloud.image-recognition",
+        "mxgraph.alibabaCloud.Image Recognition"
+      ]
+    },
+    {
+      "key": "alibabaCloud.imagesearch",
+      "label": "ImageSearch",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 159.1,
+      "defaultHeight": 158.6,
+      "tags": [
+        "alibabacloud",
+        "imagesearch"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.imagesearch",
+        "mxgraph.alibabaCloud.ImageSearch"
+      ]
+    },
+    {
+      "key": "alibabaCloud.imarketing",
+      "label": "iMarketing",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 144.0,
+      "defaultHeight": 139.017,
+      "tags": [
+        "alibabacloud",
+        "imarketing"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.imarketing",
+        "mxgraph.alibabaCloud.iMarketing"
+      ]
+    },
+    {
+      "key": "alibabaCloud.immIntelligentMediaManagement",
+      "label": "IMM Intelligent Media Management",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 182.5,
+      "defaultHeight": 182.4,
+      "tags": [
+        "alibabacloud",
+        "imm",
+        "intelligent",
+        "media",
+        "management"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.immIntelligentMediaManagement",
+        "mxgraph.alibabaCloud.imm_intelligent_media_management",
+        "mxgraph.alibabaCloud.imm-intelligent-media-management",
+        "mxgraph.alibabaCloud.IMM Intelligent Media Management"
+      ]
+    },
+    {
+      "key": "alibabaCloud.impIntelligentMediaProduction",
+      "label": "IMP Intelligent Media Production",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 175.708,
+      "defaultHeight": 121.958,
+      "tags": [
+        "alibabacloud",
+        "imp",
+        "intelligent",
+        "media",
+        "production"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.impIntelligentMediaProduction",
+        "mxgraph.alibabaCloud.imp_intelligent_media_production",
+        "mxgraph.alibabaCloud.imp-intelligent-media-production",
+        "mxgraph.alibabaCloud.IMP Intelligent Media Production"
+      ]
+    },
+    {
+      "key": "alibabaCloud.impLowCodeVideoFactory",
+      "label": "IMP Low Code Video Factory",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 160.184,
+      "defaultHeight": 161.562,
+      "tags": [
+        "alibabacloud",
+        "imp",
+        "low",
+        "code",
+        "video",
+        "factory"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.impLowCodeVideoFactory",
+        "mxgraph.alibabaCloud.imp_low_code_video_factory",
+        "mxgraph.alibabaCloud.imp-low-code-video-factory",
+        "mxgraph.alibabaCloud.IMP Low Code Video Factory"
+      ]
+    },
+    {
+      "key": "alibabaCloud.indviIndustrialVisualIntelligence",
+      "label": "IndVI Industrial Visual Intelligence",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 158.332,
+      "defaultHeight": 158.332,
+      "tags": [
+        "alibabacloud",
+        "indvi",
+        "industrial",
+        "visual",
+        "intelligence"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.indviIndustrialVisualIntelligence",
+        "mxgraph.alibabaCloud.indvi_industrial_visual_intelligence",
+        "mxgraph.alibabaCloud.indvi-industrial-visual-intelligence",
+        "mxgraph.alibabaCloud.IndVI Industrial Visual Intelligence"
+      ]
+    },
+    {
+      "key": "alibabaCloud.intelligentAdvisor",
+      "label": "Intelligent Advisor",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 157.511,
+      "defaultHeight": 183.345,
+      "tags": [
+        "alibabacloud",
+        "intelligent",
+        "advisor"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.intelligentAdvisor",
+        "mxgraph.alibabaCloud.intelligent_advisor",
+        "mxgraph.alibabaCloud.intelligent-advisor",
+        "mxgraph.alibabaCloud.Intelligent Advisor"
+      ]
+    },
+    {
+      "key": "alibabaCloud.iotInternetOfThingsPlatform",
+      "label": "IoT Internet of Things Platform",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 187.6,
+      "defaultHeight": 185.0,
+      "tags": [
+        "alibabacloud",
+        "iot",
+        "internet",
+        "of",
+        "things",
+        "platform"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.iotInternetOfThingsPlatform",
+        "mxgraph.alibabaCloud.iot_internet_of_things_platform",
+        "mxgraph.alibabaCloud.iot-internet-of-things-platform",
+        "mxgraph.alibabaCloud.IoT Internet of Things Platform"
+      ]
+    },
+    {
+      "key": "alibabaCloud.iotWirelessConnectionService",
+      "label": "IoT Wireless Connection Service",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 141.5,
+      "defaultHeight": 166.5,
+      "tags": [
+        "alibabacloud",
+        "iot",
+        "wireless",
+        "connection",
+        "service"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.iotWirelessConnectionService",
+        "mxgraph.alibabaCloud.iot_wireless_connection_service",
+        "mxgraph.alibabaCloud.iot-wireless-connection-service",
+        "mxgraph.alibabaCloud.IoT Wireless Connection Service"
+      ]
+    },
+    {
+      "key": "alibabaCloud.iotidIdentity",
+      "label": "IoTID Identity",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 158.699,
+      "defaultHeight": 159.1,
+      "tags": [
+        "alibabacloud",
+        "iotid",
+        "identity"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.iotidIdentity",
+        "mxgraph.alibabaCloud.iotid_identity",
+        "mxgraph.alibabaCloud.iotid-identity",
+        "mxgraph.alibabaCloud.IoTID Identity"
+      ]
+    },
+    {
+      "key": "alibabaCloud.iovIotVehicleCloud",
+      "label": "IoV IoT Vehicle Cloud",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 183.5,
+      "defaultHeight": 110.1,
+      "tags": [
+        "alibabacloud",
+        "iov",
+        "iot",
+        "vehicle",
+        "cloud"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.iovIotVehicleCloud",
+        "mxgraph.alibabaCloud.iov_iot_vehicle_cloud",
+        "mxgraph.alibabaCloud.iov-iot-vehicle-cloud",
+        "mxgraph.alibabaCloud.IoV IoT Vehicle Cloud"
+      ]
+    },
+    {
+      "key": "alibabaCloud.ipv6Gateway",
+      "label": "IPv6 Gateway",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 172.398,
+      "defaultHeight": 199.0,
+      "tags": [
+        "alibabacloud",
+        "ipv6",
+        "gateway"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.ipv6Gateway",
+        "mxgraph.alibabaCloud.ipv6_gateway",
+        "mxgraph.alibabaCloud.ipv6-gateway",
+        "mxgraph.alibabaCloud.IPv6 Gateway"
+      ]
+    },
+    {
+      "key": "alibabaCloud.isocIotSecurityOperationsCenter",
+      "label": "ISOC IoT Security Operations Center",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 164.608,
+      "defaultHeight": 183.104,
+      "tags": [
+        "alibabacloud",
+        "isoc",
+        "iot",
+        "security",
+        "operations",
+        "center"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.isocIotSecurityOperationsCenter",
+        "mxgraph.alibabaCloud.isoc_iot_security_operations_center",
+        "mxgraph.alibabaCloud.isoc-iot-security-operations-center",
+        "mxgraph.alibabaCloud.ISOC IoT Security Operations Center"
+      ]
+    },
+    {
+      "key": "alibabaCloud.isuIntelligentSemanticUnderstanding",
+      "label": "ISU Intelligent Semantic Understanding",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 158.2,
+      "defaultHeight": 156.0,
+      "tags": [
+        "alibabacloud",
+        "isu",
+        "intelligent",
+        "semantic",
+        "understanding"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.isuIntelligentSemanticUnderstanding",
+        "mxgraph.alibabaCloud.isu_intelligent_semantic_understanding",
+        "mxgraph.alibabaCloud.isu-intelligent-semantic-understanding",
+        "mxgraph.alibabaCloud.ISU Intelligent Semantic Understanding"
+      ]
+    },
+    {
+      "key": "alibabaCloud.ivision",
+      "label": "iVision",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 183.799,
+      "defaultHeight": 183.398,
+      "tags": [
+        "alibabacloud",
+        "ivision"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.ivision",
+        "mxgraph.alibabaCloud.iVision"
+      ]
+    },
+    {
+      "key": "alibabaCloud.ivpdIntelligentVisualProduction",
+      "label": "iVPD Intelligent Visual Production",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 155.834,
+      "defaultHeight": 155.416,
+      "tags": [
+        "alibabacloud",
+        "ivpd",
+        "intelligent",
+        "visual",
+        "production"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.ivpdIntelligentVisualProduction",
+        "mxgraph.alibabaCloud.ivpd_intelligent_visual_production",
+        "mxgraph.alibabaCloud.ivpd-intelligent-visual-production",
+        "mxgraph.alibabaCloud.iVPD Intelligent Visual Production"
+      ]
+    },
+    {
+      "key": "alibabaCloud.kafka",
+      "label": "Kafka",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 188.801,
+      "defaultHeight": 139.9,
+      "tags": [
+        "alibabacloud",
+        "kafka"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.kafka",
+        "mxgraph.alibabaCloud.Kafka"
+      ]
+    },
+    {
+      "key": "alibabaCloud.linkedmall",
+      "label": "LinkedMall",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 144.0,
+      "defaultHeight": 139.018,
+      "tags": [
+        "alibabacloud",
+        "linkedmall"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.linkedmall",
+        "mxgraph.alibabaCloud.LinkedMall"
+      ]
+    },
+    {
+      "key": "alibabaCloud.linkwan",
+      "label": "LinkWan",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 174.8,
+      "defaultHeight": 182.898,
+      "tags": [
+        "alibabacloud",
+        "linkwan"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.linkwan",
+        "mxgraph.alibabaCloud.LinkWan"
+      ]
+    },
+    {
+      "key": "alibabaCloud.live",
+      "label": "Live",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 163.2,
+      "defaultHeight": 149.4,
+      "tags": [
+        "alibabacloud",
+        "live"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.live",
+        "mxgraph.alibabaCloud.Live"
+      ]
+    },
+    {
+      "key": "alibabaCloud.livinglink",
+      "label": "LivingLink",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 146.2,
+      "defaultHeight": 168.7,
+      "tags": [
+        "alibabacloud",
+        "livinglink"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.livinglink",
+        "mxgraph.alibabaCloud.LivingLink"
+      ]
+    },
+    {
+      "key": "alibabaCloud.logStreaming",
+      "label": "Log Streaming",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 158.232,
+      "defaultHeight": 150.604,
+      "tags": [
+        "alibabacloud",
+        "log",
+        "streaming"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.logStreaming",
+        "mxgraph.alibabaCloud.log_streaming",
+        "mxgraph.alibabaCloud.log-streaming",
+        "mxgraph.alibabaCloud.Log Streaming"
+      ]
+    },
+    {
+      "key": "alibabaCloud.logicComposer",
+      "label": "Logic Composer",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 178.6,
+      "defaultHeight": 178.301,
+      "tags": [
+        "alibabacloud",
+        "logic",
+        "composer"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.logicComposer",
+        "mxgraph.alibabaCloud.logic_composer",
+        "mxgraph.alibabaCloud.logic-composer",
+        "mxgraph.alibabaCloud.Logic Composer"
+      ]
+    },
+    {
+      "key": "alibabaCloud.machineLearning",
+      "label": "Machine Learning",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 165.832,
+      "defaultHeight": 166.668,
+      "tags": [
+        "alibabacloud",
+        "machine",
+        "learning"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.machineLearning",
+        "mxgraph.alibabaCloud.machine_learning",
+        "mxgraph.alibabaCloud.machine-learning",
+        "mxgraph.alibabaCloud.Machine Learning"
+      ]
+    },
+    {
+      "key": "alibabaCloud.manMobileAnalytics",
+      "label": "MAN Mobile Analytics",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 166.668,
+      "defaultHeight": 137.706,
+      "tags": [
+        "alibabacloud",
+        "man",
+        "mobile",
+        "analytics"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.manMobileAnalytics",
+        "mxgraph.alibabaCloud.man_mobile_analytics",
+        "mxgraph.alibabaCloud.man-mobile-analytics",
+        "mxgraph.alibabaCloud.MAN Mobile Analytics"
+      ]
+    },
+    {
+      "key": "alibabaCloud.mariadb",
+      "label": "MariaDB",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 169.999,
+      "defaultHeight": 128.299,
+      "tags": [
+        "alibabacloud",
+        "mariadb"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.mariadb",
+        "mxgraph.alibabaCloud.MariaDB"
+      ]
+    },
+    {
+      "key": "alibabaCloud.masMobileAccelerationService",
+      "label": "MAS Mobile Acceleration Service",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 171.0,
+      "defaultHeight": 125.9,
+      "tags": [
+        "alibabacloud",
+        "mas",
+        "mobile",
+        "acceleration",
+        "service"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.masMobileAccelerationService",
+        "mxgraph.alibabaCloud.mas_mobile_acceleration_service",
+        "mxgraph.alibabaCloud.mas-mobile-acceleration-service",
+        "mxgraph.alibabaCloud.MAS Mobile Acceleration Service"
+      ]
+    },
+    {
+      "key": "alibabaCloud.maxcompute",
+      "label": "MaxCompute",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 166.667,
+      "defaultHeight": 166.667,
+      "tags": [
+        "alibabacloud",
+        "maxcompute"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.maxcompute",
+        "mxgraph.alibabaCloud.MaxCompute"
+      ]
+    },
+    {
+      "key": "alibabaCloud.memcache",
+      "label": "Memcache",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 166.7,
+      "defaultHeight": 150.8,
+      "tags": [
+        "alibabacloud",
+        "memcache"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.memcache",
+        "mxgraph.alibabaCloud.Memcache"
+      ]
+    },
+    {
+      "key": "alibabaCloud.miniappdev",
+      "label": "MiniAppDev",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 163.658,
+      "defaultHeight": 119.025,
+      "tags": [
+        "alibabacloud",
+        "miniappdev"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.miniappdev",
+        "mxgraph.alibabaCloud.MiniAppDev"
+      ]
+    },
+    {
+      "key": "alibabaCloud.mnsMessageService",
+      "label": "MNS Message Service",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 133.1,
+      "defaultHeight": 133.2,
+      "tags": [
+        "alibabacloud",
+        "mns",
+        "message",
+        "service"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.mnsMessageService",
+        "mxgraph.alibabaCloud.mns_message_service",
+        "mxgraph.alibabaCloud.mns-message-service",
+        "mxgraph.alibabaCloud.MNS Message Service"
+      ]
+    },
+    {
+      "key": "alibabaCloud.mobileHotfix",
+      "label": "Mobile Hotfix",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 166.668,
+      "defaultHeight": 166.668,
+      "tags": [
+        "alibabacloud",
+        "mobile",
+        "hotfix"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.mobileHotfix",
+        "mxgraph.alibabaCloud.mobile_hotfix",
+        "mxgraph.alibabaCloud.mobile-hotfix",
+        "mxgraph.alibabaCloud.Mobile Hotfix"
+      ]
+    },
+    {
+      "key": "alibabaCloud.mobsec",
+      "label": "MobSec",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 170.0,
+      "defaultHeight": 144.4,
+      "tags": [
+        "alibabacloud",
+        "mobsec"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.mobsec",
+        "mxgraph.alibabaCloud.MobSec"
+      ]
+    },
+    {
+      "key": "alibabaCloud.mongodb",
+      "label": "MongoDB",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 158.398,
+      "defaultHeight": 158.398,
+      "tags": [
+        "alibabacloud",
+        "mongodb"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.mongodb",
+        "mxgraph.alibabaCloud.MongoDB"
+      ]
+    },
+    {
+      "key": "alibabaCloud.mpsApsaravideoMediaProcessing",
+      "label": "MPS ApsaraVideo Media Processing",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 144.801,
+      "defaultHeight": 172.999,
+      "tags": [
+        "alibabacloud",
+        "mps",
+        "apsaravideo",
+        "media",
+        "processing"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.mpsApsaravideoMediaProcessing",
+        "mxgraph.alibabaCloud.mps_apsaravideo_media_processing",
+        "mxgraph.alibabaCloud.mps-apsaravideo-media-processing",
+        "mxgraph.alibabaCloud.MPS ApsaraVideo Media Processing"
+      ]
+    },
+    {
+      "key": "alibabaCloud.mpsAi",
+      "label": "MPS-AI",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 173.9,
+      "defaultHeight": 175.4,
+      "tags": [
+        "alibabacloud",
+        "mps",
+        "ai"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.mpsAi",
+        "mxgraph.alibabaCloud.mps_ai",
+        "mxgraph.alibabaCloud.mps-ai",
+        "mxgraph.alibabaCloud.MPS-AI"
+      ]
+    },
+    {
+      "key": "alibabaCloud.mpsCensor",
+      "label": "MPS-Censor",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 187.1,
+      "defaultHeight": 183.2,
+      "tags": [
+        "alibabacloud",
+        "mps",
+        "censor"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.mpsCensor",
+        "mxgraph.alibabaCloud.mps_censor",
+        "mxgraph.alibabaCloud.mps-censor",
+        "mxgraph.alibabaCloud.MPS-Censor"
+      ]
+    },
+    {
+      "key": "alibabaCloud.mpsCover",
+      "label": "MPS-Cover",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 187.0,
+      "defaultHeight": 183.4,
+      "tags": [
+        "alibabacloud",
+        "mps",
+        "cover"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.mpsCover",
+        "mxgraph.alibabaCloud.mps_cover",
+        "mxgraph.alibabaCloud.mps-cover",
+        "mxgraph.alibabaCloud.MPS-Cover"
+      ]
+    },
+    {
+      "key": "alibabaCloud.mpsDna",
+      "label": "MPS-DNA",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 191.299,
+      "defaultHeight": 185.9,
+      "tags": [
+        "alibabacloud",
+        "mps",
+        "dna"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.mpsDna",
+        "mxgraph.alibabaCloud.mps_dna",
+        "mxgraph.alibabaCloud.mps-dna",
+        "mxgraph.alibabaCloud.MPS-DNA"
+      ]
+    },
+    {
+      "key": "alibabaCloud.mpsMultimod",
+      "label": "MPS-Multimod",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 202.1,
+      "defaultHeight": 183.4,
+      "tags": [
+        "alibabacloud",
+        "mps",
+        "multimod"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.mpsMultimod",
+        "mxgraph.alibabaCloud.mps_multimod",
+        "mxgraph.alibabaCloud.mps-multimod",
+        "mxgraph.alibabaCloud.MPS-Multimod"
+      ]
+    },
+    {
+      "key": "alibabaCloud.mpsProduce",
+      "label": "MPS-Produce",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 202.101,
+      "defaultHeight": 175.366,
+      "tags": [
+        "alibabacloud",
+        "mps",
+        "produce"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.mpsProduce",
+        "mxgraph.alibabaCloud.mps_produce",
+        "mxgraph.alibabaCloud.mps-produce",
+        "mxgraph.alibabaCloud.MPS-Produce"
+      ]
+    },
+    {
+      "key": "alibabaCloud.mqMessageQueue",
+      "label": "MQ Message Queue",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 150.0,
+      "defaultHeight": 166.4,
+      "tags": [
+        "alibabacloud",
+        "mq",
+        "message",
+        "queue"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.mqMessageQueue",
+        "mxgraph.alibabaCloud.mq_message_queue",
+        "mxgraph.alibabaCloud.mq-message-queue",
+        "mxgraph.alibabaCloud.MQ Message Queue"
+      ]
+    },
+    {
+      "key": "alibabaCloud.mqcMobileQualityCenter",
+      "label": "MQC Mobile Quality Center",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 164.755,
+      "defaultHeight": 164.859,
+      "tags": [
+        "alibabacloud",
+        "mqc",
+        "mobile",
+        "quality",
+        "center"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.mqcMobileQualityCenter",
+        "mxgraph.alibabaCloud.mqc_mobile_quality_center",
+        "mxgraph.alibabaCloud.mqc-mobile-quality-center",
+        "mxgraph.alibabaCloud.MQC Mobile Quality Center"
+      ]
+    },
+    {
+      "key": "alibabaCloud.mseMicroservicesEngine",
+      "label": "MSE Microservices Engine",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 183.398,
+      "defaultHeight": 183.398,
+      "tags": [
+        "alibabacloud",
+        "mse",
+        "microservices",
+        "engine"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.mseMicroservicesEngine",
+        "mxgraph.alibabaCloud.mse_microservices_engine",
+        "mxgraph.alibabaCloud.mse-microservices-engine",
+        "mxgraph.alibabaCloud.MSE Microservices Engine"
+      ]
+    },
+    {
+      "key": "alibabaCloud.multiCloudFinops",
+      "label": "Multi-Cloud FinOps",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 175.2,
+      "defaultHeight": 125.0,
+      "tags": [
+        "alibabacloud",
+        "multi",
+        "cloud",
+        "finops"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.multiCloudFinops",
+        "mxgraph.alibabaCloud.multi_cloud_finops",
+        "mxgraph.alibabaCloud.multi-cloud-finops",
+        "mxgraph.alibabaCloud.Multi-Cloud FinOps"
+      ]
+    },
+    {
+      "key": "alibabaCloud.multiModeDatabaseLindorm",
+      "label": "Multi-mode Database Lindorm",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 157.545,
+      "defaultHeight": 166.668,
+      "tags": [
+        "alibabacloud",
+        "multi",
+        "mode",
+        "database",
+        "lindorm"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.multiModeDatabaseLindorm",
+        "mxgraph.alibabaCloud.multi_mode_database_lindorm",
+        "mxgraph.alibabaCloud.multi-mode-database-lindorm",
+        "mxgraph.alibabaCloud.Multi-mode Database Lindorm"
+      ]
+    },
+    {
+      "key": "alibabaCloud.multimediaai",
+      "label": "MultiMediaAI",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 200.375,
+      "defaultHeight": 197.059,
+      "tags": [
+        "alibabacloud",
+        "multimediaai"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.multimediaai",
+        "mxgraph.alibabaCloud.MultiMediaAI"
+      ]
+    },
+    {
+      "key": "alibabaCloud.mysql",
+      "label": "MySQL",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 160.9,
+      "defaultHeight": 150.0,
+      "tags": [
+        "alibabacloud",
+        "mysql"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.mysql",
+        "mxgraph.alibabaCloud.MySQL"
+      ]
+    },
+    {
+      "key": "alibabaCloud.nasNetworkAttachedStorage",
+      "label": "NAS Network Attached Storage",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 165.3,
+      "defaultHeight": 133.4,
+      "tags": [
+        "alibabacloud",
+        "nas",
+        "network",
+        "attached",
+        "storage"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.nasNetworkAttachedStorage",
+        "mxgraph.alibabaCloud.nas_network_attached_storage",
+        "mxgraph.alibabaCloud.nas-network-attached-storage",
+        "mxgraph.alibabaCloud.NAS Network Attached Storage"
+      ]
+    },
+    {
+      "key": "alibabaCloud.natGateway",
+      "label": "NAT Gateway",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 171.7,
+      "defaultHeight": 139.1,
+      "tags": [
+        "alibabacloud",
+        "nat",
+        "gateway"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.natGateway",
+        "mxgraph.alibabaCloud.nat_gateway",
+        "mxgraph.alibabaCloud.nat-gateway",
+        "mxgraph.alibabaCloud.NAT Gateway"
+      ]
+    },
+    {
+      "key": "alibabaCloud.networkAclAccessControlList",
+      "label": "Network ACL Access Control List",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 158.333,
+      "defaultHeight": 141.667,
+      "tags": [
+        "alibabacloud",
+        "network",
+        "acl",
+        "access",
+        "control",
+        "list"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.networkAclAccessControlList",
+        "mxgraph.alibabaCloud.network_acl_access_control_list",
+        "mxgraph.alibabaCloud.network-acl-access-control-list",
+        "mxgraph.alibabaCloud.Network ACL Access Control List"
+      ]
+    },
+    {
+      "key": "alibabaCloud.nlbNetworkLoadBalancer01",
+      "label": "NLB Network Load Balancer 01",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 158.332,
+      "defaultHeight": 134.427,
+      "tags": [
+        "alibabacloud",
+        "nlb",
+        "network",
+        "load",
+        "balancer",
+        "01"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.nlbNetworkLoadBalancer01",
+        "mxgraph.alibabaCloud.nlb_network_load_balancer_01",
+        "mxgraph.alibabaCloud.nlb-network-load-balancer-01",
+        "mxgraph.alibabaCloud.NLB Network Load Balancer 01"
+      ]
+    },
+    {
+      "key": "alibabaCloud.nlbNetworkLoadBalancer02",
+      "label": "NLB Network Load Balancer 02",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 200.0,
+      "defaultHeight": 200.0,
+      "tags": [
+        "alibabacloud",
+        "nlb",
+        "network",
+        "load",
+        "balancer",
+        "02"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.nlbNetworkLoadBalancer02",
+        "mxgraph.alibabaCloud.nlb_network_load_balancer_02",
+        "mxgraph.alibabaCloud.nlb-network-load-balancer-02",
+        "mxgraph.alibabaCloud.NLB Network Load Balancer 02"
+      ]
+    },
+    {
+      "key": "alibabaCloud.nlpNaturalLanguageProcessing",
+      "label": "NLP Natural Language Processing",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 166.701,
+      "defaultHeight": 183.6,
+      "tags": [
+        "alibabacloud",
+        "nlp",
+        "natural",
+        "language",
+        "processing"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.nlpNaturalLanguageProcessing",
+        "mxgraph.alibabaCloud.nlp_natural_language_processing",
+        "mxgraph.alibabaCloud.nlp-natural-language-processing",
+        "mxgraph.alibabaCloud.NLP Natural Language Processing"
+      ]
+    },
+    {
+      "key": "alibabaCloud.nlpAddress",
+      "label": "NLP-Address",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 158.4,
+      "defaultHeight": 158.4,
+      "tags": [
+        "alibabacloud",
+        "nlp",
+        "address"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.nlpAddress",
+        "mxgraph.alibabaCloud.nlp_address",
+        "mxgraph.alibabaCloud.nlp-address",
+        "mxgraph.alibabaCloud.NLP-Address"
+      ]
+    },
+    {
+      "key": "alibabaCloud.nlpAutoml",
+      "label": "NLP-AutoML",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 160.9,
+      "defaultHeight": 157.2,
+      "tags": [
+        "alibabacloud",
+        "nlp",
+        "automl"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.nlpAutoml",
+        "mxgraph.alibabaCloud.nlp_automl",
+        "mxgraph.alibabaCloud.nlp-automl",
+        "mxgraph.alibabaCloud.NLP-AutoML"
+      ]
+    },
+    {
+      "key": "alibabaCloud.nlpIeTextInformationExtraction",
+      "label": "NLP-IE Text Information Extraction",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 158.3,
+      "defaultHeight": 158.3,
+      "tags": [
+        "alibabacloud",
+        "nlp",
+        "ie",
+        "text",
+        "information",
+        "extraction"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.nlpIeTextInformationExtraction",
+        "mxgraph.alibabaCloud.nlp_ie_text_information_extraction",
+        "mxgraph.alibabaCloud.nlp-ie-text-information-extraction",
+        "mxgraph.alibabaCloud.NLP-IE Text Information Extraction"
+      ]
+    },
+    {
+      "key": "alibabaCloud.nlpKeKeywordExtraction",
+      "label": "NLP-KE Keyword Extraction",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 158.4,
+      "defaultHeight": 158.4,
+      "tags": [
+        "alibabacloud",
+        "nlp",
+        "ke",
+        "keyword",
+        "extraction"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.nlpKeKeywordExtraction",
+        "mxgraph.alibabaCloud.nlp_ke_keyword_extraction",
+        "mxgraph.alibabaCloud.nlp-ke-keyword-extraction",
+        "mxgraph.alibabaCloud.NLP-KE Keyword Extraction"
+      ]
+    },
+    {
+      "key": "alibabaCloud.nlpNerNamedEntityRecognition",
+      "label": "NLP-NER Named Entity Recognition",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 158.3,
+      "defaultHeight": 158.4,
+      "tags": [
+        "alibabacloud",
+        "nlp",
+        "ner",
+        "named",
+        "entity",
+        "recognition"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.nlpNerNamedEntityRecognition",
+        "mxgraph.alibabaCloud.nlp_ner_named_entity_recognition",
+        "mxgraph.alibabaCloud.nlp-ner-named-entity-recognition",
+        "mxgraph.alibabaCloud.NLP-NER Named Entity Recognition"
+      ]
+    },
+    {
+      "key": "alibabaCloud.nlpPosPartOfSpeechTagging",
+      "label": "NLP-POS Part-of-Speech Tagging",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 158.301,
+      "defaultHeight": 158.301,
+      "tags": [
+        "alibabacloud",
+        "nlp",
+        "pos",
+        "part",
+        "of",
+        "speech",
+        "tagging"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.nlpPosPartOfSpeechTagging",
+        "mxgraph.alibabaCloud.nlp_pos_part_of_speech_tagging",
+        "mxgraph.alibabaCloud.nlp-pos-part-of-speech-tagging",
+        "mxgraph.alibabaCloud.NLP-POS Part-of-Speech Tagging"
+      ]
+    },
+    {
+      "key": "alibabaCloud.nlpRaReflexiveAnaphora",
+      "label": "NLP-RA Reflexive Anaphora",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 158.4,
+      "defaultHeight": 158.4,
+      "tags": [
+        "alibabacloud",
+        "nlp",
+        "ra",
+        "reflexive",
+        "anaphora"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.nlpRaReflexiveAnaphora",
+        "mxgraph.alibabaCloud.nlp_ra_reflexive_anaphora",
+        "mxgraph.alibabaCloud.nlp-ra-reflexive-anaphora",
+        "mxgraph.alibabaCloud.NLP-RA Reflexive Anaphora"
+      ]
+    },
+    {
+      "key": "alibabaCloud.nlpSaSentimentAnalysis",
+      "label": "NLP-SA Sentiment Analysis",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 158.3,
+      "defaultHeight": 158.3,
+      "tags": [
+        "alibabacloud",
+        "nlp",
+        "sa",
+        "sentiment",
+        "analysis"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.nlpSaSentimentAnalysis",
+        "mxgraph.alibabaCloud.nlp_sa_sentiment_analysis",
+        "mxgraph.alibabaCloud.nlp-sa-sentiment-analysis",
+        "mxgraph.alibabaCloud.NLP-SA Sentiment Analysis"
+      ]
+    },
+    {
+      "key": "alibabaCloud.nlpTcTextCategorization",
+      "label": "NLP-TC Text Categorization",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 158.4,
+      "defaultHeight": 158.4,
+      "tags": [
+        "alibabacloud",
+        "nlp",
+        "tc",
+        "text",
+        "categorization"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.nlpTcTextCategorization",
+        "mxgraph.alibabaCloud.nlp_tc_text_categorization",
+        "mxgraph.alibabaCloud.nlp-tc-text-categorization",
+        "mxgraph.alibabaCloud.NLP-TC Text Categorization"
+      ]
+    },
+    {
+      "key": "alibabaCloud.nlpWsWordSegmentation",
+      "label": "NLP-WS Word Segmentation",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 158.3,
+      "defaultHeight": 158.3,
+      "tags": [
+        "alibabacloud",
+        "nlp",
+        "ws",
+        "word",
+        "segmentation"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.nlpWsWordSegmentation",
+        "mxgraph.alibabaCloud.nlp_ws_word_segmentation",
+        "mxgraph.alibabaCloud.nlp-ws-word-segmentation",
+        "mxgraph.alibabaCloud.NLP-WS Word Segmentation"
+      ]
+    },
+    {
+      "key": "alibabaCloud.nlsAsrbag",
+      "label": "NLS-ASRBag",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 158.349,
+      "defaultHeight": 158.199,
+      "tags": [
+        "alibabacloud",
+        "nls",
+        "asrbag"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.nlsAsrbag",
+        "mxgraph.alibabaCloud.nls_asrbag",
+        "mxgraph.alibabaCloud.nls-asrbag",
+        "mxgraph.alibabaCloud.NLS-ASRBag"
+      ]
+    },
+    {
+      "key": "alibabaCloud.nlsAsrcustommodel",
+      "label": "NLS-ASRCustomModel",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 183.4,
+      "defaultHeight": 183.3,
+      "tags": [
+        "alibabacloud",
+        "nls",
+        "asrcustommodel"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.nlsAsrcustommodel",
+        "mxgraph.alibabaCloud.nls_asrcustommodel",
+        "mxgraph.alibabaCloud.nls-asrcustommodel",
+        "mxgraph.alibabaCloud.NLS-ASRCustomModel"
+      ]
+    },
+    {
+      "key": "alibabaCloud.nlsFilebag",
+      "label": "NLS-Filebag",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 158.349,
+      "defaultHeight": 158.149,
+      "tags": [
+        "alibabacloud",
+        "nls",
+        "filebag"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.nlsFilebag",
+        "mxgraph.alibabaCloud.nls_filebag",
+        "mxgraph.alibabaCloud.nls-filebag",
+        "mxgraph.alibabaCloud.NLS-Filebag"
+      ]
+    },
+    {
+      "key": "alibabaCloud.nlsService",
+      "label": "NLS-Service",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 157.1,
+      "defaultHeight": 158.4,
+      "tags": [
+        "alibabacloud",
+        "nls",
+        "service"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.nlsService",
+        "mxgraph.alibabaCloud.nls_service",
+        "mxgraph.alibabaCloud.nls-service",
+        "mxgraph.alibabaCloud.NLS-Service"
+      ]
+    },
+    {
+      "key": "alibabaCloud.nlsShortasrbag",
+      "label": "NLS-ShortASRBag",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 158.349,
+      "defaultHeight": 158.149,
+      "tags": [
+        "alibabacloud",
+        "nls",
+        "shortasrbag"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.nlsShortasrbag",
+        "mxgraph.alibabaCloud.nls_shortasrbag",
+        "mxgraph.alibabaCloud.nls-shortasrbag",
+        "mxgraph.alibabaCloud.NLS-ShortASRBag"
+      ]
+    },
+    {
+      "key": "alibabaCloud.nlsTtsbag",
+      "label": "NLS-TTSBag",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 157.9,
+      "defaultHeight": 158.4,
+      "tags": [
+        "alibabacloud",
+        "nls",
+        "ttsbag"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.nlsTtsbag",
+        "mxgraph.alibabaCloud.nls_ttsbag",
+        "mxgraph.alibabaCloud.nls-ttsbag",
+        "mxgraph.alibabaCloud.NLS-TTSBag"
+      ]
+    },
+    {
+      "key": "alibabaCloud.nls",
+      "label": "NLS",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 183.199,
+      "defaultHeight": 164.3,
+      "tags": [
+        "alibabacloud",
+        "nls"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.nls",
+        "mxgraph.alibabaCloud.NLS"
+      ]
+    },
+    {
+      "key": "alibabaCloud.nodejsPerformancePlatform",
+      "label": "Nodejs Performance Platform",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 140.4,
+      "defaultHeight": 158.3,
+      "tags": [
+        "alibabacloud",
+        "nodejs",
+        "performance",
+        "platform"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.nodejsPerformancePlatform",
+        "mxgraph.alibabaCloud.nodejs_performance_platform",
+        "mxgraph.alibabaCloud.nodejs-performance-platform",
+        "mxgraph.alibabaCloud.Nodejs Performance Platform"
+      ]
+    },
+    {
+      "key": "alibabaCloud.oceanbase",
+      "label": "OceanBase",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 167.5,
+      "defaultHeight": 147.5,
+      "tags": [
+        "alibabacloud",
+        "oceanbase"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.oceanbase",
+        "mxgraph.alibabaCloud.OceanBase"
+      ]
+    },
+    {
+      "key": "alibabaCloud.ocrOpticalCharacterRecognition",
+      "label": "OCR Optical Character Recognition",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 199.487,
+      "defaultHeight": 201.149,
+      "tags": [
+        "alibabacloud",
+        "ocr",
+        "optical",
+        "character",
+        "recognition"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.ocrOpticalCharacterRecognition",
+        "mxgraph.alibabaCloud.ocr_optical_character_recognition",
+        "mxgraph.alibabaCloud.ocr-optical-character-recognition",
+        "mxgraph.alibabaCloud.OCR Optical Character Recognition"
+      ]
+    },
+    {
+      "key": "alibabaCloud.onsmqttMicroMessageQueuingTelemetryTransport",
+      "label": "OnsMQTT Micro Message Queuing Telemetry Transport",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 183.4,
+      "defaultHeight": 131.3,
+      "tags": [
+        "alibabacloud",
+        "onsmqtt",
+        "micro",
+        "message",
+        "queuing",
+        "telemetry",
+        "transport"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.onsmqttMicroMessageQueuingTelemetryTransport",
+        "mxgraph.alibabaCloud.onsmqtt_micro_message_queuing_telemetry_transport",
+        "mxgraph.alibabaCloud.onsmqtt-micro-message-queuing-telemetry-transport",
+        "mxgraph.alibabaCloud.OnsMQTT Micro Message Queuing Telemetry Transport"
+      ]
+    },
+    {
+      "key": "alibabaCloud.oosOperationOrchestrationService",
+      "label": "OOS Operation Orchestration Service",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 166.25,
+      "defaultHeight": 166.667,
+      "tags": [
+        "alibabacloud",
+        "oos",
+        "operation",
+        "orchestration",
+        "service"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.oosOperationOrchestrationService",
+        "mxgraph.alibabaCloud.oos_operation_orchestration_service",
+        "mxgraph.alibabaCloud.oos-operation-orchestration-service",
+        "mxgraph.alibabaCloud.OOS Operation Orchestration Service"
+      ]
+    },
+    {
+      "key": "alibabaCloud.openanalytics",
+      "label": "OpenAnalytics",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 183.4,
+      "defaultHeight": 183.398,
+      "tags": [
+        "alibabacloud",
+        "openanalytics"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.openanalytics",
+        "mxgraph.alibabaCloud.OpenAnalytics"
+      ]
+    },
+    {
+      "key": "alibabaCloud.openapiExplorer",
+      "label": "OpenAPI Explorer",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 158.398,
+      "defaultHeight": 158.398,
+      "tags": [
+        "alibabacloud",
+        "openapi",
+        "explorer"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.openapiExplorer",
+        "mxgraph.alibabaCloud.openapi_explorer",
+        "mxgraph.alibabaCloud.openapi-explorer",
+        "mxgraph.alibabaCloud.OpenAPI Explorer"
+      ]
+    },
+    {
+      "key": "alibabaCloud.opensearch",
+      "label": "OpenSearch",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 201.25,
+      "defaultHeight": 200.0,
+      "tags": [
+        "alibabacloud",
+        "opensearch"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.opensearch",
+        "mxgraph.alibabaCloud.OpenSearch"
+      ]
+    },
+    {
+      "key": "alibabaCloud.ossObjectStorageService",
+      "label": "OSS Object Storage Service",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 169.2,
+      "defaultHeight": 129.2,
+      "tags": [
+        "alibabacloud",
+        "oss",
+        "object",
+        "storage",
+        "service"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.ossObjectStorageService",
+        "mxgraph.alibabaCloud.oss_object_storage_service",
+        "mxgraph.alibabaCloud.oss-object-storage-service",
+        "mxgraph.alibabaCloud.OSS Object Storage Service"
+      ]
+    },
+    {
+      "key": "alibabaCloud.otsTablestore",
+      "label": "OTS Tablestore",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 177.4,
+      "defaultHeight": 141.7,
+      "tags": [
+        "alibabacloud",
+        "ots",
+        "tablestore"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.otsTablestore",
+        "mxgraph.alibabaCloud.ots_tablestore",
+        "mxgraph.alibabaCloud.ots-tablestore",
+        "mxgraph.alibabaCloud.OTS Tablestore"
+      ]
+    },
+    {
+      "key": "alibabaCloud.outboundbot",
+      "label": "OutboundBot",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 195.497,
+      "defaultHeight": 195.068,
+      "tags": [
+        "alibabacloud",
+        "outboundbot"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.outboundbot",
+        "mxgraph.alibabaCloud.OutboundBot"
+      ]
+    },
+    {
+      "key": "alibabaCloud.pcdnP2pCdn",
+      "label": "PCDN P2P CDN",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 133.2,
+      "defaultHeight": 155.1,
+      "tags": [
+        "alibabacloud",
+        "pcdn",
+        "p2p",
+        "cdn"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.pcdnP2pCdn",
+        "mxgraph.alibabaCloud.pcdn_p2p_cdn",
+        "mxgraph.alibabaCloud.pcdn-p2p-cdn",
+        "mxgraph.alibabaCloud.PCDN P2P CDN"
+      ]
+    },
+    {
+      "key": "alibabaCloud.petadataHybriddbForMysql",
+      "label": "PetaData HybridDB for MySQL",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 188.8,
+      "defaultHeight": 186.6,
+      "tags": [
+        "alibabacloud",
+        "petadata",
+        "hybriddb",
+        "for",
+        "mysql"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.petadataHybriddbForMysql",
+        "mxgraph.alibabaCloud.petadata_hybriddb_for_mysql",
+        "mxgraph.alibabaCloud.petadata-hybriddb-for-mysql",
+        "mxgraph.alibabaCloud.PetaData HybridDB for MySQL"
+      ]
+    },
+    {
+      "key": "alibabaCloud.physicalConnection",
+      "label": "Physical Connection",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 181.45,
+      "defaultHeight": 135.362,
+      "tags": [
+        "alibabacloud",
+        "physical",
+        "connection"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.physicalConnection",
+        "mxgraph.alibabaCloud.physical_connection",
+        "mxgraph.alibabaCloud.physical-connection",
+        "mxgraph.alibabaCloud.Physical Connection"
+      ]
+    },
+    {
+      "key": "alibabaCloud.pnvsPhoneNumberVerificationService",
+      "label": "PNVS Phone Number Verification Service",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 118.201,
+      "defaultHeight": 166.602,
+      "tags": [
+        "alibabacloud",
+        "pnvs",
+        "phone",
+        "number",
+        "verification",
+        "service"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.pnvsPhoneNumberVerificationService",
+        "mxgraph.alibabaCloud.pnvs_phone_number_verification_service",
+        "mxgraph.alibabaCloud.pnvs-phone-number-verification-service",
+        "mxgraph.alibabaCloud.PNVS Phone Number Verification Service"
+      ]
+    },
+    {
+      "key": "alibabaCloud.polardb",
+      "label": "PolarDB",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 184.801,
+      "defaultHeight": 191.5,
+      "tags": [
+        "alibabacloud",
+        "polardb"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.polardb",
+        "mxgraph.alibabaCloud.PolarDB"
+      ]
+    },
+    {
+      "key": "alibabaCloud.poranaPortraitAnalysis",
+      "label": "Porana Portrait Analysis",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 163.999,
+      "defaultHeight": 150.633,
+      "tags": [
+        "alibabacloud",
+        "porana",
+        "portrait",
+        "analysis"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.poranaPortraitAnalysis",
+        "mxgraph.alibabaCloud.porana_portrait_analysis",
+        "mxgraph.alibabaCloud.porana-portrait-analysis",
+        "mxgraph.alibabaCloud.Porana Portrait Analysis"
+      ]
+    },
+    {
+      "key": "alibabaCloud.postgresql",
+      "label": "PostgreSQL",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 159.9,
+      "defaultHeight": 159.2,
+      "tags": [
+        "alibabacloud",
+        "postgresql"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.postgresql",
+        "mxgraph.alibabaCloud.PostgreSQL"
+      ]
+    },
+    {
+      "key": "alibabaCloud.ppasPayAsYouGoDatabase",
+      "label": "PPAS Pay-As-You-Go Database",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 133.398,
+      "defaultHeight": 182.5,
+      "tags": [
+        "alibabacloud",
+        "ppas",
+        "pay",
+        "as",
+        "you",
+        "go",
+        "database"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.ppasPayAsYouGoDatabase",
+        "mxgraph.alibabaCloud.ppas_pay_as_you_go_database",
+        "mxgraph.alibabaCloud.ppas-pay-as-you-go-database",
+        "mxgraph.alibabaCloud.PPAS Pay-As-You-Go Database"
+      ]
+    },
+    {
+      "key": "alibabaCloud.privatelink",
+      "label": "PrivateLink",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 186.999,
+      "defaultHeight": 189.365,
+      "tags": [
+        "alibabacloud",
+        "privatelink"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.privatelink",
+        "mxgraph.alibabaCloud.PrivateLink"
+      ]
+    },
+    {
+      "key": "alibabaCloud.prometheus",
+      "label": "Prometheus",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 163.293,
+      "defaultHeight": 163.371,
+      "tags": [
+        "alibabacloud",
+        "prometheus"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.prometheus",
+        "mxgraph.alibabaCloud.Prometheus"
+      ]
+    },
+    {
+      "key": "alibabaCloud.prophet",
+      "label": "Prophet",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 155.8,
+      "defaultHeight": 158.5,
+      "tags": [
+        "alibabacloud",
+        "prophet"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.prophet",
+        "mxgraph.alibabaCloud.Prophet"
+      ]
+    },
+    {
+      "key": "alibabaCloud.ptsPerformanceTestService",
+      "label": "PTS Performance Test Service",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 166.5,
+      "defaultHeight": 137.0,
+      "tags": [
+        "alibabacloud",
+        "pts",
+        "performance",
+        "test",
+        "service"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.ptsPerformanceTestService",
+        "mxgraph.alibabaCloud.pts_performance_test_service",
+        "mxgraph.alibabaCloud.pts-performance-test-service",
+        "mxgraph.alibabaCloud.PTS Performance Test Service"
+      ]
+    },
+    {
+      "key": "alibabaCloud.quickbi",
+      "label": "QuickBI",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 158.7,
+      "defaultHeight": 159.7,
+      "tags": [
+        "alibabacloud",
+        "quickbi"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.quickbi",
+        "mxgraph.alibabaCloud.QuickBI"
+      ]
+    },
+    {
+      "key": "alibabaCloud.ramResourceAccessManagement",
+      "label": "RAM Resource Access Management",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 183.9,
+      "defaultHeight": 119.5,
+      "tags": [
+        "alibabacloud",
+        "ram",
+        "resource",
+        "access",
+        "management"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.ramResourceAccessManagement",
+        "mxgraph.alibabaCloud.ram_resource_access_management",
+        "mxgraph.alibabaCloud.ram-resource-access-management",
+        "mxgraph.alibabaCloud.RAM Resource Access Management"
+      ]
+    },
+    {
+      "key": "alibabaCloud.reRecommendationEngine",
+      "label": "RE Recommendation Engine",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 165.3,
+      "defaultHeight": 160.7,
+      "tags": [
+        "alibabacloud",
+        "re",
+        "recommendation",
+        "engine"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.reRecommendationEngine",
+        "mxgraph.alibabaCloud.re_recommendation_engine",
+        "mxgraph.alibabaCloud.re-recommendation-engine",
+        "mxgraph.alibabaCloud.RE Recommendation Engine"
+      ]
+    },
+    {
+      "key": "alibabaCloud.realtimeCompute",
+      "label": "Realtime Compute",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 200.0,
+      "defaultHeight": 200.0,
+      "tags": [
+        "alibabacloud",
+        "realtime",
+        "compute"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.realtimeCompute",
+        "mxgraph.alibabaCloud.realtime_compute",
+        "mxgraph.alibabaCloud.realtime-compute",
+        "mxgraph.alibabaCloud.Realtime Compute"
+      ]
+    },
+    {
+      "key": "alibabaCloud.redisKvstore",
+      "label": "Redis KVStore",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 174.7,
+      "defaultHeight": 137.8,
+      "tags": [
+        "alibabacloud",
+        "redis",
+        "kvstore"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.redisKvstore",
+        "mxgraph.alibabaCloud.redis_kvstore",
+        "mxgraph.alibabaCloud.redis-kvstore",
+        "mxgraph.alibabaCloud.Redis KVStore"
+      ]
+    },
+    {
+      "key": "alibabaCloud.region",
+      "label": "Region",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 158.021,
+      "defaultHeight": 180.721,
+      "tags": [
+        "alibabacloud",
+        "region"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.region",
+        "mxgraph.alibabaCloud.Region"
+      ]
+    },
+    {
+      "key": "alibabaCloud.retailir",
+      "label": "RetailIR",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 158.4,
+      "defaultHeight": 158.4,
+      "tags": [
+        "alibabacloud",
+        "retailir"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.retailir",
+        "mxgraph.alibabaCloud.RetailIR"
+      ]
+    },
+    {
+      "key": "alibabaCloud.rosResourceOrchestrationService",
+      "label": "ROS Resource Orchestration Service",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 166.7,
+      "defaultHeight": 144.6,
+      "tags": [
+        "alibabacloud",
+        "ros",
+        "resource",
+        "orchestration",
+        "service"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.rosResourceOrchestrationService",
+        "mxgraph.alibabaCloud.ros_resource_orchestration_service",
+        "mxgraph.alibabaCloud.ros-resource-orchestration-service",
+        "mxgraph.alibabaCloud.ROS Resource Orchestration Service"
+      ]
+    },
+    {
+      "key": "alibabaCloud.routeTable",
+      "label": "Route Table",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 125.0,
+      "defaultHeight": 158.333,
+      "tags": [
+        "alibabacloud",
+        "route",
+        "table"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.routeTable",
+        "mxgraph.alibabaCloud.route_table",
+        "mxgraph.alibabaCloud.route-table",
+        "mxgraph.alibabaCloud.Route Table"
+      ]
+    },
+    {
+      "key": "alibabaCloud.router",
+      "label": "Router",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 183.536,
+      "defaultHeight": 192.113,
+      "tags": [
+        "alibabacloud",
+        "router"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.router",
+        "mxgraph.alibabaCloud.Router"
+      ]
+    },
+    {
+      "key": "alibabaCloud.rsimganalys",
+      "label": "RSImgAnalys",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 166.802,
+      "defaultHeight": 148.4,
+      "tags": [
+        "alibabacloud",
+        "rsimganalys"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.rsimganalys",
+        "mxgraph.alibabaCloud.RSImgAnalys"
+      ]
+    },
+    {
+      "key": "alibabaCloud.rtcRealTimeCommunication",
+      "label": "RTC Real-Time Communication",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 175.4,
+      "defaultHeight": 176.2,
+      "tags": [
+        "alibabacloud",
+        "rtc",
+        "real",
+        "time",
+        "communication"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.rtcRealTimeCommunication",
+        "mxgraph.alibabaCloud.rtc_real_time_communication",
+        "mxgraph.alibabaCloud.rtc-real-time-communication",
+        "mxgraph.alibabaCloud.RTC Real-Time Communication"
+      ]
+    },
+    {
+      "key": "alibabaCloud.saeServerlessAppEngine",
+      "label": "SAE Serverless App Engine",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 162.501,
+      "defaultHeight": 183.1,
+      "tags": [
+        "alibabacloud",
+        "sae",
+        "serverless",
+        "app",
+        "engine"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.saeServerlessAppEngine",
+        "mxgraph.alibabaCloud.sae_serverless_app_engine",
+        "mxgraph.alibabaCloud.sae-serverless-app-engine",
+        "mxgraph.alibabaCloud.SAE Serverless App Engine"
+      ]
+    },
+    {
+      "key": "alibabaCloud.sagSmartAccessGateway01",
+      "label": "SAG Smart Access Gateway 01",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 157.869,
+      "defaultHeight": 125.0,
+      "tags": [
+        "alibabacloud",
+        "sag",
+        "smart",
+        "access",
+        "gateway",
+        "01"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.sagSmartAccessGateway01",
+        "mxgraph.alibabaCloud.sag_smart_access_gateway_01",
+        "mxgraph.alibabaCloud.sag-smart-access-gateway-01",
+        "mxgraph.alibabaCloud.SAG Smart Access Gateway 01"
+      ]
+    },
+    {
+      "key": "alibabaCloud.sagSmartAccessGateway02",
+      "label": "SAG Smart Access Gateway 02",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 166.668,
+      "defaultHeight": 137.781,
+      "tags": [
+        "alibabacloud",
+        "sag",
+        "smart",
+        "access",
+        "gateway",
+        "02"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.sagSmartAccessGateway02",
+        "mxgraph.alibabaCloud.sag_smart_access_gateway_02",
+        "mxgraph.alibabaCloud.sag-smart-access-gateway-02",
+        "mxgraph.alibabaCloud.SAG Smart Access Gateway 02"
+      ]
+    },
+    {
+      "key": "alibabaCloud.sasSituationalAwareness",
+      "label": "SAS Situational Awareness",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 154.8,
+      "defaultHeight": 164.299,
+      "tags": [
+        "alibabacloud",
+        "sas",
+        "situational",
+        "awareness"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.sasSituationalAwareness",
+        "mxgraph.alibabaCloud.sas_situational_awareness",
+        "mxgraph.alibabaCloud.sas-situational-awareness",
+        "mxgraph.alibabaCloud.SAS Situational Awareness"
+      ]
+    },
+    {
+      "key": "alibabaCloud.scaSmartConversationAnalysis01",
+      "label": "SCA Smart Conversation Analysis 01",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 158.4,
+      "defaultHeight": 158.4,
+      "tags": [
+        "alibabacloud",
+        "sca",
+        "smart",
+        "conversation",
+        "analysis",
+        "01"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.scaSmartConversationAnalysis01",
+        "mxgraph.alibabaCloud.sca_smart_conversation_analysis_01",
+        "mxgraph.alibabaCloud.sca-smart-conversation-analysis-01",
+        "mxgraph.alibabaCloud.SCA Smart Conversation Analysis 01"
+      ]
+    },
+    {
+      "key": "alibabaCloud.scaSmartConversationAnalysis02",
+      "label": "SCA Smart Conversation Analysis 02",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 185.769,
+      "defaultHeight": 186.854,
+      "tags": [
+        "alibabacloud",
+        "sca",
+        "smart",
+        "conversation",
+        "analysis",
+        "02"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.scaSmartConversationAnalysis02",
+        "mxgraph.alibabaCloud.sca_smart_conversation_analysis_02",
+        "mxgraph.alibabaCloud.sca-smart-conversation-analysis-02",
+        "mxgraph.alibabaCloud.SCA Smart Conversation Analysis 02"
+      ]
+    },
+    {
+      "key": "alibabaCloud.sccSuperComputingCluster",
+      "label": "SCC Super Computing Cluster",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 162.5,
+      "defaultHeight": 177.9,
+      "tags": [
+        "alibabacloud",
+        "scc",
+        "super",
+        "computing",
+        "cluster"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.sccSuperComputingCluster",
+        "mxgraph.alibabaCloud.scc_super_computing_cluster",
+        "mxgraph.alibabaCloud.scc-super-computing-cluster",
+        "mxgraph.alibabaCloud.SCC Super Computing Cluster"
+      ]
+    },
+    {
+      "key": "alibabaCloud.scdnSecureCdn",
+      "label": "SCDN Secure CDN",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 192.5,
+      "defaultHeight": 198.501,
+      "tags": [
+        "alibabacloud",
+        "scdn",
+        "secure",
+        "cdn"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.scdnSecureCdn",
+        "mxgraph.alibabaCloud.scdn_secure_cdn",
+        "mxgraph.alibabaCloud.scdn-secure-cdn",
+        "mxgraph.alibabaCloud.SCDN Secure CDN"
+      ]
+    },
+    {
+      "key": "alibabaCloud.scuStorageCapacityUnit",
+      "label": "SCU Storage Capacity Unit",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 170.032,
+      "defaultHeight": 183.333,
+      "tags": [
+        "alibabacloud",
+        "scu",
+        "storage",
+        "capacity",
+        "unit"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.scuStorageCapacityUnit",
+        "mxgraph.alibabaCloud.scu_storage_capacity_unit",
+        "mxgraph.alibabaCloud.scu-storage-capacity-unit",
+        "mxgraph.alibabaCloud.SCU Storage Capacity Unit"
+      ]
+    },
+    {
+      "key": "alibabaCloud.sddpSensitiveDataProtection",
+      "label": "SDDP Sensitive Data Protection",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 163.268,
+      "defaultHeight": 192.961,
+      "tags": [
+        "alibabacloud",
+        "sddp",
+        "sensitive",
+        "data",
+        "protection"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.sddpSensitiveDataProtection",
+        "mxgraph.alibabaCloud.sddp_sensitive_data_protection",
+        "mxgraph.alibabaCloud.sddp-sensitive-data-protection",
+        "mxgraph.alibabaCloud.SDDP Sensitive Data Protection"
+      ]
+    },
+    {
+      "key": "alibabaCloud.sharedBandwidth",
+      "label": "Shared Bandwidth",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 167.219,
+      "defaultHeight": 166.899,
+      "tags": [
+        "alibabacloud",
+        "shared",
+        "bandwidth"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.sharedBandwidth",
+        "mxgraph.alibabaCloud.shared_bandwidth",
+        "mxgraph.alibabaCloud.shared-bandwidth",
+        "mxgraph.alibabaCloud.Shared Bandwidth"
+      ]
+    },
+    {
+      "key": "alibabaCloud.sharedFlowBag",
+      "label": "Shared Flow Bag",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 183.333,
+      "defaultHeight": 116.779,
+      "tags": [
+        "alibabacloud",
+        "shared",
+        "flow",
+        "bag"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.sharedFlowBag",
+        "mxgraph.alibabaCloud.shared_flow_bag",
+        "mxgraph.alibabaCloud.shared-flow-bag",
+        "mxgraph.alibabaCloud.Shared Flow Bag"
+      ]
+    },
+    {
+      "key": "alibabaCloud.shcShieldHybridCloud",
+      "label": "SHC Shield Hybrid Cloud",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 163.699,
+      "defaultHeight": 151.199,
+      "tags": [
+        "alibabacloud",
+        "shc",
+        "shield",
+        "hybrid",
+        "cloud"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.shcShieldHybridCloud",
+        "mxgraph.alibabaCloud.shc_shield_hybrid_cloud",
+        "mxgraph.alibabaCloud.shc-shield-hybrid-cloud",
+        "mxgraph.alibabaCloud.SHC Shield Hybrid Cloud"
+      ]
+    },
+    {
+      "key": "alibabaCloud.slbServerLoadBalancer01",
+      "label": "SLB Server Load Balancer 01",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 158.332,
+      "defaultHeight": 134.427,
+      "tags": [
+        "alibabacloud",
+        "slb",
+        "server",
+        "load",
+        "balancer",
+        "01"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.slbServerLoadBalancer01",
+        "mxgraph.alibabaCloud.slb_server_load_balancer_01",
+        "mxgraph.alibabaCloud.slb-server-load-balancer-01",
+        "mxgraph.alibabaCloud.SLB Server Load Balancer 01"
+      ]
+    },
+    {
+      "key": "alibabaCloud.slbServerLoadBalancer02",
+      "label": "SLB Server Load Balancer 02",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 200.0,
+      "defaultHeight": 200.0,
+      "tags": [
+        "alibabacloud",
+        "slb",
+        "server",
+        "load",
+        "balancer",
+        "02"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.slbServerLoadBalancer02",
+        "mxgraph.alibabaCloud.slb_server_load_balancer_02",
+        "mxgraph.alibabaCloud.slb-server-load-balancer-02",
+        "mxgraph.alibabaCloud.SLB Server Load Balancer 02"
+      ]
+    },
+    {
+      "key": "alibabaCloud.slbServerLoadBalancer03",
+      "label": "SLB Server Load Balancer 03",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 166.8,
+      "defaultHeight": 141.8,
+      "tags": [
+        "alibabacloud",
+        "slb",
+        "server",
+        "load",
+        "balancer",
+        "03"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.slbServerLoadBalancer03",
+        "mxgraph.alibabaCloud.slb_server_load_balancer_03",
+        "mxgraph.alibabaCloud.slb-server-load-balancer-03",
+        "mxgraph.alibabaCloud.SLB Server Load Balancer 03"
+      ]
+    },
+    {
+      "key": "alibabaCloud.slsSimpleLogService",
+      "label": "SLS Simple Log Service",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 159.8,
+      "defaultHeight": 160.3,
+      "tags": [
+        "alibabacloud",
+        "sls",
+        "simple",
+        "log",
+        "service"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.slsSimpleLogService",
+        "mxgraph.alibabaCloud.sls_simple_log_service",
+        "mxgraph.alibabaCloud.sls-simple-log-service",
+        "mxgraph.alibabaCloud.SLS Simple Log Service"
+      ]
+    },
+    {
+      "key": "alibabaCloud.smcServerMigrationCenter",
+      "label": "SMC Server Migration Center",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 183.4,
+      "defaultHeight": 183.4,
+      "tags": [
+        "alibabacloud",
+        "smc",
+        "server",
+        "migration",
+        "center"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.smcServerMigrationCenter",
+        "mxgraph.alibabaCloud.smc_server_migration_center",
+        "mxgraph.alibabaCloud.smc-server-migration-center",
+        "mxgraph.alibabaCloud.SMC Server Migration Center"
+      ]
+    },
+    {
+      "key": "alibabaCloud.smsShortMessageService",
+      "label": "SMS Short Message Service",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 166.201,
+      "defaultHeight": 151.699,
+      "tags": [
+        "alibabacloud",
+        "sms",
+        "short",
+        "message",
+        "service"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.smsShortMessageService",
+        "mxgraph.alibabaCloud.sms_short_message_service",
+        "mxgraph.alibabaCloud.sms-short-message-service",
+        "mxgraph.alibabaCloud.SMS Short Message Service"
+      ]
+    },
+    {
+      "key": "alibabaCloud.sos",
+      "label": "SOS",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 155.0,
+      "defaultHeight": 158.1,
+      "tags": [
+        "alibabacloud",
+        "sos"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.sos",
+        "mxgraph.alibabaCloud.SOS"
+      ]
+    },
+    {
+      "key": "alibabaCloud.sparkDataInsights",
+      "label": "Spark Data Insights",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 153.817,
+      "defaultHeight": 166.667,
+      "tags": [
+        "alibabacloud",
+        "spark",
+        "data",
+        "insights"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.sparkDataInsights",
+        "mxgraph.alibabaCloud.spark_data_insights",
+        "mxgraph.alibabaCloud.spark-data-insights",
+        "mxgraph.alibabaCloud.Spark Data Insights"
+      ]
+    },
+    {
+      "key": "alibabaCloud.sppc",
+      "label": "SPPC",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 168.0,
+      "defaultHeight": 146.7,
+      "tags": [
+        "alibabacloud",
+        "sppc"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.sppc",
+        "mxgraph.alibabaCloud.SPPC"
+      ]
+    },
+    {
+      "key": "alibabaCloud.sqlserver",
+      "label": "SQLServer",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 131.6,
+      "defaultHeight": 183.301,
+      "tags": [
+        "alibabacloud",
+        "sqlserver"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.sqlserver",
+        "mxgraph.alibabaCloud.SQLServer"
+      ]
+    },
+    {
+      "key": "alibabaCloud.swasSimpleApplicationServer",
+      "label": "SWAS Simple Application Server",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 200.0,
+      "defaultHeight": 200.0,
+      "tags": [
+        "alibabacloud",
+        "swas",
+        "simple",
+        "application",
+        "server"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.swasSimpleApplicationServer",
+        "mxgraph.alibabaCloud.swas_simple_application_server",
+        "mxgraph.alibabaCloud.swas-simple-application-server",
+        "mxgraph.alibabaCloud.SWAS Simple Application Server"
+      ]
+    },
+    {
+      "key": "alibabaCloud.trTransitRouter",
+      "label": "TR Transit Router",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 175.0,
+      "defaultHeight": 175.0,
+      "tags": [
+        "alibabacloud",
+        "tr",
+        "transit",
+        "router"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.trTransitRouter",
+        "mxgraph.alibabaCloud.tr_transit_router",
+        "mxgraph.alibabaCloud.tr-transit-router",
+        "mxgraph.alibabaCloud.TR Transit Router"
+      ]
+    },
+    {
+      "key": "alibabaCloud.trademarkService",
+      "label": "Trademark Service",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 158.3,
+      "defaultHeight": 176.8,
+      "tags": [
+        "alibabacloud",
+        "trademark",
+        "service"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.trademarkService",
+        "mxgraph.alibabaCloud.trademark_service",
+        "mxgraph.alibabaCloud.trademark-service",
+        "mxgraph.alibabaCloud.Trademark Service"
+      ]
+    },
+    {
+      "key": "alibabaCloud.uisUltimateInternetService",
+      "label": "UIS Ultimate Internet Service",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 183.4,
+      "defaultHeight": 180.5,
+      "tags": [
+        "alibabacloud",
+        "uis",
+        "ultimate",
+        "internet",
+        "service"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.uisUltimateInternetService",
+        "mxgraph.alibabaCloud.uis_ultimate_internet_service",
+        "mxgraph.alibabaCloud.uis-ultimate-internet-service",
+        "mxgraph.alibabaCloud.UIS Ultimate Internet Service"
+      ]
+    },
+    {
+      "key": "alibabaCloud.userFeedback01",
+      "label": "User Feedback 01",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 158.4,
+      "defaultHeight": 158.4,
+      "tags": [
+        "alibabacloud",
+        "user",
+        "feedback",
+        "01"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.userFeedback01",
+        "mxgraph.alibabaCloud.user_feedback_01",
+        "mxgraph.alibabaCloud.user-feedback-01",
+        "mxgraph.alibabaCloud.User Feedback 01"
+      ]
+    },
+    {
+      "key": "alibabaCloud.userFeedback02",
+      "label": "User Feedback 02",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 143.565,
+      "defaultHeight": 166.708,
+      "tags": [
+        "alibabacloud",
+        "user",
+        "feedback",
+        "02"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.userFeedback02",
+        "mxgraph.alibabaCloud.user_feedback_02",
+        "mxgraph.alibabaCloud.user-feedback-02",
+        "mxgraph.alibabaCloud.User Feedback 02"
+      ]
+    },
+    {
+      "key": "alibabaCloud.user",
+      "label": "User",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 200.0,
+      "defaultHeight": 200.0,
+      "tags": [
+        "alibabacloud",
+        "user"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.user",
+        "mxgraph.alibabaCloud.User"
+      ]
+    },
+    {
+      "key": "alibabaCloud.vbrVirtualBorderRouter",
+      "label": "VBR Virtual Border Router",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 192.087,
+      "defaultHeight": 192.1,
+      "tags": [
+        "alibabacloud",
+        "vbr",
+        "virtual",
+        "border",
+        "router"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.vbrVirtualBorderRouter",
+        "mxgraph.alibabaCloud.vbr_virtual_border_router",
+        "mxgraph.alibabaCloud.vbr-virtual-border-router",
+        "mxgraph.alibabaCloud.VBR Virtual Border Router"
+      ]
+    },
+    {
+      "key": "alibabaCloud.vcsVisualComputingService",
+      "label": "VCS Visual Computing Service",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 170.875,
+      "defaultHeight": 174.978,
+      "tags": [
+        "alibabacloud",
+        "vcs",
+        "visual",
+        "computing",
+        "service"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.vcsVisualComputingService",
+        "mxgraph.alibabaCloud.vcs_visual_computing_service",
+        "mxgraph.alibabaCloud.vcs-visual-computing-service",
+        "mxgraph.alibabaCloud.VCS Visual Computing Service"
+      ]
+    },
+    {
+      "key": "alibabaCloud.vmsVoiceMessagingService",
+      "label": "VMS Voice Messaging Service",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 158.3,
+      "defaultHeight": 152.0,
+      "tags": [
+        "alibabacloud",
+        "vms",
+        "voice",
+        "messaging",
+        "service"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.vmsVoiceMessagingService",
+        "mxgraph.alibabaCloud.vms_voice_messaging_service",
+        "mxgraph.alibabaCloud.vms-voice-messaging-service",
+        "mxgraph.alibabaCloud.VMS Voice Messaging Service"
+      ]
+    },
+    {
+      "key": "alibabaCloud.voicebotIntelligentVoiceNavigation",
+      "label": "VoiceBot Intelligent Voice Navigation",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 195.51,
+      "defaultHeight": 189.564,
+      "tags": [
+        "alibabacloud",
+        "voicebot",
+        "intelligent",
+        "voice",
+        "navigation"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.voicebotIntelligentVoiceNavigation",
+        "mxgraph.alibabaCloud.voicebot_intelligent_voice_navigation",
+        "mxgraph.alibabaCloud.voicebot-intelligent-voice-navigation",
+        "mxgraph.alibabaCloud.VoiceBot Intelligent Voice Navigation"
+      ]
+    },
+    {
+      "key": "alibabaCloud.vpcVirtualPrivateCloud",
+      "label": "VPC Virtual Private Cloud",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 190.0,
+      "defaultHeight": 122.2,
+      "tags": [
+        "alibabacloud",
+        "vpc",
+        "virtual",
+        "private",
+        "cloud"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.vpcVirtualPrivateCloud",
+        "mxgraph.alibabaCloud.vpc_virtual_private_cloud",
+        "mxgraph.alibabaCloud.vpc-virtual-private-cloud",
+        "mxgraph.alibabaCloud.VPC Virtual Private Cloud"
+      ]
+    },
+    {
+      "key": "alibabaCloud.vpnGateway",
+      "label": "VPN Gateway",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 183.4,
+      "defaultHeight": 183.301,
+      "tags": [
+        "alibabacloud",
+        "vpn",
+        "gateway"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.vpnGateway",
+        "mxgraph.alibabaCloud.vpn_gateway",
+        "mxgraph.alibabaCloud.vpn-gateway",
+        "mxgraph.alibabaCloud.VPN Gateway"
+      ]
+    },
+    {
+      "key": "alibabaCloud.vsVideoSurveillance",
+      "label": "VS Video Surveillance",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 183.4,
+      "defaultHeight": 183.4,
+      "tags": [
+        "alibabacloud",
+        "vs",
+        "video",
+        "surveillance"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.vsVideoSurveillance",
+        "mxgraph.alibabaCloud.vs_video_surveillance",
+        "mxgraph.alibabaCloud.vs-video-surveillance",
+        "mxgraph.alibabaCloud.VS Video Surveillance"
+      ]
+    },
+    {
+      "key": "alibabaCloud.vswitch",
+      "label": "vSwitch",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 174.998,
+      "defaultHeight": 125.154,
+      "tags": [
+        "alibabacloud",
+        "vswitch"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.vswitch",
+        "mxgraph.alibabaCloud.vSwitch"
+      ]
+    },
+    {
+      "key": "alibabaCloud.wafWebApplicationFirewall",
+      "label": "WAF Web Application Firewall",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 164.1,
+      "defaultHeight": 144.6,
+      "tags": [
+        "alibabacloud",
+        "waf",
+        "web",
+        "application",
+        "firewall"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.wafWebApplicationFirewall",
+        "mxgraph.alibabaCloud.waf_web_application_firewall",
+        "mxgraph.alibabaCloud.waf-web-application-firewall",
+        "mxgraph.alibabaCloud.WAF Web Application Firewall"
+      ]
+    },
+    {
+      "key": "alibabaCloud.webplusWebAppService",
+      "label": "Webplus Web App Service",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 183.299,
+      "defaultHeight": 183.301,
+      "tags": [
+        "alibabacloud",
+        "webplus",
+        "web",
+        "app",
+        "service"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.webplusWebAppService",
+        "mxgraph.alibabaCloud.webplus_web_app_service",
+        "mxgraph.alibabaCloud.webplus-web-app-service",
+        "mxgraph.alibabaCloud.Webplus Web App Service"
+      ]
+    },
+    {
+      "key": "alibabaCloud.xdragonBareMetalServer",
+      "label": "XDragon Bare Metal Server",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 164.399,
+      "defaultHeight": 159.075,
+      "tags": [
+        "alibabacloud",
+        "xdragon",
+        "bare",
+        "metal",
+        "server"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.xdragonBareMetalServer",
+        "mxgraph.alibabaCloud.xdragon_bare_metal_server",
+        "mxgraph.alibabaCloud.xdragon-bare-metal-server",
+        "mxgraph.alibabaCloud.XDragon Bare Metal Server"
+      ]
+    },
+    {
+      "key": "alibabaCloud.xtrace",
+      "label": "XTrace",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 138.0,
+      "defaultHeight": 166.6,
+      "tags": [
+        "alibabacloud",
+        "xtrace"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.xtrace",
+        "mxgraph.alibabaCloud.XTrace"
+      ]
+    },
+    {
+      "key": "alibabaCloud.yida",
+      "label": "Yida",
+      "group": "AlibabaCloud",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\alibaba_cloud.xml",
+      "defaultWidth": 158.399,
+      "defaultHeight": 158.398,
+      "tags": [
+        "alibabacloud",
+        "yida"
+      ],
+      "aliases": [
+        "mxgraph.alibabaCloud.yida",
+        "mxgraph.alibabaCloud.Yida"
+      ]
+    }
+  ]
+}

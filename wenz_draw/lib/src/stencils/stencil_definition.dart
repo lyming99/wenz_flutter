@@ -208,6 +208,60 @@ class StencilIncludeShapeCommand extends StencilCommand {
 }
 
 @immutable
+sealed class StencilStyleCommand extends StencilCommand {
+  const StencilStyleCommand();
+}
+
+@immutable
+class StencilFillStrokeCommand extends StencilStyleCommand {
+  const StencilFillStrokeCommand();
+}
+
+@immutable
+class StencilStrokeCommand extends StencilStyleCommand {
+  const StencilStrokeCommand();
+}
+
+@immutable
+class StencilSaveCommand extends StencilStyleCommand {
+  const StencilSaveCommand();
+}
+
+@immutable
+class StencilRestoreCommand extends StencilStyleCommand {
+  const StencilRestoreCommand();
+}
+
+@immutable
+class StencilStrokeWidthCommand extends StencilStyleCommand {
+  const StencilStrokeWidthCommand(this.width);
+
+  final double width;
+}
+
+@immutable
+class StencilFillColorCommand extends StencilStyleCommand {
+  const StencilFillColorCommand({required this.color, this.defaultColor});
+
+  final String color;
+  final String? defaultColor;
+}
+
+@immutable
+class StencilMiterLimitCommand extends StencilStyleCommand {
+  const StencilMiterLimitCommand(this.limit);
+
+  final double limit;
+}
+
+@immutable
+class StencilLineJoinCommand extends StencilStyleCommand {
+  const StencilLineJoinCommand(this.join);
+
+  final String join;
+}
+
+@immutable
 class StencilUnsupportedCommand extends StencilCommand {
   const StencilUnsupportedCommand(this.name);
 

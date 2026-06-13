@@ -12,9 +12,10 @@ class StencilParser {
     if (shape == null) {
       throw const FormatException('Stencil XML does not contain a <shape>.');
     }
+    final shapeName = shape._attr('name') ?? fallbackName ?? 'stencil';
 
     return StencilDefinition(
-      name: shape._attr('name') ?? fallbackName ?? 'stencil',
+      name: shapeName,
       width: shape._doubleAttr('w', fallback: 100),
       height: shape._doubleAttr('h', fallback: 100),
       aspect: _aspect(shape._attr('aspect')),
@@ -73,6 +74,21 @@ class StencilParser {
         width: element._doubleAttr('w'),
         height: element._doubleAttr('h'),
       ),
+      'fillstroke' => const StencilFillStrokeCommand(),
+      'stroke' => const StencilStrokeCommand(),
+      'save' => const StencilSaveCommand(),
+      'restore' => const StencilRestoreCommand(),
+      'strokewidth' => StencilStrokeWidthCommand(
+        element._doubleAttr('width', fallback: 1),
+      ),
+      'fillcolor' => StencilFillColorCommand(
+        color: element._attr('color') ?? '',
+        defaultColor: element._attr('default'),
+      ),
+      'miterlimit' => StencilMiterLimitCommand(
+        element._doubleAttr('limit', fallback: 10),
+      ),
+      'linejoin' => StencilLineJoinCommand(element._attr('join') ?? 'miter'),
       _ => StencilUnsupportedCommand(element.name.local),
     };
   }

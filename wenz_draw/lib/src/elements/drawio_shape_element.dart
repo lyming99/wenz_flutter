@@ -68,7 +68,8 @@ class DrawioShapeElement extends CanvasElement {
   @override
   bool hitTest(Offset worldPoint, {double tolerance = 5.0}) {
     ensureDrawioShapeDefinitionsRegistered();
-    final localPoint = inverseRotatePoint(worldPoint, rotation, rect.center);
+    var localPoint = inverseRotatePoint(worldPoint, rotation, rect.center);
+    localPoint = _inverseFlipPoint(localPoint);
     return ShapeDefinitionRegistry.definitionFor(shapeKey).hitTest(
       rect,
       properties,
@@ -76,6 +77,18 @@ class DrawioShapeElement extends CanvasElement {
       strokeStyle: strokeStyle,
       fillStyle: fillStyle,
       tolerance: tolerance,
+    );
+  }
+
+  Offset _inverseFlipPoint(Offset point) {
+    final flipH = _propertyBool(properties['flipH']);
+    final flipV = _propertyBool(properties['flipV']);
+    if (!flipH && !flipV) {
+      return point;
+    }
+    return Offset(
+      flipH ? rect.left + rect.right - point.dx : point.dx,
+      flipV ? rect.top + rect.bottom - point.dy : point.dy,
     );
   }
 
@@ -215,6 +228,13 @@ class DrawioShapeElementRenderer extends ElementRenderer<DrawioShapeElement> {
     canvas.save();
     canvas.translate(element.rect.center.dx, element.rect.center.dy);
     canvas.rotate(element.rotation);
+    if (_propertyBool(element.properties['flipH']) ||
+        _propertyBool(element.properties['flipV'])) {
+      canvas.scale(
+        _propertyBool(element.properties['flipH']) ? -1.0 : 1.0,
+        _propertyBool(element.properties['flipV']) ? -1.0 : 1.0,
+      );
+    }
     canvas.translate(-element.rect.center.dx, -element.rect.center.dy);
     definition.paint(
       canvas,
@@ -238,6 +258,10 @@ class DrawioShapeElementRenderer extends ElementRenderer<DrawioShapeElement> {
       textAlign: element.labelAlign,
       padding: element.labelPadding,
       opacity: element.opacity,
+      verticalAlign: element.properties['verticalAlign'] as String?,
+      labelPosition: element.properties['labelPosition'] as String?,
+      verticalLabelPosition:
+          element.properties['verticalLabelPosition'] as String?,
     );
     canvas.restore();
   }
@@ -253,6 +277,17 @@ class DrawioShapeElementRenderer extends ElementRenderer<DrawioShapeElement> {
 }
 
 bool _shapeDefinitionsRegistered = false;
+
+bool _propertyBool(Object? value) {
+  if (value is bool) {
+    return value;
+  }
+  if (value == null) {
+    return false;
+  }
+  final text = value.toString().toLowerCase();
+  return text == '1' || text == 'true';
+}
 
 void ensureDrawioShapeDefinitionsRegistered() {
   if (_shapeDefinitionsRegistered) {

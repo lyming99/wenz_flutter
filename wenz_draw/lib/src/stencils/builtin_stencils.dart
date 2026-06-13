@@ -1,4 +1,8 @@
 import '../elements/shape_definition_registry.dart';
+import 'libraries/arrow_stencils.dart';
+import 'libraries/basic_stencils.dart';
+import 'libraries/flowchart_stencils.dart';
+import 'libraries/stencil_library_registry.dart';
 import 'stencil_definition.dart';
 import 'stencil_parser.dart';
 import 'stencil_renderer.dart';
@@ -22,6 +26,18 @@ class BuiltinStencils {
         aliases: ['stencil.${definition.name}'],
       );
     }
+    StencilLibraryRegistry.registerXmlDefinitions(
+      FlowchartStencils.xmlDefinitions,
+      aliases: FlowchartStencils.aliases,
+    );
+    StencilLibraryRegistry.registerXmlDefinitions(
+      BasicStencils.xmlDefinitions,
+      aliases: BasicStencils.aliases,
+    );
+    StencilLibraryRegistry.registerXmlDefinitions(
+      ArrowStencils.xmlDefinitions,
+      aliases: ArrowStencils.aliases,
+    );
   }
 }
 

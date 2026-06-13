@@ -45,7 +45,6 @@ class DrawioStyle {
       'strokeWidth',
       'dashed',
       'direction',
-      'arcSize',
       'opacity',
       'fillOpacity',
       'strokeOpacity',
@@ -58,6 +57,16 @@ class DrawioStyle {
       'spacingTop',
       'spacingRight',
       'spacingBottom',
+      'flipH',
+      'flipV',
+      'size',
+      'arcSize',
+      'absoluteArcSize',
+      'boundedLbl',
+      'backgroundOutline',
+      'verticalLabelPosition',
+      'verticalAlign',
+      'labelPosition',
     };
     return Map<String, String>.unmodifiable({
       for (final entry in values.entries)

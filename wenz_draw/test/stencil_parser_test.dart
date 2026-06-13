@@ -23,7 +23,16 @@ void main() {
     <text x="0" y="0" w="100" h="20" str="Title" align="center"/>
   </background>
   <foreground>
+    <save/>
+    <strokewidth width="2"/>
+    <fillcolor color="accentColor" default="#ffff00"/>
+    <linejoin join="round"/>
+    <miterlimit limit="6"/>
     <path><move x="0" y="40"/><arc rx="20" ry="20" x-axis-rotation="0" large-arc-flag="0" sweep-flag="1" x="100" y="40"/></path>
+    <stroke/>
+    <restore/>
+    <path><move x="10" y="70"/><line x="90" y="70"/></path>
+    <fillstroke/>
   </foreground>
 </shape>
 ''';
@@ -36,10 +45,18 @@ void main() {
     expect(stencil.height, 80);
     expect(stencil.aspect, StencilAspect.fixed);
     expect(stencil.background, hasLength(5));
-    expect(stencil.foreground, hasLength(1));
+    expect(stencil.foreground, hasLength(10));
     expect(stencil.connections, hasLength(2));
     expect(stencil.connections.last.perimeter, isFalse);
     expect(stencil.background.first, isA<StencilPathCommand>());
+    expect(stencil.foreground[0], isA<StencilSaveCommand>());
+    expect(stencil.foreground[1], isA<StencilStrokeWidthCommand>());
+    expect(stencil.foreground[2], isA<StencilFillColorCommand>());
+    expect(stencil.foreground[3], isA<StencilLineJoinCommand>());
+    expect(stencil.foreground[4], isA<StencilMiterLimitCommand>());
+    expect(stencil.foreground[6], isA<StencilStrokeCommand>());
+    expect(stencil.foreground[7], isA<StencilRestoreCommand>());
+    expect(stencil.foreground[9], isA<StencilFillStrokeCommand>());
   });
 
   test(
@@ -90,6 +107,33 @@ void main() {
           .toList();
       expect(snapPoints.map((point) => point.anchorId), contains('top'));
       expect(snapPoints.map((point) => point.anchorId), contains('middle'));
+    },
+  );
+
+  test(
+    'library registry registers flowchart library and keeps compatibility',
+    () {
+      expect(FlowchartStencils.xmlDefinitions, hasLength(34));
+      expect(BasicStencils.xmlDefinitions, hasLength(30));
+      expect(ArrowStencils.xmlDefinitions, hasLength(34));
+
+      BuiltinStencils.registerAll();
+      expect(ShapeDefinitionRegistry.contains('flowchart.process'), isTrue);
+      expect(
+        ShapeDefinitionRegistry.contains('mxgraph.flowchart.decision'),
+        isTrue,
+      );
+      expect(ShapeDefinitionRegistry.contains('stencil.process'), isTrue);
+      expect(ShapeDefinitionRegistry.contains('basic.star'), isTrue);
+      expect(
+        ShapeDefinitionRegistry.contains('mxgraph.basic.no_symbol'),
+        isTrue,
+      );
+      expect(ShapeDefinitionRegistry.contains('arrows.arrowRight'), isTrue);
+      expect(
+        ShapeDefinitionRegistry.contains('mxgraph.arrows.arrow_right'),
+        isTrue,
+      );
     },
   );
 
