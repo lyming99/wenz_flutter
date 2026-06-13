@@ -1032,10 +1032,13 @@ class CanvasController extends ChangeNotifier {
         break;
       case ToolResultPreview(:final preview):
         setPreviewElement(preview);
-      case ToolResultElement(:final element):
+      case ToolResultElement(:final element, :final selectAfter):
         addElement(element, bringToFront: true);
         if (element is TextElement) {
           beginTextEditing(element.id);
+        } else if (selectAfter) {
+          setSelection({element.id});
+          setTool(SelectTool.idValue);
         }
       case ToolResultSelect(:final selectedIds):
         setSelection(selectedIds);

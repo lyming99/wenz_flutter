@@ -98,8 +98,8 @@ void main() {
       ),
     );
 
-    final line = controller.elements.whereType<PolylineElement>().single;
-    expect(line.points.first, const Offset(100, 40));
+    final line = controller.elements.whereType<LineElement>().single;
+    expect(line.start, const Offset(100, 40));
     expect(line.startBinding?.elementId, 'hex-1');
     expect(line.startBinding?.anchorId, 'vertex2');
 
@@ -108,8 +108,8 @@ void main() {
       ..setSelection({'hex-1'});
     controller.moveSelected(const Offset(20, 10), record: false);
 
-    final movedLine = controller.elementById(line.id) as PolylineElement;
-    expect(movedLine.points.first, const Offset(120, 50));
+    final movedLine = controller.elementById(line.id) as LineElement;
+    expect(movedLine.start, const Offset(120, 50));
     expect(movedLine.startBinding?.anchorId, 'vertex2');
   });
 
@@ -179,9 +179,9 @@ void main() {
       ),
     );
 
-    final line = controller.elements.whereType<PolylineElement>().single;
-    expect(line.points.first, const Offset(50, 40));
-    expect(line.points.last, const Offset(250, 40));
+    final line = controller.elements.whereType<LineElement>().single;
+    expect(line.start, const Offset(50, 40));
+    expect(line.end, const Offset(250, 40));
     expect(controller.snapPreview, isNull);
   });
 
@@ -294,8 +294,8 @@ void main() {
       ),
     );
 
-    final line = controller.elements.whereType<PolylineElement>().single;
-    expect(line.points.first, const Offset(50, 40));
+    final line = controller.elements.whereType<LineElement>().single;
+    expect(line.start, const Offset(50, 40));
     expect(line.startBinding?.elementId, 'widget-1');
     expect(line.startBinding?.anchorId, 'center');
 
@@ -304,9 +304,9 @@ void main() {
       ..setSelection({'widget-1'});
     controller.moveSelected(const Offset(20, 10), record: false);
 
-    final movedLine = controller.elementById(line.id) as PolylineElement;
-    expect(movedLine.points.first, const Offset(70, 50));
-    expect(movedLine.points.last, const Offset(250, 40));
+    final movedLine = controller.elementById(line.id) as LineElement;
+    expect(movedLine.start, const Offset(70, 50));
+    expect(movedLine.end, const Offset(250, 40));
   });
 
   test('snap bindings are serialized and restored', () {

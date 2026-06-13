@@ -41,9 +41,12 @@ class ToolResultConsumed extends ToolResult {
 }
 
 class ToolResultElement extends ToolResult {
-  const ToolResultElement(this.element);
+  const ToolResultElement(this.element, {this.selectAfter = false});
 
   final CanvasElement element;
+
+  /// 为 true 时，元素添加后自动选中，从而显示选择指示器（端点手柄等）。
+  final bool selectAfter;
 }
 
 class ToolResultPreview extends ToolResult {
