@@ -677,8 +677,9 @@ class _Toolbar extends StatelessWidget {
                   _ToolButton(
                     label: '曲线',
                     icon: Icons.timeline,
-                    selected: false,
-                    onPressed: () => canvasController.setTool(PenTool.idValue),
+                    selected: activeTool == CurveTool.idValue,
+                    onPressed: () =>
+                        canvasController.setTool(CurveTool.idValue),
                   ),
                   const _ToolbarDivider(),
                   _ToolButton(

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../elements/arrow_element.dart';
 import '../../elements/canvas_element.dart';
+import '../../elements/curve_element.dart';
 import '../../elements/drawio_shape_element.dart';
 import '../../elements/ellipse_element.dart';
 import '../../elements/image_element.dart';
@@ -47,6 +48,7 @@ class SvgExporter {
   static String _elementSvg(CanvasElement element) {
     return switch (element) {
       final PathElement e => _path(e),
+      final CurveElement e => _curve(e),
       final PolylineElement e => _polyline(e),
       final LineElement e => _lineWithLabel(e, [e.start, e.end]),
       final DrawioShapeElement e => _drawioShape(e),
@@ -69,6 +71,12 @@ class SvgExporter {
       d.write(' L ${point.position.dx} ${point.position.dy}');
     }
     return '<path d="$d" fill="none" stroke="${_color(e.style.color)}" stroke-width="${e.style.strokeWidth}" opacity="${e.opacity * e.style.opacity}" stroke-linecap="round" stroke-linejoin="round"/>';
+  }
+
+  static String _curve(CurveElement e) {
+    final d =
+        'M ${e.start.dx} ${e.start.dy} Q ${e.control.dx} ${e.control.dy} ${e.end.dx} ${e.end.dy}';
+    return '<path d="$d" fill="none" stroke="${_color(e.style.color)}" stroke-width="${e.style.strokeWidth}" opacity="${e.opacity * e.style.opacity}" stroke-linecap="round"/>';
   }
 
   static String _line(dynamic e) {

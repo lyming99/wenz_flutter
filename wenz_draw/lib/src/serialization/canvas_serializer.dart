@@ -4,6 +4,7 @@ import '../canvas/canvas_controller.dart';
 import '../canvas/paint_style.dart';
 import '../elements/arrow_element.dart';
 import '../elements/canvas_element.dart';
+import '../elements/curve_element.dart';
 import '../elements/drawio_shape_element.dart';
 import '../elements/ellipse_element.dart';
 import '../elements/image_element.dart';
@@ -76,6 +77,18 @@ class CanvasSerializer {
                   timestamp: (point['timestamp'] as num?)?.toDouble() ?? 0,
                 ),
           ],
+          style: _style(json['style']),
+        );
+      case CurveElement.elementType:
+        return CurveElement(
+          id: id,
+          layerId: layerId,
+          visible: visible,
+          opacity: opacity,
+          zIndex: zIndex,
+          start: _point(json['start']),
+          end: _point(json['end']),
+          control: _point(json['control']),
           style: _style(json['style']),
         );
       case LineElement.elementType:

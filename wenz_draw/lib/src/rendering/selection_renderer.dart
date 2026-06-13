@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../canvas/canvas_controller.dart';
 import '../elements/arrow_element.dart';
+import '../elements/curve_element.dart';
 import '../elements/drawio_shape_element.dart';
 import '../elements/line_element.dart';
 import '../elements/polyline_element.dart';
@@ -62,6 +63,7 @@ class SelectionRenderer {
       );
       final handlePoints = switch (element) {
         LineElement e => [e.start, e.end],
+        CurveElement e => [e.start, e.end, e.control],
         PolylineElement e => e.points,
         ArrowElement e => [e.start, e.end],
         _ => selectionGeometry.corners,

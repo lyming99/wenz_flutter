@@ -7,6 +7,7 @@ import '../elements/canvas_element.dart';
 import '../elements/drawio_shape_element.dart';
 import '../elements/ellipse_element.dart';
 import '../elements/line_element.dart';
+import '../elements/curve_element.dart';
 import '../elements/polyline_element.dart';
 import '../elements/rect_element.dart';
 import '../elements/text_element.dart';
@@ -33,6 +34,7 @@ class SelectTool extends CanvasTool {
   bool _draggingLineEndpoint = false;
   bool _draggingPolylinePoint = false;
   bool _draggingPolylineSegment = false;
+  bool _draggingCurveControl = false;
   _SelectionResizeHandle? _resizeHandle;
   _LineEndpoint? _lineEndpoint;
   int? _polylinePointIndex;
@@ -69,6 +71,7 @@ class SelectTool extends CanvasTool {
     _draggingLineEndpoint = false;
     _draggingPolylinePoint = false;
     _draggingPolylineSegment = false;
+    _draggingCurveControl = false;
     _resizeHandle = null;
     _lineEndpoint = null;
     _polylinePointIndex = null;
@@ -88,29 +91,47 @@ class SelectTool extends CanvasTool {
   ToolResult handleEvent(CanvasEvent event, CanvasController controller) {
     switch (event) {
       case CanvasPointerDownEvent():
+        final curveControlTarget = _curveControlTargetAt(controller, event);
         final polylinePointTarget = _polylinePointTargetAt(controller, event);
-        final lineEndpointTarget = polylinePointTarget == null
+        final lineEndpointTarget =
+            polylinePointTarget == null && curveControlTarget == null
             ? _lineEndpointTargetAt(controller, event)
             : null;
         final polylineSegmentTarget =
-            polylinePointTarget == null && lineEndpointTarget == null
+            polylinePointTarget == null &&
+                lineEndpointTarget == null &&
+                curveControlTarget == null
             ? _polylineSegmentTargetAt(controller, event)
             : null;
         final rotateTarget =
             lineEndpointTarget == null &&
                 polylinePointTarget == null &&
-                polylineSegmentTarget == null
+                polylineSegmentTarget == null &&
+                curveControlTarget == null
             ? _rotateTargetAt(controller, event)
             : null;
         final resizeTarget =
             rotateTarget == null &&
                 lineEndpointTarget == null &&
                 polylinePointTarget == null &&
-                polylineSegmentTarget == null
+                polylineSegmentTarget == null &&
+                curveControlTarget == null
             ? _resizeTargetAt(controller, event)
             : null;
         _dragStart = event.worldPoint;
         _lastPoint = event.worldPoint;
+        if (curveControlTarget != null) {
+          controller.setSelection({curveControlTarget.element.id});
+          _movingSelection = false;
+          _resizingText = false;
+          _scalingElement = false;
+          _draggingLineEndpoint = false;
+          _draggingPolylinePoint = false;
+          _draggingPolylineSegment = false;
+          _draggingCurveControl = true;
+          _lineEndpointBefore = curveControlTarget.element;
+          return const ToolResultConsumed();
+        }
         if (polylinePointTarget != null) {
           controller.setSelection({polylinePointTarget.element.id});
           _movingSelection = false;
@@ -119,6 +140,7 @@ class SelectTool extends CanvasTool {
           _draggingLineEndpoint = false;
           _draggingPolylinePoint = true;
           _draggingPolylineSegment = false;
+          _draggingCurveControl = false;
           _polylinePointIndex = polylinePointTarget.pointIndex;
           _lineEndpointBefore = polylinePointTarget.element;
           return const ToolResultConsumed();
@@ -131,6 +153,7 @@ class SelectTool extends CanvasTool {
           _draggingLineEndpoint = true;
           _draggingPolylinePoint = false;
           _draggingPolylineSegment = false;
+          _draggingCurveControl = false;
           _lineEndpoint = lineEndpointTarget.endpoint;
           _lineEndpointBefore = lineEndpointTarget.element;
           return const ToolResultConsumed();
@@ -143,6 +166,7 @@ class SelectTool extends CanvasTool {
           _draggingLineEndpoint = false;
           _draggingPolylinePoint = false;
           _draggingPolylineSegment = true;
+          _draggingCurveControl = false;
           _polylineSegmentIndex = polylineSegmentTarget.segmentIndex;
           _lineEndpointBefore = polylineSegmentTarget.element;
           return const ToolResultConsumed();
@@ -155,6 +179,7 @@ class SelectTool extends CanvasTool {
           _draggingLineEndpoint = false;
           _draggingPolylinePoint = false;
           _draggingPolylineSegment = false;
+          _draggingCurveControl = false;
           _rotationCenter = rotateTarget.center;
           _rotationStartAngle = _angle(rotateTarget.center, event.worldPoint);
           _rotateBefore = {
@@ -253,6 +278,11 @@ class SelectTool extends CanvasTool {
           _lastPoint = event.worldPoint;
           return const ToolResultConsumed();
         }
+        if (_draggingCurveControl) {
+          _dragCurveControl(controller, event.worldPoint);
+          _lastPoint = event.worldPoint;
+          return const ToolResultConsumed();
+        }
         if (_movingSelection) {
           final delta = event.worldPoint - last;
           controller.moveSelected(delta, record: false);
@@ -289,6 +319,11 @@ class SelectTool extends CanvasTool {
           return const ToolResultConsumed();
         }
         if (_draggingLineEndpoint) {
+          _recordLineEndpointDrag(controller);
+          cancel(controller);
+          return const ToolResultConsumed();
+        }
+        if (_draggingCurveControl) {
           _recordLineEndpointDrag(controller);
           cancel(controller);
           return const ToolResultConsumed();
@@ -361,6 +396,37 @@ class SelectTool extends CanvasTool {
     return bounds;
   }
 
+  _CurveControlTarget? _curveControlTargetAt(
+    CanvasController controller,
+    CanvasPointerDownEvent event,
+  ) {
+    final tolerance = 10 / event.transform.scale;
+    for (final element in controller.selectedElements.reversed) {
+      if (element is CurveElement) {
+        if ((event.worldPoint - element.control).distance <= tolerance) {
+          return _CurveControlTarget(element);
+        }
+      }
+    }
+    return null;
+  }
+
+  void _dragCurveControl(CanvasController controller, Offset worldPoint) {
+    final before = _lineEndpointBefore;
+    if (before is! CurveElement) {
+      return;
+    }
+    final current = controller.elementById(before.id);
+    if (current is! CurveElement) {
+      return;
+    }
+    controller.updateElement(
+      before.id,
+      current.copyWith(control: worldPoint),
+      record: false,
+    );
+  }
+
   _PolylinePointTarget? _polylinePointTargetAt(
     CanvasController controller,
     CanvasPointerDownEvent event,
@@ -411,6 +477,13 @@ class SelectTool extends CanvasTool {
       if (element is LineElement) {
         for (final endpoint in _LineEndpoint.values) {
           if ((event.worldPoint - endpoint.pointForLine(element)).distance <=
+              tolerance) {
+            return _LineEndpointTarget(element, endpoint);
+          }
+        }
+      } else if (element is CurveElement) {
+        for (final endpoint in _LineEndpoint.values) {
+          if ((event.worldPoint - endpoint.pointForCurve(element)).distance <=
               tolerance) {
             return _LineEndpointTarget(element, endpoint);
           }
@@ -640,6 +713,18 @@ class SelectTool extends CanvasTool {
       controller.updateElement(
         before.id,
         endpoint.applyToLine(current, nextPoint, binding),
+        record: false,
+      );
+      return;
+    }
+    if (before is CurveElement) {
+      final current = controller.elementById(before.id);
+      if (current is! CurveElement) {
+        return;
+      }
+      controller.updateElement(
+        before.id,
+        endpoint.applyToCurve(current, nextPoint),
         record: false,
       );
       return;
@@ -1014,6 +1099,20 @@ extension on _LineEndpoint {
     };
   }
 
+  Offset pointForCurve(CurveElement element) {
+    return switch (this) {
+      _LineEndpoint.start => element.start,
+      _LineEndpoint.end => element.end,
+    };
+  }
+
+  CurveElement applyToCurve(CurveElement element, Offset point) {
+    return switch (this) {
+      _LineEndpoint.start => element.copyWith(start: point),
+      _LineEndpoint.end => element.copyWith(end: point),
+    };
+  }
+
   LineElement applyToLine(
     LineElement element,
     Offset point,
@@ -1173,6 +1272,12 @@ class _LineEndpointTarget {
 
   final CanvasElement element;
   final _LineEndpoint endpoint;
+}
+
+class _CurveControlTarget {
+  const _CurveControlTarget(this.element);
+
+  final CurveElement element;
 }
 
 class _RotateHandleGeometry {

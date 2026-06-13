@@ -28,6 +28,7 @@ import '../tools/ellipse_tool.dart';
 import '../tools/eraser_tool.dart';
 import '../tools/highlighter_tool.dart';
 import '../tools/line_tool.dart';
+import '../tools/curve_tool.dart';
 import '../tools/pan_tool.dart';
 import '../tools/pen_tool.dart';
 import '../tools/polyline_tool.dart';
@@ -1055,6 +1056,7 @@ class CanvasController extends ChangeNotifier {
       ..registerTool(PenTool())
       ..registerTool(HighlighterTool())
       ..registerTool(LineTool())
+      ..registerTool(CurveTool())
       ..registerTool(PolylineTool())
       ..registerTool(RectTool())
       ..registerTool(EllipseTool())
