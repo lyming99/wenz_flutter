@@ -10,6 +10,7 @@ import '../elements/line_element.dart';
 import '../elements/polyline_element.dart';
 import '../elements/rect_element.dart';
 import '../elements/text_element.dart';
+import '../elements/widget_element.dart';
 import '../infinite_canvas/canvas_transform.dart';
 import '../utils/math_utils.dart';
 
@@ -20,6 +21,14 @@ bool _canStretch(dynamic element) {
       element is EllipseElement ||
       element is ImageElement ||
       element is TextElement;
+}
+
+/// Whether the element can be rotated via the rotation handle.
+///
+/// Widget elements have no meaningful rotation (their `rotateElement` is a
+/// no-op that returns `this`), so the rotation handle is suppressed for them.
+bool _canRotate(dynamic element) {
+  return element is! CanvasWidgetElement;
 }
 
 class SelectionRenderer {
@@ -59,21 +68,25 @@ class SelectionRenderer {
       }
       final selectionGeometry = _selectionGeometryFor(element, transform);
       canvas.drawPath(selectionGeometry.path, paint);
-      canvas.drawLine(
-        selectionGeometry.topCenter,
-        selectionGeometry.rotateHandle,
-        paint,
-      );
-      canvas.drawCircle(
-        selectionGeometry.rotateHandle,
-        handleSize * 0.62,
-        handlePaint,
-      );
-      canvas.drawCircle(
-        selectionGeometry.rotateHandle,
-        handleSize * 0.62,
-        handleBorderPaint,
-      );
+      // Rotation handle is suppressed for elements that can't rotate
+      // (e.g. widget elements — mind map nodes, sticky notes, ...).
+      if (_canRotate(element)) {
+        canvas.drawLine(
+          selectionGeometry.topCenter,
+          selectionGeometry.rotateHandle,
+          paint,
+        );
+        canvas.drawCircle(
+          selectionGeometry.rotateHandle,
+          handleSize * 0.62,
+          handlePaint,
+        );
+        canvas.drawCircle(
+          selectionGeometry.rotateHandle,
+          handleSize * 0.62,
+          handleBorderPaint,
+        );
+      }
       final handlePoints = switch (element) {
         LineElement e => [e.start, e.end],
         CurveElement e => [e.start, e.end, e.control],

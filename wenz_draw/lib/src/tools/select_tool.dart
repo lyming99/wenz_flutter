@@ -13,6 +13,7 @@ import '../elements/polyline_element.dart';
 import '../elements/rect_element.dart';
 import '../elements/text_element.dart';
 import '../elements/arrow_element.dart';
+import '../elements/widget_element.dart';
 import '../history/commands/batch_command.dart';
 import '../history/commands/update_element_command.dart';
 import '../infinite_canvas/canvas_event.dart';
@@ -573,6 +574,14 @@ class SelectTool extends CanvasTool {
     double scale,
   ) {
     if (controller.selectedIds.isEmpty) {
+      return null;
+    }
+    // Widget elements (mind map nodes, sticky notes, ...) can't be rotated —
+    // their `rotateElement` is a no-op. Suppress the rotation handle entirely
+    // when the selection contains only widget elements.
+    final selectable = controller.selectedElements;
+    if (selectable.isNotEmpty &&
+        selectable.every((e) => e is CanvasWidgetElement)) {
       return null;
     }
     if (controller.selectedElements.length == 1) {
