@@ -59,6 +59,16 @@ class LayerManager extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Replaces a layer by id with [layer]. Used by undo/redo commands.
+  void replaceLayer(CanvasLayer layer) {
+    final index = _layers.indexWhere((l) => l.id == layer.id);
+    if (index == -1) {
+      return;
+    }
+    _layers[index] = layer;
+    notifyListeners();
+  }
+
   void setActiveLayer(String id) {
     if (_activeLayerId == id || !_layers.any((layer) => layer.id == id)) {
       return;
@@ -86,15 +96,20 @@ class LayerManager extends ChangeNotifier {
     if (oldIndex < 0 || oldIndex >= _layers.length) {
       return;
     }
-    final targetIndex = newIndex.clamp(0, _layers.length - 1);
+    if (oldIndex == newIndex || oldIndex == newIndex - 1) {
+      return;
+    }
     final layer = _layers.removeAt(oldIndex);
+    // After removal the list is shorter; clamp to the new valid range.
+    final targetIndex = newIndex.clamp(0, _layers.length);
     _layers.insert(targetIndex, layer);
     notifyListeners();
   }
 
+  /// Returns the index of the layer with the given id, or -1 if not found.
+  /// A return of -1 indicates the element's layer no longer exists.
   int layerIndexOf(String id) {
-    final index = _layers.indexWhere((layer) => layer.id == id);
-    return index == -1 ? 0 : index;
+    return _layers.indexWhere((layer) => layer.id == id);
   }
 
   CanvasLayer? layerById(String id) {
@@ -107,7 +122,9 @@ class LayerManager extends ChangeNotifier {
   }
 
   bool isLayerVisible(String id) {
-    return layerById(id)?.isVisible ?? true;
+    final layer = layerById(id);
+    // If the layer no longer exists, the element should not be visible.
+    return layer?.isVisible ?? false;
   }
 
   bool isLayerLocked(String id) {

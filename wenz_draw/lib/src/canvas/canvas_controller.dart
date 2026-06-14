@@ -11,10 +11,13 @@ import '../elements/polyline_element.dart';
 import '../elements/rect_element.dart';
 import '../elements/text_element.dart';
 import '../history/commands/add_element_command.dart';
+import '../history/commands/add_layer_command.dart';
 import '../history/commands/batch_command.dart';
 import '../history/commands/remove_element_command.dart';
 import '../history/commands/remove_layer_command.dart';
+import '../history/commands/reorder_layer_command.dart';
 import '../history/commands/update_element_command.dart';
+import '../history/commands/update_layer_command.dart';
 import '../history/canvas_command.dart';
 import '../history/history_manager.dart';
 import '../infinite_canvas/canvas_event.dart';
@@ -39,6 +42,7 @@ import '../tools/shape_tool.dart';
 import '../tools/text_tool.dart';
 import '../tools/arrow_tool.dart';
 import '../tools/tool_manager.dart';
+import '../utils/uuid_generator.dart';
 import 'canvas_state.dart';
 import 'element_manager.dart';
 import 'spatial_index.dart';
@@ -571,7 +575,19 @@ class CanvasController extends ChangeNotifier {
     historyManager.record(command);
   }
 
-  void addLayer({String? name}) => layerManager.addLayer(name: name);
+  void addLayer({String? name}) {
+    final layer = CanvasLayer(
+      id: UuidGenerator.create(),
+      name: name ?? 'Layer ${layers.length + 1}',
+    );
+    historyManager.execute(
+      AddLayerCommand(
+        layer: layer,
+        previousActiveLayerId: activeLayerId,
+      ),
+      this,
+    );
+  }
 
   void removeLayer(String id) {
     if (layers.length == 1) {
@@ -600,16 +616,56 @@ class CanvasController extends ChangeNotifier {
 
   void setActiveLayer(String id) => layerManager.setActiveLayer(id);
 
-  void toggleLayerVisibility(String id) => layerManager.toggleVisibility(id);
+  void toggleLayerVisibility(String id) {
+    final layer = layerManager.layerById(id);
+    if (layer == null) {
+      return;
+    }
+    historyManager.execute(
+      UpdateLayerCommand(
+        before: layer,
+        after: layer.copyWith(isVisible: !layer.isVisible),
+        descriptionText: layer.isVisible ? 'Hide layer' : 'Show layer',
+      ),
+      this,
+    );
+  }
 
-  void toggleLayerLock(String id) => layerManager.toggleLock(id);
+  void toggleLayerLock(String id) {
+    final layer = layerManager.layerById(id);
+    if (layer == null) {
+      return;
+    }
+    historyManager.execute(
+      UpdateLayerCommand(
+        before: layer,
+        after: layer.copyWith(isLocked: !layer.isLocked),
+        descriptionText: layer.isLocked ? 'Unlock layer' : 'Lock layer',
+      ),
+      this,
+    );
+  }
 
   void setLayerOpacity(String id, double opacity) {
-    layerManager.setOpacity(id, opacity);
+    final layer = layerManager.layerById(id);
+    if (layer == null) {
+      return;
+    }
+    historyManager.execute(
+      UpdateLayerCommand(
+        before: layer,
+        after: layer.copyWith(opacity: opacity.clamp(0.0, 1.0)),
+        descriptionText: 'Set layer opacity',
+      ),
+      this,
+    );
   }
 
   void reorderLayer(int oldIndex, int newIndex) {
-    layerManager.reorder(oldIndex, newIndex);
+    historyManager.execute(
+      ReorderLayerCommand(oldIndex: oldIndex, newIndex: newIndex),
+      this,
+    );
   }
 
   int layerIndexOf(String id) => layerManager.layerIndexOf(id);

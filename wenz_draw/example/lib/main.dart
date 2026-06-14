@@ -739,6 +739,21 @@ class _Toolbar extends StatelessWidget {
                   ),
                   const _ToolbarDivider(),
                   _ToolButton(
+                    label: '撤销',
+                    icon: Icons.undo,
+                    selected: false,
+                    enabled: canvasController.canUndo,
+                    onPressed: canvasController.undo,
+                  ),
+                  _ToolButton(
+                    label: '重做',
+                    icon: Icons.redo,
+                    selected: false,
+                    enabled: canvasController.canRedo,
+                    onPressed: canvasController.redo,
+                  ),
+                  const _ToolbarDivider(),
+                  _ToolButton(
                     label: '特殊组件创建',
                     icon: Icons.add,
                     selected: false,
@@ -835,17 +850,23 @@ class _ToolButton extends StatelessWidget {
     required this.onPressed,
     this.icon,
     this.iconWidget,
+    this.enabled = true,
   });
 
   final String label;
   final IconData? icon;
   final Widget? iconWidget;
   final bool selected;
+  final bool enabled;
   final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
-    final foreground = selected ? _UiColors.accent : _UiColors.muted;
+    final foreground = !enabled
+        ? const Color(0xFFB8C2CC)
+        : selected
+            ? _UiColors.accent
+            : _UiColors.muted;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 2),
       child: Tooltip(
@@ -860,7 +881,7 @@ class _ToolButton extends StatelessWidget {
           ),
           child: InkWell(
             borderRadius: BorderRadius.circular(6),
-            onTap: onPressed,
+            onTap: enabled ? onPressed : null,
             child: SizedBox(
               width: 30,
               height: 30,
