@@ -1444,6 +1444,59 @@ class _RightInspectorPanel extends StatelessWidget {
                             : null,
                       ),
                       const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          const _FieldLabel('颜色'),
+                          const Spacer(),
+                          _TextSwatchButton(
+                            color: _textColorOf(selected) ??
+                                canvasController.brushSettings.color,
+                            onPressed: selected == null
+                                ? null
+                                : () => _showTextColorPicker(
+                                      context,
+                                      selected,
+                                      canvasController,
+                                    ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      const _FieldLabel('常用颜色'),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 7,
+                        runSpacing: 7,
+                        children: [
+                          for (final color in _swatches)
+                            _ColorSwatch(
+                              color: color,
+                              selected: _textColorOf(selected) == color,
+                              onPressed: selected != null
+                                  ? () {
+                                      if (selected is TextElement) {
+                                        canvasController.updateTextElementStyle(
+                                          selected.id,
+                                          color: color,
+                                        );
+                                      } else {
+                                        canvasController.updateShapeLabelStyle(
+                                          selected.id,
+                                          color: color,
+                                        );
+                                      }
+                                    }
+                                  : () {
+                                      canvasController.updateBrushSettings(
+                                        canvasController.brushSettings.copyWith(
+                                          color: color,
+                                        ),
+                                      );
+                                    },
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
                       const _FieldLabel('字重'),
                       const SizedBox(height: 6),
                       _FontWeightDropdown(
@@ -1632,6 +1685,19 @@ class _RightInspectorPanel extends StatelessWidget {
       return element.labelStyle.fontSize;
     }
     return 14;
+  }
+
+  static Color? _textColorOf(CanvasElement? element) {
+    return switch (element) {
+      TextElement e => e.style.color,
+      DrawioShapeElement e => e.labelStyle.color,
+      RectElement e => e.labelStyle.color,
+      EllipseElement e => e.labelStyle.color,
+      LineElement e => e.labelStyle.color,
+      ArrowElement e => e.labelStyle.color,
+      PolylineElement e => e.labelStyle.color,
+      _ => null,
+    };
   }
 }
 
@@ -2080,6 +2146,30 @@ class _ColorButtonField extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _TextSwatchButton extends StatelessWidget {
+  const _TextSwatchButton({required this.color, this.onPressed});
+
+  final Color color;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(6),
+      onTap: onPressed,
+      child: Container(
+        width: 40,
+        height: 24,
+        decoration: BoxDecoration(
+          color: color,
+          border: Border.all(color: const Color(0x3318232E)),
+          borderRadius: BorderRadius.circular(4),
+        ),
+      ),
     );
   }
 }
@@ -2690,6 +2780,29 @@ Future<T?> _showAnchoredMenu<T>({
     Offset.zero & overlay.size,
   );
   return showMenu<T>(context: context, position: position, items: items);
+}
+
+Future<void> _showTextColorPicker(
+  BuildContext context,
+  CanvasElement selected,
+  CanvasController controller,
+) async {
+  final initialColor = _RightInspectorPanel._textColorOf(selected) ??
+      controller.brushSettings.color;
+  final color = await showDialog<Color>(
+    context: context,
+    builder: (context) => _ColorPickerDialog(
+      initialColor: initialColor,
+      swatches: _toolbarColorSwatches,
+    ),
+  );
+  if (color != null) {
+    if (selected is TextElement) {
+      controller.updateTextElementStyle(selected.id, color: color);
+    } else {
+      controller.updateShapeLabelStyle(selected.id, color: color);
+    }
+  }
 }
 
 Future<void> _showShapeColorPicker(

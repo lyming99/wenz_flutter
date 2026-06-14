@@ -242,8 +242,10 @@ class _InfiniteCanvasWidgetState extends State<InfiniteCanvasWidget> {
       return true;
     }
 
-    canvasController.endTextEditing(removeIfEmpty: false);
-    return false;
+    // Clicked outside the editing element — end editing and consume the event
+    // so that the active tool (e.g. TextTool) does not create a new element.
+    canvasController.endTextEditing();
+    return true;
   }
 
   bool _handleShapeLabelEditingPointerDown(
@@ -278,8 +280,10 @@ class _InfiniteCanvasWidgetState extends State<InfiniteCanvasWidget> {
       return true;
     }
 
+    // Clicked outside the editing shape — end editing and consume the event
+    // so that the active tool does not create/interact with a new element.
     canvasController.endShapeLabelEditing();
-    return false;
+    return true;
   }
 
   Rect _shapeLabelEditingBounds(Object? element) {

@@ -612,11 +612,12 @@ class DrawioShapeDefinitions {
     Rect rect,
     Map<String, dynamic> properties,
   ) {
+    final maxBar = rect.shortestSide < 1.0 ? 1.0 : rect.shortestSide;
     final bar = _number(
       properties,
       'barSize',
       rect.shortestSide * 0.34,
-    ).clamp(1.0, rect.shortestSide).toDouble();
+    ).clamp(1.0, maxBar).toDouble();
     final left = rect.center.dx - bar / 2;
     final right = rect.center.dx + bar / 2;
     final top = rect.center.dy - bar / 2;
@@ -638,11 +639,12 @@ class DrawioShapeDefinitions {
   }
 
   static Path _diagonalCrossPath(Rect rect, Map<String, dynamic> properties) {
+    final maxArm = rect.shortestSide * 0.5 < 1.0 ? 1.0 : rect.shortestSide * 0.5;
     final arm = _number(
       properties,
       'armSize',
       rect.shortestSide * 0.28,
-    ).clamp(1.0, rect.shortestSide * 0.5).toDouble();
+    ).clamp(1.0, maxArm).toDouble();
     final dx = arm / math.sqrt2;
     final dy = arm / math.sqrt2;
     return Path()
