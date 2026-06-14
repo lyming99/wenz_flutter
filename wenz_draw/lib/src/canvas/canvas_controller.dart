@@ -1212,6 +1212,10 @@ class CanvasController extends ChangeNotifier {
   void updateTextContent(String id, String text, {bool record = true}) {
     final element = elementById(id);
     if (element is TextElement) {
+      // Skip if text is unchanged.
+      if (element.text == text) {
+        return;
+      }
       updateElement(id, element.copyWith(text: text), record: record);
       return;
     }
@@ -1222,7 +1226,8 @@ class CanvasController extends ChangeNotifier {
       element,
       text.trim().isEmpty ? null : text,
     );
-    if (next != null) {
+    if (next != null &&
+        next.toJson().toString() != element.toJson().toString()) {
       updateElement(id, next, record: record);
     }
   }
