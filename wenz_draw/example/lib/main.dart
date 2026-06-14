@@ -89,7 +89,7 @@ const _drawioShapePalette = [
     group: 'container',
   ),
   _DrawioShapePaletteEntry(
-    label: 'Actor',
+    label: '角色',
     shapeKey: 'actor',
     group: 'container',
   ),
@@ -125,6 +125,10 @@ class StickyNoteBuilder extends WidgetElementBuilder {
     }
 
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () {
+        canvas.canvasController.setSelection({element.id});
+      },
       onDoubleTap: () => _showEditDialog(context, element, canvas),
       child: Container(
         padding: const EdgeInsets.all(12),
@@ -968,6 +972,7 @@ class _LeftShapePanel extends StatefulWidget {
 
 class _LeftShapePanelState extends State<_LeftShapePanel> {
   String _searchQuery = '';
+  bool _basicToolsExpanded = true;
 
   List<_DrawioShapePaletteEntry> get _allStencilEntries {
     return [
@@ -1007,63 +1012,75 @@ class _LeftShapePanelState extends State<_LeftShapePanel> {
                 onChanged: (value) => setState(() => _searchQuery = value),
               ),
               if (_searchQuery.isEmpty) ...[
-                const _PaletteSubhead('Legacy'),
-                GridView.count(
-                  crossAxisCount: 2,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  mainAxisSpacing: 8,
-                  crossAxisSpacing: 8,
-                  childAspectRatio: 1.35,
-                  children: [
-                    _ShapeTile(
-                      label: '矩形',
-                      icon: Icons.crop_square,
-                      selected: activeTool == RectTool.idValue,
-                      onPressed: () =>
-                          widget.canvasController.setTool(RectTool.idValue),
-                    ),
-                    _ShapeTile(
-                      label: '圆形',
-                      icon: Icons.circle_outlined,
-                      selected: activeTool == EllipseTool.idValue,
-                      onPressed: () =>
-                          widget.canvasController.setTool(EllipseTool.idValue),
-                    ),
-                    _ShapeTile(
-                      label: '菱形',
-                      iconWidget: Transform.rotate(
-                        angle: math.pi / 4,
-                        child: const Icon(Icons.crop_square, size: 32),
+                _PaletteSubhead(
+                  '基本工具',
+                  onTap: () => setState(
+                      () => _basicToolsExpanded = !_basicToolsExpanded),
+                  isExpanded: _basicToolsExpanded,
+                ),
+                AnimatedCrossFade(
+                  duration: const Duration(milliseconds: 200),
+                  crossFadeState: _basicToolsExpanded
+                      ? CrossFadeState.showFirst
+                      : CrossFadeState.showSecond,
+                  firstChild: GridView.count(
+                    crossAxisCount: 2,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    mainAxisSpacing: 8,
+                    crossAxisSpacing: 8,
+                    childAspectRatio: 1.35,
+                    children: [
+                      _ShapeTile(
+                        label: '矩形',
+                        icon: Icons.crop_square,
+                        selected: activeTool == RectTool.idValue,
+                        onPressed: () =>
+                            widget.canvasController.setTool(RectTool.idValue),
                       ),
-                      selected: activeTool == ShapeTool.idFor('rhombus'),
-                      onPressed: () => widget.canvasController
-                          .setTool(ShapeTool.idFor('rhombus')),
-                    ),
-                    _ShapeTile(
-                      label: '箭头',
-                      icon: Icons.arrow_forward,
-                      selected: activeTool == ArrowTool.idValue,
-                      onPressed: () =>
-                          widget.canvasController.setTool(ArrowTool.idValue),
-                    ),
-                    _ShapeTile(
-                      label: '便签',
-                      icon: Icons.sticky_note_2_outlined,
-                      selected: false,
-                      onPressed: widget.onAddStickyNote,
-                    ),
-                    _ShapeTile(
-                      label: '文本',
-                      icon: Icons.text_fields,
-                      selected: activeTool == TextTool.idValue,
-                      onPressed: () =>
-                          widget.canvasController.setTool(TextTool.idValue),
-                    ),
-                  ],
+                      _ShapeTile(
+                        label: '圆形',
+                        icon: Icons.circle_outlined,
+                        selected: activeTool == EllipseTool.idValue,
+                        onPressed: () =>
+                            widget.canvasController.setTool(EllipseTool.idValue),
+                      ),
+                      _ShapeTile(
+                        label: '菱形',
+                        iconWidget: Transform.rotate(
+                          angle: math.pi / 4,
+                          child: const Icon(Icons.crop_square, size: 32),
+                        ),
+                        selected: activeTool == ShapeTool.idFor('rhombus'),
+                        onPressed: () => widget.canvasController
+                            .setTool(ShapeTool.idFor('rhombus')),
+                      ),
+                      _ShapeTile(
+                        label: '箭头',
+                        icon: Icons.arrow_forward,
+                        selected: activeTool == ArrowTool.idValue,
+                        onPressed: () =>
+                            widget.canvasController.setTool(ArrowTool.idValue),
+                      ),
+                      _ShapeTile(
+                        label: '便签',
+                        icon: Icons.sticky_note_2_outlined,
+                        selected: false,
+                        onPressed: widget.onAddStickyNote,
+                      ),
+                      _ShapeTile(
+                        label: '文本',
+                        icon: Icons.text_fields,
+                        selected: activeTool == TextTool.idValue,
+                        onPressed: () =>
+                            widget.canvasController.setTool(TextTool.idValue),
+                      ),
+                    ],
+                  ),
+                  secondChild: const SizedBox(width: double.infinity),
                 ),
                 _ShapePaletteGroup(
-                  title: 'Basic',
+                  title: '基本形状',
                   entries: _drawioShapePalette
                       .where((entry) => entry.group == 'basic')
                       .toList(growable: false),
@@ -1071,25 +1088,25 @@ class _LeftShapePanelState extends State<_LeftShapePanel> {
                   onSelect: widget.canvasController.setTool,
                 ),
                 _ShapePaletteGroup(
-                  title: 'Basic Symbols',
+                  title: '基本符号',
                   entries: _basicSymbolShapePalette,
                   activeTool: activeTool,
                   onSelect: widget.canvasController.setTool,
                 ),
                 _ShapePaletteGroup(
-                  title: 'Flowchart',
+                  title: '流程图',
                   entries: _flowchartShapePalette,
                   activeTool: activeTool,
                   onSelect: widget.canvasController.setTool,
                 ),
                 _ShapePaletteGroup(
-                  title: 'Arrows',
+                  title: '箭头',
                   entries: _arrowShapePalette,
                   activeTool: activeTool,
                   onSelect: widget.canvasController.setTool,
                 ),
                 _ShapePaletteGroup(
-                  title: 'Container',
+                  title: '容器',
                   entries: _drawioShapePalette
                       .where((entry) => entry.group == 'container')
                       .toList(growable: false),
@@ -1137,7 +1154,7 @@ class _LeftShapePanelState extends State<_LeftShapePanel> {
   }
 }
 
-class _ShapePaletteGroup extends StatelessWidget {
+class _ShapePaletteGroup extends StatefulWidget {
   const _ShapePaletteGroup({
     required this.title,
     required this.entries,
@@ -1151,27 +1168,45 @@ class _ShapePaletteGroup extends StatelessWidget {
   final ValueChanged<String> onSelect;
 
   @override
+  State<_ShapePaletteGroup> createState() => _ShapePaletteGroupState();
+}
+
+class _ShapePaletteGroupState extends State<_ShapePaletteGroup> {
+  bool _isExpanded = true;
+
+  @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _PaletteSubhead(title),
-        GridView.count(
-          crossAxisCount: 2,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          mainAxisSpacing: 8,
-          crossAxisSpacing: 8,
-          childAspectRatio: 1.35,
-          children: [
-            for (final entry in entries)
-              _ShapeTile(
-                label: entry.label,
-                iconWidget: _ShapePreviewIcon(shapeKey: entry.shapeKey),
-                selected: activeTool == entry.toolId,
-                onPressed: () => onSelect(entry.toolId),
-              ),
-          ],
+        _PaletteSubhead(
+          widget.title,
+          onTap: () => setState(() => _isExpanded = !_isExpanded),
+          isExpanded: _isExpanded,
+        ),
+        AnimatedCrossFade(
+          duration: const Duration(milliseconds: 200),
+          crossFadeState: _isExpanded
+              ? CrossFadeState.showFirst
+              : CrossFadeState.showSecond,
+          firstChild: GridView.count(
+            crossAxisCount: 2,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            mainAxisSpacing: 8,
+            crossAxisSpacing: 8,
+            childAspectRatio: 1.35,
+            children: [
+              for (final entry in widget.entries)
+                _ShapeTile(
+                  label: entry.label,
+                  iconWidget: _ShapePreviewIcon(shapeKey: entry.shapeKey),
+                  selected: widget.activeTool == entry.toolId,
+                  onPressed: () => widget.onSelect(entry.toolId),
+                ),
+            ],
+          ),
+          secondChild: const SizedBox(width: double.infinity),
         ),
       ],
     );
@@ -1179,21 +1214,42 @@ class _ShapePaletteGroup extends StatelessWidget {
 }
 
 class _PaletteSubhead extends StatelessWidget {
-  const _PaletteSubhead(this.title);
+  const _PaletteSubhead(this.title, {this.onTap, this.isExpanded});
 
   final String title;
+  final VoidCallback? onTap;
+  final bool? isExpanded;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 10, bottom: 7),
-      child: Text(
-        title,
-        style: const TextStyle(
-          color: _UiColors.muted,
-          fontSize: 11,
-          fontWeight: FontWeight.w800,
-          letterSpacing: 0.8,
+    final hasToggle = onTap != null;
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.only(top: 10, bottom: 7),
+        child: Row(
+          children: [
+            if (hasToggle)
+              AnimatedRotation(
+                turns: (isExpanded ?? true) ? 0 : -0.25,
+                duration: const Duration(milliseconds: 200),
+                child: const Icon(
+                  Icons.expand_more,
+                  size: 16,
+                  color: _UiColors.muted,
+                ),
+              ),
+            Text(
+              title,
+              style: const TextStyle(
+                color: _UiColors.muted,
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.8,
+              ),
+            ),
+          ],
         ),
       ),
     );

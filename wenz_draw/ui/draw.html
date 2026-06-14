@@ -257,6 +257,40 @@
       font-weight: 600;
     }
 
+    .section-toggle {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 2px 0;
+      color: inherit;
+      background: transparent;
+      border: 0;
+      cursor: pointer;
+    }
+
+    .section-toggle:hover .section-title {
+      color: var(--accent);
+    }
+
+    .chevron-icon {
+      width: 12px;
+      height: 12px;
+      flex-shrink: 0;
+      transition: transform 200ms ease;
+    }
+
+    .panel-section.collapsed .chevron-icon {
+      transform: rotate(-90deg);
+    }
+
+    .panel-section.collapsed > .section-head {
+      margin-bottom: 0;
+    }
+
+    .panel-section.collapsed > *:not(.section-head) {
+      display: none;
+    }
+
     .search {
       position: relative;
       display: flex;
@@ -975,7 +1009,10 @@
       <aside class="sidebar" aria-label="左侧图形选择面板">
         <section class="panel-section">
           <div class="section-head">
-            <div class="section-title">图形</div>
+            <button class="section-toggle" type="button" aria-expanded="true">
+              <svg class="chevron-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+              <span class="section-title">图形</span>
+            </button>
             <button class="section-action" type="button">管理</button>
           </div>
           <label class="search">
@@ -1051,7 +1088,10 @@
       <aside class="inspector" aria-label="右侧图层与样式配置面板">
         <section class="panel-section">
           <div class="section-head">
-            <div class="section-title">图层</div>
+            <button class="section-toggle" type="button" aria-expanded="true">
+              <svg class="chevron-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+              <span class="section-title">图层</span>
+            </button>
             <button class="section-action" type="button">新建</button>
           </div>
           <div class="layer-list">
@@ -1063,7 +1103,10 @@
 
         <section class="panel-section">
           <div class="section-head">
-            <div class="section-title">位置与尺寸</div>
+            <button class="section-toggle" type="button" aria-expanded="true">
+              <svg class="chevron-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+              <span class="section-title">位置与尺寸</span>
+            </button>
           </div>
           <div class="field-grid">
             <label class="field">
@@ -1087,7 +1130,10 @@
 
         <section class="panel-section">
           <div class="section-head">
-            <div class="section-title">填充与描边</div>
+            <button class="section-toggle" type="button" aria-expanded="true">
+              <svg class="chevron-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+              <span class="section-title">填充与描边</span>
+            </button>
           </div>
           <div class="field-grid">
             <label class="field">
@@ -1114,7 +1160,10 @@
 
         <section class="panel-section">
           <div class="section-head">
-            <div class="section-title">文本</div>
+            <button class="section-toggle" type="button" aria-expanded="true">
+              <svg class="chevron-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+              <span class="section-title">文本</span>
+            </button>
           </div>
           <div class="field-grid">
             <label class="field full">
@@ -1146,7 +1195,10 @@
 
         <section class="panel-section">
           <div class="section-head">
-            <div class="section-title">外观</div>
+            <button class="section-toggle" type="button" aria-expanded="true">
+              <svg class="chevron-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+              <span class="section-title">外观</span>
+            </button>
           </div>
           <div class="field full">
             <span class="label">圆角</span>
@@ -1267,6 +1319,15 @@
         event.stopPropagation();
         document.querySelectorAll(".node").forEach((item) => item.classList.remove("selected"));
         node.classList.add("selected");
+      });
+    });
+
+    // ===== 面板分组折叠 =====
+    document.querySelectorAll(".section-toggle").forEach((toggle) => {
+      toggle.addEventListener("click", () => {
+        const section = toggle.closest(".panel-section");
+        const collapsed = section.classList.toggle("collapsed");
+        toggle.setAttribute("aria-expanded", String(!collapsed));
       });
     });
 
