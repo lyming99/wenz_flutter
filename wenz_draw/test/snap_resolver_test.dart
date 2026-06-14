@@ -211,9 +211,9 @@ void main() {
       ),
     );
 
-    final arrow = controller.elements.whereType<PolylineElement>().single;
-    expect(arrow.points.first, const Offset(52, 41));
-    expect(arrow.points.last, const Offset(130, 41));
+    final arrow = controller.elements.whereType<ArrowElement>().single;
+    expect(arrow.start, const Offset(52, 41));
+    expect(arrow.end, const Offset(130, 41));
   });
 
   test('snap resolver ignores hidden and locked layers', () {

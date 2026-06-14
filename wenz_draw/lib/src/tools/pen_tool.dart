@@ -75,7 +75,7 @@ class PenTool extends CanvasTool {
           style: controller.brushSettings.strokeStyle,
         );
         _points.clear();
-        return ToolResultElement(element);
+        return ToolResultElement(element, selectAfter: false);
       default:
         return const ToolResultNone();
     }

@@ -96,7 +96,30 @@ class SvgExporter {
     final points = e.points.map((point) => '${point.dx},${point.dy}').join(' ');
     final shape =
         '<polyline points="$points" fill="none" stroke="${_color(style.color)}" stroke-width="${style.strokeWidth}" opacity="${e.opacity * style.opacity}" stroke-linecap="round" stroke-linejoin="round"/>';
-    return '$shape${_lineLabel(e, e.points)}';
+
+    // Arrowhead marker
+    String arrow = '';
+    if (e.endArrow && e.points.length >= 2) {
+      final p0 = e.points[e.points.length - 2];
+      final p1 = e.points.last;
+      final dx = p1.dx - p0.dx;
+      final dy = p1.dy - p0.dy;
+      final len = math.sqrt(dx * dx + dy * dy);
+      if (len > 0.1) {
+        final ux = dx / len;
+        final uy = dy / len;
+        final size = e.headSize;
+        // Arrowhead as a filled triangle
+        final base = Offset(p1.dx - ux * size, p1.dy - uy * size);
+        final perpX = -uy;
+        final perpY = ux;
+        final left = Offset(base.dx + perpX * size * 0.4, base.dy + perpY * size * 0.4);
+        final right = Offset(base.dx - perpX * size * 0.4, base.dy - perpY * size * 0.4);
+        arrow = '<polygon points="${p1.dx},${p1.dy} ${left.dx},${left.dy} ${right.dx},${right.dy}" fill="${_color(style.color)}" opacity="${e.opacity * style.opacity}"/>';
+      }
+    }
+
+    return '$shape$arrow${_lineLabel(e, e.points)}';
   }
 
   static String _drawioShape(DrawioShapeElement e) {
@@ -115,6 +138,14 @@ class SvgExporter {
     ].join();
     final shapeWithTransform = _flipGroup(e, '$shape$foreground');
     return '$shapeWithTransform${_shapeLabel(definition.labelRectFor(e.rect, e.properties), e.label, e.labelStyle, e.labelAlign, e.labelPadding, e.opacity, verticalAlign: e.properties['verticalAlign'] as String?, labelPosition: e.properties['labelPosition'] as String?, verticalLabelPosition: e.properties['verticalLabelPosition'] as String?)}';
+  }
+
+  static String _rotateGroup(Offset center, double rotation, String svg) {
+    if (rotation == 0) {
+      return svg;
+    }
+    final degrees = rotation * 180 / math.pi;
+    return '<g transform="rotate($degrees ${center.dx} ${center.dy})">$svg</g>';
   }
 
   static String _flipGroup(DrawioShapeElement e, String svg) {
@@ -136,7 +167,8 @@ class SvgExporter {
         : _color(e.strokeStyle.color);
     final shape =
         '<rect x="${e.rect.left}" y="${e.rect.top}" width="${e.rect.width}" height="${e.rect.height}" rx="${e.borderRadius}" fill="$fill" stroke="$stroke" stroke-width="${e.strokeStyle.strokeWidth}" opacity="${e.opacity}" fill-opacity="$fillOpacity" stroke-opacity="${e.strokeStyle.opacity}"/>';
-    return '$shape${_shapeLabel(e.rect, e.label, e.labelStyle, e.labelAlign, e.labelPadding, e.opacity)}';
+    final inner = '$shape${_shapeLabel(e.rect, e.label, e.labelStyle, e.labelAlign, e.labelPadding, e.opacity)}';
+    return _rotateGroup(e.rect.center, e.rotation, inner);
   }
 
   static String _ellipse(EllipseElement e) {
@@ -147,7 +179,8 @@ class SvgExporter {
         : _color(e.strokeStyle.color);
     final shape =
         '<ellipse cx="${e.rect.center.dx}" cy="${e.rect.center.dy}" rx="${e.rect.width / 2}" ry="${e.rect.height / 2}" fill="$fill" stroke="$stroke" stroke-width="${e.strokeStyle.strokeWidth}" opacity="${e.opacity}" fill-opacity="$fillOpacity" stroke-opacity="${e.strokeStyle.opacity}"/>';
-    return '$shape${_shapeLabel(e.rect, e.label, e.labelStyle, e.labelAlign, e.labelPadding, e.opacity)}';
+    final inner = '$shape${_shapeLabel(e.rect, e.label, e.labelStyle, e.labelAlign, e.labelPadding, e.opacity)}';
+    return _rotateGroup(e.rect.center, e.rotation, inner);
   }
 
   static String _arrowHead(ArrowElement e) {

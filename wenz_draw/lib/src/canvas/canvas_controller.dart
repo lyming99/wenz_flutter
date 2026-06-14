@@ -13,6 +13,7 @@ import '../elements/text_element.dart';
 import '../history/commands/add_element_command.dart';
 import '../history/commands/batch_command.dart';
 import '../history/commands/remove_element_command.dart';
+import '../history/commands/remove_layer_command.dart';
 import '../history/commands/update_element_command.dart';
 import '../history/canvas_command.dart';
 import '../history/history_manager.dart';
@@ -576,17 +577,25 @@ class CanvasController extends ChangeNotifier {
     if (layers.length == 1) {
       return;
     }
-    final commands = [
-      for (final element in elements)
-        if (element.layerId == id) RemoveElementCommand(element),
-    ];
-    if (commands.isNotEmpty) {
-      historyManager.execute(
-        BatchCommand(commands: commands, description: 'Remove layer elements'),
-        this,
-      );
+    final layer = layerManager.layerById(id);
+    if (layer == null) {
+      return;
     }
-    layerManager.removeLayer(id);
+    final layerIndex = layerManager.layerIndexOf(id);
+    final wasActive = activeLayerId == id;
+    final layerElements = elements
+        .where((element) => element.layerId == id)
+        .toList();
+
+    historyManager.execute(
+      RemoveLayerCommand(
+        layer: layer,
+        layerIndex: layerIndex,
+        wasActiveLayer: wasActive,
+        elements: layerElements,
+      ),
+      this,
+    );
   }
 
   void setActiveLayer(String id) => layerManager.setActiveLayer(id);

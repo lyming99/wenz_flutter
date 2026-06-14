@@ -125,6 +125,8 @@ class CanvasSerializer {
           style: _style(json['style']),
           startBinding: SnapBinding.fromJson(json['startBinding']),
           endBinding: SnapBinding.fromJson(json['endBinding']),
+          endArrow: json['endArrow'] as bool? ?? false,
+          headSize: (json['headSize'] as num?)?.toDouble() ?? 14,
           label: json['label'] as String?,
           labelStyle: LineLabelPainter.styleFromJson(json['labelStyle']),
           labelPosition:
@@ -169,6 +171,7 @@ class CanvasSerializer {
             json['labelAlign'] as String?,
           ),
           labelPadding: ShapeLabelPainter.paddingFromJson(json['labelPadding']),
+          rotation: (json['rotation'] as num?)?.toDouble() ?? 0,
         );
       case EllipseElement.elementType:
         return EllipseElement(
@@ -186,6 +189,7 @@ class CanvasSerializer {
             json['labelAlign'] as String?,
           ),
           labelPadding: ShapeLabelPainter.paddingFromJson(json['labelPadding']),
+          rotation: (json['rotation'] as num?)?.toDouble() ?? 0,
         );
       case ArrowElement.elementType:
         return ArrowElement(

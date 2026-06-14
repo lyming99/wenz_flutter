@@ -4,8 +4,10 @@ import '../canvas/canvas_controller.dart';
 import '../elements/arrow_element.dart';
 import '../elements/curve_element.dart';
 import '../elements/drawio_shape_element.dart';
+import '../elements/ellipse_element.dart';
 import '../elements/line_element.dart';
 import '../elements/polyline_element.dart';
+import '../elements/rect_element.dart';
 import '../infinite_canvas/canvas_transform.dart';
 import '../utils/math_utils.dart';
 
@@ -87,20 +89,41 @@ class SelectionRenderer {
     CanvasTransform transform,
   ) {
     final padding = 4 / transform.scale;
-    if (element is DrawioShapeElement && element.rotation != 0) {
-      final rect = element.rect.inflate(
-        padding + element.strokeStyle.strokeWidth / 2,
-      );
-      final center = element.rect.center;
+    final rotAngle = element.rotation as double;
+    final hasRotation = rotAngle != 0 &&
+        (element is DrawioShapeElement ||
+            element is RectElement ||
+            element is EllipseElement);
+    if (hasRotation) {
+      final rect = element is DrawioShapeElement
+          ? element.rect.inflate(
+              padding + element.strokeStyle.strokeWidth / 2,
+            )
+          : element is RectElement
+          ? element.rect.inflate(
+              padding + element.strokeStyle.strokeWidth / 2,
+            )
+          : element is EllipseElement
+          ? element.rect.inflate(
+              padding + element.strokeStyle.strokeWidth / 2,
+            )
+          : element.bounds.inflate(padding);
+      final center = element is DrawioShapeElement
+          ? element.rect.center
+          : element is RectElement
+          ? element.rect.center
+          : element is EllipseElement
+          ? element.rect.center
+          : element.bounds.center;
       final corners = [
-        rotatePoint(rect.topLeft, element.rotation, center),
-        rotatePoint(rect.topRight, element.rotation, center),
-        rotatePoint(rect.bottomRight, element.rotation, center),
-        rotatePoint(rect.bottomLeft, element.rotation, center),
+        rotatePoint(rect.topLeft, rotAngle, center),
+        rotatePoint(rect.topRight, rotAngle, center),
+        rotatePoint(rect.bottomRight, rotAngle, center),
+        rotatePoint(rect.bottomLeft, rotAngle, center),
       ];
       final topCenter = rotatePoint(
         Offset(rect.center.dx, rect.top),
-        element.rotation,
+        rotAngle,
         center,
       );
       final direction = topCenter - center;

@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui' show ClipOp;
 
 import 'package:flutter/widgets.dart';
@@ -17,6 +18,8 @@ class PolylineElement extends CanvasElement {
     this.style = const PaintStyle(),
     this.startBinding,
     this.endBinding,
+    this.endArrow = false,
+    this.headSize = 14,
     this.label,
     this.labelStyle = LineLabelPainter.defaultStyle,
     this.labelPosition = LineLabelPainter.defaultPosition,
@@ -36,6 +39,8 @@ class PolylineElement extends CanvasElement {
   final PaintStyle style;
   final SnapBinding? startBinding;
   final SnapBinding? endBinding;
+  final bool endArrow;
+  final double headSize;
   final String? label;
   final TextStyle labelStyle;
   final double labelPosition;
@@ -97,6 +102,8 @@ class PolylineElement extends CanvasElement {
     PaintStyle? style,
     Object? startBinding = _unset,
     Object? endBinding = _unset,
+    bool? endArrow,
+    double? headSize,
     Object? label = _unset,
     TextStyle? labelStyle,
     double? labelPosition,
@@ -117,6 +124,8 @@ class PolylineElement extends CanvasElement {
       endBinding: identical(endBinding, _unset)
           ? this.endBinding
           : endBinding as SnapBinding?,
+      endArrow: endArrow ?? this.endArrow,
+      headSize: headSize ?? this.headSize,
       label: identical(label, _unset) ? this.label : label as String?,
       labelStyle: labelStyle ?? this.labelStyle,
       labelPosition: labelPosition ?? this.labelPosition,
@@ -162,6 +171,8 @@ class PolylineElement extends CanvasElement {
         for (final point in points) {'x': point.dx, 'y': point.dy},
       ],
       'style': style.toJson(),
+      'endArrow': endArrow,
+      'headSize': headSize,
       if (startBinding != null) 'startBinding': startBinding!.toJson(),
       if (endBinding != null) 'endBinding': endBinding!.toJson(),
       if (label != null) 'label': label,
@@ -208,6 +219,12 @@ class PolylineElementRenderer extends ElementRenderer<PolylineElement> {
       canvas.drawPath(path, paint);
       canvas.restore();
     }
+
+    // Draw arrowhead at the end if enabled.
+    if (element.endArrow) {
+      _drawArrowHead(canvas, element, paint);
+    }
+
     LineLabelPainter.paint(
       canvas,
       points: element.points,
@@ -218,6 +235,32 @@ class PolylineElementRenderer extends ElementRenderer<PolylineElement> {
       labelBackground: element.labelBackground,
       opacity: element.opacity,
     );
+  }
+
+  void _drawArrowHead(
+    Canvas canvas,
+    PolylineElement element,
+    Paint paint,
+  ) {
+    // Use the last segment's direction for the arrowhead angle.
+    final p0 = element.points[element.points.length - 2];
+    final p1 = element.points.last;
+    final direction = p1 - p0;
+    if (direction.distance < 0.1) {
+      return;
+    }
+    final angle = math.atan2(direction.dy, direction.dx);
+    final wingA = angle + math.pi * 0.82;
+    final wingB = angle - math.pi * 0.82;
+    final tip1 = p1 + Offset(math.cos(wingA), math.sin(wingA)) * element.headSize;
+    final tip2 = p1 + Offset(math.cos(wingB), math.sin(wingB)) * element.headSize;
+
+    final arrowPath = Path()
+      ..moveTo(p1.dx, p1.dy)
+      ..lineTo(tip1.dx, tip1.dy)
+      ..moveTo(p1.dx, p1.dy)
+      ..lineTo(tip2.dx, tip2.dy);
+    canvas.drawPath(arrowPath, paint);
   }
 
   @override

@@ -42,6 +42,7 @@ class InfiniteCanvasWidget extends StatefulWidget {
 
 class _InfiniteCanvasWidgetState extends State<InfiniteCanvasWidget> {
   final Map<int, Offset> _pointers = {};
+  final Set<int> _panPointers = {};
   final Set<int> _widgetGesturePointers = {};
   final Map<int, _DeferredWidgetGesture> _deferredWidgetGestures = {};
   late final FocusNode _focusNode;
@@ -132,6 +133,14 @@ class _InfiniteCanvasWidgetState extends State<InfiniteCanvasWidget> {
 
   void _handlePointerDown(PointerDownEvent event) {
     _focusNode.requestFocus();
+    // Right-click and middle-click are reserved for panning — never dispatch
+    // to the active drawing tool.
+    if (event.buttons == kSecondaryMouseButton ||
+        event.buttons == kMiddleMouseButton) {
+      _pointers[event.pointer] = event.localPosition;
+      _panPointers.add(event.pointer);
+      return;
+    }
     if (_handleEditingPointerDown(event)) {
       return;
     }
@@ -528,8 +537,12 @@ class _InfiniteCanvasWidgetState extends State<InfiniteCanvasWidget> {
       return;
     }
 
+    // Right-click / middle-click panning: pointer was tracked but never
+    // dispatched to the tool, so skip the up event too.
+    final wasPanning = _panPointers.remove(event.pointer);
+
     final shouldDispatch = _pointers.length == 1 && !_toolSuppressedUntilClear;
-    if (shouldDispatch) {
+    if (shouldDispatch && !wasPanning) {
       _dispatch(
         CanvasPointerUpEvent(
           screenPoint: event.localPosition,
@@ -555,6 +568,7 @@ class _InfiniteCanvasWidgetState extends State<InfiniteCanvasWidget> {
       return;
     }
 
+    _panPointers.remove(event.pointer);
     _pointers.remove(event.pointer);
     widget.controller.canvasController.cancelCurrentInteraction();
     _resetPinchIfNeeded();

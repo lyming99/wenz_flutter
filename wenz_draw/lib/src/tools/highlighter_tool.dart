@@ -64,7 +64,7 @@ class HighlighterTool extends CanvasTool {
           style: _style(controller),
         );
         cancel(controller);
-        return ToolResultElement(element);
+        return ToolResultElement(element, selectAfter: false);
       default:
         return const ToolResultNone();
     }

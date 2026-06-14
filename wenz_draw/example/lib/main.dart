@@ -932,7 +932,7 @@ class _LineToolPainter extends CustomPainter {
   }
 }
 
-class _LeftShapePanel extends StatelessWidget {
+class _LeftShapePanel extends StatefulWidget {
   const _LeftShapePanel({
     required this.canvasController,
     required this.onAddStickyNote,
@@ -942,60 +942,152 @@ class _LeftShapePanel extends StatelessWidget {
   final VoidCallback onAddStickyNote;
 
   @override
+  State<_LeftShapePanel> createState() => _LeftShapePanelState();
+}
+
+class _LeftShapePanelState extends State<_LeftShapePanel> {
+  String _searchQuery = '';
+
+  List<_DrawioShapePaletteEntry> get _allStencilEntries {
+    return [
+      ..._basicSymbolShapePalette,
+      ..._flowchartShapePalette,
+      ..._arrowShapePalette,
+      ..._drawioShapePalette,
+    ];
+  }
+
+  List<_DrawioShapePaletteEntry> get _filteredEntries {
+    if (_searchQuery.isEmpty) return const [];
+    final q = _searchQuery.toLowerCase();
+    return _allStencilEntries
+        .where((e) =>
+            e.label.toLowerCase().contains(q) ||
+            e.shapeKey.toLowerCase().contains(q))
+        .toList();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: canvasController,
-      builder: (context, _) {
-        final activeTool = canvasController.currentTool?.id;
-        return Container(
-          width: 244,
-          color: _UiColors.panel,
-          child: DecoratedBox(
-            decoration: const BoxDecoration(
-              border: Border(right: BorderSide(color: _UiColors.line)),
-            ),
-            child: SingleChildScrollView(
-              child: _PanelSection(
-                title: '图形',
-                actionLabel: '管理',
-                children: [
-                  const _SearchBox(),
-                  _ShapePaletteGroup(
-                    title: 'Basic',
-                    entries: _drawioShapePalette
-                        .where((entry) => entry.group == 'basic')
-                        .toList(growable: false),
-                    activeTool: activeTool,
-                    onSelect: canvasController.setTool,
-                  ),
-                  _ShapePaletteGroup(
-                    title: 'Basic Symbols',
-                    entries: _basicSymbolShapePalette,
-                    activeTool: activeTool,
-                    onSelect: canvasController.setTool,
-                  ),
-                  _ShapePaletteGroup(
-                    title: 'Flowchart',
-                    entries: _flowchartShapePalette,
-                    activeTool: activeTool,
-                    onSelect: canvasController.setTool,
-                  ),
-                  _ShapePaletteGroup(
-                    title: 'Arrows',
-                    entries: _arrowShapePalette,
-                    activeTool: activeTool,
-                    onSelect: canvasController.setTool,
-                  ),
-                  _ShapePaletteGroup(
-                    title: 'Container',
-                    entries: _drawioShapePalette
-                        .where((entry) => entry.group == 'container')
-                        .toList(growable: false),
-                    activeTool: activeTool,
-                    onSelect: canvasController.setTool,
-                  ),
-                  const SizedBox(height: 6),
-                  const _PaletteSubhead('Legacy'),
+    final activeTool = widget.canvasController.currentTool?.id;
+    return Container(
+      width: 244,
+      color: _UiColors.panel,
+      child: DecoratedBox(
+        decoration: const BoxDecoration(
+          border: Border(right: BorderSide(color: _UiColors.line)),
+        ),
+        child: SingleChildScrollView(
+          child: _PanelSection(
+            title: '图形',
+            actionLabel: '管理',
+            children: [
+              _SearchBox(
+                onChanged: (value) => setState(() => _searchQuery = value),
+              ),
+              if (_searchQuery.isEmpty) ...[
+                const _PaletteSubhead('Legacy'),
+                GridView.count(
+                  crossAxisCount: 2,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  mainAxisSpacing: 8,
+                  crossAxisSpacing: 8,
+                  childAspectRatio: 1.35,
+                  children: [
+                    _ShapeTile(
+                      label: '矩形',
+                      icon: Icons.crop_square,
+                      selected: activeTool == RectTool.idValue,
+                      onPressed: () =>
+                          widget.canvasController.setTool(RectTool.idValue),
+                    ),
+                    _ShapeTile(
+                      label: '圆形',
+                      icon: Icons.circle_outlined,
+                      selected: activeTool == EllipseTool.idValue,
+                      onPressed: () =>
+                          widget.canvasController.setTool(EllipseTool.idValue),
+                    ),
+                    _ShapeTile(
+                      label: '菱形',
+                      iconWidget: Transform.rotate(
+                        angle: math.pi / 4,
+                        child: const Icon(Icons.crop_square, size: 32),
+                      ),
+                      selected: activeTool == ShapeTool.idFor('rhombus'),
+                      onPressed: () => widget.canvasController
+                          .setTool(ShapeTool.idFor('rhombus')),
+                    ),
+                    _ShapeTile(
+                      label: '箭头',
+                      icon: Icons.arrow_forward,
+                      selected: activeTool == ArrowTool.idValue,
+                      onPressed: () =>
+                          widget.canvasController.setTool(ArrowTool.idValue),
+                    ),
+                    _ShapeTile(
+                      label: '便签',
+                      icon: Icons.sticky_note_2_outlined,
+                      selected: false,
+                      onPressed: widget.onAddStickyNote,
+                    ),
+                    _ShapeTile(
+                      label: '文本',
+                      icon: Icons.text_fields,
+                      selected: activeTool == TextTool.idValue,
+                      onPressed: () =>
+                          widget.canvasController.setTool(TextTool.idValue),
+                    ),
+                  ],
+                ),
+                _ShapePaletteGroup(
+                  title: 'Basic',
+                  entries: _drawioShapePalette
+                      .where((entry) => entry.group == 'basic')
+                      .toList(growable: false),
+                  activeTool: activeTool,
+                  onSelect: widget.canvasController.setTool,
+                ),
+                _ShapePaletteGroup(
+                  title: 'Basic Symbols',
+                  entries: _basicSymbolShapePalette,
+                  activeTool: activeTool,
+                  onSelect: widget.canvasController.setTool,
+                ),
+                _ShapePaletteGroup(
+                  title: 'Flowchart',
+                  entries: _flowchartShapePalette,
+                  activeTool: activeTool,
+                  onSelect: widget.canvasController.setTool,
+                ),
+                _ShapePaletteGroup(
+                  title: 'Arrows',
+                  entries: _arrowShapePalette,
+                  activeTool: activeTool,
+                  onSelect: widget.canvasController.setTool,
+                ),
+                _ShapePaletteGroup(
+                  title: 'Container',
+                  entries: _drawioShapePalette
+                      .where((entry) => entry.group == 'container')
+                      .toList(growable: false),
+                  activeTool: activeTool,
+                  onSelect: widget.canvasController.setTool,
+                ),
+              ] else ...[
+                _PaletteSubhead('搜索结果 (${_filteredEntries.length})'),
+                if (_filteredEntries.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 24),
+                    child: Center(
+                      child: Text(
+                        '未找到匹配的图形',
+                        style: TextStyle(color: _UiColors.muted, fontSize: 13),
+                      ),
+                    ),
+                  )
+                else
                   GridView.count(
                     crossAxisCount: 2,
                     shrinkWrap: true,
@@ -1004,59 +1096,22 @@ class _LeftShapePanel extends StatelessWidget {
                     crossAxisSpacing: 8,
                     childAspectRatio: 1.35,
                     children: [
-                      _ShapeTile(
-                        label: '矩形',
-                        icon: Icons.crop_square,
-                        selected: activeTool == RectTool.idValue,
-                        onPressed: () =>
-                            canvasController.setTool(RectTool.idValue),
-                      ),
-                      _ShapeTile(
-                        label: '圆形',
-                        icon: Icons.circle_outlined,
-                        selected: activeTool == EllipseTool.idValue,
-                        onPressed: () =>
-                            canvasController.setTool(EllipseTool.idValue),
-                      ),
-                      _ShapeTile(
-                        label: '菱形',
-                        iconWidget: Transform.rotate(
-                          angle: math.pi / 4,
-                          child: const Icon(Icons.crop_square, size: 32),
+                      for (final entry in _filteredEntries)
+                        _ShapeTile(
+                          label: entry.label,
+                          iconWidget:
+                              _ShapePreviewIcon(shapeKey: entry.shapeKey),
+                          selected: activeTool == entry.toolId,
+                          onPressed: () =>
+                              widget.canvasController.setTool(entry.toolId),
                         ),
-                        selected: activeTool == ShapeTool.idFor('rhombus'),
-                        onPressed: () => canvasController.setTool(
-                          ShapeTool.idFor('rhombus'),
-                        ),
-                      ),
-                      _ShapeTile(
-                        label: '箭头',
-                        icon: Icons.arrow_forward,
-                        selected: activeTool == ArrowTool.idValue,
-                        onPressed: () =>
-                            canvasController.setTool(ArrowTool.idValue),
-                      ),
-                      _ShapeTile(
-                        label: '便签',
-                        icon: Icons.sticky_note_2_outlined,
-                        selected: false,
-                        onPressed: onAddStickyNote,
-                      ),
-                      _ShapeTile(
-                        label: '文本',
-                        icon: Icons.text_fields,
-                        selected: activeTool == TextTool.idValue,
-                        onPressed: () =>
-                            canvasController.setTool(TextTool.idValue),
-                      ),
                     ],
                   ),
-                ],
-              ),
-            ),
+              ],
+            ],
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 }
@@ -1367,19 +1422,69 @@ class _RightInspectorPanel extends StatelessWidget {
                         },
                       ),
                       const SizedBox(height: 12),
-                      _FieldGrid(
-                        children: [
-                          _ReadoutField(
-                            label: '字号',
-                            value: _fontSizeOf(selected),
-                          ),
-                          const _StaticField(label: '字重', value: '半粗'),
-                        ],
+                      _SliderField(
+                        label: '字号',
+                        value: _fontSizeOf(selected) ?? 14,
+                        min: 8,
+                        max: 48,
+                        onChanged: selected != null
+                            ? (value) {
+                                if (selected is TextElement) {
+                                  canvasController.updateTextElementStyle(
+                                    selected.id,
+                                    fontSize: value,
+                                  );
+                                } else {
+                                  canvasController.updateShapeLabelStyle(
+                                    selected.id,
+                                    fontSize: value,
+                                  );
+                                }
+                              }
+                            : null,
+                      ),
+                      const SizedBox(height: 12),
+                      const _FieldLabel('字重'),
+                      const SizedBox(height: 6),
+                      _FontWeightDropdown(
+                        selected: selected,
+                        onChanged: (weight) {
+                          if (selected != null) {
+                            if (selected is TextElement) {
+                              canvasController.updateTextElementStyle(
+                                selected.id,
+                                fontWeight: weight,
+                              );
+                            } else {
+                              canvasController.updateShapeLabelStyle(
+                                selected.id,
+                                fontWeight: weight,
+                              );
+                            }
+                          }
+                        },
                       ),
                       const SizedBox(height: 12),
                       const _FieldLabel('对齐'),
                       const SizedBox(height: 6),
-                      const _SegmentedControl(),
+                      _AlignmentControl(
+                        selected: selected,
+                        onChanged: (align) {
+                          if (selected != null) {
+                            if (selected is TextElement) {
+                              canvasController.updateTextElementStyle(
+                                selected.id,
+                                textAlign: align,
+                              );
+                            } else {
+                              canvasController.updateShapeLabelStyle(
+                                selected.id,
+                                textAlign: align,
+                              );
+                            }
+                          }
+                        },
+                      ),
                     ],
                   ),
                   _PanelSection(
@@ -1409,6 +1514,14 @@ class _RightInspectorPanel extends StatelessWidget {
                         value: _radiusOf(selected),
                         min: 0,
                         max: 24,
+                        onChanged: selected is RectElement
+                            ? (value) {
+                                canvasController.updateElement(
+                                  selected.id,
+                                  selected.copyWith(borderRadius: value),
+                                );
+                              }
+                            : null,
                       ),
                       const SizedBox(height: 12),
                       _SliderField(
@@ -1586,13 +1699,16 @@ class _PanelSection extends StatelessWidget {
 }
 
 class _SearchBox extends StatelessWidget {
-  const _SearchBox();
+  const _SearchBox({this.onChanged});
+
+  final ValueChanged<String>? onChanged;
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
       height: 34,
       child: TextField(
+        onChanged: onChanged,
         style: const TextStyle(fontSize: 14, color: _UiColors.text),
         decoration: InputDecoration(
           hintText: '搜索图形',
@@ -2064,11 +2180,25 @@ class _TextReadoutState extends State<_TextReadout> {
   }
 }
 
-class _SegmentedControl extends StatelessWidget {
-  const _SegmentedControl();
+class _AlignmentControl extends StatelessWidget {
+  const _AlignmentControl({required this.selected, required this.onChanged});
+
+  final CanvasElement? selected;
+  final ValueChanged<TextAlign> onChanged;
+
+  TextAlign get _currentAlign {
+    return switch (selected) {
+      TextElement e => e.textAlign,
+      DrawioShapeElement e => e.labelAlign,
+      RectElement e => e.labelAlign,
+      EllipseElement e => e.labelAlign,
+      _ => TextAlign.center,
+    };
+  }
 
   @override
   Widget build(BuildContext context) {
+    final align = _currentAlign;
     return Container(
       height: 34,
       padding: const EdgeInsets.all(3),
@@ -2077,37 +2207,123 @@ class _SegmentedControl extends StatelessWidget {
         border: Border.all(color: _UiColors.line),
         borderRadius: BorderRadius.circular(8),
       ),
-      child: const Row(
+      child: Row(
         children: [
-          Expanded(child: _Segment(label: '左', active: true)),
-          Expanded(child: _Segment(label: '中', active: false)),
-          Expanded(child: _Segment(label: '右', active: false)),
+          Expanded(
+            child: _AlignSegment(
+              label: '左',
+              active: align == TextAlign.left,
+              onTap: () => onChanged(TextAlign.left),
+            ),
+          ),
+          Expanded(
+            child: _AlignSegment(
+              label: '中',
+              active: align == TextAlign.center,
+              onTap: () => onChanged(TextAlign.center),
+            ),
+          ),
+          Expanded(
+            child: _AlignSegment(
+              label: '右',
+              active: align == TextAlign.right,
+              onTap: () => onChanged(TextAlign.right),
+            ),
+          ),
         ],
       ),
     );
   }
 }
 
-class _Segment extends StatelessWidget {
-  const _Segment({required this.label, required this.active});
+class _AlignSegment extends StatelessWidget {
+  const _AlignSegment({required this.label, required this.active, required this.onTap});
 
   final String label;
   final bool active;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: active ? Colors.white : Colors.transparent,
+    return Material(
+      color: active ? Colors.white : Colors.transparent,
+      borderRadius: BorderRadius.circular(5),
+      child: InkWell(
         borderRadius: BorderRadius.circular(5),
+        onTap: onTap,
+        child: Container(
+          alignment: Alignment.center,
+          child: Text(
+            label,
+            style: TextStyle(
+              color: active ? _UiColors.accent : _UiColors.muted,
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ),
       ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: active ? _UiColors.accent : _UiColors.muted,
-          fontSize: 12,
-          fontWeight: FontWeight.w800,
+    );
+  }
+}
+
+class _FontWeightDropdown extends StatelessWidget {
+  const _FontWeightDropdown({required this.selected, required this.onChanged});
+
+  final CanvasElement? selected;
+  final ValueChanged<FontWeight> onChanged;
+
+  static const _weights = [
+    (FontWeight.w100, '细'),
+    (FontWeight.w300, '轻'),
+    (FontWeight.w400, '常规'),
+    (FontWeight.w500, '中等'),
+    (FontWeight.w600, '半粗'),
+    (FontWeight.w700, '粗体'),
+    (FontWeight.w900, '特粗'),
+  ];
+
+  FontWeight get _currentWeight {
+    final style = switch (selected) {
+      TextElement e => e.style,
+      DrawioShapeElement e => e.labelStyle,
+      RectElement e => e.labelStyle,
+      EllipseElement e => e.labelStyle,
+      LineElement e => e.labelStyle,
+      ArrowElement e => e.labelStyle,
+      PolylineElement e => e.labelStyle,
+      _ => null,
+    };
+    return style?.fontWeight ?? FontWeight.w600;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final current = _currentWeight;
+    return Container(
+      height: 36,
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      decoration: BoxDecoration(
+        color: _UiColors.panelSoft,
+        border: Border.all(color: _UiColors.line),
+        borderRadius: BorderRadius.circular(7),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: _weights.firstWhere((w) => w.$1 == current).$2,
+          isExpanded: true,
+          style: const TextStyle(fontSize: 14, color: _UiColors.text),
+          items: [
+            for (final w in _weights)
+              DropdownMenuItem(value: w.$2, child: Text(w.$2)),
+          ],
+          onChanged: selected == null
+              ? null
+              : (label) {
+                  final weight =
+                      _weights.firstWhere((w) => w.$2 == label).$1;
+                  onChanged(weight);
+                },
         ),
       ),
     );

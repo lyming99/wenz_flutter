@@ -41,7 +41,7 @@ class ToolResultConsumed extends ToolResult {
 }
 
 class ToolResultElement extends ToolResult {
-  const ToolResultElement(this.element, {this.selectAfter = false});
+  const ToolResultElement(this.element, {this.selectAfter = true});
 
   final CanvasElement element;
 

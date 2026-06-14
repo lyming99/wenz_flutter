@@ -192,8 +192,9 @@ class SelectTool extends CanvasTool {
           controller.setSelection({resizeTarget.element.id});
           _movingSelection = false;
           _resizeHandle = resizeTarget.handle;
-          _resizeAnchor = resizeTarget.handle.anchorFor(
-            resizeTarget.element.bounds,
+          _resizeAnchor = _localAnchorFor(
+            resizeTarget.element,
+            resizeTarget.handle,
           );
           if (resizeTarget.element is TextElement &&
               (resizeTarget.element as TextElement).boxSize != null) {
@@ -539,14 +540,13 @@ class SelectTool extends CanvasTool {
     }
     if (controller.selectedElements.length == 1) {
       final element = controller.selectedElements.first;
-      if (element is DrawioShapeElement && element.rotation != 0) {
-        final rect = element.rect.inflate(
-          4 / scale + element.strokeStyle.strokeWidth / 2,
-        );
-        final center = element.rect.center;
+      final rotAngle = _rotationOf(element);
+      if (rotAngle != 0) {
+        final rect = _localRectPadded(element, 4 / scale);
+        final center = _centerOf(element);
         final anchor = rotatePoint(
           Offset(rect.center.dx, rect.top),
-          element.rotation,
+          rotAngle,
           center,
         );
         final direction = anchor - center;
@@ -581,9 +581,15 @@ class SelectTool extends CanvasTool {
   ) {
     final tolerance = 10 / event.transform.scale;
     for (final element in controller.selectedElements.reversed) {
+      final rotAngle = _rotationOf(element);
+      final center = _centerOf(element);
+      final localRect = _localRectPadded(element, 0);
       for (final handle in _SelectionResizeHandle.values) {
-        if ((event.worldPoint - handle.pointFor(element.bounds)).distance <=
-            tolerance) {
+        final localCorner = handle.pointFor(localRect);
+        final worldCorner = rotAngle != 0
+            ? rotatePoint(localCorner, rotAngle, center)
+            : localCorner;
+        if ((event.worldPoint - worldCorner).distance <= tolerance) {
           return _ResizeTarget(element, handle);
         }
       }
@@ -650,6 +656,59 @@ class SelectTool extends CanvasTool {
     );
   }
 
+  /// Get the rotation angle for an element (0 for non-rotatable types).
+  double _rotationOf(CanvasElement element) {
+    if (element is DrawioShapeElement ||
+        element is RectElement ||
+        element is EllipseElement) {
+      return element.rotation;
+    }
+    return 0;
+  }
+
+  /// Get the element's geometric center (rect.center for rotatable shapes).
+  Offset _centerOf(CanvasElement element) {
+    if (element is DrawioShapeElement) {
+      return element.rect.center;
+    }
+    if (element is RectElement) {
+      return element.rect.center;
+    }
+    if (element is EllipseElement) {
+      return element.rect.center;
+    }
+    return element.bounds.center;
+  }
+
+  /// Get the element's local (un-rotated) rect with stroke padding.
+  Rect _localRectPadded(CanvasElement element, double padding) {
+    if (element is DrawioShapeElement) {
+      return element.rect.inflate(
+        padding + element.strokeStyle.strokeWidth / 2,
+      );
+    }
+    if (element is RectElement) {
+      return element.rect.inflate(
+        padding + element.strokeStyle.strokeWidth / 2,
+      );
+    }
+    if (element is EllipseElement) {
+      return element.rect.inflate(
+        padding + element.strokeStyle.strokeWidth / 2,
+      );
+    }
+    return element.bounds.inflate(padding);
+  }
+
+  /// The local-space anchor (opposite corner) for a resize handle.
+  /// This is always in the element's local coordinate system (no rotation).
+  Offset _localAnchorFor(
+    CanvasElement element,
+    _SelectionResizeHandle handle,
+  ) {
+    return handle.anchorFor(_localRectPadded(element, 0));
+  }
+
   void _scaleElement(CanvasController controller, Offset worldPoint) {
     final before = _scaleBefore;
     final anchor = _resizeAnchor;
@@ -657,12 +716,21 @@ class SelectTool extends CanvasTool {
       return;
     }
 
-    final beforePoint = _oppositePoint(before.bounds, anchor);
-    final beforeDistance = (beforePoint - anchor).distance;
+    final rotAngle = _rotationOf(before);
+    final center = _centerOf(before);
+
+    // Work in local (un-rotated) space.
+    final localMouse = rotAngle != 0
+        ? inverseRotatePoint(worldPoint, rotAngle, center)
+        : worldPoint;
+
+    final localRect = _localRectPadded(before, 0);
+    final draggedCorner = _resizeHandle!.pointFor(localRect);
+    final beforeDistance = (draggedCorner - anchor).distance;
     if (beforeDistance <= 0.0001) {
       return;
     }
-    final nextDistance = (worldPoint - anchor).distance;
+    final nextDistance = (localMouse - anchor).distance;
     final factor = (nextDistance / beforeDistance).clamp(0.05, 100.0);
     final scaled = before.scaleElement(factor, pivot: anchor);
     if (scaled.bounds.width < _minTextBoxWidth ||
@@ -670,19 +738,6 @@ class SelectTool extends CanvasTool {
       return;
     }
     controller.updateElement(before.id, scaled, record: false);
-  }
-
-  Offset _oppositePoint(Rect rect, Offset anchor) {
-    if (anchor == rect.topLeft) {
-      return rect.bottomRight;
-    }
-    if (anchor == rect.topRight) {
-      return rect.bottomLeft;
-    }
-    if (anchor == rect.bottomLeft) {
-      return rect.topRight;
-    }
-    return rect.topLeft;
   }
 
   void _dragLineEndpoint(

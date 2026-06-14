@@ -23,6 +23,7 @@ class EllipseElement extends CanvasElement {
     this.visible = true,
     this.opacity = 1,
     this.zIndex = 0,
+    this.rotation = 0,
   });
 
   static const elementType = 'ellipse';
@@ -37,6 +38,8 @@ class EllipseElement extends CanvasElement {
   final TextStyle labelStyle;
   final TextAlign labelAlign;
   final EdgeInsets labelPadding;
+  @override
+  final double rotation;
 
   @override
   final String layerId;
@@ -54,18 +57,22 @@ class EllipseElement extends CanvasElement {
   String get type => elementType;
 
   @override
-  Rect get bounds => rect.inflate(strokeStyle.strokeWidth / 2);
+  Rect get bounds =>
+      rotatedRectBounds(rect.inflate(strokeStyle.strokeWidth / 2), rotation);
 
   @override
   bool hitTest(Offset worldPoint, {double tolerance = 5.0}) {
-    if (!rect.inflate(tolerance).contains(worldPoint)) {
+    final localPoint = rotation != 0
+        ? inverseRotatePoint(worldPoint, rotation, rect.center)
+        : worldPoint;
+    if (!rect.inflate(tolerance).contains(localPoint)) {
       return false;
     }
 
     final rx = math.max(rect.width / 2, 0.0001);
     final ry = math.max(rect.height / 2, 0.0001);
-    final dx = (worldPoint.dx - rect.center.dx) / rx;
-    final dy = (worldPoint.dy - rect.center.dy) / ry;
+    final dx = (localPoint.dx - rect.center.dx) / rx;
+    final dy = (localPoint.dy - rect.center.dy) / ry;
     final normalized = dx * dx + dy * dy;
 
     if (fillStyle != null) {
@@ -89,6 +96,7 @@ class EllipseElement extends CanvasElement {
     TextStyle? labelStyle,
     TextAlign? labelAlign,
     EdgeInsets? labelPadding,
+    double? rotation,
     String? layerId,
     bool? visible,
     double? opacity,
@@ -105,6 +113,7 @@ class EllipseElement extends CanvasElement {
       labelStyle: labelStyle ?? this.labelStyle,
       labelAlign: labelAlign ?? this.labelAlign,
       labelPadding: labelPadding ?? this.labelPadding,
+      rotation: rotation ?? this.rotation,
       layerId: layerId ?? this.layerId,
       visible: visible ?? this.visible,
       opacity: opacity ?? this.opacity,
@@ -136,6 +145,20 @@ class EllipseElement extends CanvasElement {
   }
 
   @override
+  EllipseElement rotateElement(double radians, {Offset? pivot}) {
+    final origin = pivot ?? rect.center;
+    final nextCenter = rotatePoint(rect.center, radians, origin);
+    return copyWith(
+      rect: Rect.fromCenter(
+        center: nextCenter,
+        width: rect.width,
+        height: rect.height,
+      ),
+      rotation: rotation + radians,
+    );
+  }
+
+  @override
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -156,6 +179,7 @@ class EllipseElement extends CanvasElement {
       'labelStyle': ShapeLabelPainter.styleToJson(labelStyle),
       'labelAlign': labelAlign.name,
       'labelPadding': ShapeLabelPainter.paddingToJson(labelPadding),
+      if (rotation != 0) 'rotation': rotation,
     };
   }
 
@@ -170,6 +194,11 @@ class EllipseElementRenderer extends ElementRenderer<EllipseElement> {
     if (!element.visible) {
       return;
     }
+
+    canvas.save();
+    canvas.translate(element.rect.center.dx, element.rect.center.dy);
+    canvas.rotate(element.rotation);
+    canvas.translate(-element.rect.center.dx, -element.rect.center.dy);
 
     final fillStyle = element.fillStyle;
     if (fillStyle != null) {
@@ -200,6 +229,8 @@ class EllipseElementRenderer extends ElementRenderer<EllipseElement> {
       padding: element.labelPadding,
       opacity: element.opacity,
     );
+
+    canvas.restore();
   }
 
   @override

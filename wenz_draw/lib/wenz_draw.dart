@@ -36,6 +36,7 @@ export 'src/history/commands/add_element_command.dart';
 export 'src/history/commands/batch_command.dart';
 export 'src/history/commands/move_element_command.dart';
 export 'src/history/commands/remove_element_command.dart';
+export 'src/history/commands/remove_layer_command.dart';
 export 'src/history/commands/update_element_command.dart';
 export 'src/history/history_manager.dart';
 export 'src/infinite_canvas/canvas_event.dart';

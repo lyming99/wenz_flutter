@@ -53,6 +53,12 @@ class LayerManager extends ChangeNotifier {
     notifyListeners();
   }
 
+  void insertLayer(CanvasLayer layer, int index) {
+    final clampedIndex = index.clamp(0, _layers.length);
+    _layers.insert(clampedIndex, layer);
+    notifyListeners();
+  }
+
   void setActiveLayer(String id) {
     if (_activeLayerId == id || !_layers.any((layer) => layer.id == id)) {
       return;
