@@ -89,6 +89,25 @@ class StencilParser {
         element._doubleAttr('limit', fallback: 10),
       ),
       'linejoin' => StencilLineJoinCommand(element._attr('join') ?? 'miter'),
+      'dashpattern' => StencilDashPatternCommand(
+        element._attr('pattern') ?? '5 3',
+      ),
+      'shadow' => StencilShadowCommand(
+        dx: element._doubleAttr('dx', fallback: 2),
+        dy: element._doubleAttr('dy', fallback: 2),
+        blur: element._doubleAttr('blur', fallback: 4),
+        color: element._attr('color') ?? 'gray',
+        opacity: element._doubleAttr('opacity', fallback: 0.5),
+      ),
+      'gradient' => StencilGradientCommand(
+        x1: element._doubleAttr('x1', fallback: 0),
+        y1: element._doubleAttr('y1', fallback: 0),
+        x2: element._doubleAttr('x2', fallback: 1),
+        y2: element._doubleAttr('y2', fallback: 0),
+        color1: element._attr('c1') ?? element._attr('color1') ?? 'white',
+        color2: element._attr('c2') ?? element._attr('color2') ?? 'gray',
+        direction: element._attr('direction') ?? 'east',
+      ),
       _ => StencilUnsupportedCommand(element.name.local),
     };
   }

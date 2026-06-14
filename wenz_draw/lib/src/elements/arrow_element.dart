@@ -29,6 +29,7 @@ class ArrowElement extends CanvasElement {
     this.visible = true,
     this.opacity = 1,
     this.zIndex = 0,
+    this.groupId,
   });
 
   static const elementType = 'arrow';
@@ -55,6 +56,9 @@ class ArrowElement extends CanvasElement {
   final double opacity;
   @override
   final int zIndex;
+
+  @override
+  final String? groupId;
 
   @override
   String get type => elementType;
@@ -99,6 +103,7 @@ class ArrowElement extends CanvasElement {
     bool? visible,
     double? opacity,
     int? zIndex,
+    Object? groupId = _unset,
   }) {
     return ArrowElement(
       id: id ?? this.id,
@@ -123,6 +128,9 @@ class ArrowElement extends CanvasElement {
       visible: visible ?? this.visible,
       opacity: opacity ?? this.opacity,
       zIndex: zIndex ?? this.zIndex,
+      groupId: identical(groupId, _unset)
+          ? this.groupId
+          : groupId as String?,
     );
   }
 
@@ -155,6 +163,7 @@ class ArrowElement extends CanvasElement {
       'visible': visible,
       'opacity': opacity,
       'zIndex': zIndex,
+      'groupId': groupId,
       'start': {'x': start.dx, 'y': start.dy},
       'end': {'x': end.dx, 'y': end.dy},
       'headSize': headSize,

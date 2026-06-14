@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -12,11 +14,14 @@ class ImageElement extends CanvasElement {
     required this.id,
     required this.rect,
     this.image,
+    this.imageData,
     this.fit = BoxFit.contain,
+    this.rotation = 0,
     this.layerId = 'default',
     this.visible = true,
     this.opacity = 1,
     this.zIndex = 0,
+    this.groupId,
   });
 
   static const elementType = 'image';
@@ -25,7 +30,12 @@ class ImageElement extends CanvasElement {
   final String id;
   final Rect rect;
   final ui.Image? image;
+  /// Base64-encoded PNG data of the image. When [image] is null but
+  /// [imageData] is present, the image can be decoded at load time.
+  final String? imageData;
   final BoxFit fit;
+  @override
+  final double rotation;
 
   @override
   final String layerId;
@@ -37,14 +47,21 @@ class ImageElement extends CanvasElement {
   final int zIndex;
 
   @override
+  final String? groupId;
+
+  @override
   String get type => elementType;
 
   @override
-  Rect get bounds => rect;
+  Rect get bounds =>
+      rotation != 0 ? rotatedRectBounds(rect, rotation) : rect;
 
   @override
   bool hitTest(Offset worldPoint, {double tolerance = 5.0}) {
-    return rect.inflate(tolerance).contains(worldPoint);
+    final localPoint = rotation != 0
+        ? inverseRotatePoint(worldPoint, rotation, rect.center)
+        : worldPoint;
+    return rect.inflate(tolerance).contains(localPoint);
   }
 
   @override
@@ -52,21 +69,31 @@ class ImageElement extends CanvasElement {
     String? id,
     Rect? rect,
     ui.Image? image,
+    Object? imageData = _unset,
     BoxFit? fit,
+    double? rotation,
     String? layerId,
     bool? visible,
     double? opacity,
     int? zIndex,
+    Object? groupId = _unset,
   }) {
     return ImageElement(
       id: id ?? this.id,
       rect: rect ?? this.rect,
       image: image ?? this.image,
+      imageData: identical(imageData, _unset)
+          ? this.imageData
+          : imageData as String?,
       fit: fit ?? this.fit,
+      rotation: rotation ?? this.rotation,
       layerId: layerId ?? this.layerId,
       visible: visible ?? this.visible,
       opacity: opacity ?? this.opacity,
       zIndex: zIndex ?? this.zIndex,
+      groupId: identical(groupId, _unset)
+          ? this.groupId
+          : groupId as String?,
     );
   }
 
@@ -87,6 +114,20 @@ class ImageElement extends CanvasElement {
   }
 
   @override
+  ImageElement rotateElement(double radians, {Offset? pivot}) {
+    final origin = pivot ?? rect.center;
+    final nextCenter = rotatePoint(rect.center, radians, origin);
+    return copyWith(
+      rect: Rect.fromCenter(
+        center: nextCenter,
+        width: rect.width,
+        height: rect.height,
+      ),
+      rotation: rotation + radians,
+    );
+  }
+
+  @override
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -95,6 +136,7 @@ class ImageElement extends CanvasElement {
       'visible': visible,
       'opacity': opacity,
       'zIndex': zIndex,
+      'groupId': groupId,
       'rect': {
         'left': rect.left,
         'top': rect.top,
@@ -102,7 +144,30 @@ class ImageElement extends CanvasElement {
         'bottom': rect.bottom,
       },
       'fit': fit.name,
+      if (rotation != 0) 'rotation': rotation,
+      if (imageData != null) 'imageData': imageData,
     };
+  }
+
+  static const _unset = Object();
+
+  /// Encodes a [ui.Image] to a base64 PNG string suitable for serialization.
+  static Future<String> encodeImageToBase64(ui.Image image) async {
+    final byteData = await image.toByteData(
+      format: ui.ImageByteFormat.png,
+    );
+    if (byteData == null) {
+      throw StateError('Failed to encode image to PNG');
+    }
+    return base64Encode(byteData.buffer.asUint8List());
+  }
+
+  /// Decodes a base64 PNG string into a [ui.Image].
+  static Future<ui.Image> decodeBase64Image(String base64Data) async {
+    final bytes = Uint8List.fromList(base64Decode(base64Data));
+    final codec = await ui.instantiateImageCodec(bytes);
+    final frame = await codec.getNextFrame();
+    return frame.image;
   }
 }
 
@@ -113,6 +178,13 @@ class ImageElementRenderer extends ElementRenderer<ImageElement> {
   void render(Canvas canvas, ImageElement element) {
     if (!element.visible) {
       return;
+    }
+
+    canvas.save();
+    if (element.rotation != 0) {
+      canvas.translate(element.rect.center.dx, element.rect.center.dy);
+      canvas.rotate(element.rotation);
+      canvas.translate(-element.rect.center.dx, -element.rect.center.dy);
     }
 
     final paint = Paint()
@@ -131,6 +203,7 @@ class ImageElementRenderer extends ElementRenderer<ImageElement> {
           ..style = PaintingStyle.stroke
           ..strokeWidth = 1,
       );
+      canvas.restore();
       return;
     }
 
@@ -141,6 +214,7 @@ class ImageElementRenderer extends ElementRenderer<ImageElement> {
       image.height.toDouble(),
     );
     canvas.drawImageRect(image, source, element.rect, paint);
+    canvas.restore();
   }
 
   @override

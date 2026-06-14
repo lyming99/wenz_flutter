@@ -49,7 +49,7 @@ class CanvasSerializer {
 
   static void load(CanvasController controller, Map<String, dynamic> json) {
     final document = fromJson(json);
-    controller.replaceElements(document.elements);
+    controller.loadDocument(document.layers, document.elements);
   }
 
   static CanvasElement elementFromJson(Map<String, dynamic> json) {
@@ -68,6 +68,7 @@ class CanvasSerializer {
           visible: visible,
           opacity: opacity,
           zIndex: zIndex,
+          groupId: json['groupId'] as String?,
           points: [
             for (final point in json['points'] as List<dynamic>? ?? const [])
               if (point is Map<String, dynamic>)
@@ -86,6 +87,7 @@ class CanvasSerializer {
           visible: visible,
           opacity: opacity,
           zIndex: zIndex,
+          groupId: json['groupId'] as String?,
           start: _point(json['start']),
           end: _point(json['end']),
           control: _point(json['control']),
@@ -98,6 +100,7 @@ class CanvasSerializer {
           visible: visible,
           opacity: opacity,
           zIndex: zIndex,
+          groupId: json['groupId'] as String?,
           start: _point(json['start']),
           end: _point(json['end']),
           style: _style(json['style']),
@@ -118,6 +121,7 @@ class CanvasSerializer {
           visible: visible,
           opacity: opacity,
           zIndex: zIndex,
+          groupId: json['groupId'] as String?,
           points: [
             for (final point in json['points'] as List<dynamic>? ?? const [])
               _point(point),
@@ -142,6 +146,7 @@ class CanvasSerializer {
           visible: visible,
           opacity: opacity,
           zIndex: zIndex,
+          groupId: json['groupId'] as String?,
           shapeKey: _shapeKey(json['shapeKey']),
           rect: _rect(json['rect']),
           strokeStyle: _style(json['strokeStyle']),
@@ -162,6 +167,7 @@ class CanvasSerializer {
           visible: visible,
           opacity: opacity,
           zIndex: zIndex,
+          groupId: json['groupId'] as String?,
           rect: _rect(json['rect']),
           strokeStyle: _style(json['strokeStyle']),
           fillStyle: _nullableStyle(json['fillStyle']),
@@ -180,6 +186,7 @@ class CanvasSerializer {
           visible: visible,
           opacity: opacity,
           zIndex: zIndex,
+          groupId: json['groupId'] as String?,
           rect: _rect(json['rect']),
           strokeStyle: _style(json['strokeStyle']),
           fillStyle: _nullableStyle(json['fillStyle']),
@@ -198,6 +205,7 @@ class CanvasSerializer {
           visible: visible,
           opacity: opacity,
           zIndex: zIndex,
+          groupId: json['groupId'] as String?,
           start: _point(json['start']),
           end: _point(json['end']),
           headSize: (json['headSize'] as num?)?.toDouble() ?? 14,
@@ -232,12 +240,14 @@ class CanvasSerializer {
           visible: visible,
           opacity: opacity,
           zIndex: zIndex,
+          groupId: json['groupId'] as String?,
           position: _point(json['position']),
           text: json['text'] as String? ?? '',
           style: style,
           maxWidth: (json['maxWidth'] as num?)?.toDouble(),
           boxSize: _size(json['boxSize']),
           textAlign: _textAlign(json['textAlign'] as String?),
+          rotation: (json['rotation'] as num?)?.toDouble() ?? 0,
         );
       case ImageElement.elementType:
         return ImageElement(
@@ -246,7 +256,11 @@ class CanvasSerializer {
           visible: visible,
           opacity: opacity,
           zIndex: zIndex,
+          groupId: json['groupId'] as String?,
           rect: _rect(json['rect']),
+          fit: _boxFitFromString(json['fit'] as String?),
+          rotation: (json['rotation'] as num?)?.toDouble() ?? 0,
+          imageData: json['imageData'] as String?,
         );
       case CanvasWidgetElement.elementType:
         return CanvasWidgetElement(
@@ -258,6 +272,7 @@ class CanvasSerializer {
           visible: visible,
           opacity: opacity,
           zIndex: zIndex,
+          groupId: json['groupId'] as String?,
           isLocked: json['isLocked'] as bool? ?? false,
           interactive: json['interactive'] as bool? ?? true,
           scaleMode: _scaleModeFromString(json['scaleMode'] as String?),
@@ -389,6 +404,15 @@ class CanvasSerializer {
       }
     }
     return TextAlign.left;
+  }
+
+  static BoxFit _boxFitFromString(String? value) {
+    for (final fit in BoxFit.values) {
+      if (fit.name == value) {
+        return fit;
+      }
+    }
+    return BoxFit.contain;
   }
 
   static FontWeight _fontWeight(Object? value) {

@@ -1,6 +1,7 @@
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 
 import '../canvas/paint_style.dart';
 import '../elements/shape_definition.dart';
@@ -155,6 +156,9 @@ class StencilRenderer {
     var currentStroke = strokeStyle;
     Color? currentFillColor = fillStyle?.color;
     Color? currentStrokeColor = strokeStyle.color;
+    List<double>? currentDashPattern;
+    _ShadowState? currentShadow;
+    _GradientState? currentGradient;
 
     final styleStack = <_StyleState>[];
     var accumulated = Path();
@@ -164,25 +168,53 @@ class StencilRenderer {
         accumulated = Path();
         return;
       }
-      if (doFill && currentFillColor != null) {
+      // Draw shadow first (behind the shape).
+      if (currentShadow != null) {
+        final s = currentShadow;
+        canvas.save();
+        canvas.translate(s.dx, s.dy);
         canvas.drawPath(
           accumulated,
           Paint()
-            ..color = currentFillColor.withValues(alpha: opacity)
-            ..style = PaintingStyle.fill,
+            ..color = s.color.withValues(alpha: s.opacity * opacity)
+            ..style = PaintingStyle.fill
+            ..maskFilter = s.blur > 0
+                ? MaskFilter.blur(BlurStyle.normal, s.blur)
+                : null,
         );
+        canvas.restore();
+      }
+      if (doFill && (currentFillColor != null || currentGradient != null)) {
+        final paint = Paint()..style = PaintingStyle.fill;
+        if (currentGradient != null) {
+          final g = currentGradient;
+          final bounds = accumulated.getBounds();
+          paint.shader = ui.Gradient.linear(
+            Offset(bounds.left + g.x1 * bounds.width, bounds.top + g.y1 * bounds.height),
+            Offset(bounds.left + g.x2 * bounds.width, bounds.top + g.y2 * bounds.height),
+            [g.color1, g.color2],
+            null,
+            ui.TileMode.clamp,
+          );
+          paint.color = Colors.white.withValues(alpha: opacity);
+        } else {
+          paint.color = currentFillColor!.withValues(alpha: opacity);
+        }
+        canvas.drawPath(accumulated, paint);
       }
       if (doStroke) {
         final sc = currentStrokeColor ?? currentStroke.color;
-        canvas.drawPath(
-          accumulated,
-          Paint()
-            ..color = sc.withValues(alpha: currentStroke.opacity * opacity)
-            ..strokeWidth = currentStroke.strokeWidth
-            ..strokeCap = currentStroke.strokeCap
-            ..strokeJoin = currentStroke.strokeJoin
-            ..style = PaintingStyle.stroke,
-        );
+        final paint = Paint()
+          ..color = sc.withValues(alpha: currentStroke.opacity * opacity)
+          ..strokeWidth = currentStroke.strokeWidth
+          ..strokeCap = currentStroke.strokeCap
+          ..strokeJoin = currentStroke.strokeJoin
+          ..style = PaintingStyle.stroke;
+        if (currentDashPattern != null && currentDashPattern.isNotEmpty) {
+          _drawDashedPath(canvas, accumulated, paint, currentDashPattern);
+        } else {
+          canvas.drawPath(accumulated, paint);
+        }
       }
       accumulated = Path();
     }
@@ -250,6 +282,9 @@ class StencilRenderer {
             fillColor: currentFillColor,
             strokeColor: currentStrokeColor,
             strokeOpacity: currentStroke.opacity,
+            dashPattern: currentDashPattern,
+            shadow: currentShadow,
+            gradient: currentGradient,
           ));
         case StencilRestoreCommand _:
           if (styleStack.isNotEmpty) {
@@ -258,6 +293,9 @@ class StencilRenderer {
             currentFillColor = s.fillColor;
             currentStrokeColor = s.strokeColor;
             currentStroke = currentStroke.copyWith(opacity: s.strokeOpacity);
+            currentDashPattern = s.dashPattern;
+            currentShadow = s.shadow;
+            currentGradient = s.gradient;
           }
         case final StencilStrokeWidthCommand c:
           currentStroke = currentStroke.copyWith(strokeWidth: c.width);
@@ -269,6 +307,29 @@ class StencilRenderer {
         case final StencilLineJoinCommand c:
           currentStroke = currentStroke.copyWith(
             strokeJoin: _parseStrokeJoin(c.join),
+          );
+        case final StencilDashPatternCommand c:
+          currentDashPattern = _parseDashPattern(c.pattern);
+        case final StencilShadowCommand c:
+          final shadowColor = _colorFromString(c.color) ??
+              const Color(0xFF808080);
+          currentShadow = _ShadowState(
+            dx: c.dx,
+            dy: c.dy,
+            blur: c.blur,
+            color: shadowColor,
+            opacity: c.opacity,
+          );
+        case final StencilGradientCommand c:
+          final c1 = _colorFromString(c.color1) ?? Colors.white;
+          final c2 = _colorFromString(c.color2) ?? const Color(0xFF808080);
+          currentGradient = _GradientState(
+            x1: c.x1,
+            y1: c.y1,
+            x2: c.x2,
+            y2: c.y2,
+            color1: c1,
+            color2: c2,
           );
         case StencilTextCommand _:
         case StencilUnsupportedCommand _:
@@ -593,6 +654,52 @@ class StencilRenderer {
       _ => StrokeJoin.miter,
     };
   }
+
+  static List<double>? _parseDashPattern(String pattern) {
+    final parts = pattern
+        .split(RegExp(r'[\s,]+'))
+        .where((s) => s.isNotEmpty)
+        .map((s) => double.tryParse(s))
+        .whereType<double>()
+        .toList(growable: false);
+    if (parts.isEmpty || parts.length < 2) {
+      return null;
+    }
+    return parts;
+  }
+
+  /// Draws a [path] with a dashed [pattern] using [paint].
+  /// The pattern is a list of dash/gap lengths, e.g. [5, 3] means
+  /// 5px dash, 3px gap, repeated.
+  static void _drawDashedPath(
+    Canvas canvas,
+    Path path,
+    Paint paint,
+    List<double> pattern,
+  ) {
+    final totalPattern = pattern.fold<double>(0, (sum, v) => sum + v);
+    if (totalPattern <= 0) {
+      canvas.drawPath(path, paint);
+      return;
+    }
+    for (final metric in path.computeMetrics()) {
+      var distance = 0.0;
+      var patternIndex = 0;
+      var drawDash = true;
+      while (distance < metric.length) {
+        final segmentLength = pattern[patternIndex % pattern.length];
+        final nextDistance = distance + segmentLength;
+        if (drawDash) {
+          final end = nextDistance.clamp(0.0, metric.length).toDouble();
+          final extract = metric.extractPath(distance, end);
+          canvas.drawPath(extract, paint);
+        }
+        distance = nextDistance;
+        patternIndex++;
+        drawDash = !drawDash;
+      }
+    }
+  }
 }
 
 class _StyleState {
@@ -601,10 +708,50 @@ class _StyleState {
     required this.fillColor,
     required this.strokeColor,
     required this.strokeOpacity,
+    this.dashPattern,
+    this.shadow,
+    this.gradient,
   });
 
   final double strokeWidth;
   final Color? fillColor;
   final Color? strokeColor;
   final double strokeOpacity;
+  final List<double>? dashPattern;
+  final _ShadowState? shadow;
+  final _GradientState? gradient;
+}
+
+class _ShadowState {
+  const _ShadowState({
+    required this.dx,
+    required this.dy,
+    required this.blur,
+    required this.color,
+    required this.opacity,
+  });
+
+  final double dx;
+  final double dy;
+  final double blur;
+  final Color color;
+  final double opacity;
+}
+
+class _GradientState {
+  const _GradientState({
+    required this.x1,
+    required this.y1,
+    required this.x2,
+    required this.y2,
+    required this.color1,
+    required this.color2,
+  });
+
+  final double x1;
+  final double y1;
+  final double x2;
+  final double y2;
+  final Color color1;
+  final Color color2;
 }

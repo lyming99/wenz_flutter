@@ -53,6 +53,7 @@ class PathElement extends CanvasElement {
     this.visible = true,
     this.opacity = 1,
     this.zIndex = 0,
+    this.groupId,
   }) : points = List<PathPoint>.unmodifiable(points);
 
   static const elementType = 'path';
@@ -74,6 +75,9 @@ class PathElement extends CanvasElement {
 
   @override
   final int zIndex;
+
+  @override
+  final String? groupId;
 
   @override
   String get type => elementType;
@@ -121,6 +125,7 @@ class PathElement extends CanvasElement {
     bool? visible,
     double? opacity,
     int? zIndex,
+    Object? groupId = _unset,
   }) {
     return PathElement(
       id: id ?? this.id,
@@ -130,6 +135,9 @@ class PathElement extends CanvasElement {
       visible: visible ?? this.visible,
       opacity: opacity ?? this.opacity,
       zIndex: zIndex ?? this.zIndex,
+      groupId: identical(groupId, _unset)
+          ? this.groupId
+          : groupId as String?,
     );
   }
 
@@ -158,10 +166,13 @@ class PathElement extends CanvasElement {
       'visible': visible,
       'opacity': opacity,
       'zIndex': zIndex,
+      'groupId': groupId,
       'points': [for (final point in points) point.toJson()],
       'style': style.toJson(),
     };
   }
+
+  static const _unset = Object();
 }
 
 class PathElementRenderer extends ElementRenderer<PathElement> {

@@ -23,6 +23,7 @@ class RectElement extends CanvasElement {
     this.visible = true,
     this.opacity = 1,
     this.zIndex = 0,
+    this.groupId,
   });
 
   static const elementType = 'rect';
@@ -52,6 +53,9 @@ class RectElement extends CanvasElement {
 
   @override
   final int zIndex;
+
+  @override
+  final String? groupId;
 
   @override
   String get type => elementType;
@@ -90,6 +94,7 @@ class RectElement extends CanvasElement {
     bool? visible,
     double? opacity,
     int? zIndex,
+    Object? groupId = _unset,
   }) {
     return RectElement(
       id: id ?? this.id,
@@ -108,6 +113,9 @@ class RectElement extends CanvasElement {
       visible: visible ?? this.visible,
       opacity: opacity ?? this.opacity,
       zIndex: zIndex ?? this.zIndex,
+      groupId: identical(groupId, _unset)
+          ? this.groupId
+          : groupId as String?,
     );
   }
 
@@ -157,6 +165,7 @@ class RectElement extends CanvasElement {
       'visible': visible,
       'opacity': opacity,
       'zIndex': zIndex,
+      'groupId': groupId,
       'rect': {
         'left': rect.left,
         'top': rect.top,

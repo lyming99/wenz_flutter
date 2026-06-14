@@ -6,7 +6,6 @@ import '../elements/widget_element.dart';
 import '../layers/canvas_layer.dart';
 import '../rendering/grid_renderer.dart';
 import '../rendering/selection_renderer.dart';
-import '../rendering/viewport_culling.dart';
 import 'infinite_canvas_config.dart';
 import 'infinite_canvas_controller.dart';
 

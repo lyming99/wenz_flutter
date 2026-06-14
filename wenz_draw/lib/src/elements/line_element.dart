@@ -27,6 +27,7 @@ class LineElement extends CanvasElement {
     this.visible = true,
     this.opacity = 1,
     this.zIndex = 0,
+    this.groupId,
   });
 
   static const elementType = 'line';
@@ -56,6 +57,9 @@ class LineElement extends CanvasElement {
 
   @override
   final int zIndex;
+
+  @override
+  final String? groupId;
 
   @override
   String get type => elementType;
@@ -102,6 +106,7 @@ class LineElement extends CanvasElement {
     bool? visible,
     double? opacity,
     int? zIndex,
+    Object? groupId = _unset,
   }) {
     return LineElement(
       id: id ?? this.id,
@@ -125,6 +130,9 @@ class LineElement extends CanvasElement {
       visible: visible ?? this.visible,
       opacity: opacity ?? this.opacity,
       zIndex: zIndex ?? this.zIndex,
+      groupId: identical(groupId, _unset)
+          ? this.groupId
+          : groupId as String?,
     );
   }
 
@@ -156,6 +164,7 @@ class LineElement extends CanvasElement {
       'visible': visible,
       'opacity': opacity,
       'zIndex': zIndex,
+      'groupId': groupId,
       'start': {'x': start.dx, 'y': start.dy},
       'end': {'x': end.dx, 'y': end.dy},
       'style': style.toJson(),

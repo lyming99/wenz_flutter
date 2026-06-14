@@ -10,6 +10,7 @@ abstract class CanvasElement {
   bool get visible;
   double get opacity;
   int get zIndex;
+  String? get groupId;
 
   double get rotation => 0;
 
@@ -23,6 +24,7 @@ abstract class CanvasElement {
     bool? visible,
     double? opacity,
     int? zIndex,
+    String? groupId,
   });
 
   CanvasElement translate(Offset delta);

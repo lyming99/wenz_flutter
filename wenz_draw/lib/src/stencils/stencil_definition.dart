@@ -262,6 +262,52 @@ class StencilLineJoinCommand extends StencilStyleCommand {
 }
 
 @immutable
+class StencilDashPatternCommand extends StencilStyleCommand {
+  const StencilDashPatternCommand(this.pattern);
+
+  /// The raw dash pattern string, e.g. "5 3 2 3".
+  final String pattern;
+}
+
+@immutable
+class StencilShadowCommand extends StencilStyleCommand {
+  const StencilShadowCommand({
+    this.dx = 2,
+    this.dy = 2,
+    this.blur = 4,
+    this.color = 'gray',
+    this.opacity = 0.5,
+  });
+
+  final double dx;
+  final double dy;
+  final double blur;
+  final String color;
+  final double opacity;
+}
+
+@immutable
+class StencilGradientCommand extends StencilStyleCommand {
+  const StencilGradientCommand({
+    required this.x1,
+    required this.y1,
+    required this.x2,
+    required this.y2,
+    required this.color1,
+    required this.color2,
+    this.direction = 'east',
+  });
+
+  final double x1;
+  final double y1;
+  final double x2;
+  final double y2;
+  final String color1;
+  final String color2;
+  final String direction;
+}
+
+@immutable
 class StencilUnsupportedCommand extends StencilCommand {
   const StencilUnsupportedCommand(this.name);
 

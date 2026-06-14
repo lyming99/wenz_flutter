@@ -29,6 +29,7 @@ class PolylineElement extends CanvasElement {
     this.visible = true,
     this.opacity = 1,
     this.zIndex = 0,
+    this.groupId,
   });
 
   static const elementType = 'polyline';
@@ -55,6 +56,9 @@ class PolylineElement extends CanvasElement {
   final double opacity;
   @override
   final int zIndex;
+
+  @override
+  final String? groupId;
 
   Offset get start => points.isEmpty ? Offset.zero : points.first;
   Offset get end => points.isEmpty ? Offset.zero : points.last;
@@ -113,6 +117,7 @@ class PolylineElement extends CanvasElement {
     bool? visible,
     double? opacity,
     int? zIndex,
+    Object? groupId = _unset,
   }) {
     return PolylineElement(
       id: id ?? this.id,
@@ -137,6 +142,9 @@ class PolylineElement extends CanvasElement {
       visible: visible ?? this.visible,
       opacity: opacity ?? this.opacity,
       zIndex: zIndex ?? this.zIndex,
+      groupId: identical(groupId, _unset)
+          ? this.groupId
+          : groupId as String?,
     );
   }
 
@@ -167,6 +175,7 @@ class PolylineElement extends CanvasElement {
       'visible': visible,
       'opacity': opacity,
       'zIndex': zIndex,
+      'groupId': groupId,
       'points': [
         for (final point in points) {'x': point.dx, 'y': point.dy},
       ],

@@ -409,6 +409,7 @@ class SnapshotWidgetElement extends CanvasElement {
     required this.visible,
     required this.opacity,
     required this.zIndex,
+    this.groupId,
   });
 
   factory SnapshotWidgetElement.fromWidget(
@@ -445,6 +446,9 @@ class SnapshotWidgetElement extends CanvasElement {
   final int zIndex;
 
   @override
+  final String? groupId;
+
+  @override
   String get type => 'widget_snapshot';
 
   @override
@@ -464,6 +468,7 @@ class SnapshotWidgetElement extends CanvasElement {
     bool? visible,
     double? opacity,
     int? zIndex,
+    String? groupId,
   }) {
     return SnapshotWidgetElement(
       id: id ?? this.id,
@@ -473,6 +478,7 @@ class SnapshotWidgetElement extends CanvasElement {
       visible: visible ?? this.visible,
       opacity: opacity ?? this.opacity,
       zIndex: zIndex ?? this.zIndex,
+      groupId: groupId ?? this.groupId,
     );
   }
 

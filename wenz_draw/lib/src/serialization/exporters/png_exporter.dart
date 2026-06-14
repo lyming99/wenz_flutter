@@ -42,7 +42,10 @@ class PngExporter {
     final data = await image.toByteData(format: ui.ImageByteFormat.png);
     picture.dispose();
     image.dispose();
-    return data!.buffer.asUint8List();
+    if (data == null) {
+      throw StateError('Failed to encode PNG: image.toByteData returned null');
+    }
+    return data.buffer.asUint8List();
   }
 
   static void _drawWidgetPlaceholder(

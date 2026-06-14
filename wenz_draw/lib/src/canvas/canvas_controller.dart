@@ -6,6 +6,7 @@ import '../elements/canvas_element.dart';
 import '../elements/drawio_shape_element.dart';
 import '../elements/element_registry.dart';
 import '../elements/ellipse_element.dart';
+import '../elements/image_element.dart';
 import '../elements/line_element.dart';
 import '../elements/polyline_element.dart';
 import '../elements/rect_element.dart';
@@ -25,8 +26,10 @@ import '../layers/auto_layering.dart';
 import '../layers/canvas_layer.dart';
 import '../layers/layer_manager.dart';
 import '../routing/connector_routing.dart';
+import '../serialization/canvas_serializer.dart';
 import '../snap/snap_resolver.dart';
 import '../tools/brush_settings.dart';
+import '../tools/alignment_tools.dart';
 import '../tools/canvas_tool.dart';
 import '../tools/ellipse_tool.dart';
 import '../tools/eraser_tool.dart';
@@ -325,6 +328,21 @@ class CanvasController extends ChangeNotifier {
       historyManager.clear();
     }
     notifyListeners();
+  }
+
+  /// Loads [layers] and [elements] into the controller, replacing all existing
+  /// data. History is cleared and the active layer is set to the first layer.
+  void loadDocument(
+    List<CanvasLayer> layers,
+    List<CanvasElement> elements,
+  ) {
+    if (layers.isNotEmpty) {
+      layerManager.replaceLayers(
+        layers,
+        activeLayerId: layers.first.id,
+      );
+    }
+    replaceElements(elements);
   }
 
   void setPreviewElement(CanvasElement? element) {
@@ -677,6 +695,292 @@ class CanvasController extends ChangeNotifier {
   static const _unsetTextStyleValue = Object();
   static const unsetTextStyleValue = _unsetTextStyleValue;
 
+  // ─── Clipboard ────────────────────────────────────────────────
+  List<Map<String, dynamic>> _clipboard = const [];
+
+  /// Copies selected elements to the internal clipboard.
+  void copySelected() {
+    if (selectedIds.isEmpty) {
+      return;
+    }
+    _clipboard = [
+      for (final element in selectedElements) element.toJson(),
+    ];
+  }
+
+  /// Cuts selected elements: copies them then removes them.
+  void cutSelected() {
+    if (selectedIds.isEmpty) {
+      return;
+    }
+    copySelected();
+    removeSelected();
+  }
+
+  /// Pastes clipboard elements with a small offset and selects the new ones.
+  void paste() {
+    if (_clipboard.isEmpty) {
+      return;
+    }
+    final offset = const Offset(20, 20);
+    final commands = <AddElementCommand>[];
+    final newIds = <String>{};
+    for (final json in _clipboard) {
+      final newId = UuidGenerator.create();
+      final patched = Map<String, dynamic>.from(json)
+        ..['id'] = newId;
+      final element = CanvasSerializer.elementFromJson(patched);
+      final translated = element.translate(offset);
+      final prepared = _prepareElementForInsert(translated);
+      commands.add(AddElementCommand(prepared));
+      newIds.add(prepared.id);
+    }
+    if (commands.isEmpty) {
+      return;
+    }
+    historyManager.execute(
+      BatchCommand(commands: commands, description: 'Paste'),
+      this,
+    );
+    setSelection(newIds);
+  }
+
+  // ─── Duplicate ───────────────────────────────────────────────
+
+  /// Duplicates selected elements with a small offset and selects the copies.
+  void duplicateSelected() {
+    if (selectedIds.isEmpty) {
+      return;
+    }
+    final offset = const Offset(20, 20);
+    final commands = <AddElementCommand>[];
+    final newIds = <String>{};
+    for (final element in selectedElements) {
+      final newId = UuidGenerator.create();
+      final patched = Map<String, dynamic>.from(element.toJson())
+        ..['id'] = newId;
+      final clone = CanvasSerializer.elementFromJson(patched);
+      final translated = clone.translate(offset);
+      final prepared = _prepareElementForInsert(translated);
+      commands.add(AddElementCommand(prepared));
+      newIds.add(prepared.id);
+    }
+    if (commands.isEmpty) {
+      return;
+    }
+    historyManager.execute(
+      BatchCommand(commands: commands, description: 'Duplicate selection'),
+      this,
+    );
+    setSelection(newIds);
+  }
+
+  // ─── Z-Order ─────────────────────────────────────────────────
+
+  /// Brings selected elements to the front (highest z-order) within their
+  /// layers.
+  void bringSelectedToFront() {
+    if (selectedIds.isEmpty) {
+      return;
+    }
+    // Group by layer and compute the max zIndex per layer among
+    // non-selected elements.
+    final maxZByLayer = <String, int>{};
+    for (final element in elements) {
+      if (selectedIds.contains(element.id)) {
+        continue;
+      }
+      final current = maxZByLayer[element.layerId] ?? 0;
+      if (element.zIndex > current) {
+        maxZByLayer[element.layerId] = element.zIndex;
+      }
+    }
+    final commands = <UpdateElementCommand>[];
+    final selectedByLayer = <String, List<CanvasElement>>{};
+    for (final element in selectedElements) {
+      selectedByLayer.putIfAbsent(element.layerId, () => []).add(element);
+    }
+    for (final entry in selectedByLayer.entries) {
+      var nextZ = maxZByLayer[entry.key] ?? 0;
+      for (final element in entry.value) {
+        nextZ++;
+        if (element.zIndex != nextZ) {
+          commands.add(
+            UpdateElementCommand(
+              before: element,
+              after: element.copyWith(zIndex: nextZ),
+              description: 'Bring to front',
+            ),
+          );
+        }
+      }
+    }
+    if (commands.isEmpty) {
+      return;
+    }
+    historyManager.execute(
+      BatchCommand(commands: commands, description: 'Bring to front'),
+      this,
+    );
+  }
+
+  /// Sends selected elements to the back (lowest z-order) within their
+  /// layers.
+  void sendSelectedToBack() {
+    if (selectedIds.isEmpty) {
+      return;
+    }
+    final minZByLayer = <String, int>{};
+    for (final element in elements) {
+      if (selectedIds.contains(element.id)) {
+        continue;
+      }
+      final current = minZByLayer[element.layerId];
+      if (current == null || element.zIndex < current) {
+        minZByLayer[element.layerId] = element.zIndex;
+      }
+    }
+    final commands = <UpdateElementCommand>[];
+    final selectedByLayer = <String, List<CanvasElement>>{};
+    for (final element in selectedElements) {
+      selectedByLayer.putIfAbsent(element.layerId, () => []).add(element);
+    }
+    for (final entry in selectedByLayer.entries) {
+      var nextZ = (minZByLayer[entry.key] ?? 1) - entry.value.length;
+      for (final element in entry.value) {
+        if (element.zIndex != nextZ) {
+          commands.add(
+            UpdateElementCommand(
+              before: element,
+              after: element.copyWith(zIndex: nextZ),
+              description: 'Send to back',
+            ),
+          );
+        }
+        nextZ++;
+      }
+    }
+    if (commands.isEmpty) {
+      return;
+    }
+    historyManager.execute(
+      BatchCommand(commands: commands, description: 'Send to back'),
+      this,
+    );
+  }
+
+  // ─── Group / Ungroup ────────────────────────────────────────
+
+  /// Groups selected elements by assigning them a shared groupId.
+  /// Selects all grouped elements afterward.
+  void groupSelected() {
+    if (selectedIds.length < 2) {
+      return;
+    }
+    final groupId = UuidGenerator.create();
+    final commands = <UpdateElementCommand>[];
+    for (final element in selectedElements) {
+      if (element.groupId != groupId) {
+        commands.add(
+          UpdateElementCommand(
+            before: element,
+            after: element.copyWith(groupId: groupId),
+            description: 'Group',
+          ),
+        );
+      }
+    }
+    if (commands.isEmpty) {
+      return;
+    }
+    historyManager.execute(
+      BatchCommand(commands: commands, description: 'Group elements'),
+      this,
+    );
+  }
+
+  /// Removes the groupId from selected elements.
+  /// If only one element is selected and it has a groupId, also selects all
+  /// other elements that shared that group before ungrouping.
+  void ungroupSelected() {
+    if (selectedIds.isEmpty) {
+      return;
+    }
+    // Collect all groupIds from selected elements
+    final groupIds = <String>{};
+    for (final element in selectedElements) {
+      final gid = element.groupId;
+      if (gid != null) {
+        groupIds.add(gid);
+      }
+    }
+    if (groupIds.isEmpty) {
+      return;
+    }
+    // Collect all elements that belong to these groups (including unselected)
+    final toUngroup = <CanvasElement>[];
+    for (final element in elements) {
+      if (element.groupId != null && groupIds.contains(element.groupId)) {
+        toUngroup.add(element);
+      }
+    }
+    final commands = <UpdateElementCommand>[];
+    for (final element in toUngroup) {
+      commands.add(
+        UpdateElementCommand(
+          before: element,
+          after: element.copyWith(groupId: null),
+          description: 'Ungroup',
+        ),
+      );
+    }
+    if (commands.isEmpty) {
+      return;
+    }
+    historyManager.execute(
+      BatchCommand(commands: commands, description: 'Ungroup elements'),
+      this,
+    );
+    // Select all ungrouped elements
+    setSelection({for (final element in toUngroup) element.id});
+  }
+
+  /// Returns all elements that share a groupId with any selected element.
+  List<CanvasElement> get elementsInSelectedGroups {
+    if (selectedIds.isEmpty) {
+      return const [];
+    }
+    final groupIds = <String>{};
+    for (final element in selectedElements) {
+      final gid = element.groupId;
+      if (gid != null) {
+        groupIds.add(gid);
+      }
+    }
+    if (groupIds.isEmpty) {
+      return selectedElements;
+    }
+    return [
+      for (final element in elements)
+        if (element.groupId != null && groupIds.contains(element.groupId))
+          element,
+    ];
+  }
+
+  // ─── Alignment & Distribution ────────────────────────────────
+
+  /// Aligns selected elements to the specified edge/center.
+  /// Requires at least 2 selected elements.
+  void alignSelected(AlignMode mode) {
+    AlignmentTools.align(this, mode);
+  }
+
+  /// Distributes selected elements with equal spacing.
+  /// Requires at least 3 selected elements.
+  void distributeSelected(AlignAxis axis) {
+    AlignmentTools.distribute(this, axis);
+  }
+
   void updateTextElementStyle(
     String id, {
     Color? color,
@@ -883,6 +1187,14 @@ class CanvasController extends ChangeNotifier {
   void updateElementRotation(String id, double radians, {bool record = true}) {
     final element = elementById(id);
     if (element is DrawioShapeElement) {
+      updateElement(id, element.copyWith(rotation: radians), record: record);
+    } else if (element is RectElement) {
+      updateElement(id, element.copyWith(rotation: radians), record: record);
+    } else if (element is EllipseElement) {
+      updateElement(id, element.copyWith(rotation: radians), record: record);
+    } else if (element is TextElement) {
+      updateElement(id, element.copyWith(rotation: radians), record: record);
+    } else if (element is ImageElement) {
       updateElement(id, element.copyWith(rotation: radians), record: record);
     }
   }
@@ -1148,7 +1460,7 @@ class CanvasController extends ChangeNotifier {
       ..registerTool(ShapeTool(shapeKey: 'cube', name: 'Cube'))
       ..registerTool(ArrowTool())
       ..registerTool(const TextTool())
-      ..registerTool(const EraserTool())
+      ..registerTool(EraserTool())
       ..registerTool(const PanTool());
   }
 

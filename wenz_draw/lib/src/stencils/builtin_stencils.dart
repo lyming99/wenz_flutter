@@ -1,6 +1,7 @@
 import '../elements/shape_definition_registry.dart';
 import 'libraries/arrow_stencils.dart';
 import 'libraries/basic_stencils.dart';
+import 'libraries/bpmn_stencils.dart';
 import 'libraries/flowchart_stencils.dart';
 import 'libraries/stencil_library_registry.dart';
 import 'stencil_definition.dart';
@@ -37,6 +38,10 @@ class BuiltinStencils {
     StencilLibraryRegistry.registerXmlDefinitions(
       ArrowStencils.xmlDefinitions,
       aliases: ArrowStencils.aliases,
+    );
+    StencilLibraryRegistry.registerXmlDefinitions(
+      BpmnStencils.xmlDefinitions,
+      aliases: BpmnStencils.aliases,
     );
   }
 }

@@ -53,6 +53,19 @@ class LayerManager extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Replaces all layers with [layers] and sets [activeLayerId] as active.
+  /// If [activeLayerId] is null or not found, the first layer becomes active.
+  void replaceLayers(List<CanvasLayer> layers, {String? activeLayerId}) {
+    _layers
+      ..clear()
+      ..addAll(layers);
+    _activeLayerId = (activeLayerId != null &&
+            _layers.any((layer) => layer.id == activeLayerId))
+        ? activeLayerId
+        : (_layers.isNotEmpty ? _layers.first.id : CanvasLayer.defaultLayerId);
+    notifyListeners();
+  }
+
   void insertLayer(CanvasLayer layer, int index) {
     final clampedIndex = index.clamp(0, _layers.length);
     _layers.insert(clampedIndex, layer);

@@ -24,6 +24,7 @@ class EllipseElement extends CanvasElement {
     this.opacity = 1,
     this.zIndex = 0,
     this.rotation = 0,
+    this.groupId,
   });
 
   static const elementType = 'ellipse';
@@ -52,6 +53,9 @@ class EllipseElement extends CanvasElement {
 
   @override
   final int zIndex;
+
+  @override
+  final String? groupId;
 
   @override
   String get type => elementType;
@@ -101,6 +105,7 @@ class EllipseElement extends CanvasElement {
     bool? visible,
     double? opacity,
     int? zIndex,
+    Object? groupId = _unset,
   }) {
     return EllipseElement(
       id: id ?? this.id,
@@ -118,6 +123,9 @@ class EllipseElement extends CanvasElement {
       visible: visible ?? this.visible,
       opacity: opacity ?? this.opacity,
       zIndex: zIndex ?? this.zIndex,
+      groupId: identical(groupId, _unset)
+          ? this.groupId
+          : groupId as String?,
     );
   }
 
@@ -167,6 +175,7 @@ class EllipseElement extends CanvasElement {
       'visible': visible,
       'opacity': opacity,
       'zIndex': zIndex,
+      'groupId': groupId,
       'rect': {
         'left': rect.left,
         'top': rect.top,

@@ -20,10 +20,12 @@ class TextElement extends CanvasElement {
     this.maxWidth,
     this.boxSize,
     this.textAlign = TextAlign.left,
+    this.rotation = 0,
     this.layerId = 'default',
     this.visible = true,
     this.opacity = 1,
     this.zIndex = 0,
+    this.groupId,
   });
 
   static const elementType = 'text';
@@ -36,6 +38,8 @@ class TextElement extends CanvasElement {
   final double? maxWidth;
   final Size? boxSize;
   final TextAlign textAlign;
+  @override
+  final double rotation;
 
   @override
   final String layerId;
@@ -45,6 +49,9 @@ class TextElement extends CanvasElement {
   final double opacity;
   @override
   final int zIndex;
+
+  @override
+  final String? groupId;
 
   late final Size _laidOutSize = _layoutSize();
 
@@ -57,13 +64,23 @@ class TextElement extends CanvasElement {
   Rect get bounds {
     final size = boxSize ?? _laidOutSize;
     final fallbackHeight = style.fontSize ?? 24;
-    return position &
+    final rawBounds = position &
         Size(math.max(size.width, 1), math.max(size.height, fallbackHeight));
+    return rotation != 0
+        ? rotatedRectBounds(rawBounds, rotation)
+        : rawBounds;
   }
 
   @override
   bool hitTest(Offset worldPoint, {double tolerance = 5.0}) {
-    return bounds.inflate(tolerance).contains(worldPoint);
+    final size = boxSize ?? _laidOutSize;
+    final fallbackHeight = style.fontSize ?? 24;
+    final rawBounds = position &
+        Size(math.max(size.width, 1), math.max(size.height, fallbackHeight));
+    final localPoint = rotation != 0
+        ? inverseRotatePoint(worldPoint, rotation, rawBounds.center)
+        : worldPoint;
+    return rawBounds.inflate(tolerance).contains(localPoint);
   }
 
   TextPainter createTextPainter({Color? color, double opacity = 1}) {
@@ -92,10 +109,12 @@ class TextElement extends CanvasElement {
     Object? maxWidth = _unset,
     Object? boxSize = _unset,
     TextAlign? textAlign,
+    double? rotation,
     String? layerId,
     bool? visible,
     double? opacity,
     int? zIndex,
+    Object? groupId = _unset,
   }) {
     return TextElement(
       id: id ?? this.id,
@@ -107,10 +126,14 @@ class TextElement extends CanvasElement {
           : maxWidth as double?,
       boxSize: identical(boxSize, _unset) ? this.boxSize : boxSize as Size?,
       textAlign: textAlign ?? this.textAlign,
+      rotation: rotation ?? this.rotation,
       layerId: layerId ?? this.layerId,
       visible: visible ?? this.visible,
       opacity: opacity ?? this.opacity,
       zIndex: zIndex ?? this.zIndex,
+      groupId: identical(groupId, _unset)
+          ? this.groupId
+          : groupId as String?,
     );
   }
 
@@ -131,6 +154,16 @@ class TextElement extends CanvasElement {
   }
 
   @override
+  TextElement rotateElement(double radians, {Offset? pivot}) {
+    final origin = pivot ?? bounds.center;
+    final nextPosition = rotatePoint(position, radians, origin);
+    return copyWith(
+      position: nextPosition,
+      rotation: rotation + radians,
+    );
+  }
+
+  @override
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -139,11 +172,13 @@ class TextElement extends CanvasElement {
       'visible': visible,
       'opacity': opacity,
       'zIndex': zIndex,
+      'groupId': groupId,
       'position': {'x': position.dx, 'y': position.dy},
       'text': text,
       if (maxWidth != null) 'maxWidth': maxWidth,
       if (boxSize != null) 'boxSize': _sizeToJson(boxSize!),
       'textAlign': textAlign.name,
+      if (rotation != 0) 'rotation': rotation,
       'style': {
         'color': (style.color ?? Colors.black).toARGB32(),
         'fontSize': style.fontSize ?? 24,
@@ -193,7 +228,15 @@ class TextElementRenderer extends ElementRenderer<TextElement> {
       canvas.restore();
       return;
     }
+    final center = element.boxSize != null
+        ? element.position + element.boxSize!.center(Offset.zero)
+        : element.position + Offset(painter.width / 2, painter.height / 2);
+    canvas.save();
+    canvas.translate(center.dx, center.dy);
+    canvas.rotate(element.rotation);
+    canvas.translate(-center.dx, -center.dy);
     painter.paint(canvas, element.position);
+    canvas.restore();
   }
 
   @override

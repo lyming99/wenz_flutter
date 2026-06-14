@@ -27,6 +27,7 @@ class DrawioShapeElement extends CanvasElement {
     this.visible = true,
     this.opacity = 1,
     this.zIndex = 0,
+    this.groupId,
   });
 
   static const elementType = 'drawioShape';
@@ -57,6 +58,9 @@ class DrawioShapeElement extends CanvasElement {
 
   @override
   final int zIndex;
+
+  @override
+  final String? groupId;
 
   @override
   String get type => elementType;
@@ -109,6 +113,7 @@ class DrawioShapeElement extends CanvasElement {
     bool? visible,
     double? opacity,
     int? zIndex,
+    Object? groupId = _unset,
   }) {
     return DrawioShapeElement(
       id: id ?? this.id,
@@ -130,6 +135,9 @@ class DrawioShapeElement extends CanvasElement {
       visible: visible ?? this.visible,
       opacity: opacity ?? this.opacity,
       zIndex: zIndex ?? this.zIndex,
+      groupId: identical(groupId, _unset)
+          ? this.groupId
+          : groupId as String?,
     );
   }
 
@@ -166,6 +174,7 @@ class DrawioShapeElement extends CanvasElement {
       'visible': visible,
       'opacity': opacity,
       'zIndex': zIndex,
+      'groupId': groupId,
       'shapeKey': shapeKey,
       'rect': {
         'left': rect.left,

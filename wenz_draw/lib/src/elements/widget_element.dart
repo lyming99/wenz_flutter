@@ -26,6 +26,7 @@ class CanvasWidgetElement extends CanvasElement {
     this.minScreenSize,
     this.maxScreenSize,
     this.clipBehavior = Clip.hardEdge,
+    this.groupId,
   });
 
   static const elementType = 'widget';
@@ -57,6 +58,9 @@ class CanvasWidgetElement extends CanvasElement {
   final int zIndex;
 
   @override
+  final String? groupId;
+
+  @override
   String get type => elementType;
 
   @override
@@ -84,6 +88,7 @@ class CanvasWidgetElement extends CanvasElement {
     Size? minScreenSize,
     Size? maxScreenSize,
     Clip? clipBehavior,
+    Object? groupId = _unset,
   }) {
     return CanvasWidgetElement(
       id: id ?? this.id,
@@ -101,6 +106,9 @@ class CanvasWidgetElement extends CanvasElement {
       minScreenSize: minScreenSize ?? this.minScreenSize,
       maxScreenSize: maxScreenSize ?? this.maxScreenSize,
       clipBehavior: clipBehavior ?? this.clipBehavior,
+      groupId: identical(groupId, _unset)
+          ? this.groupId
+          : groupId as String?,
     );
   }
 
@@ -129,6 +137,7 @@ class CanvasWidgetElement extends CanvasElement {
       'visible': visible,
       'opacity': opacity,
       'zIndex': zIndex,
+      'groupId': groupId,
       'worldRect': {
         'left': worldRect.left,
         'top': worldRect.top,
@@ -164,7 +173,8 @@ class CanvasWidgetElement extends CanvasElement {
         other.renderMode == renderMode &&
         other.minScreenSize == minScreenSize &&
         other.maxScreenSize == maxScreenSize &&
-        other.clipBehavior == clipBehavior;
+        other.clipBehavior == clipBehavior &&
+        other.groupId == groupId;
   }
 
   @override
@@ -184,6 +194,7 @@ class CanvasWidgetElement extends CanvasElement {
     minScreenSize,
     maxScreenSize,
     clipBehavior,
+    groupId,
   );
 
   static Map<String, double> _sizeToJson(Size size) {
@@ -201,4 +212,6 @@ class CanvasWidgetElement extends CanvasElement {
     }
     return true;
   }
+
+  static const _unset = Object();
 }

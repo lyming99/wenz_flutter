@@ -625,6 +625,65 @@ class _InfiniteCanvasWidgetState extends State<InfiniteCanvasWidget> {
       });
       return;
     }
+    // Clipboard shortcuts
+    if (controlPressed && key == LogicalKeyboardKey.keyC) {
+      canvasController.copySelected();
+      return;
+    }
+    if (controlPressed && key == LogicalKeyboardKey.keyV) {
+      canvasController.paste();
+      return;
+    }
+    if (controlPressed && key == LogicalKeyboardKey.keyX) {
+      canvasController.cutSelected();
+      return;
+    }
+    // Duplicate
+    if (controlPressed && key == LogicalKeyboardKey.keyD) {
+      canvasController.duplicateSelected();
+      return;
+    }
+    // Group / Ungroup
+    if (controlPressed && key == LogicalKeyboardKey.keyG) {
+      if (HardwareKeyboard.instance.isShiftPressed) {
+        canvasController.ungroupSelected();
+      } else {
+        canvasController.groupSelected();
+      }
+      return;
+    }
+    // Z-order shortcuts
+    if (controlPressed && key == LogicalKeyboardKey.bracketRight) {
+      canvasController.bringSelectedToFront();
+      return;
+    }
+    if (controlPressed && key == LogicalKeyboardKey.bracketLeft) {
+      canvasController.sendSelectedToBack();
+      return;
+    }
+    // Escape: deselect
+    if (key == LogicalKeyboardKey.escape) {
+      canvasController.deselectAll();
+      return;
+    }
+    // Arrow key nudging
+    final nudgeStep = controlPressed ? 10.0 : 1.0;
+    if (key == LogicalKeyboardKey.arrowLeft) {
+      canvasController.moveSelected(Offset(-nudgeStep, 0));
+      return;
+    }
+    if (key == LogicalKeyboardKey.arrowRight) {
+      canvasController.moveSelected(Offset(nudgeStep, 0));
+      return;
+    }
+    if (key == LogicalKeyboardKey.arrowUp) {
+      canvasController.moveSelected(Offset(0, -nudgeStep));
+      return;
+    }
+    if (key == LogicalKeyboardKey.arrowDown) {
+      canvasController.moveSelected(Offset(0, nudgeStep));
+      return;
+    }
     if (key == LogicalKeyboardKey.delete ||
         key == LogicalKeyboardKey.backspace) {
       canvasController.removeSelected();
