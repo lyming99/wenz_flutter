@@ -6,6 +6,7 @@ import '../canvas/canvas_controller.dart';
 import '../elements/canvas_element.dart';
 import '../elements/drawio_shape_element.dart';
 import '../elements/ellipse_element.dart';
+import '../elements/image_element.dart';
 import '../elements/line_element.dart';
 import '../elements/curve_element.dart';
 import '../elements/polyline_element.dart';
@@ -30,6 +31,7 @@ class SelectTool extends CanvasTool {
   bool _movingSelection = false;
   bool _resizingText = false;
   bool _scalingElement = false;
+  bool _stretchingElement = false;
   bool _rotatingSelection = false;
   bool _draggingLineEndpoint = false;
   bool _draggingPolylinePoint = false;
@@ -41,6 +43,7 @@ class SelectTool extends CanvasTool {
   int? _polylineSegmentIndex;
   TextElement? _resizeBefore;
   CanvasElement? _scaleBefore;
+  CanvasElement? _stretchBefore;
   CanvasElement? _lineEndpointBefore;
   Offset? _resizeAnchor;
   static const double _minTextBoxWidth = 24;
@@ -67,6 +70,7 @@ class SelectTool extends CanvasTool {
     _movingSelection = false;
     _resizingText = false;
     _scalingElement = false;
+    _stretchingElement = false;
     _rotatingSelection = false;
     _draggingLineEndpoint = false;
     _draggingPolylinePoint = false;
@@ -78,6 +82,7 @@ class SelectTool extends CanvasTool {
     _polylineSegmentIndex = null;
     _resizeBefore = null;
     _scaleBefore = null;
+    _stretchBefore = null;
     _lineEndpointBefore = null;
     _resizeAnchor = null;
     _moveBefore = const {};
@@ -196,17 +201,29 @@ class SelectTool extends CanvasTool {
             resizeTarget.element,
             resizeTarget.handle,
           );
-          if (resizeTarget.element is TextElement &&
+          if (resizeTarget.handle.isEdge &&
+              _canStretch(resizeTarget.element)) {
+            _stretchingElement = true;
+            _resizingText = false;
+            _scalingElement = false;
+            _stretchBefore = resizeTarget.element;
+            _resizeBefore = null;
+            _scaleBefore = null;
+          } else if (resizeTarget.element is TextElement &&
               (resizeTarget.element as TextElement).boxSize != null) {
             _resizingText = true;
             _scalingElement = false;
+            _stretchingElement = false;
             _resizeBefore = resizeTarget.element as TextElement;
             _scaleBefore = null;
+            _stretchBefore = null;
           } else {
             _resizingText = false;
             _scalingElement = true;
+            _stretchingElement = false;
             _resizeBefore = null;
             _scaleBefore = resizeTarget.element;
+            _stretchBefore = null;
           }
           return const ToolResultConsumed();
         }
@@ -252,6 +269,11 @@ class SelectTool extends CanvasTool {
         }
         if (_resizingText) {
           _resizeText(controller, event.worldPoint);
+          _lastPoint = event.worldPoint;
+          return const ToolResultConsumed();
+        }
+        if (_stretchingElement) {
+          _stretchElement(controller, event.worldPoint);
           _lastPoint = event.worldPoint;
           return const ToolResultConsumed();
         }
@@ -301,6 +323,11 @@ class SelectTool extends CanvasTool {
         }
         if (_resizingText) {
           _recordResize(controller);
+          cancel(controller);
+          return const ToolResultConsumed();
+        }
+        if (_stretchingElement) {
+          _recordStretch(controller);
           cancel(controller);
           return const ToolResultConsumed();
         }
@@ -523,6 +550,16 @@ class SelectTool extends CanvasTool {
       width: 28 / event.transform.scale,
       height: 28 / event.transform.scale,
     );
+    // Exclude a zone near the anchor (top edge center) so the stretch handle
+    // there takes priority over the rotation connector line.
+    final anchorZone = Rect.fromCenter(
+      center: geometry.anchor,
+      width: 16 / event.transform.scale,
+      height: 16 / event.transform.scale,
+    );
+    if (anchorZone.contains(event.worldPoint)) {
+      return null;
+    }
     if (handleRect.contains(event.worldPoint) ||
         distanceToSegment(event.worldPoint, geometry.anchor, geometry.handle) <=
             tolerance) {
@@ -584,7 +621,13 @@ class SelectTool extends CanvasTool {
       final rotAngle = _rotationOf(element);
       final center = _centerOf(element);
       final localRect = _localRectPadded(element, 0);
-      for (final handle in _SelectionResizeHandle.values) {
+      final canStretch = _canStretch(element);
+      // Check corners first (all elements with resize handles),
+      // then edges (only stretchable elements).
+      final handles = canStretch
+          ? _SelectionResizeHandle.values
+          : _SelectionResizeHandle.values.where((h) => h.isCorner);
+      for (final handle in handles) {
         final localCorner = handle.pointFor(localRect);
         final worldCorner = rotAngle != 0
             ? rotatePoint(localCorner, rotAngle, center)
@@ -660,7 +703,9 @@ class SelectTool extends CanvasTool {
   double _rotationOf(CanvasElement element) {
     if (element is DrawioShapeElement ||
         element is RectElement ||
-        element is EllipseElement) {
+        element is EllipseElement ||
+        element is TextElement ||
+        element is ImageElement) {
       return element.rotation;
     }
     return 0;
@@ -675,6 +720,12 @@ class SelectTool extends CanvasTool {
       return element.rect.center;
     }
     if (element is EllipseElement) {
+      return element.rect.center;
+    }
+    if (element is TextElement) {
+      return element.localBounds.center;
+    }
+    if (element is ImageElement) {
       return element.rect.center;
     }
     return element.bounds.center;
@@ -696,6 +747,12 @@ class SelectTool extends CanvasTool {
       return element.rect.inflate(
         padding + element.strokeStyle.strokeWidth / 2,
       );
+    }
+    if (element is TextElement) {
+      return element.localBounds.inflate(padding);
+    }
+    if (element is ImageElement) {
+      return element.rect.inflate(padding);
     }
     return element.bounds.inflate(padding);
   }
@@ -738,6 +795,104 @@ class SelectTool extends CanvasTool {
       return;
     }
     controller.updateElement(before.id, scaled, record: false);
+  }
+
+  /// Whether an element supports non-uniform stretch.
+  bool _canStretch(CanvasElement element) {
+    return element is DrawioShapeElement ||
+        element is RectElement ||
+        element is EllipseElement ||
+        element is ImageElement ||
+        element is TextElement;
+  }
+
+  /// Stretch (non-uniform resize) an element via an edge handle.
+  void _stretchElement(CanvasController controller, Offset worldPoint) {
+    final before = _stretchBefore;
+    final handle = _resizeHandle;
+    final anchor = _resizeAnchor;
+    if (before == null || handle == null || anchor == null) {
+      return;
+    }
+
+    final rotAngle = _rotationOf(before);
+    final center = _centerOf(before);
+
+    // Work in local (un-rotated) space.
+    final localMouse = rotAngle != 0
+        ? inverseRotatePoint(worldPoint, rotAngle, center)
+        : worldPoint;
+
+    final localRect = _localRectPadded(before, 0);
+
+    double newLeft = localRect.left;
+    double newTop = localRect.top;
+    double newRight = localRect.right;
+    double newBottom = localRect.bottom;
+
+    if (handle.isLeft) {
+      newLeft = localMouse.dx.clamp(newRight - 10000, newRight - 1);
+    }
+    if (handle.isRight) {
+      newRight = localMouse.dx.clamp(newLeft + 1, newLeft + 10000);
+    }
+    if (handle.isTop) {
+      newTop = localMouse.dy.clamp(newBottom - 10000, newBottom - 1);
+    }
+    if (handle.isBottom) {
+      newBottom = localMouse.dy.clamp(newTop + 1, newTop + 10000);
+    }
+
+    final newRect = Rect.fromLTRB(newLeft, newTop, newRight, newBottom);
+    if (newRect.width < 1 || newRect.height < 1) {
+      return;
+    }
+
+    final stretched = _applyNewRect(before, newRect);
+    controller.updateElement(before.id, stretched, record: false);
+  }
+
+  /// Apply a new unrotated rect to an element (non-uniform resize).
+  CanvasElement _applyNewRect(CanvasElement element, Rect newRect) {
+    if (element is DrawioShapeElement) {
+      return element.copyWith(rect: newRect);
+    }
+    if (element is RectElement) {
+      return element.copyWith(rect: newRect);
+    }
+    if (element is EllipseElement) {
+      return element.copyWith(rect: newRect);
+    }
+    if (element is ImageElement) {
+      return element.copyWith(rect: newRect);
+    }
+    if (element is TextElement) {
+      return element.copyWith(
+        position: newRect.topLeft,
+        maxWidth: newRect.width,
+        boxSize: newRect.size,
+      );
+    }
+    return element;
+  }
+
+  void _recordStretch(CanvasController controller) {
+    final before = _stretchBefore;
+    if (before == null) {
+      return;
+    }
+    final after = controller.elementById(before.id);
+    if (after == null ||
+        after.toJson().toString() == before.toJson().toString()) {
+      return;
+    }
+    controller.recordCommand(
+      UpdateElementCommand(
+        before: before,
+        after: after,
+        description: 'Stretch ${after.type}',
+      ),
+    );
   }
 
   void _dragLineEndpoint(
@@ -1106,10 +1261,24 @@ enum _SelectionResizeHandle {
   topLeft,
   topRight,
   bottomLeft,
-  bottomRight;
+  bottomRight,
+  top,
+  bottom,
+  left,
+  right;
 
-  bool get isLeft => this == topLeft || this == bottomLeft;
-  bool get isTop => this == topLeft || this == topRight;
+  bool get isCorner =>
+      this == topLeft ||
+      this == topRight ||
+      this == bottomLeft ||
+      this == bottomRight;
+  bool get isEdge =>
+      this == top || this == bottom || this == left || this == right;
+  bool get isLeft => this == topLeft || this == bottomLeft || this == left;
+  bool get isRight => this == topRight || this == bottomRight || this == right;
+  bool get isTop => this == topLeft || this == topRight || this == top;
+  bool get isBottom =>
+      this == bottomLeft || this == bottomRight || this == bottom;
 
   Offset pointFor(Rect rect) {
     return switch (this) {
@@ -1117,6 +1286,10 @@ enum _SelectionResizeHandle {
       topRight => rect.topRight,
       bottomLeft => rect.bottomLeft,
       bottomRight => rect.bottomRight,
+      top => Offset(rect.center.dx, rect.top),
+      bottom => Offset(rect.center.dx, rect.bottom),
+      left => Offset(rect.left, rect.center.dy),
+      right => Offset(rect.right, rect.center.dy),
     };
   }
 
@@ -1126,6 +1299,10 @@ enum _SelectionResizeHandle {
       topRight => rect.bottomLeft,
       bottomLeft => rect.topRight,
       bottomRight => rect.topLeft,
+      top => rect.bottomCenter,
+      bottom => rect.topCenter,
+      left => rect.centerRight,
+      right => rect.centerLeft,
     };
   }
 }

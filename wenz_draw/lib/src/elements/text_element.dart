@@ -60,12 +60,17 @@ class TextElement extends CanvasElement {
 
   double? get layoutMaxWidth => boxSize?.width ?? maxWidth;
 
-  @override
-  Rect get bounds {
+  /// The unrotated local rect of this text element.
+  Rect get localBounds {
     final size = boxSize ?? _laidOutSize;
     final fallbackHeight = style.fontSize ?? 24;
-    final rawBounds = position &
+    return position &
         Size(math.max(size.width, 1), math.max(size.height, fallbackHeight));
+  }
+
+  @override
+  Rect get bounds {
+    final rawBounds = localBounds;
     return rotation != 0
         ? rotatedRectBounds(rawBounds, rotation)
         : rawBounds;
@@ -155,10 +160,12 @@ class TextElement extends CanvasElement {
 
   @override
   TextElement rotateElement(double radians, {Offset? pivot}) {
-    final origin = pivot ?? bounds.center;
-    final nextPosition = rotatePoint(position, radians, origin);
+    final lb = localBounds;
+    final oldCenter = lb.center;
+    final origin = pivot ?? oldCenter;
+    final nextCenter = rotatePoint(oldCenter, radians, origin);
     return copyWith(
-      position: nextPosition,
+      position: nextCenter - Offset(lb.width / 2, lb.height / 2),
       rotation: rotation + radians,
     );
   }
@@ -221,20 +228,16 @@ class TextElementRenderer extends ElementRenderer<TextElement> {
       opacity: element.opacity,
     );
     final boxSize = element.boxSize;
-    if (boxSize != null) {
-      canvas.save();
-      canvas.clipRect(element.position & boxSize);
-      painter.paint(canvas, element.position);
-      canvas.restore();
-      return;
-    }
-    final center = element.boxSize != null
-        ? element.position + element.boxSize!.center(Offset.zero)
+    final center = boxSize != null
+        ? element.position + boxSize.center(Offset.zero)
         : element.position + Offset(painter.width / 2, painter.height / 2);
     canvas.save();
     canvas.translate(center.dx, center.dy);
     canvas.rotate(element.rotation);
     canvas.translate(-center.dx, -center.dy);
+    if (boxSize != null) {
+      canvas.clipRect(element.position & boxSize);
+    }
     painter.paint(canvas, element.position);
     canvas.restore();
   }

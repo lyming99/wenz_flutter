@@ -132,7 +132,14 @@ class _InfiniteCanvasWidgetState extends State<InfiniteCanvasWidget> {
   }
 
   void _handlePointerDown(PointerDownEvent event) {
-    _focusNode.requestFocus();
+    // If we are currently editing text, do not steal focus from the
+    // TextField overlay — that would prematurely commit the edit.
+    final canvasController = widget.controller.canvasController;
+    final isEditing = canvasController.editingTextElementId != null ||
+        canvasController.editingShapeLabelElementId != null;
+    if (!isEditing) {
+      _focusNode.requestFocus();
+    }
     // Right-click and middle-click are reserved for panning — never dispatch
     // to the active drawing tool.
     if (event.buttons == kSecondaryMouseButton ||
@@ -171,7 +178,6 @@ class _InfiniteCanvasWidgetState extends State<InfiniteCanvasWidget> {
     }
 
     final worldPoint = widget.controller.screenToWorld(event.localPosition);
-    final canvasController = widget.controller.canvasController;
     if (canvasController.currentTool?.id == TextTool.idValue) {
       final hit = canvasController.hitTest(worldPoint);
       if (hit is TextElement) {
@@ -806,13 +812,23 @@ class _TextEditingOverlayState extends State<_TextEditingOverlay> {
     super.initState();
     _textController = TextEditingController();
     _focusNode = FocusNode(debugLabel: 'TextEditingOverlay');
+    _focusNode.addListener(_onFocusChange);
   }
 
   @override
   void dispose() {
+    _focusNode.removeListener(_onFocusChange);
     _textController.dispose();
     _focusNode.dispose();
     super.dispose();
+  }
+
+  void _onFocusChange() {
+    // When the TextField loses focus, commit the current text.
+    // This ensures the change is recorded in the undo stack exactly once.
+    if (!_focusNode.hasFocus) {
+      _commit();
+    }
   }
 
   @override

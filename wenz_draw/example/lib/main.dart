@@ -1438,6 +1438,15 @@ class _RightInspectorPanel extends StatelessWidget {
                             canvasController.updateTextContent(
                               selected.id,
                               text,
+                              record: false,
+                            );
+                          }
+                        },
+                        onCommitted: (text) {
+                          if (selected != null) {
+                            canvasController.updateTextContent(
+                              selected.id,
+                              text,
                             );
                           }
                         },
@@ -2196,10 +2205,15 @@ class _TextSwatchButton extends StatelessWidget {
 }
 
 class _TextReadout extends StatefulWidget {
-  const _TextReadout({required this.selected, required this.onChanged});
+  const _TextReadout({
+    required this.selected,
+    required this.onChanged,
+    required this.onCommitted,
+  });
 
   final CanvasElement? selected;
   final ValueChanged<String> onChanged;
+  final ValueChanged<String> onCommitted;
 
   @override
   State<_TextReadout> createState() => _TextReadoutState();
@@ -2207,6 +2221,7 @@ class _TextReadout extends StatefulWidget {
 
 class _TextReadoutState extends State<_TextReadout> {
   late final TextEditingController _controller;
+  late final FocusNode _focusNode;
   String? _editingElementId;
 
   @override
@@ -2214,6 +2229,14 @@ class _TextReadoutState extends State<_TextReadout> {
     super.initState();
     _controller = TextEditingController(text: _textOf(widget.selected));
     _editingElementId = widget.selected?.id;
+    _focusNode = FocusNode(debugLabel: 'TextReadout');
+    _focusNode.addListener(_onFocusChange);
+  }
+
+  void _onFocusChange() {
+    if (!_focusNode.hasFocus) {
+      widget.onCommitted(_controller.text);
+    }
   }
 
   @override
@@ -2221,6 +2244,10 @@ class _TextReadoutState extends State<_TextReadout> {
     super.didUpdateWidget(oldWidget);
     final nextId = widget.selected?.id;
     final nextText = _textOf(widget.selected);
+    // Don't clobber the controller while the user is actively typing.
+    if (_focusNode.hasFocus && nextId == _editingElementId) {
+      return;
+    }
     if (nextId != _editingElementId || _controller.text != nextText) {
       _editingElementId = nextId;
       _controller.value = TextEditingValue(
@@ -2232,6 +2259,8 @@ class _TextReadoutState extends State<_TextReadout> {
 
   @override
   void dispose() {
+    _focusNode.removeListener(_onFocusChange);
+    _focusNode.dispose();
     _controller.dispose();
     super.dispose();
   }
@@ -2245,6 +2274,7 @@ class _TextReadoutState extends State<_TextReadout> {
         const SizedBox(height: 6),
         TextField(
           controller: _controller,
+          focusNode: _focusNode,
           enabled: widget.selected != null,
           minLines: 1,
           maxLines: 3,
@@ -2271,6 +2301,10 @@ class _TextReadoutState extends State<_TextReadout> {
               borderSide: const BorderSide(color: Color(0xFF9FC4E8)),
             ),
           ),
+          onSubmitted: (value) {
+            widget.onCommitted(value);
+            _focusNode.requestFocus();
+          },
           onChanged: widget.onChanged,
         ),
       ],

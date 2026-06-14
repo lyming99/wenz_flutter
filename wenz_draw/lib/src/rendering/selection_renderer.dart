@@ -5,11 +5,22 @@ import '../elements/arrow_element.dart';
 import '../elements/curve_element.dart';
 import '../elements/drawio_shape_element.dart';
 import '../elements/ellipse_element.dart';
+import '../elements/image_element.dart';
 import '../elements/line_element.dart';
 import '../elements/polyline_element.dart';
 import '../elements/rect_element.dart';
+import '../elements/text_element.dart';
 import '../infinite_canvas/canvas_transform.dart';
 import '../utils/math_utils.dart';
+
+/// Whether the element supports non-uniform stretch via edge handles.
+bool _canStretch(dynamic element) {
+  return element is DrawioShapeElement ||
+      element is RectElement ||
+      element is EllipseElement ||
+      element is ImageElement ||
+      element is TextElement;
+}
 
 class SelectionRenderer {
   const SelectionRenderer();
@@ -79,6 +90,18 @@ class SelectionRenderer {
         canvas.drawRect(handle, handlePaint);
         canvas.drawRect(handle, handleBorderPaint);
       }
+      // Draw edge handles for stretchable elements.
+      if (_canStretch(element) && selectionGeometry.edgeHandles.isNotEmpty) {
+        for (final edge in selectionGeometry.edgeHandles) {
+          final handle = Rect.fromCenter(
+            center: edge,
+            width: handleSize,
+            height: handleSize,
+          );
+          canvas.drawRect(handle, handlePaint);
+          canvas.drawRect(handle, handleBorderPaint);
+        }
+      }
     }
     _drawSelectionRect(canvas, controller, transform);
     _drawSnapPreview(canvas, controller, transform);
@@ -93,7 +116,9 @@ class SelectionRenderer {
     final hasRotation = rotAngle != 0 &&
         (element is DrawioShapeElement ||
             element is RectElement ||
-            element is EllipseElement);
+            element is EllipseElement ||
+            element is TextElement ||
+            element is ImageElement);
     if (hasRotation) {
       final rect = element is DrawioShapeElement
           ? element.rect.inflate(
@@ -107,12 +132,20 @@ class SelectionRenderer {
           ? element.rect.inflate(
               padding + element.strokeStyle.strokeWidth / 2,
             )
+          : element is TextElement
+          ? element.localBounds.inflate(padding)
+          : element is ImageElement
+          ? element.rect.inflate(padding)
           : element.bounds.inflate(padding);
       final center = element is DrawioShapeElement
           ? element.rect.center
           : element is RectElement
           ? element.rect.center
           : element is EllipseElement
+          ? element.rect.center
+          : element is TextElement
+          ? element.localBounds.center
+          : element is ImageElement
           ? element.rect.center
           : element.bounds.center;
       final corners = [
@@ -131,14 +164,31 @@ class SelectionRenderer {
       final normal = distance <= 0.0001
           ? const Offset(0, -1)
           : direction / distance;
+      final edgeHandles = _canStretch(element)
+          ? [
+              rotatePoint(rect.topCenter, rotAngle, center),
+              rotatePoint(rect.bottomCenter, rotAngle, center),
+              rotatePoint(rect.centerLeft, rotAngle, center),
+              rotatePoint(rect.centerRight, rotAngle, center),
+            ]
+          : const <Offset>[];
       return _SelectionGeometry(
         corners: corners,
         topCenter: topCenter,
         rotateHandle: topCenter + normal * (24 / transform.scale),
+        edgeHandles: edgeHandles,
       );
     }
 
     final bounds = element.bounds.inflate(padding);
+    final edgeHandles = _canStretch(element)
+        ? <Offset>[
+            bounds.topCenter,
+            bounds.bottomCenter,
+            bounds.centerLeft,
+            bounds.centerRight,
+          ]
+        : const <Offset>[];
     return _SelectionGeometry(
       corners: [
         bounds.topLeft,
@@ -148,6 +198,7 @@ class SelectionRenderer {
       ],
       topCenter: Offset(bounds.center.dx, bounds.top),
       rotateHandle: Offset(bounds.center.dx, bounds.top - 24 / transform.scale),
+      edgeHandles: edgeHandles,
     );
   }
 
@@ -214,11 +265,13 @@ class _SelectionGeometry {
     required this.corners,
     required this.topCenter,
     required this.rotateHandle,
+    this.edgeHandles = const [],
   });
 
   final List<Offset> corners;
   final Offset topCenter;
   final Offset rotateHandle;
+  final List<Offset> edgeHandles;
 
   Path get path {
     return Path()

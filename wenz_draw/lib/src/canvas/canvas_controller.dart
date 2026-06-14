@@ -171,6 +171,14 @@ class CanvasController extends ChangeNotifier {
   }
 
   void applyElementUpdated(String id, CanvasElement element) {
+    _applyElementUpdated(id, element, notify: true);
+  }
+
+  /// Update an element's state without adding to the undo stack.
+  /// Set [notify] to false to skip [notifyListeners] (useful during text
+  /// editing to avoid rebuilding the entire canvas on every keystroke).
+  void _applyElementUpdated(String id, CanvasElement element,
+      {bool notify = true}) {
     _state = _state.copyWith(
       elements: _syncSnapBoundElements(
         _elementManager.update(_state.elements, id, element),
@@ -178,7 +186,9 @@ class CanvasController extends ChangeNotifier {
       ),
     );
     _spatialIndex.invalidate();
-    notifyListeners();
+    if (notify) {
+      notifyListeners();
+    }
   }
 
   List<CanvasElement> _syncSnapBoundElements(
@@ -1242,7 +1252,10 @@ class CanvasController extends ChangeNotifier {
     if (element is! TextElement || element.text == text) {
       return;
     }
-    updateElement(id, element.copyWith(text: text), record: false);
+    // Silent update: the TextField overlay already shows the text being
+    // typed, so there is no need to rebuild the entire canvas on every
+    // keystroke.  A single notifyListeners() will fire in endTextEditing().
+    _applyElementUpdated(id, element.copyWith(text: text), notify: false);
   }
 
   void endTextEditing({String? text, bool removeIfEmpty = true}) {
@@ -1253,10 +1266,6 @@ class CanvasController extends ChangeNotifier {
     if (text != null) {
       updateEditingText(text);
     }
-    final currentBeforeCommit = elementById(id);
-    final changedBeforeCommit =
-        currentBeforeCommit is TextElement &&
-        _editingTextOriginal?.text != currentBeforeCommit.text;
 
     _editingTextElementId = null;
     final original = _editingTextOriginal;
@@ -1275,10 +1284,6 @@ class CanvasController extends ChangeNotifier {
             description: 'Edit text',
           ),
         );
-        if (!changedBeforeCommit) {
-          notifyListeners();
-        }
-        return;
       }
     }
     notifyListeners();
@@ -1329,7 +1334,8 @@ class CanvasController extends ChangeNotifier {
         next.toJson().toString() == element.toJson().toString()) {
       return;
     }
-    updateElement(id, next, record: false);
+    // Silent update during editing to avoid canvas rebuild on every keystroke.
+    _applyElementUpdated(id, next, notify: false);
   }
 
   void endShapeLabelEditing({String? text}) {
@@ -1354,7 +1360,6 @@ class CanvasController extends ChangeNotifier {
           description: 'Edit shape label',
         ),
       );
-      return;
     }
     notifyListeners();
   }
