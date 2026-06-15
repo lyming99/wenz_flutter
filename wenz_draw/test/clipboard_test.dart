@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:wenz_draw/src/canvas/canvas_controller.dart';
 import 'package:wenz_draw/src/canvas/paint_style.dart';
 import 'package:wenz_draw/src/elements/rect_element.dart';
-import 'package:wenz_draw/src/elements/text_element.dart';
+import 'package:wenz_draw/src/elements/widget_element.dart';
 import 'package:wenz_draw/src/infinite_canvas/canvas_event.dart';
 import 'package:wenz_draw/src/infinite_canvas/canvas_transform.dart';
 import 'package:wenz_draw/src/layers/auto_layering.dart';
@@ -30,6 +30,26 @@ void main() {
       fillStyle: const PaintStyle(),
       zIndex: zIndex,
       groupId: groupId.isEmpty ? null : groupId,
+    );
+  }
+
+  CanvasWidgetElement makeMindmapNode(
+    String id, {
+    String? parentId,
+    required String text,
+    required Rect rect,
+  }) {
+    return CanvasWidgetElement(
+      id: id,
+      worldRect: rect,
+      widgetType: 'mindmap_node',
+      widgetData: {
+        'id': id,
+        'text': text,
+        'side': parentId == null ? 'center' : 'right',
+        'isRoot': parentId == null,
+        if (parentId != null) 'parentId': parentId,
+      },
     );
   }
 
@@ -70,6 +90,177 @@ void main() {
     });
 
     // ─── cutSelected ──────────────────────────────────────────────
+    test('copySelected + paste detaches copied widget hierarchy roots', () {
+      final controller = createController();
+      final originals = {'root', 'branch-a', 'branch-a-1', 'branch-b'};
+
+      controller
+        ..addElement(
+          makeMindmapNode(
+            'root',
+            text: 'Root',
+            rect: const Rect.fromLTWH(0, 0, 120, 44),
+          ),
+          record: false,
+        )
+        ..addElement(
+          makeMindmapNode(
+            'branch-a',
+            parentId: 'root',
+            text: 'A',
+            rect: const Rect.fromLTWH(160, 0, 96, 36),
+          ),
+          record: false,
+        )
+        ..addElement(
+          makeMindmapNode(
+            'branch-a-1',
+            parentId: 'branch-a',
+            text: 'A1',
+            rect: const Rect.fromLTWH(300, 0, 96, 36),
+          ),
+          record: false,
+        )
+        ..addElement(
+          makeMindmapNode(
+            'branch-b',
+            parentId: 'root',
+            text: 'B',
+            rect: const Rect.fromLTWH(160, 60, 96, 36),
+          ),
+          record: false,
+        );
+
+      controller.setSelection({'branch-a', 'branch-a-1', 'branch-b'});
+      controller.copySelected();
+      controller.paste();
+
+      final pasted = controller.elements
+          .where((element) => !originals.contains(element.id))
+          .cast<CanvasWidgetElement>()
+          .toList();
+      expect(pasted.length, 3);
+      expect(controller.selectedIds, pasted.map((e) => e.id).toSet());
+
+      for (final element in pasted) {
+        expect(originals, isNot(contains(element.id)));
+        expect(element.widgetData['id'], element.id);
+      }
+
+      final byText = {
+        for (final element in pasted) element.widgetData['text']: element,
+      };
+      final pastedBranchA = byText['A']!;
+      final pastedBranchA1 = byText['A1']!;
+      final pastedBranchB = byText['B']!;
+
+      expect(pastedBranchA.widgetData['parentId'], isNull);
+      expect(pastedBranchA.widgetData['isRoot'], isTrue);
+      expect(pastedBranchA.widgetData['side'], 'center');
+      expect(pastedBranchB.widgetData['parentId'], isNull);
+      expect(pastedBranchB.widgetData['isRoot'], isTrue);
+      expect(pastedBranchB.widgetData['side'], 'center');
+      expect(pastedBranchA1.widgetData['parentId'], pastedBranchA.id);
+    });
+
+    test(
+      'paste inserts copied widget hierarchy roots into single selected node',
+      () {
+        final controller = createController();
+        final originals = {'root', 'branch-a', 'branch-a-1'};
+
+        controller
+          ..addElement(
+            makeMindmapNode(
+              'root',
+              text: 'Root',
+              rect: const Rect.fromLTWH(0, 0, 120, 44),
+            ),
+            record: false,
+          )
+          ..addElement(
+            makeMindmapNode(
+              'branch-a',
+              parentId: 'root',
+              text: 'A',
+              rect: const Rect.fromLTWH(160, 0, 96, 36),
+            ),
+            record: false,
+          )
+          ..addElement(
+            makeMindmapNode(
+              'branch-a-1',
+              parentId: 'branch-a',
+              text: 'A1',
+              rect: const Rect.fromLTWH(300, 0, 96, 36),
+            ),
+            record: false,
+          );
+
+        controller.setSelection({'branch-a'});
+        controller.copySelected();
+        controller.setSelection({'root'});
+        controller.paste();
+
+        final pasted = controller.elements
+            .where((element) => !originals.contains(element.id))
+            .cast<CanvasWidgetElement>()
+            .toList();
+        expect(pasted.length, 2);
+
+        final byText = {
+          for (final element in pasted) element.widgetData['text']: element,
+        };
+        final pastedBranchA = byText['A']!;
+        final pastedBranchA1 = byText['A1']!;
+
+        expect(pastedBranchA.widgetData['id'], pastedBranchA.id);
+        expect(pastedBranchA.widgetData['parentId'], 'root');
+        expect(pastedBranchA.widgetData['isRoot'], isFalse);
+        expect(pastedBranchA.widgetData['side'], 'right');
+        expect(pastedBranchA1.widgetData['id'], pastedBranchA1.id);
+        expect(pastedBranchA1.widgetData['parentId'], pastedBranchA.id);
+      },
+    );
+
+    test('paste does not use unchanged copied selection as widget parent', () {
+      final controller = createController();
+      final originals = {'root', 'branch-a'};
+
+      controller
+        ..addElement(
+          makeMindmapNode(
+            'root',
+            text: 'Root',
+            rect: const Rect.fromLTWH(0, 0, 120, 44),
+          ),
+          record: false,
+        )
+        ..addElement(
+          makeMindmapNode(
+            'branch-a',
+            parentId: 'root',
+            text: 'A',
+            rect: const Rect.fromLTWH(160, 0, 96, 36),
+          ),
+          record: false,
+        );
+
+      controller.setSelection({'branch-a'});
+      controller.copySelected();
+      controller.paste();
+
+      final pasted = controller.elements
+          .where((element) => !originals.contains(element.id))
+          .cast<CanvasWidgetElement>()
+          .single;
+
+      expect(pasted.widgetData['id'], pasted.id);
+      expect(pasted.widgetData['parentId'], isNull);
+      expect(pasted.widgetData['isRoot'], isTrue);
+      expect(pasted.widgetData['side'], 'center');
+    });
+
     test('cutSelected removes elements and clipboard retains them', () {
       final controller = createController();
 

@@ -11,6 +11,7 @@ import '../elements/line_element.dart';
 import '../elements/polyline_element.dart';
 import '../elements/rect_element.dart';
 import '../elements/text_element.dart';
+import '../elements/widget_element.dart';
 import '../history/commands/add_element_command.dart';
 import '../history/commands/add_layer_command.dart';
 import '../history/commands/batch_command.dart';
@@ -707,6 +708,7 @@ class CanvasController extends ChangeNotifier {
 
   // ─── Clipboard ────────────────────────────────────────────────
   List<Map<String, dynamic>> _clipboard = const [];
+  Set<String> _clipboardSourceSelection = const {};
 
   /// Copies selected elements to the internal clipboard.
   void copySelected() {
@@ -714,8 +716,10 @@ class CanvasController extends ChangeNotifier {
       return;
     }
     _clipboard = [
-      for (final element in selectedElements) element.toJson(),
+      for (final element in _selectedElementsWithWidgetDescendants())
+        element.toJson(),
     ];
+    _clipboardSourceSelection = Set<String>.unmodifiable(selectedIds);
   }
 
   /// Cuts selected elements: copies them then removes them.
@@ -735,11 +739,11 @@ class CanvasController extends ChangeNotifier {
     final offset = const Offset(20, 20);
     final commands = <AddElementCommand>[];
     final newIds = <String>{};
-    for (final json in _clipboard) {
-      final newId = UuidGenerator.create();
-      final patched = Map<String, dynamic>.from(json)
-        ..['id'] = newId;
-      final element = CanvasSerializer.elementFromJson(patched);
+    final clones = _cloneSerializedElements(
+      _clipboard,
+      pasteParent: _singleSelectedWidgetPasteParent(),
+    );
+    for (final element in clones) {
       final translated = element.translate(offset);
       final prepared = _prepareElementForInsert(translated);
       commands.add(AddElementCommand(prepared));
@@ -765,12 +769,13 @@ class CanvasController extends ChangeNotifier {
     final offset = const Offset(20, 20);
     final commands = <AddElementCommand>[];
     final newIds = <String>{};
-    for (final element in selectedElements) {
-      final newId = UuidGenerator.create();
-      final patched = Map<String, dynamic>.from(element.toJson())
-        ..['id'] = newId;
-      final clone = CanvasSerializer.elementFromJson(patched);
-      final translated = clone.translate(offset);
+    final serialized = [
+      for (final element in _selectedElementsWithWidgetDescendants())
+        element.toJson(),
+    ];
+    final clones = _cloneSerializedElements(serialized);
+    for (final element in clones) {
+      final translated = element.translate(offset);
       final prepared = _prepareElementForInsert(translated);
       commands.add(AddElementCommand(prepared));
       newIds.add(prepared.id);
@@ -783,6 +788,141 @@ class CanvasController extends ChangeNotifier {
       this,
     );
     setSelection(newIds);
+  }
+
+  List<CanvasElement> _selectedElementsWithWidgetDescendants() {
+    final selected = selectedElements;
+    if (selected.isEmpty) return const [];
+
+    final childrenByParentDataId = <String, List<CanvasElement>>{};
+    for (final element in elements) {
+      if (element is! CanvasWidgetElement) continue;
+      final parentId = element.widgetData['parentId'];
+      if (parentId is! String || parentId.isEmpty) continue;
+      (childrenByParentDataId[parentId] ??= <CanvasElement>[]).add(element);
+    }
+
+    final result = <CanvasElement>[];
+    final visited = <String>{};
+
+    void addWithDescendants(CanvasElement element) {
+      if (!visited.add(element.id)) return;
+      result.add(element);
+      if (element is! CanvasWidgetElement) return;
+      final dataId = _widgetDataId(element) ?? element.id;
+      for (final child
+          in childrenByParentDataId[dataId] ?? const <CanvasElement>[]) {
+        addWithDescendants(child);
+      }
+    }
+
+    for (final element in selected) {
+      addWithDescendants(element);
+    }
+    return result;
+  }
+
+  List<CanvasElement> _cloneSerializedElements(
+    List<Map<String, dynamic>> serialized, {
+    _WidgetPasteParent? pasteParent,
+  }) {
+    final idMap = <String, String>{};
+    for (final json in serialized) {
+      final newId = UuidGenerator.create();
+      final oldElementId = json['id'];
+      if (oldElementId is String) {
+        idMap[oldElementId] = newId;
+      }
+      final dataId = _widgetDataIdFromJson(json);
+      if (dataId != null) {
+        idMap[dataId] = newId;
+      }
+    }
+
+    return [
+      for (final json in serialized)
+        CanvasSerializer.elementFromJson(
+          _remapClonedElementJson(json, idMap, pasteParent: pasteParent),
+        ),
+    ];
+  }
+
+  Map<String, dynamic> _remapClonedElementJson(
+    Map<String, dynamic> json,
+    Map<String, String> idMap, {
+    _WidgetPasteParent? pasteParent,
+  }) {
+    final patched = Map<String, dynamic>.from(json);
+    final oldElementId = json['id'];
+    final newElementId = oldElementId is String
+        ? idMap[oldElementId] ?? UuidGenerator.create()
+        : UuidGenerator.create();
+    patched['id'] = newElementId;
+
+    final widgetData = json['widgetData'];
+    if (widgetData is Map) {
+      final data = Map<String, dynamic>.from(widgetData);
+      if (data['id'] is String) {
+        data['id'] = newElementId;
+      }
+      final parentId = data['parentId'];
+      if (parentId is String && idMap.containsKey(parentId)) {
+        data['parentId'] = idMap[parentId];
+      } else if (_isWidgetHierarchyData(data)) {
+        if (pasteParent == null) {
+          data
+            ..remove('parentId')
+            ..['isRoot'] = true
+            ..['side'] = 'center';
+        } else {
+          data
+            ..['parentId'] = pasteParent.dataId
+            ..['isRoot'] = false
+            ..['side'] = pasteParent.childSide
+            ..remove('themeId')
+            ..remove('collapsedRight')
+            ..remove('collapsedLeft');
+        }
+      }
+      patched['widgetData'] = data;
+    }
+    return patched;
+  }
+
+  _WidgetPasteParent? _singleSelectedWidgetPasteParent() {
+    if (selectedIds.length != 1) return null;
+    if (_setEquals(selectedIds, _clipboardSourceSelection)) return null;
+    final element = elementById(selectedIds.single);
+    if (element is! CanvasWidgetElement) return null;
+    final dataId = _widgetDataId(element) ?? element.id;
+    final side = element.widgetData['side'];
+    return _WidgetPasteParent(
+      dataId: dataId,
+      childSide: side == 'left' ? 'left' : 'right',
+    );
+  }
+
+  bool _isWidgetHierarchyData(Map<String, dynamic> data) {
+    return data['id'] is String &&
+        (data.containsKey('parentId') ||
+            data.containsKey('isRoot') ||
+            data.containsKey('side'));
+  }
+
+  String? _widgetDataId(CanvasWidgetElement element) {
+    final value = element.widgetData['id'];
+    return value is String && value.isNotEmpty ? value : null;
+  }
+
+  String? _widgetDataIdFromJson(Map<String, dynamic> json) {
+    final widgetData = json['widgetData'];
+    if (widgetData is! Map) return null;
+    final value = widgetData['id'];
+    return value is String && value.isNotEmpty ? value : null;
+  }
+
+  bool _setEquals(Set<String> a, Set<String> b) {
+    return a.length == b.length && a.every(b.contains);
   }
 
   // ─── Z-Order ─────────────────────────────────────────────────
@@ -1505,4 +1645,11 @@ class CanvasController extends ChangeNotifier {
     layerManager.removeListener(notifyListeners);
     super.dispose();
   }
+}
+
+class _WidgetPasteParent {
+  const _WidgetPasteParent({required this.dataId, required this.childSide});
+
+  final String dataId;
+  final String childSide;
 }

@@ -1,7 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/widgets.dart';
 import 'package:wenz_draw/wenz_draw.dart';
 
 import 'mindmap_actions.dart';
+import 'mindmap_layout_engine.dart';
+import 'mindmap_node_data.dart';
+import 'mindmap_tree.dart';
 
 /// Keeps mind map trees visually consistent:
 ///   1. Expands the selection to the whole tree when a root is selected.
@@ -26,6 +31,8 @@ class MindmapSyncController {
   late final MindmapActions _actions;
 
   bool _applying = false;
+  bool _relayoutScheduled = false;
+  late String _topologySignature = _mindmapTopologySignature();
 
   void dispose() {
     _actions.dragSession.removeListener(_onCanvasChanged);
@@ -36,6 +43,7 @@ class MindmapSyncController {
   void _onCanvasChanged() {
     if (_applying) return;
     _pinDraggedNode();
+    _scheduleRelayoutIfTopologyChanged();
   }
 
   /// If a drag is active, snap the dragged node to follow the pointer
@@ -77,4 +85,74 @@ class MindmapSyncController {
   }
 
   // ── Selection expansion ────────────────────────────────────────────
+  void _scheduleRelayoutIfTopologyChanged() {
+    if (_actions.dragSession.isActive) return;
+    final next = _mindmapTopologySignature();
+    if (next == _topologySignature) return;
+    _topologySignature = next;
+    if (_relayoutScheduled) return;
+    _relayoutScheduled = true;
+    Future.microtask(() {
+      _relayoutScheduled = false;
+      if (_applying || _actions.dragSession.isActive) return;
+      _relayoutAllMindmaps();
+      _topologySignature = _mindmapTopologySignature();
+    });
+  }
+
+  void _relayoutAllMindmaps() {
+    final trees = MindmapTreeBuilder.buildAll(_canvas.elements);
+    if (trees.isEmpty) return;
+
+    _applying = true;
+    try {
+      for (final tree in trees) {
+        final result = MindmapLayoutEngine.layout(tree);
+        final visibleIds = result.rects.keys.toSet();
+
+        for (final entry in result.rects.entries) {
+          final element = _canvas.elementById(entry.key);
+          if (element is! CanvasWidgetElement) continue;
+          final next = element.copyWith(worldRect: entry.value, visible: true);
+          if (next.worldRect == element.worldRect && element.visible) {
+            continue;
+          }
+          _canvas.applyElementUpdated(element.id, next);
+        }
+
+        for (final id in tree.allNodes.keys) {
+          if (visibleIds.contains(id)) continue;
+          final element = _canvas.elementById(id);
+          if (element is! CanvasWidgetElement || !element.visible) continue;
+          _canvas.applyElementUpdated(id, element.copyWith(visible: false));
+        }
+      }
+    } finally {
+      _applying = false;
+    }
+  }
+
+  String _mindmapTopologySignature() {
+    final parts = <String>[];
+    for (final element in _canvas.elements) {
+      if (element is! CanvasWidgetElement) continue;
+      if (element.widgetType != kMindmapNodeWidgetType) continue;
+      final data = MindmapNodeData.fromWidgetData(element.widgetData);
+      parts.add(
+        [
+          element.id,
+          data.id,
+          data.parentId ?? '',
+          data.side.toValueString(),
+          data.isRoot,
+          data.isCollapsed,
+          data.collapsedLeft,
+          data.collapsedRight,
+          data.order,
+        ].join(':'),
+      );
+    }
+    parts.sort();
+    return parts.join('|');
+  }
 }
