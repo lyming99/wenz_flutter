@@ -3,7 +3,11 @@ import 'package:flutter/widgets.dart';
 import 'mindmap_node.dart';
 
 /// The kind of drop target the drag is currently hovering over.
-enum MindmapDropTargetKind { siblingBefore, siblingAfter, parent }
+///
+/// - [parent]: reparent the dragged node under [MindmapDropTarget.nodeId].
+/// - [detached]: drop into empty space — promote the dragged node to a new
+///   independent tree root (no parent, no connection line).
+enum MindmapDropTargetKind { parent, detached }
 
 /// A candidate drop target computed during a drag.
 class MindmapDropTarget {
@@ -11,30 +15,52 @@ class MindmapDropTarget {
     required this.kind,
     required this.nodeId,
     required this.reason,
+    this.parentId,
+    this.side,
+    this.insertIndex,
+    this.detachedCenter,
   });
 
   /// What role [nodeId] would play if dropped here.
+  ///
+  /// For [MindmapDropTargetKind.detached], [nodeId] is the dragged node's own
+  /// id (the node is being promoted to an independent root, so there is no
+  /// target node to reference).
   final MindmapDropTargetKind kind;
 
   /// The id of the node being targeted (a sibling to insert next to, or a
-  /// prospective new parent).
+  /// prospective new parent). For [MindmapDropTargetKind.detached] this is the
+  /// dragged node's own id.
   final String nodeId;
+
+  /// Owning parent after the drop. Null for detached drops.
+  final String? parentId;
+
+  /// Side under [parentId] after the drop. Root parents use left/right;
+  /// non-root parents inherit their own side.
+  final MindmapNodeSide? side;
+
+  /// Zero-based position among the children of [parentId] on [side].
+  final int? insertIndex;
+
+  /// Final root center for detached drops, already adjusted to an open area.
+  final Offset? detachedCenter;
 
   /// Human-readable reason for debugging.
   final String reason;
 
   @override
-  String toString() => 'DropTarget($kind, $nodeId, $reason)';
+  String toString() {
+    return 'DropTarget($kind, node=$nodeId, parent=$parentId, '
+        'index=$insertIndex, reason=$reason)';
+  }
 }
 
 /// A preview of where the dragged node will land if dropped on the current
 /// target — the predicted world rect + the connection line that would link
 /// it to its (new) parent.
 class MindmapDropPreview {
-  const MindmapDropPreview({
-    required this.rect,
-    required this.connection,
-  });
+  const MindmapDropPreview({required this.rect, required this.connection});
 
   /// Predicted world rect of the dragged node after layout.
   final Rect rect;
@@ -109,6 +135,22 @@ class MindmapDragSession extends ChangeNotifier {
     _originalSide = originalSide;
     _target = null;
     _preview = null;
+    notifyListeners();
+  }
+
+  /// Update only the pointer's world position (no target recompute). The sync
+  /// controller listens to this via [notifyListeners] to snap the node to the
+  /// pointer; target/preview are refreshed separately by [updateTarget].
+  void updateWorld(Offset worldPosition) {
+    _worldPosition = worldPosition;
+    notifyListeners();
+  }
+
+  /// Update the computed [target] and predicted landing [preview], keeping the
+  /// current world position.
+  void updateTarget(MindmapDropTarget? target, MindmapDropPreview? preview) {
+    _target = target;
+    _preview = preview;
     notifyListeners();
   }
 

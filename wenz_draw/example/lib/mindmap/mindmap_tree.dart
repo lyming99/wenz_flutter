@@ -133,6 +133,13 @@ class MindmapTreeBuilder {
       }
     }
 
+    // Order children by their `order` field (ascending). This makes `order`
+    // the single source of truth for sibling sequence — the element insertion
+    // order is *not* used for layout, so reorders must go through `order`.
+    for (final kids in byParent.values) {
+      kids.sort((a, b) => a.order.compareTo(b.order));
+    }
+
     return [
       for (final rootData in roots) _buildTree(rootData, parsed, byParent),
     ];

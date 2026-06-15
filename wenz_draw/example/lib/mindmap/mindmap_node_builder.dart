@@ -119,7 +119,7 @@ class _MindmapNodeViewState extends State<_MindmapNodeView> {
     if (mounted) setState(() {});
   }
 
-  /// Whether this node is currently being dragged (→ render at 0.4 opacity).
+  /// Whether this node is currently being dragged (→ render dimmed).
   bool get _isBeingDragged =>
       _dragSession?.isActive == true &&
       _dragSession!.draggedNodeId == widget.element.id;
@@ -267,59 +267,57 @@ class _MindmapNodeViewState extends State<_MindmapNodeView> {
     final borderRadius = isRoot ? 24.0 : 8.0;
 
     return Opacity(
-      // Dim the node slightly while it is being dragged (it follows the
-      // pointer via the select tool; a ghost at the original position is
-      // rendered by the connection layer).
+      // Dim the node slightly while it is being dragged.
       opacity: _isBeingDragged ? 0.6 : 1.0,
       child: GestureDetector(
         behavior: HitTestBehavior.translucent,
-        onTap: () =>
-            widget.canvas.canvasController.setSelection({widget.element.id}),
+        onTap: () => widget.canvas.canvasController
+            .setSelection({widget.element.id}),
         onDoubleTap: _startEditing,
         // Right-click opens the context menu.
         onSecondaryTapDown: _onSecondaryTapDown,
-      // FittedBox scales the node content to fit the element's worldRect
-      // (120×40 for regular nodes, 140×48 for root) so text never overflows
-      // the laid-out footprint.
-      child: FittedBox(
-        fit: BoxFit.scaleDown,
-        child: Container(
-          padding: EdgeInsets.symmetric(
-            horizontal: isRoot ? 16 : 12,
-            vertical: isRoot ? 10 : 6,
-          ),
-          decoration: BoxDecoration(
-            color: bgColor,
-            borderRadius: BorderRadius.circular(borderRadius),
-            border: Border.all(
-              color: selected
-                  ? const Color(0xFF2563EB)
-                  : bgColor.computeLuminance() > 0.5
-                      ? const Color(0xFFD1D5DB)
-                      : const Color(0x33FFFFFF),
-              width: selected ? 2.5 : 1,
+        // FittedBox scales the node content to fit the element's worldRect
+        // (120×40 for regular nodes, 140×48 for root) so text never overflows
+        // the laid-out footprint.
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: isRoot ? 16 : 12,
+              vertical: isRoot ? 10 : 6,
             ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.08),
-                blurRadius: 4,
-                offset: const Offset(0, 2),
+            decoration: BoxDecoration(
+              color: bgColor,
+              borderRadius: BorderRadius.circular(borderRadius),
+              border: Border.all(
+                color: selected
+                    ? const Color(0xFF2563EB)
+                    : bgColor.computeLuminance() > 0.5
+                        ? const Color(0xFFD1D5DB)
+                        : const Color(0x33FFFFFF),
+                width: selected ? 2.5 : 1,
               ),
-            ],
-          ),
-          child: Text(
-            widget.data.text.isEmpty ? '...' : widget.data.text,
-            style: TextStyle(
-              color: txtColor,
-              fontSize: isRoot ? 16 : 14,
-              fontWeight: isRoot ? FontWeight.w700 : FontWeight.w500,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.08),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
-            overflow: TextOverflow.ellipsis,
-            maxLines: 2,
-            softWrap: true,
+            child: Text(
+              widget.data.text.isEmpty ? '...' : widget.data.text,
+              style: TextStyle(
+                color: txtColor,
+                fontSize: isRoot ? 16 : 14,
+                fontWeight: isRoot ? FontWeight.w700 : FontWeight.w500,
+              ),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 2,
+              softWrap: true,
+            ),
           ),
         ),
-      ),
       ),
     );
   }

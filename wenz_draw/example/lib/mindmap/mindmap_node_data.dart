@@ -30,6 +30,7 @@ class MindmapNodeData {
     this.collapsedRight = false,
     this.collapsedLeft = false,
     this.isRoot = false,
+    this.order = 0,
     this.color = 0xFFE3F2FD,
     this.textColor = 0xFF1F2937,
   });
@@ -57,6 +58,10 @@ class MindmapNodeData {
 
   /// Whether this node is the root of its tree.
   final bool isRoot;
+
+  /// Sort order among siblings (same parent). Lower = higher/earlier.
+  /// Used by [MindmapTreeBuilder] to order children for layout.
+  final int order;
 
   /// Background color (ARGB32 int).
   final int color;
@@ -89,6 +94,7 @@ class MindmapNodeData {
       collapsedRight: data['collapsedRight'] as bool? ?? false,
       collapsedLeft: data['collapsedLeft'] as bool? ?? false,
       isRoot: data['isRoot'] as bool? ?? false,
+      order: data['order'] as int? ?? 0,
       color: _parseIntColor(data['color'], 0xFFE3F2FD),
       textColor: _parseIntColor(data['textColor'], 0xFF1F2937),
     );
@@ -105,6 +111,7 @@ class MindmapNodeData {
       if (isRoot) 'collapsedRight': collapsedRight,
       if (isRoot) 'collapsedLeft': collapsedLeft,
       'isRoot': isRoot,
+      'order': order,
       'color': color,
       'textColor': textColor,
     };
@@ -119,6 +126,7 @@ class MindmapNodeData {
     bool? collapsedRight,
     bool? collapsedLeft,
     bool? isRoot,
+    int? order,
     int? color,
     int? textColor,
   }) {
@@ -133,6 +141,7 @@ class MindmapNodeData {
       collapsedRight: collapsedRight ?? this.collapsedRight,
       collapsedLeft: collapsedLeft ?? this.collapsedLeft,
       isRoot: isRoot ?? this.isRoot,
+      order: order ?? this.order,
       color: color ?? this.color,
       textColor: textColor ?? this.textColor,
     );

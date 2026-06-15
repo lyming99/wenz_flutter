@@ -627,6 +627,9 @@ class SelectTool extends CanvasTool {
   ) {
     final tolerance = 10 / event.transform.scale;
     for (final element in controller.selectedElements.reversed) {
+      // Widget elements (e.g. mind map nodes) keep a fixed world size — no
+      // resize/scale handles at all.
+      if (element is CanvasWidgetElement) continue;
       final rotAngle = _rotationOf(element);
       final center = _centerOf(element);
       final localRect = _localRectPadded(element, 0);

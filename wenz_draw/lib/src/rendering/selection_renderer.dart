@@ -92,6 +92,8 @@ class SelectionRenderer {
         CurveElement e => [e.start, e.end, e.control],
         PolylineElement e => e.points,
         ArrowElement e => [e.start, e.end],
+        // Widget elements can't be scaled — skip corner handles for them.
+        CanvasWidgetElement _ => const <Offset>[],
         _ => selectionGeometry.corners,
       };
       for (final point in handlePoints) {
