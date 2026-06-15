@@ -27,12 +27,14 @@ class MindmapConnectionLayer extends StatefulWidget {
     super.key,
     required this.canvasController,
     required this.viewController,
+    this.rootId,
     this.connectionColor = const Color(0xFF94A3B8),
     this.strokeWidth = 2.5,
   });
 
   final CanvasController canvasController;
   final InfiniteCanvasController viewController;
+  final String? rootId;
 
   final Color connectionColor;
   final double strokeWidth;
@@ -91,7 +93,9 @@ class _MindmapConnectionLayerState extends State<MindmapConnectionLayer> {
     final transform = widget.viewController.transform;
     final scale = transform.scale;
 
-    final trees = actions.trees;
+    final trees = actions.trees
+        .where((tree) => widget.rootId == null || tree.root.id == widget.rootId)
+        .toList(growable: false);
     if (trees.isEmpty) return const SizedBox.shrink();
 
     // Connections use fixed world units — same as node elements — so they
@@ -122,26 +126,50 @@ class _MindmapConnectionLayerState extends State<MindmapConnectionLayer> {
     // Convert world → screen for merge-point buttons positioned in screen space.
     Offset worldToScreen(Offset world) => world * scale + transform.offset;
 
-    return Stack(children: connectionPainters)
-        .stackWithMergeButtons(
-          mergePoints: allMergePoints,
-          scale: scale,
-          worldToScreen: worldToScreen,
-          viewController: widget.viewController,
-          onTap: (parentId, side) => actions.toggleCollapse(parentId, side),
-        )
-        .stackWithDragPreview(
-          dragSession: actions.dragSession,
-          scale: scale,
-          worldToScreen: worldToScreen,
-          canvasController: widget.canvasController,
-        )
-        .stackWithEditingOverlay(
-          actions: actions,
-          scale: scale,
-          worldToScreen: worldToScreen,
-          canvasController: widget.canvasController,
-        );
+    var content = Stack(children: connectionPainters).stackWithMergeButtons(
+      mergePoints: allMergePoints,
+      scale: scale,
+      worldToScreen: worldToScreen,
+      viewController: widget.viewController,
+      onTap: (parentId, side) => actions.toggleCollapse(parentId, side),
+    );
+
+    if (_containsAnyNode(trees, actions.dragSession.movingNodeIds)) {
+      content = content.stackWithDragPreview(
+        dragSession: actions.dragSession,
+        scale: scale,
+        worldToScreen: worldToScreen,
+        canvasController: widget.canvasController,
+      );
+    }
+
+    if (_containsNode(trees, actions.editingNodeId.value)) {
+      content = content.stackWithEditingOverlay(
+        actions: actions,
+        scale: scale,
+        worldToScreen: worldToScreen,
+        canvasController: widget.canvasController,
+      );
+    }
+
+    return content;
+  }
+
+  bool _containsAnyNode(List<MindmapTree> trees, Iterable<String> nodeIds) {
+    if (widget.rootId == null) return true;
+    for (final nodeId in nodeIds) {
+      if (_containsNode(trees, nodeId)) return true;
+    }
+    return false;
+  }
+
+  bool _containsNode(List<MindmapTree> trees, String? nodeId) {
+    if (widget.rootId == null) return true;
+    if (nodeId == null) return false;
+    for (final tree in trees) {
+      if (tree.allNodes.containsKey(nodeId)) return true;
+    }
+    return false;
   }
 }
 

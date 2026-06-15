@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart' hide ColorSwatch;
+import 'package:url_launcher/url_launcher.dart';
 import 'package:wenz_draw/wenz_draw.dart';
 
 import '../../components/color_picker/color_picker_dialog.dart';
@@ -438,6 +439,22 @@ class _MindmapNodeStyleEditor extends StatelessWidget {
       children: [
         const FieldLabel('节点样式'),
         const SizedBox(height: 8),
+        _MindmapTodoControl(
+          data: data,
+          enabled: actions != null,
+          onEnabledChanged: (value) =>
+              actions?.setNodeTodo(nodeId, enabled: value),
+          onDoneChanged: data.todoEnabled
+              ? (value) => actions?.setNodeTodo(nodeId, done: value)
+              : null,
+        ),
+        const SizedBox(height: 12),
+        _MindmapLinkControl(
+          data: data,
+          enabled: actions != null,
+          onChanged: (url) => actions?.setNodeLink(nodeId, url),
+        ),
+        const SizedBox(height: 12),
         _MindmapStyleColorControl(
           label: '底色',
           color: style.fillColor,
@@ -481,6 +498,206 @@ class _MindmapNodeStyleEditor extends StatelessWidget {
         ),
       ],
     );
+  }
+}
+
+class _MindmapTodoControl extends StatelessWidget {
+  const _MindmapTodoControl({
+    required this.data,
+    required this.enabled,
+    required this.onEnabledChanged,
+    required this.onDoneChanged,
+  });
+
+  final MindmapNodeData data;
+  final bool enabled;
+  final ValueChanged<bool> onEnabledChanged;
+  final ValueChanged<bool>? onDoneChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: UiColors.panelSoft,
+      shape: RoundedRectangleBorder(
+        side: const BorderSide(color: UiColors.line),
+        borderRadius: BorderRadius.circular(7),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                const FieldLabel('TODO'),
+                const Spacer(),
+                Switch(
+                  value: data.todoEnabled,
+                  onChanged: enabled ? onEnabledChanged : null,
+                ),
+              ],
+            ),
+            if (data.todoEnabled) ...[
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  Checkbox(
+                    value: data.todoDone,
+                    visualDensity: VisualDensity.compact,
+                    onChanged: enabled && onDoneChanged != null
+                        ? (value) => onDoneChanged!(value ?? false)
+                        : null,
+                  ),
+                  const SizedBox(width: 4),
+                  const Text(
+                    '已完成',
+                    style: TextStyle(fontSize: 13, color: UiColors.text),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MindmapLinkControl extends StatelessWidget {
+  const _MindmapLinkControl({
+    required this.data,
+    required this.enabled,
+    required this.onChanged,
+  });
+
+  final MindmapNodeData data;
+  final bool enabled;
+  final ValueChanged<String?> onChanged;
+
+  bool get _hasLink => data.linkUrl != null && data.linkUrl!.isNotEmpty;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: UiColors.panelSoft,
+      shape: RoundedRectangleBorder(
+        side: const BorderSide(color: UiColors.line),
+        borderRadius: BorderRadius.circular(7),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const FieldLabel('链接'),
+                const Spacer(),
+                TextButton(
+                  onPressed: enabled ? () => _editLink(context) : null,
+                  style: TextButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.symmetric(horizontal: 6),
+                    minimumSize: const Size(0, 28),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: Text(_hasLink ? '编辑' : '插入'),
+                ),
+              ],
+            ),
+            if (_hasLink) ...[
+              const SizedBox(height: 6),
+              Text(
+                data.linkUrl!,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 12, color: UiColors.muted),
+              ),
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: enabled ? () => _openLink(context) : null,
+                    icon: const Icon(Icons.open_in_new, size: 14),
+                    label: const Text('打开'),
+                  ),
+                  const SizedBox(width: 8),
+                  TextButton(
+                    onPressed: enabled ? () => onChanged(null) : null,
+                    child: const Text('清除'),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _editLink(BuildContext context) {
+    final controller = TextEditingController(text: data.linkUrl ?? '');
+    showDialog<void>(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: Text(_hasLink ? '编辑链接' : '插入链接'),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            keyboardType: TextInputType.url,
+            decoration: const InputDecoration(
+              labelText: '链接地址',
+              hintText: 'https://example.com',
+            ),
+            onSubmitted: (_) {
+              onChanged(controller.text);
+              Navigator.pop(ctx);
+            },
+          ),
+          actions: [
+            if (_hasLink)
+              TextButton(
+                onPressed: () {
+                  onChanged(null);
+                  Navigator.pop(ctx);
+                },
+                child: const Text('清除'),
+              ),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('取消'),
+            ),
+            FilledButton(
+              onPressed: () {
+                onChanged(controller.text);
+                Navigator.pop(ctx);
+              },
+              child: const Text('保存'),
+            ),
+          ],
+        );
+      },
+    ).whenComplete(controller.dispose);
+  }
+
+  Future<void> _openLink(BuildContext context) async {
+    final uri = _uriFromLink(data.linkUrl);
+    if (uri == null) return;
+    final opened = await launchUrl(uri);
+    if (!opened && context.mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('无法打开链接')));
+    }
+  }
+
+  Uri? _uriFromLink(String? url) {
+    final text = url?.trim();
+    if (text == null || text.isEmpty) return null;
+    final parsed = Uri.tryParse(text);
+    if (parsed == null) return null;
+    if (parsed.hasScheme) return parsed;
+    return Uri.tryParse('https://$text');
   }
 }
 

@@ -30,11 +30,13 @@ class InfiniteCanvasWidget extends StatefulWidget {
     required this.controller,
     this.config = const InfiniteCanvasConfig(),
     this.clipBehavior = Clip.hardEdge,
+    this.elementOverlayBuilder,
   });
 
   final InfiniteCanvasController controller;
   final InfiniteCanvasConfig config;
   final Clip clipBehavior;
+  final CanvasElementOverlayBuilder? elementOverlayBuilder;
 
   @override
   State<InfiniteCanvasWidget> createState() => _InfiniteCanvasWidgetState();
@@ -112,6 +114,7 @@ class _InfiniteCanvasWidgetState extends State<InfiniteCanvasWidget> {
                         CanvasWidgetLayer(
                           controller: widget.controller,
                           config: widget.config,
+                          elementOverlayBuilder: widget.elementOverlayBuilder,
                         ),
                         _TextEditingOverlay(
                           key: ValueKey(
@@ -135,7 +138,8 @@ class _InfiniteCanvasWidgetState extends State<InfiniteCanvasWidget> {
     // If we are currently editing text, do not steal focus from the
     // TextField overlay — that would prematurely commit the edit.
     final canvasController = widget.controller.canvasController;
-    final isEditing = canvasController.editingTextElementId != null ||
+    final isEditing =
+        canvasController.editingTextElementId != null ||
         canvasController.editingShapeLabelElementId != null;
     if (!isEditing) {
       _focusNode.requestFocus();

@@ -8,6 +8,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  url_launcher: ^6.3.2
   wenz_draw:
     path: ..
 

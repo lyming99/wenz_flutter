@@ -19,15 +19,20 @@ import '../tools/select_tool.dart';
 import 'widget_element_builder.dart';
 import 'widget_element_registry.dart';
 
+typedef CanvasElementOverlayBuilder =
+    Widget? Function(BuildContext context, CanvasElement element);
+
 class CanvasWidgetLayer extends StatefulWidget {
   const CanvasWidgetLayer({
     super.key,
     required this.controller,
     this.config = const InfiniteCanvasConfig(),
+    this.elementOverlayBuilder,
   });
 
   final InfiniteCanvasController controller;
   final InfiniteCanvasConfig config;
+  final CanvasElementOverlayBuilder? elementOverlayBuilder;
 
   @override
   State<CanvasWidgetLayer> createState() => _CanvasWidgetLayerState();
@@ -110,6 +115,7 @@ class _CanvasWidgetLayerState extends State<CanvasWidgetLayer> {
             elements: layerElements,
             snapshots: _snapshots,
             liveOverlayIds: liveOverlayIds,
+            elementOverlayBuilder: widget.elementOverlayBuilder,
           ),
         ),
       );
@@ -125,6 +131,7 @@ class _CanvasWidgetLayerState extends State<CanvasWidgetLayer> {
             layer: null,
             snapshots: _snapshots,
             liveOverlayIds: liveOverlayIds,
+            elementOverlayBuilder: widget.elementOverlayBuilder,
           ),
         ),
       );
@@ -295,6 +302,7 @@ class _LayerMixedStack extends StatelessWidget {
     required this.elements,
     required this.snapshots,
     required this.liveOverlayIds,
+    required this.elementOverlayBuilder,
   });
 
   final InfiniteCanvasController controller;
@@ -303,6 +311,7 @@ class _LayerMixedStack extends StatelessWidget {
   final List<CanvasElement> elements;
   final Map<String, ui.Image> snapshots;
   final Set<String> liveOverlayIds;
+  final CanvasElementOverlayBuilder? elementOverlayBuilder;
 
   @override
   Widget build(BuildContext context) {
@@ -314,6 +323,7 @@ class _LayerMixedStack extends StatelessWidget {
       elements: elements,
       snapshots: snapshots,
       liveOverlayIds: liveOverlayIds,
+      elementOverlayBuilder: elementOverlayBuilder,
     );
 
     return Opacity(opacity: opacity, child: child);
@@ -328,6 +338,7 @@ class _MixedElementStack extends StatelessWidget {
     required this.layer,
     required this.snapshots,
     required this.liveOverlayIds,
+    required this.elementOverlayBuilder,
   });
 
   final InfiniteCanvasController controller;
@@ -336,6 +347,7 @@ class _MixedElementStack extends StatelessWidget {
   final CanvasLayer? layer;
   final Map<String, ui.Image> snapshots;
   final Set<String> liveOverlayIds;
+  final CanvasElementOverlayBuilder? elementOverlayBuilder;
 
   @override
   Widget build(BuildContext context) {
@@ -363,6 +375,11 @@ class _MixedElementStack extends StatelessWidget {
     }
 
     for (final element in elements) {
+      final overlay = elementOverlayBuilder?.call(context, element);
+      if (overlay != null) {
+        flushPaintBatch();
+        children.add(overlay);
+      }
       if (element is CanvasWidgetElement) {
         final layout = CanvasWidgetLayout.resolve(
           element,

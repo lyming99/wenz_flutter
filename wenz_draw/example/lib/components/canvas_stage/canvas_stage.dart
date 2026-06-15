@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:wenz_draw/wenz_draw.dart';
 
 import '../../mindmap/mindmap_connection_layer.dart';
+import '../../mindmap/mindmap_node_data.dart';
+import '../../mindmap/mindmap_tree.dart';
 import '../../theme/ui_colors.dart';
 import '../common/floating_pill.dart';
 
@@ -32,13 +34,22 @@ class CanvasStage extends StatelessWidget {
                 majorGridColor: Color(0x2B5F748B),
                 gridBaseSize: 20,
               ),
-            ),
-            // 思维导图连线层：绘制在节点元素之上，跟随视图变换。
-            Positioned.fill(
-              child: MindmapConnectionLayer(
-                canvasController: canvasController,
-                viewController: viewController,
-              ),
+              elementOverlayBuilder: (context, element) {
+                if (element is! CanvasWidgetElement ||
+                    element.widgetType != kMindmapNodeWidgetType) {
+                  return null;
+                }
+                final data = MindmapNodeData.fromWidgetData(element.widgetData);
+                if (!data.isRoot) return null;
+                return Positioned.fill(
+                  child: MindmapConnectionLayer(
+                    key: ValueKey('mindmap-connection-${element.id}'),
+                    canvasController: canvasController,
+                    viewController: viewController,
+                    rootId: element.id,
+                  ),
+                );
+              },
             ),
             Positioned(
               left: 18,

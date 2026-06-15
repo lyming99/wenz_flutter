@@ -20,6 +20,7 @@ class MindmapTreeNode {
     required this.depth,
     required this.siblingIndex,
     required this.siblingCount,
+    required this.branchIndex,
     List<MindmapTreeNode>? children,
   }) : children = children ?? [];
 
@@ -37,6 +38,9 @@ class MindmapTreeNode {
 
   /// Total visible siblings under the same parent.
   final int siblingCount;
+
+  /// Index of the first-level branch this node belongs to.
+  final int branchIndex;
 
   /// Visible (non-collapsed) children.
   final List<MindmapTreeNode> children;
@@ -124,10 +128,7 @@ class MindmapTreeBuilder {
       if (element is! CanvasWidgetElement) continue;
       if (element.widgetType != kMindmapNodeWidgetType) continue;
       final data = MindmapNodeData.fromWidgetData(element.widgetData);
-      parsed[element.id] = _ParsedNode(
-        data: data,
-        rect: element.worldRect,
-      );
+      parsed[element.id] = _ParsedNode(data: data, rect: element.worldRect);
     }
 
     // Collect roots and build child index by parentId.
@@ -202,6 +203,7 @@ class MindmapTreeBuilder {
       int depth, {
       int siblingIndex = 0,
       int siblingCount = 1,
+      int branchIndex = 0,
     }) {
       final parsedNode = parsed[data.id];
       final rect = parsedNode?.rect ?? Rect.zero;
@@ -211,6 +213,7 @@ class MindmapTreeBuilder {
         depth: depth,
         siblingIndex: siblingIndex,
         siblingCount: siblingCount,
+        branchIndex: branchIndex,
       );
       final kids = byParent[data.id] ?? const <MindmapNodeData>[];
       final visibleKids = <MindmapNodeData>[];
@@ -229,6 +232,7 @@ class MindmapTreeBuilder {
             depth + 1,
             siblingIndex: i,
             siblingCount: visibleKids.length,
+            branchIndex: depth == 0 ? i : branchIndex,
           ),
         );
       }

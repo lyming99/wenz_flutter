@@ -25,6 +25,7 @@ class MindmapThemeNodeContext {
     required this.isRoot,
     required this.siblingIndex,
     required this.siblingCount,
+    this.branchIndex = 0,
     this.fillColor,
     this.borderColor,
     this.fontColor,
@@ -38,6 +39,7 @@ class MindmapThemeNodeContext {
     required int depth,
     required int siblingIndex,
     required int siblingCount,
+    int? branchIndex,
     bool isSelected = false,
   }) {
     return MindmapThemeNodeContext(
@@ -48,6 +50,7 @@ class MindmapThemeNodeContext {
       isRoot: data.isRoot || depth == 0,
       siblingIndex: siblingIndex,
       siblingCount: siblingCount,
+      branchIndex: branchIndex ?? (depth <= 1 ? siblingIndex : 0),
       fillColor: data.fillColor,
       borderColor: data.borderColor,
       fontColor: data.fontColor,
@@ -62,6 +65,7 @@ class MindmapThemeNodeContext {
     required int depth,
     required int siblingIndex,
     required int siblingCount,
+    int? branchIndex,
     bool isSelected = false,
   }) {
     return MindmapThemeNodeContext(
@@ -72,6 +76,7 @@ class MindmapThemeNodeContext {
       isRoot: depth == 0,
       siblingIndex: siblingIndex,
       siblingCount: siblingCount,
+      branchIndex: branchIndex ?? (depth <= 1 ? siblingIndex : 0),
       fillColor: node.fillColor,
       borderColor: node.borderColor,
       fontColor: node.fontColor,
@@ -88,6 +93,7 @@ class MindmapThemeNodeContext {
   final bool isRoot;
   final int siblingIndex;
   final int siblingCount;
+  final int branchIndex;
   final int? fillColor;
   final int? borderColor;
   final int? fontColor;
@@ -282,7 +288,7 @@ class MindmapThemes {
         Color(0xFFEDE9FE),
         Color(0xFFCFFAFE),
       ];
-      final fill = fills[context.siblingIndex % fills.length];
+      final fill = fills[context.branchIndex % fills.length];
       return _baseStyle(
         context,
         fill: fill,
@@ -297,26 +303,48 @@ class MindmapThemes {
   static final business = MindmapThemeDefinition(
     id: 'business',
     label: '商务卡片',
-    connectionColor: const Color(0xFFCBD5E1),
+    connectionColor: const Color(0xFF94A3B8),
     resolve: (context) {
       if (context.isRoot) {
         return _baseStyle(
           context,
-          fill: const Color(0xFF172033),
-          border: const Color(0xFF172033),
+          fill: const Color(0xFF0F172A),
+          border: const Color(0xFF334155),
           text: Colors.white,
-          borderWidth: 0,
-          borderRadius: 13,
+          borderWidth: 1.5,
+          borderRadius: 12,
         );
       }
-      final color = _rainbowColor(context.siblingIndex + context.depth);
+      final accent = _rainbowColor(context.branchIndex);
+      final fill = Color.lerp(
+        accent,
+        Colors.white,
+        context.depth <= 1 ? 0.88 : 0.96,
+      )!;
+      final border = Color.lerp(
+        accent,
+        Colors.white,
+        context.depth <= 1
+            ? 0.12
+            : context.depth == 2
+            ? 0.35
+            : 0.52,
+      )!;
       return _baseStyle(
         context,
-        fill: Colors.white,
-        border: color,
-        text: const Color(0xFF243047),
-        borderWidth: context.depth <= 1 ? 2 : 1.4,
-        borderRadius: 9,
+        fill: fill,
+        border: border,
+        text: const Color(0xFF172033),
+        borderWidth: context.depth <= 1
+            ? 2
+            : context.depth == 2
+            ? 1.4
+            : 1.2,
+        borderRadius: context.depth <= 1 ? 10 : 8,
+        borderPattern: context.depth <= 2
+            ? MindmapBorderPattern.solid
+            : MindmapBorderPattern.dashed,
+        shadow: context.depth <= 2,
       );
     },
   );

@@ -18,6 +18,9 @@ import 'mindmap_node.dart';
 ///   "isRoot": false,
 ///   "color": 0xFFE3F2FD,
 ///   "textColor": 0xFF1F2937,
+///   "todoEnabled": false,
+///   "todoDone": false,
+///   "linkUrl": "https://example.com",
 /// }
 /// ```
 class MindmapNodeData {
@@ -37,6 +40,9 @@ class MindmapNodeData {
     this.borderColor,
     this.fontColor,
     this.themeId,
+    this.todoEnabled = false,
+    this.todoDone = false,
+    this.linkUrl,
   });
 
   /// Unique node id. Matches the hosting element's id.
@@ -85,6 +91,15 @@ class MindmapNodeData {
   /// Root-only theme id for the whole mind map tree.
   final String? themeId;
 
+  /// Whether this node displays a todo checkbox.
+  final bool todoEnabled;
+
+  /// Whether the todo checkbox is completed.
+  final bool todoDone;
+
+  /// Optional URL attached to this node.
+  final String? linkUrl;
+
   /// Whether the subtree on [sideSide] is collapsed.
   ///
   /// For root nodes, uses the per-side flags ([collapsedRight] /
@@ -117,6 +132,9 @@ class MindmapNodeData {
       borderColor: _parseOptionalIntColor(data['borderColor']),
       fontColor: _parseOptionalIntColor(data['fontColor']),
       themeId: data['themeId'] as String?,
+      todoEnabled: data['todoEnabled'] as bool? ?? false,
+      todoDone: data['todoDone'] as bool? ?? false,
+      linkUrl: _parseOptionalString(data['linkUrl']),
     );
   }
 
@@ -138,6 +156,9 @@ class MindmapNodeData {
       if (borderColor != null) 'borderColor': borderColor,
       if (fontColor != null) 'fontColor': fontColor,
       if (isRoot && themeId != null) 'themeId': themeId,
+      if (todoEnabled) 'todoEnabled': todoEnabled,
+      if (todoEnabled || todoDone) 'todoDone': todoDone,
+      if (linkUrl != null && linkUrl!.isNotEmpty) 'linkUrl': linkUrl,
     };
   }
 
@@ -157,6 +178,9 @@ class MindmapNodeData {
     Object? borderColor = _unset,
     Object? fontColor = _unset,
     Object? themeId = _unset,
+    bool? todoEnabled,
+    bool? todoDone,
+    Object? linkUrl = _unset,
   }) {
     return MindmapNodeData(
       id: id ?? this.id,
@@ -182,6 +206,9 @@ class MindmapNodeData {
           ? this.fontColor
           : fontColor as int?,
       themeId: identical(themeId, _unset) ? this.themeId : themeId as String?,
+      todoEnabled: todoEnabled ?? this.todoEnabled,
+      todoDone: todoDone ?? this.todoDone,
+      linkUrl: identical(linkUrl, _unset) ? this.linkUrl : linkUrl as String?,
     );
   }
 
@@ -195,6 +222,12 @@ class MindmapNodeData {
     if (value is int) return value;
     if (value is String) return int.tryParse(value);
     return null;
+  }
+
+  static String? _parseOptionalString(dynamic value) {
+    if (value is! String) return null;
+    final trimmed = value.trim();
+    return trimmed.isEmpty ? null : trimmed;
   }
 
   static const _unset = Object();

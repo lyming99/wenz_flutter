@@ -152,7 +152,7 @@ class MindmapActions {
       newRect,
     );
 
-    _canvas.addElement(newElement);
+    _addMindmapElement(newElement);
 
     // Expand the parent (on the child's side) so the new child is visible.
     _setCollapsed(parentId, side, false);
@@ -207,7 +207,7 @@ class MindmapActions {
       );
     }
 
-    _canvas.addElement(orderedNewElement);
+    _addMindmapElement(orderedNewElement);
     if (commands.isNotEmpty) {
       _canvas.historyManager.execute(
         BatchCommand(
@@ -316,6 +316,39 @@ class MindmapActions {
     );
   }
 
+  void setNodeTodo(String nodeId, {bool? enabled, bool? done}) {
+    final element = _canvas.elementById(nodeId);
+    if (element is! CanvasWidgetElement) return;
+    if (element.widgetType != kMindmapNodeWidgetType) return;
+    final data = MindmapNodeData.fromWidgetData(element.widgetData);
+    final nextEnabled = enabled ?? data.todoEnabled;
+    final nextDone = nextEnabled ? (done ?? data.todoDone) : false;
+    _updateNodeData(
+      nodeId,
+      data.copyWith(todoEnabled: nextEnabled, todoDone: nextDone),
+    );
+  }
+
+  void toggleNodeTodoDone(String nodeId) {
+    final data = _nodeData(nodeId);
+    if (data == null || !data.todoEnabled) return;
+    setNodeTodo(nodeId, done: !data.todoDone);
+  }
+
+  void setNodeLink(String nodeId, String? url) {
+    final element = _canvas.elementById(nodeId);
+    if (element is! CanvasWidgetElement) return;
+    if (element.widgetType != kMindmapNodeWidgetType) return;
+    final data = MindmapNodeData.fromWidgetData(element.widgetData);
+    final normalized = url?.trim();
+    _updateNodeData(
+      nodeId,
+      data.copyWith(
+        linkUrl: normalized == null || normalized.isEmpty ? null : normalized,
+      ),
+    );
+  }
+
   /// Update the theme for the tree rooted at [rootId].
   void setRootTheme(String rootId, String themeId) {
     final element = _canvas.elementById(rootId);
@@ -365,16 +398,19 @@ class MindmapActions {
           depth: node.depth,
           siblingIndex: node.siblingIndex,
           siblingCount: node.siblingCount,
+          branchIndex: node.branchIndex,
           isSelected: isSelected,
         );
       }
       final data = tree.allNodes[nodeId];
       if (data != null) {
+        final position = _themePositionForData(tree, data);
         return MindmapThemeNodeContext.fromNodeData(
           data,
-          depth: data.isRoot ? 0 : 1,
-          siblingIndex: data.order,
-          siblingCount: 1,
+          depth: position.depth,
+          siblingIndex: position.siblingIndex,
+          siblingCount: position.siblingCount,
+          branchIndex: position.branchIndex,
           isSelected: isSelected,
         );
       }
@@ -398,6 +434,59 @@ class MindmapActions {
       siblingIndex: 0,
       siblingCount: 1,
     );
+  }
+
+  _ThemePosition _themePositionForData(MindmapTree tree, MindmapNodeData data) {
+    if (data.isRoot || data.parentId == null) {
+      return const _ThemePosition(
+        depth: 0,
+        siblingIndex: 0,
+        siblingCount: 1,
+        branchIndex: 0,
+      );
+    }
+
+    final siblings = _orderedTreeChildren(tree, data.parentId!);
+    final siblingIndex = siblings.indexWhere((node) => node.id == data.id);
+
+    var depth = 0;
+    var current = data;
+    var branch = data;
+    var parentId = current.parentId;
+    while (parentId != null) {
+      final parent = tree.allNodes[parentId];
+      if (parent == null) break;
+      depth++;
+      if (parent.isRoot || parent.parentId == null) {
+        branch = current;
+        break;
+      }
+      current = parent;
+      parentId = current.parentId;
+    }
+
+    final rootId = tree.root.id;
+    final rootChildren = _orderedTreeChildren(tree, rootId);
+    final branchIndex = rootChildren.indexWhere((node) => node.id == branch.id);
+
+    return _ThemePosition(
+      depth: depth == 0 ? 1 : depth,
+      siblingIndex: siblingIndex < 0 ? data.order : siblingIndex,
+      siblingCount: siblings.isEmpty ? 1 : siblings.length,
+      branchIndex: branchIndex < 0 ? 0 : branchIndex,
+    );
+  }
+
+  List<MindmapNodeData> _orderedTreeChildren(
+    MindmapTree tree,
+    String parentId,
+  ) {
+    final children = <MindmapNodeData>[
+      for (final node in tree.allNodes.values)
+        if (node.parentId == parentId) node,
+    ];
+    children.sort((a, b) => a.order.compareTo(b.order));
+    return children;
   }
 
   /// Commit edited text for [nodeId] (no sibling/child creation).
@@ -1652,7 +1741,10 @@ class MindmapActions {
         a.fillColor == b.fillColor &&
         a.borderColor == b.borderColor &&
         a.fontColor == b.fontColor &&
-        a.themeId == b.themeId;
+        a.themeId == b.themeId &&
+        a.todoEnabled == b.todoEnabled &&
+        a.todoDone == b.todoDone &&
+        a.linkUrl == b.linkUrl;
   }
 
   MindmapNodeData? _nodeData(String id) {
@@ -1722,7 +1814,41 @@ class MindmapActions {
   }
 
   CanvasWidgetElement _makeElement(MindmapNodeData data, Rect rect) {
-    return makeMindmapNodeElement(data: data, rect: rect);
+    final rootElement = _rootElementForData(data);
+    return makeMindmapNodeElement(
+      data: data,
+      rect: rect,
+      layerId: rootElement?.layerId ?? CanvasLayer.defaultLayerId,
+      zIndex: rootElement?.zIndex ?? 0,
+    );
+  }
+
+  void _addMindmapElement(CanvasWidgetElement element) {
+    _canvas.historyManager.execute(AddElementCommand(element), _canvas);
+  }
+
+  CanvasWidgetElement? _rootElementForData(MindmapNodeData data) {
+    if (data.isRoot || data.parentId == null) {
+      final element = _canvas.elementById(data.id);
+      return element is CanvasWidgetElement ? element : null;
+    }
+
+    var current = data;
+    while (current.parentId != null) {
+      final parentElement = _canvas.elementById(current.parentId!);
+      if (parentElement is! CanvasWidgetElement ||
+          parentElement.widgetType != kMindmapNodeWidgetType) {
+        return null;
+      }
+      final parentData = MindmapNodeData.fromWidgetData(
+        parentElement.widgetData,
+      );
+      if (parentData.isRoot || parentData.parentId == null) {
+        return parentElement;
+      }
+      current = parentData;
+    }
+    return null;
   }
 }
 
@@ -1758,6 +1884,20 @@ class MindmapEditRequest {
   final int serial;
 }
 
+class _ThemePosition {
+  const _ThemePosition({
+    required this.depth,
+    required this.siblingIndex,
+    required this.siblingCount,
+    required this.branchIndex,
+  });
+
+  final int depth;
+  final int siblingIndex;
+  final int siblingCount;
+  final int branchIndex;
+}
+
 /// Build a [CanvasWidgetElement] for a single mind map node.
 ///
 /// Nodes use [CanvasWidgetRenderMode.live] (always interactive) and the
@@ -1767,10 +1907,14 @@ class MindmapEditRequest {
 CanvasWidgetElement makeMindmapNodeElement({
   required MindmapNodeData data,
   required Rect rect,
+  String layerId = CanvasLayer.defaultLayerId,
+  int zIndex = 0,
 }) {
   return CanvasWidgetElement(
     id: data.id,
     worldRect: rect,
+    layerId: layerId,
+    zIndex: zIndex,
     widgetType: kMindmapNodeWidgetType,
     widgetData: Map<String, dynamic>.unmodifiable(data.toWidgetData()),
     renderMode: CanvasWidgetRenderMode.live,

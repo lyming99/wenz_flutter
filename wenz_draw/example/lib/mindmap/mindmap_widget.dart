@@ -220,9 +220,30 @@ class _MindmapWidgetState extends State<MindmapWidget> {
       depth: layoutNode.depth,
       siblingIndex: siblingIndex < 0 ? 0 : siblingIndex,
       siblingCount: siblings.isEmpty ? 1 : siblings.length,
+      branchIndex: _branchIndexForLayoutNode(layoutNode),
       isSelected: widget.controller.selectedNodeId == layoutNode.node.id,
     );
     return _themeController.styleFor(context);
+  }
+
+  int _branchIndexForLayoutNode(MindmapLayoutNode layoutNode) {
+    if (layoutNode.depth <= 1) {
+      return _siblingIndexOf(layoutNode.node.id);
+    }
+    var current = layoutNode.node;
+    var parent = widget.controller.data.findParent(current.id);
+    while (parent != null && parent.id != widget.controller.data.root.id) {
+      current = parent;
+      parent = widget.controller.data.findParent(current.id);
+    }
+    return _siblingIndexOf(current.id);
+  }
+
+  int _siblingIndexOf(String nodeId) {
+    final parent = widget.controller.data.findParent(nodeId);
+    final siblings = parent?.children ?? const [];
+    final index = siblings.indexWhere((node) => node.id == nodeId);
+    return index < 0 ? 0 : index;
   }
 }
 
