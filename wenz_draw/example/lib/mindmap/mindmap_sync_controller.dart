@@ -32,7 +32,7 @@ class MindmapSyncController {
 
   bool _applying = false;
   bool _relayoutScheduled = false;
-  late String _topologySignature = _mindmapTopologySignature();
+  late String _layoutSignature = _mindmapLayoutSignature();
 
   void dispose() {
     _actions.dragSession.removeListener(_onCanvasChanged);
@@ -43,7 +43,7 @@ class MindmapSyncController {
   void _onCanvasChanged() {
     if (_applying) return;
     _pinDraggedNode();
-    _scheduleRelayoutIfTopologyChanged();
+    _scheduleRelayoutIfNeeded();
   }
 
   /// If a drag is active, snap the dragged node to follow the pointer
@@ -85,19 +85,48 @@ class MindmapSyncController {
   }
 
   // ── Selection expansion ────────────────────────────────────────────
-  void _scheduleRelayoutIfTopologyChanged() {
+  void _scheduleRelayoutIfNeeded() {
     if (_actions.dragSession.isActive) return;
-    final next = _mindmapTopologySignature();
-    if (next == _topologySignature) return;
-    _topologySignature = next;
+    final next = _mindmapLayoutSignature();
+    final signatureChanged = next != _layoutSignature;
+    if (!signatureChanged && !_hasLayoutMismatch()) return;
+    _layoutSignature = next;
     if (_relayoutScheduled) return;
     _relayoutScheduled = true;
     Future.microtask(() {
       _relayoutScheduled = false;
       if (_applying || _actions.dragSession.isActive) return;
       _relayoutAllMindmaps();
-      _topologySignature = _mindmapTopologySignature();
+      _layoutSignature = _mindmapLayoutSignature();
     });
+  }
+
+  bool _hasLayoutMismatch() {
+    final trees = MindmapTreeBuilder.buildAll(_canvas.elements);
+    if (trees.isEmpty) return false;
+
+    for (final tree in trees) {
+      final result = MindmapLayoutEngine.layout(tree);
+      final visibleIds = result.rects.keys.toSet();
+
+      for (final entry in result.rects.entries) {
+        final element = _canvas.elementById(entry.key);
+        if (element is! CanvasWidgetElement) continue;
+        if (element.worldRect != entry.value || !element.visible) {
+          return true;
+        }
+      }
+
+      for (final id in tree.allNodes.keys) {
+        if (visibleIds.contains(id)) continue;
+        final element = _canvas.elementById(id);
+        if (element is CanvasWidgetElement && element.visible) {
+          return true;
+        }
+      }
+    }
+
+    return false;
   }
 
   void _relayoutAllMindmaps() {
@@ -132,7 +161,7 @@ class MindmapSyncController {
     }
   }
 
-  String _mindmapTopologySignature() {
+  String _mindmapLayoutSignature() {
     final parts = <String>[];
     for (final element in _canvas.elements) {
       if (element is! CanvasWidgetElement) continue;
@@ -142,6 +171,7 @@ class MindmapSyncController {
         [
           element.id,
           data.id,
+          data.text,
           data.parentId ?? '',
           data.side.toValueString(),
           data.isRoot,
@@ -149,6 +179,8 @@ class MindmapSyncController {
           data.collapsedLeft,
           data.collapsedRight,
           data.order,
+          data.isRoot ? element.worldRect.center.dx : '',
+          data.isRoot ? element.worldRect.center.dy : '',
         ].join(':'),
       );
     }

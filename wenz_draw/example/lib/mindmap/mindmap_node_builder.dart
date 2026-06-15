@@ -225,10 +225,7 @@ class _MindmapNodeViewState extends State<_MindmapNodeView> {
   MindmapActions? get _actions =>
       MindmapActions.of(widget.canvas.canvasController);
 
-  void _onSecondaryTapDown(TapDownDetails details) {
-    _showContextMenu();
-  }
-
+  // ignore: unused_element
   void _showContextMenu() {
     final renderBox = context.findRenderObject() as RenderBox?;
     if (renderBox == null) return;
@@ -523,8 +520,6 @@ class _MindmapNodeViewState extends State<_MindmapNodeView> {
         child: GestureDetector(
           behavior: HitTestBehavior.translucent,
           onTapDown: _onPrimaryTapDown,
-          // Right-click opens the context menu.
-          onSecondaryTapDown: _onSecondaryTapDown,
           child: child,
         ),
       ),

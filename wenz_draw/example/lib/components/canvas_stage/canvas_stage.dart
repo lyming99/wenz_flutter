@@ -34,13 +34,9 @@ class CanvasStage extends StatelessWidget {
                 majorGridColor: Color(0x2B5F748B),
                 gridBaseSize: 20,
               ),
+              elementOverlayAnchorPredicate: _isMindmapRoot,
               elementOverlayBuilder: (context, element) {
-                if (element is! CanvasWidgetElement ||
-                    element.widgetType != kMindmapNodeWidgetType) {
-                  return null;
-                }
-                final data = MindmapNodeData.fromWidgetData(element.widgetData);
-                if (!data.isRoot) return null;
+                if (!_isMindmapRoot(element)) return null;
                 return Positioned.fill(
                   child: MindmapConnectionLayer(
                     key: ValueKey('mindmap-connection-${element.id}'),
@@ -50,6 +46,12 @@ class CanvasStage extends StatelessWidget {
                   ),
                 );
               },
+            ),
+            Positioned.fill(
+              child: MindmapEditingLayer(
+                canvasController: canvasController,
+                viewController: viewController,
+              ),
             ),
             Positioned(
               left: 18,
@@ -103,5 +105,14 @@ class CanvasStage extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  static bool _isMindmapRoot(CanvasElement element) {
+    if (element is! CanvasWidgetElement ||
+        element.widgetType != kMindmapNodeWidgetType) {
+      return false;
+    }
+    final data = MindmapNodeData.fromWidgetData(element.widgetData);
+    return data.isRoot;
   }
 }

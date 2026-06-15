@@ -10,7 +10,6 @@ import 'mindmap_theme.dart';
 /// Features:
 /// - Tap to select
 /// - Double-tap to enter text editing mode
-/// - Long-press context menu (add child / delete / color)
 /// - Collapse/expand is handled by the merge-point button on connections
 class MindmapNodeWidget extends StatefulWidget {
   const MindmapNodeWidget({
@@ -117,6 +116,7 @@ class _MindmapNodeWidgetState extends State<MindmapNodeWidget> {
     }
   }
 
+  // ignore: unused_element
   void _showContextMenu(BuildContext context) {
     final RenderBox button = context.findRenderObject() as RenderBox;
     final position = RelativeRect.fromLTRB(
@@ -214,7 +214,6 @@ class _MindmapNodeWidgetState extends State<MindmapNodeWidget> {
 
     return GestureDetector(
       onTapDown: _handleTapDown,
-      onSecondaryTapDown: (_) => _showContextMenu(context),
       child: MindmapNodeFrame(
         style: widget.style,
         child: Padding(
@@ -258,6 +257,8 @@ class _MindmapNodeWidgetState extends State<MindmapNodeWidget> {
         final height = widget.isRoot
             ? MindmapNodeMetrics.rootHeight
             : MindmapNodeMetrics.nodeHeight;
+        final fontSize = style.textStyle.fontSize ?? (widget.isRoot ? 16 : 14);
+        const lineHeight = 1.15;
 
         return OverflowBox(
           alignment: Alignment.center,
@@ -311,9 +312,24 @@ class _MindmapNodeWidgetState extends State<MindmapNodeWidget> {
                           controller: _editController,
                           focusNode: _editFocusNode,
                           maxLines: 1,
-                          style: style.textStyle.copyWith(height: 1),
+                          cursorHeight: fontSize * lineHeight,
+                          style: style.textStyle.copyWith(
+                            fontSize: fontSize,
+                            height: lineHeight,
+                          ),
+                          strutStyle: StrutStyle(
+                            fontSize: fontSize,
+                            height: lineHeight,
+                            leading: 0,
+                            forceStrutHeight: true,
+                          ),
+                          textHeightBehavior: const TextHeightBehavior(
+                            applyHeightToFirstAscent: false,
+                            applyHeightToLastDescent: false,
+                          ),
                           decoration: const InputDecoration(
                             isDense: true,
+                            isCollapsed: true,
                             contentPadding: EdgeInsets.zero,
                             border: InputBorder.none,
                             hintText: '输入文字...',

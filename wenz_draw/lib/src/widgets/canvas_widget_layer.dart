@@ -21,6 +21,8 @@ import 'widget_element_registry.dart';
 
 typedef CanvasElementOverlayBuilder =
     Widget? Function(BuildContext context, CanvasElement element);
+typedef CanvasElementOverlayAnchorPredicate =
+    bool Function(CanvasElement element);
 
 class CanvasWidgetLayer extends StatefulWidget {
   const CanvasWidgetLayer({
@@ -28,11 +30,13 @@ class CanvasWidgetLayer extends StatefulWidget {
     required this.controller,
     this.config = const InfiniteCanvasConfig(),
     this.elementOverlayBuilder,
+    this.elementOverlayAnchorPredicate,
   });
 
   final InfiniteCanvasController controller;
   final InfiniteCanvasConfig config;
   final CanvasElementOverlayBuilder? elementOverlayBuilder;
+  final CanvasElementOverlayAnchorPredicate? elementOverlayAnchorPredicate;
 
   @override
   State<CanvasWidgetLayer> createState() => _CanvasWidgetLayerState();
@@ -59,7 +63,11 @@ class _CanvasWidgetLayerState extends State<CanvasWidgetLayer> {
     final visibleRect = controller.visibleWorldRect();
     final orderedVisibleElements = canvasController
         .orderedElements(visibleOnly: true)
-        .where((element) => element.bounds.overlaps(visibleRect))
+        .where(
+          (element) =>
+              element.bounds.overlaps(visibleRect) ||
+              (widget.elementOverlayAnchorPredicate?.call(element) ?? false),
+        )
         .toList(growable: false);
     final visibleWidgetElements = orderedVisibleElements
         .whereType<CanvasWidgetElement>()

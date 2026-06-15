@@ -92,6 +92,7 @@ class _MindmapConnectionLayerState extends State<MindmapConnectionLayer> {
 
     final transform = widget.viewController.transform;
     final scale = transform.scale;
+    final visibleRect = widget.viewController.visibleWorldRect();
 
     final trees = actions.trees
         .where((tree) => widget.rootId == null || tree.root.id == widget.rootId)
@@ -104,13 +105,14 @@ class _MindmapConnectionLayerState extends State<MindmapConnectionLayer> {
     final connectionPainters = <Widget>[];
     for (final tree in trees) {
       final result = MindmapLayoutEngine.layout(tree);
-      allMergePoints.addAll(result.mergePoints);
+      final visibleMergePoints = _visibleMergePoints(result, visibleRect);
+      allMergePoints.addAll(visibleMergePoints);
       connectionPainters.add(
         Positioned.fill(
           child: IgnorePointer(
             child: CustomPaint(
               painter: MindmapConnectionPainterV2(
-                mergePoints: result.mergePoints,
+                mergePoints: visibleMergePoints,
                 viewportOffset: transform.offset,
                 scale: scale,
                 color: actions.themeForNode(tree.root.id).connectionColor,
@@ -143,7 +145,8 @@ class _MindmapConnectionLayerState extends State<MindmapConnectionLayer> {
       );
     }
 
-    if (_containsNode(trees, actions.editingNodeId.value)) {
+    if (widget.rootId == null &&
+        _containsNode(trees, actions.editingNodeId.value)) {
       content = content.stackWithEditingOverlay(
         actions: actions,
         scale: scale,
@@ -153,6 +156,67 @@ class _MindmapConnectionLayerState extends State<MindmapConnectionLayer> {
     }
 
     return content;
+  }
+
+  List<MindmapMergePoint> _visibleMergePoints(
+    MindmapLayoutResult result,
+    Rect visibleRect,
+  ) {
+    final paddedVisibleRect = visibleRect.inflate(1);
+    final points = <MindmapMergePoint>[];
+
+    for (final mp in result.mergePoints) {
+      final parentVisible = _nodeVisible(
+        result.rects,
+        mp.parentNodeId,
+        paddedVisibleRect,
+      );
+      if (mp.isCollapsed) {
+        if (parentVisible) points.add(mp);
+        continue;
+      }
+
+      final childEdges = <Offset>[];
+      final childNodeIds = <String>[];
+      final count = math.min(mp.childEdges.length, mp.childNodeIds.length);
+      for (var i = 0; i < count; i++) {
+        final childNodeId = mp.childNodeIds[i];
+        final childVisible = _nodeVisible(
+          result.rects,
+          childNodeId,
+          paddedVisibleRect,
+        );
+        if (!parentVisible && !childVisible) {
+          continue;
+        }
+        childEdges.add(mp.childEdges[i]);
+        childNodeIds.add(childNodeId);
+      }
+
+      if (childEdges.isEmpty) {
+        continue;
+      }
+
+      points.add(
+        MindmapMergePoint(
+          position: mp.position,
+          parentNodeId: mp.parentNodeId,
+          side: mp.side,
+          isCollapsed: mp.isCollapsed,
+          childCount: mp.childCount,
+          parentEdge: mp.parentEdge,
+          childEdges: childEdges,
+          childNodeIds: childNodeIds,
+        ),
+      );
+    }
+
+    return points;
+  }
+
+  bool _nodeVisible(Map<String, Rect> rects, String nodeId, Rect visibleRect) {
+    final rect = rects[nodeId];
+    return rect != null && rect.overlaps(visibleRect);
   }
 
   bool _containsAnyNode(List<MindmapTree> trees, Iterable<String> nodeIds) {
@@ -170,6 +234,76 @@ class _MindmapConnectionLayerState extends State<MindmapConnectionLayer> {
       if (tree.allNodes.containsKey(nodeId)) return true;
     }
     return false;
+  }
+}
+
+class MindmapEditingLayer extends StatefulWidget {
+  const MindmapEditingLayer({
+    super.key,
+    required this.canvasController,
+    required this.viewController,
+  });
+
+  final CanvasController canvasController;
+  final InfiniteCanvasController viewController;
+
+  @override
+  State<MindmapEditingLayer> createState() => _MindmapEditingLayerState();
+}
+
+class _MindmapEditingLayerState extends State<MindmapEditingLayer> {
+  MindmapThemeController? _themeController;
+
+  MindmapActions? get _actions => MindmapActions.of(widget.canvasController);
+
+  ValueNotifier<String?>? get _editingNodeId => _actions?.editingNodeId;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.canvasController.addListener(_onChanged);
+    widget.viewController.addListener(_onChanged);
+    _editingNodeId?.addListener(_onChanged);
+    _bindThemeController();
+  }
+
+  @override
+  void dispose() {
+    _editingNodeId?.removeListener(_onChanged);
+    _themeController?.removeListener(_onChanged);
+    widget.viewController.removeListener(_onChanged);
+    widget.canvasController.removeListener(_onChanged);
+    super.dispose();
+  }
+
+  void _bindThemeController() {
+    final next = _actions?.themeController;
+    if (identical(next, _themeController)) return;
+    _themeController?.removeListener(_onChanged);
+    _themeController = next;
+    _themeController?.addListener(_onChanged);
+  }
+
+  void _onChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final actions = _actions;
+    if (actions == null) return const SizedBox.shrink();
+    _bindThemeController();
+
+    final transform = widget.viewController.transform;
+    final scale = transform.scale;
+    Offset worldToScreen(Offset world) => world * scale + transform.offset;
+
+    return const SizedBox.shrink().stackWithEditingOverlay(
+      actions: actions,
+      scale: scale,
+      worldToScreen: worldToScreen,
+      canvasController: widget.canvasController,
+    );
   }
 }
 
@@ -757,6 +891,10 @@ class _MindmapEditingOverlayState extends State<_MindmapEditingOverlay> {
                     ? MindmapNodeMetrics.rootHeight
                     : MindmapNodeMetrics.nodeHeight) *
                 widget.scale;
+            final fontSize =
+                (widget.style.textStyle.fontSize ?? (isRoot ? 16 : 14)) *
+                widget.scale;
+            const lineHeight = 1.15;
 
             return Positioned(
               left: widget.center.dx - width / 2,
@@ -798,15 +936,20 @@ class _MindmapEditingOverlayState extends State<_MindmapEditingOverlay> {
                         textAlign: TextAlign.center,
                         textAlignVertical: TextAlignVertical.center,
                         cursorColor: widget.style.textColor,
+                        cursorHeight: fontSize * lineHeight,
                         style: widget.style.textStyle.copyWith(
-                          fontSize:
-                              (widget.style.textStyle.fontSize ??
-                                  (isRoot ? 16 : 14)) *
-                              widget.scale,
-                          height: 1,
+                          fontSize: fontSize,
+                          height: lineHeight,
+                        ),
+                        strutStyle: StrutStyle(
+                          fontSize: fontSize,
+                          height: lineHeight,
+                          leading: 0,
+                          forceStrutHeight: true,
                         ),
                         decoration: const InputDecoration(
                           isDense: true,
+                          isCollapsed: true,
                           contentPadding: EdgeInsets.zero,
                           border: InputBorder.none,
                         ),

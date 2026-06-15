@@ -31,12 +31,14 @@ class InfiniteCanvasWidget extends StatefulWidget {
     this.config = const InfiniteCanvasConfig(),
     this.clipBehavior = Clip.hardEdge,
     this.elementOverlayBuilder,
+    this.elementOverlayAnchorPredicate,
   });
 
   final InfiniteCanvasController controller;
   final InfiniteCanvasConfig config;
   final Clip clipBehavior;
   final CanvasElementOverlayBuilder? elementOverlayBuilder;
+  final CanvasElementOverlayAnchorPredicate? elementOverlayAnchorPredicate;
 
   @override
   State<InfiniteCanvasWidget> createState() => _InfiniteCanvasWidgetState();
@@ -115,6 +117,8 @@ class _InfiniteCanvasWidgetState extends State<InfiniteCanvasWidget> {
                           controller: widget.controller,
                           config: widget.config,
                           elementOverlayBuilder: widget.elementOverlayBuilder,
+                          elementOverlayAnchorPredicate:
+                              widget.elementOverlayAnchorPredicate,
                         ),
                         _TextEditingOverlay(
                           key: ValueKey(

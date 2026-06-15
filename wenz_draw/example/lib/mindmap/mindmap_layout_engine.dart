@@ -52,6 +52,7 @@ class MindmapMergePoint {
     required this.childCount,
     required this.parentEdge,
     required this.childEdges,
+    required this.childNodeIds,
   });
 
   /// World position of the merge point.
@@ -75,6 +76,10 @@ class MindmapMergePoint {
   /// Where each branch ends (child edge centers).
   /// Empty when collapsed.
   final List<Offset> childEdges;
+
+  /// Child node ids matching [childEdges] by index.
+  /// Empty when collapsed.
+  final List<String> childNodeIds;
 }
 
 /// Result of laying out one tree: absolute world rects per node id, plus the
@@ -290,6 +295,7 @@ class MindmapLayoutEngine {
                   ? Offset(rects[c.id]!.left, rects[c.id]!.center.dy)
                   : Offset(rects[c.id]!.right, rects[c.id]!.center.dy),
           ];
+          final childNodeIds = [for (final c in expandedOnSide) c.id];
 
           points.add(
             MindmapMergePoint(
@@ -300,6 +306,7 @@ class MindmapLayoutEngine {
               childCount: countOnSide,
               parentEdge: parentEdge,
               childEdges: childEdges,
+              childNodeIds: childNodeIds,
             ),
           );
         }
