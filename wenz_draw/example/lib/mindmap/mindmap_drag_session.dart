@@ -94,6 +94,14 @@ class MindmapDragSession extends ChangeNotifier {
   String? _draggedNodeId;
   String? get draggedNodeId => _draggedNodeId;
 
+  /// Top-level nodes that will be structurally moved on drop.
+  List<String> _draggedNodeIds = const [];
+  List<String> get draggedNodeIds => List.unmodifiable(_draggedNodeIds);
+
+  /// All visible/owned nodes that visually follow the pointer during drag.
+  List<String> _movingNodeIds = const [];
+  List<String> get movingNodeIds => List.unmodifiable(_movingNodeIds);
+
   /// Current world-space position of the pointer (the ghost node center).
   Offset _worldPosition = Offset.zero;
   Offset get worldPosition => _worldPosition;
@@ -101,6 +109,9 @@ class MindmapDragSession extends ChangeNotifier {
   /// The node's original world center (where it was before the drag).
   Offset _origin = Offset.zero;
   Offset get origin => _origin;
+
+  final Map<String, Offset> _origins = {};
+  Offset? originOf(String nodeId) => _origins[nodeId];
 
   /// The original parent id (to detect reparent vs reorder).
   String? _originalParentId;
@@ -127,9 +138,17 @@ class MindmapDragSession extends ChangeNotifier {
     required Offset worldOrigin,
     required String? originalParentId,
     required MindmapNodeSide originalSide,
+    List<String>? nodeIds,
+    List<String>? movingNodeIds,
+    Map<String, Offset>? origins,
   }) {
     _draggedNodeId = nodeId;
+    _draggedNodeIds = List.unmodifiable(nodeIds ?? [nodeId]);
+    _movingNodeIds = List.unmodifiable(movingNodeIds ?? _draggedNodeIds);
     _origin = worldOrigin;
+    _origins
+      ..clear()
+      ..addAll(origins ?? {nodeId: worldOrigin});
     _worldPosition = worldOrigin;
     _originalParentId = originalParentId;
     _originalSide = originalSide;
@@ -172,8 +191,11 @@ class MindmapDragSession extends ChangeNotifier {
   MindmapDropTarget? end() {
     final result = _target;
     _draggedNodeId = null;
+    _draggedNodeIds = const [];
+    _movingNodeIds = const [];
     _worldPosition = Offset.zero;
     _origin = Offset.zero;
+    _origins.clear();
     _originalParentId = null;
     _target = null;
     _preview = null;
@@ -184,6 +206,9 @@ class MindmapDragSession extends ChangeNotifier {
   /// Cancel the drag without committing.
   void cancel() {
     _draggedNodeId = null;
+    _draggedNodeIds = const [];
+    _movingNodeIds = const [];
+    _origins.clear();
     _target = null;
     _preview = null;
     notifyListeners();

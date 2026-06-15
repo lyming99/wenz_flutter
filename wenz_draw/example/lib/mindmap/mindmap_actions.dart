@@ -57,6 +57,44 @@ class MindmapActions {
     return null;
   }
 
+  bool isMindmapNode(String nodeId) => _nodeData(nodeId) != null;
+
+  Set<String> subtreeIdsOf(String rootId) =>
+      Set.unmodifiable(_subtreeIds(rootId));
+
+  List<String> topLevelDragNodeIds(
+    Iterable<String> nodeIds, {
+    String? primaryId,
+  }) {
+    final candidates = <String>{
+      for (final id in nodeIds)
+        if (isMindmapNode(id)) id,
+    };
+    if (primaryId != null && isMindmapNode(primaryId)) {
+      candidates.add(primaryId);
+    }
+    if (candidates.isEmpty) return const [];
+
+    final topLevel = candidates.where((id) {
+      for (final other in candidates) {
+        if (other == id) continue;
+        if (_isAncestorOf(other, id)) return false;
+      }
+      return true;
+    }).toSet();
+
+    final ordered = <String>[];
+    for (final tree in trees) {
+      for (final node in tree.visibleNodes) {
+        if (topLevel.remove(node.id)) ordered.add(node.id);
+      }
+    }
+    for (final element in _canvas.elements) {
+      if (topLevel.remove(element.id)) ordered.add(element.id);
+    }
+    return ordered;
+  }
+
   // ── Mutations ──────────────────────────────────────────────────────
 
   /// Add a child to [parentId]. The new child inherits the parent's side
@@ -233,26 +271,28 @@ class MindmapActions {
     String draggedNodeId,
     Offset position, {
     double parentThreshold = 120,
+    Set<String>? excludedNodeIds,
   }) {
     final dragged = _nodeData(draggedNodeId);
     if (dragged == null) return null;
+    final excludedIds = _dropExcludedIds(draggedNodeId, excludedNodeIds);
 
     // ── Phase 1: nearest candidate parent node. ─────────────────────
     _DropParentCandidate? previewParent;
     for (final tree in trees) {
       for (final n in tree.visibleNodes) {
-        if (n.id == draggedNodeId) continue;
+        if (excludedIds.contains(n.id)) continue;
         // Skip the dragged node's own descendants (can't reparent into self).
         if (_isAncestorOf(draggedNodeId, n.id)) continue;
         final resolved = _resolveDropParent(tree, n, position);
         if (resolved == null) continue;
-        if (resolved.parent.id == draggedNodeId) continue;
+        if (excludedIds.contains(resolved.parent.id)) continue;
         if (_isAncestorOf(draggedNodeId, resolved.parent.id)) continue;
         final score = _previewParentScore(
           resolved.parent,
           resolved.side,
           position,
-          excludeId: draggedNodeId,
+          excludeIds: excludedIds,
         );
         if (previewParent == null || score < previewParent.distance) {
           previewParent = resolved.withDistance(score);
@@ -265,7 +305,11 @@ class MindmapActions {
       return MindmapDropTarget(
         kind: MindmapDropTargetKind.detached,
         nodeId: draggedNodeId,
-        detachedCenter: _findOpenDetachedCenter(draggedNodeId, position),
+        detachedCenter: _findOpenDetachedCenter(
+          draggedNodeId,
+          position,
+          movingIds: excludedIds,
+        ),
         reason: 'detach to empty space',
       );
     }
@@ -278,7 +322,7 @@ class MindmapActions {
       parentNode,
       side,
       position,
-      excludeId: draggedNodeId,
+      excludeIds: excludedIds,
     );
     final isReorder = dragged.parentId == parentNode.id && dragged.side == side;
 
@@ -360,7 +404,7 @@ class MindmapActions {
     MindmapTreeNode parent,
     MindmapNodeSide side,
     Offset position, {
-    required String excludeId,
+    required Set<String> excludeIds,
   }) {
     final nodeScore = _distanceToRect(position, parent.rect.inflate(24));
     if (nodeScore == 0) return 0;
@@ -370,7 +414,11 @@ class MindmapActions {
         ? parent.rect.left - config.horizontalGap - config.nodeWidth / 2
         : parent.rect.right + config.horizontalGap + config.nodeWidth / 2;
     final dx = (position.dx - childLaneX).abs();
-    final children = _visibleChildrenOnSide(parent, side, excludeId: excludeId);
+    final children = _visibleChildrenOnSide(
+      parent,
+      side,
+      excludeIds: excludeIds,
+    );
 
     double top;
     double bottom;
@@ -416,9 +464,13 @@ class MindmapActions {
     MindmapTreeNode parent,
     MindmapNodeSide side,
     Offset position, {
-    required String excludeId,
+    required Set<String> excludeIds,
   }) {
-    final children = _visibleChildrenOnSide(parent, side, excludeId: excludeId);
+    final children = _visibleChildrenOnSide(
+      parent,
+      side,
+      excludeIds: excludeIds,
+    );
     var index = 0;
     for (final child in children) {
       if (position.dy > child.center.dy) index++;
@@ -429,10 +481,10 @@ class MindmapActions {
   List<MindmapTreeNode> _visibleChildrenOnSide(
     MindmapTreeNode parent,
     MindmapNodeSide side, {
-    required String excludeId,
+    required Set<String> excludeIds,
   }) {
     return parent.children.where((child) {
-      if (child.id == excludeId) return false;
+      if (excludeIds.contains(child.id)) return false;
       if (!parent.data.isRoot) return true;
       final childSide = child.data.side == MindmapNodeSide.left
           ? MindmapNodeSide.left
@@ -441,10 +493,20 @@ class MindmapActions {
     }).toList();
   }
 
-  Offset _findOpenDetachedCenter(String draggedNodeId, Offset preferred) {
+  Set<String> _dropExcludedIds(String draggedNodeId, Set<String>? extraIds) {
+    final ids = <String>{..._subtreeIds(draggedNodeId)};
+    if (extraIds != null) ids.addAll(extraIds);
+    return ids;
+  }
+
+  Offset _findOpenDetachedCenter(
+    String draggedNodeId,
+    Offset preferred, {
+    Set<String>? movingIds,
+  }) {
     final draggedEl = _canvas.elementById(draggedNodeId);
-    final movingIds = _subtreeIds(draggedNodeId);
-    final movingBounds = _boundsForIds(movingIds);
+    final excludedIds = movingIds ?? _subtreeIds(draggedNodeId);
+    final movingBounds = _boundsForIds(excludedIds);
     final fallbackBounds = draggedEl is CanvasWidgetElement
         ? draggedEl.worldRect
         : Rect.fromCenter(center: preferred, width: 120, height: 40);
@@ -474,7 +536,7 @@ class MindmapActions {
 
     for (final candidate in candidates) {
       final rect = footprint.shift(candidate - originCenter).inflate(gap / 2);
-      if (!_intersectsOtherVisibleElements(rect, movingIds)) {
+      if (!_intersectsOtherVisibleElements(rect, excludedIds)) {
         return candidate;
       }
     }
@@ -520,11 +582,13 @@ class MindmapActions {
   /// and preview connection during the drag.
   MindmapDropPreview? computeDropPreview(
     String draggedNodeId,
-    MindmapDropTarget? target,
-  ) {
+    MindmapDropTarget? target, {
+    Set<String>? excludedNodeIds,
+  }) {
     if (target == null) return null;
     final draggedEl = _canvas.elementById(draggedNodeId);
     if (draggedEl is! CanvasWidgetElement) return null;
+    final excludedIds = _dropExcludedIds(draggedNodeId, excludedNodeIds);
 
     // Detached: the node becomes an independent root centered on the pointer.
     // There is no parent, so there is no connection to preview.
@@ -589,7 +653,7 @@ class MindmapActions {
         : _offsetPreviewRectForInsertion(
             laidOutRect,
             target,
-            excludeId: draggedNodeId,
+            excludedIds: excludedIds,
           );
     if (previewRect == null) return null;
 
@@ -607,13 +671,70 @@ class MindmapActions {
   Rect _offsetPreviewRectForInsertion(
     Rect rect,
     MindmapDropTarget target, {
-    required String excludeId,
+    required Set<String> excludedIds,
   }) {
     if (target.kind != MindmapDropTargetKind.parent) return rect;
 
     const config = MindmapLayoutConfig();
     final side = target.side ?? MindmapNodeSide.right;
-    final excludedIds = _subtreeIds(excludeId);
+    final parentId = target.parentId ?? target.nodeId;
+    final parent = _canvas.elementById(parentId);
+
+    final children = _visibleChildElementsForSlot(
+      parentId,
+      side,
+      excludedIds: excludedIds,
+    );
+    final insertIndex = (target.insertIndex ?? children.length)
+        .clamp(0, children.length)
+        .toInt();
+    final isBetweenSiblings =
+        children.isNotEmpty && insertIndex > 0 && insertIndex < children.length;
+
+    Rect slotRect = rect;
+    var preferredDirection = 1.0;
+    if (children.isEmpty) {
+      if (parent is CanvasWidgetElement) {
+        slotRect = Rect.fromCenter(
+          center: Offset(rect.center.dx, parent.worldRect.center.dy),
+          width: rect.width,
+          height: rect.height,
+        );
+      }
+    } else if (insertIndex == 0) {
+      final anchor = children.first.worldRect;
+      preferredDirection = -1;
+      slotRect = Rect.fromCenter(
+        center: Offset(
+          rect.center.dx,
+          anchor.top - config.siblingGap - rect.height / 2,
+        ),
+        width: rect.width,
+        height: rect.height,
+      );
+    } else if (insertIndex < children.length) {
+      final previous = children[insertIndex - 1].worldRect;
+      final next = children[insertIndex].worldRect;
+      preferredDirection =
+          rect.center.dy < (previous.center.dy + next.center.dy) / 2 ? -1 : 1;
+      slotRect = Rect.fromCenter(
+        center: Offset(rect.center.dx, (previous.bottom + next.top) / 2),
+        width: rect.width,
+        height: rect.height,
+      );
+    } else {
+      final anchor = children.last.worldRect;
+      preferredDirection = 1;
+      slotRect = Rect.fromCenter(
+        center: Offset(
+          rect.center.dx,
+          anchor.bottom + config.siblingGap + rect.height / 2,
+        ),
+        width: rect.width,
+        height: rect.height,
+      );
+    }
+
     bool overlapsCurrent(Rect candidate) {
       final inflated = candidate.inflate(2);
       for (final element in _canvas.elements) {
@@ -623,28 +744,50 @@ class MindmapActions {
       return false;
     }
 
-    if (!overlapsCurrent(rect)) return rect;
+    if (isBetweenSiblings) return slotRect;
+    if (!overlapsCurrent(slotRect)) return slotRect;
 
-    final children = _childData(
-      target.parentId ?? target.nodeId,
-      side: side,
-    ).where((child) => child.id != excludeId).toList();
-    final insertIndex = (target.insertIndex ?? children.length)
-        .clamp(0, children.length)
-        .toInt();
-    final vertical = insertIndex < children.length ? -1.0 : 1.0;
-    final stepY = config.nodeHeight + config.siblingGap;
+    final stepY = rect.height + config.siblingGap;
     final candidates = [
-      rect.shift(Offset(0, vertical * stepY)),
-      rect.shift(Offset(0, -vertical * stepY)),
-      rect.shift(Offset(0, vertical * stepY * 2)),
-      rect.shift(Offset(0, -vertical * stepY * 2)),
+      slotRect.shift(Offset(0, preferredDirection * stepY)),
+      slotRect.shift(Offset(0, -preferredDirection * stepY)),
+      slotRect.shift(Offset(0, preferredDirection * stepY * 2)),
+      slotRect.shift(Offset(0, -preferredDirection * stepY * 2)),
     ];
 
     for (final candidate in candidates) {
       if (!overlapsCurrent(candidate)) return candidate;
     }
     return candidates.first;
+  }
+
+  List<CanvasWidgetElement> _visibleChildElementsForSlot(
+    String parentId,
+    MindmapNodeSide side, {
+    required Set<String> excludedIds,
+  }) {
+    final parent = _nodeData(parentId);
+    final children = <CanvasWidgetElement>[];
+    for (final element in _canvas.elements) {
+      if (element is! CanvasWidgetElement) continue;
+      if (element.widgetType != kMindmapNodeWidgetType) continue;
+      if (!element.visible || excludedIds.contains(element.id)) continue;
+      final data = MindmapNodeData.fromWidgetData(element.widgetData);
+      if (data.parentId != parentId) continue;
+      if (parent?.isRoot == true) {
+        final childSide = data.side == MindmapNodeSide.left
+            ? MindmapNodeSide.left
+            : MindmapNodeSide.right;
+        if (childSide != side) continue;
+      }
+      children.add(element);
+    }
+    children.sort((a, b) {
+      final dataA = MindmapNodeData.fromWidgetData(a.widgetData);
+      final dataB = MindmapNodeData.fromWidgetData(b.widgetData);
+      return dataA.order.compareTo(dataB.order);
+    });
+    return children;
   }
 
   /// Build a hypothetical element list reflecting what the canvas would look
@@ -708,10 +851,21 @@ class MindmapActions {
     String draggedNodeId,
     MindmapDropTarget target,
   ) {
-    final dragged = _nodeData(draggedNodeId);
+    return _renumberedChildrenForTargets([draggedNodeId], target);
+  }
+
+  Map<String, MindmapNodeData> _renumberedChildrenForTargets(
+    List<String> draggedNodeIds,
+    MindmapDropTarget target,
+  ) {
+    final draggedNodes = [
+      for (final id in draggedNodeIds)
+        if (_nodeData(id) != null) _nodeData(id)!,
+    ];
     final parentId = target.parentId ?? target.nodeId;
     final parent = _nodeData(parentId);
-    if (dragged == null || parent == null) return {};
+    if (draggedNodes.isEmpty || parent == null) return {};
+    final draggedIdSet = draggedNodes.map((node) => node.id).toSet();
 
     final side =
         target.side ??
@@ -722,19 +876,21 @@ class MindmapActions {
             : MindmapNodeSide.right);
     final children = <MindmapNodeData>[];
     for (final child in _childData(parentId, side: side)) {
-      if (child.id != draggedNodeId) children.add(child);
+      if (!draggedIdSet.contains(child.id)) children.add(child);
     }
 
     final insertIndex = (target.insertIndex ?? children.length)
         .clamp(0, children.length)
         .toInt();
-    children.insert(
+    children.insertAll(
       insertIndex,
-      dragged.copyWith(
-        parentId: parentId,
-        side: side,
-        isRoot: false,
-        isCollapsed: false,
+      draggedNodes.map(
+        (dragged) => dragged.copyWith(
+          parentId: parentId,
+          side: side,
+          isRoot: false,
+          isCollapsed: false,
+        ),
       ),
     );
 
@@ -747,6 +903,16 @@ class MindmapActions {
         isRoot: false,
         order: i,
       );
+    }
+    for (final dragged in draggedNodes) {
+      for (final descendantId in _subtreeIds(dragged.id)) {
+        if (descendantId == dragged.id || result.containsKey(descendantId)) {
+          continue;
+        }
+        final descendant = _nodeData(descendantId);
+        if (descendant == null) continue;
+        result[descendantId] = descendant.copyWith(side: side, isRoot: false);
+      }
     }
     return result;
   }
@@ -794,6 +960,51 @@ class MindmapActions {
   ///
   /// A relayout is triggered at the end.
   void reorderOrReparent(
+    String draggedNodeId,
+    MindmapDropTarget? target, {
+    Offset? dropPosition,
+  }) {
+    _reorderOrReparentOne(draggedNodeId, target, dropPosition: dropPosition);
+  }
+
+  void reorderOrReparentMany(
+    List<String> draggedNodeIds,
+    MindmapDropTarget? target, {
+    Offset? dropPosition,
+  }) {
+    final structuralIds = topLevelDragNodeIds(
+      draggedNodeIds,
+      primaryId: draggedNodeIds.isEmpty ? null : draggedNodeIds.first,
+    );
+    if (structuralIds.isEmpty) return;
+
+    if (target == null) {
+      final roots = <String>{};
+      for (final id in structuralIds) {
+        final rootId = rootIdOf(id);
+        if (rootId != null) roots.add(rootId);
+      }
+      for (final rootId in roots) {
+        relayout(rootId);
+      }
+      return;
+    }
+
+    switch (target.kind) {
+      case MindmapDropTargetKind.parent:
+        _reparentManyToTarget(structuralIds, target);
+        break;
+      case MindmapDropTargetKind.detached:
+        _detachMany(
+          structuralIds,
+          target.detachedCenter ?? dropPosition,
+          primaryId: target.nodeId,
+        );
+        break;
+    }
+  }
+
+  void _reorderOrReparentOne(
     String draggedNodeId,
     MindmapDropTarget? target, {
     Offset? dropPosition,
@@ -870,6 +1081,66 @@ class MindmapActions {
     }
   }
 
+  void _reparentManyToTarget(
+    List<String> draggedNodeIds,
+    MindmapDropTarget target,
+  ) {
+    if (draggedNodeIds.isEmpty) return;
+    final newParentId = target.parentId ?? target.nodeId;
+    final newParent = _nodeData(newParentId);
+    if (newParent == null) return;
+
+    final originalRootIds = <String>{};
+    for (final id in draggedNodeIds) {
+      final rootId = rootIdOf(id);
+      if (rootId != null) originalRootIds.add(rootId);
+    }
+    final newSide =
+        target.side ??
+        (newParent.isRoot ? MindmapNodeSide.right : newParent.side);
+    final renumbered = _renumberedChildrenForTargets(draggedNodeIds, target);
+    final commands = <CanvasCommand>[];
+
+    for (final entry in renumbered.entries) {
+      final element = _canvas.elementById(entry.key);
+      if (element is! CanvasWidgetElement) continue;
+      final before = MindmapNodeData.fromWidgetData(element.widgetData);
+      final after = entry.value;
+      if (before.parentId == after.parentId &&
+          before.side == after.side &&
+          before.isRoot == after.isRoot &&
+          before.isCollapsed == after.isCollapsed &&
+          before.order == after.order) {
+        continue;
+      }
+      commands.add(
+        UpdateElementCommand(
+          before: element,
+          after: element.copyWith(
+            widgetData: Map<String, dynamic>.unmodifiable(after.toWidgetData()),
+          ),
+          description: 'Move mind map nodes',
+        ),
+      );
+    }
+
+    if (commands.isNotEmpty) {
+      _canvas.historyManager.execute(
+        BatchCommand(commands: commands, description: 'Move mind map nodes'),
+        _canvas,
+      );
+    }
+
+    _setCollapsed(newParentId, newSide, false);
+    _canvas.setSelection(draggedNodeIds.toSet());
+
+    final destRootId = rootIdOf(newParentId);
+    if (destRootId != null) relayout(destRootId);
+    for (final originalRootId in originalRootIds) {
+      if (originalRootId != destRootId) relayout(originalRootId);
+    }
+  }
+
   /// Promote [draggedNodeId] to an independent tree root placed at
   /// [dropPosition] (world coords). The node keeps its text/color/size but
   /// loses its parent, becomes a root, and clears all collapse flags. The
@@ -880,7 +1151,7 @@ class MindmapActions {
 
     // Root nodes are already detached — nothing structural to do.
     if (dragged.isRoot) {
-      relayoutOf(draggedNodeId);
+      _moveRootToDetachedCenter(draggedNodeId, dropPosition);
       return;
     }
 
@@ -922,10 +1193,158 @@ class MindmapActions {
       _canvas,
     );
 
+    final descendantCommands = <CanvasCommand>[];
+    for (final descendantId in _subtreeIds(draggedNodeId)) {
+      if (descendantId == draggedNodeId) continue;
+      final descendantEl = _canvas.elementById(descendantId);
+      if (descendantEl is! CanvasWidgetElement) continue;
+      final descendant = MindmapNodeData.fromWidgetData(
+        descendantEl.widgetData,
+      );
+      final next = descendant.copyWith(
+        side: MindmapNodeSide.right,
+        isRoot: false,
+      );
+      descendantCommands.add(
+        UpdateElementCommand(
+          before: descendantEl,
+          after: descendantEl.copyWith(
+            widgetData: Map<String, dynamic>.unmodifiable(next.toWidgetData()),
+          ),
+          description: 'Detach mind map subtree',
+        ),
+      );
+    }
+    if (descendantCommands.isNotEmpty) {
+      _canvas.historyManager.execute(
+        BatchCommand(
+          commands: descendantCommands,
+          description: 'Detach mind map subtree',
+        ),
+        _canvas,
+      );
+    }
+
     _canvas.setSelection({draggedNodeId});
     relayout(draggedNodeId);
     // Fix the gap left in the original tree.
     if (originalRootId != null) relayout(originalRootId);
+  }
+
+  void _moveRootToDetachedCenter(String rootId, Offset? dropPosition) {
+    final element = _canvas.elementById(rootId);
+    if (element is! CanvasWidgetElement) return;
+    if (dropPosition != null) {
+      final newRect = Rect.fromCenter(
+        center: dropPosition,
+        width: element.worldRect.width,
+        height: element.worldRect.height,
+      );
+      _canvas.historyManager.execute(
+        UpdateElementCommand(
+          before: element,
+          after: element.copyWith(worldRect: newRect),
+          description: 'Move mind map root',
+        ),
+        _canvas,
+      );
+    }
+    _canvas.setSelection({rootId});
+    relayout(rootId);
+  }
+
+  void _detachMany(
+    List<String> draggedNodeIds,
+    Offset? dropPosition, {
+    String? primaryId,
+  }) {
+    if (draggedNodeIds.isEmpty) return;
+
+    final originalRootIds = <String>{};
+    for (final id in draggedNodeIds) {
+      final rootId = rootIdOf(id);
+      if (rootId != null) originalRootIds.add(rootId);
+    }
+
+    final primary = _canvas.elementById(primaryId ?? draggedNodeIds.first);
+    final delta = primary is CanvasWidgetElement && dropPosition != null
+        ? dropPosition - primary.worldRect.center
+        : Offset.zero;
+
+    final rootIds = draggedNodeIds.toSet();
+    final wasRootById = {
+      for (final id in draggedNodeIds) id: _nodeData(id)?.isRoot == true,
+    };
+    final detachedIdSet = <String>{};
+    for (final id in draggedNodeIds) {
+      detachedIdSet.addAll(_subtreeIds(id));
+    }
+
+    final commands = <CanvasCommand>[];
+    for (final id in detachedIdSet) {
+      final isDetachedRoot = rootIds.contains(id);
+      final detachedRootId = isDetachedRoot
+          ? id
+          : draggedNodeIds
+                .where((rootId) => _isAncestorOf(rootId, id))
+                .firstOrNull;
+      final preservesExistingTree =
+          detachedRootId != null && wasRootById[detachedRootId] == true;
+      final rootDelta = isDetachedRoot ? delta : Offset.zero;
+      final side = isDetachedRoot
+          ? MindmapNodeSide.center
+          : preservesExistingTree
+          ? _nodeData(id)?.side ?? MindmapNodeSide.right
+          : MindmapNodeSide.right;
+      final parentId = isDetachedRoot ? null : _nodeData(id)?.parentId;
+      final dragged = _nodeData(id);
+      final element = _canvas.elementById(id);
+      if (dragged == null || element is! CanvasWidgetElement) continue;
+      final isExistingRoot = isDetachedRoot && wasRootById[id] == true;
+
+      final detached = dragged.copyWith(
+        parentId: parentId,
+        isRoot: isDetachedRoot,
+        side: side,
+        isCollapsed: isDetachedRoot && !isExistingRoot
+            ? false
+            : dragged.isCollapsed,
+        collapsedRight: isDetachedRoot && !isExistingRoot
+            ? false
+            : dragged.collapsedRight,
+        collapsedLeft: isDetachedRoot && !isExistingRoot
+            ? false
+            : dragged.collapsedLeft,
+        order: isDetachedRoot ? 0 : dragged.order,
+      );
+      commands.add(
+        UpdateElementCommand(
+          before: element,
+          after: element.copyWith(
+            worldRect: element.worldRect.shift(rootDelta),
+            widgetData: Map<String, dynamic>.unmodifiable(
+              detached.toWidgetData(),
+            ),
+          ),
+          description: 'Detach mind map nodes',
+        ),
+      );
+    }
+
+    if (commands.isNotEmpty) {
+      _canvas.historyManager.execute(
+        BatchCommand(commands: commands, description: 'Detach mind map nodes'),
+        _canvas,
+      );
+    }
+
+    _canvas.setSelection(draggedNodeIds.toSet());
+    for (final id in draggedNodeIds) {
+      relayout(id);
+    }
+    for (final originalRootId in originalRootIds) {
+      if (!draggedNodeIds.contains(originalRootId)) relayout(originalRootId);
+    }
   }
 
   // ── Layout ─────────────────────────────────────────────────────────

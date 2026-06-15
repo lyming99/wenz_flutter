@@ -146,6 +146,9 @@ class _MindmapDragOverlayState extends State<MindmapDragOverlay> {
 
   /// The node id we're dragging.
   String? _dragNodeId;
+  List<String> _dragNodeIds = const [];
+  List<String> _movingNodeIds = const [];
+  Map<String, Offset> _nodeOrigins = const {};
 
   /// The pointer stream that owns the current drag candidate/session.
   int? _dragPointer;
@@ -153,9 +156,7 @@ class _MindmapDragOverlayState extends State<MindmapDragOverlay> {
   bool _isDraggableNode(CanvasElement? el) {
     if (el is! CanvasWidgetElement) return false;
     if (el.widgetType != kMindmapNodeWidgetType) return false;
-    // Root nodes can't be reordered/detached by drag.
-    final isRoot = el.widgetData['isRoot'] == true;
-    return !isRoot;
+    return true;
   }
 
   void _onPointerDown(PointerDownEvent event) {
@@ -168,10 +169,44 @@ class _MindmapDragOverlayState extends State<MindmapDragOverlay> {
     final hit = widget.canvasController.hitTest(world);
     if (!_isDraggableNode(hit)) return;
 
-    _dragNodeId = hit!.id;
+    final actions = _actions;
+    if (actions == null) return;
+
+    final selected = widget.canvasController.selectedIds;
+    final requestedIds = selected.contains(hit!.id) ? selected : {hit.id};
+    final structuralIds = actions.topLevelDragNodeIds(
+      requestedIds,
+      primaryId: hit.id,
+    );
+    if (structuralIds.isEmpty) return;
+
+    final primaryId = structuralIds.contains(hit.id)
+        ? hit.id
+        : structuralIds.first;
+    final movingIds = <String>[];
+    final seenMovingIds = <String>{};
+    for (final id in structuralIds) {
+      for (final movingId in actions.subtreeIdsOf(id)) {
+        if (seenMovingIds.add(movingId)) movingIds.add(movingId);
+      }
+    }
+    final origins = <String, Offset>{};
+    for (final id in movingIds) {
+      final element = widget.canvasController.elementById(id);
+      if (element is CanvasWidgetElement) {
+        origins[id] = element.bounds.center;
+      }
+    }
+    final primary = widget.canvasController.elementById(primaryId);
+    if (primary is! CanvasWidgetElement) return;
+
+    _dragNodeId = primaryId;
+    _dragNodeIds = structuralIds;
+    _movingNodeIds = movingIds;
+    _nodeOrigins = origins;
     _dragPointer = event.pointer;
     _downScreen = event.position;
-    _nodeWorldOrigin = hit.bounds.center;
+    _nodeWorldOrigin = primary.bounds.center;
   }
 
   void _onPointerMove(PointerMoveEvent event) {
@@ -197,14 +232,26 @@ class _MindmapDragOverlayState extends State<MindmapDragOverlay> {
         worldOrigin: _nodeWorldOrigin,
         originalParentId: data.parentId,
         originalSide: data.side,
+        nodeIds: _dragNodeIds,
+        movingNodeIds: _movingNodeIds,
+        origins: _nodeOrigins,
       );
       widget.canvasController.cancelCurrentInteraction();
       setState(() => _isDragging = true);
     }
     actions.dragSession.updateWorld(worldPos);
 
-    final target = actions.computeDropTarget(nodeId, worldPos);
-    final preview = actions.computeDropPreview(nodeId, target);
+    final excludedIds = actions.dragSession.movingNodeIds.toSet();
+    final target = actions.computeDropTarget(
+      nodeId,
+      worldPos,
+      excludedNodeIds: excludedIds,
+    );
+    final preview = actions.computeDropPreview(
+      nodeId,
+      target,
+      excludedNodeIds: excludedIds,
+    );
     actions.dragSession.updateTarget(target, preview);
   }
 
@@ -227,13 +274,21 @@ class _MindmapDragOverlayState extends State<MindmapDragOverlay> {
       return;
     }
     final dropPosition = actions.dragSession.worldPosition;
+    final draggedNodeIds = actions.dragSession.draggedNodeIds;
     final target = actions.dragSession.end();
-    actions.reorderOrReparent(nodeId, target, dropPosition: dropPosition);
+    actions.reorderOrReparentMany(
+      draggedNodeIds,
+      target,
+      dropPosition: dropPosition,
+    );
     _reset();
   }
 
   void _reset() {
     _dragNodeId = null;
+    _dragNodeIds = const [];
+    _movingNodeIds = const [];
+    _nodeOrigins = const {};
     _dragPointer = null;
     if (_isDragging) setState(() => _isDragging = false);
   }
@@ -369,15 +424,16 @@ extension _DragPreviewExtension on Widget {
     return Stack(
       children: [
         this,
-        if (dragSession.draggedNodeId != null)
+        for (final id in dragSession.movingNodeIds)
           _OriginGhost(
             rect: _originGhostRect(
+              id,
               dragSession,
               scale,
               worldToScreen,
               canvasController,
             ),
-            element: canvasController.elementById(dragSession.draggedNodeId!),
+            element: canvasController.elementById(id),
           ),
         // Preview connection line (parent edge → predicted node edge).
         // Null for detach drops (node becomes an independent root, no parent).
@@ -404,17 +460,19 @@ extension _DragPreviewExtension on Widget {
   }
 
   Rect? _originGhostRect(
+    String id,
     MindmapDragSession dragSession,
     double scale,
     Offset Function(Offset) worldToScreen,
     CanvasController canvasController,
   ) {
-    final id = dragSession.draggedNodeId;
-    if (id == null) return null;
     final element = canvasController.elementById(id);
     if (element is! CanvasWidgetElement) return null;
+    if (!element.visible) return null;
+    final origin = dragSession.originOf(id);
+    if (origin == null) return null;
     final worldRect = Rect.fromCenter(
-      center: dragSession.origin,
+      center: origin,
       width: element.worldRect.width,
       height: element.worldRect.height,
     );

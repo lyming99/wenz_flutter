@@ -122,7 +122,7 @@ class _MindmapNodeViewState extends State<_MindmapNodeView> {
   /// Whether this node is currently being dragged (→ render dimmed).
   bool get _isBeingDragged =>
       _dragSession?.isActive == true &&
-      _dragSession!.draggedNodeId == widget.element.id;
+      _dragSession!.movingNodeIds.contains(widget.element.id);
 
   void _startEditing() {
     setState(() {

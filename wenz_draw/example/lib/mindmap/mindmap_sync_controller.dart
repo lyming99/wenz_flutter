@@ -51,23 +51,29 @@ class MindmapSyncController {
   void _pinDraggedNode() {
     final session = _actions.dragSession;
     if (!session.isActive) return;
-    final id = session.draggedNodeId;
-    if (id == null) return;
-    final el = _canvas.elementById(id);
-    if (el is! CanvasWidgetElement) return;
+    final delta = session.worldPosition - session.origin;
+    final movingIds = session.movingNodeIds;
+    if (movingIds.isEmpty) return;
 
-    final pinned = Rect.fromCenter(
-      center: session.worldPosition,
-      width: el.worldRect.width,
-      height: el.worldRect.height,
-    );
-    if (el.worldRect != pinned) {
-      _applying = true;
-      try {
-        _canvas.applyElementUpdated(id, el.copyWith(worldRect: pinned));
-      } finally {
-        _applying = false;
+    _applying = true;
+    try {
+      for (final id in movingIds) {
+        final origin = session.originOf(id);
+        if (origin == null) continue;
+        final el = _canvas.elementById(id);
+        if (el is! CanvasWidgetElement) continue;
+
+        final pinned = Rect.fromCenter(
+          center: origin + delta,
+          width: el.worldRect.width,
+          height: el.worldRect.height,
+        );
+        if (el.worldRect != pinned) {
+          _canvas.applyElementUpdated(id, el.copyWith(worldRect: pinned));
+        }
       }
+    } finally {
+      _applying = false;
     }
   }
 
