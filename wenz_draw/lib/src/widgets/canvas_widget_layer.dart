@@ -1013,7 +1013,7 @@ class _CanvasWidgetHost extends StatelessWidget {
                 width: layout.layoutSize.width,
                 height: layout.layoutSize.height,
                 child: _selectedFrame(
-                  isSelected,
+                  builder.useDefaultSelectionFrame && isSelected,
                   _buildForDetail(context, builder, canvas, layout),
                 ),
               ),
@@ -1040,7 +1040,7 @@ class _CanvasWidgetHost extends StatelessWidget {
       child: IgnorePointer(
         ignoring: !canInteract,
         child: _selectedFrame(
-          isSelected,
+          builder.useDefaultSelectionFrame && isSelected,
           ClipRect(
             clipBehavior: element.clipBehavior,
             child: SizedBox(
@@ -1065,7 +1065,9 @@ class _CanvasWidgetHost extends StatelessWidget {
     }
 
     return _previewFrame(
-      isThumbnail: layout.detail == CanvasWidgetRenderDetail.thumbnail,
+      isThumbnail:
+          layout.detail == CanvasWidgetRenderDetail.thumbnail &&
+          builder.useDefaultThumbnailFrame,
       child: builder.buildPreview(context, element, canvas: canvas),
     );
   }

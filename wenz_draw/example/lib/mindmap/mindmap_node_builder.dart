@@ -5,6 +5,7 @@ import 'package:wenz_draw/wenz_draw.dart';
 import 'mindmap_actions.dart';
 import 'mindmap_drag_session.dart';
 import 'mindmap_node_data.dart';
+import 'mindmap_node_metrics.dart';
 
 /// WidgetElementBuilder for a single mind map node in "non-component mode".
 ///
@@ -20,50 +21,38 @@ class MindmapNodeBuilder extends WidgetElementBuilder {
   const MindmapNodeBuilder();
 
   @override
+  bool get useDefaultThumbnailFrame => false;
+
+  @override
+  bool get useDefaultSelectionFrame => false;
+
+  @override
   Widget build(
     BuildContext context,
     CanvasWidgetElement element, {
     required CanvasWidgetBuildContext canvas,
   }) {
-    final data = MindmapNodeData.fromWidgetData(element.widgetData);
-
-    if (canvas.renderDetail != CanvasWidgetRenderDetail.full) {
-      return _buildPreview(data, canvas.renderDetail);
-    }
-
-    return _MindmapNodeView(
-      element: element,
-      data: data,
-      canvas: canvas,
-    );
+    return _buildNode(element, canvas);
   }
 
-  Widget _buildPreview(MindmapNodeData data, CanvasWidgetRenderDetail detail) {
-    final color = Color(data.color);
-    return switch (detail) {
-      CanvasWidgetRenderDetail.color => ColoredBox(color: color),
-      CanvasWidgetRenderDetail.colorWithText ||
-      CanvasWidgetRenderDetail.thumbnail => DecoratedBox(
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: const BorderRadius.all(Radius.circular(6)),
-          ),
-          child: Center(
-            child: Text(
-              data.text.isEmpty ? '…' : data.text,
-              overflow: TextOverflow.ellipsis,
-              maxLines: 1,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF1F2937),
-              ),
-            ),
-          ),
-        ),
-      CanvasWidgetRenderDetail.full => ColoredBox(color: color),
-    };
+  @override
+  Widget buildPreview(
+    BuildContext context,
+    CanvasWidgetElement element, {
+    required CanvasWidgetBuildContext canvas,
+  }) {
+    return _buildNode(element, canvas);
+  }
+
+  Widget _buildNode(
+    CanvasWidgetElement element,
+    CanvasWidgetBuildContext canvas,
+  ) {
+    return _MindmapNodeView(
+      element: element,
+      data: MindmapNodeData.fromWidgetData(element.widgetData),
+      canvas: canvas,
+    );
   }
 }
 
@@ -84,39 +73,64 @@ class _MindmapNodeView extends StatefulWidget {
 }
 
 class _MindmapNodeViewState extends State<_MindmapNodeView> {
-  final GlobalKey _editKey = GlobalKey();
-  late TextEditingController _editController;
-  late FocusNode _editFocusNode;
-  bool _isEditing = false;
+  late FocusNode _nodeFocusNode;
+  DateTime? _lastTapDownTime;
+  Offset? _lastTapDownPosition;
+
+  static const Duration _doubleTapInterval = Duration(milliseconds: 300);
+  static const double _doubleTapSlop = 18;
 
   MindmapDragSession? get _dragSession => _actions?.dragSession;
+  MindmapActions? _listenedActions;
 
   @override
   void initState() {
     super.initState();
-    _editController = TextEditingController(text: widget.data.text);
-    _editFocusNode = FocusNode();
-    _dragSession?.addListener(_onDragChanged);
+    _nodeFocusNode = FocusNode(debugLabel: 'MindmapNode:${widget.element.id}');
+    _listenedActions = _actions;
+    _listenedActions?.dragSession.addListener(_onDragChanged);
+    _listenedActions?.editRequest.addListener(_onEditRequestChanged);
+    _scheduleEditRequestCheck();
   }
 
   @override
   void didUpdateWidget(covariant _MindmapNodeView oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.data.text != oldWidget.data.text && !_isEditing) {
-      _editController.text = widget.data.text;
+    if (widget.element.id != oldWidget.element.id) {
+      _lastTapDownTime = null;
+      _lastTapDownPosition = null;
     }
+    _scheduleEditRequestCheck();
   }
 
   @override
   void dispose() {
-    _dragSession?.removeListener(_onDragChanged);
-    _editController.dispose();
-    _editFocusNode.dispose();
+    _listenedActions?.editRequest.removeListener(_onEditRequestChanged);
+    _listenedActions?.dragSession.removeListener(_onDragChanged);
+    _nodeFocusNode.dispose();
     super.dispose();
   }
 
   void _onDragChanged() {
     if (mounted) setState(() {});
+  }
+
+  void _onEditRequestChanged() {
+    _handleEditRequest(_listenedActions?.editRequest.value);
+  }
+
+  void _scheduleEditRequestCheck() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _handleEditRequest(_listenedActions?.editRequest.value);
+    });
+  }
+
+  void _handleEditRequest(MindmapEditRequest? request) {
+    if (!mounted || request == null || request.nodeId != widget.element.id) {
+      return;
+    }
+    _startEditing();
+    _listenedActions?.consumeEditRequest(request);
   }
 
   /// Whether this node is currently being dragged (→ render dimmed).
@@ -125,29 +139,67 @@ class _MindmapNodeViewState extends State<_MindmapNodeView> {
       _dragSession!.movingNodeIds.contains(widget.element.id);
 
   void _startEditing() {
-    setState(() {
-      _isEditing = true;
-      _editController.text = widget.data.text;
-      _editController.selection = TextSelection(
-        baseOffset: 0,
-        extentOffset: widget.data.text.length,
-      );
-    });
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _editFocusNode.requestFocus();
-    });
+    final actions = _actions;
+    if (actions != null) {
+      actions.beginEditing(widget.element.id);
+    } else {
+      widget.canvas.canvasController.setSelection({widget.element.id});
+    }
   }
 
-  void _commitEdit() {
-    final newText = _editController.text;
-    setState(() => _isEditing = false);
-    MindmapActions.of(widget.canvas.canvasController)
-        ?.commitText(widget.element.id, newText);
+  void _onPrimaryTapDown(TapDownDetails details) {
+    if (_actions?.editingNodeId.value != null) return;
+
+    final now = DateTime.now();
+    final position = details.globalPosition;
+    final lastTime = _lastTapDownTime;
+    final lastPosition = _lastTapDownPosition;
+    final isDoubleTap =
+        lastTime != null &&
+        lastPosition != null &&
+        now.difference(lastTime) <= _doubleTapInterval &&
+        (position - lastPosition).distance <= _doubleTapSlop;
+
+    _lastTapDownTime = now;
+    _lastTapDownPosition = position;
+
+    widget.canvas.canvasController.setSelection({widget.element.id});
+    _nodeFocusNode.requestFocus();
+
+    if (isDoubleTap) {
+      _lastTapDownTime = null;
+      _lastTapDownPosition = null;
+      _startEditing();
+    }
   }
 
-  void _cancelEdit() {
-    setState(() => _isEditing = false);
-    _editController.text = widget.data.text;
+  KeyEventResult _onNodeKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent || !widget.canvas.selected) {
+      return KeyEventResult.ignored;
+    }
+
+    final hardware = HardwareKeyboard.instance;
+    if (hardware.isControlPressed ||
+        hardware.isMetaPressed ||
+        hardware.isAltPressed) {
+      return KeyEventResult.ignored;
+    }
+
+    final actions = _actions;
+    if (actions == null) return KeyEventResult.ignored;
+    if (actions.editingNodeId.value != null) return KeyEventResult.ignored;
+
+    final key = event.logicalKey;
+    if (key == LogicalKeyboardKey.tab) {
+      actions.addChild(widget.element.id);
+      return KeyEventResult.handled;
+    }
+    if (key == LogicalKeyboardKey.enter ||
+        key == LogicalKeyboardKey.numpadEnter) {
+      actions.addSibling(widget.element.id);
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
   }
 
   // ── Context menu ───────────────────────────────────────────────────
@@ -204,9 +256,18 @@ class _MindmapNodeViewState extends State<_MindmapNodeView> {
 
   void _showColorPalette() {
     const colors = [
-      0xFF2563EB, 0xFFE3F2FD, 0xFF34C759, 0xFFE8F5E9,
-      0xFFFF9500, 0xFFFFF3E0, 0xFFEC4899, 0xFFFCE4EC,
-      0xFF8B5CF6, 0xFFF3E5F5, 0xFF6B7280, 0xFFF3F4F6,
+      0xFF2563EB,
+      0xFFE3F2FD,
+      0xFF34C759,
+      0xFFE8F5E9,
+      0xFFFF9500,
+      0xFFFFF3E0,
+      0xFFEC4899,
+      0xFFFCE4EC,
+      0xFF8B5CF6,
+      0xFFF3E5F5,
+      0xFF6B7280,
+      0xFFF3F4F6,
     ];
 
     showDialog<void>(
@@ -221,8 +282,9 @@ class _MindmapNodeViewState extends State<_MindmapNodeView> {
               for (final c in colors)
                 GestureDetector(
                   onTap: () {
-                    MindmapActions.of(widget.canvas.canvasController)
-                        ?.setNodeColor(widget.element.id, c);
+                    MindmapActions.of(
+                      widget.canvas.canvasController,
+                    )?.setNodeColor(widget.element.id, c);
                     Navigator.pop(ctx);
                   },
                   child: Container(
@@ -258,153 +320,147 @@ class _MindmapNodeViewState extends State<_MindmapNodeView> {
     final bgColor = Color(widget.data.color);
     final txtColor = Color(widget.data.textColor);
     final isRoot = widget.data.isRoot;
-    final selected = widget.canvas.selected;
 
-    if (_isEditing) {
-      return _buildEditingNode(bgColor, txtColor, isRoot);
-    }
-
-    final borderRadius = isRoot ? 24.0 : 8.0;
+    final child = _buildDisplayNode(bgColor, txtColor, isRoot);
 
     return Opacity(
       // Dim the node slightly while it is being dragged.
       opacity: _isBeingDragged ? 0.6 : 1.0,
-      child: GestureDetector(
-        behavior: HitTestBehavior.translucent,
-        onTap: () => widget.canvas.canvasController
-            .setSelection({widget.element.id}),
-        onDoubleTap: _startEditing,
-        // Right-click opens the context menu.
-        onSecondaryTapDown: _onSecondaryTapDown,
-        // FittedBox scales the node content to fit the element's worldRect
-        // (120×40 for regular nodes, 140×48 for root) so text never overflows
-        // the laid-out footprint.
-        child: FittedBox(
-          fit: BoxFit.scaleDown,
-          child: Container(
-            padding: EdgeInsets.symmetric(
-              horizontal: isRoot ? 16 : 12,
-              vertical: isRoot ? 10 : 6,
-            ),
-            decoration: BoxDecoration(
-              color: bgColor,
-              borderRadius: BorderRadius.circular(borderRadius),
-              border: Border.all(
-                color: selected
-                    ? const Color(0xFF2563EB)
-                    : bgColor.computeLuminance() > 0.5
-                        ? const Color(0xFFD1D5DB)
-                        : const Color(0x33FFFFFF),
-                width: selected ? 2.5 : 1,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.08),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Text(
-              widget.data.text.isEmpty ? '...' : widget.data.text,
-              style: TextStyle(
-                color: txtColor,
-                fontSize: isRoot ? 16 : 14,
-                fontWeight: isRoot ? FontWeight.w700 : FontWeight.w500,
-              ),
-              overflow: TextOverflow.ellipsis,
-              maxLines: 2,
-              softWrap: true,
-            ),
-          ),
+      child: Focus(
+        focusNode: _nodeFocusNode,
+        onKeyEvent: _onNodeKeyEvent,
+        child: GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onTapDown: _onPrimaryTapDown,
+          // Right-click opens the context menu.
+          onSecondaryTapDown: _onSecondaryTapDown,
+          child: child,
         ),
       ),
     );
   }
 
-  Widget _buildEditingNode(Color bgColor, Color txtColor, bool isRoot) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(isRoot ? 24 : 8),
-        border: Border.all(color: const Color(0xFF2563EB), width: 2),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.12),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+  Widget _buildDisplayNode(Color bgColor, Color txtColor, bool isRoot) {
+    return switch (widget.canvas.renderDetail) {
+      CanvasWidgetRenderDetail.color => _buildNodeShell(
+        bgColor: bgColor,
+        isRoot: isRoot,
+        fill: Colors.transparent,
+        width: 1.5,
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          IntrinsicWidth(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(minWidth: 60, maxWidth: 140),
-              child: KeyboardListener(
-                key: _editKey,
-                focusNode: FocusNode(),
-                onKeyEvent: (event) {
-                  if (event is! KeyDownEvent) return;
-                  final key = event.logicalKey;
-                  if (key == LogicalKeyboardKey.enter ||
-                      key == LogicalKeyboardKey.numpadEnter) {
-                    final text = _editController.text;
-                    final actions =
-                        MindmapActions.of(widget.canvas.canvasController);
-                    if (widget.data.isRoot) {
-                      _commitEdit();
-                    } else if (actions != null) {
-                      setState(() => _isEditing = false);
-                      actions.commitAndAddSibling(widget.element.id, text);
-                    } else {
-                      _commitEdit();
-                    }
-                  } else if (key == LogicalKeyboardKey.tab) {
-                    final text = _editController.text;
-                    final actions =
-                        MindmapActions.of(widget.canvas.canvasController);
-                    if (actions != null) {
-                      setState(() => _isEditing = false);
-                      actions.commitAndAddChild(widget.element.id, text);
-                    } else {
-                      _commitEdit();
-                    }
-                  } else if (key == LogicalKeyboardKey.escape) {
-                    _cancelEdit();
-                  }
-                },
-                child: TextField(
-                  controller: _editController,
-                  focusNode: _editFocusNode,
-                  style: TextStyle(
-                    color: txtColor,
-                    fontSize: isRoot ? 16 : 14,
-                    fontWeight: isRoot ? FontWeight.w700 : FontWeight.w500,
-                  ),
-                  decoration: const InputDecoration(
-                    isDense: true,
-                    contentPadding:
-                        EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-                    border: InputBorder.none,
-                    hintText: '输入文字...',
-                  ),
-                  textAlign: TextAlign.center,
-                  onSubmitted: (_) => _commitEdit(),
-                  onTapOutside: (_) => _commitEdit(),
+      CanvasWidgetRenderDetail.colorWithText => _buildNodeShell(
+        bgColor: bgColor,
+        isRoot: isRoot,
+        fill: Colors.transparent,
+        width: 1.5,
+        child: _buildScaledText(
+          text: widget.data.text,
+          color: _textColorForOutline(bgColor),
+          fontSize: isRoot ? 11 : 10,
+          fontWeight: FontWeight.w700,
+          maxLines: 1,
+        ),
+      ),
+      CanvasWidgetRenderDetail.thumbnail ||
+      CanvasWidgetRenderDetail.full => _buildNodeShell(
+        bgColor: bgColor,
+        isRoot: isRoot,
+        fill: bgColor,
+        shadow: true,
+        child: _buildScaledText(
+          text: widget.data.text,
+          color: txtColor,
+          fontSize: isRoot ? 16 : 14,
+          fontWeight: isRoot ? FontWeight.w700 : FontWeight.w500,
+          maxLines: 2,
+        ),
+      ),
+    };
+  }
+
+  Widget _buildNodeShell({
+    required Color bgColor,
+    required bool isRoot,
+    required Color fill,
+    Widget? child,
+    double width = 1,
+    bool shadow = false,
+    bool highlighted = false,
+  }) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: fill,
+        borderRadius: BorderRadius.circular(isRoot ? 24 : 8),
+        border: Border.all(
+          color: highlighted
+              ? const Color(0xFF2563EB)
+              : _borderColorFor(bgColor),
+          width: highlighted ? 2 : width,
+        ),
+        boxShadow: shadow
+            ? [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.08),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
                 ),
+              ]
+            : null,
+      ),
+      child: child == null
+          ? const SizedBox.expand()
+          : Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: isRoot ? 16 : 12,
+                vertical: isRoot ? 10 : 6,
+              ),
+              child: Center(child: child),
+            ),
+    );
+  }
+
+  Widget _buildScaledText({
+    required String text,
+    required Color color,
+    required double fontSize,
+    required FontWeight fontWeight,
+    required int maxLines,
+  }) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final maxWidth = constraints.maxWidth.isFinite
+            ? constraints.maxWidth
+            : MindmapNodeMetrics.maxNodeWidth;
+        return FittedBox(
+          fit: BoxFit.scaleDown,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: maxWidth),
+            child: Text(
+              text.isEmpty ? '...' : text,
+              overflow: TextOverflow.ellipsis,
+              maxLines: maxLines,
+              softWrap: true,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: color,
+                fontSize: fontSize,
+                fontWeight: fontWeight,
               ),
             ),
           ),
-          const SizedBox(width: 4),
-          GestureDetector(
-            onTap: _commitEdit,
-            child: const Icon(Icons.check, size: 18, color: Color(0xFF2563EB)),
-          ),
-        ],
-      ),
+        );
+      },
     );
+  }
+
+  Color _borderColorFor(Color color) {
+    if (color.computeLuminance() > 0.72) {
+      return const Color(0xFFD1D5DB);
+    }
+    return color;
+  }
+
+  Color _textColorForOutline(Color color) {
+    return color.computeLuminance() > 0.72 ? const Color(0xFF1F2937) : color;
   }
 }

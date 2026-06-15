@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'mindmap_node.dart';
+import 'mindmap_node_metrics.dart';
 
 /// Renders a single mind map node.
 ///
@@ -49,6 +50,11 @@ class MindmapNodeWidget extends StatefulWidget {
 class _MindmapNodeWidgetState extends State<MindmapNodeWidget> {
   late TextEditingController _editController;
   late FocusNode _editFocusNode;
+  DateTime? _lastTapDownTime;
+  Offset? _lastTapDownPosition;
+
+  static const Duration _doubleTapInterval = Duration(milliseconds: 300);
+  static const double _doubleTapSlop = 18;
 
   @override
   void initState() {
@@ -83,6 +89,31 @@ class _MindmapNodeWidgetState extends State<MindmapNodeWidget> {
     widget.onCommitEdit(_editController.text);
   }
 
+  void _handleTapDown(TapDownDetails details) {
+    if (widget.isEditing) return;
+
+    final now = DateTime.now();
+    final position = details.globalPosition;
+    final lastTime = _lastTapDownTime;
+    final lastPosition = _lastTapDownPosition;
+    final isDoubleTap =
+        lastTime != null &&
+        lastPosition != null &&
+        now.difference(lastTime) <= _doubleTapInterval &&
+        (position - lastPosition).distance <= _doubleTapSlop;
+
+    _lastTapDownTime = now;
+    _lastTapDownPosition = position;
+
+    widget.onTap();
+
+    if (isDoubleTap) {
+      _lastTapDownTime = null;
+      _lastTapDownPosition = null;
+      widget.onDoubleTap();
+    }
+  }
+
   void _showContextMenu(BuildContext context) {
     final RenderBox button = context.findRenderObject() as RenderBox;
     final position = RelativeRect.fromLTRB(
@@ -115,9 +146,18 @@ class _MindmapNodeWidgetState extends State<MindmapNodeWidget> {
 
   void _showColorPalette(BuildContext context) {
     const colors = [
-      0xFF2563EB, 0xFFE3F2FD, 0xFF34C759, 0xFFE8F5E9,
-      0xFFFF9500, 0xFFFFF3E0, 0xFFEC4899, 0xFFFCE4EC,
-      0xFF8B5CF6, 0xFFF3E5F5, 0xFF6B7280, 0xFFF3F4F6,
+      0xFF2563EB,
+      0xFFE3F2FD,
+      0xFF34C759,
+      0xFFE8F5E9,
+      0xFFFF9500,
+      0xFFFFF3E0,
+      0xFFEC4899,
+      0xFFFCE4EC,
+      0xFF8B5CF6,
+      0xFFF3E5F5,
+      0xFF6B7280,
+      0xFFF3F4F6,
     ];
 
     showDialog<void>(
@@ -175,24 +215,17 @@ class _MindmapNodeWidgetState extends State<MindmapNodeWidget> {
     final borderRadius = widget.isRoot ? 24.0 : 8.0;
 
     return GestureDetector(
-      onTap: widget.onTap,
-      onDoubleTap: widget.onDoubleTap,
-      onLongPress: () => _showContextMenu(context),
-      child: Container(
-        padding: EdgeInsets.symmetric(
-          horizontal: widget.isRoot ? 16 : 12,
-          vertical: widget.isRoot ? 10 : 6,
-        ),
+      onTapDown: _handleTapDown,
+      onSecondaryTapDown: (_) => _showContextMenu(context),
+      child: DecoratedBox(
         decoration: BoxDecoration(
           color: bgColor,
           borderRadius: BorderRadius.circular(borderRadius),
           border: Border.all(
-            color: widget.isSelected
-                ? const Color(0xFF2563EB)
-                : bgColor.computeLuminance() > 0.5
-                    ? const Color(0xFFD1D5DB)
-                    : const Color(0x33FFFFFF),
-            width: widget.isSelected ? 2.5 : 1,
+            color: bgColor.computeLuminance() > 0.5
+                ? const Color(0xFFD1D5DB)
+                : const Color(0x33FFFFFF),
+            width: 1,
           ),
           boxShadow: [
             BoxShadow(
@@ -202,18 +235,39 @@ class _MindmapNodeWidgetState extends State<MindmapNodeWidget> {
             ),
           ],
         ),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 140),
-          child: Text(
-            widget.node.text.isEmpty ? '...' : widget.node.text,
-            style: TextStyle(
-              color: txtColor,
-              fontSize: widget.isRoot ? 16 : 14,
-              fontWeight: widget.isRoot ? FontWeight.w700 : FontWeight.w500,
+        child: Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: widget.isRoot ? 16 : 12,
+            vertical: widget.isRoot ? 10 : 6,
+          ),
+          child: Center(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final maxWidth = constraints.maxWidth.isFinite
+                    ? constraints.maxWidth
+                    : MindmapNodeMetrics.maxNodeWidth;
+                return FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(maxWidth: maxWidth),
+                    child: Text(
+                      widget.node.text.isEmpty ? '...' : widget.node.text,
+                      style: TextStyle(
+                        color: txtColor,
+                        fontSize: widget.isRoot ? 16 : 14,
+                        fontWeight: widget.isRoot
+                            ? FontWeight.w700
+                            : FontWeight.w500,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 2,
+                      softWrap: true,
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                );
+              },
             ),
-            overflow: TextOverflow.ellipsis,
-            maxLines: 2,
-            softWrap: true,
           ),
         ),
       ),
@@ -221,77 +275,102 @@ class _MindmapNodeWidgetState extends State<MindmapNodeWidget> {
   }
 
   Widget _buildEditingNode(Color bgColor, Color txtColor) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFF2563EB), width: 2),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.12),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          IntrinsicWidth(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(minWidth: 60, maxWidth: 140),
-              child: KeyboardListener(
-                focusNode: FocusNode(),
-                onKeyEvent: (event) {
-                  if (event is! KeyDownEvent) return;
-                  final key = event.logicalKey;
-                  if (key == LogicalKeyboardKey.enter ||
-                      key == LogicalKeyboardKey.numpadEnter) {
-                    _handleEnter();
-                  } else if (key == LogicalKeyboardKey.tab) {
-                    _handleTab();
-                  }
-                },
-                child: TextField(
-                  controller: _editController,
-                  focusNode: _editFocusNode,
-                  style: TextStyle(
-                    color: txtColor,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
+    return AnimatedBuilder(
+      animation: _editController,
+      builder: (context, _) {
+        final width = MindmapNodeMetrics.widthForText(
+          _editController.text,
+          isRoot: widget.isRoot,
+        );
+        final height = widget.isRoot
+            ? MindmapNodeMetrics.rootHeight
+            : MindmapNodeMetrics.nodeHeight;
+
+        return OverflowBox(
+          alignment: Alignment.center,
+          minWidth: width,
+          maxWidth: width,
+          minHeight: height,
+          maxHeight: height,
+          child: SizedBox(
+            width: width,
+            height: height,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: bgColor,
+                borderRadius: BorderRadius.circular(widget.isRoot ? 24 : 8),
+                border: Border.all(color: const Color(0xFF2563EB), width: 2),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.12),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
                   ),
-                  decoration: const InputDecoration(
-                    isDense: true,
-                    contentPadding:
-                        EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-                    border: InputBorder.none,
-                    hintText: '输入文字...',
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IntrinsicWidth(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(
+                        minWidth: 60,
+                        maxWidth: MindmapNodeMetrics.maxRootWidth,
+                      ),
+                      child: Focus(
+                        onKeyEvent: (node, event) {
+                          if (event is! KeyDownEvent) {
+                            return KeyEventResult.ignored;
+                          }
+                          final key = event.logicalKey;
+                          if (key == LogicalKeyboardKey.enter ||
+                              key == LogicalKeyboardKey.numpadEnter) {
+                            _handleEnter();
+                            return KeyEventResult.handled;
+                          } else if (key == LogicalKeyboardKey.tab) {
+                            _handleTab();
+                            return KeyEventResult.handled;
+                          }
+                          return KeyEventResult.ignored;
+                        },
+                        child: TextField(
+                          controller: _editController,
+                          focusNode: _editFocusNode,
+                          style: TextStyle(
+                            color: txtColor,
+                            fontSize: widget.isRoot ? 16 : 14,
+                            fontWeight: widget.isRoot
+                                ? FontWeight.w700
+                                : FontWeight.w500,
+                          ),
+                          decoration: const InputDecoration(
+                            isDense: true,
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 4,
+                              vertical: 6,
+                            ),
+                            border: InputBorder.none,
+                            hintText: '输入文字...',
+                          ),
+                          textAlign: TextAlign.center,
+                          onSubmitted: (_) => _commit(),
+                          onTapOutside: (_) => _commit(),
+                        ),
+                      ),
+                    ),
                   ),
-                  textAlign: TextAlign.center,
-                  onSubmitted: (_) => _commit(),
-                  onTapOutside: (_) => _commit(),
-                ),
+                ],
               ),
             ),
           ),
-          const SizedBox(width: 4),
-          GestureDetector(
-            onTap: _commit,
-            child: const Icon(Icons.check, size: 18, color: Color(0xFF2563EB)),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
   void _handleEnter() {
-    final text = _editController.text;
-    if (widget.onCommitAndAddSibling != null) {
-      widget.onCommitAndAddSibling!(widget.node.id, text);
-    } else {
-      _commit();
-    }
+    _commit();
   }
 
   void _handleTab() {

@@ -5,6 +5,7 @@ import 'mindmap_drag_session.dart';
 import 'mindmap_layout_engine.dart';
 import 'mindmap_node.dart';
 import 'mindmap_node_data.dart';
+import 'mindmap_node_metrics.dart';
 import 'mindmap_tree.dart';
 
 /// Central place for all mind map mutations in "non-component mode".
@@ -24,9 +25,40 @@ class MindmapActions {
 
   final CanvasController _canvas;
 
+  static const int _rootNodeColor = 0xFF2563EB;
+  static const int _rootTextColor = 0xFFFFFFFF;
+  static const int _childNodeColor = 0xFFE3F2FD;
+  static const int _childTextColor = 0xFF1F2937;
+
   /// Active drag session (long-press drag on a child node). The connection
   /// layer listens to this to render the ghost + drop target highlight.
   final MindmapDragSession dragSession = MindmapDragSession();
+  final ValueNotifier<MindmapEditRequest?> editRequest = ValueNotifier(null);
+  final ValueNotifier<String?> editingNodeId = ValueNotifier(null);
+
+  int _editRequestSerial = 0;
+
+  void _requestEdit(String nodeId) {
+    editRequest.value = MindmapEditRequest(nodeId, ++_editRequestSerial);
+  }
+
+  void consumeEditRequest(MindmapEditRequest request) {
+    if (identical(editRequest.value, request)) {
+      editRequest.value = null;
+    }
+  }
+
+  void beginEditing(String nodeId) {
+    if (_nodeData(nodeId) == null) return;
+    _canvas.setSelection({nodeId});
+    editingNodeId.value = nodeId;
+  }
+
+  void endEditing(String nodeId) {
+    if (editingNodeId.value == nodeId) {
+      editingNodeId.value = null;
+    }
+  }
 
   static final Map<CanvasController, MindmapActions> _registry = {};
 
@@ -123,6 +155,7 @@ class MindmapActions {
     // Expand the parent (on the child's side) so the new child is visible.
     _setCollapsed(parentId, side, false);
     relayoutOf(parentId, select: newId);
+    _requestEdit(newId);
   }
 
   /// Add a sibling of [nodeId] (same parent, same side). No-op for root.
@@ -134,6 +167,9 @@ class MindmapActions {
 
     final side = node.side;
     final newId = 'node-${DateTime.now().microsecondsSinceEpoch}';
+    final siblings = _childData(parentId, side: side);
+    final currentIndex = siblings.indexWhere((child) => child.id == nodeId);
+    final insertIndex = currentIndex < 0 ? siblings.length : currentIndex + 1;
     final newElement = _makeElement(
       MindmapNodeData(
         id: newId,
@@ -145,10 +181,48 @@ class MindmapActions {
       _tempRectNear(nodeId),
     );
 
-    _canvas.addElement(newElement);
-    // Insert visually after the sibling by reordering is not necessary —
-    // layout is vertical by subtree height. Relayout takes care of position.
+    final newData = MindmapNodeData.fromWidgetData(
+      newElement.widgetData,
+    ).copyWith(order: insertIndex);
+    final orderedNewElement = newElement.copyWith(
+      widgetData: Map<String, dynamic>.unmodifiable(newData.toWidgetData()),
+    );
+    final reordered = <MindmapNodeData>[...siblings]
+      ..insert(insertIndex, newData);
+    final commands = <CanvasCommand>[];
+
+    for (var i = 0; i < reordered.length; i++) {
+      final sibling = reordered[i];
+      if (sibling.id == newId) continue;
+      final element = _canvas.elementById(sibling.id);
+      if (element is! CanvasWidgetElement) continue;
+      final updated = sibling.copyWith(order: i);
+      if (_sameNodeData(sibling, updated)) continue;
+      commands.add(
+        UpdateElementCommand(
+          before: element,
+          after: element.copyWith(
+            widgetData: Map<String, dynamic>.unmodifiable(
+              updated.toWidgetData(),
+            ),
+          ),
+          description: 'Insert mind map sibling',
+        ),
+      );
+    }
+
+    _canvas.addElement(orderedNewElement);
+    if (commands.isNotEmpty) {
+      _canvas.historyManager.execute(
+        BatchCommand(
+          commands: commands,
+          description: 'Reorder mind map siblings',
+        ),
+        _canvas,
+      );
+    }
     relayoutOf(nodeId, select: newId);
+    _requestEdit(newId);
   }
 
   /// Delete [nodeId] and its whole subtree. No-op for root.
@@ -221,6 +295,7 @@ class MindmapActions {
     if (element is! CanvasWidgetElement) return;
     final data = MindmapNodeData.fromWidgetData(element.widgetData);
     _updateNodeData(nodeId, data.copyWith(text: text));
+    relayoutOf(nodeId);
   }
 
   /// Commit text for [nodeId] and immediately add a sibling, selecting it.
@@ -593,7 +668,11 @@ class MindmapActions {
     // Detached: the node becomes an independent root centered on the pointer.
     // There is no parent, so there is no connection to preview.
     if (target.kind == MindmapDropTargetKind.detached) {
-      final size = draggedEl.worldRect.size;
+      final draggedData = MindmapNodeData.fromWidgetData(draggedEl.widgetData);
+      final size = Size(
+        MindmapNodeMetrics.widthForText(draggedData.text, isRoot: true),
+        MindmapNodeMetrics.rootHeight,
+      );
       final center = target.detachedCenter ?? dragSession.worldPosition;
       final previewRect = Rect.fromCenter(
         center: center,
@@ -830,15 +909,7 @@ class MindmapActions {
       case MindmapDropTargetKind.detached:
         if (e.id != draggedNodeId) return e;
         final data = MindmapNodeData.fromWidgetData(e.widgetData);
-        final simulated = data.copyWith(
-          parentId: null,
-          isRoot: true,
-          side: MindmapNodeSide.center,
-          isCollapsed: false,
-          collapsedRight: false,
-          collapsedLeft: false,
-          order: 0,
-        );
+        final simulated = _asRootNode(data);
         return e.copyWith(
           widgetData: Map<String, dynamic>.unmodifiable(
             simulated.toWidgetData(),
@@ -885,11 +956,11 @@ class MindmapActions {
     children.insertAll(
       insertIndex,
       draggedNodes.map(
-        (dragged) => dragged.copyWith(
+        (dragged) => _asChildNode(
+          dragged,
           parentId: parentId,
           side: side,
-          isRoot: false,
-          isCollapsed: false,
+          clearCollapse: true,
         ),
       ),
     );
@@ -897,10 +968,10 @@ class MindmapActions {
     final result = <String, MindmapNodeData>{};
     for (var i = 0; i < children.length; i++) {
       final child = children[i];
-      result[child.id] = child.copyWith(
+      result[child.id] = _asChildNode(
+        child,
         parentId: parentId,
         side: side,
-        isRoot: false,
         order: i,
       );
     }
@@ -911,7 +982,7 @@ class MindmapActions {
         }
         final descendant = _nodeData(descendantId);
         if (descendant == null) continue;
-        result[descendantId] = descendant.copyWith(side: side, isRoot: false);
+        result[descendantId] = _asDescendantOnSide(descendant, side);
       }
     }
     return result;
@@ -1047,13 +1118,7 @@ class MindmapActions {
       if (element is! CanvasWidgetElement) continue;
       final before = MindmapNodeData.fromWidgetData(element.widgetData);
       final after = entry.value;
-      if (before.parentId == after.parentId &&
-          before.side == after.side &&
-          before.isRoot == after.isRoot &&
-          before.isCollapsed == after.isCollapsed &&
-          before.order == after.order) {
-        continue;
-      }
+      if (_sameNodeData(before, after)) continue;
       commands.add(
         UpdateElementCommand(
           before: element,
@@ -1106,13 +1171,7 @@ class MindmapActions {
       if (element is! CanvasWidgetElement) continue;
       final before = MindmapNodeData.fromWidgetData(element.widgetData);
       final after = entry.value;
-      if (before.parentId == after.parentId &&
-          before.side == after.side &&
-          before.isRoot == after.isRoot &&
-          before.isCollapsed == after.isCollapsed &&
-          before.order == after.order) {
-        continue;
-      }
+      if (_sameNodeData(before, after)) continue;
       commands.add(
         UpdateElementCommand(
           before: element,
@@ -1168,15 +1227,7 @@ class MindmapActions {
             height: element.worldRect.height,
           );
 
-    final detached = dragged.copyWith(
-      parentId: null,
-      isRoot: true,
-      side: MindmapNodeSide.center,
-      isCollapsed: false,
-      collapsedRight: false,
-      collapsedLeft: false,
-      order: 0,
-    );
+    final detached = _asRootNode(dragged);
 
     // Write both the data change and the new position in a single command so
     // undo restores them together.
@@ -1302,21 +1353,19 @@ class MindmapActions {
       if (dragged == null || element is! CanvasWidgetElement) continue;
       final isExistingRoot = isDetachedRoot && wasRootById[id] == true;
 
-      final detached = dragged.copyWith(
-        parentId: parentId,
-        isRoot: isDetachedRoot,
-        side: side,
-        isCollapsed: isDetachedRoot && !isExistingRoot
-            ? false
-            : dragged.isCollapsed,
-        collapsedRight: isDetachedRoot && !isExistingRoot
-            ? false
-            : dragged.collapsedRight,
-        collapsedLeft: isDetachedRoot && !isExistingRoot
-            ? false
-            : dragged.collapsedLeft,
-        order: isDetachedRoot ? 0 : dragged.order,
-      );
+      final detached = isDetachedRoot
+          ? isExistingRoot
+                ? dragged.copyWith(
+                    parentId: null,
+                    isRoot: true,
+                    side: MindmapNodeSide.center,
+                    order: 0,
+                  )
+                : _asRootNode(dragged)
+          : _asDescendantOnSide(
+              dragged,
+              side,
+            ).copyWith(parentId: parentId, order: dragged.order);
       commands.add(
         UpdateElementCommand(
           before: element,
@@ -1417,6 +1466,70 @@ class MindmapActions {
 
   // ── Helpers ────────────────────────────────────────────────────────
 
+  MindmapNodeData _asRootNode(MindmapNodeData data) {
+    return data.copyWith(
+      parentId: null,
+      side: MindmapNodeSide.center,
+      isRoot: true,
+      isCollapsed: false,
+      collapsedRight: false,
+      collapsedLeft: false,
+      order: 0,
+      color: _rootNodeColor,
+      textColor: _rootTextColor,
+    );
+  }
+
+  MindmapNodeData _asChildNode(
+    MindmapNodeData data, {
+    required String parentId,
+    required MindmapNodeSide side,
+    int? order,
+    bool clearCollapse = false,
+  }) {
+    final roleChanged = data.isRoot || data.parentId == null;
+    return data.copyWith(
+      parentId: parentId,
+      side: side,
+      isRoot: false,
+      isCollapsed: clearCollapse || roleChanged ? false : data.isCollapsed,
+      collapsedRight: false,
+      collapsedLeft: false,
+      order: order ?? data.order,
+      color: roleChanged ? _childNodeColor : data.color,
+      textColor: roleChanged ? _childTextColor : data.textColor,
+    );
+  }
+
+  MindmapNodeData _asDescendantOnSide(
+    MindmapNodeData data,
+    MindmapNodeSide side,
+  ) {
+    final roleChanged = data.isRoot || data.parentId == null;
+    return data.copyWith(
+      side: side,
+      isRoot: false,
+      collapsedRight: false,
+      collapsedLeft: false,
+      color: roleChanged ? _childNodeColor : data.color,
+      textColor: roleChanged ? _childTextColor : data.textColor,
+    );
+  }
+
+  bool _sameNodeData(MindmapNodeData a, MindmapNodeData b) {
+    return a.id == b.id &&
+        a.text == b.text &&
+        a.parentId == b.parentId &&
+        a.side == b.side &&
+        a.isCollapsed == b.isCollapsed &&
+        a.collapsedRight == b.collapsedRight &&
+        a.collapsedLeft == b.collapsedLeft &&
+        a.isRoot == b.isRoot &&
+        a.order == b.order &&
+        a.color == b.color &&
+        a.textColor == b.textColor;
+  }
+
   MindmapNodeData? _nodeData(String id) {
     final element = _canvas.elementById(id);
     if (element is! CanvasWidgetElement) return null;
@@ -1469,12 +1582,17 @@ class MindmapActions {
   Rect _tempRectNear(String referenceId) {
     final ref = _canvas.elementById(referenceId);
     if (ref == null) {
-      return const Rect.fromLTWH(0, 0, 120, 40);
+      return const Rect.fromLTWH(
+        0,
+        0,
+        MindmapNodeMetrics.minNodeWidth,
+        MindmapNodeMetrics.nodeHeight,
+      );
     }
     return Rect.fromCenter(
       center: ref.bounds.center + const Offset(160, 0),
-      width: 120,
-      height: 40,
+      width: MindmapNodeMetrics.minNodeWidth,
+      height: MindmapNodeMetrics.nodeHeight,
     );
   }
 
@@ -1506,6 +1624,13 @@ class _DropParentCandidate {
   }
 }
 
+class MindmapEditRequest {
+  const MindmapEditRequest(this.nodeId, this.serial);
+
+  final String nodeId;
+  final int serial;
+}
+
 /// Build a [CanvasWidgetElement] for a single mind map node.
 ///
 /// Nodes use [CanvasWidgetRenderMode.live] (always interactive) and the
@@ -1522,6 +1647,7 @@ CanvasWidgetElement makeMindmapNodeElement({
     widgetType: kMindmapNodeWidgetType,
     widgetData: Map<String, dynamic>.unmodifiable(data.toWidgetData()),
     renderMode: CanvasWidgetRenderMode.live,
+    clipBehavior: Clip.none,
   );
 }
 
@@ -1533,7 +1659,11 @@ List<CanvasWidgetElement> createMindmapNodeElements({
   String rootText = '中心主题',
 }) {
   final rootId = 'mm-${DateTime.now().microsecondsSinceEpoch}';
-  final rootRect = Rect.fromCenter(center: center, width: 140, height: 48);
+  final rootRect = Rect.fromCenter(
+    center: center,
+    width: MindmapNodeMetrics.widthForText(rootText, isRoot: true),
+    height: MindmapNodeMetrics.rootHeight,
+  );
 
   CanvasWidgetElement asWidget(MindmapNodeData data) {
     return makeMindmapNodeElement(data: data, rect: rootRect);

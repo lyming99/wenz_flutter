@@ -1,14 +1,17 @@
 import 'dart:ui';
 
 import 'mindmap_node.dart';
+import 'mindmap_node_metrics.dart';
 
 /// Layout configuration for mind map nodes.
 class MindmapLayoutConfig {
   const MindmapLayoutConfig({
-    this.nodeWidth = 120,
-    this.nodeHeight = 40,
-    this.rootNodeWidth = 140,
-    this.rootNodeHeight = 48,
+    this.nodeWidth = MindmapNodeMetrics.minNodeWidth,
+    this.nodeHeight = MindmapNodeMetrics.nodeHeight,
+    this.rootNodeWidth = MindmapNodeMetrics.minRootWidth,
+    this.rootNodeHeight = MindmapNodeMetrics.rootHeight,
+    this.maxNodeWidth = MindmapNodeMetrics.maxNodeWidth,
+    this.maxRootNodeWidth = MindmapNodeMetrics.maxRootWidth,
     this.horizontalGap = 50,
     this.siblingGap = 12,
   });
@@ -17,10 +20,21 @@ class MindmapLayoutConfig {
   final double nodeHeight;
   final double rootNodeWidth;
   final double rootNodeHeight;
+  final double maxNodeWidth;
+  final double maxRootNodeWidth;
 
   /// Edge-to-edge horizontal gap between parent and child nodes.
   final double horizontalGap;
   final double siblingGap;
+
+  double widthForNode(MindmapNode node, {required bool isRoot}) {
+    return MindmapNodeMetrics.widthForText(
+      node.text,
+      isRoot: isRoot,
+      minWidth: isRoot ? rootNodeWidth : nodeWidth,
+      maxWidth: isRoot ? maxRootNodeWidth : maxNodeWidth,
+    );
+  }
 }
 
 /// Layout result for a single node.
@@ -92,7 +106,7 @@ class MindmapLayout {
 
     final rootRect = Rect.fromCenter(
       center: Offset.zero,
-      width: config.rootNodeWidth,
+      width: config.widthForNode(root, isRoot: true),
       height: config.rootNodeHeight,
     );
 
@@ -101,27 +115,22 @@ class MindmapLayout {
 
     // Only lay out children when the root is NOT collapsed
     if (!root.isCollapsed) {
-      // child center X = parent right edge + gap + child half width
-      final rightChildCenterX = config.rootNodeWidth / 2 +
-          config.horizontalGap +
-          config.nodeWidth / 2;
-      final leftChildCenterX = -(config.rootNodeWidth / 2 +
-          config.horizontalGap +
-          config.nodeWidth / 2);
-
       if (rightChildren.isNotEmpty) {
         final rightHeight = _totalSubtreeHeight(rightChildren, config);
         double y = -rightHeight / 2;
         for (final child in rightChildren) {
           final subH = _subtreeHeight(child, config);
-          rightNodes.add(_layoutSubtree(
-            child,
-            rightChildCenterX,
-            y + subH / 2,
-            1,
-            MindmapNodeSide.right,
-            config,
-          ));
+          final childWidth = config.widthForNode(child, isRoot: false);
+          rightNodes.add(
+            _layoutSubtree(
+              child,
+              rootRect.right + config.horizontalGap + childWidth / 2,
+              y + subH / 2,
+              1,
+              MindmapNodeSide.right,
+              config,
+            ),
+          );
           y += subH + config.siblingGap;
         }
       }
@@ -131,14 +140,17 @@ class MindmapLayout {
         double y = -leftHeight / 2;
         for (final child in leftChildren) {
           final subH = _subtreeHeight(child, config);
-          leftNodes.add(_layoutSubtree(
-            child,
-            leftChildCenterX,
-            y + subH / 2,
-            1,
-            MindmapNodeSide.left,
-            config,
-          ));
+          final childWidth = config.widthForNode(child, isRoot: false);
+          leftNodes.add(
+            _layoutSubtree(
+              child,
+              rootRect.left - config.horizontalGap - childWidth / 2,
+              y + subH / 2,
+              1,
+              MindmapNodeSide.left,
+              config,
+            ),
+          );
           y += subH + config.siblingGap;
         }
       }
@@ -191,7 +203,7 @@ class MindmapLayout {
     MindmapNodeSide side,
     MindmapLayoutConfig config,
   ) {
-    final w = config.nodeWidth;
+    final w = config.widthForNode(node, isRoot: depth == 0);
     final h = config.nodeHeight;
     final nodeRect = Rect.fromCenter(
       center: Offset(xCenter, yCenter),
@@ -207,21 +219,15 @@ class MindmapLayout {
     double y = yCenter - childrenHeight / 2;
 
     final childNodes = <MindmapLayoutNode>[];
-    // Edge-to-edge gap: child center = parent edge + gap + child half width
-    final childX = side == MindmapNodeSide.right
-        ? xCenter + w / 2 + config.horizontalGap + w / 2
-        : xCenter - w / 2 - config.horizontalGap - w / 2;
-
     for (final child in node.children) {
       final subH = _subtreeHeight(child, config);
-      childNodes.add(_layoutSubtree(
-        child,
-        childX,
-        y + subH / 2,
-        depth + 1,
-        side,
-        config,
-      ));
+      final childWidth = config.widthForNode(child, isRoot: false);
+      final childX = side == MindmapNodeSide.right
+          ? nodeRect.right + config.horizontalGap + childWidth / 2
+          : nodeRect.left - config.horizontalGap - childWidth / 2;
+      childNodes.add(
+        _layoutSubtree(child, childX, y + subH / 2, depth + 1, side, config),
+      );
       y += subH + config.siblingGap;
     }
 
@@ -273,16 +279,18 @@ class MindmapLayout {
         final isRoot = layoutNode.depth == 0;
         final sides = isRoot
             ? [MindmapNodeSide.right, MindmapNodeSide.left]
-            : [node.side == MindmapNodeSide.center
-                ? MindmapNodeSide.right
-                : node.side];
+            : [
+                node.side == MindmapNodeSide.center
+                    ? MindmapNodeSide.right
+                    : node.side,
+              ];
 
         for (final side in sides) {
           // Check data model for children on this side
           final hasOnSide = isRoot
               ? (side == MindmapNodeSide.right
-                  ? node.children.any((c) => c.side != MindmapNodeSide.left)
-                  : node.children.any((c) => c.side == MindmapNodeSide.left))
+                    ? node.children.any((c) => c.side != MindmapNodeSide.left)
+                    : node.children.any((c) => c.side == MindmapNodeSide.left))
               : true;
 
           if (!hasOnSide) continue;
@@ -290,17 +298,23 @@ class MindmapLayout {
           // Count children on this side
           final countOnSide = isRoot
               ? (side == MindmapNodeSide.right
-                  ? node.children.where((c) => c.side != MindmapNodeSide.left).length
-                  : node.children.where((c) => c.side == MindmapNodeSide.left).length)
+                    ? node.children
+                          .where((c) => c.side != MindmapNodeSide.left)
+                          .length
+                    : node.children
+                          .where((c) => c.side == MindmapNodeSide.left)
+                          .length)
               : node.children.length;
 
           if (countOnSide == 0) continue;
 
           // Expanded children on this side
           final expandedOnSide = layoutNode.expandedChildren
-              .where((c) => side == MindmapNodeSide.right
-                  ? c.rect.center.dx >= layoutNode.rect.center.dx
-                  : c.rect.center.dx < layoutNode.rect.center.dx)
+              .where(
+                (c) => side == MindmapNodeSide.right
+                    ? c.rect.center.dx >= layoutNode.rect.center.dx
+                    : c.rect.center.dx < layoutNode.rect.center.dx,
+              )
               .toList();
 
           // Merge point position: midpoint of the gap
@@ -318,15 +332,17 @@ class MindmapLayout {
               side == MindmapNodeSide.right ? c.leftCenter : c.rightCenter,
           ];
 
-          points.add(MindmapMergePoint(
-            position: Offset(mergeX, mergeY),
-            parentNodeId: node.id,
-            side: side,
-            isCollapsed: node.isCollapsed,
-            childCount: countOnSide,
-            parentEdge: parentEdge,
-            childEdges: childEdges,
-          ));
+          points.add(
+            MindmapMergePoint(
+              position: Offset(mergeX, mergeY),
+              parentNodeId: node.id,
+              side: side,
+              isCollapsed: node.isCollapsed,
+              childCount: countOnSide,
+              parentEdge: parentEdge,
+              childEdges: childEdges,
+            ),
+          );
         }
       }
 

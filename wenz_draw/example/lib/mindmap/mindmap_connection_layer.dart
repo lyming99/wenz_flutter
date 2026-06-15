@@ -1,5 +1,8 @@
+import 'dart:math' as math;
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:wenz_draw/wenz_draw.dart';
 
 import 'mindmap_actions.dart';
@@ -8,6 +11,7 @@ import 'mindmap_drag_session.dart';
 import 'mindmap_layout_engine.dart';
 import 'mindmap_node.dart';
 import 'mindmap_node_data.dart';
+import 'mindmap_node_metrics.dart';
 import 'mindmap_tree.dart';
 
 /// Overlay that draws mind map connections + collapse buttons on top of the
@@ -43,13 +47,18 @@ class _MindmapConnectionLayerState extends State<MindmapConnectionLayer> {
     widget.canvasController.addListener(_onChanged);
     widget.viewController.addListener(_onChanged);
     _dragSession?.addListener(_onChanged);
+    _editingNodeId?.addListener(_onChanged);
   }
 
   MindmapDragSession? get _dragSession =>
       MindmapActions.of(widget.canvasController)?.dragSession;
 
+  ValueNotifier<String?>? get _editingNodeId =>
+      MindmapActions.of(widget.canvasController)?.editingNodeId;
+
   @override
   void dispose() {
+    _editingNodeId?.removeListener(_onChanged);
     _dragSession?.removeListener(_onChanged);
     widget.canvasController.removeListener(_onChanged);
     widget.viewController.removeListener(_onChanged);
@@ -98,10 +107,17 @@ class _MindmapConnectionLayerState extends State<MindmapConnectionLayer> {
           mergePoints: allMergePoints,
           scale: scale,
           worldToScreen: worldToScreen,
+          viewController: widget.viewController,
           onTap: (parentId, side) => actions.toggleCollapse(parentId, side),
         )
         .stackWithDragPreview(
           dragSession: actions.dragSession,
+          scale: scale,
+          worldToScreen: worldToScreen,
+          canvasController: widget.canvasController,
+        )
+        .stackWithEditingOverlay(
+          actions: actions,
           scale: scale,
           worldToScreen: worldToScreen,
           canvasController: widget.canvasController,
@@ -113,8 +129,10 @@ class _MindmapConnectionLayerState extends State<MindmapConnectionLayer> {
 ///
 /// It wraps the canvas stack instead of sitting above it, so normal canvas
 /// hits still reach their original widgets. If pointer-down starts on a
-/// non-root mind map node under the select tool, the first significant move
-/// starts a drag session and computes target/preview positions.
+/// mind map node under the select tool, the first significant move starts a
+/// drag session and computes target/preview positions. Root nodes drag their
+/// whole tree visually; dropping onto another mind map reparents the root,
+/// while dropping on empty canvas records a plain tree translation.
 class MindmapDragOverlay extends StatefulWidget {
   const MindmapDragOverlay({
     super.key,
@@ -149,6 +167,8 @@ class _MindmapDragOverlayState extends State<MindmapDragOverlay> {
   List<String> _dragNodeIds = const [];
   List<String> _movingNodeIds = const [];
   Map<String, Offset> _nodeOrigins = const {};
+  Map<String, Rect> _nodeOriginRects = const {};
+  bool _draggingRoot = false;
 
   /// The pointer stream that owns the current drag candidate/session.
   int? _dragPointer;
@@ -164,24 +184,33 @@ class _MindmapDragOverlayState extends State<MindmapDragOverlay> {
     if (event.buttons != kPrimaryButton) return;
     // Only engage under the select tool — otherwise let the canvas handle it.
     if (widget.canvasController.currentTool?.id != SelectTool.idValue) return;
+    final actions = _actions;
+    if (actions == null) return;
+    if (actions.editingNodeId.value != null) return;
 
     final world = widget.viewController.screenToWorld(event.localPosition);
     final hit = widget.canvasController.hitTest(world);
     if (!_isDraggableNode(hit)) return;
+    final hitElement = hit as CanvasWidgetElement;
+    final hitData = MindmapNodeData.fromWidgetData(hitElement.widgetData);
 
-    final actions = _actions;
-    if (actions == null) return;
+    if (hitData.isRoot) {
+      _startRootMoveCandidate(event, hitElement, actions);
+      return;
+    }
 
     final selected = widget.canvasController.selectedIds;
-    final requestedIds = selected.contains(hit!.id) ? selected : {hit.id};
+    final requestedIds = selected.contains(hitElement.id)
+        ? selected
+        : {hitElement.id};
     final structuralIds = actions.topLevelDragNodeIds(
       requestedIds,
-      primaryId: hit.id,
+      primaryId: hitElement.id,
     );
     if (structuralIds.isEmpty) return;
 
-    final primaryId = structuralIds.contains(hit.id)
-        ? hit.id
+    final primaryId = structuralIds.contains(hitElement.id)
+        ? hitElement.id
         : structuralIds.first;
     final movingIds = <String>[];
     final seenMovingIds = <String>{};
@@ -191,10 +220,12 @@ class _MindmapDragOverlayState extends State<MindmapDragOverlay> {
       }
     }
     final origins = <String, Offset>{};
+    final originRects = <String, Rect>{};
     for (final id in movingIds) {
       final element = widget.canvasController.elementById(id);
       if (element is CanvasWidgetElement) {
         origins[id] = element.bounds.center;
+        originRects[id] = element.worldRect;
       }
     }
     final primary = widget.canvasController.elementById(primaryId);
@@ -204,9 +235,40 @@ class _MindmapDragOverlayState extends State<MindmapDragOverlay> {
     _dragNodeIds = structuralIds;
     _movingNodeIds = movingIds;
     _nodeOrigins = origins;
+    _nodeOriginRects = originRects;
+    _draggingRoot = false;
     _dragPointer = event.pointer;
     _downScreen = event.position;
     _nodeWorldOrigin = primary.bounds.center;
+  }
+
+  void _startRootMoveCandidate(
+    PointerDownEvent event,
+    CanvasWidgetElement root,
+    MindmapActions actions,
+  ) {
+    final movingIds = actions.subtreeIdsOf(root.id).toList(growable: false);
+    final origins = <String, Offset>{};
+    final originRects = <String, Rect>{};
+    for (final id in movingIds) {
+      final element = widget.canvasController.elementById(id);
+      if (element is CanvasWidgetElement) {
+        origins[id] = element.worldRect.center;
+        originRects[id] = element.worldRect;
+      }
+    }
+    if (origins.isEmpty) return;
+
+    widget.canvasController.setSelection({root.id});
+    _dragNodeId = root.id;
+    _dragNodeIds = [root.id];
+    _movingNodeIds = movingIds;
+    _nodeOrigins = origins;
+    _nodeOriginRects = originRects;
+    _draggingRoot = true;
+    _dragPointer = event.pointer;
+    _downScreen = event.position;
+    _nodeWorldOrigin = root.worldRect.center;
   }
 
   void _onPointerMove(PointerMoveEvent event) {
@@ -247,6 +309,11 @@ class _MindmapDragOverlayState extends State<MindmapDragOverlay> {
       worldPos,
       excludedNodeIds: excludedIds,
     );
+    if (_draggingRoot && target?.kind == MindmapDropTargetKind.detached) {
+      actions.dragSession.updateTarget(null, null);
+      return;
+    }
+
     final preview = actions.computeDropPreview(
       nodeId,
       target,
@@ -262,6 +329,9 @@ class _MindmapDragOverlayState extends State<MindmapDragOverlay> {
 
   void _onPointerCancel(PointerCancelEvent event) {
     if (event.pointer != _dragPointer) return;
+    if (_draggingRoot) {
+      _restoreRootMove();
+    }
     _actions?.dragSession.cancel();
     _reset();
   }
@@ -276,6 +346,11 @@ class _MindmapDragOverlayState extends State<MindmapDragOverlay> {
     final dropPosition = actions.dragSession.worldPosition;
     final draggedNodeIds = actions.dragSession.draggedNodeIds;
     final target = actions.dragSession.end();
+    if (_draggingRoot && target == null) {
+      _recordRootMove(nodeId);
+      _reset();
+      return;
+    }
     actions.reorderOrReparentMany(
       draggedNodeIds,
       target,
@@ -284,11 +359,51 @@ class _MindmapDragOverlayState extends State<MindmapDragOverlay> {
     _reset();
   }
 
+  void _recordRootMove(String rootId) {
+    final commands = <CanvasCommand>[];
+    for (final id in _movingNodeIds) {
+      final originalRect = _nodeOriginRects[id];
+      final element = widget.canvasController.elementById(id);
+      if (originalRect == null || element is! CanvasWidgetElement) continue;
+      if (element.worldRect == originalRect) continue;
+
+      commands.add(
+        UpdateElementCommand(
+          before: element.copyWith(worldRect: originalRect),
+          after: element,
+          description: 'Move mind map tree',
+        ),
+      );
+    }
+
+    if (commands.isNotEmpty) {
+      widget.canvasController.historyManager.execute(
+        BatchCommand(commands: commands, description: 'Move mind map tree'),
+        widget.canvasController,
+      );
+    }
+    widget.canvasController.setSelection({rootId});
+  }
+
+  void _restoreRootMove() {
+    for (final entry in _nodeOriginRects.entries) {
+      final element = widget.canvasController.elementById(entry.key);
+      if (element is! CanvasWidgetElement) continue;
+      if (element.worldRect == entry.value) continue;
+      widget.canvasController.applyElementUpdated(
+        entry.key,
+        element.copyWith(worldRect: entry.value),
+      );
+    }
+  }
+
   void _reset() {
     _dragNodeId = null;
     _dragNodeIds = const [];
     _movingNodeIds = const [];
     _nodeOrigins = const {};
+    _nodeOriginRects = const {};
+    _draggingRoot = false;
     _dragPointer = null;
     if (_isDragging) setState(() => _isDragging = false);
   }
@@ -312,6 +427,7 @@ extension on Widget {
     required List<MindmapMergePoint> mergePoints,
     required double scale,
     required Offset Function(Offset) worldToScreen,
+    required InfiniteCanvasController viewController,
     required void Function(String parentId, MindmapNodeSide side) onTap,
   }) {
     return Stack(
@@ -323,6 +439,7 @@ extension on Widget {
             isCollapsed: mp.isCollapsed,
             childCount: mp.childCount,
             scale: scale,
+            viewController: viewController,
             onTap: () => onTap(mp.parentNodeId, mp.side),
           ),
       ],
@@ -340,6 +457,7 @@ class _MergeButtonOverlay extends StatelessWidget {
     required this.isCollapsed,
     required this.childCount,
     required this.scale,
+    required this.viewController,
     required this.onTap,
   });
 
@@ -348,6 +466,7 @@ class _MergeButtonOverlay extends StatelessWidget {
   final bool isCollapsed;
   final int childCount;
   final double scale;
+  final InfiniteCanvasController viewController;
   final VoidCallback onTap;
 
   // Base (scale = 1) dimensions in screen pixels.
@@ -356,6 +475,16 @@ class _MergeButtonOverlay extends StatelessWidget {
   static const _baseFontSize = 11.0;
   static const _baseBorderWidth = 2.0;
   static const _baseShadowBlur = 4.0;
+  static const _scrollZoomSensitivity = 0.0015;
+
+  void _handlePointerSignal(PointerSignalEvent event, double size) {
+    if (event is! PointerScrollEvent) return;
+    final factor = math.exp(-event.scrollDelta.dy * _scrollZoomSensitivity);
+    final focalPoint =
+        Offset(position.dx - size / 2, position.dy - size / 2) +
+        event.localPosition;
+    viewController.zoomBy(factor, focalPoint: focalPoint);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -363,47 +492,284 @@ class _MergeButtonOverlay extends StatelessWidget {
     return Positioned(
       left: position.dx - size / 2,
       top: position.dy - size / 2,
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: Container(
-          width: size,
-          height: size,
-          decoration: BoxDecoration(
-            color: isCollapsed ? const Color(0xFF2563EB) : Colors.white,
-            borderRadius: BorderRadius.circular(size / 2),
-            border: Border.all(
-              color: isCollapsed
-                  ? const Color(0xFF2563EB)
-                  : const Color(0xFF94A3B8),
-              width: _baseBorderWidth * scale,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.12),
-                blurRadius: _baseShadowBlur * scale,
-                offset: Offset(0, scale),
+      child: Listener(
+        onPointerSignal: (event) => _handlePointerSignal(event, size),
+        child: GestureDetector(
+          onTap: onTap,
+          behavior: HitTestBehavior.opaque,
+          child: Container(
+            width: size,
+            height: size,
+            decoration: BoxDecoration(
+              color: isCollapsed ? const Color(0xFF2563EB) : Colors.white,
+              borderRadius: BorderRadius.circular(size / 2),
+              border: Border.all(
+                color: isCollapsed
+                    ? const Color(0xFF2563EB)
+                    : const Color(0xFF94A3B8),
+                width: _baseBorderWidth * scale,
               ),
-            ],
-          ),
-          child: Center(
-            child: isCollapsed
-                ? Text(
-                    '$childCount',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: _baseFontSize * scale,
-                      fontWeight: FontWeight.w700,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.12),
+                  blurRadius: _baseShadowBlur * scale,
+                  offset: Offset(0, scale),
+                ),
+              ],
+            ),
+            child: Center(
+              child: isCollapsed
+                  ? Text(
+                      '$childCount',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: _baseFontSize * scale,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    )
+                  : Icon(
+                      Icons.expand_more,
+                      size: _baseIconSize * scale,
+                      color: const Color(0xFF94A3B8),
                     ),
-                  )
-                : Icon(
-                    Icons.expand_more,
-                    size: _baseIconSize * scale,
-                    color: const Color(0xFF94A3B8),
-                  ),
+            ),
           ),
         ),
       ),
+    );
+  }
+}
+
+extension _EditingOverlayExtension on Widget {
+  Widget stackWithEditingOverlay({
+    required MindmapActions actions,
+    required double scale,
+    required Offset Function(Offset) worldToScreen,
+    required CanvasController canvasController,
+  }) {
+    final nodeId = actions.editingNodeId.value;
+    if (nodeId == null) return this;
+
+    final element = canvasController.elementById(nodeId);
+    if (element is! CanvasWidgetElement || !element.visible) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (actions.editingNodeId.value == nodeId) {
+          actions.endEditing(nodeId);
+        }
+      });
+      return this;
+    }
+
+    final data = MindmapNodeData.fromWidgetData(element.widgetData);
+    return Stack(
+      children: [
+        this,
+        Positioned.fill(
+          child: _MindmapEditingOverlay(
+            key: ValueKey('mindmap-edit-$nodeId'),
+            actions: actions,
+            nodeId: nodeId,
+            data: data,
+            center: worldToScreen(element.worldRect.center),
+            scale: scale,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _MindmapEditingOverlay extends StatefulWidget {
+  const _MindmapEditingOverlay({
+    super.key,
+    required this.actions,
+    required this.nodeId,
+    required this.data,
+    required this.center,
+    required this.scale,
+  });
+
+  final MindmapActions actions;
+  final String nodeId;
+  final MindmapNodeData data;
+  final Offset center;
+  final double scale;
+
+  @override
+  State<_MindmapEditingOverlay> createState() => _MindmapEditingOverlayState();
+}
+
+class _MindmapEditingOverlayState extends State<_MindmapEditingOverlay> {
+  late final TextEditingController _controller;
+  late final FocusNode _focusNode;
+  bool _finished = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.data.text);
+    _focusNode = FocusNode(debugLabel: 'MindmapEditor:${widget.nodeId}');
+    _selectAllText();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _focusNode.requestFocus();
+    });
+  }
+
+  @override
+  void didUpdateWidget(covariant _MindmapEditingOverlay oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.nodeId != widget.nodeId ||
+        oldWidget.data.text != widget.data.text) {
+      _controller.text = widget.data.text;
+      _selectAllText();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _focusNode.requestFocus();
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  void _selectAllText() {
+    _controller.selection = TextSelection(
+      baseOffset: 0,
+      extentOffset: _controller.text.length,
+    );
+  }
+
+  void _commit() {
+    if (_finished) return;
+    _finished = true;
+    widget.actions.commitText(widget.nodeId, _controller.text);
+    widget.actions.endEditing(widget.nodeId);
+  }
+
+  void _cancel() {
+    if (_finished) return;
+    _finished = true;
+    widget.actions.endEditing(widget.nodeId);
+  }
+
+  void _commitAndAddChild() {
+    if (_finished) return;
+    _finished = true;
+    widget.actions.commitAndAddChild(widget.nodeId, _controller.text);
+    widget.actions.endEditing(widget.nodeId);
+  }
+
+  KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    final key = event.logicalKey;
+    if (key == LogicalKeyboardKey.enter ||
+        key == LogicalKeyboardKey.numpadEnter) {
+      _commit();
+      return KeyEventResult.handled;
+    }
+    if (key == LogicalKeyboardKey.escape) {
+      _cancel();
+      return KeyEventResult.handled;
+    }
+    if (key == LogicalKeyboardKey.tab) {
+      _commitAndAddChild();
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: _commit,
+          child: const SizedBox.expand(),
+        ),
+        AnimatedBuilder(
+          animation: _controller,
+          builder: (context, _) {
+            final isRoot = widget.data.isRoot;
+            final bgColor = Color(widget.data.color);
+            final txtColor = Color(widget.data.textColor);
+            final width =
+                MindmapNodeMetrics.widthForText(
+                  _controller.text,
+                  isRoot: isRoot,
+                ) *
+                widget.scale;
+            final height =
+                (isRoot
+                    ? MindmapNodeMetrics.rootHeight
+                    : MindmapNodeMetrics.nodeHeight) *
+                widget.scale;
+
+            return Positioned(
+              left: widget.center.dx - width / 2,
+              top: widget.center.dy - height / 2,
+              width: width,
+              height: height,
+              child: Material(
+                color: Colors.transparent,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: bgColor,
+                    borderRadius: BorderRadius.circular(
+                      (isRoot ? 24 : 8) * widget.scale,
+                    ),
+                    border: Border.all(
+                      color: const Color(0xFF2563EB),
+                      width: 2 * widget.scale,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.12),
+                        blurRadius: 8 * widget.scale,
+                        offset: Offset(0, 2 * widget.scale),
+                      ),
+                    ],
+                  ),
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: (isRoot ? 16 : 12) * widget.scale,
+                    ),
+                    child: Center(
+                      child: Focus(
+                        onKeyEvent: _handleKeyEvent,
+                        child: TextField(
+                          controller: _controller,
+                          focusNode: _focusNode,
+                          maxLines: 1,
+                          textAlign: TextAlign.center,
+                          textAlignVertical: TextAlignVertical.center,
+                          cursorColor: txtColor,
+                          style: TextStyle(
+                            color: txtColor,
+                            fontSize: (isRoot ? 16 : 14) * widget.scale,
+                            fontWeight: isRoot
+                                ? FontWeight.w700
+                                : FontWeight.w500,
+                          ),
+                          decoration: const InputDecoration(
+                            isDense: true,
+                            contentPadding: EdgeInsets.zero,
+                            border: InputBorder.none,
+                          ),
+                          onSubmitted: (_) => _commit(),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ],
     );
   }
 }

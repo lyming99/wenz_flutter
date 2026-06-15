@@ -36,7 +36,6 @@ class MindmapSyncController {
   void _onCanvasChanged() {
     if (_applying) return;
     _pinDraggedNode();
-    _expandTreeSelections();
   }
 
   /// If a drag is active, snap the dragged node to follow the pointer
@@ -78,29 +77,4 @@ class MindmapSyncController {
   }
 
   // ── Selection expansion ────────────────────────────────────────────
-
-  void _expandTreeSelections() {
-    final selected = _canvas.selectedIds;
-    if (selected.isEmpty) return;
-
-    final trees = _actions.trees;
-    final expanded = <String>{...selected};
-
-    for (final tree in trees) {
-      final rootId = tree.root.id;
-      if (!selected.contains(rootId)) continue;
-      for (final node in tree.visibleNodes) {
-        expanded.add(node.id);
-      }
-    }
-
-    if (expanded.length == selected.length) return;
-
-    _applying = true;
-    try {
-      _canvas.setSelection(expanded);
-    } finally {
-      _applying = false;
-    }
-  }
 }

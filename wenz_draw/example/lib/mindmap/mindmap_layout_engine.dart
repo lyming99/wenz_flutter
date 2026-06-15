@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'mindmap_node.dart';
+import 'mindmap_node_metrics.dart';
 import 'mindmap_tree.dart';
 
 /// Layout configuration for the non-component mind map.
@@ -9,10 +10,12 @@ import 'mindmap_tree.dart';
 /// [MindmapNodeBuilder] so that laid-out rects match the drawn footprint.
 class MindmapLayoutConfig {
   const MindmapLayoutConfig({
-    this.nodeWidth = 120,
-    this.nodeHeight = 40,
-    this.rootNodeWidth = 140,
-    this.rootNodeHeight = 48,
+    this.nodeWidth = MindmapNodeMetrics.minNodeWidth,
+    this.nodeHeight = MindmapNodeMetrics.nodeHeight,
+    this.rootNodeWidth = MindmapNodeMetrics.minRootWidth,
+    this.rootNodeHeight = MindmapNodeMetrics.rootHeight,
+    this.maxNodeWidth = MindmapNodeMetrics.maxNodeWidth,
+    this.maxRootNodeWidth = MindmapNodeMetrics.maxRootWidth,
     this.horizontalGap = 50,
     this.siblingGap = 12,
   });
@@ -21,10 +24,22 @@ class MindmapLayoutConfig {
   final double nodeHeight;
   final double rootNodeWidth;
   final double rootNodeHeight;
+  final double maxNodeWidth;
+  final double maxRootNodeWidth;
 
   /// Edge-to-edge horizontal gap between parent and child nodes.
   final double horizontalGap;
   final double siblingGap;
+
+  double widthForNode(MindmapTreeNode node) {
+    final isRoot = node.depth == 0 || node.data.isRoot;
+    return MindmapNodeMetrics.widthForText(
+      node.data.text,
+      isRoot: isRoot,
+      minWidth: isRoot ? rootNodeWidth : nodeWidth,
+      maxWidth: isRoot ? maxRootNodeWidth : maxNodeWidth,
+    );
+  }
 }
 
 /// A merge point where a parent's connection trunk meets branches to children.
@@ -65,10 +80,7 @@ class MindmapMergePoint {
 /// Result of laying out one tree: absolute world rects per node id, plus the
 /// computed merge points for connection drawing.
 class MindmapLayoutResult {
-  const MindmapLayoutResult({
-    required this.rects,
-    required this.mergePoints,
-  });
+  const MindmapLayoutResult({required this.rects, required this.mergePoints});
 
   /// nodeId → absolute world rect.
   final Map<String, Rect> rects;
@@ -105,7 +117,7 @@ class MindmapLayoutEngine {
 
     final rootRect = Rect.fromCenter(
       center: rootCenter,
-      width: config.rootNodeWidth,
+      width: config.widthForNode(root),
       height: config.rootNodeHeight,
     );
     rects[root.id] = rootRect;
@@ -119,21 +131,18 @@ class MindmapLayoutEngine {
 
     // Root collapses per-side; the tree builder already pruned collapsed
     // subtrees, so rightChildren/leftChildren only contain visible nodes.
-    final rightChildCenterX = rootRect.right +
-        config.horizontalGap +
-        config.nodeWidth / 2;
-    final leftChildCenterX = rootRect.left -
-        config.horizontalGap -
-        config.nodeWidth / 2;
-
     if (rightChildren.isNotEmpty) {
       final rightHeight = _totalSubtreeHeight(rightChildren, config);
       double y = rootCenter.dy - rightHeight / 2;
       for (final child in rightChildren) {
         final subH = _subtreeHeight(child, config);
+        final childWidth = config.widthForNode(child);
         _layoutSubtree(
           child,
-          Offset(rightChildCenterX, y + subH / 2),
+          Offset(
+            rootRect.right + config.horizontalGap + childWidth / 2,
+            y + subH / 2,
+          ),
           MindmapNodeSide.right,
           rects,
           config,
@@ -147,9 +156,13 @@ class MindmapLayoutEngine {
       double y = rootCenter.dy - leftHeight / 2;
       for (final child in leftChildren) {
         final subH = _subtreeHeight(child, config);
+        final childWidth = config.widthForNode(child);
         _layoutSubtree(
           child,
-          Offset(leftChildCenterX, y + subH / 2),
+          Offset(
+            rootRect.left - config.horizontalGap - childWidth / 2,
+            y + subH / 2,
+          ),
           MindmapNodeSide.left,
           rects,
           config,
@@ -197,7 +210,7 @@ class MindmapLayoutEngine {
     Map<String, Rect> rects,
     MindmapLayoutConfig config,
   ) {
-    final w = config.nodeWidth;
+    final w = config.widthForNode(node);
     final h = config.nodeHeight;
     final nodeRect = Rect.fromCenter(center: center, width: w, height: h);
     rects[node.id] = nodeRect;
@@ -207,20 +220,13 @@ class MindmapLayoutEngine {
     final childrenHeight = _totalSubtreeHeight(node.children, config);
     double y = center.dy - childrenHeight / 2;
 
-    // Edge-to-edge gap: child center = parent edge + gap + child half width.
-    final childX = side == MindmapNodeSide.right
-        ? nodeRect.right + config.horizontalGap + w / 2
-        : nodeRect.left - config.horizontalGap - w / 2;
-
     for (final child in node.children) {
       final subH = _subtreeHeight(child, config);
-      _layoutSubtree(
-        child,
-        Offset(childX, y + subH / 2),
-        side,
-        rects,
-        config,
-      );
+      final childWidth = config.widthForNode(child);
+      final childX = side == MindmapNodeSide.right
+          ? nodeRect.right + config.horizontalGap + childWidth / 2
+          : nodeRect.left - config.horizontalGap - childWidth / 2;
+      _layoutSubtree(child, Offset(childX, y + subH / 2), side, rects, config);
       y += subH + config.siblingGap;
     }
   }
@@ -285,15 +291,17 @@ class MindmapLayoutEngine {
                   : Offset(rects[c.id]!.right, rects[c.id]!.center.dy),
           ];
 
-          points.add(MindmapMergePoint(
-            position: Offset(mergeX, mergeY),
-            parentNodeId: node.id,
-            side: side,
-            isCollapsed: collapsedOnSide,
-            childCount: countOnSide,
-            parentEdge: parentEdge,
-            childEdges: childEdges,
-          ));
+          points.add(
+            MindmapMergePoint(
+              position: Offset(mergeX, mergeY),
+              parentNodeId: node.id,
+              side: side,
+              isCollapsed: collapsedOnSide,
+              childCount: countOnSide,
+              parentEdge: parentEdge,
+              childEdges: childEdges,
+            ),
+          );
         }
       }
 

@@ -12,52 +12,90 @@ class MindmapBuilder extends WidgetElementBuilder {
   const MindmapBuilder();
 
   @override
+  bool get useDefaultThumbnailFrame => false;
+
+  @override
   Widget build(
     BuildContext context,
     CanvasWidgetElement element, {
     required CanvasWidgetBuildContext canvas,
   }) {
-    if (canvas.renderDetail != CanvasWidgetRenderDetail.full) {
-      return _buildPreview(canvas);
-    }
+    return _buildForDetail(element, canvas);
+  }
 
-    // Parse or create mind map data
-    MindmapData data;
+  @override
+  Widget buildPreview(
+    BuildContext context,
+    CanvasWidgetElement element, {
+    required CanvasWidgetBuildContext canvas,
+  }) {
+    return _buildForDetail(element, canvas);
+  }
+
+  Widget _buildForDetail(
+    CanvasWidgetElement element,
+    CanvasWidgetBuildContext canvas,
+  ) {
+    return switch (canvas.renderDetail) {
+      CanvasWidgetRenderDetail.color => _buildPreview(canvas, showText: false),
+      CanvasWidgetRenderDetail.colorWithText => _buildPreview(
+        canvas,
+        showText: true,
+      ),
+      CanvasWidgetRenderDetail.thumbnail || CanvasWidgetRenderDetail.full =>
+        _buildFullMindmap(element, canvas, _readData(element)),
+    };
+  }
+
+  Widget _buildFullMindmap(
+    CanvasWidgetElement element,
+    CanvasWidgetBuildContext canvas,
+    MindmapData data,
+  ) {
+    return _MindmapElementView(element: element, canvas: canvas, data: data);
+  }
+
+  MindmapData _readData(CanvasWidgetElement element) {
     try {
-      data = element.widgetData.containsKey('root')
+      return element.widgetData.containsKey('root')
           ? MindmapData.fromWidgetData(element.widgetData)
           : MindmapData.createDefault();
     } catch (_) {
-      data = MindmapData.createDefault();
+      return MindmapData.createDefault();
     }
-
-    return _MindmapElementView(
-      element: element,
-      canvas: canvas,
-      data: data,
-    );
   }
 
-  Widget _buildPreview(CanvasWidgetBuildContext canvas) {
-    const color = Color(0xFFE3F2FD);
-    return switch (canvas.renderDetail) {
-      CanvasWidgetRenderDetail.color => const ColoredBox(color: color),
-      CanvasWidgetRenderDetail.colorWithText ||
-      CanvasWidgetRenderDetail.thumbnail =>
-        const DecoratedBox(
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.all(Radius.circular(4)),
-          ),
-          child: Center(
-            child: Text(
-              'Mind Map',
-              style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700),
-            ),
-          ),
+  Widget _buildPreview(
+    CanvasWidgetBuildContext canvas, {
+    required bool showText,
+  }) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.transparent,
+        borderRadius: const BorderRadius.all(Radius.circular(4)),
+        border: Border.all(
+          color: canvas.selected
+              ? const Color(0xFF2563EB)
+              : const Color(0xFF94A3B8),
+          width: canvas.selected ? 2 : 1.5,
         ),
-      CanvasWidgetRenderDetail.full => const ColoredBox(color: color),
-    };
+      ),
+      child: showText
+          ? const Center(
+              child: Text(
+                'Mind Map',
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Color(0xFF1F2937),
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            )
+          : const SizedBox.expand(),
+    );
   }
 }
 
@@ -93,10 +131,7 @@ class _MindmapElementViewState extends State<_MindmapElementView> {
 
   void _onControllerChanged() {
     // Sync back to canvas element's widgetData
-    widget.canvas.updateProps(
-      widget.element.id,
-      _controller.toWidgetData(),
-    );
+    widget.canvas.updateProps(widget.element.id, _controller.toWidgetData());
   }
 
   @override
@@ -114,7 +149,10 @@ class _MindmapElementViewState extends State<_MindmapElementView> {
     return DecoratedBox(
       decoration: BoxDecoration(
         border: widget.canvas.selected
-            ? Border.all(color: const Color(0xFF2563EB).withValues(alpha: 0.4), width: 1.5)
+            ? Border.all(
+                color: const Color(0xFF2563EB).withValues(alpha: 0.4),
+                width: 1.5,
+              )
             : null,
         borderRadius: BorderRadius.circular(4),
       ),

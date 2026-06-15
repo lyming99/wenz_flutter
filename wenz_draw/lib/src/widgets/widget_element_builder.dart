@@ -63,6 +63,9 @@ class CanvasWidgetBuildContext {
 abstract class WidgetElementBuilder {
   const WidgetElementBuilder();
 
+  bool get useDefaultThumbnailFrame => true;
+  bool get useDefaultSelectionFrame => true;
+
   Widget build(
     BuildContext context,
     CanvasWidgetElement element, {

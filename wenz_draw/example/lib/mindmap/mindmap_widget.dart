@@ -136,37 +136,29 @@ class _MindmapWidgetState extends State<MindmapWidget> {
                   child: SizedBox(
                     width: layoutNode.rect.width,
                     height: layoutNode.rect.height,
-                    child: Center(
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: MindmapNodeWidget(
-                          node: layoutNode.node,
-                          isRoot: layoutNode.depth == 0,
-                          isSelected:
-                              controller.selectedNodeId == layoutNode.node.id,
-                          isEditing:
-                              controller.editingNodeId == layoutNode.node.id,
-                          onTap: () {
-                            controller.selectNode(layoutNode.node.id);
-                            _focusNode.requestFocus();
-                          },
-                          onDoubleTap: () =>
-                              controller.startEditing(layoutNode.node.id),
-                          onCommitEdit: (text) =>
-                              controller.commitEdit(layoutNode.node.id, text),
-                          onCancelEdit: () => controller.cancelEdit(),
-                          onColorChange: (color) =>
-                              controller.setNodeColor(layoutNode.node.id, color),
-                          onAddChild: () =>
-                              controller.addChild(layoutNode.node.id),
-                          onDelete: () =>
-                              controller.deleteNode(layoutNode.node.id),
-                          onCommitAndAddSibling: (nodeId, text) =>
-                              controller.commitAndAddSibling(nodeId, text),
-                          onCommitAndAddChild: (nodeId, text) =>
-                              controller.commitAndAddChild(nodeId, text),
-                        ),
-                      ),
+                    child: MindmapNodeWidget(
+                      node: layoutNode.node,
+                      isRoot: layoutNode.depth == 0,
+                      isSelected:
+                          controller.selectedNodeId == layoutNode.node.id,
+                      isEditing: controller.editingNodeId == layoutNode.node.id,
+                      onTap: () {
+                        controller.selectNode(layoutNode.node.id);
+                        _focusNode.requestFocus();
+                      },
+                      onDoubleTap: () =>
+                          controller.startEditing(layoutNode.node.id),
+                      onCommitEdit: (text) =>
+                          controller.commitEdit(layoutNode.node.id, text),
+                      onCancelEdit: () => controller.cancelEdit(),
+                      onColorChange: (color) =>
+                          controller.setNodeColor(layoutNode.node.id, color),
+                      onAddChild: () => controller.addChild(layoutNode.node.id),
+                      onDelete: () => controller.deleteNode(layoutNode.node.id),
+                      onCommitAndAddSibling: (nodeId, text) =>
+                          controller.commitAndAddSibling(nodeId, text),
+                      onCommitAndAddChild: (nodeId, text) =>
+                          controller.commitAndAddChild(nodeId, text),
                     ),
                   ),
                 ),
@@ -211,9 +203,7 @@ class _MergeButton extends StatelessWidget {
         width: 24,
         height: 24,
         decoration: BoxDecoration(
-          color: isCollapsed
-              ? const Color(0xFF2563EB)
-              : Colors.white,
+          color: isCollapsed ? const Color(0xFF2563EB) : Colors.white,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isCollapsed
