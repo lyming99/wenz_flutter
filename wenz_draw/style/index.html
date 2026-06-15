@@ -1,0 +1,559 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mind Map Style Gallery</title>
+  <style>
+    :root {
+      --ink: #172033;
+      --muted: #64748b;
+      --panel: #ffffff;
+      --line: #d8e0ea;
+      --paper: #f6f8fb;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        linear-gradient(180deg, #f9fbff 0%, #eef3f8 100%);
+    }
+
+    header {
+      padding: 34px 42px 18px;
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: 30px;
+      letter-spacing: 0;
+    }
+
+    .intro {
+      margin: 0;
+      max-width: 980px;
+      color: var(--muted);
+      line-height: 1.7;
+      font-size: 14px;
+    }
+
+    .gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(620px, 1fr));
+      gap: 22px;
+      padding: 22px 42px 42px;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid rgba(148, 163, 184, 0.28);
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 18px 46px rgba(15, 23, 42, 0.08);
+    }
+
+    .meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 16px 18px 12px;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+    }
+
+    h2 {
+      margin: 0;
+      font-size: 16px;
+      letter-spacing: 0;
+    }
+
+    .tag {
+      color: #475569;
+      background: #f1f5f9;
+      border: 1px solid #dbe4ee;
+      border-radius: 999px;
+      padding: 5px 10px;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .board {
+      position: relative;
+      width: 640px;
+      max-width: 100%;
+      height: 360px;
+      margin: 0 auto;
+      overflow: hidden;
+      background: #fff;
+    }
+
+    .board svg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+
+    .node {
+      position: absolute;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 112px;
+      min-height: 38px;
+      padding: 8px 15px;
+      line-height: 1.2;
+      text-align: center;
+      font-size: 14px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .root {
+      left: 244px;
+      top: 150px;
+      min-width: 152px;
+      min-height: 54px;
+      font-size: 18px;
+    }
+
+    .n-a { left: 64px; top: 54px; }
+    .n-b { left: 72px; top: 154px; }
+    .n-c { left: 76px; top: 254px; }
+    .n-d { left: 455px; top: 50px; }
+    .n-e { left: 474px; top: 154px; }
+    .n-f { left: 456px; top: 256px; }
+    .sub {
+      min-width: 88px;
+      min-height: 30px;
+      font-size: 12px;
+      font-weight: 650;
+      padding: 6px 10px;
+    }
+    .s1 { left: 548px; top: 96px; }
+    .s2 { left: 552px; top: 200px; }
+
+    .notes {
+      padding: 13px 18px 17px;
+      color: #64748b;
+      font-size: 13px;
+      line-height: 1.65;
+      background: #fbfdff;
+      border-top: 1px solid rgba(148, 163, 184, 0.16);
+    }
+
+    .rainbow {
+      background:
+        linear-gradient(90deg, rgba(226, 232, 240, 0.28) 1px, transparent 1px),
+        linear-gradient(rgba(226, 232, 240, 0.25) 1px, transparent 1px),
+        #fbfdff;
+      background-size: 32px 32px;
+    }
+
+    .rainbow::before {
+      content: none;
+    }
+
+    .rainbow svg {
+      z-index: 1;
+    }
+
+    .rainbow .node {
+      z-index: 2;
+    }
+
+    .rainbow .root {
+      color: #fff;
+      background: #2563eb;
+      border-radius: 24px;
+      box-shadow:
+        0 8px 18px rgba(37, 99, 235, 0.16),
+        0 0 0 1px rgba(30, 64, 175, 0.12) inset;
+    }
+
+    .rainbow .root::after {
+      content: none;
+    }
+
+    .rainbow .node:not(.root) {
+      position: absolute;
+      overflow: hidden;
+      border: 0;
+      color: #132238;
+      background: color-mix(in srgb, var(--c) 18%, #fff);
+      border-radius: 12px;
+      box-shadow:
+        0 5px 12px rgba(15, 23, 42, 0.06),
+        0 0 0 1px color-mix(in srgb, var(--c) 24%, #fff) inset;
+    }
+
+    .rainbow .node:not(.root)::before {
+      content: none;
+    }
+
+    .rainbow .node:not(.root)::after {
+      content: none;
+    }
+
+    .rainbow .sub {
+      min-width: 78px;
+      min-height: 28px;
+      font-size: 12px;
+      border-radius: 10px;
+      background: color-mix(in srgb, var(--c) 12%, #fff);
+      box-shadow:
+        0 4px 10px rgba(15, 23, 42, 0.05),
+        0 0 0 1px color-mix(in srgb, var(--c) 20%, #fff) inset;
+    }
+
+    .rainbow .sub::before {
+      width: 0;
+    }
+
+    .minimal {
+      background:
+        linear-gradient(90deg, rgba(226, 232, 240, 0.55) 1px, transparent 1px),
+        linear-gradient(rgba(226, 232, 240, 0.55) 1px, transparent 1px),
+        #ffffff;
+      background-size: 24px 24px;
+    }
+
+    .minimal .node {
+      color: #233044;
+      background: #fff;
+      border: 1.5px solid #d7dee8;
+      border-radius: 8px;
+      box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
+    }
+
+    .minimal .root {
+      color: #111827;
+      border: 2px solid #111827;
+      border-radius: 10px;
+      box-shadow: none;
+    }
+
+    .sticky {
+      background:
+        radial-gradient(circle at 18% 24%, rgba(255, 244, 187, 0.8), transparent 22%),
+        radial-gradient(circle at 82% 72%, rgba(204, 251, 241, 0.65), transparent 20%),
+        #fbfaf3;
+    }
+
+    .sticky .node {
+      align-items: flex-start;
+      justify-content: flex-start;
+      min-height: 52px;
+      color: #2f2a1f;
+      background: var(--note);
+      border: 1px solid rgba(92, 73, 31, 0.12);
+      border-radius: 4px;
+      box-shadow: 0 10px 18px rgba(87, 73, 43, 0.13);
+      transform: rotate(var(--r));
+      text-align: left;
+    }
+
+    .sticky .root {
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      background: #243447;
+      border-radius: 8px;
+      transform: rotate(0);
+      text-align: center;
+    }
+
+    .business {
+      background:
+        linear-gradient(135deg, #f7fbff 0%, #ffffff 58%, #f4f7fb 100%);
+    }
+
+    .business .node {
+      color: #243047;
+      background: #fff;
+      border: 1px solid rgba(71, 85, 105, 0.16);
+      border-left: 5px solid var(--c);
+      border-radius: 9px;
+      box-shadow: 0 10px 26px rgba(30, 41, 59, 0.12);
+    }
+
+    .business .root {
+      color: #fff;
+      background: linear-gradient(135deg, #0f172a, #334155);
+      border: 0;
+      border-radius: 13px;
+    }
+
+    .layered {
+      background:
+        radial-gradient(circle at 50% 50%, rgba(139, 92, 246, 0.09), transparent 28%),
+        #fbfbff;
+    }
+
+    .layered .root {
+      color: #fff;
+      background: #111827;
+      border: 4px double #111827;
+      border-radius: 24px;
+    }
+
+    .layered .node:not(.root) {
+      color: #1f2937;
+      background: #fff;
+      border: 2px solid var(--c);
+      border-radius: var(--rad);
+      box-shadow: 0 5px 0 rgba(15, 23, 42, 0.05);
+    }
+
+    .layered .sub {
+      border-style: dotted;
+    }
+
+    .neon {
+      background:
+        radial-gradient(circle at 30% 30%, rgba(6, 182, 212, 0.22), transparent 24%),
+        radial-gradient(circle at 72% 70%, rgba(236, 72, 153, 0.2), transparent 26%),
+        #101827;
+    }
+
+    .neon .node {
+      color: #e5f6ff;
+      background: rgba(15, 23, 42, 0.78);
+      border: 1.5px solid var(--c);
+      border-radius: 16px;
+      box-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.04) inset,
+        0 0 22px color-mix(in srgb, var(--c) 46%, transparent);
+      backdrop-filter: blur(10px);
+    }
+
+    .neon .root {
+      color: #fff;
+      background: linear-gradient(135deg, #7c3aed, #06b6d4);
+      border: 0;
+      border-radius: 28px;
+      box-shadow: 0 0 34px rgba(6, 182, 212, 0.32);
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      padding: 0 42px 40px;
+      color: #64748b;
+      font-size: 12px;
+    }
+
+    .legend a {
+      color: #2563eb;
+      text-decoration: none;
+    }
+
+    @media (max-width: 720px) {
+      header,
+      .gallery,
+      .legend {
+        padding-left: 16px;
+        padding-right: 16px;
+      }
+
+      .gallery {
+        grid-template-columns: 1fr;
+      }
+
+      .card {
+        overflow-x: auto;
+      }
+
+      .board {
+        min-width: 620px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>思维导图节点样式探索</h1>
+    <p class="intro">
+      参考常见思维导图产品的方向：彩虹分支、曲线连接、白板协作、便利贴、全局主题、节点级颜色和字体自定义。下面每张图用同一内容结构，便于横向比较哪种视觉语言更适合 wenz_draw。
+    </p>
+  </header>
+
+  <main class="gallery">
+    <section class="card">
+      <div class="meta">
+        <h2>01 彩虹分支 / XMind 感</h2>
+        <span class="tag">第 2 层按位置配色</span>
+      </div>
+      <div class="board rainbow">
+        <svg viewBox="0 0 640 360" aria-hidden="true">
+          <path d="M244 166 C220 150 210 76 176 73" fill="none" stroke="#2563eb" stroke-width="3.2" stroke-linecap="round" />
+          <path d="M244 177 C220 177 204 177 184 177" fill="none" stroke="#10b981" stroke-width="3.2" stroke-linecap="round" />
+          <path d="M244 188 C220 206 210 278 188 278" fill="none" stroke="#f59e0b" stroke-width="3.2" stroke-linecap="round" />
+          <path d="M396 166 C426 142 430 70 455 70" fill="none" stroke="#ec4899" stroke-width="3.2" stroke-linecap="round" />
+          <path d="M396 177 C426 177 448 177 474 177" fill="none" stroke="#8b5cf6" stroke-width="3.2" stroke-linecap="round" />
+          <path d="M396 188 C428 212 430 280 456 280" fill="none" stroke="#06b6d4" stroke-width="3.2" stroke-linecap="round" />
+          <path d="M516 70 C536 70 540 111 548 111" fill="none" stroke="#ec4899" stroke-width="1.8" stroke-dasharray="5 5" stroke-linecap="round" />
+          <path d="M536 177 C548 177 548 215 552 215" fill="none" stroke="#8b5cf6" stroke-width="1.8" stroke-dasharray="5 5" stroke-linecap="round" />
+        </svg>
+        <div class="node root">中心主题</div>
+        <div class="node n-a" style="--c:#2563eb">目标</div>
+        <div class="node n-b" style="--c:#10b981">范围</div>
+        <div class="node n-c" style="--c:#f59e0b">风险</div>
+        <div class="node n-d" style="--c:#ec4899">方案</div>
+        <div class="node n-e" style="--c:#8b5cf6">资源</div>
+        <div class="node n-f" style="--c:#06b6d4">行动</div>
+        <div class="node sub s1" style="--c:#ec4899">原型</div>
+        <div class="node sub s2" style="--c:#8b5cf6">预算</div>
+      </div>
+      <div class="notes">优点：方向最接近大众心智里的“思维导图”，分支识别很快；适合默认主题。</div>
+    </section>
+
+    <section class="card">
+      <div class="meta">
+        <h2>02 极简白板 / Whimsical 感</h2>
+        <span class="tag">克制、轻量、清晰</span>
+      </div>
+      <div class="board minimal">
+        <svg viewBox="0 0 640 360" aria-hidden="true">
+          <path d="M320 177 C260 177 230 75 158 75" fill="none" stroke="#64748b" stroke-width="2.2" />
+          <path d="M320 177 C245 177 230 177 160 177" fill="none" stroke="#64748b" stroke-width="2.2" />
+          <path d="M320 177 C260 177 230 277 160 277" fill="none" stroke="#64748b" stroke-width="2.2" />
+          <path d="M320 177 C386 177 410 74 516 74" fill="none" stroke="#64748b" stroke-width="2.2" />
+          <path d="M320 177 C400 177 426 177 536 177" fill="none" stroke="#64748b" stroke-width="2.2" />
+          <path d="M320 177 C386 177 410 278 516 278" fill="none" stroke="#64748b" stroke-width="2.2" />
+        </svg>
+        <div class="node root">中心主题</div>
+        <div class="node n-a">目标</div>
+        <div class="node n-b">范围</div>
+        <div class="node n-c">风险</div>
+        <div class="node n-d">方案</div>
+        <div class="node n-e">资源</div>
+        <div class="node n-f">行动</div>
+      </div>
+      <div class="notes">优点：不抢内容，适合专业工具、长时间编辑；缺点是第一眼不够“有趣”。</div>
+    </section>
+
+    <section class="card">
+      <div class="meta">
+        <h2>03 便利贴协作 / Miro 感</h2>
+        <span class="tag">白板、头脑风暴</span>
+      </div>
+      <div class="board sticky">
+        <svg viewBox="0 0 640 360" aria-hidden="true">
+          <path d="M318 177 C246 154 226 82 154 80" fill="none" stroke="#d8a80d" stroke-width="2.5" stroke-linecap="round" />
+          <path d="M318 177 C246 177 226 177 160 180" fill="none" stroke="#0f9f77" stroke-width="2.5" stroke-linecap="round" />
+          <path d="M318 177 C246 206 224 276 160 280" fill="none" stroke="#dd6b20" stroke-width="2.5" stroke-linecap="round" />
+          <path d="M324 177 C410 150 420 80 520 78" fill="none" stroke="#db2777" stroke-width="2.5" stroke-linecap="round" />
+          <path d="M324 177 C410 177 438 180 536 180" fill="none" stroke="#7c3aed" stroke-width="2.5" stroke-linecap="round" />
+          <path d="M324 177 C410 202 420 278 520 280" fill="none" stroke="#0891b2" stroke-width="2.5" stroke-linecap="round" />
+        </svg>
+        <div class="node root">中心主题</div>
+        <div class="node n-a" style="--note:#fef3c7;--r:-2deg">目标</div>
+        <div class="node n-b" style="--note:#ccfbf1;--r:1.5deg">范围</div>
+        <div class="node n-c" style="--note:#ffedd5;--r:-1deg">风险</div>
+        <div class="node n-d" style="--note:#fce7f3;--r:2deg">方案</div>
+        <div class="node n-e" style="--note:#ede9fe;--r:-1.5deg">资源</div>
+        <div class="node n-f" style="--note:#cffafe;--r:1deg">行动</div>
+      </div>
+      <div class="notes">优点：协作感强，适合脑暴和 workshop；可以作为“白板模式”主题。</div>
+    </section>
+
+    <section class="card">
+      <div class="meta">
+        <h2>04 商务卡片 / MindMeister 感</h2>
+        <span class="tag">结构化、项目管理</span>
+      </div>
+      <div class="board business">
+        <svg viewBox="0 0 640 360" aria-hidden="true">
+          <path d="M320 177 C250 177 224 76 154 76" fill="none" stroke="#cbd5e1" stroke-width="3" />
+          <path d="M320 177 C248 177 226 177 160 177" fill="none" stroke="#cbd5e1" stroke-width="3" />
+          <path d="M320 177 C250 177 224 278 160 278" fill="none" stroke="#cbd5e1" stroke-width="3" />
+          <path d="M320 177 C390 177 414 76 516 76" fill="none" stroke="#cbd5e1" stroke-width="3" />
+          <path d="M320 177 C398 177 426 177 536 177" fill="none" stroke="#cbd5e1" stroke-width="3" />
+          <path d="M320 177 C390 177 414 278 516 278" fill="none" stroke="#cbd5e1" stroke-width="3" />
+        </svg>
+        <div class="node root">中心主题</div>
+        <div class="node n-a" style="--c:#2563eb">目标</div>
+        <div class="node n-b" style="--c:#10b981">范围</div>
+        <div class="node n-c" style="--c:#f59e0b">风险</div>
+        <div class="node n-d" style="--c:#ec4899">方案</div>
+        <div class="node n-e" style="--c:#8b5cf6">资源</div>
+        <div class="node n-f" style="--c:#06b6d4">行动</div>
+      </div>
+      <div class="notes">优点：和流程图、项目图更统一；适合 wenz_draw 这种画布工具里的“正式图”。</div>
+    </section>
+
+    <section class="card">
+      <div class="meta">
+        <h2>05 层级边框 / 工具型主题</h2>
+        <span class="tag">不同深度不同边框</span>
+      </div>
+      <div class="board layered">
+        <svg viewBox="0 0 640 360" aria-hidden="true">
+          <path d="M320 177 C248 177 226 76 154 76" fill="none" stroke="#2563eb" stroke-width="2.5" />
+          <path d="M320 177 C248 177 226 177 160 177" fill="none" stroke="#10b981" stroke-width="2.5" />
+          <path d="M320 177 C248 177 226 278 160 278" fill="none" stroke="#f59e0b" stroke-width="2.5" />
+          <path d="M320 177 C390 177 414 76 516 76" fill="none" stroke="#ec4899" stroke-width="2.5" />
+          <path d="M320 177 C398 177 426 177 536 177" fill="none" stroke="#8b5cf6" stroke-width="2.5" />
+          <path d="M320 177 C390 177 414 278 516 278" fill="none" stroke="#06b6d4" stroke-width="2.5" />
+          <path d="M516 76 C542 76 546 112 592 112" fill="none" stroke="#ec4899" stroke-width="2" stroke-dasharray="1 6" stroke-linecap="round" />
+          <path d="M536 177 C556 177 550 216 594 216" fill="none" stroke="#8b5cf6" stroke-width="2" stroke-dasharray="1 6" stroke-linecap="round" />
+        </svg>
+        <div class="node root">中心主题</div>
+        <div class="node n-a" style="--c:#2563eb;--rad:14px">目标</div>
+        <div class="node n-b" style="--c:#10b981;--rad:10px">范围</div>
+        <div class="node n-c" style="--c:#f59e0b;--rad:8px">风险</div>
+        <div class="node n-d" style="--c:#ec4899;--rad:14px">方案</div>
+        <div class="node n-e" style="--c:#8b5cf6;--rad:10px">资源</div>
+        <div class="node n-f" style="--c:#06b6d4;--rad:8px">行动</div>
+        <div class="node sub s1" style="--c:#ec4899;--rad:6px">原型</div>
+        <div class="node sub s2" style="--c:#8b5cf6;--rad:6px">预算</div>
+      </div>
+      <div class="notes">优点：直接满足“层级阶级样式”，视觉规则清楚；适合做高级默认主题。</div>
+    </section>
+
+    <section class="card">
+      <div class="meta">
+        <h2>06 暗色霓虹 / 演示主题</h2>
+        <span class="tag">深色画布、发光节点</span>
+      </div>
+      <div class="board neon">
+        <svg viewBox="0 0 640 360" aria-hidden="true">
+          <path d="M320 177 C248 177 226 76 154 76" fill="none" stroke="#22d3ee" stroke-width="2.3" />
+          <path d="M320 177 C248 177 226 177 160 177" fill="none" stroke="#34d399" stroke-width="2.3" />
+          <path d="M320 177 C248 177 226 278 160 278" fill="none" stroke="#fbbf24" stroke-width="2.3" />
+          <path d="M320 177 C390 177 414 76 516 76" fill="none" stroke="#f472b6" stroke-width="2.3" />
+          <path d="M320 177 C398 177 426 177 536 177" fill="none" stroke="#a78bfa" stroke-width="2.3" />
+          <path d="M320 177 C390 177 414 278 516 278" fill="none" stroke="#67e8f9" stroke-width="2.3" />
+        </svg>
+        <div class="node root">中心主题</div>
+        <div class="node n-a" style="--c:#22d3ee">目标</div>
+        <div class="node n-b" style="--c:#34d399">范围</div>
+        <div class="node n-c" style="--c:#fbbf24">风险</div>
+        <div class="node n-d" style="--c:#f472b6">方案</div>
+        <div class="node n-e" style="--c:#a78bfa">资源</div>
+        <div class="node n-f" style="--c:#67e8f9">行动</div>
+      </div>
+      <div class="notes">优点：展示感强，适合大屏演示；不建议作为默认编辑主题。</div>
+    </section>
+  </main>
+
+  <footer class="legend">
+    <span>参考方向：</span>
+    <a href="https://xmind.com/user-guide/branch-new">XMind Colored Branch</a>
+    <a href="https://xmind.com/user-guide/color-theme-new">XMind Color Theme</a>
+    <a href="https://miro.com/mind-map/">Miro Mind Map</a>
+    <a href="https://help.miro.com/hc/en-us/articles/360017730753-Mind-map">Miro formatting</a>
+    <a href="https://www.mindmeister.com/">MindMeister</a>
+    <a href="https://whimsical.com/learn/get-started/mind-maps">Whimsical</a>
+  </footer>
+</body>
+</html>

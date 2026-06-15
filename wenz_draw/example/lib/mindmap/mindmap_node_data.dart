@@ -33,6 +33,10 @@ class MindmapNodeData {
     this.order = 0,
     this.color = 0xFFE3F2FD,
     this.textColor = 0xFF1F2937,
+    this.fillColor,
+    this.borderColor,
+    this.fontColor,
+    this.themeId,
   });
 
   /// Unique node id. Matches the hosting element's id.
@@ -69,6 +73,18 @@ class MindmapNodeData {
   /// Text color (ARGB32 int).
   final int textColor;
 
+  /// Optional per-node background override (ARGB32 int).
+  final int? fillColor;
+
+  /// Optional per-node border override (ARGB32 int).
+  final int? borderColor;
+
+  /// Optional per-node font override (ARGB32 int).
+  final int? fontColor;
+
+  /// Root-only theme id for the whole mind map tree.
+  final String? themeId;
+
   /// Whether the subtree on [sideSide] is collapsed.
   ///
   /// For root nodes, uses the per-side flags ([collapsedRight] /
@@ -97,6 +113,10 @@ class MindmapNodeData {
       order: data['order'] as int? ?? 0,
       color: _parseIntColor(data['color'], 0xFFE3F2FD),
       textColor: _parseIntColor(data['textColor'], 0xFF1F2937),
+      fillColor: _parseOptionalIntColor(data['fillColor']),
+      borderColor: _parseOptionalIntColor(data['borderColor']),
+      fontColor: _parseOptionalIntColor(data['fontColor']),
+      themeId: data['themeId'] as String?,
     );
   }
 
@@ -114,6 +134,10 @@ class MindmapNodeData {
       'order': order,
       'color': color,
       'textColor': textColor,
+      if (fillColor != null) 'fillColor': fillColor,
+      if (borderColor != null) 'borderColor': borderColor,
+      if (fontColor != null) 'fontColor': fontColor,
+      if (isRoot && themeId != null) 'themeId': themeId,
     };
   }
 
@@ -129,6 +153,10 @@ class MindmapNodeData {
     int? order,
     int? color,
     int? textColor,
+    Object? fillColor = _unset,
+    Object? borderColor = _unset,
+    Object? fontColor = _unset,
+    Object? themeId = _unset,
   }) {
     return MindmapNodeData(
       id: id ?? this.id,
@@ -144,6 +172,16 @@ class MindmapNodeData {
       order: order ?? this.order,
       color: color ?? this.color,
       textColor: textColor ?? this.textColor,
+      fillColor: identical(fillColor, _unset)
+          ? this.fillColor
+          : fillColor as int?,
+      borderColor: identical(borderColor, _unset)
+          ? this.borderColor
+          : borderColor as int?,
+      fontColor: identical(fontColor, _unset)
+          ? this.fontColor
+          : fontColor as int?,
+      themeId: identical(themeId, _unset) ? this.themeId : themeId as String?,
     );
   }
 
@@ -151,6 +189,12 @@ class MindmapNodeData {
     if (value is int) return value;
     if (value is String) return int.tryParse(value) ?? defaultValue;
     return defaultValue;
+  }
+
+  static int? _parseOptionalIntColor(dynamic value) {
+    if (value is int) return value;
+    if (value is String) return int.tryParse(value);
+    return null;
   }
 
   static const _unset = Object();

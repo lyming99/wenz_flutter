@@ -83,12 +83,9 @@ class MindmapController extends ChangeNotifier {
     }
 
     final newId = 'node-${DateTime.now().millisecondsSinceEpoch}';
-    parent.children.add(MindmapNode(
-      id: newId,
-      text: '新节点',
-      side: side,
-      color: 0xFFE3F2FD,
-    ));
+    parent.children.add(
+      MindmapNode(id: newId, text: '新节点', side: side, color: 0xFFE3F2FD),
+    );
     parent.isCollapsed = false;
     _selectedNodeId = newId;
     _editingNodeId = newId;
@@ -107,12 +104,7 @@ class MindmapController extends ChangeNotifier {
     final insertIndex = parent.children.indexWhere((c) => c.id == nodeId) + 1;
     parent.children.insert(
       insertIndex,
-      MindmapNode(
-        id: newId,
-        text: '新节点',
-        side: side,
-        color: 0xFFE3F2FD,
-      ),
+      MindmapNode(id: newId, text: '新节点', side: side, color: 0xFFE3F2FD),
     );
     _selectedNodeId = newId;
     _editingNodeId = newId;
@@ -135,9 +127,33 @@ class MindmapController extends ChangeNotifier {
 
   /// Update node color.
   void setNodeColor(String nodeId, int color) {
+    setNodeStyle(nodeId, fillColor: color);
+  }
+
+  /// Update per-node style overrides. Pass null to clear an override.
+  void setNodeStyle(
+    String nodeId, {
+    Object? fillColor = _styleUnset,
+    Object? borderColor = _styleUnset,
+    Object? fontColor = _styleUnset,
+  }) {
     final node = _data.findNode(nodeId);
     if (node != null) {
-      node.color = color;
+      if (!identical(fillColor, _styleUnset)) {
+        node.fillColor = fillColor as int?;
+        node.color =
+            node.fillColor ??
+            (node.id == _data.root.id ? 0xFF2563EB : 0xFFE3F2FD);
+      }
+      if (!identical(borderColor, _styleUnset)) {
+        node.borderColor = borderColor as int?;
+      }
+      if (!identical(fontColor, _styleUnset)) {
+        node.fontColor = fontColor as int?;
+        node.textColor =
+            node.fontColor ??
+            (node.id == _data.root.id ? 0xFFFFFFFF : 0xFF1F2937);
+      }
       notifyListeners();
     }
   }
@@ -165,12 +181,7 @@ class MindmapController extends ChangeNotifier {
     final insertIndex = parent.children.indexWhere((c) => c.id == nodeId) + 1;
     parent.children.insert(
       insertIndex,
-      MindmapNode(
-        id: newId,
-        text: '',
-        side: side,
-        color: 0xFFE3F2FD,
-      ),
+      MindmapNode(id: newId, text: '', side: side, color: 0xFFE3F2FD),
     );
     _selectedNodeId = newId;
     _editingNodeId = newId;
@@ -193,12 +204,9 @@ class MindmapController extends ChangeNotifier {
     }
 
     final newId = 'node-${DateTime.now().microsecondsSinceEpoch}';
-    node.children.add(MindmapNode(
-      id: newId,
-      text: '',
-      side: side,
-      color: 0xFFE3F2FD,
-    ));
+    node.children.add(
+      MindmapNode(id: newId, text: '', side: side, color: 0xFFE3F2FD),
+    );
     node.isCollapsed = false;
     _selectedNodeId = newId;
     _editingNodeId = newId;
@@ -208,3 +216,5 @@ class MindmapController extends ChangeNotifier {
   /// Serialize data back to widgetData format.
   Map<String, dynamic> toWidgetData() => _data.toWidgetData();
 }
+
+const Object _styleUnset = Object();

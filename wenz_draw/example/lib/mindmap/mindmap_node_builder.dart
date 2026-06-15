@@ -6,6 +6,7 @@ import 'mindmap_actions.dart';
 import 'mindmap_drag_session.dart';
 import 'mindmap_node_data.dart';
 import 'mindmap_node_metrics.dart';
+import 'mindmap_theme.dart';
 
 /// WidgetElementBuilder for a single mind map node in "non-component mode".
 ///
@@ -82,6 +83,7 @@ class _MindmapNodeViewState extends State<_MindmapNodeView> {
 
   MindmapDragSession? get _dragSession => _actions?.dragSession;
   MindmapActions? _listenedActions;
+  MindmapThemeController? _themeController;
 
   @override
   void initState() {
@@ -90,6 +92,7 @@ class _MindmapNodeViewState extends State<_MindmapNodeView> {
     _listenedActions = _actions;
     _listenedActions?.dragSession.addListener(_onDragChanged);
     _listenedActions?.editRequest.addListener(_onEditRequestChanged);
+    _bindThemeController();
     _scheduleEditRequestCheck();
   }
 
@@ -100,15 +103,29 @@ class _MindmapNodeViewState extends State<_MindmapNodeView> {
       _lastTapDownTime = null;
       _lastTapDownPosition = null;
     }
+    _bindThemeController();
     _scheduleEditRequestCheck();
   }
 
   @override
   void dispose() {
+    _themeController?.removeListener(_onThemeChanged);
     _listenedActions?.editRequest.removeListener(_onEditRequestChanged);
     _listenedActions?.dragSession.removeListener(_onDragChanged);
     _nodeFocusNode.dispose();
     super.dispose();
+  }
+
+  void _bindThemeController() {
+    final next = _actions?.themeController;
+    if (identical(next, _themeController)) return;
+    _themeController?.removeListener(_onThemeChanged);
+    _themeController = next;
+    _themeController?.addListener(_onThemeChanged);
+  }
+
+  void _onThemeChanged() {
+    if (mounted) setState(() {});
   }
 
   void _onDragChanged() {
@@ -232,7 +249,9 @@ class _MindmapNodeViewState extends State<_MindmapNodeView> {
         if (!widget.data.isRoot)
           const PopupMenuItem(value: 'delete', child: Text('删除节点')),
         const PopupMenuDivider(),
-        const PopupMenuItem(value: 'color', child: Text('修改颜色')),
+        const PopupMenuItem(value: 'style', child: Text('设置样式')),
+        if (widget.data.isRoot)
+          const PopupMenuItem(value: 'theme', child: Text('切换主题')),
       ],
     ).then((value) {
       final actions = MindmapActions.of(widget.canvas.canvasController);
@@ -247,14 +266,17 @@ class _MindmapNodeViewState extends State<_MindmapNodeView> {
         case 'delete':
           actions.deleteNode(widget.element.id);
           break;
-        case 'color':
-          _showColorPalette();
+        case 'style':
+          _showStylePalette();
+          break;
+        case 'theme':
+          _showThemePicker();
           break;
       }
     });
   }
 
-  void _showColorPalette() {
+  void _showStylePalette() {
     const colors = [
       0xFF2563EB,
       0xFFE3F2FD,
@@ -274,35 +296,67 @@ class _MindmapNodeViewState extends State<_MindmapNodeView> {
       context: context,
       builder: (ctx) {
         return AlertDialog(
-          title: const Text('选择颜色'),
-          content: Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: [
-              for (final c in colors)
-                GestureDetector(
-                  onTap: () {
+          title: const Text('节点样式'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _StylePaletteSection(
+                  title: '底色',
+                  colors: colors,
+                  selectedColor: widget.data.fillColor,
+                  onReset: () {
                     MindmapActions.of(
                       widget.canvas.canvasController,
-                    )?.setNodeColor(widget.element.id, c);
+                    )?.setNodeStyle(widget.element.id, fillColor: null);
                     Navigator.pop(ctx);
                   },
-                  child: Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: Color(c),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: widget.data.color == c
-                            ? const Color(0xFF2563EB)
-                            : Colors.grey.shade300,
-                        width: widget.data.color == c ? 3 : 1,
-                      ),
-                    ),
-                  ),
+                  onPick: (color) {
+                    MindmapActions.of(
+                      widget.canvas.canvasController,
+                    )?.setNodeStyle(widget.element.id, fillColor: color);
+                    Navigator.pop(ctx);
+                  },
                 ),
-            ],
+                const SizedBox(height: 16),
+                _StylePaletteSection(
+                  title: '边框',
+                  colors: colors,
+                  selectedColor: widget.data.borderColor,
+                  onReset: () {
+                    MindmapActions.of(
+                      widget.canvas.canvasController,
+                    )?.setNodeStyle(widget.element.id, borderColor: null);
+                    Navigator.pop(ctx);
+                  },
+                  onPick: (color) {
+                    MindmapActions.of(
+                      widget.canvas.canvasController,
+                    )?.setNodeStyle(widget.element.id, borderColor: color);
+                    Navigator.pop(ctx);
+                  },
+                ),
+                const SizedBox(height: 16),
+                _StylePaletteSection(
+                  title: '字体',
+                  colors: colors,
+                  selectedColor: widget.data.fontColor,
+                  onReset: () {
+                    MindmapActions.of(
+                      widget.canvas.canvasController,
+                    )?.setNodeStyle(widget.element.id, fontColor: null);
+                    Navigator.pop(ctx);
+                  },
+                  onPick: (color) {
+                    MindmapActions.of(
+                      widget.canvas.canvasController,
+                    )?.setNodeStyle(widget.element.id, fontColor: color);
+                    Navigator.pop(ctx);
+                  },
+                ),
+              ],
+            ),
           ),
           actions: [
             TextButton(
@@ -315,13 +369,41 @@ class _MindmapNodeViewState extends State<_MindmapNodeView> {
     );
   }
 
+  void _showThemePicker() {
+    final actions = MindmapActions.of(widget.canvas.canvasController);
+    if (actions == null) return;
+    showDialog<void>(
+      context: context,
+      builder: (ctx) {
+        return SimpleDialog(
+          title: const Text('切换主题'),
+          children: [
+            for (final theme in MindmapThemes.presets)
+              SimpleDialogOption(
+                onPressed: () {
+                  actions.setRootTheme(widget.element.id, theme.id);
+                  Navigator.pop(ctx);
+                },
+                child: Row(
+                  children: [
+                    Expanded(child: Text(theme.label)),
+                    if (actions.themeIdForNode(widget.element.id) == theme.id)
+                      const Icon(Icons.check, size: 18),
+                  ],
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final bgColor = Color(widget.data.color);
-    final txtColor = Color(widget.data.textColor);
     final isRoot = widget.data.isRoot;
+    final style = _styleForNode();
 
-    final child = _buildDisplayNode(bgColor, txtColor, isRoot);
+    final child = _buildDisplayNode(style, isRoot);
 
     return Opacity(
       // Dim the node slightly while it is being dragged.
@@ -340,38 +422,43 @@ class _MindmapNodeViewState extends State<_MindmapNodeView> {
     );
   }
 
-  Widget _buildDisplayNode(Color bgColor, Color txtColor, bool isRoot) {
+  MindmapResolvedNodeStyle _styleForNode() {
+    final actions = _actions;
+    if (actions != null) {
+      return actions.styleForNode(
+        widget.element.id,
+        isSelected: widget.canvas.selected,
+      );
+    }
+    return MindmapThemeController().styleFor(
+      MindmapThemeNodeContext.fromNodeData(
+        widget.data,
+        depth: widget.data.isRoot ? 0 : 1,
+        siblingIndex: widget.data.order,
+        siblingCount: 1,
+        isSelected: widget.canvas.selected,
+      ),
+    );
+  }
+
+  Widget _buildDisplayNode(MindmapResolvedNodeStyle style, bool isRoot) {
     return switch (widget.canvas.renderDetail) {
       CanvasWidgetRenderDetail.color => _buildNodeShell(
-        bgColor: bgColor,
+        style: style,
         isRoot: isRoot,
-        fill: Colors.transparent,
+        fill: style.fillColor,
         width: 1.5,
       ),
-      CanvasWidgetRenderDetail.colorWithText => _buildNodeShell(
-        bgColor: bgColor,
-        isRoot: isRoot,
-        fill: Colors.transparent,
-        width: 1.5,
-        child: _buildScaledText(
-          text: widget.data.text,
-          color: _textColorForOutline(bgColor),
-          fontSize: isRoot ? 11 : 10,
-          fontWeight: FontWeight.w700,
-          maxLines: 1,
-        ),
-      ),
+      CanvasWidgetRenderDetail.colorWithText ||
       CanvasWidgetRenderDetail.thumbnail ||
       CanvasWidgetRenderDetail.full => _buildNodeShell(
-        bgColor: bgColor,
+        style: style,
         isRoot: isRoot,
-        fill: bgColor,
+        fill: style.fillColor,
         shadow: true,
         child: _buildScaledText(
           text: widget.data.text,
-          color: txtColor,
-          fontSize: isRoot ? 16 : 14,
-          fontWeight: isRoot ? FontWeight.w700 : FontWeight.w500,
+          style: style.textStyle,
           maxLines: 2,
         ),
       ),
@@ -379,7 +466,7 @@ class _MindmapNodeViewState extends State<_MindmapNodeView> {
   }
 
   Widget _buildNodeShell({
-    required Color bgColor,
+    required MindmapResolvedNodeStyle style,
     required bool isRoot,
     required Color fill,
     Widget? child,
@@ -387,33 +474,16 @@ class _MindmapNodeViewState extends State<_MindmapNodeView> {
     bool shadow = false,
     bool highlighted = false,
   }) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: fill,
-        borderRadius: BorderRadius.circular(isRoot ? 24 : 8),
-        border: Border.all(
-          color: highlighted
-              ? const Color(0xFF2563EB)
-              : _borderColorFor(bgColor),
-          width: highlighted ? 2 : width,
-        ),
-        boxShadow: shadow
-            ? [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.08),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
-                ),
-              ]
-            : null,
-      ),
+    final effectiveStyle = style.copyWith(shadow: shadow && style.shadow);
+    return MindmapNodeFrame(
+      style: effectiveStyle,
+      fillColor: fill,
+      borderWidth: width,
+      highlighted: highlighted,
       child: child == null
           ? const SizedBox.expand()
           : Padding(
-              padding: EdgeInsets.symmetric(
-                horizontal: isRoot ? 16 : 12,
-                vertical: isRoot ? 10 : 6,
-              ),
+              padding: style.padding,
               child: Center(child: child),
             ),
     );
@@ -421,9 +491,7 @@ class _MindmapNodeViewState extends State<_MindmapNodeView> {
 
   Widget _buildScaledText({
     required String text,
-    required Color color,
-    required double fontSize,
-    required FontWeight fontWeight,
+    required TextStyle style,
     required int maxLines,
   }) {
     return LayoutBuilder(
@@ -441,26 +509,64 @@ class _MindmapNodeViewState extends State<_MindmapNodeView> {
               maxLines: maxLines,
               softWrap: true,
               textAlign: TextAlign.center,
-              style: TextStyle(
-                color: color,
-                fontSize: fontSize,
-                fontWeight: fontWeight,
-              ),
+              style: style,
             ),
           ),
         );
       },
     );
   }
+}
 
-  Color _borderColorFor(Color color) {
-    if (color.computeLuminance() > 0.72) {
-      return const Color(0xFFD1D5DB);
-    }
-    return color;
-  }
+class _StylePaletteSection extends StatelessWidget {
+  const _StylePaletteSection({
+    required this.title,
+    required this.colors,
+    required this.selectedColor,
+    required this.onPick,
+    required this.onReset,
+  });
 
-  Color _textColorForOutline(Color color) {
-    return color.computeLuminance() > 0.72 ? const Color(0xFF1F2937) : color;
+  final String title;
+  final List<int> colors;
+  final int? selectedColor;
+  final ValueChanged<int> onPick;
+  final VoidCallback onReset;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: [
+            OutlinedButton(onPressed: onReset, child: const Text('跟随主题')),
+            for (final c in colors)
+              GestureDetector(
+                onTap: () => onPick(c),
+                child: Container(
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(
+                    color: Color(c),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: selectedColor == c
+                          ? const Color(0xFF2563EB)
+                          : Colors.grey.shade300,
+                      width: selectedColor == c ? 3 : 1,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ],
+    );
   }
 }

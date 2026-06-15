@@ -6,6 +6,7 @@ import 'mindmap_layout_engine.dart';
 import 'mindmap_node.dart';
 import 'mindmap_node_data.dart';
 import 'mindmap_node_metrics.dart';
+import 'mindmap_theme.dart';
 import 'mindmap_tree.dart';
 
 /// Central place for all mind map mutations in "non-component mode".
@@ -29,6 +30,9 @@ class MindmapActions {
   static const int _rootTextColor = 0xFFFFFFFF;
   static const int _childNodeColor = 0xFFE3F2FD;
   static const int _childTextColor = 0xFF1F2937;
+
+  /// Theme controller used by all mind map nodes on this canvas.
+  final MindmapThemeController themeController = MindmapThemeController();
 
   /// Active drag session (long-press drag on a child node). The connection
   /// layer listens to this to render the ghost + drop target highlight.
@@ -73,7 +77,11 @@ class MindmapActions {
 
   /// Detach and dispose the actions instance for [controller].
   static void detach(CanvasController controller) {
-    _registry.remove(controller);
+    final actions = _registry.remove(controller);
+    actions?.themeController.dispose();
+    actions?.dragSession.dispose();
+    actions?.editRequest.dispose();
+    actions?.editingNodeId.dispose();
   }
 
   // ── Queries ────────────────────────────────────────────────────────
@@ -140,13 +148,7 @@ class MindmapActions {
     final newRect = _tempRectNear(parentId);
 
     final newElement = _makeElement(
-      MindmapNodeData(
-        id: newId,
-        text: '新节点',
-        parentId: parentId,
-        side: side,
-        color: 0xFFE3F2FD,
-      ),
+      MindmapNodeData(id: newId, text: '新节点', parentId: parentId, side: side),
       newRect,
     );
 
@@ -171,13 +173,7 @@ class MindmapActions {
     final currentIndex = siblings.indexWhere((child) => child.id == nodeId);
     final insertIndex = currentIndex < 0 ? siblings.length : currentIndex + 1;
     final newElement = _makeElement(
-      MindmapNodeData(
-        id: newId,
-        text: '新节点',
-        parentId: parentId,
-        side: side,
-        color: 0xFFE3F2FD,
-      ),
+      MindmapNodeData(id: newId, text: '新节点', parentId: parentId, side: side),
       _tempRectNear(nodeId),
     );
 
@@ -283,10 +279,125 @@ class MindmapActions {
 
   /// Update the color of [nodeId].
   void setNodeColor(String nodeId, int color) {
+    setNodeStyle(nodeId, fillColor: color);
+  }
+
+  /// Update per-node style overrides. Pass null to clear an override.
+  void setNodeStyle(
+    String nodeId, {
+    Object? fillColor = _styleUnset,
+    Object? borderColor = _styleUnset,
+    Object? fontColor = _styleUnset,
+  }) {
     final element = _canvas.elementById(nodeId);
     if (element is! CanvasWidgetElement) return;
     final data = MindmapNodeData.fromWidgetData(element.widgetData);
-    _updateNodeData(nodeId, data.copyWith(color: color));
+    final fillProvided = !identical(fillColor, _styleUnset);
+    final fontProvided = !identical(fontColor, _styleUnset);
+    final nextFill = fillProvided ? fillColor as int? : data.fillColor;
+    final nextFont = fontProvided ? fontColor as int? : data.fontColor;
+    final defaultFill = data.isRoot ? _rootNodeColor : _childNodeColor;
+    final defaultFont = data.isRoot ? _rootTextColor : _childTextColor;
+    _updateNodeData(
+      nodeId,
+      data.copyWith(
+        color: fillProvided ? nextFill ?? defaultFill : data.color,
+        textColor: fontProvided ? nextFont ?? defaultFont : data.textColor,
+        fillColor: identical(fillColor, _styleUnset)
+            ? data.fillColor
+            : fillColor,
+        borderColor: identical(borderColor, _styleUnset)
+            ? data.borderColor
+            : borderColor,
+        fontColor: identical(fontColor, _styleUnset)
+            ? data.fontColor
+            : fontColor,
+      ),
+    );
+  }
+
+  /// Update the theme for the tree rooted at [rootId].
+  void setRootTheme(String rootId, String themeId) {
+    final element = _canvas.elementById(rootId);
+    if (element is! CanvasWidgetElement) return;
+    final data = MindmapNodeData.fromWidgetData(element.widgetData);
+    if (!data.isRoot) return;
+    final normalized =
+        MindmapThemes.byId(themeId)?.id ?? MindmapThemes.simpleFill.id;
+    _updateNodeData(rootId, data.copyWith(themeId: normalized));
+    themeController.useThemeId(normalized);
+  }
+
+  String themeIdForNode(String nodeId) {
+    for (final tree in trees) {
+      if (tree.allNodes.containsKey(nodeId)) {
+        return tree.root.data.themeId ?? MindmapThemes.simpleFill.id;
+      }
+    }
+    final data = _nodeData(nodeId);
+    return data?.themeId ?? MindmapThemes.simpleFill.id;
+  }
+
+  MindmapThemeDefinition themeForNode(String nodeId) {
+    return MindmapThemes.byId(themeIdForNode(nodeId)) ??
+        MindmapThemes.simpleFill;
+  }
+
+  MindmapResolvedNodeStyle styleForNode(
+    String nodeId, {
+    bool isSelected = false,
+  }) {
+    return themeController.styleForTheme(
+      themeForNode(nodeId),
+      themeContextFor(nodeId, isSelected: isSelected),
+    );
+  }
+
+  MindmapThemeNodeContext themeContextFor(
+    String nodeId, {
+    bool isSelected = false,
+  }) {
+    for (final tree in trees) {
+      for (final node in tree.visibleNodes) {
+        if (node.id != nodeId) continue;
+        return MindmapThemeNodeContext.fromNodeData(
+          node.data,
+          depth: node.depth,
+          siblingIndex: node.siblingIndex,
+          siblingCount: node.siblingCount,
+          isSelected: isSelected,
+        );
+      }
+      final data = tree.allNodes[nodeId];
+      if (data != null) {
+        return MindmapThemeNodeContext.fromNodeData(
+          data,
+          depth: data.isRoot ? 0 : 1,
+          siblingIndex: data.order,
+          siblingCount: 1,
+          isSelected: isSelected,
+        );
+      }
+    }
+    final data = _nodeData(nodeId);
+    if (data != null) {
+      return MindmapThemeNodeContext.fromNodeData(
+        data,
+        depth: data.isRoot ? 0 : 1,
+        siblingIndex: data.order,
+        siblingCount: 1,
+        isSelected: isSelected,
+      );
+    }
+    return const MindmapThemeNodeContext(
+      id: '',
+      text: '',
+      depth: 0,
+      side: MindmapNodeSide.center,
+      isRoot: true,
+      siblingIndex: 0,
+      siblingCount: 1,
+    );
   }
 
   /// Commit edited text for [nodeId] (no sibling/child creation).
@@ -1477,6 +1588,10 @@ class MindmapActions {
       order: 0,
       color: _rootNodeColor,
       textColor: _rootTextColor,
+      fillColor: null,
+      borderColor: null,
+      fontColor: null,
+      themeId: data.themeId ?? MindmapThemes.simpleFill.id,
     );
   }
 
@@ -1498,6 +1613,9 @@ class MindmapActions {
       order: order ?? data.order,
       color: roleChanged ? _childNodeColor : data.color,
       textColor: roleChanged ? _childTextColor : data.textColor,
+      fillColor: roleChanged ? null : data.fillColor,
+      borderColor: roleChanged ? null : data.borderColor,
+      fontColor: roleChanged ? null : data.fontColor,
     );
   }
 
@@ -1513,6 +1631,9 @@ class MindmapActions {
       collapsedLeft: false,
       color: roleChanged ? _childNodeColor : data.color,
       textColor: roleChanged ? _childTextColor : data.textColor,
+      fillColor: roleChanged ? null : data.fillColor,
+      borderColor: roleChanged ? null : data.borderColor,
+      fontColor: roleChanged ? null : data.fontColor,
     );
   }
 
@@ -1527,7 +1648,11 @@ class MindmapActions {
         a.isRoot == b.isRoot &&
         a.order == b.order &&
         a.color == b.color &&
-        a.textColor == b.textColor;
+        a.textColor == b.textColor &&
+        a.fillColor == b.fillColor &&
+        a.borderColor == b.borderColor &&
+        a.fontColor == b.fontColor &&
+        a.themeId == b.themeId;
   }
 
   MindmapNodeData? _nodeData(String id) {
@@ -1600,6 +1725,8 @@ class MindmapActions {
     return makeMindmapNodeElement(data: data, rect: rect);
   }
 }
+
+const Object _styleUnset = Object();
 
 class _DropParentCandidate {
   const _DropParentCandidate({
@@ -1678,6 +1805,7 @@ List<CanvasWidgetElement> createMindmapNodeElements({
         side: MindmapNodeSide.center,
         color: 0xFF2563EB,
         textColor: 0xFFFFFFFF,
+        themeId: MindmapThemes.simpleFill.id,
       ),
       rect: rootRect,
     ),

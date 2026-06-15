@@ -12,6 +12,7 @@ import 'mindmap_layout_engine.dart';
 import 'mindmap_node.dart';
 import 'mindmap_node_data.dart';
 import 'mindmap_node_metrics.dart';
+import 'mindmap_theme.dart';
 import 'mindmap_tree.dart';
 
 /// Overlay that draws mind map connections + collapse buttons on top of the
@@ -41,6 +42,8 @@ class MindmapConnectionLayer extends StatefulWidget {
 }
 
 class _MindmapConnectionLayerState extends State<MindmapConnectionLayer> {
+  MindmapThemeController? _themeController;
+
   @override
   void initState() {
     super.initState();
@@ -48,6 +51,7 @@ class _MindmapConnectionLayerState extends State<MindmapConnectionLayer> {
     widget.viewController.addListener(_onChanged);
     _dragSession?.addListener(_onChanged);
     _editingNodeId?.addListener(_onChanged);
+    _bindThemeController();
   }
 
   MindmapDragSession? get _dragSession =>
@@ -56,10 +60,19 @@ class _MindmapConnectionLayerState extends State<MindmapConnectionLayer> {
   ValueNotifier<String?>? get _editingNodeId =>
       MindmapActions.of(widget.canvasController)?.editingNodeId;
 
+  void _bindThemeController() {
+    final next = MindmapActions.of(widget.canvasController)?.themeController;
+    if (identical(next, _themeController)) return;
+    _themeController?.removeListener(_onChanged);
+    _themeController = next;
+    _themeController?.addListener(_onChanged);
+  }
+
   @override
   void dispose() {
     _editingNodeId?.removeListener(_onChanged);
     _dragSession?.removeListener(_onChanged);
+    _themeController?.removeListener(_onChanged);
     widget.canvasController.removeListener(_onChanged);
     widget.viewController.removeListener(_onChanged);
     super.dispose();
@@ -73,6 +86,7 @@ class _MindmapConnectionLayerState extends State<MindmapConnectionLayer> {
   Widget build(BuildContext context) {
     final actions = MindmapActions.of(widget.canvasController);
     if (actions == null) return const SizedBox.shrink();
+    _bindThemeController();
 
     final transform = widget.viewController.transform;
     final scale = transform.scale;
@@ -83,26 +97,32 @@ class _MindmapConnectionLayerState extends State<MindmapConnectionLayer> {
     // Connections use fixed world units — same as node elements — so they
     // scale uniformly with the canvas. No inverse-scale trickery here.
     final allMergePoints = <MindmapMergePoint>[];
+    final connectionPainters = <Widget>[];
     for (final tree in trees) {
       final result = MindmapLayoutEngine.layout(tree);
       allMergePoints.addAll(result.mergePoints);
+      connectionPainters.add(
+        Positioned.fill(
+          child: IgnorePointer(
+            child: CustomPaint(
+              painter: MindmapConnectionPainterV2(
+                mergePoints: result.mergePoints,
+                viewportOffset: transform.offset,
+                scale: scale,
+                color: actions.themeForNode(tree.root.id).connectionColor,
+                strokeWidth: widget.strokeWidth,
+              ),
+              child: const SizedBox.expand(),
+            ),
+          ),
+        ),
+      );
     }
 
     // Convert world → screen for merge-point buttons positioned in screen space.
     Offset worldToScreen(Offset world) => world * scale + transform.offset;
 
-    return IgnorePointer(
-          child: CustomPaint(
-            painter: MindmapConnectionPainterV2(
-              mergePoints: allMergePoints,
-              viewportOffset: transform.offset,
-              scale: scale,
-              color: widget.connectionColor,
-              strokeWidth: widget.strokeWidth,
-            ),
-            child: const SizedBox.expand(),
-          ),
-        )
+    return Stack(children: connectionPainters)
         .stackWithMergeButtons(
           mergePoints: allMergePoints,
           scale: scale,
@@ -561,6 +581,7 @@ extension _EditingOverlayExtension on Widget {
     }
 
     final data = MindmapNodeData.fromWidgetData(element.widgetData);
+    final style = actions.styleForNode(nodeId);
     return Stack(
       children: [
         this,
@@ -570,6 +591,7 @@ extension _EditingOverlayExtension on Widget {
             actions: actions,
             nodeId: nodeId,
             data: data,
+            style: style,
             center: worldToScreen(element.worldRect.center),
             scale: scale,
           ),
@@ -585,6 +607,7 @@ class _MindmapEditingOverlay extends StatefulWidget {
     required this.actions,
     required this.nodeId,
     required this.data,
+    required this.style,
     required this.center,
     required this.scale,
   });
@@ -592,6 +615,7 @@ class _MindmapEditingOverlay extends StatefulWidget {
   final MindmapActions actions;
   final String nodeId;
   final MindmapNodeData data;
+  final MindmapResolvedNodeStyle style;
   final Offset center;
   final double scale;
 
@@ -694,8 +718,6 @@ class _MindmapEditingOverlayState extends State<_MindmapEditingOverlay> {
           animation: _controller,
           builder: (context, _) {
             final isRoot = widget.data.isRoot;
-            final bgColor = Color(widget.data.color);
-            final txtColor = Color(widget.data.textColor);
             final width =
                 MindmapNodeMetrics.widthForText(
                   _controller.text,
@@ -717,9 +739,9 @@ class _MindmapEditingOverlayState extends State<_MindmapEditingOverlay> {
                 color: Colors.transparent,
                 child: DecoratedBox(
                   decoration: BoxDecoration(
-                    color: bgColor,
+                    color: widget.style.fillColor,
                     borderRadius: BorderRadius.circular(
-                      (isRoot ? 24 : 8) * widget.scale,
+                      widget.style.borderRadius * widget.scale,
                     ),
                     border: Border.all(
                       color: const Color(0xFF2563EB),
@@ -746,13 +768,12 @@ class _MindmapEditingOverlayState extends State<_MindmapEditingOverlay> {
                           maxLines: 1,
                           textAlign: TextAlign.center,
                           textAlignVertical: TextAlignVertical.center,
-                          cursorColor: txtColor,
-                          style: TextStyle(
-                            color: txtColor,
-                            fontSize: (isRoot ? 16 : 14) * widget.scale,
-                            fontWeight: isRoot
-                                ? FontWeight.w700
-                                : FontWeight.w500,
+                          cursorColor: widget.style.textColor,
+                          style: widget.style.textStyle.copyWith(
+                            fontSize:
+                                (widget.style.textStyle.fontSize ??
+                                    (isRoot ? 16 : 14)) *
+                                widget.scale,
                           ),
                           decoration: const InputDecoration(
                             isDense: true,
@@ -800,6 +821,7 @@ extension _DragPreviewExtension on Widget {
               canvasController,
             ),
             element: canvasController.elementById(id),
+            actions: MindmapActions.of(canvasController),
           ),
         // Preview connection line (parent edge → predicted node edge).
         // Null for detach drops (node becomes an independent root, no parent).
@@ -847,10 +869,15 @@ extension _DragPreviewExtension on Widget {
 }
 
 class _OriginGhost extends StatelessWidget {
-  const _OriginGhost({required this.rect, required this.element});
+  const _OriginGhost({
+    required this.rect,
+    required this.element,
+    required this.actions,
+  });
 
   final Rect? rect;
   final CanvasElement? element;
+  final MindmapActions? actions;
 
   @override
   Widget build(BuildContext context) {
@@ -859,13 +886,18 @@ class _OriginGhost extends StatelessWidget {
     if (rect == null || element is! CanvasWidgetElement) {
       return const SizedBox.shrink();
     }
-    final color = Color(_parseIntColor(element.widgetData['color']));
-    final textColor = Color(
-      _parseIntColor(element.widgetData['textColor'], 0xFF1F2937),
-    );
-    final text = element.widgetData['text'] as String? ?? '';
-    final isRoot = element.widgetData['isRoot'] == true;
-
+    final data = MindmapNodeData.fromWidgetData(element.widgetData);
+    final style =
+        actions?.styleForNode(element.id) ??
+        MindmapThemeController().styleFor(
+          MindmapThemeNodeContext.fromNodeData(
+            data,
+            depth: data.isRoot ? 0 : 1,
+            siblingIndex: data.order,
+            siblingCount: 1,
+          ),
+        );
+    final text = data.text;
     return Positioned(
       left: rect.left,
       top: rect.top,
@@ -874,28 +906,17 @@ class _OriginGhost extends StatelessWidget {
       child: IgnorePointer(
         child: Opacity(
           opacity: 0.4,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.circular(isRoot ? 24 : 8),
-              border: Border.all(color: const Color(0xFF94A3B8), width: 1),
-            ),
+          child: MindmapNodeFrame(
+            style: style,
             child: Center(
               child: Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: isRoot ? 16 : 12,
-                  vertical: isRoot ? 10 : 6,
-                ),
+                padding: style.padding,
                 child: Text(
                   text.isEmpty ? '...' : text,
                   overflow: TextOverflow.ellipsis,
                   maxLines: 2,
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: textColor,
-                    fontSize: isRoot ? 16 : 14,
-                    fontWeight: isRoot ? FontWeight.w700 : FontWeight.w500,
-                  ),
+                  style: style.textStyle,
                 ),
               ),
             ),
@@ -903,12 +924,6 @@ class _OriginGhost extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  static int _parseIntColor(dynamic value, [int fallback = 0xFFE3F2FD]) {
-    if (value is int) return value;
-    if (value is String) return int.tryParse(value) ?? fallback;
-    return fallback;
   }
 }
 

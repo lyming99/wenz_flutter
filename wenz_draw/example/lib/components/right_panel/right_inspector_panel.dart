@@ -4,6 +4,10 @@ import 'package:flutter/material.dart' hide ColorSwatch;
 import 'package:wenz_draw/wenz_draw.dart';
 
 import '../../theme/ui_colors.dart';
+import '../../mindmap/mindmap_actions.dart';
+import '../../mindmap/mindmap_node_data.dart';
+import '../../mindmap/mindmap_theme.dart';
+import '../../mindmap/mindmap_tree.dart';
 import '../../utils/example_helpers.dart';
 import '../../utils/inspector_utils.dart';
 import 'inspector_fields.dart';
@@ -27,6 +31,7 @@ class RightInspectorPanel extends StatelessWidget {
         final selectedStroke = strokeColorOf(selected) ?? brush.color;
         final selectedStrokeWidth =
             strokeWidthOf(selected) ?? brush.strokeWidth;
+        final selectedMindmapRoot = _mindmapRootData(selected);
         return Container(
           width: 292,
           color: UiColors.panel,
@@ -72,6 +77,17 @@ class RightInspectorPanel extends StatelessWidget {
                       ),
                     ],
                   ),
+                  if (selectedMindmapRoot != null)
+                    PanelSection(
+                      title: '思维导图',
+                      children: [
+                        _MindmapThemeDropdown(
+                          canvasController: canvasController,
+                          rootId: selected!.id,
+                          data: selectedMindmapRoot,
+                        ),
+                      ],
+                    ),
                   PanelSection(
                     title: '位置与尺寸',
                     children: [
@@ -210,15 +226,16 @@ class RightInspectorPanel extends StatelessWidget {
                           const FieldLabel('颜色'),
                           const Spacer(),
                           TextSwatchButton(
-                            color: textColorOf(selected) ??
+                            color:
+                                textColorOf(selected) ??
                                 canvasController.brushSettings.color,
                             onPressed: selected == null
                                 ? null
                                 : () => showTextColorPicker(
-                                      context,
-                                      selected,
-                                      canvasController,
-                                    ),
+                                    context,
+                                    selected,
+                                    canvasController,
+                                  ),
                           ),
                         ],
                       ),
@@ -369,6 +386,70 @@ class RightInspectorPanel extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+MindmapNodeData? _mindmapRootData(CanvasElement? element) {
+  if (element is! CanvasWidgetElement) return null;
+  if (element.widgetType != kMindmapNodeWidgetType) return null;
+  final data = MindmapNodeData.fromWidgetData(element.widgetData);
+  return data.isRoot ? data : null;
+}
+
+class _MindmapThemeDropdown extends StatelessWidget {
+  const _MindmapThemeDropdown({
+    required this.canvasController,
+    required this.rootId,
+    required this.data,
+  });
+
+  final CanvasController canvasController;
+  final String rootId;
+  final MindmapNodeData data;
+
+  @override
+  Widget build(BuildContext context) {
+    final actions = MindmapActions.of(canvasController);
+    final currentThemeId =
+        data.themeId ??
+        actions?.themeIdForNode(rootId) ??
+        MindmapThemes.simpleFill.id;
+    final currentTheme =
+        MindmapThemes.byId(currentThemeId) ?? MindmapThemes.simpleFill;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const FieldLabel('样式'),
+        const SizedBox(height: 6),
+        Container(
+          height: 38,
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          decoration: BoxDecoration(
+            color: UiColors.panelSoft,
+            border: Border.all(color: UiColors.line),
+            borderRadius: BorderRadius.circular(7),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: currentTheme.id,
+              isExpanded: true,
+              style: const TextStyle(fontSize: 14, color: UiColors.text),
+              items: [
+                for (final theme in MindmapThemes.presets)
+                  DropdownMenuItem(value: theme.id, child: Text(theme.label)),
+              ],
+              onChanged: actions == null
+                  ? null
+                  : (themeId) {
+                      if (themeId == null) return;
+                      actions.setRootTheme(rootId, themeId);
+                    },
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

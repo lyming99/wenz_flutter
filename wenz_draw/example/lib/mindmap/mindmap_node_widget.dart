@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import 'mindmap_node.dart';
 import 'mindmap_node_metrics.dart';
+import 'mindmap_theme.dart';
 
 /// Renders a single mind map node.
 ///
@@ -25,6 +26,7 @@ class MindmapNodeWidget extends StatefulWidget {
     required this.onAddChild,
     required this.onDelete,
     required this.isRoot,
+    required this.style,
     this.onCommitAndAddSibling,
     this.onCommitAndAddChild,
   });
@@ -40,6 +42,7 @@ class MindmapNodeWidget extends StatefulWidget {
   final ValueChanged<int> onColorChange;
   final VoidCallback onAddChild;
   final VoidCallback onDelete;
+  final MindmapResolvedNodeStyle style;
   final void Function(String nodeId, String text)? onCommitAndAddSibling;
   final void Function(String nodeId, String text)? onCommitAndAddChild;
 
@@ -205,41 +208,17 @@ class _MindmapNodeWidgetState extends State<MindmapNodeWidget> {
 
   @override
   Widget build(BuildContext context) {
-    final bgColor = Color(widget.node.color);
-    final txtColor = Color(widget.node.textColor);
-
     if (widget.isEditing) {
-      return _buildEditingNode(bgColor, txtColor);
+      return _buildEditingNode(widget.style);
     }
-
-    final borderRadius = widget.isRoot ? 24.0 : 8.0;
 
     return GestureDetector(
       onTapDown: _handleTapDown,
       onSecondaryTapDown: (_) => _showContextMenu(context),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: bgColor,
-          borderRadius: BorderRadius.circular(borderRadius),
-          border: Border.all(
-            color: bgColor.computeLuminance() > 0.5
-                ? const Color(0xFFD1D5DB)
-                : const Color(0x33FFFFFF),
-            width: 1,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.08),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
+      child: MindmapNodeFrame(
+        style: widget.style,
         child: Padding(
-          padding: EdgeInsets.symmetric(
-            horizontal: widget.isRoot ? 16 : 12,
-            vertical: widget.isRoot ? 10 : 6,
-          ),
+          padding: widget.style.padding,
           child: Center(
             child: LayoutBuilder(
               builder: (context, constraints) {
@@ -252,13 +231,7 @@ class _MindmapNodeWidgetState extends State<MindmapNodeWidget> {
                     constraints: BoxConstraints(maxWidth: maxWidth),
                     child: Text(
                       widget.node.text.isEmpty ? '...' : widget.node.text,
-                      style: TextStyle(
-                        color: txtColor,
-                        fontSize: widget.isRoot ? 16 : 14,
-                        fontWeight: widget.isRoot
-                            ? FontWeight.w700
-                            : FontWeight.w500,
-                      ),
+                      style: widget.style.textStyle,
                       overflow: TextOverflow.ellipsis,
                       maxLines: 2,
                       softWrap: true,
@@ -274,7 +247,7 @@ class _MindmapNodeWidgetState extends State<MindmapNodeWidget> {
     );
   }
 
-  Widget _buildEditingNode(Color bgColor, Color txtColor) {
+  Widget _buildEditingNode(MindmapResolvedNodeStyle style) {
     return AnimatedBuilder(
       animation: _editController,
       builder: (context, _) {
@@ -298,8 +271,8 @@ class _MindmapNodeWidgetState extends State<MindmapNodeWidget> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: bgColor,
-                borderRadius: BorderRadius.circular(widget.isRoot ? 24 : 8),
+                color: style.fillColor,
+                borderRadius: BorderRadius.circular(style.borderRadius),
                 border: Border.all(color: const Color(0xFF2563EB), width: 2),
                 boxShadow: [
                   BoxShadow(
@@ -337,13 +310,7 @@ class _MindmapNodeWidgetState extends State<MindmapNodeWidget> {
                         child: TextField(
                           controller: _editController,
                           focusNode: _editFocusNode,
-                          style: TextStyle(
-                            color: txtColor,
-                            fontSize: widget.isRoot ? 16 : 14,
-                            fontWeight: widget.isRoot
-                                ? FontWeight.w700
-                                : FontWeight.w500,
-                          ),
+                          style: style.textStyle,
                           decoration: const InputDecoration(
                             isDense: true,
                             contentPadding: EdgeInsets.symmetric(

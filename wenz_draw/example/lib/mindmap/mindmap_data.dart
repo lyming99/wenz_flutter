@@ -1,4 +1,5 @@
 import 'mindmap_node.dart';
+import 'mindmap_theme.dart';
 
 /// Represents an entire mind map tree.
 ///
@@ -13,17 +14,13 @@ class MindmapData {
 
   /// Serialize the entire mind map to a Map suitable for widgetData.
   Map<String, dynamic> toWidgetData() {
-    return {
-      'root': root.toJson(),
-    };
+    return {'root': root.toJson()};
   }
 
   /// Deserialize from widgetData map.
   factory MindmapData.fromWidgetData(Map<String, dynamic> data) {
     return MindmapData(
-      root: MindmapNode.fromJson(
-        data['root'] as Map<String, dynamic>,
-      ),
+      root: MindmapNode.fromJson(data['root'] as Map<String, dynamic>),
     );
   }
 
@@ -36,6 +33,7 @@ class MindmapData {
         side: MindmapNodeSide.center,
         color: 0xFF2563EB,
         textColor: 0xFFFFFFFF,
+        themeId: MindmapThemes.simpleFill.id,
         children: [
           MindmapNode(
             id: 'child-r1',

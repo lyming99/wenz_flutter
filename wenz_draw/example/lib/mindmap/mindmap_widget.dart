@@ -5,6 +5,7 @@ import 'mindmap_connection_painter.dart';
 import 'mindmap_controller.dart';
 import 'mindmap_layout.dart';
 import 'mindmap_node_widget.dart';
+import 'mindmap_theme.dart';
 
 /// The main mind map widget that renders the tree.
 ///
@@ -18,10 +19,12 @@ class MindmapWidget extends StatefulWidget {
   const MindmapWidget({
     super.key,
     required this.controller,
+    this.themeController,
     this.connectionColor = const Color(0xFF94A3B8),
   });
 
   final MindmapController controller;
+  final MindmapThemeController? themeController;
   final Color connectionColor;
 
   @override
@@ -30,22 +33,47 @@ class MindmapWidget extends StatefulWidget {
 
 class _MindmapWidgetState extends State<MindmapWidget> {
   final FocusNode _focusNode = FocusNode();
+  late final MindmapThemeController _ownedThemeController;
+  MindmapThemeController? _listenedThemeController;
 
   @override
   void initState() {
     super.initState();
+    _ownedThemeController = MindmapThemeController();
     widget.controller.addListener(_onChanged);
+    _bindThemeController();
+  }
+
+  @override
+  void didUpdateWidget(covariant MindmapWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.themeController != widget.themeController) {
+      _bindThemeController();
+    }
   }
 
   @override
   void dispose() {
     _focusNode.dispose();
     widget.controller.removeListener(_onChanged);
+    _listenedThemeController?.removeListener(_onChanged);
+    _ownedThemeController.dispose();
     super.dispose();
   }
 
   void _onChanged() {
     if (mounted) setState(() {});
+  }
+
+  MindmapThemeController get _themeController =>
+      widget.themeController ?? _ownedThemeController;
+
+  void _bindThemeController() {
+    final next = _themeController;
+    if (identical(next, _listenedThemeController)) return;
+    _listenedThemeController?.removeListener(_onChanged);
+    _listenedThemeController = next;
+    _listenedThemeController?.addListener(_onChanged);
   }
 
   /// Handle keyboard shortcuts when NOT in editing mode.
@@ -139,6 +167,7 @@ class _MindmapWidgetState extends State<MindmapWidget> {
                     child: MindmapNodeWidget(
                       node: layoutNode.node,
                       isRoot: layoutNode.depth == 0,
+                      style: _styleForLayoutNode(layoutNode),
                       isSelected:
                           controller.selectedNodeId == layoutNode.node.id,
                       isEditing: controller.editingNodeId == layoutNode.node.id,
@@ -178,6 +207,22 @@ class _MindmapWidgetState extends State<MindmapWidget> {
         for (final c in node.expandedChildren) _shiftLayout(c, offset),
       ],
     );
+  }
+
+  MindmapResolvedNodeStyle _styleForLayoutNode(MindmapLayoutNode layoutNode) {
+    final parent = widget.controller.data.findParent(layoutNode.node.id);
+    final siblings = parent?.children ?? const [];
+    final siblingIndex = siblings.indexWhere(
+      (node) => node.id == layoutNode.node.id,
+    );
+    final context = MindmapThemeNodeContext.fromNode(
+      layoutNode.node,
+      depth: layoutNode.depth,
+      siblingIndex: siblingIndex < 0 ? 0 : siblingIndex,
+      siblingCount: siblings.isEmpty ? 1 : siblings.length,
+      isSelected: widget.controller.selectedNodeId == layoutNode.node.id,
+    );
+    return _themeController.styleFor(context);
   }
 }
 

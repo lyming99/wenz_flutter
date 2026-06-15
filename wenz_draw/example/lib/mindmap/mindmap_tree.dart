@@ -18,6 +18,8 @@ class MindmapTreeNode {
     required this.data,
     required this.rect,
     required this.depth,
+    required this.siblingIndex,
+    required this.siblingCount,
     List<MindmapTreeNode>? children,
   }) : children = children ?? [];
 
@@ -29,6 +31,12 @@ class MindmapTreeNode {
 
   /// Depth in the tree (root = 0).
   final int depth;
+
+  /// Position among visible siblings under the same parent.
+  final int siblingIndex;
+
+  /// Total visible siblings under the same parent.
+  final int siblingCount;
 
   /// Visible (non-collapsed) children.
   final List<MindmapTreeNode> children;
@@ -189,22 +197,40 @@ class MindmapTreeBuilder {
 
     collectData(rootData);
 
-    MindmapTreeNode buildNode(MindmapNodeData data, int depth) {
+    MindmapTreeNode buildNode(
+      MindmapNodeData data,
+      int depth, {
+      int siblingIndex = 0,
+      int siblingCount = 1,
+    }) {
       final parsedNode = parsed[data.id];
       final rect = parsedNode?.rect ?? Rect.zero;
       final node = MindmapTreeNode(
         data: data,
         rect: rect,
         depth: depth,
+        siblingIndex: siblingIndex,
+        siblingCount: siblingCount,
       );
       final kids = byParent[data.id] ?? const <MindmapNodeData>[];
+      final visibleKids = <MindmapNodeData>[];
       for (final childData in kids) {
         // Root nodes collapse per-side; non-root nodes collapse as a whole.
         final side = childData.side == MindmapNodeSide.left
             ? MindmapNodeSide.left
             : MindmapNodeSide.right;
         if (data.isCollapsedOnSide(side)) continue;
-        node.children.add(buildNode(childData, depth + 1));
+        visibleKids.add(childData);
+      }
+      for (var i = 0; i < visibleKids.length; i++) {
+        node.children.add(
+          buildNode(
+            visibleKids[i],
+            depth + 1,
+            siblingIndex: i,
+            siblingCount: visibleKids.length,
+          ),
+        );
       }
       return node;
     }

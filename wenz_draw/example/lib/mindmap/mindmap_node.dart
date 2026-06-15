@@ -2,8 +2,10 @@
 enum MindmapNodeSide {
   /// Root node - center.
   center,
+
   /// Right side of root.
   right,
+
   /// Left side of root.
   left;
 
@@ -33,6 +35,10 @@ class MindmapNode {
     this.side = MindmapNodeSide.center,
     this.color = 0xFFE3F2FD,
     this.textColor = 0xFF1F2937,
+    this.fillColor,
+    this.borderColor,
+    this.fontColor,
+    this.themeId,
   }) : children = children ?? [];
 
   /// Unique identifier within this mind map.
@@ -56,6 +62,18 @@ class MindmapNode {
   /// Text color as int (ARGB32).
   int textColor;
 
+  /// Optional per-node background override (ARGB32).
+  int? fillColor;
+
+  /// Optional per-node border override (ARGB32).
+  int? borderColor;
+
+  /// Optional per-node font override (ARGB32).
+  int? fontColor;
+
+  /// Root-only theme id for the whole mind map tree.
+  String? themeId;
+
   /// Whether this node has children.
   bool get hasChildren => children.isNotEmpty;
 
@@ -68,6 +86,10 @@ class MindmapNode {
       side: side,
       color: color,
       textColor: textColor,
+      fillColor: fillColor,
+      borderColor: borderColor,
+      fontColor: fontColor,
+      themeId: themeId,
       children: [for (final child in children) child.clone()],
     );
   }
@@ -81,6 +103,10 @@ class MindmapNode {
       'side': side.toValueString(),
       'color': color,
       'textColor': textColor,
+      if (fillColor != null) 'fillColor': fillColor,
+      if (borderColor != null) 'borderColor': borderColor,
+      if (fontColor != null) 'fontColor': fontColor,
+      if (side == MindmapNodeSide.center && themeId != null) 'themeId': themeId,
       'children': [for (final child in children) child.toJson()],
     };
   }
@@ -94,6 +120,10 @@ class MindmapNode {
       side: MindmapNodeSide.fromString(json['side'] as String?),
       color: _parseIntColor(json['color'], 0xFFE3F2FD),
       textColor: _parseIntColor(json['textColor'], 0xFF1F2937),
+      fillColor: _parseOptionalIntColor(json['fillColor']),
+      borderColor: _parseOptionalIntColor(json['borderColor']),
+      fontColor: _parseOptionalIntColor(json['fontColor']),
+      themeId: json['themeId'] as String?,
       children: json['children'] != null
           ? [
               for (final child in json['children'] as List)
@@ -137,5 +167,11 @@ class MindmapNode {
     if (value is int) return value;
     if (value is String) return int.tryParse(value) ?? defaultValue;
     return defaultValue;
+  }
+
+  static int? _parseOptionalIntColor(dynamic value) {
+    if (value is int) return value;
+    if (value is String) return int.tryParse(value);
+    return null;
   }
 }

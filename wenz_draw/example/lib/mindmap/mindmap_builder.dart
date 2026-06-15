@@ -3,6 +3,7 @@ import 'package:wenz_draw/wenz_draw.dart';
 
 import 'mindmap_controller.dart';
 import 'mindmap_data.dart';
+import 'mindmap_theme.dart';
 import 'mindmap_widget.dart';
 
 /// WidgetElementBuilder for rendering mind maps on the canvas.
@@ -37,13 +38,17 @@ class MindmapBuilder extends WidgetElementBuilder {
     CanvasWidgetBuildContext canvas,
   ) {
     return switch (canvas.renderDetail) {
-      CanvasWidgetRenderDetail.color => _buildPreview(canvas, showText: false),
-      CanvasWidgetRenderDetail.colorWithText => _buildPreview(
+      CanvasWidgetRenderDetail.color => _buildOutlinePreview(
         canvas,
-        showText: true,
+        _readData(element),
       ),
-      CanvasWidgetRenderDetail.thumbnail || CanvasWidgetRenderDetail.full =>
-        _buildFullMindmap(element, canvas, _readData(element)),
+      CanvasWidgetRenderDetail.colorWithText ||
+      CanvasWidgetRenderDetail.thumbnail ||
+      CanvasWidgetRenderDetail.full => _buildFullMindmap(
+        element,
+        canvas,
+        _readData(element),
+      ),
     };
   }
 
@@ -65,36 +70,40 @@ class MindmapBuilder extends WidgetElementBuilder {
     }
   }
 
-  Widget _buildPreview(
-    CanvasWidgetBuildContext canvas, {
-    required bool showText,
-  }) {
+  Widget _buildOutlinePreview(
+    CanvasWidgetBuildContext canvas,
+    MindmapData data,
+  ) {
+    final style = _rootPreviewStyle(data, isSelected: canvas.selected);
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: Colors.transparent,
-        borderRadius: const BorderRadius.all(Radius.circular(4)),
+        color: style.fillColor,
+        borderRadius: BorderRadius.all(Radius.circular(style.borderRadius)),
         border: Border.all(
-          color: canvas.selected
-              ? const Color(0xFF2563EB)
-              : const Color(0xFF94A3B8),
+          color: canvas.selected ? const Color(0xFF2563EB) : style.borderColor,
           width: canvas.selected ? 2 : 1.5,
         ),
       ),
-      child: showText
-          ? const Center(
-              child: Text(
-                'Mind Map',
-                overflow: TextOverflow.ellipsis,
-                maxLines: 1,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Color(0xFF1F2937),
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            )
-          : const SizedBox.expand(),
+      child: const SizedBox.expand(),
+    );
+  }
+
+  MindmapResolvedNodeStyle _rootPreviewStyle(
+    MindmapData data, {
+    required bool isSelected,
+  }) {
+    final theme =
+        MindmapThemes.byId(data.root.themeId ?? MindmapThemes.simpleFill.id) ??
+        MindmapThemes.simpleFill;
+    return MindmapThemeController().styleForTheme(
+      theme,
+      MindmapThemeNodeContext.fromNode(
+        data.root,
+        depth: 0,
+        siblingIndex: 0,
+        siblingCount: 1,
+        isSelected: isSelected,
+      ),
     );
   }
 }
