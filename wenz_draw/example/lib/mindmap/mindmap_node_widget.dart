@@ -269,7 +269,7 @@ class _MindmapNodeWidgetState extends State<MindmapNodeWidget> {
             width: width,
             height: height,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 12),
               decoration: BoxDecoration(
                 color: style.fillColor,
                 borderRadius: BorderRadius.circular(style.borderRadius),
@@ -310,17 +310,16 @@ class _MindmapNodeWidgetState extends State<MindmapNodeWidget> {
                         child: TextField(
                           controller: _editController,
                           focusNode: _editFocusNode,
-                          style: style.textStyle,
+                          maxLines: 1,
+                          style: style.textStyle.copyWith(height: 1),
                           decoration: const InputDecoration(
                             isDense: true,
-                            contentPadding: EdgeInsets.symmetric(
-                              horizontal: 4,
-                              vertical: 6,
-                            ),
+                            contentPadding: EdgeInsets.zero,
                             border: InputBorder.none,
                             hintText: '输入文字...',
                           ),
                           textAlign: TextAlign.center,
+                          textAlignVertical: TextAlignVertical.center,
                           onSubmitted: (_) => _commit(),
                           onTapOutside: (_) => _commit(),
                         ),

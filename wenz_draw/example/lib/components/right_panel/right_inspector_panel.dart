@@ -414,9 +414,9 @@ class _MindmapThemeDropdown extends StatelessWidget {
     final currentThemeId =
         data.themeId ??
         actions?.themeIdForNode(rootId) ??
-        MindmapThemes.simpleFill.id;
+        MindmapThemes.defaultThemeId;
     final currentTheme =
-        MindmapThemes.byId(currentThemeId) ?? MindmapThemes.simpleFill;
+        MindmapThemes.byId(currentThemeId) ?? MindmapThemes.defaultTheme;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

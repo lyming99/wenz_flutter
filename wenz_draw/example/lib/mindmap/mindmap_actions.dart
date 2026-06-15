@@ -323,7 +323,7 @@ class MindmapActions {
     final data = MindmapNodeData.fromWidgetData(element.widgetData);
     if (!data.isRoot) return;
     final normalized =
-        MindmapThemes.byId(themeId)?.id ?? MindmapThemes.simpleFill.id;
+        MindmapThemes.byId(themeId)?.id ?? MindmapThemes.defaultThemeId;
     _updateNodeData(rootId, data.copyWith(themeId: normalized));
     themeController.useThemeId(normalized);
   }
@@ -331,16 +331,16 @@ class MindmapActions {
   String themeIdForNode(String nodeId) {
     for (final tree in trees) {
       if (tree.allNodes.containsKey(nodeId)) {
-        return tree.root.data.themeId ?? MindmapThemes.simpleFill.id;
+        return tree.root.data.themeId ?? MindmapThemes.defaultThemeId;
       }
     }
     final data = _nodeData(nodeId);
-    return data?.themeId ?? MindmapThemes.simpleFill.id;
+    return data?.themeId ?? MindmapThemes.defaultThemeId;
   }
 
   MindmapThemeDefinition themeForNode(String nodeId) {
     return MindmapThemes.byId(themeIdForNode(nodeId)) ??
-        MindmapThemes.simpleFill;
+        MindmapThemes.defaultTheme;
   }
 
   MindmapResolvedNodeStyle styleForNode(
@@ -1591,7 +1591,7 @@ class MindmapActions {
       fillColor: null,
       borderColor: null,
       fontColor: null,
-      themeId: data.themeId ?? MindmapThemes.simpleFill.id,
+      themeId: data.themeId ?? MindmapThemes.defaultThemeId,
     );
   }
 
@@ -1805,7 +1805,7 @@ List<CanvasWidgetElement> createMindmapNodeElements({
         side: MindmapNodeSide.center,
         color: 0xFF2563EB,
         textColor: 0xFFFFFFFF,
-        themeId: MindmapThemes.simpleFill.id,
+        themeId: MindmapThemes.defaultThemeId,
       ),
       rect: rootRect,
     ),

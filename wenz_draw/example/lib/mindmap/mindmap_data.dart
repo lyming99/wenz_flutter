@@ -33,7 +33,7 @@ class MindmapData {
         side: MindmapNodeSide.center,
         color: 0xFF2563EB,
         textColor: 0xFFFFFFFF,
-        themeId: MindmapThemes.simpleFill.id,
+        themeId: MindmapThemes.defaultThemeId,
         children: [
           MindmapNode(
             id: 'child-r1',

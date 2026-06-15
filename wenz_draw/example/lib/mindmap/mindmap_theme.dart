@@ -160,7 +160,7 @@ class MindmapThemeController extends ChangeNotifier {
   MindmapThemeController({
     MindmapThemeDefinition? theme,
     MindmapCustomNodeStyleResolver? customStyleResolver,
-  }) : _theme = theme ?? MindmapThemes.simpleFill,
+  }) : _theme = theme ?? MindmapThemes.defaultTheme,
        _customStyleResolver = customStyleResolver;
 
   MindmapThemeDefinition _theme;
@@ -184,7 +184,7 @@ class MindmapThemeController extends ChangeNotifier {
   }
 
   void useThemeId(String id) {
-    theme = MindmapThemes.byId(id) ?? MindmapThemes.simpleFill;
+    theme = MindmapThemes.byId(id) ?? MindmapThemes.defaultTheme;
   }
 
   MindmapResolvedNodeStyle styleFor(MindmapThemeNodeContext context) {
@@ -238,37 +238,8 @@ class MindmapThemeController extends ChangeNotifier {
 class MindmapThemes {
   const MindmapThemes._();
 
-  static final simpleFill = MindmapThemeDefinition(
-    id: 'simpleFill',
-    label: '简约填充',
-    connectionColor: const Color(0xFF7C8AA5),
-    resolve: (context) {
-      if (context.isRoot) {
-        return _baseStyle(
-          context,
-          fill: const Color(0xFF2563EB),
-          border: const Color(0x002563EB),
-          text: Colors.white,
-          borderWidth: 0,
-          borderRadius: 24,
-        );
-      }
-      final color = _rainbowColor(
-        context.depth == 1
-            ? context.siblingIndex
-            : context.siblingIndex + context.depth,
-      );
-      return _baseStyle(
-        context,
-        fill: _tint(color, context.depth <= 1 ? 0.84 : 0.90),
-        border: _tint(color, 0.72),
-        text: const Color(0xFF132238),
-        borderWidth: 1,
-        borderRadius: context.depth <= 1 ? 12 : 10,
-        shadow: true,
-      );
-    },
-  );
+  static MindmapThemeDefinition get defaultTheme => minimal;
+  static String get defaultThemeId => defaultTheme.id;
 
   static final minimal = MindmapThemeDefinition(
     id: 'minimal',
@@ -401,44 +372,6 @@ class MindmapThemes {
     },
   );
 
-  static final layered = MindmapThemeDefinition(
-    id: 'layered',
-    label: '层级',
-    connectionColor: const Color(0xFF718096),
-    resolve: (context) {
-      final fills = const [
-        Color(0xFF111827),
-        Color(0xFFFFFFFF),
-        Color(0xFFF8FAFC),
-        Color(0xFFF7F7FB),
-      ];
-      final borders = const [
-        Color(0xFF111827),
-        Color(0xFF2563EB),
-        Color(0xFF10B981),
-        Color(0xFF8B5CF6),
-      ];
-      final depth = context.depth.clamp(0, fills.length - 1).toInt();
-      final pattern = switch (context.depth) {
-        0 => MindmapBorderPattern.doubleLine,
-        1 => MindmapBorderPattern.solid,
-        2 => MindmapBorderPattern.dashed,
-        _ => MindmapBorderPattern.dotted,
-      };
-      return _baseStyle(
-        context,
-        fill: fills[depth],
-        border: borders[depth],
-        text: context.depth == 0 ? Colors.white : const Color(0xFF1F2937),
-        borderWidth: context.depth == 0 ? 2.2 : 1.8,
-        borderRadius: context.depth == 0
-            ? 24
-            : math.max(4, 12 - context.depth).toDouble(),
-        borderPattern: pattern,
-      );
-    },
-  );
-
   static final ink = MindmapThemeDefinition(
     id: 'ink',
     label: '墨线',
@@ -488,11 +421,9 @@ class MindmapThemes {
   );
 
   static List<MindmapThemeDefinition> get presets => [
-    simpleFill,
     minimal,
     sticky,
     business,
-    layered,
     neon,
   ];
 

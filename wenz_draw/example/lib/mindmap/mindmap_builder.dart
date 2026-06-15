@@ -93,8 +93,8 @@ class MindmapBuilder extends WidgetElementBuilder {
     required bool isSelected,
   }) {
     final theme =
-        MindmapThemes.byId(data.root.themeId ?? MindmapThemes.simpleFill.id) ??
-        MindmapThemes.simpleFill;
+        MindmapThemes.byId(data.root.themeId ?? MindmapThemes.defaultThemeId) ??
+        MindmapThemes.defaultTheme;
     return MindmapThemeController().styleForTheme(
       theme,
       MindmapThemeNodeContext.fromNode(

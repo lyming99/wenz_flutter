@@ -759,29 +759,30 @@ class _MindmapEditingOverlayState extends State<_MindmapEditingOverlay> {
                     padding: EdgeInsets.symmetric(
                       horizontal: (isRoot ? 16 : 12) * widget.scale,
                     ),
-                    child: Center(
-                      child: Focus(
-                        onKeyEvent: _handleKeyEvent,
-                        child: TextField(
-                          controller: _controller,
-                          focusNode: _focusNode,
-                          maxLines: 1,
-                          textAlign: TextAlign.center,
-                          textAlignVertical: TextAlignVertical.center,
-                          cursorColor: widget.style.textColor,
-                          style: widget.style.textStyle.copyWith(
-                            fontSize:
-                                (widget.style.textStyle.fontSize ??
-                                    (isRoot ? 16 : 14)) *
-                                widget.scale,
-                          ),
-                          decoration: const InputDecoration(
-                            isDense: true,
-                            contentPadding: EdgeInsets.zero,
-                            border: InputBorder.none,
-                          ),
-                          onSubmitted: (_) => _commit(),
+                    child: Focus(
+                      onKeyEvent: _handleKeyEvent,
+                      child: TextField(
+                        controller: _controller,
+                        focusNode: _focusNode,
+                        expands: true,
+                        minLines: null,
+                        maxLines: null,
+                        textAlign: TextAlign.center,
+                        textAlignVertical: TextAlignVertical.center,
+                        cursorColor: widget.style.textColor,
+                        style: widget.style.textStyle.copyWith(
+                          fontSize:
+                              (widget.style.textStyle.fontSize ??
+                                  (isRoot ? 16 : 14)) *
+                              widget.scale,
+                          height: 1,
                         ),
+                        decoration: const InputDecoration(
+                          isDense: true,
+                          contentPadding: EdgeInsets.zero,
+                          border: InputBorder.none,
+                        ),
+                        onSubmitted: (_) => _commit(),
                       ),
                     ),
                   ),
