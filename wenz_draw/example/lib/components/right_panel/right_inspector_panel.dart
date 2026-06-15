@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart' hide ColorSwatch;
 import 'package:wenz_draw/wenz_draw.dart';
 
+import '../../components/color_picker/color_picker_dialog.dart';
 import '../../theme/ui_colors.dart';
 import '../../mindmap/mindmap_actions.dart';
 import '../../mindmap/mindmap_node_data.dart';
@@ -31,7 +32,10 @@ class RightInspectorPanel extends StatelessWidget {
         final selectedStroke = strokeColorOf(selected) ?? brush.color;
         final selectedStrokeWidth =
             strokeWidthOf(selected) ?? brush.strokeWidth;
-        final selectedMindmapRoot = _mindmapRootData(selected);
+        final selectedMindmapNode = _mindmapNodeData(selected);
+        final selectedMindmapRoot = selectedMindmapNode?.isRoot == true
+            ? selectedMindmapNode
+            : null;
         return Container(
           width: 292,
           color: UiColors.panel,
@@ -77,14 +81,22 @@ class RightInspectorPanel extends StatelessWidget {
                       ),
                     ],
                   ),
-                  if (selectedMindmapRoot != null)
+                  if (selectedMindmapNode != null)
                     PanelSection(
                       title: '思维导图',
                       children: [
-                        _MindmapThemeDropdown(
+                        if (selectedMindmapRoot != null) ...[
+                          _MindmapThemeDropdown(
+                            canvasController: canvasController,
+                            rootId: selected!.id,
+                            data: selectedMindmapRoot,
+                          ),
+                          const SizedBox(height: 14),
+                        ],
+                        _MindmapNodeStyleEditor(
                           canvasController: canvasController,
-                          rootId: selected!.id,
-                          data: selectedMindmapRoot,
+                          nodeId: selected!.id,
+                          data: selectedMindmapNode,
                         ),
                       ],
                     ),
@@ -390,11 +402,164 @@ class RightInspectorPanel extends StatelessWidget {
   }
 }
 
-MindmapNodeData? _mindmapRootData(CanvasElement? element) {
+MindmapNodeData? _mindmapNodeData(CanvasElement? element) {
   if (element is! CanvasWidgetElement) return null;
   if (element.widgetType != kMindmapNodeWidgetType) return null;
-  final data = MindmapNodeData.fromWidgetData(element.widgetData);
-  return data.isRoot ? data : null;
+  return MindmapNodeData.fromWidgetData(element.widgetData);
+}
+
+class _MindmapNodeStyleEditor extends StatelessWidget {
+  const _MindmapNodeStyleEditor({
+    required this.canvasController,
+    required this.nodeId,
+    required this.data,
+  });
+
+  final CanvasController canvasController;
+  final String nodeId;
+  final MindmapNodeData data;
+
+  @override
+  Widget build(BuildContext context) {
+    final actions = MindmapActions.of(canvasController);
+    final style =
+        actions?.styleForNode(nodeId) ??
+        MindmapThemeController().styleFor(
+          MindmapThemeNodeContext.fromNodeData(
+            data,
+            depth: data.isRoot ? 0 : 1,
+            siblingIndex: data.order,
+            siblingCount: 1,
+          ),
+        );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const FieldLabel('节点样式'),
+        const SizedBox(height: 8),
+        _MindmapStyleColorControl(
+          label: '底色',
+          color: style.fillColor,
+          overridden: data.fillColor != null,
+          enabled: actions != null,
+          onPick: () async {
+            final color = await _pickMindmapColor(context, style.fillColor);
+            if (color != null) {
+              actions?.setNodeStyle(nodeId, fillColor: color.toARGB32());
+            }
+          },
+          onReset: () => actions?.setNodeStyle(nodeId, fillColor: null),
+        ),
+        const SizedBox(height: 10),
+        _MindmapStyleColorControl(
+          label: '边框',
+          color: style.borderColor,
+          overridden: data.borderColor != null,
+          enabled: actions != null,
+          onPick: () async {
+            final color = await _pickMindmapColor(context, style.borderColor);
+            if (color != null) {
+              actions?.setNodeStyle(nodeId, borderColor: color.toARGB32());
+            }
+          },
+          onReset: () => actions?.setNodeStyle(nodeId, borderColor: null),
+        ),
+        const SizedBox(height: 10),
+        _MindmapStyleColorControl(
+          label: '字体',
+          color: style.textColor,
+          overridden: data.fontColor != null,
+          enabled: actions != null,
+          onPick: () async {
+            final color = await _pickMindmapColor(context, style.textColor);
+            if (color != null) {
+              actions?.setNodeStyle(nodeId, fontColor: color.toARGB32());
+            }
+          },
+          onReset: () => actions?.setNodeStyle(nodeId, fontColor: null),
+        ),
+      ],
+    );
+  }
+}
+
+class _MindmapStyleColorControl extends StatelessWidget {
+  const _MindmapStyleColorControl({
+    required this.label,
+    required this.color,
+    required this.overridden,
+    required this.enabled,
+    required this.onPick,
+    required this.onReset,
+  });
+
+  final String label;
+  final Color color;
+  final bool overridden;
+  final bool enabled;
+  final VoidCallback onPick;
+  final VoidCallback onReset;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            FieldLabel(label),
+            const Spacer(),
+            if (overridden)
+              TextButton(
+                onPressed: enabled ? onReset : null,
+                style: TextButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                  minimumSize: const Size(0, 28),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: const Text('跟随主题'),
+              ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Material(
+          color: UiColors.panelSoft,
+          shape: RoundedRectangleBorder(
+            side: const BorderSide(color: UiColors.line),
+            borderRadius: BorderRadius.circular(7),
+          ),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(7),
+            onTap: enabled ? onPick : null,
+            child: Container(
+              height: 34,
+              padding: const EdgeInsets.all(4),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: color,
+                  border: Border.all(color: const Color(0x3318232E)),
+                  borderRadius: BorderRadius.circular(3),
+                ),
+                child: const SizedBox.expand(),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+Future<Color?> _pickMindmapColor(BuildContext context, Color initialColor) {
+  return showDialog<Color>(
+    context: context,
+    builder: (context) => ColorPickerDialog(
+      initialColor: initialColor,
+      swatches: toolbarColorSwatches,
+    ),
+  );
 }
 
 class _MindmapThemeDropdown extends StatelessWidget {
