@@ -39,6 +39,8 @@ class MindmapActions {
   final MindmapDragSession dragSession = MindmapDragSession();
   final ValueNotifier<MindmapEditRequest?> editRequest = ValueNotifier(null);
   final ValueNotifier<String?> editingNodeId = ValueNotifier(null);
+  final Map<String, VoidCallback> _nodeFocusRequesters =
+      <String, VoidCallback>{};
 
   int _editRequestSerial = 0;
 
@@ -64,7 +66,24 @@ class MindmapActions {
       if (_canvas.selectedIds.isEmpty && _nodeData(nodeId) != null) {
         _canvas.setSelection({nodeId});
       }
+      _requestNodeFocusAfterFrame(nodeId);
     }
+  }
+
+  void registerNodeFocusRequester(String nodeId, VoidCallback requestFocus) {
+    _nodeFocusRequesters[nodeId] = requestFocus;
+  }
+
+  void unregisterNodeFocusRequester(String nodeId, VoidCallback requestFocus) {
+    if (identical(_nodeFocusRequesters[nodeId], requestFocus)) {
+      _nodeFocusRequesters.remove(nodeId);
+    }
+  }
+
+  void _requestNodeFocusAfterFrame(String nodeId) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _nodeFocusRequesters[nodeId]?.call();
+    });
   }
 
   static final Map<CanvasController, MindmapActions> _registry = {};
@@ -85,6 +104,7 @@ class MindmapActions {
     actions?.dragSession.dispose();
     actions?.editRequest.dispose();
     actions?.editingNodeId.dispose();
+    actions?._nodeFocusRequesters.clear();
   }
 
   // ── Queries ────────────────────────────────────────────────────────

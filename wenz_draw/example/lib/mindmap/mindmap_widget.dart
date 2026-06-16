@@ -65,6 +65,14 @@ class _MindmapWidgetState extends State<MindmapWidget> {
     if (mounted) setState(() {});
   }
 
+  void _requestFocusAfterEditing() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _focusNode.requestFocus();
+      }
+    });
+  }
+
   MindmapThemeController get _themeController =>
       widget.themeController ?? _ownedThemeController;
 
@@ -177,9 +185,14 @@ class _MindmapWidgetState extends State<MindmapWidget> {
                       },
                       onDoubleTap: () =>
                           controller.startEditing(layoutNode.node.id),
-                      onCommitEdit: (text) =>
-                          controller.commitEdit(layoutNode.node.id, text),
-                      onCancelEdit: () => controller.cancelEdit(),
+                      onCommitEdit: (text) {
+                        controller.commitEdit(layoutNode.node.id, text);
+                        _requestFocusAfterEditing();
+                      },
+                      onCancelEdit: () {
+                        controller.cancelEdit();
+                        _requestFocusAfterEditing();
+                      },
                       onColorChange: (color) =>
                           controller.setNodeColor(layoutNode.node.id, color),
                       onAddChild: () => controller.addChild(layoutNode.node.id),

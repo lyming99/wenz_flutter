@@ -93,6 +93,10 @@ class _MindmapNodeViewState extends State<_MindmapNodeView> {
     _listenedActions = _actions;
     _listenedActions?.dragSession.addListener(_onDragChanged);
     _listenedActions?.editRequest.addListener(_onEditRequestChanged);
+    _listenedActions?.registerNodeFocusRequester(
+      widget.element.id,
+      _requestNodeFocus,
+    );
     _bindThemeController();
     _scheduleEditRequestCheck();
   }
@@ -101,6 +105,14 @@ class _MindmapNodeViewState extends State<_MindmapNodeView> {
   void didUpdateWidget(covariant _MindmapNodeView oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.element.id != oldWidget.element.id) {
+      _listenedActions?.unregisterNodeFocusRequester(
+        oldWidget.element.id,
+        _requestNodeFocus,
+      );
+      _listenedActions?.registerNodeFocusRequester(
+        widget.element.id,
+        _requestNodeFocus,
+      );
       _lastTapDownTime = null;
       _lastTapDownPosition = null;
     }
@@ -113,8 +125,18 @@ class _MindmapNodeViewState extends State<_MindmapNodeView> {
     _themeController?.removeListener(_onThemeChanged);
     _listenedActions?.editRequest.removeListener(_onEditRequestChanged);
     _listenedActions?.dragSession.removeListener(_onDragChanged);
+    _listenedActions?.unregisterNodeFocusRequester(
+      widget.element.id,
+      _requestNodeFocus,
+    );
     _nodeFocusNode.dispose();
     super.dispose();
+  }
+
+  void _requestNodeFocus() {
+    if (mounted) {
+      _nodeFocusNode.requestFocus();
+    }
   }
 
   void _bindThemeController() {
