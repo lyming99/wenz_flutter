@@ -12,6 +12,7 @@ import 'mindmap_layout_engine.dart';
 import 'mindmap_node.dart';
 import 'mindmap_node_data.dart';
 import 'mindmap_node_metrics.dart';
+import 'mindmap_textfield.dart';
 import 'mindmap_theme.dart';
 import 'mindmap_tree.dart';
 
@@ -867,16 +868,6 @@ class _MindmapEditingOverlayState extends State<_MindmapEditingOverlay> {
     return KeyEventResult.ignored;
   }
 
-  double _lineHeightForNode({
-    required double fontSize,
-    required double contentHeight,
-  }) {
-    if (fontSize <= 0 || contentHeight <= 0) {
-      return 1.0;
-    }
-    return contentHeight / fontSize;
-  }
-
   @override
   Widget build(BuildContext context) {
     return Stack(
@@ -905,125 +896,58 @@ class _MindmapEditingOverlayState extends State<_MindmapEditingOverlay> {
             final screenWidth = worldWidth * scale;
             final screenHeight = worldHeight * scale;
             final layoutScale = scale < 1 ? 1.0 : scale;
-            final paintScale = scale < 1 ? scale : 1.0;
             final layoutWidth = worldWidth * layoutScale;
             final layoutHeight = worldHeight * layoutScale;
             final scaledPadding = widget.style.padding * layoutScale;
-            final contentWidth = math.max(
-              0.0,
-              layoutWidth - scaledPadding.horizontal,
-            );
-            final contentHeight = math.max(
-              0.0,
-              layoutHeight - scaledPadding.vertical,
-            );
             final baseFontSize =
                 widget.style.textStyle.fontSize ?? (isRoot ? 16 : 14);
             final fontSize = baseFontSize * layoutScale;
-            final lineHeight = _lineHeightForNode(
-              fontSize: fontSize,
-              contentHeight: contentHeight,
-            );
-            final textDirection = Directionality.of(context);
-            final textScaler = MediaQuery.textScalerOf(context);
+            final cursorHeight = fontSize * 1.15;
+            final lineHeight = cursorHeight / fontSize;
             final editStyle = widget.style.textStyle.copyWith(
               fontSize: fontSize,
               height: lineHeight,
             );
-            final measuredText = _controller.text.isEmpty
-                ? ' '
-                : _controller.text;
-            final textPainter = TextPainter(
-              text: TextSpan(text: measuredText, style: editStyle),
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              textDirection: textDirection,
-              textScaler: textScaler,
-            )..layout(maxWidth: contentWidth);
-            final lineMetrics = textPainter.computeLineMetrics();
-            final measuredTextHeight = lineMetrics.isEmpty
-                ? textPainter.size.height
-                : lineMetrics.first.height;
-            Rect? glyphBounds;
-            final glyphBoxes = textPainter.getBoxesForSelection(
-              TextSelection(baseOffset: 0, extentOffset: measuredText.length),
-            );
-            for (final box in glyphBoxes) {
-              final rect = box.toRect();
-              if (rect.isEmpty) continue;
-              glyphBounds = glyphBounds == null
-                  ? rect
-                  : glyphBounds.expandToInclude(rect);
-            }
-            final glyphCenterY =
-                glyphBounds?.center.dy ?? measuredTextHeight / 2;
-            final inputHeight = measuredTextHeight;
-            final textTopOffset = contentHeight / 2 - glyphCenterY;
             final editor = SizedBox(
               width: layoutWidth,
               height: layoutHeight,
               child: Material(
                 color: Colors.transparent,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: widget.style.fillColor,
-                    borderRadius: BorderRadius.circular(
-                      widget.style.borderRadius * layoutScale,
+                child: MindMapTextInputFrame(
+                  fillColor: widget.style.fillColor,
+                  borderColor: const Color(0xFF2563EB),
+                  borderWidth: widget.style.borderWidth * layoutScale,
+                  borderRadius: widget.style.borderRadius * layoutScale,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.12),
+                      blurRadius: 8 * layoutScale,
+                      offset: Offset(0, 2 * layoutScale),
                     ),
-                    border: Border.all(
-                      color: const Color(0xFF2563EB),
-                      width: 2 * layoutScale,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.12),
-                        blurRadius: 8 * layoutScale,
-                        offset: Offset(0, 2 * layoutScale),
-                      ),
-                    ],
-                  ),
+                  ],
                   child: Padding(
-                    padding: scaledPadding,
-                    child: SizedBox(
-                      width: contentWidth,
-                      height: contentHeight,
-                      child: Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          Positioned(
-                            left: 0,
-                            right: 0,
-                            top: textTopOffset,
-                            height: inputHeight,
-                            child: Focus(
-                              onKeyEvent: _handleKeyEvent,
-                              child: TextField(
-                                controller: _controller,
-                                focusNode: _focusNode,
-                                maxLines: 1,
-                                textAlign: TextAlign.center,
-                                textAlignVertical: TextAlignVertical.center,
-                                cursorColor: widget.style.textColor,
-                                cursorHeight: inputHeight,
-                                style: editStyle,
-                                keyboardType: TextInputType.text,
-                                textInputAction: TextInputAction.done,
-                                textCapitalization:
-                                    TextCapitalization.sentences,
-                                decoration: const InputDecoration(
-                                  isCollapsed: true,
-                                  isDense: true,
-                                  contentPadding: EdgeInsets.zero,
-                                  border: InputBorder.none,
-                                  focusedBorder: InputBorder.none,
-                                  enabledBorder: InputBorder.none,
-                                  hintText: '',
-                                ),
-                                onSubmitted: (_) => _commit(),
-                              ),
-                            ),
+                    padding: EdgeInsets.zero,
+                    child: Center(
+                      child: SizedBox(
+                        width: layoutWidth,
+                        height: layoutHeight,
+                        child: Focus(
+                          onKeyEvent: _handleKeyEvent,
+                          child: MindMapTextField(
+                            controller: _controller,
+                            focusNode: _focusNode,
+                            textAlign: TextAlign.center,
+                            cursorColor: widget.style.textColor,
+                            cursorHeight: cursorHeight,
+                            contentPadding: scaledPadding,
+                            style: editStyle,
+                            keyboardType: TextInputType.text,
+                            textInputAction: TextInputAction.done,
+                            textCapitalization: TextCapitalization.sentences,
+                            hintText: '',
+                            onSubmitted: (_) => _commit(),
                           ),
-                        ],
+                        ),
                       ),
                     ),
                   ),
@@ -1036,7 +960,7 @@ class _MindmapEditingOverlayState extends State<_MindmapEditingOverlay> {
               top: widget.center.dy - screenHeight / 2,
               width: screenWidth,
               height: screenHeight,
-              child: paintScale == 1
+              child: scale >= 1
                   ? editor
                   : OverflowBox(
                       alignment: Alignment.center,
@@ -1045,7 +969,7 @@ class _MindmapEditingOverlayState extends State<_MindmapEditingOverlay> {
                       minHeight: layoutHeight,
                       maxHeight: layoutHeight,
                       child: Transform.scale(
-                        scale: paintScale,
+                        scale: scale,
                         alignment: Alignment.center,
                         child: editor,
                       ),

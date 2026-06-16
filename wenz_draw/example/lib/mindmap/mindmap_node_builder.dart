@@ -574,7 +574,7 @@ class _MindmapNodeViewState extends State<_MindmapNodeView> {
     required bool isRoot,
     required Color fill,
     Widget? child,
-    double width = 1,
+    double? width,
     bool shadow = false,
     bool highlighted = false,
   }) {

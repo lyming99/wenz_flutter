@@ -54,13 +54,16 @@ class MindmapActions {
 
   void beginEditing(String nodeId) {
     if (_nodeData(nodeId) == null) return;
-    _canvas.setSelection({nodeId});
+    _canvas.setSelection(const <String>{});
     editingNodeId.value = nodeId;
   }
 
   void endEditing(String nodeId) {
     if (editingNodeId.value == nodeId) {
       editingNodeId.value = null;
+      if (_canvas.selectedIds.isEmpty && _nodeData(nodeId) != null) {
+        _canvas.setSelection({nodeId});
+      }
     }
   }
 

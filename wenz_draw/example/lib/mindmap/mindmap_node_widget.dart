@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import 'mindmap_node.dart';
 import 'mindmap_node_metrics.dart';
+import 'mindmap_textfield.dart';
 import 'mindmap_theme.dart';
 
 /// Renders a single mind map node.
@@ -268,28 +269,12 @@ class _MindmapNodeWidgetState extends State<MindmapNodeWidget> {
             ? MindmapNodeMetrics.rootHeight
             : MindmapNodeMetrics.nodeHeight;
         final fontSize = style.textStyle.fontSize ?? (widget.isRoot ? 16 : 14);
-        final lineHeight = MindmapResolvedNodeStyle.lineHeight;
+        final cursorHeight = fontSize * 1.15;
+        final lineHeight = cursorHeight / fontSize;
         final editStyle = style.textStyle.copyWith(
           fontSize: fontSize,
           height: lineHeight,
         );
-        final strutStyle = StrutStyle(
-          fontSize: fontSize,
-          height: lineHeight,
-          fontWeight: style.textStyle.fontWeight,
-          leading: 0,
-          forceStrutHeight: true,
-        );
-        final inputHeight = (TextPainter(
-          text: TextSpan(
-            text: _editController.text.isEmpty ? ' ' : _editController.text,
-            style: editStyle,
-          ),
-          maxLines: 1,
-          textDirection: TextDirection.ltr,
-          strutStyle: strutStyle,
-        )..layout()).preferredLineHeight;
-
         return OverflowBox(
           alignment: Alignment.center,
           minWidth: width,
@@ -299,74 +284,62 @@ class _MindmapNodeWidgetState extends State<MindmapNodeWidget> {
           child: SizedBox(
             width: width,
             height: height,
-            child: Container(
-              decoration: BoxDecoration(
-                color: style.fillColor,
-                borderRadius: BorderRadius.circular(style.borderRadius),
-                border: Border.all(color: const Color(0xFF2563EB), width: 2),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.12),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
+            child: MindMapTextInputFrame(
+              fillColor: style.fillColor,
+              borderColor: const Color(0xFF2563EB),
+              borderWidth: style.borderWidth,
+              borderRadius: style.borderRadius,
+              boxShadow: style.shadow
+                  ? [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.08),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ]
+                  : null,
               // Same padding (incl. vertical) as the display node so the
               // caret/text vertically aligns with the rendered text at every
               // node size and zoom level — no jump when entering/leaving edit.
-              child: Padding(
-                padding: style.padding,
-                child: Center(
-                  child: IntrinsicWidth(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(
-                        minWidth: 60,
-                        maxWidth: MindmapNodeMetrics.maxRootWidth,
-                      ),
-                      child: Focus(
-                        onKeyEvent: (node, event) {
-                          if (event is! KeyDownEvent) {
-                            return KeyEventResult.ignored;
-                          }
-                          final key = event.logicalKey;
-                          if (key == LogicalKeyboardKey.enter ||
-                              key == LogicalKeyboardKey.numpadEnter) {
-                            _handleEnter();
-                            return KeyEventResult.handled;
-                          } else if (key == LogicalKeyboardKey.tab) {
-                            _handleTab();
-                            return KeyEventResult.handled;
-                          }
+              child: Center(
+                child: IntrinsicWidth(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      minWidth: 60,
+                      maxWidth: MindmapNodeMetrics.maxRootWidth,
+                    ),
+                    child: Focus(
+                      onKeyEvent: (node, event) {
+                        if (event is! KeyDownEvent) {
                           return KeyEventResult.ignored;
-                        },
-                        child: SizedBox(
-                          height: inputHeight,
-                          child: TextField(
-                            controller: _editController,
-                            focusNode: _editFocusNode,
-                            minLines: 1,
-                            maxLines: 1,
-                            cursorColor:
-                                style.textStyle.color ??
-                                const Color(0xFF111827),
-                            cursorHeight: inputHeight,
-                            style: editStyle,
-                            strutStyle: strutStyle,
-                            keyboardType: TextInputType.text,
-                            textInputAction: TextInputAction.done,
-                            decoration: const InputDecoration(
-                              isDense: true,
-                              isCollapsed: true,
-                              contentPadding: EdgeInsets.zero,
-                              border: InputBorder.none,
-                              hintText: '输入文字...',
-                            ),
-                            textAlign: TextAlign.center,
-                            textAlignVertical: TextAlignVertical.center,
-                            onSubmitted: (_) => _commit(),
-                            onTapOutside: (_) => _commit(),
-                          ),
+                        }
+                        final key = event.logicalKey;
+                        if (key == LogicalKeyboardKey.enter ||
+                            key == LogicalKeyboardKey.numpadEnter) {
+                          _handleEnter();
+                          return KeyEventResult.handled;
+                        } else if (key == LogicalKeyboardKey.tab) {
+                          _handleTab();
+                          return KeyEventResult.handled;
+                        }
+                        return KeyEventResult.ignored;
+                      },
+                      child: SizedBox(
+                        height: height,
+                        child: MindMapTextField(
+                          controller: _editController,
+                          focusNode: _editFocusNode,
+                          cursorColor:
+                              style.textStyle.color ?? const Color(0xFF111827),
+                          cursorHeight: cursorHeight,
+                          contentPadding: style.padding,
+                          style: editStyle,
+                          keyboardType: TextInputType.text,
+                          textInputAction: TextInputAction.done,
+                          hintText: '输入文字...',
+                          textAlign: TextAlign.center,
+                          onSubmitted: (_) => _commit(),
+                          onTapOutside: (_) => _commit(),
                         ),
                       ),
                     ),

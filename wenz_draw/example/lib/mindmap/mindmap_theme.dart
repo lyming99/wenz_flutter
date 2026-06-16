@@ -119,7 +119,7 @@ class MindmapResolvedNodeStyle {
   /// `forceStrutHeight: true`) so the text box has identical height in both
   /// states — otherwise the caret/text drifts vertically and looks off-center
   /// at certain zoom levels.
-  static const double lineHeight = 1.4;
+  static const double lineHeight = 1.25;
 
   final Color fillColor;
   final Color borderColor;
