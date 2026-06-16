@@ -231,6 +231,16 @@ class _MindmapNodeWidgetState extends State<MindmapNodeWidget> {
                     child: Text(
                       widget.node.text.isEmpty ? '...' : widget.node.text,
                       style: widget.style.textStyle,
+                      // Same forced strut height as the editing TextField so
+                      // the text box is identical in both states and stays
+                      // vertically centered at every node size & zoom level.
+                      strutStyle: StrutStyle(
+                        fontSize: widget.style.textStyle.fontSize,
+                        height: MindmapResolvedNodeStyle.lineHeight,
+                        fontWeight: widget.style.textStyle.fontWeight,
+                        leading: 0,
+                        forceStrutHeight: true,
+                      ),
                       overflow: TextOverflow.ellipsis,
                       maxLines: 2,
                       softWrap: true,
@@ -258,7 +268,27 @@ class _MindmapNodeWidgetState extends State<MindmapNodeWidget> {
             ? MindmapNodeMetrics.rootHeight
             : MindmapNodeMetrics.nodeHeight;
         final fontSize = style.textStyle.fontSize ?? (widget.isRoot ? 16 : 14);
-        const lineHeight = 1.15;
+        final lineHeight = MindmapResolvedNodeStyle.lineHeight;
+        final editStyle = style.textStyle.copyWith(
+          fontSize: fontSize,
+          height: lineHeight,
+        );
+        final strutStyle = StrutStyle(
+          fontSize: fontSize,
+          height: lineHeight,
+          fontWeight: style.textStyle.fontWeight,
+          leading: 0,
+          forceStrutHeight: true,
+        );
+        final inputHeight = (TextPainter(
+          text: TextSpan(
+            text: _editController.text.isEmpty ? ' ' : _editController.text,
+            style: editStyle,
+          ),
+          maxLines: 1,
+          textDirection: TextDirection.ltr,
+          strutStyle: strutStyle,
+        )..layout()).preferredLineHeight;
 
         return OverflowBox(
           alignment: Alignment.center,
@@ -270,7 +300,6 @@ class _MindmapNodeWidgetState extends State<MindmapNodeWidget> {
             width: width,
             height: height,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
               decoration: BoxDecoration(
                 color: style.fillColor,
                 borderRadius: BorderRadius.circular(style.borderRadius),
@@ -283,10 +312,13 @@ class _MindmapNodeWidgetState extends State<MindmapNodeWidget> {
                   ),
                 ],
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IntrinsicWidth(
+              // Same padding (incl. vertical) as the display node so the
+              // caret/text vertically aligns with the rendered text at every
+              // node size and zoom level — no jump when entering/leaving edit.
+              child: Padding(
+                padding: style.padding,
+                child: Center(
+                  child: IntrinsicWidth(
                     child: ConstrainedBox(
                       constraints: const BoxConstraints(
                         minWidth: 60,
@@ -308,41 +340,38 @@ class _MindmapNodeWidgetState extends State<MindmapNodeWidget> {
                           }
                           return KeyEventResult.ignored;
                         },
-                        child: TextField(
-                          controller: _editController,
-                          focusNode: _editFocusNode,
-                          maxLines: 1,
-                          cursorHeight: fontSize * lineHeight,
-                          style: style.textStyle.copyWith(
-                            fontSize: fontSize,
-                            height: lineHeight,
+                        child: SizedBox(
+                          height: inputHeight,
+                          child: TextField(
+                            controller: _editController,
+                            focusNode: _editFocusNode,
+                            minLines: 1,
+                            maxLines: 1,
+                            cursorColor:
+                                style.textStyle.color ??
+                                const Color(0xFF111827),
+                            cursorHeight: inputHeight,
+                            style: editStyle,
+                            strutStyle: strutStyle,
+                            keyboardType: TextInputType.text,
+                            textInputAction: TextInputAction.done,
+                            decoration: const InputDecoration(
+                              isDense: true,
+                              isCollapsed: true,
+                              contentPadding: EdgeInsets.zero,
+                              border: InputBorder.none,
+                              hintText: '输入文字...',
+                            ),
+                            textAlign: TextAlign.center,
+                            textAlignVertical: TextAlignVertical.center,
+                            onSubmitted: (_) => _commit(),
+                            onTapOutside: (_) => _commit(),
                           ),
-                          strutStyle: StrutStyle(
-                            fontSize: fontSize,
-                            height: lineHeight,
-                            leading: 0,
-                            forceStrutHeight: true,
-                          ),
-                          textHeightBehavior: const TextHeightBehavior(
-                            applyHeightToFirstAscent: false,
-                            applyHeightToLastDescent: false,
-                          ),
-                          decoration: const InputDecoration(
-                            isDense: true,
-                            isCollapsed: true,
-                            contentPadding: EdgeInsets.zero,
-                            border: InputBorder.none,
-                            hintText: '输入文字...',
-                          ),
-                          textAlign: TextAlign.center,
-                          textAlignVertical: TextAlignVertical.center,
-                          onSubmitted: (_) => _commit(),
-                          onTapOutside: (_) => _commit(),
                         ),
                       ),
                     ),
                   ),
-                ],
+                ),
               ),
             ),
           ),

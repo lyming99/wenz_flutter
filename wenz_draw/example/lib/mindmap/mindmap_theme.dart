@@ -114,6 +114,13 @@ class MindmapResolvedNodeStyle {
     this.shadow = true,
   });
 
+  /// Single source of truth for line height. Both the display [Text] and the
+  /// editing [TextField] must use exactly this value (with
+  /// `forceStrutHeight: true`) so the text box has identical height in both
+  /// states — otherwise the caret/text drifts vertically and looks off-center
+  /// at certain zoom levels.
+  static const double lineHeight = 1.4;
+
   final Color fillColor;
   final Color borderColor;
   final TextStyle textStyle;
@@ -495,6 +502,7 @@ class MindmapThemes {
         color: text,
         fontSize: isRoot ? 16 : 14,
         fontWeight: isRoot ? FontWeight.w700 : FontWeight.w500,
+        height: MindmapResolvedNodeStyle.lineHeight,
       ),
     );
   }

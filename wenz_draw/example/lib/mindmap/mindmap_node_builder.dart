@@ -598,6 +598,16 @@ class _MindmapNodeViewState extends State<_MindmapNodeView> {
     required TextStyle style,
     required int maxLines,
   }) {
+    // Force the SAME strut height used by the editing TextField so the text
+    // box height is identical in display and edit states — the text then
+    // sits at exactly the same vertical center in both, at any zoom level.
+    final strutStyle = StrutStyle(
+      fontSize: style.fontSize,
+      height: MindmapResolvedNodeStyle.lineHeight,
+      fontWeight: style.fontWeight,
+      leading: 0,
+      forceStrutHeight: true,
+    );
     return LayoutBuilder(
       builder: (context, constraints) {
         final maxWidth = constraints.maxWidth.isFinite
@@ -641,6 +651,7 @@ class _MindmapNodeViewState extends State<_MindmapNodeView> {
                           softWrap: true,
                           textAlign: TextAlign.center,
                           style: textStyle,
+                          strutStyle: strutStyle,
                         ),
                       ),
                     ],
@@ -652,6 +663,7 @@ class _MindmapNodeViewState extends State<_MindmapNodeView> {
                     softWrap: true,
                     textAlign: TextAlign.center,
                     style: textStyle,
+                    strutStyle: strutStyle,
                   ),
           ),
         );
