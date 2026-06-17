@@ -201,7 +201,7 @@ void main() {
   });
 
   test('polyline tool routes around existing canvas elements', () {
-    final obstacle = Rect.fromLTWH(90, 20, 60, 60);
+    final obstacle = const Rect.fromLTWH(90, 20, 60, 60);
     final controller = CanvasController()
       ..addElement(RectElement(id: 'obstacle', rect: obstacle), record: false)
       ..setTool(PolylineTool.idValue);
@@ -304,8 +304,11 @@ void main() {
         .reduce((a, b) => a > b ? a : b);
     // Route should extend outside the bounding area of both shapes
     expect(outsideX, greaterThan(140.0));
-    expect(_hasOrthogonalSegment(route.points, outsideX) ||
-        _hasOrthogonalSegment(route.points, target.rect.right + 16), isTrue);
+    expect(
+      _hasOrthogonalSegment(route.points, outsideX) ||
+          _hasOrthogonalSegment(route.points, target.rect.right + 16),
+      isTrue,
+    );
   });
 
   test('mind map sibling branches may overlap existing connector trunk', () {
@@ -586,7 +589,7 @@ void main() {
   test(
     'polyline endpoint drag keeps orthogonal route and nearby avoidance',
     () {
-      final obstacle = Rect.fromLTWH(50, 20, 40, 40);
+      final obstacle = const Rect.fromLTWH(50, 20, 40, 40);
       final controller = CanvasController()
         ..addElement(RectElement(id: 'obstacle', rect: obstacle), record: false)
         ..addElement(
@@ -652,39 +655,7 @@ double _pathLength(List<Offset> points) {
   return total;
 }
 
-double _overlapLength(List<Offset> a, List<Offset> b) {
-  var total = 0.0;
-  for (var i = 0; i < a.length - 1; i++) {
-    for (var j = 0; j < b.length - 1; j++) {
-      total += _segmentOverlap(a[i], a[i + 1], b[j], b[j + 1]);
-    }
-  }
-  return total;
-}
-
 /// 两条正交线段的共线重叠长度（水平或垂直）。
-double _segmentOverlap(Offset a1, Offset a2, Offset b1, Offset b2) {
-  final aVert = (a1.dx - a2.dx).abs() < 0.0001;
-  final bVert = (b1.dx - b2.dx).abs() < 0.0001;
-  final aHoriz = (a1.dy - a2.dy).abs() < 0.0001;
-  final bHoriz = (b1.dy - b2.dy).abs() < 0.0001;
-  if (aVert && bVert && (a1.dx - b1.dx).abs() < 0.0001) {
-    final minA = a1.dy < a2.dy ? a1.dy : a2.dy;
-    final maxA = a1.dy > a2.dy ? a1.dy : a2.dy;
-    final minB = b1.dy < b2.dy ? b1.dy : b2.dy;
-    final maxB = b1.dy > b2.dy ? b1.dy : b2.dy;
-    return (maxA < minB || maxB < minA) ? 0.0 : (maxA < maxB ? maxA : maxB) - (minA > minB ? minA : minB);
-  }
-  if (aHoriz && bHoriz && (a1.dy - b1.dy).abs() < 0.0001) {
-    final minA = a1.dx < a2.dx ? a1.dx : a2.dx;
-    final maxA = a1.dx > a2.dx ? a1.dx : a2.dx;
-    final minB = b1.dx < b2.dx ? b1.dx : b2.dx;
-    final maxB = b1.dx > b2.dx ? b1.dx : b2.dx;
-    return (maxA < minB || maxB < minA) ? 0.0 : (maxA < maxB ? maxA : maxB) - (minA > minB ? minA : minB);
-  }
-  return 0;
-}
-
 void _expectOrthogonal(List<Offset> points) {
   for (var i = 0; i < points.length - 1; i++) {
     expect(

@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 
+import '../canvas/image_loader.dart';
 import '../canvas/paint_style.dart';
 import '../elements/arrow_element.dart';
 import '../elements/canvas_element.dart';
@@ -82,6 +83,13 @@ class CanvasController extends ChangeNotifier {
   final AutoLayeringPolicy autoLayeringPolicy;
   final ConnectorRoutingOptions connectorRoutingOptions;
   SnapResolver snapResolver;
+
+  /// Registry consulted when an [ImageElement] needs its raster decoded from a
+  /// serialized source (base64 / URL / file path). Hosts register custom
+  /// loaders here (e.g. an OSS-backed fetcher). Defaults to the shared
+  /// [ImageLoaderRegistry.instance], which ships base64, raw-bytes and network
+  /// loaders.
+  ImageLoaderRegistry imageLoaders = ImageLoaderRegistry.instance;
 
   CanvasState _state;
   String? _editingTextElementId;
@@ -178,8 +186,11 @@ class CanvasController extends ChangeNotifier {
   /// Update an element's state without adding to the undo stack.
   /// Set [notify] to false to skip [notifyListeners] (useful during text
   /// editing to avoid rebuilding the entire canvas on every keystroke).
-  void _applyElementUpdated(String id, CanvasElement element,
-      {bool notify = true}) {
+  void _applyElementUpdated(
+    String id,
+    CanvasElement element, {
+    bool notify = true,
+  }) {
     _state = _state.copyWith(
       elements: _syncSnapBoundElements(
         _elementManager.update(_state.elements, id, element),
@@ -343,15 +354,9 @@ class CanvasController extends ChangeNotifier {
 
   /// Loads [layers] and [elements] into the controller, replacing all existing
   /// data. History is cleared and the active layer is set to the first layer.
-  void loadDocument(
-    List<CanvasLayer> layers,
-    List<CanvasElement> elements,
-  ) {
+  void loadDocument(List<CanvasLayer> layers, List<CanvasElement> elements) {
     if (layers.isNotEmpty) {
-      layerManager.replaceLayers(
-        layers,
-        activeLayerId: layers.first.id,
-      );
+      layerManager.replaceLayers(layers, activeLayerId: layers.first.id);
     }
     replaceElements(elements);
   }
@@ -610,10 +615,7 @@ class CanvasController extends ChangeNotifier {
       name: name ?? 'Layer ${layers.length + 1}',
     );
     historyManager.execute(
-      AddLayerCommand(
-        layer: layer,
-        previousActiveLayerId: activeLayerId,
-      ),
+      AddLayerCommand(layer: layer, previousActiveLayerId: activeLayerId),
       this,
     );
   }
@@ -1195,7 +1197,7 @@ class CanvasController extends ChangeNotifier {
     }
 
     switch (element) {
-      case DrawioShapeElement e:
+      case final DrawioShapeElement e:
         updateElement(
           id,
           e.copyWith(
@@ -1208,7 +1210,7 @@ class CanvasController extends ChangeNotifier {
           ),
           record: record,
         );
-      case RectElement e:
+      case final RectElement e:
         updateElement(
           id,
           e.copyWith(
@@ -1221,7 +1223,7 @@ class CanvasController extends ChangeNotifier {
           ),
           record: record,
         );
-      case EllipseElement e:
+      case final EllipseElement e:
         updateElement(
           id,
           e.copyWith(
@@ -1257,12 +1259,12 @@ class CanvasController extends ChangeNotifier {
       return;
     }
     final style = switch (element) {
-      DrawioShapeElement e => e.labelStyle,
-      RectElement e => e.labelStyle,
-      EllipseElement e => e.labelStyle,
-      LineElement e => e.labelStyle,
-      ArrowElement e => e.labelStyle,
-      PolylineElement e => e.labelStyle,
+      final DrawioShapeElement e => e.labelStyle,
+      final RectElement e => e.labelStyle,
+      final EllipseElement e => e.labelStyle,
+      final LineElement e => e.labelStyle,
+      final ArrowElement e => e.labelStyle,
+      final PolylineElement e => e.labelStyle,
       _ => const TextStyle(),
     };
     final nextFontFamily = identical(fontFamily, _unsetTextStyleValue)
@@ -1276,7 +1278,7 @@ class CanvasController extends ChangeNotifier {
       fontFamily: nextFontFamily,
     );
     switch (element) {
-      case DrawioShapeElement e:
+      case final DrawioShapeElement e:
         updateElement(
           id,
           e.copyWith(
@@ -1285,7 +1287,7 @@ class CanvasController extends ChangeNotifier {
           ),
           record: record,
         );
-      case RectElement e:
+      case final RectElement e:
         updateElement(
           id,
           e.copyWith(
@@ -1294,7 +1296,7 @@ class CanvasController extends ChangeNotifier {
           ),
           record: record,
         );
-      case EllipseElement e:
+      case final EllipseElement e:
         updateElement(
           id,
           e.copyWith(
@@ -1303,11 +1305,11 @@ class CanvasController extends ChangeNotifier {
           ),
           record: record,
         );
-      case LineElement e:
+      case final LineElement e:
         updateElement(id, e.copyWith(labelStyle: nextStyle), record: record);
-      case ArrowElement e:
+      case final ArrowElement e:
         updateElement(id, e.copyWith(labelStyle: nextStyle), record: record);
-      case PolylineElement e:
+      case final PolylineElement e:
         updateElement(id, e.copyWith(labelStyle: nextStyle), record: record);
     }
   }

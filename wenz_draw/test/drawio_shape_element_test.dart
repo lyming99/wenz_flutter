@@ -106,7 +106,7 @@ void main() {
     expect(element.hitTest(const Offset(50, 30)), isTrue);
     final svg = SvgExporter.exportElements(
       elements: const [element],
-      bounds: Rect.fromLTWH(0, 0, 120, 80),
+      bounds: const Rect.fromLTWH(0, 0, 120, 80),
     );
     expect(svg, contains('<path'));
   });
@@ -123,7 +123,7 @@ void main() {
 
     final svg = SvgExporter.exportElements(
       elements: const [element],
-      bounds: Rect.fromLTWH(0, 0, 160, 140),
+      bounds: const Rect.fromLTWH(0, 0, 160, 140),
     );
 
     expect(svg, contains('<path d="M'));

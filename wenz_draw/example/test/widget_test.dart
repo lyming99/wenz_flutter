@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:wenz_draw_example/main.dart';
+import 'package:wenz_draw_example/app.dart';
 
 void main() {
   testWidgets('renders the example canvas app', (tester) async {

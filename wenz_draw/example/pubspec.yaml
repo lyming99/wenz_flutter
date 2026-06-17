@@ -6,6 +6,7 @@ environment:
   sdk: ^3.8.0
 
 dependencies:
+  file_selector: ^1.1.0
   flutter:
     sdk: flutter
   url_launcher: ^6.3.2

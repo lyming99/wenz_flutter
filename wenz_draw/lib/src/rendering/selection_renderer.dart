@@ -88,10 +88,10 @@ class SelectionRenderer {
         );
       }
       final handlePoints = switch (element) {
-        LineElement e => [e.start, e.end],
-        CurveElement e => [e.start, e.end, e.control],
-        PolylineElement e => e.points,
-        ArrowElement e => [e.start, e.end],
+        final LineElement e => [e.start, e.end],
+        final CurveElement e => [e.start, e.end, e.control],
+        final PolylineElement e => e.points,
+        final ArrowElement e => [e.start, e.end],
         // Widget elements can't be scaled — skip corner handles for them.
         CanvasWidgetElement _ => const <Offset>[],
         _ => selectionGeometry.corners,
@@ -128,7 +128,8 @@ class SelectionRenderer {
   ) {
     final padding = 4 / transform.scale;
     final rotAngle = element.rotation as double;
-    final hasRotation = rotAngle != 0 &&
+    final hasRotation =
+        rotAngle != 0 &&
         (element is DrawioShapeElement ||
             element is RectElement ||
             element is EllipseElement ||
@@ -136,17 +137,11 @@ class SelectionRenderer {
             element is ImageElement);
     if (hasRotation) {
       final rect = element is DrawioShapeElement
-          ? element.rect.inflate(
-              padding + element.strokeStyle.strokeWidth / 2,
-            )
+          ? element.rect.inflate(padding + element.strokeStyle.strokeWidth / 2)
           : element is RectElement
-          ? element.rect.inflate(
-              padding + element.strokeStyle.strokeWidth / 2,
-            )
+          ? element.rect.inflate(padding + element.strokeStyle.strokeWidth / 2)
           : element is EllipseElement
-          ? element.rect.inflate(
-              padding + element.strokeStyle.strokeWidth / 2,
-            )
+          ? element.rect.inflate(padding + element.strokeStyle.strokeWidth / 2)
           : element is TextElement
           ? element.localBounds.inflate(padding)
           : element is ImageElement

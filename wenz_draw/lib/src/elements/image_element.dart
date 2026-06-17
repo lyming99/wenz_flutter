@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
+import '../canvas/image_loader.dart';
 import '../utils/math_utils.dart';
 import 'canvas_element.dart';
 import 'element_renderer.dart';
@@ -15,6 +16,8 @@ class ImageElement extends CanvasElement {
     required this.rect,
     this.image,
     this.imageData,
+    this.url,
+    this.filePath,
     this.fit = BoxFit.contain,
     this.rotation = 0,
     this.layerId = 'default',
@@ -30,9 +33,19 @@ class ImageElement extends CanvasElement {
   final String id;
   final Rect rect;
   final ui.Image? image;
-  /// Base64-encoded PNG data of the image. When [image] is null but
+
+  /// Base64-encoded image data. When [image] is null but
   /// [imageData] is present, the image can be decoded at load time.
   final String? imageData;
+
+  /// Remote HTTP(S) URL the image is fetched from. Mutually exclusive with
+  /// [imageData] and [filePath] as the decode source.
+  final String? url;
+
+  /// Absolute path to a file on the local filesystem. Requires a host-supplied
+  /// [ImageLoader] (the SDK ships no file loader, since `dart:io` is absent on
+  /// the web).
+  final String? filePath;
   final BoxFit fit;
   @override
   final double rotation;
@@ -53,8 +66,7 @@ class ImageElement extends CanvasElement {
   String get type => elementType;
 
   @override
-  Rect get bounds =>
-      rotation != 0 ? rotatedRectBounds(rect, rotation) : rect;
+  Rect get bounds => rotation != 0 ? rotatedRectBounds(rect, rotation) : rect;
 
   @override
   bool hitTest(Offset worldPoint, {double tolerance = 5.0}) {
@@ -70,6 +82,8 @@ class ImageElement extends CanvasElement {
     Rect? rect,
     ui.Image? image,
     Object? imageData = _unset,
+    Object? url = _unset,
+    Object? filePath = _unset,
     BoxFit? fit,
     double? rotation,
     String? layerId,
@@ -85,15 +99,17 @@ class ImageElement extends CanvasElement {
       imageData: identical(imageData, _unset)
           ? this.imageData
           : imageData as String?,
+      url: identical(url, _unset) ? this.url : url as String?,
+      filePath: identical(filePath, _unset)
+          ? this.filePath
+          : filePath as String?,
       fit: fit ?? this.fit,
       rotation: rotation ?? this.rotation,
       layerId: layerId ?? this.layerId,
       visible: visible ?? this.visible,
       opacity: opacity ?? this.opacity,
       zIndex: zIndex ?? this.zIndex,
-      groupId: identical(groupId, _unset)
-          ? this.groupId
-          : groupId as String?,
+      groupId: identical(groupId, _unset) ? this.groupId : groupId as String?,
     );
   }
 
@@ -146,16 +162,33 @@ class ImageElement extends CanvasElement {
       'fit': fit.name,
       if (rotation != 0) 'rotation': rotation,
       if (imageData != null) 'imageData': imageData,
+      if (url != null) 'url': url,
+      if (filePath != null) 'filePath': filePath,
     };
+  }
+
+  /// Builds the [ImageSource] this element resolves through when its in-memory
+  /// [image] is null (e.g. after deserialization). [imageData] takes priority
+  /// over [url], which takes priority over [filePath]. Returns an empty source
+  /// when none are set, in which case no loader will match.
+  ImageSource toImageSource() {
+    if (imageData != null) {
+      return ImageSource(base64: imageData);
+    }
+    if (url != null) {
+      return ImageSource(url: url);
+    }
+    if (filePath != null) {
+      return ImageSource(filePath: filePath);
+    }
+    return const ImageSource();
   }
 
   static const _unset = Object();
 
   /// Encodes a [ui.Image] to a base64 PNG string suitable for serialization.
   static Future<String> encodeImageToBase64(ui.Image image) async {
-    final byteData = await image.toByteData(
-      format: ui.ImageByteFormat.png,
-    );
+    final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
     if (byteData == null) {
       throw StateError('Failed to encode image to PNG');
     }
@@ -188,7 +221,8 @@ class ImageElementRenderer extends ElementRenderer<ImageElement> {
     }
 
     final paint = Paint()
-      ..color = Colors.black.withValues(alpha: element.opacity);
+      ..color = Colors.black.withValues(alpha: element.opacity)
+      ..filterQuality = FilterQuality.low;
     final image = element.image;
     if (image == null) {
       canvas.drawRect(
@@ -207,13 +241,19 @@ class ImageElementRenderer extends ElementRenderer<ImageElement> {
       return;
     }
 
-    final source = Rect.fromLTWH(
+    final fullSource = Rect.fromLTWH(
       0,
       0,
       image.width.toDouble(),
       image.height.toDouble(),
     );
-    canvas.drawImageRect(image, source, element.rect, paint);
+    final fitted = applyBoxFit(element.fit, fullSource.size, element.rect.size);
+    final source = Alignment.center.inscribe(fitted.source, fullSource);
+    final destination = Alignment.center.inscribe(
+      fitted.destination,
+      element.rect,
+    );
+    canvas.drawImageRect(image, source, destination, paint);
     canvas.restore();
   }
 

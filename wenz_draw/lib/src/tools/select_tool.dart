@@ -202,8 +202,7 @@ class SelectTool extends CanvasTool {
             resizeTarget.element,
             resizeTarget.handle,
           );
-          if (resizeTarget.handle.isEdge &&
-              _canStretch(resizeTarget.element)) {
+          if (resizeTarget.handle.isEdge && _canStretch(resizeTarget.element)) {
             _stretchingElement = true;
             _resizingText = false;
             _scalingElement = false;
@@ -627,9 +626,7 @@ class SelectTool extends CanvasTool {
   ) {
     final tolerance = 10 / event.transform.scale;
     for (final element in controller.selectedElements.reversed) {
-      // Widget elements (e.g. mind map nodes) keep a fixed world size — no
-      // resize/scale handles at all.
-      if (element is CanvasWidgetElement) continue;
+      // Widget elements can scale from corners; edges stay stretch-only.
       final rotAngle = _rotationOf(element);
       final center = _centerOf(element);
       final localRect = _localRectPadded(element, 0);
@@ -771,10 +768,7 @@ class SelectTool extends CanvasTool {
 
   /// The local-space anchor (opposite corner) for a resize handle.
   /// This is always in the element's local coordinate system (no rotation).
-  Offset _localAnchorFor(
-    CanvasElement element,
-    _SelectionResizeHandle handle,
-  ) {
+  Offset _localAnchorFor(CanvasElement element, _SelectionResizeHandle handle) {
     return handle.anchorFor(_localRectPadded(element, 0));
   }
 

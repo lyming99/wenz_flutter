@@ -1,13 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:wenz_draw/wenz_draw.dart';
+import 'package:wenz_draw/wenz_draw_mindmap.dart';
+import 'package:wenz_draw/wenz_draw_ui.dart';
 
-import '../theme/ui_colors.dart';
-import '../components/toolbar/toolbar.dart';
-import '../components/left_panel/left_shape_panel.dart';
-import '../components/canvas_stage/canvas_stage.dart';
-import '../components/right_panel/right_inspector_panel.dart';
-import '../mindmap/mindmap_actions.dart';
-import '../mindmap/mindmap_sync_controller.dart';
+import '../utils/image_importer.dart';
 
 class CanvasDemoPage extends StatefulWidget {
   const CanvasDemoPage({super.key});
@@ -56,35 +52,17 @@ class _CanvasDemoPageState extends State<CanvasDemoPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: UiColors.appBackground,
-      body: Column(
-        children: [
-          Toolbar(
-            canvasController: _canvasController,
-            viewController: _viewController,
+      body: WenzDrawEditor(
+        canvasController: _canvasController,
+        viewController: _viewController,
+        config: EditorConfig(
+          contentCallbacks: EditorContentCallbacks(
             onAddStickyNote: _addStickyNote,
             onAddCounter: _addCounter,
             onAddMindmap: _addMindmap,
+            onInsertImage: _insertImageFile,
           ),
-          Expanded(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                LeftShapePanel(
-                  canvasController: _canvasController,
-                  onAddStickyNote: _addStickyNote,
-                ),
-                Expanded(
-                  child: CanvasStage(
-                    canvasController: _canvasController,
-                    viewController: _viewController,
-                  ),
-                ),
-                RightInspectorPanel(canvasController: _canvasController),
-              ],
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -238,5 +216,44 @@ class _CanvasDemoPageState extends State<CanvasDemoPage> {
     // Trigger an explicit initial layout on the new root.
     final rootId = nodes.first.id;
     MindmapActions.of(_canvasController)?.relayout(rootId);
+  }
+
+  Future<void> _insertImageFile() async {
+    try {
+      final imported = await pickCanvasImageFile();
+      if (!mounted || imported == null) {
+        return;
+      }
+      final rect = initialImageRectForViewport(
+        imported.sourceSize,
+        _viewController.visibleWorldRect(),
+      );
+      final element = ImageElement(
+        id: 'image-${DateTime.now().microsecondsSinceEpoch}',
+        rect: rect,
+        image: imported.image,
+        imageData: imported.imageData,
+        fit: BoxFit.contain,
+        layerId: _canvasController.activeLayerId,
+        zIndex: _canvasController.nextZIndex(_canvasController.activeLayerId),
+      );
+      _canvasController
+        ..addElement(element, bringToFront: true)
+        ..setSelection({element.id})
+        ..setTool(SelectTool.idValue);
+      final optimized = imported.wasDownsampled
+          ? ' · optimized ${imported.sourceSize.width.round()}x${imported.sourceSize.height.round()} to ${imported.decodedSize.width.round()}x${imported.decodedSize.height.round()}'
+          : '';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Inserted ${imported.name}$optimized')),
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to insert image: $error')));
+    }
   }
 }

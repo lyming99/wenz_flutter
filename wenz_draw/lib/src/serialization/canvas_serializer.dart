@@ -15,27 +15,68 @@ import '../elements/polyline_element.dart';
 import '../elements/rect_element.dart';
 import '../elements/shape_label_painter.dart';
 import '../elements/text_element.dart';
+import '../elements/unknown_element.dart';
 import '../elements/widget_element.dart';
 import '../layers/canvas_layer.dart';
 import '../snap/snap_resolver.dart';
 import 'canvas_document.dart';
+import 'document_migrator.dart';
 
 class CanvasSerializer {
   const CanvasSerializer._();
 
-  static Map<String, dynamic> toJson(CanvasController controller) {
+  /// Serializes the controller's state to a schema-2.0 document JSON. The
+  /// optional [metadata], [viewport] and [assets] are merged in when supplied.
+  static Map<String, dynamic> toJson(
+    CanvasController controller, {
+    DocumentMetadata? metadata,
+    DocumentViewport? viewport,
+    List<DocumentAsset>? assets,
+  }) {
     return CanvasDocument(
-      version: CanvasDocument.currentVersion,
+      schemaVersion: DocumentSchema.current,
+      metadata: metadata ?? const DocumentMetadata(),
+      viewport: viewport ?? const DocumentViewport(),
+      assets: assets ?? const <DocumentAsset>[],
       layers: controller.layers,
       elements: controller.elements,
     ).toJson();
   }
 
   static CanvasDocument fromJson(Map<String, dynamic> json) {
-    final layerJson = json['layers'] as List<dynamic>? ?? const [];
-    final elementJson = json['elements'] as List<dynamic>? ?? const [];
+    // Always migrate first so the rest of the loader can assume schema 2.0.
+    final migrated = DocumentMigrator.migrate(Map<String, dynamic>.from(json));
+
+    final layerJson = migrated['layers'] as List<dynamic>? ?? const [];
+    final elementJson = migrated['elements'] as List<dynamic>? ?? const [];
+    final assetJson = migrated['assets'] as List<dynamic>? ?? const [];
+
+    // Preserve any top-level keys this loader does not recognize, so a newer
+    // app's document survives a round-trip through this one.
+    final knownKeys = const {
+      'schemaVersion',
+      'metadata',
+      'viewport',
+      'assets',
+      'layers',
+      'elements',
+      // legacy, already consumed by the migrator but listed for completeness
+      'version',
+    };
+    final extras = Map<String, dynamic>.from(
+      migrated..removeWhere((key, _) => knownKeys.contains(key)),
+    );
+
     return CanvasDocument(
-      version: _version(json['version']),
+      schemaVersion: (migrated['schemaVersion'] as String?) ??
+          DocumentSchema.current,
+      metadata: _metadataFromJson(migrated['metadata']),
+      viewport: _viewportFromJson(migrated['viewport']),
+      assets: [
+        for (final asset in assetJson)
+          if (asset is Map<String, dynamic>)
+            DocumentAsset.fromJson(asset),
+      ],
       layers: [
         for (final layer in layerJson)
           if (layer is Map<String, dynamic>) _layerFromJson(layer),
@@ -44,6 +85,7 @@ class CanvasSerializer {
         for (final element in elementJson)
           if (element is Map<String, dynamic>) elementFromJson(element),
       ],
+      extras: extras,
     );
   }
 
@@ -261,6 +303,8 @@ class CanvasSerializer {
           fit: _boxFitFromString(json['fit'] as String?),
           rotation: (json['rotation'] as num?)?.toDouble() ?? 0,
           imageData: json['imageData'] as String?,
+          url: json['url'] as String?,
+          filePath: json['filePath'] as String?,
         );
       case CanvasWidgetElement.elementType:
         return CanvasWidgetElement(
@@ -282,13 +326,39 @@ class CanvasSerializer {
           clipBehavior: _clipFromString(json['clipBehavior'] as String?),
         );
       default:
-        return LineElement(id: id, start: Offset.zero, end: Offset.zero);
+        // Unknown element type: preserve the original JSON so a round-trip
+        // through this app does not lose data written by a newer one. The
+        // common fields are extracted so selection/layering still works.
+        return UnknownElement(
+          id: id,
+          rawJson: Map<String, dynamic>.from(json),
+          layerId: layerId,
+          visible: visible,
+          opacity: opacity,
+          zIndex: zIndex,
+          groupId: json['groupId'] as String?,
+        );
     }
   }
 
-  static String _version(Object? value) {
-    final text = value?.toString();
-    return text == null || text.isEmpty ? '1.0' : text;
+  static DocumentMetadata _metadataFromJson(Object? value) {
+    if (value is Map<String, dynamic>) return DocumentMetadata.fromJson(value);
+    if (value is Map) {
+      return DocumentMetadata.fromJson(
+        Map<String, dynamic>.from(value),
+      );
+    }
+    return const DocumentMetadata();
+  }
+
+  static DocumentViewport _viewportFromJson(Object? value) {
+    if (value is Map<String, dynamic>) return DocumentViewport.fromJson(value);
+    if (value is Map) {
+      return DocumentViewport.fromJson(
+        Map<String, dynamic>.from(value),
+      );
+    }
+    return const DocumentViewport();
   }
 
   static String _shapeKey(Object? value) {

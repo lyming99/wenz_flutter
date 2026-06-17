@@ -138,8 +138,8 @@ void main() {
       final target = const Rect.fromLTWH(200, 100, 80, 80);
 
       final path = OrthConnector.route(
-        start: Offset(50, 50),
-        end: Offset(240, 140),
+        start: const Offset(50, 50),
+        end: const Offset(240, 140),
         sourceBounds: source,
         targetBounds: target,
         margin: 16,
@@ -179,8 +179,8 @@ void main() {
 
     test('无 bounds 时回退到简单路径', () {
       final path = OrthConnector.route(
-        start: Offset(0, 0),
-        end: Offset(200, 100),
+        start: const Offset(0, 0),
+        end: const Offset(200, 100),
         sourceBounds: null,
         targetBounds: null,
       );
@@ -303,7 +303,7 @@ void main() {
   group('WenzPerimeter', () {
     test('rectanglePerimeter 右侧交点', () {
       final bounds = const Rect.fromLTWH(0, 0, 100, 100);
-      final next = Offset(200, 50);
+      final next = const Offset(200, 50);
 
       final result = WenzPerimeter.rectanglePerimeter(
         bounds,
@@ -318,7 +318,7 @@ void main() {
 
     test('rectanglePerimeter 左侧交点', () {
       final bounds = const Rect.fromLTWH(0, 0, 100, 100);
-      final next = Offset(-50, 50);
+      final next = const Offset(-50, 50);
 
       final result = WenzPerimeter.rectanglePerimeter(
         bounds,
@@ -332,7 +332,7 @@ void main() {
 
     test('rectanglePerimeter 上侧交点', () {
       final bounds = const Rect.fromLTWH(0, 0, 100, 100);
-      final next = Offset(50, -50);
+      final next = const Offset(50, -50);
 
       final result = WenzPerimeter.rectanglePerimeter(
         bounds,
@@ -346,7 +346,7 @@ void main() {
 
     test('rectanglePerimeter 下侧交点', () {
       final bounds = const Rect.fromLTWH(0, 0, 100, 100);
-      final next = Offset(50, 200);
+      final next = const Offset(50, 200);
 
       final result = WenzPerimeter.rectanglePerimeter(
         bounds,
@@ -361,7 +361,7 @@ void main() {
     test('rectanglePerimeter 正交模式', () {
       final bounds = const Rect.fromLTWH(0, 0, 100, 100);
       // next 点在矩形右上方
-      final next = Offset(150, 30);
+      final next = const Offset(150, 30);
 
       final result = WenzPerimeter.rectanglePerimeter(
         bounds,
@@ -376,7 +376,7 @@ void main() {
 
     test('ellipsePerimeter 基本交点', () {
       final bounds = const Rect.fromLTWH(0, 0, 100, 100);
-      final next = Offset(200, 50);
+      final next = const Offset(200, 50);
 
       final result = WenzPerimeter.ellipsePerimeter(
         bounds,
@@ -392,7 +392,7 @@ void main() {
 
     test('ellipsePerimeter 对角交点', () {
       final bounds = const Rect.fromLTWH(0, 0, 100, 100);
-      final next = Offset(200, 200);
+      final next = const Offset(200, 200);
 
       final result = WenzPerimeter.ellipsePerimeter(
         bounds,
@@ -408,7 +408,7 @@ void main() {
 
     test('diamondPerimeter 右侧交点', () {
       final bounds = const Rect.fromLTWH(0, 0, 100, 100);
-      final next = Offset(200, 50);
+      final next = const Offset(200, 50);
 
       final result = WenzPerimeter.diamondPerimeter(
         bounds,
@@ -423,7 +423,7 @@ void main() {
 
     test('trianglePerimeter 东向三角形', () {
       final bounds = const Rect.fromLTWH(0, 0, 100, 100);
-      final next = Offset(200, 50);
+      final next = const Offset(200, 50);
 
       final result = WenzPerimeter.trianglePerimeter(
         bounds,
@@ -438,7 +438,7 @@ void main() {
 
     test('hexagonPerimeter 基本交点', () {
       final bounds = const Rect.fromLTWH(0, 0, 100, 100);
-      final next = Offset(200, 50);
+      final next = const Offset(200, 50);
 
       final result = WenzPerimeter.hexagonPerimeter(
         bounds,
@@ -453,7 +453,7 @@ void main() {
 
     test('hexagonPerimeter 正交模式', () {
       final bounds = const Rect.fromLTWH(0, 0, 100, 100);
-      final next = Offset(150, 20);
+      final next = const Offset(150, 20);
 
       final result = WenzPerimeter.hexagonPerimeter(
         bounds,
@@ -468,7 +468,7 @@ void main() {
 
     test('computePerimeter 根据 shapeType 选择', () {
       final bounds = const Rect.fromLTWH(0, 0, 100, 100);
-      final next = Offset(200, 50);
+      final next = const Offset(200, 50);
 
       final rect = WenzPerimeter.computePerimeter(
         bounds,
@@ -505,7 +505,7 @@ void main() {
 
     test('computePerimeter 对角方向各形状不同', () {
       final bounds = const Rect.fromLTWH(0, 0, 100, 100);
-      final next = Offset(200, 50);
+      final next = const Offset(200, 50);
 
       final rect = WenzPerimeter.computePerimeter(
         bounds,
@@ -591,16 +591,28 @@ void main() {
     test('nearestSide 返回正确的边', () {
       final bounds = const Rect.fromLTWH(0, 0, 100, 100);
 
-      final (side1, _) = WenzPerimeter.nearestSide(bounds, Offset(200, 50));
+      final (side1, _) = WenzPerimeter.nearestSide(
+        bounds,
+        const Offset(200, 50),
+      );
       expect(side1, 'right');
 
-      final (side2, _) = WenzPerimeter.nearestSide(bounds, Offset(-50, 50));
+      final (side2, _) = WenzPerimeter.nearestSide(
+        bounds,
+        const Offset(-50, 50),
+      );
       expect(side2, 'left');
 
-      final (side3, _) = WenzPerimeter.nearestSide(bounds, Offset(50, -50));
+      final (side3, _) = WenzPerimeter.nearestSide(
+        bounds,
+        const Offset(50, -50),
+      );
       expect(side3, 'top');
 
-      final (side4, _) = WenzPerimeter.nearestSide(bounds, Offset(50, 200));
+      final (side4, _) = WenzPerimeter.nearestSide(
+        bounds,
+        const Offset(50, 200),
+      );
       expect(side4, 'bottom');
     });
   });
@@ -639,7 +651,7 @@ void main() {
         end: target.center,
         sourceBounds: source,
         targetBounds: target,
-        controlPoints: [Offset(150, 50)],
+        controlPoints: [const Offset(150, 50)],
       );
 
       expect(path.isNotEmpty, isTrue);
@@ -668,7 +680,11 @@ void main() {
         end: target.center,
         sourceBounds: source,
         targetBounds: target,
-        controlPoints: [Offset(150, 50), Offset(150, 150), Offset(250, 150)],
+        controlPoints: [
+          const Offset(150, 50),
+          const Offset(150, 150),
+          const Offset(250, 150),
+        ],
       );
 
       expect(path.isNotEmpty, isTrue);
@@ -684,12 +700,12 @@ void main() {
 
     test('路径去重', () {
       final path = SegmentConnector.route(
-        start: Offset(0, 0),
-        end: Offset(100, 100),
+        start: const Offset(0, 0),
+        end: const Offset(100, 100),
         controlPoints: [
-          Offset(50, 0),
-          Offset(50, 0), // 重复点
-          Offset(50, 100),
+          const Offset(50, 0),
+          const Offset(50, 0), // 重复点
+          const Offset(50, 100),
         ],
         tolerance: 0.5,
       );
@@ -706,15 +722,15 @@ void main() {
   // ===========================================================================
   group('ConnectorRoutingService', () {
     test('simpleManhattan 模式', () {
-      final service = ConnectorRoutingService(
+      final service = const ConnectorRoutingService(
         options: ConnectorRoutingOptions(
           mode: ConnectorRoutingMode.simpleManhattan,
         ),
       );
 
       final result = service.route(
-        start: Offset(0, 0),
-        end: Offset(200, 100),
+        start: const Offset(0, 0),
+        end: const Offset(200, 100),
         elements: [],
         isLayerVisible: (_) => true,
       );
@@ -725,7 +741,7 @@ void main() {
     });
 
     test('orthConnector 模式', () {
-      final service = ConnectorRoutingService(
+      final service = const ConnectorRoutingService(
         options: ConnectorRoutingOptions(
           mode: ConnectorRoutingMode.orthConnector,
           margin: 16,
@@ -735,8 +751,8 @@ void main() {
       // 需要模拟 CanvasElements 来提供 bounds
       // 这里测试无元素 fallback
       final result = service.route(
-        start: Offset(50, 50),
-        end: Offset(250, 50),
+        start: const Offset(50, 50),
+        end: const Offset(250, 50),
         elements: [],
         isLayerVisible: (_) => true,
       );
@@ -745,12 +761,10 @@ void main() {
     });
 
     test('ConnectorRoutingOptions forQuality 生成正确配置', () {
-      final base = ConnectorRoutingOptions();
+      final base = const ConnectorRoutingOptions();
 
       final fast = base.forQuality(ConnectorRouteQuality.fast);
       final balanced = base.forQuality(ConnectorRouteQuality.balanced);
-      final high = base.forQuality(ConnectorRouteQuality.high);
-
       // fast 应该更激进地裁剪
       expect(fast.maxObstacles, lessThanOrEqualTo(balanced.maxObstacles));
       expect(fast.searchPadding, lessThan(balanced.searchPadding));
@@ -759,8 +773,8 @@ void main() {
     test('ConnectorPortResolver 解析中心端口', () {
       const resolver = ConnectorPortResolver();
       final port = resolver.resolve(
-        position: Offset(50, 50),
-        toward: Offset(250, 50),
+        position: const Offset(50, 50),
+        toward: const Offset(250, 50),
         bounds: const Rect.fromLTWH(0, 0, 100, 100),
         shapeType: 'rectangle',
       );

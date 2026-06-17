@@ -19,6 +19,7 @@ import '../history/commands/update_element_command.dart';
 import '../tools/pan_tool.dart';
 import '../tools/select_tool.dart';
 import '../tools/text_tool.dart';
+import '../widgets/canvas_image_resolver.dart';
 import '../widgets/canvas_widget_layer.dart';
 import 'canvas_event.dart';
 import 'infinite_canvas_config.dart';
@@ -50,6 +51,7 @@ class _InfiniteCanvasWidgetState extends State<InfiniteCanvasWidget> {
   final Set<int> _widgetGesturePointers = {};
   final Map<int, _DeferredWidgetGesture> _deferredWidgetGestures = {};
   late final FocusNode _focusNode;
+  late final CanvasImageResolver _imageResolver;
 
   Offset? _lastTapPosition;
   DateTime? _lastTapTime;
@@ -66,10 +68,12 @@ class _InfiniteCanvasWidgetState extends State<InfiniteCanvasWidget> {
   void initState() {
     super.initState();
     _focusNode = FocusNode(debugLabel: 'InfiniteCanvasWidget');
+    _imageResolver = CanvasImageResolver(widget.controller.canvasController);
   }
 
   @override
   void dispose() {
+    _imageResolver.dispose();
     _focusNode.dispose();
     super.dispose();
   }
@@ -302,10 +306,10 @@ class _InfiniteCanvasWidgetState extends State<InfiniteCanvasWidget> {
 
   Rect _shapeLabelEditingBounds(Object? element) {
     final bounds = switch (element) {
-      DrawioShapeElement e => e.rect,
-      RectElement e => e.labelPadding.deflateRect(e.rect),
-      EllipseElement e => e.labelPadding.deflateRect(e.rect),
-      LineElement e => LineLabelPainter.labelBounds(
+      final DrawioShapeElement e => e.rect,
+      final RectElement e => e.labelPadding.deflateRect(e.rect),
+      final EllipseElement e => e.labelPadding.deflateRect(e.rect),
+      final LineElement e => LineLabelPainter.labelBounds(
         points: [e.start, e.end],
         label: e.label?.isEmpty ?? true ? ' ' : e.label,
         style: e.labelStyle,
@@ -313,7 +317,7 @@ class _InfiniteCanvasWidgetState extends State<InfiniteCanvasWidget> {
         labelOffset: e.labelOffset,
         labelBackground: e.labelBackground,
       ),
-      ArrowElement e => LineLabelPainter.labelBounds(
+      final ArrowElement e => LineLabelPainter.labelBounds(
         points: [e.start, e.end],
         label: e.label?.isEmpty ?? true ? ' ' : e.label,
         style: e.labelStyle,
@@ -321,7 +325,7 @@ class _InfiniteCanvasWidgetState extends State<InfiniteCanvasWidget> {
         labelOffset: e.labelOffset,
         labelBackground: e.labelBackground,
       ),
-      PolylineElement e => LineLabelPainter.labelBounds(
+      final PolylineElement e => LineLabelPainter.labelBounds(
         points: e.points,
         label: e.label?.isEmpty ?? true ? ' ' : e.label,
         style: e.labelStyle,
@@ -335,17 +339,17 @@ class _InfiniteCanvasWidgetState extends State<InfiniteCanvasWidget> {
       return bounds;
     }
     final center = switch (element) {
-      LineElement e => LineLabelPainter.labelCenter(
+      final LineElement e => LineLabelPainter.labelCenter(
         [e.start, e.end],
         labelPosition: e.labelPosition,
         labelOffset: e.labelOffset,
       ),
-      ArrowElement e => LineLabelPainter.labelCenter(
+      final ArrowElement e => LineLabelPainter.labelCenter(
         [e.start, e.end],
         labelPosition: e.labelPosition,
         labelOffset: e.labelOffset,
       ),
-      PolylineElement e => LineLabelPainter.labelCenter(
+      final PolylineElement e => LineLabelPainter.labelCenter(
         e.points,
         labelPosition: e.labelPosition,
         labelOffset: e.labelOffset,
@@ -1064,32 +1068,32 @@ class ShapeLabelEditingTarget implements _TextEditingTarget {
 
   @override
   String get id => switch (element) {
-    DrawioShapeElement e => e.id,
-    RectElement e => e.id,
-    EllipseElement e => e.id,
-    LineElement e => e.id,
-    ArrowElement e => e.id,
-    PolylineElement e => e.id,
+    final DrawioShapeElement e => e.id,
+    final RectElement e => e.id,
+    final EllipseElement e => e.id,
+    final LineElement e => e.id,
+    final ArrowElement e => e.id,
+    final PolylineElement e => e.id,
     _ => '',
   };
 
   @override
   String get text => switch (element) {
-    DrawioShapeElement e => e.label ?? '',
-    RectElement e => e.label ?? '',
-    EllipseElement e => e.label ?? '',
-    LineElement e => e.label ?? '',
-    ArrowElement e => e.label ?? '',
-    PolylineElement e => e.label ?? '',
+    final DrawioShapeElement e => e.label ?? '',
+    final RectElement e => e.label ?? '',
+    final EllipseElement e => e.label ?? '',
+    final LineElement e => e.label ?? '',
+    final ArrowElement e => e.label ?? '',
+    final PolylineElement e => e.label ?? '',
     _ => '',
   };
 
   @override
   Rect get bounds => switch (element) {
-    DrawioShapeElement e => e.rect,
-    RectElement e => e.labelPadding.deflateRect(e.rect),
-    EllipseElement e => e.labelPadding.deflateRect(e.rect),
-    LineElement e => _lineLabelBounds(
+    final DrawioShapeElement e => e.rect,
+    final RectElement e => e.labelPadding.deflateRect(e.rect),
+    final EllipseElement e => e.labelPadding.deflateRect(e.rect),
+    final LineElement e => _lineLabelBounds(
       [e.start, e.end],
       e.label,
       e.labelStyle,
@@ -1097,7 +1101,7 @@ class ShapeLabelEditingTarget implements _TextEditingTarget {
       e.labelOffset,
       e.labelBackground,
     ),
-    ArrowElement e => _lineLabelBounds(
+    final ArrowElement e => _lineLabelBounds(
       [e.start, e.end],
       e.label,
       e.labelStyle,
@@ -1105,7 +1109,7 @@ class ShapeLabelEditingTarget implements _TextEditingTarget {
       e.labelOffset,
       e.labelBackground,
     ),
-    PolylineElement e => _lineLabelBounds(
+    final PolylineElement e => _lineLabelBounds(
       e.points,
       e.label,
       e.labelStyle,
@@ -1145,20 +1149,20 @@ class ShapeLabelEditingTarget implements _TextEditingTarget {
 
   @override
   TextStyle get style => switch (element) {
-    DrawioShapeElement e => e.labelStyle,
-    RectElement e => e.labelStyle,
-    EllipseElement e => e.labelStyle,
-    LineElement e => e.labelStyle,
-    ArrowElement e => e.labelStyle,
-    PolylineElement e => e.labelStyle,
+    final DrawioShapeElement e => e.labelStyle,
+    final RectElement e => e.labelStyle,
+    final EllipseElement e => e.labelStyle,
+    final LineElement e => e.labelStyle,
+    final ArrowElement e => e.labelStyle,
+    final PolylineElement e => e.labelStyle,
     _ => ShapeLabelPainter.defaultStyle,
   };
 
   @override
   TextAlign get textAlign => switch (element) {
-    DrawioShapeElement e => e.labelAlign,
-    RectElement e => e.labelAlign,
-    EllipseElement e => e.labelAlign,
+    final DrawioShapeElement e => e.labelAlign,
+    final RectElement e => e.labelAlign,
+    final EllipseElement e => e.labelAlign,
     _ => TextAlign.center,
   };
 

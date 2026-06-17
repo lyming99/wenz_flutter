@@ -9,7 +9,7 @@ import 'package:wenz_draw/src/elements/text_element.dart';
 import 'package:wenz_draw/src/elements/image_element.dart';
 import 'package:wenz_draw/src/elements/polyline_element.dart';
 import 'package:wenz_draw/src/elements/curve_element.dart';
-import 'package:wenz_draw/src/elements/canvas_element.dart';
+import 'package:wenz_draw/src/elements/unknown_element.dart';
 import 'package:wenz_draw/src/canvas/canvas_controller.dart';
 import 'package:wenz_draw/src/canvas/paint_style.dart';
 import 'package:wenz_draw/src/layers/canvas_layer.dart';
@@ -97,8 +97,7 @@ void main() {
       );
 
       final json = element.toJson();
-      final restored =
-          CanvasSerializer.elementFromJson(json) as EllipseElement;
+      final restored = CanvasSerializer.elementFromJson(json) as EllipseElement;
 
       expect(restored, isA<EllipseElement>());
       expect(restored.id, 'ellipse-1');
@@ -168,8 +167,11 @@ void main() {
       expect(restored.id, 'img-1');
       expect(restored.type, ImageElement.elementType);
       expect(restored.rect, const Rect.fromLTRB(0, 0, 400, 300));
-      expect(restored.fit, BoxFit.cover,
-          reason: 'BoxFit.cover must survive serialization (Bug B2)');
+      expect(
+        restored.fit,
+        BoxFit.cover,
+        reason: 'BoxFit.cover must survive serialization (Bug B2)',
+      );
       expect(restored.zIndex, 10);
       expect(restored.groupId, 'group-img');
     });
@@ -191,12 +193,7 @@ void main() {
     test('PolylineElement round-trip preserves points, arrows, bindings', () {
       const element = PolylineElement(
         id: 'poly-1',
-        points: [
-          Offset(0, 0),
-          Offset(50, 30),
-          Offset(100, 0),
-          Offset(150, 30),
-        ],
+        points: [Offset(0, 0), Offset(50, 30), Offset(100, 0), Offset(150, 30)],
         style: PaintStyle(color: Color(0xFFCC0000), strokeWidth: 2.5),
         startBinding: SnapBinding(elementId: 'node-a', anchorId: 'right'),
         endBinding: SnapBinding(elementId: 'node-b', anchorId: 'left'),
@@ -260,7 +257,7 @@ void main() {
     // ─── Canvas layer round-trip ──────────────────────────────────
     test('CanvasDocument.toJson() and fromJson() round-trip with layers', () {
       final document = CanvasDocument(
-        version: '1.1',
+        schemaVersion: '1.1',
         layers: const [
           CanvasLayer(id: 'background', name: 'Background', isVisible: false),
           CanvasLayer(
@@ -340,7 +337,8 @@ void main() {
       const element = ImageElement(
         id: 'img-b64',
         rect: Rect.fromLTRB(0, 0, 100, 100),
-        imageData: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+        imageData:
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
       );
 
       final json = element.toJson();
@@ -348,7 +346,10 @@ void main() {
 
       expect(restored, isA<ImageElement>());
       expect(restored.imageData, isNotNull);
-      expect(restored.imageData, 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=');
+      expect(
+        restored.imageData,
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+      );
     });
 
     // ─── Layer preservation in load() (Bug B1) ───────────────────
@@ -388,18 +389,149 @@ void main() {
       CanvasSerializer.load(newController, json);
 
       // Verify layers are preserved (Bug B1: layers were being lost)
-      expect(newController.layers.length, 2,
-          reason: 'Custom layers must be preserved after load');
+      expect(
+        newController.layers.length,
+        2,
+        reason: 'Custom layers must be preserved after load',
+      );
       expect(newController.layers.any((l) => l.id == customLayerId), isTrue);
       expect(newController.layers.any((l) => l.name == 'Custom Layer'), isTrue);
 
       // Verify elements are preserved with their layer assignments
       expect(newController.elements.length, 2);
       final rect = newController.elementById('el-1')!;
-      expect(rect.layerId, customLayerId,
-          reason: 'Element layer assignment must survive load');
+      expect(
+        rect.layerId,
+        customLayerId,
+        reason: 'Element layer assignment must survive load',
+      );
       final text = newController.elementById('el-2')!;
       expect(text.layerId, customLayerId);
+    });
+  });
+
+  group('Document format (schema 2.0)', () {
+    test('toJson writes schemaVersion and empty metadata section', () {
+      final controller = CanvasController();
+      final json = CanvasSerializer.toJson(controller);
+
+      expect(json['schemaVersion'], DocumentSchema.current);
+      expect(json['metadata'], isA<Map>());
+      // layers/elements are always present; viewport/assets omitted when empty.
+      expect(json.containsKey('layers'), isTrue);
+      expect(json.containsKey('elements'), isTrue);
+      expect(json.containsKey('viewport'), isFalse);
+      expect(json.containsKey('assets'), isFalse);
+    });
+
+    test('toJson embeds metadata, viewport and assets when supplied', () {
+      final controller = CanvasController();
+      final json = CanvasSerializer.toJson(
+        controller,
+        metadata: const DocumentMetadata(
+          title: 'My Board',
+          appId: 'my-app',
+          createdAt: 1700000000000,
+        ),
+        viewport: const DocumentViewport(scale: 1.5, centerX: 100, centerY: 200),
+        assets: const [
+          DocumentAsset(
+            id: 'asset-1',
+            type: 'image',
+            source: 'url',
+            ref: 'https://cdn.example.com/x.png',
+            width: 800,
+            height: 600,
+          ),
+        ],
+      );
+
+      expect(json['metadata']['title'], 'My Board');
+      expect(json['metadata']['appId'], 'my-app');
+      expect(json['viewport']['scale'], 1.5);
+      expect(json['assets'].first['id'], 'asset-1');
+    });
+
+    test('migrates a legacy 1.1 document to schema 2.0', () {
+      final legacy = <String, dynamic>{
+        'version': '1.1',
+        'layers': <dynamic>[
+          {'id': 'L1', 'name': 'Layer 1'},
+        ],
+        'elements': <dynamic>[
+          {
+            'id': 'r1',
+            'type': 'rect',
+            'rect': {'left': 0, 'top': 0, 'right': 10, 'bottom': 10},
+          },
+        ],
+      };
+
+      final doc = CanvasSerializer.fromJson(legacy);
+
+      expect(doc.schemaVersion, '2.0');
+      expect(doc.layers.single.id, 'L1');
+      expect(doc.elements.single, isA<RectElement>());
+    });
+
+    test('preserves unknown top-level keys in extras', () {
+      final json = <String, dynamic>{
+        'schemaVersion': '2.0',
+        'futureSection': {'flags': 7},
+        'layers': <dynamic>[],
+        'elements': <dynamic>[],
+      };
+
+      final doc = CanvasSerializer.fromJson(json);
+
+      expect(doc.extras['futureSection'], isA<Map>());
+      // Round-trip writes the unknown section back out.
+      final rewritten = CanvasSerializer.toJson(
+        CanvasController(),
+      );
+      final reparsed = CanvasSerializer.fromJson({
+        ...json,
+        'layers': rewritten['layers'],
+        'elements': rewritten['elements'],
+      });
+      expect(reparsed.extras['futureSection'], isA<Map>());
+    });
+
+    test('unknown element type survives a full document round-trip', () {
+      final json = <String, dynamic>{
+        'schemaVersion': '2.0',
+        'layers': <dynamic>[
+          {'id': 'default', 'name': 'Default'},
+        ],
+        'elements': <dynamic>[
+          {
+            'id': 'future-el',
+            'type': 'some_future_shape',
+            'layerId': 'default',
+            'visible': true,
+            'opacity': 1.0,
+            'zIndex': 0,
+            'customPayload': {'x': 9},
+            'rect': {'left': 0, 'top': 0, 'right': 20, 'bottom': 20},
+          },
+        ],
+      };
+
+      final doc = CanvasSerializer.fromJson(json);
+      final unknown = doc.elements.single as UnknownElement;
+      expect(unknown.type, 'some_future_shape');
+      expect(unknown.rawJson['customPayload'], {'x': 9});
+
+      // Serialize back through the document and reload — data must persist.
+      final rewritten = CanvasDocument(
+        schemaVersion: DocumentSchema.current,
+        layers: doc.layers,
+        elements: doc.elements,
+      ).toJson();
+      final reparsed = CanvasSerializer.fromJson(rewritten);
+      final again = reparsed.elements.single as UnknownElement;
+      expect(again.type, 'some_future_shape');
+      expect(again.rawJson['customPayload'], {'x': 9});
     });
   });
 }

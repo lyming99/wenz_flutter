@@ -20,7 +20,7 @@ void main() {
         );
 
       final json = CanvasSerializer.toJson(controller);
-      expect(json['version'], CanvasDocument.currentVersion);
+      expect(json['schemaVersion'], DocumentSchema.current);
 
       final document = CanvasSerializer.fromJson(json);
       final element = document.elements.single as DrawioShapeElement;

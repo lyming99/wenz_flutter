@@ -261,13 +261,28 @@ void main() {
       );
     });
 
-    test('fromJson with unknown type returns fallback', () {
-      final json = {'id': 'unknown', 'type': 'unknown_type'};
+    test('fromJson with unknown type preserves the original data', () {
+      final json = {
+        'id': 'unknown',
+        'type': 'unknown_type',
+        'customField': 42,
+        'rect': {'left': 1, 'top': 2, 'right': 3, 'bottom': 4},
+      };
 
       final element = CanvasSerializer.elementFromJson(json);
 
-      // Falls back to LineElement for unknown types
-      expect(element, isA<LineElement>());
+      // Unknown types are preserved as UnknownElement instead of being coerced.
+      expect(element, isA<UnknownElement>());
+      final unknown = element as UnknownElement;
+      expect(unknown.type, 'unknown_type');
+      expect(unknown.id, 'unknown');
+      // The original JSON survives untouched.
+      expect(unknown.rawJson['customField'], 42);
+      expect(unknown.bounds, const Rect.fromLTRB(1, 2, 3, 4));
+      // Round-trip writes the data back verbatim.
+      final roundTripped = unknown.toJson();
+      expect(roundTripped['type'], 'unknown_type');
+      expect(roundTripped['customField'], 42);
     });
   });
 
