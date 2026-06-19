@@ -126,6 +126,75 @@ controller.addElement(ImageElement(
 ));
 ```
 
+## Embedding The Canvas (Headless Kernel)
+
+Hosts that build their own UI import only `package:wenz_draw/wenz_draw.dart`
+and embed `InfiniteCanvasWidget` directly — no toolbar, panels, or inspector:
+
+```dart
+import 'package:wenz_draw/wenz_draw.dart';
+
+final canvas = CanvasController();
+final view = InfiniteCanvasController(
+  canvasController: canvas,
+  minScale: 0.25,
+  maxScale: 6.0,
+);
+
+InfiniteCanvasWidget(
+  controller: view,
+  config: const InfiniteCanvasConfig(gridType: GridType.dots),
+);
+```
+
+### Gesture & Zoom Configuration
+
+`InfiniteCanvasConfig` exposes every gesture as a toggle, plus zoom bounds and
+fling tuning. All flags default to enabled, so a config-less canvas already
+works on both desktop and mobile:
+
+| Flag | Default | Effect |
+|------|---------|--------|
+| `enablePinch` | `true` | Two-finger pinch-to-zoom (mobile) |
+| `enableWheelZoom` | `true` | Mouse/trackpad wheel zoom (desktop) |
+| `enableKeyboard` | `true` | Undo/redo, select-all, arrow nudge, delete, clipboard |
+| `enableDoubleTapZoom` | `true` | Double-tap zooms in (shift/alt = out) |
+| `flingEnabled` | `true` | Released pan continues with inertia (mobile feel) |
+| `flingDecayFriction` | `0.005` | Higher = fling stops sooner |
+| `minScale` / `maxScale` | `0.1` / `10.0` | Zoom clamp; mirror on the controller ctor |
+
+The `InfiniteCanvasController` clamps zoom to its own `minScale`/`maxScale`.
+When you pass a custom `InfiniteCanvasConfig.minScale`, set the same values on
+the controller constructor so wheel, pinch, and double-tap all agree:
+
+```dart
+const cfg = InfiniteCanvasConfig(minScale: 0.5, maxScale: 4.0);
+final view = InfiniteCanvasController(
+  canvasController: canvas,
+  minScale: cfg.minScale,
+  maxScale: cfg.maxScale,
+);
+```
+
+`ZoomControls` (the zoom in/out/fit pill) and `MinimapWidget` are exported
+separately and can be embedded into a host's own chrome without the full
+editor.
+
+### Viewport Persistence
+
+The current pan/zoom round-trips through `DocumentViewport`. Capture it on save
+and restore on load so a reopened board lands where the user left off:
+
+```dart
+final json = CanvasSerializer.toJsonWithView(view, viewport: view.currentViewport);
+await store.save(json);
+// ... later, into fresh controllers ...
+CanvasSerializer.loadDocument(view, await store.load()!);
+// loadDocument applies the viewport, but only once the widget has a size;
+// if you load before mount, call view.applyViewport(document.viewport) in a
+// post-frame callback.
+```
+
 ## Embedding The Editor (UI Shell)
 
 For the fastest integration, import `package:wenz_draw/wenz_draw_ui.dart` and
@@ -144,7 +213,17 @@ WenzDrawEditor(
     contentCallbacks: EditorContentCallbacks(
       onInsertImage: myImagePicker,
       onAddMindmap: myAddMindmap,
+      // Persistence: the 菜单's 保存/加载 route through this store.
+      documentStore: myDocumentStore,
+      // PNG export override (defaults to the bundled PngExporter).
+      onExportPng: myPngExporter,
     ),
+    // Host-contributed toolbar buttons rendered in the trailing cluster.
+    toolbarActions: const [
+      EditorToolbarAction(label: 'Share', icon: Icons.share, onPressed: share),
+    ],
+    // Tune the canvas's gestures/grid (passed through to InfiniteCanvasWidget).
+    canvasConfig: const InfiniteCanvasConfig(flingEnabled: true),
   ),
   theme: EditorTheme.light,
 )
@@ -152,12 +231,14 @@ WenzDrawEditor(
 
 ### Customizing Panels And Toolbar
 
-`EditorConfig` exposes three layers of customization:
+`EditorConfig` exposes four layers of customization:
 
 1. **Toggles** — `showLeftPanel`, `showRightPanel`, `leftPanelWidth`, …
 2. **Slot replacement** — `leftPanelBuilder`, `rightPanelBuilder`,
    `toolbarBuilder` fully replace a region with your own widget.
-3. **Inspector sections** — modules contribute their own inspector controls via
+3. **Toolbar actions** — `toolbarActions` appends host buttons to the default
+   toolbar's trailing cluster (no need to replace the whole toolbar).
+4. **Inspector sections** — modules contribute their own inspector controls via
    `InspectorSectionRegistry.register(...)` without the shell importing them.
 
 ```dart
@@ -194,7 +275,9 @@ Serialized documents are forward- and backward-compatible:
 ```
 
 - **Migration**: `DocumentMigrator` upgrades older documents (`version` →
-  `schemaVersion`) automatically on load.
+  `schemaVersion`) automatically on load, seeding the optional
+  metadata/viewport/assets sections. Version-less documents are treated as
+  current; future/unknown versions pass through untouched to avoid corruption.
 - **Unknown elements**: an element whose `type` the loader doesn't recognize is
   preserved as `UnknownElement` — its original JSON is written back verbatim, so
   a round-trip through an older app never loses data written by a newer one.
@@ -202,6 +285,44 @@ Serialized documents are forward- and backward-compatible:
   on save.
 - **Metadata / viewport / assets**: optional sections passed through
   `CanvasSerializer.toJson(controller, metadata: ..., viewport: ..., assets: ...)`.
+
+### Load Fault Tolerance
+
+The loader never lets one bad element sink a whole document. Parse with
+`fromJsonWithWarnings` to collect recoverable problems as
+`DocumentFormatWarning`s — each malformed element is downgraded to an
+`UnknownElement` (raw JSON kept) and loading continues:
+
+```dart
+final result = CanvasSerializer.fromJsonWithWarnings(json, onWarning: (w) {
+  myLogger.warn('${w.elementType ?? '?'} ${w.elementId ?? '?'}: ${w.message}');
+});
+final document = result.document;          // always usable
+if (result.hasWarnings) {
+  showToast('${result.warnings.length} 个元素已跳过/降级');
+}
+```
+
+Structural problems that make the document unusable (empty JSON, `layers` /
+`elements` not arrays) throw `DocumentFormatException` with
+`severity: fatal` — catch and show an error. A JSON Schema describing the
+format lives at `docs/canvas_document.schema.json` for host-side validation
+(e.g. with `ajv`).
+
+### Write Validation
+
+Before persisting, run `CanvasSerializer.validateForSave(json)` for a
+non-throwing health check. It flags missing ids and negative rects as
+recoverable warnings you can log or reject:
+
+```dart
+final warnings = CanvasSerializer.validateForSave(json);
+if (warnings.isNotEmpty) {
+  for (final w in warnings) myLogger.warn(w.toString());
+  // optionally abort: throw w.toException();
+}
+await store.save(json);
+```
 
 ## Mind Map Module
 

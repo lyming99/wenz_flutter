@@ -17,9 +17,11 @@ import '../elements/shape_label_painter.dart';
 import '../elements/text_element.dart';
 import '../elements/unknown_element.dart';
 import '../elements/widget_element.dart';
+import '../infinite_canvas/infinite_canvas_controller.dart';
 import '../layers/canvas_layer.dart';
 import '../snap/snap_resolver.dart';
 import 'canvas_document.dart';
+import 'document_format_exception.dart';
 import 'document_migrator.dart';
 
 class CanvasSerializer {
@@ -43,12 +45,68 @@ class CanvasSerializer {
     ).toJson();
   }
 
-  static CanvasDocument fromJson(Map<String, dynamic> json) {
-    // Always migrate first so the rest of the loader can assume schema 2.0.
+  /// Convenience overload that also captures the current view transform of an
+  /// [InfiniteCanvasController], so a round-trip restores the exact pan/zoom
+  /// the user left off at. Pass an explicit [viewport] to override.
+  static Map<String, dynamic> toJsonWithView(
+    InfiniteCanvasController view, {
+    DocumentMetadata? metadata,
+    DocumentViewport? viewport,
+    List<DocumentAsset>? assets,
+  }) {
+    return toJson(
+      view.canvasController,
+      metadata: metadata,
+      viewport: viewport ?? view.currentViewport,
+      assets: assets,
+    );
+  }
+
+  static CanvasDocument fromJson(Map<String, dynamic> json) =>
+      fromJsonWithWarnings(json).document;
+
+  /// Like [fromJson], but also returns the recoverable problems encountered
+  /// while parsing. Each bad element is downgraded to an [UnknownElement] (its
+  /// raw JSON preserved) instead of aborting the whole document; [warnings]
+  /// lists what was skipped or downgraded so the host can log/surface it.
+  static DocumentParseResult fromJsonWithWarnings(
+    Map<String, dynamic> json, {
+    void Function(DocumentFormatWarning warning)? onWarning,
+  }) {
+    final warnings = <DocumentFormatWarning>[];
+    void warn(DocumentFormatWarning w) {
+      warnings.add(w);
+      onWarning?.call(w);
+    }
+
+    // Top-level structural checks — these are fatal.
+    if (json.isEmpty) {
+      throw const DocumentFormatException(
+        'Document JSON is empty',
+        field: '<root>',
+      );
+    }
     final migrated = DocumentMigrator.migrate(Map<String, dynamic>.from(json));
 
-    final layerJson = migrated['layers'] as List<dynamic>? ?? const [];
-    final elementJson = migrated['elements'] as List<dynamic>? ?? const [];
+    final layersRaw = migrated['layers'];
+    final elementsRaw = migrated['elements'];
+    if (layersRaw != null && layersRaw is! List) {
+      throw const DocumentFormatException(
+        "'layers' must be an array",
+        severity: DocumentFormatSeverity.fatal,
+        field: 'layers',
+      );
+    }
+    if (elementsRaw != null && elementsRaw is! List) {
+      throw const DocumentFormatException(
+        "'elements' must be an array",
+        severity: DocumentFormatSeverity.fatal,
+        field: 'elements',
+      );
+    }
+
+    final layerJson = layersRaw as List<dynamic>? ?? const [];
+    final elementJson = elementsRaw as List<dynamic>? ?? const [];
     final assetJson = migrated['assets'] as List<dynamic>? ?? const [];
 
     // Preserve any top-level keys this loader does not recognize, so a newer
@@ -63,35 +121,185 @@ class CanvasSerializer {
       // legacy, already consumed by the migrator but listed for completeness
       'version',
     };
+    // Compute extras from a *copy* so we do not mutate [migrated] in place —
+    // the loader still needs metadata/viewport/assets/layers/elements below.
     final extras = Map<String, dynamic>.from(
-      migrated..removeWhere((key, _) => knownKeys.contains(key)),
+      Map<String, dynamic>.from(migrated)
+        ..removeWhere((key, _) => knownKeys.contains(key)),
     );
 
-    return CanvasDocument(
-      schemaVersion: (migrated['schemaVersion'] as String?) ??
-          DocumentSchema.current,
-      metadata: _metadataFromJson(migrated['metadata']),
-      viewport: _viewportFromJson(migrated['viewport']),
-      assets: [
-        for (final asset in assetJson)
-          if (asset is Map<String, dynamic>)
-            DocumentAsset.fromJson(asset),
-      ],
-      layers: [
-        for (final layer in layerJson)
-          if (layer is Map<String, dynamic>) _layerFromJson(layer),
-      ],
-      elements: [
-        for (final element in elementJson)
-          if (element is Map<String, dynamic>) elementFromJson(element),
-      ],
-      extras: extras,
+    // Elements: parse defensively. A single malformed element is downgraded to
+    // an UnknownElement (raw JSON preserved) and reported, never crashing the
+    // whole document.
+    final elements = <CanvasElement>[];
+    for (final entry in elementJson) {
+      if (entry is! Map<String, dynamic>) {
+        warn(const DocumentFormatWarning(
+          "Element is not an object; skipped",
+          field: 'elements',
+        ));
+        continue;
+      }
+      final element = _safeElementFromJson(entry, warn);
+      if (element != null) {
+        elements.add(element);
+      }
+    }
+
+    return DocumentParseResult(
+      document: CanvasDocument(
+        schemaVersion: (migrated['schemaVersion'] as String?) ??
+            DocumentSchema.current,
+        metadata: _metadataFromJson(migrated['metadata']),
+        viewport: _viewportFromJson(migrated['viewport']),
+        assets: [
+          for (final asset in assetJson)
+            if (asset is Map<String, dynamic>) DocumentAsset.fromJson(asset),
+        ],
+        layers: [
+          for (final layer in layerJson)
+            if (layer is Map<String, dynamic>) _layerFromJson(layer),
+        ],
+        elements: elements,
+        extras: extras,
+      ),
+      warnings: warnings,
     );
+  }
+
+  /// Parses one element, downgrading any failure to an [UnknownElement] so the
+  /// surrounding document still loads. Returns null only when the entry has no
+  /// usable identity at all.
+  static CanvasElement? _safeElementFromJson(
+    Map<String, dynamic> json,
+    void Function(DocumentFormatWarning) warn,
+  ) {
+    final type = json['type']?.toString();
+    try {
+      final element = elementFromJson(json);
+      // Validate the result's geometry where applicable: a rect with negative
+      // width/height is recoverable (downgrade) rather than fatal.
+      if (_hasInvalidRect(element)) {
+        warn(DocumentFormatWarning(
+          'Element rect has negative width or height; kept as-is',
+          elementType: type,
+          elementId: json['id']?.toString(),
+          field: 'rect',
+          rawJson: json,
+        ));
+      }
+      return element;
+    } catch (error) {
+      // Downgrade: keep the original JSON verbatim inside an UnknownElement so
+      // a round-trip never loses data written by a newer app.
+      warn(DocumentFormatWarning(
+        'Element could not be parsed ($error); preserved as UnknownElement',
+        elementType: type,
+        elementId: json['id']?.toString(),
+        rawJson: json,
+      ));
+      return UnknownElement(
+        id: (json['id'] as String?) ?? '',
+        rawJson: Map<String, dynamic>.from(json),
+        layerId: (json['layerId'] as String?) ?? CanvasLayer.defaultLayerId,
+        visible: (json['visible'] as bool?) ?? true,
+        opacity: (json['opacity'] as num?)?.toDouble() ?? 1,
+        zIndex: (json['zIndex'] as num?)?.toInt() ?? 0,
+        groupId: json['groupId'] as String?,
+      );
+    }
+  }
+
+  /// True when an element carries a rect with negative width or height.
+  static bool _hasInvalidRect(CanvasElement element) {
+    final rect = switch (element) {
+      final RectElement e => e.rect,
+      final EllipseElement e => e.rect,
+      final DrawioShapeElement e => e.rect,
+      final ImageElement e => e.rect,
+      _ => null,
+    };
+    if (rect == null) return false;
+    return rect.width < 0 || rect.height < 0;
   }
 
   static void load(CanvasController controller, Map<String, dynamic> json) {
     final document = fromJson(json);
     controller.loadDocument(document.layers, document.elements);
+  }
+
+  /// Validates a document map before it is persisted, returning recoverable
+  /// warnings (empty when clean). Intended as a pre-save health check — call
+  /// it on the JSON you are about to write and report/log any warnings:
+  ///
+  /// ```dart
+  /// final warnings = CanvasSerializer.validateForSave(json);
+  /// if (warnings.isNotEmpty) myLogger.warn(warnings);
+  /// await store.save(json);
+  /// ```
+  ///
+  /// This never throws; hosts that want hard enforcement can convert each
+  /// [DocumentFormatWarning] via [DocumentFormatWarning.toException].
+  static List<DocumentFormatWarning> validateForSave(Map<String, dynamic> json) {
+    final warnings = <DocumentFormatWarning>[];
+    if (json.isEmpty) {
+      return const [];
+    }
+    final elements = json['elements'];
+    if (elements is! List) {
+      return const [];
+    }
+    for (final entry in elements) {
+      if (entry is! Map<String, dynamic>) {
+        warnings.add(const DocumentFormatWarning(
+          'Element is not an object',
+          field: 'elements',
+        ));
+        continue;
+      }
+      final id = entry['id'];
+      if (id is! String || id.isEmpty) {
+        warnings.add(DocumentFormatWarning(
+          'Element is missing a non-empty id',
+          elementType: entry['type']?.toString(),
+          field: 'id',
+          rawJson: entry,
+        ));
+      }
+      final rect = entry['rect'];
+      if (rect is Map) {
+        final left = (rect['left'] as num?)?.toDouble() ?? 0;
+        final top = (rect['top'] as num?)?.toDouble() ?? 0;
+        final right = (rect['right'] as num?)?.toDouble() ?? 0;
+        final bottom = (rect['bottom'] as num?)?.toDouble() ?? 0;
+        if (right < left || bottom < top) {
+          warnings.add(DocumentFormatWarning(
+            'Element rect has negative width or height',
+            elementType: entry['type']?.toString(),
+            elementId: id is String ? id : null,
+            field: 'rect',
+            rawJson: entry,
+          ));
+        }
+      }
+    }
+    return warnings;
+  }
+
+  /// Loads a full document — layers, elements, and the stored view — into the
+  /// controllers, replacing all existing data. History is cleared.
+  ///
+  /// The viewport is applied to [view] via [InfiniteCanvasController.applyViewport],
+  /// which is a no-op until the widget has been laid out (viewport size known).
+  /// Call this from a post-frame callback if the canvas has just been mounted.
+  static CanvasDocument loadDocument(
+    InfiniteCanvasController view,
+    Map<String, dynamic> json,
+  ) {
+    final document = fromJson(json);
+    view.canvasController.loadDocument(document.layers, document.elements);
+    view.applyViewport(document.viewport);
+    return document;
   }
 
   static CanvasElement elementFromJson(Map<String, dynamic> json) {
@@ -493,4 +701,22 @@ class CanvasSerializer {
           : previous;
     });
   }
+}
+
+/// Result of [CanvasSerializer.fromJsonWithWarnings]: the parsed document plus
+/// any recoverable problems (each bad element downgraded, not dropped).
+class DocumentParseResult {
+  const DocumentParseResult({
+    required this.document,
+    this.warnings = const <DocumentFormatWarning>[],
+  });
+
+  final CanvasDocument document;
+
+  /// Recoverable problems collected while parsing, in encounter order. Empty
+  /// when the document was clean.
+  final List<DocumentFormatWarning> warnings;
+
+  /// Whether any recoverable problem was reported.
+  bool get hasWarnings => warnings.isNotEmpty;
 }

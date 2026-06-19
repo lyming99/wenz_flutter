@@ -16,13 +16,34 @@ for draw.io-style shape support.
 
 ### Headless canvas (kernel only)
 
+The entire infinite canvas — pan, zoom, gestures, grid — in five lines:
+
 ```dart
 final canvasController = CanvasController();
 final controller = InfiniteCanvasController(
   canvasController: canvasController,
+  minScale: 0.25,
+  maxScale: 6.0,
 );
 
-InfiniteCanvasWidget(controller: controller);
+InfiniteCanvasWidget(
+  controller: controller,
+  config: const InfiniteCanvasConfig(gridType: GridType.dots),
+);
+```
+
+Tune gestures and grid via `InfiniteCanvasConfig`:
+
+```dart
+const InfiniteCanvasConfig(
+  enablePinch: true,          // two-finger pinch-zoom (mobile)
+  enableWheelZoom: true,      // mouse/trackpad wheel zoom (desktop)
+  enableKeyboard: true,       // undo/redo, select-all, arrow nudge, delete
+  enableDoubleTapZoom: true,  // double-tap to zoom in
+  flingEnabled: true,         // inertial pan on release (mobile feel)
+  minScale: 0.25,
+  maxScale: 6.0,
+);
 ```
 
 ### Full editor (UI shell)
@@ -38,7 +59,13 @@ WenzDrawEditor(
   canvasController: canvasController,
   viewController: viewController,
   config: EditorConfig(
-    contentCallbacks: EditorContentCallbacks(onInsertImage: myPicker),
+    contentCallbacks: EditorContentCallbacks(
+      onInsertImage: myPicker,
+      // Save/load round-trip: implement DocumentStore against your backend
+      // (file, DB, note payload) and the 菜单 wires 保存/加载 for you.
+      documentStore: myStore,
+    ),
+    canvasConfig: const InfiniteCanvasConfig(flingEnabled: true),
   ),
 )
 ```
@@ -46,6 +73,23 @@ WenzDrawEditor(
 Hosts that only want the kernel import `package:wenz_draw/wenz_draw.dart`; the
 UI shell lives in a separate barrel (`package:wenz_draw/wenz_draw_ui.dart`) so it
 is never forced on headless users.
+
+### Save & reopen (document closure)
+
+A document survives a close/reopen with layers, elements, and the viewport all
+intact. Serialize with the view, load into fresh controllers:
+
+```dart
+// Save (captures layers, elements, and the current pan/zoom).
+final json = CanvasSerializer.toJsonWithView(viewController, metadata: meta);
+await store.save(json);
+
+// Reopen into fresh controllers.
+CanvasSerializer.loadDocument(viewController, await store.load()!);
+```
+
+Implement `DocumentStore` to route persistence anywhere (file, database, a
+wenzflow note payload). `MemoryDocumentStore` ships for tests and demos.
 
 ### Mind maps (optional module)
 

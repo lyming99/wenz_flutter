@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 
 import '../canvas/canvas_controller.dart';
@@ -45,7 +46,8 @@ class InfiniteCanvasWidget extends StatefulWidget {
   State<InfiniteCanvasWidget> createState() => _InfiniteCanvasWidgetState();
 }
 
-class _InfiniteCanvasWidgetState extends State<InfiniteCanvasWidget> {
+class _InfiniteCanvasWidgetState extends State<InfiniteCanvasWidget>
+    with SingleTickerProviderStateMixin {
   final Map<int, Offset> _pointers = {};
   final Set<int> _panPointers = {};
   final Set<int> _widgetGesturePointers = {};
@@ -64,6 +66,14 @@ class _InfiniteCanvasWidgetState extends State<InfiniteCanvasWidget> {
   _EditingTextResizeHandle? _editingResizeHandle;
   Offset? _editingResizeAnchor;
 
+  // ── Fling inertia ───────────────────────────────────────────────
+  // Tracks the velocity of the most recent pan so a released drag continues
+  // with inertial scrolling (mobile feel). Only consulted when
+  // InfiniteCanvasConfig.flingEnabled is true.
+  Offset _panVelocity = Offset.zero;
+  Ticker? _flingTicker;
+  Offset _flingVelocity = Offset.zero;
+
   @override
   void initState() {
     super.initState();
@@ -73,6 +83,7 @@ class _InfiniteCanvasWidgetState extends State<InfiniteCanvasWidget> {
 
   @override
   void dispose() {
+    _flingTicker?.dispose();
     _imageResolver.dispose();
     _focusNode.dispose();
     super.dispose();
@@ -143,6 +154,9 @@ class _InfiniteCanvasWidgetState extends State<InfiniteCanvasWidget> {
   }
 
   void _handlePointerDown(PointerDownEvent event) {
+    // A new pointer cancels any in-flight inertial fling.
+    _stopFling();
+    _panVelocity = Offset.zero;
     // If we are currently editing text, do not steal focus from the
     // TextField overlay — that would prematurely commit the edit.
     final canvasController = widget.controller.canvasController;
@@ -181,7 +195,9 @@ class _InfiniteCanvasWidgetState extends State<InfiniteCanvasWidget> {
     if (_pointers.length > 1) {
       _toolSuppressedUntilClear = true;
       widget.controller.canvasController.cancelCurrentInteraction();
-      _updatePinchBaseline();
+      if (widget.config.enablePinch) {
+        _updatePinchBaseline();
+      }
       return;
     }
 
@@ -475,15 +491,55 @@ class _InfiniteCanvasWidgetState extends State<InfiniteCanvasWidget> {
       return false;
     }
 
+    final canvasController = widget.controller.canvasController;
+    final isEditing = canvasController.editingTextElementId != null ||
+        canvasController.editingShapeLabelElementId != null;
+
+    // Double-tap zoom: when enabled and no text is being edited, a double tap
+    // zooms in (or out with shift/alt). BUT a double tap landing on an element
+    // is handed to the tool first (entering text/label editing), so zoom only
+    // happens on empty canvas.
+    final worldPoint = widget.controller.screenToWorld(event.localPosition);
+    final hitElement = canvasController.hitTest(worldPoint);
+    if (widget.config.enableDoubleTapZoom &&
+        !isEditing &&
+        hitElement == null &&
+        canvasController.currentTool?.id != TextTool.idValue) {
+      final zoomOut = HardwareKeyboard.instance.isShiftPressed ||
+          HardwareKeyboard.instance.isAltPressed;
+      final factor = zoomOut
+          ? 1 / widget.config.doubleTapZoomFactor
+          : widget.config.doubleTapZoomFactor;
+      widget.controller.zoomBy(factor, focalPoint: event.localPosition);
+      return true;
+    }
+
     _dispatch(
       CanvasDoubleTapEvent(
         screenPoint: event.localPosition,
-        worldPoint: widget.controller.screenToWorld(event.localPosition),
+        worldPoint: worldPoint,
         transform: widget.controller.transform,
         pointerCount: _pointers.length + 1,
       ),
     );
-    final canvasController = widget.controller.canvasController;
+    // If the active tool did not start editing (e.g. a drawing tool is active
+    // instead of SelectTool), enter text/label editing directly so double-tap
+    // is consistent across tools. This mirrors select_tool's double-tap logic.
+    final stillEditing = canvasController.editingTextElementId != null ||
+        canvasController.editingShapeLabelElementId != null;
+    if (!stillEditing && hitElement != null) {
+      if (hitElement is TextElement) {
+        canvasController.beginTextEditing(hitElement.id);
+      } else if (hitElement
+          case DrawioShapeElement() ||
+              RectElement() ||
+              EllipseElement() ||
+              LineElement() ||
+              ArrowElement() ||
+              PolylineElement()) {
+        canvasController.beginShapeLabelEditing(hitElement.id);
+      }
+    }
     return canvasController.editingTextElementId != null ||
         canvasController.editingShapeLabelElementId != null;
   }
@@ -518,7 +574,9 @@ class _InfiniteCanvasWidgetState extends State<InfiniteCanvasWidget> {
     _pointers[event.pointer] = event.localPosition;
 
     if (_pointers.length > 1) {
-      _handlePinchPanZoom();
+      if (widget.config.enablePinch) {
+        _handlePinchPanZoom();
+      }
       return;
     }
 
@@ -532,6 +590,8 @@ class _InfiniteCanvasWidgetState extends State<InfiniteCanvasWidget> {
         event.buttons == kSecondaryMouseButton;
     if (shouldPan) {
       widget.controller.pan(event.delta);
+      // Track velocity for a potential fling on release (low-pass for stability).
+      _panVelocity = _panVelocity * 0.6 + event.delta * 0.4;
       return;
     }
 
@@ -563,6 +623,16 @@ class _InfiniteCanvasWidgetState extends State<InfiniteCanvasWidget> {
     // dispatched to the tool, so skip the up event too.
     final wasPanning = _panPointers.remove(event.pointer);
 
+    // Start an inertial fling if the last gesture was a pan with enough speed.
+    // Only applies to single-pointer pans (multi-pointer is a pinch-zoom).
+    if (wasPanning &&
+        widget.config.flingEnabled &&
+        _pointers.length == 1 &&
+        _panVelocity.distance > 2) {
+      _startFling(_panVelocity);
+    }
+    _panVelocity = Offset.zero;
+
     final shouldDispatch = _pointers.length == 1 && !_toolSuppressedUntilClear;
     if (shouldDispatch && !wasPanning) {
       _dispatch(
@@ -579,6 +649,37 @@ class _InfiniteCanvasWidgetState extends State<InfiniteCanvasWidget> {
 
     _pointers.remove(event.pointer);
     _resetPinchIfNeeded();
+  }
+
+  /// Kicks off an inertial fling from [initialVelocity] (pixels/frame at 60fps
+  /// reference). Decays exponentially each frame until the speed is negligible.
+  void _startFling(Offset initialVelocity) {
+    _flingTicker?.dispose();
+    _flingVelocity = initialVelocity;
+    if (_flingVelocity.distance < 2) {
+      return;
+    }
+    _flingTicker = Ticker(_onFlingTick);
+    _flingTicker!.start();
+  }
+
+  void _onFlingTick(Duration elapsed) {
+    // Stop when the residual velocity is below a perceptible threshold.
+    if (_flingVelocity.distance < 0.5) {
+      _stopFling();
+      return;
+    }
+    widget.controller.pan(_flingVelocity);
+    // Exponential decay: friction in (0,1); higher friction = stops sooner.
+    // Scale friction per-frame regardless of actual frame rate.
+    final decay = 1.0 - widget.config.flingDecayFriction.clamp(0.0, 0.99);
+    _flingVelocity = _flingVelocity * decay;
+  }
+
+  void _stopFling() {
+    _flingTicker?.dispose();
+    _flingTicker = null;
+    _flingVelocity = Offset.zero;
   }
 
   void _handlePointerCancel(PointerCancelEvent event) {
@@ -600,6 +701,9 @@ class _InfiniteCanvasWidgetState extends State<InfiniteCanvasWidget> {
     if (event is! PointerScrollEvent) {
       return;
     }
+    if (!widget.config.enableWheelZoom) {
+      return;
+    }
 
     final factor = math.exp(
       -event.scrollDelta.dy * widget.config.scrollZoomSensitivity,
@@ -609,6 +713,9 @@ class _InfiniteCanvasWidgetState extends State<InfiniteCanvasWidget> {
 
   void _handleKeyEvent(KeyEvent event) {
     if (event is! KeyDownEvent) {
+      return;
+    }
+    if (!widget.config.enableKeyboard) {
       return;
     }
 

@@ -3,16 +3,27 @@ import 'dart:math' as math;
 import 'package:flutter/widgets.dart';
 
 import '../canvas/canvas_controller.dart';
+import '../serialization/canvas_document.dart';
 import 'canvas_transform.dart';
 
 class InfiniteCanvasController extends ChangeNotifier {
   InfiniteCanvasController({
     CanvasController? canvasController,
     CanvasTransform transform = CanvasTransform.identity,
+    this.minScale = CanvasTransform.minScale,
+    this.maxScale = CanvasTransform.maxScale,
   }) : canvasController = canvasController ?? CanvasController(),
        _transform = transform;
 
   final CanvasController canvasController;
+
+  /// Minimum zoom scale. Defaults to [CanvasTransform.minScale]; override via
+  /// the constructor to match a host's [InfiniteCanvasConfig.minScale].
+  final double minScale;
+
+  /// Maximum zoom scale. Defaults to [CanvasTransform.maxScale]; override via
+  /// the constructor to match a host's [InfiniteCanvasConfig.maxScale].
+  final double maxScale;
 
   CanvasTransform _transform;
   Size _viewportSize = Size.zero;
@@ -41,8 +52,8 @@ class InfiniteCanvasController extends ChangeNotifier {
       _transform.zoomTo(
         newScale,
         focus,
-        minScale: CanvasTransform.minScale,
-        maxScale: CanvasTransform.maxScale,
+        minScale: minScale,
+        maxScale: maxScale,
       ),
     );
   }
@@ -53,8 +64,8 @@ class InfiniteCanvasController extends ChangeNotifier {
       _transform.zoomBy(
         factor,
         focus,
-        minScale: CanvasTransform.minScale,
-        maxScale: CanvasTransform.maxScale,
+        minScale: minScale,
+        maxScale: maxScale,
       ),
     );
   }
@@ -69,6 +80,46 @@ class InfiniteCanvasController extends ChangeNotifier {
 
   void resetView() {
     _setTransform(CanvasTransform.identity);
+  }
+
+  /// The current view as a serializable [DocumentViewport].
+  ///
+  /// Captures the zoom scale and the world-space point currently centered in
+  /// the viewport, so a document can be saved and later restored to the exact
+  /// same view. Returns an empty viewport when the viewport size is unknown
+  /// (e.g. before the widget has been laid out).
+  DocumentViewport get currentViewport {
+    if (_viewportSize.isEmpty) {
+      return const DocumentViewport();
+    }
+    final worldCenter = screenToWorld(_viewportCenter);
+    return DocumentViewport(
+      scale: _transform.scale,
+      centerX: worldCenter.dx,
+      centerY: worldCenter.dy,
+    );
+  }
+
+  /// Restores a previously saved view ([DocumentViewport]).
+  ///
+  /// Sets the zoom scale and recenters on the stored world point. No-op when
+  /// the viewport is empty (the widget has not been laid out yet) or the given
+  /// viewport carries no data. Call after [loadDocument] once the canvas widget
+  /// has a size; otherwise defer to the next frame.
+  void applyViewport(DocumentViewport viewport) {
+    if (_viewportSize.isEmpty || viewport.isEmpty) {
+      return;
+    }
+    final scale = viewport.scale;
+    if (scale == null) {
+      return;
+    }
+    final center = Offset(
+      viewport.centerX ?? 0,
+      viewport.centerY ?? 0,
+    );
+    final nextOffset = _viewportCenter - center * scale;
+    _setTransform(CanvasTransform(scale: scale, offset: nextOffset));
   }
 
   void centerOnWorld(Offset worldPoint) {
@@ -96,7 +147,7 @@ class InfiniteCanvasController extends ChangeNotifier {
     final heightScale = availableHeight / contentBounds.height;
     final scale = math
         .min(widthScale, heightScale)
-        .clamp(CanvasTransform.minScale, CanvasTransform.maxScale)
+        .clamp(minScale, maxScale)
         .toDouble();
     final viewportCenter = _viewportCenter;
     final contentCenter = contentBounds.center;

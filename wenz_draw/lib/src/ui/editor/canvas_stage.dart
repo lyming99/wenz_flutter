@@ -9,10 +9,16 @@ class CanvasStage extends StatelessWidget {
   const CanvasStage({
     required this.canvasController,
     required this.viewController,
+    this.canvasConfig,
   });
 
   final CanvasController canvasController;
   final InfiniteCanvasController viewController;
+
+  /// Optional override for the canvas config. When null, a sensible default
+  /// (line grid, light theme) is used. Pass an [InfiniteCanvasConfig] to tune
+  /// gesture flags (pinch/wheel/keyboard/double-tap/fling) or grid styling.
+  final InfiniteCanvasConfig? canvasConfig;
 
   @override
   Widget build(BuildContext context) {
@@ -25,13 +31,14 @@ class CanvasStage extends StatelessWidget {
           children: [
             InfiniteCanvasWidget(
               controller: viewController,
-              config: const InfiniteCanvasConfig(
-                gridType: GridType.lines,
-                backgroundColor: UiColors.canvasBackground,
-                gridColor: Color(0x1F5F748B),
-                majorGridColor: Color(0x2B5F748B),
-                gridBaseSize: 20,
-              ),
+              config: canvasConfig ??
+                  const InfiniteCanvasConfig(
+                    gridType: GridType.lines,
+                    backgroundColor: UiColors.canvasBackground,
+                    gridColor: Color(0x1F5F748B),
+                    majorGridColor: Color(0x2B5F748B),
+                    gridBaseSize: 20,
+                  ),
               elementOverlayAnchorPredicate: _isMindmapRoot,
               elementOverlayBuilder: (context, element) {
                 if (!_isMindmapRoot(element)) return null;

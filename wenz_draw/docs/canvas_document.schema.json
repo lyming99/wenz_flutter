@@ -1,0 +1,131 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wenz_draw/canvas_document.schema.json",
+  "title": "Canvas Document (schema 2.0)",
+  "description": "Serialized wenz_draw infinite-canvas document. Forward- and backward-compatible: unknown top-level keys are preserved in CanvasDocument.extras, and elements whose type is unrecognized are preserved as UnknownElement (raw JSON verbatim).",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["schemaVersion", "layers", "elements"],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "description": "Document schema version. Current is '2.0'. Older documents (1.0/1.1 via a legacy 'version' key) are migrated on load.",
+      "default": "2.0"
+    },
+    "version": {
+      "type": "string",
+      "description": "Legacy version key (1.x). Consumed by DocumentMigrator and renamed to schemaVersion; not emitted by current writers.",
+      "deprecated": true
+    },
+    "metadata": {
+      "$ref": "#/$defs/metadata"
+    },
+    "viewport": {
+      "$ref": "#/$defs/viewport"
+    },
+    "assets": {
+      "type": "array",
+      "description": "Binary assets referenced out-of-line from elements (images, ...). Keeps documents small when the raster lives on a CDN/filesystem.",
+      "items": { "$ref": "#/$defs/asset" }
+    },
+    "layers": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/layer" }
+    },
+    "elements": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/element" }
+    }
+  },
+  "$defs": {
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "createdAt": { "type": "integer", "description": "Milliseconds since epoch" },
+        "updatedAt": { "type": "integer", "description": "Milliseconds since epoch" },
+        "appId": { "type": "string" },
+        "appVersion": { "type": "string" },
+        "custom": {
+          "type": "object",
+          "description": "Free-form extension bag for application-specific metadata.",
+          "additionalProperties": true
+        }
+      }
+    },
+    "viewport": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Last-known view so a reopened board lands where the user left it.",
+      "properties": {
+        "scale": { "type": "number", "minimum": 0, "exclusiveMinimum": 0 },
+        "centerX": { "type": "number" },
+        "centerY": { "type": "number" }
+      }
+    },
+    "asset": {
+      "type": "object",
+      "required": ["id", "type", "source"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "type": { "type": "string", "default": "image" },
+        "source": {
+          "type": "string",
+          "description": "How 'ref' is resolved: 'base64', 'url', 'file', or a custom kind matched by a host ImageLoader.",
+          "default": "base64"
+        },
+        "ref": { "type": "string" },
+        "width": { "type": "number", "minimum": 0 },
+        "height": { "type": "number", "minimum": 0 },
+        "custom": { "type": "object", "additionalProperties": true }
+      }
+    },
+    "layer": {
+      "type": "object",
+      "required": ["id"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "name": { "type": "string", "default": "Layer" },
+        "visible": { "type": "boolean", "default": true },
+        "locked": { "type": "boolean", "default": false },
+        "opacity": { "type": "number", "minimum": 0, "maximum": 1, "default": 1 }
+      }
+    },
+    "element": {
+      "type": "object",
+      "description": "A canvas element. The discriminator is 'type'. Elements with an unrecognized type are preserved verbatim as UnknownElement, so this schema is intentionally permissive (additionalProperties: true).",
+      "required": ["type"],
+      "additionalProperties": true,
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Element discriminator. Known types: path, curve, line, polyline, rect, ellipse, drawioShape, arrow, text, image, widget, unknown."
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Stable element id. Should be non-empty; a missing id is flagged by validateForSave."
+        },
+        "layerId": { "type": "string" },
+        "visible": { "type": "boolean", "default": true },
+        "opacity": { "type": "number", "minimum": 0, "maximum": 1, "default": 1 },
+        "zIndex": { "type": "integer", "default": 0 },
+        "groupId": { "type": "string" },
+        "rect": {
+          "type": "object",
+          "description": "World-space bounding rect (left/top/right/bottom). A rect with right<left or bottom<top is flagged as a warning.",
+          "properties": {
+            "left": { "type": "number" },
+            "top": { "type": "number" },
+            "right": { "type": "number" },
+            "bottom": { "type": "number" }
+          }
+        }
+      }
+    }
+  }
+}

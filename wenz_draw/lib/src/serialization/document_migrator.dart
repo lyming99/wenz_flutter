@@ -20,6 +20,9 @@ class DocumentMigrator {
         _migrate1xTo2(json);
       // Fall through: a 1.x doc becomes 2.0; no further steps yet.
       case '2.0':
+        // Ensure the authoritative schema key is present even when the source
+        // omitted it (a version-less document is treated as current).
+        json['schemaVersion'] = DocumentSchema.current;
         break;
       default:
         // Unknown (likely future) version: leave as-is to avoid corrupting it.

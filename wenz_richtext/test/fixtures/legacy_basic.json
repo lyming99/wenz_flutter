@@ -1,0 +1,22 @@
+[
+  {
+    "type": "title",
+    "level": 1,
+    "children": [
+      {"type": "text", "text": "Wenz", "bold": true},
+      {"type": "text", "text": " RichText", "url": "https://example.com"}
+    ]
+  },
+  {
+    "type": "text",
+    "itemType": "check",
+    "checked": true,
+    "children": [
+      {"type": "text", "text": "remove external CRDT"}
+    ]
+  },
+  {
+    "type": "quote",
+    "text": "self owned editor core"
+  }
+]

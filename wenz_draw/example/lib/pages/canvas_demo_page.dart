@@ -6,7 +6,10 @@ import 'package:wenz_draw/wenz_draw_ui.dart';
 import '../utils/image_importer.dart';
 
 class CanvasDemoPage extends StatefulWidget {
-  const CanvasDemoPage({super.key});
+  const CanvasDemoPage({super.key, this.onShowMinimal});
+
+  /// Called when the user wants to switch to the minimal kernel-only demo.
+  final VoidCallback? onShowMinimal;
 
   @override
   State<CanvasDemoPage> createState() => _CanvasDemoPageState();
@@ -16,6 +19,11 @@ class _CanvasDemoPageState extends State<CanvasDemoPage> {
   late final CanvasController _canvasController;
   late final InfiniteCanvasController _viewController;
   late final MindmapSyncController _mindmapSync;
+
+  /// In-memory store that backs the save/load round-trip in the 菜单. A real
+  /// app would implement [DocumentStore] against a file, DB row, or note
+  /// payload — the example keeps it in memory for portability.
+  final MemoryDocumentStore _store = MemoryDocumentStore();
 
   @override
   void initState() {
@@ -61,10 +69,41 @@ class _CanvasDemoPageState extends State<CanvasDemoPage> {
             onAddCounter: _addCounter,
             onAddMindmap: _addMindmap,
             onInsertImage: _insertImageFile,
+            // 闭环接入点：菜单里的 保存/加载 会通过此 store 完成往返。
+            documentStore: _store,
+            metadata: const DocumentMetadata(
+              title: 'Flow Sketch demo',
+              appId: 'wenz_draw.example',
+            ),
           ),
+          toolbarActions: const [
+            EditorToolbarAction(
+              label: '清空',
+              icon: Icons.delete_sweep_outlined,
+              onPressed: _clearCanvas,
+            ),
+          ],
         ),
       ),
+      // Floating entry to the minimal kernel-only demo.
+      floatingActionButton: widget.onShowMinimal == null
+          ? null
+          : FloatingActionButton.extended(
+              onPressed: widget.onShowMinimal,
+              icon: const Icon(Icons.code),
+              label: const Text('Minimal kernel'),
+            ),
     );
+  }
+
+  /// Clears the canvas and the in-memory store. Demonstrates the "new
+  /// document" leg of the create→edit→save→reopen loop.
+  static void _clearCanvas(
+    CanvasController canvas,
+    InfiniteCanvasController view,
+  ) {
+    canvas.clear();
+    view.resetView();
   }
 
   void _addExampleDiagram() {

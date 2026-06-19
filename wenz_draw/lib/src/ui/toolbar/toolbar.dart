@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -5,6 +6,7 @@ import 'package:wenz_draw/wenz_draw.dart';
 
 import '../theme/ui_colors.dart';
 import '../editor/editor_actions.dart';
+import '../editor/editor_config.dart';
 import '../widgets/spectrum_icon.dart';
 import 'line_tool_icon.dart';
 import 'tool_button.dart';
@@ -18,6 +20,10 @@ class Toolbar extends StatelessWidget {
     required this.onAddCounter,
     required this.onAddMindmap,
     required this.onInsertImage,
+    this.documentStore,
+    this.onExportPng,
+    this.metadata,
+    this.actions = const [],
   });
 
   final CanvasController canvasController;
@@ -26,6 +32,20 @@ class Toolbar extends StatelessWidget {
   final VoidCallback onAddCounter;
   final VoidCallback onAddMindmap;
   final VoidCallback onInsertImage;
+
+  /// Optional persistence backend. When provided, 保存/加载 menu items route
+  /// through it; otherwise they fall back to in-memory snapshots.
+  final DocumentStore? documentStore;
+
+  /// Optional PNG export override. When null the bundled [PngExporter] is used.
+  final Future<void> Function(BuildContext, CanvasController, InfiniteCanvasController)?
+      onExportPng;
+
+  /// Optional metadata embedded into saved documents.
+  final DocumentMetadata? metadata;
+
+  /// Host-contributed actions rendered in the toolbar's trailing cluster.
+  final List<EditorToolbarAction> actions;
 
   @override
   Widget build(BuildContext context) {
@@ -159,6 +179,15 @@ class Toolbar extends StatelessWidget {
                     selected: false,
                     onPressed: () => canvasController.addLayer(),
                   ),
+                  if (actions.isNotEmpty) const ToolbarDivider(),
+                  for (final action in actions)
+                    ToolButton(
+                      label: action.label,
+                      icon: action.icon,
+                      selected: false,
+                      onPressed: () =>
+                          action.onPressed(canvasController, viewController),
+                    ),
                 ],
               ),
             ),
@@ -169,20 +198,26 @@ class Toolbar extends StatelessWidget {
   }
 
   void showFileMenu(BuildContext context) {
+    final store = documentStore;
     showAnchoredMenu<String>(
       context: context,
-      items: const [
-        PopupMenuItem(value: 'insert-image', child: Text('Insert image')),
-        PopupMenuDivider(),
-        PopupMenuItem(value: 'import-json', child: Text('导入 JSON')),
-        PopupMenuItem(value: 'import-drawio', child: Text('导入 draw.io')),
-        PopupMenuDivider(),
-        PopupMenuItem(value: 'export-json', child: Text('导出 JSON')),
-        PopupMenuItem(value: 'export-svg', child: Text('导出 SVG')),
-        PopupMenuDivider(),
-        PopupMenuItem(value: 'save', child: Text('保存')),
+      items: [
+        const PopupMenuItem(value: 'insert-image', child: Text('Insert image')),
+        const PopupMenuDivider(),
+        const PopupMenuItem(value: 'import-json', child: Text('导入 JSON')),
+        const PopupMenuItem(value: 'import-drawio', child: Text('导入 draw.io')),
+        const PopupMenuDivider(),
+        const PopupMenuItem(value: 'export-json', child: Text('导出 JSON')),
+        const PopupMenuItem(value: 'export-svg', child: Text('导出 SVG')),
+        const PopupMenuItem(value: 'export-png', child: Text('导出 PNG')),
+        const PopupMenuDivider(),
+        if (store != null)
+          const PopupMenuItem(value: 'save', child: Text('保存')),
+        if (store != null)
+          const PopupMenuItem(value: 'load', child: Text('加载')),
       ],
     ).then((value) {
+      if (value == null) return;
       switch (value) {
         case 'insert-image':
           onInsertImage();
@@ -194,7 +229,13 @@ class Toolbar extends StatelessWidget {
           showExportDialog(
             context,
             'JSON',
-            prettyJson(CanvasSerializer.toJson(canvasController)),
+            prettyJson(
+              CanvasSerializer.toJsonWithView(
+                viewController,
+                viewport: viewController.currentViewport,
+                metadata: metadata,
+              ),
+            ),
           );
         case 'export-svg':
           showExportDialog(
@@ -202,12 +243,93 @@ class Toolbar extends StatelessWidget {
             'SVG',
             SvgExporter.exportElements(elements: canvasController.elements),
           );
+        case 'export-png':
+          _exportPng(context);
         case 'save':
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('当前画布已保存到内存快照')));
+          if (store != null) _saveToStore(context, store);
+        case 'load':
+          if (store != null) _loadFromStore(context, store);
       }
     });
+  }
+
+  Future<void> _saveToStore(BuildContext context, DocumentStore store) async {
+    try {
+      final json = CanvasSerializer.toJsonWithView(
+        viewController,
+        viewport: viewController.currentViewport,
+        metadata: metadata,
+      );
+      await store.save(json);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('已保存')),
+        );
+      }
+    } catch (error) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('保存失败：$error')),
+        );
+      }
+    }
+  }
+
+  Future<void> _loadFromStore(BuildContext context, DocumentStore store) async {
+    try {
+      final json = await store.load();
+      if (json == null) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('没有可加载的文档')),
+          );
+        }
+        return;
+      }
+      CanvasSerializer.loadDocument(viewController, json);
+      // The viewport cannot be applied until the canvas has a size; defer one
+      // frame so the freshly-loaded elements are laid out first.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final document = CanvasSerializer.fromJson(json);
+        viewController.applyViewport(document.viewport);
+      });
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('已加载')),
+        );
+      }
+    } catch (error) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('加载失败：$error')),
+        );
+      }
+    }
+  }
+
+  Future<void> _exportPng(BuildContext context) async {
+    if (onExportPng != null) {
+      await onExportPng!(context, canvasController, viewController);
+      return;
+    }
+    try {
+      final bytes = await PngExporter.exportElements(
+        elements: canvasController.elements,
+      );
+      if (context.mounted) {
+        showExportDialog(
+          context,
+          'PNG (base64)',
+          prettyJson({'png': base64Encode(bytes)}),
+        );
+      }
+    } catch (error) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('导出 PNG 失败：$error')),
+        );
+      }
+    }
   }
 
   void showComponentMenu(BuildContext context) {
