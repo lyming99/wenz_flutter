@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -365,16 +366,103 @@ void main() {
     expect(controller.selection?.extent.path.tableColumnIndex, 1);
     expect(controller.selection?.extent.offset, 0);
 
+    // Forward Tab on the last cell inserts a new row and lands the caret in
+    // its first column (row 1, column 0).
     await tester.sendKeyEvent(LogicalKeyboardKey.tab);
     await tester.pump();
-    expect(controller.selection?.extent.path.tableColumnIndex, 1);
+    expect(controller.selection?.extent.path.tableRowIndex, 1);
+    expect(controller.selection?.extent.path.tableColumnIndex, 0);
 
+    // Shift+Tab walks back to the previous (originally last) cell, with the
+    // caret placed at its end.
     await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
     await tester.sendKeyEvent(LogicalKeyboardKey.tab);
     await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
     await tester.pump();
-    expect(controller.selection?.extent.path.tableColumnIndex, 0);
+    expect(controller.selection?.extent.path.tableRowIndex, 0);
+    expect(controller.selection?.extent.path.tableColumnIndex, 1);
     expect(controller.selection?.extent.offset, 2);
+  });
+
+  testWidgets('table cell arrow up/down navigate across rows', (tester) async {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TableBlockNode(
+            id: 'table1',
+            table: TableModel(
+              rows: <List<TableCellNode>>[
+                <TableCellNode>[
+                  TableCellNode(
+                    id: 'cell1',
+                    blocks: <BlockNode>[
+                      TextBlockNode(
+                        id: 'cell-p1',
+                        type: BlockType.paragraph,
+                        content: <InlineNode>[TextRun(text: 'AA')],
+                      ),
+                    ],
+                  ),
+                ],
+                <TableCellNode>[
+                  TableCellNode(
+                    id: 'cell2',
+                    blocks: <BlockNode>[
+                      TextBlockNode(
+                        id: 'cell-p2',
+                        type: BlockType.paragraph,
+                        content: <InlineNode>[TextRun(text: 'BB')],
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+      selection: DocumentSelection(
+        base: DocumentPosition.tableCell(
+          tableBlockId: 'table1',
+          blockIndex: 0,
+          tableRowIndex: 0,
+          tableColumnIndex: 0,
+          offset: 1,
+        ),
+        extent: DocumentPosition.tableCell(
+          tableBlockId: 'table1',
+          blockIndex: 0,
+          tableRowIndex: 0,
+          tableColumnIndex: 0,
+          offset: 1,
+        ),
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WenzRichTextEditor(
+            controller: controller,
+            autofocus: true,
+            enableIme: false,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pump();
+    expect(controller.selection?.extent.path.tableRowIndex, 1);
+    expect(controller.selection?.extent.path.tableColumnIndex, 0);
+    expect(controller.selection?.extent.offset, 1);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+    await tester.pump();
+    expect(controller.selection?.extent.path.tableRowIndex, 0);
+    expect(controller.selection?.extent.path.tableColumnIndex, 0);
+    expect(controller.selection?.extent.offset, 1);
   });
 
   testWidgets('moves focused caret with arrow keys', (tester) async {
@@ -416,6 +504,103 @@ void main() {
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
     await tester.pump();
     expect(controller.selection?.extent.offset, 2);
+  });
+
+  testWidgets('arrow down crosses to the next paragraph block', (tester) async {
+    // Two single-line paragraph blocks. ArrowDown from the end of p1 should
+    // advance into p2 (the caret's last visual line == the block boundary).
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'first')],
+          ),
+          TextBlockNode(
+            id: 'p2',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'second')],
+          ),
+        ],
+      ),
+      selection: collapsedTextSelection('p1', 0, 5),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WenzRichTextEditor(
+            controller: controller,
+            autofocus: true,
+            enableIme: false,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pump();
+    expect(controller.selection?.extent.blockId, 'p2');
+    expect(controller.selection?.extent.offset, 0);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+    await tester.pump();
+    // Up from the start of p2 returns to the end of p1.
+    expect(controller.selection?.extent.blockId, 'p1');
+    expect(controller.selection?.extent.offset, 5);
+  });
+
+  testWidgets('held arrow key (auto-repeat) moves the caret each repeat', (
+    tester,
+  ) async {
+    // Holding a key down fires KeyDownEvent then repeated KeyRepeatEvents.
+    // Each repeat must advance the caret, otherwise the view appears frozen
+    // while a key is held.
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'abcdef')],
+          ),
+        ],
+      ),
+      selection: collapsedTextSelection('p1', 0, 0),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WenzRichTextEditor(
+            controller: controller,
+            autofocus: true,
+            enableIme: false,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    // Initial press.
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.arrowRight);
+    await tester.pump();
+    expect(controller.selection?.extent.offset, 1);
+
+    // Auto-repeat events while the key stays down.
+    await tester.sendKeyRepeatEvent(LogicalKeyboardKey.arrowRight);
+    await tester.pump();
+    expect(controller.selection?.extent.offset, 2);
+
+    await tester.sendKeyRepeatEvent(LogicalKeyboardKey.arrowRight);
+    await tester.pump();
+    expect(controller.selection?.extent.offset, 3);
+
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.arrowRight);
+    await tester.pump();
+    expect(controller.selection?.extent.offset, 3);
   });
 
   testWidgets('extends selection with shift and arrow keys', (tester) async {
@@ -664,7 +849,84 @@ void main() {
     );
   });
 
-  testWidgets('read-only mode still allows placing a selection', (tester) async {
+  testWidgets(
+      'selection from a table cell into a later block highlights later cells', (
+    tester,
+  ) async {
+    final start = DocumentPosition.tableCell(
+      tableBlockId: 'table1',
+      blockIndex: 0,
+      tableRowIndex: 0,
+      tableColumnIndex: 0,
+      offset: 1,
+    );
+    final end = DocumentPosition.text(
+      blockId: 'p2',
+      blockIndex: 1,
+      offset: 3,
+    );
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TableBlockNode(
+            id: 'table1',
+            table: TableModel(
+              rows: <List<TableCellNode>>[
+                <TableCellNode>[
+                  TableCellNode(
+                    id: 'cell-a',
+                    blocks: <BlockNode>[
+                      TextBlockNode(
+                        id: 'cell-a-p',
+                        type: BlockType.paragraph,
+                        content: <InlineNode>[TextRun(text: 'AA')],
+                      ),
+                    ],
+                  ),
+                  TableCellNode(
+                    id: 'cell-b',
+                    blocks: <BlockNode>[
+                      TextBlockNode(
+                        id: 'cell-b-p',
+                        type: BlockType.paragraph,
+                        content: <InlineNode>[TextRun(text: 'BB')],
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+          TextBlockNode(
+            id: 'p2',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'tail')],
+          ),
+        ],
+      ),
+      selection: DocumentSelection(base: start, extent: end),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WenzRichTextEditor(
+            controller: controller,
+            enableIme: false,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(
+      find.byKey(const ValueKey<String>('wenz-richtext-selection-highlight')),
+      findsAtLeastNWidgets(4),
+    );
+  });
+
+  testWidgets('read-only mode still allows placing a selection',
+      (tester) async {
     final controller = WenzRichTextController(
       document: const RichTextDocument(
         blocks: <BlockNode>[
@@ -772,6 +1034,196 @@ void main() {
     await tester.pump();
 
     expect(controller.document.plainText, 'ab');
+  });
+
+  testWidgets('IME composition underline only decorates the composing text', (
+    tester,
+  ) async {
+    const text = 'Controller commands own document';
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: text)],
+          ),
+        ],
+      ),
+      selection: collapsedTextSelection('p1', 0, 20),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WenzRichTextEditor(
+            controller: controller,
+            enableIme: false,
+          ),
+        ),
+      ),
+    );
+    controller.setCompositionState(
+      CompositionState(
+        blockId: 'p1',
+        blockIndex: 0,
+        path: PositionPath.blockText('p1'),
+        startOffset: 11,
+        endOffset: 19,
+      ),
+    );
+    await tester.pump();
+
+    final richText = tester.widget<RichText>(_richText(text));
+
+    expect(_underlinedTexts(richText.text), <String>['commands']);
+  });
+
+  testWidgets('platform selectors dispatch to editor commands', (tester) async {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'hello world')],
+          ),
+        ],
+      ),
+      selection: collapsedTextSelection('p1', 0, 11),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WenzRichTextEditor(
+            controller: controller,
+            autofocus: true,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await _performPlatformSelectors(tester, <String>['moveLeft:']);
+    await tester.pump();
+
+    expect(controller.selection?.extent.offset, 10);
+
+    controller.setSelection(collapsedTextSelection('p1', 0, 11));
+    await tester.pump();
+
+    await _performPlatformSelectors(tester, <String>['deleteWordBackward:']);
+    await tester.pump();
+
+    expect(controller.document.plainText, 'hello ');
+    expect(controller.selection?.extent.offset, 6);
+  });
+
+  testWidgets('Backspace deletes an expanded selection', (tester) async {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'abcdef')],
+          ),
+        ],
+      ),
+      selection: textSelection('p1', 0, 1, 4),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WenzRichTextEditor(
+            controller: controller,
+            autofocus: true,
+            enableIme: false,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.backspace);
+    await tester.pump();
+
+    expect(controller.document.plainText, 'aef');
+    expect(controller.selection?.isCollapsed, isTrue);
+    expect(controller.selection?.extent.offset, 1);
+  });
+
+  testWidgets('Delete deletes an expanded selection', (tester) async {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'abcdef')],
+          ),
+        ],
+      ),
+      selection: textSelection('p1', 0, 1, 4),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WenzRichTextEditor(
+            controller: controller,
+            autofocus: true,
+            enableIme: false,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.delete);
+    await tester.pump();
+
+    expect(controller.document.plainText, 'aef');
+    expect(controller.selection?.isCollapsed, isTrue);
+    expect(controller.selection?.extent.offset, 1);
+  });
+
+  testWidgets('platform delete selector deletes an expanded selection', (
+    tester,
+  ) async {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'abcdef')],
+          ),
+        ],
+      ),
+      selection: textSelection('p1', 0, 1, 4),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WenzRichTextEditor(
+            controller: controller,
+            autofocus: true,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await _performPlatformSelectors(tester, <String>['deleteBackward:']);
+    await tester.pump();
+
+    expect(controller.document.plainText, 'aef');
+    expect(controller.selection?.isCollapsed, isTrue);
+    expect(controller.selection?.extent.offset, 1);
   });
 
   testWidgets('debug overlay renders selection tag when enabled', (
@@ -1099,6 +1551,681 @@ void main() {
     expect(controller.selection!.start.offset, 0);
     expect(controller.selection!.end.offset, 'hello world'.length);
   });
+
+  // B2: auto-scroll-on-drag. A mouse drag held near a viewport edge drives a
+  // per-frame ticker that keeps scrolling and re-extends the selection, so the
+  // user can drag-select past the visible area without moving the pointer.
+  group('auto-scroll on drag', () {
+    // A tall document: many short paragraphs whose combined height exceeds the
+    // 150px viewport, so the bottom edge sits mid-document and there is room
+    // to scroll down.
+    RichTextDocument tallDocument({int count = 30}) => RichTextDocument(
+          blocks: List<BlockNode>.generate(
+            count,
+            (i) => TextBlockNode(
+              id: 'p$i',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'block-$i-content')],
+            ),
+          ),
+        );
+
+    testWidgets('mouse drag held at the bottom edge keeps scrolling down', (
+      tester,
+    ) async {
+      final controller = WenzRichTextController(document: tallDocument());
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              height: 150,
+              child: WenzRichTextEditor(
+                controller: controller,
+                enableIme: false,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Find the editor's render box to derive a point inside the bottom edge
+      // band (within _autoScrollEdge = 48px of the viewport bottom).
+      final editorBox = tester.getRect(find.byType(WenzRichTextEditor));
+      // Start the drag near the top so the drag base is in an early block.
+      final dragStart = Offset(editorBox.left + 20, editorBox.top + 20);
+      // Hold the pointer just inside the bottom edge.
+      final edgePoint = Offset(editorBox.left + 20, editorBox.bottom - 10);
+
+      final gesture = await tester.startGesture(
+        dragStart,
+        kind: PointerDeviceKind.mouse,
+      );
+      // Move into the bottom edge band to arm the auto-scroll ticker.
+      await gesture.moveTo(edgePoint);
+      await tester.pump();
+
+      final scrollBefore = _scrollOffset(tester);
+      final extentBefore = controller.selection!.extent.blockIndex;
+
+      // Hold still and advance frames — the ticker should keep scrolling down
+      // even though the pointer is not moving.
+      for (var i = 0; i < 20; i++) {
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+
+      final scrollAfter = _scrollOffset(tester);
+      final extentAfter = controller.selection!.extent.blockIndex;
+      expect(scrollAfter, greaterThan(scrollBefore));
+      expect(extentAfter, greaterThan(extentBefore));
+
+      await gesture.up();
+    });
+
+    testWidgets('mouse drag held at the top edge keeps scrolling up', (
+      tester,
+    ) async {
+      // Seed the caret on a late block so the editor scrolls down on mount,
+      // giving us room to scroll back up.
+      final controller = WenzRichTextController(document: tallDocument());
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              height: 150,
+              child: WenzRichTextEditor(
+                controller: controller,
+                enableIme: false,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      // Jump the caret to a late block; the editor scrolls it into view.
+      controller.setSelection(collapsedTextSelection('p25', 25, 0));
+      await tester.pumpAndSettle();
+      final scrolledDown = _scrollOffset(tester);
+      expect(scrolledDown, greaterThan(0));
+
+      final editorBox = tester.getRect(find.byType(WenzRichTextEditor));
+      // Start the drag in the middle, then move up into the top edge band.
+      final dragStart = Offset(editorBox.left + 20, editorBox.center.dy);
+      final topEdge = Offset(editorBox.left + 20, editorBox.top + 10);
+
+      final gesture = await tester.startGesture(
+        dragStart,
+        kind: PointerDeviceKind.mouse,
+      );
+      await gesture.moveTo(topEdge);
+      await tester.pump();
+
+      final scrollBefore = _scrollOffset(tester);
+
+      for (var i = 0; i < 20; i++) {
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+
+      final scrollAfter = _scrollOffset(tester);
+      // Scrolled up: the offset decreased.
+      expect(scrollAfter, lessThan(scrollBefore));
+
+      await gesture.up();
+    });
+
+    testWidgets('releasing the pointer stops the auto-scroll ticker', (
+      tester,
+    ) async {
+      final controller = WenzRichTextController(document: tallDocument());
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              height: 150,
+              child: WenzRichTextEditor(
+                controller: controller,
+                enableIme: false,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final editorBox = tester.getRect(find.byType(WenzRichTextEditor));
+      final dragStart = Offset(editorBox.left + 20, editorBox.top + 20);
+      final edgePoint = Offset(editorBox.left + 20, editorBox.bottom - 10);
+
+      final gesture = await tester.startGesture(
+        dragStart,
+        kind: PointerDeviceKind.mouse,
+      );
+      await gesture.moveTo(edgePoint);
+      await tester.pump();
+      // Let the ticker scroll a bit.
+      for (var i = 0; i < 10; i++) {
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+      final scrollBeforeRelease = _scrollOffset(tester);
+
+      // Release the pointer — the ticker must stop.
+      await gesture.up();
+      await tester.pump();
+      final scrollAtRelease = _scrollOffset(tester);
+
+      // Advance more frames; the offset must not change once the pointer is up.
+      for (var i = 0; i < 15; i++) {
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+      final scrollAfterRelease = _scrollOffset(tester);
+
+      expect(scrollAtRelease, greaterThan(0));
+      expect(scrollAfterRelease, equals(scrollBeforeRelease));
+    });
+  });
+
+  testWidgets('PageDown moves the caret down by roughly one viewport', (
+    tester,
+  ) async {
+    // Three short paragraphs stacked in a 360px-tall viewport. With the caret
+    // at the top of p1, PageDown targets a Y one viewport below (clamped to the
+    // viewport bottom) which lands in the last block p3.
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'aaa')],
+          ),
+          TextBlockNode(
+            id: 'p2',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'bbb')],
+          ),
+          TextBlockNode(
+            id: 'p3',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'ccc')],
+          ),
+        ],
+      ),
+      selection: collapsedTextSelection('p1', 0, 0),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            height: 360,
+            child: WenzRichTextEditor(
+              controller: controller,
+              autofocus: true,
+              enableIme: false,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.pageDown);
+    await tester.pump();
+
+    expect(controller.selection, isNotNull);
+    expect(controller.selection!.extent.blockId, 'p3');
+    expect(controller.selection!.isCollapsed, isTrue);
+  });
+
+  testWidgets('PageUp moves the caret up by roughly one viewport', (
+    tester,
+  ) async {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'aaa')],
+          ),
+          TextBlockNode(
+            id: 'p2',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'bbb')],
+          ),
+          TextBlockNode(
+            id: 'p3',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'ccc')],
+          ),
+        ],
+      ),
+      // Caret at the end of the last block.
+      selection: collapsedTextSelection('p3', 2, 3),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            height: 360,
+            child: WenzRichTextEditor(
+              controller: controller,
+              autofocus: true,
+              enableIme: false,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.pageUp);
+    await tester.pump();
+
+    expect(controller.selection, isNotNull);
+    expect(controller.selection!.extent.blockId, 'p1');
+    expect(controller.selection!.isCollapsed, isTrue);
+  });
+
+  testWidgets('Shift+PageDown extends the selection keeping the anchor', (
+    tester,
+  ) async {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'aaa')],
+          ),
+          TextBlockNode(
+            id: 'p2',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'bbb')],
+          ),
+          TextBlockNode(
+            id: 'p3',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'ccc')],
+          ),
+        ],
+      ),
+      selection: collapsedTextSelection('p1', 0, 0),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            height: 360,
+            child: WenzRichTextEditor(
+              controller: controller,
+              autofocus: true,
+              enableIme: false,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.pageDown);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+    await tester.pump();
+
+    expect(controller.selection, isNotNull);
+    expect(controller.selection!.isCollapsed, isFalse);
+    // Anchor stays on p1; extent jumped down the document.
+    expect(controller.selection!.base.blockId, 'p1');
+    expect(controller.selection!.extent.blockId, 'p3');
+  });
+
+  testWidgets('PageDown at the document bottom stays at the end', (
+    tester,
+  ) async {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'aaa')],
+          ),
+        ],
+      ),
+      selection: collapsedTextSelection('p1', 0, 3),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            height: 360,
+            child: WenzRichTextEditor(
+              controller: controller,
+              autofocus: true,
+              enableIme: false,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.pageDown);
+    await tester.pump();
+
+    // Single short block: caret cannot move further down — stays at end.
+    expect(controller.selection!.extent.blockId, 'p1');
+    expect(controller.selection!.extent.offset, 3);
+  });
+
+  testWidgets('block renderer registry overrides block rendering', (
+    tester,
+  ) async {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'real text')],
+          ),
+          DividerBlockNode(id: 'd1'),
+        ],
+      ),
+    );
+    // A registry that replaces the divider renderer with a sentinel Container
+    // while keeping the built-in text renderer. The editor should honour the
+    // override only for the registered type.
+    final registry = BlockRendererRegistry();
+    WenzRichTextEditor.installDefaultRenderers(registry);
+    registry.register(
+      BlockType.divider,
+      (_, __) => const ColoredBox(
+        color: Color(0xFF123456),
+        child: SizedBox(height: 12, width: double.infinity),
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WenzRichTextEditor(
+            controller: controller,
+            blockRenderers: registry,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    // The override rendered for the divider.
+    expect(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is ColoredBox && widget.color == const Color(0xFF123456),
+      ),
+      findsOneWidget,
+    );
+    // The built-in text renderer still renders the paragraph (it uses RichText,
+    // not a plain Text widget).
+    expect(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is RichText && widget.text.toPlainText() == 'real text',
+      ),
+      findsOneWidget,
+    );
+    // The default Divider widget is no longer present.
+    expect(find.byType(Divider), findsNothing);
+  });
+
+  testWidgets(
+    'block renderer registry falls back for unregistered types',
+    (tester) async {
+      // An empty registry (no defaults installed): every type should fall back
+      // to the editor's plain-text fallback rather than crash.
+      final controller = WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'p1',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'fallback me')],
+            ),
+          ],
+        ),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: WenzRichTextEditor(
+              controller: controller,
+              blockRenderers: BlockRendererRegistry(),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.text('fallback me'), findsOneWidget);
+    },
+  );
+
+  // The virtualisation tests use a tall document (500 blocks) in the default
+  // 800x600 test viewport, so only a handful of blocks fit on screen. They
+  // assert that off-screen blocks are NOT built, and that the caret / selection
+  // endpoint blocks stay mounted via AutomaticKeepAlive.
+
+  group('virtualisation', () {
+    RichTextDocument bigDocument({int count = 500}) {
+      return RichTextDocument(
+        blocks: <BlockNode>[
+          for (var i = 0; i < count; i++)
+            TextBlockNode(
+              id: 'p$i',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'block-$i-content')],
+            ),
+        ],
+      );
+    }
+
+    testWidgets('only builds visible blocks for a large document', (
+      tester,
+    ) async {
+      final controller = WenzRichTextController(document: bigDocument());
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: WenzRichTextEditor(controller: controller),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      // The first (visible) block is built (text blocks render as RichText).
+      expect(_richText('block-0-content'), findsOneWidget);
+      // A far off-screen block is NOT built under virtualisation.
+      expect(_richText('block-499-content'), findsNothing);
+      expect(_richText('block-400-content'), findsNothing);
+    });
+
+    testWidgets('keeps the caret block alive when it is off-screen', (
+      tester,
+    ) async {
+      final controller = WenzRichTextController(
+        document: bigDocument(),
+        selection: collapsedTextSelection('p1', 0, 0),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: WenzRichTextEditor(
+              controller: controller,
+              // Direct key-event character insertion (no IME) keeps the test
+              // deterministic.
+              enableIme: false,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // p1 starts visible.
+      expect(_richText('block-1-content'), findsOneWidget);
+
+      // Scroll the viewport so p1 leaves the screen.
+      await tester.drag(
+        find.byType(WenzRichTextEditor),
+        const Offset(0, -600),
+      );
+      await tester.pumpAndSettle();
+
+      // p1 is off-screen now, but it owns the caret so AutomaticKeepAlive
+      // keeps it mounted (so the caret still paints / registers geometry).
+      expect(_richText('block-1-content'), findsOneWidget);
+    });
+
+    testWidgets('keeps both selection endpoints alive across a range', (
+      tester,
+    ) async {
+      // Both endpoints start within the viewport, then the range's far end is
+      // scrolled off-screen; it must stay mounted via keep-alive.
+      final start = collapsedTextSelection('p0', 0, 0).base;
+      final end = DocumentPosition(
+        blockId: 'p2',
+        blockIndex: 2,
+        path: PositionPath.blockText('p2'),
+        offset: 0,
+      );
+      final controller = WenzRichTextController(
+        document: bigDocument(),
+        selection: DocumentSelection(base: start, extent: end),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: WenzRichTextEditor(controller: controller),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(_richText('block-2-content'), findsOneWidget);
+
+      await tester.drag(
+        find.byType(WenzRichTextEditor),
+        const Offset(0, -800),
+      );
+      await tester.pumpAndSettle();
+
+      // p2 (an endpoint) stays mounted even though it scrolled off-screen.
+      expect(_richText('block-2-content'), findsOneWidget);
+    });
+
+    testWidgets('programmatic caret jump scrolls the caret into view', (
+      tester,
+    ) async {
+      // Start with the caret on a visible block near the top.
+      final controller = WenzRichTextController(
+        document: bigDocument(),
+        selection: collapsedTextSelection('p1', 0, 0),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              height: 300,
+              child: WenzRichTextEditor(
+                controller: controller,
+                enableIme: false,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Sanity: p400 is off-screen before the jump.
+      expect(_richText('block-400-content'), findsNothing);
+
+      // Jump the caret to block 400 programmatically.
+      controller.setSelection(collapsedTextSelection('p400', 400, 0));
+      await tester.pumpAndSettle();
+
+      // After the jump the caret block is scrolled into the viewport — the
+      // target block is now built and visible.
+      expect(_richText('block-400-content'), findsOneWidget);
+    });
+
+    testWidgets('programmatic caret jump moves the scroll offset forward', (
+      tester,
+    ) async {
+      final controller = WenzRichTextController(
+        document: bigDocument(),
+        selection: collapsedTextSelection('p0', 0, 0),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              height: 300,
+              child: WenzRichTextEditor(
+                controller: controller,
+                enableIme: false,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Find the Scrollable state to read the offset.
+      ScrollableState scrollable() => tester.state<ScrollableState>(
+            find.descendant(
+              of: find.byType(WenzRichTextEditor),
+              matching: find.byType(Scrollable),
+            ),
+          );
+      final offsetBefore = scrollable().position.pixels;
+      expect(offsetBefore, 0);
+
+      controller.setSelection(collapsedTextSelection('p450', 450, 0));
+      await tester.pumpAndSettle();
+
+      final offsetAfter = scrollable().position.pixels;
+      // Scrolled forward to bring the caret into view.
+      expect(offsetAfter, greaterThan(offsetBefore));
+    });
+  });
+}
+
+Future<void> _performPlatformSelectors(
+  WidgetTester tester,
+  List<String> selectors,
+) async {
+  await tester.binding.defaultBinaryMessenger.handlePlatformMessage(
+    SystemChannels.textInput.name,
+    SystemChannels.textInput.codec.encodeMethodCall(
+      MethodCall('TextInputClient.performSelectors', <dynamic>[
+        -1,
+        selectors,
+      ]),
+    ),
+    (_) {},
+  );
 }
 
 Future<void> _sendCtrlShortcut(
@@ -1133,6 +2260,32 @@ Finder _richTextIgnoringCaret(String text) {
   );
 }
 
+List<String> _underlinedTexts(InlineSpan span) {
+  final result = <String>[];
+
+  void visit(InlineSpan current, TextStyle? inheritedStyle) {
+    if (current is! TextSpan) {
+      return;
+    }
+    final style = current.style ?? inheritedStyle;
+    final text = current.text;
+    if (text != null &&
+        text.isNotEmpty &&
+        style?.decoration?.contains(TextDecoration.underline) == true) {
+      result.add(text);
+    }
+    final children = current.children;
+    if (children != null) {
+      for (final child in children) {
+        visit(child, style);
+      }
+    }
+  }
+
+  visit(span, null);
+  return result;
+}
+
 Future<void> _tapTextOffset(
   WidgetTester tester,
   String text,
@@ -1157,4 +2310,16 @@ Offset _globalTextOffset(WidgetTester tester, String text, int offset) {
   return tester.getTopLeft(finder) +
       local +
       Offset(1, painter.preferredLineHeight / 2);
+}
+
+/// The current scroll offset of the editor's scrollable. Used by the
+/// auto-scroll-on-drag tests to assert the ticker advances the offset.
+double _scrollOffset(WidgetTester tester) {
+  final scrollable = tester.state<ScrollableState>(
+    find.descendant(
+      of: find.byType(WenzRichTextEditor),
+      matching: find.byType(Scrollable),
+    ),
+  );
+  return scrollable.position.pixels;
 }

@@ -205,5 +205,92 @@ void main() {
       expect(session.document.plainText, 'ab');
       expect(session.canUndo, isFalse);
     });
+
+    test('formatText does not merge across consecutive style changes', () {
+      // Two FormatTextCommand on the same selection must each record their own
+      // undo step (bold then italic on the same range = 2 undos to revert).
+      final session = DocumentSession(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'p1',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'hello')],
+            ),
+          ],
+        ),
+        selection: textSelection('p1', 0, 0, 5),
+      );
+      final executor = CommandExecutor(session);
+
+      executor.execute(
+        const FormatTextCommand(attributes: TextAttributes(bold: true)),
+      );
+      executor.execute(
+        const FormatTextCommand(attributes: TextAttributes(italic: true)),
+      );
+
+      // Two separate undo steps: undo italic first, then bold.
+      expect(session.canUndo, isTrue);
+      session.undo();
+      // Bold should still be applied after reverting italic.
+      final afterFirstUndo = session.document.blocks.first as TextBlockNode;
+      expect(
+        (afterFirstUndo.content.first as TextRun).attributes.bold,
+        isTrue,
+      );
+      expect(session.canUndo, isTrue);
+      session.undo();
+      // Fully reverted: no bold, no italic.
+      final afterSecondUndo = session.document.blocks.first as TextBlockNode;
+      expect(
+        (afterSecondUndo.content.first as TextRun).attributes.bold,
+        isNull,
+      );
+      expect(session.canUndo, isFalse);
+    });
+
+    test('caret movement commands never enter history', () {
+      // Repeated caret moves (Left/Right/ByWord/ToBlockBoundary/Vertical) must
+      // not pollute the undo stack even though they break an active coalesce
+      // run. After a sequence of moves with no document mutation, canUndo must
+      // remain false.
+      final session = DocumentSession(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'p1',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'hello world')],
+            ),
+            TextBlockNode(
+              id: 'p2',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'foo')],
+            ),
+          ],
+        ),
+        selection: collapsedTextSelection('p1', 0, 0),
+      );
+      final executor = CommandExecutor(session);
+
+      expect(session.canUndo, isFalse);
+      executor.execute(
+        const MoveCaretCommand(CaretMovementDirection.forward),
+      );
+      executor.execute(
+        const MoveCaretByWordCommand(CaretMovementDirection.forward),
+      );
+      executor.execute(
+        const MoveCaretToBlockBoundaryCommand(CaretMovementDirection.forward),
+      );
+      executor.execute(
+        const MoveCaretVerticalCommand(CaretMovementDirection.forward),
+      );
+      executor.execute(const SelectAllCommand());
+
+      // No document mutation happened — history must still be empty.
+      expect(session.canUndo, isFalse);
+    });
   });
 }

@@ -151,6 +151,109 @@ void main() {
     expect(range.startColumn, 0);
     expect(range.endColumn, 2);
   });
+
+  group('lastChangedBlockIds', () {
+    RichTextDocument multiBlockDoc() => const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'p1',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'one')],
+            ),
+            TextBlockNode(
+              id: 'p2',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'two')],
+            ),
+            TextBlockNode(
+              id: 'p3',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'three')],
+            ),
+          ],
+        );
+
+    test('insert text marks only the edited block dirty', () {
+      final controller = WenzRichTextController(
+        document: multiBlockDoc(),
+        selection: collapsedTextSelection('p2', 1, 3),
+      );
+      controller.insertText('!');
+
+      expect(controller.lastChangedBlockIds, {'p2'});
+    });
+
+    test('enter splitting a block marks the original and new block dirty', () {
+      final controller = WenzRichTextController(
+        document: multiBlockDoc(),
+        selection: collapsedTextSelection('p2', 1, 1),
+      );
+      controller.enter(newBlockId: 'p2-next');
+
+      // p2 content changed and p2-next was added; p1/p3 untouched.
+      expect(controller.lastChangedBlockIds, {'p2', 'p2-next'});
+    });
+
+    test('a no-op text insert does not notify and leaves the set stale', () {
+      final controller = WenzRichTextController(
+        document: multiBlockDoc(),
+        selection: collapsedTextSelection('p1', 0, 3),
+      );
+      var notifyCount = 0;
+      controller.addListener(() => notifyCount++);
+      controller.insertText('');
+
+      // A no-op does not notify; lastChangedBlockIds is untouched.
+      expect(notifyCount, 0);
+      expect(controller.lastChangedBlockIds, isNull);
+    });
+
+    test('selection-only change marks no block dirty', () {
+      final controller = WenzRichTextController(
+        document: multiBlockDoc(),
+        selection: collapsedTextSelection('p1', 0, 0),
+      );
+      controller.setSelection(collapsedTextSelection('p3', 2, 5));
+
+      expect(controller.lastChangedBlockIds, <String>{});
+    });
+
+    test('undo / redo mark changed blocks dirty', () {
+      final controller = WenzRichTextController(
+        document: multiBlockDoc(),
+        selection: collapsedTextSelection('p2', 1, 3),
+      );
+      controller.insertText('!');
+      // Undo restores the document; p2 changed back.
+      controller.undo();
+      expect(controller.lastChangedBlockIds, {'p2'});
+      // Redo reapplies; p2 changed again.
+      controller.redo();
+      expect(controller.lastChangedBlockIds, {'p2'});
+    });
+
+    test('replaceDocument marks the changed blocks dirty', () {
+      final controller = WenzRichTextController(document: multiBlockDoc());
+      controller.replaceDocument(
+        const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'p1',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'one')],
+            ),
+            TextBlockNode(
+              id: 'p2',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'TWO-changed')],
+            ),
+          ],
+        ),
+      );
+      // p2 changed, p3 removed (not in the set), p1 unchanged.
+      expect(controller.lastChangedBlockIds, {'p2'});
+    });
+  });
 }
 
 RichTextDocument _tableDocument() {

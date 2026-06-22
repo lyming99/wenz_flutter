@@ -92,6 +92,98 @@ class MoveCaretCommand extends EditorCommand {
   }
 }
 
+/// Moves the caret across a block boundary vertically (Up/Down arrow).
+///
+/// This command handles ONLY cross-block transitions — it is the fallback the
+/// widget layer invokes when visual-line motion within a block reaches the
+/// block's first/last line. Semantics:
+/// - **Down** from the last visual line of a block → start of the next editable
+///   block.
+/// - **Up** from the first visual line of a block → end of the previous editable
+///   block.
+/// - For a table cell on the table's last/first row, it exits the table to the
+///   neighbouring block.
+///
+/// Intra-block visual-line motion (keeping the horizontal column across wrapped
+/// lines) is resolved in the widget layer using [TextLayoutService]; this
+/// command never moves within a block.
+class MoveCaretVerticalCommand extends EditorCommand {
+  const MoveCaretVerticalCommand(this.direction, {this.expandSelection = false});
+
+  final CaretMovementDirection direction;
+  final bool expandSelection;
+
+  @override
+  String get description => direction == CaretMovementDirection.forward
+      ? 'moveCaretDown'
+      : 'moveCaretUp';
+
+  @override
+  bool get breaksMergeRun => true;
+
+  @override
+  CommandResult execute(DocumentSession session) {
+    final selection = session.selection;
+    if (selection == null) {
+      return const CommandResult(recordHistory: false);
+    }
+    final extent = selection.extent;
+    final DocumentPosition? next;
+    if (extent.path.isTableCellText) {
+      // Only cross out of the table when the cell is on the boundary row.
+      if (!_atTableVerticalBoundary(session.document, extent, direction)) {
+        return const CommandResult(recordHistory: false);
+      }
+      next = direction == CaretMovementDirection.forward
+          ? _nextEditablePosition(session.document, extent.blockIndex)
+          : _previousEditablePosition(session.document, extent.blockIndex);
+    } else {
+      // Plain text/code blocks: the widget layer resolves visual-line motion
+      // (keeping the horizontal column across wrapped lines) and only calls
+      // this command once the caret reaches the block's first/last visual
+      // line. We trust that signal and cross to the neighbouring editable
+      // block unconditionally — the caret's *string* offset (e.g. mid-word on
+      // the last wrapped line) must NOT gate a boundary transition, otherwise
+      // a wrapped single-line block would be unreachable from above/below.
+      next = direction == CaretMovementDirection.forward
+          ? _nextEditablePosition(session.document, extent.blockIndex)
+          : _previousEditablePosition(session.document, extent.blockIndex);
+    }
+    if (next == null || next == extent) {
+      return const CommandResult(recordHistory: false);
+    }
+    if (expandSelection) {
+      return CommandResult(
+        selection: DocumentSelection(base: selection.base, extent: next),
+        recordHistory: false,
+      );
+    }
+    return CommandResult(
+      selection: DocumentSelection(base: next, extent: next),
+      recordHistory: false,
+    );
+  }
+}
+
+/// Whether [position] (a table cell) sits on the table's first row (Up) or last
+/// row (Down), i.e. vertical motion should leave the table for the neighbouring
+/// block.
+bool _atTableVerticalBoundary(
+  RichTextDocument document,
+  DocumentPosition position,
+  CaretMovementDirection direction,
+) {
+  final block = _blockAt(document, position.blockIndex);
+  final rowIndex = position.path.tableRowIndex;
+  if (block is! TableBlockNode || rowIndex == null) {
+    return false;
+  }
+  if (direction == CaretMovementDirection.forward) {
+    return rowIndex >= block.table.rowCount - 1;
+  }
+  return rowIndex <= 0;
+}
+
 class MoveTableCellCommand extends EditorCommand {
   const MoveTableCellCommand(this.direction);
 
@@ -133,10 +225,51 @@ class MoveTableCellCommand extends EditorCommand {
   }
 }
 
+/// Vertical caret motion inside a table: ArrowUp/ArrowDown move to the same
+/// column in the previous/next row. Unlike [MoveTableCellCommand] (Tab), this
+/// never inserts rows — at the top/bottom row it is a no-op (caret stays).
+/// Crossing covered (merged-away) cells skips to the visible anchor.
+class MoveTableCellVerticalCommand extends EditorCommand {
+  const MoveTableCellVerticalCommand(this.direction);
+
+  final CaretMovementDirection direction;
+
+  @override
+  String get description => direction == CaretMovementDirection.forward
+      ? 'moveTableCellDown'
+      : 'moveTableCellUp';
+
+  @override
+  bool get breaksMergeRun => true;
+
+  @override
+  CommandResult execute(DocumentSession session) {
+    final selection = session.selection;
+    if (selection == null || !selection.extent.path.isTableCellText) {
+      return const CommandResult(recordHistory: false);
+    }
+    final next = _verticalTableCellPosition(
+      session.document,
+      selection.extent,
+      direction,
+    );
+    if (next == null || next == selection.extent) {
+      return const CommandResult(recordHistory: false);
+    }
+    return CommandResult(
+      selection: DocumentSelection(base: next, extent: next),
+      recordHistory: false,
+    );
+  }
+}
+
 /// Moves the caret one word at a time (Ctrl/Cmd+Left/Right). A "word" boundary
-/// is a transition between whitespace/punctuation and word characters, using a
-/// simple C0/ASCII rule. Good enough for stage 1; Unicode segmentation can
-/// refine this later.
+/// is a transition between character classes — ASCII word chars (letter/digit/
+/// underscore), CJK ideographs, and everything else (whitespace/punctuation).
+/// CJK stops on every character, matching the platform word segmentation used
+/// by double-click ([TextPainter.getWordBoundary]); ASCII runs move as one
+/// word. This keeps keyboard and mouse word selection consistent for mixed
+/// CJK/Latin text.
 class MoveCaretByWordCommand extends EditorCommand {
   const MoveCaretByWordCommand(this.direction, {this.expandSelection = false});
 
@@ -331,20 +464,34 @@ DocumentPosition? _moveWordFrom(
   final length = text.length;
   var offset = position.offset.clamp(0, length).toInt();
   if (direction == CaretMovementDirection.forward) {
-    // Skip the current word run, then skip following whitespace.
-    while (offset < length && _isWordChar(text.codeUnitAt(offset))) {
+    // Move past the current run, then past any trailing separators. CJK chars
+    // each form their own one-character run, so this stops on every CJK glyph.
+    final startClass = offset < length ? _charClass(text.codeUnitAt(offset)) : _CharClass.separator;
+    while (offset < length &&
+        _charClass(text.codeUnitAt(offset)) == startClass &&
+        startClass != _CharClass.separator) {
       offset += 1;
     }
-    while (offset < length && !_isWordChar(text.codeUnitAt(offset))) {
+    while (offset < length &&
+        _charClass(text.codeUnitAt(offset)) == _CharClass.separator) {
       offset += 1;
     }
   } else {
-    // Move back over whitespace, then back over the preceding word run.
-    while (offset > 0 && !_isWordChar(text.codeUnitAt(offset - 1))) {
+    // Move back over separators, then back over the preceding run.
+    while (offset > 0 &&
+        _charClass(text.codeUnitAt(offset - 1)) == _CharClass.separator) {
       offset -= 1;
     }
-    while (offset > 0 && _isWordChar(text.codeUnitAt(offset - 1))) {
-      offset -= 1;
+    if (offset > 0) {
+      final runClass = _charClass(text.codeUnitAt(offset - 1));
+      // CJK: stop after one character. ASCII word run: consume the whole run.
+      while (offset > 0 &&
+          _charClass(text.codeUnitAt(offset - 1)) == runClass) {
+        offset -= 1;
+        if (runClass == _CharClass.cjk) {
+          break;
+        }
+      }
     }
   }
   if (offset == position.offset.clamp(0, length).toInt()) {
@@ -356,15 +503,38 @@ DocumentPosition? _moveWordFrom(
   return position.copyWith(offset: offset);
 }
 
-bool _isWordChar(int codeUnit) {
-  // ASCII letter / digit / underscore. Treat everything else (whitespace,
-  // punctuation, and non-ASCII which IME commonly emits as its own tokens) as
-  // a separator. This keeps word motion predictable; Unicode word segmentation
-  // can refine it later.
+/// Character classes used by word motion. CJK ideographs each form their own
+/// word (matching platform segmentation), ASCII word chars move as a run, and
+/// everything else is a separator.
+enum _CharClass { word, cjk, separator }
+
+_CharClass _charClass(int codeUnit) {
+  // ASCII letter / digit / underscore.
   final isLower = codeUnit >= 0x61 && codeUnit <= 0x7A;
   final isUpper = codeUnit >= 0x41 && codeUnit <= 0x5A;
   final isDigit = codeUnit >= 0x30 && codeUnit <= 0x39;
-  return isLower || isUpper || isDigit || codeUnit == 0x5F;
+  if (isLower || isUpper || isDigit || codeUnit == 0x5F) {
+    return _CharClass.word;
+  }
+  // Common CJK Unified Ideographs (+ extensions A/B/C/D/E/F), Hiragana,
+  // Katakana, Hangul, and CJK punctuation. Each CJK glyph is its own word.
+  if (_isCjkCodeUnit(codeUnit)) {
+    return _CharClass.cjk;
+  }
+  return _CharClass.separator;
+}
+
+bool _isCjkCodeUnit(int codeUnit) {
+  // CJK Unified Ideographs and adjacent blocks. Code units here are UTF-16;
+  // surrogate pairs (supplementary planes) are rare in everyday CJK text and
+  // are left to fall through as separators — matching TextPainter behaviour
+  // closely enough for word motion.
+  return (codeUnit >= 0x3400 && codeUnit <= 0x9FFF) || // CJK + Ext A
+      (codeUnit >= 0xA000 && codeUnit <= 0xD7AF) || // Hangul Syllables
+      (codeUnit >= 0xF900 && codeUnit <= 0xFAFF) || // CJK Compat Ideographs
+      (codeUnit >= 0xFF00 && codeUnit <= 0xFFEF) || // Halfwidth/Fullwidth
+      (codeUnit >= 0x3040 && codeUnit <= 0x30FF) || // Hiragana + Katakana
+      (codeUnit >= 0xAC00 && codeUnit <= 0xD7A3); // Hangul Syllables
 }
 
 DocumentPosition? _moveFrom(
@@ -583,6 +753,42 @@ DocumentPosition? _adjacentTableCellPosition(
     tableColumnIndex: nextColumn,
     offset: length,
   );
+}
+
+/// Vertical (ArrowUp/ArrowDown) motion within a table. Moves to the same
+/// column one row up/down, preserving the caret offset clamped to the target
+/// cell's length. When the target cell is `covered` (hidden behind a merged
+/// anchor), walks further until a visible cell is found; if none exists before
+/// the table edge, returns `null` (caret stays put).
+DocumentPosition? _verticalTableCellPosition(
+  RichTextDocument document,
+  DocumentPosition position,
+  CaretMovementDirection direction,
+) {
+  final block = _blockAt(document, position.blockIndex);
+  final rowIndex = position.path.tableRowIndex;
+  final columnIndex = position.path.tableColumnIndex;
+  if (block is! TableBlockNode || rowIndex == null || columnIndex == null) {
+    return null;
+  }
+  final step = direction == CaretMovementDirection.forward ? 1 : -1;
+  var nextRow = rowIndex + step;
+  while (nextRow >= 0 && nextRow < block.table.rowCount) {
+    final cell = block.table.cellAt(nextRow, columnIndex);
+    if (cell != null && !cell.covered) {
+      final length = _tableCellLengthAt(block, nextRow, columnIndex);
+      final offset = position.offset.clamp(0, length).toInt();
+      return DocumentPosition.tableCell(
+        tableBlockId: block.id,
+        blockIndex: position.blockIndex,
+        tableRowIndex: nextRow,
+        tableColumnIndex: columnIndex,
+        offset: offset,
+      );
+    }
+    nextRow += step;
+  }
+  return null;
 }
 
 DocumentSelection? _insertRowAfterLastCell(

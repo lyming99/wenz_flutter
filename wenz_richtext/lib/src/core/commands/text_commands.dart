@@ -2,6 +2,7 @@ import '../model/attributes.dart';
 import '../model/block_node.dart';
 import '../model/inline_node.dart';
 import '../model/rich_text_document.dart';
+import '../model/table_model.dart';
 import '../position/document_position.dart';
 import '../transaction/document_session.dart';
 import 'editor_command.dart';
@@ -119,7 +120,7 @@ class DeleteSelectionCommand extends EditorCommand {
     final start = target.start;
     final end = target.end;
     if (start.blockIndex != end.blockIndex) {
-      return _deleteAcrossTextBlocks(session, start, end);
+      return _deleteAcrossBlocks(session, start, end);
     }
     if (start.path != end.path) {
       return const CommandResult(recordHistory: false);
@@ -244,8 +245,7 @@ class DeleteForwardCommand extends EditorCommand {
 
   /// Repeated forward-delete coalesces into one undo step.
   @override
-  bool canMergeWith(EditorCommand previous) =>
-      previous is DeleteForwardCommand;
+  bool canMergeWith(EditorCommand previous) => previous is DeleteForwardCommand;
 
   @override
   CommandResult execute(DocumentSession session) {
@@ -298,34 +298,51 @@ class DeleteForwardCommand extends EditorCommand {
   }
 }
 
-CommandResult _deleteAcrossTextBlocks(
+CommandResult _deleteAcrossBlocks(
   DocumentSession session,
   DocumentPosition start,
   DocumentPosition end,
 ) {
-  final startBlock = _blockAt(session.document, start.blockIndex);
-  final endBlock = _blockAt(session.document, end.blockIndex);
-  if (startBlock is! TextBlockNode || endBlock is! TextBlockNode) {
+  final leading = _leadingRemainderForPosition(session, start);
+  final trailing = _trailingRemainderForPosition(session, end);
+  if (leading == null && trailing == null) {
     return const CommandResult(recordHistory: false);
   }
 
-  final startSplit = splitInline(startBlock.content, start.offset);
-  final endSplit = splitInline(endBlock.content, end.offset);
-  final mergedStartBlock = TextBlockNode(
-    id: startBlock.id,
-    type: startBlock.type,
-    attributes: startBlock.attributes,
-    content: mergeTextRuns(<InlineNode>[
-      ...startSplit.before,
-      ...endSplit.after,
-    ]),
-  );
-  final blocks = <BlockNode>[
+  final before = <BlockNode>[
     for (var i = 0; i < start.blockIndex; i++)
       session.document.blocks[i].copy(),
-    mergedStartBlock,
+  ];
+  final after = <BlockNode>[
     for (var i = end.blockIndex + 1; i < session.document.blocks.length; i++)
       session.document.blocks[i].copy(),
+  ];
+
+  final rebuilt = <BlockNode>[];
+  DocumentSelection? nextSelection;
+  final merged = _mergeBoundaryRemainders(leading, trailing);
+  if (merged != null) {
+    rebuilt.add(merged);
+    nextSelection = _collapsedAfterLeading(start, leading!, before.length);
+  } else {
+    if (leading != null) {
+      rebuilt.add(leading);
+      nextSelection = _collapsedAfterLeading(start, leading, before.length);
+    }
+    if (trailing != null) {
+      rebuilt.add(trailing);
+      nextSelection ??= _collapsedAtTrailingStart(
+        end,
+        trailing,
+        before.length + rebuilt.length - 1,
+      );
+    }
+  }
+
+  final blocks = <BlockNode>[
+    ...before,
+    ...rebuilt,
+    ...after,
   ];
   session.document = RichTextDocument(
     version: session.document.version,
@@ -333,8 +350,264 @@ CommandResult _deleteAcrossTextBlocks(
   );
 
   return CommandResult(
-    selection: DocumentSelection(base: start, extent: start),
+    selection: nextSelection,
   );
+}
+
+BlockNode? _leadingRemainderForPosition(
+  DocumentSession session,
+  DocumentPosition position,
+) {
+  final block = _blockAt(session.document, position.blockIndex);
+  if (block is TextBlockNode && position.path.isBlockText) {
+    final split = splitInline(block.content, position.offset);
+    return TextBlockNode(
+      id: block.id,
+      type: block.type,
+      attributes: block.attributes,
+      content: split.before,
+    );
+  }
+  if (block is CodeBlockNode && position.path.isBlockCode) {
+    final offset = position.offset.clamp(0, block.code.length).toInt();
+    return CodeBlockNode(
+      id: block.id,
+      code: block.code.substring(0, offset),
+      language: block.language,
+      attributes: block.attributes,
+    );
+  }
+  if (block is TableBlockNode && position.path.isTableCellText) {
+    return _trimTableAroundPosition(block, position, keepBefore: true);
+  }
+  return null;
+}
+
+BlockNode? _trailingRemainderForPosition(
+  DocumentSession session,
+  DocumentPosition position,
+) {
+  final block = _blockAt(session.document, position.blockIndex);
+  if (block is TextBlockNode && position.path.isBlockText) {
+    final split = splitInline(block.content, position.offset);
+    return TextBlockNode(
+      id: block.id,
+      type: block.type,
+      attributes: block.attributes,
+      content: split.after,
+    );
+  }
+  if (block is CodeBlockNode && position.path.isBlockCode) {
+    final offset = position.offset.clamp(0, block.code.length).toInt();
+    return CodeBlockNode(
+      id: block.id,
+      code: block.code.substring(offset),
+      language: block.language,
+      attributes: block.attributes,
+    );
+  }
+  if (block is TableBlockNode && position.path.isTableCellText) {
+    return _trimTableAroundPosition(block, position, keepBefore: false);
+  }
+  return null;
+}
+
+BlockNode? _mergeBoundaryRemainders(BlockNode? leading, BlockNode? trailing) {
+  if (leading is TextBlockNode && trailing is TextBlockNode) {
+    return TextBlockNode(
+      id: leading.id,
+      type: leading.type,
+      attributes: leading.attributes,
+      content: mergeTextRuns(<InlineNode>[
+        ...leading.content.map((node) => node.copy()),
+        ...trailing.content.map((node) => node.copy()),
+      ]),
+    );
+  }
+  if (leading is CodeBlockNode && trailing is CodeBlockNode) {
+    return CodeBlockNode(
+      id: leading.id,
+      code: leading.code + trailing.code,
+      language: leading.language,
+      attributes: leading.attributes,
+    );
+  }
+  return null;
+}
+
+DocumentSelection? _collapsedAfterLeading(
+  DocumentPosition originalStart,
+  BlockNode block,
+  int blockIndex,
+) {
+  DocumentPosition? position;
+  if (block is TextBlockNode && originalStart.path.isBlockText) {
+    position = DocumentPosition.text(
+      blockId: block.id,
+      blockIndex: blockIndex,
+      offset: inlineNodesLength(block.content),
+    );
+  } else if (block is CodeBlockNode && originalStart.path.isBlockCode) {
+    position = DocumentPosition.code(
+      blockId: block.id,
+      blockIndex: blockIndex,
+      offset: block.code.length,
+    );
+  } else if (block is TableBlockNode && originalStart.path.isTableCellText) {
+    final rowIndex = originalStart.path.tableRowIndex;
+    final columnIndex = originalStart.path.tableColumnIndex;
+    if (rowIndex != null && columnIndex != null) {
+      final length = _tableCellTextLength(block, rowIndex, columnIndex);
+      position = DocumentPosition.tableCell(
+        tableBlockId: block.id,
+        blockIndex: blockIndex,
+        tableRowIndex: rowIndex,
+        tableColumnIndex: columnIndex,
+        offset: originalStart.offset.clamp(0, length).toInt(),
+      );
+    }
+  }
+  return position == null
+      ? null
+      : DocumentSelection(base: position, extent: position);
+}
+
+DocumentSelection? _collapsedAtTrailingStart(
+  DocumentPosition originalEnd,
+  BlockNode block,
+  int blockIndex,
+) {
+  DocumentPosition? position;
+  if (block is TextBlockNode && originalEnd.path.isBlockText) {
+    position = DocumentPosition.text(
+      blockId: block.id,
+      blockIndex: blockIndex,
+      offset: 0,
+    );
+  } else if (block is CodeBlockNode && originalEnd.path.isBlockCode) {
+    position = DocumentPosition.code(
+      blockId: block.id,
+      blockIndex: blockIndex,
+      offset: 0,
+    );
+  } else if (block is TableBlockNode && originalEnd.path.isTableCellText) {
+    final rowIndex = originalEnd.path.tableRowIndex;
+    final columnIndex = originalEnd.path.tableColumnIndex;
+    if (rowIndex != null && columnIndex != null) {
+      position = DocumentPosition.tableCell(
+        tableBlockId: block.id,
+        blockIndex: blockIndex,
+        tableRowIndex: rowIndex,
+        tableColumnIndex: columnIndex,
+        offset: 0,
+      );
+    }
+  }
+  return position == null
+      ? null
+      : DocumentSelection(base: position, extent: position);
+}
+
+TableBlockNode _trimTableAroundPosition(
+  TableBlockNode tableBlock,
+  DocumentPosition position, {
+  required bool keepBefore,
+}) {
+  final rows = <List<TableCellNode>>[];
+  for (var rowIndex = 0; rowIndex < tableBlock.table.rows.length; rowIndex++) {
+    final row = tableBlock.table.rows[rowIndex];
+    final nextRow = <TableCellNode>[];
+    for (var columnIndex = 0; columnIndex < row.length; columnIndex++) {
+      final cell = row[columnIndex];
+      final cellPath = PositionPath.tableCellText(
+        tableBlock.id,
+        rowIndex,
+        columnIndex,
+      );
+      final compare = cellPath.compare(position.path);
+      if (compare == 0) {
+        nextRow.add(
+          _trimTableCellText(cell, position.offset, keepBefore: keepBefore),
+        );
+      } else if ((keepBefore && compare < 0) || (!keepBefore && compare > 0)) {
+        nextRow.add(copyCell(cell));
+      } else {
+        nextRow.add(_clearTableCell(cell));
+      }
+    }
+    rows.add(nextRow);
+  }
+  return TableBlockNode(
+    id: tableBlock.id,
+    attributes: tableBlock.attributes,
+    table: TableModel(
+      rows: rows,
+      columnAlignments: Map<int, String>.from(
+        tableBlock.table.columnAlignments,
+      ),
+      columnWidths: Map<int, double>.from(tableBlock.table.columnWidths),
+    ),
+  );
+}
+
+TableCellNode _trimTableCellText(
+  TableCellNode cell,
+  int offset, {
+  required bool keepBefore,
+}) {
+  final textBlock = cellTextBlock(cell);
+  final length = inlineNodesLength(textBlock.content);
+  final safeOffset = offset.clamp(0, length).toInt();
+  final split = splitInline(textBlock.content, safeOffset);
+  final nextContent = keepBefore ? split.before : split.after;
+  return TableCellNode(
+    id: cell.id,
+    blocks: <BlockNode>[
+      TextBlockNode(
+        id: textBlock.id,
+        type: textBlock.type,
+        attributes: textBlock.attributes,
+        content: nextContent,
+      ),
+    ],
+    rowSpan: cell.rowSpan,
+    columnSpan: cell.columnSpan,
+    isHeader: cell.isHeader,
+    backgroundColor: cell.backgroundColor,
+    covered: cell.covered,
+  );
+}
+
+TableCellNode _clearTableCell(TableCellNode cell) {
+  final textBlock = cellTextBlock(cell);
+  return TableCellNode(
+    id: cell.id,
+    blocks: <BlockNode>[
+      TextBlockNode(
+        id: textBlock.id,
+        type: textBlock.type,
+        attributes: textBlock.attributes,
+        content: const <InlineNode>[],
+      ),
+    ],
+    rowSpan: cell.rowSpan,
+    columnSpan: cell.columnSpan,
+    isHeader: cell.isHeader,
+    backgroundColor: cell.backgroundColor,
+    covered: cell.covered,
+  );
+}
+
+int _tableCellTextLength(
+  TableBlockNode tableBlock,
+  int rowIndex,
+  int columnIndex,
+) {
+  final cell = tableBlock.table.cellAt(rowIndex, columnIndex);
+  if (cell == null) {
+    return 0;
+  }
+  return inlineNodesLength(cellTextBlock(cell).content);
 }
 
 CommandResult _deleteTextRange(

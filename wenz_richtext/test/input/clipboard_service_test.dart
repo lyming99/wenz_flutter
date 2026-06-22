@@ -48,7 +48,7 @@ void main() {
       expect((paste.inlineRuns[1] as TextRun).attributes.bold, isNull);
     });
 
-    test('cross-block range falls back to plain text joined by newlines', () {
+    test('cross-block range produces a rich blocks payload with plain fallback', () {
       const doc = RichTextDocument(
         blocks: <BlockNode>[
           TextBlockNode(
@@ -79,7 +79,100 @@ void main() {
       );
       final payload = service.copy(doc, sel);
 
-      expect(payload, 'bc\nde');
+      expect(payload, isNotNull);
+      expect(payload!.startsWith(wenzClipboardPrefix), isTrue);
+      // Plain-text view of the payload matches the old behaviour.
+      expect(service.parse(payload).text, 'bc\nde');
+      // Parsed as a blocks payload carrying the block slice.
+      final paste = service.parse(payload);
+      expect(paste.isBlocks, isTrue);
+      expect(paste.blocks, hasLength(2));
+      expect((paste.blocks[0] as TextBlockNode).plainText, 'bc');
+      expect((paste.blocks[1] as TextBlockNode).plainText, 'de');
+    });
+
+    test('cross-block range preserves inline attributes per block', () {
+      const doc = RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[
+              TextRun(text: 'abc', attributes: TextAttributes(bold: true)),
+            ],
+          ),
+          TextBlockNode(
+            id: 'p2',
+            type: BlockType.paragraph,
+            content: <InlineNode>[
+              TextRun(text: 'def', attributes: TextAttributes(italic: true)),
+            ],
+          ),
+        ],
+      );
+      final sel = DocumentSelection(
+        base: DocumentPosition(
+          blockId: 'p1',
+          blockIndex: 0,
+          path: PositionPath.blockText('p1'),
+          offset: 1,
+        ),
+        extent: DocumentPosition(
+          blockId: 'p2',
+          blockIndex: 1,
+          path: PositionPath.blockText('p2'),
+          offset: 2,
+        ),
+      );
+      final payload = service.copy(doc, sel)!;
+      final paste = service.parse(payload);
+
+      expect(paste.isBlocks, isTrue);
+      final firstRun =
+          (paste.blocks[0] as TextBlockNode).content.first as TextRun;
+      final lastRun =
+          (paste.blocks[1] as TextBlockNode).content.first as TextRun;
+      expect(firstRun.attributes.bold, isTrue);
+      expect(lastRun.attributes.italic, isTrue);
+    });
+
+    test('cross-block range preserves block type and attributes', () {
+      const doc = RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'h1',
+            type: BlockType.heading,
+            attributes: BlockAttributes(level: 2),
+            content: <InlineNode>[TextRun(text: 'Title')],
+          ),
+          TextBlockNode(
+            id: 'q1',
+            type: BlockType.quote,
+            content: <InlineNode>[TextRun(text: 'quoted')],
+          ),
+        ],
+      );
+      final sel = DocumentSelection(
+        base: DocumentPosition(
+          blockId: 'h1',
+          blockIndex: 0,
+          path: PositionPath.blockText('h1'),
+          offset: 0,
+        ),
+        extent: DocumentPosition(
+          blockId: 'q1',
+          blockIndex: 1,
+          path: PositionPath.blockText('q1'),
+          offset: 6,
+        ),
+      );
+      final payload = service.copy(doc, sel)!;
+      final paste = service.parse(payload);
+
+      expect(paste.isBlocks, isTrue);
+      expect((paste.blocks[0] as TextBlockNode).type, BlockType.heading);
+      expect((paste.blocks[0] as TextBlockNode).attributes.level, 2);
+      expect((paste.blocks[1] as TextBlockNode).type, BlockType.quote);
     });
 
     test('code block range copies plain text slice', () {
@@ -289,6 +382,171 @@ void main() {
       expect(pastedRun.text, 'He');
       expect(pastedRun.attributes.bold, isTrue);
       expect(controller.selection?.extent.path.isTableCellText, isTrue);
+    });
+
+    test('cross-block copy then paste restores block structure', () {
+      // Source: two paragraphs with distinct inline attributes.
+      const source = RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 's1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[
+              TextRun(text: 'bo', attributes: TextAttributes(bold: true)),
+              TextRun(text: 'ld'),
+            ],
+          ),
+          TextBlockNode(
+            id: 's2',
+            type: BlockType.paragraph,
+            content: <InlineNode>[
+              TextRun(text: 'it', attributes: TextAttributes(italic: true)),
+            ],
+          ),
+        ],
+      );
+      final sel = DocumentSelection(
+        base: DocumentPosition(
+          blockId: 's1',
+          blockIndex: 0,
+          path: PositionPath.blockText('s1'),
+          offset: 0,
+        ),
+        extent: DocumentPosition(
+          blockId: 's2',
+          blockIndex: 1,
+          path: PositionPath.blockText('s2'),
+          offset: 2,
+        ),
+      );
+      final payload = service.copy(source, sel)!;
+
+      // Target: a single paragraph "ab" with the caret between a and b.
+      final controller = WenzRichTextController(
+        document: _doc('ab'),
+        selection: collapsedTextSelection('p1', 0, 1),
+      );
+      controller.pasteText(payload);
+
+      // Expectation: "a" + bold+plain merged into block 1, italic in block 2,
+      // then trailing "b" merged into the last block.
+      expect(controller.document.blocks, hasLength(2));
+      final first = controller.document.blocks[0] as TextBlockNode;
+      final second = controller.document.blocks[1] as TextBlockNode;
+      expect(first.plainText, 'abold');
+      expect(second.plainText, 'itb');
+      // bold preserved on the 'bo' slice, italic on the 'it' slice.
+      final boldRun = first.content.whereType<TextRun>().firstWhere(
+        (r) => r.text.contains('bo'),
+      );
+      expect(boldRun.attributes.bold, isTrue);
+      final italicRun = second.content.whereType<TextRun>().firstWhere(
+        (r) => r.text.contains('it'),
+      );
+      expect(italicRun.attributes.italic, isTrue);
+    });
+
+    test('cross-block paste into a selection replaces the selection', () {
+      const source = RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 's1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'X')],
+          ),
+          TextBlockNode(
+            id: 's2',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'Y')],
+          ),
+        ],
+      );
+      final sel = DocumentSelection(
+        base: DocumentPosition(
+          blockId: 's1',
+          blockIndex: 0,
+          path: PositionPath.blockText('s1'),
+          offset: 0,
+        ),
+        extent: DocumentPosition(
+          blockId: 's2',
+          blockIndex: 1,
+          path: PositionPath.blockText('s2'),
+          offset: 1,
+        ),
+      );
+      final payload = service.copy(source, sel)!;
+
+      // Target: "a[BB]c" — selection covers 'BB', caret-equivalent after paste
+      // should leave 'a' + X + (new block) Y + 'c'.
+      final controller = WenzRichTextController(
+        document: _doc('aBBc'),
+        selection: textSelection('p1', 0, 1, 3),
+      );
+      controller.pasteText(payload);
+
+      expect(controller.document.blocks, hasLength(2));
+      expect(controller.document.blocks[0].plainText, 'aX');
+      expect(controller.document.blocks[1].plainText, 'Yc');
+    });
+
+    test('cross-block copy-paste round-trips through cut', () {
+      const source = RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 's1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'hello')],
+          ),
+          TextBlockNode(
+            id: 's2',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'world')],
+          ),
+        ],
+      );
+      final sel = DocumentSelection(
+        base: DocumentPosition(
+          blockId: 's1',
+          blockIndex: 0,
+          path: PositionPath.blockText('s1'),
+          offset: 0,
+        ),
+        extent: DocumentPosition(
+          blockId: 's2',
+          blockIndex: 1,
+          path: PositionPath.blockText('s2'),
+          offset: 5,
+        ),
+      );
+      final payload = service.copy(source, sel)!;
+
+      // Cut removes the selected range; the payload still parses as blocks.
+      final cutController = WenzRichTextController(
+        document: source,
+        selection: sel,
+      );
+      final cutPayload = cutController.cutSelection()!;
+      expect(service.parse(cutPayload).isBlocks, isTrue);
+
+      // Pasting elsewhere restores the two blocks.
+      final target = WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 't1',
+              type: BlockType.paragraph,
+              content: <InlineNode>[],
+            ),
+          ],
+        ),
+        selection: collapsedTextSelection('t1', 0, 0),
+      );
+      target.pasteText(cutPayload);
+      expect(target.document.blocks, hasLength(2));
+      expect(target.document.blocks[0].plainText, 'hello');
+      expect(target.document.blocks[1].plainText, 'world');
+      expect(payload, isNotNull);
     });
   });
 }

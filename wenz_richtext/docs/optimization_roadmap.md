@@ -138,7 +138,7 @@
 
 周期：3 周
 
-状态：基础编辑、选择、行列操作、列宽/表头/背景色、模型级合并/拆分、Tab 末尾新增行和 JSON round-trip 已接入；当前 Flutter `Table` 渲染下，合并单元格优先保证结构保存、撤销重做和被覆盖单元格隐藏，完整跨行/跨列视觉布局留到 renderer 重构阶段继续增强。
+状态：已完成。基础编辑、选择、行列操作、列宽/表头/背景色、模型级合并/拆分、Tab 末尾新增行、Enter cell 内换行、Left/Right 跨 cell 与 Up/Down 同列跨行导航、JSON round-trip 均已接入并覆盖单测/widget 测试。当前 Flutter `Table` 渲染下，合并单元格优先保证结构保存、撤销重做和被覆盖单元格隐藏；跨行/跨列的视觉占满（origin cell 真正横跨多列多行）留到 renderer 重构阶段继续增强。
 
 任务：
 
@@ -162,25 +162,25 @@
 
 任务：
 
-- 抽象 block renderer registry。
-- 大文档虚拟化渲染：
-  - 只布局可视区域附近 block。
-  - selection 跨不可见区域时保持状态正确。
-- 增量 rebuild：
-  - block-level dirty 标记。
-  - controller change metadata。
-- 性能基准：
-  - 1k blocks。
-  - 10k inline runs。
-  - 大表格。
-- 避免每帧重复构建 TextPainter。
+- ~~抽象 block renderer registry。~~ ✅ 已完成（`BlockRendererRegistry` / `BlockRenderContext` / `WenzRichTextEditor.installDefaultRenderers`，详见 `docs/rendering.md`）。
+- ~~大文档虚拟化渲染：~~ ✅ 已完成（`ListView.separated` 惰性构建 + `AutomaticKeepAlive` 保活光标/选区端点 block；选区模型按 blockIndex 工作，跨不可见区域状态正确；已知边界见 `docs/rendering.md`）。
+  - ~~只布局可视区域附近 block。~~
+  - ~~selection 跨不可见区域时保持状态正确。~~
+- ~~增量 rebuild：~~ ✅ 已完成（controller 通过 `lastChangedBlockIds` 暴露变更 block id 集，编辑器 `_KeepAliveBlock` 仅在内容变更或选区/光标/IME 命中时重建，未变更 block 复用缓存 child 跳过 span 重建）。
+  - ~~block-level dirty 标记。~~
+  - ~~controller change metadata。~~
+- ~~性能基准：~~ ✅ 已完成（`test/benchmarks/editor_benchmarks.dart`，覆盖 1k blocks / 10k inline runs / 50×20 大表格，宽松 guard + 打印 µs，与常规 `*_test.dart` 套件隔离，手动运行）。
+  - ~~1k blocks。~~
+  - ~~10k inline runs。~~
+  - ~~大表格。~~
+- ~~避免每帧重复构建 TextPainter。~~ ✅ 已完成（`SharedTextLayoutCache` 跨 remount 复用已布局 painter，脏 block 变更时失效；benchmark 含 scroll/remount 场景）。
 
 验收标准：
 
-- 1k 段文档滚动不卡顿。
-- 连续输入平均帧耗时稳定。
-- block 局部变更不会触发整篇文档重建。
-- 有可重复运行的 benchmark。
+- ~~1k 段文档滚动不卡顿。~~ ✅（虚拟化后实测 ~30–80µs/帧）
+- ~~连续输入平均帧耗时稳定。~~ ✅（增量 rebuild + 虚拟化）
+- ~~block 局部变更不会触发整篇文档重建。~~ ✅（`lastChangedBlockIds` + `_KeepAliveBlock` 缓存）
+- ~~有可重复运行的 benchmark。~~ ✅
 
 ## 阶段 6：导入导出与兼容
 

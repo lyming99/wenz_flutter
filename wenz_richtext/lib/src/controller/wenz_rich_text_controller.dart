@@ -1,6 +1,13 @@
-import 'package:flutter/foundation.dart';
+import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
+
+import '../codecs/document_errors.dart';
+import '../codecs/html_codec.dart';
 import '../codecs/legacy_wen_json_codec.dart';
+import '../codecs/markdown_codec.dart';
+import '../codecs/plain_text_codec.dart';
 import '../codecs/rich_text_json_codec.dart';
 import '../core/commands/block_commands.dart';
 import '../core/commands/block_structure_commands.dart';
@@ -22,6 +29,7 @@ import '../core/transaction/document_session.dart';
 import '../history/history_manager.dart';
 import '../input/clipboard_service.dart';
 import '../input/composition_state.dart';
+import '../widgets/media_resolver.dart';
 
 class WenzRichTextController extends ChangeNotifier {
   WenzRichTextController({
@@ -30,22 +38,45 @@ class WenzRichTextController extends ChangeNotifier {
     HistoryManager? history,
     RichTextJsonCodec richTextJsonCodec = const RichTextJsonCodec(),
     LegacyWenJsonCodec legacyWenJsonCodec = const LegacyWenJsonCodec(),
+    PlainTextCodec plainTextCodec = const PlainTextCodec(),
+    MarkdownCodec markdownCodec = const MarkdownCodec(),
+    HtmlCodec htmlCodec = const HtmlCodec(),
     this.clipboardService = const ClipboardService(),
+    this.mediaResolver,
   })  : session = DocumentSession(
           document: document,
           selection: selection,
           history: history,
         ),
         _richTextJsonCodec = richTextJsonCodec,
-        _legacyWenJsonCodec = legacyWenJsonCodec {
+        _legacyWenJsonCodec = legacyWenJsonCodec,
+        _plainTextCodec = plainTextCodec,
+        _markdownCodec = markdownCodec,
+        _htmlCodec = htmlCodec {
     _executor = CommandExecutor(session);
   }
 
   final DocumentSession session;
   final RichTextJsonCodec _richTextJsonCodec;
   final LegacyWenJsonCodec _legacyWenJsonCodec;
+  final PlainTextCodec _plainTextCodec;
+  final MarkdownCodec _markdownCodec;
+  final HtmlCodec _htmlCodec;
   final ClipboardService clipboardService;
   late final CommandExecutor _executor;
+
+  /// Optional [MediaResolver] held on the controller for business-layer
+  /// reachability (e.g. an insert helper that uploads then writes the resulting
+  /// URL into `assetId`/`file` can reference the same resolver instance). The
+  /// editor widget still needs the resolver passed via
+  /// `WenzRichTextEditor.mediaResolver` to actually drive rendering — this
+  /// field is a convenience handle, not a render hook on its own.
+  final MediaResolver? mediaResolver;
+
+  /// The editor widget's focus node, injected from the widget layer. `null`
+  /// until the editor is mounted (or when no editor is attached, e.g. in pure
+  /// logic tests). [requestFocus] uses it to move focus to the editor.
+  FocusNode? _focusNode;
 
   /// Named-command registry. Plugins register commands here and invoke them
   /// via [executeCommand] without modifying the controller's typed surface.
@@ -54,6 +85,38 @@ class WenzRichTextController extends ChangeNotifier {
   /// Middleware list on the executor. Add [CommandMiddleware]s to intercept
   /// every command (before/after hooks).
   List<CommandMiddleware> get middlewares => _executor.middlewares;
+
+  /// Invoked synchronously **before** [notifyListeners] whenever the document
+  /// content changes (typing, format, block structure, undo/redo, replace,
+  /// paste). Receives the committed document. Selection-only and
+  /// composition-only mutations do **not** trigger this — use
+  /// [onSelectionChanged] for those.
+  ///
+  /// Avoid mutating the document from inside the callback (it runs during the
+  /// controller's own mutation); read state and schedule follow-up work
+  /// instead.
+  ValueChanged<RichTextDocument>? onChanged;
+
+  /// Invoked synchronously **before** [notifyListeners] whenever the selection
+  /// changes, whether from a command, a programmatic [setSelection], undo/redo,
+  /// or replace. Receives the new selection (`null` when cleared). Use this to
+  /// drive toolbar state, inspector panels, or analytics.
+  ///
+  /// Avoid mutating the document from inside the callback.
+  ValueChanged<DocumentSelection?>? onSelectionChanged;
+
+  /// Invoked synchronously **before** [notifyListeners] right after a command
+  /// produced a non-noop [ChangeSet]. Receives the originating command and the
+  /// committed change. Fires for both typed [execute] and registry-driven
+  /// [executeCommand] paths. Undo/redo do **not** trigger this (there is no
+  /// originating command object) — they still trigger [onChanged] /
+  /// [onSelectionChanged].
+  ///
+  /// Prefer [CommandMiddleware.after] for cross-cutting concerns (validation
+  /// logging, analytics) that must observe *every* command including those
+  /// dispatched by plugins. This callback is the business-integration layer:
+  /// it fires for commands run through this controller's typed surface.
+  void Function(EditorCommand command, ChangeSet change)? onCommandExecuted;
 
   /// Active IME composition region, or `null` when none. Driven by the
   /// TextInputClient bridge; not part of undo/redo history.
@@ -68,11 +131,55 @@ class WenzRichTextController extends ChangeNotifier {
 
   bool get canRedo => session.canRedo;
 
+  /// Block ids whose content changed in the most recent mutation
+  /// ([execute], [executeCommand], [undo], [redo], [replaceDocument]), plus the
+  /// ids of blocks newly added in that mutation. Consumers (e.g. the editor
+  /// widget) use this to skip rebuilding blocks that did not change.
+  ///
+  /// The set is computed by diffing the previous document against the new one
+  /// (see [_changedBlockIds]). It is reset to empty for selection-only /
+  /// composition-only notifications. `null` means "everything may have changed"
+  /// (e.g. after [replaceDocument] with no prior snapshot) — callers should
+  /// treat that as a full rebuild.
+  Set<String>? get lastChangedBlockIds => _lastChangedBlockIds;
+  Set<String>? _lastChangedBlockIds;
+
+  /// Requests keyboard focus for the editor, if one is attached. No-op when no
+  /// [WenzRichTextEditor] is bound to this controller (e.g. in headless logic
+  /// tests). The focus node is injected by the widget on mount.
+  ///
+  /// Returns `true` when focus was requested on an attached node, `false`
+  /// otherwise.
+  bool requestFocus() {
+    final node = _focusNode;
+    if (node == null) {
+      return false;
+    }
+    node.requestFocus();
+    return true;
+  }
+
+  /// Whether the editor currently has focus. `false` when no editor is
+  /// attached.
+  bool get hasFocus => _focusNode?.hasFocus ?? false;
+
+  /// Injected by the editor widget so [requestFocus] / [hasFocus] can drive the
+  /// editor's [FocusNode]. Internal; callers outside the package should not
+  /// invoke this — the [WenzRichTextEditor] widget manages it on mount/dispose.
+  @internal
+  void attachFocusNode(FocusNode? node) {
+    _focusNode = node;
+  }
+
   void setSelection(DocumentSelection? selection) {
-    if (session.selection == selection) {
+    final previous = session.selection;
+    if (previous == selection) {
       return;
     }
     session.selection = selection;
+    // Selection-only change: no block content changed.
+    _lastChangedBlockIds = <String>{};
+    onSelectionChanged?.call(selection);
     notifyListeners();
   }
 
@@ -86,6 +193,8 @@ class WenzRichTextController extends ChangeNotifier {
       return;
     }
     _compositionState = next;
+    // Composition-only change: no block content changed.
+    _lastChangedBlockIds = <String>{};
     notifyListeners();
   }
 
@@ -94,15 +203,83 @@ class WenzRichTextController extends ChangeNotifier {
     DocumentSelection? selection,
     bool clearHistory = true,
   }) {
+    final before = session.document;
     session.replaceDocument(document, nextSelection: selection);
     if (clearHistory) {
       session.history.clear();
     }
+    _lastChangedBlockIds = _changedBlockIds(before, session.document);
+    onChanged?.call(session.document);
     notifyListeners();
   }
 
   String toJson() => _richTextJsonCodec.encode(document);
 
+  /// Exports the document as plain text with paragraphs separated by blank
+  /// lines. Non-text blocks (image/video/file/divider) emit a short sentinel
+  /// line so their position in the flow is still visible. See
+  /// [PlainTextCodec] for the format and options.
+  String toPlainText() => _plainTextCodec.encode(document);
+
+  /// Exports the document as GitHub-Flavored Markdown. See [MarkdownCodec]
+  /// for the supported block/inline syntax matrix.
+  String toMarkdown() => _markdownCodec.encode(document);
+
+  /// Exports the document as an HTML fragment. See [HtmlCodec] for the
+  /// supported tag matrix.
+  String toHtml() => _htmlCodec.encode(document);
+
+  /// Loads a document from an HTML fragment, replacing the current document,
+  /// clearing history, and firing [onChanged]. HTML5's leniency means
+  /// unrecognised / malformed content falls back to paragraphs, so this does
+  /// not throw for content. For a no-throw entry point, use [tryLoadHtml].
+  void loadHtml(String source, {DocumentSelection? selection}) {
+    replaceDocument(_htmlCodec.decode(source), selection: selection);
+  }
+
+  /// No-throw variant of [loadHtml]. Returns a [TryLoadResult] (`ok` /
+  /// `document?` / `error?`); on failure the current document, selection,
+  /// history, and change callbacks are untouched.
+  TryLoadResult tryLoadHtml(String source, {DocumentSelection? selection}) {
+    try {
+      final nextDocument = _htmlCodec.decode(source);
+      replaceDocument(nextDocument, selection: selection);
+      return TryLoadResult.ok(nextDocument);
+    } on Object catch (error) {
+      return TryLoadResult.failed(error);
+    }
+  }
+
+  /// Loads a document from GitHub-Flavored Markdown, replacing the current
+  /// document, clearing history, and firing [onChanged]. Unrecognised lines
+  /// fall back to paragraphs (Markdown's usual leniency), so this does not
+  /// throw for content. For a no-throw entry point symmetric with
+  /// [tryLoadJson], use [tryLoadMarkdown].
+  void loadMarkdown(String source, {DocumentSelection? selection}) {
+    replaceDocument(_markdownCodec.decode(source), selection: selection);
+  }
+
+  /// No-throw variant of [loadMarkdown]. Returns a [TryLoadResult] (`ok` /
+  /// `document?` / `error?`); on failure the current document, selection,
+  /// history, and change callbacks are untouched.
+  TryLoadResult tryLoadMarkdown(String source, {DocumentSelection? selection}) {
+    try {
+      final nextDocument = _markdownCodec.decode(source);
+      replaceDocument(nextDocument, selection: selection);
+      return TryLoadResult.ok(nextDocument);
+    } on Object catch (error) {
+      return TryLoadResult.failed(error);
+    }
+  }
+
+  /// Loads a document from JSON, replacing the current document, clearing
+  /// history, and firing [onChanged]. Throws [DocumentDecodeException] when
+  /// [source] is malformed (the originating error is preserved on
+  /// [DocumentDecodeException.raw]); the current document and selection are
+  /// left untouched on failure.
+  ///
+  /// Set [legacy] to `true` to decode legacy `wenz_editor` JSON via the
+  /// [LegacyWenJsonCodec]. For a no-throw entry point, use [tryLoadJson].
   void loadJson(
     String source, {
     bool legacy = false,
@@ -114,35 +291,100 @@ class WenzRichTextController extends ChangeNotifier {
     replaceDocument(nextDocument, selection: selection);
   }
 
+  /// No-throw variant of [loadJson]. Decodes [source] and, on success,
+  /// replaces the current document (firing [onChanged] exactly like
+  /// [loadJson]). On failure returns a [TryLoadResult] with `ok: false` and
+  /// the originating error on [TryLoadResult.error]; the current document,
+  /// selection, history, and change callbacks are **not** touched.
+  ///
+  /// Use this from UI code paths that must not throw (e.g. paste/open-file
+  /// handlers); use [loadJson] when you prefer typed exception handling.
+  TryLoadResult tryLoadJson(
+    String source, {
+    bool legacy = false,
+    DocumentSelection? selection,
+  }) {
+    try {
+      final nextDocument = legacy
+          ? _legacyWenJsonCodec.decode(source)
+          : _richTextJsonCodec.decode(source);
+      replaceDocument(nextDocument, selection: selection);
+      return TryLoadResult.ok(nextDocument);
+    } on Object catch (error) {
+      return TryLoadResult.failed(error);
+    }
+  }
+
   ChangeSet execute(EditorCommand command) {
+    final before = session.document;
     final change = _executor.execute(command);
-    if (!change.isNoop || change.selectionBefore != change.selectionAfter) {
+    final docChanged = !change.isNoop;
+    final selectionChanged = change.selectionBefore != change.selectionAfter;
+    if (docChanged || selectionChanged) {
+      _lastChangedBlockIds = _changedBlockIds(before, change.after);
+      if (docChanged) {
+        onChanged?.call(change.after);
+      }
+      if (selectionChanged) {
+        onSelectionChanged?.call(change.selectionAfter);
+      }
+      onCommandExecuted?.call(command, change);
       notifyListeners();
     }
     return change;
   }
 
   /// Executes a named command registered via [registry]. Lets plugins run
-  /// commands without a typed controller method. Throws if [name] is unknown.
+  /// commands without a typed controller method. Throws
+  /// [UnknownCommandException] if [name] is not registered (use
+  /// [tryExecuteCommand] for a no-throw variant).
   ChangeSet executeCommand(String name, Map<String, Object?> args) {
-    final change = registry.execute(name, args, _executor);
-    if (!change.isNoop || change.selectionBefore != change.selectionAfter) {
-      notifyListeners();
+    // Build the command via the registry, then route through [execute] so the
+    // command/selection/document callbacks fire from a single dispatch point.
+    return execute(registry.build(name, args));
+  }
+
+  /// No-throw variant of [executeCommand]. Returns `true` when the command
+  /// was built and executed, `false` when [name] is unknown or argument
+  /// decoding failed — in which case the document, selection, and change
+  /// callbacks are untouched. Prefer [executeCommand] when you want unknown
+  /// names to surface as an exception.
+  bool tryExecuteCommand(String name, Map<String, Object?> args) {
+    try {
+      execute(registry.build(name, args));
+      return true;
+    } on UnknownCommandException {
+      return false;
+    } on DocumentDecodeException {
+      return false;
     }
-    return change;
   }
 
   bool undo() {
+    final selectionBefore = session.selection;
+    final before = session.document;
     final changed = session.undo();
     if (changed) {
+      _lastChangedBlockIds = _changedBlockIds(before, session.document);
+      onChanged?.call(session.document);
+      if (session.selection != selectionBefore) {
+        onSelectionChanged?.call(session.selection);
+      }
       notifyListeners();
     }
     return changed;
   }
 
   bool redo() {
+    final selectionBefore = session.selection;
+    final before = session.document;
     final changed = session.redo();
     if (changed) {
+      _lastChangedBlockIds = _changedBlockIds(before, session.document);
+      onChanged?.call(session.document);
+      if (session.selection != selectionBefore) {
+        onSelectionChanged?.call(session.selection);
+      }
       notifyListeners();
     }
     return changed;
@@ -195,12 +437,41 @@ class WenzRichTextController extends ChangeNotifier {
     );
   }
 
+  /// Vertical ArrowUp/ArrowDown navigation inside a table cell. Moves to the
+  /// same column in the adjacent visible row; a no-op at the table edge.
+  ChangeSet moveTableCellVertical({required bool forward}) {
+    return execute(
+      MoveTableCellVerticalCommand(
+        forward
+            ? CaretMovementDirection.forward
+            : CaretMovementDirection.backward,
+      ),
+    );
+  }
+
   ChangeSet moveCaretByWord({
     required bool forward,
     bool expandSelection = false,
   }) {
     return execute(
       MoveCaretByWordCommand(
+        forward
+            ? CaretMovementDirection.forward
+            : CaretMovementDirection.backward,
+        expandSelection: expandSelection,
+      ),
+    );
+  }
+
+  /// Moves the caret vertically (Up/Down arrow). At a block boundary it crosses
+  /// to the neighbouring editable block; within a block it moves to the block
+  /// end (Down) or start (Up). See [MoveCaretVerticalCommand].
+  ChangeSet moveCaretVertical({
+    required bool forward,
+    bool expandSelection = false,
+  }) {
+    return execute(
+      MoveCaretVerticalCommand(
         forward
             ? CaretMovementDirection.forward
             : CaretMovementDirection.backward,
@@ -320,14 +591,19 @@ class WenzRichTextController extends ChangeNotifier {
   }
 
   /// Pastes a clipboard payload at the current selection. Rich inline payloads
-  /// preserve attributes; plain text is split on newlines — the first line
-  /// inserts into the current block, each subsequent line creates a new block
-  /// via [EnterCommand].
+  /// preserve attributes; rich blocks payloads (cross-block copy) restore the
+  /// block structure; plain text is split on newlines — the first line inserts
+  /// into the current block, each subsequent line creates a new block via
+  /// [EnterCommand].
   void pasteText(String raw) {
     if (raw.isEmpty) {
       return;
     }
     final paste = clipboardService.parse(raw);
+    if (paste.isBlocks) {
+      execute(PasteBlocksCommand(paste.blocks, newBlockId: 'paste-${_pasteBlockCounter()}'));
+      return;
+    }
     if (paste.isRich) {
       _pasteInline(paste.inlineRuns);
       notifyListeners();
@@ -790,4 +1066,67 @@ class WenzRichTextController extends ChangeNotifier {
       ),
     );
   }
+
+  /// Diffs [before] against [after] and returns the set of block ids whose
+  /// rendering must refresh: every block id present in [after] whose
+  /// lightweight fingerprint changed or that is newly added. Removed block ids
+  /// are not included (there is nothing left to rebuild for them). Returns an
+  /// empty set when the two documents are content-identical.
+  ///
+  /// The fingerprint is intentionally cheap (`type` + `plainText` + attributes
+  /// JSON) — it catches text, structure, and attribute edits without a full
+  /// deep compare or [BlockNode.toJson] on every block. It may produce a false
+  /// positive (rebuild a block that did not visually change) but never a false
+  /// negative, so correctness is preserved.
+  Set<String> _changedBlockIds(RichTextDocument before, RichTextDocument after) {
+    final beforeFingerprints = <String, String>{
+      for (final block in before.blocks) block.id: _blockFingerprint(block),
+    };
+    final changed = <String>{};
+    for (final block in after.blocks) {
+      final previous = beforeFingerprints[block.id];
+      if (previous == null || previous != _blockFingerprint(block)) {
+        changed.add(block.id);
+      }
+    }
+    return changed;
+  }
+
+  String _blockFingerprint(BlockNode block) {
+    // The full JSON shape (including inline content + run attributes, table
+    // cells, code language, media metadata) is the fingerprint. A coarser
+    // fingerprint based only on type + plainText would miss inline attribute
+    // changes (e.g. formatText toggling bold) and fail to mark the block dirty
+    // for incremental rebuild, leaving stale spans rendered.
+    return jsonEncode(block.toJson());
+  }
+}
+
+/// Outcome of [WenzRichTextController.tryLoadJson]. Immutable; read [ok] to
+/// branch, then either [document] (on success) or [error] (on failure). The
+/// [error] is the originating exception (typically a
+/// [DocumentDecodeException]) preserved verbatim so callers can inspect it.
+class TryLoadResult {
+  const TryLoadResult._({
+    required this.ok,
+    this.document,
+    this.error,
+  });
+
+  /// Successful result carrying the decoded [document].
+  factory TryLoadResult.ok(RichTextDocument document) =>
+      TryLoadResult._(ok: true, document: document);
+
+  /// Failed result carrying the originating [error].
+  factory TryLoadResult.failed(Object error) =>
+      TryLoadResult._(ok: false, error: error);
+
+  /// Whether decoding succeeded.
+  final bool ok;
+
+  /// The decoded document. Non-null when [ok] is `true`.
+  final RichTextDocument? document;
+
+  /// The originating error. Non-null when [ok] is `false`.
+  final Object? error;
 }

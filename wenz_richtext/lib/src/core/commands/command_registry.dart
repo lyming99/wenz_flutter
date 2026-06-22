@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import '../../codecs/document_errors.dart';
 import '../position/document_position.dart';
 import '../transaction/change_set.dart';
 import 'command_executor.dart';
@@ -24,7 +25,9 @@ class CommandDescriptor {
 /// Maps command names to [CommandDescriptor]s and dispatches execution.
 ///
 /// Held by [WenzRichTextController]; the core executor is unchanged. Unknown
-/// names throw an [ArgumentError] so callers can fall back to typed methods.
+/// names throw an [UnknownCommandException] so callers can fall back to typed
+/// methods (or use `WenzRichTextController.tryExecuteCommand` for a no-throw
+/// entry point).
 class CommandRegistry {
   CommandRegistry();
 
@@ -39,6 +42,19 @@ class CommandRegistry {
   /// Whether a command named [name] is registered.
   bool contains(String name) => _descriptors.containsKey(name);
 
+  /// Builds the command named [name] from [args]. Throws
+  /// [UnknownCommandException] if [name] is not registered. Exposed so callers
+  /// (e.g. [WenzRichTextController]) can route the resulting [EditorCommand]
+  /// through their own execution path while still benefiting from argument
+  /// decoding.
+  EditorCommand build(String name, Map<String, Object?> args) {
+    final descriptor = _descriptors[name];
+    if (descriptor == null) {
+      throw UnknownCommandException(name);
+    }
+    return descriptor.factory(args);
+  }
+
   /// Builds the command named [name] from [args] and runs it through
   /// [executor]. Throws if [name] is not registered.
   ChangeSet execute(
@@ -46,22 +62,28 @@ class CommandRegistry {
     Map<String, Object?> args,
     CommandExecutor executor,
   ) {
-    final descriptor = _descriptors[name];
-    if (descriptor == null) {
-      throw ArgumentError('No command registered for name "$name".');
-    }
-    return executor.execute(descriptor.factory(args));
+    return executor.execute(build(name, args));
   }
 
-  /// Convenience: build from a JSON string argument payload.
+  /// Convenience: build from a JSON string argument payload. Throws
+  /// [DocumentDecodeException] when [argsJson] is malformed or not a JSON
+  /// object, and [UnknownCommandException] when [name] is not registered.
   ChangeSet executeFromJson(
     String name,
     String argsJson,
     CommandExecutor executor,
   ) {
-    final decoded = jsonDecode(argsJson);
+    Object? decoded;
+    try {
+      decoded = jsonDecode(argsJson);
+    } on FormatException catch (error) {
+      throw DocumentDecodeException(
+        'Command "$name" args are not valid JSON.',
+        raw: error,
+      );
+    }
     if (decoded is! Map) {
-      throw FormatException(
+      throw DocumentDecodeException(
         'Command "$name" args must decode to a JSON object.',
       );
     }

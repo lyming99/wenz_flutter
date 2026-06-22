@@ -15,6 +15,14 @@ import 'composition_state.dart';
 /// composing region is mirrored to
 /// [WenzRichTextController.setCompositionState] for rendering.
 ///
+/// In addition to shuttling text deltas, the client reports the caret's
+/// geometry to the platform so the system IME (e.g. the Chinese pinyin
+/// candidate window) positions itself at the caret rather than at a default
+/// screen location. The widget layer supplies [caretRectProvider], which
+/// returns the caret's global [Rect]; it is pushed to the platform via
+/// [TextInputConnection.setEditableSizeAndTransform] on attach and whenever
+/// the caret moves.
+///
 /// Scope (stage 1): IME edits target the caret's current editable block. The
 /// platform is shown a single-block plain-text buffer (the current block's
 /// text), so deltas map cleanly onto offsets within that block. Cross-block
@@ -29,6 +37,31 @@ class EditorTextInputClient with DeltaTextInputClient {
   /// focused block plus the caret/composing regions expressed against it.
   TextEditingValue _buffer = TextEditingValue.empty;
 
+  /// Injected by the widget layer: returns the current caret's global [Rect]
+  /// (top-left + height), or `null` when no caret is visible. Used to position
+  /// the platform IME candidate window at the caret.
+  Rect? Function()? caretRectProvider;
+
+  /// Injected by the widget layer: returns TextField-style geometry for the
+  /// active editable surface. Prefer this over [caretRectProvider] because the
+  /// platform expects the editable box transform plus local caret/composing
+  /// rects, not a caret-sized editable box.
+  EditorTextInputGeometry? Function()? textInputGeometryProvider;
+
+  /// Injected by the widget layer: returns the [FlutterView.viewId] the editor
+  /// is currently attached to, or `null` when no view is resolvable yet (e.g.
+  /// before the editor is mounted). The platform text-input engine (notably
+  /// Android) rejects `setClient` with `PlatformException(Bad Arguments, ...
+  /// view ID is null)` when the [TextInputConfiguration.viewId] is missing, so
+  /// this must be populated before [attach] runs.
+  int? Function()? viewIdProvider;
+
+  /// Injected by the widget layer: handles platform text-input selectors
+  /// (macOS/iOS-style commands such as `moveLeft:` or `deleteBackward:`).
+  /// The widget layer owns focus, read-only state, clipboard, and geometry, so
+  /// it is the right place to translate these selectors into editor commands.
+  void Function(String selectorName)? performSelectorHandler;
+
   bool get isAttached => _connection?.attached ?? false;
 
   /// Attaches to the platform text input, seeding the buffer from the
@@ -37,11 +70,17 @@ class EditorTextInputClient with DeltaTextInputClient {
     _syncBuffer();
     if (_connection != null && _connection!.attached) {
       _connection!.show();
+      _reportCaretGeometry();
       return;
     }
+    final viewId = viewIdProvider?.call();
+    _lastViewId = viewId;
     _connection = TextInput.attach(
       this,
-      const TextInputConfiguration(
+      TextInputConfiguration(
+        // A null viewId makes Android's engine reject setClient ("view ID is
+        // null"). The widget layer resolves the current FlutterView id.
+        viewId: viewId,
         enableDeltaModel: true,
         inputType: TextInputType.multiline,
         autocorrect: false,
@@ -50,7 +89,14 @@ class EditorTextInputClient with DeltaTextInputClient {
       ),
     );
     _connection!.show();
-    _connection!.setEditingState(_buffer);
+    // setEditingState must run only once the engine has a client bound (set in
+    // attach). The connection is attached synchronously, so this is safe; the
+    // guard avoids the "Set editing state has been invoked, but no client is
+    // set" error that surfaces when attach races with a concurrent close.
+    if (_connection!.attached) {
+      _connection!.setEditingState(_buffer);
+    }
+    _reportCaretGeometry();
   }
 
   /// Detaches from the platform and clears any composition state.
@@ -60,22 +106,143 @@ class EditorTextInputClient with DeltaTextInputClient {
     _controller.setCompositionState(null);
   }
 
+  /// Pushes the current caret rect to the platform so the IME candidate
+  /// window follows the caret. No-op when not attached or when no caret is
+  /// available.
+  void _reportCaretGeometry() {
+    final connection = _connection;
+    if (connection == null || !connection.attached) {
+      return;
+    }
+    final geometry = textInputGeometryProvider?.call();
+    if (geometry != null) {
+      _lastReportedCaretRect = geometry.globalCaretRect;
+      _lastReportedLocalCaretRect = geometry.caretRect;
+      _lastReportedComposingRect = geometry.composingRect;
+      _lastReportedEditableSize = geometry.editableSize;
+      connection.setEditableSizeAndTransform(
+        geometry.editableSize,
+        geometry.transform,
+      );
+      connection.setCaretRect(geometry.caretRect);
+      connection.setComposingRect(geometry.composingRect);
+      return;
+    }
+
+    final rect = caretRectProvider?.call();
+    if (rect == null) {
+      return;
+    }
+    _lastReportedCaretRect = rect;
+    // The transform's translation is the caret's global top-left; the size is
+    // the caret rect's height (a thin caret). Platforms use this to anchor the
+    // candidate window just below the caret line.
+    connection.setEditableSizeAndTransform(
+      rect.size,
+      Matrix4.translationValues(rect.left, rect.top, 0),
+    );
+  }
+
+  /// The caret rect most recently pushed to the platform IME, or `null` when
+  /// none has been reported. Exposed for tests that verify the candidate
+  /// window follows the caret.
+  @visibleForTesting
+  Rect? get lastReportedCaretRect => _lastReportedCaretRect;
+  Rect? _lastReportedCaretRect;
+
+  @visibleForTesting
+  Rect? get lastReportedLocalCaretRect => _lastReportedLocalCaretRect;
+  Rect? _lastReportedLocalCaretRect;
+
+  @visibleForTesting
+  Rect? get lastReportedComposingRect => _lastReportedComposingRect;
+  Rect? _lastReportedComposingRect;
+
+  @visibleForTesting
+  Size? get lastReportedEditableSize => _lastReportedEditableSize;
+  Size? _lastReportedEditableSize;
+
+  /// The [FlutterView.viewId] most recently pushed into the text-input
+  /// configuration, or `null` when no provider was wired up. Exposed for tests
+  /// that verify the view id is forwarded (Android rejects a null viewId).
+  @visibleForTesting
+  int? get lastConfigurationViewId => _lastViewId;
+  int? _lastViewId;
+
   /// Rebuilds the platform buffer from the current selection/block. Called on
   /// attach and whenever the caret moves to a different block or the document
   /// changes externally.
   void _syncBuffer() {
     final selection = _controller.selection;
-    if (selection == null || !selection.isCollapsed) {
-      _buffer = TextEditingValue.empty;
-      return;
+    _buffer = _editingValueForSelection(
+      selection,
+      composing: _composingRangeForSelection(selection),
+    );
+  }
+
+  TextEditingValue _editingValueForSelection(
+    DocumentSelection? selection, {
+    TextRange composing = TextRange.empty,
+  }) {
+    if (selection == null) {
+      return TextEditingValue.empty;
     }
+
+    if (!selection.isCollapsed && !_isSingleTextInputTarget(selection)) {
+      return TextEditingValue.empty;
+    }
+
     final position = selection.extent;
     final text = _plainTextForPosition(position);
-    final offset = position.offset.clamp(0, text.length).toInt();
-    _buffer = TextEditingValue(
+    final safeComposing = _clampTextRange(composing, text.length);
+    if (selection.isCollapsed) {
+      final offset = position.offset.clamp(0, text.length).toInt();
+      return TextEditingValue(
+        text: text,
+        selection: TextSelection.collapsed(offset: offset),
+        composing: safeComposing,
+      );
+    }
+
+    final baseOffset = selection.base.offset.clamp(0, text.length).toInt();
+    final extentOffset = selection.extent.offset.clamp(0, text.length).toInt();
+    return TextEditingValue(
       text: text,
-      selection: TextSelection.collapsed(offset: offset),
-      composing: TextRange.empty,
+      selection: TextSelection(
+        baseOffset: baseOffset,
+        extentOffset: extentOffset,
+      ),
+      composing: safeComposing,
+    );
+  }
+
+  bool _isSingleTextInputTarget(DocumentSelection selection) {
+    return selection.base.blockId == selection.extent.blockId &&
+        selection.base.blockIndex == selection.extent.blockIndex &&
+        selection.base.path == selection.extent.path;
+  }
+
+  TextRange _clampTextRange(TextRange range, int textLength) {
+    if (range == TextRange.empty) {
+      return TextRange.empty;
+    }
+    final start = range.start.clamp(0, textLength).toInt();
+    final end = range.end.clamp(start, textLength).toInt();
+    return TextRange(start: start, end: end);
+  }
+
+  TextRange _composingRangeForSelection(DocumentSelection? selection) {
+    final composition = _controller.compositionState;
+    if (selection == null ||
+        composition == null ||
+        composition.blockId != selection.extent.blockId ||
+        composition.blockIndex != selection.extent.blockIndex ||
+        composition.path != selection.extent.path) {
+      return TextRange.empty;
+    }
+    return TextRange(
+      start: composition.startOffset,
+      end: composition.endOffset,
     );
   }
 
@@ -117,42 +284,72 @@ class EditorTextInputClient with DeltaTextInputClient {
     } else if (delta is TextEditingDeltaNonTextUpdate) {
       _handleNonTextUpdate(delta);
     }
-    // Keep our buffer in lockstep with the platform's view.
-    _buffer = delta.apply(_buffer);
+    _syncBuffer();
   }
 
   void _handleInsertion(TextEditingDeltaInsertion delta) {
-    final offset = delta.insertionOffset;
     final text = delta.textInserted;
     if (text.isEmpty) {
       return;
     }
+    if (_deleteActiveSelection()) {
+      final offset =
+          _controller.selection?.extent.offset ?? delta.insertionOffset;
+      _controller.insertText(text);
+      final shift = offset - delta.insertionOffset;
+      _syncSelection(_shiftSelection(delta.selection, shift));
+      _syncComposition(_shiftRange(delta.composing, shift));
+      return;
+    }
+    final offset = _effectiveInsertionOffset(delta.insertionOffset);
     _placeCaretAt(offset);
     _controller.insertText(text);
-    _syncComposition(delta.composing);
+    final shift = offset - delta.insertionOffset;
+    _syncSelection(_shiftSelection(delta.selection, shift));
+    _syncComposition(_shiftRange(delta.composing, shift));
   }
 
   void _handleDeletion(TextEditingDeltaDeletion delta) {
-    final deleted = delta.deletedRange;
-    if (deleted.start < deleted.end) {
-      _deleteRange(deleted.start, deleted.end);
+    if (_deleteActiveSelection()) {
+      _syncSelection(delta.selection);
+      _syncComposition(delta.composing);
+      return;
     }
-    _syncComposition(delta.composing);
+    final deleted = delta.deletedRange;
+    final shift = _rangeShiftForActiveComposition(deleted);
+    final actualDeleted = _shiftRange(deleted, shift);
+    if (actualDeleted.start < actualDeleted.end) {
+      _deleteRange(actualDeleted.start, actualDeleted.end);
+    }
+    _syncSelection(_shiftSelection(delta.selection, shift));
+    _syncComposition(_shiftRange(delta.composing, shift));
   }
 
   void _handleReplacement(TextEditingDeltaReplacement delta) {
-    final replaced = delta.replacedRange;
-    if (replaced.start < replaced.end) {
-      _deleteRange(replaced.start, replaced.end);
+    if (_deleteActiveSelection()) {
+      if (delta.replacementText.isNotEmpty) {
+        _controller.insertText(delta.replacementText);
+      }
+      _syncSelection(delta.selection);
+      _syncComposition(delta.composing);
+      return;
     }
-    _placeCaretAt(replaced.start);
+    final replaced = delta.replacedRange;
+    final shift = _rangeShiftForActiveComposition(replaced);
+    final actualReplaced = _shiftRange(replaced, shift);
+    if (actualReplaced.start < actualReplaced.end) {
+      _deleteRange(actualReplaced.start, actualReplaced.end);
+    }
+    _placeCaretAt(actualReplaced.start);
     if (delta.replacementText.isNotEmpty) {
       _controller.insertText(delta.replacementText);
     }
-    _syncComposition(delta.composing);
+    _syncSelection(_shiftSelection(delta.selection, shift));
+    _syncComposition(_shiftRange(delta.composing, shift));
   }
 
   void _handleNonTextUpdate(TextEditingDeltaNonTextUpdate delta) {
+    _syncSelection(delta.selection);
     _syncComposition(delta.composing);
   }
 
@@ -174,6 +371,57 @@ class EditorTextInputClient with DeltaTextInputClient {
     );
   }
 
+  bool _deleteActiveSelection() {
+    final selection = _controller.selection;
+    if (selection == null || selection.isCollapsed) {
+      return false;
+    }
+    _controller.deleteSelection(selection);
+    return true;
+  }
+
+  int _effectiveInsertionOffset(int platformOffset) {
+    final selection = _controller.selection;
+    if (selection == null || !selection.isCollapsed) {
+      return platformOffset;
+    }
+    return selection.extent.offset;
+  }
+
+  int _rangeShiftForActiveComposition(TextRange platformRange) {
+    final composition = _controller.compositionState;
+    if (composition == null ||
+        platformRange == TextRange.empty ||
+        platformRange.start >= platformRange.end) {
+      return 0;
+    }
+    final platformLength = platformRange.end - platformRange.start;
+    final compositionLength = composition.endOffset - composition.startOffset;
+    if (platformLength != compositionLength) {
+      return 0;
+    }
+    return composition.startOffset - platformRange.start;
+  }
+
+  TextSelection _shiftSelection(TextSelection selection, int shift) {
+    if (shift == 0 || selection.baseOffset < 0 || selection.extentOffset < 0) {
+      return selection;
+    }
+    return TextSelection(
+      baseOffset: selection.baseOffset + shift,
+      extentOffset: selection.extentOffset + shift,
+      affinity: selection.affinity,
+      isDirectional: selection.isDirectional,
+    );
+  }
+
+  TextRange _shiftRange(TextRange range, int shift) {
+    if (shift == 0 || range == TextRange.empty) {
+      return range;
+    }
+    return TextRange(start: range.start + shift, end: range.end + shift);
+  }
+
   void _placeCaretAt(int offset) {
     final selection = _controller.selection;
     if (selection == null) {
@@ -185,22 +433,45 @@ class EditorTextInputClient with DeltaTextInputClient {
     );
   }
 
-  void _syncComposition(TextRange composing) {
+  void _syncSelection(TextSelection platformSelection) {
     final selection = _controller.selection;
     if (selection == null ||
-        composing == TextRange.empty ||
-        composing.isCollapsed) {
+        platformSelection.baseOffset < 0 ||
+        platformSelection.extentOffset < 0) {
+      return;
+    }
+    final position = selection.extent;
+    final textLength = _plainTextForPosition(position).length;
+    final baseOffset =
+        platformSelection.baseOffset.clamp(0, textLength).toInt();
+    final extentOffset =
+        platformSelection.extentOffset.clamp(0, textLength).toInt();
+    final base = position.copyWith(offset: baseOffset);
+    final extent = position.copyWith(offset: extentOffset);
+    _controller.setSelection(DocumentSelection(base: base, extent: extent));
+  }
+
+  void _syncComposition(TextRange composing) {
+    final selection = _controller.selection;
+    // Only TextRange.empty (start == -1) means "no composition". A collapsed
+    // range (start == end == n) is a valid composition region that simply has
+    // no characters yet — some IMEs emit it at the start/end of a session.
+    // Clearing it would drop the composition semantics mid-session; we keep it
+    // (it renders as a zero-width range, i.e. no underline, which is correct).
+    if (selection == null || composing == TextRange.empty) {
       _controller.setCompositionState(null);
       return;
     }
     final position = selection.extent;
+    final textLength = _plainTextForPosition(position).length;
+    final safeComposing = _clampTextRange(composing, textLength);
     _controller.setCompositionState(
       CompositionState(
         blockId: position.blockId,
         blockIndex: position.blockIndex,
         path: position.path,
-        startOffset: composing.start,
-        endOffset: composing.end,
+        startOffset: safeComposing.start,
+        endOffset: safeComposing.end,
       ),
     );
   }
@@ -209,20 +480,23 @@ class EditorTextInputClient with DeltaTextInputClient {
 
   @override
   void updateEditingValue(TextEditingValue value) {
-    // Non-delta fallback. Rarely hit when delta model is enabled, but kept for
-    // completeness: treat the whole buffer as replaced.
+    // Non-delta fallback. Some desktop IMEs still exercise this path during
+    // composition, so handle it like EditableText: diff the previous editing
+    // value against the new one and apply only the changed span.
     final old = _buffer;
     if (old.text != value.text) {
-      if (old.text.isNotEmpty) {
-        _deleteRange(0, old.text.length);
+      final diff = _TextDiff.between(old.text, value.text);
+      if (diff.oldStart < diff.oldEnd) {
+        _deleteRange(diff.oldStart, diff.oldEnd);
       }
-      _placeCaretAt(0);
-      if (value.text.isNotEmpty) {
-        _controller.insertText(value.text);
+      _placeCaretAt(diff.oldStart);
+      if (diff.replacement.isNotEmpty) {
+        _controller.insertText(diff.replacement);
       }
     }
+    _syncSelection(value.selection);
     _syncComposition(value.composing);
-    _buffer = value;
+    _syncBuffer();
   }
 
   @override
@@ -267,7 +541,9 @@ class EditorTextInputClient with DeltaTextInputClient {
   void removeTextPlaceholder() {}
 
   @override
-  void performSelector(String selectorName) {}
+  void performSelector(String selectorName) {
+    performSelectorHandler?.call(selectorName);
+  }
 
   @override
   void showToolbar() {}
@@ -284,8 +560,79 @@ class EditorTextInputClient with DeltaTextInputClient {
   /// Rebuilds the platform buffer from the controller's current selection.
   /// Called by the widget layer when a gesture or command repositions the
   /// caret, so the platform IME follows the new location.
-  void syncBuffer() => _syncBuffer();
+  void syncBuffer() {
+    _syncBuffer();
+    // Do not echo editing state back to the platform while an IME composition
+    // is active. TextField lets the IME own its composing buffer; pushing here
+    // can reset the platform-side range and make pinyin text stick in the
+    // document instead of being replaced by the committed Chinese character.
+    if (_controller.compositionState == null) {
+      _pushEditingState();
+    }
+    _reportCaretGeometry();
+  }
 
   @visibleForTesting
   void syncBufferForTest() => _syncBuffer();
+
+  void _pushEditingState() {
+    final connection = _connection;
+    if (connection == null || !connection.attached) {
+      return;
+    }
+    connection.setEditingState(_buffer);
+  }
+}
+
+class _TextDiff {
+  const _TextDiff({
+    required this.oldStart,
+    required this.oldEnd,
+    required this.replacement,
+  });
+
+  final int oldStart;
+  final int oldEnd;
+  final String replacement;
+
+  static _TextDiff between(String oldText, String newText) {
+    var start = 0;
+    final shortest =
+        oldText.length < newText.length ? oldText.length : newText.length;
+    while (start < shortest &&
+        oldText.codeUnitAt(start) == newText.codeUnitAt(start)) {
+      start += 1;
+    }
+
+    var oldEnd = oldText.length;
+    var newEnd = newText.length;
+    while (oldEnd > start &&
+        newEnd > start &&
+        oldText.codeUnitAt(oldEnd - 1) == newText.codeUnitAt(newEnd - 1)) {
+      oldEnd -= 1;
+      newEnd -= 1;
+    }
+
+    return _TextDiff(
+      oldStart: start,
+      oldEnd: oldEnd,
+      replacement: newText.substring(start, newEnd),
+    );
+  }
+}
+
+class EditorTextInputGeometry {
+  const EditorTextInputGeometry({
+    required this.editableSize,
+    required this.transform,
+    required this.caretRect,
+    required this.composingRect,
+    required this.globalCaretRect,
+  });
+
+  final Size editableSize;
+  final Matrix4 transform;
+  final Rect caretRect;
+  final Rect composingRect;
+  final Rect globalCaretRect;
 }

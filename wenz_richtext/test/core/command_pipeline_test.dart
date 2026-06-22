@@ -150,7 +150,7 @@ void main() {
       final controller = WenzRichTextController();
       expect(
         () => controller.executeCommand('nope', <String, Object?>{}),
-        throwsArgumentError,
+        throwsA(isA<UnknownCommandException>()),
       );
     });
   });

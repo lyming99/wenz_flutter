@@ -60,11 +60,15 @@
 | --- | --- |
 | 同块文本范围 | `wenz-richtext-json:v1\n` + JSON（`{type:inline, runs:[...], plain}`），保留 TextRun 属性 |
 | 代码块范围 | 纯文本切片 |
-| 跨块范围 | 纯文本，行用 `\n` 连接（富文本跨块留到阶段 2） |
+| 跨块范围 | `wenz-richtext-json:v1\n` + JSON（`{type:blocks, blocks:[...], plain}`），保留每个 block 的 type/attributes/inline 属性；首尾 block 按选区 offset 切片。`plain` 字段是 `\n` 连接的纯文本回退 |
 
 ### 粘贴
 
-`ClipboardService.parse` 检测魔法前缀：有 → 解析富文本 inline runs；无 → 当纯文本。纯文本多行：首行插入当前块，后续每行触发 `EnterCommand` 分段。
+`ClipboardService.parse` 检测魔法前缀：有 → 解析富文本（`inline` 或 `blocks`）；无 → 当纯文本。
+
+- `inline`：以多个 `InsertTextCommand`（逐 run，保留属性）插入当前 caret。
+- `blocks`：走 `PasteBlocksCommand`——删除当前选区后，在 caret 处分裂当前 block，首块 inline 合并进前半段，末块 inline 合并进后半段，中间 block 按原 type/attributes 作为新 block 插入。
+- 纯文本多行：首行插入当前块，后续每行触发 `EnterCommand` 分段。
 
 控制器方法：`copySelection()` / `cutSelection()` / `pasteText(raw)`。widget 的 Ctrl+C/X/V 调用它们并桥接 `Clipboard.setData/getText`。
 
@@ -81,7 +85,7 @@
 | 字符（IME 未 attach） | `insertText` | 否 |
 | ←/→ | 移动 caret（Shift 扩选） | 否 |
 | Home/End | 块首/块尾（Shift 扩选） | 否 |
-| PageUp/Down | 块首/块尾（阶段 5 精化视口） | 否 |
+| PageUp/Down | 按视口高度翻页（Shift 扩选），跳完后自动滚动到 caret | 否 |
 | Backspace/Delete | 删除 | 否 |
 | Enter | 分段 | 否 |
 | Ctrl/Cmd+A | 全选 | 是 |

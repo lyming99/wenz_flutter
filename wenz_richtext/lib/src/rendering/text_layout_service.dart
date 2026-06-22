@@ -89,6 +89,78 @@ class TextLayoutService {
     return TextRange(start: 0, end: _textLength(painter));
   }
 
+  /// Resolves the caret offset one visual line up ([forward] = false) or down
+  /// ([forward] = true) from [offset], keeping the horizontal position at
+  /// [preferX] (the remembered column for repeated vertical moves).
+  ///
+  /// Returns:
+  /// - the new offset if a neighbouring visual line exists within this block;
+  /// - `null` if the caret is already on the first (Up) / last (Down) line and
+  ///   the caller should fall back to cross-block / boundary motion.
+  int? verticalMoveOffset(
+    TextPainter painter,
+    int offset,
+    bool forward, {
+    double? preferX,
+  }) {
+    final textLength = _textLength(painter);
+    final clamped = offset.clamp(0, textLength).toInt();
+    final caret = painter.getOffsetForCaret(
+      TextPosition(offset: clamped),
+      Rect.zero,
+    );
+    // preferX is in the painter's LOCAL coordinate space (same as caret).
+    final prefer = preferX ?? caret.dx;
+    // Use exact line metrics to find the current line and step to the neighbour.
+    // Estimating with caret.dy ± lineHeight is imprecise at line boundaries
+    // (leading/strut shifts the caret y off the line's top), so getPositionForOffset
+    // resolves back to the same line.
+    final metrics = painter.computeLineMetrics();
+    if (metrics.isEmpty) {
+      return null;
+    }
+    int currentIndex = -1;
+    for (var i = 0; i < metrics.length; i++) {
+      final m = metrics[i];
+      if (caret.dy >= m.baseline - m.height && caret.dy <= m.baseline + 1) {
+        currentIndex = i;
+        break;
+      }
+    }
+    if (currentIndex < 0) {
+      // Fallback: pick the line whose top is nearest the caret.
+      currentIndex = 0;
+      var bestDelta = (caret.dy - metrics[0].baseline).abs();
+      for (var i = 1; i < metrics.length; i++) {
+        final d = (caret.dy - metrics[i].baseline).abs();
+        if (d < bestDelta) {
+          bestDelta = d;
+          currentIndex = i;
+        }
+      }
+    }
+    final targetIndex = forward ? currentIndex + 1 : currentIndex - 1;
+    if (targetIndex < 0 || targetIndex >= metrics.length) {
+      return null; // at the first/last line: caller crosses blocks
+    }
+    final targetLine = metrics[targetIndex];
+    final pos = painter.getPositionForOffset(
+      Offset(prefer, targetLine.baseline - targetLine.height / 2),
+    );
+    final next = pos.offset.clamp(0, textLength).toInt();
+    if (next == clamped) {
+      return null;
+    }
+    return next;
+  }
+
+  /// Returns the caret's LOCAL x for [offset] (painter coordinate space), used
+  /// to seed the remembered column for repeated vertical moves.
+  double caretLocalX(TextPainter painter, int offset) {
+    final clamped = offset.clamp(0, _textLength(painter)).toInt();
+    return painter.getOffsetForCaret(TextPosition(offset: clamped), Rect.zero).dx;
+  }
+
   int _textLength(TextPainter painter) {
     return painter.text?.toPlainText().length ?? 0;
   }

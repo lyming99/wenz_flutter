@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import '../codecs/html_codec.dart';
 import '../core/commands/inline_editing.dart';
 import '../core/commands/table_cell_editing.dart';
 import '../core/model/block_node.dart';
@@ -14,19 +15,25 @@ const String wenzClipboardPrefix = 'wenz-richtext-json:v1\n';
 
 /// Serialises and parses editor clipboard payloads.
 ///
-/// Stage 1 scope:
 /// - Same-block selection: rich JSON preserving [TextRun] attributes, plus a
 ///   plain-text fallback embedded in the payload.
-/// - Cross-block selection: plain text joined with newlines only. Rich
-///   cross-block copy/paste lands with cross-block selection editing (stage 2).
-/// - Paste: detects [wenzClipboardPrefix] for rich inline payloads, otherwise
-///   treats the payload as plain text and splits on newlines into blocks.
+/// - Cross-block selection: rich JSON carrying the full block slice (each
+///   block's type/attributes/inline content, with the first/last block trimmed
+///   to the selection offsets) plus a plain-text fallback. Pasting it restores
+///   the block structure and inline attributes.
+/// - Paste: detects [wenzClipboardPrefix] for rich payloads (inline or blocks),
+///   otherwise treats the payload as plain text and splits on newlines into
+///   blocks.
 ///
 /// This service is pure logic — it does not touch [Clipboard] directly, so it
 /// can be unit tested without a binding. The widget layer is responsible for
 /// `Clipboard.setData` / `Clipboard.getData`.
 class ClipboardService {
-  const ClipboardService();
+  const ClipboardService({this.htmlCodec = const HtmlCodec()});
+
+  /// HTML codec used by [pasteHtml] to turn an HTML fragment into blocks.
+  /// Defaults to [HtmlCodec]; inject a custom one to tweak HTML mapping.
+  final HtmlCodec htmlCodec;
 
   /// Serialises [selection] from [document] into a clipboard string.
   ///
@@ -45,7 +52,7 @@ class ClipboardService {
     if (start.blockIndex == end.blockIndex && start.path == end.path) {
       return _copySameBlock(document, start, end);
     }
-    return _copyCrossBlockPlain(document, start, end);
+    return _copyCrossBlockRich(document, start, end);
   }
 
   /// Parses a clipboard string into structured paste data.
@@ -53,12 +60,26 @@ class ClipboardService {
     if (raw.startsWith(wenzClipboardPrefix)) {
       final json = raw.substring(wenzClipboardPrefix.length);
       final decoded = jsonDecode(json);
-      if (decoded is Map && decoded['type'] == 'inline') {
-        final runs = (decoded['runs'] as List)
-            .whereType<Map>()
-            .map((node) => InlineNode.fromJson(Map<String, Object?>.from(node)))
-            .toList();
-        return ClipboardPaste.inline(runs);
+      if (decoded is Map) {
+        if (decoded['type'] == 'inline') {
+          final runs = (decoded['runs'] as List)
+              .whereType<Map>()
+              .map((node) => InlineNode.fromJson(Map<String, Object?>.from(node)))
+              .toList();
+          return ClipboardPaste.inline(runs);
+        }
+        if (decoded['type'] == 'blocks') {
+          final blocksJson = decoded['blocks'];
+          if (blocksJson is List) {
+            final blocks = blocksJson
+                .whereType<Map>()
+                .map((node) => BlockNode.fromJson(Map<String, Object?>.from(node)))
+                .toList();
+            if (blocks.isNotEmpty) {
+              return ClipboardPaste.blocks(blocks);
+            }
+          }
+        }
       }
     }
     // Plain text. Split into lines: first line stays inline, the rest become
@@ -140,6 +161,68 @@ class ClipboardService {
     return '$wenzClipboardPrefix$payload';
   }
 
+  String _copyCrossBlockRich(
+    RichTextDocument document,
+    DocumentPosition start,
+    DocumentPosition end,
+  ) {
+    final blocks = <BlockNode>[];
+    for (var i = start.blockIndex; i <= end.blockIndex; i++) {
+      final block = _blockAt(document, i);
+      if (block == null) {
+        continue;
+      }
+      if (block is! TextBlockNode) {
+        // Non-text blocks (code/table/media) in a cross-block range: include
+        // as-is rather than dropping. Their structure round-trips through
+        // BlockNode.toJson/fromJson.
+        blocks.add(block.copy());
+        continue;
+      }
+      final text = block.plainText;
+      final List<InlineNode> sliced;
+      if (i == start.blockIndex && i == end.blockIndex) {
+        // Same block, different paths — shouldn't reach here (same-path is
+        // handled by _copySameBlock), but guard anyway.
+        sliced = _sliceInline(block.content, start.offset, end.offset);
+      } else if (i == start.blockIndex) {
+        sliced = _sliceInline(
+          block.content,
+          start.offset,
+          inlineNodesLength(block.content),
+        );
+        // When the start offset is 0 the slice equals the whole block; when
+        // it is at the very end the slice is empty and we skip emitting an
+        // empty leading block.
+        if (sliced.isEmpty && start.offset >= text.length) {
+          continue;
+        }
+      } else if (i == end.blockIndex) {
+        sliced = _sliceInline(block.content, 0, end.offset);
+        if (sliced.isEmpty && end.offset == 0) {
+          continue;
+        }
+      } else {
+        sliced = block.content.map((node) => node.copy()).toList();
+      }
+      blocks.add(
+        TextBlockNode(
+          id: block.id,
+          type: block.type,
+          attributes: block.attributes,
+          content: sliced,
+        ),
+      );
+    }
+    final plain = _copyCrossBlockPlain(document, start, end);
+    final payload = jsonEncode(<String, Object?>{
+      'type': 'blocks',
+      'blocks': blocks.map((block) => block.toJson()).toList(),
+      'plain': plain,
+    });
+    return '$wenzClipboardPrefix$payload';
+  }
+
   String _copyCrossBlockPlain(
     RichTextDocument document,
     DocumentPosition start,
@@ -163,10 +246,16 @@ class ClipboardService {
     return lines.join('\n');
   }
 
-  /// Placeholder for HTML paste (stage 6). Always returns `null` for now.
-  List<InlineNode>? pasteHtml(String html) {
-    // Intentionally unimplemented; reserved for stage 6 import.
-    return null;
+  /// Parses an HTML fragment into a structured paste payload. Returns a
+  /// [ClipboardPaste.blocks] carrying the decoded blocks (the caller pastes
+  /// them via [PasteBlocksCommand], restoring multi-block structure), or
+  /// `null` when the fragment yields no content.
+  ClipboardPaste? pasteHtml(String html) {
+    final document = htmlCodec.decode(html);
+    if (document.blocks.isEmpty) {
+      return null;
+    }
+    return ClipboardPaste.blocks(document.blocks);
   }
 
   /// Placeholder for Markdown paste (stage 6). Always returns `null` for now.
@@ -179,23 +268,44 @@ class ClipboardService {
 /// Result of parsing clipboard data.
 class ClipboardPaste {
   const ClipboardPaste.inline(this.inlineRuns)
-      : plainText = null,
-        isRich = true;
+      : blocks = const <BlockNode>[],
+        plainText = null,
+        isRich = true,
+        isBlocks = false;
 
   const ClipboardPaste.plain(this.plainText)
       : inlineRuns = const <InlineNode>[],
-        isRich = false;
+        blocks = const <BlockNode>[],
+        isRich = false,
+        isBlocks = false;
 
-  /// Rich inline runs when [isRich], otherwise empty.
+  const ClipboardPaste.blocks(this.blocks)
+      : inlineRuns = const <InlineNode>[],
+        plainText = null,
+        isRich = true,
+        isBlocks = true;
+
+  /// Rich inline runs when [isRich] && !isBlocks, otherwise empty.
   final List<InlineNode> inlineRuns;
+
+  /// Rich block slice when [isBlocks], otherwise empty. The first/last block
+  /// are already trimmed to the copied selection offsets, so the consumer can
+  /// merge them into the document at the caret verbatim.
+  final List<BlockNode> blocks;
 
   /// Plain text when not [isRich], otherwise `null`.
   final String? plainText;
 
   final bool isRich;
 
+  /// Whether this paste carries whole-block structure (cross-block copy).
+  final bool isBlocks;
+
   /// Plain-text view of the paste content regardless of flavour.
   String get text {
+    if (isBlocks) {
+      return blocks.map((block) => block.plainText).join('\n');
+    }
     if (!isRich) {
       return plainText ?? '';
     }

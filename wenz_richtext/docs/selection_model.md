@@ -57,13 +57,14 @@
 | --- | --- |
 | 文本块 / 代码块内编辑、选区、caret | ✅ 已支持 |
 | 跨文本块拖拽选区（`DeleteSelectionCommand` 跨块合并） | ✅ 已支持 |
+| 拖拽自动滚动（指针到视口边缘 → 列表跟随滚动） | ✅ 已支持（B2：同步边缘滚动全设备 + 鼠标/触控笔 Ticker 持续滚动） |
 | 表格 cell 内文本编辑（专用命令族） | ✅ 已支持 |
-| 表格 cell 范围选区（cell 内多字符高亮选区） | ❌ 留到阶段 4 |
-| 方向键 / Tab 在 cell 间导航 | ❌ 留到阶段 4 |
-| Enter / Format / Delete 主命令链直接作用于 cell | ❌ 留到阶段 4 |
-| 多 block cell 的非首 block 寻址 | ❌ path 暂无 sub-block 段，留到阶段 4 |
+| 表格 cell 范围选区（cell 内多字符高亮选区） | ✅ 已支持（阶段 4） |
+| 方向键 / Tab 在 cell 间导航 | ✅ 已支持（阶段 4） |
+| Enter / Format / Delete 主命令链直接作用于 cell | ✅ 已支持（阶段 4） |
+| 多 block cell 的非首 block 寻址 | ❌ path 暂无 sub-block 段，留到后续阶段 |
 
-**阶段 4 的接入前提**：把主命令链改为 path-aware 分发（用 `path.isTableCellText` 判定后下沉到 cell 的首个 text block），并扩展 `MoveCaretCommand` 产生 `tableCellText` 路径。在阶段 4 落地前，业务方应继续使用 `*TableCellTextCommand` 族编辑表格。
+**阶段 4 已落地**：主命令链已改为 path-aware 分发（`path.isTableCellText` 判定后下沉到 cell 的首个 text block），`MoveCaretCommand` 与新增的 `MoveTableCellVerticalCommand` 可产生 `tableCellText` 路径。表格键盘导航覆盖 Tab/Shift+Tab（末尾 cell Tab 新增行）、Enter（cell 内换行）、Left/Right（cell 内字符 + 跨 cell）、Up/Down（同列跨行，跳过 merged `covered` cell）。业务方仍可使用 `*TableCellTextCommand` 族直接编辑表格。
 
 ## 6. 不变量与测试
 

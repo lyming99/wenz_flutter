@@ -1,34 +1,70 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
+
 import '../core/model/attributes.dart';
 import '../core/model/block_node.dart';
 import '../core/model/inline_node.dart';
 import '../core/model/rich_text_document.dart';
 import '../core/model/table_model.dart';
+import 'document_errors.dart';
 
 class LegacyWenJsonCodec {
   const LegacyWenJsonCodec();
 
+  /// Decodes legacy `wenz_editor` JSON (a block list, or `{"blocks": [...]}`)
+  /// into a [RichTextDocument].
+  ///
+  /// Always throws a [DocumentDecodeException] on failure; the originating
+  /// error is preserved on [DocumentDecodeException.raw]. Non-`Map` entries
+  /// inside the block list are skipped (with a debug-mode warning) rather
+  /// than aborting the whole decode.
   RichTextDocument decode(String source) {
-    final decoded = jsonDecode(source);
-    if (decoded is List) {
-      return RichTextDocument(blocks: _decodeBlocks(decoded));
+    Object? decoded;
+    try {
+      decoded = jsonDecode(source);
+    } on FormatException catch (error) {
+      throw DocumentDecodeException(
+        'Source is not valid JSON.',
+        raw: error,
+      );
     }
-    if (decoded is Map && decoded['blocks'] is List) {
-      return RichTextDocument(blocks: _decodeBlocks(decoded['blocks'] as List));
+    try {
+      if (decoded is List) {
+        return RichTextDocument(blocks: _decodeBlocks(decoded));
+      }
+      if (decoded is Map && decoded['blocks'] is List) {
+        return RichTextDocument(
+          blocks: _decodeBlocks(decoded['blocks'] as List),
+        );
+      }
+      throw const DocumentDecodeException(
+        'Legacy Wen JSON must be a block list.',
+      );
+    } on DocumentDecodeException {
+      rethrow;
+    } on Object catch (error) {
+      throw DocumentDecodeException(
+        'Failed to inflate legacy document.',
+        raw: error,
+      );
     }
-    throw const FormatException('Legacy Wen JSON must be a block list.');
   }
 
   List<BlockNode> _decodeBlocks(List<Object?> values) {
-    return <BlockNode>[
-      for (var i = 0; i < values.length; i++)
-        if (values[i] is Map)
-          _decodeElement(
-            Map<String, Object?>.from(values[i] as Map),
-            'legacy-$i',
-          ),
-    ];
+    final blocks = <BlockNode>[];
+    for (var i = 0; i < values.length; i++) {
+      final entry = values[i];
+      if (entry is Map) {
+        blocks.add(_decodeElement(Map<String, Object?>.from(entry), 'legacy-$i'));
+      } else if (kDebugMode) {
+        debugPrint(
+          'LegacyWenJsonCodec: skipping non-object block at index $i '
+          '(${entry.runtimeType}).',
+        );
+      }
+    }
+    return blocks;
   }
 
   BlockNode _decodeElement(Map<String, Object?> json, String id) {
@@ -175,9 +211,11 @@ class LegacyWenJsonCodec {
     final rows = json['rows'];
     return TableModel(
       columnAlignments: alignments is Map
-          ? alignments.map(
-              (key, value) => MapEntry(int.parse('$key'), value as String),
-            )
+          ? <int, String>{
+              for (final entry in alignments.entries)
+                if (_asNullableInt(entry.key) != null)
+                  _asNullableInt(entry.key)!: entry.value as String,
+            }
           : const <int, String>{},
       rows: rows is List
           ? <List<TableCellNode>>[
@@ -225,6 +263,9 @@ int? _asNullableInt(Object? value) {
   }
   if (value is num) {
     return value.toInt();
+  }
+  if (value is String) {
+    return int.tryParse(value);
   }
   return null;
 }

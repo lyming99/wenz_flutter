@@ -115,6 +115,232 @@ void main() {
     expect(session.selection?.extent.offset, 5);
   });
 
+  test('delete selection spans code block boundary into text block', () {
+    final session = DocumentSession(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          CodeBlockNode(id: 'c1', code: 'final value = 1;'),
+          TableBlockNode(
+            id: 'table1',
+            table: TableModel(
+              rows: <List<TableCellNode>>[
+                <TableCellNode>[
+                  TableCellNode(
+                    id: 'cell-a',
+                    blocks: <BlockNode>[
+                      TextBlockNode(
+                        id: 'cell-a-p',
+                        type: BlockType.paragraph,
+                        content: <InlineNode>[TextRun(text: 'AA')],
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+          TextBlockNode(
+            id: 'p2',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'tail text')],
+          ),
+        ],
+      ),
+      selection: DocumentSelection(
+        base: DocumentPosition.code(
+          blockId: 'c1',
+          blockIndex: 0,
+          offset: 6,
+        ),
+        extent: DocumentPosition.text(
+          blockId: 'p2',
+          blockIndex: 2,
+          offset: 5,
+        ),
+      ),
+    );
+    final executor = CommandExecutor(session);
+
+    executor.execute(const DeleteSelectionCommand());
+
+    expect(session.document.blocks, hasLength(2));
+    expect((session.document.blocks[0] as CodeBlockNode).code, 'final ');
+    expect((session.document.blocks[1] as TextBlockNode).plainText, 'text');
+    expect(session.selection?.extent.blockId, 'c1');
+    expect(session.selection?.extent.offset, 6);
+  });
+
+  test('delete selection spans text block into code block', () {
+    final session = DocumentSession(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'hello start')],
+          ),
+          DividerBlockNode(id: 'divider1'),
+          CodeBlockNode(id: 'c2', code: 'print("tail");'),
+        ],
+      ),
+      selection: DocumentSelection(
+        base: DocumentPosition.text(
+          blockId: 'p1',
+          blockIndex: 0,
+          offset: 5,
+        ),
+        extent: DocumentPosition.code(
+          blockId: 'c2',
+          blockIndex: 2,
+          offset: 6,
+        ),
+      ),
+    );
+    final executor = CommandExecutor(session);
+
+    executor.execute(const DeleteSelectionCommand());
+
+    expect(session.document.blocks, hasLength(2));
+    expect((session.document.blocks[0] as TextBlockNode).plainText, 'hello');
+    expect((session.document.blocks[1] as CodeBlockNode).code, '"tail");');
+    expect(session.selection?.extent.blockId, 'p1');
+    expect(session.selection?.extent.offset, 5);
+  });
+
+  test('delete selection from table cell into later text block', () {
+    final session = DocumentSession(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TableBlockNode(
+            id: 'table1',
+            table: TableModel(
+              rows: <List<TableCellNode>>[
+                <TableCellNode>[
+                  TableCellNode(
+                    id: 'cell-a',
+                    blocks: <BlockNode>[
+                      TextBlockNode(
+                        id: 'cell-a-p',
+                        type: BlockType.paragraph,
+                        content: <InlineNode>[TextRun(text: 'AA')],
+                      ),
+                    ],
+                  ),
+                  TableCellNode(
+                    id: 'cell-b',
+                    blocks: <BlockNode>[
+                      TextBlockNode(
+                        id: 'cell-b-p',
+                        type: BlockType.paragraph,
+                        content: <InlineNode>[TextRun(text: 'BB')],
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+          TextBlockNode(
+            id: 'p2',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'tail')],
+          ),
+        ],
+      ),
+      selection: DocumentSelection(
+        base: DocumentPosition.tableCell(
+          tableBlockId: 'table1',
+          blockIndex: 0,
+          tableRowIndex: 0,
+          tableColumnIndex: 0,
+          offset: 1,
+        ),
+        extent: DocumentPosition.text(
+          blockId: 'p2',
+          blockIndex: 1,
+          offset: 2,
+        ),
+      ),
+    );
+    final executor = CommandExecutor(session);
+
+    executor.execute(const DeleteSelectionCommand());
+
+    final table = session.document.blocks[0] as TableBlockNode;
+    expect(table.table.cellAt(0, 0)!.plainText, 'A');
+    expect(table.table.cellAt(0, 1)!.plainText, '');
+    expect((session.document.blocks[1] as TextBlockNode).plainText, 'il');
+    expect(session.selection?.extent.path.isTableCellText, isTrue);
+    expect(session.selection?.extent.offset, 1);
+  });
+
+  test('delete selection from text block into later table cell', () {
+    final session = DocumentSession(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'head')],
+          ),
+          TableBlockNode(
+            id: 'table1',
+            table: TableModel(
+              rows: <List<TableCellNode>>[
+                <TableCellNode>[
+                  TableCellNode(
+                    id: 'cell-a',
+                    blocks: <BlockNode>[
+                      TextBlockNode(
+                        id: 'cell-a-p',
+                        type: BlockType.paragraph,
+                        content: <InlineNode>[TextRun(text: 'AA')],
+                      ),
+                    ],
+                  ),
+                  TableCellNode(
+                    id: 'cell-b',
+                    blocks: <BlockNode>[
+                      TextBlockNode(
+                        id: 'cell-b-p',
+                        type: BlockType.paragraph,
+                        content: <InlineNode>[TextRun(text: 'BB')],
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+      selection: DocumentSelection(
+        base: DocumentPosition.text(
+          blockId: 'p1',
+          blockIndex: 0,
+          offset: 2,
+        ),
+        extent: DocumentPosition.tableCell(
+          tableBlockId: 'table1',
+          blockIndex: 1,
+          tableRowIndex: 0,
+          tableColumnIndex: 1,
+          offset: 1,
+        ),
+      ),
+    );
+    final executor = CommandExecutor(session);
+
+    executor.execute(const DeleteSelectionCommand());
+
+    expect((session.document.blocks[0] as TextBlockNode).plainText, 'he');
+    final table = session.document.blocks[1] as TableBlockNode;
+    expect(table.table.cellAt(0, 0)!.plainText, '');
+    expect(table.table.cellAt(0, 1)!.plainText, 'B');
+    expect(session.selection?.extent.blockId, 'p1');
+    expect(session.selection?.extent.offset, 2);
+  });
+
   test('insert and delete work for code blocks', () {
     final session = DocumentSession(
       document: const RichTextDocument(
