@@ -291,6 +291,60 @@ void main() {
           reason: 'gutter tap in the short cell must stay in its row');
       expect(extent.path.tableColumnIndex, 0);
     });
+
+    // A tap in the vertical gap between two paragraph blocks used to clamp to
+    // a hard 0 / textLength offset regardless of the tap's horizontal column.
+    // It now resolves through the nearest block's layout so a gap-tap on the
+    // 4th column lands near offset 4, matching where the user clicked.
+    testWidgets('gap tap between blocks honours the horizontal column', (
+      tester,
+    ) async {
+      final controller = WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'p1',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'abcdefghij')],
+            ),
+            TextBlockNode(
+              id: 'p2',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'klmnopqrst')],
+            ),
+          ],
+        ),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(body: WenzRichTextEditor(controller: controller)),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Locate the two blocks and tap midway between them, on the 5th column.
+      final p1 = find.byWidgetPredicate(
+        (w) => w is RichText && w.text.toPlainText() == 'abcdefghij',
+      );
+      final p2 = find.byWidgetPredicate(
+        (w) => w is RichText && w.text.toPlainText() == 'klmnopqrst',
+      );
+      final p1Rect = tester.getRect(p1);
+      final p2Rect = tester.getRect(p2);
+      // Column 5 x: 5 characters in from p1's left.
+      final columnX = p1Rect.left + 5 * (p1Rect.width / 'abcdefghij'.length);
+      final gapY = (p1Rect.bottom + p2Rect.top) / 2;
+      await tester.tapAt(Offset(columnX, gapY));
+      await tester.pump();
+
+      final extent = controller.selection?.extent;
+      expect(extent, isNotNull);
+      // The caret should land near column 5 of whichever block owns the gap —
+      // not at 0 or textLength (10). Allow some tolerance for glyph widths.
+      expect(extent!.offset, inInclusiveRange(3, 7),
+          reason: 'gap tap must honour the horizontal column, not clamp to an edge');
+    });
   });
 
   group('TextLayoutService word/paragraph ranges', () {

@@ -15,6 +15,7 @@ import '../core/commands/command_executor.dart';
 import '../core/commands/command_registry.dart';
 import '../core/commands/editor_command.dart';
 import '../core/commands/inline_commands.dart';
+import '../core/commands/inline_editing.dart';
 import '../core/commands/selection_commands.dart';
 import '../core/commands/style_commands.dart';
 import '../core/commands/table_commands.dart';
@@ -622,14 +623,22 @@ class WenzRichTextController extends ChangeNotifier {
       return;
     }
     // Insert each run at the current caret; InsertTextCommand handles attribute
-    // preservation per run. Inserting as separate commands lets them coalesce
-    // only when attributes match.
+    // preservation per run, and InsertInlineEmbedCommand re-inserts embeds
+    // (formula/mention/image) so rich inline elements survive paste. Inserting
+    // as separate commands lets them coalesce only when attributes match.
     for (final run in runs) {
       if (run is TextRun) {
         if (run.text.isEmpty) {
           continue;
         }
         insertText(run.text, attributes: run.attributes);
+      } else if (run is InlineEmbed) {
+        execute(
+          InsertInlineEmbedCommand(
+            embedType: run.embedType,
+            data: run.data,
+          ),
+        );
       }
     }
   }

@@ -72,6 +72,26 @@ class BlockGeometryRegistry {
   @visibleForTesting
   List<BlockEntry> get entries => List<BlockEntry>.unmodifiable(_entries);
 
+  /// The bottom edge of the document content in global coordinates, taken from
+  /// the lowest mounted block surface. Used by the editor to tell whether a
+  /// page-jump target overshoots the document (a short doc paged past its end)
+  /// so the caret can jump to the document boundary instead of relying on the
+  /// ambiguous nearest-block clamp. Returns `null` when no surface is laid out.
+  double? contentExtent() {
+    double? bottom;
+    for (final entry in _entries) {
+      final box = entry.hitTestBox;
+      if (box == null || !box.hasSize) {
+        continue;
+      }
+      final rect = box.localToGlobal(Offset.zero) & box.size;
+      if (bottom == null || rect.bottom > bottom) {
+        bottom = rect.bottom;
+      }
+    }
+    return bottom;
+  }
+
   /// Average height of the currently-mounted block surfaces and the smallest
   /// block index among them. Used by the editor to estimate a scroll offset
   /// when a programmatic caret jump targets a virtualised (un-mounted) block:
@@ -181,6 +201,30 @@ class BlockGeometryRegistry {
     }
     if (nearest == null) {
       return null;
+    }
+    // Resolve the caret using the tap's horizontal column when it falls inside
+    // the block's width. Project the point onto the block's nearest edge so it
+    // lands on the block's first line (above) / last line (below), then let the
+    // block's own layout map the (x, line) to a character offset. This keeps a
+    // gap-tap on the 4th column landing at ~offset 4 instead of always 0/end.
+    // Only when the tap is horizontally outside the block do we fall back to the
+    // hard 0 / textLength edges.
+    final box = nearest.hitTestBox;
+    if (box != null) {
+      final origin = box.localToGlobal(Offset.zero);
+      if (global.dx >= origin.dx && global.dx <= origin.dx + box.size.width) {
+        final rect = origin & box.size;
+        final edgeY = clampToEnd ? rect.bottom - 1 : rect.top + 1;
+        final clamped = Offset(global.dx, edgeY.clamp(rect.top, rect.bottom));
+        final local = box.globalToLocal(clamped);
+        final textLocal = nearest.hitLocalToTextLocal(local);
+        return DocumentPosition(
+          blockId: nearest.blockId,
+          blockIndex: nearest.blockIndex,
+          path: nearest.path,
+          offset: nearest.positionFromLocal(textLocal),
+        );
+      }
     }
     final offset = clampToEnd ? nearest.textLength : 0;
     return DocumentPosition(

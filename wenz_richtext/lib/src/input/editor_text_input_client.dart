@@ -134,6 +134,10 @@ class EditorTextInputClient with DeltaTextInputClient {
       return;
     }
     _lastReportedCaretRect = rect;
+    final localCaretRect = Offset.zero & rect.size;
+    _lastReportedLocalCaretRect = localCaretRect;
+    _lastReportedComposingRect = localCaretRect;
+    _lastReportedEditableSize = rect.size;
     // The transform's translation is the caret's global top-left; the size is
     // the caret rect's height (a thin caret). Platforms use this to anchor the
     // candidate window just below the caret line.
@@ -141,6 +145,8 @@ class EditorTextInputClient with DeltaTextInputClient {
       rect.size,
       Matrix4.translationValues(rect.left, rect.top, 0),
     );
+    connection.setCaretRect(localCaretRect);
+    connection.setComposingRect(localCaretRect);
   }
 
   /// The caret rect most recently pushed to the platform IME, or `null` when

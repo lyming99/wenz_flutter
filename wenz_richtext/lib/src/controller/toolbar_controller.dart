@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 
 import '../core/commands/inline_commands.dart';
 import '../core/commands/inline_editing.dart';
+import '../core/commands/table_cell_editing.dart';
 import '../core/model/attributes.dart';
 import '../core/model/block_node.dart';
 import '../core/model/inline_node.dart';
@@ -28,6 +29,8 @@ class ToolbarState {
     required this.canToggleTodo,
     required this.canToggleQuote,
     required this.canTableStruct,
+    this.tableCellIsHeader,
+    this.tableCellBackgroundColor,
     required this.bold,
     required this.italic,
     required this.underline,
@@ -72,6 +75,8 @@ class ToolbarState {
   /// Whether table structure commands (add/remove row/column, merge, split)
   /// make sense — the caret must sit inside a table cell.
   final bool canTableStruct;
+  final bool? tableCellIsHeader;
+  final int? tableCellBackgroundColor;
 
   /// `true` when **every** text run in the selection has the mark set. A
   /// mixed range (some on, some off) reports `false` (indeterminate) so the
@@ -165,6 +170,8 @@ class ToolbarState {
     bool? canToggleTodo,
     bool? canToggleQuote,
     bool? canTableStruct,
+    Object? tableCellIsHeader = _sentinel,
+    Object? tableCellBackgroundColor = _sentinel,
     bool? bold,
     bool? italic,
     bool? underline,
@@ -188,12 +195,19 @@ class ToolbarState {
       canToggleTodo: canToggleTodo ?? this.canToggleTodo,
       canToggleQuote: canToggleQuote ?? this.canToggleQuote,
       canTableStruct: canTableStruct ?? this.canTableStruct,
+      tableCellIsHeader: identical(tableCellIsHeader, _sentinel)
+          ? this.tableCellIsHeader
+          : tableCellIsHeader as bool?,
+      tableCellBackgroundColor: identical(tableCellBackgroundColor, _sentinel)
+          ? this.tableCellBackgroundColor
+          : tableCellBackgroundColor as int?,
       bold: bold ?? this.bold,
       italic: italic ?? this.italic,
       underline: underline ?? this.underline,
       lineThrough: lineThrough ?? this.lineThrough,
       remark: remark ?? this.remark,
-      linkUrl: identical(linkUrl, _sentinel) ? this.linkUrl : linkUrl as String?,
+      linkUrl:
+          identical(linkUrl, _sentinel) ? this.linkUrl : linkUrl as String?,
       uniformBlockType: uniformBlockType ?? this.uniformBlockType,
       uniformListType: identical(uniformListType, _sentinel)
           ? this.uniformListType
@@ -219,6 +233,8 @@ class ToolbarState {
         other.canToggleTodo == canToggleTodo &&
         other.canToggleQuote == canToggleQuote &&
         other.canTableStruct == canTableStruct &&
+        other.tableCellIsHeader == tableCellIsHeader &&
+        other.tableCellBackgroundColor == tableCellBackgroundColor &&
         other.bold == bold &&
         other.italic == italic &&
         other.underline == underline &&
@@ -246,6 +262,8 @@ class ToolbarState {
         canToggleTodo,
         canToggleQuote,
         canTableStruct,
+        tableCellIsHeader,
+        tableCellBackgroundColor,
       ),
       Object.hash(
         bold,
@@ -300,6 +318,8 @@ class ToolbarController extends ChangeNotifier {
   bool get canToggleTodo => _state.canToggleTodo;
   bool get canToggleQuote => _state.canToggleQuote;
   bool get canTableStruct => _state.canTableStruct;
+  bool? get tableCellIsHeader => _state.tableCellIsHeader;
+  int? get tableCellBackgroundColor => _state.tableCellBackgroundColor;
 
   bool get bold => _state.bold;
   bool get italic => _state.italic;
@@ -369,8 +389,7 @@ class ToolbarController extends ChangeNotifier {
       _setBlockType(BlockType.listItem, listType: 'task', checked: false);
   void setOrderedList() =>
       _setBlockType(BlockType.listItem, listType: 'ordered');
-  void setUnorderedList() =>
-      _setBlockType(BlockType.listItem, listType: null);
+  void setUnorderedList() => _setBlockType(BlockType.listItem, listType: null);
 
   void _setBlockType(
     BlockType type, {
@@ -444,17 +463,37 @@ class ToolbarController extends ChangeNotifier {
     final extentBlock = _blockAt(document, extent.blockIndex);
 
     final extentTextBlock = extentBlock is TextBlockNode ? extentBlock : null;
-    final extentOnText = extentTextBlock != null && extent.path.isBlockText;
+    // A table cell's text lives inside a TableBlockNode, so resolve the cell's
+    // first text block separately — the inline format/link/mark commands route
+    // to cell-aware variants and the toolbar must read/write marks there too.
+    final extentCellTextBlock = extent.path.isTableCellText
+        ? tableCellTextBlockForPosition(document, extent)
+        : null;
+    final extentOnText = (extentTextBlock != null && extent.path.isBlockText) ||
+        extentCellTextBlock != null;
     final singleBlock =
         start.blockIndex == end.blockIndex && start.path == end.path;
 
     // Active inline attributes over the selection.
     final InlineAttributeSummary inlineSummary;
     if (!isCollapsed) {
-      inlineSummary = _collectRangeAttributes(document, start, end);
+      if (extentCellTextBlock != null && singleBlock) {
+        // Same-cell range inside a table cell: read marks off the cell's text.
+        inlineSummary = _collectRangeAttributesForContent(
+          extentCellTextBlock.content,
+          start.offset,
+          end.offset,
+        );
+      } else {
+        inlineSummary = _collectRangeAttributes(document, start, end);
+      }
     } else if (extentTextBlock case final textBlock?) {
       inlineSummary = InlineAttributeSummary.single(
         _typingAttributes(textBlock, extent.offset),
+      );
+    } else if (extentCellTextBlock case final cellTextBlock?) {
+      inlineSummary = InlineAttributeSummary.single(
+        _typingAttributes(cellTextBlock, extent.offset),
       );
     } else {
       inlineSummary = InlineAttributeSummary.empty;
@@ -464,6 +503,8 @@ class ToolbarController extends ChangeNotifier {
     final blockSummary = _collectBlockType(document, start, end);
 
     final inTable = extent.path.isTableCellText;
+    final cellStyle =
+        _collectTableCellStyle(document, selection.tableCellRange);
 
     _state = ToolbarState(
       hasSelection: true,
@@ -482,6 +523,8 @@ class ToolbarController extends ChangeNotifier {
       canToggleTodo: blockSummary.hasTextBlock,
       canToggleQuote: blockSummary.hasTextBlock,
       canTableStruct: inTable,
+      tableCellIsHeader: cellStyle?.isHeader,
+      tableCellBackgroundColor: cellStyle?.backgroundColor,
       bold: inlineSummary.bold,
       italic: inlineSummary.italic,
       underline: inlineSummary.underline,
@@ -538,45 +581,30 @@ class ToolbarController extends ChangeNotifier {
         continue;
       }
       final rangeStart = i == start.blockIndex ? start.offset : 0;
-      final rangeEnd = i == end.blockIndex
-          ? end.offset
-          : inlineNodesLength(block.content);
+      final rangeEnd =
+          i == end.blockIndex ? end.offset : inlineNodesLength(block.content);
 
-      var cursor = 0;
-      for (final node in block.content) {
-        final nodeStart = cursor;
-        final nodeEnd = cursor + inlineLength(node);
-        cursor = nodeEnd;
-        // Overlap test against [rangeStart, rangeEnd).
-        if (nodeEnd <= rangeStart || nodeStart >= rangeEnd) {
-          continue;
-        }
-        if (node is! TextRun) {
-          continue;
-        }
-        sawAny = true;
-        if (node.attributes.bold != true) {
-          bold = false;
-        }
-        if (node.attributes.italic != true) {
-          italic = false;
-        }
-        if (node.attributes.underline != true) {
-          underline = false;
-        }
-        if (node.attributes.lineThrough != true) {
-          lineThrough = false;
-        }
-        if (node.attributes.remark != true) {
-          remark = false;
-        }
-        if (!urlSet) {
-          url = node.attributes.url;
-          urlSet = true;
-        } else if (node.attributes.url != url) {
-          url = null;
-        }
-      }
+      final partial = _scanAttributes(
+        block.content,
+        rangeStart,
+        rangeEnd,
+        bold: bold,
+        italic: italic,
+        underline: underline,
+        lineThrough: lineThrough,
+        remark: remark,
+        url: url,
+        urlSet: urlSet,
+        sawAny: sawAny,
+      );
+      bold = partial.bold;
+      italic = partial.italic;
+      underline = partial.underline;
+      lineThrough = partial.lineThrough;
+      remark = partial.remark;
+      url = partial.url;
+      urlSet = partial.urlSet;
+      sawAny = partial.sawAny;
     }
 
     if (!sawAny) {
@@ -589,6 +617,153 @@ class ToolbarController extends ChangeNotifier {
       lineThrough: lineThrough,
       remark: remark,
       url: url,
+    );
+  }
+
+  /// Same as [_collectRangeAttributes] but for a single inline content list
+  /// (a cell's text block). Used by table-cell selections, which resolve to
+  /// one content list rather than top-level blocks.
+  InlineAttributeSummary _collectRangeAttributesForContent(
+    List<InlineNode> content,
+    int rangeStart,
+    int rangeEnd,
+  ) {
+    final partial = _scanAttributes(
+      content,
+      rangeStart,
+      rangeEnd,
+      bold: true,
+      italic: true,
+      underline: true,
+      lineThrough: true,
+      remark: true,
+      url: null,
+      urlSet: false,
+      sawAny: false,
+    );
+    if (!partial.sawAny) {
+      return InlineAttributeSummary.empty;
+    }
+    return InlineAttributeSummary(
+      bold: partial.bold,
+      italic: partial.italic,
+      underline: partial.underline,
+      lineThrough: partial.lineThrough,
+      remark: partial.remark,
+      url: partial.url,
+    );
+  }
+
+  _TableCellStyleSummary? _collectTableCellStyle(
+    RichTextDocument document,
+    TableCellRange? range,
+  ) {
+    if (range == null) {
+      return null;
+    }
+    final block = _blockAt(document, range.blockIndex);
+    if (block is! TableBlockNode || block.id != range.tableBlockId) {
+      return null;
+    }
+
+    var hasCell = false;
+    var headerMixed = false;
+    var backgroundMixed = false;
+    bool? uniformHeader;
+    int? uniformBackground;
+
+    for (var row = range.startRow; row <= range.endRow; row++) {
+      for (var column = range.startColumn;
+          column <= range.endColumn;
+          column++) {
+        final cell = block.table.cellAt(row, column);
+        if (cell == null || cell.covered) {
+          continue;
+        }
+        if (!hasCell) {
+          hasCell = true;
+          uniformHeader = cell.isHeader;
+          uniformBackground = cell.backgroundColor;
+          continue;
+        }
+        if (uniformHeader != cell.isHeader) {
+          headerMixed = true;
+        }
+        if (uniformBackground != cell.backgroundColor) {
+          backgroundMixed = true;
+        }
+      }
+    }
+
+    if (!hasCell) {
+      return null;
+    }
+    return _TableCellStyleSummary(
+      isHeader: headerMixed ? null : uniformHeader,
+      backgroundColor: backgroundMixed ? null : uniformBackground,
+    );
+  }
+
+  /// Scans [content] over [rangeStart, rangeEnd) and folds each run's marks
+  /// into the running tallies. Shared by the block-range and cell-content
+  /// attribute collectors.
+  _AttributeScan _scanAttributes(
+    List<InlineNode> content,
+    int rangeStart,
+    int rangeEnd, {
+    required bool bold,
+    required bool italic,
+    required bool underline,
+    required bool lineThrough,
+    required bool remark,
+    required String? url,
+    required bool urlSet,
+    required bool sawAny,
+  }) {
+    var cursor = 0;
+    for (final node in content) {
+      final nodeStart = cursor;
+      final nodeEnd = cursor + inlineLength(node);
+      cursor = nodeEnd;
+      // Overlap test against [rangeStart, rangeEnd).
+      if (nodeEnd <= rangeStart || nodeStart >= rangeEnd) {
+        continue;
+      }
+      if (node is! TextRun) {
+        continue;
+      }
+      sawAny = true;
+      if (node.attributes.bold != true) {
+        bold = false;
+      }
+      if (node.attributes.italic != true) {
+        italic = false;
+      }
+      if (node.attributes.underline != true) {
+        underline = false;
+      }
+      if (node.attributes.lineThrough != true) {
+        lineThrough = false;
+      }
+      if (node.attributes.remark != true) {
+        remark = false;
+      }
+      if (!urlSet) {
+        url = node.attributes.url;
+        urlSet = true;
+      } else if (node.attributes.url != url) {
+        url = null;
+      }
+    }
+    return _AttributeScan(
+      bold: bold,
+      italic: italic,
+      underline: underline,
+      lineThrough: lineThrough,
+      remark: remark,
+      url: url,
+      urlSet: urlSet,
+      sawAny: sawAny,
     );
   }
 
@@ -725,6 +900,40 @@ class InlineAttributeSummary {
   final bool lineThrough;
   final bool remark;
   final String? url;
+}
+
+class _TableCellStyleSummary {
+  const _TableCellStyleSummary({
+    required this.isHeader,
+    required this.backgroundColor,
+  });
+
+  final bool? isHeader;
+  final int? backgroundColor;
+}
+
+/// Running tallies produced by [ToolbarController._scanAttributes] while
+/// folding a content list's inline marks. Private to the attribute collectors.
+class _AttributeScan {
+  const _AttributeScan({
+    required this.bold,
+    required this.italic,
+    required this.underline,
+    required this.lineThrough,
+    required this.remark,
+    required this.url,
+    required this.urlSet,
+    required this.sawAny,
+  });
+
+  final bool bold;
+  final bool italic;
+  final bool underline;
+  final bool lineThrough;
+  final bool remark;
+  final String? url;
+  final bool urlSet;
+  final bool sawAny;
 }
 
 class _BlockTypeSummary {

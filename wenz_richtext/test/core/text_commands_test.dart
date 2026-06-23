@@ -500,6 +500,151 @@ void main() {
     expect(session.selection?.extent.path.tableColumnIndex, 0);
     expect(session.selection?.extent.offset, 0);
   });
+
+  test('delete all selected content leaves one empty paragraph', () {
+    final session = DocumentSession(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          ImageBlockNode(id: 'img1', assetId: 'a1'),
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'middle')],
+          ),
+          ImageBlockNode(id: 'img2', assetId: 'a2'),
+        ],
+      ),
+    );
+    final executor = CommandExecutor(session);
+
+    executor.execute(const SelectAllCommand());
+    executor.execute(const DeleteSelectionCommand());
+
+    expect(session.document.blocks, hasLength(1));
+    final block = session.document.blocks.single;
+    expect(block, isA<TextBlockNode>());
+    expect((block as TextBlockNode).content, isEmpty);
+    expect(block.type, BlockType.paragraph);
+    expect(session.selection?.extent.blockIndex, 0);
+    expect(session.selection?.extent.path.isBlockText, isTrue);
+    expect(session.selection?.extent.offset, 0);
+  });
+
+  group('delete object block', () {
+    DocumentSelection objectSelection(String blockId, int blockIndex) {
+      final start = DocumentPosition(
+        blockId: blockId,
+        blockIndex: blockIndex,
+        path: PositionPath.blockObject(blockId),
+        offset: 0,
+      );
+      final end = DocumentPosition(
+        blockId: blockId,
+        blockIndex: blockIndex,
+        path: PositionPath.blockObject(blockId),
+        offset: 1,
+      );
+      return DocumentSelection(base: start, extent: end);
+    }
+
+    test('deleting a selected image lands the caret in the previous block', () {
+      final session = DocumentSession(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'p1',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'before')],
+            ),
+            ImageBlockNode(id: 'img1', assetId: 'a1'),
+          ],
+        ),
+        selection: objectSelection('img1', 1),
+      );
+      final executor = CommandExecutor(session);
+
+      executor.execute(const DeleteSelectionCommand());
+
+      expect(session.document.blocks, hasLength(1));
+      expect(session.document.blocks.single, isA<TextBlockNode>());
+      expect(session.selection?.extent.blockId, 'p1');
+      expect(session.selection?.extent.offset, 6); // end of "before"
+      expect(session.canUndo, isTrue);
+    });
+
+    test('deleting an image with no previous block lands at the next block',
+        () {
+      final session = DocumentSession(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            ImageBlockNode(id: 'img1', assetId: 'a1'),
+            TextBlockNode(
+              id: 'p1',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'after')],
+            ),
+          ],
+        ),
+        selection: objectSelection('img1', 0),
+      );
+      final executor = CommandExecutor(session);
+
+      executor.execute(const DeleteSelectionCommand());
+
+      expect(session.document.blocks, hasLength(1));
+      expect(session.selection?.extent.blockId, 'p1');
+      expect(session.selection?.extent.offset, 0);
+    });
+
+    test('deleting the only image leaves a normalised empty paragraph', () {
+      final session = DocumentSession(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            ImageBlockNode(id: 'img1', assetId: 'a1'),
+          ],
+        ),
+        selection: objectSelection('img1', 0),
+      );
+      final executor = CommandExecutor(session);
+
+      executor.execute(const DeleteSelectionCommand());
+
+      // The command re-adds a paragraph so the caret can land in valid text.
+      expect(session.document.blocks, hasLength(1));
+      expect(session.document.blocks.single, isA<TextBlockNode>());
+      expect(session.selection?.extent.blockIndex, 0);
+      expect(session.selection?.extent.path.isBlockText, isTrue);
+      expect(session.selection?.extent.offset, 0);
+    });
+
+    test('deleting a selected divider works', () {
+      final session = DocumentSession(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'p1',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'x')],
+            ),
+            DividerBlockNode(id: 'd1'),
+            TextBlockNode(
+              id: 'p2',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'y')],
+            ),
+          ],
+        ),
+        selection: objectSelection('d1', 1),
+      );
+      final executor = CommandExecutor(session);
+
+      executor.execute(const DeleteSelectionCommand());
+
+      expect(session.document.blocks, hasLength(2));
+      expect(session.selection?.extent.blockId, 'p1');
+      expect(session.selection?.extent.offset, 1);
+    });
+  });
 }
 
 RichTextDocument _tableRangeDocument() {

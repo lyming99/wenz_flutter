@@ -988,6 +988,180 @@ void main() {
     );
   });
 
+  testWidgets('tap below a trailing image appends a paragraph', (tester) async {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          ImageBlockNode(id: 'image1', assetId: 'hero', file: 'hero.png'),
+        ],
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            height: 320,
+            child: WenzRichTextEditor(
+              controller: controller,
+              enableIme: false,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final editorRect = tester.getRect(find.byType(WenzRichTextEditor));
+    await tester.tapAt(Offset(editorRect.left + 24, editorRect.bottom - 24));
+    await tester.pump();
+
+    expect(controller.document.blocks, hasLength(2));
+    expect(controller.document.blocks.last, isA<TextBlockNode>());
+    expect(controller.selection?.extent.blockIndex, 1);
+    expect(controller.selection?.extent.path.isBlockText, isTrue);
+  });
+
+  testWidgets('tap below a trailing table appends a paragraph', (tester) async {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TableBlockNode(
+            id: 'table1',
+            table: TableModel(
+              rows: <List<TableCellNode>>[
+                <TableCellNode>[
+                  TableCellNode(
+                    id: 'cell1',
+                    blocks: <BlockNode>[
+                      TextBlockNode(
+                        id: 'cell-p1',
+                        type: BlockType.paragraph,
+                        content: <InlineNode>[TextRun(text: 'cell')],
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            height: 360,
+            child: WenzRichTextEditor(
+              controller: controller,
+              enableIme: false,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final editorRect = tester.getRect(find.byType(WenzRichTextEditor));
+    await tester.tapAt(Offset(editorRect.left + 24, editorRect.bottom - 24));
+    await tester.pump();
+
+    expect(controller.document.blocks, hasLength(2));
+    expect(controller.document.blocks.last, isA<TextBlockNode>());
+    expect(controller.selection?.extent.blockIndex, 1);
+    expect(controller.selection?.extent.path.isBlockText, isTrue);
+  });
+
+  testWidgets('ArrowDown from a trailing image appends a paragraph', (
+    tester,
+  ) async {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          ImageBlockNode(id: 'image1', assetId: 'hero', file: 'hero.png'),
+        ],
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WenzRichTextEditor(
+            controller: controller,
+            autofocus: true,
+            enableIme: false,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await tester.tapAt(tester.getCenter(find.text('[image: hero.png]')));
+    await tester.pump();
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pump();
+
+    expect(controller.document.blocks, hasLength(2));
+    expect(controller.document.blocks.last, isA<TextBlockNode>());
+    expect(controller.selection?.extent.blockIndex, 1);
+    expect(controller.selection?.extent.path.isBlockText, isTrue);
+  });
+
+  testWidgets('ArrowDown from a trailing table appends a paragraph', (
+    tester,
+  ) async {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TableBlockNode(
+            id: 'table1',
+            table: TableModel(
+              rows: <List<TableCellNode>>[
+                <TableCellNode>[
+                  TableCellNode(
+                    id: 'cell1',
+                    blocks: <BlockNode>[
+                      TextBlockNode(
+                        id: 'cell-p1',
+                        type: BlockType.paragraph,
+                        content: <InlineNode>[TextRun(text: 'cell')],
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WenzRichTextEditor(
+            controller: controller,
+            autofocus: true,
+            enableIme: false,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await _tapTextOffset(tester, 'cell', 4);
+    await tester.pump();
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pump();
+
+    expect(controller.document.blocks, hasLength(2));
+    expect(controller.document.blocks.last, isA<TextBlockNode>());
+    expect(controller.selection?.extent.blockIndex, 1);
+    expect(controller.selection?.extent.path.isBlockText, isTrue);
+  });
+
   testWidgets('tap text uses text layout to place caret at offset', (
     tester,
   ) async {
@@ -1519,6 +1693,60 @@ void main() {
     expect(_underlinedTexts(richText.text), <String>['commands']);
   });
 
+  testWidgets('re-reports IME geometry after growing content auto-scrolls', (
+    tester,
+  ) async {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'start')],
+          ),
+        ],
+      ),
+      selection: collapsedTextSelection('p1', 0, 5),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            height: 64,
+            child: WenzRichTextEditor(
+              controller: controller,
+              autofocus: true,
+            ),
+          ),
+        ),
+      ),
+    );
+    controller.requestFocus();
+    await tester.pump();
+    await tester.pump();
+
+    expect(tester.testTextInput.hasAnyClients, isTrue);
+    tester.testTextInput.log.clear();
+    final scrollBefore = _scrollOffset(tester);
+
+    controller.insertText(
+      '\nline 1\nline 2\nline 3\nline 4\nline 5\nline 6',
+    );
+    await tester.pump();
+
+    expect(_scrollOffset(tester), greaterThan(scrollBefore));
+    tester.testTextInput.log.clear();
+
+    await tester.pump();
+
+    expect(
+      tester.testTextInput.log.where(
+          (call) => call.method == 'TextInput.setEditableSizeAndTransform'),
+      isNotEmpty,
+    );
+  });
+
   testWidgets('platform selectors dispatch to editor commands', (tester) async {
     final controller = WenzRichTextController(
       document: const RichTextDocument(
@@ -1733,6 +1961,87 @@ void main() {
     expect(controller.selection?.isCollapsed, isFalse);
     expect(controller.selection?.start.offset, 0);
     expect(controller.selection?.end.offset, 6);
+  });
+
+  testWidgets('Ctrl+A selects a lone image block', (tester) async {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          ImageBlockNode(id: 'image1', assetId: 'hero', file: 'hero.png'),
+        ],
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WenzRichTextEditor(
+            controller: controller,
+            autofocus: true,
+            enableIme: false,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await _sendCtrlShortcut(tester, LogicalKeyboardKey.keyA);
+    await tester.pump();
+
+    expect(controller.selection?.isCollapsed, isFalse);
+    expect(controller.selection?.start.blockId, 'image1');
+    expect(controller.selection?.start.path.isBlockObject, isTrue);
+    expect(controller.selection?.start.offset, 0);
+    expect(controller.selection?.end.blockId, 'image1');
+    expect(controller.selection?.end.path.isBlockObject, isTrue);
+    expect(controller.selection?.end.offset, 1);
+    expect(
+      find.byKey(const ValueKey<String>('wenz-richtext-selection-highlight')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('Delete after Ctrl+A leaves one empty paragraph', (tester) async {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          ImageBlockNode(id: 'image1', assetId: 'hero', file: 'hero.png'),
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'middle')],
+          ),
+          ImageBlockNode(id: 'image2', assetId: 'hero2', file: 'hero2.png'),
+        ],
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WenzRichTextEditor(
+            controller: controller,
+            autofocus: true,
+            enableIme: false,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await _sendCtrlShortcut(tester, LogicalKeyboardKey.keyA);
+    await tester.pump();
+    await tester.sendKeyEvent(LogicalKeyboardKey.delete);
+    await tester.pump();
+
+    expect(controller.document.blocks, hasLength(1));
+    final block = controller.document.blocks.single;
+    expect(block, isA<TextBlockNode>());
+    expect((block as TextBlockNode).content, isEmpty);
+    expect(block.type, BlockType.paragraph);
+    expect(controller.selection?.extent.blockIndex, 0);
+    expect(controller.selection?.extent.path.isBlockText, isTrue);
+    expect(controller.selection?.extent.offset, 0);
   });
 
   testWidgets('Ctrl+Z / Ctrl+Shift+Z undo and redo', (tester) async {
@@ -2009,6 +2318,49 @@ void main() {
             ),
           ),
         );
+
+    testWidgets('dragging the scrollbar gutter does not start a selection', (
+      tester,
+    ) async {
+      final controller = WenzRichTextController(document: tallDocument());
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              height: 150,
+              child:
+                  WenzRichTextEditor(controller: controller, enableIme: false),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Place an initial collapsed caret in the content so we can detect any
+      // spurious change.
+      final contentPoint = _globalTextOffset(tester, 'block-0-content', 2);
+      await tester.tapAt(contentPoint);
+      await tester.pump();
+      expect(controller.selection, isNotNull);
+      final selectionBefore = controller.selection;
+
+      // Drag vertically inside the trailing scrollbar gutter (rightmost 16px).
+      // The gutter is within _kScrollbarGutterWidth of the editor's right edge.
+      final editorBox = tester.getRect(find.byType(WenzRichTextEditor));
+      final gutterX = editorBox.right - 8;
+      final gesture = await tester.startGesture(
+        Offset(gutterX, editorBox.top + 30),
+        kind: PointerDeviceKind.mouse,
+      );
+      await gesture.moveTo(Offset(gutterX, editorBox.top + 90));
+      await gesture.up();
+      await tester.pump();
+
+      // The selection must be unchanged — scrolling the thumb is not a content
+      // selection drag.
+      expect(controller.selection, selectionBefore);
+    });
 
     testWidgets('mouse drag held at the bottom edge keeps scrolling down', (
       tester,

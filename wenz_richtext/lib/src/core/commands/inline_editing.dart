@@ -277,3 +277,201 @@ int inlineNodesLength(List<InlineNode> nodes) {
   }
   return result;
 }
+
+/// Boolean inline marks toggleable by [ToggleMarkCommand] / [toggleTableCellMark].
+enum TextMark { bold, italic, underline, lineThrough, remark }
+
+/// The attributes that apply (turn on) a single [mark].
+TextAttributes markAttributes(TextMark mark) {
+  return switch (mark) {
+    TextMark.bold => const TextAttributes(bold: true),
+    TextMark.italic => const TextAttributes(italic: true),
+    TextMark.underline => const TextAttributes(underline: true),
+    TextMark.lineThrough => const TextAttributes(lineThrough: true),
+    TextMark.remark => const TextAttributes(remark: true),
+  };
+}
+
+/// Whether any text run overlapping [start, end) has [mark] set.
+bool anyRunHasMark(
+  List<InlineNode> nodes,
+  int start,
+  int end,
+  TextMark mark,
+) {
+  var cursor = 0;
+  for (final node in nodes) {
+    final nodeStart = cursor;
+    final nodeEnd = cursor + inlineLength(node);
+    cursor = nodeEnd;
+    if (nodeEnd <= start || nodeStart >= end || node is! TextRun) {
+      continue;
+    }
+    final on = switch (mark) {
+      TextMark.bold => node.attributes.bold == true,
+      TextMark.italic => node.attributes.italic == true,
+      TextMark.underline => node.attributes.underline == true,
+      TextMark.lineThrough => node.attributes.lineThrough == true,
+      TextMark.remark => node.attributes.remark == true,
+    };
+    if (on) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/// Clears [mark] from the runs covering [start, end), splitting at boundaries.
+List<InlineNode> clearMark(
+  List<InlineNode> nodes,
+  int start,
+  int end,
+  TextMark mark,
+) {
+  final result = <InlineNode>[];
+  var cursor = 0;
+  for (final node in nodes) {
+    final nodeStart = cursor;
+    final nodeEnd = cursor + inlineLength(node);
+    cursor = nodeEnd;
+    if (nodeEnd <= start || nodeStart >= end || node is! TextRun) {
+      result.add(node.copy());
+      continue;
+    }
+    final localStart = start > nodeStart ? start - nodeStart : 0;
+    final localEnd = end < nodeEnd ? end - nodeStart : node.text.length;
+    final before = node.text.substring(0, localStart);
+    final middle = node.text.substring(localStart, localEnd);
+    final after = node.text.substring(localEnd);
+    final middleAttrs = withoutMark(node.attributes, mark);
+    if (before.isNotEmpty) {
+      result.add(TextRun(text: before, attributes: node.attributes));
+    }
+    if (middle.isNotEmpty) {
+      result.add(TextRun(text: middle, attributes: middleAttrs));
+    }
+    if (after.isNotEmpty) {
+      result.add(TextRun(text: after, attributes: node.attributes));
+    }
+  }
+  return mergeTextRuns(result);
+}
+
+/// Returns [attrs] with [mark] removed (set to null).
+TextAttributes withoutMark(TextAttributes attrs, TextMark mark) {
+  return TextAttributes(
+    color: attrs.color,
+    background: attrs.background,
+    bold: mark == TextMark.bold ? null : attrs.bold,
+    italic: mark == TextMark.italic ? null : attrs.italic,
+    fontSize: attrs.fontSize,
+    fontFamily: attrs.fontFamily,
+    underline: mark == TextMark.underline ? null : attrs.underline,
+    lineThrough: mark == TextMark.lineThrough ? null : attrs.lineThrough,
+    remark: mark == TextMark.remark ? null : attrs.remark,
+    url: attrs.url,
+  );
+}
+
+/// Rewrites the runs covering [start, end) so each carries [url] (or has its
+/// url removed when [url] is null). Splits runs at the boundaries like
+/// [formatInline] but overwrites the url field rather than merging.
+List<InlineNode> withUrl(
+  List<InlineNode> nodes,
+  int start,
+  int end,
+  String? url,
+) {
+  if (end <= start) {
+    return nodes.map((n) => n.copy()).toList();
+  }
+  final result = <InlineNode>[];
+  var cursor = 0;
+  for (final node in nodes) {
+    final nodeStart = cursor;
+    final nodeEnd = cursor + inlineLength(node);
+    cursor = nodeEnd;
+
+    if (nodeEnd <= start || nodeStart >= end) {
+      result.add(node.copy());
+      continue;
+    }
+    if (node is! TextRun) {
+      result.add(node.copy());
+      continue;
+    }
+    final localStart = start > nodeStart ? start - nodeStart : 0;
+    final localEnd = end < nodeEnd ? end - nodeStart : node.text.length;
+    final before = node.text.substring(0, localStart);
+    final middle = node.text.substring(localStart, localEnd);
+    final after = node.text.substring(localEnd);
+    if (before.isNotEmpty) {
+      result.add(TextRun(text: before, attributes: node.attributes));
+    }
+    if (middle.isNotEmpty) {
+      result.add(
+        TextRun(
+          text: middle,
+          attributes: TextAttributes(
+            color: node.attributes.color,
+            background: node.attributes.background,
+            bold: node.attributes.bold,
+            italic: node.attributes.italic,
+            fontSize: node.attributes.fontSize,
+            fontFamily: node.attributes.fontFamily,
+            underline: node.attributes.underline,
+            lineThrough: node.attributes.lineThrough,
+            remark: node.attributes.remark,
+            url: url, // overwrite (not merge) so null clears the link
+          ),
+        ),
+      );
+    }
+    if (after.isNotEmpty) {
+      result.add(TextRun(text: after, attributes: node.attributes));
+    }
+  }
+  return mergeTextRuns(result);
+}
+
+/// Replaces the single placeholder character at [offset] with [embed]. Pairs
+/// with [insertInline], which first drops a one-char placeholder run where the
+/// embed should land.
+List<InlineNode> replacePlaceholderWithEmbed(
+  List<InlineNode> nodes,
+  int offset,
+  InlineEmbed embed,
+) {
+  final result = <InlineNode>[];
+  var cursor = 0;
+  var inserted = false;
+  for (final node in nodes) {
+    final length = inlineLength(node);
+    final nodeStart = cursor;
+    final nodeEnd = cursor + length;
+    cursor = nodeEnd;
+
+    if (!inserted &&
+        node is TextRun &&
+        offset >= nodeStart &&
+        offset < nodeEnd) {
+      final local = offset - nodeStart;
+      final before = node.text.substring(0, local);
+      final after = node.text.substring(local + 1);
+      if (before.isNotEmpty) {
+        result.add(TextRun(text: before, attributes: node.attributes));
+      }
+      result.add(embed);
+      if (after.isNotEmpty) {
+        result.add(TextRun(text: after, attributes: node.attributes));
+      }
+      inserted = true;
+      continue;
+    }
+    result.add(node.copy());
+  }
+  if (!inserted) {
+    result.add(embed);
+  }
+  return mergeTextRuns(result);
+}

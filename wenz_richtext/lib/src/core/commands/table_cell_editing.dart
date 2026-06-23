@@ -42,6 +42,37 @@ TableCellEditTarget? tableCellTargetFromPosition(
   return tableCellTarget(session, position.blockIndex, rowIndex, columnIndex);
 }
 
+/// Read-only variant of [tableCellTargetFromPosition] for callers that hold a
+/// [RichTextDocument] but no [DocumentSession] (e.g. [ToolbarController]). It
+/// returns the cell's first text block without building a full edit target.
+TextBlockNode? tableCellTextBlockForPosition(
+  RichTextDocument document,
+  DocumentPosition position,
+) {
+  final path = position.path;
+  if (!path.isTableCellText) {
+    return null;
+  }
+  final rowIndex = path.tableRowIndex;
+  final columnIndex = path.tableColumnIndex;
+  if (rowIndex == null || columnIndex == null) {
+    return null;
+  }
+  if (position.blockIndex < 0 ||
+      position.blockIndex >= document.blocks.length) {
+    return null;
+  }
+  final block = document.blocks[position.blockIndex];
+  if (block is! TableBlockNode) {
+    return null;
+  }
+  final cell = block.table.cellAt(rowIndex, columnIndex);
+  if (cell == null) {
+    return null;
+  }
+  return cellTextBlock(cell);
+}
+
 class TableCellEditTarget {
   const TableCellEditTarget({
     required this.tableBlock,
@@ -189,6 +220,203 @@ CommandResult formatTableCellInlineRange(
     target.cell,
     nextTextBlock,
     cellSelection(target.tableBlock.id, blockIndex, rowIndex, columnIndex, safeEnd),
+  );
+}
+
+/// Toggles a boolean [TextMark] on a range within a single cell's first text
+/// block: applies the mark when none of the covered runs have it, otherwise
+/// clears it across the range. Mirrors [ToggleMarkCommand] for cell selections.
+CommandResult toggleTableCellMark(
+  DocumentSession session,
+  int blockIndex,
+  int rowIndex,
+  int columnIndex,
+  int startOffset,
+  int endOffset,
+  TextMark mark,
+) {
+  final target = tableCellTarget(session, blockIndex, rowIndex, columnIndex);
+  if (target == null) {
+    return const CommandResult(recordHistory: false);
+  }
+  final safeStart = startOffset.clamp(0, target.textLength).toInt();
+  final safeEnd = endOffset.clamp(safeStart, target.textLength).toInt();
+  final currentlyOn = safeStart < safeEnd &&
+      anyRunHasMark(target.textBlock.content, safeStart, safeEnd, mark);
+  final List<InlineNode> nextContent;
+  if (currentlyOn) {
+    nextContent = clearMark(
+      target.textBlock.content,
+      safeStart,
+      safeEnd,
+      mark,
+    );
+  } else {
+    nextContent = formatInline(
+      target.textBlock.content,
+      safeStart,
+      safeEnd,
+      markAttributes(mark),
+    );
+  }
+  final nextTextBlock = TextBlockNode(
+    id: target.textBlock.id,
+    type: target.textBlock.type,
+    attributes: target.textBlock.attributes,
+    content: nextContent,
+  );
+  return replaceCellTextBlock(
+    session,
+    blockIndex,
+    target.tableBlock,
+    rowIndex,
+    columnIndex,
+    target.cell,
+    nextTextBlock,
+    cellSelection(
+      target.tableBlock.id,
+      blockIndex,
+      rowIndex,
+      columnIndex,
+      safeEnd,
+    ),
+  );
+}
+
+/// Sets (or clears when [url] is null) the link URL on a range within a single
+/// cell's first text block. Mirrors [SetLinkCommand] for cell selections.
+CommandResult setTableCellLinkRange(
+  DocumentSession session,
+  int blockIndex,
+  int rowIndex,
+  int columnIndex,
+  int startOffset,
+  int endOffset,
+  String? url,
+) {
+  final target = tableCellTarget(session, blockIndex, rowIndex, columnIndex);
+  if (target == null) {
+    return const CommandResult(recordHistory: false);
+  }
+  final safeStart = startOffset.clamp(0, target.textLength).toInt();
+  final safeEnd = endOffset.clamp(safeStart, target.textLength).toInt();
+  final nextTextBlock = TextBlockNode(
+    id: target.textBlock.id,
+    type: target.textBlock.type,
+    attributes: target.textBlock.attributes,
+    content: withUrl(
+      target.textBlock.content,
+      safeStart,
+      safeEnd,
+      url,
+    ),
+  );
+  return replaceCellTextBlock(
+    session,
+    blockIndex,
+    target.tableBlock,
+    rowIndex,
+    columnIndex,
+    target.cell,
+    nextTextBlock,
+    cellSelection(target.tableBlock.id, blockIndex, rowIndex, columnIndex, safeEnd),
+  );
+}
+
+/// Clears all inline formatting on a range within a single cell's first text
+/// block. Mirrors [ClearStyleCommand] for cell selections.
+CommandResult clearTableCellInlineStyle(
+  DocumentSession session,
+  int blockIndex,
+  int rowIndex,
+  int columnIndex,
+  int startOffset,
+  int endOffset,
+) {
+  if (endOffset <= startOffset) {
+    return const CommandResult(recordHistory: false);
+  }
+  final target = tableCellTarget(session, blockIndex, rowIndex, columnIndex);
+  if (target == null) {
+    return const CommandResult(recordHistory: false);
+  }
+  final safeStart = startOffset.clamp(0, target.textLength).toInt();
+  final safeEnd = endOffset.clamp(safeStart, target.textLength).toInt();
+  if (safeStart == safeEnd) {
+    return const CommandResult(recordHistory: false);
+  }
+  final nextTextBlock = TextBlockNode(
+    id: target.textBlock.id,
+    type: target.textBlock.type,
+    attributes: target.textBlock.attributes,
+    content: clearInlineFormatting(
+      target.textBlock.content,
+      safeStart,
+      safeEnd,
+    ),
+  );
+  return replaceCellTextBlock(
+    session,
+    blockIndex,
+    target.tableBlock,
+    rowIndex,
+    columnIndex,
+    target.cell,
+    nextTextBlock,
+    cellSelection(target.tableBlock.id, blockIndex, rowIndex, columnIndex, safeEnd),
+  );
+}
+
+/// Inserts an inline embed (formula / mention / image) at a cell caret. The
+/// caret moves past the inserted embed. Mirrors [InsertInlineEmbedCommand] for
+/// cell selections.
+CommandResult insertTableCellInlineEmbed(
+  DocumentSession session,
+  int blockIndex,
+  int rowIndex,
+  int columnIndex,
+  int offset,
+  String embedType,
+  Map<String, Object?> data,
+) {
+  final target = tableCellTarget(session, blockIndex, rowIndex, columnIndex);
+  if (target == null) {
+    return const CommandResult(recordHistory: false);
+  }
+  final safeOffset = offset.clamp(0, target.textLength).toInt();
+  final embed = InlineEmbed(embedType: embedType, data: data);
+  final nextContent = replacePlaceholderWithEmbed(
+    insertInline(
+      target.textBlock.content,
+      safeOffset,
+      // Embeds render as a single placeholder char.
+      embed.plainText,
+      const TextAttributes(),
+    ),
+    safeOffset,
+    embed,
+  );
+  final nextTextBlock = TextBlockNode(
+    id: target.textBlock.id,
+    type: target.textBlock.type,
+    attributes: target.textBlock.attributes,
+    content: nextContent,
+  );
+  return replaceCellTextBlock(
+    session,
+    blockIndex,
+    target.tableBlock,
+    rowIndex,
+    columnIndex,
+    target.cell,
+    nextTextBlock,
+    cellSelection(
+      target.tableBlock.id,
+      blockIndex,
+      rowIndex,
+      columnIndex,
+      safeOffset + 1,
+    ),
   );
 }
 

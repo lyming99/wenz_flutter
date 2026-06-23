@@ -282,7 +282,7 @@ void main() {
     });
   });
 
-  test('select all spans first editable start to last editable end', () {
+  test('select all spans first selectable start to last selectable end', () {
     final session = DocumentSession(
       document: const RichTextDocument(
         blocks: <BlockNode>[
@@ -307,11 +307,41 @@ void main() {
 
     expect(session.selection, isNotNull);
     expect(session.selection!.isCollapsed, isFalse);
-    expect(session.selection!.start.blockId, 'p1');
+    expect(session.selection!.start.blockId, 'd1');
+    expect(session.selection!.start.path.isBlockObject, isTrue);
     expect(session.selection!.start.offset, 0);
-    expect(session.selection!.end.blockId, 'p2');
-    expect(session.selection!.end.offset, 3);
+    expect(session.selection!.end.blockId, 'd2');
+    expect(session.selection!.end.path.isBlockObject, isTrue);
+    expect(session.selection!.end.offset, 1);
     expect(session.canUndo, isFalse);
+  });
+
+  test('select all includes image blocks at document edges', () {
+    final session = DocumentSession(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          ImageBlockNode(id: 'img1', assetId: 'a1'),
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'abc')],
+          ),
+          ImageBlockNode(id: 'img2', assetId: 'a2'),
+        ],
+      ),
+    );
+    final executor = CommandExecutor(session);
+
+    executor.execute(const SelectAllCommand());
+
+    expect(session.selection, isNotNull);
+    expect(session.selection!.isCollapsed, isFalse);
+    expect(session.selection!.start.blockId, 'img1');
+    expect(session.selection!.start.path.isBlockObject, isTrue);
+    expect(session.selection!.start.offset, 0);
+    expect(session.selection!.end.blockId, 'img2');
+    expect(session.selection!.end.path.isBlockObject, isTrue);
+    expect(session.selection!.end.offset, 1);
   });
 
   test('table cell caret moves within and across cells', () {
@@ -361,12 +391,14 @@ void main() {
     );
     final executor = CommandExecutor(session);
 
-    executor.execute(const MoveTableCellCommand(CaretMovementDirection.forward));
+    executor
+        .execute(const MoveTableCellCommand(CaretMovementDirection.forward));
     expect(session.selection?.extent.path.tableRowIndex, 1);
     expect(session.selection?.extent.path.tableColumnIndex, 0);
     expect(session.selection?.extent.offset, 0);
 
-    executor.execute(const MoveTableCellCommand(CaretMovementDirection.backward));
+    executor
+        .execute(const MoveTableCellCommand(CaretMovementDirection.backward));
     expect(session.selection?.extent.path.tableRowIndex, 0);
     expect(session.selection?.extent.path.tableColumnIndex, 1);
     expect(session.selection?.extent.offset, 2);
@@ -379,7 +411,8 @@ void main() {
     );
     final executor = CommandExecutor(session);
 
-    executor.execute(const MoveTableCellCommand(CaretMovementDirection.forward));
+    executor
+        .execute(const MoveTableCellCommand(CaretMovementDirection.forward));
 
     var table = session.document.blocks.single as TableBlockNode;
     expect(table.table.rowCount, 3);
@@ -617,6 +650,157 @@ void main() {
 
     expect(session.selection?.extent.blockId, 'p1');
     expect(session.selection?.extent.offset, 2);
+  });
+
+  group('escape trailing object/table blocks', () {
+    DocumentPosition objectPosition(String blockId) {
+      return DocumentPosition(
+        blockId: blockId,
+        blockIndex: 0,
+        path: PositionPath.blockObject(blockId),
+        offset: 0,
+      );
+    }
+
+    test('ArrowDown from a trailing image appends a paragraph', () {
+      final pos = objectPosition('img1');
+      final session = DocumentSession(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            ImageBlockNode(id: 'img1', assetId: 'a1'),
+          ],
+        ),
+        selection: DocumentSelection(base: pos, extent: pos),
+      );
+      final executor = CommandExecutor(session);
+
+      executor.execute(
+        const MoveCaretVerticalCommand(CaretMovementDirection.forward),
+      );
+
+      expect(session.document.blocks, hasLength(2));
+      expect(session.document.blocks.last, isA<TextBlockNode>());
+      expect(session.selection?.extent.blockId, 'img1-next');
+      expect(session.selection?.extent.offset, 0);
+      expect(session.canUndo, isTrue);
+    });
+
+    test('ArrowDown from the last table cell appends a paragraph', () {
+      const document = RichTextDocument(
+        blocks: <BlockNode>[
+          TableBlockNode(
+            id: 't1',
+            table: TableModel(
+              rows: <List<TableCellNode>>[
+                <TableCellNode>[
+                  TableCellNode(
+                    id: 'c0',
+                    blocks: <BlockNode>[
+                      TextBlockNode(
+                        id: 'c0p',
+                        type: BlockType.paragraph,
+                        content: <InlineNode>[TextRun(text: 'x')],
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      );
+      final lastCell = DocumentPosition.tableCell(
+        tableBlockId: 't1',
+        blockIndex: 0,
+        tableRowIndex: 0,
+        tableColumnIndex: 0,
+        offset: 1,
+      );
+      final session = DocumentSession(
+        document: document,
+        selection: DocumentSelection(base: lastCell, extent: lastCell),
+      );
+      final executor = CommandExecutor(session);
+
+      executor.execute(
+        const MoveCaretVerticalCommand(CaretMovementDirection.forward),
+      );
+
+      expect(session.document.blocks, hasLength(2));
+      expect(session.document.blocks.last, isA<TextBlockNode>());
+      expect(session.selection?.extent.blockId, 't1-next');
+      expect(session.selection?.extent.offset, 0);
+    });
+
+    test('ArrowRight from a trailing image appends a paragraph', () {
+      final pos = objectPosition('img1');
+      final session = DocumentSession(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            ImageBlockNode(id: 'img1', assetId: 'a1'),
+          ],
+        ),
+        selection: DocumentSelection(base: pos, extent: pos),
+      );
+      final executor = CommandExecutor(session);
+
+      executor.execute(
+        const MoveCaretCommand(CaretMovementDirection.forward),
+      );
+
+      expect(session.document.blocks, hasLength(2));
+      expect(session.selection?.extent.blockId, 'img1-next');
+    });
+
+    test('ArrowDown from a paragraph does NOT append', () {
+      final session = DocumentSession(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'p1',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'Hi')],
+            ),
+          ],
+        ),
+        selection: collapsedTextSelection('p1', 0, 2),
+      );
+      final executor = CommandExecutor(session);
+
+      executor.execute(
+        const MoveCaretVerticalCommand(CaretMovementDirection.forward),
+      );
+
+      expect(session.document.blocks, hasLength(1));
+      expect(session.selection?.extent.blockId, 'p1');
+      expect(session.canUndo, isFalse);
+    });
+
+    test('ArrowDown from a non-trailing image moves on without appending', () {
+      final pos = objectPosition('img1');
+      final session = DocumentSession(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            ImageBlockNode(id: 'img1', assetId: 'a1'),
+            TextBlockNode(
+              id: 'p1',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'after')],
+            ),
+          ],
+        ),
+        selection: DocumentSelection(base: pos, extent: pos),
+      );
+      final executor = CommandExecutor(session);
+
+      executor.execute(
+        const MoveCaretVerticalCommand(CaretMovementDirection.forward),
+      );
+
+      expect(session.document.blocks, hasLength(2));
+      expect(session.selection?.extent.blockId, 'p1');
+      expect(session.selection?.extent.offset, 0);
+    });
   });
 
   test('move table cell vertical is a no-op outside a table', () {

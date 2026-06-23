@@ -5,6 +5,7 @@ import '../position/document_position.dart';
 import '../transaction/document_session.dart';
 import 'editor_command.dart';
 import 'inline_editing.dart';
+import 'table_cell_editing.dart';
 
 class FormatTextCommand extends EditorCommand {
   const FormatTextCommand({required this.attributes, this.selection});
@@ -24,6 +25,28 @@ class FormatTextCommand extends EditorCommand {
 
     final start = target.start;
     final end = target.end;
+    // Table cell selection: route to the cell-aware formatter, which edits the
+    // cell's first text block via replaceCellTextBlock (the loop below only
+    // handles top-level TextBlockNode blocks and would skip the table block).
+    if (start.path.isTableCellText &&
+        start.blockIndex == end.blockIndex &&
+        start.path == end.path) {
+      final rowIndex = start.path.tableRowIndex;
+      final columnIndex = start.path.tableColumnIndex;
+      if (rowIndex == null || columnIndex == null) {
+        return const CommandResult(recordHistory: false);
+      }
+      return formatTableCellInlineRange(
+        session,
+        start.blockIndex,
+        rowIndex,
+        columnIndex,
+        start.offset,
+        end.offset,
+        attributes,
+      );
+    }
+
     final blocks =
         session.document.blocks.map((block) => block.copy()).toList();
     var changed = false;
@@ -76,6 +99,26 @@ class ClearStyleCommand extends EditorCommand {
 
     final start = target.start;
     final end = target.end;
+    // Table cell selection: route to the cell-aware clear, which edits the
+    // cell's first text block via replaceCellTextBlock.
+    if (start.path.isTableCellText &&
+        start.blockIndex == end.blockIndex &&
+        start.path == end.path) {
+      final rowIndex = start.path.tableRowIndex;
+      final columnIndex = start.path.tableColumnIndex;
+      if (rowIndex == null || columnIndex == null) {
+        return const CommandResult(recordHistory: false);
+      }
+      return clearTableCellInlineStyle(
+        session,
+        start.blockIndex,
+        rowIndex,
+        columnIndex,
+        start.offset,
+        end.offset,
+      );
+    }
+
     final blocks =
         session.document.blocks.map((block) => block.copy()).toList();
     var changed = false;

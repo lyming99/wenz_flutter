@@ -1,7 +1,9 @@
 import '../model/block_node.dart';
+import '../model/inline_node.dart';
 import '../model/rich_text_document.dart';
 import '../position/document_position.dart';
 import '../transaction/document_session.dart';
+import 'block_commands.dart';
 import 'editor_command.dart';
 import 'table_commands.dart';
 import 'inline_editing.dart';
@@ -83,6 +85,16 @@ class MoveCaretCommand extends EditorCommand {
 
     final position = _moveFrom(session.document, selection.extent, direction);
     if (position == null || position == selection.extent) {
+      // Forward motion off a trailing object/table block: escape by appending a
+      // paragraph (same escape hatch as the vertical command).
+      if (direction == CaretMovementDirection.forward &&
+          _isAtTrailingLeaf(session.document, selection.extent)) {
+        final appended =
+            _appendParagraphAfter(session, selection.extent.blockIndex);
+        if (appended != null) {
+          return CommandResult(selection: appended);
+        }
+      }
       return const CommandResult(recordHistory: false);
     }
     return CommandResult(
@@ -108,7 +120,8 @@ class MoveCaretCommand extends EditorCommand {
 /// lines) is resolved in the widget layer using [TextLayoutService]; this
 /// command never moves within a block.
 class MoveCaretVerticalCommand extends EditorCommand {
-  const MoveCaretVerticalCommand(this.direction, {this.expandSelection = false});
+  const MoveCaretVerticalCommand(this.direction,
+      {this.expandSelection = false});
 
   final CaretMovementDirection direction;
   final bool expandSelection;
@@ -150,6 +163,22 @@ class MoveCaretVerticalCommand extends EditorCommand {
           : _previousEditablePosition(session.document, extent.blockIndex);
     }
     if (next == null || next == extent) {
+      // Forward motion off a trailing object/table block would otherwise stall.
+      // Escape it by appending a paragraph and landing the caret inside it
+      // (mirrors the Tab-on-last-cell behaviour of MoveTableCellCommand).
+      if (direction == CaretMovementDirection.forward &&
+          _isAtTrailingLeaf(session.document, extent)) {
+        final appended = _appendParagraphAfter(session, extent.blockIndex);
+        if (appended != null) {
+          if (expandSelection) {
+            return CommandResult(
+              selection: DocumentSelection(
+                  base: selection.base, extent: appended.extent),
+            );
+          }
+          return CommandResult(selection: appended);
+        }
+      }
       return const CommandResult(recordHistory: false);
     }
     if (expandSelection) {
@@ -291,8 +320,10 @@ class MoveCaretByWordCommand extends EditorCommand {
     final selection = session.selection;
     if (selection == null) {
       final position = switch (direction) {
-        CaretMovementDirection.backward => _lastEditablePosition(session.document),
-        CaretMovementDirection.forward => _firstEditablePosition(session.document),
+        CaretMovementDirection.backward =>
+          _lastEditablePosition(session.document),
+        CaretMovementDirection.forward =>
+          _firstEditablePosition(session.document),
       };
       if (position == null) {
         return const CommandResult(recordHistory: false);
@@ -307,6 +338,18 @@ class MoveCaretByWordCommand extends EditorCommand {
         expandSelection ? selection.base : _collapseTo(selection, direction);
     final next = _moveWordFrom(session.document, selection.extent, direction);
     if (next == null || next == selection.extent) {
+      // Forward motion off a trailing object/table block: escape by appending a
+      // paragraph (same escape hatch as the other caret commands).
+      if (direction == CaretMovementDirection.forward &&
+          _isAtTrailingLeaf(session.document, selection.extent)) {
+        final appended =
+            _appendParagraphAfter(session, selection.extent.blockIndex);
+        if (appended != null) {
+          return CommandResult(
+            selection: DocumentSelection(base: anchor, extent: appended.extent),
+          );
+        }
+      }
       return const CommandResult(recordHistory: false);
     }
     return CommandResult(
@@ -345,11 +388,11 @@ class MoveCaretToBlockBoundaryCommand extends EditorCommand {
     }
     final anchor =
         expandSelection ? selection.base : _collapseTo(selection, direction);
-    final tableCellLength = _tableCellLength(session.document, selection.extent);
+    final tableCellLength =
+        _tableCellLength(session.document, selection.extent);
     if (tableCellLength != null) {
-      final targetOffset = direction == CaretMovementDirection.backward
-          ? 0
-          : tableCellLength;
+      final targetOffset =
+          direction == CaretMovementDirection.backward ? 0 : tableCellLength;
       final next = selection.extent.copyWith(offset: targetOffset);
       return CommandResult(
         selection: DocumentSelection(base: anchor, extent: next),
@@ -428,8 +471,8 @@ class SelectAllCommand extends EditorCommand {
 
   @override
   CommandResult execute(DocumentSession session) {
-    final start = _firstEditablePosition(session.document);
-    final end = _lastEditablePosition(session.document);
+    final start = _firstSelectablePosition(session.document);
+    final end = _lastSelectablePosition(session.document);
     if (start == null || end == null || start == end) {
       return const CommandResult(recordHistory: false);
     }
@@ -466,7 +509,9 @@ DocumentPosition? _moveWordFrom(
   if (direction == CaretMovementDirection.forward) {
     // Move past the current run, then past any trailing separators. CJK chars
     // each form their own one-character run, so this stops on every CJK glyph.
-    final startClass = offset < length ? _charClass(text.codeUnitAt(offset)) : _CharClass.separator;
+    final startClass = offset < length
+        ? _charClass(text.codeUnitAt(offset))
+        : _CharClass.separator;
     while (offset < length &&
         _charClass(text.codeUnitAt(offset)) == startClass &&
         startClass != _CharClass.separator) {
@@ -485,8 +530,8 @@ DocumentPosition? _moveWordFrom(
     if (offset > 0) {
       final runClass = _charClass(text.codeUnitAt(offset - 1));
       // CJK: stop after one character. ASCII word run: consume the whole run.
-      while (offset > 0 &&
-          _charClass(text.codeUnitAt(offset - 1)) == runClass) {
+      while (
+          offset > 0 && _charClass(text.codeUnitAt(offset - 1)) == runClass) {
         offset -= 1;
         if (runClass == _CharClass.cjk) {
           break;
@@ -623,6 +668,25 @@ DocumentPosition? _firstEditablePosition(RichTextDocument document) {
   return null;
 }
 
+DocumentPosition? _firstSelectablePosition(RichTextDocument document) {
+  for (var i = 0; i < document.blocks.length; i++) {
+    final block = document.blocks[i];
+    if (_isEditable(block)) {
+      return _positionFor(block, i, 0);
+    }
+    if (block is TableBlockNode) {
+      final firstCell = _firstTableCellPosition(block, i);
+      if (firstCell != null) {
+        return firstCell;
+      }
+    }
+    if (_isSelectableObject(block)) {
+      return _objectPositionFor(block, i, 0);
+    }
+  }
+  return null;
+}
+
 DocumentPosition? _lastEditablePosition(RichTextDocument document) {
   for (var i = document.blocks.length - 1; i >= 0; i--) {
     final block = document.blocks[i];
@@ -634,6 +698,25 @@ DocumentPosition? _lastEditablePosition(RichTextDocument document) {
       if (lastCell != null) {
         return lastCell;
       }
+    }
+  }
+  return null;
+}
+
+DocumentPosition? _lastSelectablePosition(RichTextDocument document) {
+  for (var i = document.blocks.length - 1; i >= 0; i--) {
+    final block = document.blocks[i];
+    if (_isEditable(block)) {
+      return _positionFor(block, i, _editableLength(block));
+    }
+    if (block is TableBlockNode) {
+      final lastCell = _lastTableCellPosition(block, i);
+      if (lastCell != null) {
+        return lastCell;
+      }
+    }
+    if (_isSelectableObject(block)) {
+      return _objectPositionFor(block, i, _kObjectSelectionLength);
     }
   }
   return null;
@@ -677,7 +760,8 @@ DocumentPosition? _nextEditablePosition(
   return null;
 }
 
-DocumentPosition? _firstTableCellPosition(TableBlockNode block, int blockIndex) {
+DocumentPosition? _firstTableCellPosition(
+    TableBlockNode block, int blockIndex) {
   if (block.table.rowCount == 0 || block.table.columnCount == 0) {
     return null;
   }
@@ -806,7 +890,8 @@ DocumentSelection? _insertRowAfterLastCell(
   if (!isLastRow || !isLastColumn) {
     return null;
   }
-  final result = insertTableRowAt(session, position.blockIndex, block.table.rowCount);
+  final result =
+      insertTableRowAt(session, position.blockIndex, block.table.rowCount);
   if (!result.recordHistory) {
     return null;
   }
@@ -857,6 +942,19 @@ DocumentPosition _positionFor(BlockNode block, int blockIndex, int offset) {
   );
 }
 
+DocumentPosition _objectPositionFor(
+  BlockNode block,
+  int blockIndex,
+  int offset,
+) {
+  return DocumentPosition(
+    blockId: block.id,
+    blockIndex: blockIndex,
+    path: PositionPath.blockObject(block.id),
+    offset: offset,
+  );
+}
+
 BlockNode? _blockAt(RichTextDocument document, int index) {
   if (index < 0 || index >= document.blocks.length) {
     return null;
@@ -866,6 +964,87 @@ BlockNode? _blockAt(RichTextDocument document, int index) {
 
 bool _isEditable(BlockNode block) {
   return block is TextBlockNode || block is CodeBlockNode;
+}
+
+bool _isSelectableObject(BlockNode block) {
+  return block is! TextBlockNode &&
+      block is! CodeBlockNode &&
+      block is! TableBlockNode;
+}
+
+const int _kObjectSelectionLength = 1;
+
+/// Whether [position] sits on a non-editable leaf that is the document's last
+/// block, so forward caret motion should escape it by appending a paragraph.
+///
+/// Two cases:
+/// - An object block (image/divider/video/file) that is the final block. The
+///   caret cannot live "inside" it, so Down/Right off it would otherwise stall.
+/// - A table cell on the table's last row *and* last column when the table is
+///   the final block.
+///
+/// Editable blocks (paragraph/code) are excluded on purpose: Enter or typing
+/// already adds content there, and we must not auto-append a paragraph just
+/// because the user arrowed off the end of a normal text block.
+bool _isAtTrailingLeaf(RichTextDocument document, DocumentPosition position) {
+  final block = _blockAt(document, position.blockIndex);
+  if (block == null) {
+    return false;
+  }
+  final isLastBlock = position.blockIndex == document.blocks.length - 1;
+  if (position.path.isBlockObject) {
+    return isLastBlock;
+  }
+  if (position.path.isTableCellText && block is TableBlockNode) {
+    final rowIndex = position.path.tableRowIndex;
+    final columnIndex = position.path.tableColumnIndex;
+    if (rowIndex == null || columnIndex == null) {
+      return false;
+    }
+    return isLastBlock &&
+        rowIndex == block.table.rowCount - 1 &&
+        columnIndex == block.table.columnCount - 1;
+  }
+  return false;
+}
+
+/// Appends an empty paragraph after [afterBlockIndex] and returns a collapsed
+/// selection inside it. Used as the escape hatch when forward caret motion runs
+/// off the end of a trailing object/table block (mirrors the
+/// `_insertRowAfterLastCell` pattern for Tab on the last table cell). Returns
+/// `null` when there is no block to append after.
+DocumentSelection? _appendParagraphAfter(
+  DocumentSession session,
+  int afterBlockIndex,
+) {
+  if (afterBlockIndex < 0 ||
+      afterBlockIndex >= session.document.blocks.length) {
+    return null;
+  }
+  final afterBlock = session.document.blocks[afterBlockIndex];
+  final nextBlockId = '${afterBlock.id}-next';
+  final nextBlockIndex = afterBlockIndex + 1;
+  final nextPosition = DocumentPosition.text(
+    blockId: nextBlockId,
+    blockIndex: nextBlockIndex,
+    offset: 0,
+  );
+  InsertBlocksCommand(
+    index: nextBlockIndex,
+    blocks: <BlockNode>[
+      TextBlockNode(
+        id: nextBlockId,
+        type: BlockType.paragraph,
+        content: const <InlineNode>[],
+      ),
+    ],
+    selection: DocumentSelection(base: nextPosition, extent: nextPosition),
+  ).execute(session);
+  // InsertBlocksCommand does not set session.selection itself (only the
+  // executor does), so set it here so the caller's returned selection is real.
+  session.selection =
+      DocumentSelection(base: nextPosition, extent: nextPosition);
+  return session.selection;
 }
 
 int _editableLength(BlockNode block) {

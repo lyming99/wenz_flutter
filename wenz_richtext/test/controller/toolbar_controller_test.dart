@@ -245,7 +245,8 @@ void main() {
         host.dispose();
       });
 
-      test('cross-block range disables single-block toggles but keeps '
+      test(
+          'cross-block range disables single-block toggles but keeps '
           'FormatTextCommand-capable read', () {
         // Range spanning paragraph (4) → quote (5), same path 'text'.
         final start = DocumentPosition.text(
@@ -427,8 +428,8 @@ void main() {
     });
 
     group('table context', () {
-      test('caret inside a table cell enables table struct but not text '
-          'inline toggles', () {
+      test('caret inside a table cell enables inline toggles, link and struct',
+          () {
         final position = DocumentPosition.tableCell(
           tableBlockId: 'table',
           blockIndex: 0,
@@ -443,8 +444,110 @@ void main() {
         final toolbar = ToolbarController(host);
 
         expect(toolbar.canTableStruct, isTrue);
-        expect(toolbar.canToggleMark, isFalse,
-            reason: 'cell path is not blockText');
+        expect(toolbar.canFormatInline, isTrue,
+            reason: 'cell text path supports inline formatting');
+        expect(toolbar.canToggleMark, isTrue,
+            reason: 'cell text path supports mark toggles');
+        expect(toolbar.canSetLink, isTrue,
+            reason: 'cell text path supports links');
+
+        toolbar.dispose();
+        host.dispose();
+      });
+
+      test('cell style selectors stay populated after style changes', () {
+        final position = DocumentPosition.tableCell(
+          tableBlockId: 'table',
+          blockIndex: 0,
+          tableRowIndex: 0,
+          tableColumnIndex: 0,
+          offset: 0,
+        );
+        final host = WenzRichTextController(
+          document: _tableDoc(),
+          selection: DocumentSelection(base: position, extent: position),
+        );
+        final toolbar = ToolbarController(host);
+
+        expect(toolbar.canTableStruct, isTrue);
+        expect(toolbar.tableCellIsHeader, isFalse);
+        expect(toolbar.tableCellBackgroundColor, isNull);
+
+        host.setTableCellBackground(
+          blockIndex: 0,
+          rowIndex: 0,
+          columnIndex: 0,
+          backgroundColor: 0xFFFFEEAA,
+        );
+        expect(toolbar.canTableStruct, isTrue);
+        expect(toolbar.tableCellBackgroundColor, 0xFFFFEEAA);
+        expect(host.selection?.extent.path.isTableCellText, isTrue);
+
+        host.setTableCellHeader(
+          blockIndex: 0,
+          rowIndex: 0,
+          columnIndex: 0,
+          isHeader: true,
+        );
+        expect(toolbar.tableCellIsHeader, isTrue);
+        expect(toolbar.tableCellBackgroundColor, 0xFFFFEEAA);
+
+        toolbar.dispose();
+        host.dispose();
+      });
+
+      test('range inside a bold table cell reports the mark active', () {
+        const document = RichTextDocument(
+          blocks: <BlockNode>[
+            TableBlockNode(
+              id: 'table',
+              table: TableModel(
+                rows: <List<TableCellNode>>[
+                  <TableCellNode>[
+                    TableCellNode(
+                      id: 'c0',
+                      blocks: <BlockNode>[
+                        TextBlockNode(
+                          id: 'c0p',
+                          type: BlockType.paragraph,
+                          content: <InlineNode>[
+                            TextRun(
+                                text: 'cel',
+                                attributes: TextAttributes(bold: true)),
+                            TextRun(
+                                text: 'l',
+                                attributes: TextAttributes(bold: true)),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        );
+        final start = DocumentPosition.tableCell(
+          tableBlockId: 'table',
+          blockIndex: 0,
+          tableRowIndex: 0,
+          tableColumnIndex: 0,
+          offset: 0,
+        );
+        final end = DocumentPosition.tableCell(
+          tableBlockId: 'table',
+          blockIndex: 0,
+          tableRowIndex: 0,
+          tableColumnIndex: 0,
+          offset: 4,
+        );
+        final host = WenzRichTextController(
+          document: document,
+          selection: DocumentSelection(base: start, extent: end),
+        );
+        final toolbar = ToolbarController(host);
+
+        expect(toolbar.bold, isTrue, reason: 'every cell run is bold');
 
         toolbar.dispose();
         host.dispose();

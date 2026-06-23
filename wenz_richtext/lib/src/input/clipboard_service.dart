@@ -64,7 +64,8 @@ class ClipboardService {
         if (decoded['type'] == 'inline') {
           final runs = (decoded['runs'] as List)
               .whereType<Map>()
-              .map((node) => InlineNode.fromJson(Map<String, Object?>.from(node)))
+              .map((node) =>
+                  InlineNode.fromJson(Map<String, Object?>.from(node)))
               .toList();
           return ClipboardPaste.inline(runs);
         }
@@ -73,7 +74,8 @@ class ClipboardService {
           if (blocksJson is List) {
             final blocks = blocksJson
                 .whereType<Map>()
-                .map((node) => BlockNode.fromJson(Map<String, Object?>.from(node)))
+                .map((node) =>
+                    BlockNode.fromJson(Map<String, Object?>.from(node)))
                 .toList();
             if (blocks.isNotEmpty) {
               return ClipboardPaste.blocks(blocks);
@@ -108,7 +110,7 @@ class ClipboardService {
     return lines.join('\n');
   }
 
-  String _copySameBlock(
+  String? _copySameBlock(
     RichTextDocument document,
     DocumentPosition start,
     DocumentPosition end,
@@ -117,6 +119,12 @@ class ClipboardService {
       return _copySameTableCell(document, start, end);
     }
     final block = _blockAt(document, start.blockIndex);
+    if (start.path.isBlockObject) {
+      if (block == null) {
+        return null;
+      }
+      return _encodeBlockSlice(<BlockNode>[block.copy()]);
+    }
     if (block is! TextBlockNode) {
       // Code block or non-text: fall back to a plain text slice.
       final text = block?.plainText ?? '';
@@ -214,11 +222,15 @@ class ClipboardService {
         ),
       );
     }
-    final plain = _copyCrossBlockPlain(document, start, end);
+    return _encodeBlockSlice(blocks,
+        plain: _copyCrossBlockPlain(document, start, end));
+  }
+
+  String _encodeBlockSlice(List<BlockNode> blocks, {String? plain}) {
     final payload = jsonEncode(<String, Object?>{
       'type': 'blocks',
       'blocks': blocks.map((block) => block.toJson()).toList(),
-      'plain': plain,
+      'plain': plain ?? blocks.map((block) => block.plainText).join('\n'),
     });
     return '$wenzClipboardPrefix$payload';
   }
@@ -344,9 +356,13 @@ List<InlineNode> _sliceInline(List<InlineNode> nodes, int start, int end) {
       if (slice.isNotEmpty) {
         result.add(TextRun(text: slice, attributes: node.attributes));
       }
+    } else {
+      // Inline embed (formula/mention/image): it occupies a single length-1
+      // char, so any selection covering it (the overlap test above already
+      // passed) keeps it whole. Re-emit it so copy/paste preserves rich
+      // inline elements.
+      result.add(node.copy());
     }
-    // Non-text embeds inside a selection are dropped from the slice for stage 1;
-    // they cannot be meaningfully re-inserted as plain inline yet.
   }
   return mergeTextRuns(result);
 }

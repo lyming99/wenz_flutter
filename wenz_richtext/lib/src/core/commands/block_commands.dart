@@ -1,6 +1,7 @@
 import '../model/block_node.dart';
 import '../model/inline_node.dart';
 import '../model/rich_text_document.dart';
+import '../model/table_model.dart';
 import '../position/document_position.dart';
 import '../transaction/document_session.dart';
 import 'editor_command.dart';
@@ -97,27 +98,28 @@ class PasteBlocksCommand extends EditorCommand {
       return const CommandResult(recordHistory: false);
     }
 
+    final idAllocator = _PasteIdAllocator(session.document, newBlockId);
+    final pasteBlocks = _copyBlocksForPaste(pastedBlocks, idAllocator);
     final block = _blockAt(session.document, position.blockIndex);
     if (block is! TextBlockNode) {
       // Caret in a non-text block: insert the slice after it as new blocks.
       return InsertBlocksCommand(
         index: position.blockIndex + 1,
-        blocks: pastedBlocks,
+        blocks: pasteBlocks,
         selection: _endSelection(
-          position.blockIndex + pastedBlocks.length,
-          pastedBlocks.last,
-          newBlockId: newBlockId,
+          position.blockIndex + pasteBlocks.length,
+          pasteBlocks.last,
         ),
       ).execute(session);
     }
 
     final split = splitInline(block.content, position.offset);
-    final generatedId = newBlockId ?? '${block.id}-paste';
+    final generatedId = idAllocator.unique(newBlockId ?? '${block.id}-paste');
     final rebuilt = <BlockNode>[];
 
     // First pasted block: merge its inline content into the caret's "before"
     // slice. Non-text first blocks are inserted as their own block.
-    final firstPasted = pastedBlocks.first;
+    final firstPasted = pasteBlocks.first;
     if (firstPasted is TextBlockNode) {
       rebuilt.add(
         TextBlockNode(
@@ -143,17 +145,17 @@ class PasteBlocksCommand extends EditorCommand {
     }
 
     // Middle blocks: copy through verbatim.
-    for (var i = 1; i < pastedBlocks.length - 1; i++) {
-      rebuilt.add(pastedBlocks[i].copy());
+    for (var i = 1; i < pasteBlocks.length - 1; i++) {
+      rebuilt.add(pasteBlocks[i].copy());
     }
 
     // Last pasted block: merge its inline content with the caret's "after"
     // slice, preserving the pasted block's type/attributes when it differs.
     final caretOffsetAfterPaste = _endOffsetForMerge(
       split.before,
-      pastedBlocks,
+      pasteBlocks,
     );
-    if (pastedBlocks.length == 1 && firstPasted is TextBlockNode) {
+    if (pasteBlocks.length == 1 && firstPasted is TextBlockNode) {
       // Single pasted text block: everything landed in the first rebuilt
       // block, append the caret's "after" slice to it.
       final merged = rebuilt.removeAt(0) as TextBlockNode;
@@ -169,7 +171,7 @@ class PasteBlocksCommand extends EditorCommand {
         ),
       );
     } else {
-      final lastPasted = pastedBlocks.last;
+      final lastPasted = pasteBlocks.last;
       if (lastPasted is TextBlockNode) {
         rebuilt.add(
           TextBlockNode(
@@ -183,7 +185,9 @@ class PasteBlocksCommand extends EditorCommand {
           ),
         );
       } else {
-        rebuilt.add(lastPasted.copy());
+        if (pasteBlocks.length > 1) {
+          rebuilt.add(lastPasted.copy());
+        }
         // Re-attach the caret's trailing text as its own paragraph so no text
         // is lost.
         rebuilt.add(
@@ -230,16 +234,38 @@ class PasteBlocksCommand extends EditorCommand {
 
   DocumentSelection _endSelection(
     int blockIndexDelta,
-    BlockNode last, {
-    String? newBlockId,
-  }) {
-    final id = newBlockId ?? last.id;
-    final pos = DocumentPosition.text(
-      blockId: id,
+    BlockNode last,
+  ) {
+    if (last is TextBlockNode) {
+      final pos = DocumentPosition.text(
+        blockId: last.id,
+        blockIndex: blockIndexDelta,
+        offset: inlineNodesLength(last.content),
+      );
+      return DocumentSelection(base: pos, extent: pos);
+    }
+    if (last is CodeBlockNode) {
+      final pos = DocumentPosition.code(
+        blockId: last.id,
+        blockIndex: blockIndexDelta,
+        offset: last.code.length,
+      );
+      return DocumentSelection(base: pos, extent: pos);
+    }
+    if (last is TableBlockNode) {
+      final pos = _lastTableCellPosition(last, blockIndexDelta);
+      if (pos != null) {
+        return DocumentSelection(base: pos, extent: pos);
+      }
+    }
+    final start = DocumentPosition(
+      blockId: last.id,
       blockIndex: blockIndexDelta,
-      offset: last is TextBlockNode ? inlineNodesLength(last.content) : 0,
+      path: PositionPath.blockObject(last.id),
+      offset: 0,
     );
-    return DocumentSelection(base: pos, extent: pos);
+    final end = start.copyWith(offset: _kObjectSelectionLength);
+    return DocumentSelection(base: start, extent: end);
   }
 
   List<InlineNode>? _firstInlineSlice(List<BlockNode> blocks) {
@@ -248,6 +274,170 @@ class PasteBlocksCommand extends EditorCommand {
       return first.content.map((node) => node.copy()).toList();
     }
     return null;
+  }
+}
+
+const int _kObjectSelectionLength = 1;
+
+List<BlockNode> _copyBlocksForPaste(
+  List<BlockNode> blocks,
+  _PasteIdAllocator ids,
+) {
+  return blocks.map((block) => _copyBlockForPaste(block, ids)).toList();
+}
+
+BlockNode _copyBlockForPaste(BlockNode block, _PasteIdAllocator ids) {
+  final id = ids.next();
+  if (block is TextBlockNode) {
+    return TextBlockNode(
+      id: id,
+      type: block.type,
+      attributes: block.attributes,
+      content: block.content.map((node) => node.copy()).toList(),
+    );
+  }
+  if (block is CodeBlockNode) {
+    return CodeBlockNode(
+      id: id,
+      code: block.code,
+      language: block.language,
+      attributes: block.attributes,
+    );
+  }
+  if (block is ImageBlockNode) {
+    return ImageBlockNode(
+      id: id,
+      assetId: block.assetId,
+      file: block.file,
+      width: block.width,
+      height: block.height,
+      showWidth: block.showWidth,
+      showHeight: block.showHeight,
+      attributes: block.attributes,
+    );
+  }
+  if (block is TableBlockNode) {
+    return TableBlockNode(
+      id: id,
+      table: _copyTableForPaste(block.table, ids),
+      attributes: block.attributes,
+    );
+  }
+  if (block is DividerBlockNode) {
+    return DividerBlockNode(id: id, attributes: block.attributes);
+  }
+  if (block is VideoBlockNode) {
+    return VideoBlockNode(
+      id: id,
+      assetId: block.assetId,
+      file: block.file,
+      attributes: block.attributes,
+    );
+  }
+  if (block is CalloutBlockNode) {
+    return CalloutBlockNode(
+      id: id,
+      content: block.content.map((node) => node.copy()).toList(),
+      variant: block.variant,
+      attributes: block.attributes,
+    );
+  }
+  if (block is FileBlockNode) {
+    return FileBlockNode(
+      id: id,
+      assetId: block.assetId,
+      name: block.name,
+      size: block.size,
+      file: block.file,
+      attributes: block.attributes,
+    );
+  }
+  return block.copy();
+}
+
+TableModel _copyTableForPaste(TableModel table, _PasteIdAllocator ids) {
+  return TableModel(
+    rows: table.rows
+        .map(
+          (row) => row
+              .map(
+                (cell) => TableCellNode(
+                  id: ids.next(),
+                  blocks: _copyBlocksForPaste(cell.blocks, ids),
+                  rowSpan: cell.rowSpan,
+                  columnSpan: cell.columnSpan,
+                  isHeader: cell.isHeader,
+                  backgroundColor: cell.backgroundColor,
+                  covered: cell.covered,
+                ),
+              )
+              .toList(),
+        )
+        .toList(),
+    columnAlignments: Map<int, String>.from(table.columnAlignments),
+    columnWidths: Map<int, double>.from(table.columnWidths),
+  );
+}
+
+DocumentPosition? _lastTableCellPosition(TableBlockNode block, int blockIndex) {
+  for (var rowIndex = block.table.rows.length - 1; rowIndex >= 0; rowIndex--) {
+    final row = block.table.rows[rowIndex];
+    for (var columnIndex = row.length - 1; columnIndex >= 0; columnIndex--) {
+      final cell = row[columnIndex];
+      if (cell.covered) {
+        continue;
+      }
+      return DocumentPosition.tableCell(
+        tableBlockId: block.id,
+        blockIndex: blockIndex,
+        tableRowIndex: rowIndex,
+        tableColumnIndex: columnIndex,
+        offset: inlineNodesLength(cellTextBlock(cell).content),
+      );
+    }
+  }
+  return null;
+}
+
+class _PasteIdAllocator {
+  _PasteIdAllocator(RichTextDocument document, String? base)
+      : _base = (base == null || base.isEmpty) ? 'paste' : base {
+    for (final block in document.blocks) {
+      _collectBlockIds(block);
+    }
+  }
+
+  final String _base;
+  final Set<String> _used = <String>{};
+  var _counter = 0;
+
+  String next() {
+    return unique('$_base-${_counter++}');
+  }
+
+  String unique(String preferred) {
+    final base = preferred.isEmpty ? '$_base-${_counter++}' : preferred;
+    var candidate = base;
+    var suffix = 1;
+    while (_used.contains(candidate)) {
+      candidate = '$base-${suffix++}';
+    }
+    _used.add(candidate);
+    return candidate;
+  }
+
+  void _collectBlockIds(BlockNode block) {
+    _used.add(block.id);
+    if (block is TableBlockNode) {
+      for (final row in block.table.rows) {
+        for (final cell in row) {
+          _used.add(cell.id);
+          for (final nested in cell.blocks) {
+            _collectBlockIds(nested);
+          }
+        }
+      }
+    }
   }
 }
 

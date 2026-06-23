@@ -33,6 +33,7 @@ class SelectionGestureOverlay extends StatefulWidget {
     required this.focusNode,
     required this.readOnly,
     required this.onSelectionChanged,
+    this.onTapBeyondContent,
     required this.child,
   });
 
@@ -41,6 +42,7 @@ class SelectionGestureOverlay extends StatefulWidget {
   final FocusNode focusNode;
   final bool readOnly;
   final ValueChanged<DocumentSelection> onSelectionChanged;
+  final bool Function(Offset globalPosition)? onTapBeyondContent;
   final Widget child;
 
   /// The mouse cursor shown while hovering the editing surface. Editable
@@ -85,6 +87,18 @@ class _SelectionGestureOverlayState extends State<SelectionGestureOverlay> {
   static const double _autoScrollEdge = 48.0;
   static const double _maxAutoScrollPerFrame = 24.0;
 
+  /// Width of the trailing-edge band treated as the scrollbar gutter. Hovering
+  /// here switches the cursor away from the text (I-beam) so the scrollbar
+  /// thumb does not inherit the editing cursor. Sized to cover a typical
+  /// desktop scrollbar (Material's ~8px thumb plus its cross-axis margin).
+  static const double _kScrollbarGutterWidth = 16.0;
+
+  /// Whether the mouse currently hovers the scrollbar gutter. Drives
+  /// [_resolvedCursor] so the scrollbar shows a click cursor instead of the
+  /// text cursor. Toggled only on gutter crossings to avoid rebuilding on
+  /// every hover move.
+  bool _overScrollbar = false;
+
   @override
   void dispose() {
     _stopAutoScroll();
@@ -95,7 +109,8 @@ class _SelectionGestureOverlayState extends State<SelectionGestureOverlay> {
   @override
   Widget build(BuildContext context) {
     return MouseRegion(
-      cursor: widget.cursor,
+      cursor: _resolvedCursor(),
+      onHover: _onPointerHover,
       child: Listener(
         behavior: HitTestBehavior.translucent,
         onPointerDown: _onPointerDown,
@@ -107,7 +122,71 @@ class _SelectionGestureOverlayState extends State<SelectionGestureOverlay> {
     );
   }
 
+  /// Tracks whether the pointer sits over the scrollbar gutter so the thumb
+  /// does not show the text (I-beam) cursor. The gutter is the trailing-edge
+  /// band when the list is scrollable; hovering it toggles [_overScrollbar].
+  void _onPointerHover(PointerHoverEvent event) {
+    final overScrollbar = _isOverScrollbar(event.position);
+    if (overScrollbar != _overScrollbar) {
+      _overScrollbar = overScrollbar;
+      setState(() {});
+    }
+  }
+
+  /// The cursor for the current hover region. Over the scrollbar gutter we
+  /// show a click cursor (so the thumb does not inherit the editing cursor);
+  /// elsewhere the editable surface shows the text (I-beam) cursor and a
+  /// read-only surface keeps the default arrow.
+  MouseCursor _resolvedCursor() {
+    if (_overScrollbar) {
+      return SystemMouseCursors.click;
+    }
+    return widget.cursor;
+  }
+
+  /// Whether [global] sits inside the scrollbar gutter — the trailing-edge
+  /// band of a vertically scrollable list. The list's own scrollbar is added by
+  /// the ambient scroll behaviour and its MouseRegion defers its cursor to us,
+  /// so without this check the thumb would show the text cursor.
+  bool _isOverScrollbar(Offset global) {
+    final scrollable = widget.scrollController;
+    if (!scrollable.hasClients) {
+      return false;
+    }
+    // Only intercept when there is actually something to scroll; a fully
+    // visible list has no scrollbar thumb to hover.
+    if (scrollable.position.maxScrollExtent <= 0) {
+      return false;
+    }
+    final renderBox = context.findRenderObject() as RenderBox?;
+    if (renderBox == null || !renderBox.hasSize) {
+      return false;
+    }
+    final local = renderBox.globalToLocal(global);
+    if (local.dx < 0 || local.dy < 0) {
+      return false;
+    }
+    final size = renderBox.size;
+    if (local.dx > size.width || local.dy > size.height) {
+      return false;
+    }
+    final isRtl = Directionality.maybeOf(context) == TextDirection.rtl;
+    final gutterStart = isRtl ? 0.0 : size.width - _kScrollbarGutterWidth;
+    final gutterEnd = isRtl ? _kScrollbarGutterWidth : size.width;
+    return local.dx >= gutterStart && local.dx <= gutterEnd;
+  }
+
   void _onPointerDown(PointerDownEvent event) {
+    // A press on the scrollbar gutter (desktop) is a scroll gesture, not a
+    // content selection. Bail before resolving a content position so dragging
+    // the thumb does not also start a selection drag.
+    if (_isOverScrollbar(event.position)) {
+      _dragBase = null;
+      _dragOrigin = null;
+      _tapAnchor = null;
+      _isDragging = false;
+      return;
+    }
     final now = DateTime.now();
     final position = event.position;
     final isMultiClick = _lastTapTime != null &&
@@ -175,6 +254,14 @@ class _SelectionGestureOverlayState extends State<SelectionGestureOverlay> {
       return;
     }
 
+    final handledBeyondContent =
+        tapCount == 1 && _handleTapBeyondContent(position);
+    if (handledBeyondContent) {
+      _dragBase = null;
+      _tapAnchor = null;
+      return;
+    }
+
     final anchor = _tapAnchor;
     if (anchor != null) {
       widget.focusNode.requestFocus();
@@ -192,6 +279,19 @@ class _SelectionGestureOverlayState extends State<SelectionGestureOverlay> {
     }
     _dragBase = null;
     _tapAnchor = null;
+  }
+
+  bool _handleTapBeyondContent(Offset globalPosition) {
+    final contentBottom = widget.registry.contentExtent();
+    if (contentBottom == null || globalPosition.dy <= contentBottom) {
+      return false;
+    }
+    final handler = widget.onTapBeyondContent;
+    if (handler == null) {
+      return false;
+    }
+    widget.focusNode.requestFocus();
+    return handler(globalPosition);
   }
 
   void _onPointerCancel(PointerCancelEvent event) {

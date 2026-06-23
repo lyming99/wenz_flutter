@@ -355,6 +355,7 @@ class SetTableCellBackgroundCommand extends EditorCommand {
     );
   }
 }
+
 class MergeTableCellsCommand extends EditorCommand {
   const MergeTableCellsCommand({
     required this.blockIndex,
@@ -393,7 +394,10 @@ class MergeTableCellsCommand extends EditorCommand {
     for (var row = top; row <= bottom; row++) {
       for (var column = left; column <= right; column++) {
         final cell = tableBlock.table.cellAt(row, column);
-        if (cell == null || cell.covered || cell.rowSpan != 1 || cell.columnSpan != 1) {
+        if (cell == null ||
+            cell.covered ||
+            cell.rowSpan != 1 ||
+            cell.columnSpan != 1) {
           return const CommandResult(recordHistory: false);
         }
       }
@@ -450,7 +454,8 @@ class SplitTableCellCommand extends EditorCommand {
     }
     final bottom = rowIndex + anchor.rowSpan - 1;
     final right = columnIndex + anchor.columnSpan - 1;
-    if (bottom >= tableBlock.table.rowCount || right >= tableBlock.table.columnCount) {
+    if (bottom >= tableBlock.table.rowCount ||
+        right >= tableBlock.table.columnCount) {
       return const CommandResult(recordHistory: false);
     }
     final rows = tableBlock.table.rows.map(copyRow).toList();
@@ -612,15 +617,27 @@ CommandResult updateTableCell(
   if (tableBlock == null || cell == null) {
     return const CommandResult(recordHistory: false);
   }
+  final selection = session.selection;
   final rows = tableBlock.table.rows.map(copyRow).toList();
   rows[rowIndex][columnIndex] = update(cell);
-  return replaceTable(session, blockIndex, tableBlock, rows);
+  final result = replaceTable(session, blockIndex, tableBlock, rows);
+  if (selection == null) {
+    return result;
+  }
+  return CommandResult(
+    selection: selection,
+    recordHistory: result.recordHistory,
+    metadata: result.metadata,
+  );
 }
 
 Map<int, T> shiftColumnMapOnInsert<T>(Map<int, T> values, int insertIndex) {
   return <int, T>{
     for (final entry in values.entries)
-      if (entry.key < insertIndex) entry.key: entry.value else entry.key + 1: entry.value,
+      if (entry.key < insertIndex)
+        entry.key: entry.value
+      else
+        entry.key + 1: entry.value,
   };
 }
 

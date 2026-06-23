@@ -180,6 +180,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
   /// during pinyin/japanese input.
   _CaretKey? _lastScrollCheckedCaret;
   bool _skipNextCaretScrollIntoView = false;
+  bool _inputGeometrySyncPending = false;
 
   /// The active block renderer registry. When the widget supplies one it is
   /// used as-is; otherwise a private registry with built-in defaults is lazily
@@ -431,6 +432,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
           focusNode: focusNode,
           readOnly: widget.readOnly,
           onSelectionChanged: _handleSelectionChanged,
+          onTapBeyondContent: _handleTapBeyondContent,
           child: editor,
         ),
       ),
@@ -443,6 +445,44 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     // A selection change from the gesture overlay repositions the caret, so
     // refresh the IME buffer so the platform input follows the new location.
     _inputClient.syncBuffer();
+  }
+
+  bool _handleTapBeyondContent(Offset _) {
+    if (widget.readOnly) {
+      return false;
+    }
+    final blocks = widget.controller.document.blocks;
+    if (blocks.isEmpty) {
+      return false;
+    }
+    final last = blocks.last;
+    if (last is TextBlockNode || last is CodeBlockNode) {
+      return false;
+    }
+
+    final nextBlockId = _nextBlockId();
+    final nextBlockIndex = blocks.length;
+    final nextPosition = DocumentPosition.text(
+      blockId: nextBlockId,
+      blockIndex: nextBlockIndex,
+      offset: 0,
+    );
+    final nextSelection =
+        DocumentSelection(base: nextPosition, extent: nextPosition);
+    _skipNextCaretScrollIntoView = true;
+    widget.controller.insertBlocks(
+      index: nextBlockIndex,
+      blocks: <BlockNode>[
+        TextBlockNode(
+          id: nextBlockId,
+          type: BlockType.paragraph,
+          content: const <InlineNode>[],
+        ),
+      ],
+      selection: nextSelection,
+    );
+    _inputClient.syncBuffer();
+    return true;
   }
 
   /// Block ids that must stay mounted under virtualisation: the caret block
@@ -587,14 +627,30 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     return KeyEventResult.handled;
   }
 
-  /// Handles PageUp/PageDown: moves the caret by one viewport height (a
-  /// "page") in the given direction, keeping the horizontal column. Falls back
-  /// to block-boundary motion when no viewport / caret geometry is available
-  /// (e.g. headless tests). After moving, scrolls just enough to bring the new
-  /// caret position back into view.
+  /// Handles PageUp/PageDown: scrolls the content by exactly one viewport (a
+  /// "page") and moves the caret by the same amount through the document, so
+  /// repeated paging advances one page each press and the caret keeps both its
+  /// horizontal column and its relative screen position.
   ///
   /// `forward` = true → PageDown, false → PageUp. When [expandSelection] is
-  /// true the anchor stays put and only the extent moves.
+  /// true the anchor stays put and only the extent moves. Falls back to
+  /// block-boundary motion when no viewport / caret geometry is available
+  /// (e.g. headless tests).
+  ///
+  /// The caret target is measured in the document's content (scroll) space —
+  /// caret Y ± one viewport — and is *not* clamped to the current viewport.
+  /// Clamping there was the old bug: it pinned the caret at the viewport edge
+  /// and then jumped to the document end on the next press.
+  ///
+  /// Resolution is split in two:
+  /// 1. When the target lands inside the currently-mounted content (the common
+  ///    case — a short doc, or a page that stays within the built range) the
+  ///    caret is placed synchronously right after the one-page scroll jump.
+  /// 2. When the target overshoots the mounted range (a tall, virtualised
+  ///    document) the one-page scroll is applied first and the caret is placed
+  ///    on the next frame, once the target block is built. Only an actual
+  ///    scroll change schedules that frame, so there is always a frame to run
+  ///    the deferred place.
   void _handlePageKey({required bool forward, required bool expandSelection}) {
     final controller = widget.controller;
     final selection = controller.selection;
@@ -619,37 +675,137 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
       );
       return;
     }
+    final scrollPosition = _scrollController.position;
     final viewportTop = renderBox.localToGlobal(Offset.zero).dy;
     final viewportHeight = renderBox.size.height;
     // Preserve the caret's horizontal column across the page jump so repeated
     // PageUp/PageDown keep the same x position.
     final caretX = caretRect.left;
-    final currentCaretY = caretRect.top;
-    // Target caret Y is one viewport away in the travel direction. Clamp into
-    // the viewport's vertical range so the registry can always resolve it to
-    // a real block (the closest-block fallback handles the very top/bottom).
-    final rawTargetY = forward
-        ? currentCaretY + viewportHeight
-        : currentCaretY - viewportHeight;
-    final targetY = rawTargetY.clamp(
-      viewportTop,
-      viewportTop + viewportHeight,
-    );
-    final target = _registry.positionFromGlobalOffset(Offset(caretX, targetY));
-    if (target == null || target == selection.extent) {
-      // At a document edge: collapse or extend to the document boundary so
-      // the caret still moves to the furthest reachable position.
-      controller.moveCaretToDocumentBoundary(
-        forward: forward,
-        expandSelection: expandSelection,
+    // Caret Y in the document's content (scroll) coordinate space: pixels from
+    // the top of the full scrollable content.
+    final caretContentY = caretRect.top - viewportTop + scrollPosition.pixels;
+    // Move exactly one viewport ("page") through the content in the travel
+    // direction. Measured in content space, so it is independent of where the
+    // viewport currently sits.
+    final targetContentY = forward
+        ? caretContentY + viewportHeight
+        : caretContentY - viewportHeight;
+
+    // The document's content extent in content space: the bottom of the last
+    // mounted block. When a page jump overshoots this the caret should go to
+    // the document end rather than the (ambiguous) nearest block.
+    final globalBottom = _registry.contentExtent();
+    final contentExtent = globalBottom == null
+        ? null
+        : globalBottom - viewportTop + scrollPosition.pixels;
+    final beyondDocument = contentExtent == null ||
+        (forward && targetContentY >= contentExtent) ||
+        (!forward && targetContentY <= 0);
+
+    // Scroll one page so the caret target stays at the same screen offset and
+    // the surrounding context stays visible across the jump.
+    final pageScroll = (forward
+            ? scrollPosition.pixels + viewportHeight
+            : scrollPosition.pixels - viewportHeight)
+        .clamp(0.0, scrollPosition.maxScrollExtent);
+    final scrollChanged = _jumpToScrollOffset(pageScroll.toDouble());
+
+    if (beyondDocument) {
+      // A page that overshoots the document: place the caret at the document
+      // boundary. Resolve the boundary position via the registry so a plain
+      // page yields a collapsed caret (moveCaretToDocumentBoundary would keep
+      // the pre-move range end as the anchor, producing a selection range).
+      final boundaryContentY =
+          forward ? (contentExtent ?? targetContentY) : 0.0;
+      final boundaryGlobalY =
+          boundaryContentY - scrollPosition.pixels + viewportTop;
+      final boundary = _registry.positionFromGlobalOffset(
+        Offset(caretX, boundaryGlobalY),
       );
+      if (boundary == null) {
+        controller.moveCaretToDocumentBoundary(
+          forward: forward,
+          expandSelection: expandSelection,
+        );
+      } else {
+        final next = expandSelection
+            ? DocumentSelection(base: selection.base, extent: boundary)
+            : DocumentSelection(base: boundary, extent: boundary);
+        controller.setSelection(next);
+      }
       _scrollCaretIntoView();
       return;
     }
-    final next = expandSelection
-        ? DocumentSelection(base: selection.base, extent: target)
-        : DocumentSelection(base: target, extent: target);
-    controller.setSelection(next);
+
+    if (!scrollChanged) {
+      // The scroll did not move (nothing to scroll): the target block is
+      // already mounted, so resolve and place the caret synchronously.
+      _placeCaretAtContentY(
+        caretX: caretX,
+        contentY: targetContentY,
+        forward: forward,
+        expandSelection: expandSelection,
+        base: selection.base,
+        previousExtent: selection.extent,
+      );
+      return;
+    }
+    // The scroll moved — under virtualisation the target block mounts on the
+    // next frame, so place the caret then. Only an actual scroll schedules a
+    // frame, guaranteeing the deferred place runs.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      _placeCaretAtContentY(
+        caretX: caretX,
+        contentY: targetContentY,
+        forward: forward,
+        expandSelection: expandSelection,
+        base: selection.base,
+        previousExtent: selection.extent,
+      );
+    });
+  }
+
+  /// Resolves the caret position at content-space Y [contentY] (pixels from the
+  /// top of the full scrollable content), sets the selection, then pixel-realigns
+  /// the scroll. Used by [_handlePageKey] either synchronously (short doc /
+  /// target within the mounted range) or on the frame after a one-page scroll
+  /// (tall, virtualised document whose target block needs building).
+  void _placeCaretAtContentY({
+    required double caretX,
+    required double contentY,
+    required bool forward,
+    required bool expandSelection,
+    required DocumentPosition base,
+    required DocumentPosition previousExtent,
+  }) {
+    if (!mounted || !_scrollController.hasClients) {
+      return;
+    }
+    final renderBox = context.findRenderObject() as RenderBox?;
+    if (renderBox == null || !renderBox.hasSize) {
+      return;
+    }
+    final position = _scrollController.position;
+    final viewportTop = renderBox.localToGlobal(Offset.zero).dy;
+    // Content Y → global Y under the current scroll offset.
+    final globalY = contentY - position.pixels + viewportTop;
+    final target = _registry.positionFromGlobalOffset(Offset(caretX, globalY));
+    if (target == null || target == previousExtent) {
+      // Target off the mounted range or already there: move to the document
+      // boundary so the caret still advances as far as it can.
+      widget.controller.moveCaretToDocumentBoundary(
+        forward: forward,
+        expandSelection: expandSelection,
+      );
+    } else {
+      final next = expandSelection
+          ? DocumentSelection(base: base, extent: target)
+          : DocumentSelection(base: target, extent: target);
+      widget.controller.setSelection(next);
+    }
     _scrollCaretIntoView();
   }
 
@@ -689,7 +845,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
         viewportHeight: viewportHeight,
       );
       if (estimated != null && (estimated - position.pixels).abs() > 1) {
-        position.jumpTo(estimated.clamp(0.0, position.maxScrollExtent));
+        _jumpToScrollOffset(estimated);
         // Re-run on the next frame so the freshly-mounted block's rect is
         // available for pixel-accurate alignment. Bound the re-arm depth so a
         // persistently mis-estimated block height cannot loop forever.
@@ -728,7 +884,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
       // bottom edge.
       target = caretBottomInContent - viewportHeight;
     }
-    position.jumpTo(target.clamp(0.0, position.maxScrollExtent));
+    _jumpToScrollOffset(target);
   }
 
   /// Estimates the scroll offset that brings [blockIndex] into view, using the
@@ -1027,7 +1183,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
       return;
     }
     final position = _scrollController.position;
-    position.jumpTo(forward ? position.maxScrollExtent : 0);
+    _jumpToScrollOffset(forward ? position.maxScrollExtent : 0);
   }
 
   void _scrollPage({required bool forward}) {
@@ -1037,7 +1193,35 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     final position = _scrollController.position;
     final delta = position.viewportDimension;
     final target = position.pixels + (forward ? delta : -delta);
-    position.jumpTo(target.clamp(0.0, position.maxScrollExtent));
+    _jumpToScrollOffset(target);
+  }
+
+  bool _jumpToScrollOffset(double target) {
+    if (!_scrollController.hasClients) {
+      return false;
+    }
+    final position = _scrollController.position;
+    final next = target.clamp(0.0, position.maxScrollExtent).toDouble();
+    if ((next - position.pixels).abs() <= 0.5) {
+      return false;
+    }
+    position.jumpTo(next);
+    _scheduleInputGeometrySync();
+    return true;
+  }
+
+  void _scheduleInputGeometrySync() {
+    if (_inputGeometrySyncPending) {
+      return;
+    }
+    _inputGeometrySyncPending = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _inputGeometrySyncPending = false;
+      if (!mounted || !_inputClient.isAttached) {
+        return;
+      }
+      _inputClient.syncBuffer();
+    });
   }
 
   void _runSelectorFuture(Future<void> future) {
@@ -1213,6 +1397,9 @@ class _KeepAliveBlockState extends State<_KeepAliveBlock>
   @override
   void didUpdateWidget(covariant _KeepAliveBlock oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.keepAlive != widget.keepAlive) {
+      updateKeepAlive();
+    }
     // Invalidate the cache when something this block renders depends on
     // changed. Content change, selection/caret/composition touching this block,
     // or ambient style/debug toggles all force a fresh render.

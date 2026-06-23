@@ -164,6 +164,13 @@ class DeleteSelectionCommand extends EditorCommand {
         attributes: block.attributes,
       );
       _replaceBlock(session, start.blockIndex, nextBlock);
+    } else if (start.path.isBlockObject) {
+      // A whole object block (image/divider/video/file) is selected. Remove the
+      // block and land the caret on a neighbouring editable block — the end of
+      // the previous block if any, else the start of the next. When the block
+      // was the only one, schema normalisation (run by the executor) re-adds an
+      // empty paragraph and the caret falls there.
+      return _deleteObjectBlock(session, start.blockIndex);
     } else {
       return const CommandResult(recordHistory: false);
     }
@@ -305,9 +312,6 @@ CommandResult _deleteAcrossBlocks(
 ) {
   final leading = _leadingRemainderForPosition(session, start);
   final trailing = _trailingRemainderForPosition(session, end);
-  if (leading == null && trailing == null) {
-    return const CommandResult(recordHistory: false);
-  }
 
   final before = <BlockNode>[
     for (var i = 0; i < start.blockIndex; i++)
@@ -344,6 +348,23 @@ CommandResult _deleteAcrossBlocks(
     ...rebuilt,
     ...after,
   ];
+  if (blocks.isEmpty) {
+    final paragraph = _emptyParagraphAfterDelete(start.blockId);
+    final position = DocumentPosition.text(
+      blockId: paragraph.id,
+      blockIndex: 0,
+      offset: 0,
+    );
+    session.document = RichTextDocument(
+      version: session.document.version,
+      blocks: <BlockNode>[paragraph],
+    );
+    return CommandResult(
+      selection: DocumentSelection(base: position, extent: position),
+    );
+  }
+  nextSelection ??= _collapsedNearDeletion(blocks, before.length);
+
   session.document = RichTextDocument(
     version: session.document.version,
     blocks: blocks,
@@ -352,6 +373,71 @@ CommandResult _deleteAcrossBlocks(
   return CommandResult(
     selection: nextSelection,
   );
+}
+
+TextBlockNode _emptyParagraphAfterDelete(String seedBlockId) {
+  return TextBlockNode(
+    id: '$seedBlockId-empty',
+    type: BlockType.paragraph,
+    content: const <InlineNode>[],
+  );
+}
+
+DocumentSelection? _collapsedNearDeletion(
+  List<BlockNode> blocks,
+  int deletionIndex,
+) {
+  for (var i = deletionIndex; i < blocks.length; i++) {
+    final selection = _caretAtBlockStartOrFirstCell(blocks[i], i);
+    if (selection != null) {
+      return selection;
+    }
+  }
+  for (var i = deletionIndex - 1; i >= 0; i--) {
+    final selection = _caretAtBlockEndOrLastCell(blocks[i], i);
+    if (selection != null) {
+      return selection;
+    }
+  }
+  return null;
+}
+
+DocumentSelection? _caretAtBlockStartOrFirstCell(BlockNode block, int index) {
+  if (block is TextBlockNode || block is CodeBlockNode) {
+    return _caretAtBlockStart(block, index);
+  }
+  if (block is TableBlockNode && block.table.rowCount > 0) {
+    final position = DocumentPosition.tableCell(
+      tableBlockId: block.id,
+      blockIndex: index,
+      tableRowIndex: 0,
+      tableColumnIndex: 0,
+      offset: 0,
+    );
+    return DocumentSelection(base: position, extent: position);
+  }
+  return null;
+}
+
+DocumentSelection? _caretAtBlockEndOrLastCell(BlockNode block, int index) {
+  if (block is TextBlockNode || block is CodeBlockNode) {
+    return _caretAtBlockEnd(block, index);
+  }
+  if (block is TableBlockNode &&
+      block.table.rowCount > 0 &&
+      block.table.columnCount > 0) {
+    final rowIndex = block.table.rowCount - 1;
+    final columnIndex = block.table.columnCount - 1;
+    final position = DocumentPosition.tableCell(
+      tableBlockId: block.id,
+      blockIndex: index,
+      tableRowIndex: rowIndex,
+      tableColumnIndex: columnIndex,
+      offset: _tableCellTextLength(block, rowIndex, columnIndex),
+    );
+    return DocumentSelection(base: position, extent: position);
+  }
+  return null;
 }
 
 BlockNode? _leadingRemainderForPosition(
@@ -777,6 +863,102 @@ void _replaceBlock(DocumentSession session, int index, BlockNode block) {
     version: session.document.version,
     blocks: blocks,
   );
+}
+
+/// Removes the object block at [index] (image/divider/video/file) and lands the
+/// caret on a neighbouring editable block — the end of the previous text/code
+/// block if one exists, otherwise the start of the first editable block in the
+/// resulting document. The schema normalise pass (run by the executor after the
+/// command) re-adds an empty paragraph when the removed block was the only one.
+CommandResult _deleteObjectBlock(DocumentSession session, int index) {
+  final blocks = session.document.blocks;
+  if (index < 0 || index >= blocks.length) {
+    return const CommandResult(recordHistory: false);
+  }
+  final removedBlockId = blocks[index].id;
+  // Snapshot the previous editable block BEFORE removal so we can prefer it
+  // (Backspace semantics: caret lands where the deleted block was, in the
+  // preceding text).
+  BlockNode? previousEditable;
+  var previousIndex = -1;
+  for (var i = index - 1; i >= 0; i--) {
+    if (blocks[i] is TextBlockNode || blocks[i] is CodeBlockNode) {
+      previousEditable = blocks[i];
+      previousIndex = i;
+      break;
+    }
+  }
+
+  _replaceBlocks(session, index, 1, const <BlockNode>[]);
+  if (session.document.blocks.isEmpty) {
+    final paragraph = _emptyParagraphAfterDelete(removedBlockId);
+    final position = DocumentPosition.text(
+      blockId: paragraph.id,
+      blockIndex: 0,
+      offset: 0,
+    );
+    session.document = RichTextDocument(
+      version: session.document.version,
+      blocks: <BlockNode>[paragraph],
+    );
+    return CommandResult(
+      selection: DocumentSelection(base: position, extent: position),
+    );
+  }
+
+  if (previousEditable != null) {
+    // Index unchanged (the removed block was after it).
+    return CommandResult(
+      selection: _caretAtBlockEnd(previousEditable, previousIndex),
+    );
+  }
+  // No previous editable block: land at the start of the first editable block
+  // in the new document.
+  final next = session.document.blocks;
+  for (var i = 0; i < next.length; i++) {
+    final block = next[i];
+    if (block is TextBlockNode || block is CodeBlockNode) {
+      return CommandResult(selection: _caretAtBlockStart(block, i));
+    }
+  }
+  return const CommandResult();
+}
+
+DocumentSelection _caretAtBlockEnd(BlockNode block, int blockIndex) {
+  if (block is TextBlockNode) {
+    final end = inlineNodesLength(block.content);
+    final pos = DocumentPosition.text(
+      blockId: block.id,
+      blockIndex: blockIndex,
+      offset: end,
+    );
+    return DocumentSelection(base: pos, extent: pos);
+  }
+  // CodeBlockNode.
+  final end = (block as CodeBlockNode).code.length;
+  final pos = DocumentPosition.code(
+    blockId: block.id,
+    blockIndex: blockIndex,
+    offset: end,
+  );
+  return DocumentSelection(base: pos, extent: pos);
+}
+
+DocumentSelection _caretAtBlockStart(BlockNode block, int blockIndex) {
+  if (block is CodeBlockNode) {
+    final pos = DocumentPosition.code(
+      blockId: block.id,
+      blockIndex: blockIndex,
+      offset: 0,
+    );
+    return DocumentSelection(base: pos, extent: pos);
+  }
+  final pos = DocumentPosition.text(
+    blockId: (block as TextBlockNode).id,
+    blockIndex: blockIndex,
+    offset: 0,
+  );
+  return DocumentSelection(base: pos, extent: pos);
 }
 
 void _replaceBlocks(

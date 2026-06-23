@@ -202,6 +202,169 @@ void main() {
     expect((textBlock.content[1] as TextRun).attributes.bold, isTrue);
   });
 
+  test('ToggleMarkCommand toggles bold inside a table cell', () {
+    final session = DocumentSession(document: _tableDocument());
+    final executor = CommandExecutor(session);
+    executor.execute(
+      const InsertTableCellTextCommand(
+        blockIndex: 0,
+        rowIndex: 0,
+        columnIndex: 0,
+        offset: 0,
+        text: 'Hello',
+      ),
+    );
+    final selection = DocumentSelection(
+      base: DocumentPosition.tableCell(
+        tableBlockId: 't1',
+        blockIndex: 0,
+        tableRowIndex: 0,
+        tableColumnIndex: 0,
+        offset: 1,
+      ),
+      extent: DocumentPosition.tableCell(
+        tableBlockId: 't1',
+        blockIndex: 0,
+        tableRowIndex: 0,
+        tableColumnIndex: 0,
+        offset: 4,
+      ),
+    );
+
+    // Apply bold.
+    executor.execute(ToggleMarkCommand(TextMark.bold, selection: selection));
+    var textBlock = _cellTextBlock(session, 0, 0);
+    expect((textBlock.content[1] as TextRun).text, 'ell');
+    expect((textBlock.content[1] as TextRun).attributes.bold, isTrue);
+
+    // Toggle off — the whole range clears bold.
+    executor.execute(ToggleMarkCommand(TextMark.bold, selection: selection));
+    textBlock = _cellTextBlock(session, 0, 0);
+    final runs = textBlock.content.whereType<TextRun>();
+    expect(runs.every((r) => r.attributes.bold != true), isTrue);
+  });
+
+  test('SetLinkCommand sets and clears a link inside a table cell', () {
+    final session = DocumentSession(document: _tableDocument());
+    final executor = CommandExecutor(session);
+    executor.execute(
+      const InsertTableCellTextCommand(
+        blockIndex: 0,
+        rowIndex: 0,
+        columnIndex: 0,
+        offset: 0,
+        text: 'Hello',
+      ),
+    );
+    final selection = DocumentSelection(
+      base: DocumentPosition.tableCell(
+        tableBlockId: 't1',
+        blockIndex: 0,
+        tableRowIndex: 0,
+        tableColumnIndex: 0,
+        offset: 0,
+      ),
+      extent: DocumentPosition.tableCell(
+        tableBlockId: 't1',
+        blockIndex: 0,
+        tableRowIndex: 0,
+        tableColumnIndex: 0,
+        offset: 5,
+      ),
+    );
+
+    executor.execute(SetLinkCommand('https://e.co', selection: selection));
+    var textBlock = _cellTextBlock(session, 0, 0);
+    expect(
+      (textBlock.content.whereType<TextRun>().single).attributes.url,
+      'https://e.co',
+    );
+
+    executor.execute(SetLinkCommand(null, selection: selection));
+    textBlock = _cellTextBlock(session, 0, 0);
+    expect(
+      (textBlock.content.whereType<TextRun>().single).attributes.url,
+      isNull,
+    );
+  });
+
+  test('InsertInlineEmbedCommand inserts an embed inside a table cell', () {
+    final session = DocumentSession(document: _tableDocument());
+    final executor = CommandExecutor(session);
+    executor.execute(
+      const InsertTableCellTextCommand(
+        blockIndex: 0,
+        rowIndex: 0,
+        columnIndex: 0,
+        offset: 0,
+        text: 'Hi',
+      ),
+    );
+    final caretPos = DocumentPosition.tableCell(
+      tableBlockId: 't1',
+      blockIndex: 0,
+      tableRowIndex: 0,
+      tableColumnIndex: 0,
+      offset: 1,
+    );
+    final caret = DocumentSelection(base: caretPos, extent: caretPos);
+    session.selection = caret;
+
+    executor.execute(
+      const InsertInlineEmbedCommand(
+        embedType: 'formula',
+        data: <String, Object?>{'text': 'x^2'},
+      ),
+    );
+
+    final textBlock = _cellTextBlock(session, 0, 0);
+    final embed = textBlock.content.whereType<InlineEmbed>().single;
+    expect(embed.embedType, 'formula');
+    expect(embed.data['text'], 'x^2');
+    // Caret advanced past the embed.
+    expect(session.selection?.extent.offset, 2);
+  });
+
+  test('ClearStyleCommand clears inline marks inside a table cell', () {
+    final session = DocumentSession(document: _tableDocument());
+    final executor = CommandExecutor(session);
+    executor.execute(
+      const InsertTableCellTextCommand(
+        blockIndex: 0,
+        rowIndex: 0,
+        columnIndex: 0,
+        offset: 0,
+        text: 'Hello',
+      ),
+    );
+    final selection = DocumentSelection(
+      base: DocumentPosition.tableCell(
+        tableBlockId: 't1',
+        blockIndex: 0,
+        tableRowIndex: 0,
+        tableColumnIndex: 0,
+        offset: 0,
+      ),
+      extent: DocumentPosition.tableCell(
+        tableBlockId: 't1',
+        blockIndex: 0,
+        tableRowIndex: 0,
+        tableColumnIndex: 0,
+        offset: 5,
+      ),
+    );
+    // Bold + italic the whole cell, then clear.
+    executor
+      ..execute(ToggleMarkCommand(TextMark.bold, selection: selection))
+      ..execute(ToggleMarkCommand(TextMark.italic, selection: selection))
+      ..execute(ClearStyleCommand(selection: selection));
+
+    final textBlock = _cellTextBlock(session, 0, 0);
+    final run = textBlock.content.whereType<TextRun>().single;
+    expect(run.attributes.bold, isNull);
+    expect(run.attributes.italic, isNull);
+  });
+
   test('set table column width updates clears and shifts width', () {
     final session = DocumentSession(document: _tableDocument());
     final executor = CommandExecutor(session);
@@ -252,11 +415,45 @@ void main() {
       ),
     );
 
-    final cell = (session.document.blocks.single as TableBlockNode)
-        .table
-        .cellAt(0, 0)!;
+    final cell =
+        (session.document.blocks.single as TableBlockNode).table.cellAt(0, 0)!;
     expect(cell.isHeader, isTrue);
     expect(cell.backgroundColor, 0xFFFFEEAA);
+  });
+
+  test('set table cell style preserves the active table selection', () {
+    final selection = DocumentSelection(
+      base: DocumentPosition.tableCell(
+        tableBlockId: 't1',
+        blockIndex: 0,
+        tableRowIndex: 0,
+        tableColumnIndex: 0,
+        offset: 0,
+      ),
+      extent: DocumentPosition.tableCell(
+        tableBlockId: 't1',
+        blockIndex: 0,
+        tableRowIndex: 1,
+        tableColumnIndex: 1,
+        offset: 0,
+      ),
+    );
+    final session = DocumentSession(
+      document: _tableDocument(),
+      selection: selection,
+    );
+    final executor = CommandExecutor(session);
+
+    executor.execute(
+      const SetTableCellBackgroundCommand(
+        blockIndex: 0,
+        rowIndex: 0,
+        columnIndex: 0,
+        backgroundColor: 0xFFFFEEAA,
+      ),
+    );
+
+    expect(session.selection, selection);
   });
 
   test('merge and split table cells update spans and covered cells', () {

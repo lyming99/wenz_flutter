@@ -524,6 +524,10 @@ void main() {
 
       expect(client.isAttached, isTrue);
       expect(client.lastReportedCaretRect, reportedRect);
+      expect(client.lastReportedEditableSize, reportedRect.size);
+      expect(
+          client.lastReportedLocalCaretRect, Offset.zero & reportedRect.size);
+      expect(client.lastReportedComposingRect, Offset.zero & reportedRect.size);
 
       // Move the caret (simulate): the provider now returns a different rect.
       reportedRect = const Rect.fromLTWH(50, 200, 1, 24);
@@ -535,6 +539,10 @@ void main() {
         reason: 'syncBuffer must re-push the caret rect so the IME window '
             'follows caret movement',
       );
+      expect(client.lastReportedEditableSize, reportedRect.size);
+      expect(
+          client.lastReportedLocalCaretRect, Offset.zero & reportedRect.size);
+      expect(client.lastReportedComposingRect, Offset.zero & reportedRect.size);
     });
 
     test('attach does not report when no caret rect is available', () {

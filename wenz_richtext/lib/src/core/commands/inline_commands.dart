@@ -7,6 +7,7 @@ import '../transaction/document_session.dart';
 import 'editor_command.dart';
 import 'inline_editing.dart';
 import 'style_commands.dart';
+import 'table_cell_editing.dart';
 import 'text_commands.dart';
 
 /// Sets (or replaces) the link URL on the current selection's text runs. Pass
@@ -33,10 +34,29 @@ class SetLinkCommand extends EditorCommand {
       return const CommandResult(recordHistory: false);
     }
     final block = _blockAt(session.document, start.blockIndex);
+    // Table cell selection: route to the cell-aware link rewrite, which edits
+    // the cell's first text block via replaceCellTextBlock (the block here is a
+    // TableBlockNode and would otherwise short-circuit on the guard below).
+    if (start.path.isTableCellText && block is TableBlockNode) {
+      final rowIndex = start.path.tableRowIndex;
+      final columnIndex = start.path.tableColumnIndex;
+      if (rowIndex == null || columnIndex == null) {
+        return const CommandResult(recordHistory: false);
+      }
+      return setTableCellLinkRange(
+        session,
+        start.blockIndex,
+        rowIndex,
+        columnIndex,
+        start.offset,
+        end.offset,
+        url,
+      );
+    }
     if (block is! TextBlockNode) {
       return const CommandResult(recordHistory: false);
     }
-    final nextContent = _withUrl(
+    final nextContent = withUrl(
       block.content,
       start.offset,
       end.offset,
@@ -56,67 +76,6 @@ class SetLinkCommand extends EditorCommand {
     );
     return CommandResult(selection: target);
   }
-}
-
-/// Rewrites the runs covering [start, end) so each carries [url] (or has its
-/// url removed when [url] is null). Splits runs at the boundaries like
-/// [formatInline] but overwrites the url field rather than merging.
-List<InlineNode> _withUrl(
-  List<InlineNode> nodes,
-  int start,
-  int end,
-  String? url,
-) {
-  if (end <= start) {
-    return nodes.map((n) => n.copy()).toList();
-  }
-  final result = <InlineNode>[];
-  var cursor = 0;
-  for (final node in nodes) {
-    final nodeStart = cursor;
-    final nodeEnd = cursor + inlineLength(node);
-    cursor = nodeEnd;
-
-    if (nodeEnd <= start || nodeStart >= end) {
-      result.add(node.copy());
-      continue;
-    }
-    if (node is! TextRun) {
-      result.add(node.copy());
-      continue;
-    }
-    final localStart = start > nodeStart ? start - nodeStart : 0;
-    final localEnd = end < nodeEnd ? end - nodeStart : node.text.length;
-    final before = node.text.substring(0, localStart);
-    final middle = node.text.substring(localStart, localEnd);
-    final after = node.text.substring(localEnd);
-    if (before.isNotEmpty) {
-      result.add(TextRun(text: before, attributes: node.attributes));
-    }
-    if (middle.isNotEmpty) {
-      result.add(
-        TextRun(
-          text: middle,
-          attributes: TextAttributes(
-            color: node.attributes.color,
-            background: node.attributes.background,
-            bold: node.attributes.bold,
-            italic: node.attributes.italic,
-            fontSize: node.attributes.fontSize,
-            fontFamily: node.attributes.fontFamily,
-            underline: node.attributes.underline,
-            lineThrough: node.attributes.lineThrough,
-            remark: node.attributes.remark,
-            url: url, // overwrite (not merge) so null clears the link
-          ),
-        ),
-      );
-    }
-    if (after.isNotEmpty) {
-      result.add(TextRun(text: after, attributes: node.attributes));
-    }
-  }
-  return mergeTextRuns(result);
 }
 
 /// Toggles a boolean text mark (bold/italic/underline/lineThrough/remark) on
@@ -143,10 +102,29 @@ class ToggleMarkCommand extends EditorCommand {
       return const CommandResult(recordHistory: false);
     }
     final block = _blockAt(session.document, start.blockIndex);
+    // Table cell selection: toggle the mark inside the cell's first text block
+    // (the block here is a TableBlockNode and would otherwise short-circuit on
+    // the guard below).
+    if (start.path.isTableCellText && block is TableBlockNode) {
+      final rowIndex = start.path.tableRowIndex;
+      final columnIndex = start.path.tableColumnIndex;
+      if (rowIndex == null || columnIndex == null) {
+        return const CommandResult(recordHistory: false);
+      }
+      return toggleTableCellMark(
+        session,
+        start.blockIndex,
+        rowIndex,
+        columnIndex,
+        start.offset,
+        end.offset,
+        mark,
+      );
+    }
     if (block is! TextBlockNode) {
       return const CommandResult(recordHistory: false);
     }
-    final currentlyOn = _anyRunHasMark(
+    final currentlyOn = anyRunHasMark(
       block.content,
       start.offset,
       end.offset,
@@ -155,7 +133,7 @@ class ToggleMarkCommand extends EditorCommand {
     if (currentlyOn) {
       // Clear the mark across the range. FormatTextCommand can't unset a bool,
       // so rewrite the runs directly.
-      final nextContent = _clearMark(
+      final nextContent = clearMark(
         block.content,
         start.offset,
         end.offset,
@@ -174,7 +152,7 @@ class ToggleMarkCommand extends EditorCommand {
         blocks: blocks,
       );
     } else {
-      final attrs = _markAttributes(mark);
+      final attrs = markAttributes(mark);
       session.selection = target;
       FormatTextCommand(attributes: attrs, selection: target).execute(session);
       session.selection = target;
@@ -183,96 +161,10 @@ class ToggleMarkCommand extends EditorCommand {
   }
 }
 
-TextAttributes _markAttributes(TextMark mark) {
-  return switch (mark) {
-    TextMark.bold => const TextAttributes(bold: true),
-    TextMark.italic => const TextAttributes(italic: true),
-    TextMark.underline => const TextAttributes(underline: true),
-    TextMark.lineThrough => const TextAttributes(lineThrough: true),
-    TextMark.remark => const TextAttributes(remark: true),
-  };
-}
-
-/// Boolean inline marks toggleable by [ToggleMarkCommand].
-enum TextMark { bold, italic, underline, lineThrough, remark }
-
-bool _anyRunHasMark(
-  List<InlineNode> nodes,
-  int start,
-  int end,
-  TextMark mark,
-) {
-  var cursor = 0;
-  for (final node in nodes) {
-    final nodeStart = cursor;
-    final nodeEnd = cursor + inlineLength(node);
-    cursor = nodeEnd;
-    if (nodeEnd <= start || nodeStart >= end || node is! TextRun) {
-      continue;
-    }
-    final on = switch (mark) {
-      TextMark.bold => node.attributes.bold == true,
-      TextMark.italic => node.attributes.italic == true,
-      TextMark.underline => node.attributes.underline == true,
-      TextMark.lineThrough => node.attributes.lineThrough == true,
-      TextMark.remark => node.attributes.remark == true,
-    };
-    if (on) {
-      return true;
-    }
-  }
-  return false;
-}
-
-List<InlineNode> _clearMark(
-  List<InlineNode> nodes,
-  int start,
-  int end,
-  TextMark mark,
-) {
-  final result = <InlineNode>[];
-  var cursor = 0;
-  for (final node in nodes) {
-    final nodeStart = cursor;
-    final nodeEnd = cursor + inlineLength(node);
-    cursor = nodeEnd;
-    if (nodeEnd <= start || nodeStart >= end || node is! TextRun) {
-      result.add(node.copy());
-      continue;
-    }
-    final localStart = start > nodeStart ? start - nodeStart : 0;
-    final localEnd = end < nodeEnd ? end - nodeStart : node.text.length;
-    final before = node.text.substring(0, localStart);
-    final middle = node.text.substring(localStart, localEnd);
-    final after = node.text.substring(localEnd);
-    final middleAttrs = _withoutMark(node.attributes, mark);
-    if (before.isNotEmpty) {
-      result.add(TextRun(text: before, attributes: node.attributes));
-    }
-    if (middle.isNotEmpty) {
-      result.add(TextRun(text: middle, attributes: middleAttrs));
-    }
-    if (after.isNotEmpty) {
-      result.add(TextRun(text: after, attributes: node.attributes));
-    }
-  }
-  return mergeTextRuns(result);
-}
-
-TextAttributes _withoutMark(TextAttributes attrs, TextMark mark) {
-  return TextAttributes(
-    color: attrs.color,
-    background: attrs.background,
-    bold: mark == TextMark.bold ? null : attrs.bold,
-    italic: mark == TextMark.italic ? null : attrs.italic,
-    fontSize: attrs.fontSize,
-    fontFamily: attrs.fontFamily,
-    underline: mark == TextMark.underline ? null : attrs.underline,
-    lineThrough: mark == TextMark.lineThrough ? null : attrs.lineThrough,
-    remark: mark == TextMark.remark ? null : attrs.remark,
-    url: attrs.url,
-  );
-}
+// TextMark + the mark helpers (markAttributes / anyRunHasMark / clearMark /
+// withoutMark) live in inline_editing.dart so both this file and
+// table_cell_editing.dart can reuse them without a circular import. They are
+// imported below and re-exported via the barrel file.
 
 /// Inserts an inline embed (formula / mention / image) at the caret. If the
 /// selection is non-collapsed the range is deleted first. The caret moves past
@@ -306,6 +198,24 @@ class InsertInlineEmbedCommand extends EditorCommand {
     }
     final position = session.selection!.extent;
     final block = _blockAt(session.document, position.blockIndex);
+    // Table cell caret: route to the cell-aware embed insertion (the block here
+    // is a TableBlockNode and would otherwise short-circuit on the guard below).
+    if (position.path.isTableCellText && block is TableBlockNode) {
+      final rowIndex = position.path.tableRowIndex;
+      final columnIndex = position.path.tableColumnIndex;
+      if (rowIndex == null || columnIndex == null) {
+        return const CommandResult(recordHistory: false);
+      }
+      return insertTableCellInlineEmbed(
+        session,
+        position.blockIndex,
+        rowIndex,
+        columnIndex,
+        position.offset,
+        embedType,
+        data,
+      );
+    }
     if (block is! TextBlockNode) {
       return const CommandResult(recordHistory: false);
     }
@@ -318,7 +228,7 @@ class InsertInlineEmbedCommand extends EditorCommand {
       const TextAttributes(),
     );
     // Replace the inserted placeholder text run with the actual embed.
-    final cleaned = _replacePlaceholderWithEmbed(
+    final cleaned = replacePlaceholderWithEmbed(
       nextContent,
       position.offset,
       embed,
@@ -342,44 +252,9 @@ class InsertInlineEmbedCommand extends EditorCommand {
   }
 }
 
-List<InlineNode> _replacePlaceholderWithEmbed(
-  List<InlineNode> nodes,
-  int offset,
-  InlineEmbed embed,
-) {
-  final result = <InlineNode>[];
-  var cursor = 0;
-  var inserted = false;
-  for (final node in nodes) {
-    final length = inlineLength(node);
-    final nodeStart = cursor;
-    final nodeEnd = cursor + length;
-    cursor = nodeEnd;
-
-    if (!inserted &&
-        node is TextRun &&
-        offset >= nodeStart &&
-        offset < nodeEnd) {
-      final local = offset - nodeStart;
-      final before = node.text.substring(0, local);
-      final after = node.text.substring(local + 1);
-      if (before.isNotEmpty) {
-        result.add(TextRun(text: before, attributes: node.attributes));
-      }
-      result.add(embed);
-      if (after.isNotEmpty) {
-        result.add(TextRun(text: after, attributes: node.attributes));
-      }
-      inserted = true;
-      continue;
-    }
-    result.add(node.copy());
-  }
-  if (!inserted) {
-    result.add(embed);
-  }
-  return mergeTextRuns(result);
-}
+// replacePlaceholderWithEmbed and withUrl live in inline_editing.dart so both
+// inline_commands.dart and table_cell_editing.dart can reuse them without a
+// circular import.
 
 BlockNode? _blockAt(RichTextDocument document, int index) {
   if (index < 0 || index >= document.blocks.length) {
