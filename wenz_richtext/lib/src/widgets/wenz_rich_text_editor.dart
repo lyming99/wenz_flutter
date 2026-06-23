@@ -15,6 +15,7 @@ import '../input/editor_text_input_client.dart';
 import '../rendering/text_layout_service.dart';
 import 'block_geometry_registry.dart';
 import 'block_renderer_registry.dart';
+import 'inline_embed_renderer.dart';
 import 'media_resolver.dart';
 import 'selection_gesture_overlay.dart';
 import 'shared_text_layout_cache.dart';
@@ -33,6 +34,10 @@ const Duration _kBlinkHalfPeriod = Duration(milliseconds: 530);
 /// a tap target even for empty paragraphs. A single constant so the text,
 /// code, and table-cell renderers stay in sync.
 const double _kBlockMinHeightFactor = 1.35;
+
+/// Atomic block-level objects (images, videos, files, dividers) occupy one
+/// selectable document slot, mirroring inline embeds' object-replacement slot.
+const int _kAtomicBlockSelectionLength = 1;
 
 /// Pixels of horizontal indent per indent level.
 const double _kIndentPixelsPerLevel = 24;
@@ -71,6 +76,7 @@ class WenzRichTextEditor extends StatefulWidget {
     this.enableIme = true,
     this.blockRenderers,
     this.mediaResolver,
+    this.inlineEmbedRenderer,
   });
 
   final WenzRichTextController controller;
@@ -107,6 +113,11 @@ class WenzRichTextEditor extends StatefulWidget {
   /// Throwing from the resolver is tolerated — the editor falls back to the
   /// placeholder rather than crashing.
   final MediaResolver? mediaResolver;
+
+  /// Optional renderer for inline embeds such as formula / mention. The
+  /// built-in text renderers ask this first and use their compact fallback
+  /// labels when it returns `null`.
+  final InlineEmbedRenderer? inlineEmbedRenderer;
 
   /// Seeds [registry] with the built-in block renderers for every [BlockType].
   /// Call this on a freshly constructed [BlockRendererRegistry] when you want
@@ -405,6 +416,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
         textStyle: widget.textStyle,
         showDebugOverlay: widget.showDebugOverlay,
         mediaResolver: widget.mediaResolver,
+        inlineEmbedRenderer: widget.inlineEmbedRenderer,
       ),
     );
     return _SharedLayoutCacheScope(
@@ -1168,6 +1180,7 @@ class _KeepAliveBlock extends StatefulWidget {
     this.textStyle,
     this.showDebugOverlay = false,
     this.mediaResolver,
+    this.inlineEmbedRenderer,
   });
 
   final BlockNode block;
@@ -1182,6 +1195,7 @@ class _KeepAliveBlock extends StatefulWidget {
   final TextStyle? textStyle;
   final bool showDebugOverlay;
   final MediaResolver? mediaResolver;
+  final InlineEmbedRenderer? inlineEmbedRenderer;
 
   @override
   State<_KeepAliveBlock> createState() => _KeepAliveBlockState();
@@ -1218,6 +1232,7 @@ class _KeepAliveBlockState extends State<_KeepAliveBlock>
         oldWidget.showCaret != widget.showCaret ||
         oldWidget.showDebugOverlay != widget.showDebugOverlay ||
         oldWidget.textStyle != widget.textStyle ||
+        oldWidget.inlineEmbedRenderer != widget.inlineEmbedRenderer ||
         _compositionTouchesBlock(oldWidget) !=
             _compositionTouchesBlock(widget) ||
         oldWidget.blockRenderers != widget.blockRenderers) {
@@ -1243,6 +1258,7 @@ class _KeepAliveBlockState extends State<_KeepAliveBlock>
       textStyle: widget.textStyle,
       showDebugOverlay: widget.showDebugOverlay,
       mediaResolver: widget.mediaResolver,
+      inlineEmbedRenderer: widget.inlineEmbedRenderer,
     );
     _cachedChild = child;
     return child;
@@ -1291,6 +1307,7 @@ class _BlockRenderer extends StatelessWidget {
     this.textStyle,
     this.showDebugOverlay = false,
     this.mediaResolver,
+    this.inlineEmbedRenderer,
   });
 
   final BlockNode block;
@@ -1303,6 +1320,7 @@ class _BlockRenderer extends StatelessWidget {
   final TextStyle? textStyle;
   final bool showDebugOverlay;
   final MediaResolver? mediaResolver;
+  final InlineEmbedRenderer? inlineEmbedRenderer;
 
   @override
   Widget build(BuildContext context) {
@@ -1316,6 +1334,7 @@ class _BlockRenderer extends StatelessWidget {
       textStyle: textStyle,
       showDebugOverlay: showDebugOverlay,
       mediaResolver: mediaResolver,
+      inlineEmbedRenderer: inlineEmbedRenderer,
     );
     final builder = blockRenderers.resolve(
       block.type,
@@ -1371,6 +1390,7 @@ Widget _defaultTextBlockRenderer(
     showCaret: rc.showCaret,
     textStyle: rc.textStyle,
     showDebugOverlay: rc.showDebugOverlay,
+    inlineEmbedRenderer: rc.inlineEmbedRenderer,
   );
 }
 
@@ -1396,11 +1416,15 @@ Widget _defaultImageBlockRenderer(
   final image = rc.block as ImageBlockNode;
   final resolved = _resolveMedia(context, rc);
   if (resolved != null) {
-    return resolved;
+    return _withSelectableObjectBlock(image, rc, resolved);
   }
-  return _MediaPlaceholder(
-    label: 'image',
-    value: _assetLabel(image.assetId, image.file),
+  return _withSelectableObjectBlock(
+    image,
+    rc,
+    _MediaPlaceholder(
+      label: 'image',
+      value: _assetLabel(image.assetId, image.file),
+    ),
   );
 }
 
@@ -1417,6 +1441,7 @@ Widget _defaultTableBlockRenderer(
     showCaret: rc.showCaret,
     textStyle: rc.textStyle,
     showDebugOverlay: rc.showDebugOverlay,
+    inlineEmbedRenderer: rc.inlineEmbedRenderer,
   );
 }
 
@@ -1424,7 +1449,11 @@ Widget _defaultDividerBlockRenderer(
   BuildContext context,
   BlockRenderContext rc,
 ) {
-  return const Divider(height: 1);
+  return _withSelectableObjectBlock(
+    rc.block,
+    rc,
+    const Divider(height: 1),
+  );
 }
 
 Widget _defaultVideoBlockRenderer(
@@ -1434,11 +1463,15 @@ Widget _defaultVideoBlockRenderer(
   final video = rc.block as VideoBlockNode;
   final resolved = _resolveMedia(context, rc);
   if (resolved != null) {
-    return resolved;
+    return _withSelectableObjectBlock(video, rc, resolved);
   }
-  return _MediaPlaceholder(
-    label: 'video',
-    value: _assetLabel(video.assetId, video.file),
+  return _withSelectableObjectBlock(
+    video,
+    rc,
+    _MediaPlaceholder(
+      label: 'video',
+      value: _assetLabel(video.assetId, video.file),
+    ),
   );
 }
 
@@ -1446,9 +1479,14 @@ Widget _defaultCalloutBlockRenderer(
   BuildContext context,
   BlockRenderContext rc,
 ) {
-  return _CalloutRenderer(
-    block: rc.block as CalloutBlockNode,
-    textStyle: rc.textStyle,
+  final block = rc.block as CalloutBlockNode;
+  return _withBlockSemantics(
+    block,
+    _CalloutRenderer(
+      block: block,
+      textStyle: rc.textStyle,
+      inlineEmbedRenderer: rc.inlineEmbedRenderer,
+    ),
   );
 }
 
@@ -1459,11 +1497,15 @@ Widget _defaultFileBlockRenderer(
   final file = rc.block as FileBlockNode;
   final resolved = _resolveMedia(context, rc);
   if (resolved != null) {
-    return resolved;
+    return _withSelectableObjectBlock(file, rc, resolved);
   }
-  return _MediaPlaceholder(
-    label: 'file',
-    value: file.name.isNotEmpty ? file.name : file.assetId,
+  return _withSelectableObjectBlock(
+    file,
+    rc,
+    _MediaPlaceholder(
+      label: 'file',
+      value: file.name.isNotEmpty ? file.name : file.assetId,
+    ),
   );
 }
 
@@ -1490,6 +1532,34 @@ Widget? _resolveMedia(BuildContext context, BlockRenderContext rc) {
   }
 }
 
+Widget _withSelectableObjectBlock(
+  BlockNode block,
+  BlockRenderContext rc,
+  Widget child,
+) {
+  final path = PositionPath.blockObject(block.id);
+  final selected = _selectionTouchesPath(
+    rc.selection,
+    rc.blockIndex,
+    block.id,
+    path,
+    _kAtomicBlockSelectionLength,
+  );
+  return _withBlockSemantics(
+    block,
+    _BlockObjectSelectionSurface(
+      blockId: block.id,
+      blockIndex: rc.blockIndex,
+      path: path,
+      selection: rc.selection,
+      registry: rc.registry,
+      showDebugOverlay: rc.showDebugOverlay,
+      child: child,
+    ),
+    selected: selected,
+  );
+}
+
 class _TextBlockRenderer extends StatelessWidget {
   const _TextBlockRenderer({
     required this.block,
@@ -1500,6 +1570,7 @@ class _TextBlockRenderer extends StatelessWidget {
     required this.showCaret,
     this.textStyle,
     this.showDebugOverlay = false,
+    this.inlineEmbedRenderer,
   });
 
   final TextBlockNode block;
@@ -1510,6 +1581,7 @@ class _TextBlockRenderer extends StatelessWidget {
   final bool showCaret;
   final TextStyle? textStyle;
   final bool showDebugOverlay;
+  final InlineEmbedRenderer? inlineEmbedRenderer;
 
   @override
   Widget build(BuildContext context) {
@@ -1524,17 +1596,28 @@ class _TextBlockRenderer extends StatelessWidget {
       blockIndex,
       PositionPath.blockText(block.id),
     );
+    final path = PositionPath.blockText(block.id);
+    final textLength = inlineNodesLength(block.content);
+    final selected = _selectionRangeForPath(
+          selection,
+          blockIndex,
+          path,
+          textLength,
+        ) !=
+        null;
     final text = _TextSelectionSurface(
       blockId: block.id,
       blockIndex: blockIndex,
-      path: PositionPath.blockText(block.id),
-      textLength: inlineNodesLength(block.content),
+      path: path,
+      textLength: textLength,
       textSpan: TextSpan(
         style: effectiveStyle,
         children: _inlineSpansFor(
+          context,
           block.content,
           effectiveStyle,
           compositionRange,
+          inlineEmbedRenderer,
         ),
       ),
       textAlign: _textAlign(block.attributes.alignment),
@@ -1546,18 +1629,23 @@ class _TextBlockRenderer extends StatelessWidget {
     );
     final prefix = _prefixFor(block);
     if (prefix == null) {
-      return text;
+      return _withBlockSemantics(block, text, selected: selected);
     }
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        SizedBox(
-          width: 32,
-          child: Text(prefix, style: effectiveStyle, textAlign: TextAlign.end),
-        ),
-        const SizedBox(width: 8),
-        Expanded(child: text),
-      ],
+    return _withBlockSemantics(
+      block,
+      Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          SizedBox(
+            width: 32,
+            child:
+                Text(prefix, style: effectiveStyle, textAlign: TextAlign.end),
+          ),
+          const SizedBox(width: 8),
+          Expanded(child: text),
+        ],
+      ),
+      selected: selected,
     );
   }
 }
@@ -1595,27 +1683,39 @@ class _CodeBlockRenderer extends StatelessWidget {
       blockIndex,
       PositionPath.blockCode(block.id),
     );
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: _TextSelectionSurface(
-          blockId: block.id,
-          blockIndex: blockIndex,
-          path: PositionPath.blockCode(block.id),
-          textLength: block.code.length,
-          textSpan: _codeSpan(block.code, codeStyle, compositionRange),
-          textAlign: TextAlign.start,
-          minHeight: (codeStyle.fontSize ?? 13) * _kBlockMinHeightFactor,
-          selection: selection,
-          showCaret: showCaret,
-          registry: registry,
-          showDebugOverlay: showDebugOverlay,
+    final path = PositionPath.blockCode(block.id);
+    final selected = _selectionRangeForPath(
+          selection,
+          blockIndex,
+          path,
+          block.code.length,
+        ) !=
+        null;
+    return _withBlockSemantics(
+      block,
+      DecoratedBox(
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: _TextSelectionSurface(
+            blockId: block.id,
+            blockIndex: blockIndex,
+            path: path,
+            textLength: block.code.length,
+            textSpan: _codeSpan(block.code, codeStyle, compositionRange),
+            textAlign: TextAlign.start,
+            minHeight: (codeStyle.fontSize ?? 13) * _kBlockMinHeightFactor,
+            selection: selection,
+            showCaret: showCaret,
+            registry: registry,
+            showDebugOverlay: showDebugOverlay,
+          ),
         ),
       ),
+      selected: selected,
     );
   }
 }
@@ -1630,6 +1730,7 @@ class _TableBlockRenderer extends StatelessWidget {
     required this.showCaret,
     this.textStyle,
     this.showDebugOverlay = false,
+    this.inlineEmbedRenderer,
   });
 
   final TableBlockNode block;
@@ -1640,6 +1741,7 @@ class _TableBlockRenderer extends StatelessWidget {
   final bool showCaret;
   final TextStyle? textStyle;
   final bool showDebugOverlay;
+  final InlineEmbedRenderer? inlineEmbedRenderer;
 
   @override
   Widget build(BuildContext context) {
@@ -1650,48 +1752,328 @@ class _TableBlockRenderer extends StatelessWidget {
     }
     final theme = Theme.of(context);
     final effectiveStyle = textStyle ?? DefaultTextStyle.of(context).style;
-    return Table(
-      border: TableBorder.all(color: theme.dividerColor),
-      defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-      columnWidths: <int, TableColumnWidth>{
-        for (var i = 0; i < columnCount; i++)
-          i: table.columnWidths[i] == null
-              ? const FlexColumnWidth()
-              : FixedColumnWidth(table.columnWidths[i]!),
-      },
-      children: <TableRow>[
-        for (var rowIndex = 0; rowIndex < table.rowCount; rowIndex++)
-          TableRow(
-            children: <Widget>[
-              for (var columnIndex = 0;
-                  columnIndex < columnCount;
-                  columnIndex++)
-                _TableCellSurface(
-                  tableBlock: block,
-                  blockIndex: blockIndex,
-                  rowIndex: rowIndex,
-                  columnIndex: columnIndex,
-                  cell: table.cellAt(rowIndex, columnIndex),
-                  textStyle: effectiveStyle,
-                  textAlign: _textAlign(table.columnAlignments[columnIndex]),
-                  selection: selection,
-                  compositionState: compositionState,
-                  registry: registry,
-                  showCaret: showCaret,
-                  highlightWholeCell: _shouldHighlightTableCell(
-                    selection,
-                    block.id,
-                    blockIndex,
-                    rowIndex,
-                    columnIndex,
+    return _withBlockSemantics(
+      block,
+      LayoutBuilder(
+        builder: (context, constraints) {
+          final metrics = _TableGridMetrics.compute(
+            table: table,
+            maxWidth: _tableMaxWidth(constraints, columnCount),
+            textStyle: effectiveStyle,
+            textDirection: Directionality.of(context),
+          );
+          return SizedBox(
+            width: metrics.width,
+            height: metrics.height,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: <Widget>[
+                for (final cell in metrics.cells)
+                  Positioned(
+                    left: cell.left,
+                    top: cell.top,
+                    width: cell.width,
+                    height: cell.height,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        border: Border.all(color: theme.dividerColor),
+                      ),
+                      child: _TableCellSurface(
+                        tableBlock: block,
+                        blockIndex: blockIndex,
+                        rowIndex: cell.rowIndex,
+                        columnIndex: cell.columnIndex,
+                        cell: cell.cell,
+                        textStyle: effectiveStyle,
+                        textAlign: _textAlign(
+                          table.columnAlignments[cell.columnIndex],
+                        ),
+                        selection: selection,
+                        compositionState: compositionState,
+                        registry: registry,
+                        showCaret: showCaret,
+                        highlightWholeCell: _shouldHighlightTableCell(
+                          selection,
+                          block.id,
+                          blockIndex,
+                          cell.rowIndex,
+                          cell.columnIndex,
+                        ),
+                        showDebugOverlay: showDebugOverlay,
+                        inlineEmbedRenderer: inlineEmbedRenderer,
+                      ),
+                    ),
                   ),
-                  showDebugOverlay: showDebugOverlay,
-                ),
-            ],
-          ),
-      ],
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
+}
+
+Widget _withBlockSemantics(
+  BlockNode block,
+  Widget child, {
+  bool selected = false,
+}) {
+  final label = selected
+      ? '${_blockSemanticsLabel(block)}, selected'
+      : _blockSemanticsLabel(block);
+  final headingLevel = block is TextBlockNode && block.type == BlockType.heading
+      ? (block.attributes.level ?? 1).clamp(1, 6).toInt()
+      : null;
+  return Semantics(
+    container: true,
+    explicitChildNodes: true,
+    label: label,
+    selected: selected,
+    header: headingLevel != null,
+    headingLevel: headingLevel,
+    image: block is ImageBlockNode,
+    child: child,
+  );
+}
+
+String _blockSemanticsLabel(BlockNode block) {
+  return switch (block) {
+    TextBlockNode(type: BlockType.heading) =>
+      'Heading block level ${block.attributes.level}',
+    TextBlockNode(type: BlockType.quote) => 'Quote block',
+    TextBlockNode(type: BlockType.listItem) => 'List item block',
+    TextBlockNode() => 'Paragraph block',
+    CodeBlockNode() => 'Code block',
+    TableBlockNode() =>
+      'Table block, ${block.table.rowCount} rows, ${block.table.columnCount} columns',
+    ImageBlockNode() => 'Image block ${_assetLabel(block.assetId, block.file)}',
+    VideoBlockNode() => 'Video block ${_assetLabel(block.assetId, block.file)}',
+    FileBlockNode() =>
+      'File block ${block.name.isNotEmpty ? block.name : block.assetId}',
+    DividerBlockNode() => 'Divider block',
+    CalloutBlockNode() => 'Callout block ${block.variant}',
+    BlockNode() => '${block.type.name} block',
+  };
+}
+
+double _tableMaxWidth(BoxConstraints constraints, int columnCount) {
+  if (constraints.maxWidth.isFinite && constraints.maxWidth > 0) {
+    return constraints.maxWidth;
+  }
+  return columnCount * 120;
+}
+
+class _TableGridMetrics {
+  const _TableGridMetrics({
+    required this.width,
+    required this.height,
+    required this.cells,
+  });
+
+  final double width;
+  final double height;
+  final List<_TableGridCell> cells;
+
+  static _TableGridMetrics compute({
+    required TableModel table,
+    required double maxWidth,
+    required TextStyle textStyle,
+    required TextDirection textDirection,
+  }) {
+    final columnCount = table.columnCount;
+    final rowCount = table.rowCount;
+    final columnWidths = _resolveTableColumnWidths(table, maxWidth);
+    final rowHeights = List<double>.filled(
+      rowCount,
+      _minimumTableCellHeight(textStyle),
+    );
+
+    for (var row = 0; row < rowCount; row++) {
+      for (var column = 0; column < columnCount; column++) {
+        final cell = table.cellAt(row, column);
+        if (cell == null || cell.covered) {
+          continue;
+        }
+        final columnSpan = _clampedTableSpan(
+          cell.columnSpan,
+          column,
+          columnCount,
+        );
+        final rowSpan = _clampedTableSpan(cell.rowSpan, row, rowCount);
+        final cellWidth = _sumTableRange(columnWidths, column, columnSpan);
+        final desiredHeight = _measureTableCellHeight(
+          cell,
+          textStyle,
+          textDirection,
+          cellWidth,
+        );
+        final currentHeight = _sumTableRange(rowHeights, row, rowSpan);
+        if (desiredHeight > currentHeight) {
+          final extra = (desiredHeight - currentHeight) / rowSpan;
+          for (var i = 0; i < rowSpan; i++) {
+            rowHeights[row + i] += extra;
+          }
+        }
+      }
+    }
+
+    final lefts = _tableOffsets(columnWidths);
+    final tops = _tableOffsets(rowHeights);
+    final cells = <_TableGridCell>[];
+    for (var row = 0; row < rowCount; row++) {
+      for (var column = 0; column < columnCount; column++) {
+        final cell = table.cellAt(row, column);
+        if (cell == null || cell.covered) {
+          continue;
+        }
+        final columnSpan = _clampedTableSpan(
+          cell.columnSpan,
+          column,
+          columnCount,
+        );
+        final rowSpan = _clampedTableSpan(cell.rowSpan, row, rowCount);
+        cells.add(
+          _TableGridCell(
+            rowIndex: row,
+            columnIndex: column,
+            cell: cell,
+            left: lefts[column],
+            top: tops[row],
+            width: _sumTableRange(columnWidths, column, columnSpan),
+            height: _sumTableRange(rowHeights, row, rowSpan),
+          ),
+        );
+      }
+    }
+
+    return _TableGridMetrics(
+      width: _sumTableRange(columnWidths, 0, columnWidths.length),
+      height: _sumTableRange(rowHeights, 0, rowHeights.length),
+      cells: cells,
+    );
+  }
+}
+
+class _TableGridCell {
+  const _TableGridCell({
+    required this.rowIndex,
+    required this.columnIndex,
+    required this.cell,
+    required this.left,
+    required this.top,
+    required this.width,
+    required this.height,
+  });
+
+  final int rowIndex;
+  final int columnIndex;
+  final TableCellNode cell;
+  final double left;
+  final double top;
+  final double width;
+  final double height;
+}
+
+List<double> _resolveTableColumnWidths(TableModel table, double maxWidth) {
+  final columnCount = table.columnCount;
+  final widths = List<double>.filled(columnCount, 0);
+  var fixedWidth = 0.0;
+  var flexCount = 0;
+  for (var i = 0; i < columnCount; i++) {
+    final explicit = table.columnWidths[i];
+    if (explicit != null && explicit > 0) {
+      widths[i] = explicit;
+      fixedWidth += explicit;
+    } else {
+      flexCount += 1;
+    }
+  }
+  if (flexCount == 0) {
+    return widths;
+  }
+  final remaining = maxWidth - fixedWidth;
+  final flexWidth = remaining > 0 ? remaining / flexCount : 80.0;
+  for (var i = 0; i < columnCount; i++) {
+    if (widths[i] == 0) {
+      widths[i] = flexWidth;
+    }
+  }
+  return widths;
+}
+
+double _measureTableCellHeight(
+  TableCellNode cell,
+  TextStyle textStyle,
+  TextDirection textDirection,
+  double cellWidth,
+) {
+  final effectiveTextStyle = cell.isHeader
+      ? textStyle.copyWith(fontWeight: FontWeight.w600)
+      : textStyle;
+  final text = _tableCellDisplayText(cell);
+  final displayText = text.isEmpty ? ' ' : text;
+  final innerWidth = cellWidth - 16;
+  final painter = TextPainter(
+    text: TextSpan(text: displayText, style: effectiveTextStyle),
+    textAlign: TextAlign.start,
+    textDirection: textDirection,
+  )..layout(maxWidth: innerWidth > 0 ? innerWidth : 0);
+  final height = painter.height + 16;
+  painter.dispose();
+  final minimum = _minimumTableCellHeight(textStyle);
+  return height > minimum ? height : minimum;
+}
+
+List<InlineNode> _tableCellInlineContent(TableCellNode? cell) {
+  if (cell == null) {
+    return const <InlineNode>[];
+  }
+  for (final block in cell.blocks) {
+    if (block is TextBlockNode) {
+      return block.content;
+    }
+  }
+  return <InlineNode>[TextRun(text: cell.plainText)];
+}
+
+String _tableCellDisplayText(TableCellNode cell) {
+  final inline = _tableCellInlineContent(cell);
+  if (inline.isEmpty) {
+    return cell.plainText;
+  }
+  return inline.map(_inlineDisplayText).join();
+}
+
+double _minimumTableCellHeight(TextStyle textStyle) {
+  return ((textStyle.fontSize ?? 14) * _kBlockMinHeightFactor) + 16;
+}
+
+int _clampedTableSpan(int span, int start, int count) {
+  final normalized = span < 1 ? 1 : span;
+  final available = count - start;
+  if (available <= 0) {
+    return 1;
+  }
+  return normalized > available ? available : normalized;
+}
+
+List<double> _tableOffsets(List<double> sizes) {
+  var offset = 0.0;
+  final offsets = <double>[];
+  for (final size in sizes) {
+    offsets.add(offset);
+    offset += size;
+  }
+  return offsets;
+}
+
+double _sumTableRange(List<double> values, int start, int count) {
+  var result = 0.0;
+  final end = start + count;
+  for (var i = start; i < end && i < values.length; i++) {
+    result += values[i];
+  }
+  return result;
 }
 
 bool _shouldHighlightTableCell(
@@ -1758,6 +2140,7 @@ class _TableCellSurface extends StatefulWidget {
     required this.showCaret,
     required this.highlightWholeCell,
     required this.showDebugOverlay,
+    this.inlineEmbedRenderer,
   });
 
   final TableBlockNode tableBlock;
@@ -1773,6 +2156,7 @@ class _TableCellSurface extends StatefulWidget {
   final bool showCaret;
   final bool highlightWholeCell;
   final bool showDebugOverlay;
+  final InlineEmbedRenderer? inlineEmbedRenderer;
 
   @override
   State<_TableCellSurface> createState() => _TableCellSurfaceState();
@@ -1804,8 +2188,8 @@ class _TableCellSurfaceState extends State<_TableCellSurface> {
       blockIndex,
       path,
     );
-    final text = cell?.plainText ?? '';
-    final displayText = text.isEmpty ? ' ' : text;
+    final inlineContent = _tableCellInlineContent(cell);
+    final textLength = inlineNodesLength(inlineContent);
     final theme = Theme.of(context);
     final highlightColor = theme.colorScheme.primary.withAlpha(54);
     final effectiveTextStyle = (cell?.isHeader ?? false)
@@ -1817,8 +2201,19 @@ class _TableCellSurfaceState extends State<_TableCellSurface> {
       blockId: tableBlock.id,
       blockIndex: blockIndex,
       path: path,
-      textLength: text.length,
-      textSpan: _codeSpan(displayText, effectiveTextStyle, compositionRange),
+      textLength: textLength,
+      textSpan: TextSpan(
+        style: effectiveTextStyle,
+        children: textLength == 0
+            ? const <InlineSpan>[TextSpan(text: ' ')]
+            : _inlineSpansFor(
+                context,
+                inlineContent,
+                effectiveTextStyle,
+                compositionRange,
+                widget.inlineEmbedRenderer,
+              ),
+      ),
       textAlign: widget.textAlign,
       minHeight: (widget.textStyle.fontSize ?? 14) * _kBlockMinHeightFactor,
       selection: widget.selection,
@@ -1832,26 +2227,275 @@ class _TableCellSurfaceState extends State<_TableCellSurface> {
       // introduces for short cells.
       hitTestKey: _cellFrameKey,
     );
-    return DecoratedBox(
-      key: _cellFrameKey,
-      decoration: BoxDecoration(
-        color: backgroundColor,
+    final selected = widget.highlightWholeCell ||
+        _selectionRangeForPath(
+              widget.selection,
+              blockIndex,
+              path,
+              textLength,
+            ) !=
+            null;
+    return Semantics(
+      container: true,
+      explicitChildNodes: true,
+      label: _tableCellSemanticsLabel(
+        tableBlock: tableBlock,
+        cell: cell,
+        rowIndex: widget.rowIndex,
+        columnIndex: widget.columnIndex,
+        selected: selected,
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(8),
-        child: Stack(
-          children: <Widget>[
-            if (widget.highlightWholeCell)
-              Positioned.fill(
-                child: DecoratedBox(
-                  key: _selectionHighlightKey,
-                  decoration: BoxDecoration(color: highlightColor),
+      selected: selected,
+      child: DecoratedBox(
+        key: _cellFrameKey,
+        decoration: BoxDecoration(
+          color: backgroundColor,
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(8),
+          child: Stack(
+            children: <Widget>[
+              if (widget.highlightWholeCell)
+                Positioned.fill(
+                  child: DecoratedBox(
+                    key: _selectionHighlightKey,
+                    decoration: BoxDecoration(color: highlightColor),
+                  ),
                 ),
-              ),
-            surface,
-          ],
+              surface,
+            ],
+          ),
         ),
       ),
+    );
+  }
+}
+
+String _tableCellSemanticsLabel({
+  required TableBlockNode tableBlock,
+  required TableCellNode? cell,
+  required int rowIndex,
+  required int columnIndex,
+  required bool selected,
+}) {
+  final parts = <String>[
+    'Table cell row ${rowIndex + 1} column ${columnIndex + 1}',
+  ];
+  if (cell?.isHeader ?? false) {
+    parts.add('header');
+  }
+  if (cell != null) {
+    final rowSpan = _clampedTableSpan(
+      cell.rowSpan,
+      rowIndex,
+      tableBlock.table.rowCount,
+    );
+    final columnSpan = _clampedTableSpan(
+      cell.columnSpan,
+      columnIndex,
+      tableBlock.table.columnCount,
+    );
+    if (rowSpan > 1) {
+      parts.add('spans $rowSpan rows');
+    }
+    if (columnSpan > 1) {
+      parts.add('spans $columnSpan columns');
+    }
+  }
+  if (selected) {
+    parts.add('selected');
+  }
+  return parts.join(', ');
+}
+
+class _BlockObjectSelectionSurface extends StatefulWidget {
+  const _BlockObjectSelectionSurface({
+    required this.blockId,
+    required this.blockIndex,
+    required this.path,
+    required this.selection,
+    required this.registry,
+    required this.showDebugOverlay,
+    required this.child,
+  });
+
+  final String blockId;
+  final int blockIndex;
+  final PositionPath path;
+  final DocumentSelection? selection;
+  final BlockGeometryRegistry registry;
+  final bool showDebugOverlay;
+  final Widget child;
+
+  @override
+  State<_BlockObjectSelectionSurface> createState() =>
+      _BlockObjectSelectionSurfaceState();
+}
+
+class _BlockObjectSelectionSurfaceState
+    extends State<_BlockObjectSelectionSurface> {
+  final GlobalKey _surfaceKey = GlobalKey();
+
+  @override
+  void initState() {
+    super.initState();
+    _register();
+  }
+
+  @override
+  void didUpdateWidget(covariant _BlockObjectSelectionSurface oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.registry != widget.registry ||
+        oldWidget.blockId != widget.blockId ||
+        oldWidget.path != widget.path) {
+      oldWidget.registry.unregister(oldWidget.blockId, oldWidget.path);
+    }
+    if (oldWidget.registry != widget.registry ||
+        oldWidget.blockId != widget.blockId ||
+        oldWidget.blockIndex != widget.blockIndex ||
+        oldWidget.path != widget.path) {
+      _register();
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.registry.unregister(widget.blockId, widget.path);
+    super.dispose();
+  }
+
+  void _register() {
+    widget.registry.register(
+      BlockEntry(
+        blockId: widget.blockId,
+        blockIndex: widget.blockIndex,
+        path: widget.path,
+        textLength: _kAtomicBlockSelectionLength,
+        key: _surfaceKey,
+        positionFromLocal: _offsetForLocalPosition,
+        wordRangeAt: (_) => const TextRange(
+          start: 0,
+          end: _kAtomicBlockSelectionLength,
+        ),
+        caretRectAt: _caretRectAt,
+        localCaretRectAt: _localCaretRectAt,
+        localComposingRectForRange: _localComposingRectForRange,
+        verticalMoveAt: _verticalMoveAt,
+      ),
+    );
+  }
+
+  int _offsetForLocalPosition(Offset localPosition) {
+    final box = _surfaceKey.currentContext?.findRenderObject();
+    final width = box is RenderBox && box.hasSize ? box.size.width : 0.0;
+    if (width <= 0) {
+      return 0;
+    }
+    final after = switch (Directionality.of(context)) {
+      TextDirection.ltr => localPosition.dx >= width / 2,
+      TextDirection.rtl => localPosition.dx < width / 2,
+    };
+    return after ? _kAtomicBlockSelectionLength : 0;
+  }
+
+  Rect? _caretRectAt(int offset) {
+    final box = _surfaceKey.currentContext?.findRenderObject();
+    if (box is! RenderBox || !box.hasSize) {
+      return null;
+    }
+    final localRect = _localCaretRectAt(offset);
+    if (localRect == null) {
+      return null;
+    }
+    return box.localToGlobal(localRect.topLeft) & localRect.size;
+  }
+
+  Rect? _localCaretRectAt(int offset) {
+    final box = _surfaceKey.currentContext?.findRenderObject();
+    if (box is! RenderBox || !box.hasSize) {
+      return null;
+    }
+    final safeOffset = offset.clamp(0, _kAtomicBlockSelectionLength).toInt();
+    final x = safeOffset == 0 ? 0.0 : box.size.width;
+    return Rect.fromLTWH(
+      x,
+      0,
+      _kCaretStrokeWidth,
+      box.size.height,
+    );
+  }
+
+  Rect? _localComposingRectForRange(int start, int end) {
+    final box = _surfaceKey.currentContext?.findRenderObject();
+    if (box is! RenderBox || !box.hasSize) {
+      return null;
+    }
+    final safeStart = start.clamp(0, _kAtomicBlockSelectionLength).toInt();
+    final safeEnd = end.clamp(safeStart, _kAtomicBlockSelectionLength).toInt();
+    if (safeStart == safeEnd) {
+      return _localCaretRectAt(safeStart);
+    }
+    return Offset.zero & box.size;
+  }
+
+  VerticalMoveResult _verticalMoveAt(
+    int offset,
+    bool forward,
+    double? preferX,
+  ) {
+    return const VerticalMoveResult();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final selected = _selectionTouchesPath(
+      widget.selection,
+      widget.blockIndex,
+      widget.blockId,
+      widget.path,
+      _kAtomicBlockSelectionLength,
+    );
+    final theme = Theme.of(context);
+    final selectedColor = theme.colorScheme.primary;
+    final debugOffset = _debugOffsetForPath(
+      widget.selection,
+      widget.blockId,
+      widget.path,
+      _kAtomicBlockSelectionLength,
+    );
+    return Stack(
+      key: _surfaceKey,
+      fit: StackFit.passthrough,
+      clipBehavior: Clip.none,
+      children: <Widget>[
+        widget.child,
+        if (selected)
+          Positioned.fill(
+            child: IgnorePointer(
+              child: DecoratedBox(
+                key: _selectionHighlightKey,
+                decoration: BoxDecoration(
+                  color: selectedColor.withAlpha(24),
+                  border: Border.all(color: selectedColor, width: 2),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+              ),
+            ),
+          ),
+        if (widget.showDebugOverlay)
+          Positioned(
+            top: 0,
+            right: 0,
+            child: IgnorePointer(
+              child: _DebugSelectionTag(
+                blockId: widget.blockId,
+                blockIndex: widget.blockIndex,
+                path: widget.path,
+                offset: debugOffset,
+              ),
+            ),
+          ),
+      ],
     );
   }
 }
@@ -2489,10 +3133,15 @@ class _MediaPlaceholder extends StatelessWidget {
 }
 
 class _CalloutRenderer extends StatelessWidget {
-  const _CalloutRenderer({required this.block, this.textStyle});
+  const _CalloutRenderer({
+    required this.block,
+    this.textStyle,
+    this.inlineEmbedRenderer,
+  });
 
   final CalloutBlockNode block;
   final TextStyle? textStyle;
+  final InlineEmbedRenderer? inlineEmbedRenderer;
 
   @override
   Widget build(BuildContext context) {
@@ -2510,7 +3159,15 @@ class _CalloutRenderer extends StatelessWidget {
           text: TextSpan(
             style: base,
             children: block.content
-                .map((node) => _inlineSpanFor(node, base, decorate: false))
+                .map(
+                  (node) => _inlineSpanFor(
+                    context,
+                    node,
+                    base,
+                    inlineEmbedRenderer,
+                    decorate: false,
+                  ),
+                )
                 .toList(),
           ),
         ),
@@ -2555,13 +3212,23 @@ TextStyle _blockTextStyle(
 /// Builds the inline spans for a text block, overlaying the IME composition
 /// decoration (underline) on the runs that fall inside [compositionRange].
 List<InlineSpan> _inlineSpansFor(
+  BuildContext context,
   List<InlineNode> nodes,
   TextStyle baseStyle,
   _LocalSelectionRange? compositionRange,
+  InlineEmbedRenderer? inlineEmbedRenderer,
 ) {
   if (compositionRange == null) {
     return nodes
-        .map((node) => _inlineSpanFor(node, baseStyle, decorate: false))
+        .map(
+          (node) => _inlineSpanFor(
+            context,
+            node,
+            baseStyle,
+            inlineEmbedRenderer,
+            decorate: false,
+          ),
+        )
         .toList();
   }
   final spans = <InlineSpan>[];
@@ -2578,22 +3245,34 @@ List<InlineSpan> _inlineSpansFor(
     if (overlapStart < overlapEnd) {
       spans.addAll(
         _inlineSpansForNodeWithComposition(
+          context,
           node,
           baseStyle,
+          inlineEmbedRenderer,
           start: overlapStart - nodeStart,
           end: overlapEnd - nodeStart,
         ),
       );
     } else {
-      spans.add(_inlineSpanFor(node, baseStyle, decorate: false));
+      spans.add(
+        _inlineSpanFor(
+          context,
+          node,
+          baseStyle,
+          inlineEmbedRenderer,
+          decorate: false,
+        ),
+      );
     }
   }
   return spans;
 }
 
 List<InlineSpan> _inlineSpansForNodeWithComposition(
+  BuildContext context,
   InlineNode node,
-  TextStyle baseStyle, {
+  TextStyle baseStyle,
+  InlineEmbedRenderer? inlineEmbedRenderer, {
   required int start,
   required int end,
 }) {
@@ -2616,10 +3295,14 @@ List<InlineSpan> _inlineSpansForNodeWithComposition(
   }
 
   if (node is InlineEmbed) {
-    final text = _embedDisplayText(node);
-    final style = _textStyleForAttributes(baseStyle, node.attributes);
     return <InlineSpan>[
-      TextSpan(text: text, style: _compositionTextStyle(style)),
+      _inlineEmbedSpanFor(
+        context,
+        node,
+        baseStyle,
+        inlineEmbedRenderer,
+        decorate: true,
+      ),
     ];
   }
 
@@ -2640,8 +3323,10 @@ List<InlineSpan> _inlineSpansForNodeWithComposition(
 }
 
 TextSpan _inlineSpanFor(
+  BuildContext context,
   InlineNode node,
-  TextStyle baseStyle, {
+  TextStyle baseStyle,
+  InlineEmbedRenderer? inlineEmbedRenderer, {
   bool decorate = false,
 }) {
   final undecoratedStyle = switch (node) {
@@ -2655,9 +3340,57 @@ TextSpan _inlineSpanFor(
       decorate ? _compositionTextStyle(undecoratedStyle) : undecoratedStyle;
   return switch (node) {
     final TextRun textRun => TextSpan(text: textRun.text, style: style),
-    final InlineEmbed embed =>
-      TextSpan(text: _embedDisplayText(embed), style: style),
+    final InlineEmbed embed => _inlineEmbedSpanFor(
+        context,
+        embed,
+        baseStyle,
+        inlineEmbedRenderer,
+        decorate: decorate,
+      ),
     _ => TextSpan(text: node.plainText, style: style),
+  };
+}
+
+TextSpan _inlineEmbedSpanFor(
+  BuildContext context,
+  InlineEmbed embed,
+  TextStyle baseStyle,
+  InlineEmbedRenderer? inlineEmbedRenderer, {
+  bool decorate = false,
+}) {
+  final base = _textStyleForAttributes(baseStyle, embed.attributes);
+  final style = decorate ? _compositionTextStyle(base) : base;
+  final custom = inlineEmbedRenderer?.buildTextSpan(context, embed, style);
+  if (custom != null) {
+    return custom;
+  }
+  return TextSpan(
+    text: _embedDisplayText(embed),
+    style: _defaultInlineEmbedStyle(context, embed, style),
+  );
+}
+
+TextStyle _defaultInlineEmbedStyle(
+  BuildContext context,
+  InlineEmbed embed,
+  TextStyle style,
+) {
+  final scheme = Theme.of(context).colorScheme;
+  return switch (embed.embedType) {
+    'mention' => style.copyWith(
+        color: scheme.primary,
+        fontWeight: FontWeight.w600,
+        backgroundColor: scheme.primaryContainer.withAlpha(80),
+      ),
+    'formula' => style.copyWith(
+        color: scheme.onSecondaryContainer,
+        backgroundColor: scheme.secondaryContainer.withAlpha(90),
+        fontFamily: 'monospace',
+      ),
+    _ => style.copyWith(
+        color: scheme.onSurfaceVariant,
+        fontStyle: FontStyle.italic,
+      ),
   };
 }
 
@@ -2675,11 +3408,31 @@ TextStyle _compositionTextStyle(TextStyle style) {
 
 String _embedDisplayText(InlineEmbed embed) {
   return switch (embed.embedType) {
-    'mention' => '@${embed.data['label'] ?? embed.data['id'] ?? ''}',
+    'mention' => _mentionDisplayText(embed),
     'image' => '[img]',
-    'formula' => '[formula]',
+    'formula' => _formulaDisplayText(embed),
     _ => '[${embed.embedType}]',
   };
+}
+
+String _inlineDisplayText(InlineNode node) {
+  return switch (node) {
+    TextRun() => node.text,
+    InlineEmbed() => _embedDisplayText(node),
+    _ => node.plainText,
+  };
+}
+
+String _mentionDisplayText(InlineEmbed embed) {
+  final raw = embed.data['label'] ?? embed.data['id'];
+  final label = raw?.toString() ?? '';
+  return label.isEmpty ? '@mention' : '@$label';
+}
+
+String _formulaDisplayText(InlineEmbed embed) {
+  final raw = embed.data['text'] ?? embed.data['latex'] ?? embed.data['value'];
+  final text = raw?.toString() ?? '';
+  return text.isEmpty ? '[formula]' : text;
 }
 
 /// Splits a code string into up to three spans, underlining the composition
@@ -2736,6 +3489,42 @@ int? _caretOffsetForPath(
   int textLength,
 ) {
   if (!showCaret || selection == null || !selection.isCollapsed) {
+    return null;
+  }
+  final position = selection.extent;
+  if (position.blockId != blockId || position.path != path) {
+    return null;
+  }
+  return position.offset.clamp(0, textLength).toInt();
+}
+
+bool _selectionTouchesPath(
+  DocumentSelection? selection,
+  int blockIndex,
+  String blockId,
+  PositionPath path,
+  int textLength,
+) {
+  if (selection == null) {
+    return false;
+  }
+  if (_selectionRangeForPath(selection, blockIndex, path, textLength) != null) {
+    return true;
+  }
+  if (!selection.isCollapsed) {
+    return false;
+  }
+  final position = selection.extent;
+  return position.blockId == blockId && position.path == path;
+}
+
+int? _debugOffsetForPath(
+  DocumentSelection? selection,
+  String blockId,
+  PositionPath path,
+  int textLength,
+) {
+  if (selection == null) {
     return null;
   }
   final position = selection.extent;

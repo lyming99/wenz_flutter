@@ -18,7 +18,19 @@ void main() {
       expect(path.blockId, 'b1');
       expect(path.isBlockCode, isTrue);
       expect(path.isBlockText, isFalse);
+      expect(path.isBlockObject, isFalse);
       expect(path.isTableCellText, isFalse);
+    });
+
+    test('blockObject exposes typed accessors', () {
+      final path = PositionPath.blockObject('image1');
+      expect(path.blockId, 'image1');
+      expect(path.isBlockObject, isTrue);
+      expect(path.isBlockText, isFalse);
+      expect(path.isBlockCode, isFalse);
+      expect(path.isTableCellText, isFalse);
+      expect(path.tableRowIndex, isNull);
+      expect(path.tableColumnIndex, isNull);
     });
 
     test('tableCellText exposes row and column indices', () {
@@ -28,6 +40,7 @@ void main() {
       expect(path.tableRowIndex, 2);
       expect(path.tableColumnIndex, 3);
       expect(path.isBlockText, isFalse);
+      expect(path.isBlockObject, isFalse);
     });
   });
 
@@ -35,6 +48,7 @@ void main() {
     test('orders path kinds by rank', () {
       const text = PositionPath(['block', 'b', 'text']);
       const code = PositionPath(['block', 'b', 'code']);
+      const object = PositionPath(['block', 'b', 'object']);
       const cell = PositionPath([
         'block',
         'b',
@@ -44,7 +58,8 @@ void main() {
         0,
       ]);
       expect(text.compare(code), lessThan(0));
-      expect(code.compare(cell), lessThan(0));
+      expect(code.compare(object), lessThan(0));
+      expect(object.compare(cell), lessThan(0));
       expect(text.compare(cell), lessThan(0));
     });
 
@@ -121,7 +136,8 @@ void main() {
 
     test('falls back to path comparison then offset', () {
       final low = DocumentPosition.text(blockId: 'b', blockIndex: 0, offset: 5);
-      final high = DocumentPosition.text(blockId: 'b', blockIndex: 0, offset: 9);
+      final high =
+          DocumentPosition.text(blockId: 'b', blockIndex: 0, offset: 9);
       expect(low.compareTo(high), lessThan(0));
     });
 

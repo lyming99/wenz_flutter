@@ -4,6 +4,7 @@ import '../core/model/block_node.dart';
 import '../core/position/document_position.dart';
 import '../input/composition_state.dart';
 import 'block_geometry_registry.dart';
+import 'inline_embed_renderer.dart';
 import 'media_resolver.dart';
 
 /// Bundles everything a block renderer needs to paint a block. Passed to every
@@ -23,6 +24,7 @@ class BlockRenderContext {
     this.textStyle,
     this.showDebugOverlay = false,
     this.mediaResolver,
+    this.inlineEmbedRenderer,
   });
 
   final BlockNode block;
@@ -40,6 +42,11 @@ class BlockRenderContext {
   /// read it too if they want to share the same resolution logic.
   final MediaResolver? mediaResolver;
 
+  /// Optional inline embed renderer injected via the editor. The built-in text
+  /// renderers consult it for [InlineEmbed]s before falling back to their
+  /// default formula / mention / image labels.
+  final InlineEmbedRenderer? inlineEmbedRenderer;
+
   /// Whether the active (collapsed) selection sits inside [block], i.e. this
   /// block owns the caret. Convenience for caret-aware renderers.
   bool get ownsCaret {
@@ -47,7 +54,8 @@ class BlockRenderContext {
     if (sel == null || !sel.isCollapsed) {
       return false;
     }
-    return sel.extent.blockIndex == blockIndex && sel.extent.blockId == block.id;
+    return sel.extent.blockIndex == blockIndex &&
+        sel.extent.blockId == block.id;
   }
 }
 

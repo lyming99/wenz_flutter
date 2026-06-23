@@ -57,12 +57,36 @@ the existing `_TextSelectionSurface` — or ignore all of it and paint freely.
 
 | BlockType | Renderer | Notes |
 | --- | --- | --- |
-| paragraph / heading / quote / listItem | `_TextBlockRenderer` | Inline-aware; selection/caret/composition via `_TextSelectionSurface`. |
+| paragraph / heading / quote / listItem | `_TextBlockRenderer` | Inline-aware; formula/mention fallback + optional `InlineEmbedRenderer`; selection/caret/composition via `_TextSelectionSurface`. |
 | code | `_CodeBlockRenderer` | Monospace; composition underline span. |
 | image / video / file | asks `MediaResolver`, then `_MediaPlaceholder` | Built-in media renderers consult the injected [MediaResolver] first; when it returns `null` (or no resolver is set) they fall back to the placeholder. See [Media resolver](#media-resolver). |
-| table | `_TableBlockRenderer` | Flutter `Table`; covered (merged) cells hidden. |
+| table | `_TableBlockRenderer` | Custom Stack grid layout; visible cells are positioned by `rowSpan`/`columnSpan`, covered cells are not rendered or hit-tested; table-cell text uses the same inline embed fallback/renderer path. |
 | divider | Flutter `Divider`. | |
-| callout | `_CalloutRenderer` | Variant-tinted surface. |
+| callout | `_CalloutRenderer` | Variant-tinted surface; uses the same inline embed fallback/renderer path. |
+
+## Inline embed renderer
+
+`InlineEmbedRenderer` (`lib/src/widgets/inline_embed_renderer.dart`) is the
+quick path for formula / mention / custom inline embed text rendering without
+replacing the whole paragraph renderer:
+
+```dart
+final renderer = InlineEmbedRendererCallback((context, embed, style) {
+  if (embed.embedType == 'formula') {
+    return TextSpan(text: "formula(${embed.data['text']})", style: style);
+  }
+  return null; // keep the built-in fallback for mention / image / custom types.
+});
+
+WenzRichTextEditor(
+  controller: controller,
+  inlineEmbedRenderer: renderer,
+);
+```
+
+The editor still treats every `InlineEmbed` as one logical character for caret
+movement and selection. Prefer compact `TextSpan`s here; use
+`BlockRendererRegistry` when a feature needs a large interactive widget.
 
 ## Media resolver
 
@@ -269,23 +293,26 @@ then times 20 frames and prints average + max µs/frame. Cases:
 | large table | 50×20 cells | avg < 120ms/frame |
 | 1k blocks scroll (remount) | 1000 paragraphs, drag-scroll | avg < 80ms/frame |
 
-The guards are deliberately loose (orders of magnitude above the measured
-~30–80µs on a dev machine) — their job is to catch a catastrophic regression
+The guards are deliberately loose (well above the measured numbers on a dev
+machine) — their job is to catch a catastrophic regression
 (e.g. virtualisation accidentally disabled, every block rebuilt every frame),
 not to flake on slower hosts. For real before/after signal, compare the printed
 µs numbers on the same machine.
 
-Reference numbers (this machine, after stage 5-2/5-3/5-4):
+Reference numbers (this machine, after the custom table grid layout / B3):
 
-- 1k blocks idle: ~62µs avg, ~200µs max
-- 1k blocks editing: ~30µs avg, ~34µs max
-- 10k inline runs: ~31µs avg, ~79µs max
-- 50×20 table: ~42µs avg, ~169µs max
-- 1k blocks scroll (remount): ~9ms avg (includes gesture + layout)
+- 1k blocks idle: ~86µs avg, ~259µs max
+- 1k blocks editing: ~49µs avg, ~88µs max
+- 10k inline runs: ~51µs avg, ~95µs max
+- 50×20 table: ~37µs avg, ~46µs max
+- 1k blocks scroll (remount): ~18ms avg (includes gesture + layout)
 
-## What is NOT yet done (stage 5 roadmap)
+## Table merged-cell layout
 
-- **Merged-cell visual layout.** The model stores `rowSpan`/`columnSpan`/
-  `covered`; the current Flutter `Table` cannot natively span cells, so a merged
-  anchor renders in its 1×1 slot with covered cells hidden. Full cross-row/
-  cross-column visual spanning awaits a custom table layout (stage 5+).
+The model stores `rowSpan`/`columnSpan` on the visible anchor cell and marks
+covered cells with `covered=true`. The default table renderer now uses a custom
+Stack-based grid layout instead of Flutter `Table`, so an anchor cell is
+positioned over the full cross-row / cross-column rectangle and covered cells
+are skipped entirely. The same outer cell frame remains registered with
+`BlockGeometryRegistry`, so taps anywhere inside the merged visual cell resolve
+to the anchor cell for caret placement and selection.

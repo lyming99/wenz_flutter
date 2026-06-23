@@ -138,7 +138,7 @@
 
 周期：3 周
 
-状态：已完成。基础编辑、选择、行列操作、列宽/表头/背景色、模型级合并/拆分、Tab 末尾新增行、Enter cell 内换行、Left/Right 跨 cell 与 Up/Down 同列跨行导航、JSON round-trip 均已接入并覆盖单测/widget 测试。当前 Flutter `Table` 渲染下，合并单元格优先保证结构保存、撤销重做和被覆盖单元格隐藏；跨行/跨列的视觉占满（origin cell 真正横跨多列多行）留到 renderer 重构阶段继续增强。
+状态：已完成。基础编辑、选择、行列操作、列宽/表头/背景色、模型级合并/拆分、Tab 末尾新增行、Enter cell 内换行、Left/Right 跨 cell 与 Up/Down 同列跨行导航、JSON round-trip 均已接入并覆盖单测/widget 测试。默认 table renderer 已从 Flutter `Table` 改为自定义 Stack grid layout，合并单元格的 origin cell 会按 `rowSpan`/`columnSpan` 真正横跨多行多列，covered cell 不渲染、不参与点击命中。
 
 任务：
 
@@ -177,7 +177,7 @@
 
 验收标准：
 
-- ~~1k 段文档滚动不卡顿。~~ ✅（虚拟化后实测 ~30–80µs/帧）
+- ~~1k 段文档滚动不卡顿。~~ ✅（虚拟化 benchmark 全绿；当前参考值见 `docs/rendering.md`）
 - ~~连续输入平均帧耗时稳定。~~ ✅（增量 rebuild + 虚拟化）
 - ~~block 局部变更不会触发整篇文档重建。~~ ✅（`lastChangedBlockIds` + `_KeepAliveBlock` 缓存）
 - ~~有可重复运行的 benchmark。~~ ✅

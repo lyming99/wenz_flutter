@@ -77,6 +77,273 @@ void main() {
     expect(find.text('[video: clip]'), findsOneWidget);
   });
 
+  testWidgets('exposes block semantics labels and selected state', (
+    tester,
+  ) async {
+    final semantics = tester.ensureSemantics();
+    try {
+      final controller = WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'h2',
+              type: BlockType.heading,
+              attributes: BlockAttributes(level: 2),
+              content: <InlineNode>[TextRun(text: 'Plan')],
+            ),
+            TextBlockNode(
+              id: 'p1',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'Alpha')],
+            ),
+            CodeBlockNode(id: 'code1', code: 'print(1);', language: 'dart'),
+            ImageBlockNode(id: 'image1', assetId: 'hero', file: 'hero.png'),
+          ],
+        ),
+        selection: textSelection('p1', 1, 0, 5),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: WenzRichTextEditor(
+              controller: controller,
+              enableIme: false,
+            ),
+          ),
+        ),
+      );
+
+      expect(find.bySemanticsLabel('Heading block level 2'), findsOneWidget);
+      expect(
+          find.bySemanticsLabel('Paragraph block, selected'), findsOneWidget);
+      expect(find.bySemanticsLabel('Code block'), findsOneWidget);
+      expect(find.bySemanticsLabel('Image block hero.png'), findsOneWidget);
+    } finally {
+      semantics.dispose();
+    }
+  });
+
+  testWidgets('exposes table and merged cell semantics labels', (
+    tester,
+  ) async {
+    final semantics = tester.ensureSemantics();
+    try {
+      final controller = WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TableBlockNode(
+              id: 'table1',
+              table: TableModel(
+                rows: <List<TableCellNode>>[
+                  <TableCellNode>[
+                    TableCellNode(
+                      id: 'header',
+                      isHeader: true,
+                      rowSpan: 2,
+                      columnSpan: 2,
+                      blocks: <BlockNode>[
+                        TextBlockNode(
+                          id: 'header-text',
+                          type: BlockType.paragraph,
+                          content: <InlineNode>[TextRun(text: 'Merged')],
+                        ),
+                      ],
+                    ),
+                    TableCellNode(id: 'covered-right', covered: true),
+                    TableCellNode(
+                      id: 'top-right',
+                      blocks: <BlockNode>[
+                        TextBlockNode(
+                          id: 'top-right-text',
+                          type: BlockType.paragraph,
+                          content: <InlineNode>[TextRun(text: 'Q1')],
+                        ),
+                      ],
+                    ),
+                  ],
+                  <TableCellNode>[
+                    TableCellNode(id: 'covered-bottom-left', covered: true),
+                    TableCellNode(id: 'covered-bottom-right', covered: true),
+                    TableCellNode(
+                      id: 'bottom-right',
+                      blocks: <BlockNode>[
+                        TextBlockNode(
+                          id: 'bottom-right-text',
+                          type: BlockType.paragraph,
+                          content: <InlineNode>[TextRun(text: 'Done')],
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+        selection: DocumentSelection(
+          base: DocumentPosition.tableCell(
+            tableBlockId: 'table1',
+            blockIndex: 0,
+            tableRowIndex: 0,
+            tableColumnIndex: 0,
+            offset: 0,
+          ),
+          extent: DocumentPosition.tableCell(
+            tableBlockId: 'table1',
+            blockIndex: 0,
+            tableRowIndex: 1,
+            tableColumnIndex: 2,
+            offset: 0,
+          ),
+        ),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: WenzRichTextEditor(
+              controller: controller,
+              enableIme: false,
+            ),
+          ),
+        ),
+      );
+
+      expect(
+        find.bySemanticsLabel('Table block, 2 rows, 3 columns'),
+        findsOneWidget,
+      );
+      expect(
+        find.bySemanticsLabel(
+          'Table cell row 1 column 1, header, spans 2 rows, '
+          'spans 2 columns, selected',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.bySemanticsLabel('Table cell row 1 column 3, selected'),
+        findsOneWidget,
+      );
+      expect(
+        find.bySemanticsLabel('Table cell row 2 column 3, selected'),
+        findsOneWidget,
+      );
+      expect(find.bySemanticsLabel('Table cell row 1 column 2'), findsNothing);
+    } finally {
+      semantics.dispose();
+    }
+  });
+
+  testWidgets('renders formula and mention inline embeds', (tester) async {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[
+              TextRun(text: 'Ask '),
+              InlineEmbed(
+                embedType: 'formula',
+                data: <String, Object?>{'text': 'x^2'},
+              ),
+              TextRun(text: ' from '),
+              InlineEmbed(
+                embedType: 'mention',
+                data: <String, Object?>{'id': 'u1', 'label': 'Ada'},
+              ),
+            ],
+          ),
+          TableBlockNode(
+            id: 'table1',
+            table: TableModel(
+              rows: <List<TableCellNode>>[
+                <TableCellNode>[
+                  TableCellNode(
+                    id: 'cell1',
+                    blocks: <BlockNode>[
+                      TextBlockNode(
+                        id: 'cell-text',
+                        type: BlockType.paragraph,
+                        content: <InlineNode>[
+                          TextRun(text: 'Score '),
+                          InlineEmbed(
+                            embedType: 'formula',
+                            data: <String, Object?>{'text': 'a+b'},
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WenzRichTextEditor(
+            controller: controller,
+            enableIme: false,
+          ),
+        ),
+      ),
+    );
+
+    expect(_richText('Ask x^2 from @Ada'), findsOneWidget);
+    expect(_richText('Score a+b'), findsOneWidget);
+  });
+
+  testWidgets('allows custom inline embed text rendering', (tester) async {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[
+              TextRun(text: 'Solve '),
+              InlineEmbed(
+                embedType: 'formula',
+                data: <String, Object?>{'text': 'x^2'},
+              ),
+              TextRun(text: ' with '),
+              InlineEmbed(
+                embedType: 'mention',
+                data: <String, Object?>{'id': 'u1', 'label': 'Ada'},
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+    final renderer = InlineEmbedRendererCallback((context, embed, style) {
+      if (embed.embedType == 'formula') {
+        return TextSpan(text: 'formula(${embed.data['text']})', style: style);
+      }
+      return null;
+    });
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WenzRichTextEditor(
+            controller: controller,
+            enableIme: false,
+            inlineEmbedRenderer: renderer,
+          ),
+        ),
+      ),
+    );
+
+    expect(_richText('Solve formula(x^2) with @Ada'), findsOneWidget);
+  });
+
   testWidgets('rebuilds when controller document changes', (tester) async {
     final controller = WenzRichTextController(
       document: const RichTextDocument(
@@ -674,6 +941,53 @@ void main() {
     );
   });
 
+  testWidgets('tap image block selects the image object', (tester) async {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'before')],
+          ),
+          ImageBlockNode(id: 'image1', assetId: 'hero', file: 'hero.png'),
+          TextBlockNode(
+            id: 'p2',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'after')],
+          ),
+        ],
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WenzRichTextEditor(
+            controller: controller,
+            enableIme: false,
+          ),
+        ),
+      ),
+    );
+
+    await tester.tapAt(tester.getCenter(find.text('[image: hero.png]')));
+    await tester.pump();
+
+    final selection = controller.selection;
+    expect(selection, isNotNull);
+    expect(selection!.isCollapsed, isFalse);
+    expect(selection.start.blockId, 'image1');
+    expect(selection.start.offset, 0);
+    expect(selection.end.blockId, 'image1');
+    expect(selection.end.offset, 1);
+    expect(selection.extent.path.isBlockObject, isTrue);
+    expect(
+      find.byKey(const ValueKey<String>('wenz-richtext-selection-highlight')),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('tap text uses text layout to place caret at offset', (
     tester,
   ) async {
@@ -847,6 +1161,132 @@ void main() {
       find.byKey(const ValueKey<String>('wenz-richtext-selection-highlight')),
       findsAtLeastNWidgets(4),
     );
+  });
+
+  testWidgets('merged table cell spans covered columns for hit testing', (
+    tester,
+  ) async {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TableBlockNode(
+            id: 'table1',
+            table: TableModel(
+              rows: <List<TableCellNode>>[
+                <TableCellNode>[
+                  TableCellNode(
+                    id: 'cell-a',
+                    columnSpan: 2,
+                    blocks: <BlockNode>[
+                      TextBlockNode(
+                        id: 'cell-a-p',
+                        type: BlockType.paragraph,
+                        content: <InlineNode>[TextRun(text: 'Anchor')],
+                      ),
+                    ],
+                  ),
+                  TableCellNode(
+                    id: 'cell-b',
+                    covered: true,
+                    blocks: <BlockNode>[
+                      TextBlockNode(
+                        id: 'cell-b-p',
+                        type: BlockType.paragraph,
+                        content: <InlineNode>[TextRun(text: 'Covered')],
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WenzRichTextEditor(
+            controller: controller,
+            enableIme: false,
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Covered'), findsNothing);
+    final editorRect = tester.getRect(find.byType(WenzRichTextEditor));
+    await tester.tapAt(
+      Offset(editorRect.right - 24, editorRect.top + 22),
+    );
+    await tester.pump();
+
+    final extent = controller.selection?.extent;
+    expect(extent, isNotNull);
+    expect(extent!.path.isTableCellText, isTrue);
+    expect(extent.path.tableRowIndex, 0);
+    expect(extent.path.tableColumnIndex, 0);
+  });
+
+  testWidgets('merged table cell spans covered rows for hit testing', (
+    tester,
+  ) async {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TableBlockNode(
+            id: 'table1',
+            table: TableModel(
+              rows: <List<TableCellNode>>[
+                <TableCellNode>[
+                  TableCellNode(
+                    id: 'cell-a',
+                    rowSpan: 2,
+                    columnSpan: 2,
+                    blocks: <BlockNode>[
+                      TextBlockNode(
+                        id: 'cell-a-p',
+                        type: BlockType.paragraph,
+                        content: <InlineNode>[TextRun(text: 'Anchor')],
+                      ),
+                    ],
+                  ),
+                  TableCellNode(id: 'cell-b', covered: true),
+                ],
+                <TableCellNode>[
+                  TableCellNode(id: 'cell-c', covered: true),
+                  TableCellNode(id: 'cell-d', covered: true),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WenzRichTextEditor(
+            controller: controller,
+            enableIme: false,
+          ),
+        ),
+      ),
+    );
+
+    final editorRect = tester.getRect(find.byType(WenzRichTextEditor));
+    await tester.tapAt(
+      Offset(editorRect.right - 24, editorRect.top + 56),
+    );
+    await tester.pump();
+
+    final extent = controller.selection?.extent;
+    expect(extent, isNotNull);
+    expect(extent!.path.isTableCellText, isTrue);
+    expect(extent.path.tableRowIndex, 0);
+    expect(extent.path.tableColumnIndex, 0);
   });
 
   testWidgets(

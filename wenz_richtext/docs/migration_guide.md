@@ -210,8 +210,9 @@ doc comment (`lib/wenz_richtext.dart`):
 
 Known boundaries at this release (tracked in `acceptance_report.md`):
 
-- Merged table cells are **structurally** correct but render as a 1×1 cell
-  (visual spanning lands with task B3).
+- Merged table cells are structurally preserved and the default renderer
+  visually spans the anchor cell across its `rowSpan` / `columnSpan`; covered
+  cells are not rendered or hit-tested.
 - Markdown import/export is supported via `MarkdownCodec` (task C2). HTML
   import/export is supported via `HtmlCodec` (task C3), which depends on
   `package:html`.
@@ -221,4 +222,7 @@ Known boundaries at this release (tracked in `acceptance_report.md`):
   — the library itself depends on none of them. Load-failure fallback is the
   resolver's job (e.g. `Image.errorBuilder`); a throwing resolver is caught by
   the editor and falls back to the placeholder.
+- Formula / mention inline embeds render by default and can be customised via
+  `InlineEmbedRenderer`. Markdown/HTML export still degrades them to readable
+  text because those formats do not round-trip the package's embed metadata.
 - Mobile selection handles are reserved for a later stage (task C9).

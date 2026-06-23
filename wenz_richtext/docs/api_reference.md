@@ -158,7 +158,7 @@ See `schema_and_commands.md` §Error handling for the full strategy.
 
 ## Widget layer (tier 2)
 
-- `WenzRichTextEditor({controller, blockRenderers, mediaResolver, …})` — the editor widget.
+- `WenzRichTextEditor({controller, blockRenderers, mediaResolver, inlineEmbedRenderer, …})` — the editor widget.
 - `BlockRendererRegistry` / `BlockRenderBuilder` / `BlockRenderContext` —
   custom block renderer extension point.
   `WenzRichTextEditor.installDefaultRenderers(registry)` seeds the built-in
@@ -167,6 +167,10 @@ See `schema_and_commands.md` §Error handling for the full strategy.
   built-in media renderers consult the injected resolver before falling back to
   the placeholder; returning `null` declines, throwing is tolerated (falls back
   to placeholder). See `rendering.md` §Media resolver.
+- `InlineEmbedRenderer` / `InlineEmbedRendererCallback` — quick path for
+  formula / mention / custom inline embed text-span rendering. The built-in
+  text, callout, and table-cell renderers consult it before falling back to
+  compact formula / mention labels.
 - `WenzRichTextController` also re-exports `HistoryManager` (tier 1) and
   `ChangeSet` (tier 1).
 

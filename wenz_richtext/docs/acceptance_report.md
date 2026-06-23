@@ -26,7 +26,7 @@
 ### 1. 文档模型层（Document Model）
 
 - [ ] **1.1** Block 体系（paragraph/heading/quote/listItem/code/table/image/video/file/divider/callout）｜现状 ✅｜验收：`block_node.dart` 类型齐 + default renderers 全覆盖，example 渲染正常
-- [ ] **1.2** Inline 体系（TextRun + link/formula/mention/embed attributes）｜现状 🟡｜验收：link/embed 命令已落；**formula/mention 仅 attributes 预留无命令/渲染**，列为已知 gap
+- [x] **1.2** Inline 体系（TextRun + link/formula/mention/embed attributes）｜现状 ✅｜验收：TextRun/InlineEmbed 模型、link/embed 命令、formula/mention controller wrapper、默认渲染与 `InlineEmbedRenderer` 自定义 span contract 已落地（C8）
 - [ ] **1.3** TableModel（cell/row/col/span/header/bg/width）｜现状 ✅｜验收：`table_model.dart` + 表格命令族完整 + JSON round-trip
 - [ ] **1.4** Schema/normalizers｜现状 🟡｜验收：逐条核验"空文档保 paragraph / cell 内结构约束 / 非法 block 自动修正"用例
 - [ ] **1.5** DocumentSelection / PositionPath 三形态 + 结构化排序｜现状 ✅｜验收：`document_position_test.dart` 全绿
@@ -69,16 +69,16 @@
 - [ ] **5.3** 插入/删除行列、合并/拆分｜现状 ✅｜验收：表格命令族 + 测试全绿
 - [ ] **5.4** 列宽 / 表头 / 对齐 / 背景色｜现状 ✅｜验收：命令齐 + example 演示
 - [ ] **5.5** 键盘导航 Tab/Shift+Tab/Enter/↔↕｜现状 ✅｜验收：selection_model.md §5 对应，example 手验
-- [ ] **5.6** 合并单元格**视觉**横跨（rowSpan/columnSpan 占满）｜现状 🔴｜验收：origin cell 真正横跨 → 见任务 B3
+- [ ] **5.6** 合并单元格**视觉**横跨（rowSpan/columnSpan 占满）｜现状 ✅｜验收：默认 table renderer 已按 rowSpan/columnSpan 定位 origin cell；covered cell 不渲染/不命中；三端手验见任务 B3
 - [ ] **5.7** 表格 JSON round-trip｜现状 ✅｜验收：`rich_text_json_codec_test.dart` 全绿
 
 ### 6. 渲染与性能（阶段 5）
 
 - [ ] **6.1** BlockRendererRegistry 扩展点｜现状 ✅｜验收：`block_renderer_registry.dart` + rendering.md，自定义 renderer 可注入
-- [ ] **6.2** 大文档虚拟化（ListView.separated + keep-alive）｜现状 ✅｜验收：1k blocks 滚动 ~30–80µs/帧
+- [ ] **6.2** 大文档虚拟化（ListView.separated + keep-alive）｜现状 ✅｜验收：1k blocks 虚拟化与滚动 benchmark 全绿，当前参考值见 `docs/rendering.md`
 - [ ] **6.3** 增量 rebuild（lastChangedBlockIds）｜现状 ✅｜验收：controller + `_KeepAliveBlock`，局部变更不触发整篇重建
 - [ ] **6.4** SharedTextLayoutCache（跨 remount 复用 painter）｜现状 ✅｜验收：`shared_text_layout_cache_test.dart` 全绿
-- [ ] **6.5** Benchmark 套件｜现状 ✅｜验收：`flutter test test/benchmarks/editor_benchmarks.dart` 通过
+- [ ] **6.5** Benchmark 套件｜现状 ✅｜验收：`flutter test test/benchmarks/editor_benchmarks.dart` 通过；2026-06-23 复核 5 项全绿（1k blocks mount avg 86µs / editing tick avg 49µs / 10k inline runs avg 51µs / 50×20 table avg 37µs / 1k blocks scroll remount avg 17757µs）
 - [x] **6.6** 远距离 caret 跳转自动滚动｜现状 ✅｜验收：程序化 setSelection 到 block 400 自动滚到位（C10，估算偏移 + 二帧精修，2 widget 测试）
 
 ### 7. 导入导出与兼容（阶段 6）
@@ -99,12 +99,12 @@
 
 ### 9. 质量、可访问性与发布准备（阶段 8）
 
-- [ ] **9.1** Golden tests｜现状 🔴｜验收：覆盖段落/代码/表格/合并 cell/图片占位/caret/selection → 见任务 C5
+- [x] **9.1** Golden tests｜现状 ✅｜验收：`test/widgets/editor_golden_test.dart` 覆盖段落/代码/图片占位、合并 cell、selection、caret 4 张 baseline（C5）
 - [ ] **9.2** Windows/Web 差异测试清单｜现状 🟡｜验收：integration_test 目录内容核验
-- [ ] **9.3** 语义化节点 / a11y 标签｜现状 🔴｜验收：Semantics 节点描述 block 类型与选区 → 见任务 C6
+- [ ] **9.3** 语义化节点 / a11y 标签｜现状 🟡｜验收：Semantics 节点已描述 block 类型、选区、表格 cell 行列/span；TalkBack/Narrator 抽测仍需手验 → 见任务 C6
 - [x] **9.4** 错误处理（JSON decode / 无效命令 / media 失败）｜现状 ✅｜验收：`DocumentDecodeException` / `UnknownCommandException` 结构化异常 + `tryLoadJson` / `tryExecuteCommand` 不抛入口；常见异常不崩（C7）
 - [x] **9.5** 架构/API/migration/example 文档｜现状 ✅｜验收：`architecture.md` / `api_reference.md` / `migration_guide.md` 新增 + `running_guide.md` 刷新 + `schema_and_commands.md` 补「Error handling」节 + README 索引（C7）
-- [x] **9.6** `flutter analyze` 干净 + `flutter test` 全绿｜现状 ✅｜验收：analyze 0 issues；346 tests 全绿（A0 基线 + A2/A4/A3/C4/C10/C1 累计 32 + B1 9 + B2 3 + B4 26 + B5 9 + C7 18 - 旧断言重写 2 + B6 7 + C2 21 + C3 24 = 346）
+- [x] **9.6** `flutter analyze` 干净 + `flutter test` 全绿｜现状 ✅｜验收：2026-06-23 本机复核：根目录 analyze 0 issues；根目录 `flutter test` 381 tests 全绿；benchmark 5 项全绿；example analyze 0 issues；example test 1 项全绿
 
 ---
 
@@ -144,9 +144,10 @@
   - 验收标准：拖到视口边缘自动滚动并持续扩展选区
   - 周期：2d｜依赖：A0
   - ✅ 结果：selection_gesture_overlay 拆分为同步边缘滚动（全设备，每次 pointer-move 推进一步）+ 鼠标/触控笔 Ticker 持续滚动（指针停边缘不动仍滚）；3 widget 测试（底边向下/顶边向上/释放停止）+ extent 跟随断言。注：ticker 每帧滚动后用最后指针坐标重算 extent，editor 对 range selection 跳过 caret-scroll-into-view 回拉，避免两个滚动源冲突。
-- [ ] **B3** 合并单元格视觉横跨（自定义 table layout）（对应 5.6）⚠️ 风险项
+- [ ] **B3** 合并单元格视觉横跨（自定义 table layout）（对应 5.6）
   - 验收标准：origin cell 真正 rowSpan/columnSpan 占满；covered cell 不渲染；JSON round-trip 不丢
   - 周期：4d（预留 30% buffer）｜依赖：A0
+  - ✅ 自动化结果：默认 `_TableBlockRenderer` 改为自定义 Stack grid layout，非 covered cell 根据 `rowSpan`/`columnSpan` 定位真实跨格矩形；covered cell 不渲染、不参与 hit testing；新增 2 个 widget 回归测试覆盖横向合并右侧命中与 2×2 合并右下命中；`wenz_rich_text_editor_test.dart`、`block_geometry_registry_test.dart`、`table_commands_test.dart`、`selection_commands_test.dart`、`flutter analyze` 已通过。三端手验仍在 `acceptance_manual_checklist.md` 勾选。
 - [x] **B4** ToolbarController + example 工具栏（对应 8.1 / 8.4）
   - 验收标准：active styles 跟随选区；bold/italic/link/块类型/H1-H3/列表/quote/code/todo 按钮；禁用态准确
   - 周期：4d｜依赖：A0
@@ -173,24 +174,27 @@
 - [x] **C3** HTML import/export（含 paste）（对应 3.6 / 7.5）⚠️ 风险项
   - 验收标准：同 C2 范围；paste HTML → block 还原
   - 周期：5d（预留 30% buffer）｜依赖：C2
-  - ✅ 结果：引 `package:html ^0.15.6`（纯 Dart、Dart 团队官方、4.96M 周下载、`flutter_markdown` 同款）做 HTML5 解析——**本库首个第三方运行时依赖**（pubspec 从零运行时依赖变为一个纯 Dart 依赖，docs 显式标注）。新增 `lib/src/codecs/html_codec.dart`（`HtmlCodec`，`encode` 模型→HTML fragment + `decode` HTML→模型 via `parseFragment` DOM walk）。Block 双向映射：`<h1>`-`<h6>`（level 取数字）/ `<p>` / `<blockquote>`（含 callout 归入）/ `<ul>`/`<ol>`/`<li>`（`<input type=checkbox>` → task + checked）/ `<pre><code class="language-x">`（language 取 class）/ `<table><thead/tr/th/td>`（th→isHeader，span 不还原 B3）/ `<img>`（assetId=src,file=alt）/ `<hr>`。Inline 双向：`<strong>`/`<b>`→bold、`<em>`/`<i>`→italic、`<s>`/`<del>`/`<strike>`→lineThrough、`<u>`→underline、`<a href>`→url、`<img>`→embed、`<br>`→换行；嵌套递归合并 attributes（`<strong><em>`→bold+italic）；HTML-escape `&<>`/`"`。import 容错：`html` 包 HTML5 spec 自纠正 malformed，decode 不抛；未知标签（div/span）递归子节点不丢内容；HTML entity 自动 decode/re-encode。`ClipboardService.pasteHtml` 从占位改为真实：解析 HTML fragment 成 `ClipboardPaste.blocks`（走 `PasteBlocksCommand` 还原多 block，3.6 验收核心）；构造加 `htmlCodec` 参数（有默认值，向后兼容）。`WenzRichTextController` 加 `htmlCodec` 构造参数 + `toHtml()`/`loadHtml()`/`tryLoadHtml()`（与 tryLoadJson/tryLoadMarkdown 对称）。导出 `html_codec.dart` tier 2。24 单测（`test/codecs/html_codec_test.dart`：export 8 例 golden 文本对照 heading/inline/link/quote/list/code/table+img/hr/escape + import 12 例 heading/nested-inline/link/list/task/pre-code/blockquote/table/img/hr/malformed-不抛/纯文本/entity-unescape + round-trip 1 例 + controller helpers 1 例 + clipboard pasteHtml 2 例）。docs：`api_reference.md` Codec 表 + 序列化段补；`architecture.md` Codec 层补 + 标注首第三方依赖；`migration_guide.md` 新增「HTML import/export」小节（用法 + 标签矩阵 + paste 还原 + 依赖说明）+ 边界从"未实现"改为"已支持"；`schema_and_commands.md` 补「HTML leniency」节；`running_guide.md` 剪贴板 + 边界更新。platform 剪贴板 HTML flavor 读取层仍留给业务（Flutter `Clipboard` API 限制）。video/file 无标准 HTML 语义（import 不还原）。colspan/rowspan 不还原（B3 范围）。全量 346 tests 全绿（+24）。analyze 根 + example 均 0 issues。⚠️ 风险项验收通过。
+  - ✅ 结果：引 `package:html ^0.15.6`（纯 Dart、Dart 团队官方、4.96M 周下载、`flutter_markdown` 同款）做 HTML5 解析——**本库首个第三方运行时依赖**（pubspec 从零运行时依赖变为一个纯 Dart 依赖，docs 显式标注）。新增 `lib/src/codecs/html_codec.dart`（`HtmlCodec`，`encode` 模型→HTML fragment + `decode` HTML→模型 via `parseFragment` DOM walk）。Block 双向映射：`<h1>`-`<h6>`（level 取数字）/ `<p>` / `<blockquote>`（含 callout 归入）/ `<ul>`/`<ol>`/`<li>`（`<input type=checkbox>` → task + checked）/ `<pre><code class="language-x">`（language 取 class）/ `<table><thead/tr/th/td>`（th→isHeader，HTML span 解析暂不还原）/ `<img>`（assetId=src,file=alt）/ `<hr>`。Inline 双向：`<strong>`/`<b>`→bold、`<em>`/`<i>`→italic、`<s>`/`<del>`/`<strike>`→lineThrough、`<u>`→underline、`<a href>`→url、`<img>`→embed、`<br>`→换行；嵌套递归合并 attributes（`<strong><em>`→bold+italic）；HTML-escape `&<>`/`"`。import 容错：`html` 包 HTML5 spec 自纠正 malformed，decode 不抛；未知标签（div/span）递归子节点不丢内容；HTML entity 自动 decode/re-encode。`ClipboardService.pasteHtml` 从占位改为真实：解析 HTML fragment 成 `ClipboardPaste.blocks`（走 `PasteBlocksCommand` 还原多 block，3.6 验收核心）；构造加 `htmlCodec` 参数（有默认值，向后兼容）。`WenzRichTextController` 加 `htmlCodec` 构造参数 + `toHtml()`/`loadHtml()`/`tryLoadHtml()`（与 tryLoadJson/tryLoadMarkdown 对称）。导出 `html_codec.dart` tier 2。24 单测（`test/codecs/html_codec_test.dart`：export 8 例 golden 文本对照 heading/inline/link/quote/list/code/table+img/hr/escape + import 12 例 heading/nested-inline/link/list/task/pre-code/blockquote/table/img/hr/malformed-不抛/纯文本/entity-unescape + round-trip 1 例 + controller helpers 1 例 + clipboard pasteHtml 2 例）。docs：`api_reference.md` Codec 表 + 序列化段补；`architecture.md` Codec 层补 + 标注首第三方依赖；`migration_guide.md` 新增「HTML import/export」小节（用法 + 标签矩阵 + paste 还原 + 依赖说明）+ 边界从"未实现"改为"已支持"；`schema_and_commands.md` 补「HTML leniency」节；`running_guide.md` 剪贴板 + 边界更新。platform 剪贴板 HTML flavor 读取层仍留给业务（Flutter `Clipboard` API 限制）。video/file 无标准 HTML 语义（import 不还原）。HTML colspan/rowspan 解析仍未还原（codec 后续范围）。全量测试全绿。analyze 根 + example 均 0 issues。⚠️ 风险项验收通过。
 - [x] **C4** Plain text export（对应 7.6）
   - 验收标准：整篇导出纯文本，段落空行分隔
   - 周期：0.5d｜依赖：A0
   - ✅ 结果：`PlainTextCodec`（段落空行分隔 + 媒体 sentinel + omitEmptyBlocks 选项）；`controller.toPlainText()`；8 单测
-- [ ] **C5** Golden tests 矩阵（对应 9.1）
+- [x] **C5** Golden tests 矩阵（对应 9.1）
   - 验收标准：覆盖段落/代码/表格/合并 cell/图片占位/caret/selection 高亮
   - 周期：3d｜依赖：B3
+  - ✅ 结果：新增 `test/widgets/editor_golden_test.dart` 与 4 张 baseline：`editor_blocks.png`（段落/代码/图片占位）、`editor_merged_table.png`（合并 cell 视觉横跨）、`editor_selection.png`（selection 高亮）、`editor_caret.png`（collapsed caret）；`flutter test --update-goldens test/widgets/editor_golden_test.dart` 生成基线后，普通 `flutter test test/widgets/editor_golden_test.dart` 校验通过。
 - [ ] **C6** a11y 语义节点 + a11y 标签（对应 9.3）
   - 验收标准：Semantics 节点描述 block 类型与选区；talkback/narrator 抽测
   - 周期：3d｜依赖：B4
+  - 🟡 自动化结果：默认 renderer 已为 text/code/table/media/callout 等 block 加 `Semantics` 容器；文本/代码 block 会在选区覆盖时标记 `selected`；table cell 语义包含 row/column/header/rowSpan/columnSpan/selected。新增 2 个 widget 测试覆盖 block 语义标签与合并 cell 语义标签。剩余：Windows Narrator / Android TalkBack 抽样手验。
 - [x] **C7** 错误处理加固 + 文档（架构/API/migration/running guide）（对应 9.4 / 9.5）
   - 验收标准：JSON decode/无效命令/media 失败均不崩；docs 章节齐
   - 周期：3d｜依赖：C1
   - ✅ 结果：新增 `lib/src/codecs/document_errors.dart`（`DocumentDecodeException` 带 `reason`/`jsonPath`/`raw`，`UnknownCommandException` 带 `name`）；`RichTextJsonCodec` / `LegacyWenJsonCodec` / `decodeWithMigrations` 把裸 `FormatException`/`StateError`/cast 错误统一 catch 重抛结构化异常，保留 originating error 在 `.raw`；修掉 legacy 表格非数字 alignment key 裸抛（改 `_asNullableInt` 容错跳过）+ 非 Map block 条目静默丢失（保留跳过 + `kDebugMode` 下 `debugPrint`）；`CommandRegistry.build`/`executeFromJson` 改抛结构化异常。`WenzRichTextController` 新增 `tryLoadJson`（返回不可变 `TryLoadResult`：`ok`/`document?`/`error?`，失败不动文档/选区/历史/回调）+ `tryExecuteCommand`（返回 bool，失败不动文档）；`loadJson`/`executeCommand` 保持原抛错语义（向后兼容）。导出 `document_errors.dart` + tier 2 注释更新。docs：新增 `architecture.md`（分层 + 数据流 + tier 说明）、`api_reference.md`（按模块分组公共 API）、`migration_guide.md`（legacy 接入 + migration 框架 + 0.1.0 边界）；刷新 `running_guide.md`（删过时阶段 0 边界，改为「已支持」+ 当前边界）；`schema_and_commands.md` 补「Error handling」节；`README.md` 索引补 3 个新条目。media 加载失败随 B6 走（当前 media 全占位无加载路径）。11 codec/controller 单测（`test/codecs/document_errors_test.dart` 11 + `test/controller/controller_try_load_test.dart` 7）+ 修 2 处旧断言（migration `throwsFormatException`→`isA<DocumentDecodeException>`、command `throwsArgumentError`→`isA<UnknownCommandException>`）。
-- [ ] **C8** formula / mention inline 渲染 + 命令（对应 1.2）
+- [x] **C8** formula / mention inline 渲染 + 命令（对应 1.2）
   - 验收标准：两种 inline 有 renderer 与插入命令；JSON round-trip
   - 周期：3d｜依赖：B4
+  - ✅ 结果：`InlineEmbed` 既有 formula/mention 数据结构与 `InsertInlineEmbedCommand` / `WenzRichTextController.insertFormula` / `insertMention` 保持可用；新增 `InlineEmbedRenderer` + `InlineEmbedRendererCallback`（`buildTextSpan(context, embed, textStyle) → TextSpan?`，返回 null 走默认），经 `WenzRichTextEditor.inlineEmbedRenderer` 与 `BlockRenderContext.inlineEmbedRenderer` 下发到默认 text/callout/table cell renderer。默认 formula 显示 `data.text/latex/value`，mention 显示 `@label/@id`，表格 cell 也走同一 inline span 渲染。JSON round-trip 已由 `rich_text_json_codec_test.dart` 覆盖；新增 2 个 widget 测试覆盖默认 formula/mention 渲染、表格 cell inline 渲染和自定义 renderer fallback。
 - [ ] **C9** 移动端 selection handles（对应 4.5）
   - 验收标准：iOS/Android 手柄拖拽改选区
   - 周期：4d｜依赖：B2
@@ -223,8 +227,8 @@ Week 10: C6 + C7 + C9 + C10（收尾）
 Week 11: D1
 ```
 
-- **关键路径**：A0 → A3 → B4 → C2/C3 → D1（导入导出主线最长）— **C2/C3 已完成，主线已通**，剩 B3（表格合并视觉）为最大未决项
-- **风险项**：B3（表格合并视觉）仍是最不确定项；C3（HTML）已验收通过（引 `package:html` 依赖）
+- **关键路径**：A0 → A3 → B4 → C2/C3 → D1（导入导出主线最长）— **C2/C3 已完成，主线已通**；B3 自动化已落地，剩三端手验
+- **风险项**：B3（表格合并视觉）自动化风险已收敛；C3（HTML）已验收通过（引 `package:html` 依赖）
 
 ---
 
@@ -240,10 +244,10 @@ Week 11: D1
 
 ## Part 5 · 与 roadmap 的差异说明
 
-- **阶段 5（渲染与性能）**：roadmap 声明全部完成，核对源码后**确认完成**，仅 6.6（远距离 caret 自动滚动）未做，列为 C10。
-- **阶段 4（表格）**：roadmap 声明完成，但合并单元格**视觉横跨**明确未做（rendering.md 自陈），本报告降级为 🟡 并拆出 B3 单独推进——**这是验收时最需要拍板的点**：接受当前"结构正确、视觉占 1×1"作为阶段 4 验收通过，还是要求 B3 完成才算阶段 4 收尾。
-- **阶段 6/7/8**：C7 已完成（9.4 错误处理 + 9.5 文档）；B6 已完成（8.3 media resolver）；C2 已完成（7.4 Markdown）；C3 已完成（3.6 + 7.5 HTML）；C1/C4 已完成。其余 🔴（C5/C6/C8/C9 + B3/A1），符合预期（未到时间），任务表已覆盖。
-- **阶段 6（导入导出）**：C2 + C3 已完成，导入导出主线收尾。`MarkdownCodec` 自写行级状态机（零第三方依赖，语法矩阵参照 `gpt_markdown`）；`HtmlCodec` 引 `package:html`（**本库首个第三方运行时依赖**，纯 Dart 官方库）做 HTML5 解析，覆盖同 Markdown 的标签矩阵 + 嵌套 emphasis 合并 + entity decode/re-encode。两者均容错降级段落不抛（Markdown/HTML 惯例）。`ClipboardService.pasteHtml` 把 HTML fragment 还原多 block（3.6）。video/file 无标准语法（import 不还原）；callout 映射为 quote/blockquote；LaTeX/radio button（gpt_markdown 支持）不覆盖；表格 colspan/rowspan 不还原（B3）。
+- **阶段 5（渲染与性能）**：roadmap 声明全部完成，核对源码后**确认完成**；6.6（远距离 caret 自动滚动）已由 C10 补齐。
+- **阶段 4（表格）**：roadmap 声明完成，B3 已补默认 renderer 的合并单元格视觉横跨；结构、undo/redo、JSON round-trip 仍沿用既有模型，三端视觉手验待在 checklist 勾选。
+- **阶段 6/7/8**：C7 已完成（9.4 错误处理 + 9.5 文档）；B6 已完成（8.3 media resolver）；C2 已完成（7.4 Markdown）；C3 已完成（3.6 + 7.5 HTML）；C1/C4/C8 已完成；B3/C5 自动化已完成；C6 自动化语义节点已完成但屏幕阅读器手验待补。其余待人工确认项为 A1/B3/C6 手验/C9，任务表已覆盖。
+- **阶段 6（导入导出）**：C2 + C3 已完成，导入导出主线收尾。`MarkdownCodec` 自写行级状态机（零第三方依赖，语法矩阵参照 `gpt_markdown`）；`HtmlCodec` 引 `package:html`（**本库首个第三方运行时依赖**，纯 Dart 官方库）做 HTML5 解析，覆盖同 Markdown 的标签矩阵 + 嵌套 emphasis 合并 + entity decode/re-encode。两者均容错降级段落不抛（Markdown/HTML 惯例）。`ClipboardService.pasteHtml` 把 HTML fragment 还原多 block（3.6）。video/file 无标准语法（import 不还原）；callout 映射为 quote/blockquote；LaTeX/radio button（gpt_markdown 支持）不覆盖；HTML 表格 colspan/rowspan 解析仍未还原（codec 后续范围）。
 - **阶段 2（Selection 与布局）**：B1（双击选词/三击选段 boundary 单测）与 B2（拖拽自动滚动）已完成，4.3 / 4.4 验收通过。B2 实现拆为「同步边缘滚动（全设备，每次 pointer-move 推进一步）」+「鼠标/触控笔 Ticker 持续滚动」两层：前者保证 touch 拖拽时列表跟随滚动（scrollable 自身 pan 手势在本 overlay 下不赢 arena，同步 jumpTo 是实际滚动源），后者让鼠标拖到边缘停留时持续滚动并持续重算 selection extent；editor 对 range selection 跳过 caret-scroll-into-view 回拉以避免冲突。
 - **阶段 7（工具栏与业务集成 API）**：B4 已完成，B5 已完成，B6 已完成。`ToolbarController` 作为 `WenzRichTextController` 的派生 `ChangeNotifier`，随 host 通知重算 `ToolbarState` 快照——这是 toolbar 状态跟随选区的入口；B5 在 controller 上补齐 `onChanged`/`onSelectionChanged`/`onCommandExecuted` 三个业务集成回调（均在 `notifyListeners` 之前同步触发），作为比 `addListener` 粗粒度信号更细粒度的事件源。B6 补 `MediaResolver`（`resolve(block) → Widget?`）作为 media 块真渲染的快捷注入点：default image/video/file renderer 先问 resolver，返回 null 回退占位，抛异常经 `FlutterError.reportError` 上报后回退（呼应 9.4）；editor + controller 双注入，业务自组装 `Image`/video/任意 widget，库不引 `video_player` 等依赖——media 块从此可真渲染，加载失败兜底（业务侧 `errorBuilder` + resolver 抛异常 editor 捕获双保险）一并落地。Bold/Italic 在 example 原走 `FormatTextCommand`（不可取消 bool），B4 改走 `ToggleMarkCommand` 修掉该语义 bug。
 - **阶段 8（质量、可访问性与发布准备）**：C7 已完成（9.4 + 9.5）。错误处理采用「结构化异常 + tryLoadJson/tryExecuteCommand 不抛入口」双轨：`DocumentDecodeException`/`UnknownCommandException` 带 `reason`/`raw` 链保留 originating error，业务可在 typed catch 与 no-throw 两种风格间二选一；codec/registry/migration 全部接入，`loadJson`/`executeCommand` 保持原抛错语义向后兼容。docs 补齐 `architecture.md`（分层总览，原本散在 refactor_plan/rendering/input_system）/ `api_reference.md`（按模块分组公共 API 表面）/ `migration_guide.md`（面向消费者的 legacy 接入 + migration 框架 + 0.1.0 边界），`running_guide.md` 刷新掉阶段 0 过时边界。media 加载失败兜底明确归入 B6（当前 media 全占位无加载路径，不在本任务造假）。

@@ -29,7 +29,8 @@
 ///   [ToggleQuoteCommand]), the command pipeline/registry
 ///   ([CommandMiddleware], [CommandRegistry], [CommandDescriptor]), the
 ///   rendering extension point ([BlockRendererRegistry],
-///   [BlockRenderBuilder], [BlockRenderContext], [MediaResolver]), the toolbar binding
+///   [BlockRenderBuilder], [BlockRenderContext], [MediaResolver],
+///   [InlineEmbedRenderer]), the toolbar binding
 ///   ([ToolbarController], [ToolbarState]), the controller change
 ///   callbacks ([WenzRichTextController.onChanged],
 ///   [WenzRichTextController.onSelectionChanged],
@@ -94,5 +95,6 @@ export 'src/input/clipboard_service.dart';
 export 'src/input/composition_state.dart';
 export 'src/input/editor_text_input_client.dart';
 export 'src/widgets/block_renderer_registry.dart';
+export 'src/widgets/inline_embed_renderer.dart';
 export 'src/widgets/media_resolver.dart';
 export 'src/widgets/wenz_rich_text_editor.dart';

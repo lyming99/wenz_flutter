@@ -1,12 +1,14 @@
 /// Describes *what* a [DocumentPosition] points at inside a block.
 ///
-/// There are three well-formed shapes, all constructed via the named
+/// There are four well-formed shapes, all constructed via the named
 /// factories. The raw [segments] list is the canonical storage; the typed
 /// accessors ([blockId], [isBlockText], ...) are convenience views over it.
 ///
 /// Contract:
 /// - [blockText] / [blockCode] identify inline content of a single
 ///   [TextBlockNode] / [CodeBlockNode].
+/// - [blockObject] identifies an atomic block-level object, such as an image,
+///   video, file attachment, or divider.
 /// - [tableCellText] identifies a single cell's first text block. Full
 ///   cell editing (multi-block cells, range selection inside cells) is out
 ///   of scope until stage 4.
@@ -25,6 +27,10 @@ class PositionPath {
 
   factory PositionPath.blockCode(String blockId) {
     return PositionPath(<Object>['block', blockId, 'code']);
+  }
+
+  factory PositionPath.blockObject(String blockId) {
+    return PositionPath(<Object>['block', blockId, 'object']);
   }
 
   factory PositionPath.tableCellText(
@@ -49,15 +55,15 @@ class PositionPath {
 
   bool get isBlockCode => _kind == _PathKind.blockCode;
 
+  bool get isBlockObject => _kind == _PathKind.blockObject;
+
   bool get isTableCellText => _kind == _PathKind.tableCellText;
 
   /// Row index when [isTableCellText], otherwise `null`.
-  int? get tableRowIndex =>
-      isTableCellText ? segments[3] as int : null;
+  int? get tableRowIndex => isTableCellText ? segments[3] as int : null;
 
   /// Column index when [isTableCellText], otherwise `null`.
-  int? get tableColumnIndex =>
-      isTableCellText ? segments[5] as int : null;
+  int? get tableColumnIndex => isTableCellText ? segments[5] as int : null;
 
   _PathKind get _kind {
     if (segments.length == 3 && segments[2] == 'text') {
@@ -66,9 +72,10 @@ class PositionPath {
     if (segments.length == 3 && segments[2] == 'code') {
       return _PathKind.blockCode;
     }
-    if (segments.length == 6 &&
-        segments[2] == 'row' &&
-        segments[4] == 'cell') {
+    if (segments.length == 3 && segments[2] == 'object') {
+      return _PathKind.blockObject;
+    }
+    if (segments.length == 6 && segments[2] == 'row' && segments[4] == 'cell') {
       return _PathKind.tableCellText;
     }
     return _PathKind.unknown;
@@ -81,10 +88,9 @@ class PositionPath {
     if (rank != 0) {
       return rank;
     }
-    final maxLen =
-        segments.length < other.segments.length
-            ? segments.length
-            : other.segments.length;
+    final maxLen = segments.length < other.segments.length
+        ? segments.length
+        : other.segments.length;
     for (var i = 0; i < maxLen; i++) {
       final cmp = _compareSegment(segments[i], other.segments[i]);
       if (cmp != 0) {
@@ -116,14 +122,15 @@ class PositionPath {
   int get hashCode => Object.hashAll(segments);
 }
 
-enum _PathKind { unknown, blockText, blockCode, tableCellText }
+enum _PathKind { unknown, blockText, blockCode, blockObject, tableCellText }
 
 extension on _PathKind {
   int get rank => switch (this) {
         _PathKind.blockText => 0,
         _PathKind.blockCode => 1,
-        _PathKind.tableCellText => 2,
-        _PathKind.unknown => 3,
+        _PathKind.blockObject => 2,
+        _PathKind.tableCellText => 3,
+        _PathKind.unknown => 4,
       };
 }
 

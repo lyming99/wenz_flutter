@@ -127,6 +127,9 @@ descriptions of intent; the executor applies them.
 - `MediaResolver` — a narrower, media-only injection point; the built-in
   image/video/file renderers consult it before falling back to the placeholder.
   Returned via `BlockRenderContext.mediaResolver`.
+- `InlineEmbedRenderer` — a text-span renderer hook for formula / mention /
+  custom inline embeds. The built-in text, callout, and table-cell renderers
+  consult it via `BlockRenderContext.inlineEmbedRenderer`.
 - `SelectionGestureOverlay` — pointer handling: tap-to-place-caret,
   drag-to-select across blocks, double/triple-click, drag auto-scroll.
 - `BlockGeometryRegistry` — maps offsets ↔ coordinates for hit-testing and
@@ -199,8 +202,8 @@ Public API is exported from `lib/wenz_richtext.dart` and tagged in three tiers
   `EditorTextInputClient`.
 - **Tier 2 (stabilising)** — editor widget, schema, codecs, migration
   framework, semantic inline/block-structure commands, command pipeline,
-  renderer registry, toolbar binding, controller callbacks, structured error
-  types, no-throw safe-entry helpers.
+  renderer registry, inline embed renderer, toolbar binding, controller
+  callbacks, structured error types, no-throw safe-entry helpers.
 - **Tier 3 (experimental)** — table command family, rich block models
   (`CalloutBlockNode`, `FileBlockNode`) — contracts may change before the
   table editing stage is finalised.

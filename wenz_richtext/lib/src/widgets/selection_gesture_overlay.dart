@@ -182,6 +182,8 @@ class _SelectionGestureOverlayState extends State<SelectionGestureOverlay> {
         _selectBlock(anchor);
       } else if (tapCount == 2) {
         _selectWord(anchor, position);
+      } else if (anchor.path.isBlockObject) {
+        _selectBlock(anchor);
       } else {
         widget.onSelectionChanged(
           DocumentSelection(base: anchor, extent: anchor),

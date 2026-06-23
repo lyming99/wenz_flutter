@@ -5,6 +5,7 @@
 - [架构总览](./architecture.md)
 - [API 参考](./api_reference.md)
 - [消费者接入 / 迁移指南](./migration_guide.md)
+- [项目验收、Roadmap 与完善计划](./project_acceptance_roadmap_plan.md)
 - [重构总体方案](./refactor_plan.md)
 - [优化阶段性计划](./optimization_roadmap.md)
 - [选区与位置模型](./selection_model.md)

@@ -5,7 +5,7 @@
 ## 前置要求
 
 - Flutter SDK `>=3.22.0`，Dart SDK `>=3.3.4`（见根 `pubspec.yaml`）。
-- 无第三方依赖，`flutter pub get` 不会拉取除 Flutter SDK 外的包。
+- 运行时依赖很少：除 Flutter SDK 外，当前仅引入纯 Dart 的 `package:html` 用于 HTML import/export。
 
 ## 运行 example
 
@@ -57,11 +57,12 @@ flutter build web
 
 以下能力**尚未落地**，调用方应据此设定预期：
 
-- **合并单元格视觉横跨**：合并在结构上正确（rowSpan/columnSpan 入 JSON），但 origin cell 仍按 1×1 渲染，covered cell 不消除 —— 任务 B3。
+- **合并单元格视觉横跨**：默认 table renderer 已按 rowSpan/columnSpan 让 origin cell 真正跨行/跨列占满，covered cell 不渲染也不参与点击命中；三端手验仍在 `acceptance_manual_checklist.md` 中记录。
 - **Markdown 导入导出**：已支持（`MarkdownCodec`，覆盖 heading/段落/list/code/table/image/divider + bold/italic/strike/underline/link）。**HTML 导入导出**：已支持（`HtmlCodec`，引 `package:html` 依赖；覆盖同上标签矩阵 + 嵌套 emphasis 合并；malformed HTML 容错降级段落不抛）。
 - **图片/视频/文件真实渲染**：注入 `MediaResolver` 后由业务自渲染（example 用 `Image.network` 渲染 picsum 图片，带 `errorBuilder` 兜底）；未注入或 resolver 返回 null 时回退占位。`video_player` 等依赖由业务侧引入。
 - **移动端 selection handles**：iOS/Android 手柄拖拽改选区，任务 C9（触屏跨视口选区目前由同步边缘滚动承接）。
-- **Golden tests / a11y 语义节点**：任务 C5 / C6。
+- **Golden tests / a11y 语义节点**：基础 Golden 矩阵已落地；C6 自动化 Semantics 节点已补齐，TalkBack/Narrator 抽样仍需人工手验。
+- **formula / mention inline**：默认 renderer 会显示公式文本与 `@label`，业务可通过 `InlineEmbedRenderer` 覆盖为自定义 `TextSpan`；Markdown/HTML 仍按可读文本降级，不还原为 embed。
 
 ## Web 焦点
 
