@@ -309,16 +309,25 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
 
   void _handleControllerChanged() {
     if (mounted) {
-      // Drop cached layout for blocks whose content changed so a stale
-      // laid-out painter is not reused on the next build. Selection-only /
+      // Drop the cached laid-out painter for blocks whose content changed so a
+      // stale painter is not reused on the next build. Selection-only /
       // composition-only changes (empty set) do not invalidate anything.
+      //
+      // The block *extent* cache is intentionally NOT invalidated here. While a
+      // block's text is being edited (most acutely during IME composition such
+      // as pinyin input) its content mutates on every keystroke, but its height
+      // barely changes. Dropping the cached height mid-edit would fall back to
+      // the document-wide average height for one frame, repositioning every
+      // following block — a visible flicker of the content below the caret. The
+      // real (possibly unchanged) height is reconciled on the next frame by the
+      // measured-block widget, so leaving the stale value yields one frame of a
+      // near-correct height instead of one frame of a wrong average.
       final dirty = widget.controller.lastChangedBlockIds;
       if (dirty == null) {
         _extentCache.clear();
       } else if (dirty.isNotEmpty) {
         for (final id in dirty) {
           _layoutCache.removeBlock(id);
-          _extentCache.removeBlock(id);
         }
       }
       // Keep the platform IME candidate window anchored at the caret, and
@@ -420,6 +429,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
       blockSpacing: widget.blockSpacing,
       extentCache: _extentCache,
       keepAliveIds: keepAliveIds,
+      onExtentUpdated: _scrollCaretIntoViewIfNeeded,
       itemBuilder: (context, i) => _KeepAliveBlock(
         key: ValueKey<String>(blocks[i].id),
         block: blocks[i],
@@ -824,6 +834,34 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
       widget.controller.setSelection(next);
     }
     _scrollCaretIntoView();
+  }
+
+  /// Re-evaluates whether the caret needs to be scrolled into view after a
+  /// block's measured extent was updated. When content grows (e.g. pasting
+  /// several lines), the mutation frame still carries the pre-edit block
+  /// height, so the caret-into-view check run then may decide "already visible"
+  /// and record the position as handled. Once the real height lands a frame
+  /// later, the caret may have ended up off-screen; this re-arms the check so
+  /// it runs again against the accurate layout.
+  ///
+  /// The check is deferred to a post-frame callback because the extent update
+  /// arrives via a `setState` in the virtual list, whose re-layout (which
+  /// updates `maxScrollExtent` and caret geometry) only completes on the next
+  /// frame. Running it synchronously would observe the pre-update layout.
+  void _scrollCaretIntoViewIfNeeded() {
+    if (!mounted) {
+      return;
+    }
+    final selection = widget.controller.selection;
+    if (selection?.isCollapsed != true) {
+      return;
+    }
+    _lastScrollCheckedCaret = null;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _scrollCaretIntoView();
+      }
+    });
   }
 
   /// Scrolls the scrollable just enough to bring the current caret into view.
@@ -1521,6 +1559,7 @@ class _MeasuredVirtualBlockList extends StatefulWidget {
     required this.itemBuilder,
     this.padding = EdgeInsets.zero,
     this.physics,
+    this.onExtentUpdated,
   });
 
   final ScrollController controller;
@@ -1531,6 +1570,13 @@ class _MeasuredVirtualBlockList extends StatefulWidget {
   final IndexedWidgetBuilder itemBuilder;
   final EdgeInsetsGeometry padding;
   final ScrollPhysics? physics;
+
+  /// Invoked after a block's measured extent was actually updated in the cache
+  /// (i.e. its height changed). The editor uses it to re-run caret-into-view
+  /// logic that depends on accurate block heights, which only becomes available
+  /// a frame after the content mutation (the mutation frame still carried the
+  /// pre-edit height).
+  final void Function()? onExtentUpdated;
 
   @override
   State<_MeasuredVirtualBlockList> createState() =>
@@ -1568,6 +1614,11 @@ class _MeasuredVirtualBlockListState extends State<_MeasuredVirtualBlockList> {
   void _handleExtentChanged(String blockId, int measureToken, double extent) {
     if (widget.extentCache.record(blockId, measureToken, extent) && mounted) {
       setState(() {});
+      // A real height change may unlock a caret-into-view that the content
+      // mutation frame could not perform (it ran with the pre-edit height).
+      // Notify the editor so it can retry the scroll against the now-accurate
+      // layout.
+      widget.onExtentUpdated?.call();
     }
   }
 

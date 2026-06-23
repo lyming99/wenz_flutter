@@ -1733,6 +1733,12 @@ void main() {
     controller.insertText(
       '\nline 1\nline 2\nline 3\nline 4\nline 5\nline 6',
     );
+    // Growing content produces the caret-into-view scroll only after the
+    // affected blocks' measured heights land: the mutation frame still carries
+    // the pre-edit (short) heights, so the scroll re-arms on the frame where
+    // the real extents are recorded. Two pumps advance past that post-frame
+    // measurement and the subsequent re-layout.
+    await tester.pump();
     await tester.pump();
 
     expect(_scrollOffset(tester), greaterThan(scrollBefore));
