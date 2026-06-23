@@ -803,11 +803,12 @@ CommandResult _mergeWithPreviousBlock(
     );
   }
   if (_isNonTextBlock(previous) && current != null) {
-    _replaceBlocks(session, previousIndex, 1, const <BlockNode>[]);
-    final nextPosition = position.copyWith(blockIndex: previousIndex);
-    return CommandResult(
-      selection: DocumentSelection(base: nextPosition, extent: nextPosition),
-    );
+    final selection = _selectionAtBlockEndOrObject(previous!, previousIndex);
+    if (_isEmptyEditableBlock(current)) {
+      _replaceBlocks(session, position.blockIndex, 1, const <BlockNode>[]);
+      return CommandResult(selection: selection);
+    }
+    return CommandResult(selection: selection, recordHistory: false);
   }
   return const CommandResult(recordHistory: false);
 }
@@ -854,16 +855,58 @@ CommandResult _mergeWithNextBlock(
     );
   }
   if (current != null && _isNonTextBlock(next)) {
-    _replaceBlocks(session, nextIndex, 1, const <BlockNode>[]);
-    return CommandResult(
-      selection: DocumentSelection(base: position, extent: position),
+    final selection = _selectionAtBlockStartOrObject(
+      next!,
+      _isEmptyEditableBlock(current) ? position.blockIndex : nextIndex,
     );
+    if (_isEmptyEditableBlock(current)) {
+      _replaceBlocks(session, position.blockIndex, 1, const <BlockNode>[]);
+      return CommandResult(selection: selection);
+    }
+    return CommandResult(selection: selection, recordHistory: false);
   }
   return const CommandResult(recordHistory: false);
 }
 
 bool _isNonTextBlock(BlockNode? block) {
   return block != null && block is! TextBlockNode && block is! CodeBlockNode;
+}
+
+bool _isEmptyEditableBlock(BlockNode block) {
+  if (block is TextBlockNode) {
+    return block.plainText.trim().isEmpty;
+  }
+  if (block is CodeBlockNode) {
+    return block.code.isEmpty;
+  }
+  return false;
+}
+
+DocumentSelection _selectionAtBlockEndOrObject(BlockNode block, int index) {
+  final tableSelection = _caretAtBlockEndOrLastCell(block, index);
+  if (tableSelection != null) {
+    return tableSelection;
+  }
+  return _objectSelection(block, index);
+}
+
+DocumentSelection _selectionAtBlockStartOrObject(BlockNode block, int index) {
+  final tableSelection = _caretAtBlockStartOrFirstCell(block, index);
+  if (tableSelection != null) {
+    return tableSelection;
+  }
+  return _objectSelection(block, index);
+}
+
+DocumentSelection _objectSelection(BlockNode block, int index) {
+  final start = DocumentPosition(
+    blockId: block.id,
+    blockIndex: index,
+    path: PositionPath.blockObject(block.id),
+    offset: 0,
+  );
+  final end = start.copyWith(offset: 1);
+  return DocumentSelection(base: start, extent: end);
 }
 
 BlockNode? _blockAt(RichTextDocument document, int index) {

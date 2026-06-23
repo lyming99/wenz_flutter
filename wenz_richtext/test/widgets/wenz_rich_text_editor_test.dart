@@ -2044,7 +2044,7 @@ void main() {
     expect(controller.selection?.extent.offset, 0);
   });
 
-  testWidgets('Backspace at text start deletes the previous image block', (
+  testWidgets('Backspace at text start selects the previous image block', (
     tester,
   ) async {
     final controller = WenzRichTextController(
@@ -2078,12 +2078,15 @@ void main() {
     await tester.sendKeyEvent(LogicalKeyboardKey.backspace);
     await tester.pump();
 
-    expect(controller.document.blocks, hasLength(1));
-    expect(controller.document.blocks.single.id, 'p1');
-    expect(find.text('[image: hero.png]'), findsNothing);
-    expect(controller.selection?.extent.blockId, 'p1');
-    expect(controller.selection?.extent.blockIndex, 0);
-    expect(controller.selection?.extent.offset, 0);
+    expect(controller.document.blocks, hasLength(2));
+    expect(controller.document.blocks[0].id, 'image1');
+    expect(controller.document.blocks[1].id, 'p1');
+    expect(find.text('[image: hero.png]'), findsOneWidget);
+    expect(controller.selection?.start.blockId, 'image1');
+    expect(controller.selection?.start.path.isBlockObject, isTrue);
+    expect(controller.selection?.start.blockIndex, 0);
+    expect(controller.selection?.start.offset, 0);
+    expect(controller.selection?.end.offset, 1);
   });
 
   testWidgets('Ctrl+Z / Ctrl+Shift+Z undo and redo', (tester) async {

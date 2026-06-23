@@ -53,6 +53,33 @@ class InsertBlocksCommand extends EditorCommand {
             _defaultSelectionForInsertedBlock(replacementIndex, blocks.first),
       );
     }
+    final splitInsertion = _splitInsertionAtCaret(
+      session,
+      insertIndex,
+      blocks,
+    );
+    if (splitInsertion != null) {
+      final nextBlocks = <BlockNode>[
+        for (var i = 0; i < splitInsertion.replacedIndex; i++)
+          session.document.blocks[i].copy(),
+        ...splitInsertion.replacementBlocks,
+        for (var i = splitInsertion.replacedIndex + 1;
+            i < session.document.blocks.length;
+            i++)
+          session.document.blocks[i].copy(),
+      ];
+      session.document = RichTextDocument(
+        version: session.document.version,
+        blocks: nextBlocks,
+      );
+      return CommandResult(
+        selection: selection ??
+            _defaultSelectionForInsertedBlock(
+              splitInsertion.insertedIndex,
+              blocks.first,
+            ),
+      );
+    }
     final nextBlocks = <BlockNode>[
       for (var i = 0; i < insertIndex; i++) session.document.blocks[i].copy(),
       ...blocks.map((block) => block.copy()),
@@ -94,6 +121,184 @@ int? _emptyParagraphReplacementIndex(
     return null;
   }
   return caretIndex;
+}
+
+_SplitInsertion? _splitInsertionAtCaret(
+  DocumentSession session,
+  int insertIndex,
+  List<BlockNode> insertedBlocks,
+) {
+  if (!_canSplitAround(insertedBlocks)) {
+    return null;
+  }
+  final selection = session.selection;
+  if (selection == null || !selection.isCollapsed) {
+    return null;
+  }
+  final position = selection.extent;
+  if (insertIndex != position.blockIndex) {
+    return null;
+  }
+  final block = _blockAt(session.document, position.blockIndex);
+  if (block is TextBlockNode && position.path.isBlockText) {
+    return _splitTextBlockForInsertion(
+      session,
+      block,
+      position,
+      insertedBlocks,
+    );
+  }
+  if (block is CodeBlockNode && position.path.isBlockCode) {
+    return _splitCodeBlockForInsertion(
+      session,
+      block,
+      position,
+      insertedBlocks,
+    );
+  }
+  return null;
+}
+
+bool _canSplitAround(List<BlockNode> insertedBlocks) {
+  return insertedBlocks.isNotEmpty && insertedBlocks.first is! TextBlockNode;
+}
+
+_SplitInsertion _splitTextBlockForInsertion(
+  DocumentSession session,
+  TextBlockNode block,
+  DocumentPosition position,
+  List<BlockNode> insertedBlocks,
+) {
+  final length = inlineNodesLength(block.content);
+  final offset = position.offset.clamp(0, length).toInt();
+  final split = splitInline(block.content, offset);
+  final replacement = <BlockNode>[];
+  var insertedIndex = position.blockIndex;
+  if (split.before.isNotEmpty) {
+    replacement.add(
+      TextBlockNode(
+        id: block.id,
+        type: block.type,
+        attributes: block.attributes,
+        content: split.before,
+      ),
+    );
+    insertedIndex += 1;
+  }
+  replacement.addAll(insertedBlocks.map((block) => block.copy()));
+  if (split.after.isNotEmpty) {
+    replacement.add(
+      TextBlockNode(
+        id: split.before.isEmpty
+            ? block.id
+            : _uniqueBlockId(
+                session.document,
+                insertedBlocks,
+                '${block.id}-after',
+              ),
+        type: block.type,
+        attributes: block.attributes,
+        content: split.after,
+      ),
+    );
+  }
+  return _SplitInsertion(
+    replacedIndex: position.blockIndex,
+    insertedIndex: insertedIndex,
+    replacementBlocks: replacement,
+  );
+}
+
+_SplitInsertion _splitCodeBlockForInsertion(
+  DocumentSession session,
+  CodeBlockNode block,
+  DocumentPosition position,
+  List<BlockNode> insertedBlocks,
+) {
+  final offset = position.offset.clamp(0, block.code.length).toInt();
+  final before = block.code.substring(0, offset);
+  final after = block.code.substring(offset);
+  final replacement = <BlockNode>[];
+  var insertedIndex = position.blockIndex;
+  if (before.isNotEmpty) {
+    replacement.add(
+      CodeBlockNode(
+        id: block.id,
+        code: before,
+        language: block.language,
+        attributes: block.attributes,
+      ),
+    );
+    insertedIndex += 1;
+  }
+  replacement.addAll(insertedBlocks.map((block) => block.copy()));
+  if (after.isNotEmpty) {
+    replacement.add(
+      CodeBlockNode(
+        id: before.isEmpty
+            ? block.id
+            : _uniqueBlockId(
+                session.document,
+                insertedBlocks,
+                '${block.id}-after',
+              ),
+        code: after,
+        language: block.language,
+        attributes: block.attributes,
+      ),
+    );
+  }
+  return _SplitInsertion(
+    replacedIndex: position.blockIndex,
+    insertedIndex: insertedIndex,
+    replacementBlocks: replacement,
+  );
+}
+
+String _uniqueBlockId(
+  RichTextDocument document,
+  List<BlockNode> insertedBlocks,
+  String preferred,
+) {
+  final used = <String>{};
+  for (final block in document.blocks) {
+    _collectIds(block, used);
+  }
+  for (final block in insertedBlocks) {
+    _collectIds(block, used);
+  }
+  var candidate = preferred;
+  var suffix = 1;
+  while (used.contains(candidate)) {
+    candidate = '$preferred-${suffix++}';
+  }
+  return candidate;
+}
+
+void _collectIds(BlockNode block, Set<String> used) {
+  used.add(block.id);
+  if (block is TableBlockNode) {
+    for (final row in block.table.rows) {
+      for (final cell in row) {
+        used.add(cell.id);
+        for (final nested in cell.blocks) {
+          _collectIds(nested, used);
+        }
+      }
+    }
+  }
+}
+
+class _SplitInsertion {
+  const _SplitInsertion({
+    required this.replacedIndex,
+    required this.insertedIndex,
+    required this.replacementBlocks,
+  });
+
+  final int replacedIndex;
+  final int insertedIndex;
+  final List<BlockNode> replacementBlocks;
 }
 
 DocumentSelection? _defaultSelectionForInsertedBlock(

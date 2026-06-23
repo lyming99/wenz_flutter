@@ -235,7 +235,7 @@ class _EditorWorkbenchState extends State<EditorWorkbench> {
 
   void _insertTable() {
     _controller.insertTable(
-      index: _controller.document.blocks.length,
+      index: _currentBlockInsertionIndex(),
       tableId: _newId('table'),
       rowCount: 2,
       columnCount: 3,
@@ -245,7 +245,7 @@ class _EditorWorkbenchState extends State<EditorWorkbench> {
   void _insertImage() {
     final id = _newId('image');
     _controller.insertBlocks(
-      index: _controller.document.blocks.length,
+      index: _currentBlockInsertionIndex(),
       blocks: <BlockNode>[
         ImageBlockNode(
           id: id,
@@ -369,6 +369,23 @@ class _EditorWorkbenchState extends State<EditorWorkbench> {
   String _newId(String prefix) {
     _nextId += 1;
     return '$prefix-$_nextId';
+  }
+
+  int _currentBlockInsertionIndex() {
+    final selection = _controller.selection;
+    final blockCount = _controller.document.blocks.length;
+    if (selection == null) {
+      return blockCount;
+    }
+    final position = selection.extent;
+    final index = position.blockIndex.clamp(0, blockCount).toInt();
+    if (position.path.isTableCellText) {
+      return (index + 1).clamp(0, blockCount).toInt();
+    }
+    if (position.path.isBlockObject && position.offset > 0) {
+      return (index + 1).clamp(0, blockCount).toInt();
+    }
+    return index;
   }
 }
 

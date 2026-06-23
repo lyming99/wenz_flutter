@@ -101,6 +101,77 @@ void main() {
     expect(session.document.blocks[1], isA<ImageBlockNode>());
   });
 
+  test('insert object block at text caret splits the paragraph', () {
+    final session = DocumentSession(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'HelloWorld')],
+          ),
+        ],
+      ),
+      selection: collapsedTextSelection('p1', 0, 5),
+    );
+    final executor = CommandExecutor(session);
+
+    executor.execute(
+      const InsertBlocksCommand(
+        index: 0,
+        blocks: <BlockNode>[ImageBlockNode(id: 'img1', assetId: 'a1')],
+      ),
+    );
+
+    expect(session.document.blocks, hasLength(3));
+    expect((session.document.blocks[0] as TextBlockNode).plainText, 'Hello');
+    expect(session.document.blocks[1], isA<ImageBlockNode>());
+    expect(session.document.blocks[1].id, 'img1');
+    expect((session.document.blocks[2] as TextBlockNode).plainText, 'World');
+    expect(session.document.blocks[2].id, 'p1-after');
+    expect(session.selection?.start.blockId, 'img1');
+    expect(session.selection?.start.path.isBlockObject, isTrue);
+    expect(session.selection?.start.offset, 0);
+    expect(session.selection?.end.offset, 1);
+  });
+
+  test('insert table at text caret splits the paragraph and focuses the table',
+      () {
+    final session = DocumentSession(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'HelloWorld')],
+          ),
+        ],
+      ),
+      selection: collapsedTextSelection('p1', 0, 5),
+    );
+    final executor = CommandExecutor(session);
+
+    executor.execute(
+      const InsertTableCommand(
+        index: 0,
+        tableId: 't1',
+        rowCount: 2,
+        columnCount: 2,
+      ),
+    );
+
+    expect(session.document.blocks, hasLength(3));
+    expect((session.document.blocks[0] as TextBlockNode).plainText, 'Hello');
+    expect(session.document.blocks[1], isA<TableBlockNode>());
+    expect((session.document.blocks[2] as TextBlockNode).plainText, 'World');
+    expect(session.selection?.extent.blockId, 't1');
+    expect(session.selection?.extent.blockIndex, 1);
+    expect(session.selection?.extent.path.isTableCellText, isTrue);
+    expect(session.selection?.extent.path.tableRowIndex, 0);
+    expect(session.selection?.extent.path.tableColumnIndex, 0);
+    expect(session.selection?.extent.offset, 0);
+  });
+
   test('replace blocks command replaces requested range', () {
     final session = DocumentSession(
       document: const RichTextDocument(
