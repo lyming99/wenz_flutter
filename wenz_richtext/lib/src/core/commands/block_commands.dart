@@ -29,6 +29,30 @@ class InsertBlocksCommand extends EditorCommand {
       return const CommandResult(recordHistory: false);
     }
     final insertIndex = index.clamp(0, session.document.blocks.length).toInt();
+    final replacementIndex = _emptyParagraphReplacementIndex(
+      session,
+      insertIndex,
+      blocks,
+    );
+    if (replacementIndex != null) {
+      final nextBlocks = <BlockNode>[
+        for (var i = 0; i < replacementIndex; i++)
+          session.document.blocks[i].copy(),
+        ...blocks.map((block) => block.copy()),
+        for (var i = replacementIndex + 1;
+            i < session.document.blocks.length;
+            i++)
+          session.document.blocks[i].copy(),
+      ];
+      session.document = RichTextDocument(
+        version: session.document.version,
+        blocks: nextBlocks,
+      );
+      return CommandResult(
+        selection: selection ??
+            _defaultSelectionForInsertedBlock(replacementIndex, blocks.first),
+      );
+    }
     final nextBlocks = <BlockNode>[
       for (var i = 0; i < insertIndex; i++) session.document.blocks[i].copy(),
       ...blocks.map((block) => block.copy()),
@@ -41,6 +65,66 @@ class InsertBlocksCommand extends EditorCommand {
     );
     return CommandResult(selection: selection);
   }
+}
+
+int? _emptyParagraphReplacementIndex(
+  DocumentSession session,
+  int insertIndex,
+  List<BlockNode> insertedBlocks,
+) {
+  if (insertedBlocks.length != 1 || insertedBlocks.single is TextBlockNode) {
+    return null;
+  }
+  final selection = session.selection;
+  if (selection == null || !selection.isCollapsed) {
+    return null;
+  }
+  final position = selection.extent;
+  if (!position.path.isBlockText) {
+    return null;
+  }
+  final caretIndex = position.blockIndex;
+  if (insertIndex != caretIndex && insertIndex != caretIndex + 1) {
+    return null;
+  }
+  final block = _blockAt(session.document, caretIndex);
+  if (block is! TextBlockNode ||
+      block.type != BlockType.paragraph ||
+      block.plainText.trim().isNotEmpty) {
+    return null;
+  }
+  return caretIndex;
+}
+
+DocumentSelection? _defaultSelectionForInsertedBlock(
+  int blockIndex,
+  BlockNode block,
+) {
+  final position = switch (block) {
+    TextBlockNode() => DocumentPosition.text(
+        blockId: block.id,
+        blockIndex: blockIndex,
+        offset: 0,
+      ),
+    CodeBlockNode() => DocumentPosition.code(
+        blockId: block.id,
+        blockIndex: blockIndex,
+        offset: 0,
+      ),
+    TableBlockNode() => _firstTableCellPosition(block, blockIndex),
+    _ => null,
+  };
+  if (position != null) {
+    return DocumentSelection(base: position, extent: position);
+  }
+  final start = DocumentPosition(
+    blockId: block.id,
+    blockIndex: blockIndex,
+    path: PositionPath.blockObject(block.id),
+    offset: 0,
+  );
+  final end = start.copyWith(offset: _kObjectSelectionLength);
+  return DocumentSelection(base: start, extent: end);
 }
 
 /// Pastes a slice of whole blocks ([pastedBlocks]) at the current selection.
@@ -393,6 +477,27 @@ DocumentPosition? _lastTableCellPosition(TableBlockNode block, int blockIndex) {
         tableRowIndex: rowIndex,
         tableColumnIndex: columnIndex,
         offset: inlineNodesLength(cellTextBlock(cell).content),
+      );
+    }
+  }
+  return null;
+}
+
+DocumentPosition? _firstTableCellPosition(
+    TableBlockNode block, int blockIndex) {
+  for (var rowIndex = 0; rowIndex < block.table.rows.length; rowIndex++) {
+    final row = block.table.rows[rowIndex];
+    for (var columnIndex = 0; columnIndex < row.length; columnIndex++) {
+      final cell = row[columnIndex];
+      if (cell.covered) {
+        continue;
+      }
+      return DocumentPosition.tableCell(
+        tableBlockId: block.id,
+        blockIndex: blockIndex,
+        tableRowIndex: rowIndex,
+        tableColumnIndex: columnIndex,
+        offset: 0,
       );
     }
   }

@@ -40,6 +40,67 @@ void main() {
     expect(session.canUndo, isTrue);
   });
 
+  test('insert object block after current empty paragraph replaces it', () {
+    final session = DocumentSession(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[],
+          ),
+        ],
+      ),
+      selection: collapsedTextSelection('p1', 0, 0),
+    );
+    final executor = CommandExecutor(session);
+
+    executor.execute(
+      const InsertBlocksCommand(
+        index: 1,
+        blocks: <BlockNode>[
+          ImageBlockNode(id: 'img1', assetId: 'a1'),
+        ],
+      ),
+    );
+
+    expect(session.document.blocks, hasLength(1));
+    expect(session.document.blocks.single, isA<ImageBlockNode>());
+    expect(session.selection?.start.blockId, 'img1');
+    expect(session.selection?.start.path.isBlockObject, isTrue);
+    expect(session.selection?.start.offset, 0);
+    expect(session.selection?.end.offset, 1);
+  });
+
+  test('insert object block after non-empty paragraph keeps the paragraph', () {
+    final session = DocumentSession(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'text')],
+          ),
+        ],
+      ),
+      selection: collapsedTextSelection('p1', 0, 4),
+    );
+    final executor = CommandExecutor(session);
+
+    executor.execute(
+      const InsertBlocksCommand(
+        index: 1,
+        blocks: <BlockNode>[
+          ImageBlockNode(id: 'img1', assetId: 'a1'),
+        ],
+      ),
+    );
+
+    expect(session.document.blocks, hasLength(2));
+    expect(session.document.blocks[0].id, 'p1');
+    expect(session.document.blocks[1], isA<ImageBlockNode>());
+  });
+
   test('replace blocks command replaces requested range', () {
     final session = DocumentSession(
       document: const RichTextDocument(

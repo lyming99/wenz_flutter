@@ -802,6 +802,13 @@ CommandResult _mergeWithPreviousBlock(
       selection: DocumentSelection(base: nextPosition, extent: nextPosition),
     );
   }
+  if (_isNonTextBlock(previous) && current != null) {
+    _replaceBlocks(session, previousIndex, 1, const <BlockNode>[]);
+    final nextPosition = position.copyWith(blockIndex: previousIndex);
+    return CommandResult(
+      selection: DocumentSelection(base: nextPosition, extent: nextPosition),
+    );
+  }
   return const CommandResult(recordHistory: false);
 }
 
@@ -846,7 +853,17 @@ CommandResult _mergeWithNextBlock(
       selection: DocumentSelection(base: nextPosition, extent: nextPosition),
     );
   }
+  if (current != null && _isNonTextBlock(next)) {
+    _replaceBlocks(session, nextIndex, 1, const <BlockNode>[]);
+    return CommandResult(
+      selection: DocumentSelection(base: position, extent: position),
+    );
+  }
   return const CommandResult(recordHistory: false);
+}
+
+bool _isNonTextBlock(BlockNode? block) {
+  return block != null && block is! TextBlockNode && block is! CodeBlockNode;
 }
 
 BlockNode? _blockAt(RichTextDocument document, int index) {

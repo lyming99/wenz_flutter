@@ -419,6 +419,80 @@ void main() {
     expect(session.selection?.extent.offset, 6);
   });
 
+  test('delete backward at text start removes previous image block', () {
+    final session = DocumentSession(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'before')],
+          ),
+          ImageBlockNode(id: 'img1', assetId: 'a1'),
+          TextBlockNode(
+            id: 'p2',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'after')],
+          ),
+        ],
+      ),
+      selection: collapsedTextSelection('p2', 2, 0),
+    );
+    final executor = CommandExecutor(session);
+
+    executor.execute(const DeleteBackwardCommand());
+
+    expect(session.document.blocks, hasLength(2));
+    expect(session.document.blocks[0].id, 'p1');
+    expect(session.document.blocks[1].id, 'p2');
+    expect(session.selection?.extent.blockId, 'p2');
+    expect(session.selection?.extent.blockIndex, 1);
+    expect(session.selection?.extent.offset, 0);
+  });
+
+  test('delete backward at text start removes previous table block', () {
+    final session = DocumentSession(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TableBlockNode(
+            id: 'table1',
+            table: TableModel(
+              rows: <List<TableCellNode>>[
+                <TableCellNode>[
+                  TableCellNode(
+                    id: 'cell1',
+                    blocks: <BlockNode>[
+                      TextBlockNode(
+                        id: 'cell-p1',
+                        type: BlockType.paragraph,
+                        content: <InlineNode>[TextRun(text: 'cell')],
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'after')],
+          ),
+        ],
+      ),
+      selection: collapsedTextSelection('p1', 1, 0),
+    );
+    final executor = CommandExecutor(session);
+
+    executor.execute(const DeleteBackwardCommand());
+
+    expect(session.document.blocks, hasLength(1));
+    expect(session.document.blocks.single.id, 'p1');
+    expect(session.selection?.extent.blockId, 'p1');
+    expect(session.selection?.extent.blockIndex, 0);
+    expect(session.selection?.extent.offset, 0);
+  });
+
   test('delete forward merges code blocks at block end', () {
     final session = DocumentSession(
       document: const RichTextDocument(
@@ -437,6 +511,37 @@ void main() {
     expect(session.document.plainText, 'final a = 1;');
     expect(session.selection?.extent.blockId, 'c1');
     expect(session.selection?.extent.offset, 10);
+  });
+
+  test('delete forward at text end removes next image block', () {
+    final session = DocumentSession(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'before')],
+          ),
+          ImageBlockNode(id: 'img1', assetId: 'a1'),
+          TextBlockNode(
+            id: 'p2',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'after')],
+          ),
+        ],
+      ),
+      selection: collapsedTextSelection('p1', 0, 6),
+    );
+    final executor = CommandExecutor(session);
+
+    executor.execute(const DeleteForwardCommand());
+
+    expect(session.document.blocks, hasLength(2));
+    expect(session.document.blocks[0].id, 'p1');
+    expect(session.document.blocks[1].id, 'p2');
+    expect(session.selection?.extent.blockId, 'p1');
+    expect(session.selection?.extent.blockIndex, 0);
+    expect(session.selection?.extent.offset, 6);
   });
 
   test('generic text commands edit table cell text', () {

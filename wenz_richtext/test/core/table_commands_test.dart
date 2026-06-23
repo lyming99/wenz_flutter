@@ -22,6 +22,47 @@ void main() {
     expect(session.canUndo, isTrue);
   });
 
+  test('insert table after current empty paragraph replaces it', () {
+    final position = DocumentPosition.text(
+      blockId: 'p1',
+      blockIndex: 0,
+      offset: 0,
+    );
+    final session = DocumentSession(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[],
+          ),
+        ],
+      ),
+      selection: DocumentSelection(base: position, extent: position),
+    );
+    final executor = CommandExecutor(session);
+
+    executor.execute(
+      const InsertTableCommand(
+        index: 1,
+        tableId: 't1',
+        rowCount: 2,
+        columnCount: 2,
+      ),
+    );
+
+    expect(session.document.blocks, hasLength(1));
+    final table = session.document.blocks.single as TableBlockNode;
+    expect(table.table.rowCount, 2);
+    expect(table.table.columnCount, 2);
+    expect(session.selection?.extent.blockId, 't1');
+    expect(session.selection?.extent.blockIndex, 0);
+    expect(session.selection?.extent.path.isTableCellText, isTrue);
+    expect(session.selection?.extent.path.tableRowIndex, 0);
+    expect(session.selection?.extent.path.tableColumnIndex, 0);
+    expect(session.selection?.extent.offset, 0);
+  });
+
   test('insert table row and column update dimensions', () {
     final session = DocumentSession(document: _tableDocument());
     final executor = CommandExecutor(session);
@@ -200,6 +241,10 @@ void main() {
     expect(textBlock.content, hasLength(3));
     expect((textBlock.content[1] as TextRun).text, 'ell');
     expect((textBlock.content[1] as TextRun).attributes.bold, isTrue);
+    expect(session.selection?.base.path.isTableCellText, isTrue);
+    expect(session.selection?.base.offset, 1);
+    expect(session.selection?.extent.path.isTableCellText, isTrue);
+    expect(session.selection?.extent.offset, 4);
   });
 
   test('ToggleMarkCommand toggles bold inside a table cell', () {
@@ -236,12 +281,14 @@ void main() {
     var textBlock = _cellTextBlock(session, 0, 0);
     expect((textBlock.content[1] as TextRun).text, 'ell');
     expect((textBlock.content[1] as TextRun).attributes.bold, isTrue);
+    expect(session.selection, selection);
 
     // Toggle off — the whole range clears bold.
     executor.execute(ToggleMarkCommand(TextMark.bold, selection: selection));
     textBlock = _cellTextBlock(session, 0, 0);
     final runs = textBlock.content.whereType<TextRun>();
     expect(runs.every((r) => r.attributes.bold != true), isTrue);
+    expect(session.selection, selection);
   });
 
   test('SetLinkCommand sets and clears a link inside a table cell', () {

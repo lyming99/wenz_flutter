@@ -219,7 +219,14 @@ CommandResult formatTableCellInlineRange(
     columnIndex,
     target.cell,
     nextTextBlock,
-    cellSelection(target.tableBlock.id, blockIndex, rowIndex, columnIndex, safeEnd),
+    cellRangeSelection(
+      target.tableBlock.id,
+      blockIndex,
+      rowIndex,
+      columnIndex,
+      safeStart,
+      safeEnd,
+    ),
   );
 }
 
@@ -273,11 +280,12 @@ CommandResult toggleTableCellMark(
     columnIndex,
     target.cell,
     nextTextBlock,
-    cellSelection(
+    cellRangeSelection(
       target.tableBlock.id,
       blockIndex,
       rowIndex,
       columnIndex,
+      safeStart,
       safeEnd,
     ),
   );
@@ -319,7 +327,14 @@ CommandResult setTableCellLinkRange(
     columnIndex,
     target.cell,
     nextTextBlock,
-    cellSelection(target.tableBlock.id, blockIndex, rowIndex, columnIndex, safeEnd),
+    cellRangeSelection(
+      target.tableBlock.id,
+      blockIndex,
+      rowIndex,
+      columnIndex,
+      safeStart,
+      safeEnd,
+    ),
   );
 }
 
@@ -363,7 +378,14 @@ CommandResult clearTableCellInlineStyle(
     columnIndex,
     target.cell,
     nextTextBlock,
-    cellSelection(target.tableBlock.id, blockIndex, rowIndex, columnIndex, safeEnd),
+    cellRangeSelection(
+      target.tableBlock.id,
+      blockIndex,
+      rowIndex,
+      columnIndex,
+      safeStart,
+      safeEnd,
+    ),
   );
 }
 
@@ -582,6 +604,31 @@ DocumentSelection cellSelection(
     offset: offset,
   );
   return DocumentSelection(base: position, extent: position);
+}
+
+DocumentSelection cellRangeSelection(
+  String tableId,
+  int blockIndex,
+  int rowIndex,
+  int columnIndex,
+  int startOffset,
+  int endOffset,
+) {
+  final start = DocumentPosition.tableCell(
+    tableBlockId: tableId,
+    blockIndex: blockIndex,
+    tableRowIndex: rowIndex,
+    tableColumnIndex: columnIndex,
+    offset: startOffset,
+  );
+  final end = DocumentPosition.tableCell(
+    tableBlockId: tableId,
+    blockIndex: blockIndex,
+    tableRowIndex: rowIndex,
+    tableColumnIndex: columnIndex,
+    offset: endOffset,
+  );
+  return DocumentSelection(base: start, extent: end);
 }
 
 List<TableCellNode> copyRow(List<TableCellNode> row) {

@@ -552,6 +552,40 @@ void main() {
         toolbar.dispose();
         host.dispose();
       });
+
+      test('toggleBold preserves a table cell range selection', () {
+        final start = DocumentPosition.tableCell(
+          tableBlockId: 'table',
+          blockIndex: 0,
+          tableRowIndex: 0,
+          tableColumnIndex: 0,
+          offset: 0,
+        );
+        final end = DocumentPosition.tableCell(
+          tableBlockId: 'table',
+          blockIndex: 0,
+          tableRowIndex: 0,
+          tableColumnIndex: 0,
+          offset: 4,
+        );
+        final selection = DocumentSelection(base: start, extent: end);
+        final host = WenzRichTextController(
+          document: _tableDoc(),
+          selection: selection,
+        );
+        final toolbar = ToolbarController(host);
+
+        toolbar.toggleBold();
+
+        expect(host.selection, selection);
+        final table = host.document.blocks.single as TableBlockNode;
+        final textBlock =
+            table.table.cellAt(0, 0)!.blocks.single as TextBlockNode;
+        expect((textBlock.content.single as TextRun).attributes.bold, isTrue);
+
+        toolbar.dispose();
+        host.dispose();
+      });
     });
   });
 }

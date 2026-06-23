@@ -2044,6 +2044,48 @@ void main() {
     expect(controller.selection?.extent.offset, 0);
   });
 
+  testWidgets('Backspace at text start deletes the previous image block', (
+    tester,
+  ) async {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          ImageBlockNode(id: 'image1', assetId: 'hero', file: 'hero.png'),
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'after')],
+          ),
+        ],
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WenzRichTextEditor(
+            controller: controller,
+            autofocus: true,
+            enableIme: false,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await _tapTextOffset(tester, 'after', 0);
+    await tester.pump();
+    await tester.sendKeyEvent(LogicalKeyboardKey.backspace);
+    await tester.pump();
+
+    expect(controller.document.blocks, hasLength(1));
+    expect(controller.document.blocks.single.id, 'p1');
+    expect(find.text('[image: hero.png]'), findsNothing);
+    expect(controller.selection?.extent.blockId, 'p1');
+    expect(controller.selection?.extent.blockIndex, 0);
+    expect(controller.selection?.extent.offset, 0);
+  });
+
   testWidgets('Ctrl+Z / Ctrl+Shift+Z undo and redo', (tester) async {
     final controller = WenzRichTextController(
       document: const RichTextDocument(
@@ -2830,6 +2872,46 @@ void main() {
       );
     }
 
+    RichTextDocument measuredDocument({required bool tallBlock}) {
+      return RichTextDocument(
+        blocks: <BlockNode>[
+          for (var i = 0; i < 60; i++)
+            TextBlockNode(
+              id: 'p$i',
+              type: BlockType.paragraph,
+              content: <InlineNode>[
+                TextRun(text: tallBlock && i == 35 ? 'tall' : 'short'),
+              ],
+            ),
+        ],
+      );
+    }
+
+    String plainText(BlockNode block) {
+      return (block as TextBlockNode)
+          .content
+          .whereType<TextRun>()
+          .map((run) => run.text)
+          .join();
+    }
+
+    BlockRendererRegistry measuredBlockRenderers() {
+      return BlockRendererRegistry()
+        ..register(BlockType.paragraph, (_, renderContext) {
+          final block = renderContext.block;
+          final text = plainText(block);
+          return SizedBox(
+            key: ValueKey<String>('measured-${block.id}'),
+            height: text == 'tall' ? 320 : 40,
+            width: double.infinity,
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(text),
+            ),
+          );
+        });
+    }
+
     testWidgets('only builds visible blocks for a large document', (
       tester,
     ) async {
@@ -3000,6 +3082,116 @@ void main() {
       final offsetAfter = scrollable().position.pixels;
       // Scrolled forward to bring the caret into view.
       expect(offsetAfter, greaterThan(offsetBefore));
+    });
+
+    testWidgets('updates scroll metrics from measured block extent cache', (
+      tester,
+    ) async {
+      final controller = WenzRichTextController(
+        document: measuredDocument(tallBlock: true),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              height: 300,
+              child: WenzRichTextEditor(
+                controller: controller,
+                padding: EdgeInsets.zero,
+                blockSpacing: 0,
+                blockRenderers: measuredBlockRenderers(),
+                enableIme: false,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      ScrollableState scrollable() => tester.state<ScrollableState>(
+            find.descendant(
+              of: find.byType(WenzRichTextEditor),
+              matching: find.byType(Scrollable),
+            ),
+          );
+
+      expect(
+        find.byKey(const ValueKey<String>('measured-p35')),
+        findsNothing,
+      );
+      final maxBeforeTallMeasured = scrollable().position.maxScrollExtent;
+
+      scrollable().position.jumpTo(1400);
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey<String>('measured-p35')),
+        findsOneWidget,
+      );
+      final maxAfterTallMeasured = scrollable().position.maxScrollExtent;
+      expect(
+        maxAfterTallMeasured,
+        greaterThan(maxBeforeTallMeasured + 200),
+      );
+
+      controller.replaceDocument(measuredDocument(tallBlock: false));
+      await tester.pumpAndSettle();
+
+      expect(
+        scrollable().position.maxScrollExtent,
+        lessThan(maxAfterTallMeasured - 200),
+      );
+    });
+
+    testWidgets('shrinks cached block extent after deleting content', (
+      tester,
+    ) async {
+      final controller = WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'p0',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'tall')],
+            ),
+            TextBlockNode(
+              id: 'p1',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'short')],
+            ),
+          ],
+        ),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              height: 500,
+              child: WenzRichTextEditor(
+                controller: controller,
+                padding: EdgeInsets.zero,
+                blockSpacing: 0,
+                blockRenderers: measuredBlockRenderers(),
+                enableIme: false,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final secondBlock = find.byKey(
+        const ValueKey<String>('measured-p1'),
+      );
+      expect(tester.getTopLeft(secondBlock).dy, 320);
+
+      controller.setSelection(textSelection('p0', 0, 0, 4));
+      controller.deleteSelection();
+      await tester.pumpAndSettle();
+
+      expect(tester.getTopLeft(secondBlock).dy, 40);
     });
   });
 }

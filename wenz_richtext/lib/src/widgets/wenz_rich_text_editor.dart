@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 
 import '../controller/wenz_rich_text_controller.dart';
@@ -29,6 +30,8 @@ const _selectionHighlightKey = ValueKey<String>(
 /// rect reported to the IME, and any future theming all share the same source.
 const double _kCaretStrokeWidth = 1.5;
 const Duration _kBlinkHalfPeriod = Duration(milliseconds: 530);
+const double _kDefaultBlockExtent = 48.0;
+const double _kVirtualListOverscan = 600.0;
 
 /// Minimum block height multiplier applied to the block's font size, ensuring
 /// a tap target even for empty paragraphs. A single constant so the text,
@@ -164,6 +167,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
   late final BlockGeometryRegistry _registry = BlockGeometryRegistry();
   late final ScrollController _scrollController = ScrollController();
   late final SharedTextLayoutCache _layoutCache = SharedTextLayoutCache();
+  final _BlockExtentCache _extentCache = _BlockExtentCache();
   BlockRendererRegistry? _ownedBlockRenderers;
 
   /// Guards [_scrollCaretIntoView]'s virtualised estimate-and-realign loop.
@@ -266,6 +270,12 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
       oldWidget.controller.removeListener(_handleControllerChanged);
       oldWidget.controller.attachFocusNode(null);
       widget.controller.addListener(_handleControllerChanged);
+      _extentCache.clear();
+    } else if (oldWidget.textStyle != widget.textStyle ||
+        oldWidget.blockRenderers != widget.blockRenderers ||
+        oldWidget.mediaResolver != widget.mediaResolver ||
+        oldWidget.inlineEmbedRenderer != widget.inlineEmbedRenderer) {
+      _extentCache.clear();
     }
     // The effective focus node may change when the caller swaps focusNode or
     // controller; re-inject so controller.requestFocus() targets the right node.
@@ -303,9 +313,12 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
       // laid-out painter is not reused on the next build. Selection-only /
       // composition-only changes (empty set) do not invalidate anything.
       final dirty = widget.controller.lastChangedBlockIds;
-      if (dirty != null && dirty.isNotEmpty) {
+      if (dirty == null) {
+        _extentCache.clear();
+      } else if (dirty.isNotEmpty) {
         for (final id in dirty) {
           _layoutCache.removeBlock(id);
+          _extentCache.removeBlock(id);
         }
       }
       // Keep the platform IME candidate window anchored at the caret, and
@@ -397,12 +410,16 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     // re-rendering blocks whose content + selection-relevance did not change.
     final dirtyIds = widget.controller.lastChangedBlockIds;
 
-    final editor = ListView.separated(
+    _extentCache.retainBlocks(blocks);
+
+    final editor = _MeasuredVirtualBlockList(
       controller: _scrollController,
       padding: widget.padding,
       physics: widget.physics,
-      itemCount: blocks.length,
-      separatorBuilder: (context, _) => SizedBox(height: widget.blockSpacing),
+      blocks: blocks,
+      blockSpacing: widget.blockSpacing,
+      extentCache: _extentCache,
+      keepAliveIds: keepAliveIds,
       itemBuilder: (context, i) => _KeepAliveBlock(
         key: ValueKey<String>(blocks[i].id),
         block: blocks[i],
@@ -888,24 +905,20 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
   }
 
   /// Estimates the scroll offset that brings [blockIndex] into view, using the
-  /// average height of currently-mounted blocks. Returns `null` when no blocks
-  /// are measured (so the caller cannot make a reasonable guess).
+  /// cached measured height for each block when available and a measured
+  /// average for blocks the user has not visited yet.
   double? _estimateOffsetForBlock(
     int blockIndex, {
     required double viewportHeight,
   }) {
-    final sample = _registry.averageMountedBlockHeight();
-    if (sample == null) {
+    final blocks = widget.controller.document.blocks;
+    if (blockIndex < 0 || blockIndex >= blocks.length) {
       return null;
     }
-    final meanHeight = sample.meanHeight;
-    final firstBlockIndex = sample.firstBlockIndex;
     // Offset so the target block sits near the top of the viewport. We aim
     // one third down from the top so the surrounding context is visible.
-    final blockSpacing = widget.blockSpacing;
-    final stride = meanHeight + blockSpacing;
     final targetBlockTop =
-        firstBlockIndex * stride + (blockIndex - firstBlockIndex) * stride;
+        _extentCache.offsetFor(blocks, blockIndex, widget.blockSpacing);
     return targetBlockTop - viewportHeight / 3;
   }
 
@@ -1337,11 +1350,394 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
   }
 }
 
+class _BlockExtentCache {
+  final Map<String, double> _extents = <String, double>{};
+  final Map<String, int> _blockVersions = <String, int>{};
+  Set<String> _knownBlockIds = <String>{};
+  int _epoch = 0;
+  double? _contentWidth;
+
+  void clear() {
+    _epoch += 1;
+    _extents.clear();
+  }
+
+  void updateContentWidth(double? width) {
+    if (width == null || !width.isFinite || width < 0) {
+      return;
+    }
+    final previous = _contentWidth;
+    if (previous != null && (previous - width).abs() <= 0.5) {
+      return;
+    }
+    _contentWidth = width;
+    clear();
+  }
+
+  void removeBlock(String blockId) {
+    _extents.remove(blockId);
+    _blockVersions[blockId] = (_blockVersions[blockId] ?? 0) + 1;
+  }
+
+  void retainBlocks(List<BlockNode> blocks) {
+    final ids = blocks.map((block) => block.id).toSet();
+    for (final id in _knownBlockIds.difference(ids)) {
+      removeBlock(id);
+    }
+    _knownBlockIds = ids;
+    _extents.removeWhere((id, _) => !ids.contains(id));
+  }
+
+  int tokenFor(String blockId) {
+    return Object.hash(_epoch, _blockVersions[blockId] ?? 0);
+  }
+
+  bool record(String blockId, int token, double extent) {
+    if (token != tokenFor(blockId)) {
+      return false;
+    }
+    if (!extent.isFinite || extent <= 0) {
+      return false;
+    }
+    final previous = _extents[blockId];
+    if (previous != null && (previous - extent).abs() <= 0.5) {
+      return false;
+    }
+    _extents[blockId] = extent;
+    return true;
+  }
+
+  double get averageExtent {
+    if (_extents.isEmpty) {
+      return _kDefaultBlockExtent;
+    }
+    final total = _extents.values.fold<double>(0, (sum, h) => sum + h);
+    return total / _extents.length;
+  }
+
+  double extentFor(BlockNode block) {
+    return _extents[block.id] ?? averageExtent;
+  }
+
+  double offsetFor(List<BlockNode> blocks, int blockIndex, double spacing) {
+    var offset = 0.0;
+    final safeIndex = blockIndex.clamp(0, blocks.length).toInt();
+    for (var i = 0; i < safeIndex; i++) {
+      offset += extentFor(blocks[i]);
+      if (i < blocks.length - 1) {
+        offset += spacing;
+      }
+    }
+    return offset;
+  }
+
+  _BlockLayoutMetrics layoutFor(List<BlockNode> blocks, double spacing) {
+    final offsets = <double>[];
+    var offset = 0.0;
+    for (var i = 0; i < blocks.length; i++) {
+      offsets.add(offset);
+      offset += extentFor(blocks[i]);
+      if (i < blocks.length - 1) {
+        offset += spacing;
+      }
+    }
+    return _BlockLayoutMetrics(
+      blocks: blocks,
+      offsets: offsets,
+      totalExtent: offset,
+      cache: this,
+    );
+  }
+}
+
+class _BlockLayoutMetrics {
+  const _BlockLayoutMetrics({
+    required this.blocks,
+    required this.offsets,
+    required this.totalExtent,
+    required this.cache,
+  });
+
+  final List<BlockNode> blocks;
+  final List<double> offsets;
+  final double totalExtent;
+  final _BlockExtentCache cache;
+
+  double topFor(int index) => offsets[index];
+
+  double bottomFor(int index) => topFor(index) + cache.extentFor(blocks[index]);
+
+  List<int> visibleIndices(double visibleTop, double visibleBottom) {
+    if (blocks.isEmpty) {
+      return const <int>[];
+    }
+    final start = _firstIndexWithBottomAtOrAfter(visibleTop);
+    if (start >= blocks.length) {
+      return <int>[blocks.length - 1];
+    }
+    final endExclusive = _firstIndexWithTopAfter(visibleBottom);
+    final end = endExclusive <= start ? start + 1 : endExclusive;
+    return <int>[
+      for (var i = start; i < end && i < blocks.length; i++) i,
+    ];
+  }
+
+  int _firstIndexWithBottomAtOrAfter(double y) {
+    var low = 0;
+    var high = blocks.length;
+    while (low < high) {
+      final mid = low + ((high - low) >> 1);
+      if (bottomFor(mid) < y) {
+        low = mid + 1;
+      } else {
+        high = mid;
+      }
+    }
+    return low;
+  }
+
+  int _firstIndexWithTopAfter(double y) {
+    var low = 0;
+    var high = offsets.length;
+    while (low < high) {
+      final mid = low + ((high - low) >> 1);
+      if (offsets[mid] <= y) {
+        low = mid + 1;
+      } else {
+        high = mid;
+      }
+    }
+    return low;
+  }
+}
+
+class _MeasuredVirtualBlockList extends StatefulWidget {
+  const _MeasuredVirtualBlockList({
+    required this.controller,
+    required this.blocks,
+    required this.blockSpacing,
+    required this.extentCache,
+    required this.keepAliveIds,
+    required this.itemBuilder,
+    this.padding = EdgeInsets.zero,
+    this.physics,
+  });
+
+  final ScrollController controller;
+  final List<BlockNode> blocks;
+  final double blockSpacing;
+  final _BlockExtentCache extentCache;
+  final Set<String> keepAliveIds;
+  final IndexedWidgetBuilder itemBuilder;
+  final EdgeInsetsGeometry padding;
+  final ScrollPhysics? physics;
+
+  @override
+  State<_MeasuredVirtualBlockList> createState() =>
+      _MeasuredVirtualBlockListState();
+}
+
+class _MeasuredVirtualBlockListState extends State<_MeasuredVirtualBlockList> {
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(_handleScroll);
+  }
+
+  @override
+  void didUpdateWidget(covariant _MeasuredVirtualBlockList oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      oldWidget.controller.removeListener(_handleScroll);
+      widget.controller.addListener(_handleScroll);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_handleScroll);
+    super.dispose();
+  }
+
+  void _handleScroll() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  void _handleExtentChanged(String blockId, int measureToken, double extent) {
+    if (widget.extentCache.record(blockId, measureToken, extent) && mounted) {
+      setState(() {});
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final padding = widget.padding.resolve(Directionality.of(context));
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final contentWidth = constraints.maxWidth.isFinite
+            ? (constraints.maxWidth - padding.horizontal)
+                .clamp(0.0, double.infinity)
+                .toDouble()
+            : null;
+        widget.extentCache.updateContentWidth(contentWidth);
+        final metrics = widget.extentCache.layoutFor(
+          widget.blocks,
+          widget.blockSpacing,
+        );
+        final viewportHeight =
+            constraints.maxHeight.isFinite ? constraints.maxHeight : 0.0;
+        final scrollOffset =
+            widget.controller.hasClients ? widget.controller.offset : 0.0;
+        final contentTop = (scrollOffset - padding.top - _kVirtualListOverscan)
+            .clamp(0.0, double.infinity)
+            .toDouble();
+        final contentBottom =
+            scrollOffset - padding.top + viewportHeight + _kVirtualListOverscan;
+        final visible = metrics.visibleIndices(contentTop, contentBottom);
+        final indices = <int>{...visible};
+        for (var i = 0; i < widget.blocks.length; i++) {
+          if (widget.keepAliveIds.contains(widget.blocks[i].id)) {
+            indices.add(i);
+          }
+        }
+        final sortedIndices = indices.toList()..sort();
+        final height = padding.vertical + metrics.totalExtent;
+        return SingleChildScrollView(
+          controller: widget.controller,
+          physics: widget.physics,
+          child: SizedBox(
+            width: double.infinity,
+            height: height,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: <Widget>[
+                for (final index in sortedIndices)
+                  Positioned(
+                    key: ValueKey<String>(
+                      'wenz-richtext-positioned-${widget.blocks[index].id}',
+                    ),
+                    top: padding.top + metrics.topFor(index),
+                    left: padding.left,
+                    right: padding.right,
+                    child: _MeasuredBlockExtent(
+                      key: ValueKey<String>(
+                        'wenz-richtext-measure-${widget.blocks[index].id}',
+                      ),
+                      blockId: widget.blocks[index].id,
+                      measureToken: widget.extentCache.tokenFor(
+                        widget.blocks[index].id,
+                      ),
+                      onChanged: _handleExtentChanged,
+                      child: widget.itemBuilder(context, index),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _MeasuredBlockExtent extends SingleChildRenderObjectWidget {
+  const _MeasuredBlockExtent({
+    super.key,
+    required this.blockId,
+    required this.measureToken,
+    required this.onChanged,
+    required super.child,
+  });
+
+  final String blockId;
+  final int measureToken;
+  final void Function(String blockId, int measureToken, double extent)
+      onChanged;
+
+  @override
+  RenderObject createRenderObject(BuildContext context) {
+    return _RenderMeasuredBlockExtent(
+      blockId: blockId,
+      measureToken: measureToken,
+      onChanged: onChanged,
+    );
+  }
+
+  @override
+  void updateRenderObject(
+    BuildContext context,
+    covariant _RenderMeasuredBlockExtent renderObject,
+  ) {
+    renderObject
+      ..blockId = blockId
+      ..measureToken = measureToken
+      ..onChanged = onChanged;
+  }
+}
+
+class _RenderMeasuredBlockExtent extends RenderProxyBox {
+  _RenderMeasuredBlockExtent({
+    required String blockId,
+    required int measureToken,
+    required void Function(String blockId, int measureToken, double extent)
+        onChanged,
+  })  : _blockId = blockId,
+        _measureToken = measureToken,
+        _onChanged = onChanged;
+
+  String _blockId;
+  int _measureToken;
+  void Function(String blockId, int measureToken, double extent) _onChanged;
+  double? _lastReportedExtent;
+
+  set blockId(String value) {
+    if (_blockId == value) {
+      return;
+    }
+    _blockId = value;
+    _lastReportedExtent = null;
+  }
+
+  set measureToken(int value) {
+    if (_measureToken == value) {
+      return;
+    }
+    _measureToken = value;
+    _lastReportedExtent = null;
+  }
+
+  set onChanged(
+    void Function(String blockId, int measureToken, double extent) value,
+  ) {
+    _onChanged = value;
+  }
+
+  @override
+  void performLayout() {
+    super.performLayout();
+    final extent = size.height;
+    final previous = _lastReportedExtent;
+    if (previous != null && (previous - extent).abs() <= 0.5) {
+      return;
+    }
+    _lastReportedExtent = extent;
+    final reportedBlockId = _blockId;
+    final reportedToken = _measureToken;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (attached) {
+        _onChanged(reportedBlockId, reportedToken, extent);
+      }
+    });
+  }
+}
+
 /// Wraps a [_BlockRenderer] so that the underlying block widget (and its
 /// [_TextSelectionSurface] children, geometry registration, and text-layout
 /// cache) stay mounted even when scrolled out of the viewport — but only when
 /// [keepAlive] is true. Used to keep the caret block and selection endpoints
-/// alive under [ListView.separated] virtualisation, so the caret and selection
+/// alive under editor virtualisation, so the caret and selection
 /// highlight always paint and the geometry registry always knows their box.
 ///
 /// Also drives incremental rebuild: a block is only re-rendered when its
