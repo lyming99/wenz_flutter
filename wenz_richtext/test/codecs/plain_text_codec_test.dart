@@ -94,6 +94,32 @@ void main() {
       expect(output.split('\n\n'), hasLength(5));
     });
 
+    test('image sentinel prefers caption then alt text', () {
+      const codec = PlainTextCodec();
+
+      expect(
+        codec.encode(
+          const RichTextDocument(
+            blocks: <BlockNode>[
+              ImageBlockNode(
+                id: 'img1',
+                assetId: 'hero',
+                file: 'hero.png',
+                caption: 'Hero caption',
+                altText: 'Hero alt',
+              ),
+              ImageBlockNode(
+                id: 'img2',
+                assetId: 'chart',
+                altText: 'Chart alt',
+              ),
+            ],
+          ),
+        ),
+        '[image: Hero caption]\n\n[image: Chart alt]',
+      );
+    });
+
     test('omits empty blocks when configured', () {
       const document = RichTextDocument(
         blocks: <BlockNode>[

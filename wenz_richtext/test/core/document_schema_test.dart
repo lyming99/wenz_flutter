@@ -27,6 +27,7 @@ void main() {
               checked: true,
               indent: 1,
               alignment: 'center',
+              anchor: 'intro',
             ),
             content: <InlineNode>[TextRun(text: 'Title')],
           ),
@@ -38,6 +39,7 @@ void main() {
       expect(block.attributes.level, 2);
       expect(block.attributes.indent, 1);
       expect(block.attributes.alignment, 'center');
+      expect(block.attributes.anchor, 'intro');
       // list-specific attrs stripped from a heading.
       expect(block.attributes.listType, isNull);
       expect(block.attributes.checked, isNull);
@@ -81,7 +83,8 @@ void main() {
       expect(blocks[2].attributes.listType, 'task');
     });
 
-    test('paragraph drops level/listType/checked but keeps indent/alignment', () {
+    test('paragraph drops level/listType/checked but keeps indent/alignment',
+        () {
       const doc = RichTextDocument(
         blocks: <BlockNode>[
           TextBlockNode(
@@ -105,6 +108,23 @@ void main() {
       expect(block.attributes.checked, isNull);
       expect(block.attributes.indent, 2);
       expect(block.attributes.alignment, 'right');
+    });
+
+    test('block embed normalizes type and fallback text', () {
+      const doc = RichTextDocument(
+        blocks: <BlockNode>[
+          BlockEmbedNode(
+            id: 'embed1',
+            embedType: '  ',
+            fallbackText: '  Acme account  ',
+          ),
+        ],
+      );
+
+      final block = schema.normalize(doc).blocks.single as BlockEmbedNode;
+
+      expect(block.embedType, 'custom');
+      expect(block.fallbackText, 'Acme account');
     });
 
     test('table cell with no blocks gets a paragraph', () {

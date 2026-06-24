@@ -378,6 +378,109 @@ void main() {
       expect(client.currentBuffer, TextEditingValue.empty);
     });
 
+    test('insertion delta replaces cross-block selection at the start', () {
+      controller = _crossBlockController();
+      client = EditorTextInputClient(controller);
+      client.syncBufferForTest();
+
+      client.injectDelta(
+        const TextEditingDeltaInsertion(
+          oldText: '',
+          insertionOffset: 0,
+          textInserted: 'n',
+          selection: TextSelection.collapsed(offset: 1),
+          composing: TextRange(start: 0, end: 1),
+        ),
+      );
+
+      expect(controller.document.plainText, 'abnXYZ');
+      expect(controller.selection?.isCollapsed, isTrue);
+      expect(controller.selection?.extent.blockId, 'p1');
+      expect(controller.selection?.extent.offset, 3);
+      expect(controller.compositionState, isNotNull);
+      expect(controller.compositionState!.startOffset, 2);
+      expect(controller.compositionState!.endOffset, 3);
+
+      controller.undo();
+
+      expect(controller.document.plainText, 'abcdef\n123XYZ');
+      expect(controller.selection?.isCollapsed, isFalse);
+      expect(controller.selection?.start.offset, 2);
+      expect(controller.selection?.end.offset, 3);
+    });
+
+    test('replacement delta maps pinyin across a cross-block selection', () {
+      controller = _crossBlockController();
+      client = EditorTextInputClient(controller);
+      client.syncBufferForTest();
+
+      client.injectDelta(
+        const TextEditingDeltaReplacement(
+          oldText: '',
+          replacementText: 'ni',
+          replacedRange: TextRange(start: 0, end: 0),
+          selection: TextSelection.collapsed(offset: 2),
+          composing: TextRange(start: 0, end: 2),
+        ),
+      );
+
+      expect(controller.document.plainText, 'abniXYZ');
+      expect(controller.selection?.isCollapsed, isTrue);
+      expect(controller.selection?.extent.blockId, 'p1');
+      expect(controller.selection?.extent.offset, 4);
+      expect(controller.compositionState, isNotNull);
+      expect(controller.compositionState!.startOffset, 2);
+      expect(controller.compositionState!.endOffset, 4);
+    });
+
+    test('non-delta pinyin replaces cross-block selection before composing',
+        () {
+      controller = _crossBlockController();
+      client = EditorTextInputClient(controller);
+      client.syncBufferForTest();
+
+      client.updateEditingValue(
+        const TextEditingValue(
+          text: 'n',
+          selection: TextSelection.collapsed(offset: 1),
+          composing: TextRange(start: 0, end: 1),
+        ),
+      );
+
+      expect(controller.document.plainText, 'abnXYZ');
+      expect(controller.selection?.extent.blockId, 'p1');
+      expect(controller.selection?.extent.offset, 3);
+      expect(controller.compositionState, isNotNull);
+      expect(controller.compositionState!.startOffset, 2);
+      expect(controller.compositionState!.endOffset, 3);
+
+      client.updateEditingValue(
+        const TextEditingValue(
+          text: 'ni',
+          selection: TextSelection.collapsed(offset: 2),
+          composing: TextRange(start: 0, end: 2),
+        ),
+      );
+
+      expect(controller.document.plainText, 'abniXYZ');
+      expect(controller.selection?.extent.offset, 4);
+      expect(controller.compositionState, isNotNull);
+      expect(controller.compositionState!.startOffset, 2);
+      expect(controller.compositionState!.endOffset, 4);
+
+      client.updateEditingValue(
+        const TextEditingValue(
+          text: '\u4F60',
+          selection: TextSelection.collapsed(offset: 1),
+          composing: TextRange.empty,
+        ),
+      );
+
+      expect(controller.document.plainText, 'ab\u4F60XYZ');
+      expect(controller.selection?.extent.offset, 3);
+      expect(controller.compositionState, isNull);
+    });
+
     test('deletion delta removes active selection even with empty range', () {
       controller.insertText('Hello');
       controller.setSelection(textSelection('p1', 0, 1, 4));
@@ -630,4 +733,35 @@ DocumentSelection _collapsedTableCellSelection(int offset) {
     offset: offset,
   );
   return DocumentSelection(base: position, extent: position);
+}
+
+WenzRichTextController _crossBlockController() {
+  return WenzRichTextController(
+    document: const RichTextDocument(
+      blocks: <BlockNode>[
+        TextBlockNode(
+          id: 'p1',
+          type: BlockType.paragraph,
+          content: <InlineNode>[TextRun(text: 'abcdef')],
+        ),
+        TextBlockNode(
+          id: 'p2',
+          type: BlockType.paragraph,
+          content: <InlineNode>[TextRun(text: '123XYZ')],
+        ),
+      ],
+    ),
+    selection: DocumentSelection(
+      base: DocumentPosition.text(
+        blockId: 'p1',
+        blockIndex: 0,
+        offset: 2,
+      ),
+      extent: DocumentPosition.text(
+        blockId: 'p2',
+        blockIndex: 1,
+        offset: 3,
+      ),
+    ),
+  );
 }

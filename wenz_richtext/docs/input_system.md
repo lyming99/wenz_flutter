@@ -7,7 +7,7 @@
 输入由四条路径汇入 `WenzRichTextController`：
 
 1. **IME / TextInputClient**（字符输入、组合输入）— `EditorTextInputClient`。
-2. **键盘快捷键**（非字符键、Ctrl 组合）— `WenzRichTextEditor._handleKeyEvent`。
+2. **键盘快捷键**（非字符键、Ctrl 组合）— `EditorShortcutManager` 解析 keymap，`WenzRichTextEditor` 执行动作。
 3. **剪贴板**（复制/剪切/粘贴）— `ClipboardService` + 控制器方法。
 4. **命令合并**（undo 粒度）— `CommandExecutor` + `HistoryManager.merge`。
 
@@ -44,6 +44,7 @@
 `CommandExecutor.execute` 在 `history.push` 前咨询 `command.canMergeWith(lastCommand)`：
 
 - `InsertTextCommand.canMergeWith` → 连续相同 attributes 的插入合并为一个 undo step。
+- `AutoLinkUrlsCommand` 由 `insertText` 在检测到 URL 候选文本或收尾字符后自动触发，并与前一条 `InsertTextCommand` 合并为同一个 undo step。
 - `DeleteBackwardCommand` / `DeleteForwardCommand` → 连续同向删除合并。
 - `MoveCaretCommand` / `MoveCaretByWordCommand` / `*BoundaryCommand` / `SelectAllCommand` → `breaksMergeRun: true`，**移动光标打断合并**（即便它们 `recordHistory: false`）。
 - `EnterCommand` / `DeleteSelectionCommand` / 样式/块命令 → 不合并，每步独立。
@@ -70,13 +71,32 @@
 - `blocks`：走 `PasteBlocksCommand`——删除当前选区后，在 caret 处分裂当前 block，首块 inline 合并进前半段，末块 inline 合并进后半段，中间 block 按原 type/attributes 作为新 block 插入。
 - 纯文本多行：首行插入当前块，后续每行触发 `EnterCommand` 分段。
 
-控制器方法：`copySelection()` / `cutSelection()` / `pasteText(raw)`。widget 的 Ctrl+C/X/V 调用它们并桥接 `Clipboard.setData/getText`。
+纯文本输入/粘贴默认会识别 `http(s)://` 和 `www.` URL，并通过命令层写入 `TextAttributes.url`；业务侧可在直接调用 `insertText` 时传 `applyAutoLinkUrls: false` 关闭本次自动识别。
 
-### HTML/Markdown 预留
+控制器方法：`copySelection()` / `cutSelection()` / `pasteText(raw)` /
+`pasteMarkdown(markdown)` / `pasteHtml(html)`。widget 的 Ctrl+C/X/V 调用纯文本
+入口并桥接 `Clipboard.setData/getText`；业务层如果能拿到平台 HTML/Markdown
+flavour，可以直接调用对应入口。
 
-`ClipboardService.pasteHtml` / `pasteMarkdown` 当前返回 `null`（阶段 6 实现），接口已预留。
+### HTML/Markdown 粘贴
+
+`ClipboardService.parse(raw, format: ...)` 是统一解析入口：
+
+- `auto`：默认行为，识别 Wenz rich JSON 前缀，否则作为纯文本。
+- `plainText`：强制纯文本，不识别 rich JSON。
+- `markdown`：经 `MarkdownCodec.decode` 还原为 `ClipboardPaste.blocks`。
+- `html`：经 `HtmlCodec.decode` 还原为 `ClipboardPaste.blocks`。
+
+`ClipboardService.parseMarkdown` / `parseHtml` 是对应的便捷入口；
+`pasteHtml` 保留为 `parseHtml` 的别名。旧的 `pasteMarkdown` 保留 inline-only
+兼容行为，完整块结构粘贴请使用 `parseMarkdown` 或 `parse(..., format: markdown)`。
 
 ## 快捷键
+
+`EditorShortcutManager`（`lib/src/input/shortcut_manager.dart`）负责把
+`KeyEvent` 解析为 `EditorShortcutIntent`，不直接依赖 controller、Clipboard
+或 widget 状态。`WenzRichTextEditor._handleKeyEvent` 只读取当前修饰键状态，
+把解析结果交给 `_performShortcut` 执行，因此 keymap 可以用纯单元测试覆盖。
 
 `_handleKeyEvent` 按修饰键分层：
 
@@ -92,15 +112,91 @@
 | Ctrl/Cmd+C | 复制 | 是 |
 | Ctrl/Cmd+X | 剪切 | 否 |
 | Ctrl/Cmd+V | 粘贴 | 否 |
+| Ctrl/Cmd+F | 查找 | 是（仅在接入查找入口时拦截） |
+| Ctrl/Cmd+H | 替换 | 否（仅在接入替换入口时拦截） |
 | Ctrl/Cmd+Z / Ctrl+Shift+Z | 撤销/重做 | 否 |
 | Ctrl/Cmd+Y | 重做 | 否 |
 | Ctrl/Cmd+←/→ | 按词移动（Shift 扩选） | 否 |
 | Ctrl/Cmd+Home/End | 文档首/尾 | 否 |
 
+`EditorShortcutManager` 的查找/替换 intent 由 widget 层按需启用：
+`WenzRichTextEditor` 只有在传入 `findController`、`onFindRequested` 或
+`onReplaceRequested` 时才会处理 Ctrl/Cmd+F/H；否则这些组合键继续冒泡给
+浏览器或宿主应用。
+
+## 查找替换
+
+`WenzFindReplaceController` 监听宿主 `WenzRichTextController`，维护 query、
+replacement、匹配项列表和当前命中。匹配范围使用现有
+`DocumentSelection`/`PositionPath`，覆盖普通文本块、代码块和表格单元格的
+首个文本块。
+
+- `next()` / `previous()` 会把编辑器 selection 移到当前命中。
+- `replaceCurrent()` 通过 `controller.insertText(..., applyMarkdownShortcuts: false)`
+  替换当前 selection，因此复用既有删除选区、表格 cell 输入和 history 逻辑。
+- `replaceAll()` 从后往前替换，避免前面的替换移动后续 offset。
+- `FindReplaceOptions.caseSensitive` 和 `wholeWord` 已预留并实现基础匹配。
+
+`WenzRichTextEditor.findController` 会把所有命中绘制为搜索高亮，当前命中用
+更明显的颜色；`WenzFindReplacePanel` 是可嵌入的基础 UI，业务层可以放在
+工具栏、侧栏或自定义浮层内。
+
+## Slash 菜单
+
+`SlashMenuController` 监听宿主 `WenzRichTextController`，在 collapsed caret
+前检测 `/query` 触发范围。菜单项来自 `SlashMenuRegistry`，默认包含
+`heading`、`list`、`todo`、`quote`、`code`、`table`、`image`；业务侧可以
+通过 `registry.register(SlashMenuItem(...))` 扩展。
+
+`WenzRichTextEditor.slashMenuController` 接入后会：
+
+- 在菜单打开时绘制 `WenzSlashMenuOverlay`。
+- ArrowUp / ArrowDown 移动高亮项。
+- Enter 执行当前项。
+- Esc 关闭菜单。
+
+执行菜单项时，controller 先用现有 `deleteSelection` 删除 `/query` 触发文本，
+再运行菜单项 action。默认项都转成既有命令或 controller helper，因此进入
+undo/redo：文本类走 `setBlockType` / `toggleTodo`，代码/图片走
+`insertBlocks` / `replaceBlocks`，表格走 `insertTable`。
+
+## 代码块 Tab 缩进
+
+当 selection 位于同一个 `CodeBlockNode` 的 `PositionPath.blockCode` 内时，
+`WenzRichTextEditor` 会优先拦截 Tab / Shift+Tab，不再把它当成表格导航或
+焦点切换。Tab 调用 `controller.indentCodeBlock()`，Shift+Tab 调用
+`controller.indentCodeBlock(outdent: true)`；底层为 `IndentCodeBlockCommand`，
+会对 selection 覆盖到的每一行插入或移除缩进，并同步修正 caret/selection
+offset，因此可以 undo/redo。
+
+## Markdown 快捷输入
+
+`WenzRichTextController.insertText` 在单字符输入后会尝试执行
+`ApplyMarkdownShortcutCommand`。快捷转换本身仍然走命令层，所以 schema
+normalise、history、callbacks 和 undo/redo 都保持一致。
+
+当前触发规则：
+
+| 输入 | 行为 |
+| --- | --- |
+| `# ` / `## ` / ... / `###### ` | 转为 1-6 级标题 |
+| `- ` / `* ` | 转为无序列表 |
+| `1. ` / `2. ` / ... | 转为有序列表 |
+| `> ` | 转为引用块 |
+| 三个反引号 | 转为空代码块 |
+| `---` | 转为分割线，并在后面创建一个空段落 |
+| 在无序列表项中输入 `[ ] ` | 转为未勾选任务列表 |
+| 在无序列表项中输入 `[x] ` / `[X] ` | 转为已勾选任务列表 |
+
+程序化插入不希望触发自动格式化时，可以传：
+
+```dart
+controller.insertText(' ', applyMarkdownShortcuts: false);
+```
+
 ## 阶段边界（留到后续）
 
-- 跨块拖拽选择 → 阶段 2。
-- 富文本跨块复制粘贴 → 阶段 2（依赖跨块选区）。
-- Tab 缩进 / 列表缩进 → 阶段 3。
-- HTML/Markdown 导入导出 → 阶段 6。
-- IME 组合期的精确 selection handles（移动端）→ 阶段 2/8。
+- 可配置 keymap → 后续插件化阶段。
+- 可插拔 paste transformer → 后续插件化阶段。
+- 列表缩进体验增强 → `[done] ADV-008`；代码块 Tab/Shift+Tab 缩进 → `[done] ADV-009`。
+- IME 组合期的精确 selection handles（移动端）→ 后续移动端专项。

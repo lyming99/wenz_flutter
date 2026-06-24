@@ -298,11 +298,11 @@ class EditorTextInputClient with DeltaTextInputClient {
     if (text.isEmpty) {
       return;
     }
-    if (_deleteActiveSelection()) {
-      final offset =
-          _controller.selection?.extent.offset ?? delta.insertionOffset;
+    final activeSelection = _controller.selection;
+    if (activeSelection != null && !activeSelection.isCollapsed) {
+      final shift =
+          activeSelection.start.offset - _safeOffset(delta.insertionOffset);
       _controller.insertText(text);
-      final shift = offset - delta.insertionOffset;
       _syncSelection(_shiftSelection(delta.selection, shift));
       _syncComposition(_shiftRange(delta.composing, shift));
       return;
@@ -316,9 +316,16 @@ class EditorTextInputClient with DeltaTextInputClient {
   }
 
   void _handleDeletion(TextEditingDeltaDeletion delta) {
-    if (_deleteActiveSelection()) {
-      _syncSelection(delta.selection);
-      _syncComposition(delta.composing);
+    final activeSelection = _controller.selection;
+    if (activeSelection != null && !activeSelection.isCollapsed) {
+      final platformAnchor = _rangeStartOr(
+        delta.deletedRange,
+        fallback: _selectionStartOrZero(delta.selection),
+      );
+      final shift = activeSelection.start.offset - platformAnchor;
+      _controller.deleteSelection(activeSelection);
+      _syncSelection(_shiftSelection(delta.selection, shift));
+      _syncComposition(_shiftRange(delta.composing, shift));
       return;
     }
     final deleted = delta.deletedRange;
@@ -332,12 +339,17 @@ class EditorTextInputClient with DeltaTextInputClient {
   }
 
   void _handleReplacement(TextEditingDeltaReplacement delta) {
-    if (_deleteActiveSelection()) {
-      if (delta.replacementText.isNotEmpty) {
+    final activeSelection = _controller.selection;
+    if (activeSelection != null && !activeSelection.isCollapsed) {
+      final platformAnchor = _rangeStartOr(delta.replacedRange, fallback: 0);
+      final shift = activeSelection.start.offset - platformAnchor;
+      if (delta.replacementText.isEmpty) {
+        _controller.deleteSelection(activeSelection);
+      } else {
         _controller.insertText(delta.replacementText);
       }
-      _syncSelection(delta.selection);
-      _syncComposition(delta.composing);
+      _syncSelection(_shiftSelection(delta.selection, shift));
+      _syncComposition(_shiftRange(delta.composing, shift));
       return;
     }
     final replaced = delta.replacedRange;
@@ -377,21 +389,36 @@ class EditorTextInputClient with DeltaTextInputClient {
     );
   }
 
-  bool _deleteActiveSelection() {
-    final selection = _controller.selection;
-    if (selection == null || selection.isCollapsed) {
-      return false;
-    }
-    _controller.deleteSelection(selection);
-    return true;
-  }
-
   int _effectiveInsertionOffset(int platformOffset) {
     final selection = _controller.selection;
     if (selection == null || !selection.isCollapsed) {
       return platformOffset;
     }
     return selection.extent.offset;
+  }
+
+  int _safeOffset(int offset) => offset < 0 ? 0 : offset;
+
+  int _rangeStartOr(TextRange range, {required int fallback}) {
+    if (range == TextRange.empty || range.start < 0) {
+      return fallback;
+    }
+    return range.start;
+  }
+
+  int _selectionStartOrZero(TextSelection selection) {
+    final base = selection.baseOffset;
+    final extent = selection.extentOffset;
+    if (base < 0 && extent < 0) {
+      return 0;
+    }
+    if (base < 0) {
+      return extent;
+    }
+    if (extent < 0) {
+      return base;
+    }
+    return base < extent ? base : extent;
   }
 
   int _rangeShiftForActiveComposition(TextRange platformRange) {
@@ -489,6 +516,16 @@ class EditorTextInputClient with DeltaTextInputClient {
     // Non-delta fallback. Some desktop IMEs still exercise this path during
     // composition, so handle it like EditableText: diff the previous editing
     // value against the new one and apply only the changed span.
+    final activeSelection = _controller.selection;
+    if (activeSelection != null &&
+        !activeSelection.isCollapsed &&
+        !_isSingleTextInputTarget(activeSelection)) {
+      _replaceCrossTargetSelectionFromEditingValue(activeSelection, value);
+      return;
+    }
+    if (_applyDetachedCompositionEditingValue(value)) {
+      return;
+    }
     final old = _buffer;
     if (old.text != value.text) {
       final diff = _TextDiff.between(old.text, value.text);
@@ -503,6 +540,71 @@ class EditorTextInputClient with DeltaTextInputClient {
     _syncSelection(value.selection);
     _syncComposition(value.composing);
     _syncBuffer();
+  }
+
+  void _replaceCrossTargetSelectionFromEditingValue(
+    DocumentSelection selection,
+    TextEditingValue value,
+  ) {
+    final shift = selection.start.offset;
+    if (value.text.isEmpty) {
+      _controller.deleteSelection(selection);
+    } else {
+      _controller.insertText(value.text);
+    }
+    _syncSelection(_shiftSelection(value.selection, shift));
+    _syncComposition(_shiftRange(value.composing, shift));
+    _syncBuffer();
+  }
+
+  bool _applyDetachedCompositionEditingValue(TextEditingValue value) {
+    final composition = _controller.compositionState;
+    final selection = _controller.selection;
+    if (composition == null ||
+        selection == null ||
+        _buffer.text == value.text) {
+      return false;
+    }
+    final position = selection.extent;
+    if (composition.blockId != position.blockId ||
+        composition.blockIndex != position.blockIndex ||
+        composition.path != position.path) {
+      return false;
+    }
+
+    final currentText = _plainTextForPosition(position);
+    final start = composition.startOffset.clamp(0, currentText.length).toInt();
+    final end = composition.endOffset.clamp(start, currentText.length).toInt();
+    if (_looksLikeFullBlockEditingValue(value.text, currentText, start, end)) {
+      return false;
+    }
+
+    // Some IMEs keep sending only their local composing buffer after we expose
+    // an empty platform value for a cross-target selection. Map that local
+    // buffer back onto the document's active composing range.
+    if (start < end) {
+      _deleteRange(start, end);
+    }
+    _placeCaretAt(start);
+    if (value.text.isNotEmpty) {
+      _controller.insertText(value.text);
+    }
+    final shift = start - _rangeStartOr(value.composing, fallback: 0);
+    _syncSelection(_shiftSelection(value.selection, shift));
+    _syncComposition(_shiftRange(value.composing, shift));
+    _syncBuffer();
+    return true;
+  }
+
+  bool _looksLikeFullBlockEditingValue(
+    String nextText,
+    String currentText,
+    int composingStart,
+    int composingEnd,
+  ) {
+    final prefix = currentText.substring(0, composingStart);
+    final suffix = currentText.substring(composingEnd);
+    return nextText.startsWith(prefix) && nextText.endsWith(suffix);
   }
 
   @override

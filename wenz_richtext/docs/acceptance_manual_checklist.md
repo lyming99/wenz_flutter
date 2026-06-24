@@ -11,6 +11,113 @@
 
 ---
 
+## ADV-016 · Block embed 与业务 renderer 注入
+
+操作：运行 `example/`，确认初始文档里的 CRM card block；点击工具栏 `Insert CRM embed`；导出 HTML/Markdown，重新加载 HTML demo 或通过业务入口调用 `loadHtml`。
+
+| 端 | CRM card 初始可见 | 插入按钮可新增 | HTML round-trip 保留卡片 | Markdown 可读降级 | 备注 |
+|----|------------------|----------------|--------------------------|-------------------|------|
+| Windows | [ ] | [ ] | [ ] | [ ] | |
+| Web (Chrome) | [ ] | [ ] | [ ] | [ ] | |
+| Android | [ ] | [ ] | [ ] | [ ] | |
+
+预期：
+- CRM card 使用业务 renderer 展示 title、owner、stage，而不是默认占位。
+- 新增 block 可被选中，debug overlay 打开时仍有对象块几何信息。
+- rich JSON/HTML 保留 `embedType/data/fallbackText`；Markdown/plain text 输出可读 fallback。
+- 业务 renderer 注入不影响普通段落输入、undo/redo 和滚动。
+
+---
+
+## ADV-018 · 文档统计侧栏
+
+操作：运行 `example/`，查看右侧 Document 区域；输入英文、中文、emoji/mention/formula，并撤销一次。
+
+| 端 | 字数实时更新 | 字符数实时更新 | 阅读时间更新 | undo 后恢复 | 备注 |
+|----|-------------|---------------|--------------|-------------|------|
+| Windows | [ ] | [ ] | [ ] | [ ] | |
+| Web (Chrome) | [ ] | [ ] | [ ] | [ ] | |
+| Android | [ ] | [ ] | [ ] | [ ] | |
+
+预期：
+- Document 区域显示 Blocks、Paragraphs、Headings、Images、Words、Characters、Text chars、Read time。
+- 输入或撤销后统计跟随文档变化，单纯移动光标不改变统计。
+- formula / mention / emoji 使用可读文本降级参与统计，不写入额外 schema 字段。
+
+---
+
+## ADV-019 · 自动保存状态与草稿示例
+
+操作：运行 `example/`，查看右侧 Autosave 区域；输入文本、等待防抖保存、点击 Save now，并模拟撤销回 clean 内容。
+
+| 端 | dirty 状态变化 | scheduled/saving/clean 可见 | Save now 可触发 | 草稿字节数更新 | 备注 |
+|----|----------------|-----------------------------|-----------------|----------------|------|
+| Windows | [ ] | [ ] | [ ] | [ ] | |
+| Web (Chrome) | [ ] | [ ] | [ ] | [ ] | |
+| Android | [ ] | [ ] | [ ] | [ ] | |
+
+预期：
+- 输入后 Autosave 显示 dirty/scheduled，等待约 1 秒后进入 saving/clean。
+- 单纯移动光标不改变 revision 或 dirty state。
+- Save now 通过外部草稿 adapter 保存当前 rich JSON，失败时应保留 dirty/error 供业务重试。
+- 自动保存状态不写入文档 JSON schema，草稿恢复仍通过 `loadJson` / `tryLoadJson`。
+
+---
+
+## ADV-023 · 评论线程侧栏
+
+操作：在宿主页面嵌入 `WenzCommentSidebar`，传入含 open/resolved 的 `CommentThread` 列表；点击线程卡片和定位按钮，把回调 selection 交给 `WenzRichTextController.setSelection`。
+
+| 端 | open/resolved 可见 | 点击线程回调 selection | resolve/reopen 回调触发 | rich JSON 恢复评论 | 备注 |
+|----|--------------------|------------------------|--------------------------|--------------------|------|
+| Windows | [ ] | [ ] | [ ] | [ ] | |
+| Web (Chrome) | [ ] | [ ] | [ ] | [ ] | |
+| Android | [ ] | [ ] | [ ] | [ ] | |
+
+预期：
+- 侧栏展示 Comments 标题、open/total 计数、消息作者和摘要。
+- 点击线程或定位按钮后，宿主能用返回的 `DocumentSelection` 定位到评论范围。
+- resolve/reopen 不直接改文档，由宿主或后续 comment command 负责替换 `RichTextDocument.comments`。
+- rich JSON round-trip 后 `comments` 与 inline `commentIds` 保持一致。
+
+---
+
+## ADV-024 · 修订模式模型与命令
+
+操作：开启 `WenzRichTextController.setRevisionMode(true, authorId: ..., authorName: ...)`，在同一段文本内执行插入、选择删除、选择格式化，然后分别调用 `acceptRevision` / `rejectRevision`。
+
+| 端 | 插入生成 revision | 删除标记可接受/拒绝 | 格式修订可拒绝还原 | rich JSON 恢复修订 | 备注 |
+|----|-------------------|----------------------|--------------------|--------------------|------|
+| Windows | [ ] | [ ] | [ ] | [ ] | |
+| Web (Chrome) | [ ] | [ ] | [ ] | [ ] | |
+| Android | [ ] | [ ] | [ ] | [ ] | |
+
+预期：
+- rich JSON round-trip 后 `revisions` 与 inline `revisionIds` 保持一致。
+- 接受插入保留正文并清除 inline 修订标记；拒绝插入移除插入正文。
+- 接受删除移除被标记文本；拒绝删除保留文本并清除 inline 修订标记。
+- 跨块、表格、修订侧栏和可视化渲染暂不作为本轮手验范围。
+
+---
+
+## ADV-025 · 协作 adapter 接口
+
+操作：在宿主示例或业务 demo 中接入一个内存/测试 `WenzCollaborationAdapter`，实例化 `WenzCollaborationController` 并连接同一个 `WenzRichTextController`。
+
+| 端 | 本地变更发布 | 远端快照应用不回声 | remote selection 可渲染 | 不写入 rich JSON | 备注 |
+|----|--------------|--------------------|-------------------------|----------------|------|
+| Windows | [ ] | [ ] | [ ] | [ ] | |
+| Web (Chrome) | [ ] | [ ] | [ ] | [ ] | |
+| Android | [ ] | [ ] | [ ] | [ ] | |
+
+预期：
+- 输入正文后 adapter 收到 `WenzLocalDocumentChange`，包含 rich JSON、local revision、selection 和 `changedBlockIds`。
+- 远端 `WenzRemoteDocumentUpdate` 通过 controller 应用到文档，但不会再次发布为本地变更。
+- 远端 `WenzRemoteSelectionUpdate` 出现在 `remoteSelections`，clear 事件会移除对应 client。
+- remote cursor、presence、房间和后端 revision 不进入 `RichTextDocument.toJson()`。
+
+---
+
 ## B1 · 双击选词 / 三击选段
 
 操作：在段落文本上双击（选词）、三击（选整段）、双击后拖拽（按词扩选）。
@@ -81,6 +188,24 @@
 - origin cell 根据 `rowSpan` / `columnSpan` 真正跨行跨列占满。
 - covered cell 不参与绘制和点击命中。
 - 合并/拆分后 JSON round-trip、undo/redo 不丢结构。
+
+---
+
+## ADV-029 · 可访问性屏幕阅读器与高对比
+
+操作：开启平台屏幕阅读器或浏览器辅助功能，聚焦编辑器、移动到段落/图片/表格 cell，并在高对比模式下用键盘聚焦编辑器。
+
+| 端 | 编辑器 label/hint | readOnly 文案 | block/table 语义 | 高对比焦点框 | 备注 |
+|----|-------------------|---------------|------------------|--------------|------|
+| Windows Narrator | [ ] | [ ] | [ ] | [ ] | |
+| Web (Chrome) | [ ] | [ ] | [ ] | [ ] | |
+| Android TalkBack | [ ] | [ ] | [ ] | [ ] | |
+
+预期：
+- 编辑器整体被读作可聚焦、多行 text field，并读出业务配置的 label/hint。
+- read-only 模式读出只读文档语义，不提示可编辑。
+- 段落、标题、图片、代码块、表格和合并 cell 能读出类型/行列/span/选中态。
+- `MediaQuery.highContrast` 开启且编辑器聚焦时出现高对比边框，失焦后消失。
 
 ---
 

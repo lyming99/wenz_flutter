@@ -10,6 +10,8 @@ class TextAttributes {
     this.lineThrough,
     this.remark,
     this.url,
+    this.commentIds = const <String>[],
+    this.revisionIds = const <String>[],
   });
 
   final int? color;
@@ -22,6 +24,8 @@ class TextAttributes {
   final bool? lineThrough;
   final bool? remark;
   final String? url;
+  final List<String> commentIds;
+  final List<String> revisionIds;
 
   bool get isEmpty =>
       color == null &&
@@ -33,7 +37,9 @@ class TextAttributes {
       underline == null &&
       lineThrough == null &&
       remark == null &&
-      url == null;
+      url == null &&
+      commentIds.isEmpty &&
+      revisionIds.isEmpty;
 
   TextAttributes inheritFrom(TextAttributes parent) {
     return TextAttributes(
@@ -47,6 +53,8 @@ class TextAttributes {
       lineThrough: lineThrough ?? parent.lineThrough,
       remark: remark ?? parent.remark,
       url: url ?? parent.url,
+      commentIds: commentIds.isEmpty ? parent.commentIds : commentIds,
+      revisionIds: revisionIds.isEmpty ? parent.revisionIds : revisionIds,
     );
   }
 
@@ -61,6 +69,8 @@ class TextAttributes {
     bool? lineThrough,
     bool? remark,
     String? url,
+    List<String>? commentIds,
+    List<String>? revisionIds,
   }) {
     return TextAttributes(
       color: color ?? this.color,
@@ -73,6 +83,8 @@ class TextAttributes {
       lineThrough: lineThrough ?? this.lineThrough,
       remark: remark ?? this.remark,
       url: url ?? this.url,
+      commentIds: commentIds ?? this.commentIds,
+      revisionIds: revisionIds ?? this.revisionIds,
     );
   }
 
@@ -88,6 +100,9 @@ class TextAttributes {
       lineThrough: overlay.lineThrough ?? lineThrough,
       remark: overlay.remark ?? remark,
       url: overlay.url ?? url,
+      commentIds: overlay.commentIds.isEmpty ? commentIds : overlay.commentIds,
+      revisionIds:
+          overlay.revisionIds.isEmpty ? revisionIds : overlay.revisionIds,
     );
   }
 
@@ -103,6 +118,8 @@ class TextAttributes {
       if (lineThrough != null) 'lineThrough': lineThrough,
       if (remark != null) 'remark': remark,
       if (url != null) 'url': url,
+      if (commentIds.isNotEmpty) 'commentIds': commentIds,
+      if (revisionIds.isNotEmpty) 'revisionIds': revisionIds,
     };
   }
 
@@ -118,6 +135,8 @@ class TextAttributes {
       lineThrough: json['lineThrough'] as bool?,
       remark: json['remark'] as bool?,
       url: json['url'] as String?,
+      commentIds: _asStringList(json['commentIds']),
+      revisionIds: _asStringList(json['revisionIds']),
     );
   }
 
@@ -133,7 +152,9 @@ class TextAttributes {
         other.underline == underline &&
         other.lineThrough == lineThrough &&
         other.remark == remark &&
-        other.url == url;
+        other.url == url &&
+        _listEquals(other.commentIds, commentIds) &&
+        _listEquals(other.revisionIds, revisionIds);
   }
 
   @override
@@ -149,6 +170,8 @@ class TextAttributes {
       lineThrough,
       remark,
       url,
+      Object.hashAll(commentIds),
+      Object.hashAll(revisionIds),
     );
   }
 }
@@ -161,6 +184,7 @@ class BlockAttributes {
     this.listType,
     this.checked,
     this.childNote,
+    this.anchor,
   });
 
   final int? level;
@@ -169,6 +193,7 @@ class BlockAttributes {
   final String? listType;
   final bool? checked;
   final String? childNote;
+  final String? anchor;
 
   bool get isEmpty =>
       level == null &&
@@ -176,7 +201,8 @@ class BlockAttributes {
       alignment == null &&
       listType == null &&
       checked == null &&
-      childNote == null;
+      childNote == null &&
+      anchor == null;
 
   BlockAttributes mergeWith(BlockAttributes overlay) {
     return BlockAttributes(
@@ -186,6 +212,7 @@ class BlockAttributes {
       listType: overlay.listType ?? listType,
       checked: overlay.checked ?? checked,
       childNote: overlay.childNote ?? childNote,
+      anchor: overlay.anchor ?? anchor,
     );
   }
 
@@ -197,6 +224,7 @@ class BlockAttributes {
       if (listType != null) 'listType': listType,
       if (checked != null) 'checked': checked,
       if (childNote != null) 'childNote': childNote,
+      if (anchor != null) 'anchor': anchor,
     };
   }
 
@@ -208,6 +236,7 @@ class BlockAttributes {
       listType: json['listType'] as String?,
       checked: json['checked'] as bool?,
       childNote: json['childNote'] as String?,
+      anchor: json['anchor'] as String?,
     );
   }
 
@@ -219,12 +248,21 @@ class BlockAttributes {
         other.alignment == alignment &&
         other.listType == listType &&
         other.checked == checked &&
-        other.childNote == childNote;
+        other.childNote == childNote &&
+        other.anchor == anchor;
   }
 
   @override
   int get hashCode {
-    return Object.hash(level, indent, alignment, listType, checked, childNote);
+    return Object.hash(
+      level,
+      indent,
+      alignment,
+      listType,
+      checked,
+      childNote,
+      anchor,
+    );
   }
 }
 
@@ -246,4 +284,26 @@ double? _asDouble(Object? value) {
     return value.toDouble();
   }
   return null;
+}
+
+List<String> _asStringList(Object? value) {
+  if (value is List) {
+    return value.whereType<String>().toList();
+  }
+  return const <String>[];
+}
+
+bool _listEquals<T>(List<T> a, List<T> b) {
+  if (identical(a, b)) {
+    return true;
+  }
+  if (a.length != b.length) {
+    return false;
+  }
+  for (var i = 0; i < a.length; i++) {
+    if (a[i] != b[i]) {
+      return false;
+    }
+  }
+  return true;
 }

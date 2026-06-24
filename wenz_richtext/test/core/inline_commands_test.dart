@@ -1,4 +1,4 @@
-import 'package:flutter_test/flutter_test.dart';
+﻿import 'package:flutter_test/flutter_test.dart';
 import 'package:wenz_richtext/wenz_richtext.dart';
 
 import '../helpers/selection_test_helpers.dart';
@@ -31,6 +31,74 @@ void main() {
     block = session.document.blocks.single as TextBlockNode;
     expect(block.content, hasLength(1));
     expect((block.content.single as TextRun).attributes.url, isNull);
+  });
+
+  test('auto link detects URLs and leaves trailing punctuation unlinked', () {
+    final session = DocumentSession(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[
+              TextRun(
+                text: 'See https://wenz.dev/docs, and www.example.com.',
+              ),
+            ],
+          ),
+        ],
+      ),
+      selection: collapsedTextSelection('p1', 0, 45),
+    );
+    final executor = CommandExecutor(session);
+
+    executor.execute(const AutoLinkUrlsCommand());
+
+    final block = session.document.blocks.single as TextBlockNode;
+    final linkedRuns = block.content
+        .whereType<TextRun>()
+        .where((run) => run.attributes.url != null)
+        .toList();
+    expect(linkedRuns.map((run) => run.text), <String>[
+      'https://wenz.dev/docs',
+      'www.example.com',
+    ]);
+    expect(linkedRuns.map((run) => run.attributes.url), <String>[
+      'https://wenz.dev/docs',
+      'https://www.example.com',
+    ]);
+  });
+
+  test('controller auto links inserted URL in the same undo step', () {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'Visit ')],
+          ),
+        ],
+      ),
+      selection: collapsedTextSelection('p1', 0, 6),
+    );
+
+    controller.insertText('https://wenz.dev', applyAutoLinkUrls: false);
+    controller.insertText(' ');
+
+    var block = controller.document.blocks.single as TextBlockNode;
+    final linkedRuns = block.content
+        .whereType<TextRun>()
+        .where((run) => run.attributes.url != null)
+        .toList();
+    expect(linkedRuns.single.text, 'https://wenz.dev');
+    expect(linkedRuns.single.attributes.url, 'https://wenz.dev');
+
+    expect(controller.undo(), isTrue);
+    block = controller.document.blocks.single as TextBlockNode;
+    expect(block.plainText, 'Visit ');
+
+    controller.dispose();
   });
 
   test('toggle mark applies and clears remark', () {
@@ -109,6 +177,7 @@ void main() {
     controller.setSelection(collapsedTextSelection('p1', 0, 5));
     controller.insertFormula('x^2');
     controller.insertMention('u1', 'Ada');
+    controller.insertEmoji('😀', shortName: 'grinning');
     controller.insertInlineImage(assetId: 'asset-1', width: 32, height: 24);
 
     final block = controller.document.blocks.single as TextBlockNode;
@@ -119,10 +188,13 @@ void main() {
     expect(embeds.map((embed) => embed.embedType), <String>[
       'formula',
       'mention',
+      'emoji',
       'image',
     ]);
     expect(embeds[0].data['text'], 'x^2');
     expect(embeds[1].data['label'], 'Ada');
-    expect(embeds[2].data['assetId'], 'asset-1');
+    expect(embeds[2].data['emoji'], '😀');
+    expect(embeds[2].data['shortName'], 'grinning');
+    expect(embeds[3].data['assetId'], 'asset-1');
   });
 }

@@ -27,6 +27,7 @@ import 'package:wenz_richtext/wenz_richtext.dart';
 /// - 1k blocks (large document).
 /// - 10k inline runs (a single block with many text runs).
 /// - a large table (50×20 cells).
+/// - an advanced mixed document (callouts, files, code, inline embeds).
 
 const Size _benchViewport = Size(800, 600);
 
@@ -61,6 +62,7 @@ void _report(String label, ({double avgUs, double maxUs}) r) {
   print('  $label: avg ${r.avgUs.toStringAsFixed(0)}µs/frame, '
       'max ${r.maxUs.toStringAsFixed(0)}µs/frame');
 }
+
 Widget _harness(WenzRichTextController controller) {
   return MaterialApp(
     home: Scaffold(
@@ -126,8 +128,59 @@ RichTextDocument _largeTableDocument({int rows = 50, int columns = 20}) {
   );
 }
 
+RichTextDocument _advancedFeatureDocument({int groups = 200}) {
+  return RichTextDocument(
+    blocks: <BlockNode>[
+      for (var i = 0; i < groups; i++) ...<BlockNode>[
+        TextBlockNode(
+          id: 'adv-$i-p',
+          type: BlockType.paragraph,
+          content: <InlineNode>[
+            const TextRun(text: 'Owner '),
+            InlineEmbed(
+              embedType: 'mention',
+              data: <String, Object?>{'id': 'u$i', 'label': 'User $i'},
+            ),
+            const TextRun(text: ' checks '),
+            InlineEmbed(
+              embedType: 'formula',
+              data: <String, Object?>{'text': 'x_$i^2'},
+            ),
+            const TextRun(text: ' before publishing.'),
+          ],
+        ),
+        CalloutBlockNode(
+          id: 'adv-$i-callout',
+          variant: i.isEven
+              ? CalloutBlockNode.infoVariant
+              : CalloutBlockNode.warningVariant,
+          title: 'Review note $i',
+          icon: i.isEven ? 'i' : '!',
+          content: <InlineNode>[
+            const TextRun(text: 'Keep the import/export fallback visible.'),
+          ],
+        ),
+        CodeBlockNode(
+          id: 'adv-$i-code',
+          language: 'dart',
+          code: 'final item$i = true;',
+        ),
+        FileBlockNode(
+          id: 'adv-$i-file',
+          assetId: 'file-$i',
+          name: 'attachment-$i.pdf',
+          size: 262144,
+          mimeType: 'application/pdf',
+          uploadStatus: FileUploadStatus.uploaded,
+        ),
+      ],
+    ],
+  );
+}
+
 void main() {
-  testWidgets('benchmark: 1k blocks initial mount + idle frames', (tester) async {
+  testWidgets('benchmark: 1k blocks initial mount + idle frames',
+      (tester) async {
     tester.view.physicalSize = _benchViewport;
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -187,13 +240,34 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    final controller =
-        WenzRichTextController(document: _largeTableDocument(rows: 50, columns: 20));
+    final controller = WenzRichTextController(
+        document: _largeTableDocument(rows: 50, columns: 20));
     await tester.pumpWidget(_harness(controller));
 
     final r = await _timeFrames(tester, frames: 20);
     _report('50x20 table', r);
-    expect(r.avgUs, lessThan(120000), reason: 'large-table frame budget blew out');
+    expect(r.avgUs, lessThan(120000),
+        reason: 'large-table frame budget blew out');
+  });
+
+  testWidgets('benchmark: advanced mixed document mount', (tester) async {
+    tester.view.physicalSize = _benchViewport;
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final controller = WenzRichTextController(
+      document: _advancedFeatureDocument(groups: 200),
+    );
+    await tester.pumpWidget(_harness(controller));
+
+    final r = await _timeFrames(tester, frames: 20);
+    _report('advanced mixed document', r);
+    expect(
+      r.avgUs,
+      lessThan(90000),
+      reason: 'advanced mixed document frame budget blew out',
+    );
   });
 
   testWidgets('benchmark: 1k blocks scroll (remount cost)', (tester) async {
@@ -225,7 +299,8 @@ void main() {
     }
     stopwatch.stop();
     final avgUs = stopwatch.elapsedMicroseconds / 20;
-    print('  1k blocks scroll (remount): avg ${avgUs.toStringAsFixed(0)}µs/frame');
+    print(
+        '  1k blocks scroll (remount): avg ${avgUs.toStringAsFixed(0)}µs/frame');
     expect(avgUs, lessThan(80000), reason: 'scroll/remount budget blew out');
   });
 }

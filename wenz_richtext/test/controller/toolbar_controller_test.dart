@@ -240,6 +240,8 @@ void main() {
         // Code block is not a text block; SetBlockTypeCommand only switches
         // text-block types, so the toolbar must refuse.
         expect(toolbar.canSetBlockType, isFalse);
+        expect(toolbar.canSetCodeLanguage, isTrue);
+        expect(toolbar.codeLanguage, 'dart');
 
         toolbar.dispose();
         host.dispose();
@@ -389,6 +391,26 @@ void main() {
         toolbar.clearStyle();
         expect(toolbar.linkUrl, isNull);
         expect(toolbar.bold, isFalse);
+
+        toolbar.dispose();
+        host.dispose();
+      });
+
+      test('setCodeLanguage updates the current code block', () {
+        final host = WenzRichTextController(
+          document: _doc(),
+          selection: collapsedCodeSelection('code', 9, 0),
+        );
+        final toolbar = ToolbarController(host);
+
+        expect(toolbar.canSetCodeLanguage, isTrue);
+        expect(toolbar.codeLanguage, 'dart');
+
+        toolbar.setCodeLanguage('python');
+
+        expect(toolbar.codeLanguage, 'python');
+        expect((host.document.blocks[9] as CodeBlockNode).language, 'python');
+        expect(host.canUndo, isTrue);
 
         toolbar.dispose();
         host.dispose();
@@ -586,6 +608,30 @@ void main() {
         toolbar.dispose();
         host.dispose();
       });
+    });
+
+    test('permission state disables edit actions', () {
+      final host = WenzRichTextController(
+        document: _doc(),
+        selection: collapsedTextSelection('mixed', 0, 2),
+        permission: WenzEditorPermission.comment,
+      );
+      final toolbar = ToolbarController(host);
+
+      expect(toolbar.canFormatInline, isFalse);
+      expect(toolbar.canToggleMark, isFalse);
+      expect(toolbar.canSetLink, isFalse);
+      expect(toolbar.canSetBlockType, isFalse);
+
+      host.permission = WenzEditorPermission.edit;
+
+      expect(toolbar.canFormatInline, isTrue);
+      expect(toolbar.canToggleMark, isTrue);
+      expect(toolbar.canSetLink, isTrue);
+      expect(toolbar.canSetBlockType, isTrue);
+
+      toolbar.dispose();
+      host.dispose();
     });
   });
 }

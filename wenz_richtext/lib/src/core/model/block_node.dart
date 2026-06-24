@@ -12,6 +12,7 @@ enum BlockType {
   table('table'),
   divider('divider'),
   video('video'),
+  embed('embed'),
   callout('callout'),
   file('file');
 
@@ -24,6 +25,29 @@ enum BlockType {
     return BlockType.values.firstWhere(
       (type) => type.name == text,
       orElse: () => BlockType.paragraph,
+    );
+  }
+}
+
+enum FileUploadStatus {
+  none('none'),
+  pending('pending'),
+  uploading('uploading'),
+  uploaded('uploaded'),
+  failed('failed');
+
+  const FileUploadStatus(this.name);
+
+  final String name;
+
+  static FileUploadStatus parse(Object? value) {
+    if (value is FileUploadStatus) {
+      return value;
+    }
+    final text = value?.toString();
+    return FileUploadStatus.values.firstWhere(
+      (status) => status.name == text,
+      orElse: () => FileUploadStatus.none,
     );
   }
 }
@@ -63,6 +87,8 @@ abstract class BlockNode {
         return DividerBlockNode.fromJson(json);
       case BlockType.video:
         return VideoBlockNode.fromJson(json);
+      case BlockType.embed:
+        return BlockEmbedNode.fromJson(json);
       case BlockType.callout:
         return CalloutBlockNode.fromJson(json);
       case BlockType.file:
@@ -192,6 +218,8 @@ class ImageBlockNode extends BlockNode {
     this.height = 0,
     this.showWidth,
     this.showHeight,
+    this.caption = '',
+    this.altText = '',
     super.attributes,
   }) : super(type: BlockType.image);
 
@@ -201,9 +229,11 @@ class ImageBlockNode extends BlockNode {
   final int height;
   final double? showWidth;
   final double? showHeight;
+  final String caption;
+  final String altText;
 
   @override
-  String get plainText => '';
+  String get plainText => caption;
 
   @override
   ImageBlockNode copy() {
@@ -215,7 +245,37 @@ class ImageBlockNode extends BlockNode {
       height: height,
       showWidth: showWidth,
       showHeight: showHeight,
+      caption: caption,
+      altText: altText,
       attributes: attributes,
+    );
+  }
+
+  ImageBlockNode copyWith({
+    String? id,
+    String? assetId,
+    String? file,
+    int? width,
+    int? height,
+    double? showWidth,
+    double? showHeight,
+    bool clearShowWidth = false,
+    bool clearShowHeight = false,
+    String? caption,
+    String? altText,
+    BlockAttributes? attributes,
+  }) {
+    return ImageBlockNode(
+      id: id ?? this.id,
+      assetId: assetId ?? this.assetId,
+      file: file ?? this.file,
+      width: width ?? this.width,
+      height: height ?? this.height,
+      showWidth: clearShowWidth ? null : showWidth ?? this.showWidth,
+      showHeight: clearShowHeight ? null : showHeight ?? this.showHeight,
+      caption: caption ?? this.caption,
+      altText: altText ?? this.altText,
+      attributes: attributes ?? this.attributes,
     );
   }
 
@@ -229,10 +289,13 @@ class ImageBlockNode extends BlockNode {
         'height': height,
         if (showWidth != null) 'showWidth': showWidth,
         if (showHeight != null) 'showHeight': showHeight,
+        if (caption.isNotEmpty) 'caption': caption,
+        if (altText.isNotEmpty) 'altText': altText,
       });
   }
 
   factory ImageBlockNode.fromJson(Map<String, Object?> json) {
+    final alt = json['altText'] ?? json['alt'];
     return ImageBlockNode(
       id: json['id'] as String? ?? '',
       assetId: json['assetId'] as String? ?? '',
@@ -241,6 +304,8 @@ class ImageBlockNode extends BlockNode {
       height: _asInt(json['height']),
       showWidth: _asDouble(json['showWidth']),
       showHeight: _asDouble(json['showHeight']),
+      caption: json['caption'] as String? ?? '',
+      altText: alt as String? ?? '',
       attributes: BlockNode.attrsFromJson(json),
     );
   }
@@ -370,6 +435,92 @@ class VideoBlockNode extends BlockNode {
   }
 }
 
+class BlockEmbedNode extends BlockNode {
+  const BlockEmbedNode({
+    required super.id,
+    required this.embedType,
+    this.data = const <String, Object?>{},
+    this.fallbackText = '',
+    super.attributes,
+  }) : super(type: BlockType.embed);
+
+  final String embedType;
+  final Map<String, Object?> data;
+  final String fallbackText;
+
+  String get normalizedEmbedType {
+    final value = embedType.trim();
+    return value.isEmpty ? 'custom' : value;
+  }
+
+  String get displayText {
+    final fallback = fallbackText.trim();
+    if (fallback.isNotEmpty) {
+      return fallback;
+    }
+    for (final key in const <String>['title', 'label', 'name', 'url']) {
+      final value = data[key];
+      if (value is String && value.trim().isNotEmpty) {
+        return value.trim();
+      }
+    }
+    return normalizedEmbedType;
+  }
+
+  @override
+  String get plainText => displayText;
+
+  @override
+  BlockEmbedNode copy() {
+    return BlockEmbedNode(
+      id: id,
+      embedType: embedType,
+      data: Map<String, Object?>.from(data),
+      fallbackText: fallbackText,
+      attributes: attributes,
+    );
+  }
+
+  BlockEmbedNode copyWith({
+    String? id,
+    String? embedType,
+    Map<String, Object?>? data,
+    String? fallbackText,
+    BlockAttributes? attributes,
+  }) {
+    return BlockEmbedNode(
+      id: id ?? this.id,
+      embedType: embedType ?? this.embedType,
+      data: data ?? this.data,
+      fallbackText: fallbackText ?? this.fallbackText,
+      attributes: attributes ?? this.attributes,
+    );
+  }
+
+  @override
+  Map<String, Object?> toJson() {
+    return baseJson()
+      ..addAll(<String, Object?>{
+        'embedType': embedType,
+        if (data.isNotEmpty) 'data': data,
+        if (fallbackText.isNotEmpty) 'fallbackText': fallbackText,
+      });
+  }
+
+  factory BlockEmbedNode.fromJson(Map<String, Object?> json) {
+    final data = json['data'];
+    return BlockEmbedNode(
+      id: json['id'] as String? ?? '',
+      embedType: json['embedType'] as String? ?? 'custom',
+      data: data is Map
+          ? Map<String, Object?>.from(data)
+          : const <String, Object?>{},
+      fallbackText: json['fallbackText'] as String? ?? '',
+      attributes: BlockNode.attrsFromJson(json),
+    );
+  }
+}
+
 /// A callout block: emphasised text in a tinted box, optionally carrying a
 /// variant (e.g. `'info'`, `'warning'`) for styling.
 class CalloutBlockNode extends BlockNode {
@@ -377,14 +528,88 @@ class CalloutBlockNode extends BlockNode {
     required super.id,
     required this.content,
     this.variant = 'info',
+    this.title = '',
+    this.icon = '',
     super.attributes,
   }) : super(type: BlockType.callout);
 
+  static const String infoVariant = 'info';
+  static const String successVariant = 'success';
+  static const String warningVariant = 'warning';
+  static const String dangerVariant = 'danger';
+
+  static const List<String> supportedVariants = <String>[
+    infoVariant,
+    successVariant,
+    warningVariant,
+    dangerVariant,
+  ];
+
   final List<InlineNode> content;
   final String variant;
+  final String title;
+  final String icon;
+
+  static String normalizeVariant(Object? value) {
+    final text = value?.toString().trim().toLowerCase() ?? '';
+    if (supportedVariants.contains(text)) {
+      return text;
+    }
+    return infoVariant;
+  }
+
+  static String defaultTitleFor(String variant) {
+    switch (normalizeVariant(variant)) {
+      case successVariant:
+        return 'Success';
+      case warningVariant:
+        return 'Warning';
+      case dangerVariant:
+        return 'Danger';
+      case infoVariant:
+      default:
+        return 'Info';
+    }
+  }
+
+  static String defaultIconFor(String variant) {
+    switch (normalizeVariant(variant)) {
+      case successVariant:
+        return '✅';
+      case warningVariant:
+        return '⚠️';
+      case dangerVariant:
+        return '⛔';
+      case infoVariant:
+      default:
+        return 'ℹ️';
+    }
+  }
+
+  String get normalizedVariant => normalizeVariant(variant);
+
+  String get effectiveTitle {
+    final trimmed = title.trim();
+    return trimmed.isEmpty ? defaultTitleFor(normalizedVariant) : trimmed;
+  }
+
+  String get effectiveIcon {
+    final trimmed = icon.trim();
+    return trimmed.isEmpty ? defaultIconFor(normalizedVariant) : trimmed;
+  }
 
   @override
-  String get plainText => content.map((node) => node.plainText).join();
+  String get plainText {
+    final body = content.map((node) => node.plainText).join();
+    final heading = title.trim();
+    if (heading.isEmpty) {
+      return body;
+    }
+    if (body.isEmpty) {
+      return heading;
+    }
+    return '$heading\n$body';
+  }
 
   @override
   CalloutBlockNode copy() {
@@ -392,7 +617,27 @@ class CalloutBlockNode extends BlockNode {
       id: id,
       content: content.map((node) => node.copy()).toList(),
       variant: variant,
+      title: title,
+      icon: icon,
       attributes: attributes,
+    );
+  }
+
+  CalloutBlockNode copyWith({
+    String? id,
+    List<InlineNode>? content,
+    String? variant,
+    String? title,
+    String? icon,
+    BlockAttributes? attributes,
+  }) {
+    return CalloutBlockNode(
+      id: id ?? this.id,
+      content: content ?? this.content,
+      variant: variant ?? this.variant,
+      title: title ?? this.title,
+      icon: icon ?? this.icon,
+      attributes: attributes ?? this.attributes,
     );
   }
 
@@ -401,7 +646,9 @@ class CalloutBlockNode extends BlockNode {
     return baseJson()
       ..addAll(<String, Object?>{
         'content': content.map((node) => node.toJson()).toList(),
-        if (variant.isNotEmpty && variant != 'info') 'variant': variant,
+        if (normalizedVariant != infoVariant) 'variant': normalizedVariant,
+        if (title.trim().isNotEmpty) 'title': title.trim(),
+        if (icon.trim().isNotEmpty) 'icon': icon.trim(),
       });
   }
 
@@ -409,7 +656,9 @@ class CalloutBlockNode extends BlockNode {
     final rawContent = json['content'];
     return CalloutBlockNode(
       id: json['id'] as String? ?? '',
-      variant: json['variant'] as String? ?? 'info',
+      variant: normalizeVariant(json['variant']),
+      title: (json['title'] as String? ?? '').trim(),
+      icon: (json['icon'] as String? ?? '').trim(),
       content: rawContent is List
           ? rawContent
               .whereType<Map>()
@@ -422,25 +671,59 @@ class CalloutBlockNode extends BlockNode {
   }
 }
 
-/// A generic file/attachment block. Rendered as a placeholder chip; full
-/// attachment workflows land in a later stage.
+/// A generic file/attachment block.
+///
+/// [file] is kept for backward compatibility with early media blocks. New code
+/// should prefer [downloadUrl] for the remote/download address and [mimeType]
+/// plus [uploadStatus] for attachment workflow state.
 class FileBlockNode extends BlockNode {
   const FileBlockNode({
     required super.id,
     required this.assetId,
     this.name = '',
     this.size = 0,
+    this.mimeType = '',
     this.file = '',
+    this.downloadUrl = '',
+    this.uploadStatus = FileUploadStatus.none,
+    this.uploadError = '',
     super.attributes,
   }) : super(type: BlockType.file);
 
   final String assetId;
   final String name;
   final int size;
+  final String mimeType;
   final String file;
+  final String downloadUrl;
+  final FileUploadStatus uploadStatus;
+  final String uploadError;
+
+  String get displayName {
+    if (name.isNotEmpty) {
+      return name;
+    }
+    if (assetId.isNotEmpty) {
+      return assetId;
+    }
+    if (downloadUrl.isNotEmpty) {
+      return downloadUrl;
+    }
+    return file;
+  }
+
+  String get effectiveDownloadUrl {
+    if (downloadUrl.isNotEmpty) {
+      return downloadUrl;
+    }
+    if (file.isNotEmpty) {
+      return file;
+    }
+    return assetId;
+  }
 
   @override
-  String get plainText => name;
+  String get plainText => displayName;
 
   @override
   FileBlockNode copy() {
@@ -449,8 +732,38 @@ class FileBlockNode extends BlockNode {
       assetId: assetId,
       name: name,
       size: size,
+      mimeType: mimeType,
       file: file,
+      downloadUrl: downloadUrl,
+      uploadStatus: uploadStatus,
+      uploadError: uploadError,
       attributes: attributes,
+    );
+  }
+
+  FileBlockNode copyWith({
+    String? id,
+    String? assetId,
+    String? name,
+    int? size,
+    String? mimeType,
+    String? file,
+    String? downloadUrl,
+    FileUploadStatus? uploadStatus,
+    String? uploadError,
+    BlockAttributes? attributes,
+  }) {
+    return FileBlockNode(
+      id: id ?? this.id,
+      assetId: assetId ?? this.assetId,
+      name: name ?? this.name,
+      size: size ?? this.size,
+      mimeType: mimeType ?? this.mimeType,
+      file: file ?? this.file,
+      downloadUrl: downloadUrl ?? this.downloadUrl,
+      uploadStatus: uploadStatus ?? this.uploadStatus,
+      uploadError: uploadError ?? this.uploadError,
+      attributes: attributes ?? this.attributes,
     );
   }
 
@@ -461,7 +774,12 @@ class FileBlockNode extends BlockNode {
         'assetId': assetId,
         if (name.isNotEmpty) 'name': name,
         'size': size,
+        if (mimeType.isNotEmpty) 'mimeType': mimeType,
         if (file.isNotEmpty) 'file': file,
+        if (downloadUrl.isNotEmpty) 'downloadUrl': downloadUrl,
+        if (uploadStatus != FileUploadStatus.none)
+          'uploadStatus': uploadStatus.name,
+        if (uploadError.isNotEmpty) 'uploadError': uploadError,
       });
   }
 
@@ -471,7 +789,11 @@ class FileBlockNode extends BlockNode {
       assetId: json['assetId'] as String? ?? '',
       name: json['name'] as String? ?? '',
       size: _asInt(json['size']),
+      mimeType: json['mimeType'] as String? ?? '',
       file: json['file'] as String? ?? '',
+      downloadUrl: json['downloadUrl'] as String? ?? '',
+      uploadStatus: FileUploadStatus.parse(json['uploadStatus']),
+      uploadError: json['uploadError'] as String? ?? '',
       attributes: BlockNode.attrsFromJson(json),
     );
   }

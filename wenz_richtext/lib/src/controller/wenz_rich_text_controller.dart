@@ -16,13 +16,18 @@ import '../core/commands/command_registry.dart';
 import '../core/commands/editor_command.dart';
 import '../core/commands/inline_commands.dart';
 import '../core/commands/inline_editing.dart';
+import '../core/commands/markdown_shortcut_commands.dart';
+import '../core/commands/revision_commands.dart';
 import '../core/commands/selection_commands.dart';
 import '../core/commands/style_commands.dart';
+import '../core/commands/table_cell_editing.dart';
 import '../core/commands/table_commands.dart';
 import '../core/commands/text_commands.dart';
 import '../core/model/attributes.dart';
 import '../core/model/block_node.dart';
+import '../core/model/document_version_snapshot.dart';
 import '../core/model/inline_node.dart';
+import '../core/model/revision_model.dart';
 import '../core/model/rich_text_document.dart';
 import '../core/position/document_position.dart';
 import '../core/transaction/change_set.dart';
@@ -31,6 +36,13 @@ import '../history/history_manager.dart';
 import '../input/clipboard_service.dart';
 import '../input/composition_state.dart';
 import '../widgets/media_resolver.dart';
+
+final RegExp _autoLinkCandidateRegex = RegExp(
+  r'(?:(?:https?)://|www\.)',
+  caseSensitive: false,
+);
+
+const String _autoLinkTriggerCharacters = ' \t\n\r,!?;:)]}，。！？；：、';
 
 class WenzRichTextController extends ChangeNotifier {
   WenzRichTextController({
@@ -44,6 +56,7 @@ class WenzRichTextController extends ChangeNotifier {
     HtmlCodec htmlCodec = const HtmlCodec(),
     this.clipboardService = const ClipboardService(),
     this.mediaResolver,
+    WenzEditorPermission permission = WenzEditorPermission.edit,
   })  : session = DocumentSession(
           document: document,
           selection: selection,
@@ -53,7 +66,8 @@ class WenzRichTextController extends ChangeNotifier {
         _legacyWenJsonCodec = legacyWenJsonCodec,
         _plainTextCodec = plainTextCodec,
         _markdownCodec = markdownCodec,
-        _htmlCodec = htmlCodec {
+        _htmlCodec = htmlCodec,
+        _permission = permission {
     _executor = CommandExecutor(session);
   }
 
@@ -86,6 +100,19 @@ class WenzRichTextController extends ChangeNotifier {
   /// Middleware list on the executor. Add [CommandMiddleware]s to intercept
   /// every command (before/after hooks).
   List<CommandMiddleware> get middlewares => _executor.middlewares;
+
+  /// Current command permission policy for this controller.
+  WenzEditorPermission get permission => _permission;
+  WenzEditorPermission _permission;
+
+  set permission(WenzEditorPermission value) {
+    if (_permission == value) {
+      return;
+    }
+    _permission = value;
+    _lastChangedBlockIds = <String>{};
+    notifyListeners();
+  }
 
   /// Invoked synchronously **before** [notifyListeners] whenever the document
   /// content changes (typing, format, block structure, undo/redo, replace,
@@ -128,9 +155,25 @@ class WenzRichTextController extends ChangeNotifier {
 
   DocumentSelection? get selection => session.selection;
 
-  bool get canUndo => session.canUndo;
+  bool get canRead => _permission.allows(WenzEditorPermission.read);
 
-  bool get canRedo => session.canRedo;
+  bool get canComment => _permission.allows(WenzEditorPermission.comment);
+
+  bool get canEdit => _permission.allows(WenzEditorPermission.edit);
+
+  bool get canUndo => canEdit && session.canUndo;
+
+  bool get canRedo => canEdit && session.canRedo;
+
+  bool get revisionModeEnabled => _revisionModeEnabled;
+  bool _revisionModeEnabled = false;
+
+  String? get revisionAuthorId => _revisionAuthorId;
+  String? _revisionAuthorId;
+
+  String? get revisionAuthorName => _revisionAuthorName;
+  String? _revisionAuthorName;
+  int _revisionIdCounter = 0;
 
   /// Block ids whose content changed in the most recent mutation
   /// ([execute], [executeCommand], [undo], [redo], [replaceDocument]), plus the
@@ -212,6 +255,59 @@ class WenzRichTextController extends ChangeNotifier {
     _lastChangedBlockIds = _changedBlockIds(before, session.document);
     onChanged?.call(session.document);
     notifyListeners();
+  }
+
+  void setRevisionMode(
+    bool enabled, {
+    String? authorId,
+    String? authorName,
+  }) {
+    if (_revisionModeEnabled == enabled &&
+        _revisionAuthorId == authorId &&
+        _revisionAuthorName == authorName) {
+      return;
+    }
+    _revisionModeEnabled = enabled;
+    _revisionAuthorId = authorId;
+    _revisionAuthorName = authorName;
+    _lastChangedBlockIds = <String>{};
+    notifyListeners();
+  }
+
+  /// Creates an immutable, application-owned version snapshot for the current
+  /// document. The snapshot list/storage remains outside the editor core.
+  DocumentVersionSnapshot createVersionSnapshot({
+    required String id,
+    DateTime? createdAt,
+    String? authorId,
+    String? authorName,
+    String? description,
+    String? baseSnapshotId,
+    Map<String, Object?> metadata = const <String, Object?>{},
+  }) {
+    return DocumentVersionSnapshot(
+      id: id,
+      document: document,
+      createdAt: createdAt ?? DateTime.now(),
+      authorId: authorId,
+      authorName: authorName,
+      description: description,
+      baseSnapshotId: baseSnapshotId,
+      metadata: metadata,
+    );
+  }
+
+  /// Restores [snapshot] into the editor via [replaceDocument].
+  void restoreVersionSnapshot(
+    DocumentVersionSnapshot snapshot, {
+    DocumentSelection? selection,
+    bool clearHistory = true,
+  }) {
+    replaceDocument(
+      snapshot.restoreDocument(),
+      selection: selection,
+      clearHistory: clearHistory,
+    );
   }
 
   String toJson() => _richTextJsonCodec.encode(document);
@@ -317,6 +413,9 @@ class WenzRichTextController extends ChangeNotifier {
   }
 
   ChangeSet execute(EditorCommand command) {
+    if (!canExecute(command)) {
+      return _permissionDeniedChange(command);
+    }
     final before = session.document;
     final change = _executor.execute(command);
     final docChanged = !change.isNoop;
@@ -335,6 +434,29 @@ class WenzRichTextController extends ChangeNotifier {
     return change;
   }
 
+  bool canExecute(EditorCommand command) {
+    return _permission.allows(command.requiredPermission);
+  }
+
+  ChangeSet _permissionDeniedChange(EditorCommand command) {
+    final before = session.document.copy();
+    final requiredPermission = command.requiredPermission;
+    return ChangeSet(
+      before: before,
+      after: before.copy(),
+      selectionBefore: session.selection,
+      selectionAfter: session.selection,
+      description: 'permission:blocked:${command.description}',
+      metadata: <String, Object?>{
+        'blocked': true,
+        'reason': 'permissionDenied',
+        'permission': _permission.name,
+        'requiredPermission': requiredPermission.name,
+        'command': command.description,
+      },
+    );
+  }
+
   /// Executes a named command registered via [registry]. Lets plugins run
   /// commands without a typed controller method. Throws
   /// [UnknownCommandException] if [name] is not registered (use
@@ -345,6 +467,16 @@ class WenzRichTextController extends ChangeNotifier {
     return execute(registry.build(name, args));
   }
 
+  bool canExecuteCommand(String name, Map<String, Object?> args) {
+    try {
+      return canExecute(registry.build(name, args));
+    } on UnknownCommandException {
+      return false;
+    } on DocumentDecodeException {
+      return false;
+    }
+  }
+
   /// No-throw variant of [executeCommand]. Returns `true` when the command
   /// was built and executed, `false` when [name] is unknown or argument
   /// decoding failed — in which case the document, selection, and change
@@ -352,7 +484,11 @@ class WenzRichTextController extends ChangeNotifier {
   /// names to surface as an exception.
   bool tryExecuteCommand(String name, Map<String, Object?> args) {
     try {
-      execute(registry.build(name, args));
+      final command = registry.build(name, args);
+      if (!canExecute(command)) {
+        return false;
+      }
+      execute(command);
       return true;
     } on UnknownCommandException {
       return false;
@@ -362,6 +498,9 @@ class WenzRichTextController extends ChangeNotifier {
   }
 
   bool undo() {
+    if (!canEdit) {
+      return false;
+    }
     final selectionBefore = session.selection;
     final before = session.document;
     final changed = session.undo();
@@ -377,6 +516,9 @@ class WenzRichTextController extends ChangeNotifier {
   }
 
   bool redo() {
+    if (!canEdit) {
+      return false;
+    }
     final selectionBefore = session.selection;
     final before = session.document;
     final changed = session.redo();
@@ -391,22 +533,227 @@ class WenzRichTextController extends ChangeNotifier {
     return changed;
   }
 
+  ChangeSet insertRevisionText(
+    String text, {
+    TextAttributes attributes = const TextAttributes(),
+    DocumentSelection? selection,
+    String? revisionId,
+    String? authorId,
+    String? authorName,
+    DateTime? createdAt,
+  }) {
+    if (text.isEmpty) {
+      return execute(
+        InsertRevisionTextCommand(
+          text,
+          revisionId: revisionId ?? '',
+          attributes: attributes,
+          selection: selection,
+          authorId: authorId ?? _revisionAuthorId,
+          authorName: authorName ?? _revisionAuthorName,
+          createdAt: createdAt,
+        ),
+      );
+    }
+    final target = selection ?? this.selection;
+    ChangeSet? deletionChange;
+    if (target != null && !target.isCollapsed) {
+      deletionChange = markDeletionRevision(
+        selection: target,
+        authorId: authorId,
+        authorName: authorName,
+        createdAt: createdAt,
+      );
+      if (deletionChange.isNoop) {
+        return deletionChange;
+      }
+    }
+    final insertionSelection =
+        target != null && target.isCollapsed ? target : null;
+    final insertionChange = execute(
+      InsertRevisionTextCommand(
+        text,
+        revisionId: revisionId ?? _nextRevisionId(RevisionChangeType.insert),
+        attributes: attributes,
+        selection: insertionSelection,
+        authorId: authorId ?? _revisionAuthorId,
+        authorName: authorName ?? _revisionAuthorName,
+        createdAt: createdAt,
+      ),
+    );
+    if (insertionChange.isNoop && deletionChange != null) {
+      return deletionChange;
+    }
+    return insertionChange;
+  }
+
+  ChangeSet markDeletionRevision({
+    DocumentSelection? selection,
+    String? revisionId,
+    String? authorId,
+    String? authorName,
+    DateTime? createdAt,
+  }) {
+    return execute(
+      MarkDeletionRevisionCommand(
+        revisionId: revisionId ?? _nextRevisionId(RevisionChangeType.delete),
+        selection: selection,
+        authorId: authorId ?? _revisionAuthorId,
+        authorName: authorName ?? _revisionAuthorName,
+        createdAt: createdAt,
+      ),
+    );
+  }
+
+  ChangeSet markFormatRevision(
+    TextAttributes attributes, {
+    DocumentSelection? selection,
+    String? revisionId,
+    String? authorId,
+    String? authorName,
+    DateTime? createdAt,
+  }) {
+    return execute(
+      MarkFormatRevisionCommand(
+        revisionId: revisionId ?? _nextRevisionId(RevisionChangeType.format),
+        attributes: attributes,
+        selection: selection,
+        authorId: authorId ?? _revisionAuthorId,
+        authorName: authorName ?? _revisionAuthorName,
+        createdAt: createdAt,
+      ),
+    );
+  }
+
+  ChangeSet acceptRevision(String revisionId, {DateTime? resolvedAt}) {
+    return execute(AcceptRevisionCommand(revisionId, resolvedAt: resolvedAt));
+  }
+
+  ChangeSet rejectRevision(String revisionId, {DateTime? resolvedAt}) {
+    return execute(RejectRevisionCommand(revisionId, resolvedAt: resolvedAt));
+  }
+
   ChangeSet insertText(
     String text, {
     TextAttributes attributes = const TextAttributes(),
+    bool applyMarkdownShortcuts = true,
+    bool applyAutoLinkUrls = true,
   }) {
-    return execute(InsertTextCommand(text, attributes: attributes));
+    if (_revisionModeEnabled) {
+      return insertRevisionText(text, attributes: attributes);
+    }
+    final change = execute(InsertTextCommand(text, attributes: attributes));
+    var latestChange = change;
+    if (_shouldApplyMarkdownShortcut(
+      text,
+      attributes,
+      applyMarkdownShortcuts,
+      change,
+    )) {
+      final shortcutChange = execute(const ApplyMarkdownShortcutCommand());
+      if (!shortcutChange.isNoop) {
+        latestChange = shortcutChange;
+      }
+    }
+    if (_shouldApplyAutoLinkUrls(
+      text,
+      attributes,
+      applyAutoLinkUrls,
+      latestChange,
+    )) {
+      final autoLinkChange = autoLinkUrls();
+      if (!autoLinkChange.isNoop) {
+        return autoLinkChange;
+      }
+    }
+    return latestChange;
+  }
+
+  bool _shouldApplyMarkdownShortcut(
+    String text,
+    TextAttributes attributes,
+    bool enabled,
+    ChangeSet change,
+  ) {
+    if (!enabled || change.isNoop || !attributes.isEmpty || text.length != 1) {
+      return false;
+    }
+    return text == ' ' || text == '-' || text == '`';
+  }
+
+  bool _shouldApplyAutoLinkUrls(
+    String text,
+    TextAttributes attributes,
+    bool enabled,
+    ChangeSet change,
+  ) {
+    if (!enabled || change.isNoop || attributes.url != null) {
+      return false;
+    }
+    if (_autoLinkCandidateRegex.hasMatch(text)) {
+      return true;
+    }
+    if (!_containsAutoLinkTrigger(text)) {
+      return false;
+    }
+    return _currentTextScopeHasAutoLinkCandidate();
+  }
+
+  bool _containsAutoLinkTrigger(String text) {
+    for (final codePoint in text.runes) {
+      if (_autoLinkTriggerCharacters.contains(String.fromCharCode(codePoint))) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  bool _currentTextScopeHasAutoLinkCandidate() {
+    final target = selection;
+    if (target == null ||
+        target.start.blockIndex != target.end.blockIndex ||
+        target.start.path != target.end.path) {
+      return false;
+    }
+    final position = target.extent;
+    if (position.blockIndex < 0 ||
+        position.blockIndex >= document.blocks.length) {
+      return false;
+    }
+    final block = document.blocks[position.blockIndex];
+    if (position.path.isBlockText && block is TextBlockNode) {
+      return _autoLinkCandidateRegex.hasMatch(block.plainText);
+    }
+    if (position.path.isTableCellText) {
+      final textBlock = tableCellTextBlockForPosition(document, position);
+      return textBlock != null &&
+          _autoLinkCandidateRegex.hasMatch(textBlock.plainText);
+    }
+    return false;
   }
 
   ChangeSet deleteSelection([DocumentSelection? selection]) {
+    if (_revisionModeEnabled) {
+      return markDeletionRevision(selection: selection);
+    }
     return execute(DeleteSelectionCommand(selection));
   }
 
   ChangeSet deleteBackward() {
+    if (_revisionModeEnabled) {
+      return markDeletionRevision(
+        selection: _singleCharacterRevisionSelection(forward: false),
+      );
+    }
     return execute(const DeleteBackwardCommand());
   }
 
   ChangeSet deleteForward() {
+    if (_revisionModeEnabled) {
+      return markDeletionRevision(
+        selection: _singleCharacterRevisionSelection(forward: true),
+      );
+    }
     return execute(const DeleteForwardCommand());
   }
 
@@ -533,38 +880,111 @@ class WenzRichTextController extends ChangeNotifier {
     return execute(SetCodeLanguageCommand(language, blockIndex: blockIndex));
   }
 
+  ChangeSet setCalloutVariant(String variant, {int? blockIndex}) {
+    return execute(SetCalloutVariantCommand(variant, blockIndex: blockIndex));
+  }
+
+  ChangeSet updateCalloutBlock({
+    int? blockIndex,
+    String? variant,
+    String? title,
+    String? icon,
+  }) {
+    return execute(
+      UpdateCalloutBlockCommand(
+        blockIndex: blockIndex,
+        variant: variant,
+        title: title,
+        icon: icon,
+      ),
+    );
+  }
+
+  ChangeSet indentCodeBlock({
+    bool outdent = false,
+    String indent = '  ',
+    DocumentSelection? selection,
+  }) {
+    return execute(
+      IndentCodeBlockCommand(
+        outdent: outdent,
+        indent: indent,
+        selection: selection,
+      ),
+    );
+  }
+
   ChangeSet insertCallout({
     required String blockId,
     String variant = 'info',
+    String title = '',
+    String icon = '',
     List<InlineNode> content = const <InlineNode>[],
     DocumentSelection? selection,
   }) {
     return insertBlocks(
       index: document.blocks.length,
       blocks: <BlockNode>[
-        CalloutBlockNode(id: blockId, content: content, variant: variant),
+        CalloutBlockNode(
+          id: blockId,
+          content: content,
+          variant: variant,
+          title: title,
+          icon: icon,
+        ),
       ],
       selection: selection,
     );
   }
 
   ChangeSet insertFile({
+    int? index,
     required String blockId,
     required String assetId,
     String name = '',
     int size = 0,
+    String mimeType = '',
     String file = '',
+    String downloadUrl = '',
+    FileUploadStatus uploadStatus = FileUploadStatus.none,
+    String uploadError = '',
     DocumentSelection? selection,
   }) {
     return insertBlocks(
-      index: document.blocks.length,
+      index: index ?? document.blocks.length,
       blocks: <BlockNode>[
         FileBlockNode(
           id: blockId,
           assetId: assetId,
           name: name,
           size: size,
+          mimeType: mimeType,
           file: file,
+          downloadUrl: downloadUrl,
+          uploadStatus: uploadStatus,
+          uploadError: uploadError,
+        ),
+      ],
+      selection: selection,
+    );
+  }
+
+  ChangeSet insertBlockEmbed({
+    int? index,
+    required String blockId,
+    required String embedType,
+    Map<String, Object?> data = const <String, Object?>{},
+    String fallbackText = '',
+    DocumentSelection? selection,
+  }) {
+    return insertBlocks(
+      index: index ?? document.blocks.length,
+      blocks: <BlockNode>[
+        BlockEmbedNode(
+          id: blockId,
+          embedType: embedType,
+          data: data,
+          fallbackText: fallbackText,
         ),
       ],
       selection: selection,
@@ -600,9 +1020,41 @@ class WenzRichTextController extends ChangeNotifier {
     if (raw.isEmpty) {
       return;
     }
-    final paste = clipboardService.parse(raw);
+    _pasteClipboard(clipboardService.parse(raw));
+  }
+
+  /// Pastes a known Markdown clipboard fragment through the same pipeline as
+  /// rich/plain text paste.
+  void pasteMarkdown(String markdown) {
+    if (markdown.isEmpty) {
+      return;
+    }
+    _pasteClipboard(
+      clipboardService.parse(
+        markdown,
+        format: ClipboardPasteFormat.markdown,
+      ),
+    );
+  }
+
+  /// Pastes a known HTML clipboard fragment through the same pipeline as
+  /// rich/plain text paste.
+  void pasteHtml(String html) {
+    if (html.isEmpty) {
+      return;
+    }
+    _pasteClipboard(
+      clipboardService.parse(
+        html,
+        format: ClipboardPasteFormat.html,
+      ),
+    );
+  }
+
+  void _pasteClipboard(ClipboardPaste paste) {
     if (paste.isBlocks) {
-      execute(PasteBlocksCommand(paste.blocks, newBlockId: 'paste-${_pasteBlockCounter()}'));
+      execute(PasteBlocksCommand(paste.blocks,
+          newBlockId: 'paste-${_pasteBlockCounter()}'));
       return;
     }
     if (paste.isRich) {
@@ -631,7 +1083,11 @@ class WenzRichTextController extends ChangeNotifier {
         if (run.text.isEmpty) {
           continue;
         }
-        insertText(run.text, attributes: run.attributes);
+        insertText(
+          run.text,
+          attributes: run.attributes,
+          applyMarkdownShortcuts: false,
+        );
       } else if (run is InlineEmbed) {
         execute(
           InsertInlineEmbedCommand(
@@ -651,7 +1107,7 @@ class WenzRichTextController extends ChangeNotifier {
         enter(newBlockId: 'paste-${_pasteBlockCounter()}');
       }
       if (lines[i].isNotEmpty) {
-        insertText(lines[i]);
+        insertText(lines[i], applyMarkdownShortcuts: false);
       }
     }
   }
@@ -692,10 +1148,78 @@ class WenzRichTextController extends ChangeNotifier {
     );
   }
 
+  ChangeSet updateImageBlock({
+    required int blockIndex,
+    String? assetId,
+    String? file,
+    int? width,
+    int? height,
+    double? showWidth,
+    double? showHeight,
+    bool clearShowWidth = false,
+    bool clearShowHeight = false,
+    String? caption,
+    String? altText,
+  }) {
+    return execute(
+      UpdateImageBlockCommand(
+        blockIndex: blockIndex,
+        assetId: assetId,
+        file: file,
+        width: width,
+        height: height,
+        showWidth: showWidth,
+        showHeight: showHeight,
+        clearShowWidth: clearShowWidth,
+        clearShowHeight: clearShowHeight,
+        caption: caption,
+        altText: altText,
+      ),
+    );
+  }
+
+  ChangeSet updateFileBlock({
+    required int blockIndex,
+    String? assetId,
+    String? name,
+    int? size,
+    String? mimeType,
+    String? file,
+    String? downloadUrl,
+    FileUploadStatus? uploadStatus,
+    String? uploadError,
+  }) {
+    return execute(
+      UpdateFileBlockCommand(
+        blockIndex: blockIndex,
+        assetId: assetId,
+        name: name,
+        size: size,
+        mimeType: mimeType,
+        file: file,
+        downloadUrl: downloadUrl,
+        uploadStatus: uploadStatus,
+        uploadError: uploadError,
+      ),
+    );
+  }
+
+  ChangeSet setBlockAnchor({
+    required int blockIndex,
+    String? anchor,
+  }) {
+    return execute(
+      SetBlockAnchorCommand(blockIndex: blockIndex, anchor: anchor),
+    );
+  }
+
   ChangeSet formatText(
     TextAttributes attributes, {
     DocumentSelection? selection,
   }) {
+    if (_revisionModeEnabled) {
+      return markFormatRevision(attributes, selection: selection);
+    }
     return execute(
       FormatTextCommand(attributes: attributes, selection: selection),
     );
@@ -707,6 +1231,10 @@ class WenzRichTextController extends ChangeNotifier {
 
   ChangeSet setLink(String? url, {DocumentSelection? selection}) {
     return execute(SetLinkCommand(url, selection: selection));
+  }
+
+  ChangeSet autoLinkUrls({DocumentSelection? selection}) {
+    return execute(AutoLinkUrlsCommand(selection: selection));
   }
 
   ChangeSet toggleRemark({DocumentSelection? selection}) {
@@ -732,6 +1260,23 @@ class WenzRichTextController extends ChangeNotifier {
       InsertInlineEmbedCommand(
         embedType: 'mention',
         data: <String, Object?>{'id': id, 'label': label},
+        selection: selection,
+      ),
+    );
+  }
+
+  ChangeSet insertEmoji(
+    String emoji, {
+    String? shortName,
+    DocumentSelection? selection,
+  }) {
+    return execute(
+      InsertInlineEmbedCommand(
+        embedType: 'emoji',
+        data: <String, Object?>{
+          'emoji': emoji,
+          if (shortName != null) 'shortName': shortName,
+        },
         selection: selection,
       ),
     );
@@ -1076,6 +1621,41 @@ class WenzRichTextController extends ChangeNotifier {
     );
   }
 
+  String _nextRevisionId(RevisionChangeType type) {
+    _revisionIdCounter += 1;
+    return 'rev-${type.name}-${DateTime.now().microsecondsSinceEpoch}-$_revisionIdCounter';
+  }
+
+  DocumentSelection? _singleCharacterRevisionSelection(
+      {required bool forward}) {
+    final target = selection;
+    if (target == null) {
+      return null;
+    }
+    if (!target.isCollapsed) {
+      return target;
+    }
+    final position = target.extent;
+    if (!position.path.isBlockText ||
+        position.blockIndex < 0 ||
+        position.blockIndex >= document.blocks.length) {
+      return null;
+    }
+    final block = document.blocks[position.blockIndex];
+    if (block is! TextBlockNode) {
+      return null;
+    }
+    final offset = position.offset.clamp(0, block.plainText.length).toInt();
+    final startOffset = forward ? offset : offset - 1;
+    final endOffset = forward ? offset + 1 : offset;
+    if (startOffset < 0 || endOffset > block.plainText.length) {
+      return null;
+    }
+    final start = position.copyWith(offset: startOffset);
+    final end = position.copyWith(offset: endOffset);
+    return DocumentSelection(base: start, extent: end);
+  }
+
   /// Diffs [before] against [after] and returns the set of block ids whose
   /// rendering must refresh: every block id present in [after] whose
   /// lightweight fingerprint changed or that is newly added. Removed block ids
@@ -1087,7 +1667,8 @@ class WenzRichTextController extends ChangeNotifier {
   /// deep compare or [BlockNode.toJson] on every block. It may produce a false
   /// positive (rebuild a block that did not visually change) but never a false
   /// negative, so correctness is preserved.
-  Set<String> _changedBlockIds(RichTextDocument before, RichTextDocument after) {
+  Set<String> _changedBlockIds(
+      RichTextDocument before, RichTextDocument after) {
     final beforeFingerprints = <String, String>{
       for (final block in before.blocks) block.id: _blockFingerprint(block),
     };

@@ -49,6 +49,7 @@ class PlainTextCodec {
     switch (block.type) {
       case BlockType.image:
       case BlockType.video:
+      case BlockType.embed:
       case BlockType.file:
       case BlockType.divider:
         return true;
@@ -83,15 +84,31 @@ class PlainTextCodec {
         return text.isEmpty ? '[table]' : text;
       case BlockType.image:
         final image = block as ImageBlockNode;
-        return '[image: ${image.file.isNotEmpty ? image.file : image.assetId}]';
+        return '[image: ${_imageLabel(image)}]';
       case BlockType.video:
         final video = block as VideoBlockNode;
         return '[video: ${video.assetId}]';
+      case BlockType.embed:
+        final embed = block as BlockEmbedNode;
+        return '[embed:${embed.normalizedEmbedType}: ${embed.displayText}]';
       case BlockType.file:
         final file = block as FileBlockNode;
-        return '[file: ${file.name.isNotEmpty ? file.name : file.assetId}]';
+        return '[file: ${file.displayName}]';
       case BlockType.divider:
         return '---';
     }
+  }
+
+  String _imageLabel(ImageBlockNode image) {
+    if (image.caption.isNotEmpty) {
+      return image.caption;
+    }
+    if (image.altText.isNotEmpty) {
+      return image.altText;
+    }
+    if (image.file.isNotEmpty) {
+      return image.file;
+    }
+    return image.assetId;
   }
 }

@@ -159,6 +159,61 @@ void main() {
     expect(block.attributes.checked, isFalse);
   });
 
+  test('set block type supports canonical task list type', () {
+    final session = DocumentSession(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            attributes: BlockAttributes(anchor: 'task-anchor'),
+            content: <InlineNode>[TextRun(text: 'Task')],
+          ),
+        ],
+      ),
+      selection: collapsedTextSelection('p1', 0, 0),
+    );
+    final executor = CommandExecutor(session);
+
+    executor.execute(
+      const SetBlockTypeCommand(
+        type: BlockType.listItem,
+        listType: 'task',
+        checked: true,
+      ),
+    );
+
+    final block = session.document.blocks.single as TextBlockNode;
+    expect(block.type, BlockType.listItem);
+    expect(block.attributes.listType, 'task');
+    expect(block.attributes.checked, isTrue);
+    expect(block.attributes.anchor, 'task-anchor');
+  });
+
+  test('set block type can switch an existing list item to unordered', () {
+    final session = DocumentSession(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'li1',
+            type: BlockType.listItem,
+            attributes: BlockAttributes(listType: 'ordered'),
+            content: <InlineNode>[TextRun(text: 'Item')],
+          ),
+        ],
+      ),
+      selection: collapsedTextSelection('li1', 0, 0),
+    );
+    final executor = CommandExecutor(session);
+
+    executor.execute(const SetBlockTypeCommand(type: BlockType.listItem));
+
+    final block = session.document.blocks.single as TextBlockNode;
+    expect(block.type, BlockType.listItem);
+    expect(block.attributes.listType, isNull);
+    expect(block.attributes.checked, isNull);
+  });
+
   test('set alignment updates non-text block attributes too', () {
     final session = DocumentSession(
       document: const RichTextDocument(

@@ -335,6 +335,50 @@ void main() {
       expect(paste.isRich, isFalse);
       expect(paste.text, 'line one\nline two\nline three');
     });
+
+    test('plainText format bypasses rich payload detection', () {
+      final payload =
+          service.copy(_doc('Hello'), textSelection('p1', 0, 0, 5))!;
+      final paste = service.parse(
+        payload,
+        format: ClipboardPasteFormat.plainText,
+      );
+
+      expect(paste.isRich, isFalse);
+      expect(paste.text, payload);
+    });
+
+    test('markdown format parses structured blocks', () {
+      final paste = service.parse(
+        '# Title\n\n- item',
+        format: ClipboardPasteFormat.markdown,
+      );
+
+      expect(paste.isBlocks, isTrue);
+      expect(paste.blocks, hasLength(2));
+      expect((paste.blocks[0] as TextBlockNode).type, BlockType.heading);
+      expect((paste.blocks[0] as TextBlockNode).plainText, 'Title');
+      expect((paste.blocks[1] as TextBlockNode).type, BlockType.listItem);
+    });
+
+    test('html format parses structured blocks', () {
+      final paste = service.parse(
+        '<h1>Title</h1><p>body</p>',
+        format: ClipboardPasteFormat.html,
+      );
+
+      expect(paste.isBlocks, isTrue);
+      expect(paste.blocks, hasLength(2));
+      expect((paste.blocks[0] as TextBlockNode).type, BlockType.heading);
+      expect((paste.blocks[1] as TextBlockNode).plainText, 'body');
+    });
+
+    test('legacy pasteMarkdown returns inline content for one paragraph', () {
+      final inline = service.pasteMarkdown('hello **world**');
+
+      expect(inline, isNotNull);
+      expect(inline!.map((node) => node.plainText).join(), 'hello world');
+    });
   });
 
   group('controller paste integration', () {
@@ -360,6 +404,51 @@ void main() {
 
       expect(controller.document.blocks, hasLength(3));
       expect(controller.document.plainText, 'aX\nYY\nZb');
+    });
+
+    test('paste plain text does not trigger Markdown shortcuts', () {
+      final controller = WenzRichTextController(
+        document: _emptyDoc(),
+        selection: collapsedTextSelection('p1', 0, 0),
+      );
+
+      controller.pasteText('# ');
+
+      final block = controller.document.blocks.single as TextBlockNode;
+      expect(block.type, BlockType.paragraph);
+      expect(block.plainText, '# ');
+    });
+
+    test('pasteMarkdown into an empty paragraph preserves block structure', () {
+      final controller = WenzRichTextController(
+        document: _emptyDoc(),
+        selection: collapsedTextSelection('p1', 0, 0),
+      );
+
+      controller.pasteMarkdown('# Title\n\n- item');
+
+      expect(controller.document.blocks, hasLength(2));
+      expect((controller.document.blocks[0] as TextBlockNode).type,
+          BlockType.heading);
+      expect(controller.document.blocks[0].plainText, 'Title');
+      expect((controller.document.blocks[1] as TextBlockNode).type,
+          BlockType.listItem);
+      expect(controller.document.blocks[1].plainText, 'item');
+    });
+
+    test('pasteHtml into an empty paragraph preserves block structure', () {
+      final controller = WenzRichTextController(
+        document: _emptyDoc(),
+        selection: collapsedTextSelection('p1', 0, 0),
+      );
+
+      controller.pasteHtml('<h2>Title</h2><p>body</p>');
+
+      expect(controller.document.blocks, hasLength(2));
+      final heading = controller.document.blocks[0] as TextBlockNode;
+      expect(heading.type, BlockType.heading);
+      expect(heading.attributes.level, 2);
+      expect(controller.document.blocks[1].plainText, 'body');
     });
 
     test('paste rich payload preserves attributes', () {
@@ -745,6 +834,18 @@ RichTextDocument _doc(String text) {
         id: 'p1',
         type: BlockType.paragraph,
         content: <InlineNode>[TextRun(text: text)],
+      ),
+    ],
+  );
+}
+
+RichTextDocument _emptyDoc() {
+  return const RichTextDocument(
+    blocks: <BlockNode>[
+      TextBlockNode(
+        id: 'p1',
+        type: BlockType.paragraph,
+        content: <InlineNode>[],
       ),
     ],
   );

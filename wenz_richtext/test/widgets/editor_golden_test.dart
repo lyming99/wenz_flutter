@@ -163,6 +163,66 @@ void main() {
       matchesGoldenFile('goldens/editor_caret.png'),
     );
   });
+
+  testWidgets('golden: advanced blocks and inline embeds', (tester) async {
+    await _pumpGoldenEditor(
+      tester,
+      WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'advanced-title',
+              type: BlockType.heading,
+              attributes: BlockAttributes(level: 3),
+              content: <InlineNode>[
+                TextRun(text: 'Advanced review'),
+              ],
+            ),
+            CalloutBlockNode(
+              id: 'advanced-callout',
+              variant: CalloutBlockNode.warningVariant,
+              title: 'Migration risk',
+              icon: '!',
+              content: <InlineNode>[
+                TextRun(text: 'Check schema fallback before release.'),
+              ],
+            ),
+            TextBlockNode(
+              id: 'advanced-inline',
+              type: BlockType.paragraph,
+              content: <InlineNode>[
+                TextRun(text: 'Owner '),
+                InlineEmbed(
+                  embedType: 'mention',
+                  data: <String, Object?>{'id': 'u1', 'label': 'Ada'},
+                ),
+                TextRun(text: ' verifies '),
+                InlineEmbed(
+                  embedType: 'formula',
+                  data: <String, Object?>{'text': 'x^2 + y^2'},
+                ),
+                TextRun(text: ' rendering.'),
+              ],
+            ),
+            FileBlockNode(
+              id: 'advanced-file',
+              assetId: 'spec-v2',
+              name: 'release-spec.pdf',
+              size: 1048576,
+              mimeType: 'application/pdf',
+              uploadStatus: FileUploadStatus.failed,
+              uploadError: 'Retry required',
+            ),
+          ],
+        ),
+      ),
+    );
+
+    await expectLater(
+      find.byKey(_goldenKey),
+      matchesGoldenFile('goldens/editor_advanced_blocks.png'),
+    );
+  });
 }
 
 Future<void> _pumpGoldenEditor(

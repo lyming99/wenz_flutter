@@ -8,6 +8,7 @@ import 'editor_command.dart';
 import 'inline_editing.dart';
 import 'table_cell_editing.dart';
 import 'text_commands.dart';
+import '../model/attributes.dart';
 
 class InsertBlocksCommand extends EditorCommand {
   const InsertBlocksCommand({
@@ -401,6 +402,17 @@ class PasteBlocksCommand extends EditorCommand {
         ),
       ).execute(session);
     }
+    if (_isEmptyParagraphAtStart(block, position)) {
+      return ReplaceBlocksCommand(
+        index: position.blockIndex,
+        deleteCount: 1,
+        blocks: pasteBlocks,
+        selection: _endSelection(
+          position.blockIndex + pasteBlocks.length - 1,
+          pasteBlocks.last,
+        ),
+      ).execute(session);
+    }
 
     final split = splitInline(block.content, position.offset);
     final generatedId = idAllocator.unique(newBlockId ?? '${block.id}-paste');
@@ -510,6 +522,14 @@ class PasteBlocksCommand extends EditorCommand {
     ).execute(session);
   }
 
+  bool _isEmptyParagraphAtStart(
+      TextBlockNode block, DocumentPosition position) {
+    return block.type == BlockType.paragraph &&
+        position.path.isBlockText &&
+        position.offset == 0 &&
+        block.content.isEmpty;
+  }
+
   /// Computes the caret offset inside the final rebuilt block after the merge.
   /// The caret lands at the end of the last pasted inline content (before the
   /// original "after" slice).
@@ -602,6 +622,8 @@ BlockNode _copyBlockForPaste(BlockNode block, _PasteIdAllocator ids) {
       height: block.height,
       showWidth: block.showWidth,
       showHeight: block.showHeight,
+      caption: block.caption,
+      altText: block.altText,
       attributes: block.attributes,
     );
   }
@@ -623,11 +645,22 @@ BlockNode _copyBlockForPaste(BlockNode block, _PasteIdAllocator ids) {
       attributes: block.attributes,
     );
   }
+  if (block is BlockEmbedNode) {
+    return BlockEmbedNode(
+      id: id,
+      embedType: block.embedType,
+      data: Map<String, Object?>.from(block.data),
+      fallbackText: block.fallbackText,
+      attributes: block.attributes,
+    );
+  }
   if (block is CalloutBlockNode) {
     return CalloutBlockNode(
       id: id,
       content: block.content.map((node) => node.copy()).toList(),
       variant: block.variant,
+      title: block.title,
+      icon: block.icon,
       attributes: block.attributes,
     );
   }
@@ -637,7 +670,11 @@ BlockNode _copyBlockForPaste(BlockNode block, _PasteIdAllocator ids) {
       assetId: block.assetId,
       name: block.name,
       size: block.size,
+      mimeType: block.mimeType,
       file: block.file,
+      downloadUrl: block.downloadUrl,
+      uploadStatus: block.uploadStatus,
+      uploadError: block.uploadError,
       attributes: block.attributes,
     );
   }
@@ -790,6 +827,296 @@ class ReplaceBlocksCommand extends EditorCommand {
   }
 }
 
+class UpdateImageBlockCommand extends EditorCommand {
+  const UpdateImageBlockCommand({
+    required this.blockIndex,
+    this.assetId,
+    this.file,
+    this.width,
+    this.height,
+    this.showWidth,
+    this.showHeight,
+    this.clearShowWidth = false,
+    this.clearShowHeight = false,
+    this.caption,
+    this.altText,
+  });
+
+  final int blockIndex;
+  final String? assetId;
+  final String? file;
+  final int? width;
+  final int? height;
+  final double? showWidth;
+  final double? showHeight;
+  final bool clearShowWidth;
+  final bool clearShowHeight;
+  final String? caption;
+  final String? altText;
+
+  @override
+  String get description => 'updateImageBlock';
+
+  @override
+  CommandResult execute(DocumentSession session) {
+    final block = _blockAt(session.document, blockIndex);
+    if (block is! ImageBlockNode) {
+      return const CommandResult(recordHistory: false);
+    }
+
+    final next = block.copyWith(
+      assetId: assetId,
+      file: file,
+      width: width,
+      height: height,
+      showWidth: showWidth,
+      showHeight: showHeight,
+      clearShowWidth: clearShowWidth,
+      clearShowHeight: clearShowHeight,
+      caption: caption,
+      altText: altText,
+    );
+    if (_sameImageBlock(block, next)) {
+      return const CommandResult(recordHistory: false);
+    }
+
+    final blocks = session.document.blocks.map((b) => b.copy()).toList();
+    blocks[blockIndex] = next;
+    session.document = RichTextDocument(
+      version: session.document.version,
+      blocks: blocks,
+    );
+    return const CommandResult();
+  }
+}
+
+bool _sameImageBlock(ImageBlockNode a, ImageBlockNode b) {
+  return a.id == b.id &&
+      a.assetId == b.assetId &&
+      a.file == b.file &&
+      a.width == b.width &&
+      a.height == b.height &&
+      a.showWidth == b.showWidth &&
+      a.showHeight == b.showHeight &&
+      a.caption == b.caption &&
+      a.altText == b.altText &&
+      a.attributes == b.attributes;
+}
+
+class UpdateFileBlockCommand extends EditorCommand {
+  const UpdateFileBlockCommand({
+    required this.blockIndex,
+    this.assetId,
+    this.name,
+    this.size,
+    this.mimeType,
+    this.file,
+    this.downloadUrl,
+    this.uploadStatus,
+    this.uploadError,
+  });
+
+  final int blockIndex;
+  final String? assetId;
+  final String? name;
+  final int? size;
+  final String? mimeType;
+  final String? file;
+  final String? downloadUrl;
+  final FileUploadStatus? uploadStatus;
+  final String? uploadError;
+
+  @override
+  String get description => 'updateFileBlock';
+
+  @override
+  CommandResult execute(DocumentSession session) {
+    final block = _blockAt(session.document, blockIndex);
+    if (block is! FileBlockNode) {
+      return const CommandResult(recordHistory: false);
+    }
+
+    final next = block.copyWith(
+      assetId: assetId,
+      name: name,
+      size: size,
+      mimeType: mimeType,
+      file: file,
+      downloadUrl: downloadUrl,
+      uploadStatus: uploadStatus,
+      uploadError: uploadError,
+    );
+    if (_sameFileBlock(block, next)) {
+      return const CommandResult(recordHistory: false);
+    }
+
+    final blocks = session.document.blocks.map((b) => b.copy()).toList();
+    blocks[blockIndex] = next;
+    session.document = RichTextDocument(
+      version: session.document.version,
+      blocks: blocks,
+    );
+    return const CommandResult();
+  }
+}
+
+bool _sameFileBlock(FileBlockNode a, FileBlockNode b) {
+  return a.id == b.id &&
+      a.assetId == b.assetId &&
+      a.name == b.name &&
+      a.size == b.size &&
+      a.mimeType == b.mimeType &&
+      a.file == b.file &&
+      a.downloadUrl == b.downloadUrl &&
+      a.uploadStatus == b.uploadStatus &&
+      a.uploadError == b.uploadError &&
+      a.attributes == b.attributes;
+}
+
+class SetBlockAnchorCommand extends EditorCommand {
+  const SetBlockAnchorCommand({
+    required this.blockIndex,
+    this.anchor,
+  });
+
+  final int blockIndex;
+  final String? anchor;
+
+  @override
+  String get description => 'setBlockAnchor';
+
+  @override
+  CommandResult execute(DocumentSession session) {
+    final block = _blockAt(session.document, blockIndex);
+    if (block == null) {
+      return const CommandResult(recordHistory: false);
+    }
+
+    final normalizedAnchor = _normalizeAnchor(anchor);
+    final nextAttributes =
+        _blockAttributesWithAnchor(block.attributes, normalizedAnchor);
+    if (nextAttributes == block.attributes) {
+      return const CommandResult(recordHistory: false);
+    }
+
+    final blocks = session.document.blocks.map((b) => b.copy()).toList();
+    blocks[blockIndex] = _blockWithAttributes(block, nextAttributes);
+    session.document = RichTextDocument(
+      version: session.document.version,
+      blocks: blocks,
+    );
+    return const CommandResult();
+  }
+}
+
+String? _normalizeAnchor(String? anchor) {
+  final trimmed = anchor?.trim();
+  if (trimmed == null || trimmed.isEmpty) {
+    return null;
+  }
+  return trimmed;
+}
+
+BlockAttributes _blockAttributesWithAnchor(
+  BlockAttributes attributes,
+  String? anchor,
+) {
+  return BlockAttributes(
+    level: attributes.level,
+    indent: attributes.indent,
+    alignment: attributes.alignment,
+    listType: attributes.listType,
+    checked: attributes.checked,
+    childNote: attributes.childNote,
+    anchor: anchor,
+  );
+}
+
+BlockNode _blockWithAttributes(BlockNode block, BlockAttributes attributes) {
+  if (block is TextBlockNode) {
+    return TextBlockNode(
+      id: block.id,
+      type: block.type,
+      attributes: attributes,
+      content: block.content.map((node) => node.copy()).toList(),
+    );
+  }
+  if (block is CodeBlockNode) {
+    return CodeBlockNode(
+      id: block.id,
+      code: block.code,
+      language: block.language,
+      attributes: attributes,
+    );
+  }
+  if (block is ImageBlockNode) {
+    return ImageBlockNode(
+      id: block.id,
+      assetId: block.assetId,
+      file: block.file,
+      width: block.width,
+      height: block.height,
+      showWidth: block.showWidth,
+      showHeight: block.showHeight,
+      caption: block.caption,
+      altText: block.altText,
+      attributes: attributes,
+    );
+  }
+  if (block is TableBlockNode) {
+    return TableBlockNode(
+      id: block.id,
+      table: block.table,
+      attributes: attributes,
+    );
+  }
+  if (block is DividerBlockNode) {
+    return DividerBlockNode(id: block.id, attributes: attributes);
+  }
+  if (block is VideoBlockNode) {
+    return VideoBlockNode(
+      id: block.id,
+      assetId: block.assetId,
+      file: block.file,
+      attributes: attributes,
+    );
+  }
+  if (block is BlockEmbedNode) {
+    return BlockEmbedNode(
+      id: block.id,
+      embedType: block.embedType,
+      data: block.data,
+      fallbackText: block.fallbackText,
+      attributes: attributes,
+    );
+  }
+  if (block is CalloutBlockNode) {
+    return CalloutBlockNode(
+      id: block.id,
+      content: block.content.map((node) => node.copy()).toList(),
+      variant: block.variant,
+      title: block.title,
+      icon: block.icon,
+      attributes: attributes,
+    );
+  }
+  if (block is FileBlockNode) {
+    return FileBlockNode(
+      id: block.id,
+      assetId: block.assetId,
+      name: block.name,
+      size: block.size,
+      mimeType: block.mimeType,
+      file: block.file,
+      downloadUrl: block.downloadUrl,
+      uploadStatus: block.uploadStatus,
+      uploadError: block.uploadError,
+      attributes: attributes,
+    );
+  }
+  return block.copy();
+}
+
 class EnterCommand extends EditorCommand {
   const EnterCommand({this.newBlockId});
 
@@ -848,6 +1175,10 @@ class EnterCommand extends EditorCommand {
     TextBlockNode block,
     DocumentPosition position,
   ) {
+    if (block.type == BlockType.listItem && block.plainText.trim().isEmpty) {
+      return _exitEmptyListItem(session, block, position);
+    }
+
     final split = splitInline(block.content, position.offset);
     final nextBlockId = newBlockId ?? '${block.id}-next';
     final before = TextBlockNode(
@@ -859,7 +1190,7 @@ class EnterCommand extends EditorCommand {
     final after = TextBlockNode(
       id: nextBlockId,
       type: block.type,
-      attributes: block.attributes,
+      attributes: _continuedTextBlockAttributes(block),
       content: split.after,
     );
     final nextSelectionPosition = DocumentPosition.text(
@@ -876,6 +1207,66 @@ class EnterCommand extends EditorCommand {
         extent: nextSelectionPosition,
       ),
     ).execute(session);
+  }
+
+  CommandResult _exitEmptyListItem(
+    DocumentSession session,
+    TextBlockNode block,
+    DocumentPosition position,
+  ) {
+    final paragraph = TextBlockNode(
+      id: block.id,
+      type: BlockType.paragraph,
+      attributes: _paragraphAttributesAfterListExit(block.attributes),
+      content: const <InlineNode>[],
+    );
+    final nextSelectionPosition = DocumentPosition.text(
+      blockId: paragraph.id,
+      blockIndex: position.blockIndex,
+      offset: 0,
+    );
+    return ReplaceBlocksCommand(
+      index: position.blockIndex,
+      deleteCount: 1,
+      blocks: <BlockNode>[paragraph],
+      selection: DocumentSelection(
+        base: nextSelectionPosition,
+        extent: nextSelectionPosition,
+      ),
+    ).execute(session);
+  }
+
+  BlockAttributes _continuedTextBlockAttributes(TextBlockNode block) {
+    final current = block.attributes;
+    if (block.type == BlockType.listItem) {
+      return BlockAttributes(
+        level: current.level,
+        indent: current.indent,
+        alignment: current.alignment,
+        listType: current.listType,
+        checked: current.listType == 'task' ? false : null,
+        childNote: current.childNote,
+      );
+    }
+    return BlockAttributes(
+      level: current.level,
+      indent: current.indent,
+      alignment: current.alignment,
+      listType: current.listType,
+      checked: current.checked,
+      childNote: current.childNote,
+    );
+  }
+
+  BlockAttributes _paragraphAttributesAfterListExit(
+    BlockAttributes current,
+  ) {
+    return BlockAttributes(
+      indent: current.indent,
+      alignment: current.alignment,
+      childNote: current.childNote,
+      anchor: current.anchor,
+    );
   }
 
   CommandResult _insertCodeNewline(

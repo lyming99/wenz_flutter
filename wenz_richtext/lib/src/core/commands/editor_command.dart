@@ -2,6 +2,19 @@ import '../position/document_position.dart';
 import '../transaction/change_set.dart';
 import '../transaction/document_session.dart';
 
+/// Permission level currently granted to the editor host.
+///
+/// The levels are ordered from least to most capable: `read` commands may run
+/// everywhere, `comment` commands may run in comment/edit modes, and `edit`
+/// commands require full editing permission.
+enum WenzEditorPermission { read, comment, edit }
+
+extension WenzEditorPermissionPolicy on WenzEditorPermission {
+  bool allows(WenzEditorPermission requiredPermission) {
+    return index >= requiredPermission.index;
+  }
+}
+
 class CommandResult {
   const CommandResult({
     this.selection,
@@ -21,6 +34,8 @@ abstract class EditorCommand {
   const EditorCommand();
 
   String get description;
+
+  WenzEditorPermission get requiredPermission => WenzEditorPermission.edit;
 
   CommandResult execute(DocumentSession session);
 

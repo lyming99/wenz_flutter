@@ -14,9 +14,10 @@ import '../core/model/table_model.dart';
 /// ATX headings (`#{1,6}`), unordered (`- `/`* `), ordered (`1. `), and task
 /// (`- [x] `/`- [ ]`) lists, blockquotes (`> `), fenced code blocks
 /// (``` ``` ```), GFM pipe tables, thematic breaks (`---`/`***`), images
-/// (`![alt](url)`), and inline `**bold**`/`*italic*`/`~~strike~~`/`<u>u</u>`/
-/// `[text](url)`. Anything unrecognised falls back to a paragraph (Markdown's
-/// usual leniency — [decode] never throws for content).
+/// (`![alt](url)`), Wenz video placeholders (`![video](url)`), and inline
+/// `**bold**`/`*italic*`/`~~strike~~`/`<u>u</u>`/`[text](url)`. Anything
+/// unrecognised falls back to a paragraph (Markdown's usual leniency —
+/// [decode] never throws for content).
 ///
 /// Coverage is aligned with the `gpt_markdown` syntax matrix for the block/
 /// inline kinds this package models; LaTeX / radio buttons have no model
@@ -70,25 +71,36 @@ class MarkdownCodec {
         return _encodeTable(block as TableBlockNode);
       case BlockType.image:
         final image = block as ImageBlockNode;
-        final alt = image.file.isNotEmpty ? image.file : 'image';
+        final alt = _imageAlt(image);
         final src = image.assetId.isNotEmpty ? image.assetId : image.file;
-        return '![$alt]($src)';
+        final title = image.caption.isEmpty
+            ? ''
+            : ' "${_escapeImageTitle(image.caption)}"';
+        return '![${_escapeImageAlt(alt)}]($src$title)';
       case BlockType.video:
         final video = block as VideoBlockNode;
         final src = video.file.isNotEmpty ? video.file : video.assetId;
         return '![video]($src)';
+      case BlockType.embed:
+        final embed = block as BlockEmbedNode;
+        return '[${_escapeInline(embed.normalizedEmbedType)} embed: '
+            '${_escapeInline(embed.displayText)}]';
       case BlockType.file:
         final file = block as FileBlockNode;
-        final name = file.name.isNotEmpty ? file.name : file.assetId;
-        return '[$name](${file.file.isNotEmpty ? file.file : file.assetId})';
+        return '[${file.displayName}](${file.effectiveDownloadUrl})';
       case BlockType.divider:
         return '---';
       case BlockType.callout:
-        // Callouts map to blockquotes; the variant is not preserved in plain
-        // Markdown.
+        // Callouts degrade to blockquotes in plain Markdown. The visible icon,
+        // title and body are preserved, but the structured variant is not.
         final callout = block as CalloutBlockNode;
+        final title = '${callout.effectiveIcon} ${callout.effectiveTitle}';
+        final lines = <String>['**${_escapeInline(title)}**'];
         final body = _encodeInline(callout.content);
-        return body.split('\n').map((line) => '> $line').join('\n');
+        if (body.isNotEmpty) {
+          lines.addAll(body.split('\n'));
+        }
+        return lines.map((line) => '> $line').join('\n');
     }
   }
 
@@ -192,12 +204,47 @@ class MarkdownCodec {
   String _encodeEmbed(InlineEmbed embed) {
     if (embed.embedType == 'image') {
       final url = embed.data['assetId'] ?? embed.data['id'] ?? '';
-      final alt = embed.data['text'] as String? ?? '';
-      return '![$alt]($url)';
+      final alt =
+          (embed.data['altText'] ?? embed.data['text']) as String? ?? '';
+      final caption = embed.data['caption'] as String? ?? '';
+      final title = caption.isEmpty ? '' : ' "${_escapeImageTitle(caption)}"';
+      return '![${_escapeImageAlt(alt)}]($url$title)';
     }
-    // formula / mention: no standard Markdown — render the label/text verbatim
-    // so round-trip at least preserves the visible characters.
-    return embed.plainText.trim();
+    // formula / mention / emoji: no standard Markdown — render the visible
+    // fallback so export at least preserves readable characters.
+    return _escapeInline(_embedDisplayText(embed));
+  }
+
+  String _embedDisplayText(InlineEmbed embed) {
+    return switch (embed.embedType) {
+      'mention' => _mentionDisplayText(embed),
+      'formula' => _formulaDisplayText(embed),
+      'emoji' => _emojiDisplayText(embed),
+      _ => embed.plainText.trim(),
+    };
+  }
+
+  String _mentionDisplayText(InlineEmbed embed) {
+    final raw = embed.data['label'] ?? embed.data['id'];
+    final label = raw?.toString() ?? '';
+    return label.isEmpty ? '@mention' : '@$label';
+  }
+
+  String _formulaDisplayText(InlineEmbed embed) {
+    final raw =
+        embed.data['text'] ?? embed.data['latex'] ?? embed.data['value'];
+    final text = raw?.toString() ?? '';
+    return text.isEmpty ? '[formula]' : text;
+  }
+
+  String _emojiDisplayText(InlineEmbed embed) {
+    final raw = embed.data['emoji'] ??
+        embed.data['text'] ??
+        embed.data['value'] ??
+        embed.data['shortName'] ??
+        embed.data['label'];
+    final text = raw?.toString() ?? '';
+    return text.isEmpty ? '[emoji]' : text;
   }
 
   /// Escapes characters that would otherwise start inline/block Markdown
@@ -205,8 +252,28 @@ class MarkdownCodec {
   /// readable; only the chars that change parsing are escaped.
   String _escapeInline(String text) {
     // Avoid double-escaping: only escape when the char could start a construct.
-    return text
-        .replaceAllMapped(RegExp(r'([\\`*\_\[\]])'), (m) => '\\${m[1]}');
+    return text.replaceAllMapped(RegExp(r'([\\`*\_\[\]])'), (m) => '\\${m[1]}');
+  }
+
+  String _imageAlt(ImageBlockNode image) {
+    if (image.altText.isNotEmpty) {
+      return image.altText;
+    }
+    if (image.file.isNotEmpty) {
+      return image.file;
+    }
+    if (image.caption.isNotEmpty) {
+      return image.caption;
+    }
+    return 'image';
+  }
+
+  String _escapeImageAlt(String text) {
+    return text.replaceAll('\\', r'\\').replaceAll(']', r'\]');
+  }
+
+  String _escapeImageTitle(String text) {
+    return text.replaceAll('\\', r'\\').replaceAll('"', r'\"');
   }
 
   // ---------------------------------------------------------------------------
@@ -281,9 +348,9 @@ class MarkdownCodec {
       // Blockquote (consecutive `>` lines aggregated).
       if (line.trimLeft().startsWith('>')) {
         final quoteLines = <String>[];
-        while (i < lines.length &&
-            lines[i].trimLeft().startsWith('>')) {
-          quoteLines.add(lines[i].trimLeft().replaceFirst(RegExp(r'^>\s?'), ''));
+        while (i < lines.length && lines[i].trimLeft().startsWith('>')) {
+          quoteLines
+              .add(lines[i].trimLeft().replaceFirst(RegExp(r'^>\s?'), ''));
           i++;
         }
         blocks.add(TextBlockNode(
@@ -363,14 +430,24 @@ class MarkdownCodec {
         i++;
       }
       final paraText = paraLines.join(' ');
-      // An image-only paragraph becomes an image block; otherwise paragraph.
+      // An image-only paragraph becomes an image block; Wenz video export uses
+      // the `![video](src)` readable placeholder and can be restored as video.
       final imageOnly = _imageOnlyRegex.firstMatch(paraText.trim());
       if (imageOnly != null) {
-        blocks.add(ImageBlockNode(
-          id: newId('image'),
-          assetId: imageOnly.group(2)!,
-          file: imageOnly.group(1) ?? '',
-        ));
+        final alt = _unescapeImageToken(imageOnly.group(1) ?? '');
+        final caption = _unescapeImageToken(imageOnly.group(3) ?? '');
+        final source = imageOnly.group(2)!;
+        if (_isVideoPlaceholderAlt(alt) && caption.isEmpty) {
+          blocks.add(VideoBlockNode(id: newId('video'), assetId: source));
+        } else {
+          blocks.add(ImageBlockNode(
+            id: newId('image'),
+            assetId: source,
+            file: alt,
+            caption: caption,
+            altText: alt,
+          ));
+        }
       } else {
         blocks.add(TextBlockNode(
           id: newId('p'),
@@ -439,15 +516,18 @@ class MarkdownCodec {
       }
 
       // Image: ![alt](url)
-      final imageMatch =
-          _inlineImageRegex.matchAsPrefix(text, pos);
+      final imageMatch = _inlineImageRegex.matchAsPrefix(text, pos);
       if (imageMatch != null) {
+        final alt = _unescapeImageToken(imageMatch.group(1) ?? '');
+        final caption = _unescapeImageToken(imageMatch.group(3) ?? '');
         flush();
         runs.add(InlineEmbed(
           embedType: 'image',
           data: <String, Object?>{
             'assetId': imageMatch.group(2),
-            'text': imageMatch.group(1) ?? '',
+            'text': alt,
+            'altText': alt,
+            if (caption.isNotEmpty) 'caption': caption,
           },
         ));
         pos = imageMatch.end;
@@ -672,6 +752,26 @@ class MarkdownCodec {
       ),
     );
   }
+
+  String _unescapeImageToken(String text) {
+    if (!text.contains('\\')) {
+      return text;
+    }
+    final buffer = StringBuffer();
+    for (var i = 0; i < text.length; i++) {
+      if (text[i] == '\\' && i + 1 < text.length) {
+        buffer.write(text[i + 1]);
+        i++;
+      } else {
+        buffer.write(text[i]);
+      }
+    }
+    return buffer.toString();
+  }
+
+  bool _isVideoPlaceholderAlt(String alt) {
+    return alt.trim().toLowerCase() == 'video';
+  }
 }
 
 // Regexes are anchored at match positions via `matchAsPrefix` / `firstMatch`
@@ -686,7 +786,8 @@ final RegExp _listItemRegex =
     RegExp(r'^(\s*)(-|\*|\+|\d+\.)\s+(\[[ xX]\]\s+)?(.*)$');
 
 // Inline patterns — each is matched at the current cursor position.
-final RegExp _inlineImageRegex = RegExp(r'!\[([^\]]*)\]\(([^)]+)\)');
+final RegExp _inlineImageRegex =
+    RegExp(r'!\[([^\]]*)\]\(([^)\s]+)(?:\s+"((?:\\"|[^"])*)")?\)');
 final RegExp _inlineLinkRegex = RegExp(r'\[([^\]]*)\]\(([^)]+)\)');
 final RegExp _boldRegex = RegExp(r'\*\*([^*]+)\*\*');
 final RegExp _italicRegex = RegExp(r'\*([^*]+)\*');
@@ -694,4 +795,5 @@ final RegExp _strikeRegex = RegExp(r'~~([^~]+)~~');
 final RegExp _underlineRegex = RegExp(r'<u>([^<]*)</u>');
 
 // Matches a paragraph that is a single image token (whitespace trimmed).
-final RegExp _imageOnlyRegex = RegExp(r'^!\[([^\]]*)\]\(([^)]+)\)$');
+final RegExp _imageOnlyRegex =
+    RegExp(r'^!\[([^\]]*)\]\(([^)\s]+)(?:\s+"((?:\\"|[^"])*)")?\)$');

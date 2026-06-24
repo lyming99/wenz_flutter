@@ -154,13 +154,128 @@ void main() {
       );
     });
   });
+
+  group('controller permissions', () {
+    test('read permission blocks edit commands but keeps read commands', () {
+      final controller = WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'p1',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'Hi')],
+            ),
+          ],
+        ),
+        selection: collapsedTextSelection('p1', 0, 2),
+        permission: WenzEditorPermission.read,
+      );
+      var notifyCount = 0;
+      var commandCount = 0;
+      controller
+        ..addListener(() => notifyCount++)
+        ..onCommandExecuted = (_, __) => commandCount++;
+
+      final blocked = controller.insertText('!');
+
+      expect(controller.document.plainText, 'Hi');
+      expect(blocked.isNoop, isTrue);
+      expect(blocked.description, 'permission:blocked:insertText');
+      expect(blocked.metadata?['permission'], 'read');
+      expect(blocked.metadata?['requiredPermission'], 'edit');
+      expect(controller.canExecute(const InsertTextCommand('!')), isFalse);
+      expect(notifyCount, 0);
+      expect(commandCount, 0);
+
+      controller.selectAll();
+
+      expect(controller.selection?.isCollapsed, isFalse);
+      expect(notifyCount, 1);
+      expect(commandCount, 1);
+    });
+
+    test('comment permission allows comment commands only', () {
+      final controller = WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'p1',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'Hi')],
+            ),
+          ],
+        ),
+        selection: collapsedTextSelection('p1', 0, 2),
+        permission: WenzEditorPermission.comment,
+      );
+      var commentRuns = 0;
+      controller.registry
+        ..register(
+          CommandDescriptor(
+            name: 'insertBang',
+            factory: (_) => const InsertTextCommand('!'),
+          ),
+        )
+        ..register(
+          CommandDescriptor(
+            name: 'commentOnly',
+            factory: (_) => _CommentOnlyCommand(() => commentRuns++),
+          ),
+        );
+
+      expect(controller.canComment, isTrue);
+      expect(controller.canEdit, isFalse);
+      expect(controller.canExecuteCommand('insertBang', <String, Object?>{}),
+          isFalse);
+      expect(controller.tryExecuteCommand('insertBang', <String, Object?>{}),
+          isFalse);
+      expect(controller.document.plainText, 'Hi');
+
+      expect(controller.canExecuteCommand('commentOnly', <String, Object?>{}),
+          isTrue);
+      expect(controller.tryExecuteCommand('commentOnly', <String, Object?>{}),
+          isTrue);
+      expect(commentRuns, 1);
+    });
+
+    test('undo and redo require edit permission', () {
+      final controller = WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'p1',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'Hi')],
+            ),
+          ],
+        ),
+        selection: collapsedTextSelection('p1', 0, 2),
+      );
+      controller.insertText('!');
+      controller.permission = WenzEditorPermission.read;
+
+      expect(controller.canUndo, isFalse);
+      expect(controller.undo(), isFalse);
+      expect(controller.document.plainText, 'Hi!');
+
+      controller.permission = WenzEditorPermission.edit;
+      expect(controller.canUndo, isTrue);
+      expect(controller.undo(), isTrue);
+      expect(controller.canRedo, isTrue);
+
+      controller.permission = WenzEditorPermission.comment;
+      expect(controller.redo(), isFalse);
+      expect(controller.document.plainText, 'Hi');
+    });
+  });
 }
 
 class _RecordingMiddleware extends CommandMiddleware {
   _RecordingMiddleware({this.onAfter});
   final void Function(ChangeSet change)? onAfter;
   @override
-  void after(ChangeSet change, DocumentSession session) => onAfter?.call(change);
+  void after(ChangeSet change, DocumentSession session) =>
+      onAfter?.call(change);
 }
 
 class _BlockingMiddleware extends CommandMiddleware {
@@ -214,5 +329,23 @@ class _InvalidCommand extends EditorCommand {
   @override
   CommandResult execute(DocumentSession session) {
     throw StateError('validation should block this command');
+  }
+}
+
+class _CommentOnlyCommand extends EditorCommand {
+  _CommentOnlyCommand(this.onExecute);
+
+  final void Function() onExecute;
+
+  @override
+  String get description => 'commentOnly';
+
+  @override
+  WenzEditorPermission get requiredPermission => WenzEditorPermission.comment;
+
+  @override
+  CommandResult execute(DocumentSession session) {
+    onExecute();
+    return const CommandResult(recordHistory: false);
   }
 }

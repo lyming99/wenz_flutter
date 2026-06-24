@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:html/dom.dart' as dom;
 import 'package:html/parser.dart' as parser;
 
@@ -15,9 +17,10 @@ import '../core/model/table_model.dart';
 ///
 /// **Import** (`decode`) uses `package:html` (a pure-Dart HTML5 parser) to turn
 /// an HTML fragment into a document. Recognised block tags (`<p>`, `<h1>`–
-/// `<h6>`, `<ul>`/`<ol>`/`<li>`, `<blockquote>`, `<pre>`, `<table>`, `<hr>`,
-/// `<img>`) map to their block counterparts; inline tags (`<strong>`/`<b>`,
-/// `<em>`/`<i>`, `<s>`/`<del>`/`<strike>`, `<u>`, `<a>`, `<img>`) map to
+/// `<h6>`, `<ul>`/`<ol>`/`<li>`, `<blockquote>`, Wenz callout `<aside>`,
+/// `<pre>`, `<table>`, `<hr>`, `<img>`) map to their block counterparts;
+/// inline tags (`<strong>`/`<b>`, `<em>`/`<i>`, `<s>`/`<del>`/`<strike>`,
+/// `<u>`, `<a>`, `<img>`) map to
 /// [TextAttributes] with nesting merged. Unrecognised content falls back to a
 /// paragraph (HTML5 leniency — `decode` does not throw for content).
 ///
@@ -65,33 +68,30 @@ class HtmlCodec {
         return _encodeListItem(block as TextBlockNode);
       case BlockType.code:
         final code = block as CodeBlockNode;
-        final langClass =
-            code.language.isNotEmpty ? ' class="language-${code.language}"' : '';
+        final langClass = code.language.isNotEmpty
+            ? ' class="language-${code.language}"'
+            : '';
         final escaped = _escapeHtml(code.code);
         return '<pre><code$langClass>$escaped</code></pre>';
       case BlockType.table:
         return _encodeTable(block as TableBlockNode);
       case BlockType.image:
         final image = block as ImageBlockNode;
-        final alt = _escapeHtml(image.file.isNotEmpty ? image.file : 'image');
-        final src = _escapeHtml(
-            image.assetId.isNotEmpty ? image.assetId : image.file);
-        return '<img src="$src" alt="$alt">';
+        return _encodeImageBlock(image);
       case BlockType.video:
         final video = block as VideoBlockNode;
-        final src = _escapeHtml(video.file.isNotEmpty ? video.file : video.assetId);
-        return '<video src="$src"></video>';
+        return _encodeVideoBlock(video);
+      case BlockType.embed:
+        final embed = block as BlockEmbedNode;
+        return _encodeBlockEmbed(embed);
       case BlockType.file:
         final file = block as FileBlockNode;
-        final href = _escapeHtml(file.file.isNotEmpty ? file.file : file.assetId);
-        final name = _escapeHtml(file.name.isNotEmpty ? file.name : file.assetId);
-        return '<a href="$href">$name</a>';
+        return _encodeFileBlock(file);
       case BlockType.divider:
         return '<hr>';
       case BlockType.callout:
         final callout = block as CalloutBlockNode;
-        // Callouts map to blockquotes; the variant is not preserved in HTML.
-        return '<blockquote>${_encodeInline(callout.content)}</blockquote>';
+        return _encodeCalloutBlock(callout);
     }
   }
 
@@ -122,7 +122,14 @@ class HtmlCodec {
           continue;
         }
         final tag = cell.isHeader ? 'th' : 'td';
-        buffer.write('<$tag>');
+        final spanAttrs = StringBuffer();
+        if (cell.rowSpan > 1) {
+          spanAttrs.write(' rowspan="${cell.rowSpan}"');
+        }
+        if (cell.columnSpan > 1) {
+          spanAttrs.write(' colspan="${cell.columnSpan}"');
+        }
+        buffer.write('<$tag$spanAttrs>');
         for (final innerBlock in cell.blocks) {
           if (innerBlock is TextBlockNode) {
             buffer.write(_encodeInline(innerBlock.content));
@@ -176,11 +183,195 @@ class HtmlCodec {
 
   String _encodeEmbed(InlineEmbed embed) {
     if (embed.embedType == 'image') {
-      final url = _escapeHtml('${embed.data['assetId'] ?? embed.data['id'] ?? ''}');
-      final alt = _escapeHtml('${embed.data['text'] ?? ''}');
-      return '<img src="$url" alt="$alt">';
+      final url =
+          _escapeHtml('${embed.data['assetId'] ?? embed.data['id'] ?? ''}');
+      final alt =
+          _escapeHtml('${embed.data['altText'] ?? embed.data['text'] ?? ''}');
+      final attrs = StringBuffer(' src="$url" alt="$alt"');
+      final width = _embedDimension(embed.data['width']);
+      final height = _embedDimension(embed.data['height']);
+      if (width != null) {
+        attrs.write(' width="${_formatDimension(width)}"');
+      }
+      if (height != null) {
+        attrs.write(' height="${_formatDimension(height)}"');
+      }
+      final caption = _embedString(embed.data['caption']);
+      if (caption.isNotEmpty) {
+        final escapedCaption = _escapeHtml(caption);
+        attrs.write(' title="$escapedCaption" data-caption="$escapedCaption"');
+      }
+      return '<img$attrs>';
     }
-    return _escapeHtml(embed.plainText.trim());
+    return _escapeHtml(_embedDisplayText(embed));
+  }
+
+  num? _embedDimension(Object? value) {
+    if (value is num && value > 0) {
+      return value;
+    }
+    if (value is String) {
+      final parsed = double.tryParse(value);
+      if (parsed != null && parsed > 0) {
+        return parsed;
+      }
+    }
+    return null;
+  }
+
+  String _embedString(Object? value) {
+    return value?.toString() ?? '';
+  }
+
+  String _embedDisplayText(InlineEmbed embed) {
+    return switch (embed.embedType) {
+      'mention' => _mentionDisplayText(embed),
+      'formula' => _formulaDisplayText(embed),
+      'emoji' => _emojiDisplayText(embed),
+      _ => embed.plainText.trim(),
+    };
+  }
+
+  String _mentionDisplayText(InlineEmbed embed) {
+    final raw = embed.data['label'] ?? embed.data['id'];
+    final label = raw?.toString() ?? '';
+    return label.isEmpty ? '@mention' : '@$label';
+  }
+
+  String _formulaDisplayText(InlineEmbed embed) {
+    final raw =
+        embed.data['text'] ?? embed.data['latex'] ?? embed.data['value'];
+    final text = raw?.toString() ?? '';
+    return text.isEmpty ? '[formula]' : text;
+  }
+
+  String _emojiDisplayText(InlineEmbed embed) {
+    final raw = embed.data['emoji'] ??
+        embed.data['text'] ??
+        embed.data['value'] ??
+        embed.data['shortName'] ??
+        embed.data['label'];
+    final text = raw?.toString() ?? '';
+    return text.isEmpty ? '[emoji]' : text;
+  }
+
+  String _encodeImageBlock(ImageBlockNode image) {
+    final alt = _escapeHtml(_imageAlt(image));
+    final src = _escapeHtml(
+      image.assetId.isNotEmpty ? image.assetId : image.file,
+    );
+    final sizeAttrs = StringBuffer();
+    final width = image.showWidth ?? (image.width > 0 ? image.width : null);
+    final height = image.showHeight ?? (image.height > 0 ? image.height : null);
+    if (width != null) {
+      sizeAttrs.write(' width="${_formatDimension(width)}"');
+    }
+    if (height != null) {
+      sizeAttrs.write(' height="${_formatDimension(height)}"');
+    }
+    if (image.width > 0) {
+      sizeAttrs.write(' data-width="${image.width}"');
+    }
+    if (image.height > 0) {
+      sizeAttrs.write(' data-height="${image.height}"');
+    }
+    final img = '<img src="$src" alt="$alt"$sizeAttrs>';
+    if (image.caption.isEmpty) {
+      return img;
+    }
+    return '<figure>$img<figcaption>${_escapeHtml(image.caption)}</figcaption></figure>';
+  }
+
+  String _encodeFileBlock(FileBlockNode file) {
+    final href = _escapeHtml(file.effectiveDownloadUrl);
+    final name = _escapeHtml(file.displayName);
+    final attrs = StringBuffer(' href="$href" data-wenz-block="file"');
+    if (file.assetId.isNotEmpty) {
+      attrs.write(' data-asset-id="${_escapeHtml(file.assetId)}"');
+    }
+    if (file.size > 0) {
+      attrs.write(' data-size="${file.size}"');
+    }
+    if (file.mimeType.isNotEmpty) {
+      attrs.write(' data-mime-type="${_escapeHtml(file.mimeType)}"');
+    }
+    if (file.file.isNotEmpty) {
+      attrs.write(' data-file="${_escapeHtml(file.file)}"');
+    }
+    if (file.uploadStatus != FileUploadStatus.none) {
+      attrs.write(' data-upload-status="${file.uploadStatus.name}"');
+    }
+    if (file.uploadError.isNotEmpty) {
+      attrs.write(' data-upload-error="${_escapeHtml(file.uploadError)}"');
+    }
+    return '<a$attrs>$name</a>';
+  }
+
+  String _encodeVideoBlock(VideoBlockNode video) {
+    final src = _escapeHtml(video.file.isNotEmpty ? video.file : video.assetId);
+    final attrs = StringBuffer(' src="$src"');
+    if (video.assetId.isNotEmpty) {
+      attrs.write(' data-asset-id="${_escapeHtml(video.assetId)}"');
+    }
+    if (video.file.isNotEmpty) {
+      attrs.write(' data-file="${_escapeHtml(video.file)}"');
+    }
+    return '<video$attrs></video>';
+  }
+
+  String _encodeBlockEmbed(BlockEmbedNode embed) {
+    final attrs = StringBuffer(
+      ' data-wenz-block="embed"'
+      ' data-embed-type="${_escapeHtml(embed.normalizedEmbedType)}"',
+    );
+    final encodedData = _tryEncodeEmbedData(embed.data);
+    if (encodedData != null) {
+      attrs.write(' data-embed-data="${_escapeHtml(encodedData)}"');
+    }
+    return '<div$attrs>${_escapeHtml(embed.displayText)}</div>';
+  }
+
+  String? _tryEncodeEmbedData(Map<String, Object?> data) {
+    if (data.isEmpty) {
+      return null;
+    }
+    try {
+      return jsonEncode(data);
+    } on Object {
+      return null;
+    }
+  }
+
+  String _encodeCalloutBlock(CalloutBlockNode callout) {
+    final variant = callout.normalizedVariant;
+    final icon = callout.effectiveIcon;
+    final title = callout.effectiveTitle;
+    return '<aside class="wenz-callout" data-wenz-block="callout" '
+        'data-callout-variant="${_escapeHtml(variant)}" '
+        'data-callout-icon="${_escapeHtml(icon)}">'
+        '<div data-callout-title>${_escapeHtml(title)}</div>'
+        '<div data-callout-body>${_encodeInline(callout.content)}</div>'
+        '</aside>';
+  }
+
+  String _imageAlt(ImageBlockNode image) {
+    if (image.altText.isNotEmpty) {
+      return image.altText;
+    }
+    if (image.file.isNotEmpty) {
+      return image.file;
+    }
+    if (image.caption.isNotEmpty) {
+      return image.caption;
+    }
+    return 'image';
+  }
+
+  String _formatDimension(num value) {
+    final asDouble = value.toDouble();
+    return asDouble == asDouble.roundToDouble()
+        ? value.toInt().toString()
+        : value.toString();
   }
 
   String _escapeHtml(String text) {
@@ -229,6 +420,18 @@ class HtmlCodec {
     String Function(String) newId,
   ) {
     if (node is dom.Element) {
+      if (_isCalloutElement(node)) {
+        blocks.add(_decodeCallout(node, newId));
+        return;
+      }
+      if (_isFileBlockElement(node)) {
+        blocks.add(_decodeFileBlock(node, newId));
+        return;
+      }
+      if (_isBlockEmbedElement(node)) {
+        blocks.add(_decodeBlockEmbed(node, newId));
+        return;
+      }
       final tag = node.localName!.toLowerCase();
       switch (tag) {
         case 'h1':
@@ -279,16 +482,26 @@ class HtmlCodec {
         case 'hr':
           blocks.add(DividerBlockNode(id: newId('hr')));
           return;
-        case 'img':
-          final src = node.attributes['src'] ?? '';
-          final alt = node.attributes['alt'] ?? '';
-          if (src.isNotEmpty) {
-            blocks.add(ImageBlockNode(
-              id: newId('image'),
-              assetId: src,
-              file: alt,
-            ));
+        case 'figure':
+          final img = node.querySelector('img');
+          if (img != null) {
+            _decodeImageElement(
+              img,
+              blocks,
+              newId,
+              caption: node.querySelector('figcaption')?.text.trim() ?? '',
+            );
+            return;
           }
+          for (final child in node.nodes) {
+            _decodeNode(child, blocks, newId);
+          }
+          return;
+        case 'img':
+          _decodeImageElement(node, blocks, newId);
+          return;
+        case 'video':
+          _decodeVideoElement(node, blocks, newId);
           return;
         case 'br':
           return;
@@ -318,6 +531,201 @@ class HtmlCodec {
         ));
       }
     }
+  }
+
+  void _decodeImageElement(
+    dom.Element node,
+    List<BlockNode> blocks,
+    String Function(String) newId, {
+    String caption = '',
+  }) {
+    final src = node.attributes['src'] ?? '';
+    if (src.isEmpty) {
+      return;
+    }
+    final alt = node.attributes['alt'] ?? '';
+    final resolvedCaption = caption.isNotEmpty
+        ? caption
+        : (node.attributes['data-caption'] ?? node.attributes['title'] ?? '')
+            .trim();
+    final naturalWidth = _parseIntAttribute(node.attributes['data-width']);
+    final naturalHeight = _parseIntAttribute(node.attributes['data-height']);
+    blocks.add(ImageBlockNode(
+      id: newId('image'),
+      assetId: src,
+      file: alt,
+      width: naturalWidth,
+      height: naturalHeight,
+      showWidth: _parseDoubleAttribute(node.attributes['width']),
+      showHeight: _parseDoubleAttribute(node.attributes['height']),
+      caption: resolvedCaption,
+      altText: alt,
+    ));
+  }
+
+  void _decodeVideoElement(
+    dom.Element node,
+    List<BlockNode> blocks,
+    String Function(String) newId,
+  ) {
+    final sourceElement = node.querySelector('source[src]');
+    final src =
+        (node.attributes['src'] ?? sourceElement?.attributes['src'] ?? '')
+            .trim();
+    final rawAssetId = (node.attributes['data-asset-id'] ??
+            sourceElement?.attributes['data-asset-id'] ??
+            '')
+        .trim();
+    final rawFile = (node.attributes['data-file'] ??
+            sourceElement?.attributes['data-file'] ??
+            '')
+        .trim();
+    if (src.isEmpty && rawAssetId.isEmpty && rawFile.isEmpty) {
+      return;
+    }
+    final assetId = rawAssetId.isNotEmpty ? rawAssetId : src;
+    final file = rawFile.isNotEmpty
+        ? rawFile
+        : rawAssetId.isNotEmpty && src.isNotEmpty && src != rawAssetId
+            ? src
+            : '';
+    blocks.add(VideoBlockNode(
+      id: newId('video'),
+      assetId: assetId,
+      file: file,
+    ));
+  }
+
+  bool _isFileBlockElement(dom.Element node) {
+    return node.attributes['data-wenz-block'] == 'file';
+  }
+
+  bool _isBlockEmbedElement(dom.Element node) {
+    return node.attributes['data-wenz-block'] == 'embed';
+  }
+
+  BlockEmbedNode _decodeBlockEmbed(
+    dom.Element node,
+    String Function(String) newId,
+  ) {
+    final embedType = (node.attributes['data-embed-type'] ?? '').trim();
+    return BlockEmbedNode(
+      id: newId('embed'),
+      embedType: embedType.isEmpty ? 'custom' : embedType,
+      data: _decodeEmbedData(node.attributes['data-embed-data']),
+      fallbackText: node.text.trim(),
+    );
+  }
+
+  Map<String, Object?> _decodeEmbedData(String? source) {
+    if (source == null || source.trim().isEmpty) {
+      return const <String, Object?>{};
+    }
+    try {
+      final decoded = jsonDecode(source);
+      if (decoded is Map) {
+        return Map<String, Object?>.from(decoded);
+      }
+    } on Object {
+      return const <String, Object?>{};
+    }
+    return const <String, Object?>{};
+  }
+
+  FileBlockNode _decodeFileBlock(
+    dom.Element node,
+    String Function(String) newId,
+  ) {
+    final href = (node.attributes['href'] ?? '').trim();
+    final assetId = (node.attributes['data-asset-id'] ?? '').trim();
+    final file = (node.attributes['data-file'] ?? '').trim();
+    final explicitDownloadUrl =
+        (node.attributes['data-download-url'] ?? '').trim();
+    final downloadUrl = explicitDownloadUrl.isNotEmpty
+        ? explicitDownloadUrl
+        : href.isNotEmpty && href != assetId && href != file
+            ? href
+            : '';
+    final name = (node.attributes['data-name'] ?? node.text).trim();
+    return FileBlockNode(
+      id: newId('file'),
+      assetId: assetId,
+      name: name,
+      size: _parseIntAttribute(node.attributes['data-size']),
+      mimeType: (node.attributes['data-mime-type'] ?? '').trim(),
+      file: file,
+      downloadUrl: downloadUrl,
+      uploadStatus:
+          FileUploadStatus.parse(node.attributes['data-upload-status']),
+      uploadError: (node.attributes['data-upload-error'] ?? '').trim(),
+    );
+  }
+
+  bool _isCalloutElement(dom.Element node) {
+    final blockType = node.attributes['data-wenz-block'];
+    if (blockType == 'callout') {
+      return true;
+    }
+    final classNames = node.attributes['class'] ?? '';
+    return classNames.split(RegExp(r'\s+')).contains('wenz-callout') &&
+        node.attributes.containsKey('data-callout-variant');
+  }
+
+  CalloutBlockNode _decodeCallout(
+    dom.Element node,
+    String Function(String) newId,
+  ) {
+    final variant = CalloutBlockNode.normalizeVariant(
+      node.attributes['data-callout-variant'],
+    );
+    final titleElement = node.querySelector('[data-callout-title]');
+    var title = titleElement?.text.trim() ?? '';
+    if (title == CalloutBlockNode.defaultTitleFor(variant)) {
+      title = '';
+    }
+    var icon = (node.attributes['data-callout-icon'] ?? '').trim();
+    if (icon == CalloutBlockNode.defaultIconFor(variant)) {
+      icon = '';
+    }
+    final bodyElement = node.querySelector('[data-callout-body]');
+    final content = bodyElement == null
+        ? _parseCalloutInlineWithoutTitle(node, titleElement)
+        : _parseInline(bodyElement);
+    return CalloutBlockNode(
+      id: newId('callout'),
+      variant: variant,
+      title: title,
+      icon: icon,
+      content: content,
+    );
+  }
+
+  List<InlineNode> _parseCalloutInlineWithoutTitle(
+    dom.Element node,
+    dom.Element? titleElement,
+  ) {
+    final runs = <InlineNode>[];
+    for (final child in node.nodes) {
+      if (titleElement != null && identical(child, titleElement)) {
+        continue;
+      }
+      runs.addAll(_parseInlineNode(child, const TextAttributes()));
+    }
+    return _coalesce(runs);
+  }
+
+  int _parseIntAttribute(String? value) {
+    if (value == null) {
+      return 0;
+    }
+    return int.tryParse(value) ?? double.tryParse(value)?.round() ?? 0;
+  }
+
+  double? _parseDoubleAttribute(String? value) {
+    if (value == null || value.isEmpty) {
+      return null;
+    }
+    return double.tryParse(value);
   }
 
   TextBlockNode _decodeListItem(
@@ -387,20 +795,39 @@ class HtmlCodec {
   BlockNode _decodeTable(dom.Element table, String tableId) {
     final rows = <List<TableCellNode>>[];
     final trList = table.querySelectorAll('tr');
+    final activeRowSpans = <int, int>{};
     // If a <thead> exists, its rows are headers.
     final thead = table.querySelector('thead');
     for (var r = 0; r < trList.length; r++) {
       final tr = trList[r];
       final isHeaderRow = thead != null && thead.contains(tr);
       final cells = <TableCellNode>[];
-      final cellElements = tr.children
-          .where((e) => e.localName == 'th' || e.localName == 'td');
+      final cellElements =
+          tr.children.where((e) => e.localName == 'th' || e.localName == 'td');
       var c = 0;
+      void consumeCoveredCell() {
+        cells.add(TableCellNode(id: '$tableId-r$r-c$c', covered: true));
+        final remaining = activeRowSpans[c]! - 1;
+        if (remaining > 0) {
+          activeRowSpans[c] = remaining;
+        } else {
+          activeRowSpans.remove(c);
+        }
+        c++;
+      }
+
       for (final cell in cellElements) {
+        while ((activeRowSpans[c] ?? 0) > 0) {
+          consumeCoveredCell();
+        }
         final isHeader = isHeaderRow || cell.localName == 'th';
+        final rowSpan = _parseTableSpan(cell.attributes['rowspan']);
+        final columnSpan = _parseTableSpan(cell.attributes['colspan']);
         cells.add(TableCellNode(
           id: '$tableId-r$r-c$c',
           isHeader: isHeader,
+          rowSpan: rowSpan,
+          columnSpan: columnSpan,
           blocks: <BlockNode>[
             TextBlockNode(
               id: '$tableId-r$r-c$c-p',
@@ -409,7 +836,21 @@ class HtmlCodec {
             ),
           ],
         ));
-        c++;
+        if (rowSpan > 1) {
+          for (var offset = 0; offset < columnSpan; offset++) {
+            activeRowSpans[c + offset] = rowSpan - 1;
+          }
+        }
+        for (var offset = 1; offset < columnSpan; offset++) {
+          cells.add(TableCellNode(
+            id: '$tableId-r$r-c${c + offset}',
+            covered: true,
+          ));
+        }
+        c += columnSpan;
+      }
+      while ((activeRowSpans[c] ?? 0) > 0) {
+        consumeCoveredCell();
       }
       rows.add(cells);
     }
@@ -417,6 +858,11 @@ class HtmlCodec {
       id: tableId,
       table: TableModel(rows: rows),
     );
+  }
+
+  int _parseTableSpan(String? value) {
+    final parsed = _parseIntAttribute(value);
+    return parsed > 1 ? parsed : 1;
   }
 
   /// Parses the inline content of [node] into a list of [InlineNode]s,
@@ -447,20 +893,16 @@ class HtmlCodec {
       switch (tag) {
         case 'strong':
         case 'b':
-          return _parseChildren(
-              node, attributes.copyWith(bold: true));
+          return _parseChildren(node, attributes.copyWith(bold: true));
         case 'em':
         case 'i':
-          return _parseChildren(
-              node, attributes.copyWith(italic: true));
+          return _parseChildren(node, attributes.copyWith(italic: true));
         case 's':
         case 'del':
         case 'strike':
-          return _parseChildren(
-              node, attributes.copyWith(lineThrough: true));
+          return _parseChildren(node, attributes.copyWith(lineThrough: true));
         case 'u':
-          return _parseChildren(
-              node, attributes.copyWith(underline: true));
+          return _parseChildren(node, attributes.copyWith(underline: true));
         case 'a':
           final href = node.attributes['href'] ?? '';
           return _parseChildren(
@@ -473,10 +915,25 @@ class HtmlCodec {
           if (src.isEmpty) {
             return <InlineNode>[TextRun(text: alt, attributes: attributes)];
           }
+          final caption = (node.attributes['data-caption'] ??
+                  node.attributes['title'] ??
+                  '')
+              .trim();
+          final width = _parseDoubleAttribute(node.attributes['width']) ??
+              _parseDoubleAttribute(node.attributes['data-width']);
+          final height = _parseDoubleAttribute(node.attributes['height']) ??
+              _parseDoubleAttribute(node.attributes['data-height']);
           return <InlineNode>[
             InlineEmbed(
               embedType: 'image',
-              data: <String, Object?>{'assetId': src, 'text': alt},
+              data: <String, Object?>{
+                'assetId': src,
+                'text': alt,
+                'altText': alt,
+                if (caption.isNotEmpty) 'caption': caption,
+                if (width != null) 'width': width,
+                if (height != null) 'height': height,
+              },
               attributes: attributes,
             ),
           ];
@@ -522,7 +979,8 @@ class HtmlCodec {
     for (var i = 1; i < nodes.length; i++) {
       final node = nodes[i];
       final last = result.last;
-      if (node is TextRun && last is TextRun &&
+      if (node is TextRun &&
+          last is TextRun &&
           node.attributes == last.attributes) {
         result[result.length - 1] = TextRun(
           text: last.text + node.text,

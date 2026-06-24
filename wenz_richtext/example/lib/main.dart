@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:wenz_richtext/wenz_richtext.dart';
 
@@ -35,7 +37,8 @@ class _NetworkImageResolver implements MediaResolver {
             height: 120,
             child: Center(
               child: CircularProgressIndicator(
-                value: progress.cumulativeBytesLoaded /
+                value:
+                    progress.cumulativeBytesLoaded /
                     (progress.expectedTotalBytes ?? 1),
               ),
             ),
@@ -49,6 +52,108 @@ class _NetworkImageResolver implements MediaResolver {
     );
   }
 }
+
+BlockRendererRegistry _createExampleBlockRenderers() {
+  final registry = BlockRendererRegistry();
+  WenzRichTextEditor.installDefaultRenderers(registry);
+  registry.registerEmbed('crm-card', (_, renderContext) {
+    final block = renderContext.block as BlockEmbedNode;
+    return WenzObjectBlockSurface(
+      renderContext: renderContext,
+      child: _CrmCardEmbed(block: block),
+    );
+  });
+  return registry;
+}
+
+class _CrmCardEmbed extends StatelessWidget {
+  const _CrmCardEmbed({required this.block});
+
+  final BlockEmbedNode block;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final title = block.data['title'] as String? ?? block.displayText;
+    final owner = block.data['owner'] as String? ?? 'Unassigned';
+    final stage = block.data['stage'] as String? ?? 'Open';
+    return Card(
+      margin: EdgeInsets.zero,
+      child: ListTile(
+        leading: const Icon(Icons.badge_outlined),
+        title: Text(title),
+        subtitle: Text('Owner: $owner · Stage: $stage'),
+        trailing: Chip(
+          label: Text(block.normalizedEmbedType),
+          visualDensity: VisualDensity.compact,
+          labelStyle: theme.textTheme.labelSmall,
+        ),
+      ),
+    );
+  }
+}
+
+class _InMemoryDraftAdapter {
+  String? latestJson;
+  int? latestRevision;
+  DateTime? savedAt;
+
+  Future<void> save(AutoSaveSnapshot snapshot) {
+    return Future<void>.delayed(const Duration(milliseconds: 120), () {
+      latestJson = snapshot.json;
+      latestRevision = snapshot.revision;
+      savedAt = DateTime.now();
+    });
+  }
+}
+
+const Key _importExportExportMarkdownKey = Key('import-export-export-markdown');
+const Key _importExportExportHtmlKey = Key('import-export-export-html');
+const Key _importExportLoadMarkdownKey = Key('import-export-load-markdown');
+const Key _importExportLoadHtmlKey = Key('import-export-load-html');
+
+const _markdownImportExportDemo = '''
+# Markdown import demo
+
+This paragraph includes **bold**, *italic*, and [a link](https://example.com).
+
+- [x] Checked task
+- Plain list item
+
+```dart
+controller.loadMarkdown(source);
+```
+
+| Format | Status |
+| --- | --- |
+| Markdown | imported |
+
+![diagram](https://example.com/diagram.png "Round-trip caption")
+
+![video](https://example.com/demo.mp4)
+
+[Spec PDF](https://example.com/spec.pdf)
+''';
+
+const _htmlImportExportDemo = '''
+<h1>HTML import demo</h1>
+<p>HTML paragraph with <strong>bold</strong>, <em>italic</em>, <a href="https://example.com">a link</a>, and <img src="https://example.com/inline.png" alt="inline badge" data-caption="Inline badge" width="24" height="24"> inline media.</p>
+<ul>
+  <li><input type="checkbox" checked disabled> Checked task</li>
+  <li>Plain list item</li>
+</ul>
+<pre><code class="language-dart">controller.loadHtml(source);</code></pre>
+<table>
+  <tr><td rowspan="2" colspan="2">Merged</td><td>Status</td></tr>
+  <tr><td>imported</td></tr>
+</table>
+<figure>
+  <img src="https://example.com/diagram.png" alt="diagram" width="320" data-width="640" data-height="360">
+  <figcaption>Round-trip caption</figcaption>
+</figure>
+<video src="https://example.com/demo.mp4" data-asset-id="video-demo"></video>
+<a href="https://example.com/spec.pdf" data-wenz-block="file" data-asset-id="file-demo" data-file="spec.pdf" data-size="4096" data-mime-type="application/pdf">Spec PDF</a>
+''';
 
 class WenzRichTextExampleApp extends StatelessWidget {
   const WenzRichTextExampleApp({super.key});
@@ -80,7 +185,11 @@ class EditorWorkbench extends StatefulWidget {
 class _EditorWorkbenchState extends State<EditorWorkbench> {
   late final WenzRichTextController _controller;
   late final ToolbarController _toolbar;
+  late final WenzDocumentStatsController _stats;
+  late final WenzAutoSaveController _autosave;
   final MediaResolver _mediaResolver = _NetworkImageResolver();
+  final BlockRendererRegistry _blockRenderers = _createExampleBlockRenderers();
+  final _draftAdapter = _InMemoryDraftAdapter();
   var _nextId = 0;
   var _showDebugOverlay = false;
 
@@ -97,7 +206,15 @@ class _EditorWorkbenchState extends State<EditorWorkbench> {
       selection: _collapsed('intro', 1, 18),
       mediaResolver: _mediaResolver,
     )..addListener(_handleControllerChanged);
-    _toolbar = ToolbarController(_controller)..addListener(_handleControllerChanged);
+    _toolbar = ToolbarController(_controller)
+      ..addListener(_handleControllerChanged);
+    _stats = WenzDocumentStatsController(editor: _controller)
+      ..addListener(_handleControllerChanged);
+    _autosave = WenzAutoSaveController(
+      editor: _controller,
+      debounceDuration: const Duration(milliseconds: 800),
+      onSave: _draftAdapter.save,
+    )..addListener(_handleControllerChanged);
     // Wire the three business-integration callbacks. They fire synchronously
     // before notifyListeners, so reading controller state here is safe.
     _controller.onChanged = (doc) {
@@ -115,13 +232,20 @@ class _EditorWorkbenchState extends State<EditorWorkbench> {
       }
     };
     _controller.onCommandExecuted = (command, change) {
-      _lastEvent = 'Command · ${command.description} (${change.after.blocks.length} blocks)';
+      _lastEvent =
+          'Command · ${command.description} (${change.after.blocks.length} blocks)';
     };
   }
 
   @override
   void dispose() {
     _toolbar
+      ..removeListener(_handleControllerChanged)
+      ..dispose();
+    _stats
+      ..removeListener(_handleControllerChanged)
+      ..dispose();
+    _autosave
       ..removeListener(_handleControllerChanged)
       ..dispose();
     _controller
@@ -160,62 +284,136 @@ class _EditorWorkbenchState extends State<EditorWorkbench> {
         controller: _controller,
         child: Row(
           children: <Widget>[
-          SizedBox(
-            width: 280,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surfaceContainerHighest,
-                border: Border(
-                  right: BorderSide(color: theme.colorScheme.outlineVariant),
-                ),
-              ),
-              child: _InspectorPanel(
-                controller: _controller,
-                showDebugOverlay: _showDebugOverlay,
-                lastEvent: _lastEvent,
-                onToggleDebugOverlay: (value) {
-                  setState(() => _showDebugOverlay = value);
-                },
-              ),
-            ),
-          ),
-          Expanded(
-            child: Column(
-              children: <Widget>[
-                _Toolbar(
-                  controller: _controller,
-                  toolbar: _toolbar,
-                  onInsertCode: _insertCodeBlock,
-                  onInsertTable: _insertTable,
-                  onInsertImage: _insertImage,
-                  onInsertRow: _insertTableRow,
-                  onInsertColumn: _insertTableColumn,
-                  onDeleteRow: _deleteTableRow,
-                  onDeleteColumn: _deleteTableColumn,
-                  onMergeCells: _mergeSelectedCells,
-                  onSplitCell: _splitSelectedCell,
-                ),
-                Expanded(
-                  child: ColoredBox(
-                    color: theme.colorScheme.surface,
-                    child: WenzRichTextEditor(
-                      controller: _controller,
-                      autofocus: true,
-                      padding: const EdgeInsets.fromLTRB(32, 28, 32, 48),
-                      blockSpacing: 14,
-                      textStyle: theme.textTheme.bodyLarge,
-                      showDebugOverlay: _showDebugOverlay,
-                      mediaResolver: _mediaResolver,
-                    ),
+            SizedBox(
+              width: 280,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerHighest,
+                  border: Border(
+                    right: BorderSide(color: theme.colorScheme.outlineVariant),
                   ),
                 ),
-              ],
+                child: _InspectorPanel(
+                  controller: _controller,
+                  stats: _stats.stats,
+                  autosave: _autosave.state,
+                  draftBytes: _draftAdapter.latestJson?.length ?? 0,
+                  showDebugOverlay: _showDebugOverlay,
+                  lastEvent: _lastEvent,
+                  onSaveNow: () {
+                    unawaited(_autosave.saveNow());
+                  },
+                  onExportMarkdown: () {
+                    _showImportExportPreview(
+                      format: 'Markdown',
+                      source: _controller.toMarkdown(),
+                    );
+                  },
+                  onExportHtml: () {
+                    _showImportExportPreview(
+                      format: 'HTML',
+                      source: _controller.toHtml(),
+                    );
+                  },
+                  onLoadMarkdownDemo: _loadMarkdownImportExportDemo,
+                  onLoadHtmlDemo: _loadHtmlImportExportDemo,
+                  onToggleDebugOverlay: (value) {
+                    setState(() => _showDebugOverlay = value);
+                  },
+                ),
+              ),
             ),
-          ),
-        ],
+            Expanded(
+              child: Column(
+                children: <Widget>[
+                  _Toolbar(
+                    controller: _controller,
+                    toolbar: _toolbar,
+                    onInsertCode: _insertCodeBlock,
+                    onInsertCallout: _insertCallout,
+                    onInsertTable: _insertTable,
+                    onInsertImage: _insertImage,
+                    onInsertFile: _insertFile,
+                    onInsertEmbed: _insertBlockEmbed,
+                    onInsertRow: _insertTableRow,
+                    onInsertColumn: _insertTableColumn,
+                    onDeleteRow: _deleteTableRow,
+                    onDeleteColumn: _deleteTableColumn,
+                    onMergeCells: _mergeSelectedCells,
+                    onSplitCell: _splitSelectedCell,
+                  ),
+                  Expanded(
+                    child: ColoredBox(
+                      color: theme.colorScheme.surface,
+                      child: WenzRichTextEditor(
+                        controller: _controller,
+                        autofocus: true,
+                        padding: const EdgeInsets.fromLTRB(32, 28, 32, 48),
+                        blockSpacing: 14,
+                        textStyle: theme.textTheme.bodyLarge,
+                        showDebugOverlay: _showDebugOverlay,
+                        blockRenderers: _blockRenderers,
+                        mediaResolver: _mediaResolver,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
+  }
+
+  void _showImportExportPreview({
+    required String format,
+    required String source,
+  }) {
+    _lastEvent = 'Export · $format (${source.length} chars)';
+    setState(() {});
+    unawaited(
+      showDialog<void>(
+        context: context,
+        builder: (dialogContext) {
+          final theme = Theme.of(dialogContext);
+          return AlertDialog(
+            title: Text('$format export preview'),
+            content: SizedBox(
+              width: 560,
+              child: SingleChildScrollView(
+                child: SelectableText(
+                  source,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontFamily: 'monospace',
+                  ),
+                ),
+              ),
+            ),
+            actions: <Widget>[
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: const Text('Close'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  void _loadMarkdownImportExportDemo() {
+    _controller.loadMarkdown(_markdownImportExportDemo);
+    _lastEvent =
+        'Import · Markdown demo (${_controller.document.blocks.length} blocks)';
+    setState(() {});
+  }
+
+  void _loadHtmlImportExportDemo() {
+    _controller.loadHtml(_htmlImportExportDemo);
+    _lastEvent =
+        'Import · HTML demo (${_controller.document.blocks.length} blocks)';
+    setState(() {});
   }
 
   void _insertCodeBlock() {
@@ -230,6 +428,26 @@ class _EditorWorkbenchState extends State<EditorWorkbench> {
         ),
       ],
       selection: _codeCollapsed(id, _controller.document.blocks.length, 0),
+    );
+  }
+
+  void _insertCallout() {
+    final id = _newId('callout');
+    final index = _currentBlockInsertionIndex();
+    _controller.insertBlocks(
+      index: index,
+      blocks: <BlockNode>[
+        CalloutBlockNode(
+          id: id,
+          variant: 'info',
+          title: 'Tip',
+          icon: '💡',
+          content: const <InlineNode>[
+            TextRun(text: 'Use the type dropdown to switch callout styles.'),
+          ],
+        ),
+      ],
+      selection: _collapsed(id, index, 0),
     );
   }
 
@@ -255,6 +473,36 @@ class _EditorWorkbenchState extends State<EditorWorkbench> {
           height: 360,
         ),
       ],
+    );
+  }
+
+  void _insertFile() {
+    final id = _newId('file');
+    _controller.insertFile(
+      index: _currentBlockInsertionIndex(),
+      blockId: id,
+      assetId: 'attachment-$id',
+      name: 'product-brief.pdf',
+      size: 245760,
+      mimeType: 'application/pdf',
+      downloadUrl: 'https://example.com/files/product-brief.pdf',
+      uploadStatus: FileUploadStatus.uploaded,
+    );
+  }
+
+  void _insertBlockEmbed() {
+    final id = _newId('embed');
+    _controller.insertBlockEmbed(
+      index: _currentBlockInsertionIndex(),
+      blockId: id,
+      embedType: 'crm-card',
+      data: <String, Object?>{
+        'recordId': 'crm-$id',
+        'title': 'Acme renewal',
+        'owner': 'Ada',
+        'stage': 'Proposal',
+      },
+      fallbackText: 'Acme renewal',
     );
   }
 
@@ -394,8 +642,11 @@ class _Toolbar extends StatelessWidget {
     required this.controller,
     required this.toolbar,
     required this.onInsertCode,
+    required this.onInsertCallout,
     required this.onInsertTable,
     required this.onInsertImage,
+    required this.onInsertFile,
+    required this.onInsertEmbed,
     required this.onInsertRow,
     required this.onInsertColumn,
     required this.onDeleteRow,
@@ -407,8 +658,11 @@ class _Toolbar extends StatelessWidget {
   final WenzRichTextController controller;
   final ToolbarController toolbar;
   final VoidCallback onInsertCode;
+  final VoidCallback onInsertCallout;
   final VoidCallback onInsertTable;
   final VoidCallback onInsertImage;
+  final VoidCallback onInsertFile;
+  final VoidCallback onInsertEmbed;
   final VoidCallback onInsertRow;
   final VoidCallback onInsertColumn;
   final VoidCallback onDeleteRow;
@@ -477,6 +731,27 @@ class _Toolbar extends StatelessWidget {
                   ? () => _showLinkDialog(context)
                   : null,
               icon: const Icon(Icons.link),
+            ),
+            IconButton(
+              tooltip: 'Formula',
+              onPressed: toolbar.canFormatInline
+                  ? () => controller.insertFormula('E=mc^2')
+                  : null,
+              icon: const Icon(Icons.functions),
+            ),
+            IconButton(
+              tooltip: 'Mention',
+              onPressed: toolbar.canFormatInline
+                  ? () => controller.insertMention('u-demo', 'Ada')
+                  : null,
+              icon: const Icon(Icons.alternate_email),
+            ),
+            IconButton(
+              tooltip: 'Emoji',
+              onPressed: toolbar.canFormatInline
+                  ? () => controller.insertEmoji('😀', shortName: 'grinning')
+                  : null,
+              icon: const Icon(Icons.emoji_emotions),
             ),
             const SizedBox(width: 8),
             _BlockTypeButton(
@@ -554,6 +829,11 @@ class _Toolbar extends StatelessWidget {
               icon: const Icon(Icons.code),
             ),
             IconButton(
+              tooltip: 'Insert callout',
+              onPressed: onInsertCallout,
+              icon: const Icon(Icons.tips_and_updates),
+            ),
+            IconButton(
               tooltip: 'Insert table',
               onPressed: onInsertTable,
               icon: const Icon(Icons.table_chart),
@@ -562,6 +842,16 @@ class _Toolbar extends StatelessWidget {
               tooltip: 'Insert image',
               onPressed: onInsertImage,
               icon: const Icon(Icons.image),
+            ),
+            IconButton(
+              tooltip: 'Insert file',
+              onPressed: onInsertFile,
+              icon: const Icon(Icons.attach_file),
+            ),
+            IconButton(
+              tooltip: 'Insert CRM embed',
+              onPressed: onInsertEmbed,
+              icon: const Icon(Icons.badge_outlined),
             ),
             if (inTable) ...<Widget>[
               const SizedBox(width: 8),
@@ -603,42 +893,14 @@ class _Toolbar extends StatelessWidget {
   }
 
   Future<void> _showLinkDialog(BuildContext context) async {
-    final current = toolbar.linkUrl ?? '';
-    final controller = TextEditingController(text: current);
-    final result = await showDialog<String>(
+    final result = await showWenzLinkEditDialog(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Link URL'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: const InputDecoration(
-            hintText: 'https://example.com',
-            labelText: 'URL',
-          ),
-        ),
-        actions: <Widget>[
-          if (toolbar.linkUrl != null)
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(''),
-              child: const Text('Remove'),
-            ),
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(null),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () =>
-                Navigator.of(dialogContext).pop(controller.text.trim()),
-            child: const Text('Apply'),
-          ),
-        ],
-      ),
+      initialUrl: toolbar.linkUrl ?? '',
+      canRemove: toolbar.linkUrl != null,
     );
     if (result == null) {
       return;
     }
-    // Empty string means clear the link.
     toolbar.setLink(result.isEmpty ? null : result);
   }
 }
@@ -714,118 +976,246 @@ class _TableContext {
 class _InspectorPanel extends StatelessWidget {
   const _InspectorPanel({
     required this.controller,
+    required this.stats,
+    required this.autosave,
+    required this.draftBytes,
     required this.showDebugOverlay,
     required this.lastEvent,
+    required this.onSaveNow,
+    required this.onExportMarkdown,
+    required this.onExportHtml,
+    required this.onLoadMarkdownDemo,
+    required this.onLoadHtmlDemo,
     required this.onToggleDebugOverlay,
   });
 
   final WenzRichTextController controller;
+  final DocumentStats stats;
+  final AutoSaveState autosave;
+  final int draftBytes;
   final bool showDebugOverlay;
   final String lastEvent;
+  final VoidCallback onSaveNow;
+  final VoidCallback onExportMarkdown;
+  final VoidCallback onExportHtml;
+  final VoidCallback onLoadMarkdownDemo;
+  final VoidCallback onLoadHtmlDemo;
   final ValueChanged<bool> onToggleDebugOverlay;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final selection = controller.selection;
-    return Padding(
+    return ListView(
       padding: const EdgeInsets.all(18),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Text('Document', style: theme.textTheme.titleMedium),
-          const SizedBox(height: 16),
-          _MetricRow(
-            label: 'Blocks',
-            value: '${controller.document.blocks.length}',
-          ),
-          _MetricRow(
-            label: 'Characters',
-            value: '${controller.document.plainText.length}',
-          ),
-          _MetricRow(
-            label: 'Undo',
-            value: controller.canUndo ? 'ready' : 'empty',
-          ),
-          _MetricRow(
-            label: 'Redo',
-            value: controller.canRedo ? 'ready' : 'empty',
-          ),
-          const SizedBox(height: 20),
-          Text('Selection', style: theme.textTheme.titleMedium),
-          const SizedBox(height: 16),
-          Text(
-            selection == null
-                ? 'Tap a text block to place the caret.'
-                : selection.isCollapsed
-                ? 'Collapsed at block ${selection.extent.blockIndex}, offset ${selection.extent.offset}.'
-                : 'Range ${selection.start.offset} to ${selection.end.offset}.',
-            style: theme.textTheme.bodyMedium,
-          ),
-          if (selection != null) ...<Widget>[
-            const SizedBox(height: 8),
-            Text(
-              'path: ${selection.extent.path.toString()}',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-                fontFamily: 'monospace',
-              ),
-            ),
-          ],
-          const SizedBox(height: 20),
-          Text('Events', style: theme.textTheme.titleMedium),
+      children: <Widget>[
+        Text('Document', style: theme.textTheme.titleMedium),
+        const SizedBox(height: 16),
+        _MetricRow(label: 'Blocks', value: '${stats.blockCount}'),
+        _MetricRow(label: 'Paragraphs', value: '${stats.paragraphCount}'),
+        _MetricRow(label: 'Headings', value: '${stats.headingCount}'),
+        _MetricRow(label: 'Images', value: '${stats.imageCount}'),
+        _MetricRow(label: 'Words', value: '${stats.wordCount}'),
+        _MetricRow(label: 'Characters', value: '${stats.characterCount}'),
+        _MetricRow(
+          label: 'Text chars',
+          value: '${stats.characterCountExcludingWhitespace}',
+        ),
+        _MetricRow(
+          label: 'Read time',
+          value: stats.readingTimeMinutes == 0
+              ? '0 min'
+              : '${stats.readingTimeMinutes} min',
+        ),
+        _MetricRow(
+          label: 'Undo',
+          value: controller.canUndo ? 'ready' : 'empty',
+        ),
+        _MetricRow(
+          label: 'Redo',
+          value: controller.canRedo ? 'ready' : 'empty',
+        ),
+        const SizedBox(height: 20),
+        Text('Selection', style: theme.textTheme.titleMedium),
+        const SizedBox(height: 16),
+        Text(
+          selection == null
+              ? 'Tap a text block to place the caret.'
+              : selection.isCollapsed
+              ? 'Collapsed at block ${selection.extent.blockIndex}, offset ${selection.extent.offset}.'
+              : 'Range ${selection.start.offset} to ${selection.end.offset}.',
+          style: theme.textTheme.bodyMedium,
+        ),
+        if (selection != null) ...<Widget>[
           const SizedBox(height: 8),
           Text(
-            'Latest controller callback (onChanged / onSelectionChanged / '
-            'onCommandExecuted).',
+            'path: ${selection.extent.path.toString()}',
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: Text(
-              lastEvent,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                fontFamily: 'monospace',
-              ),
-            ),
-          ),
-          const SizedBox(height: 20),
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            dense: true,
-            title: Text(
-              'Debug overlay',
-              style: theme.textTheme.bodyMedium,
-            ),
-            subtitle: Text(
-              'Show block id / index / path / offset on the active block.',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-            value: showDebugOverlay,
-            onChanged: onToggleDebugOverlay,
-          ),
-          const Spacer(),
-          Text(
-            'Type to insert text. Use Enter, Backspace, Delete, arrows, and Shift+arrows.',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
+              fontFamily: 'monospace',
             ),
           ),
         ],
-      ),
+        const SizedBox(height: 20),
+        Text('Events', style: theme.textTheme.titleMedium),
+        const SizedBox(height: 8),
+        Text(
+          'Latest controller callback (onChanged / onSelectionChanged / '
+          'onCommandExecuted).',
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Text(
+            lastEvent,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              fontFamily: 'monospace',
+            ),
+          ),
+        ),
+        const SizedBox(height: 20),
+        Text('Autosave', style: theme.textTheme.titleMedium),
+        const SizedBox(height: 8),
+        Text(
+          'Debounced draft save through an external adapter.',
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 12),
+        _MetricRow(
+          label: 'Status',
+          value: _autoSaveStatusLabel(autosave.status),
+        ),
+        _MetricRow(label: 'Dirty', value: autosave.isDirty ? 'yes' : 'clean'),
+        _MetricRow(label: 'Revision', value: '${autosave.revision}'),
+        _MetricRow(label: 'Draft bytes', value: '$draftBytes'),
+        _MetricRow(
+          label: 'Last saved',
+          value: _formatClockTime(autosave.lastSavedAt),
+        ),
+        if (autosave.error != null) ...<Widget>[
+          const SizedBox(height: 4),
+          Text(
+            'Error: ${autosave.error}',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.error,
+            ),
+          ),
+        ],
+        const SizedBox(height: 8),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: OutlinedButton.icon(
+            onPressed: autosave.isSaving ? null : onSaveNow,
+            icon: const Icon(Icons.save_outlined),
+            label: const Text('Save now'),
+          ),
+        ),
+        const SizedBox(height: 20),
+        Text('Import/export demo', style: theme.textTheme.titleMedium),
+        const SizedBox(height: 8),
+        Text(
+          'Preview the current document as Markdown/HTML, or replace it with '
+          'codec samples that cover links, lists, code, tables, images, video, '
+          'and file fallbacks.',
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: <Widget>[
+            OutlinedButton.icon(
+              key: _importExportExportMarkdownKey,
+              onPressed: onExportMarkdown,
+              icon: const Icon(Icons.description_outlined),
+              label: const Text('Export Markdown'),
+            ),
+            OutlinedButton.icon(
+              key: _importExportExportHtmlKey,
+              onPressed: onExportHtml,
+              icon: const Icon(Icons.code),
+              label: const Text('Export HTML'),
+            ),
+            OutlinedButton.icon(
+              key: _importExportLoadMarkdownKey,
+              onPressed: onLoadMarkdownDemo,
+              icon: const Icon(Icons.file_download_outlined),
+              label: const Text('Load Markdown sample'),
+            ),
+            OutlinedButton.icon(
+              key: _importExportLoadHtmlKey,
+              onPressed: onLoadHtmlDemo,
+              icon: const Icon(Icons.file_download_done_outlined),
+              label: const Text('Load HTML sample'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Markdown reloads file blocks as linked text; Wenz HTML preserves '
+          'file/video data-* metadata.',
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 20),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          dense: true,
+          title: Text('Debug overlay', style: theme.textTheme.bodyMedium),
+          subtitle: Text(
+            'Show block id / index / path / offset on the active block.',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          value: showDebugOverlay,
+          onChanged: onToggleDebugOverlay,
+        ),
+        const SizedBox(height: 20),
+        Text(
+          'Type to insert text. Use Enter, Backspace, Delete, arrows, and Shift+arrows.',
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+      ],
     );
   }
 }
+
+String _autoSaveStatusLabel(AutoSaveStatus status) {
+  return switch (status) {
+    AutoSaveStatus.clean => 'clean',
+    AutoSaveStatus.dirty => 'dirty',
+    AutoSaveStatus.scheduled => 'scheduled',
+    AutoSaveStatus.saving => 'saving',
+    AutoSaveStatus.failed => 'failed',
+  };
+}
+
+String _formatClockTime(DateTime? value) {
+  if (value == null) {
+    return '—';
+  }
+  final local = value.toLocal();
+  return '${_twoDigits(local.hour)}:${_twoDigits(local.minute)}:'
+      '${_twoDigits(local.second)}';
+}
+
+String _twoDigits(int value) => value.toString().padLeft(2, '0');
 
 class _MetricRow extends StatelessWidget {
   const _MetricRow({required this.label, required this.value});
@@ -885,10 +1275,40 @@ RichTextDocument _sampleDocument() {
         content: <InlineNode>[TextRun(text: 'Keep the model deterministic')],
       ),
       TextBlockNode(
+        id: 'inline-embeds',
+        type: BlockType.paragraph,
+        content: <InlineNode>[
+          TextRun(text: 'Inline embeds: '),
+          InlineEmbed(
+            embedType: 'formula',
+            data: <String, Object?>{'text': 'E=mc^2'},
+          ),
+          TextRun(text: ' '),
+          InlineEmbed(
+            embedType: 'emoji',
+            data: <String, Object?>{'emoji': '😀', 'shortName': 'grinning'},
+          ),
+          TextRun(text: ' '),
+          InlineEmbed(
+            embedType: 'mention',
+            data: <String, Object?>{'id': 'u-demo', 'label': 'Ada'},
+          ),
+        ],
+      ),
+      TextBlockNode(
         id: 'quote',
         type: BlockType.quote,
         content: <InlineNode>[
           TextRun(text: 'Controller commands own document mutation.'),
+        ],
+      ),
+      CalloutBlockNode(
+        id: 'callout',
+        variant: 'success',
+        title: 'Callout ready',
+        icon: '✅',
+        content: <InlineNode>[
+          TextRun(text: 'The default renderer supports type switching.'),
         ],
       ),
       CodeBlockNode(
@@ -954,6 +1374,26 @@ RichTextDocument _sampleDocument() {
         file: 'sample.jpg',
         width: 1200,
         height: 675,
+      ),
+      FileBlockNode(
+        id: 'file-sample',
+        assetId: 'sample-attachment',
+        name: 'release-notes.pdf',
+        size: 532480,
+        mimeType: 'application/pdf',
+        downloadUrl: 'https://example.com/files/release-notes.pdf',
+        uploadStatus: FileUploadStatus.uploaded,
+      ),
+      BlockEmbedNode(
+        id: 'crm-sample',
+        embedType: 'crm-card',
+        data: <String, Object?>{
+          'recordId': 'crm-1001',
+          'title': 'Acme renewal',
+          'owner': 'Ada',
+          'stage': 'Proposal',
+        },
+        fallbackText: 'Acme renewal',
       ),
     ],
   );

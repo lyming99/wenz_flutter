@@ -1,4 +1,4 @@
-# 项目验收、Roadmap 与完善计划
+﻿# 项目验收、Roadmap 与完善计划
 
 > 整理日期：2026-06-23
 > 基于：`docs/acceptance_report.md`、`docs/optimization_roadmap.md`、`docs/acceptance_manual_checklist.md`、`docs/architecture.md`、`docs/running_guide.md`
@@ -28,7 +28,7 @@
 | 阶段 3：模型与命令增强 | 完成 | schema、命令、pipeline 已可用；formula/mention inline 已有模型、插入命令、默认渲染与 `InlineEmbedRenderer` 自定义 span contract。 |
 | 阶段 4：表格编辑器 | 自动化完成，待三端手验 | 行列、合并/拆分、导航、JSON round-trip 已有；B3 合并单元格视觉横跨已落地自定义 Stack grid layout。 |
 | 阶段 5：渲染与性能 | 完成 | renderer registry、虚拟化、增量 rebuild、layout cache、benchmark 已有；当前 benchmark 数字已回填到文档。 |
-| 阶段 6：导入导出与兼容 | 主线完成 | rich JSON、legacy JSON、migration、Markdown、HTML、plain text 已完成；表格 colspan/rowspan 导入受 B3 影响。 |
+| 阶段 6：导入导出与兼容 | 主线完成 | rich JSON、legacy JSON、migration、Markdown、HTML、plain text 已完成；HTML 表格 colspan/rowspan 已可还原为现有合并单元格结构。 |
 | 阶段 7：工具栏与业务集成 | 完成 | ToolbarController、callbacks、MediaResolver、example 主流程均已落地。 |
 | 阶段 8：质量、可访问性与发布 | 部分完成 | 错误处理、文档、基础 Golden 矩阵和自动化 Semantics 节点已补齐；屏幕阅读器与跨端手验仍是发布前缺口。 |
 
@@ -68,9 +68,10 @@
 
 周期：3 天，依赖 B3
 
-状态：2026-06-23 基础矩阵完成。
+状态：2026-06-24 ADV-028 高级矩阵补齐。
 
 - 已覆盖段落/heading、code、merged cell、image placeholder、caret、selection highlight。
+- 已补 callout、mention/formula inline embed、file failure placeholder 组合 baseline。
 - 已固定 surface size 与主题，baseline 位于 `test/widgets/goldens/`。
 - Golden 已纳入默认 `flutter test`，也可单独运行 `flutter test test/widgets/editor_golden_test.dart`。
 
@@ -104,9 +105,12 @@
 
 周期：1 天，依赖 A1/B3/C6/C8/C9 取舍拍板
 
-- 补 `CHANGELOG.md` 与 `0.1.0-alpha` 发布说明。
-- 冻结 public API tier，确认哪些是 stable / stabilising / experimental。
-- 跑发布前命令：`flutter analyze`、`flutter test`、benchmark、example analyze/test、三端手验清单。
+状态：2026-06-24 ADV-030 发布文档主体完成，剩余发布前全量门禁和三端手验需在真正打 tag 前执行。
+
+- 已补 `CHANGELOG.md` 与 `0.1.0` 发布说明入口。
+- 已通过根 `README.md`、`docs/migration_guide.md`、`docs/release_checklist.md` 串联安装、初始化、命令、序列化、扩展、FAQ、known limitations 与发布门禁。
+- Public API tier 以 `lib/wenz_richtext.dart` 和 `docs/api_reference.md` 为准，stable / stabilising / experimental 口径已在发布文档中引用。
+- 真正发布前仍需跑：`flutter analyze`、`flutter test`、benchmark、example analyze/test、三端手验清单。
 - 根据是否完成 C9 与屏幕阅读器手验决定 alpha 边界；未完成则必须写入 known limitations。
 
 ## 4. 建议推进顺序
@@ -124,12 +128,12 @@ Week 2:
 
 Week 3:
   C9 mobile selection handles
-  D1 0.1.0-alpha 发布准备
+  [done] D1 0.1.0 发布文档准备
 ```
 
 如果需要尽快出内部 alpha，可以采用“功能边界拍板版”：
 
-- 必做：P0、A1、B3、D1。（C5 基础矩阵已完成）
+- 必做：P0、A1、B3。（C5 基础矩阵与 D1 发布文档已完成）
 - 可作为 alpha known limitations：C6 屏幕阅读器抽样手验、C9。
 - 条件：文档必须明确 a11y 手验和移动端 handles 的限制；formula/mention 自动化能力已完成，不再作为 inline 能力缺口。
 
@@ -152,4 +156,4 @@ flutter test
 - 合并单元格视觉横跨有截图或 Golden 证据。
 - Windows 第三方 IME 候选框问题已归类：本库可修的问题必须修；Flutter engine 层问题写入 known limitations。
 - `rg "ydart|package:ydart|YDoc|YMap|YArray|YText|UndoManager" pubspec.yaml lib test` 无命中。
-- README、API reference、migration guide、running guide 与实际能力一致。
+- README、CHANGELOG、API reference、migration guide、release checklist、running guide 与实际能力一致。

@@ -10,6 +10,86 @@ import '../core/model/rich_text_document.dart';
 import '../core/position/document_position.dart';
 import 'wenz_rich_text_controller.dart';
 
+typedef WenzToolbarItemAction = void Function(
+  WenzRichTextController editor,
+  ToolbarState state,
+);
+
+typedef WenzToolbarItemPredicate = bool Function(ToolbarState state);
+
+/// Headless toolbar item descriptor contributed by a plugin.
+///
+/// The package intentionally does not ship a fixed toolbar widget. Hosts can
+/// render these descriptors in Material, Cupertino, or business-specific UI and
+/// call [action] with the current [ToolbarState].
+class WenzToolbarItem {
+  const WenzToolbarItem({
+    required this.id,
+    required this.title,
+    required this.action,
+    this.icon,
+    this.tooltip,
+    this.priority = 0,
+    this.isEnabled,
+    this.isActive,
+  });
+
+  /// Unique item id, usually namespaced by plugin.
+  final String id;
+
+  final String title;
+  final String? icon;
+  final String? tooltip;
+
+  /// Lower values should be rendered earlier by host toolbars.
+  final int priority;
+
+  final WenzToolbarItemPredicate? isEnabled;
+  final WenzToolbarItemPredicate? isActive;
+  final WenzToolbarItemAction action;
+
+  bool enabledFor(ToolbarState state) => isEnabled?.call(state) ?? true;
+
+  bool activeFor(ToolbarState state) => isActive?.call(state) ?? false;
+}
+
+/// Registry for toolbar descriptors contributed by plugins.
+class WenzToolbarItemRegistry {
+  WenzToolbarItemRegistry([
+    Iterable<WenzToolbarItem> items = const <WenzToolbarItem>[],
+  ]) {
+    for (final item in items) {
+      register(item);
+    }
+  }
+
+  final Map<String, WenzToolbarItem> _items = <String, WenzToolbarItem>{};
+
+  List<WenzToolbarItem> get items {
+    final ordered = _items.values.toList()
+      ..sort((a, b) {
+        final byPriority = a.priority.compareTo(b.priority);
+        if (byPriority != 0) {
+          return byPriority;
+        }
+        return a.id.compareTo(b.id);
+      });
+    return List<WenzToolbarItem>.unmodifiable(ordered);
+  }
+
+  void register(WenzToolbarItem item) {
+    _items[item.id] = item;
+  }
+
+  void unregister(String id) {
+    _items.remove(id);
+  }
+
+  bool has(String id) => _items.containsKey(id);
+
+  WenzToolbarItem? operator [](String id) => _items[id];
+}
+
 /// A read-only snapshot of the toolbar-relevant state derived from a
 /// [WenzRichTextController]'s current document + selection.
 ///
@@ -24,6 +104,7 @@ class ToolbarState {
     required this.canToggleMark,
     required this.canSetLink,
     required this.canSetBlockType,
+    required this.canSetCodeLanguage,
     required this.canIndent,
     required this.canOutdent,
     required this.canToggleTodo,
@@ -40,6 +121,7 @@ class ToolbarState {
     required this.uniformBlockType,
     required this.uniformListType,
     required this.uniformHeadingLevel,
+    required this.codeLanguage,
     required this.canUndo,
     required this.canRedo,
   });
@@ -66,6 +148,10 @@ class ToolbarState {
   /// selection to cover at least one [TextBlockNode]. Only text-block types
   /// (paragraph/heading/quote/listItem) are switchable.
   final bool canSetBlockType;
+
+  /// Whether the selection sits inside a [CodeBlockNode] and the toolbar can
+  /// change its language.
+  final bool canSetCodeLanguage;
 
   final bool canIndent;
   final bool canOutdent;
@@ -105,6 +191,10 @@ class ToolbarState {
   /// `null`.
   final int? uniformHeadingLevel;
 
+  /// Current [CodeBlockNode.language] when the selection is inside a code
+  /// block, or `null` outside code blocks.
+  final String? codeLanguage;
+
   final bool canUndo;
   final bool canRedo;
 
@@ -141,6 +231,7 @@ class ToolbarState {
     canToggleMark: false,
     canSetLink: false,
     canSetBlockType: false,
+    canSetCodeLanguage: false,
     canIndent: false,
     canOutdent: false,
     canToggleTodo: false,
@@ -155,6 +246,7 @@ class ToolbarState {
     uniformBlockType: null,
     uniformListType: null,
     uniformHeadingLevel: null,
+    codeLanguage: null,
     canUndo: false,
     canRedo: false,
   );
@@ -165,6 +257,7 @@ class ToolbarState {
     bool? canToggleMark,
     bool? canSetLink,
     bool? canSetBlockType,
+    bool? canSetCodeLanguage,
     bool? canIndent,
     bool? canOutdent,
     bool? canToggleTodo,
@@ -181,6 +274,7 @@ class ToolbarState {
     BlockType? uniformBlockType,
     Object? uniformListType = _sentinel,
     Object? uniformHeadingLevel = _sentinel,
+    Object? codeLanguage = _sentinel,
     bool? canUndo,
     bool? canRedo,
   }) {
@@ -190,6 +284,7 @@ class ToolbarState {
       canToggleMark: canToggleMark ?? this.canToggleMark,
       canSetLink: canSetLink ?? this.canSetLink,
       canSetBlockType: canSetBlockType ?? this.canSetBlockType,
+      canSetCodeLanguage: canSetCodeLanguage ?? this.canSetCodeLanguage,
       canIndent: canIndent ?? this.canIndent,
       canOutdent: canOutdent ?? this.canOutdent,
       canToggleTodo: canToggleTodo ?? this.canToggleTodo,
@@ -215,6 +310,9 @@ class ToolbarState {
       uniformHeadingLevel: identical(uniformHeadingLevel, _sentinel)
           ? this.uniformHeadingLevel
           : uniformHeadingLevel as int?,
+      codeLanguage: identical(codeLanguage, _sentinel)
+          ? this.codeLanguage
+          : codeLanguage as String?,
       canUndo: canUndo ?? this.canUndo,
       canRedo: canRedo ?? this.canRedo,
     );
@@ -228,6 +326,7 @@ class ToolbarState {
         other.canToggleMark == canToggleMark &&
         other.canSetLink == canSetLink &&
         other.canSetBlockType == canSetBlockType &&
+        other.canSetCodeLanguage == canSetCodeLanguage &&
         other.canIndent == canIndent &&
         other.canOutdent == canOutdent &&
         other.canToggleTodo == canToggleTodo &&
@@ -244,6 +343,7 @@ class ToolbarState {
         other.uniformBlockType == uniformBlockType &&
         other.uniformListType == uniformListType &&
         other.uniformHeadingLevel == uniformHeadingLevel &&
+        other.codeLanguage == codeLanguage &&
         other.canUndo == canUndo &&
         other.canRedo == canRedo;
   }
@@ -257,6 +357,7 @@ class ToolbarState {
         canToggleMark,
         canSetLink,
         canSetBlockType,
+        canSetCodeLanguage,
         canIndent,
         canOutdent,
         canToggleTodo,
@@ -275,6 +376,7 @@ class ToolbarState {
         uniformBlockType,
         uniformListType,
         uniformHeadingLevel,
+        codeLanguage,
         canUndo,
         canRedo,
       ),
@@ -313,6 +415,7 @@ class ToolbarController extends ChangeNotifier {
   bool get canToggleMark => _state.canToggleMark;
   bool get canSetLink => _state.canSetLink;
   bool get canSetBlockType => _state.canSetBlockType;
+  bool get canSetCodeLanguage => _state.canSetCodeLanguage;
   bool get canIndent => _state.canIndent;
   bool get canOutdent => _state.canOutdent;
   bool get canToggleTodo => _state.canToggleTodo;
@@ -333,6 +436,7 @@ class ToolbarController extends ChangeNotifier {
   BlockType? get uniformBlockType => _state.uniformBlockType;
   String? get uniformListType => _state.uniformListType;
   int? get uniformHeadingLevel => _state.uniformHeadingLevel;
+  String? get codeLanguage => _state.codeLanguage;
   bool isBlockType(BlockType type) => _state.isBlockType(type);
   bool isHeading(int level) => _state.isHeading(level);
   bool get isParagraph => _state.isParagraph;
@@ -390,6 +494,12 @@ class ToolbarController extends ChangeNotifier {
   void setOrderedList() =>
       _setBlockType(BlockType.listItem, listType: 'ordered');
   void setUnorderedList() => _setBlockType(BlockType.listItem, listType: null);
+
+  void setCodeLanguage(String language) {
+    if (_state.canSetCodeLanguage) {
+      _host.setCodeLanguage(language);
+    }
+  }
 
   void _setBlockType(
     BlockType type, {
@@ -463,6 +573,10 @@ class ToolbarController extends ChangeNotifier {
     final extentBlock = _blockAt(document, extent.blockIndex);
 
     final extentTextBlock = extentBlock is TextBlockNode ? extentBlock : null;
+    final extentCodeBlock =
+        extentBlock is CodeBlockNode && extent.path.isBlockCode
+            ? extentBlock
+            : null;
     // A table cell's text lives inside a TableBlockNode, so resolve the cell's
     // first text block separately — the inline format/link/mark commands route
     // to cell-aware variants and the toolbar must read/write marks there too.
@@ -505,24 +619,27 @@ class ToolbarController extends ChangeNotifier {
     final inTable = extent.path.isTableCellText;
     final cellStyle =
         _collectTableCellStyle(document, selection.tableCellRange);
+    final canEdit = _host.canEdit;
 
     _state = ToolbarState(
       hasSelection: true,
       // FormatTextCommand applies to any TextBlockNode text range (collapsed
       // caret included — it sets typing attributes via the next input).
-      canFormatInline: extentOnText,
+      canFormatInline: canEdit && extentOnText,
       // ToggleMarkCommand requires a single block + single path.
-      canToggleMark: extentOnText && singleBlock,
+      canToggleMark: canEdit && extentOnText && singleBlock,
       // SetLinkCommand requires a single block + single path.
-      canSetLink: extentOnText && singleBlock,
+      canSetLink: canEdit && extentOnText && singleBlock,
       // SetBlockTypeCommand switches text-block types only.
-      canSetBlockType: blockSummary.hasTextBlock,
-      canIndent: blockSummary.hasTextBlock,
-      canOutdent: blockSummary.hasTextBlock && blockSummary.anyIndent,
+      canSetBlockType: canEdit && blockSummary.hasTextBlock,
+      canSetCodeLanguage: canEdit && extentCodeBlock != null,
+      canIndent: canEdit && blockSummary.hasTextBlock,
+      canOutdent:
+          canEdit && blockSummary.hasTextBlock && blockSummary.anyIndent,
       // ToggleTodoCommand / ToggleQuoteCommand operate on text blocks.
-      canToggleTodo: blockSummary.hasTextBlock,
-      canToggleQuote: blockSummary.hasTextBlock,
-      canTableStruct: inTable,
+      canToggleTodo: canEdit && blockSummary.hasTextBlock,
+      canToggleQuote: canEdit && blockSummary.hasTextBlock,
+      canTableStruct: canEdit && inTable,
       tableCellIsHeader: cellStyle?.isHeader,
       tableCellBackgroundColor: cellStyle?.backgroundColor,
       bold: inlineSummary.bold,
@@ -534,6 +651,7 @@ class ToolbarController extends ChangeNotifier {
       uniformBlockType: blockSummary.uniformType,
       uniformListType: blockSummary.uniformListType,
       uniformHeadingLevel: blockSummary.uniformHeadingLevel,
+      codeLanguage: extentCodeBlock?.language,
       canUndo: _host.canUndo,
       canRedo: _host.canRedo,
     );

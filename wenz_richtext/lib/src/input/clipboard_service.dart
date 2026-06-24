@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import '../codecs/html_codec.dart';
+import '../codecs/markdown_codec.dart';
 import '../core/commands/inline_editing.dart';
 import '../core/commands/table_cell_editing.dart';
 import '../core/model/block_node.dart';
@@ -12,6 +13,47 @@ import '../core/position/document_position.dart';
 /// platform clipboard only carries plain text reliably across Windows/Web, so
 /// rich payloads are encoded as `<prefix><json>` and detected on paste.
 const String wenzClipboardPrefix = 'wenz-richtext-json:v1\n';
+
+enum ClipboardPasteFormat {
+  auto,
+  plainText,
+  markdown,
+  html,
+}
+
+/// Context passed to a plugin paste transformer.
+class ClipboardPasteContext {
+  const ClipboardPasteContext({
+    required this.raw,
+    required this.format,
+  });
+
+  /// Raw clipboard text as received from the platform or caller.
+  final String raw;
+
+  /// Parser flavour requested by the caller.
+  final ClipboardPasteFormat format;
+}
+
+typedef ClipboardPasteTransform = ClipboardPaste? Function(
+  ClipboardPasteContext context,
+);
+
+/// A named paste transformer contributed by a plugin.
+///
+/// Return `null` to decline and let the next transformer or built-in parser run;
+/// return a [ClipboardPaste] to short-circuit the built-in parser.
+class ClipboardPasteTransformer {
+  const ClipboardPasteTransformer({
+    required this.id,
+    required this.transform,
+  });
+
+  /// Unique transformer id, usually namespaced by plugin.
+  final String id;
+
+  final ClipboardPasteTransform transform;
+}
 
 /// Serialises and parses editor clipboard payloads.
 ///
@@ -29,11 +71,24 @@ const String wenzClipboardPrefix = 'wenz-richtext-json:v1\n';
 /// can be unit tested without a binding. The widget layer is responsible for
 /// `Clipboard.setData` / `Clipboard.getData`.
 class ClipboardService {
-  const ClipboardService({this.htmlCodec = const HtmlCodec()});
+  const ClipboardService({
+    this.htmlCodec = const HtmlCodec(),
+    this.markdownCodec = const MarkdownCodec(),
+    this.pasteTransformers = const <ClipboardPasteTransformer>[],
+  });
 
   /// HTML codec used by [pasteHtml] to turn an HTML fragment into blocks.
   /// Defaults to [HtmlCodec]; inject a custom one to tweak HTML mapping.
   final HtmlCodec htmlCodec;
+
+  /// Markdown codec used by [parseMarkdown] to turn a Markdown fragment into
+  /// blocks. Defaults to [MarkdownCodec].
+  final MarkdownCodec markdownCodec;
+
+  /// Optional plugin transformers checked before built-in rich/plain/markdown
+  /// parsers. Pass a growable list when plugins should register after service
+  /// construction.
+  final List<ClipboardPasteTransformer> pasteTransformers;
 
   /// Serialises [selection] from [document] into a clipboard string.
   ///
@@ -56,7 +111,33 @@ class ClipboardService {
   }
 
   /// Parses a clipboard string into structured paste data.
-  ClipboardPaste parse(String raw) {
+  ///
+  /// [ClipboardPasteFormat.auto] keeps the historical behaviour: rich Wenz
+  /// payloads are detected by [wenzClipboardPrefix], and everything else is
+  /// plain text. Pass [ClipboardPasteFormat.markdown] or
+  /// [ClipboardPasteFormat.html] when the platform/business layer knows the
+  /// clipboard flavour.
+  ClipboardPaste parse(
+    String raw, {
+    ClipboardPasteFormat format = ClipboardPasteFormat.auto,
+  }) {
+    final context = ClipboardPasteContext(raw: raw, format: format);
+    for (final transformer in pasteTransformers) {
+      final paste = transformer.transform(context);
+      if (paste != null) {
+        return paste;
+      }
+    }
+    switch (format) {
+      case ClipboardPasteFormat.markdown:
+        return parseMarkdown(raw) ?? ClipboardPaste.plain(raw);
+      case ClipboardPasteFormat.html:
+        return parseHtml(raw) ?? ClipboardPaste.plain(raw);
+      case ClipboardPasteFormat.plainText:
+        return ClipboardPaste.plain(raw);
+      case ClipboardPasteFormat.auto:
+        break;
+    }
     if (raw.startsWith(wenzClipboardPrefix)) {
       final json = raw.substring(wenzClipboardPrefix.length);
       final decoded = jsonDecode(json);
@@ -262,18 +343,40 @@ class ClipboardService {
   /// [ClipboardPaste.blocks] carrying the decoded blocks (the caller pastes
   /// them via [PasteBlocksCommand], restoring multi-block structure), or
   /// `null` when the fragment yields no content.
-  ClipboardPaste? pasteHtml(String html) {
+  ClipboardPaste? parseHtml(String html) {
     final document = htmlCodec.decode(html);
+    return _blocksPaste(document);
+  }
+
+  /// Backwards-compatible alias for [parseHtml].
+  ClipboardPaste? pasteHtml(String html) => parseHtml(html);
+
+  /// Parses a Markdown fragment into a structured paste payload.
+  ClipboardPaste? parseMarkdown(String markdown) {
+    final document = markdownCodec.decode(markdown);
+    return _blocksPaste(document);
+  }
+
+  /// Legacy inline-only Markdown helper. Prefer [parseMarkdown] or
+  /// `parse(markdown, format: ClipboardPasteFormat.markdown)` for full block
+  /// paste.
+  List<InlineNode>? pasteMarkdown(String markdown) {
+    final paste = parseMarkdown(markdown);
+    if (paste == null || !paste.isBlocks || paste.blocks.length != 1) {
+      return null;
+    }
+    final block = paste.blocks.single;
+    if (block is! TextBlockNode) {
+      return null;
+    }
+    return block.content.map((node) => node.copy()).toList();
+  }
+
+  ClipboardPaste? _blocksPaste(RichTextDocument document) {
     if (document.blocks.isEmpty) {
       return null;
     }
     return ClipboardPaste.blocks(document.blocks);
-  }
-
-  /// Placeholder for Markdown paste (stage 6). Always returns `null` for now.
-  List<InlineNode>? pasteMarkdown(String markdown) {
-    // Intentionally unimplemented; reserved for stage 6 import.
-    return null;
   }
 }
 

@@ -34,6 +34,8 @@ class DocumentSchema {
             content: const <InlineNode>[],
           ),
         ],
+        comments: document.comments,
+        revisions: document.revisions,
       );
     }
     var changed = false;
@@ -48,7 +50,12 @@ class DocumentSchema {
     if (!changed) {
       return document;
     }
-    return RichTextDocument(version: document.version, blocks: next);
+    return RichTextDocument(
+      version: document.version,
+      blocks: next,
+      comments: document.comments,
+      revisions: document.revisions,
+    );
   }
 
   BlockNode _normalizeBlock(BlockNode block) {
@@ -57,6 +64,8 @@ class DocumentSchema {
         return _normalizeTextBlock(text);
       case final CalloutBlockNode callout:
         return _normalizeCalloutBlock(callout);
+      case final BlockEmbedNode embed:
+        return _normalizeBlockEmbed(embed);
       case final TableBlockNode table:
         return _normalizeTableBlock(table);
       case final CodeBlockNode _:
@@ -70,15 +79,41 @@ class DocumentSchema {
     }
   }
 
+  BlockEmbedNode _normalizeBlockEmbed(BlockEmbedNode block) {
+    final attrs = _normalizeAttributes(block.type, block.attributes);
+    final embedType = block.normalizedEmbedType;
+    final fallbackText = block.fallbackText.trim();
+    if (attrs == block.attributes &&
+        embedType == block.embedType &&
+        fallbackText == block.fallbackText) {
+      return block;
+    }
+    return BlockEmbedNode(
+      id: block.id,
+      embedType: embedType,
+      data: block.data,
+      fallbackText: fallbackText,
+      attributes: attrs,
+    );
+  }
+
   CalloutBlockNode _normalizeCalloutBlock(CalloutBlockNode block) {
     final attrs = _normalizeAttributes(block.type, block.attributes);
-    if (attrs == block.attributes) {
+    final variant = CalloutBlockNode.normalizeVariant(block.variant);
+    final title = block.title.trim();
+    final icon = block.icon.trim();
+    if (attrs == block.attributes &&
+        variant == block.variant &&
+        title == block.title &&
+        icon == block.icon) {
       return block;
     }
     return CalloutBlockNode(
       id: block.id,
       content: block.content,
-      variant: block.variant,
+      variant: variant,
+      title: title,
+      icon: icon,
       attributes: attrs,
     );
   }
@@ -104,21 +139,21 @@ class DocumentSchema {
       for (final cell in row) {
         if (cell.blocks.isEmpty) {
           nextRow.add(
-              TableCellNode(
-                id: cell.id,
-                blocks: <BlockNode>[
-                  TextBlockNode(
-                    id: '${cell.id}-p',
-                    type: BlockType.paragraph,
-                    content: const <InlineNode>[],
-                  ),
-                ],
-                rowSpan: cell.rowSpan,
-                columnSpan: cell.columnSpan,
-                isHeader: cell.isHeader,
-                backgroundColor: cell.backgroundColor,
-                covered: cell.covered,
-              ),
+            TableCellNode(
+              id: cell.id,
+              blocks: <BlockNode>[
+                TextBlockNode(
+                  id: '${cell.id}-p',
+                  type: BlockType.paragraph,
+                  content: const <InlineNode>[],
+                ),
+              ],
+              rowSpan: cell.rowSpan,
+              columnSpan: cell.columnSpan,
+              isHeader: cell.isHeader,
+              backgroundColor: cell.backgroundColor,
+              covered: cell.covered,
+            ),
           );
           changed = true;
         } else {
@@ -133,11 +168,11 @@ class DocumentSchema {
     return TableBlockNode(
       id: block.id,
       attributes: block.attributes,
-          table: TableModel(
-            rows: rows,
-            columnAlignments: Map<int, String>.from(block.table.columnAlignments),
-            columnWidths: Map<int, double>.from(block.table.columnWidths),
-          ),
+      table: TableModel(
+        rows: rows,
+        columnAlignments: Map<int, String>.from(block.table.columnAlignments),
+        columnWidths: Map<int, double>.from(block.table.columnWidths),
+      ),
     );
   }
 
@@ -152,12 +187,14 @@ class DocumentSchema {
           indent: indent,
           alignment: attrs.alignment,
           childNote: attrs.childNote,
+          anchor: attrs.anchor,
         );
       case BlockType.quote:
         return BlockAttributes(
           indent: indent,
           alignment: attrs.alignment,
           childNote: attrs.childNote,
+          anchor: attrs.anchor,
         );
       case BlockType.listItem:
         final canonical = _canonicalListType(attrs.listType);
@@ -167,6 +204,7 @@ class DocumentSchema {
           listType: canonical,
           checked: canonical == 'task' ? (attrs.checked ?? false) : null,
           childNote: attrs.childNote,
+          anchor: attrs.anchor,
         );
       case BlockType.paragraph:
       case BlockType.callout:
@@ -174,12 +212,14 @@ class DocumentSchema {
           indent: indent,
           alignment: attrs.alignment,
           childNote: attrs.childNote,
+          anchor: attrs.anchor,
         );
       case BlockType.code:
       case BlockType.image:
       case BlockType.table:
       case BlockType.divider:
       case BlockType.video:
+      case BlockType.embed:
       case BlockType.file:
         // Non-text blocks don't carry text-block attrs; leave as-is.
         return attrs;

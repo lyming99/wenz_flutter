@@ -82,6 +82,50 @@ void main() {
       );
     });
 
+    test('inline embeds export readable fallbacks', () {
+      const document = RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[
+              TextRun(text: 'Ask '),
+              InlineEmbed(
+                embedType: 'formula',
+                data: <String, Object?>{'text': 'x^2'},
+              ),
+              TextRun(text: ' '),
+              InlineEmbed(
+                embedType: 'emoji',
+                data: <String, Object?>{'emoji': '😀'},
+              ),
+              TextRun(text: ' from '),
+              InlineEmbed(
+                embedType: 'mention',
+                data: <String, Object?>{'id': 'u1', 'label': 'Ada'},
+              ),
+            ],
+          ),
+        ],
+      );
+
+      expect(codec.encode(document), 'Ask x^2 😀 from @Ada');
+    });
+
+    test('block embed exports readable fallback', () {
+      const document = RichTextDocument(
+        blocks: <BlockNode>[
+          BlockEmbedNode(
+            id: 'embed1',
+            embedType: 'crm-card',
+            fallbackText: 'Acme account',
+          ),
+        ],
+      );
+
+      expect(codec.encode(document), '[crm-card embed: Acme account]');
+    });
+
     test('blockquote', () {
       const document = RichTextDocument(
         blocks: <BlockNode>[
@@ -93,6 +137,22 @@ void main() {
         ],
       );
       expect(codec.encode(document), '> quoted');
+    });
+
+    test('callout degrades to blockquote with visible metadata', () {
+      const document = RichTextDocument(
+        blocks: <BlockNode>[
+          CalloutBlockNode(
+            id: 'co1',
+            variant: 'warning',
+            title: 'Heads up',
+            icon: '🚨',
+            content: <InlineNode>[TextRun(text: 'Body')],
+          ),
+        ],
+      );
+
+      expect(codec.encode(document), '> **🚨 Heads up**\n> Body');
     });
 
     test('unordered + ordered + task list', () {
@@ -223,6 +283,43 @@ void main() {
         '![alt](https://x.dev/a.png)\n\n---',
       );
     });
+
+    test('image uses altText and caption title when present', () {
+      const document = RichTextDocument(
+        blocks: <BlockNode>[
+          ImageBlockNode(
+            id: 'im1',
+            assetId: 'https://x.dev/a.png',
+            file: 'fallback-name',
+            caption: 'Hero caption',
+            altText: 'Hero alt',
+          ),
+        ],
+      );
+
+      expect(
+        codec.encode(document),
+        '![Hero alt](https://x.dev/a.png "Hero caption")',
+      );
+    });
+
+    test('file uses display name and download URL', () {
+      const document = RichTextDocument(
+        blocks: <BlockNode>[
+          FileBlockNode(
+            id: 'file1',
+            assetId: 'asset-1',
+            name: 'report.pdf',
+            downloadUrl: 'https://cdn.example.com/report.pdf',
+          ),
+        ],
+      );
+
+      expect(
+        codec.encode(document),
+        '[report.pdf](https://cdn.example.com/report.pdf)',
+      );
+    });
   });
 
   group('MarkdownCodec.decode (import)', () {
@@ -242,9 +339,15 @@ void main() {
       expect(doc.blocks, hasLength(1));
       final para = doc.blocks[0] as TextBlockNode;
       // The inline parser splits into runs with the right attributes.
-      final bold = para.content.whereType<TextRun>().where((r) => r.attributes.bold == true);
-      final ital = para.content.whereType<TextRun>().where((r) => r.attributes.italic == true);
-      final strike = para.content.whereType<TextRun>().where((r) => r.attributes.lineThrough == true);
+      final bold = para.content
+          .whereType<TextRun>()
+          .where((r) => r.attributes.bold == true);
+      final ital = para.content
+          .whereType<TextRun>()
+          .where((r) => r.attributes.italic == true);
+      final strike = para.content
+          .whereType<TextRun>()
+          .where((r) => r.attributes.lineThrough == true);
       expect(bold, isNotEmpty);
       expect(bold.first.text, 'bold');
       expect(ital.first.text, 'ital');
@@ -320,6 +423,28 @@ void main() {
       final image = doc.blocks[0] as ImageBlockNode;
       expect(image.assetId, 'https://x.dev/a.png');
       expect(image.file, 'alt');
+      expect(image.altText, 'alt');
+    });
+
+    test('standalone image title becomes caption', () {
+      const source = '![alt](https://x.dev/a.png "Hero caption")';
+      final doc = codec.decode(source);
+      final image = doc.blocks.single as ImageBlockNode;
+
+      expect(image.assetId, 'https://x.dev/a.png');
+      expect(image.file, 'alt');
+      expect(image.altText, 'alt');
+      expect(image.caption, 'Hero caption');
+    });
+
+    test('standalone video placeholder becomes video block', () {
+      const source = '![video](local/video.mp4)';
+      final doc = codec.decode(source);
+
+      expect(doc.blocks, hasLength(1));
+      final video = doc.blocks.single as VideoBlockNode;
+      expect(video.assetId, 'local/video.mp4');
+      expect(video.file, isEmpty);
     });
 
     test('unrecognised content falls back to a paragraph (no throw)', () {
@@ -367,6 +492,42 @@ void main() {
       final exported = codec.encode(document);
       final reimported = codec.decode(exported);
       expect(reimported.blocks[0].plainText, 'a*b c');
+    });
+
+    test('file stays readable and video restores from Markdown fallback', () {
+      const document = RichTextDocument(
+        blocks: <BlockNode>[
+          FileBlockNode(
+            id: 'file1',
+            assetId: 'asset-1',
+            name: 'report.pdf',
+            downloadUrl: 'https://cdn.example.com/report.pdf',
+          ),
+          VideoBlockNode(
+            id: 'video1',
+            assetId: 'video-1',
+            file: 'local/video.mp4',
+          ),
+        ],
+      );
+
+      final exported = codec.encode(document);
+      final reimported = codec.decode(exported);
+
+      expect(
+        exported,
+        '[report.pdf](https://cdn.example.com/report.pdf)\n\n'
+        '![video](local/video.mp4)',
+      );
+      expect(reimported.blocks, hasLength(2));
+
+      final fileParagraph = reimported.blocks[0] as TextBlockNode;
+      expect(fileParagraph.plainText, 'report.pdf');
+      final linkedRun = fileParagraph.content.whereType<TextRun>().single;
+      expect(linkedRun.attributes.url, 'https://cdn.example.com/report.pdf');
+
+      final video = reimported.blocks[1] as VideoBlockNode;
+      expect(video.assetId, 'local/video.mp4');
     });
   });
 

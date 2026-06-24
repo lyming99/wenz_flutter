@@ -206,16 +206,17 @@ class SetBlockTypeCommand extends EditorCommand {
   }
 
   BlockAttributes _attributesForType(BlockAttributes current) {
-    final nextListType = listType ?? current.listType;
     return BlockAttributes(
       level: type == BlockType.heading ? level ?? current.level ?? 1 : null,
       indent: current.indent,
       alignment: current.alignment,
-      listType: type == BlockType.listItem ? nextListType ?? 'li' : null,
-      checked: type == BlockType.listItem && nextListType == 'check'
+      listType: type == BlockType.listItem ? listType : null,
+      checked: type == BlockType.listItem &&
+              (listType == 'check' || listType == 'task')
           ? checked ?? current.checked
           : null,
       childNote: current.childNote,
+      anchor: current.anchor,
     );
   }
 }
@@ -276,6 +277,7 @@ BlockAttributes _setAlignment(BlockAttributes current, String? alignment) {
     listType: current.listType,
     checked: current.checked,
     childNote: current.childNote,
+    anchor: current.anchor,
   );
 }
 

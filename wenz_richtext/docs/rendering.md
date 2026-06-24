@@ -1,4 +1,4 @@
-# Rendering Architecture
+﻿# Rendering Architecture
 
 Stage 5 splits block rendering behind an extension point so consumers can replace
 how a block type paints without forking the editor widget. This document covers
@@ -9,12 +9,15 @@ work still on the roadmap.
 
 `lib/src/widgets/block_renderer_registry.dart` defines the indirection:
 
-- `BlockRendererRegistry` — maps `BlockType` → `BlockRendererBuilder`.
+- `BlockRendererRegistry` — maps `BlockType` and custom
+  `BlockEmbedNode.embedType` → `BlockRendererBuilder`.
 - `BlockRendererBuilder` — `Widget Function(BuildContext, BlockRenderContext)`.
 - `BlockRenderContext` — bundles everything a renderer needs: the `BlockNode`,
   its `blockIndex`, the active `DocumentSelection`, the IME
   `CompositionState`, the `BlockGeometryRegistry` (for hit-testing), the
-  `showCaret` flag, the ambient `textStyle`, and the `showDebugOverlay` flag.
+  `showCaret` flag, the ambient `textStyle`, the `showDebugOverlay` flag, and
+  optional code/callout/table hooks (`onCodeLanguageChanged`, `onCodeCopied`,
+  `onCalloutVariantChanged`, `onTableToolbarAction`, `onTableColumnResize`).
 
 The editor consults the registry once per block in `_BlockRenderer.build`. When
 no builder is registered for a block's type, the editor falls back to a
@@ -30,8 +33,8 @@ Two equivalent entry points:
 
 2. **Explicit (override what you need).** Construct a `BlockRendererRegistry`,
    seed it with `WenzRichTextEditor.installDefaultRenderers(registry)`, then
-   `register` overrides for the types you want to change. Pass it via
-   `blockRenderers`.
+   `register` overrides for block types or `registerEmbed` overrides for
+   business embed types. Pass it via `blockRenderers`.
 
 ```dart
 final registry = BlockRendererRegistry();
@@ -46,9 +49,41 @@ WenzRichTextEditor(
 );
 ```
 
-A custom renderer receives the same `BlockRenderContext` the built-ins do, so it
-can participate in selection highlight, caret, and debug behaviour by reusing
-the existing `_TextSelectionSurface` — or ignore all of it and paint freely.
+A custom renderer receives the same `BlockRenderContext` the built-ins do. For
+atomic object blocks, wrap the custom widget in
+`WenzObjectBlockSurface(renderContext: rc, child: widget)` to keep selection
+highlight, geometry registration, caret anchoring, and debug-overlay behaviour;
+or ignore the surface and paint freely.
+
+## Block embed renderer injection
+
+`BlockEmbedNode` is the generic block-level embed model for business content
+such as CRM cards, link previews, diagrams, or external workflow panels. It
+stores `embedType`, JSON-compatible `data`, and `fallbackText`.
+
+```dart
+final registry = BlockRendererRegistry();
+WenzRichTextEditor.installDefaultRenderers(registry);
+registry.registerEmbed('crm-card', (context, rc) {
+  final embed = rc.block as BlockEmbedNode;
+  return WenzObjectBlockSurface(
+    renderContext: rc,
+    child: CrmCard(recordId: embed.data['recordId'] as String),
+  );
+});
+
+controller.insertBlockEmbed(
+  blockId: 'crm-1',
+  embedType: 'crm-card',
+  data: <String, Object?>{'recordId': '42'},
+  fallbackText: 'Acme account',
+);
+```
+
+Resolution order for `BlockEmbedNode`: an exact `registerEmbed(embedType, ...)`
+builder wins; otherwise the generic `BlockType.embed` renderer paints the built-
+in placeholder. Rich JSON and HTML round-trip the structured embed fields;
+Markdown/plain text intentionally degrade to readable fallback text.
 
 ## Default renderers
 
@@ -58,16 +93,17 @@ the existing `_TextSelectionSurface` — or ignore all of it and paint freely.
 | BlockType | Renderer | Notes |
 | --- | --- | --- |
 | paragraph / heading / quote / listItem | `_TextBlockRenderer` | Inline-aware; formula/mention fallback + optional `InlineEmbedRenderer`; selection/caret/composition via `_TextSelectionSurface`. |
-| code | `_CodeBlockRenderer` | Monospace; composition underline span. |
-| image / video / file | asks `MediaResolver`, then `_MediaPlaceholder` | Built-in media renderers consult the injected [MediaResolver] first; when it returns `null` (or no resolver is set) they fall back to the placeholder. See [Media resolver](#media-resolver). |
-| table | `_TableBlockRenderer` | Custom Stack grid layout; visible cells are positioned by `rowSpan`/`columnSpan`, covered cells are not rendered or hit-tested; table-cell text uses the same inline embed fallback/renderer path. |
+| code | `_CodeBlockRenderer` | Monospace body with composition underline span; toolbar includes language dropdown and copy-code button. Language changes call `SetCodeLanguageCommand`; Tab/Shift+Tab in the editor call `IndentCodeBlockCommand`. |
+| image / video / file | asks `MediaResolver`, then built-in fallback | Built-in media renderers consult the injected [MediaResolver] first; when it returns `null` (or no resolver is set) images/videos fall back to `_MediaPlaceholder`, while files fall back to a metadata card. Image blocks wrap the result with `showWidth`/`showHeight` sizing and optional caption text; file cards show display name, size, MIME type, upload status, and failure text. See [Media resolver](#media-resolver). |
+| embed | `_BlockEmbedContent` or business renderer | Generic block embed placeholder displays `embedType` + `fallbackText`/data label. Register per business type with `BlockRendererRegistry.registerEmbed`; wrap large custom widgets in `WenzObjectBlockSurface` for object-block selection semantics. |
+| table | `_TableBlockRenderer` | Custom Stack grid layout; visible cells are positioned by `rowSpan`/`columnSpan`, covered cells are not rendered or hit-tested; table-cell text uses the same inline embed fallback/renderer path. When a table cell/range is selected, the default renderer shows a floating toolbar for row/column insert/delete, header/background/alignment, merge/split, width reset, plus drag handles that persist explicit column widths via `SetTableColumnWidthCommand`. |
 | divider | Flutter `Divider`. | |
-| callout | `_CalloutRenderer` | Variant-tinted surface; uses the same inline embed fallback/renderer path. |
+| callout | `_CalloutRenderer` | Variant-tinted surface with icon, title, body, and an editable type dropdown for `info`/`success`/`warning`/`danger`; uses the same inline embed fallback/renderer path. |
 
 ## Inline embed renderer
 
 `InlineEmbedRenderer` (`lib/src/widgets/inline_embed_renderer.dart`) is the
-quick path for formula / mention / custom inline embed text rendering without
+quick path for formula / mention / emoji / custom inline embed text rendering without
 replacing the whole paragraph renderer:
 
 ```dart
@@ -75,7 +111,7 @@ final renderer = InlineEmbedRendererCallback((context, embed, style) {
   if (embed.embedType == 'formula') {
     return TextSpan(text: "formula(${embed.data['text']})", style: style);
   }
-  return null; // keep the built-in fallback for mention / image / custom types.
+  return null; // keep the built-in fallback for mention / emoji / image / custom types.
 });
 
 WenzRichTextEditor(
@@ -87,6 +123,8 @@ WenzRichTextEditor(
 The editor still treats every `InlineEmbed` as one logical character for caret
 movement and selection. Prefer compact `TextSpan`s here; use
 `BlockRendererRegistry` when a feature needs a large interactive widget.
+Built-in fallbacks display formula text, mention `@label`, emoji unicode, inline
+images as `[img]`, and unknown custom types as `[type]`.
 
 ## Media resolver
 
@@ -126,9 +164,18 @@ Semantics:
 - Throwing from `resolve` is tolerated: the editor catches it, reports the
   error via `FlutterError.reportError` (so it surfaces in dev tools), and falls
   back to the placeholder. A faulty resolver never crashes the editor.
-- Upload is a business concern: do it before calling `insertBlocks`, then store
-  the resulting URL in `assetId`/`file` (opaque business handles); the resolver
-  reads those fields.
+- Upload is a business concern: create or insert a `FileBlockNode` with
+  `uploadStatus: FileUploadStatus.pending/uploading`, then store the resulting
+  URL in `downloadUrl` (or legacy `file`) and flip status to `uploaded` via
+  `WenzRichTextController.updateFileBlock`. On failure, set
+  `uploadStatus: FileUploadStatus.failed` and `uploadError`; business UI or a
+  custom `MediaResolver` can expose a retry button and drive another update.
+- Image metadata stays on `ImageBlockNode`: use
+  `WenzRichTextController.updateImageBlock` to update natural size
+  (`width`/`height`), display size (`showWidth`/`showHeight`), `caption`, and
+  `altText`. The default image renderer shows the caption below either the
+  resolver widget or fallback placeholder; semantics prefer `altText`, then
+  caption, then the asset/file label.
 
 ### MediaResolver vs BlockRendererRegistry
 
@@ -138,8 +185,10 @@ Both are extension points for block rendering; pick by scope:
   renderers consult it. Lowest effort; ideal when you just want real media
   decoding.
 - **`BlockRendererRegistry`** — whole-block replacement for any `BlockType`,
-  including media. Use it when you need to change the surrounding chrome
-  (selection/caret participation, custom layout) or override a non-media block.
+  including media, plus per-`BlockEmbedNode.embedType` business renderers. Use
+  it when you need to change the surrounding chrome (selection/caret
+  participation, custom layout), override a non-media block, or render a custom
+  business block embed.
 
 Priority for a media block: a custom `BlockRendererRegistry` entry wins (it
 replaces the whole renderer, which would not consult the resolver at all);
@@ -291,6 +340,7 @@ then times 20 frames and prints average + max µs/frame. Cases:
 | 1k blocks (editing) | 1000 paragraphs + caret tick | avg < 50ms/frame |
 | 10k inline runs | 1 paragraph, 10000 runs | avg < 120ms/frame |
 | large table | 50×20 cells | avg < 120ms/frame |
+| advanced mixed document | 200 groups of paragraph/callout/code/file blocks with mention/formula inline embeds | avg < 90ms/frame |
 | 1k blocks scroll (remount) | 1000 paragraphs, drag-scroll | avg < 80ms/frame |
 
 The guards are deliberately loose (well above the measured numbers on a dev
@@ -305,6 +355,8 @@ Reference numbers (this machine, after the custom table grid layout / B3):
 - 1k blocks editing: ~49µs avg, ~88µs max
 - 10k inline runs: ~51µs avg, ~95µs max
 - 50×20 table: ~37µs avg, ~46µs max
+- advanced mixed document: run locally with the same command to compare against
+  the 90ms guard
 - 1k blocks scroll (remount): ~18ms avg (includes gesture + layout)
 
 ## Table merged-cell layout

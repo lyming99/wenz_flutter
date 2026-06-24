@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "cycle": 3,
+  "updatedAt": "2026-06-24T18:06:49.317646",
+  "lastPlannedIssueHash": null,
+  "issueScan": {
+    "root": "D:\\project\\GitHub\\wenz_flutter\\wenz_richtext\\docs\\issues",
+    "aggregateHash": "cbf29ce484222325",
+    "scannedAt": "2026-06-24T18:06:49.282956",
+    "files": []
+  },
+  "planScan": {
+    "root": "D:\\project\\GitHub\\wenz_flutter\\wenz_richtext\\docs\\plan",
+    "aggregateHash": "cbf29ce484222325",
+    "scannedAt": "2026-06-24T18:06:49.317646",
+    "files": []
+  },
+  "plans": {},
+  "events": [
+    {
+      "type": "issues.empty",
+      "message": "docs/issues 没有需求文件，等待下一轮。",
+      "at": "2026-06-24T18:05:00.449710"
+    },
+    {
+      "type": "issues.empty",
+      "message": "docs/issues 没有需求文件，等待下一轮。",
+      "at": "2026-06-24T18:06:00.740489"
+    }
+  ]
+}

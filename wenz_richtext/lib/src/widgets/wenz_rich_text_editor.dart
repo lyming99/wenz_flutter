@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 
+import '../controller/find_replace_controller.dart';
+import '../controller/slash_menu_controller.dart';
 import '../controller/wenz_rich_text_controller.dart';
 import '../core/commands/inline_editing.dart';
 import '../core/model/attributes.dart';
@@ -13,6 +15,7 @@ import '../core/model/table_model.dart';
 import '../core/position/document_position.dart';
 import '../input/composition_state.dart';
 import '../input/editor_text_input_client.dart';
+import '../input/shortcut_manager.dart';
 import '../rendering/text_layout_service.dart';
 import 'block_geometry_registry.dart';
 import 'block_renderer_registry.dart';
@@ -20,10 +23,15 @@ import 'inline_embed_renderer.dart';
 import 'media_resolver.dart';
 import 'selection_gesture_overlay.dart';
 import 'shared_text_layout_cache.dart';
+import 'slash_menu_overlay.dart';
 
 const _caretKey = ValueKey<String>('wenz-richtext-caret');
 const _selectionHighlightKey = ValueKey<String>(
   'wenz-richtext-selection-highlight',
+);
+const _findHighlightKey = ValueKey<String>('wenz-richtext-find-highlight');
+const _accessibilityFocusHighlightKey = ValueKey<String>(
+  'wenz-richtext-accessibility-focus-highlight',
 );
 
 /// Caret geometry constants — kept in one place so the painted caret, the caret
@@ -32,6 +40,11 @@ const double _kCaretStrokeWidth = 1.5;
 const Duration _kBlinkHalfPeriod = Duration(milliseconds: 530);
 const double _kDefaultBlockExtent = 48.0;
 const double _kVirtualListOverscan = 600.0;
+const double _kTableResizeHandleWidth = 12.0;
+const double _kTableResizeHandleTopInset = 48.0;
+const double _kMinTableColumnWidth = 48.0;
+const double _kMaxTableColumnWidth = 640.0;
+const int _kTableToolbarBackgroundColor = 0xFFFFF3CD;
 
 /// Minimum block height multiplier applied to the block's font size, ensuring
 /// a tap target even for empty paragraphs. A single constant so the text,
@@ -64,6 +77,68 @@ class _SharedLayoutCacheScope extends InheritedWidget {
       cache != oldWidget.cache;
 }
 
+@immutable
+class WenzRichTextEditorAccessibility {
+  const WenzRichTextEditorAccessibility({
+    this.label = 'Rich text editor',
+    this.readOnlyLabel = 'Rich text document',
+    this.hint =
+        'Edit rich text content with text input and keyboard shortcuts.',
+    this.readOnlyHint = 'Read-only rich text document.',
+    this.highContrastFocusColor,
+    this.highContrastFocusWidth = 3,
+  }) : assert(highContrastFocusWidth >= 0);
+
+  /// Screen-reader label announced for an editable editor.
+  final String label;
+
+  /// Screen-reader label announced when [WenzRichTextEditor.readOnly] is true.
+  final String readOnlyLabel;
+
+  /// Screen-reader hint announced for an editable editor.
+  final String hint;
+
+  /// Screen-reader hint announced when [WenzRichTextEditor.readOnly] is true.
+  final String readOnlyHint;
+
+  /// Optional border color for the focused editor when high contrast is active.
+  final Color? highContrastFocusColor;
+
+  /// Border width for the focused editor when high contrast is active.
+  final double highContrastFocusWidth;
+
+  String effectiveLabel({required bool readOnly}) =>
+      readOnly ? readOnlyLabel : label;
+
+  String effectiveHint({required bool readOnly}) =>
+      readOnly ? readOnlyHint : hint;
+}
+
+/// Public wrapper for custom atomic block renderers.
+///
+/// Business [BlockRendererBuilder]s can wrap their widget with this surface so
+/// object-block selection, geometry registration, caret anchoring, and debug
+/// overlays behave like the built-in image/video/file/embed renderers.
+class WenzObjectBlockSurface extends StatelessWidget {
+  const WenzObjectBlockSurface({
+    super.key,
+    required this.renderContext,
+    required this.child,
+  });
+
+  final BlockRenderContext renderContext;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return _withSelectableObjectBlock(
+      renderContext.block,
+      renderContext,
+      child,
+    );
+  }
+}
+
 class WenzRichTextEditor extends StatefulWidget {
   const WenzRichTextEditor({
     super.key,
@@ -80,6 +155,11 @@ class WenzRichTextEditor extends StatefulWidget {
     this.blockRenderers,
     this.mediaResolver,
     this.inlineEmbedRenderer,
+    this.findController,
+    this.onFindRequested,
+    this.onReplaceRequested,
+    this.slashMenuController,
+    this.accessibility = const WenzRichTextEditorAccessibility(),
   });
 
   final WenzRichTextController controller;
@@ -104,8 +184,9 @@ class WenzRichTextEditor extends StatefulWidget {
   /// Optional [BlockRendererRegistry]. When `null`, the editor builds a fresh
   /// registry with the built-in default renderers. Pass your own to override
   /// how specific [BlockType]s render (e.g. a real image decoder for image
-  /// blocks). Use [installDefaultRenderers] to seed a custom registry with the
-  /// built-ins before overriding individual types.
+  /// blocks) or to register business [BlockEmbedNode.embedType] renderers. Use
+  /// [installDefaultRenderers] to seed a custom registry with the built-ins
+  /// before overriding individual types.
   final BlockRendererRegistry? blockRenderers;
 
   /// Optional [MediaResolver] that takes over rendering for image/video/file
@@ -121,6 +202,24 @@ class WenzRichTextEditor extends StatefulWidget {
   /// built-in text renderers ask this first and use their compact fallback
   /// labels when it returns `null`.
   final InlineEmbedRenderer? inlineEmbedRenderer;
+
+  /// Optional find/replace controller. When provided, the editor paints all
+  /// current matches and enables Ctrl/Cmd+F/H shortcut dispatch.
+  final WenzFindReplaceController? findController;
+
+  /// Called for Ctrl/Cmd+F when a find surface is available.
+  final VoidCallback? onFindRequested;
+
+  /// Called for Ctrl/Cmd+H when a replace surface is available.
+  final VoidCallback? onReplaceRequested;
+
+  /// Optional slash-menu controller. When provided, the editor shows the
+  /// built-in slash overlay and routes ArrowUp/ArrowDown/Enter/Escape to it
+  /// while the menu is open.
+  final SlashMenuController? slashMenuController;
+
+  /// Accessibility labels, hints, and high-contrast focus styling.
+  final WenzRichTextEditorAccessibility accessibility;
 
   /// Seeds [registry] with the built-in block renderers for every [BlockType].
   /// Call this on a freshly constructed [BlockRendererRegistry] when you want
@@ -142,6 +241,7 @@ class WenzRichTextEditor extends StatefulWidget {
       ..register(BlockType.table, _defaultTableBlockRenderer)
       ..register(BlockType.divider, _defaultDividerBlockRenderer)
       ..register(BlockType.video, _defaultVideoBlockRenderer)
+      ..register(BlockType.embed, _defaultBlockEmbedRenderer)
       ..register(BlockType.callout, _defaultCalloutBlockRenderer)
       ..register(BlockType.file, _defaultFileBlockRenderer);
   }
@@ -164,9 +264,12 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
   double? _verticalPreferX;
   int _generatedBlockCount = 0;
   late final EditorTextInputClient _inputClient;
+  late final EditorShortcutManager _shortcutManager =
+      const EditorShortcutManager();
   late final BlockGeometryRegistry _registry = BlockGeometryRegistry();
   late final ScrollController _scrollController = ScrollController();
   late final SharedTextLayoutCache _layoutCache = SharedTextLayoutCache();
+  final GlobalKey _editorOverlayKey = GlobalKey();
   final _BlockExtentCache _extentCache = _BlockExtentCache();
   BlockRendererRegistry? _ownedBlockRenderers;
 
@@ -252,6 +355,9 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     _inputClient.viewIdProvider = _resolveViewId;
     _inputClient.performSelectorHandler = _handlePlatformSelector;
     widget.controller.addListener(_handleControllerChanged);
+    widget.findController?.addListener(_handleFindControllerChanged);
+    widget.slashMenuController?.attachEditor(widget.controller);
+    widget.slashMenuController?.addListener(_handleSlashMenuChanged);
     // Expose the focus node to the controller so controller.requestFocus() can
     // drive focus. Updated in _syncFocusListener (which runs each build and on
     // controller/focusNode change).
@@ -274,8 +380,21 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     } else if (oldWidget.textStyle != widget.textStyle ||
         oldWidget.blockRenderers != widget.blockRenderers ||
         oldWidget.mediaResolver != widget.mediaResolver ||
-        oldWidget.inlineEmbedRenderer != widget.inlineEmbedRenderer) {
+        oldWidget.inlineEmbedRenderer != widget.inlineEmbedRenderer ||
+        oldWidget.findController != widget.findController ||
+        oldWidget.slashMenuController != widget.slashMenuController) {
       _extentCache.clear();
+    }
+    if (oldWidget.findController != widget.findController) {
+      oldWidget.findController?.removeListener(_handleFindControllerChanged);
+      widget.findController?.addListener(_handleFindControllerChanged);
+    }
+    if (oldWidget.slashMenuController != widget.slashMenuController) {
+      oldWidget.slashMenuController?.removeListener(_handleSlashMenuChanged);
+      widget.slashMenuController?.attachEditor(widget.controller);
+      widget.slashMenuController?.addListener(_handleSlashMenuChanged);
+    } else if (oldWidget.controller != widget.controller) {
+      widget.slashMenuController?.attachEditor(widget.controller);
     }
     // The effective focus node may change when the caller swaps focusNode or
     // controller; re-inject so controller.requestFocus() targets the right node.
@@ -289,6 +408,8 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
   @override
   void dispose() {
     widget.controller.removeListener(_handleControllerChanged);
+    widget.findController?.removeListener(_handleFindControllerChanged);
+    widget.slashMenuController?.removeListener(_handleSlashMenuChanged);
     // Release the focus node from the controller so a later requestFocus() on
     // a disposed editor is a safe no-op. Only clear when this widget was the
     // one that injected it.
@@ -305,6 +426,18 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     _layoutCache.dispose();
     _internalFocusNode?.dispose();
     super.dispose();
+  }
+
+  void _handleFindControllerChanged() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  void _handleSlashMenuChanged() {
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   void _handleControllerChanged() {
@@ -399,7 +532,11 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     _syncFocusListener(focusNode);
     final blocks = widget.controller.document.blocks;
     if (blocks.isEmpty) {
-      return const SizedBox.shrink();
+      return _buildEditorShell(
+        context,
+        focusNode,
+        const SizedBox.shrink(),
+      );
     }
 
     // Show a caret only in editable mode. Read-only mode still allows
@@ -418,6 +555,9 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     // replace where no diff was available. Used by _KeepAliveBlock to skip
     // re-rendering blocks whose content + selection-relevance did not change.
     final dirtyIds = widget.controller.lastChangedBlockIds;
+    final findMatches =
+        widget.findController?.matches ?? const <FindReplaceMatch>[];
+    final currentFindMatch = widget.findController?.currentMatch;
 
     _extentCache.retainBlocks(blocks);
 
@@ -445,24 +585,129 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
         showDebugOverlay: widget.showDebugOverlay,
         mediaResolver: widget.mediaResolver,
         inlineEmbedRenderer: widget.inlineEmbedRenderer,
+        onCodeLanguageChanged: widget.readOnly
+            ? null
+            : (language) {
+                widget.controller.setCodeLanguage(language, blockIndex: i);
+              },
+        onCodeCopied: _copyTextToClipboard,
+        onCalloutVariantChanged: widget.readOnly
+            ? null
+            : (variant) {
+                widget.controller.setCalloutVariant(variant, blockIndex: i);
+              },
+        onTableToolbarAction:
+            widget.readOnly ? null : _handleTableToolbarAction,
+        onTableColumnResize: widget.readOnly ? null : _handleTableColumnResize,
+        findMatches: findMatches,
+        currentFindMatch: currentFindMatch,
       ),
     );
+    return _buildEditorShell(
+      context,
+      focusNode,
+      Stack(
+        key: _editorOverlayKey,
+        fit: StackFit.expand,
+        clipBehavior: Clip.none,
+        children: <Widget>[
+          SelectionGestureOverlay(
+            registry: _registry,
+            scrollController: _scrollController,
+            focusNode: focusNode,
+            readOnly: widget.readOnly,
+            onSelectionChanged: _handleSelectionChanged,
+            onTapBeyondContent: _handleTapBeyondContent,
+            child: editor,
+          ),
+          if (widget.slashMenuController?.isOpen == true)
+            Positioned(
+              left: _slashMenuOffset().dx,
+              top: _slashMenuOffset().dy,
+              child: WenzSlashMenuOverlay(
+                controller: widget.slashMenuController!,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEditorShell(
+    BuildContext context,
+    FocusNode focusNode,
+    Widget child,
+  ) {
     return _SharedLayoutCacheScope(
       cache: _layoutCache,
       child: Focus(
         focusNode: focusNode,
         autofocus: widget.autofocus,
         onKeyEvent: _handleKeyEvent,
-        child: SelectionGestureOverlay(
-          registry: _registry,
-          scrollController: _scrollController,
-          focusNode: focusNode,
+        child: Semantics(
+          container: true,
+          explicitChildNodes: true,
+          enabled: true,
+          textField: true,
           readOnly: widget.readOnly,
-          onSelectionChanged: _handleSelectionChanged,
-          onTapBeyondContent: _handleTapBeyondContent,
-          child: editor,
+          focusable: true,
+          focused: focusNode.hasFocus,
+          multiline: true,
+          label: widget.accessibility.effectiveLabel(readOnly: widget.readOnly),
+          hint: widget.accessibility.effectiveHint(readOnly: widget.readOnly),
+          onTap: () => focusNode.requestFocus(),
+          onFocus: () => focusNode.requestFocus(),
+          child: _withHighContrastFocusHighlight(context, focusNode, child),
         ),
       ),
+    );
+  }
+
+  Widget _withHighContrastFocusHighlight(
+    BuildContext context,
+    FocusNode focusNode,
+    Widget child,
+  ) {
+    final accessibility = widget.accessibility;
+    if (!focusNode.hasFocus ||
+        !(MediaQuery.maybeHighContrastOf(context) ?? false) ||
+        accessibility.highContrastFocusWidth == 0) {
+      return child;
+    }
+    return DecoratedBox(
+      key: _accessibilityFocusHighlightKey,
+      position: DecorationPosition.foreground,
+      decoration: BoxDecoration(
+        border: Border.all(
+          color: accessibility.highContrastFocusColor ??
+              Theme.of(context).colorScheme.primary,
+          width: accessibility.highContrastFocusWidth,
+        ),
+      ),
+      child: child,
+    );
+  }
+
+  Offset _slashMenuOffset() {
+    final fallback = widget.padding.resolve(TextDirection.ltr).topLeft;
+    final selection = widget.controller.selection;
+    final overlayContext = _editorOverlayKey.currentContext;
+    final overlayBox = overlayContext?.findRenderObject();
+    if (selection == null ||
+        !selection.isCollapsed ||
+        overlayBox is! RenderBox ||
+        !overlayBox.hasSize) {
+      return fallback;
+    }
+    final caret = _registry.caretRectForPosition(selection.extent);
+    if (caret == null) {
+      return fallback;
+    }
+    final local = overlayBox.globalToLocal(caret.bottomLeft);
+    final maxLeft = overlayBox.size.width - 280;
+    return Offset(
+      local.dx.clamp(0, maxLeft > 0 ? maxLeft : 0).toDouble(),
+      (local.dy + 6).clamp(0, overlayBox.size.height).toDouble(),
     );
   }
 
@@ -512,6 +757,242 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     return true;
   }
 
+  void _handleTableToolbarAction(TableToolbarActionIntent intent) {
+    final tableBlock = _tableBlockAt(intent.blockIndex);
+    if (tableBlock == null) {
+      return;
+    }
+
+    final range = _currentTableRange(tableBlock, intent) ??
+        TableCellRange(
+          tableBlockId: tableBlock.id,
+          blockIndex: intent.blockIndex,
+          startRow: intent.rowIndex,
+          endRow: intent.targetEndRowIndex,
+          startColumn: intent.columnIndex,
+          endColumn: intent.targetEndColumnIndex,
+        );
+
+    switch (intent.action) {
+      case TableToolbarAction.insertRowAbove:
+        widget.controller.insertTableRow(
+          blockIndex: intent.blockIndex,
+          rowIndex: range.startRow,
+        );
+        return;
+      case TableToolbarAction.insertRowBelow:
+        widget.controller.insertTableRow(
+          blockIndex: intent.blockIndex,
+          rowIndex: range.endRow + 1,
+        );
+        return;
+      case TableToolbarAction.deleteRow:
+        for (var row = range.endRow; row >= range.startRow; row--) {
+          final current = _tableBlockAt(intent.blockIndex);
+          if (current == null || current.table.rowCount <= 1) {
+            break;
+          }
+          widget.controller.deleteTableRow(
+            blockIndex: intent.blockIndex,
+            rowIndex: row,
+          );
+        }
+        return;
+      case TableToolbarAction.insertColumnBefore:
+        widget.controller.insertTableColumn(
+          blockIndex: intent.blockIndex,
+          columnIndex: range.startColumn,
+        );
+        return;
+      case TableToolbarAction.insertColumnAfter:
+        widget.controller.insertTableColumn(
+          blockIndex: intent.blockIndex,
+          columnIndex: range.endColumn + 1,
+        );
+        return;
+      case TableToolbarAction.deleteColumn:
+        for (var column = range.endColumn;
+            column >= range.startColumn;
+            column--) {
+          final current = _tableBlockAt(intent.blockIndex);
+          if (current == null || current.table.columnCount <= 1) {
+            break;
+          }
+          widget.controller.deleteTableColumn(
+            blockIndex: intent.blockIndex,
+            columnIndex: column,
+          );
+        }
+        return;
+      case TableToolbarAction.toggleHeader:
+        final anchor = _firstVisibleTableCell(tableBlock, range);
+        if (anchor == null) {
+          return;
+        }
+        final nextHeader = !anchor.isHeader;
+        _forEachVisibleTableCell(tableBlock, range, (row, column) {
+          widget.controller.setTableCellHeader(
+            blockIndex: intent.blockIndex,
+            rowIndex: row,
+            columnIndex: column,
+            isHeader: nextHeader,
+          );
+        });
+        return;
+      case TableToolbarAction.setBackgroundColor:
+        _forEachVisibleTableCell(tableBlock, range, (row, column) {
+          widget.controller.setTableCellBackground(
+            blockIndex: intent.blockIndex,
+            rowIndex: row,
+            columnIndex: column,
+            backgroundColor: intent.backgroundColor,
+          );
+        });
+        return;
+      case TableToolbarAction.clearBackgroundColor:
+        _forEachVisibleTableCell(tableBlock, range, (row, column) {
+          widget.controller.setTableCellBackground(
+            blockIndex: intent.blockIndex,
+            rowIndex: row,
+            columnIndex: column,
+            backgroundColor: null,
+          );
+        });
+        return;
+      case TableToolbarAction.alignLeft:
+        _setTableColumnAlignment(intent.blockIndex, range, 'left');
+        return;
+      case TableToolbarAction.alignCenter:
+        _setTableColumnAlignment(intent.blockIndex, range, 'center');
+        return;
+      case TableToolbarAction.alignRight:
+        _setTableColumnAlignment(intent.blockIndex, range, 'right');
+        return;
+      case TableToolbarAction.clearAlignment:
+        _setTableColumnAlignment(intent.blockIndex, range, null);
+        return;
+      case TableToolbarAction.mergeCells:
+        if (!range.isSingleCell) {
+          widget.controller.mergeTableCells(
+            blockIndex: intent.blockIndex,
+            startRow: range.startRow,
+            startColumn: range.startColumn,
+            endRow: range.endRow,
+            endColumn: range.endColumn,
+          );
+        }
+        return;
+      case TableToolbarAction.splitCell:
+        widget.controller.splitTableCell(
+          blockIndex: intent.blockIndex,
+          rowIndex: range.startRow,
+          columnIndex: range.startColumn,
+        );
+        return;
+      case TableToolbarAction.resetColumnWidth:
+        for (var column = range.startColumn;
+            column <= range.endColumn;
+            column++) {
+          widget.controller.setTableColumnWidth(
+            blockIndex: intent.blockIndex,
+            columnIndex: column,
+            width: null,
+          );
+        }
+        return;
+    }
+  }
+
+  void _handleTableColumnResize({
+    required int blockIndex,
+    required int columnIndex,
+    required double width,
+  }) {
+    final tableBlock = _tableBlockAt(blockIndex);
+    if (tableBlock == null ||
+        columnIndex < 0 ||
+        columnIndex >= tableBlock.table.columnCount) {
+      return;
+    }
+    widget.controller.setTableColumnWidth(
+      blockIndex: blockIndex,
+      columnIndex: columnIndex,
+      width:
+          width.clamp(_kMinTableColumnWidth, _kMaxTableColumnWidth).toDouble(),
+    );
+  }
+
+  TableBlockNode? _tableBlockAt(int blockIndex) {
+    final blocks = widget.controller.document.blocks;
+    if (blockIndex < 0 || blockIndex >= blocks.length) {
+      return null;
+    }
+    final block = blocks[blockIndex];
+    return block is TableBlockNode ? block : null;
+  }
+
+  TableCellRange? _currentTableRange(
+    TableBlockNode tableBlock,
+    TableToolbarActionIntent intent,
+  ) {
+    final range = widget.controller.selection?.tableCellRange;
+    if (range == null ||
+        range.blockIndex != intent.blockIndex ||
+        range.tableBlockId != tableBlock.id) {
+      return null;
+    }
+    return range;
+  }
+
+  void _forEachVisibleTableCell(
+    TableBlockNode tableBlock,
+    TableCellRange range,
+    void Function(int row, int column) visit,
+  ) {
+    for (var row = range.startRow; row <= range.endRow; row++) {
+      for (var column = range.startColumn;
+          column <= range.endColumn;
+          column++) {
+        final cell = tableBlock.table.cellAt(row, column);
+        if (cell == null || cell.covered) {
+          continue;
+        }
+        visit(row, column);
+      }
+    }
+  }
+
+  TableCellNode? _firstVisibleTableCell(
+    TableBlockNode tableBlock,
+    TableCellRange range,
+  ) {
+    for (var row = range.startRow; row <= range.endRow; row++) {
+      for (var column = range.startColumn;
+          column <= range.endColumn;
+          column++) {
+        final cell = tableBlock.table.cellAt(row, column);
+        if (cell != null && !cell.covered) {
+          return cell;
+        }
+      }
+    }
+    return null;
+  }
+
+  void _setTableColumnAlignment(
+    int blockIndex,
+    TableCellRange range,
+    String? alignment,
+  ) {
+    for (var column = range.startColumn; column <= range.endColumn; column++) {
+      widget.controller.setTableColumnAlignment(
+        blockIndex: blockIndex,
+        columnIndex: column,
+        alignment: alignment,
+      );
+    }
+  }
+
   /// Block ids that must stay mounted under virtualisation: the caret block
   /// (collapsed selection) and the selection endpoints. Keeping these alive
   /// guarantees the caret/selection highlight always paint and the geometry
@@ -551,107 +1032,216 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
   }
 
   KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
-    // Navigation keys must respond to auto-repeat (holding the key down), which
-    // arrives as KeyRepeatEvent rather than KeyDownEvent. Only typed character
-    // input ignores repeats — that path goes through the IME deltas. Treat
-    // down + repeat identically for everything below.
-    if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
-      return KeyEventResult.ignored;
+    if (_handleSlashMenuKeyEvent(event)) {
+      return KeyEventResult.handled;
+    }
+    if (_handleCodeBlockTabKeyEvent(event)) {
+      return KeyEventResult.handled;
     }
     final keyboard = HardwareKeyboard.instance;
-    final shift = keyboard.isShiftPressed;
-    final primary = keyboard.isControlPressed || keyboard.isMetaPressed;
-
-    // Ctrl/Cmd + ... shortcuts (Copy is allowed in read-only mode).
-    if (primary) {
-      final result = _handleShortcut(event.logicalKey, shift);
-      if (result != null) {
-        return result;
-      }
-      // Unrecognised Ctrl/Cmd combo: let it propagate (e.g. browser Ctrl+S,
-      // dev tools) rather than swallowing everything.
+    final resolution = _shortcutManager.resolve(
+      event,
+      shiftPressed: keyboard.isShiftPressed,
+      primaryPressed: keyboard.isControlPressed || keyboard.isMetaPressed,
+      readOnly: widget.readOnly,
+      imeEnabled: widget.enableIme,
+      inputClientAttached: _inputClient.isAttached,
+      findEnabled:
+          widget.findController != null || widget.onFindRequested != null,
+      replaceEnabled:
+          widget.findController != null || widget.onReplaceRequested != null,
+    );
+    if (resolution.disposition == EditorShortcutDisposition.handled) {
+      _performShortcut(resolution);
+      return KeyEventResult.handled;
+    }
+    if (resolution.disposition == EditorShortcutDisposition.ignored) {
       return KeyEventResult.ignored;
     }
+    // Unrecognised Ctrl/Cmd combo: let it propagate (e.g. browser Ctrl+S,
+    // dev tools) rather than swallowing everything.
+    return KeyEventResult.ignored;
+  }
 
-    if (widget.readOnly) {
-      // In read-only mode only copy works; everything else is ignored.
-      return KeyEventResult.ignored;
+  bool _handleCodeBlockTabKeyEvent(KeyEvent event) {
+    if (widget.readOnly ||
+        (event is! KeyDownEvent && event is! KeyRepeatEvent) ||
+        event.logicalKey != LogicalKeyboardKey.tab) {
+      return false;
     }
+    final selection = widget.controller.selection;
+    if (selection == null ||
+        selection.start.blockIndex != selection.end.blockIndex ||
+        selection.start.path != selection.end.path ||
+        !selection.start.path.isBlockCode) {
+      return false;
+    }
+    if (selection.start.blockIndex < 0 ||
+        selection.start.blockIndex >=
+            widget.controller.document.blocks.length) {
+      return false;
+    }
+    final block = widget.controller.document.blocks[selection.start.blockIndex];
+    if (block is! CodeBlockNode) {
+      return false;
+    }
+    widget.controller.indentCodeBlock(
+      outdent: HardwareKeyboard.instance.isShiftPressed,
+    );
+    return true;
+  }
 
+  bool _handleSlashMenuKeyEvent(KeyEvent event) {
+    final slashMenu = widget.slashMenuController;
+    if (slashMenu == null || !slashMenu.isOpen) {
+      return false;
+    }
+    if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
+      return false;
+    }
     final key = event.logicalKey;
-    if (key == LogicalKeyboardKey.tab) {
-      widget.controller.moveTableCell(forward: !shift);
-      return KeyEventResult.handled;
+    if (key == LogicalKeyboardKey.arrowDown) {
+      slashMenu.moveHighlight(1);
+      return true;
     }
-    if (key == LogicalKeyboardKey.arrowLeft) {
-      _verticalPreferX = null;
-      widget.controller.moveCaretBackward(expandSelection: shift);
-      return KeyEventResult.handled;
-    }
-    if (key == LogicalKeyboardKey.arrowRight) {
-      _verticalPreferX = null;
-      widget.controller.moveCaretForward(expandSelection: shift);
-      return KeyEventResult.handled;
-    }
-    if (key == LogicalKeyboardKey.arrowUp ||
-        key == LogicalKeyboardKey.arrowDown) {
-      _handleVerticalKey(key == LogicalKeyboardKey.arrowDown, shift);
-      return KeyEventResult.handled;
-    }
-    if (key == LogicalKeyboardKey.home) {
-      widget.controller.moveCaretToBlockBoundary(
-        forward: false,
-        expandSelection: shift,
-      );
-      return KeyEventResult.handled;
-    }
-    if (key == LogicalKeyboardKey.end) {
-      widget.controller.moveCaretToBlockBoundary(
-        forward: true,
-        expandSelection: shift,
-      );
-      return KeyEventResult.handled;
-    }
-    if (key == LogicalKeyboardKey.pageUp) {
-      _handlePageKey(forward: false, expandSelection: shift);
-      return KeyEventResult.handled;
-    }
-    if (key == LogicalKeyboardKey.pageDown) {
-      _handlePageKey(forward: true, expandSelection: shift);
-      return KeyEventResult.handled;
-    }
-    if (key == LogicalKeyboardKey.backspace) {
-      if (!_deleteActiveSelectionIfAny()) {
-        widget.controller.deleteBackward();
-      }
-      return KeyEventResult.handled;
-    }
-    if (key == LogicalKeyboardKey.delete) {
-      if (!_deleteActiveSelectionIfAny()) {
-        widget.controller.deleteForward();
-      }
-      return KeyEventResult.handled;
+    if (key == LogicalKeyboardKey.arrowUp) {
+      slashMenu.moveHighlight(-1);
+      return true;
     }
     if (key == LogicalKeyboardKey.enter ||
         key == LogicalKeyboardKey.numpadEnter) {
-      widget.controller.enter(newBlockId: _nextBlockId());
-      return KeyEventResult.handled;
+      slashMenu.activateHighlighted();
+      return true;
     }
-    // Plain character input. When IME is enabled, character entry must arrive
-    // through TextInput/IME deltas. If we fall back to key-event characters on
-    // desktop, pinyin letters are inserted into the document before the IME can
-    // replace them with the committed Chinese text.
-    final character = event.character;
-    if (character == null ||
-        character.isEmpty ||
-        _isControlCharacter(character)) {
-      return KeyEventResult.ignored;
+    if (key == LogicalKeyboardKey.escape) {
+      slashMenu.close();
+      return true;
     }
-    if (widget.enableIme || _inputClient.isAttached) {
-      return KeyEventResult.ignored;
+    return false;
+  }
+
+  void _performShortcut(EditorShortcutResolution resolution) {
+    final controller = widget.controller;
+    switch (resolution.intent) {
+      case EditorShortcutIntent.selectAll:
+        controller.selectAll();
+        return;
+      case EditorShortcutIntent.undo:
+        controller.undo();
+        return;
+      case EditorShortcutIntent.redo:
+        controller.redo();
+        return;
+      case EditorShortcutIntent.copy:
+        _handleCopy();
+        return;
+      case EditorShortcutIntent.cut:
+        _handleCut();
+        return;
+      case EditorShortcutIntent.paste:
+        _handlePaste();
+        return;
+      case EditorShortcutIntent.find:
+        widget.onFindRequested?.call();
+        widget.findController?.next();
+        return;
+      case EditorShortcutIntent.replace:
+        widget.onReplaceRequested?.call();
+        return;
+      case EditorShortcutIntent.moveTableCellBackward:
+        controller.moveTableCell(forward: false);
+        return;
+      case EditorShortcutIntent.moveTableCellForward:
+        controller.moveTableCell(forward: true);
+        return;
+      case EditorShortcutIntent.moveCaretBackward:
+        _verticalPreferX = null;
+        controller.moveCaretBackward(
+          expandSelection: resolution.expandSelection,
+        );
+        return;
+      case EditorShortcutIntent.moveCaretForward:
+        _verticalPreferX = null;
+        controller.moveCaretForward(
+          expandSelection: resolution.expandSelection,
+        );
+        return;
+      case EditorShortcutIntent.moveCaretUp:
+        _handleVerticalKey(false, resolution.expandSelection);
+        return;
+      case EditorShortcutIntent.moveCaretDown:
+        _handleVerticalKey(true, resolution.expandSelection);
+        return;
+      case EditorShortcutIntent.moveCaretToBlockStart:
+        controller.moveCaretToBlockBoundary(
+          forward: false,
+          expandSelection: resolution.expandSelection,
+        );
+        return;
+      case EditorShortcutIntent.moveCaretToBlockEnd:
+        controller.moveCaretToBlockBoundary(
+          forward: true,
+          expandSelection: resolution.expandSelection,
+        );
+        return;
+      case EditorShortcutIntent.moveCaretByWordBackward:
+        controller.moveCaretByWord(
+          forward: false,
+          expandSelection: resolution.expandSelection,
+        );
+        return;
+      case EditorShortcutIntent.moveCaretByWordForward:
+        controller.moveCaretByWord(
+          forward: true,
+          expandSelection: resolution.expandSelection,
+        );
+        return;
+      case EditorShortcutIntent.moveCaretToDocumentStart:
+        controller.moveCaretToDocumentBoundary(
+          forward: false,
+          expandSelection: resolution.expandSelection,
+        );
+        return;
+      case EditorShortcutIntent.moveCaretToDocumentEnd:
+        controller.moveCaretToDocumentBoundary(
+          forward: true,
+          expandSelection: resolution.expandSelection,
+        );
+        return;
+      case EditorShortcutIntent.pageUp:
+        _handlePageKey(
+          forward: false,
+          expandSelection: resolution.expandSelection,
+        );
+        return;
+      case EditorShortcutIntent.pageDown:
+        _handlePageKey(
+          forward: true,
+          expandSelection: resolution.expandSelection,
+        );
+        return;
+      case EditorShortcutIntent.deleteBackward:
+        if (!_deleteActiveSelectionIfAny()) {
+          controller.deleteBackward();
+        }
+        return;
+      case EditorShortcutIntent.deleteForward:
+        if (!_deleteActiveSelectionIfAny()) {
+          controller.deleteForward();
+        }
+        return;
+      case EditorShortcutIntent.enter:
+        controller.enter(newBlockId: _nextBlockId());
+        return;
+      case EditorShortcutIntent.insertCharacter:
+        final character = resolution.character;
+        if (character != null) {
+          controller.insertText(character);
+        }
+        return;
+      case null:
+        return;
     }
-    widget.controller.insertText(character);
-    return KeyEventResult.handled;
   }
 
   /// Handles PageUp/PageDown: scrolls the content by exactly one viewport (a
@@ -1285,84 +1875,12 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     );
   }
 
-  /// Handles Ctrl/Cmd + key shortcuts. Returns `null` when the combo is not a
-  /// recognised shortcut (the caller decides whether to swallow or ignore).
-  KeyEventResult? _handleShortcut(LogicalKeyboardKey key, bool shift) {
-    final controller = widget.controller;
-    if (key == LogicalKeyboardKey.keyA) {
-      // Select-all is allowed in read-only mode (read-only supports
-      // selection/copy workflows).
-      controller.selectAll();
-      return KeyEventResult.handled;
-    }
-    if (key == LogicalKeyboardKey.keyZ) {
-      if (widget.readOnly) {
-        return KeyEventResult.ignored;
-      }
-      if (shift) {
-        controller.redo();
-      } else {
-        controller.undo();
-      }
-      return KeyEventResult.handled;
-    }
-    if (key == LogicalKeyboardKey.keyY) {
-      if (widget.readOnly) {
-        return KeyEventResult.ignored;
-      }
-      controller.redo();
-      return KeyEventResult.handled;
-    }
-    if (key == LogicalKeyboardKey.arrowLeft) {
-      controller.moveCaretByWord(forward: false, expandSelection: shift);
-      return KeyEventResult.handled;
-    }
-    if (key == LogicalKeyboardKey.arrowRight) {
-      controller.moveCaretByWord(forward: true, expandSelection: shift);
-      return KeyEventResult.handled;
-    }
-    if (key == LogicalKeyboardKey.home) {
-      controller.moveCaretToDocumentBoundary(
-        forward: false,
-        expandSelection: shift,
-      );
-      return KeyEventResult.handled;
-    }
-    if (key == LogicalKeyboardKey.end) {
-      controller.moveCaretToDocumentBoundary(
-        forward: true,
-        expandSelection: shift,
-      );
-      return KeyEventResult.handled;
-    }
-    if (key == LogicalKeyboardKey.keyC) {
-      // Copy works in read-only mode too.
-      _handleCopy();
-      return KeyEventResult.handled;
-    }
-    if (key == LogicalKeyboardKey.keyX) {
-      if (widget.readOnly) {
-        return KeyEventResult.ignored;
-      }
-      _handleCut();
-      return KeyEventResult.handled;
-    }
-    if (key == LogicalKeyboardKey.keyV) {
-      if (widget.readOnly) {
-        return KeyEventResult.ignored;
-      }
-      _handlePaste();
-      return KeyEventResult.handled;
-    }
-    return null;
-  }
-
   Future<void> _handleCopy() async {
     final payload = widget.controller.copySelection();
     if (payload == null) {
       return;
     }
-    await Clipboard.setData(ClipboardData(text: payload));
+    await _copyTextToClipboard(payload);
   }
 
   Future<void> _handleCut() async {
@@ -1370,7 +1888,11 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     if (payload == null) {
       return;
     }
-    await Clipboard.setData(ClipboardData(text: payload));
+    await _copyTextToClipboard(payload);
+  }
+
+  Future<void> _copyTextToClipboard(String text) async {
+    await Clipboard.setData(ClipboardData(text: text));
   }
 
   Future<void> _handlePaste() async {
@@ -1812,6 +2334,13 @@ class _KeepAliveBlock extends StatefulWidget {
     this.showDebugOverlay = false,
     this.mediaResolver,
     this.inlineEmbedRenderer,
+    this.onCodeLanguageChanged,
+    this.onCodeCopied,
+    this.onCalloutVariantChanged,
+    this.onTableToolbarAction,
+    this.onTableColumnResize,
+    this.findMatches = const <FindReplaceMatch>[],
+    this.currentFindMatch,
   });
 
   final BlockNode block;
@@ -1827,6 +2356,13 @@ class _KeepAliveBlock extends StatefulWidget {
   final bool showDebugOverlay;
   final MediaResolver? mediaResolver;
   final InlineEmbedRenderer? inlineEmbedRenderer;
+  final ValueChanged<String>? onCodeLanguageChanged;
+  final Future<void> Function(String code)? onCodeCopied;
+  final ValueChanged<String>? onCalloutVariantChanged;
+  final TableToolbarActionHandler? onTableToolbarAction;
+  final TableColumnResizeHandler? onTableColumnResize;
+  final List<FindReplaceMatch> findMatches;
+  final FindReplaceMatch? currentFindMatch;
 
   @override
   State<_KeepAliveBlock> createState() => _KeepAliveBlockState();
@@ -1867,6 +2403,13 @@ class _KeepAliveBlockState extends State<_KeepAliveBlock>
         oldWidget.showDebugOverlay != widget.showDebugOverlay ||
         oldWidget.textStyle != widget.textStyle ||
         oldWidget.inlineEmbedRenderer != widget.inlineEmbedRenderer ||
+        oldWidget.onCodeLanguageChanged != widget.onCodeLanguageChanged ||
+        oldWidget.onCodeCopied != widget.onCodeCopied ||
+        oldWidget.onCalloutVariantChanged != widget.onCalloutVariantChanged ||
+        oldWidget.onTableToolbarAction != widget.onTableToolbarAction ||
+        oldWidget.onTableColumnResize != widget.onTableColumnResize ||
+        oldWidget.findMatches != widget.findMatches ||
+        oldWidget.currentFindMatch != widget.currentFindMatch ||
         _compositionTouchesBlock(oldWidget) !=
             _compositionTouchesBlock(widget) ||
         oldWidget.blockRenderers != widget.blockRenderers) {
@@ -1893,6 +2436,13 @@ class _KeepAliveBlockState extends State<_KeepAliveBlock>
       showDebugOverlay: widget.showDebugOverlay,
       mediaResolver: widget.mediaResolver,
       inlineEmbedRenderer: widget.inlineEmbedRenderer,
+      onCodeLanguageChanged: widget.onCodeLanguageChanged,
+      onCodeCopied: widget.onCodeCopied,
+      onCalloutVariantChanged: widget.onCalloutVariantChanged,
+      onTableToolbarAction: widget.onTableToolbarAction,
+      onTableColumnResize: widget.onTableColumnResize,
+      findMatches: widget.findMatches,
+      currentFindMatch: widget.currentFindMatch,
     );
     _cachedChild = child;
     return child;
@@ -1942,6 +2492,13 @@ class _BlockRenderer extends StatelessWidget {
     this.showDebugOverlay = false,
     this.mediaResolver,
     this.inlineEmbedRenderer,
+    this.onCodeLanguageChanged,
+    this.onCodeCopied,
+    this.onCalloutVariantChanged,
+    this.onTableToolbarAction,
+    this.onTableColumnResize,
+    this.findMatches = const <FindReplaceMatch>[],
+    this.currentFindMatch,
   });
 
   final BlockNode block;
@@ -1955,6 +2512,13 @@ class _BlockRenderer extends StatelessWidget {
   final bool showDebugOverlay;
   final MediaResolver? mediaResolver;
   final InlineEmbedRenderer? inlineEmbedRenderer;
+  final ValueChanged<String>? onCodeLanguageChanged;
+  final Future<void> Function(String code)? onCodeCopied;
+  final ValueChanged<String>? onCalloutVariantChanged;
+  final TableToolbarActionHandler? onTableToolbarAction;
+  final TableColumnResizeHandler? onTableColumnResize;
+  final List<FindReplaceMatch> findMatches;
+  final FindReplaceMatch? currentFindMatch;
 
   @override
   Widget build(BuildContext context) {
@@ -1969,9 +2533,17 @@ class _BlockRenderer extends StatelessWidget {
       showDebugOverlay: showDebugOverlay,
       mediaResolver: mediaResolver,
       inlineEmbedRenderer: inlineEmbedRenderer,
+      onCodeLanguageChanged: onCodeLanguageChanged,
+      onCodeCopied: onCodeCopied,
+      onCalloutVariantChanged: onCalloutVariantChanged,
+      onTableToolbarAction: onTableToolbarAction,
+      onTableColumnResize: onTableColumnResize,
+      findMatches: _matchesForBlock(findMatches, blockIndex),
+      currentFindMatch:
+          currentFindMatch?.blockIndex == blockIndex ? currentFindMatch : null,
     );
-    final builder = blockRenderers.resolve(
-      block.type,
+    final builder = blockRenderers.resolveForBlock(
+      block,
       fallback: _defaultBlockFallback,
     );
     return Padding(
@@ -2006,6 +2578,7 @@ extension BlockRendererRegistryDefaults on BlockRendererRegistry {
     register(BlockType.table, _defaultTableBlockRenderer);
     register(BlockType.divider, _defaultDividerBlockRenderer);
     register(BlockType.video, _defaultVideoBlockRenderer);
+    register(BlockType.embed, _defaultBlockEmbedRenderer);
     register(BlockType.callout, _defaultCalloutBlockRenderer);
     register(BlockType.file, _defaultFileBlockRenderer);
   }
@@ -2025,6 +2598,10 @@ Widget _defaultTextBlockRenderer(
     textStyle: rc.textStyle,
     showDebugOverlay: rc.showDebugOverlay,
     inlineEmbedRenderer: rc.inlineEmbedRenderer,
+    onToolbarAction: rc.onTableToolbarAction,
+    onColumnResize: rc.onTableColumnResize,
+    findMatches: rc.findMatches,
+    currentFindMatch: rc.currentFindMatch,
   );
 }
 
@@ -2040,6 +2617,10 @@ Widget _defaultCodeBlockRenderer(
     registry: rc.registry,
     showCaret: rc.showCaret,
     showDebugOverlay: rc.showDebugOverlay,
+    onLanguageChanged: rc.onCodeLanguageChanged,
+    onCodeCopied: rc.onCodeCopied,
+    findMatches: rc.findMatches,
+    currentFindMatch: rc.currentFindMatch,
   );
 }
 
@@ -2049,16 +2630,15 @@ Widget _defaultImageBlockRenderer(
 ) {
   final image = rc.block as ImageBlockNode;
   final resolved = _resolveMedia(context, rc);
-  if (resolved != null) {
-    return _withSelectableObjectBlock(image, rc, resolved);
-  }
+  final media = resolved ??
+      _MediaPlaceholder(
+        label: 'image',
+        value: _assetLabel(image.assetId, image.file),
+      );
   return _withSelectableObjectBlock(
     image,
     rc,
-    _MediaPlaceholder(
-      label: 'image',
-      value: _assetLabel(image.assetId, image.file),
-    ),
+    _ImageBlockContent(block: image, child: media),
   );
 }
 
@@ -2076,6 +2656,10 @@ Widget _defaultTableBlockRenderer(
     textStyle: rc.textStyle,
     showDebugOverlay: rc.showDebugOverlay,
     inlineEmbedRenderer: rc.inlineEmbedRenderer,
+    onToolbarAction: rc.onTableToolbarAction,
+    onColumnResize: rc.onTableColumnResize,
+    findMatches: rc.findMatches,
+    currentFindMatch: rc.currentFindMatch,
   );
 }
 
@@ -2109,6 +2693,17 @@ Widget _defaultVideoBlockRenderer(
   );
 }
 
+Widget _defaultBlockEmbedRenderer(
+  BuildContext context,
+  BlockRenderContext rc,
+) {
+  final embed = rc.block as BlockEmbedNode;
+  return WenzObjectBlockSurface(
+    renderContext: rc,
+    child: _BlockEmbedContent(block: embed),
+  );
+}
+
 Widget _defaultCalloutBlockRenderer(
   BuildContext context,
   BlockRenderContext rc,
@@ -2120,6 +2715,7 @@ Widget _defaultCalloutBlockRenderer(
       block: block,
       textStyle: rc.textStyle,
       inlineEmbedRenderer: rc.inlineEmbedRenderer,
+      onVariantChanged: rc.onCalloutVariantChanged,
     ),
   );
 }
@@ -2136,10 +2732,7 @@ Widget _defaultFileBlockRenderer(
   return _withSelectableObjectBlock(
     file,
     rc,
-    _MediaPlaceholder(
-      label: 'file',
-      value: file.name.isNotEmpty ? file.name : file.assetId,
-    ),
+    _FileBlockContent(block: file),
   );
 }
 
@@ -2205,6 +2798,10 @@ class _TextBlockRenderer extends StatelessWidget {
     this.textStyle,
     this.showDebugOverlay = false,
     this.inlineEmbedRenderer,
+    this.onToolbarAction,
+    this.onColumnResize,
+    this.findMatches = const <FindReplaceMatch>[],
+    this.currentFindMatch,
   });
 
   final TextBlockNode block;
@@ -2216,6 +2813,10 @@ class _TextBlockRenderer extends StatelessWidget {
   final TextStyle? textStyle;
   final bool showDebugOverlay;
   final InlineEmbedRenderer? inlineEmbedRenderer;
+  final TableToolbarActionHandler? onToolbarAction;
+  final TableColumnResizeHandler? onColumnResize;
+  final List<FindReplaceMatch> findMatches;
+  final FindReplaceMatch? currentFindMatch;
 
   @override
   Widget build(BuildContext context) {
@@ -2260,6 +2861,13 @@ class _TextBlockRenderer extends StatelessWidget {
       showCaret: showCaret,
       registry: registry,
       showDebugOverlay: showDebugOverlay,
+      findRanges: _findRangesForPath(
+        findMatches,
+        currentFindMatch,
+        blockIndex,
+        path,
+        textLength,
+      ),
     );
     final prefix = _prefixFor(block);
     if (prefix == null) {
@@ -2293,6 +2901,10 @@ class _CodeBlockRenderer extends StatelessWidget {
     required this.registry,
     required this.showCaret,
     this.showDebugOverlay = false,
+    this.onLanguageChanged,
+    this.onCodeCopied,
+    this.findMatches = const <FindReplaceMatch>[],
+    this.currentFindMatch,
   });
 
   final CodeBlockNode block;
@@ -2302,6 +2914,10 @@ class _CodeBlockRenderer extends StatelessWidget {
   final BlockGeometryRegistry registry;
   final bool showCaret;
   final bool showDebugOverlay;
+  final ValueChanged<String>? onLanguageChanged;
+  final Future<void> Function(String code)? onCodeCopied;
+  final List<FindReplaceMatch> findMatches;
+  final FindReplaceMatch? currentFindMatch;
 
   @override
   Widget build(BuildContext context) {
@@ -2332,24 +2948,115 @@ class _CodeBlockRenderer extends StatelessWidget {
           color: theme.colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(6),
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: _TextSelectionSurface(
-            blockId: block.id,
-            blockIndex: blockIndex,
-            path: path,
-            textLength: block.code.length,
-            textSpan: _codeSpan(block.code, codeStyle, compositionRange),
-            textAlign: TextAlign.start,
-            minHeight: (codeStyle.fontSize ?? 13) * _kBlockMinHeightFactor,
-            selection: selection,
-            showCaret: showCaret,
-            registry: registry,
-            showDebugOverlay: showDebugOverlay,
-          ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            _CodeBlockToolbar(
+              language: block.language,
+              onLanguageChanged: onLanguageChanged,
+              onCopyPressed: onCodeCopied == null
+                  ? null
+                  : () {
+                      unawaited(onCodeCopied!(block.code));
+                    },
+            ),
+            Divider(height: 1, color: theme.colorScheme.outlineVariant),
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: _TextSelectionSurface(
+                blockId: block.id,
+                blockIndex: blockIndex,
+                path: path,
+                textLength: block.code.length,
+                textSpan: _codeSpan(block.code, codeStyle, compositionRange),
+                textAlign: TextAlign.start,
+                minHeight: (codeStyle.fontSize ?? 13) * _kBlockMinHeightFactor,
+                selection: selection,
+                showCaret: showCaret,
+                registry: registry,
+                showDebugOverlay: showDebugOverlay,
+                findRanges: _findRangesForPath(
+                  findMatches,
+                  currentFindMatch,
+                  blockIndex,
+                  path,
+                  block.code.length,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
       selected: selected,
+    );
+  }
+}
+
+class _CodeBlockToolbar extends StatelessWidget {
+  const _CodeBlockToolbar({
+    required this.language,
+    this.onLanguageChanged,
+    this.onCopyPressed,
+  });
+
+  final String language;
+  final ValueChanged<String>? onLanguageChanged;
+  final VoidCallback? onCopyPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final labelStyle = theme.textTheme.labelSmall?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant,
+          fontWeight: FontWeight.w600,
+        ) ??
+        TextStyle(
+          color: theme.colorScheme.onSurfaceVariant,
+          fontWeight: FontWeight.w600,
+        );
+    final languages = _codeLanguageOptions(language);
+    final value = languages.contains(language) ? language : '';
+
+    return Padding(
+      padding: const EdgeInsetsDirectional.fromSTEB(10, 4, 6, 4),
+      child: Row(
+        children: <Widget>[
+          Icon(Icons.code, size: 16, color: theme.colorScheme.onSurfaceVariant),
+          const SizedBox(width: 6),
+          DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: value,
+              isDense: true,
+              borderRadius: BorderRadius.circular(6),
+              style: labelStyle,
+              iconSize: 18,
+              onChanged: onLanguageChanged == null
+                  ? null
+                  : (value) {
+                      if (value != null) {
+                        onLanguageChanged!(value);
+                      }
+                    },
+              items: <DropdownMenuItem<String>>[
+                for (final option in languages)
+                  DropdownMenuItem<String>(
+                    value: option,
+                    child: Text(_codeLanguageLabel(option)),
+                  ),
+              ],
+            ),
+          ),
+          const Spacer(),
+          IconButton(
+            tooltip: 'Copy code',
+            visualDensity: VisualDensity.compact,
+            iconSize: 18,
+            onPressed: onCopyPressed,
+            icon: const Icon(Icons.copy),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -2365,6 +3072,10 @@ class _TableBlockRenderer extends StatelessWidget {
     this.textStyle,
     this.showDebugOverlay = false,
     this.inlineEmbedRenderer,
+    this.onToolbarAction,
+    this.onColumnResize,
+    this.findMatches = const <FindReplaceMatch>[],
+    this.currentFindMatch,
   });
 
   final TableBlockNode block;
@@ -2376,6 +3087,10 @@ class _TableBlockRenderer extends StatelessWidget {
   final TextStyle? textStyle;
   final bool showDebugOverlay;
   final InlineEmbedRenderer? inlineEmbedRenderer;
+  final TableToolbarActionHandler? onToolbarAction;
+  final TableColumnResizeHandler? onColumnResize;
+  final List<FindReplaceMatch> findMatches;
+  final FindReplaceMatch? currentFindMatch;
 
   @override
   Widget build(BuildContext context) {
@@ -2396,6 +3111,12 @@ class _TableBlockRenderer extends StatelessWidget {
             textStyle: effectiveStyle,
             textDirection: Directionality.of(context),
           );
+          final activeRange =
+              _activeTableRange(selection, block.id, blockIndex);
+          final resizeTop = activeRange != null && onToolbarAction != null
+              ? _kTableResizeHandleTopInset
+              : 0.0;
+          final resizeHeight = metrics.height - resizeTop;
           return SizedBox(
             width: metrics.width,
             height: metrics.height,
@@ -2435,13 +3156,318 @@ class _TableBlockRenderer extends StatelessWidget {
                         ),
                         showDebugOverlay: showDebugOverlay,
                         inlineEmbedRenderer: inlineEmbedRenderer,
+                        findMatches: findMatches,
+                        currentFindMatch: currentFindMatch,
                       ),
+                    ),
+                  ),
+                if (activeRange != null &&
+                    onColumnResize != null &&
+                    resizeHeight > 0)
+                  for (var column = 0;
+                      column < metrics.columnWidths.length;
+                      column++)
+                    Positioned(
+                      left: metrics.columnLefts[column] +
+                          metrics.columnWidths[column] -
+                          (_kTableResizeHandleWidth / 2),
+                      top: resizeTop,
+                      width: _kTableResizeHandleWidth,
+                      height: resizeHeight,
+                      child: _TableColumnResizeHandle(
+                        key: ValueKey<String>(
+                          'table-resize-${block.id}-$column',
+                        ),
+                        columnIndex: column,
+                        width: metrics.columnWidths[column],
+                        onResize: (width) {
+                          onColumnResize!(
+                            blockIndex: blockIndex,
+                            columnIndex: column,
+                            width: width,
+                          );
+                        },
+                      ),
+                    ),
+                if (activeRange != null && onToolbarAction != null)
+                  PositionedDirectional(
+                    top: 4,
+                    start: 4,
+                    end: 4,
+                    child: _TableFloatingToolbar(
+                      block: block,
+                      blockIndex: blockIndex,
+                      range: activeRange,
+                      onAction: onToolbarAction!,
                     ),
                   ),
               ],
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+TableCellRange? _activeTableRange(
+  DocumentSelection? selection,
+  String tableBlockId,
+  int blockIndex,
+) {
+  final range = selection?.tableCellRange;
+  if (range == null ||
+      range.tableBlockId != tableBlockId ||
+      range.blockIndex != blockIndex) {
+    return null;
+  }
+  return range;
+}
+
+class _TableFloatingToolbar extends StatelessWidget {
+  const _TableFloatingToolbar({
+    required this.block,
+    required this.blockIndex,
+    required this.range,
+    required this.onAction,
+  });
+
+  final TableBlockNode block;
+  final int blockIndex;
+  final TableCellRange range;
+  final TableToolbarActionHandler onAction;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cell = block.table.cellAt(range.startRow, range.startColumn);
+    final canDeleteRow = block.table.rowCount > 1;
+    final canDeleteColumn = block.table.columnCount > 1;
+    final canMerge = !range.isSingleCell;
+    final canSplit = cell != null &&
+        !cell.covered &&
+        (cell.rowSpan > 1 || cell.columnSpan > 1);
+    return Align(
+      alignment: AlignmentDirectional.topStart,
+      child: Material(
+        elevation: 3,
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(8),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            border: Border.all(color: theme.dividerColor.withAlpha(160)),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(4),
+            child: Wrap(
+              spacing: 2,
+              runSpacing: 2,
+              children: <Widget>[
+                _button(
+                  icon: Icons.keyboard_arrow_up,
+                  tooltip: 'Insert table row above',
+                  action: TableToolbarAction.insertRowAbove,
+                ),
+                _button(
+                  icon: Icons.keyboard_arrow_down,
+                  tooltip: 'Insert table row below',
+                  action: TableToolbarAction.insertRowBelow,
+                ),
+                _button(
+                  icon: Icons.delete_outline,
+                  tooltip: 'Delete table row',
+                  action: TableToolbarAction.deleteRow,
+                  enabled: canDeleteRow,
+                ),
+                _divider(theme),
+                _button(
+                  icon: Icons.keyboard_arrow_left,
+                  tooltip: 'Insert table column before',
+                  action: TableToolbarAction.insertColumnBefore,
+                ),
+                _button(
+                  icon: Icons.keyboard_arrow_right,
+                  tooltip: 'Insert table column after',
+                  action: TableToolbarAction.insertColumnAfter,
+                ),
+                _button(
+                  icon: Icons.delete_forever_outlined,
+                  tooltip: 'Delete table column',
+                  action: TableToolbarAction.deleteColumn,
+                  enabled: canDeleteColumn,
+                ),
+                _divider(theme),
+                _button(
+                  icon: Icons.title,
+                  tooltip: 'Toggle table header cell',
+                  action: TableToolbarAction.toggleHeader,
+                ),
+                _button(
+                  icon: Icons.format_color_fill,
+                  tooltip: 'Set table cell background',
+                  action: TableToolbarAction.setBackgroundColor,
+                  backgroundColor: _kTableToolbarBackgroundColor,
+                ),
+                _button(
+                  icon: Icons.format_color_reset,
+                  tooltip: 'Clear table cell background',
+                  action: TableToolbarAction.clearBackgroundColor,
+                ),
+                _divider(theme),
+                _button(
+                  icon: Icons.format_align_left,
+                  tooltip: 'Align table column left',
+                  action: TableToolbarAction.alignLeft,
+                ),
+                _button(
+                  icon: Icons.format_align_center,
+                  tooltip: 'Align table column center',
+                  action: TableToolbarAction.alignCenter,
+                ),
+                _button(
+                  icon: Icons.format_align_right,
+                  tooltip: 'Align table column right',
+                  action: TableToolbarAction.alignRight,
+                ),
+                _button(
+                  icon: Icons.format_align_justify,
+                  tooltip: 'Clear table column alignment',
+                  action: TableToolbarAction.clearAlignment,
+                ),
+                _divider(theme),
+                _button(
+                  icon: Icons.call_merge,
+                  tooltip: 'Merge selected table cells',
+                  action: TableToolbarAction.mergeCells,
+                  enabled: canMerge,
+                ),
+                _button(
+                  icon: Icons.call_split,
+                  tooltip: 'Split table cell',
+                  action: TableToolbarAction.splitCell,
+                  enabled: canSplit,
+                ),
+                _button(
+                  icon: Icons.swap_horiz,
+                  tooltip: 'Reset table column width',
+                  action: TableToolbarAction.resetColumnWidth,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _button({
+    required IconData icon,
+    required String tooltip,
+    required TableToolbarAction action,
+    bool enabled = true,
+    int? backgroundColor,
+  }) {
+    return IconButton(
+      icon: Icon(icon),
+      iconSize: 18,
+      tooltip: tooltip,
+      padding: EdgeInsets.zero,
+      constraints: const BoxConstraints.tightFor(width: 32, height: 32),
+      onPressed: enabled
+          ? () {
+              onAction(
+                TableToolbarActionIntent(
+                  action: action,
+                  blockIndex: blockIndex,
+                  rowIndex: range.startRow,
+                  columnIndex: range.startColumn,
+                  endRowIndex: range.endRow,
+                  endColumnIndex: range.endColumn,
+                  backgroundColor: backgroundColor,
+                ),
+              );
+            }
+          : null,
+    );
+  }
+
+  Widget _divider(ThemeData theme) {
+    return SizedBox(
+      height: 32,
+      child: VerticalDivider(
+        width: 6,
+        thickness: 1,
+        color: theme.dividerColor.withAlpha(160),
+      ),
+    );
+  }
+}
+
+class _TableColumnResizeHandle extends StatefulWidget {
+  const _TableColumnResizeHandle({
+    super.key,
+    required this.columnIndex,
+    required this.width,
+    required this.onResize,
+  });
+
+  final int columnIndex;
+  final double width;
+  final ValueChanged<double> onResize;
+
+  @override
+  State<_TableColumnResizeHandle> createState() =>
+      _TableColumnResizeHandleState();
+}
+
+class _TableColumnResizeHandleState extends State<_TableColumnResizeHandle> {
+  late double _dragWidth;
+
+  @override
+  void initState() {
+    super.initState();
+    _dragWidth = widget.width;
+  }
+
+  @override
+  void didUpdateWidget(_TableColumnResizeHandle oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.width != widget.width) {
+      _dragWidth = widget.width;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Semantics(
+      button: true,
+      label: 'Resize table column ${widget.columnIndex + 1}',
+      child: MouseRegion(
+        cursor: SystemMouseCursors.resizeLeftRight,
+        child: GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onHorizontalDragStart: (_) {
+            _dragWidth = widget.width;
+          },
+          onHorizontalDragUpdate: (details) {
+            _dragWidth = (_dragWidth + details.delta.dx)
+                .clamp(_kMinTableColumnWidth, _kMaxTableColumnWidth)
+                .toDouble();
+            widget.onResize(_dragWidth);
+          },
+          child: Center(
+            child: SizedBox(
+              width: 2,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary.withAlpha(120),
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -2480,12 +3506,14 @@ String _blockSemanticsLabel(BlockNode block) {
     CodeBlockNode() => 'Code block',
     TableBlockNode() =>
       'Table block, ${block.table.rowCount} rows, ${block.table.columnCount} columns',
-    ImageBlockNode() => 'Image block ${_assetLabel(block.assetId, block.file)}',
+    ImageBlockNode() => 'Image block ${_imageAccessibleLabel(block)}',
     VideoBlockNode() => 'Video block ${_assetLabel(block.assetId, block.file)}',
-    FileBlockNode() =>
-      'File block ${block.name.isNotEmpty ? block.name : block.assetId}',
+    BlockEmbedNode() =>
+      'Embed block ${block.normalizedEmbedType}: ${block.displayText}',
+    FileBlockNode() => 'File block ${_fileAccessibleLabel(block)}',
     DividerBlockNode() => 'Divider block',
-    CalloutBlockNode() => 'Callout block ${block.variant}',
+    CalloutBlockNode() =>
+      'Callout block ${block.normalizedVariant}: ${block.effectiveTitle}',
     BlockNode() => '${block.type.name} block',
   };
 }
@@ -2501,11 +3529,15 @@ class _TableGridMetrics {
   const _TableGridMetrics({
     required this.width,
     required this.height,
+    required this.columnWidths,
+    required this.columnLefts,
     required this.cells,
   });
 
   final double width;
   final double height;
+  final List<double> columnWidths;
+  final List<double> columnLefts;
   final List<_TableGridCell> cells;
 
   static _TableGridMetrics compute({
@@ -2583,6 +3615,8 @@ class _TableGridMetrics {
     return _TableGridMetrics(
       width: _sumTableRange(columnWidths, 0, columnWidths.length),
       height: _sumTableRange(rowHeights, 0, rowHeights.length),
+      columnWidths: columnWidths,
+      columnLefts: lefts,
       cells: cells,
     );
   }
@@ -2775,6 +3809,8 @@ class _TableCellSurface extends StatefulWidget {
     required this.highlightWholeCell,
     required this.showDebugOverlay,
     this.inlineEmbedRenderer,
+    this.findMatches = const <FindReplaceMatch>[],
+    this.currentFindMatch,
   });
 
   final TableBlockNode tableBlock;
@@ -2791,6 +3827,8 @@ class _TableCellSurface extends StatefulWidget {
   final bool highlightWholeCell;
   final bool showDebugOverlay;
   final InlineEmbedRenderer? inlineEmbedRenderer;
+  final List<FindReplaceMatch> findMatches;
+  final FindReplaceMatch? currentFindMatch;
 
   @override
   State<_TableCellSurface> createState() => _TableCellSurfaceState();
@@ -2854,6 +3892,13 @@ class _TableCellSurfaceState extends State<_TableCellSurface> {
       showCaret: widget.showCaret,
       registry: widget.registry,
       showDebugOverlay: widget.showDebugOverlay,
+      findRanges: _findRangesForPath(
+        widget.findMatches,
+        widget.currentFindMatch,
+        blockIndex,
+        path,
+        textLength,
+      ),
       // The cell frame — not the centred text surface — is the hit-test box.
       // The surface resolves the cell→text-local offset itself (it owns the
       // text-surface render box via its own key), stripping the padding and
@@ -3147,6 +4192,7 @@ class _TextSelectionSurface extends StatefulWidget {
     required this.showCaret,
     required this.registry,
     required this.showDebugOverlay,
+    this.findRanges = const <_FindHighlightRange>[],
     this.hitTestKey,
   });
 
@@ -3161,6 +4207,7 @@ class _TextSelectionSurface extends StatefulWidget {
   final bool showCaret;
   final BlockGeometryRegistry registry;
   final bool showDebugOverlay;
+  final List<_FindHighlightRange> findRanges;
 
   /// Optional GlobalKey on a wider hit-test frame (e.g. a table cell's whole
   /// frame) whose local space differs from this surface's text-local space.
@@ -3470,6 +4517,10 @@ class _TextSelectionSurfaceState extends State<_TextSelectionSurface> {
     );
     final theme = Theme.of(context);
     final highlightColor = theme.colorScheme.primary.withAlpha(54);
+    final findHighlightColor = theme.colorScheme.tertiaryContainer.withAlpha(
+      150,
+    );
+    final activeFindHighlightColor = theme.colorScheme.tertiary.withAlpha(120);
     final caretColor = theme.colorScheme.primary;
 
     return LayoutBuilder(
@@ -3506,21 +4557,33 @@ class _TextSelectionSurfaceState extends State<_TextSelectionSurface> {
           opacity: caretOpacity,
         );
         final text = CustomPaint(
-          painter: _SelectionHighlightPainter(
+          painter: _FindHighlightPainter(
             layoutService: _layoutService,
             textSpan: widget.textSpan,
             textAlign: widget.textAlign,
             textDirection: direction,
             maxWidth: maxWidth,
-            range: selectionRange,
-            color: highlightColor,
+            ranges: widget.findRanges,
+            color: findHighlightColor,
+            activeColor: activeFindHighlightColor,
           ),
-          child: ConstrainedBox(
-            constraints: BoxConstraints(minHeight: widget.minHeight),
-            child: RichText(
-              text: widget.textSpan,
+          child: CustomPaint(
+            painter: _SelectionHighlightPainter(
+              layoutService: _layoutService,
+              textSpan: widget.textSpan,
               textAlign: widget.textAlign,
               textDirection: direction,
+              maxWidth: maxWidth,
+              range: selectionRange,
+              color: highlightColor,
+            ),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: widget.minHeight),
+              child: RichText(
+                text: widget.textSpan,
+                textAlign: widget.textAlign,
+                textDirection: direction,
+              ),
             ),
           ),
         );
@@ -3551,6 +4614,12 @@ class _TextSelectionSurfaceState extends State<_TextSelectionSurface> {
               const Positioned.fill(
                 child: IgnorePointer(
                   child: SizedBox(key: _selectionHighlightKey),
+                ),
+              ),
+            if (widget.findRanges.isNotEmpty)
+              const Positioned.fill(
+                child: IgnorePointer(
+                  child: SizedBox(key: _findHighlightKey),
                 ),
               ),
             // Caret lives in its own layer inside a RepaintBoundary so blink
@@ -3628,6 +4697,76 @@ class _LocalSelectionRange {
 
   final int start;
   final int end;
+}
+
+class _FindHighlightRange extends _LocalSelectionRange {
+  const _FindHighlightRange({
+    required super.start,
+    required super.end,
+    required this.active,
+  });
+
+  final bool active;
+}
+
+class _FindHighlightPainter extends CustomPainter {
+  const _FindHighlightPainter({
+    required this.layoutService,
+    required this.textSpan,
+    required this.textAlign,
+    required this.textDirection,
+    required this.maxWidth,
+    required this.ranges,
+    required this.color,
+    required this.activeColor,
+  });
+
+  final TextLayoutService layoutService;
+  final InlineSpan textSpan;
+  final TextAlign textAlign;
+  final TextDirection textDirection;
+  final double maxWidth;
+  final List<_FindHighlightRange> ranges;
+  final Color color;
+  final Color activeColor;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (ranges.isEmpty) {
+      return;
+    }
+    final painter = layoutService.layout(
+      span: textSpan,
+      textAlign: textAlign,
+      textDirection: textDirection,
+      maxWidth: maxWidth,
+    );
+    for (final range in ranges) {
+      if (range.start == range.end) {
+        continue;
+      }
+      final paint = Paint()..color = range.active ? activeColor : color;
+      final boxes = layoutService.selectionBoxes(
+        painter,
+        range.start,
+        range.end,
+      );
+      for (final box in boxes) {
+        canvas.drawRect(box.toRect(), paint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _FindHighlightPainter oldDelegate) {
+    return oldDelegate.textSpan != textSpan ||
+        oldDelegate.textAlign != textAlign ||
+        oldDelegate.textDirection != textDirection ||
+        oldDelegate.maxWidth != maxWidth ||
+        oldDelegate.ranges != ranges ||
+        oldDelegate.color != color ||
+        oldDelegate.activeColor != activeColor;
+  }
 }
 
 class _SelectionHighlightPainter extends CustomPainter {
@@ -3766,44 +4905,317 @@ class _MediaPlaceholder extends StatelessWidget {
   }
 }
 
+class _BlockEmbedContent extends StatelessWidget {
+  const _BlockEmbedContent({required this.block});
+
+  final BlockEmbedNode block;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        border: Border.all(color: theme.dividerColor),
+        borderRadius: BorderRadius.circular(8),
+        color:
+            theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Icon(
+              Icons.extension_outlined,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  Text(
+                    block.normalizedEmbedType,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    block.displayText,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _FileBlockContent extends StatelessWidget {
+  const _FileBlockContent({required this.block});
+
+  final FileBlockNode block;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final metadata = _fileMetadata(block);
+    final error = block.uploadError.trim();
+    final failed = block.uploadStatus == FileUploadStatus.failed;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        border: Border.all(color: theme.dividerColor),
+        borderRadius: BorderRadius.circular(8),
+        color:
+            theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.45),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Icon(
+              failed ? Icons.error_outline : Icons.insert_drive_file_outlined,
+              color: failed
+                  ? theme.colorScheme.error
+                  : theme.colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  Text(
+                    block.displayName.isEmpty
+                        ? 'Untitled file'
+                        : block.displayName,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  if (metadata.isNotEmpty) ...<Widget>[
+                    const SizedBox(height: 4),
+                    Text(
+                      metadata,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                  if (failed && error.isNotEmpty) ...<Widget>[
+                    const SizedBox(height: 4),
+                    Text(
+                      error,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.error,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            if (block.uploadStatus == FileUploadStatus.uploading)
+              const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ImageBlockContent extends StatelessWidget {
+  const _ImageBlockContent({
+    required this.block,
+    required this.child,
+  });
+
+  final ImageBlockNode block;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    Widget media = child;
+    if (block.showWidth != null || block.showHeight != null) {
+      media = SizedBox(
+        width: block.showWidth,
+        height: block.showHeight,
+        child: child,
+      );
+    }
+    if (block.caption.isEmpty) {
+      return media;
+    }
+    final captionStyle = theme.textTheme.bodySmall?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant,
+        ) ??
+        TextStyle(color: theme.colorScheme.onSurfaceVariant);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        media,
+        const SizedBox(height: 6),
+        Text(block.caption, style: captionStyle),
+      ],
+    );
+  }
+}
+
 class _CalloutRenderer extends StatelessWidget {
   const _CalloutRenderer({
     required this.block,
     this.textStyle,
     this.inlineEmbedRenderer,
+    this.onVariantChanged,
   });
 
   final CalloutBlockNode block;
   final TextStyle? textStyle;
   final InlineEmbedRenderer? inlineEmbedRenderer;
+  final ValueChanged<String>? onVariantChanged;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final base = textStyle ?? DefaultTextStyle.of(context).style;
-    final tint = _calloutTint(theme, block.variant);
+    final variant = block.normalizedVariant;
+    final tint = _calloutTint(theme, variant);
+    final foreground = _calloutForeground(theme, variant);
+    final titleStyle = theme.textTheme.titleSmall?.copyWith(
+          color: foreground,
+          fontWeight: FontWeight.w700,
+        ) ??
+        base.copyWith(color: foreground, fontWeight: FontWeight.w700);
     return DecoratedBox(
       decoration: BoxDecoration(
         color: tint,
+        border: Border.all(color: _calloutBorder(theme, variant)),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: RichText(
-          text: TextSpan(
-            style: base,
-            children: block.content
-                .map(
-                  (node) => _inlineSpanFor(
-                    context,
-                    node,
-                    base,
-                    inlineEmbedRenderer,
-                    decorate: false,
+        padding: const EdgeInsetsDirectional.fromSTEB(12, 10, 8, 12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            _CalloutIcon(icon: block.effectiveIcon, color: foreground),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  Row(
+                    children: <Widget>[
+                      Expanded(
+                        child: Text(block.effectiveTitle, style: titleStyle),
+                      ),
+                      _CalloutVariantMenu(
+                        variant: variant,
+                        foreground: foreground,
+                        onChanged: onVariantChanged,
+                      ),
+                    ],
                   ),
-                )
-                .toList(),
-          ),
+                  if (block.content.isNotEmpty) ...<Widget>[
+                    const SizedBox(height: 4),
+                    RichText(
+                      text: TextSpan(
+                        style: base,
+                        children: block.content
+                            .map(
+                              (node) => _inlineSpanFor(
+                                context,
+                                node,
+                                base,
+                                inlineEmbedRenderer,
+                                decorate: false,
+                              ),
+                            )
+                            .toList(),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CalloutIcon extends StatelessWidget {
+  const _CalloutIcon({required this.icon, required this.color});
+
+  final String icon;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 2),
+      child: Text(
+        icon,
+        style: TextStyle(fontSize: 18, color: color),
+      ),
+    );
+  }
+}
+
+class _CalloutVariantMenu extends StatelessWidget {
+  const _CalloutVariantMenu({
+    required this.variant,
+    required this.foreground,
+    this.onChanged,
+  });
+
+  final String variant;
+  final Color foreground;
+  final ValueChanged<String>? onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: 'Callout type',
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: variant,
+          isDense: true,
+          borderRadius: BorderRadius.circular(8),
+          iconSize: 18,
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: foreground,
+                    fontWeight: FontWeight.w600,
+                  ) ??
+              TextStyle(color: foreground, fontWeight: FontWeight.w600),
+          onChanged: onChanged == null
+              ? null
+              : (value) {
+                  if (value != null && value != variant) {
+                    onChanged!(value);
+                  }
+                },
+          items: <DropdownMenuItem<String>>[
+            for (final option in CalloutBlockNode.supportedVariants)
+              DropdownMenuItem<String>(
+                value: option,
+                child: Text(_calloutVariantLabel(option)),
+              ),
+          ],
         ),
       ),
     );
@@ -3812,15 +5224,43 @@ class _CalloutRenderer extends StatelessWidget {
 
 Color _calloutTint(ThemeData theme, String variant) {
   final scheme = theme.colorScheme;
-  switch (variant) {
+  switch (CalloutBlockNode.normalizeVariant(variant)) {
+    case CalloutBlockNode.successVariant:
+      return scheme.tertiaryContainer.withAlpha(90);
     case 'warning':
-      return scheme.errorContainer.withAlpha(80);
-    case 'success':
-      return scheme.primaryContainer.withAlpha(80);
-    case 'info':
+      return Colors.amber
+          .withAlpha(theme.brightness == Brightness.dark ? 64 : 48);
+    case CalloutBlockNode.dangerVariant:
+      return scheme.errorContainer.withAlpha(90);
+    case CalloutBlockNode.infoVariant:
     default:
       return scheme.surfaceContainerHighest;
   }
+}
+
+Color _calloutForeground(ThemeData theme, String variant) {
+  final scheme = theme.colorScheme;
+  switch (CalloutBlockNode.normalizeVariant(variant)) {
+    case CalloutBlockNode.successVariant:
+      return scheme.onTertiaryContainer;
+    case CalloutBlockNode.warningVariant:
+      return theme.brightness == Brightness.dark
+          ? Colors.amber.shade200
+          : Colors.amber.shade900;
+    case CalloutBlockNode.dangerVariant:
+      return scheme.onErrorContainer;
+    case CalloutBlockNode.infoVariant:
+    default:
+      return scheme.onSurfaceVariant;
+  }
+}
+
+Color _calloutBorder(ThemeData theme, String variant) {
+  return _calloutForeground(theme, variant).withAlpha(80);
+}
+
+String _calloutVariantLabel(String variant) {
+  return CalloutBlockNode.defaultTitleFor(variant);
 }
 
 TextStyle _blockTextStyle(
@@ -4021,6 +5461,7 @@ TextStyle _defaultInlineEmbedStyle(
         backgroundColor: scheme.secondaryContainer.withAlpha(90),
         fontFamily: 'monospace',
       ),
+    'emoji' => style,
     _ => style.copyWith(
         color: scheme.onSurfaceVariant,
         fontStyle: FontStyle.italic,
@@ -4045,6 +5486,7 @@ String _embedDisplayText(InlineEmbed embed) {
     'mention' => _mentionDisplayText(embed),
     'image' => '[img]',
     'formula' => _formulaDisplayText(embed),
+    'emoji' => _emojiDisplayText(embed),
     _ => '[${embed.embedType}]',
   };
 }
@@ -4067,6 +5509,16 @@ String _formulaDisplayText(InlineEmbed embed) {
   final raw = embed.data['text'] ?? embed.data['latex'] ?? embed.data['value'];
   final text = raw?.toString() ?? '';
   return text.isEmpty ? '[formula]' : text;
+}
+
+String _emojiDisplayText(InlineEmbed embed) {
+  final raw = embed.data['emoji'] ??
+      embed.data['text'] ??
+      embed.data['value'] ??
+      embed.data['shortName'] ??
+      embed.data['label'];
+  final text = raw?.toString() ?? '';
+  return text.isEmpty ? '[emoji]' : text;
 }
 
 /// Splits a code string into up to three spans, underlining the composition
@@ -4092,6 +5544,37 @@ TextSpan _codeSpan(
       TextSpan(text: code.substring(end), style: codeStyle),
   ];
   return TextSpan(style: codeStyle, children: children);
+}
+
+const List<String> _kDefaultCodeLanguages = <String>[
+  '',
+  'dart',
+  'javascript',
+  'typescript',
+  'python',
+  'java',
+  'kotlin',
+  'swift',
+  'go',
+  'rust',
+  'sql',
+  'json',
+  'yaml',
+  'html',
+  'css',
+  'markdown',
+  'bash',
+];
+
+List<String> _codeLanguageOptions(String current) {
+  if (current.isEmpty || _kDefaultCodeLanguages.contains(current)) {
+    return _kDefaultCodeLanguages;
+  }
+  return <String>[current, ..._kDefaultCodeLanguages];
+}
+
+String _codeLanguageLabel(String language) {
+  return language.isEmpty ? 'Plain text' : language;
 }
 
 /// Maps a [CompositionState] to a local offset range when it targets the given
@@ -4150,6 +5633,40 @@ bool _selectionTouchesPath(
   }
   final position = selection.extent;
   return position.blockId == blockId && position.path == path;
+}
+
+List<FindReplaceMatch> _matchesForBlock(
+  List<FindReplaceMatch> matches,
+  int blockIndex,
+) {
+  if (matches.isEmpty) {
+    return const <FindReplaceMatch>[];
+  }
+  return <FindReplaceMatch>[
+    for (final match in matches)
+      if (match.blockIndex == blockIndex) match,
+  ];
+}
+
+List<_FindHighlightRange> _findRangesForPath(
+  List<FindReplaceMatch> matches,
+  FindReplaceMatch? current,
+  int blockIndex,
+  PositionPath path,
+  int textLength,
+) {
+  if (matches.isEmpty) {
+    return const <_FindHighlightRange>[];
+  }
+  return <_FindHighlightRange>[
+    for (final match in matches)
+      if (match.containsPath(path, blockIndex))
+        _FindHighlightRange(
+          start: match.start.clamp(0, textLength).toInt(),
+          end: match.end.clamp(0, textLength).toInt(),
+          active: match == current,
+        ),
+  ];
 }
 
 int? _debugOffsetForPath(
@@ -4279,12 +5796,70 @@ String _assetLabel(String assetId, String file) {
   return 'unknown';
 }
 
-bool _isControlCharacter(String character) {
-  // Reject C0 control characters (and DEL). Previously only \n \r \t were
-  // filtered, which let other control chars from IME/composition events slip
-  // through and corrupt the document.
-  final codeUnit = character.codeUnitAt(0);
-  return codeUnit < 0x20 || codeUnit == 0x7F;
+String _imageAccessibleLabel(ImageBlockNode image) {
+  if (image.altText.isNotEmpty) {
+    return image.altText;
+  }
+  if (image.caption.isNotEmpty) {
+    return image.caption;
+  }
+  return _assetLabel(image.assetId, image.file);
+}
+
+String _fileAccessibleLabel(FileBlockNode file) {
+  final parts = <String>[
+    file.displayName.isEmpty ? 'untitled file' : file.displayName,
+  ];
+  final metadata = _fileMetadata(file);
+  if (metadata.isNotEmpty) {
+    parts.add(metadata);
+  }
+  if (file.uploadStatus == FileUploadStatus.failed &&
+      file.uploadError.isNotEmpty) {
+    parts.add(file.uploadError);
+  }
+  return parts.join(', ');
+}
+
+String _fileMetadata(FileBlockNode file) {
+  final parts = <String>[];
+  if (file.size > 0) {
+    parts.add(_formatFileSize(file.size));
+  }
+  if (file.mimeType.isNotEmpty) {
+    parts.add(file.mimeType);
+  }
+  if (file.uploadStatus != FileUploadStatus.none) {
+    parts.add(_fileUploadStatusLabel(file.uploadStatus));
+  }
+  return parts.join(' · ');
+}
+
+String _fileUploadStatusLabel(FileUploadStatus status) {
+  return switch (status) {
+    FileUploadStatus.none => '',
+    FileUploadStatus.pending => 'Pending upload',
+    FileUploadStatus.uploading => 'Uploading',
+    FileUploadStatus.uploaded => 'Uploaded',
+    FileUploadStatus.failed => 'Upload failed',
+  };
+}
+
+String _formatFileSize(int bytes) {
+  if (bytes < 1024) {
+    return '$bytes B';
+  }
+  const units = <String>['KB', 'MB', 'GB', 'TB'];
+  var value = bytes.toDouble();
+  var unit = -1;
+  while (value >= 1024 && unit < units.length - 1) {
+    value /= 1024;
+    unit++;
+  }
+  final fixed = value >= 10 || value == value.roundToDouble()
+      ? value.toStringAsFixed(0)
+      : value.toStringAsFixed(1);
+  return '$fixed ${units[unit]}';
 }
 
 /// A lightweight identity for a caret position, used to detect "the caret

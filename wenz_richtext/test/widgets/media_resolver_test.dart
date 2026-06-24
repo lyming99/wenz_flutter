@@ -84,6 +84,69 @@ void main() {
       expect(find.text('[image: hero.png]'), findsOneWidget);
     });
 
+    testWidgets('default file renderer shows metadata and upload failure',
+        (tester) async {
+      final controller = WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            FileBlockNode(
+              id: 'f1',
+              assetId: 'doc-1',
+              name: 'report.pdf',
+              size: 4096,
+              mimeType: 'application/pdf',
+              uploadStatus: FileUploadStatus.failed,
+              uploadError: 'network timeout',
+            ),
+          ],
+        ),
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: WenzRichTextEditor(
+              controller: controller,
+              enableIme: false,
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('report.pdf'), findsOneWidget);
+      expect(
+          find.text('4 KB · application/pdf · Upload failed'), findsOneWidget);
+      expect(find.text('network timeout'), findsOneWidget);
+    });
+
+    testWidgets('default image renderer shows caption', (tester) async {
+      final controller = WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            ImageBlockNode(
+              id: 'img1',
+              assetId: 'hero',
+              file: 'hero.png',
+              caption: 'Hero caption',
+              altText: 'Hero alt',
+            ),
+          ],
+        ),
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: WenzRichTextEditor(
+              controller: controller,
+              enableIme: false,
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('[image: hero.png]'), findsOneWidget);
+      expect(find.text('Hero caption'), findsOneWidget);
+    });
+
     testWidgets('resolver also drives video and file blocks', (tester) async {
       final resolver = _RecordingResolver();
       final controller = WenzRichTextController(
@@ -185,8 +248,8 @@ void main() {
 
     test('controller exposes the injected mediaResolver', () {
       final resolver = _RecordingResolver();
-      final controller =
-          WenzRichTextController(document: const RichTextDocument(), mediaResolver: resolver);
+      final controller = WenzRichTextController(
+          document: const RichTextDocument(), mediaResolver: resolver);
       expect(controller.mediaResolver, same(resolver));
       controller.dispose();
     });

@@ -16,6 +16,13 @@ void main() {
               embedType: 'formula',
               data: <String, Object?>{'text': 'x^2'},
             ),
+            InlineEmbed(
+              embedType: 'emoji',
+              data: <String, Object?>{
+                'emoji': '😀',
+                'shortName': 'grinning',
+              },
+            ),
           ],
         ),
         ImageBlockNode(
@@ -24,6 +31,16 @@ void main() {
           file: 'assets/img-1.png',
           width: 320,
           height: 180,
+          showWidth: 160,
+          showHeight: 90,
+          caption: 'Hero caption',
+          altText: 'Hero alt',
+        ),
+        BlockEmbedNode(
+          id: 'embed',
+          embedType: 'crm-card',
+          data: <String, Object?>{'recordId': '42'},
+          fallbackText: 'Acme account',
         ),
         TableBlockNode(
           id: 'table',
@@ -58,12 +75,17 @@ void main() {
     final decoded = codec.decode(encoded);
 
     expect(decoded.version, 1);
-    expect(decoded.blocks, hasLength(3));
+    expect(decoded.blocks, hasLength(4));
     expect(decoded.blocks.first, isA<TextBlockNode>());
     expect(
       (decoded.blocks.first as TextBlockNode).content.last,
       isA<InlineEmbed>(),
     );
+    final emoji =
+        (decoded.blocks.first as TextBlockNode).content.last as InlineEmbed;
+    expect(emoji.embedType, 'emoji');
+    expect(emoji.data['emoji'], '😀');
+    expect(emoji.data['shortName'], 'grinning');
     expect(decoded.toJson(), document.toJson());
   });
 }

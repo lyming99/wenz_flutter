@@ -202,6 +202,55 @@ void main() {
     expect(session.document.blocks.single, isA<DividerBlockNode>());
   });
 
+  test('set block anchor command writes trimmed anchor and supports undo', () {
+    final session = DocumentSession(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'h1',
+            type: BlockType.heading,
+            attributes: BlockAttributes(level: 1),
+            content: <InlineNode>[TextRun(text: 'Title')],
+          ),
+        ],
+      ),
+    );
+    final executor = CommandExecutor(session);
+
+    executor.execute(
+      const SetBlockAnchorCommand(blockIndex: 0, anchor: ' intro '),
+    );
+
+    var heading = session.document.blocks.single as TextBlockNode;
+    expect(heading.attributes.anchor, 'intro');
+    expect(session.canUndo, isTrue);
+
+    expect(session.undo(), isTrue);
+    heading = session.document.blocks.single as TextBlockNode;
+    expect(heading.attributes.anchor, isNull);
+  });
+
+  test('set block anchor command clears anchor with empty text', () {
+    final session = DocumentSession(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'h1',
+            type: BlockType.heading,
+            attributes: BlockAttributes(level: 1, anchor: 'intro'),
+            content: <InlineNode>[TextRun(text: 'Title')],
+          ),
+        ],
+      ),
+    );
+    final executor = CommandExecutor(session);
+
+    executor.execute(const SetBlockAnchorCommand(blockIndex: 0, anchor: '  '));
+
+    final heading = session.document.blocks.single as TextBlockNode;
+    expect(heading.attributes.anchor, isNull);
+  });
+
   test('enter splits text block at selection', () {
     final session = DocumentSession(
       document: const RichTextDocument(
@@ -222,6 +271,96 @@ void main() {
     expect(session.document.blocks, hasLength(2));
     expect(session.document.plainText, 'Hello\nWorld');
     expect(session.selection?.extent.blockId, 'p2');
+    expect(session.selection?.extent.offset, 0);
+  });
+
+  test('enter continues a list item with the same list metadata', () {
+    final session = DocumentSession(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'li1',
+            type: BlockType.listItem,
+            attributes: BlockAttributes(indent: 2, listType: 'ordered'),
+            content: <InlineNode>[TextRun(text: 'First')],
+          ),
+        ],
+      ),
+      selection: collapsedTextSelection('li1', 0, 5),
+    );
+    final executor = CommandExecutor(session);
+
+    executor.execute(const EnterCommand(newBlockId: 'li2'));
+
+    expect(session.document.blocks, hasLength(2));
+    final first = session.document.blocks[0] as TextBlockNode;
+    final second = session.document.blocks[1] as TextBlockNode;
+    expect(first.type, BlockType.listItem);
+    expect(first.plainText, 'First');
+    expect(second.type, BlockType.listItem);
+    expect(second.attributes.indent, 2);
+    expect(second.attributes.listType, 'ordered');
+    expect(second.plainText, isEmpty);
+    expect(session.selection?.extent.blockId, 'li2');
+  });
+
+  test('enter after a checked task creates an unchecked task item', () {
+    final session = DocumentSession(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'task1',
+            type: BlockType.listItem,
+            attributes: BlockAttributes(listType: 'task', checked: true),
+            content: <InlineNode>[TextRun(text: 'Done')],
+          ),
+        ],
+      ),
+      selection: collapsedTextSelection('task1', 0, 4),
+    );
+    final executor = CommandExecutor(session);
+
+    executor.execute(const EnterCommand(newBlockId: 'task2'));
+
+    final first = session.document.blocks[0] as TextBlockNode;
+    final second = session.document.blocks[1] as TextBlockNode;
+    expect(first.attributes.checked, isTrue);
+    expect(second.type, BlockType.listItem);
+    expect(second.attributes.listType, 'task');
+    expect(second.attributes.checked, isFalse);
+  });
+
+  test('enter on an empty list item exits the list', () {
+    final session = DocumentSession(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'li1',
+            type: BlockType.listItem,
+            attributes: BlockAttributes(
+              indent: 1,
+              listType: 'task',
+              checked: false,
+              anchor: 'todo',
+            ),
+            content: <InlineNode>[],
+          ),
+        ],
+      ),
+      selection: collapsedTextSelection('li1', 0, 0),
+    );
+    final executor = CommandExecutor(session);
+
+    executor.execute(const EnterCommand());
+
+    expect(session.document.blocks, hasLength(1));
+    final block = session.document.blocks.single as TextBlockNode;
+    expect(block.type, BlockType.paragraph);
+    expect(block.attributes.listType, isNull);
+    expect(block.attributes.checked, isNull);
+    expect(block.attributes.indent, 1);
+    expect(block.attributes.anchor, 'todo');
+    expect(session.selection?.extent.blockId, 'li1');
     expect(session.selection?.extent.offset, 0);
   });
 

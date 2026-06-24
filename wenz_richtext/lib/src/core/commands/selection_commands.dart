@@ -269,6 +269,9 @@ class MoveTableCellVerticalCommand extends EditorCommand {
       : 'moveTableCellUp';
 
   @override
+  WenzEditorPermission get requiredPermission => WenzEditorPermission.read;
+
+  @override
   bool get breaksMergeRun => true;
 
   @override
@@ -378,6 +381,9 @@ class MoveCaretToBlockBoundaryCommand extends EditorCommand {
           : 'moveCaretToBlockEnd');
 
   @override
+  WenzEditorPermission get requiredPermission => WenzEditorPermission.read;
+
+  @override
   bool get breaksMergeRun => true;
 
   @override
@@ -433,6 +439,9 @@ class MoveCaretToDocumentBoundaryCommand extends EditorCommand {
           : 'moveCaretToDocumentEnd');
 
   @override
+  WenzEditorPermission get requiredPermission => WenzEditorPermission.read;
+
+  @override
   bool get breaksMergeRun => true;
 
   @override
@@ -465,6 +474,9 @@ class SelectAllCommand extends EditorCommand {
 
   @override
   String get description => 'selectAll';
+
+  @override
+  WenzEditorPermission get requiredPermission => WenzEditorPermission.read;
 
   @override
   bool get breaksMergeRun => true;

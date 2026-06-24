@@ -169,10 +169,11 @@
 - ~~增量 rebuild：~~ ✅ 已完成（controller 通过 `lastChangedBlockIds` 暴露变更 block id 集，编辑器 `_KeepAliveBlock` 仅在内容变更或选区/光标/IME 命中时重建，未变更 block 复用缓存 child 跳过 span 重建）。
   - ~~block-level dirty 标记。~~
   - ~~controller change metadata。~~
-- ~~性能基准：~~ ✅ 已完成（`test/benchmarks/editor_benchmarks.dart`，覆盖 1k blocks / 10k inline runs / 50×20 大表格，宽松 guard + 打印 µs，与常规 `*_test.dart` 套件隔离，手动运行）。
+- ~~性能基准：~~ ✅ 已完成（`test/benchmarks/editor_benchmarks.dart`，覆盖 1k blocks / 10k inline runs / 50×20 大表格 / 高级混合文档，宽松 guard + 打印 µs，与常规 `*_test.dart` 套件隔离，手动运行）。
   - ~~1k blocks。~~
   - ~~10k inline runs。~~
   - ~~大表格。~~
+  - ~~高级混合文档。~~
 - ~~避免每帧重复构建 TextPainter。~~ ✅ 已完成（`SharedTextLayoutCache` 跨 remount 复用已布局 painter，脏 block 变更时失效；benchmark 含 scroll/remount 场景）。
 
 验收标准：
@@ -276,7 +277,7 @@
 - Markdown/HTML。
 - 插件注册。
 - 移动端 selection handles。
-- Golden/benchmark 完整矩阵。
+- Golden/benchmark 完整矩阵（ADV-028 已补高级块 + inline embed golden 与高级混合文档 benchmark）。
 
 ## 近期两周任务拆分
 
