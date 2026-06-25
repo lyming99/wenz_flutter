@@ -1,0 +1,12 @@
+**当前状态**
+- 已在 `lib/src/widgets/wenz_rich_text_editor.dart:7219` 修复 atomic inline embed 的逻辑 offset 到渲染 offset 映射，mention 后续文字不再被映射进 mention 渲染区间。
+- 已在 `test/widgets/wenz_rich_text_editor_test.dart:5904` 和 `test/widgets/wenz_rich_text_editor_test.dart:6100` 补了普通段落/表格单元格的回归断言。
+- `docs/plan/plan_feedback_7_20260625-202854.md` 未修改，checkbox 和进度区未触碰。
+- `test/core/selection_commands_test.dart` 未修改。
+
+**阻塞**
+- 环境中途切到 `read-only`，导致最后要补的测试辅助函数 `_caretRenderOffsetForLogicalOffset` 写入失败。
+- 当前 `test/widgets/wenz_rich_text_editor_test.dart` 已引用该 helper 但尚未定义，测试文件暂时不完整。
+- 最小测试 `flutter test test/widgets/wenz_rich_text_editor_test.dart --plain-name "paragraph inline embeds select atomically by tap drag keyboard"` 之前运行过一次，120 秒超时；只读后未继续跑测试。
+
+需要恢复 workspace 写权限后，我会只补这个 helper 并重新运行 P001 相关最小测试集。

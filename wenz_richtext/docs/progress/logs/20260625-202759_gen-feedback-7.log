@@ -1,0 +1,312 @@
+OpenAI Codex v0.121.0 (research preview)
+--------
+workdir: D:\project\GitHub\wenz_flutter\wenz_richtext
+model: gpt-5.5
+provider: custom
+approval: never
+sandbox: danger-full-access
+reasoning effort: xhigh
+reasoning summaries: none
+session id: 019efec0-5b34-7a72-a152-0560a66ec114
+--------
+user
+你是需求整理与开发计划生成者。
+请根据以下反馈，生成一个开发计划和验收标准。
+
+输出文件：D:\project\GitHub\wenz_flutter\wenz_richtext\docs\plan\plan_feedback_7_20260625-202759.md
+
+格式要求：
+- 每个任务必须严格使用固定格式：- [ ] P001: 任务标题 <!-- scope: lib/foo.dart,test/foo_test.dart -->
+- scope 必填，表示该任务预计修改的文件或模块；多个 scope 用英文逗号分隔；无法判断时写 <!-- scope: unknown -->，unknown 任务不会并发执行
+- 每个任务要有验收要点
+- 必须包含总体验收标准和进度区
+- 只写 plan 文件，不要改业务代码
+
+反馈 #7 内容：
+1.提及“@xxx”后面的文字无法被选中，优化一下，应该可以选中 2.引用块，要占用全行 3.todo项的checkbox，宽度太大 4.表格的工具栏，hover会报错，界面突然闪屏红色 5.表格的分割线没有显示，优化一下 6.各个元素的菜单，要尽量简约，不需要上线移动，最好将复杂的功能折叠到一个菜单 7.文件卡片元素，菜单弹出，宽度太低，尺寸存在问题，显示不全 8.视频元素，内容有溢出 9.图片、视频元素不需要显示标题，单击选中后，要显示工具栏，预览+菜单 10.每行元素聚焦时，鼠标hover时，左侧要显示拖拽按钮，支持整行内容拖拽，点击的话，则显示行菜单，例如：切换行格式为代码块、普通文本、标题
+**Creating a development plan**
+
+I need to generate a development plan and acceptance criteria in a markdown file at a specified path. I should inspect the repo instructions since it’s only about writing the plan file, not the code. Using the plan tool might not be necessary, but it could help. I need to create an output file with a fixed format that includes tasks and progress sections along with acceptance criteria. It’s straightforward but requires careful attention to detail.
+**Investigating repo structure**
+
+I need to find out the repo structure and the instructions available. Understanding the layout is crucial for navigating it effectively. I'll look for documentation or folders that might provide relevant guidelines. This process helps me get organized and ensures I'm following the right steps as I proceed with the tasks. It feels important to gather this information first before moving on to further actions.
+codex
+我先查看仓库里的约束和现有计划格式，再生成计划文件。
+exec
+powershell.exe -Command 'Get-ChildItem -Force; if (Get-ChildItem -Force -Filter AGENTS.md -Recurse | Select-Object -First 20) { Get-ChildItem -Force -Filter AGENTS.md -Recurse | ForEach-Object { $_.FullName } }' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 319ms:
+
+
+    目录: D:\project\GitHub\wenz_flutter\wenz_richtext
+
+
+Mode                 LastWriteTime         Length Name                                                                 
+----                 -------------         ------ ----                                                                 
+d-----         2026/6/25     20:27                .codegraph                                                           
+d-----         2026/6/24     15:10                .dart_appdata                                                        
+d-----         2026/6/24     15:10                .dart_localappdata                                                   
+d-----         2026/6/24     16:11                .dart_tool                                                           
+d-----         2026/6/24     16:13                .dart_tool_appdata                                                   
+d-----         2026/6/24     16:06                .dart_tool_localappdata                                              
+d-----         2026/6/20      0:26                .idea                                                                
+d-----         2026/6/25     10:14                build                                                                
+d-----         2026/6/19     17:02                doc                                                                  
+d-----         2026/6/24     18:05                docs                                                                 
+d-----         2026/6/22     14:56                example                                                              
+d-----         2026/6/22     17:09                lib                                                                  
+d-----         2026/6/24      3:35                scripts                                                              
+d-----         2026/6/25      3:33                test                                                                 
+d-----         2026/6/24     18:04                tool                                                                 
+d-----         2026/6/25      2:40                ui                                                                   
+-a----         2026/6/19     14:04             87 .gitignore                                                           
+-a----         2026/6/24     16:16             94 analysis_options.yaml                                                
+-a----         2026/6/24     14:38            726 CHANGELOG.md                                                         
+-a----         2026/6/25      2:56            157 nul                                                                  
+-a----         2026/6/25      2:18          10389 pubspec.lock                                                         
+-a----         2026/6/25      2:18            382 pubspec.yaml                                                         
+-a----         2026/6/25     10:45           4516 README.md                                                            
+
+
+
+**Inspecting file naming conventions**
+
+I need to check if there are any existing agents, but the command didn't show any. Instead, it just printed out the files. If there are none, that's alright. I should also take a look at the documents and plans to understand the current file naming conventions. Let’s make sure to list the docs and the plan clearly, as this will help in keeping everything organized.
+codex
+我先对齐一下现有 `docs/plan` 的写法，再落文件。
+exec
+powershell.exe -Command "Get-ChildItem -Force docs\\plan; if (Test-Path docs\\plan) { Get-ChildItem docs\\plan | Select-Object Name,Length,LastWriteTime }" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 262ms:
+
+
+    目录: D:\project\GitHub\wenz_flutter\wenz_richtext\docs\plan
+
+
+Mode                 LastWriteTime         Length Name                                                                 
+----                 -------------         ------ ----                                                                 
+-a----         2026/6/25      0:06          11555 plan_feedback_1_20260624-220759.md                                   
+-a----         2026/6/25      3:25          17553 plan_feedback_2_20260625-004108.md                                   
+-a----         2026/6/25      4:57           7973 plan_feedback_3_20260625-014905.md                                   
+-a----         2026/6/25      6:44           6253 plan_feedback_4_20260625-024854.md                                   
+-a----         2026/6/25     18:54           7304 plan_feedback_6_20260625-035040.md                                   
+-a----         2026/6/25     13:50           8792 plan_requirement_10_20260625-034349.md                               
+-a----         2026/6/25      6:12           7801 plan_requirement_2_20260625-023728.md                                
+-a----         2026/6/25      8:45           9742 plan_requirement_3_20260625-025750.md                                
+-a----         2026/6/25     10:49           8650 plan_requirement_9_20260625-033413.md                                
+-a----         2026/6/24     21:34           1278 ui_plan_20260624-213431_2.md                                         
+
+Name          : plan_feedback_1_20260624-220759.md
+Length        : 11555
+LastWriteTime : 2026/6/25 0:06:50
+
+
+Name          : plan_feedback_2_20260625-004108.md
+Length        : 17553
+LastWriteTime : 2026/6/25 3:25:09
+
+
+Name          : plan_feedback_3_20260625-014905.md
+Length        : 7973
+LastWriteTime : 2026/6/25 4:57:21
+
+
+Name          : plan_feedback_4_20260625-024854.md
+Length        : 6253
+LastWriteTime : 2026/6/25 6:44:50
+
+
+Name          : plan_feedback_6_20260625-035040.md
+Length        : 7304
+LastWriteTime : 2026/6/25 18:54:29
+
+
+Name          : plan_requirement_10_20260625-034349.md
+Length        : 8792
+LastWriteTime : 2026/6/25 13:50:45
+
+
+Name          : plan_requirement_2_20260625-023728.md
+Length        : 7801
+LastWriteTime : 2026/6/25 6:12:56
+
+
+Name          : plan_requirement_3_20260625-025750.md
+Length        : 9742
+LastWriteTime : 2026/6/25 8:45:33
+
+
+Name          : plan_requirement_9_20260625-033413.md
+Length        : 8650
+LastWriteTime : 2026/6/25 10:49:41
+
+
+Name          : ui_plan_20260624-213431_2.md
+Length        : 1278
+LastWriteTime : 2026/6/24 21:34:31
+
+
+
+
+codex
+我看下同类计划的结构，保证格式一致。
+exec
+powershell.exe -Command "Get-Content docs\\plan\\plan_feedback_6_20260625-035040.md -TotalCount 220; \""'`n---FILE2---`n"; Get-Content docs'"\\plan\\plan_requirement_10_20260625-034349.md -TotalCount 220" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 176ms:
+# 鍙嶉寮€鍙戣鍒掞細琛ㄦ牸鎮诞宸ュ叿鏍忔敼鐢ㄧ郴缁?Overlay
+
+## 鏉ユ簮
+- 绫诲瀷锛氬弽棣?- 缂栧彿锛?
+- 鐢熸垚鏃堕棿锛?026-06-25 03:50:40
+
+## 鍘熷鍐呭
+琛ㄦ牸鎮诞宸ュ叿鏍忥紝搴旇浣跨敤绯荤粺鎮诞overlay瀹炵幇锛岀洰鍓嶅瓨鍦ㄤ簨浠剁┛閫忛棶棰?
+## 闇€姹傜悊瑙?- 褰撳墠琛ㄦ牸鎮诞宸ュ叿鏍忎粛渚濊禆琛ㄦ牸娓叉煋鏍戝唴閮ㄧ殑娴姩瀹氫綅锛屽鏄撳彈鍒扮埗绾?`Stack`銆佽鍓€佸懡涓祴璇曡寖鍥村拰閫夊尯鎵嬪娍灞傚奖鍝嶏紝瀵艰嚧鐐瑰嚮宸ュ叿鏍忔椂浜嬩欢缁х画绌块€忓埌搴曞眰琛ㄦ牸鎴栫紪杈戝櫒銆?- 鏈鐩爣鏄皢琛ㄦ牸宸ュ叿鏍忚縼绉讳负 Flutter 绯荤粺娴眰鑳藉姏鎵胯浇鐨?overlay锛屼緥濡?`OverlayEntry` / `OverlayPortal` / `CompositedTransformFollower` 鏂规锛岃宸ュ叿鏍忓湪鐙珛娴眰涓畬鎴愬畾浣嶃€佸懡涓祴璇曞拰鐢熷懡鍛ㄦ湡绠＄悊銆?- 淇閲嶇偣鏄簨浠朵笉绌块€忋€佸畾浣嶇ǔ瀹氥€佹粴鍔ㄨ窡闅忋€侀€夊尯鍙樺寲鑷姩鍒锋柊锛屼互鍙婄幇鏈夎〃鏍煎懡浠よ兘鍔涗笉鍥炲綊銆?- 鏈涓嶈皟鏁磋〃鏍兼暟鎹ā鍨嬨€佸懡浠よ涔夈€佸鍏ュ鍑哄崗璁拰鍒楀鎷栨嫿閫昏緫锛岄櫎闈炰负 overlay 閿氱偣鍜岀姸鎬佸悓姝ユ彁渚涘繀瑕佺殑娓叉煋灞傞€傞厤銆?
+## 浠诲姟璁″垝
+- [x] P001: 澶嶇幇骞剁晫瀹氬伐鍏锋爮浜嬩欢绌块€?<!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/selection_gesture_overlay.dart,test/widgets/wenz_rich_text_editor_test.dart -->
+  - 楠屾敹瑕佺偣锛氭槑纭綋鍓嶅伐鍏锋爮鐐瑰嚮鍚庝細绌块€忓埌琛ㄦ牸鍗曞厓鏍笺€佹枃鏈€夊尯銆佹嫋鎷芥墜鍔挎垨缂栬緫鍣ㄧ┖鐧藉尯鍩熺殑鏈€灏忓鐜板満鏅€?  - 楠屾敹瑕佺偣锛氳褰曠┛閫忓彂鐢熸椂鐨勫懡涓祴璇曢摼璺€佸伐鍏锋爮鎵€鍦ㄦ覆鏌撳眰銆佺埗绾у昂瀵?瑁佸壀绾︽潫鍜岄€夊尯鎵嬪娍灞傚叧绯汇€?  - 楠屾敹瑕佺偣锛氱‘璁ら棶棰樹慨澶嶈寖鍥撮檺瀹氬湪琛ㄦ牸宸ュ叿鏍忔诞灞傘€佸畾浣嶅拰浜嬩欢鎷︽埅锛屼笉鏀瑰彉琛ㄦ牸鍛戒护銆佹枃妗ｆā鍨嬪拰搴忓垪鍖栫粨鏋勩€?
+- [x] P002: 璁捐绯荤粺 Overlay 鎵胯浇缁撴瀯 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/table_floating_toolbar_overlay.dart,lib/src/widgets/block_renderer_registry.dart -->
+  - 楠屾敹瑕佺偣锛氱‘瀹氳〃鏍煎伐鍏锋爮鐢辩紪杈戝櫒绾?overlay 瀹夸富绠＄悊锛岃€屼笉鏄户缁綔涓鸿〃鏍?`Stack` 鐨勮礋鍋忕Щ瀛愯妭鐐规樉绀恒€?  - 楠屾敹瑕佺偣锛氬畾涔夎〃鏍奸敋鐐广€侀€夊尯鑼冨洿銆佸伐鍏锋爮 action 鍥炶皟銆佸彲鐢ㄧ姸鎬佸拰鍏抽棴鏉′欢鐨勬暟鎹紶閫掓柟寮忥紝閬垮厤 renderer 涓?overlay 鐘舵€佸弻鍚戣€﹀悎銆?  - 楠屾敹瑕佺偣锛氶€夋嫨骞惰褰曞叿浣?overlay 鎶€鏈矾绾匡紝浼樺厛淇濊瘉璺熼殢閿氱偣銆佽法鐖剁骇杈圭晫鏄剧ず銆佸彲鍛戒腑鍜屽彲鍦ㄦ祴璇曚腑绋冲畾瀹氫綅銆?
+- [x] P003: 杩佺Щ琛ㄦ牸宸ュ叿鏍忔覆鏌撳埌 Overlay <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/table_floating_toolbar_overlay.dart -->
+  - 楠屾敹瑕佺偣锛氶€変腑琛ㄦ牸鍗曞厓鏍煎悗锛屽伐鍏锋爮閫氳繃绯荤粺 overlay 鏄剧ず鍦ㄨ〃鏍间笂鏂规垨鍙鍖哄煙鍐咃紝涓嶅啀渚濊禆琛ㄦ牸鍐呴儴 `Positioned` 璐熷亸绉汇€?  - 楠屾敹瑕佺偣锛氬伐鍏锋爮鍦ㄧ紪杈戝櫒婊氬姩銆佺獥鍙ｅ昂瀵稿彉鍖栥€佽〃鏍煎搴﹀彉鍖栥€佽〃鏍奸潬杩戣鍙ｉ《閮ㄦ椂淇濇寔浣嶇疆绋冲畾骞惰嚜鍔ㄩ噸鏂拌绠椼€?  - 楠屾敹瑕佺偣锛氬彇娑堣〃鏍奸€夊尯銆佸垏鎹㈠埌闈炶〃鏍?block銆佽繘鍏ュ彧璇绘€佹垨缂栬緫鍣ㄩ攢姣佹椂锛宱verlay 鑳藉強鏃剁Щ闄や笖涓嶆畫鐣欐偓娴粍浠躲€?
+- [x] P004: 闃绘柇宸ュ叿鏍忎簨浠剁┛閫?<!-- scope: lib/src/widgets/table_floating_toolbar_overlay.dart,lib/src/widgets/selection_gesture_overlay.dart,test/widgets/wenz_rich_text_editor_test.dart -->
+  - 楠屾敹瑕佺偣锛氬伐鍏锋爮鑳屾櫙銆佹寜閽€佸垎闅旂嚎鍜岀┖鐧藉～鍏呭尯鍩熷潎鏈夋槑纭懡涓祴璇曠瓥鐣ワ紝鐐瑰嚮鍜屾嫋鍔ㄤ笉浼氱户缁Е鍙戣〃鏍奸€夊尯銆佸崟鍏冩牸鑱氱劍鎴栨枃鏈€夋嫨銆?  - 楠屾敹瑕佺偣锛氬伐鍏锋爮鎸夐挳鐐瑰嚮鍙Е鍙戝搴?`TableToolbarActionIntent` 涓€娆★紝涓嶉澶栦骇鐢熷簳灞?tap銆乴ong press銆乨rag 鎴?selection change銆?  - 楠屾敹瑕佺偣锛氬伐鍏锋爮涔嬪鐨勭紪杈戝櫒鍖哄煙浠嶅彲姝ｅ父鐐瑰嚮銆佹嫋閫夈€佹粴鍔ㄥ拰鍞よ捣琛ㄦ牸閫夊尯锛屼笉鍥?overlay 寮曞叆鍏ㄥ睆閬僵闃诲姝ｅ父浜や簰銆?
+- [x] P005: 淇濇寔琛ㄦ牸鎿嶄綔涓庣敓鍛藉懆鏈熶竴鑷?<!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/table_floating_toolbar_overlay.dart,lib/src/core/commands/table_commands.dart,test/widgets/wenz_rich_text_editor_test.dart -->
+  - 楠屾敹瑕佺偣锛氭彃鍏?鍒犻櫎琛屽垪銆佸垏鎹㈣〃澶淬€佽缃?娓呴櫎鑳屾櫙鑹层€佸垪瀵归綈銆佸悎骞?鎷嗗垎鍗曞厓鏍笺€侀噸缃垪瀹界瓑鍘熸湁宸ュ叿鏍忔搷浣滆涓轰笉鍥炲綊銆?  - 楠屾敹瑕佺偣锛氬伐鍏锋爮 action 鎵ц鍚庯紝琛ㄦ牸閫夊尯銆佺劍鐐广€佹挙閿€/閲嶅仛銆佹枃妗ｅ彉鏇撮€氱煡鍜?overlay 鍒锋柊椤哄簭淇濇寔涓€鑷达紝涓嶅嚭鐜?stale range 鎴栫┖寮曠敤銆?  - 楠屾敹瑕佺偣锛氬琛ㄦ牸鏂囨。涓彧鏄剧ず褰撳墠娲诲姩琛ㄦ牸鐨勫伐鍏锋爮锛岄€夊尯璺ㄨ〃鏍兼垨琛ㄦ牸琚垹闄ゅ悗 overlay 鑷姩鍏抽棴銆?
+- [x] P006: 琛ュ厖鑷姩鍖栦笌鎵嬪伐楠屾敹璁板綍 <!-- scope: test/widgets/wenz_rich_text_editor_test.dart,docs/acceptance_manual_checklist.md,docs/plan/plan_feedback_6_20260625-035040.md -->
+  - 楠屾敹瑕佺偣锛氭柊澧炴垨鏇存柊 widget 娴嬭瘯锛岃鐩栧伐鍏锋爮鏄剧ず浜?overlay銆佹寜閽偣鍑讳笉绌块€忋€佺偣鍑诲伐鍏锋爮澶栦粛鑳界紪杈戙€佹粴鍔ㄥ悗宸ュ叿鏍忚窡闅忋€侀€夊尯鍙栨秷鍚?overlay 娑堝け銆?  - 楠屾敹瑕佺偣锛氭墽琛?`flutter analyze`銆佺浉鍏?widget 娴嬭瘯鍜屽繀瑕佺殑鍥炲綊娴嬭瘯锛涜嫢瀛樺湪澶辫触锛岄渶鍖哄垎鏈鏀瑰姩瀵艰嚧澶辫触涓庢棦鏈夊け璐ャ€?  - 楠屾敹瑕佺偣锛氬湪鏈鍒掕繘搴﹀尯璁板綍姣忎釜浠诲姟鐨勫畬鎴愯寖鍥淬€侀獙璇佸懡浠ゃ€侀獙璇佺粨鏋溿€侀仐鐣欓闄╁拰鍚庣画寤鸿銆?
+## 鎬讳綋楠屾敹鏍囧噯
+- 鎵€鏈変换鍔?checkbox 鍧囧畬鎴愶紝涓旀瘡涓换鍔＄殑楠屾敹瑕佺偣閮芥湁鏄庣‘缁撹鎴栭獙璇佽褰曘€?- 琛ㄦ牸鎮诞宸ュ叿鏍忎娇鐢ㄧ郴缁?overlay 鏂规鎵胯浇锛屼笉鍐嶄緷璧栬〃鏍煎唴閮ㄨ礋鍋忕Щ娴姩鑺傜偣鏉ユā鎷熸偓娴晥鏋溿€?- 鐐瑰嚮琛ㄦ牸宸ュ叿鏍忎换鎰忓彲瑙佸尯鍩熶笉浼氱┛閫忓埌搴曞眰琛ㄦ牸銆佹枃鏈€夊尯銆佺紪杈戝櫒鎵嬪娍灞傛垨婊氬姩鎵嬪娍锛涘伐鍏锋爮澶栧尯鍩熶粛淇濇寔姝ｅ父缂栬緫浜や簰銆?- 宸ュ叿鏍忚兘闅忓綋鍓嶆椿鍔ㄨ〃鏍奸€夊尯绋冲畾鏄剧ず銆佸埛鏂板拰鍏抽棴锛屾粴鍔ㄣ€佽鍙ｈ创杈广€佺獥鍙ｅ昂瀵稿彉鍖栥€佸琛ㄦ牸鍒囨崲鍜岃〃鏍煎垹闄ゅ満鏅潎鏃犳畫鐣?overlay銆?- 鍘熸湁琛ㄦ牸宸ュ叿鏍忓懡浠ゃ€佸垪瀹芥嫋鎷姐€佸崟鍏冩牸閫夋嫨銆佹挙閿€/閲嶅仛銆佸彧璇绘€佸拰鐒︾偣琛屼负涓嶅洖褰掋€?- 鐩稿叧鑷姩鍖栨祴璇曘€侀潤鎬佸垎鏋愬拰蹇呰鎵嬪伐楠屾敹閫氳繃锛涜嫢瀛樺湪鏃㈡湁澶辫触锛岄渶瑕佸湪杩涘害鍖鸿褰曞懡浠ゃ€佸け璐ュ師鍥犲垽鏂拰褰卞搷鑼冨洿銆?
+## 杩涘害鍖?- 褰撳墠鐘舵€侊細璁″垝宸插垱寤猴紝P001-P006 寰呭紑鍙戞墽琛屻€?- 褰撳墠璐熻矗浜猴細寰呭垎閰嶃€?- 涓嬩竴姝ワ細浠?P001 寮€濮嬪鐜板苟璁板綍琛ㄦ牸宸ュ叿鏍忎簨浠剁┛閫忕殑鍛戒腑娴嬭瘯閾捐矾銆?- 楠岃瘉璁板綍锛氭湰娆′粎鐢熸垚璁″垝鏂囦欢锛屾湭淇敼涓氬姟浠ｇ爜锛屾湭鎵ц鑷姩鍖栨祴璇曟垨鎵嬪伐楠屾敹銆?- 椋庨櫓璁板綍锛氱郴缁?overlay 杩佺Щ浼氭敼鍙樺伐鍏锋爮鎵€鍦ㄦ覆鏌撴爲锛岄渶閲嶇偣鍏虫敞鐒︾偣淇濇寔銆侀€夊尯鍒锋柊銆佹粴鍔ㄨ窡闅忋€佹祴璇曞畾浣嶅拰 overlay 鐢熷懡鍛ㄦ湡娓呯悊銆?- P001 AutoPlan 瀹屾垚锛?026-06-24T20:01:25.268Z锛涙棩蹇楋細docs/progress/logs/20260625-035238_execute-P001.log
+- P002 AutoPlan 瀹屾垚锛?026-06-25T06:15:27.920Z锛涙棩蹇楋細docs/progress/logs/20260625-141120_execute-P002.log
+- P003 AutoPlan 瀹屾垚锛?026-06-25T06:39:51.664Z锛涙棩蹇楋細docs/progress/logs/20260625-143432_execute-P003.log
+- P004 AutoPlan 瀹屾垚锛?026-06-25T06:48:07.109Z锛涙棩蹇楋細docs/progress/logs/20260625-143957_execute-P004.log
+- P005 AutoPlan 瀹屾垚锛?026-06-25T10:34:52.915Z锛涙棩蹇楋細docs/progress/logs/20260625-182504_execute-P005.log
+- P006 AutoPlan 瀹屾垚锛?026-06-25T10:54:29.041Z锛涙棩蹇楋細docs/progress/logs/20260625-184326_execute-P006.log
+
+---FILE2---
+
+# 闇€姹傚紑鍙戣鍒掞細澶х翰鎶樺彔鍔熻兘
+
+## 鏉ユ簮
+- 绫诲瀷锛氶渶姹?- 缂栧彿锛?0
+- 鐢熸垚鏃堕棿锛?026-06-25 03:43:49
+
+## 鍘熷鍐呭
+澧炲姞澶х翰鎶樺彔鍔熻兘锛屽鏋滆鍐呭鏄ぇ绾叉爣棰橈紝鍒欐敮鎸佹姌鍙犲唴瀹癸紱
+
+## 闇€姹傜悊瑙?- 褰撻《灞?block 鏄ぇ绾叉爣棰橈紙`BlockType.heading`锛夋椂锛岃琛屽簲灞曠ず鍙姌鍙犲叆鍙ｏ紝骞舵敮鎸佹姌鍙?灞曞紑鍏朵笅灞炲唴瀹广€?- 鎶樺彔鑼冨洿鎸夋爣棰樺眰绾ц绠楋細浠庡綋鍓嶆爣棰樹箣鍚庡紑濮嬶紝鐩村埌閬囧埌涓嬩竴涓悓绾ф垨鏇撮珮绾ф爣棰樹负姝紱浣庣骇鏍囬鍙婃櫘閫?block 鍧囧睘浜庡綋鍓嶆爣棰樼殑鍙姌鍙犲唴瀹广€?- 鎶樺彔鏄紪杈戝櫒瑙嗗浘鐘舵€侊紝涓嶅簲鍒犻櫎鎴栨敼鍐欐枃妗ｅ唴瀹癸紱瀵煎叆瀵煎嚭銆佸巻鍙茶褰曘€佸崗浣滄暟鎹拰澶х翰鏉＄洰鐢熸垚搴斾繚鎸佸師鏂囨。缁撴瀯銆?- 鎶樺彔鍚庨殣钘忕殑 block 涓嶅弬涓庡睆骞曟覆鏌撳拰鏅€氶紶鏍囧懡涓紝浣嗕粛闇€淇濊瘉閫夊尯銆佹悳绱€佹挙閿€/閲嶅仛銆佹粴鍔ㄥ畾浣嶅拰绋嬪簭鍖栬烦杞湁鏄庣‘琛屼负銆?
+## 浠诲姟璁″垝
+- [x] P001: 鏄庣‘鏍囬鎶樺彔浜や簰瑙勫垯 <!-- scope: lib/src/controller/outline_controller.dart,lib/src/widgets/wenz_rich_text_editor.dart,docs/acceptance_manual_checklist.md -->
+  - 楠屾敹瑕佺偣锛氭槑纭彧鏈夐《灞?`heading` block 鏄剧ず鎶樺彔鍏ュ彛锛屾钀姐€佸紩鐢ㄣ€佸垪琛ㄣ€佷唬鐮併€佽〃鏍笺€佸獟浣撳拰瀵硅薄鍧椾笉鏄剧ず鍏ュ彛銆?  - 楠屾敹瑕佺偣锛氭槑纭姌鍙犺寖鍥存寜鏍囬 level 璁＄畻锛宍H2` 鎶樺彔鍒颁笅涓€涓?`H1/H2` 鍓嶏紝`H3` 鎶樺彔鍒颁笅涓€涓?`H1/H2/H3` 鍓嶏紝绌烘爣棰樻垨鏃犲瓙鍐呭鏍囬涓嶅彲鎶樺彔鎴栨樉绀虹鐢ㄦ€併€?  - 楠屾敹瑕佺偣锛氭槑纭彧璇绘ā寮忎笅鍙睍寮€/鎶樺彔浣嗕笉鍙敼鍙樻枃妗ｅ唴瀹癸紝缂栬緫妯″紡涓嬫姌鍙犵姸鎬佷笉杩涘叆鎾ら攢/閲嶅仛鍘嗗彶銆?
+- [x] P002: 鎵╁睍澶х翰鎶樺彔鐘舵€佹ā鍨?<!-- scope: lib/src/controller/outline_controller.dart,lib/src/controller/wenz_rich_text_controller.dart,test/controller/outline_controller_test.dart,test/core/controller_test.dart -->
+  - 楠屾敹瑕佺偣锛氫负鏍囬鏉＄洰鎻愪緵鏄惁鍙姌鍙犮€佹槸鍚﹀凡鎶樺彔銆佹姌鍙犺鐩栫殑 block id/index 鑼冨洿绛夊彧璇讳俊鎭紝骞跺湪鏂囨。鍙樺寲鍚庤嚜鍔ㄩ噸绠椼€?  - 楠屾敹瑕佺偣锛氭彁渚涙寜 blockId/anchor/OutlineItem 鎶樺彔銆佸睍寮€銆佸垏鎹€佸叏閮ㄥ睍寮€鍜屾煡璇㈡姌鍙犵姸鎬佺殑 API锛涙棤鏁?block銆侀潪鏍囬 block 鍜屾棤瀛愬唴瀹规爣棰樿繑鍥炲畨鍏?no-op銆?  - 楠屾敹瑕佺偣锛氭姌鍙犵姸鎬佷互鏍囬 block id 涓轰富閿淮鎶わ紱鏍囬鍒犻櫎銆佺被鍨嬪彉鏇淬€佸眰绾у彉鏇淬€乥lock 绉诲姩鎴栨枃妗ｆ浛鎹㈠悗浼氭竻鐞嗘棤鏁堢姸鎬佸苟閫氱煡鐩戝惉鑰呫€?
+- [x] P003: 鏋勫缓鍙 block 鎶曞奖瑙嗗浘 <!-- scope: lib/src/controller/outline_controller.dart,lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/block_geometry_registry.dart,test/controller/outline_controller_test.dart,test/widgets/block_geometry_registry_test.dart -->
+  - 楠屾敹瑕佺偣锛氱紪杈戝櫒娓叉煋鍙牴鎹姌鍙犵姸鎬佽繃婊よ闅愯棌鐨勯《灞?block锛屽悓鏃朵繚鐣欏師濮?document.blocks 椤哄簭銆乥lockIndex 璇箟鍜屾枃妗?JSON 涓嶅彉銆?  - 楠屾敹瑕佺偣锛氶殣钘?block 鐨勫嚑浣曠紦瀛樸€佸懡涓祴璇曘€佹粴鍔ㄥ畾浣嶅拰閫夋嫨瑕嗙洊灞備笉浼氭畫鐣欐棫浣嶇疆锛涘睍寮€鍚庡嚑浣曚俊鎭兘閲嶆柊娉ㄥ唽骞剁敤浜庨€夊尯/婊氬姩銆?  - 楠屾敹瑕佺偣锛氬祵濂楁姌鍙犳椂鐖舵爣棰樻姌鍙犱紭鍏堥殣钘忔墍鏈夊悗浠ｅ唴瀹癸紝灞曞紑鐖舵爣棰樺悗瀛愭爣棰樿嚜韬殑鎶樺彔鐘舵€佷粛鍙户缁敓鏁堛€?
+- [x] P004: 娓叉煋鏍囬鎶樺彔鍏ュ彛涓庣姸鎬佸弽棣?<!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/block_renderer_registry.dart,test/widgets/wenz_rich_text_editor_test.dart,test/widgets/editor_golden_test.dart,test/widgets/goldens/editor_blocks.png -->
+  - 楠屾敹瑕佺偣锛氬彲鎶樺彔鏍囬宸︿晶鎴栨爣棰樺唴瀹硅捣濮嬪鏄剧ず绋冲畾鐨勫睍寮€/鏀惰捣鍥炬爣锛宧over/focus/pressed/disabled 鐘舵€佹竻鏅帮紝涓斾笉鎸ゅ帇鏍囬鏂囨湰甯冨眬銆?  - 楠屾敹瑕佺偣锛氱偣鍑绘垨閿洏婵€娲诲浘鏍囧彲鍒囨崲鎶樺彔鐘舵€侊紱鍥炬爣鍛戒腑鍖哄煙涓嶈Е鍙戞枃鏈€夊尯銆佽緭鍏ユ硶缁勫悎銆侀摼鎺ョ偣鍑绘垨 block 鎷栨嫿鑿滃崟銆?  - 楠屾敹瑕佺偣锛氭姌鍙犳爣棰樺彲鏄剧ず瀛愬唴瀹规暟閲忋€佽交閲忔彁绀烘垨瑙嗚鏍囪瘑锛屼究浜庣敤鎴峰垽鏂爣棰樹笅瀛樺湪琚殣钘忓唴瀹广€?
+- [x] P005: 澶勭悊鎶樺彔鐘舵€佷笅鐨勭紪杈戜笌瀵艰埅 <!-- scope: lib/src/controller/wenz_rich_text_controller.dart,lib/src/controller/find_replace_controller.dart,lib/src/controller/outline_controller.dart,lib/src/widgets/wenz_rich_text_editor.dart,test/core/controller_test.dart,test/controller/find_replace_controller_test.dart,test/widgets/wenz_rich_text_editor_test.dart -->
+  - 楠屾敹瑕佺偣锛氬綋褰撳墠閫夊尯鎴栫▼搴忓寲璺宠浆鐩爣浣嶄簬闅愯棌 block 鍐呮椂锛岀紪杈戝櫒浼氬厛灞曞紑鐩稿叧鏍囬鎴栧皢鍏夋爣瀹夊叏绉诲姩鍒版姌鍙犳爣棰樺锛岄伩鍏嶄笉鍙鍏夋爣銆?  - 楠屾敹瑕佺偣锛氭煡鎵炬浛鎹€佸ぇ绾茶烦杞€侀敋鐐硅烦杞拰婊氬姩鍒伴€夊尯鍦ㄥ懡涓殣钘忓唴瀹规椂鏈変竴鑷寸瓥鐣ワ紝骞惰兘璁╃洰鏍囧唴瀹归噸鏂板彲瑙併€?  - 楠屾敹瑕佺偣锛氬湪鎶樺彔鐘舵€佷笅鎻掑叆銆佸垹闄ゃ€佺矘璐淬€佹挙閿€/閲嶅仛銆佷慨鏀规爣棰樺眰绾у拰绉诲姩 block 鍚庯紝闅愯棌鑼冨洿銆侀€夊尯鍜屾粴鍔ㄤ綅缃繚鎸佸彲鎭㈠涓斾笉涓㈠唴瀹广€?
+- [x] P006: 鍏煎瀵煎叆瀵煎嚭涓庡閮ㄦ墿灞?<!-- scope: lib/src/codecs/rich_text_json_codec.dart,lib/src/codecs/html_codec.dart,lib/src/codecs/markdown_codec.dart,lib/src/widgets/block_renderer_registry.dart,test/codecs/rich_text_json_codec_test.dart,test/codecs/html_codec_test.dart,test/codecs/markdown_codec_test.dart,test/plugins/editor_plugin_test.dart -->
+  - 楠屾敹瑕佺偣锛氭姌鍙犵姸鎬侀粯璁や笉鍐欏叆鏂囨。 JSON銆丠TML銆丮arkdown 鎴栫函鏂囨湰瀵煎嚭锛屽鍏ュ凡鏈夋枃妗ｅ悗榛樿鍏ㄩ儴灞曞紑涓斿唴瀹瑰畬鏁淬€?  - 楠屾敹瑕佺偣锛氳嚜瀹氫箟 block renderer銆佹彃浠跺拰濯掍綋 resolver 鍦ㄩ殣钘?block 涓嶆覆鏌撴椂涓嶆敹鍒板浣欐瀯寤?鍑犱綍浜嬩欢锛屽睍寮€鍚庤涓轰笌鏅€?block 涓€鑷淬€?  - 楠屾敹瑕佺偣锛氬鏋滃悗缁渶瑕佷笟鍔′晶鎸佷箙鍖栨姌鍙犵姸鎬侊紝搴旈€氳繃鐙珛 UI 鐘舵€佹垨 metadata 鎵╁睍鐐瑰疄鐜帮紝涓嶆薄鏌撶幇鏈夊唴瀹规ā鍨嬨€?
+- [x] P007: 琛ュ厖鑷姩鍖栦笌瑙嗚鍥炲綊娴嬭瘯 <!-- scope: test/controller/outline_controller_test.dart,test/widgets/wenz_rich_text_editor_test.dart,test/widgets/editor_golden_test.dart,test/widgets/goldens/editor_blocks.png,test/widgets/goldens/editor_advanced_blocks.png,docs/plan/plan_requirement_10_20260625-034349.md -->
+  - 楠屾敹瑕佺偣锛氳鐩?H1-H6銆佸绾у祵濂椼€佽繛缁爣棰樸€佺┖鏍囬銆佹棤瀛愬唴瀹规爣棰樸€佺埗瀛愬悓鏃舵姌鍙犮€佹爣棰樺垹闄?鏀圭骇/绉诲姩鍚庣殑鑼冨洿閲嶇畻銆?  - 楠屾敹瑕佺偣锛氳鐩栨姌鍙犲浘鏍囩偣鍑汇€侀敭鐩樿闂€侀殣钘?block 涓嶅懡涓€佸睍寮€鍚庨€夊尯鎭㈠銆佹煡鎵惧懡涓殣钘忓唴瀹瑰拰澶х翰璺宠浆闅愯棌鏍囬绛?widget 琛屼负銆?  - 楠屾敹瑕佺偣锛氭洿鏂版垨鏂板 golden 灞曠ず灞曞紑鎬併€佹姌鍙犳€併€佺鐢ㄦ€佸拰宓屽鏍囬鍦烘櫙锛涜褰?`flutter analyze` 涓庣浉鍏虫祴璇曟墽琛岀粨鏋溿€?
+## 鎬讳綋楠屾敹鏍囧噯
+- 鎵€鏈変换鍔?checkbox 鍧囧畬鎴愶紝涓旀瘡涓换鍔＄殑楠屾敹瑕佺偣閮芥湁鏄庣‘缁撹鎴栭獙璇佽褰曘€?- 鏍囬鎶樺彔浠呮敼鍙樼紪杈戝櫒瑙嗗浘鐘舵€侊紝涓嶅垹闄ゃ€佷笉绉诲姩銆佷笉鏀瑰啓浠讳綍 block 鍐呭鎴栧鍏ュ鍑烘暟鎹粨鏋勩€?- 鎶樺彔鑼冨洿鎸夋爣棰樺眰绾хǔ瀹氳绠楋紝瑕嗙洊澶氱骇鏍囬宓屽銆佽繛缁爣棰樸€佺┖鍐呭銆佹枃妗ｉ灏惧拰鍔ㄦ€佺紪杈戝悗鐨勮竟鐣屽満鏅€?- 鎶樺彔/灞曞紑浜や簰鍙榧犳爣銆佽Е鎺у拰閿洏鍙潬瑙﹀彂锛屽苟涓嶅奖鍝嶆枃鏈紪杈戙€侀€夊尯銆両ME銆侀摼鎺ャ€佽〃鏍笺€佸獟浣撳潡鍜屽璞″潡鏃㈡湁浜や簰銆?- 闅愯棌鍐呭鍦ㄦ煡鎵俱€佸ぇ绾茶烦杞€侀敋鐐硅烦杞€侀€夊尯鎭㈠鍜屾粴鍔ㄥ畾浣嶆椂鏈変竴鑷村彲瑙佹€х瓥鐣ワ紝涓嶅嚭鐜颁笉鍙鍏夋爣鎴栨棤娉曞畾浣嶇洰鏍囥€?- 鐩稿叧 controller銆亀idget銆乧odec銆乸lugin 鍜?golden 娴嬭瘯閫氳繃锛涜嫢瀛樺湪鏃㈡湁澶辫触锛岄渶鍦ㄨ繘搴﹀尯璁板綍鍛戒护銆佸け璐ュ師鍥犲垽鏂拰鍚庣画寤鸿銆?
+## 杩涘害鍖?- 褰撳墠鐘舵€侊細璁″垝宸插垱寤猴紝P001-P007 寰呭紑鍙戞墽琛屻€?- 褰撳墠璐熻矗浜猴細寰呭垎閰嶃€?- 涓嬩竴姝ワ細浠?P001 寮€濮嬬‘璁ゆ姌鍙犺寖鍥淬€佸叆鍙ｄ綅缃€佸彧璇绘ā寮忓拰闅愯棌鍐呭瀵艰埅绛栫暐銆?- 楠岃瘉璁板綍锛氭湰娆′粎鐢熸垚璁″垝鏂囦欢锛屾湭淇敼涓氬姟浠ｇ爜锛屾湭鎵ц鑷姩鍖栨祴璇曟垨鎵嬪伐楠屾敹銆?- 椋庨櫓璁板綍锛氱紪杈戝櫒褰撳墠娓叉煋銆侀€夊尯鍜屽嚑浣曞懡涓泦涓湪澶у瀷 widget 涓紝杩囨护闅愯棌 block 鍙兘褰卞搷 blockIndex銆佹粴鍔ㄥ畾浣嶅拰 selection overlay锛涢渶瑕佷紭鍏堥€氳繃娴嬭瘯绾︽潫琛屼负鍐嶅疄鐜般€?- P001 AutoPlan 瀹屾垚锛?026-06-24T19:50:35.751Z锛涙棩蹇楋細docs/progress/logs/20260625-034550_execute-P001.log
+- P002 AutoPlan 瀹屾垚锛?026-06-25T02:57:51.543Z锛涙棩蹇楋細docs/progress/logs/20260625-104955_execute-P002.log
+- P003 AutoPlan 瀹屾垚锛?026-06-25T03:33:19.947Z锛涙棩蹇楋細docs/progress/logs/20260625-112518_execute-P003.log
+- P004 AutoPlan 瀹屾垚锛?026-06-25T04:36:47.833Z锛涙棩蹇楋細docs/progress/logs/20260625-123230_execute-P004.log
+- P005 AutoPlan 瀹屾垚锛?026-06-25T05:23:26.649Z锛涙棩蹇楋細docs/progress/logs/20260625-131109_execute-P005.log
+- P006 AutoPlan 瀹屾垚锛?026-06-25T05:34:40.490Z锛涙棩蹇楋細docs/progress/logs/20260625-132450_execute-P006.log
+- P007 AutoPlan 瀹屾垚锛?026-06-25T05:50:45.065Z锛涙棩蹇楋細docs/progress/logs/20260625-134052_execute-P007.log
+
+**Addressing encoding issues**
+
+I see that the output is garbled due to encoding, but the structure is still visible. It seems like the default encoding in PowerShell is causing some weirdness. I wonder if using UTF-8 would help. I can try using the `-Encoding UTF8` option. Maybe I should also inspect a plan file more cleanly by using `Get-Content -Encoding utf8`. That should help clarify things!
+codex
+我确认一下 UTF-8 内容，避免写出不一致的格式。
+exec
+powershell.exe -Command "Get-Content -Encoding UTF8 docs\\plan\\plan_feedback_6_20260625-035040.md -TotalCount 220" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 183ms:
+# 反馈开发计划：表格悬浮工具栏改用系统 Overlay
+
+## 来源
+- 类型：反馈
+- 编号：6
+- 生成时间：2026-06-25 03:50:40
+
+## 原始内容
+表格悬浮工具栏，应该使用系统悬浮overlay实现，目前存在事件穿透问题
+
+## 需求理解
+- 当前表格悬浮工具栏仍依赖表格渲染树内部的浮动定位，容易受到父级 `Stack`、裁剪、命中测试范围和选区手势层影响，导致点击工具栏时事件继续穿透到底层表格或编辑器。
+- 本次目标是将表格工具栏迁移为 Flutter 系统浮层能力承载的 overlay，例如 `OverlayEntry` / `OverlayPortal` / `CompositedTransformFollower` 方案，让工具栏在独立浮层中完成定位、命中测试和生命周期管理。
+- 修复重点是事件不穿透、定位稳定、滚动跟随、选区变化自动刷新，以及现有表格命令能力不回归。
+- 本次不调整表格数据模型、命令语义、导入导出协议和列宽拖拽逻辑，除非为 overlay 锚点和状态同步提供必要的渲染层适配。
+
+## 任务计划
+- [x] P001: 复现并界定工具栏事件穿透 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/selection_gesture_overlay.dart,test/widgets/wenz_rich_text_editor_test.dart -->
+  - 验收要点：明确当前工具栏点击后会穿透到表格单元格、文本选区、拖拽手势或编辑器空白区域的最小复现场景。
+  - 验收要点：记录穿透发生时的命中测试链路、工具栏所在渲染层、父级尺寸/裁剪约束和选区手势层关系。
+  - 验收要点：确认问题修复范围限定在表格工具栏浮层、定位和事件拦截，不改变表格命令、文档模型和序列化结构。
+
+- [x] P002: 设计系统 Overlay 承载结构 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/table_floating_toolbar_overlay.dart,lib/src/widgets/block_renderer_registry.dart -->
+  - 验收要点：确定表格工具栏由编辑器级 overlay 宿主管理，而不是继续作为表格 `Stack` 的负偏移子节点显示。
+  - 验收要点：定义表格锚点、选区范围、工具栏 action 回调、可用状态和关闭条件的数据传递方式，避免 renderer 与 overlay 状态双向耦合。
+  - 验收要点：选择并记录具体 overlay 技术路线，优先保证跟随锚点、跨父级边界显示、可命中和可在测试中稳定定位。
+
+- [x] P003: 迁移表格工具栏渲染到 Overlay <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/table_floating_toolbar_overlay.dart -->
+  - 验收要点：选中表格单元格后，工具栏通过系统 overlay 显示在表格上方或可见区域内，不再依赖表格内部 `Positioned` 负偏移。
+  - 验收要点：工具栏在编辑器滚动、窗口尺寸变化、表格宽度变化、表格靠近视口顶部时保持位置稳定并自动重新计算。
+  - 验收要点：取消表格选区、切换到非表格 block、进入只读态或编辑器销毁时，overlay 能及时移除且不残留悬浮组件。
+
+- [x] P004: 阻断工具栏事件穿透 <!-- scope: lib/src/widgets/table_floating_toolbar_overlay.dart,lib/src/widgets/selection_gesture_overlay.dart,test/widgets/wenz_rich_text_editor_test.dart -->
+  - 验收要点：工具栏背景、按钮、分隔线和空白填充区域均有明确命中测试策略，点击和拖动不会继续触发表格选区、单元格聚焦或文本选择。
+  - 验收要点：工具栏按钮点击只触发对应 `TableToolbarActionIntent` 一次，不额外产生底层 tap、long press、drag 或 selection change。
+  - 验收要点：工具栏之外的编辑器区域仍可正常点击、拖选、滚动和唤起表格选区，不因 overlay 引入全屏遮罩阻塞正常交互。
+
+- [x] P005: 保持表格操作与生命周期一致 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/table_floating_toolbar_overlay.dart,lib/src/core/commands/table_commands.dart,test/widgets/wenz_rich_text_editor_test.dart -->
+  - 验收要点：插入/删除行列、切换表头、设置/清除背景色、列对齐、合并/拆分单元格、重置列宽等原有工具栏操作行为不回归。
+  - 验收要点：工具栏 action 执行后，表格选区、焦点、撤销/重做、文档变更通知和 overlay 刷新顺序保持一致，不出现 stale range 或空引用。
+  - 验收要点：多表格文档中只显示当前活动表格的工具栏，选区跨表格或表格被删除后 overlay 自动关闭。
+
+- [x] P006: 补充自动化与手工验收记录 <!-- scope: test/widgets/wenz_rich_text_editor_test.dart,docs/acceptance_manual_checklist.md,docs/plan/plan_feedback_6_20260625-035040.md -->
+  - 验收要点：新增或更新 widget 测试，覆盖工具栏显示于 overlay、按钮点击不穿透、点击工具栏外仍能编辑、滚动后工具栏跟随、选区取消后 overlay 消失。
+  - 验收要点：执行 `flutter analyze`、相关 widget 测试和必要的回归测试；若存在失败，需区分本次改动导致失败与既有失败。
+  - 验收要点：在本计划进度区记录每个任务的完成范围、验证命令、验证结果、遗留风险和后续建议。
+
+## 总体验收标准
+- 所有任务 checkbox 均完成，且每个任务的验收要点都有明确结论或验证记录。
+- 表格悬浮工具栏使用系统 overlay 方案承载，不再依赖表格内部负偏移浮动节点来模拟悬浮效果。
+- 点击表格工具栏任意可见区域不会穿透到底层表格、文本选区、编辑器手势层或滚动手势；工具栏外区域仍保持正常编辑交互。
+- 工具栏能随当前活动表格选区稳定显示、刷新和关闭，滚动、视口贴边、窗口尺寸变化、多表格切换和表格删除场景均无残留 overlay。
+- 原有表格工具栏命令、列宽拖拽、单元格选择、撤销/重做、只读态和焦点行为不回归。
+- 相关自动化测试、静态分析和必要手工验收通过；若存在既有失败，需要在进度区记录命令、失败原因判断和影响范围。
+
+## 进度区
+- 当前状态：计划已创建，P001-P006 待开发执行。
+- 当前负责人：待分配。
+- 下一步：从 P001 开始复现并记录表格工具栏事件穿透的命中测试链路。
+- 验证记录：本次仅生成计划文件，未修改业务代码，未执行自动化测试或手工验收。
+- 风险记录：系统 overlay 迁移会改变工具栏所在渲染树，需重点关注焦点保持、选区刷新、滚动跟随、测试定位和 overlay 生命周期清理。
+- P001 AutoPlan 完成：2026-06-24T20:01:25.268Z；日志：docs/progress/logs/20260625-035238_execute-P001.log
+- P002 AutoPlan 完成：2026-06-25T06:15:27.920Z；日志：docs/progress/logs/20260625-141120_execute-P002.log
+- P003 AutoPlan 完成：2026-06-25T06:39:51.664Z；日志：docs/progress/logs/20260625-143432_execute-P003.log
+- P004 AutoPlan 完成：2026-06-25T06:48:07.109Z；日志：docs/progress/logs/20260625-143957_execute-P004.log
+- P005 AutoPlan 完成：2026-06-25T10:34:52.915Z；日志：docs/progress/logs/20260625-182504_execute-P005.log
+- P006 AutoPlan 完成：2026-06-25T10:54:29.041Z；日志：docs/progress/logs/20260625-184326_execute-P006.log
+
+codex
+我在定位这些反馈对应的组件文件，方便把 scope 写准。
+mcp: codegraph/codegraph_files started
+mcp: codegraph/codegraph_files (completed)
+**Inspecting widget renderers**
+
+I need to look into the widgets, particularly the block renderers. The feedback I received mentions issues with menus, file cards, videos, images, and row dragging, so I have to find the relevant classes. I'll search in the codegraph for element renderers and consider using keywords like "file card," "video," "image," and "table." It makes sense to check those names to identify what's going on. Let's see what I find!
+codex
+我再把具体渲染器和菜单相关类找出来。
+mcp: codegraph/codegraph_search started
+mcp: codegraph/codegraph_search (completed)
+ERROR: Selected model is at capacity. Please try a different model.
+ERROR: Selected model is at capacity. Please try a different model.
+tokens used
+45,188

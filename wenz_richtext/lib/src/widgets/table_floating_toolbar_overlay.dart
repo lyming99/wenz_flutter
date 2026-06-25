@@ -10,7 +10,7 @@ typedef TableFloatingToolbarOverlayBuilder = Widget Function(
   BuildContext context,
 );
 
-/// Creates a request after the table anchor owns a [LayerLink] and global rect.
+/// Creates a request after the table anchor owns a [LayerLink] and overlay rect.
 typedef TableFloatingToolbarOverlayRequestBuilder
     = TableFloatingToolbarOverlayRequest Function({
   required Object owner,
@@ -23,10 +23,9 @@ typedef TableFloatingToolbarOverlayRequestBuilder
 ///
 /// The table renderer owns only the anchor and the current toolbar payload. The
 /// editor owns [TableFloatingToolbarOverlayHost], which renders this payload with
-/// Flutter's system [OverlayPortal] plus [CompositedTransformFollower]. This
-/// keeps the toolbar outside the table block's internal [Stack], so it can cross
-/// parent bounds and participate in overlay hit testing without making renderers
-/// manage overlay entries directly.
+/// Flutter's system [OverlayPortal]. This keeps the toolbar outside the table
+/// block's internal [Stack], so it can cross parent bounds and participate in
+/// overlay hit testing without making renderers manage overlay entries directly.
 @immutable
 class TableFloatingToolbarOverlayRequest {
   const TableFloatingToolbarOverlayRequest({
@@ -50,10 +49,10 @@ class TableFloatingToolbarOverlayRequest {
   /// Link followed by the system overlay entry.
   final LayerLink anchorLink;
 
-  /// Current global rect of the table block anchor.
+  /// Current rect of the table block anchor in the target overlay coordinates.
   final Rect anchorRect;
 
-  /// Top edge of the visible editor viewport in global coordinates.
+  /// Top edge of the visible editor viewport in target overlay coordinates.
   final double visibleTop;
 
   /// Active table identity used by hosts/tests to reason about request staleness.
@@ -220,14 +219,17 @@ class _TableFloatingToolbarOverlayHostState
 
   @override
   Widget build(BuildContext context) {
-    return OverlayPortal(
+    return OverlayPortal.overlayChildLayoutBuilder(
       controller: _portalController,
-      overlayChildBuilder: (context) {
+      overlayChildBuilder: (context, info) {
         final request = _request;
         if (request == null || !request.enabled) {
           return const SizedBox.shrink();
         }
-        return _TableFloatingToolbarOverlayEntry(request: request);
+        return _TableFloatingToolbarOverlayEntry(
+          request: request,
+          overlaySize: info.overlaySize,
+        );
       },
       child: widget.child,
     );
@@ -379,9 +381,13 @@ class _TableFloatingToolbarOverlayAnchorState
       controller.unregisterAnchor(owner: _owner);
       return;
     }
-    final anchorTopLeft = renderObject.localToGlobal(Offset.zero);
+    final overlayBox = _overlayRenderBoxFor(context);
+    final anchorTopLeft = renderObject.localToGlobal(
+      Offset.zero,
+      ancestor: overlayBox,
+    );
     final anchorRect = anchorTopLeft & renderObject.size;
-    final visibleTop = _visibleTopFor(context);
+    final visibleTop = _visibleTopFor(context, overlayBox);
     controller.updateAnchor(
       TableFloatingToolbarAnchorSnapshot(
         owner: _owner,
@@ -408,22 +414,40 @@ class _TableFloatingToolbarOverlayAnchorState
     );
   }
 
-  double _visibleTopFor(BuildContext context) {
+  RenderBox? _overlayRenderBoxFor(BuildContext context) {
+    final renderObject = Overlay.maybeOf(context)?.context.findRenderObject();
+    if (renderObject is RenderBox &&
+        renderObject.attached &&
+        renderObject.hasSize) {
+      return renderObject;
+    }
+    return null;
+  }
+
+  double _visibleTopFor(BuildContext context, RenderBox? overlayBox) {
     final scrollable = Scrollable.maybeOf(context);
     final viewportObject = scrollable?.context.findRenderObject();
     if (viewportObject is RenderBox &&
         viewportObject.attached &&
         viewportObject.hasSize) {
-      return viewportObject.localToGlobal(Offset.zero).dy;
+      return viewportObject.localToGlobal(Offset.zero, ancestor: overlayBox).dy;
     }
-    return MediaQuery.maybeOf(context)?.padding.top ?? 0;
+    final paddingTop = MediaQuery.maybeOf(context)?.padding.top ?? 0;
+    if (overlayBox == null) {
+      return paddingTop;
+    }
+    return overlayBox.globalToLocal(Offset(0, paddingTop)).dy;
   }
 }
 
 class _TableFloatingToolbarOverlayEntry extends StatefulWidget {
-  const _TableFloatingToolbarOverlayEntry({required this.request});
+  const _TableFloatingToolbarOverlayEntry({
+    required this.request,
+    required this.overlaySize,
+  });
 
   final TableFloatingToolbarOverlayRequest request;
+  final Size overlaySize;
 
   @override
   State<_TableFloatingToolbarOverlayEntry> createState() =>
@@ -441,33 +465,26 @@ class _TableFloatingToolbarOverlayEntryState
     _scheduleMeasure();
     final request = widget.request;
     final toolbarHeight = _toolbarHeight ?? request.fallbackHeight;
-    final preferredTop = -(toolbarHeight + request.gap);
-    final visibleTop = request.visibleTop - request.anchorRect.top;
-    final top = math.max(preferredTop, visibleTop);
     final minWidth = math.max(request.minWidth, request.anchorRect.width);
+    final maxLeft = math.max(0, widget.overlaySize.width - minWidth);
+    final left = request.anchorRect.left.clamp(0.0, maxLeft).toDouble();
+    final top = math.max(
+      request.anchorRect.top - toolbarHeight - request.gap,
+      request.visibleTop,
+    );
 
-    return Positioned.fill(
-      child: CompositedTransformFollower(
-        link: request.anchorLink,
-        showWhenUnlinked: false,
-        targetAnchor: Alignment.topLeft,
-        followerAnchor: Alignment.topLeft,
-        offset: Offset(0, top),
-        child: Align(
-          alignment: AlignmentDirectional.topStart,
-          widthFactor: 1,
-          heightFactor: 1,
-          child: ConstrainedBox(
-            key: _toolbarKey,
-            constraints: BoxConstraints(minWidth: minWidth),
-            child: Listener(
-              key: const ValueKey<String>(
-                'table-floating-toolbar-hit-test-blocker',
-              ),
-              behavior: HitTestBehavior.opaque,
-              child: request.toolbarBuilder(context),
-            ),
+    return Positioned(
+      left: left,
+      top: top,
+      child: ConstrainedBox(
+        key: _toolbarKey,
+        constraints: BoxConstraints(minWidth: minWidth),
+        child: Listener(
+          key: const ValueKey<String>(
+            'table-floating-toolbar-hit-test-blocker',
           ),
+          behavior: HitTestBehavior.opaque,
+          child: request.toolbarBuilder(context),
         ),
       ),
     );

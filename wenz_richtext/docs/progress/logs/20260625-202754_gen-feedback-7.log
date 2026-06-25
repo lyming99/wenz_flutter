@@ -1,0 +1,28 @@
+OpenAI Codex v0.121.0 (research preview)
+--------
+workdir: D:\project\GitHub\wenz_flutter\wenz_richtext
+model: gpt-5.5
+provider: custom
+approval: never
+sandbox: danger-full-access
+reasoning effort: xhigh
+reasoning summaries: none
+session id: 019efec0-47ec-75a3-b005-32a3c5fce42b
+--------
+user
+你是需求整理与开发计划生成者。
+请根据以下反馈，生成一个开发计划和验收标准。
+
+输出文件：D:\project\GitHub\wenz_flutter\wenz_richtext\docs\plan\plan_feedback_7_20260625-202754.md
+
+格式要求：
+- 每个任务必须严格使用固定格式：- [ ] P001: 任务标题 <!-- scope: lib/foo.dart,test/foo_test.dart -->
+- scope 必填，表示该任务预计修改的文件或模块；多个 scope 用英文逗号分隔；无法判断时写 <!-- scope: unknown -->，unknown 任务不会并发执行
+- 每个任务要有验收要点
+- 必须包含总体验收标准和进度区
+- 只写 plan 文件，不要改业务代码
+
+反馈 #7 内容：
+1.提及“@xxx”后面的文字无法被选中，优化一下，应该可以选中 2.引用块，要占用全行 3.todo项的checkbox，宽度太大 4.表格的工具栏，hover会报错，界面突然闪屏红色 5.表格的分割线没有显示，优化一下 6.各个元素的菜单，要尽量简约，不需要上线移动，最好将复杂的功能折叠到一个菜单 7.文件卡片元素，菜单弹出，宽度太低，尺寸存在问题，显示不全 8.视频元素，内容有溢出 9.图片、视频元素不需要显示标题，单击选中后，要显示工具栏，预览+菜单 10.每行元素聚焦时，鼠标hover时，左侧要显示拖拽按钮，支持整行内容拖拽，点击的话，则显示行菜单，例如：切换行格式为代码块、普通文本、标题
+ERROR: Selected model is at capacity. Please try a different model.
+ERROR: Selected model is at capacity. Please try a different model.

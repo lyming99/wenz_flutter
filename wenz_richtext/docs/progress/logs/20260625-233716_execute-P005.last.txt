@@ -1,0 +1,10 @@
+**完成情况**
+- 已修复表格分割线被单元格背景/选中层遮挡的问题：表格单元格边框改为前景绘制，见 `lib/src/widgets/wenz_rich_text_editor.dart:5376`。
+- 已补充回归断言，确保表格边框 `DecoratedBox` 使用 `DecorationPosition.foreground`，见 `test/widgets/wenz_rich_text_editor_test.dart:4014`。
+- 已同步更新表格合并单元格 golden：`test/widgets/goldens/editor_merged_table.png`。
+
+**验证**
+- 通过：`flutter test test/widgets/editor_golden_test.dart --plain-name "golden: merged table cell visual span"`。
+- 受阻：`flutter test test/widgets/wenz_rich_text_editor_test.dart --plain-name ...` 未运行到目标用例，当前文件存在既有编译错误：缺少 `_caretRenderOffsetForLogicalOffset`，我未处理该非 P005 问题。
+
+未修改 plan 文件，也未勾选任何 checkbox。

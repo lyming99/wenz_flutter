@@ -1,0 +1,14 @@
+已完成 P006，未修改 plan 文件、未勾选 checkbox。
+
+**改动摘要**
+- `lib/src/widgets/wenz_rich_text_editor.dart:4041` 将行级块菜单的上移/下移折叠到“更多块操作”二级菜单。
+- `lib/src/widgets/wenz_rich_text_editor.dart:5554` 简化表格悬浮工具栏，主层只保留常用插入/合并入口，其余放入“更多表格操作”。
+- `lib/src/widgets/wenz_rich_text_editor.dart:8353` 简化图片/对象块工具栏，图片宽度、重置尺寸、移动等低频项收进“更多块操作”。
+- `lib/src/widgets/wenz_rich_text_editor.dart:8809` 简化文件卡片菜单，状态标记和移动项进入二级菜单。
+- `test/widgets/wenz_rich_text_editor_test.dart:1575`、`test/widgets/editor_golden_test.dart:273` 已同步相关断言与操作路径。
+
+**验证**
+- 通过：`flutter analyze lib/src/widgets/wenz_rich_text_editor.dart`
+- 通过：`flutter analyze test/widgets/editor_golden_test.dart`
+- 阻塞：相关 widget 子集测试加载失败，原因是 `test/widgets/wenz_rich_text_editor_test.dart:6051`、`:6052`、`:6250` 引用了未定义的 `_caretRenderOffsetForLogicalOffset`，失败点不在本次菜单改动区域。
+- 同样阻塞：`flutter analyze test/widgets/wenz_rich_text_editor_test.dart` 报上述 3 个既有 undefined function。

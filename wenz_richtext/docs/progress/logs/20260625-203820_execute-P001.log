@@ -1,0 +1,371 @@
+OpenAI Codex v0.121.0 (research preview)
+--------
+workdir: D:\project\GitHub\wenz_flutter\wenz_richtext
+model: gpt-5.5
+provider: custom
+approval: never
+sandbox: workspace-write [workdir, /tmp, $TMPDIR, C:\Users\98000\.codex\memories]
+reasoning effort: xhigh
+reasoning summaries: none
+session id: 019efec4-c06a-7031-9d29-348d2c0daade
+--------
+user
+你是开发执行者。
+请只执行指定任务 P001，不要提前执行其它任务，也不要顺手处理其它 checkbox。
+
+plan 文件（只读）：D:\project\GitHub\wenz_flutter\wenz_richtext\docs\plan\plan_feedback_7_20260625-202854.md
+指定任务：- [ ] P001: 修复 mention 后续文字选择 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,test/widgets/wenz_rich_text_editor_test.dart,test/core/selection_commands_test.dart -->
+任务 scope：lib/src/widgets/wenz_rich_text_editor.dart, test/widgets/wenz_rich_text_editor_test.dart, test/core/selection_commands_test.dart
+
+完成后必须：
+- plan 文件是只读上下文：不要修改 plan 文件，不要勾选 checkbox，不要更新 plan 进度区
+- AutoPlan 会在任务成功后统一写回数据库、checkbox 和进度区
+- 只修改当前任务 scope 直接相关的业务文件
+- 如需测试，只运行与当前任务直接相关的最小测试集，不要运行全量测试或与本任务无关的测试
+- 只有当前任务本身明确要求全量验证时，才允许运行全量测试
+- 不输出完整 diff、源码全文或长文件列表
+- 中文文件读写使用 UTF-8
+**Inspecting text selection functions**
+
+The search output didn't show the relevant selection details I'm looking for. I think I need to look closely at the text selection surface functions. I should search for `_TextSelectionSurface` and the related functions about caret and selection mapping. There might be an issue with offset mapping, especially with inline embeds. I want to check around 6518 and see how `_TextSelectionSurface` uses textLength and offsetMapper. I'll focus on selection hit testing methods.
+codex
+我看 `_TextSelectionSurface` 的命中测试和偏移映射，找 mention 断点。
+exec
+powershell.exe -Command '$lines = Get-Content '"'lib/src/widgets/wenz_rich_text_editor.dart'; "'$start=6510; $end=6840; for($i=$start; $i -le $end; $i++){ if($i -le $lines.Length){ '"'{0,5}: {1}' -f "'$i, $lines[$i-1] } }' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 860ms:
+ 6510: 
+ 6511: class _TextSelectionSurface extends StatefulWidget {
+ 6512:   const _TextSelectionSurface({
+ 6513:     required this.blockId,
+ 6514:     required this.blockIndex,
+ 6515:     required this.path,
+ 6516:     required this.textLength,
+ 6517:     required this.textSpan,
+ 6518:     required this.offsetMapper,
+ 6519:     required this.textAlign,
+ 6520:     required this.minHeight,
+ 6521:     required this.selection,
+ 6522:     required this.showCaret,
+ 6523:     required this.registry,
+ 6524:     required this.showDebugOverlay,
+ 6525:     this.findRanges = const <_FindHighlightRange>[],
+ 6526:     this.hitTestKey,
+ 6527:   });
+ 6528: 
+ 6529:   final String blockId;
+ 6530:   final int blockIndex;
+ 6531:   final PositionPath path;
+ 6532:   final int textLength;
+ 6533:   final InlineSpan textSpan;
+ 6534:   final _InlineOffsetMapper offsetMapper;
+ 6535:   final TextAlign textAlign;
+ 6536:   final double minHeight;
+ 6537:   final DocumentSelection? selection;
+ 6538:   final bool showCaret;
+ 6539:   final BlockGeometryRegistry registry;
+ 6540:   final bool showDebugOverlay;
+ 6541:   final List<_FindHighlightRange> findRanges;
+ 6542: 
+ 6543:   /// Optional GlobalKey on a wider hit-test frame (e.g. a table cell's whole
+ 6544:   /// frame) whose local space differs from this surface's text-local space.
+ 6545:   /// When null the surface's own [_surfaceKey] is used for hit-testing. When
+ 6546:   /// set, the State registers a transform that maps hit-local offsets onto
+ 6547:   /// this surface's text-local space (see [_hitLocalToTextLocal]).
+ 6548:   final GlobalKey? hitTestKey;
+ 6549: 
+ 6550:   @override
+ 6551:   State<_TextSelectionSurface> createState() => _TextSelectionSurfaceState();
+ 6552: }
+ 6553: 
+ 6554: class _TextSelectionSurfaceState extends State<_TextSelectionSurface> {
+ 6555:   TextLayoutService? _ownedLayoutService;
+ 6556:   final GlobalKey _surfaceKey = GlobalKey();
+ 6557:   double _lastMaxWidth = 0;
+ 6558: 
+ 6559:   /// Drives the caret blink. Period ~530ms, toggling [value] between 0 and 1.
+ 6560:   /// Uses a real [Timer] rather than an [AnimationController]+ticker so the
+ 6561:   /// repeating blink does not keep the frame scheduler busy 鈥?this lets tests
+ 6562:   /// (and idle frames) settle. The timer only fires on real time progress, so
+ 6563:   /// headless `pump()`/`pumpAndSettle()` without a duration are not blocked.
+ 6564:   Timer? _blinkTimer;
+ 6565: 
+ 6566:   /// Current blink phase: 1.0 = caret visible, 0.0 = caret hidden. Toggled by
+ 6567:   /// [_blinkTimer]; defaults to visible so the caret shows immediately on focus.
+ 6568:   double _blinkValue = 1.0;
+ 6569:   bool _blinkActive = false;
+ 6570: 
+ 6571:   /// True while a post-frame [_syncBlink] is scheduled but not yet fired.
+ 6572:   /// Prevents stacking multiple syncs across rapid rebuilds within one frame.
+ 6573:   bool _blinkSyncPending = false;
+ 6574: 
+ 6575:   /// The layout service for this surface. Prefers the editor-level
+ 6576:   /// [SharedTextLayoutCache] (so the laid-out painter survives a virtualised
+ 6577:   /// remount); falls back to a private instance when no scope is present (e.g.
+ 6578:   /// in tests that mount the surface in isolation).
+ 6579:   TextLayoutService get _layoutService {
+ 6580:     final shared = _SharedLayoutCacheScope.of(context);
+ 6581:     if (shared != null) {
+ 6582:       return shared.entryFor(widget.blockId, widget.path.toString());
+ 6583:     }
+ 6584:     return _ownedLayoutService ??= TextLayoutService();
+ 6585:   }
+ 6586: 
+ 6587:   @override
+ 6588:   void initState() {
+ 6589:     super.initState();
+ 6590:     _register();
+ 6591:   }
+ 6592: 
+ 6593:   @override
+ 6594:   void didUpdateWidget(covariant _TextSelectionSurface oldWidget) {
+ 6595:     super.didUpdateWidget(oldWidget);
+ 6596:     if (oldWidget.registry != widget.registry ||
+ 6597:         oldWidget.blockId != widget.blockId ||
+ 6598:         oldWidget.path != widget.path) {
+ 6599:       oldWidget.registry.unregister(
+ 6600:         oldWidget.blockId,
+ 6601:         oldWidget.path,
+ 6602:         _surfaceKey,
+ 6603:       );
+ 6604:     }
+ 6605:     if (oldWidget.registry != widget.registry ||
+ 6606:         oldWidget.blockId != widget.blockId ||
+ 6607:         oldWidget.blockIndex != widget.blockIndex ||
+ 6608:         oldWidget.path != widget.path ||
+ 6609:         oldWidget.textLength != widget.textLength ||
+ 6610:         oldWidget.textSpan != widget.textSpan) {
+ 6611:       _register();
+ 6612:     }
+ 6613:     // When the caret stays visible but its position changes (typing, arrow
+ 6614:     // keys, programmatic moves), reset the blink phase so the caret is shown
+ 6615:     // immediately rather than possibly landing in its hidden half-cycle 鈥?    // matching the platform EditableText behaviour where every selection
+ 6616:     // change makes the caret snap back to visible.
+ 6617:     if (oldWidget.selection != widget.selection) {
+ 6618:       _resetBlinkPhase();
+ 6619:     }
+ 6620:   }
+ 6621: 
+ 6622:   @override
+ 6623:   void dispose() {
+ 6624:     _blinkTimer?.cancel();
+ 6625:     widget.registry.unregister(widget.blockId, widget.path, _surfaceKey);
+ 6626:     // Only forget the private fallback; shared-cache entries are owned by the
+ 6627:     // cache and survive this surface's unmount so the painter is reused on the
+ 6628:     // next remount.
+ 6629:     _ownedLayoutService?.forget();
+ 6630:     super.dispose();
+ 6631:   }
+ 6632: 
+ 6633:   /// Starts or stops the blink timer to match [caretVisible]. Idempotent so it
+ 6634:   /// is safe to call from build.
+ 6635:   void _syncBlink(bool caretVisible) {
+ 6636:     if (caretVisible && !_blinkActive) {
+ 6637:       _startBlinkTimer();
+ 6638:     } else if (!caretVisible && _blinkActive) {
+ 6639:       _blinkActive = false;
+ 6640:       _blinkTimer?.cancel();
+ 6641:       _blinkTimer = null;
+ 6642:       _blinkValue = 1.0;
+ 6643:     }
+ 6644:   }
+ 6645: 
+ 6646:   /// (Re)arms the blink timer with the caret forced visible. Called when the
+ 6647:   /// caret first becomes visible, and again on every selection change while it
+ 6648:   /// stays visible, so the caret snaps back to its visible phase instead of
+ 6649:   /// possibly lingering in the hidden half-cycle.
+ 6650:   void _startBlinkTimer() {
+ 6651:     _blinkActive = true;
+ 6652:     _blinkValue = 1.0;
+ 6653:     _blinkTimer?.cancel();
+ 6654:     _blinkTimer = Timer.periodic(
+ 6655:       _kBlinkHalfPeriod,
+ 6656:       (_) {
+ 6657:         _blinkValue = _blinkValue == 1.0 ? 0.0 : 1.0;
+ 6658:         if (mounted) {
+ 6659:           setState(() {});
+ 6660:         }
+ 6661:       },
+ 6662:     );
+ 6663:   }
+ 6664: 
+ 6665:   /// Resets the blink phase to visible and restarts the timer, so a caret that
+ 6666:   /// is mid-hidden-phase snaps back into view immediately. No-op when the
+ 6667:   /// caret is not currently blinking.
+ 6668:   void _resetBlinkPhase() {
+ 6669:     if (!_blinkActive) {
+ 6670:       return;
+ 6671:     }
+ 6672:     _startBlinkTimer();
+ 6673:     if (mounted) {
+ 6674:       setState(() {});
+ 6675:     }
+ 6676:   }
+ 6677: 
+ 6678:   void _register() {
+ 6679:     widget.registry.register(
+ 6680:       BlockEntry(
+ 6681:         blockId: widget.blockId,
+ 6682:         blockIndex: widget.blockIndex,
+ 6683:         path: widget.path,
+ 6684:         textLength: widget.textLength,
+ 6685:         key: _surfaceKey,
+ 6686:         positionFromLocal: _offsetForLocalPosition,
+ 6687:         wordRangeAt: _wordRangeAt,
+ 6688:         caretRectAt: _caretRectAt,
+ 6689:         localCaretRectAt: _localCaretRectAt,
+ 6690:         localComposingRectForRange: _localComposingRectForRange,
+ 6691:         verticalMoveAt: _verticalMoveAt,
+ 6692:         hitTestKey: widget.hitTestKey,
+ 6693:         hitLocalToTextLocal:
+ 6694:             widget.hitTestKey == null ? null : _hitLocalToTextLocal,
+ 6695:       ),
+ 6696:     );
+ 6697:   }
+ 6698: 
+ 6699:   /// Maps a tap offset in the registered hit-test frame's local space into
+ 6700:   /// this surface's text-local space. Only used when a separate [hitTestKey]
+ 6701:   /// was provided (table cells); otherwise the registry treats the text
+ 6702:   /// surface itself as the hit-test box and this is never called.
+ 6703:   ///
+ 6704:   /// Resolves both render boxes at hit-test time and adds the global delta
+ 6705:   /// between them 鈥?robust to padding and to the vertical centring gap that
+ 6706:   /// `TableCellVerticalAlignment.middle` introduces for short cells.
+ 6707:   Offset _hitLocalToTextLocal(Offset hitLocal) {
+ 6708:     final hitKey = widget.hitTestKey;
+ 6709:     if (hitKey == null) {
+ 6710:       return hitLocal;
+ 6711:     }
+ 6712:     final cellBox = hitKey.currentContext?.findRenderObject();
+ 6713:     final textBox = _surfaceKey.currentContext?.findRenderObject();
+ 6714:     if (cellBox is! RenderBox || textBox is! RenderBox) {
+ 6715:       // Layout not ready: fall back to stripping the known 8px cell padding.
+ 6716:       // There is no centring correction here, but this path is only hit
+ 6717:       // before first layout and is strictly better than the raw offset.
+ 6718:       return hitLocal - const Offset(8, 8);
+ 6719:     }
+ 6720:     final cellOrigin = cellBox.localToGlobal(Offset.zero);
+ 6721:     final textOrigin = textBox.localToGlobal(Offset.zero);
+ 6722:     // hitLocal is cell-relative; convert to text-surface-relative. Since both
+ 6723:     // boxes share global space: textLocal = hitLocal + (cellOrigin - textOrigin).
+ 6724:     // (cellOrigin < textOrigin because the text sits inside the padding, so this
+ 6725:     // subtracts the padding/centring offset, landing the tap on the text.)
+ 6726:     final textLocal = hitLocal +
+ 6727:         Offset(cellOrigin.dx - textOrigin.dx, cellOrigin.dy - textOrigin.dy);
+ 6728:     // Clamp into the text surface so an off-text tap (e.g. a bottom gutter
+ 6729:     // below a centred short cell) maps to the nearest caret edge rather than a
+ 6730:     // point outside the painter's line metrics.
+ 6731:     return Offset(
+ 6732:       textLocal.dx.clamp(0, textBox.size.width),
+ 6733:       textLocal.dy.clamp(0, textBox.size.height),
+ 6734:     );
+ 6735:   }
+ 6736: 
+ 6737:   int _offsetForLocalPosition(Offset localPosition) {
+ 6738:     final painter = _layoutService.layout(
+ 6739:       span: widget.textSpan,
+ 6740:       textAlign: widget.textAlign,
+ 6741:       textDirection: Directionality.of(context),
+ 6742:       maxWidth: _lastMaxWidth,
+ 6743:     );
+ 6744:     final renderLength = widget.textSpan.toPlainText().length;
+ 6745:     final renderOffset = _layoutService.offsetAt(
+ 6746:       painter,
+ 6747:       localPosition,
+ 6748:       renderLength,
+ 6749:     );
+ 6750:     return widget.offsetMapper.logicalOffsetForHit(
+ 6751:       painter,
+ 6752:       localPosition,
+ 6753:       renderOffset,
+ 6754:     );
+ 6755:   }
+ 6756: 
+ 6757:   TextRange _wordRangeAt(int offset) {
+ 6758:     final painter = _layoutService.layout(
+ 6759:       span: widget.textSpan,
+ 6760:       textAlign: widget.textAlign,
+ 6761:       textDirection: Directionality.of(context),
+ 6762:       maxWidth: _lastMaxWidth,
+ 6763:     );
+ 6764:     final renderOffset =
+ 6765:         widget.offsetMapper.renderOffsetForLogicalOffset(offset);
+ 6766:     final renderRange = _layoutService.wordRangeAt(painter, renderOffset);
+ 6767:     final start = widget.offsetMapper.logicalOffsetForRenderOffset(
+ 6768:       renderRange.start,
+ 6769:     );
+ 6770:     final end =
+ 6771:         widget.offsetMapper.logicalOffsetForRenderOffset(renderRange.end);
+ 6772:     return TextRange(
+ 6773:       start: start < end ? start : end,
+ 6774:       end: start < end ? end : start,
+ 6775:     );
+ 6776:   }
+ 6777: 
+ 6778:   /// Returns the caret's global [Rect] for [offset] in this block. Translates
+ 6779:   /// the laid-out caret's local top-left + height into screen coordinates via
+ 6780:   /// the surface render box.
+ 6781:   Rect? _caretRectAt(int offset) {
+ 6782:     final renderObject = _surfaceKey.currentContext?.findRenderObject();
+ 6783:     if (renderObject is! RenderBox || !renderObject.hasSize) {
+ 6784:       return null;
+ 6785:     }
+ 6786:     final localRect = _localCaretRectAt(offset);
+ 6787:     if (localRect == null) {
+ 6788:       return null;
+ 6789:     }
+ 6790:     return renderObject.localToGlobal(localRect.topLeft) & localRect.size;
+ 6791:   }
+ 6792: 
+ 6793:   Rect? _localCaretRectAt(int offset) {
+ 6794:     final painter = _layoutService.layout(
+ 6795:       span: widget.textSpan,
+ 6796:       textAlign: widget.textAlign,
+ 6797:       textDirection: Directionality.of(context),
+ 6798:       maxWidth: _lastMaxWidth,
+ 6799:     );
+ 6800:     final clamped = offset.clamp(0, widget.textLength).toInt();
+ 6801:     final renderOffset = widget.offsetMapper.renderOffsetForLogicalOffset(
+ 6802:       clamped,
+ 6803:     );
+ 6804:     final local = _layoutService.caretOffset(painter, renderOffset);
+ 6805:     final height = _layoutService.caretHeight(painter, renderOffset) ??
+ 6806:         painter.preferredLineHeight;
+ 6807:     // Width matches the painted stroke so the IME candidate window is anchored
+ 6808:     // to the caret the user actually sees.
+ 6809:     return Rect.fromLTWH(
+ 6810:       local.dx,
+ 6811:       local.dy,
+ 6812:       _kCaretStrokeWidth,
+ 6813:       height,
+ 6814:     );
+ 6815:   }
+ 6816: 
+ 6817:   Rect? _localComposingRectForRange(int start, int end) {
+ 6818:     final painter = _layoutService.layout(
+ 6819:       span: widget.textSpan,
+ 6820:       textAlign: widget.textAlign,
+ 6821:       textDirection: Directionality.of(context),
+ 6822:       maxWidth: _lastMaxWidth,
+ 6823:     );
+ 6824:     final safeStart = start.clamp(0, widget.textLength).toInt();
+ 6825:     final safeEnd = end.clamp(safeStart, widget.textLength).toInt();
+ 6826:     if (safeStart == safeEnd) {
+ 6827:       return _localCaretRectAt(safeStart);
+ 6828:     }
+ 6829:     final renderStart = widget.offsetMapper.renderOffsetForLogicalOffset(
+ 6830:       safeStart,
+ 6831:     );
+ 6832:     final renderEnd = widget.offsetMapper.renderOffsetForLogicalOffset(safeEnd);
+ 6833:     final boxes =
+ 6834:         _layoutService.selectionBoxes(painter, renderStart, renderEnd);
+ 6835:     if (boxes.isEmpty) {
+ 6836:       return _localCaretRectAt(safeStart);
+ 6837:     }
+ 6838:     var rect = boxes.first.toRect();
+ 6839:     for (final box in boxes.skip(1)) {
+ 6840:       rect = rect.expandToInclude(box.toRect());
+
+ERROR: Selected model is at capacity. Please try a different model.
+ERROR: Selected model is at capacity. Please try a different model.
+tokens used
+72,197

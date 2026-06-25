@@ -1,0 +1,12 @@
+**P007 已完成**
+- 修正文件卡片附件菜单宽度：`PopupMenuButton.constraints` 改为菜单宽度约束，避免菜单被 32px 误压缩：`lib/src/widgets/wenz_rich_text_editor.dart:132`
+- 保留附件按钮 32x32 紧凑尺寸，避免菜单修复影响文件卡片布局：`lib/src/widgets/wenz_rich_text_editor.dart:8827`
+- 同步约束“更多块操作”二级菜单宽度，覆盖上传状态相关操作：`lib/src/widgets/wenz_rich_text_editor.dart:8875`
+- 补充文件卡片菜单尺寸断言：按钮保持 32px，一级/二级菜单项宽度至少 176px：`test/widgets/wenz_rich_text_editor_test.dart:2501`
+
+**验证**
+- 通过：`dart analyze lib/src/widgets/wenz_rich_text_editor.dart`
+- 通过：`flutter test test/controller/file_block_controller_test.dart`
+- 受阻：`flutter test test/widgets/wenz_rich_text_editor_test.dart --plain-name "file block stays compact and updates status from action menu"` 当前因既有缺失 helper `_caretRenderOffsetForLogicalOffset` 无法编译，位置在 `test/widgets/wenz_rich_text_editor_test.dart:6073`，未处理该非 P007 问题。
+
+未修改 plan 文件，也未勾选 checkbox。工作区里已有其它非 P007 改动/未跟踪文件，我没有处理。

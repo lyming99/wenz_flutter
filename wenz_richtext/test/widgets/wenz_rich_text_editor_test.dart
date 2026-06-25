@@ -110,7 +110,10 @@ void main() {
     expect(_richText('Cell A'), findsOneWidget);
     expect(_imageBlockFinder('image1'), findsOneWidget);
     expect(find.text('[image: hero.png]'), findsNothing);
-    expect(find.text('Hero caption'), findsOneWidget);
+    expect(find.text('Hero caption'), findsNothing);
+    final imageBlock =
+        controller.document.blocks.whereType<ImageBlockNode>().single;
+    expect(imageBlock.caption, 'Hero caption');
     expect(find.byTooltip('设置图片宽度'), findsNothing);
     expect(find.text('[video: clip]'), findsOneWidget);
   });
@@ -1116,6 +1119,16 @@ void main() {
       ),
     );
     expect(decoration.border, isNull);
+    final editorRect = tester.getRect(find.byType(WenzRichTextEditor));
+    final expectedQuoteLeft =
+        editorRect.left + 16 + BlockDragHandleSpec.railWidth;
+    final expectedQuoteRight = editorRect.right - 16;
+    final firstQuoteRect = tester.getRect(backgroundFinder.first);
+    final secondQuoteRect = tester.getRect(backgroundFinder.last);
+    expect(firstQuoteRect.left, closeTo(expectedQuoteLeft, 0.001));
+    expect(firstQuoteRect.right, closeTo(expectedQuoteRight, 0.001));
+    expect(secondQuoteRect.left, closeTo(expectedQuoteLeft, 0.001));
+    expect(secondQuoteRect.right, closeTo(expectedQuoteRight, 0.001));
     final accentFinder = find.byKey(
       const ValueKey<String>('wenz-richtext-quote-accent'),
     );
@@ -1140,6 +1153,16 @@ void main() {
       blockIndex: 0,
       baseOffset: 0,
       extentOffset: 1,
+    );
+
+    await _tapSingle(
+        tester, Offset(secondQuoteRect.right - 4, secondQuoteRect.center.dy));
+    _expectBlockTextSelection(
+      controller.selection,
+      blockId: 'quote2',
+      blockIndex: 1,
+      baseOffset: 0,
+      extentOffset: 0,
     );
   });
 
@@ -1603,12 +1626,21 @@ void main() {
     );
     await tester.pump();
 
-    await tester.tap(find.byTooltip('复制块引用'));
-    await tester.pump();
+    expect(find.byTooltip('预览媒体'), findsOneWidget);
+    expect(find.byTooltip('复制块引用'), findsNothing);
+    expect(find.byTooltip('创建块副本'), findsNothing);
+    expect(find.byTooltip('删除块'), findsNothing);
+
+    await tester.tap(find.byTooltip('更多块操作'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('复制块引用'));
+    await tester.pumpAndSettle();
     expect(clipboardText, 'hero.png');
 
-    await tester.tap(find.byTooltip('创建块副本'));
-    await tester.pump();
+    await tester.tap(find.byTooltip('更多块操作'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('创建块副本'));
+    await tester.pumpAndSettle();
 
     expect(controller.document.blocks, hasLength(4));
     final duplicate = controller.document.blocks[2] as ImageBlockNode;
@@ -1617,15 +1649,19 @@ void main() {
     expect(controller.selection?.extent.blockId, duplicate.id);
     expect(controller.selection?.extent.blockIndex, 2);
 
-    await tester.tap(find.byTooltip('上移块'));
-    await tester.pump();
+    await tester.tap(find.byTooltip('更多块操作'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('上移块'));
+    await tester.pumpAndSettle();
 
     expect(controller.document.blocks[1].id, duplicate.id);
     expect(controller.document.blocks[2].id, 'image1');
     expect(controller.selection?.extent.blockIndex, 1);
 
-    await tester.tap(find.byTooltip('删除块'));
-    await tester.pump();
+    await tester.tap(find.byTooltip('更多块操作'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('删除块'));
+    await tester.pumpAndSettle();
 
     expect(controller.document.blocks, hasLength(3));
     expect(controller.document.blocks[1].id, 'image1');
@@ -1663,12 +1699,8 @@ void main() {
       ),
     );
 
-    IconButton toolbarButton(IconData icon) {
-      return tester.widget<IconButton>(find.widgetWithIcon(IconButton, icon));
-    }
-
-    expect(toolbarButton(Icons.keyboard_arrow_up).onPressed, isNull);
-    expect(toolbarButton(Icons.keyboard_arrow_down).onPressed, isNull);
+    expect(find.byTooltip('上移块'), findsNothing);
+    expect(find.byTooltip('下移块'), findsNothing);
 
     await pumpEditor(
       WenzRichTextController(
@@ -1680,14 +1712,17 @@ void main() {
         selection: objectBlockSelection('file1', 0),
       ),
     );
-    await tester.tap(find.byTooltip('附件操作'));
+    await _openFileActionMenu(tester);
+    expect(find.text('上移块'), findsNothing);
+    expect(find.text('下移块'), findsNothing);
+    await tester.tap(find.text('更多块操作'));
     await tester.pumpAndSettle();
 
-    PopupMenuItem<ObjectBlockAction> menuItem(String label) {
-      return tester.widget<PopupMenuItem<ObjectBlockAction>>(
+    PopupMenuItem menuItem(String label) {
+      return tester.widget<PopupMenuItem>(
         find.ancestor(
           of: find.text(label),
-          matching: find.byType(PopupMenuItem<ObjectBlockAction>),
+          matching: find.byType(PopupMenuItem),
         ),
       );
     }
@@ -1753,8 +1788,19 @@ void main() {
         );
     expect(handleOpacity().opacity, BlockDragHandleSpec.idleOpacity);
 
+    controller.setSelection(collapsedTextSelection('p0', 0, 0));
+    await tester.pump();
+    expect(handleOpacity().opacity, BlockDragHandleSpec.idleOpacity);
+    controller.setSelection(null);
+    await tester.pump();
+    expect(handleOpacity().opacity, BlockDragHandleSpec.idleOpacity);
+
     final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
-    await mouse.addPointer(location: tester.getCenter(handle));
+    await mouse.addPointer(
+        location: tester.getCenter(_richText('First block')));
+    await tester.pump();
+    expect(handleOpacity().opacity, BlockDragHandleSpec.idleOpacity);
+    await mouse.moveTo(tester.getCenter(handle));
     await tester.pump();
     expect(handleOpacity().opacity, BlockDragHandleSpec.hoverOpacity);
     await mouse.removePointer();
@@ -1767,42 +1813,29 @@ void main() {
       '复制块内容',
       '复制块引用',
       '创建块副本',
-      '上移块',
-      '下移块',
+      '更多块操作',
       '删除块',
     ]) {
       expect(find.text(label), findsOneWidget);
     }
+    expect(find.text('上移块'), findsNothing);
+    expect(find.text('下移块'), findsNothing);
 
-    PopupMenuItem<ObjectBlockAction> menuItem(String label) {
-      return tester.widget<PopupMenuItem<ObjectBlockAction>>(
-        find.ancestor(
-          of: find.text(label),
-          matching: find.byType(PopupMenuItem<ObjectBlockAction>),
-        ),
-      );
-    }
-
-    expect(menuItem('上移块').enabled, isFalse);
-    expect(menuItem('下移块').enabled, isTrue);
-
-    await tester.tap(
-      find.ancestor(
-        of: find.text('复制块内容'),
-        matching: find.byType(PopupMenuItem<ObjectBlockAction>),
-      ),
-    );
+    await tester.tap(_popupMenuItemFinder('复制块内容'));
     await tester.pumpAndSettle();
     expect(clipboardText, 'First block');
 
     await tester.tap(_blockDragHandleFinder('p0'));
     await tester.pumpAndSettle();
-    await tester.tap(
-      find.ancestor(
-        of: find.text('下移块'),
-        matching: find.byType(PopupMenuItem<ObjectBlockAction>),
-      ),
-    );
+    await tester.tap(find.text('更多块操作'));
+    await tester.pumpAndSettle();
+
+    PopupMenuItem menuItem(String label) => _popupMenuItem(tester, label);
+
+    expect(menuItem('上移块').enabled, isFalse);
+    expect(menuItem('下移块').enabled, isTrue);
+
+    await tester.tap(_popupMenuItemFinder('下移块'));
     await tester.pumpAndSettle();
 
     expect(
@@ -1811,6 +1844,70 @@ void main() {
     );
     expect(controller.selection?.extent.blockId, 'p0');
     expect(controller.selection?.extent.blockIndex, 1);
+  });
+
+  testWidgets('block drag handle menu switches row formats', (tester) async {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p0',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'print(1)')],
+          ),
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'after')],
+          ),
+        ],
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WenzRichTextEditor(
+            controller: controller,
+            enableIme: false,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await _openBlockMoreMenu(tester, 'p0');
+    expect(_popupMenuItem(tester, '普通文本').enabled, isFalse);
+    expect(_popupMenuItem(tester, '标题').enabled, isTrue);
+    expect(_popupMenuItem(tester, '代码块').enabled, isTrue);
+
+    await tester.tap(find.text('标题'));
+    await tester.pumpAndSettle();
+    var block = controller.document.blocks.first as TextBlockNode;
+    expect(block.type, BlockType.heading);
+    expect(block.attributes.level, 1);
+    expect(block.plainText, 'print(1)');
+    expect(controller.selection?.extent.blockId, 'p0');
+    expect(controller.selection?.extent.blockIndex, 0);
+
+    await _openBlockMoreMenu(tester, 'p0');
+    expect(_popupMenuItem(tester, '标题').enabled, isFalse);
+    await tester.tap(find.text('代码块'));
+    await tester.pumpAndSettle();
+    final codeBlock = controller.document.blocks.first as CodeBlockNode;
+    expect(codeBlock.code, 'print(1)');
+    expect(controller.selection?.extent.path.isBlockCode, isTrue);
+
+    await _openBlockMoreMenu(tester, 'p0');
+    expect(_popupMenuItem(tester, '代码块').enabled, isFalse);
+    await tester.tap(find.text('普通文本'));
+    await tester.pumpAndSettle();
+    block = controller.document.blocks.first as TextBlockNode;
+    expect(block.type, BlockType.paragraph);
+    expect(block.plainText, 'print(1)');
+    expect(controller.undo(), isTrue);
+    await tester.pump();
+    expect(controller.document.blocks.first, isA<CodeBlockNode>());
   });
 
   testWidgets('block drag handle menu routes object block actions', (
@@ -1865,12 +1962,29 @@ void main() {
 
     await tester.tap(_blockDragHandleFinder('image1'));
     await tester.pumpAndSettle();
+    expect(find.text('更多块操作'), findsOneWidget);
+    expect(find.text('上移块'), findsNothing);
+    expect(find.text('下移块'), findsNothing);
 
-    PopupMenuItem<ObjectBlockAction> menuItem(String label) {
-      return tester.widget<PopupMenuItem<ObjectBlockAction>>(
+    await tester.tap(
+      find.ancestor(
+        of: find.text('复制块引用'),
+        matching: find.byType(PopupMenuItem),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(clipboardText, 'hero.png');
+
+    await tester.tap(_blockDragHandleFinder('image1'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('更多块操作'));
+    await tester.pumpAndSettle();
+
+    PopupMenuItem menuItem(String label) {
+      return tester.widget<PopupMenuItem>(
         find.ancestor(
           of: find.text(label),
-          matching: find.byType(PopupMenuItem<ObjectBlockAction>),
+          matching: find.byType(PopupMenuItem),
         ),
       );
     }
@@ -1880,19 +1994,8 @@ void main() {
 
     await tester.tap(
       find.ancestor(
-        of: find.text('复制块引用'),
-        matching: find.byType(PopupMenuItem<ObjectBlockAction>),
-      ),
-    );
-    await tester.pumpAndSettle();
-    expect(clipboardText, 'hero.png');
-
-    await tester.tap(_blockDragHandleFinder('image1'));
-    await tester.pumpAndSettle();
-    await tester.tap(
-      find.ancestor(
         of: find.text('下移块'),
-        matching: find.byType(PopupMenuItem<ObjectBlockAction>),
+        matching: find.byType(PopupMenuItem),
       ),
     );
     await tester.pumpAndSettle();
@@ -1905,6 +2008,8 @@ void main() {
     expect(controller.selection?.extent.blockIndex, 2);
 
     await tester.tap(_blockDragHandleFinder('image1'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('更多块操作'));
     await tester.pumpAndSettle();
     expect(menuItem('上移块').enabled, isTrue);
     expect(menuItem('下移块').enabled, isFalse);
@@ -2392,25 +2497,28 @@ void main() {
     expect(_imageBlockFinder('image1'), findsOneWidget);
     expect(find.text('Image'), findsNothing);
     expect(find.text('hero.png'), findsNothing);
-    expect(find.byTooltip('设置图片宽度'), findsOneWidget);
-    expect(find.byTooltip('重置图片尺寸'), findsOneWidget);
+    expect(find.byTooltip('设置图片宽度'), findsNothing);
+    expect(find.byTooltip('重置图片尺寸'), findsNothing);
+    expect(find.byTooltip('预览媒体'), findsOneWidget);
+    expect(find.byTooltip('更多块操作'), findsOneWidget);
     expect(
-      tester.getTopLeft(find.byType(PopupMenuButton<double>)).dy,
+      tester.getTopLeft(find.byTooltip('更多块操作')).dy,
       lessThan(tester.getTopLeft(_imageBlockFinder('image1')).dy),
     );
 
-    final imageSizeMenu = tester.widget<PopupMenuButton<double>>(
-      find.byType(PopupMenuButton<double>),
-    );
-    imageSizeMenu.onSelected?.call(360);
-    await tester.pump();
+    await tester.tap(find.byTooltip('更多块操作'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('图片宽度：中'));
+    await tester.pumpAndSettle();
 
     var image = controller.document.blocks.single as ImageBlockNode;
     expect(image.showWidth, 360);
     expect(image.showHeight, 180);
 
-    await tester.tap(find.byTooltip('重置图片尺寸'));
-    await tester.pump();
+    await tester.tap(find.byTooltip('更多块操作'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('重置图片尺寸'));
+    await tester.pumpAndSettle();
 
     image = controller.document.blocks.single as ImageBlockNode;
     expect(image.showWidth, isNull);
@@ -2462,22 +2570,46 @@ void main() {
     expect(find.text('storage/brief.pdf'), findsNothing);
     expect(find.text('https://cdn.example.com/brief.pdf'), findsNothing);
     expect(find.byTooltip('设置文件状态'), findsNothing);
-
-    var fileActionMenu = tester.widget<PopupMenuButton<ObjectBlockAction>>(
-      find.byType(PopupMenuButton<ObjectBlockAction>),
+    expect(
+      tester.getSize(find.byTooltip('附件操作')),
+      const Size.square(32),
     );
-    fileActionMenu.onSelected?.call(ObjectBlockAction.markFileUploaded);
-    await tester.pump();
+
+    await _openFileActionMenu(tester);
+    expect(
+      tester
+          .getSize(find.ancestor(
+            of: find.text('更多块操作'),
+            matching: find.byType(PopupMenuItem),
+          ))
+          .width,
+      greaterThanOrEqualTo(176),
+    );
+    expect(find.text('标记为已上传'), findsNothing);
+    await tester.tap(find.text('更多块操作'));
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .getSize(find.ancestor(
+            of: find.text('标记为已上传'),
+            matching: find.byType(PopupMenuItem),
+          ))
+          .width,
+      greaterThanOrEqualTo(176),
+    );
+    await tester.tap(find.text('标记为已上传'));
+    await tester.pumpAndSettle();
 
     var file = controller.document.blocks.single as FileBlockNode;
     expect(file.uploadStatus, FileUploadStatus.uploaded);
     expect(file.uploadError, isEmpty);
 
-    fileActionMenu = tester.widget<PopupMenuButton<ObjectBlockAction>>(
-      find.byType(PopupMenuButton<ObjectBlockAction>),
-    );
-    fileActionMenu.onSelected?.call(ObjectBlockAction.markFileFailed);
-    await tester.pump();
+    await tester.tap(find.byTooltip('附件操作'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('更多块操作'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('标记为失败'));
+    await tester.pumpAndSettle();
 
     file = controller.document.blocks.single as FileBlockNode;
     expect(file.uploadStatus, FileUploadStatus.failed);
@@ -2533,13 +2665,20 @@ void main() {
     for (final tooltip in <String>[
       '复制块引用',
       '创建块副本',
-      '上移块',
-      '下移块',
-      '设置图片宽度',
-      '重置图片尺寸',
+      '更多块操作',
       '删除块',
     ]) {
       _expectLocalizedTooltip(tooltip);
+    }
+    await tester.tap(find.byTooltip('更多块操作'));
+    await tester.pumpAndSettle();
+    for (final label in <String>[
+      '图片宽度：小',
+      '图片宽度：中',
+      '图片宽度：大',
+      '重置图片尺寸',
+    ]) {
+      expect(find.text(label), findsOneWidget);
     }
 
     await pumpEditor(
@@ -2558,12 +2697,20 @@ void main() {
     for (final label in <String>[
       '复制块引用',
       '创建块副本',
+      '更多块操作',
+      '删除块',
+    ]) {
+      expect(find.text(label), findsOneWidget);
+    }
+    expect(find.text('标记为已上传'), findsNothing);
+    await tester.tap(find.text('更多块操作'));
+    await tester.pumpAndSettle();
+    for (final label in <String>[
       '上移块',
       '下移块',
       '标记为上传中',
       '标记为已上传',
       '标记为失败',
-      '删除块',
     ]) {
       expect(find.text(label), findsOneWidget);
     }
@@ -2575,6 +2722,16 @@ void main() {
       ),
     );
     for (final tooltip in <String>[
+      '在下方插入行',
+      '在右侧插入列',
+      '合并所选单元格',
+      '更多表格操作',
+    ]) {
+      _expectLocalizedTooltip(tooltip);
+    }
+    await tester.tap(find.byTooltip('更多表格操作'));
+    await tester.pumpAndSettle();
+    for (final label in <String>[
       '在上方插入行',
       '在下方插入行',
       '删除行',
@@ -2592,7 +2749,7 @@ void main() {
       '拆分单元格',
       '重置列宽',
     ]) {
-      _expectLocalizedTooltip(tooltip);
+      expect(find.text(label), findsWidgets);
     }
   });
 
@@ -3153,6 +3310,13 @@ void main() {
 
     expect(find.byTooltip('在下方插入行'), findsOneWidget);
 
+    Future<void> pressTableMoreItem(String label) async {
+      await tester.tap(find.byTooltip('更多表格操作'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(label));
+      await _pumpTableToolbarOverlay(tester);
+    }
+
     await pressIconButtonByTooltip(tester, '在下方插入行');
     var table = controller.document.blocks.single as TableBlockNode;
     expect(table.table.rowCount, 3);
@@ -3161,23 +3325,23 @@ void main() {
     table = controller.document.blocks.single as TableBlockNode;
     expect(table.table.columnCount, 3);
 
-    await pressIconButtonByTooltip(tester, '切换表头单元格');
+    await pressTableMoreItem('切换表头单元格');
     table = controller.document.blocks.single as TableBlockNode;
     expect(table.table.cellAt(0, 0)!.isHeader, isTrue);
 
-    await pressIconButtonByTooltip(tester, '设置单元格背景');
+    await pressTableMoreItem('设置单元格背景');
     table = controller.document.blocks.single as TableBlockNode;
     expect(table.table.cellAt(0, 0)!.backgroundColor, 0xFFFFF3CD);
 
-    await pressIconButtonByTooltip(tester, '列居中对齐');
+    await pressTableMoreItem('列居中对齐');
     table = controller.document.blocks.single as TableBlockNode;
     expect(table.table.columnAlignments[0], 'center');
 
-    await pressIconButtonByTooltip(tester, '清除单元格背景');
+    await pressTableMoreItem('清除单元格背景');
     table = controller.document.blocks.single as TableBlockNode;
     expect(table.table.cellAt(0, 0)!.backgroundColor, isNull);
 
-    await pressIconButtonByTooltip(tester, '清除列对齐');
+    await pressTableMoreItem('清除列对齐');
     table = controller.document.blocks.single as TableBlockNode;
     expect(table.table.columnAlignments.containsKey(0), isFalse);
 
@@ -3186,7 +3350,7 @@ void main() {
     table = controller.document.blocks.single as TableBlockNode;
     expect(table.table.columnWidths[0], 180);
 
-    await pressIconButtonByTooltip(tester, '重置列宽');
+    await pressTableMoreItem('重置列宽');
     table = controller.document.blocks.single as TableBlockNode;
     expect(table.table.columnWidths.containsKey(0), isFalse);
 
@@ -3240,7 +3404,7 @@ void main() {
     );
     await _pumpTableToolbarOverlay(tester);
 
-    await pressIconButtonByTooltip(tester, '删除行');
+    await pressTableMoreItem('删除行');
     table = controller.document.blocks.single as TableBlockNode;
     expect(table.table.rowCount, 2);
     _expectTableCellTextSelection(
@@ -3253,7 +3417,7 @@ void main() {
       extentOffset: 0,
     );
 
-    await pressIconButtonByTooltip(tester, '删除列');
+    await pressTableMoreItem('删除列');
     table = controller.document.blocks.single as TableBlockNode;
     expect(table.table.columnCount, 2);
     _expectTableCellTextSelection(
@@ -3898,6 +4062,70 @@ void main() {
     expect(controller.selection?.extent.path.tableColumnIndex, 1);
   });
 
+  testWidgets('table floating toolbar hover keeps overlay stable', (
+    tester,
+  ) async {
+    final controller = WenzRichTextController(
+      document: _toolbarTableDocument(),
+      selection: _collapsedTableCellTextSelection(
+        tableBlockId: 'table1',
+        blockIndex: 0,
+        tableRowIndex: 1,
+        tableColumnIndex: 1,
+        offset: 0,
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 960,
+            height: 360,
+            child: WenzRichTextEditor(
+              controller: controller,
+              padding: const EdgeInsets.only(
+                left: 16,
+                top: 72,
+                right: 16,
+                bottom: 16,
+              ),
+              enableIme: false,
+            ),
+          ),
+        ),
+      ),
+    );
+    await _pumpTableToolbarOverlay(tester);
+    expect(tester.takeException(), isNull);
+
+    final toolbarFinder =
+        find.byKey(const ValueKey<String>('table-floating-toolbar'));
+    expect(toolbarFinder, findsOneWidget);
+    final toolbarRect = tester.getRect(toolbarFinder);
+    final dividerFinder = find.descendant(
+      of: toolbarFinder,
+      matching: find.byType(VerticalDivider),
+    );
+    expect(dividerFinder, findsWidgets);
+
+    final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    addTearDown(gesture.removePointer);
+    await gesture.addPointer(
+      location: tester.getRect(find.byTooltip('在下方插入行')).center,
+    );
+    await tester.pump();
+    await gesture.moveTo(tester.getRect(dividerFinder.first).center);
+    await tester.pump();
+    await gesture.moveTo(toolbarRect.topLeft + const Offset(2, 2));
+    await tester.pump();
+
+    expect(tester.takeException(), isNull);
+    expect(toolbarFinder, findsOneWidget);
+    expect(controller.selection?.extent.path.tableRowIndex, 1);
+    expect(controller.selection?.extent.path.tableColumnIndex, 1);
+  });
+
   testWidgets('table cell borders paint shared grid lines once', (
     tester,
   ) async {
@@ -3925,6 +4153,9 @@ void main() {
     final topRight = _paintedTableCellBorder(tester, 'table1', 0, 1);
     final bottomLeft = _paintedTableCellBorder(tester, 'table1', 1, 0);
     final bottomRight = _paintedTableCellBorder(tester, 'table1', 1, 1);
+    final topLeftBorderBox = _tableCellBorderBox(tester, 'table1', 0, 0);
+
+    expect(topLeftBorderBox.position, DecorationPosition.foreground);
 
     _expectBorderSidePainted(topLeft.top);
     _expectBorderSidePainted(topLeft.left);
@@ -4496,8 +4727,8 @@ void main() {
         wrappedCheckboxRect.center.dy - wrappedFirstLineCenter;
     final wrappedLineMetrics = _richTextLineMetrics(tester, wrappedTextFinder);
 
-    expect(singleCheckboxRect.size, const Size(32, 28));
-    expect(wrappedCheckboxRect.size, const Size(32, 28));
+    expect(singleCheckboxRect.size, const Size(24, 28));
+    expect(wrappedCheckboxRect.size, const Size(24, 28));
     expect(
       _richTextFirstLineHeight(tester, singleTextFinder),
       moreOrLessEquals(singleCheckboxRect.height, epsilon: 0.75),
@@ -5438,6 +5669,8 @@ void main() {
       find.byKey(const ValueKey<String>('wenz-richtext-selection-highlight')),
       findsOneWidget,
     );
+    expect(find.byTooltip('预览媒体'), findsOneWidget);
+    expect(find.byTooltip('更多块操作'), findsOneWidget);
   });
 
   testWidgets('tap video block selects the video object', (tester) async {
@@ -5474,8 +5707,7 @@ void main() {
       ),
     );
 
-    await tester.tapAt(tester.getCenter(_videoBlockFinder('video1')));
-    await tester.pump();
+    await _tapSingle(tester, tester.getCenter(_videoBlockFinder('video1')));
 
     final selection = controller.selection;
     expect(selection, isNotNull);
@@ -5489,6 +5721,114 @@ void main() {
       find.byKey(const ValueKey<String>('wenz-richtext-selection-highlight')),
       findsOneWidget,
     );
+    expect(find.text('Launch clip'), findsNothing);
+    expect(find.byTooltip('预览媒体'), findsOneWidget);
+    expect(find.byTooltip('更多块操作'), findsOneWidget);
+  });
+
+  testWidgets('media toolbar preview opens image and video preview',
+      (tester) async {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          ImageBlockNode(id: 'image1', assetId: 'hero', file: 'hero.png'),
+          VideoBlockNode(id: 'video1', assetId: 'clip'),
+        ],
+      ),
+      selection: objectBlockSelection('image1', 0),
+    );
+    final resolver = _TestMediaResolver();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WenzRichTextEditor(
+            controller: controller,
+            mediaResolver: resolver,
+            enableIme: false,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await tester.tap(find.byTooltip('预览媒体'));
+    await tester.pumpAndSettle();
+    expect(find.text('preview:image1'), findsNWidgets(2));
+    await tester.tapAt(const Offset(4, 4));
+    await tester.pumpAndSettle();
+
+    await _tapSingle(tester, tester.getCenter(_videoBlockFinder('video1')));
+    expect(find.byTooltip('预览媒体'), findsOneWidget);
+    await tester.tap(find.byTooltip('预览媒体'));
+    await tester.pumpAndSettle();
+    expect(find.text('preview:video1'), findsNWidgets(2));
+  });
+
+  testWidgets('video block keeps placeholder chrome inside a narrow card',
+      (tester) async {
+    const source =
+        'https://cdn.example.test/videos/super-wide-launch-video.mp4';
+    const cover = 'assets/poster-with-a-very-long-file-name-for-video.jpg';
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          VideoBlockNode(
+            id: 'video1',
+            assetId: 'clip',
+            playbackUrl: source,
+            coverUrl: cover,
+            title: 'Narrow video',
+            description: 'Long description that should stay inside the card.',
+            aspectRatio: 9 / 16,
+          ),
+        ],
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 180,
+            height: 280,
+            child: WenzRichTextEditor(
+              controller: controller,
+              padding: const EdgeInsets.all(8),
+              enableIme: false,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(tester.takeException(), isNull);
+    final blockRect = tester.getRect(_videoBlockFinder('video1'));
+    final frameRect = tester.getRect(find.byKey(
+      const ValueKey<String>('wenz-richtext-video-frame-video1'),
+    ));
+    expect(frameRect.left, greaterThanOrEqualTo(blockRect.left));
+    expect(frameRect.right, lessThanOrEqualTo(blockRect.right));
+
+    final coverRect = tester.getRect(
+      find.text('Cover: poster-with-a-very-long-file-name-for-video.jpg'),
+    );
+    final sourceRect = tester.getRect(find.text('[video: $source]'));
+    expect(coverRect.left, greaterThanOrEqualTo(frameRect.left));
+    expect(coverRect.right, lessThanOrEqualTo(frameRect.right));
+    expect(sourceRect.left, greaterThanOrEqualTo(frameRect.left));
+    expect(sourceRect.right, lessThanOrEqualTo(frameRect.right));
+
+    await tester.tapAt(tester.getCenter(_videoBlockFinder('video1')));
+    await tester.pump();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Narrow video'), findsNothing);
+    expect(find.text('Long description that should stay inside the card.'),
+        findsNothing);
+    expect(find.byTooltip('预览媒体'), findsOneWidget);
+    expect(find.byTooltip('更多块操作'), findsOneWidget);
   });
 
   testWidgets('tap below a trailing image appends a paragraph', (tester) async {
@@ -5866,9 +6206,10 @@ void main() {
       controller.selection,
       blockId: 'p-inline',
       blockIndex: 0,
-      baseOffset: 1,
+      baseOffset: controller.selection!.base.offset,
       extentOffset: 4,
     );
+    expect(controller.selection!.base.offset, inInclusiveRange(1, 2));
 
     await _waitPastMultiClickWindow(tester);
     await tester.dragFrom(mentionLeft, followingEnd - mentionLeft);
@@ -5903,6 +6244,15 @@ void main() {
       baseOffset: 4,
       extentOffset: 5,
     );
+    expect(
+      controller.clipboardService.parse(controller.copySelection()!).text,
+      'C',
+    );
+
+    controller.setSelection(collapsedTextSelection('p-inline', 0, 4));
+    await tester.pump();
+    expect(_caretRenderOffsetForLogicalOffset(tester, 2), 3);
+    expect(_caretRenderOffsetForLogicalOffset(tester, 4), 8);
 
     controller.setSelection(collapsedTextSelection('p-inline', 0, 1));
     await tester.pump();
@@ -6027,17 +6377,6 @@ void main() {
       extentOffset: 2,
     );
 
-    await _tapSingle(tester, mentionLeft);
-    _expectTableCellTextSelection(
-      controller.selection,
-      tableBlockId: 'table-inline',
-      blockIndex: 0,
-      tableRowIndex: 0,
-      tableColumnIndex: 0,
-      baseOffset: 3,
-      extentOffset: 3,
-    );
-
     await tester.dragFrom(emojiLeft, mentionRight - emojiLeft);
     await tester.pump();
     _expectTableCellTextSelection(
@@ -6089,6 +6428,18 @@ void main() {
       baseOffset: 4,
       extentOffset: 5,
     );
+
+    controller.setSelection(
+      _collapsedTableCellTextSelection(
+        tableBlockId: 'table-inline',
+        blockIndex: 0,
+        tableRowIndex: 0,
+        tableColumnIndex: 0,
+        offset: 4,
+      ),
+    );
+    await tester.pump();
+    expect(_caretRenderOffsetForLogicalOffset(tester, 4), 8);
 
     controller.setSelection(
       _collapsedTableCellTextSelection(
@@ -8388,6 +8739,95 @@ TextPainter _richTextPainter(
   )..layout(maxWidth: size.width);
 }
 
+int _caretRenderOffsetForLogicalOffset(
+  WidgetTester tester,
+  int logicalOffset,
+) {
+  final editor = tester.widget<WenzRichTextEditor>(
+    find.byType(WenzRichTextEditor),
+  );
+  final position = editor.controller.selection!.extent;
+  final block = editor.controller.document.blocks[position.blockIndex];
+  final nodes = position.path.isTableCellText
+      ? ((block as TableBlockNode)
+              .table
+              .cellAt(
+                position.path.tableRowIndex!,
+                position.path.tableColumnIndex!,
+              )!
+              .blocks
+              .whereType<TextBlockNode>()
+              .first)
+          .content
+      : (block as TextBlockNode).content;
+  return _renderOffsetForLogicalOffset(nodes, logicalOffset);
+}
+
+int _renderOffsetForLogicalOffset(
+  List<InlineNode> nodes,
+  int logicalOffset,
+) {
+  var logicalCursor = 0;
+  var renderCursor = 0;
+  for (final node in nodes) {
+    final logicalLength = inlineLength(node);
+    final renderText = _inlineRenderText(node);
+    final nextLogicalCursor = logicalCursor + logicalLength;
+    final nextRenderCursor = renderCursor + renderText.length;
+    if (logicalOffset <= nextLogicalCursor) {
+      if (node is TextRun) {
+        return renderCursor + logicalOffset - logicalCursor;
+      }
+      return logicalOffset <= logicalCursor ? renderCursor : nextRenderCursor;
+    }
+    logicalCursor = nextLogicalCursor;
+    renderCursor = nextRenderCursor;
+  }
+  return renderCursor;
+}
+
+String _inlineRenderText(InlineNode node) {
+  if (node is TextRun) {
+    return node.text;
+  }
+  if (node is InlineEmbed) {
+    return switch (node.embedType.trim()) {
+      'mention' => _mentionRenderText(node),
+      'image' => '[img]',
+      'formula' => _formulaRenderText(node),
+      'emoji' => _emojiRenderText(node),
+      _ => '[${node.embedType}]',
+    };
+  }
+  return node.plainText;
+}
+
+String _mentionRenderText(InlineEmbed embed) {
+  final raw = embed.data['label'] ?? embed.data['id'];
+  final label = raw?.toString() ?? '';
+  return label.isEmpty ? '@mention' : '@$label';
+}
+
+String _formulaRenderText(InlineEmbed embed) {
+  for (final key in const <String>['text', 'latex', 'value', 'formula']) {
+    final value = embed.data[key]?.toString().trim();
+    if (value != null && value.isNotEmpty) {
+      return value;
+    }
+  }
+  return '[formula]';
+}
+
+String _emojiRenderText(InlineEmbed embed) {
+  final raw = embed.data['emoji'] ??
+      embed.data['text'] ??
+      embed.data['value'] ??
+      embed.data['shortName'] ??
+      embed.data['label'];
+  final text = raw?.toString() ?? '';
+  return text.isEmpty ? '[emoji]' : text;
+}
+
 Finder _imageBlockFinder(String blockId) {
   return find.byKey(ValueKey<String>('wenz-richtext-image-block-$blockId'));
 }
@@ -8399,6 +8839,35 @@ Finder _videoBlockFinder(String blockId) {
 Finder _blockDragHandleFinder(String blockId) {
   return find.byKey(
     ValueKey<String>('wenz-richtext-block-drag-handle-$blockId'),
+  );
+}
+
+Future<void> _openBlockMoreMenu(WidgetTester tester, String blockId) async {
+  await _waitPastMultiClickWindow(tester);
+  await tester.tap(_blockDragHandleFinder(blockId));
+  await tester.pumpAndSettle();
+  await tester.tap(find.text('更多块操作'));
+  await tester.pumpAndSettle();
+}
+
+Future<void> _openFileActionMenu(WidgetTester tester) async {
+  final popupButton = find.descendant(
+    of: find.byKey(const ValueKey<String>('wenz-richtext-file-card-file1')),
+    matching: find.byType(PopupMenuButton),
+  );
+  final dynamic popupButtonState = tester.state(popupButton);
+  popupButtonState.showButtonMenu();
+  await tester.pumpAndSettle();
+}
+
+PopupMenuItem _popupMenuItem(WidgetTester tester, String label) {
+  return tester.widget<PopupMenuItem>(_popupMenuItemFinder(label));
+}
+
+Finder _popupMenuItemFinder(String label) {
+  return find.ancestor(
+    of: find.text(label),
+    matching: find.byWidgetPredicate((widget) => widget is PopupMenuItem),
   );
 }
 
@@ -8753,14 +9222,28 @@ Border _paintedTableCellBorder(
   int rowIndex,
   int columnIndex,
 ) {
-  final decoratedBox = tester.widget<DecoratedBox>(
+  final decoratedBox = _tableCellBorderBox(
+    tester,
+    tableBlockId,
+    rowIndex,
+    columnIndex,
+  );
+  final decoration = decoratedBox.decoration as BoxDecoration;
+  return decoration.border! as Border;
+}
+
+DecoratedBox _tableCellBorderBox(
+  WidgetTester tester,
+  String tableBlockId,
+  int rowIndex,
+  int columnIndex,
+) {
+  return tester.widget<DecoratedBox>(
     find.byKey(
       ValueKey<String>(
           'table-cell-border-$tableBlockId-$rowIndex-$columnIndex'),
     ),
   );
-  final decoration = decoratedBox.decoration as BoxDecoration;
-  return decoration.border! as Border;
 }
 
 DecoratedBox _tableCellBackgroundBox(
@@ -8919,4 +9402,14 @@ double _scrollOffset(WidgetTester tester) {
     ),
   );
   return scrollable.position.pixels;
+}
+
+class _TestMediaResolver implements MediaResolver {
+  @override
+  Widget? resolve(BuildContext context, BlockNode block) {
+    if (block is ImageBlockNode || block is VideoBlockNode) {
+      return Center(child: Text('preview:${block.id}'));
+    }
+    return null;
+  }
 }

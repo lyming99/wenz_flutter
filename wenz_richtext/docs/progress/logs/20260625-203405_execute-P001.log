@@ -1,0 +1,322 @@
+OpenAI Codex v0.121.0 (research preview)
+--------
+workdir: D:\project\GitHub\wenz_flutter\wenz_richtext
+model: gpt-5.5
+provider: custom
+approval: never
+sandbox: workspace-write [workdir, /tmp, $TMPDIR, C:\Users\98000\.codex\memories]
+reasoning effort: xhigh
+reasoning summaries: none
+session id: 019efec4-c06a-7031-9d29-348d2c0daade
+--------
+user
+你是开发执行者。
+请只执行指定任务 P001，不要提前执行其它任务，也不要顺手处理其它 checkbox。
+
+plan 文件（只读）：D:\project\GitHub\wenz_flutter\wenz_richtext\docs\plan\plan_feedback_7_20260625-202854.md
+指定任务：- [ ] P001: 修复 mention 后续文字选择 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,test/widgets/wenz_rich_text_editor_test.dart,test/core/selection_commands_test.dart -->
+任务 scope：lib/src/widgets/wenz_rich_text_editor.dart, test/widgets/wenz_rich_text_editor_test.dart, test/core/selection_commands_test.dart
+
+完成后必须：
+- plan 文件是只读上下文：不要修改 plan 文件，不要勾选 checkbox，不要更新 plan 进度区
+- AutoPlan 会在任务成功后统一写回数据库、checkbox 和进度区
+- 只修改当前任务 scope 直接相关的业务文件
+- 如需测试，只运行与当前任务直接相关的最小测试集，不要运行全量测试或与本任务无关的测试
+- 只有当前任务本身明确要求全量验证时，才允许运行全量测试
+- 不输出完整 diff、源码全文或长文件列表
+- 中文文件读写使用 UTF-8
+codex
+我再看现有 mention 测试，确认这个回归的具体表现。
+exec
+powershell.exe -Command "Select-String -Path 'test/widgets/wenz_rich_text_editor_test.dart','test/core/selection_commands_test.dart' -Pattern 'mention' -Context 4,6" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 575ms:
+
+  test\widgets\wenz_rich_text_editor_test.dart:1062:                data: <String, Object?>{'emoji': '😀'},
+  test\widgets\wenz_rich_text_editor_test.dart:1063:              ),
+  test\widgets\wenz_rich_text_editor_test.dart:1064:              TextRun(text: ' from '),
+  test\widgets\wenz_rich_text_editor_test.dart:1065:              InlineEmbed(
+> test\widgets\wenz_rich_text_editor_test.dart:1066:                embedType: 'mention',
+  test\widgets\wenz_rich_text_editor_test.dart:1067:                data: <String, Object?>{'id': 'u1', 'label': 'Ada'}
+,
+  test\widgets\wenz_rich_text_editor_test.dart:1068:              ),
+  test\widgets\wenz_rich_text_editor_test.dart:1069:              TextRun(text: '\nsecond line'),
+  test\widgets\wenz_rich_text_editor_test.dart:1070:            ],
+  test\widgets\wenz_rich_text_editor_test.dart:1071:          ),
+  test\widgets\wenz_rich_text_editor_test.dart:1072:          TextBlockNode(
+  test\widgets\wenz_rich_text_editor_test.dart:4070:    expect(table.table.columnWidths[0]!, greaterThan(48));
+  test\widgets\wenz_rich_text_editor_test.dart:4071:  });
+  test\widgets\wenz_rich_text_editor_test.dart:4072:
+  test\widgets\wenz_rich_text_editor_test.dart:4073:  testWidgets(
+> test\widgets\wenz_rich_text_editor_test.dart:4074:    'renders formula, mention, and emoji inline embeds',
+  test\widgets\wenz_rich_text_editor_test.dart:4075:    (tester) async {
+  test\widgets\wenz_rich_text_editor_test.dart:4076:      final controller = WenzRichTextController(
+  test\widgets\wenz_rich_text_editor_test.dart:4077:        document: const RichTextDocument(
+  test\widgets\wenz_rich_text_editor_test.dart:4078:          blocks: <BlockNode>[
+  test\widgets\wenz_rich_text_editor_test.dart:4079:            TextBlockNode(
+  test\widgets\wenz_rich_text_editor_test.dart:4080:              id: 'p1',
+  test\widgets\wenz_rich_text_editor_test.dart:4091:                  data: <String, Object?>{'emoji': '😀'},
+  test\widgets\wenz_rich_text_editor_test.dart:4092:                ),
+  test\widgets\wenz_rich_text_editor_test.dart:4093:                TextRun(text: ' from '),
+  test\widgets\wenz_rich_text_editor_test.dart:4094:                InlineEmbed(
+> test\widgets\wenz_rich_text_editor_test.dart:4095:                  embedType: 'mention',
+  test\widgets\wenz_rich_text_editor_test.dart:4096:                  data: <String, Object?>{'id': 'u1', 'label': 'Ada
+'},
+  test\widgets\wenz_rich_text_editor_test.dart:4097:                ),
+  test\widgets\wenz_rich_text_editor_test.dart:4098:                TextRun(text: ' bad '),
+  test\widgets\wenz_rich_text_editor_test.dart:4099:                InlineEmbed(
+  test\widgets\wenz_rich_text_editor_test.dart:4100:                  embedType: 'formula',
+  test\widgets\wenz_rich_text_editor_test.dart:4101:                  data: <String, Object?>{'text': r'\Gaarbled$'},
+  test\widgets\wenz_rich_text_editor_test.dart:4166:    tester.view.devicePixelRatio = 1;
+  test\widgets\wenz_rich_text_editor_test.dart:4167:    addTearDown(tester.view.resetPhysicalSize);
+  test\widgets\wenz_rich_text_editor_test.dart:4168:    addTearDown(tester.view.resetDevicePixelRatio);
+  test\widgets\wenz_rich_text_editor_test.dart:4169:
+> test\widgets\wenz_rich_text_editor_test.dart:4170:    const mentionRenderText = 'Ask @Ada follow';
+  test\widgets\wenz_rich_text_editor_test.dart:4171:    const calloutBody = 'Info body selectable';
+  test\widgets\wenz_rich_text_editor_test.dart:4172:    final controller = WenzRichTextController(
+  test\widgets\wenz_rich_text_editor_test.dart:4173:      document: const RichTextDocument(
+  test\widgets\wenz_rich_text_editor_test.dart:4174:        blocks: <BlockNode>[
+  test\widgets\wenz_rich_text_editor_test.dart:4175:          TextBlockNode(
+> test\widgets\wenz_rich_text_editor_test.dart:4176:            id: 'mention-p',
+  test\widgets\wenz_rich_text_editor_test.dart:4177:            type: BlockType.paragraph,
+  test\widgets\wenz_rich_text_editor_test.dart:4178:            content: <InlineNode>[
+  test\widgets\wenz_rich_text_editor_test.dart:4179:              TextRun(text: 'Ask '),
+  test\widgets\wenz_rich_text_editor_test.dart:4180:              InlineEmbed(
+> test\widgets\wenz_rich_text_editor_test.dart:4181:                embedType: 'mention',
+  test\widgets\wenz_rich_text_editor_test.dart:4182:                data: <String, Object?>{'id': 'u1', 'label': 'Ada'}
+,
+  test\widgets\wenz_rich_text_editor_test.dart:4183:              ),
+  test\widgets\wenz_rich_text_editor_test.dart:4184:              TextRun(text: ' follow'),
+  test\widgets\wenz_rich_text_editor_test.dart:4185:            ],
+  test\widgets\wenz_rich_text_editor_test.dart:4186:          ),
+  test\widgets\wenz_rich_text_editor_test.dart:4187:          TextBlockNode(
+  test\widgets\wenz_rich_text_editor_test.dart:4269:            data: <String, Object?>{'text': r'\int_0^1 x dx'},
+  test\widgets\wenz_rich_text_editor_test.dart:4270:          ),
+  test\widgets\wenz_rich_text_editor_test.dart:4271:        ],
+  test\widgets\wenz_rich_text_editor_test.dart:4272:      ),
+> test\widgets\wenz_rich_text_editor_test.dart:4273:      selection: collapsedTextSelection('mention-p', 0, 4),
+  test\widgets\wenz_rich_text_editor_test.dart:4274:    );
+  test\widgets\wenz_rich_text_editor_test.dart:4275:
+  test\widgets\wenz_rich_text_editor_test.dart:4276:    await tester.pumpWidget(
+  test\widgets\wenz_rich_text_editor_test.dart:4277:      MaterialApp(
+  test\widgets\wenz_rich_text_editor_test.dart:4278:        home: Scaffold(
+  test\widgets\wenz_rich_text_editor_test.dart:4279:          body: SizedBox(
+  test\widgets\wenz_rich_text_editor_test.dart:4306:    expect(find.byType(Math), findsNWidgets(2));
+  test\widgets\wenz_rich_text_editor_test.dart:4307:    expect(find.text('Formula'), findsNothing);
+  test\widgets\wenz_rich_text_editor_test.dart:4308:    expect(find.text(r'\int_0^1 x dx'), findsOneWidget);
+  test\widgets\wenz_rich_text_editor_test.dart:4309:
+> test\widgets\wenz_rich_text_editor_test.dart:4310:    final mentionRight = _globalTextRangePoint(
+  test\widgets\wenz_rich_text_editor_test.dart:4311:      tester,
+> test\widgets\wenz_rich_text_editor_test.dart:4312:      mentionRenderText,
+  test\widgets\wenz_rich_text_editor_test.dart:4313:      4,
+  test\widgets\wenz_rich_text_editor_test.dart:4314:      8,
+  test\widgets\wenz_rich_text_editor_test.dart:4315:      0.75,
+  test\widgets\wenz_rich_text_editor_test.dart:4316:    );
+  test\widgets\wenz_rich_text_editor_test.dart:4317:    final followingEnd = _globalTextOffset(
+  test\widgets\wenz_rich_text_editor_test.dart:4318:      tester,
+> test\widgets\wenz_rich_text_editor_test.dart:4319:      mentionRenderText,
+> test\widgets\wenz_rich_text_editor_test.dart:4320:      mentionRenderText.length,
+  test\widgets\wenz_rich_text_editor_test.dart:4321:    );
+> test\widgets\wenz_rich_text_editor_test.dart:4322:    await tester.dragFrom(mentionRight, followingEnd - mentionRight
+);
+  test\widgets\wenz_rich_text_editor_test.dart:4323:    await tester.pump();
+  test\widgets\wenz_rich_text_editor_test.dart:4324:    _expectBlockTextSelection(
+  test\widgets\wenz_rich_text_editor_test.dart:4325:      controller.selection,
+> test\widgets\wenz_rich_text_editor_test.dart:4326:      blockId: 'mention-p',
+  test\widgets\wenz_rich_text_editor_test.dart:4327:      blockIndex: 0,
+  test\widgets\wenz_rich_text_editor_test.dart:4328:      baseOffset: 5,
+  test\widgets\wenz_rich_text_editor_test.dart:4329:      extentOffset: 12,
+  test\widgets\wenz_rich_text_editor_test.dart:4330:    );
+  test\widgets\wenz_rich_text_editor_test.dart:4331:
+  test\widgets\wenz_rich_text_editor_test.dart:4332:    await _tapTextOffset(tester, calloutBody, 5);
+  test\widgets\wenz_rich_text_editor_test.dart:4726:                data: <String, Object?>{'emoji': '😀'},
+  test\widgets\wenz_rich_text_editor_test.dart:4727:              ),
+  test\widgets\wenz_rich_text_editor_test.dart:4728:              TextRun(text: ' with '),
+  test\widgets\wenz_rich_text_editor_test.dart:4729:              InlineEmbed(
+> test\widgets\wenz_rich_text_editor_test.dart:4730:                embedType: 'mention',
+  test\widgets\wenz_rich_text_editor_test.dart:4731:                data: <String, Object?>{'id': 'u1', 'label': 'Ada'}
+,
+  test\widgets\wenz_rich_text_editor_test.dart:4732:              ),
+  test\widgets\wenz_rich_text_editor_test.dart:4733:            ],
+  test\widgets\wenz_rich_text_editor_test.dart:4734:          ),
+  test\widgets\wenz_rich_text_editor_test.dart:4735:        ],
+  test\widgets\wenz_rich_text_editor_test.dart:4736:      ),
+  test\widgets\wenz_rich_text_editor_test.dart:5808:                data: <String, Object?>{'emoji': '😄'},
+  test\widgets\wenz_rich_text_editor_test.dart:5809:              ),
+  test\widgets\wenz_rich_text_editor_test.dart:5810:              TextRun(text: 'B'),
+  test\widgets\wenz_rich_text_editor_test.dart:5811:              InlineEmbed(
+> test\widgets\wenz_rich_text_editor_test.dart:5812:                embedType: 'mention',
+  test\widgets\wenz_rich_text_editor_test.dart:5813:                data: <String, Object?>{'label': 'bob'},
+  test\widgets\wenz_rich_text_editor_test.dart:5814:              ),
+  test\widgets\wenz_rich_text_editor_test.dart:5815:              TextRun(text: 'C'),
+  test\widgets\wenz_rich_text_editor_test.dart:5816:            ],
+  test\widgets\wenz_rich_text_editor_test.dart:5817:          ),
+  test\widgets\wenz_rich_text_editor_test.dart:5818:        ],
+  test\widgets\wenz_rich_text_editor_test.dart:5833:    await tester.pump();
+  test\widgets\wenz_rich_text_editor_test.dart:5834:
+  test\widgets\wenz_rich_text_editor_test.dart:5835:    final emojiLeft = _globalTextRangePoint(tester, renderedText, 1
+, 3, 0.25);
+  test\widgets\wenz_rich_text_editor_test.dart:5836:    final emojiRight = _globalTextRangePoint(tester, renderedText, 
+1, 3, 0.75);
+> test\widgets\wenz_rich_text_editor_test.dart:5837:    final mentionLeft = _globalTextRangePoint(tester, renderedText,
+ 4, 8, 0.25);
+> test\widgets\wenz_rich_text_editor_test.dart:5838:    final mentionMiddle =
+  test\widgets\wenz_rich_text_editor_test.dart:5839:        _globalTextRangePoint(tester, renderedText, 4, 8, 0.50);
+> test\widgets\wenz_rich_text_editor_test.dart:5840:    final mentionRight =
+  test\widgets\wenz_rich_text_editor_test.dart:5841:        _globalTextRangePoint(tester, renderedText, 4, 8, 0.75);
+  test\widgets\wenz_rich_text_editor_test.dart:5842:    final followingEnd =
+  test\widgets\wenz_rich_text_editor_test.dart:5843:        _globalTextOffset(tester, renderedText, renderedText.length
+);
+  test\widgets\wenz_rich_text_editor_test.dart:5844:
+  test\widgets\wenz_rich_text_editor_test.dart:5845:    await _tapSingle(tester, emojiRight);
+  test\widgets\wenz_rich_text_editor_test.dart:5846:    _expectBlockTextSelection(
+  test\widgets\wenz_rich_text_editor_test.dart:5850:      baseOffset: 2,
+  test\widgets\wenz_rich_text_editor_test.dart:5851:      extentOffset: 2,
+  test\widgets\wenz_rich_text_editor_test.dart:5852:    );
+  test\widgets\wenz_rich_text_editor_test.dart:5853:
+> test\widgets\wenz_rich_text_editor_test.dart:5854:    await _tapSingle(tester, mentionRight);
+  test\widgets\wenz_rich_text_editor_test.dart:5855:    _expectBlockTextSelection(
+  test\widgets\wenz_rich_text_editor_test.dart:5856:      controller.selection,
+  test\widgets\wenz_rich_text_editor_test.dart:5857:      blockId: 'p-inline',
+  test\widgets\wenz_rich_text_editor_test.dart:5858:      blockIndex: 0,
+  test\widgets\wenz_rich_text_editor_test.dart:5859:      baseOffset: 4,
+  test\widgets\wenz_rich_text_editor_test.dart:5860:      extentOffset: 4,
+  test\widgets\wenz_rich_text_editor_test.dart:5861:    );
+  test\widgets\wenz_rich_text_editor_test.dart:5862:
+> test\widgets\wenz_rich_text_editor_test.dart:5863:    await tester.dragFrom(emojiLeft, mentionRight - emojiLeft);
+  test\widgets\wenz_rich_text_editor_test.dart:5864:    await tester.pump();
+  test\widgets\wenz_rich_text_editor_test.dart:5865:    _expectBlockTextSelection(
+  test\widgets\wenz_rich_text_editor_test.dart:5866:      controller.selection,
+  test\widgets\wenz_rich_text_editor_test.dart:5867:      blockId: 'p-inline',
+  test\widgets\wenz_rich_text_editor_test.dart:5868:      blockIndex: 0,
+  test\widgets\wenz_rich_text_editor_test.dart:5869:      baseOffset: 1,
+  test\widgets\wenz_rich_text_editor_test.dart:5870:      extentOffset: 4,
+  test\widgets\wenz_rich_text_editor_test.dart:5871:    );
+  test\widgets\wenz_rich_text_editor_test.dart:5872:
+  test\widgets\wenz_rich_text_editor_test.dart:5873:    await _waitPastMultiClickWindow(tester);
+> test\widgets\wenz_rich_text_editor_test.dart:5874:    await tester.dragFrom(mentionLeft, followingEnd - mentionLeft);
+  test\widgets\wenz_rich_text_editor_test.dart:5875:    await tester.pump();
+  test\widgets\wenz_rich_text_editor_test.dart:5876:    _expectBlockTextSelection(
+  test\widgets\wenz_rich_text_editor_test.dart:5877:      controller.selection,
+  test\widgets\wenz_rich_text_editor_test.dart:5878:      blockId: 'p-inline',
+  test\widgets\wenz_rich_text_editor_test.dart:5879:      blockIndex: 0,
+  test\widgets\wenz_rich_text_editor_test.dart:5880:      baseOffset: 3,
+  test\widgets\wenz_rich_text_editor_test.dart:5881:      extentOffset: 5,
+  test\widgets\wenz_rich_text_editor_test.dart:5882:    );
+  test\widgets\wenz_rich_text_editor_test.dart:5883:
+  test\widgets\wenz_rich_text_editor_test.dart:5884:    await _waitPastMultiClickWindow(tester);
+> test\widgets\wenz_rich_text_editor_test.dart:5885:    await tester.dragFrom(mentionMiddle, followingEnd - mentionMidd
+le);
+  test\widgets\wenz_rich_text_editor_test.dart:5886:    await tester.pump();
+  test\widgets\wenz_rich_text_editor_test.dart:5887:    expect(controller.selection?.base.offset, inInclusiveRange(3, 4
+));
+  test\widgets\wenz_rich_text_editor_test.dart:5888:    _expectBlockTextSelection(
+  test\widgets\wenz_rich_text_editor_test.dart:5889:      controller.selection,
+  test\widgets\wenz_rich_text_editor_test.dart:5890:      blockId: 'p-inline',
+  test\widgets\wenz_rich_text_editor_test.dart:5891:      blockIndex: 0,
+  test\widgets\wenz_rich_text_editor_test.dart:5893:      extentOffset: 5,
+  test\widgets\wenz_rich_text_editor_test.dart:5894:    );
+  test\widgets\wenz_rich_text_editor_test.dart:5895:
+  test\widgets\wenz_rich_text_editor_test.dart:5896:    await _waitPastMultiClickWindow(tester);
+> test\widgets\wenz_rich_text_editor_test.dart:5897:    await tester.dragFrom(mentionRight, followingEnd - mentionRight
+);
+  test\widgets\wenz_rich_text_editor_test.dart:5898:    await tester.pump();
+  test\widgets\wenz_rich_text_editor_test.dart:5899:    _expectBlockTextSelection(
+  test\widgets\wenz_rich_text_editor_test.dart:5900:      controller.selection,
+  test\widgets\wenz_rich_text_editor_test.dart:5901:      blockId: 'p-inline',
+  test\widgets\wenz_rich_text_editor_test.dart:5902:      blockIndex: 0,
+  test\widgets\wenz_rich_text_editor_test.dart:5903:      baseOffset: 4,
+  test\widgets\wenz_rich_text_editor_test.dart:5964:                            data: <String, Object?>{'emoji': '😄'},
+  test\widgets\wenz_rich_text_editor_test.dart:5965:                          ),
+  test\widgets\wenz_rich_text_editor_test.dart:5966:                          TextRun(text: 'B'),
+  test\widgets\wenz_rich_text_editor_test.dart:5967:                          InlineEmbed(
+> test\widgets\wenz_rich_text_editor_test.dart:5968:                            embedType: 'mention',
+  test\widgets\wenz_rich_text_editor_test.dart:5969:                            data: <String, Object?>{'label': 'bob'}
+,
+  test\widgets\wenz_rich_text_editor_test.dart:5970:                          ),
+  test\widgets\wenz_rich_text_editor_test.dart:5971:                          TextRun(text: 'C'),
+  test\widgets\wenz_rich_text_editor_test.dart:5972:                        ],
+  test\widgets\wenz_rich_text_editor_test.dart:5973:                      ),
+  test\widgets\wenz_rich_text_editor_test.dart:5974:                    ],
+  test\widgets\wenz_rich_text_editor_test.dart:6007:    await tester.pump();
+  test\widgets\wenz_rich_text_editor_test.dart:6008:
+  test\widgets\wenz_rich_text_editor_test.dart:6009:    final emojiLeft = _globalTextRangePoint(tester, renderedText, 1
+, 3, 0.25);
+  test\widgets\wenz_rich_text_editor_test.dart:6010:    final emojiRight = _globalTextRangePoint(tester, renderedText, 
+1, 3, 0.75);
+> test\widgets\wenz_rich_text_editor_test.dart:6011:    final mentionLeft = _globalTextRangePoint(tester, renderedText,
+ 4, 8, 0.25);
+> test\widgets\wenz_rich_text_editor_test.dart:6012:    final mentionMiddle =
+  test\widgets\wenz_rich_text_editor_test.dart:6013:        _globalTextRangePoint(tester, renderedText, 4, 8, 0.50);
+> test\widgets\wenz_rich_text_editor_test.dart:6014:    final mentionRight =
+  test\widgets\wenz_rich_text_editor_test.dart:6015:        _globalTextRangePoint(tester, renderedText, 4, 8, 0.75);
+  test\widgets\wenz_rich_text_editor_test.dart:6016:    final followingEnd =
+  test\widgets\wenz_rich_text_editor_test.dart:6017:        _globalTextOffset(tester, renderedText, renderedText.length
+);
+  test\widgets\wenz_rich_text_editor_test.dart:6018:
+  test\widgets\wenz_rich_text_editor_test.dart:6019:    await _tapSingle(tester, emojiRight);
+  test\widgets\wenz_rich_text_editor_test.dart:6020:    _expectTableCellTextSelection(
+  test\widgets\wenz_rich_text_editor_test.dart:6026:      baseOffset: 2,
+  test\widgets\wenz_rich_text_editor_test.dart:6027:      extentOffset: 2,
+  test\widgets\wenz_rich_text_editor_test.dart:6028:    );
+  test\widgets\wenz_rich_text_editor_test.dart:6029:
+> test\widgets\wenz_rich_text_editor_test.dart:6030:    await _tapSingle(tester, mentionLeft);
+  test\widgets\wenz_rich_text_editor_test.dart:6031:    _expectTableCellTextSelection(
+  test\widgets\wenz_rich_text_editor_test.dart:6032:      controller.selection,
+  test\widgets\wenz_rich_text_editor_test.dart:6033:      tableBlockId: 'table-inline',
+  test\widgets\wenz_rich_text_editor_test.dart:6034:      blockIndex: 0,
+  test\widgets\wenz_rich_text_editor_test.dart:6035:      tableRowIndex: 0,
+  test\widgets\wenz_rich_text_editor_test.dart:6036:      tableColumnIndex: 0,
+  test\widgets\wenz_rich_text_editor_test.dart:6037:      baseOffset: 3,
+  test\widgets\wenz_rich_text_editor_test.dart:6038:      extentOffset: 3,
+  test\widgets\wenz_rich_text_editor_test.dart:6039:    );
+  test\widgets\wenz_rich_text_editor_test.dart:6040:
+> test\widgets\wenz_rich_text_editor_test.dart:6041:    await tester.dragFrom(emojiLeft, mentionRight - emojiLeft);
+  test\widgets\wenz_rich_text_editor_test.dart:6042:    await tester.pump();
+  test\widgets\wenz_rich_text_editor_test.dart:6043:    _expectTableCellTextSelection(
+  test\widgets\wenz_rich_text_editor_test.dart:6044:      controller.selection,
+  test\widgets\wenz_rich_text_editor_test.dart:6045:      tableBlockId: 'table-inline',
+  test\widgets\wenz_rich_text_editor_test.dart:6046:      blockIndex: 0,
+  test\widgets\wenz_rich_text_editor_test.dart:6047:      tableRowIndex: 0,
+  test\widgets\wenz_rich_text_editor_test.dart:6050:      extentOffset: 4,
+  test\widgets\wenz_rich_text_editor_test.dart:6051:    );
+  test\widgets\wenz_rich_text_editor_test.dart:6052:
+  test\widgets\wenz_rich_text_editor_test.dart:6053:    await _waitPastMultiClickWindow(tester);
+> test\widgets\wenz_rich_text_editor_test.dart:6054:    await tester.dragFrom(mentionLeft, followingEnd - mentionLeft);
+  test\widgets\wenz_rich_text_editor_test.dart:6055:    await tester.pump();
+  test\widgets\wenz_rich_text_editor_test.dart:6056:    _expectTableCellTextSelection(
+  test\widgets\wenz_rich_text_editor_test.dart:6057:      controller.selection,
+  test\widgets\wenz_rich_text_editor_test.dart:6058:      tableBlockId: 'table-inline',
+  test\widgets\wenz_rich_text_editor_test.dart:6059:      blockIndex: 0,
+  test\widgets\wenz_rich_text_editor_test.dart:6060:      tableRowIndex: 0,
+  test\widgets\wenz_rich_text_editor_test.dart:6063:      extentOffset: 5,
+  test\widgets\wenz_rich_text_editor_test.dart:6064:    );
+  test\widgets\wenz_rich_text_editor_test.dart:6065:
+  test\widgets\wenz_rich_text_editor_test.dart:6066:    await _waitPastMultiClickWindow(tester);
+> test\widgets\wenz_rich_text_editor_test.dart:6067:    await tester.dragFrom(mentionMiddle, followingEnd - mentionMidd
+le);
+  test\widgets\wenz_rich_text_editor_test.dart:6068:    await tester.pump();
+  test\widgets\wenz_rich_text_editor_test.dart:6069:    expect(controller.selection?.base.offset, inInclusiveRange(3, 4
+));
+  test\widgets\wenz_rich_text_editor_test.dart:6070:    _expectTableCellTextSelection(
+  test\widgets\wenz_rich_text_editor_test.dart:6071:      controller.selection,
+  test\widgets\wenz_rich_text_editor_test.dart:6072:      tableBlockId: 'table-inline',
+  test\widgets\wenz_rich_text_editor_test.dart:6073:      blockIndex: 0,
+  test\widgets\wenz_rich_text_editor_test.dart:6077:      extentOffset: 5,
+  test\widgets\wenz_rich_text_editor_test.dart:6078:    );
+  test\widgets\wenz_rich_text_editor_test.dart:6079:
+  test\widgets\wenz_rich_text_editor_test.dart:6080:    await _waitPastMultiClickWindow(tester);
+> test\widgets\wenz_rich_text_editor_test.dart:6081:    await tester.dragFrom(mentionRight, followingEnd - mentionRight
+);
+  test\widgets\wenz_rich_text_editor_test.dart:6082:    await tester.pump();
+  test\widgets\wenz_rich_text_editor_test.dart:6083:    _expectTableCellTextSelection(
+  test\widgets\wenz_rich_text_editor_test.dart:6084:      controller.selection,
+  test\widgets\wenz_rich_text_editor_test.dart:6085:      tableBlockId: 'table-inline',
+  test\widgets\wenz_rich_text_editor_test.dart:6086:      blockIndex: 0,
+  test\widgets\wenz_rich_text_editor_test.dart:6087:      tableRowIndex: 0,
+
+
+
+ERROR: Selected model is at capacity. Please try a different model.
+ERROR: Selected model is at capacity. Please try a different model.
+tokens used
+43,061

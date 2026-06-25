@@ -1,0 +1,1637 @@
+OpenAI Codex v0.121.0 (research preview)
+--------
+workdir: D:\project\GitHub\wenz_flutter\wenz_richtext
+model: gpt-5.5
+provider: custom
+approval: never
+sandbox: danger-full-access
+reasoning effort: xhigh
+reasoning summaries: none
+session id: 019f0016-0b06-7d52-b3be-f55cf60c38e7
+--------
+user
+你是需求整理与开发计划生成者。
+请根据以下需求，生成一个开发计划和验收标准。
+
+输出文件：D:\project\GitHub\wenz_flutter\wenz_richtext\docs\plan\plan_requirement_13_20260626-024112.md
+
+格式要求：
+- 每个任务必须严格使用固定格式：- [ ] P001: 任务标题 <!-- scope: lib/foo.dart,test/foo_test.dart -->
+- scope 必填，表示该任务预计修改的文件或模块；多个 scope 用英文逗号分隔；无法判断时写 <!-- scope: unknown -->，unknown 任务不会并发执行
+- 每个任务要有验收要点
+- 必须包含总体验收标准和进度区
+- 只写 plan 文件，不要改业务代码
+
+需求 #13 内容：
+如果行内容是大纲标题，则支持折叠大纲内的所有内容，在标题左侧有个折叠按钮，切换折叠状态；
+codex
+我先看一下现有计划文档格式，再只写目标 plan 文件。
+exec
+powershell.exe -Command "Get-ChildItem -Force; if (Test-Path AGENTS.md) { Get-Content AGENTS.md }; if (Test-Path docs\\plan) { Get-ChildItem docs\\plan | Select-Object -First 10 Name }" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 389ms:
+
+
+    目录: D:\project\GitHub\wenz_flutter\wenz_richtext
+
+
+Mode                 LastWriteTime         Length Name                                                                 
+----                 -------------         ------ ----                                                                 
+d-----         2026/6/26      2:40                .codegraph                                                           
+d-----         2026/6/24     15:10                .dart_appdata                                                        
+d-----         2026/6/24     15:10                .dart_localappdata                                                   
+d-----         2026/6/24     16:11                .dart_tool                                                           
+d-----         2026/6/24     16:13                .dart_tool_appdata                                                   
+d-----         2026/6/24     16:06                .dart_tool_localappdata                                              
+d-----         2026/6/20      0:26                .idea                                                                
+d-----         2026/6/25     10:14                build                                                                
+d-----         2026/6/19     17:02                doc                                                                  
+d-----         2026/6/24     18:05                docs                                                                 
+d-----         2026/6/22     14:56                example                                                              
+d-----         2026/6/22     17:09                lib                                                                  
+d-----         2026/6/24      3:35                scripts                                                              
+d-----         2026/6/25      3:33                test                                                                 
+d-----         2026/6/24     18:04                tool                                                                 
+d-----         2026/6/25      2:40                ui                                                                   
+-a----         2026/6/19     14:04             87 .gitignore                                                           
+-a----         2026/6/24     16:16             94 analysis_options.yaml                                                
+-a----         2026/6/24     14:38            726 CHANGELOG.md                                                         
+-a----         2026/6/25      2:56            157 nul                                                                  
+-a----         2026/6/25      2:18          10389 pubspec.lock                                                         
+-a----         2026/6/25      2:18            382 pubspec.yaml                                                         
+-a----         2026/6/25     10:45           4516 README.md                                                            
+
+Name : plan_feedback_1_20260624-220759.md
+
+
+Name : plan_feedback_2_20260625-004108.md
+
+
+Name : plan_feedback_3_20260625-014905.md
+
+
+Name : plan_feedback_4_20260625-024854.md
+
+
+Name : plan_feedback_6_20260625-035040.md
+
+
+Name : plan_feedback_7_20260625-202854.md
+
+
+Name : plan_requirement_10_20260625-034349.md
+
+
+Name : plan_requirement_2_20260625-023728.md
+
+
+Name : plan_requirement_3_20260625-025750.md
+
+
+Name : plan_requirement_9_20260625-033413.md
+
+
+
+
+codex
+我找到了现有计划目录，接着对齐它的文档结构。
+exec
+powershell.exe -Command "Get-Content docs\\plan\\plan_requirement_10_20260625-034349.md; '---'; Get-Content docs\\plan\\plan_feedback_7_20260625-202854.md" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 200ms:
+# 闇€姹傚紑鍙戣鍒掞細澶х翰鎶樺彔鍔熻兘
+
+## 鏉ユ簮
+- 绫诲瀷锛氶渶姹?- 缂栧彿锛?0
+- 鐢熸垚鏃堕棿锛?026-06-25 03:43:49
+
+## 鍘熷鍐呭
+澧炲姞澶х翰鎶樺彔鍔熻兘锛屽鏋滆鍐呭鏄ぇ绾叉爣棰橈紝鍒欐敮鎸佹姌鍙犲唴瀹癸紱
+
+## 闇€姹傜悊瑙?- 褰撻《灞?block 鏄ぇ绾叉爣棰橈紙`BlockType.heading`锛夋椂锛岃琛屽簲灞曠ず鍙姌鍙犲叆鍙ｏ紝骞舵敮鎸佹姌鍙?灞曞紑鍏朵笅灞炲唴瀹广€?- 鎶樺彔鑼冨洿鎸夋爣棰樺眰绾ц绠楋細浠庡綋鍓嶆爣棰樹箣鍚庡紑濮嬶紝鐩村埌閬囧埌涓嬩竴涓悓绾ф垨鏇撮珮绾ф爣棰樹负姝紱浣庣骇鏍囬鍙婃櫘閫?block 鍧囧睘浜庡綋鍓嶆爣棰樼殑鍙姌鍙犲唴瀹广€?- 鎶樺彔鏄紪杈戝櫒瑙嗗浘鐘舵€侊紝涓嶅簲鍒犻櫎鎴栨敼鍐欐枃妗ｅ唴瀹癸紱瀵煎叆瀵煎嚭銆佸巻鍙茶褰曘€佸崗浣滄暟鎹拰澶х翰鏉＄洰鐢熸垚搴斾繚鎸佸師鏂囨。缁撴瀯銆?- 鎶樺彔鍚庨殣钘忕殑 block 涓嶅弬涓庡睆骞曟覆鏌撳拰鏅€氶紶鏍囧懡涓紝浣嗕粛闇€淇濊瘉閫夊尯銆佹悳绱€佹挙閿€/閲嶅仛銆佹粴鍔ㄥ畾浣嶅拰绋嬪簭鍖栬烦杞湁鏄庣‘琛屼负銆?
+## 浠诲姟璁″垝
+- [x] P001: 鏄庣‘鏍囬鎶樺彔浜や簰瑙勫垯 <!-- scope: lib/src/controller/outline_controller.dart,lib/src/widgets/wenz_rich_text_editor.dart,docs/acceptance_manual_checklist.md -->
+  - 楠屾敹瑕佺偣锛氭槑纭彧鏈夐《灞?`heading` block 鏄剧ず鎶樺彔鍏ュ彛锛屾钀姐€佸紩鐢ㄣ€佸垪琛ㄣ€佷唬鐮併€佽〃鏍笺€佸獟浣撳拰瀵硅薄鍧椾笉鏄剧ず鍏ュ彛銆?  - 楠屾敹瑕佺偣锛氭槑纭姌鍙犺寖鍥存寜鏍囬 level 璁＄畻锛宍H2` 鎶樺彔鍒颁笅涓€涓?`H1/H2` 鍓嶏紝`H3` 鎶樺彔鍒颁笅涓€涓?`H1/H2/H3` 鍓嶏紝绌烘爣棰樻垨鏃犲瓙鍐呭鏍囬涓嶅彲鎶樺彔鎴栨樉绀虹鐢ㄦ€併€?  - 楠屾敹瑕佺偣锛氭槑纭彧璇绘ā寮忎笅鍙睍寮€/鎶樺彔浣嗕笉鍙敼鍙樻枃妗ｅ唴瀹癸紝缂栬緫妯″紡涓嬫姌鍙犵姸鎬佷笉杩涘叆鎾ら攢/閲嶅仛鍘嗗彶銆?
+- [x] P002: 鎵╁睍澶х翰鎶樺彔鐘舵€佹ā鍨?<!-- scope: lib/src/controller/outline_controller.dart,lib/src/controller/wenz_rich_text_controller.dart,test/controller/outline_controller_test.dart,test/core/controller_test.dart -->
+  - 楠屾敹瑕佺偣锛氫负鏍囬鏉＄洰鎻愪緵鏄惁鍙姌鍙犮€佹槸鍚﹀凡鎶樺彔銆佹姌鍙犺鐩栫殑 block id/index 鑼冨洿绛夊彧璇讳俊鎭紝骞跺湪鏂囨。鍙樺寲鍚庤嚜鍔ㄩ噸绠椼€?  - 楠屾敹瑕佺偣锛氭彁渚涙寜 blockId/anchor/OutlineItem 鎶樺彔銆佸睍寮€銆佸垏鎹€佸叏閮ㄥ睍寮€鍜屾煡璇㈡姌鍙犵姸鎬佺殑 API锛涙棤鏁?block銆侀潪鏍囬 block 鍜屾棤瀛愬唴瀹规爣棰樿繑鍥炲畨鍏?no-op銆?  - 楠屾敹瑕佺偣锛氭姌鍙犵姸鎬佷互鏍囬 block id 涓轰富閿淮鎶わ紱鏍囬鍒犻櫎銆佺被鍨嬪彉鏇淬€佸眰绾у彉鏇淬€乥lock 绉诲姩鎴栨枃妗ｆ浛鎹㈠悗浼氭竻鐞嗘棤鏁堢姸鎬佸苟閫氱煡鐩戝惉鑰呫€?
+- [x] P003: 鏋勫缓鍙 block 鎶曞奖瑙嗗浘 <!-- scope: lib/src/controller/outline_controller.dart,lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/block_geometry_registry.dart,test/controller/outline_controller_test.dart,test/widgets/block_geometry_registry_test.dart -->
+  - 楠屾敹瑕佺偣锛氱紪杈戝櫒娓叉煋鍙牴鎹姌鍙犵姸鎬佽繃婊よ闅愯棌鐨勯《灞?block锛屽悓鏃朵繚鐣欏師濮?document.blocks 椤哄簭銆乥lockIndex 璇箟鍜屾枃妗?JSON 涓嶅彉銆?  - 楠屾敹瑕佺偣锛氶殣钘?block 鐨勫嚑浣曠紦瀛樸€佸懡涓祴璇曘€佹粴鍔ㄥ畾浣嶅拰閫夋嫨瑕嗙洊灞備笉浼氭畫鐣欐棫浣嶇疆锛涘睍寮€鍚庡嚑浣曚俊鎭兘閲嶆柊娉ㄥ唽骞剁敤浜庨€夊尯/婊氬姩銆?  - 楠屾敹瑕佺偣锛氬祵濂楁姌鍙犳椂鐖舵爣棰樻姌鍙犱紭鍏堥殣钘忔墍鏈夊悗浠ｅ唴瀹癸紝灞曞紑鐖舵爣棰樺悗瀛愭爣棰樿嚜韬殑鎶樺彔鐘舵€佷粛鍙户缁敓鏁堛€?
+- [x] P004: 娓叉煋鏍囬鎶樺彔鍏ュ彛涓庣姸鎬佸弽棣?<!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/block_renderer_registry.dart,test/widgets/wenz_rich_text_editor_test.dart,test/widgets/editor_golden_test.dart,test/widgets/goldens/editor_blocks.png -->
+  - 楠屾敹瑕佺偣锛氬彲鎶樺彔鏍囬宸︿晶鎴栨爣棰樺唴瀹硅捣濮嬪鏄剧ず绋冲畾鐨勫睍寮€/鏀惰捣鍥炬爣锛宧over/focus/pressed/disabled 鐘舵€佹竻鏅帮紝涓斾笉鎸ゅ帇鏍囬鏂囨湰甯冨眬銆?  - 楠屾敹瑕佺偣锛氱偣鍑绘垨閿洏婵€娲诲浘鏍囧彲鍒囨崲鎶樺彔鐘舵€侊紱鍥炬爣鍛戒腑鍖哄煙涓嶈Е鍙戞枃鏈€夊尯銆佽緭鍏ユ硶缁勫悎銆侀摼鎺ョ偣鍑绘垨 block 鎷栨嫿鑿滃崟銆?  - 楠屾敹瑕佺偣锛氭姌鍙犳爣棰樺彲鏄剧ず瀛愬唴瀹规暟閲忋€佽交閲忔彁绀烘垨瑙嗚鏍囪瘑锛屼究浜庣敤鎴峰垽鏂爣棰樹笅瀛樺湪琚殣钘忓唴瀹广€?
+- [x] P005: 澶勭悊鎶樺彔鐘舵€佷笅鐨勭紪杈戜笌瀵艰埅 <!-- scope: lib/src/controller/wenz_rich_text_controller.dart,lib/src/controller/find_replace_controller.dart,lib/src/controller/outline_controller.dart,lib/src/widgets/wenz_rich_text_editor.dart,test/core/controller_test.dart,test/controller/find_replace_controller_test.dart,test/widgets/wenz_rich_text_editor_test.dart -->
+  - 楠屾敹瑕佺偣锛氬綋褰撳墠閫夊尯鎴栫▼搴忓寲璺宠浆鐩爣浣嶄簬闅愯棌 block 鍐呮椂锛岀紪杈戝櫒浼氬厛灞曞紑鐩稿叧鏍囬鎴栧皢鍏夋爣瀹夊叏绉诲姩鍒版姌鍙犳爣棰樺锛岄伩鍏嶄笉鍙鍏夋爣銆?  - 楠屾敹瑕佺偣锛氭煡鎵炬浛鎹€佸ぇ绾茶烦杞€侀敋鐐硅烦杞拰婊氬姩鍒伴€夊尯鍦ㄥ懡涓殣钘忓唴瀹规椂鏈変竴鑷寸瓥鐣ワ紝骞惰兘璁╃洰鏍囧唴瀹归噸鏂板彲瑙併€?  - 楠屾敹瑕佺偣锛氬湪鎶樺彔鐘舵€佷笅鎻掑叆銆佸垹闄ゃ€佺矘璐淬€佹挙閿€/閲嶅仛銆佷慨鏀规爣棰樺眰绾у拰绉诲姩 block 鍚庯紝闅愯棌鑼冨洿銆侀€夊尯鍜屾粴鍔ㄤ綅缃繚鎸佸彲鎭㈠涓斾笉涓㈠唴瀹广€?
+- [x] P006: 鍏煎瀵煎叆瀵煎嚭涓庡閮ㄦ墿灞?<!-- scope: lib/src/codecs/rich_text_json_codec.dart,lib/src/codecs/html_codec.dart,lib/src/codecs/markdown_codec.dart,lib/src/widgets/block_renderer_registry.dart,test/codecs/rich_text_json_codec_test.dart,test/codecs/html_codec_test.dart,test/codecs/markdown_codec_test.dart,test/plugins/editor_plugin_test.dart -->
+  - 楠屾敹瑕佺偣锛氭姌鍙犵姸鎬侀粯璁や笉鍐欏叆鏂囨。 JSON銆丠TML銆丮arkdown 鎴栫函鏂囨湰瀵煎嚭锛屽鍏ュ凡鏈夋枃妗ｅ悗榛樿鍏ㄩ儴灞曞紑涓斿唴瀹瑰畬鏁淬€?  - 楠屾敹瑕佺偣锛氳嚜瀹氫箟 block renderer銆佹彃浠跺拰濯掍綋 resolver 鍦ㄩ殣钘?block 涓嶆覆鏌撴椂涓嶆敹鍒板浣欐瀯寤?鍑犱綍浜嬩欢锛屽睍寮€鍚庤涓轰笌鏅€?block 涓€鑷淬€?  - 楠屾敹瑕佺偣锛氬鏋滃悗缁渶瑕佷笟鍔′晶鎸佷箙鍖栨姌鍙犵姸鎬侊紝搴旈€氳繃鐙珛 UI 鐘舵€佹垨 metadata 鎵╁睍鐐瑰疄鐜帮紝涓嶆薄鏌撶幇鏈夊唴瀹规ā鍨嬨€?
+- [x] P007: 琛ュ厖鑷姩鍖栦笌瑙嗚鍥炲綊娴嬭瘯 <!-- scope: test/controller/outline_controller_test.dart,test/widgets/wenz_rich_text_editor_test.dart,test/widgets/editor_golden_test.dart,test/widgets/goldens/editor_blocks.png,test/widgets/goldens/editor_advanced_blocks.png,docs/plan/plan_requirement_10_20260625-034349.md -->
+  - 楠屾敹瑕佺偣锛氳鐩?H1-H6銆佸绾у祵濂椼€佽繛缁爣棰樸€佺┖鏍囬銆佹棤瀛愬唴瀹规爣棰樸€佺埗瀛愬悓鏃舵姌鍙犮€佹爣棰樺垹闄?鏀圭骇/绉诲姩鍚庣殑鑼冨洿閲嶇畻銆?  - 楠屾敹瑕佺偣锛氳鐩栨姌鍙犲浘鏍囩偣鍑汇€侀敭鐩樿闂€侀殣钘?block 涓嶅懡涓€佸睍寮€鍚庨€夊尯鎭㈠銆佹煡鎵惧懡涓殣钘忓唴瀹瑰拰澶х翰璺宠浆闅愯棌鏍囬绛?widget 琛屼负銆?  - 楠屾敹瑕佺偣锛氭洿鏂版垨鏂板 golden 灞曠ず灞曞紑鎬併€佹姌鍙犳€併€佺鐢ㄦ€佸拰宓屽鏍囬鍦烘櫙锛涜褰?`flutter analyze` 涓庣浉鍏虫祴璇曟墽琛岀粨鏋溿€?
+## 鎬讳綋楠屾敹鏍囧噯
+- 鎵€鏈変换鍔?checkbox 鍧囧畬鎴愶紝涓旀瘡涓换鍔＄殑楠屾敹瑕佺偣閮芥湁鏄庣‘缁撹鎴栭獙璇佽褰曘€?- 鏍囬鎶樺彔浠呮敼鍙樼紪杈戝櫒瑙嗗浘鐘舵€侊紝涓嶅垹闄ゃ€佷笉绉诲姩銆佷笉鏀瑰啓浠讳綍 block 鍐呭鎴栧鍏ュ鍑烘暟鎹粨鏋勩€?- 鎶樺彔鑼冨洿鎸夋爣棰樺眰绾хǔ瀹氳绠楋紝瑕嗙洊澶氱骇鏍囬宓屽銆佽繛缁爣棰樸€佺┖鍐呭銆佹枃妗ｉ灏惧拰鍔ㄦ€佺紪杈戝悗鐨勮竟鐣屽満鏅€?- 鎶樺彔/灞曞紑浜や簰鍙榧犳爣銆佽Е鎺у拰閿洏鍙潬瑙﹀彂锛屽苟涓嶅奖鍝嶆枃鏈紪杈戙€侀€夊尯銆両ME銆侀摼鎺ャ€佽〃鏍笺€佸獟浣撳潡鍜屽璞″潡鏃㈡湁浜や簰銆?- 闅愯棌鍐呭鍦ㄦ煡鎵俱€佸ぇ绾茶烦杞€侀敋鐐硅烦杞€侀€夊尯鎭㈠鍜屾粴鍔ㄥ畾浣嶆椂鏈変竴鑷村彲瑙佹€х瓥鐣ワ紝涓嶅嚭鐜颁笉鍙鍏夋爣鎴栨棤娉曞畾浣嶇洰鏍囥€?- 鐩稿叧 controller銆亀idget銆乧odec銆乸lugin 鍜?golden 娴嬭瘯閫氳繃锛涜嫢瀛樺湪鏃㈡湁澶辫触锛岄渶鍦ㄨ繘搴﹀尯璁板綍鍛戒护銆佸け璐ュ師鍥犲垽鏂拰鍚庣画寤鸿銆?
+## 杩涘害鍖?- 褰撳墠鐘舵€侊細璁″垝宸插垱寤猴紝P001-P007 寰呭紑鍙戞墽琛屻€?- 褰撳墠璐熻矗浜猴細寰呭垎閰嶃€?- 涓嬩竴姝ワ細浠?P001 寮€濮嬬‘璁ゆ姌鍙犺寖鍥淬€佸叆鍙ｄ綅缃€佸彧璇绘ā寮忓拰闅愯棌鍐呭瀵艰埅绛栫暐銆?- 楠岃瘉璁板綍锛氭湰娆′粎鐢熸垚璁″垝鏂囦欢锛屾湭淇敼涓氬姟浠ｇ爜锛屾湭鎵ц鑷姩鍖栨祴璇曟垨鎵嬪伐楠屾敹銆?- 椋庨櫓璁板綍锛氱紪杈戝櫒褰撳墠娓叉煋銆侀€夊尯鍜屽嚑浣曞懡涓泦涓湪澶у瀷 widget 涓紝杩囨护闅愯棌 block 鍙兘褰卞搷 blockIndex銆佹粴鍔ㄥ畾浣嶅拰 selection overlay锛涢渶瑕佷紭鍏堥€氳繃娴嬭瘯绾︽潫琛屼负鍐嶅疄鐜般€?- P001 AutoPlan 瀹屾垚锛?026-06-24T19:50:35.751Z锛涙棩蹇楋細docs/progress/logs/20260625-034550_execute-P001.log
+- P002 AutoPlan 瀹屾垚锛?026-06-25T02:57:51.543Z锛涙棩蹇楋細docs/progress/logs/20260625-104955_execute-P002.log
+- P003 AutoPlan 瀹屾垚锛?026-06-25T03:33:19.947Z锛涙棩蹇楋細docs/progress/logs/20260625-112518_execute-P003.log
+- P004 AutoPlan 瀹屾垚锛?026-06-25T04:36:47.833Z锛涙棩蹇楋細docs/progress/logs/20260625-123230_execute-P004.log
+- P005 AutoPlan 瀹屾垚锛?026-06-25T05:23:26.649Z锛涙棩蹇楋細docs/progress/logs/20260625-131109_execute-P005.log
+- P006 AutoPlan 瀹屾垚锛?026-06-25T05:34:40.490Z锛涙棩蹇楋細docs/progress/logs/20260625-132450_execute-P006.log
+- P007 AutoPlan 瀹屾垚锛?026-06-25T05:50:45.065Z锛涙棩蹇楋細docs/progress/logs/20260625-134052_execute-P007.log
+---
+# 鍙嶉寮€鍙戣鍒掞細缂栬緫鍣ㄥ厓绱犻€夋嫨銆佽彍鍗曚笌濯掍綋/琛ㄦ牸鏄剧ず浼樺寲
+
+## 鏉ユ簮
+- 绫诲瀷锛氬弽棣?- 缂栧彿锛?
+- 鐢熸垚鏃堕棿锛?026-06-25 20:28:54
+
+## 鍘熷鍐呭
+1. 鎻愬強鈥淍xxx鈥濆悗闈㈢殑鏂囧瓧鏃犳硶琚€変腑锛屼紭鍖栦竴涓嬶紝搴旇鍙互閫変腑銆?2. 寮曠敤鍧楋紝瑕佸崰鐢ㄥ叏琛屻€?3. todo 椤圭殑 checkbox锛屽搴﹀お澶с€?4. 琛ㄦ牸鐨勫伐鍏锋爮锛宧over 浼氭姤閿欙紝鐣岄潰绐佺劧闂睆绾㈣壊銆?5. 琛ㄦ牸鐨勫垎鍓茬嚎娌℃湁鏄剧ず锛屼紭鍖栦竴涓嬨€?6. 鍚勪釜鍏冪礌鐨勮彍鍗曪紝瑕佸敖閲忕畝绾︼紝涓嶉渶瑕佷笂绾跨Щ鍔紝鏈€濂藉皢澶嶆潅鐨勫姛鑳芥姌鍙犲埌涓€涓彍鍗曘€?7. 鏂囦欢鍗＄墖鍏冪礌锛岃彍鍗曞脊鍑猴紝瀹藉害澶綆锛屽昂瀵稿瓨鍦ㄩ棶棰橈紝鏄剧ず涓嶅叏銆?8. 瑙嗛鍏冪礌锛屽唴瀹规湁婧㈠嚭銆?9. 鍥剧墖銆佽棰戝厓绱犱笉闇€瑕佹樉绀烘爣棰橈紝鍗曞嚮閫変腑鍚庯紝瑕佹樉绀哄伐鍏锋爮锛岄瑙?+ 鑿滃崟銆?10. 姣忚鍏冪礌鑱氱劍鏃讹紝榧犳爣 hover 鏃讹紝宸︿晶瑕佹樉绀烘嫋鎷芥寜閽紝鏀寔鏁磋鍐呭鎷栨嫿锛岀偣鍑荤殑璇濓紝鍒欐樉绀鸿鑿滃崟锛屼緥濡傦細鍒囨崲琛屾牸寮忎负浠ｇ爜鍧椼€佹櫘閫氭枃鏈€佹爣棰樸€?
+## 闇€姹傜悊瑙?- 鏈鍙嶉涓昏闆嗕腑鍦ㄥ瘜鏂囨湰缂栬緫鍣ㄦ覆鏌撳眰銆佹偓娴伐鍏锋爮銆佸厓绱犺彍鍗曘€佸獟浣?鏂囦欢鍗＄墖灏哄銆佽〃鏍艰竟妗嗗拰鏁磋鎷栨嫿浜や簰銆?- `@mention` 鍚庣画鏂囧瓧鏃犳硶閫変腑灞炰簬鍐呰仈宓屽叆涓庢枃鏈?offset/鍛戒腑娴嬭瘯鏄犲皠闂锛岄渶瑕佷繚璇佹彁鍙婅妭鐐规湰韬笌鍚庣画鏅€氭枃瀛楀潎鍙甯歌繘鍏ラ€夊尯銆?- 寮曠敤鍧椼€乼odo銆佽〃鏍煎垎鍓茬嚎銆佹枃浠跺崱鐗囥€佽棰戞孩鍑恒€佸浘鐗?瑙嗛鏍囬闅愯棌灞炰簬瑙嗚涓庡竷灞€淇锛屽簲灏介噺淇濇寔鏂囨。妯″瀷銆佸簭鍒楀寲鍗忚鍜屽鍏ュ鍑鸿涓轰笉鍙樸€?- 鑿滃崟绠€鍖栦笌琛屾嫋鎷芥槸浜や簰浣撶郴璋冩暣锛岄渶瑕佺粺涓€鍏冪礌鑿滃崟灞傜骇銆佸急鍖栦綆棰戝姛鑳藉叆鍙ｏ紝骞剁‘淇濆彧璇绘€併€乭over銆侀€変腑鎬併€佹嫋鎷芥€佸拰閿紶鎿嶄綔涓嶄簰鐩稿啿绐併€?
+## 浠诲姟璁″垝
+- [x] P001: 淇 mention 鍚庣画鏂囧瓧閫夋嫨 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,test/widgets/wenz_rich_text_editor_test.dart,test/core/selection_commands_test.dart -->
+  - 楠屾敹瑕佺偣锛氬寘鍚?`@xxx` 鎻愬強鑺傜偣鐨勬钀戒腑锛岄紶鏍囨嫋閫変粠 mention 鍓嶃€乵ention 鍐呫€乵ention 鍚庡紑濮嬫垨缁撴潫鏃讹紝鍚庣画鏅€氭枃瀛楀潎鍙閫変腑銆?  - 楠屾敹瑕佺偣锛氶敭鐩?Shift + 鏂瑰悜閿€佸叏閫夈€佸鍒剁瓑璺緞涓嶄細璺宠繃 mention 鍚庨潰鐨勬枃瀛楋紝涔熶笉浼氭妸 mention 鍚庢枃鏈敊璇槧灏勫埌 mention 鍘熷瓙鑺傜偣鍐呴儴銆?  - 楠屾敹瑕佺偣锛氬悓涓€淇瑕嗙洊鏅€氭钀戒笌琛ㄦ牸鍗曞厓鏍煎唴鐨?mention 鍦烘櫙锛屼笉鐮村潖 emoji銆佸叕寮忕瓑鍏朵粬 `InlineEmbed` 鐨勫師瀛愰€夋嫨璇箟銆?
+- [x] P002: 璁╁紩鐢ㄥ潡鍗犳弧鏁磋 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,test/widgets/editor_golden_test.dart,test/widgets/wenz_rich_text_editor_test.dart -->
+  - 楠屾敹瑕佺偣锛氬紩鐢ㄥ潡鑳屾櫙銆佸乏杈规銆佸唴杈硅窛鍜屽彲鐐瑰嚮鍖哄煙鎸夌紪杈戝櫒鍐呭瀹藉害鍗犳弧鏁磋锛岃€屼笉鏄粎鍖呰９鏂囧瓧鍐呭瀹藉害銆?  - 楠屾敹瑕佺偣锛氱┖寮曠敤鍧椼€佺煭鏂囨湰寮曠敤鍧椼€佸琛屽紩鐢ㄥ潡銆佺缉杩?鍒楄〃鐩搁偦寮曠敤鍧楀湪瑙嗚涓婂潎淇濇寔鍏ㄨ鍧楃骇鍏冪礌鏁堟灉銆?  - 楠屾敹瑕佺偣锛氬紩鐢ㄥ潡鍐呮枃鏈€夋嫨銆佸厜鏍囧畾浣嶃€佸鍒躲€佽楂樺拰鎹㈣琛屼负涓嶅洜鍏ㄨ甯冨眬璋冩暣鑰屽洖褰掋€?
+- [x] P003: 鏀剁獎 todo checkbox 瀹藉害 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,test/widgets/editor_golden_test.dart,test/widgets/wenz_rich_text_editor_test.dart -->
+  - 楠屾敹瑕佺偣锛歵odo 琛?checkbox 鐨勭偣鍑荤儹鍖轰繚鎸佹槗鐐癸紝浣嗚瑙夊崰浣嶅搴︽槑鏄炬敹绐勶紝涓嶅啀鎷夊ぇ鍒楄〃缂╄繘鎴栨尋鍘嬫鏂囥€?  - 楠屾敹瑕佺偣锛氬凡鍕鹃€夈€佹湭鍕鹃€夈€乭over銆乫ocus銆佸彧璇绘€佷笅 checkbox 灏哄鍜屽榻愪竴鑷达紝鏂囨湰棣栬涓庡琛屾姌琛屽榻愯嚜鐒躲€?  - 楠屾敹瑕佺偣锛氱偣鍑?checkbox 鍒囨崲 todo 鐘舵€併€佹挙閿€/閲嶅仛銆侀敭鐩樺鑸拰鏅€氬垪琛ㄦ覆鏌撲笉鍙楀奖鍝嶃€?
+- [x] P004: 淇琛ㄦ牸宸ュ叿鏍?hover 鎶ラ敊 <!-- scope: lib/src/widgets/table_floating_toolbar_overlay.dart,lib/src/widgets/wenz_rich_text_editor.dart,test/widgets/wenz_rich_text_editor_test.dart -->
+  - 楠屾敹瑕佺偣锛氶紶鏍?hover 琛ㄦ牸宸ュ叿鏍忔寜閽€佽彍鍗曘€佸垎闅旂嚎鍜岀┖鐧藉尯鍩熸椂涓嶅啀鍑虹幇绾㈠睆銆佸紓甯告棩蹇楁垨鐣岄潰闂睆銆?  - 楠屾敹瑕佺偣锛氬伐鍏锋爮 hover 鐘舵€佸彉鍖栨湡闂达紝overlay 閿氱偣銆佽〃鏍奸€夊尯銆佺劍鐐瑰拰鍛戒腑娴嬭瘯閾捐矾淇濇寔绋冲畾锛屼笉瑙﹀彂 stale context / disposed render object 绛夐敊璇€?  - 楠屾敹瑕佺偣锛氬伐鍏锋爮鐐瑰嚮鍛戒护浠嶈兘姝ｅ父鎵ц锛岀偣鍑诲伐鍏锋爮澶栧尯鍩熶粛鍙洖鍒拌〃鏍肩紪杈戞垨鏅€氭枃鏈紪杈戙€?
+- [x] P005: 鎭㈠琛ㄦ牸鍒嗗壊绾挎樉绀?<!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/core/model/table_model.dart,test/widgets/editor_golden_test.dart,test/widgets/wenz_rich_text_editor_test.dart -->
+  - 楠屾敹瑕佺偣锛氳〃鏍艰绾裤€佸垪绾裤€佸杈规鍜屽悎骞跺崟鍏冩牸杈圭晫鍦ㄩ粯璁や富棰樹笅娓呮櫚鍙锛屾祬鑹茶儗鏅笌閫変腑鎬佷笅閮芥湁瓒冲瀵规瘮搴︺€?  - 楠屾敹瑕佺偣锛氬垪瀹芥嫋鎷姐€佸崟鍏冩牸 hover銆侀€夊尯楂樹寒銆佽〃澶存牱寮忓拰鍗曞厓鏍艰儗鏅壊涓嶄細閬尅鎴栬鐩栧垎鍓茬嚎銆?  - 楠屾敹瑕佺偣锛氱┖琛ㄦ牸銆佸琛ㄦ牸銆佺獎琛ㄦ牸銆佸悎骞?鎷嗗垎鍗曞厓鏍笺€佹粴鍔ㄨ鍙ｄ腑鐨勮〃鏍煎潎淇濇寔杈规娓叉煋涓€鑷淬€?
+- [x] P006: 绠€鍖栧厓绱犺彍鍗曞眰绾?<!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/table_floating_toolbar_overlay.dart,lib/src/controller/toolbar_controller.dart,test/widgets/editor_golden_test.dart,test/widgets/wenz_rich_text_editor_test.dart -->
+  - 楠屾敹瑕佺偣锛氬浘鐗囥€佽棰戙€佹枃浠躲€佽〃鏍笺€佷唬鐮佸潡銆佸紩鐢ㄥ潡绛夊厓绱犵殑涓昏彍鍗曢粯璁ゅ彧淇濈暀楂橀鎿嶄綔锛屽彇娑堜笉蹇呰鐨勪笂绉?涓嬬Щ鍏ュ彛銆?  - 楠屾敹瑕佺偣锛氬鏉傛垨浣庨鍔熻兘鎶樺彔鍒扳€滄洿澶氣€濈被浜岀骇鍏ュ彛锛岃彍鍗曞搴︺€佸垎缁勩€佸浘鏍囥€佹枃妗堝拰绂佺敤鎬佷繚鎸佺畝娲佷竴鑷淬€?  - 楠屾敹瑕佺偣锛氳鎶樺彔鐨勫姛鑳戒粛鍙闂笖鍛戒护琛屼负涓嶅洖褰掞紝鍙鎬併€佹棤閫変腑鎬併€佷笉鍙敤鐘舵€佷笅涓嶆樉绀鸿瀵兼€ф搷浣溿€?
+- [x] P007: 淇鏂囦欢鍗＄墖鑿滃崟灏哄 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/controller/file_block_controller.dart,test/widgets/wenz_rich_text_editor_test.dart,test/controller/file_block_controller_test.dart -->
+  - 楠屾敹瑕佺偣锛氭枃浠跺崱鐗囩殑寮瑰嚭鑿滃崟瀹藉害鑳藉绾冲畬鏁磋彍鍗曟枃妗堛€佸浘鏍囧拰蹇嵎鎻愮ず锛屼笉鍐嶅嚭鐜版埅鏂€佹崲琛岄敊涔辨垨鍐呭鏄剧ず涓嶅叏銆?  - 楠屾敹瑕佺偣锛氶暱鏂囦欢鍚嶃€佸皬灞忓搴︺€侀潬杩戠紪杈戝櫒杈圭紭銆佹粴鍔ㄥ鍣ㄥ唴寮瑰嚭鑿滃崟鏃讹紝鑿滃崟鑳借嚜鍔ㄧ害鏉熷湪鍙鍖哄煙鍐呫€?  - 楠屾敹瑕佺偣锛氭枃浠堕瑙堛€佷笅杞?澶嶅埗銆佹浛鎹€佸垹闄ょ瓑鏃㈡湁鏂囦欢鍗＄墖鎿嶄綔鍏ュ彛鍙甯哥偣鍑伙紝鐒︾偣涓庨€変腑鎬佷笉涓㈠け銆?
+- [x] P008: 澶勭悊瑙嗛鍏冪礌鍐呭婧㈠嚭 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/controller/video_block_controller.dart,test/widgets/wenz_rich_text_editor_test.dart,test/controller/video_block_controller_test.dart -->
+  - 楠屾敹瑕佺偣锛氳棰戝厓绱犲湪绐勫鍣ㄣ€佸浐瀹氬楂樸€佹湭鐭ュ昂瀵搞€佹í绔栧睆姣斾緥宸紓鍦烘櫙涓嬩笉鍑虹幇 RenderFlex overflow 鎴栧唴瀹硅秺鐣屻€?  - 楠屾敹瑕佺偣锛氳棰戝崰浣嶅浘銆佹挱鏀炬寜閽€佸姞杞?閿欒鐘舵€併€佸伐鍏锋爮鍜岃彍鍗曞潎琚檺鍒跺湪鍗＄墖鎴栫紪杈戝櫒鍐呭鍖哄煙鍐呫€?  - 楠屾敹瑕佺偣锛氳棰戝潡閫夋嫨銆佸鍒躲€佸垹闄ゃ€佽皟鏁村昂瀵稿拰鍙灞曠ず琛屼负涓嶅洜婧㈠嚭淇鑰屽洖褰掋€?
+- [x] P009: 璋冩暣鍥剧墖瑙嗛閫変腑宸ュ叿鏍?<!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/controller/image_block_controller.dart,lib/src/controller/video_block_controller.dart,test/widgets/editor_golden_test.dart,test/widgets/wenz_rich_text_editor_test.dart -->
+  - 楠屾敹瑕佺偣锛氬浘鐗囥€佽棰戝厓绱犻粯璁や笉鍐嶆樉绀烘爣棰?瀛楀箷鏂囨湰鍖哄煙锛屼絾妯″瀷涓殑 caption/title 鏁版嵁淇濈暀鐢ㄤ簬瀵煎叆瀵煎嚭銆佹棤闅滅鎴栧悗缁紪杈戝叆鍙ｃ€?  - 楠屾敹瑕佺偣锛氬崟鍑诲浘鐗囨垨瑙嗛鍚庢樉绀鸿交閲忓伐鍏锋爮锛岃嚦灏戝寘鍚瑙堝叆鍙ｅ拰鎶樺彔鑿滃崟鍏ュ彛锛屽伐鍏锋爮浣嶇疆绋冲畾涓斾笉閬尅涓昏鍐呭銆?  - 楠屾敹瑕佺偣锛氬弻鍑?棰勮銆佽彍鍗曟搷浣溿€佸璞￠€変腑楂樹寒銆侀敭鐩樺垹闄ゃ€佸鍒跺拰鍙鎬佸睍绀虹鍚堢幇鏈夌紪杈戝櫒浜や簰瑙勫垯銆?
+- [x] P010: 瀹炵幇琛岀骇 hover 鎷栨嫿涓庤彍鍗?<!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,test/widgets/editor_golden_test.dart,test/widgets/wenz_rich_text_editor_test.dart,test/core/block_structure_commands_test.dart -->
+  - 楠屾敹瑕佺偣锛氭瘡琛屾垨姣忎釜鍧楃骇鍏冪礌鑱氱劍/hover 鏃讹紝宸︿晶鏄剧ず鎷栨嫿鎸夐挳锛涢紶鏍囩Щ鍑恒€佸彧璇绘€佹垨涓嶅彲鎷栨嫿鍧楁椂鎸夎鍒欓殣钘忔垨绂佺敤銆?  - 楠屾敹瑕佺偣锛氭嫋鎷芥寜閽敮鎸佹暣琛屽唴瀹规嫋鎷芥帓搴忥紝鎷栨嫿杩囩▼涓湁鏄庣‘ drop indicator锛岄噴鏀惧悗鏂囨。椤哄簭銆侀€夊尯鍜屾挙閿€/閲嶅仛璁板綍姝ｇ‘銆?  - 楠屾敹瑕佺偣锛氬崟鍑绘嫋鎷芥寜閽墦寮€琛岃彍鍗曪紝鏀寔鍒囨崲涓烘櫘閫氭枃鏈€佷唬鐮佸潡銆佹爣棰樼瓑甯哥敤琛屾牸寮忥紝骞朵笌绠€鍖栧悗鐨勫厓绱犺彍鍗曢鏍间竴鑷淬€?
+- [ ] P011: 琛ュ厖鍥炲綊楠岃瘉璁板綍 <!-- scope: test/widgets/wenz_rich_text_editor_test.dart,test/widgets/editor_golden_test.dart,test/controller/image_block_controller_test.dart,test/controller/video_block_controller_test.dart,test/controller/file_block_controller_test.dart,test/core/selection_commands_test.dart,test/core/block_structure_commands_test.dart -->
+  - 楠屾敹瑕佺偣锛氭柊澧炴垨鏇存柊鑷姩鍖栨祴璇曡鐩?mention 閫夋嫨銆佸紩鐢ㄥ潡鍏ㄨ銆乼odo checkbox銆佽〃鏍煎伐鍏锋爮 hover銆佽〃鏍煎垎鍓茬嚎銆佹枃浠惰彍鍗曞昂瀵搞€佽棰戞孩鍑恒€佸獟浣撳伐鍏锋爮鍜岃鎷栨嫿鑿滃崟銆?  - 楠屾敹瑕佺偣锛氭墽琛?`flutter analyze`銆佺浉鍏?widget/controller/core 娴嬭瘯鍜屽繀瑕?golden 鏍￠獙锛涜嫢瀛樺湪澶辫触锛岄渶瑕佽褰曞け璐ュ懡浠ゃ€佸け璐ュ師鍥犲拰鏄惁涓庢湰娆℃敼鍔ㄧ浉鍏炽€?  - 楠屾敹瑕佺偣锛氬畬鎴愭闈㈤紶鏍囨墜宸ラ獙璇侊紝瑕嗙洊 hover銆佺偣鍑汇€佹嫋鎷姐€佽彍鍗曞脊鍑恒€佹粴鍔ㄣ€佺獎瀹藉害銆佸彧璇绘€佸拰澶氬厓绱犳贩鎺掑満鏅€?
+## 鎬讳綋楠屾敹鏍囧噯
+- 鎵€鏈変换鍔?checkbox 鍧囧畬鎴愶紝涓旀瘡涓换鍔＄殑楠屾敹瑕佺偣閮芥湁瀹炵幇缁撹銆佹祴璇曠粨璁烘垨鏄庣‘椋庨櫓璁板綍銆?- `@mention` 鍚庨潰鐨勬櫘閫氭枃瀛楀彲琚紶鏍囥€侀敭鐩樺拰澶嶅埗閾捐矾姝ｅ父閫変腑锛屽唴鑱斿祵鍏ラ€夋嫨琛屼负涓嶅洖褰掋€?- 寮曠敤鍧楁寜鏁磋鍧楃骇鍏冪礌鏄剧ず锛宼odo checkbox 灏哄鍚堢悊锛岃〃鏍煎伐鍏锋爮 hover 涓嶆姤閿欙紝琛ㄦ牸鍒嗗壊绾挎竻鏅板彲瑙併€?- 鍏冪礌鑿滃崟鏁翠綋鏇寸畝绾︼紝浣庨鍔熻兘鎶樺彔鍒扮粺涓€鍏ュ彛锛屾枃浠跺崱鐗囪彍鍗曞搴﹀拰鍙鍖哄煙绾︽潫姝ｇ‘銆?- 瑙嗛鍏冪礌鏃犲唴瀹规孩鍑猴紱鍥剧墖銆佽棰戦粯璁や笉鏄剧ず鏍囬锛屽崟鍑婚€変腑鍚庢樉绀哄寘鍚瑙堝拰鑿滃崟鐨勮交閲忓伐鍏锋爮銆?- 琛岀骇 hover 鎷栨嫿鎸夐挳鍜岃鑿滃崟鍙敤锛屾敮鎸佹暣琛屾嫋鎷芥帓搴忓拰甯哥敤琛屾牸寮忓垏鎹紝涓旀挙閿€/閲嶅仛銆侀€夊尯銆佸彧璇绘€佷笉鍥炲綊銆?- 鐩稿叧鑷姩鍖栨祴璇曘€乬olden 鏍￠獙銆侀潤鎬佸垎鏋愬拰鎵嬪伐楠屾敹閫氳繃锛涘瀛樺湪鏃㈡湁澶辫触锛岄渶鍦ㄨ繘搴﹀尯璁板綍褰卞搷鑼冨洿鍜岃閬挎柟寮忋€?
+## 杩涘害鍖?- 褰撳墠鐘舵€侊細璁″垝宸插垱寤猴紝P001-P011 寰呭紑鍙戞墽琛屻€?- 褰撳墠璐熻矗浜猴細寰呭垎閰嶃€?- 涓嬩竴姝ワ細浠?P001 寮€濮嬪鐜?mention 鍚庣画鏂囧瓧鏃犳硶閫変腑鐨勬渶灏忓満鏅紝骞跺悓姝ョ‘璁ょ浉鍏抽€夋嫨娴嬭瘯鍩虹嚎銆?- 楠岃瘉璁板綍锛氭湰娆′粎鐢熸垚璁″垝鏂囦欢锛屾湭淇敼涓氬姟浠ｇ爜锛屾湭鎵ц鑷姩鍖栨祴璇曟垨鎵嬪伐楠屾敹銆?- 椋庨櫓璁板綍锛氬椤归渶姹傞泦涓湪 `lib/src/widgets/wenz_rich_text_editor.dart` 娓叉煋涓庝氦浜掑眰锛屽疄鏂芥椂闇€閬垮厤骞跺彂淇敼鍚屼竴鍖哄煙瀵艰嚧鍐茬獊锛屽苟閲嶇偣鍥炲綊閫夋嫨銆佺劍鐐广€乭over銆乷verlay銆佹嫋鎷藉拰瀵硅薄閫変腑閾捐矾銆?- P001 AutoPlan 瀹屾垚锛?026-06-25T14:54:23.600Z锛涙棩蹇楋細docs/progress/logs/20260625-225006_execute-P001.log
+- P002 AutoPlan 瀹屾垚锛?026-06-25T15:14:30.496Z锛涙棩蹇楋細docs/progress/logs/20260625-225427_execute-P002.log
+- P003 AutoPlan 瀹屾垚锛?026-06-25T15:22:38.137Z锛涙棩蹇楋細docs/progress/logs/20260625-231433_execute-P003.log
+- P004 AutoPlan 瀹屾垚锛?026-06-25T15:37:12.488Z锛涙棩蹇楋細docs/progress/logs/20260625-232239_execute-P004.log
+- P005 AutoPlan 瀹屾垚锛?026-06-25T15:47:06.037Z锛涙棩蹇楋細docs/progress/logs/20260625-233716_execute-P005.log
+- P006 AutoPlan 瀹屾垚锛?026-06-25T16:26:06.097Z锛涙棩蹇楋細docs/progress/logs/20260625-234707_execute-P006.log
+- P007 AutoPlan 瀹屾垚锛?026-06-25T16:38:32.299Z锛涙棩蹇楋細docs/progress/logs/20260626-002610_execute-P007.log
+- P008 AutoPlan 瀹屾垚锛?026-06-25T17:01:05.847Z锛涙棩蹇楋細docs/progress/logs/20260626-003837_execute-P008.log
+- P009 AutoPlan 瀹屾垚锛?026-06-25T17:48:17.997Z锛涙棩蹇楋細docs/progress/logs/20260626-014613_execute-P009.log
+- P010 AutoPlan 瀹屾垚锛?026-06-25T18:19:40.497Z锛涙棩蹇楋細docs/progress/logs/20260626-014818_execute-P010.log
+
+**Investigating encoding issues**
+
+I'm encountering potential encoding problems, possibly linked to UTF-8 viewed in GBK by Powershell. I need to set the encoding correctly using Get-Content with UTF8. However, the output may still get messed up due to terminal encoding. It seems wise to inspect the raw output via Python and create a file with the correct UTF-8. I should review files and modules, perhaps using codegraph or rg for exploration. It requires planning without diving straight into code.
+**Utilizing codegraph**
+
+I'm considering whether to use codegraph since it relates to my codebase question. It looks like codegraph might be initialized already, so I'll try using codegraph_explore for relevant symbols. In particular, I want to search for "outline fold heading rich text editor." This might help me pinpoint what I need more effectively. I feel like I’m on the right track for understanding the structure here!
+codex
+我会快速定位大纲、编辑器和测试模块，确保任务 scope 贴近代码结构。
+mcp: codegraph/codegraph_explore started
+mcp: codegraph/codegraph_explore (completed)
+**Considering development tasks**
+
+It looks like the output indicates a code outline might already be in place, which is a bit confusing. The user is asking for a plan for task #13, but I should probably focus on producing an outline of unchecked tasks. I need to reference existing modules for this and inspect the relevant code details to accurately define the scope. Plus, it seems the code graph is cut off, so I should find the complete file list.
+codex
+已有折叠控制器相关代码存在；我再确认测试与渲染文件名，避免 scope 写偏。
+exec
+powershell.exe -Command 'rg --files lib test docs | Sort-Object | rg "(outline|wenz_rich_text_editor|block_geometry|editor_golden|selection|controller|renderer|acceptance|progress)"' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 325ms:
+docs\acceptance_manual_checklist.md
+docs\acceptance_report.md
+docs\progress\logs\20260624-220459_gen-feedback-1.log
+docs\progress\logs\20260624-220759_gen-feedback-1.last.txt
+docs\progress\logs\20260624-220759_gen-feedback-1.log
+docs\progress\logs\20260624-221203_execute-P001.last.txt
+docs\progress\logs\20260624-221203_execute-P001.log
+docs\progress\logs\20260624-222230_execute-P002.log
+docs\progress\logs\20260624-224908_execute-P002.log
+docs\progress\logs\20260624-225311_execute-P002.log
+docs\progress\logs\20260624-225659_execute-P002.log
+docs\progress\logs\20260624-225852_execute-P002.log
+docs\progress\logs\20260624-230231_execute-P002.last.txt
+docs\progress\logs\20260624-230231_execute-P002.log
+docs\progress\logs\20260624-230817_execute-P003.log
+docs\progress\logs\20260624-231323_execute-P003.last.txt
+docs\progress\logs\20260624-231323_execute-P003.log
+docs\progress\logs\20260624-232435_execute-P004.log
+docs\progress\logs\20260624-234427_execute-P004.last.txt
+docs\progress\logs\20260624-234427_execute-P004.log
+docs\progress\logs\20260624-235018_execute-P005.last.txt
+docs\progress\logs\20260624-235018_execute-P005.log
+docs\progress\logs\20260625-000254_execute-P006.last.txt
+docs\progress\logs\20260625-000254_execute-P006.log
+docs\progress\logs\20260625-000439_execute-P007.log
+docs\progress\logs\20260625-000532_execute-P007.last.txt
+docs\progress\logs\20260625-000532_execute-P007.log
+docs\progress\logs\20260625-000723_validate-1.log
+docs\progress\logs\20260625-000756_repair-1-1.last.txt
+docs\progress\logs\20260625-000756_repair-1-1.log
+docs\progress\logs\20260625-000841_validate-1-repair-1.log
+docs\progress\logs\20260625-004108_gen-feedback-2.last.txt
+docs\progress\logs\20260625-004108_gen-feedback-2.log
+docs\progress\logs\20260625-004352_execute-P001.last.txt
+docs\progress\logs\20260625-004352_execute-P001.log
+docs\progress\logs\20260625-005220_execute-P002.last.txt
+docs\progress\logs\20260625-005220_execute-P002.log
+docs\progress\logs\20260625-010621_execute-P003.log
+docs\progress\logs\20260625-010626_execute-P003.last.txt
+docs\progress\logs\20260625-010626_execute-P003.log
+docs\progress\logs\20260625-011332_execute-P004.last.txt
+docs\progress\logs\20260625-011332_execute-P004.log
+docs\progress\logs\20260625-013108_execute-P005.last.txt
+docs\progress\logs\20260625-013108_execute-P005.log
+docs\progress\logs\20260625-014905_gen-feedback-3.last.txt
+docs\progress\logs\20260625-014905_gen-feedback-3.log
+docs\progress\logs\20260625-015035_execute-P001.log
+docs\progress\logs\20260625-015334_execute-P006.last.txt
+docs\progress\logs\20260625-015334_execute-P006.log
+docs\progress\logs\20260625-020615_execute-P007.log
+docs\progress\logs\20260625-020620_execute-P007.last.txt
+docs\progress\logs\20260625-020620_execute-P007.log
+docs\progress\logs\20260625-021211_execute-P008.log
+docs\progress\logs\20260625-022707_execute-P008.last.txt
+docs\progress\logs\20260625-022707_execute-P008.log
+docs\progress\logs\20260625-023728_gen-requirement-2.last.txt
+docs\progress\logs\20260625-023728_gen-requirement-2.log
+docs\progress\logs\20260625-024055_execute-P001.last.txt
+docs\progress\logs\20260625-024055_execute-P001.log
+docs\progress\logs\20260625-024854_gen-feedback-4.last.txt
+docs\progress\logs\20260625-024854_gen-feedback-4.log
+docs\progress\logs\20260625-025017_execute-P001.last.txt
+docs\progress\logs\20260625-025017_execute-P001.log
+docs\progress\logs\20260625-025750_gen-requirement-3.last.txt
+docs\progress\logs\20260625-025750_gen-requirement-3.log
+docs\progress\logs\20260625-030253_execute-P001.last.txt
+docs\progress\logs\20260625-030253_execute-P001.log
+docs\progress\logs\20260625-031051_execute-P009.last.txt
+docs\progress\logs\20260625-031051_execute-P009.log
+docs\progress\logs\20260625-031622_execute-P010.last.txt
+docs\progress\logs\20260625-031622_execute-P010.log
+docs\progress\logs\20260625-032513_validate-2.log
+docs\progress\logs\20260625-032518_execute-P001.last.txt
+docs\progress\logs\20260625-032518_execute-P001.log
+docs\progress\logs\20260625-033413_gen-requirement-9.last.txt
+docs\progress\logs\20260625-033413_gen-requirement-9.log
+docs\progress\logs\20260625-033741_execute-P001.last.txt
+docs\progress\logs\20260625-033741_execute-P001.log
+docs\progress\logs\20260625-034349_gen-requirement-10.last.txt
+docs\progress\logs\20260625-034349_gen-requirement-10.log
+docs\progress\logs\20260625-034550_execute-P001.last.txt
+docs\progress\logs\20260625-034550_execute-P001.log
+docs\progress\logs\20260625-035040_gen-feedback-6.last.txt
+docs\progress\logs\20260625-035040_gen-feedback-6.log
+docs\progress\logs\20260625-035238_execute-P001.last.txt
+docs\progress\logs\20260625-035238_execute-P001.log
+docs\progress\logs\20260625-040126_execute-P002.last.txt
+docs\progress\logs\20260625-040126_execute-P002.log
+docs\progress\logs\20260625-041027_execute-P003.last.txt
+docs\progress\logs\20260625-041027_execute-P003.log
+docs\progress\logs\20260625-042313_execute-P004.last.txt
+docs\progress\logs\20260625-042313_execute-P004.log
+docs\progress\logs\20260625-042909_execute-P005.last.txt
+docs\progress\logs\20260625-042909_execute-P005.log
+docs\progress\logs\20260625-043950_execute-P006.last.txt
+docs\progress\logs\20260625-043950_execute-P006.log
+docs\progress\logs\20260625-044720_execute-P007.last.txt
+docs\progress\logs\20260625-044720_execute-P007.log
+docs\progress\logs\20260625-045721_validate-3.log
+docs\progress\logs\20260625-045726_execute-P002.last.txt
+docs\progress\logs\20260625-045726_execute-P002.log
+docs\progress\logs\20260625-050932_execute-P003.last.txt
+docs\progress\logs\20260625-050932_execute-P003.log
+docs\progress\logs\20260625-052249_execute-P004.last.txt
+docs\progress\logs\20260625-052249_execute-P004.log
+docs\progress\logs\20260625-054120_execute-P005.last.txt
+docs\progress\logs\20260625-054120_execute-P005.log
+docs\progress\logs\20260625-055336_execute-P006.last.txt
+docs\progress\logs\20260625-055336_execute-P006.log
+docs\progress\logs\20260625-060327_execute-P007.last.txt
+docs\progress\logs\20260625-060327_execute-P007.log
+docs\progress\logs\20260625-061258_validate-4.log
+docs\progress\logs\20260625-061302_repair-4-1.last.txt
+docs\progress\logs\20260625-061302_repair-4-1.log
+docs\progress\logs\20260625-061418_validate-4-repair-1.log
+docs\progress\logs\20260625-061423_execute-P002.last.txt
+docs\progress\logs\20260625-061423_execute-P002.log
+docs\progress\logs\20260625-062339_execute-P003.last.txt
+docs\progress\logs\20260625-062339_execute-P003.log
+docs\progress\logs\20260625-063035_execute-P004.last.txt
+docs\progress\logs\20260625-063035_execute-P004.log
+docs\progress\logs\20260625-063635_execute-P005.last.txt
+docs\progress\logs\20260625-063635_execute-P005.log
+docs\progress\logs\20260625-064451_validate-5.log
+docs\progress\logs\20260625-064456_execute-P002.last.txt
+docs\progress\logs\20260625-064456_execute-P002.log
+docs\progress\logs\20260625-065948_execute-P003.last.txt
+docs\progress\logs\20260625-065948_execute-P003.log
+docs\progress\logs\20260625-071034_execute-P004.last.txt
+docs\progress\logs\20260625-071034_execute-P004.log
+docs\progress\logs\20260625-072310_execute-P005.last.txt
+docs\progress\logs\20260625-072310_execute-P005.log
+docs\progress\logs\20260625-074137_execute-P006.last.txt
+docs\progress\logs\20260625-074137_execute-P006.log
+docs\progress\logs\20260625-080424_execute-P007.last.txt
+docs\progress\logs\20260625-080424_execute-P007.log
+docs\progress\logs\20260625-083337_execute-P008.last.txt
+docs\progress\logs\20260625-083337_execute-P008.log
+docs\progress\logs\20260625-084538_validate-6.log
+docs\progress\logs\20260625-084542_repair-6-1.log
+docs\progress\logs\20260625-084638_validate-6-repair-1.log
+docs\progress\logs\20260625-084641_repair-6-2.log
+docs\progress\logs\20260625-084716_validate-6-repair-2.log
+docs\progress\logs\20260625-084723_validate-6.log
+docs\progress\logs\20260625-084726_repair-6-1.last.txt
+docs\progress\logs\20260625-084726_repair-6-1.log
+docs\progress\logs\20260625-085158_validate-6-repair-1.log
+docs\progress\logs\20260625-085204_execute-P002.last.txt
+docs\progress\logs\20260625-085204_execute-P002.log
+docs\progress\logs\20260625-090420_execute-P003.last.txt
+docs\progress\logs\20260625-090420_execute-P003.log
+docs\progress\logs\20260625-091806_execute-P004.log
+docs\progress\logs\20260625-091821_execute-P004.last.txt
+docs\progress\logs\20260625-091821_execute-P004.log
+docs\progress\logs\20260625-092952_execute-P005.log
+docs\progress\logs\20260625-092957_execute-P005.last.txt
+docs\progress\logs\20260625-092957_execute-P005.log
+docs\progress\logs\20260625-094348_execute-P006.log
+docs\progress\logs\20260625-094353_execute-P006.last.txt
+docs\progress\logs\20260625-094353_execute-P006.log
+docs\progress\logs\20260625-095845_execute-P007.log
+docs\progress\logs\20260625-095955_execute-P007.log
+docs\progress\logs\20260625-101601_execute-P007.log
+docs\progress\logs\20260625-101606_execute-P007.log
+docs\progress\logs\20260625-101611_execute-P007.log
+docs\progress\logs\20260625-101902_execute-P007.log
+docs\progress\logs\20260625-101907_execute-P007.log
+docs\progress\logs\20260625-101912_execute-P007.log
+docs\progress\logs\20260625-101932_execute-P007.log
+docs\progress\logs\20260625-102452_execute-P007.log
+docs\progress\logs\20260625-102512_execute-P007.log
+docs\progress\logs\20260625-103703_execute-P007.last.txt
+docs\progress\logs\20260625-103703_execute-P007.log
+docs\progress\logs\20260625-104945_validate-10.log
+docs\progress\logs\20260625-104950_execute-P002.log
+docs\progress\logs\20260625-104955_execute-P002.last.txt
+docs\progress\logs\20260625-104955_execute-P002.log
+docs\progress\logs\20260625-105756_execute-P003.log
+docs\progress\logs\20260625-110616_execute-P003.log
+docs\progress\logs\20260625-110651_execute-P003.log
+docs\progress\logs\20260625-110656_execute-P003.log
+docs\progress\logs\20260625-110741_execute-P003.log
+docs\progress\logs\20260625-110802_execute-P003.log
+docs\progress\logs\20260625-110807_execute-P003.log
+docs\progress\logs\20260625-111953_execute-P003.log
+docs\progress\logs\20260625-112413_execute-P003.log
+docs\progress\logs\20260625-112433_execute-P003.log
+docs\progress\logs\20260625-112438_execute-P003.log
+docs\progress\logs\20260625-112508_execute-P003.log
+docs\progress\logs\20260625-112513_execute-P003.log
+docs\progress\logs\20260625-112518_execute-P003.last.txt
+docs\progress\logs\20260625-112518_execute-P003.log
+docs\progress\logs\20260625-113324_execute-P004.log
+docs\progress\logs\20260625-114210_execute-P004.log
+docs\progress\logs\20260625-114225_execute-P004.log
+docs\progress\logs\20260625-114240_execute-P004.log
+docs\progress\logs\20260625-114255_execute-P004.log
+docs\progress\logs\20260625-114300_execute-P004.log
+docs\progress\logs\20260625-114305_execute-P004.log
+docs\progress\logs\20260625-114415_execute-P004.log
+docs\progress\logs\20260625-114430_execute-P004.log
+docs\progress\logs\20260625-114445_execute-P004.log
+docs\progress\logs\20260625-114500_execute-P004.log
+docs\progress\logs\20260625-114505_execute-P004.log
+docs\progress\logs\20260625-114530_execute-P004.log
+docs\progress\logs\20260625-114600_execute-P004.log
+docs\progress\logs\20260625-114615_execute-P004.log
+docs\progress\logs\20260625-114630_execute-P004.log
+docs\progress\logs\20260625-114645_execute-P004.log
+docs\progress\logs\20260625-114700_execute-P004.log
+docs\progress\logs\20260625-114715_execute-P004.log
+docs\progress\logs\20260625-114730_execute-P004.log
+docs\progress\logs\20260625-114745_execute-P004.log
+docs\progress\logs\20260625-114800_execute-P004.log
+docs\progress\logs\20260625-114816_execute-P004.log
+docs\progress\logs\20260625-114831_execute-P004.log
+docs\progress\logs\20260625-114846_execute-P004.log
+docs\progress\logs\20260625-114901_execute-P004.log
+docs\progress\logs\20260625-114916_execute-P004.log
+docs\progress\logs\20260625-114936_execute-P004.log
+docs\progress\logs\20260625-114951_execute-P004.log
+docs\progress\logs\20260625-115006_execute-P004.log
+docs\progress\logs\20260625-115021_execute-P004.log
+docs\progress\logs\20260625-115036_execute-P004.log
+docs\progress\logs\20260625-115051_execute-P004.log
+docs\progress\logs\20260625-115106_execute-P004.log
+docs\progress\logs\20260625-115121_execute-P004.log
+docs\progress\logs\20260625-115136_execute-P004.log
+docs\progress\logs\20260625-115151_execute-P004.log
+docs\progress\logs\20260625-115206_execute-P004.log
+docs\progress\logs\20260625-115221_execute-P004.log
+docs\progress\logs\20260625-115236_execute-P004.log
+docs\progress\logs\20260625-115256_execute-P004.log
+docs\progress\logs\20260625-115311_execute-P004.log
+docs\progress\logs\20260625-115326_execute-P004.log
+docs\progress\logs\20260625-115341_execute-P004.log
+docs\progress\logs\20260625-115356_execute-P004.log
+docs\progress\logs\20260625-115411_execute-P004.log
+docs\progress\logs\20260625-115431_execute-P004.log
+docs\progress\logs\20260625-115446_execute-P004.log
+docs\progress\logs\20260625-115501_execute-P004.log
+docs\progress\logs\20260625-115516_execute-P004.log
+docs\progress\logs\20260625-115531_execute-P004.log
+docs\progress\logs\20260625-115546_execute-P004.log
+docs\progress\logs\20260625-115601_execute-P004.log
+docs\progress\logs\20260625-115616_execute-P004.log
+docs\progress\logs\20260625-115631_execute-P004.log
+docs\progress\logs\20260625-115646_execute-P004.log
+docs\progress\logs\20260625-115701_execute-P004.log
+docs\progress\logs\20260625-115716_execute-P004.log
+docs\progress\logs\20260625-115731_execute-P004.log
+docs\progress\logs\20260625-115746_execute-P004.log
+docs\progress\logs\20260625-115801_execute-P004.log
+docs\progress\logs\20260625-115816_execute-P004.log
+docs\progress\logs\20260625-115832_execute-P004.log
+docs\progress\logs\20260625-115847_execute-P004.log
+docs\progress\logs\20260625-115902_execute-P004.log
+docs\progress\logs\20260625-115917_execute-P004.log
+docs\progress\logs\20260625-115932_execute-P004.log
+docs\progress\logs\20260625-115947_execute-P004.log
+docs\progress\logs\20260625-120002_execute-P004.log
+docs\progress\logs\20260625-120017_execute-P004.log
+docs\progress\logs\20260625-120032_execute-P004.log
+docs\progress\logs\20260625-120047_execute-P004.log
+docs\progress\logs\20260625-120102_execute-P004.log
+docs\progress\logs\20260625-120117_execute-P004.log
+docs\progress\logs\20260625-120132_execute-P004.log
+docs\progress\logs\20260625-120147_execute-P004.log
+docs\progress\logs\20260625-120202_execute-P004.log
+docs\progress\logs\20260625-120217_execute-P004.log
+docs\progress\logs\20260625-120232_execute-P004.log
+docs\progress\logs\20260625-120247_execute-P004.log
+docs\progress\logs\20260625-120302_execute-P004.log
+docs\progress\logs\20260625-120317_execute-P004.log
+docs\progress\logs\20260625-120327_execute-P004.log
+docs\progress\logs\20260625-120612_execute-P004.log
+docs\progress\logs\20260625-120637_execute-P004.log
+docs\progress\logs\20260625-121628_execute-P004.log
+docs\progress\logs\20260625-121643_execute-P004.log
+docs\progress\logs\20260625-121728_execute-P004.log
+docs\progress\logs\20260625-121908_execute-P004.log
+docs\progress\logs\20260625-121913_execute-P004.log
+docs\progress\logs\20260625-121959_execute-P004.log
+docs\progress\logs\20260625-122004_execute-P004.log
+docs\progress\logs\20260625-122009_execute-P004.log
+docs\progress\logs\20260625-123020_execute-P004.log
+docs\progress\logs\20260625-123025_execute-P004.log
+docs\progress\logs\20260625-123050_execute-P004.log
+docs\progress\logs\20260625-123055_execute-P004.log
+docs\progress\logs\20260625-123125_execute-P004.log
+docs\progress\logs\20260625-123130_execute-P004.log
+docs\progress\logs\20260625-123225_execute-P004.log
+docs\progress\logs\20260625-123230_execute-P004.last.txt
+docs\progress\logs\20260625-123230_execute-P004.log
+docs\progress\logs\20260625-123650_execute-P005.log
+docs\progress\logs\20260625-124416_execute-P005.log
+docs\progress\logs\20260625-124421_execute-P005.log
+docs\progress\logs\20260625-124426_execute-P005.log
+docs\progress\logs\20260625-125817_execute-P005.log
+docs\progress\logs\20260625-125822_execute-P005.log
+docs\progress\logs\20260625-125827_execute-P005.log
+docs\progress\logs\20260625-125832_execute-P005.log
+docs\progress\logs\20260625-125903_execute-P005.log
+docs\progress\logs\20260625-125953_execute-P005.log
+docs\progress\logs\20260625-125958_execute-P005.log
+docs\progress\logs\20260625-130153_execute-P005.log
+docs\progress\logs\20260625-130713_execute-P005.log
+docs\progress\logs\20260625-130718_execute-P005.log
+docs\progress\logs\20260625-130748_execute-P005.log
+docs\progress\logs\20260625-131059_execute-P005.log
+docs\progress\logs\20260625-131104_execute-P005.log
+docs\progress\logs\20260625-131109_execute-P005.last.txt
+docs\progress\logs\20260625-131109_execute-P005.log
+docs\progress\logs\20260625-132330_execute-P006.log
+docs\progress\logs\20260625-132400_execute-P006.log
+docs\progress\logs\20260625-132405_execute-P006.log
+docs\progress\logs\20260625-132445_execute-P006.log
+docs\progress\logs\20260625-132450_execute-P006.last.txt
+docs\progress\logs\20260625-132450_execute-P006.log
+docs\progress\logs\20260625-133441_execute-P007.log
+docs\progress\logs\20260625-133446_execute-P007.log
+docs\progress\logs\20260625-133736_execute-P007.log
+docs\progress\logs\20260625-133741_execute-P007.log
+docs\progress\logs\20260625-133751_execute-P007.log
+docs\progress\logs\20260625-133821_execute-P007.log
+docs\progress\logs\20260625-133846_execute-P007.log
+docs\progress\logs\20260625-133851_execute-P007.log
+docs\progress\logs\20260625-133906_execute-P007.log
+docs\progress\logs\20260625-133916_execute-P007.log
+docs\progress\logs\20260625-133941_execute-P007.log
+docs\progress\logs\20260625-134047_execute-P007.log
+docs\progress\logs\20260625-134052_execute-P007.last.txt
+docs\progress\logs\20260625-134052_execute-P007.log
+docs\progress\logs\20260625-135048_validate-12.log
+docs\progress\logs\20260625-135058_execute-P002.log
+docs\progress\logs\20260625-135103_execute-P002.log
+docs\progress\logs\20260625-135108_execute-P002.log
+docs\progress\logs\20260625-140619_execute-P002.log
+docs\progress\logs\20260625-140929_execute-P002.log
+docs\progress\logs\20260625-141105_execute-P002.log
+docs\progress\logs\20260625-141110_execute-P002.log
+docs\progress\logs\20260625-141115_execute-P002.log
+docs\progress\logs\20260625-141120_execute-P002.last.txt
+docs\progress\logs\20260625-141120_execute-P002.log
+docs\progress\logs\20260625-141530_execute-P003.log
+docs\progress\logs\20260625-141535_execute-P003.log
+docs\progress\logs\20260625-141540_execute-P003.log
+docs\progress\logs\20260625-141545_execute-P003.log
+docs\progress\logs\20260625-141705_execute-P003.log
+docs\progress\logs\20260625-141940_execute-P003.log
+docs\progress\logs\20260625-141945_execute-P003.log
+docs\progress\logs\20260625-142005_execute-P003.log
+docs\progress\logs\20260625-142010_execute-P003.log
+docs\progress\logs\20260625-142015_execute-P003.log
+docs\progress\logs\20260625-142136_execute-P003.log
+docs\progress\logs\20260625-142201_execute-P003.log
+docs\progress\logs\20260625-142626_execute-P003.log
+docs\progress\logs\20260625-142656_execute-P003.log
+docs\progress\logs\20260625-142911_execute-P003.log
+docs\progress\logs\20260625-143026_execute-P003.log
+docs\progress\logs\20260625-143031_execute-P003.log
+docs\progress\logs\20260625-143036_execute-P003.log
+docs\progress\logs\20260625-143041_execute-P003.log
+docs\progress\logs\20260625-143046_execute-P003.log
+docs\progress\logs\20260625-143106_execute-P003.log
+docs\progress\logs\20260625-143111_execute-P003.log
+docs\progress\logs\20260625-143116_execute-P003.log
+docs\progress\logs\20260625-143121_execute-P003.log
+docs\progress\logs\20260625-143252_execute-P003.log
+docs\progress\logs\20260625-143257_execute-P003.log
+docs\progress\logs\20260625-143337_execute-P003.log
+docs\progress\logs\20260625-143342_execute-P003.log
+docs\progress\logs\20260625-143432_execute-P003.last.txt
+docs\progress\logs\20260625-143432_execute-P003.log
+docs\progress\logs\20260625-143952_execute-P004.log
+docs\progress\logs\20260625-143957_execute-P004.last.txt
+docs\progress\logs\20260625-143957_execute-P004.log
+docs\progress\logs\20260625-144808_execute-P005.log
+docs\progress\logs\20260625-145103_execute-P005.log
+docs\progress\logs\20260625-145108_execute-P005.log
+docs\progress\logs\20260625-145113_execute-P005.log
+docs\progress\logs\20260625-145118_execute-P005.log
+docs\progress\logs\20260625-145123_execute-P005.log
+docs\progress\logs\20260625-145129_execute-P005.log
+docs\progress\logs\20260625-145134_execute-P005.log
+docs\progress\logs\20260625-145154_execute-P005.log
+docs\progress\logs\20260625-145159_execute-P005.log
+docs\progress\logs\20260625-145204_execute-P005.log
+docs\progress\logs\20260625-145209_execute-P005.log
+docs\progress\logs\20260625-145214_execute-P005.log
+docs\progress\logs\20260625-145334_execute-P005.log
+docs\progress\logs\20260625-145339_execute-P005.log
+docs\progress\logs\20260625-145344_execute-P005.log
+docs\progress\logs\20260625-145349_execute-P005.log
+docs\progress\logs\20260625-145354_execute-P005.log
+docs\progress\logs\20260625-145509_execute-P005.log
+docs\progress\logs\20260625-145549_execute-P005.log
+docs\progress\logs\20260625-145554_execute-P005.log
+docs\progress\logs\20260625-145559_execute-P005.log
+docs\progress\logs\20260625-145854_execute-P005.log
+docs\progress\logs\20260625-145859_execute-P005.log
+docs\progress\logs\20260625-150039_execute-P005.log
+docs\progress\logs\20260625-150044_execute-P005.log
+docs\progress\logs\20260625-150049_execute-P005.log
+docs\progress\logs\20260625-150104_execute-P005.log
+docs\progress\logs\20260625-150109_execute-P005.log
+docs\progress\logs\20260625-150144_execute-P005.log
+docs\progress\logs\20260625-150259_execute-P005.log
+docs\progress\logs\20260625-150304_execute-P005.log
+docs\progress\logs\20260625-150515_execute-P005.log
+docs\progress\logs\20260625-150525_execute-P005.log
+docs\progress\logs\20260625-150535_execute-P005.log
+docs\progress\logs\20260625-150540_execute-P005.log
+docs\progress\logs\20260625-150545_execute-P005.log
+docs\progress\logs\20260625-150605_execute-P005.log
+docs\progress\logs\20260625-150610_execute-P005.log
+docs\progress\logs\20260625-150615_execute-P005.log
+docs\progress\logs\20260625-150620_execute-P005.log
+docs\progress\logs\20260625-150625_execute-P005.log
+docs\progress\logs\20260625-150630_execute-P005.log
+docs\progress\logs\20260625-150915_execute-P005.log
+docs\progress\logs\20260625-150925_execute-P005.log
+docs\progress\logs\20260625-151050_execute-P005.log
+docs\progress\logs\20260625-151100_execute-P005.log
+docs\progress\logs\20260625-151105_execute-P005.log
+docs\progress\logs\20260625-151110_execute-P005.log
+docs\progress\logs\20260625-151115_execute-P005.log
+docs\progress\logs\20260625-151125_execute-P005.log
+docs\progress\logs\20260625-151140_execute-P005.log
+docs\progress\logs\20260625-151255_execute-P005.log
+docs\progress\logs\20260625-151300_execute-P005.log
+docs\progress\logs\20260625-151426_execute-P005.log
+docs\progress\logs\20260625-151431_execute-P005.log
+docs\progress\logs\20260625-151516_execute-P005.log
+docs\progress\logs\20260625-151521_execute-P005.log
+docs\progress\logs\20260625-151606_execute-P005.log
+docs\progress\logs\20260625-151611_execute-P005.log
+docs\progress\logs\20260625-151616_execute-P005.log
+docs\progress\logs\20260625-151621_execute-P005.log
+docs\progress\logs\20260625-151626_execute-P005.log
+docs\progress\logs\20260625-151706_execute-P005.log
+docs\progress\logs\20260625-152156_execute-P005.log
+docs\progress\logs\20260625-152201_execute-P005.log
+docs\progress\logs\20260625-152206_execute-P005.log
+docs\progress\logs\20260625-152211_execute-P005.log
+docs\progress\logs\20260625-152216_execute-P005.log
+docs\progress\logs\20260625-152221_execute-P005.log
+docs\progress\logs\20260625-152226_execute-P005.log
+docs\progress\logs\20260625-152241_execute-P005.log
+docs\progress\logs\20260625-152332_execute-P005.log
+docs\progress\logs\20260625-152337_execute-P005.log
+docs\progress\logs\20260625-152432_execute-P005.log
+docs\progress\logs\20260625-152442_execute-P005.log
+docs\progress\logs\20260625-152607_execute-P005.log
+docs\progress\logs\20260625-152617_execute-P005.log
+docs\progress\logs\20260625-153057_execute-P005.log
+docs\progress\logs\20260625-153102_execute-P005.log
+docs\progress\logs\20260625-153107_execute-P005.log
+docs\progress\logs\20260625-153117_execute-P005.log
+docs\progress\logs\20260625-153122_execute-P005.log
+docs\progress\logs\20260625-153127_execute-P005.log
+docs\progress\logs\20260625-153132_execute-P005.log
+docs\progress\logs\20260625-153137_execute-P005.log
+docs\progress\logs\20260625-153152_execute-P005.log
+docs\progress\logs\20260625-153157_execute-P005.log
+docs\progress\logs\20260625-153227_execute-P005.log
+docs\progress\logs\20260625-153247_execute-P005.log
+docs\progress\logs\20260625-153252_execute-P005.log
+docs\progress\logs\20260625-153257_execute-P005.log
+docs\progress\logs\20260625-153713_execute-P005.log
+docs\progress\logs\20260625-153848_execute-P005.log
+docs\progress\logs\20260625-153858_execute-P005.log
+docs\progress\logs\20260625-153928_execute-P005.log
+docs\progress\logs\20260625-154008_execute-P005.log
+docs\progress\logs\20260625-154013_execute-P005.log
+docs\progress\logs\20260625-154018_execute-P005.log
+docs\progress\logs\20260625-154023_execute-P005.log
+docs\progress\logs\20260625-154028_execute-P005.log
+docs\progress\logs\20260625-154033_execute-P005.log
+docs\progress\logs\20260625-154038_execute-P005.log
+docs\progress\logs\20260625-154043_execute-P005.log
+docs\progress\logs\20260625-154048_execute-P005.log
+docs\progress\logs\20260625-154103_execute-P005.log
+docs\progress\logs\20260625-154108_execute-P005.log
+docs\progress\logs\20260625-154113_execute-P005.log
+docs\progress\logs\20260625-154118_execute-P005.log
+docs\progress\logs\20260625-154123_execute-P005.log
+docs\progress\logs\20260625-154328_execute-P005.log
+docs\progress\logs\20260625-154333_execute-P005.log
+docs\progress\logs\20260625-154338_execute-P005.log
+docs\progress\logs\20260625-154429_execute-P005.log
+docs\progress\logs\20260625-154434_execute-P005.log
+docs\progress\logs\20260625-154439_execute-P005.log
+docs\progress\logs\20260625-154444_execute-P005.log
+docs\progress\logs\20260625-154514_execute-P005.log
+docs\progress\logs\20260625-154519_execute-P005.log
+docs\progress\logs\20260625-154534_execute-P005.log
+docs\progress\logs\20260625-154539_execute-P005.log
+docs\progress\logs\20260625-154544_execute-P005.log
+docs\progress\logs\20260625-154549_execute-P005.log
+docs\progress\logs\20260625-154554_execute-P005.log
+docs\progress\logs\20260625-154559_execute-P005.log
+docs\progress\logs\20260625-154634_execute-P005.log
+docs\progress\logs\20260625-154639_execute-P005.log
+docs\progress\logs\20260625-154644_execute-P005.log
+docs\progress\logs\20260625-154659_execute-P005.log
+docs\progress\logs\20260625-154704_execute-P005.log
+docs\progress\logs\20260625-154724_execute-P005.log
+docs\progress\logs\20260625-154759_execute-P005.log
+docs\progress\logs\20260625-154804_execute-P005.log
+docs\progress\logs\20260625-154809_execute-P005.log
+docs\progress\logs\20260625-154814_execute-P005.log
+docs\progress\logs\20260625-154819_execute-P005.log
+docs\progress\logs\20260625-154824_execute-P005.log
+docs\progress\logs\20260625-154829_execute-P005.log
+docs\progress\logs\20260625-154834_execute-P005.log
+docs\progress\logs\20260625-155054_execute-P005.log
+docs\progress\logs\20260625-155059_execute-P005.log
+docs\progress\logs\20260625-155104_execute-P005.log
+docs\progress\logs\20260625-155219_execute-P005.log
+docs\progress\logs\20260625-155224_execute-P005.log
+docs\progress\logs\20260625-155635_execute-P005.log
+docs\progress\logs\20260625-155640_execute-P005.log
+docs\progress\logs\20260625-155645_execute-P005.log
+docs\progress\logs\20260625-155650_execute-P005.log
+docs\progress\logs\20260625-155935_execute-P005.log
+docs\progress\logs\20260625-155940_execute-P005.log
+docs\progress\logs\20260625-160030_execute-P005.log
+docs\progress\logs\20260625-160035_execute-P005.log
+docs\progress\logs\20260625-160040_execute-P005.log
+docs\progress\logs\20260625-160100_execute-P005.log
+docs\progress\logs\20260625-160105_execute-P005.log
+docs\progress\logs\20260625-160125_execute-P005.log
+docs\progress\logs\20260625-160130_execute-P005.log
+docs\progress\logs\20260625-160145_execute-P005.log
+docs\progress\logs\20260625-160150_execute-P005.log
+docs\progress\logs\20260625-160526_execute-P005.log
+docs\progress\logs\20260625-160531_execute-P005.log
+docs\progress\logs\20260625-160551_execute-P005.log
+docs\progress\logs\20260625-160556_execute-P005.log
+docs\progress\logs\20260625-161226_execute-P005.log
+docs\progress\logs\20260625-161522_execute-P005.log
+docs\progress\logs\20260625-161527_execute-P005.log
+docs\progress\logs\20260625-163013_execute-P005.log
+docs\progress\logs\20260625-163058_execute-P005.log
+docs\progress\logs\20260625-163929_execute-P005.log
+docs\progress\logs\20260625-164805_execute-P005.log
+docs\progress\logs\20260625-164810_execute-P005.log
+docs\progress\logs\20260625-164830_execute-P005.log
+docs\progress\logs\20260625-165140_execute-P005.log
+docs\progress\logs\20260625-165150_execute-P005.log
+docs\progress\logs\20260625-165230_execute-P005.log
+docs\progress\logs\20260625-165235_execute-P005.log
+docs\progress\logs\20260625-165240_execute-P005.log
+docs\progress\logs\20260625-165245_execute-P005.log
+docs\progress\logs\20260625-165315_execute-P005.log
+docs\progress\logs\20260625-165551_execute-P005.log
+docs\progress\logs\20260625-165556_execute-P005.log
+docs\progress\logs\20260625-165601_execute-P005.log
+docs\progress\logs\20260625-165606_execute-P005.log
+docs\progress\logs\20260625-165636_execute-P005.log
+docs\progress\logs\20260625-165641_execute-P005.log
+docs\progress\logs\20260625-165646_execute-P005.log
+docs\progress\logs\20260625-165706_execute-P005.log
+docs\progress\logs\20260625-165711_execute-P005.log
+docs\progress\logs\20260625-165716_execute-P005.log
+docs\progress\logs\20260625-165721_execute-P005.log
+docs\progress\logs\20260625-165841_execute-P005.log
+docs\progress\logs\20260625-165906_execute-P005.log
+docs\progress\logs\20260625-165911_execute-P005.log
+docs\progress\logs\20260625-165916_execute-P005.log
+docs\progress\logs\20260625-165921_execute-P005.log
+docs\progress\logs\20260625-165926_execute-P005.log
+docs\progress\logs\20260625-165931_execute-P005.log
+docs\progress\logs\20260625-165941_execute-P005.log
+docs\progress\logs\20260625-170121_execute-P005.log
+docs\progress\logs\20260625-170126_execute-P005.log
+docs\progress\logs\20260625-170131_execute-P005.log
+docs\progress\logs\20260625-170136_execute-P005.log
+docs\progress\logs\20260625-170141_execute-P005.log
+docs\progress\logs\20260625-170146_execute-P005.log
+docs\progress\logs\20260625-170151_execute-P005.log
+docs\progress\logs\20260625-170156_execute-P005.log
+docs\progress\logs\20260625-170231_execute-P005.log
+docs\progress\logs\20260625-170236_execute-P005.log
+docs\progress\logs\20260625-170256_execute-P005.log
+docs\progress\logs\20260625-170301_execute-P005.log
+docs\progress\logs\20260625-170306_execute-P005.log
+docs\progress\logs\20260625-170316_execute-P005.log
+docs\progress\logs\20260625-170336_execute-P005.log
+docs\progress\logs\20260625-170341_execute-P005.log
+docs\progress\logs\20260625-170346_execute-P005.log
+docs\progress\logs\20260625-170351_execute-P005.log
+docs\progress\logs\20260625-170437_execute-P005.log
+docs\progress\logs\20260625-170442_execute-P005.log
+docs\progress\logs\20260625-170447_execute-P005.log
+docs\progress\logs\20260625-170457_execute-P005.log
+docs\progress\logs\20260625-170522_execute-P005.log
+docs\progress\logs\20260625-170532_execute-P005.log
+docs\progress\logs\20260625-170537_execute-P005.log
+docs\progress\logs\20260625-170542_execute-P005.log
+docs\progress\logs\20260625-170547_execute-P005.log
+docs\progress\logs\20260625-170552_execute-P005.log
+docs\progress\logs\20260625-170622_execute-P005.log
+docs\progress\logs\20260625-170627_execute-P005.log
+docs\progress\logs\20260625-170632_execute-P005.log
+docs\progress\logs\20260625-170637_execute-P005.log
+docs\progress\logs\20260625-170642_execute-P005.log
+docs\progress\logs\20260625-170647_execute-P005.log
+docs\progress\logs\20260625-170652_execute-P005.log
+docs\progress\logs\20260625-170657_execute-P005.log
+docs\progress\logs\20260625-170702_execute-P005.log
+docs\progress\logs\20260625-170707_execute-P005.log
+docs\progress\logs\20260625-170712_execute-P005.log
+docs\progress\logs\20260625-170717_execute-P005.log
+docs\progress\logs\20260625-170722_execute-P005.log
+docs\progress\logs\20260625-170727_execute-P005.log
+docs\progress\logs\20260625-170732_execute-P005.log
+docs\progress\logs\20260625-170802_execute-P005.log
+docs\progress\logs\20260625-170807_execute-P005.log
+docs\progress\logs\20260625-170842_execute-P005.log
+docs\progress\logs\20260625-170847_execute-P005.log
+docs\progress\logs\20260625-170852_execute-P005.log
+docs\progress\logs\20260625-170907_execute-P005.log
+docs\progress\logs\20260625-170937_execute-P005.log
+docs\progress\logs\20260625-170942_execute-P005.log
+docs\progress\logs\20260625-170947_execute-P005.log
+docs\progress\logs\20260625-171047_execute-P005.log
+docs\progress\logs\20260625-171057_execute-P005.log
+docs\progress\logs\20260625-171102_execute-P005.log
+docs\progress\logs\20260625-171202_execute-P005.log
+docs\progress\logs\20260625-171207_execute-P005.log
+docs\progress\logs\20260625-171212_execute-P005.log
+docs\progress\logs\20260625-171217_execute-P005.log
+docs\progress\logs\20260625-171222_execute-P005.log
+docs\progress\logs\20260625-171227_execute-P005.log
+docs\progress\logs\20260625-171232_execute-P005.log
+docs\progress\logs\20260625-171237_execute-P005.log
+docs\progress\logs\20260625-171242_execute-P005.log
+docs\progress\logs\20260625-171247_execute-P005.log
+docs\progress\logs\20260625-171317_execute-P005.log
+docs\progress\logs\20260625-171322_execute-P005.log
+docs\progress\logs\20260625-171327_execute-P005.log
+docs\progress\logs\20260625-171332_execute-P005.log
+docs\progress\logs\20260625-171402_execute-P005.log
+docs\progress\logs\20260625-171407_execute-P005.log
+docs\progress\logs\20260625-171412_execute-P005.log
+docs\progress\logs\20260625-171458_execute-P005.log
+docs\progress\logs\20260625-171503_execute-P005.log
+docs\progress\logs\20260625-171508_execute-P005.log
+docs\progress\logs\20260625-171538_execute-P005.log
+docs\progress\logs\20260625-171543_execute-P005.log
+docs\progress\logs\20260625-171548_execute-P005.log
+docs\progress\logs\20260625-171553_execute-P005.log
+docs\progress\logs\20260625-171843_execute-P005.log
+docs\progress\logs\20260625-171903_execute-P005.log
+docs\progress\logs\20260625-171908_execute-P005.log
+docs\progress\logs\20260625-172053_execute-P005.log
+docs\progress\logs\20260625-172058_execute-P005.log
+docs\progress\logs\20260625-172108_execute-P005.log
+docs\progress\logs\20260625-172113_execute-P005.log
+docs\progress\logs\20260625-172118_execute-P005.log
+docs\progress\logs\20260625-172123_execute-P005.log
+docs\progress\logs\20260625-172133_execute-P005.log
+docs\progress\logs\20260625-172233_execute-P005.log
+docs\progress\logs\20260625-172238_execute-P005.log
+docs\progress\logs\20260625-172248_execute-P005.log
+docs\progress\logs\20260625-172253_execute-P005.log
+docs\progress\logs\20260625-172258_execute-P005.log
+docs\progress\logs\20260625-172303_execute-P005.log
+docs\progress\logs\20260625-172539_execute-P005.log
+docs\progress\logs\20260625-172544_execute-P005.log
+docs\progress\logs\20260625-172549_execute-P005.log
+docs\progress\logs\20260625-172554_execute-P005.log
+docs\progress\logs\20260625-172559_execute-P005.log
+docs\progress\logs\20260625-172604_execute-P005.log
+docs\progress\logs\20260625-172624_execute-P005.log
+docs\progress\logs\20260625-172629_execute-P005.log
+docs\progress\logs\20260625-172649_execute-P005.log
+docs\progress\logs\20260625-172654_execute-P005.log
+docs\progress\logs\20260625-172949_execute-P005.log
+docs\progress\logs\20260625-172954_execute-P005.log
+docs\progress\logs\20260625-172959_execute-P005.log
+docs\progress\logs\20260625-173004_execute-P005.log
+docs\progress\logs\20260625-173009_execute-P005.log
+docs\progress\logs\20260625-173014_execute-P005.log
+docs\progress\logs\20260625-173019_execute-P005.log
+docs\progress\logs\20260625-173024_execute-P005.log
+docs\progress\logs\20260625-173029_execute-P005.log
+docs\progress\logs\20260625-173034_execute-P005.log
+docs\progress\logs\20260625-173039_execute-P005.log
+docs\progress\logs\20260625-173044_execute-P005.log
+docs\progress\logs\20260625-173049_execute-P005.log
+docs\progress\logs\20260625-173114_execute-P005.log
+docs\progress\logs\20260625-173119_execute-P005.log
+docs\progress\logs\20260625-173124_execute-P005.log
+docs\progress\logs\20260625-173159_execute-P005.log
+docs\progress\logs\20260625-173204_execute-P005.log
+docs\progress\logs\20260625-173319_execute-P005.log
+docs\progress\logs\20260625-173324_execute-P005.log
+docs\progress\logs\20260625-173334_execute-P005.log
+docs\progress\logs\20260625-173339_execute-P005.log
+docs\progress\logs\20260625-173344_execute-P005.log
+docs\progress\logs\20260625-173349_execute-P005.log
+docs\progress\logs\20260625-173354_execute-P005.log
+docs\progress\logs\20260625-173424_execute-P005.log
+docs\progress\logs\20260625-173429_execute-P005.log
+docs\progress\logs\20260625-173434_execute-P005.log
+docs\progress\logs\20260625-173700_execute-P005.log
+docs\progress\logs\20260625-173705_execute-P005.log
+docs\progress\logs\20260625-173710_execute-P005.log
+docs\progress\logs\20260625-173730_execute-P005.log
+docs\progress\logs\20260625-173735_execute-P005.log
+docs\progress\logs\20260625-173740_execute-P005.log
+docs\progress\logs\20260625-173745_execute-P005.log
+docs\progress\logs\20260625-173750_execute-P005.log
+docs\progress\logs\20260625-173755_execute-P005.log
+docs\progress\logs\20260625-173800_execute-P005.log
+docs\progress\logs\20260625-173810_execute-P005.log
+docs\progress\logs\20260625-173815_execute-P005.log
+docs\progress\logs\20260625-173830_execute-P005.log
+docs\progress\logs\20260625-173835_execute-P005.log
+docs\progress\logs\20260625-173840_execute-P005.log
+docs\progress\logs\20260625-173845_execute-P005.log
+docs\progress\logs\20260625-173850_execute-P005.log
+docs\progress\logs\20260625-173855_execute-P005.log
+docs\progress\logs\20260625-173945_execute-P005.log
+docs\progress\logs\20260625-173950_execute-P005.log
+docs\progress\logs\20260625-173955_execute-P005.log
+docs\progress\logs\20260625-174000_execute-P005.log
+docs\progress\logs\20260625-174005_execute-P005.log
+docs\progress\logs\20260625-174010_execute-P005.log
+docs\progress\logs\20260625-174015_execute-P005.log
+docs\progress\logs\20260625-174020_execute-P005.log
+docs\progress\logs\20260625-174025_execute-P005.log
+docs\progress\logs\20260625-174045_execute-P005.log
+docs\progress\logs\20260625-174050_execute-P005.log
+docs\progress\logs\20260625-174055_execute-P005.log
+docs\progress\logs\20260625-174100_execute-P005.log
+docs\progress\logs\20260625-174105_execute-P005.log
+docs\progress\logs\20260625-174110_execute-P005.log
+docs\progress\logs\20260625-174115_execute-P005.log
+docs\progress\logs\20260625-174120_execute-P005.log
+docs\progress\logs\20260625-174125_execute-P005.log
+docs\progress\logs\20260625-174130_execute-P005.log
+docs\progress\logs\20260625-174135_execute-P005.log
+docs\progress\logs\20260625-174140_execute-P005.log
+docs\progress\logs\20260625-174145_execute-P005.log
+docs\progress\logs\20260625-174150_execute-P005.log
+docs\progress\logs\20260625-174155_execute-P005.log
+docs\progress\logs\20260625-174200_execute-P005.log
+docs\progress\logs\20260625-174205_execute-P005.log
+docs\progress\logs\20260625-174210_execute-P005.log
+docs\progress\logs\20260625-174215_execute-P005.log
+docs\progress\logs\20260625-174225_execute-P005.log
+docs\progress\logs\20260625-174230_execute-P005.log
+docs\progress\logs\20260625-174235_execute-P005.log
+docs\progress\logs\20260625-174240_execute-P005.log
+docs\progress\logs\20260625-174245_execute-P005.log
+docs\progress\logs\20260625-174250_execute-P005.log
+docs\progress\logs\20260625-174255_execute-P005.log
+docs\progress\logs\20260625-174300_execute-P005.log
+docs\progress\logs\20260625-174305_execute-P005.log
+docs\progress\logs\20260625-174310_execute-P005.log
+docs\progress\logs\20260625-174315_execute-P005.log
+docs\progress\logs\20260625-174320_execute-P005.log
+docs\progress\logs\20260625-174325_execute-P005.log
+docs\progress\logs\20260625-174330_execute-P005.log
+docs\progress\logs\20260625-174335_execute-P005.log
+docs\progress\logs\20260625-174340_execute-P005.log
+docs\progress\logs\20260625-174345_execute-P005.log
+docs\progress\logs\20260625-174350_execute-P005.log
+docs\progress\logs\20260625-174355_execute-P005.log
+docs\progress\logs\20260625-174430_execute-P005.log
+docs\progress\logs\20260625-174435_execute-P005.log
+docs\progress\logs\20260625-174550_execute-P005.log
+docs\progress\logs\20260625-174555_execute-P005.log
+docs\progress\logs\20260625-174625_execute-P005.log
+docs\progress\logs\20260625-174630_execute-P005.log
+docs\progress\logs\20260625-174635_execute-P005.log
+docs\progress\logs\20260625-174700_execute-P005.log
+docs\progress\logs\20260625-174705_execute-P005.log
+docs\progress\logs\20260625-174710_execute-P005.log
+docs\progress\logs\20260625-174715_execute-P005.log
+docs\progress\logs\20260625-174806_execute-P005.log
+docs\progress\logs\20260625-174811_execute-P005.log
+docs\progress\logs\20260625-174816_execute-P005.log
+docs\progress\logs\20260625-174821_execute-P005.log
+docs\progress\logs\20260625-174826_execute-P005.log
+docs\progress\logs\20260625-174831_execute-P005.log
+docs\progress\logs\20260625-174836_execute-P005.log
+docs\progress\logs\20260625-174856_execute-P005.log
+docs\progress\logs\20260625-174901_execute-P005.log
+docs\progress\logs\20260625-174906_execute-P005.log
+docs\progress\logs\20260625-174911_execute-P005.log
+docs\progress\logs\20260625-174921_execute-P005.log
+docs\progress\logs\20260625-174926_execute-P005.log
+docs\progress\logs\20260625-174931_execute-P005.log
+docs\progress\logs\20260625-174936_execute-P005.log
+docs\progress\logs\20260625-174956_execute-P005.log
+docs\progress\logs\20260625-175001_execute-P005.log
+docs\progress\logs\20260625-175006_execute-P005.log
+docs\progress\logs\20260625-175011_execute-P005.log
+docs\progress\logs\20260625-175016_execute-P005.log
+docs\progress\logs\20260625-175036_execute-P005.log
+docs\progress\logs\20260625-175041_execute-P005.log
+docs\progress\logs\20260625-175046_execute-P005.log
+docs\progress\logs\20260625-175051_execute-P005.log
+docs\progress\logs\20260625-175056_execute-P005.log
+docs\progress\logs\20260625-175101_execute-P005.log
+docs\progress\logs\20260625-175106_execute-P005.log
+docs\progress\logs\20260625-175111_execute-P005.log
+docs\progress\logs\20260625-175116_execute-P005.log
+docs\progress\logs\20260625-175121_execute-P005.log
+docs\progress\logs\20260625-175126_execute-P005.log
+docs\progress\logs\20260625-175131_execute-P005.log
+docs\progress\logs\20260625-175136_execute-P005.log
+docs\progress\logs\20260625-175141_execute-P005.log
+docs\progress\logs\20260625-175216_execute-P005.log
+docs\progress\logs\20260625-175221_execute-P005.log
+docs\progress\logs\20260625-175226_execute-P005.log
+docs\progress\logs\20260625-175231_execute-P005.log
+docs\progress\logs\20260625-175236_execute-P005.log
+docs\progress\logs\20260625-175241_execute-P005.log
+docs\progress\logs\20260625-175246_execute-P005.log
+docs\progress\logs\20260625-175251_execute-P005.log
+docs\progress\logs\20260625-175321_execute-P005.log
+docs\progress\logs\20260625-175326_execute-P005.log
+docs\progress\logs\20260625-175431_execute-P005.log
+docs\progress\logs\20260625-175536_execute-P005.log
+docs\progress\logs\20260625-175541_execute-P005.log
+docs\progress\logs\20260625-175546_execute-P005.log
+docs\progress\logs\20260625-175551_execute-P005.log
+docs\progress\logs\20260625-175556_execute-P005.log
+docs\progress\logs\20260625-175601_execute-P005.log
+docs\progress\logs\20260625-175606_execute-P005.log
+docs\progress\logs\20260625-175611_execute-P005.log
+docs\progress\logs\20260625-175702_execute-P005.log
+docs\progress\logs\20260625-175706_execute-P005.log
+docs\progress\logs\20260625-175712_execute-P005.log
+docs\progress\logs\20260625-175717_execute-P005.log
+docs\progress\logs\20260625-175722_execute-P005.log
+docs\progress\logs\20260625-175727_execute-P005.log
+docs\progress\logs\20260625-175732_execute-P005.log
+docs\progress\logs\20260625-175802_execute-P005.log
+docs\progress\logs\20260625-175807_execute-P005.log
+docs\progress\logs\20260625-175822_execute-P005.log
+docs\progress\logs\20260625-175827_execute-P005.log
+docs\progress\logs\20260625-175832_execute-P005.log
+docs\progress\logs\20260625-175852_execute-P005.log
+docs\progress\logs\20260625-175857_execute-P005.log
+docs\progress\logs\20260625-175902_execute-P005.log
+docs\progress\logs\20260625-175907_execute-P005.log
+docs\progress\logs\20260625-175912_execute-P005.log
+docs\progress\logs\20260625-175917_execute-P005.log
+docs\progress\logs\20260625-175932_execute-P005.log
+docs\progress\logs\20260625-175957_execute-P005.log
+docs\progress\logs\20260625-180002_execute-P005.log
+docs\progress\logs\20260625-180007_execute-P005.log
+docs\progress\logs\20260625-180012_execute-P005.log
+docs\progress\logs\20260625-180017_execute-P005.log
+docs\progress\logs\20260625-180032_execute-P005.log
+docs\progress\logs\20260625-180037_execute-P005.log
+docs\progress\logs\20260625-180042_execute-P005.log
+docs\progress\logs\20260625-180047_execute-P005.log
+docs\progress\logs\20260625-180052_execute-P005.log
+docs\progress\logs\20260625-180057_execute-P005.log
+docs\progress\logs\20260625-180102_execute-P005.log
+docs\progress\logs\20260625-180107_execute-P005.log
+docs\progress\logs\20260625-180112_execute-P005.log
+docs\progress\logs\20260625-180117_execute-P005.log
+docs\progress\logs\20260625-180122_execute-P005.log
+docs\progress\logs\20260625-180127_execute-P005.log
+docs\progress\logs\20260625-180212_execute-P005.log
+docs\progress\logs\20260625-180217_execute-P005.log
+docs\progress\logs\20260625-180237_execute-P005.log
+docs\progress\logs\20260625-180242_execute-P005.log
+docs\progress\logs\20260625-180247_execute-P005.log
+docs\progress\logs\20260625-180252_execute-P005.log
+docs\progress\logs\20260625-180257_execute-P005.log
+docs\progress\logs\20260625-180302_execute-P005.log
+docs\progress\logs\20260625-180307_execute-P005.log
+docs\progress\logs\20260625-180312_execute-P005.log
+docs\progress\logs\20260625-180317_execute-P005.log
+docs\progress\logs\20260625-180322_execute-P005.log
+docs\progress\logs\20260625-180327_execute-P005.log
+docs\progress\logs\20260625-180332_execute-P005.log
+docs\progress\logs\20260625-180337_execute-P005.log
+docs\progress\logs\20260625-180342_execute-P005.log
+docs\progress\logs\20260625-180347_execute-P005.log
+docs\progress\logs\20260625-180352_execute-P005.log
+docs\progress\logs\20260625-180357_execute-P005.log
+docs\progress\logs\20260625-180402_execute-P005.log
+docs\progress\logs\20260625-180412_execute-P005.log
+docs\progress\logs\20260625-180417_execute-P005.log
+docs\progress\logs\20260625-180422_execute-P005.log
+docs\progress\logs\20260625-180427_execute-P005.log
+docs\progress\logs\20260625-180432_execute-P005.log
+docs\progress\logs\20260625-180437_execute-P005.log
+docs\progress\logs\20260625-180442_execute-P005.log
+docs\progress\logs\20260625-180447_execute-P005.log
+docs\progress\logs\20260625-180457_execute-P005.log
+docs\progress\logs\20260625-180522_execute-P005.log
+docs\progress\logs\20260625-180527_execute-P005.log
+docs\progress\logs\20260625-180612_execute-P005.log
+docs\progress\logs\20260625-180632_execute-P005.log
+docs\progress\logs\20260625-180637_execute-P005.log
+docs\progress\logs\20260625-180642_execute-P005.log
+docs\progress\logs\20260625-180707_execute-P005.log
+docs\progress\logs\20260625-180712_execute-P005.log
+docs\progress\logs\20260625-180813_execute-P005.log
+docs\progress\logs\20260625-180913_execute-P005.log
+docs\progress\logs\20260625-180918_execute-P005.log
+docs\progress\logs\20260625-181023_execute-P005.log
+docs\progress\logs\20260625-181123_execute-P005.log
+docs\progress\logs\20260625-181138_execute-P005.log
+docs\progress\logs\20260625-181143_execute-P005.log
+docs\progress\logs\20260625-181148_execute-P005.log
+docs\progress\logs\20260625-181153_execute-P005.log
+docs\progress\logs\20260625-181158_execute-P005.log
+docs\progress\logs\20260625-181228_execute-P005.log
+docs\progress\logs\20260625-181233_execute-P005.log
+docs\progress\logs\20260625-181333_execute-P005.log
+docs\progress\logs\20260625-181338_execute-P005.log
+docs\progress\logs\20260625-181458_execute-P005.log
+docs\progress\logs\20260625-181503_execute-P005.log
+docs\progress\logs\20260625-181508_execute-P005.log
+docs\progress\logs\20260625-181513_execute-P005.log
+docs\progress\logs\20260625-181518_execute-P005.log
+docs\progress\logs\20260625-181538_execute-P005.log
+docs\progress\logs\20260625-181543_execute-P005.log
+docs\progress\logs\20260625-181548_execute-P005.log
+docs\progress\logs\20260625-181553_execute-P005.log
+docs\progress\logs\20260625-181828_execute-P005.log
+docs\progress\logs\20260625-181859_execute-P005.log
+docs\progress\logs\20260625-181919_execute-P005.log
+docs\progress\logs\20260625-181924_execute-P005.log
+docs\progress\logs\20260625-181929_execute-P005.log
+docs\progress\logs\20260625-182304_execute-P005.log
+docs\progress\logs\20260625-182319_execute-P005.log
+docs\progress\logs\20260625-182444_execute-P005.log
+docs\progress\logs\20260625-182504_execute-P005.last.txt
+docs\progress\logs\20260625-182504_execute-P005.log
+docs\progress\logs\20260625-183455_execute-P006.log
+docs\progress\logs\20260625-183540_execute-P006.log
+docs\progress\logs\20260625-183545_execute-P006.log
+docs\progress\logs\20260625-183550_execute-P006.log
+docs\progress\logs\20260625-183555_execute-P006.log
+docs\progress\logs\20260625-183625_execute-P006.log
+docs\progress\logs\20260625-183630_execute-P006.log
+docs\progress\logs\20260625-183635_execute-P006.log
+docs\progress\logs\20260625-183640_execute-P006.log
+docs\progress\logs\20260625-183645_execute-P006.log
+docs\progress\logs\20260625-183730_execute-P006.log
+docs\progress\logs\20260625-183835_execute-P006.log
+docs\progress\logs\20260625-183840_execute-P006.log
+docs\progress\logs\20260625-183845_execute-P006.log
+docs\progress\logs\20260625-183850_execute-P006.log
+docs\progress\logs\20260625-183855_execute-P006.log
+docs\progress\logs\20260625-183921_execute-P006.log
+docs\progress\logs\20260625-183926_execute-P006.log
+docs\progress\logs\20260625-184126_execute-P006.log
+docs\progress\logs\20260625-184156_execute-P006.log
+docs\progress\logs\20260625-184326_execute-P006.last.txt
+docs\progress\logs\20260625-184326_execute-P006.log
+docs\progress\logs\20260625-185432_validate-14.log
+docs\progress\logs\20260625-202754_gen-feedback-7.log
+docs\progress\logs\20260625-202759_gen-feedback-7.log
+docs\progress\logs\20260625-202854_gen-feedback-7.last.txt
+docs\progress\logs\20260625-202854_gen-feedback-7.log
+docs\progress\logs\20260625-203247_execute-P001.log
+docs\progress\logs\20260625-203254_execute-P001.log
+docs\progress\logs\20260625-203259_execute-P001.log
+docs\progress\logs\20260625-203325_execute-P001.log
+docs\progress\logs\20260625-203345_execute-P001.log
+docs\progress\logs\20260625-203405_execute-P001.log
+docs\progress\logs\20260625-203420_execute-P001.log
+docs\progress\logs\20260625-203455_execute-P001.log
+docs\progress\logs\20260625-203700_execute-P001.log
+docs\progress\logs\20260625-203750_execute-P001.log
+docs\progress\logs\20260625-203755_execute-P001.log
+docs\progress\logs\20260625-203800_execute-P001.log
+docs\progress\logs\20260625-203805_execute-P001.log
+docs\progress\logs\20260625-203815_execute-P001.log
+docs\progress\logs\20260625-203820_execute-P001.log
+docs\progress\logs\20260625-203840_execute-P001.log
+docs\progress\logs\20260625-204350_execute-P001.log
+docs\progress\logs\20260625-204400_execute-P001.log
+docs\progress\logs\20260625-204410_execute-P001.log
+docs\progress\logs\20260625-204442_execute-P001.log
+docs\progress\logs\20260625-204503_execute-P001.log
+docs\progress\logs\20260625-204548_execute-P001.log
+docs\progress\logs\20260625-210245_execute-P001.log
+docs\progress\logs\20260625-211137_execute-P001.log
+docs\progress\logs\20260625-211142_execute-P001.log
+docs\progress\logs\20260625-211147_execute-P001.log
+docs\progress\logs\20260625-222420_execute-P001.log
+docs\progress\logs\20260625-222426_execute-P001.log
+docs\progress\logs\20260625-222431_execute-P001.log
+docs\progress\logs\20260625-222436_execute-P001.log
+docs\progress\logs\20260625-222441_execute-P001.log
+docs\progress\logs\20260625-222446_execute-P001.log
+docs\progress\logs\20260625-222504_execute-P001.log
+docs\progress\logs\20260625-222514_execute-P001.log
+docs\progress\logs\20260625-225006_execute-P001.last.txt
+docs\progress\logs\20260625-225006_execute-P001.log
+docs\progress\logs\20260625-225427_execute-P002.last.txt
+docs\progress\logs\20260625-225427_execute-P002.log
+docs\progress\logs\20260625-231433_execute-P003.last.txt
+docs\progress\logs\20260625-231433_execute-P003.log
+docs\progress\logs\20260625-232239_execute-P004.last.txt
+docs\progress\logs\20260625-232239_execute-P004.log
+docs\progress\logs\20260625-233716_execute-P005.last.txt
+docs\progress\logs\20260625-233716_execute-P005.log
+docs\progress\logs\20260625-234707_execute-P006.last.txt
+docs\progress\logs\20260625-234707_execute-P006.log
+docs\progress\logs\20260626-002610_execute-P007.last.txt
+docs\progress\logs\20260626-002610_execute-P007.log
+docs\progress\logs\20260626-003837_execute-P008.last.txt
+docs\progress\logs\20260626-003837_execute-P008.log
+docs\progress\logs\20260626-010109_execute-P009.log
+docs\progress\logs\20260626-014613_execute-P009.last.txt
+docs\progress\logs\20260626-014613_execute-P009.log
+docs\progress\logs\20260626-014818_execute-P010.last.txt
+docs\progress\logs\20260626-014818_execute-P010.log
+docs\progress\logs\20260626-021941_execute-P011.log
+docs\progress\logs\20260626-024112_gen-requirement-13.log
+docs\progress\state.json
+docs\progress\state.json.bak
+docs\progress\state.json.mirror
+docs\project_acceptance_roadmap_plan.md
+docs\selection_engine.md
+docs\selection_model.md
+lib\src\controller\autosave_controller.dart
+lib\src\controller\document_stats_controller.dart
+lib\src\controller\find_replace_controller.dart
+lib\src\controller\outline_controller.dart
+lib\src\controller\slash_menu_controller.dart
+lib\src\controller\toolbar_controller.dart
+lib\src\controller\wenz_rich_text_controller.dart
+lib\src\core\commands\selection_commands.dart
+lib\src\widgets\block_geometry_registry.dart
+lib\src\widgets\block_renderer_registry.dart
+lib\src\widgets\inline_embed_renderer.dart
+lib\src\widgets\selection_gesture_overlay.dart
+lib\src\widgets\wenz_rich_text_editor.dart
+test\controller\autosave_controller_test.dart
+test\controller\block_embed_controller_test.dart
+test\controller\callout_controller_test.dart
+test\controller\controller_callbacks_test.dart
+test\controller\controller_try_load_test.dart
+test\controller\document_stats_controller_test.dart
+test\controller\file_block_controller_test.dart
+test\controller\find_replace_controller_test.dart
+test\controller\image_block_controller_test.dart
+test\controller\outline_controller_test.dart
+test\controller\slash_menu_controller_test.dart
+test\controller\toolbar_controller_test.dart
+test\controller\video_block_controller_test.dart
+test\core\controller_test.dart
+test\core\selection_commands_test.dart
+test\helpers\selection_test_helpers.dart
+test\widgets\block_geometry_registry_test.dart
+test\widgets\editor_golden_test.dart
+test\widgets\failures\editor_selection_isolatedDiff.png
+test\widgets\failures\editor_selection_maskedDiff.png
+test\widgets\failures\editor_selection_masterImage.png
+test\widgets\failures\editor_selection_testImage.png
+test\widgets\goldens\editor_selection.png
+test\widgets\wenz_rich_text_editor_test.dart
+
+**Creating a plan file**
+
+I need to create a plan file and check the existing plan with UTF-8 in Python to ensure proper formatting. Using Python's open function might help display it correctly, but I wonder if terminal output will still have issues like mojibake. It's not strictly necessary to inspect, but I should be aware of line endings. Maybe I can use the command `chcp 65001; Get-Content -Encoding UTF8` to address that.
+codex
+格式已经明确；现在读取一个 UTF-8 版本作最后参考。
+exec
+powershell.exe -Command "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; Get-Content -Encoding UTF8 docs\\plan\\plan_requirement_10_20260625-034349.md | Select-Object -First 80" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 238ms:
+# 需求开发计划：大纲折叠功能
+
+## 来源
+- 类型：需求
+- 编号：10
+- 生成时间：2026-06-25 03:43:49
+
+## 原始内容
+增加大纲折叠功能，如果行内容是大纲标题，则支持折叠内容；
+
+## 需求理解
+- 当顶层 block 是大纲标题（`BlockType.heading`）时，该行应展示可折叠入口，并支持折叠/展开其下属内容。
+- 折叠范围按标题层级计算：从当前标题之后开始，直到遇到下一个同级或更高级标题为止；低级标题及普通 block 均属于当前标题的可折叠内容。
+- 折叠是编辑器视图状态，不应删除或改写文档内容；导入导出、历史记录、协作数据和大纲条目生成应保持原文档结构。
+- 折叠后隐藏的 block 不参与屏幕渲染和普通鼠标命中，但仍需保证选区、搜索、撤销/重做、滚动定位和程序化跳转有明确行为。
+
+## 任务计划
+- [x] P001: 明确标题折叠交互规则 <!-- scope: lib/src/controller/outline_controller.dart,lib/src/widgets/wenz_rich_text_editor.dart,docs/acceptance_manual_checklist.md -->
+  - 验收要点：明确只有顶层 `heading` block 显示折叠入口，段落、引用、列表、代码、表格、媒体和对象块不显示入口。
+  - 验收要点：明确折叠范围按标题 level 计算，`H2` 折叠到下一个 `H1/H2` 前，`H3` 折叠到下一个 `H1/H2/H3` 前，空标题或无子内容标题不可折叠或显示禁用态。
+  - 验收要点：明确只读模式下可展开/折叠但不可改变文档内容，编辑模式下折叠状态不进入撤销/重做历史。
+
+- [x] P002: 扩展大纲折叠状态模型 <!-- scope: lib/src/controller/outline_controller.dart,lib/src/controller/wenz_rich_text_controller.dart,test/controller/outline_controller_test.dart,test/core/controller_test.dart -->
+  - 验收要点：为标题条目提供是否可折叠、是否已折叠、折叠覆盖的 block id/index 范围等只读信息，并在文档变化后自动重算。
+  - 验收要点：提供按 blockId/anchor/OutlineItem 折叠、展开、切换、全部展开和查询折叠状态的 API；无效 block、非标题 block 和无子内容标题返回安全 no-op。
+  - 验收要点：折叠状态以标题 block id 为主键维护；标题删除、类型变更、层级变更、block 移动或文档替换后会清理无效状态并通知监听者。
+
+- [x] P003: 构建可见 block 投影视图 <!-- scope: lib/src/controller/outline_controller.dart,lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/block_geometry_registry.dart,test/controller/outline_controller_test.dart,test/widgets/block_geometry_registry_test.dart -->
+  - 验收要点：编辑器渲染可根据折叠状态过滤被隐藏的顶层 block，同时保留原始 document.blocks 顺序、blockIndex 语义和文档 JSON 不变。
+  - 验收要点：隐藏 block 的几何缓存、命中测试、滚动定位和选择覆盖层不会残留旧位置；展开后几何信息能重新注册并用于选区/滚动。
+  - 验收要点：嵌套折叠时父标题折叠优先隐藏所有后代内容，展开父标题后子标题自身的折叠状态仍可继续生效。
+
+- [x] P004: 渲染标题折叠入口与状态反馈 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/block_renderer_registry.dart,test/widgets/wenz_rich_text_editor_test.dart,test/widgets/editor_golden_test.dart,test/widgets/goldens/editor_blocks.png -->
+  - 验收要点：可折叠标题左侧或标题内容起始处显示稳定的展开/收起图标，hover/focus/pressed/disabled 状态清晰，且不挤压标题文本布局。
+  - 验收要点：点击或键盘激活图标可切换折叠状态；图标命中区域不触发文本选区、输入法组合、链接点击或 block 拖拽菜单。
+  - 验收要点：折叠标题可显示子内容数量、轻量提示或视觉标识，便于用户判断标题下存在被隐藏内容。
+
+- [x] P005: 处理折叠状态下的编辑与导航 <!-- scope: lib/src/controller/wenz_rich_text_controller.dart,lib/src/controller/find_replace_controller.dart,lib/src/controller/outline_controller.dart,lib/src/widgets/wenz_rich_text_editor.dart,test/core/controller_test.dart,test/controller/find_replace_controller_test.dart,test/widgets/wenz_rich_text_editor_test.dart -->
+  - 验收要点：当当前选区或程序化跳转目标位于隐藏 block 内时，编辑器会先展开相关标题或将光标安全移动到折叠标题处，避免不可见光标。
+  - 验收要点：查找替换、大纲跳转、锚点跳转和滚动到选区在命中隐藏内容时有一致策略，并能让目标内容重新可见。
+  - 验收要点：在折叠状态下插入、删除、粘贴、撤销/重做、修改标题层级和移动 block 后，隐藏范围、选区和滚动位置保持可恢复且不丢内容。
+
+- [x] P006: 兼容导入导出与外部扩展 <!-- scope: lib/src/codecs/rich_text_json_codec.dart,lib/src/codecs/html_codec.dart,lib/src/codecs/markdown_codec.dart,lib/src/widgets/block_renderer_registry.dart,test/codecs/rich_text_json_codec_test.dart,test/codecs/html_codec_test.dart,test/codecs/markdown_codec_test.dart,test/plugins/editor_plugin_test.dart -->
+  - 验收要点：折叠状态默认不写入文档 JSON、HTML、Markdown 或纯文本导出，导入已有文档后默认全部展开且内容完整。
+  - 验收要点：自定义 block renderer、插件和媒体 resolver 在隐藏 block 不渲染时不收到多余构建/几何事件，展开后行为与普通 block 一致。
+  - 验收要点：如果后续需要业务侧持久化折叠状态，应通过独立 UI 状态或 metadata 扩展点实现，不污染现有内容模型。
+
+- [x] P007: 补充自动化与视觉回归测试 <!-- scope: test/controller/outline_controller_test.dart,test/widgets/wenz_rich_text_editor_test.dart,test/widgets/editor_golden_test.dart,test/widgets/goldens/editor_blocks.png,test/widgets/goldens/editor_advanced_blocks.png,docs/plan/plan_requirement_10_20260625-034349.md -->
+  - 验收要点：覆盖 H1-H6、多级嵌套、连续标题、空标题、无子内容标题、父子同时折叠、标题删除/改级/移动后的范围重算。
+  - 验收要点：覆盖折叠图标点击、键盘访问、隐藏 block 不命中、展开后选区恢复、查找命中隐藏内容和大纲跳转隐藏标题等 widget 行为。
+  - 验收要点：更新或新增 golden 展示展开态、折叠态、禁用态和嵌套标题场景；记录 `flutter analyze` 与相关测试执行结果。
+
+## 总体验收标准
+- 所有任务 checkbox 均完成，且每个任务的验收要点都有明确结论或验证记录。
+- 标题折叠仅改变编辑器视图状态，不删除、不移动、不改写任何 block 内容或导入导出数据结构。
+- 折叠范围按标题层级稳定计算，覆盖多级标题嵌套、连续标题、空内容、文档首尾和动态编辑后的边界场景。
+- 折叠/展开交互可被鼠标、触控和键盘可靠触发，并不影响文本编辑、选区、IME、链接、表格、媒体块和对象块既有交互。
+- 隐藏内容在查找、大纲跳转、锚点跳转、选区恢复和滚动定位时有一致可见性策略，不出现不可见光标或无法定位目标。
+- 相关 controller、widget、codec、plugin 和 golden 测试通过；若存在既有失败，需在进度区记录命令、失败原因判断和后续建议。
+
+## 进度区
+- 当前状态：计划已创建，P001-P007 待开发执行。
+- 当前负责人：待分配。
+- 下一步：从 P001 开始确认折叠范围、入口位置、只读模式和隐藏内容导航策略。
+- 验证记录：本次仅生成计划文件，未修改业务代码，未执行自动化测试或手工验收。
+- 风险记录：编辑器当前渲染、选区和几何命中集中在大型 widget 中，过滤隐藏 block 可能影响 blockIndex、滚动定位和 selection overlay；需要优先通过测试约束行为再实现。
+- P001 AutoPlan 完成：2026-06-24T19:50:35.751Z；日志：docs/progress/logs/20260625-034550_execute-P001.log
+- P002 AutoPlan 完成：2026-06-25T02:57:51.543Z；日志：docs/progress/logs/20260625-104955_execute-P002.log
+- P003 AutoPlan 完成：2026-06-25T03:33:19.947Z；日志：docs/progress/logs/20260625-112518_execute-P003.log
+- P004 AutoPlan 完成：2026-06-25T04:36:47.833Z；日志：docs/progress/logs/20260625-123230_execute-P004.log
+- P005 AutoPlan 完成：2026-06-25T05:23:26.649Z；日志：docs/progress/logs/20260625-131109_execute-P005.log
+- P006 AutoPlan 完成：2026-06-25T05:34:40.490Z；日志：docs/progress/logs/20260625-132450_execute-P006.log
+- P007 AutoPlan 完成：2026-06-25T05:50:45.065Z；日志：docs/progress/logs/20260625-134052_execute-P007.log
+
+codex
+我会按新需求生成独立计划，保留任务未完成状态供后续执行。
+exec
+powershell.exe -Command "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; Get-Content -Encoding UTF8 docs\\plan\\plan_requirement_9_20260625-033413.md | Select-Object -First 80" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 253ms:
+# 需求开发计划：Block 左侧拖拽调节行位置
+
+## 来源
+- 类型：需求
+- 编号：9
+- 生成时间：2026-06-25 03:34:13
+
+## 原始内容
+增加block拖拽调节行功能，在block左侧增加拖拽按钮，这个按钮支持打开菜单，如果是拖拽，则调节block行位置
+
+## 需求理解
+- 在每个顶层 block 左侧增加统一的拖拽按钮/把手，作为 block 行级操作入口。
+- 按钮点击或轻触时打开 block 操作菜单；拖拽时不打开菜单，而是根据拖拽落点调整 block 在文档中的行位置。
+- 拖拽调节应覆盖普通文本块、标题、列表、引用、代码、callout、表格和对象块等顶层 block，并避免影响行内编辑、选区拖拽、表格列宽拖拽、图片尺寸调节等已有交互。
+- 行位置调整应进入编辑器命令/历史体系，保证选区、撤销/重做、只读模式和自定义 block renderer 扩展点行为一致。
+
+## 任务计划
+- [x] P001: 明确 block 拖拽把手交互边界 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/block_renderer_registry.dart,docs/selection_engine.md -->
+  - 验收要点：明确把手展示位置、尺寸、hover/focus 状态、点击打开菜单与拖拽排序的触发阈值，形成实现侧可落地的交互约定。
+  - 验收要点：确认把手只作用于顶层 block，不把表格单元格内部块、行内 embed 或对象块内部控件误识别为可排序行。
+  - 验收要点：确认只读模式、无编辑权限、移动到首尾边界、空文档和单 block 文档的禁用/无操作规则。
+
+- [x] P002: 抽象 block 行移动命令与控制器接口 <!-- scope: lib/src/core/commands/block_structure_commands.dart,lib/src/controller/wenz_rich_text_controller.dart,lib/src/widgets/wenz_rich_text_editor.dart,test/core/block_structure_commands_test.dart,test/core/controller_test.dart -->
+  - 验收要点：提供按 `fromIndex` 与 `toIndex` 移动顶层 block 的统一能力，支持向上、向下和跨多行移动，越界或同位置移动为无历史记录的 no-op。
+  - 验收要点：移动后保留 block id、属性、内容、评论/修订相关数据和对象块元数据，目标 block 被选中或光标落点符合交互约定。
+  - 验收要点：移动操作进入历史栈，撤销/重做后文档顺序、选区和回调通知保持一致；现有对象块工具栏的上移/下移改为复用同一能力。
+
+- [x] P003: 渲染左侧 block 拖拽按钮与菜单入口 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/block_renderer_registry.dart,test/widgets/wenz_rich_text_editor_test.dart,test/widgets/editor_golden_test.dart -->
+  - 验收要点：每个可编辑顶层 block 左侧都有稳定对齐的拖拽把手，文本块、代码块、callout、表格、图片、视频、文件和分割线等视觉上不被挤压或遮挡。
+  - 验收要点：点击把手可打开菜单，菜单至少提供复制/复制引用、复制块、上移、下移、删除等与当前 block 能力匹配的操作。
+  - 验收要点：把手命中区域注册为选区排除区域，点击、hover、长按和焦点状态不会触发文本选区、IME 输入或 block 内容编辑。
+
+- [x] P004: 区分点击菜单与拖拽排序手势 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/block_geometry_registry.dart,lib/src/widgets/selection_gesture_overlay.dart,test/widgets/wenz_rich_text_editor_test.dart,test/widgets/block_geometry_registry_test.dart -->
+  - 验收要点：短点击/键盘激活只打开菜单，超过拖拽阈值后进入排序模式；进入排序模式后不会再弹出菜单。
+  - 验收要点：鼠标、触控板和触屏长按/拖拽均可稳定识别，拖拽把手不干扰现有跨 block 选区拖拽、双击/三击选词选段和自动滚动选区。
+  - 验收要点：拖拽开始、移动、取消和结束状态可恢复，异常取消后不残留高亮、遮罩、菜单或错误选区。
+
+- [x] P005: 实现拖拽落点指示与 block 重排提交 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/block_geometry_registry.dart,test/widgets/wenz_rich_text_editor_test.dart,test/widgets/editor_golden_test.dart -->
+  - 验收要点：拖拽过程中显示清晰的插入位置指示线，落点可区分插入到目标 block 前/后，并在首尾、滚动容器边缘和可视区域外夹取到合法位置。
+  - 验收要点：释放后按落点完成文档 block 顺序调整，拖到原位置不产生变更，跨多行移动时目标索引计算正确且无 off-by-one 问题。
+  - 验收要点：靠近编辑器上下边缘拖拽时可自动滚动，长文档中能把 block 拖到当前视口外的合法位置。
+
+- [x] P006: 完善 block 菜单动作与对象块兼容 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/block_renderer_registry.dart,lib/src/controller/wenz_rich_text_controller.dart,test/widgets/wenz_rich_text_editor_test.dart -->
+  - 验收要点：菜单动作复用统一 block action/command 链路，普通文本块和对象块均可执行可用动作，首行禁用上移、末行禁用下移。
+  - 验收要点：现有对象块内置工具栏、图片尺寸菜单、文件上传状态菜单和复制引用功能不回归，不与左侧把手菜单产生重复触发或状态不同步。
+  - 验收要点：自定义 block renderer 仍可通过既有 `BlockRenderContext` 与对象块 action 扩展点接入，不要求业务方重写渲染器才能获得默认拖拽能力。
+
+- [x] P007: 完成回归测试与使用文档更新 <!-- scope: test/widgets/wenz_rich_text_editor_test.dart,test/widgets/editor_golden_test.dart,test/core/block_structure_commands_test.dart,docs/selection_engine.md,README.md -->
+  - 验收要点：新增或更新 widget 测试覆盖点击打开菜单、拖拽排序、取消拖拽、首尾边界、只读模式、撤销/重做和长文档自动滚动。
+  - 验收要点：新增或更新 golden 覆盖左侧把手、拖拽落点指示和菜单入口在常见 block 组合下的视觉表现。
+  - 验收要点：执行 `flutter analyze`、定向测试和 `flutter test` 通过；如存在环境限制或非本需求引入失败，需要记录失败原因和复现命令。
+
+## 总体验收标准
+- 计划中的所有 checkbox 任务完成，且每个任务的验收要点均有对应实现或验证记录。
+- 编辑器顶层 block 左侧出现统一拖拽把手：点击打开菜单，拖拽调整 block 行位置，拖拽过程有明确落点指示。
+- block 重排不丢失任何 block 内容、属性、id、对象块元数据、评论/修订关联和文档版本信息。
+- block 重排行为纳入命令与历史体系，撤销/重做、选区更新、编辑回调、只读模式和权限限制表现一致。
+- 左侧把手不破坏文本输入、跨 block 选区、表格交互、图片/文件/视频对象块操作、slash 菜单、快捷键和剪贴板能力。
+- 默认实现兼容自定义 block renderer；业务方无需修改已有 renderer 即可获得外层拖拽把手与菜单入口。
+- `flutter analyze`、相关定向测试、golden 测试和 `flutter test` 均通过，或已明确记录非本需求导致的失败项。
+
+## 进度区
+- 当前状态：draft
+- 下一步：评审计划后从 P001/P002 开始执行，优先确认交互边界并抽象统一 block 行移动能力。
+- 并行建议：P001 完成后，P002 可先行实现命令层；P003/P006 可在 P002 接口稳定后并行；P004/P005 涉及同一拖拽状态机，建议串行推进；P007 最后统一回归。
+- 风险记录：左侧把手拖拽与现有跨 block 选区拖拽、表格列宽拖拽、对象块内部按钮和自动滚动逻辑存在手势冲突风险，需要通过排除区域、拖拽阈值和取消态测试重点验证。
+- P001 AutoPlan 完成：2026-06-24T19:43:47.753Z；日志：docs/progress/logs/20260625-033741_execute-P001.log
+- P002 AutoPlan 完成：2026-06-25T01:04:17.313Z；日志：docs/progress/logs/20260625-085204_execute-P002.log
+- P003 AutoPlan 完成：2026-06-25T01:18:02.093Z；日志：docs/progress/logs/20260625-090420_execute-P003.log
+- P004 AutoPlan 完成：2026-06-25T01:29:52.075Z；日志：docs/progress/logs/20260625-091821_execute-P004.log
+- P005 AutoPlan 完成：2026-06-25T01:43:46.659Z；日志：docs/progress/logs/20260625-092957_execute-P005.log
+- P006 AutoPlan 完成：2026-06-25T01:58:43.069Z；日志：docs/progress/logs/20260625-094353_execute-P006.log
+- P007 AutoPlan 完成：2026-06-25T02:49:41.044Z；日志：docs/progress/logs/20260625-103703_execute-P007.log
+
+codex
+接下来写入目标 Markdown 文件，内容只包含计划与验收标准。
+exec
+powershell.exe -Command '$path = '"'docs\\plan\\plan_requirement_13_20260626-024112.md'
+"'$content = @'"'
+# 需求开发计划：大纲标题左侧折叠按钮
+
+## 来源
+- 类型：需求
+- 编号：13
+- 生成时间：2026-06-26 02:41:12
+
+## 原始内容
+如果行内容是大纲标题，则支持折叠大纲内的所有内容，在标题左侧有个折叠按钮，切换折叠状态；
+
+## 需求理解
+- 当顶层行内容属于大纲标题（"'`BlockType.heading`）时，该标题行左侧显示折叠按钮，用于切换展开/折叠状态。
+- 折叠范围为该标题大纲节点下的所有内容：从当前标题之后开始，到下一个同级或更高级标题之前结束，包含低级标题、普通文本块和对象块。
+- 折叠仅影响编辑器视图可见性，不删除、不移动、不改写任何文档 block，也不改变导入导出内容。
+- 被折叠隐藏的内容不应参与普通渲染、鼠标命中和几何缓存，但查找、跳转、选区恢复等能力需要有一致的展开或定位策略。
+- 折叠按钮需要与已有左侧行操作、拖拽把手、文本选区、链接点击、IME 输入和对象块工具栏交互边界清晰。
+
+## 任务计划
+- [ ] P001: 明确大纲折叠范围与交互规则 <!-- scope: lib/src/controller/outline_controller.dart,lib/src/widgets/wenz_rich_text_editor.dart,docs/acceptance_manual_checklist.md -->
+  - 验收要点：确认只有顶层标题行显示折叠按钮，普通段落、列表、引用、代码块、表格、图片、视频、文件和分割线等非标题行不显示。
+  - 验收要点：确认折叠范围按标题层级计算，`H1` 覆盖到下一个 `H1` 前，`H2` 覆盖到下一个 `H1/H2` 前，依次适配 `H1-H6`。
+  - 验收要点：确认无子内容标题、空文档、连续同级标题、文档末尾标题和嵌套标题的按钮显示、禁用态或 no-op 行为。
+
+- [ ] P002: 建立标题折叠状态模型 <!-- scope: lib/src/controller/outline_controller.dart,lib/src/controller/wenz_rich_text_controller.dart,test/controller/outline_controller_test.dart,test/core/controller_test.dart -->
+  - 验收要点：为每个大纲标题条目提供可折叠状态、当前是否折叠、覆盖的 block id/index 范围和隐藏数量等只读信息。
+  - 验收要点：提供按标题 blockId 或大纲条目切换、展开、折叠、查询和全部展开的 API；非法 block、非标题 block 或不可折叠标题安全 no-op。
+  - 验收要点：文档插入、删除、移动、标题层级变化、标题类型变化和文档整体替换后，折叠范围自动重算并清理失效折叠状态。
+
+- [ ] P003: 实现折叠后的可见内容投影 <!-- scope: lib/src/controller/outline_controller.dart,lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/block_geometry_registry.dart,test/controller/outline_controller_test.dart,test/widgets/block_geometry_registry_test.dart -->
+  - 验收要点：编辑器渲染基于折叠状态过滤隐藏 block，原始 `document.blocks` 顺序、block id、blockIndex 语义和序列化数据保持不变。
+  - 验收要点：隐藏 block 不注册或残留可命中的几何信息，展开后几何缓存可重新建立，滚动定位和选区覆盖层不出现旧位置残影。
+  - 验收要点：父标题折叠时隐藏所有后代内容；父标题展开后，子标题原有折叠状态继续生效，不丢失嵌套折叠关系。
+
+- [ ] P004: 渲染标题左侧折叠按钮 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/block_renderer_registry.dart,test/widgets/wenz_rich_text_editor_test.dart,test/widgets/editor_golden_test.dart,test/widgets/goldens/editor_blocks.png -->
+  - 验收要点：标题左侧显示稳定对齐的展开/折叠按钮，展开态、折叠态、hover、focus、pressed、disabled 和只读态视觉反馈清晰。
+  - 验收要点：按钮不挤压标题文本布局，不遮挡左侧拖拽把手或其他行级入口，并能在多级标题缩进、窄宽度和长标题换行时保持可用。
+  - 验收要点：点击、触控或键盘激活按钮可切换折叠状态，按钮命中区域不会触发文本选区、输入法组合、链接点击、行拖拽或 block 菜单。
+
+- [ ] P005: 处理折叠状态下的编辑与导航 <!-- scope: lib/src/controller/wenz_rich_text_controller.dart,lib/src/controller/find_replace_controller.dart,lib/src/controller/outline_controller.dart,lib/src/widgets/wenz_rich_text_editor.dart,test/core/controller_test.dart,test/controller/find_replace_controller_test.dart,test/widgets/wenz_rich_text_editor_test.dart -->
+  - 验收要点：当前选区位于即将隐藏的内容内时，折叠操作会将光标安全收敛到标题行或按约定清理不可见选区，不出现不可见光标。
+  - 验收要点：查找替换、大纲跳转、锚点跳转、滚动到选区和程序化选择命中隐藏内容时，会先展开相关标题或采用明确可见定位策略。
+  - 验收要点：折叠状态下插入、删除、粘贴、撤销/重做、修改标题层级和移动 block 后，文档内容完整，折叠状态与选区可恢复。
+
+- [ ] P006: 保证导入导出与扩展兼容 <!-- scope: lib/src/codecs/rich_text_json_codec.dart,lib/src/codecs/html_codec.dart,lib/src/codecs/markdown_codec.dart,lib/src/widgets/block_renderer_registry.dart,test/codecs/rich_text_json_codec_test.dart,test/codecs/html_codec_test.dart,test/codecs/markdown_codec_test.dart,test/plugins/editor_plugin_test.dart -->
+  - 验收要点：折叠状态默认不写入 JSON、HTML、Markdown 或纯文本导出，导入已有文档后默认全部展开且所有大纲内容完整保留。
+  - 验收要点：自定义 block renderer、插件和媒体 resolver 在隐藏 block 不渲染时不收到多余构建、命中或几何事件，展开后行为与普通 block 一致。
+  - 验收要点：如业务后续需要持久化折叠状态，应通过独立 UI 状态或 metadata 扩展点实现，不污染现有内容模型和历史记录。
+
+- [ ] P007: 补充自动化与视觉回归验证 <!-- scope: test/controller/outline_controller_test.dart,test/widgets/wenz_rich_text_editor_test.dart,test/widgets/editor_golden_test.dart,test/widgets/goldens/editor_blocks.png,docs/acceptance_manual_checklist.md,docs/plan/plan_requirement_13_20260626-024112.md -->
+  - 验收要点：自动化测试覆盖 `H1-H6`、多级嵌套、连续标题、无子内容标题、文档首尾标题、父子同时折叠和动态编辑后的范围重算。
+  - 验收要点：widget 测试覆盖折叠按钮点击、键盘激活、隐藏 block 不命中、展开后选区恢复、查找命中隐藏内容和只读模式行为。
+  - 验收要点：golden 或截图回归覆盖标题左侧按钮的展开态、折叠态、禁用态、hover/focus 态以及与左侧拖拽把手共存的场景。
+
+## 总体验收标准
+- 计划中的所有 checkbox 任务完成，且每个任务的验收要点都有对应实现结论、自动化测试结论或明确风险记录。
+- 所有大纲标题行左侧均可展示折叠按钮，并能可靠切换该标题大纲范围内全部内容的展开/折叠状态。
+- 折叠范围严格按标题层级计算，覆盖多级标题嵌套、连续标题、空内容、文档首尾和动态编辑后的边界场景。
+- 折叠行为仅改变编辑器视图状态，不删除、不移动、不改写任何 block 内容、属性、id、对象块元数据或导入导出结构。
+- 折叠按钮与文本编辑、选区、IME、链接、左侧拖拽把手、block 菜单、表格交互和媒体对象工具栏互不干扰。
+- 隐藏内容在查找、大纲跳转、锚点跳转、选区恢复、撤销/重做和滚动定位中有一致可见性策略，不出现不可见光标或无法定位目标。
+- `flutter analyze`、相关 controller/widget/codec/plugin 定向测试、golden 回归和必要的手工验收通过；如存在既有失败，需记录命令、失败原因和影响范围。
+
+## 进度区
+- 当前状态：draft，P001-P007 待开发执行。
+- 当前负责人：待分配。
+- 下一步：从 P001 开始确认标题识别、折叠范围、左侧按钮位置和交互冲突边界。
+- 并行建议：P001 完成后，P002 与 P003 可先串行建立状态和投影基础；P004/P005 在状态 API 稳定后推进；P006 可独立验证导入导出边界；P007 最后统一回归。
+- 验证记录：本次仅生成计划文件，未修改业务代码，未执行自动化测试或手工验收。
+- 风险记录：标题左侧区域可能同时承载折叠按钮、行拖拽把手和 block 菜单入口，需重点验证命中区域、焦点顺序、窄屏布局和手势冲突。
+'"'@
+"'$utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+[System.IO.File]::WriteAllText((Join-Path (Get-Location) $path), $content, $utf8NoBom)
+' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 248ms:
+**Verifying file modifications**
+
+I need to check the file and see if there have been any business modifications. My first step will be to use Get-Content to look at the first lines, which should give me an overview of its content. Then, I might consider using git diff to compare changes. This should help me determine if there are any significant alterations that need attention. It’s important to ensure accuracy here!
+codex
+计划文件已写入；我再做一次快速校验确认只改了目标文档。
+exec
+powershell.exe -Command "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; Get-Item docs\\plan\\plan_requirement_13_20260626-024112.md | Select-Object FullName,Length; Get-Content -Encoding UTF8 docs\\plan\\plan_requirement_13_20260626-024112.md | Select-Object -First 20; git diff -- docs\\plan\\plan_requirement_13_20260626-024112.md" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 270ms:
+
+FullName                                                                                      Length
+--------                                                                                      ------
+D:\project\GitHub\wenz_flutter\wenz_richtext\docs\plan\plan_requirement_13_20260626-024112.md   8591
+# 需求开发计划：大纲标题左侧折叠按钮
+
+## 来源
+- 类型：需求
+- 编号：13
+- 生成时间：2026-06-26 02:41:12
+
+## 原始内容
+如果行内容是大纲标题，则支持折叠大纲内的所有内容，在标题左侧有个折叠按钮，切换折叠状态；
+
+## 需求理解
+- 当顶层行内容属于大纲标题（`BlockType.heading`）时，该标题行左侧显示折叠按钮，用于切换展开/折叠状态。
+- 折叠范围为该标题大纲节点下的所有内容：从当前标题之后开始，到下一个同级或更高级标题之前结束，包含低级标题、普通文本块和对象块。
+- 折叠仅影响编辑器视图可见性，不删除、不移动、不改写任何文档 block，也不改变导入导出内容。
+- 被折叠隐藏的内容不应参与普通渲染、鼠标命中和几何缓存，但查找、跳转、选区恢复等能力需要有一致的展开或定位策略。
+- 折叠按钮需要与已有左侧行操作、拖拽把手、文本选区、链接点击、IME 输入和对象块工具栏交互边界清晰。
+
+## 任务计划
+- [ ] P001: 明确大纲折叠范围与交互规则 <!-- scope: lib/src/controller/outline_controller.dart,lib/src/widgets/wenz_rich_text_editor.dart,docs/acceptance_manual_checklist.md -->
+  - 验收要点：确认只有顶层标题行显示折叠按钮，普通段落、列表、引用、代码块、表格、图片、视频、文件和分割线等非标题行不显示。
+
+
+
+**Checking Git diff issues**
+
+I'm wondering why the `git diff` command isn't showing anything for an empty file. It seems like new, untracked files don’t show up unless I use `git diff --no-index`. I might need to check the status using `git status --short` for more clarity. I also thought about `git diff --cached`, but I’m not sure if that’s relevant here. I really need to verify these commands!
+codex
+文档内容校验正常；最后确认工作区变更列表。
+exec
+powershell.exe -Command 'git status --short' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 204ms:
+ M lib/src/widgets/table_floating_toolbar_overlay.dart
+ M lib/src/widgets/wenz_rich_text_editor.dart
+ M test/widgets/editor_golden_test.dart
+ M test/widgets/goldens/editor_merged_table.png
+ M test/widgets/wenz_rich_text_editor_test.dart
+?? docs/plan/plan_feedback_7_20260625-202854.md
+?? docs/plan/plan_requirement_13_20260626-024112.md
+?? docs/progress/logs/20260625-202754_gen-feedback-7.log
+?? docs/progress/logs/20260625-202759_gen-feedback-7.log
+?? docs/progress/logs/20260625-202854_gen-feedback-7.last.txt
+?? docs/progress/logs/20260625-202854_gen-feedback-7.log
+?? docs/progress/logs/20260625-203247_execute-P001.log
+?? docs/progress/logs/20260625-203254_execute-P001.log
+?? docs/progress/logs/20260625-203259_execute-P001.log
+?? docs/progress/logs/20260625-203325_execute-P001.log
+?? docs/progress/logs/20260625-203345_execute-P001.log
+?? docs/progress/logs/20260625-203405_execute-P001.log
+?? docs/progress/logs/20260625-203420_execute-P001.log
+?? docs/progress/logs/20260625-203455_execute-P001.log
+?? docs/progress/logs/20260625-203700_execute-P001.log
+?? docs/progress/logs/20260625-203750_execute-P001.log
+?? docs/progress/logs/20260625-203755_execute-P001.log
+?? docs/progress/logs/20260625-203800_execute-P001.log
+?? docs/progress/logs/20260625-203805_execute-P001.log
+?? docs/progress/logs/20260625-203815_execute-P001.log
+?? docs/progress/logs/20260625-203820_execute-P001.log
+?? docs/progress/logs/20260625-203840_execute-P001.log
+?? docs/progress/logs/20260625-204350_execute-P001.log
+?? docs/progress/logs/20260625-204400_execute-P001.log
+?? docs/progress/logs/20260625-204410_execute-P001.log
+?? docs/progress/logs/20260625-204442_execute-P001.log
+?? docs/progress/logs/20260625-204503_execute-P001.log
+?? docs/progress/logs/20260625-204548_execute-P001.log
+?? docs/progress/logs/20260625-210245_execute-P001.log
+?? docs/progress/logs/20260625-211137_execute-P001.log
+?? docs/progress/logs/20260625-211142_execute-P001.log
+?? docs/progress/logs/20260625-211147_execute-P001.log
+?? docs/progress/logs/20260625-222420_execute-P001.log
+?? docs/progress/logs/20260625-222426_execute-P001.log
+?? docs/progress/logs/20260625-222431_execute-P001.log
+?? docs/progress/logs/20260625-222436_execute-P001.log
+?? docs/progress/logs/20260625-222441_execute-P001.log
+?? docs/progress/logs/20260625-222446_execute-P001.log
+?? docs/progress/logs/20260625-222504_execute-P001.log
+?? docs/progress/logs/20260625-222514_execute-P001.log
+?? docs/progress/logs/20260625-225006_execute-P001.last.txt
+?? docs/progress/logs/20260625-225006_execute-P001.log
+?? docs/progress/logs/20260625-225427_execute-P002.last.txt
+?? docs/progress/logs/20260625-225427_execute-P002.log
+?? docs/progress/logs/20260625-231433_execute-P003.last.txt
+?? docs/progress/logs/20260625-231433_execute-P003.log
+?? docs/progress/logs/20260625-232239_execute-P004.last.txt
+?? docs/progress/logs/20260625-232239_execute-P004.log
+?? docs/progress/logs/20260625-233716_execute-P005.last.txt
+?? docs/progress/logs/20260625-233716_execute-P005.log
+?? docs/progress/logs/20260625-234707_execute-P006.last.txt
+?? docs/progress/logs/20260625-234707_execute-P006.log
+?? docs/progress/logs/20260626-002610_execute-P007.last.txt
+?? docs/progress/logs/20260626-002610_execute-P007.log
+?? docs/progress/logs/20260626-003837_execute-P008.last.txt
+?? docs/progress/logs/20260626-003837_execute-P008.log
+?? docs/progress/logs/20260626-010109_execute-P009.log
+?? docs/progress/logs/20260626-014613_execute-P009.last.txt
+?? docs/progress/logs/20260626-014613_execute-P009.log
+?? docs/progress/logs/20260626-014818_execute-P010.last.txt
+?? docs/progress/logs/20260626-014818_execute-P010.log
+?? docs/progress/logs/20260626-021941_execute-P011.log
+?? docs/progress/logs/20260626-024112_gen-requirement-13.log
+?? nul
+?? test/widgets/failures/
+
+codex
+已生成开发计划文件：`docs/plan/plan_requirement_13_20260626-024112.md:1`
+
+- 内容包含需求理解、P001-P007 任务计划、每个任务的 `scope` 和验收要点。
+- 已包含总体验收标准与进度区。
+- 本次未修改业务代码，未运行自动化测试。
+- 备注：`git status` 中已有一些与本次无关的业务代码/日志变更，我没有改动它们。
+tokens used
+33,665
+已生成开发计划文件：`docs/plan/plan_requirement_13_20260626-024112.md:1`
+
+- 内容包含需求理解、P001-P007 任务计划、每个任务的 `scope` 和验收要点。
+- 已包含总体验收标准与进度区。
+- 本次未修改业务代码，未运行自动化测试。
+- 备注：`git status` 中已有一些与本次无关的业务代码/日志变更，我没有改动它们。

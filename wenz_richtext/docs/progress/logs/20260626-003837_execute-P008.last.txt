@@ -1,0 +1,10 @@
+**完成**
+- 已处理 P008 视频溢出：`lib/src/widgets/wenz_rich_text_editor.dart:7601` 约束视频占位层封面、播放按钮、底部文案。
+- 视频帧现在按安全比例/高度范围收敛，并裁剪描述文本：`lib/src/widgets/wenz_rich_text_editor.dart:7995`。
+- 新增窄容器回归测试，覆盖封面 chip、source 文案和选中工具栏：`test/widgets/wenz_rich_text_editor_test.dart:5654`。
+- 未修改 plan 文件；scope 中的 `lib/src/controller/video_block_controller.dart` 当前不存在，未创建。
+
+**验证**
+- 通过：`dart analyze lib/src/widgets/wenz_rich_text_editor.dart`
+- 通过：`flutter test test/controller/video_block_controller_test.dart`
+- 受阻：`flutter test test/widgets/wenz_rich_text_editor_test.dart --plain-name video` 加载失败，因既有 `_caretRenderOffsetForLogicalOffset` 未定义：`test/widgets/wenz_rich_text_editor_test.dart:6135`、`test/widgets/wenz_rich_text_editor_test.dart:6136`、`test/widgets/wenz_rich_text_editor_test.dart:6334`。

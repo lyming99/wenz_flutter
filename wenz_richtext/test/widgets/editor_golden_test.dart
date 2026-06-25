@@ -161,6 +161,56 @@ void main() {
     );
   });
 
+  testWidgets('quote blocks fill the editable row width', (tester) async {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'short-quote',
+            type: BlockType.quote,
+            content: <InlineNode>[TextRun(text: 'Short quote')],
+          ),
+          TextBlockNode(
+            id: 'empty-quote',
+            type: BlockType.quote,
+            content: <InlineNode>[],
+          ),
+          TextBlockNode(
+            id: 'indented-quote',
+            type: BlockType.quote,
+            attributes: BlockAttributes(indent: 1),
+            content: <InlineNode>[TextRun(text: 'Indented quote\nsecond line')],
+          ),
+        ],
+      ),
+    );
+
+    await _pumpGoldenEditor(tester, controller);
+
+    final editorRect = tester.getRect(find.byType(WenzRichTextEditor));
+    final backgroundFinder = find.byKey(
+      const ValueKey<String>('wenz-richtext-quote-background'),
+    );
+    expect(backgroundFinder, findsNWidgets(3));
+
+    const editorPadding = 16.0;
+    const indentedQuoteStart = 24.0;
+    final rowStart =
+        editorRect.left + editorPadding + BlockDragHandleSpec.railWidth;
+    final rowEnd = editorRect.right - editorPadding;
+    final shortQuoteRect = tester.getRect(backgroundFinder.at(0));
+    final emptyQuoteRect = tester.getRect(backgroundFinder.at(1));
+    final indentedQuoteRect = tester.getRect(backgroundFinder.at(2));
+
+    expect(shortQuoteRect.left, closeTo(rowStart, 0.001));
+    expect(shortQuoteRect.right, closeTo(rowEnd, 0.001));
+    expect(emptyQuoteRect.left, closeTo(rowStart, 0.001));
+    expect(emptyQuoteRect.right, closeTo(rowEnd, 0.001));
+    expect(
+        indentedQuoteRect.left, closeTo(rowStart + indentedQuoteStart, 0.001));
+    expect(indentedQuoteRect.right, closeTo(rowEnd, 0.001));
+  });
+
   testWidgets('golden: paragraph code and image placeholder', (tester) async {
     final controller = WenzRichTextController(
       document: const RichTextDocument(
@@ -230,7 +280,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('复制块内容'), findsOneWidget);
-    expect(find.text('下移块'), findsOneWidget);
+    expect(find.text('更多块操作'), findsOneWidget);
 
     await expectLater(
       find.byKey(_goldenKey),

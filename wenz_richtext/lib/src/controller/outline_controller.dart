@@ -12,7 +12,9 @@ import 'wenz_rich_text_controller.dart';
 ///
 /// Heading collapse uses the same top-level heading source but remains view
 /// state: paragraphs, quotes, lists, code, tables, media blocks, and object
-/// blocks never own a collapse entry themselves.
+/// blocks never own a collapse entry themselves. Heading rows that have no
+/// valid outline item or no covered child blocks are treated as disabled/no-op
+/// collapse affordances by the widget layer.
 class OutlineItem {
   const OutlineItem({
     required this.blockId,
@@ -80,6 +82,13 @@ class OutlineItem {
 }
 
 /// The top-level block range hidden by a collapsed outline heading.
+///
+/// Ranges are expressed in [WenzRichTextController.document.blocks] indexes.
+/// They start immediately after the heading and stop before the next heading
+/// whose normalized H1-H6 level is less than or equal to the current heading:
+/// H1 covers until the next H1, H2 covers until the next H1/H2, and so on.
+/// Lower-level headings plus ordinary text, table, divider, media, and object
+/// blocks inside that interval are covered by the range.
 class OutlineCollapseRange {
   const OutlineCollapseRange({
     required this.startBlockIndex,
@@ -264,13 +273,15 @@ class OutlineBlockProjection {
 /// selection handling.
 ///
 /// Heading collapse interaction contract:
-/// * A collapse handle is eligible only for a non-empty top-level
-///   [TextBlockNode] whose [TextBlockNode.type] is [BlockType.heading].
+/// * The editor exposes the collapse handle only on top-level [TextBlockNode]
+///   rows whose [TextBlockNode.type] is [BlockType.heading]; paragraphs, lists,
+///   quotes, code blocks, tables, media, dividers, and files never expose it.
 /// * The covered range starts after that heading and stops before the next
 ///   heading whose normalized level is less than or equal to the current level;
 ///   lower-level headings and ordinary blocks stay inside the range.
-/// * Empty headings or headings without covered child blocks should be treated
-///   as non-collapsible or disabled.
+/// * Empty documents, empty-title headings, consecutive same/higher-level
+///   headings, and document-end headings with no covered child blocks are
+///   non-collapsible and toggle as disabled/no-op rows.
 /// * Toggling collapse is editor view state. It must not mutate document
 ///   content or enter undo/redo history, and read-only editors may still toggle
 ///   this view state.
@@ -547,6 +558,8 @@ class WenzOutlineController extends ChangeNotifier {
       }
       final title = _normalizeTitle(block.plainText);
       if (title.isEmpty) {
+        // The row is still a heading in the editor, but it is not a usable
+        // outline/collapse target until it has a visible title.
         continue;
       }
       final rawLevel = block.attributes.level ?? 1;
