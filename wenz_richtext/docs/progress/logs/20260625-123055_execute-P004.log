@@ -1,0 +1,946 @@
+OpenAI Codex v0.121.0 (research preview)
+--------
+workdir: D:\project\GitHub\wenz_flutter\wenz_richtext
+model: gpt-5.5
+provider: custom
+approval: never
+sandbox: danger-full-access
+reasoning effort: xhigh
+reasoning summaries: none
+session id: 019efd0b-95bf-76e3-a941-9239e542b17e
+--------
+user
+你是开发执行者。
+请只执行指定任务 P004，不要提前执行其它任务，也不要顺手处理其它 checkbox。
+
+plan 文件（只读）：D:\project\GitHub\wenz_flutter\wenz_richtext\docs\plan\plan_requirement_10_20260625-034349.md
+指定任务：
+- [ ] P004: 渲染标题折叠入口与状态反馈 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/block_renderer_registry.dart,test/widgets/wenz_rich_text_editor_test.dart,test/widgets/editor_golden_test.dart,test/widgets/goldens/editor_blocks.png -->
+任务 scope：lib/src/widgets/wenz_rich_text_editor.dart, lib/src/widgets/block_renderer_registry.dart, test/widgets/wenz_rich_text_editor_test.dart, test/widgets/editor_golden_test.dart, test/widgets/goldens/editor_blocks.png
+
+完成后必须：
+- plan 文件是只读上下文：不要修改 plan 文件，不要勾选 checkbox，不要更新 plan 进度区
+- AutoPlan 会在任务成功后统一写回数据库、checkbox 和进度区
+- 只修改当前任务 scope 直接相关的业务文件
+- 如需测试，只运行与当前任务直接相关的最小测试集，不要运行全量测试或与本任务无关的测试
+- 只有当前任务本身明确要求全量验证时，才允许运行全量测试
+- 不输出完整 diff、源码全文或长文件列表
+- 中文文件读写使用 UTF-8
+**Evaluating code modifications**
+
+I need to modify the code in the repo for task P004. I should inspect the instructions and consider if I need the plan tool. The user mentioned not updating the plan progress, so maybe I shouldn't use the update_plan tool. It seems like it could be unnecessary, especially since task P004 is specific and not too large. I'll be cautious and avoid modifications to the plan file, but I can still check the repo for clarity.
+**Planning tool calls**
+
+I need to send a preamble before making any tool calls. I'm considering using codegraph first since I'm working within the codebase related to rendering the title collapse entry and state feedback. I should inspect the relevant files and tests. It seems like using codegraph_explore could be a good choice for understanding the symbols in this Flutter/Dart project. However, I need to check if we have access to the local repo since modifications to the widget are needed. I’ll also look for the AGENTS instructions to clarify what’s included.
+**Inspecting code structure**
+
+Since it seems there might not be any AGENTS shown, I'll move forward because the developer mentioned that the necessary details are included and don’t need re-reading. I’m considering using codegraph for a closer look, but I could also use the shell to inspect the relevant files since my task involves code modifications. It’s important to understand the code structure, especially since there are minimal tests on the direct files. I'll utilize the `rg` command for this inspection.
+codex
+我先定位相关渲染和测试代码，再做最小范围修改。
+exec
+powershell.exe -Command 'rg -n "title|collapse|collapsed|heading|block renderer|wenz_rich_text_editor" lib test -g "*.dart"' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 149ms:
+lib\wenz_richtext.dart:44:///   callout block model ([CalloutBlockNode] with variant/title/icon metadata),
+lib\wenz_richtext.dart:156:export 'src/widgets/wenz_rich_text_editor.dart';
+test\widgets\wenz_rich_text_editor_test.dart:42:            type: BlockType.heading,
+test\widgets\wenz_rich_text_editor_test.dart:257:  testWidgets('applies design heading hierarchy and weak heading tones', (
+test\widgets\wenz_rich_text_editor_test.dart:268:            type: BlockType.heading,
+test\widgets\wenz_rich_text_editor_test.dart:274:            type: BlockType.heading,
+test\widgets\wenz_rich_text_editor_test.dart:280:            type: BlockType.heading,
+test\widgets\wenz_rich_text_editor_test.dart:286:            type: BlockType.heading,
+test\widgets\wenz_rich_text_editor_test.dart:292:            type: BlockType.heading,
+test\widgets\wenz_rich_text_editor_test.dart:298:            type: BlockType.heading,
+test\widgets\wenz_rich_text_editor_test.dart:402:  testWidgets('uses design heading spacing between adjacent blocks', (
+test\widgets\wenz_rich_text_editor_test.dart:415:            type: BlockType.heading,
+test\widgets\wenz_rich_text_editor_test.dart:417:            content: <InlineNode>[TextRun(text: 'Section heading')],
+test\widgets\wenz_rich_text_editor_test.dart:447:    final headingRect = tester.getRect(_richText('Section heading'));
+test\widgets\wenz_rich_text_editor_test.dart:452:      headingRect.top - introRect.bottom,
+test\widgets\wenz_rich_text_editor_test.dart:456:      followingRect.top - headingRect.bottom,
+test\widgets\wenz_rich_text_editor_test.dart:461:  testWidgets('renders heading collapse affordance and toggles by keyboard', (
+test\widgets\wenz_rich_text_editor_test.dart:469:            type: BlockType.heading,
+test\widgets\wenz_rich_text_editor_test.dart:471:            content: <InlineNode>[TextRun(text: 'Section title')],
+test\widgets\wenz_rich_text_editor_test.dart:480:            type: BlockType.heading,
+test\widgets\wenz_rich_text_editor_test.dart:482:            content: <InlineNode>[TextRun(text: 'Nested title')],
+test\widgets\wenz_rich_text_editor_test.dart:491:            type: BlockType.heading,
+test\widgets\wenz_rich_text_editor_test.dart:493:            content: <InlineNode>[TextRun(text: 'Leaf title')],
+test\widgets\wenz_rich_text_editor_test.dart:520:      const ValueKey<String>('wenz-richtext-heading-collapse-section'),
+test\widgets\wenz_rich_text_editor_test.dart:523:      const ValueKey<String>('wenz-richtext-heading-collapse-leaf'),
+test\widgets\wenz_rich_text_editor_test.dart:563:    expect(_richText('Nested title'), findsNothing);
+test\widgets\wenz_rich_text_editor_test.dart:565:    expect(_richText('Leaf title'), findsOneWidget);
+test\widgets\wenz_rich_text_editor_test.dart:576:    expect(_richText('Nested title'), findsOneWidget);
+test\widgets\wenz_rich_text_editor_test.dart:657:    final initialSelection = collapsedTextSelection('task1', 0, 4);
+test\widgets\wenz_rich_text_editor_test.dart:986:      selection: collapsedTextSelection('p-convert', 0, 0),
+test\widgets\wenz_rich_text_editor_test.dart:1094:      selection: collapsedCodeSelection('code1', 0, 0),
+test\widgets\wenz_rich_text_editor_test.dart:1213:      selection: collapsedCodeSelection('code1', 0, 0),
+test\widgets\wenz_rich_text_editor_test.dart:2213:        selection: collapsedCodeSelection('code1', 0, 0),
+test\widgets\wenz_rich_text_editor_test.dart:2301:            title: 'Watch',
+test\widgets\wenz_rich_text_editor_test.dart:2332:    expect(callout.title, 'Watch');
+test\widgets\wenz_rich_text_editor_test.dart:2351:            title: 'Info Title',
+test\widgets\wenz_rich_text_editor_test.dart:2578:              type: BlockType.heading,
+test\widgets\wenz_rich_text_editor_test.dart:3021:      selection: _collapsedTableCellTextSelection(
+test\widgets\wenz_rich_text_editor_test.dart:3394:            title: 'Info Title',
+test\widgets\wenz_rich_text_editor_test.dart:3467:      selection: collapsedTextSelection('mention-p', 0, 4),
+test\widgets\wenz_rich_text_editor_test.dart:3965:      selection: collapsedTextSelection('p1', 0, 2),
+test\widgets\wenz_rich_text_editor_test.dart:3998:      selection: collapsedTextSelection('p1', 0, 2),
+test\widgets\wenz_rich_text_editor_test.dart:4268:      selection: collapsedCodeSelection('code1', 0, 4),
+test\widgets\wenz_rich_text_editor_test.dart:4392:      selection: collapsedTextSelection('p1', 0, 2),
+test\widgets\wenz_rich_text_editor_test.dart:4440:      selection: collapsedTextSelection('p1', 0, 5),
+test\widgets\wenz_rich_text_editor_test.dart:4484:      selection: collapsedTextSelection('p1', 0, 0),
+test\widgets\wenz_rich_text_editor_test.dart:4530:      selection: collapsedTextSelection('p1', 0, 2),
+test\widgets\wenz_rich_text_editor_test.dart:4649:            title: 'Launch clip',
+test\widgets\wenz_rich_text_editor_test.dart:4827:      selection: collapsedTextSelection('p1', 0, 6),
+test\widgets\wenz_rich_text_editor_test.dart:5101:    controller.setSelection(collapsedTextSelection('p-inline', 0, 1));
+test\widgets\wenz_rich_text_editor_test.dart:5112:    controller.setSelection(collapsedTextSelection('p-inline', 0, 3));
+test\widgets\wenz_rich_text_editor_test.dart:5123:    controller.setSelection(collapsedTextSelection('p-inline', 0, 4));
+test\widgets\wenz_rich_text_editor_test.dart:5288:      _collapsedTableCellTextSelection(
+test\widgets\wenz_rich_text_editor_test.dart:5309:      _collapsedTableCellTextSelection(
+test\widgets\wenz_rich_text_editor_test.dart:5330:      _collapsedTableCellTextSelection(
+test\widgets\wenz_rich_text_editor_test.dart:5704:      selection: collapsedTextSelection('p1', 0, 3),
+test\widgets\wenz_rich_text_editor_test.dart:5738:      selection: collapsedTextSelection('p1', 0, 2),
+test\widgets\wenz_rich_text_editor_test.dart:5777:      selection: collapsedTextSelection('p1', 0, 20),
+test\widgets\wenz_rich_text_editor_test.dart:5819:      selection: collapsedTextSelection('p1', 0, 5),
+test\widgets\wenz_rich_text_editor_test.dart:5877:      selection: collapsedTextSelection('p1', 0, 11),
+test\widgets\wenz_rich_text_editor_test.dart:5897:    controller.setSelection(collapsedTextSelection('p1', 0, 11));
+test\widgets\wenz_rich_text_editor_test.dart:6026:      selection: collapsedTextSelection('p1', 0, 3),
+test\widgets\wenz_rich_text_editor_test.dart:6058:      selection: collapsedTextSelection('p1', 0, 0),
+test\widgets\wenz_rich_text_editor_test.dart:6337:      selection: collapsedTextSelection('p1', 0, 2),
+test\widgets\wenz_rich_text_editor_test.dart:6377:      selection: collapsedTextSelection('p1', 0, 3),
+test\widgets\wenz_rich_text_editor_test.dart:6413:      selection: collapsedTextSelection('p1', 0, 0),
+test\widgets\wenz_rich_text_editor_test.dart:6449:      selection: collapsedTextSelection('p1', 0, 0),
+test\widgets\wenz_rich_text_editor_test.dart:6619:      // Place an initial collapsed caret in the content so we can detect any
+test\widgets\wenz_rich_text_editor_test.dart:6719:      controller.setSelection(collapsedTextSelection('p25', 25, 0));
+test\widgets\wenz_rich_text_editor_test.dart:6827:      selection: collapsedTextSelection('p1', 0, 0),
+test\widgets\wenz_rich_text_editor_test.dart:6878:      selection: collapsedTextSelection('p3', 2, 3),
+test\widgets\wenz_rich_text_editor_test.dart:6928:      selection: collapsedTextSelection('p1', 0, 0),
+test\widgets\wenz_rich_text_editor_test.dart:6972:      selection: collapsedTextSelection('p1', 0, 3),
+test\widgets\wenz_rich_text_editor_test.dart:6999:  testWidgets('block renderer registry overrides block rendering', (
+test\widgets\wenz_rich_text_editor_test.dart:7061:    'block renderer registry falls back for unregistered types',
+test\widgets\wenz_rich_text_editor_test.dart:7222:        selection: collapsedTextSelection('p1', 0, 0),
+test\widgets\wenz_rich_text_editor_test.dart:7259:      final start = collapsedTextSelection('p0', 0, 0).base;
+test\widgets\wenz_rich_text_editor_test.dart:7297:        selection: collapsedTextSelection('p1', 0, 0),
+test\widgets\wenz_rich_text_editor_test.dart:7319:      controller.setSelection(collapsedTextSelection('p400', 400, 0));
+test\widgets\wenz_rich_text_editor_test.dart:7332:        selection: collapsedTextSelection('p0', 0, 0),
+test\widgets\wenz_rich_text_editor_test.dart:7360:      controller.setSelection(collapsedTextSelection('p450', 450, 0));
+test\widgets\wenz_rich_text_editor_test.dart:7612:DocumentSelection _collapsedTableCellTextSelection({
+test\widgets\slash_menu_overlay_test.dart:12:      document: _document('/heading'),
+test\widgets\slash_menu_overlay_test.dart:13:      selection: collapsedTextSelection('p1', 0, 8),
+test\widgets\slash_menu_overlay_test.dart:31:      find.byKey(const ValueKey<String>('wenz-slash-item-heading')),
+test\widgets\slash_menu_overlay_test.dart:36:      find.byKey(const ValueKey<String>('wenz-slash-item-heading')),
+test\widgets\slash_menu_overlay_test.dart:41:        BlockType.heading);
+test\widgets\slash_menu_overlay_test.dart:46:      document: _document('/heading'),
+test\widgets\slash_menu_overlay_test.dart:47:      selection: collapsedTextSelection('p1', 0, 8),
+test\widgets\slash_menu_overlay_test.dart:78:    expect(block.type, BlockType.heading);
+lib\src\widgets\wenz_rich_text_editor.dart:168:    BlockType.heading,
+lib\src\widgets\wenz_rich_text_editor.dart:210:    'headingFontSizes': <int, double>{1: 24.0, 2: 21.0, 3: 18.0, 4: 16.0},
+lib\src\widgets\wenz_rich_text_editor.dart:211:    'headingStrongWeight': 700,
+lib\src\widgets\wenz_rich_text_editor.dart:212:    'headingWeakWeight': 600,
+lib\src\widgets\wenz_rich_text_editor.dart:230:    'headingMarginEm': <String, double>{'top': 0.6, 'bottom': 0.35},
+lib\src\widgets\wenz_rich_text_editor.dart:237:    'headingCollapse': <String, double>{
+lib\src\widgets\wenz_rich_text_editor.dart:273:    'heading.collapse': 'primary hover/focus control + hidden-count badge',
+lib\src\widgets\wenz_rich_text_editor.dart:284:    'heading': 'aligned: hierarchy styles plus collapse affordance states.',
+lib\src\widgets\wenz_rich_text_editor.dart:356:/// Public wrapper for custom atomic block renderers.
+lib\src\widgets\wenz_rich_text_editor.dart:383:/// Heading collapse is a view concern of this surface: built-in collapse
+lib\src\widgets\wenz_rich_text_editor.dart:384:/// affordances belong only to top-level heading blocks, can be toggled in
+lib\src\widgets\wenz_rich_text_editor.dart:467:  /// Optional outline controller whose collapsed-heading state projects the
+lib\src\widgets\wenz_rich_text_editor.dart:474:  /// Seeds [registry] with the built-in block renderers for every [BlockType].
+lib\src\widgets\wenz_rich_text_editor.dart:486:      ..register(BlockType.heading, _defaultTextBlockRenderer)
+lib\src\widgets\wenz_rich_text_editor.dart:542:  /// The active block renderer registry. When the widget supplies one it is
+lib\src\widgets\wenz_rich_text_editor.dart:817:  HeadingCollapseState? _headingCollapseStateFor(BlockNode block) {
+lib\src\widgets\wenz_rich_text_editor.dart:822:    if (block is! TextBlockNode || block.type != BlockType.heading) {
+lib\src\widgets\wenz_rich_text_editor.dart:846:    // Heading collapse should project this original block list for rendering
+lib\src\widgets\wenz_rich_text_editor.dart:864:    // (collapsed selection) and the selection endpoints. Keeping these alive
+lib\src\widgets\wenz_rich_text_editor.dart:912:          headingCollapseState: _headingCollapseStateFor(block),
+lib\src\widgets\wenz_rich_text_editor.dart:1668:        title: block.title,
+lib\src\widgets\wenz_rich_text_editor.dart:1717:  /// (collapsed selection) and the selection endpoints. Keeping these alive
+lib\src\widgets\wenz_rich_text_editor.dart:2053:      // page yields a collapsed caret (moveCaretToDocumentBoundary would keep
+lib\src\widgets\wenz_rich_text_editor.dart:3080:    this.headingCollapseState,
+lib\src\widgets\wenz_rich_text_editor.dart:3109:  final HeadingCollapseState? headingCollapseState;
+lib\src\widgets\wenz_rich_text_editor.dart:3164:        oldWidget.headingCollapseState != widget.headingCollapseState ||
+lib\src\widgets\wenz_rich_text_editor.dart:3204:      headingCollapseState: widget.headingCollapseState,
+lib\src\widgets\wenz_rich_text_editor.dart:3222:  /// (so it would be fully highlighted), or the selection is collapsed inside
+lib\src\widgets\wenz_rich_text_editor.dart:3267:    this.headingCollapseState,
+lib\src\widgets\wenz_rich_text_editor.dart:3294:  final HeadingCollapseState? headingCollapseState;
+lib\src\widgets\wenz_rich_text_editor.dart:3322:      headingCollapseState: headingCollapseState,
+lib\src\widgets\wenz_rich_text_editor.dart:3993:  if (block is TextBlockNode && block.type == BlockType.heading) {
+lib\src\widgets\wenz_rich_text_editor.dart:4000:  if (block is TextBlockNode && block.type == BlockType.heading) {
+lib\src\widgets\wenz_rich_text_editor.dart:4023:/// Installs the built-in block renderers onto [registry]. Exposed so the editor
+lib\src\widgets\wenz_rich_text_editor.dart:4029:    register(BlockType.heading, _defaultTextBlockRenderer);
+lib\src\widgets\wenz_rich_text_editor.dart:4058:    headingCollapseState: rc.headingCollapseState,
+lib\src\widgets\wenz_rich_text_editor.dart:4361:    this.headingCollapseState,
+lib\src\widgets\wenz_rich_text_editor.dart:4380:  final HeadingCollapseState? headingCollapseState;
+lib\src\widgets\wenz_rich_text_editor.dart:4485:    if (block.type == BlockType.heading && headingCollapseState != null) {
+lib\src\widgets\wenz_rich_text_editor.dart:4493:              state: headingCollapseState!,
+lib\src\widgets\wenz_rich_text_editor.dart:4546:    debugLabel: 'Wenz heading collapse button',
+lib\src\widgets\wenz_rich_text_editor.dart:4617:                'wenz-richtext-heading-collapse-${widget.blockId}',
+lib\src\widgets\wenz_rich_text_editor.dart:4620:              tooltip: _headingCollapseTooltip(widget.state),
+lib\src\widgets\wenz_rich_text_editor.dart:4699:          _headingCollapseCountText(count),
+lib\src\widgets\wenz_rich_text_editor.dart:4713:String _headingCollapseTooltip(HeadingCollapseState state) {
+lib\src\widgets\wenz_rich_text_editor.dart:4723:String _headingCollapseCountText(int count) {
+lib\src\widgets\wenz_rich_text_editor.dart:5447:                  icon: Icons.title,
+lib\src\widgets\wenz_rich_text_editor.dart:5629:  final headingLevel = block is TextBlockNode && block.type == BlockType.heading
+lib\src\widgets\wenz_rich_text_editor.dart:5637:    header: headingLevel != null,
+lib\src\widgets\wenz_rich_text_editor.dart:5638:    headingLevel: headingLevel,
+lib\src\widgets\wenz_rich_text_editor.dart:5646:    TextBlockNode(type: BlockType.heading) =>
+lib\src\widgets\wenz_rich_text_editor.dart:7400:                      style: theme.textTheme.titleSmall?.copyWith(
+lib\src\widgets\wenz_rich_text_editor.dart:7580:    final style = (theme.textTheme.titleLarge ?? const TextStyle()).copyWith(
+lib\src\widgets\wenz_rich_text_editor.dart:7665:        title: _videoCardTitle(block),
+lib\src\widgets\wenz_rich_text_editor.dart:7666:        subtitle: _videoCardSubtitle(block),
+lib\src\widgets\wenz_rich_text_editor.dart:8010:    required this.title,
+lib\src\widgets\wenz_rich_text_editor.dart:8016:    this.subtitle,
+lib\src\widgets\wenz_rich_text_editor.dart:8022:  final String title;
+lib\src\widgets\wenz_rich_text_editor.dart:8023:  final String? subtitle;
+lib\src\widgets\wenz_rich_text_editor.dart:8059:                        title,
+lib\src\widgets\wenz_rich_text_editor.dart:8066:                      if (subtitle?.isNotEmpty == true)
+lib\src\widgets\wenz_rich_text_editor.dart:8068:                          subtitle!,
+lib\src\widgets\wenz_rich_text_editor.dart:8376:    final subtitle = _fileSubtitle(block);
+lib\src\widgets\wenz_rich_text_editor.dart:8421:                          ? 'Untitled file'
+lib\src\widgets\wenz_rich_text_editor.dart:8430:                    if (subtitle.isNotEmpty) ...<Widget>[
+lib\src\widgets\wenz_rich_text_editor.dart:8433:                        subtitle,
+lib\src\widgets\wenz_rich_text_editor.dart:8780:    final titleStyle = bodyStyle.copyWith(fontWeight: FontWeight.w700);
+lib\src\widgets\wenz_rich_text_editor.dart:8824:                              style: titleStyle),
+lib\src\widgets\wenz_rich_text_editor.dart:9030:    BlockType.heading => baseStyle.merge(
+lib\src\widgets\wenz_rich_text_editor.dart:9031:        _headingTextStyle(theme, baseStyle, block.attributes.level),
+lib\src\widgets\wenz_rich_text_editor.dart:9052:TextStyle _headingTextStyle(
+lib\src\widgets\wenz_rich_text_editor.dart:9057:  final headingLevel = (level ?? 1).clamp(1, 6).toInt();
+lib\src\widgets\wenz_rich_text_editor.dart:9058:  final color = switch (headingLevel) {
+lib\src\widgets\wenz_rich_text_editor.dart:9063:  return (theme.textTheme.titleLarge ?? const TextStyle()).copyWith(
+lib\src\widgets\wenz_rich_text_editor.dart:9065:    fontSize: _headingSize(headingLevel),
+lib\src\widgets\wenz_rich_text_editor.dart:9066:    fontWeight: headingLevel >= 5 ? FontWeight.w600 : FontWeight.w700,
+lib\src\widgets\wenz_rich_text_editor.dart:9831:double _headingSize(int? level) {
+lib\src\widgets\wenz_rich_text_editor.dart:9914:  final title = video.title.trim();
+lib\src\widgets\wenz_rich_text_editor.dart:9915:  return title.isNotEmpty ? title : 'Video';
+lib\src\widgets\wenz_rich_text_editor.dart:9918:String? _videoCardSubtitle(VideoBlockNode video) {
+lib\src\widgets\wenz_rich_text_editor.dart:9924:  final title = video.title.trim();
+lib\src\widgets\wenz_rich_text_editor.dart:9925:  if (title.isNotEmpty) {
+lib\src\widgets\wenz_rich_text_editor.dart:9926:    return title;
+lib\src\widgets\wenz_rich_text_editor.dart:9978:    file.displayName.isEmpty ? 'untitled file' : file.displayName,
+lib\src\widgets\wenz_rich_text_editor.dart:9992:  final subtitle = _fileSubtitle(file);
+lib\src\widgets\wenz_rich_text_editor.dart:9993:  if (subtitle.isNotEmpty) {
+lib\src\widgets\wenz_rich_text_editor.dart:9994:    parts.add(subtitle);
+lib\src\widgets\wenz_rich_text_editor.dart:10003:String _fileSubtitle(FileBlockNode file) {
+test\widgets\editor_golden_test.dart:37:      WenzRichTextDesignBaseline.typographyTokens['headingFontSizes'],
+test\widgets\editor_golden_test.dart:40:    expect(WenzRichTextDesignBaseline.typographyTokens['headingStrongWeight'],
+test\widgets\editor_golden_test.dart:43:        WenzRichTextDesignBaseline.typographyTokens['headingWeakWeight'], 600);
+test\widgets\editor_golden_test.dart:56:      WenzRichTextDesignBaseline.layoutTokens['headingCollapse'],
+test\widgets\editor_golden_test.dart:70:      WenzRichTextDesignBaseline.layoutTokens['headingMarginEm'],
+test\widgets\editor_golden_test.dart:86:    expect(WenzRichTextDesignBaseline.stateTokens, contains('heading.collapse'));
+test\widgets\editor_golden_test.dart:168:            id: 'title',
+test\widgets\editor_golden_test.dart:169:            type: BlockType.heading,
+test\widgets\editor_golden_test.dart:216:    await tester.tap(_blockDragHandleFinder('menu-title'));
+test\widgets\editor_golden_test.dart:237:      tester.getCenter(_blockDragHandleFinder('menu-title')),
+test\widgets\editor_golden_test.dart:421:  testWidgets('golden: collapsed caret', (tester) async {
+test\widgets\editor_golden_test.dart:436:        selection: collapsedTextSelection('p1', 0, 8),
+test\widgets\editor_golden_test.dart:453:              id: 'advanced-title',
+test\widgets\editor_golden_test.dart:454:              type: BlockType.heading,
+test\widgets\editor_golden_test.dart:463:              title: 'Migration risk',
+test\widgets\editor_golden_test.dart:584:          id: 'menu-title',
+test\widgets\editor_golden_test.dart:585:          type: BlockType.heading,
+test\widgets\media_resolver_test.dart:72:              title: 'Null resolver clip',
+test\widgets\media_resolver_test.dart:213:    testWidgets('default video renderer shows title source cover and aspect',
+test\widgets\media_resolver_test.dart:223:              title: 'Launch demo',
+test\widgets\media_resolver_test.dart:310:                'title': 'Payload title',
+test\widgets\media_resolver_test.dart:340:      expect(find.text('title: Payload title'), findsOneWidget);
+test\widgets\media_resolver_test.dart:393:              title: 'Broken clip',
+test\input\editor_text_input_client_test.dart:25:        selection: collapsedTextSelection('p1', 0, 0),
+test\input\editor_text_input_client_test.dart:36:          selection: TextSelection.collapsed(offset: 2),
+test\input\editor_text_input_client_test.dart:54:          selection: TextSelection.collapsed(offset: 2),
+test\input\editor_text_input_client_test.dart:73:          selection: TextSelection.collapsed(offset: 2),
+test\input\editor_text_input_client_test.dart:83:          selection: TextSelection.collapsed(offset: 1),
+test\input\editor_text_input_client_test.dart:104:        selection: collapsedTextSelection('p1', 0, 3),
+test\input\editor_text_input_client_test.dart:114:          selection: TextSelection.collapsed(offset: 4),
+test\input\editor_text_input_client_test.dart:123:          selection: TextSelection.collapsed(offset: 5),
+test\input\editor_text_input_client_test.dart:132:          selection: TextSelection.collapsed(offset: 4),
+test\input\editor_text_input_client_test.dart:154:        selection: collapsedTextSelection('p1', 0, 3),
+test\input\editor_text_input_client_test.dart:164:          selection: TextSelection.collapsed(offset: 1),
+test\input\editor_text_input_client_test.dart:186:        selection: collapsedTextSelection('p1', 0, 3),
+test\input\editor_text_input_client_test.dart:196:          selection: TextSelection.collapsed(offset: 1),
+test\input\editor_text_input_client_test.dart:205:          selection: TextSelection.collapsed(offset: 2),
+test\input\editor_text_input_client_test.dart:214:          selection: TextSelection.collapsed(offset: 1),
+test\input\editor_text_input_client_test.dart:236:        selection: collapsedTextSelection('p1', 0, 3),
+test\input\editor_text_input_client_test.dart:244:          selection: TextSelection.collapsed(offset: 6),
+test\input\editor_text_input_client_test.dart:258:          selection: TextSelection.collapsed(offset: 4),
+test\input\editor_text_input_client_test.dart:276:          selection: TextSelection.collapsed(offset: 2),
+test\input\editor_text_input_client_test.dart:284:          selection: TextSelection.collapsed(offset: 1),
+test\input\editor_text_input_client_test.dart:298:      controller.setSelection(collapsedTextSelection('p1', 0, 2));
+test\input\editor_text_input_client_test.dart:318:      controller.setSelection(collapsedTextSelection('p1', 0, 5));
+test\input\editor_text_input_client_test.dart:325:          selection: TextSelection.collapsed(offset: 1),
+test\input\editor_text_input_client_test.dart:391:          selection: TextSelection.collapsed(offset: 1),
+test\input\editor_text_input_client_test.dart:422:          selection: TextSelection.collapsed(offset: 2),
+test\input\editor_text_input_client_test.dart:445:          selection: TextSelection.collapsed(offset: 1),
+test\input\editor_text_input_client_test.dart:460:          selection: TextSelection.collapsed(offset: 2),
+test\input\editor_text_input_client_test.dart:474:          selection: TextSelection.collapsed(offset: 1),
+test\input\editor_text_input_client_test.dart:493:          selection: TextSelection.collapsed(offset: 1),
+test\input\editor_text_input_client_test.dart:514:          selection: TextSelection.collapsed(offset: 2),
+test\input\editor_text_input_client_test.dart:536:          selection: TextSelection.collapsed(offset: 3),
+test\input\editor_text_input_client_test.dart:552:          selection: TextSelection.collapsed(offset: 1),
+test\input\editor_text_input_client_test.dart:561:          selection: TextSelection.collapsed(offset: 2),
+test\input\editor_text_input_client_test.dart:578:        selection: _collapsedTableCellSelection(2),
+test\input\editor_text_input_client_test.dart:590:        selection: _collapsedTableCellSelection(5),
+test\input\editor_text_input_client_test.dart:599:          selection: TextSelection.collapsed(offset: 6),
+test\input\editor_text_input_client_test.dart:608:          selection: TextSelection.collapsed(offset: 1),
+test\input\editor_text_input_client_test.dart:727:DocumentSelection _collapsedTableCellSelection(int offset) {
+test\widgets\block_geometry_registry_test.dart:519:      // length and return a valid (possibly collapsed) range, not throw.
+test\widgets\block_geometry_registry_test.dart:561:    test('an empty paragraph returns a collapsed range at 0', () {
+test\input\clipboard_service_test.dart:10:    test('returns null for a collapsed selection', () {
+test\input\clipboard_service_test.dart:12:      expect(service.copy(doc, collapsedTextSelection('p1', 0, 0)), isNull);
+test\input\clipboard_service_test.dart:31:            title: 'Info Title',
+test\input\clipboard_service_test.dart:126:            title: 'Launch clip',
+test\input\clipboard_service_test.dart:146:      expect(video.title, 'Launch clip');
+test\input\clipboard_service_test.dart:263:            title: 'Launch clip',
+test\input\clipboard_service_test.dart:341:            type: BlockType.heading,
+test\input\clipboard_service_test.dart:370:      expect((paste.blocks[0] as TextBlockNode).type, BlockType.heading);
+test\input\clipboard_service_test.dart:470:      expect((paste.blocks[0] as TextBlockNode).type, BlockType.heading);
+test\input\clipboard_service_test.dart:483:      expect((paste.blocks[0] as TextBlockNode).type, BlockType.heading);
+test\input\clipboard_service_test.dart:499:        selection: collapsedTextSelection('p1', 0, 1),
+test\input\clipboard_service_test.dart:511:        selection: collapsedTextSelection('p1', 0, 1),
+test\input\clipboard_service_test.dart:523:        selection: collapsedTextSelection('p1', 0, 0),
+test\input\clipboard_service_test.dart:536:        selection: collapsedTextSelection('p1', 0, 0),
+test\input\clipboard_service_test.dart:543:          BlockType.heading);
+test\input\clipboard_service_test.dart:553:        selection: collapsedTextSelection('p1', 0, 0),
+test\input\clipboard_service_test.dart:559:      final heading = controller.document.blocks[0] as TextBlockNode;
+test\input\clipboard_service_test.dart:560:      expect(heading.type, BlockType.heading);
+test\input\clipboard_service_test.dart:561:      expect(heading.attributes.level, 2);
+test\input\clipboard_service_test.dart:584:        selection: collapsedTextSelection('p1', 0, 1),
+test\input\clipboard_service_test.dart:621:        selection: collapsedTextSelection('p1', 0, 1),
+test\input\clipboard_service_test.dart:681:        selection: _collapsedTableCellSelection(2),
+test\input\clipboard_service_test.dart:696:        selection: _collapsedTableCellSelection(1),
+test\input\clipboard_service_test.dart:753:        selection: collapsedTextSelection('p1', 0, 1),
+test\input\clipboard_service_test.dart:869:        selection: collapsedTextSelection('t1', 0, 0),
+test\input\clipboard_service_test.dart:892:        selection: collapsedTextSelection('p1', 0, 1),
+test\input\clipboard_service_test.dart:919:            title: 'Launch clip',
+test\input\clipboard_service_test.dart:929:        selection: collapsedTextSelection('p1', 0, 1),
+test\input\clipboard_service_test.dart:941:      expect(pastedVideo.title, 'Launch clip');
+test\input\clipboard_service_test.dart:963:        selection: collapsedObjectSelection('target-img', 0),
+test\input\clipboard_service_test.dart:1152:DocumentSelection _collapsedTableCellSelection(int offset) {
+test\input\clipboard_service_test.dart:1167:DocumentSelection collapsedObjectSelection(String blockId, int blockIndex) {
+lib\src\widgets\slash_menu_overlay.dart:96:                    Text(item.title, style: theme.textTheme.bodyMedium),
+lib\src\widgets\slash_menu_overlay.dart:119:    'title' => Icons.title,
+test\widgets\import_export_demo_test.dart:26:    final heading = controller.document.blocks.first as TextBlockNode;
+test\widgets\import_export_demo_test.dart:28:    expect(heading.type, BlockType.heading);
+test\widgets\import_export_demo_test.dart:29:    expect(heading.plainText, 'Markdown import demo');
+test\plugins\editor_plugin_test.dart:20:      selection: collapsedTextSelection('p1', 0, 0),
+test\plugins\editor_plugin_test.dart:56:              title: 'Test Item',
+test\plugins\editor_plugin_test.dart:64:              title: 'Test Toolbar',
+lib\src\widgets\link_edit_dialog.dart:35:      title: const Text('Link URL'),
+lib\src\core\schema\document_schema.dart:89:    final title = block.title.trim();
+lib\src\core\schema\document_schema.dart:100:      title: title,
+lib\src\core\schema\document_schema.dart:125:        title == block.title &&
+lib\src\core\schema\document_schema.dart:155:    final title = block.title.trim();
+lib\src\core\schema\document_schema.dart:159:        title == block.title &&
+lib\src\core\schema\document_schema.dart:167:      title: title,
+lib\src\core\schema\document_schema.dart:236:      case BlockType.heading:
+lib\src\core\schema\document_schema.dart:306:    if (block.title.isNotEmpty) 'title': block.title,
+lib\src\widgets\selection_gesture_overlay.dart:18:/// - tap → place collapsed caret
+lib\src\widgets\block_renderer_registry.dart:193:/// Bundles everything a block renderer needs to paint a block. Passed to every
+lib\src\widgets\block_renderer_registry.dart:227:    this.headingCollapseState,
+lib\src\widgets\block_renderer_registry.dart:267:  /// Optional callback used by code block renderers to change the block's
+lib\src\widgets\block_renderer_registry.dart:271:  /// Optional callback used by code block renderers to copy the code text.
+lib\src\widgets\block_renderer_registry.dart:289:  /// Optional callback used by object-block renderers (image/video/file/embed
+lib\src\widgets\block_renderer_registry.dart:293:  /// Optional view-state for a top-level heading's collapse affordance. `null`
+lib\src\widgets\block_renderer_registry.dart:294:  /// means the host editor is not exposing heading collapse for this block.
+lib\src\widgets\block_renderer_registry.dart:295:  final HeadingCollapseState? headingCollapseState;
+lib\src\widgets\block_renderer_registry.dart:297:  /// Optional callback used by heading renderers to toggle collapse view-state.
+lib\src\widgets\block_renderer_registry.dart:300:  /// Find/replace matches currently visible for this block renderer. Built-in
+lib\src\widgets\block_renderer_registry.dart:308:  /// Whether the active (collapsed) selection sits inside [block], i.e. this
+lib\src\widgets\block_renderer_registry.dart:320:/// Presentation-only collapse state for a top-level heading block.
+lib\src\widgets\find_replace_panel.dart:67:      selection: TextSelection.collapsed(offset: value.length),
+lib\src\widgets\inline_embed_renderer.dart:9:/// use a block renderer when an embed needs a large interactive widget.
+lib\src\widgets\comment_sidebar.dart:115:            child: Text('Comments', style: theme.textTheme.titleSmall),
+test\helpers\selection_test_helpers.dart:3:/// Shared selection builders for tests, replacing the per-file `_collapsed` /
+test\helpers\selection_test_helpers.dart:8:DocumentSelection collapsedTextSelection(
+test\helpers\selection_test_helpers.dart:23:DocumentSelection collapsedCodeSelection(
+lib\src\core\commands\block_structure_commands.dart:385:/// Empty [title] or [icon] values clear the custom value, allowing the block to
+lib\src\core\commands\block_structure_commands.dart:386:/// fall back to the default title/icon for its current variant.
+lib\src\core\commands\block_structure_commands.dart:391:    this.title,
+lib\src\core\commands\block_structure_commands.dart:397:  final String? title;
+lib\src\core\commands\block_structure_commands.dart:417:    final nextTitle = title == null ? block.title : title!.trim();
+lib\src\core\commands\block_structure_commands.dart:420:        block.title == nextTitle &&
+lib\src\core\commands\block_structure_commands.dart:428:      title: nextTitle,
+lib\src\core\commands\block_commands.dart:657:      title: block.title,
+lib\src\core\commands\block_commands.dart:833:    this.title = '',
+lib\src\core\commands\block_commands.dart:847:  final String title;
+lib\src\core\commands\block_commands.dart:865:      title: title,
+lib\src\core\commands\block_commands.dart:1051:    this.title,
+lib\src\core\commands\block_commands.dart:1064:  final String? title;
+lib\src\core\commands\block_commands.dart:1086:      title: title,
+lib\src\core\commands\block_commands.dart:1171:      a.title == b.title &&
+lib\src\core\commands\block_commands.dart:1385:      title: block.title,
+lib\src\controller\document_stats_controller.dart:22:    this.headingCount = 0,
+lib\src\controller\document_stats_controller.dart:45:      headingCount: collector.headingCount,
+lib\src\controller\document_stats_controller.dart:61:  final int headingCount;
+lib\src\controller\document_stats_controller.dart:80:            other.headingCount == headingCount &&
+lib\src\controller\document_stats_controller.dart:95:      headingCount,
+lib\src\controller\document_stats_controller.dart:130:  int get headingCount => _stats.headingCount;
+lib\src\controller\document_stats_controller.dart:164:  int headingCount = 0;
+lib\src\controller\document_stats_controller.dart:171:      if (block.type == BlockType.heading) {
+lib\src\controller\document_stats_controller.dart:172:        headingCount++;
+lib\src\controller\document_stats_controller.dart:203:      addText(block.title.trim());
+lib\src\core\commands\command_executor.dart:86:    // The new command must start with a collapsed caret at the exact position
+lib\src\core\commands\command_executor.dart:87:    // the previous command ended. A non-collapsed selection (e.g. after a
+lib\src\core\commands\inline_commands.dart:245:/// selection is non-collapsed the range is deleted first. The caret moves past
+lib\src\core\model\block_node.dart:7:  heading('heading'),
+lib\src\core\model\block_node.dart:75:      case BlockType.heading:
+lib\src\core\model\block_node.dart:123:              type == BlockType.heading ||
+lib\src\core\model\block_node.dart:404:    this.title = '',
+lib\src\core\model\block_node.dart:416:  final String title;
+lib\src\core\model\block_node.dart:440:    final heading = title.trim();
+lib\src\core\model\block_node.dart:441:    if (heading.isNotEmpty) {
+lib\src\core\model\block_node.dart:442:      return heading;
+lib\src\core\model\block_node.dart:465:      title: title,
+lib\src\core\model\block_node.dart:480:    String? title,
+lib\src\core\model\block_node.dart:494:      title: title ?? this.title,
+lib\src\core\model\block_node.dart:512:        if (title.isNotEmpty) 'title': title,
+lib\src\core\model\block_node.dart:532:      title: _firstString(json, const <String>['title', 'caption']),
+lib\src\core\model\block_node.dart:573:    for (final key in const <String>['title', 'label', 'name', 'url']) {
+lib\src\core\model\block_node.dart:643:    this.title = '',
+lib\src\core\model\block_node.dart:662:  final String title;
+lib\src\core\model\block_node.dart:704:    final trimmed = title.trim();
+lib\src\core\model\block_node.dart:716:    final heading = title.trim();
+lib\src\core\model\block_node.dart:717:    if (heading.isEmpty) {
+lib\src\core\model\block_node.dart:721:      return heading;
+lib\src\core\model\block_node.dart:723:    return '$heading\n$body';
+lib\src\core\model\block_node.dart:732:      title: title,
+lib\src\core\model\block_node.dart:742:    String? title,
+lib\src\core\model\block_node.dart:750:      title: title ?? this.title,
+lib\src\core\model\block_node.dart:762:        if (title.trim().isNotEmpty) 'title': title.trim(),
+lib\src\core\model\block_node.dart:772:      title: (json['title'] as String? ?? '').trim(),
+test\collaboration\collaboration_adapter_test.dart:45:        selection: collapsedTextSelection('p1', 0, 5),
+test\collaboration\collaboration_adapter_test.dart:73:      host.setSelection(collapsedTextSelection('p1', 0, 0));
+test\collaboration\collaboration_adapter_test.dart:88:        selection: collapsedTextSelection('p1', 0, 5),
+test\collaboration\collaboration_adapter_test.dart:103:          selection: collapsedTextSelection('p1', 0, 6),
+test\collaboration\collaboration_adapter_test.dart:115:          selection: collapsedTextSelection('p1', 0, 3),
+lib\src\controller\outline_controller.dart:7:/// A heading entry derived from the current document.
+lib\src\controller\outline_controller.dart:10:/// heading blocks, carrying the heading's block id, index, level, visible title,
+lib\src\controller\outline_controller.dart:13:/// Heading collapse uses the same top-level heading source but remains view
+lib\src\controller\outline_controller.dart:15:/// blocks never own a collapse entry themselves.
+lib\src\controller\outline_controller.dart:21:    required this.title,
+lib\src\controller\outline_controller.dart:23:    this.collapseRange = OutlineCollapseRange.empty,
+lib\src\controller\outline_controller.dart:30:  final String title;
+lib\src\controller\outline_controller.dart:32:  final OutlineCollapseRange collapseRange;
+lib\src\controller\outline_controller.dart:35:  /// Whether this heading currently has child blocks that can be hidden.
+lib\src\controller\outline_controller.dart:36:  bool get canCollapse => collapseRange.isNotEmpty;
+lib\src\controller\outline_controller.dart:38:  /// Top-level block ids covered when this heading is collapsed.
+lib\src\controller\outline_controller.dart:39:  List<String> get coveredBlockIds => collapseRange.blockIds;
+lib\src\controller\outline_controller.dart:41:  /// Top-level block indexes covered when this heading is collapsed.
+lib\src\controller\outline_controller.dart:42:  List<int> get coveredBlockIndexes => collapseRange.blockIndexes;
+lib\src\controller\outline_controller.dart:45:  /// heading when the range is empty.
+lib\src\controller\outline_controller.dart:46:  int get collapseStartBlockIndex => collapseRange.startBlockIndex;
+lib\src\controller\outline_controller.dart:49:  int get collapseEndBlockIndexExclusive =>
+lib\src\controller\outline_controller.dart:50:      collapseRange.endBlockIndexExclusive;
+lib\src\controller\outline_controller.dart:64:        other.title == title &&
+lib\src\controller\outline_controller.dart:66:        other.collapseRange == collapseRange &&
+lib\src\controller\outline_controller.dart:75:        title,
+lib\src\controller\outline_controller.dart:77:        collapseRange,
+lib\src\controller\outline_controller.dart:82:/// The top-level block range hidden by a collapsed outline heading.
+lib\src\controller\outline_controller.dart:139:/// View-only projection of [RichTextDocument.blocks] after applying collapsed
+lib\src\controller\outline_controller.dart:183:      final start = item.collapseStartBlockIndex.clamp(0, blocks.length);
+lib\src\controller\outline_controller.dart:184:      final end = item.collapseEndBlockIndexExclusive.clamp(0, blocks.length);
+lib\src\controller\outline_controller.dart:258:/// Derives a document outline from heading blocks.
+lib\src\controller\outline_controller.dart:262:/// [selectByAnchor] moves the host selection to the heading start; a mounted
+lib\src\controller\outline_controller.dart:266:/// Heading collapse interaction contract:
+lib\src\controller\outline_controller.dart:267:/// * A collapse handle is eligible only for a non-empty top-level
+lib\src\controller\outline_controller.dart:268:///   [TextBlockNode] whose [TextBlockNode.type] is [BlockType.heading].
+lib\src\controller\outline_controller.dart:269:/// * The covered range starts after that heading and stops before the next
+lib\src\controller\outline_controller.dart:270:///   heading whose normalized level is less than or equal to the current level;
+lib\src\controller\outline_controller.dart:271:///   lower-level headings and ordinary blocks stay inside the range.
+lib\src\controller\outline_controller.dart:272:/// * Empty headings or headings without covered child blocks should be treated
+lib\src\controller\outline_controller.dart:274:/// * Toggling collapse is editor view state. It must not mutate document
+lib\src\controller\outline_controller.dart:278:/// Fold state is keyed by heading block id and remains independent from the
+lib\src\controller\outline_controller.dart:295:  Set<String> _collapsedBlockIds = const <String>{};
+lib\src\controller\outline_controller.dart:296:  Set<String> get collapsedBlockIds =>
+lib\src\controller\outline_controller.dart:297:      Set<String>.unmodifiable(_collapsedBlockIds);
+lib\src\controller\outline_controller.dart:353:        _collapsedBlockIds.contains(blockId);
+lib\src\controller\outline_controller.dart:363:  OutlineCollapseRange? collapseRangeForBlockId(String blockId) {
+lib\src\controller\outline_controller.dart:364:    return itemForBlockId(blockId)?.collapseRange;
+lib\src\controller\outline_controller.dart:367:  bool collapse(OutlineItem item) => collapseByBlockId(item.blockId);
+lib\src\controller\outline_controller.dart:369:  bool collapseByBlockId(String blockId) {
+lib\src\controller\outline_controller.dart:370:    return _setCollapsed(blockId: blockId, collapsed: true);
+lib\src\controller\outline_controller.dart:373:  bool collapseByAnchor(String anchor) {
+lib\src\controller\outline_controller.dart:375:    return item != null && collapse(item);
+lib\src\controller\outline_controller.dart:381:    return _setCollapsed(blockId: blockId, collapsed: false);
+lib\src\controller\outline_controller.dart:398:      collapsed: !_collapsedBlockIds.contains(blockId),
+lib\src\controller\outline_controller.dart:408:    if (_collapsedBlockIds.isEmpty) {
+lib\src\controller\outline_controller.dart:411:    _collapsedBlockIds = const <String>{};
+lib\src\controller\outline_controller.dart:434:    if (block is! TextBlockNode || block.type != BlockType.heading) {
+lib\src\controller\outline_controller.dart:476:      if (block is! TextBlockNode || block.type != BlockType.heading) {
+lib\src\controller\outline_controller.dart:479:      final title = _normalizeTitle(block.plainText);
+lib\src\controller\outline_controller.dart:480:      if (title.isEmpty) {
+lib\src\controller\outline_controller.dart:485:      final collapseRange = _collapseRangeForHeading(
+lib\src\controller\outline_controller.dart:487:        headingIndex: i,
+lib\src\controller\outline_controller.dart:488:        headingLevel: level,
+lib\src\controller\outline_controller.dart:490:      if (collapseRange.isNotEmpty) {
+lib\src\controller\outline_controller.dart:498:          title: title,
+lib\src\controller\outline_controller.dart:500:          collapseRange: collapseRange,
+lib\src\controller\outline_controller.dart:506:      _collapsedBlockIds.where(collapsibleIds.contains),
+lib\src\controller\outline_controller.dart:517:    final collapseStateChanged =
+lib\src\controller\outline_controller.dart:518:        !setEquals(_collapsedBlockIds, nextCollapsedBlockIds);
+lib\src\controller\outline_controller.dart:519:    if (!itemsChanged && !collapseStateChanged) {
+lib\src\controller\outline_controller.dart:523:    _collapsedBlockIds = nextCollapsedBlockIds;
+lib\src\controller\outline_controller.dart:529:    required bool collapsed,
+lib\src\controller\outline_controller.dart:535:    final next = Set<String>.of(_collapsedBlockIds);
+lib\src\controller\outline_controller.dart:536:    final changed = collapsed ? next.add(blockId) : next.remove(blockId);
+lib\src\controller\outline_controller.dart:540:    _collapsedBlockIds = Set<String>.unmodifiable(next);
+lib\src\controller\outline_controller.dart:551:    required this.title,
+lib\src\controller\outline_controller.dart:553:    required this.collapseRange,
+lib\src\controller\outline_controller.dart:559:  final String title;
+lib\src\controller\outline_controller.dart:561:  final OutlineCollapseRange collapseRange;
+lib\src\controller\outline_controller.dart:568:      title: title,
+lib\src\controller\outline_controller.dart:570:      collapseRange: collapseRange,
+lib\src\controller\outline_controller.dart:576:OutlineCollapseRange _collapseRangeForHeading({
+lib\src\controller\outline_controller.dart:578:  required int headingIndex,
+lib\src\controller\outline_controller.dart:579:  required int headingLevel,
+lib\src\controller\outline_controller.dart:581:  final start = headingIndex + 1;
+lib\src\controller\outline_controller.dart:585:    if (block is TextBlockNode && block.type == BlockType.heading) {
+lib\src\controller\outline_controller.dart:587:      if (level <= headingLevel) {
+lib\src\controller\outline_controller.dart:602:String _normalizeTitle(String title) {
+lib\src\controller\outline_controller.dart:603:  return title.replaceAll(RegExp(r'\s+'), ' ').trim();
+lib\src\input\clipboard_service.dart:95:  /// Returns `null` when the selection is collapsed or points at nothing
+test\codecs\html_codec_test.dart:10:    test('heading levels', () {
+test\codecs\html_codec_test.dart:15:            type: BlockType.heading,
+test\codecs\html_codec_test.dart:21:            type: BlockType.heading,
+test\codecs\html_codec_test.dart:141:        'width="32" height="24" title="Inline caption" '
+test\codecs\html_codec_test.dart:159:    test('callout with variant title and icon', () {
+test\codecs\html_codec_test.dart:165:            title: 'Heads up',
+test\codecs\html_codec_test.dart:175:        '<div data-callout-title>Heads up</div>'
+test\codecs\html_codec_test.dart:297:            title: 'Launch clip',
+test\codecs\html_codec_test.dart:308:        '<video src="https://cdn.example.com/video.mp4" data-wenz-block="video" data-asset-id="video-asset" data-playback-url="https://cdn.example.com/video.mp4" data-file="video.mp4" poster="https://cdn.example.com/cover.jpg" title="Launch clip" data-title="Launch clip" data-description="Product launch overview" data-aspect-ratio="1.7777777777777777" data-upload-status="failed" data-upload-error="network timeout"></video>',
+test\codecs\html_codec_test.dart:390:    test('heading levels parsed with correct level', () {
+test\codecs\html_codec_test.dart:393:      expect(doc.blocks[0].type, BlockType.heading);
+test\codecs\html_codec_test.dart:471:    test('callout restores variant title icon and body', () {
+test\codecs\html_codec_test.dart:475:        '<div data-callout-title>Stop</div>'
+test\codecs\html_codec_test.dart:483:      expect(callout.title, 'Stop');
+test\codecs\html_codec_test.dart:576:        'title="Launch clip" '
+test\codecs\html_codec_test.dart:589:      expect(video.title, 'Launch clip');
+test\codecs\html_codec_test.dart:605:          doc.blocks.first.type, anyOf(BlockType.paragraph, BlockType.heading));
+test\codecs\html_codec_test.dart:622:    test('heading + paragraph + code survive export → import', () {
+test\codecs\html_codec_test.dart:627:            type: BlockType.heading,
+test\codecs\html_codec_test.dart:642:      expect(reimported.blocks[0].type, BlockType.heading);
+test\codecs\html_codec_test.dart:667:            title: 'Launch clip',
+test\codecs\html_codec_test.dart:691:      expect(video.title, 'Launch clip');
+test\codecs\html_codec_test.dart:703:            data: <String, Object?>{'recordId': '42', 'title': 'Acme'},
+test\codecs\html_codec_test.dart:715:      expect(embed.data, containsPair('title', 'Acme'));
+test\codecs\html_codec_test.dart:727:              type: BlockType.heading,
+test\codecs\html_codec_test.dart:743:      expect(result.document!.blocks[0].type, BlockType.heading);
+test\codecs\html_codec_test.dart:756:      expect(paste.blocks[0].type, BlockType.heading);
+test\codecs\rich_text_json_codec_test.dart:10:          id: 'heading',
+test\codecs\rich_text_json_codec_test.dart:11:          type: BlockType.heading,
+test\codecs\rich_text_json_codec_test.dart:45:          title: 'Launch clip',
+test\codecs\rich_text_json_codec_test.dart:105:    expect(video.title, 'Launch clip');
+lib\src\controller\slash_menu_controller.dart:15:    required this.title,
+lib\src\controller\slash_menu_controller.dart:23:  final String title;
+lib\src\controller\slash_menu_controller.dart:35:        title.toLowerCase().contains(normalized) ||
+lib\src\controller\slash_menu_controller.dart:265:      id: 'heading',
+lib\src\controller\slash_menu_controller.dart:266:      title: 'Heading',
+lib\src\controller\slash_menu_controller.dart:267:      description: 'Large section title',
+lib\src\controller\slash_menu_controller.dart:268:      icon: 'title',
+lib\src\controller\slash_menu_controller.dart:269:      keywords: const <String>['h1', 'title'],
+lib\src\controller\slash_menu_controller.dart:271:        editor.setBlockType(type: BlockType.heading, level: 1);
+lib\src\controller\slash_menu_controller.dart:276:      title: 'Bulleted list',
+lib\src\controller\slash_menu_controller.dart:286:      title: 'Todo',
+lib\src\controller\slash_menu_controller.dart:296:      title: 'Quote',
+lib\src\controller\slash_menu_controller.dart:306:      title: 'Code block',
+lib\src\controller\slash_menu_controller.dart:332:      title: 'Table',
+lib\src\controller\slash_menu_controller.dart:365:      title: 'Image',
+lib\src\controller\slash_menu_controller.dart:392:      title: 'Video',
+lib\src\controller\slash_menu_controller.dart:403:            title: 'Video placeholder',
+test\core\command_merging_test.dart:19:        selection: collapsedTextSelection('p1', 0, 0),
+test\core\command_merging_test.dart:46:        selection: collapsedTextSelection('p1', 0, 0),
+test\core\command_merging_test.dart:77:        selection: collapsedTextSelection('p1', 0, 0),
+test\core\command_merging_test.dart:109:        selection: collapsedTextSelection('p1', 0, 0),
+test\core\command_merging_test.dart:116:      session.selection = collapsedTextSelection('p1', 0, 4);
+test\core\command_merging_test.dart:139:        selection: collapsedTextSelection('p1', 0, 3),
+test\core\command_merging_test.dart:164:        selection: collapsedTextSelection('p1', 0, 1),
+test\core\command_merging_test.dart:169:      session.selection = collapsedTextSelection('p1', 0, 0);
+test\core\command_merging_test.dart:192:        selection: collapsedTextSelection('p1', 0, 1),
+test\core\command_merging_test.dart:273:        selection: collapsedTextSelection('p1', 0, 0),
+test\codecs\legacy_wen_json_codec_test.dart:10:  test('decodes text, heading, quote, and list item from legacy json', () {
+test\codecs\legacy_wen_json_codec_test.dart:15:    expect(document.blocks[0].type, BlockType.heading);
+test\codecs\legacy_wen_json_codec_test.dart:81:    expect(video.title, 'Launch clip');
+lib\src\controller\wenz_rich_text_controller.dart:896:    String? title,
+lib\src\controller\wenz_rich_text_controller.dart:903:        title: title,
+lib\src\controller\wenz_rich_text_controller.dart:926:    String title = '',
+lib\src\controller\wenz_rich_text_controller.dart:938:          title: title,
+lib\src\controller\wenz_rich_text_controller.dart:953:    String title = '',
+lib\src\controller\wenz_rich_text_controller.dart:968:        title: title,
+lib\src\controller\wenz_rich_text_controller.dart:1245:    String? title,
+lib\src\controller\wenz_rich_text_controller.dart:1259:        title: title,
+test\codecs\plain_text_codec_test.dart:123:    test('video sentinel prefers title then playable source', () {
+test\codecs\plain_text_codec_test.dart:134:                title: 'Launch clip',
+test\benchmarks\editor_benchmarks.dart:157:          title: 'Review note $i',
+lib\src\input\editor_text_input_client.dart:208:        selection: TextSelection.collapsed(offset: offset),
+lib\src\input\editor_text_input_client.dart:489:    // Only TextRange.empty (start == -1) means "no composition". A collapsed
+lib\src\controller\toolbar_controller.dart:28:    required this.title,
+lib\src\controller\toolbar_controller.dart:40:  final String title;
+lib\src\controller\toolbar_controller.dart:129:  /// Whether any selection is active (collapsed caret counts).
+lib\src\controller\toolbar_controller.dart:133:  /// the selection to sit inside a [TextBlockNode] text path. A collapsed
+lib\src\controller\toolbar_controller.dart:149:  /// (paragraph/heading/quote/listItem) are switchable.
+lib\src\controller\toolbar_controller.dart:177:  /// selection has no link or mixes different URLs. For a collapsed caret,
+lib\src\controller\toolbar_controller.dart:190:  /// The heading level shared by every block when they are all headings, else
+lib\src\controller\toolbar_controller.dart:215:  /// Whether the selection is entirely a heading at [level].
+lib\src\controller\toolbar_controller.dart:217:      uniformBlockType == BlockType.heading && uniformHeadingLevel == level;
+lib\src\controller\toolbar_controller.dart:483:  void setHeading(int level) => _setBlockType(BlockType.heading, level: level);
+lib\src\controller\toolbar_controller.dart:547:    String title = '',
+lib\src\controller\toolbar_controller.dart:564:      title: title,
+lib\src\controller\toolbar_controller.dart:677:      // FormatTextCommand applies to any TextBlockNode text range (collapsed
+lib\src\controller\toolbar_controller.dart:949:    var headingLevelMixed = false;
+lib\src\controller\toolbar_controller.dart:976:            block.type == BlockType.heading ? block.attributes.level : null;
+lib\src\controller\toolbar_controller.dart:986:        if (block.type == BlockType.heading) {
+lib\src\controller\toolbar_controller.dart:988:            headingLevelMixed = true;
+lib\src\controller\toolbar_controller.dart:991:          headingLevelMixed = true;
+lib\src\controller\toolbar_controller.dart:999:      uniformHeadingLevel: headingLevelMixed ? null : uniformHeadingLevel,
+test\codecs\markdown_codec_test.dart:10:    test('heading levels', () {
+test\codecs\markdown_codec_test.dart:15:            type: BlockType.heading,
+test\codecs\markdown_codec_test.dart:21:            type: BlockType.heading,
+test\codecs\markdown_codec_test.dart:23:            content: <InlineNode>[TextRun(text: 'Subtitle')],
+test\codecs\markdown_codec_test.dart:27:      expect(codec.encode(document), '# Title\n\n### Subtitle');
+test\codecs\markdown_codec_test.dart:148:            title: 'Heads up',
+test\codecs\markdown_codec_test.dart:287:    test('image uses altText and caption title when present', () {
+test\codecs\markdown_codec_test.dart:326:    test('heading levels parsed with correct level', () {
+test\codecs\markdown_codec_test.dart:327:      const source = '# Title\n\n### Subtitle';
+test\codecs\markdown_codec_test.dart:382:      const source = '```dart\n# not a heading\nvar x = 1;\n```';
+test\codecs\markdown_codec_test.dart:387:      // The `#` inside the fence is NOT parsed as a heading.
+test\codecs\markdown_codec_test.dart:388:      expect(code.code, '# not a heading\nvar x = 1;');
+test\codecs\markdown_codec_test.dart:429:    test('standalone image title becomes caption', () {
+test\codecs\markdown_codec_test.dart:456:          'title=Launch clip; '
+test\codecs\markdown_codec_test.dart:468:      expect(video.title, 'Launch clip');
+test\codecs\markdown_codec_test.dart:536:            title: 'Launch clip',
+test\codecs\markdown_codec_test.dart:555:        'title=Launch clip; '
+test\codecs\markdown_codec_test.dart:572:      expect(video.title, 'Launch clip');
+test\codecs\markdown_codec_test.dart:586:              type: BlockType.heading,
+test\codecs\markdown_codec_test.dart:598:      expect(controller.document.blocks[0].type, BlockType.heading);
+test\core\text_commands_test.dart:18:      selection: collapsedTextSelection('p1', 0, 5),
+test\core\text_commands_test.dart:29:  test('insert text replaces non collapsed selection', () {
+test\core\text_commands_test.dart:373:  test('delete backward removes character before collapsed selection', () {
+test\core\text_commands_test.dart:384:      selection: collapsedTextSelection('p1', 0, 5),
+test\core\text_commands_test.dart:410:      selection: collapsedTextSelection('p2', 1, 0),
+test\core\text_commands_test.dart:439:      selection: collapsedTextSelection('p2', 2, 0),
+test\core\text_commands_test.dart:486:      selection: collapsedTextSelection('p1', 1, 0),
+test\core\text_commands_test.dart:534:      selection: collapsedTextSelection('p1', 1, 0),
+test\core\text_commands_test.dart:561:      selection: collapsedTextSelection('p1', 1, 0),
+test\core\text_commands_test.dart:584:      selection: collapsedCodeSelection('c1', 0, 10),
+test\core\text_commands_test.dart:613:      selection: collapsedTextSelection('p1', 0, 6),
+test\core\text_commands_test.dart:660:      selection: collapsedTextSelection('p1', 0, 6),
+test\core\text_commands_test.dart:680:      selection: _collapsedTableCellSelection(5),
+test\core\text_commands_test.dart:988:DocumentSelection _collapsedTableCellSelection(int offset) {
+test\controller\autosave_controller_test.dart:11:        selection: collapsedTextSelection('p1', 0, 0),
+test\controller\autosave_controller_test.dart:20:      host.setSelection(collapsedTextSelection('p1', 0, 1));
+test\controller\autosave_controller_test.dart:40:        selection: collapsedTextSelection('p1', 0, 0),
+test\controller\autosave_controller_test.dart:68:        selection: collapsedTextSelection('p1', 0, 0),
+test\controller\autosave_controller_test.dart:92:        selection: collapsedTextSelection('p1', 0, 0),
+test\controller\callout_controller_test.dart:13:              title: 'Before',
+test\controller\callout_controller_test.dart:24:        title: 'Watch out',
+test\controller\callout_controller_test.dart:31:      expect(callout.title, 'Watch out');
+test\controller\callout_controller_test.dart:37:      expect(callout.title, 'Before');
+test\controller\callout_controller_test.dart:43:      expect(callout.title, 'Watch out');
+test\controller\callout_controller_test.dart:49:    test('clears custom title and icon to restore defaults', () {
+test\controller\callout_controller_test.dart:56:              title: 'Done',
+test\controller\callout_controller_test.dart:64:      controller.updateCalloutBlock(blockIndex: 0, title: '', icon: '');
+test\controller\callout_controller_test.dart:67:      expect(callout.title, isEmpty);
+test\controller\controller_callbacks_test.dart:13:        selection: collapsedTextSelection('p1', 0, 0),
+test\controller\controller_callbacks_test.dart:50:        selection: collapsedTextSelection('p1', 0, 0),
+test\controller\controller_callbacks_test.dart:73:        selection: collapsedTextSelection('p1', 0, 0),
+test\controller\controller_callbacks_test.dart:95:        selection: collapsedTextSelection('p1', 0, 0),
+test\controller\controller_callbacks_test.dart:108:      controller.setSelection(collapsedTextSelection('p1', 0, 0));
+test\controller\controller_callbacks_test.dart:112:      controller.setSelection(collapsedTextSelection('p1', 0, 2));
+test\controller\controller_callbacks_test.dart:154:        selection: collapsedTextSelection('p1', 0, 0),
+test\controller\controller_callbacks_test.dart:181:        selection: collapsedTextSelection('p1', 0, 0),
+test\controller\controller_callbacks_test.dart:208:        selection: collapsedTextSelection('p1', 0, 0),
+test\controller\controller_callbacks_test.dart:236:        selection: collapsedTextSelection('p1', 0, 0),
+test\controller\controller_try_load_test.dart:93:        selection: collapsedTextSelection('p1', 0, 0),
+test\controller\controller_try_load_test.dart:116:        selection: collapsedTextSelection('p1', 0, 0),
+test\core\block_structure_commands_test.dart:25:        selection: collapsedTextSelection('p1', 0, 0),
+test\core\block_structure_commands_test.dart:34:      // block 2 untouched (not in the collapsed selection); normaliser clamps
+test\core\block_structure_commands_test.dart:53:        selection: collapsedTextSelection('p1', 0, 0),
+test\core\block_structure_commands_test.dart:78:        selection: collapsedTextSelection('p1', 0, 0),
+test\core\block_structure_commands_test.dart:102:        selection: collapsedTextSelection('t1', 0, 0),
+test\core\block_structure_commands_test.dart:137:        selection: collapsedTextSelection('p1', 0, 0),
+test\core\block_structure_commands_test.dart:151:      expect(session.selection, collapsedTextSelection('p1', 2, 3));
+test\core\block_structure_commands_test.dart:160:      expect(session.selection, collapsedTextSelection('p1', 0, 0));
+test\core\block_structure_commands_test.dart:168:      expect(session.selection, collapsedTextSelection('p1', 2, 3));
+test\core\block_structure_commands_test.dart:263:              id: 'heading',
+test\core\block_structure_commands_test.dart:264:              type: BlockType.heading,
+test\core\block_structure_commands_test.dart:282:              title: 'Watch',
+test\core\block_structure_commands_test.dart:317:        'heading',
+test\core\block_structure_commands_test.dart:328:      expect(callout.title, 'Watch');
+test\core\block_structure_commands_test.dart:380:        selection: collapsedCodeSelection('c1', 0, 0),
+test\core\block_structure_commands_test.dart:399:        selection: collapsedCodeSelection('c1', 0, 0),
+test\core\block_structure_commands_test.dart:422:        selection: collapsedTextSelection('p1', 0, 0),
+test\core\block_structure_commands_test.dart:438:        selection: collapsedCodeSelection('c1', 0, 4),
+test\core\block_structure_commands_test.dart:488:        selection: collapsedTextSelection('p1', 0, 1),
+test\core\block_structure_commands_test.dart:511:        selection: collapsedTextSelection('p1', 0, 0),
+test\core\block_structure_commands_test.dart:534:        title: 'Heads up',
+test\core\block_structure_commands_test.dart:544:      expect(callout.title, 'Heads up');
+test\core\block_structure_commands_test.dart:549:    test('updates callout variant title and icon through command', () {
+test\core\block_structure_commands_test.dart:556:              title: 'Before',
+test\core\block_structure_commands_test.dart:562:        selection: collapsedTextSelection('co1', 0, 0),
+test\core\block_structure_commands_test.dart:569:          title: ' Stop ',
+test\core\block_structure_commands_test.dart:577:      expect(callout.title, 'Stop');
+test\core\block_structure_commands_test.dart:586:      expect(callout.title, 'Before');
+test\core\block_structure_commands_test.dart:592:      expect(callout.title, 'Stop');
+test\core\block_structure_commands_test.dart:607:        selection: collapsedTextSelection('p1', 0, 0),
+test\core\block_structure_commands_test.dart:612:        const UpdateCalloutBlockCommand(title: 'ignored'),
+lib\src\core\commands\selection_commands.dart:341:        expandSelection ? selection.base : _collapseTo(selection, direction);
+lib\src\core\commands\selection_commands.dart:402:        expandSelection ? selection.base : _collapseTo(selection, direction);
+lib\src\core\commands\selection_commands.dart:469:        expandSelection ? selection.base : _collapseTo(selection, direction);
+lib\src\core\commands\selection_commands.dart:510:DocumentPosition _collapseTo(
+lib\src\core\commands\selection_commands.dart:1078:/// Appends an empty paragraph after [afterBlockIndex] and returns a collapsed
+test\controller\document_stats_controller_test.dart:16:      expect(stats.headingCount, 0);
+test\controller\document_stats_controller_test.dart:37:        selection: collapsedTextSelection('p1', 0, 2),
+test\controller\document_stats_controller_test.dart:46:      host.setSelection(collapsedTextSelection('p1', 0, 1));
+test\controller\document_stats_controller_test.dart:94:        title: 'Note',
+lib\src\core\commands\style_commands.dart:210:      level: type == BlockType.heading ? level ?? current.level ?? 1 : null,
+lib\src\core\commands\style_commands.dart:267:      type == BlockType.heading ||
+lib\src\core\commands\markdown_shortcut_commands.dart:14:/// marker and converts the block to a level-1 heading.
+lib\src\core\commands\markdown_shortcut_commands.dart:45:      _ShortcutKind.heading => _replaceTextBlock(
+lib\src\core\commands\markdown_shortcut_commands.dart:49:          BlockType.heading,
+lib\src\core\commands\markdown_shortcut_commands.dart:50:          _headingAttributes(block.attributes, shortcut.level),
+lib\src\core\commands\markdown_shortcut_commands.dart:103:    final heading = RegExp(r'^(#{1,6}) $').firstMatch(prefix);
+lib\src\core\commands\markdown_shortcut_commands.dart:104:    if (heading != null) {
+lib\src\core\commands\markdown_shortcut_commands.dart:105:      return _Shortcut.heading(heading.group(1)!.length);
+lib\src\core\commands\markdown_shortcut_commands.dart:212:BlockAttributes _headingAttributes(BlockAttributes current, int level) {
+lib\src\core\commands\markdown_shortcut_commands.dart:281:  heading,
+lib\src\core\commands\markdown_shortcut_commands.dart:293:  const _Shortcut.heading(int level)
+lib\src\core\commands\markdown_shortcut_commands.dart:294:      : this(_ShortcutKind.heading, level: level);
+test\core\block_commands_test.dart:54:      selection: collapsedTextSelection('p1', 0, 0),
+test\core\block_commands_test.dart:86:      selection: collapsedTextSelection('p1', 0, 4),
+test\core\block_commands_test.dart:115:      selection: collapsedTextSelection('p1', 0, 5),
+test\core\block_commands_test.dart:150:      selection: collapsedTextSelection('p1', 0, 5),
+test\core\block_commands_test.dart:211:            type: BlockType.heading,
+test\core\block_commands_test.dart:224:    var heading = session.document.blocks.single as TextBlockNode;
+test\core\block_commands_test.dart:225:    expect(heading.attributes.anchor, 'intro');
+test\core\block_commands_test.dart:229:    heading = session.document.blocks.single as TextBlockNode;
+test\core\block_commands_test.dart:230:    expect(heading.attributes.anchor, isNull);
+test\core\block_commands_test.dart:239:            type: BlockType.heading,
+test\core\block_commands_test.dart:250:    final heading = session.document.blocks.single as TextBlockNode;
+test\core\block_commands_test.dart:251:    expect(heading.attributes.anchor, isNull);
+test\core\block_commands_test.dart:265:      selection: collapsedTextSelection('p1', 0, 5),
+test\core\block_commands_test.dart:289:      selection: collapsedTextSelection('li1', 0, 5),
+test\core\block_commands_test.dart:319:      selection: collapsedTextSelection('task1', 0, 4),
+test\core\block_commands_test.dart:350:      selection: collapsedTextSelection('li1', 0, 0),
+test\core\block_commands_test.dart:374:      selection: collapsedCodeSelection('c1', 0, 1),
+test\core\block_commands_test.dart:387:      selection: _collapsedTableCellSelection(5),
+test\core\block_commands_test.dart:427:DocumentSelection _collapsedTableCellSelection(int offset) {
+test\core\controller_test.dart:18:      selection: collapsedTextSelection('p1', 0, 2),
+test\core\controller_test.dart:42:      selection: collapsedTextSelection('p1', 0, 2),
+test\core\controller_test.dart:76:      selection: collapsedTextSelection('p1', 0, 0),
+test\core\controller_test.dart:98:    expect(controller.selection, collapsedTextSelection('p1', 2, 3));
+test\core\controller_test.dart:250:        selection: collapsedTextSelection('p2', 1, 3),
+test\core\controller_test.dart:260:        selection: collapsedTextSelection('p2', 1, 1),
+test\core\controller_test.dart:271:        selection: collapsedTextSelection('p1', 0, 3),
+test\core\controller_test.dart:285:        selection: collapsedTextSelection('p1', 0, 0),
+test\core\controller_test.dart:287:      controller.setSelection(collapsedTextSelection('p3', 2, 5));
+test\core\controller_test.dart:295:        selection: collapsedTextSelection('p2', 1, 3),
+test\core\command_pipeline_test.dart:19:        selection: collapsedTextSelection('p1', 0, 0),
+test\core\command_pipeline_test.dart:44:        selection: collapsedTextSelection('p1', 0, 0),
+test\core\command_pipeline_test.dart:77:        selection: collapsedTextSelection('p1', 0, 0),
+test\core\command_pipeline_test.dart:100:        selection: collapsedTextSelection('p1', 0, 4),
+test\core\command_pipeline_test.dart:132:        selection: collapsedTextSelection('p1', 0, 0),
+test\core\command_pipeline_test.dart:170:        selection: collapsedTextSelection('p1', 0, 2),
+test\core\command_pipeline_test.dart:208:        selection: collapsedTextSelection('p1', 0, 2),
+test\core\command_pipeline_test.dart:252:        selection: collapsedTextSelection('p1', 0, 2),
+lib\src\core\commands\text_commands.dart:336:    nextSelection = _collapsedAfterLeading(start, leading!, before.length);
+lib\src\core\commands\text_commands.dart:340:      nextSelection = _collapsedAfterLeading(start, leading, before.length);
+lib\src\core\commands\text_commands.dart:344:      nextSelection ??= _collapsedAtTrailingStart(
+lib\src\core\commands\text_commands.dart:372:  nextSelection ??= _collapsedNearDeletion(blocks, before.length);
+lib\src\core\commands\text_commands.dart:392:DocumentSelection? _collapsedNearDeletion(
+lib\src\core\commands\text_commands.dart:530:DocumentSelection? _collapsedAfterLeading(
+lib\src\core\commands\text_commands.dart:567:DocumentSelection? _collapsedAtTrailingStart(
+test\core\markdown_shortcut_commands_test.dart:8:    test('typing "# " converts an empty paragraph to a heading', () {
+test\core\markdown_shortcut_commands_test.dart:15:      expect(block.type, BlockType.heading);
+test\core\markdown_shortcut_commands_test.dart:26:    test('typing "### " creates a level-3 heading', () {
+test\core\markdown_shortcut_commands_test.dart:35:      expect(block.type, BlockType.heading);
+test\core\markdown_shortcut_commands_test.dart:172:    selection: collapsedTextSelection('p1', 0, 0),
+test\core\revision_model_test.dart:61:      selection: collapsedTextSelection('p1', 0, 5),
+test\core\revision_model_test.dart:154:      selection: collapsedTextSelection('p1', 0, 5),
+test\core\selection_commands_test.dart:20:      selection: collapsedTextSelection('p1', 0, 2),
+test\core\selection_commands_test.dart:41:  test('move caret collapses expanded selection without recording history', () {
+test\core\selection_commands_test.dart:89:      selection: collapsedTextSelection('p1', 0, 3),
+test\core\selection_commands_test.dart:142:        selection: collapsedTextSelection('p1', 0, 0),
+test\core\selection_commands_test.dart:171:        selection: collapsedTextSelection('p1', 0, 7),
+test\core\selection_commands_test.dart:197:        selection: collapsedTextSelection('p1', 0, 0),
+test\core\selection_commands_test.dart:231:        selection: collapsedTextSelection('p2', 1, 1),
+test\core\selection_commands_test.dart:263:        selection: collapsedTextSelection('p1', 0, 1),
+test\core\selection_commands_test.dart:368:      selection: collapsedTextSelection('p1', 0, 6),
+test\core\selection_commands_test.dart:395:      selection: collapsedTextSelection('p1', 1, 0),
+test\core\selection_commands_test.dart:643:      selection: collapsedTextSelection('p1', 0, 3),
+test\core\selection_commands_test.dart:682:      selection: collapsedTextSelection('p1', 0, 2),
+test\core\selection_commands_test.dart:705:      selection: collapsedTextSelection('p1', 0, 2),
+test\core\selection_commands_test.dart:852:        selection: collapsedTextSelection('p1', 0, 2),
+test\core\selection_commands_test.dart:903:      selection: collapsedTextSelection('p1', 0, 1),
+test\core\inline_commands_test.dart:51:      selection: collapsedTextSelection('p1', 0, 45),
+test\core\inline_commands_test.dart:83:      selection: collapsedTextSelection('p1', 0, 6),
+test\core\inline_commands_test.dart:177:    controller.setSelection(collapsedTextSelection('p1', 0, 5));
+test\core\style_commands_test.dart:108:  test('set block type converts selected text blocks to heading', () {
+test\core\style_commands_test.dart:119:      selection: collapsedTextSelection('p1', 0, 0),
+test\core\style_commands_test.dart:124:      const SetBlockTypeCommand(type: BlockType.heading, level: 2),
+test\core\style_commands_test.dart:128:    expect(block.type, BlockType.heading);
+test\core\style_commands_test.dart:143:      selection: collapsedTextSelection('p1', 0, 0),
+test\core\style_commands_test.dart:174:      selection: collapsedTextSelection('p1', 0, 0),
+test\core\style_commands_test.dart:205:      selection: collapsedTextSelection('li1', 0, 0),
+test\core\document_schema_test.dart:18:    test('heading drops list-specific attributes', () {
+test\core\document_schema_test.dart:23:            type: BlockType.heading,
+test\core\document_schema_test.dart:43:      // list-specific attrs stripped from a heading.
+test\core\document_schema_test.dart:139:            title: ' Launch demo ',
+test\core\document_schema_test.dart:154:      expect(block.title, 'Launch demo');
+test\core\document_schema_test.dart:188:            title: ' Missing source ',
+test\core\document_schema_test.dart:200:      expect(block.data, containsPair('title', 'Missing source'));
+test\core\model_test.dart:85:      title: 'Launch demo',
+test\core\model_test.dart:98:    expect(decoded.title, 'Launch demo');
+test\core\model_test.dart:117:      'caption': 'Legacy title',
+test\core\model_test.dart:128:    expect(legacy.title, 'Legacy title');
+test\core\model_test.dart:143:    expect(missing.title, isEmpty);
+test\core\model_test.dart:156:      data: <String, Object?>{'recordId': '42', 'title': 'Acme'},
+test\core\model_test.dart:172:      type: BlockType.heading,
+test\controller\slash_menu_controller_test.dart:10:      selection: collapsedTextSelection('p1', 0, 4),
+test\controller\slash_menu_controller_test.dart:17:    expect(slash.items.map((item) => item.id), contains('heading'));
+test\controller\slash_menu_controller_test.dart:24:      selection: collapsedTextSelection('p1', 0, 1),
+test\controller\slash_menu_controller_test.dart:36:  test('activating heading removes trigger and runs block command', () {
+test\controller\slash_menu_controller_test.dart:38:      document: _document('/heading'),
+test\controller\slash_menu_controller_test.dart:39:      selection: collapsedTextSelection('p1', 0, 8),
+test\controller\slash_menu_controller_test.dart:47:    expect(block.type, BlockType.heading);
+test\controller\slash_menu_controller_test.dart:56:      selection: collapsedTextSelection('p1', 0, 6),
+test\controller\slash_menu_controller_test.dart:75:      selection: collapsedTextSelection('p1', 0, 6),
+test\controller\slash_menu_controller_test.dart:80:        title: 'Alert',
+lib\src\codecs\legacy_wen_json_codec.dart:74:      case 'title':
+lib\src\codecs\legacy_wen_json_codec.dart:77:          type: BlockType.heading,
+lib\src\codecs\legacy_wen_json_codec.dart:158:      title: _firstString(json, const <String>['title', 'caption', 'name']),
+test\controller\outline_controller_test.dart:6:    test('derives outline items from non-empty headings', () {
+test\controller\outline_controller_test.dart:14:      expect(outline.items[0].title, 'Intro');
+test\controller\outline_controller_test.dart:25:    test('computes collapse ranges from heading levels', () {
+test\controller\outline_controller_test.dart:32:      expect(chapter.collapseStartBlockIndex, 1);
+test\controller\outline_controller_test.dart:33:      expect(chapter.collapseEndBlockIndexExclusive, 7);
+test\controller\outline_controller_test.dart:43:      expect(section.collapseRange.endBlockIndex, 5);
+test\controller\outline_controller_test.dart:48:      expect(leaf.collapseRange.endBlockIndex, isNull);
+test\controller\outline_controller_test.dart:54:    test('collapses expands toggles and keeps document unchanged', () {
+test\controller\outline_controller_test.dart:61:      expect(outline.collapseByBlockId('h1'), isTrue);
+test\controller\outline_controller_test.dart:64:      expect(outline.collapsedBlockIds, <String>{'h1'});
+test\controller\outline_controller_test.dart:66:      expect(outline.collapseByBlockId('h1'), isFalse);
+test\controller\outline_controller_test.dart:74:      expect(outline.collapsedBlockIds, isEmpty);
+test\controller\outline_controller_test.dart:89:      expect(outline.collapseByBlockId('h2'), isTrue);
+test\controller\outline_controller_test.dart:112:    test('keeps nested child collapse after parent expands', () {
+test\controller\outline_controller_test.dart:116:      expect(outline.collapseByBlockId('h2'), isTrue);
+test\controller\outline_controller_test.dart:117:      expect(outline.collapseByBlockId('h1'), isTrue);
+test\controller\outline_controller_test.dart:144:    test('collapse API safely no-ops for invalid targets', () {
+test\controller\outline_controller_test.dart:148:      expect(outline.collapseByBlockId('missing'), isFalse);
+test\controller\outline_controller_test.dart:149:      expect(outline.collapseByBlockId('p1'), isFalse);
+test\controller\outline_controller_test.dart:151:      expect(outline.collapseByAnchor('missing'), isFalse);
+test\controller\outline_controller_test.dart:153:      expect(outline.collapsedBlockIds, isEmpty);
+test\controller\outline_controller_test.dart:159:    test('cleans invalid collapse state after document changes', () {
+test\controller\outline_controller_test.dart:163:      expect(outline.collapseByBlockId('h2'), isTrue);
+test\controller\outline_controller_test.dart:174:            content: <InlineNode>[TextRun(text: 'No longer heading')],
+test\controller\outline_controller_test.dart:181:      expect(outline.collapsedBlockIds, isEmpty);
+test\controller\outline_controller_test.dart:188:    test('updates when a heading anchor changes', () {
+test\controller\outline_controller_test.dart:204:    test('selectByAnchor moves host selection to heading start', () {
+test\controller\outline_controller_test.dart:220:    test('selectByBlockId returns false for non-heading blocks', () {
+test\controller\outline_controller_test.dart:238:        type: BlockType.heading,
+test\controller\outline_controller_test.dart:249:        type: BlockType.heading,
+test\controller\outline_controller_test.dart:254:        id: 'empty-heading',
+test\controller\outline_controller_test.dart:255:        type: BlockType.heading,
+test\controller\outline_controller_test.dart:268:        type: BlockType.heading,
+test\controller\outline_controller_test.dart:279:        type: BlockType.heading,
+test\controller\outline_controller_test.dart:290:        type: BlockType.heading,
+test\controller\outline_controller_test.dart:301:        type: BlockType.heading,
+test\controller\outline_controller_test.dart:307:        type: BlockType.heading,
+test\controller\video_block_controller_test.dart:9:      final initialSelection = _collapsedTextSelection('p1', 0, 6);
+test\controller\video_block_controller_test.dart:33:        title: 'Intro',
+test\controller\video_block_controller_test.dart:49:      expect(video.title, 'Intro');
+test\controller\video_block_controller_test.dart:79:              title: 'Draft',
+test\controller\video_block_controller_test.dart:95:        title: 'Final',
+test\controller\video_block_controller_test.dart:108:      expect(updated.title, 'Final');
+test\controller\video_block_controller_test.dart:138:              title: 'Source',
+test\controller\video_block_controller_test.dart:160:        selection: _collapsedTextSelection('p1', 0, 0),
+test\controller\video_block_controller_test.dart:169:      expect(pasted.title, 'Source');
+test\controller\video_block_controller_test.dart:235:          controller.updateVideoBlock(blockIndex: 0, title: 'ignored');
+test\controller\video_block_controller_test.dart:248:DocumentSelection _collapsedTextSelection(
+lib\src\codecs\html_codec.dart:54:      case BlockType.heading:
+lib\src\codecs\html_codec.dart:202:        attrs.write(' title="$escapedCaption" data-caption="$escapedCaption"');
+lib\src\codecs\html_codec.dart:325:    if (video.title.isNotEmpty) {
+lib\src\codecs\html_codec.dart:326:      attrs.write(' title="${_escapeHtml(video.title)}"');
+lib\src\codecs\html_codec.dart:327:      attrs.write(' data-title="${_escapeHtml(video.title)}"');
+lib\src\codecs\html_codec.dart:381:    final title = callout.effectiveTitle;
+lib\src\codecs\html_codec.dart:385:        '<div data-callout-title>${_escapeHtml(title)}</div>'
+lib\src\codecs\html_codec.dart:479:            type: BlockType.heading,
+lib\src\codecs\html_codec.dart:535:              title: node.querySelector('figcaption')?.text.trim() ?? '',
+lib\src\codecs\html_codec.dart:592:        : (node.attributes['data-caption'] ?? node.attributes['title'] ?? '')
+lib\src\codecs\html_codec.dart:613:    String title = '',
+lib\src\codecs\html_codec.dart:663:    final fallbackTitle = title.isNotEmpty ? title : node.text.trim();
+lib\src\codecs\html_codec.dart:664:    final resolvedTitle = (node.attributes['data-title'] ??
+lib\src\codecs\html_codec.dart:665:            node.attributes['title'] ??
+lib\src\codecs\html_codec.dart:674:      title: resolvedTitle,
+lib\src\codecs\html_codec.dart:765:    final titleElement = node.querySelector('[data-callout-title]');
+lib\src\codecs\html_codec.dart:766:    var title = titleElement?.text.trim() ?? '';
+lib\src\codecs\html_codec.dart:767:    if (title == CalloutBlockNode.defaultTitleFor(variant)) {
+lib\src\codecs\html_codec.dart:768:      title = '';
+lib\src\codecs\html_codec.dart:776:        ? _parseCalloutInlineWithoutTitle(node, titleElement)
+lib\src\codecs\html_codec.dart:781:      title: title,
+lib\src\codecs\html_codec.dart:789:    dom.Element? titleElement,
+lib\src\codecs\html_codec.dart:793:      if (titleElement != null && identical(child, titleElement)) {
+lib\src\codecs\html_codec.dart:1008:                  node.attributes['title'] ??
+test\controller\toolbar_controller_test.dart:27:    test('collapsed caret inherits typing attributes from left run', () {
+test\controller\toolbar_controller_test.dart:31:        selection: collapsedTextSelection('mixed', 0, 2),
+test\controller\toolbar_controller_test.dart:42:    test('collapsed caret after the bold run drops the mark', () {
+test\controller\toolbar_controller_test.dart:46:        selection: collapsedTextSelection('mixed', 0, 5),
+test\controller\toolbar_controller_test.dart:126:    test('link URL for collapsed caret is the left run url', () {
+test\controller\toolbar_controller_test.dart:129:        selection: collapsedTextSelection('linked', 2, 1),
+test\controller\toolbar_controller_test.dart:140:      test('heading level 1', () {
+test\controller\toolbar_controller_test.dart:143:          selection: collapsedTextSelection('h1', 3, 0),
+test\controller\toolbar_controller_test.dart:150:        expect(toolbar.uniformBlockType, BlockType.heading);
+test\controller\toolbar_controller_test.dart:160:          selection: collapsedTextSelection('para', 4, 0),
+test\controller\toolbar_controller_test.dart:174:          selection: collapsedTextSelection('quote', 5, 0),
+test\controller\toolbar_controller_test.dart:187:          selection: collapsedTextSelection('task', 6, 0),
+test\controller\toolbar_controller_test.dart:202:          selection: collapsedTextSelection('ol', 7, 0),
+test\controller\toolbar_controller_test.dart:216:          selection: collapsedTextSelection('ul', 8, 0),
+test\controller\toolbar_controller_test.dart:233:          selection: collapsedCodeSelection('code', 9, 0),
+test\controller\toolbar_controller_test.dart:353:          selection: collapsedTextSelection('para', 4, 0),
+test\controller\toolbar_controller_test.dart:366:      test('setParagraph reverts a heading back', () {
+test\controller\toolbar_controller_test.dart:369:          selection: collapsedTextSelection('h1', 3, 0),
+test\controller\toolbar_controller_test.dart:402:          selection: collapsedCodeSelection('code', 9, 0),
+test\controller\toolbar_controller_test.dart:422:          selection: collapsedTextSelection('para', 4, 0),
+test\controller\toolbar_controller_test.dart:616:        selection: collapsedTextSelection('mixed', 0, 2),
+test\controller\toolbar_controller_test.dart:640:/// labels the tests reference via [collapsedTextSelection]/[textSelection];
+test\controller\toolbar_controller_test.dart:675:      // 3 — heading level 1.
+test\controller\toolbar_controller_test.dart:678:        type: BlockType.heading,
+lib\src\codecs\markdown_codec.dart:14:/// ATX headings (`#{1,6}`), unordered (`- `/`* `), ordered (`1. `), and task
+lib\src\codecs\markdown_codec.dart:48:      case BlockType.heading:
+lib\src\codecs\markdown_codec.dart:76:        final title = image.caption.isEmpty
+lib\src\codecs\markdown_codec.dart:79:        return '![${_escapeImageAlt(alt)}]($src$title)';
+lib\src\codecs\markdown_codec.dart:83:        final title = _videoMarkdownTitle(video, src);
+lib\src\codecs\markdown_codec.dart:84:        if (title.isEmpty) {
+lib\src\codecs\markdown_codec.dart:87:        return '![video]($src "${_escapeImageTitle(title)}")';
+lib\src\codecs\markdown_codec.dart:99:        // title and body are preserved, but the structured variant is not.
+lib\src\codecs\markdown_codec.dart:101:        final title = '${callout.effectiveIcon} ${callout.effectiveTitle}';
+lib\src\codecs\markdown_codec.dart:102:        final lines = <String>['**${_escapeInline(title)}**'];
+lib\src\codecs\markdown_codec.dart:214:      final title = caption.isEmpty ? '' : ' "${_escapeImageTitle(caption)}"';
+lib\src\codecs\markdown_codec.dart:215:      return '![${_escapeImageAlt(alt)}]($url$title)';
+lib\src\codecs\markdown_codec.dart:304:    add('title', video.title);
+lib\src\codecs\markdown_codec.dart:387:      final headingMatch = _headingRegex.firstMatch(line.trimLeft());
+lib\src\codecs\markdown_codec.dart:388:      if (headingMatch != null) {
+lib\src\codecs\markdown_codec.dart:389:        final level = headingMatch.group(1)!.length;
+lib\src\codecs\markdown_codec.dart:390:        final text = headingMatch.group(2)!.trim();
+lib\src\codecs\markdown_codec.dart:393:          type: BlockType.heading,
+lib\src\codecs\markdown_codec.dart:505:            title: caption,
+lib\src\codecs\markdown_codec.dart:529:  /// aggregation). Code fences, headings, thematic breaks, blockquotes, and
+lib\src\codecs\markdown_codec.dart:536:    if (_headingRegex.hasMatch(trimmed)) {
+lib\src\codecs\markdown_codec.dart:825:    required String title,
+lib\src\codecs\markdown_codec.dart:827:    final metadata = _parseVideoMetadata(title);
+lib\src\codecs\markdown_codec.dart:828:    final plainTitle = metadata == null ? title.trim() : '';
+lib\src\codecs\markdown_codec.dart:831:        metadata?['title'] ?? (plainTitle.isNotEmpty ? plainTitle : altTitle);
+lib\src\codecs\markdown_codec.dart:851:      title: resolvedTitle,
+lib\src\codecs\markdown_codec.dart:859:  Map<String, String>? _parseVideoMetadata(String title) {
+lib\src\codecs\markdown_codec.dart:860:    final trimmed = title.trim();
+lib\src\codecs\markdown_codec.dart:1006:final RegExp _headingRegex = RegExp(r'^(#{1,6})\s+(.*)$');
+lib\src\codecs\plain_text_codec.dart:57:      case BlockType.heading:
+lib\src\codecs\plain_text_codec.dart:74:      case BlockType.heading:
+lib\src\codecs\plain_text_codec.dart:116:    if (video.title.isNotEmpty) {
+lib\src\codecs\plain_text_codec.dart:117:      return video.title;
+
+**Inspecting files for code analysis**
+
+I’m seeing that the search output is quite large, so I need to inspect the relevant files. I might consider using codegraph_explore for symbols in files like wenz_rich_text_editor.dart and block_renderer_registry.dart. Checking the file tree could help, but using a shell command like Get-Content might be the easiest way to identify the current implementation. I’ll also use rg to look for class names. Let’s get started on that!
+codex
+我已经定位到标题相关测试，接着查看编辑器和渲染注册实现。
+web search: 
+ERROR: Selected model is at capacity. Please try a different model.
+ERROR: Selected model is at capacity. Please try a different model.
+tokens used
+16,490

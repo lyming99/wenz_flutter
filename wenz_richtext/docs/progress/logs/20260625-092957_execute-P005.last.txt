@@ -1,0 +1,11 @@
+已完成 P005，未修改 plan 文件、未勾选 checkbox、未更新进度区。
+
+- 在 `lib/src/widgets/block_geometry_registry.dart:151` 增加 block 行级拖拽落点计算，支持首尾与可视区域外夹取。
+- 在 `lib/src/widgets/wenz_rich_text_editor.dart:3278` 注册顶层 block 行几何，覆盖自定义 renderer 外层行。
+- 在 `lib/src/widgets/wenz_rich_text_editor.dart:3610` 实现拖拽过程落点指示线，在 `lib/src/widgets/wenz_rich_text_editor.dart:3698` 释放后提交重排。
+- 在 `lib/src/widgets/wenz_rich_text_editor.dart:1377` 复用现有 `moveBlock` 命令/历史体系处理拖拽目标索引。
+- 在 `test/widgets/wenz_rich_text_editor_test.dart:1374` 补充跨多行重排、顶部夹取和原位置 no-op 测试。
+
+验证已通过：
+- `dart analyze lib/src/widgets/wenz_rich_text_editor.dart lib/src/widgets/block_geometry_registry.dart test/widgets/wenz_rich_text_editor_test.dart`
+- `flutter test test/widgets/wenz_rich_text_editor_test.dart --plain-name "block drag handles"`

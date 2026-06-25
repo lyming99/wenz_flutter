@@ -30,10 +30,13 @@
 ///   commands ([SetLinkCommand], [AutoLinkUrlsCommand], [ToggleMarkCommand],
 ///   [InsertInlineEmbedCommand]) and controller helpers for formula, mention,
 ///   emoji, inline image embeds, and block embeds, block structure commands
-///   ([IndentCommand], [ToggleTodoCommand], [SetCodeLanguageCommand],
+///   ([IndentCommand], [ToggleTodoCommand], [SetTodoCheckedCommand],
+///   [SetCodeLanguageCommand],
 ///   [IndentCodeBlockCommand], [SetCalloutVariantCommand],
-///   [UpdateCalloutBlockCommand], [ToggleQuoteCommand]), media-block metadata commands
-///   ([UpdateImageBlockCommand], [UpdateFileBlockCommand]), the command pipeline/registry
+///   [UpdateCalloutBlockCommand], [ToggleQuoteCommand]), media-block commands
+///   ([InsertVideoBlockCommand], [UpdateImageBlockCommand],
+///   [UpdateFileBlockCommand], [UpdateVideoBlockCommand],
+///   [DeleteVideoBlockCommand]), the command pipeline/registry
 ///   ([CommandMiddleware], [CommandRegistry], [CommandDescriptor],
 ///   [WenzEditorPermission]), the plugin
 ///   install surface ([WenzRichTextPlugin], [WenzPluginBundle],
@@ -43,7 +46,8 @@
 ///   rendering extension point ([BlockRendererRegistry],
 ///   [BlockRendererBuilder], [BlockRenderContext], [TableToolbarActionIntent],
 ///   [WenzObjectBlockSurface], [MediaResolver], [InlineEmbedRenderer],
-///   [InlineEmbedRendererRegistry]), the
+///   [InlineEmbedRendererRegistry]), video insertion via slash menu / toolbar
+///   helpers without a bundled player dependency, the
 ///   toolbar binding ([ToolbarController], [ToolbarState],
 ///   [WenzToolbarItemRegistry]), the controller change
 ///   callbacks ([WenzRichTextController.onChanged],
@@ -78,7 +82,7 @@
 ///   [MergeTableCellsCommand], [SplitTableCellCommand],
 ///   [InsertTableCellTextCommand], [DeleteTableCellTextCommand],
 ///   [FormatTableCellTextCommand]) plus stage-3 rich block models such as
-///   [FileBlockNode] and [BlockEmbedNode]. The default table renderer now provides a command-backed
+///   [VideoBlockNode], [FileBlockNode], and [BlockEmbedNode]. The default table renderer now provides a command-backed
 ///   floating toolbar and column-width drag handles. [FileBlockNode] includes
 ///   attachment metadata (`mimeType`, `downloadUrl`, upload status/error) but
 ///   retry/upload orchestration remains a business-layer concern; the low-level

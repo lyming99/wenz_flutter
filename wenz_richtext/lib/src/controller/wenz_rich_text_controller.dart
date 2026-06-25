@@ -872,6 +872,12 @@ class WenzRichTextController extends ChangeNotifier {
     return execute(const ToggleTodoCommand());
   }
 
+  ChangeSet setTodoChecked({required int blockIndex, required bool checked}) {
+    return execute(
+      SetTodoCheckedCommand(blockIndex: blockIndex, checked: checked),
+    );
+  }
+
   ChangeSet toggleQuote() {
     return execute(const ToggleQuoteCommand());
   }
@@ -937,6 +943,38 @@ class WenzRichTextController extends ChangeNotifier {
     );
   }
 
+  ChangeSet insertVideo({
+    int? index,
+    required String blockId,
+    String assetId = '',
+    String playbackUrl = '',
+    String file = '',
+    String coverUrl = '',
+    String title = '',
+    String description = '',
+    double? aspectRatio,
+    FileUploadStatus uploadStatus = FileUploadStatus.none,
+    String uploadError = '',
+    DocumentSelection? selection,
+  }) {
+    return execute(
+      InsertVideoBlockCommand(
+        index: index ?? document.blocks.length,
+        blockId: blockId,
+        assetId: assetId,
+        playbackUrl: playbackUrl,
+        file: file,
+        coverUrl: coverUrl,
+        title: title,
+        description: description,
+        aspectRatio: aspectRatio,
+        uploadStatus: uploadStatus,
+        uploadError: uploadError,
+        selection: selection,
+      ),
+    );
+  }
+
   ChangeSet insertFile({
     int? index,
     required String blockId,
@@ -999,6 +1037,17 @@ class WenzRichTextController extends ChangeNotifier {
     final target = selection ?? this.selection;
     final payload = clipboardService.copy(document, target);
     return payload;
+  }
+
+  String? copyVideoBlock({required int blockIndex}) {
+    final selection = _objectSelectionForBlockIndex(
+      blockIndex,
+      type: BlockType.video,
+    );
+    if (selection == null) {
+      return null;
+    }
+    return copySelection(selection);
   }
 
   /// Copy then delete. Returns the copied payload (for the caller to write to
@@ -1148,6 +1197,15 @@ class WenzRichTextController extends ChangeNotifier {
     );
   }
 
+  ChangeSet moveBlock({
+    required int fromIndex,
+    required int toIndex,
+  }) {
+    return execute(
+      MoveBlockCommand(fromIndex: fromIndex, toIndex: toIndex),
+    );
+  }
+
   ChangeSet updateImageBlock({
     required int blockIndex,
     String? assetId,
@@ -1178,6 +1236,45 @@ class WenzRichTextController extends ChangeNotifier {
     );
   }
 
+  ChangeSet updateVideoBlock({
+    required int blockIndex,
+    String? assetId,
+    String? playbackUrl,
+    String? file,
+    String? coverUrl,
+    String? title,
+    String? description,
+    double? aspectRatio,
+    bool clearAspectRatio = false,
+    FileUploadStatus? uploadStatus,
+    String? uploadError,
+  }) {
+    return execute(
+      UpdateVideoBlockCommand(
+        blockIndex: blockIndex,
+        assetId: assetId,
+        playbackUrl: playbackUrl,
+        file: file,
+        coverUrl: coverUrl,
+        title: title,
+        description: description,
+        aspectRatio: aspectRatio,
+        clearAspectRatio: clearAspectRatio,
+        uploadStatus: uploadStatus,
+        uploadError: uploadError,
+      ),
+    );
+  }
+
+  ChangeSet deleteVideoBlock({
+    required int blockIndex,
+    DocumentSelection? selection,
+  }) {
+    return execute(
+      DeleteVideoBlockCommand(blockIndex: blockIndex, selection: selection),
+    );
+  }
+
   ChangeSet updateFileBlock({
     required int blockIndex,
     String? assetId,
@@ -1202,6 +1299,27 @@ class WenzRichTextController extends ChangeNotifier {
         uploadError: uploadError,
       ),
     );
+  }
+
+  DocumentSelection? _objectSelectionForBlockIndex(
+    int blockIndex, {
+    BlockType? type,
+  }) {
+    if (blockIndex < 0 || blockIndex >= document.blocks.length) {
+      return null;
+    }
+    final block = document.blocks[blockIndex];
+    if (type != null && block.type != type) {
+      return null;
+    }
+    final start = DocumentPosition(
+      blockId: block.id,
+      blockIndex: blockIndex,
+      path: PositionPath.blockObject(block.id),
+      offset: 0,
+    );
+    final end = start.copyWith(offset: 1);
+    return DocumentSelection(base: start, extent: end);
   }
 
   ChangeSet setBlockAnchor({

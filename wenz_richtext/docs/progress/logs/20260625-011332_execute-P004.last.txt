@@ -1,0 +1,11 @@
+**已完成 P004**
+- 已将 todo 渲染为可交互 `Checkbox`，点击后通过模型更新 checked 状态：`lib/src/widgets/wenz_rich_text_editor.dart:3331`
+- 新增定点更新命令和 controller API，避免 checkbox 点击改动文本选区：`lib/src/core/commands/block_structure_commands.dart:131`，`lib/src/controller/wenz_rich_text_controller.dart:875`
+- 为 checkbox 增加选择排除区，防止点击被文档选择层误识别：`lib/src/widgets/block_geometry_registry.dart:71`，`lib/src/widgets/selection_gesture_overlay.dart:180`
+- 新增 widget 回归测试覆盖切换、回调、重渲染、文本选择和完成态样式：`test/widgets/wenz_rich_text_editor_test.dart:86`
+- 已勾选计划 P004，并更新进度区：`docs/plan/plan_feedback_2_20260625-004108.md:40`
+
+**验证**
+- `flutter test test\widgets\wenz_rich_text_editor_test.dart --name "todo checkbox toggles checked state" --reporter expanded` 通过
+- `flutter test test\widgets\wenz_rich_text_editor_test.dart --reporter expanded` 80 项通过
+- `flutter test --reporter expanded` 589 项通过

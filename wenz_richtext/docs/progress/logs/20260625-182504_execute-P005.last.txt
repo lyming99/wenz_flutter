@@ -1,0 +1,15 @@
+完成 P005，未修改 plan 文件、未勾选 checkbox。
+
+**变更**
+- `lib/src/widgets/table_floating_toolbar_overlay.dart:134`：`show` 增加被动刷新保护，旧锚点不能覆盖当前活动表格请求。
+- `lib/src/widgets/table_floating_toolbar_overlay.dart:407`：表格锚点的几何刷新改为被动更新，只刷新同一活动 selection。
+- `test/widgets/wenz_rich_text_editor_test.dart:3408`：新增回归测试，覆盖多表格旧 anchor 刷新不覆盖当前 toolbar。
+
+**验证**
+- 通过：`flutter test test/widgets/wenz_rich_text_editor_test.dart --plain-name "table floating toolbar edits rows columns and cells"`
+- 通过：`flutter test test/widgets/wenz_rich_text_editor_test.dart --plain-name "table floating toolbar follows active table lifecycle"`
+- 通过：`flutter test test/widgets/wenz_rich_text_editor_test.dart --plain-name "table floating toolbar pointer does not penetrate selection layer"`
+- 通过：`flutter test test/widgets/wenz_rich_text_editor_test.dart --plain-name "table floating toolbar ignores stale inactive anchor refresh"`
+- 通过：`flutter analyze lib/src/widgets/table_floating_toolbar_overlay.dart test/widgets/wenz_rich_text_editor_test.dart`
+
+备注：摸底时跑过较宽的 `--plain-name "table floating toolbar"`，其中 3 个定位类用例已有失败；本次按 P005 只处理生命周期/操作一致性，没有顺手修定位项。

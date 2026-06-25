@@ -1,0 +1,4 @@
+已完成，只修复验证错误。
+
+- 删除了未使用的局部变量 `mentionLeft`，测试逻辑未改动：`test/widgets/wenz_rich_text_editor_test.dart:1807`
+- 已复跑 `flutter analyze`，结果：`No issues found!`

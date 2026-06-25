@@ -1,0 +1,2076 @@
+OpenAI Codex v0.121.0 (research preview)
+--------
+workdir: D:\project\GitHub\wenz_flutter\wenz_richtext
+model: gpt-5.5
+provider: custom
+approval: never
+sandbox: danger-full-access
+reasoning effort: xhigh
+reasoning summaries: none
+session id: 019efa4d-debf-75b0-b18b-e98ffefd099a
+--------
+user
+你是开发执行者。
+请只执行 plan 中指定的下一个未完成任务，不要提前执行其它任务。
+
+plan 文件：D:\project\GitHub\wenz_flutter\wenz_richtext\docs\plan\plan_feedback_1_20260624-220759.md
+任务：
+- [ ] P004: 修正选区高亮与光标反馈
+
+完成后必须：
+- 将该任务 checkbox 改为 [x]
+- 更新 plan 进度区
+- 不输出完整 diff、源码全文或长文件列表
+- 中文文件读写使用 UTF-8
+codex
+我先读取计划和仓库指引，确认 P004 的精确范围。
+exec
+powershell.exe -Command '$ErrorActionPreference='"'Stop'; if (Test-Path AGENTS.md) { Get-Content -LiteralPath AGENTS.md -Encoding UTF8 }; Write-Output '---PLAN---'; Get-Content -LiteralPath 'D:\\project\\GitHub\\wenz_flutter\\wenz_richtext\\docs\\plan\\plan_feedback_1_20260624-220759.md' -Encoding UTF8" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 313ms:
+---PLAN---
+# 开发计划：修复选择器无法选中 emoji 与提及
+
+## 来源
+- 类型：用户反馈
+- 编号：#1
+- 生成时间：2026-06-24 22:07:59
+- 原始反馈：选择器bug：emoji、提及无法正常被选中
+
+## 问题理解
+- 富文本选择器在包含 `emoji`、`mention` 等内联嵌入内容时，可能无法通过点击、拖拽或键盘扩展将其纳入选区。
+- 初步影响范围包括内联节点偏移计算、文本布局命中测试、选区高亮绘制、复制/命令读取选区等链路。
+- 修复目标是把 emoji 与提及作为可选择的原子内联单元处理，同时不破坏普通文本、表格、代码块和块级对象选择行为。
+
+## 任务计划
+- [x] P001: 复现并定义缺陷边界
+  - 验收要点：构造包含普通文本、emoji、mention 混排的最小文档，记录点击、拖拽、Shift+方向键、全选等场景中无法选中的具体表现。
+  - 验收要点：明确问题发生在段落内联内容、表格单元格内联内容还是两者都受影响，并形成可复现步骤。
+
+- [x] P002: 梳理内联节点选择模型
+  - 验收要点：确认 `TextRun` 与 `InlineEmbed` 在文档 offset、渲染占位宽度、选区边界中的映射规则。
+  - 验收要点：定义 emoji 与 mention 的原子选择语义，即选区只能落在其前后边界，不能拆分到嵌入内容内部。
+
+- [x] P003: 修正命中测试与 offset 映射
+  - 验收要点：点击或拖拽落在 emoji、mention 可视区域时，能够稳定映射到对应内联原子单元的前后选择边界。
+  - 验收要点：拖拽选区跨过 emoji、mention 时，选区范围包含该内联节点，不再被跳过或截断。
+  - 验收要点：边界场景包括行首、行尾、连续多个内联嵌入、文本与嵌入相邻无空格。
+
+- [ ] P004: 修正选区高亮与光标反馈
+  - 验收要点：emoji、mention 被选中时有清晰选区高亮或等效选中态，不出现高亮缺失、错位、宽度为 0 的情况。
+  - 验收要点：光标停在 emoji、mention 前后边界时位置正确，不覆盖相邻文本或跳到错误行。
+
+- [ ] P005: 补充自动化回归测试
+  - 验收要点：新增或更新 widget 测试，覆盖 emoji、mention 的点击选择、拖拽跨选、键盘扩展选择。
+  - 验收要点：测试同时覆盖段落内混排与表格单元格内混排，避免只修复单一路径。
+  - 验收要点：测试断言 `DocumentSelection` 的 base、extent、offset 与预期一致。
+
+- [ ] P006: 执行选择器相关回归验证
+  - 验收要点：`flutter test test/widgets/wenz_rich_text_editor_test.dart` 通过，或失败项被确认与本缺陷无关并记录原因。
+  - 验收要点：`flutter test test/core/selection_commands_test.dart` 通过，确保选择命令行为未被破坏。
+  - 验收要点：普通文本选择、块级对象选择、表格选择、代码块选择核心场景保持原有行为。
+
+- [ ] P007: 更新缺陷进度与验证记录
+  - 验收要点：在进度记录中注明修复范围、验证命令、验证结果和遗留风险。
+  - 验收要点：如发现复制、删除、格式化等下游行为仍受内联嵌入影响，拆分为独立后续任务，不混入本次选择器修复。
+
+## 总体验收标准
+- 所有任务 checkbox 均完成，且每个任务的验收要点都有明确结论。
+- emoji 与 mention 在可视区域内可被正常点击定位、拖拽选中、键盘扩展纳入选区。
+- emoji 与 mention 作为原子内联单元参与选择，不产生半选、错位、跳选或无法显示选中态的问题。
+- 修复不回退普通文本、表格单元格、代码块、块级对象的既有选择能力。
+- 相关自动化测试通过；若存在非本次变更导致的失败，需在进度记录中说明失败命令、失败原因和处理建议。
+
+## 进度区
+- 当前状态：P001、P002、P003 已完成；命中测试已通过内联 offset 映射修正，等待进入 P004。
+- 当前负责人：开发执行者
+- 下一步：执行 P004，修正选区高亮与光标反馈。
+- P001 复现记录：使用最小混排内容 `A` + `emoji(😄)` + `B` + `mention(@bob)` + `C`；文档 offset 长度为 5，实际渲染文本 `A😄B@bobC` 的 UTF-16 长度为 9。
+- P001 段落边界：点击 mention 视觉中心后选区折叠到 offset 5，而预期只能落在 mention 原子边界 3/4；拖拽 emoji 视觉范围 `[1,3]` 后选区仍折叠在 offset 1，无法形成 emoji 原子选区 `[1,2]`；拖拽 mention 视觉范围 `[4,8]` 得到文档选区 `[4,5]`，实际选中尾部 `C`，不是 mention 原子 `[3,4]`。
+- P001 表格边界：同样的混排内容放入表格单元格后，点击 mention 视觉中心折叠到单元格 offset 5；拖拽 emoji 视觉范围仍折叠；拖拽 mention 视觉范围会把选区推出原 `r0c0` 单元格，出现 `r1c0` 路径，说明段落内联内容与表格单元格内联内容都受影响。
+- P001 键盘与全选观察：段落内从 mention 前 offset 3 执行 Shift+Right 可得到 `[3,4]`，干净核心命令状态下表格单元格也可得到 `[3,4]`；Ctrl+A 的逻辑选区为 `[0,5]`，但当前高亮绘制使用文档 offset 直接查询 `TextPainter`，推断视觉覆盖会截断在渲染文本 offset 5（`A😄B@`），存在全选高亮不完整风险。
+- P001 复现方式：曾使用临时 widget 诊断测试运行 `flutter test test/p001_inline_embed_repro_tmp_test.dart --reporter expanded`，仅打印上述结果且已删除临时文件；该诊断用例通过，但输出确认实际行为与原子内联选择预期不一致。
+- 风险记录：初步缺陷集中在 `InlineEmbed` 文档长度为 1，但 `_inlineEmbedSpanFor` 渲染为变长 `TextSpan`，命中测试和高亮绘制直接使用 `TextPainter` 的渲染 offset；后续需要校准文档 offset 与渲染 offset 映射，避免 emoji grapheme cluster、mention 文本长度和表格单元命中路径继续错位。
+- P002 文档长度规则：`TextRun` 的逻辑长度来自 `text.length`，即当前 Dart 字符串 UTF-16 code unit 长度；`InlineEmbed` 逻辑长度固定为 1；段落与表格单元格的 `textLength` 都由 `inlineNodesLength` 聚合得到，因此两条路径共享同一套文档 offset 模型。
+- P002 渲染长度规则：`TextRun` 直接渲染原文本；`InlineEmbed` 通过 `_inlineEmbedSpanFor` 渲染为 `TextSpan`，默认 mention 显示为 `@label` / `@id`，emoji 显示为 data 中的 `emoji` / `text` / `value` / `shortName` / `label`，自定义 `InlineEmbedRenderer` 也可能返回其它紧凑 `TextSpan`；因此每个 embed 的视觉宽度和 `TextPainter` offset 范围由渲染文本决定，不等于逻辑长度 1。
+- P002 当前映射缺口：命中测试 `_offsetForLocalPosition` 调用 `TextLayoutService.offsetAt`，直接使用 `TextPainter.getPositionForOffset` 的渲染 offset 并仅用逻辑 `textLength` clamp；caret、选区高亮、查找高亮和组合区矩形也直接把逻辑 offset 传给 `TextPainter`，缺少逻辑 offset 与渲染 offset 的转换层。
+- P002 原子选择语义：每个 `InlineEmbed` 占用逻辑区间 `[nodeStart, nodeStart + 1)`；合法折叠光标位置只能是该区间的前边界或后边界；非折叠选区只要包含该逻辑单元，就必须覆盖该 embed 的完整视觉渲染范围，不能产生落在 embed 内部的半选或内部 offset。
+- P002 映射规则结论：需要维护按 inline 节点累计的双向映射；`TextRun` 在现有模型下按 UTF-16 code unit 做逻辑/渲染一一映射；`InlineEmbed` 的逻辑前边界映射到 `renderStart`，逻辑后边界映射到 `renderEnd`，渲染内部命中应按视觉位置归一到前/后边界，选区盒与 caret 查询应先把逻辑边界转换为渲染边界。
+- P002 表格结论：表格单元格只是使用 `PositionPath.tableCellText` 与 `_hitLocalToTextLocal` 进入同一 `_TextSelectionSurface`，内联节点长度、span 构建、命中测试和绘制链路与普通段落一致；P003 修复必须同时覆盖段落和表格单元格，不应分叉出两套选择语义。
+- P003 修复记录：`_TextSelectionSurface` 现接收与实际 `InlineSpan` 同源生成的 `_InlineOffsetMapper`，命中测试先取 `TextPainter` 渲染 offset，再映射回文档 offset；`InlineEmbed` 渲染区间内部命中会按可视盒左右半区归一到原子前/后边界。
+- P003 覆盖范围：普通段落与表格单元格共用 `_inlineTextLayoutFor` 生成 span 与映射段；`TextRun` 保持 UTF-16 一一映射，`InlineEmbed` 保持逻辑长度 1、渲染长度取实际 span 文本长度；代码块使用 identity 映射，避免影响原有代码块选择。
+- P003 验证记录：已执行 `flutter analyze`，结果通过；未执行 P006 中的选择器回归测试，留待对应任务处理。
+
+
+**Inspecting code tasks**
+
+I need to look into the task and inspect the code. First, I think I'll use the codegraph for the architecture and check its status. It seems like the developer wants me to focus on executing the current plan. Using update_plan for local steps might work, but it's important to avoid confusion. I’ll create a short plan focusing on P004. I wonder if running `dart analyze` would help ensure there are no compile errors, even though P006 emphasizes tests.
+**Deciding on P004 and P006**
+
+I’m considering if this could be about P006, even though P004 includes a fix but not a test. I could run a minimal static check like `dart analyze`, but P006 emphasizes regression validation, so maybe I shouldn't. Running `dart format` seems fine for ensuring proper formatting. I think it's crucial to verify compilation, so running `dart analyze lib/...` might be okay too, even if it's not part of P006. I need to inspect some files using a specific codegraph query.
+codex
+我已确认 P004 范围；现在定位高亮与光标绘制链路。
+  → 定位高亮光标绘制
+  • 补齐 offset 映射
+  • 更新计划进度
+mcp: codegraph/codegraph_explore started
+mcp: codegraph/codegraph_explore (completed)
+codex
+高亮和 caret 在同一文件；我继续只展开相关符号。
+mcp: codegraph/codegraph_search started
+mcp: codegraph/codegraph_search (completed)
+mcp: codegraph/codegraph_search started
+mcp: codegraph/codegraph_search (completed)
+codex
+已定位到 `_SelectionHighlightPainter`，下一步展开它和 caret 方法。
+mcp: codegraph/codegraph_explore started
+mcp: codegraph/codegraph_explore (completed)
+codex
+映射器已有雏形；我现在展开绘制类的完整实现。
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+codex
+类节点只给轮廓；我改为按具体 `paint` 方法展开。
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+codex
+选区高亮仍用逻辑 offset 直接查 painter，确认为 P004 目标。
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+codex
+接下来检查 painter 构造参数和 caret 全局矩形方法。
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+mcp: codegraph/codegraph_search started
+mcp: codegraph/codegraph_search (completed)
+codex
+caret 有两条路径；我展开文本表面和块级包装对应实现。
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+**Exploring fields constructor**
+
+I'm thinking about the fields constructor of painters and how it might not be fully formed. I wonder if I need to use the codegraph_node for the constructor. It feels like I should search for more information on this to see if there are any examples or solutions. It’s a bit tangled, but I’m keen to get clarity on how to proceed with this code structure. Let’s dive into the search!
+codex
+问题点清楚了：高亮和光标都缺少逻辑到渲染 offset 转换。
+mcp: codegraph/codegraph_explore started
+mcp: codegraph/codegraph_explore (completed)
+**Resolving codegraph issues**
+
+It looks like the codegraph failed because the query was too broad. I might need to use a shell to inspect the file, but I need to remember that codegraph says not to reread shown files. However, the large file seems to get truncated, so I should use codegraph_node to find the constructors. Using `rg "_SelectionHighlightPainter"` could work, but it might only read lines instead of the full source. I really need to find a way to check the file accurately without redundancy!
+codex
+构造位置没完整展开，我用精确搜索找调用点。
+exec
+powershell.exe -Command '$ErrorActionPreference='"'Stop'; rg -n \"_SelectionHighlightPainter|_CaretPainter|offsetMapper|_InlineOffsetMapper\" lib/src/widgets/wenz_rich_text_editor.dart" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 160ms:
+3274:      offsetMapper: inlineTextLayout.offsetMapper,
+3390:                offsetMapper: _InlineOffsetMapper.identity(block.code.length),
+4316:      offsetMapper: inlineTextLayout.offsetMapper,
+4617:    required this.offsetMapper,
+4633:  final _InlineOffsetMapper offsetMapper;
+4843:    return widget.offsetMapper.logicalOffsetForHit(
+4858:        widget.offsetMapper.renderOffsetForLogicalOffset(offset);
+4860:    final start = widget.offsetMapper.logicalOffsetForRenderOffset(
+4864:        widget.offsetMapper.logicalOffsetForRenderOffset(renderRange.end);
+4942:        widget.offsetMapper.renderOffsetForLogicalOffset(offset);
+4952:          : widget.offsetMapper.logicalOffsetForRenderOffset(target),
+5003:        final caretPainter = _CaretPainter(
+5026:            painter: _SelectionHighlightPainter(
+5160:    required this.offsetMapper,
+5164:  final _InlineOffsetMapper offsetMapper;
+5167:class _InlineOffsetMapper {
+5168:  const _InlineOffsetMapper({
+5174:  factory _InlineOffsetMapper.identity(int length) {
+5176:    return _InlineOffsetMapper(
+5377:class _SelectionHighlightPainter extends CustomPainter {
+5378:  const _SelectionHighlightPainter({
+5416:  bool shouldRepaint(covariant _SelectionHighlightPainter oldDelegate) {
+5427:class _CaretPainter extends CustomPainter {
+5428:  const _CaretPainter({
+5479:  bool shouldRepaint(covariant _CaretPainter oldDelegate) {
+6341:    offsetMapper: _InlineOffsetMapper(
+
+**Inspecting code nodes**
+
+I'm thinking about inspecting nodes around 4617, 4942, 5003, 5377, and 6341. There's a codegraph node that I might need to check for the build. It's intriguing to consider how these nodes might be interrelated or what insights they can offer. I wonder if any anomalies or patterns will pop up during the inspection. I'll make sure to go through each node carefully to get the details right.
+codex
+我找到了构造调用，继续查看小范围上下文以准备补参。
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+codex
+构造点需要传入 mapper；我再看两个 painter 字段。
+mcp: codegraph/codegraph_explore started
+mcp: codegraph/codegraph_explore (completed)
+**Exploring PowerShell Options**
+
+I'm thinking about using PowerShell with Get-Content to show specific line ranges. It seems the previous tool isn't providing the constructors I need. The developer mentioned not to use Python for larger outputs, so PowerShell might be the way to go. I’ll need to focus on specific lines: 4600-4650, 5368-5489, 4925-4955, and 6330-6350. I'll figure out if this is an acceptable approach.
+codex
+代码图没给构造字段，我读取少量行号上下文。
+exec
+powershell.exe -Command '$ErrorActionPreference='"'Stop'; "'$p='"'lib/src/widgets/wenz_rich_text_editor.dart'; "'$ranges=@(@(4608,4642),@(4934,4958),@(5368,5489),@(6330,6352)); foreach($r in $ranges){ Write-Output "--- $($r[0])-$($r[1]) ---"; $i=0; Get-Content -LiteralPath $p -Encoding UTF8 | ForEach-Object { $i++; if($i -ge $r[0] -and $i -le $r[1]){ '"'{0}:{1}' -f "'$i,$_ } } }' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 442ms:
+--- 4608-4642 ---
+4608:}
+4609:
+4610:class _TextSelectionSurface extends StatefulWidget {
+4611:  const _TextSelectionSurface({
+4612:    required this.blockId,
+4613:    required this.blockIndex,
+4614:    required this.path,
+4615:    required this.textLength,
+4616:    required this.textSpan,
+4617:    required this.offsetMapper,
+4618:    required this.textAlign,
+4619:    required this.minHeight,
+4620:    required this.selection,
+4621:    required this.showCaret,
+4622:    required this.registry,
+4623:    required this.showDebugOverlay,
+4624:    this.findRanges = const <_FindHighlightRange>[],
+4625:    this.hitTestKey,
+4626:  });
+4627:
+4628:  final String blockId;
+4629:  final int blockIndex;
+4630:  final PositionPath path;
+4631:  final int textLength;
+4632:  final InlineSpan textSpan;
+4633:  final _InlineOffsetMapper offsetMapper;
+4634:  final TextAlign textAlign;
+4635:  final double minHeight;
+4636:  final DocumentSelection? selection;
+4637:  final bool showCaret;
+4638:  final BlockGeometryRegistry registry;
+4639:  final bool showDebugOverlay;
+4640:  final List<_FindHighlightRange> findRanges;
+4641:
+4642:  /// Optional GlobalKey on a wider hit-test frame (e.g. a table cell's whole
+--- 4934-4958 ---
+4934:      int offset, bool forward, double? preferX) {
+4935:    final painter = _layoutService.layout(
+4936:      span: widget.textSpan,
+4937:      textAlign: widget.textAlign,
+4938:      textDirection: Directionality.of(context),
+4939:      maxWidth: _lastMaxWidth,
+4940:    );
+4941:    final renderOffset =
+4942:        widget.offsetMapper.renderOffsetForLogicalOffset(offset);
+4943:    final target = _layoutService.verticalMoveOffset(
+4944:      painter,
+4945:      renderOffset,
+4946:      forward,
+4947:      preferX: preferX,
+4948:    );
+4949:    return VerticalMoveResult(
+4950:      targetOffset: target == null
+4951:          ? null
+4952:          : widget.offsetMapper.logicalOffsetForRenderOffset(target),
+4953:      caretX: _layoutService.caretLocalX(painter, renderOffset),
+4954:    );
+4955:  }
+4956:
+4957:  @override
+4958:  Widget build(BuildContext context) {
+--- 5368-5489 ---
+5368:        oldDelegate.textAlign != textAlign ||
+5369:        oldDelegate.textDirection != textDirection ||
+5370:        oldDelegate.maxWidth != maxWidth ||
+5371:        oldDelegate.ranges != ranges ||
+5372:        oldDelegate.color != color ||
+5373:        oldDelegate.activeColor != activeColor;
+5374:  }
+5375:}
+5376:
+5377:class _SelectionHighlightPainter extends CustomPainter {
+5378:  const _SelectionHighlightPainter({
+5379:    required this.layoutService,
+5380:    required this.textSpan,
+5381:    required this.textAlign,
+5382:    required this.textDirection,
+5383:    required this.maxWidth,
+5384:    required this.range,
+5385:    required this.color,
+5386:  });
+5387:
+5388:  final TextLayoutService layoutService;
+5389:  final InlineSpan textSpan;
+5390:  final TextAlign textAlign;
+5391:  final TextDirection textDirection;
+5392:  final double maxWidth;
+5393:  final _LocalSelectionRange? range;
+5394:  final Color color;
+5395:
+5396:  @override
+5397:  void paint(Canvas canvas, Size size) {
+5398:    final range = this.range;
+5399:    if (range == null || range.start == range.end) {
+5400:      return;
+5401:    }
+5402:    final painter = layoutService.layout(
+5403:      span: textSpan,
+5404:      textAlign: textAlign,
+5405:      textDirection: textDirection,
+5406:      maxWidth: maxWidth,
+5407:    );
+5408:    final boxes = layoutService.selectionBoxes(painter, range.start, range.end);
+5409:    final paint = Paint()..color = color;
+5410:    for (final box in boxes) {
+5411:      canvas.drawRect(box.toRect(), paint);
+5412:    }
+5413:  }
+5414:
+5415:  @override
+5416:  bool shouldRepaint(covariant _SelectionHighlightPainter oldDelegate) {
+5417:    return oldDelegate.textSpan != textSpan ||
+5418:        oldDelegate.textAlign != textAlign ||
+5419:        oldDelegate.textDirection != textDirection ||
+5420:        oldDelegate.maxWidth != maxWidth ||
+5421:        oldDelegate.range?.start != range?.start ||
+5422:        oldDelegate.range?.end != range?.end ||
+5423:        oldDelegate.color != color;
+5424:  }
+5425:}
+5426:
+5427:class _CaretPainter extends CustomPainter {
+5428:  const _CaretPainter({
+5429:    required this.layoutService,
+5430:    required this.textSpan,
+5431:    required this.textAlign,
+5432:    required this.textDirection,
+5433:    required this.maxWidth,
+5434:    required this.caretOffset,
+5435:    required this.color,
+5436:    required this.textLength,
+5437:    this.opacity = 1.0,
+5438:  });
+5439:
+5440:  final TextLayoutService layoutService;
+5441:  final InlineSpan textSpan;
+5442:  final TextAlign textAlign;
+5443:  final TextDirection textDirection;
+5444:  final double maxWidth;
+5445:  final int? caretOffset;
+5446:  final Color color;
+5447:  final int textLength;
+5448:
+5449:  /// Caret alpha multiplier driven by the blink animation (1.0 = fully visible,
+5450:  /// 0.0 = hidden).
+5451:  final double opacity;
+5452:
+5453:  @override
+5454:  void paint(Canvas canvas, Size size) {
+5455:    final caretOffset = this.caretOffset;
+5456:    if (caretOffset == null) {
+5457:      return;
+5458:    }
+5459:    final painter = layoutService.layout(
+5460:      span: textSpan,
+5461:      textAlign: textAlign,
+5462:      textDirection: textDirection,
+5463:      maxWidth: maxWidth,
+5464:    );
+5465:    final safeOffset = caretOffset.clamp(0, textLength).toInt();
+5466:    final caretTop = layoutService.caretOffset(painter, safeOffset);
+5467:    // Fall back to preferredLineHeight (matching _caretRectAt) so the caret is
+5468:    // always drawn with a sensible height even when getFullHeightForCaret
+5469:    // returns null (e.g. at empty/whitespace runs).
+5470:    final height = layoutService.caretHeight(painter, safeOffset) ??
+5471:        painter.preferredLineHeight;
+5472:    final paint = Paint()
+5473:      ..color = color.withValues(alpha: opacity.clamp(0.0, 1.0))
+5474:      ..strokeWidth = _kCaretStrokeWidth;
+5475:    canvas.drawLine(caretTop, caretTop.translate(0, height), paint);
+5476:  }
+5477:
+5478:  @override
+5479:  bool shouldRepaint(covariant _CaretPainter oldDelegate) {
+5480:    return oldDelegate.textSpan != textSpan ||
+5481:        oldDelegate.textAlign != textAlign ||
+5482:        oldDelegate.textDirection != textDirection ||
+5483:        oldDelegate.maxWidth != maxWidth ||
+5484:        oldDelegate.caretOffset != caretOffset ||
+5485:        oldDelegate.color != color ||
+5486:        oldDelegate.textLength != textLength ||
+5487:        oldDelegate.opacity != opacity;
+5488:  }
+5489:}
+--- 6330-6352 ---
+6330:          renderStart: renderCursor,
+6331:          renderEnd: renderCursor + renderLength,
+6332:          atomic: node is InlineEmbed,
+6333:        ),
+6334:      );
+6335:    }
+6336:    logicalCursor += logicalLength;
+6337:    renderCursor += renderLength;
+6338:  }
+6339:  return _InlineTextLayout(
+6340:    spans: spans,
+6341:    offsetMapper: _InlineOffsetMapper(
+6342:      segments: segments,
+6343:      logicalLength: logicalCursor,
+6344:      renderLength: renderCursor,
+6345:    ),
+6346:  );
+6347:}
+6348:
+6349:int _inlineSpanTextLength(List<InlineSpan> spans) {
+6350:  var length = 0;
+6351:  for (final span in spans) {
+6352:    length += span.toPlainText().length;
+
+codex
+还需同步用于 IME/几何上报的本地 caret 矩形。
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+**Considering composition updates**
+
+I might need to think about updating the composition, especially since there's feedback that doesn't relate to the caret visual. Perhaps it could be useful for selection purposes? It sounds like it’s worth inspecting the block geometry registry to see what's happening there. I could explore methods to expose the caret functionality. Maybe using a code graph around the State could be helpful for this investigation. I'll look into it further!
+codex
+我会把同一转换应用到本地 caret/组合区矩形，避免反馈错位。
+mcp: codegraph/codegraph_explore started
+mcp: codegraph/codegraph_explore (completed)
+**Understanding code behavior**
+
+I need to make some edits, but first, I want to fully understand the behavior of _InlineOffsetSegment. It's crucial to grasp how it operates before making any changes. I’ll look at the codegraph_node to get more insight. This approach should help ensure I don’t overlook anything important when I proceed with the edits, and I want to get this right!
+codex
+补丁前我确认 segment 边界规则，避免破坏原子偏移。
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (failed)
+codex
+上个查询路径打错了，我重新查同一 symbol。
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+codex
+继续查看转换公式本身，确认边界包含行为。
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+codex
+atomic 段目前会把后边界落到视觉末尾，这正适合高亮/caret。
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+codex
+我先打最小补丁：绘制时统一转换为渲染 offset。
+apply patch
+patch: completed
+D:\project\GitHub\wenz_flutter\wenz_richtext\lib\src\widgets\wenz_rich_text_editor.dart
+diff --git a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+index f85e577b7226a4847c7590b15982a18d5d16592c..90b972847486f9ae2ef0fe3a77c8ed0e99c3ec0d
+--- a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
++++ b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+@@ -4890,10 +4890,13 @@
+       textDirection: Directionality.of(context),
+       maxWidth: _lastMaxWidth,
+     );
+-    final clamped = offset.clamp(0, widget.textLength).toInt();
+-    final local = _layoutService.caretOffset(painter, clamped);
+-    final height = _layoutService.caretHeight(painter, clamped) ??
+-        painter.preferredLineHeight;
++    final clamped = offset.clamp(0, widget.textLength).toInt();
++    final renderOffset = widget.offsetMapper.renderOffsetForLogicalOffset(
++      clamped,
++    );
++    final local = _layoutService.caretOffset(painter, renderOffset);
++    final height = _layoutService.caretHeight(painter, renderOffset) ??
++        painter.preferredLineHeight;
+     // Width matches the painted stroke so the IME candidate window is anchored
+     // to the caret the user actually sees.
+     return Rect.fromLTWH(
+@@ -4916,7 +4919,11 @@
+     if (safeStart == safeEnd) {
+       return _localCaretRectAt(safeStart);
+     }
+-    final boxes = _layoutService.selectionBoxes(painter, safeStart, safeEnd);
++    final renderStart = widget.offsetMapper.renderOffsetForLogicalOffset(
++      safeStart,
++    );
++    final renderEnd = widget.offsetMapper.renderOffsetForLogicalOffset(safeEnd);
++    final boxes = _layoutService.selectionBoxes(painter, renderStart, renderEnd);
+     if (boxes.isEmpty) {
+       return _localCaretRectAt(safeStart);
+     }
+@@ -5000,11 +5007,12 @@
+         // otherwise dirty the whole surface — including the RichText child —
+         // every half second. The boundary confines the repaint to the caret
+         // layer, so the (much heavier) text layout/paint is untouched.
+-        final caretPainter = _CaretPainter(
+-          layoutService: _layoutService,
+-          textSpan: widget.textSpan,
+-          textAlign: widget.textAlign,
+-          textDirection: direction,
++        final caretPainter = _CaretPainter(
++          layoutService: _layoutService,
++          textSpan: widget.textSpan,
++          offsetMapper: widget.offsetMapper,
++          textAlign: widget.textAlign,
++          textDirection: direction,
+           maxWidth: maxWidth,
+           caretOffset: caretOffset,
+           color: caretColor,
+@@ -5023,11 +5031,12 @@
+             activeColor: activeFindHighlightColor,
+           ),
+           child: CustomPaint(
+-            painter: _SelectionHighlightPainter(
+-              layoutService: _layoutService,
+-              textSpan: widget.textSpan,
+-              textAlign: widget.textAlign,
+-              textDirection: direction,
++            painter: _SelectionHighlightPainter(
++              layoutService: _layoutService,
++              textSpan: widget.textSpan,
++              offsetMapper: widget.offsetMapper,
++              textAlign: widget.textAlign,
++              textDirection: direction,
+               maxWidth: maxWidth,
+               range: selectionRange,
+               color: highlightColor,
+@@ -5375,19 +5384,21 @@
+ }
+ 
+ class _SelectionHighlightPainter extends CustomPainter {
+-  const _SelectionHighlightPainter({
+-    required this.layoutService,
+-    required this.textSpan,
+-    required this.textAlign,
+-    required this.textDirection,
++  const _SelectionHighlightPainter({
++    required this.layoutService,
++    required this.textSpan,
++    required this.offsetMapper,
++    required this.textAlign,
++    required this.textDirection,
+     required this.maxWidth,
+     required this.range,
+     required this.color,
+   });
+ 
+-  final TextLayoutService layoutService;
+-  final InlineSpan textSpan;
+-  final TextAlign textAlign;
++  final TextLayoutService layoutService;
++  final InlineSpan textSpan;
++  final _InlineOffsetMapper offsetMapper;
++  final TextAlign textAlign;
+   final TextDirection textDirection;
+   final double maxWidth;
+   final _LocalSelectionRange? range;
+@@ -5405,7 +5416,9 @@
+       textDirection: textDirection,
+       maxWidth: maxWidth,
+     );
+-    final boxes = layoutService.selectionBoxes(painter, range.start, range.end);
++    final renderStart = offsetMapper.renderOffsetForLogicalOffset(range.start);
++    final renderEnd = offsetMapper.renderOffsetForLogicalOffset(range.end);
++    final boxes = layoutService.selectionBoxes(painter, renderStart, renderEnd);
+     final paint = Paint()..color = color;
+     for (final box in boxes) {
+       canvas.drawRect(box.toRect(), paint);
+@@ -5414,8 +5427,9 @@
+ 
+   @override
+   bool shouldRepaint(covariant _SelectionHighlightPainter oldDelegate) {
+-    return oldDelegate.textSpan != textSpan ||
+-        oldDelegate.textAlign != textAlign ||
++    return oldDelegate.textSpan != textSpan ||
++        oldDelegate.offsetMapper != offsetMapper ||
++        oldDelegate.textAlign != textAlign ||
+         oldDelegate.textDirection != textDirection ||
+         oldDelegate.maxWidth != maxWidth ||
+         oldDelegate.range?.start != range?.start ||
+@@ -5425,11 +5439,12 @@
+ }
+ 
+ class _CaretPainter extends CustomPainter {
+-  const _CaretPainter({
+-    required this.layoutService,
+-    required this.textSpan,
+-    required this.textAlign,
+-    required this.textDirection,
++  const _CaretPainter({
++    required this.layoutService,
++    required this.textSpan,
++    required this.offsetMapper,
++    required this.textAlign,
++    required this.textDirection,
+     required this.maxWidth,
+     required this.caretOffset,
+     required this.color,
+@@ -5437,9 +5452,10 @@
+     this.opacity = 1.0,
+   });
+ 
+-  final TextLayoutService layoutService;
+-  final InlineSpan textSpan;
+-  final TextAlign textAlign;
++  final TextLayoutService layoutService;
++  final InlineSpan textSpan;
++  final _InlineOffsetMapper offsetMapper;
++  final TextAlign textAlign;
+   final TextDirection textDirection;
+   final double maxWidth;
+   final int? caretOffset;
+@@ -5462,13 +5478,14 @@
+       textDirection: textDirection,
+       maxWidth: maxWidth,
+     );
+-    final safeOffset = caretOffset.clamp(0, textLength).toInt();
+-    final caretTop = layoutService.caretOffset(painter, safeOffset);
++    final safeOffset = caretOffset.clamp(0, textLength).toInt();
++    final renderOffset = offsetMapper.renderOffsetForLogicalOffset(safeOffset);
++    final caretTop = layoutService.caretOffset(painter, renderOffset);
+     // Fall back to preferredLineHeight (matching _caretRectAt) so the caret is
+     // always drawn with a sensible height even when getFullHeightForCaret
+     // returns null (e.g. at empty/whitespace runs).
+-    final height = layoutService.caretHeight(painter, safeOffset) ??
+-        painter.preferredLineHeight;
++    final height = layoutService.caretHeight(painter, renderOffset) ??
++        painter.preferredLineHeight;
+     final paint = Paint()
+       ..color = color.withValues(alpha: opacity.clamp(0.0, 1.0))
+       ..strokeWidth = _kCaretStrokeWidth;
+@@ -5477,8 +5494,9 @@
+ 
+   @override
+   bool shouldRepaint(covariant _CaretPainter oldDelegate) {
+-    return oldDelegate.textSpan != textSpan ||
+-        oldDelegate.textAlign != textAlign ||
++    return oldDelegate.textSpan != textSpan ||
++        oldDelegate.offsetMapper != offsetMapper ||
++        oldDelegate.textAlign != textAlign ||
+         oldDelegate.textDirection != textDirection ||
+         oldDelegate.maxWidth != maxWidth ||
+         oldDelegate.caretOffset != caretOffset ||
+
+diff --git a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+index f85e577b7226a4847c7590b15982a18d5d16592c..90b972847486f9ae2ef0fe3a77c8ed0e99c3ec0d
+--- a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
++++ b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+@@ -4890,10 +4890,13 @@
+       textDirection: Directionality.of(context),
+       maxWidth: _lastMaxWidth,
+     );
+-    final clamped = offset.clamp(0, widget.textLength).toInt();
+-    final local = _layoutService.caretOffset(painter, clamped);
+-    final height = _layoutService.caretHeight(painter, clamped) ??
+-        painter.preferredLineHeight;
++    final clamped = offset.clamp(0, widget.textLength).toInt();
++    final renderOffset = widget.offsetMapper.renderOffsetForLogicalOffset(
++      clamped,
++    );
++    final local = _layoutService.caretOffset(painter, renderOffset);
++    final height = _layoutService.caretHeight(painter, renderOffset) ??
++        painter.preferredLineHeight;
+     // Width matches the painted stroke so the IME candidate window is anchored
+     // to the caret the user actually sees.
+     return Rect.fromLTWH(
+@@ -4916,7 +4919,11 @@
+     if (safeStart == safeEnd) {
+       return _localCaretRectAt(safeStart);
+     }
+-    final boxes = _layoutService.selectionBoxes(painter, safeStart, safeEnd);
++    final renderStart = widget.offsetMapper.renderOffsetForLogicalOffset(
++      safeStart,
++    );
++    final renderEnd = widget.offsetMapper.renderOffsetForLogicalOffset(safeEnd);
++    final boxes = _layoutService.selectionBoxes(painter, renderStart, renderEnd);
+     if (boxes.isEmpty) {
+       return _localCaretRectAt(safeStart);
+     }
+@@ -5000,11 +5007,12 @@
+         // otherwise dirty the whole surface — including the RichText child —
+         // every half second. The boundary confines the repaint to the caret
+         // layer, so the (much heavier) text layout/paint is untouched.
+-        final caretPainter = _CaretPainter(
+-          layoutService: _layoutService,
+-          textSpan: widget.textSpan,
+-          textAlign: widget.textAlign,
+-          textDirection: direction,
++        final caretPainter = _CaretPainter(
++          layoutService: _layoutService,
++          textSpan: widget.textSpan,
++          offsetMapper: widget.offsetMapper,
++          textAlign: widget.textAlign,
++          textDirection: direction,
+           maxWidth: maxWidth,
+           caretOffset: caretOffset,
+           color: caretColor,
+@@ -5023,11 +5031,12 @@
+             activeColor: activeFindHighlightColor,
+           ),
+           child: CustomPaint(
+-            painter: _SelectionHighlightPainter(
+-              layoutService: _layoutService,
+-              textSpan: widget.textSpan,
+-              textAlign: widget.textAlign,
+-              textDirection: direction,
++            painter: _SelectionHighlightPainter(
++              layoutService: _layoutService,
++              textSpan: widget.textSpan,
++              offsetMapper: widget.offsetMapper,
++              textAlign: widget.textAlign,
++              textDirection: direction,
+               maxWidth: maxWidth,
+               range: selectionRange,
+               color: highlightColor,
+@@ -5375,19 +5384,21 @@
+ }
+ 
+ class _SelectionHighlightPainter extends CustomPainter {
+-  const _SelectionHighlightPainter({
+-    required this.layoutService,
+-    required this.textSpan,
+-    required this.textAlign,
+-    required this.textDirection,
++  const _SelectionHighlightPainter({
++    required this.layoutService,
++    required this.textSpan,
++    required this.offsetMapper,
++    required this.textAlign,
++    required this.textDirection,
+     required this.maxWidth,
+     required this.range,
+     required this.color,
+   });
+ 
+-  final TextLayoutService layoutService;
+-  final InlineSpan textSpan;
+-  final TextAlign textAlign;
++  final TextLayoutService layoutService;
++  final InlineSpan textSpan;
++  final _InlineOffsetMapper offsetMapper;
++  final TextAlign textAlign;
+   final TextDirection textDirection;
+   final double maxWidth;
+   final _LocalSelectionRange? range;
+@@ -5405,7 +5416,9 @@
+       textDirection: textDirection,
+       maxWidth: maxWidth,
+     );
+-    final boxes = layoutService.selectionBoxes(painter, range.start, range.end);
++    final renderStart = offsetMapper.renderOffsetForLogicalOffset(range.start);
++    final renderEnd = offsetMapper.renderOffsetForLogicalOffset(range.end);
++    final boxes = layoutService.selectionBoxes(painter, renderStart, renderEnd);
+     final paint = Paint()..color = color;
+     for (final box in boxes) {
+       canvas.drawRect(box.toRect(), paint);
+@@ -5414,8 +5427,9 @@
+ 
+   @override
+   bool shouldRepaint(covariant _SelectionHighlightPainter oldDelegate) {
+-    return oldDelegate.textSpan != textSpan ||
+-        oldDelegate.textAlign != textAlign ||
++    return oldDelegate.textSpan != textSpan ||
++        oldDelegate.offsetMapper != offsetMapper ||
++        oldDelegate.textAlign != textAlign ||
+         oldDelegate.textDirection != textDirection ||
+         oldDelegate.maxWidth != maxWidth ||
+         oldDelegate.range?.start != range?.start ||
+@@ -5425,11 +5439,12 @@
+ }
+ 
+ class _CaretPainter extends CustomPainter {
+-  const _CaretPainter({
+-    required this.layoutService,
+-    required this.textSpan,
+-    required this.textAlign,
+-    required this.textDirection,
++  const _CaretPainter({
++    required this.layoutService,
++    required this.textSpan,
++    required this.offsetMapper,
++    required this.textAlign,
++    required this.textDirection,
+     required this.maxWidth,
+     required this.caretOffset,
+     required this.color,
+@@ -5437,9 +5452,10 @@
+     this.opacity = 1.0,
+   });
+ 
+-  final TextLayoutService layoutService;
+-  final InlineSpan textSpan;
+-  final TextAlign textAlign;
++  final TextLayoutService layoutService;
++  final InlineSpan textSpan;
++  final _InlineOffsetMapper offsetMapper;
++  final TextAlign textAlign;
+   final TextDirection textDirection;
+   final double maxWidth;
+   final int? caretOffset;
+@@ -5462,13 +5478,14 @@
+       textDirection: textDirection,
+       maxWidth: maxWidth,
+     );
+-    final safeOffset = caretOffset.clamp(0, textLength).toInt();
+-    final caretTop = layoutService.caretOffset(painter, safeOffset);
++    final safeOffset = caretOffset.clamp(0, textLength).toInt();
++    final renderOffset = offsetMapper.renderOffsetForLogicalOffset(safeOffset);
++    final caretTop = layoutService.caretOffset(painter, renderOffset);
+     // Fall back to preferredLineHeight (matching _caretRectAt) so the caret is
+     // always drawn with a sensible height even when getFullHeightForCaret
+     // returns null (e.g. at empty/whitespace runs).
+-    final height = layoutService.caretHeight(painter, safeOffset) ??
+-        painter.preferredLineHeight;
++    final height = layoutService.caretHeight(painter, renderOffset) ??
++        painter.preferredLineHeight;
+     final paint = Paint()
+       ..color = color.withValues(alpha: opacity.clamp(0.0, 1.0))
+       ..strokeWidth = _kCaretStrokeWidth;
+@@ -5477,8 +5494,9 @@
+ 
+   @override
+   bool shouldRepaint(covariant _CaretPainter oldDelegate) {
+-    return oldDelegate.textSpan != textSpan ||
+-        oldDelegate.textAlign != textAlign ||
++    return oldDelegate.textSpan != textSpan ||
++        oldDelegate.offsetMapper != offsetMapper ||
++        oldDelegate.textAlign != textAlign ||
+         oldDelegate.textDirection != textDirection ||
+         oldDelegate.maxWidth != maxWidth ||
+         oldDelegate.caretOffset != caretOffset ||
+
+codex
+补丁已落地；现在格式化并做轻量静态检查。
+exec
+powershell.exe -Command '$ErrorActionPreference='"'Stop'; dart format 'lib/src/widgets/wenz_rich_text_editor.dart'" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 1102ms:
+Formatted lib/src/widgets/wenz_rich_text_editor.dart
+Formatted 1 file (1 changed) in 0.03 seconds.
+
+diff --git a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+index f85e577b7226a4847c7590b15982a18d5d16592c..3d9b7c6b8ec2be39e1b25ee8f0f9f05c85aebc93
+--- a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
++++ b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+@@ -4891,8 +4891,11 @@
+       maxWidth: _lastMaxWidth,
+     );
+     final clamped = offset.clamp(0, widget.textLength).toInt();
+-    final local = _layoutService.caretOffset(painter, clamped);
+-    final height = _layoutService.caretHeight(painter, clamped) ??
++    final renderOffset = widget.offsetMapper.renderOffsetForLogicalOffset(
++      clamped,
++    );
++    final local = _layoutService.caretOffset(painter, renderOffset);
++    final height = _layoutService.caretHeight(painter, renderOffset) ??
+         painter.preferredLineHeight;
+     // Width matches the painted stroke so the IME candidate window is anchored
+     // to the caret the user actually sees.
+@@ -4916,7 +4919,12 @@
+     if (safeStart == safeEnd) {
+       return _localCaretRectAt(safeStart);
+     }
+-    final boxes = _layoutService.selectionBoxes(painter, safeStart, safeEnd);
++    final renderStart = widget.offsetMapper.renderOffsetForLogicalOffset(
++      safeStart,
++    );
++    final renderEnd = widget.offsetMapper.renderOffsetForLogicalOffset(safeEnd);
++    final boxes =
++        _layoutService.selectionBoxes(painter, renderStart, renderEnd);
+     if (boxes.isEmpty) {
+       return _localCaretRectAt(safeStart);
+     }
+@@ -5003,6 +5011,7 @@
+         final caretPainter = _CaretPainter(
+           layoutService: _layoutService,
+           textSpan: widget.textSpan,
++          offsetMapper: widget.offsetMapper,
+           textAlign: widget.textAlign,
+           textDirection: direction,
+           maxWidth: maxWidth,
+@@ -5026,6 +5035,7 @@
+             painter: _SelectionHighlightPainter(
+               layoutService: _layoutService,
+               textSpan: widget.textSpan,
++              offsetMapper: widget.offsetMapper,
+               textAlign: widget.textAlign,
+               textDirection: direction,
+               maxWidth: maxWidth,
+@@ -5378,6 +5388,7 @@
+   const _SelectionHighlightPainter({
+     required this.layoutService,
+     required this.textSpan,
++    required this.offsetMapper,
+     required this.textAlign,
+     required this.textDirection,
+     required this.maxWidth,
+@@ -5387,6 +5398,7 @@
+ 
+   final TextLayoutService layoutService;
+   final InlineSpan textSpan;
++  final _InlineOffsetMapper offsetMapper;
+   final TextAlign textAlign;
+   final TextDirection textDirection;
+   final double maxWidth;
+@@ -5405,7 +5417,9 @@
+       textDirection: textDirection,
+       maxWidth: maxWidth,
+     );
+-    final boxes = layoutService.selectionBoxes(painter, range.start, range.end);
++    final renderStart = offsetMapper.renderOffsetForLogicalOffset(range.start);
++    final renderEnd = offsetMapper.renderOffsetForLogicalOffset(range.end);
++    final boxes = layoutService.selectionBoxes(painter, renderStart, renderEnd);
+     final paint = Paint()..color = color;
+     for (final box in boxes) {
+       canvas.drawRect(box.toRect(), paint);
+@@ -5415,6 +5429,7 @@
+   @override
+   bool shouldRepaint(covariant _SelectionHighlightPainter oldDelegate) {
+     return oldDelegate.textSpan != textSpan ||
++        oldDelegate.offsetMapper != offsetMapper ||
+         oldDelegate.textAlign != textAlign ||
+         oldDelegate.textDirection != textDirection ||
+         oldDelegate.maxWidth != maxWidth ||
+@@ -5428,6 +5443,7 @@
+   const _CaretPainter({
+     required this.layoutService,
+     required this.textSpan,
++    required this.offsetMapper,
+     required this.textAlign,
+     required this.textDirection,
+     required this.maxWidth,
+@@ -5439,6 +5455,7 @@
+ 
+   final TextLayoutService layoutService;
+   final InlineSpan textSpan;
++  final _InlineOffsetMapper offsetMapper;
+   final TextAlign textAlign;
+   final TextDirection textDirection;
+   final double maxWidth;
+@@ -5463,11 +5480,12 @@
+       maxWidth: maxWidth,
+     );
+     final safeOffset = caretOffset.clamp(0, textLength).toInt();
+-    final caretTop = layoutService.caretOffset(painter, safeOffset);
++    final renderOffset = offsetMapper.renderOffsetForLogicalOffset(safeOffset);
++    final caretTop = layoutService.caretOffset(painter, renderOffset);
+     // Fall back to preferredLineHeight (matching _caretRectAt) so the caret is
+     // always drawn with a sensible height even when getFullHeightForCaret
+     // returns null (e.g. at empty/whitespace runs).
+-    final height = layoutService.caretHeight(painter, safeOffset) ??
++    final height = layoutService.caretHeight(painter, renderOffset) ??
+         painter.preferredLineHeight;
+     final paint = Paint()
+       ..color = color.withValues(alpha: opacity.clamp(0.0, 1.0))
+@@ -5478,6 +5496,7 @@
+   @override
+   bool shouldRepaint(covariant _CaretPainter oldDelegate) {
+     return oldDelegate.textSpan != textSpan ||
++        oldDelegate.offsetMapper != offsetMapper ||
+         oldDelegate.textAlign != textAlign ||
+         oldDelegate.textDirection != textDirection ||
+         oldDelegate.maxWidth != maxWidth ||
+
+**Considering code analysis**
+
+I’m thinking about whether I need to run an analysis. The term "light static check" might suggest that it’s a yes. The P006 mentions tests, so I could run `flutter analyze`. P003 did that, but it might be too broad. Running `flutter analyze lib/src/widgets/wenz_rich_text_editor.dart` seems like a better option since I can target a specific file. I just need to check if Flutter analyze supports that, and it looks like it does! So, I’ll proceed.
+codex
+格式已整理；我只分析本次修改的文件。
+exec
+powershell.exe -Command '$ErrorActionPreference='"'Stop'; flutter analyze lib/src/widgets/wenz_rich_text_editor.dart" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 4405ms:
+Analyzing wenz_rich_text_editor.dart...                         
+No issues found! (ran in 2.8s)
+Flutter assets will be downloaded from https://storage.flutter-io.cn. Make sure you trust this source!
+
+diff --git a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+index f85e577b7226a4847c7590b15982a18d5d16592c..3d9b7c6b8ec2be39e1b25ee8f0f9f05c85aebc93
+--- a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
++++ b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+@@ -4891,8 +4891,11 @@
+       maxWidth: _lastMaxWidth,
+     );
+     final clamped = offset.clamp(0, widget.textLength).toInt();
+-    final local = _layoutService.caretOffset(painter, clamped);
+-    final height = _layoutService.caretHeight(painter, clamped) ??
++    final renderOffset = widget.offsetMapper.renderOffsetForLogicalOffset(
++      clamped,
++    );
++    final local = _layoutService.caretOffset(painter, renderOffset);
++    final height = _layoutService.caretHeight(painter, renderOffset) ??
+         painter.preferredLineHeight;
+     // Width matches the painted stroke so the IME candidate window is anchored
+     // to the caret the user actually sees.
+@@ -4916,7 +4919,12 @@
+     if (safeStart == safeEnd) {
+       return _localCaretRectAt(safeStart);
+     }
+-    final boxes = _layoutService.selectionBoxes(painter, safeStart, safeEnd);
++    final renderStart = widget.offsetMapper.renderOffsetForLogicalOffset(
++      safeStart,
++    );
++    final renderEnd = widget.offsetMapper.renderOffsetForLogicalOffset(safeEnd);
++    final boxes =
++        _layoutService.selectionBoxes(painter, renderStart, renderEnd);
+     if (boxes.isEmpty) {
+       return _localCaretRectAt(safeStart);
+     }
+@@ -5003,6 +5011,7 @@
+         final caretPainter = _CaretPainter(
+           layoutService: _layoutService,
+           textSpan: widget.textSpan,
++          offsetMapper: widget.offsetMapper,
+           textAlign: widget.textAlign,
+           textDirection: direction,
+           maxWidth: maxWidth,
+@@ -5026,6 +5035,7 @@
+             painter: _SelectionHighlightPainter(
+               layoutService: _layoutService,
+               textSpan: widget.textSpan,
++              offsetMapper: widget.offsetMapper,
+               textAlign: widget.textAlign,
+               textDirection: direction,
+               maxWidth: maxWidth,
+@@ -5378,6 +5388,7 @@
+   const _SelectionHighlightPainter({
+     required this.layoutService,
+     required this.textSpan,
++    required this.offsetMapper,
+     required this.textAlign,
+     required this.textDirection,
+     required this.maxWidth,
+@@ -5387,6 +5398,7 @@
+ 
+   final TextLayoutService layoutService;
+   final InlineSpan textSpan;
++  final _InlineOffsetMapper offsetMapper;
+   final TextAlign textAlign;
+   final TextDirection textDirection;
+   final double maxWidth;
+@@ -5405,7 +5417,9 @@
+       textDirection: textDirection,
+       maxWidth: maxWidth,
+     );
+-    final boxes = layoutService.selectionBoxes(painter, range.start, range.end);
++    final renderStart = offsetMapper.renderOffsetForLogicalOffset(range.start);
++    final renderEnd = offsetMapper.renderOffsetForLogicalOffset(range.end);
++    final boxes = layoutService.selectionBoxes(painter, renderStart, renderEnd);
+     final paint = Paint()..color = color;
+     for (final box in boxes) {
+       canvas.drawRect(box.toRect(), paint);
+@@ -5415,6 +5429,7 @@
+   @override
+   bool shouldRepaint(covariant _SelectionHighlightPainter oldDelegate) {
+     return oldDelegate.textSpan != textSpan ||
++        oldDelegate.offsetMapper != offsetMapper ||
+         oldDelegate.textAlign != textAlign ||
+         oldDelegate.textDirection != textDirection ||
+         oldDelegate.maxWidth != maxWidth ||
+@@ -5428,6 +5443,7 @@
+   const _CaretPainter({
+     required this.layoutService,
+     required this.textSpan,
++    required this.offsetMapper,
+     required this.textAlign,
+     required this.textDirection,
+     required this.maxWidth,
+@@ -5439,6 +5455,7 @@
+ 
+   final TextLayoutService layoutService;
+   final InlineSpan textSpan;
++  final _InlineOffsetMapper offsetMapper;
+   final TextAlign textAlign;
+   final TextDirection textDirection;
+   final double maxWidth;
+@@ -5463,11 +5480,12 @@
+       maxWidth: maxWidth,
+     );
+     final safeOffset = caretOffset.clamp(0, textLength).toInt();
+-    final caretTop = layoutService.caretOffset(painter, safeOffset);
++    final renderOffset = offsetMapper.renderOffsetForLogicalOffset(safeOffset);
++    final caretTop = layoutService.caretOffset(painter, renderOffset);
+     // Fall back to preferredLineHeight (matching _caretRectAt) so the caret is
+     // always drawn with a sensible height even when getFullHeightForCaret
+     // returns null (e.g. at empty/whitespace runs).
+-    final height = layoutService.caretHeight(painter, safeOffset) ??
++    final height = layoutService.caretHeight(painter, renderOffset) ??
+         painter.preferredLineHeight;
+     final paint = Paint()
+       ..color = color.withValues(alpha: opacity.clamp(0.0, 1.0))
+@@ -5478,6 +5496,7 @@
+   @override
+   bool shouldRepaint(covariant _CaretPainter oldDelegate) {
+     return oldDelegate.textSpan != textSpan ||
++        oldDelegate.offsetMapper != offsetMapper ||
+         oldDelegate.textAlign != textAlign ||
+         oldDelegate.textDirection != textDirection ||
+         oldDelegate.maxWidth != maxWidth ||
+
+codex
+P004 代码侧完成；现在更新计划 checkbox 和进度区。
+  ✓ 定位高亮光标绘制
+  ✓ 补齐 offset 映射
+  → 更新计划进度
+diff --git a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+index f85e577b7226a4847c7590b15982a18d5d16592c..3d9b7c6b8ec2be39e1b25ee8f0f9f05c85aebc93
+--- a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
++++ b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+@@ -4891,8 +4891,11 @@
+       maxWidth: _lastMaxWidth,
+     );
+     final clamped = offset.clamp(0, widget.textLength).toInt();
+-    final local = _layoutService.caretOffset(painter, clamped);
+-    final height = _layoutService.caretHeight(painter, clamped) ??
++    final renderOffset = widget.offsetMapper.renderOffsetForLogicalOffset(
++      clamped,
++    );
++    final local = _layoutService.caretOffset(painter, renderOffset);
++    final height = _layoutService.caretHeight(painter, renderOffset) ??
+         painter.preferredLineHeight;
+     // Width matches the painted stroke so the IME candidate window is anchored
+     // to the caret the user actually sees.
+@@ -4916,7 +4919,12 @@
+     if (safeStart == safeEnd) {
+       return _localCaretRectAt(safeStart);
+     }
+-    final boxes = _layoutService.selectionBoxes(painter, safeStart, safeEnd);
++    final renderStart = widget.offsetMapper.renderOffsetForLogicalOffset(
++      safeStart,
++    );
++    final renderEnd = widget.offsetMapper.renderOffsetForLogicalOffset(safeEnd);
++    final boxes =
++        _layoutService.selectionBoxes(painter, renderStart, renderEnd);
+     if (boxes.isEmpty) {
+       return _localCaretRectAt(safeStart);
+     }
+@@ -5003,6 +5011,7 @@
+         final caretPainter = _CaretPainter(
+           layoutService: _layoutService,
+           textSpan: widget.textSpan,
++          offsetMapper: widget.offsetMapper,
+           textAlign: widget.textAlign,
+           textDirection: direction,
+           maxWidth: maxWidth,
+@@ -5026,6 +5035,7 @@
+             painter: _SelectionHighlightPainter(
+               layoutService: _layoutService,
+               textSpan: widget.textSpan,
++              offsetMapper: widget.offsetMapper,
+               textAlign: widget.textAlign,
+               textDirection: direction,
+               maxWidth: maxWidth,
+@@ -5378,6 +5388,7 @@
+   const _SelectionHighlightPainter({
+     required this.layoutService,
+     required this.textSpan,
++    required this.offsetMapper,
+     required this.textAlign,
+     required this.textDirection,
+     required this.maxWidth,
+@@ -5387,6 +5398,7 @@
+ 
+   final TextLayoutService layoutService;
+   final InlineSpan textSpan;
++  final _InlineOffsetMapper offsetMapper;
+   final TextAlign textAlign;
+   final TextDirection textDirection;
+   final double maxWidth;
+@@ -5405,7 +5417,9 @@
+       textDirection: textDirection,
+       maxWidth: maxWidth,
+     );
+-    final boxes = layoutService.selectionBoxes(painter, range.start, range.end);
++    final renderStart = offsetMapper.renderOffsetForLogicalOffset(range.start);
++    final renderEnd = offsetMapper.renderOffsetForLogicalOffset(range.end);
++    final boxes = layoutService.selectionBoxes(painter, renderStart, renderEnd);
+     final paint = Paint()..color = color;
+     for (final box in boxes) {
+       canvas.drawRect(box.toRect(), paint);
+@@ -5415,6 +5429,7 @@
+   @override
+   bool shouldRepaint(covariant _SelectionHighlightPainter oldDelegate) {
+     return oldDelegate.textSpan != textSpan ||
++        oldDelegate.offsetMapper != offsetMapper ||
+         oldDelegate.textAlign != textAlign ||
+         oldDelegate.textDirection != textDirection ||
+         oldDelegate.maxWidth != maxWidth ||
+@@ -5428,6 +5443,7 @@
+   const _CaretPainter({
+     required this.layoutService,
+     required this.textSpan,
++    required this.offsetMapper,
+     required this.textAlign,
+     required this.textDirection,
+     required this.maxWidth,
+@@ -5439,6 +5455,7 @@
+ 
+   final TextLayoutService layoutService;
+   final InlineSpan textSpan;
++  final _InlineOffsetMapper offsetMapper;
+   final TextAlign textAlign;
+   final TextDirection textDirection;
+   final double maxWidth;
+@@ -5463,11 +5480,12 @@
+       maxWidth: maxWidth,
+     );
+     final safeOffset = caretOffset.clamp(0, textLength).toInt();
+-    final caretTop = layoutService.caretOffset(painter, safeOffset);
++    final renderOffset = offsetMapper.renderOffsetForLogicalOffset(safeOffset);
++    final caretTop = layoutService.caretOffset(painter, renderOffset);
+     // Fall back to preferredLineHeight (matching _caretRectAt) so the caret is
+     // always drawn with a sensible height even when getFullHeightForCaret
+     // returns null (e.g. at empty/whitespace runs).
+-    final height = layoutService.caretHeight(painter, safeOffset) ??
++    final height = layoutService.caretHeight(painter, renderOffset) ??
+         painter.preferredLineHeight;
+     final paint = Paint()
+       ..color = color.withValues(alpha: opacity.clamp(0.0, 1.0))
+@@ -5478,6 +5496,7 @@
+   @override
+   bool shouldRepaint(covariant _CaretPainter oldDelegate) {
+     return oldDelegate.textSpan != textSpan ||
++        oldDelegate.offsetMapper != offsetMapper ||
+         oldDelegate.textAlign != textAlign ||
+         oldDelegate.textDirection != textDirection ||
+         oldDelegate.maxWidth != maxWidth ||
+
+exec
+powershell.exe -Command '$ErrorActionPreference='"'Stop'; "'$path='"'D:\\project\\GitHub\\wenz_flutter\\wenz_richtext\\docs\\plan\\plan_feedback_1_20260624-220759.md'; "'$utf8NoBom = [System.Text.UTF8Encoding]::new($false); $content = [System.IO.File]::ReadAllText($path, [System.Text.Encoding]::UTF8); $content = $content.Replace('"'- [ ] P004: 修正选区高亮与光标反馈', '- [x] P004: 修正选区高亮与光标反馈'); "'$content = $content.Replace('"'- 当前状态：P001、P002、P003 已完成；命中测试已通过内联 offset 映射修正，等待进入 P004。', '- 当前状态：P001、P002、P003、P004 已完成；命中测试、高亮绘制与光标反馈均已接入内联 offset 映射，等待进入 P005。'); "'$content = $content.Replace('"'- 下一步：执行 P004，修正选区高亮与光标反馈。', '- 下一步：执行 P005，补充自动化回归测试。'); "'$insertAfter = '"'- P003 验证记录：已执行 "'`flutter analyze`，结果通过；未执行 P006 中的选择器回归测试，留待对应任务处理。'"'; "'$addition = "$insertAfter`r`n- P004 修复记录：`_SelectionHighlightPainter`、`_CaretPainter`、本地 caret 几何与组合区矩形查询现在先将文档逻辑 offset 转换为 `TextPainter` 渲染 offset；emoji、mention 等 `InlineEmbed` 的逻辑原子区间会覆盖完整视觉文本，不再按逻辑长度 1 绘制高亮或 caret。`r`n- P004 验证记录：已执行 `flutter analyze lib/src/widgets/wenz_rich_text_editor.dart`，结果通过；未执行 P006 中的选择器回归测试，留待对应任务处理。"; if ($content.Contains($insertAfter) -and -not $content.Contains('"'- P004 修复记录：')) { "'$content = $content.Replace($insertAfter, $addition) }; [System.IO.File]::WriteAllText($path, $content, $utf8NoBom)' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 162ms:
+diff --git a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+index f85e577b7226a4847c7590b15982a18d5d16592c..3d9b7c6b8ec2be39e1b25ee8f0f9f05c85aebc93
+--- a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
++++ b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+@@ -4891,8 +4891,11 @@
+       maxWidth: _lastMaxWidth,
+     );
+     final clamped = offset.clamp(0, widget.textLength).toInt();
+-    final local = _layoutService.caretOffset(painter, clamped);
+-    final height = _layoutService.caretHeight(painter, clamped) ??
++    final renderOffset = widget.offsetMapper.renderOffsetForLogicalOffset(
++      clamped,
++    );
++    final local = _layoutService.caretOffset(painter, renderOffset);
++    final height = _layoutService.caretHeight(painter, renderOffset) ??
+         painter.preferredLineHeight;
+     // Width matches the painted stroke so the IME candidate window is anchored
+     // to the caret the user actually sees.
+@@ -4916,7 +4919,12 @@
+     if (safeStart == safeEnd) {
+       return _localCaretRectAt(safeStart);
+     }
+-    final boxes = _layoutService.selectionBoxes(painter, safeStart, safeEnd);
++    final renderStart = widget.offsetMapper.renderOffsetForLogicalOffset(
++      safeStart,
++    );
++    final renderEnd = widget.offsetMapper.renderOffsetForLogicalOffset(safeEnd);
++    final boxes =
++        _layoutService.selectionBoxes(painter, renderStart, renderEnd);
+     if (boxes.isEmpty) {
+       return _localCaretRectAt(safeStart);
+     }
+@@ -5003,6 +5011,7 @@
+         final caretPainter = _CaretPainter(
+           layoutService: _layoutService,
+           textSpan: widget.textSpan,
++          offsetMapper: widget.offsetMapper,
+           textAlign: widget.textAlign,
+           textDirection: direction,
+           maxWidth: maxWidth,
+@@ -5026,6 +5035,7 @@
+             painter: _SelectionHighlightPainter(
+               layoutService: _layoutService,
+               textSpan: widget.textSpan,
++              offsetMapper: widget.offsetMapper,
+               textAlign: widget.textAlign,
+               textDirection: direction,
+               maxWidth: maxWidth,
+@@ -5378,6 +5388,7 @@
+   const _SelectionHighlightPainter({
+     required this.layoutService,
+     required this.textSpan,
++    required this.offsetMapper,
+     required this.textAlign,
+     required this.textDirection,
+     required this.maxWidth,
+@@ -5387,6 +5398,7 @@
+ 
+   final TextLayoutService layoutService;
+   final InlineSpan textSpan;
++  final _InlineOffsetMapper offsetMapper;
+   final TextAlign textAlign;
+   final TextDirection textDirection;
+   final double maxWidth;
+@@ -5405,7 +5417,9 @@
+       textDirection: textDirection,
+       maxWidth: maxWidth,
+     );
+-    final boxes = layoutService.selectionBoxes(painter, range.start, range.end);
++    final renderStart = offsetMapper.renderOffsetForLogicalOffset(range.start);
++    final renderEnd = offsetMapper.renderOffsetForLogicalOffset(range.end);
++    final boxes = layoutService.selectionBoxes(painter, renderStart, renderEnd);
+     final paint = Paint()..color = color;
+     for (final box in boxes) {
+       canvas.drawRect(box.toRect(), paint);
+@@ -5415,6 +5429,7 @@
+   @override
+   bool shouldRepaint(covariant _SelectionHighlightPainter oldDelegate) {
+     return oldDelegate.textSpan != textSpan ||
++        oldDelegate.offsetMapper != offsetMapper ||
+         oldDelegate.textAlign != textAlign ||
+         oldDelegate.textDirection != textDirection ||
+         oldDelegate.maxWidth != maxWidth ||
+@@ -5428,6 +5443,7 @@
+   const _CaretPainter({
+     required this.layoutService,
+     required this.textSpan,
++    required this.offsetMapper,
+     required this.textAlign,
+     required this.textDirection,
+     required this.maxWidth,
+@@ -5439,6 +5455,7 @@
+ 
+   final TextLayoutService layoutService;
+   final InlineSpan textSpan;
++  final _InlineOffsetMapper offsetMapper;
+   final TextAlign textAlign;
+   final TextDirection textDirection;
+   final double maxWidth;
+@@ -5463,11 +5480,12 @@
+       maxWidth: maxWidth,
+     );
+     final safeOffset = caretOffset.clamp(0, textLength).toInt();
+-    final caretTop = layoutService.caretOffset(painter, safeOffset);
++    final renderOffset = offsetMapper.renderOffsetForLogicalOffset(safeOffset);
++    final caretTop = layoutService.caretOffset(painter, renderOffset);
+     // Fall back to preferredLineHeight (matching _caretRectAt) so the caret is
+     // always drawn with a sensible height even when getFullHeightForCaret
+     // returns null (e.g. at empty/whitespace runs).
+-    final height = layoutService.caretHeight(painter, safeOffset) ??
++    final height = layoutService.caretHeight(painter, renderOffset) ??
+         painter.preferredLineHeight;
+     final paint = Paint()
+       ..color = color.withValues(alpha: opacity.clamp(0.0, 1.0))
+@@ -5478,6 +5496,7 @@
+   @override
+   bool shouldRepaint(covariant _CaretPainter oldDelegate) {
+     return oldDelegate.textSpan != textSpan ||
++        oldDelegate.offsetMapper != offsetMapper ||
+         oldDelegate.textAlign != textAlign ||
+         oldDelegate.textDirection != textDirection ||
+         oldDelegate.maxWidth != maxWidth ||
+
+**Verifying plan update**
+
+I need to confirm the plan update and possibly summarize the changes using a git diff. It seems like a good idea to inspect relevant snippets closely to ensure I’m catching all the important details. I want to make sure nothing is overlooked, so taking a careful look at those smaller bits is essential. Let's get down to it and ensure everything lines up perfectly.
+codex
+计划已更新；我做最后的状态确认。
+exec
+powershell.exe -Command '$ErrorActionPreference='"'Stop'; Write-Output '--- git status ---'; git status --short; Write-Output '--- plan P004/progress ---'; Select-String -LiteralPath 'D:\\project\\GitHub\\wenz_flutter\\wenz_richtext\\docs\\plan\\plan_feedback_1_20260624-220759.md' -Encoding UTF8 -Pattern 'P004|当前状态|下一步|P003 验证记录|P004 修复记录|P004 验证记录'" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 280ms:
+--- git status ---
+ M .codegraph/daemon.pid
+ M lib/src/widgets/block_renderer_registry.dart
+ M lib/src/widgets/comment_sidebar.dart
+ M lib/src/widgets/wenz_rich_text_editor.dart
+ M test/widgets/goldens/editor_blocks.png
+ M test/widgets/import_export_demo_test.dart
+ M test/widgets/wenz_rich_text_editor_test.dart
+?? docs/plan/
+?? docs/progress/logs/
+?? nul
+?? test/widgets/goldens/editor_advanced_blocks.png
+--- plan P004/progress ---
+
+docs\plan\plan_feedback_1_20260624-220759.md:28:- [x] P004: 修正选区高亮与光标反馈
+docs\plan\plan_feedback_1_20260624-220759.md:54:- 当前状态：P001、P002、P003、P004 已完成；命中测试、高亮绘制与光标反馈均已接入内联 offset 映射，等待进入 P005
+。
+docs\plan\plan_feedback_1_20260624-220759.md:56:- 下一步：执行 P005，补充自动化回归测试。
+docs\plan\plan_feedback_1_20260624-220759.md:71:- P003 验证记录：已执行 `flutter analyze`，结果通过；未执行 P006 中的选择器回归测试，留待对应任务处理。
+docs\plan\plan_feedback_1_20260624-220759.md:72:- P004 修复记录：_SelectionHighlightPainter、_CaretPainter、本地 caret 几何与组合区矩形查
+询现在先将文档逻辑 offset 转换为 TextPainter 渲染 offset；emoji、mention 等 InlineEmbed 的逻辑原子区间会覆盖完整视觉文本，不再按逻辑长度 1 绘制高亮或 caret。
+docs\plan\plan_feedback_1_20260624-220759.md:73:- P004 验证记录：已执行 lutter analyze lib/src/widgets/wenz_rich_text_editor.d
+art，结果通过；未执行 P006 中的选择器回归测试，留待对应任务处理。
+
+
+
+diff --git a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+index f85e577b7226a4847c7590b15982a18d5d16592c..3d9b7c6b8ec2be39e1b25ee8f0f9f05c85aebc93
+--- a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
++++ b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+@@ -4891,8 +4891,11 @@
+       maxWidth: _lastMaxWidth,
+     );
+     final clamped = offset.clamp(0, widget.textLength).toInt();
+-    final local = _layoutService.caretOffset(painter, clamped);
+-    final height = _layoutService.caretHeight(painter, clamped) ??
++    final renderOffset = widget.offsetMapper.renderOffsetForLogicalOffset(
++      clamped,
++    );
++    final local = _layoutService.caretOffset(painter, renderOffset);
++    final height = _layoutService.caretHeight(painter, renderOffset) ??
+         painter.preferredLineHeight;
+     // Width matches the painted stroke so the IME candidate window is anchored
+     // to the caret the user actually sees.
+@@ -4916,7 +4919,12 @@
+     if (safeStart == safeEnd) {
+       return _localCaretRectAt(safeStart);
+     }
+-    final boxes = _layoutService.selectionBoxes(painter, safeStart, safeEnd);
++    final renderStart = widget.offsetMapper.renderOffsetForLogicalOffset(
++      safeStart,
++    );
++    final renderEnd = widget.offsetMapper.renderOffsetForLogicalOffset(safeEnd);
++    final boxes =
++        _layoutService.selectionBoxes(painter, renderStart, renderEnd);
+     if (boxes.isEmpty) {
+       return _localCaretRectAt(safeStart);
+     }
+@@ -5003,6 +5011,7 @@
+         final caretPainter = _CaretPainter(
+           layoutService: _layoutService,
+           textSpan: widget.textSpan,
++          offsetMapper: widget.offsetMapper,
+           textAlign: widget.textAlign,
+           textDirection: direction,
+           maxWidth: maxWidth,
+@@ -5026,6 +5035,7 @@
+             painter: _SelectionHighlightPainter(
+               layoutService: _layoutService,
+               textSpan: widget.textSpan,
++              offsetMapper: widget.offsetMapper,
+               textAlign: widget.textAlign,
+               textDirection: direction,
+               maxWidth: maxWidth,
+@@ -5378,6 +5388,7 @@
+   const _SelectionHighlightPainter({
+     required this.layoutService,
+     required this.textSpan,
++    required this.offsetMapper,
+     required this.textAlign,
+     required this.textDirection,
+     required this.maxWidth,
+@@ -5387,6 +5398,7 @@
+ 
+   final TextLayoutService layoutService;
+   final InlineSpan textSpan;
++  final _InlineOffsetMapper offsetMapper;
+   final TextAlign textAlign;
+   final TextDirection textDirection;
+   final double maxWidth;
+@@ -5405,7 +5417,9 @@
+       textDirection: textDirection,
+       maxWidth: maxWidth,
+     );
+-    final boxes = layoutService.selectionBoxes(painter, range.start, range.end);
++    final renderStart = offsetMapper.renderOffsetForLogicalOffset(range.start);
++    final renderEnd = offsetMapper.renderOffsetForLogicalOffset(range.end);
++    final boxes = layoutService.selectionBoxes(painter, renderStart, renderEnd);
+     final paint = Paint()..color = color;
+     for (final box in boxes) {
+       canvas.drawRect(box.toRect(), paint);
+@@ -5415,6 +5429,7 @@
+   @override
+   bool shouldRepaint(covariant _SelectionHighlightPainter oldDelegate) {
+     return oldDelegate.textSpan != textSpan ||
++        oldDelegate.offsetMapper != offsetMapper ||
+         oldDelegate.textAlign != textAlign ||
+         oldDelegate.textDirection != textDirection ||
+         oldDelegate.maxWidth != maxWidth ||
+@@ -5428,6 +5443,7 @@
+   const _CaretPainter({
+     required this.layoutService,
+     required this.textSpan,
++    required this.offsetMapper,
+     required this.textAlign,
+     required this.textDirection,
+     required this.maxWidth,
+@@ -5439,6 +5455,7 @@
+ 
+   final TextLayoutService layoutService;
+   final InlineSpan textSpan;
++  final _InlineOffsetMapper offsetMapper;
+   final TextAlign textAlign;
+   final TextDirection textDirection;
+   final double maxWidth;
+@@ -5463,11 +5480,12 @@
+       maxWidth: maxWidth,
+     );
+     final safeOffset = caretOffset.clamp(0, textLength).toInt();
+-    final caretTop = layoutService.caretOffset(painter, safeOffset);
++    final renderOffset = offsetMapper.renderOffsetForLogicalOffset(safeOffset);
++    final caretTop = layoutService.caretOffset(painter, renderOffset);
+     // Fall back to preferredLineHeight (matching _caretRectAt) so the caret is
+     // always drawn with a sensible height even when getFullHeightForCaret
+     // returns null (e.g. at empty/whitespace runs).
+-    final height = layoutService.caretHeight(painter, safeOffset) ??
++    final height = layoutService.caretHeight(painter, renderOffset) ??
+         painter.preferredLineHeight;
+     final paint = Paint()
+       ..color = color.withValues(alpha: opacity.clamp(0.0, 1.0))
+@@ -5478,6 +5496,7 @@
+   @override
+   bool shouldRepaint(covariant _CaretPainter oldDelegate) {
+     return oldDelegate.textSpan != textSpan ||
++        oldDelegate.offsetMapper != offsetMapper ||
+         oldDelegate.textAlign != textAlign ||
+         oldDelegate.textDirection != textDirection ||
+         oldDelegate.maxWidth != maxWidth ||
+
+**Parsing lines for changes**
+
+I’m focusing on parsing a lines array to replace those starting with '- P004 修复记录：' and '- P004 验证记录：'. There might be a line about "当前状态" that's wrapping due to console width, but that shouldn't be an issue. I think I'll use `[System.IO.File]::ReadAllLines` for reading, and I'll iterate through it. Keeping single quotes around Markdown backticks seems fine. I’ll ensure to use the exact string in PowerShell single quotes since it won't escape.
+codex
+发现计划记录中的 Markdown 反引号被 PowerShell 转义，我马上修正。
+exec
+powershell.exe -Command '$ErrorActionPreference='"'Stop'; "'$path='"'D:\\project\\GitHub\\wenz_flutter\\wenz_richtext\\docs\\plan\\plan_feedback_1_20260624-220759.md'; "'$utf8NoBom = [System.Text.UTF8Encoding]::new($false); $lines = [System.Collections.Generic.List[string]]::new(); $lines.AddRange([System.IO.File]::ReadAllLines($path, [System.Text.Encoding]::UTF8)); for ($i = 0; $i -lt $lines.Count; $i++) { if ($lines[$i].StartsWith('"'- P004 修复记录：')) { "'$lines[$i] = '"'- P004 修复记录："'`_SelectionHighlightPainter`、`_CaretPainter`、本地 caret 几何与组合区矩形查询现在先将文档逻辑 offset 转换为 `TextPainter` 渲染 offset；emoji、mention 等 `InlineEmbed` 的逻辑原子区间会覆盖完整视觉文本，不再按逻辑长度 1 绘制高亮或 caret。'"' } elseif ("'$lines[$i].StartsWith('"'- P004 验证记录：')) { "'$lines[$i] = '"'- P004 验证记录：已执行 "'`flutter analyze lib/src/widgets/wenz_rich_text_editor.dart`，结果通过；未执行 P006 中的选择器回归测试，留待对应任务处理。'"' } }; [System.IO.File]::WriteAllLines("'$path, $lines, $utf8NoBom)' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 164ms:
+diff --git a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+index f85e577b7226a4847c7590b15982a18d5d16592c..3d9b7c6b8ec2be39e1b25ee8f0f9f05c85aebc93
+--- a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
++++ b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+@@ -4891,8 +4891,11 @@
+       maxWidth: _lastMaxWidth,
+     );
+     final clamped = offset.clamp(0, widget.textLength).toInt();
+-    final local = _layoutService.caretOffset(painter, clamped);
+-    final height = _layoutService.caretHeight(painter, clamped) ??
++    final renderOffset = widget.offsetMapper.renderOffsetForLogicalOffset(
++      clamped,
++    );
++    final local = _layoutService.caretOffset(painter, renderOffset);
++    final height = _layoutService.caretHeight(painter, renderOffset) ??
+         painter.preferredLineHeight;
+     // Width matches the painted stroke so the IME candidate window is anchored
+     // to the caret the user actually sees.
+@@ -4916,7 +4919,12 @@
+     if (safeStart == safeEnd) {
+       return _localCaretRectAt(safeStart);
+     }
+-    final boxes = _layoutService.selectionBoxes(painter, safeStart, safeEnd);
++    final renderStart = widget.offsetMapper.renderOffsetForLogicalOffset(
++      safeStart,
++    );
++    final renderEnd = widget.offsetMapper.renderOffsetForLogicalOffset(safeEnd);
++    final boxes =
++        _layoutService.selectionBoxes(painter, renderStart, renderEnd);
+     if (boxes.isEmpty) {
+       return _localCaretRectAt(safeStart);
+     }
+@@ -5003,6 +5011,7 @@
+         final caretPainter = _CaretPainter(
+           layoutService: _layoutService,
+           textSpan: widget.textSpan,
++          offsetMapper: widget.offsetMapper,
+           textAlign: widget.textAlign,
+           textDirection: direction,
+           maxWidth: maxWidth,
+@@ -5026,6 +5035,7 @@
+             painter: _SelectionHighlightPainter(
+               layoutService: _layoutService,
+               textSpan: widget.textSpan,
++              offsetMapper: widget.offsetMapper,
+               textAlign: widget.textAlign,
+               textDirection: direction,
+               maxWidth: maxWidth,
+@@ -5378,6 +5388,7 @@
+   const _SelectionHighlightPainter({
+     required this.layoutService,
+     required this.textSpan,
++    required this.offsetMapper,
+     required this.textAlign,
+     required this.textDirection,
+     required this.maxWidth,
+@@ -5387,6 +5398,7 @@
+ 
+   final TextLayoutService layoutService;
+   final InlineSpan textSpan;
++  final _InlineOffsetMapper offsetMapper;
+   final TextAlign textAlign;
+   final TextDirection textDirection;
+   final double maxWidth;
+@@ -5405,7 +5417,9 @@
+       textDirection: textDirection,
+       maxWidth: maxWidth,
+     );
+-    final boxes = layoutService.selectionBoxes(painter, range.start, range.end);
++    final renderStart = offsetMapper.renderOffsetForLogicalOffset(range.start);
++    final renderEnd = offsetMapper.renderOffsetForLogicalOffset(range.end);
++    final boxes = layoutService.selectionBoxes(painter, renderStart, renderEnd);
+     final paint = Paint()..color = color;
+     for (final box in boxes) {
+       canvas.drawRect(box.toRect(), paint);
+@@ -5415,6 +5429,7 @@
+   @override
+   bool shouldRepaint(covariant _SelectionHighlightPainter oldDelegate) {
+     return oldDelegate.textSpan != textSpan ||
++        oldDelegate.offsetMapper != offsetMapper ||
+         oldDelegate.textAlign != textAlign ||
+         oldDelegate.textDirection != textDirection ||
+         oldDelegate.maxWidth != maxWidth ||
+@@ -5428,6 +5443,7 @@
+   const _CaretPainter({
+     required this.layoutService,
+     required this.textSpan,
++    required this.offsetMapper,
+     required this.textAlign,
+     required this.textDirection,
+     required this.maxWidth,
+@@ -5439,6 +5455,7 @@
+ 
+   final TextLayoutService layoutService;
+   final InlineSpan textSpan;
++  final _InlineOffsetMapper offsetMapper;
+   final TextAlign textAlign;
+   final TextDirection textDirection;
+   final double maxWidth;
+@@ -5463,11 +5480,12 @@
+       maxWidth: maxWidth,
+     );
+     final safeOffset = caretOffset.clamp(0, textLength).toInt();
+-    final caretTop = layoutService.caretOffset(painter, safeOffset);
++    final renderOffset = offsetMapper.renderOffsetForLogicalOffset(safeOffset);
++    final caretTop = layoutService.caretOffset(painter, renderOffset);
+     // Fall back to preferredLineHeight (matching _caretRectAt) so the caret is
+     // always drawn with a sensible height even when getFullHeightForCaret
+     // returns null (e.g. at empty/whitespace runs).
+-    final height = layoutService.caretHeight(painter, safeOffset) ??
++    final height = layoutService.caretHeight(painter, renderOffset) ??
+         painter.preferredLineHeight;
+     final paint = Paint()
+       ..color = color.withValues(alpha: opacity.clamp(0.0, 1.0))
+@@ -5478,6 +5496,7 @@
+   @override
+   bool shouldRepaint(covariant _CaretPainter oldDelegate) {
+     return oldDelegate.textSpan != textSpan ||
++        oldDelegate.offsetMapper != offsetMapper ||
+         oldDelegate.textAlign != textAlign ||
+         oldDelegate.textDirection != textDirection ||
+         oldDelegate.maxWidth != maxWidth ||
+
+codex
+修正完毕；我确认关键行号和 whitespace 状态。
+exec
+powershell.exe -Command '$ErrorActionPreference='"'Stop'; Write-Output '--- key code lines ---'; Select-String -LiteralPath 'lib/src/widgets/wenz_rich_text_editor.dart' -Encoding UTF8 -Pattern 'renderOffset = widget.offsetMapper.renderOffsetForLogicalOffset|renderStart = widget.offsetMapper.renderOffsetForLogicalOffset|offsetMapper: widget.offsetMapper|renderStart = offsetMapper.renderOffsetForLogicalOffset|renderOffset = offsetMapper.renderOffsetForLogicalOffset' ; Write-Output '--- plan lines ---'; Select-String -LiteralPath 'D:\\project\\GitHub\\wenz_flutter\\wenz_richtext\\docs\\plan\\plan_feedback_1_20260624-220759.md' -Encoding UTF8 -Pattern 'P004|当前状态|下一步' ; Write-Output '--- diff check ---'; git diff --check -- lib/src/widgets/wenz_rich_text_editor.dart 'docs/plan/plan_feedback_1_20260624-220759.md'" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 273ms:
+--- key code lines ---
+
+lib\src\widgets\wenz_rich_text_editor.dart:4894:    final renderOffset = widget.offsetMapper.renderOffsetForLogicalOffs
+et(
+lib\src\widgets\wenz_rich_text_editor.dart:4922:    final renderStart = widget.offsetMapper.renderOffsetForLogicalOffse
+t(
+lib\src\widgets\wenz_rich_text_editor.dart:5014:          offsetMapper: widget.offsetMapper,
+lib\src\widgets\wenz_rich_text_editor.dart:5038:              offsetMapper: widget.offsetMapper,
+lib\src\widgets\wenz_rich_text_editor.dart:5420:    final renderStart = offsetMapper.renderOffsetForLogicalOffset(range
+.start);
+lib\src\widgets\wenz_rich_text_editor.dart:5483:    final renderOffset = offsetMapper.renderOffsetForLogicalOffset(safe
+Offset);
+--- plan lines ---
+docs\plan\plan_feedback_1_20260624-220759.md:28:- [x] P004: 修正选区高亮与光标反馈
+docs\plan\plan_feedback_1_20260624-220759.md:54:- 当前状态：P001、P002、P003、P004 已完成；命中测试、高亮绘制与光标反馈均已接入内联 offset 映射，等待进入 P005
+。
+docs\plan\plan_feedback_1_20260624-220759.md:56:- 下一步：执行 P005，补充自动化回归测试。
+docs\plan\plan_feedback_1_20260624-220759.md:72:- P004 修复记录：`_SelectionHighlightPainter`、`_CaretPainter`、本地 caret 几何与组合
+区矩形查询现在先将文档逻辑 offset 转换为 `TextPainter` 渲染 offset；emoji、mention 等 `InlineEmbed` 的逻辑原子区间会覆盖完整视觉文本，不再按逻辑长度 1 绘制高亮或 caret。
+docs\plan\plan_feedback_1_20260624-220759.md:73:- P004 验证记录：已执行 `flutter analyze lib/src/widgets/wenz_rich_text_editor.
+dart`，结果通过；未执行 P006 中的选择器回归测试，留待对应任务处理。
+--- diff check ---
+
+
+
+diff --git a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+index f85e577b7226a4847c7590b15982a18d5d16592c..3d9b7c6b8ec2be39e1b25ee8f0f9f05c85aebc93
+--- a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
++++ b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+@@ -4891,8 +4891,11 @@
+       maxWidth: _lastMaxWidth,
+     );
+     final clamped = offset.clamp(0, widget.textLength).toInt();
+-    final local = _layoutService.caretOffset(painter, clamped);
+-    final height = _layoutService.caretHeight(painter, clamped) ??
++    final renderOffset = widget.offsetMapper.renderOffsetForLogicalOffset(
++      clamped,
++    );
++    final local = _layoutService.caretOffset(painter, renderOffset);
++    final height = _layoutService.caretHeight(painter, renderOffset) ??
+         painter.preferredLineHeight;
+     // Width matches the painted stroke so the IME candidate window is anchored
+     // to the caret the user actually sees.
+@@ -4916,7 +4919,12 @@
+     if (safeStart == safeEnd) {
+       return _localCaretRectAt(safeStart);
+     }
+-    final boxes = _layoutService.selectionBoxes(painter, safeStart, safeEnd);
++    final renderStart = widget.offsetMapper.renderOffsetForLogicalOffset(
++      safeStart,
++    );
++    final renderEnd = widget.offsetMapper.renderOffsetForLogicalOffset(safeEnd);
++    final boxes =
++        _layoutService.selectionBoxes(painter, renderStart, renderEnd);
+     if (boxes.isEmpty) {
+       return _localCaretRectAt(safeStart);
+     }
+@@ -5003,6 +5011,7 @@
+         final caretPainter = _CaretPainter(
+           layoutService: _layoutService,
+           textSpan: widget.textSpan,
++          offsetMapper: widget.offsetMapper,
+           textAlign: widget.textAlign,
+           textDirection: direction,
+           maxWidth: maxWidth,
+@@ -5026,6 +5035,7 @@
+             painter: _SelectionHighlightPainter(
+               layoutService: _layoutService,
+               textSpan: widget.textSpan,
++              offsetMapper: widget.offsetMapper,
+               textAlign: widget.textAlign,
+               textDirection: direction,
+               maxWidth: maxWidth,
+@@ -5378,6 +5388,7 @@
+   const _SelectionHighlightPainter({
+     required this.layoutService,
+     required this.textSpan,
++    required this.offsetMapper,
+     required this.textAlign,
+     required this.textDirection,
+     required this.maxWidth,
+@@ -5387,6 +5398,7 @@
+ 
+   final TextLayoutService layoutService;
+   final InlineSpan textSpan;
++  final _InlineOffsetMapper offsetMapper;
+   final TextAlign textAlign;
+   final TextDirection textDirection;
+   final double maxWidth;
+@@ -5405,7 +5417,9 @@
+       textDirection: textDirection,
+       maxWidth: maxWidth,
+     );
+-    final boxes = layoutService.selectionBoxes(painter, range.start, range.end);
++    final renderStart = offsetMapper.renderOffsetForLogicalOffset(range.start);
++    final renderEnd = offsetMapper.renderOffsetForLogicalOffset(range.end);
++    final boxes = layoutService.selectionBoxes(painter, renderStart, renderEnd);
+     final paint = Paint()..color = color;
+     for (final box in boxes) {
+       canvas.drawRect(box.toRect(), paint);
+@@ -5415,6 +5429,7 @@
+   @override
+   bool shouldRepaint(covariant _SelectionHighlightPainter oldDelegate) {
+     return oldDelegate.textSpan != textSpan ||
++        oldDelegate.offsetMapper != offsetMapper ||
+         oldDelegate.textAlign != textAlign ||
+         oldDelegate.textDirection != textDirection ||
+         oldDelegate.maxWidth != maxWidth ||
+@@ -5428,6 +5443,7 @@
+   const _CaretPainter({
+     required this.layoutService,
+     required this.textSpan,
++    required this.offsetMapper,
+     required this.textAlign,
+     required this.textDirection,
+     required this.maxWidth,
+@@ -5439,6 +5455,7 @@
+ 
+   final TextLayoutService layoutService;
+   final InlineSpan textSpan;
++  final _InlineOffsetMapper offsetMapper;
+   final TextAlign textAlign;
+   final TextDirection textDirection;
+   final double maxWidth;
+@@ -5463,11 +5480,12 @@
+       maxWidth: maxWidth,
+     );
+     final safeOffset = caretOffset.clamp(0, textLength).toInt();
+-    final caretTop = layoutService.caretOffset(painter, safeOffset);
++    final renderOffset = offsetMapper.renderOffsetForLogicalOffset(safeOffset);
++    final caretTop = layoutService.caretOffset(painter, renderOffset);
+     // Fall back to preferredLineHeight (matching _caretRectAt) so the caret is
+     // always drawn with a sensible height even when getFullHeightForCaret
+     // returns null (e.g. at empty/whitespace runs).
+-    final height = layoutService.caretHeight(painter, safeOffset) ??
++    final height = layoutService.caretHeight(painter, renderOffset) ??
+         painter.preferredLineHeight;
+     final paint = Paint()
+       ..color = color.withValues(alpha: opacity.clamp(0.0, 1.0))
+@@ -5478,6 +5496,7 @@
+   @override
+   bool shouldRepaint(covariant _CaretPainter oldDelegate) {
+     return oldDelegate.textSpan != textSpan ||
++        oldDelegate.offsetMapper != offsetMapper ||
+         oldDelegate.textAlign != textAlign ||
+         oldDelegate.textDirection != textDirection ||
+         oldDelegate.maxWidth != maxWidth ||
+
+**Updating local plan**
+
+I realize that the console is wrapping lines, and that might complicate things a bit. I think it would be helpful to use `git diff --check` to see if there's anything unusual, though I expect no output. After that, I need to ensure that my local plan is fully updated and complete. I want to make sure everything is in order, so let's get that sorted out!
+codex
+代码和计划都已确认无 whitespace 问题。
+  ✓ 定位高亮光标绘制
+  ✓ 补齐 offset 映射
+  ✓ 更新计划进度
+diff --git a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+index f85e577b7226a4847c7590b15982a18d5d16592c..3d9b7c6b8ec2be39e1b25ee8f0f9f05c85aebc93
+--- a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
++++ b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+@@ -4891,8 +4891,11 @@
+       maxWidth: _lastMaxWidth,
+     );
+     final clamped = offset.clamp(0, widget.textLength).toInt();
+-    final local = _layoutService.caretOffset(painter, clamped);
+-    final height = _layoutService.caretHeight(painter, clamped) ??
++    final renderOffset = widget.offsetMapper.renderOffsetForLogicalOffset(
++      clamped,
++    );
++    final local = _layoutService.caretOffset(painter, renderOffset);
++    final height = _layoutService.caretHeight(painter, renderOffset) ??
+         painter.preferredLineHeight;
+     // Width matches the painted stroke so the IME candidate window is anchored
+     // to the caret the user actually sees.
+@@ -4916,7 +4919,12 @@
+     if (safeStart == safeEnd) {
+       return _localCaretRectAt(safeStart);
+     }
+-    final boxes = _layoutService.selectionBoxes(painter, safeStart, safeEnd);
++    final renderStart = widget.offsetMapper.renderOffsetForLogicalOffset(
++      safeStart,
++    );
++    final renderEnd = widget.offsetMapper.renderOffsetForLogicalOffset(safeEnd);
++    final boxes =
++        _layoutService.selectionBoxes(painter, renderStart, renderEnd);
+     if (boxes.isEmpty) {
+       return _localCaretRectAt(safeStart);
+     }
+@@ -5003,6 +5011,7 @@
+         final caretPainter = _CaretPainter(
+           layoutService: _layoutService,
+           textSpan: widget.textSpan,
++          offsetMapper: widget.offsetMapper,
+           textAlign: widget.textAlign,
+           textDirection: direction,
+           maxWidth: maxWidth,
+@@ -5026,6 +5035,7 @@
+             painter: _SelectionHighlightPainter(
+               layoutService: _layoutService,
+               textSpan: widget.textSpan,
++              offsetMapper: widget.offsetMapper,
+               textAlign: widget.textAlign,
+               textDirection: direction,
+               maxWidth: maxWidth,
+@@ -5378,6 +5388,7 @@
+   const _SelectionHighlightPainter({
+     required this.layoutService,
+     required this.textSpan,
++    required this.offsetMapper,
+     required this.textAlign,
+     required this.textDirection,
+     required this.maxWidth,
+@@ -5387,6 +5398,7 @@
+ 
+   final TextLayoutService layoutService;
+   final InlineSpan textSpan;
++  final _InlineOffsetMapper offsetMapper;
+   final TextAlign textAlign;
+   final TextDirection textDirection;
+   final double maxWidth;
+@@ -5405,7 +5417,9 @@
+       textDirection: textDirection,
+       maxWidth: maxWidth,
+     );
+-    final boxes = layoutService.selectionBoxes(painter, range.start, range.end);
++    final renderStart = offsetMapper.renderOffsetForLogicalOffset(range.start);
++    final renderEnd = offsetMapper.renderOffsetForLogicalOffset(range.end);
++    final boxes = layoutService.selectionBoxes(painter, renderStart, renderEnd);
+     final paint = Paint()..color = color;
+     for (final box in boxes) {
+       canvas.drawRect(box.toRect(), paint);
+@@ -5415,6 +5429,7 @@
+   @override
+   bool shouldRepaint(covariant _SelectionHighlightPainter oldDelegate) {
+     return oldDelegate.textSpan != textSpan ||
++        oldDelegate.offsetMapper != offsetMapper ||
+         oldDelegate.textAlign != textAlign ||
+         oldDelegate.textDirection != textDirection ||
+         oldDelegate.maxWidth != maxWidth ||
+@@ -5428,6 +5443,7 @@
+   const _CaretPainter({
+     required this.layoutService,
+     required this.textSpan,
++    required this.offsetMapper,
+     required this.textAlign,
+     required this.textDirection,
+     required this.maxWidth,
+@@ -5439,6 +5455,7 @@
+ 
+   final TextLayoutService layoutService;
+   final InlineSpan textSpan;
++  final _InlineOffsetMapper offsetMapper;
+   final TextAlign textAlign;
+   final TextDirection textDirection;
+   final double maxWidth;
+@@ -5463,11 +5480,12 @@
+       maxWidth: maxWidth,
+     );
+     final safeOffset = caretOffset.clamp(0, textLength).toInt();
+-    final caretTop = layoutService.caretOffset(painter, safeOffset);
++    final renderOffset = offsetMapper.renderOffsetForLogicalOffset(safeOffset);
++    final caretTop = layoutService.caretOffset(painter, renderOffset);
+     // Fall back to preferredLineHeight (matching _caretRectAt) so the caret is
+     // always drawn with a sensible height even when getFullHeightForCaret
+     // returns null (e.g. at empty/whitespace runs).
+-    final height = layoutService.caretHeight(painter, safeOffset) ??
++    final height = layoutService.caretHeight(painter, renderOffset) ??
+         painter.preferredLineHeight;
+     final paint = Paint()
+       ..color = color.withValues(alpha: opacity.clamp(0.0, 1.0))
+@@ -5478,6 +5496,7 @@
+   @override
+   bool shouldRepaint(covariant _CaretPainter oldDelegate) {
+     return oldDelegate.textSpan != textSpan ||
++        oldDelegate.offsetMapper != offsetMapper ||
+         oldDelegate.textAlign != textAlign ||
+         oldDelegate.textDirection != textDirection ||
+         oldDelegate.maxWidth != maxWidth ||
+
+codex
+已完成 P004，未推进 P005/P006。
+
+- 修正选区高亮：`lib/src/widgets/wenz_rich_text_editor.dart:5420` 先把逻辑 offset 转为渲染 offset，再查询 selection boxes。
+- 修正光标反馈：`lib/src/widgets/wenz_rich_text_editor.dart:4894` 与 `lib/src/widgets/wenz_rich_text_editor.dart:5483` 使用 `offsetMapper` 定位 emoji/mention 前后边界。
+- 同步几何反馈：`lib/src/widgets/wenz_rich_text_editor.dart:4922` 组合区/本地矩形也改用渲染 offset，避免 IME/几何上报错位。
+- 已更新计划：`docs/plan/plan_feedback_1_20260624-220759.md:28` 勾选 P004，`docs/plan/plan_feedback_1_20260624-220759.md:54` 更新进度区。
+- 已验证：`dart format lib/src/widgets/wenz_rich_text_editor.dart`、`flutter analyze lib/src/widgets/wenz_rich_text_editor.dart`、`git diff --check -- ...` 均通过。
+- 未执行 P006 的回归测试，已在计划记录中注明留待 P006。
+diff --git a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+index f85e577b7226a4847c7590b15982a18d5d16592c..3d9b7c6b8ec2be39e1b25ee8f0f9f05c85aebc93
+--- a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
++++ b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+@@ -4891,8 +4891,11 @@
+       maxWidth: _lastMaxWidth,
+     );
+     final clamped = offset.clamp(0, widget.textLength).toInt();
+-    final local = _layoutService.caretOffset(painter, clamped);
+-    final height = _layoutService.caretHeight(painter, clamped) ??
++    final renderOffset = widget.offsetMapper.renderOffsetForLogicalOffset(
++      clamped,
++    );
++    final local = _layoutService.caretOffset(painter, renderOffset);
++    final height = _layoutService.caretHeight(painter, renderOffset) ??
+         painter.preferredLineHeight;
+     // Width matches the painted stroke so the IME candidate window is anchored
+     // to the caret the user actually sees.
+@@ -4916,7 +4919,12 @@
+     if (safeStart == safeEnd) {
+       return _localCaretRectAt(safeStart);
+     }
+-    final boxes = _layoutService.selectionBoxes(painter, safeStart, safeEnd);
++    final renderStart = widget.offsetMapper.renderOffsetForLogicalOffset(
++      safeStart,
++    );
++    final renderEnd = widget.offsetMapper.renderOffsetForLogicalOffset(safeEnd);
++    final boxes =
++        _layoutService.selectionBoxes(painter, renderStart, renderEnd);
+     if (boxes.isEmpty) {
+       return _localCaretRectAt(safeStart);
+     }
+@@ -5003,6 +5011,7 @@
+         final caretPainter = _CaretPainter(
+           layoutService: _layoutService,
+           textSpan: widget.textSpan,
++          offsetMapper: widget.offsetMapper,
+           textAlign: widget.textAlign,
+           textDirection: direction,
+           maxWidth: maxWidth,
+@@ -5026,6 +5035,7 @@
+             painter: _SelectionHighlightPainter(
+               layoutService: _layoutService,
+               textSpan: widget.textSpan,
++              offsetMapper: widget.offsetMapper,
+               textAlign: widget.textAlign,
+               textDirection: direction,
+               maxWidth: maxWidth,
+@@ -5378,6 +5388,7 @@
+   const _SelectionHighlightPainter({
+     required this.layoutService,
+     required this.textSpan,
++    required this.offsetMapper,
+     required this.textAlign,
+     required this.textDirection,
+     required this.maxWidth,
+@@ -5387,6 +5398,7 @@
+ 
+   final TextLayoutService layoutService;
+   final InlineSpan textSpan;
++  final _InlineOffsetMapper offsetMapper;
+   final TextAlign textAlign;
+   final TextDirection textDirection;
+   final double maxWidth;
+@@ -5405,7 +5417,9 @@
+       textDirection: textDirection,
+       maxWidth: maxWidth,
+     );
+-    final boxes = layoutService.selectionBoxes(painter, range.start, range.end);
++    final renderStart = offsetMapper.renderOffsetForLogicalOffset(range.start);
++    final renderEnd = offsetMapper.renderOffsetForLogicalOffset(range.end);
++    final boxes = layoutService.selectionBoxes(painter, renderStart, renderEnd);
+     final paint = Paint()..color = color;
+     for (final box in boxes) {
+       canvas.drawRect(box.toRect(), paint);
+@@ -5415,6 +5429,7 @@
+   @override
+   bool shouldRepaint(covariant _SelectionHighlightPainter oldDelegate) {
+     return oldDelegate.textSpan != textSpan ||
++        oldDelegate.offsetMapper != offsetMapper ||
+         oldDelegate.textAlign != textAlign ||
+         oldDelegate.textDirection != textDirection ||
+         oldDelegate.maxWidth != maxWidth ||
+@@ -5428,6 +5443,7 @@
+   const _CaretPainter({
+     required this.layoutService,
+     required this.textSpan,
++    required this.offsetMapper,
+     required this.textAlign,
+     required this.textDirection,
+     required this.maxWidth,
+@@ -5439,6 +5455,7 @@
+ 
+   final TextLayoutService layoutService;
+   final InlineSpan textSpan;
++  final _InlineOffsetMapper offsetMapper;
+   final TextAlign textAlign;
+   final TextDirection textDirection;
+   final double maxWidth;
+@@ -5463,11 +5480,12 @@
+       maxWidth: maxWidth,
+     );
+     final safeOffset = caretOffset.clamp(0, textLength).toInt();
+-    final caretTop = layoutService.caretOffset(painter, safeOffset);
++    final renderOffset = offsetMapper.renderOffsetForLogicalOffset(safeOffset);
++    final caretTop = layoutService.caretOffset(painter, renderOffset);
+     // Fall back to preferredLineHeight (matching _caretRectAt) so the caret is
+     // always drawn with a sensible height even when getFullHeightForCaret
+     // returns null (e.g. at empty/whitespace runs).
+-    final height = layoutService.caretHeight(painter, safeOffset) ??
++    final height = layoutService.caretHeight(painter, renderOffset) ??
+         painter.preferredLineHeight;
+     final paint = Paint()
+       ..color = color.withValues(alpha: opacity.clamp(0.0, 1.0))
+@@ -5478,6 +5496,7 @@
+   @override
+   bool shouldRepaint(covariant _CaretPainter oldDelegate) {
+     return oldDelegate.textSpan != textSpan ||
++        oldDelegate.offsetMapper != offsetMapper ||
+         oldDelegate.textAlign != textAlign ||
+         oldDelegate.textDirection != textDirection ||
+         oldDelegate.maxWidth != maxWidth ||
+
+tokens used
+132,470
+已完成 P004，未推进 P005/P006。
+
+- 修正选区高亮：`lib/src/widgets/wenz_rich_text_editor.dart:5420` 先把逻辑 offset 转为渲染 offset，再查询 selection boxes。
+- 修正光标反馈：`lib/src/widgets/wenz_rich_text_editor.dart:4894` 与 `lib/src/widgets/wenz_rich_text_editor.dart:5483` 使用 `offsetMapper` 定位 emoji/mention 前后边界。
+- 同步几何反馈：`lib/src/widgets/wenz_rich_text_editor.dart:4922` 组合区/本地矩形也改用渲染 offset，避免 IME/几何上报错位。
+- 已更新计划：`docs/plan/plan_feedback_1_20260624-220759.md:28` 勾选 P004，`docs/plan/plan_feedback_1_20260624-220759.md:54` 更新进度区。
+- 已验证：`dart format lib/src/widgets/wenz_rich_text_editor.dart`、`flutter analyze lib/src/widgets/wenz_rich_text_editor.dart`、`git diff --check -- ...` 均通过。
+- 未执行 P006 的回归测试，已在计划记录中注明留待 P006。

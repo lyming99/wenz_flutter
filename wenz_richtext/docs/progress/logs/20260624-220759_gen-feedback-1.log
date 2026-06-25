@@ -1,0 +1,579 @@
+OpenAI Codex v0.121.0 (research preview)
+--------
+workdir: D:\project\GitHub\wenz_flutter\wenz_richtext
+model: gpt-5.5
+provider: custom
+approval: never
+sandbox: danger-full-access
+reasoning effort: xhigh
+reasoning summaries: none
+session id: 019ef9f5-8cc5-78b1-85c8-383c4c854e22
+--------
+user
+你是需求整理与开发计划生成者。
+请根据以下反馈，生成一个开发计划和验收标准。
+
+输出文件：D:\project\GitHub\wenz_flutter\wenz_richtext\docs\plan\plan_feedback_1_20260624-220759.md
+
+格式要求：
+- 任务必须使用 Markdown checkbox：- [ ] P001: 任务标题
+- 每个任务要有验收要点
+- 必须包含总体验收标准和进度区
+- 只写 plan 文件，不要改业务代码
+
+反馈 #1 内容：
+选择器bug：emoji、提及无法正常被选中
+ERROR: Reconnecting... 1/5
+ERROR: Reconnecting... 2/5
+ERROR: Reconnecting... 3/5
+ERROR: Reconnecting... 4/5
+ERROR: Reconnecting... 5/5
+codex
+我先查看项目文档约定，然后只写入指定计划文件。
+exec
+powershell.exe -Command "Get-ChildItem -Force; if (Test-Path AGENTS.md) { Get-Content AGENTS.md }; if (Test-Path docs\\plan) { Get-ChildItem docs\\plan | Select-Object -First 20 }" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 328ms:
+
+
+    目录: D:\project\GitHub\wenz_flutter\wenz_richtext
+
+
+Mode                 LastWriteTime         Length Name                                                                 
+----                 -------------         ------ ----                                                                 
+d-----         2026/6/24     21:15                .codegraph                                                           
+d-----         2026/6/24     15:10                .dart_appdata                                                        
+d-----         2026/6/24     15:10                .dart_localappdata                                                   
+d-----         2026/6/24     16:11                .dart_tool                                                           
+d-----         2026/6/24     16:13                .dart_tool_appdata                                                   
+d-----         2026/6/24     16:06                .dart_tool_localappdata                                              
+d-----         2026/6/20      0:26                .idea                                                                
+d-----         2026/6/22     17:10                build                                                                
+d-----         2026/6/19     17:02                doc                                                                  
+d-----         2026/6/24     18:05                docs                                                                 
+d-----         2026/6/22     14:56                example                                                              
+d-----         2026/6/22     17:09                lib                                                                  
+d-----         2026/6/24      3:35                scripts                                                              
+d-----         2026/6/24     13:55                test                                                                 
+d-----         2026/6/24     18:04                tool                                                                 
+-a----         2026/6/19     14:04             87 .gitignore                                                           
+-a----         2026/6/24     16:16             94 analysis_options.yaml                                                
+-a----         2026/6/24     14:38            726 CHANGELOG.md                                                         
+-a----         2026/6/23     17:55            160 nul                                                                  
+-a----         2026/6/22     17:04           6524 pubspec.lock                                                         
+-a----         2026/6/22     17:03            355 pubspec.yaml                                                         
+-a----         2026/6/24     14:38           3227 README.md                                                            
+
+
+    目录: D:\project\GitHub\wenz_flutter\wenz_richtext\docs\plan
+
+
+Mode                 LastWriteTime         Length Name                                                                 
+----                 -------------         ------ ----                                                                 
+-a----         2026/6/24     21:34           1278 ui_plan_20260624-213431_2.md                                         
+
+
+
+codex
+已有计划目录就绪；现在参考现有格式生成新计划。
+exec
+powershell.exe -Command "Get-Content -Raw docs\\plan\\ui_plan_20260624-213431_2.md" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 247ms:
+# 闇€姹傚紑鍙戣鍒掞細閫夋嫨鍣╞ug锛歟moji鍜屾彁鍙婂唴瀹癸紝鏃犳硶琚€夋嫨
+
+## 鏉ユ簮
+- 绫诲瀷锛氶渶姹?- 缂栧彿锛?
+
+## 鍘熷鍐呭
+閫夋嫨鍣╞ug锛歟moji鍜屾彁鍙婂唴瀹癸紝鏃犳硶琚€夋嫨
+
+## 闄勪欢閾炬帴
+- 鏃犻檮浠躲€?
+## 鐩爣鎷嗚В
+- 閫夋嫨鍣╞ug锛歟moji鍜屾彁鍙婂唴瀹癸紝鏃犳硶琚€夋嫨
+
+## 浠诲姟璁″垝
+- [ ] P001: 鏄庣‘鑼冨洿涓庡奖鍝嶉潰
+  - 楠屾敹锛氱‘璁ゆ秹鍙婄殑鏁版嵁銆佺晫闈€佹寔涔呭寲銆佷换鍔℃祦杞拰鍏煎鎬у奖鍝嶃€?- [ ] P002: 瀹屾垚鏍稿績瀹炵幇
+  - 楠屾敹锛氶渶姹傛垨鍙嶉鎻忚堪鐨勪富娴佺▼鍙湪搴旂敤鍐呭畬鎴愶紝闄勪欢閾炬帴淇濇寔鍙闂€?- [ ] P003: 瀹屾垚浜や簰涓庡紓甯哥姸鎬?  - 楠屾敹锛氱┖鍐呭銆侀噸澶嶉檮浠躲€佺己灏戝伐浣滃尯銆佹墽琛屽け璐ョ瓑鐘舵€佹湁鏄庣‘鍙嶉銆?- [ ] P004: 琛ュ厖楠岃瘉
+  - 楠屾敹锛氭柊澧炴垨鏇存柊 smoke 娴嬭瘯锛岃鐩栨暟鎹啓鍏ャ€侀檮浠躲€佽鍒掑悓姝ュ拰楠屾敹鐘舵€併€?- [ ] P005: 鏇存柊鏂囨。鎴栬繘搴﹁褰?  - 楠屾敹锛氱浉鍏宠鍒掋€佽繘搴︽垨浣跨敤璇存槑鑳藉弽鏄犳湰娆″彉鏇淬€?
+## 鎬讳綋楠屾敹鏍囧噯
+- 璁″垝涓殑 checkbox 浠诲姟鍏ㄩ儴瀹屾垚銆?- 鐩稿叧闄勪欢浠呴€氳繃 Markdown 閾炬帴寮曠敤锛屼笉鎶婃枃浠舵鏂囩洿鎺ュ祵鍏ヨ鍒掋€?- 楠屾敹鍛戒护閫氳繃锛屽け璐ユ椂璁板綍鍘熷洜骞剁敓鎴愪慨澶嶄换鍔°€?
+## 杩涘害鍖?- 褰撳墠鐘舵€侊細draft
+- 涓嬩竴姝ワ細纭鎴栬皟鏁磋鍒掑悗鍔犲叆浠诲姟绯荤粺銆?
+
+**Considering project planning**
+
+I think it might be helpful to inspect the library tree for specific terms to make my planning more precise. The prompt specifies creating a plan based on feedback, so it seems important to focus on writing just the plan file. I should probably avoid unnecessary business code. I’m considering using commands to examine project classes to accurately name areas, so I’ll run `rg --files lib test` to see what I find.
+codex
+我会快速看下库结构，确保计划里的模块名贴合项目。
+exec
+powershell.exe -Command 'rg --files lib test docs | Sort-Object | Select-Object -First 120' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 645ms:
+docs\acceptance_manual_checklist.md
+docs\acceptance_report.md
+docs\advanced_feature_development_plan.md
+docs\advanced_feature_matrix.md
+docs\api_reference.md
+docs\architecture.md
+docs\comments_and_revisions.md
+docs\import_export_strategy.md
+docs\input_system.md
+docs\migration_guide.md
+docs\optimization_roadmap.md
+docs\plan\ui_plan_20260624-213431_2.md
+docs\progress\logs\20260624-220459_gen-feedback-1.log
+docs\progress\logs\20260624-220759_gen-feedback-1.log
+docs\progress\state.json
+docs\progress\state.json.bak
+docs\progress\state.json.mirror
+docs\project_acceptance_roadmap_plan.md
+docs\README.md
+docs\refactor_plan.md
+docs\release_checklist.md
+docs\rendering.md
+docs\running_guide.md
+docs\schema_and_commands.md
+docs\schema_migration_impact.md
+docs\selection_engine.md
+docs\selection_model.md
+docs\windows_ime_third_party_position_issue.md
+lib\src\codecs\document_errors.dart
+lib\src\codecs\document_migration.dart
+lib\src\codecs\document_version_snapshot_codec.dart
+lib\src\codecs\html_codec.dart
+lib\src\codecs\legacy_wen_json_codec.dart
+lib\src\codecs\markdown_codec.dart
+lib\src\codecs\plain_text_codec.dart
+lib\src\codecs\rich_text_json_codec.dart
+lib\src\collaboration\collaboration_adapter.dart
+lib\src\controller\autosave_controller.dart
+lib\src\controller\document_stats_controller.dart
+lib\src\controller\find_replace_controller.dart
+lib\src\controller\outline_controller.dart
+lib\src\controller\slash_menu_controller.dart
+lib\src\controller\toolbar_controller.dart
+lib\src\controller\wenz_rich_text_controller.dart
+lib\src\core\commands\block_commands.dart
+lib\src\core\commands\block_structure_commands.dart
+lib\src\core\commands\command_executor.dart
+lib\src\core\commands\command_registry.dart
+lib\src\core\commands\editor_command.dart
+lib\src\core\commands\inline_commands.dart
+lib\src\core\commands\inline_editing.dart
+lib\src\core\commands\markdown_shortcut_commands.dart
+lib\src\core\commands\revision_commands.dart
+lib\src\core\commands\selection_commands.dart
+lib\src\core\commands\style_commands.dart
+lib\src\core\commands\table_cell_editing.dart
+lib\src\core\commands\table_commands.dart
+lib\src\core\commands\text_commands.dart
+lib\src\core\model\attributes.dart
+lib\src\core\model\block_node.dart
+lib\src\core\model\comment_model.dart
+lib\src\core\model\document_version_snapshot.dart
+lib\src\core\model\inline_node.dart
+lib\src\core\model\revision_model.dart
+lib\src\core\model\rich_text_document.dart
+lib\src\core\model\table_model.dart
+lib\src\core\position\document_position.dart
+lib\src\core\schema\document_schema.dart
+lib\src\core\transaction\change_set.dart
+lib\src\core\transaction\document_session.dart
+lib\src\exporters\document_conversion_plan.dart
+lib\src\history\history_manager.dart
+lib\src\input\clipboard_service.dart
+lib\src\input\composition_state.dart
+lib\src\input\editor_text_input_client.dart
+lib\src\input\shortcut_manager.dart
+lib\src\plugins\editor_plugin.dart
+lib\src\rendering\text_layout_service.dart
+lib\src\widgets\block_geometry_registry.dart
+lib\src\widgets\block_renderer_registry.dart
+lib\src\widgets\comment_sidebar.dart
+lib\src\widgets\find_replace_panel.dart
+lib\src\widgets\inline_embed_renderer.dart
+lib\src\widgets\link_edit_dialog.dart
+lib\src\widgets\media_resolver.dart
+lib\src\widgets\selection_gesture_overlay.dart
+lib\src\widgets\shared_text_layout_cache.dart
+lib\src\widgets\slash_menu_overlay.dart
+lib\src\widgets\wenz_rich_text_editor.dart
+lib\wenz_richtext.dart
+test\benchmarks\editor_benchmarks.dart
+test\codecs\document_errors_test.dart
+test\codecs\document_migration_test.dart
+test\codecs\html_codec_test.dart
+test\codecs\legacy_wen_json_codec_test.dart
+test\codecs\markdown_codec_test.dart
+test\codecs\plain_text_codec_test.dart
+test\codecs\rich_text_json_codec_test.dart
+test\collaboration\collaboration_adapter_test.dart
+test\controller\autosave_controller_test.dart
+test\controller\block_embed_controller_test.dart
+test\controller\callout_controller_test.dart
+test\controller\controller_callbacks_test.dart
+test\controller\controller_try_load_test.dart
+test\controller\document_stats_controller_test.dart
+test\controller\file_block_controller_test.dart
+test\controller\find_replace_controller_test.dart
+test\controller\image_block_controller_test.dart
+test\controller\outline_controller_test.dart
+test\controller\slash_menu_controller_test.dart
+test\controller\toolbar_controller_test.dart
+test\core\block_commands_test.dart
+test\core\block_structure_commands_test.dart
+test\core\command_merging_test.dart
+test\core\command_pipeline_test.dart
+test\core\comment_model_test.dart
+test\core\controller_test.dart
+test\core\document_position_test.dart
+test\core\document_schema_test.dart
+test\core\document_version_snapshot_test.dart
+
+codex
+定位到选择相关模块后，我会直接落计划文件。
+exec
+powershell.exe -Command "rg --files test | rg \"selection|emoji|mention|inline|gesture\"; rg -n \"emoji|mention|select|selection|Inline\" lib\\src test\\core test\\widgets 2>"'$null | Select-Object -First 120' in D:\project\GitHub\wenz_flutter\wenz_richtext
+2026-06-24T14:11:15.670220Z ERROR codex_core::tools::router: error={"output":"Total output lines: 124\n\ntest\\widgets\\goldens\\editor_selection.png\r\ntest\\helpers\\selection_test_helpers.dart\r\ntest\\core\\selection_commands_test.dart\r\ntest\\core\\inline_commands_test.dart\r\ntest\\widgets\\comment_sidebar_test.dart:6:  testWidgets('sidebar reveals anchor selection when tapping a thread',\r\ntest\\widgets\\comment_sidebar_test.dart:9:    CommentThread? selectedThread;\r\ntest\\widgets\\comment_sidebar_test.dart:17:            onSelectThread: (thread) => selectedThread = thread,\r\ntest\\widgets\\comment_sidebar_test.dart:18:            onRevealAnchor: (thread, selection) => revealedSelection = selection,\r\ntest\\widgets\\comment_sidebar_test.dart:31:    expect(selectedThread, thread);\r\ntest\\widgets\\comment_sidebar_test.dart:32:    expect(revealedSelection, thread.anchor.selection);\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:9:import '../helpers/selection_test_helpers.dart';\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:20:            content: <InlineNode>[\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:28:            content: <InlineNode>[TextRun(text: 'Ship core')],\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:46:                        content: <InlineNode>[TextRun(text: 'Cell A')],\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:112:      selection: collapsedCodeSelection('code1', 0, 0),\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:168:            content: <InlineNode>[TextRun(text: 'before')],\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:174:            content: <InlineNode>[TextRun(text: 'after')],\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:178:      selection: objectBlockSelection('image1', 1),\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:204:    expect(controller.selection?.extent.blockId, duplicate.id);\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:205:    expect(controller.selection?.extent.blockIndex, 2);\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:212:    expect(controller.selection?.extent.blockIndex, 1);\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:240:      selection: objectBlockSelection('image1', 0),\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:287:      selection: objectBlockSelection('file1', 0),\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:332:            content: <InlineNode>[TextRun(text: 'Pay attention')],\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:366:  testWidgets('exposes block semantics labels and selected state', (\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:378:              content: <InlineNode>[TextRun(text: 'Plan')],\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:383:              content: <InlineNode>[TextRun(text: 'Alpha')],\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:389:        selection: textSelection('p1', 1, 0, 5),\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:405:          find.bySemanticsLabel('Paragraph block, selected'), findsOneWidget);\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:422:              content: <InlineNode>[TextRun(text: 'Alpha')],\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:466:            content: <InlineNode>[TextRun(text: 'Alpha')],\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:534:                          content: <InlineNode>[TextRun(text: 'Merged')],\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:545:                          content: <InlineNode>[TextRun(text: 'Q1')],\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:559:                          content: <InlineNode>[TextRun(text: 'Done')],\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:569:        selection: DocumentSelection(\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:605:          'spans 2 columns, selected',\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:610:        find.bySemanticsLabel('Table cell row 1 column 3, selected'),\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:614:        find.bySemanticsLabel('Table cell row 2 column 3, selected'),\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:628:      selection: _tableCellSelection(),\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:680:      selection: _tableCellSelection(),\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:711:    'renders formula, mention, and emoji inline embeds',\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:719:              content: <InlineNode>[\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:721:                InlineEmbed(\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:726:                InlineEmbed(\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:727:                  embedType: 'emoji',\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:728:                  data: <String, Object?>{'emoji': '😀'},\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:731:                InlineEmbed(\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:732:                  embedType: 'mention',\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:748:                          content: <InlineNode>[\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:750:                            InlineEmbed(\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:789:            content: <InlineNode>[\r\ntest…2775 chars truncated…ion?.extent.path.tableColumnIndex, 0);\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:1114:    expect(controller.selection?.extent.offset, 2);\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:1118:    expect(controller.selection?.extent.path.tableColumnIndex, 1);\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:1119:    expect(controller.selection?.extent.offset, 0);\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:1125:    expect(controller.selection?.extent.path.tableRowIndex, 1);\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:1126:    expect(controller.selection?.extent.path.tableColumnIndex, 0);\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:1134:    expect(controller.selection?.extent.path.tableRowIndex, 0);\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:1135:    expect(controller.selection?.extent.path.tableColumnIndex, 1);\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:1136:    expect(controller.selection?.extent.offset, 2);\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:1146:      selection: collapsedCodeSelection('code1', 0, 4),\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:1167:    expect(controller.selection?.extent.offset, 6);\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:1175:    expect(controller.selection?.extent.offset, 4);\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:1193:                        content: <InlineNode>[TextRun(text: 'AA')],\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:1205:                        content: <InlineNode>[TextRun(text: 'BB')],\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:1215:      selection: DocumentSelection(\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:1248:    expect(controller.selection?.extent.path.tableRowIndex, 1);\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:1249:    expect(controller.selection?.extent.path.tableColumnIndex, 0);\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:1250:    expect(controller.selection?.extent.offset, 1);\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:1254:    expect(controller.selection?.extent.path.tableRowIndex, 0);\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:1255:    expect(controller.selection?.extent.path.tableColumnIndex, 0);\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:1256:    expect(controller.selection?.extent.offset, 1);\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:1266:            content: <InlineNode>[TextRun(text: 'Hi')],\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:1270:      selection: collapsedTextSelection('p1', 0, 2),\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:1292:    expect(controller.selection?.extent.offset, 1);\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:1297:    expect(controller.selection?.extent.offset, 2);\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:1309:            content: <InlineNode>[TextRun(text: 'first')],\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:1314:            content: <InlineNode>[TextRun(text: 'second')],\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:1318:      selection: collapsedTextSelection('p1', 0, 5),\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:1336:    expect(controller.selection?.extent.blockId, 'p2');\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:1337:    expect(controller.selection?.extent.offset, 0);\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:1342:    expect(controller.selection?.extent.blockId, 'p1');\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:1343:    expect(controller.selection?.extent.offset, 5);\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:1358:            content: <InlineNode>[TextRun(text: 'abcdef')],\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:1362:      selection: collapsedTextSelection('p1', 0, 0),\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:1381:    expect(controller.selection?.extent.offset, 1);\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:1386:    expect(controller.selection?.extent.offset, 2);\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:1390:    expect(controller.selection?.extent.offset, 3);\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:1394:    expect(controller.selection?.extent.offset, 3);\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:1397:  testWidgets('extends selection with shift and arrow keys', (tester) async {\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:1404:            content: <InlineNode>[TextRun(text: 'Hi')],\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:1408:      selection: collapsedTextSelection('p1', 0, 2),\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:1428:    expect(controller.selection?.isCollapsed, isFalse);\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:1429:    expect(controller.selection?.base.offset, 2);\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:1430:    expect(controller.selection?.extent.offset, 1);\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:1440:            content: <InlineNode>[TextRun(text: 'Hi')],\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:1460:    expect(controller.selection?.extent.blockId, 'p1');\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:1461:    expect(controller.selection?.extent.offset, 2);\r\n","metadata":{"exit_code":1,"duration_seconds":0.3}}
+ exited 1 in 256ms:
+test\widgets\goldens\editor_selection.png
+test\helpers\selection_test_helpers.dart
+test\core\selection_commands_test.dart
+test\core\inline_commands_test.dart
+test\widgets\comment_sidebar_test.dart:6:  testWidgets('sidebar reveals anchor selection when tapping a thread',
+test\widgets\comment_sidebar_test.dart:9:    CommentThread? selectedThread;
+test\widgets\comment_sidebar_test.dart:17:            onSelectThread: (thread) => selectedThread = thread,
+test\widgets\comment_sidebar_test.dart:18:            onRevealAnchor: (thread, selection) => revealedSelection = selection,
+test\widgets\comment_sidebar_test.dart:31:    expect(selectedThread, thread);
+test\widgets\comment_sidebar_test.dart:32:    expect(revealedSelection, thread.anchor.selection);
+test\widgets\wenz_rich_text_editor_test.dart:9:import '../helpers/selection_test_helpers.dart';
+test\widgets\wenz_rich_text_editor_test.dart:20:            content: <InlineNode>[
+test\widgets\wenz_rich_text_editor_test.dart:28:            content: <InlineNode>[TextRun(text: 'Ship core')],
+test\widgets\wenz_rich_text_editor_test.dart:46:                        content: <InlineNode>[TextRun(text: 'Cell A')],
+test\widgets\wenz_rich_text_editor_test.dart:112:      selection: collapsedCodeSelection('code1', 0, 0),
+test\widgets\wenz_rich_text_editor_test.dart:168:            content: <InlineNode>[TextRun(text: 'before')],
+test\widgets\wenz_rich_text_editor_test.dart:174:            content: <InlineNode>[TextRun(text: 'after')],
+test\widgets\wenz_rich_text_editor_test.dart:178:      selection: objectBlockSelection('image1', 1),
+test\widgets\wenz_rich_text_editor_test.dart:204:    expect(controller.selection?.extent.blockId, duplicate.id);
+test\widgets\wenz_rich_text_editor_test.dart:205:    expect(controller.selection?.extent.blockIndex, 2);
+test\widgets\wenz_rich_text_editor_test.dart:212:    expect(controller.selection?.extent.blockIndex, 1);
+test\widgets\wenz_rich_text_editor_test.dart:240:      selection: objectBlockSelection('image1', 0),
+test\widgets\wenz_rich_text_editor_test.dart:287:      selection: objectBlockSelection('file1', 0),
+test\widgets\wenz_rich_text_editor_test.dart:332:            content: <InlineNode>[TextRun(text: 'Pay attention')],
+test\widgets\wenz_rich_text_editor_test.dart:366:  testWidgets('exposes block semantics labels and selected state', (
+test\widgets\wenz_rich_text_editor_test.dart:378:              content: <InlineNode>[TextRun(text: 'Plan')],
+test\widgets\wenz_rich_text_editor_test.dart:383:              content: <InlineNode>[TextRun(text: 'Alpha')],
+test\widgets\wenz_rich_text_editor_test.dart:389:        selection: textSelection('p1', 1, 0, 5),
+test\widgets\wenz_rich_text_editor_test.dart:405:          find.bySemanticsLabel('Paragraph block, selected'), findsOneWidget);
+test\widgets\wenz_rich_text_editor_test.dart:422:              content: <InlineNode>[TextRun(text: 'Alpha')],
+test\widgets\wenz_rich_text_editor_test.dart:466:            content: <InlineNode>[TextRun(text: 'Alpha')],
+test\widgets\wenz_rich_text_editor_test.dart:534:                          content: <InlineNode>[TextRun(text: 'Merged')],
+test\widgets\wenz_rich_text_editor_test.dart:545:                          content: <InlineNode>[TextRun(text: 'Q1')],
+test\widgets\wenz_rich_text_editor_test.dart:559:                          content: <InlineNode>[TextRun(text: 'Done')],
+test\widgets\wenz_rich_text_editor_test.dart:569:        selection: DocumentSelection(
+test\widgets\wenz_rich_text_editor_test.dart:605:          'spans 2 columns, selected',
+test\widgets\wenz_rich_text_editor_test.dart:610:        find.bySemanticsLabel('Table cell row 1 column 3, selected'),
+test\widgets\wenz_rich_text_editor_test.dart:614:        find.bySemanticsLabel('Table cell row 2 column 3, selected'),
+test\widgets\wenz_rich_text_editor_test.dart:628:      selection: _tableCellSelection(),
+test\widgets\wenz_rich_text_editor_test.dart:680:      selection: _tableCellSelection(),
+test\widgets\wenz_rich_text_editor_test.dart:711:    'renders formula, mention, and emoji inline embeds',
+test\widgets\wenz_rich_text_editor_test.dart:719:              content: <InlineNode>[
+test\widgets\wenz_rich_text_editor_test.dart:721:                InlineEmbed(
+test\widgets\wenz_rich_text_editor_test.dart:726:                InlineEmbed(
+test\widgets\wenz_rich_text_editor_test.dart:727:                  embedType: 'emoji',
+test\widgets\wenz_rich_text_editor_test.dart:728:                  data: <String, Object?>{'emoji': '😀'},
+test\widgets\wenz_rich_text_editor_test.dart:731:                InlineEmbed(
+test\widgets\wenz_rich_text_editor_test.dart:732:                  embedType: 'mention',
+test\widgets\wenz_rich_text_editor_test.dart:748:                          content: <InlineNode>[
+test\widgets\wenz_rich_text_editor_test.dart:750:                            InlineEmbed(
+test\widgets\wenz_rich_text_editor_test.dart:789:            content: <InlineNode>[
+test\widgets\wenz_rich_text_editor_test.dart:791:              InlineEmbed(
+test\widgets\wenz_rich_text_editor_test.dart:796:              InlineEmbed(
+test\widgets\wenz_rich_text_editor_test.dart:797:                embedType: 'emoji',
+test\widgets\wenz_rich_text_editor_test.dart:798:                data: <String, Object?>{'emoji': '😀'},
+test\widgets\wenz_rich_text_editor_test.dart:801:              InlineEmbed(
+test\widgets\wenz_rich_text_editor_test.dart:802:                embedType: 'mention',
+test\widgets\wenz_rich_text_editor_test.dart:810:    final renderer = InlineEmbedRendererCallback((context, embed, style) {
+test\widgets\wenz_rich_text_editor_test.dart:839:            content: <InlineNode>[TextRun(text: 'Hi')],
+test\widgets\wenz_rich_text_editor_test.dart:843:      selection: collapsedTextSelection('p1', 0, 2),
+test\widgets\wenz_rich_text_editor_test.dart:872:            content: <InlineNode>[TextRun(text: 'Hi')],
+test\widgets\wenz_rich_text_editor_test.dart:876:      selection: collapsedTextSelection('p1', 0, 2),
+test\widgets\wenz_rich_text_editor_test.dart:904:    expect(controller.selection?.extent.offset, 2);
+test\widgets\wenz_rich_text_editor_test.dart:909:    expect(controller.selection?.extent.blockIndex, 1);
+test\widgets\wenz_rich_text_editor_test.dart:927:                        content: <InlineNode>[TextRun(text: 'Hi')],
+test\widgets\wenz_rich_text_editor_test.dart:937:      selection: DocumentSelection(
+test\widgets\wenz_rich_text_editor_test.dart:974:    expect(controller.selection?.extent.path.isTableCellText, isTrue);
+test\widgets\wenz_rich_text_editor_test.dart:975:    expect(controller.selection?.extent.offset, 3);
+test\widgets\wenz_rich_text_editor_test.dart:983:    expect(controller.selection?.extent.path.isTableCellText, isTrue);
+test\widgets\wenz_rich_text_editor_test.dart:984:    expect(controller.selection?.extent.offset, 2);
+test\widgets\wenz_rich_text_editor_test.dart:1009:                        content: <InlineNode>[TextRun(text: 'Hi')],
+test\widgets\wenz_rich_text_editor_test.dart:1019:      selection: DocumentSelection(base: position, extent: position),
+test\widgets\wenz_rich_text_editor_test.dart:1041:    expect(controller.selection?.extent.path.isTableCellText, isTrue);
+test\widgets\wenz_rich_text_editor_test.dart:1042:    expect(controller.selection?.extent.offset, 2);
+test\widgets\wenz_rich_text_editor_test.dart:1060:                        content: <InlineNode>[TextRun(text: 'AA')],
+test\widgets\wenz_rich_text_editor_test.dart:1070:                        content: <InlineNode>[TextRun(text: 'BB')],
+test\widgets\wenz_rich_text_editor_test.dart:1080:      selection: DocumentSelection(
+test\widgets\wenz_rich_text_editor_test.dart:1113:    expect(controller.selection?.extent.path.tableColumnIndex, 0);
+test\widgets\wenz_rich_text_editor_test.dart:1114:    expect(controller.selection?.extent.offset, 2);
+test\widgets\wenz_rich_text_editor_test.dart:1118:    expect(controller.selection?.extent.path.tableColumnIndex, 1);
+test\widgets\wenz_rich_text_editor_test.dart:1119:    expect(controller.selection?.extent.offset, 0);
+test\widgets\wenz_rich_text_editor_test.dart:1125:    expect(controller.selection?.extent.path.tableRowIndex, 1);
+test\widgets\wenz_rich_text_editor_test.dart:1126:    expect(controller.selection?.extent.path.tableColumnIndex, 0);
+test\widgets\wenz_rich_text_editor_test.dart:1134:    expect(controller.selection?.extent.path.tableRowIndex, 0);
+test\widgets\wenz_rich_text_editor_test.dart:1135:    expect(controller.selection?.extent.path.tableColumnIndex, 1);
+test\widgets\wenz_rich_text_editor_test.dart:1136:    expect(controller.selection?.extent.offset, 2);
+test\widgets\wenz_rich_text_editor_test.dart:1146:      selection: collapsedCodeSelection('code1', 0, 4),
+test\widgets\wenz_rich_text_editor_test.dart:1167:    expect(controller.selection?.extent.offset, 6);
+test\widgets\wenz_rich_text_editor_test.dart:1175:    expect(controller.selection?.extent.offset, 4);
+test\widgets\wenz_rich_text_editor_test.dart:1193:                        content: <InlineNode>[TextRun(text: 'AA')],
+test\widgets\wenz_rich_text_editor_test.dart:1205:                        content: <InlineNode>[TextRun(text: 'BB')],
+test\widgets\wenz_rich_text_editor_test.dart:1215:      selection: DocumentSelection(
+test\widgets\wenz_rich_text_editor_test.dart:1248:    expect(controller.selection?.extent.path.tableRowIndex, 1);
+test\widgets\wenz_rich_text_editor_test.dart:1249:    expect(controller.selection?.extent.path.tableColumnIndex, 0);
+test\widgets\wenz_rich_text_editor_test.dart:1250:    expect(controller.selection?.extent.offset, 1);
+test\widgets\wenz_rich_text_editor_test.dart:1254:    expect(controller.selection?.extent.path.tableRowIndex, 0);
+test\widgets\wenz_rich_text_editor_test.dart:1255:    expect(controller.selection?.extent.path.tableColumnIndex, 0);
+test\widgets\wenz_rich_text_editor_test.dart:1256:    expect(controller.selection?.extent.offset, 1);
+test\widgets\wenz_rich_text_editor_test.dart:1266:            content: <InlineNode>[TextRun(text: 'Hi')],
+test\widgets\wenz_rich_text_editor_test.dart:1270:      selection: collapsedTextSelection('p1', 0, 2),
+test\widgets\wenz_rich_text_editor_test.dart:1292:    expect(controller.selection?.extent.offset, 1);
+test\widgets\wenz_rich_text_editor_test.dart:1297:    expect(controller.selection?.extent.offset, 2);
+test\widgets\wenz_rich_text_editor_test.dart:1309:            content: <InlineNode>[TextRun(text: 'first')],
+test\widgets\wenz_rich_text_editor_test.dart:1314:            content: <InlineNode>[TextRun(text: 'second')],
+test\widgets\wenz_rich_text_editor_test.dart:1318:      selection: collapsedTextSelection('p1', 0, 5),
+test\widgets\wenz_rich_text_editor_test.dart:1336:    expect(controller.selection?.extent.blockId, 'p2');
+test\widgets\wenz_rich_text_editor_test.dart:1337:    expect(controller.selection?.extent.offset, 0);
+test\widgets\wenz_rich_text_editor_test.dart:1342:    expect(controller.selection?.extent.blockId, 'p1');
+test\widgets\wenz_rich_text_editor_test.dart:1343:    expect(controller.selection?.extent.offset, 5);
+test\widgets\wenz_rich_text_editor_test.dart:1358:            content: <InlineNode>[TextRun(text: 'abcdef')],
+test\widgets\wenz_rich_text_editor_test.dart:1362:      selection: collapsedTextSelection('p1', 0, 0),
+test\widgets\wenz_rich_text_editor_test.dart:1381:    expect(controller.selection?.extent.offset, 1);
+test\widgets\wenz_rich_text_editor_test.dart:1386:    expect(controller.selection?.extent.offset, 2);
+test\widgets\wenz_rich_text_editor_test.dart:1390:    expect(controller.selection?.extent.offset, 3);
+test\widgets\wenz_rich_text_editor_test.dart:1394:    expect(controller.selection?.extent.offset, 3);
+test\widgets\wenz_rich_text_editor_test.dart:1397:  testWidgets('extends selection with shift and arrow keys', (tester) async {
+test\widgets\wenz_rich_text_editor_test.dart:1404:            content: <InlineNode>[TextRun(text: 'Hi')],
+test\widgets\wenz_rich_text_editor_test.dart:1408:      selection: collapsedTextSelection('p1', 0, 2),
+test\widgets\wenz_rich_text_editor_test.dart:1428:    expect(controller.selection?.isCollapsed, isFalse);
+test\widgets\wenz_rich_text_editor_test.dart:1429:    expect(controller.selection?.base.offset, 2);
+test\widgets\wenz_rich_text_editor_test.dart:1430:    expect(controller.selection?.extent.offset, 1);
+test\widgets\wenz_rich_text_editor_test.dart:1440:            content: <InlineNode>[TextRun(text: 'Hi')],
+test\widgets\wenz_rich_text_editor_test.dart:1460:    expect(controller.selection?.extent.blockId, 'p1');
+test\widgets\wenz_rich_text_editor_test.dart:1461:    expect(controller.selection?.extent.offset, 2);
+
+**Creating task file**
+
+I need to create a file and determine if mentioning the line is necessary; maybe it’s not essential, but I’ll include it for clarity. It’s important to have total acceptance and progress noted, maybe with checkboxes for each task. I'm considering the title and ensuring all tasks are labeled (P001, etc.), along with the content for the bug report. I should also add validation commands related to Flutter tests to ensure everything runs smoothly.
+**Including specific scenarios**
+
+I need to include specific scenarios for testing. First, a single click should place the caret before or after the inline embed, allowing normal selection. For acceptance criteria, when dragging from text to an emoji, the selection should include the emoji. It’s also important that dragging starts or ends on an emoji maps to boundaries. Shift+arrow across inline embeds should extend the selection. I need to consider whether copying content includes the serialization of emojis or mentions. Additionally, I should note optional risks and confirm the directory exists before applying patches.
+codex
+计划内容已明确；接下来只新增指定 Markdown 文件。
+apply patch
+patch: completed
+D:\project\GitHub\wenz_flutter\wenz_richtext\docs\plan\plan_feedback_1_20260624-220759.md
+diff --git a/wenz_richtext/docs/plan/plan_feedback_1_20260624-220759.md b/wenz_richtext/docs/plan/plan_feedback_1_20260624-220759.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..e574e8b22c90f2b11bd43998130573b0be977eaf
+--- /dev/null
++++ b/wenz_richtext/docs/plan/plan_feedback_1_20260624-220759.md
+@@ -0,0 +1,57 @@
++# 开发计划：修复选择器无法选中 emoji 与提及
++
++## 来源
++- 类型：用户反馈
++- 编号：#1
++- 生成时间：2026-06-24 22:07:59
++- 原始反馈：选择器bug：emoji、提及无法正常被选中
++
++## 问题理解
++- 富文本选择器在包含 `emoji`、`mention` 等内联嵌入内容时，可能无法通过点击、拖拽或键盘扩展将其纳入选区。
++- 初步影响范围包括内联节点偏移计算、文本布局命中测试、选区高亮绘制、复制/命令读取选区等链路。
++- 修复目标是把 emoji 与提及作为可选择的原子内联单元处理，同时不破坏普通文本、表格、代码块和块级对象选择行为。
++
++## 任务计划
++- [ ] P001: 复现并定义缺陷边界
++  - 验收要点：构造包含普通文本、emoji、mention 混排的最小文档，记录点击、拖拽、Shift+方向键、全选等场景中无法选中的具体表现。
++  - 验收要点：明确问题发生在段落内联内容、表格单元格内联内容还是两者都受影响，并形成可复现步骤。
++
++- [ ] P002: 梳理内联节点选择模型
++  - 验收要点：确认 `TextRun` 与 `InlineEmbed` 在文档 offset、渲染占位宽度、选区边界中的映射规则。
++  - 验收要点：定义 emoji 与 mention 的原子选择语义，即选区只能落在其前后边界，不能拆分到嵌入内容内部。
++
++- [ ] P003: 修正命中测试与 offset 映射
++  - 验收要点：点击或拖拽落在 emoji、mention 可视区域时，能够稳定映射到对应内联原子单元的前后选择边界。
++  - 验收要点：拖拽选区跨过 emoji、mention 时，选区范围包含该内联节点，不再被跳过或截断。
++  - 验收要点：边界场景包括行首、行尾、连续多个内联嵌入、文本与嵌入相邻无空格。
++
++- [ ] P004: 修正选区高亮与光标反馈
++  - 验收要点：emoji、mention 被选中时有清晰选区高亮或等效选中态，不出现高亮缺失、错位、宽度为 0 的情况。
++  - 验收要点：光标停在 emoji、mention 前后边界时位置正确，不覆盖相邻文本或跳到错误行。
++
++- [ ] P005: 补充自动化回归测试
++  - 验收要点：新增或更新 widget 测试，覆盖 emoji、mention 的点击选择、拖拽跨选、键盘扩展选择。
++  - 验收要点：测试同时覆盖段落内混排与表格单元格内混排，避免只修复单一路径。
++  - 验收要点：测试断言 `DocumentSelection` 的 base、extent、offset 与预期一致。
++
++- [ ] P006: 执行选择器相关回归验证
++  - 验收要点：`flutter test test/widgets/wenz_rich_text_editor_test.dart` 通过，或失败项被确认与本缺陷无关并记录原因。
++  - 验收要点：`flutter test test/core/selection_commands_test.dart` 通过，确保选择命令行为未被破坏。
++  - 验收要点：普通文本选择、块级对象选择、表格选择、代码块选择核心场景保持原有行为。
++
++- [ ] P007: 更新缺陷进度与验证记录
++  - 验收要点：在进度记录中注明修复范围、验证命令、验证结果和遗留风险。
++  - 验收要点：如发现复制、删除、格式化等下游行为仍受内联嵌入影响，拆分为独立后续任务，不混入本次选择器修复。
++
++## 总体验收标准
++- 所有任务 checkbox 均完成，且每个任务的验收要点都有明确结论。
++- emoji 与 mention 在可视区域内可被正常点击定位、拖拽选中、键盘扩展纳入选区。
++- emoji 与 mention 作为原子内联单元参与选择，不产生半选、错位、跳选或无法显示选中态的问题。
++- 修复不回退普通文本、表格单元格、代码块、块级对象的既有选择能力。
++- 相关自动化测试通过；若存在非本次变更导致的失败，需在进度记录中说明失败命令、失败原因和处理建议。
++
++## 进度区
++- 当前状态：draft
++- 当前负责人：待分配
++- 下一步：确认复现路径，并将 P001 纳入开发任务。
++- 风险记录：emoji 可能涉及 Unicode grapheme cluster 宽度计算，mention 可能涉及 `InlineEmbed` 占位和实际渲染宽度不一致，需要优先校准 offset 与绘制边界。
+
+diff --git a/wenz_richtext/docs/plan/plan_feedback_1_20260624-220759.md b/wenz_richtext/docs/plan/plan_feedback_1_20260624-220759.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..e574e8b22c90f2b11bd43998130573b0be977eaf
+--- /dev/null
++++ b/wenz_richtext/docs/plan/plan_feedback_1_20260624-220759.md
+@@ -0,0 +1,57 @@
++# 开发计划：修复选择器无法选中 emoji 与提及
++
++## 来源
++- 类型：用户反馈
++- 编号：#1
++- 生成时间：2026-06-24 22:07:59
++- 原始反馈：选择器bug：emoji、提及无法正常被选中
++
++## 问题理解
++- 富文本选择器在包含 `emoji`、`mention` 等内联嵌入内容时，可能无法通过点击、拖拽或键盘扩展将其纳入选区。
++- 初步影响范围包括内联节点偏移计算、文本布局命中测试、选区高亮绘制、复制/命令读取选区等链路。
++- 修复目标是把 emoji 与提及作为可选择的原子内联单元处理，同时不破坏普通文本、表格、代码块和块级对象选择行为。
++
++## 任务计划
++- [ ] P001: 复现并定义缺陷边界
++  - 验收要点：构造包含普通文本、emoji、mention 混排的最小文档，记录点击、拖拽、Shift+方向键、全选等场景中无法选中的具体表现。
++  - 验收要点：明确问题发生在段落内联内容、表格单元格内联内容还是两者都受影响，并形成可复现步骤。
++
++- [ ] P002: 梳理内联节点选择模型
++  - 验收要点：确认 `TextRun` 与 `InlineEmbed` 在文档 offset、渲染占位宽度、选区边界中的映射规则。
++  - 验收要点：定义 emoji 与 mention 的原子选择语义，即选区只能落在其前后边界，不能拆分到嵌入内容内部。
++
++- [ ] P003: 修正命中测试与 offset 映射
++  - 验收要点：点击或拖拽落在 emoji、mention 可视区域时，能够稳定映射到对应内联原子单元的前后选择边界。
++  - 验收要点：拖拽选区跨过 emoji、mention 时，选区范围包含该内联节点，不再被跳过或截断。
++  - 验收要点：边界场景包括行首、行尾、连续多个内联嵌入、文本与嵌入相邻无空格。
++
++- [ ] P004: 修正选区高亮与光标反馈
++  - 验收要点：emoji、mention 被选中时有清晰选区高亮或等效选中态，不出现高亮缺失、错位、宽度为 0 的情况。
++  - 验收要点：光标停在 emoji、mention 前后边界时位置正确，不覆盖相邻文本或跳到错误行。
++
++- [ ] P005: 补充自动化回归测试
++  - 验收要点：新增或更新 widget 测试，覆盖 emoji、mention 的点击选择、拖拽跨选、键盘扩展选择。
++  - 验收要点：测试同时覆盖段落内混排与表格单元格内混排，避免只修复单一路径。
++  - 验收要点：测试断言 `DocumentSelection` 的 base、extent、offset 与预期一致。
++
++- [ ] P006: 执行选择器相关回归验证
++  - 验收要点：`flutter test test/widgets/wenz_rich_text_editor_test.dart` 通过，或失败项被确认与本缺陷无关并记录原因。
++  - 验收要点：`flutter test test/core/selection_commands_test.dart` 通过，确保选择命令行为未被破坏。
++  - 验收要点：普通文本选择、块级对象选择、表格选择、代码块选择核心场景保持原有行为。
++
++- [ ] P007: 更新缺陷进度与验证记录
++  - 验收要点：在进度记录中注明修复范围、验证命令、验证结果和遗留风险。
++  - 验收要点：如发现复制、删除、格式化等下游行为仍受内联嵌入影响，拆分为独立后续任务，不混入本次选择器修复。
++
++## 总体验收标准
++- 所有任务 checkbox 均完成，且每个任务的验收要点都有明确结论。
++- emoji 与 mention 在可视区域内可被正常点击定位、拖拽选中、键盘扩展纳入选区。
++- emoji 与 mention 作为原子内联单元参与选择，不产生半选、错位、跳选或无法显示选中态的问题。
++- 修复不回退普通文本、表格单元格、代码块、块级对象的既有选择能力。
++- 相关自动化测试通过；若存在非本次变更导致的失败，需在进度记录中说明失败命令、失败原因和处理建议。
++
++## 进度区
++- 当前状态：draft
++- 当前负责人：待分配
++- 下一步：确认复现路径，并将 P001 纳入开发任务。
++- 风险记录：emoji 可能涉及 Unicode grapheme cluster 宽度计算，mention 可能涉及 `InlineEmbed` 占位和实际渲染宽度不一致，需要优先校准 offset 与绘制边界。
+
+codex
+已生成开发计划文件，未修改业务代码。
+
+- 新增：`docs/plan/plan_feedback_1_20260624-220759.md:1`
+- 内容包含：任务 checkbox、逐任务验收要点、总体验收标准、进度区
+- 测试未运行：本次仅写计划文档，无代码变更
+diff --git a/wenz_richtext/docs/plan/plan_feedback_1_20260624-220759.md b/wenz_richtext/docs/plan/plan_feedback_1_20260624-220759.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..e574e8b22c90f2b11bd43998130573b0be977eaf
+--- /dev/null
++++ b/wenz_richtext/docs/plan/plan_feedback_1_20260624-220759.md
+@@ -0,0 +1,57 @@
++# 开发计划：修复选择器无法选中 emoji 与提及
++
++## 来源
++- 类型：用户反馈
++- 编号：#1
++- 生成时间：2026-06-24 22:07:59
++- 原始反馈：选择器bug：emoji、提及无法正常被选中
++
++## 问题理解
++- 富文本选择器在包含 `emoji`、`mention` 等内联嵌入内容时，可能无法通过点击、拖拽或键盘扩展将其纳入选区。
++- 初步影响范围包括内联节点偏移计算、文本布局命中测试、选区高亮绘制、复制/命令读取选区等链路。
++- 修复目标是把 emoji 与提及作为可选择的原子内联单元处理，同时不破坏普通文本、表格、代码块和块级对象选择行为。
++
++## 任务计划
++- [ ] P001: 复现并定义缺陷边界
++  - 验收要点：构造包含普通文本、emoji、mention 混排的最小文档，记录点击、拖拽、Shift+方向键、全选等场景中无法选中的具体表现。
++  - 验收要点：明确问题发生在段落内联内容、表格单元格内联内容还是两者都受影响，并形成可复现步骤。
++
++- [ ] P002: 梳理内联节点选择模型
++  - 验收要点：确认 `TextRun` 与 `InlineEmbed` 在文档 offset、渲染占位宽度、选区边界中的映射规则。
++  - 验收要点：定义 emoji 与 mention 的原子选择语义，即选区只能落在其前后边界，不能拆分到嵌入内容内部。
++
++- [ ] P003: 修正命中测试与 offset 映射
++  - 验收要点：点击或拖拽落在 emoji、mention 可视区域时，能够稳定映射到对应内联原子单元的前后选择边界。
++  - 验收要点：拖拽选区跨过 emoji、mention 时，选区范围包含该内联节点，不再被跳过或截断。
++  - 验收要点：边界场景包括行首、行尾、连续多个内联嵌入、文本与嵌入相邻无空格。
++
++- [ ] P004: 修正选区高亮与光标反馈
++  - 验收要点：emoji、mention 被选中时有清晰选区高亮或等效选中态，不出现高亮缺失、错位、宽度为 0 的情况。
++  - 验收要点：光标停在 emoji、mention 前后边界时位置正确，不覆盖相邻文本或跳到错误行。
++
++- [ ] P005: 补充自动化回归测试
++  - 验收要点：新增或更新 widget 测试，覆盖 emoji、mention 的点击选择、拖拽跨选、键盘扩展选择。
++  - 验收要点：测试同时覆盖段落内混排与表格单元格内混排，避免只修复单一路径。
++  - 验收要点：测试断言 `DocumentSelection` 的 base、extent、offset 与预期一致。
++
++- [ ] P006: 执行选择器相关回归验证
++  - 验收要点：`flutter test test/widgets/wenz_rich_text_editor_test.dart` 通过，或失败项被确认与本缺陷无关并记录原因。
++  - 验收要点：`flutter test test/core/selection_commands_test.dart` 通过，确保选择命令行为未被破坏。
++  - 验收要点：普通文本选择、块级对象选择、表格选择、代码块选择核心场景保持原有行为。
++
++- [ ] P007: 更新缺陷进度与验证记录
++  - 验收要点：在进度记录中注明修复范围、验证命令、验证结果和遗留风险。
++  - 验收要点：如发现复制、删除、格式化等下游行为仍受内联嵌入影响，拆分为独立后续任务，不混入本次选择器修复。
++
++## 总体验收标准
++- 所有任务 checkbox 均完成，且每个任务的验收要点都有明确结论。
++- emoji 与 mention 在可视区域内可被正常点击定位、拖拽选中、键盘扩展纳入选区。
++- emoji 与 mention 作为原子内联单元参与选择，不产生半选、错位、跳选或无法显示选中态的问题。
++- 修复不回退普通文本、表格单元格、代码块、块级对象的既有选择能力。
++- 相关自动化测试通过；若存在非本次变更导致的失败，需在进度记录中说明失败命令、失败原因和处理建议。
++
++## 进度区
++- 当前状态：draft
++- 当前负责人：待分配
++- 下一步：确认复现路径，并将 P001 纳入开发任务。
++- 风险记录：emoji 可能涉及 Unicode grapheme cluster 宽度计算，mention 可能涉及 `InlineEmbed` 占位和实际渲染宽度不一致，需要优先校准 offset 与绘制边界。
+
+tokens used
+12,948
+已生成开发计划文件，未修改业务代码。
+
+- 新增：`docs/plan/plan_feedback_1_20260624-220759.md:1`
+- 内容包含：任务 checkbox、逐任务验收要点、总体验收标准、进度区
+- 测试未运行：本次仅写计划文档，无代码变更

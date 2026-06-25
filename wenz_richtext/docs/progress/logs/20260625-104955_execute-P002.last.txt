@@ -1,0 +1,13 @@
+**已完成 P002**
+- 在 `lib/src/controller/outline_controller.dart:16` 扩展 `OutlineItem`，新增可折叠、已折叠、覆盖 block id/index/range 等只读状态。
+- 在 `lib/src/controller/outline_controller.dart:83` 新增 `OutlineCollapseRange`，按标题层级计算折叠覆盖范围。
+- 在 `lib/src/controller/outline_controller.dart:175` 为 `WenzOutlineController` 增加按 blockId/anchor/OutlineItem 折叠、展开、切换、全部展开与状态查询 API，并在文档变化后清理无效折叠状态。
+- 在 `test/controller/outline_controller_test.dart:25` 补充范围计算、API no-op、状态不进历史、文档变化清理等最小相关测试。
+
+**验证**
+- `flutter analyze lib/src/controller/outline_controller.dart test/controller/outline_controller_test.dart` 通过。
+- `flutter test test/controller/outline_controller_test.dart` 通过，8 个测试全部通过。
+
+**说明**
+- 未修改 plan 文件，未勾选 checkbox，未更新进度区。
+- `lib/src/controller/wenz_rich_text_controller.dart` 和 `test/core/controller_test.dart` 开始前已有未提交改动；本次只读取，未编辑。

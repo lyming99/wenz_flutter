@@ -1,0 +1,13 @@
+**完成**
+- 已完成 P005，未修改 plan 文件、未勾选 checkbox、未更新进度区。
+- 代码块改为深色背景、13.5px 等宽字体、1.6 行高、18x20 内边距、语言标签与横向滚动：`lib/src/widgets/wenz_rich_text_editor.dart:3837`
+- 分割线改为浅色细线 + 居中主色圆点，并保留对象块选中边界和快捷操作：`lib/src/widgets/wenz_rich_text_editor.dart:6562`
+- Callout 四变体改为设计稿背景/边框/前景色，空内容仍保留可选中文本面兜底：`lib/src/widgets/wenz_rich_text_editor.dart:7235`
+- 补充 P005 相关 widget/baseline 断言：`test/widgets/wenz_rich_text_editor_test.dart:1083`、`test/widgets/wenz_rich_text_editor_test.dart:1598`、`test/widgets/wenz_rich_text_editor_test.dart:1677`、`test/widgets/editor_golden_test.dart:42`
+
+**验证**
+- `flutter test test/widgets/wenz_rich_text_editor_test.dart --plain-name "code block"` 通过
+- `flutter test test/widgets/wenz_rich_text_editor_test.dart --plain-name "callout"` 通过
+- `flutter test test/widgets/wenz_rich_text_editor_test.dart --plain-name "divider"` 通过
+- `flutter test test/widgets/wenz_rich_text_editor_test.dart --plain-name "block renderer registry overrides block rendering"` 通过
+- `flutter test test/widgets/editor_golden_test.dart --plain-name "design baseline"` 通过

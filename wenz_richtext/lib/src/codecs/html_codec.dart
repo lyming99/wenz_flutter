@@ -18,7 +18,7 @@ import '../core/model/table_model.dart';
 /// **Import** (`decode`) uses `package:html` (a pure-Dart HTML5 parser) to turn
 /// an HTML fragment into a document. Recognised block tags (`<p>`, `<h1>`–
 /// `<h6>`, `<ul>`/`<ol>`/`<li>`, `<blockquote>`, Wenz callout `<aside>`,
-/// `<pre>`, `<table>`, `<hr>`, `<img>`) map to their block counterparts;
+/// `<pre>`, `<table>`, `<hr>`, `<img>`, `<video>`) map to their block counterparts;
 /// inline tags (`<strong>`/`<b>`, `<em>`/`<i>`, `<s>`/`<del>`/`<strike>`,
 /// `<u>`, `<a>`, `<img>`) map to
 /// [TextAttributes] with nesting merged. Unrecognised content falls back to a
@@ -26,6 +26,10 @@ import '../core/model/table_model.dart';
 ///
 /// This is the package's first third-party runtime dependency (`package:html`).
 /// See `docs/architecture.md`.
+///
+/// The codec serializes document content only. Editor-owned view state such as
+/// heading collapse is not emitted, and any external collapse metadata on
+/// imported HTML is treated as non-content metadata rather than document state.
 class HtmlCodec {
   const HtmlCodec();
 
@@ -308,15 +312,48 @@ class HtmlCodec {
   }
 
   String _encodeVideoBlock(VideoBlockNode video) {
-    final src = _escapeHtml(video.file.isNotEmpty ? video.file : video.assetId);
-    final attrs = StringBuffer(' src="$src"');
+    final src = _escapeHtml(_videoSource(video));
+    final attrs = StringBuffer(' src="$src" data-wenz-block="video"');
     if (video.assetId.isNotEmpty) {
       attrs.write(' data-asset-id="${_escapeHtml(video.assetId)}"');
+    }
+    if (video.playbackUrl.isNotEmpty) {
+      attrs.write(' data-playback-url="${_escapeHtml(video.playbackUrl)}"');
     }
     if (video.file.isNotEmpty) {
       attrs.write(' data-file="${_escapeHtml(video.file)}"');
     }
+    if (video.coverUrl.isNotEmpty) {
+      attrs.write(' poster="${_escapeHtml(video.coverUrl)}"');
+    }
+    if (video.title.isNotEmpty) {
+      attrs.write(' title="${_escapeHtml(video.title)}"');
+      attrs.write(' data-title="${_escapeHtml(video.title)}"');
+    }
+    if (video.description.isNotEmpty) {
+      attrs.write(' data-description="${_escapeHtml(video.description)}"');
+    }
+    final aspectRatio = video.aspectRatio;
+    if (aspectRatio != null && aspectRatio > 0) {
+      attrs.write(' data-aspect-ratio="${_formatDimension(aspectRatio)}"');
+    }
+    if (video.uploadStatus != FileUploadStatus.none) {
+      attrs.write(' data-upload-status="${video.uploadStatus.name}"');
+    }
+    if (video.uploadError.isNotEmpty) {
+      attrs.write(' data-upload-error="${_escapeHtml(video.uploadError)}"');
+    }
     return '<video$attrs></video>';
+  }
+
+  String _videoSource(VideoBlockNode video) {
+    if (video.playbackUrl.isNotEmpty) {
+      return video.playbackUrl;
+    }
+    if (video.file.isNotEmpty) {
+      return video.file;
+    }
+    return video.assetId;
   }
 
   String _encodeBlockEmbed(BlockEmbedNode embed) {
@@ -493,6 +530,16 @@ class HtmlCodec {
             );
             return;
           }
+          final video = node.querySelector('video');
+          if (video != null) {
+            _decodeVideoElement(
+              video,
+              blocks,
+              newId,
+              title: node.querySelector('figcaption')?.text.trim() ?? '',
+            );
+            return;
+          }
           for (final child in node.nodes) {
             _decodeNode(child, blocks, newId);
           }
@@ -566,8 +613,9 @@ class HtmlCodec {
   void _decodeVideoElement(
     dom.Element node,
     List<BlockNode> blocks,
-    String Function(String) newId,
-  ) {
+    String Function(String) newId, {
+    String title = '',
+  }) {
     final sourceElement = node.querySelector('source[src]');
     final src =
         (node.attributes['src'] ?? sourceElement?.attributes['src'] ?? '')
@@ -576,23 +624,63 @@ class HtmlCodec {
             sourceElement?.attributes['data-asset-id'] ??
             '')
         .trim();
+    final rawPlaybackUrl = (node.attributes['data-playback-url'] ??
+            sourceElement?.attributes['data-playback-url'] ??
+            '')
+        .trim();
     final rawFile = (node.attributes['data-file'] ??
             sourceElement?.attributes['data-file'] ??
             '')
         .trim();
-    if (src.isEmpty && rawAssetId.isEmpty && rawFile.isEmpty) {
+    if (src.isEmpty &&
+        rawAssetId.isEmpty &&
+        rawPlaybackUrl.isEmpty &&
+        rawFile.isEmpty) {
       return;
     }
-    final assetId = rawAssetId.isNotEmpty ? rawAssetId : src;
-    final file = rawFile.isNotEmpty
-        ? rawFile
-        : rawAssetId.isNotEmpty && src.isNotEmpty && src != rawAssetId
-            ? src
-            : '';
+    var assetId = rawAssetId;
+    var playbackUrl = rawPlaybackUrl;
+    var file = rawFile;
+
+    if (playbackUrl.isEmpty &&
+        src.isNotEmpty &&
+        src != file &&
+        (_looksLikeRemoteUrl(src) || (assetId.isNotEmpty && file.isNotEmpty))) {
+      playbackUrl = src;
+    }
+    if (file.isEmpty &&
+        src.isNotEmpty &&
+        src != playbackUrl &&
+        src != assetId &&
+        !_looksLikeRemoteUrl(src)) {
+      file = src;
+    }
+    if (assetId.isEmpty && playbackUrl.isEmpty && file.isEmpty) {
+      assetId = src;
+    }
+
+    final coverUrl = (node.attributes['data-cover-url'] ??
+            node.attributes['poster'] ??
+            sourceElement?.attributes['data-cover-url'] ??
+            '')
+        .trim();
+    final fallbackTitle = title.isNotEmpty ? title : node.text.trim();
+    final resolvedTitle = (node.attributes['data-title'] ??
+            node.attributes['title'] ??
+            fallbackTitle)
+        .trim();
     blocks.add(VideoBlockNode(
       id: newId('video'),
       assetId: assetId,
+      playbackUrl: playbackUrl,
       file: file,
+      coverUrl: coverUrl,
+      title: resolvedTitle,
+      description: (node.attributes['data-description'] ?? '').trim(),
+      aspectRatio: _parseDoubleAttribute(node.attributes['data-aspect-ratio']),
+      uploadStatus:
+          FileUploadStatus.parse(node.attributes['data-upload-status']),
+      uploadError: (node.attributes['data-upload-error'] ?? '').trim(),
     ));
   }
 
@@ -726,6 +814,11 @@ class HtmlCodec {
       return null;
     }
     return double.tryParse(value);
+  }
+
+  bool _looksLikeRemoteUrl(String value) {
+    final uri = Uri.tryParse(value);
+    return uri != null && (uri.scheme == 'http' || uri.scheme == 'https');
   }
 
   TextBlockNode _decodeListItem(

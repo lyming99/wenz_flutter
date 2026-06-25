@@ -1,0 +1,12 @@
+**完成情况**
+- 已完成 P006：附件默认展示简化为“文件图标、文件名称、操作菜单”，移除大小、mime、下载链接/assetId、错误详情等正文可见信息。
+- 长文件名使用单行省略，菜单独立在右侧，不撑破编辑器宽度：`lib/src/widgets/wenz_rich_text_editor.dart:6584`
+- 新增附件操作菜单，保留复制、复制块、上下移动、状态标记、删除等既有动作，未选中/选中状态都可触发：`lib/src/widgets/wenz_rich_text_editor.dart:6647`
+- 同步清理 `_ObjectBlockCard` 中已无调用方的文件动作参数：`lib/src/widgets/wenz_rich_text_editor.dart:6284`
+
+**验证**
+- 已运行 `dart format lib/src/widgets/wenz_rich_text_editor.dart`
+- 已运行 `dart analyze lib/src/widgets/wenz_rich_text_editor.dart`，结果通过
+- 已运行 `git diff --check -- lib/src/widgets/wenz_rich_text_editor.dart`，无空白错误，仅 Git 提示 LF/CRLF 规范化警告
+
+未修改 plan 文件、未勾选 checkbox，也未提前处理 P007 测试/golden 更新。

@@ -1,0 +1,13 @@
+已完成 P001，未修改 plan 文件、未勾选 checkbox。
+
+**变更**
+- 在 `lib/src/controller/outline_controller.dart:59` 明确标题折叠入口、范围、空标题/无子内容、只读与 undo/redo 规则。
+- 在 `lib/src/widgets/wenz_rich_text_editor.dart:288`、`lib/src/widgets/wenz_rich_text_editor.dart:684` 标注折叠是编辑器视图状态，不改文档与历史。
+- 在 `docs/acceptance_manual_checklist.md:14` 新增 `REQ-010-P001` 手动验收项。
+
+**验证**
+- 已运行 `dart format lib/src/controller/outline_controller.dart lib/src/widgets/wenz_rich_text_editor.dart`，结果 `0 changed`。
+- 已运行 `git diff --check -- ...`，未发现空白错误。
+- `docs/plan/plan_requirement_10_20260625-034349.md` 无 diff。
+
+备注：工作区已有其它未提交改动，我未处理也未修改这些非 P001 scope 文件。

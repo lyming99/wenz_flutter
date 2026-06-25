@@ -23,6 +23,23 @@ void main() {
       expect(service.parse(payload).text, 'ell');
     });
 
+    test('callout body range uses content offsets when copying', () {
+      const doc = RichTextDocument(
+        blocks: <BlockNode>[
+          CalloutBlockNode(
+            id: 'info1',
+            title: 'Info Title',
+            content: <InlineNode>[TextRun(text: 'Info body selectable')],
+          ),
+        ],
+      );
+      final payload = service.copy(doc, textSelection('info1', 0, 5, 9));
+
+      expect(payload, isNotNull);
+      expect(payload!.startsWith(wenzClipboardPrefix), isTrue);
+      expect(service.parse(payload).text, 'body');
+    });
+
     test('same-block range preserves run attributes on parse', () {
       const doc = RichTextDocument(
         blocks: <BlockNode>[
@@ -70,6 +87,7 @@ void main() {
       final paste = service.parse(payload);
 
       expect(paste.isRich, isTrue);
+      expect(paste.text, 'ax^2b');
       // The embed must survive: a, embed, b — not just 'ab'.
       final embeds = paste.inlineRuns.whereType<InlineEmbed>().toList();
       expect(embeds, hasLength(1));
@@ -93,6 +111,60 @@ void main() {
       expect(image.id, 'img1');
       expect(image.assetId, 'hero');
       expect(image.file, 'hero.png');
+    });
+
+    test('video block selection preserves metadata with a readable text view',
+        () {
+      const doc = RichTextDocument(
+        blocks: <BlockNode>[
+          VideoBlockNode(
+            id: 'video1',
+            assetId: 'clip-asset',
+            playbackUrl: 'https://cdn.example.test/clip.mp4',
+            file: 'clip.mp4',
+            coverUrl: 'https://cdn.example.test/cover.jpg',
+            title: 'Launch clip',
+            description: 'Demo reel',
+            aspectRatio: 4 / 3,
+            uploadStatus: FileUploadStatus.uploaded,
+          ),
+        ],
+      );
+
+      final payload = service.copy(doc, objectSelection('video1', 0));
+      final paste = service.parse(payload!);
+
+      expect(paste.isBlocks, isTrue);
+      expect(paste.text, '[video: Launch clip]');
+      expect(paste.blocks, hasLength(1));
+      final video = paste.blocks.single as VideoBlockNode;
+      expect(video.id, 'video1');
+      expect(video.assetId, 'clip-asset');
+      expect(video.playbackUrl, 'https://cdn.example.test/clip.mp4');
+      expect(video.file, 'clip.mp4');
+      expect(video.coverUrl, 'https://cdn.example.test/cover.jpg');
+      expect(video.title, 'Launch clip');
+      expect(video.description, 'Demo reel');
+      expect(video.aspectRatio, 4 / 3);
+      expect(video.uploadStatus, FileUploadStatus.uploaded);
+    });
+
+    test('formula block selection exposes formula source text', () {
+      const doc = RichTextDocument(
+        blocks: <BlockNode>[
+          BlockEmbedNode(
+            id: 'formula1',
+            embedType: 'formula',
+            data: <String, Object?>{'text': r'\int_0^1 x dx'},
+          ),
+        ],
+      );
+
+      final payload = service.copy(doc, objectSelection('formula1', 0));
+      final paste = service.parse(payload!);
+
+      expect(paste.isBlocks, isTrue);
+      expect(paste.text, r'\int_0^1 x dx');
     });
 
     test('cross-block range preserves an inline embed in the trimmed blocks',
@@ -175,6 +247,45 @@ void main() {
       expect(paste.blocks, hasLength(2));
       expect((paste.blocks[0] as TextBlockNode).plainText, 'bc');
       expect((paste.blocks[1] as TextBlockNode).plainText, 'de');
+    });
+
+    test('cross-block range preserves a video block as an atomic block', () {
+      const doc = RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'before')],
+          ),
+          VideoBlockNode(
+            id: 'video1',
+            assetId: 'clip',
+            title: 'Launch clip',
+            playbackUrl: 'https://cdn.example.test/clip.mp4',
+          ),
+          TextBlockNode(
+            id: 'p2',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'after')],
+          ),
+        ],
+      );
+      final sel = DocumentSelection(
+        base: DocumentPosition.text(blockId: 'p1', blockIndex: 0, offset: 2),
+        extent: DocumentPosition.text(blockId: 'p2', blockIndex: 2, offset: 3),
+      );
+
+      final payload = service.copy(doc, sel)!;
+      final paste = service.parse(payload);
+
+      expect(paste.isBlocks, isTrue);
+      expect(paste.text, 'fore\n[video: Launch clip]\naft');
+      expect(paste.blocks, hasLength(3));
+      expect((paste.blocks[0] as TextBlockNode).plainText, 'fore');
+      final video = paste.blocks[1] as VideoBlockNode;
+      expect(video.id, 'video1');
+      expect(video.playbackUrl, 'https://cdn.example.test/clip.mp4');
+      expect((paste.blocks[2] as TextBlockNode).plainText, 'aft');
     });
 
     test('cross-block range preserves inline attributes per block', () {
@@ -794,6 +905,46 @@ void main() {
         controller.selection?.extent.blockId,
         controller.document.blocks[2].id,
       );
+    });
+
+    test('paste copied video into text uses a fresh id and keeps metadata', () {
+      const source = RichTextDocument(
+        blocks: <BlockNode>[
+          VideoBlockNode(
+            id: 'video1',
+            assetId: 'clip',
+            playbackUrl: 'https://cdn.example.test/clip.mp4',
+            file: 'clip.mp4',
+            coverUrl: 'https://cdn.example.test/cover.jpg',
+            title: 'Launch clip',
+            description: 'Demo reel',
+            aspectRatio: 4 / 3,
+            uploadStatus: FileUploadStatus.uploaded,
+          ),
+        ],
+      );
+      final payload = service.copy(source, objectSelection('video1', 0))!;
+      final controller = WenzRichTextController(
+        document: _doc('ab'),
+        selection: collapsedTextSelection('p1', 0, 1),
+      );
+
+      controller.pasteText(payload);
+
+      expect(controller.document.blocks, hasLength(3));
+      final pastedVideo = controller.document.blocks[1] as VideoBlockNode;
+      expect(pastedVideo.id, isNot('video1'));
+      expect(pastedVideo.assetId, 'clip');
+      expect(pastedVideo.playbackUrl, 'https://cdn.example.test/clip.mp4');
+      expect(pastedVideo.file, 'clip.mp4');
+      expect(pastedVideo.coverUrl, 'https://cdn.example.test/cover.jpg');
+      expect(pastedVideo.title, 'Launch clip');
+      expect(pastedVideo.description, 'Demo reel');
+      expect(pastedVideo.aspectRatio, 4 / 3);
+      expect(pastedVideo.uploadStatus, FileUploadStatus.uploaded);
+      expect(controller.selection?.extent.path.isBlockText, isTrue);
+      expect(controller.selection?.extent.blockId,
+          controller.document.blocks[2].id);
     });
 
     test('paste copied image after an object selects the pasted image', () {

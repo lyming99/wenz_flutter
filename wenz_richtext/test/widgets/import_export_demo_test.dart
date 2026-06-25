@@ -14,10 +14,10 @@ void main() {
     await tester.pumpWidget(const WenzRichTextExampleApp());
     await tester.pump();
 
-    await tester.ensureVisible(
-      find.byKey(const Key('import-export-load-markdown')),
+    await _tapInspectorAction(
+      tester,
+      const Key('import-export-load-markdown'),
     );
-    await tester.tap(find.byKey(const Key('import-export-load-markdown')));
     await tester.pump();
 
     final controller = WenzEditorTestHost.of(
@@ -32,10 +32,10 @@ void main() {
     expect(controller.toMarkdown(),
         contains('![video](https://example.com/demo.mp4)'));
 
-    await tester.ensureVisible(
-      find.byKey(const Key('import-export-export-markdown')),
+    await _tapInspectorAction(
+      tester,
+      const Key('import-export-export-markdown'),
     );
-    await tester.tap(find.byKey(const Key('import-export-export-markdown')));
     await tester.pumpAndSettle();
 
     expect(find.text('Markdown export preview'), findsOneWidget);
@@ -46,9 +46,10 @@ void main() {
     await tester.pumpWidget(const WenzRichTextExampleApp());
     await tester.pump();
 
-    await tester
-        .ensureVisible(find.byKey(const Key('import-export-load-html')));
-    await tester.tap(find.byKey(const Key('import-export-load-html')));
+    await _tapInspectorAction(
+      tester,
+      const Key('import-export-load-html'),
+    );
     await tester.pump();
 
     final controller = WenzEditorTestHost.of(
@@ -76,13 +77,23 @@ void main() {
     expect(html, contains('colspan="2"'));
     expect(html, contains('data-wenz-block="file"'));
 
-    await tester.ensureVisible(
-      find.byKey(const Key('import-export-export-html')),
+    await _tapInspectorAction(
+      tester,
+      const Key('import-export-export-html'),
     );
-    await tester.tap(find.byKey(const Key('import-export-export-html')));
     await tester.pumpAndSettle();
 
     expect(find.text('HTML export preview'), findsOneWidget);
     expect(find.textContaining('rowspan="2"'), findsOneWidget);
   });
+}
+
+Future<void> _tapInspectorAction(WidgetTester tester, Key key) async {
+  final finder = find.byKey(key);
+  await tester.scrollUntilVisible(
+    finder,
+    120,
+    scrollable: find.byType(Scrollable).first,
+  );
+  tester.widget<OutlinedButton>(finder).onPressed?.call();
 }

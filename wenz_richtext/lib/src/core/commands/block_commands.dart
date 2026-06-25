@@ -638,12 +638,7 @@ BlockNode _copyBlockForPaste(BlockNode block, _PasteIdAllocator ids) {
     return DividerBlockNode(id: id, attributes: block.attributes);
   }
   if (block is VideoBlockNode) {
-    return VideoBlockNode(
-      id: id,
-      assetId: block.assetId,
-      file: block.file,
-      attributes: block.attributes,
-    );
+    return block.copyWith(id: id);
   }
   if (block is BlockEmbedNode) {
     return BlockEmbedNode(
@@ -827,6 +822,79 @@ class ReplaceBlocksCommand extends EditorCommand {
   }
 }
 
+class InsertVideoBlockCommand extends EditorCommand {
+  const InsertVideoBlockCommand({
+    required this.index,
+    required this.blockId,
+    this.assetId = '',
+    this.playbackUrl = '',
+    this.file = '',
+    this.coverUrl = '',
+    this.title = '',
+    String description = '',
+    this.aspectRatio,
+    this.uploadStatus = FileUploadStatus.none,
+    this.uploadError = '',
+    this.selection,
+  }) : videoDescription = description;
+
+  final int index;
+  final String blockId;
+  final String assetId;
+  final String playbackUrl;
+  final String file;
+  final String coverUrl;
+  final String title;
+  final String videoDescription;
+  final double? aspectRatio;
+  final FileUploadStatus uploadStatus;
+  final String uploadError;
+  final DocumentSelection? selection;
+
+  @override
+  String get description => 'insertVideoBlock';
+
+  @override
+  CommandResult execute(DocumentSession session) {
+    final video = VideoBlockNode(
+      id: blockId,
+      assetId: assetId,
+      playbackUrl: playbackUrl,
+      file: file,
+      coverUrl: coverUrl,
+      title: title,
+      description: videoDescription,
+      aspectRatio: aspectRatio,
+      uploadStatus: uploadStatus,
+      uploadError: uploadError,
+    );
+    final result = InsertBlocksCommand(
+      index: index,
+      blocks: <BlockNode>[video],
+      selection: selection,
+    ).execute(session);
+    if (selection != null ||
+        result.selection != null ||
+        !result.recordHistory) {
+      return result;
+    }
+    final insertedIndex = session.document.blocks.indexWhere(
+      (block) => block.id == blockId,
+    );
+    if (insertedIndex == -1) {
+      return result;
+    }
+    return CommandResult(
+      selection: _defaultSelectionForInsertedBlock(
+        insertedIndex,
+        session.document.blocks[insertedIndex],
+      ),
+      recordHistory: result.recordHistory,
+      metadata: result.metadata,
+    );
+  }
+}
+
 class UpdateImageBlockCommand extends EditorCommand {
   const UpdateImageBlockCommand({
     required this.blockIndex,
@@ -973,6 +1041,230 @@ bool _sameFileBlock(FileBlockNode a, FileBlockNode b) {
       a.attributes == b.attributes;
 }
 
+class UpdateVideoBlockCommand extends EditorCommand {
+  const UpdateVideoBlockCommand({
+    required this.blockIndex,
+    this.assetId,
+    this.playbackUrl,
+    this.file,
+    this.coverUrl,
+    this.title,
+    String? description,
+    this.aspectRatio,
+    this.clearAspectRatio = false,
+    this.uploadStatus,
+    this.uploadError,
+  }) : videoDescription = description;
+
+  final int blockIndex;
+  final String? assetId;
+  final String? playbackUrl;
+  final String? file;
+  final String? coverUrl;
+  final String? title;
+  final String? videoDescription;
+  final double? aspectRatio;
+  final bool clearAspectRatio;
+  final FileUploadStatus? uploadStatus;
+  final String? uploadError;
+
+  @override
+  String get description => 'updateVideoBlock';
+
+  @override
+  CommandResult execute(DocumentSession session) {
+    final block = _blockAt(session.document, blockIndex);
+    if (block is! VideoBlockNode) {
+      return const CommandResult(recordHistory: false);
+    }
+
+    final next = block.copyWith(
+      assetId: assetId,
+      playbackUrl: playbackUrl,
+      file: file,
+      coverUrl: coverUrl,
+      title: title,
+      description: videoDescription,
+      aspectRatio: aspectRatio,
+      clearAspectRatio: clearAspectRatio,
+      uploadStatus: uploadStatus,
+      uploadError: uploadError,
+    );
+    if (_sameVideoBlock(block, next)) {
+      return const CommandResult(recordHistory: false);
+    }
+
+    final blocks = session.document.blocks.map((b) => b.copy()).toList();
+    blocks[blockIndex] = next;
+    session.document = RichTextDocument(
+      version: session.document.version,
+      blocks: blocks,
+    );
+    return const CommandResult();
+  }
+}
+
+class DeleteVideoBlockCommand extends EditorCommand {
+  const DeleteVideoBlockCommand({
+    required this.blockIndex,
+    this.selection,
+  });
+
+  final int blockIndex;
+  final DocumentSelection? selection;
+
+  @override
+  String get description => 'deleteVideoBlock';
+
+  @override
+  CommandResult execute(DocumentSession session) {
+    final block = _blockAt(session.document, blockIndex);
+    if (block is! VideoBlockNode) {
+      return const CommandResult(recordHistory: false);
+    }
+
+    final nextBlocks = <BlockNode>[
+      for (var i = 0; i < blockIndex; i++) session.document.blocks[i].copy(),
+      for (var i = blockIndex + 1; i < session.document.blocks.length; i++)
+        session.document.blocks[i].copy(),
+    ];
+    if (nextBlocks.isEmpty) {
+      final paragraph = TextBlockNode(
+        id: '${block.id}-empty',
+        type: BlockType.paragraph,
+        content: const <InlineNode>[],
+      );
+      session.document = RichTextDocument(
+        version: session.document.version,
+        blocks: <BlockNode>[paragraph],
+      );
+      final position = DocumentPosition.text(
+        blockId: paragraph.id,
+        blockIndex: 0,
+        offset: 0,
+      );
+      return CommandResult(
+        selection:
+            selection ?? DocumentSelection(base: position, extent: position),
+      );
+    }
+
+    final selectionAfter = _selectionAfterDeletingBlock(
+      beforeBlocks: session.document.blocks,
+      afterBlocks: nextBlocks,
+      deletedIndex: blockIndex,
+    );
+    session.document = RichTextDocument(
+      version: session.document.version,
+      blocks: nextBlocks,
+    );
+    return CommandResult(selection: selection ?? selectionAfter);
+  }
+}
+
+bool _sameVideoBlock(VideoBlockNode a, VideoBlockNode b) {
+  return a.id == b.id &&
+      a.assetId == b.assetId &&
+      a.playbackUrl == b.playbackUrl &&
+      a.file == b.file &&
+      a.coverUrl == b.coverUrl &&
+      a.title == b.title &&
+      a.description == b.description &&
+      a.aspectRatio == b.aspectRatio &&
+      a.uploadStatus == b.uploadStatus &&
+      a.uploadError == b.uploadError &&
+      a.attributes == b.attributes;
+}
+
+DocumentSelection _selectionAfterDeletingBlock({
+  required List<BlockNode> beforeBlocks,
+  required List<BlockNode> afterBlocks,
+  required int deletedIndex,
+}) {
+  for (var i = deletedIndex - 1; i >= 0; i--) {
+    final block = beforeBlocks[i];
+    if (block is TextBlockNode || block is CodeBlockNode) {
+      return _selectionAtEditableBlockEnd(block, i);
+    }
+  }
+  if (deletedIndex < afterBlocks.length) {
+    return _selectionAtBlockStartOrObject(
+        afterBlocks[deletedIndex], deletedIndex);
+  }
+  return _selectionAtBlockEndOrObject(afterBlocks.last, afterBlocks.length - 1);
+}
+
+DocumentSelection _selectionAtEditableBlockEnd(
+    BlockNode block, int blockIndex) {
+  if (block is TextBlockNode) {
+    final position = DocumentPosition.text(
+      blockId: block.id,
+      blockIndex: blockIndex,
+      offset: inlineNodesLength(block.content),
+    );
+    return DocumentSelection(base: position, extent: position);
+  }
+  final code = block as CodeBlockNode;
+  final position = DocumentPosition.code(
+    blockId: code.id,
+    blockIndex: blockIndex,
+    offset: code.code.length,
+  );
+  return DocumentSelection(base: position, extent: position);
+}
+
+DocumentSelection _selectionAtBlockStartOrObject(
+    BlockNode block, int blockIndex) {
+  if (block is TextBlockNode) {
+    final position = DocumentPosition.text(
+      blockId: block.id,
+      blockIndex: blockIndex,
+      offset: 0,
+    );
+    return DocumentSelection(base: position, extent: position);
+  }
+  if (block is CodeBlockNode) {
+    final position = DocumentPosition.code(
+      blockId: block.id,
+      blockIndex: blockIndex,
+      offset: 0,
+    );
+    return DocumentSelection(base: position, extent: position);
+  }
+  if (block is TableBlockNode) {
+    final position = _firstTableCellPosition(block, blockIndex);
+    if (position != null) {
+      return DocumentSelection(base: position, extent: position);
+    }
+  }
+  return _objectSelectionForBlock(block, blockIndex);
+}
+
+DocumentSelection _selectionAtBlockEndOrObject(
+    BlockNode block, int blockIndex) {
+  if (block is TextBlockNode || block is CodeBlockNode) {
+    return _selectionAtEditableBlockEnd(block, blockIndex);
+  }
+  if (block is TableBlockNode) {
+    final position = _lastTableCellPosition(block, blockIndex);
+    if (position != null) {
+      return DocumentSelection(base: position, extent: position);
+    }
+  }
+  return _objectSelectionForBlock(block, blockIndex);
+}
+
+DocumentSelection _objectSelectionForBlock(BlockNode block, int blockIndex) {
+  final start = DocumentPosition(
+    blockId: block.id,
+    blockIndex: blockIndex,
+    path: PositionPath.blockObject(block.id),
+    offset: 0,
+  );
+  final end = start.copyWith(offset: _kObjectSelectionLength);
+  return DocumentSelection(base: start, extent: end);
+}
+
 class SetBlockAnchorCommand extends EditorCommand {
   const SetBlockAnchorCommand({
     required this.blockIndex,
@@ -1074,12 +1366,7 @@ BlockNode _blockWithAttributes(BlockNode block, BlockAttributes attributes) {
     return DividerBlockNode(id: block.id, attributes: attributes);
   }
   if (block is VideoBlockNode) {
-    return VideoBlockNode(
-      id: block.id,
-      assetId: block.assetId,
-      file: block.file,
-      attributes: attributes,
-    );
+    return block.copyWith(attributes: attributes);
   }
   if (block is BlockEmbedNode) {
     return BlockEmbedNode(

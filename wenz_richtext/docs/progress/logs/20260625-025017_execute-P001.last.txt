@@ -1,0 +1,18 @@
+**完成情况**
+- P001 已完成，未修改 plan 文件、未勾选 checkbox、未更新进度区。
+- 新增 inline 公式测量 key：`lib/src/widgets/wenz_rich_text_editor.dart:35`、`lib/src/widgets/wenz_rich_text_editor.dart:6976`
+- 量化表格工具栏当前间距：`test/widgets/wenz_rich_text_editor_test.dart:1007`
+- 新增公式基线用例：`test/widgets/wenz_rich_text_editor_test.dart:1188`
+- 新增 todo 单行/多行基线用例：`test/widgets/wenz_rich_text_editor_test.dart:1251`
+- 新增 RichText 行测量辅助：`test/widgets/wenz_rich_text_editor_test.dart:4727`
+
+**记录的当前基线**
+- 公式：普通/高公式占位高度均约 `23.1px`，同行中心偏移约 `+2.45px` / `-2.03px`
+- Todo：checkbox 尺寸 `32x28`，相对首行中心偏移约 `+4.02px`
+- 表格工具栏：工具栏底部与表格顶部间距约 `4px`
+
+**验证**
+- 已运行最小相关测试：`flutter test test/widgets/wenz_rich_text_editor_test.dart --name "records current|table floating toolbar sits above the table cells"`
+- 结果：通过 `+3`
+
+备注：工作区已有其它未提交/未跟踪变更，我没有处理 P001 scope 之外的任务。

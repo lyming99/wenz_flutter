@@ -1,10 +1,84 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wenz_richtext/src/rendering/text_layout_service.dart';
+import 'package:wenz_richtext/src/widgets/block_geometry_registry.dart';
 import 'package:wenz_richtext/wenz_richtext.dart';
 
 void main() {
   group('BlockGeometryRegistry via editor', () {
+    test('retainBlocks drops hidden text and row geometry', () {
+      final registry = BlockGeometryRegistry();
+      registry.register(_entry('p1', 0));
+      registry.register(_entry('p2', 1));
+      registry.register(_entry('p3', 2));
+      registry.registerBlockRow(
+        BlockRowGeometryEntry(blockId: 'p1', blockIndex: 0, key: GlobalKey()),
+      );
+      registry.registerBlockRow(
+        BlockRowGeometryEntry(blockId: 'p2', blockIndex: 1, key: GlobalKey()),
+      );
+      registry.registerBlockRow(
+        BlockRowGeometryEntry(blockId: 'p3', blockIndex: 2, key: GlobalKey()),
+      );
+
+      registry.retainBlocks(<String>{'p1', 'p3'});
+
+      expect(
+        registry.entries.map((entry) => entry.blockId),
+        <String>['p1', 'p3'],
+      );
+      expect(
+        registry.rowEntries.map((entry) => entry.blockId),
+        <String>['p1', 'p3'],
+      );
+      expect(registry.wordRangeAt('p2', 0), isNull);
+      expect(
+        registry.caretRectForPosition(
+          DocumentPosition.text(blockId: 'p2', blockIndex: 1, offset: 0),
+        ),
+        isNull,
+      );
+      expect(registry.wordRangeAt('p3', 0), const TextRange(start: 0, end: 2));
+    });
+
+    testWidgets('selection exclusions follow registered render boxes', (
+      tester,
+    ) async {
+      final registry = BlockGeometryRegistry();
+      final key = GlobalKey();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Stack(
+              children: <Widget>[
+                Positioned(
+                  left: 24,
+                  top: 32,
+                  child: SizedBox(
+                    key: key,
+                    width: 40,
+                    height: 28,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      final inside = tester.getCenter(find.byKey(key));
+      expect(registry.isSelectionExcluded(inside), isFalse);
+
+      registry.registerSelectionExclusion(key);
+      expect(registry.isSelectionExcluded(inside), isTrue);
+      expect(
+          registry.isSelectionExcluded(inside + const Offset(80, 0)), isFalse);
+
+      registry.unregisterSelectionExclusion(key);
+      expect(registry.isSelectionExcluded(inside), isFalse);
+    });
+
     testWidgets('resolves a global offset to a position in the hit block', (
       tester,
     ) async {
@@ -343,14 +417,16 @@ void main() {
       // The caret should land near column 5 of whichever block owns the gap —
       // not at 0 or textLength (10). Allow some tolerance for glyph widths.
       expect(extent!.offset, inInclusiveRange(3, 7),
-          reason: 'gap tap must honour the horizontal column, not clamp to an edge');
+          reason:
+              'gap tap must honour the horizontal column, not clamp to an edge');
     });
   });
 
   group('TextLayoutService word/paragraph ranges', () {
     test('wordRangeAt delegates to TextPainter word boundaries', () {
       final service = TextLayoutService();
-      const span = TextSpan(text: 'hello world', style: TextStyle(fontSize: 14));
+      const span =
+          TextSpan(text: 'hello world', style: TextStyle(fontSize: 14));
       final painter = service.layout(
         span: span,
         textAlign: TextAlign.start,
@@ -370,7 +446,8 @@ void main() {
 
     test('paragraphRange spans the whole laid-out text', () {
       final service = TextLayoutService();
-      const span = TextSpan(text: 'hello world', style: TextStyle(fontSize: 14));
+      const span =
+          TextSpan(text: 'hello world', style: TextStyle(fontSize: 14));
       final painter = service.layout(
         span: span,
         textAlign: TextAlign.start,
@@ -505,6 +582,25 @@ Offset _globalTextOffset(WidgetTester tester, String text, int offset) {
     textAlign: richText.textAlign,
     textDirection: TextDirection.ltr,
   )..layout(maxWidth: size.width);
-  final local = painter.getOffsetForCaret(TextPosition(offset: offset), Rect.zero);
-  return tester.getTopLeft(finder) + local + Offset(1, painter.preferredLineHeight / 2);
+  final local =
+      painter.getOffsetForCaret(TextPosition(offset: offset), Rect.zero);
+  return tester.getTopLeft(finder) +
+      local +
+      Offset(1, painter.preferredLineHeight / 2);
+}
+
+BlockEntry _entry(String blockId, int blockIndex) {
+  return BlockEntry(
+    blockId: blockId,
+    blockIndex: blockIndex,
+    path: PositionPath.blockText(blockId),
+    textLength: 2,
+    key: GlobalKey(),
+    positionFromLocal: (localOffset) => 0,
+    wordRangeAt: (offset) => const TextRange(start: 0, end: 2),
+    caretRectAt: (offset) => Rect.zero,
+    localCaretRectAt: (offset) => Rect.zero,
+    localComposingRectForRange: (start, end) => Rect.zero,
+    verticalMoveAt: (offset, forward, preferX) => const VerticalMoveResult(),
+  );
 }

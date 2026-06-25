@@ -1,0 +1,14 @@
+完成 P006，未修改 plan 文件、未勾选 checkbox。
+
+**变更**
+- 增加斜杠菜单视频项，支持 `video` / `视频` 命中并插入 `VideoBlockNode`：`lib/src/controller/slash_menu_controller.dart:391`
+- 增加 slash 菜单视频图标：`lib/src/widgets/slash_menu_overlay.dart:126`
+- 增加 `ToolbarController.insertVideo` 与 `canInsertVideo`：`lib/src/controller/toolbar_controller.dart:424`
+- 示例加入视频按钮、视频插入、占位视频块、`MediaResolver` 自定义视频预览卡：`example/lib/main.dart:15`
+- 更新公共说明与文档：`lib/wenz_richtext.dart:36`、`docs/rendering.md:129`、`docs/running_guide.md:51`、`README.md:56`
+
+**验证**
+- 已运行 `dart format`（scope 内 Dart 文件）
+- 已通过 `flutter analyze lib/src/controller/slash_menu_controller.dart lib/src/controller/toolbar_controller.dart lib/src/widgets/slash_menu_overlay.dart example/lib/main.dart`
+- 已通过 `flutter test test/controller/slash_menu_controller_test.dart test/widgets/slash_menu_overlay_test.dart test/controller/toolbar_controller_test.dart`
+- 备注：包含 `lib/wenz_richtext.dart` 的限定 analyze 仍报既有 `invalid_export_of_internal_element` 警告，位置是 `lib/wenz_richtext.dart:156`，未在本任务中处理。

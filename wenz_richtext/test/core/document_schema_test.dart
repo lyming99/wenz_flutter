@@ -127,6 +127,81 @@ void main() {
       expect(block.fallbackText, 'Acme account');
     });
 
+    test('valid video block normalizes protocol fields', () {
+      const doc = RichTextDocument(
+        blocks: <BlockNode>[
+          VideoBlockNode(
+            id: 'video1',
+            assetId: ' asset-1 ',
+            playbackUrl: ' https://cdn.example.com/video.mp4 ',
+            file: ' file:///tmp/video.mp4 ',
+            coverUrl: ' https://cdn.example.com/poster.jpg ',
+            title: ' Launch demo ',
+            description: ' Walkthrough ',
+            aspectRatio: -1,
+            uploadStatus: FileUploadStatus.failed,
+            uploadError: ' timeout ',
+          ),
+        ],
+      );
+
+      final block = schema.normalize(doc).blocks.single as VideoBlockNode;
+
+      expect(block.assetId, 'asset-1');
+      expect(block.playbackUrl, 'https://cdn.example.com/video.mp4');
+      expect(block.file, 'file:///tmp/video.mp4');
+      expect(block.coverUrl, 'https://cdn.example.com/poster.jpg');
+      expect(block.title, 'Launch demo');
+      expect(block.description, 'Walkthrough');
+      expect(block.aspectRatio, isNull);
+      expect(block.effectiveAspectRatio,
+          closeTo(VideoBlockNode.defaultAspectRatio, 0.0001));
+      expect(block.uploadStatus, FileUploadStatus.failed);
+      expect(block.uploadError, 'timeout');
+    });
+
+    test('video image file and embed stay distinct when valid', () {
+      const doc = RichTextDocument(
+        blocks: <BlockNode>[
+          VideoBlockNode(id: 'video1', assetId: 'video-asset'),
+          ImageBlockNode(id: 'image1', assetId: 'image-asset'),
+          FileBlockNode(id: 'file1', assetId: 'file-asset'),
+          BlockEmbedNode(id: 'embed1', embedType: 'video-card'),
+        ],
+      );
+
+      final normalized = schema.normalize(doc);
+
+      expect(normalized.blocks[0], isA<VideoBlockNode>());
+      expect(normalized.blocks[1], isA<ImageBlockNode>());
+      expect(normalized.blocks[2], isA<FileBlockNode>());
+      expect(normalized.blocks[3], isA<BlockEmbedNode>());
+    });
+
+    test('video block without a source degrades to video embed', () {
+      const doc = RichTextDocument(
+        blocks: <BlockNode>[
+          VideoBlockNode(
+            id: 'video1',
+            assetId: '  ',
+            coverUrl: ' https://cdn.example.com/poster.jpg ',
+            title: ' Missing source ',
+            description: ' Kept as fallback metadata ',
+          ),
+        ],
+      );
+
+      final block = schema.normalize(doc).blocks.single as BlockEmbedNode;
+
+      expect(block.embedType, 'video');
+      expect(block.fallbackText, 'Missing source');
+      expect(block.data,
+          containsPair('coverUrl', 'https://cdn.example.com/poster.jpg'));
+      expect(block.data, containsPair('title', 'Missing source'));
+      expect(
+          block.data, containsPair('description', 'Kept as fallback metadata'));
+    });
+
     test('table cell with no blocks gets a paragraph', () {
       const doc = RichTextDocument(
         blocks: <BlockNode>[

@@ -109,19 +109,19 @@ class _WenzFindReplacePanelState extends State<WenzFindReplacePanel> {
             ),
             IconButton(
               key: const ValueKey<String>('wenz-find-previous'),
-              tooltip: 'Previous match',
+              tooltip: '上一个匹配项',
               icon: const Icon(Icons.keyboard_arrow_up),
               onPressed: total == 0 ? null : controller.previous,
             ),
             IconButton(
               key: const ValueKey<String>('wenz-find-next'),
-              tooltip: 'Next match',
+              tooltip: '下一个匹配项',
               icon: const Icon(Icons.keyboard_arrow_down),
               onPressed: total == 0 ? null : controller.next,
             ),
             IconButton(
               key: const ValueKey<String>('wenz-find-case-sensitive'),
-              tooltip: 'Match case',
+              tooltip: '区分大小写',
               isSelected: controller.options.caseSensitive,
               selectedIcon: const Icon(Icons.text_fields),
               icon: const Icon(Icons.text_fields_outlined),
@@ -133,7 +133,7 @@ class _WenzFindReplacePanelState extends State<WenzFindReplacePanel> {
             ),
             IconButton(
               key: const ValueKey<String>('wenz-find-whole-word'),
-              tooltip: 'Whole word',
+              tooltip: '全字匹配',
               isSelected: controller.options.wholeWord,
               selectedIcon: const Icon(Icons.short_text),
               icon: const Icon(Icons.subject),
@@ -159,13 +159,13 @@ class _WenzFindReplacePanelState extends State<WenzFindReplacePanel> {
               ),
               IconButton(
                 key: const ValueKey<String>('wenz-find-replace-current'),
-                tooltip: 'Replace match',
+                tooltip: '替换当前匹配项',
                 icon: const Icon(Icons.swap_horiz),
                 onPressed: total == 0 ? null : controller.replaceCurrent,
               ),
               IconButton(
                 key: const ValueKey<String>('wenz-find-replace-all'),
-                tooltip: 'Replace all',
+                tooltip: '全部替换',
                 icon: const Icon(Icons.done_all),
                 onPressed: total == 0 ? null : controller.replaceAll,
               ),
@@ -173,7 +173,7 @@ class _WenzFindReplacePanelState extends State<WenzFindReplacePanel> {
             if (widget.onClose != null)
               IconButton(
                 key: const ValueKey<String>('wenz-find-close'),
-                tooltip: 'Close',
+                tooltip: '关闭',
                 icon: const Icon(Icons.close),
                 onPressed: widget.onClose,
               ),

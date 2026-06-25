@@ -1,0 +1,13 @@
+**完成 P002**
+- 已统一正文默认基线：`16px`、`1.75` 行高、亮色主题 `onSurface`，默认块间距改为 `.55em`：`lib/src/widgets/wenz_rich_text_editor.dart:45`
+- 已补齐行内属性样式：链接色、背景高亮、字号/字体、下划线+删除线、批注 dotted underline、修订标记背景/下划线：`lib/src/widgets/wenz_rich_text_editor.dart:7957`
+- 已说明自定义 inline embed renderer 接收到的是有效基线样式：`lib/src/widgets/inline_embed_renderer.dart:11`
+- 已新增 P002 widget 覆盖：`test/widgets/wenz_rich_text_editor_test.dart:98`、`test/widgets/wenz_rich_text_editor_test.dart:237`
+- 已补充设计 token 断言：`test/widgets/editor_golden_test.dart:30`
+
+**验证**
+- `flutter test test/widgets/wenz_rich_text_editor_test.dart --plain-name "..."`
+- `flutter test test/widgets/editor_golden_test.dart --plain-name "design baseline maps default renderer coverage and tokens"`
+- `dart analyze lib/src/widgets/wenz_rich_text_editor.dart lib/src/widgets/inline_embed_renderer.dart test/widgets/wenz_rich_text_editor_test.dart test/widgets/editor_golden_test.dart`
+
+未修改 plan 文件、未勾选 checkbox、未运行全量测试。工作区已有的其它非本任务改动未处理。

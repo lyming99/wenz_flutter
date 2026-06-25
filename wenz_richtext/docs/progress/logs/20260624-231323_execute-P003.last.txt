@@ -1,0 +1,8 @@
+已完成 P003。
+
+- `lib/src/widgets/wenz_rich_text_editor.dart:3251`：段落内联内容改为同源生成 `InlineSpan` 与 offset mapper。
+- `lib/src/widgets/wenz_rich_text_editor.dart:4296`：表格单元格复用同一套映射逻辑，代码块保持 identity 映射。
+- `lib/src/widgets/wenz_rich_text_editor.dart:4830`：命中测试从渲染 offset 映射回文档 offset，embed 内部按可视左右半区归一到原子前/后边界。
+- `lib/src/widgets/wenz_rich_text_editor.dart:5167`、`lib/src/widgets/wenz_rich_text_editor.dart:6282`：新增私有 offset mapper 与同源布局生成逻辑。
+- `docs/plan/plan_feedback_1_20260624-220759.md:23`、`docs/plan/plan_feedback_1_20260624-220759.md:54`：P003 checkbox 和进度区已更新。
+- 验证：`flutter analyze` 通过；未提前执行 P006 的专项回归测试。

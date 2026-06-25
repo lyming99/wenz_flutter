@@ -206,6 +206,10 @@ class ClipboardService {
       }
       return _encodeBlockSlice(<BlockNode>[block.copy()]);
     }
+    final content = block == null ? null : _blockTextContent(block);
+    if (content != null && start.path.isBlockText) {
+      return _encodeInlineSlice(content, start.offset, end.offset);
+    }
     if (block is! TextBlockNode) {
       // Code block or non-text: fall back to a plain text slice.
       final text = block?.plainText ?? '';
@@ -241,7 +245,7 @@ class ClipboardService {
 
   String _encodeInlineSlice(List<InlineNode> nodes, int start, int end) {
     final range = _sliceInline(nodes, start, end);
-    final plain = range.map((node) => node.plainText).join();
+    final plain = _plainTextForInlineNodes(range);
     final payload = jsonEncode(<String, Object?>{
       'type': 'inline',
       'runs': range.map((node) => node.toJson()).toList(),
@@ -261,45 +265,45 @@ class ClipboardService {
       if (block == null) {
         continue;
       }
-      if (block is! TextBlockNode) {
+      final content = _blockTextContent(block);
+      if (content == null) {
         // Non-text blocks (code/table/media) in a cross-block range: include
         // as-is rather than dropping. Their structure round-trips through
         // BlockNode.toJson/fromJson.
         blocks.add(block.copy());
         continue;
       }
-      final text = block.plainText;
+      final textLength = inlineNodesLength(content);
       final List<InlineNode> sliced;
       if (i == start.blockIndex && i == end.blockIndex) {
         // Same block, different paths — shouldn't reach here (same-path is
         // handled by _copySameBlock), but guard anyway.
-        sliced = _sliceInline(block.content, start.offset, end.offset);
+        sliced = _sliceInline(content, start.offset, end.offset);
       } else if (i == start.blockIndex) {
         sliced = _sliceInline(
-          block.content,
+          content,
           start.offset,
-          inlineNodesLength(block.content),
+          textLength,
         );
         // When the start offset is 0 the slice equals the whole block; when
         // it is at the very end the slice is empty and we skip emitting an
         // empty leading block.
-        if (sliced.isEmpty && start.offset >= text.length) {
+        if (sliced.isEmpty && start.offset >= textLength) {
           continue;
         }
       } else if (i == end.blockIndex) {
-        sliced = _sliceInline(block.content, 0, end.offset);
+        sliced = _sliceInline(content, 0, end.offset);
         if (sliced.isEmpty && end.offset == 0) {
           continue;
         }
       } else {
-        sliced = block.content.map((node) => node.copy()).toList();
+        sliced = content.map((node) => node.copy()).toList();
       }
       blocks.add(
-        TextBlockNode(
-          id: block.id,
-          type: block.type,
-          attributes: block.attributes,
-          content: sliced,
+        _copyTextLikeBlockWithContent(
+          block,
+          sliced,
+          preserveCalloutMetadata: i != start.blockIndex && i != end.blockIndex,
         ),
       );
     }
@@ -311,7 +315,7 @@ class ClipboardService {
     final payload = jsonEncode(<String, Object?>{
       'type': 'blocks',
       'blocks': blocks.map((block) => block.toJson()).toList(),
-      'plain': plain ?? blocks.map((block) => block.plainText).join('\n'),
+      'plain': plain ?? blocks.map(_plainTextForBlock).join('\n'),
     });
     return '$wenzClipboardPrefix$payload';
   }
@@ -327,16 +331,71 @@ class ClipboardService {
       if (block == null) {
         continue;
       }
-      final text = block.plainText;
-      if (i == start.blockIndex) {
+      final content = _blockTextContent(block);
+      if (i == start.blockIndex && content != null) {
+        lines.add(
+          _plainTextForInlineNodes(
+            _sliceInline(content, start.offset, inlineNodesLength(content)),
+          ),
+        );
+      } else if (i == end.blockIndex && content != null) {
+        lines.add(
+          _plainTextForInlineNodes(_sliceInline(content, 0, end.offset)),
+        );
+      } else if (i == start.blockIndex) {
+        final text = _plainTextForBoundary(block, start);
         lines.add(text.substring(start.offset.clamp(0, text.length)));
       } else if (i == end.blockIndex) {
+        final text = _plainTextForBoundary(block, end);
         lines.add(text.substring(0, end.offset.clamp(0, text.length)));
       } else {
-        lines.add(text);
+        lines.add(content == null
+            ? _plainTextForBlock(block)
+            : _plainTextForInlineNodes(content));
       }
     }
     return lines.join('\n');
+  }
+
+  List<InlineNode>? _blockTextContent(BlockNode block) {
+    return switch (block) {
+      TextBlockNode() => block.content,
+      CalloutBlockNode() => block.content,
+      _ => null,
+    };
+  }
+
+  BlockNode _copyTextLikeBlockWithContent(
+      BlockNode block, List<InlineNode> content,
+      {required bool preserveCalloutMetadata}) {
+    return switch (block) {
+      TextBlockNode() => TextBlockNode(
+          id: block.id,
+          type: block.type,
+          attributes: block.attributes,
+          content: content,
+        ),
+      CalloutBlockNode() => preserveCalloutMetadata
+          ? block.copyWith(content: content)
+          : CalloutBlockNode(
+              id: block.id,
+              content: content,
+              variant: block.variant,
+              icon: block.icon,
+              attributes: block.attributes,
+            ),
+      _ => block.copy(),
+    };
+  }
+
+  String _plainTextForBoundary(BlockNode block, DocumentPosition position) {
+    if (block is CalloutBlockNode && position.path.isBlockText) {
+      return _plainTextForInlineNodes(block.content);
+    }
+    if (block is TextBlockNode && position.path.isBlockText) {
+      return _plainTextForInlineNodes(block.content);
+    }
+    return _plainTextForBlock(block);
   }
 
   /// Parses an HTML fragment into a structured paste payload. Returns a
@@ -419,13 +478,48 @@ class ClipboardPaste {
   /// Plain-text view of the paste content regardless of flavour.
   String get text {
     if (isBlocks) {
-      return blocks.map((block) => block.plainText).join('\n');
+      return blocks.map(_plainTextForBlock).join('\n');
     }
     if (!isRich) {
       return plainText ?? '';
     }
-    return inlineRuns.map((node) => node.plainText).join();
+    return _plainTextForInlineNodes(inlineRuns);
   }
+}
+
+String _plainTextForInlineNodes(List<InlineNode> nodes) {
+  return nodes.map(_plainTextForInlineNode).join();
+}
+
+String _plainTextForInlineNode(InlineNode node) {
+  if (node is InlineEmbed && _isFormulaEmbedType(node.embedType)) {
+    return _formulaPlainText(node.data);
+  }
+  return node.plainText;
+}
+
+String _plainTextForBlock(BlockNode block) {
+  if (block is VideoBlockNode) {
+    return '[video: ${_videoPlainTextLabel(block)}]';
+  }
+  return block.plainText;
+}
+
+String _videoPlainTextLabel(VideoBlockNode video) {
+  final label = video.displayText.trim();
+  return label.isEmpty ? 'video' : label;
+}
+
+bool _isFormulaEmbedType(String embedType) => embedType.trim() == 'formula';
+
+String _formulaPlainText(Map<String, Object?> data) {
+  for (final key in const <String>['text', 'latex', 'value', 'formula']) {
+    final value = data[key];
+    if (value != null && value.toString().trim().isNotEmpty) {
+      return value.toString().trim();
+    }
+  }
+  return '[formula]';
 }
 
 BlockNode? _blockAt(RichTextDocument document, int index) {

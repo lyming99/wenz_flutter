@@ -75,6 +75,27 @@ void main() {
     expect(table.table.rows[0][0].plainText, 'beta x');
     expect(find.matches, isEmpty);
   });
+
+  test('reveals collapsed outline range before selecting hidden match', () {
+    final editor = WenzRichTextController(document: _foldedDocument());
+    final outline = WenzOutlineController(editor: editor);
+    final find = WenzFindReplaceController(
+      editor: editor,
+      outlineController: outline,
+    );
+    addTearDown(find.dispose);
+    addTearDown(outline.dispose);
+
+    expect(outline.collapseByBlockId('h1'), isTrue);
+    expect(outline.isBlockHidden('p1'), isTrue);
+
+    find.setQuery('needle');
+
+    expect(find.currentMatch?.blockId, 'p1');
+    expect(editor.selection, find.currentMatch?.selection);
+    expect(outline.isCollapsed('h1'), isFalse);
+    expect(outline.isBlockHidden('p1'), isFalse);
+  });
 }
 
 RichTextDocument _document() {
@@ -108,6 +129,30 @@ RichTextDocument _document() {
             ],
           ],
         ),
+      ),
+    ],
+  );
+}
+
+RichTextDocument _foldedDocument() {
+  return const RichTextDocument(
+    blocks: <BlockNode>[
+      TextBlockNode(
+        id: 'h1',
+        type: BlockType.heading,
+        attributes: BlockAttributes(level: 1),
+        content: <InlineNode>[TextRun(text: 'Chapter')],
+      ),
+      TextBlockNode(
+        id: 'p1',
+        type: BlockType.paragraph,
+        content: <InlineNode>[TextRun(text: 'hidden needle')],
+      ),
+      TextBlockNode(
+        id: 'h2',
+        type: BlockType.heading,
+        attributes: BlockAttributes(level: 1),
+        content: <InlineNode>[TextRun(text: 'Next')],
       ),
     ],
   );

@@ -41,6 +41,39 @@ Schema evolution gate:
 - `docs/schema_migration_impact.md` is the ADV-002 decision record for planned
   advanced features and their schema/migration impact.
 
+### Block video protocol
+
+`VideoBlockNode` is a block-level atomic media node. It is distinct from image,
+file, and generic block embed nodes:
+
+- `assetId` is the stable app/media-library identifier and remains the only
+  required constructor field; older JSON without it decodes to an empty string.
+- `playbackUrl` is the canonical remote playable address. Legacy `url` and
+  `src` keys decode into it, while new JSON writes only `playbackUrl`.
+- `file` is the local file path/URI kept for upload previews and old documents;
+  legacy `localFile` decodes into it.
+- `coverUrl`, `title`, and `description` describe the poster and accessible
+  fallback text. Legacy `poster`/`thumbnail`/`cover`, `caption`, and `desc`
+  decode into those canonical fields.
+- `aspectRatio` stores the optional display ratio. Missing or invalid ratios use
+  `VideoBlockNode.defaultAspectRatio` at runtime; legacy `width`/`height` pairs
+  can derive the ratio during decode.
+- `uploadStatus` reuses `FileUploadStatus` (`none`, `pending`, `uploading`,
+  `uploaded`, `failed`) and defaults to `none`; `uploadError` carries a readable
+  failure message when business upload flows need one.
+
+Compatibility rules:
+
+- Unknown top-level fields are ignored and never required for loading. Put
+  editor-owned metadata in `attrs`; arbitrary app-owned payloads should remain
+  behind `assetId` or use `BlockEmbedNode` when the node is not specifically a
+  playable video.
+- A video is valid when at least one source identifier exists: `assetId`,
+  `playbackUrl`, or `file`. `DocumentSchema.normalize` trims video strings,
+  drops invalid ratios, and degrades source-less videos to a generic
+  `BlockEmbedNode(embedType: 'video')` with readable fallback metadata instead
+  of confusing them with image or file blocks.
+
 ## Version snapshots
 
 `ADV-020` keeps version history outside the document body schema:

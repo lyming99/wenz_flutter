@@ -1,0 +1,1592 @@
+OpenAI Codex v0.121.0 (research preview)
+--------
+workdir: D:\project\GitHub\wenz_flutter\wenz_richtext
+model: gpt-5.5
+provider: custom
+approval: never
+sandbox: danger-full-access
+reasoning effort: xhigh
+reasoning summaries: none
+session id: 019efdd6-66b6-7251-bc1d-8fe24d292753
+--------
+user
+你是开发执行者。
+请只执行指定任务 P005，不要提前执行其它任务，也不要顺手处理其它 checkbox。
+
+plan 文件（只读）：D:\project\GitHub\wenz_flutter\wenz_richtext\docs\plan\plan_feedback_6_20260625-035040.md
+指定任务：
+- [ ] P005: 保持表格操作与生命周期一致 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/table_floating_toolbar_overlay.dart,lib/src/core/commands/table_commands.dart,test/widgets/wenz_rich_text_editor_test.dart -->
+任务 scope：lib/src/widgets/wenz_rich_text_editor.dart, lib/src/widgets/table_floating_toolbar_overlay.dart, lib/src/core/commands/table_commands.dart, test/widgets/wenz_rich_text_editor_test.dart
+
+完成后必须：
+- plan 文件是只读上下文：不要修改 plan 文件，不要勾选 checkbox，不要更新 plan 进度区
+- AutoPlan 会在任务成功后统一写回数据库、checkbox 和进度区
+- 只修改当前任务 scope 直接相关的业务文件
+- 如需测试，只运行与当前任务直接相关的最小测试集，不要运行全量测试或与本任务无关的测试
+- 只有当前任务本身明确要求全量验证时，才允许运行全量测试
+- 不输出完整 diff、源码全文或长文件列表
+- 中文文件读写使用 UTF-8
+**Planning the approach**
+
+I think I might not need to use subagents unless there's an explicit request for them. So, I’ll avoid that for now. Let’s just start laying out a clear plan moving forward. I can work on updating my plan to stay organized and focused on the task at hand. Keeping it simple and straightforward might make everything smoother!
+codex
+我会先只读取任务上下文和相关文件，确认 P005 的具体要求。
+  → 读取 P005 任务上下文
+  • 定位表格生命周期问题
+  • 最小范围修改相关文件
+  • 运行相关最小测试
+  • 汇总结果与风险
+exec
+powershell.exe -Command "Get-ChildItem -Force; if (Test-Path AGENTS.md) { Get-Content -Raw -Encoding UTF8 AGENTS.md }; Select-String -Path 'docs\\plan\\plan_feedback_6_20260625-035040.md' -Pattern 'P005|表格操作|生命周期' -Context 4,8 -Encoding UTF8" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 255ms:
+
+
+    目录: D:\project\GitHub\wenz_flutter\wenz_richtext
+
+
+Mode                 LastWriteTime         Length Name                                                                 
+----                 -------------         ------ ----                                                                 
+d-----         2026/6/25     14:46                .codegraph                                                           
+d-----         2026/6/24     15:10                .dart_appdata                                                        
+d-----         2026/6/24     15:10                .dart_localappdata                                                   
+d-----         2026/6/24     16:11                .dart_tool                                                           
+d-----         2026/6/24     16:13                .dart_tool_appdata                                                   
+d-----         2026/6/24     16:06                .dart_tool_localappdata                                              
+d-----         2026/6/20      0:26                .idea                                                                
+d-----         2026/6/25     10:14                build                                                                
+d-----         2026/6/19     17:02                doc                                                                  
+d-----         2026/6/24     18:05                docs                                                                 
+d-----         2026/6/22     14:56                example                                                              
+d-----         2026/6/22     17:09                lib                                                                  
+d-----         2026/6/24      3:35                scripts                                                              
+d-----         2026/6/25      3:33                test                                                                 
+d-----         2026/6/24     18:04                tool                                                                 
+d-----         2026/6/25      2:40                ui                                                                   
+-a----         2026/6/19     14:04             87 .gitignore                                                           
+-a----         2026/6/24     16:16             94 analysis_options.yaml                                                
+-a----         2026/6/24     14:38            726 CHANGELOG.md                                                         
+-a----         2026/6/25      2:56            157 nul                                                                  
+-a----         2026/6/25      2:18          10389 pubspec.lock                                                         
+-a----         2026/6/25      2:18            382 pubspec.yaml                                                         
+-a----         2026/6/25     10:45           4516 README.md                                                            
+
+IgnoreCase : True
+LineNumber : 13
+Line       : - 本次目标是将表格工具栏迁移为 Flutter 系统浮层能力承载的 overlay，例如 `OverlayEntry` / `OverlayPortal` / `CompositedTransformFollo
+             wer` 方案，让工具栏在独立浮层中完成定位、命中测试和生命周期管理。
+Filename   : plan_feedback_6_20260625-035040.md
+Path       : D:\project\GitHub\wenz_flutter\wenz_richtext\docs\plan\plan_feedback_6_20260625-035040.md
+Pattern    : P005|表格操作|生命周期
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+Matches    : {0}
+
+
+IgnoreCase : True
+LineNumber : 38
+Line       : - [ ] P005: 保持表格操作与生命周期一致 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/table_flo
+             ating_toolbar_overlay.dart,lib/src/core/commands/table_commands.dart,test/widgets/wenz_rich_text_editor_te
+             st.dart -->
+Filename   : plan_feedback_6_20260625-035040.md
+Path       : D:\project\GitHub\wenz_flutter\wenz_richtext\docs\plan\plan_feedback_6_20260625-035040.md
+Pattern    : P005|表格操作|生命周期
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+Matches    : {0}
+
+
+IgnoreCase : True
+LineNumber : 61
+Line       : - 风险记录：系统 overlay 迁移会改变工具栏所在渲染树，需重点关注焦点保持、选区刷新、滚动跟随、测试定位和 overlay 生命周期清理。
+Filename   : plan_feedback_6_20260625-035040.md
+Path       : D:\project\GitHub\wenz_flutter\wenz_richtext\docs\plan\plan_feedback_6_20260625-035040.md
+Pattern    : P005|表格操作|生命周期
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+Matches    : {0}
+
+
+
+
+codex
+已确认 plan 仅作只读上下文；接着查看 P005 周边说明和目标实现。
+mcp: codegraph/codegraph_explore started
+mcp: codegraph/codegraph_explore (completed)
+**Inspecting output files**
+
+I need to look into the truncated codegraph output and understand its specifics. It indicates not to re-read the shown files, but I still need the missing information, like specific names and functions. I might need to use shell commands like `rg` to help me here.
+
+The instruction feels contradictory since the output was truncated, yet it mentions treating the block as read. I’ll focus on the read plan lines, as there's no need to overthink this.
+codex
+P005 线索比较分散，我再聚焦读取相关段落和符号。
+exec
+powershell.exe -Command '$p='"'docs\\plan\\plan_feedback_6_20260625-035040.md'; "'$lines=Get-Content -Encoding UTF8 $p; for($i=0;$i -lt $lines.Length;$i++){ if($i -ge 0 -and $i -lt 80){ '"'{0,4}: {1}' -f ("'$i+1), $lines[$i] } }' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 450ms:
+   1: # 反馈开发计划：表格悬浮工具栏改用系统 Overlay
+   2: 
+   3: ## 来源
+   4: - 类型：反馈
+   5: - 编号：6
+   6: - 生成时间：2026-06-25 03:50:40
+   7: 
+   8: ## 原始内容
+   9: 表格悬浮工具栏，应该使用系统悬浮overlay实现，目前存在事件穿透问题
+  10: 
+  11: ## 需求理解
+  12: - 当前表格悬浮工具栏仍依赖表格渲染树内部的浮动定位，容易受到父级 `Stack`、裁剪、命中测试范围和选区手势层影响，导致点击工具栏时事件继续穿透到底层表格或编辑器。
+  13: - 本次目标是将表格工具栏迁移为 Flutter 系统浮层能力承载的 overlay，例如 `OverlayEntry` / `OverlayPortal` / `CompositedTransformFollower` 方案，让工具栏在独立浮层中完成定位、命中测试和生命周期管理。
+  14: - 修复重点是事件不穿透、定位稳定、滚动跟随、选区变化自动刷新，以及现有表格命令能力不回归。
+  15: - 本次不调整表格数据模型、命令语义、导入导出协议和列宽拖拽逻辑，除非为 overlay 锚点和状态同步提供必要的渲染层适配。
+  16: 
+  17: ## 任务计划
+  18: - [x] P001: 复现并界定工具栏事件穿透 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/selection_gesture_overlay.dart,test/widgets/wenz_rich_text_editor_test.dart -->
+  19:   - 验收要点：明确当前工具栏点击后会穿透到表格单元格、文本选区、拖拽手势或编辑器空白区域的最小复现场景。
+  20:   - 验收要点：记录穿透发生时的命中测试链路、工具栏所在渲染层、父级尺寸/裁剪约束和选区手势层关系。
+  21:   - 验收要点：确认问题修复范围限定在表格工具栏浮层、定位和事件拦截，不改变表格命令、文档模型和序列化结构。
+  22: 
+  23: - [x] P002: 设计系统 Overlay 承载结构 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/table_floating_toolbar_overlay.dart,lib/src/widgets/block_renderer_registry.dart -->
+  24:   - 验收要点：确定表格工具栏由编辑器级 overlay 宿主管理，而不是继续作为表格 `Stack` 的负偏移子节点显示。
+  25:   - 验收要点：定义表格锚点、选区范围、工具栏 action 回调、可用状态和关闭条件的数据传递方式，避免 renderer 与 overlay 状态双向耦合。
+  26:   - 验收要点：选择并记录具体 overlay 技术路线，优先保证跟随锚点、跨父级边界显示、可命中和可在测试中稳定定位。
+  27: 
+  28: - [x] P003: 迁移表格工具栏渲染到 Overlay <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/table_floating_toolbar_overlay.dart -->
+  29:   - 验收要点：选中表格单元格后，工具栏通过系统 overlay 显示在表格上方或可见区域内，不再依赖表格内部 `Positioned` 负偏移。
+  30:   - 验收要点：工具栏在编辑器滚动、窗口尺寸变化、表格宽度变化、表格靠近视口顶部时保持位置稳定并自动重新计算。
+  31:   - 验收要点：取消表格选区、切换到非表格 block、进入只读态或编辑器销毁时，overlay 能及时移除且不残留悬浮组件。
+  32: 
+  33: - [x] P004: 阻断工具栏事件穿透 <!-- scope: lib/src/widgets/table_floating_toolbar_overlay.dart,lib/src/widgets/selection_gesture_overlay.dart,test/widgets/wenz_rich_text_editor_test.dart -->
+  34:   - 验收要点：工具栏背景、按钮、分隔线和空白填充区域均有明确命中测试策略，点击和拖动不会继续触发表格选区、单元格聚焦或文本选择。
+  35:   - 验收要点：工具栏按钮点击只触发对应 `TableToolbarActionIntent` 一次，不额外产生底层 tap、long press、drag 或 selection change。
+  36:   - 验收要点：工具栏之外的编辑器区域仍可正常点击、拖选、滚动和唤起表格选区，不因 overlay 引入全屏遮罩阻塞正常交互。
+  37: 
+  38: - [ ] P005: 保持表格操作与生命周期一致 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/table_floating_toolbar_overlay.dart,lib/src/core/commands/table_commands.dart,test/widgets/wenz_rich_text_editor_test.dart -->
+  39:   - 验收要点：插入/删除行列、切换表头、设置/清除背景色、列对齐、合并/拆分单元格、重置列宽等原有工具栏操作行为不回归。
+  40:   - 验收要点：工具栏 action 执行后，表格选区、焦点、撤销/重做、文档变更通知和 overlay 刷新顺序保持一致，不出现 stale range 或空引用。
+  41:   - 验收要点：多表格文档中只显示当前活动表格的工具栏，选区跨表格或表格被删除后 overlay 自动关闭。
+  42: 
+  43: - [ ] P006: 补充自动化与手工验收记录 <!-- scope: test/widgets/wenz_rich_text_editor_test.dart,docs/acceptance_manual_checklist.md,docs/plan/plan_feedback_6_20260625-035040.md -->
+  44:   - 验收要点：新增或更新 widget 测试，覆盖工具栏显示于 overlay、按钮点击不穿透、点击工具栏外仍能编辑、滚动后工具栏跟随、选区取消后 overlay 消失。
+  45:   - 验收要点：执行 `flutter analyze`、相关 widget 测试和必要的回归测试；若存在失败，需区分本次改动导致失败与既有失败。
+  46:   - 验收要点：在本计划进度区记录每个任务的完成范围、验证命令、验证结果、遗留风险和后续建议。
+  47: 
+  48: ## 总体验收标准
+  49: - 所有任务 checkbox 均完成，且每个任务的验收要点都有明确结论或验证记录。
+  50: - 表格悬浮工具栏使用系统 overlay 方案承载，不再依赖表格内部负偏移浮动节点来模拟悬浮效果。
+  51: - 点击表格工具栏任意可见区域不会穿透到底层表格、文本选区、编辑器手势层或滚动手势；工具栏外区域仍保持正常编辑交互。
+  52: - 工具栏能随当前活动表格选区稳定显示、刷新和关闭，滚动、视口贴边、窗口尺寸变化、多表格切换和表格删除场景均无残留 overlay。
+  53: - 原有表格工具栏命令、列宽拖拽、单元格选择、撤销/重做、只读态和焦点行为不回归。
+  54: - 相关自动化测试、静态分析和必要手工验收通过；若存在既有失败，需要在进度区记录命令、失败原因判断和影响范围。
+  55: 
+  56: ## 进度区
+  57: - 当前状态：计划已创建，P001-P006 待开发执行。
+  58: - 当前负责人：待分配。
+  59: - 下一步：从 P001 开始复现并记录表格工具栏事件穿透的命中测试链路。
+  60: - 验证记录：本次仅生成计划文件，未修改业务代码，未执行自动化测试或手工验收。
+  61: - 风险记录：系统 overlay 迁移会改变工具栏所在渲染树，需重点关注焦点保持、选区刷新、滚动跟随、测试定位和 overlay 生命周期清理。
+  62: - P001 AutoPlan 完成：2026-06-24T20:01:25.268Z；日志：docs/progress/logs/20260625-035238_execute-P001.log
+  63: - P002 AutoPlan 完成：2026-06-25T06:15:27.920Z；日志：docs/progress/logs/20260625-141120_execute-P002.log
+  64: - P003 AutoPlan 完成：2026-06-25T06:39:51.664Z；日志：docs/progress/logs/20260625-143432_execute-P003.log
+  65: - P004 AutoPlan 完成：2026-06-25T06:48:07.109Z；日志：docs/progress/logs/20260625-143957_execute-P004.log
+
+**Inspecting current files**
+
+I need to inspect the current files and maybe focus on the sections without any AGENTS. It's important to scope the files properly. I should look at the file structure closely and utilize codegraph for an overlay on the functions. This way, I can get a clearer idea of how everything is organized and ensure I’m analyzing the right components. Let’s see what I can discover!
+codex
+现在重点看 overlay 请求、action 分发和现有表格命令实现。
+mcp: codegraph/codegraph_search started
+mcp: codegraph/codegraph_search (completed)
+mcp: codegraph/codegraph_explore started
+mcp: codegraph/codegraph_explore (completed)
+codex
+我会拉取这些类的完整定义，避免误改生命周期逻辑。
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+codex
+我也会检查编辑器里工具栏 action 如何绑定到表格命令。
+mcp: codegraph/codegraph_search started
+mcp: codegraph/codegraph_search (completed)
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+codex
+工具栏 action 当前直接执行命令；我接着看 range 计算与命令更新选区。
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+codex
+下一步检查 table command 的边界处理，尤其删除/合并后选区是否会变 stale。
+mcp: codegraph/codegraph_search started
+mcp: codegraph/codegraph_search (completed)
+mcp: codegraph/codegraph_explore started
+mcp: codegraph/codegraph_explore (completed)
+**Inspecting code structure**
+
+I'm thinking about fully inspecting the `table_commands.dart` file. The search only found `InsertTableCommand`, which makes me wonder if the parser is only recognizing the first class in the file. I might need to open it up and see its entire scope. Maybe using the shell is a good option? I could use `Get-Content` to check if the file length is manageable and not too huge.
+codex
+`table_commands.dart` 是本任务 scope，我会直接看命令实现细节。
+exec
+powershell.exe -Command '$p='"'lib\\src\\core\\commands\\table_commands.dart'; "'$lines=Get-Content -Encoding UTF8 $p; for($i=0;$i -lt $lines.Length;$i++){ '"'{0,4}: {1}' -f ("'$i+1), $lines[$i] }' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 325ms:
+   1: import '../model/attributes.dart';
+   2: import '../model/block_node.dart';
+   3: import '../model/inline_node.dart';
+   4: import '../model/table_model.dart';
+   5: import '../position/document_position.dart';
+   6: import '../transaction/document_session.dart';
+   7: import 'block_commands.dart';
+   8: import 'editor_command.dart';
+   9: import 'table_cell_editing.dart';
+  10: 
+  11: typedef TableCellIdBuilder = String Function(
+  12:     String tableId, int rowIndex, int columnIndex);
+  13: 
+  14: class InsertTableCommand extends EditorCommand {
+  15:   const InsertTableCommand({
+  16:     required this.index,
+  17:     required this.tableId,
+  18:     required this.rowCount,
+  19:     required this.columnCount,
+  20:     this.selection,
+  21:     this.cellIdBuilder,
+  22:   });
+  23: 
+  24:   final int index;
+  25:   final String tableId;
+  26:   final int rowCount;
+  27:   final int columnCount;
+  28:   final DocumentSelection? selection;
+  29:   final TableCellIdBuilder? cellIdBuilder;
+  30: 
+  31:   @override
+  32:   String get description => 'insertTable';
+  33: 
+  34:   @override
+  35:   CommandResult execute(DocumentSession session) {
+  36:     if (rowCount <= 0 || columnCount <= 0) {
+  37:       return const CommandResult(recordHistory: false);
+  38:     }
+  39:     return InsertBlocksCommand(
+  40:       index: index,
+  41:       blocks: <BlockNode>[
+  42:         TableBlockNode(
+  43:           id: tableId,
+  44:           table: _createTable(tableId, rowCount, columnCount, cellIdBuilder),
+  45:         ),
+  46:       ],
+  47:       selection: selection,
+  48:     ).execute(session);
+  49:   }
+  50: }
+  51: 
+  52: class InsertTableRowCommand extends EditorCommand {
+  53:   const InsertTableRowCommand({
+  54:     required this.blockIndex,
+  55:     required this.rowIndex,
+  56:     this.cellIdBuilder,
+  57:   });
+  58: 
+  59:   final int blockIndex;
+  60:   final int rowIndex;
+  61:   final TableCellIdBuilder? cellIdBuilder;
+  62: 
+  63:   @override
+  64:   String get description => 'insertTableRow';
+  65: 
+  66:   @override
+  67:   CommandResult execute(DocumentSession session) {
+  68:     return insertTableRowAt(
+  69:       session,
+  70:       blockIndex,
+  71:       rowIndex,
+  72:       cellIdBuilder: cellIdBuilder,
+  73:     );
+  74:   }
+  75: }
+  76: 
+  77: class InsertTableColumnCommand extends EditorCommand {
+  78:   const InsertTableColumnCommand({
+  79:     required this.blockIndex,
+  80:     required this.columnIndex,
+  81:     this.cellIdBuilder,
+  82:   });
+  83: 
+  84:   final int blockIndex;
+  85:   final int columnIndex;
+  86:   final TableCellIdBuilder? cellIdBuilder;
+  87: 
+  88:   @override
+  89:   String get description => 'insertTableColumn';
+  90: 
+  91:   @override
+  92:   CommandResult execute(DocumentSession session) {
+  93:     final tableBlock = tableAt(session, blockIndex);
+  94:     if (tableBlock == null) {
+  95:       return const CommandResult(recordHistory: false);
+  96:     }
+  97:     final insertIndex =
+  98:         columnIndex.clamp(0, tableBlock.table.columnCount).toInt();
+  99:     final rows = <List<TableCellNode>>[
+ 100:       for (var rowIndex = 0; rowIndex < tableBlock.table.rowCount; rowIndex++)
+ 101:         <TableCellNode>[
+ 102:           for (var col = 0; col < insertIndex; col++)
+ 103:             copyCell(tableBlock.table.rows[rowIndex][col]),
+ 104:           _emptyCell(
+ 105:             _cellId(tableBlock.id, rowIndex, insertIndex, cellIdBuilder),
+ 106:           ),
+ 107:           for (var col = insertIndex;
+ 108:               col < tableBlock.table.rows[rowIndex].length;
+ 109:               col++)
+ 110:             copyCell(tableBlock.table.rows[rowIndex][col]),
+ 111:         ],
+ 112:     ];
+ 113:     // Reindex alignments so columns that were at/after the insertion point
+ 114:     // keep their alignment on the shifted column index. Mirrors the reverse
+ 115:     // shift done by DeleteTableColumnCommand.
+ 116:     final alignments = shiftColumnMapOnInsert(
+ 117:       tableBlock.table.columnAlignments,
+ 118:       insertIndex,
+ 119:     );
+ 120:     final widths = shiftColumnMapOnInsert(
+ 121:       tableBlock.table.columnWidths,
+ 122:       insertIndex,
+ 123:     );
+ 124:     return replaceTable(
+ 125:       session,
+ 126:       blockIndex,
+ 127:       tableBlock,
+ 128:       rows,
+ 129:       columnAlignments: alignments,
+ 130:       columnWidths: widths,
+ 131:     );
+ 132:   }
+ 133: }
+ 134: 
+ 135: class DeleteTableRowCommand extends EditorCommand {
+ 136:   const DeleteTableRowCommand({
+ 137:     required this.blockIndex,
+ 138:     required this.rowIndex,
+ 139:   });
+ 140: 
+ 141:   final int blockIndex;
+ 142:   final int rowIndex;
+ 143: 
+ 144:   @override
+ 145:   String get description => 'deleteTableRow';
+ 146: 
+ 147:   @override
+ 148:   CommandResult execute(DocumentSession session) {
+ 149:     final tableBlock = tableAt(session, blockIndex);
+ 150:     if (tableBlock == null ||
+ 151:         tableBlock.table.rowCount <= 1 ||
+ 152:         rowIndex < 0 ||
+ 153:         rowIndex >= tableBlock.table.rowCount) {
+ 154:       return const CommandResult(recordHistory: false);
+ 155:     }
+ 156:     final rows = <List<TableCellNode>>[
+ 157:       for (var i = 0; i < tableBlock.table.rowCount; i++)
+ 158:         if (i != rowIndex) copyRow(tableBlock.table.rows[i]),
+ 159:     ];
+ 160:     return replaceTable(session, blockIndex, tableBlock, rows);
+ 161:   }
+ 162: }
+ 163: 
+ 164: class DeleteTableColumnCommand extends EditorCommand {
+ 165:   const DeleteTableColumnCommand({
+ 166:     required this.blockIndex,
+ 167:     required this.columnIndex,
+ 168:   });
+ 169: 
+ 170:   final int blockIndex;
+ 171:   final int columnIndex;
+ 172: 
+ 173:   @override
+ 174:   String get description => 'deleteTableColumn';
+ 175: 
+ 176:   @override
+ 177:   CommandResult execute(DocumentSession session) {
+ 178:     final tableBlock = tableAt(session, blockIndex);
+ 179:     if (tableBlock == null ||
+ 180:         tableBlock.table.columnCount <= 1 ||
+ 181:         columnIndex < 0 ||
+ 182:         columnIndex >= tableBlock.table.columnCount) {
+ 183:       return const CommandResult(recordHistory: false);
+ 184:     }
+ 185:     final rows = <List<TableCellNode>>[
+ 186:       for (final row in tableBlock.table.rows)
+ 187:         <TableCellNode>[
+ 188:           for (var i = 0; i < row.length; i++)
+ 189:             if (i != columnIndex) copyCell(row[i]),
+ 190:         ],
+ 191:     ];
+ 192:     final alignments = shiftColumnMapOnDelete(
+ 193:       tableBlock.table.columnAlignments,
+ 194:       columnIndex,
+ 195:     );
+ 196:     final widths = shiftColumnMapOnDelete(
+ 197:       tableBlock.table.columnWidths,
+ 198:       columnIndex,
+ 199:     );
+ 200:     return replaceTable(
+ 201:       session,
+ 202:       blockIndex,
+ 203:       tableBlock,
+ 204:       rows,
+ 205:       columnAlignments: alignments,
+ 206:       columnWidths: widths,
+ 207:     );
+ 208:   }
+ 209: }
+ 210: 
+ 211: class SetTableColumnAlignmentCommand extends EditorCommand {
+ 212:   const SetTableColumnAlignmentCommand({
+ 213:     required this.blockIndex,
+ 214:     required this.columnIndex,
+ 215:     required this.alignment,
+ 216:   });
+ 217: 
+ 218:   final int blockIndex;
+ 219:   final int columnIndex;
+ 220:   final String? alignment;
+ 221: 
+ 222:   @override
+ 223:   String get description => 'setTableColumnAlignment';
+ 224: 
+ 225:   @override
+ 226:   CommandResult execute(DocumentSession session) {
+ 227:     final tableBlock = tableAt(session, blockIndex);
+ 228:     if (tableBlock == null ||
+ 229:         columnIndex < 0 ||
+ 230:         columnIndex >= tableBlock.table.columnCount) {
+ 231:       return const CommandResult(recordHistory: false);
+ 232:     }
+ 233:     final alignments = Map<int, String>.from(tableBlock.table.columnAlignments);
+ 234:     if (alignment == null) {
+ 235:       alignments.remove(columnIndex);
+ 236:     } else {
+ 237:       alignments[columnIndex] = alignment!;
+ 238:     }
+ 239:     return replaceTable(
+ 240:       session,
+ 241:       blockIndex,
+ 242:       tableBlock,
+ 243:       tableBlock.table.rows.map(copyRow).toList(),
+ 244:       columnAlignments: alignments,
+ 245:     );
+ 246:   }
+ 247: }
+ 248: 
+ 249: class SetTableColumnWidthCommand extends EditorCommand {
+ 250:   const SetTableColumnWidthCommand({
+ 251:     required this.blockIndex,
+ 252:     required this.columnIndex,
+ 253:     required this.width,
+ 254:   });
+ 255: 
+ 256:   final int blockIndex;
+ 257:   final int columnIndex;
+ 258:   final double? width;
+ 259: 
+ 260:   @override
+ 261:   String get description => 'setTableColumnWidth';
+ 262: 
+ 263:   @override
+ 264:   CommandResult execute(DocumentSession session) {
+ 265:     final tableBlock = tableAt(session, blockIndex);
+ 266:     if (tableBlock == null ||
+ 267:         columnIndex < 0 ||
+ 268:         columnIndex >= tableBlock.table.columnCount) {
+ 269:       return const CommandResult(recordHistory: false);
+ 270:     }
+ 271:     final widths = Map<int, double>.from(tableBlock.table.columnWidths);
+ 272:     if (width == null || width! <= 0) {
+ 273:       widths.remove(columnIndex);
+ 274:     } else {
+ 275:       widths[columnIndex] = width!;
+ 276:     }
+ 277:     return replaceTable(
+ 278:       session,
+ 279:       blockIndex,
+ 280:       tableBlock,
+ 281:       tableBlock.table.rows.map(copyRow).toList(),
+ 282:       columnWidths: widths,
+ 283:     );
+ 284:   }
+ 285: }
+ 286: 
+ 287: class SetTableCellHeaderCommand extends EditorCommand {
+ 288:   const SetTableCellHeaderCommand({
+ 289:     required this.blockIndex,
+ 290:     required this.rowIndex,
+ 291:     required this.columnIndex,
+ 292:     required this.isHeader,
+ 293:   });
+ 294: 
+ 295:   final int blockIndex;
+ 296:   final int rowIndex;
+ 297:   final int columnIndex;
+ 298:   final bool isHeader;
+ 299: 
+ 300:   @override
+ 301:   String get description => 'setTableCellHeader';
+ 302: 
+ 303:   @override
+ 304:   CommandResult execute(DocumentSession session) {
+ 305:     return updateTableCell(
+ 306:       session,
+ 307:       blockIndex,
+ 308:       rowIndex,
+ 309:       columnIndex,
+ 310:       (cell) => TableCellNode(
+ 311:         id: cell.id,
+ 312:         blocks: cell.blocks.map((block) => block.copy()).toList(),
+ 313:         rowSpan: cell.rowSpan,
+ 314:         columnSpan: cell.columnSpan,
+ 315:         isHeader: isHeader,
+ 316:         backgroundColor: cell.backgroundColor,
+ 317:         covered: cell.covered,
+ 318:       ),
+ 319:     );
+ 320:   }
+ 321: }
+ 322: 
+ 323: class SetTableCellBackgroundCommand extends EditorCommand {
+ 324:   const SetTableCellBackgroundCommand({
+ 325:     required this.blockIndex,
+ 326:     required this.rowIndex,
+ 327:     required this.columnIndex,
+ 328:     required this.backgroundColor,
+ 329:   });
+ 330: 
+ 331:   final int blockIndex;
+ 332:   final int rowIndex;
+ 333:   final int columnIndex;
+ 334:   final int? backgroundColor;
+ 335: 
+ 336:   @override
+ 337:   String get description => 'setTableCellBackground';
+ 338: 
+ 339:   @override
+ 340:   CommandResult execute(DocumentSession session) {
+ 341:     return updateTableCell(
+ 342:       session,
+ 343:       blockIndex,
+ 344:       rowIndex,
+ 345:       columnIndex,
+ 346:       (cell) => TableCellNode(
+ 347:         id: cell.id,
+ 348:         blocks: cell.blocks.map((block) => block.copy()).toList(),
+ 349:         rowSpan: cell.rowSpan,
+ 350:         columnSpan: cell.columnSpan,
+ 351:         isHeader: cell.isHeader,
+ 352:         backgroundColor: backgroundColor,
+ 353:         covered: cell.covered,
+ 354:       ),
+ 355:     );
+ 356:   }
+ 357: }
+ 358: 
+ 359: class MergeTableCellsCommand extends EditorCommand {
+ 360:   const MergeTableCellsCommand({
+ 361:     required this.blockIndex,
+ 362:     required this.startRow,
+ 363:     required this.startColumn,
+ 364:     required this.endRow,
+ 365:     required this.endColumn,
+ 366:   });
+ 367: 
+ 368:   final int blockIndex;
+ 369:   final int startRow;
+ 370:   final int startColumn;
+ 371:   final int endRow;
+ 372:   final int endColumn;
+ 373: 
+ 374:   @override
+ 375:   String get description => 'mergeTableCells';
+ 376: 
+ 377:   @override
+ 378:   CommandResult execute(DocumentSession session) {
+ 379:     final tableBlock = tableAt(session, blockIndex);
+ 380:     if (tableBlock == null) {
+ 381:       return const CommandResult(recordHistory: false);
+ 382:     }
+ 383:     final top = startRow <= endRow ? startRow : endRow;
+ 384:     final bottom = startRow <= endRow ? endRow : startRow;
+ 385:     final left = startColumn <= endColumn ? startColumn : endColumn;
+ 386:     final right = startColumn <= endColumn ? endColumn : startColumn;
+ 387:     if (top < 0 ||
+ 388:         left < 0 ||
+ 389:         bottom >= tableBlock.table.rowCount ||
+ 390:         right >= tableBlock.table.columnCount ||
+ 391:         (top == bottom && left == right)) {
+ 392:       return const CommandResult(recordHistory: false);
+ 393:     }
+ 394:     for (var row = top; row <= bottom; row++) {
+ 395:       for (var column = left; column <= right; column++) {
+ 396:         final cell = tableBlock.table.cellAt(row, column);
+ 397:         if (cell == null ||
+ 398:             cell.covered ||
+ 399:             cell.rowSpan != 1 ||
+ 400:             cell.columnSpan != 1) {
+ 401:           return const CommandResult(recordHistory: false);
+ 402:         }
+ 403:       }
+ 404:     }
+ 405:     final rows = tableBlock.table.rows.map(copyRow).toList();
+ 406:     for (var row = top; row <= bottom; row++) {
+ 407:       for (var column = left; column <= right; column++) {
+ 408:         final cell = rows[row][column];
+ 409:         rows[row][column] = TableCellNode(
+ 410:           id: cell.id,
+ 411:           blocks: cell.blocks.map((block) => block.copy()).toList(),
+ 412:           rowSpan: row == top && column == left ? bottom - top + 1 : 1,
+ 413:           columnSpan: row == top && column == left ? right - left + 1 : 1,
+ 414:           isHeader: cell.isHeader,
+ 415:           backgroundColor: cell.backgroundColor,
+ 416:           covered: !(row == top && column == left),
+ 417:         );
+ 418:       }
+ 419:     }
+ 420:     return replaceTable(
+ 421:       session,
+ 422:       blockIndex,
+ 423:       tableBlock,
+ 424:       rows,
+ 425:       columnAlignments: tableBlock.table.columnAlignments,
+ 426:       columnWidths: tableBlock.table.columnWidths,
+ 427:     );
+ 428:   }
+ 429: }
+ 430: 
+ 431: class SplitTableCellCommand extends EditorCommand {
+ 432:   const SplitTableCellCommand({
+ 433:     required this.blockIndex,
+ 434:     required this.rowIndex,
+ 435:     required this.columnIndex,
+ 436:   });
+ 437: 
+ 438:   final int blockIndex;
+ 439:   final int rowIndex;
+ 440:   final int columnIndex;
+ 441: 
+ 442:   @override
+ 443:   String get description => 'splitTableCell';
+ 444: 
+ 445:   @override
+ 446:   CommandResult execute(DocumentSession session) {
+ 447:     final tableBlock = tableAt(session, blockIndex);
+ 448:     final anchor = tableBlock?.table.cellAt(rowIndex, columnIndex);
+ 449:     if (tableBlock == null ||
+ 450:         anchor == null ||
+ 451:         anchor.covered ||
+ 452:         (anchor.rowSpan == 1 && anchor.columnSpan == 1)) {
+ 453:       return const CommandResult(recordHistory: false);
+ 454:     }
+ 455:     final bottom = rowIndex + anchor.rowSpan - 1;
+ 456:     final right = columnIndex + anchor.columnSpan - 1;
+ 457:     if (bottom >= tableBlock.table.rowCount ||
+ 458:         right >= tableBlock.table.columnCount) {
+ 459:       return const CommandResult(recordHistory: false);
+ 460:     }
+ 461:     final rows = tableBlock.table.rows.map(copyRow).toList();
+ 462:     for (var row = rowIndex; row <= bottom; row++) {
+ 463:       for (var column = columnIndex; column <= right; column++) {
+ 464:         final cell = rows[row][column];
+ 465:         rows[row][column] = TableCellNode(
+ 466:           id: cell.id,
+ 467:           blocks: cell.blocks.map((block) => block.copy()).toList(),
+ 468:           isHeader: cell.isHeader,
+ 469:           backgroundColor: cell.backgroundColor,
+ 470:         );
+ 471:       }
+ 472:     }
+ 473:     return replaceTable(
+ 474:       session,
+ 475:       blockIndex,
+ 476:       tableBlock,
+ 477:       rows,
+ 478:       columnAlignments: tableBlock.table.columnAlignments,
+ 479:       columnWidths: tableBlock.table.columnWidths,
+ 480:     );
+ 481:   }
+ 482: }
+ 483: 
+ 484: class InsertTableCellTextCommand extends EditorCommand {
+ 485:   const InsertTableCellTextCommand({
+ 486:     required this.blockIndex,
+ 487:     required this.rowIndex,
+ 488:     required this.columnIndex,
+ 489:     required this.offset,
+ 490:     required this.text,
+ 491:     this.attributes = const TextAttributes(),
+ 492:   });
+ 493: 
+ 494:   final int blockIndex;
+ 495:   final int rowIndex;
+ 496:   final int columnIndex;
+ 497:   final int offset;
+ 498:   final String text;
+ 499:   final TextAttributes attributes;
+ 500: 
+ 501:   @override
+ 502:   String get description => 'insertTableCellText';
+ 503: 
+ 504:   @override
+ 505:   CommandResult execute(DocumentSession session) {
+ 506:     return insertTableCellInlineText(
+ 507:       session,
+ 508:       blockIndex,
+ 509:       rowIndex,
+ 510:       columnIndex,
+ 511:       offset,
+ 512:       text,
+ 513:       attributes: attributes,
+ 514:     );
+ 515:   }
+ 516: }
+ 517: 
+ 518: class DeleteTableCellTextCommand extends EditorCommand {
+ 519:   const DeleteTableCellTextCommand({
+ 520:     required this.blockIndex,
+ 521:     required this.rowIndex,
+ 522:     required this.columnIndex,
+ 523:     required this.startOffset,
+ 524:     required this.endOffset,
+ 525:   });
+ 526: 
+ 527:   final int blockIndex;
+ 528:   final int rowIndex;
+ 529:   final int columnIndex;
+ 530:   final int startOffset;
+ 531:   final int endOffset;
+ 532: 
+ 533:   @override
+ 534:   String get description => 'deleteTableCellText';
+ 535: 
+ 536:   @override
+ 537:   CommandResult execute(DocumentSession session) {
+ 538:     return deleteTableCellInlineRange(
+ 539:       session,
+ 540:       blockIndex,
+ 541:       rowIndex,
+ 542:       columnIndex,
+ 543:       startOffset,
+ 544:       endOffset,
+ 545:     );
+ 546:   }
+ 547: }
+ 548: 
+ 549: class FormatTableCellTextCommand extends EditorCommand {
+ 550:   const FormatTableCellTextCommand({
+ 551:     required this.blockIndex,
+ 552:     required this.rowIndex,
+ 553:     required this.columnIndex,
+ 554:     required this.startOffset,
+ 555:     required this.endOffset,
+ 556:     required this.attributes,
+ 557:   });
+ 558: 
+ 559:   final int blockIndex;
+ 560:   final int rowIndex;
+ 561:   final int columnIndex;
+ 562:   final int startOffset;
+ 563:   final int endOffset;
+ 564:   final TextAttributes attributes;
+ 565: 
+ 566:   @override
+ 567:   String get description => 'formatTableCellText';
+ 568: 
+ 569:   @override
+ 570:   CommandResult execute(DocumentSession session) {
+ 571:     return formatTableCellInlineRange(
+ 572:       session,
+ 573:       blockIndex,
+ 574:       rowIndex,
+ 575:       columnIndex,
+ 576:       startOffset,
+ 577:       endOffset,
+ 578:       attributes,
+ 579:     );
+ 580:   }
+ 581: }
+ 582: 
+ 583: CommandResult insertTableRowAt(
+ 584:   DocumentSession session,
+ 585:   int blockIndex,
+ 586:   int rowIndex, {
+ 587:   TableCellIdBuilder? cellIdBuilder,
+ 588: }) {
+ 589:   final tableBlock = tableAt(session, blockIndex);
+ 590:   if (tableBlock == null) {
+ 591:     return const CommandResult(recordHistory: false);
+ 592:   }
+ 593:   final insertIndex = rowIndex.clamp(0, tableBlock.table.rowCount).toInt();
+ 594:   final rows = <List<TableCellNode>>[
+ 595:     for (var i = 0; i < insertIndex; i++) copyRow(tableBlock.table.rows[i]),
+ 596:     _createRow(
+ 597:       tableBlock.id,
+ 598:       insertIndex,
+ 599:       tableBlock.table.columnCount,
+ 600:       cellIdBuilder,
+ 601:     ),
+ 602:     for (var i = insertIndex; i < tableBlock.table.rowCount; i++)
+ 603:       copyRow(tableBlock.table.rows[i]),
+ 604:   ];
+ 605:   return replaceTable(session, blockIndex, tableBlock, rows);
+ 606: }
+ 607: 
+ 608: CommandResult updateTableCell(
+ 609:   DocumentSession session,
+ 610:   int blockIndex,
+ 611:   int rowIndex,
+ 612:   int columnIndex,
+ 613:   TableCellNode Function(TableCellNode cell) update,
+ 614: ) {
+ 615:   final tableBlock = tableAt(session, blockIndex);
+ 616:   final cell = tableBlock?.table.cellAt(rowIndex, columnIndex);
+ 617:   if (tableBlock == null || cell == null) {
+ 618:     return const CommandResult(recordHistory: false);
+ 619:   }
+ 620:   final selection = session.selection;
+ 621:   final rows = tableBlock.table.rows.map(copyRow).toList();
+ 622:   rows[rowIndex][columnIndex] = update(cell);
+ 623:   final result = replaceTable(session, blockIndex, tableBlock, rows);
+ 624:   if (selection == null) {
+ 625:     return result;
+ 626:   }
+ 627:   return CommandResult(
+ 628:     selection: selection,
+ 629:     recordHistory: result.recordHistory,
+ 630:     metadata: result.metadata,
+ 631:   );
+ 632: }
+ 633: 
+ 634: Map<int, T> shiftColumnMapOnInsert<T>(Map<int, T> values, int insertIndex) {
+ 635:   return <int, T>{
+ 636:     for (final entry in values.entries)
+ 637:       if (entry.key < insertIndex)
+ 638:         entry.key: entry.value
+ 639:       else
+ 640:         entry.key + 1: entry.value,
+ 641:   };
+ 642: }
+ 643: 
+ 644: Map<int, T> shiftColumnMapOnDelete<T>(Map<int, T> values, int deleteIndex) {
+ 645:   return <int, T>{
+ 646:     for (final entry in values.entries)
+ 647:       if (entry.key < deleteIndex)
+ 648:         entry.key: entry.value
+ 649:       else if (entry.key > deleteIndex)
+ 650:         entry.key - 1: entry.value,
+ 651:   };
+ 652: }
+ 653: 
+ 654: TableModel _createTable(
+ 655:   String tableId,
+ 656:   int rowCount,
+ 657:   int columnCount,
+ 658:   TableCellIdBuilder? cellIdBuilder,
+ 659: ) {
+ 660:   return TableModel(
+ 661:     rows: <List<TableCellNode>>[
+ 662:       for (var row = 0; row < rowCount; row++)
+ 663:         _createRow(tableId, row, columnCount, cellIdBuilder),
+ 664:     ],
+ 665:   );
+ 666: }
+ 667: 
+ 668: List<TableCellNode> _createRow(
+ 669:   String tableId,
+ 670:   int rowIndex,
+ 671:   int columnCount,
+ 672:   TableCellIdBuilder? cellIdBuilder,
+ 673: ) {
+ 674:   return <TableCellNode>[
+ 675:     for (var column = 0; column < columnCount; column++)
+ 676:       _emptyCell(_cellId(tableId, rowIndex, column, cellIdBuilder)),
+ 677:   ];
+ 678: }
+ 679: 
+ 680: String _cellId(
+ 681:   String tableId,
+ 682:   int rowIndex,
+ 683:   int columnIndex,
+ 684:   TableCellIdBuilder? cellIdBuilder,
+ 685: ) {
+ 686:   return cellIdBuilder?.call(tableId, rowIndex, columnIndex) ??
+ 687:       '$tableId-r$rowIndex-c$columnIndex';
+ 688: }
+ 689: 
+ 690: TableCellNode _emptyCell(String id) {
+ 691:   return TableCellNode(
+ 692:     id: id,
+ 693:     blocks: <BlockNode>[
+ 694:       TextBlockNode(
+ 695:         id: '$id-text',
+ 696:         type: BlockType.paragraph,
+ 697:         content: const <InlineNode>[],
+ 698:       ),
+ 699:     ],
+ 700:   );
+ 701: }
+
+codex
+命令文件较长且输出被截断，我只读取 P005 涉及的中段。
+exec
+powershell.exe -Command '$p='"'lib\\src\\core\\commands\\table_commands.dart'; "'$lines=Get-Content -Encoding UTF8 $p; foreach($range in @(@(135,330),@(330,548))){ for($i=$range[0]-1;$i -lt $range[1] -and $i -lt $lines.Length;$i++){ '"'{0,4}: {1}' -f ("'$i+1), $lines[$i] }; '"'' }" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 263ms:
+ 135: class DeleteTableRowCommand extends EditorCommand {
+ 136:   const DeleteTableRowCommand({
+ 137:     required this.blockIndex,
+ 138:     required this.rowIndex,
+ 139:   });
+ 140: 
+ 141:   final int blockIndex;
+ 142:   final int rowIndex;
+ 143: 
+ 144:   @override
+ 145:   String get description => 'deleteTableRow';
+ 146: 
+ 147:   @override
+ 148:   CommandResult execute(DocumentSession session) {
+ 149:     final tableBlock = tableAt(session, blockIndex);
+ 150:     if (tableBlock == null ||
+ 151:         tableBlock.table.rowCount <= 1 ||
+ 152:         rowIndex < 0 ||
+ 153:         rowIndex >= tableBlock.table.rowCount) {
+ 154:       return const CommandResult(recordHistory: false);
+ 155:     }
+ 156:     final rows = <List<TableCellNode>>[
+ 157:       for (var i = 0; i < tableBlock.table.rowCount; i++)
+ 158:         if (i != rowIndex) copyRow(tableBlock.table.rows[i]),
+ 159:     ];
+ 160:     return replaceTable(session, blockIndex, tableBlock, rows);
+ 161:   }
+ 162: }
+ 163: 
+ 164: class DeleteTableColumnCommand extends EditorCommand {
+ 165:   const DeleteTableColumnCommand({
+ 166:     required this.blockIndex,
+ 167:     required this.columnIndex,
+ 168:   });
+ 169: 
+ 170:   final int blockIndex;
+ 171:   final int columnIndex;
+ 172: 
+ 173:   @override
+ 174:   String get description => 'deleteTableColumn';
+ 175: 
+ 176:   @override
+ 177:   CommandResult execute(DocumentSession session) {
+ 178:     final tableBlock = tableAt(session, blockIndex);
+ 179:     if (tableBlock == null ||
+ 180:         tableBlock.table.columnCount <= 1 ||
+ 181:         columnIndex < 0 ||
+ 182:         columnIndex >= tableBlock.table.columnCount) {
+ 183:       return const CommandResult(recordHistory: false);
+ 184:     }
+ 185:     final rows = <List<TableCellNode>>[
+ 186:       for (final row in tableBlock.table.rows)
+ 187:         <TableCellNode>[
+ 188:           for (var i = 0; i < row.length; i++)
+ 189:             if (i != columnIndex) copyCell(row[i]),
+ 190:         ],
+ 191:     ];
+ 192:     final alignments = shiftColumnMapOnDelete(
+ 193:       tableBlock.table.columnAlignments,
+ 194:       columnIndex,
+ 195:     );
+ 196:     final widths = shiftColumnMapOnDelete(
+ 197:       tableBlock.table.columnWidths,
+ 198:       columnIndex,
+ 199:     );
+ 200:     return replaceTable(
+ 201:       session,
+ 202:       blockIndex,
+ 203:       tableBlock,
+ 204:       rows,
+ 205:       columnAlignments: alignments,
+ 206:       columnWidths: widths,
+ 207:     );
+ 208:   }
+ 209: }
+ 210: 
+ 211: class SetTableColumnAlignmentCommand extends EditorCommand {
+ 212:   const SetTableColumnAlignmentCommand({
+ 213:     required this.blockIndex,
+ 214:     required this.columnIndex,
+ 215:     required this.alignment,
+ 216:   });
+ 217: 
+ 218:   final int blockIndex;
+ 219:   final int columnIndex;
+ 220:   final String? alignment;
+ 221: 
+ 222:   @override
+ 223:   String get description => 'setTableColumnAlignment';
+ 224: 
+ 225:   @override
+ 226:   CommandResult execute(DocumentSession session) {
+ 227:     final tableBlock = tableAt(session, blockIndex);
+ 228:     if (tableBlock == null ||
+ 229:         columnIndex < 0 ||
+ 230:         columnIndex >= tableBlock.table.columnCount) {
+ 231:       return const CommandResult(recordHistory: false);
+ 232:     }
+ 233:     final alignments = Map<int, String>.from(tableBlock.table.columnAlignments);
+ 234:     if (alignment == null) {
+ 235:       alignments.remove(columnIndex);
+ 236:     } else {
+ 237:       alignments[columnIndex] = alignment!;
+ 238:     }
+ 239:     return replaceTable(
+ 240:       session,
+ 241:       blockIndex,
+ 242:       tableBlock,
+ 243:       tableBlock.table.rows.map(copyRow).toList(),
+ 244:       columnAlignments: alignments,
+ 245:     );
+ 246:   }
+ 247: }
+ 248: 
+ 249: class SetTableColumnWidthCommand extends EditorCommand {
+ 250:   const SetTableColumnWidthCommand({
+ 251:     required this.blockIndex,
+ 252:     required this.columnIndex,
+ 253:     required this.width,
+ 254:   });
+ 255: 
+ 256:   final int blockIndex;
+ 257:   final int columnIndex;
+ 258:   final double? width;
+ 259: 
+ 260:   @override
+ 261:   String get description => 'setTableColumnWidth';
+ 262: 
+ 263:   @override
+ 264:   CommandResult execute(DocumentSession session) {
+ 265:     final tableBlock = tableAt(session, blockIndex);
+ 266:     if (tableBlock == null ||
+ 267:         columnIndex < 0 ||
+ 268:         columnIndex >= tableBlock.table.columnCount) {
+ 269:       return const CommandResult(recordHistory: false);
+ 270:     }
+ 271:     final widths = Map<int, double>.from(tableBlock.table.columnWidths);
+ 272:     if (width == null || width! <= 0) {
+ 273:       widths.remove(columnIndex);
+ 274:     } else {
+ 275:       widths[columnIndex] = width!;
+ 276:     }
+ 277:     return replaceTable(
+ 278:       session,
+ 279:       blockIndex,
+ 280:       tableBlock,
+ 281:       tableBlock.table.rows.map(copyRow).toList(),
+ 282:       columnWidths: widths,
+ 283:     );
+ 284:   }
+ 285: }
+ 286: 
+ 287: class SetTableCellHeaderCommand extends EditorCommand {
+ 288:   const SetTableCellHeaderCommand({
+ 289:     required this.blockIndex,
+ 290:     required this.rowIndex,
+ 291:     required this.columnIndex,
+ 292:     required this.isHeader,
+ 293:   });
+ 294: 
+ 295:   final int blockIndex;
+ 296:   final int rowIndex;
+ 297:   final int columnIndex;
+ 298:   final bool isHeader;
+ 299: 
+ 300:   @override
+ 301:   String get description => 'setTableCellHeader';
+ 302: 
+ 303:   @override
+ 304:   CommandResult execute(DocumentSession session) {
+ 305:     return updateTableCell(
+ 306:       session,
+ 307:       blockIndex,
+ 308:       rowIndex,
+ 309:       columnIndex,
+ 310:       (cell) => TableCellNode(
+ 311:         id: cell.id,
+ 312:         blocks: cell.blocks.map((block) => block.copy()).toList(),
+ 313:         rowSpan: cell.rowSpan,
+ 314:         columnSpan: cell.columnSpan,
+ 315:         isHeader: isHeader,
+ 316:         backgroundColor: cell.backgroundColor,
+ 317:         covered: cell.covered,
+ 318:       ),
+ 319:     );
+ 320:   }
+ 321: }
+ 322: 
+ 323: class SetTableCellBackgroundCommand extends EditorCommand {
+ 324:   const SetTableCellBackgroundCommand({
+ 325:     required this.blockIndex,
+ 326:     required this.rowIndex,
+ 327:     required this.columnIndex,
+ 328:     required this.backgroundColor,
+ 329:   });
+ 330: 
+
+ 330: 
+ 331:   final int blockIndex;
+ 332:   final int rowIndex;
+ 333:   final int columnIndex;
+ 334:   final int? backgroundColor;
+ 335: 
+ 336:   @override
+ 337:   String get description => 'setTableCellBackground';
+ 338: 
+ 339:   @override
+ 340:   CommandResult execute(DocumentSession session) {
+ 341:     return updateTableCell(
+ 342:       session,
+ 343:       blockIndex,
+ 344:       rowIndex,
+ 345:       columnIndex,
+ 346:       (cell) => TableCellNode(
+ 347:         id: cell.id,
+ 348:         blocks: cell.blocks.map((block) => block.copy()).toList(),
+ 349:         rowSpan: cell.rowSpan,
+ 350:         columnSpan: cell.columnSpan,
+ 351:         isHeader: cell.isHeader,
+ 352:         backgroundColor: backgroundColor,
+ 353:         covered: cell.covered,
+ 354:       ),
+ 355:     );
+ 356:   }
+ 357: }
+ 358: 
+ 359: class MergeTableCellsCommand extends EditorCommand {
+ 360:   const MergeTableCellsCommand({
+ 361:     required this.blockIndex,
+ 362:     required this.startRow,
+ 363:     required this.startColumn,
+ 364:     required this.endRow,
+ 365:     required this.endColumn,
+ 366:   });
+ 367: 
+ 368:   final int blockIndex;
+ 369:   final int startRow;
+ 370:   final int startColumn;
+ 371:   final int endRow;
+ 372:   final int endColumn;
+ 373: 
+ 374:   @override
+ 375:   String get description => 'mergeTableCells';
+ 376: 
+ 377:   @override
+ 378:   CommandResult execute(DocumentSession session) {
+ 379:     final tableBlock = tableAt(session, blockIndex);
+ 380:     if (tableBlock == null) {
+ 381:       return const CommandResult(recordHistory: false);
+ 382:     }
+ 383:     final top = startRow <= endRow ? startRow : endRow;
+ 384:     final bottom = startRow <= endRow ? endRow : startRow;
+ 385:     final left = startColumn <= endColumn ? startColumn : endColumn;
+ 386:     final right = startColumn <= endColumn ? endColumn : startColumn;
+ 387:     if (top < 0 ||
+ 388:         left < 0 ||
+ 389:         bottom >= tableBlock.table.rowCount ||
+ 390:         right >= tableBlock.table.columnCount ||
+ 391:         (top == bottom && left == right)) {
+ 392:       return const CommandResult(recordHistory: false);
+ 393:     }
+ 394:     for (var row = top; row <= bottom; row++) {
+ 395:       for (var column = left; column <= right; column++) {
+ 396:         final cell = tableBlock.table.cellAt(row, column);
+ 397:         if (cell == null ||
+ 398:             cell.covered ||
+ 399:             cell.rowSpan != 1 ||
+ 400:             cell.columnSpan != 1) {
+ 401:           return const CommandResult(recordHistory: false);
+ 402:         }
+ 403:       }
+ 404:     }
+ 405:     final rows = tableBlock.table.rows.map(copyRow).toList();
+ 406:     for (var row = top; row <= bottom; row++) {
+ 407:       for (var column = left; column <= right; column++) {
+ 408:         final cell = rows[row][column];
+ 409:         rows[row][column] = TableCellNode(
+ 410:           id: cell.id,
+ 411:           blocks: cell.blocks.map((block) => block.copy()).toList(),
+ 412:           rowSpan: row == top && column == left ? bottom - top + 1 : 1,
+ 413:           columnSpan: row == top && column == left ? right - left + 1 : 1,
+ 414:           isHeader: cell.isHeader,
+ 415:           backgroundColor: cell.backgroundColor,
+ 416:           covered: !(row == top && column == left),
+ 417:         );
+ 418:       }
+ 419:     }
+ 420:     return replaceTable(
+ 421:       session,
+ 422:       blockIndex,
+ 423:       tableBlock,
+ 424:       rows,
+ 425:       columnAlignments: tableBlock.table.columnAlignments,
+ 426:       columnWidths: tableBlock.table.columnWidths,
+ 427:     );
+ 428:   }
+ 429: }
+ 430: 
+ 431: class SplitTableCellCommand extends EditorCommand {
+ 432:   const SplitTableCellCommand({
+ 433:     required this.blockIndex,
+ 434:     required this.rowIndex,
+ 435:     required this.columnIndex,
+ 436:   });
+ 437: 
+ 438:   final int blockIndex;
+ 439:   final int rowIndex;
+ 440:   final int columnIndex;
+ 441: 
+ 442:   @override
+ 443:   String get description => 'splitTableCell';
+ 444: 
+ 445:   @override
+ 446:   CommandResult execute(DocumentSession session) {
+ 447:     final tableBlock = tableAt(session, blockIndex);
+ 448:     final anchor = tableBlock?.table.cellAt(rowIndex, columnIndex);
+ 449:     if (tableBlock == null ||
+ 450:         anchor == null ||
+ 451:         anchor.covered ||
+ 452:         (anchor.rowSpan == 1 && anchor.columnSpan == 1)) {
+ 453:       return const CommandResult(recordHistory: false);
+ 454:     }
+ 455:     final bottom = rowIndex + anchor.rowSpan - 1;
+ 456:     final right = columnIndex + anchor.columnSpan - 1;
+ 457:     if (bottom >= tableBlock.table.rowCount ||
+ 458:         right >= tableBlock.table.columnCount) {
+ 459:       return const CommandResult(recordHistory: false);
+ 460:     }
+ 461:     final rows = tableBlock.table.rows.map(copyRow).toList();
+ 462:     for (var row = rowIndex; row <= bottom; row++) {
+ 463:       for (var column = columnIndex; column <= right; column++) {
+ 464:         final cell = rows[row][column];
+ 465:         rows[row][column] = TableCellNode(
+ 466:           id: cell.id,
+ 467:           blocks: cell.blocks.map((block) => block.copy()).toList(),
+ 468:           isHeader: cell.isHeader,
+ 469:           backgroundColor: cell.backgroundColor,
+ 470:         );
+ 471:       }
+ 472:     }
+ 473:     return replaceTable(
+ 474:       session,
+ 475:       blockIndex,
+ 476:       tableBlock,
+ 477:       rows,
+ 478:       columnAlignments: tableBlock.table.columnAlignments,
+ 479:       columnWidths: tableBlock.table.columnWidths,
+ 480:     );
+ 481:   }
+ 482: }
+ 483: 
+ 484: class InsertTableCellTextCommand extends EditorCommand {
+ 485:   const InsertTableCellTextCommand({
+ 486:     required this.blockIndex,
+ 487:     required this.rowIndex,
+ 488:     required this.columnIndex,
+ 489:     required this.offset,
+ 490:     required this.text,
+ 491:     this.attributes = const TextAttributes(),
+ 492:   });
+ 493: 
+ 494:   final int blockIndex;
+ 495:   final int rowIndex;
+ 496:   final int columnIndex;
+ 497:   final int offset;
+ 498:   final String text;
+ 499:   final TextAttributes attributes;
+ 500: 
+ 501:   @override
+ 502:   String get description => 'insertTableCellText';
+ 503: 
+ 504:   @override
+ 505:   CommandResult execute(DocumentSession session) {
+ 506:     return insertTableCellInlineText(
+ 507:       session,
+ 508:       blockIndex,
+ 509:       rowIndex,
+ 510:       columnIndex,
+ 511:       offset,
+ 512:       text,
+ 513:       attributes: attributes,
+ 514:     );
+ 515:   }
+ 516: }
+ 517: 
+ 518: class DeleteTableCellTextCommand extends EditorCommand {
+ 519:   const DeleteTableCellTextCommand({
+ 520:     required this.blockIndex,
+ 521:     required this.rowIndex,
+ 522:     required this.columnIndex,
+ 523:     required this.startOffset,
+ 524:     required this.endOffset,
+ 525:   });
+ 526: 
+ 527:   final int blockIndex;
+ 528:   final int rowIndex;
+ 529:   final int columnIndex;
+ 530:   final int startOffset;
+ 531:   final int endOffset;
+ 532: 
+ 533:   @override
+ 534:   String get description => 'deleteTableCellText';
+ 535: 
+ 536:   @override
+ 537:   CommandResult execute(DocumentSession session) {
+ 538:     return deleteTableCellInlineRange(
+ 539:       session,
+ 540:       blockIndex,
+ 541:       rowIndex,
+ 542:       columnIndex,
+ 543:       startOffset,
+ 544:       endOffset,
+ 545:     );
+ 546:   }
+ 547: }
+ 548: 
+
+
+codex
+还缺背景色和合并命令的完整边界，我再缩小读取范围。
+exec
+powershell.exe -Command '$p='"'lib\\src\\core\\commands\\table_commands.dart'; "'$lines=Get-Content -Encoding UTF8 $p; for($i=249-1;$i -lt 430 -and $i -lt $lines.Length;$i++){ '"'{0,4}: {1}' -f ("'$i+1), $lines[$i] }' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 255ms:
+ 249: class SetTableColumnWidthCommand extends EditorCommand {
+ 250:   const SetTableColumnWidthCommand({
+ 251:     required this.blockIndex,
+ 252:     required this.columnIndex,
+ 253:     required this.width,
+ 254:   });
+ 255: 
+ 256:   final int blockIndex;
+ 257:   final int columnIndex;
+ 258:   final double? width;
+ 259: 
+ 260:   @override
+ 261:   String get description => 'setTableColumnWidth';
+ 262: 
+ 263:   @override
+ 264:   CommandResult execute(DocumentSession session) {
+ 265:     final tableBlock = tableAt(session, blockIndex);
+ 266:     if (tableBlock == null ||
+ 267:         columnIndex < 0 ||
+ 268:         columnIndex >= tableBlock.table.columnCount) {
+ 269:       return const CommandResult(recordHistory: false);
+ 270:     }
+ 271:     final widths = Map<int, double>.from(tableBlock.table.columnWidths);
+ 272:     if (width == null || width! <= 0) {
+ 273:       widths.remove(columnIndex);
+ 274:     } else {
+ 275:       widths[columnIndex] = width!;
+ 276:     }
+ 277:     return replaceTable(
+ 278:       session,
+ 279:       blockIndex,
+ 280:       tableBlock,
+ 281:       tableBlock.table.rows.map(copyRow).toList(),
+ 282:       columnWidths: widths,
+ 283:     );
+ 284:   }
+ 285: }
+ 286: 
+ 287: class SetTableCellHeaderCommand extends EditorCommand {
+ 288:   const SetTableCellHeaderCommand({
+ 289:     required this.blockIndex,
+ 290:     required this.rowIndex,
+ 291:     required this.columnIndex,
+ 292:     required this.isHeader,
+ 293:   });
+ 294: 
+ 295:   final int blockIndex;
+ 296:   final int rowIndex;
+ 297:   final int columnIndex;
+ 298:   final bool isHeader;
+ 299: 
+ 300:   @override
+ 301:   String get description => 'setTableCellHeader';
+ 302: 
+ 303:   @override
+ 304:   CommandResult execute(DocumentSession session) {
+ 305:     return updateTableCell(
+ 306:       session,
+ 307:       blockIndex,
+ 308:       rowIndex,
+ 309:       columnIndex,
+ 310:       (cell) => TableCellNode(
+ 311:         id: cell.id,
+ 312:         blocks: cell.blocks.map((block) => block.copy()).toList(),
+ 313:         rowSpan: cell.rowSpan,
+ 314:         columnSpan: cell.columnSpan,
+ 315:         isHeader: isHeader,
+ 316:         backgroundColor: cell.backgroundColor,
+ 317:         covered: cell.covered,
+ 318:       ),
+ 319:     );
+ 320:   }
+ 321: }
+ 322: 
+ 323: class SetTableCellBackgroundCommand extends EditorCommand {
+ 324:   const SetTableCellBackgroundCommand({
+ 325:     required this.blockIndex,
+ 326:     required this.rowIndex,
+ 327:     required this.columnIndex,
+ 328:     required this.backgroundColor,
+ 329:   });
+ 330: 
+ 331:   final int blockIndex;
+ 332:   final int rowIndex;
+ 333:   final int columnIndex;
+ 334:   final int? backgroundColor;
+ 335: 
+ 336:   @override
+ 337:   String get description => 'setTableCellBackground';
+ 338: 
+ 339:   @override
+ 340:   CommandResult execute(DocumentSession session) {
+ 341:     return updateTableCell(
+ 342:       session,
+ 343:       blockIndex,
+ 344:       rowIndex,
+ 345:       columnIndex,
+ 346:       (cell) => TableCellNode(
+ 347:         id: cell.id,
+ 348:         blocks: cell.blocks.map((block) => block.copy()).toList(),
+ 349:         rowSpan: cell.rowSpan,
+ 350:         columnSpan: cell.columnSpan,
+ 351:         isHeader: cell.isHeader,
+ 352:         backgroundColor: backgroundColor,
+ 353:         covered: cell.covered,
+ 354:       ),
+ 355:     );
+ 356:   }
+ 357: }
+ 358: 
+ 359: class MergeTableCellsCommand extends EditorCommand {
+ 360:   const MergeTableCellsCommand({
+ 361:     required this.blockIndex,
+ 362:     required this.startRow,
+ 363:     required this.startColumn,
+ 364:     required this.endRow,
+ 365:     required this.endColumn,
+ 366:   });
+ 367: 
+ 368:   final int blockIndex;
+ 369:   final int startRow;
+ 370:   final int startColumn;
+ 371:   final int endRow;
+ 372:   final int endColumn;
+ 373: 
+ 374:   @override
+ 375:   String get description => 'mergeTableCells';
+ 376: 
+ 377:   @override
+ 378:   CommandResult execute(DocumentSession session) {
+ 379:     final tableBlock = tableAt(session, blockIndex);
+ 380:     if (tableBlock == null) {
+ 381:       return const CommandResult(recordHistory: false);
+ 382:     }
+ 383:     final top = startRow <= endRow ? startRow : endRow;
+ 384:     final bottom = startRow <= endRow ? endRow : startRow;
+ 385:     final left = startColumn <= endColumn ? startColumn : endColumn;
+ 386:     final right = startColumn <= endColumn ? endColumn : startColumn;
+ 387:     if (top < 0 ||
+ 388:         left < 0 ||
+ 389:         bottom >= tableBlock.table.rowCount ||
+ 390:         right >= tableBlock.table.columnCount ||
+ 391:         (top == bottom && left == right)) {
+ 392:       return const CommandResult(recordHistory: false);
+ 393:     }
+ 394:     for (var row = top; row <= bottom; row++) {
+ 395:       for (var column = left; column <= right; column++) {
+ 396:         final cell = tableBlock.table.cellAt(row, column);
+ 397:         if (cell == null ||
+ 398:             cell.covered ||
+ 399:             cell.rowSpan != 1 ||
+ 400:             cell.columnSpan != 1) {
+ 401:           return const CommandResult(recordHistory: false);
+ 402:         }
+ 403:       }
+ 404:     }
+ 405:     final rows = tableBlock.table.rows.map(copyRow).toList();
+ 406:     for (var row = top; row <= bottom; row++) {
+ 407:       for (var column = left; column <= right; column++) {
+ 408:         final cell = rows[row][column];
+ 409:         rows[row][column] = TableCellNode(
+ 410:           id: cell.id,
+ 411:           blocks: cell.blocks.map((block) => block.copy()).toList(),
+ 412:           rowSpan: row == top && column == left ? bottom - top + 1 : 1,
+ 413:           columnSpan: row == top && column == left ? right - left + 1 : 1,
+ 414:           isHeader: cell.isHeader,
+ 415:           backgroundColor: cell.backgroundColor,
+ 416:           covered: !(row == top && column == left),
+ 417:         );
+ 418:       }
+ 419:     }
+ 420:     return replaceTable(
+ 421:       session,
+ 422:       blockIndex,
+ 423:       tableBlock,
+ 424:       rows,
+ 425:       columnAlignments: tableBlock.table.columnAlignments,
+ 426:       columnWidths: tableBlock.table.columnWidths,
+ 427:     );
+ 428:   }
+ 429: }
+ 430: 
+
+codex
+我会确认 `replaceTable` 对 selection/通知的处理，这决定 overlay 刷新顺序。
+mcp: codegraph/codegraph_search started
+mcp: codegraph/codegraph_search (completed)
+codex
+`replaceTable` 在 scope 外，我只读取行为以保证不改错。
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+**Understanding command modifications**
+
+I see that while I can modify table commands, I'm unable to use helpers outside that framework. If I need to keep a selection, I should add commands that return that selection. I need to explore how CommandResult operates and how it ties in with the controller's execution. There’s a bit to unpack here, but it seems crucial for getting everything working seamlessly! Let's dig in and clarify this further.
+codex
+接着看 controller 如何应用 `CommandResult.selection` 与通知。
+mcp: codegraph/codegraph_search started
+mcp: codegraph/codegraph_search (completed)
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+codex
+我会看控制器执行后如何暴露 dirty blocks，确保 overlay 刷新同步。
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+ERROR: Selected model is at capacity. Please try a different model.
+ERROR: Selected model is at capacity. Please try a different model.
+tokens used
+98,677

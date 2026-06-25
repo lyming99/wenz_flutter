@@ -123,6 +123,7 @@ IconData _iconFor(String icon) {
     'code' => Icons.code,
     'table_chart' => Icons.table_chart,
     'image' => Icons.image_outlined,
+    'video' => Icons.smart_display_outlined,
     _ => Icons.auto_awesome,
   };
 }

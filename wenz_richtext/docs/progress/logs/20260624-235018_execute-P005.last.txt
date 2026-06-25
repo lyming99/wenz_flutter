@@ -1,0 +1,6 @@
+**完成**
+- 已完成 P005：新增段落与表格单元格 inline embed 回归测试，覆盖 emoji、mention 的点击定位、拖拽跨选、Shift+Right 扩展选择：`test/widgets/wenz_rich_text_editor_test.dart:1765`
+- 已补充逐字段断言与点击/文本盒定位 helper：`test/widgets/wenz_rich_text_editor_test.dart:4111`
+- 已将计划中 P005 勾选为完成，并更新进度区与验证记录：`docs/plan/plan_feedback_1_20260624-220759.md:32`
+- 已运行聚焦验证：`flutter test test\widgets\wenz_rich_text_editor_test.dart --plain-name "inline embeds select atomically"`，结果通过
+- 未执行 P006 的完整回归命令，按要求留给下一任务处理。

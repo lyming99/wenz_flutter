@@ -1,0 +1,10 @@
+**完成**
+- `docs/acceptance_manual_checklist.md:66`、`docs/acceptance_manual_checklist.md:89` 补了 P008 的视觉回归/验收记录，并把 ADV-030 的 golden 缺口勾成已完成，指向 `test/widgets/goldens/editor_advanced_blocks.png`。
+- 记录里对应了 `test/widgets/editor_golden_test.dart:312` 的综合排版 golden、`test/widgets/wenz_rich_text_editor_test.dart:536` 及同文件的 object/table/inline-selection 断言、还有 `test/widgets/media_resolver_test.dart:39` 的 fallback 覆盖。
+- `docs/plan/plan_requirement_3_20260625-025750.md` 保持未改。
+
+**验证**
+- `flutter test test/widgets/editor_golden_test.dart --plain-name "golden: advanced blocks and inline embeds" --reporter expanded`
+- `flutter test test/widgets/wenz_rich_text_editor_test.dart --name "^(todo checkbox toggles checked state without selecting text|object block toolbar copies duplicates moves and deletes|table floating toolbar edits rows columns and cells|paragraph inline embeds select atomically by tap drag keyboard)$" --reporter expanded`
+- `flutter test test/widgets/media_resolver_test.dart --name "MediaResolver injection.*(resolver returning null falls back to placeholder|a throwing resolver falls back to placeholder, no crash)" --reporter expanded`
+- 以上三组都通过。

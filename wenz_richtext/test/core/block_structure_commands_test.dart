@@ -112,6 +112,263 @@ void main() {
     });
   });
 
+  group('MoveBlockCommand', () {
+    test('moves a block to the requested final index and records history', () {
+      final session = DocumentSession(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'p1',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'one')],
+            ),
+            TextBlockNode(
+              id: 'p2',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'two')],
+            ),
+            TextBlockNode(
+              id: 'p3',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'three')],
+            ),
+          ],
+        ),
+        selection: collapsedTextSelection('p1', 0, 0),
+      );
+      final executor = CommandExecutor(session);
+
+      final change = executor.execute(
+        const MoveBlockCommand(fromIndex: 0, toIndex: 2),
+      );
+
+      expect(change.description, 'moveBlock');
+      expect(session.document.blocks.map((block) => block.id), [
+        'p2',
+        'p3',
+        'p1',
+      ]);
+      expect(session.selection, collapsedTextSelection('p1', 2, 3));
+      expect(session.canUndo, isTrue);
+
+      expect(session.undo(), isTrue);
+      expect(session.document.blocks.map((block) => block.id), [
+        'p1',
+        'p2',
+        'p3',
+      ]);
+      expect(session.selection, collapsedTextSelection('p1', 0, 0));
+
+      expect(session.redo(), isTrue);
+      expect(session.document.blocks.map((block) => block.id), [
+        'p2',
+        'p3',
+        'p1',
+      ]);
+      expect(session.selection, collapsedTextSelection('p1', 2, 3));
+    });
+
+    test('preserves object metadata and retargets comments and revisions', () {
+      final createdAt = DateTime.utc(2026, 6, 25);
+      final session = DocumentSession(
+        document: RichTextDocument(
+          version: 7,
+          blocks: const <BlockNode>[
+            FileBlockNode(
+              id: 'f1',
+              assetId: 'asset-1',
+              name: 'doc.pdf',
+              size: 2048,
+              mimeType: 'application/pdf',
+              downloadUrl: 'https://cdn.example.com/doc.pdf',
+              uploadStatus: FileUploadStatus.failed,
+              uploadError: 'network timeout',
+            ),
+            TextBlockNode(
+              id: 'p1',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'after')],
+            ),
+          ],
+          comments: <CommentThread>[
+            CommentThread(
+              id: 'comment-1',
+              anchor: CommentAnchor(
+                blockId: 'f1',
+                blockIndex: 0,
+                path: PositionPath.blockObject('f1'),
+                startOffset: 0,
+                endOffset: 1,
+              ),
+              messages: <CommentEntry>[
+                CommentEntry(
+                  id: 'message-1',
+                  authorName: 'A',
+                  text: 'check file',
+                  createdAt: createdAt,
+                ),
+              ],
+              createdAt: createdAt,
+            ),
+          ],
+          revisions: <RevisionChange>[
+            RevisionChange(
+              id: 'rev-1',
+              type: RevisionChangeType.insert,
+              range: RevisionRange(
+                blockId: 'f1',
+                blockIndex: 0,
+                path: PositionPath.blockObject('f1'),
+                startOffset: 0,
+                endOffset: 1,
+              ),
+              createdAt: createdAt,
+              metadata: <String, Object?>{'source': 'test'},
+            ),
+          ],
+        ),
+      );
+      final executor = CommandExecutor(session);
+
+      executor.execute(const MoveBlockCommand(fromIndex: 0, toIndex: 1));
+
+      expect(session.document.version, 7);
+      expect(session.document.blocks.map((block) => block.id), ['p1', 'f1']);
+      final file = session.document.blocks[1] as FileBlockNode;
+      expect(file.assetId, 'asset-1');
+      expect(file.name, 'doc.pdf');
+      expect(file.size, 2048);
+      expect(file.mimeType, 'application/pdf');
+      expect(file.effectiveDownloadUrl, 'https://cdn.example.com/doc.pdf');
+      expect(file.uploadStatus, FileUploadStatus.failed);
+      expect(file.uploadError, 'network timeout');
+      expect(session.document.comments.single.anchor.blockIndex, 1);
+      expect(session.document.revisions.single.range.blockIndex, 1);
+      expect(session.document.revisions.single.metadata, {'source': 'test'});
+      expect(
+          session.selection,
+          DocumentSelection(
+            base: DocumentPosition.object(blockId: 'f1', blockIndex: 1),
+            extent: DocumentPosition.object(blockId: 'f1', blockIndex: 1)
+                .copyWith(offset: 1),
+          ));
+    });
+
+    test('moves heterogeneous top-level blocks and selects moved table cell',
+        () {
+      final session = DocumentSession(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'heading',
+              type: BlockType.heading,
+              attributes: BlockAttributes(level: 2),
+              content: <InlineNode>[TextRun(text: 'Heading')],
+            ),
+            TextBlockNode(
+              id: 'todo',
+              type: BlockType.listItem,
+              attributes: BlockAttributes(listType: 'task', checked: true),
+              content: <InlineNode>[TextRun(text: 'Todo')],
+            ),
+            TextBlockNode(
+              id: 'quote',
+              type: BlockType.quote,
+              content: <InlineNode>[TextRun(text: 'Quote')],
+            ),
+            CalloutBlockNode(
+              id: 'callout',
+              variant: CalloutBlockNode.warningVariant,
+              title: 'Watch',
+              icon: '!',
+              content: <InlineNode>[TextRun(text: 'Risk')],
+            ),
+            TableBlockNode(
+              id: 'table',
+              table: TableModel(
+                rows: <List<TableCellNode>>[
+                  <TableCellNode>[
+                    TableCellNode(
+                      id: 'cell-a',
+                      blocks: <BlockNode>[
+                        TextBlockNode(
+                          id: 'cell-a-p',
+                          type: BlockType.paragraph,
+                          content: <InlineNode>[TextRun(text: 'Cell A')],
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            FileBlockNode(id: 'file', assetId: 'asset', name: 'brief.pdf'),
+          ],
+        ),
+      );
+      final executor = CommandExecutor(session);
+
+      final change = executor.execute(
+        const MoveBlockCommand(fromIndex: 4, toIndex: 1),
+      );
+
+      expect(change.description, 'moveBlock');
+      expect(session.document.blocks.map((block) => block.id), [
+        'heading',
+        'table',
+        'todo',
+        'quote',
+        'callout',
+        'file',
+      ]);
+      final todo = session.document.blocks[2] as TextBlockNode;
+      expect(todo.attributes.checked, isTrue);
+      final callout = session.document.blocks[4] as CalloutBlockNode;
+      expect(callout.variant, CalloutBlockNode.warningVariant);
+      expect(callout.title, 'Watch');
+      expect((callout.content.single as TextRun).text, 'Risk');
+      final table = session.document.blocks[1] as TableBlockNode;
+      expect(table.table.rows.single.single.blocks.single.id, 'cell-a-p');
+
+      final tablePosition = DocumentPosition.tableCell(
+        tableBlockId: 'table',
+        blockIndex: 1,
+        tableRowIndex: 0,
+        tableColumnIndex: 0,
+        offset: 0,
+      );
+      expect(
+        session.selection,
+        DocumentSelection(base: tablePosition, extent: tablePosition),
+      );
+      expect(session.canUndo, isTrue);
+    });
+
+    test('does not record history for out-of-range or same-index moves', () {
+      final session = DocumentSession(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(id: 'p1', type: BlockType.paragraph),
+            TextBlockNode(id: 'p2', type: BlockType.paragraph),
+          ],
+        ),
+      );
+      final executor = CommandExecutor(session);
+
+      final sameIndex = executor.execute(
+        const MoveBlockCommand(fromIndex: 1, toIndex: 1),
+      );
+      final outOfRange = executor.execute(
+        const MoveBlockCommand(fromIndex: 0, toIndex: 2),
+      );
+
+      expect(sameIndex.isNoop, isTrue);
+      expect(outOfRange.isNoop, isTrue);
+      expect(session.document.blocks.map((block) => block.id), ['p1', 'p2']);
+      expect(session.canUndo, isFalse);
+    });
+  });
+
   group('SetCodeLanguageCommand', () {
     test('updates the language of the code block at the caret', () {
       final session = DocumentSession(

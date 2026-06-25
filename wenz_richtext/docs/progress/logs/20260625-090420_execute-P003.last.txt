@@ -1,0 +1,14 @@
+**完成情况**
+- 已为可编辑顶层 block 增加左侧菜单/拖拽入口外层 chrome，不侵入自定义 renderer：`lib/src/widgets/wenz_rich_text_editor.dart:3206`
+- 新增 handle hover/focus/menu active 状态、选区排除区域注册、边界上移/下移禁用：`lib/src/widgets/wenz_rich_text_editor.dart:3266`
+- 菜单支持复制块内容、复制块引用、创建块副本、上移、下移、删除：`lib/src/widgets/wenz_rich_text_editor.dart:3395`
+- 扩展通用块动作 `copyContent` 并复用现有动作分发：`lib/src/widgets/block_renderer_registry.dart:68`、`lib/src/widgets/wenz_rich_text_editor.dart:1253`
+- 补充 widget 覆盖 handle 渲染、菜单打开、hover、只读隐藏、自定义 renderer 兼容：`test/widgets/wenz_rich_text_editor_test.dart:1214`
+- 补充 handle 视觉规格基线断言：`test/widgets/editor_golden_test.dart:63`
+
+**验证**
+- `flutter test test/widgets/wenz_rich_text_editor_test.dart --plain-name "block drag handles"` 通过
+- `flutter test test/widgets/editor_golden_test.dart --plain-name "design baseline maps default renderer coverage and tokens"` 通过
+- `dart analyze lib/src/widgets/wenz_rich_text_editor.dart lib/src/widgets/block_renderer_registry.dart test/widgets/wenz_rich_text_editor_test.dart test/widgets/editor_golden_test.dart` 通过
+
+未修改 plan 文件，未勾选 checkbox，未运行全量测试。

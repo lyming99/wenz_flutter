@@ -180,19 +180,19 @@ class _TestToolbar extends StatelessWidget {
           spacing: 6,
           children: <Widget>[
             IconButton.filledTonal(
-              tooltip: 'Bold',
+              tooltip: '加粗',
               onPressed: () =>
                   controller.formatText(const TextAttributes(bold: true)),
               icon: const Icon(Icons.format_bold),
             ),
             IconButton.filledTonal(
-              tooltip: 'Italic',
+              tooltip: '斜体',
               onPressed: () =>
                   controller.formatText(const TextAttributes(italic: true)),
               icon: const Icon(Icons.format_italic),
             ),
             IconButton(
-              tooltip: 'Heading',
+              tooltip: '标题',
               onPressed: () => controller.setBlockType(
                 type: BlockType.heading,
                 level: 1,
@@ -200,13 +200,13 @@ class _TestToolbar extends StatelessWidget {
               icon: const Icon(Icons.title),
             ),
             IconButton(
-              tooltip: 'Paragraph',
+              tooltip: '段落',
               onPressed: () =>
                   controller.setBlockType(type: BlockType.paragraph),
               icon: const Icon(Icons.notes),
             ),
             IconButton(
-              tooltip: 'Insert table',
+              tooltip: '插入表格',
               onPressed: () => controller.insertTable(
                 index: controller.document.blocks.length,
                 tableId: 'table-1',

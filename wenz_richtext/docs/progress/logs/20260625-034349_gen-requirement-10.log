@@ -1,0 +1,682 @@
+OpenAI Codex v0.121.0 (research preview)
+--------
+workdir: D:\project\GitHub\wenz_flutter\wenz_richtext
+model: gpt-5.5
+provider: custom
+approval: never
+sandbox: danger-full-access
+reasoning effort: xhigh
+reasoning summaries: none
+session id: 019efb29-04b6-7e51-be01-f1fcd2bd4e7f
+--------
+user
+你是需求整理与开发计划生成者。
+请根据以下需求，生成一个开发计划和验收标准。
+
+输出文件：D:\project\GitHub\wenz_flutter\wenz_richtext\docs\plan\plan_requirement_10_20260625-034349.md
+
+格式要求：
+- 每个任务必须严格使用固定格式：- [ ] P001: 任务标题 <!-- scope: lib/foo.dart,test/foo_test.dart -->
+- scope 必填，表示该任务预计修改的文件或模块；多个 scope 用英文逗号分隔；无法判断时写 <!-- scope: unknown -->，unknown 任务不会并发执行
+- 每个任务要有验收要点
+- 必须包含总体验收标准和进度区
+- 只写 plan 文件，不要改业务代码
+
+需求 #10 内容：
+增加大纲折叠功能，如果行内容是大纲标题，则支持折叠内容；
+codex
+我会先看下项目结构和现有计划文档格式，再只写入指定的 plan 文件。
+exec
+powershell.exe -Command 'Get-ChildItem -Force; Get-ChildItem -Recurse -Filter AGENTS.md | Select-Object -ExpandProperty FullName' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 270ms:
+
+
+    目录: D:\project\GitHub\wenz_flutter\wenz_richtext
+
+
+Mode                 LastWriteTime         Length Name                                                                 
+----                 -------------         ------ ----                                                                 
+d-----         2026/6/25      3:43                .codegraph                                                           
+d-----         2026/6/24     15:10                .dart_appdata                                                        
+d-----         2026/6/24     15:10                .dart_localappdata                                                   
+d-----         2026/6/24     16:11                .dart_tool                                                           
+d-----         2026/6/24     16:13                .dart_tool_appdata                                                   
+d-----         2026/6/24     16:06                .dart_tool_localappdata                                              
+d-----         2026/6/20      0:26                .idea                                                                
+d-----         2026/6/25      2:25                build                                                                
+d-----         2026/6/19     17:02                doc                                                                  
+d-----         2026/6/24     18:05                docs                                                                 
+d-----         2026/6/22     14:56                example                                                              
+d-----         2026/6/22     17:09                lib                                                                  
+d-----         2026/6/24      3:35                scripts                                                              
+d-----         2026/6/25      3:33                test                                                                 
+d-----         2026/6/24     18:04                tool                                                                 
+d-----         2026/6/25      2:40                ui                                                                   
+-a----         2026/6/19     14:04             87 .gitignore                                                           
+-a----         2026/6/24     16:16             94 analysis_options.yaml                                                
+-a----         2026/6/24     14:38            726 CHANGELOG.md                                                         
+-a----         2026/6/25      2:56            157 nul                                                                  
+-a----         2026/6/25      2:18          10389 pubspec.lock                                                         
+-a----         2026/6/25      2:18            382 pubspec.yaml                                                         
+-a----         2026/6/24     14:38           3227 README.md                                                            
+
+
+
+codex
+已确认只需新增文档；现在梳理相关模块和历史计划格式。
+mcp: codegraph/codegraph_explore started
+mcp: codegraph/codegraph_explore (completed)
+**Evaluating file usefulness**
+
+It seems like Codegraph isn't really providing what I need due to its limitations. I need to take a closer look at the file list to determine what’s actually useful. Taking that extra step could clarify what files might be worth exploring further. Let’s see if breaking it down that way can illuminate some options for me! I hope this gives me a better perspective on what to work with.
+codex
+模块线索有点泛；我会读取文件清单和现有需求计划模板。
+exec
+powershell.exe -Command "Write-Host '--- docs/plan ---'; if (Test-Path docs/plan) { Get-ChildItem docs/plan | Sort-Object Name | Select-Object -ExpandProperty Name }; Write-Host '--- lib files ---'; rg --files lib; Write-Host '--- test files ---'; rg --files test" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 247ms:
+--- docs/plan ---
+plan_feedback_1_20260624-220759.md
+plan_feedback_2_20260625-004108.md
+plan_feedback_3_20260625-014905.md
+plan_feedback_4_20260625-024854.md
+plan_requirement_2_20260625-023728.md
+plan_requirement_3_20260625-025750.md
+plan_requirement_9_20260625-033413.md
+ui_plan_20260624-213431_2.md
+--- lib files ---
+lib\wenz_richtext.dart
+lib\src\widgets\wenz_rich_text_editor.dart
+lib\src\widgets\slash_menu_overlay.dart
+lib\src\widgets\shared_text_layout_cache.dart
+lib\src\widgets\selection_gesture_overlay.dart
+lib\src\widgets\media_resolver.dart
+lib\src\widgets\link_edit_dialog.dart
+lib\src\widgets\inline_embed_renderer.dart
+lib\src\widgets\find_replace_panel.dart
+lib\src\widgets\comment_sidebar.dart
+lib\src\widgets\block_renderer_registry.dart
+lib\src\widgets\block_geometry_registry.dart
+lib\src\rendering\text_layout_service.dart
+lib\src\plugins\editor_plugin.dart
+lib\src\input\shortcut_manager.dart
+lib\src\input\editor_text_input_client.dart
+lib\src\input\composition_state.dart
+lib\src\input\clipboard_service.dart
+lib\src\history\history_manager.dart
+lib\src\exporters\document_conversion_plan.dart
+lib\src\core\transaction\document_session.dart
+lib\src\core\transaction\change_set.dart
+lib\src\core\schema\document_schema.dart
+lib\src\core\position\document_position.dart
+lib\src\codecs\document_version_snapshot_codec.dart
+lib\src\codecs\document_migration.dart
+lib\src\codecs\document_errors.dart
+lib\src\codecs\legacy_wen_json_codec.dart
+lib\src\codecs\html_codec.dart
+lib\src\codecs\markdown_codec.dart
+lib\src\codecs\plain_text_codec.dart
+lib\src\collaboration\collaboration_adapter.dart
+lib\src\core\commands\block_commands.dart
+lib\src\core\model\block_node.dart
+lib\src\core\model\attributes.dart
+lib\src\codecs\rich_text_json_codec.dart
+lib\src\core\model\comment_model.dart
+lib\src\core\commands\block_structure_commands.dart
+lib\src\controller\find_replace_controller.dart
+lib\src\controller\document_stats_controller.dart
+lib\src\controller\autosave_controller.dart
+lib\src\controller\outline_controller.dart
+lib\src\core\commands\command_executor.dart
+lib\src\controller\slash_menu_controller.dart
+lib\src\core\model\revision_model.dart
+lib\src\core\model\inline_node.dart
+lib\src\core\model\document_version_snapshot.dart
+lib\src\controller\toolbar_controller.dart
+lib\src\core\model\rich_text_document.dart
+lib\src\core\model\table_model.dart
+lib\src\core\commands\command_registry.dart
+lib\src\core\commands\inline_commands.dart
+lib\src\core\commands\editor_command.dart
+lib\src\core\commands\inline_editing.dart
+lib\src\controller\wenz_rich_text_controller.dart
+lib\src\core\commands\style_commands.dart
+lib\src\core\commands\selection_commands.dart
+lib\src\core\commands\revision_commands.dart
+lib\src\core\commands\markdown_shortcut_commands.dart
+lib\src\core\commands\table_commands.dart
+lib\src\core\commands\table_cell_editing.dart
+lib\src\core\commands\text_commands.dart
+--- test files ---
+test\fixtures\legacy_table.json
+test\input\shortcut_manager_test.dart
+test\fixtures\legacy_code_image_formula.json
+test\fixtures\legacy_basic.json
+test\input\editor_text_input_client_test.dart
+test\input\clipboard_service_test.dart
+test\benchmarks\editor_benchmarks.dart
+test\plugins\editor_plugin_test.dart
+test\exporters\document_conversion_plan_test.dart
+test\codecs\document_errors_test.dart
+test\codecs\html_codec_test.dart
+test\codecs\markdown_codec_test.dart
+test\codecs\document_migration_test.dart
+test\codecs\legacy_wen_json_codec_test.dart
+test\codecs\plain_text_codec_test.dart
+test\codecs\rich_text_json_codec_test.dart
+test\widgets\block_geometry_registry_test.dart
+test\collaboration\collaboration_adapter_test.dart
+test\widgets\find_replace_panel_test.dart
+test\widgets\editor_golden_test.dart
+test\widgets\comment_sidebar_test.dart
+test\widgets\import_export_demo_test.dart
+test\widgets\wenz_rich_text_editor_test.dart
+test\widgets\slash_menu_overlay_test.dart
+test\widgets\shared_text_layout_cache_test.dart
+test\widgets\media_resolver_test.dart
+test\widgets\link_edit_dialog_test.dart
+test\core\command_merging_test.dart
+test\core\block_structure_commands_test.dart
+test\core\block_commands_test.dart
+test\core\comment_model_test.dart
+test\helpers\selection_test_helpers.dart
+test\core\command_pipeline_test.dart
+test\core\controller_test.dart
+test\core\document_position_test.dart
+test\widgets\goldens\editor_selection.png
+test\widgets\goldens\editor_merged_table.png
+test\widgets\goldens\editor_caret.png
+test\widgets\goldens\editor_blocks.png
+test\widgets\goldens\editor_advanced_blocks.png
+test\core\text_commands_test.dart
+test\core\model_test.dart
+test\core\table_commands_test.dart
+test\core\markdown_shortcut_commands_test.dart
+test\core\style_commands_test.dart
+test\core\inline_commands_test.dart
+test\core\selection_commands_test.dart
+test\core\history_manager_test.dart
+test\core\document_version_snapshot_test.dart
+test\core\revision_model_test.dart
+test\core\document_schema_test.dart
+test\controller\document_stats_controller_test.dart
+test\controller\controller_try_load_test.dart
+test\controller\controller_callbacks_test.dart
+test\controller\callout_controller_test.dart
+test\controller\block_embed_controller_test.dart
+test\controller\autosave_controller_test.dart
+test\controller\image_block_controller_test.dart
+test\controller\outline_controller_test.dart
+test\controller\find_replace_controller_test.dart
+test\controller\slash_menu_controller_test.dart
+test\controller\file_block_controller_test.dart
+test\controller\toolbar_controller_test.dart
+
+**Inspecting existing plans**
+
+I need to take some time to thoroughly inspect the existing plan. It’s important to make sure everything is aligned with our goals and objectives. I’ll be looking for any areas that could use improvement or adjustment, while also considering how it all fits together. My goal is to ensure that the plan is effective and meets our needs. Alright, let’s dive in and see what we have!
+codex
+找到 outline/controller 与 editor 渲染相关文件；现在对齐既有 plan 写法。
+exec
+powershell.exe -Command 'Get-Content -Raw docs/plan/plan_requirement_9_20260625-033413.md; Write-Host "`n--- req3 ---"; Get-Content -Raw docs/plan/plan_requirement_3_20260625-025750.md' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 204ms:
+# 需求开发计划：Block 左侧拖拽调节行位置
+
+## 来源
+- 类型：需求
+- 编号：9
+- 生成时间：2026-06-25 03:34:13
+
+## 原始内容
+增加block拖拽调节行功能，在block左侧增加拖拽按钮，这个按钮支持打开菜单，如果是拖拽，则调节block行位置
+
+## 需求理解
+- 在每个顶层 block 左侧增加统一的拖拽按钮/把手，作为 block 行级操作入口。
+- 按钮点击或轻触时打开 block 操作菜单；拖拽时不打开菜单，而是根据拖拽落点调整 block 在文档中的行位置。
+- 拖拽调节应覆盖普通文本块、标题、列表、引用、代码、callout、表格和对象块等顶层 block，并避免影响行内编辑、选区拖拽、表格列宽拖拽、图片尺寸调节等已有交互。
+- 行位置调整应进入编辑器命令/历史体系，保证选区、撤销/重做、只读模式和自定义 block renderer 扩展点行为一致。
+
+## 任务计划
+- [x] P001: 明确 block 拖拽把手交互边界 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/block_renderer_registry.dart,docs/selection_engine.md -->
+  - 验收要点：明确把手展示位置、尺寸、hover/focus 状态、点击打开菜单与拖拽排序的触发阈值，形成实现侧可落地的交互约定。
+  - 验收要点：确认把手只作用于顶层 block，不把表格单元格内部块、行内 embed 或对象块内部控件误识别为可排序行。
+  - 验收要点：确认只读模式、无编辑权限、移动到首尾边界、空文档和单 block 文档的禁用/无操作规则。
+
+- [ ] P002: 抽象 block 行移动命令与控制器接口 <!-- scope: lib/src/core/commands/block_structure_commands.dart,lib/src/controller/wenz_rich_text_controller.dart,lib/src/widgets/wenz_rich_text_editor.dart,test/core/block_structure_commands_test.dart,test/core/controller_test.dart -->
+  - 验收要点：提供按 `fromIndex` 与 `toIndex` 移动顶层 block 的统一能力，支持向上、向下和跨多行移动，越界或同位置移动为无历史记录的 no-op。
+  - 验收要点：移动后保留 block id、属性、内容、评论/修订相关数据和对象块元数据，目标 block 被选中或光标落点符合交互约定。
+  - 验收要点：移动操作进入历史栈，撤销/重做后文档顺序、选区和回调通知保持一致；现有对象块工具栏的上移/下移改为复用同一能力。
+
+- [ ] P003: 渲染左侧 block 拖拽按钮与菜单入口 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/block_renderer_registry.dart,test/widgets/wenz_rich_text_editor_test.dart,test/widgets/editor_golden_test.dart -->
+  - 验收要点：每个可编辑顶层 block 左侧都有稳定对齐的拖拽把手，文本块、代码块、callout、表格、图片、视频、文件和分割线等视觉上不被挤压或遮挡。
+  - 验收要点：点击把手可打开菜单，菜单至少提供复制/复制引用、复制块、上移、下移、删除等与当前 block 能力匹配的操作。
+  - 验收要点：把手命中区域注册为选区排除区域，点击、hover、长按和焦点状态不会触发文本选区、IME 输入或 block 内容编辑。
+
+- [ ] P004: 区分点击菜单与拖拽排序手势 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/block_geometry_registry.dart,lib/src/widgets/selection_gesture_overlay.dart,test/widgets/wenz_rich_text_editor_test.dart,test/widgets/block_geometry_registry_test.dart -->
+  - 验收要点：短点击/键盘激活只打开菜单，超过拖拽阈值后进入排序模式；进入排序模式后不会再弹出菜单。
+  - 验收要点：鼠标、触控板和触屏长按/拖拽均可稳定识别，拖拽把手不干扰现有跨 block 选区拖拽、双击/三击选词选段和自动滚动选区。
+  - 验收要点：拖拽开始、移动、取消和结束状态可恢复，异常取消后不残留高亮、遮罩、菜单或错误选区。
+
+- [ ] P005: 实现拖拽落点指示与 block 重排提交 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/block_geometry_registry.dart,test/widgets/wenz_rich_text_editor_test.dart,test/widgets/editor_golden_test.dart -->
+  - 验收要点：拖拽过程中显示清晰的插入位置指示线，落点可区分插入到目标 block 前/后，并在首尾、滚动容器边缘和可视区域外夹取到合法位置。
+  - 验收要点：释放后按落点完成文档 block 顺序调整，拖到原位置不产生变更，跨多行移动时目标索引计算正确且无 off-by-one 问题。
+  - 验收要点：靠近编辑器上下边缘拖拽时可自动滚动，长文档中能把 block 拖到当前视口外的合法位置。
+
+- [ ] P006: 完善 block 菜单动作与对象块兼容 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/block_renderer_registry.dart,lib/src/controller/wenz_rich_text_controller.dart,test/widgets/wenz_rich_text_editor_test.dart -->
+  - 验收要点：菜单动作复用统一 block action/command 链路，普通文本块和对象块均可执行可用动作，首行禁用上移、末行禁用下移。
+  - 验收要点：现有对象块内置工具栏、图片尺寸菜单、文件上传状态菜单和复制引用功能不回归，不与左侧把手菜单产生重复触发或状态不同步。
+  - 验收要点：自定义 block renderer 仍可通过既有 `BlockRenderContext` 与对象块 action 扩展点接入，不要求业务方重写渲染器才能获得默认拖拽能力。
+
+- [ ] P007: 完成回归测试与使用文档更新 <!-- scope: test/widgets/wenz_rich_text_editor_test.dart,test/widgets/editor_golden_test.dart,test/core/block_structure_commands_test.dart,docs/selection_engine.md,README.md -->
+  - 验收要点：新增或更新 widget 测试覆盖点击打开菜单、拖拽排序、取消拖拽、首尾边界、只读模式、撤销/重做和长文档自动滚动。
+  - 验收要点：新增或更新 golden 覆盖左侧把手、拖拽落点指示和菜单入口在常见 block 组合下的视觉表现。
+  - 验收要点：执行 `flutter analyze`、定向测试和 `flutter test` 通过；如存在环境限制或非本需求引入失败，需要记录失败原因和复现命令。
+
+## 总体验收标准
+- 计划中的所有 checkbox 任务完成，且每个任务的验收要点均有对应实现或验证记录。
+- 编辑器顶层 block 左侧出现统一拖拽把手：点击打开菜单，拖拽调整 block 行位置，拖拽过程有明确落点指示。
+- block 重排不丢失任何 block 内容、属性、id、对象块元数据、评论/修订关联和文档版本信息。
+- block 重排行为纳入命令与历史体系，撤销/重做、选区更新、编辑回调、只读模式和权限限制表现一致。
+- 左侧把手不破坏文本输入、跨 block 选区、表格交互、图片/文件/视频对象块操作、slash 菜单、快捷键和剪贴板能力。
+- 默认实现兼容自定义 block renderer；业务方无需修改已有 renderer 即可获得外层拖拽把手与菜单入口。
+- `flutter analyze`、相关定向测试、golden 测试和 `flutter test` 均通过，或已明确记录非本需求导致的失败项。
+
+## 进度区
+- 当前状态：draft
+- 下一步：评审计划后从 P001/P002 开始执行，优先确认交互边界并抽象统一 block 行移动能力。
+- 并行建议：P001 完成后，P002 可先行实现命令层；P003/P006 可在 P002 接口稳定后并行；P004/P005 涉及同一拖拽状态机，建议串行推进；P007 最后统一回归。
+- 风险记录：左侧把手拖拽与现有跨 block 选区拖拽、表格列宽拖拽、对象块内部按钮和自动滚动逻辑存在手势冲突风险，需要通过排除区域、拖拽阈值和取消态测试重点验证。
+- P001 AutoPlan 完成：2026-06-24T19:43:47.753Z；日志：docs/progress/logs/20260625-033741_execute-P001.log
+
+
+--- req3 ---
+# 闇€姹傚紑鍙戣鍒掞細鏍规嵁璁捐绋夸紭鍖栧瘜鏂囨湰鍏冪礌鏍峰紡
+
+## 鏉ユ簮
+- 绫诲瀷锛氶渶姹?- 缂栧彿锛?
+- 鐢熸垚鏃堕棿锛?026-06-25 02:57:50
+
+## 鍘熷鍐呭
+鏍规嵁璁捐绋匡紝浼樺寲瀵屾枃鏈厓绱犳牱寮忥細ui/richtext_design.html
+
+## 闇€姹傜悊瑙?- `ui/richtext_design.html` 鏄湰娆″瘜鏂囨湰鍏冪礌榛樿瑙嗚鐨勭洰鏍囩锛岃鐩栨鏂囨帓鐗堛€佽鍐呭睘鎬с€佽鍐呭祵鍏ャ€佹爣棰樸€佸榻愮缉杩涖€佸紩鐢ㄣ€佸垪琛ㄣ€佷唬鐮佸潡銆乧allout銆佸垎鍓茬嚎銆佸浘鐗囥€佽棰戙€佹枃浠躲€佽〃鏍煎拰鍧楃骇宓屽叆銆?- 鏈鐩爣鏄紭鍖栭粯璁ゆ覆鏌撴牱寮忎笌瑙嗚涓€鑷存€э紝浼樺厛钀藉湪 `lib/src/widgets/wenz_rich_text_editor.dart` 鍙婄浉鍏虫覆鏌撴墿灞曠偣锛屼笉涓诲姩鏀瑰彉鏂囨。妯″瀷銆佸懡浠ゅ崗璁€佺紪瑙ｇ爜鏍煎紡鎴栦笟鍔¤嚜瀹氫箟 renderer 鐨勬帴鍏ユ柟寮忋€?- 寮€鍙戞椂闇€鍏堝缓绔嬭璁＄鍒?Flutter 鏍峰紡鐨勬槧灏勮〃锛屽啀鍒嗗潡钀藉湴骞堕€氳繃 widget/golden 娴嬭瘯楠岃瘉锛岄伩鍏嶄竴娆℃€уぇ鏀瑰鑷撮€夊尯銆佸厜鏍囥€佸鍒剁矘璐淬€佽〃鏍间氦浜掔瓑缂栬緫琛屼负鍥炲綊銆?
+## 浠诲姟璁″垝
+- [x] P001: 寤虹珛璁捐绋挎牱寮忔槧灏勪笌宸紓鍩虹嚎 <!-- scope: ui/richtext_design.html,lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/block_renderer_registry.dart,test/widgets/editor_golden_test.dart,docs/acceptance_manual_checklist.md -->
+  - 楠屾敹瑕佺偣锛氭彁鍙栬璁＄涓殑棰滆壊銆佸渾瑙掋€侀槾褰便€佸瓧鍙枫€佽楂樸€侀棿璺濆拰鍚勫厓绱犵姸鎬侊紝褰㈡垚瀹炵幇渚у彲澶嶇敤鐨勬牱寮忔槧灏勬竻鍗曘€?  - 楠屾敹瑕佺偣锛氬鐓у綋鍓嶉粯璁ゆ覆鏌擄紝鏄庣‘鍝簺鍏冪礌鍙渶璋冩牱寮忋€佸摢浜涘厓绱犻渶瑕佽ˉ鍏呭崰浣嶇粨鏋勬垨 golden 瑕嗙洊锛岄伩鍏嶄慨鏀规棤鍏充笟鍔￠€昏緫銆?  - 楠屾敹瑕佺偣锛氱‘璁ゆ湰闇€姹備笉鏂板 `BlockType`銆佷笉鏀?JSON/Markdown/HTML 缂栬В鐮佸崗璁€佷笉鐮村潖澶栭儴 `BlockRendererRegistry` 鍜?`InlineEmbedRenderer` 鎵╁睍鐐广€?
+- [ ] P002: 缁熶竴姝ｆ枃鍩虹嚎涓庤鍐呮枃鏈睘鎬?<!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/inline_embed_renderer.dart,test/widgets/wenz_rich_text_editor_test.dart,test/widgets/editor_golden_test.dart -->
+  - 楠屾敹瑕佺偣锛氭鏂囬粯璁よ揪鍒拌璁＄ `16px` 瀛楀彿銆佺害 `1.75` 琛岄珮銆侀灏惧潡闂磋窛鏀舵暃鍜?Material 浜壊涓婚涓嬬殑 `onSurface` 涓绘枃鏈壊銆?  - 楠屾敹瑕佺偣锛氬姞绮椼€佹枩浣撱€佷笅鍒掔嚎銆佸垹闄ょ嚎銆佷笅鍒掔嚎鍔犲垹闄ょ嚎銆侀鑹层€侀珮浜€佸瓧鍙枫€佸瓧浣撱€侀摼鎺ャ€佹壒娉ㄥ拰淇鏍囪鐨勮瑙変笌璁捐绋夸竴鑷存垨鏈夋槑纭?Flutter 绛変环瀹炵幇銆?  - 楠屾敹瑕佺偣锛氳鍐呮牱寮忎紭鍖栧悗锛屾枃鏈€夋嫨銆侀珮浜€佸厜鏍囧懡涓€佸揩鎹烽敭鏍煎紡鍒囨崲銆佸鍒剁矘璐村拰鎾ら攢/閲嶅仛琛屼负涓嶅洖褰掋€?
+- [ ] P003: 浼樺寲鏍囬灞傜骇涓庢钀藉榻愮缉杩?<!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,test/widgets/wenz_rich_text_editor_test.dart,test/widgets/editor_golden_test.dart -->
+  - 楠屾敹瑕佺偣锛氭爣棰?H1-H6 涓庤璁＄灞傜骇涓€鑷达紝H1/H2/H3/H4 鍒嗗埆浣跨敤 `24/21/18/16` 瑙嗚瀛楀彿锛孒5/H6 浣跨敤杈冨急鏉冮噸鎴栭鑹插尯鍒嗐€?  - 楠屾敹瑕佺偣锛氭爣棰樹笂涓嬮棿璺濄€佹钀?`.55em` 绫婚棿璺濄€侀灏惧潡闂磋窛鍜屾鏂囪楂樺湪杩炵画娈佃惤銆佹爣棰樺悗娈佃惤銆佺┖鏂囨。杈圭晫涓〃鐜扮ǔ瀹氥€?  - 楠屾敹瑕佺偣锛氬乏瀵归綈銆佸眳涓€佸彸瀵归綈銆佺缉杩涘拰鍒楄〃鍐呮钀戒笉鍥犳牱寮忚皟鏁撮€犳垚鏂囨湰瑁佸壀銆侀€夊尯閿欎綅鎴栨粴鍔ㄥ畾浣嶅紓甯搞€?
+- [ ] P004: 浼樺寲寮曠敤鍒楄〃涓?todo 鏍峰紡 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/block_renderer_registry.dart,test/widgets/wenz_rich_text_editor_test.dart,test/widgets/editor_golden_test.dart -->
+  - 楠屾敹瑕佺偣锛氬紩鐢ㄥ潡鍏峰涓昏壊 `4px` 宸﹁竟妗嗐€乻urface-container 鑳屾櫙銆佸彸渚у渾瑙掋€佹枩浣撳拰寮卞寲鏂囨湰鑹诧紝涓旈€夊尯楂樹寒涓嶈鑳屾櫙閬洊銆?  - 楠屾敹瑕佺偣锛氭湁搴忓垪琛ㄣ€佹棤搴忓垪琛ㄣ€佸祵濂楀垪琛ㄧ殑缂╄繘銆侀」鐩鍙?缂栧彿銆佸潡闂磋窛鍜屽琛屾崲琛岀缉杩涚鍚堣璁＄ `26px` 宸︾缉杩涗笌绱у噾宓屽鑺傚銆?  - 楠屾敹瑕佺偣锛歵odo checkbox 涓庢枃瀛楅琛屽榻愶紝瀹屾垚鎬佷娇鐢ㄥ急鍖栨枃鏈壊鍜屽垹闄ょ嚎锛岀偣鍑?checkbox銆佹枃鏈紪杈戙€佸垪琛ㄥ崌闄嶇骇鍜屾櫘閫氬垪琛ㄦ覆鏌撳潎涓嶅洖褰掋€?
+- [ ] P005: 浼樺寲浠ｇ爜鍧楀垎鍓茬嚎涓?callout <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/block_renderer_registry.dart,test/widgets/wenz_rich_text_editor_test.dart,test/widgets/editor_golden_test.dart -->
+  - 楠屾敹瑕佺偣锛氫唬鐮佸潡浣跨敤娣辫壊鑳屾櫙銆佺瓑瀹藉瓧浣撱€乣13.5px` 绛変环瀛楀彿銆佺害 `1.6` 琛岄珮銆乣18x20` 鍐呰竟璺濄€佸渾瑙掑拰璇█鏍囩灞曠ず锛岄暱浠ｇ爜妯悜婊氬姩涓嶈鍓€?  - 楠屾敹瑕佺偣锛氬垎鍓茬嚎浣跨敤娴呰壊缁嗙嚎銆佺害 `1.6em` 涓婁笅闂磋窛鍜屽眳涓富鑹插渾鐐癸紝浣滀负瀵硅薄鍧楅€変腑鏃惰竟鐣屽拰蹇嵎鎿嶄綔浠嶆竻鏅板彲瑙併€?  - 楠屾敹瑕佺偣锛歝allout 鐨?info/success/warning/danger 鍥涚鍙樹綋鍏峰瀵瑰簲鑳屾櫙銆佽竟妗嗐€佸浘鏍囥€佹爣棰樻潈閲嶅拰姝ｆ枃棰滆壊锛岀┖鏍囬鎴栫┖鍐呭鏃舵湁瀹夊叏鍏滃簳銆?
+- [ ] P006: 浼樺寲鍥剧墖瑙嗛鏂囦欢涓庡潡绾у祵鍏?<!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/media_resolver.dart,lib/src/widgets/block_renderer_registry.dart,test/widgets/media_resolver_test.dart,test/widgets/editor_golden_test.dart -->
+  - 楠屾敹瑕佺偣锛氬浘鐗囧潡浠?figure 璇箟鍛堢幇瑙嗚鏁堟灉锛屾敮鎸佸眳涓€佹渶澶у搴︺€佽嚜瀹氫箟鏄剧ず灏哄銆佸渾瑙掋€侀槾褰卞拰 `13px` 寮卞寲 caption銆?  - 楠屾敹瑕佺偣锛氳棰戦粯璁ゅ崰浣嶄笌璁捐绋夸竴鑷达紝鍏峰榛戣壊棰勮瀹瑰櫒銆佸渾瑙掗槾褰便€佸眳涓挱鏀炬寜閽拰灏侀潰/鏍囬鍏滃簳锛屽悓鏃剁户缁厑璁?`MediaResolver` 鎺ョ鐪熷疄鎾斁鍣ㄣ€?  - 楠屾敹瑕佺偣锛氭枃浠跺潡浣跨敤鍗＄墖寮忓竷灞€銆乣40x40` 绫诲瀷鍥炬爣銆佹枃浠跺悕/鍏冧俊鎭?澶у皬鍒嗗尯銆乭over/focus 杈规鍙嶉鍜屼笂浼犵姸鎬佹枃妗堬紝涓嶅奖鍝嶅璞″潡閫夋嫨涓庡揩鎹锋搷浣溿€?  - 楠屾敹瑕佺偣锛氶€氱敤鍧楃骇 embed 浣跨敤铏氱嚎杈规銆佹祬鑹茶儗鏅€乧hip 鏍囩鍜?fallbackText 鍏滃簳锛涘叕寮忕被 block embed 浣跨敤鏁板瀛椾綋銆佹祬绱儗鏅拰鏇村ぇ瀛楀彿銆?
+- [ ] P007: 浼樺寲琛ㄦ牸瑙嗚涓庡崟鍏冩牸鏍峰紡 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,test/widgets/wenz_rich_text_editor_test.dart,test/widgets/editor_golden_test.dart -->
+  - 楠屾敹瑕佺偣锛氳〃鏍兼暣浣撳叿澶囧叏瀹藉竷灞€銆佸渾瑙掋€侀槾褰便€佹祬鑹茶竟妗嗐€乣15px` 绛変环瀛椾綋銆乣10x14` 鍗曞厓鏍煎唴杈硅窛鍜岃〃澶村急鑳屾櫙銆?  - 楠屾敹瑕佺偣锛氬垪瀹姐€佸垪瀵归綈銆佸悎骞跺崟鍏冩牸銆佽〃澶村崟鍏冩牸銆佸崟鍏冩牸鑳屾櫙鑹插拰鍋舵暟琛屽簳鑹蹭笌褰撳墠琛ㄦ牸妯″瀷鑳藉姏鍏煎锛岃瑙変笂鎺ヨ繎璁捐绋裤€?  - 楠屾敹瑕佺偣锛氳〃鏍奸€夊尯銆佹嫋鎷藉垪瀹姐€佹诞鍔ㄥ伐鍏锋爮銆佹彃鍏?鍒犻櫎琛屽垪銆佸悎骞?鎷嗗垎鍗曞厓鏍煎拰鍗曞厓鏍兼枃鏈紪杈戝湪鏍峰紡璋冩暣鍚庝笉鍥炲綊銆?
+- [ ] P008: 琛ュ厖瑙嗚鍥炲綊涓庨獙鏀惰褰?<!-- scope: test/widgets/editor_golden_test.dart,test/widgets/wenz_rich_text_editor_test.dart,test/widgets/goldens/editor_advanced_blocks.png,docs/acceptance_manual_checklist.md,docs/plan/plan_requirement_3_20260625-025750.md -->
+  - 楠屾敹瑕佺偣锛氭柊澧炴垨鏇存柊瑕嗙洊缁煎悎鎺掔増鐨?golden锛屽寘鎷鍐呭睘鎬с€佹爣棰樸€佸紩鐢ㄣ€佸垪琛ㄣ€佷唬鐮併€乧allout銆乨ivider銆佸浘鐗囥€佽棰戙€佹枃浠躲€佽〃鏍煎拰 block embed銆?  - 楠屾敹瑕佺偣锛氳ˉ鍏呭繀瑕?widget 娴嬭瘯锛岄獙璇佸叧閿牱寮忎笉浼氱牬鍧忛€夊尯鍛戒腑銆佸璞″潡閫夋嫨銆丮ediaResolver fallback銆佽〃鏍兼搷浣滃拰 todo 浜や簰銆?  - 楠屾敹瑕佺偣锛氭墽琛?`flutter analyze`銆佺浉鍏?widget/golden 娴嬭瘯鍜屽繀瑕佸叏閲忔祴璇曪紱鑻ュ瓨鍦ㄦ棦鏈夊け璐ワ紝闇€鍦ㄨ繘搴﹀尯璁板綍澶辫触鍛戒护銆佸師鍥犲垽鏂拰鍚庣画寤鸿銆?
+## 鎬讳綋楠屾敹鏍囧噯
+- 鎵€鏈変换鍔?checkbox 鍧囧畬鎴愶紝涓旀瘡涓换鍔＄殑楠屾敹瑕佺偣閮芥湁鏄庣‘缁撹鎴栭獙鏀惰褰曘€?- 榛樿缂栬緫鍣ㄦ覆鏌撳湪浜壊涓婚涓嬩笌 `ui/richtext_design.html` 鐨勫厓绱犳牱寮忓熀鏈竴鑷达紝瑕嗙洊琛屽唴灞炴€с€佽鍐呭祵鍏ャ€佹爣棰樸€佹钀姐€佸紩鐢ㄣ€佸垪琛ㄣ€佷唬鐮併€乧allout銆佸垎鍓茬嚎銆佸浘鐗囥€佽棰戙€佹枃浠躲€佽〃鏍煎拰鍧楃骇宓屽叆銆?- 鏍峰紡浼樺寲涓嶆敼鍙樻枃妗ｆā鍨嬨€佸懡浠ゅ崗璁€佸鍏ュ鍑烘暟鎹粨鏋勩€佹彃浠舵敞鍐屾柟寮忓拰涓氬姟鑷畾涔?renderer 鎺ュ叆鏂瑰紡銆?- 鏂囨湰缂栬緫銆侀€夊尯楂樹寒銆佸厜鏍囧懡涓€佸鍒剁矘璐淬€佹挙閿€/閲嶅仛銆佸璞″潡閫夋嫨銆乼odo 鍒囨崲銆佸獟浣?fallback 鍜岃〃鏍肩紪杈戣兘鍔涗笉鍥炲綊銆?- 鐩稿叧鑷姩鍖栨祴璇曘€乬olden 娴嬭瘯銆侀潤鎬佹鏌ュ拰蹇呰鎵嬪伐楠屾敹閫氳繃锛涗笉鑳介€氳繃鏃堕渶鍖哄垎鏈寮曞叆闂涓庢棦鏈夐棶棰橈紝骞舵彁渚涘彲澶嶇幇璁板綍銆?- 瑙嗚宸紓鑻ュ洜 Flutter/Material 缁勪欢闄愬埗鏃犳硶瀹屽叏杩樺師锛岄渶鍦ㄨ繘搴﹀尯璁板綍璁捐宸紓銆佹浛浠ｆ柟妗堝拰鍚庣画鏄惁闇€瑕佽璁＄‘璁ゃ€?
+## 杩涘害鍖?- 褰撳墠鐘舵€侊細璁″垝宸插垱寤猴紝P001-P008 寰呭紑鍙戞墽琛屻€?- 褰撳墠璐熻矗浜猴細寰呭垎閰嶃€?- 涓嬩竴姝ワ細浠?P001 寮€濮嬪缓绔嬭璁＄鏍峰紡鏄犲皠涓庡綋鍓嶆覆鏌撳樊寮傚熀绾裤€?- 楠岃瘉璁板綍锛氭湰娆′粎鐢熸垚璁″垝鏂囦欢锛屾湭淇敼涓氬姟浠ｇ爜锛屾湭鎵ц鑷姩鍖栨祴璇曟垨鎵嬪伐楠屾敹銆?- 椋庨櫓璁板綍锛氶粯璁ゆ覆鏌撻泦涓湪澶у瀷 widget 鏂囦欢涓紝鏍峰紡璋冩暣鍙兘褰卞搷閫夊尯鍜屽懡涓祴璇曪紱golden 鏇存柊闇€纭鐩爣骞冲彴瀛椾綋涓庢姉閿娇宸紓锛涜棰戝拰鍥剧墖鐪熷疄娓叉煋闇€鍏煎涓氬姟渚?`MediaResolver`銆?- P001 AutoPlan 瀹屾垚锛?026-06-24T19:10:49.708Z锛涙棩蹇楋細docs/progress/logs/20260625-030253_execute-P001.log
+
+
+**Reviewing file encoding**
+
+I'm considering that the output might look weird due to encoding or truncation, possibly from a UTF-8 issue. It seems that the first part of plan_req9 is okay, but req3 might have gotten garbled because of this truncation. Maybe I need to read one less? I should definitely use Get-Content with -Encoding utf8 to get this sorted out properly. I want to make sure everything is clear and accurate!
+codex
+既有格式已足够参考；我还会确认 outline 现有能力边界。
+mcp: codegraph/codegraph_explore started
+mcp: codegraph/codegraph_explore (completed)
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+codex
+需要完整 outline 细节来拆任务，我会精准读取该控制器和相关测试。
+mcp: codegraph/codegraph_explore started
+mcp: codegraph/codegraph_explore (completed)
+codex
+Outline 控制器已定位；再补一个精确函数节点避免误判层级来源。
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+**Planning task structure**
+
+I need to understand the structure of block commands to create a task plan. First, I want to ensure the docs/plan directory exists. Then, I’ll produce a markdown file with tasks following a strict format, listing each task with acceptance criteria and progress sections. The specific tasks I’ll include cover various aspects, such as clarifying interaction rules, adding a fold state model, implementing rendering filters, and enhancing UI affordance for headings. I'll keep the focus on writing the plan file itself.
+**Defining tasks for plan creation**
+
+I need to clarify how to handle folded content in selections and what tasks are necessary. For task P006, I’m considering how serialization works and whether we should persist the collapsed state, as the requirements are a bit ambiguous. I lean towards making fold state a runtime UI state by default. I also need tasks for updating documentation, especially for the API, making sure to mention expected files and modules. I'll ensure that my tasks follow a precise format and include a tracking checkbox, with progress indicated. I need to write this all down!
+**Determining file editing method**
+
+I need to use a here-string with Set-Content in UTF-8, while being cautious about CRLF line endings. I don't want to modify any business-related code. Since the shell doesn't have an apply_patch function, I should follow the developer's advice about using it for file edits. If I'm creating an output file, I need to create a new file first and properly utilize the apply_patch command. I’ll check if the file exists before proceeding, making sure to use the right commands in PowerShell.
+codex
+我会生成一份新计划，聚焦“大纲标题折叠其下属内容”的实现与验收。
+apply patch
+patch: completed
+D:\project\GitHub\wenz_flutter\wenz_richtext\docs\plan\plan_requirement_10_20260625-034349.md
+diff --git a/wenz_richtext/docs/plan/plan_requirement_10_20260625-034349.md b/wenz_richtext/docs/plan/plan_requirement_10_20260625-034349.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..e8208fb822013657e87a365a02067449645200b2
+--- /dev/null
++++ b/wenz_richtext/docs/plan/plan_requirement_10_20260625-034349.md
+@@ -0,0 +1,66 @@
++# 需求开发计划：大纲折叠功能
++
++## 来源
++- 类型：需求
++- 编号：10
++- 生成时间：2026-06-25 03:43:49
++
++## 原始内容
++增加大纲折叠功能，如果行内容是大纲标题，则支持折叠内容；
++
++## 需求理解
++- 当顶层 block 是大纲标题（`BlockType.heading`）时，该行应展示可折叠入口，并支持折叠/展开其下属内容。
++- 折叠范围按标题层级计算：从当前标题之后开始，直到遇到下一个同级或更高级标题为止；低级标题及普通 block 均属于当前标题的可折叠内容。
++- 折叠是编辑器视图状态，不应删除或改写文档内容；导入导出、历史记录、协作数据和大纲条目生成应保持原文档结构。
++- 折叠后隐藏的 block 不参与屏幕渲染和普通鼠标命中，但仍需保证选区、搜索、撤销/重做、滚动定位和程序化跳转有明确行为。
++
++## 任务计划
++- [ ] P001: 明确标题折叠交互规则 <!-- scope: lib/src/controller/outline_controller.dart,lib/src/widgets/wenz_rich_text_editor.dart,docs/acceptance_manual_checklist.md -->
++  - 验收要点：明确只有顶层 `heading` block 显示折叠入口，段落、引用、列表、代码、表格、媒体和对象块不显示入口。
++  - 验收要点：明确折叠范围按标题 level 计算，`H2` 折叠到下一个 `H1/H2` 前，`H3` 折叠到下一个 `H1/H2/H3` 前，空标题或无子内容标题不可折叠或显示禁用态。
++  - 验收要点：明确只读模式下可展开/折叠但不可改变文档内容，编辑模式下折叠状态不进入撤销/重做历史。
++
++- [ ] P002: 扩展大纲折叠状态模型 <!-- scope: lib/src/controller/outline_controller.dart,lib/src/controller/wenz_rich_text_controller.dart,test/controller/outline_controller_test.dart,test/core/controller_test.dart -->
++  - 验收要点：为标题条目提供是否可折叠、是否已折叠、折叠覆盖的 block id/index 范围等只读信息，并在文档变化后自动重算。
++  - 验收要点：提供按 blockId/anchor/OutlineItem 折叠、展开、切换、全部展开和查询折叠状态的 API；无效 block、非标题 block 和无子内容标题返回安全 no-op。
++  - 验收要点：折叠状态以标题 block id 为主键维护；标题删除、类型变更、层级变更、block 移动或文档替换后会清理无效状态并通知监听者。
++
++- [ ] P003: 构建可见 block 投影视图 <!-- scope: lib/src/controller/outline_controller.dart,lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/block_geometry_registry.dart,test/controller/outline_controller_test.dart,test/widgets/block_geometry_registry_test.dart -->
++  - 验收要点：编辑器渲染可根据折叠状态过滤被隐藏的顶层 block，同时保留原始 document.blocks 顺序、blockIndex 语义和文档 JSON 不变。
++  - 验收要点：隐藏 block 的几何缓存、命中测试、滚动定位和选择覆盖层不会残留旧位置；展开后几何信息能重新注册并用于选区/滚动。
++  - 验收要点：嵌套折叠时父标题折叠优先隐藏所有后代内容，展开父标题后子标题自身的折叠状态仍可继续生效。
++
++- [ ] P004: 渲染标题折叠入口与状态反馈 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/block_renderer_registry.dart,test/widgets/wenz_rich_text_editor_test.dart,test/widgets/editor_golden_test.dart,test/widgets/goldens/editor_blocks.png -->
++  - 验收要点：可折叠标题左侧或标题内容起始处显示稳定的展开/收起图标，hover/focus/pressed/disabled 状态清晰，且不挤压标题文本布局。
++  - 验收要点：点击或键盘激活图标可切换折叠状态；图标命中区域不触发文本选区、输入法组合、链接点击或 block 拖拽菜单。
++  - 验收要点：折叠标题可显示子内容数量、轻量提示或视觉标识，便于用户判断标题下存在被隐藏内容。
++
++- [ ] P005: 处理折叠状态下的编辑与导航 <!-- scope: lib/src/controller/wenz_rich_text_controller.dart,lib/src/controller/find_replace_controller.dart,lib/src/controller/outline_controller.dart,lib/src/widgets/wenz_rich_text_editor.dart,test/core/controller_test.dart,test/controller/find_replace_controller_test.dart,test/widgets/wenz_rich_text_editor_test.dart -->
++  - 验收要点：当当前选区或程序化跳转目标位于隐藏 block 内时，编辑器会先展开相关标题或将光标安全移动到折叠标题处，避免不可见光标。
++  - 验收要点：查找替换、大纲跳转、锚点跳转和滚动到选区在命中隐藏内容时有一致策略，并能让目标内容重新可见。
++  - 验收要点：在折叠状态下插入、删除、粘贴、撤销/重做、修改标题层级和移动 block 后，隐藏范围、选区和滚动位置保持可恢复且不丢内容。
++
++- [ ] P006: 兼容导入导出与外部扩展 <!-- scope: lib/src/codecs/rich_text_json_codec.dart,lib/src/codecs/html_codec.dart,lib/src/codecs/markdown_codec.dart,lib/src/widgets/block_renderer_registry.dart,test/codecs/rich_text_json_codec_test.dart,test/codecs/html_codec_test.dart,test/codecs/markdown_codec_test.dart,test/plugins/editor_plugin_test.dart -->
++  - 验收要点：折叠状态默认不写入文档 JSON、HTML、Markdown 或纯文本导出，导入已有文档后默认全部展开且内容完整。
++  - 验收要点：自定义 block renderer、插件和媒体 resolver 在隐藏 block 不渲染时不收到多余构建/几何事件，展开后行为与普通 block 一致。
++  - 验收要点：如果后续需要业务侧持久化折叠状态，应通过独立 UI 状态或 metadata 扩展点实现，不污染现有内容模型。
++
++- [ ] P007: 补充自动化与视觉回归测试 <!-- scope: test/controller/outline_controller_test.dart,test/widgets/wenz_rich_text_editor_test.dart,test/widgets/editor_golden_test.dart,test/widgets/goldens/editor_blocks.png,test/widgets/goldens/editor_advanced_blocks.png,docs/plan/plan_requirement_10_20260625-034349.md -->
++  - 验收要点：覆盖 H1-H6、多级嵌套、连续标题、空标题、无子内容标题、父子同时折叠、标题删除/改级/移动后的范围重算。
++  - 验收要点：覆盖折叠图标点击、键盘访问、隐藏 block 不命中、展开后选区恢复、查找命中隐藏内容和大纲跳转隐藏标题等 widget 行为。
++  - 验收要点：更新或新增 golden 展示展开态、折叠态、禁用态和嵌套标题场景；记录 `flutter analyze` 与相关测试执行结果。
++
++## 总体验收标准
++- 所有任务 checkbox 均完成，且每个任务的验收要点都有明确结论或验证记录。
++- 标题折叠仅改变编辑器视图状态，不删除、不移动、不改写任何 block 内容或导入导出数据结构。
++- 折叠范围按标题层级稳定计算，覆盖多级标题嵌套、连续标题、空内容、文档首尾和动态编辑后的边界场景。
++- 折叠/展开交互可被鼠标、触控和键盘可靠触发，并不影响文本编辑、选区、IME、链接、表格、媒体块和对象块既有交互。
++- 隐藏内容在查找、大纲跳转、锚点跳转、选区恢复和滚动定位时有一致可见性策略，不出现不可见光标或无法定位目标。
++- 相关 controller、widget、codec、plugin 和 golden 测试通过；若存在既有失败，需在进度区记录命令、失败原因判断和后续建议。
++
++## 进度区
++- 当前状态：计划已创建，P001-P007 待开发执行。
++- 当前负责人：待分配。
++- 下一步：从 P001 开始确认折叠范围、入口位置、只读模式和隐藏内容导航策略。
++- 验证记录：本次仅生成计划文件，未修改业务代码，未执行自动化测试或手工验收。
++- 风险记录：编辑器当前渲染、选区和几何命中集中在大型 widget 中，过滤隐藏 block 可能影响 blockIndex、滚动定位和 selection overlay；需要优先通过测试约束行为再实现。
+
+diff --git a/wenz_richtext/docs/plan/plan_requirement_10_20260625-034349.md b/wenz_richtext/docs/plan/plan_requirement_10_20260625-034349.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..e8208fb822013657e87a365a02067449645200b2
+--- /dev/null
++++ b/wenz_richtext/docs/plan/plan_requirement_10_20260625-034349.md
+@@ -0,0 +1,66 @@
++# 需求开发计划：大纲折叠功能
++
++## 来源
++- 类型：需求
++- 编号：10
++- 生成时间：2026-06-25 03:43:49
++
++## 原始内容
++增加大纲折叠功能，如果行内容是大纲标题，则支持折叠内容；
++
++## 需求理解
++- 当顶层 block 是大纲标题（`BlockType.heading`）时，该行应展示可折叠入口，并支持折叠/展开其下属内容。
++- 折叠范围按标题层级计算：从当前标题之后开始，直到遇到下一个同级或更高级标题为止；低级标题及普通 block 均属于当前标题的可折叠内容。
++- 折叠是编辑器视图状态，不应删除或改写文档内容；导入导出、历史记录、协作数据和大纲条目生成应保持原文档结构。
++- 折叠后隐藏的 block 不参与屏幕渲染和普通鼠标命中，但仍需保证选区、搜索、撤销/重做、滚动定位和程序化跳转有明确行为。
++
++## 任务计划
++- [ ] P001: 明确标题折叠交互规则 <!-- scope: lib/src/controller/outline_controller.dart,lib/src/widgets/wenz_rich_text_editor.dart,docs/acceptance_manual_checklist.md -->
++  - 验收要点：明确只有顶层 `heading` block 显示折叠入口，段落、引用、列表、代码、表格、媒体和对象块不显示入口。
++  - 验收要点：明确折叠范围按标题 level 计算，`H2` 折叠到下一个 `H1/H2` 前，`H3` 折叠到下一个 `H1/H2/H3` 前，空标题或无子内容标题不可折叠或显示禁用态。
++  - 验收要点：明确只读模式下可展开/折叠但不可改变文档内容，编辑模式下折叠状态不进入撤销/重做历史。
++
++- [ ] P002: 扩展大纲折叠状态模型 <!-- scope: lib/src/controller/outline_controller.dart,lib/src/controller/wenz_rich_text_controller.dart,test/controller/outline_controller_test.dart,test/core/controller_test.dart -->
++  - 验收要点：为标题条目提供是否可折叠、是否已折叠、折叠覆盖的 block id/index 范围等只读信息，并在文档变化后自动重算。
++  - 验收要点：提供按 blockId/anchor/OutlineItem 折叠、展开、切换、全部展开和查询折叠状态的 API；无效 block、非标题 block 和无子内容标题返回安全 no-op。
++  - 验收要点：折叠状态以标题 block id 为主键维护；标题删除、类型变更、层级变更、block 移动或文档替换后会清理无效状态并通知监听者。
++
++- [ ] P003: 构建可见 block 投影视图 <!-- scope: lib/src/controller/outline_controller.dart,lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/block_geometry_registry.dart,test/controller/outline_controller_test.dart,test/widgets/block_geometry_registry_test.dart -->
++  - 验收要点：编辑器渲染可根据折叠状态过滤被隐藏的顶层 block，同时保留原始 document.blocks 顺序、blockIndex 语义和文档 JSON 不变。
++  - 验收要点：隐藏 block 的几何缓存、命中测试、滚动定位和选择覆盖层不会残留旧位置；展开后几何信息能重新注册并用于选区/滚动。
++  - 验收要点：嵌套折叠时父标题折叠优先隐藏所有后代内容，展开父标题后子标题自身的折叠状态仍可继续生效。
++
++- [ ] P004: 渲染标题折叠入口与状态反馈 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/block_renderer_registry.dart,test/widgets/wenz_rich_text_editor_test.dart,test/widgets/editor_golden_test.dart,test/widgets/goldens/editor_blocks.png -->
++  - 验收要点：可折叠标题左侧或标题内容起始处显示稳定的展开/收起图标，hover/focus/pressed/disabled 状态清晰，且不挤压标题文本布局。
++  - 验收要点：点击或键盘激活图标可切换折叠状态；图标命中区域不触发文本选区、输入法组合、链接点击或 block 拖拽菜单。
++  - 验收要点：折叠标题可显示子内容数量、轻量提示或视觉标识，便于用户判断标题下存在被隐藏内容。
++
++- [ ] P005: 处理折叠状态下的编辑与导航 <!-- scope: lib/src/controller/wenz_rich_text_controller.dart,lib/src/controller/find_replace_controller.dart,lib/src/controller/outline_controller.dart,lib/src/widgets/wenz_rich_text_editor.dart,test/core/controller_test.dart,test/controller/find_replace_controller_test.dart,test/widgets/wenz_rich_text_editor_test.dart -->
++  - 验收要点：当当前选区或程序化跳转目标位于隐藏 block 内时，编辑器会先展开相关标题或将光标安全移动到折叠标题处，避免不可见光标。
++  - 验收要点：查找替换、大纲跳转、锚点跳转和滚动到选区在命中隐藏内容时有一致策略，并能让目标内容重新可见。
++  - 验收要点：在折叠状态下插入、删除、粘贴、撤销/重做、修改标题层级和移动 block 后，隐藏范围、选区和滚动位置保持可恢复且不丢内容。
++
++- [ ] P006: 兼容导入导出与外部扩展 <!-- scope: lib/src/codecs/rich_text_json_codec.dart,lib/src/codecs/html_codec.dart,lib/src/codecs/markdown_codec.dart,lib/src/widgets/block_renderer_registry.dart,test/codecs/rich_text_json_codec_test.dart,test/codecs/html_codec_test.dart,test/codecs/markdown_codec_test.dart,test/plugins/editor_plugin_test.dart -->
++  - 验收要点：折叠状态默认不写入文档 JSON、HTML、Markdown 或纯文本导出，导入已有文档后默认全部展开且内容完整。
++  - 验收要点：自定义 block renderer、插件和媒体 resolver 在隐藏 block 不渲染时不收到多余构建/几何事件，展开后行为与普通 block 一致。
++  - 验收要点：如果后续需要业务侧持久化折叠状态，应通过独立 UI 状态或 metadata 扩展点实现，不污染现有内容模型。
++
++- [ ] P007: 补充自动化与视觉回归测试 <!-- scope: test/controller/outline_controller_test.dart,test/widgets/wenz_rich_text_editor_test.dart,test/widgets/editor_golden_test.dart,test/widgets/goldens/editor_blocks.png,test/widgets/goldens/editor_advanced_blocks.png,docs/plan/plan_requirement_10_20260625-034349.md -->
++  - 验收要点：覆盖 H1-H6、多级嵌套、连续标题、空标题、无子内容标题、父子同时折叠、标题删除/改级/移动后的范围重算。
++  - 验收要点：覆盖折叠图标点击、键盘访问、隐藏 block 不命中、展开后选区恢复、查找命中隐藏内容和大纲跳转隐藏标题等 widget 行为。
++  - 验收要点：更新或新增 golden 展示展开态、折叠态、禁用态和嵌套标题场景；记录 `flutter analyze` 与相关测试执行结果。
++
++## 总体验收标准
++- 所有任务 checkbox 均完成，且每个任务的验收要点都有明确结论或验证记录。
++- 标题折叠仅改变编辑器视图状态，不删除、不移动、不改写任何 block 内容或导入导出数据结构。
++- 折叠范围按标题层级稳定计算，覆盖多级标题嵌套、连续标题、空内容、文档首尾和动态编辑后的边界场景。
++- 折叠/展开交互可被鼠标、触控和键盘可靠触发，并不影响文本编辑、选区、IME、链接、表格、媒体块和对象块既有交互。
++- 隐藏内容在查找、大纲跳转、锚点跳转、选区恢复和滚动定位时有一致可见性策略，不出现不可见光标或无法定位目标。
++- 相关 controller、widget、codec、plugin 和 golden 测试通过；若存在既有失败，需在进度区记录命令、失败原因判断和后续建议。
++
++## 进度区
++- 当前状态：计划已创建，P001-P007 待开发执行。
++- 当前负责人：待分配。
++- 下一步：从 P001 开始确认折叠范围、入口位置、只读模式和隐藏内容导航策略。
++- 验证记录：本次仅生成计划文件，未修改业务代码，未执行自动化测试或手工验收。
++- 风险记录：编辑器当前渲染、选区和几何命中集中在大型 widget 中，过滤隐藏 block 可能影响 blockIndex、滚动定位和 selection overlay；需要优先通过测试约束行为再实现。
+
+**Evaluating patching tools**
+
+I received a warning about using "apply_patch" via shell, but it seems like we only have a shell tool and no specific "apply_patch" tool available. I wonder if this is just an environment warning or if it actually executed something. I think I should validate that the file exists and check its content. The output should confirm completion. Maybe referencing "只写 plan 文件" is acceptable. Inspecting the file contents could be helpful, perhaps by using the shell's Get-Content command.
+codex
+计划文件已写入；最后我会快速核对路径和任务格式。
+exec
+powershell.exe -Command '$path='"'docs/plan/plan_requirement_10_20260625-034349.md'; Write-Host (Test-Path "'$path); Select-String -Path $path -Pattern '"'"'^- '"\\[ \\] P\\d{3}: .+ <"'!-- scope: .+ -->$'"' | ForEach-Object { "'$_.Line }; Write-Host '"'--- total tasks ---'; (Select-String -Path "'$path -Pattern '"'"'^- '"\\[ \\] P\\d{3}:' | Measure-Object).Count" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 224ms:
+True
+- [ ] P001: 明确标题折叠交互规则 <!-- scope: lib/src/controller/outline_controller.dart,lib/src/widgets/wenz_rich_text_editor.dart,docs/acceptance_manual_checklist.md -->
+- [ ] P002: 扩展大纲折叠状态模型 <!-- scope: lib/src/controller/outline_controller.dart,lib/src/controller/wenz_rich_text_controller.dart,test/controller/outline_controller_test.dart,test/core/controller_test.dart -->
+- [ ] P003: 构建可见 block 投影视图 <!-- scope: lib/src/controller/outline_controller.dart,lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/block_geometry_registry.dart,test/controller/outline_controller_test.dart,test/widgets/block_geometry_registry_test.dart -->
+- [ ] P004: 渲染标题折叠入口与状态反馈 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/block_renderer_registry.dart,test/widgets/wenz_rich_text_editor_test.dart,test/widgets/editor_golden_test.dart,test/widgets/goldens/editor_blocks.png -->
+- [ ] P005: 处理折叠状态下的编辑与导航 <!-- scope: lib/src/controller/wenz_rich_text_controller.dart,lib/src/controller/find_replace_controller.dart,lib/src/controller/outline_controller.dart,lib/src/widgets/wenz_rich_text_editor.dart,test/core/controller_test.dart,test/controller/find_replace_controller_test.dart,test/widgets/wenz_rich_text_editor_test.dart -->
+- [ ] P006: 兼容导入导出与外部扩展 <!-- scope: lib/src/codecs/rich_text_json_codec.dart,lib/src/codecs/html_codec.dart,lib/src/codecs/markdown_codec.dart,lib/src/widgets/block_renderer_registry.dart,test/codecs/rich_text_json_codec_test.dart,test/codecs/html_codec_test.dart,test/codecs/markdown_codec_test.dart,test/plugins/editor_plugin_test.dart -->
+- [ ] P007: 补充自动化与视觉回归测试 <!-- scope: test/controller/outline_controller_test.dart,test/widgets/wenz_rich_text_editor_test.dart,test/widgets/editor_golden_test.dart,test/widgets/goldens/editor_blocks.png,test/widgets/goldens/editor_advanced_blocks.png,docs/plan/plan_requirement_10_20260625-034349.md -->
+--- total tasks ---
+7
+
+diff --git a/wenz_richtext/docs/plan/plan_requirement_10_20260625-034349.md b/wenz_richtext/docs/plan/plan_requirement_10_20260625-034349.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..e8208fb822013657e87a365a02067449645200b2
+--- /dev/null
++++ b/wenz_richtext/docs/plan/plan_requirement_10_20260625-034349.md
+@@ -0,0 +1,66 @@
++# 需求开发计划：大纲折叠功能
++
++## 来源
++- 类型：需求
++- 编号：10
++- 生成时间：2026-06-25 03:43:49
++
++## 原始内容
++增加大纲折叠功能，如果行内容是大纲标题，则支持折叠内容；
++
++## 需求理解
++- 当顶层 block 是大纲标题（`BlockType.heading`）时，该行应展示可折叠入口，并支持折叠/展开其下属内容。
++- 折叠范围按标题层级计算：从当前标题之后开始，直到遇到下一个同级或更高级标题为止；低级标题及普通 block 均属于当前标题的可折叠内容。
++- 折叠是编辑器视图状态，不应删除或改写文档内容；导入导出、历史记录、协作数据和大纲条目生成应保持原文档结构。
++- 折叠后隐藏的 block 不参与屏幕渲染和普通鼠标命中，但仍需保证选区、搜索、撤销/重做、滚动定位和程序化跳转有明确行为。
++
++## 任务计划
++- [ ] P001: 明确标题折叠交互规则 <!-- scope: lib/src/controller/outline_controller.dart,lib/src/widgets/wenz_rich_text_editor.dart,docs/acceptance_manual_checklist.md -->
++  - 验收要点：明确只有顶层 `heading` block 显示折叠入口，段落、引用、列表、代码、表格、媒体和对象块不显示入口。
++  - 验收要点：明确折叠范围按标题 level 计算，`H2` 折叠到下一个 `H1/H2` 前，`H3` 折叠到下一个 `H1/H2/H3` 前，空标题或无子内容标题不可折叠或显示禁用态。
++  - 验收要点：明确只读模式下可展开/折叠但不可改变文档内容，编辑模式下折叠状态不进入撤销/重做历史。
++
++- [ ] P002: 扩展大纲折叠状态模型 <!-- scope: lib/src/controller/outline_controller.dart,lib/src/controller/wenz_rich_text_controller.dart,test/controller/outline_controller_test.dart,test/core/controller_test.dart -->
++  - 验收要点：为标题条目提供是否可折叠、是否已折叠、折叠覆盖的 block id/index 范围等只读信息，并在文档变化后自动重算。
++  - 验收要点：提供按 blockId/anchor/OutlineItem 折叠、展开、切换、全部展开和查询折叠状态的 API；无效 block、非标题 block 和无子内容标题返回安全 no-op。
++  - 验收要点：折叠状态以标题 block id 为主键维护；标题删除、类型变更、层级变更、block 移动或文档替换后会清理无效状态并通知监听者。
++
++- [ ] P003: 构建可见 block 投影视图 <!-- scope: lib/src/controller/outline_controller.dart,lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/block_geometry_registry.dart,test/controller/outline_controller_test.dart,test/widgets/block_geometry_registry_test.dart -->
++  - 验收要点：编辑器渲染可根据折叠状态过滤被隐藏的顶层 block，同时保留原始 document.blocks 顺序、blockIndex 语义和文档 JSON 不变。
++  - 验收要点：隐藏 block 的几何缓存、命中测试、滚动定位和选择覆盖层不会残留旧位置；展开后几何信息能重新注册并用于选区/滚动。
++  - 验收要点：嵌套折叠时父标题折叠优先隐藏所有后代内容，展开父标题后子标题自身的折叠状态仍可继续生效。
++
++- [ ] P004: 渲染标题折叠入口与状态反馈 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/block_renderer_registry.dart,test/widgets/wenz_rich_text_editor_test.dart,test/widgets/editor_golden_test.dart,test/widgets/goldens/editor_blocks.png -->
++  - 验收要点：可折叠标题左侧或标题内容起始处显示稳定的展开/收起图标，hover/focus/pressed/disabled 状态清晰，且不挤压标题文本布局。
++  - 验收要点：点击或键盘激活图标可切换折叠状态；图标命中区域不触发文本选区、输入法组合、链接点击或 block 拖拽菜单。
++  - 验收要点：折叠标题可显示子内容数量、轻量提示或视觉标识，便于用户判断标题下存在被隐藏内容。
++
++- [ ] P005: 处理折叠状态下的编辑与导航 <!-- scope: lib/src/controller/wenz_rich_text_controller.dart,lib/src/controller/find_replace_controller.dart,lib/src/controller/outline_controller.dart,lib/src/widgets/wenz_rich_text_editor.dart,test/core/controller_test.dart,test/controller/find_replace_controller_test.dart,test/widgets/wenz_rich_text_editor_test.dart -->
++  - 验收要点：当当前选区或程序化跳转目标位于隐藏 block 内时，编辑器会先展开相关标题或将光标安全移动到折叠标题处，避免不可见光标。
++  - 验收要点：查找替换、大纲跳转、锚点跳转和滚动到选区在命中隐藏内容时有一致策略，并能让目标内容重新可见。
++  - 验收要点：在折叠状态下插入、删除、粘贴、撤销/重做、修改标题层级和移动 block 后，隐藏范围、选区和滚动位置保持可恢复且不丢内容。
++
++- [ ] P006: 兼容导入导出与外部扩展 <!-- scope: lib/src/codecs/rich_text_json_codec.dart,lib/src/codecs/html_codec.dart,lib/src/codecs/markdown_codec.dart,lib/src/widgets/block_renderer_registry.dart,test/codecs/rich_text_json_codec_test.dart,test/codecs/html_codec_test.dart,test/codecs/markdown_codec_test.dart,test/plugins/editor_plugin_test.dart -->
++  - 验收要点：折叠状态默认不写入文档 JSON、HTML、Markdown 或纯文本导出，导入已有文档后默认全部展开且内容完整。
++  - 验收要点：自定义 block renderer、插件和媒体 resolver 在隐藏 block 不渲染时不收到多余构建/几何事件，展开后行为与普通 block 一致。
++  - 验收要点：如果后续需要业务侧持久化折叠状态，应通过独立 UI 状态或 metadata 扩展点实现，不污染现有内容模型。
++
++- [ ] P007: 补充自动化与视觉回归测试 <!-- scope: test/controller/outline_controller_test.dart,test/widgets/wenz_rich_text_editor_test.dart,test/widgets/editor_golden_test.dart,test/widgets/goldens/editor_blocks.png,test/widgets/goldens/editor_advanced_blocks.png,docs/plan/plan_requirement_10_20260625-034349.md -->
++  - 验收要点：覆盖 H1-H6、多级嵌套、连续标题、空标题、无子内容标题、父子同时折叠、标题删除/改级/移动后的范围重算。
++  - 验收要点：覆盖折叠图标点击、键盘访问、隐藏 block 不命中、展开后选区恢复、查找命中隐藏内容和大纲跳转隐藏标题等 widget 行为。
++  - 验收要点：更新或新增 golden 展示展开态、折叠态、禁用态和嵌套标题场景；记录 `flutter analyze` 与相关测试执行结果。
++
++## 总体验收标准
++- 所有任务 checkbox 均完成，且每个任务的验收要点都有明确结论或验证记录。
++- 标题折叠仅改变编辑器视图状态，不删除、不移动、不改写任何 block 内容或导入导出数据结构。
++- 折叠范围按标题层级稳定计算，覆盖多级标题嵌套、连续标题、空内容、文档首尾和动态编辑后的边界场景。
++- 折叠/展开交互可被鼠标、触控和键盘可靠触发，并不影响文本编辑、选区、IME、链接、表格、媒体块和对象块既有交互。
++- 隐藏内容在查找、大纲跳转、锚点跳转、选区恢复和滚动定位时有一致可见性策略，不出现不可见光标或无法定位目标。
++- 相关 controller、widget、codec、plugin 和 golden 测试通过；若存在既有失败，需在进度区记录命令、失败原因判断和后续建议。
++
++## 进度区
++- 当前状态：计划已创建，P001-P007 待开发执行。
++- 当前负责人：待分配。
++- 下一步：从 P001 开始确认折叠范围、入口位置、只读模式和隐藏内容导航策略。
++- 验证记录：本次仅生成计划文件，未修改业务代码，未执行自动化测试或手工验收。
++- 风险记录：编辑器当前渲染、选区和几何命中集中在大型 widget 中，过滤隐藏 block 可能影响 blockIndex、滚动定位和 selection overlay；需要优先通过测试约束行为再实现。
+
+codex
+已生成需求计划文件：`docs/plan/plan_requirement_10_20260625-034349.md:1`
+
+- 已包含需求理解、任务计划、总体验收标准和进度区。
+- 任务共 `P001`–`P007`，均按固定格式包含必填 `scope`。
+- 每个任务都补充了验收要点。
+- 仅新增计划文档，未修改业务代码。
+- 已快速校验任务格式与数量；未运行自动化测试，因为本次只写文档。
+diff --git a/wenz_richtext/docs/plan/plan_requirement_10_20260625-034349.md b/wenz_richtext/docs/plan/plan_requirement_10_20260625-034349.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..e8208fb822013657e87a365a02067449645200b2
+--- /dev/null
++++ b/wenz_richtext/docs/plan/plan_requirement_10_20260625-034349.md
+@@ -0,0 +1,66 @@
++# 需求开发计划：大纲折叠功能
++
++## 来源
++- 类型：需求
++- 编号：10
++- 生成时间：2026-06-25 03:43:49
++
++## 原始内容
++增加大纲折叠功能，如果行内容是大纲标题，则支持折叠内容；
++
++## 需求理解
++- 当顶层 block 是大纲标题（`BlockType.heading`）时，该行应展示可折叠入口，并支持折叠/展开其下属内容。
++- 折叠范围按标题层级计算：从当前标题之后开始，直到遇到下一个同级或更高级标题为止；低级标题及普通 block 均属于当前标题的可折叠内容。
++- 折叠是编辑器视图状态，不应删除或改写文档内容；导入导出、历史记录、协作数据和大纲条目生成应保持原文档结构。
++- 折叠后隐藏的 block 不参与屏幕渲染和普通鼠标命中，但仍需保证选区、搜索、撤销/重做、滚动定位和程序化跳转有明确行为。
++
++## 任务计划
++- [ ] P001: 明确标题折叠交互规则 <!-- scope: lib/src/controller/outline_controller.dart,lib/src/widgets/wenz_rich_text_editor.dart,docs/acceptance_manual_checklist.md -->
++  - 验收要点：明确只有顶层 `heading` block 显示折叠入口，段落、引用、列表、代码、表格、媒体和对象块不显示入口。
++  - 验收要点：明确折叠范围按标题 level 计算，`H2` 折叠到下一个 `H1/H2` 前，`H3` 折叠到下一个 `H1/H2/H3` 前，空标题或无子内容标题不可折叠或显示禁用态。
++  - 验收要点：明确只读模式下可展开/折叠但不可改变文档内容，编辑模式下折叠状态不进入撤销/重做历史。
++
++- [ ] P002: 扩展大纲折叠状态模型 <!-- scope: lib/src/controller/outline_controller.dart,lib/src/controller/wenz_rich_text_controller.dart,test/controller/outline_controller_test.dart,test/core/controller_test.dart -->
++  - 验收要点：为标题条目提供是否可折叠、是否已折叠、折叠覆盖的 block id/index 范围等只读信息，并在文档变化后自动重算。
++  - 验收要点：提供按 blockId/anchor/OutlineItem 折叠、展开、切换、全部展开和查询折叠状态的 API；无效 block、非标题 block 和无子内容标题返回安全 no-op。
++  - 验收要点：折叠状态以标题 block id 为主键维护；标题删除、类型变更、层级变更、block 移动或文档替换后会清理无效状态并通知监听者。
++
++- [ ] P003: 构建可见 block 投影视图 <!-- scope: lib/src/controller/outline_controller.dart,lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/block_geometry_registry.dart,test/controller/outline_controller_test.dart,test/widgets/block_geometry_registry_test.dart -->
++  - 验收要点：编辑器渲染可根据折叠状态过滤被隐藏的顶层 block，同时保留原始 document.blocks 顺序、blockIndex 语义和文档 JSON 不变。
++  - 验收要点：隐藏 block 的几何缓存、命中测试、滚动定位和选择覆盖层不会残留旧位置；展开后几何信息能重新注册并用于选区/滚动。
++  - 验收要点：嵌套折叠时父标题折叠优先隐藏所有后代内容，展开父标题后子标题自身的折叠状态仍可继续生效。
++
++- [ ] P004: 渲染标题折叠入口与状态反馈 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/block_renderer_registry.dart,test/widgets/wenz_rich_text_editor_test.dart,test/widgets/editor_golden_test.dart,test/widgets/goldens/editor_blocks.png -->
++  - 验收要点：可折叠标题左侧或标题内容起始处显示稳定的展开/收起图标，hover/focus/pressed/disabled 状态清晰，且不挤压标题文本布局。
++  - 验收要点：点击或键盘激活图标可切换折叠状态；图标命中区域不触发文本选区、输入法组合、链接点击或 block 拖拽菜单。
++  - 验收要点：折叠标题可显示子内容数量、轻量提示或视觉标识，便于用户判断标题下存在被隐藏内容。
++
++- [ ] P005: 处理折叠状态下的编辑与导航 <!-- scope: lib/src/controller/wenz_rich_text_controller.dart,lib/src/controller/find_replace_controller.dart,lib/src/controller/outline_controller.dart,lib/src/widgets/wenz_rich_text_editor.dart,test/core/controller_test.dart,test/controller/find_replace_controller_test.dart,test/widgets/wenz_rich_text_editor_test.dart -->
++  - 验收要点：当当前选区或程序化跳转目标位于隐藏 block 内时，编辑器会先展开相关标题或将光标安全移动到折叠标题处，避免不可见光标。
++  - 验收要点：查找替换、大纲跳转、锚点跳转和滚动到选区在命中隐藏内容时有一致策略，并能让目标内容重新可见。
++  - 验收要点：在折叠状态下插入、删除、粘贴、撤销/重做、修改标题层级和移动 block 后，隐藏范围、选区和滚动位置保持可恢复且不丢内容。
++
++- [ ] P006: 兼容导入导出与外部扩展 <!-- scope: lib/src/codecs/rich_text_json_codec.dart,lib/src/codecs/html_codec.dart,lib/src/codecs/markdown_codec.dart,lib/src/widgets/block_renderer_registry.dart,test/codecs/rich_text_json_codec_test.dart,test/codecs/html_codec_test.dart,test/codecs/markdown_codec_test.dart,test/plugins/editor_plugin_test.dart -->
++  - 验收要点：折叠状态默认不写入文档 JSON、HTML、Markdown 或纯文本导出，导入已有文档后默认全部展开且内容完整。
++  - 验收要点：自定义 block renderer、插件和媒体 resolver 在隐藏 block 不渲染时不收到多余构建/几何事件，展开后行为与普通 block 一致。
++  - 验收要点：如果后续需要业务侧持久化折叠状态，应通过独立 UI 状态或 metadata 扩展点实现，不污染现有内容模型。
++
++- [ ] P007: 补充自动化与视觉回归测试 <!-- scope: test/controller/outline_controller_test.dart,test/widgets/wenz_rich_text_editor_test.dart,test/widgets/editor_golden_test.dart,test/widgets/goldens/editor_blocks.png,test/widgets/goldens/editor_advanced_blocks.png,docs/plan/plan_requirement_10_20260625-034349.md -->
++  - 验收要点：覆盖 H1-H6、多级嵌套、连续标题、空标题、无子内容标题、父子同时折叠、标题删除/改级/移动后的范围重算。
++  - 验收要点：覆盖折叠图标点击、键盘访问、隐藏 block 不命中、展开后选区恢复、查找命中隐藏内容和大纲跳转隐藏标题等 widget 行为。
++  - 验收要点：更新或新增 golden 展示展开态、折叠态、禁用态和嵌套标题场景；记录 `flutter analyze` 与相关测试执行结果。
++
++## 总体验收标准
++- 所有任务 checkbox 均完成，且每个任务的验收要点都有明确结论或验证记录。
++- 标题折叠仅改变编辑器视图状态，不删除、不移动、不改写任何 block 内容或导入导出数据结构。
++- 折叠范围按标题层级稳定计算，覆盖多级标题嵌套、连续标题、空内容、文档首尾和动态编辑后的边界场景。
++- 折叠/展开交互可被鼠标、触控和键盘可靠触发，并不影响文本编辑、选区、IME、链接、表格、媒体块和对象块既有交互。
++- 隐藏内容在查找、大纲跳转、锚点跳转、选区恢复和滚动定位时有一致可见性策略，不出现不可见光标或无法定位目标。
++- 相关 controller、widget、codec、plugin 和 golden 测试通过；若存在既有失败，需在进度区记录命令、失败原因判断和后续建议。
++
++## 进度区
++- 当前状态：计划已创建，P001-P007 待开发执行。
++- 当前负责人：待分配。
++- 下一步：从 P001 开始确认折叠范围、入口位置、只读模式和隐藏内容导航策略。
++- 验证记录：本次仅生成计划文件，未修改业务代码，未执行自动化测试或手工验收。
++- 风险记录：编辑器当前渲染、选区和几何命中集中在大型 widget 中，过滤隐藏 block 可能影响 blockIndex、滚动定位和 selection overlay；需要优先通过测试约束行为再实现。
+
+tokens used
+81,847
+已生成需求计划文件：`docs/plan/plan_requirement_10_20260625-034349.md:1`
+
+- 已包含需求理解、任务计划、总体验收标准和进度区。
+- 任务共 `P001`–`P007`，均按固定格式包含必填 `scope`。
+- 每个任务都补充了验收要点。
+- 仅新增计划文档，未修改业务代码。
+- 已快速校验任务格式与数量；未运行自动化测试，因为本次只写文档。

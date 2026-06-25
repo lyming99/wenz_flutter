@@ -1,0 +1,1594 @@
+OpenAI Codex v0.121.0 (research preview)
+--------
+workdir: D:\project\GitHub\wenz_flutter\wenz_richtext
+model: gpt-5.5
+provider: custom
+approval: never
+sandbox: danger-full-access
+reasoning effort: xhigh
+reasoning summaries: none
+session id: 019efda9-b203-7ad1-8163-df0a5e1d344d
+--------
+user
+你是开发执行者。
+请只执行指定任务 P005，不要提前执行其它任务，也不要顺手处理其它 checkbox。
+
+plan 文件（只读）：D:\project\GitHub\wenz_flutter\wenz_richtext\docs\plan\plan_feedback_6_20260625-035040.md
+指定任务：
+- [ ] P005: 保持表格操作与生命周期一致 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/table_floating_toolbar_overlay.dart,lib/src/core/commands/table_commands.dart,test/widgets/wenz_rich_text_editor_test.dart -->
+任务 scope：lib/src/widgets/wenz_rich_text_editor.dart, lib/src/widgets/table_floating_toolbar_overlay.dart, lib/src/core/commands/table_commands.dart, test/widgets/wenz_rich_text_editor_test.dart
+
+完成后必须：
+- plan 文件是只读上下文：不要修改 plan 文件，不要勾选 checkbox，不要更新 plan 进度区
+- AutoPlan 会在任务成功后统一写回数据库、checkbox 和进度区
+- 只修改当前任务 scope 直接相关的业务文件
+- 如需测试，只运行与当前任务直接相关的最小测试集，不要运行全量测试或与本任务无关的测试
+- 只有当前任务本身明确要求全量验证时，才允许运行全量测试
+- 不输出完整 diff、源码全文或长文件列表
+- 中文文件读写使用 UTF-8
+codex
+我会先只读取计划上下文和当前 scope 文件，确认 P005 的具体边界。
+  → 读取任务上下文
+  • 定位生命周期问题
+  • 实施最小修复
+  • 运行相关测试
+exec
+powershell.exe -Command '$ErrorActionPreference='"'Stop'; Write-Output '--- git status ---'; git status --short; Write-Output '--- AGENTS ---'; Get-ChildItem -Path . -Filter AGENTS.md -Recurse -File | ForEach-Object { "'$_.FullName }; Write-Output '"'--- P005 context ---'; Select-String -Path 'D:\\project\\GitHub\\wenz_flutter\\wenz_richtext\\docs\\plan\\plan_feedback_6_20260625-035040.md' -Pattern 'P005|生命周期|表格操作' -Context 4,8" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 301ms:
+--- git status ---
+ M README.md
+ M docs/acceptance_manual_checklist.md
+ M docs/rendering.md
+ M docs/running_guide.md
+ M docs/schema_and_commands.md
+ M docs/selection_engine.md
+ M example/integration_test/editor_richtext_test.dart
+ M example/integration_test/helpers/test_app.dart
+ M example/lib/main.dart
+ M example/pubspec.lock
+ M lib/src/codecs/html_codec.dart
+ M lib/src/codecs/legacy_wen_json_codec.dart
+ M lib/src/codecs/markdown_codec.dart
+ M lib/src/codecs/plain_text_codec.dart
+ M lib/src/codecs/rich_text_json_codec.dart
+ M lib/src/controller/find_replace_controller.dart
+ M lib/src/controller/outline_controller.dart
+ M lib/src/controller/slash_menu_controller.dart
+ M lib/src/controller/toolbar_controller.dart
+ M lib/src/controller/wenz_rich_text_controller.dart
+ M lib/src/core/commands/block_commands.dart
+ M lib/src/core/commands/block_structure_commands.dart
+ M lib/src/core/commands/selection_commands.dart
+ M lib/src/core/commands/text_commands.dart
+ M lib/src/core/model/block_node.dart
+ M lib/src/core/position/document_position.dart
+ M lib/src/core/schema/document_schema.dart
+ M lib/src/input/clipboard_service.dart
+ M lib/src/rendering/text_layout_service.dart
+ M lib/src/widgets/block_geometry_registry.dart
+ M lib/src/widgets/block_renderer_registry.dart
+ M lib/src/widgets/comment_sidebar.dart
+ M lib/src/widgets/find_replace_panel.dart
+ M lib/src/widgets/inline_embed_renderer.dart
+ M lib/src/widgets/media_resolver.dart
+ M lib/src/widgets/selection_gesture_overlay.dart
+ M lib/src/widgets/slash_menu_overlay.dart
+ M lib/src/widgets/wenz_rich_text_editor.dart
+ M lib/wenz_richtext.dart
+ M pubspec.lock
+ M pubspec.yaml
+ M test/codecs/html_codec_test.dart
+ M test/codecs/legacy_wen_json_codec_test.dart
+ M test/codecs/markdown_codec_test.dart
+ M test/codecs/plain_text_codec_test.dart
+ M test/codecs/rich_text_json_codec_test.dart
+ M test/controller/find_replace_controller_test.dart
+ M test/controller/outline_controller_test.dart
+ M test/core/block_structure_commands_test.dart
+ M test/core/controller_test.dart
+ M test/core/document_schema_test.dart
+ M test/core/model_test.dart
+ M test/core/selection_commands_test.dart
+ M test/input/clipboard_service_test.dart
+ M test/plugins/editor_plugin_test.dart
+ M test/widgets/block_geometry_registry_test.dart
+ M test/widgets/editor_golden_test.dart
+ M test/widgets/goldens/editor_blocks.png
+ M test/widgets/goldens/editor_caret.png
+ M test/widgets/goldens/editor_merged_table.png
+ M test/widgets/goldens/editor_selection.png
+ M test/widgets/import_export_demo_test.dart
+ M test/widgets/media_resolver_test.dart
+ M test/widgets/wenz_rich_text_editor_test.dart
+?? docs/issues/
+?? docs/plan/
+?? docs/progress/logs/
+?? lib/src/widgets/code_syntax_highlighter.dart
+?? lib/src/widgets/table_floating_toolbar_overlay.dart
+?? nul
+?? test/controller/video_block_controller_test.dart
+?? test/widgets/goldens/editor_advanced_blocks.png
+?? test/widgets/goldens/editor_block_drop_indicator.png
+?? test/widgets/goldens/editor_block_handle_menu.png
+?? ui/
+--- AGENTS ---
+--- P005 context ---
+
+  docs\plan\plan_feedback_6_20260625-035040.md:9:表格悬浮工具栏，应该使用系统悬浮overlay实现，目前存在事件穿透问题
+  docs\plan\plan_feedback_6_20260625-035040.md:10:
+  docs\plan\plan_feedback_6_20260625-035040.md:11:## 需求理解
+  docs\plan\plan_feedback_6_20260625-035040.md:12:- 当前表格悬浮工具栏仍依赖表格渲染树内部的浮动定位，容易受到父级 `Stack`、裁剪、命中测试范围和选区手势层影响，导致点击工具栏时事
+件继续穿透到底层表格或编辑器。
+> docs\plan\plan_feedback_6_20260625-035040.md:13:- 本次目标是将表格工具栏迁移为 Flutter 系统浮层能力承载的 overlay，例如 `OverlayEntry` / `Overl
+ayPortal` / `CompositedTransformFollower` 方案，让工具栏在独立浮层中完成定位、命中测试和生命周期管理。
+  docs\plan\plan_feedback_6_20260625-035040.md:14:- 修复重点是事件不穿透、定位稳定、滚动跟随、选区变化自动刷新，以及现有表格命令能力不回归。
+  docs\plan\plan_feedback_6_20260625-035040.md:15:- 本次不调整表格数据模型、命令语义、导入导出协议和列宽拖拽逻辑，除非为 overlay 锚点和状态同步提供必要的渲染层适配。
+  docs\plan\plan_feedback_6_20260625-035040.md:16:
+  docs\plan\plan_feedback_6_20260625-035040.md:17:## 任务计划
+  docs\plan\plan_feedback_6_20260625-035040.md:18:- [x] P001: 复现并界定工具栏事件穿透 <!-- scope: lib/src/widgets/wenz_rich_text_e
+ditor.dart,lib/src/widgets/selection_gesture_overlay.dart,test/widgets/wenz_rich_text_editor_test.dart -->
+  docs\plan\plan_feedback_6_20260625-035040.md:19:  - 验收要点：明确当前工具栏点击后会穿透到表格单元格、文本选区、拖拽手势或编辑器空白区域的最小复现场景。
+  docs\plan\plan_feedback_6_20260625-035040.md:20:  - 验收要点：记录穿透发生时的命中测试链路、工具栏所在渲染层、父级尺寸/裁剪约束和选区手势层关系。
+  docs\plan\plan_feedback_6_20260625-035040.md:21:  - 验收要点：确认问题修复范围限定在表格工具栏浮层、定位和事件拦截，不改变表格命令、文档模型和序列化结构。
+  docs\plan\plan_feedback_6_20260625-035040.md:34:  - 验收要点：工具栏背景、按钮、分隔线和空白填充区域均有明确命中测试策略，点击和拖动不会继续触发表格选区、单元格聚焦或文本选择。
+  docs\plan\plan_feedback_6_20260625-035040.md:35:  - 验收要点：工具栏按钮点击只触发对应 `TableToolbarActionIntent` 一次，不额外产生底层 tap、long 
+press、drag 或 selection change。
+  docs\plan\plan_feedback_6_20260625-035040.md:36:  - 验收要点：工具栏之外的编辑器区域仍可正常点击、拖选、滚动和唤起表格选区，不因 overlay 引入全屏遮罩阻塞正常交互。
+  docs\plan\plan_feedback_6_20260625-035040.md:37:
+> docs\plan\plan_feedback_6_20260625-035040.md:38:- [ ] P005: 保持表格操作与生命周期一致 <!-- scope: lib/src/widgets/wenz_rich_text_
+editor.dart,lib/src/widgets/table_floating_toolbar_overlay.dart,lib/src/core/commands/table_commands.dart,test/widgets/
+wenz_rich_text_editor_test.dart -->
+  docs\plan\plan_feedback_6_20260625-035040.md:39:  - 验收要点：插入/删除行列、切换表头、设置/清除背景色、列对齐、合并/拆分单元格、重置列宽等原有工具栏操作行为不回归。
+  docs\plan\plan_feedback_6_20260625-035040.md:40:  - 验收要点：工具栏 action 执行后，表格选区、焦点、撤销/重做、文档变更通知和 overlay 刷新顺序保持一致，不出现 st
+ale range 或空引用。
+  docs\plan\plan_feedback_6_20260625-035040.md:41:  - 验收要点：多表格文档中只显示当前活动表格的工具栏，选区跨表格或表格被删除后 overlay 自动关闭。
+  docs\plan\plan_feedback_6_20260625-035040.md:42:
+  docs\plan\plan_feedback_6_20260625-035040.md:43:- [ ] P006: 补充自动化与手工验收记录 <!-- scope: test/widgets/wenz_rich_text_edit
+or_test.dart,docs/acceptance_manual_checklist.md,docs/plan/plan_feedback_6_20260625-035040.md -->
+  docs\plan\plan_feedback_6_20260625-035040.md:44:  - 验收要点：新增或更新 widget 测试，覆盖工具栏显示于 overlay、按钮点击不穿透、点击工具栏外仍能编辑、滚动后工具栏跟随
+、选区取消后 overlay 消失。
+  docs\plan\plan_feedback_6_20260625-035040.md:45:  - 验收要点：执行 `flutter analyze`、相关 widget 测试和必要的回归测试；若存在失败，需区分本次改动导致失败与
+既有失败。
+  docs\plan\plan_feedback_6_20260625-035040.md:46:  - 验收要点：在本计划进度区记录每个任务的完成范围、验证命令、验证结果、遗留风险和后续建议。
+  docs\plan\plan_feedback_6_20260625-035040.md:57:- 当前状态：计划已创建，P001-P006 待开发执行。
+  docs\plan\plan_feedback_6_20260625-035040.md:58:- 当前负责人：待分配。
+  docs\plan\plan_feedback_6_20260625-035040.md:59:- 下一步：从 P001 开始复现并记录表格工具栏事件穿透的命中测试链路。
+  docs\plan\plan_feedback_6_20260625-035040.md:60:- 验证记录：本次仅生成计划文件，未修改业务代码，未执行自动化测试或手工验收。
+> docs\plan\plan_feedback_6_20260625-035040.md:61:- 风险记录：系统 overlay 迁移会改变工具栏所在渲染树，需重点关注焦点保持、选区刷新、滚动跟随、测试定位和 overlay 生命周
+期清理。
+  docs\plan\plan_feedback_6_20260625-035040.md:62:- P001 AutoPlan 完成：2026-06-24T20:01:25.268Z；日志：docs/progress/logs/202
+60625-035238_execute-P001.log
+  docs\plan\plan_feedback_6_20260625-035040.md:63:- P002 AutoPlan 完成：2026-06-25T06:15:27.920Z；日志：docs/progress/logs/202
+60625-141120_execute-P002.log
+  docs\plan\plan_feedback_6_20260625-035040.md:64:- P003 AutoPlan 完成：2026-06-25T06:39:51.664Z；日志：docs/progress/logs/202
+60625-143432_execute-P003.log
+  docs\plan\plan_feedback_6_20260625-035040.md:65:- P004 AutoPlan 完成：2026-06-25T06:48:07.109Z；日志：docs/progress/logs/202
+60625-143957_execute-P004.log
+
+
+
+codex
+已确认 P005 验收点；接下来只检查 scope 内的实现和测试。
+  ✓ 读取任务上下文
+  → 定位生命周期问题
+  • 实施最小修复
+  • 运行相关测试
+exec
+powershell.exe -Command '$ErrorActionPreference='"'Stop'; Write-Output '--- symbols in editor ---'; rg -n \"Table|table|toolbar|Overlay|TableToolbarActionIntent|_table|selectedTable|floating\" lib/src/widgets/wenz_rich_text_editor.dart; Write-Output '--- overlay file symbols ---'; rg -n \"class |enum |typedef |Table|Toolbar|Overlay|Intent|on\" lib/src/widgets/table_floating_toolbar_overlay.dart; Write-Output '--- commands symbols ---'; rg -n \"class |Table|table|merge|split|background|align|header|column|row|undo|redo\" lib/src/core/commands/table_commands.dart; Write-Output '--- tests table refs ---'; rg -n \"Table|table|toolbar|overlay|insert|delete|header|background|align|merge|split|width\" test/widgets/wenz_rich_text_editor_test.dart" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 264ms:
+--- symbols in editor ---
+18:import '../core/model/table_model.dart';
+63:const double _kTableResizeHandleWidth = 12.0;
+64:const double _kMinTableColumnWidth = 48.0;
+65:const double _kMaxTableColumnWidth = 640.0;
+66:const double _kTableToolbarMinWidth = 620.0;
+67:const double _kTableFloatingToolbarGap = 4.0;
+68:const double _kTableFloatingToolbarEstimatedHeight = 56.0;
+69:const int _kTableToolbarBackgroundColor = 0xFFFFF3CD;
+70:const double _kTableSurfaceRadius = 8.0;
+71:const double _kTableCellFontSize = 15.0;
+72:const EdgeInsets _kTableCellPadding = EdgeInsets.symmetric(
+76:const Color _kTableBorderColor = Color(0xFFECE9F5);
+77:const Color _kTableEvenRowBackgroundColor = Color(0xFFFAFAFF);
+82:/// code, and table-cell renderers stay in sync.
+150:/// selectable document slot, mirroring inline embeds' object-replacement slot.
+173:    BlockType.table,
+202:    'tableBorder': 0xFFECE9F5,
+203:    'tableEvenRow': 0xFFFAFAFF,
+215:    'tableFontSize': 15.0,
+248:    'tableCellPadding': <double>[10.0, 14.0],
+292:    'table': 'style+golden: 15px text, padding, header/even rows, shadow.',
+319:@immutable
+331:  /// Screen-reader label announced for an editable editor.
+337:  /// Screen-reader hint announced for an editable editor.
+373:    return _withSelectableObjectBlock(
+398:    this.showDebugOverlay = false,
+422:  final bool showDebugOverlay;
+491:      ..register(BlockType.table, _defaultTableBlockRenderer)
+522:  final GlobalKey _editorOverlayKey = GlobalKey();
+523:  late final TableFloatingToolbarOverlayController
+524:      _tableToolbarOverlayController = TableFloatingToolbarOverlayController();
+596:        editableSize: geometry.editableSize,
+671:    _hideStaleTableToolbarOverlay();
+690:    _tableToolbarOverlayController.hide();
+691:    _tableToolbarOverlayController.dispose();
+730:      _hideStaleTableToolbarOverlay();
+794:  void _hideStaleTableToolbarOverlay() {
+795:    final currentRequest = _tableToolbarOverlayController.request;
+799:    final tableRange = widget.controller.selection?.tableCellRange;
+801:        tableRange == null ||
+802:        tableRange.tableBlockId != currentRequest.tableBlockId ||
+803:        tableRange.blockIndex != currentRequest.blockIndex) {
+804:      _tableToolbarOverlayController.hide();
+939:    // history remain unchanged while read-only and editable editors may toggle
+949:    // Show a caret only in editable mode. Read-only mode still allows
+999:          showDebugOverlay: widget.showDebugOverlay,
+1022:          onTableToolbarAction:
+1023:              widget.readOnly ? null : _handleTableToolbarAction,
+1024:          tableToolbarOverlayController: _tableToolbarOverlayController,
+1025:          onTableColumnResize:
+1026:              widget.readOnly ? null : _handleTableColumnResize,
+1039:        key: _editorOverlayKey,
+1043:          SelectionGestureOverlay(
+1056:              child: WenzSlashMenuOverlay(
+1092:            TableFloatingToolbarOverlayHost(
+1093:              controller: _tableToolbarOverlayController,
+1130:    final overlayContext = _editorOverlayKey.currentContext;
+1196:  void _handleTableToolbarAction(TableToolbarActionIntent intent) {
+1197:    final tableBlock = _tableBlockAt(intent.blockIndex);
+1198:    if (tableBlock == null) {
+1202:    final range = _currentTableRange(tableBlock, intent) ??
+1203:        TableCellRange(
+1204:          tableBlockId: tableBlock.id,
+1213:      case TableToolbarAction.insertRowAbove:
+1214:        widget.controller.insertTableRow(
+1219:      case TableToolbarAction.insertRowBelow:
+1220:        widget.controller.insertTableRow(
+1225:      case TableToolbarAction.deleteRow:
+1227:          final current = _tableBlockAt(intent.blockIndex);
+1228:          if (current == null || current.table.rowCount <= 1) {
+1231:          widget.controller.deleteTableRow(
+1237:      case TableToolbarAction.insertColumnBefore:
+1238:        widget.controller.insertTableColumn(
+1243:      case TableToolbarAction.insertColumnAfter:
+1244:        widget.controller.insertTableColumn(
+1249:      case TableToolbarAction.deleteColumn:
+1253:          final current = _tableBlockAt(intent.blockIndex);
+1254:          if (current == null || current.table.columnCount <= 1) {
+1257:          widget.controller.deleteTableColumn(
+1263:      case TableToolbarAction.toggleHeader:
+1264:        final anchor = _firstVisibleTableCell(tableBlock, range);
+1269:        _forEachVisibleTableCell(tableBlock, range, (row, column) {
+1270:          widget.controller.setTableCellHeader(
+1278:      case TableToolbarAction.setBackgroundColor:
+1279:        _forEachVisibleTableCell(tableBlock, range, (row, column) {
+1280:          widget.controller.setTableCellBackground(
+1288:      case TableToolbarAction.clearBackgroundColor:
+1289:        _forEachVisibleTableCell(tableBlock, range, (row, column) {
+1290:          widget.controller.setTableCellBackground(
+1298:      case TableToolbarAction.alignLeft:
+1299:        _setTableColumnAlignment(intent.blockIndex, range, 'left');
+1301:      case TableToolbarAction.alignCenter:
+1302:        _setTableColumnAlignment(intent.blockIndex, range, 'center');
+1304:      case TableToolbarAction.alignRight:
+1305:        _setTableColumnAlignment(intent.blockIndex, range, 'right');
+1307:      case TableToolbarAction.clearAlignment:
+1308:        _setTableColumnAlignment(intent.blockIndex, range, null);
+1310:      case TableToolbarAction.mergeCells:
+1312:          widget.controller.mergeTableCells(
+1321:      case TableToolbarAction.splitCell:
+1322:        widget.controller.splitTableCell(
+1328:      case TableToolbarAction.resetColumnWidth:
+1332:          widget.controller.setTableColumnWidth(
+1342:  void _handleTableColumnResize({
+1347:    final tableBlock = _tableBlockAt(blockIndex);
+1348:    if (tableBlock == null ||
+1350:        columnIndex >= tableBlock.table.columnCount) {
+1353:    widget.controller.setTableColumnWidth(
+1357:          width.clamp(_kMinTableColumnWidth, _kMaxTableColumnWidth).toDouble(),
+1371:  TableBlockNode? _tableBlockAt(int blockIndex) {
+1377:    return block is TableBlockNode ? block : null;
+1380:  TableCellRange? _currentTableRange(
+1381:    TableBlockNode tableBlock,
+1382:    TableToolbarActionIntent intent,
+1384:    final range = widget.controller.selection?.tableCellRange;
+1387:        range.tableBlockId != tableBlock.id) {
+1393:  void _forEachVisibleTableCell(
+1394:    TableBlockNode tableBlock,
+1395:    TableCellRange range,
+1402:        final cell = tableBlock.table.cellAt(row, column);
+1411:  TableCellNode? _firstVisibleTableCell(
+1412:    TableBlockNode tableBlock,
+1413:    TableCellRange range,
+1419:        final cell = tableBlock.table.cellAt(row, column);
+1428:  void _setTableColumnAlignment(
+1430:    TableCellRange range,
+1434:      widget.controller.setTableColumnAlignment(
+1637:      TableBlockNode() => _firstTableCellPosition(block, blockIndex) ??
+1660:  DocumentPosition? _firstTableCellPosition(
+1661:    TableBlockNode block,
+1664:    for (var rowIndex = 0; rowIndex < block.table.rows.length; rowIndex++) {
+1665:      final row = block.table.rows[rowIndex];
+1671:        return DocumentPosition.tableCell(
+1672:          tableBlockId: block.id,
+1674:          tableRowIndex: rowIndex,
+1675:          tableColumnIndex: columnIndex,
+1714:    if (block is TableBlockNode) {
+1715:      return TableBlockNode(
+1717:        table: TableModel(
+1718:          rows: block.table.rows
+1722:                      (cell) => TableCellNode(
+1736:          columnAlignments: Map<int, String>.from(block.table.columnAlignments),
+1737:          columnWidths: Map<int, double>.from(block.table.columnWidths),
+1973:      case EditorShortcutIntent.moveTableCellBackward:
+1974:        controller.moveTableCell(forward: false);
+1976:      case EditorShortcutIntent.moveTableCellForward:
+1977:        controller.moveTableCell(forward: true);
+2116:      // the key still does something predictable (matches prior behaviour).
+2392:  /// exiting a table cell at the table's first/last row.
+2401:    // Table cells: try intra-table row navigation first.
+2402:    if (extent.path.isTableCellText && !shift) {
+2404:      controller.moveTableCellVertical(forward: forward);
+2406:        // Moved within the table.
+2409:      // On the table boundary row: fall through to cross-block exit.
+2613:        controller.moveTableCell(forward: true);
+2616:        controller.moveTableCell(forward: false);
+2954:  /// output. That keeps table-cell text, inline embeds, and object-block
+2955:  /// internal controls from being mistaken for sortable rows.
+3203:    this.showDebugOverlay = false,
+3212:    this.onTableToolbarAction,
+3213:    this.tableToolbarOverlayController,
+3214:    this.onTableColumnResize,
+3233:  final bool showDebugOverlay;
+3242:  final TableToolbarActionHandler? onTableToolbarAction;
+3243:  final TableFloatingToolbarOverlayController? tableToolbarOverlayController;
+3244:  final TableColumnResizeHandler? onTableColumnResize;
+3288:        oldWidget.showDebugOverlay != widget.showDebugOverlay ||
+3298:        oldWidget.onTableToolbarAction != widget.onTableToolbarAction ||
+3299:        oldWidget.tableToolbarOverlayController !=
+3300:            widget.tableToolbarOverlayController ||
+3301:        oldWidget.onTableColumnResize != widget.onTableColumnResize ||
+3331:      showDebugOverlay: widget.showDebugOverlay,
+3340:      onTableToolbarAction: widget.onTableToolbarAction,
+3341:      tableToolbarOverlayController: widget.tableToolbarOverlayController,
+3342:      onTableColumnResize: widget.onTableColumnResize,
+3395:    this.showDebugOverlay = false,
+3404:    this.onTableToolbarAction,
+3405:    this.tableToolbarOverlayController,
+3406:    this.onTableColumnResize,
+3423:  final bool showDebugOverlay;
+3432:  final TableToolbarActionHandler? onTableToolbarAction;
+3433:  final TableFloatingToolbarOverlayController? tableToolbarOverlayController;
+3434:  final TableColumnResizeHandler? onTableColumnResize;
+3452:      showDebugOverlay: showDebugOverlay,
+3461:      onTableToolbarAction: onTableToolbarAction,
+3462:      tableToolbarOverlayController: tableToolbarOverlayController,
+3463:      onTableColumnResize: onTableColumnResize,
+3481:    return _BlockDragHandleOverlay(
+3495:class _BlockDragHandleOverlay extends StatelessWidget {
+3496:  const _BlockDragHandleOverlay({
+3665:  OverlayEntry? _dropIndicatorEntry;
+3899:      final overlay = Overlay.of(context);
+3900:      _dropIndicatorEntry = OverlayEntry(
+3911:    final overlayBox = Overlay.of(context).context.findRenderObject();
+3991:        Overlay.of(context).context.findRenderObject() as RenderBox?;
+4160:/// dispatch table.
+4169:    register(BlockType.table, _defaultTableBlockRenderer);
+4190:    showDebugOverlay: rc.showDebugOverlay,
+4195:    onToolbarAction: rc.onTableToolbarAction,
+4196:    onColumnResize: rc.onTableColumnResize,
+4214:    showDebugOverlay: rc.showDebugOverlay,
+4229:  return _withSelectableImageBlock(
+4239:Widget _defaultTableBlockRenderer(
+4243:  return _TableBlockRenderer(
+4244:    block: rc.block as TableBlockNode,
+4251:    showDebugOverlay: rc.showDebugOverlay,
+4253:    onToolbarAction: rc.onTableToolbarAction,
+4254:    toolbarOverlayController: rc.tableToolbarOverlayController,
+4255:    onColumnResize: rc.onTableColumnResize,
+4266:  return _withSelectableObjectBlock(
+4288:  return _withSelectableObjectBlock(
+4356:      showDebugOverlay: rc.showDebugOverlay,
+4373:    return _withSelectableObjectBlock(file, rc, resolved);
+4375:  return _withSelectableObjectBlock(
+4412:Widget _withSelectableObjectBlock(
+4433:      showDebugOverlay: rc.showDebugOverlay,
+4440:Widget _withSelectableImageBlock(
+4467:        showDebugOverlay: rc.showDebugOverlay,
+4494:    this.showDebugOverlay = false,
+4513:  final bool showDebugOverlay;
+4518:  final TableToolbarActionHandler? onToolbarAction;
+4519:  final TableColumnResizeHandler? onColumnResize;
+4573:      showDebugOverlay: showDebugOverlay,
+4987:    this.showDebugOverlay = false,
+5000:  final bool showDebugOverlay;
+5113:                        showDebugOverlay: showDebugOverlay,
+5221:class _TableBlockRenderer extends StatelessWidget {
+5222:  const _TableBlockRenderer({
+5230:    this.showDebugOverlay = false,
+5233:    this.toolbarOverlayController,
+5239:  final TableBlockNode block;
+5246:  final bool showDebugOverlay;
+5248:  final TableToolbarActionHandler? onToolbarAction;
+5249:  final TableFloatingToolbarOverlayController? toolbarOverlayController;
+5250:  final TableColumnResizeHandler? onColumnResize;
+5256:    final table = block.table;
+5257:    final columnCount = table.columnCount;
+5258:    if (table.rowCount == 0 || columnCount == 0) {
+5263:    final tableTextStyle =
+5264:        effectiveStyle.copyWith(fontSize: _kTableCellFontSize);
+5269:          final metrics = _TableGridMetrics.compute(
+5270:            table: table,
+5271:            maxWidth: _tableMaxWidth(constraints, columnCount),
+5272:            textStyle: tableTextStyle,
+5276:              _activeTableRange(selection, block.id, blockIndex);
+5279:          final tableSurface = SizedBox(
+5289:                      borderRadius: BorderRadius.circular(_kTableSurfaceRadius),
+5295:                  borderRadius: BorderRadius.circular(_kTableSurfaceRadius),
+5310:                                'table-cell-border-${block.id}-${cell.rowIndex}-${cell.columnIndex}',
+5313:                                border: _tableCellBorder(
+5315:                                  rowCount: table.rowCount,
+5317:                                  color: _kTableBorderColor,
+5320:                              child: _TableCellSurface(
+5321:                                tableBlock: block,
+5326:                                textStyle: tableTextStyle,
+5328:                                  table.columnAlignments[cell.columnIndex],
+5334:                                highlightWholeCell: _shouldHighlightTableCell(
+5341:                                showDebugOverlay: showDebugOverlay,
+5361:                          (_kTableResizeHandleWidth / 2),
+5363:                      width: _kTableResizeHandleWidth,
+5365:                      child: _TableColumnResizeHandle(
+5367:                          'table-resize-${block.id}-$column',
+5383:          return TableFloatingToolbarOverlayAnchor(
+5384:            controller: toolbarOverlayController,
+5392:                    TableFloatingToolbarOverlayRequest(
+5397:                      tableBlockId: block.id,
+5400:                      minWidth: _kTableToolbarMinWidth,
+5401:                      gap: _kTableFloatingToolbarGap,
+5402:                      fallbackHeight: _kTableFloatingToolbarEstimatedHeight,
+5403:                      toolbarBuilder: (context) => _TableFloatingToolbar(
+5411:            child: tableSurface,
+5419:TableCellRange? _activeTableRange(
+5421:  String tableBlockId,
+5424:  final range = selection?.tableCellRange;
+5426:      range.tableBlockId != tableBlockId ||
+5433:class _TableFloatingToolbar extends StatelessWidget {
+5434:  const _TableFloatingToolbar({
+5441:  final TableBlockNode block;
+5443:  final TableCellRange range;
+5444:  final TableToolbarActionHandler onAction;
+5449:    final cell = block.table.cellAt(range.startRow, range.startColumn);
+5450:    final canDeleteRow = block.table.rowCount > 1;
+5451:    final canDeleteColumn = block.table.columnCount > 1;
+5457:      key: const ValueKey<String>('table-floating-toolbar'),
+5475:                action: TableToolbarAction.insertRowAbove,
+5480:                action: TableToolbarAction.insertRowBelow,
+5485:                action: TableToolbarAction.deleteRow,
+5492:                action: TableToolbarAction.insertColumnBefore,
+5497:                action: TableToolbarAction.insertColumnAfter,
+5502:                action: TableToolbarAction.deleteColumn,
+5509:                action: TableToolbarAction.toggleHeader,
+5514:                action: TableToolbarAction.setBackgroundColor,
+5515:                backgroundColor: _kTableToolbarBackgroundColor,
+5520:                action: TableToolbarAction.clearBackgroundColor,
+5526:                action: TableToolbarAction.alignLeft,
+5531:                action: TableToolbarAction.alignCenter,
+5536:                action: TableToolbarAction.alignRight,
+5541:                action: TableToolbarAction.clearAlignment,
+5547:                action: TableToolbarAction.mergeCells,
+5553:                action: TableToolbarAction.splitCell,
+5559:                action: TableToolbarAction.resetColumnWidth,
+5571:    required TableToolbarAction action,
+5584:                TableToolbarActionIntent(
+5611:class _TableColumnResizeHandle extends StatefulWidget {
+5612:  const _TableColumnResizeHandle({
+5624:  State<_TableColumnResizeHandle> createState() =>
+5625:      _TableColumnResizeHandleState();
+5628:class _TableColumnResizeHandleState extends State<_TableColumnResizeHandle> {
+5638:  void didUpdateWidget(_TableColumnResizeHandle oldWidget) {
+5650:      label: 'Resize table column ${widget.columnIndex + 1}',
+5660:                .clamp(_kMinTableColumnWidth, _kMaxTableColumnWidth)
+5711:    TableBlockNode() =>
+5712:      'Table block, ${block.table.rowCount} rows, ${block.table.columnCount} columns',
+5725:double _tableMaxWidth(BoxConstraints constraints, int columnCount) {
+5732:Border _tableCellBorder({
+5733:  required _TableGridCell cell,
+5749:class _TableGridMetrics {
+5750:  const _TableGridMetrics({
+5762:  final List<_TableGridCell> cells;
+5764:  static _TableGridMetrics compute({
+5765:    required TableModel table,
+5770:    final columnCount = table.columnCount;
+5771:    final rowCount = table.rowCount;
+5772:    final columnWidths = _resolveTableColumnWidths(table, maxWidth);
+5775:      _minimumTableCellHeight(textStyle),
+5780:        final cell = table.cellAt(row, column);
+5784:        final columnSpan = _clampedTableSpan(
+5789:        final rowSpan = _clampedTableSpan(cell.rowSpan, row, rowCount);
+5790:        final cellWidth = _sumTableRange(columnWidths, column, columnSpan);
+5791:        final desiredHeight = _measureTableCellHeight(
+5797:        final currentHeight = _sumTableRange(rowHeights, row, rowSpan);
+5807:    final lefts = _tableOffsets(columnWidths);
+5808:    final tops = _tableOffsets(rowHeights);
+5809:    final cells = <_TableGridCell>[];
+5812:        final cell = table.cellAt(row, column);
+5816:        final columnSpan = _clampedTableSpan(
+5821:        final rowSpan = _clampedTableSpan(cell.rowSpan, row, rowCount);
+5823:          _TableGridCell(
+5831:            width: _sumTableRange(columnWidths, column, columnSpan),
+5832:            height: _sumTableRange(rowHeights, row, rowSpan),
+5838:    return _TableGridMetrics(
+5839:      width: _sumTableRange(columnWidths, 0, columnWidths.length),
+5840:      height: _sumTableRange(rowHeights, 0, rowHeights.length),
+5848:class _TableGridCell {
+5849:  const _TableGridCell({
+5865:  final TableCellNode cell;
+5872:List<double> _resolveTableColumnWidths(TableModel table, double maxWidth) {
+5873:  final columnCount = table.columnCount;
+5878:    final explicit = table.columnWidths[i];
+5899:double _measureTableCellHeight(
+5900:  TableCellNode cell,
+5908:  final text = _tableCellDisplayText(cell);
+5910:  final innerWidth = cellWidth - _kTableCellPadding.horizontal;
+5916:  final height = painter.height + _kTableCellPadding.vertical;
+5918:  final minimum = _minimumTableCellHeight(textStyle);
+5922:List<InlineNode> _tableCellInlineContent(TableCellNode? cell) {
+5934:String _tableCellDisplayText(TableCellNode cell) {
+5935:  final inline = _tableCellInlineContent(cell);
+5942:double _minimumTableCellHeight(TextStyle textStyle) {
+5943:  return ((textStyle.fontSize ?? _kTableCellFontSize) *
+5945:      _kTableCellPadding.vertical;
+5948:Color? _tableCellBackgroundColor({
+5950:  required TableCellNode? cell,
+5963:    return _kTableEvenRowBackgroundColor;
+5968:int _clampedTableSpan(int span, int start, int count) {
+5977:List<double> _tableOffsets(List<double> sizes) {
+5987:double _sumTableRange(List<double> values, int start, int count) {
+5996:bool _shouldHighlightTableCell(
+5998:  String tableBlockId,
+6006:  // Intra-table cell range (drag within the table): highlight cells inside the
+6007:  // range via the structured TableCellRange.
+6008:  final range = selection.tableCellRange;
+6013:    return range.tableBlockId == tableBlockId &&
+6017:  // Cross-block selection that spans this table block (e.g. select-all across
+6018:  // a paragraph + table): when the table block sits strictly between the
+6022:  final tableCovered =
+6024:  if (tableCovered) {
+6027:  final cellPath = PositionPath.tableCellText(
+6028:    tableBlockId,
+6033:      start.path.isTableCellText &&
+6035:    return start.blockId == tableBlockId && cellPath.compare(start.path) > 0;
+6038:      end.path.isTableCellText &&
+6040:    return end.blockId == tableBlockId && cellPath.compare(end.path) < 0;
+6045:class _TableCellSurface extends StatefulWidget {
+6046:  const _TableCellSurface({
+6047:    required this.tableBlock,
+6059:    required this.showDebugOverlay,
+6065:  final TableBlockNode tableBlock;
+6069:  final TableCellNode? cell;
+6077:  final bool showDebugOverlay;
+6083:  State<_TableCellSurface> createState() => _TableCellSurfaceState();
+6086:class _TableCellSurfaceState extends State<_TableCellSurface> {
+6099:    final tableBlock = widget.tableBlock;
+6101:    final path = PositionPath.tableCellText(
+6102:      tableBlock.id,
+6108:      tableBlock.id,
+6112:    final inlineContent = _tableCellInlineContent(cell);
+6129:    final backgroundColor = _tableCellBackgroundColor(
+6135:      blockId: tableBlock.id,
+6151:      showDebugOverlay: widget.showDebugOverlay,
+6162:      // the vertical centring gap that TableCellVerticalAlignment.middle
+6177:      label: _tableCellSemanticsLabel(
+6178:        tableBlock: tableBlock,
+6191:          padding: _kTableCellPadding,
+6210:String _tableCellSemanticsLabel({
+6211:  required TableBlockNode tableBlock,
+6212:  required TableCellNode? cell,
+6218:    'Table cell row ${rowIndex + 1} column ${columnIndex + 1}',
+6224:    final rowSpan = _clampedTableSpan(
+6227:      tableBlock.table.rowCount,
+6229:    final columnSpan = _clampedTableSpan(
+6232:      tableBlock.table.columnCount,
+6254:    required this.showDebugOverlay,
+6263:  final bool showDebugOverlay;
+6425:        if (widget.showDebugOverlay)
+6456:    required this.showDebugOverlay,
+6472:  final bool showDebugOverlay;
+6475:  /// Optional GlobalKey on a wider hit-test frame (e.g. a table cell's whole
+6548:    // matching the platform EditableText behaviour where every selection
+6634:  /// was provided (table cells); otherwise the registry treats the text
+6639:  /// `TableCellVerticalAlignment.middle` introduces for short cells.
+6911:        // Gestures live in the document-level SelectionGestureOverlay; the
+6945:            if (widget.showDebugOverlay)
+8803:    required this.showDebugOverlay,
+8818:  final bool showDebugOverlay;
+8910:                      showDebugOverlay: widget.showDebugOverlay,
+--- overlay file symbols ---
+6:import '../core/position/document_position.dart';
+9:typedef TableFloatingToolbarOverlayBuilder = Widget Function(
+10:  BuildContext context,
+14:typedef TableFloatingToolbarOverlayRequestBuilder
+15:    = TableFloatingToolbarOverlayRequest Function({
+24:/// The table renderer owns only the anchor and the current toolbar payload. The
+25:/// editor owns [TableFloatingToolbarOverlayHost], which renders this payload with
+26:/// Flutter's system [OverlayPortal] plus [CompositedTransformFollower]. This
+31:class TableFloatingToolbarOverlayRequest {
+32:  const TableFloatingToolbarOverlayRequest({
+39:    required this.selectionRange,
+59:  /// Active table identity used by hosts/tests to reason about request staleness.
+65:  /// Current table-cell selection range that the toolbar actions target.
+66:  final TableCellRange selectionRange;
+68:  /// Builds toolbar chrome. The renderer captures the table action callback here
+70:  final TableFloatingToolbarOverlayBuilder toolbarBuilder;
+85:/// Editor-owned controller for the active table toolbar overlay request.
+86:class TableFloatingToolbarOverlayController extends ChangeNotifier {
+87:  TableFloatingToolbarOverlayRequest? _request;
+89:  TableFloatingToolbarOverlayRequest? get request => _request;
+91:  void show(TableFloatingToolbarOverlayRequest request) {
+110:class TableFloatingToolbarOverlayHost extends StatefulWidget {
+111:  const TableFloatingToolbarOverlayHost({
+113:    required this.controller,
+117:  final TableFloatingToolbarOverlayController controller;
+121:  State<TableFloatingToolbarOverlayHost> createState() =>
+122:      _TableFloatingToolbarOverlayHostState();
+125:class _TableFloatingToolbarOverlayHostState
+126:    extends State<TableFloatingToolbarOverlayHost> {
+127:  final OverlayPortalController _portalController = OverlayPortalController();
+128:  TableFloatingToolbarOverlayRequest? _request;
+133:    _request = widget.controller.request;
+134:    widget.controller.addListener(_handleControllerChanged);
+139:  void didUpdateWidget(covariant TableFloatingToolbarOverlayHost oldWidget) {
+141:    if (oldWidget.controller == widget.controller) {
+144:    oldWidget.controller.removeListener(_handleControllerChanged);
+145:    _request = widget.controller.request;
+146:    widget.controller.addListener(_handleControllerChanged);
+152:    widget.controller.removeListener(_handleControllerChanged);
+153:    if (_portalController.isShowing) {
+154:      _portalController.hide();
+160:  Widget build(BuildContext context) {
+161:    return OverlayPortal(
+162:      controller: _portalController,
+163:      overlayChildBuilder: (context) {
+166:          return const SizedBox.shrink();
+168:        return _TableFloatingToolbarOverlayEntry(request: request);
+174:  void _handleControllerChanged() {
+179:      _request = widget.controller.request;
+199:      if (!_portalController.isShowing) {
+200:        _portalController.show();
+202:    } else if (_portalController.isShowing) {
+203:      _portalController.hide();
+209:/// leaving overlay ownership with [TableFloatingToolbarOverlayHost].
+210:class TableFloatingToolbarOverlayAnchor extends StatefulWidget {
+211:  const TableFloatingToolbarOverlayAnchor({
+213:    required this.controller,
+218:  final TableFloatingToolbarOverlayController? controller;
+219:  final TableFloatingToolbarOverlayRequestBuilder? requestBuilder;
+223:  State<TableFloatingToolbarOverlayAnchor> createState() =>
+224:      _TableFloatingToolbarOverlayAnchorState();
+227:class _TableFloatingToolbarOverlayAnchorState
+228:    extends State<TableFloatingToolbarOverlayAnchor>
+232:  ScrollPosition? _scrollPosition;
+243:  void didUpdateWidget(covariant TableFloatingToolbarOverlayAnchor oldWidget) {
+245:    if (oldWidget.controller != widget.controller) {
+246:      oldWidget.controller?.hide(owner: _owner);
+254:    _syncScrollPosition(Scrollable.maybeOf(context)?.position);
+266:    _scrollPosition?.removeListener(_scheduleSync);
+267:    widget.controller?.hide(owner: _owner);
+272:  Widget build(BuildContext context) {
+291:  void _syncScrollPosition(ScrollPosition? position) {
+292:    if (identical(_scrollPosition, position)) {
+295:    _scrollPosition?.removeListener(_scheduleSync);
+296:    _scrollPosition = position;
+297:    _scrollPosition?.addListener(_scheduleSync);
+304:    final controller = widget.controller;
+306:    if (controller == null || requestBuilder == null) {
+307:      controller?.hide(owner: _owner);
+310:    final renderObject = context.findRenderObject();
+314:      controller.hide(owner: _owner);
+319:    controller.show(
+324:        visibleTop: _visibleTopFor(context),
+329:  double _visibleTopFor(BuildContext context) {
+330:    final scrollable = Scrollable.maybeOf(context);
+331:    final viewportObject = scrollable?.context.findRenderObject();
+337:    return MediaQuery.maybeOf(context)?.padding.top ?? 0;
+341:class _TableFloatingToolbarOverlayEntry extends StatefulWidget {
+342:  const _TableFloatingToolbarOverlayEntry({required this.request});
+344:  final TableFloatingToolbarOverlayRequest request;
+347:  State<_TableFloatingToolbarOverlayEntry> createState() =>
+348:      _TableFloatingToolbarOverlayEntryState();
+351:class _TableFloatingToolbarOverlayEntryState
+352:    extends State<_TableFloatingToolbarOverlayEntry> {
+358:  Widget build(BuildContext context) {
+367:    return Positioned.fill(
+375:          alignment: AlignmentDirectional.topStart,
+378:          child: ConstrainedBox(
+380:            constraints: BoxConstraints(minWidth: minWidth),
+382:              key: const ValueKey<String>(
+386:              child: request.toolbarBuilder(context),
+401:      _syncToolbarHeight();
+405:  void _syncToolbarHeight() {
+409:    final renderObject = _toolbarKey.currentContext?.findRenderObject();
+--- commands symbols ---
+4:import '../model/table_model.dart';
+9:import 'table_cell_editing.dart';
+11:typedef TableCellIdBuilder = String Function(
+12:    String tableId, int rowIndex, int columnIndex);
+14:class InsertTableCommand extends EditorCommand {
+15:  const InsertTableCommand({
+17:    required this.tableId,
+18:    required this.rowCount,
+19:    required this.columnCount,
+25:  final String tableId;
+26:  final int rowCount;
+27:  final int columnCount;
+29:  final TableCellIdBuilder? cellIdBuilder;
+32:  String get description => 'insertTable';
+36:    if (rowCount <= 0 || columnCount <= 0) {
+42:        TableBlockNode(
+43:          id: tableId,
+44:          table: _createTable(tableId, rowCount, columnCount, cellIdBuilder),
+52:class InsertTableRowCommand extends EditorCommand {
+53:  const InsertTableRowCommand({
+55:    required this.rowIndex,
+60:  final int rowIndex;
+61:  final TableCellIdBuilder? cellIdBuilder;
+64:  String get description => 'insertTableRow';
+68:    return insertTableRowAt(
+71:      rowIndex,
+77:class InsertTableColumnCommand extends EditorCommand {
+78:  const InsertTableColumnCommand({
+80:    required this.columnIndex,
+85:  final int columnIndex;
+86:  final TableCellIdBuilder? cellIdBuilder;
+89:  String get description => 'insertTableColumn';
+93:    final tableBlock = tableAt(session, blockIndex);
+94:    if (tableBlock == null) {
+98:        columnIndex.clamp(0, tableBlock.table.columnCount).toInt();
+99:    final rows = <List<TableCellNode>>[
+100:      for (var rowIndex = 0; rowIndex < tableBlock.table.rowCount; rowIndex++)
+101:        <TableCellNode>[
+103:            copyCell(tableBlock.table.rows[rowIndex][col]),
+105:            _cellId(tableBlock.id, rowIndex, insertIndex, cellIdBuilder),
+108:              col < tableBlock.table.rows[rowIndex].length;
+110:            copyCell(tableBlock.table.rows[rowIndex][col]),
+113:    // Reindex alignments so columns that were at/after the insertion point
+114:    // keep their alignment on the shifted column index. Mirrors the reverse
+115:    // shift done by DeleteTableColumnCommand.
+116:    final alignments = shiftColumnMapOnInsert(
+117:      tableBlock.table.columnAlignments,
+121:      tableBlock.table.columnWidths,
+124:    return replaceTable(
+127:      tableBlock,
+128:      rows,
+129:      columnAlignments: alignments,
+130:      columnWidths: widths,
+135:class DeleteTableRowCommand extends EditorCommand {
+136:  const DeleteTableRowCommand({
+138:    required this.rowIndex,
+142:  final int rowIndex;
+145:  String get description => 'deleteTableRow';
+149:    final tableBlock = tableAt(session, blockIndex);
+150:    if (tableBlock == null ||
+151:        tableBlock.table.rowCount <= 1 ||
+152:        rowIndex < 0 ||
+153:        rowIndex >= tableBlock.table.rowCount) {
+156:    final rows = <List<TableCellNode>>[
+157:      for (var i = 0; i < tableBlock.table.rowCount; i++)
+158:        if (i != rowIndex) copyRow(tableBlock.table.rows[i]),
+160:    return replaceTable(session, blockIndex, tableBlock, rows);
+164:class DeleteTableColumnCommand extends EditorCommand {
+165:  const DeleteTableColumnCommand({
+167:    required this.columnIndex,
+171:  final int columnIndex;
+174:  String get description => 'deleteTableColumn';
+178:    final tableBlock = tableAt(session, blockIndex);
+179:    if (tableBlock == null ||
+180:        tableBlock.table.columnCount <= 1 ||
+181:        columnIndex < 0 ||
+182:        columnIndex >= tableBlock.table.columnCount) {
+185:    final rows = <List<TableCellNode>>[
+186:      for (final row in tableBlock.table.rows)
+187:        <TableCellNode>[
+188:          for (var i = 0; i < row.length; i++)
+189:            if (i != columnIndex) copyCell(row[i]),
+192:    final alignments = shiftColumnMapOnDelete(
+193:      tableBlock.table.columnAlignments,
+194:      columnIndex,
+197:      tableBlock.table.columnWidths,
+198:      columnIndex,
+200:    return replaceTable(
+203:      tableBlock,
+204:      rows,
+205:      columnAlignments: alignments,
+206:      columnWidths: widths,
+211:class SetTableColumnAlignmentCommand extends EditorCommand {
+212:  const SetTableColumnAlignmentCommand({
+214:    required this.columnIndex,
+215:    required this.alignment,
+219:  final int columnIndex;
+220:  final String? alignment;
+223:  String get description => 'setTableColumnAlignment';
+227:    final tableBlock = tableAt(session, blockIndex);
+228:    if (tableBlock == null ||
+229:        columnIndex < 0 ||
+230:        columnIndex >= tableBlock.table.columnCount) {
+233:    final alignments = Map<int, String>.from(tableBlock.table.columnAlignments);
+234:    if (alignment == null) {
+235:      alignments.remove(columnIndex);
+237:      alignments[columnIndex] = alignment!;
+239:    return replaceTable(
+242:      tableBlock,
+243:      tableBlock.table.rows.map(copyRow).toList(),
+244:      columnAlignments: alignments,
+249:class SetTableColumnWidthCommand extends EditorCommand {
+250:  const SetTableColumnWidthCommand({
+252:    required this.columnIndex,
+257:  final int columnIndex;
+261:  String get description => 'setTableColumnWidth';
+265:    final tableBlock = tableAt(session, blockIndex);
+266:    if (tableBlock == null ||
+267:        columnIndex < 0 ||
+268:        columnIndex >= tableBlock.table.columnCount) {
+271:    final widths = Map<int, double>.from(tableBlock.table.columnWidths);
+273:      widths.remove(columnIndex);
+275:      widths[columnIndex] = width!;
+277:    return replaceTable(
+280:      tableBlock,
+281:      tableBlock.table.rows.map(copyRow).toList(),
+282:      columnWidths: widths,
+287:class SetTableCellHeaderCommand extends EditorCommand {
+288:  const SetTableCellHeaderCommand({
+290:    required this.rowIndex,
+291:    required this.columnIndex,
+296:  final int rowIndex;
+297:  final int columnIndex;
+301:  String get description => 'setTableCellHeader';
+305:    return updateTableCell(
+308:      rowIndex,
+309:      columnIndex,
+310:      (cell) => TableCellNode(
+313:        rowSpan: cell.rowSpan,
+314:        columnSpan: cell.columnSpan,
+316:        backgroundColor: cell.backgroundColor,
+323:class SetTableCellBackgroundCommand extends EditorCommand {
+324:  const SetTableCellBackgroundCommand({
+326:    required this.rowIndex,
+327:    required this.columnIndex,
+328:    required this.backgroundColor,
+332:  final int rowIndex;
+333:  final int columnIndex;
+334:  final int? backgroundColor;
+337:  String get description => 'setTableCellBackground';
+341:    return updateTableCell(
+344:      rowIndex,
+345:      columnIndex,
+346:      (cell) => TableCellNode(
+349:        rowSpan: cell.rowSpan,
+350:        columnSpan: cell.columnSpan,
+352:        backgroundColor: backgroundColor,
+359:class MergeTableCellsCommand extends EditorCommand {
+360:  const MergeTableCellsCommand({
+375:  String get description => 'mergeTableCells';
+379:    final tableBlock = tableAt(session, blockIndex);
+380:    if (tableBlock == null) {
+389:        bottom >= tableBlock.table.rowCount ||
+390:        right >= tableBlock.table.columnCount ||
+394:    for (var row = top; row <= bottom; row++) {
+395:      for (var column = left; column <= right; column++) {
+396:        final cell = tableBlock.table.cellAt(row, column);
+399:            cell.rowSpan != 1 ||
+400:            cell.columnSpan != 1) {
+405:    final rows = tableBlock.table.rows.map(copyRow).toList();
+406:    for (var row = top; row <= bottom; row++) {
+407:      for (var column = left; column <= right; column++) {
+408:        final cell = rows[row][column];
+409:        rows[row][column] = TableCellNode(
+412:          rowSpan: row == top && column == left ? bottom - top + 1 : 1,
+413:          columnSpan: row == top && column == left ? right - left + 1 : 1,
+415:          backgroundColor: cell.backgroundColor,
+416:          covered: !(row == top && column == left),
+420:    return replaceTable(
+423:      tableBlock,
+424:      rows,
+425:      columnAlignments: tableBlock.table.columnAlignments,
+426:      columnWidths: tableBlock.table.columnWidths,
+431:class SplitTableCellCommand extends EditorCommand {
+432:  const SplitTableCellCommand({
+434:    required this.rowIndex,
+435:    required this.columnIndex,
+439:  final int rowIndex;
+440:  final int columnIndex;
+443:  String get description => 'splitTableCell';
+447:    final tableBlock = tableAt(session, blockIndex);
+448:    final anchor = tableBlock?.table.cellAt(rowIndex, columnIndex);
+449:    if (tableBlock == null ||
+452:        (anchor.rowSpan == 1 && anchor.columnSpan == 1)) {
+455:    final bottom = rowIndex + anchor.rowSpan - 1;
+456:    final right = columnIndex + anchor.columnSpan - 1;
+457:    if (bottom >= tableBlock.table.rowCount ||
+458:        right >= tableBlock.table.columnCount) {
+461:    final rows = tableBlock.table.rows.map(copyRow).toList();
+462:    for (var row = rowIndex; row <= bottom; row++) {
+463:      for (var column = columnIndex; column <= right; column++) {
+464:        final cell = rows[row][column];
+465:        rows[row][column] = TableCellNode(
+469:          backgroundColor: cell.backgroundColor,
+473:    return replaceTable(
+476:      tableBlock,
+477:      rows,
+478:      columnAlignments: tableBlock.table.columnAlignments,
+479:      columnWidths: tableBlock.table.columnWidths,
+484:class InsertTableCellTextCommand extends EditorCommand {
+485:  const InsertTableCellTextCommand({
+487:    required this.rowIndex,
+488:    required this.columnIndex,
+495:  final int rowIndex;
+496:  final int columnIndex;
+502:  String get description => 'insertTableCellText';
+506:    return insertTableCellInlineText(
+509:      rowIndex,
+510:      columnIndex,
+518:class DeleteTableCellTextCommand extends EditorCommand {
+519:  const DeleteTableCellTextCommand({
+521:    required this.rowIndex,
+522:    required this.columnIndex,
+528:  final int rowIndex;
+529:  final int columnIndex;
+534:  String get description => 'deleteTableCellText';
+538:    return deleteTableCellInlineRange(
+541:      rowIndex,
+542:      columnIndex,
+549:class FormatTableCellTextCommand extends EditorCommand {
+550:  const FormatTableCellTextCommand({
+552:    required this.rowIndex,
+553:    required this.columnIndex,
+560:  final int rowIndex;
+561:  final int columnIndex;
+567:  String get description => 'formatTableCellText';
+571:    return formatTableCellInlineRange(
+574:      rowIndex,
+575:      columnIndex,
+583:CommandResult insertTableRowAt(
+586:  int rowIndex, {
+587:  TableCellIdBuilder? cellIdBuilder,
+589:  final tableBlock = tableAt(session, blockIndex);
+590:  if (tableBlock == null) {
+593:  final insertIndex = rowIndex.clamp(0, tableBlock.table.rowCount).toInt();
+594:  final rows = <List<TableCellNode>>[
+595:    for (var i = 0; i < insertIndex; i++) copyRow(tableBlock.table.rows[i]),
+597:      tableBlock.id,
+599:      tableBlock.table.columnCount,
+602:    for (var i = insertIndex; i < tableBlock.table.rowCount; i++)
+603:      copyRow(tableBlock.table.rows[i]),
+605:  return replaceTable(session, blockIndex, tableBlock, rows);
+608:CommandResult updateTableCell(
+611:  int rowIndex,
+612:  int columnIndex,
+613:  TableCellNode Function(TableCellNode cell) update,
+615:  final tableBlock = tableAt(session, blockIndex);
+616:  final cell = tableBlock?.table.cellAt(rowIndex, columnIndex);
+617:  if (tableBlock == null || cell == null) {
+621:  final rows = tableBlock.table.rows.map(copyRow).toList();
+622:  rows[rowIndex][columnIndex] = update(cell);
+623:  final result = replaceTable(session, blockIndex, tableBlock, rows);
+654:TableModel _createTable(
+655:  String tableId,
+656:  int rowCount,
+657:  int columnCount,
+658:  TableCellIdBuilder? cellIdBuilder,
+660:  return TableModel(
+661:    rows: <List<TableCellNode>>[
+662:      for (var row = 0; row < rowCount; row++)
+663:        _createRow(tableId, row, columnCount, cellIdBuilder),
+668:List<TableCellNode> _createRow(
+669:  String tableId,
+670:  int rowIndex,
+671:  int columnCount,
+672:  TableCellIdBuilder? cellIdBuilder,
+674:  return <TableCellNode>[
+675:    for (var column = 0; column < columnCount; column++)
+676:      _emptyCell(_cellId(tableId, rowIndex, column, cellIdBuilder)),
+681:  String tableId,
+682:  int rowIndex,
+683:  int columnIndex,
+684:  TableCellIdBuilder? cellIdBuilder,
+686:  return cellIdBuilder?.call(tableId, rowIndex, columnIndex) ??
+687:      '$tableId-r$rowIndex-c$columnIndex';
+690:TableCellNode _emptyCell(String id) {
+691:  return TableCellNode(
+--- tests table refs ---
+59:          TableBlockNode(
+60:            id: 'table1',
+61:            table: TableModel(
+62:              rows: <List<TableCellNode>>[
+63:                <TableCellNode>[
+64:                  TableCellNode(
+161:                attributes: TextAttributes(background: 0xFFFFF59D),
+209:            width: 640,
+239:    expect(styleOf('highlight').backgroundColor, const Color(0xFFFFF59D));
+251:      styleOf('revision').backgroundColor,
+377:            width: 320,
+432:            width: 360,
+505:            width: 420,
+614:            width: 420,
+672:            width: 420,
+688:    await tester.sendKeyEvent(LogicalKeyboardKey.delete);
+724:            width: 420,
+797:            width: 420,
+862:            width: 420,
+885:  testWidgets('applies paragraph alignment and indent within bounds', (
+894:            attributes: BlockAttributes(alignment: 'left'),
+895:            content: <InlineNode>[TextRun(text: 'Left aligned')],
+900:            attributes: BlockAttributes(alignment: 'center'),
+901:            content: <InlineNode>[TextRun(text: 'Center aligned')],
+906:            attributes: BlockAttributes(alignment: 'right'),
+907:            content: <InlineNode>[TextRun(text: 'Right aligned')],
+912:            attributes: BlockAttributes(alignment: 'justify'),
+913:            content: <InlineNode>[TextRun(text: 'Justified aligned')],
+929:            width: 320,
+942:    TextAlign alignOf(String text) {
+946:    expect(alignOf('Left aligned'), TextAlign.start);
+947:    expect(alignOf('Center aligned'), TextAlign.center);
+948:    expect(alignOf('Right aligned'), TextAlign.right);
+949:    expect(alignOf('Justified aligned'), TextAlign.justify);
+1041:  testWidgets('renders quote blocks with themed background', (tester) async {
+1100:    final backgroundFinder = find.byKey(
+1101:      const ValueKey<String>('wenz-richtext-quote-background'),
+1103:    expect(backgroundFinder, findsNWidgets(2));
+1108:    final background = tester.widgetList<DecoratedBox>(backgroundFinder).first;
+1109:    final decoration = background.decoration as BoxDecoration;
+1125:    expect(tester.getSize(accentFinder.first).width, 4);
+1204:            width: 360,
+1249:    expect(topMarkerRect.width, 18);
+1266:  testWidgets('paragraph converted to quote remains immediately selectable',
+1307:    Future<void> expectConvertedTextSelectable() async {
+1354:    await expectConvertedTextSelectable();
+1360:    await expectConvertedTextSelectable();
+1366:    await expectConvertedTextSelectable();
+1369:  testWidgets('code block toolbar copies code and changes language', (
+1525:            width: 360,
+1555:  testWidgets('object block toolbar copies duplicates moves and deletes', (
+1666:    IconButton toolbarButton(IconData icon) {
+1670:    expect(toolbarButton(Icons.keyboard_arrow_up).onPressed, isNull);
+1671:    expect(toolbarButton(Icons.keyboard_arrow_down).onPressed, isNull);
+2362:  testWidgets('image object toolbar updates and resets display size', (
+2372:            width: 640,
+2494:              width: 960,
+2573:        document: _toolbarTableDocument(),
+2574:        selection: _tableCellSelection(),
+2645:    const body = 'Info body selectable';
+2747:      'selectable\nafter',
+2790:      Color background,
+2797:      expect(decoration.color, background);
+2857:    expect((shell.border as Border).top.width, 1.5);
+3016:    expect(border.top.width, 3);
+3019:  testWidgets('exposes table and merged cell semantics labels', (
+3027:            TableBlockNode(
+3028:              id: 'table1',
+3029:              table: TableModel(
+3030:                rows: <List<TableCellNode>>[
+3031:                  <TableCellNode>[
+3032:                    TableCellNode(
+3033:                      id: 'header',
+3039:                          id: 'header-text',
+3045:                    TableCellNode(id: 'covered-right', covered: true),
+3046:                    TableCellNode(
+3057:                  <TableCellNode>[
+3058:                    TableCellNode(id: 'covered-bottom-left', covered: true),
+3059:                    TableCellNode(id: 'covered-bottom-right', covered: true),
+3060:                    TableCellNode(
+3077:          base: DocumentPosition.tableCell(
+3078:            tableBlockId: 'table1',
+3080:            tableRowIndex: 0,
+3081:            tableColumnIndex: 0,
+3084:          extent: DocumentPosition.tableCell(
+3085:            tableBlockId: 'table1',
+3087:            tableRowIndex: 1,
+3088:            tableColumnIndex: 2,
+3106:        find.bySemanticsLabel('Table block, 2 rows, 3 columns'),
+3111:          'Table cell row 1 column 1, header, spans 2 rows, '
+3117:        find.bySemanticsLabel('Table cell row 1 column 3, selected'),
+3121:        find.bySemanticsLabel('Table cell row 2 column 3, selected'),
+3124:      expect(find.bySemanticsLabel('Table cell row 1 column 2'), findsNothing);
+3130:  testWidgets('table floating toolbar edits rows columns and cells', (
+3134:      document: _toolbarTableDocument(),
+3135:      selection: _tableCellSelection(),
+3142:            width: 960,
+3158:    var table = controller.document.blocks.single as TableBlockNode;
+3159:    expect(table.table.rowCount, 3);
+3163:    table = controller.document.blocks.single as TableBlockNode;
+3164:    expect(table.table.columnCount, 3);
+3168:    table = controller.document.blocks.single as TableBlockNode;
+3169:    expect(table.table.cellAt(0, 0)!.isHeader, isTrue);
+3173:    table = controller.document.blocks.single as TableBlockNode;
+3174:    expect(table.table.cellAt(0, 0)!.backgroundColor, 0xFFFFF3CD);
+3178:    table = controller.document.blocks.single as TableBlockNode;
+3179:    expect(table.table.columnAlignments[0], 'center');
+3182:  testWidgets('table floating toolbar sits above the table cells', (
+3186:      document: _toolbarTableDocument(),
+3193:            width: 960,
+3212:      find.bySemanticsLabel('Table cell row 1 column 1'),
+3216:    controller.setSelection(_tableCellSelection());
+3220:      find.bySemanticsLabel('Table cell row 1 column 1'),
+3222:    final toolbarRect = tester.getRect(
+3223:      find.byKey(const ValueKey<String>('table-floating-toolbar')),
+3225:    final toolbarGap = selectedCellRect.top - toolbarRect.bottom;
+3228:    expect(toolbarRect.bottom, lessThanOrEqualTo(selectedCellRect.top));
+3229:    expect(toolbarGap, moreOrLessEquals(4, epsilon: 0.1));
+3232:  testWidgets('table floating toolbar keeps compact theme close to cells', (
+3236:      document: _toolbarTableDocument(),
+3237:      selection: _tableCellSelection(),
+3247:            width: 960,
+3266:      find.bySemanticsLabel('Table cell row 1 column 1'),
+3268:    final toolbarRect = tester.getRect(
+3269:      find.byKey(const ValueKey<String>('table-floating-toolbar')),
+3271:    final toolbarGap = selectedCellRect.top - toolbarRect.bottom;
+3273:    expect(toolbarRect.bottom, lessThanOrEqualTo(selectedCellRect.top));
+3274:    expect(toolbarGap, moreOrLessEquals(4, epsilon: 0.1));
+3277:  testWidgets('table floating toolbar clamps to viewport top when close', (
+3281:      document: _toolbarTableDocument(),
+3282:      selection: _tableCellSelection(),
+3289:            width: 960,
+3308:      find.bySemanticsLabel('Table cell row 1 column 1'),
+3310:    final toolbarRect = tester.getRect(
+3311:      find.byKey(const ValueKey<String>('table-floating-toolbar')),
+3313:    final toolbarGap = selectedCellRect.top - toolbarRect.bottom;
+3315:    expect(toolbarRect.top, greaterThanOrEqualTo(-0.1));
+3316:    expect(toolbarRect.bottom, lessThanOrEqualTo(selectedCellRect.top));
+3317:    expect(toolbarGap, greaterThanOrEqualTo(-0.1));
+3318:    expect(toolbarGap, lessThanOrEqualTo(4.1));
+3322:      'table floating toolbar pointer does not penetrate selection layer',
+3325:      document: _toolbarTableDocument(),
+3326:      selection: _collapsedTableCellTextSelection(
+3327:        tableBlockId: 'table1',
+3329:        tableRowIndex: 1,
+3330:        tableColumnIndex: 1,
+3339:            width: 960,
+3357:    final toolbarFinder =
+3358:        find.byKey(const ValueKey<String>('table-floating-toolbar'));
+3359:    final toolbarRenderObject = tester.renderObject(toolbarFinder);
+3360:    final toolbarRect = tester.getRect(toolbarFinder);
+3361:    final toolbarBlockerFinder = find.byKey(
+3362:      const ValueKey<String>('table-floating-toolbar-hit-test-blocker'),
+3364:    final toolbarBlockerRenderObject = tester.renderObject(toolbarBlockerFinder);
+3365:    final toolbarBlockerRect = tester.getRect(toolbarBlockerFinder);
+3367:      find.byKey(const ValueKey<String>('table-cell-border-table1-1-1')),
+3371:    expect(toolbarBlockerRect.left, moreOrLessEquals(toolbarRect.left));
+3372:    expect(toolbarBlockerRect.top, moreOrLessEquals(toolbarRect.top));
+3373:    expect(toolbarBlockerRect.right, moreOrLessEquals(toolbarRect.right));
+3374:    expect(toolbarBlockerRect.bottom, moreOrLessEquals(toolbarRect.bottom));
+3396:      contains(toolbarBlockerRenderObject),
+3397:      reason: 'The full visible toolbar rect must own pointer hit testing.',
+3401:      contains(toolbarRenderObject),
+3402:      reason: 'The visual toolbar should be in the same hit-test chain.',
+3408:          'toolbar pointers.',
+3419:      reason: 'The overlay must not install a full-screen blocker over cells.',
+3423:      isNot(contains(toolbarBlockerRenderObject)),
+3424:      reason: 'Toolbar hit testing should be limited to the toolbar rect.',
+3430:    final table = controller.document.blocks.single as TableBlockNode;
+3431:    expect(table.table.rowCount, 3);
+3432:    expect(controller.selection?.extent.path.tableRowIndex, isNot(0));
+3433:    expect(controller.selection?.extent.path.tableColumnIndex, 1);
+3436:  testWidgets('table cell borders paint shared grid lines once', (
+3440:      document: _toolbarTableDocument(),
+3447:            width: 960,
+3459:    final topLeft = _paintedTableCellBorder(tester, 'table1', 0, 0);
+3460:    final topRight = _paintedTableCellBorder(tester, 'table1', 0, 1);
+3461:    final bottomLeft = _paintedTableCellBorder(tester, 'table1', 1, 0);
+3462:    final bottomRight = _paintedTableCellBorder(tester, 'table1', 1, 1);
+3485:  testWidgets('table cells use design padding and backgrounds', (
+3489:      document: _styledTableDocument(),
+3496:            width: 960,
+3509:    final headerBorder = _paintedTableCellBorder(tester, 'table-style', 0, 0);
+3510:    expect(headerBorder.top.color, const Color(0xFFECE9F5));
+3512:    final headerCellFinder = find.byKey(
+3513:      const ValueKey<String>('table-cell-border-table-style-0-0'),
+3515:    final headerPaddings = tester.widgetList<Padding>(
+3517:        of: headerCellFinder,
+3522:      headerPaddings.map((padding) => padding.padding),
+3526:    final headerRichText = tester
+3529:            of: headerCellFinder,
+3534:    expect(headerRichText.text.style?.fontSize, 15);
+3535:    expect(headerRichText.text.style?.fontWeight, FontWeight.w700);
+3537:        headerRichText.text.style?.color, theme.colorScheme.onSurfaceVariant);
+3539:    final headerBackground = _tableCellBackgroundBox(
+3541:      'table-style',
+3546:      (headerBackground.decoration as BoxDecoration).color,
+3550:    final stripedBackground = _tableCellBackgroundBox(
+3552:      'table-style',
+3561:    final customBackground = _tableCellBackgroundBox(
+3563:      'table-style',
+3573:  testWidgets('table column resize handle stores explicit width', (
+3577:      document: _toolbarTableDocument(),
+3578:      selection: _tableCellSelection(),
+3585:            width: 960,
+3598:      find.byKey(const ValueKey<String>('table-resize-table1-0')),
+3603:    final table = controller.document.blocks.single as TableBlockNode;
+3604:    expect(table.table.columnWidths[0], isNotNull);
+3605:    expect(table.table.columnWidths[0]!, greaterThan(48));
+3640:            TableBlockNode(
+3641:              id: 'table1',
+3642:              table: TableModel(
+3643:                rows: <List<TableCellNode>>[
+3644:                  <TableCellNode>[
+3645:                    TableCellNode(
+3706:    const calloutBody = 'Info body selectable';
+3725:            content: <InlineNode>[TextRun(text: 'Quoted background')],
+3738:          TableBlockNode(
+3739:            id: 'table1',
+3740:            table: TableModel(
+3741:              rows: <List<TableCellNode>>[
+3742:                <TableCellNode>[
+3743:                  TableCellNode(
+3753:                  TableCellNode(
+3764:                <TableCellNode>[
+3765:                  TableCellNode(
+3775:                  TableCellNode(
+3815:            width: 960,
+3835:      const ValueKey<String>('wenz-richtext-quote-background'),
+3889:    final topLeft = _paintedTableCellBorder(tester, 'table1', 0, 0);
+3890:    final bottomRight = _paintedTableCellBorder(tester, 'table1', 1, 1);
+3900:    final tablePosition = DocumentPosition.tableCell(
+3901:      tableBlockId: 'table1',
+3903:      tableRowIndex: 0,
+3904:      tableColumnIndex: 0,
+3908:      DocumentSelection(base: tablePosition, extent: tablePosition),
+3913:      find.bySemanticsLabel('Table cell row 1 column 1'),
+3915:    final toolbarRect = tester.getRect(
+3916:      find.byKey(const ValueKey<String>('table-floating-toolbar')),
+3918:    expect(toolbarRect.bottom, lessThanOrEqualTo(selectedCellRect.top));
+3919:    expect(selectedCellRect.top - toolbarRect.bottom,
+3954:            width: 720,
+3976:  testWidgets('aligns todo checkbox with adjusted text line height',
+4004:            width: 260,
+4055:    'feedback #4 visual regressions keep formula todo and toolbar metrics',
+4067:          'lines while keeping every continuation aligned under the text';
+4068:      const tableBlockIndex = 4;
+4069:      final tablePosition = DocumentPosition.tableCell(
+4070:        tableBlockId: 'table1',
+4071:        blockIndex: tableBlockIndex,
+4072:        tableRowIndex: 0,
+4073:        tableColumnIndex: 0,
+4117:            TableBlockNode(
+4118:              id: 'table1',
+4119:              table: TableModel(
+4120:                rows: <List<TableCellNode>>[
+4121:                  <TableCellNode>[
+4122:                    TableCellNode(
+4132:                    TableCellNode(
+4149:          base: tablePosition,
+4150:          extent: tablePosition,
+4158:              width: 720,
+4233:        find.bySemanticsLabel('Table cell row 1 column 1'),
+4235:      final toolbarRect = tester.getRect(
+4236:        find.byKey(const ValueKey<String>('table-floating-toolbar')),
+4238:      final toolbarGap = selectedCellRect.top - toolbarRect.bottom;
+4240:      expect(toolbarRect.bottom, lessThanOrEqualTo(selectedCellRect.top));
+4241:      expect(toolbarGap, moreOrLessEquals(4, epsilon: 0.1));
+4322:    controller.insertText('!');
+4375:  testWidgets('keyboard text and backspace edit table cells', (tester) async {
+4379:          TableBlockNode(
+4380:            id: 'table1',
+4381:            table: TableModel(
+4382:              rows: <List<TableCellNode>>[
+4383:                <TableCellNode>[
+4384:                  TableCellNode(
+4401:        base: DocumentPosition.tableCell(
+4402:          tableBlockId: 'table1',
+4404:          tableRowIndex: 0,
+4405:          tableColumnIndex: 0,
+4408:        extent: DocumentPosition.tableCell(
+4409:          tableBlockId: 'table1',
+4411:          tableRowIndex: 0,
+4412:          tableColumnIndex: 0,
+4434:    var table = controller.document.blocks.single as TableBlockNode;
+4435:    var cellText = table.table.cellAt(0, 0)!.plainText;
+4437:    expect(controller.selection?.extent.path.isTableCellText, isTrue);
+4443:    table = controller.document.blocks.single as TableBlockNode;
+4444:    cellText = table.table.cellAt(0, 0)!.plainText;
+4446:    expect(controller.selection?.extent.path.isTableCellText, isTrue);
+4450:  testWidgets('enter inserts newline inside table cell', (tester) async {
+4451:    final position = DocumentPosition.tableCell(
+4452:      tableBlockId: 'table1',
+4454:      tableRowIndex: 0,
+4455:      tableColumnIndex: 0,
+4461:          TableBlockNode(
+4462:            id: 'table1',
+4463:            table: TableModel(
+4464:              rows: <List<TableCellNode>>[
+4465:                <TableCellNode>[
+4466:                  TableCellNode(
+4502:    final table = controller.document.blocks.single as TableBlockNode;
+4503:    expect(table.table.cellAt(0, 0)!.plainText, 'H\ni');
+4504:    expect(controller.selection?.extent.path.isTableCellText, isTrue);
+4508:  testWidgets('table cell arrow keys and tab navigate cells', (tester) async {
+4512:          TableBlockNode(
+4513:            id: 'table1',
+4514:            table: TableModel(
+4515:              rows: <List<TableCellNode>>[
+4516:                <TableCellNode>[
+4517:                  TableCellNode(
+4527:                  TableCellNode(
+4544:        base: DocumentPosition.tableCell(
+4545:          tableBlockId: 'table1',
+4547:          tableRowIndex: 0,
+4548:          tableColumnIndex: 0,
+4551:        extent: DocumentPosition.tableCell(
+4552:          tableBlockId: 'table1',
+4554:          tableRowIndex: 0,
+4555:          tableColumnIndex: 0,
+4576:    expect(controller.selection?.extent.path.tableColumnIndex, 0);
+4581:    expect(controller.selection?.extent.path.tableColumnIndex, 1);
+4584:    // Forward Tab on the last cell inserts a new row and lands the caret in
+4588:    expect(controller.selection?.extent.path.tableRowIndex, 1);
+4589:    expect(controller.selection?.extent.path.tableColumnIndex, 0);
+4597:    expect(controller.selection?.extent.path.tableRowIndex, 0);
+4598:    expect(controller.selection?.extent.path.tableColumnIndex, 1);
+4602:  testWidgets('tab indents code blocks instead of navigating tables', (
+4641:  testWidgets('table cell arrow up/down navigate across rows', (tester) async {
+4645:          TableBlockNode(
+4646:            id: 'table1',
+4647:            table: TableModel(
+4648:              rows: <List<TableCellNode>>[
+4649:                <TableCellNode>[
+4650:                  TableCellNode(
+4661:                <TableCellNode>[
+4662:                  TableCellNode(
+4679:        base: DocumentPosition.tableCell(
+4680:          tableBlockId: 'table1',
+4682:          tableRowIndex: 0,
+4683:          tableColumnIndex: 0,
+4686:        extent: DocumentPosition.tableCell(
+4687:          tableBlockId: 'table1',
+4689:          tableRowIndex: 0,
+4690:          tableColumnIndex: 0,
+4711:    expect(controller.selection?.extent.path.tableRowIndex, 1);
+4712:    expect(controller.selection?.extent.path.tableColumnIndex, 0);
+4717:    expect(controller.selection?.extent.path.tableRowIndex, 0);
+4718:    expect(controller.selection?.extent.path.tableColumnIndex, 0);
+4896:  testWidgets('tap editable block places caret at block end', (tester) async {
+5063:  testWidgets('tap below a trailing table appends a paragraph', (tester) async {
+5067:          TableBlockNode(
+5068:            id: 'table1',
+5069:            table: TableModel(
+5070:              rows: <List<TableCellNode>>[
+5071:                <TableCellNode>[
+5072:                  TableCellNode(
+5199:  testWidgets('ArrowDown from a trailing table appends a paragraph', (
+5205:          TableBlockNode(
+5206:            id: 'table1',
+5207:            table: TableModel(
+5208:              rows: <List<TableCellNode>>[
+5209:                <TableCellNode>[
+5210:                  TableCellNode(
+5476:  testWidgets('table cell inline embeds select atomically by tap drag keyboard',
+5484:          TableBlockNode(
+5485:            id: 'table-inline',
+5486:            table: TableModel(
+5487:              rows: <List<TableCellNode>>[
+5488:                <TableCellNode>[
+5489:                  TableCellNode(
+5512:                <TableCellNode>[
+5513:                  TableCellNode(
+5555:    _expectTableCellTextSelection(
+5557:      tableBlockId: 'table-inline',
+5559:      tableRowIndex: 0,
+5560:      tableColumnIndex: 0,
+5566:    _expectTableCellTextSelection(
+5568:      tableBlockId: 'table-inline',
+5570:      tableRowIndex: 0,
+5571:      tableColumnIndex: 0,
+5578:    _expectTableCellTextSelection(
+5580:      tableBlockId: 'table-inline',
+5582:      tableRowIndex: 0,
+5583:      tableColumnIndex: 0,
+5591:    _expectTableCellTextSelection(
+5593:      tableBlockId: 'table-inline',
+5595:      tableRowIndex: 0,
+5596:      tableColumnIndex: 0,
+5605:    _expectTableCellTextSelection(
+5607:      tableBlockId: 'table-inline',
+5609:      tableRowIndex: 0,
+5610:      tableColumnIndex: 0,
+5618:    _expectTableCellTextSelection(
+5620:      tableBlockId: 'table-inline',
+5622:      tableRowIndex: 0,
+5623:      tableColumnIndex: 0,
+5629:      _collapsedTableCellTextSelection(
+5630:        tableBlockId: 'table-inline',
+5632:        tableRowIndex: 0,
+5633:        tableColumnIndex: 0,
+5639:    _expectTableCellTextSelection(
+5641:      tableBlockId: 'table-inline',
+5643:      tableRowIndex: 0,
+5644:      tableColumnIndex: 0,
+5650:      _collapsedTableCellTextSelection(
+5651:        tableBlockId: 'table-inline',
+5653:        tableRowIndex: 0,
+5654:        tableColumnIndex: 0,
+5660:    _expectTableCellTextSelection(
+5662:      tableBlockId: 'table-inline',
+5664:      tableRowIndex: 0,
+5665:      tableColumnIndex: 0,
+5671:      _collapsedTableCellTextSelection(
+5672:        tableBlockId: 'table-inline',
+5674:        tableRowIndex: 0,
+5675:        tableColumnIndex: 0,
+5681:    _expectTableCellTextSelection(
+5683:      tableBlockId: 'table-inline',
+5685:      tableRowIndex: 0,
+5686:      tableColumnIndex: 0,
+5692:  testWidgets('dragging across table cells creates table cell range', (
+5698:          TableBlockNode(
+5699:            id: 'table1',
+5700:            table: TableModel(
+5701:              rows: <List<TableCellNode>>[
+5702:                <TableCellNode>[
+5703:                  TableCellNode(
+5713:                  TableCellNode(
+5724:                <TableCellNode>[
+5725:                  TableCellNode(
+5735:                  TableCellNode(
+5771:    expect(selection!.base.path.isTableCellText, isTrue);
+5772:    expect(selection.extent.path.isTableCellText, isTrue);
+5773:    expect(selection.base.path.tableRowIndex, 0);
+5774:    expect(selection.base.path.tableColumnIndex, 0);
+5775:    expect(selection.extent.path.tableRowIndex, 1);
+5776:    expect(selection.extent.path.tableColumnIndex, 1);
+5778:    final range = selection.tableCellRange;
+5791:  testWidgets('merged table cell spans covered columns for hit testing', (
+5797:          TableBlockNode(
+5798:            id: 'table1',
+5799:            table: TableModel(
+5800:              rows: <List<TableCellNode>>[
+5801:                <TableCellNode>[
+5802:                  TableCellNode(
+5813:                  TableCellNode(
+5852:    expect(extent!.path.isTableCellText, isTrue);
+5853:    expect(extent.path.tableRowIndex, 0);
+5854:    expect(extent.path.tableColumnIndex, 0);
+5857:  testWidgets('merged table cell spans covered rows for hit testing', (
+5863:          TableBlockNode(
+5864:            id: 'table1',
+5865:            table: TableModel(
+5866:              rows: <List<TableCellNode>>[
+5867:                <TableCellNode>[
+5868:                  TableCellNode(
+5880:                  TableCellNode(id: 'cell-b', covered: true),
+5882:                <TableCellNode>[
+5883:                  TableCellNode(id: 'cell-c', covered: true),
+5884:                  TableCellNode(id: 'cell-d', covered: true),
+5912:    expect(extent!.path.isTableCellText, isTrue);
+5913:    expect(extent.path.tableRowIndex, 0);
+5914:    expect(extent.path.tableColumnIndex, 0);
+5918:      'selection from a table cell into a later block highlights later cells', (
+5921:    final start = DocumentPosition.tableCell(
+5922:      tableBlockId: 'table1',
+5924:      tableRowIndex: 0,
+5925:      tableColumnIndex: 0,
+5936:          TableBlockNode(
+5937:            id: 'table1',
+5938:            table: TableModel(
+5939:              rows: <List<TableCellNode>>[
+5940:                <TableCellNode>[
+5941:                  TableCellNode(
+5951:                  TableCellNode(
+6032:  testWidgets('read-only mode blocks text insertion via keyboard', (
+6068:  testWidgets('C0 control characters are not inserted', (tester) async {
+6184:    controller.insertText(
+6202:          (call) => call.method == 'TextInput.setEditableSizeAndTransform'),
+6241:    await _performPlatformSelectors(tester, <String>['deleteWordBackward:']);
+6248:  testWidgets('Backspace deletes an expanded selection', (tester) async {
+6283:  testWidgets('Delete deletes an expanded selection', (tester) async {
+6310:    await tester.sendKeyEvent(LogicalKeyboardKey.delete);
+6318:  testWidgets('platform delete selector deletes an expanded selection', (
+6346:    await _performPlatformSelectors(tester, <String>['deleteBackward:']);
+6354:  testWidgets('debug overlay renders selection tag when enabled', (
+6388:  testWidgets('Ctrl+A selects the whole editable range', (tester) async {
+6529:    await tester.sendKeyEvent(LogicalKeyboardKey.delete);
+6542:  testWidgets('Delete deletes a selected video block', (tester) async {
+6565:    await tester.sendKeyEvent(LogicalKeyboardKey.delete);
+7364:        child: SizedBox(height: 12, width: double.infinity),
+7528:            width: double.infinity,
+7530:              alignment: Alignment.centerLeft,
+7571:              // Direct key-event character insertion (no IME) keeps the test
+7813:      controller.deleteSelection();
+7923:  )..layout(maxWidth: size.width);
+7953:DocumentSelection _collapsedTableCellTextSelection({
+7954:  required String tableBlockId,
+7956:  required int tableRowIndex,
+7957:  required int tableColumnIndex,
+7960:  final position = DocumentPosition.tableCell(
+7961:    tableBlockId: tableBlockId,
+7963:    tableRowIndex: tableRowIndex,
+7964:    tableColumnIndex: tableColumnIndex,
+7988:void _expectTableCellTextSelection(
+7990:  required String tableBlockId,
+7992:  required int tableRowIndex,
+7993:  required int tableColumnIndex,
+7998:  final expectedPath = PositionPath.tableCellText(
+7999:    tableBlockId,
+8000:    tableRowIndex,
+8001:    tableColumnIndex,
+8003:  expect(selection!.base.blockId, tableBlockId);
+8007:  expect(selection.extent.blockId, tableBlockId);
+8034:RichTextDocument _toolbarTableDocument() {
+8037:      TableBlockNode(
+8038:        id: 'table1',
+8039:        table: TableModel(
+8040:          rows: <List<TableCellNode>>[
+8041:            <TableCellNode>[
+8042:              TableCellNode(
+8052:              TableCellNode(
+8063:            <TableCellNode>[
+8064:              TableCellNode(
+8074:              TableCellNode(
+8092:RichTextDocument _styledTableDocument() {
+8095:      TableBlockNode(
+8096:        id: 'table-style',
+8097:        table: TableModel(
+8098:          rows: <List<TableCellNode>>[
+8099:            <TableCellNode>[
+8100:              TableCellNode(
+8101:                id: 'table-style-head-a',
+8105:                    id: 'table-style-head-a-text',
+8111:              TableCellNode(
+8112:                id: 'table-style-head-b',
+8116:                    id: 'table-style-head-b-text',
+8123:            <TableCellNode>[
+8124:              TableCellNode(
+8125:                id: 'table-style-body-a',
+8128:                    id: 'table-style-body-a-text',
+8134:              TableCellNode(
+8135:                id: 'table-style-body-b',
+8136:                backgroundColor: 0xFFEAF4FF,
+8139:                    id: 'table-style-body-b-text',
+8146:            <TableCellNode>[
+8147:              TableCellNode(
+8148:                id: 'table-style-merge-a',
+8151:                backgroundColor: 0xFFEAF4FF,
+8154:                    id: 'table-style-merge-a-text',
+8160:              TableCellNode(id: 'table-style-merge-b', covered: true),
+8162:            <TableCellNode>[
+8163:              TableCellNode(id: 'table-style-merge-c', covered: true),
+8164:              TableCellNode(
+8165:                id: 'table-style-merge-d',
+8168:                    id: 'table-style-merge-d-text',
+8182:DocumentSelection _tableCellSelection() {
+8183:  final position = DocumentPosition.tableCell(
+8184:    tableBlockId: 'table1',
+8186:    tableRowIndex: 0,
+8187:    tableColumnIndex: 0,
+8193:Border _paintedTableCellBorder(
+8195:  String tableBlockId,
+8202:          'table-cell-border-$tableBlockId-$rowIndex-$columnIndex'),
+8209:DecoratedBox _tableCellBackgroundBox(
+8211:  String tableBlockId,
+8219:            'table-cell-border-$tableBlockId-$rowIndex-$columnIndex'),
+8247:  expect(side.width, 1);
+8310:  )..layout(maxWidth: size.width);
+8334:  )..layout(maxWidth: size.width);
+8350:        rangeRect.left + rangeRect.width * fraction,
+
+**Figuring out output issues**
+
+I need to deal with an output that seems way too large or truncated. It sounds like I need some more targeted readings or insights. I should inspect specific chunks in the wenz_rich_text_editor for relevant bits. Additionally, it might be a good idea to overlay the whole thing, but not too big. I’ll also look into the commands file and consider tests around the table toolbar. Using PowerShell to select lines could help!
+codex
+范围内已有大量变更，我会避免覆盖，只针对 P005 路径补丁。
+exec
+powershell.exe -Command '$ErrorActionPreference='"'Stop'; function Show("'$Path,$Start,$End){ Write-Output "--- $Path:$Start-$End ---"; $i=0; Get-Content -Path $Path -Encoding UTF8 | ForEach-Object { $i++; if($i -ge $Start -and $i -le $End){ '"'{0,5}: {1}' -f "'$i,$_ } } }; Show '"'lib/src/widgets/wenz_rich_text_editor.dart' 500 830; Show 'lib/src/widgets/wenz_rich_text_editor.dart' 980 1145; Show 'lib/src/widgets/wenz_rich_text_editor.dart' 1180 1375; Show 'lib/src/widgets/table_floating_toolbar_overlay.dart' 1 260; Show 'lib/src/core/commands/table_commands.dart' 1 340" in D:\project\GitHub\wenz_flutter\wenz_richtext
+2026-06-25T07:24:24.734701Z ERROR codex_core::tools::router: error={"output":"At line:2 char:84\r\n+ ... '; function Show($Path,$Start,$End){ Write-Output \"--- $Path:$Start-$ ...\r\n+                                                            ~~~~~~\r\nVariable reference is not valid. ':' was not followed by a valid variable name character. Consider using ${} to delimit\r\n the name.\r\n    + CategoryInfo          : ParserError: (:) [], ParentContainsErrorRecordException\r\n    + FullyQualifiedErrorId : InvalidVariableReferenceWithDrive\r\n \r\n","metadata":{"exit_code":1,"duration_seconds":0.2}}
+ exited 1 in 242ms:
+At line:2 char:84
++ ... '; function Show($Path,$Start,$End){ Write-Output "--- $Path:$Start-$ ...
++                                                            ~~~~~~
+Variable reference is not valid. ':' was not followed by a valid variable name character. Consider using ${} to delimit
+ the name.
+    + CategoryInfo          : ParserError: (:) [], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : InvalidVariableReferenceWithDrive
+ 
+
+ERROR: You've hit your usage limit. Try again later.
+ERROR: You've hit your usage limit. Try again later.
+tokens used
+44,375

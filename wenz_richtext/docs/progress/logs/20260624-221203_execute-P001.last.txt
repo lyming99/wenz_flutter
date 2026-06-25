@@ -1,0 +1,7 @@
+已完成 P001，未提前执行 P002。
+
+- 已勾选 `P001`：`docs/plan/plan_feedback_1_20260624-220759.md:15`
+- 已更新进度区，写入最小复现文档、段落/表格边界、键盘与全选观察、风险记录：`docs/plan/plan_feedback_1_20260624-220759.md:54`
+- 复现确认：段落与表格单元格均受影响，核心问题是 `InlineEmbed` 文档长度为 1，但渲染为变长 `TextSpan` 后命中测试/高亮仍直接使用渲染 offset
+- 验证方式：运行过临时诊断测试 `flutter test test/p001_inline_embed_repro_tmp_test.dart --reporter expanded`，测试文件已删除，仅保留计划更新
+- 注意：工作区已有其它既有改动/未跟踪项，我未处理也未推进其它任务

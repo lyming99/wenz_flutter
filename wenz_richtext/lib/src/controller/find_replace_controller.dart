@@ -5,6 +5,7 @@ import '../core/model/block_node.dart';
 import '../core/model/inline_node.dart';
 import '../core/model/table_model.dart';
 import '../core/position/document_position.dart';
+import 'outline_controller.dart';
 import 'wenz_rich_text_controller.dart';
 
 class FindReplaceOptions {
@@ -82,13 +83,18 @@ class WenzFindReplaceController extends ChangeNotifier {
   WenzFindReplaceController({
     required WenzRichTextController editor,
     FindReplaceOptions options = const FindReplaceOptions(),
+    WenzOutlineController? outlineController,
   })  : _editor = editor,
+        _outlineController = outlineController,
         _options = options {
     _editor.addListener(_handleEditorChanged);
   }
 
   WenzRichTextController get editor => _editor;
   WenzRichTextController _editor;
+
+  WenzOutlineController? get outlineController => _outlineController;
+  WenzOutlineController? _outlineController;
 
   String get query => _query;
   String _query = '';
@@ -125,6 +131,13 @@ class WenzFindReplaceController extends ChangeNotifier {
     _editor = editor;
     _editor.addListener(_handleEditorChanged);
     refresh(selectNearest: true);
+  }
+
+  void attachOutlineController(WenzOutlineController? outlineController) {
+    if (identical(_outlineController, outlineController)) {
+      return;
+    }
+    _outlineController = outlineController;
   }
 
   void setQuery(String value, {bool selectFirst = true}) {
@@ -207,6 +220,7 @@ class WenzFindReplaceController extends ChangeNotifier {
     }
     _currentIndex = index;
     final match = _matches[index];
+    _revealSelection(match.selection);
     _editor.setSelection(match.selection);
     notifyListeners();
     return match;
@@ -219,6 +233,7 @@ class WenzFindReplaceController extends ChangeNotifier {
     }
     final replacementText = value ?? _replacement;
     final oldIndex = _currentIndex;
+    _revealSelection(match.selection);
     _editor.setSelection(match.selection);
     final change = _editor.insertText(
       replacementText,
@@ -243,6 +258,7 @@ class WenzFindReplaceController extends ChangeNotifier {
     final targets = List<FindReplaceMatch>.from(_matches);
     var count = 0;
     for (final match in targets.reversed) {
+      _revealSelection(match.selection);
       _editor.setSelection(match.selection);
       final change = _editor.insertText(
         replacementText,
@@ -294,6 +310,14 @@ class WenzFindReplaceController extends ChangeNotifier {
 
   void _handleEditorChanged() {
     refresh(selectNearest: true);
+  }
+
+  bool _revealSelection(DocumentSelection selection) {
+    final outline = _outlineController;
+    if (outline == null || !identical(outline.editor, _editor)) {
+      return false;
+    }
+    return outline.expandToRevealSelection(selection);
   }
 
   @override

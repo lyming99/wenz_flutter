@@ -1,0 +1,868 @@
+OpenAI Codex v0.121.0 (research preview)
+--------
+workdir: D:\project\GitHub\wenz_flutter\wenz_richtext
+model: gpt-5.5
+provider: custom
+approval: never
+sandbox: danger-full-access
+reasoning effort: xhigh
+reasoning summaries: none
+session id: 019efd9c-b417-7412-808c-adbd5b71b83d
+--------
+user
+你是开发执行者。
+请只执行指定任务 P005，不要提前执行其它任务，也不要顺手处理其它 checkbox。
+
+plan 文件（只读）：D:\project\GitHub\wenz_flutter\wenz_richtext\docs\plan\plan_feedback_6_20260625-035040.md
+指定任务：
+- [ ] P005: 保持表格操作与生命周期一致 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/table_floating_toolbar_overlay.dart,lib/src/core/commands/table_commands.dart,test/widgets/wenz_rich_text_editor_test.dart -->
+任务 scope：lib/src/widgets/wenz_rich_text_editor.dart, lib/src/widgets/table_floating_toolbar_overlay.dart, lib/src/core/commands/table_commands.dart, test/widgets/wenz_rich_text_editor_test.dart
+
+完成后必须：
+- plan 文件是只读上下文：不要修改 plan 文件，不要勾选 checkbox，不要更新 plan 进度区
+- AutoPlan 会在任务成功后统一写回数据库、checkbox 和进度区
+- 只修改当前任务 scope 直接相关的业务文件
+- 如需测试，只运行与当前任务直接相关的最小测试集，不要运行全量测试或与本任务无关的测试
+- 只有当前任务本身明确要求全量验证时，才允许运行全量测试
+- 不输出完整 diff、源码全文或长文件列表
+- 中文文件读写使用 UTF-8
+**Planning the code exploration**
+
+I think I need to focus on the code graph as my primary task. But first, it seems like I need to create a plan using the update_plan. After that, I'll look into exploring the code graph further. I might have to use the shell for rg. It’s essential to map out my approach before diving in!
+codex
+我会先只读取 P005 上下文和限定 scope 文件，确认问题点后再做最小修改。
+  → 读取 P005 任务上下文
+  • 定位表格生命周期差异
+  • 补齐最小业务修复
+  • 运行相关最小测试
+mcp: codegraph/codegraph_explore started
+mcp: codegraph/codegraph_explore (completed)
+**Inspecting codegraph output**
+
+I see that the codegraph output got truncated, so I only have access to the table commands. I need to read the plan and check the associated files since the other files didn't show up due to budget constraints. Perhaps I can use a shell command like `rg` to inspect plan P005. Also, should I check AGENTS? I need to explore the current working directory, maybe list the root to see what’s there!
+codex
+已限定在 P005；接下来读取计划条目和相关文件上下文。
+exec
+powershell.exe -Command '$ErrorActionPreference='"'Stop';
+Write-Output '--- AGENTS ---'; Get-ChildItem -Path . -Filter AGENTS.md -Recurse -File | ForEach-Object { "'$_.FullName };
+Write-Output '"'--- P005 ---'; Select-String -Path 'D:\\project\\GitHub\\wenz_flutter\\wenz_richtext\\docs\\plan\\plan_feedback_6_20260625-035040.md' -Pattern 'P005|保持表格操作与生命周期一致' -Context 3,12" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 302ms:
+--- AGENTS ---
+--- P005 ---
+
+  docs\plan\plan_feedback_6_20260625-035040.md:35:  - 验收要点：工具栏按钮点击只触发对应 `TableToolbarActionIntent` 一次，不额外产生底层 tap、long 
+press、drag 或 selection change。
+  docs\plan\plan_feedback_6_20260625-035040.md:36:  - 验收要点：工具栏之外的编辑器区域仍可正常点击、拖选、滚动和唤起表格选区，不因 overlay 引入全屏遮罩阻塞正常交互。
+  docs\plan\plan_feedback_6_20260625-035040.md:37:
+> docs\plan\plan_feedback_6_20260625-035040.md:38:- [ ] P005: 保持表格操作与生命周期一致 <!-- scope: lib/src/widgets/wenz_rich_text_
+editor.dart,lib/src/widgets/table_floating_toolbar_overlay.dart,lib/src/core/commands/table_commands.dart,test/widgets/
+wenz_rich_text_editor_test.dart -->
+  docs\plan\plan_feedback_6_20260625-035040.md:39:  - 验收要点：插入/删除行列、切换表头、设置/清除背景色、列对齐、合并/拆分单元格、重置列宽等原有工具栏操作行为不回归。
+  docs\plan\plan_feedback_6_20260625-035040.md:40:  - 验收要点：工具栏 action 执行后，表格选区、焦点、撤销/重做、文档变更通知和 overlay 刷新顺序保持一致，不出现 st
+ale range 或空引用。
+  docs\plan\plan_feedback_6_20260625-035040.md:41:  - 验收要点：多表格文档中只显示当前活动表格的工具栏，选区跨表格或表格被删除后 overlay 自动关闭。
+  docs\plan\plan_feedback_6_20260625-035040.md:42:
+  docs\plan\plan_feedback_6_20260625-035040.md:43:- [ ] P006: 补充自动化与手工验收记录 <!-- scope: test/widgets/wenz_rich_text_edit
+or_test.dart,docs/acceptance_manual_checklist.md,docs/plan/plan_feedback_6_20260625-035040.md -->
+  docs\plan\plan_feedback_6_20260625-035040.md:44:  - 验收要点：新增或更新 widget 测试，覆盖工具栏显示于 overlay、按钮点击不穿透、点击工具栏外仍能编辑、滚动后工具栏跟随
+、选区取消后 overlay 消失。
+  docs\plan\plan_feedback_6_20260625-035040.md:45:  - 验收要点：执行 `flutter analyze`、相关 widget 测试和必要的回归测试；若存在失败，需区分本次改动导致失败与
+既有失败。
+  docs\plan\plan_feedback_6_20260625-035040.md:46:  - 验收要点：在本计划进度区记录每个任务的完成范围、验证命令、验证结果、遗留风险和后续建议。
+  docs\plan\plan_feedback_6_20260625-035040.md:47:
+  docs\plan\plan_feedback_6_20260625-035040.md:48:## 总体验收标准
+  docs\plan\plan_feedback_6_20260625-035040.md:49:- 所有任务 checkbox 均完成，且每个任务的验收要点都有明确结论或验证记录。
+  docs\plan\plan_feedback_6_20260625-035040.md:50:- 表格悬浮工具栏使用系统 overlay 方案承载，不再依赖表格内部负偏移浮动节点来模拟悬浮效果。
+
+
+
+codex
+P005 验收点已确认；现在定位表格 overlay 与 action 流程。
+mcp: codegraph/codegraph_explore started
+mcp: codegraph/codegraph_explore (completed)
+codex
+代码图结果偏宽；我会用精确搜索锁定相关符号。
+mcp: codegraph/codegraph_search started
+mcp: codegraph/codegraph_search (completed)
+codex
+找到 overlay 主入口后，读取其完整实现和编辑器调用点。
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+**Exploring codegraph details**
+
+I’m wondering if the codegraph node doesn’t include a class body. I might need to read it through the shell to check. It seems that codegraph specifies something about needing a specific body, so I'm curious if I should be using a node method for that. It's just a bit perplexing at the moment, and I want to make sure I’m approaching it correctly!
+codex
+类节点只给了概要；我会用行号读取该文件的必要片段。
+exec
+powershell.exe -Command '$ErrorActionPreference='"'Stop';
+Get-Content -Path 'lib/src/widgets/table_floating_toolbar_overlay.dart' -Encoding UTF8 | Select-Object -First 430" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 265ms:
+import 'dart:math' as math;
+
+import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
+
+import '../core/position/document_position.dart';
+
+/// Builds the visible table toolbar for an overlay request.
+typedef TableFloatingToolbarOverlayBuilder = Widget Function(
+  BuildContext context,
+);
+
+/// Creates a request after the table anchor owns a [LayerLink] and global rect.
+typedef TableFloatingToolbarOverlayRequestBuilder
+    = TableFloatingToolbarOverlayRequest Function({
+  required Object owner,
+  required LayerLink anchorLink,
+  required Rect anchorRect,
+  required double visibleTop,
+});
+
+/// Immutable payload sent from a table renderer to the editor-owned overlay host.
+///
+/// The table renderer owns only the anchor and the current toolbar payload. The
+/// editor owns [TableFloatingToolbarOverlayHost], which renders this payload with
+/// Flutter's system [OverlayPortal] plus [CompositedTransformFollower]. This
+/// keeps the toolbar outside the table block's internal [Stack], so it can cross
+/// parent bounds and participate in overlay hit testing without making renderers
+/// manage overlay entries directly.
+@immutable
+class TableFloatingToolbarOverlayRequest {
+  const TableFloatingToolbarOverlayRequest({
+    required this.owner,
+    required this.anchorLink,
+    required this.anchorRect,
+    required this.visibleTop,
+    required this.tableBlockId,
+    required this.blockIndex,
+    required this.selectionRange,
+    required this.toolbarBuilder,
+    this.enabled = true,
+    this.minWidth = 0,
+    this.gap = 4,
+    this.fallbackHeight = 40,
+  });
+
+  /// Opaque identity of the renderer anchor that published this request.
+  final Object owner;
+
+  /// Link followed by the system overlay entry.
+  final LayerLink anchorLink;
+
+  /// Current global rect of the table block anchor.
+  final Rect anchorRect;
+
+  /// Top edge of the visible editor viewport in global coordinates.
+  final double visibleTop;
+
+  /// Active table identity used by hosts/tests to reason about request staleness.
+  final String tableBlockId;
+
+  /// Active table block index in the source document.
+  final int blockIndex;
+
+  /// Current table-cell selection range that the toolbar actions target.
+  final TableCellRange selectionRange;
+
+  /// Builds toolbar chrome. The renderer captures the table action callback here
+  /// so the overlay host never calls back into renderer state directly.
+  final TableFloatingToolbarOverlayBuilder toolbarBuilder;
+
+  /// Whether this request may be shown. Hosts hide disabled requests.
+  final bool enabled;
+
+  /// Minimum toolbar width, independent from the table block's layout width.
+  final double minWidth;
+
+  /// Gap between the toolbar bottom and the table anchor top.
+  final double gap;
+
+  /// Height used until the overlay measures its real toolbar child.
+  final double fallbackHeight;
+}
+
+/// Editor-owned controller for the active table toolbar overlay request.
+class TableFloatingToolbarOverlayController extends ChangeNotifier {
+  TableFloatingToolbarOverlayRequest? _request;
+
+  TableFloatingToolbarOverlayRequest? get request => _request;
+
+  void show(TableFloatingToolbarOverlayRequest request) {
+    _request = request;
+    notifyListeners();
+  }
+
+  void hide({Object? owner}) {
+    final current = _request;
+    if (current == null) {
+      return;
+    }
+    if (owner != null && !identical(current.owner, owner)) {
+      return;
+    }
+    _request = null;
+    notifyListeners();
+  }
+}
+
+/// Editor-level host that renders table toolbar requests into the system overlay.
+class TableFloatingToolbarOverlayHost extends StatefulWidget {
+  const TableFloatingToolbarOverlayHost({
+    super.key,
+    required this.controller,
+    required this.child,
+  });
+
+  final TableFloatingToolbarOverlayController controller;
+  final Widget child;
+
+  @override
+  State<TableFloatingToolbarOverlayHost> createState() =>
+      _TableFloatingToolbarOverlayHostState();
+}
+
+class _TableFloatingToolbarOverlayHostState
+    extends State<TableFloatingToolbarOverlayHost> {
+  final OverlayPortalController _portalController = OverlayPortalController();
+  TableFloatingToolbarOverlayRequest? _request;
+
+  @override
+  void initState() {
+    super.initState();
+    _request = widget.controller.request;
+    widget.controller.addListener(_handleControllerChanged);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _syncPortal());
+  }
+
+  @override
+  void didUpdateWidget(covariant TableFloatingToolbarOverlayHost oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller == widget.controller) {
+      return;
+    }
+    oldWidget.controller.removeListener(_handleControllerChanged);
+    _request = widget.controller.request;
+    widget.controller.addListener(_handleControllerChanged);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _syncPortal());
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_handleControllerChanged);
+    if (_portalController.isShowing) {
+      _portalController.hide();
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return OverlayPortal(
+      controller: _portalController,
+      overlayChildBuilder: (context) {
+        final request = _request;
+        if (request == null || !request.enabled) {
+          return const SizedBox.shrink();
+        }
+        return _TableFloatingToolbarOverlayEntry(request: request);
+      },
+      child: widget.child,
+    );
+  }
+
+  void _handleControllerChanged() {
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _request = widget.controller.request;
+    });
+    _syncPortalSafely();
+  }
+
+  void _syncPortalSafely() {
+    if (SchedulerBinding.instance.schedulerPhase ==
+        SchedulerPhase.persistentCallbacks) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _syncPortal());
+      return;
+    }
+    _syncPortal();
+  }
+
+  void _syncPortal() {
+    if (!mounted) {
+      return;
+    }
+    final shouldShow = _request?.enabled == true;
+    if (shouldShow) {
+      if (!_portalController.isShowing) {
+        _portalController.show();
+      }
+    } else if (_portalController.isShowing) {
+      _portalController.hide();
+    }
+  }
+}
+
+/// Anchor installed by table renderers. It publishes or withdraws requests while
+/// leaving overlay ownership with [TableFloatingToolbarOverlayHost].
+class TableFloatingToolbarOverlayAnchor extends StatefulWidget {
+  const TableFloatingToolbarOverlayAnchor({
+    super.key,
+    required this.controller,
+    required this.requestBuilder,
+    required this.child,
+  });
+
+  final TableFloatingToolbarOverlayController? controller;
+  final TableFloatingToolbarOverlayRequestBuilder? requestBuilder;
+  final Widget child;
+
+  @override
+  State<TableFloatingToolbarOverlayAnchor> createState() =>
+      _TableFloatingToolbarOverlayAnchorState();
+}
+
+class _TableFloatingToolbarOverlayAnchorState
+    extends State<TableFloatingToolbarOverlayAnchor>
+    with WidgetsBindingObserver {
+  final LayerLink _anchorLink = LayerLink();
+  final Object _owner = Object();
+  ScrollPosition? _scrollPosition;
+  bool _syncScheduled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _scheduleSync();
+  }
+
+  @override
+  void didUpdateWidget(covariant TableFloatingToolbarOverlayAnchor oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      oldWidget.controller?.hide(owner: _owner);
+    }
+    _scheduleSync();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _syncScrollPosition(Scrollable.maybeOf(context)?.position);
+    _scheduleSync();
+  }
+
+  @override
+  void didChangeMetrics() {
+    _scheduleSync();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _scrollPosition?.removeListener(_scheduleSync);
+    widget.controller?.hide(owner: _owner);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    _scheduleSync();
+    return CompositedTransformTarget(
+      link: _anchorLink,
+      child: widget.child,
+    );
+  }
+
+  void _scheduleSync() {
+    if (_syncScheduled) {
+      return;
+    }
+    _syncScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _syncScheduled = false;
+      _syncRequest();
+    });
+  }
+
+  void _syncScrollPosition(ScrollPosition? position) {
+    if (identical(_scrollPosition, position)) {
+      return;
+    }
+    _scrollPosition?.removeListener(_scheduleSync);
+    _scrollPosition = position;
+    _scrollPosition?.addListener(_scheduleSync);
+  }
+
+  void _syncRequest() {
+    if (!mounted) {
+      return;
+    }
+    final controller = widget.controller;
+    final requestBuilder = widget.requestBuilder;
+    if (controller == null || requestBuilder == null) {
+      controller?.hide(owner: _owner);
+      return;
+    }
+    final renderObject = context.findRenderObject();
+    if (renderObject is! RenderBox ||
+        !renderObject.attached ||
+        !renderObject.hasSize) {
+      controller.hide(owner: _owner);
+      return;
+    }
+    final anchorTopLeft = renderObject.localToGlobal(Offset.zero);
+    final anchorRect = anchorTopLeft & renderObject.size;
+    controller.show(
+      requestBuilder(
+        owner: _owner,
+        anchorLink: _anchorLink,
+        anchorRect: anchorRect,
+        visibleTop: _visibleTopFor(context),
+      ),
+    );
+  }
+
+  double _visibleTopFor(BuildContext context) {
+    final scrollable = Scrollable.maybeOf(context);
+    final viewportObject = scrollable?.context.findRenderObject();
+    if (viewportObject is RenderBox &&
+        viewportObject.attached &&
+        viewportObject.hasSize) {
+      return viewportObject.localToGlobal(Offset.zero).dy;
+    }
+    return MediaQuery.maybeOf(context)?.padding.top ?? 0;
+  }
+}
+
+class _TableFloatingToolbarOverlayEntry extends StatefulWidget {
+  const _TableFloatingToolbarOverlayEntry({required this.request});
+
+  final TableFloatingToolbarOverlayRequest request;
+
+  @override
+  State<_TableFloatingToolbarOverlayEntry> createState() =>
+      _TableFloatingToolbarOverlayEntryState();
+}
+
+class _TableFloatingToolbarOverlayEntryState
+    extends State<_TableFloatingToolbarOverlayEntry> {
+  final GlobalKey _toolbarKey = GlobalKey();
+  double? _toolbarHeight;
+  bool _measureScheduled = false;
+
+  @override
+  Widget build(BuildContext context) {
+    _scheduleMeasure();
+    final request = widget.request;
+    final toolbarHeight = _toolbarHeight ?? request.fallbackHeight;
+    final preferredTop = -(toolbarHeight + request.gap);
+    final visibleTop = request.visibleTop - request.anchorRect.top;
+    final top = math.max(preferredTop, visibleTop);
+    final minWidth = math.max(request.minWidth, request.anchorRect.width);
+
+    return Positioned.fill(
+      child: CompositedTransformFollower(
+        link: request.anchorLink,
+        showWhenUnlinked: false,
+        targetAnchor: Alignment.topLeft,
+        followerAnchor: Alignment.topLeft,
+        offset: Offset(0, top),
+        child: Align(
+          alignment: AlignmentDirectional.topStart,
+          widthFactor: 1,
+          heightFactor: 1,
+          child: ConstrainedBox(
+            key: _toolbarKey,
+            constraints: BoxConstraints(minWidth: minWidth),
+            child: Listener(
+              key: const ValueKey<String>(
+                'table-floating-toolbar-hit-test-blocker',
+              ),
+              behavior: HitTestBehavior.opaque,
+              child: request.toolbarBuilder(context),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _scheduleMeasure() {
+    if (_measureScheduled) {
+      return;
+    }
+    _measureScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _measureScheduled = false;
+      _syncToolbarHeight();
+    });
+  }
+
+  void _syncToolbarHeight() {
+    if (!mounted) {
+      return;
+    }
+    final renderObject = _toolbarKey.currentContext?.findRenderObject();
+    if (renderObject is! RenderBox || !renderObject.hasSize) {
+      return;
+    }
+    final nextHeight = renderObject.size.height;
+    if (_toolbarHeight != null && (_toolbarHeight! - nextHeight).abs() < 0.5) {
+      return;
+    }
+    setState(() {
+      _toolbarHeight = nextHeight;
+    });
+  }
+}
+
+**Processing file segments**
+
+I need to manage an output that got truncated. It's important to read the whole file, which has 421 lines. I want to use Get-Content along with specific line numbers for segmentation. I should definitely avoid using Python for large chunks; it’s better to stick with PowerShell for this task. My focus will be on outputting those segments carefully, making sure everything is clear and efficient. Let's ensure this process goes smoothly!
+codex
+需要未截断片段；我会分段查看 overlay 生命周期代码。
+exec
+powershell.exe -Command '$ErrorActionPreference='"'Stop';
+"'$lines = Get-Content -Path '"'lib/src/widgets/table_floating_toolbar_overlay.dart' -Encoding UTF8;
+function Show-Range("'$start,$end){ for($i=$start; $i -le $end; $i++){ if($i -le $lines.Length){ '"'{0,4}: {1}' -f "'$i, $lines[$i-1] } } }
+Write-Output '"'--- host 100-210 ---'; Show-Range 100 210;
+Write-Output '--- anchor 210-340 ---'; Show-Range 210 340;
+Write-Output '--- entry 340-421 ---'; Show-Range 340 421;" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 239ms:
+--- host 100-210 ---
+ 100:     }
+ 101:     if (owner != null && !identical(current.owner, owner)) {
+ 102:       return;
+ 103:     }
+ 104:     _request = null;
+ 105:     notifyListeners();
+ 106:   }
+ 107: }
+ 108: 
+ 109: /// Editor-level host that renders table toolbar requests into the system overlay.
+ 110: class TableFloatingToolbarOverlayHost extends StatefulWidget {
+ 111:   const TableFloatingToolbarOverlayHost({
+ 112:     super.key,
+ 113:     required this.controller,
+ 114:     required this.child,
+ 115:   });
+ 116: 
+ 117:   final TableFloatingToolbarOverlayController controller;
+ 118:   final Widget child;
+ 119: 
+ 120:   @override
+ 121:   State<TableFloatingToolbarOverlayHost> createState() =>
+ 122:       _TableFloatingToolbarOverlayHostState();
+ 123: }
+ 124: 
+ 125: class _TableFloatingToolbarOverlayHostState
+ 126:     extends State<TableFloatingToolbarOverlayHost> {
+ 127:   final OverlayPortalController _portalController = OverlayPortalController();
+ 128:   TableFloatingToolbarOverlayRequest? _request;
+ 129: 
+ 130:   @override
+ 131:   void initState() {
+ 132:     super.initState();
+ 133:     _request = widget.controller.request;
+ 134:     widget.controller.addListener(_handleControllerChanged);
+ 135:     WidgetsBinding.instance.addPostFrameCallback((_) => _syncPortal());
+ 136:   }
+ 137: 
+ 138:   @override
+ 139:   void didUpdateWidget(covariant TableFloatingToolbarOverlayHost oldWidget) {
+ 140:     super.didUpdateWidget(oldWidget);
+ 141:     if (oldWidget.controller == widget.controller) {
+ 142:       return;
+ 143:     }
+ 144:     oldWidget.controller.removeListener(_handleControllerChanged);
+ 145:     _request = widget.controller.request;
+ 146:     widget.controller.addListener(_handleControllerChanged);
+ 147:     WidgetsBinding.instance.addPostFrameCallback((_) => _syncPortal());
+ 148:   }
+ 149: 
+ 150:   @override
+ 151:   void dispose() {
+ 152:     widget.controller.removeListener(_handleControllerChanged);
+ 153:     if (_portalController.isShowing) {
+ 154:       _portalController.hide();
+ 155:     }
+ 156:     super.dispose();
+ 157:   }
+ 158: 
+ 159:   @override
+ 160:   Widget build(BuildContext context) {
+ 161:     return OverlayPortal(
+ 162:       controller: _portalController,
+ 163:       overlayChildBuilder: (context) {
+ 164:         final request = _request;
+ 165:         if (request == null || !request.enabled) {
+ 166:           return const SizedBox.shrink();
+ 167:         }
+ 168:         return _TableFloatingToolbarOverlayEntry(request: request);
+ 169:       },
+ 170:       child: widget.child,
+ 171:     );
+ 172:   }
+ 173: 
+ 174:   void _handleControllerChanged() {
+ 175:     if (!mounted) {
+ 176:       return;
+ 177:     }
+ 178:     setState(() {
+ 179:       _request = widget.controller.request;
+ 180:     });
+ 181:     _syncPortalSafely();
+ 182:   }
+ 183: 
+ 184:   void _syncPortalSafely() {
+ 185:     if (SchedulerBinding.instance.schedulerPhase ==
+ 186:         SchedulerPhase.persistentCallbacks) {
+ 187:       WidgetsBinding.instance.addPostFrameCallback((_) => _syncPortal());
+ 188:       return;
+ 189:     }
+ 190:     _syncPortal();
+ 191:   }
+ 192: 
+ 193:   void _syncPortal() {
+ 194:     if (!mounted) {
+ 195:       return;
+ 196:     }
+ 197:     final shouldShow = _request?.enabled == true;
+ 198:     if (shouldShow) {
+ 199:       if (!_portalController.isShowing) {
+ 200:         _portalController.show();
+ 201:       }
+ 202:     } else if (_portalController.isShowing) {
+ 203:       _portalController.hide();
+ 204:     }
+ 205:   }
+ 206: }
+ 207: 
+ 208: /// Anchor installed by table renderers. It publishes or withdraws requests while
+ 209: /// leaving overlay ownership with [TableFloatingToolbarOverlayHost].
+ 210: class TableFloatingToolbarOverlayAnchor extends StatefulWidget {
+--- anchor 210-340 ---
+ 210: class TableFloatingToolbarOverlayAnchor extends StatefulWidget {
+ 211:   const TableFloatingToolbarOverlayAnchor({
+ 212:     super.key,
+ 213:     required this.controller,
+ 214:     required this.requestBuilder,
+ 215:     required this.child,
+ 216:   });
+ 217: 
+ 218:   final TableFloatingToolbarOverlayController? controller;
+ 219:   final TableFloatingToolbarOverlayRequestBuilder? requestBuilder;
+ 220:   final Widget child;
+ 221: 
+ 222:   @override
+ 223:   State<TableFloatingToolbarOverlayAnchor> createState() =>
+ 224:       _TableFloatingToolbarOverlayAnchorState();
+ 225: }
+ 226: 
+ 227: class _TableFloatingToolbarOverlayAnchorState
+ 228:     extends State<TableFloatingToolbarOverlayAnchor>
+ 229:     with WidgetsBindingObserver {
+ 230:   final LayerLink _anchorLink = LayerLink();
+ 231:   final Object _owner = Object();
+ 232:   ScrollPosition? _scrollPosition;
+ 233:   bool _syncScheduled = false;
+ 234: 
+ 235:   @override
+ 236:   void initState() {
+ 237:     super.initState();
+ 238:     WidgetsBinding.instance.addObserver(this);
+ 239:     _scheduleSync();
+ 240:   }
+ 241: 
+ 242:   @override
+ 243:   void didUpdateWidget(covariant TableFloatingToolbarOverlayAnchor oldWidget) {
+ 244:     super.didUpdateWidget(oldWidget);
+ 245:     if (oldWidget.controller != widget.controller) {
+ 246:       oldWidget.controller?.hide(owner: _owner);
+ 247:     }
+ 248:     _scheduleSync();
+ 249:   }
+ 250: 
+ 251:   @override
+ 252:   void didChangeDependencies() {
+ 253:     super.didChangeDependencies();
+ 254:     _syncScrollPosition(Scrollable.maybeOf(context)?.position);
+ 255:     _scheduleSync();
+ 256:   }
+ 257: 
+ 258:   @override
+ 259:   void didChangeMetrics() {
+ 260:     _scheduleSync();
+ 261:   }
+ 262: 
+ 263:   @override
+ 264:   void dispose() {
+ 265:     WidgetsBinding.instance.removeObserver(this);
+ 266:     _scrollPosition?.removeListener(_scheduleSync);
+ 267:     widget.controller?.hide(owner: _owner);
+ 268:     super.dispose();
+ 269:   }
+ 270: 
+ 271:   @override
+ 272:   Widget build(BuildContext context) {
+ 273:     _scheduleSync();
+ 274:     return CompositedTransformTarget(
+ 275:       link: _anchorLink,
+ 276:       child: widget.child,
+ 277:     );
+ 278:   }
+ 279: 
+ 280:   void _scheduleSync() {
+ 281:     if (_syncScheduled) {
+ 282:       return;
+ 283:     }
+ 284:     _syncScheduled = true;
+ 285:     WidgetsBinding.instance.addPostFrameCallback((_) {
+ 286:       _syncScheduled = false;
+ 287:       _syncRequest();
+ 288:     });
+ 289:   }
+ 290: 
+ 291:   void _syncScrollPosition(ScrollPosition? position) {
+ 292:     if (identical(_scrollPosition, position)) {
+ 293:       return;
+ 294:     }
+ 295:     _scrollPosition?.removeListener(_scheduleSync);
+ 296:     _scrollPosition = position;
+ 297:     _scrollPosition?.addListener(_scheduleSync);
+ 298:   }
+ 299: 
+ 300:   void _syncRequest() {
+ 301:     if (!mounted) {
+ 302:       return;
+ 303:     }
+ 304:     final controller = widget.controller;
+ 305:     final requestBuilder = widget.requestBuilder;
+ 306:     if (controller == null || requestBuilder == null) {
+ 307:       controller?.hide(owner: _owner);
+ 308:       return;
+ 309:     }
+ 310:     final renderObject = context.findRenderObject();
+ 311:     if (renderObject is! RenderBox ||
+ 312:         !renderObject.attached ||
+ 313:         !renderObject.hasSize) {
+ 314:       controller.hide(owner: _owner);
+ 315:       return;
+ 316:     }
+ 317:     final anchorTopLeft = renderObject.localToGlobal(Offset.zero);
+ 318:     final anchorRect = anchorTopLeft & renderObject.size;
+ 319:     controller.show(
+ 320:       requestBuilder(
+ 321:         owner: _owner,
+ 322:         anchorLink: _anchorLink,
+ 323:         anchorRect: anchorRect,
+ 324:         visibleTop: _visibleTopFor(context),
+ 325:       ),
+ 326:     );
+ 327:   }
+ 328: 
+ 329:   double _visibleTopFor(BuildContext context) {
+ 330:     final scrollable = Scrollable.maybeOf(context);
+ 331:     final viewportObject = scrollable?.context.findRenderObject();
+ 332:     if (viewportObject is RenderBox &&
+ 333:         viewportObject.attached &&
+ 334:         viewportObject.hasSize) {
+ 335:       return viewportObject.localToGlobal(Offset.zero).dy;
+ 336:     }
+ 337:     return MediaQuery.maybeOf(context)?.padding.top ?? 0;
+ 338:   }
+ 339: }
+ 340: 
+--- entry 340-421 ---
+ 340: 
+ 341: class _TableFloatingToolbarOverlayEntry extends StatefulWidget {
+ 342:   const _TableFloatingToolbarOverlayEntry({required this.request});
+ 343: 
+ 344:   final TableFloatingToolbarOverlayRequest request;
+ 345: 
+ 346:   @override
+ 347:   State<_TableFloatingToolbarOverlayEntry> createState() =>
+ 348:       _TableFloatingToolbarOverlayEntryState();
+ 349: }
+ 350: 
+ 351: class _TableFloatingToolbarOverlayEntryState
+ 352:     extends State<_TableFloatingToolbarOverlayEntry> {
+ 353:   final GlobalKey _toolbarKey = GlobalKey();
+ 354:   double? _toolbarHeight;
+ 355:   bool _measureScheduled = false;
+ 356: 
+ 357:   @override
+ 358:   Widget build(BuildContext context) {
+ 359:     _scheduleMeasure();
+ 360:     final request = widget.request;
+ 361:     final toolbarHeight = _toolbarHeight ?? request.fallbackHeight;
+ 362:     final preferredTop = -(toolbarHeight + request.gap);
+ 363:     final visibleTop = request.visibleTop - request.anchorRect.top;
+ 364:     final top = math.max(preferredTop, visibleTop);
+ 365:     final minWidth = math.max(request.minWidth, request.anchorRect.width);
+ 366: 
+ 367:     return Positioned.fill(
+ 368:       child: CompositedTransformFollower(
+ 369:         link: request.anchorLink,
+ 370:         showWhenUnlinked: false,
+ 371:         targetAnchor: Alignment.topLeft,
+ 372:         followerAnchor: Alignment.topLeft,
+ 373:         offset: Offset(0, top),
+ 374:         child: Align(
+ 375:           alignment: AlignmentDirectional.topStart,
+ 376:           widthFactor: 1,
+ 377:           heightFactor: 1,
+ 378:           child: ConstrainedBox(
+ 379:             key: _toolbarKey,
+ 380:             constraints: BoxConstraints(minWidth: minWidth),
+ 381:             child: Listener(
+ 382:               key: const ValueKey<String>(
+ 383:                 'table-floating-toolbar-hit-test-blocker',
+ 384:               ),
+ 385:               behavior: HitTestBehavior.opaque,
+ 386:               child: request.toolbarBuilder(context),
+ 387:             ),
+ 388:           ),
+ 389:         ),
+ 390:       ),
+ 391:     );
+ 392:   }
+ 393: 
+ 394:   void _scheduleMeasure() {
+ 395:     if (_measureScheduled) {
+ 396:       return;
+ 397:     }
+ 398:     _measureScheduled = true;
+ 399:     WidgetsBinding.instance.addPostFrameCallback((_) {
+ 400:       _measureScheduled = false;
+ 401:       _syncToolbarHeight();
+ 402:     });
+ 403:   }
+ 404: 
+ 405:   void _syncToolbarHeight() {
+ 406:     if (!mounted) {
+ 407:       return;
+ 408:     }
+ 409:     final renderObject = _toolbarKey.currentContext?.findRenderObject();
+ 410:     if (renderObject is! RenderBox || !renderObject.hasSize) {
+ 411:       return;
+ 412:     }
+ 413:     final nextHeight = renderObject.size.height;
+ 414:     if (_toolbarHeight != null && (_toolbarHeight! - nextHeight).abs() < 0.5) {
+ 415:       return;
+ 416:     }
+ 417:     setState(() {
+ 418:       _toolbarHeight = nextHeight;
+ 419:     });
+ 420:   }
+ 421: }
+
+ERROR: You've hit your usage limit. Try again later.
+ERROR: You've hit your usage limit. Try again later.
+tokens used
+42,702

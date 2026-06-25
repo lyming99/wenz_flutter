@@ -1,0 +1,13 @@
+已完成 P003，仅改动指定 scope 内业务文件，未修改 plan 文件或 checkbox。
+
+**完成内容**
+- `lib/src/widgets/table_floating_toolbar_overlay.dart:227`：让表格 toolbar anchor 监听滚动位置与窗口 metrics，滚动/窗口变化后按帧重算 overlay 请求。
+- `lib/src/widgets/table_floating_toolbar_overlay.dart:291`：切换/释放 `ScrollPosition` listener，避免 stale listener 残留。
+- `lib/src/widgets/wenz_rich_text_editor.dart:671`：编辑器 widget 更新时主动清理 stale 表格 toolbar overlay。
+- `lib/src/widgets/wenz_rich_text_editor.dart:728`：controller 选区变化时同步隐藏非当前表格/只读态 overlay。
+- `lib/src/widgets/wenz_rich_text_editor.dart:794`：封装 stale overlay 判断，覆盖取消表格选区、切换表格/非表格、进入只读态。
+
+**验证**
+- 已运行：`dart analyze lib/src/widgets/table_floating_toolbar_overlay.dart lib/src/widgets/wenz_rich_text_editor.dart`
+- 结果：`No issues found!`
+- 已运行：`git diff --check -- lib/src/widgets/wenz_rich_text_editor.dart lib/src/widgets/table_floating_toolbar_overlay.dart`，无空白错误；仅 Git 提示既有 CRLF 转换警告。

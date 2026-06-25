@@ -1,0 +1,11 @@
+P004 已完成，未修改 plan 文件、未勾选 checkbox。
+
+**变更摘要**
+- 新增对象位置工厂，统一视频/图片等原子块位置构造：`lib/src/core/position/document_position.dart:197`
+- 方向键导航现在可把视频等媒体对象作为原子块选中：`lib/src/core/commands/selection_commands.dart:519`
+- Backspace/Delete 可处理 collapsed object 位置上的视频块删除：`lib/src/core/commands/text_commands.dart:226`
+- 剪贴板 blocks 纯文本视图为视频输出 `[video: ...]`，内部 JSON 仍保留完整元数据：`lib/src/input/clipboard_service.dart:501`
+- 补充视频选择、复制/粘贴、跨块、Widget 点击/键盘/删除测试：`test/core/selection_commands_test.dart:347`、`test/input/clipboard_service_test.dart:116`、`test/widgets/wenz_rich_text_editor_test.dart:2674`
+
+**验证**
+- 已通过：`flutter test test/core/selection_commands_test.dart test/input/clipboard_service_test.dart test/widgets/wenz_rich_text_editor_test.dart`

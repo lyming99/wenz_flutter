@@ -1,0 +1,32 @@
+OpenAI Codex v0.121.0 (research preview)
+--------
+workdir: D:\project\GitHub\wenz_flutter\wenz_richtext
+model: gpt-5.5
+provider: custom
+approval: never
+sandbox: danger-full-access
+reasoning effort: xhigh
+reasoning summaries: none
+session id: 019ef9f2-cd3e-76d2-946d-2a344e32b362
+--------
+user
+你是需求整理与开发计划生成者。
+请根据以下反馈，生成一个开发计划和验收标准。
+
+输出文件：D:\project\GitHub\wenz_flutter\wenz_richtext\docs\plan\plan_feedback_1_20260624-220459.md
+
+格式要求：
+- 任务必须使用 Markdown checkbox：- [ ] P001: 任务标题
+- 每个任务要有验收要点
+- 必须包含总体验收标准和进度区
+- 只写 plan 文件，不要改业务代码
+
+反馈 #1 内容：
+选择器bug：emoji、提及无法正常被选中
+ERROR: Reconnecting... 1/5
+ERROR: Reconnecting... 2/5
+ERROR: Reconnecting... 3/5
+ERROR: Reconnecting... 4/5
+ERROR: Reconnecting... 5/5
+ERROR: stream disconnected before completion: error sending request for url (https://www.codexapis.com/v1/responses)
+ERROR: stream disconnected before completion: error sending request for url (https://www.codexapis.com/v1/responses)

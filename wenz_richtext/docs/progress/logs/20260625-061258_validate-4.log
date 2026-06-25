@@ -1,0 +1,6 @@
+Flutter assets will be downloaded from https://storage.flutter-io.cn. Make sure you trust this source!
+Analyzing wenz_richtext...                                      
+
+warning - The member 'WenzRichTextDesignBaseline' can't be exported as a part of a package's public API - lib\wenz_richtext.dart:156:1 - invalid_export_of_internal_element
+
+1 issue found. (ran in 1.9s)

@@ -1,10 +1,14 @@
 import 'dart:async';
+import 'dart:math' as math;
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_math_fork/flutter_math.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 
 import '../controller/find_replace_controller.dart';
+import '../controller/outline_controller.dart';
 import '../controller/slash_menu_controller.dart';
 import '../controller/wenz_rich_text_controller.dart';
 import '../core/commands/inline_editing.dart';
@@ -19,6 +23,7 @@ import '../input/shortcut_manager.dart';
 import '../rendering/text_layout_service.dart';
 import 'block_geometry_registry.dart';
 import 'block_renderer_registry.dart';
+import 'code_syntax_highlighter.dart';
 import 'inline_embed_renderer.dart';
 import 'media_resolver.dart';
 import 'selection_gesture_overlay.dart';
@@ -30,26 +35,116 @@ const _selectionHighlightKey = ValueKey<String>(
   'wenz-richtext-selection-highlight',
 );
 const _findHighlightKey = ValueKey<String>('wenz-richtext-find-highlight');
+const _inlineFormulaKey = ValueKey<String>('wenz-richtext-inline-formula');
 const _accessibilityFocusHighlightKey = ValueKey<String>(
   'wenz-richtext-accessibility-focus-highlight',
+);
+const _blockReorderDropIndicatorKey = ValueKey<String>(
+  'wenz-richtext-block-reorder-drop-indicator',
 );
 
 /// Caret geometry constants — kept in one place so the painted caret, the caret
 /// rect reported to the IME, and any future theming all share the same source.
 const double _kCaretStrokeWidth = 1.5;
 const Duration _kBlinkHalfPeriod = Duration(milliseconds: 530);
+const double _kRichTextBodyFontSize = 16.0;
+const double _kRichTextBodyLineHeight = 1.75;
+const double _kParagraphMarginEm = 0.55;
+const double _kHeadingMarginTopEm = 0.6;
+const double _kHeadingMarginBottomEm = 0.35;
+const double _kDefaultBlockSpacing =
+    _kRichTextBodyFontSize * _kParagraphMarginEm;
+const int _kInlineLinkColor = 0xFF1976D2;
+const int _kInlineRemarkColor = 0xFFC97B00;
+const int _kInlineRevisionBackgroundAlpha = 72;
 const double _kDefaultBlockExtent = 48.0;
 const double _kVirtualListOverscan = 600.0;
+const double _kBlockReorderIndicatorHeight = 3.0;
 const double _kTableResizeHandleWidth = 12.0;
-const double _kTableResizeHandleTopInset = 48.0;
 const double _kMinTableColumnWidth = 48.0;
 const double _kMaxTableColumnWidth = 640.0;
+const double _kTableToolbarMinWidth = 620.0;
+const double _kTableFloatingToolbarGap = 4.0;
+const double _kTableFloatingToolbarEstimatedHeight = 56.0;
 const int _kTableToolbarBackgroundColor = 0xFFFFF3CD;
+const double _kTableSurfaceRadius = 8.0;
+const double _kTableCellFontSize = 15.0;
+const EdgeInsets _kTableCellPadding = EdgeInsets.symmetric(
+  horizontal: 14,
+  vertical: 10,
+);
+const Color _kTableBorderColor = Color(0xFFECE9F5);
+const Color _kTableEvenRowBackgroundColor = Color(0xFFFAFAFF);
+const double _kImageFloatingToolbarGap = 6.0;
 
 /// Minimum block height multiplier applied to the block's font size, ensuring
 /// a tap target even for empty paragraphs. A single constant so the text,
 /// code, and table-cell renderers stay in sync.
 const double _kBlockMinHeightFactor = 1.35;
+const double _kTodoCheckboxWidth = 32.0;
+const double _kTodoCheckboxHeight = 28.0;
+const double _kTodoTextGap = 10.0;
+const double _kTaskListPaddingLeft = 8.0;
+const double _kListTextInset = 26.0;
+const double _kListMarkerWidth = 18.0;
+const double _kListMarkerGap = _kListTextInset - _kListMarkerWidth;
+const double _kListItemSpacing = _kRichTextBodyFontSize * 0.25;
+const double _kNestedListItemSpacing = _kRichTextBodyFontSize * 0.15;
+const double _kHeadingCollapseSlotWidth = 30.0;
+const double _kHeadingCollapseButtonSize = 26.0;
+const double _kHeadingCollapseIconSize = 20.0;
+const double _kCodeBlockFontSize = 13.5;
+const double _kCodeBlockLineHeight = 1.6;
+const double _kCodeBlockPaddingVertical = 18.0;
+const double _kCodeBlockPaddingHorizontal = 20.0;
+const int _kCodeBlockBackgroundColor = 0xFF1E1E2E;
+const int _kCodeBlockTextColor = 0xFFE6E6F0;
+const int _kCodeLanguageTagColor = 0xB38A8AFF;
+const int _kCodeKeywordColor = 0xFFC792EA;
+const int _kCodeStringColor = 0xFFC3E88D;
+const int _kCodeTypeColor = 0xFF82AAFF;
+const int _kCodeNumberColor = 0xFFF78C6C;
+const int _kCodeCommentColor = 0xFF6B7394;
+const double _kDividerMarginVertical = _kRichTextBodyFontSize * 1.6;
+const int _kDividerLineColor = 0xFFE4E1EE;
+const double _kDividerDotSize = 6.0;
+const double _kCalloutIconFontSize = 20.0;
+const int _kCalloutInfoBackgroundColor = 0xFFF2F0F7;
+const int _kCalloutInfoForegroundColor = 0xFF46464F;
+const int _kCalloutSuccessForegroundColor = 0xFF0E1F1B;
+const int _kCalloutWarningBackgroundColor = 0xFFFFF8E1;
+const int _kCalloutWarningForegroundColor = 0xFFC97B00;
+const int _kCalloutDangerForegroundColor = 0xFF410002;
+const int _kCalloutInfoBorderColor = 0xFFD8D5E2;
+const int _kCalloutSuccessBorderColor = 0xFFBCD8D0;
+const int _kCalloutWarningBorderColor = 0xFFFFE082;
+const int _kCalloutDangerBorderColor = 0xFFF5B8B0;
+const int _kCalloutSuccessBackgroundColor = 0x99D6E4E0;
+const int _kCalloutDangerBackgroundColor = 0xB3FFDAD6;
+const double _kMediaBlockMarginVertical = _kRichTextBodyFontSize * 1.2;
+const double _kMediaCornerRadius = 12.0;
+const double _kMediaCaptionFontSize = 13.0;
+const double _kVideoPlayButtonSize = 64.0;
+const double _kVideoPlayIconSize = 24.0;
+const int _kFileCardBorderColor = 0xFFECE9F5;
+const double _kFileIconSize = 40.0;
+const double _kFileCardGap = 14.0;
+const int _kEmbedBlockBorderColor = 0xFFCFCBE0;
+const int _kEmbedBlockBackgroundColor = 0xFFFAFAFF;
+const int _kFormulaBlockBackgroundColor = 0xFFE8E0FF;
+const int _kFormulaBlockForegroundColor = 0xFF241946;
+const List<BoxShadow> _kSurfaceBoxShadow = <BoxShadow>[
+  BoxShadow(
+    color: Color(0x14141428),
+    blurRadius: 3,
+    offset: Offset(0, 1),
+  ),
+  BoxShadow(
+    color: Color(0x0F141428),
+    blurRadius: 2,
+    offset: Offset(0, 1),
+  ),
+];
 
 /// Atomic block-level objects (images, videos, files, dividers) occupy one
 /// selectable document slot, mirroring inline embeds' object-replacement slot.
@@ -57,6 +152,150 @@ const int _kAtomicBlockSelectionLength = 1;
 
 /// Pixels of horizontal indent per indent level.
 const double _kIndentPixelsPerLevel = 24;
+
+/// Implementation-side baseline extracted from `ui/richtext_design.html`.
+///
+/// This is intentionally data-only: P001 records the target design tokens,
+/// default renderer coverage, and the known gap categories without changing the
+/// editor model, codecs, command protocol, or renderer extension points.
+final class WenzRichTextDesignBaseline {
+  const WenzRichTextDesignBaseline._();
+
+  static const String source = 'ui/richtext_design.html';
+
+  static const List<BlockType> defaultRendererBlockTypes = <BlockType>[
+    BlockType.paragraph,
+    BlockType.heading,
+    BlockType.quote,
+    BlockType.listItem,
+    BlockType.code,
+    BlockType.image,
+    BlockType.table,
+    BlockType.divider,
+    BlockType.video,
+    BlockType.embed,
+    BlockType.callout,
+    BlockType.file,
+  ];
+
+  static const Map<String, int> colorTokens = <String, int>{
+    'primary': 0xFF4F6DF5,
+    'onPrimary': 0xFFFFFFFF,
+    'primaryContainer': 0xFFDDE0FF,
+    'secondaryContainer': 0xFFE8E0FF,
+    'onSecondaryContainer': 0xFF241946,
+    'tertiaryContainer': 0xFFD6E4E0,
+    'onTertiaryContainer': 0xFF0E1F1B,
+    'errorContainer': 0xFFFFDAD6,
+    'onErrorContainer': 0xFF410002,
+    'surface': 0xFFFBFAFF,
+    'surfaceContainer': 0xFFF2F0F7,
+    'onSurface': 0xFF1B1B21,
+    'onSurfaceVariant': 0xFF46464F,
+    'outline': 0xFF777680,
+    'amberStrong': 0xFFC97B00,
+    'amberBackground': 0xFFFFF8E1,
+    'blueLink': 0xFF1976D2,
+    'codeBackground': 0xFF1E1E2E,
+    'codeText': 0xFFE6E6F0,
+    'dividerLine': 0xFFE4E1EE,
+    'tableBorder': 0xFFECE9F5,
+    'tableEvenRow': 0xFFFAFAFF,
+    'embedBorder': 0xFFCFCBE0,
+  };
+
+  static const Map<String, Object> typographyTokens = <String, Object>{
+    'bodyFontSize': 16.0,
+    'bodyLineHeight': 1.75,
+    'headingFontSizes': <int, double>{1: 24.0, 2: 21.0, 3: 18.0, 4: 16.0},
+    'headingStrongWeight': 700,
+    'headingWeakWeight': 600,
+    'codeFontSize': 13.5,
+    'codeLineHeight': 1.6,
+    'tableFontSize': 15.0,
+    'captionFontSize': 13.0,
+    'languageTagFontSize': 11.0,
+    'calloutIconFontSize': 20.0,
+    'videoPlayIconSize': 24.0,
+    'inlineSmallFontSize': 12.0,
+    'inlineLargeFontSize': 22.0,
+  };
+
+  static const Map<String, Object> layoutTokens = <String, Object>{
+    'radius': 12.0,
+    'radiusSmall': 8.0,
+    'chipRadius': 6.0,
+    'highlightRadius': 3.0,
+    'paragraphMarginEm': 0.55,
+    'headingMarginEm': <String, double>{'top': 0.6, 'bottom': 0.35},
+    'blockMarginEm': 1.0,
+    'mediaMarginEm': 1.2,
+    'dividerMarginEm': 1.6,
+    'quotePadding': <double>[8.0, 18.0],
+    'quoteBorderLeftWidth': 4.0,
+    'listPaddingLeft': 26.0,
+    'headingCollapse': <String, double>{
+      'slotWidth': 30.0,
+      'buttonSize': 26.0,
+      'iconSize': 20.0,
+    },
+    'listItemMarginEm': 0.25,
+    'nestedListMarginEm': 0.15,
+    'taskPaddingLeft': 8.0,
+    'taskGap': 10.0,
+    'codePadding': <double>[18.0, 20.0],
+    'imageCaptionGap': 8.0,
+    'tableCellPadding': <double>[10.0, 14.0],
+    'fileIconSize': 40.0,
+    'fileGap': 14.0,
+    'filePadding': <double>[14.0, 16.0],
+    'calloutGap': 12.0,
+    'calloutPadding': <double>[14.0, 16.0],
+    'embedGap': 12.0,
+    'embedPadding': 16.0,
+    'videoPlayButtonSize': 64.0,
+  };
+
+  static const Map<String, String> shadowTokens = <String, String>{
+    'surface': '0 1px 3px rgba(20,20,40,.08), '
+        '0 1px 2px rgba(20,20,40,.06)',
+    'videoPlayButton': '0 6px 20px rgba(0,0,0,.3)',
+  };
+
+  static const Map<String, String> stateTokens = <String, String>{
+    'todo.done': 'onSurfaceVariant + line-through',
+    'file.hover': 'surface shadow + primary border',
+    'callout.info': 'surfaceContainer / #d8d5e2 / onSurfaceVariant',
+    'callout.success': 'tertiaryContainer 60% / #bcd8d0',
+    'callout.warning': 'amberBackground / #ffe082 / amberStrong',
+    'callout.danger': 'errorContainer 70% / #f5b8b0',
+    'embed.formula': 'secondaryContainer math chip',
+    'heading.collapse': 'primary hover/focus control + hidden-count badge',
+    'inline.mention': 'primaryContainer 70% pill',
+    'inline.formula': 'secondaryContainer math pill',
+    'inline.highlight': '#fff59d background with 2px horizontal padding',
+  };
+
+  static const Map<String, String> currentRendererGaps = <String, String>{
+    'paragraph': 'aligned: 16px body, 1.75 line height, and 0.55em spacing.',
+    'inlineText':
+        'aligned: TextStyle equivalents for link, highlight, remark, and anchors.',
+    'inlineEmbed': 'structure: mention/formula/image need pill/image parity.',
+    'heading': 'aligned: hierarchy styles plus collapse affordance states.',
+    'quote': 'aligned: 4px primary left border and surface-container quote.',
+    'listItem': 'aligned: 26px list inset, compact nesting, and task states.',
+    'code': 'aligned: dark surface, monospace scale, language tag, and scroll.',
+    'divider': 'aligned: light rule, 1.6em spacing, and centered primary dot.',
+    'image': 'style+golden: figure radius, shadow, max width, and caption.',
+    'video': 'structure+golden: black preview, cover fallback, play button.',
+    'file': 'style+state: 40px icon card, hover/focus, metadata zones.',
+    'table': 'style+golden: 15px text, padding, header/even rows, shadow.',
+    'callout':
+        'aligned: info/success/warning/danger tint, border, and fallback.',
+    'embed':
+        'structure+golden: dashed fallback chip and formula block surface.',
+  };
+}
 
 /// Exposes the editor's [SharedTextLayoutCache] down the subtree so each
 /// [_TextSelectionSurface] can fetch (and reuse) its [TextLayoutService] across
@@ -139,12 +378,18 @@ class WenzObjectBlockSurface extends StatelessWidget {
   }
 }
 
+/// Rich text editor surface backed by a [WenzRichTextController].
+///
+/// Heading collapse is a view concern of this surface: built-in collapse
+/// affordances belong only to top-level heading blocks, can be toggled in
+/// read-only mode, and must not call document-mutating commands or enqueue
+/// undo/redo entries.
 class WenzRichTextEditor extends StatefulWidget {
   const WenzRichTextEditor({
     super.key,
     required this.controller,
     this.padding = const EdgeInsets.all(16),
-    this.blockSpacing = 8,
+    this.blockSpacing = _kDefaultBlockSpacing,
     this.textStyle,
     this.physics,
     this.focusNode,
@@ -159,6 +404,7 @@ class WenzRichTextEditor extends StatefulWidget {
     this.onFindRequested,
     this.onReplaceRequested,
     this.slashMenuController,
+    this.outlineController,
     this.accessibility = const WenzRichTextEditorAccessibility(),
   });
 
@@ -218,6 +464,10 @@ class WenzRichTextEditor extends StatefulWidget {
   /// while the menu is open.
   final SlashMenuController? slashMenuController;
 
+  /// Optional outline controller whose collapsed-heading state projects the
+  /// rendered top-level block list without mutating the source document.
+  final WenzOutlineController? outlineController;
+
   /// Accessibility labels, hints, and high-contrast focus styling.
   final WenzRichTextEditorAccessibility accessibility;
 
@@ -270,6 +520,8 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
   late final ScrollController _scrollController = ScrollController();
   late final SharedTextLayoutCache _layoutCache = SharedTextLayoutCache();
   final GlobalKey _editorOverlayKey = GlobalKey();
+  late final TableFloatingToolbarOverlayController
+      _tableToolbarOverlayController = TableFloatingToolbarOverlayController();
   final _BlockExtentCache _extentCache = _BlockExtentCache();
   BlockRendererRegistry? _ownedBlockRenderers;
 
@@ -358,6 +610,9 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     widget.findController?.addListener(_handleFindControllerChanged);
     widget.slashMenuController?.attachEditor(widget.controller);
     widget.slashMenuController?.addListener(_handleSlashMenuChanged);
+    widget.outlineController?.addListener(_handleOutlineControllerChanged);
+    _syncFindControllerOutline();
+    _revealCurrentSelectionIfHidden();
     // Expose the focus node to the controller so controller.requestFocus() can
     // drive focus. Updated in _syncFocusListener (which runs each build and on
     // controller/focusNode change).
@@ -396,6 +651,16 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     } else if (oldWidget.controller != widget.controller) {
       widget.slashMenuController?.attachEditor(widget.controller);
     }
+    if (oldWidget.outlineController != widget.outlineController) {
+      oldWidget.outlineController?.removeListener(
+        _handleOutlineControllerChanged,
+      );
+      widget.outlineController?.addListener(_handleOutlineControllerChanged);
+      _syncFindControllerOutline();
+      _handleOutlineControllerChanged();
+    } else if (oldWidget.findController != widget.findController) {
+      _syncFindControllerOutline();
+    }
     // The effective focus node may change when the caller swaps focusNode or
     // controller; re-inject so controller.requestFocus() targets the right node.
     final focusNode = _effectiveFocusNode;
@@ -403,6 +668,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
       widget.controller.attachFocusNode(focusNode);
       _controllerAttachedFocusNode = focusNode;
     }
+    _syncTableToolbarOverlayWithSelection();
   }
 
   @override
@@ -410,6 +676,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     widget.controller.removeListener(_handleControllerChanged);
     widget.findController?.removeListener(_handleFindControllerChanged);
     widget.slashMenuController?.removeListener(_handleSlashMenuChanged);
+    widget.outlineController?.removeListener(_handleOutlineControllerChanged);
     // Release the focus node from the controller so a later requestFocus() on
     // a disposed editor is a safe no-op. Only clear when this widget was the
     // one that injected it.
@@ -420,6 +687,8 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     _listenedFocusNode?.removeListener(_handleFocusChanged);
     _inputClient.performSelectorHandler = null;
     _inputClient.detach();
+    _tableToolbarOverlayController.hide();
+    _tableToolbarOverlayController.dispose();
     _scrollController.dispose();
     // BlockGeometryRegistry holds no native resources; clearing its maps is
     // unnecessary once the editor is gone.
@@ -429,6 +698,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
   }
 
   void _handleFindControllerChanged() {
+    _revealCurrentSelectionIfHidden();
     if (mounted) {
       setState(() {});
     }
@@ -440,8 +710,28 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     }
   }
 
+  void _handleOutlineControllerChanged() {
+    if (!mounted) {
+      return;
+    }
+    _revealCurrentSelectionIfHidden();
+    _lastScrollCheckedCaret = null;
+    _scrollRealignDepth = 0;
+    setState(() {});
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _scrollCaretIntoView();
+      }
+    });
+  }
+
   void _handleControllerChanged() {
     if (mounted) {
+      _syncTableToolbarOverlayWithSelection();
+      if (_revealCurrentSelectionIfHidden()) {
+        _lastScrollCheckedCaret = null;
+        _scrollRealignDepth = 0;
+      }
       // Drop the cached laid-out painter for blocks whose content changed so a
       // stale painter is not reused on the next build. Selection-only /
       // composition-only changes (empty set) do not invalidate anything.
@@ -501,6 +791,61 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     }
   }
 
+  void _syncTableToolbarOverlayWithSelection() {
+    final request = _tableToolbarRequestForCurrentSelection();
+    if (request == null) {
+      _tableToolbarOverlayController.hide();
+      return;
+    }
+    _tableToolbarOverlayController.show(request);
+  }
+
+  TableFloatingToolbarOverlayRequest?
+      _tableToolbarRequestForCurrentSelection() {
+    if (widget.readOnly) {
+      return null;
+    }
+    final tableRange = widget.controller.selection?.tableCellRange;
+    if (tableRange == null) {
+      return null;
+    }
+    final tableBlock = _tableBlockAt(tableRange.blockIndex);
+    final normalizedRange =
+        tableBlock != null && tableBlock.id == tableRange.tableBlockId
+            ? _normalizeTableRange(tableBlock, tableRange)
+            : null;
+    if (tableBlock == null ||
+        normalizedRange == null ||
+        tableBlock.id != tableRange.tableBlockId) {
+      return null;
+    }
+    final anchor = _tableToolbarOverlayController.anchorFor(
+      tableBlock.id,
+      blockIndex: tableRange.blockIndex,
+    );
+    if (anchor == null) {
+      return null;
+    }
+    return TableFloatingToolbarOverlayRequest(
+      owner: anchor.owner,
+      anchorLink: anchor.anchorLink,
+      anchorRect: anchor.anchorRect,
+      visibleTop: anchor.visibleTop,
+      tableBlockId: tableBlock.id,
+      blockIndex: tableRange.blockIndex,
+      selectionRange: normalizedRange,
+      minWidth: _kTableToolbarMinWidth,
+      gap: _kTableFloatingToolbarGap,
+      fallbackHeight: _kTableFloatingToolbarEstimatedHeight,
+      toolbarBuilder: (context) => _TableFloatingToolbar(
+        block: tableBlock,
+        blockIndex: tableRange.blockIndex,
+        range: normalizedRange,
+        onAction: _handleTableToolbarAction,
+      ),
+    );
+  }
+
   void _handleFocusChanged() {
     if (!mounted) {
       return;
@@ -526,11 +871,114 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     return View.maybeOf(context)?.viewId;
   }
 
+  OutlineBlockProjection _visibleBlockProjectionFor(List<BlockNode> blocks) {
+    final outline = widget.outlineController;
+    if (outline == null) {
+      return OutlineBlockProjection.all(blocks);
+    }
+    assert(
+      identical(outline.editor, widget.controller),
+      'outlineController must be created with the same WenzRichTextController.',
+    );
+    if (!identical(outline.editor, widget.controller)) {
+      return OutlineBlockProjection.all(blocks);
+    }
+    return outline.visibleBlockProjection();
+  }
+
+  void _syncFindControllerOutline() {
+    widget.findController?.attachOutlineController(widget.outlineController);
+  }
+
+  bool _revealCurrentSelectionIfHidden() {
+    final outline = widget.outlineController;
+    final selection = widget.controller.selection;
+    if (outline == null ||
+        selection == null ||
+        !identical(outline.editor, widget.controller)) {
+      return false;
+    }
+    return outline.expandToRevealSelection(selection);
+  }
+
+  bool _expandHiddenContentAdjacentToSelection({required bool forward}) {
+    if (_revealCurrentSelectionIfHidden()) {
+      return true;
+    }
+    final outline = widget.outlineController;
+    final selection = widget.controller.selection;
+    if (outline == null ||
+        selection == null ||
+        !selection.isCollapsed ||
+        !identical(outline.editor, widget.controller)) {
+      return false;
+    }
+    final position = selection.extent;
+    if (!_isAtBlockBoundary(position, forward: forward)) {
+      return false;
+    }
+    final blocks = widget.controller.document.blocks;
+    final adjacentIndex = position.blockIndex + (forward ? 1 : -1);
+    if (adjacentIndex < 0 || adjacentIndex >= blocks.length) {
+      return false;
+    }
+    return outline.expandToRevealBlockId(blocks[adjacentIndex].id);
+  }
+
+  bool _isAtBlockBoundary(
+    DocumentPosition position, {
+    required bool forward,
+  }) {
+    final blocks = widget.controller.document.blocks;
+    if (position.blockIndex < 0 || position.blockIndex >= blocks.length) {
+      return false;
+    }
+    final block = blocks[position.blockIndex];
+    if (position.path.isBlockText && block is TextBlockNode) {
+      final length = inlineNodesLength(block.content);
+      final offset = position.offset.clamp(0, length).toInt();
+      return forward ? offset >= length : offset <= 0;
+    }
+    if (position.path.isBlockCode && block is CodeBlockNode) {
+      final offset = position.offset.clamp(0, block.code.length).toInt();
+      return forward ? offset >= block.code.length : offset <= 0;
+    }
+    return position.path.isBlockObject;
+  }
+
+  HeadingCollapseState? _headingCollapseStateFor(BlockNode block) {
+    final outline = widget.outlineController;
+    if (outline == null || !identical(outline.editor, widget.controller)) {
+      return null;
+    }
+    if (block is! TextBlockNode || block.type != BlockType.heading) {
+      return null;
+    }
+    final item = outline.itemForBlockId(block.id);
+    return HeadingCollapseState(
+      canCollapse: item?.canCollapse ?? false,
+      isCollapsed: item?.isCollapsed ?? false,
+      hiddenBlockCount: item?.coveredBlockIds.length ?? 0,
+    );
+  }
+
+  void _handleHeadingCollapseToggled(String blockId) {
+    widget.outlineController?.toggleByBlockId(blockId);
+  }
+
   @override
   Widget build(BuildContext context) {
     final focusNode = _effectiveFocusNode;
     _syncFocusListener(focusNode);
-    final blocks = widget.controller.document.blocks;
+    final sourceBlocks = widget.controller.document.blocks;
+    final projection = _visibleBlockProjectionFor(sourceBlocks);
+    final blocks = projection.visibleBlocks;
+    final blockIndexes = projection.visibleBlockIndexes;
+    _registry.retainBlocks(projection.visibleBlockIds);
+    // Heading collapse should project this original block list for rendering
+    // only. The source document order, block ids/indexes, codecs, and edit
+    // history remain unchanged while read-only and editable editors may toggle
+    // the view state.
     if (blocks.isEmpty) {
       return _buildEditorShell(
         context,
@@ -549,7 +997,8 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     // means the caret and selection highlight always paint and the geometry
     // registry always knows their box, so cross-block selection / caret do not
     // break under virtualisation. Usually resolves to 1-2 ids.
-    final keepAliveIds = _keepAliveBlockIds(widget.controller.selection);
+    final keepAliveIds = _keepAliveBlockIds(widget.controller.selection)
+        .intersection(projection.visibleBlockIds);
     // Block ids whose content changed in the most recent controller mutation.
     // null = treat every block as changed (full rebuild), e.g. after a document
     // replace where no diff was available. Used by _KeepAliveBlock to skip
@@ -558,50 +1007,71 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     final findMatches =
         widget.findController?.matches ?? const <FindReplaceMatch>[];
     final currentFindMatch = widget.findController?.currentMatch;
+    final listMarkers = _listMarkersFor(sourceBlocks);
 
-    _extentCache.retainBlocks(blocks);
+    _extentCache.retainBlocks(sourceBlocks);
 
     final editor = _MeasuredVirtualBlockList(
       controller: _scrollController,
       padding: widget.padding,
       physics: widget.physics,
       blocks: blocks,
+      blockIndexes: blockIndexes,
       blockSpacing: widget.blockSpacing,
       extentCache: _extentCache,
       keepAliveIds: keepAliveIds,
       onExtentUpdated: _scrollCaretIntoViewIfNeeded,
-      itemBuilder: (context, i) => _KeepAliveBlock(
-        key: ValueKey<String>(blocks[i].id),
-        block: blocks[i],
-        blockIndex: i,
-        keepAlive: keepAliveIds.contains(blocks[i].id),
-        blockChanged: dirtyIds == null || dirtyIds.contains(blocks[i].id),
-        selection: widget.controller.selection,
-        compositionState: widget.controller.compositionState,
-        registry: _registry,
-        blockRenderers: _blockRenderers,
-        showCaret: showCaret,
-        textStyle: widget.textStyle,
-        showDebugOverlay: widget.showDebugOverlay,
-        mediaResolver: widget.mediaResolver,
-        inlineEmbedRenderer: widget.inlineEmbedRenderer,
-        onCodeLanguageChanged: widget.readOnly
-            ? null
-            : (language) {
-                widget.controller.setCodeLanguage(language, blockIndex: i);
-              },
-        onCodeCopied: _copyTextToClipboard,
-        onCalloutVariantChanged: widget.readOnly
-            ? null
-            : (variant) {
-                widget.controller.setCalloutVariant(variant, blockIndex: i);
-              },
-        onTableToolbarAction:
-            widget.readOnly ? null : _handleTableToolbarAction,
-        onTableColumnResize: widget.readOnly ? null : _handleTableColumnResize,
-        findMatches: findMatches,
-        currentFindMatch: currentFindMatch,
-      ),
+      itemBuilder: (context, blockIndex) {
+        final block = sourceBlocks[blockIndex];
+        return _KeepAliveBlock(
+          key: ValueKey<String>(block.id),
+          block: block,
+          blockIndex: blockIndex,
+          blockCount: sourceBlocks.length,
+          listMarker: listMarkers[blockIndex],
+          keepAlive: keepAliveIds.contains(block.id),
+          blockChanged: dirtyIds == null || dirtyIds.contains(block.id),
+          selection: widget.controller.selection,
+          compositionState: widget.controller.compositionState,
+          registry: _registry,
+          blockRenderers: _blockRenderers,
+          showCaret: showCaret,
+          textStyle: widget.textStyle,
+          showDebugOverlay: widget.showDebugOverlay,
+          canEdit: !widget.readOnly,
+          mediaResolver: widget.mediaResolver,
+          inlineEmbedRenderer: widget.inlineEmbedRenderer,
+          headingCollapseState: _headingCollapseStateFor(block),
+          onHeadingCollapseToggled: _handleHeadingCollapseToggled,
+          onCodeLanguageChanged: widget.readOnly
+              ? null
+              : (language) {
+                  widget.controller.setCodeLanguage(
+                    language,
+                    blockIndex: blockIndex,
+                  );
+                },
+          onCodeCopied: _copyTextToClipboard,
+          onCalloutVariantChanged: widget.readOnly
+              ? null
+              : (variant) {
+                  widget.controller.setCalloutVariant(
+                    variant,
+                    blockIndex: blockIndex,
+                  );
+                },
+          onTableToolbarAction:
+              widget.readOnly ? null : _handleTableToolbarAction,
+          tableToolbarOverlayController: _tableToolbarOverlayController,
+          onTableColumnResize:
+              widget.readOnly ? null : _handleTableColumnResize,
+          onTodoCheckedChanged:
+              widget.readOnly ? null : _handleTodoCheckedChanged,
+          onObjectBlockAction: _handleObjectBlockAction,
+          findMatches: findMatches,
+          currentFindMatch: currentFindMatch,
+        );
+      },
     );
     return _buildEditorShell(
       context,
@@ -657,7 +1127,14 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
           hint: widget.accessibility.effectiveHint(readOnly: widget.readOnly),
           onTap: () => focusNode.requestFocus(),
           onFocus: () => focusNode.requestFocus(),
-          child: _withHighContrastFocusHighlight(context, focusNode, child),
+          child: _withHighContrastFocusHighlight(
+            context,
+            focusNode,
+            TableFloatingToolbarOverlayHost(
+              controller: _tableToolbarOverlayController,
+              child: child,
+            ),
+          ),
         ),
       ),
     );
@@ -763,15 +1240,11 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
       return;
     }
 
-    final range = _currentTableRange(tableBlock, intent) ??
-        TableCellRange(
-          tableBlockId: tableBlock.id,
-          blockIndex: intent.blockIndex,
-          startRow: intent.rowIndex,
-          endRow: intent.targetEndRowIndex,
-          startColumn: intent.columnIndex,
-          endColumn: intent.targetEndColumnIndex,
-        );
+    final range = _currentTableRange(tableBlock, intent);
+    if (range == null) {
+      return;
+    }
+    widget.controller.requestFocus();
 
     switch (intent.action) {
       case TableToolbarAction.insertRowAbove:
@@ -922,6 +1395,16 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     );
   }
 
+  void _handleTodoCheckedChanged({
+    required int blockIndex,
+    required bool checked,
+  }) {
+    widget.controller.setTodoChecked(
+      blockIndex: blockIndex,
+      checked: checked,
+    );
+  }
+
   TableBlockNode? _tableBlockAt(int blockIndex) {
     final blocks = widget.controller.document.blocks;
     if (blockIndex < 0 || blockIndex >= blocks.length) {
@@ -941,7 +1424,26 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
         range.tableBlockId != tableBlock.id) {
       return null;
     }
-    return range;
+    return _normalizeTableRange(tableBlock, range);
+  }
+
+  TableCellRange? _normalizeTableRange(
+    TableBlockNode tableBlock,
+    TableCellRange range,
+  ) {
+    final rowCount = tableBlock.table.rowCount;
+    final columnCount = tableBlock.table.columnCount;
+    if (rowCount == 0 || columnCount == 0) {
+      return null;
+    }
+    return TableCellRange(
+      tableBlockId: tableBlock.id,
+      blockIndex: range.blockIndex,
+      startRow: range.startRow.clamp(0, rowCount - 1).toInt(),
+      endRow: range.endRow.clamp(0, rowCount - 1).toInt(),
+      startColumn: range.startColumn.clamp(0, columnCount - 1).toInt(),
+      endColumn: range.endColumn.clamp(0, columnCount - 1).toInt(),
+    );
   }
 
   void _forEachVisibleTableCell(
@@ -991,6 +1493,379 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
         alignment: alignment,
       );
     }
+  }
+
+  void _handleObjectBlockAction(ObjectBlockActionIntent intent) {
+    final block = _blockAt(intent.blockIndex);
+    if (block == null) {
+      return;
+    }
+    switch (intent.action) {
+      case ObjectBlockAction.copyContent:
+        final text = block.plainText;
+        if (text.isNotEmpty) {
+          unawaited(_copyTextToClipboard(text));
+        }
+        return;
+      case ObjectBlockAction.copyReference:
+        final reference = _objectBlockReference(block);
+        if (reference.isNotEmpty) {
+          unawaited(_copyTextToClipboard(reference));
+        }
+        return;
+      case ObjectBlockAction.duplicate:
+        if (widget.readOnly) {
+          return;
+        }
+        final duplicate = _copyBlockWithFreshIds(block);
+        widget.controller.insertBlocks(
+          index: intent.blockIndex + 1,
+          blocks: <BlockNode>[duplicate],
+          selection: _selectionForBlock(duplicate, intent.blockIndex + 1),
+        );
+        return;
+      case ObjectBlockAction.moveUp:
+        if (widget.readOnly) {
+          return;
+        }
+        final toIndex = _resolveMoveBlockTarget(
+          intent,
+          fallback: intent.blockIndex - 1,
+        );
+        if (toIndex != null) {
+          _moveBlock(intent.blockIndex, toIndex);
+        }
+        return;
+      case ObjectBlockAction.moveDown:
+        if (widget.readOnly) {
+          return;
+        }
+        final toIndex = _resolveMoveBlockTarget(
+          intent,
+          fallback: intent.blockIndex + 1,
+        );
+        if (toIndex != null) {
+          _moveBlock(intent.blockIndex, toIndex);
+        }
+        return;
+      case ObjectBlockAction.delete:
+        if (widget.readOnly) {
+          return;
+        }
+        _deleteBlock(intent.blockIndex);
+        return;
+      case ObjectBlockAction.resetImageSize:
+        if (widget.readOnly || block is! ImageBlockNode) {
+          return;
+        }
+        widget.controller.updateImageBlock(
+          blockIndex: intent.blockIndex,
+          clearShowWidth: true,
+          clearShowHeight: true,
+        );
+        return;
+      case ObjectBlockAction.setImageDisplayWidth:
+        if (widget.readOnly || block is! ImageBlockNode) {
+          return;
+        }
+        final width = intent.value;
+        if (width is! num || width <= 0) {
+          return;
+        }
+        widget.controller.updateImageBlock(
+          blockIndex: intent.blockIndex,
+          showWidth: width.toDouble(),
+          showHeight: _scaledImageHeight(block, width.toDouble()),
+        );
+        return;
+      case ObjectBlockAction.markFileUploading:
+        if (widget.readOnly || block is! FileBlockNode) {
+          return;
+        }
+        widget.controller.updateFileBlock(
+          blockIndex: intent.blockIndex,
+          uploadStatus: FileUploadStatus.uploading,
+          uploadError: '',
+        );
+        return;
+      case ObjectBlockAction.markFileUploaded:
+        if (widget.readOnly || block is! FileBlockNode) {
+          return;
+        }
+        widget.controller.updateFileBlock(
+          blockIndex: intent.blockIndex,
+          uploadStatus: FileUploadStatus.uploaded,
+          uploadError: '',
+        );
+        return;
+      case ObjectBlockAction.markFileFailed:
+        if (widget.readOnly || block is! FileBlockNode) {
+          return;
+        }
+        widget.controller.updateFileBlock(
+          blockIndex: intent.blockIndex,
+          uploadStatus: FileUploadStatus.failed,
+          uploadError:
+              block.uploadError.isEmpty ? 'Upload failed' : block.uploadError,
+        );
+        return;
+    }
+  }
+
+  BlockNode? _blockAt(int blockIndex) {
+    final blocks = widget.controller.document.blocks;
+    if (blockIndex < 0 || blockIndex >= blocks.length) {
+      return null;
+    }
+    return blocks[blockIndex];
+  }
+
+  int? _resolveMoveBlockTarget(
+    ObjectBlockActionIntent intent, {
+    required int fallback,
+  }) {
+    final blocks = widget.controller.document.blocks;
+    if (intent.blockIndex < 0 || intent.blockIndex >= blocks.length) {
+      return null;
+    }
+    final value = intent.value;
+    final toIndex = value is int ? value : fallback;
+    if (toIndex < 0 ||
+        toIndex >= blocks.length ||
+        toIndex == intent.blockIndex) {
+      return null;
+    }
+    return toIndex;
+  }
+
+  void _moveBlock(int fromIndex, int toIndex) {
+    widget.controller.moveBlock(
+      fromIndex: fromIndex,
+      toIndex: toIndex,
+    );
+  }
+
+  void _deleteBlock(int blockIndex) {
+    final blocks = widget.controller.document.blocks;
+    if (blockIndex < 0 || blockIndex >= blocks.length) {
+      return;
+    }
+    if (blocks.length == 1) {
+      final replacement = TextBlockNode(
+        id: _nextBlockId(),
+        type: BlockType.paragraph,
+        content: const <InlineNode>[],
+      );
+      widget.controller.replaceBlocks(
+        index: 0,
+        deleteCount: 1,
+        blocks: <BlockNode>[replacement],
+        selection: _selectionForBlock(replacement, 0),
+      );
+      return;
+    }
+
+    final nextIndex =
+        blockIndex < blocks.length - 1 ? blockIndex : blockIndex - 1;
+    final nextBlock = blockIndex < blocks.length - 1
+        ? blocks[blockIndex + 1]
+        : blocks[nextIndex];
+    widget.controller.replaceBlocks(
+      index: blockIndex,
+      deleteCount: 1,
+      blocks: const <BlockNode>[],
+      selection: _selectionForBlock(nextBlock, nextIndex),
+    );
+  }
+
+  DocumentSelection _selectionForBlock(BlockNode block, int blockIndex) {
+    final position = switch (block) {
+      TextBlockNode() => DocumentPosition.text(
+          blockId: block.id,
+          blockIndex: blockIndex,
+          offset: inlineNodesLength(block.content),
+        ),
+      CodeBlockNode() => DocumentPosition.code(
+          blockId: block.id,
+          blockIndex: blockIndex,
+          offset: block.code.length,
+        ),
+      TableBlockNode() => _firstTableCellPosition(block, blockIndex) ??
+          DocumentPosition(
+            blockId: block.id,
+            blockIndex: blockIndex,
+            path: PositionPath.blockObject(block.id),
+            offset: 0,
+          ),
+      _ => DocumentPosition(
+          blockId: block.id,
+          blockIndex: blockIndex,
+          path: PositionPath.blockObject(block.id),
+          offset: 0,
+        ),
+    };
+    if (position.path.isBlockObject) {
+      return DocumentSelection(
+        base: position,
+        extent: position.copyWith(offset: _kAtomicBlockSelectionLength),
+      );
+    }
+    return DocumentSelection(base: position, extent: position);
+  }
+
+  DocumentPosition? _firstTableCellPosition(
+    TableBlockNode block,
+    int blockIndex,
+  ) {
+    for (var rowIndex = 0; rowIndex < block.table.rows.length; rowIndex++) {
+      final row = block.table.rows[rowIndex];
+      for (var columnIndex = 0; columnIndex < row.length; columnIndex++) {
+        final cell = row[columnIndex];
+        if (cell.covered) {
+          continue;
+        }
+        return DocumentPosition.tableCell(
+          tableBlockId: block.id,
+          blockIndex: blockIndex,
+          tableRowIndex: rowIndex,
+          tableColumnIndex: columnIndex,
+          offset: 0,
+        );
+      }
+    }
+    return null;
+  }
+
+  BlockNode _copyBlockWithFreshIds(BlockNode block) {
+    if (block is TextBlockNode) {
+      return TextBlockNode(
+        id: _nextBlockId(),
+        type: block.type,
+        attributes: block.attributes,
+        content: block.content.map((node) => node.copy()).toList(),
+      );
+    }
+    if (block is CodeBlockNode) {
+      return CodeBlockNode(
+        id: _nextBlockId(),
+        code: block.code,
+        language: block.language,
+        attributes: block.attributes,
+      );
+    }
+    if (block is ImageBlockNode) {
+      return ImageBlockNode(
+        id: _nextBlockId(),
+        assetId: block.assetId,
+        file: block.file,
+        width: block.width,
+        height: block.height,
+        showWidth: block.showWidth,
+        showHeight: block.showHeight,
+        caption: block.caption,
+        altText: block.altText,
+        attributes: block.attributes,
+      );
+    }
+    if (block is TableBlockNode) {
+      return TableBlockNode(
+        id: _nextBlockId(),
+        table: TableModel(
+          rows: block.table.rows
+              .map(
+                (row) => row
+                    .map(
+                      (cell) => TableCellNode(
+                        id: _nextBlockId(),
+                        blocks:
+                            cell.blocks.map(_copyBlockWithFreshIds).toList(),
+                        rowSpan: cell.rowSpan,
+                        columnSpan: cell.columnSpan,
+                        isHeader: cell.isHeader,
+                        backgroundColor: cell.backgroundColor,
+                        covered: cell.covered,
+                      ),
+                    )
+                    .toList(),
+              )
+              .toList(),
+          columnAlignments: Map<int, String>.from(block.table.columnAlignments),
+          columnWidths: Map<int, double>.from(block.table.columnWidths),
+        ),
+        attributes: block.attributes,
+      );
+    }
+    if (block is DividerBlockNode) {
+      return DividerBlockNode(id: _nextBlockId(), attributes: block.attributes);
+    }
+    if (block is VideoBlockNode) {
+      return VideoBlockNode(
+        id: _nextBlockId(),
+        assetId: block.assetId,
+        file: block.file,
+        attributes: block.attributes,
+      );
+    }
+    if (block is BlockEmbedNode) {
+      return BlockEmbedNode(
+        id: _nextBlockId(),
+        embedType: block.embedType,
+        data: Map<String, Object?>.from(block.data),
+        fallbackText: block.fallbackText,
+        attributes: block.attributes,
+      );
+    }
+    if (block is CalloutBlockNode) {
+      return CalloutBlockNode(
+        id: _nextBlockId(),
+        content: block.content.map((node) => node.copy()).toList(),
+        variant: block.variant,
+        title: block.title,
+        icon: block.icon,
+        attributes: block.attributes,
+      );
+    }
+    if (block is FileBlockNode) {
+      return FileBlockNode(
+        id: _nextBlockId(),
+        assetId: block.assetId,
+        name: block.name,
+        size: block.size,
+        mimeType: block.mimeType,
+        file: block.file,
+        downloadUrl: block.downloadUrl,
+        uploadStatus: block.uploadStatus,
+        uploadError: block.uploadError,
+        attributes: block.attributes,
+      );
+    }
+    return block.copy();
+  }
+
+  double? _scaledImageHeight(ImageBlockNode block, double width) {
+    if (block.width <= 0 || block.height <= 0) {
+      return null;
+    }
+    return width * block.height / block.width;
+  }
+
+  String _objectBlockReference(BlockNode block) {
+    if (block is ImageBlockNode) {
+      return _assetLabel(block.assetId, block.file);
+    }
+    if (block is VideoBlockNode) {
+      return _assetLabel(block.assetId, block.file);
+    }
+    if (block is FileBlockNode) {
+      return block.effectiveDownloadUrl;
+    }
+    if (block is BlockEmbedNode) {
+      return block.displayText;
+    }
+    if (block is DividerBlockNode) {
+      return 'divider';
+    }
+    return block.plainText;
   }
 
   /// Block ids that must stay mounted under virtualisation: the caret block
@@ -1128,9 +2003,11 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
         return;
       case EditorShortcutIntent.undo:
         controller.undo();
+        _revealCurrentSelectionIfHidden();
         return;
       case EditorShortcutIntent.redo:
         controller.redo();
+        _revealCurrentSelectionIfHidden();
         return;
       case EditorShortcutIntent.copy:
         _handleCopy();
@@ -1139,6 +2016,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
         _handleCut();
         return;
       case EditorShortcutIntent.paste:
+        _revealCurrentSelectionIfHidden();
         _handlePaste();
         return;
       case EditorShortcutIntent.find:
@@ -1222,20 +2100,26 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
         return;
       case EditorShortcutIntent.deleteBackward:
         if (!_deleteActiveSelectionIfAny()) {
-          controller.deleteBackward();
+          if (!_expandHiddenContentAdjacentToSelection(forward: false)) {
+            controller.deleteBackward();
+          }
         }
         return;
       case EditorShortcutIntent.deleteForward:
         if (!_deleteActiveSelectionIfAny()) {
-          controller.deleteForward();
+          if (!_expandHiddenContentAdjacentToSelection(forward: true)) {
+            controller.deleteForward();
+          }
         }
         return;
       case EditorShortcutIntent.enter:
+        _revealCurrentSelectionIfHidden();
         controller.enter(newBlockId: _nextBlockId());
         return;
       case EditorShortcutIntent.insertCharacter:
         final character = resolution.character;
         if (character != null) {
+          _revealCurrentSelectionIfHidden();
           controller.insertText(character);
         }
         return;
@@ -1543,10 +2427,19 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     if (blockIndex < 0 || blockIndex >= blocks.length) {
       return null;
     }
+    final projection = _visibleBlockProjectionFor(blocks);
+    final visibleIndex =
+        projection.nearestVisibleIndexForBlockIndex(blockIndex);
+    if (visibleIndex == null) {
+      return null;
+    }
     // Offset so the target block sits near the top of the viewport. We aim
     // one third down from the top so the surrounding context is visible.
-    final targetBlockTop =
-        _extentCache.offsetFor(blocks, blockIndex, widget.blockSpacing);
+    final targetBlockTop = _extentCache.offsetFor(
+      projection.visibleBlocks,
+      visibleIndex,
+      widget.blockSpacing,
+    );
     return targetBlockTop - viewportHeight / 3;
   }
 
@@ -1741,12 +2634,16 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     switch (selectorName) {
       case 'deleteBackward:':
         if (!_deleteActiveSelectionIfAny()) {
-          controller.deleteBackward();
+          if (!_expandHiddenContentAdjacentToSelection(forward: false)) {
+            controller.deleteBackward();
+          }
         }
         return true;
       case 'deleteForward:':
         if (!_deleteActiveSelectionIfAny()) {
-          controller.deleteForward();
+          if (!_expandHiddenContentAdjacentToSelection(forward: true)) {
+            controller.deleteForward();
+          }
         }
         return true;
       case 'deleteWordBackward:':
@@ -1765,6 +2662,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
         _runSelectorFuture(_handleCut());
         return true;
       case 'paste:':
+        _revealCurrentSelectionIfHidden();
         _runSelectorFuture(_handlePaste());
         return true;
       case 'insertTab:':
@@ -1782,6 +2680,10 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     if (selection == null || selection.isCollapsed) {
       return false;
     }
+    if (_revealCurrentSelectionIfHidden()) {
+      _inputClient.syncBuffer();
+      return true;
+    }
     widget.controller.deleteSelection(selection);
     _inputClient.syncBuffer();
     return true;
@@ -1793,7 +2695,10 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
       return;
     }
     if (!selection.isCollapsed) {
-      widget.controller.deleteSelection();
+      _deleteActiveSelectionIfAny();
+      return;
+    }
+    if (_expandHiddenContentAdjacentToSelection(forward: forward)) {
       return;
     }
     widget.controller.moveCaretByWord(
@@ -1809,7 +2714,10 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
       return;
     }
     if (!selection.isCollapsed) {
-      widget.controller.deleteSelection();
+      _deleteActiveSelectionIfAny();
+      return;
+    }
+    if (_expandHiddenContentAdjacentToSelection(forward: forward)) {
       return;
     }
     widget.controller.moveCaretToBlockBoundary(
@@ -1884,6 +2792,9 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
   }
 
   Future<void> _handleCut() async {
+    if (_revealCurrentSelectionIfHidden()) {
+      return;
+    }
     final payload = widget.controller.cutSelection();
     if (payload == null) {
       return;
@@ -1896,6 +2807,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
   }
 
   Future<void> _handlePaste() async {
+    _revealCurrentSelectionIfHidden();
     final data = await Clipboard.getData('text/plain');
     final text = data?.text;
     if (text == null || text.isEmpty) {
@@ -1985,7 +2897,7 @@ class _BlockExtentCache {
     for (var i = 0; i < safeIndex; i++) {
       offset += extentFor(blocks[i]);
       if (i < blocks.length - 1) {
-        offset += spacing;
+        offset += _spacingBetweenBlocks(blocks[i], blocks[i + 1], spacing);
       }
     }
     return offset;
@@ -1998,7 +2910,7 @@ class _BlockExtentCache {
       offsets.add(offset);
       offset += extentFor(blocks[i]);
       if (i < blocks.length - 1) {
-        offset += spacing;
+        offset += _spacingBetweenBlocks(blocks[i], blocks[i + 1], spacing);
       }
     }
     return _BlockLayoutMetrics(
@@ -2075,6 +2987,7 @@ class _MeasuredVirtualBlockList extends StatefulWidget {
   const _MeasuredVirtualBlockList({
     required this.controller,
     required this.blocks,
+    required this.blockIndexes,
     required this.blockSpacing,
     required this.extentCache,
     required this.keepAliveIds,
@@ -2086,9 +2999,16 @@ class _MeasuredVirtualBlockList extends StatefulWidget {
 
   final ScrollController controller;
   final List<BlockNode> blocks;
+  final List<int> blockIndexes;
   final double blockSpacing;
   final _BlockExtentCache extentCache;
   final Set<String> keepAliveIds;
+
+  /// Builds one top-level `Document.blocks` row. Editor-owned row chrome, such
+  /// as the block drag handle defined by [BlockDragHandleSpec], must wrap this
+  /// builder at the row shell instead of living inside [BlockRendererBuilder]
+  /// output. That keeps table-cell text, inline embeds, and object-block
+  /// internal controls from being mistaken for sortable rows.
   final IndexedWidgetBuilder itemBuilder;
   final EdgeInsetsGeometry padding;
   final ScrollPhysics? physics;
@@ -2203,7 +3123,10 @@ class _MeasuredVirtualBlockListState extends State<_MeasuredVirtualBlockList> {
                         widget.blocks[index].id,
                       ),
                       onChanged: _handleExtentChanged,
-                      child: widget.itemBuilder(context, index),
+                      child: widget.itemBuilder(
+                        context,
+                        widget.blockIndexes[index],
+                      ),
                     ),
                   ),
               ],
@@ -2323,6 +3246,8 @@ class _KeepAliveBlock extends StatefulWidget {
     super.key,
     required this.block,
     required this.blockIndex,
+    required this.blockCount,
+    this.listMarker,
     required this.keepAlive,
     required this.blockChanged,
     required this.selection,
@@ -2332,19 +3257,27 @@ class _KeepAliveBlock extends StatefulWidget {
     required this.showCaret,
     this.textStyle,
     this.showDebugOverlay = false,
+    this.canEdit = true,
     this.mediaResolver,
     this.inlineEmbedRenderer,
+    this.headingCollapseState,
+    this.onHeadingCollapseToggled,
     this.onCodeLanguageChanged,
     this.onCodeCopied,
     this.onCalloutVariantChanged,
     this.onTableToolbarAction,
+    this.tableToolbarOverlayController,
     this.onTableColumnResize,
+    this.onTodoCheckedChanged,
+    this.onObjectBlockAction,
     this.findMatches = const <FindReplaceMatch>[],
     this.currentFindMatch,
   });
 
   final BlockNode block;
   final int blockIndex;
+  final int blockCount;
+  final String? listMarker;
   final bool keepAlive;
   final bool blockChanged;
   final DocumentSelection? selection;
@@ -2354,13 +3287,19 @@ class _KeepAliveBlock extends StatefulWidget {
   final bool showCaret;
   final TextStyle? textStyle;
   final bool showDebugOverlay;
+  final bool canEdit;
   final MediaResolver? mediaResolver;
   final InlineEmbedRenderer? inlineEmbedRenderer;
+  final HeadingCollapseState? headingCollapseState;
+  final ValueChanged<String>? onHeadingCollapseToggled;
   final ValueChanged<String>? onCodeLanguageChanged;
   final Future<void> Function(String code)? onCodeCopied;
   final ValueChanged<String>? onCalloutVariantChanged;
   final TableToolbarActionHandler? onTableToolbarAction;
+  final TableFloatingToolbarOverlayController? tableToolbarOverlayController;
   final TableColumnResizeHandler? onTableColumnResize;
+  final TodoCheckedChangeHandler? onTodoCheckedChanged;
+  final ObjectBlockActionHandler? onObjectBlockAction;
   final List<FindReplaceMatch> findMatches;
   final FindReplaceMatch? currentFindMatch;
 
@@ -2397,17 +3336,27 @@ class _KeepAliveBlockState extends State<_KeepAliveBlock>
     final selectionShiftedWhileTouched = _selectionTouchesBlock(widget) &&
         oldWidget.selection != widget.selection;
     if (widget.blockChanged ||
+        oldWidget.blockIndex != widget.blockIndex ||
+        oldWidget.blockCount != widget.blockCount ||
         selectionTouchedChanged ||
         selectionShiftedWhileTouched ||
         oldWidget.showCaret != widget.showCaret ||
         oldWidget.showDebugOverlay != widget.showDebugOverlay ||
+        oldWidget.listMarker != widget.listMarker ||
+        oldWidget.canEdit != widget.canEdit ||
         oldWidget.textStyle != widget.textStyle ||
         oldWidget.inlineEmbedRenderer != widget.inlineEmbedRenderer ||
+        oldWidget.headingCollapseState != widget.headingCollapseState ||
+        oldWidget.onHeadingCollapseToggled != widget.onHeadingCollapseToggled ||
         oldWidget.onCodeLanguageChanged != widget.onCodeLanguageChanged ||
         oldWidget.onCodeCopied != widget.onCodeCopied ||
         oldWidget.onCalloutVariantChanged != widget.onCalloutVariantChanged ||
         oldWidget.onTableToolbarAction != widget.onTableToolbarAction ||
+        oldWidget.tableToolbarOverlayController !=
+            widget.tableToolbarOverlayController ||
         oldWidget.onTableColumnResize != widget.onTableColumnResize ||
+        oldWidget.onTodoCheckedChanged != widget.onTodoCheckedChanged ||
+        oldWidget.onObjectBlockAction != widget.onObjectBlockAction ||
         oldWidget.findMatches != widget.findMatches ||
         oldWidget.currentFindMatch != widget.currentFindMatch ||
         _compositionTouchesBlock(oldWidget) !=
@@ -2427,6 +3376,8 @@ class _KeepAliveBlockState extends State<_KeepAliveBlock>
     final child = _BlockRenderer(
       block: widget.block,
       blockIndex: widget.blockIndex,
+      blockCount: widget.blockCount,
+      listMarker: widget.listMarker,
       selection: widget.selection,
       compositionState: widget.compositionState,
       registry: widget.registry,
@@ -2434,13 +3385,19 @@ class _KeepAliveBlockState extends State<_KeepAliveBlock>
       showCaret: widget.showCaret,
       textStyle: widget.textStyle,
       showDebugOverlay: widget.showDebugOverlay,
+      canEdit: widget.canEdit,
       mediaResolver: widget.mediaResolver,
       inlineEmbedRenderer: widget.inlineEmbedRenderer,
+      headingCollapseState: widget.headingCollapseState,
+      onHeadingCollapseToggled: widget.onHeadingCollapseToggled,
       onCodeLanguageChanged: widget.onCodeLanguageChanged,
       onCodeCopied: widget.onCodeCopied,
       onCalloutVariantChanged: widget.onCalloutVariantChanged,
       onTableToolbarAction: widget.onTableToolbarAction,
+      tableToolbarOverlayController: widget.tableToolbarOverlayController,
       onTableColumnResize: widget.onTableColumnResize,
+      onTodoCheckedChanged: widget.onTodoCheckedChanged,
+      onObjectBlockAction: widget.onObjectBlockAction,
       findMatches: widget.findMatches,
       currentFindMatch: widget.currentFindMatch,
     );
@@ -2483,6 +3440,8 @@ class _BlockRenderer extends StatelessWidget {
   const _BlockRenderer({
     required this.block,
     required this.blockIndex,
+    required this.blockCount,
+    this.listMarker,
     required this.selection,
     required this.compositionState,
     required this.registry,
@@ -2490,19 +3449,27 @@ class _BlockRenderer extends StatelessWidget {
     required this.showCaret,
     this.textStyle,
     this.showDebugOverlay = false,
+    this.canEdit = true,
     this.mediaResolver,
     this.inlineEmbedRenderer,
+    this.headingCollapseState,
+    this.onHeadingCollapseToggled,
     this.onCodeLanguageChanged,
     this.onCodeCopied,
     this.onCalloutVariantChanged,
     this.onTableToolbarAction,
+    this.tableToolbarOverlayController,
     this.onTableColumnResize,
+    this.onTodoCheckedChanged,
+    this.onObjectBlockAction,
     this.findMatches = const <FindReplaceMatch>[],
     this.currentFindMatch,
   });
 
   final BlockNode block;
   final int blockIndex;
+  final int blockCount;
+  final String? listMarker;
   final DocumentSelection? selection;
   final CompositionState? compositionState;
   final BlockGeometryRegistry registry;
@@ -2510,13 +3477,19 @@ class _BlockRenderer extends StatelessWidget {
   final bool showCaret;
   final TextStyle? textStyle;
   final bool showDebugOverlay;
+  final bool canEdit;
   final MediaResolver? mediaResolver;
   final InlineEmbedRenderer? inlineEmbedRenderer;
+  final HeadingCollapseState? headingCollapseState;
+  final ValueChanged<String>? onHeadingCollapseToggled;
   final ValueChanged<String>? onCodeLanguageChanged;
   final Future<void> Function(String code)? onCodeCopied;
   final ValueChanged<String>? onCalloutVariantChanged;
   final TableToolbarActionHandler? onTableToolbarAction;
+  final TableFloatingToolbarOverlayController? tableToolbarOverlayController;
   final TableColumnResizeHandler? onTableColumnResize;
+  final TodoCheckedChangeHandler? onTodoCheckedChanged;
+  final ObjectBlockActionHandler? onObjectBlockAction;
   final List<FindReplaceMatch> findMatches;
   final FindReplaceMatch? currentFindMatch;
 
@@ -2525,19 +3498,27 @@ class _BlockRenderer extends StatelessWidget {
     final renderContext = BlockRenderContext(
       block: block,
       blockIndex: blockIndex,
+      blockCount: blockCount,
+      listMarker: listMarker,
       selection: selection,
       compositionState: compositionState,
       registry: registry,
       showCaret: showCaret,
       textStyle: textStyle,
       showDebugOverlay: showDebugOverlay,
+      canEdit: canEdit,
       mediaResolver: mediaResolver,
       inlineEmbedRenderer: inlineEmbedRenderer,
+      headingCollapseState: headingCollapseState,
+      onHeadingCollapseToggled: onHeadingCollapseToggled,
       onCodeLanguageChanged: onCodeLanguageChanged,
       onCodeCopied: onCodeCopied,
       onCalloutVariantChanged: onCalloutVariantChanged,
       onTableToolbarAction: onTableToolbarAction,
+      tableToolbarOverlayController: tableToolbarOverlayController,
       onTableColumnResize: onTableColumnResize,
+      onTodoCheckedChanged: onTodoCheckedChanged,
+      onObjectBlockAction: onObjectBlockAction,
       findMatches: _matchesForBlock(findMatches, blockIndex),
       currentFindMatch:
           currentFindMatch?.blockIndex == blockIndex ? currentFindMatch : null,
@@ -2546,13 +3527,679 @@ class _BlockRenderer extends StatelessWidget {
       block,
       fallback: _defaultBlockFallback,
     );
-    return Padding(
+    final leadingIndent = _indentStartFor(block);
+    final content = Padding(
       padding: EdgeInsetsDirectional.only(
-        start: (block.attributes.indent ?? 0) * _kIndentPixelsPerLevel,
+        start: leadingIndent,
       ),
       child: builder(context, renderContext),
     );
+    return _BlockDragHandleOverlay(
+      blockId: block.id,
+      blockPlainText: block.plainText,
+      blockIndex: blockIndex,
+      blockCount: blockCount,
+      leadingIndent: leadingIndent,
+      canEdit: canEdit,
+      registry: registry,
+      onAction: onObjectBlockAction,
+      child: content,
+    );
   }
+}
+
+class _BlockDragHandleOverlay extends StatelessWidget {
+  const _BlockDragHandleOverlay({
+    required this.blockId,
+    required this.blockPlainText,
+    required this.blockIndex,
+    required this.blockCount,
+    required this.leadingIndent,
+    required this.canEdit,
+    required this.registry,
+    required this.child,
+    this.onAction,
+  });
+
+  final String blockId;
+  final String blockPlainText;
+  final int blockIndex;
+  final int blockCount;
+  final double leadingIndent;
+  final bool canEdit;
+  final BlockGeometryRegistry registry;
+  final Widget child;
+  final ObjectBlockActionHandler? onAction;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!BlockDragHandleSpec.canShow(
+      canEdit: canEdit,
+      blockIndex: blockIndex,
+      blockCount: blockCount,
+    )) {
+      return child;
+    }
+    final handleStart = math.max(
+      0.0,
+      BlockDragHandleSpec.railWidth +
+          leadingIndent -
+          BlockDragHandleSpec.gapToContent -
+          BlockDragHandleSpec.hitSize.width,
+    );
+    final content = Padding(
+      padding: const EdgeInsetsDirectional.only(
+        start: BlockDragHandleSpec.railWidth,
+      ),
+      child: child,
+    );
+    return _BlockReorderRowGeometry(
+      blockId: blockId,
+      blockIndex: blockIndex,
+      registry: registry,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: <Widget>[
+          content,
+          PositionedDirectional(
+            start: handleStart,
+            top: BlockDragHandleSpec.topInset,
+            child: _BlockDragHandleButton(
+              blockId: blockId,
+              blockPlainText: blockPlainText,
+              blockIndex: blockIndex,
+              blockCount: blockCount,
+              canEdit: canEdit,
+              registry: registry,
+              onAction: onAction,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BlockReorderRowGeometry extends StatefulWidget {
+  const _BlockReorderRowGeometry({
+    required this.blockId,
+    required this.blockIndex,
+    required this.registry,
+    required this.child,
+  });
+
+  final String blockId;
+  final int blockIndex;
+  final BlockGeometryRegistry registry;
+  final Widget child;
+
+  @override
+  State<_BlockReorderRowGeometry> createState() =>
+      _BlockReorderRowGeometryState();
+}
+
+class _BlockReorderRowGeometryState extends State<_BlockReorderRowGeometry> {
+  final GlobalKey _rowKey = GlobalKey();
+
+  @override
+  void initState() {
+    super.initState();
+    _register();
+  }
+
+  @override
+  void didUpdateWidget(covariant _BlockReorderRowGeometry oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.registry != widget.registry ||
+        oldWidget.blockId != widget.blockId) {
+      oldWidget.registry.unregisterBlockRow(oldWidget.blockId, _rowKey);
+    }
+    if (oldWidget.registry != widget.registry ||
+        oldWidget.blockId != widget.blockId ||
+        oldWidget.blockIndex != widget.blockIndex) {
+      _register();
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.registry.unregisterBlockRow(widget.blockId, _rowKey);
+    super.dispose();
+  }
+
+  void _register() {
+    widget.registry.registerBlockRow(
+      BlockRowGeometryEntry(
+        blockId: widget.blockId,
+        blockIndex: widget.blockIndex,
+        key: _rowKey,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return RepaintBoundary(
+      key: _rowKey,
+      child: widget.child,
+    );
+  }
+}
+
+class _BlockDragHandleButton extends StatefulWidget {
+  const _BlockDragHandleButton({
+    required this.blockId,
+    required this.blockPlainText,
+    required this.blockIndex,
+    required this.blockCount,
+    required this.canEdit,
+    required this.registry,
+    this.onAction,
+  });
+
+  final String blockId;
+  final String blockPlainText;
+  final int blockIndex;
+  final int blockCount;
+  final bool canEdit;
+  final BlockGeometryRegistry registry;
+  final ObjectBlockActionHandler? onAction;
+
+  @override
+  State<_BlockDragHandleButton> createState() => _BlockDragHandleButtonState();
+}
+
+class _BlockDragHandleButtonState extends State<_BlockDragHandleButton> {
+  final GlobalKey _hitTestKey = GlobalKey();
+  bool _hovered = false;
+  bool _focused = false;
+  bool _menuOpen = false;
+  bool _dragging = false;
+  int? _activePointer;
+  Offset? _pressOrigin;
+  bool _suppressMenuForPointer = false;
+  OverlayEntry? _dropIndicatorEntry;
+  BlockReorderDropTarget? _dropTarget;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.registry.registerSelectionExclusion(_hitTestKey);
+  }
+
+  @override
+  void didUpdateWidget(covariant _BlockDragHandleButton oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.registry != widget.registry) {
+      oldWidget.registry.unregisterSelectionExclusion(_hitTestKey);
+      widget.registry.registerSelectionExclusion(_hitTestKey);
+    }
+    if (!_enabled) {
+      _resetPointerGesture();
+    }
+  }
+
+  @override
+  void dispose() {
+    _removeDropIndicator();
+    widget.registry.unregisterSelectionExclusion(_hitTestKey);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = _enabled;
+    final opacity = !enabled
+        ? BlockDragHandleSpec.disabledOpacity
+        : _menuOpen || _focused || _dragging
+            ? BlockDragHandleSpec.activeOpacity
+            : _hovered
+                ? BlockDragHandleSpec.hoverOpacity
+                : BlockDragHandleSpec.idleOpacity;
+    final theme = Theme.of(context);
+    final active = _menuOpen || _focused || _dragging;
+    final backgroundColor = active
+        ? theme.colorScheme.primaryContainer.withAlpha(180)
+        : _hovered
+            ? theme.colorScheme.surfaceContainerHighest.withAlpha(150)
+            : Colors.transparent;
+    return KeyedSubtree(
+      key:
+          ValueKey<String>('wenz-richtext-block-drag-handle-${widget.blockId}'),
+      child: MouseRegion(
+        cursor: enabled
+            ? _dragging
+                ? SystemMouseCursors.grabbing
+                : SystemMouseCursors.grab
+            : SystemMouseCursors.basic,
+        onEnter: (_) => _setHovered(true),
+        onExit: (_) => _setHovered(false),
+        child: Focus(
+          canRequestFocus: enabled,
+          onFocusChange: _setFocused,
+          onKeyEvent: _handleKeyEvent,
+          child: Semantics(
+            button: true,
+            enabled: enabled,
+            label: '块操作',
+            onTap: enabled ? () => unawaited(_showMenu()) : null,
+            child: Tooltip(
+              message: '块操作',
+              child: Listener(
+                behavior: HitTestBehavior.opaque,
+                onPointerDown: _handlePointerDown,
+                onPointerMove: _handlePointerMove,
+                onPointerUp: _handlePointerUp,
+                onPointerCancel: _handlePointerCancel,
+                child: SizedBox(
+                  key: _hitTestKey,
+                  width: BlockDragHandleSpec.hitSize.width,
+                  height: BlockDragHandleSpec.hitSize.height,
+                  child: AnimatedOpacity(
+                    duration: const Duration(milliseconds: 120),
+                    curve: Curves.easeOut,
+                    opacity: opacity,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: backgroundColor,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Center(
+                        child: Icon(
+                          Icons.drag_indicator,
+                          size: BlockDragHandleSpec.visualSize.width,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  bool get _enabled => widget.canEdit && widget.onAction != null;
+
+  bool get _canDragSort =>
+      widget.onAction != null &&
+      BlockDragHandleSpec.canDragSort(
+        canEdit: widget.canEdit,
+        blockIndex: widget.blockIndex,
+        blockCount: widget.blockCount,
+      );
+
+  KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
+    if (!_enabled || (event is! KeyDownEvent && event is! KeyRepeatEvent)) {
+      return KeyEventResult.ignored;
+    }
+    final key = event.logicalKey;
+    if (key == LogicalKeyboardKey.enter ||
+        key == LogicalKeyboardKey.numpadEnter ||
+        key == LogicalKeyboardKey.space) {
+      unawaited(_showMenu());
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
+  void _handlePointerDown(PointerDownEvent event) {
+    if (!_enabled || !_isPrimaryPointer(event)) {
+      _resetPointerGesture();
+      return;
+    }
+    _activePointer = event.pointer;
+    _pressOrigin = event.position;
+    _suppressMenuForPointer = false;
+    if (_dragging && mounted) {
+      setState(() => _dragging = false);
+    } else {
+      _dragging = false;
+    }
+  }
+
+  void _handlePointerMove(PointerMoveEvent event) {
+    final origin = _pressOrigin;
+    if (_activePointer != event.pointer || origin == null) {
+      return;
+    }
+    if ((event.position - origin).distance <
+        BlockDragHandleSpec.dragStartSlop) {
+      return;
+    }
+    _suppressMenuForPointer = true;
+    if (!_canDragSort) {
+      return;
+    }
+    if (!_dragging && mounted) {
+      setState(() => _dragging = true);
+    }
+    _updateDropTarget(event.position);
+  }
+
+  void _handlePointerUp(PointerUpEvent event) {
+    if (_activePointer != event.pointer) {
+      return;
+    }
+    final shouldSubmitDrop = _dragging;
+    final dropTarget = _dropTarget;
+    final shouldOpenMenu = _enabled && !_dragging && !_suppressMenuForPointer;
+    _resetPointerGesture();
+    if (shouldSubmitDrop) {
+      _submitBlockReorder(dropTarget);
+      return;
+    }
+    if (shouldOpenMenu) {
+      unawaited(_showMenu());
+    }
+  }
+
+  void _handlePointerCancel(PointerCancelEvent event) {
+    if (_activePointer == event.pointer) {
+      _resetPointerGesture();
+    }
+  }
+
+  bool _isPrimaryPointer(PointerDownEvent event) {
+    if (event.kind == PointerDeviceKind.mouse) {
+      return event.buttons == kPrimaryMouseButton;
+    }
+    return event.buttons == 0 ||
+        (event.buttons & kPrimaryMouseButton) == kPrimaryMouseButton;
+  }
+
+  void _resetPointerGesture() {
+    final wasDragging = _dragging;
+    _activePointer = null;
+    _pressOrigin = null;
+    _suppressMenuForPointer = false;
+    _dragging = false;
+    _dropTarget = null;
+    _removeDropIndicator();
+    if (wasDragging && mounted) {
+      setState(() {});
+    }
+  }
+
+  void _updateDropTarget(Offset globalPosition) {
+    final next = widget.registry.blockReorderDropTargetFromGlobalOffset(
+      globalPosition,
+    );
+    if (_sameDropTarget(_dropTarget, next)) {
+      return;
+    }
+    _dropTarget = next;
+    _syncDropIndicator();
+  }
+
+  bool _sameDropTarget(
+    BlockReorderDropTarget? a,
+    BlockReorderDropTarget? b,
+  ) {
+    return a?.blockId == b?.blockId &&
+        a?.blockIndex == b?.blockIndex &&
+        a?.placement == b?.placement &&
+        a?.blockRect == b?.blockRect;
+  }
+
+  void _syncDropIndicator() {
+    if (_dropTarget == null || !_dragging || !mounted) {
+      _removeDropIndicator();
+      return;
+    }
+    final entry = _dropIndicatorEntry;
+    if (entry == null) {
+      final overlay = Overlay.of(context);
+      _dropIndicatorEntry = OverlayEntry(
+        builder: _buildDropIndicator,
+      );
+      overlay.insert(_dropIndicatorEntry!);
+      return;
+    }
+    entry.markNeedsBuild();
+  }
+
+  Widget _buildDropIndicator(BuildContext overlayContext) {
+    final target = _dropTarget;
+    final overlayBox = Overlay.of(context).context.findRenderObject();
+    if (target == null || overlayBox is! RenderBox || !overlayBox.hasSize) {
+      return const SizedBox.shrink();
+    }
+    final lineCenterY = target.placement == BlockReorderDropPlacement.before
+        ? target.blockRect.top
+        : target.blockRect.bottom;
+    final lineRect = Rect.fromLTWH(
+      target.blockRect.left,
+      lineCenterY - _kBlockReorderIndicatorHeight / 2,
+      target.blockRect.width,
+      _kBlockReorderIndicatorHeight,
+    );
+    if (lineRect.width <= 0 || lineRect.height <= 0) {
+      return const SizedBox.shrink();
+    }
+    final localTopLeft = overlayBox.globalToLocal(lineRect.topLeft);
+    final color = Theme.of(context).colorScheme.primary;
+    return Positioned(
+      left: localTopLeft.dx,
+      top: localTopLeft.dy,
+      width: lineRect.width,
+      height: lineRect.height,
+      child: IgnorePointer(
+        child: DecoratedBox(
+          key: _blockReorderDropIndicatorKey,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(
+              _kBlockReorderIndicatorHeight / 2,
+            ),
+            boxShadow: <BoxShadow>[
+              BoxShadow(
+                color: color.withAlpha(72),
+                blurRadius: 4,
+                spreadRadius: 1,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _removeDropIndicator() {
+    _dropIndicatorEntry?.remove();
+    _dropIndicatorEntry = null;
+  }
+
+  void _submitBlockReorder(BlockReorderDropTarget? target) {
+    if (!_canDragSort || target == null) {
+      return;
+    }
+    final insertionIndex =
+        target.insertionIndex.clamp(0, widget.blockCount).toInt();
+    final toIndex = insertionIndex > widget.blockIndex
+        ? insertionIndex - 1
+        : insertionIndex;
+    if (toIndex < 0 ||
+        toIndex >= widget.blockCount ||
+        toIndex == widget.blockIndex) {
+      return;
+    }
+    widget.onAction?.call(
+      ObjectBlockActionIntent(
+        action: toIndex < widget.blockIndex
+            ? ObjectBlockAction.moveUp
+            : ObjectBlockAction.moveDown,
+        blockIndex: widget.blockIndex,
+        value: toIndex,
+      ),
+    );
+  }
+
+  Future<void> _showMenu() async {
+    if (!_enabled || _dragging || _menuOpen || !mounted) {
+      return;
+    }
+    final button = _hitTestKey.currentContext?.findRenderObject() as RenderBox?;
+    final overlay =
+        Overlay.of(context).context.findRenderObject() as RenderBox?;
+    if (button == null ||
+        overlay == null ||
+        !button.hasSize ||
+        !overlay.hasSize) {
+      return;
+    }
+    final buttonTopLeft = button.localToGlobal(Offset.zero, ancestor: overlay);
+    final position = RelativeRect.fromRect(
+      buttonTopLeft & button.size,
+      Offset.zero & overlay.size,
+    );
+    _handleMenuOpened();
+    final action = await showMenu<ObjectBlockAction>(
+      context: context,
+      position: position,
+      semanticLabel: '块操作',
+      items: _buildMenuItems(context),
+    );
+    if (!mounted) {
+      return;
+    }
+    _handleMenuClosed();
+    if (action != null) {
+      _handleActionSelected(action);
+    }
+  }
+
+  List<PopupMenuEntry<ObjectBlockAction>> _buildMenuItems(
+    BuildContext context,
+  ) {
+    final canMoveUp = BlockDragHandleSpec.canMoveUp(
+      canEdit: widget.canEdit,
+      blockIndex: widget.blockIndex,
+      blockCount: widget.blockCount,
+    );
+    final canMoveDown = BlockDragHandleSpec.canMoveDown(
+      canEdit: widget.canEdit,
+      blockIndex: widget.blockIndex,
+      blockCount: widget.blockCount,
+    );
+    return <PopupMenuEntry<ObjectBlockAction>>[
+      PopupMenuItem<ObjectBlockAction>(
+        value: ObjectBlockAction.copyContent,
+        enabled: widget.blockPlainText.isNotEmpty,
+        child: const Text('复制块内容'),
+      ),
+      const PopupMenuItem<ObjectBlockAction>(
+        value: ObjectBlockAction.copyReference,
+        child: Text('复制块引用'),
+      ),
+      const PopupMenuDivider(),
+      const PopupMenuItem<ObjectBlockAction>(
+        value: ObjectBlockAction.duplicate,
+        child: Text('创建块副本'),
+      ),
+      PopupMenuItem<ObjectBlockAction>(
+        value: ObjectBlockAction.moveUp,
+        enabled: canMoveUp,
+        child: const Text('上移块'),
+      ),
+      PopupMenuItem<ObjectBlockAction>(
+        value: ObjectBlockAction.moveDown,
+        enabled: canMoveDown,
+        child: const Text('下移块'),
+      ),
+      const PopupMenuDivider(),
+      const PopupMenuItem<ObjectBlockAction>(
+        value: ObjectBlockAction.delete,
+        child: Text('删除块'),
+      ),
+    ];
+  }
+
+  void _handleMenuOpened() {
+    if (mounted) {
+      setState(() => _menuOpen = true);
+    }
+  }
+
+  void _handleMenuClosed() {
+    if (mounted) {
+      setState(() => _menuOpen = false);
+    }
+  }
+
+  void _handleActionSelected(ObjectBlockAction action) {
+    widget.onAction?.call(
+      ObjectBlockActionIntent(
+        action: action,
+        blockIndex: widget.blockIndex,
+      ),
+    );
+  }
+
+  void _setHovered(bool value) {
+    if (_hovered != value && mounted) {
+      setState(() => _hovered = value);
+    }
+  }
+
+  void _setFocused(bool value) {
+    if (_focused != value && mounted) {
+      setState(() => _focused = value);
+    }
+  }
+}
+
+double _indentStartFor(BlockNode block) {
+  final indent = _blockIndentLevel(block).toDouble();
+  final step =
+      _isListItemBlock(block) ? _kListTextInset : _kIndentPixelsPerLevel;
+  return indent * step;
+}
+
+double _spacingBetweenBlocks(
+  BlockNode previous,
+  BlockNode next,
+  double fallback,
+) {
+  if ((fallback - _kDefaultBlockSpacing).abs() > 0.01) {
+    return fallback;
+  }
+  if (_isListItemBlock(previous) && _isListItemBlock(next)) {
+    final previousIndent = _blockIndentLevel(previous);
+    final nextIndent = _blockIndentLevel(next);
+    return previousIndent > 0 || nextIndent > 0
+        ? _kNestedListItemSpacing
+        : _kListItemSpacing;
+  }
+  return math.max(
+    _blockMarginAfter(previous, fallback),
+    _blockMarginBefore(next, fallback),
+  );
+}
+
+double _blockMarginBefore(BlockNode block, double fallback) {
+  if (block is TextBlockNode && block.type == BlockType.heading) {
+    return _kRichTextBodyFontSize * _kHeadingMarginTopEm;
+  }
+  return fallback;
+}
+
+double _blockMarginAfter(BlockNode block, double fallback) {
+  if (block is TextBlockNode && block.type == BlockType.heading) {
+    return _kRichTextBodyFontSize * _kHeadingMarginBottomEm;
+  }
+  return fallback;
+}
+
+bool _isListItemBlock(BlockNode block) {
+  return block is TextBlockNode && block.type == BlockType.listItem;
+}
+
+int _blockIndentLevel(BlockNode block) {
+  return (block.attributes.indent ?? 0).clamp(0, 8).toInt();
 }
 
 /// Plain-text fallback used when no renderer is registered for a block type.
@@ -2597,9 +4244,13 @@ Widget _defaultTextBlockRenderer(
     showCaret: rc.showCaret,
     textStyle: rc.textStyle,
     showDebugOverlay: rc.showDebugOverlay,
+    listMarker: rc.listMarker,
     inlineEmbedRenderer: rc.inlineEmbedRenderer,
+    headingCollapseState: rc.headingCollapseState,
+    onHeadingCollapseToggled: rc.onHeadingCollapseToggled,
     onToolbarAction: rc.onTableToolbarAction,
     onColumnResize: rc.onTableColumnResize,
+    onTodoCheckedChanged: rc.onTodoCheckedChanged,
     findMatches: rc.findMatches,
     currentFindMatch: rc.currentFindMatch,
   );
@@ -2630,15 +4281,14 @@ Widget _defaultImageBlockRenderer(
 ) {
   final image = rc.block as ImageBlockNode;
   final resolved = _resolveMedia(context, rc);
-  final media = resolved ??
-      _MediaPlaceholder(
-        label: 'image',
-        value: _assetLabel(image.assetId, image.file),
-      );
-  return _withSelectableObjectBlock(
+  final media = resolved ?? const _ImageBlockPlaceholder();
+  return _withSelectableImageBlock(
     image,
     rc,
-    _ImageBlockContent(block: image, child: media),
+    _ImageBlockContent(
+      block: image,
+      child: media,
+    ),
   );
 }
 
@@ -2657,6 +4307,7 @@ Widget _defaultTableBlockRenderer(
     showDebugOverlay: rc.showDebugOverlay,
     inlineEmbedRenderer: rc.inlineEmbedRenderer,
     onToolbarAction: rc.onTableToolbarAction,
+    toolbarOverlayController: rc.tableToolbarOverlayController,
     onColumnResize: rc.onTableColumnResize,
     findMatches: rc.findMatches,
     currentFindMatch: rc.currentFindMatch,
@@ -2667,10 +4318,18 @@ Widget _defaultDividerBlockRenderer(
   BuildContext context,
   BlockRenderContext rc,
 ) {
+  final block = rc.block as DividerBlockNode;
   return _withSelectableObjectBlock(
-    rc.block,
+    block,
     rc,
-    const Divider(height: 1),
+    _DividerBlockContent(
+      blockId: block.id,
+      blockIndex: rc.blockIndex,
+      blockCount: rc.blockCount,
+      selected: _objectBlockSelected(block, rc),
+      canEdit: rc.canEdit,
+      onAction: rc.onObjectBlockAction,
+    ),
   );
 }
 
@@ -2680,15 +4339,19 @@ Widget _defaultVideoBlockRenderer(
 ) {
   final video = rc.block as VideoBlockNode;
   final resolved = _resolveMedia(context, rc);
-  if (resolved != null) {
-    return _withSelectableObjectBlock(video, rc, resolved);
-  }
+  final selected = _objectBlockSelected(video, rc);
+  final media = resolved ?? _VideoBlockPlaceholder(block: video);
   return _withSelectableObjectBlock(
     video,
     rc,
-    _MediaPlaceholder(
-      label: 'video',
-      value: _assetLabel(video.assetId, video.file),
+    _VideoBlockContent(
+      block: video,
+      blockIndex: rc.blockIndex,
+      blockCount: rc.blockCount,
+      selected: selected,
+      canEdit: rc.canEdit,
+      onAction: rc.onObjectBlockAction,
+      child: media,
     ),
   );
 }
@@ -2698,9 +4361,26 @@ Widget _defaultBlockEmbedRenderer(
   BlockRenderContext rc,
 ) {
   final embed = rc.block as BlockEmbedNode;
+  final selected = _objectBlockSelected(embed, rc);
   return WenzObjectBlockSurface(
     renderContext: rc,
-    child: _BlockEmbedContent(block: embed),
+    child: embed.normalizedEmbedType == 'formula'
+        ? _FormulaBlockContent(
+            block: embed,
+            blockIndex: rc.blockIndex,
+            blockCount: rc.blockCount,
+            selected: selected,
+            canEdit: rc.canEdit,
+            onAction: rc.onObjectBlockAction,
+          )
+        : _BlockEmbedContent(
+            block: embed,
+            blockIndex: rc.blockIndex,
+            blockCount: rc.blockCount,
+            selected: selected,
+            canEdit: rc.canEdit,
+            onAction: rc.onObjectBlockAction,
+          ),
   );
 }
 
@@ -2709,14 +4389,33 @@ Widget _defaultCalloutBlockRenderer(
   BlockRenderContext rc,
 ) {
   final block = rc.block as CalloutBlockNode;
+  final path = PositionPath.blockText(block.id);
+  final textLength = inlineNodesLength(block.content);
+  final selected = _selectionRangeForPath(
+        rc.selection,
+        rc.blockIndex,
+        path,
+        textLength,
+      ) !=
+      null;
   return _withBlockSemantics(
     block,
     _CalloutRenderer(
       block: block,
+      blockIndex: rc.blockIndex,
+      selection: rc.selection,
+      compositionState: rc.compositionState,
+      registry: rc.registry,
+      showCaret: rc.showCaret,
       textStyle: rc.textStyle,
+      selected: selected,
+      showDebugOverlay: rc.showDebugOverlay,
       inlineEmbedRenderer: rc.inlineEmbedRenderer,
       onVariantChanged: rc.onCalloutVariantChanged,
+      findMatches: rc.findMatches,
+      currentFindMatch: rc.currentFindMatch,
     ),
+    selected: selected,
   );
 }
 
@@ -2732,7 +4431,14 @@ Widget _defaultFileBlockRenderer(
   return _withSelectableObjectBlock(
     file,
     rc,
-    _FileBlockContent(block: file),
+    _FileBlockContent(
+      block: file,
+      blockIndex: rc.blockIndex,
+      blockCount: rc.blockCount,
+      selected: _objectBlockSelected(file, rc),
+      canEdit: rc.canEdit,
+      onAction: rc.onObjectBlockAction,
+    ),
   );
 }
 
@@ -2787,6 +4493,51 @@ Widget _withSelectableObjectBlock(
   );
 }
 
+Widget _withSelectableImageBlock(
+  ImageBlockNode block,
+  BlockRenderContext rc,
+  Widget child,
+) {
+  final path = PositionPath.blockObject(block.id);
+  final selected = _selectionTouchesPath(
+    rc.selection,
+    rc.blockIndex,
+    block.id,
+    path,
+    _kAtomicBlockSelectionLength,
+  );
+  return _withBlockSemantics(
+    block,
+    _ImageBlockChrome(
+      blockIndex: rc.blockIndex,
+      blockCount: rc.blockCount,
+      selected: selected,
+      canEdit: rc.canEdit,
+      onAction: rc.onObjectBlockAction,
+      child: _BlockObjectSelectionSurface(
+        blockId: block.id,
+        blockIndex: rc.blockIndex,
+        path: path,
+        selection: rc.selection,
+        registry: rc.registry,
+        showDebugOverlay: rc.showDebugOverlay,
+        child: child,
+      ),
+    ),
+    selected: selected,
+  );
+}
+
+bool _objectBlockSelected(BlockNode block, BlockRenderContext rc) {
+  return _selectionTouchesPath(
+    rc.selection,
+    rc.blockIndex,
+    block.id,
+    PositionPath.blockObject(block.id),
+    _kAtomicBlockSelectionLength,
+  );
+}
+
 class _TextBlockRenderer extends StatelessWidget {
   const _TextBlockRenderer({
     required this.block,
@@ -2797,9 +4548,13 @@ class _TextBlockRenderer extends StatelessWidget {
     required this.showCaret,
     this.textStyle,
     this.showDebugOverlay = false,
+    this.listMarker,
     this.inlineEmbedRenderer,
+    this.headingCollapseState,
+    this.onHeadingCollapseToggled,
     this.onToolbarAction,
     this.onColumnResize,
+    this.onTodoCheckedChanged,
     this.findMatches = const <FindReplaceMatch>[],
     this.currentFindMatch,
   });
@@ -2812,19 +4567,26 @@ class _TextBlockRenderer extends StatelessWidget {
   final bool showCaret;
   final TextStyle? textStyle;
   final bool showDebugOverlay;
+  final String? listMarker;
   final InlineEmbedRenderer? inlineEmbedRenderer;
+  final HeadingCollapseState? headingCollapseState;
+  final ValueChanged<String>? onHeadingCollapseToggled;
   final TableToolbarActionHandler? onToolbarAction;
   final TableColumnResizeHandler? onColumnResize;
+  final TodoCheckedChangeHandler? onTodoCheckedChanged;
   final List<FindReplaceMatch> findMatches;
   final FindReplaceMatch? currentFindMatch;
 
   @override
   Widget build(BuildContext context) {
-    final effectiveStyle = _blockTextStyle(
-      context,
-      block,
-      textStyle ?? DefaultTextStyle.of(context).style,
-    );
+    final isTaskListItem =
+        block.type == BlockType.listItem && block.attributes.listType == 'task';
+    final isTaskChecked = block.attributes.checked == true;
+    final baseStyle = _blockTextStyle(context, block, textStyle);
+    final todoStyle = isTaskListItem ? _todoTextStyle(baseStyle) : baseStyle;
+    final effectiveStyle = isTaskListItem && isTaskChecked
+        ? _completedTodoTextStyle(context, todoStyle)
+        : todoStyle;
     final compositionRange = _localCompositionRange(
       compositionState,
       block.id,
@@ -2833,6 +4595,13 @@ class _TextBlockRenderer extends StatelessWidget {
     );
     final path = PositionPath.blockText(block.id);
     final textLength = inlineNodesLength(block.content);
+    final inlineTextLayout = _inlineTextLayoutFor(
+      context,
+      block.content,
+      effectiveStyle,
+      compositionRange,
+      inlineEmbedRenderer,
+    );
     final selected = _selectionRangeForPath(
           selection,
           blockIndex,
@@ -2847,16 +4616,13 @@ class _TextBlockRenderer extends StatelessWidget {
       textLength: textLength,
       textSpan: TextSpan(
         style: effectiveStyle,
-        children: _inlineSpansFor(
-          context,
-          block.content,
-          effectiveStyle,
-          compositionRange,
-          inlineEmbedRenderer,
-        ),
+        children: inlineTextLayout.spans,
       ),
+      offsetMapper: inlineTextLayout.offsetMapper,
       textAlign: _textAlign(block.attributes.alignment),
-      minHeight: (effectiveStyle.fontSize ?? 14) * _kBlockMinHeightFactor,
+      minHeight: isTaskListItem
+          ? _lineHeightFor(effectiveStyle)
+          : (effectiveStyle.fontSize ?? 14) * _kBlockMinHeightFactor,
       selection: selection,
       showCaret: showCaret,
       registry: registry,
@@ -2869,7 +4635,63 @@ class _TextBlockRenderer extends StatelessWidget {
         textLength,
       ),
     );
-    final prefix = _prefixFor(block);
+    final prefix = listMarker ?? _prefixFor(block);
+    if (block.type == BlockType.quote) {
+      return _withBlockSemantics(
+        block,
+        _QuoteBlockSurface(child: text),
+        selected: selected,
+      );
+    }
+    if (isTaskListItem) {
+      return _withBlockSemantics(
+        block,
+        Padding(
+          padding: const EdgeInsetsDirectional.only(
+            start: _kTaskListPaddingLeft,
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              _TodoCheckbox(
+                blockId: block.id,
+                registry: registry,
+                checked: isTaskChecked,
+                onChanged: onTodoCheckedChanged == null
+                    ? null
+                    : (checked) {
+                        onTodoCheckedChanged!(
+                          blockIndex: blockIndex,
+                          checked: checked,
+                        );
+                      },
+              ),
+              const SizedBox(width: _kTodoTextGap),
+              Expanded(child: text),
+            ],
+          ),
+        ),
+        selected: selected,
+      );
+    }
+    if (block.type == BlockType.heading && headingCollapseState != null) {
+      return _withBlockSemantics(
+        block,
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            _HeadingCollapseButton(
+              blockId: block.id,
+              state: headingCollapseState!,
+              registry: registry,
+              onToggled: onHeadingCollapseToggled,
+            ),
+            Expanded(child: text),
+          ],
+        ),
+        selected: selected,
+      );
+    }
     if (prefix == null) {
       return _withBlockSemantics(block, text, selected: selected);
     }
@@ -2879,15 +4701,333 @@ class _TextBlockRenderer extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           SizedBox(
-            width: 32,
+            key: ValueKey<String>('wenz-richtext-list-marker-${block.id}'),
+            width: _kListMarkerWidth,
             child:
                 Text(prefix, style: effectiveStyle, textAlign: TextAlign.end),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: _kListMarkerGap),
           Expanded(child: text),
         ],
       ),
       selected: selected,
+    );
+  }
+}
+
+class _HeadingCollapseButton extends StatefulWidget {
+  const _HeadingCollapseButton({
+    required this.blockId,
+    required this.state,
+    required this.registry,
+    required this.onToggled,
+  });
+
+  final String blockId;
+  final HeadingCollapseState state;
+  final BlockGeometryRegistry registry;
+  final ValueChanged<String>? onToggled;
+
+  @override
+  State<_HeadingCollapseButton> createState() => _HeadingCollapseButtonState();
+}
+
+class _HeadingCollapseButtonState extends State<_HeadingCollapseButton> {
+  final GlobalKey _hitTestKey = GlobalKey();
+  final FocusNode _focusNode = FocusNode(
+    debugLabel: 'Wenz heading collapse button',
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    widget.registry.registerSelectionExclusion(_hitTestKey);
+  }
+
+  @override
+  void didUpdateWidget(covariant _HeadingCollapseButton oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.registry != widget.registry) {
+      oldWidget.registry.unregisterSelectionExclusion(_hitTestKey);
+      widget.registry.registerSelectionExclusion(_hitTestKey);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.registry.unregisterSelectionExclusion(_hitTestKey);
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  void _toggle() {
+    _focusNode.requestFocus();
+    widget.onToggled?.call(widget.blockId);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && widget.state.canCollapse) {
+        _focusNode.requestFocus();
+      }
+    });
+  }
+
+  KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
+    if (!widget.state.canCollapse ||
+        widget.onToggled == null ||
+        (event is! KeyDownEvent && event is! KeyRepeatEvent)) {
+      return KeyEventResult.ignored;
+    }
+    final key = event.logicalKey;
+    if (key == LogicalKeyboardKey.enter ||
+        key == LogicalKeyboardKey.numpadEnter ||
+        key == LogicalKeyboardKey.space) {
+      _toggle();
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final enabled = widget.state.canCollapse && widget.onToggled != null;
+    final overlay = scheme.primary.withAlpha(22);
+    return MouseRegion(
+      cursor: enabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
+      child: SizedBox(
+        key: _hitTestKey,
+        width: _kHeadingCollapseSlotWidth,
+        height: _kHeadingCollapseButtonSize,
+        child: Align(
+          alignment: AlignmentDirectional.topStart,
+          child: Focus(
+            canRequestFocus: false,
+            skipTraversal: true,
+            onKeyEvent: _handleKeyEvent,
+            child: IconButton(
+              key: ValueKey<String>(
+                'wenz-richtext-heading-collapse-${widget.blockId}',
+              ),
+              focusNode: _focusNode,
+              tooltip: _headingCollapseTooltip(widget.state),
+              onPressed: enabled ? _toggle : null,
+              iconSize: _kHeadingCollapseIconSize,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints.tightFor(
+                width: _kHeadingCollapseButtonSize,
+                height: _kHeadingCollapseButtonSize,
+              ),
+              visualDensity: VisualDensity.compact,
+              splashRadius: _kHeadingCollapseButtonSize / 2,
+              color: scheme.onSurfaceVariant,
+              disabledColor: scheme.outline.withAlpha(110),
+              focusColor: overlay,
+              hoverColor: overlay,
+              highlightColor: scheme.primary.withAlpha(34),
+              icon: _HeadingCollapseGlyph(
+                state: widget.state,
+                enabled: enabled,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HeadingCollapseGlyph extends StatelessWidget {
+  const _HeadingCollapseGlyph({
+    required this.state,
+    required this.enabled,
+  });
+
+  final HeadingCollapseState state;
+  final bool enabled;
+
+  @override
+  Widget build(BuildContext context) {
+    final icon = state.isCollapsed
+        ? Icons.keyboard_arrow_right_rounded
+        : Icons.keyboard_arrow_down_rounded;
+    return SizedBox.square(
+      dimension: _kHeadingCollapseIconSize,
+      child: Stack(
+        clipBehavior: Clip.none,
+        alignment: Alignment.center,
+        children: <Widget>[
+          Icon(icon),
+          if (enabled && state.isCollapsed && state.hasHiddenBlocks)
+            PositionedDirectional(
+              end: -7,
+              bottom: -5,
+              child: _HeadingCollapseCountBadge(
+                count: state.hiddenBlockCount,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HeadingCollapseCountBadge extends StatelessWidget {
+  const _HeadingCollapseCountBadge({required this.count});
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: scheme.primaryContainer,
+        borderRadius: BorderRadius.circular(7),
+        border: Border.all(color: scheme.surface, width: 1.5),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
+        child: Text(
+          _headingCollapseCountText(count),
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: scheme.onPrimaryContainer,
+            fontSize: 8,
+            fontWeight: FontWeight.w700,
+            height: 1,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+String _headingCollapseTooltip(HeadingCollapseState state) {
+  if (!state.canCollapse) {
+    return '无可折叠内容';
+  }
+  if (state.isCollapsed) {
+    return '展开标题内容（${state.hiddenBlockCount} 个块已隐藏）';
+  }
+  return '折叠标题内容（${state.hiddenBlockCount} 个块）';
+}
+
+String _headingCollapseCountText(int count) {
+  if (count > 99) {
+    return '99+';
+  }
+  return count.toString();
+}
+
+class _TodoCheckbox extends StatefulWidget {
+  const _TodoCheckbox({
+    required this.blockId,
+    required this.registry,
+    required this.checked,
+    required this.onChanged,
+  });
+
+  final String blockId;
+  final BlockGeometryRegistry registry;
+  final bool checked;
+  final ValueChanged<bool>? onChanged;
+
+  @override
+  State<_TodoCheckbox> createState() => _TodoCheckboxState();
+}
+
+class _TodoCheckboxState extends State<_TodoCheckbox> {
+  final GlobalKey _hitTestKey = GlobalKey();
+
+  @override
+  void initState() {
+    super.initState();
+    widget.registry.registerSelectionExclusion(_hitTestKey);
+  }
+
+  @override
+  void didUpdateWidget(covariant _TodoCheckbox oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.registry != widget.registry) {
+      oldWidget.registry.unregisterSelectionExclusion(_hitTestKey);
+      widget.registry.registerSelectionExclusion(_hitTestKey);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.registry.unregisterSelectionExclusion(_hitTestKey);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return MouseRegion(
+      cursor: widget.onChanged == null
+          ? SystemMouseCursors.basic
+          : SystemMouseCursors.click,
+      child: SizedBox(
+        key: _hitTestKey,
+        width: _kTodoCheckboxWidth,
+        height: _kTodoCheckboxHeight,
+        child: Align(
+          alignment: AlignmentDirectional.topCenter,
+          child: Checkbox(
+            key: ValueKey<String>(
+                'wenz-richtext-todo-checkbox-${widget.blockId}'),
+            value: widget.checked,
+            onChanged: widget.onChanged == null
+                ? null
+                : (value) => widget.onChanged!(value ?? false),
+            activeColor: theme.colorScheme.primary,
+            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            visualDensity: VisualDensity.compact,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _QuoteBlockSurface extends StatelessWidget {
+  const _QuoteBlockSurface({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    return DecoratedBox(
+      key: const ValueKey<String>('wenz-richtext-quote-background'),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainer,
+        borderRadius: const BorderRadiusDirectional.only(
+          topEnd: Radius.circular(8),
+          bottomEnd: Radius.circular(8),
+        ),
+      ),
+      child: Stack(
+        children: <Widget>[
+          PositionedDirectional(
+            start: 0,
+            top: 0,
+            bottom: 0,
+            width: 4,
+            child: DecoratedBox(
+              key: const ValueKey<String>('wenz-richtext-quote-accent'),
+              decoration: BoxDecoration(
+                color: scheme.primary,
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsetsDirectional.fromSTEB(22, 8, 18, 8),
+            child: child,
+          ),
+        ],
+      ),
     );
   }
 }
@@ -2923,10 +5063,27 @@ class _CodeBlockRenderer extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final codeStyle = theme.textTheme.bodyMedium?.copyWith(
-          fontFamily: 'monospace',
-          fontSize: 13,
+          color: const Color(_kCodeBlockTextColor),
+          fontFamily: 'JetBrains Mono',
+          fontFamilyFallback: const <String>[
+            'Fira Code',
+            'Consolas',
+            'monospace',
+          ],
+          fontSize: _kCodeBlockFontSize,
+          height: _kCodeBlockLineHeight,
         ) ??
-        const TextStyle(fontFamily: 'monospace', fontSize: 13);
+        const TextStyle(
+          color: Color(_kCodeBlockTextColor),
+          fontFamily: 'JetBrains Mono',
+          fontFamilyFallback: <String>[
+            'Fira Code',
+            'Consolas',
+            'monospace',
+          ],
+          fontSize: _kCodeBlockFontSize,
+          height: _kCodeBlockLineHeight,
+        );
     final compositionRange = _localCompositionRange(
       compositionState,
       block.id,
@@ -2941,56 +5098,104 @@ class _CodeBlockRenderer extends StatelessWidget {
           block.code.length,
         ) !=
         null;
+    final codeSpan = _codeSpan(
+      block.code,
+      block.language,
+      codeStyle,
+      compositionRange,
+    );
     return _withBlockSemantics(
       block,
       DecoratedBox(
+        key: ValueKey<String>('wenz-richtext-code-block-${block.id}'),
         decoration: BoxDecoration(
-          color: theme.colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(6),
+          color: const Color(_kCodeBlockBackgroundColor),
+          border: selected
+              ? Border.all(color: theme.colorScheme.primary, width: 1.5)
+              : null,
+          borderRadius: BorderRadius.circular(12),
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: <Widget>[
-            _CodeBlockToolbar(
-              language: block.language,
-              onLanguageChanged: onLanguageChanged,
-              onCopyPressed: onCodeCopied == null
-                  ? null
-                  : () {
-                      unawaited(onCodeCopied!(block.code));
-                    },
-            ),
-            Divider(height: 1, color: theme.colorScheme.outlineVariant),
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: _TextSelectionSurface(
-                blockId: block.id,
-                blockIndex: blockIndex,
-                path: path,
-                textLength: block.code.length,
-                textSpan: _codeSpan(block.code, codeStyle, compositionRange),
-                textAlign: TextAlign.start,
-                minHeight: (codeStyle.fontSize ?? 13) * _kBlockMinHeightFactor,
-                selection: selection,
-                showCaret: showCaret,
-                registry: registry,
-                showDebugOverlay: showDebugOverlay,
-                findRanges: _findRangesForPath(
-                  findMatches,
-                  currentFindMatch,
-                  blockIndex,
-                  path,
-                  block.code.length,
-                ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: _kCodeBlockPaddingHorizontal,
+            vertical: _kCodeBlockPaddingVertical,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              _CodeBlockToolbar(
+                language: block.language,
+                onLanguageChanged: onLanguageChanged,
+                onCopyPressed: onCodeCopied == null
+                    ? null
+                    : () {
+                        unawaited(onCodeCopied!(block.code));
+                      },
               ),
-            ),
-          ],
+              const SizedBox(height: 10),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final textDirection = Directionality.of(context);
+                  final availableWidth = constraints.maxWidth.isFinite
+                      ? constraints.maxWidth
+                      : MediaQuery.sizeOf(context).width;
+                  final contentWidth = math.max(
+                    availableWidth,
+                    _measureInlineSpanWidth(codeSpan, textDirection) + 1,
+                  );
+                  return SingleChildScrollView(
+                    key: ValueKey<String>(
+                      'wenz-richtext-code-scroll-${block.id}',
+                    ),
+                    scrollDirection: Axis.horizontal,
+                    child: SizedBox(
+                      width: contentWidth,
+                      child: _TextSelectionSurface(
+                        blockId: block.id,
+                        blockIndex: blockIndex,
+                        path: path,
+                        textLength: block.code.length,
+                        textSpan: codeSpan,
+                        offsetMapper: _InlineOffsetMapper.identity(
+                          block.code.length,
+                        ),
+                        textAlign: TextAlign.start,
+                        minHeight: (codeStyle.fontSize ?? _kCodeBlockFontSize) *
+                            _kBlockMinHeightFactor,
+                        selection: selection,
+                        showCaret: showCaret,
+                        registry: registry,
+                        showDebugOverlay: showDebugOverlay,
+                        findRanges: _findRangesForPath(
+                          findMatches,
+                          currentFindMatch,
+                          blockIndex,
+                          path,
+                          block.code.length,
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
         ),
       ),
       selected: selected,
     );
   }
+}
+
+double _measureInlineSpanWidth(InlineSpan span, TextDirection textDirection) {
+  final painter = TextPainter(
+    text: span,
+    textDirection: textDirection,
+  )..layout(maxWidth: double.infinity);
+  final width = painter.width;
+  painter.dispose();
+  return width.isFinite ? width : 0;
 }
 
 class _CodeBlockToolbar extends StatelessWidget {
@@ -3007,30 +5212,36 @@ class _CodeBlockToolbar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    const tagColor = Color(_kCodeLanguageTagColor);
     final labelStyle = theme.textTheme.labelSmall?.copyWith(
-          color: theme.colorScheme.onSurfaceVariant,
+          color: tagColor,
           fontWeight: FontWeight.w600,
+          fontSize: 11,
         ) ??
-        TextStyle(
-          color: theme.colorScheme.onSurfaceVariant,
+        const TextStyle(
+          color: tagColor,
           fontWeight: FontWeight.w600,
+          fontSize: 11,
         );
     final languages = _codeLanguageOptions(language);
     final value = languages.contains(language) ? language : '';
 
-    return Padding(
-      padding: const EdgeInsetsDirectional.fromSTEB(10, 4, 6, 4),
+    return SizedBox(
+      height: 28,
       child: Row(
         children: <Widget>[
-          Icon(Icons.code, size: 16, color: theme.colorScheme.onSurfaceVariant),
+          const Icon(Icons.code, size: 16, color: tagColor),
           const SizedBox(width: 6),
           DropdownButtonHideUnderline(
             child: DropdownButton<String>(
               value: value,
               isDense: true,
-              borderRadius: BorderRadius.circular(6),
+              borderRadius: BorderRadius.circular(8),
+              dropdownColor: const Color(0xFF2A2A3E),
               style: labelStyle,
               iconSize: 18,
+              iconEnabledColor: tagColor,
+              iconDisabledColor: tagColor.withAlpha(96),
               onChanged: onLanguageChanged == null
                   ? null
                   : (value) {
@@ -3049,9 +5260,11 @@ class _CodeBlockToolbar extends StatelessWidget {
           ),
           const Spacer(),
           IconButton(
-            tooltip: 'Copy code',
+            tooltip: '复制代码',
             visualDensity: VisualDensity.compact,
             iconSize: 18,
+            color: tagColor,
+            disabledColor: tagColor.withAlpha(96),
             onPressed: onCopyPressed,
             icon: const Icon(Icons.copy),
           ),
@@ -3073,6 +5286,7 @@ class _TableBlockRenderer extends StatelessWidget {
     this.showDebugOverlay = false,
     this.inlineEmbedRenderer,
     this.onToolbarAction,
+    this.toolbarOverlayController,
     this.onColumnResize,
     this.findMatches = const <FindReplaceMatch>[],
     this.currentFindMatch,
@@ -3088,6 +5302,7 @@ class _TableBlockRenderer extends StatelessWidget {
   final bool showDebugOverlay;
   final InlineEmbedRenderer? inlineEmbedRenderer;
   final TableToolbarActionHandler? onToolbarAction;
+  final TableFloatingToolbarOverlayController? toolbarOverlayController;
   final TableColumnResizeHandler? onColumnResize;
   final List<FindReplaceMatch> findMatches;
   final FindReplaceMatch? currentFindMatch;
@@ -3101,6 +5316,8 @@ class _TableBlockRenderer extends StatelessWidget {
     }
     final theme = Theme.of(context);
     final effectiveStyle = textStyle ?? DefaultTextStyle.of(context).style;
+    final tableTextStyle =
+        effectiveStyle.copyWith(fontSize: _kTableCellFontSize);
     return _withBlockSemantics(
       block,
       LayoutBuilder(
@@ -3108,59 +5325,85 @@ class _TableBlockRenderer extends StatelessWidget {
           final metrics = _TableGridMetrics.compute(
             table: table,
             maxWidth: _tableMaxWidth(constraints, columnCount),
-            textStyle: effectiveStyle,
+            textStyle: tableTextStyle,
             textDirection: Directionality.of(context),
           );
-          final activeRange =
-              _activeTableRange(selection, block.id, blockIndex);
-          final resizeTop = activeRange != null && onToolbarAction != null
-              ? _kTableResizeHandleTopInset
-              : 0.0;
-          final resizeHeight = metrics.height - resizeTop;
-          return SizedBox(
-            width: metrics.width,
+          final activeRange = _activeTableRange(selection, block, blockIndex);
+          final stackWidth = metrics.width;
+          final resizeHeight = metrics.height;
+          final tableSurface = SizedBox(
+            width: stackWidth,
             height: metrics.height,
             child: Stack(
               clipBehavior: Clip.none,
               children: <Widget>[
-                for (final cell in metrics.cells)
-                  Positioned(
-                    left: cell.left,
-                    top: cell.top,
-                    width: cell.width,
-                    height: cell.height,
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        border: Border.all(color: theme.dividerColor),
-                      ),
-                      child: _TableCellSurface(
-                        tableBlock: block,
-                        blockIndex: blockIndex,
-                        rowIndex: cell.rowIndex,
-                        columnIndex: cell.columnIndex,
-                        cell: cell.cell,
-                        textStyle: effectiveStyle,
-                        textAlign: _textAlign(
-                          table.columnAlignments[cell.columnIndex],
-                        ),
-                        selection: selection,
-                        compositionState: compositionState,
-                        registry: registry,
-                        showCaret: showCaret,
-                        highlightWholeCell: _shouldHighlightTableCell(
-                          selection,
-                          block.id,
-                          blockIndex,
-                          cell.rowIndex,
-                          cell.columnIndex,
-                        ),
-                        showDebugOverlay: showDebugOverlay,
-                        inlineEmbedRenderer: inlineEmbedRenderer,
-                        findMatches: findMatches,
-                        currentFindMatch: currentFindMatch,
-                      ),
+                Positioned.fill(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surface,
+                      borderRadius: BorderRadius.circular(_kTableSurfaceRadius),
+                      boxShadow: _kSurfaceBoxShadow,
                     ),
                   ),
+                ),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(_kTableSurfaceRadius),
+                  child: SizedBox(
+                    width: stackWidth,
+                    height: metrics.height,
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: <Widget>[
+                        for (final cell in metrics.cells)
+                          Positioned(
+                            left: cell.left,
+                            top: cell.top,
+                            width: cell.width,
+                            height: cell.height,
+                            child: DecoratedBox(
+                              key: ValueKey<String>(
+                                'table-cell-border-${block.id}-${cell.rowIndex}-${cell.columnIndex}',
+                              ),
+                              decoration: BoxDecoration(
+                                border: _tableCellBorder(
+                                  cell: cell,
+                                  rowCount: table.rowCount,
+                                  columnCount: columnCount,
+                                  color: _kTableBorderColor,
+                                ),
+                              ),
+                              child: _TableCellSurface(
+                                tableBlock: block,
+                                blockIndex: blockIndex,
+                                rowIndex: cell.rowIndex,
+                                columnIndex: cell.columnIndex,
+                                cell: cell.cell,
+                                textStyle: tableTextStyle,
+                                textAlign: _textAlign(
+                                  table.columnAlignments[cell.columnIndex],
+                                ),
+                                selection: selection,
+                                compositionState: compositionState,
+                                registry: registry,
+                                showCaret: showCaret,
+                                highlightWholeCell: _shouldHighlightTableCell(
+                                  selection,
+                                  block.id,
+                                  blockIndex,
+                                  cell.rowIndex,
+                                  cell.columnIndex,
+                                ),
+                                showDebugOverlay: showDebugOverlay,
+                                inlineEmbedRenderer: inlineEmbedRenderer,
+                                findMatches: findMatches,
+                                currentFindMatch: currentFindMatch,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
                 if (activeRange != null &&
                     onColumnResize != null &&
                     resizeHeight > 0)
@@ -3171,7 +5414,7 @@ class _TableBlockRenderer extends StatelessWidget {
                       left: metrics.columnLefts[column] +
                           metrics.columnWidths[column] -
                           (_kTableResizeHandleWidth / 2),
-                      top: resizeTop,
+                      top: 0,
                       width: _kTableResizeHandleWidth,
                       height: resizeHeight,
                       child: _TableColumnResizeHandle(
@@ -3189,20 +5432,40 @@ class _TableBlockRenderer extends StatelessWidget {
                         },
                       ),
                     ),
-                if (activeRange != null && onToolbarAction != null)
-                  PositionedDirectional(
-                    top: 4,
-                    start: 4,
-                    end: 4,
-                    child: _TableFloatingToolbar(
-                      block: block,
-                      blockIndex: blockIndex,
-                      range: activeRange,
-                      onAction: onToolbarAction!,
-                    ),
-                  ),
               ],
             ),
+          );
+          return TableFloatingToolbarOverlayAnchor(
+            controller: toolbarOverlayController,
+            requestBuilder: activeRange != null && onToolbarAction != null
+                ? ({
+                    required Object owner,
+                    required LayerLink anchorLink,
+                    required Rect anchorRect,
+                    required double visibleTop,
+                  }) =>
+                    TableFloatingToolbarOverlayRequest(
+                      owner: owner,
+                      anchorLink: anchorLink,
+                      anchorRect: anchorRect,
+                      visibleTop: visibleTop,
+                      tableBlockId: block.id,
+                      blockIndex: blockIndex,
+                      selectionRange: activeRange,
+                      minWidth: _kTableToolbarMinWidth,
+                      gap: _kTableFloatingToolbarGap,
+                      fallbackHeight: _kTableFloatingToolbarEstimatedHeight,
+                      toolbarBuilder: (context) => _TableFloatingToolbar(
+                        block: block,
+                        blockIndex: blockIndex,
+                        range: activeRange,
+                        onAction: onToolbarAction!,
+                      ),
+                    )
+                : null,
+            tableBlockId: block.id,
+            blockIndex: blockIndex,
+            child: tableSurface,
           );
         },
       ),
@@ -3212,16 +5475,28 @@ class _TableBlockRenderer extends StatelessWidget {
 
 TableCellRange? _activeTableRange(
   DocumentSelection? selection,
-  String tableBlockId,
+  TableBlockNode tableBlock,
   int blockIndex,
 ) {
   final range = selection?.tableCellRange;
   if (range == null ||
-      range.tableBlockId != tableBlockId ||
+      range.tableBlockId != tableBlock.id ||
       range.blockIndex != blockIndex) {
     return null;
   }
-  return range;
+  final rowCount = tableBlock.table.rowCount;
+  final columnCount = tableBlock.table.columnCount;
+  if (rowCount == 0 || columnCount == 0) {
+    return null;
+  }
+  return TableCellRange(
+    tableBlockId: tableBlock.id,
+    blockIndex: blockIndex,
+    startRow: range.startRow.clamp(0, rowCount - 1).toInt(),
+    endRow: range.endRow.clamp(0, rowCount - 1).toInt(),
+    startColumn: range.startColumn.clamp(0, columnCount - 1).toInt(),
+    endColumn: range.endColumn.clamp(0, columnCount - 1).toInt(),
+  );
 }
 
 class _TableFloatingToolbar extends StatelessWidget {
@@ -3247,114 +5522,112 @@ class _TableFloatingToolbar extends StatelessWidget {
     final canSplit = cell != null &&
         !cell.covered &&
         (cell.rowSpan > 1 || cell.columnSpan > 1);
-    return Align(
-      alignment: AlignmentDirectional.topStart,
-      child: Material(
-        elevation: 3,
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(8),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            border: Border.all(color: theme.dividerColor.withAlpha(160)),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(4),
-            child: Wrap(
-              spacing: 2,
-              runSpacing: 2,
-              children: <Widget>[
-                _button(
-                  icon: Icons.keyboard_arrow_up,
-                  tooltip: 'Insert table row above',
-                  action: TableToolbarAction.insertRowAbove,
-                ),
-                _button(
-                  icon: Icons.keyboard_arrow_down,
-                  tooltip: 'Insert table row below',
-                  action: TableToolbarAction.insertRowBelow,
-                ),
-                _button(
-                  icon: Icons.delete_outline,
-                  tooltip: 'Delete table row',
-                  action: TableToolbarAction.deleteRow,
-                  enabled: canDeleteRow,
-                ),
-                _divider(theme),
-                _button(
-                  icon: Icons.keyboard_arrow_left,
-                  tooltip: 'Insert table column before',
-                  action: TableToolbarAction.insertColumnBefore,
-                ),
-                _button(
-                  icon: Icons.keyboard_arrow_right,
-                  tooltip: 'Insert table column after',
-                  action: TableToolbarAction.insertColumnAfter,
-                ),
-                _button(
-                  icon: Icons.delete_forever_outlined,
-                  tooltip: 'Delete table column',
-                  action: TableToolbarAction.deleteColumn,
-                  enabled: canDeleteColumn,
-                ),
-                _divider(theme),
-                _button(
-                  icon: Icons.title,
-                  tooltip: 'Toggle table header cell',
-                  action: TableToolbarAction.toggleHeader,
-                ),
-                _button(
-                  icon: Icons.format_color_fill,
-                  tooltip: 'Set table cell background',
-                  action: TableToolbarAction.setBackgroundColor,
-                  backgroundColor: _kTableToolbarBackgroundColor,
-                ),
-                _button(
-                  icon: Icons.format_color_reset,
-                  tooltip: 'Clear table cell background',
-                  action: TableToolbarAction.clearBackgroundColor,
-                ),
-                _divider(theme),
-                _button(
-                  icon: Icons.format_align_left,
-                  tooltip: 'Align table column left',
-                  action: TableToolbarAction.alignLeft,
-                ),
-                _button(
-                  icon: Icons.format_align_center,
-                  tooltip: 'Align table column center',
-                  action: TableToolbarAction.alignCenter,
-                ),
-                _button(
-                  icon: Icons.format_align_right,
-                  tooltip: 'Align table column right',
-                  action: TableToolbarAction.alignRight,
-                ),
-                _button(
-                  icon: Icons.format_align_justify,
-                  tooltip: 'Clear table column alignment',
-                  action: TableToolbarAction.clearAlignment,
-                ),
-                _divider(theme),
-                _button(
-                  icon: Icons.call_merge,
-                  tooltip: 'Merge selected table cells',
-                  action: TableToolbarAction.mergeCells,
-                  enabled: canMerge,
-                ),
-                _button(
-                  icon: Icons.call_split,
-                  tooltip: 'Split table cell',
-                  action: TableToolbarAction.splitCell,
-                  enabled: canSplit,
-                ),
-                _button(
-                  icon: Icons.swap_horiz,
-                  tooltip: 'Reset table column width',
-                  action: TableToolbarAction.resetColumnWidth,
-                ),
-              ],
-            ),
+    return Material(
+      key: const ValueKey<String>('table-floating-toolbar'),
+      elevation: 3,
+      color: theme.colorScheme.surface,
+      borderRadius: BorderRadius.circular(8),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          border: Border.all(color: theme.dividerColor.withAlpha(160)),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(4),
+          child: Wrap(
+            spacing: 2,
+            runSpacing: 2,
+            children: <Widget>[
+              _button(
+                icon: Icons.keyboard_arrow_up,
+                tooltip: '在上方插入行',
+                action: TableToolbarAction.insertRowAbove,
+              ),
+              _button(
+                icon: Icons.keyboard_arrow_down,
+                tooltip: '在下方插入行',
+                action: TableToolbarAction.insertRowBelow,
+              ),
+              _button(
+                icon: Icons.delete_outline,
+                tooltip: '删除行',
+                action: TableToolbarAction.deleteRow,
+                enabled: canDeleteRow,
+              ),
+              _divider(theme),
+              _button(
+                icon: Icons.keyboard_arrow_left,
+                tooltip: '在左侧插入列',
+                action: TableToolbarAction.insertColumnBefore,
+              ),
+              _button(
+                icon: Icons.keyboard_arrow_right,
+                tooltip: '在右侧插入列',
+                action: TableToolbarAction.insertColumnAfter,
+              ),
+              _button(
+                icon: Icons.delete_forever_outlined,
+                tooltip: '删除列',
+                action: TableToolbarAction.deleteColumn,
+                enabled: canDeleteColumn,
+              ),
+              _divider(theme),
+              _button(
+                icon: Icons.title,
+                tooltip: '切换表头单元格',
+                action: TableToolbarAction.toggleHeader,
+              ),
+              _button(
+                icon: Icons.format_color_fill,
+                tooltip: '设置单元格背景',
+                action: TableToolbarAction.setBackgroundColor,
+                backgroundColor: _kTableToolbarBackgroundColor,
+              ),
+              _button(
+                icon: Icons.format_color_reset,
+                tooltip: '清除单元格背景',
+                action: TableToolbarAction.clearBackgroundColor,
+              ),
+              _divider(theme),
+              _button(
+                icon: Icons.format_align_left,
+                tooltip: '列左对齐',
+                action: TableToolbarAction.alignLeft,
+              ),
+              _button(
+                icon: Icons.format_align_center,
+                tooltip: '列居中对齐',
+                action: TableToolbarAction.alignCenter,
+              ),
+              _button(
+                icon: Icons.format_align_right,
+                tooltip: '列右对齐',
+                action: TableToolbarAction.alignRight,
+              ),
+              _button(
+                icon: Icons.format_align_justify,
+                tooltip: '清除列对齐',
+                action: TableToolbarAction.clearAlignment,
+              ),
+              _divider(theme),
+              _button(
+                icon: Icons.call_merge,
+                tooltip: '合并所选单元格',
+                action: TableToolbarAction.mergeCells,
+                enabled: canMerge,
+              ),
+              _button(
+                icon: Icons.call_split,
+                tooltip: '拆分单元格',
+                action: TableToolbarAction.splitCell,
+                enabled: canSplit,
+              ),
+              _button(
+                icon: Icons.swap_horiz,
+                tooltip: '重置列宽',
+                action: TableToolbarAction.resetColumnWidth,
+              ),
+            ],
           ),
         ),
       ),
@@ -3525,6 +5798,23 @@ double _tableMaxWidth(BoxConstraints constraints, int columnCount) {
   return columnCount * 120;
 }
 
+Border _tableCellBorder({
+  required _TableGridCell cell,
+  required int rowCount,
+  required int columnCount,
+  required Color color,
+}) {
+  final side = BorderSide(color: color);
+  return Border(
+    top: side,
+    left: side,
+    right: cell.columnIndex + cell.columnSpan >= columnCount
+        ? side
+        : BorderSide.none,
+    bottom: cell.rowIndex + cell.rowSpan >= rowCount ? side : BorderSide.none,
+  );
+}
+
 class _TableGridMetrics {
   const _TableGridMetrics({
     required this.width,
@@ -3602,6 +5892,8 @@ class _TableGridMetrics {
           _TableGridCell(
             rowIndex: row,
             columnIndex: column,
+            rowSpan: rowSpan,
+            columnSpan: columnSpan,
             cell: cell,
             left: lefts[column],
             top: tops[row],
@@ -3626,6 +5918,8 @@ class _TableGridCell {
   const _TableGridCell({
     required this.rowIndex,
     required this.columnIndex,
+    required this.rowSpan,
+    required this.columnSpan,
     required this.cell,
     required this.left,
     required this.top,
@@ -3635,6 +5929,8 @@ class _TableGridCell {
 
   final int rowIndex;
   final int columnIndex;
+  final int rowSpan;
+  final int columnSpan;
   final TableCellNode cell;
   final double left;
   final double top;
@@ -3676,17 +5972,17 @@ double _measureTableCellHeight(
   double cellWidth,
 ) {
   final effectiveTextStyle = cell.isHeader
-      ? textStyle.copyWith(fontWeight: FontWeight.w600)
+      ? textStyle.copyWith(fontWeight: FontWeight.w700)
       : textStyle;
   final text = _tableCellDisplayText(cell);
   final displayText = text.isEmpty ? ' ' : text;
-  final innerWidth = cellWidth - 16;
+  final innerWidth = cellWidth - _kTableCellPadding.horizontal;
   final painter = TextPainter(
     text: TextSpan(text: displayText, style: effectiveTextStyle),
     textAlign: TextAlign.start,
     textDirection: textDirection,
   )..layout(maxWidth: innerWidth > 0 ? innerWidth : 0);
-  final height = painter.height + 16;
+  final height = painter.height + _kTableCellPadding.vertical;
   painter.dispose();
   final minimum = _minimumTableCellHeight(textStyle);
   return height > minimum ? height : minimum;
@@ -3713,7 +6009,29 @@ String _tableCellDisplayText(TableCellNode cell) {
 }
 
 double _minimumTableCellHeight(TextStyle textStyle) {
-  return ((textStyle.fontSize ?? 14) * _kBlockMinHeightFactor) + 16;
+  return ((textStyle.fontSize ?? _kTableCellFontSize) *
+          _kBlockMinHeightFactor) +
+      _kTableCellPadding.vertical;
+}
+
+Color? _tableCellBackgroundColor({
+  required ThemeData theme,
+  required TableCellNode? cell,
+  required int rowIndex,
+}) {
+  if (cell == null) {
+    return null;
+  }
+  if (cell.backgroundColor != null) {
+    return Color(cell.backgroundColor!);
+  }
+  if (cell.isHeader) {
+    return theme.colorScheme.surfaceContainer;
+  }
+  if (rowIndex.isOdd) {
+    return _kTableEvenRowBackgroundColor;
+  }
+  return null;
 }
 
 int _clampedTableSpan(int span, int start, int count) {
@@ -3865,10 +6183,23 @@ class _TableCellSurfaceState extends State<_TableCellSurface> {
     final theme = Theme.of(context);
     final highlightColor = theme.colorScheme.primary.withAlpha(54);
     final effectiveTextStyle = (cell?.isHeader ?? false)
-        ? widget.textStyle.copyWith(fontWeight: FontWeight.w600)
+        ? widget.textStyle.copyWith(
+            fontWeight: FontWeight.w700,
+            color: theme.colorScheme.onSurfaceVariant,
+          )
         : widget.textStyle;
-    final backgroundColor =
-        cell?.backgroundColor == null ? null : Color(cell!.backgroundColor!);
+    final inlineTextLayout = _inlineTextLayoutFor(
+      context,
+      inlineContent,
+      effectiveTextStyle,
+      compositionRange,
+      widget.inlineEmbedRenderer,
+    );
+    final backgroundColor = _tableCellBackgroundColor(
+      theme: theme,
+      cell: cell,
+      rowIndex: widget.rowIndex,
+    );
     final surface = _TextSelectionSurface(
       blockId: tableBlock.id,
       blockIndex: blockIndex,
@@ -3878,14 +6209,9 @@ class _TableCellSurfaceState extends State<_TableCellSurface> {
         style: effectiveTextStyle,
         children: textLength == 0
             ? const <InlineSpan>[TextSpan(text: ' ')]
-            : _inlineSpansFor(
-                context,
-                inlineContent,
-                effectiveTextStyle,
-                compositionRange,
-                widget.inlineEmbedRenderer,
-              ),
+            : inlineTextLayout.spans,
       ),
+      offsetMapper: inlineTextLayout.offsetMapper,
       textAlign: widget.textAlign,
       minHeight: (widget.textStyle.fontSize ?? 14) * _kBlockMinHeightFactor,
       selection: widget.selection,
@@ -3931,7 +6257,7 @@ class _TableCellSurfaceState extends State<_TableCellSurface> {
           color: backgroundColor,
         ),
         child: Padding(
-          padding: const EdgeInsets.all(8),
+          padding: _kTableCellPadding,
           child: Stack(
             children: <Widget>[
               if (widget.highlightWholeCell)
@@ -4027,7 +6353,11 @@ class _BlockObjectSelectionSurfaceState
     if (oldWidget.registry != widget.registry ||
         oldWidget.blockId != widget.blockId ||
         oldWidget.path != widget.path) {
-      oldWidget.registry.unregister(oldWidget.blockId, oldWidget.path);
+      oldWidget.registry.unregister(
+        oldWidget.blockId,
+        oldWidget.path,
+        _surfaceKey,
+      );
     }
     if (oldWidget.registry != widget.registry ||
         oldWidget.blockId != widget.blockId ||
@@ -4039,7 +6369,7 @@ class _BlockObjectSelectionSurfaceState
 
   @override
   void dispose() {
-    widget.registry.unregister(widget.blockId, widget.path);
+    widget.registry.unregister(widget.blockId, widget.path, _surfaceKey);
     super.dispose();
   }
 
@@ -4186,6 +6516,7 @@ class _TextSelectionSurface extends StatefulWidget {
     required this.path,
     required this.textLength,
     required this.textSpan,
+    required this.offsetMapper,
     required this.textAlign,
     required this.minHeight,
     required this.selection,
@@ -4201,6 +6532,7 @@ class _TextSelectionSurface extends StatefulWidget {
   final PositionPath path;
   final int textLength;
   final InlineSpan textSpan;
+  final _InlineOffsetMapper offsetMapper;
   final TextAlign textAlign;
   final double minHeight;
   final DocumentSelection? selection;
@@ -4262,10 +6594,17 @@ class _TextSelectionSurfaceState extends State<_TextSelectionSurface> {
   @override
   void didUpdateWidget(covariant _TextSelectionSurface oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.blockId != widget.blockId || oldWidget.path != widget.path) {
-      widget.registry.unregister(oldWidget.blockId, oldWidget.path);
+    if (oldWidget.registry != widget.registry ||
+        oldWidget.blockId != widget.blockId ||
+        oldWidget.path != widget.path) {
+      oldWidget.registry.unregister(
+        oldWidget.blockId,
+        oldWidget.path,
+        _surfaceKey,
+      );
     }
-    if (oldWidget.blockId != widget.blockId ||
+    if (oldWidget.registry != widget.registry ||
+        oldWidget.blockId != widget.blockId ||
         oldWidget.blockIndex != widget.blockIndex ||
         oldWidget.path != widget.path ||
         oldWidget.textLength != widget.textLength ||
@@ -4285,7 +6624,7 @@ class _TextSelectionSurfaceState extends State<_TextSelectionSurface> {
   @override
   void dispose() {
     _blinkTimer?.cancel();
-    widget.registry.unregister(widget.blockId, widget.path);
+    widget.registry.unregister(widget.blockId, widget.path, _surfaceKey);
     // Only forget the private fallback; shared-cache entries are owned by the
     // cache and survive this surface's unmount so the painter is reused on the
     // next remount.
@@ -4404,7 +6743,17 @@ class _TextSelectionSurfaceState extends State<_TextSelectionSurface> {
       textDirection: Directionality.of(context),
       maxWidth: _lastMaxWidth,
     );
-    return _layoutService.offsetAt(painter, localPosition, widget.textLength);
+    final renderLength = widget.textSpan.toPlainText().length;
+    final renderOffset = _layoutService.offsetAt(
+      painter,
+      localPosition,
+      renderLength,
+    );
+    return widget.offsetMapper.logicalOffsetForHit(
+      painter,
+      localPosition,
+      renderOffset,
+    );
   }
 
   TextRange _wordRangeAt(int offset) {
@@ -4414,7 +6763,18 @@ class _TextSelectionSurfaceState extends State<_TextSelectionSurface> {
       textDirection: Directionality.of(context),
       maxWidth: _lastMaxWidth,
     );
-    return _layoutService.wordRangeAt(painter, offset);
+    final renderOffset =
+        widget.offsetMapper.renderOffsetForLogicalOffset(offset);
+    final renderRange = _layoutService.wordRangeAt(painter, renderOffset);
+    final start = widget.offsetMapper.logicalOffsetForRenderOffset(
+      renderRange.start,
+    );
+    final end =
+        widget.offsetMapper.logicalOffsetForRenderOffset(renderRange.end);
+    return TextRange(
+      start: start < end ? start : end,
+      end: start < end ? end : start,
+    );
   }
 
   /// Returns the caret's global [Rect] for [offset] in this block. Translates
@@ -4440,8 +6800,11 @@ class _TextSelectionSurfaceState extends State<_TextSelectionSurface> {
       maxWidth: _lastMaxWidth,
     );
     final clamped = offset.clamp(0, widget.textLength).toInt();
-    final local = _layoutService.caretOffset(painter, clamped);
-    final height = _layoutService.caretHeight(painter, clamped) ??
+    final renderOffset = widget.offsetMapper.renderOffsetForLogicalOffset(
+      clamped,
+    );
+    final local = _layoutService.caretOffset(painter, renderOffset);
+    final height = _layoutService.caretHeight(painter, renderOffset) ??
         painter.preferredLineHeight;
     // Width matches the painted stroke so the IME candidate window is anchored
     // to the caret the user actually sees.
@@ -4465,7 +6828,12 @@ class _TextSelectionSurfaceState extends State<_TextSelectionSurface> {
     if (safeStart == safeEnd) {
       return _localCaretRectAt(safeStart);
     }
-    final boxes = _layoutService.selectionBoxes(painter, safeStart, safeEnd);
+    final renderStart = widget.offsetMapper.renderOffsetForLogicalOffset(
+      safeStart,
+    );
+    final renderEnd = widget.offsetMapper.renderOffsetForLogicalOffset(safeEnd);
+    final boxes =
+        _layoutService.selectionBoxes(painter, renderStart, renderEnd);
     if (boxes.isEmpty) {
       return _localCaretRectAt(safeStart);
     }
@@ -4487,15 +6855,19 @@ class _TextSelectionSurfaceState extends State<_TextSelectionSurface> {
       textDirection: Directionality.of(context),
       maxWidth: _lastMaxWidth,
     );
+    final renderOffset =
+        widget.offsetMapper.renderOffsetForLogicalOffset(offset);
     final target = _layoutService.verticalMoveOffset(
       painter,
-      offset,
+      renderOffset,
       forward,
       preferX: preferX,
     );
     return VerticalMoveResult(
-      targetOffset: target,
-      caretX: _layoutService.caretLocalX(painter, offset),
+      targetOffset: target == null
+          ? null
+          : widget.offsetMapper.logicalOffsetForRenderOffset(target),
+      caretX: _layoutService.caretLocalX(painter, renderOffset),
     );
   }
 
@@ -4548,6 +6920,7 @@ class _TextSelectionSurfaceState extends State<_TextSelectionSurface> {
         final caretPainter = _CaretPainter(
           layoutService: _layoutService,
           textSpan: widget.textSpan,
+          offsetMapper: widget.offsetMapper,
           textAlign: widget.textAlign,
           textDirection: direction,
           maxWidth: maxWidth,
@@ -4571,6 +6944,7 @@ class _TextSelectionSurfaceState extends State<_TextSelectionSurface> {
             painter: _SelectionHighlightPainter(
               layoutService: _layoutService,
               textSpan: widget.textSpan,
+              offsetMapper: widget.offsetMapper,
               textAlign: widget.textAlign,
               textDirection: direction,
               maxWidth: maxWidth,
@@ -4699,6 +7073,162 @@ class _LocalSelectionRange {
   final int end;
 }
 
+class _InlineTextLayout {
+  const _InlineTextLayout({
+    required this.spans,
+    required this.offsetMapper,
+  });
+
+  final List<InlineSpan> spans;
+  final _InlineOffsetMapper offsetMapper;
+}
+
+class _InlineOffsetMapper {
+  const _InlineOffsetMapper({
+    required this.segments,
+    required this.logicalLength,
+    required this.renderLength,
+  });
+
+  factory _InlineOffsetMapper.identity(int length) {
+    final safeLength = length < 0 ? 0 : length;
+    return _InlineOffsetMapper(
+      segments: safeLength == 0
+          ? const <_InlineOffsetSegment>[]
+          : <_InlineOffsetSegment>[
+              _InlineOffsetSegment(
+                logicalStart: 0,
+                logicalEnd: safeLength,
+                renderStart: 0,
+                renderEnd: safeLength,
+                atomic: false,
+              ),
+            ],
+      logicalLength: safeLength,
+      renderLength: safeLength,
+    );
+  }
+
+  final List<_InlineOffsetSegment> segments;
+  final int logicalLength;
+  final int renderLength;
+
+  int logicalOffsetForHit(
+    TextPainter painter,
+    Offset localPosition,
+    int renderOffset,
+  ) {
+    final atomicHit = _atomicLogicalOffsetForHit(painter, localPosition);
+    if (atomicHit != null) {
+      return atomicHit;
+    }
+    return logicalOffsetForRenderOffset(renderOffset);
+  }
+
+  int logicalOffsetForRenderOffset(int renderOffset) {
+    final safeRenderOffset = renderOffset.clamp(0, renderLength).toInt();
+    for (final segment in segments) {
+      if (!segment.coversRenderOffset(safeRenderOffset)) {
+        continue;
+      }
+      if (segment.atomic) {
+        return segment.atomicLogicalOffsetForRenderOffset(safeRenderOffset);
+      }
+      return segment.logicalOffsetForRenderOffset(safeRenderOffset);
+    }
+    return safeRenderOffset == renderLength ? logicalLength : 0;
+  }
+
+  int renderOffsetForLogicalOffset(int logicalOffset) {
+    final safeLogicalOffset = logicalOffset.clamp(0, logicalLength).toInt();
+    for (final segment in segments) {
+      if (!segment.coversLogicalOffset(safeLogicalOffset)) {
+        continue;
+      }
+      return segment.renderOffsetForLogicalOffset(safeLogicalOffset);
+    }
+    return safeLogicalOffset == logicalLength ? renderLength : 0;
+  }
+
+  int? _atomicLogicalOffsetForHit(
+    TextPainter painter,
+    Offset localPosition,
+  ) {
+    for (final segment in segments) {
+      if (!segment.atomic || segment.renderStart == segment.renderEnd) {
+        continue;
+      }
+      final boxes = painter.getBoxesForSelection(
+        TextSelection(
+          baseOffset: segment.renderStart,
+          extentOffset: segment.renderEnd,
+        ),
+      );
+      for (final box in boxes) {
+        final rect = box.toRect();
+        final hitRect = Rect.fromLTRB(
+          rect.left,
+          rect.top - 1,
+          rect.right,
+          rect.bottom + 1,
+        );
+        if (!hitRect.contains(localPosition)) {
+          continue;
+        }
+        final after = switch (box.direction) {
+          TextDirection.ltr => localPosition.dx >= rect.center.dx,
+          TextDirection.rtl => localPosition.dx < rect.center.dx,
+        };
+        return after ? segment.logicalEnd : segment.logicalStart;
+      }
+    }
+    return null;
+  }
+}
+
+class _InlineOffsetSegment {
+  const _InlineOffsetSegment({
+    required this.logicalStart,
+    required this.logicalEnd,
+    required this.renderStart,
+    required this.renderEnd,
+    required this.atomic,
+  });
+
+  final int logicalStart;
+  final int logicalEnd;
+  final int renderStart;
+  final int renderEnd;
+  final bool atomic;
+
+  int get logicalLength => logicalEnd - logicalStart;
+  int get renderLength => renderEnd - renderStart;
+
+  bool coversLogicalOffset(int offset) {
+    return offset >= logicalStart && offset <= logicalEnd;
+  }
+
+  bool coversRenderOffset(int offset) {
+    return offset >= renderStart && offset <= renderEnd;
+  }
+
+  int logicalOffsetForRenderOffset(int offset) {
+    final delta = (offset - renderStart).clamp(0, renderLength).toInt();
+    return (logicalStart + delta).clamp(logicalStart, logicalEnd).toInt();
+  }
+
+  int renderOffsetForLogicalOffset(int offset) {
+    final delta = (offset - logicalStart).clamp(0, logicalLength).toInt();
+    return (renderStart + delta).clamp(renderStart, renderEnd).toInt();
+  }
+
+  int atomicLogicalOffsetForRenderOffset(int offset) {
+    final beforeDistance = (offset - renderStart).abs();
+    final afterDistance = (renderEnd - offset).abs();
+    return afterDistance <= beforeDistance ? logicalEnd : logicalStart;
+  }
+}
+
 class _FindHighlightRange extends _LocalSelectionRange {
   const _FindHighlightRange({
     required super.start,
@@ -4773,6 +7303,7 @@ class _SelectionHighlightPainter extends CustomPainter {
   const _SelectionHighlightPainter({
     required this.layoutService,
     required this.textSpan,
+    required this.offsetMapper,
     required this.textAlign,
     required this.textDirection,
     required this.maxWidth,
@@ -4782,6 +7313,7 @@ class _SelectionHighlightPainter extends CustomPainter {
 
   final TextLayoutService layoutService;
   final InlineSpan textSpan;
+  final _InlineOffsetMapper offsetMapper;
   final TextAlign textAlign;
   final TextDirection textDirection;
   final double maxWidth;
@@ -4800,7 +7332,9 @@ class _SelectionHighlightPainter extends CustomPainter {
       textDirection: textDirection,
       maxWidth: maxWidth,
     );
-    final boxes = layoutService.selectionBoxes(painter, range.start, range.end);
+    final renderStart = offsetMapper.renderOffsetForLogicalOffset(range.start);
+    final renderEnd = offsetMapper.renderOffsetForLogicalOffset(range.end);
+    final boxes = layoutService.selectionBoxes(painter, renderStart, renderEnd);
     final paint = Paint()..color = color;
     for (final box in boxes) {
       canvas.drawRect(box.toRect(), paint);
@@ -4810,6 +7344,7 @@ class _SelectionHighlightPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _SelectionHighlightPainter oldDelegate) {
     return oldDelegate.textSpan != textSpan ||
+        oldDelegate.offsetMapper != offsetMapper ||
         oldDelegate.textAlign != textAlign ||
         oldDelegate.textDirection != textDirection ||
         oldDelegate.maxWidth != maxWidth ||
@@ -4823,6 +7358,7 @@ class _CaretPainter extends CustomPainter {
   const _CaretPainter({
     required this.layoutService,
     required this.textSpan,
+    required this.offsetMapper,
     required this.textAlign,
     required this.textDirection,
     required this.maxWidth,
@@ -4834,6 +7370,7 @@ class _CaretPainter extends CustomPainter {
 
   final TextLayoutService layoutService;
   final InlineSpan textSpan;
+  final _InlineOffsetMapper offsetMapper;
   final TextAlign textAlign;
   final TextDirection textDirection;
   final double maxWidth;
@@ -4858,11 +7395,12 @@ class _CaretPainter extends CustomPainter {
       maxWidth: maxWidth,
     );
     final safeOffset = caretOffset.clamp(0, textLength).toInt();
-    final caretTop = layoutService.caretOffset(painter, safeOffset);
+    final renderOffset = offsetMapper.renderOffsetForLogicalOffset(safeOffset);
+    final caretTop = layoutService.caretOffset(painter, renderOffset);
     // Fall back to preferredLineHeight (matching _caretRectAt) so the caret is
     // always drawn with a sensible height even when getFullHeightForCaret
     // returns null (e.g. at empty/whitespace runs).
-    final height = layoutService.caretHeight(painter, safeOffset) ??
+    final height = layoutService.caretHeight(painter, renderOffset) ??
         painter.preferredLineHeight;
     final paint = Paint()
       ..color = color.withValues(alpha: opacity.clamp(0.0, 1.0))
@@ -4873,6 +7411,7 @@ class _CaretPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _CaretPainter oldDelegate) {
     return oldDelegate.textSpan != textSpan ||
+        oldDelegate.offsetMapper != offsetMapper ||
         oldDelegate.textAlign != textAlign ||
         oldDelegate.textDirection != textDirection ||
         oldDelegate.maxWidth != maxWidth ||
@@ -4883,74 +7422,413 @@ class _CaretPainter extends CustomPainter {
   }
 }
 
-class _MediaPlaceholder extends StatelessWidget {
-  const _MediaPlaceholder({required this.label, required this.value});
-
-  final String label;
-  final String value;
+class _ImageBlockPlaceholder extends StatelessWidget {
+  const _ImageBlockPlaceholder();
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return DecoratedBox(
       decoration: BoxDecoration(
-        border: Border.all(color: theme.dividerColor),
+        color: theme.colorScheme.surfaceContainerHighest.withAlpha(90),
+        border: Border.all(color: theme.colorScheme.outlineVariant),
         borderRadius: BorderRadius.circular(6),
       ),
+      child: SizedBox(
+        width: 112,
+        height: 72,
+        child: Icon(
+          Icons.image_outlined,
+          size: 24,
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
+      ),
+    );
+  }
+}
+
+class _VideoBlockPlaceholder extends StatelessWidget {
+  const _VideoBlockPlaceholder({required this.block});
+
+  final VideoBlockNode block;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final coverUrl = block.coverUrl.trim();
+    final source = _videoSourceLabel(block);
+    return Semantics(
+      label: _videoAccessibleLabel(block),
+      child: DecoratedBox(
+        key: ValueKey<String>('wenz-richtext-video-placeholder-${block.id}'),
+        decoration: BoxDecoration(
+          color: Colors.black,
+          borderRadius: BorderRadius.circular(_kMediaCornerRadius),
+          boxShadow: _kSurfaceBoxShadow,
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(_kMediaCornerRadius),
+          child: Stack(
+            fit: StackFit.expand,
+            children: <Widget>[
+              _VideoCoverBackdrop(coverUrl: coverUrl),
+              const DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: <Color>[
+                      Color(0x22000000),
+                      Color(0xDD000000),
+                    ],
+                  ),
+                ),
+              ),
+              if (coverUrl.isNotEmpty)
+                PositionedDirectional(
+                  top: 12,
+                  start: 12,
+                  child: _VideoCoverChip(label: _videoCoverLabel(coverUrl)),
+                ),
+              Center(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: Colors.white.withAlpha(230),
+                    shape: BoxShape.circle,
+                    boxShadow: <BoxShadow>[
+                      BoxShadow(
+                        color: Colors.black.withAlpha(76),
+                        blurRadius: 20,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: const SizedBox.square(
+                    dimension: _kVideoPlayButtonSize,
+                    child: Icon(
+                      Icons.play_arrow_rounded,
+                      color: Colors.black87,
+                      size: _kVideoPlayIconSize,
+                    ),
+                  ),
+                ),
+              ),
+              PositionedDirectional(
+                start: 12,
+                end: 12,
+                bottom: 12,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      _videoPreviewTitle(block),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '[video: $source]',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: Colors.white.withAlpha(220),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _VideoCoverBackdrop extends StatelessWidget {
+  const _VideoCoverBackdrop({required this.coverUrl});
+
+  final String coverUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    final uri = Uri.tryParse(coverUrl);
+    if (uri != null && (uri.scheme == 'http' || uri.scheme == 'https')) {
+      return Image.network(
+        coverUrl,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => const _VideoCoverFallback(),
+      );
+    }
+    return const _VideoCoverFallback();
+  }
+}
+
+class _VideoCoverFallback extends StatelessWidget {
+  const _VideoCoverFallback();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: <Color>[
+            theme.colorScheme.inverseSurface,
+            theme.colorScheme.surfaceContainerHighest,
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _VideoCoverChip extends StatelessWidget {
+  const _VideoCoverChip({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.black.withAlpha(150),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: Colors.white.withAlpha(60)),
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Text('[$label: $value]'),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        child: Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: theme.textTheme.labelSmall?.copyWith(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       ),
     );
   }
 }
 
 class _BlockEmbedContent extends StatelessWidget {
-  const _BlockEmbedContent({required this.block});
+  const _BlockEmbedContent({
+    required this.block,
+    required this.blockIndex,
+    required this.blockCount,
+    required this.selected,
+    required this.canEdit,
+    this.onAction,
+  });
 
   final BlockEmbedNode block;
+  final int blockIndex;
+  final int blockCount;
+  final bool selected;
+  final bool canEdit;
+  final ObjectBlockActionHandler? onAction;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        border: Border.all(color: theme.dividerColor),
-        borderRadius: BorderRadius.circular(8),
-        color:
-            theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
+    final fallbackText = block.fallbackText.trim().isNotEmpty
+        ? block.fallbackText.trim()
+        : block.displayText;
+    return _EmbedBlockCard(
+      key: ValueKey<String>('wenz-richtext-embed-card-${block.id}'),
+      blockIndex: blockIndex,
+      blockCount: blockCount,
+      selected: selected,
+      canEdit: canEdit,
+      onAction: onAction,
+      label: block.normalizedEmbedType,
+      backgroundColor: const Color(_kEmbedBlockBackgroundColor),
+      borderColor: const Color(_kEmbedBlockBorderColor),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Text(
+            fallbackText,
+            key: ValueKey<String>('wenz-richtext-embed-fallback-${block.id}'),
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurface,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          if (block.data.isNotEmpty) ...<Widget>[
+            const SizedBox(height: 10),
+            _ObjectMetadataList(
+              entries: <String>[
+                for (final entry in block.data.entries.take(4))
+                  '${entry.key}: ${entry.value}',
+              ],
+            ),
+          ],
+        ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Icon(
-              Icons.extension_outlined,
+    );
+  }
+}
+
+class _FormulaBlockContent extends StatelessWidget {
+  const _FormulaBlockContent({
+    required this.block,
+    required this.blockIndex,
+    required this.blockCount,
+    required this.selected,
+    required this.canEdit,
+    this.onAction,
+  });
+
+  final BlockEmbedNode block;
+  final int blockIndex;
+  final int blockCount;
+  final bool selected;
+  final bool canEdit;
+  final ObjectBlockActionHandler? onAction;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final formula = _formulaSourceText(
+      block.data,
+      fallbackText: block.fallbackText,
+    );
+    final style = (theme.textTheme.titleLarge ?? const TextStyle()).copyWith(
+      color: const Color(_kFormulaBlockForegroundColor),
+      fontSize: 22,
+      fontStyle: FontStyle.italic,
+      fontFamilyFallback: const <String>[
+        'Cambria Math',
+        'Times New Roman',
+        'serif',
+      ],
+    );
+    return _EmbedBlockCard(
+      key: ValueKey<String>('wenz-richtext-formula-card-${block.id}'),
+      blockIndex: blockIndex,
+      blockCount: blockCount,
+      selected: selected,
+      canEdit: canEdit,
+      onAction: onAction,
+      label: 'formula',
+      backgroundColor: const Color(_kFormulaBlockBackgroundColor),
+      borderColor: const Color(_kEmbedBlockBorderColor),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Text(
+            formula.isEmpty ? 'Formula' : formula,
+            key: ValueKey<String>('wenz-richtext-formula-source-${block.id}'),
+            style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  Text(
-                    block.normalizedEmbedType,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
+          ),
+          const SizedBox(height: 10),
+          DecoratedBox(
+            key: ValueKey<String>('wenz-richtext-formula-preview-${block.id}'),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.secondaryContainer,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Center(
+                  child: _FormulaMathView(
+                    formula: formula,
+                    textStyle: style,
+                    displayMode: true,
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    block.displayText,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _VideoBlockContent extends StatelessWidget {
+  const _VideoBlockContent({
+    required this.block,
+    required this.blockIndex,
+    required this.blockCount,
+    required this.selected,
+    required this.canEdit,
+    required this.child,
+    this.onAction,
+  });
+
+  final VideoBlockNode block;
+  final int blockIndex;
+  final int blockCount;
+  final bool selected;
+  final bool canEdit;
+  final Widget child;
+  final ObjectBlockActionHandler? onAction;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final description = block.description.trim();
+    return KeyedSubtree(
+      key: ValueKey<String>('wenz-richtext-video-block-${block.id}'),
+      child: _ObjectBlockCard(
+        icon: Icons.smart_display_outlined,
+        title: _videoCardTitle(block),
+        subtitle: _videoCardSubtitle(block),
+        blockIndex: blockIndex,
+        blockCount: blockCount,
+        selected: selected,
+        canEdit: canEdit,
+        onAction: onAction,
+        dense: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            DecoratedBox(
+              key: ValueKey<String>('wenz-richtext-video-frame-${block.id}'),
+              decoration: BoxDecoration(
+                color: Colors.black,
+                borderRadius: BorderRadius.circular(_kMediaCornerRadius),
+                boxShadow: _kSurfaceBoxShadow,
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(_kMediaCornerRadius),
+                child: AspectRatio(
+                  key: ValueKey<String>(
+                    'wenz-richtext-video-aspect-${block.id}',
+                  ),
+                  aspectRatio: block.effectiveAspectRatio,
+                  child: child,
+                ),
+              ),
+            ),
+            if (description.isNotEmpty) ...<Widget>[
+              const SizedBox(height: 8),
+              Text(
+                description,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -4958,78 +7836,899 @@ class _BlockEmbedContent extends StatelessWidget {
   }
 }
 
-class _FileBlockContent extends StatelessWidget {
-  const _FileBlockContent({required this.block});
+class _DividerBlockContent extends StatelessWidget {
+  const _DividerBlockContent({
+    required this.blockId,
+    required this.blockIndex,
+    required this.blockCount,
+    required this.selected,
+    required this.canEdit,
+    this.onAction,
+  });
 
-  final FileBlockNode block;
+  final String blockId;
+  final int blockIndex;
+  final int blockCount;
+  final bool selected;
+  final bool canEdit;
+  final ObjectBlockActionHandler? onAction;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final metadata = _fileMetadata(block);
-    final error = block.uploadError.trim();
-    final failed = block.uploadStatus == FileUploadStatus.failed;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        border: Border.all(color: theme.dividerColor),
-        borderRadius: BorderRadius.circular(8),
-        color:
-            theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.45),
+    final shellDecoration = selected
+        ? BoxDecoration(
+            color: theme.colorScheme.surfaceContainerHighest.withAlpha(48),
+            border: Border.all(color: theme.colorScheme.primary, width: 1.5),
+            borderRadius: BorderRadius.circular(8),
+          )
+        : const BoxDecoration();
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: _kDividerMarginVertical),
+      child: DecoratedBox(
+        key: ValueKey<String>('wenz-richtext-divider-shell-$blockId'),
+        decoration: shellDecoration,
+        child: Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: selected ? 8 : 0,
+            vertical: selected ? 8 : 0,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              if (selected) ...<Widget>[
+                Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: _ObjectBlockToolbar(
+                    blockIndex: blockIndex,
+                    blockCount: blockCount,
+                    canEdit: canEdit,
+                    imageActions: false,
+                    fileActions: false,
+                    onAction: onAction,
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
+              SizedBox(
+                height: _kDividerDotSize,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: <Widget>[
+                    PositionedDirectional(
+                      start: 0,
+                      end: 0,
+                      top: (_kDividerDotSize - 1) / 2,
+                      child: SizedBox(
+                        height: 1,
+                        child: DecoratedBox(
+                          key: ValueKey<String>(
+                            'wenz-richtext-divider-line-$blockId',
+                          ),
+                          decoration: const BoxDecoration(
+                            color: Color(_kDividerLineColor),
+                          ),
+                        ),
+                      ),
+                    ),
+                    SizedBox.square(
+                      dimension: _kDividerDotSize,
+                      child: DecoratedBox(
+                        key: ValueKey<String>(
+                          'wenz-richtext-divider-dot-$blockId',
+                        ),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.primary,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Icon(
-              failed ? Icons.error_outline : Icons.insert_drive_file_outlined,
-              color: failed
-                  ? theme.colorScheme.error
-                  : theme.colorScheme.onSurfaceVariant,
+    );
+  }
+}
+
+class _ObjectMetadataList extends StatelessWidget {
+  const _ObjectMetadataList({required this.entries});
+
+  final List<String> entries;
+
+  @override
+  Widget build(BuildContext context) {
+    if (entries.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Wrap(
+        spacing: 6,
+        runSpacing: 6,
+        children: <Widget>[
+          for (final entry in entries)
+            DecoratedBox(
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surface,
+                border: Border.all(color: theme.colorScheme.outlineVariant),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                child: Text(
+                  entry,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
             ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  Text(
-                    block.displayName.isEmpty
-                        ? 'Untitled file'
-                        : block.displayName,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
+        ],
+      ),
+    );
+  }
+}
+
+class _EmbedBlockCard extends StatelessWidget {
+  const _EmbedBlockCard({
+    super.key,
+    required this.blockIndex,
+    required this.blockCount,
+    required this.selected,
+    required this.canEdit,
+    required this.label,
+    required this.backgroundColor,
+    required this.borderColor,
+    required this.child,
+    this.onAction,
+  });
+
+  final int blockIndex;
+  final int blockCount;
+  final bool selected;
+  final bool canEdit;
+  final String label;
+  final Color backgroundColor;
+  final Color borderColor;
+  final Widget child;
+  final ObjectBlockActionHandler? onAction;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final resolvedBorderColor =
+        selected ? theme.colorScheme.primary : borderColor;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: CustomPaint(
+        foregroundPainter: _DashedRRectBorderPainter(
+          color: resolvedBorderColor,
+          radius: _kMediaCornerRadius,
+          strokeWidth: 1,
+          dashLength: 7,
+          gapLength: 4,
+        ),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: backgroundColor,
+            borderRadius: BorderRadius.circular(_kMediaCornerRadius),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                if (selected) ...<Widget>[
+                  Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: _ObjectBlockToolbar(
+                      blockIndex: blockIndex,
+                      blockCount: blockCount,
+                      canEdit: canEdit,
+                      imageActions: false,
+                      fileActions: false,
+                      onAction: onAction,
                     ),
                   ),
-                  if (metadata.isNotEmpty) ...<Widget>[
-                    const SizedBox(height: 4),
-                    Text(
-                      metadata,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                  if (failed && error.isNotEmpty) ...<Widget>[
-                    const SizedBox(height: 4),
-                    Text(
-                      error,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.error,
-                      ),
-                    ),
-                  ],
+                  const SizedBox(height: 8),
                 ],
-              ),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    _EmbedTypeChip(label: label),
+                    const SizedBox(width: 12),
+                    Expanded(child: child),
+                  ],
+                ),
+              ],
             ),
-            if (block.uploadStatus == FileUploadStatus.uploading)
-              const SizedBox(
-                width: 18,
-                height: 18,
-                child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _EmbedTypeChip extends StatelessWidget {
+  const _EmbedTypeChip({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.primaryContainer,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        child: Text(
+          label.toUpperCase(),
+          style: theme.textTheme.labelSmall?.copyWith(
+            color: theme.colorScheme.primary,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.6,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DashedRRectBorderPainter extends CustomPainter {
+  const _DashedRRectBorderPainter({
+    required this.color,
+    required this.radius,
+    this.strokeWidth = 1,
+    this.dashLength = 7,
+    this.gapLength = 4,
+  });
+
+  final Color color;
+  final double radius;
+  final double strokeWidth;
+  final double dashLength;
+  final double gapLength;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth;
+    final path = Path()
+      ..addRRect(
+        RRect.fromRectAndRadius(
+          Offset.zero & size,
+          Radius.circular(radius),
+        ).deflate(strokeWidth / 2),
+      );
+    for (final metric in path.computeMetrics()) {
+      var distance = 0.0;
+      while (distance < metric.length) {
+        final end = math.min(distance + dashLength, metric.length);
+        canvas.drawPath(metric.extractPath(distance, end), paint);
+        distance += dashLength + gapLength;
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DashedRRectBorderPainter oldDelegate) {
+    return oldDelegate.color != color ||
+        oldDelegate.radius != radius ||
+        oldDelegate.strokeWidth != strokeWidth ||
+        oldDelegate.dashLength != dashLength ||
+        oldDelegate.gapLength != gapLength;
+  }
+}
+
+class _ObjectBlockCard extends StatelessWidget {
+  const _ObjectBlockCard({
+    required this.icon,
+    required this.title,
+    required this.blockIndex,
+    required this.blockCount,
+    required this.selected,
+    required this.canEdit,
+    required this.child,
+    this.subtitle,
+    this.onAction,
+    this.dense = false,
+  });
+
+  final IconData icon;
+  final String title;
+  final String? subtitle;
+  final int blockIndex;
+  final int blockCount;
+  final bool selected;
+  final bool canEdit;
+  final Widget child;
+  final ObjectBlockActionHandler? onAction;
+  final bool dense;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final borderColor =
+        selected ? theme.colorScheme.primary : theme.colorScheme.outlineVariant;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest.withAlpha(80),
+        border: Border.all(color: borderColor),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Padding(
+        padding: EdgeInsets.all(dense ? 8 : 10),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            Row(
+              children: <Widget>[
+                Icon(icon, size: 18, color: theme.colorScheme.onSurfaceVariant),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      if (subtitle?.isNotEmpty == true)
+                        Text(
+                          subtitle!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            if (selected) ...<Widget>[
+              const SizedBox(height: 8),
+              Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: _ObjectBlockToolbar(
+                  blockIndex: blockIndex,
+                  blockCount: blockCount,
+                  canEdit: canEdit,
+                  imageActions: false,
+                  fileActions: false,
+                  onAction: onAction,
+                ),
               ),
+            ],
+            SizedBox(height: dense ? 8 : 10),
+            child,
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _ObjectBlockToolbar extends StatelessWidget {
+  const _ObjectBlockToolbar({
+    required this.blockIndex,
+    required this.blockCount,
+    required this.canEdit,
+    required this.imageActions,
+    required this.fileActions,
+    this.onAction,
+  });
+
+  final int blockIndex;
+  final int blockCount;
+  final bool canEdit;
+  final bool imageActions;
+  final bool fileActions;
+  final ObjectBlockActionHandler? onAction;
+
+  @override
+  Widget build(BuildContext context) {
+    final canDispatch = onAction != null;
+    final canRunMutation = canEdit && canDispatch;
+    final canMoveUp = BlockDragHandleSpec.canMoveUp(
+      canEdit: canRunMutation,
+      blockIndex: blockIndex,
+      blockCount: blockCount,
+    );
+    final canMoveDown = BlockDragHandleSpec.canMoveDown(
+      canEdit: canRunMutation,
+      blockIndex: blockIndex,
+      blockCount: blockCount,
+    );
+    return Wrap(
+      spacing: 2,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: <Widget>[
+        _ObjectActionButton(
+          icon: Icons.copy,
+          tooltip: '复制块引用',
+          onPressed: canDispatch
+              ? () => _dispatch(ObjectBlockAction.copyReference)
+              : null,
+        ),
+        if (canEdit) ...<Widget>[
+          _ObjectActionButton(
+            icon: Icons.content_copy,
+            tooltip: '创建块副本',
+            onPressed: canRunMutation
+                ? () => _dispatch(ObjectBlockAction.duplicate)
+                : null,
+          ),
+          _ObjectActionButton(
+            icon: Icons.keyboard_arrow_up,
+            tooltip: '上移块',
+            onPressed:
+                canMoveUp ? () => _dispatch(ObjectBlockAction.moveUp) : null,
+          ),
+          _ObjectActionButton(
+            icon: Icons.keyboard_arrow_down,
+            tooltip: '下移块',
+            onPressed: canMoveDown
+                ? () => _dispatch(ObjectBlockAction.moveDown)
+                : null,
+          ),
+          if (imageActions && canRunMutation)
+            _ImageSizeMenu(onSelected: _setImageWidth),
+          if (imageActions)
+            _ObjectActionButton(
+              icon: Icons.aspect_ratio,
+              tooltip: '重置图片尺寸',
+              onPressed: canRunMutation
+                  ? () => _dispatch(ObjectBlockAction.resetImageSize)
+                  : null,
+            ),
+          if (fileActions && canRunMutation)
+            _FileStatusMenu(onSelected: _setFileStatus),
+          _ObjectActionButton(
+            icon: Icons.delete_outline,
+            tooltip: '删除块',
+            onPressed: canRunMutation
+                ? () => _dispatch(ObjectBlockAction.delete)
+                : null,
+          ),
+        ],
+      ],
+    );
+  }
+
+  void _dispatch(ObjectBlockAction action, [Object? value]) {
+    onAction?.call(
+      ObjectBlockActionIntent(
+        action: action,
+        blockIndex: blockIndex,
+        value: value,
+      ),
+    );
+  }
+
+  void _setImageWidth(double width) {
+    _dispatch(ObjectBlockAction.setImageDisplayWidth, width);
+  }
+
+  void _setFileStatus(FileUploadStatus status) {
+    final action = switch (status) {
+      FileUploadStatus.uploading => ObjectBlockAction.markFileUploading,
+      FileUploadStatus.uploaded => ObjectBlockAction.markFileUploaded,
+      FileUploadStatus.failed => ObjectBlockAction.markFileFailed,
+      FileUploadStatus.none ||
+      FileUploadStatus.pending =>
+        ObjectBlockAction.markFileUploading,
+    };
+    _dispatch(action);
+  }
+}
+
+class _FloatingObjectBlockToolbar extends StatelessWidget {
+  const _FloatingObjectBlockToolbar({
+    required this.blockIndex,
+    required this.blockCount,
+    required this.canEdit,
+    required this.imageActions,
+    required this.fileActions,
+    this.onAction,
+  });
+
+  final int blockIndex;
+  final int blockCount;
+  final bool canEdit;
+  final bool imageActions;
+  final bool fileActions;
+  final ObjectBlockActionHandler? onAction;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Material(
+      color: theme.colorScheme.surface,
+      elevation: 3,
+      shadowColor: theme.colorScheme.shadow.withAlpha(40),
+      shape: RoundedRectangleBorder(
+        side: BorderSide(color: theme.colorScheme.outlineVariant),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+        child: _ObjectBlockToolbar(
+          blockIndex: blockIndex,
+          blockCount: blockCount,
+          canEdit: canEdit,
+          imageActions: imageActions,
+          fileActions: fileActions,
+          onAction: onAction,
+        ),
+      ),
+    );
+  }
+}
+
+class _ObjectActionButton extends StatelessWidget {
+  const _ObjectActionButton({
+    required this.icon,
+    required this.tooltip,
+    required this.onPressed,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      tooltip: tooltip,
+      visualDensity: VisualDensity.compact,
+      padding: EdgeInsets.zero,
+      constraints: const BoxConstraints.tightFor(width: 30, height: 30),
+      iconSize: 17,
+      onPressed: onPressed,
+      icon: Icon(icon),
+    );
+  }
+}
+
+class _ImageSizeMenu extends StatelessWidget {
+  const _ImageSizeMenu({required this.onSelected});
+
+  final ValueChanged<double> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<double>(
+      tooltip: '设置图片宽度',
+      icon: const Icon(Icons.photo_size_select_large),
+      iconSize: 17,
+      padding: EdgeInsets.zero,
+      constraints: const BoxConstraints.tightFor(width: 30, height: 30),
+      onSelected: onSelected,
+      itemBuilder: (context) => const <PopupMenuEntry<double>>[
+        PopupMenuItem<double>(value: 240, child: Text('Small width')),
+        PopupMenuItem<double>(value: 360, child: Text('Medium width')),
+        PopupMenuItem<double>(value: 520, child: Text('Large width')),
+      ],
+    );
+  }
+}
+
+class _FileStatusMenu extends StatelessWidget {
+  const _FileStatusMenu({required this.onSelected});
+
+  final ValueChanged<FileUploadStatus> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<FileUploadStatus>(
+      tooltip: '设置文件状态',
+      icon: const Icon(Icons.cloud_sync_outlined),
+      iconSize: 17,
+      padding: EdgeInsets.zero,
+      constraints: const BoxConstraints.tightFor(width: 30, height: 30),
+      onSelected: onSelected,
+      itemBuilder: (context) => const <PopupMenuEntry<FileUploadStatus>>[
+        PopupMenuItem<FileUploadStatus>(
+          value: FileUploadStatus.uploading,
+          child: Text('Uploading'),
+        ),
+        PopupMenuItem<FileUploadStatus>(
+          value: FileUploadStatus.uploaded,
+          child: Text('Uploaded'),
+        ),
+        PopupMenuItem<FileUploadStatus>(
+          value: FileUploadStatus.failed,
+          child: Text('Failed'),
+        ),
+      ],
+    );
+  }
+}
+
+class _FileBlockContent extends StatefulWidget {
+  const _FileBlockContent({
+    required this.block,
+    required this.blockIndex,
+    required this.blockCount,
+    required this.selected,
+    required this.canEdit,
+    this.onAction,
+  });
+
+  final FileBlockNode block;
+  final int blockIndex;
+  final int blockCount;
+  final bool selected;
+  final bool canEdit;
+  final ObjectBlockActionHandler? onAction;
+
+  @override
+  State<_FileBlockContent> createState() => _FileBlockContentState();
+}
+
+class _FileBlockContentState extends State<_FileBlockContent> {
+  bool _hovered = false;
+  bool _focused = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final block = widget.block;
+    final failed = block.uploadStatus == FileUploadStatus.failed;
+    final active = widget.selected || _hovered || _focused;
+    final borderColor =
+        active ? theme.colorScheme.primary : const Color(_kFileCardBorderColor);
+    final foregroundColor =
+        failed ? theme.colorScheme.error : theme.colorScheme.onSurfaceVariant;
+    final sizeLabel = block.size > 0 ? _formatFileSize(block.size) : '';
+    final subtitle = _fileSubtitle(block);
+    final statusText = _fileStatusText(block);
+    return FocusableActionDetector(
+      mouseCursor: SystemMouseCursors.click,
+      onShowHoverHighlight: (value) {
+        if (_hovered != value) {
+          setState(() {
+            _hovered = value;
+          });
+        }
+      },
+      onShowFocusHighlight: (value) {
+        if (_focused != value) {
+          setState(() {
+            _focused = value;
+          });
+        }
+      },
+      child: AnimatedContainer(
+        key: ValueKey<String>('wenz-richtext-file-card-${block.id}'),
+        duration: const Duration(milliseconds: 150),
+        curve: Curves.easeOut,
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          border: Border.all(color: borderColor),
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: _hovered || _focused ? _kSurfaceBoxShadow : null,
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: <Widget>[
+              _FileTypeBadge(
+                label: _fileTypeLabel(block),
+                failed: failed,
+              ),
+              const SizedBox(width: _kFileCardGap),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    Text(
+                      block.displayName.isEmpty
+                          ? 'Untitled file'
+                          : block.displayName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: theme.colorScheme.onSurface,
+                      ),
+                    ),
+                    if (subtitle.isNotEmpty) ...<Widget>[
+                      const SizedBox(height: 4),
+                      Text(
+                        subtitle,
+                        key: ValueKey<String>(
+                            'wenz-richtext-file-meta-${block.id}'),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                    if (statusText.isNotEmpty) ...<Widget>[
+                      const SizedBox(height: 4),
+                      Text(
+                        statusText,
+                        key: ValueKey<String>(
+                            'wenz-richtext-file-status-${block.id}'),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: failed
+                              ? theme.colorScheme.error
+                              : theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              if (sizeLabel.isNotEmpty) ...<Widget>[
+                const SizedBox(width: 12),
+                Text(
+                  sizeLabel,
+                  key: ValueKey<String>('wenz-richtext-file-size-${block.id}'),
+                  maxLines: 1,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: foregroundColor,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+              const SizedBox(width: 6),
+              _FileBlockActionMenu(
+                blockIndex: widget.blockIndex,
+                blockCount: widget.blockCount,
+                canEdit: widget.canEdit,
+                onAction: widget.onAction,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FileTypeBadge extends StatelessWidget {
+  const _FileTypeBadge({required this.label, required this.failed});
+
+  final String label;
+  final bool failed;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final backgroundColor = failed
+        ? theme.colorScheme.errorContainer
+        : theme.colorScheme.primaryContainer;
+    final foregroundColor =
+        failed ? theme.colorScheme.onErrorContainer : theme.colorScheme.primary;
+    return SizedBox.square(
+      dimension: _kFileIconSize,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: backgroundColor,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Center(
+          child: Text(
+            label,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: foregroundColor,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FileBlockActionMenu extends StatelessWidget {
+  const _FileBlockActionMenu({
+    required this.blockIndex,
+    required this.blockCount,
+    required this.canEdit,
+    this.onAction,
+  });
+
+  final int blockIndex;
+  final int blockCount;
+  final bool canEdit;
+  final ObjectBlockActionHandler? onAction;
+
+  @override
+  Widget build(BuildContext context) {
+    final canMoveUp = BlockDragHandleSpec.canMoveUp(
+      canEdit: canEdit && onAction != null,
+      blockIndex: blockIndex,
+      blockCount: blockCount,
+    );
+    final canMoveDown = BlockDragHandleSpec.canMoveDown(
+      canEdit: canEdit && onAction != null,
+      blockIndex: blockIndex,
+      blockCount: blockCount,
+    );
+    return PopupMenuButton<ObjectBlockAction>(
+      tooltip: '附件操作',
+      icon: const Icon(Icons.more_horiz),
+      iconSize: 18,
+      padding: EdgeInsets.zero,
+      constraints: const BoxConstraints.tightFor(width: 32, height: 32),
+      enabled: onAction != null,
+      onSelected: _dispatch,
+      itemBuilder: (context) => <PopupMenuEntry<ObjectBlockAction>>[
+        const PopupMenuItem<ObjectBlockAction>(
+          value: ObjectBlockAction.copyReference,
+          child: Text('复制块引用'),
+        ),
+        if (canEdit) ...<PopupMenuEntry<ObjectBlockAction>>[
+          const PopupMenuItem<ObjectBlockAction>(
+            value: ObjectBlockAction.duplicate,
+            child: Text('创建块副本'),
+          ),
+          PopupMenuItem<ObjectBlockAction>(
+            value: ObjectBlockAction.moveUp,
+            enabled: canMoveUp,
+            child: const Text('上移块'),
+          ),
+          PopupMenuItem<ObjectBlockAction>(
+            value: ObjectBlockAction.moveDown,
+            enabled: canMoveDown,
+            child: const Text('下移块'),
+          ),
+          const PopupMenuDivider(),
+          const PopupMenuItem<ObjectBlockAction>(
+            value: ObjectBlockAction.markFileUploading,
+            child: Text('标记为上传中'),
+          ),
+          const PopupMenuItem<ObjectBlockAction>(
+            value: ObjectBlockAction.markFileUploaded,
+            child: Text('标记为已上传'),
+          ),
+          const PopupMenuItem<ObjectBlockAction>(
+            value: ObjectBlockAction.markFileFailed,
+            child: Text('标记为失败'),
+          ),
+          const PopupMenuDivider(),
+          const PopupMenuItem<ObjectBlockAction>(
+            value: ObjectBlockAction.delete,
+            child: Text('删除块'),
+          ),
+        ],
+      ],
+    );
+  }
+
+  void _dispatch(ObjectBlockAction action) {
+    onAction?.call(
+      ObjectBlockActionIntent(
+        action: action,
+        blockIndex: blockIndex,
       ),
     );
   }
@@ -5050,108 +8749,248 @@ class _ImageBlockContent extends StatelessWidget {
     Widget media = child;
     if (block.showWidth != null || block.showHeight != null) {
       media = SizedBox(
+        key: ValueKey<String>('wenz-richtext-image-size-${block.id}'),
         width: block.showWidth,
         height: block.showHeight,
         child: child,
       );
     }
-    if (block.caption.isEmpty) {
-      return media;
-    }
-    final captionStyle = theme.textTheme.bodySmall?.copyWith(
-          color: theme.colorScheme.onSurfaceVariant,
-        ) ??
-        TextStyle(color: theme.colorScheme.onSurfaceVariant);
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        media,
-        const SizedBox(height: 6),
-        Text(block.caption, style: captionStyle),
-      ],
-    );
-  }
-}
-
-class _CalloutRenderer extends StatelessWidget {
-  const _CalloutRenderer({
-    required this.block,
-    this.textStyle,
-    this.inlineEmbedRenderer,
-    this.onVariantChanged,
-  });
-
-  final CalloutBlockNode block;
-  final TextStyle? textStyle;
-  final InlineEmbedRenderer? inlineEmbedRenderer;
-  final ValueChanged<String>? onVariantChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final base = textStyle ?? DefaultTextStyle.of(context).style;
-    final variant = block.normalizedVariant;
-    final tint = _calloutTint(theme, variant);
-    final foreground = _calloutForeground(theme, variant);
-    final titleStyle = theme.textTheme.titleSmall?.copyWith(
-          color: foreground,
-          fontWeight: FontWeight.w700,
-        ) ??
-        base.copyWith(color: foreground, fontWeight: FontWeight.w700);
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: tint,
-        border: Border.all(color: _calloutBorder(theme, variant)),
-        borderRadius: BorderRadius.circular(8),
-      ),
+    final caption = block.caption.trim();
+    return KeyedSubtree(
+      key: ValueKey<String>('wenz-richtext-image-block-${block.id}'),
       child: Padding(
-        padding: const EdgeInsetsDirectional.fromSTEB(12, 10, 8, 12),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            _CalloutIcon(icon: block.effectiveIcon, color: foreground),
-            const SizedBox(width: 10),
-            Expanded(
+        padding: const EdgeInsets.symmetric(
+            vertical: _kMediaBlockMarginVertical / 2),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final maxWidth = constraints.maxWidth.isFinite
+                ? constraints.maxWidth
+                : double.infinity;
+            return Align(
+              alignment: AlignmentDirectional.center,
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: <Widget>[
-                  Row(
-                    children: <Widget>[
-                      Expanded(
-                        child: Text(block.effectiveTitle, style: titleStyle),
+                  ConstrainedBox(
+                    constraints: BoxConstraints(maxWidth: maxWidth),
+                    child: DecoratedBox(
+                      key: ValueKey<String>(
+                        'wenz-richtext-image-frame-${block.id}',
                       ),
-                      _CalloutVariantMenu(
-                        variant: variant,
-                        foreground: foreground,
-                        onChanged: onVariantChanged,
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surface,
+                        borderRadius:
+                            BorderRadius.circular(_kMediaCornerRadius),
+                        boxShadow: _kSurfaceBoxShadow,
                       ),
-                    ],
+                      child: ClipRRect(
+                        borderRadius:
+                            BorderRadius.circular(_kMediaCornerRadius),
+                        child: media,
+                      ),
+                    ),
                   ),
-                  if (block.content.isNotEmpty) ...<Widget>[
-                    const SizedBox(height: 4),
-                    RichText(
-                      text: TextSpan(
-                        style: base,
-                        children: block.content
-                            .map(
-                              (node) => _inlineSpanFor(
-                                context,
-                                node,
-                                base,
-                                inlineEmbedRenderer,
-                                decorate: false,
-                              ),
-                            )
-                            .toList(),
+                  if (caption.isNotEmpty) ...<Widget>[
+                    const SizedBox(height: 8),
+                    Text(
+                      caption,
+                      key: ValueKey<String>(
+                        'wenz-richtext-image-caption-${block.id}',
+                      ),
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontSize: _kMediaCaptionFontSize,
+                        color: theme.colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ],
                 ],
               ),
-            ),
-          ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _ImageBlockChrome extends StatelessWidget {
+  const _ImageBlockChrome({
+    required this.blockIndex,
+    required this.blockCount,
+    required this.selected,
+    required this.canEdit,
+    required this.child,
+    this.onAction,
+  });
+
+  final int blockIndex;
+  final int blockCount;
+  final bool selected;
+  final bool canEdit;
+  final Widget child;
+  final ObjectBlockActionHandler? onAction;
+
+  @override
+  Widget build(BuildContext context) {
+    final children = <Widget>[
+      if (selected) ...<Widget>[
+        _FloatingObjectBlockToolbar(
+          blockIndex: blockIndex,
+          blockCount: blockCount,
+          canEdit: canEdit,
+          imageActions: true,
+          fileActions: false,
+          onAction: onAction,
+        ),
+        const SizedBox(height: _kImageFloatingToolbarGap),
+      ],
+      child,
+    ];
+    return Align(
+      alignment: AlignmentDirectional.centerStart,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: children,
+      ),
+    );
+  }
+}
+
+class _CalloutRenderer extends StatefulWidget {
+  const _CalloutRenderer({
+    required this.block,
+    required this.blockIndex,
+    required this.selection,
+    required this.compositionState,
+    required this.registry,
+    required this.showCaret,
+    this.textStyle,
+    required this.selected,
+    required this.showDebugOverlay,
+    this.inlineEmbedRenderer,
+    this.onVariantChanged,
+    this.findMatches = const <FindReplaceMatch>[],
+    this.currentFindMatch,
+  });
+
+  final CalloutBlockNode block;
+  final int blockIndex;
+  final DocumentSelection? selection;
+  final CompositionState? compositionState;
+  final BlockGeometryRegistry registry;
+  final bool showCaret;
+  final TextStyle? textStyle;
+  final bool selected;
+  final bool showDebugOverlay;
+  final InlineEmbedRenderer? inlineEmbedRenderer;
+  final ValueChanged<String>? onVariantChanged;
+  final List<FindReplaceMatch> findMatches;
+  final FindReplaceMatch? currentFindMatch;
+
+  @override
+  State<_CalloutRenderer> createState() => _CalloutRendererState();
+}
+
+class _CalloutRendererState extends State<_CalloutRenderer> {
+  final GlobalKey _cardKey = GlobalKey();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final base = _richTextBodyStyle(theme, widget.textStyle);
+    final variant = widget.block.normalizedVariant;
+    final tint = _calloutTint(variant);
+    final foreground = _calloutForeground(variant);
+    final bodyStyle = base.copyWith(color: foreground);
+    final titleStyle = bodyStyle.copyWith(fontWeight: FontWeight.w700);
+    final path = PositionPath.blockText(widget.block.id);
+    final compositionRange = _localCompositionRange(
+      widget.compositionState,
+      widget.block.id,
+      widget.blockIndex,
+      path,
+    );
+    final textLength = inlineNodesLength(widget.block.content);
+    final inlineTextLayout = _inlineTextLayoutFor(
+      context,
+      widget.block.content,
+      bodyStyle,
+      compositionRange,
+      widget.inlineEmbedRenderer,
+    );
+    final borderColor =
+        widget.selected ? theme.colorScheme.primary : _calloutBorder(variant);
+    final borderWidth = widget.selected ? 1.5 : 1.0;
+    return KeyedSubtree(
+      key: ValueKey<String>('wenz-richtext-callout-${widget.block.id}'),
+      child: DecoratedBox(
+        key: _cardKey,
+        decoration: BoxDecoration(
+          color: tint,
+          border: Border.all(color: borderColor, width: borderWidth),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              _CalloutIcon(icon: widget.block.effectiveIcon, color: foreground),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    Row(
+                      children: <Widget>[
+                        Expanded(
+                          child: Text(widget.block.effectiveTitle,
+                              style: titleStyle),
+                        ),
+                        _CalloutVariantMenu(
+                          registry: widget.registry,
+                          variant: variant,
+                          foreground: foreground,
+                          onChanged: widget.onVariantChanged,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    _TextSelectionSurface(
+                      blockId: widget.block.id,
+                      blockIndex: widget.blockIndex,
+                      path: path,
+                      textLength: textLength,
+                      textSpan: TextSpan(
+                        style: bodyStyle,
+                        children: inlineTextLayout.spans,
+                      ),
+                      offsetMapper: inlineTextLayout.offsetMapper,
+                      textAlign: TextAlign.start,
+                      minHeight:
+                          (bodyStyle.fontSize ?? 14) * _kBlockMinHeightFactor,
+                      selection: widget.selection,
+                      showCaret: widget.showCaret,
+                      registry: widget.registry,
+                      showDebugOverlay: widget.showDebugOverlay,
+                      findRanges: _findRangesForPath(
+                        widget.findMatches,
+                        widget.currentFindMatch,
+                        widget.blockIndex,
+                        path,
+                        textLength,
+                      ),
+                      hitTestKey: _cardKey,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -5170,93 +9009,138 @@ class _CalloutIcon extends StatelessWidget {
       padding: const EdgeInsets.only(top: 2),
       child: Text(
         icon,
-        style: TextStyle(fontSize: 18, color: color),
-      ),
-    );
-  }
-}
-
-class _CalloutVariantMenu extends StatelessWidget {
-  const _CalloutVariantMenu({
-    required this.variant,
-    required this.foreground,
-    this.onChanged,
-  });
-
-  final String variant;
-  final Color foreground;
-  final ValueChanged<String>? onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: 'Callout type',
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: variant,
-          isDense: true,
-          borderRadius: BorderRadius.circular(8),
-          iconSize: 18,
-          style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: foreground,
-                    fontWeight: FontWeight.w600,
-                  ) ??
-              TextStyle(color: foreground, fontWeight: FontWeight.w600),
-          onChanged: onChanged == null
-              ? null
-              : (value) {
-                  if (value != null && value != variant) {
-                    onChanged!(value);
-                  }
-                },
-          items: <DropdownMenuItem<String>>[
-            for (final option in CalloutBlockNode.supportedVariants)
-              DropdownMenuItem<String>(
-                value: option,
-                child: Text(_calloutVariantLabel(option)),
-              ),
-          ],
+        style: TextStyle(
+          color: color,
+          fontSize: _kCalloutIconFontSize,
+          height: 1.4,
         ),
       ),
     );
   }
 }
 
-Color _calloutTint(ThemeData theme, String variant) {
-  final scheme = theme.colorScheme;
-  switch (CalloutBlockNode.normalizeVariant(variant)) {
-    case CalloutBlockNode.successVariant:
-      return scheme.tertiaryContainer.withAlpha(90);
-    case 'warning':
-      return Colors.amber
-          .withAlpha(theme.brightness == Brightness.dark ? 64 : 48);
-    case CalloutBlockNode.dangerVariant:
-      return scheme.errorContainer.withAlpha(90);
-    case CalloutBlockNode.infoVariant:
-    default:
-      return scheme.surfaceContainerHighest;
+class _CalloutVariantMenu extends StatefulWidget {
+  const _CalloutVariantMenu({
+    required this.registry,
+    required this.variant,
+    required this.foreground,
+    this.onChanged,
+  });
+
+  final BlockGeometryRegistry registry;
+  final String variant;
+  final Color foreground;
+  final ValueChanged<String>? onChanged;
+
+  @override
+  State<_CalloutVariantMenu> createState() => _CalloutVariantMenuState();
+}
+
+class _CalloutVariantMenuState extends State<_CalloutVariantMenu> {
+  final GlobalKey _hitTestKey = GlobalKey();
+
+  @override
+  void initState() {
+    super.initState();
+    widget.registry.registerSelectionExclusion(_hitTestKey);
+  }
+
+  @override
+  void didUpdateWidget(covariant _CalloutVariantMenu oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.registry != widget.registry) {
+      oldWidget.registry.unregisterSelectionExclusion(_hitTestKey);
+      widget.registry.registerSelectionExclusion(_hitTestKey);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.registry.unregisterSelectionExclusion(_hitTestKey);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      key: _hitTestKey,
+      child: Tooltip(
+        message: '提示块类型',
+        child: DropdownButtonHideUnderline(
+          child: DropdownButton<String>(
+            value: widget.variant,
+            isDense: true,
+            borderRadius: BorderRadius.circular(8),
+            iconSize: 18,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: widget.foreground,
+                      fontWeight: FontWeight.w600,
+                    ) ??
+                TextStyle(
+                  color: widget.foreground,
+                  fontWeight: FontWeight.w600,
+                ),
+            onChanged: widget.onChanged == null
+                ? null
+                : (value) {
+                    if (value != null && value != widget.variant) {
+                      widget.onChanged!(value);
+                    }
+                  },
+            items: <DropdownMenuItem<String>>[
+              for (final option in CalloutBlockNode.supportedVariants)
+                DropdownMenuItem<String>(
+                  value: option,
+                  child: Text(_calloutVariantLabel(option)),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 
-Color _calloutForeground(ThemeData theme, String variant) {
-  final scheme = theme.colorScheme;
+Color _calloutTint(String variant) {
   switch (CalloutBlockNode.normalizeVariant(variant)) {
     case CalloutBlockNode.successVariant:
-      return scheme.onTertiaryContainer;
+      return const Color(_kCalloutSuccessBackgroundColor);
     case CalloutBlockNode.warningVariant:
-      return theme.brightness == Brightness.dark
-          ? Colors.amber.shade200
-          : Colors.amber.shade900;
+      return const Color(_kCalloutWarningBackgroundColor);
     case CalloutBlockNode.dangerVariant:
-      return scheme.onErrorContainer;
+      return const Color(_kCalloutDangerBackgroundColor);
     case CalloutBlockNode.infoVariant:
     default:
-      return scheme.onSurfaceVariant;
+      return const Color(_kCalloutInfoBackgroundColor);
   }
 }
 
-Color _calloutBorder(ThemeData theme, String variant) {
-  return _calloutForeground(theme, variant).withAlpha(80);
+Color _calloutForeground(String variant) {
+  switch (CalloutBlockNode.normalizeVariant(variant)) {
+    case CalloutBlockNode.successVariant:
+      return const Color(_kCalloutSuccessForegroundColor);
+    case CalloutBlockNode.warningVariant:
+      return const Color(_kCalloutWarningForegroundColor);
+    case CalloutBlockNode.dangerVariant:
+      return const Color(_kCalloutDangerForegroundColor);
+    case CalloutBlockNode.infoVariant:
+    default:
+      return const Color(_kCalloutInfoForegroundColor);
+  }
+}
+
+Color _calloutBorder(String variant) {
+  switch (CalloutBlockNode.normalizeVariant(variant)) {
+    case CalloutBlockNode.successVariant:
+      return const Color(_kCalloutSuccessBorderColor);
+    case CalloutBlockNode.warningVariant:
+      return const Color(_kCalloutWarningBorderColor);
+    case CalloutBlockNode.dangerVariant:
+      return const Color(_kCalloutDangerBorderColor);
+    case CalloutBlockNode.infoVariant:
+    default:
+      return const Color(_kCalloutInfoBorderColor);
+  }
 }
 
 String _calloutVariantLabel(String variant) {
@@ -5266,80 +9150,146 @@ String _calloutVariantLabel(String variant) {
 TextStyle _blockTextStyle(
   BuildContext context,
   TextBlockNode block,
-  TextStyle baseStyle,
+  TextStyle? textStyle,
 ) {
   final theme = Theme.of(context);
+  final baseStyle = _richTextBodyStyle(theme, textStyle);
   return switch (block.type) {
     BlockType.heading => baseStyle.merge(
-        theme.textTheme.titleLarge?.copyWith(
-          fontSize: _headingSize(block.attributes.level),
-          fontWeight: FontWeight.w700,
-        ),
+        _headingTextStyle(theme, baseStyle, block.attributes.level),
       ),
     BlockType.quote => baseStyle.merge(
-        theme.textTheme.bodyMedium?.copyWith(fontStyle: FontStyle.italic),
+        TextStyle(
+          color: theme.colorScheme.onSurfaceVariant,
+          fontStyle: FontStyle.italic,
+        ),
       ),
-    _ => baseStyle.merge(theme.textTheme.bodyMedium),
+    _ => baseStyle,
   };
+}
+
+TextStyle _richTextBodyStyle(ThemeData theme, TextStyle? overrideStyle) {
+  final baseline = (theme.textTheme.bodyMedium ?? const TextStyle()).copyWith(
+    color: theme.colorScheme.onSurface,
+    fontSize: _kRichTextBodyFontSize,
+    height: _kRichTextBodyLineHeight,
+  );
+  return overrideStyle == null ? baseline : baseline.merge(overrideStyle);
+}
+
+TextStyle _headingTextStyle(
+  ThemeData theme,
+  TextStyle baseStyle,
+  int? level,
+) {
+  final headingLevel = (level ?? 1).clamp(1, 6).toInt();
+  final color = switch (headingLevel) {
+    5 => theme.colorScheme.onSurfaceVariant,
+    6 => theme.colorScheme.outline,
+    _ => baseStyle.color ?? theme.colorScheme.onSurface,
+  };
+  return (theme.textTheme.titleLarge ?? const TextStyle()).copyWith(
+    color: color,
+    fontSize: _headingSize(headingLevel),
+    fontWeight: headingLevel >= 5 ? FontWeight.w600 : FontWeight.w700,
+  );
+}
+
+TextStyle _todoTextStyle(TextStyle baseStyle) {
+  final fontSize = baseStyle.fontSize ?? 14;
+  if (fontSize <= 0) {
+    return baseStyle;
+  }
+  final lineHeight = math.max(
+    _lineHeightFor(baseStyle),
+    _kTodoCheckboxHeight,
+  );
+  return baseStyle.copyWith(height: lineHeight / fontSize);
+}
+
+double _lineHeightFor(TextStyle style) {
+  final fontSize = style.fontSize ?? 14;
+  if (fontSize <= 0) {
+    return _kTodoCheckboxHeight;
+  }
+  return fontSize * (style.height ?? _kBlockMinHeightFactor);
 }
 
 /// Builds the inline spans for a text block, overlaying the IME composition
 /// decoration (underline) on the runs that fall inside [compositionRange].
-List<InlineSpan> _inlineSpansFor(
+_InlineTextLayout _inlineTextLayoutFor(
   BuildContext context,
   List<InlineNode> nodes,
   TextStyle baseStyle,
   _LocalSelectionRange? compositionRange,
   InlineEmbedRenderer? inlineEmbedRenderer,
 ) {
-  if (compositionRange == null) {
-    return nodes
-        .map(
-          (node) => _inlineSpanFor(
+  final spans = <InlineSpan>[];
+  final segments = <_InlineOffsetSegment>[];
+  var logicalCursor = 0;
+  var renderCursor = 0;
+  for (final node in nodes) {
+    final logicalLength = inlineLength(node);
+    final nodeStart = logicalCursor;
+    final nodeEnd = logicalCursor + logicalLength;
+    final overlapStart = compositionRange == null
+        ? nodeStart
+        : (nodeStart < compositionRange.start
+            ? compositionRange.start
+            : nodeStart);
+    final overlapEnd = compositionRange == null
+        ? nodeStart
+        : (nodeEnd > compositionRange.end ? compositionRange.end : nodeEnd);
+    final nodeSpans = compositionRange != null && overlapStart < overlapEnd
+        ? _inlineSpansForNodeWithComposition(
             context,
             node,
             baseStyle,
             inlineEmbedRenderer,
-            decorate: false,
-          ),
-        )
-        .toList();
-  }
-  final spans = <InlineSpan>[];
-  var cursor = 0;
-  for (final node in nodes) {
-    final length = inlineLength(node);
-    final nodeStart = cursor;
-    final nodeEnd = cursor + length;
-    cursor = nodeEnd;
-    final overlapStart =
-        nodeStart < compositionRange.start ? compositionRange.start : nodeStart;
-    final overlapEnd =
-        nodeEnd > compositionRange.end ? compositionRange.end : nodeEnd;
-    if (overlapStart < overlapEnd) {
-      spans.addAll(
-        _inlineSpansForNodeWithComposition(
-          context,
-          node,
-          baseStyle,
-          inlineEmbedRenderer,
-          start: overlapStart - nodeStart,
-          end: overlapEnd - nodeStart,
-        ),
-      );
-    } else {
-      spans.add(
-        _inlineSpanFor(
-          context,
-          node,
-          baseStyle,
-          inlineEmbedRenderer,
-          decorate: false,
+            start: overlapStart - nodeStart,
+            end: overlapEnd - nodeStart,
+          )
+        : <InlineSpan>[
+            _inlineSpanFor(
+              context,
+              node,
+              baseStyle,
+              inlineEmbedRenderer,
+              decorate: false,
+            )
+          ];
+    final renderLength = _inlineSpanTextLength(nodeSpans);
+    spans.addAll(nodeSpans);
+    if (logicalLength > 0 || renderLength > 0) {
+      segments.add(
+        _InlineOffsetSegment(
+          logicalStart: logicalCursor,
+          logicalEnd: logicalCursor + logicalLength,
+          renderStart: renderCursor,
+          renderEnd: renderCursor + renderLength,
+          atomic: node is InlineEmbed,
         ),
       );
     }
+    logicalCursor += logicalLength;
+    renderCursor += renderLength;
   }
-  return spans;
+  return _InlineTextLayout(
+    spans: spans,
+    offsetMapper: _InlineOffsetMapper(
+      segments: segments,
+      logicalLength: logicalCursor,
+      renderLength: renderCursor,
+    ),
+  );
+}
+
+int _inlineSpanTextLength(List<InlineSpan> spans) {
+  var length = 0;
+  for (final span in spans) {
+    length += span.toPlainText().length;
+  }
+  return length;
 }
 
 List<InlineSpan> _inlineSpansForNodeWithComposition(
@@ -5354,7 +9304,7 @@ List<InlineSpan> _inlineSpansForNodeWithComposition(
     final text = node.text;
     final safeStart = start.clamp(0, text.length).toInt();
     final safeEnd = end.clamp(safeStart, text.length).toInt();
-    final style = _textStyleForAttributes(baseStyle, node.attributes);
+    final style = _textStyleForAttributes(context, baseStyle, node.attributes);
     return <InlineSpan>[
       if (safeStart > 0)
         TextSpan(text: text.substring(0, safeStart), style: style),
@@ -5396,7 +9346,7 @@ List<InlineSpan> _inlineSpansForNodeWithComposition(
   ];
 }
 
-TextSpan _inlineSpanFor(
+InlineSpan _inlineSpanFor(
   BuildContext context,
   InlineNode node,
   TextStyle baseStyle,
@@ -5405,9 +9355,9 @@ TextSpan _inlineSpanFor(
 }) {
   final undecoratedStyle = switch (node) {
     final TextRun textRun =>
-      _textStyleForAttributes(baseStyle, textRun.attributes),
+      _textStyleForAttributes(context, baseStyle, textRun.attributes),
     final InlineEmbed embed =>
-      _textStyleForAttributes(baseStyle, embed.attributes),
+      _textStyleForAttributes(context, baseStyle, embed.attributes),
     _ => baseStyle,
   };
   final style =
@@ -5425,23 +9375,205 @@ TextSpan _inlineSpanFor(
   };
 }
 
-TextSpan _inlineEmbedSpanFor(
+InlineSpan _inlineEmbedSpanFor(
   BuildContext context,
   InlineEmbed embed,
   TextStyle baseStyle,
   InlineEmbedRenderer? inlineEmbedRenderer, {
   bool decorate = false,
 }) {
-  final base = _textStyleForAttributes(baseStyle, embed.attributes);
+  final base = _textStyleForAttributes(context, baseStyle, embed.attributes);
   final style = decorate ? _compositionTextStyle(base) : base;
   final custom = inlineEmbedRenderer?.buildTextSpan(context, embed, style);
   if (custom != null) {
     return custom;
   }
+  if (_isFormulaEmbedType(embed.embedType)) {
+    return _formulaInlineSpanFor(context, embed, style, decorate: decorate);
+  }
   return TextSpan(
     text: _embedDisplayText(embed),
     style: _defaultInlineEmbedStyle(context, embed, style),
   );
+}
+
+InlineSpan _formulaInlineSpanFor(
+  BuildContext context,
+  InlineEmbed embed,
+  TextStyle style, {
+  required bool decorate,
+}) {
+  final formula = _formulaSourceText(embed.data);
+  final effectiveStyle = _defaultInlineEmbedStyle(context, embed, style);
+  final size = _inlineFormulaPlaceholderSize(formula, effectiveStyle);
+  return MeasuredWidgetSpan(
+    placeholderSize: size,
+    alignment: PlaceholderAlignment.middle,
+    style: effectiveStyle,
+    child: _InlineFormulaView(
+      formula: formula,
+      textStyle: effectiveStyle,
+      placeholderSize: size,
+      composing: decorate,
+    ),
+  );
+}
+
+class _InlineFormulaView extends StatelessWidget {
+  const _InlineFormulaView({
+    required this.formula,
+    required this.textStyle,
+    required this.placeholderSize,
+    required this.composing,
+  });
+
+  final String formula;
+  final TextStyle textStyle;
+  final Size placeholderSize;
+  final bool composing;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return SizedBox.fromSize(
+      key: _inlineFormulaKey,
+      size: placeholderSize,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: scheme.secondaryContainer.withAlpha(90),
+          borderRadius: BorderRadius.circular(4),
+          border: composing
+              ? Border(
+                  bottom: BorderSide(color: textStyle.color ?? scheme.primary))
+              : null,
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.center,
+            child: _FormulaMathView(
+              formula: formula,
+              textStyle: textStyle,
+              displayMode: false,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FormulaMathView extends StatelessWidget {
+  const _FormulaMathView({
+    required this.formula,
+    required this.textStyle,
+    required this.displayMode,
+  });
+
+  final String formula;
+  final TextStyle textStyle;
+  final bool displayMode;
+
+  @override
+  Widget build(BuildContext context) {
+    final source = formula.trim();
+    final theme = Theme.of(context);
+    final style = textStyle.copyWith(
+      color: textStyle.color ?? theme.colorScheme.onSurface,
+      fontSize: textStyle.fontSize ?? 14,
+    );
+    if (source.isEmpty) {
+      return _FormulaFallbackText(formula: '[formula]', textStyle: style);
+    }
+    return Math.tex(
+      source,
+      mathStyle: displayMode ? MathStyle.display : MathStyle.text,
+      textStyle: style,
+      textScaleFactor: 1,
+      settings: const TexParserSettings(strict: Strict.ignore),
+      options: MathOptions(
+        style: displayMode ? MathStyle.display : MathStyle.text,
+        color: style.color ?? theme.colorScheme.onSurface,
+        fontSize: style.fontSize,
+      ),
+      onErrorFallback: (_) => _FormulaFallbackText(
+        formula: source,
+        textStyle: style,
+      ),
+    );
+  }
+}
+
+class _FormulaFallbackText extends StatelessWidget {
+  const _FormulaFallbackText({required this.formula, required this.textStyle});
+
+  final String formula;
+  final TextStyle textStyle;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Text(
+      formula,
+      style: textStyle.copyWith(
+        color: scheme.onErrorContainer,
+        fontFamily: 'monospace',
+      ),
+    );
+  }
+}
+
+Size _inlineFormulaPlaceholderSize(String formula, TextStyle style) {
+  final fontSize = style.fontSize ?? 14;
+  final source = formula.trim();
+  final runeCount = source.isEmpty ? 7 : source.runes.length;
+  final heightFactor = _inlineFormulaHeightFactor(source);
+  final width = math.max(
+    fontSize * (heightFactor > 1.6 ? 2.8 : 2.2),
+    math.min(fontSize * 32, runeCount * fontSize * 0.62 + fontSize),
+  );
+  return Size(width, fontSize * heightFactor);
+}
+
+double _inlineFormulaHeightFactor(String formula) {
+  if (formula.isEmpty) {
+    return 1.45;
+  }
+  var extraHeight = 0.0;
+  extraHeight += RegExp(r'\\+(?:dfrac|tfrac|frac|binom|over|atop)\b')
+          .allMatches(formula)
+          .length *
+      0.75;
+  if (RegExp(r'\\+(?:sum|prod|int|lim)\b[^{}]*[_^]').hasMatch(formula)) {
+    extraHeight += 0.3;
+  }
+  if (RegExp(r'\\+sqrt(?:\[[^\]]+\])?\{').hasMatch(formula)) {
+    extraHeight += 0.2;
+  }
+  if (RegExp(r'\\+begin\{(?:matrix|pmatrix|bmatrix|vmatrix|Vmatrix|cases|aligned|array)\}')
+          .hasMatch(formula) ||
+      RegExp(r'\\\\(?![A-Za-z])').hasMatch(formula)) {
+    extraHeight += 0.9;
+  }
+  return (1.45 + extraHeight).clamp(1.45, 3.2).toDouble();
+}
+
+String _formulaSourceText(
+  Map<String, Object?> data, {
+  String fallbackText = '',
+}) {
+  final fallback = fallbackText.trim();
+  if (fallback.isNotEmpty) {
+    return fallback;
+  }
+  for (final key in const <String>['text', 'latex', 'value', 'formula']) {
+    final value = data[key];
+    if (value != null && value.toString().trim().isNotEmpty) {
+      return value.toString().trim();
+    }
+  }
+  return '';
 }
 
 TextStyle _defaultInlineEmbedStyle(
@@ -5450,7 +9582,7 @@ TextStyle _defaultInlineEmbedStyle(
   TextStyle style,
 ) {
   final scheme = Theme.of(context).colorScheme;
-  return switch (embed.embedType) {
+  return switch (embed.embedType.trim()) {
     'mention' => style.copyWith(
         color: scheme.primary,
         fontWeight: FontWeight.w600,
@@ -5481,8 +9613,21 @@ TextStyle _compositionTextStyle(TextStyle style) {
   );
 }
 
+TextStyle _completedTodoTextStyle(BuildContext context, TextStyle baseStyle) {
+  final decoration = baseStyle.decoration;
+  return baseStyle.copyWith(
+    color: Theme.of(context).colorScheme.onSurfaceVariant,
+    decoration: decoration == null
+        ? TextDecoration.lineThrough
+        : TextDecoration.combine(<TextDecoration>[
+            decoration,
+            TextDecoration.lineThrough,
+          ]),
+  );
+}
+
 String _embedDisplayText(InlineEmbed embed) {
-  return switch (embed.embedType) {
+  return switch (embed.embedType.trim()) {
     'mention' => _mentionDisplayText(embed),
     'image' => '[img]',
     'formula' => _formulaDisplayText(embed),
@@ -5490,6 +9635,8 @@ String _embedDisplayText(InlineEmbed embed) {
     _ => '[${embed.embedType}]',
   };
 }
+
+bool _isFormulaEmbedType(String embedType) => embedType.trim() == 'formula';
 
 String _inlineDisplayText(InlineNode node) {
   return switch (node) {
@@ -5506,8 +9653,7 @@ String _mentionDisplayText(InlineEmbed embed) {
 }
 
 String _formulaDisplayText(InlineEmbed embed) {
-  final raw = embed.data['text'] ?? embed.data['latex'] ?? embed.data['value'];
-  final text = raw?.toString() ?? '';
+  final text = _formulaSourceText(embed.data);
   return text.isEmpty ? '[formula]' : text;
 }
 
@@ -5525,25 +9671,28 @@ String _emojiDisplayText(InlineEmbed embed) {
 /// region.
 TextSpan _codeSpan(
   String code,
+  String language,
   TextStyle codeStyle,
   _LocalSelectionRange? compositionRange,
 ) {
-  if (compositionRange == null ||
-      compositionRange.start == compositionRange.end) {
-    return TextSpan(text: code, style: codeStyle);
-  }
-  final start = compositionRange.start.clamp(0, code.length).toInt();
-  final end = compositionRange.end.clamp(start, code.length).toInt();
-  final children = <TextSpan>[
-    if (start > 0) TextSpan(text: code.substring(0, start), style: codeStyle),
-    TextSpan(
-      text: code.substring(start, end),
-      style: codeStyle.copyWith(decoration: TextDecoration.underline),
-    ),
-    if (end < code.length)
-      TextSpan(text: code.substring(end), style: codeStyle),
-  ];
-  return TextSpan(style: codeStyle, children: children);
+  return CodeSyntaxHighlighter(
+    language: language,
+    baseStyle: codeStyle,
+    palette: _darkCodeSyntaxPalette(),
+    compositionStart: compositionRange?.start,
+    compositionEnd: compositionRange?.end,
+  ).highlight(code);
+}
+
+CodeSyntaxPalette _darkCodeSyntaxPalette() {
+  return const CodeSyntaxPalette(
+    keyword: Color(_kCodeKeywordColor),
+    type: Color(_kCodeTypeColor),
+    string: Color(_kCodeStringColor),
+    comment: Color(_kCodeCommentColor),
+    number: Color(_kCodeNumberColor),
+    marker: Color(_kCodeKeywordColor),
+  );
 }
 
 const List<String> _kDefaultCodeLanguages = <String>[
@@ -5735,24 +9884,66 @@ _LocalSelectionRange? _selectionRangeForPath(
   );
 }
 
-TextStyle _textStyleForAttributes(TextStyle baseStyle, TextAttributes attrs) {
-  final decorations = <TextDecoration>[
-    if (attrs.underline == true || attrs.url != null) TextDecoration.underline,
-    if (attrs.lineThrough == true) TextDecoration.lineThrough,
-  ];
+TextStyle _textStyleForAttributes(
+  BuildContext context,
+  TextStyle baseStyle,
+  TextAttributes attrs,
+) {
+  final scheme = Theme.of(context).colorScheme;
+  final hasRemark = attrs.remark == true || attrs.commentIds.isNotEmpty;
+  final hasRevision = attrs.revisionIds.isNotEmpty;
+  final decorations = <TextDecoration>[];
+
+  void addDecoration(TextDecoration decoration) {
+    if (decorations.any((existing) => existing.contains(decoration))) {
+      return;
+    }
+    decorations.add(decoration);
+  }
+
+  final baseDecoration = baseStyle.decoration;
+  if (baseDecoration != null) {
+    addDecoration(baseDecoration);
+  }
+  if (attrs.underline == true ||
+      attrs.url != null ||
+      hasRemark ||
+      hasRevision) {
+    addDecoration(TextDecoration.underline);
+  }
+  if (attrs.lineThrough == true) {
+    addDecoration(TextDecoration.lineThrough);
+  }
+
+  final decorationColor = hasRemark
+      ? const Color(_kInlineRemarkColor)
+      : hasRevision
+          ? scheme.primary
+          : attrs.url != null
+              ? const Color(_kInlineLinkColor)
+              : baseStyle.decorationColor;
+  final backgroundColor = attrs.background != null
+      ? Color(attrs.background!)
+      : hasRevision
+          ? scheme.primaryContainer.withAlpha(_kInlineRevisionBackgroundAlpha)
+          : baseStyle.backgroundColor;
   return baseStyle.copyWith(
     color: attrs.color != null
         ? Color(attrs.color!)
         : attrs.url != null
-            ? Colors.blue
+            ? const Color(_kInlineLinkColor)
             : null,
-    backgroundColor: attrs.background != null ? Color(attrs.background!) : null,
+    backgroundColor: backgroundColor,
     fontWeight: attrs.bold == true ? FontWeight.w700 : null,
     fontStyle: attrs.italic == true ? FontStyle.italic : null,
     fontSize: attrs.fontSize,
     fontFamily: attrs.fontFamily,
     decoration:
         decorations.isEmpty ? null : TextDecoration.combine(decorations),
+    decorationColor: decorationColor,
+    decorationStyle:
+        hasRemark ? TextDecorationStyle.dotted : baseStyle.decorationStyle,
+    decorationThickness: hasRemark ? 2 : baseStyle.decorationThickness,
   );
 }
 
@@ -5786,6 +9977,57 @@ String? _prefixFor(TextBlockNode block) {
   };
 }
 
+List<String?> _listMarkersFor(List<BlockNode> blocks) {
+  return <String?>[
+    for (var index = 0; index < blocks.length; index++)
+      _listMarkerFor(blocks, index),
+  ];
+}
+
+String? _listMarkerFor(List<BlockNode> blocks, int index) {
+  final block = blocks[index];
+  if (block is! TextBlockNode || block.type != BlockType.listItem) {
+    return null;
+  }
+  final indent = _blockIndentLevel(block);
+  return switch (block.attributes.listType) {
+    'ordered' => '${_orderedListNumberFor(blocks, index, indent)}.',
+    'task' => null,
+    _ => _unorderedListBullet(indent),
+  };
+}
+
+int _orderedListNumberFor(List<BlockNode> blocks, int index, int indent) {
+  var number = 1;
+  for (var previousIndex = index - 1; previousIndex >= 0; previousIndex--) {
+    final previous = blocks[previousIndex];
+    final previousIndent = _blockIndentLevel(previous);
+    if (previousIndent > indent) {
+      continue;
+    }
+    if (previousIndent < indent) {
+      break;
+    }
+    if (previous is TextBlockNode && previous.type == BlockType.listItem) {
+      if (previous.attributes.listType == 'ordered') {
+        number++;
+        continue;
+      }
+      break;
+    }
+    break;
+  }
+  return number;
+}
+
+String _unorderedListBullet(int indent) {
+  return switch (indent % 3) {
+    1 => '◦',
+    2 => '▪',
+    _ => '•',
+  };
+}
+
 String _assetLabel(String assetId, String file) {
   if (file.isNotEmpty) {
     return file;
@@ -5794,6 +10036,59 @@ String _assetLabel(String assetId, String file) {
     return assetId;
   }
   return 'unknown';
+}
+
+String _videoCardTitle(VideoBlockNode video) {
+  final title = video.title.trim();
+  return title.isNotEmpty ? title : 'Video';
+}
+
+String? _videoCardSubtitle(VideoBlockNode video) {
+  final source = _videoSourceLabel(video);
+  return source == 'unknown' ? null : source;
+}
+
+String _videoPreviewTitle(VideoBlockNode video) {
+  final title = video.title.trim();
+  if (title.isNotEmpty) {
+    return title;
+  }
+  final source = _videoSourceLabel(video);
+  return source == 'unknown' ? 'Video preview' : source;
+}
+
+String _videoSourceLabel(VideoBlockNode video) {
+  final source = video.effectivePlaybackUrl.trim();
+  return source.isEmpty ? 'unknown' : source;
+}
+
+String _videoCoverLabel(String coverUrl) {
+  final trimmed = coverUrl.trim();
+  if (trimmed.isEmpty) {
+    return 'Cover';
+  }
+  final uri = Uri.tryParse(trimmed);
+  final segments =
+      uri?.pathSegments.where((segment) => segment.trim().isNotEmpty).toList();
+  final fileName = segments?.isNotEmpty == true ? segments!.last : trimmed;
+  return 'Cover: $fileName';
+}
+
+String _videoAccessibleLabel(VideoBlockNode video) {
+  final parts = <String>[_videoCardTitle(video)];
+  final source = _videoSourceLabel(video);
+  if (source != 'unknown') {
+    parts.add(source);
+  }
+  final description = video.description.trim();
+  if (description.isNotEmpty) {
+    parts.add(description);
+  }
+  if (video.uploadStatus == FileUploadStatus.failed &&
+      video.uploadError.isNotEmpty) {
+    parts.add(video.uploadError);
+  }
+  return parts.join(', ');
 }
 
 String _imageAccessibleLabel(ImageBlockNode image) {
@@ -5814,10 +10109,6 @@ String _fileAccessibleLabel(FileBlockNode file) {
   if (metadata.isNotEmpty) {
     parts.add(metadata);
   }
-  if (file.uploadStatus == FileUploadStatus.failed &&
-      file.uploadError.isNotEmpty) {
-    parts.add(file.uploadError);
-  }
   return parts.join(', ');
 }
 
@@ -5826,13 +10117,75 @@ String _fileMetadata(FileBlockNode file) {
   if (file.size > 0) {
     parts.add(_formatFileSize(file.size));
   }
-  if (file.mimeType.isNotEmpty) {
-    parts.add(file.mimeType);
+  final subtitle = _fileSubtitle(file);
+  if (subtitle.isNotEmpty) {
+    parts.add(subtitle);
   }
-  if (file.uploadStatus != FileUploadStatus.none) {
-    parts.add(_fileUploadStatusLabel(file.uploadStatus));
+  final statusText = _fileStatusText(file);
+  if (statusText.isNotEmpty) {
+    parts.add(statusText);
   }
   return parts.join(' · ');
+}
+
+String _fileSubtitle(FileBlockNode file) {
+  final parts = <String>[];
+  final mimeType = file.mimeType.trim();
+  if (mimeType.isNotEmpty) {
+    parts.add(mimeType);
+  }
+  return parts.join(' · ');
+}
+
+String _fileStatusText(FileBlockNode file) {
+  final status = _fileUploadStatusLabel(file.uploadStatus);
+  if (status.isEmpty) {
+    return '';
+  }
+  final error = file.uploadError.trim();
+  if (file.uploadStatus == FileUploadStatus.failed && error.isNotEmpty) {
+    return '$status · $error';
+  }
+  return status;
+}
+
+String _fileTypeLabel(FileBlockNode file) {
+  final displayName = file.displayName.trim();
+  final extension = _fileTypeSegment(displayName);
+  if (extension.isNotEmpty) {
+    return extension;
+  }
+  final mimeType = file.mimeType.trim();
+  if (mimeType.isNotEmpty) {
+    final subtype = mimeType.contains('/')
+        ? mimeType.substring(mimeType.indexOf('/') + 1)
+        : mimeType;
+    final cleaned = _normalizeFileTypeLabel(
+      subtype.split(RegExp(r'[+;]')).first,
+    );
+    if (cleaned.isNotEmpty) {
+      return cleaned;
+    }
+  }
+  return 'FILE';
+}
+
+String _fileTypeSegment(String displayName) {
+  final cleanName = displayName.split('?').first.trim();
+  final dot = cleanName.lastIndexOf('.');
+  if (dot < 0 || dot == cleanName.length - 1) {
+    return '';
+  }
+  return _normalizeFileTypeLabel(cleanName.substring(dot + 1));
+}
+
+String _normalizeFileTypeLabel(String value) {
+  final cleaned = value.replaceAll(RegExp(r'[^A-Za-z0-9]'), '').trim();
+  if (cleaned.isEmpty) {
+    return '';
+  }
+  final truncated = cleaned.length > 4 ? cleaned.substring(0, 4) : cleaned;
+  return truncated.toUpperCase();
 }
 
 String _fileUploadStatusLabel(FileUploadStatus status) {

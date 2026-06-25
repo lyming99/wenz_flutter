@@ -1,0 +1,2077 @@
+OpenAI Codex v0.121.0 (research preview)
+--------
+workdir: D:\project\GitHub\wenz_flutter\wenz_richtext
+model: gpt-5.5
+provider: custom
+approval: never
+sandbox: danger-full-access
+reasoning effort: xhigh
+reasoning summaries: none
+session id: 019efcff-480e-7e91-bd48-a412d1280105
+--------
+user
+你是开发执行者。
+请只执行指定任务 P004，不要提前执行其它任务，也不要顺手处理其它 checkbox。
+
+plan 文件（只读）：D:\project\GitHub\wenz_flutter\wenz_richtext\docs\plan\plan_requirement_10_20260625-034349.md
+指定任务：
+- [ ] P004: 渲染标题折叠入口与状态反馈 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/block_renderer_registry.dart,test/widgets/wenz_rich_text_editor_test.dart,test/widgets/editor_golden_test.dart,test/widgets/goldens/editor_blocks.png -->
+任务 scope：lib/src/widgets/wenz_rich_text_editor.dart, lib/src/widgets/block_renderer_registry.dart, test/widgets/wenz_rich_text_editor_test.dart, test/widgets/editor_golden_test.dart, test/widgets/goldens/editor_blocks.png
+
+完成后必须：
+- plan 文件是只读上下文：不要修改 plan 文件，不要勾选 checkbox，不要更新 plan 进度区
+- AutoPlan 会在任务成功后统一写回数据库、checkbox 和进度区
+- 只修改当前任务 scope 直接相关的业务文件
+- 如需测试，只运行与当前任务直接相关的最小测试集，不要运行全量测试或与本任务无关的测试
+- 只有当前任务本身明确要求全量验证时，才允许运行全量测试
+- 不输出完整 diff、源码全文或长文件列表
+- 中文文件读写使用 UTF-8
+codex
+我会先读取计划要求和相关组件，确认 P004 的边界。
+  → 确认 P004 需求边界
+  • 检查相关渲染代码
+  • 实现折叠入口反馈
+  • 更新限定测试和 golden
+  • 运行最小相关验证
+mcp: codegraph/codegraph_explore started
+mcp: codegraph/codegraph_explore (completed)
+**Inspecting code files**
+
+I see that Codegraph only showed partial information. I need to inspect the full relevant files to get a better understanding. It sounds like using the shell is a good way to do that. I’ll also need to read through the AGENTS section to ensure I’m fully informed. There’s a bit of planning involved in this process, but I’m committed to gathering everything I need!
+codex
+已定位已有折叠状态类型；接着读取计划片段和测试约束。
+exec
+powershell.exe -Command "Get-ChildItem -Force -Filter AGENTS.md; if (Test-Path AGENTS.md) { Get-Content -Raw -Encoding UTF8 AGENTS.md }
+Write-Output '--- PLAN P004 ---'
+Select-String -Path 'docs\\plan\\plan_requirement_10_20260625-034349.md' -Pattern 'P004|折叠|标题|collapse|Heading' -Context 4,8
+Write-Output '--- FILES ---'
+rg --files lib/src/widgets test/widgets | rg 'wenz_rich_text_editor.dart|block_renderer_registry.dart|wenz_rich_text_editor_test.dart|editor_golden_test.dart|editor_blocks.png'" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 317ms:
+--- PLAN P004 ---
+
+> docs\plan\plan_requirement_10_20260625-034349.md:1:# 需求开发计划：大纲折叠功能
+  docs\plan\plan_requirement_10_20260625-034349.md:2:
+  docs\plan\plan_requirement_10_20260625-034349.md:3:## 来源
+  docs\plan\plan_requirement_10_20260625-034349.md:4:- 类型：需求
+  docs\plan\plan_requirement_10_20260625-034349.md:5:- 编号：10
+  docs\plan\plan_requirement_10_20260625-034349.md:6:- 生成时间：2026-06-25 03:43:49
+  docs\plan\plan_requirement_10_20260625-034349.md:7:
+  docs\plan\plan_requirement_10_20260625-034349.md:8:## 原始内容
+> docs\plan\plan_requirement_10_20260625-034349.md:9:增加大纲折叠功能，如果行内容是大纲标题，则支持折叠内容；
+  docs\plan\plan_requirement_10_20260625-034349.md:10:
+  docs\plan\plan_requirement_10_20260625-034349.md:11:## 需求理解
+> docs\plan\plan_requirement_10_20260625-034349.md:12:- 当顶层 block 是大纲标题（`BlockType.heading`）时，该行应展示可折叠入口，并支持折叠/展开其下属内容。
+> docs\plan\plan_requirement_10_20260625-034349.md:13:- 折叠范围按标题层级计算：从当前标题之后开始，直到遇到下一个同级或更高级标题为止；低级标题及普通 block 均属于当前标题的可
+折叠内容。
+> docs\plan\plan_requirement_10_20260625-034349.md:14:- 折叠是编辑器视图状态，不应删除或改写文档内容；导入导出、历史记录、协作数据和大纲条目生成应保持原文档结构。
+> docs\plan\plan_requirement_10_20260625-034349.md:15:- 折叠后隐藏的 block 不参与屏幕渲染和普通鼠标命中，但仍需保证选区、搜索、撤销/重做、滚动定位和程序化跳转有明确行为。
+  docs\plan\plan_requirement_10_20260625-034349.md:16:
+  docs\plan\plan_requirement_10_20260625-034349.md:17:## 任务计划
+> docs\plan\plan_requirement_10_20260625-034349.md:18:- [x] P001: 明确标题折叠交互规则 <!-- scope: lib/src/controller/outline_con
+troller.dart,lib/src/widgets/wenz_rich_text_editor.dart,docs/acceptance_manual_checklist.md -->
+> docs\plan\plan_requirement_10_20260625-034349.md:19:  - 验收要点：明确只有顶层 `heading` block 显示折叠入口，段落、引用、列表、代码、表格、媒体和对象块不显示入口
+。
+> docs\plan\plan_requirement_10_20260625-034349.md:20:  - 验收要点：明确折叠范围按标题 level 计算，`H2` 折叠到下一个 `H1/H2` 前，`H3` 折叠到下一个 `H1
+/H2/H3` 前，空标题或无子内容标题不可折叠或显示禁用态。
+> docs\plan\plan_requirement_10_20260625-034349.md:21:  - 验收要点：明确只读模式下可展开/折叠但不可改变文档内容，编辑模式下折叠状态不进入撤销/重做历史。
+  docs\plan\plan_requirement_10_20260625-034349.md:22:
+> docs\plan\plan_requirement_10_20260625-034349.md:23:- [x] P002: 扩展大纲折叠状态模型 <!-- scope: lib/src/controller/outline_con
+troller.dart,lib/src/controller/wenz_rich_text_controller.dart,test/controller/outline_controller_test.dart,test/core/c
+ontroller_test.dart -->
+> docs\plan\plan_requirement_10_20260625-034349.md:24:  - 验收要点：为标题条目提供是否可折叠、是否已折叠、折叠覆盖的 block id/index 范围等只读信息，并在文档变化后自
+动重算。
+> docs\plan\plan_requirement_10_20260625-034349.md:25:  - 验收要点：提供按 blockId/anchor/OutlineItem 折叠、展开、切换、全部展开和查询折叠状态的 API
+；无效 block、非标题 block 和无子内容标题返回安全 no-op。
+> docs\plan\plan_requirement_10_20260625-034349.md:26:  - 验收要点：折叠状态以标题 block id 为主键维护；标题删除、类型变更、层级变更、block 移动或文档替换后会清理无
+效状态并通知监听者。
+  docs\plan\plan_requirement_10_20260625-034349.md:27:
+  docs\plan\plan_requirement_10_20260625-034349.md:28:- [x] P003: 构建可见 block 投影视图 <!-- scope: lib/src/controller/outlin
+e_controller.dart,lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/block_geometry_registry.dart,test/controll
+er/outline_controller_test.dart,test/widgets/block_geometry_registry_test.dart -->
+> docs\plan\plan_requirement_10_20260625-034349.md:29:  - 验收要点：编辑器渲染可根据折叠状态过滤被隐藏的顶层 block，同时保留原始 document.blocks 顺序、blo
+ckIndex 语义和文档 JSON 不变。
+  docs\plan\plan_requirement_10_20260625-034349.md:30:  - 验收要点：隐藏 block 的几何缓存、命中测试、滚动定位和选择覆盖层不会残留旧位置；展开后几何信息能重新注册并用于选区/
+滚动。
+> docs\plan\plan_requirement_10_20260625-034349.md:31:  - 验收要点：嵌套折叠时父标题折叠优先隐藏所有后代内容，展开父标题后子标题自身的折叠状态仍可继续生效。
+  docs\plan\plan_requirement_10_20260625-034349.md:32:
+> docs\plan\plan_requirement_10_20260625-034349.md:33:- [ ] P004: 渲染标题折叠入口与状态反馈 <!-- scope: lib/src/widgets/wenz_rich_t
+ext_editor.dart,lib/src/widgets/block_renderer_registry.dart,test/widgets/wenz_rich_text_editor_test.dart,test/widgets/
+editor_golden_test.dart,test/widgets/goldens/editor_blocks.png -->
+> docs\plan\plan_requirement_10_20260625-034349.md:34:  - 验收要点：可折叠标题左侧或标题内容起始处显示稳定的展开/收起图标，hover/focus/pressed/disabled
+ 状态清晰，且不挤压标题文本布局。
+> docs\plan\plan_requirement_10_20260625-034349.md:35:  - 验收要点：点击或键盘激活图标可切换折叠状态；图标命中区域不触发文本选区、输入法组合、链接点击或 block 拖拽菜单。
+> docs\plan\plan_requirement_10_20260625-034349.md:36:  - 验收要点：折叠标题可显示子内容数量、轻量提示或视觉标识，便于用户判断标题下存在被隐藏内容。
+  docs\plan\plan_requirement_10_20260625-034349.md:37:
+> docs\plan\plan_requirement_10_20260625-034349.md:38:- [ ] P005: 处理折叠状态下的编辑与导航 <!-- scope: lib/src/controller/wenz_ric
+h_text_controller.dart,lib/src/controller/find_replace_controller.dart,lib/src/controller/outline_controller.dart,lib/s
+rc/widgets/wenz_rich_text_editor.dart,test/core/controller_test.dart,test/controller/find_replace_controller_test.dart,
+test/widgets/wenz_rich_text_editor_test.dart -->
+> docs\plan\plan_requirement_10_20260625-034349.md:39:  - 验收要点：当当前选区或程序化跳转目标位于隐藏 block 内时，编辑器会先展开相关标题或将光标安全移动到折叠标题处，避免不
+可见光标。
+  docs\plan\plan_requirement_10_20260625-034349.md:40:  - 验收要点：查找替换、大纲跳转、锚点跳转和滚动到选区在命中隐藏内容时有一致策略，并能让目标内容重新可见。
+> docs\plan\plan_requirement_10_20260625-034349.md:41:  - 验收要点：在折叠状态下插入、删除、粘贴、撤销/重做、修改标题层级和移动 block 后，隐藏范围、选区和滚动位置保持可恢复
+且不丢内容。
+  docs\plan\plan_requirement_10_20260625-034349.md:42:
+  docs\plan\plan_requirement_10_20260625-034349.md:43:- [ ] P006: 兼容导入导出与外部扩展 <!-- scope: lib/src/codecs/rich_text_json
+_codec.dart,lib/src/codecs/html_codec.dart,lib/src/codecs/markdown_codec.dart,lib/src/widgets/block_renderer_registry.d
+art,test/codecs/rich_text_json_codec_test.dart,test/codecs/html_codec_test.dart,test/codecs/markdown_codec_test.dart,te
+st/plugins/editor_plugin_test.dart -->
+> docs\plan\plan_requirement_10_20260625-034349.md:44:  - 验收要点：折叠状态默认不写入文档 JSON、HTML、Markdown 或纯文本导出，导入已有文档后默认全部展开且内容完整
+。
+  docs\plan\plan_requirement_10_20260625-034349.md:45:  - 验收要点：自定义 block renderer、插件和媒体 resolver 在隐藏 block 不渲染时不收到多余构建/
+几何事件，展开后行为与普通 block 一致。
+> docs\plan\plan_requirement_10_20260625-034349.md:46:  - 验收要点：如果后续需要业务侧持久化折叠状态，应通过独立 UI 状态或 metadata 扩展点实现，不污染现有内容模型。
+  docs\plan\plan_requirement_10_20260625-034349.md:47:
+  docs\plan\plan_requirement_10_20260625-034349.md:48:- [ ] P007: 补充自动化与视觉回归测试 <!-- scope: test/controller/outline_cont
+roller_test.dart,test/widgets/wenz_rich_text_editor_test.dart,test/widgets/editor_golden_test.dart,test/widgets/goldens
+/editor_blocks.png,test/widgets/goldens/editor_advanced_blocks.png,docs/plan/plan_requirement_10_20260625-034349.md -->
+> docs\plan\plan_requirement_10_20260625-034349.md:49:  - 验收要点：覆盖 H1-H6、多级嵌套、连续标题、空标题、无子内容标题、父子同时折叠、标题删除/改级/移动后的范围重算。
+> docs\plan\plan_requirement_10_20260625-034349.md:50:  - 验收要点：覆盖折叠图标点击、键盘访问、隐藏 block 不命中、展开后选区恢复、查找命中隐藏内容和大纲跳转隐藏标题等 wi
+dget 行为。
+> docs\plan\plan_requirement_10_20260625-034349.md:51:  - 验收要点：更新或新增 golden 展示展开态、折叠态、禁用态和嵌套标题场景；记录 `flutter analyze` 与
+相关测试执行结果。
+  docs\plan\plan_requirement_10_20260625-034349.md:52:
+  docs\plan\plan_requirement_10_20260625-034349.md:53:## 总体验收标准
+  docs\plan\plan_requirement_10_20260625-034349.md:54:- 所有任务 checkbox 均完成，且每个任务的验收要点都有明确结论或验证记录。
+> docs\plan\plan_requirement_10_20260625-034349.md:55:- 标题折叠仅改变编辑器视图状态，不删除、不移动、不改写任何 block 内容或导入导出数据结构。
+> docs\plan\plan_requirement_10_20260625-034349.md:56:- 折叠范围按标题层级稳定计算，覆盖多级标题嵌套、连续标题、空内容、文档首尾和动态编辑后的边界场景。
+> docs\plan\plan_requirement_10_20260625-034349.md:57:- 折叠/展开交互可被鼠标、触控和键盘可靠触发，并不影响文本编辑、选区、IME、链接、表格、媒体块和对象块既有交互。
+  docs\plan\plan_requirement_10_20260625-034349.md:58:- 隐藏内容在查找、大纲跳转、锚点跳转、选区恢复和滚动定位时有一致可见性策略，不出现不可见光标或无法定位目标。
+  docs\plan\plan_requirement_10_20260625-034349.md:59:- 相关 controller、widget、codec、plugin 和 golden 测试通过；若存在既有失败，需在进度区记录
+命令、失败原因判断和后续建议。
+  docs\plan\plan_requirement_10_20260625-034349.md:60:
+  docs\plan\plan_requirement_10_20260625-034349.md:61:## 进度区
+  docs\plan\plan_requirement_10_20260625-034349.md:62:- 当前状态：计划已创建，P001-P007 待开发执行。
+  docs\plan\plan_requirement_10_20260625-034349.md:63:- 当前负责人：待分配。
+> docs\plan\plan_requirement_10_20260625-034349.md:64:- 下一步：从 P001 开始确认折叠范围、入口位置、只读模式和隐藏内容导航策略。
+  docs\plan\plan_requirement_10_20260625-034349.md:65:- 验证记录：本次仅生成计划文件，未修改业务代码，未执行自动化测试或手工验收。
+  docs\plan\plan_requirement_10_20260625-034349.md:66:- 风险记录：编辑器当前渲染、选区和几何命中集中在大型 widget 中，过滤隐藏 block 可能影响 blockIndex、滚
+动定位和 selection overlay；需要优先通过测试约束行为再实现。
+  docs\plan\plan_requirement_10_20260625-034349.md:67:- P001 AutoPlan 完成：2026-06-24T19:50:35.751Z；日志：docs/progress/logs
+/20260625-034550_execute-P001.log
+  docs\plan\plan_requirement_10_20260625-034349.md:68:- P002 AutoPlan 完成：2026-06-25T02:57:51.543Z；日志：docs/progress/logs
+/20260625-104955_execute-P002.log
+  docs\plan\plan_requirement_10_20260625-034349.md:69:- P003 AutoPlan 完成：2026-06-25T03:33:19.947Z；日志：docs/progress/logs
+/20260625-112518_execute-P003.log
+--- FILES ---
+test/widgets\wenz_rich_text_editor_test.dart
+test/widgets\goldens\editor_blocks.png
+test/widgets\editor_golden_test.dart
+lib/src/widgets\block_renderer_registry.dart
+lib/src/widgets\wenz_rich_text_editor.dart
+
+
+
+codex
+P004 范围已确认；现在读取该任务验收要点全文。
+exec
+powershell.exe -Command '$lines = Get-Content -Encoding UTF8 '"'docs\\plan\\plan_requirement_10_20260625-034349.md'; for ("'$i=31; $i -le 38; $i++) { '"'{0}: {1}' -f ("'$i+1), $lines[$i] }' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 165ms:
+32: 
+33: - [ ] P004: 渲染标题折叠入口与状态反馈 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/block_renderer_registry.dart,test/widgets/wenz_rich_text_editor_test.dart,test/widgets/editor_golden_test.dart,test/widgets/goldens/editor_blocks.png -->
+34:   - 验收要点：可折叠标题左侧或标题内容起始处显示稳定的展开/收起图标，hover/focus/pressed/disabled 状态清晰，且不挤压标题文本布局。
+35:   - 验收要点：点击或键盘激活图标可切换折叠状态；图标命中区域不触发文本选区、输入法组合、链接点击或 block 拖拽菜单。
+36:   - 验收要点：折叠标题可显示子内容数量、轻量提示或视觉标识，便于用户判断标题下存在被隐藏内容。
+37: 
+38: - [ ] P005: 处理折叠状态下的编辑与导航 <!-- scope: lib/src/controller/wenz_rich_text_controller.dart,lib/src/controller/find_replace_controller.dart,lib/src/controller/outline_controller.dart,lib/src/widgets/wenz_rich_text_editor.dart,test/core/controller_test.dart,test/controller/find_replace_controller_test.dart,test/widgets/wenz_rich_text_editor_test.dart -->
+39:   - 验收要点：当当前选区或程序化跳转目标位于隐藏 block 内时，编辑器会先展开相关标题或将光标安全移动到折叠标题处，避免不可见光标。
+
+codex
+现在聚焦渲染路径和现有测试，避免触碰其它任务范围。
+exec
+powershell.exe -Command 'rg -n "HeadingCollapse|headingCollapse|collapse|Outline|visible|_TextBlockRenderer|BlockRendererContext|BlockRendererRegistry|_blockTextStyle|listMarker|MouseRegion|Semantics|InkWell|GestureDetector" lib/src/widgets/wenz_rich_text_editor.dart lib/src/widgets/block_renderer_registry.dart test/widgets/wenz_rich_text_editor_test.dart test/widgets/editor_golden_test.dart' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 145ms:
+test/widgets/editor_golden_test.dart:19:    final registry = BlockRendererRegistry()..installDefaultBuilders();
+test/widgets/editor_golden_test.dart:56:      WenzRichTextDesignBaseline.layoutTokens['headingCollapse'],
+test/widgets/editor_golden_test.dart:86:    expect(WenzRichTextDesignBaseline.stateTokens, contains('heading.collapse'));
+test/widgets/editor_golden_test.dart:194:    final outlineController = WenzOutlineController(editor: controller);
+test/widgets/editor_golden_test.dart:421:  testWidgets('golden: collapsed caret', (tester) async {
+test/widgets/editor_golden_test.dart:431:                TextRun(text: 'Caret is visible here.'),
+test/widgets/editor_golden_test.dart:436:        selection: collapsedTextSelection('p1', 0, 8),
+test/widgets/editor_golden_test.dart:510:  WenzOutlineController? outlineController,
+lib/src/widgets/block_renderer_registry.dart:219:    this.listMarker,
+lib/src/widgets/block_renderer_registry.dart:227:    this.headingCollapseState,
+lib/src/widgets/block_renderer_registry.dart:228:    this.onHeadingCollapseToggled,
+lib/src/widgets/block_renderer_registry.dart:265:  final String? listMarker;
+lib/src/widgets/block_renderer_registry.dart:293:  /// Optional view-state for a top-level heading's collapse affordance. `null`
+lib/src/widgets/block_renderer_registry.dart:294:  /// means the host editor is not exposing heading collapse for this block.
+lib/src/widgets/block_renderer_registry.dart:295:  final HeadingCollapseState? headingCollapseState;
+lib/src/widgets/block_renderer_registry.dart:297:  /// Optional callback used by heading renderers to toggle collapse view-state.
+lib/src/widgets/block_renderer_registry.dart:298:  final ValueChanged<String>? onHeadingCollapseToggled;
+lib/src/widgets/block_renderer_registry.dart:300:  /// Find/replace matches currently visible for this block renderer. Built-in
+lib/src/widgets/block_renderer_registry.dart:308:  /// Whether the active (collapsed) selection sits inside [block], i.e. this
+lib/src/widgets/block_renderer_registry.dart:320:/// Presentation-only collapse state for a top-level heading block.
+lib/src/widgets/block_renderer_registry.dart:321:class HeadingCollapseState {
+lib/src/widgets/block_renderer_registry.dart:322:  const HeadingCollapseState({
+lib/src/widgets/block_renderer_registry.dart:336:    return other is HeadingCollapseState &&
+lib/src/widgets/block_renderer_registry.dart:347:/// [BlockRendererRegistry]. Custom renderers receive the same
+lib/src/widgets/block_renderer_registry.dart:368:class BlockRendererRegistry {
+lib/src/widgets/block_renderer_registry.dart:369:  BlockRendererRegistry({
+test/widgets/wenz_rich_text_editor_test.dart:461:  testWidgets('renders heading collapse affordance and toggles by keyboard', (
+test/widgets/wenz_rich_text_editor_test.dart:498:    final outline = WenzOutlineController(editor: controller);
+test/widgets/wenz_rich_text_editor_test.dart:520:      const ValueKey<String>('wenz-richtext-heading-collapse-section'),
+test/widgets/wenz_rich_text_editor_test.dart:523:      const ValueKey<String>('wenz-richtext-heading-collapse-leaf'),
+test/widgets/wenz_rich_text_editor_test.dart:642:    final initialSelection = collapsedTextSelection('task1', 0, 4);
+test/widgets/wenz_rich_text_editor_test.dart:971:      selection: collapsedTextSelection('p-convert', 0, 0),
+test/widgets/wenz_rich_text_editor_test.dart:1079:      selection: collapsedCodeSelection('code1', 0, 0),
+test/widgets/wenz_rich_text_editor_test.dart:1198:      selection: collapsedCodeSelection('code1', 0, 0),
+test/widgets/wenz_rich_text_editor_test.dart:1978:        find.descendant(of: handle, matching: find.byType(Semantics)).first;
+test/widgets/wenz_rich_text_editor_test.dart:2003:    final registry = BlockRendererRegistry()
+test/widgets/wenz_rich_text_editor_test.dart:2198:        selection: collapsedCodeSelection('code1', 0, 0),
+test/widgets/wenz_rich_text_editor_test.dart:2556:    final semantics = tester.ensureSemantics();
+test/widgets/wenz_rich_text_editor_test.dart:2590:      expect(find.bySemanticsLabel('Heading block level 2'), findsOneWidget);
+test/widgets/wenz_rich_text_editor_test.dart:2592:          find.bySemanticsLabel('Paragraph block, selected'), findsOneWidget);
+test/widgets/wenz_rich_text_editor_test.dart:2593:      expect(find.bySemanticsLabel('Code block'), findsOneWidget);
+test/widgets/wenz_rich_text_editor_test.dart:2594:      expect(find.bySemanticsLabel('Image block hero.png'), findsOneWidget);
+test/widgets/wenz_rich_text_editor_test.dart:2601:    final semantics = tester.ensureSemantics();
+test/widgets/wenz_rich_text_editor_test.dart:2630:      final editorSemantics = tester.getSemantics(
+test/widgets/wenz_rich_text_editor_test.dart:2631:        find.bySemanticsLabel('Project notes editor'),
+test/widgets/wenz_rich_text_editor_test.dart:2634:      expect(editorSemantics.hint, 'Compose project notes.');
+test/widgets/wenz_rich_text_editor_test.dart:2635:      final flags = editorSemantics.flagsCollection;
+test/widgets/wenz_rich_text_editor_test.dart:2702:    final semantics = tester.ensureSemantics();
+test/widgets/wenz_rich_text_editor_test.dart:2786:        find.bySemanticsLabel('Table block, 2 rows, 3 columns'),
+test/widgets/wenz_rich_text_editor_test.dart:2790:        find.bySemanticsLabel(
+test/widgets/wenz_rich_text_editor_test.dart:2797:        find.bySemanticsLabel('Table cell row 1 column 3, selected'),
+test/widgets/wenz_rich_text_editor_test.dart:2801:        find.bySemanticsLabel('Table cell row 2 column 3, selected'),
+test/widgets/wenz_rich_text_editor_test.dart:2804:      expect(find.bySemanticsLabel('Table cell row 1 column 2'), findsNothing);
+test/widgets/wenz_rich_text_editor_test.dart:2892:      find.bySemanticsLabel('Table cell row 1 column 1'),
+test/widgets/wenz_rich_text_editor_test.dart:2900:      find.bySemanticsLabel('Table cell row 1 column 1'),
+test/widgets/wenz_rich_text_editor_test.dart:2946:      find.bySemanticsLabel('Table cell row 1 column 1'),
+test/widgets/wenz_rich_text_editor_test.dart:2988:      find.bySemanticsLabel('Table cell row 1 column 1'),
+test/widgets/wenz_rich_text_editor_test.dart:3006:      selection: _collapsedTableCellTextSelection(
+test/widgets/wenz_rich_text_editor_test.dart:3452:      selection: collapsedTextSelection('mention-p', 0, 4),
+test/widgets/wenz_rich_text_editor_test.dart:3557:      find.bySemanticsLabel('Table cell row 1 column 1'),
+test/widgets/wenz_rich_text_editor_test.dart:3877:        find.bySemanticsLabel('Table cell row 1 column 1'),
+test/widgets/wenz_rich_text_editor_test.dart:3950:      selection: collapsedTextSelection('p1', 0, 2),
+test/widgets/wenz_rich_text_editor_test.dart:3983:      selection: collapsedTextSelection('p1', 0, 2),
+test/widgets/wenz_rich_text_editor_test.dart:4253:      selection: collapsedCodeSelection('code1', 0, 4),
+test/widgets/wenz_rich_text_editor_test.dart:4377:      selection: collapsedTextSelection('p1', 0, 2),
+test/widgets/wenz_rich_text_editor_test.dart:4425:      selection: collapsedTextSelection('p1', 0, 5),
+test/widgets/wenz_rich_text_editor_test.dart:4469:      selection: collapsedTextSelection('p1', 0, 0),
+test/widgets/wenz_rich_text_editor_test.dart:4515:      selection: collapsedTextSelection('p1', 0, 2),
+test/widgets/wenz_rich_text_editor_test.dart:4812:      selection: collapsedTextSelection('p1', 0, 6),
+test/widgets/wenz_rich_text_editor_test.dart:5086:    controller.setSelection(collapsedTextSelection('p-inline', 0, 1));
+test/widgets/wenz_rich_text_editor_test.dart:5097:    controller.setSelection(collapsedTextSelection('p-inline', 0, 3));
+test/widgets/wenz_rich_text_editor_test.dart:5108:    controller.setSelection(collapsedTextSelection('p-inline', 0, 4));
+test/widgets/wenz_rich_text_editor_test.dart:5273:      _collapsedTableCellTextSelection(
+test/widgets/wenz_rich_text_editor_test.dart:5294:      _collapsedTableCellTextSelection(
+test/widgets/wenz_rich_text_editor_test.dart:5315:      _collapsedTableCellTextSelection(
+test/widgets/wenz_rich_text_editor_test.dart:5689:      selection: collapsedTextSelection('p1', 0, 3),
+test/widgets/wenz_rich_text_editor_test.dart:5723:      selection: collapsedTextSelection('p1', 0, 2),
+test/widgets/wenz_rich_text_editor_test.dart:5762:      selection: collapsedTextSelection('p1', 0, 20),
+test/widgets/wenz_rich_text_editor_test.dart:5804:      selection: collapsedTextSelection('p1', 0, 5),
+test/widgets/wenz_rich_text_editor_test.dart:5862:      selection: collapsedTextSelection('p1', 0, 11),
+test/widgets/wenz_rich_text_editor_test.dart:5882:    controller.setSelection(collapsedTextSelection('p1', 0, 11));
+test/widgets/wenz_rich_text_editor_test.dart:6011:      selection: collapsedTextSelection('p1', 0, 3),
+test/widgets/wenz_rich_text_editor_test.dart:6043:      selection: collapsedTextSelection('p1', 0, 0),
+test/widgets/wenz_rich_text_editor_test.dart:6322:      selection: collapsedTextSelection('p1', 0, 2),
+test/widgets/wenz_rich_text_editor_test.dart:6362:      selection: collapsedTextSelection('p1', 0, 3),
+test/widgets/wenz_rich_text_editor_test.dart:6398:      selection: collapsedTextSelection('p1', 0, 0),
+test/widgets/wenz_rich_text_editor_test.dart:6434:      selection: collapsedTextSelection('p1', 0, 0),
+test/widgets/wenz_rich_text_editor_test.dart:6570:  // user can drag-select past the visible area without moving the pointer.
+test/widgets/wenz_rich_text_editor_test.dart:6604:      // Place an initial collapsed caret in the content so we can detect any
+test/widgets/wenz_rich_text_editor_test.dart:6704:      controller.setSelection(collapsedTextSelection('p25', 25, 0));
+test/widgets/wenz_rich_text_editor_test.dart:6812:      selection: collapsedTextSelection('p1', 0, 0),
+test/widgets/wenz_rich_text_editor_test.dart:6863:      selection: collapsedTextSelection('p3', 2, 3),
+test/widgets/wenz_rich_text_editor_test.dart:6913:      selection: collapsedTextSelection('p1', 0, 0),
+test/widgets/wenz_rich_text_editor_test.dart:6957:      selection: collapsedTextSelection('p1', 0, 3),
+test/widgets/wenz_rich_text_editor_test.dart:7002:    final registry = BlockRendererRegistry();
+test/widgets/wenz_rich_text_editor_test.dart:7067:              blockRenderers: BlockRendererRegistry(),
+test/widgets/wenz_rich_text_editor_test.dart:7093:    final registry = BlockRendererRegistry();
+test/widgets/wenz_rich_text_editor_test.dart:7164:    BlockRendererRegistry measuredBlockRenderers() {
+test/widgets/wenz_rich_text_editor_test.dart:7165:      return BlockRendererRegistry()
+test/widgets/wenz_rich_text_editor_test.dart:7181:    testWidgets('only builds visible blocks for a large document', (
+test/widgets/wenz_rich_text_editor_test.dart:7195:      // The first (visible) block is built (text blocks render as RichText).
+test/widgets/wenz_rich_text_editor_test.dart:7207:        selection: collapsedTextSelection('p1', 0, 0),
+test/widgets/wenz_rich_text_editor_test.dart:7224:      // p1 starts visible.
+test/widgets/wenz_rich_text_editor_test.dart:7244:      final start = collapsedTextSelection('p0', 0, 0).base;
+test/widgets/wenz_rich_text_editor_test.dart:7279:      // Start with the caret on a visible block near the top.
+test/widgets/wenz_rich_text_editor_test.dart:7282:        selection: collapsedTextSelection('p1', 0, 0),
+test/widgets/wenz_rich_text_editor_test.dart:7304:      controller.setSelection(collapsedTextSelection('p400', 400, 0));
+test/widgets/wenz_rich_text_editor_test.dart:7308:      // target block is now built and visible.
+test/widgets/wenz_rich_text_editor_test.dart:7317:        selection: collapsedTextSelection('p0', 0, 0),
+test/widgets/wenz_rich_text_editor_test.dart:7345:      controller.setSelection(collapsedTextSelection('p450', 450, 0));
+test/widgets/wenz_rich_text_editor_test.dart:7597:DocumentSelection _collapsedTableCellTextSelection({
+lib/src/widgets/wenz_rich_text_editor.dart:93:const double _kHeadingCollapseSlotWidth = 30.0;
+lib/src/widgets/wenz_rich_text_editor.dart:94:const double _kHeadingCollapseButtonSize = 26.0;
+lib/src/widgets/wenz_rich_text_editor.dart:95:const double _kHeadingCollapseIconSize = 20.0;
+lib/src/widgets/wenz_rich_text_editor.dart:237:    'headingCollapse': <String, double>{
+lib/src/widgets/wenz_rich_text_editor.dart:273:    'heading.collapse': 'primary hover/focus control + hidden-count badge',
+lib/src/widgets/wenz_rich_text_editor.dart:284:    'heading': 'aligned: hierarchy styles plus collapse affordance states.',
+lib/src/widgets/wenz_rich_text_editor.dart:383:/// Heading collapse is a view concern of this surface: built-in collapse
+lib/src/widgets/wenz_rich_text_editor.dart:430:  /// Optional [BlockRendererRegistry]. When `null`, the editor builds a fresh
+lib/src/widgets/wenz_rich_text_editor.dart:436:  final BlockRendererRegistry? blockRenderers;
+lib/src/widgets/wenz_rich_text_editor.dart:467:  /// Optional outline controller whose collapsed-heading state projects the
+lib/src/widgets/wenz_rich_text_editor.dart:469:  final WenzOutlineController? outlineController;
+lib/src/widgets/wenz_rich_text_editor.dart:475:  /// Call this on a freshly constructed [BlockRendererRegistry] when you want
+lib/src/widgets/wenz_rich_text_editor.dart:479:  /// final registry = BlockRendererRegistry();
+lib/src/widgets/wenz_rich_text_editor.dart:483:  static void installDefaultRenderers(BlockRendererRegistry registry) {
+lib/src/widgets/wenz_rich_text_editor.dart:524:  BlockRendererRegistry? _ownedBlockRenderers;
+lib/src/widgets/wenz_rich_text_editor.dart:545:  BlockRendererRegistry get _blockRenderers {
+lib/src/widgets/wenz_rich_text_editor.dart:550:      final registry = BlockRendererRegistry();
+lib/src/widgets/wenz_rich_text_editor.dart:611:    widget.outlineController?.addListener(_handleOutlineControllerChanged);
+lib/src/widgets/wenz_rich_text_editor.dart:652:        _handleOutlineControllerChanged,
+lib/src/widgets/wenz_rich_text_editor.dart:654:      widget.outlineController?.addListener(_handleOutlineControllerChanged);
+lib/src/widgets/wenz_rich_text_editor.dart:655:      _handleOutlineControllerChanged();
+lib/src/widgets/wenz_rich_text_editor.dart:671:    widget.outlineController?.removeListener(_handleOutlineControllerChanged);
+lib/src/widgets/wenz_rich_text_editor.dart:702:  void _handleOutlineControllerChanged() {
+lib/src/widgets/wenz_rich_text_editor.dart:727:      // following block — a visible flicker of the content below the caret. The
+lib/src/widgets/wenz_rich_text_editor.dart:802:  OutlineBlockProjection _visibleBlockProjectionFor(List<BlockNode> blocks) {
+lib/src/widgets/wenz_rich_text_editor.dart:805:      return OutlineBlockProjection.all(blocks);
+lib/src/widgets/wenz_rich_text_editor.dart:812:      return OutlineBlockProjection.all(blocks);
+lib/src/widgets/wenz_rich_text_editor.dart:814:    return outline.visibleBlockProjection();
+lib/src/widgets/wenz_rich_text_editor.dart:817:  HeadingCollapseState? _headingCollapseStateFor(BlockNode block) {
+lib/src/widgets/wenz_rich_text_editor.dart:826:    return HeadingCollapseState(
+lib/src/widgets/wenz_rich_text_editor.dart:833:  void _handleHeadingCollapseToggled(String blockId) {
+lib/src/widgets/wenz_rich_text_editor.dart:842:    final projection = _visibleBlockProjectionFor(sourceBlocks);
+lib/src/widgets/wenz_rich_text_editor.dart:843:    final blocks = projection.visibleBlocks;
+lib/src/widgets/wenz_rich_text_editor.dart:844:    final blockIndexes = projection.visibleBlockIndexes;
+lib/src/widgets/wenz_rich_text_editor.dart:845:    _registry.retainBlocks(projection.visibleBlockIds);
+lib/src/widgets/wenz_rich_text_editor.dart:846:    // Heading collapse should project this original block list for rendering
+lib/src/widgets/wenz_rich_text_editor.dart:864:    // (collapsed selection) and the selection endpoints. Keeping these alive
+lib/src/widgets/wenz_rich_text_editor.dart:869:        .intersection(projection.visibleBlockIds);
+lib/src/widgets/wenz_rich_text_editor.dart:878:    final listMarkers = _listMarkersFor(sourceBlocks);
+lib/src/widgets/wenz_rich_text_editor.dart:899:          listMarker: listMarkers[blockIndex],
+lib/src/widgets/wenz_rich_text_editor.dart:912:          headingCollapseState: _headingCollapseStateFor(block),
+lib/src/widgets/wenz_rich_text_editor.dart:913:          onHeadingCollapseToggled: _handleHeadingCollapseToggled,
+lib/src/widgets/wenz_rich_text_editor.dart:984:        child: Semantics(
+lib/src/widgets/wenz_rich_text_editor.dart:1717:  /// (collapsed selection) and the selection endpoints. Keeping these alive
+lib/src/widgets/wenz_rich_text_editor.dart:2043:    // the surrounding context stays visible across the jump.
+lib/src/widgets/wenz_rich_text_editor.dart:2053:      // page yields a collapsed caret (moveCaretToDocumentBoundary would keep
+lib/src/widgets/wenz_rich_text_editor.dart:2152:  /// height, so the caret-into-view check run then may decide "already visible"
+lib/src/widgets/wenz_rich_text_editor.dart:2179:  /// changes. No-op when the caret is already visible or no scroll client is
+lib/src/widgets/wenz_rich_text_editor.dart:2237:    final visibleTop = position.pixels;
+lib/src/widgets/wenz_rich_text_editor.dart:2238:    final visibleBottom = position.pixels + viewportHeight;
+lib/src/widgets/wenz_rich_text_editor.dart:2239:    if (caretTopInContent >= visibleTop &&
+lib/src/widgets/wenz_rich_text_editor.dart:2240:        caretBottomInContent <= visibleBottom) {
+lib/src/widgets/wenz_rich_text_editor.dart:2244:    if (caretTopInContent < visibleTop) {
+lib/src/widgets/wenz_rich_text_editor.dart:2266:    final projection = _visibleBlockProjectionFor(blocks);
+lib/src/widgets/wenz_rich_text_editor.dart:2267:    final visibleIndex = projection.nearestVisibleIndexForBlockIndex(blockIndex);
+lib/src/widgets/wenz_rich_text_editor.dart:2268:    if (visibleIndex == null) {
+lib/src/widgets/wenz_rich_text_editor.dart:2272:    // one third down from the top so the surrounding context is visible.
+lib/src/widgets/wenz_rich_text_editor.dart:2274:      projection.visibleBlocks,
+lib/src/widgets/wenz_rich_text_editor.dart:2275:      visibleIndex,
+lib/src/widgets/wenz_rich_text_editor.dart:2758:  List<int> visibleIndices(double visibleTop, double visibleBottom) {
+lib/src/widgets/wenz_rich_text_editor.dart:2762:    final start = _firstIndexWithBottomAtOrAfter(visibleTop);
+lib/src/widgets/wenz_rich_text_editor.dart:2766:    final endExclusive = _firstIndexWithTopAfter(visibleBottom);
+lib/src/widgets/wenz_rich_text_editor.dart:2907:        final visible = metrics.visibleIndices(contentTop, contentBottom);
+lib/src/widgets/wenz_rich_text_editor.dart:2908:        final indices = <int>{...visible};
+lib/src/widgets/wenz_rich_text_editor.dart:3066:    this.listMarker,
+lib/src/widgets/wenz_rich_text_editor.dart:3079:    this.headingCollapseState,
+lib/src/widgets/wenz_rich_text_editor.dart:3080:    this.onHeadingCollapseToggled,
+lib/src/widgets/wenz_rich_text_editor.dart:3095:  final String? listMarker;
+lib/src/widgets/wenz_rich_text_editor.dart:3101:  final BlockRendererRegistry blockRenderers;
+lib/src/widgets/wenz_rich_text_editor.dart:3108:  final HeadingCollapseState? headingCollapseState;
+lib/src/widgets/wenz_rich_text_editor.dart:3109:  final ValueChanged<String>? onHeadingCollapseToggled;
+lib/src/widgets/wenz_rich_text_editor.dart:3159:        oldWidget.listMarker != widget.listMarker ||
+lib/src/widgets/wenz_rich_text_editor.dart:3163:        oldWidget.headingCollapseState != widget.headingCollapseState ||
+lib/src/widgets/wenz_rich_text_editor.dart:3164:        oldWidget.onHeadingCollapseToggled !=
+lib/src/widgets/wenz_rich_text_editor.dart:3165:            widget.onHeadingCollapseToggled ||
+lib/src/widgets/wenz_rich_text_editor.dart:3193:      listMarker: widget.listMarker,
+lib/src/widgets/wenz_rich_text_editor.dart:3204:      headingCollapseState: widget.headingCollapseState,
+lib/src/widgets/wenz_rich_text_editor.dart:3205:      onHeadingCollapseToggled: widget.onHeadingCollapseToggled,
+lib/src/widgets/wenz_rich_text_editor.dart:3222:  /// (so it would be fully highlighted), or the selection is collapsed inside
+lib/src/widgets/wenz_rich_text_editor.dart:3256:    this.listMarker,
+lib/src/widgets/wenz_rich_text_editor.dart:3267:    this.headingCollapseState,
+lib/src/widgets/wenz_rich_text_editor.dart:3268:    this.onHeadingCollapseToggled,
+lib/src/widgets/wenz_rich_text_editor.dart:3283:  final String? listMarker;
+lib/src/widgets/wenz_rich_text_editor.dart:3287:  final BlockRendererRegistry blockRenderers;
+lib/src/widgets/wenz_rich_text_editor.dart:3294:  final HeadingCollapseState? headingCollapseState;
+lib/src/widgets/wenz_rich_text_editor.dart:3295:  final ValueChanged<String>? onHeadingCollapseToggled;
+lib/src/widgets/wenz_rich_text_editor.dart:3312:      listMarker: listMarker,
+lib/src/widgets/wenz_rich_text_editor.dart:3322:      headingCollapseState: headingCollapseState,
+lib/src/widgets/wenz_rich_text_editor.dart:3323:      onHeadingCollapseToggled: onHeadingCollapseToggled,
+lib/src/widgets/wenz_rich_text_editor.dart:3578:      child: MouseRegion(
+lib/src/widgets/wenz_rich_text_editor.dart:3590:          child: Semantics(
+lib/src/widgets/wenz_rich_text_editor.dart:4026:extension BlockRendererRegistryDefaults on BlockRendererRegistry {
+lib/src/widgets/wenz_rich_text_editor.dart:4047:  return _TextBlockRenderer(
+lib/src/widgets/wenz_rich_text_editor.dart:4056:    listMarker: rc.listMarker,
+lib/src/widgets/wenz_rich_text_editor.dart:4058:    headingCollapseState: rc.headingCollapseState,
+lib/src/widgets/wenz_rich_text_editor.dart:4059:    onHeadingCollapseToggled: rc.onHeadingCollapseToggled,
+lib/src/widgets/wenz_rich_text_editor.dart:4209:  return _withBlockSemantics(
+lib/src/widgets/wenz_rich_text_editor.dart:4289:  return _withBlockSemantics(
+lib/src/widgets/wenz_rich_text_editor.dart:4317:  return _withBlockSemantics(
+lib/src/widgets/wenz_rich_text_editor.dart:4349:class _TextBlockRenderer extends StatelessWidget {
+lib/src/widgets/wenz_rich_text_editor.dart:4350:  const _TextBlockRenderer({
+lib/src/widgets/wenz_rich_text_editor.dart:4359:    this.listMarker,
+lib/src/widgets/wenz_rich_text_editor.dart:4361:    this.headingCollapseState,
+lib/src/widgets/wenz_rich_text_editor.dart:4362:    this.onHeadingCollapseToggled,
+lib/src/widgets/wenz_rich_text_editor.dart:4378:  final String? listMarker;
+lib/src/widgets/wenz_rich_text_editor.dart:4380:  final HeadingCollapseState? headingCollapseState;
+lib/src/widgets/wenz_rich_text_editor.dart:4381:  final ValueChanged<String>? onHeadingCollapseToggled;
+lib/src/widgets/wenz_rich_text_editor.dart:4393:    final baseStyle = _blockTextStyle(context, block, textStyle);
+lib/src/widgets/wenz_rich_text_editor.dart:4446:    final prefix = listMarker ?? _prefixFor(block);
+lib/src/widgets/wenz_rich_text_editor.dart:4448:      return _withBlockSemantics(
+lib/src/widgets/wenz_rich_text_editor.dart:4455:      return _withBlockSemantics(
+lib/src/widgets/wenz_rich_text_editor.dart:4485:    if (block.type == BlockType.heading && headingCollapseState != null) {
+lib/src/widgets/wenz_rich_text_editor.dart:4486:      return _withBlockSemantics(
+lib/src/widgets/wenz_rich_text_editor.dart:4491:            _HeadingCollapseButton(
+lib/src/widgets/wenz_rich_text_editor.dart:4493:              state: headingCollapseState!,
+lib/src/widgets/wenz_rich_text_editor.dart:4495:              onToggled: onHeadingCollapseToggled,
+lib/src/widgets/wenz_rich_text_editor.dart:4504:      return _withBlockSemantics(block, text, selected: selected);
+lib/src/widgets/wenz_rich_text_editor.dart:4506:    return _withBlockSemantics(
+lib/src/widgets/wenz_rich_text_editor.dart:4526:class _HeadingCollapseButton extends StatefulWidget {
+lib/src/widgets/wenz_rich_text_editor.dart:4527:  const _HeadingCollapseButton({
+lib/src/widgets/wenz_rich_text_editor.dart:4535:  final HeadingCollapseState state;
+lib/src/widgets/wenz_rich_text_editor.dart:4540:  State<_HeadingCollapseButton> createState() => _HeadingCollapseButtonState();
+lib/src/widgets/wenz_rich_text_editor.dart:4543:class _HeadingCollapseButtonState extends State<_HeadingCollapseButton> {
+lib/src/widgets/wenz_rich_text_editor.dart:4553:  void didUpdateWidget(covariant _HeadingCollapseButton oldWidget) {
+lib/src/widgets/wenz_rich_text_editor.dart:4573:    return MouseRegion(
+lib/src/widgets/wenz_rich_text_editor.dart:4577:        width: _kHeadingCollapseSlotWidth,
+lib/src/widgets/wenz_rich_text_editor.dart:4578:        height: _kHeadingCollapseButtonSize,
+lib/src/widgets/wenz_rich_text_editor.dart:4583:              'wenz-richtext-heading-collapse-${widget.blockId}',
+lib/src/widgets/wenz_rich_text_editor.dart:4585:            tooltip: _headingCollapseTooltip(widget.state),
+lib/src/widgets/wenz_rich_text_editor.dart:4587:            iconSize: _kHeadingCollapseIconSize,
+lib/src/widgets/wenz_rich_text_editor.dart:4590:              width: _kHeadingCollapseButtonSize,
+lib/src/widgets/wenz_rich_text_editor.dart:4591:              height: _kHeadingCollapseButtonSize,
+lib/src/widgets/wenz_rich_text_editor.dart:4594:            splashRadius: _kHeadingCollapseButtonSize / 2,
+lib/src/widgets/wenz_rich_text_editor.dart:4600:            icon: _HeadingCollapseGlyph(
+lib/src/widgets/wenz_rich_text_editor.dart:4611:class _HeadingCollapseGlyph extends StatelessWidget {
+lib/src/widgets/wenz_rich_text_editor.dart:4612:  const _HeadingCollapseGlyph({
+lib/src/widgets/wenz_rich_text_editor.dart:4617:  final HeadingCollapseState state;
+lib/src/widgets/wenz_rich_text_editor.dart:4626:      dimension: _kHeadingCollapseIconSize,
+lib/src/widgets/wenz_rich_text_editor.dart:4636:              child: _HeadingCollapseCountBadge(
+lib/src/widgets/wenz_rich_text_editor.dart:4646:class _HeadingCollapseCountBadge extends StatelessWidget {
+lib/src/widgets/wenz_rich_text_editor.dart:4647:  const _HeadingCollapseCountBadge({required this.count});
+lib/src/widgets/wenz_rich_text_editor.dart:4663:          _headingCollapseCountText(count),
+lib/src/widgets/wenz_rich_text_editor.dart:4677:String _headingCollapseTooltip(HeadingCollapseState state) {
+lib/src/widgets/wenz_rich_text_editor.dart:4687:String _headingCollapseCountText(int count) {
+lib/src/widgets/wenz_rich_text_editor.dart:4738:    return MouseRegion(
+lib/src/widgets/wenz_rich_text_editor.dart:4879:    return _withBlockSemantics(
+lib/src/widgets/wenz_rich_text_editor.dart:5091:    return _withBlockSemantics(
+lib/src/widgets/wenz_rich_text_editor.dart:5288:    final visibleTop = viewportTop - stackTop;
+lib/src/widgets/wenz_rich_text_editor.dart:5291:      top: math.max(preferredTop, visibleTop),
+lib/src/widgets/wenz_rich_text_editor.dart:5553:    return Semantics(
+lib/src/widgets/wenz_rich_text_editor.dart:5556:      child: MouseRegion(
+lib/src/widgets/wenz_rich_text_editor.dart:5558:        child: GestureDetector(
+lib/src/widgets/wenz_rich_text_editor.dart:5585:Widget _withBlockSemantics(
+lib/src/widgets/wenz_rich_text_editor.dart:5591:      ? '${_blockSemanticsLabel(block)}, selected'
+lib/src/widgets/wenz_rich_text_editor.dart:5592:      : _blockSemanticsLabel(block);
+lib/src/widgets/wenz_rich_text_editor.dart:5596:  return Semantics(
+lib/src/widgets/wenz_rich_text_editor.dart:5608:String _blockSemanticsLabel(BlockNode block) {
+lib/src/widgets/wenz_rich_text_editor.dart:5994:  /// inside the visible cell resolves to this cell, not a neighbour. The
+lib/src/widgets/wenz_rich_text_editor.dart:6079:    return Semantics(
+lib/src/widgets/wenz_rich_text_editor.dart:6082:      label: _tableCellSemanticsLabel(
+lib/src/widgets/wenz_rich_text_editor.dart:6115:String _tableCellSemanticsLabel({
+lib/src/widgets/wenz_rich_text_editor.dart:6403:  /// Current blink phase: 1.0 = caret visible, 0.0 = caret hidden. Toggled by
+lib/src/widgets/wenz_rich_text_editor.dart:6404:  /// [_blinkTimer]; defaults to visible so the caret shows immediately on focus.
+lib/src/widgets/wenz_rich_text_editor.dart:6450:    // When the caret stays visible but its position changes (typing, arrow
+lib/src/widgets/wenz_rich_text_editor.dart:6454:    // change makes the caret snap back to visible.
+lib/src/widgets/wenz_rich_text_editor.dart:6484:  /// (Re)arms the blink timer with the caret forced visible. Called when the
+lib/src/widgets/wenz_rich_text_editor.dart:6485:  /// caret first becomes visible, and again on every selection change while it
+lib/src/widgets/wenz_rich_text_editor.dart:6486:  /// stays visible, so the caret snaps back to its visible phase instead of
+lib/src/widgets/wenz_rich_text_editor.dart:6503:  /// Resets the blink phase to visible and restarts the timer, so a caret that
+lib/src/widgets/wenz_rich_text_editor.dart:6749:        // toggles between fully visible (1.0) and hidden (0.0).
+lib/src/widgets/wenz_rich_text_editor.dart:7217:  /// Caret alpha multiplier driven by the blink animation (1.0 = fully visible,
+lib/src/widgets/wenz_rich_text_editor.dart:7296:    return Semantics(
+lib/src/widgets/wenz_rich_text_editor.dart:8986:TextStyle _blockTextStyle(
+lib/src/widgets/wenz_rich_text_editor.dart:9816:List<String?> _listMarkersFor(List<BlockNode> blocks) {
+lib/src/widgets/wenz_rich_text_editor.dart:9819:      _listMarkerFor(blocks, index),
+lib/src/widgets/wenz_rich_text_editor.dart:9823:String? _listMarkerFor(List<BlockNode> blocks, int index) {
+
+**Investigating P004 implementation**
+
+I'm noticing that P004 might already be partially implemented based on previous work. I need to take a closer look at the relevant lines to understand what’s going on. It's intriguing to see how everything fits together, and I want to ensure I grasp the context fully before moving on. Let’s dive in and inspect those lines to clarify the situation and make sure everything is aligned!
+codex
+已有 P004 相关代码雏形；我先核对它是否完整可用。
+exec
+powershell.exe -Command '$path='"'lib\\src\\widgets\\wenz_rich_text_editor.dart'; "'$lines=Get-Content -Encoding UTF8 $path; foreach ($range in @(@(4300,4688),@(1520,1665),@(1800,1935),@(3880,3980),@(8980,9035))) { $start=$range[0]; $end=$range[1]; Write-Output "--- $path:$start-$end ---"; for ($i=$start-1; $i -le $end-1 -and $i -lt $lines.Length; $i++) { '"'{0}: {1}' -f ("'$i+1), $lines[$i] } }' in D:\project\GitHub\wenz_flutter\wenz_richtext
+2026-06-25T04:18:10.671854Z ERROR codex_core::tools::router: error={"output":"At line:2 char:236\r\n+ ...  { $start=$range[0]; $end=$range[1]; Write-Output \"--- $path:$start-$ ...\r\n+                                                            ~~~~~~\r\nVariable reference is not valid. ':' was not followed by a valid variable name character. Consider using ${} to delimit\r\n the name.\r\n    + CategoryInfo          : ParserError: (:) [], ParentContainsErrorRecordException\r\n    + FullyQualifiedErrorId : InvalidVariableReferenceWithDrive\r\n \r\n","metadata":{"exit_code":1,"duration_seconds":0.2}}
+ exited 1 in 163ms:
+At line:2 char:236
++ ...  { $start=$range[0]; $end=$range[1]; Write-Output "--- $path:$start-$ ...
++                                                            ~~~~~~
+Variable reference is not valid. ':' was not followed by a valid variable name character. Consider using ${} to delimit
+ the name.
+    + CategoryInfo          : ParserError: (:) [], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : InvalidVariableReferenceWithDrive
+ 
+
+codex
+命令格式有个 PowerShell 冒号转义问题，马上重跑同一检查。
+exec
+powershell.exe -Command '$path='"'lib\\src\\widgets\\wenz_rich_text_editor.dart'; "'$lines=Get-Content -Encoding UTF8 $path; foreach ($range in @(@(4300,4688),@(1520,1665),@(1800,1935),@(3880,3980),@(8980,9035))) { $start=$range[0]; $end=$range[1]; Write-Output "--- ${path}:$start-$end ---"; for ($i=$start-1; $i -le $end-1 -and $i -lt $lines.Length; $i++) { '"'{0}: {1}' -f ("'$i+1), $lines[$i] } }' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 258ms:
+--- lib\src\widgets\wenz_rich_text_editor.dart:4300-4688 ---
+4300:     selected: selected,
+4301:   );
+4302: }
+4303: 
+4304: Widget _withSelectableImageBlock(
+4305:   ImageBlockNode block,
+4306:   BlockRenderContext rc,
+4307:   Widget child,
+4308: ) {
+4309:   final path = PositionPath.blockObject(block.id);
+4310:   final selected = _selectionTouchesPath(
+4311:     rc.selection,
+4312:     rc.blockIndex,
+4313:     block.id,
+4314:     path,
+4315:     _kAtomicBlockSelectionLength,
+4316:   );
+4317:   return _withBlockSemantics(
+4318:     block,
+4319:     _ImageBlockChrome(
+4320:       blockIndex: rc.blockIndex,
+4321:       blockCount: rc.blockCount,
+4322:       selected: selected,
+4323:       canEdit: rc.canEdit,
+4324:       onAction: rc.onObjectBlockAction,
+4325:       child: _BlockObjectSelectionSurface(
+4326:         blockId: block.id,
+4327:         blockIndex: rc.blockIndex,
+4328:         path: path,
+4329:         selection: rc.selection,
+4330:         registry: rc.registry,
+4331:         showDebugOverlay: rc.showDebugOverlay,
+4332:         child: child,
+4333:       ),
+4334:     ),
+4335:     selected: selected,
+4336:   );
+4337: }
+4338: 
+4339: bool _objectBlockSelected(BlockNode block, BlockRenderContext rc) {
+4340:   return _selectionTouchesPath(
+4341:     rc.selection,
+4342:     rc.blockIndex,
+4343:     block.id,
+4344:     PositionPath.blockObject(block.id),
+4345:     _kAtomicBlockSelectionLength,
+4346:   );
+4347: }
+4348: 
+4349: class _TextBlockRenderer extends StatelessWidget {
+4350:   const _TextBlockRenderer({
+4351:     required this.block,
+4352:     required this.blockIndex,
+4353:     required this.selection,
+4354:     required this.compositionState,
+4355:     required this.registry,
+4356:     required this.showCaret,
+4357:     this.textStyle,
+4358:     this.showDebugOverlay = false,
+4359:     this.listMarker,
+4360:     this.inlineEmbedRenderer,
+4361:     this.headingCollapseState,
+4362:     this.onHeadingCollapseToggled,
+4363:     this.onToolbarAction,
+4364:     this.onColumnResize,
+4365:     this.onTodoCheckedChanged,
+4366:     this.findMatches = const <FindReplaceMatch>[],
+4367:     this.currentFindMatch,
+4368:   });
+4369: 
+4370:   final TextBlockNode block;
+4371:   final int blockIndex;
+4372:   final DocumentSelection? selection;
+4373:   final CompositionState? compositionState;
+4374:   final BlockGeometryRegistry registry;
+4375:   final bool showCaret;
+4376:   final TextStyle? textStyle;
+4377:   final bool showDebugOverlay;
+4378:   final String? listMarker;
+4379:   final InlineEmbedRenderer? inlineEmbedRenderer;
+4380:   final HeadingCollapseState? headingCollapseState;
+4381:   final ValueChanged<String>? onHeadingCollapseToggled;
+4382:   final TableToolbarActionHandler? onToolbarAction;
+4383:   final TableColumnResizeHandler? onColumnResize;
+4384:   final TodoCheckedChangeHandler? onTodoCheckedChanged;
+4385:   final List<FindReplaceMatch> findMatches;
+4386:   final FindReplaceMatch? currentFindMatch;
+4387: 
+4388:   @override
+4389:   Widget build(BuildContext context) {
+4390:     final isTaskListItem =
+4391:         block.type == BlockType.listItem && block.attributes.listType == 'task';
+4392:     final isTaskChecked = block.attributes.checked == true;
+4393:     final baseStyle = _blockTextStyle(context, block, textStyle);
+4394:     final todoStyle = isTaskListItem ? _todoTextStyle(baseStyle) : baseStyle;
+4395:     final effectiveStyle = isTaskListItem && isTaskChecked
+4396:         ? _completedTodoTextStyle(context, todoStyle)
+4397:         : todoStyle;
+4398:     final compositionRange = _localCompositionRange(
+4399:       compositionState,
+4400:       block.id,
+4401:       blockIndex,
+4402:       PositionPath.blockText(block.id),
+4403:     );
+4404:     final path = PositionPath.blockText(block.id);
+4405:     final textLength = inlineNodesLength(block.content);
+4406:     final inlineTextLayout = _inlineTextLayoutFor(
+4407:       context,
+4408:       block.content,
+4409:       effectiveStyle,
+4410:       compositionRange,
+4411:       inlineEmbedRenderer,
+4412:     );
+4413:     final selected = _selectionRangeForPath(
+4414:           selection,
+4415:           blockIndex,
+4416:           path,
+4417:           textLength,
+4418:         ) !=
+4419:         null;
+4420:     final text = _TextSelectionSurface(
+4421:       blockId: block.id,
+4422:       blockIndex: blockIndex,
+4423:       path: path,
+4424:       textLength: textLength,
+4425:       textSpan: TextSpan(
+4426:         style: effectiveStyle,
+4427:         children: inlineTextLayout.spans,
+4428:       ),
+4429:       offsetMapper: inlineTextLayout.offsetMapper,
+4430:       textAlign: _textAlign(block.attributes.alignment),
+4431:       minHeight: isTaskListItem
+4432:           ? _lineHeightFor(effectiveStyle)
+4433:           : (effectiveStyle.fontSize ?? 14) * _kBlockMinHeightFactor,
+4434:       selection: selection,
+4435:       showCaret: showCaret,
+4436:       registry: registry,
+4437:       showDebugOverlay: showDebugOverlay,
+4438:       findRanges: _findRangesForPath(
+4439:         findMatches,
+4440:         currentFindMatch,
+4441:         blockIndex,
+4442:         path,
+4443:         textLength,
+4444:       ),
+4445:     );
+4446:     final prefix = listMarker ?? _prefixFor(block);
+4447:     if (block.type == BlockType.quote) {
+4448:       return _withBlockSemantics(
+4449:         block,
+4450:         _QuoteBlockSurface(child: text),
+4451:         selected: selected,
+4452:       );
+4453:     }
+4454:     if (isTaskListItem) {
+4455:       return _withBlockSemantics(
+4456:         block,
+4457:         Padding(
+4458:           padding: const EdgeInsetsDirectional.only(
+4459:             start: _kTaskListPaddingLeft,
+4460:           ),
+4461:           child: Row(
+4462:             crossAxisAlignment: CrossAxisAlignment.start,
+4463:             children: <Widget>[
+4464:               _TodoCheckbox(
+4465:                 blockId: block.id,
+4466:                 registry: registry,
+4467:                 checked: isTaskChecked,
+4468:                 onChanged: onTodoCheckedChanged == null
+4469:                     ? null
+4470:                     : (checked) {
+4471:                         onTodoCheckedChanged!(
+4472:                           blockIndex: blockIndex,
+4473:                           checked: checked,
+4474:                         );
+4475:                       },
+4476:               ),
+4477:               const SizedBox(width: _kTodoTextGap),
+4478:               Expanded(child: text),
+4479:             ],
+4480:           ),
+4481:         ),
+4482:         selected: selected,
+4483:       );
+4484:     }
+4485:     if (block.type == BlockType.heading && headingCollapseState != null) {
+4486:       return _withBlockSemantics(
+4487:         block,
+4488:         Row(
+4489:           crossAxisAlignment: CrossAxisAlignment.start,
+4490:           children: <Widget>[
+4491:             _HeadingCollapseButton(
+4492:               blockId: block.id,
+4493:               state: headingCollapseState!,
+4494:               registry: registry,
+4495:               onToggled: onHeadingCollapseToggled,
+4496:             ),
+4497:             Expanded(child: text),
+4498:           ],
+4499:         ),
+4500:         selected: selected,
+4501:       );
+4502:     }
+4503:     if (prefix == null) {
+4504:       return _withBlockSemantics(block, text, selected: selected);
+4505:     }
+4506:     return _withBlockSemantics(
+4507:       block,
+4508:       Row(
+4509:         crossAxisAlignment: CrossAxisAlignment.start,
+4510:         children: <Widget>[
+4511:           SizedBox(
+4512:             key: ValueKey<String>('wenz-richtext-list-marker-${block.id}'),
+4513:             width: _kListMarkerWidth,
+4514:             child:
+4515:                 Text(prefix, style: effectiveStyle, textAlign: TextAlign.end),
+4516:           ),
+4517:           const SizedBox(width: _kListMarkerGap),
+4518:           Expanded(child: text),
+4519:         ],
+4520:       ),
+4521:       selected: selected,
+4522:     );
+4523:   }
+4524: }
+4525: 
+4526: class _HeadingCollapseButton extends StatefulWidget {
+4527:   const _HeadingCollapseButton({
+4528:     required this.blockId,
+4529:     required this.state,
+4530:     required this.registry,
+4531:     required this.onToggled,
+4532:   });
+4533: 
+4534:   final String blockId;
+4535:   final HeadingCollapseState state;
+4536:   final BlockGeometryRegistry registry;
+4537:   final ValueChanged<String>? onToggled;
+4538: 
+4539:   @override
+4540:   State<_HeadingCollapseButton> createState() => _HeadingCollapseButtonState();
+4541: }
+4542: 
+4543: class _HeadingCollapseButtonState extends State<_HeadingCollapseButton> {
+4544:   final GlobalKey _hitTestKey = GlobalKey();
+4545: 
+4546:   @override
+4547:   void initState() {
+4548:     super.initState();
+4549:     widget.registry.registerSelectionExclusion(_hitTestKey);
+4550:   }
+4551: 
+4552:   @override
+4553:   void didUpdateWidget(covariant _HeadingCollapseButton oldWidget) {
+4554:     super.didUpdateWidget(oldWidget);
+4555:     if (oldWidget.registry != widget.registry) {
+4556:       oldWidget.registry.unregisterSelectionExclusion(_hitTestKey);
+4557:       widget.registry.registerSelectionExclusion(_hitTestKey);
+4558:     }
+4559:   }
+4560: 
+4561:   @override
+4562:   void dispose() {
+4563:     widget.registry.unregisterSelectionExclusion(_hitTestKey);
+4564:     super.dispose();
+4565:   }
+4566: 
+4567:   @override
+4568:   Widget build(BuildContext context) {
+4569:     final theme = Theme.of(context);
+4570:     final scheme = theme.colorScheme;
+4571:     final enabled = widget.state.canCollapse && widget.onToggled != null;
+4572:     final overlay = scheme.primary.withAlpha(22);
+4573:     return MouseRegion(
+4574:       cursor: enabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
+4575:       child: SizedBox(
+4576:         key: _hitTestKey,
+4577:         width: _kHeadingCollapseSlotWidth,
+4578:         height: _kHeadingCollapseButtonSize,
+4579:         child: Align(
+4580:           alignment: AlignmentDirectional.topStart,
+4581:           child: IconButton(
+4582:             key: ValueKey<String>(
+4583:               'wenz-richtext-heading-collapse-${widget.blockId}',
+4584:             ),
+4585:             tooltip: _headingCollapseTooltip(widget.state),
+4586:             onPressed: enabled ? () => widget.onToggled!(widget.blockId) : null,
+4587:             iconSize: _kHeadingCollapseIconSize,
+4588:             padding: EdgeInsets.zero,
+4589:             constraints: const BoxConstraints.tightFor(
+4590:               width: _kHeadingCollapseButtonSize,
+4591:               height: _kHeadingCollapseButtonSize,
+4592:             ),
+4593:             visualDensity: VisualDensity.compact,
+4594:             splashRadius: _kHeadingCollapseButtonSize / 2,
+4595:             color: scheme.onSurfaceVariant,
+4596:             disabledColor: scheme.outline.withAlpha(110),
+4597:             focusColor: overlay,
+4598:             hoverColor: overlay,
+4599:             highlightColor: scheme.primary.withAlpha(34),
+4600:             icon: _HeadingCollapseGlyph(
+4601:               state: widget.state,
+4602:               enabled: enabled,
+4603:             ),
+4604:           ),
+4605:         ),
+4606:       ),
+4607:     );
+4608:   }
+4609: }
+4610: 
+4611: class _HeadingCollapseGlyph extends StatelessWidget {
+4612:   const _HeadingCollapseGlyph({
+4613:     required this.state,
+4614:     required this.enabled,
+4615:   });
+4616: 
+4617:   final HeadingCollapseState state;
+4618:   final bool enabled;
+4619: 
+4620:   @override
+4621:   Widget build(BuildContext context) {
+4622:     final icon = state.isCollapsed
+4623:         ? Icons.keyboard_arrow_right_rounded
+4624:         : Icons.keyboard_arrow_down_rounded;
+4625:     return SizedBox.square(
+4626:       dimension: _kHeadingCollapseIconSize,
+4627:       child: Stack(
+4628:         clipBehavior: Clip.none,
+4629:         alignment: Alignment.center,
+4630:         children: <Widget>[
+4631:           Icon(icon),
+4632:           if (enabled && state.isCollapsed && state.hasHiddenBlocks)
+4633:             PositionedDirectional(
+4634:               end: -7,
+4635:               bottom: -5,
+4636:               child: _HeadingCollapseCountBadge(
+4637:                 count: state.hiddenBlockCount,
+4638:               ),
+4639:             ),
+4640:         ],
+4641:       ),
+4642:     );
+4643:   }
+4644: }
+4645: 
+4646: class _HeadingCollapseCountBadge extends StatelessWidget {
+4647:   const _HeadingCollapseCountBadge({required this.count});
+4648: 
+4649:   final int count;
+4650: 
+4651:   @override
+4652:   Widget build(BuildContext context) {
+4653:     final scheme = Theme.of(context).colorScheme;
+4654:     return DecoratedBox(
+4655:       decoration: BoxDecoration(
+4656:         color: scheme.primaryContainer,
+4657:         borderRadius: BorderRadius.circular(7),
+4658:         border: Border.all(color: scheme.surface, width: 1.5),
+4659:       ),
+4660:       child: Padding(
+4661:         padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
+4662:         child: Text(
+4663:           _headingCollapseCountText(count),
+4664:           textAlign: TextAlign.center,
+4665:           style: TextStyle(
+4666:             color: scheme.onPrimaryContainer,
+4667:             fontSize: 8,
+4668:             fontWeight: FontWeight.w700,
+4669:             height: 1,
+4670:           ),
+4671:         ),
+4672:       ),
+4673:     );
+4674:   }
+4675: }
+4676: 
+4677: String _headingCollapseTooltip(HeadingCollapseState state) {
+4678:   if (!state.canCollapse) {
+4679:     return '无可折叠内容';
+4680:   }
+4681:   if (state.isCollapsed) {
+4682:     return '展开标题内容（${state.hiddenBlockCount} 个块已隐藏）';
+4683:   }
+4684:   return '折叠标题内容（${state.hiddenBlockCount} 个块）';
+4685: }
+4686: 
+4687: String _headingCollapseCountText(int count) {
+4688:   if (count > 99) {
+--- lib\src\widgets\wenz_rich_text_editor.dart:1520-1665 ---
+1520:       deleteCount: 1,
+1521:       blocks: const <BlockNode>[],
+1522:       selection: _selectionForBlock(nextBlock, nextIndex),
+1523:     );
+1524:   }
+1525: 
+1526:   DocumentSelection _selectionForBlock(BlockNode block, int blockIndex) {
+1527:     final position = switch (block) {
+1528:       TextBlockNode() => DocumentPosition.text(
+1529:           blockId: block.id,
+1530:           blockIndex: blockIndex,
+1531:           offset: inlineNodesLength(block.content),
+1532:         ),
+1533:       CodeBlockNode() => DocumentPosition.code(
+1534:           blockId: block.id,
+1535:           blockIndex: blockIndex,
+1536:           offset: block.code.length,
+1537:         ),
+1538:       TableBlockNode() => _firstTableCellPosition(block, blockIndex) ??
+1539:           DocumentPosition(
+1540:             blockId: block.id,
+1541:             blockIndex: blockIndex,
+1542:             path: PositionPath.blockObject(block.id),
+1543:             offset: 0,
+1544:           ),
+1545:       _ => DocumentPosition(
+1546:           blockId: block.id,
+1547:           blockIndex: blockIndex,
+1548:           path: PositionPath.blockObject(block.id),
+1549:           offset: 0,
+1550:         ),
+1551:     };
+1552:     if (position.path.isBlockObject) {
+1553:       return DocumentSelection(
+1554:         base: position,
+1555:         extent: position.copyWith(offset: _kAtomicBlockSelectionLength),
+1556:       );
+1557:     }
+1558:     return DocumentSelection(base: position, extent: position);
+1559:   }
+1560: 
+1561:   DocumentPosition? _firstTableCellPosition(
+1562:     TableBlockNode block,
+1563:     int blockIndex,
+1564:   ) {
+1565:     for (var rowIndex = 0; rowIndex < block.table.rows.length; rowIndex++) {
+1566:       final row = block.table.rows[rowIndex];
+1567:       for (var columnIndex = 0; columnIndex < row.length; columnIndex++) {
+1568:         final cell = row[columnIndex];
+1569:         if (cell.covered) {
+1570:           continue;
+1571:         }
+1572:         return DocumentPosition.tableCell(
+1573:           tableBlockId: block.id,
+1574:           blockIndex: blockIndex,
+1575:           tableRowIndex: rowIndex,
+1576:           tableColumnIndex: columnIndex,
+1577:           offset: 0,
+1578:         );
+1579:       }
+1580:     }
+1581:     return null;
+1582:   }
+1583: 
+1584:   BlockNode _copyBlockWithFreshIds(BlockNode block) {
+1585:     if (block is TextBlockNode) {
+1586:       return TextBlockNode(
+1587:         id: _nextBlockId(),
+1588:         type: block.type,
+1589:         attributes: block.attributes,
+1590:         content: block.content.map((node) => node.copy()).toList(),
+1591:       );
+1592:     }
+1593:     if (block is CodeBlockNode) {
+1594:       return CodeBlockNode(
+1595:         id: _nextBlockId(),
+1596:         code: block.code,
+1597:         language: block.language,
+1598:         attributes: block.attributes,
+1599:       );
+1600:     }
+1601:     if (block is ImageBlockNode) {
+1602:       return ImageBlockNode(
+1603:         id: _nextBlockId(),
+1604:         assetId: block.assetId,
+1605:         file: block.file,
+1606:         width: block.width,
+1607:         height: block.height,
+1608:         showWidth: block.showWidth,
+1609:         showHeight: block.showHeight,
+1610:         caption: block.caption,
+1611:         altText: block.altText,
+1612:         attributes: block.attributes,
+1613:       );
+1614:     }
+1615:     if (block is TableBlockNode) {
+1616:       return TableBlockNode(
+1617:         id: _nextBlockId(),
+1618:         table: TableModel(
+1619:           rows: block.table.rows
+1620:               .map(
+1621:                 (row) => row
+1622:                     .map(
+1623:                       (cell) => TableCellNode(
+1624:                         id: _nextBlockId(),
+1625:                         blocks:
+1626:                             cell.blocks.map(_copyBlockWithFreshIds).toList(),
+1627:                         rowSpan: cell.rowSpan,
+1628:                         columnSpan: cell.columnSpan,
+1629:                         isHeader: cell.isHeader,
+1630:                         backgroundColor: cell.backgroundColor,
+1631:                         covered: cell.covered,
+1632:                       ),
+1633:                     )
+1634:                     .toList(),
+1635:               )
+1636:               .toList(),
+1637:           columnAlignments: Map<int, String>.from(block.table.columnAlignments),
+1638:           columnWidths: Map<int, double>.from(block.table.columnWidths),
+1639:         ),
+1640:         attributes: block.attributes,
+1641:       );
+1642:     }
+1643:     if (block is DividerBlockNode) {
+1644:       return DividerBlockNode(id: _nextBlockId(), attributes: block.attributes);
+1645:     }
+1646:     if (block is VideoBlockNode) {
+1647:       return VideoBlockNode(
+1648:         id: _nextBlockId(),
+1649:         assetId: block.assetId,
+1650:         file: block.file,
+1651:         attributes: block.attributes,
+1652:       );
+1653:     }
+1654:     if (block is BlockEmbedNode) {
+1655:       return BlockEmbedNode(
+1656:         id: _nextBlockId(),
+1657:         embedType: block.embedType,
+1658:         data: Map<String, Object?>.from(block.data),
+1659:         fallbackText: block.fallbackText,
+1660:         attributes: block.attributes,
+1661:       );
+1662:     }
+1663:     if (block is CalloutBlockNode) {
+1664:       return CalloutBlockNode(
+1665:         id: _nextBlockId(),
+--- lib\src\widgets\wenz_rich_text_editor.dart:1800-1935 ---
+1800:         selection.start.blockIndex >=
+1801:             widget.controller.document.blocks.length) {
+1802:       return false;
+1803:     }
+1804:     final block = widget.controller.document.blocks[selection.start.blockIndex];
+1805:     if (block is! CodeBlockNode) {
+1806:       return false;
+1807:     }
+1808:     widget.controller.indentCodeBlock(
+1809:       outdent: HardwareKeyboard.instance.isShiftPressed,
+1810:     );
+1811:     return true;
+1812:   }
+1813: 
+1814:   bool _handleSlashMenuKeyEvent(KeyEvent event) {
+1815:     final slashMenu = widget.slashMenuController;
+1816:     if (slashMenu == null || !slashMenu.isOpen) {
+1817:       return false;
+1818:     }
+1819:     if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
+1820:       return false;
+1821:     }
+1822:     final key = event.logicalKey;
+1823:     if (key == LogicalKeyboardKey.arrowDown) {
+1824:       slashMenu.moveHighlight(1);
+1825:       return true;
+1826:     }
+1827:     if (key == LogicalKeyboardKey.arrowUp) {
+1828:       slashMenu.moveHighlight(-1);
+1829:       return true;
+1830:     }
+1831:     if (key == LogicalKeyboardKey.enter ||
+1832:         key == LogicalKeyboardKey.numpadEnter) {
+1833:       slashMenu.activateHighlighted();
+1834:       return true;
+1835:     }
+1836:     if (key == LogicalKeyboardKey.escape) {
+1837:       slashMenu.close();
+1838:       return true;
+1839:     }
+1840:     return false;
+1841:   }
+1842: 
+1843:   void _performShortcut(EditorShortcutResolution resolution) {
+1844:     final controller = widget.controller;
+1845:     switch (resolution.intent) {
+1846:       case EditorShortcutIntent.selectAll:
+1847:         controller.selectAll();
+1848:         return;
+1849:       case EditorShortcutIntent.undo:
+1850:         controller.undo();
+1851:         return;
+1852:       case EditorShortcutIntent.redo:
+1853:         controller.redo();
+1854:         return;
+1855:       case EditorShortcutIntent.copy:
+1856:         _handleCopy();
+1857:         return;
+1858:       case EditorShortcutIntent.cut:
+1859:         _handleCut();
+1860:         return;
+1861:       case EditorShortcutIntent.paste:
+1862:         _handlePaste();
+1863:         return;
+1864:       case EditorShortcutIntent.find:
+1865:         widget.onFindRequested?.call();
+1866:         widget.findController?.next();
+1867:         return;
+1868:       case EditorShortcutIntent.replace:
+1869:         widget.onReplaceRequested?.call();
+1870:         return;
+1871:       case EditorShortcutIntent.moveTableCellBackward:
+1872:         controller.moveTableCell(forward: false);
+1873:         return;
+1874:       case EditorShortcutIntent.moveTableCellForward:
+1875:         controller.moveTableCell(forward: true);
+1876:         return;
+1877:       case EditorShortcutIntent.moveCaretBackward:
+1878:         _verticalPreferX = null;
+1879:         controller.moveCaretBackward(
+1880:           expandSelection: resolution.expandSelection,
+1881:         );
+1882:         return;
+1883:       case EditorShortcutIntent.moveCaretForward:
+1884:         _verticalPreferX = null;
+1885:         controller.moveCaretForward(
+1886:           expandSelection: resolution.expandSelection,
+1887:         );
+1888:         return;
+1889:       case EditorShortcutIntent.moveCaretUp:
+1890:         _handleVerticalKey(false, resolution.expandSelection);
+1891:         return;
+1892:       case EditorShortcutIntent.moveCaretDown:
+1893:         _handleVerticalKey(true, resolution.expandSelection);
+1894:         return;
+1895:       case EditorShortcutIntent.moveCaretToBlockStart:
+1896:         controller.moveCaretToBlockBoundary(
+1897:           forward: false,
+1898:           expandSelection: resolution.expandSelection,
+1899:         );
+1900:         return;
+1901:       case EditorShortcutIntent.moveCaretToBlockEnd:
+1902:         controller.moveCaretToBlockBoundary(
+1903:           forward: true,
+1904:           expandSelection: resolution.expandSelection,
+1905:         );
+1906:         return;
+1907:       case EditorShortcutIntent.moveCaretByWordBackward:
+1908:         controller.moveCaretByWord(
+1909:           forward: false,
+1910:           expandSelection: resolution.expandSelection,
+1911:         );
+1912:         return;
+1913:       case EditorShortcutIntent.moveCaretByWordForward:
+1914:         controller.moveCaretByWord(
+1915:           forward: true,
+1916:           expandSelection: resolution.expandSelection,
+1917:         );
+1918:         return;
+1919:       case EditorShortcutIntent.moveCaretToDocumentStart:
+1920:         controller.moveCaretToDocumentBoundary(
+1921:           forward: false,
+1922:           expandSelection: resolution.expandSelection,
+1923:         );
+1924:         return;
+1925:       case EditorShortcutIntent.moveCaretToDocumentEnd:
+1926:         controller.moveCaretToDocumentBoundary(
+1927:           forward: true,
+1928:           expandSelection: resolution.expandSelection,
+1929:         );
+1930:         return;
+1931:       case EditorShortcutIntent.pageUp:
+1932:         _handlePageKey(
+1933:           forward: false,
+1934:           expandSelection: resolution.expandSelection,
+1935:         );
+--- lib\src\widgets\wenz_rich_text_editor.dart:3880-3980 ---
+3880:       _handleActionSelected(action);
+3881:     }
+3882:   }
+3883: 
+3884:   List<PopupMenuEntry<ObjectBlockAction>> _buildMenuItems(
+3885:     BuildContext context,
+3886:   ) {
+3887:     final canMoveUp = BlockDragHandleSpec.canMoveUp(
+3888:       canEdit: widget.canEdit,
+3889:       blockIndex: widget.blockIndex,
+3890:       blockCount: widget.blockCount,
+3891:     );
+3892:     final canMoveDown = BlockDragHandleSpec.canMoveDown(
+3893:       canEdit: widget.canEdit,
+3894:       blockIndex: widget.blockIndex,
+3895:       blockCount: widget.blockCount,
+3896:     );
+3897:     return <PopupMenuEntry<ObjectBlockAction>>[
+3898:       PopupMenuItem<ObjectBlockAction>(
+3899:         value: ObjectBlockAction.copyContent,
+3900:         enabled: widget.blockPlainText.isNotEmpty,
+3901:         child: const Text('复制块内容'),
+3902:       ),
+3903:       const PopupMenuItem<ObjectBlockAction>(
+3904:         value: ObjectBlockAction.copyReference,
+3905:         child: Text('复制块引用'),
+3906:       ),
+3907:       const PopupMenuDivider(),
+3908:       const PopupMenuItem<ObjectBlockAction>(
+3909:         value: ObjectBlockAction.duplicate,
+3910:         child: Text('创建块副本'),
+3911:       ),
+3912:       PopupMenuItem<ObjectBlockAction>(
+3913:         value: ObjectBlockAction.moveUp,
+3914:         enabled: canMoveUp,
+3915:         child: const Text('上移块'),
+3916:       ),
+3917:       PopupMenuItem<ObjectBlockAction>(
+3918:         value: ObjectBlockAction.moveDown,
+3919:         enabled: canMoveDown,
+3920:         child: const Text('下移块'),
+3921:       ),
+3922:       const PopupMenuDivider(),
+3923:       const PopupMenuItem<ObjectBlockAction>(
+3924:         value: ObjectBlockAction.delete,
+3925:         child: Text('删除块'),
+3926:       ),
+3927:     ];
+3928:   }
+3929: 
+3930:   void _handleMenuOpened() {
+3931:     if (mounted) {
+3932:       setState(() => _menuOpen = true);
+3933:     }
+3934:   }
+3935: 
+3936:   void _handleMenuClosed() {
+3937:     if (mounted) {
+3938:       setState(() => _menuOpen = false);
+3939:     }
+3940:   }
+3941: 
+3942:   void _handleActionSelected(ObjectBlockAction action) {
+3943:     widget.onAction?.call(
+3944:       ObjectBlockActionIntent(
+3945:         action: action,
+3946:         blockIndex: widget.blockIndex,
+3947:       ),
+3948:     );
+3949:   }
+3950: 
+3951:   void _setHovered(bool value) {
+3952:     if (_hovered != value && mounted) {
+3953:       setState(() => _hovered = value);
+3954:     }
+3955:   }
+3956: 
+3957:   void _setFocused(bool value) {
+3958:     if (_focused != value && mounted) {
+3959:       setState(() => _focused = value);
+3960:     }
+3961:   }
+3962: }
+3963: 
+3964: double _indentStartFor(BlockNode block) {
+3965:   final indent = _blockIndentLevel(block).toDouble();
+3966:   final step =
+3967:       _isListItemBlock(block) ? _kListTextInset : _kIndentPixelsPerLevel;
+3968:   return indent * step;
+3969: }
+3970: 
+3971: double _spacingBetweenBlocks(
+3972:   BlockNode previous,
+3973:   BlockNode next,
+3974:   double fallback,
+3975: ) {
+3976:   if ((fallback - _kDefaultBlockSpacing).abs() > 0.01) {
+3977:     return fallback;
+3978:   }
+3979:   if (_isListItemBlock(previous) && _isListItemBlock(next)) {
+3980:     final previousIndent = _blockIndentLevel(previous);
+--- lib\src\widgets\wenz_rich_text_editor.dart:8980-9035 ---
+8980: }
+8981: 
+8982: String _calloutVariantLabel(String variant) {
+8983:   return CalloutBlockNode.defaultTitleFor(variant);
+8984: }
+8985: 
+8986: TextStyle _blockTextStyle(
+8987:   BuildContext context,
+8988:   TextBlockNode block,
+8989:   TextStyle? textStyle,
+8990: ) {
+8991:   final theme = Theme.of(context);
+8992:   final baseStyle = _richTextBodyStyle(theme, textStyle);
+8993:   return switch (block.type) {
+8994:     BlockType.heading => baseStyle.merge(
+8995:         _headingTextStyle(theme, baseStyle, block.attributes.level),
+8996:       ),
+8997:     BlockType.quote => baseStyle.merge(
+8998:         TextStyle(
+8999:           color: theme.colorScheme.onSurfaceVariant,
+9000:           fontStyle: FontStyle.italic,
+9001:         ),
+9002:       ),
+9003:     _ => baseStyle,
+9004:   };
+9005: }
+9006: 
+9007: TextStyle _richTextBodyStyle(ThemeData theme, TextStyle? overrideStyle) {
+9008:   final baseline = (theme.textTheme.bodyMedium ?? const TextStyle()).copyWith(
+9009:     color: theme.colorScheme.onSurface,
+9010:     fontSize: _kRichTextBodyFontSize,
+9011:     height: _kRichTextBodyLineHeight,
+9012:   );
+9013:   return overrideStyle == null ? baseline : baseline.merge(overrideStyle);
+9014: }
+9015: 
+9016: TextStyle _headingTextStyle(
+9017:   ThemeData theme,
+9018:   TextStyle baseStyle,
+9019:   int? level,
+9020: ) {
+9021:   final headingLevel = (level ?? 1).clamp(1, 6).toInt();
+9022:   final color = switch (headingLevel) {
+9023:     5 => theme.colorScheme.onSurfaceVariant,
+9024:     6 => theme.colorScheme.outline,
+9025:     _ => baseStyle.color ?? theme.colorScheme.onSurface,
+9026:   };
+9027:   return (theme.textTheme.titleLarge ?? const TextStyle()).copyWith(
+9028:     color: color,
+9029:     fontSize: _headingSize(headingLevel),
+9030:     fontWeight: headingLevel >= 5 ? FontWeight.w600 : FontWeight.w700,
+9031:   );
+9032: }
+9033: 
+9034: TextStyle _todoTextStyle(TextStyle baseStyle) {
+9035:   final fontSize = baseStyle.fontSize ?? 14;
+
+codex
+我会分段读取关键区域，避免输出截断影响判断。
+exec
+powershell.exe -Command '$path='"'lib\\src\\widgets\\wenz_rich_text_editor.dart'; "'$lines=Get-Content -Encoding UTF8 $path; foreach ($range in @(@(4430,4689),@(1500,1680),@(1760,1945),@(40,120))) { $start=$range[0]; $end=$range[1]; Write-Output "--- ${path}:$start-$end ---"; for ($i=$start-1; $i -le $end-1 -and $i -lt $lines.Length; $i++) { '"'{0}: {1}' -f ("'$i+1), $lines[$i] } }' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 263ms:
+--- lib\src\widgets\wenz_rich_text_editor.dart:4430-4689 ---
+4430:       textAlign: _textAlign(block.attributes.alignment),
+4431:       minHeight: isTaskListItem
+4432:           ? _lineHeightFor(effectiveStyle)
+4433:           : (effectiveStyle.fontSize ?? 14) * _kBlockMinHeightFactor,
+4434:       selection: selection,
+4435:       showCaret: showCaret,
+4436:       registry: registry,
+4437:       showDebugOverlay: showDebugOverlay,
+4438:       findRanges: _findRangesForPath(
+4439:         findMatches,
+4440:         currentFindMatch,
+4441:         blockIndex,
+4442:         path,
+4443:         textLength,
+4444:       ),
+4445:     );
+4446:     final prefix = listMarker ?? _prefixFor(block);
+4447:     if (block.type == BlockType.quote) {
+4448:       return _withBlockSemantics(
+4449:         block,
+4450:         _QuoteBlockSurface(child: text),
+4451:         selected: selected,
+4452:       );
+4453:     }
+4454:     if (isTaskListItem) {
+4455:       return _withBlockSemantics(
+4456:         block,
+4457:         Padding(
+4458:           padding: const EdgeInsetsDirectional.only(
+4459:             start: _kTaskListPaddingLeft,
+4460:           ),
+4461:           child: Row(
+4462:             crossAxisAlignment: CrossAxisAlignment.start,
+4463:             children: <Widget>[
+4464:               _TodoCheckbox(
+4465:                 blockId: block.id,
+4466:                 registry: registry,
+4467:                 checked: isTaskChecked,
+4468:                 onChanged: onTodoCheckedChanged == null
+4469:                     ? null
+4470:                     : (checked) {
+4471:                         onTodoCheckedChanged!(
+4472:                           blockIndex: blockIndex,
+4473:                           checked: checked,
+4474:                         );
+4475:                       },
+4476:               ),
+4477:               const SizedBox(width: _kTodoTextGap),
+4478:               Expanded(child: text),
+4479:             ],
+4480:           ),
+4481:         ),
+4482:         selected: selected,
+4483:       );
+4484:     }
+4485:     if (block.type == BlockType.heading && headingCollapseState != null) {
+4486:       return _withBlockSemantics(
+4487:         block,
+4488:         Row(
+4489:           crossAxisAlignment: CrossAxisAlignment.start,
+4490:           children: <Widget>[
+4491:             _HeadingCollapseButton(
+4492:               blockId: block.id,
+4493:               state: headingCollapseState!,
+4494:               registry: registry,
+4495:               onToggled: onHeadingCollapseToggled,
+4496:             ),
+4497:             Expanded(child: text),
+4498:           ],
+4499:         ),
+4500:         selected: selected,
+4501:       );
+4502:     }
+4503:     if (prefix == null) {
+4504:       return _withBlockSemantics(block, text, selected: selected);
+4505:     }
+4506:     return _withBlockSemantics(
+4507:       block,
+4508:       Row(
+4509:         crossAxisAlignment: CrossAxisAlignment.start,
+4510:         children: <Widget>[
+4511:           SizedBox(
+4512:             key: ValueKey<String>('wenz-richtext-list-marker-${block.id}'),
+4513:             width: _kListMarkerWidth,
+4514:             child:
+4515:                 Text(prefix, style: effectiveStyle, textAlign: TextAlign.end),
+4516:           ),
+4517:           const SizedBox(width: _kListMarkerGap),
+4518:           Expanded(child: text),
+4519:         ],
+4520:       ),
+4521:       selected: selected,
+4522:     );
+4523:   }
+4524: }
+4525: 
+4526: class _HeadingCollapseButton extends StatefulWidget {
+4527:   const _HeadingCollapseButton({
+4528:     required this.blockId,
+4529:     required this.state,
+4530:     required this.registry,
+4531:     required this.onToggled,
+4532:   });
+4533: 
+4534:   final String blockId;
+4535:   final HeadingCollapseState state;
+4536:   final BlockGeometryRegistry registry;
+4537:   final ValueChanged<String>? onToggled;
+4538: 
+4539:   @override
+4540:   State<_HeadingCollapseButton> createState() => _HeadingCollapseButtonState();
+4541: }
+4542: 
+4543: class _HeadingCollapseButtonState extends State<_HeadingCollapseButton> {
+4544:   final GlobalKey _hitTestKey = GlobalKey();
+4545: 
+4546:   @override
+4547:   void initState() {
+4548:     super.initState();
+4549:     widget.registry.registerSelectionExclusion(_hitTestKey);
+4550:   }
+4551: 
+4552:   @override
+4553:   void didUpdateWidget(covariant _HeadingCollapseButton oldWidget) {
+4554:     super.didUpdateWidget(oldWidget);
+4555:     if (oldWidget.registry != widget.registry) {
+4556:       oldWidget.registry.unregisterSelectionExclusion(_hitTestKey);
+4557:       widget.registry.registerSelectionExclusion(_hitTestKey);
+4558:     }
+4559:   }
+4560: 
+4561:   @override
+4562:   void dispose() {
+4563:     widget.registry.unregisterSelectionExclusion(_hitTestKey);
+4564:     super.dispose();
+4565:   }
+4566: 
+4567:   @override
+4568:   Widget build(BuildContext context) {
+4569:     final theme = Theme.of(context);
+4570:     final scheme = theme.colorScheme;
+4571:     final enabled = widget.state.canCollapse && widget.onToggled != null;
+4572:     final overlay = scheme.primary.withAlpha(22);
+4573:     return MouseRegion(
+4574:       cursor: enabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
+4575:       child: SizedBox(
+4576:         key: _hitTestKey,
+4577:         width: _kHeadingCollapseSlotWidth,
+4578:         height: _kHeadingCollapseButtonSize,
+4579:         child: Align(
+4580:           alignment: AlignmentDirectional.topStart,
+4581:           child: IconButton(
+4582:             key: ValueKey<String>(
+4583:               'wenz-richtext-heading-collapse-${widget.blockId}',
+4584:             ),
+4585:             tooltip: _headingCollapseTooltip(widget.state),
+4586:             onPressed: enabled ? () => widget.onToggled!(widget.blockId) : null,
+4587:             iconSize: _kHeadingCollapseIconSize,
+4588:             padding: EdgeInsets.zero,
+4589:             constraints: const BoxConstraints.tightFor(
+4590:               width: _kHeadingCollapseButtonSize,
+4591:               height: _kHeadingCollapseButtonSize,
+4592:             ),
+4593:             visualDensity: VisualDensity.compact,
+4594:             splashRadius: _kHeadingCollapseButtonSize / 2,
+4595:             color: scheme.onSurfaceVariant,
+4596:             disabledColor: scheme.outline.withAlpha(110),
+4597:             focusColor: overlay,
+4598:             hoverColor: overlay,
+4599:             highlightColor: scheme.primary.withAlpha(34),
+4600:             icon: _HeadingCollapseGlyph(
+4601:               state: widget.state,
+4602:               enabled: enabled,
+4603:             ),
+4604:           ),
+4605:         ),
+4606:       ),
+4607:     );
+4608:   }
+4609: }
+4610: 
+4611: class _HeadingCollapseGlyph extends StatelessWidget {
+4612:   const _HeadingCollapseGlyph({
+4613:     required this.state,
+4614:     required this.enabled,
+4615:   });
+4616: 
+4617:   final HeadingCollapseState state;
+4618:   final bool enabled;
+4619: 
+4620:   @override
+4621:   Widget build(BuildContext context) {
+4622:     final icon = state.isCollapsed
+4623:         ? Icons.keyboard_arrow_right_rounded
+4624:         : Icons.keyboard_arrow_down_rounded;
+4625:     return SizedBox.square(
+4626:       dimension: _kHeadingCollapseIconSize,
+4627:       child: Stack(
+4628:         clipBehavior: Clip.none,
+4629:         alignment: Alignment.center,
+4630:         children: <Widget>[
+4631:           Icon(icon),
+4632:           if (enabled && state.isCollapsed && state.hasHiddenBlocks)
+4633:             PositionedDirectional(
+4634:               end: -7,
+4635:               bottom: -5,
+4636:               child: _HeadingCollapseCountBadge(
+4637:                 count: state.hiddenBlockCount,
+4638:               ),
+4639:             ),
+4640:         ],
+4641:       ),
+4642:     );
+4643:   }
+4644: }
+4645: 
+4646: class _HeadingCollapseCountBadge extends StatelessWidget {
+4647:   const _HeadingCollapseCountBadge({required this.count});
+4648: 
+4649:   final int count;
+4650: 
+4651:   @override
+4652:   Widget build(BuildContext context) {
+4653:     final scheme = Theme.of(context).colorScheme;
+4654:     return DecoratedBox(
+4655:       decoration: BoxDecoration(
+4656:         color: scheme.primaryContainer,
+4657:         borderRadius: BorderRadius.circular(7),
+4658:         border: Border.all(color: scheme.surface, width: 1.5),
+4659:       ),
+4660:       child: Padding(
+4661:         padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
+4662:         child: Text(
+4663:           _headingCollapseCountText(count),
+4664:           textAlign: TextAlign.center,
+4665:           style: TextStyle(
+4666:             color: scheme.onPrimaryContainer,
+4667:             fontSize: 8,
+4668:             fontWeight: FontWeight.w700,
+4669:             height: 1,
+4670:           ),
+4671:         ),
+4672:       ),
+4673:     );
+4674:   }
+4675: }
+4676: 
+4677: String _headingCollapseTooltip(HeadingCollapseState state) {
+4678:   if (!state.canCollapse) {
+4679:     return '无可折叠内容';
+4680:   }
+4681:   if (state.isCollapsed) {
+4682:     return '展开标题内容（${state.hiddenBlockCount} 个块已隐藏）';
+4683:   }
+4684:   return '折叠标题内容（${state.hiddenBlockCount} 个块）';
+4685: }
+4686: 
+4687: String _headingCollapseCountText(int count) {
+4688:   if (count > 99) {
+4689:     return '99+';
+--- lib\src\widgets\wenz_rich_text_editor.dart:1500-1680 ---
+1500:         id: _nextBlockId(),
+1501:         type: BlockType.paragraph,
+1502:         content: const <InlineNode>[],
+1503:       );
+1504:       widget.controller.replaceBlocks(
+1505:         index: 0,
+1506:         deleteCount: 1,
+1507:         blocks: <BlockNode>[replacement],
+1508:         selection: _selectionForBlock(replacement, 0),
+1509:       );
+1510:       return;
+1511:     }
+1512: 
+1513:     final nextIndex =
+1514:         blockIndex < blocks.length - 1 ? blockIndex : blockIndex - 1;
+1515:     final nextBlock = blockIndex < blocks.length - 1
+1516:         ? blocks[blockIndex + 1]
+1517:         : blocks[nextIndex];
+1518:     widget.controller.replaceBlocks(
+1519:       index: blockIndex,
+1520:       deleteCount: 1,
+1521:       blocks: const <BlockNode>[],
+1522:       selection: _selectionForBlock(nextBlock, nextIndex),
+1523:     );
+1524:   }
+1525: 
+1526:   DocumentSelection _selectionForBlock(BlockNode block, int blockIndex) {
+1527:     final position = switch (block) {
+1528:       TextBlockNode() => DocumentPosition.text(
+1529:           blockId: block.id,
+1530:           blockIndex: blockIndex,
+1531:           offset: inlineNodesLength(block.content),
+1532:         ),
+1533:       CodeBlockNode() => DocumentPosition.code(
+1534:           blockId: block.id,
+1535:           blockIndex: blockIndex,
+1536:           offset: block.code.length,
+1537:         ),
+1538:       TableBlockNode() => _firstTableCellPosition(block, blockIndex) ??
+1539:           DocumentPosition(
+1540:             blockId: block.id,
+1541:             blockIndex: blockIndex,
+1542:             path: PositionPath.blockObject(block.id),
+1543:             offset: 0,
+1544:           ),
+1545:       _ => DocumentPosition(
+1546:           blockId: block.id,
+1547:           blockIndex: blockIndex,
+1548:           path: PositionPath.blockObject(block.id),
+1549:           offset: 0,
+1550:         ),
+1551:     };
+1552:     if (position.path.isBlockObject) {
+1553:       return DocumentSelection(
+1554:         base: position,
+1555:         extent: position.copyWith(offset: _kAtomicBlockSelectionLength),
+1556:       );
+1557:     }
+1558:     return DocumentSelection(base: position, extent: position);
+1559:   }
+1560: 
+1561:   DocumentPosition? _firstTableCellPosition(
+1562:     TableBlockNode block,
+1563:     int blockIndex,
+1564:   ) {
+1565:     for (var rowIndex = 0; rowIndex < block.table.rows.length; rowIndex++) {
+1566:       final row = block.table.rows[rowIndex];
+1567:       for (var columnIndex = 0; columnIndex < row.length; columnIndex++) {
+1568:         final cell = row[columnIndex];
+1569:         if (cell.covered) {
+1570:           continue;
+1571:         }
+1572:         return DocumentPosition.tableCell(
+1573:           tableBlockId: block.id,
+1574:           blockIndex: blockIndex,
+1575:           tableRowIndex: rowIndex,
+1576:           tableColumnIndex: columnIndex,
+1577:           offset: 0,
+1578:         );
+1579:       }
+1580:     }
+1581:     return null;
+1582:   }
+1583: 
+1584:   BlockNode _copyBlockWithFreshIds(BlockNode block) {
+1585:     if (block is TextBlockNode) {
+1586:       return TextBlockNode(
+1587:         id: _nextBlockId(),
+1588:         type: block.type,
+1589:         attributes: block.attributes,
+1590:         content: block.content.map((node) => node.copy()).toList(),
+1591:       );
+1592:     }
+1593:     if (block is CodeBlockNode) {
+1594:       return CodeBlockNode(
+1595:         id: _nextBlockId(),
+1596:         code: block.code,
+1597:         language: block.language,
+1598:         attributes: block.attributes,
+1599:       );
+1600:     }
+1601:     if (block is ImageBlockNode) {
+1602:       return ImageBlockNode(
+1603:         id: _nextBlockId(),
+1604:         assetId: block.assetId,
+1605:         file: block.file,
+1606:         width: block.width,
+1607:         height: block.height,
+1608:         showWidth: block.showWidth,
+1609:         showHeight: block.showHeight,
+1610:         caption: block.caption,
+1611:         altText: block.altText,
+1612:         attributes: block.attributes,
+1613:       );
+1614:     }
+1615:     if (block is TableBlockNode) {
+1616:       return TableBlockNode(
+1617:         id: _nextBlockId(),
+1618:         table: TableModel(
+1619:           rows: block.table.rows
+1620:               .map(
+1621:                 (row) => row
+1622:                     .map(
+1623:                       (cell) => TableCellNode(
+1624:                         id: _nextBlockId(),
+1625:                         blocks:
+1626:                             cell.blocks.map(_copyBlockWithFreshIds).toList(),
+1627:                         rowSpan: cell.rowSpan,
+1628:                         columnSpan: cell.columnSpan,
+1629:                         isHeader: cell.isHeader,
+1630:                         backgroundColor: cell.backgroundColor,
+1631:                         covered: cell.covered,
+1632:                       ),
+1633:                     )
+1634:                     .toList(),
+1635:               )
+1636:               .toList(),
+1637:           columnAlignments: Map<int, String>.from(block.table.columnAlignments),
+1638:           columnWidths: Map<int, double>.from(block.table.columnWidths),
+1639:         ),
+1640:         attributes: block.attributes,
+1641:       );
+1642:     }
+1643:     if (block is DividerBlockNode) {
+1644:       return DividerBlockNode(id: _nextBlockId(), attributes: block.attributes);
+1645:     }
+1646:     if (block is VideoBlockNode) {
+1647:       return VideoBlockNode(
+1648:         id: _nextBlockId(),
+1649:         assetId: block.assetId,
+1650:         file: block.file,
+1651:         attributes: block.attributes,
+1652:       );
+1653:     }
+1654:     if (block is BlockEmbedNode) {
+1655:       return BlockEmbedNode(
+1656:         id: _nextBlockId(),
+1657:         embedType: block.embedType,
+1658:         data: Map<String, Object?>.from(block.data),
+1659:         fallbackText: block.fallbackText,
+1660:         attributes: block.attributes,
+1661:       );
+1662:     }
+1663:     if (block is CalloutBlockNode) {
+1664:       return CalloutBlockNode(
+1665:         id: _nextBlockId(),
+1666:         content: block.content.map((node) => node.copy()).toList(),
+1667:         variant: block.variant,
+1668:         title: block.title,
+1669:         icon: block.icon,
+1670:         attributes: block.attributes,
+1671:       );
+1672:     }
+1673:     if (block is FileBlockNode) {
+1674:       return FileBlockNode(
+1675:         id: _nextBlockId(),
+1676:         assetId: block.assetId,
+1677:         name: block.name,
+1678:         size: block.size,
+1679:         mimeType: block.mimeType,
+1680:         file: block.file,
+--- lib\src\widgets\wenz_rich_text_editor.dart:1760-1945 ---
+1760:     }
+1761:     final keyboard = HardwareKeyboard.instance;
+1762:     final resolution = _shortcutManager.resolve(
+1763:       event,
+1764:       shiftPressed: keyboard.isShiftPressed,
+1765:       primaryPressed: keyboard.isControlPressed || keyboard.isMetaPressed,
+1766:       readOnly: widget.readOnly,
+1767:       imeEnabled: widget.enableIme,
+1768:       inputClientAttached: _inputClient.isAttached,
+1769:       findEnabled:
+1770:           widget.findController != null || widget.onFindRequested != null,
+1771:       replaceEnabled:
+1772:           widget.findController != null || widget.onReplaceRequested != null,
+1773:     );
+1774:     if (resolution.disposition == EditorShortcutDisposition.handled) {
+1775:       _performShortcut(resolution);
+1776:       return KeyEventResult.handled;
+1777:     }
+1778:     if (resolution.disposition == EditorShortcutDisposition.ignored) {
+1779:       return KeyEventResult.ignored;
+1780:     }
+1781:     // Unrecognised Ctrl/Cmd combo: let it propagate (e.g. browser Ctrl+S,
+1782:     // dev tools) rather than swallowing everything.
+1783:     return KeyEventResult.ignored;
+1784:   }
+1785: 
+1786:   bool _handleCodeBlockTabKeyEvent(KeyEvent event) {
+1787:     if (widget.readOnly ||
+1788:         (event is! KeyDownEvent && event is! KeyRepeatEvent) ||
+1789:         event.logicalKey != LogicalKeyboardKey.tab) {
+1790:       return false;
+1791:     }
+1792:     final selection = widget.controller.selection;
+1793:     if (selection == null ||
+1794:         selection.start.blockIndex != selection.end.blockIndex ||
+1795:         selection.start.path != selection.end.path ||
+1796:         !selection.start.path.isBlockCode) {
+1797:       return false;
+1798:     }
+1799:     if (selection.start.blockIndex < 0 ||
+1800:         selection.start.blockIndex >=
+1801:             widget.controller.document.blocks.length) {
+1802:       return false;
+1803:     }
+1804:     final block = widget.controller.document.blocks[selection.start.blockIndex];
+1805:     if (block is! CodeBlockNode) {
+1806:       return false;
+1807:     }
+1808:     widget.controller.indentCodeBlock(
+1809:       outdent: HardwareKeyboard.instance.isShiftPressed,
+1810:     );
+1811:     return true;
+1812:   }
+1813: 
+1814:   bool _handleSlashMenuKeyEvent(KeyEvent event) {
+1815:     final slashMenu = widget.slashMenuController;
+1816:     if (slashMenu == null || !slashMenu.isOpen) {
+1817:       return false;
+1818:     }
+1819:     if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
+1820:       return false;
+1821:     }
+1822:     final key = event.logicalKey;
+1823:     if (key == LogicalKeyboardKey.arrowDown) {
+1824:       slashMenu.moveHighlight(1);
+1825:       return true;
+1826:     }
+1827:     if (key == LogicalKeyboardKey.arrowUp) {
+1828:       slashMenu.moveHighlight(-1);
+1829:       return true;
+1830:     }
+1831:     if (key == LogicalKeyboardKey.enter ||
+1832:         key == LogicalKeyboardKey.numpadEnter) {
+1833:       slashMenu.activateHighlighted();
+1834:       return true;
+1835:     }
+1836:     if (key == LogicalKeyboardKey.escape) {
+1837:       slashMenu.close();
+1838:       return true;
+1839:     }
+1840:     return false;
+1841:   }
+1842: 
+1843:   void _performShortcut(EditorShortcutResolution resolution) {
+1844:     final controller = widget.controller;
+1845:     switch (resolution.intent) {
+1846:       case EditorShortcutIntent.selectAll:
+1847:         controller.selectAll();
+1848:         return;
+1849:       case EditorShortcutIntent.undo:
+1850:         controller.undo();
+1851:         return;
+1852:       case EditorShortcutIntent.redo:
+1853:         controller.redo();
+1854:         return;
+1855:       case EditorShortcutIntent.copy:
+1856:         _handleCopy();
+1857:         return;
+1858:       case EditorShortcutIntent.cut:
+1859:         _handleCut();
+1860:         return;
+1861:       case EditorShortcutIntent.paste:
+1862:         _handlePaste();
+1863:         return;
+1864:       case EditorShortcutIntent.find:
+1865:         widget.onFindRequested?.call();
+1866:         widget.findController?.next();
+1867:         return;
+1868:       case EditorShortcutIntent.replace:
+1869:         widget.onReplaceRequested?.call();
+1870:         return;
+1871:       case EditorShortcutIntent.moveTableCellBackward:
+1872:         controller.moveTableCell(forward: false);
+1873:         return;
+1874:       case EditorShortcutIntent.moveTableCellForward:
+1875:         controller.moveTableCell(forward: true);
+1876:         return;
+1877:       case EditorShortcutIntent.moveCaretBackward:
+1878:         _verticalPreferX = null;
+1879:         controller.moveCaretBackward(
+1880:           expandSelection: resolution.expandSelection,
+1881:         );
+1882:         return;
+1883:       case EditorShortcutIntent.moveCaretForward:
+1884:         _verticalPreferX = null;
+1885:         controller.moveCaretForward(
+1886:           expandSelection: resolution.expandSelection,
+1887:         );
+1888:         return;
+1889:       case EditorShortcutIntent.moveCaretUp:
+1890:         _handleVerticalKey(false, resolution.expandSelection);
+1891:         return;
+1892:       case EditorShortcutIntent.moveCaretDown:
+1893:         _handleVerticalKey(true, resolution.expandSelection);
+1894:         return;
+1895:       case EditorShortcutIntent.moveCaretToBlockStart:
+1896:         controller.moveCaretToBlockBoundary(
+1897:           forward: false,
+1898:           expandSelection: resolution.expandSelection,
+1899:         );
+1900:         return;
+1901:       case EditorShortcutIntent.moveCaretToBlockEnd:
+1902:         controller.moveCaretToBlockBoundary(
+1903:           forward: true,
+1904:           expandSelection: resolution.expandSelection,
+1905:         );
+1906:         return;
+1907:       case EditorShortcutIntent.moveCaretByWordBackward:
+1908:         controller.moveCaretByWord(
+1909:           forward: false,
+1910:           expandSelection: resolution.expandSelection,
+1911:         );
+1912:         return;
+1913:       case EditorShortcutIntent.moveCaretByWordForward:
+1914:         controller.moveCaretByWord(
+1915:           forward: true,
+1916:           expandSelection: resolution.expandSelection,
+1917:         );
+1918:         return;
+1919:       case EditorShortcutIntent.moveCaretToDocumentStart:
+1920:         controller.moveCaretToDocumentBoundary(
+1921:           forward: false,
+1922:           expandSelection: resolution.expandSelection,
+1923:         );
+1924:         return;
+1925:       case EditorShortcutIntent.moveCaretToDocumentEnd:
+1926:         controller.moveCaretToDocumentBoundary(
+1927:           forward: true,
+1928:           expandSelection: resolution.expandSelection,
+1929:         );
+1930:         return;
+1931:       case EditorShortcutIntent.pageUp:
+1932:         _handlePageKey(
+1933:           forward: false,
+1934:           expandSelection: resolution.expandSelection,
+1935:         );
+1936:         return;
+1937:       case EditorShortcutIntent.pageDown:
+1938:         _handlePageKey(
+1939:           forward: true,
+1940:           expandSelection: resolution.expandSelection,
+1941:         );
+1942:         return;
+1943:       case EditorShortcutIntent.deleteBackward:
+1944:         if (!_deleteActiveSelectionIfAny()) {
+1945:           controller.deleteBackward();
+--- lib\src\widgets\wenz_rich_text_editor.dart:40-120 ---
+40:   'wenz-richtext-accessibility-focus-highlight',
+41: );
+42: const _blockReorderDropIndicatorKey = ValueKey<String>(
+43:   'wenz-richtext-block-reorder-drop-indicator',
+44: );
+45: 
+46: /// Caret geometry constants — kept in one place so the painted caret, the caret
+47: /// rect reported to the IME, and any future theming all share the same source.
+48: const double _kCaretStrokeWidth = 1.5;
+49: const Duration _kBlinkHalfPeriod = Duration(milliseconds: 530);
+50: const double _kRichTextBodyFontSize = 16.0;
+51: const double _kRichTextBodyLineHeight = 1.75;
+52: const double _kParagraphMarginEm = 0.55;
+53: const double _kHeadingMarginTopEm = 0.6;
+54: const double _kHeadingMarginBottomEm = 0.35;
+55: const double _kDefaultBlockSpacing =
+56:     _kRichTextBodyFontSize * _kParagraphMarginEm;
+57: const int _kInlineLinkColor = 0xFF1976D2;
+58: const int _kInlineRemarkColor = 0xFFC97B00;
+59: const int _kInlineRevisionBackgroundAlpha = 72;
+60: const double _kDefaultBlockExtent = 48.0;
+61: const double _kVirtualListOverscan = 600.0;
+62: const double _kBlockReorderIndicatorHeight = 3.0;
+63: const double _kTableResizeHandleWidth = 12.0;
+64: const double _kMinTableColumnWidth = 48.0;
+65: const double _kMaxTableColumnWidth = 640.0;
+66: const double _kTableToolbarMinWidth = 620.0;
+67: const double _kTableFloatingToolbarGap = 4.0;
+68: const double _kTableFloatingToolbarEstimatedHeight = 56.0;
+69: const int _kTableToolbarBackgroundColor = 0xFFFFF3CD;
+70: const double _kTableSurfaceRadius = 8.0;
+71: const double _kTableCellFontSize = 15.0;
+72: const EdgeInsets _kTableCellPadding = EdgeInsets.symmetric(
+73:   horizontal: 14,
+74:   vertical: 10,
+75: );
+76: const Color _kTableBorderColor = Color(0xFFECE9F5);
+77: const Color _kTableEvenRowBackgroundColor = Color(0xFFFAFAFF);
+78: const double _kImageFloatingToolbarGap = 6.0;
+79: 
+80: /// Minimum block height multiplier applied to the block's font size, ensuring
+81: /// a tap target even for empty paragraphs. A single constant so the text,
+82: /// code, and table-cell renderers stay in sync.
+83: const double _kBlockMinHeightFactor = 1.35;
+84: const double _kTodoCheckboxWidth = 32.0;
+85: const double _kTodoCheckboxHeight = 28.0;
+86: const double _kTodoTextGap = 10.0;
+87: const double _kTaskListPaddingLeft = 8.0;
+88: const double _kListTextInset = 26.0;
+89: const double _kListMarkerWidth = 18.0;
+90: const double _kListMarkerGap = _kListTextInset - _kListMarkerWidth;
+91: const double _kListItemSpacing = _kRichTextBodyFontSize * 0.25;
+92: const double _kNestedListItemSpacing = _kRichTextBodyFontSize * 0.15;
+93: const double _kHeadingCollapseSlotWidth = 30.0;
+94: const double _kHeadingCollapseButtonSize = 26.0;
+95: const double _kHeadingCollapseIconSize = 20.0;
+96: const double _kCodeBlockFontSize = 13.5;
+97: const double _kCodeBlockLineHeight = 1.6;
+98: const double _kCodeBlockPaddingVertical = 18.0;
+99: const double _kCodeBlockPaddingHorizontal = 20.0;
+100: const int _kCodeBlockBackgroundColor = 0xFF1E1E2E;
+101: const int _kCodeBlockTextColor = 0xFFE6E6F0;
+102: const int _kCodeLanguageTagColor = 0xB38A8AFF;
+103: const int _kCodeKeywordColor = 0xFFC792EA;
+104: const int _kCodeStringColor = 0xFFC3E88D;
+105: const int _kCodeTypeColor = 0xFF82AAFF;
+106: const int _kCodeNumberColor = 0xFFF78C6C;
+107: const int _kCodeCommentColor = 0xFF6B7394;
+108: const double _kDividerMarginVertical = _kRichTextBodyFontSize * 1.6;
+109: const int _kDividerLineColor = 0xFFE4E1EE;
+110: const double _kDividerDotSize = 6.0;
+111: const double _kCalloutIconFontSize = 20.0;
+112: const int _kCalloutInfoBackgroundColor = 0xFFF2F0F7;
+113: const int _kCalloutInfoForegroundColor = 0xFF46464F;
+114: const int _kCalloutSuccessForegroundColor = 0xFF0E1F1B;
+115: const int _kCalloutWarningBackgroundColor = 0xFFFFF8E1;
+116: const int _kCalloutWarningForegroundColor = 0xFFC97B00;
+117: const int _kCalloutDangerForegroundColor = 0xFF410002;
+118: const int _kCalloutInfoBorderColor = 0xFFD8D5E2;
+119: const int _kCalloutSuccessBorderColor = 0xFFBCD8D0;
+120: const int _kCalloutWarningBorderColor = 0xFFFFE082;
+
+codex
+我已经看到标题折叠按钮存在；接下来确认它的状态反馈细节是否满足要求。
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+**Searching for specific member**
+
+I’m thinking about how to find a specific member, possibly using `codegraph_node` on a class. But maybe that's not the right approach. I should look for something like `_HeadingCollapseButtonState.build`. It makes sense to try searching for that instead, so I’ll use `codegraph_search`. I wonder if that will lead me directly to what I need!
+mcp: codegraph/codegraph_search started
+mcp: codegraph/codegraph_search (completed)
+mcp: codegraph/codegraph_search started
+mcp: codegraph/codegraph_search (completed)
+**Considering class outlines**
+
+I’m thinking about using "node" on a class, and whether to set "includeCode" to false to get an outline. But I wonder, if I set "includeCode" to true, will it show the entire body instead? Earlier, I mentioned a specific symbol for this, so I’m curious how it all fits together. Maybe I’ll try it with a line, to check if the class body will display correctly.
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+**Considering glyph and tooltip needs**
+
+I'm realizing I need to think about implementing a glyph and tooltip for whatever I'm working on. The glyph will probably help visually represent something, while the tooltip can offer additional information when the user hovers over it. There's a lot to consider regarding usability and how clear the design will be. I want to ensure the tooltip effectively conveys necessary data without overwhelming the user. Let’s explore the best approach to make both elements functional!
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+ERROR: Selected model is at capacity. Please try a different model.
+ERROR: Selected model is at capacity. Please try a different model.
+tokens used
+118,809

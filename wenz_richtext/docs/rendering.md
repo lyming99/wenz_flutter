@@ -132,19 +132,38 @@ images as `[img]`, and unknown custom types as `[type]`.
 real image/video/file rendering without replacing an entire block renderer:
 
 ```dart
-class NetworkImageResolver implements MediaResolver {
+class ExampleMediaResolver implements MediaResolver {
   @override
   Widget? resolve(BuildContext context, BlockNode block) {
-    if (block is! ImageBlockNode) return null;
-    final url = block.file.isNotEmpty ? block.file : block.assetId;
-    if (!url.startsWith('http')) return null;       // let the placeholder show
-    return Image.network(url, fit: BoxFit.contain,
-      errorBuilder: (_, e, __) => const Text('image load failed'));
+    if (block is ImageBlockNode) {
+      final url = block.file.isNotEmpty ? block.file : block.assetId;
+      if (!url.startsWith('http')) return null;
+      return Image.network(url, fit: BoxFit.contain);
+    }
+    if (block is VideoBlockNode) {
+      final source = block.effectivePlaybackUrl;
+      if (!source.startsWith('http')) return null;
+      return AspectRatio(
+        aspectRatio: block.effectiveAspectRatio,
+        child: DecoratedBox(
+          decoration: const BoxDecoration(color: Color(0xFFE8EAED)),
+          child: Center(child: Text('▶ ${block.displayText}')),
+        ),
+      );
+    }
+    return null;
   }
 }
 
-final resolver = NetworkImageResolver();
+final resolver = ExampleMediaResolver();
 final controller = WenzRichTextController(document: doc, mediaResolver: resolver);
+controller.insertVideo(
+  blockId: 'video-1',
+  playbackUrl: 'https://example.com/demo.mp4',
+  coverUrl: 'https://example.com/demo.jpg',
+  title: 'Demo video',
+  aspectRatio: 16 / 9,
+);
 
 WenzRichTextEditor(controller: controller, mediaResolver: resolver);
 ```
@@ -176,6 +195,13 @@ Semantics:
   `altText`. The default image renderer shows the caption below either the
   resolver widget or fallback placeholder; semantics prefer `altText`, then
   caption, then the asset/file label.
+- Video metadata stays on `VideoBlockNode`: use the slash menu keyword
+  `video`/`视频`, `ToolbarController.insertVideo`, or
+  `WenzRichTextController.insertVideo` to create a block; update playback URL,
+  cover, title/description, aspect ratio, and upload state via
+  `WenzRichTextController.updateVideoBlock`. The built-in renderer is a
+  placeholder only; real playback belongs in the business `MediaResolver`, so
+  this package does not depend on `video_player`.
 
 ### MediaResolver vs BlockRendererRegistry
 

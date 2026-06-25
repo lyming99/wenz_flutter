@@ -223,6 +223,9 @@ class DeleteBackwardCommand extends EditorCommand {
       );
     }
     final block = _blockAt(session.document, position.blockIndex);
+    if (position.path.isBlockObject && block != null) {
+      return _deleteObjectBlock(session, position.blockIndex);
+    }
     if (block is TextBlockNode) {
       final offset = position.offset.clamp(
         0,
@@ -284,6 +287,9 @@ class DeleteForwardCommand extends EditorCommand {
       );
     }
     final block = _blockAt(session.document, position.blockIndex);
+    if (position.path.isBlockObject && block != null) {
+      return _deleteObjectBlock(session, position.blockIndex);
+    }
     if (block is TextBlockNode) {
       final offset = position.offset.clamp(
         0,
@@ -899,10 +905,9 @@ DocumentSelection _selectionAtBlockStartOrObject(BlockNode block, int index) {
 }
 
 DocumentSelection _objectSelection(BlockNode block, int index) {
-  final start = DocumentPosition(
+  final start = DocumentPosition.object(
     blockId: block.id,
     blockIndex: index,
-    path: PositionPath.blockObject(block.id),
     offset: 0,
   );
   final end = start.copyWith(offset: 1);

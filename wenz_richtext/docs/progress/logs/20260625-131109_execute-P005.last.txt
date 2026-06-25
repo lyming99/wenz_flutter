@@ -1,0 +1,13 @@
+**完成情况**
+- 已完成 P005：隐藏 block 被选区、查找、大纲跳转或滚动定位命中时，会先展开相关折叠标题，避免不可见光标。
+- 折叠当前选区所在章节时，会把光标安全移动到折叠标题处，允许折叠保持生效：`lib/src/controller/outline_controller.dart:596`
+- 查找/替换可接入 outline 并在选中隐藏命中前展开：`lib/src/controller/find_replace_controller.dart:136`
+- 编辑器在程序化选区、滚动到光标、删除边界、粘贴/输入/撤销重做后统一 reveal：`lib/src/widgets/wenz_rich_text_editor.dart:829`
+
+**测试**
+- 新增覆盖：`test/controller/find_replace_controller_test.dart:79`
+- 新增覆盖：`test/core/controller_test.dart:329`
+- 新增覆盖：`test/widgets/wenz_rich_text_editor_test.dart:580`
+- 已通过：`flutter test test/core/controller_test.dart test/controller/find_replace_controller_test.dart test/widgets/wenz_rich_text_editor_test.dart`
+
+未修改 plan 文件，未勾选 checkbox，也未处理其它任务。

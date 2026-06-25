@@ -421,6 +421,7 @@ class ToolbarController extends ChangeNotifier {
   bool get canToggleTodo => _state.canToggleTodo;
   bool get canToggleQuote => _state.canToggleQuote;
   bool get canTableStruct => _state.canTableStruct;
+  bool get canInsertVideo => _host.canEdit;
   bool? get tableCellIsHeader => _state.tableCellIsHeader;
   int? get tableCellBackgroundColor => _state.tableCellBackgroundColor;
 
@@ -536,8 +537,58 @@ class ToolbarController extends ChangeNotifier {
     }
   }
 
+  void insertVideo({
+    int? index,
+    required String blockId,
+    String assetId = '',
+    String playbackUrl = '',
+    String file = '',
+    String coverUrl = '',
+    String title = '',
+    String description = '',
+    double? aspectRatio,
+    FileUploadStatus uploadStatus = FileUploadStatus.none,
+    String uploadError = '',
+    DocumentSelection? selection,
+  }) {
+    if (!canInsertVideo) {
+      return;
+    }
+    _host.insertVideo(
+      index: index ?? _currentBlockInsertionIndex(),
+      blockId: blockId,
+      assetId: assetId,
+      playbackUrl: playbackUrl,
+      file: file,
+      coverUrl: coverUrl,
+      title: title,
+      description: description,
+      aspectRatio: aspectRatio,
+      uploadStatus: uploadStatus,
+      uploadError: uploadError,
+      selection: selection,
+    );
+  }
+
   void undo() => _host.undo();
   void redo() => _host.redo();
+
+  int _currentBlockInsertionIndex() {
+    final selection = _host.selection;
+    final blockCount = _host.document.blocks.length;
+    if (selection == null) {
+      return blockCount;
+    }
+    final position = selection.extent;
+    final index = position.blockIndex.clamp(0, blockCount).toInt();
+    if (position.path.isTableCellText) {
+      return (index + 1).clamp(0, blockCount).toInt();
+    }
+    if (position.path.isBlockObject && position.offset > 0) {
+      return (index + 1).clamp(0, blockCount).toInt();
+    }
+    return index;
+  }
 
   // ---- Lifecycle ------------------------------------------------------------
 

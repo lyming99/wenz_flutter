@@ -1,0 +1,11 @@
+已完成 P003，未修改 plan 文件、未勾选 checkbox。
+
+**改动**
+- `lib/src/widgets/wenz_rich_text_editor.dart:59` 新增 todo checkbox 尺寸与文字间距常量。
+- `lib/src/widgets/wenz_rich_text_editor.dart:3479` todo 文本样式会按 checkbox 高度提升首行行高，使 checkbox 中心对齐文字首行中心。
+- `lib/src/widgets/wenz_rich_text_editor.dart:7240` 新增行高计算 helper，保留已有文本行高更大时的表现。
+- `test/widgets/wenz_rich_text_editor_test.dart:1877` 更新 todo 布局测试，覆盖单行/多行首行对齐、行高和换行缩进。
+
+**验证**
+- `flutter test test/widgets/wenz_rich_text_editor_test.dart --plain-name todo` 通过。
+- `flutter test test/widgets/wenz_rich_text_editor_test.dart --plain-name "renders document blocks"` 通过。

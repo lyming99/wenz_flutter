@@ -1,0 +1,1190 @@
+OpenAI Codex v0.121.0 (research preview)
+--------
+workdir: D:\project\GitHub\wenz_flutter\wenz_richtext
+model: gpt-5.5
+provider: custom
+approval: never
+sandbox: danger-full-access
+reasoning effort: xhigh
+reasoning summaries: none
+session id: 019efa81-c598-7651-9ad6-fdf50700c337
+--------
+user
+你是需求整理与开发计划生成者。
+请根据以下反馈，生成一个开发计划和验收标准。
+
+输出文件：D:\project\GitHub\wenz_flutter\wenz_richtext\docs\plan\plan_feedback_2_20260625-004108.md
+
+格式要求：
+- 任务必须使用 Markdown checkbox：- [ ] P001: 任务标题
+- 每个任务要有验收要点
+- 必须包含总体验收标准和进度区
+- 只写 plan 文件，不要改业务代码
+
+反馈 #2 内容：
+1.@提及后面的文字无法被选择 2.引言内容渲染方式优化一下，用背景块颜色背景的方式渲染引言内容 3.todo内容优化一下，用checkbox切换todo完成状态 4.info卡片目前无法被选择 5.表格工具栏应该在表格上方，而不是在表格下方，占用内容 6.表格边框除了最边缘，内部的边框存在重复绘制，显示2条线 7.公式渲染要用特殊组件渲染，目前只是显示了文字，参考gpt_markdown项目优化
+codex
+我会先查看项目说明和现有计划文档格式，然后只写入指定的 plan 文件。
+  → 检查文档约定与目录
+  • 起草反馈开发计划
+  • 写入指定计划文件
+  • 核对格式与范围
+exec
+powershell.exe -Command "Get-ChildItem -Force; if (Test-Path AGENTS.md) { Get-Content AGENTS.md }; if (Test-Path docs\\plan) { Get-ChildItem docs\\plan -Force | Sort-Object Name | Select-Object -Last 10 | Format-Table -AutoSize }" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 297ms:
+
+
+    目录: D:\project\GitHub\wenz_flutter\wenz_richtext
+
+
+Mode                 LastWriteTime         Length Name                                                                 
+----                 -------------         ------ ----                                                                 
+d-----         2026/6/25      0:41                .codegraph                                                           
+d-----         2026/6/24     15:10                .dart_appdata                                                        
+d-----         2026/6/24     15:10                .dart_localappdata                                                   
+d-----         2026/6/24     16:11                .dart_tool                                                           
+d-----         2026/6/24     16:13                .dart_tool_appdata                                                   
+d-----         2026/6/24     16:06                .dart_tool_localappdata                                              
+d-----         2026/6/20      0:26                .idea                                                                
+d-----         2026/6/22     17:10                build                                                                
+d-----         2026/6/19     17:02                doc                                                                  
+d-----         2026/6/24     18:05                docs                                                                 
+d-----         2026/6/22     14:56                example                                                              
+d-----         2026/6/22     17:09                lib                                                                  
+d-----         2026/6/24      3:35                scripts                                                              
+d-----         2026/6/24     22:21                test                                                                 
+d-----         2026/6/24     18:04                tool                                                                 
+-a----         2026/6/19     14:04             87 .gitignore                                                           
+-a----         2026/6/24     16:16             94 analysis_options.yaml                                                
+-a----         2026/6/24     14:38            726 CHANGELOG.md                                                         
+-a----         2026/6/23     17:55            160 nul                                                                  
+-a----         2026/6/22     17:04           6524 pubspec.lock                                                         
+-a----         2026/6/22     17:03            355 pubspec.yaml                                                         
+-a----         2026/6/24     14:38           3227 README.md                                                            
+
+
+
+
+    目录: D:\project\GitHub\wenz_flutter\wenz_richtext\docs\plan
+
+
+Mode          LastWriteTime Length Name                              
+----          ------------- ------ ----                              
+-a----  2026/6/25      0:06  11555 plan_feedback_1_20260624-220759.md
+-a----  2026/6/24     21:34   1278 ui_plan_20260624-213431_2.md      
+
+
+
+**Reviewing plan format**
+
+I need to take a closer look at the existing plan format. It’s important to ensure that everything is organized and follows the right structure. I might consider which elements are essential and if there’s room for improvement. Is there a clear flow? Are the details effectively conveyed? I think checking these aspects helps refine the plan and make sure it’s as effective as possible. I’ll dive into this now!
+codex
+已确认只需文档变更；接着参考现有 plan 的组织方式。
+exec
+powershell.exe -Command "Get-Content docs\\plan\\plan_feedback_1_20260624-220759.md -TotalCount 220" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 268ms:
+# 寮€鍙戣鍒掞細淇閫夋嫨鍣ㄦ棤娉曢€変腑 emoji 涓庢彁鍙?
+
+## 鏉ユ簮
+- 绫诲瀷锛氱敤鎴峰弽棣?
+- 缂栧彿锛?1
+- 鐢熸垚鏃堕棿锛?026-06-24 22:07:59
+- 鍘熷鍙嶉锛氶€夋嫨鍣╞ug锛歟moji銆佹彁鍙婃棤娉曟甯歌閫変腑
+
+## 闂鐞嗚В
+- 瀵屾枃鏈€夋嫨鍣ㄥ湪鍖呭惈 `emoji`銆乣mention` 绛夊唴鑱斿祵鍏ュ唴瀹规椂锛屽彲鑳芥棤娉曢€氳繃鐐瑰嚮銆佹嫋鎷芥垨閿洏鎵╁睍灏嗗叾绾冲叆閫夊尯銆?
+- 鍒濇褰卞搷鑼冨洿鍖呮嫭鍐呰仈鑺傜偣鍋忕Щ璁＄畻銆佹枃鏈竷灞€鍛戒腑娴嬭瘯銆侀€夊尯楂樹寒缁樺埗銆佸鍒?鍛戒护璇诲彇閫夊尯绛夐摼璺€?
+- 淇鐩爣鏄妸 emoji 涓庢彁鍙婁綔涓哄彲閫夋嫨鐨勫師瀛愬唴鑱斿崟鍏冨鐞嗭紝鍚屾椂涓嶇牬鍧忔櫘閫氭枃鏈€佽〃鏍笺€佷唬鐮佸潡鍜屽潡绾у璞￠€夋嫨琛屼负銆?
+
+## 浠诲姟璁″垝
+- [x] P001: 澶嶇幇骞跺畾涔夌己闄疯竟鐣?
+  - 楠屾敹瑕佺偣锛氭瀯閫犲寘鍚櫘閫氭枃鏈€乪moji銆乵ention 娣锋帓鐨勬渶灏忔枃妗ｏ紝璁板綍鐐瑰嚮銆佹嫋鎷姐€丼hift+鏂瑰悜閿€佸叏閫夌瓑鍦烘櫙涓棤娉曢€変腑鐨勫叿浣撹〃鐜般€?
+  - 楠屾敹瑕佺偣锛氭槑纭棶棰樺彂鐢熷湪娈佃惤鍐呰仈鍐呭銆佽〃鏍煎崟鍏冩牸鍐呰仈鍐呭杩樻槸涓よ€呴兘鍙楀奖鍝嶏紝骞跺舰鎴愬彲澶嶇幇姝ラ銆?
+
+- [x] P002: 姊崇悊鍐呰仈鑺傜偣閫夋嫨妯″瀷
+  - 楠屾敹瑕佺偣锛氱‘璁?`TextRun` 涓?`InlineEmbed` 鍦ㄦ枃妗?offset銆佹覆鏌撳崰浣嶅搴︺€侀€夊尯杈圭晫涓殑鏄犲皠瑙勫垯銆?
+  - 楠屾敹瑕佺偣锛氬畾涔?emoji 涓?mention 鐨勫師瀛愰€夋嫨璇箟锛屽嵆閫夊尯鍙兘钀藉湪鍏跺墠鍚庤竟鐣岋紝涓嶈兘鎷嗗垎鍒板祵鍏ュ唴瀹瑰唴閮ㄣ€?
+
+- [x] P003: 淇鍛戒腑娴嬭瘯涓?offset 鏄犲皠
+  - 楠屾敹瑕佺偣锛氱偣鍑绘垨鎷栨嫿钀藉湪 emoji銆乵ention 鍙鍖哄煙鏃讹紝鑳藉绋冲畾鏄犲皠鍒板搴斿唴鑱斿師瀛愬崟鍏冪殑鍓嶅悗閫夋嫨杈圭晫銆?
+  - 楠屾敹瑕佺偣锛氭嫋鎷介€夊尯璺ㄨ繃 emoji銆乵ention 鏃讹紝閫夊尯鑼冨洿鍖呭惈璇ュ唴鑱旇妭鐐癸紝涓嶅啀琚烦杩囨垨鎴柇銆?
+  - 楠屾敹瑕佺偣锛氳竟鐣屽満鏅寘鎷棣栥€佽灏俱€佽繛缁涓唴鑱斿祵鍏ャ€佹枃鏈笌宓屽叆鐩搁偦鏃犵┖鏍笺€?
+
+- [x] P004: 淇閫夊尯楂樹寒涓庡厜鏍囧弽棣?
+  - 楠屾敹瑕佺偣锛歟moji銆乵ention 琚€変腑鏃舵湁娓呮櫚閫夊尯楂樹寒鎴栫瓑鏁堥€変腑鎬侊紝涓嶅嚭鐜伴珮浜己澶便€侀敊浣嶃€佸搴︿负 0 鐨勬儏鍐点€?
+  - 楠屾敹瑕佺偣锛氬厜鏍囧仠鍦?emoji銆乵ention 鍓嶅悗杈圭晫鏃朵綅缃纭紝涓嶈鐩栫浉閭绘枃鏈垨璺冲埌閿欒琛屻€?
+
+- [x] P005: 琛ュ厖鑷姩鍖栧洖褰掓祴璇?  - 楠屾敹瑕佺偣锛氭柊澧炴垨鏇存柊 widget 娴嬭瘯锛岃鐩?emoji銆乵ention 鐨勭偣鍑婚€夋嫨銆佹嫋鎷借法閫夈€侀敭鐩樻墿灞曢€夋嫨銆?
+  - 楠屾敹瑕佺偣锛氭祴璇曞悓鏃惰鐩栨钀藉唴娣锋帓涓庤〃鏍煎崟鍏冩牸鍐呮贩鎺掞紝閬垮厤鍙慨澶嶅崟涓€璺緞銆?
+  - 楠屾敹瑕佺偣锛氭祴璇曟柇瑷€ `DocumentSelection` 鐨?base銆乪xtent銆乷ffset 涓庨鏈熶竴鑷淬€?
+
+- [x] P006: 鎵ц閫夋嫨鍣ㄧ浉鍏冲洖褰掗獙璇?
+  - 楠屾敹瑕佺偣锛歚flutter test test/widgets/wenz_rich_text_editor_test.dart` 閫氳繃锛屾垨澶辫触椤硅纭涓庢湰缂洪櫡鏃犲叧骞惰褰曞師鍥犮€?
+  - 楠屾敹瑕佺偣锛歚flutter test test/core/selection_commands_test.dart` 閫氳繃锛岀‘淇濋€夋嫨鍛戒护琛屼负鏈鐮村潖銆?
+  - 楠屾敹瑕佺偣锛氭櫘閫氭枃鏈€夋嫨銆佸潡绾у璞￠€夋嫨銆佽〃鏍奸€夋嫨銆佷唬鐮佸潡閫夋嫨鏍稿績鍦烘櫙淇濇寔鍘熸湁琛屼负銆?
+
+- [x] P007: 鏇存柊缂洪櫡杩涘害涓庨獙璇佽褰?
+  - 楠屾敹瑕佺偣锛氬湪杩涘害璁板綍涓敞鏄庝慨澶嶈寖鍥淬€侀獙璇佸懡浠ゃ€侀獙璇佺粨鏋滃拰閬楃暀椋庨櫓銆?
+  - 楠屾敹瑕佺偣锛氬鍙戠幇澶嶅埗銆佸垹闄ゃ€佹牸寮忓寲绛変笅娓歌涓轰粛鍙楀唴鑱斿祵鍏ュ奖鍝嶏紝鎷嗗垎涓虹嫭绔嬪悗缁换鍔★紝涓嶆贩鍏ユ湰娆￠€夋嫨鍣ㄤ慨澶嶃€?
+
+## 鎬讳綋楠屾敹鏍囧噯
+- 鎵€鏈変换鍔?checkbox 鍧囧畬鎴愶紝涓旀瘡涓换鍔＄殑楠屾敹瑕佺偣閮芥湁鏄庣‘缁撹銆?
+- emoji 涓?mention 鍦ㄥ彲瑙嗗尯鍩熷唴鍙姝ｅ父鐐瑰嚮瀹氫綅銆佹嫋鎷介€変腑銆侀敭鐩樻墿灞曠撼鍏ラ€夊尯銆?
+- emoji 涓?mention 浣滀负鍘熷瓙鍐呰仈鍗曞厓鍙備笌閫夋嫨锛屼笉浜х敓鍗婇€夈€侀敊浣嶃€佽烦閫夋垨鏃犳硶鏄剧ず閫変腑鎬佺殑闂銆?
+- 淇涓嶅洖閫€鏅€氭枃鏈€佽〃鏍煎崟鍏冩牸銆佷唬鐮佸潡銆佸潡绾у璞＄殑鏃㈡湁閫夋嫨鑳藉姏銆?
+- 鐩稿叧鑷姩鍖栨祴璇曢€氳繃锛涜嫢瀛樺湪闈炴湰娆″彉鏇村鑷寸殑澶辫触锛岄渶鍦ㄨ繘搴﹁褰曚腑璇存槑澶辫触鍛戒护銆佸け璐ュ師鍥犲拰澶勭悊寤鸿銆?
+
+## 杩涘害鍖?
+- 褰撳墠鐘舵€侊細P001銆丳002銆丳003銆丳004銆丳005銆丳006銆丳007 宸插畬鎴愶紱emoji 涓?mention 鍘熷瓙閫夋嫨淇銆佽嚜鍔ㄥ寲鍥炲綊娴嬭瘯銆侀€夋嫨鍣ㄩ獙璇佽褰曞潎宸插畬鎴愶紝鏅€氭枃鏈€佸潡绾у璞°€佽〃鏍笺€佷唬鐮佸潡鏍稿績閫夋嫨鍦烘櫙鏈彂鐜板洖閫€銆?- 褰撳墠璐熻矗浜猴細寮€鍙戞墽琛岃€?- 涓嬩竴姝ワ細鏈鍒掓墍鏈変换鍔″凡瀹屾垚锛涘鍚庣画鍙戠幇澶嶅埗銆佸垹闄ゃ€佹牸寮忓寲绛変笅娓歌涓哄彈鍐呰仈宓屽叆褰卞搷锛屽啀鎷嗗垎鐙珛浠诲姟璺熻繘銆?- P001 澶嶇幇璁板綍锛氫娇鐢ㄦ渶灏忔贩鎺掑唴瀹?`A` + `emoji(馃槃)` + `B` + `mention(@bob)` + `C`锛涙枃妗?offset 闀垮害涓?5锛屽疄闄呮覆鏌撴枃鏈?`A馃槃B@bobC` 鐨?UTF-16 闀垮害涓?9銆?
+- P001 娈佃惤杈圭晫锛氱偣鍑?mention 瑙嗚涓績鍚庨€夊尯鎶樺彔鍒?offset 5锛岃€岄鏈熷彧鑳借惤鍦?mention 鍘熷瓙杈圭晫 3/4锛涙嫋鎷?emoji 瑙嗚鑼冨洿 `[1,3]` 鍚庨€夊尯浠嶆姌鍙犲湪 offset 1锛屾棤娉曞舰鎴?emoji 鍘熷瓙閫夊尯 `[1,2]`锛涙嫋鎷?mention 瑙嗚鑼冨洿 `[4,8]` 寰楀埌鏂囨。閫夊尯 `[4,5]`锛屽疄闄呴€変腑灏鹃儴 `C`锛屼笉鏄?mention 鍘熷瓙 `[3,4]`銆?
+- P001 琛ㄦ牸杈圭晫锛氬悓鏍风殑娣锋帓鍐呭鏀惧叆琛ㄦ牸鍗曞厓鏍煎悗锛岀偣鍑?mention 瑙嗚涓績鎶樺彔鍒板崟鍏冩牸 offset 5锛涙嫋鎷?emoji 瑙嗚鑼冨洿浠嶆姌鍙狅紱鎷栨嫿 mention 瑙嗚鑼冨洿浼氭妸閫夊尯鎺ㄥ嚭鍘?`r0c0` 鍗曞厓鏍硷紝鍑虹幇 `r1c0` 璺緞锛岃鏄庢钀藉唴鑱斿唴瀹逛笌琛ㄦ牸鍗曞厓鏍煎唴鑱斿唴瀹归兘鍙楀奖鍝嶃€?
+- P001 閿洏涓庡叏閫夎瀵燂細娈佃惤鍐呬粠 mention 鍓?offset 3 鎵ц Shift+Right 鍙緱鍒?`[3,4]`锛屽共鍑€鏍稿績鍛戒护鐘舵€佷笅琛ㄦ牸鍗曞厓鏍间篃鍙緱鍒?`[3,4]`锛汣trl+A 鐨勯€昏緫閫夊尯涓?`[0,5]`锛屼絾褰撳墠楂樹寒缁樺埗浣跨敤鏂囨。 offset 鐩存帴鏌ヨ `TextPainter`锛屾帹鏂瑙夎鐩栦細鎴柇鍦ㄦ覆鏌撴枃鏈?offset 5锛坄A馃槃B@`锛夛紝瀛樺湪鍏ㄩ€夐珮浜笉瀹屾暣椋庨櫓銆?
+- P001 澶嶇幇鏂瑰紡锛氭浘浣跨敤涓存椂 widget 璇婃柇娴嬭瘯杩愯 `flutter test test/p001_inline_embed_repro_tmp_test.dart --reporter expanded`锛屼粎鎵撳嵃涓婅堪缁撴灉涓斿凡鍒犻櫎涓存椂鏂囦欢锛涜璇婃柇鐢ㄤ緥閫氳繃锛屼絾杈撳嚭纭瀹為檯琛屼负涓庡師瀛愬唴鑱旈€夋嫨棰勬湡涓嶄竴鑷淬€?
+- 椋庨櫓璁板綍锛氬垵姝ョ己闄烽泦涓湪 `InlineEmbed` 鏂囨。闀垮害涓?1锛屼絾 `_inlineEmbedSpanFor` 娓叉煋涓哄彉闀?`TextSpan`锛屽懡涓祴璇曞拰楂樹寒缁樺埗鐩存帴浣跨敤 `TextPainter` 鐨勬覆鏌?offset锛涘悗缁渶瑕佹牎鍑嗘枃妗?offset 涓庢覆鏌?offset 鏄犲皠锛岄伩鍏?emoji grapheme cluster銆乵ention 鏂囨湰闀垮害鍜岃〃鏍煎崟鍏冨懡涓矾寰勭户缁敊浣嶃€?
+- P002 鏂囨。闀垮害瑙勫垯锛歚TextRun` 鐨勯€昏緫闀垮害鏉ヨ嚜 `text.length`锛屽嵆褰撳墠 Dart 瀛楃涓?UTF-16 code unit 闀垮害锛沗InlineEmbed` 閫昏緫闀垮害鍥哄畾涓?1锛涙钀戒笌琛ㄦ牸鍗曞厓鏍肩殑 `textLength` 閮界敱 `inlineNodesLength` 鑱氬悎寰楀埌锛屽洜姝や袱鏉¤矾寰勫叡浜悓涓€濂楁枃妗?offset 妯″瀷銆?
+- P002 娓叉煋闀垮害瑙勫垯锛歚TextRun` 鐩存帴娓叉煋鍘熸枃鏈紱`InlineEmbed` 閫氳繃 `_inlineEmbedSpanFor` 娓叉煋涓?`TextSpan`锛岄粯璁?mention 鏄剧ず涓?`@label` / `@id`锛宔moji 鏄剧ず涓?data 涓殑 `emoji` / `text` / `value` / `shortName` / `label`锛岃嚜瀹氫箟 `InlineEmbedRenderer` 涔熷彲鑳借繑鍥炲叾瀹冪揣鍑?`TextSpan`锛涘洜姝ゆ瘡涓?embed 鐨勮瑙夊搴﹀拰 `TextPainter` offset 鑼冨洿鐢辨覆鏌撴枃鏈喅瀹氾紝涓嶇瓑浜庨€昏緫闀垮害 1銆?
+- P002 褰撳墠鏄犲皠缂哄彛锛氬懡涓祴璇?`_offsetForLocalPosition` 璋冪敤 `TextLayoutService.offsetAt`锛岀洿鎺ヤ娇鐢?`TextPainter.getPositionForOffset` 鐨勬覆鏌?offset 骞朵粎鐢ㄩ€昏緫 `textLength` clamp锛沜aret銆侀€夊尯楂樹寒銆佹煡鎵鹃珮浜拰缁勫悎鍖虹煩褰篃鐩存帴鎶婇€昏緫 offset 浼犵粰 `TextPainter`锛岀己灏戦€昏緫 offset 涓庢覆鏌?offset 鐨勮浆鎹㈠眰銆?
+- P002 鍘熷瓙閫夋嫨璇箟锛氭瘡涓?`InlineEmbed` 鍗犵敤閫昏緫鍖洪棿 `[nodeStart, nodeStart + 1)`锛涘悎娉曟姌鍙犲厜鏍囦綅缃彧鑳芥槸璇ュ尯闂寸殑鍓嶈竟鐣屾垨鍚庤竟鐣岋紱闈炴姌鍙犻€夊尯鍙鍖呭惈璇ラ€昏緫鍗曞厓锛屽氨蹇呴』瑕嗙洊璇?embed 鐨勫畬鏁磋瑙夋覆鏌撹寖鍥达紝涓嶈兘浜х敓钀藉湪 embed 鍐呴儴鐨勫崐閫夋垨鍐呴儴 offset銆?
+- P002 鏄犲皠瑙勫垯缁撹锛氶渶瑕佺淮鎶ゆ寜 inline 鑺傜偣绱鐨勫弻鍚戞槧灏勶紱`TextRun` 鍦ㄧ幇鏈夋ā鍨嬩笅鎸?UTF-16 code unit 鍋氶€昏緫/娓叉煋涓€涓€鏄犲皠锛沗InlineEmbed` 鐨勯€昏緫鍓嶈竟鐣屾槧灏勫埌 `renderStart`锛岄€昏緫鍚庤竟鐣屾槧灏勫埌 `renderEnd`锛屾覆鏌撳唴閮ㄥ懡涓簲鎸夎瑙変綅缃綊涓€鍒板墠/鍚庤竟鐣岋紝閫夊尯鐩掍笌 caret 鏌ヨ搴斿厛鎶婇€昏緫杈圭晫杞崲涓烘覆鏌撹竟鐣屻€?
+- P002 琛ㄦ牸缁撹锛氳〃鏍煎崟鍏冩牸鍙槸浣跨敤 `PositionPath.tableCellText` 涓?`_hitLocalToTextLocal` 杩涘叆鍚屼竴 `_TextSelectionSurface`锛屽唴鑱旇妭鐐归暱搴︺€乻pan 鏋勫缓銆佸懡涓祴璇曞拰缁樺埗閾捐矾涓庢櫘閫氭钀戒竴鑷达紱P003 淇蹇呴』鍚屾椂瑕嗙洊娈佃惤鍜岃〃鏍煎崟鍏冩牸锛屼笉搴斿垎鍙夊嚭涓ゅ閫夋嫨璇箟銆?
+- P003 淇璁板綍锛歚_TextSelectionSurface` 鐜版帴鏀朵笌瀹為檯 `InlineSpan` 鍚屾簮鐢熸垚鐨?`_InlineOffsetMapper`锛屽懡涓祴璇曞厛鍙?`TextPainter` 娓叉煋 offset锛屽啀鏄犲皠鍥炴枃妗?offset锛沗InlineEmbed` 娓叉煋鍖洪棿鍐呴儴鍛戒腑浼氭寜鍙鐩掑乏鍙冲崐鍖哄綊涓€鍒板師瀛愬墠/鍚庤竟鐣屻€?
+- P003 瑕嗙洊鑼冨洿锛氭櫘閫氭钀戒笌琛ㄦ牸鍗曞厓鏍煎叡鐢?`_inlineTextLayoutFor` 鐢熸垚 span 涓庢槧灏勬锛沗TextRun` 淇濇寔 UTF-16 涓€涓€鏄犲皠锛宍InlineEmbed` 淇濇寔閫昏緫闀垮害 1銆佹覆鏌撻暱搴﹀彇瀹為檯 span 鏂囨湰闀垮害锛涗唬鐮佸潡浣跨敤 identity 鏄犲皠锛岄伩鍏嶅奖鍝嶅師鏈変唬鐮佸潡閫夋嫨銆?
+- P003 楠岃瘉璁板綍锛氬凡鎵ц `flutter analyze`锛岀粨鏋滈€氳繃锛涙湭鎵ц P006 涓殑閫夋嫨鍣ㄥ洖褰掓祴璇曪紝鐣欏緟瀵瑰簲浠诲姟澶勭悊銆?
+- P004 淇璁板綍锛歚_SelectionHighlightPainter`銆乣_CaretPainter`銆佹湰鍦?caret 鍑犱綍涓庣粍鍚堝尯鐭╁舰鏌ヨ鐜板湪鍏堝皢鏂囨。閫昏緫 offset 杞崲涓?`TextPainter` 娓叉煋 offset锛沞moji銆乵ention 绛?`InlineEmbed` 鐨勯€昏緫鍘熷瓙鍖洪棿浼氳鐩栧畬鏁磋瑙夋枃鏈紝涓嶅啀鎸夐€昏緫闀垮害 1 缁樺埗楂樹寒鎴?caret銆?- P004 楠岃瘉璁板綍锛氬凡鎵ц `flutter analyze lib/src/widgets/wenz_rich_text_editor.dart`锛岀粨鏋滈€氳繃锛涙湭鎵ц P006 涓殑閫夋嫨鍣ㄥ洖褰掓祴璇曪紝鐣欏緟瀵瑰簲浠诲姟澶勭悊銆?- P005 娴嬭瘯璁板綍锛氬湪 `test/widgets/wenz_rich_text_editor_test.dart` 鏂板娈佃惤涓庤〃鏍煎崟鍏冩牸娣锋帓 inline embed 鍥炲綊鐢ㄤ緥锛岃鐩?emoji銆乵ention 鐨勭偣鍑诲畾浣嶃€佹嫋鎷借法閫変笌 Shift+Right 閿洏鎵╁睍閫夋嫨锛屽苟閫愬瓧娈垫柇瑷€ `DocumentSelection` 鐨?base銆乪xtent銆乸ath銆乷ffset銆?- P005 楠岃瘉璁板綍锛氬凡鎵ц鑱氱劍鍛戒护 `flutter test test\widgets\wenz_rich_text_editor_test.dart --plain-name "inline embeds select atomically"`锛岀粨鏋滈€氳繃锛涙湭鎵ц P006 瑕佹眰鐨勫畬鏁撮€夋嫨鍣ㄥ洖褰掑懡浠わ紝鐣欏緟 P006 澶勭悊銆?- P006 楠岃瘉璁板綍锛氬凡鎵ц `flutter test test/widgets/wenz_rich_text_editor_test.dart`锛?8 椤规祴璇曞叏閮ㄩ€氳繃锛岃鐩栨櫘閫氭枃鏈€夋嫨銆佸潡绾у璞￠€夋嫨銆佽〃鏍奸€夋嫨銆佷唬鐮佸潡閫夋嫨浠ュ強 emoji銆乵ention 鍘熷瓙閫夋嫨鍥炲綊銆?- P006 楠岃瘉璁板綍锛氬凡鎵ц `flutter test test/core/selection_commands_test.dart`锛?7 椤规祴璇曞叏閮ㄩ€氳繃锛岄€夋嫨鍛戒护琛屼负鏈彂鐜板洖閫€銆?
+- P007 淇鑼冨洿璁板綍锛氭湰娆℃敹灏捐褰曠‘璁や慨澶嶈寖鍥撮檺瀹氫负 emoji銆乵ention 绛?`InlineEmbed` 鍦ㄦ钀戒笌琛ㄦ牸鍗曞厓鏍间腑鐨勫懡涓祴璇曘€乷ffset 鏄犲皠銆侀€夊尯楂樹寒銆乧aret 鍑犱綍鍜岄€夋嫨鍥炲綊娴嬭瘯锛屼笉娣峰叆澶嶅埗銆佸垹闄ゃ€佹牸寮忓寲绛変笅娓稿懡浠ゆ敼鍔ㄣ€?
+- P007 楠岃瘉鍛戒护璁板綍锛氭部鐢?P006 宸插畬鎴愮殑 `flutter test test/widgets/wenz_rich_text_editor_test.dart` 涓?`flutter test test/core/selection_commands_test.dart` 浣滀负鏈己闄锋敹灏鹃獙璇佷緷鎹€?
+- P007 楠岃瘉缁撴灉璁板綍锛歸idget 閫夋嫨鍣ㄥ洖褰?78 椤归€氳繃锛宑ore 閫夋嫨鍛戒护鍥炲綊 27 椤归€氳繃锛涙櫘閫氭枃鏈€夋嫨銆佸潡绾у璞￠€夋嫨銆佽〃鏍奸€夋嫨銆佷唬鐮佸潡閫夋嫨浠ュ強 emoji銆乵ention 鍘熷瓙閫夋嫨鏈彂鐜板洖閫€銆?
+- P007 閬楃暀椋庨櫓璁板綍锛氬綋鍓嶉獙璇佹湭鍙戠幇澶嶅埗銆佸垹闄ゃ€佹牸寮忓寲绛変笅娓歌涓轰粛鍙楀唴鑱斿祵鍏ュ奖鍝嶏紱鑻ュ悗缁敤鎴峰弽棣堝嚭鐜扮浉鍏抽棶棰橈紝鎸夌嫭绔嬪悗缁换鍔℃媶鍒嗭紝涓嶅苟鍏ユ湰娆￠€夋嫨鍣ㄤ慨澶嶃€?
+
+**Figuring out character encoding**
+
+I'm dealing with outputting mojibake, probably because PowerShell isn't defaulting to UTF-8. The file seems to be UTF-8, but there might be a console issue. I shouldn't rely on the default settings. Instead, I think I should use the `Get-Content` command with the `-Encoding UTF8` option to ensure proper reading of the file. Just need to double-check if that resolves the issue!
+exec
+powershell.exe -Command "Get-Content docs\\plan\\plan_feedback_1_20260624-220759.md -Encoding UTF8 -TotalCount 140" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 187ms:
+# 开发计划：修复选择器无法选中 emoji 与提及
+
+## 来源
+- 类型：用户反馈
+- 编号：#1
+- 生成时间：2026-06-24 22:07:59
+- 原始反馈：选择器bug：emoji、提及无法正常被选中
+
+## 问题理解
+- 富文本选择器在包含 `emoji`、`mention` 等内联嵌入内容时，可能无法通过点击、拖拽或键盘扩展将其纳入选区。
+- 初步影响范围包括内联节点偏移计算、文本布局命中测试、选区高亮绘制、复制/命令读取选区等链路。
+- 修复目标是把 emoji 与提及作为可选择的原子内联单元处理，同时不破坏普通文本、表格、代码块和块级对象选择行为。
+
+## 任务计划
+- [x] P001: 复现并定义缺陷边界
+  - 验收要点：构造包含普通文本、emoji、mention 混排的最小文档，记录点击、拖拽、Shift+方向键、全选等场景中无法选中的具体表现。
+  - 验收要点：明确问题发生在段落内联内容、表格单元格内联内容还是两者都受影响，并形成可复现步骤。
+
+- [x] P002: 梳理内联节点选择模型
+  - 验收要点：确认 `TextRun` 与 `InlineEmbed` 在文档 offset、渲染占位宽度、选区边界中的映射规则。
+  - 验收要点：定义 emoji 与 mention 的原子选择语义，即选区只能落在其前后边界，不能拆分到嵌入内容内部。
+
+- [x] P003: 修正命中测试与 offset 映射
+  - 验收要点：点击或拖拽落在 emoji、mention 可视区域时，能够稳定映射到对应内联原子单元的前后选择边界。
+  - 验收要点：拖拽选区跨过 emoji、mention 时，选区范围包含该内联节点，不再被跳过或截断。
+  - 验收要点：边界场景包括行首、行尾、连续多个内联嵌入、文本与嵌入相邻无空格。
+
+- [x] P004: 修正选区高亮与光标反馈
+  - 验收要点：emoji、mention 被选中时有清晰选区高亮或等效选中态，不出现高亮缺失、错位、宽度为 0 的情况。
+  - 验收要点：光标停在 emoji、mention 前后边界时位置正确，不覆盖相邻文本或跳到错误行。
+
+- [x] P005: 补充自动化回归测试
+  - 验收要点：新增或更新 widget 测试，覆盖 emoji、mention 的点击选择、拖拽跨选、键盘扩展选择。
+  - 验收要点：测试同时覆盖段落内混排与表格单元格内混排，避免只修复单一路径。
+  - 验收要点：测试断言 `DocumentSelection` 的 base、extent、offset 与预期一致。
+
+- [x] P006: 执行选择器相关回归验证
+  - 验收要点：`flutter test test/widgets/wenz_rich_text_editor_test.dart` 通过，或失败项被确认与本缺陷无关并记录原因。
+  - 验收要点：`flutter test test/core/selection_commands_test.dart` 通过，确保选择命令行为未被破坏。
+  - 验收要点：普通文本选择、块级对象选择、表格选择、代码块选择核心场景保持原有行为。
+
+- [x] P007: 更新缺陷进度与验证记录
+  - 验收要点：在进度记录中注明修复范围、验证命令、验证结果和遗留风险。
+  - 验收要点：如发现复制、删除、格式化等下游行为仍受内联嵌入影响，拆分为独立后续任务，不混入本次选择器修复。
+
+## 总体验收标准
+- 所有任务 checkbox 均完成，且每个任务的验收要点都有明确结论。
+- emoji 与 mention 在可视区域内可被正常点击定位、拖拽选中、键盘扩展纳入选区。
+- emoji 与 mention 作为原子内联单元参与选择，不产生半选、错位、跳选或无法显示选中态的问题。
+- 修复不回退普通文本、表格单元格、代码块、块级对象的既有选择能力。
+- 相关自动化测试通过；若存在非本次变更导致的失败，需在进度记录中说明失败命令、失败原因和处理建议。
+
+## 进度区
+- 当前状态：P001、P002、P003、P004、P005、P006、P007 已完成；emoji 与 mention 原子选择修复、自动化回归测试、选择器验证记录均已完成，普通文本、块级对象、表格、代码块核心选择场景未发现回退。
+- 当前负责人：开发执行者
+- 下一步：本计划所有任务已完成；如后续发现复制、删除、格式化等下游行为受内联嵌入影响，再拆分独立任务跟进。
+- P001 复现记录：使用最小混排内容 `A` + `emoji(😄)` + `B` + `mention(@bob)` + `C`；文档 offset 长度为 5，实际渲染文本 `A😄B@bobC` 的 UTF-16 长度为 9。
+- P001 段落边界：点击 mention 视觉中心后选区折叠到 offset 5，而预期只能落在 mention 原子边界 3/4；拖拽 emoji 视觉范围 `[1,3]` 后选区仍折叠在 offset 1，无法形成 emoji 原子选区 `[1,2]`；拖拽 mention 视觉范围 `[4,8]` 得到文档选区 `[4,5]`，实际选中尾部 `C`，不是 mention 原子 `[3,4]`。
+- P001 表格边界：同样的混排内容放入表格单元格后，点击 mention 视觉中心折叠到单元格 offset 5；拖拽 emoji 视觉范围仍折叠；拖拽 mention 视觉范围会把选区推出原 `r0c0` 单元格，出现 `r1c0` 路径，说明段落内联内容与表格单元格内联内容都受影响。
+- P001 键盘与全选观察：段落内从 mention 前 offset 3 执行 Shift+Right 可得到 `[3,4]`，干净核心命令状态下表格单元格也可得到 `[3,4]`；Ctrl+A 的逻辑选区为 `[0,5]`，但当前高亮绘制使用文档 offset 直接查询 `TextPainter`，推断视觉覆盖会截断在渲染文本 offset 5（`A😄B@`），存在全选高亮不完整风险。
+- P001 复现方式：曾使用临时 widget 诊断测试运行 `flutter test test/p001_inline_embed_repro_tmp_test.dart --reporter expanded`，仅打印上述结果且已删除临时文件；该诊断用例通过，但输出确认实际行为与原子内联选择预期不一致。
+- 风险记录：初步缺陷集中在 `InlineEmbed` 文档长度为 1，但 `_inlineEmbedSpanFor` 渲染为变长 `TextSpan`，命中测试和高亮绘制直接使用 `TextPainter` 的渲染 offset；后续需要校准文档 offset 与渲染 offset 映射，避免 emoji grapheme cluster、mention 文本长度和表格单元命中路径继续错位。
+- P002 文档长度规则：`TextRun` 的逻辑长度来自 `text.length`，即当前 Dart 字符串 UTF-16 code unit 长度；`InlineEmbed` 逻辑长度固定为 1；段落与表格单元格的 `textLength` 都由 `inlineNodesLength` 聚合得到，因此两条路径共享同一套文档 offset 模型。
+- P002 渲染长度规则：`TextRun` 直接渲染原文本；`InlineEmbed` 通过 `_inlineEmbedSpanFor` 渲染为 `TextSpan`，默认 mention 显示为 `@label` / `@id`，emoji 显示为 data 中的 `emoji` / `text` / `value` / `shortName` / `label`，自定义 `InlineEmbedRenderer` 也可能返回其它紧凑 `TextSpan`；因此每个 embed 的视觉宽度和 `TextPainter` offset 范围由渲染文本决定，不等于逻辑长度 1。
+- P002 当前映射缺口：命中测试 `_offsetForLocalPosition` 调用 `TextLayoutService.offsetAt`，直接使用 `TextPainter.getPositionForOffset` 的渲染 offset 并仅用逻辑 `textLength` clamp；caret、选区高亮、查找高亮和组合区矩形也直接把逻辑 offset 传给 `TextPainter`，缺少逻辑 offset 与渲染 offset 的转换层。
+- P002 原子选择语义：每个 `InlineEmbed` 占用逻辑区间 `[nodeStart, nodeStart + 1)`；合法折叠光标位置只能是该区间的前边界或后边界；非折叠选区只要包含该逻辑单元，就必须覆盖该 embed 的完整视觉渲染范围，不能产生落在 embed 内部的半选或内部 offset。
+- P002 映射规则结论：需要维护按 inline 节点累计的双向映射；`TextRun` 在现有模型下按 UTF-16 code unit 做逻辑/渲染一一映射；`InlineEmbed` 的逻辑前边界映射到 `renderStart`，逻辑后边界映射到 `renderEnd`，渲染内部命中应按视觉位置归一到前/后边界，选区盒与 caret 查询应先把逻辑边界转换为渲染边界。
+- P002 表格结论：表格单元格只是使用 `PositionPath.tableCellText` 与 `_hitLocalToTextLocal` 进入同一 `_TextSelectionSurface`，内联节点长度、span 构建、命中测试和绘制链路与普通段落一致；P003 修复必须同时覆盖段落和表格单元格，不应分叉出两套选择语义。
+- P003 修复记录：`_TextSelectionSurface` 现接收与实际 `InlineSpan` 同源生成的 `_InlineOffsetMapper`，命中测试先取 `TextPainter` 渲染 offset，再映射回文档 offset；`InlineEmbed` 渲染区间内部命中会按可视盒左右半区归一到原子前/后边界。
+- P003 覆盖范围：普通段落与表格单元格共用 `_inlineTextLayoutFor` 生成 span 与映射段；`TextRun` 保持 UTF-16 一一映射，`InlineEmbed` 保持逻辑长度 1、渲染长度取实际 span 文本长度；代码块使用 identity 映射，避免影响原有代码块选择。
+- P003 验证记录：已执行 `flutter analyze`，结果通过；未执行 P006 中的选择器回归测试，留待对应任务处理。
+- P004 修复记录：`_SelectionHighlightPainter`、`_CaretPainter`、本地 caret 几何与组合区矩形查询现在先将文档逻辑 offset 转换为 `TextPainter` 渲染 offset；emoji、mention 等 `InlineEmbed` 的逻辑原子区间会覆盖完整视觉文本，不再按逻辑长度 1 绘制高亮或 caret。
+- P004 验证记录：已执行 `flutter analyze lib/src/widgets/wenz_rich_text_editor.dart`，结果通过；未执行 P006 中的选择器回归测试，留待对应任务处理。
+- P005 测试记录：在 `test/widgets/wenz_rich_text_editor_test.dart` 新增段落与表格单元格混排 inline embed 回归用例，覆盖 emoji、mention 的点击定位、拖拽跨选与 Shift+Right 键盘扩展选择，并逐字段断言 `DocumentSelection` 的 base、extent、path、offset。
+- P005 验证记录：已执行聚焦命令 `flutter test test\widgets\wenz_rich_text_editor_test.dart --plain-name "inline embeds select atomically"`，结果通过；未执行 P006 要求的完整选择器回归命令，留待 P006 处理。
+- P006 验证记录：已执行 `flutter test test/widgets/wenz_rich_text_editor_test.dart`，78 项测试全部通过，覆盖普通文本选择、块级对象选择、表格选择、代码块选择以及 emoji、mention 原子选择回归。
+- P006 验证记录：已执行 `flutter test test/core/selection_commands_test.dart`，27 项测试全部通过，选择命令行为未发现回退。
+- P007 修复范围记录：本次收尾记录确认修复范围限定为 emoji、mention 等 `InlineEmbed` 在段落与表格单元格中的命中测试、offset 映射、选区高亮、caret 几何和选择回归测试，不混入复制、删除、格式化等下游命令改动。
+- P007 验证命令记录：沿用 P006 已完成的 `flutter test test/widgets/wenz_rich_text_editor_test.dart` 与 `flutter test test/core/selection_commands_test.dart` 作为本缺陷收尾验证依据。
+- P007 验证结果记录：widget 选择器回归 78 项通过，core 选择命令回归 27 项通过；普通文本选择、块级对象选择、表格选择、代码块选择以及 emoji、mention 原子选择未发现回退。
+- P007 遗留风险记录：当前验证未发现复制、删除、格式化等下游行为仍受内联嵌入影响；若后续用户反馈出现相关问题，按独立后续任务拆分，不并入本次选择器修复。
+
+
+**Creating a new plan file**
+
+I need to generate a new plan file that likely includes checkboxes, all unchecked, since the user only asks for the plan and not the implementation. Existing feedback #1 shows completion, so I’ll allow for tasks to be listed as pending. I'll also note the current date and time in the filename, which will be formatted accordingly. I must ensure the content is robust and written in UTF-8, so I might use PowerShell commands for this. I’ll check back to confirm the file was written correctly.
+**Developing a quality plan and criteria**
+
+I need to create a high-quality development plan with clear acceptance criteria. The tasks should cover several specific issues, like ensuring that text after mentions can't be selected, adjusting quote rendering, and managing table appearances correctly. Each task will include acceptance points. I should avoid discussing any business code and focus on the development steps and tests. Including sections for dependencies and risks, as well as checkboxes for tasks, will streamline the plan. I'll keep everything organized without modifying existing business code.
+**Updating file writing process**
+
+The developer indicated that I should use the `apply_patch` command when writing or modifying files. First, I need to draft the plan and ensure everything is checked before applying the patch. Using a here-doc might be helpful, and I could incorporate Markdown for clarity. I'll focus on making sure the `apply_patch` command is applied exactly as specified. This will help streamline the writing process and ensure the update is successful.
+codex
+现有计划结构已看过；我会按同样风格生成未执行版反馈计划。
+  ✓ 检查文档约定与目录
+  → 起草反馈开发计划
+  • 写入指定计划文件
+  • 核对格式与范围
+codex
+计划草案已成型；现在写入指定 Markdown 文件。
+  ✓ 检查文档约定与目录
+  ✓ 起草反馈开发计划
+  → 写入指定计划文件
+  • 核对格式与范围
+apply patch
+patch: completed
+D:\project\GitHub\wenz_flutter\wenz_richtext\docs\plan\plan_feedback_2_20260625-004108.md
+diff --git a/wenz_richtext/docs/plan/plan_feedback_2_20260625-004108.md b/wenz_richtext/docs/plan/plan_feedback_2_20260625-004108.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..f098d147c583b170a2de4bec86090467cff5204a
+--- /dev/null
++++ b/wenz_richtext/docs/plan/plan_feedback_2_20260625-004108.md
+@@ -0,0 +1,97 @@
++# 开发计划：反馈 #2 富文本渲染与选择体验优化
++
++## 来源
++- 类型：用户反馈
++- 编号：#2
++- 生成时间：2026-06-25 00:41:08
++- 原始反馈：
++  1. @提及后面的文字无法被选择
++  2. 引言内容渲染方式优化一下，用背景块颜色背景的方式渲染引言内容
++  3. todo内容优化一下，用checkbox切换todo完成状态
++  4. info卡片目前无法被选择
++  5. 表格工具栏应该在表格上方，而不是在表格下方，占用内容
++  6. 表格边框除了最边缘，内部的边框存在重复绘制，显示2条线
++  7. 公式渲染要用特殊组件渲染，目前只是显示了文字，参考gpt_markdown项目优化
++
++## 问题理解
++- 本次反馈覆盖选择模型、块级渲染、交互控件、表格浮层、表格绘制和公式渲染多个方向，需要按模块拆分并逐项验证。
++- `@mention` 后续文字和 `info` 卡片无法选择，说明当前选择命中测试、块级/内联节点 offset 映射或不可选组件包裹策略仍存在遗漏。
++- 引言、todo、info、公式属于富文本语义节点，需要在保持文档模型稳定的前提下优化视觉与交互，不应只做纯样式遮罩。
++- 表格工具栏和边框问题属于布局与绘制体验缺陷，需要避免工具栏占用正文流空间，并统一边框绘制责任以消除内部双线。
++
++## 任务计划
++- [ ] P001: 复现并冻结反馈用例
++  - 验收要点：构造包含 `@mention` 后续文字、引言、todo、info 卡片、表格、公式的最小富文本文档，并记录当前异常表现。
++  - 验收要点：分别覆盖段落内、表格单元格内、块级节点相邻三类场景，确认每个反馈项的可复现步骤和预期结果。
++  - 验收要点：输出问题边界，明确哪些属于选择器缺陷、哪些属于渲染样式缺陷、哪些属于交互行为缺陷。
++
++- [ ] P002: 修复 `@mention` 后续文字选择
++  - 验收要点：鼠标拖拽从 `@mention` 前、中、后任意位置跨过后续文字时，后续普通文本可稳定纳入选区。
++  - 验收要点：点击或键盘移动到 `@mention` 后方时，光标能够落在 mention 原子节点后边界与后续文字之间，不出现跳过文字或选区截断。
++  - 验收要点：`@mention` 自身仍按原子内联节点处理，不产生半选、错位高亮或 offset 越界。
++  - 验收要点：同样场景在普通段落与表格单元格中行为一致。
++
++- [ ] P003: 优化引言背景块渲染
++  - 验收要点：引言内容使用背景块方式渲染，具备稳定背景色、内边距、圆角或边界样式，视觉上与普通段落明确区分。
++  - 验收要点：引言块内的普通文本、内联样式、链接、mention、emoji 等内容仍可正常布局、选择、复制。
++  - 验收要点：多行引言、空引言、相邻引言和引言后接普通段落的间距符合预期，不出现背景断裂或内容裁切。
++  - 验收要点：引言样式兼容亮色/暗色或主题色配置，不硬编码导致低对比度。
++
++- [ ] P004: 使用 checkbox 切换 todo 状态
++  - 验收要点：todo 节点左侧显示可交互 checkbox，点击 checkbox 能在完成/未完成状态之间切换。
++  - 验收要点：切换后文档模型、回调事件和界面状态保持一致，重新渲染后 todo 状态不丢失。
++  - 验收要点：todo 文本内容仍可被点击定位、拖拽选择和复制，checkbox 点击不误触发文本选择。
++  - 验收要点：完成态样式明确，例如勾选态、文字弱化或删除线，并与主题颜色保持一致。
++
++- [ ] P005: 修复 info 卡片选择能力
++  - 验收要点：info 卡片内文本支持点击定位、拖拽选择、键盘扩展选择和复制。
++  - 验收要点：从卡片外拖拽进入卡片、从卡片内拖拽到卡片外时，选区连续且不会丢失卡片内容。
++  - 验收要点：info 卡片作为块级节点时可被整体选中或纳入跨块选区，选中态反馈清晰。
++  - 验收要点：卡片背景、图标、边框等装饰元素不干扰文本命中测试。
++
++- [ ] P006: 将表格工具栏移动到表格上方
++  - 验收要点：选中或聚焦表格时，表格工具栏显示在表格上方，而不是插入表格下方占用正文内容空间。
++  - 验收要点：工具栏位置随表格滚动、缩放和编辑器重排保持对齐，不遮挡当前单元格主要编辑区域。
++  - 验收要点：当表格位于视口顶部空间不足时，有合理避让策略，例如贴近顶部或临时显示在可见区域内。
++  - 验收要点：工具栏按钮点击、悬停、失焦隐藏逻辑保持可用，不引入表格选择丢失或焦点抖动。
++
++- [ ] P007: 消除表格内部边框重复绘制
++  - 验收要点：表格内部横线和竖线只绘制一次，视觉上不再出现两条重叠线或双倍粗细线。
++  - 验收要点：表格最外侧边框保持完整，内部边框与外边框粗细、颜色、抗锯齿表现一致。
++  - 验收要点：不同单元格尺寸、合并单元格、选中态、hover 态和编辑态下均不恢复重复边框。
++  - 验收要点：边框绘制责任清晰，避免父表格、行、单元格同时绘制同一条内部边。
++
++- [ ] P008: 使用专用组件渲染公式
++  - 验收要点：公式节点不再仅显示原始文本，而是使用专用公式渲染组件展示数学排版效果。
++  - 验收要点：同时覆盖行内公式和块级公式，二者在基线、换行、居中、间距和选择行为上符合富文本编辑预期。
++  - 验收要点：调研并参考 `gpt_markdown` 项目的公式渲染思路，明确可复用方案、依赖成本和兼容性风险。
++  - 验收要点：公式解析失败时提供安全降级显示，保留原始公式文本或错误提示，不导致编辑器崩溃。
++  - 验收要点：公式内容参与复制时保留可还原的源文本，避免只复制渲染后的不可编辑内容。
++
++- [ ] P009: 补充自动化回归测试
++  - 验收要点：新增或更新 widget 测试覆盖 mention 后续文字选择、info 卡片选择、todo checkbox 切换、表格工具栏位置和公式渲染。
++  - 验收要点：新增或更新渲染/绘制相关测试，验证引言背景块和表格内部边框不会回退。
++  - 验收要点：测试断言关键文档状态、选择范围、组件类型和可见布局位置，而不只校验快照存在。
++  - 验收要点：若某些视觉细节不适合自动化断言，需补充明确的人工验收步骤和截图比对要求。
++
++- [ ] P010: 执行回归验证并更新记录
++  - 验收要点：执行 `flutter analyze`，结果通过；如失败需确认是否与本次变更相关并记录处理结论。
++  - 验收要点：执行富文本编辑器相关 widget 测试和选择器相关 core 测试，结果通过或记录非本次变更导致的失败原因。
++  - 验收要点：在进度区补充每个任务的修复范围、验证命令、验证结果、遗留风险和后续建议。
++  - 验收要点：确认本次变更未修改无关业务逻辑，未引入与反馈无关的功能范围扩张。
++
++## 总体验收标准
++- 所有任务 checkbox 均完成，且每个任务的验收要点都有明确结论或验证记录。
++- `@mention` 后续文字与 `info` 卡片内容可被正常点击定位、拖拽选择、键盘扩展选择和复制。
++- 引言使用背景块样式渲染，todo 使用 checkbox 切换完成状态，公式使用专用组件渲染而不是纯文本展示。
++- 表格工具栏显示在表格上方且不占用正文流空间，表格内部边框不再重复绘制成双线。
++- 普通段落、表格单元格、代码块、块级对象等既有选择和编辑行为未出现回退。
++- 自动化验证通过；若存在非本次变更导致的失败，需在进度区记录失败命令、失败原因、影响判断和建议处理方式。
++
++## 进度区
++- 当前状态：计划已创建，P001-P010 均未开始。
++- 当前负责人：待开发执行者领取。
++- 下一步：从 P001 开始复现并冻结最小用例，再按选择、渲染、表格、公式模块分批实现和验证。
++- 验证记录：暂无，待开发完成后补充 `flutter analyze`、相关 `flutter test` 命令和结果。
++- 风险记录：公式专用渲染组件可能引入新依赖或平台兼容成本；表格工具栏浮层位置可能受滚动容器、视口边界和焦点管理影响；选择模型调整需重点防止普通文本和表格选择回退。
++
+
+diff --git a/wenz_richtext/docs/plan/plan_feedback_2_20260625-004108.md b/wenz_richtext/docs/plan/plan_feedback_2_20260625-004108.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..f098d147c583b170a2de4bec86090467cff5204a
+--- /dev/null
++++ b/wenz_richtext/docs/plan/plan_feedback_2_20260625-004108.md
+@@ -0,0 +1,97 @@
++# 开发计划：反馈 #2 富文本渲染与选择体验优化
++
++## 来源
++- 类型：用户反馈
++- 编号：#2
++- 生成时间：2026-06-25 00:41:08
++- 原始反馈：
++  1. @提及后面的文字无法被选择
++  2. 引言内容渲染方式优化一下，用背景块颜色背景的方式渲染引言内容
++  3. todo内容优化一下，用checkbox切换todo完成状态
++  4. info卡片目前无法被选择
++  5. 表格工具栏应该在表格上方，而不是在表格下方，占用内容
++  6. 表格边框除了最边缘，内部的边框存在重复绘制，显示2条线
++  7. 公式渲染要用特殊组件渲染，目前只是显示了文字，参考gpt_markdown项目优化
++
++## 问题理解
++- 本次反馈覆盖选择模型、块级渲染、交互控件、表格浮层、表格绘制和公式渲染多个方向，需要按模块拆分并逐项验证。
++- `@mention` 后续文字和 `info` 卡片无法选择，说明当前选择命中测试、块级/内联节点 offset 映射或不可选组件包裹策略仍存在遗漏。
++- 引言、todo、info、公式属于富文本语义节点，需要在保持文档模型稳定的前提下优化视觉与交互，不应只做纯样式遮罩。
++- 表格工具栏和边框问题属于布局与绘制体验缺陷，需要避免工具栏占用正文流空间，并统一边框绘制责任以消除内部双线。
++
++## 任务计划
++- [ ] P001: 复现并冻结反馈用例
++  - 验收要点：构造包含 `@mention` 后续文字、引言、todo、info 卡片、表格、公式的最小富文本文档，并记录当前异常表现。
++  - 验收要点：分别覆盖段落内、表格单元格内、块级节点相邻三类场景，确认每个反馈项的可复现步骤和预期结果。
++  - 验收要点：输出问题边界，明确哪些属于选择器缺陷、哪些属于渲染样式缺陷、哪些属于交互行为缺陷。
++
++- [ ] P002: 修复 `@mention` 后续文字选择
++  - 验收要点：鼠标拖拽从 `@mention` 前、中、后任意位置跨过后续文字时，后续普通文本可稳定纳入选区。
++  - 验收要点：点击或键盘移动到 `@mention` 后方时，光标能够落在 mention 原子节点后边界与后续文字之间，不出现跳过文字或选区截断。
++  - 验收要点：`@mention` 自身仍按原子内联节点处理，不产生半选、错位高亮或 offset 越界。
++  - 验收要点：同样场景在普通段落与表格单元格中行为一致。
++
++- [ ] P003: 优化引言背景块渲染
++  - 验收要点：引言内容使用背景块方式渲染，具备稳定背景色、内边距、圆角或边界样式，视觉上与普通段落明确区分。
++  - 验收要点：引言块内的普通文本、内联样式、链接、mention、emoji 等内容仍可正常布局、选择、复制。
++  - 验收要点：多行引言、空引言、相邻引言和引言后接普通段落的间距符合预期，不出现背景断裂或内容裁切。
++  - 验收要点：引言样式兼容亮色/暗色或主题色配置，不硬编码导致低对比度。
++
++- [ ] P004: 使用 checkbox 切换 todo 状态
++  - 验收要点：todo 节点左侧显示可交互 checkbox，点击 checkbox 能在完成/未完成状态之间切换。
++  - 验收要点：切换后文档模型、回调事件和界面状态保持一致，重新渲染后 todo 状态不丢失。
++  - 验收要点：todo 文本内容仍可被点击定位、拖拽选择和复制，checkbox 点击不误触发文本选择。
++  - 验收要点：完成态样式明确，例如勾选态、文字弱化或删除线，并与主题颜色保持一致。
++
++- [ ] P005: 修复 info 卡片选择能力
++  - 验收要点：info 卡片内文本支持点击定位、拖拽选择、键盘扩展选择和复制。
++  - 验收要点：从卡片外拖拽进入卡片、从卡片内拖拽到卡片外时，选区连续且不会丢失卡片内容。
++  - 验收要点：info 卡片作为块级节点时可被整体选中或纳入跨块选区，选中态反馈清晰。
++  - 验收要点：卡片背景、图标、边框等装饰元素不干扰文本命中测试。
++
++- [ ] P006: 将表格工具栏移动到表格上方
++  - 验收要点：选中或聚焦表格时，表格工具栏显示在表格上方，而不是插入表格下方占用正文内容空间。
++  - 验收要点：工具栏位置随表格滚动、缩放和编辑器重排保持对齐，不遮挡当前单元格主要编辑区域。
++  - 验收要点：当表格位于视口顶部空间不足时，有合理避让策略，例如贴近顶部或临时显示在可见区域内。
++  - 验收要点：工具栏按钮点击、悬停、失焦隐藏逻辑保持可用，不引入表格选择丢失或焦点抖动。
++
++- [ ] P007: 消除表格内部边框重复绘制
++  - 验收要点：表格内部横线和竖线只绘制一次，视觉上不再出现两条重叠线或双倍粗细线。
++  - 验收要点：表格最外侧边框保持完整，内部边框与外边框粗细、颜色、抗锯齿表现一致。
++  - 验收要点：不同单元格尺寸、合并单元格、选中态、hover 态和编辑态下均不恢复重复边框。
++  - 验收要点：边框绘制责任清晰，避免父表格、行、单元格同时绘制同一条内部边。
++
++- [ ] P008: 使用专用组件渲染公式
++  - 验收要点：公式节点不再仅显示原始文本，而是使用专用公式渲染组件展示数学排版效果。
++  - 验收要点：同时覆盖行内公式和块级公式，二者在基线、换行、居中、间距和选择行为上符合富文本编辑预期。
++  - 验收要点：调研并参考 `gpt_markdown` 项目的公式渲染思路，明确可复用方案、依赖成本和兼容性风险。
++  - 验收要点：公式解析失败时提供安全降级显示，保留原始公式文本或错误提示，不导致编辑器崩溃。
++  - 验收要点：公式内容参与复制时保留可还原的源文本，避免只复制渲染后的不可编辑内容。
++
++- [ ] P009: 补充自动化回归测试
++  - 验收要点：新增或更新 widget 测试覆盖 mention 后续文字选择、info 卡片选择、todo checkbox 切换、表格工具栏位置和公式渲染。
++  - 验收要点：新增或更新渲染/绘制相关测试，验证引言背景块和表格内部边框不会回退。
++  - 验收要点：测试断言关键文档状态、选择范围、组件类型和可见布局位置，而不只校验快照存在。
++  - 验收要点：若某些视觉细节不适合自动化断言，需补充明确的人工验收步骤和截图比对要求。
++
++- [ ] P010: 执行回归验证并更新记录
++  - 验收要点：执行 `flutter analyze`，结果通过；如失败需确认是否与本次变更相关并记录处理结论。
++  - 验收要点：执行富文本编辑器相关 widget 测试和选择器相关 core 测试，结果通过或记录非本次变更导致的失败原因。
++  - 验收要点：在进度区补充每个任务的修复范围、验证命令、验证结果、遗留风险和后续建议。
++  - 验收要点：确认本次变更未修改无关业务逻辑，未引入与反馈无关的功能范围扩张。
++
++## 总体验收标准
++- 所有任务 checkbox 均完成，且每个任务的验收要点都有明确结论或验证记录。
++- `@mention` 后续文字与 `info` 卡片内容可被正常点击定位、拖拽选择、键盘扩展选择和复制。
++- 引言使用背景块样式渲染，todo 使用 checkbox 切换完成状态，公式使用专用组件渲染而不是纯文本展示。
++- 表格工具栏显示在表格上方且不占用正文流空间，表格内部边框不再重复绘制成双线。
++- 普通段落、表格单元格、代码块、块级对象等既有选择和编辑行为未出现回退。
++- 自动化验证通过；若存在非本次变更导致的失败，需在进度区记录失败命令、失败原因、影响判断和建议处理方式。
++
++## 进度区
++- 当前状态：计划已创建，P001-P010 均未开始。
++- 当前负责人：待开发执行者领取。
++- 下一步：从 P001 开始复现并冻结最小用例，再按选择、渲染、表格、公式模块分批实现和验证。
++- 验证记录：暂无，待开发完成后补充 `flutter analyze`、相关 `flutter test` 命令和结果。
++- 风险记录：公式专用渲染组件可能引入新依赖或平台兼容成本；表格工具栏浮层位置可能受滚动容器、视口边界和焦点管理影响；选择模型调整需重点防止普通文本和表格选择回退。
++
+
+**Verifying tool usage**
+
+I'm seeing a warning about using the apply_patch tool instead of exec_command, but it looks like the apply_patch command is the right one according to the developer. I need to verify this and update my plan accordingly. I'll run the content and possibly use rg to check for any modifications in business code. It seems wise to check with git diff to focus just on the specific file I need, and I’ll remember to add a preamble.
+codex
+文件已写入；最后核对 Markdown 结构和变更范围。
+  ✓ 检查文档约定与目录
+  ✓ 起草反馈开发计划
+  ✓ 写入指定计划文件
+  → 核对格式与范围
+diff --git a/wenz_richtext/docs/plan/plan_feedback_2_20260625-004108.md b/wenz_richtext/docs/plan/plan_feedback_2_20260625-004108.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..f098d147c583b170a2de4bec86090467cff5204a
+--- /dev/null
++++ b/wenz_richtext/docs/plan/plan_feedback_2_20260625-004108.md
+@@ -0,0 +1,97 @@
++# 开发计划：反馈 #2 富文本渲染与选择体验优化
++
++## 来源
++- 类型：用户反馈
++- 编号：#2
++- 生成时间：2026-06-25 00:41:08
++- 原始反馈：
++  1. @提及后面的文字无法被选择
++  2. 引言内容渲染方式优化一下，用背景块颜色背景的方式渲染引言内容
++  3. todo内容优化一下，用checkbox切换todo完成状态
++  4. info卡片目前无法被选择
++  5. 表格工具栏应该在表格上方，而不是在表格下方，占用内容
++  6. 表格边框除了最边缘，内部的边框存在重复绘制，显示2条线
++  7. 公式渲染要用特殊组件渲染，目前只是显示了文字，参考gpt_markdown项目优化
++
++## 问题理解
++- 本次反馈覆盖选择模型、块级渲染、交互控件、表格浮层、表格绘制和公式渲染多个方向，需要按模块拆分并逐项验证。
++- `@mention` 后续文字和 `info` 卡片无法选择，说明当前选择命中测试、块级/内联节点 offset 映射或不可选组件包裹策略仍存在遗漏。
++- 引言、todo、info、公式属于富文本语义节点，需要在保持文档模型稳定的前提下优化视觉与交互，不应只做纯样式遮罩。
++- 表格工具栏和边框问题属于布局与绘制体验缺陷，需要避免工具栏占用正文流空间，并统一边框绘制责任以消除内部双线。
++
++## 任务计划
++- [ ] P001: 复现并冻结反馈用例
++  - 验收要点：构造包含 `@mention` 后续文字、引言、todo、info 卡片、表格、公式的最小富文本文档，并记录当前异常表现。
++  - 验收要点：分别覆盖段落内、表格单元格内、块级节点相邻三类场景，确认每个反馈项的可复现步骤和预期结果。
++  - 验收要点：输出问题边界，明确哪些属于选择器缺陷、哪些属于渲染样式缺陷、哪些属于交互行为缺陷。
++
++- [ ] P002: 修复 `@mention` 后续文字选择
++  - 验收要点：鼠标拖拽从 `@mention` 前、中、后任意位置跨过后续文字时，后续普通文本可稳定纳入选区。
++  - 验收要点：点击或键盘移动到 `@mention` 后方时，光标能够落在 mention 原子节点后边界与后续文字之间，不出现跳过文字或选区截断。
++  - 验收要点：`@mention` 自身仍按原子内联节点处理，不产生半选、错位高亮或 offset 越界。
++  - 验收要点：同样场景在普通段落与表格单元格中行为一致。
++
++- [ ] P003: 优化引言背景块渲染
++  - 验收要点：引言内容使用背景块方式渲染，具备稳定背景色、内边距、圆角或边界样式，视觉上与普通段落明确区分。
++  - 验收要点：引言块内的普通文本、内联样式、链接、mention、emoji 等内容仍可正常布局、选择、复制。
++  - 验收要点：多行引言、空引言、相邻引言和引言后接普通段落的间距符合预期，不出现背景断裂或内容裁切。
++  - 验收要点：引言样式兼容亮色/暗色或主题色配置，不硬编码导致低对比度。
++
++- [ ] P004: 使用 checkbox 切换 todo 状态
++  - 验收要点：todo 节点左侧显示可交互 checkbox，点击 checkbox 能在完成/未完成状态之间切换。
++  - 验收要点：切换后文档模型、回调事件和界面状态保持一致，重新渲染后 todo 状态不丢失。
++  - 验收要点：todo 文本内容仍可被点击定位、拖拽选择和复制，checkbox 点击不误触发文本选择。
++  - 验收要点：完成态样式明确，例如勾选态、文字弱化或删除线，并与主题颜色保持一致。
++
++- [ ] P005: 修复 info 卡片选择能力
++  - 验收要点：info 卡片内文本支持点击定位、拖拽选择、键盘扩展选择和复制。
++  - 验收要点：从卡片外拖拽进入卡片、从卡片内拖拽到卡片外时，选区连续且不会丢失卡片内容。
++  - 验收要点：info 卡片作为块级节点时可被整体选中或纳入跨块选区，选中态反馈清晰。
++  - 验收要点：卡片背景、图标、边框等装饰元素不干扰文本命中测试。
++
++- [ ] P006: 将表格工具栏移动到表格上方
++  - 验收要点：选中或聚焦表格时，表格工具栏显示在表格上方，而不是插入表格下方占用正文内容空间。
++  - 验收要点：工具栏位置随表格滚动、缩放和编辑器重排保持对齐，不遮挡当前单元格主要编辑区域。
++  - 验收要点：当表格位于视口顶部空间不足时，有合理避让策略，例如贴近顶部或临时显示在可见区域内。
++  - 验收要点：工具栏按钮点击、悬停、失焦隐藏逻辑保持可用，不引入表格选择丢失或焦点抖动。
++
++- [ ] P007: 消除表格内部边框重复绘制
++  - 验收要点：表格内部横线和竖线只绘制一次，视觉上不再出现两条重叠线或双倍粗细线。
++  - 验收要点：表格最外侧边框保持完整，内部边框与外边框粗细、颜色、抗锯齿表现一致。
++  - 验收要点：不同单元格尺寸、合并单元格、选中态、hover 态和编辑态下均不恢复重复边框。
++  - 验收要点：边框绘制责任清晰，避免父表格、行、单元格同时绘制同一条内部边。
++
++- [ ] P008: 使用专用组件渲染公式
++  - 验收要点：公式节点不再仅显示原始文本，而是使用专用公式渲染组件展示数学排版效果。
++  - 验收要点：同时覆盖行内公式和块级公式，二者在基线、换行、居中、间距和选择行为上符合富文本编辑预期。
++  - 验收要点：调研并参考 `gpt_markdown` 项目的公式渲染思路，明确可复用方案、依赖成本和兼容性风险。
++  - 验收要点：公式解析失败时提供安全降级显示，保留原始公式文本或错误提示，不导致编辑器崩溃。
++  - 验收要点：公式内容参与复制时保留可还原的源文本，避免只复制渲染后的不可编辑内容。
++
++- [ ] P009: 补充自动化回归测试
++  - 验收要点：新增或更新 widget 测试覆盖 mention 后续文字选择、info 卡片选择、todo checkbox 切换、表格工具栏位置和公式渲染。
++  - 验收要点：新增或更新渲染/绘制相关测试，验证引言背景块和表格内部边框不会回退。
++  - 验收要点：测试断言关键文档状态、选择范围、组件类型和可见布局位置，而不只校验快照存在。
++  - 验收要点：若某些视觉细节不适合自动化断言，需补充明确的人工验收步骤和截图比对要求。
++
++- [ ] P010: 执行回归验证并更新记录
++  - 验收要点：执行 `flutter analyze`，结果通过；如失败需确认是否与本次变更相关并记录处理结论。
++  - 验收要点：执行富文本编辑器相关 widget 测试和选择器相关 core 测试，结果通过或记录非本次变更导致的失败原因。
++  - 验收要点：在进度区补充每个任务的修复范围、验证命令、验证结果、遗留风险和后续建议。
++  - 验收要点：确认本次变更未修改无关业务逻辑，未引入与反馈无关的功能范围扩张。
++
++## 总体验收标准
++- 所有任务 checkbox 均完成，且每个任务的验收要点都有明确结论或验证记录。
++- `@mention` 后续文字与 `info` 卡片内容可被正常点击定位、拖拽选择、键盘扩展选择和复制。
++- 引言使用背景块样式渲染，todo 使用 checkbox 切换完成状态，公式使用专用组件渲染而不是纯文本展示。
++- 表格工具栏显示在表格上方且不占用正文流空间，表格内部边框不再重复绘制成双线。
++- 普通段落、表格单元格、代码块、块级对象等既有选择和编辑行为未出现回退。
++- 自动化验证通过；若存在非本次变更导致的失败，需在进度区记录失败命令、失败原因、影响判断和建议处理方式。
++
++## 进度区
++- 当前状态：计划已创建，P001-P010 均未开始。
++- 当前负责人：待开发执行者领取。
++- 下一步：从 P001 开始复现并冻结最小用例，再按选择、渲染、表格、公式模块分批实现和验证。
++- 验证记录：暂无，待开发完成后补充 `flutter analyze`、相关 `flutter test` 命令和结果。
++- 风险记录：公式专用渲染组件可能引入新依赖或平台兼容成本；表格工具栏浮层位置可能受滚动容器、视口边界和焦点管理影响；选择模型调整需重点防止普通文本和表格选择回退。
++
+
+exec
+powershell.exe -Command '$path='"'docs\\plan\\plan_feedback_2_20260625-004108.md'; Write-Host '--- file exists ---'; Test-Path "'$path; Write-Host '"'--- checkbox tasks ---'; Select-String -Path "'$path -Encoding UTF8 -Pattern '"'"'^- '"\\[ \\] P\\d{3}:' | ForEach-Object { "'$_.Line }; Write-Host '"'--- required sections ---'; Select-String -Path "'$path -Encoding UTF8 -Pattern '"'"'^## 总体验收标准$|''^## 进度区$'"' | ForEach-Object { "'$_.Line }; Write-Host '"'--- git status ---'; git status --short" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 305ms:
+--- file exists ---
+True
+--- checkbox tasks ---
+- [ ] P001: 复现并冻结反馈用例
+- [ ] P002: 修复 `@mention` 后续文字选择
+- [ ] P003: 优化引言背景块渲染
+- [ ] P004: 使用 checkbox 切换 todo 状态
+- [ ] P005: 修复 info 卡片选择能力
+- [ ] P006: 将表格工具栏移动到表格上方
+- [ ] P007: 消除表格内部边框重复绘制
+- [ ] P008: 使用专用组件渲染公式
+- [ ] P009: 补充自动化回归测试
+- [ ] P010: 执行回归验证并更新记录
+--- required sections ---
+## 总体验收标准
+## 进度区
+--- git status ---
+ M .codegraph/daemon.pid
+ M lib/src/widgets/block_renderer_registry.dart
+ M lib/src/widgets/comment_sidebar.dart
+ M lib/src/widgets/wenz_rich_text_editor.dart
+ M test/widgets/goldens/editor_blocks.png
+ M test/widgets/import_export_demo_test.dart
+ M test/widgets/wenz_rich_text_editor_test.dart
+?? docs/plan/
+?? docs/progress/logs/
+?? nul
+?? test/widgets/goldens/editor_advanced_blocks.png
+
+diff --git a/wenz_richtext/docs/plan/plan_feedback_2_20260625-004108.md b/wenz_richtext/docs/plan/plan_feedback_2_20260625-004108.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..f098d147c583b170a2de4bec86090467cff5204a
+--- /dev/null
++++ b/wenz_richtext/docs/plan/plan_feedback_2_20260625-004108.md
+@@ -0,0 +1,97 @@
++# 开发计划：反馈 #2 富文本渲染与选择体验优化
++
++## 来源
++- 类型：用户反馈
++- 编号：#2
++- 生成时间：2026-06-25 00:41:08
++- 原始反馈：
++  1. @提及后面的文字无法被选择
++  2. 引言内容渲染方式优化一下，用背景块颜色背景的方式渲染引言内容
++  3. todo内容优化一下，用checkbox切换todo完成状态
++  4. info卡片目前无法被选择
++  5. 表格工具栏应该在表格上方，而不是在表格下方，占用内容
++  6. 表格边框除了最边缘，内部的边框存在重复绘制，显示2条线
++  7. 公式渲染要用特殊组件渲染，目前只是显示了文字，参考gpt_markdown项目优化
++
++## 问题理解
++- 本次反馈覆盖选择模型、块级渲染、交互控件、表格浮层、表格绘制和公式渲染多个方向，需要按模块拆分并逐项验证。
++- `@mention` 后续文字和 `info` 卡片无法选择，说明当前选择命中测试、块级/内联节点 offset 映射或不可选组件包裹策略仍存在遗漏。
++- 引言、todo、info、公式属于富文本语义节点，需要在保持文档模型稳定的前提下优化视觉与交互，不应只做纯样式遮罩。
++- 表格工具栏和边框问题属于布局与绘制体验缺陷，需要避免工具栏占用正文流空间，并统一边框绘制责任以消除内部双线。
++
++## 任务计划
++- [ ] P001: 复现并冻结反馈用例
++  - 验收要点：构造包含 `@mention` 后续文字、引言、todo、info 卡片、表格、公式的最小富文本文档，并记录当前异常表现。
++  - 验收要点：分别覆盖段落内、表格单元格内、块级节点相邻三类场景，确认每个反馈项的可复现步骤和预期结果。
++  - 验收要点：输出问题边界，明确哪些属于选择器缺陷、哪些属于渲染样式缺陷、哪些属于交互行为缺陷。
++
++- [ ] P002: 修复 `@mention` 后续文字选择
++  - 验收要点：鼠标拖拽从 `@mention` 前、中、后任意位置跨过后续文字时，后续普通文本可稳定纳入选区。
++  - 验收要点：点击或键盘移动到 `@mention` 后方时，光标能够落在 mention 原子节点后边界与后续文字之间，不出现跳过文字或选区截断。
++  - 验收要点：`@mention` 自身仍按原子内联节点处理，不产生半选、错位高亮或 offset 越界。
++  - 验收要点：同样场景在普通段落与表格单元格中行为一致。
++
++- [ ] P003: 优化引言背景块渲染
++  - 验收要点：引言内容使用背景块方式渲染，具备稳定背景色、内边距、圆角或边界样式，视觉上与普通段落明确区分。
++  - 验收要点：引言块内的普通文本、内联样式、链接、mention、emoji 等内容仍可正常布局、选择、复制。
++  - 验收要点：多行引言、空引言、相邻引言和引言后接普通段落的间距符合预期，不出现背景断裂或内容裁切。
++  - 验收要点：引言样式兼容亮色/暗色或主题色配置，不硬编码导致低对比度。
++
++- [ ] P004: 使用 checkbox 切换 todo 状态
++  - 验收要点：todo 节点左侧显示可交互 checkbox，点击 checkbox 能在完成/未完成状态之间切换。
++  - 验收要点：切换后文档模型、回调事件和界面状态保持一致，重新渲染后 todo 状态不丢失。
++  - 验收要点：todo 文本内容仍可被点击定位、拖拽选择和复制，checkbox 点击不误触发文本选择。
++  - 验收要点：完成态样式明确，例如勾选态、文字弱化或删除线，并与主题颜色保持一致。
++
++- [ ] P005: 修复 info 卡片选择能力
++  - 验收要点：info 卡片内文本支持点击定位、拖拽选择、键盘扩展选择和复制。
++  - 验收要点：从卡片外拖拽进入卡片、从卡片内拖拽到卡片外时，选区连续且不会丢失卡片内容。
++  - 验收要点：info 卡片作为块级节点时可被整体选中或纳入跨块选区，选中态反馈清晰。
++  - 验收要点：卡片背景、图标、边框等装饰元素不干扰文本命中测试。
++
++- [ ] P006: 将表格工具栏移动到表格上方
++  - 验收要点：选中或聚焦表格时，表格工具栏显示在表格上方，而不是插入表格下方占用正文内容空间。
++  - 验收要点：工具栏位置随表格滚动、缩放和编辑器重排保持对齐，不遮挡当前单元格主要编辑区域。
++  - 验收要点：当表格位于视口顶部空间不足时，有合理避让策略，例如贴近顶部或临时显示在可见区域内。
++  - 验收要点：工具栏按钮点击、悬停、失焦隐藏逻辑保持可用，不引入表格选择丢失或焦点抖动。
++
++- [ ] P007: 消除表格内部边框重复绘制
++  - 验收要点：表格内部横线和竖线只绘制一次，视觉上不再出现两条重叠线或双倍粗细线。
++  - 验收要点：表格最外侧边框保持完整，内部边框与外边框粗细、颜色、抗锯齿表现一致。
++  - 验收要点：不同单元格尺寸、合并单元格、选中态、hover 态和编辑态下均不恢复重复边框。
++  - 验收要点：边框绘制责任清晰，避免父表格、行、单元格同时绘制同一条内部边。
++
++- [ ] P008: 使用专用组件渲染公式
++  - 验收要点：公式节点不再仅显示原始文本，而是使用专用公式渲染组件展示数学排版效果。
++  - 验收要点：同时覆盖行内公式和块级公式，二者在基线、换行、居中、间距和选择行为上符合富文本编辑预期。
++  - 验收要点：调研并参考 `gpt_markdown` 项目的公式渲染思路，明确可复用方案、依赖成本和兼容性风险。
++  - 验收要点：公式解析失败时提供安全降级显示，保留原始公式文本或错误提示，不导致编辑器崩溃。
++  - 验收要点：公式内容参与复制时保留可还原的源文本，避免只复制渲染后的不可编辑内容。
++
++- [ ] P009: 补充自动化回归测试
++  - 验收要点：新增或更新 widget 测试覆盖 mention 后续文字选择、info 卡片选择、todo checkbox 切换、表格工具栏位置和公式渲染。
++  - 验收要点：新增或更新渲染/绘制相关测试，验证引言背景块和表格内部边框不会回退。
++  - 验收要点：测试断言关键文档状态、选择范围、组件类型和可见布局位置，而不只校验快照存在。
++  - 验收要点：若某些视觉细节不适合自动化断言，需补充明确的人工验收步骤和截图比对要求。
++
++- [ ] P010: 执行回归验证并更新记录
++  - 验收要点：执行 `flutter analyze`，结果通过；如失败需确认是否与本次变更相关并记录处理结论。
++  - 验收要点：执行富文本编辑器相关 widget 测试和选择器相关 core 测试，结果通过或记录非本次变更导致的失败原因。
++  - 验收要点：在进度区补充每个任务的修复范围、验证命令、验证结果、遗留风险和后续建议。
++  - 验收要点：确认本次变更未修改无关业务逻辑，未引入与反馈无关的功能范围扩张。
++
++## 总体验收标准
++- 所有任务 checkbox 均完成，且每个任务的验收要点都有明确结论或验证记录。
++- `@mention` 后续文字与 `info` 卡片内容可被正常点击定位、拖拽选择、键盘扩展选择和复制。
++- 引言使用背景块样式渲染，todo 使用 checkbox 切换完成状态，公式使用专用组件渲染而不是纯文本展示。
++- 表格工具栏显示在表格上方且不占用正文流空间，表格内部边框不再重复绘制成双线。
++- 普通段落、表格单元格、代码块、块级对象等既有选择和编辑行为未出现回退。
++- 自动化验证通过；若存在非本次变更导致的失败，需在进度区记录失败命令、失败原因、影响判断和建议处理方式。
++
++## 进度区
++- 当前状态：计划已创建，P001-P010 均未开始。
++- 当前负责人：待开发执行者领取。
++- 下一步：从 P001 开始复现并冻结最小用例，再按选择、渲染、表格、公式模块分批实现和验证。
++- 验证记录：暂无，待开发完成后补充 `flutter analyze`、相关 `flutter test` 命令和结果。
++- 风险记录：公式专用渲染组件可能引入新依赖或平台兼容成本；表格工具栏浮层位置可能受滚动容器、视口边界和焦点管理影响；选择模型调整需重点防止普通文本和表格选择回退。
++
+
+codex
+格式检查通过；我再限定查看目标文件的 Git 状态。
+exec
+powershell.exe -Command "git status --short -- docs\\plan\\plan_feedback_2_20260625-004108.md; git diff -- docs\\plan\\plan_feedback_2_20260625-004108.md" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 218ms:
+?? docs/plan/plan_feedback_2_20260625-004108.md
+
+diff --git a/wenz_richtext/docs/plan/plan_feedback_2_20260625-004108.md b/wenz_richtext/docs/plan/plan_feedback_2_20260625-004108.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..f098d147c583b170a2de4bec86090467cff5204a
+--- /dev/null
++++ b/wenz_richtext/docs/plan/plan_feedback_2_20260625-004108.md
+@@ -0,0 +1,97 @@
++# 开发计划：反馈 #2 富文本渲染与选择体验优化
++
++## 来源
++- 类型：用户反馈
++- 编号：#2
++- 生成时间：2026-06-25 00:41:08
++- 原始反馈：
++  1. @提及后面的文字无法被选择
++  2. 引言内容渲染方式优化一下，用背景块颜色背景的方式渲染引言内容
++  3. todo内容优化一下，用checkbox切换todo完成状态
++  4. info卡片目前无法被选择
++  5. 表格工具栏应该在表格上方，而不是在表格下方，占用内容
++  6. 表格边框除了最边缘，内部的边框存在重复绘制，显示2条线
++  7. 公式渲染要用特殊组件渲染，目前只是显示了文字，参考gpt_markdown项目优化
++
++## 问题理解
++- 本次反馈覆盖选择模型、块级渲染、交互控件、表格浮层、表格绘制和公式渲染多个方向，需要按模块拆分并逐项验证。
++- `@mention` 后续文字和 `info` 卡片无法选择，说明当前选择命中测试、块级/内联节点 offset 映射或不可选组件包裹策略仍存在遗漏。
++- 引言、todo、info、公式属于富文本语义节点，需要在保持文档模型稳定的前提下优化视觉与交互，不应只做纯样式遮罩。
++- 表格工具栏和边框问题属于布局与绘制体验缺陷，需要避免工具栏占用正文流空间，并统一边框绘制责任以消除内部双线。
++
++## 任务计划
++- [ ] P001: 复现并冻结反馈用例
++  - 验收要点：构造包含 `@mention` 后续文字、引言、todo、info 卡片、表格、公式的最小富文本文档，并记录当前异常表现。
++  - 验收要点：分别覆盖段落内、表格单元格内、块级节点相邻三类场景，确认每个反馈项的可复现步骤和预期结果。
++  - 验收要点：输出问题边界，明确哪些属于选择器缺陷、哪些属于渲染样式缺陷、哪些属于交互行为缺陷。
++
++- [ ] P002: 修复 `@mention` 后续文字选择
++  - 验收要点：鼠标拖拽从 `@mention` 前、中、后任意位置跨过后续文字时，后续普通文本可稳定纳入选区。
++  - 验收要点：点击或键盘移动到 `@mention` 后方时，光标能够落在 mention 原子节点后边界与后续文字之间，不出现跳过文字或选区截断。
++  - 验收要点：`@mention` 自身仍按原子内联节点处理，不产生半选、错位高亮或 offset 越界。
++  - 验收要点：同样场景在普通段落与表格单元格中行为一致。
++
++- [ ] P003: 优化引言背景块渲染
++  - 验收要点：引言内容使用背景块方式渲染，具备稳定背景色、内边距、圆角或边界样式，视觉上与普通段落明确区分。
++  - 验收要点：引言块内的普通文本、内联样式、链接、mention、emoji 等内容仍可正常布局、选择、复制。
++  - 验收要点：多行引言、空引言、相邻引言和引言后接普通段落的间距符合预期，不出现背景断裂或内容裁切。
++  - 验收要点：引言样式兼容亮色/暗色或主题色配置，不硬编码导致低对比度。
++
++- [ ] P004: 使用 checkbox 切换 todo 状态
++  - 验收要点：todo 节点左侧显示可交互 checkbox，点击 checkbox 能在完成/未完成状态之间切换。
++  - 验收要点：切换后文档模型、回调事件和界面状态保持一致，重新渲染后 todo 状态不丢失。
++  - 验收要点：todo 文本内容仍可被点击定位、拖拽选择和复制，checkbox 点击不误触发文本选择。
++  - 验收要点：完成态样式明确，例如勾选态、文字弱化或删除线，并与主题颜色保持一致。
++
++- [ ] P005: 修复 info 卡片选择能力
++  - 验收要点：info 卡片内文本支持点击定位、拖拽选择、键盘扩展选择和复制。
++  - 验收要点：从卡片外拖拽进入卡片、从卡片内拖拽到卡片外时，选区连续且不会丢失卡片内容。
++  - 验收要点：info 卡片作为块级节点时可被整体选中或纳入跨块选区，选中态反馈清晰。
++  - 验收要点：卡片背景、图标、边框等装饰元素不干扰文本命中测试。
++
++- [ ] P006: 将表格工具栏移动到表格上方
++  - 验收要点：选中或聚焦表格时，表格工具栏显示在表格上方，而不是插入表格下方占用正文内容空间。
++  - 验收要点：工具栏位置随表格滚动、缩放和编辑器重排保持对齐，不遮挡当前单元格主要编辑区域。
++  - 验收要点：当表格位于视口顶部空间不足时，有合理避让策略，例如贴近顶部或临时显示在可见区域内。
++  - 验收要点：工具栏按钮点击、悬停、失焦隐藏逻辑保持可用，不引入表格选择丢失或焦点抖动。
++
++- [ ] P007: 消除表格内部边框重复绘制
++  - 验收要点：表格内部横线和竖线只绘制一次，视觉上不再出现两条重叠线或双倍粗细线。
++  - 验收要点：表格最外侧边框保持完整，内部边框与外边框粗细、颜色、抗锯齿表现一致。
++  - 验收要点：不同单元格尺寸、合并单元格、选中态、hover 态和编辑态下均不恢复重复边框。
++  - 验收要点：边框绘制责任清晰，避免父表格、行、单元格同时绘制同一条内部边。
++
++- [ ] P008: 使用专用组件渲染公式
++  - 验收要点：公式节点不再仅显示原始文本，而是使用专用公式渲染组件展示数学排版效果。
++  - 验收要点：同时覆盖行内公式和块级公式，二者在基线、换行、居中、间距和选择行为上符合富文本编辑预期。
++  - 验收要点：调研并参考 `gpt_markdown` 项目的公式渲染思路，明确可复用方案、依赖成本和兼容性风险。
++  - 验收要点：公式解析失败时提供安全降级显示，保留原始公式文本或错误提示，不导致编辑器崩溃。
++  - 验收要点：公式内容参与复制时保留可还原的源文本，避免只复制渲染后的不可编辑内容。
++
++- [ ] P009: 补充自动化回归测试
++  - 验收要点：新增或更新 widget 测试覆盖 mention 后续文字选择、info 卡片选择、todo checkbox 切换、表格工具栏位置和公式渲染。
++  - 验收要点：新增或更新渲染/绘制相关测试，验证引言背景块和表格内部边框不会回退。
++  - 验收要点：测试断言关键文档状态、选择范围、组件类型和可见布局位置，而不只校验快照存在。
++  - 验收要点：若某些视觉细节不适合自动化断言，需补充明确的人工验收步骤和截图比对要求。
++
++- [ ] P010: 执行回归验证并更新记录
++  - 验收要点：执行 `flutter analyze`，结果通过；如失败需确认是否与本次变更相关并记录处理结论。
++  - 验收要点：执行富文本编辑器相关 widget 测试和选择器相关 core 测试，结果通过或记录非本次变更导致的失败原因。
++  - 验收要点：在进度区补充每个任务的修复范围、验证命令、验证结果、遗留风险和后续建议。
++  - 验收要点：确认本次变更未修改无关业务逻辑，未引入与反馈无关的功能范围扩张。
++
++## 总体验收标准
++- 所有任务 checkbox 均完成，且每个任务的验收要点都有明确结论或验证记录。
++- `@mention` 后续文字与 `info` 卡片内容可被正常点击定位、拖拽选择、键盘扩展选择和复制。
++- 引言使用背景块样式渲染，todo 使用 checkbox 切换完成状态，公式使用专用组件渲染而不是纯文本展示。
++- 表格工具栏显示在表格上方且不占用正文流空间，表格内部边框不再重复绘制成双线。
++- 普通段落、表格单元格、代码块、块级对象等既有选择和编辑行为未出现回退。
++- 自动化验证通过；若存在非本次变更导致的失败，需在进度区记录失败命令、失败原因、影响判断和建议处理方式。
++
++## 进度区
++- 当前状态：计划已创建，P001-P010 均未开始。
++- 当前负责人：待开发执行者领取。
++- 下一步：从 P001 开始复现并冻结最小用例，再按选择、渲染、表格、公式模块分批实现和验证。
++- 验证记录：暂无，待开发完成后补充 `flutter analyze`、相关 `flutter test` 命令和结果。
++- 风险记录：公式专用渲染组件可能引入新依赖或平台兼容成本；表格工具栏浮层位置可能受滚动容器、视口边界和焦点管理影响；选择模型调整需重点防止普通文本和表格选择回退。
++
+
+  ✓ 检查文档约定与目录
+  ✓ 起草反馈开发计划
+  ✓ 写入指定计划文件
+  ✓ 核对格式与范围
+diff --git a/wenz_richtext/docs/plan/plan_feedback_2_20260625-004108.md b/wenz_richtext/docs/plan/plan_feedback_2_20260625-004108.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..f098d147c583b170a2de4bec86090467cff5204a
+--- /dev/null
++++ b/wenz_richtext/docs/plan/plan_feedback_2_20260625-004108.md
+@@ -0,0 +1,97 @@
++# 开发计划：反馈 #2 富文本渲染与选择体验优化
++
++## 来源
++- 类型：用户反馈
++- 编号：#2
++- 生成时间：2026-06-25 00:41:08
++- 原始反馈：
++  1. @提及后面的文字无法被选择
++  2. 引言内容渲染方式优化一下，用背景块颜色背景的方式渲染引言内容
++  3. todo内容优化一下，用checkbox切换todo完成状态
++  4. info卡片目前无法被选择
++  5. 表格工具栏应该在表格上方，而不是在表格下方，占用内容
++  6. 表格边框除了最边缘，内部的边框存在重复绘制，显示2条线
++  7. 公式渲染要用特殊组件渲染，目前只是显示了文字，参考gpt_markdown项目优化
++
++## 问题理解
++- 本次反馈覆盖选择模型、块级渲染、交互控件、表格浮层、表格绘制和公式渲染多个方向，需要按模块拆分并逐项验证。
++- `@mention` 后续文字和 `info` 卡片无法选择，说明当前选择命中测试、块级/内联节点 offset 映射或不可选组件包裹策略仍存在遗漏。
++- 引言、todo、info、公式属于富文本语义节点，需要在保持文档模型稳定的前提下优化视觉与交互，不应只做纯样式遮罩。
++- 表格工具栏和边框问题属于布局与绘制体验缺陷，需要避免工具栏占用正文流空间，并统一边框绘制责任以消除内部双线。
++
++## 任务计划
++- [ ] P001: 复现并冻结反馈用例
++  - 验收要点：构造包含 `@mention` 后续文字、引言、todo、info 卡片、表格、公式的最小富文本文档，并记录当前异常表现。
++  - 验收要点：分别覆盖段落内、表格单元格内、块级节点相邻三类场景，确认每个反馈项的可复现步骤和预期结果。
++  - 验收要点：输出问题边界，明确哪些属于选择器缺陷、哪些属于渲染样式缺陷、哪些属于交互行为缺陷。
++
++- [ ] P002: 修复 `@mention` 后续文字选择
++  - 验收要点：鼠标拖拽从 `@mention` 前、中、后任意位置跨过后续文字时，后续普通文本可稳定纳入选区。
++  - 验收要点：点击或键盘移动到 `@mention` 后方时，光标能够落在 mention 原子节点后边界与后续文字之间，不出现跳过文字或选区截断。
++  - 验收要点：`@mention` 自身仍按原子内联节点处理，不产生半选、错位高亮或 offset 越界。
++  - 验收要点：同样场景在普通段落与表格单元格中行为一致。
++
++- [ ] P003: 优化引言背景块渲染
++  - 验收要点：引言内容使用背景块方式渲染，具备稳定背景色、内边距、圆角或边界样式，视觉上与普通段落明确区分。
++  - 验收要点：引言块内的普通文本、内联样式、链接、mention、emoji 等内容仍可正常布局、选择、复制。
++  - 验收要点：多行引言、空引言、相邻引言和引言后接普通段落的间距符合预期，不出现背景断裂或内容裁切。
++  - 验收要点：引言样式兼容亮色/暗色或主题色配置，不硬编码导致低对比度。
++
++- [ ] P004: 使用 checkbox 切换 todo 状态
++  - 验收要点：todo 节点左侧显示可交互 checkbox，点击 checkbox 能在完成/未完成状态之间切换。
++  - 验收要点：切换后文档模型、回调事件和界面状态保持一致，重新渲染后 todo 状态不丢失。
++  - 验收要点：todo 文本内容仍可被点击定位、拖拽选择和复制，checkbox 点击不误触发文本选择。
++  - 验收要点：完成态样式明确，例如勾选态、文字弱化或删除线，并与主题颜色保持一致。
++
++- [ ] P005: 修复 info 卡片选择能力
++  - 验收要点：info 卡片内文本支持点击定位、拖拽选择、键盘扩展选择和复制。
++  - 验收要点：从卡片外拖拽进入卡片、从卡片内拖拽到卡片外时，选区连续且不会丢失卡片内容。
++  - 验收要点：info 卡片作为块级节点时可被整体选中或纳入跨块选区，选中态反馈清晰。
++  - 验收要点：卡片背景、图标、边框等装饰元素不干扰文本命中测试。
++
++- [ ] P006: 将表格工具栏移动到表格上方
++  - 验收要点：选中或聚焦表格时，表格工具栏显示在表格上方，而不是插入表格下方占用正文内容空间。
++  - 验收要点：工具栏位置随表格滚动、缩放和编辑器重排保持对齐，不遮挡当前单元格主要编辑区域。
++  - 验收要点：当表格位于视口顶部空间不足时，有合理避让策略，例如贴近顶部或临时显示在可见区域内。
++  - 验收要点：工具栏按钮点击、悬停、失焦隐藏逻辑保持可用，不引入表格选择丢失或焦点抖动。
++
++- [ ] P007: 消除表格内部边框重复绘制
++  - 验收要点：表格内部横线和竖线只绘制一次，视觉上不再出现两条重叠线或双倍粗细线。
++  - 验收要点：表格最外侧边框保持完整，内部边框与外边框粗细、颜色、抗锯齿表现一致。
++  - 验收要点：不同单元格尺寸、合并单元格、选中态、hover 态和编辑态下均不恢复重复边框。
++  - 验收要点：边框绘制责任清晰，避免父表格、行、单元格同时绘制同一条内部边。
++
++- [ ] P008: 使用专用组件渲染公式
++  - 验收要点：公式节点不再仅显示原始文本，而是使用专用公式渲染组件展示数学排版效果。
++  - 验收要点：同时覆盖行内公式和块级公式，二者在基线、换行、居中、间距和选择行为上符合富文本编辑预期。
++  - 验收要点：调研并参考 `gpt_markdown` 项目的公式渲染思路，明确可复用方案、依赖成本和兼容性风险。
++  - 验收要点：公式解析失败时提供安全降级显示，保留原始公式文本或错误提示，不导致编辑器崩溃。
++  - 验收要点：公式内容参与复制时保留可还原的源文本，避免只复制渲染后的不可编辑内容。
++
++- [ ] P009: 补充自动化回归测试
++  - 验收要点：新增或更新 widget 测试覆盖 mention 后续文字选择、info 卡片选择、todo checkbox 切换、表格工具栏位置和公式渲染。
++  - 验收要点：新增或更新渲染/绘制相关测试，验证引言背景块和表格内部边框不会回退。
++  - 验收要点：测试断言关键文档状态、选择范围、组件类型和可见布局位置，而不只校验快照存在。
++  - 验收要点：若某些视觉细节不适合自动化断言，需补充明确的人工验收步骤和截图比对要求。
++
++- [ ] P010: 执行回归验证并更新记录
++  - 验收要点：执行 `flutter analyze`，结果通过；如失败需确认是否与本次变更相关并记录处理结论。
++  - 验收要点：执行富文本编辑器相关 widget 测试和选择器相关 core 测试，结果通过或记录非本次变更导致的失败原因。
++  - 验收要点：在进度区补充每个任务的修复范围、验证命令、验证结果、遗留风险和后续建议。
++  - 验收要点：确认本次变更未修改无关业务逻辑，未引入与反馈无关的功能范围扩张。
++
++## 总体验收标准
++- 所有任务 checkbox 均完成，且每个任务的验收要点都有明确结论或验证记录。
++- `@mention` 后续文字与 `info` 卡片内容可被正常点击定位、拖拽选择、键盘扩展选择和复制。
++- 引言使用背景块样式渲染，todo 使用 checkbox 切换完成状态，公式使用专用组件渲染而不是纯文本展示。
++- 表格工具栏显示在表格上方且不占用正文流空间，表格内部边框不再重复绘制成双线。
++- 普通段落、表格单元格、代码块、块级对象等既有选择和编辑行为未出现回退。
++- 自动化验证通过；若存在非本次变更导致的失败，需在进度区记录失败命令、失败原因、影响判断和建议处理方式。
++
++## 进度区
++- 当前状态：计划已创建，P001-P010 均未开始。
++- 当前负责人：待开发执行者领取。
++- 下一步：从 P001 开始复现并冻结最小用例，再按选择、渲染、表格、公式模块分批实现和验证。
++- 验证记录：暂无，待开发完成后补充 `flutter analyze`、相关 `flutter test` 命令和结果。
++- 风险记录：公式专用渲染组件可能引入新依赖或平台兼容成本；表格工具栏浮层位置可能受滚动容器、视口边界和焦点管理影响；选择模型调整需重点防止普通文本和表格选择回退。
++
+
+codex
+目标文件已完成；我会取一下关键章节行号便于交付说明。
+exec
+powershell.exe -Command '$path='"'docs\\plan\\plan_feedback_2_20260625-004108.md'; Select-String -Path "'$path -Encoding UTF8 -Pattern '"'"'^# |''^## 任务计划$|''^## 总体验收标准$|''^## 进度区$'"' | ForEach-Object { \"{0}:{1}\" -f "'$_.LineNumber, $_.Line }' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 258ms:
+1:# 开发计划：反馈 #2 富文本渲染与选择体验优化
+22:## 任务计划
+83:## 总体验收标准
+91:## 进度区
+
+diff --git a/wenz_richtext/docs/plan/plan_feedback_2_20260625-004108.md b/wenz_richtext/docs/plan/plan_feedback_2_20260625-004108.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..f098d147c583b170a2de4bec86090467cff5204a
+--- /dev/null
++++ b/wenz_richtext/docs/plan/plan_feedback_2_20260625-004108.md
+@@ -0,0 +1,97 @@
++# 开发计划：反馈 #2 富文本渲染与选择体验优化
++
++## 来源
++- 类型：用户反馈
++- 编号：#2
++- 生成时间：2026-06-25 00:41:08
++- 原始反馈：
++  1. @提及后面的文字无法被选择
++  2. 引言内容渲染方式优化一下，用背景块颜色背景的方式渲染引言内容
++  3. todo内容优化一下，用checkbox切换todo完成状态
++  4. info卡片目前无法被选择
++  5. 表格工具栏应该在表格上方，而不是在表格下方，占用内容
++  6. 表格边框除了最边缘，内部的边框存在重复绘制，显示2条线
++  7. 公式渲染要用特殊组件渲染，目前只是显示了文字，参考gpt_markdown项目优化
++
++## 问题理解
++- 本次反馈覆盖选择模型、块级渲染、交互控件、表格浮层、表格绘制和公式渲染多个方向，需要按模块拆分并逐项验证。
++- `@mention` 后续文字和 `info` 卡片无法选择，说明当前选择命中测试、块级/内联节点 offset 映射或不可选组件包裹策略仍存在遗漏。
++- 引言、todo、info、公式属于富文本语义节点，需要在保持文档模型稳定的前提下优化视觉与交互，不应只做纯样式遮罩。
++- 表格工具栏和边框问题属于布局与绘制体验缺陷，需要避免工具栏占用正文流空间，并统一边框绘制责任以消除内部双线。
++
++## 任务计划
++- [ ] P001: 复现并冻结反馈用例
++  - 验收要点：构造包含 `@mention` 后续文字、引言、todo、info 卡片、表格、公式的最小富文本文档，并记录当前异常表现。
++  - 验收要点：分别覆盖段落内、表格单元格内、块级节点相邻三类场景，确认每个反馈项的可复现步骤和预期结果。
++  - 验收要点：输出问题边界，明确哪些属于选择器缺陷、哪些属于渲染样式缺陷、哪些属于交互行为缺陷。
++
++- [ ] P002: 修复 `@mention` 后续文字选择
++  - 验收要点：鼠标拖拽从 `@mention` 前、中、后任意位置跨过后续文字时，后续普通文本可稳定纳入选区。
++  - 验收要点：点击或键盘移动到 `@mention` 后方时，光标能够落在 mention 原子节点后边界与后续文字之间，不出现跳过文字或选区截断。
++  - 验收要点：`@mention` 自身仍按原子内联节点处理，不产生半选、错位高亮或 offset 越界。
++  - 验收要点：同样场景在普通段落与表格单元格中行为一致。
++
++- [ ] P003: 优化引言背景块渲染
++  - 验收要点：引言内容使用背景块方式渲染，具备稳定背景色、内边距、圆角或边界样式，视觉上与普通段落明确区分。
++  - 验收要点：引言块内的普通文本、内联样式、链接、mention、emoji 等内容仍可正常布局、选择、复制。
++  - 验收要点：多行引言、空引言、相邻引言和引言后接普通段落的间距符合预期，不出现背景断裂或内容裁切。
++  - 验收要点：引言样式兼容亮色/暗色或主题色配置，不硬编码导致低对比度。
++
++- [ ] P004: 使用 checkbox 切换 todo 状态
++  - 验收要点：todo 节点左侧显示可交互 checkbox，点击 checkbox 能在完成/未完成状态之间切换。
++  - 验收要点：切换后文档模型、回调事件和界面状态保持一致，重新渲染后 todo 状态不丢失。
++  - 验收要点：todo 文本内容仍可被点击定位、拖拽选择和复制，checkbox 点击不误触发文本选择。
++  - 验收要点：完成态样式明确，例如勾选态、文字弱化或删除线，并与主题颜色保持一致。
++
++- [ ] P005: 修复 info 卡片选择能力
++  - 验收要点：info 卡片内文本支持点击定位、拖拽选择、键盘扩展选择和复制。
++  - 验收要点：从卡片外拖拽进入卡片、从卡片内拖拽到卡片外时，选区连续且不会丢失卡片内容。
++  - 验收要点：info 卡片作为块级节点时可被整体选中或纳入跨块选区，选中态反馈清晰。
++  - 验收要点：卡片背景、图标、边框等装饰元素不干扰文本命中测试。
++
++- [ ] P006: 将表格工具栏移动到表格上方
++  - 验收要点：选中或聚焦表格时，表格工具栏显示在表格上方，而不是插入表格下方占用正文内容空间。
++  - 验收要点：工具栏位置随表格滚动、缩放和编辑器重排保持对齐，不遮挡当前单元格主要编辑区域。
++  - 验收要点：当表格位于视口顶部空间不足时，有合理避让策略，例如贴近顶部或临时显示在可见区域内。
++  - 验收要点：工具栏按钮点击、悬停、失焦隐藏逻辑保持可用，不引入表格选择丢失或焦点抖动。
++
++- [ ] P007: 消除表格内部边框重复绘制
++  - 验收要点：表格内部横线和竖线只绘制一次，视觉上不再出现两条重叠线或双倍粗细线。
++  - 验收要点：表格最外侧边框保持完整，内部边框与外边框粗细、颜色、抗锯齿表现一致。
++  - 验收要点：不同单元格尺寸、合并单元格、选中态、hover 态和编辑态下均不恢复重复边框。
++  - 验收要点：边框绘制责任清晰，避免父表格、行、单元格同时绘制同一条内部边。
++
++- [ ] P008: 使用专用组件渲染公式
++  - 验收要点：公式节点不再仅显示原始文本，而是使用专用公式渲染组件展示数学排版效果。
++  - 验收要点：同时覆盖行内公式和块级公式，二者在基线、换行、居中、间距和选择行为上符合富文本编辑预期。
++  - 验收要点：调研并参考 `gpt_markdown` 项目的公式渲染思路，明确可复用方案、依赖成本和兼容性风险。
++  - 验收要点：公式解析失败时提供安全降级显示，保留原始公式文本或错误提示，不导致编辑器崩溃。
++  - 验收要点：公式内容参与复制时保留可还原的源文本，避免只复制渲染后的不可编辑内容。
++
++- [ ] P009: 补充自动化回归测试
++  - 验收要点：新增或更新 widget 测试覆盖 mention 后续文字选择、info 卡片选择、todo checkbox 切换、表格工具栏位置和公式渲染。
++  - 验收要点：新增或更新渲染/绘制相关测试，验证引言背景块和表格内部边框不会回退。
++  - 验收要点：测试断言关键文档状态、选择范围、组件类型和可见布局位置，而不只校验快照存在。
++  - 验收要点：若某些视觉细节不适合自动化断言，需补充明确的人工验收步骤和截图比对要求。
++
++- [ ] P010: 执行回归验证并更新记录
++  - 验收要点：执行 `flutter analyze`，结果通过；如失败需确认是否与本次变更相关并记录处理结论。
++  - 验收要点：执行富文本编辑器相关 widget 测试和选择器相关 core 测试，结果通过或记录非本次变更导致的失败原因。
++  - 验收要点：在进度区补充每个任务的修复范围、验证命令、验证结果、遗留风险和后续建议。
++  - 验收要点：确认本次变更未修改无关业务逻辑，未引入与反馈无关的功能范围扩张。
++
++## 总体验收标准
++- 所有任务 checkbox 均完成，且每个任务的验收要点都有明确结论或验证记录。
++- `@mention` 后续文字与 `info` 卡片内容可被正常点击定位、拖拽选择、键盘扩展选择和复制。
++- 引言使用背景块样式渲染，todo 使用 checkbox 切换完成状态，公式使用专用组件渲染而不是纯文本展示。
++- 表格工具栏显示在表格上方且不占用正文流空间，表格内部边框不再重复绘制成双线。
++- 普通段落、表格单元格、代码块、块级对象等既有选择和编辑行为未出现回退。
++- 自动化验证通过；若存在非本次变更导致的失败，需在进度区记录失败命令、失败原因、影响判断和建议处理方式。
++
++## 进度区
++- 当前状态：计划已创建，P001-P010 均未开始。
++- 当前负责人：待开发执行者领取。
++- 下一步：从 P001 开始复现并冻结最小用例，再按选择、渲染、表格、公式模块分批实现和验证。
++- 验证记录：暂无，待开发完成后补充 `flutter analyze`、相关 `flutter test` 命令和结果。
++- 风险记录：公式专用渲染组件可能引入新依赖或平台兼容成本；表格工具栏浮层位置可能受滚动容器、视口边界和焦点管理影响；选择模型调整需重点防止普通文本和表格选择回退。
++
+
+codex
+已完成计划文件创建，仅新增文档，未修改业务代码。
+
+**结果**
+- 新增计划：`docs/plan/plan_feedback_2_20260625-004108.md:1`
+- 任务区包含 `P001`-`P010`，均使用 Markdown checkbox：`docs/plan/plan_feedback_2_20260625-004108.md:22`
+- 已包含总体验收标准：`docs/plan/plan_feedback_2_20260625-004108.md:83`
+- 已包含进度区：`docs/plan/plan_feedback_2_20260625-004108.md:91`
+
+**校验**
+- 已确认目标文件存在、checkbox 格式符合要求、必需章节齐全。
+- 未运行项目测试，因为本次只写计划文件。
+diff --git a/wenz_richtext/docs/plan/plan_feedback_2_20260625-004108.md b/wenz_richtext/docs/plan/plan_feedback_2_20260625-004108.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..f098d147c583b170a2de4bec86090467cff5204a
+--- /dev/null
++++ b/wenz_richtext/docs/plan/plan_feedback_2_20260625-004108.md
+@@ -0,0 +1,97 @@
++# 开发计划：反馈 #2 富文本渲染与选择体验优化
++
++## 来源
++- 类型：用户反馈
++- 编号：#2
++- 生成时间：2026-06-25 00:41:08
++- 原始反馈：
++  1. @提及后面的文字无法被选择
++  2. 引言内容渲染方式优化一下，用背景块颜色背景的方式渲染引言内容
++  3. todo内容优化一下，用checkbox切换todo完成状态
++  4. info卡片目前无法被选择
++  5. 表格工具栏应该在表格上方，而不是在表格下方，占用内容
++  6. 表格边框除了最边缘，内部的边框存在重复绘制，显示2条线
++  7. 公式渲染要用特殊组件渲染，目前只是显示了文字，参考gpt_markdown项目优化
++
++## 问题理解
++- 本次反馈覆盖选择模型、块级渲染、交互控件、表格浮层、表格绘制和公式渲染多个方向，需要按模块拆分并逐项验证。
++- `@mention` 后续文字和 `info` 卡片无法选择，说明当前选择命中测试、块级/内联节点 offset 映射或不可选组件包裹策略仍存在遗漏。
++- 引言、todo、info、公式属于富文本语义节点，需要在保持文档模型稳定的前提下优化视觉与交互，不应只做纯样式遮罩。
++- 表格工具栏和边框问题属于布局与绘制体验缺陷，需要避免工具栏占用正文流空间，并统一边框绘制责任以消除内部双线。
++
++## 任务计划
++- [ ] P001: 复现并冻结反馈用例
++  - 验收要点：构造包含 `@mention` 后续文字、引言、todo、info 卡片、表格、公式的最小富文本文档，并记录当前异常表现。
++  - 验收要点：分别覆盖段落内、表格单元格内、块级节点相邻三类场景，确认每个反馈项的可复现步骤和预期结果。
++  - 验收要点：输出问题边界，明确哪些属于选择器缺陷、哪些属于渲染样式缺陷、哪些属于交互行为缺陷。
++
++- [ ] P002: 修复 `@mention` 后续文字选择
++  - 验收要点：鼠标拖拽从 `@mention` 前、中、后任意位置跨过后续文字时，后续普通文本可稳定纳入选区。
++  - 验收要点：点击或键盘移动到 `@mention` 后方时，光标能够落在 mention 原子节点后边界与后续文字之间，不出现跳过文字或选区截断。
++  - 验收要点：`@mention` 自身仍按原子内联节点处理，不产生半选、错位高亮或 offset 越界。
++  - 验收要点：同样场景在普通段落与表格单元格中行为一致。
++
++- [ ] P003: 优化引言背景块渲染
++  - 验收要点：引言内容使用背景块方式渲染，具备稳定背景色、内边距、圆角或边界样式，视觉上与普通段落明确区分。
++  - 验收要点：引言块内的普通文本、内联样式、链接、mention、emoji 等内容仍可正常布局、选择、复制。
++  - 验收要点：多行引言、空引言、相邻引言和引言后接普通段落的间距符合预期，不出现背景断裂或内容裁切。
++  - 验收要点：引言样式兼容亮色/暗色或主题色配置，不硬编码导致低对比度。
++
++- [ ] P004: 使用 checkbox 切换 todo 状态
++  - 验收要点：todo 节点左侧显示可交互 checkbox，点击 checkbox 能在完成/未完成状态之间切换。
++  - 验收要点：切换后文档模型、回调事件和界面状态保持一致，重新渲染后 todo 状态不丢失。
++  - 验收要点：todo 文本内容仍可被点击定位、拖拽选择和复制，checkbox 点击不误触发文本选择。
++  - 验收要点：完成态样式明确，例如勾选态、文字弱化或删除线，并与主题颜色保持一致。
++
++- [ ] P005: 修复 info 卡片选择能力
++  - 验收要点：info 卡片内文本支持点击定位、拖拽选择、键盘扩展选择和复制。
++  - 验收要点：从卡片外拖拽进入卡片、从卡片内拖拽到卡片外时，选区连续且不会丢失卡片内容。
++  - 验收要点：info 卡片作为块级节点时可被整体选中或纳入跨块选区，选中态反馈清晰。
++  - 验收要点：卡片背景、图标、边框等装饰元素不干扰文本命中测试。
++
++- [ ] P006: 将表格工具栏移动到表格上方
++  - 验收要点：选中或聚焦表格时，表格工具栏显示在表格上方，而不是插入表格下方占用正文内容空间。
++  - 验收要点：工具栏位置随表格滚动、缩放和编辑器重排保持对齐，不遮挡当前单元格主要编辑区域。
++  - 验收要点：当表格位于视口顶部空间不足时，有合理避让策略，例如贴近顶部或临时显示在可见区域内。
++  - 验收要点：工具栏按钮点击、悬停、失焦隐藏逻辑保持可用，不引入表格选择丢失或焦点抖动。
++
++- [ ] P007: 消除表格内部边框重复绘制
++  - 验收要点：表格内部横线和竖线只绘制一次，视觉上不再出现两条重叠线或双倍粗细线。
++  - 验收要点：表格最外侧边框保持完整，内部边框与外边框粗细、颜色、抗锯齿表现一致。
++  - 验收要点：不同单元格尺寸、合并单元格、选中态、hover 态和编辑态下均不恢复重复边框。
++  - 验收要点：边框绘制责任清晰，避免父表格、行、单元格同时绘制同一条内部边。
++
++- [ ] P008: 使用专用组件渲染公式
++  - 验收要点：公式节点不再仅显示原始文本，而是使用专用公式渲染组件展示数学排版效果。
++  - 验收要点：同时覆盖行内公式和块级公式，二者在基线、换行、居中、间距和选择行为上符合富文本编辑预期。
++  - 验收要点：调研并参考 `gpt_markdown` 项目的公式渲染思路，明确可复用方案、依赖成本和兼容性风险。
++  - 验收要点：公式解析失败时提供安全降级显示，保留原始公式文本或错误提示，不导致编辑器崩溃。
++  - 验收要点：公式内容参与复制时保留可还原的源文本，避免只复制渲染后的不可编辑内容。
++
++- [ ] P009: 补充自动化回归测试
++  - 验收要点：新增或更新 widget 测试覆盖 mention 后续文字选择、info 卡片选择、todo checkbox 切换、表格工具栏位置和公式渲染。
++  - 验收要点：新增或更新渲染/绘制相关测试，验证引言背景块和表格内部边框不会回退。
++  - 验收要点：测试断言关键文档状态、选择范围、组件类型和可见布局位置，而不只校验快照存在。
++  - 验收要点：若某些视觉细节不适合自动化断言，需补充明确的人工验收步骤和截图比对要求。
++
++- [ ] P010: 执行回归验证并更新记录
++  - 验收要点：执行 `flutter analyze`，结果通过；如失败需确认是否与本次变更相关并记录处理结论。
++  - 验收要点：执行富文本编辑器相关 widget 测试和选择器相关 core 测试，结果通过或记录非本次变更导致的失败原因。
++  - 验收要点：在进度区补充每个任务的修复范围、验证命令、验证结果、遗留风险和后续建议。
++  - 验收要点：确认本次变更未修改无关业务逻辑，未引入与反馈无关的功能范围扩张。
++
++## 总体验收标准
++- 所有任务 checkbox 均完成，且每个任务的验收要点都有明确结论或验证记录。
++- `@mention` 后续文字与 `info` 卡片内容可被正常点击定位、拖拽选择、键盘扩展选择和复制。
++- 引言使用背景块样式渲染，todo 使用 checkbox 切换完成状态，公式使用专用组件渲染而不是纯文本展示。
++- 表格工具栏显示在表格上方且不占用正文流空间，表格内部边框不再重复绘制成双线。
++- 普通段落、表格单元格、代码块、块级对象等既有选择和编辑行为未出现回退。
++- 自动化验证通过；若存在非本次变更导致的失败，需在进度区记录失败命令、失败原因、影响判断和建议处理方式。
++
++## 进度区
++- 当前状态：计划已创建，P001-P010 均未开始。
++- 当前负责人：待开发执行者领取。
++- 下一步：从 P001 开始复现并冻结最小用例，再按选择、渲染、表格、公式模块分批实现和验证。
++- 验证记录：暂无，待开发完成后补充 `flutter analyze`、相关 `flutter test` 命令和结果。
++- 风险记录：公式专用渲染组件可能引入新依赖或平台兼容成本；表格工具栏浮层位置可能受滚动容器、视口边界和焦点管理影响；选择模型调整需重点防止普通文本和表格选择回退。
++
+
+tokens used
+72,476
+已完成计划文件创建，仅新增文档，未修改业务代码。
+
+**结果**
+- 新增计划：`docs/plan/plan_feedback_2_20260625-004108.md:1`
+- 任务区包含 `P001`-`P010`，均使用 Markdown checkbox：`docs/plan/plan_feedback_2_20260625-004108.md:22`
+- 已包含总体验收标准：`docs/plan/plan_feedback_2_20260625-004108.md:83`
+- 已包含进度区：`docs/plan/plan_feedback_2_20260625-004108.md:91`
+
+**校验**
+- 已确认目标文件存在、checkbox 格式符合要求、必需章节齐全。
+- 未运行项目测试，因为本次只写计划文件。

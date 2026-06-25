@@ -24,6 +24,15 @@ class BlockGeometryRegistry {
   /// hit on every IME keystroke and every drag move) avoid a linear scan.
   final Map<String, BlockEntry> _byKey = <String, BlockEntry>{};
 
+  /// Top-level block row boxes, keyed by block id. These are wider than the
+  /// editable text/object selection surfaces and therefore suit row-level drag
+  /// sorting, including custom renderers that do not register text geometry.
+  final List<BlockRowGeometryEntry> _rowEntries = <BlockRowGeometryEntry>[];
+  final Map<String, BlockRowGeometryEntry> _rowByBlockId =
+      <String, BlockRowGeometryEntry>{};
+
+  final Set<GlobalKey> _selectionExclusionKeys = <GlobalKey>{};
+
   /// Registers a block/path surface. Replaces any prior entry with the same
   /// [blockId] and [BlockEntry.path].
   void register(BlockEntry entry) {
@@ -46,11 +55,16 @@ class BlockGeometryRegistry {
   }
 
   /// Removes the entry for [blockId] and [path], if present. When [path] is not
-  /// provided, removes every surface for [blockId].
-  void unregister(String blockId, [PositionPath? path]) {
+  /// provided, removes every surface for [blockId]. If [ownerKey] is provided,
+  /// the entry is removed only when it is still owned by that surface.
+  void unregister(String blockId, [PositionPath? path, GlobalKey? ownerKey]) {
     if (path != null) {
       final key = _key(blockId, path);
-      final entry = _byKey.remove(key);
+      final entry = _byKey[key];
+      if (ownerKey != null && entry?.key != ownerKey) {
+        return;
+      }
+      _byKey.remove(key);
       if (entry != null) {
         _entries.remove(entry);
       }
@@ -60,9 +74,87 @@ class BlockGeometryRegistry {
       if (e.blockId != blockId) {
         return false;
       }
+      if (ownerKey != null && e.key != ownerKey) {
+        return false;
+      }
       _byKey.remove(_key(e.blockId, e.path));
       return true;
     });
+  }
+
+  /// Registers a top-level block row surface for drag-reorder hit testing.
+  void registerBlockRow(BlockRowGeometryEntry entry) {
+    final existing = _rowByBlockId[entry.blockId];
+    if (existing != null) {
+      final index = _rowEntries.indexOf(existing);
+      if (index >= 0) {
+        _rowEntries[index] = entry;
+      }
+    } else {
+      _rowEntries.add(entry);
+    }
+    _rowByBlockId[entry.blockId] = entry;
+    _rowEntries.sort((a, b) => a.blockIndex.compareTo(b.blockIndex));
+  }
+
+  /// Removes a top-level block row surface when the owning widget unmounts.
+  void unregisterBlockRow(String blockId, GlobalKey ownerKey) {
+    final entry = _rowByBlockId[blockId];
+    if (entry == null || entry.key != ownerKey) {
+      return;
+    }
+    _rowByBlockId.remove(blockId);
+    _rowEntries.remove(entry);
+  }
+
+  /// Drops every text and row geometry entry whose block id is no longer in the
+  /// visible top-level block projection.
+  void retainBlocks(Iterable<String> blockIds) {
+    final retained = blockIds is Set<String>
+        ? blockIds
+        : Set<String>.unmodifiable(blockIds);
+    _entries.removeWhere((entry) {
+      if (retained.contains(entry.blockId)) {
+        return false;
+      }
+      _byKey.remove(_key(entry.blockId, entry.path));
+      return true;
+    });
+    _rowEntries.removeWhere((entry) {
+      if (retained.contains(entry.blockId)) {
+        return false;
+      }
+      if (_rowByBlockId[entry.blockId] == entry) {
+        _rowByBlockId.remove(entry.blockId);
+      }
+      return true;
+    });
+  }
+
+  /// Registers an interactive control that should not start document selection.
+  void registerSelectionExclusion(GlobalKey key) {
+    _selectionExclusionKeys.add(key);
+  }
+
+  void unregisterSelectionExclusion(GlobalKey key) {
+    _selectionExclusionKeys.remove(key);
+  }
+
+  bool isSelectionExcluded(Offset global) {
+    for (final key in _selectionExclusionKeys) {
+      final renderObject = key.currentContext?.findRenderObject();
+      if (renderObject is! RenderBox || !renderObject.hasSize) {
+        continue;
+      }
+      final local = renderObject.globalToLocal(global);
+      if (local.dx >= 0 &&
+          local.dx <= renderObject.size.width &&
+          local.dy >= 0 &&
+          local.dy <= renderObject.size.height) {
+        return true;
+      }
+    }
+    return false;
   }
 
   static String _key(String blockId, PositionPath path) =>
@@ -71,6 +163,85 @@ class BlockGeometryRegistry {
   /// All registered entries in block-index order.
   @visibleForTesting
   List<BlockEntry> get entries => List<BlockEntry>.unmodifiable(_entries);
+
+  @visibleForTesting
+  List<BlockRowGeometryEntry> get rowEntries =>
+      List<BlockRowGeometryEntry>.unmodifiable(_rowEntries);
+
+  /// Resolves a global pointer offset to the legal row insertion boundary used
+  /// by top-level block drag sorting. Misses are clamped to the first/last
+  /// mounted row so dragging slightly outside the viewport still lands on a
+  /// valid insertion point.
+  BlockReorderDropTarget? blockReorderDropTargetFromGlobalOffset(
+    Offset global,
+  ) {
+    final rows = <({BlockRowGeometryEntry entry, Rect rect})>[];
+    for (final entry in _rowEntries) {
+      final box = entry.renderBox;
+      if (box == null || !box.hasSize) {
+        continue;
+      }
+      rows.add((
+        entry: entry,
+        rect: box.localToGlobal(Offset.zero) & box.size,
+      ));
+    }
+    if (rows.isEmpty) {
+      return null;
+    }
+    rows.sort((a, b) => a.entry.blockIndex.compareTo(b.entry.blockIndex));
+
+    final first = rows.first;
+    if (global.dy <= first.rect.top) {
+      return BlockReorderDropTarget(
+        blockId: first.entry.blockId,
+        blockIndex: first.entry.blockIndex,
+        placement: BlockReorderDropPlacement.before,
+        blockRect: first.rect,
+      );
+    }
+
+    for (var index = 0; index < rows.length; index++) {
+      final current = rows[index];
+      final rect = current.rect;
+      if (global.dy < rect.top) {
+        final previous = rows[index - 1];
+        final gapMidY = (previous.rect.bottom + rect.top) / 2;
+        if (global.dy < gapMidY) {
+          return BlockReorderDropTarget(
+            blockId: previous.entry.blockId,
+            blockIndex: previous.entry.blockIndex,
+            placement: BlockReorderDropPlacement.after,
+            blockRect: previous.rect,
+          );
+        }
+        return BlockReorderDropTarget(
+          blockId: current.entry.blockId,
+          blockIndex: current.entry.blockIndex,
+          placement: BlockReorderDropPlacement.before,
+          blockRect: rect,
+        );
+      }
+      if (global.dy <= rect.bottom) {
+        return BlockReorderDropTarget(
+          blockId: current.entry.blockId,
+          blockIndex: current.entry.blockIndex,
+          placement: global.dy < rect.center.dy
+              ? BlockReorderDropPlacement.before
+              : BlockReorderDropPlacement.after,
+          blockRect: rect,
+        );
+      }
+    }
+
+    final last = rows.last;
+    return BlockReorderDropTarget(
+      blockId: last.entry.blockId,
+      blockIndex: last.entry.blockIndex,
+      placement: BlockReorderDropPlacement.after,
+      blockRect: last.rect,
+    );
+  }
 
   /// The bottom edge of the document content in global coordinates, taken from
   /// the lowest mounted block surface. Used by the editor to tell whether a
@@ -488,6 +659,43 @@ class BlockEntry {
       (_hitLocalToTextLocal ?? _identity)(local);
 
   static Offset _identity(Offset local) => local;
+}
+
+class BlockRowGeometryEntry {
+  const BlockRowGeometryEntry({
+    required this.blockId,
+    required this.blockIndex,
+    required this.key,
+  });
+
+  final String blockId;
+  final int blockIndex;
+  final GlobalKey key;
+
+  RenderBox? get renderBox {
+    final renderObject = key.currentContext?.findRenderObject();
+    return renderObject is RenderBox ? renderObject : null;
+  }
+}
+
+enum BlockReorderDropPlacement { before, after }
+
+class BlockReorderDropTarget {
+  const BlockReorderDropTarget({
+    required this.blockId,
+    required this.blockIndex,
+    required this.placement,
+    required this.blockRect,
+  });
+
+  final String blockId;
+  final int blockIndex;
+  final BlockReorderDropPlacement placement;
+  final Rect blockRect;
+
+  int get insertionIndex => placement == BlockReorderDropPlacement.before
+      ? blockIndex
+      : blockIndex + 1;
 }
 
 /// Outcome of a vertical (Up/Down) move query.

@@ -1,4 +1,4 @@
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wenz_richtext/wenz_richtext.dart';
 
@@ -100,12 +100,11 @@ void main() {
     expect(blockRenderers.hasEmbed('crm-card'), isTrue);
     expect(inlineEmbeds.has('token'), isTrue);
     expect(
-      inlineEmbeds
-          .buildTextSpan(
-            _FakeBuildContext(),
-            const InlineEmbed(embedType: 'token'),
-            const TextStyle(),
-          )
+      (inlineEmbeds.buildTextSpan(
+        _FakeBuildContext(),
+        const InlineEmbed(embedType: 'token'),
+        const TextStyle(),
+      ) as TextSpan?)
           ?.text,
       '[token]',
     );
@@ -113,6 +112,115 @@ void main() {
     expect(toolbarItems.has('test.toolbar'), isTrue);
     expect(toolbarItems['test.toolbar']?.enabledFor(toolbar.state), isTrue);
     expect(controller.clipboardService.parse('plugin:value').text, 'value');
+  });
+
+  testWidgets('plugin renderers and media resolvers skip collapsed descendants',
+      (tester) async {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'section',
+            type: BlockType.heading,
+            attributes: BlockAttributes(level: 1),
+            content: <InlineNode>[TextRun(text: 'Section')],
+          ),
+          TextBlockNode(
+            id: 'hidden-p',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'Hidden paragraph')],
+          ),
+          ImageBlockNode(id: 'hidden-img', assetId: 'hidden-asset'),
+          TextBlockNode(
+            id: 'next',
+            type: BlockType.heading,
+            attributes: BlockAttributes(level: 1),
+            content: <InlineNode>[TextRun(text: 'Next')],
+          ),
+          TextBlockNode(
+            id: 'visible-p',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'Visible paragraph')],
+          ),
+          ImageBlockNode(id: 'visible-img', assetId: 'visible-asset'),
+        ],
+      ),
+    );
+    addTearDown(controller.dispose);
+    final outline = WenzOutlineController(editor: controller);
+    addTearDown(outline.dispose);
+    expect(outline.collapseByBlockId('section'), isTrue);
+
+    final builtBlockIds = <String>[];
+    dynamic seenGeometryRegistry;
+    final blockRenderers = BlockRendererRegistry();
+    WenzRichTextEditor.installDefaultRenderers(blockRenderers);
+    final mediaResolver = _RecordingMediaResolver();
+    installWenzRichTextPlugins(
+      plugins: <WenzRichTextPlugin>[
+        WenzPluginBundle(
+          id: 'collapse.extensions',
+          blockRenderers: <BlockType, BlockRendererBuilder>{
+            BlockType.paragraph: (context, renderContext) {
+              builtBlockIds.add(renderContext.block.id);
+              seenGeometryRegistry = renderContext.registry;
+              return Text('plugin:${renderContext.block.id}');
+            },
+          },
+        ),
+      ],
+      context: WenzPluginContext(
+        controller: controller,
+        blockRenderers: blockRenderers,
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 480,
+            height: 720,
+            child: WenzRichTextEditor(
+              controller: controller,
+              outlineController: outline,
+              blockRenderers: blockRenderers,
+              mediaResolver: mediaResolver,
+              enableIme: false,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(builtBlockIds, contains('visible-p'));
+    expect(builtBlockIds, isNot(contains('hidden-p')));
+    expect(mediaResolver.seenBlockIds, contains('visible-img'));
+    expect(mediaResolver.seenBlockIds, isNot(contains('hidden-img')));
+    expect(find.text('plugin:hidden-p'), findsNothing);
+    expect(find.text('resolved:hidden-img'), findsNothing);
+
+    Iterable<String> rowBlockIds() {
+      final entries = seenGeometryRegistry.rowEntries as Iterable<dynamic>;
+      return entries.map((entry) => entry.blockId as String);
+    }
+
+    expect(rowBlockIds(), contains('visible-p'));
+    expect(rowBlockIds(), isNot(contains('hidden-p')));
+    expect(rowBlockIds(), isNot(contains('hidden-img')));
+
+    builtBlockIds.clear();
+    mediaResolver.seenBlockIds.clear();
+    expect(outline.expandByBlockId('section'), isTrue);
+    await tester.pump();
+
+    expect(builtBlockIds, contains('hidden-p'));
+    expect(mediaResolver.seenBlockIds, contains('hidden-img'));
+    expect(find.text('plugin:hidden-p'), findsOneWidget);
+    expect(find.text('resolved:hidden-img'), findsOneWidget);
+    expect(rowBlockIds(), contains('hidden-p'));
+    expect(rowBlockIds(), contains('hidden-img'));
   });
 
   test('plugin batch rejects duplicate ids', () {
@@ -130,6 +238,16 @@ void main() {
 }
 
 class _CountingMiddleware extends CommandMiddleware {}
+
+class _RecordingMediaResolver implements MediaResolver {
+  final List<String> seenBlockIds = <String>[];
+
+  @override
+  Widget? resolve(BuildContext context, BlockNode block) {
+    seenBlockIds.add(block.id);
+    return Text('resolved:${block.id}');
+  }
+}
 
 class _FakeBuildContext implements BuildContext {
   @override

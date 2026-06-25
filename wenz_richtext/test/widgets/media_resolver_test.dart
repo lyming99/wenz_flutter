@@ -58,7 +58,42 @@ void main() {
         ),
       );
 
-      expect(find.text('[image: local.png]'), findsOneWidget);
+      expect(find.byIcon(Icons.image_outlined), findsOneWidget);
+    });
+
+    testWidgets('video resolver returning null falls back to placeholder',
+        (tester) async {
+      final controller = WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            VideoBlockNode(
+              id: 'v1',
+              assetId: 'clip-null',
+              title: 'Null resolver clip',
+            ),
+          ],
+        ),
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: WenzRichTextEditor(
+              controller: controller,
+              mediaResolver: _NullResolver(),
+              enableIme: false,
+            ),
+          ),
+        ),
+      );
+
+      expect(
+        find.byKey(
+          const ValueKey<String>('wenz-richtext-video-placeholder-v1'),
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Null resolver clip'), findsWidgets);
+      expect(find.text('[video: clip-null]'), findsOneWidget);
     });
 
     testWidgets('no resolver: placeholder renders as before (regression)',
@@ -81,11 +116,10 @@ void main() {
         ),
       );
 
-      expect(find.text('[image: hero.png]'), findsOneWidget);
+      expect(find.byIcon(Icons.image_outlined), findsOneWidget);
     });
 
-    testWidgets('default file renderer shows metadata and upload failure',
-        (tester) async {
+    testWidgets('default file renderer shows failure state', (tester) async {
       final controller = WenzRichTextController(
         document: const RichTextDocument(
           blocks: <BlockNode>[
@@ -112,13 +146,23 @@ void main() {
         ),
       );
 
+      expect(find.byKey(const ValueKey<String>('wenz-richtext-file-card-f1')),
+          findsOneWidget);
+      expect(find.byKey(const ValueKey<String>('wenz-richtext-file-size-f1')),
+          findsOneWidget);
+      expect(find.byKey(const ValueKey<String>('wenz-richtext-file-meta-f1')),
+          findsOneWidget);
+      expect(find.byKey(const ValueKey<String>('wenz-richtext-file-status-f1')),
+          findsOneWidget);
       expect(find.text('report.pdf'), findsOneWidget);
-      expect(
-          find.text('4 KB · application/pdf · Upload failed'), findsOneWidget);
-      expect(find.text('network timeout'), findsOneWidget);
+      expect(find.text('PDF'), findsOneWidget);
+      expect(find.text('4 KB'), findsOneWidget);
+      expect(find.text('application/pdf'), findsOneWidget);
+      expect(find.text('Upload failed · network timeout'), findsOneWidget);
     });
 
-    testWidgets('default image renderer shows caption', (tester) async {
+    testWidgets('default image renderer shows figure chrome and caption',
+        (tester) async {
       final controller = WenzRichTextController(
         document: const RichTextDocument(
           blocks: <BlockNode>[
@@ -128,6 +172,8 @@ void main() {
               file: 'hero.png',
               caption: 'Hero caption',
               altText: 'Hero alt',
+              showWidth: 240,
+              showHeight: 160,
             ),
           ],
         ),
@@ -143,8 +189,75 @@ void main() {
         ),
       );
 
-      expect(find.text('[image: hero.png]'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey<String>('wenz-richtext-image-block-img1')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('wenz-richtext-image-frame-img1')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('wenz-richtext-image-size-img1')),
+        findsOneWidget,
+      );
+      expect(find.byIcon(Icons.image_outlined), findsOneWidget);
       expect(find.text('Hero caption'), findsOneWidget);
+      final sizedBox = tester.widget<SizedBox>(
+        find.byKey(const ValueKey<String>('wenz-richtext-image-size-img1')),
+      );
+      expect(sizedBox.width, 240);
+      expect(sizedBox.height, 160);
+    });
+
+    testWidgets('default video renderer shows title source cover and aspect',
+        (tester) async {
+      final controller = WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            VideoBlockNode(
+              id: 'v1',
+              assetId: 'clip-1',
+              playbackUrl: 'https://cdn.example.test/clip.mp4',
+              coverUrl: 'poster.png',
+              title: 'Launch demo',
+              description: 'Quarterly launch reel',
+              aspectRatio: 2,
+            ),
+          ],
+        ),
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: WenzRichTextEditor(
+              controller: controller,
+              enableIme: false,
+            ),
+          ),
+        ),
+      );
+
+      expect(
+        find.byKey(
+          const ValueKey<String>('wenz-richtext-video-placeholder-v1'),
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Launch demo'), findsWidgets);
+      expect(
+        find.text('[video: https://cdn.example.test/clip.mp4]'),
+        findsOneWidget,
+      );
+      expect(find.text('Quarterly launch reel'), findsOneWidget);
+      expect(find.text('Cover: poster.png'), findsOneWidget);
+
+      final aspectRatio = tester.widget<AspectRatio>(
+        find.byKey(
+          const ValueKey<String>('wenz-richtext-video-aspect-v1'),
+        ),
+      );
+      expect(aspectRatio.aspectRatio, 2);
     });
 
     testWidgets('resolver also drives video and file blocks', (tester) async {
@@ -152,7 +265,11 @@ void main() {
       final controller = WenzRichTextController(
         document: const RichTextDocument(
           blocks: <BlockNode>[
-            VideoBlockNode(id: 'v1', assetId: 'clip-1'),
+            VideoBlockNode(
+              id: 'v1',
+              assetId: 'clip-1',
+              playbackUrl: 'https://cdn.example.test/clip-1.mp4',
+            ),
             FileBlockNode(id: 'f1', assetId: 'doc-1', name: 'report.pdf'),
           ],
         ),
@@ -174,6 +291,62 @@ void main() {
       // Placeholders are replaced.
       expect(find.text('[video: clip-1]'), findsNothing);
       expect(find.text('[file: report.pdf]'), findsNothing);
+      expect(
+        resolver.seenVideos.single.playbackUrl,
+        'https://cdn.example.test/clip-1.mp4',
+      );
+    });
+
+    testWidgets('default block embed renderer shows fallback and formula',
+        (tester) async {
+      final controller = WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            BlockEmbedNode(
+              id: 'e1',
+              embedType: 'custom',
+              fallbackText: 'Fallback preview',
+              data: <String, Object?>{
+                'title': 'Payload title',
+                'url': 'https://example.test/embed',
+              },
+            ),
+            BlockEmbedNode(
+              id: 'f1',
+              embedType: 'formula',
+              data: <String, Object?>{'text': 'x^2 + y^2'},
+              fallbackText: 'x^2 + y^2',
+            ),
+          ],
+        ),
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: WenzRichTextEditor(
+              controller: controller,
+              enableIme: false,
+            ),
+          ),
+        ),
+      );
+
+      expect(
+        find.byKey(const ValueKey<String>('wenz-richtext-embed-card-e1')),
+        findsOneWidget,
+      );
+      expect(find.text('CUSTOM'), findsOneWidget);
+      expect(find.text('Fallback preview'), findsOneWidget);
+      expect(find.text('title: Payload title'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey<String>('wenz-richtext-formula-card-f1')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('wenz-richtext-formula-preview-f1')),
+        findsOneWidget,
+      );
+      expect(find.text('x^2 + y^2'), findsWidgets);
     });
 
     testWidgets('a throwing resolver falls back to placeholder, no crash',
@@ -198,12 +371,51 @@ void main() {
       );
 
       // The editor caught the resolver error and rendered the placeholder.
-      expect(find.text('[image: boom.png]'), findsOneWidget);
+      expect(find.byIcon(Icons.image_outlined), findsOneWidget);
       // The editor tree is still intact.
       expect(find.byType(WenzRichTextEditor), findsOneWidget);
       // The error was reported (not swallowed) so it surfaces in dev tools —
       // drain it so the test framework treats the caught-and-reported error as
       // expected rather than a failure.
+      final exception = tester.takeException();
+      expect(exception, isA<StateError>());
+      expect(exception.toString(), contains('resolver blew up'));
+    });
+
+    testWidgets('a throwing video resolver falls back to placeholder',
+        (tester) async {
+      final controller = WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            VideoBlockNode(
+              id: 'v1',
+              assetId: 'boom-video',
+              title: 'Broken clip',
+            ),
+          ],
+        ),
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: WenzRichTextEditor(
+              controller: controller,
+              mediaResolver: _ThrowingResolver(),
+              enableIme: false,
+            ),
+          ),
+        ),
+      );
+
+      expect(
+        find.byKey(
+          const ValueKey<String>('wenz-richtext-video-placeholder-v1'),
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('[video: boom-video]'), findsOneWidget);
+      expect(find.byType(WenzRichTextEditor), findsOneWidget);
+
       final exception = tester.takeException();
       expect(exception, isA<StateError>());
       expect(exception.toString(), contains('resolver blew up'));
@@ -262,6 +474,7 @@ void main() {
 class _RecordingResolver implements MediaResolver {
   final List<String> seenImageAssetIds = <String>[];
   final List<ImageBlockNode> seenImages = <ImageBlockNode>[];
+  final List<VideoBlockNode> seenVideos = <VideoBlockNode>[];
 
   @override
   Widget? resolve(BuildContext context, BlockNode block) {
@@ -271,6 +484,7 @@ class _RecordingResolver implements MediaResolver {
       return Text('resolved:${block.assetId}');
     }
     if (block is VideoBlockNode) {
+      seenVideos.add(block);
       return Text('resolved:${block.assetId}');
     }
     if (block is FileBlockNode) {

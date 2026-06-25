@@ -9,7 +9,8 @@ import '../core/model/block_node.dart';
 /// convenience, `WenzRichTextController.mediaResolver`) to take over how media
 /// blocks render. The default image/video/file renderers first ask the
 /// resolver; when it returns `null` (or when no resolver is injected) they fall
-/// back to built-in rendering (image/video placeholders, file metadata card).
+/// back to built-in figure / preview / card chrome for images, videos, and
+/// files.
 ///
 /// Returning a widget (rather than an `ImageProvider`/URL) keeps the resolver
 /// fully general: the business layer assembles its own `Image`, a video

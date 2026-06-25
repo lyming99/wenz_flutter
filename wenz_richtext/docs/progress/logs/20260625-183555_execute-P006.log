@@ -1,0 +1,1395 @@
+OpenAI Codex v0.121.0 (research preview)
+--------
+workdir: D:\project\GitHub\wenz_flutter\wenz_richtext
+model: gpt-5.5
+provider: custom
+approval: never
+sandbox: danger-full-access
+reasoning effort: xhigh
+reasoning summaries: none
+session id: 019efe59-c30a-7a21-ba64-570e5bed2d2c
+--------
+user
+你是开发执行者。
+请只执行指定任务 P006，不要提前执行其它任务，也不要顺手处理其它 checkbox。
+
+plan 文件（只读）：D:\project\GitHub\wenz_flutter\wenz_richtext\docs\plan\plan_feedback_6_20260625-035040.md
+指定任务：
+- [ ] P006: 补充自动化与手工验收记录 <!-- scope: test/widgets/wenz_rich_text_editor_test.dart,docs/acceptance_manual_checklist.md,docs/plan/plan_feedback_6_20260625-035040.md -->
+任务 scope：test/widgets/wenz_rich_text_editor_test.dart, docs/acceptance_manual_checklist.md, docs/plan/plan_feedback_6_20260625-035040.md
+
+完成后必须：
+- plan 文件是只读上下文：不要修改 plan 文件，不要勾选 checkbox，不要更新 plan 进度区
+- AutoPlan 会在任务成功后统一写回数据库、checkbox 和进度区
+- 只修改当前任务 scope 直接相关的业务文件
+- 如需测试，只运行与当前任务直接相关的最小测试集，不要运行全量测试或与本任务无关的测试
+- 只有当前任务本身明确要求全量验证时，才允许运行全量测试
+- 不输出完整 diff、源码全文或长文件列表
+- 中文文件读写使用 UTF-8
+codex
+我先查看相关测试和验收文档，确认要补的记录点。
+exec
+powershell.exe -Command 'Get-ChildItem -Force' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 275ms:
+
+
+    目录: D:\project\GitHub\wenz_flutter\wenz_richtext
+
+
+Mode                 LastWriteTime         Length Name                                                                 
+----                 -------------         ------ ----                                                                 
+d-----         2026/6/25     18:33                .codegraph                                                           
+d-----         2026/6/24     15:10                .dart_appdata                                                        
+d-----         2026/6/24     15:10                .dart_localappdata                                                   
+d-----         2026/6/24     16:11                .dart_tool                                                           
+d-----         2026/6/24     16:13                .dart_tool_appdata                                                   
+d-----         2026/6/24     16:06                .dart_tool_localappdata                                              
+d-----         2026/6/20      0:26                .idea                                                                
+d-----         2026/6/25     10:14                build                                                                
+d-----         2026/6/19     17:02                doc                                                                  
+d-----         2026/6/24     18:05                docs                                                                 
+d-----         2026/6/22     14:56                example                                                              
+d-----         2026/6/22     17:09                lib                                                                  
+d-----         2026/6/24      3:35                scripts                                                              
+d-----         2026/6/25      3:33                test                                                                 
+d-----         2026/6/24     18:04                tool                                                                 
+d-----         2026/6/25      2:40                ui                                                                   
+-a----         2026/6/19     14:04             87 .gitignore                                                           
+-a----         2026/6/24     16:16             94 analysis_options.yaml                                                
+-a----         2026/6/24     14:38            726 CHANGELOG.md                                                         
+-a----         2026/6/25      2:56            157 nul                                                                  
+-a----         2026/6/25      2:18          10389 pubspec.lock                                                         
+-a----         2026/6/25      2:18            382 pubspec.yaml                                                         
+-a----         2026/6/25     10:45           4516 README.md                                                            
+
+
+
+**Searching for files**
+
+I need to locate the relevant files, so I'm considering using a command like "rg --files." This command might help me find what I'm looking for quickly. I'll have to check if it's set up correctly and whether I can use it effectively for this purpose. It feels crucial to ensure I get the right files for whatever I'm working on, so let's see how it goes! Shall I dive in?
+exec
+powershell.exe -Command 'rg --files test docs | sort' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 306ms:
+docs\acceptance_manual_checklist.md
+docs\acceptance_report.md
+docs\advanced_feature_development_plan.md
+docs\advanced_feature_matrix.md
+docs\api_reference.md
+docs\architecture.md
+docs\comments_and_revisions.md
+docs\import_export_strategy.md
+docs\input_system.md
+docs\issues\feedback_2_regression_report.md
+docs\issues\feedback_3_regression_report.md
+docs\migration_guide.md
+docs\optimization_roadmap.md
+docs\plan\plan_feedback_1_20260624-220759.md
+docs\plan\plan_feedback_2_20260625-004108.md
+docs\plan\plan_feedback_3_20260625-014905.md
+docs\plan\plan_feedback_4_20260625-024854.md
+docs\plan\plan_feedback_6_20260625-035040.md
+docs\plan\plan_requirement_10_20260625-034349.md
+docs\plan\plan_requirement_2_20260625-023728.md
+docs\plan\plan_requirement_3_20260625-025750.md
+docs\plan\plan_requirement_9_20260625-033413.md
+docs\plan\ui_plan_20260624-213431_2.md
+docs\progress\logs\20260624-220459_gen-feedback-1.log
+docs\progress\logs\20260624-220759_gen-feedback-1.last.txt
+docs\progress\logs\20260624-220759_gen-feedback-1.log
+docs\progress\logs\20260624-221203_execute-P001.last.txt
+docs\progress\logs\20260624-221203_execute-P001.log
+docs\progress\logs\20260624-222230_execute-P002.log
+docs\progress\logs\20260624-224908_execute-P002.log
+docs\progress\logs\20260624-225311_execute-P002.log
+docs\progress\logs\20260624-225659_execute-P002.log
+docs\progress\logs\20260624-225852_execute-P002.log
+docs\progress\logs\20260624-230231_execute-P002.last.txt
+docs\progress\logs\20260624-230231_execute-P002.log
+docs\progress\logs\20260624-230817_execute-P003.log
+docs\progress\logs\20260624-231323_execute-P003.last.txt
+docs\progress\logs\20260624-231323_execute-P003.log
+docs\progress\logs\20260624-232435_execute-P004.log
+docs\progress\logs\20260624-234427_execute-P004.last.txt
+docs\progress\logs\20260624-234427_execute-P004.log
+docs\progress\logs\20260624-235018_execute-P005.last.txt
+docs\progress\logs\20260624-235018_execute-P005.log
+docs\progress\logs\20260625-000254_execute-P006.last.txt
+docs\progress\logs\20260625-000254_execute-P006.log
+docs\progress\logs\20260625-000439_execute-P007.log
+docs\progress\logs\20260625-000532_execute-P007.last.txt
+docs\progress\logs\20260625-000532_execute-P007.log
+docs\progress\logs\20260625-000723_validate-1.log
+docs\progress\logs\20260625-000756_repair-1-1.last.txt
+docs\progress\logs\20260625-000756_repair-1-1.log
+docs\progress\logs\20260625-000841_validate-1-repair-1.log
+docs\progress\logs\20260625-004108_gen-feedback-2.last.txt
+docs\progress\logs\20260625-004108_gen-feedback-2.log
+docs\progress\logs\20260625-004352_execute-P001.last.txt
+docs\progress\logs\20260625-004352_execute-P001.log
+docs\progress\logs\20260625-005220_execute-P002.last.txt
+docs\progress\logs\20260625-005220_execute-P002.log
+docs\progress\logs\20260625-010621_execute-P003.log
+docs\progress\logs\20260625-010626_execute-P003.last.txt
+docs\progress\logs\20260625-010626_execute-P003.log
+docs\progress\logs\20260625-011332_execute-P004.last.txt
+docs\progress\logs\20260625-011332_execute-P004.log
+docs\progress\logs\20260625-013108_execute-P005.last.txt
+docs\progress\logs\20260625-013108_execute-P005.log
+docs\progress\logs\20260625-014905_gen-feedback-3.last.txt
+docs\progress\logs\20260625-014905_gen-feedback-3.log
+docs\progress\logs\20260625-015035_execute-P001.log
+docs\progress\logs\20260625-015334_execute-P006.last.txt
+docs\progress\logs\20260625-015334_execute-P006.log
+docs\progress\logs\20260625-020615_execute-P007.log
+docs\progress\logs\20260625-020620_execute-P007.last.txt
+docs\progress\logs\20260625-020620_execute-P007.log
+docs\progress\logs\20260625-021211_execute-P008.log
+docs\progress\logs\20260625-022707_execute-P008.last.txt
+docs\progress\logs\20260625-022707_execute-P008.log
+docs\progress\logs\20260625-023728_gen-requirement-2.last.txt
+docs\progress\logs\20260625-023728_gen-requirement-2.log
+docs\progress\logs\20260625-024055_execute-P001.last.txt
+docs\progress\logs\20260625-024055_execute-P001.log
+docs\progress\logs\20260625-024854_gen-feedback-4.last.txt
+docs\progress\logs\20260625-024854_gen-feedback-4.log
+docs\progress\logs\20260625-025017_execute-P001.last.txt
+docs\progress\logs\20260625-025017_execute-P001.log
+docs\progress\logs\20260625-025750_gen-requirement-3.last.txt
+docs\progress\logs\20260625-025750_gen-requirement-3.log
+docs\progress\logs\20260625-030253_execute-P001.last.txt
+docs\progress\logs\20260625-030253_execute-P001.log
+docs\progress\logs\20260625-031051_execute-P009.last.txt
+docs\progress\logs\20260625-031051_execute-P009.log
+docs\progress\logs\20260625-031622_execute-P010.last.txt
+docs\progress\logs\20260625-031622_execute-P010.log
+docs\progress\logs\20260625-032513_validate-2.log
+docs\progress\logs\20260625-032518_execute-P001.last.txt
+docs\progress\logs\20260625-032518_execute-P001.log
+docs\progress\logs\20260625-033413_gen-requirement-9.last.txt
+docs\progress\logs\20260625-033413_gen-requirement-9.log
+docs\progress\logs\20260625-033741_execute-P001.last.txt
+docs\progress\logs\20260625-033741_execute-P001.log
+docs\progress\logs\20260625-034349_gen-requirement-10.last.txt
+docs\progress\logs\20260625-034349_gen-requirement-10.log
+docs\progress\logs\20260625-034550_execute-P001.last.txt
+docs\progress\logs\20260625-034550_execute-P001.log
+docs\progress\logs\20260625-035040_gen-feedback-6.last.txt
+docs\progress\logs\20260625-035040_gen-feedback-6.log
+docs\progress\logs\20260625-035238_execute-P001.last.txt
+docs\progress\logs\20260625-035238_execute-P001.log
+docs\progress\logs\20260625-040126_execute-P002.last.txt
+docs\progress\logs\20260625-040126_execute-P002.log
+docs\progress\logs\20260625-041027_execute-P003.last.txt
+docs\progress\logs\20260625-041027_execute-P003.log
+docs\progress\logs\20260625-042313_execute-P004.last.txt
+docs\progress\logs\20260625-042313_execute-P004.log
+docs\progress\logs\20260625-042909_execute-P005.last.txt
+docs\progress\logs\20260625-042909_execute-P005.log
+docs\progress\logs\20260625-043950_execute-P006.last.txt
+docs\progress\logs\20260625-043950_execute-P006.log
+docs\progress\logs\20260625-044720_execute-P007.last.txt
+docs\progress\logs\20260625-044720_execute-P007.log
+docs\progress\logs\20260625-045721_validate-3.log
+docs\progress\logs\20260625-045726_execute-P002.last.txt
+docs\progress\logs\20260625-045726_execute-P002.log
+docs\progress\logs\20260625-050932_execute-P003.last.txt
+docs\progress\logs\20260625-050932_execute-P003.log
+docs\progress\logs\20260625-052249_execute-P004.last.txt
+docs\progress\logs\20260625-052249_execute-P004.log
+docs\progress\logs\20260625-054120_execute-P005.last.txt
+docs\progress\logs\20260625-054120_execute-P005.log
+docs\progress\logs\20260625-055336_execute-P006.last.txt
+docs\progress\logs\20260625-055336_execute-P006.log
+docs\progress\logs\20260625-060327_execute-P007.last.txt
+docs\progress\logs\20260625-060327_execute-P007.log
+docs\progress\logs\20260625-061258_validate-4.log
+docs\progress\logs\20260625-061302_repair-4-1.last.txt
+docs\progress\logs\20260625-061302_repair-4-1.log
+docs\progress\logs\20260625-061418_validate-4-repair-1.log
+docs\progress\logs\20260625-061423_execute-P002.last.txt
+docs\progress\logs\20260625-061423_execute-P002.log
+docs\progress\logs\20260625-062339_execute-P003.last.txt
+docs\progress\logs\20260625-062339_execute-P003.log
+docs\progress\logs\20260625-063035_execute-P004.last.txt
+docs\progress\logs\20260625-063035_execute-P004.log
+docs\progress\logs\20260625-063635_execute-P005.last.txt
+docs\progress\logs\20260625-063635_execute-P005.log
+docs\progress\logs\20260625-064451_validate-5.log
+docs\progress\logs\20260625-064456_execute-P002.last.txt
+docs\progress\logs\20260625-064456_execute-P002.log
+docs\progress\logs\20260625-065948_execute-P003.last.txt
+docs\progress\logs\20260625-065948_execute-P003.log
+docs\progress\logs\20260625-071034_execute-P004.last.txt
+docs\progress\logs\20260625-071034_execute-P004.log
+docs\progress\logs\20260625-072310_execute-P005.last.txt
+docs\progress\logs\20260625-072310_execute-P005.log
+docs\progress\logs\20260625-074137_execute-P006.last.txt
+docs\progress\logs\20260625-074137_execute-P006.log
+docs\progress\logs\20260625-080424_execute-P007.last.txt
+docs\progress\logs\20260625-080424_execute-P007.log
+docs\progress\logs\20260625-083337_execute-P008.last.txt
+docs\progress\logs\20260625-083337_execute-P008.log
+docs\progress\logs\20260625-084538_validate-6.log
+docs\progress\logs\20260625-084542_repair-6-1.log
+docs\progress\logs\20260625-084638_validate-6-repair-1.log
+docs\progress\logs\20260625-084641_repair-6-2.log
+docs\progress\logs\20260625-084716_validate-6-repair-2.log
+docs\progress\logs\20260625-084723_validate-6.log
+docs\progress\logs\20260625-084726_repair-6-1.last.txt
+docs\progress\logs\20260625-084726_repair-6-1.log
+docs\progress\logs\20260625-085158_validate-6-repair-1.log
+docs\progress\logs\20260625-085204_execute-P002.last.txt
+docs\progress\logs\20260625-085204_execute-P002.log
+docs\progress\logs\20260625-090420_execute-P003.last.txt
+docs\progress\logs\20260625-090420_execute-P003.log
+docs\progress\logs\20260625-091806_execute-P004.log
+docs\progress\logs\20260625-091821_execute-P004.last.txt
+docs\progress\logs\20260625-091821_execute-P004.log
+docs\progress\logs\20260625-092952_execute-P005.log
+docs\progress\logs\20260625-092957_execute-P005.last.txt
+docs\progress\logs\20260625-092957_execute-P005.log
+docs\progress\logs\20260625-094348_execute-P006.log
+docs\progress\logs\20260625-094353_execute-P006.last.txt
+docs\progress\logs\20260625-094353_execute-P006.log
+docs\progress\logs\20260625-095845_execute-P007.log
+docs\progress\logs\20260625-095955_execute-P007.log
+docs\progress\logs\20260625-101601_execute-P007.log
+docs\progress\logs\20260625-101606_execute-P007.log
+docs\progress\logs\20260625-101611_execute-P007.log
+docs\progress\logs\20260625-101902_execute-P007.log
+docs\progress\logs\20260625-101907_execute-P007.log
+docs\progress\logs\20260625-101912_execute-P007.log
+docs\progress\logs\20260625-101932_execute-P007.log
+docs\progress\logs\20260625-102452_execute-P007.log
+docs\progress\logs\20260625-102512_execute-P007.log
+docs\progress\logs\20260625-103703_execute-P007.last.txt
+docs\progress\logs\20260625-103703_execute-P007.log
+docs\progress\logs\20260625-104945_validate-10.log
+docs\progress\logs\20260625-104950_execute-P002.log
+docs\progress\logs\20260625-104955_execute-P002.last.txt
+docs\progress\logs\20260625-104955_execute-P002.log
+docs\progress\logs\20260625-105756_execute-P003.log
+docs\progress\logs\20260625-110616_execute-P003.log
+docs\progress\logs\20260625-110651_execute-P003.log
+docs\progress\logs\20260625-110656_execute-P003.log
+docs\progress\logs\20260625-110741_execute-P003.log
+docs\progress\logs\20260625-110802_execute-P003.log
+docs\progress\logs\20260625-110807_execute-P003.log
+docs\progress\logs\20260625-111953_execute-P003.log
+docs\progress\logs\20260625-112413_execute-P003.log
+docs\progress\logs\20260625-112433_execute-P003.log
+docs\progress\logs\20260625-112438_execute-P003.log
+docs\progress\logs\20260625-112508_execute-P003.log
+docs\progress\logs\20260625-112513_execute-P003.log
+docs\progress\logs\20260625-112518_execute-P003.last.txt
+docs\progress\logs\20260625-112518_execute-P003.log
+docs\progress\logs\20260625-113324_execute-P004.log
+docs\progress\logs\20260625-114210_execute-P004.log
+docs\progress\logs\20260625-114225_execute-P004.log
+docs\progress\logs\20260625-114240_execute-P004.log
+docs\progress\logs\20260625-114255_execute-P004.log
+docs\progress\logs\20260625-114300_execute-P004.log
+docs\progress\logs\20260625-114305_execute-P004.log
+docs\progress\logs\20260625-114415_execute-P004.log
+docs\progress\logs\20260625-114430_execute-P004.log
+docs\progress\logs\20260625-114445_execute-P004.log
+docs\progress\logs\20260625-114500_execute-P004.log
+docs\progress\logs\20260625-114505_execute-P004.log
+docs\progress\logs\20260625-114530_execute-P004.log
+docs\progress\logs\20260625-114600_execute-P004.log
+docs\progress\logs\20260625-114615_execute-P004.log
+docs\progress\logs\20260625-114630_execute-P004.log
+docs\progress\logs\20260625-114645_execute-P004.log
+docs\progress\logs\20260625-114700_execute-P004.log
+docs\progress\logs\20260625-114715_execute-P004.log
+docs\progress\logs\20260625-114730_execute-P004.log
+docs\progress\logs\20260625-114745_execute-P004.log
+docs\progress\logs\20260625-114800_execute-P004.log
+docs\progress\logs\20260625-114816_execute-P004.log
+docs\progress\logs\20260625-114831_execute-P004.log
+docs\progress\logs\20260625-114846_execute-P004.log
+docs\progress\logs\20260625-114901_execute-P004.log
+docs\progress\logs\20260625-114916_execute-P004.log
+docs\progress\logs\20260625-114936_execute-P004.log
+docs\progress\logs\20260625-114951_execute-P004.log
+docs\progress\logs\20260625-115006_execute-P004.log
+docs\progress\logs\20260625-115021_execute-P004.log
+docs\progress\logs\20260625-115036_execute-P004.log
+docs\progress\logs\20260625-115051_execute-P004.log
+docs\progress\logs\20260625-115106_execute-P004.log
+docs\progress\logs\20260625-115121_execute-P004.log
+docs\progress\logs\20260625-115136_execute-P004.log
+docs\progress\logs\20260625-115151_execute-P004.log
+docs\progress\logs\20260625-115206_execute-P004.log
+docs\progress\logs\20260625-115221_execute-P004.log
+docs\progress\logs\20260625-115236_execute-P004.log
+docs\progress\logs\20260625-115256_execute-P004.log
+docs\progress\logs\20260625-115311_execute-P004.log
+docs\progress\logs\20260625-115326_execute-P004.log
+docs\progress\logs\20260625-115341_execute-P004.log
+docs\progress\logs\20260625-115356_execute-P004.log
+docs\progress\logs\20260625-115411_execute-P004.log
+docs\progress\logs\20260625-115431_execute-P004.log
+docs\progress\logs\20260625-115446_execute-P004.log
+docs\progress\logs\20260625-115501_execute-P004.log
+docs\progress\logs\20260625-115516_execute-P004.log
+docs\progress\logs\20260625-115531_execute-P004.log
+docs\progress\logs\20260625-115546_execute-P004.log
+docs\progress\logs\20260625-115601_execute-P004.log
+docs\progress\logs\20260625-115616_execute-P004.log
+docs\progress\logs\20260625-115631_execute-P004.log
+docs\progress\logs\20260625-115646_execute-P004.log
+docs\progress\logs\20260625-115701_execute-P004.log
+docs\progress\logs\20260625-115716_execute-P004.log
+docs\progress\logs\20260625-115731_execute-P004.log
+docs\progress\logs\20260625-115746_execute-P004.log
+docs\progress\logs\20260625-115801_execute-P004.log
+docs\progress\logs\20260625-115816_execute-P004.log
+docs\progress\logs\20260625-115832_execute-P004.log
+docs\progress\logs\20260625-115847_execute-P004.log
+docs\progress\logs\20260625-115902_execute-P004.log
+docs\progress\logs\20260625-115917_execute-P004.log
+docs\progress\logs\20260625-115932_execute-P004.log
+docs\progress\logs\20260625-115947_execute-P004.log
+docs\progress\logs\20260625-120002_execute-P004.log
+docs\progress\logs\20260625-120017_execute-P004.log
+docs\progress\logs\20260625-120032_execute-P004.log
+docs\progress\logs\20260625-120047_execute-P004.log
+docs\progress\logs\20260625-120102_execute-P004.log
+docs\progress\logs\20260625-120117_execute-P004.log
+docs\progress\logs\20260625-120132_execute-P004.log
+docs\progress\logs\20260625-120147_execute-P004.log
+docs\progress\logs\20260625-120202_execute-P004.log
+docs\progress\logs\20260625-120217_execute-P004.log
+docs\progress\logs\20260625-120232_execute-P004.log
+docs\progress\logs\20260625-120247_execute-P004.log
+docs\progress\logs\20260625-120302_execute-P004.log
+docs\progress\logs\20260625-120317_execute-P004.log
+docs\progress\logs\20260625-120327_execute-P004.log
+docs\progress\logs\20260625-120612_execute-P004.log
+docs\progress\logs\20260625-120637_execute-P004.log
+docs\progress\logs\20260625-121628_execute-P004.log
+docs\progress\logs\20260625-121643_execute-P004.log
+docs\progress\logs\20260625-121728_execute-P004.log
+docs\progress\logs\20260625-121908_execute-P004.log
+docs\progress\logs\20260625-121913_execute-P004.log
+docs\progress\logs\20260625-121959_execute-P004.log
+docs\progress\logs\20260625-122004_execute-P004.log
+docs\progress\logs\20260625-122009_execute-P004.log
+docs\progress\logs\20260625-123020_execute-P004.log
+docs\progress\logs\20260625-123025_execute-P004.log
+docs\progress\logs\20260625-123050_execute-P004.log
+docs\progress\logs\20260625-123055_execute-P004.log
+docs\progress\logs\20260625-123125_execute-P004.log
+docs\progress\logs\20260625-123130_execute-P004.log
+docs\progress\logs\20260625-123225_execute-P004.log
+docs\progress\logs\20260625-123230_execute-P004.last.txt
+docs\progress\logs\20260625-123230_execute-P004.log
+docs\progress\logs\20260625-123650_execute-P005.log
+docs\progress\logs\20260625-124416_execute-P005.log
+docs\progress\logs\20260625-124421_execute-P005.log
+docs\progress\logs\20260625-124426_execute-P005.log
+docs\progress\logs\20260625-125817_execute-P005.log
+docs\progress\logs\20260625-125822_execute-P005.log
+docs\progress\logs\20260625-125827_execute-P005.log
+docs\progress\logs\20260625-125832_execute-P005.log
+docs\progress\logs\20260625-125903_execute-P005.log
+docs\progress\logs\20260625-125953_execute-P005.log
+docs\progress\logs\20260625-125958_execute-P005.log
+docs\progress\logs\20260625-130153_execute-P005.log
+docs\progress\logs\20260625-130713_execute-P005.log
+docs\progress\logs\20260625-130718_execute-P005.log
+docs\progress\logs\20260625-130748_execute-P005.log
+docs\progress\logs\20260625-131059_execute-P005.log
+docs\progress\logs\20260625-131104_execute-P005.log
+docs\progress\logs\20260625-131109_execute-P005.last.txt
+docs\progress\logs\20260625-131109_execute-P005.log
+docs\progress\logs\20260625-132330_execute-P006.log
+docs\progress\logs\20260625-132400_execute-P006.log
+docs\progress\logs\20260625-132405_execute-P006.log
+docs\progress\logs\20260625-132445_execute-P006.log
+docs\progress\logs\20260625-132450_execute-P006.last.txt
+docs\progress\logs\20260625-132450_execute-P006.log
+docs\progress\logs\20260625-133441_execute-P007.log
+docs\progress\logs\20260625-133446_execute-P007.log
+docs\progress\logs\20260625-133736_execute-P007.log
+docs\progress\logs\20260625-133741_execute-P007.log
+docs\progress\logs\20260625-133751_execute-P007.log
+docs\progress\logs\20260625-133821_execute-P007.log
+docs\progress\logs\20260625-133846_execute-P007.log
+docs\progress\logs\20260625-133851_execute-P007.log
+docs\progress\logs\20260625-133906_execute-P007.log
+docs\progress\logs\20260625-133916_execute-P007.log
+docs\progress\logs\20260625-133941_execute-P007.log
+docs\progress\logs\20260625-134047_execute-P007.log
+docs\progress\logs\20260625-134052_execute-P007.last.txt
+docs\progress\logs\20260625-134052_execute-P007.log
+docs\progress\logs\20260625-135048_validate-12.log
+docs\progress\logs\20260625-135058_execute-P002.log
+docs\progress\logs\20260625-135103_execute-P002.log
+docs\progress\logs\20260625-135108_execute-P002.log
+docs\progress\logs\20260625-140619_execute-P002.log
+docs\progress\logs\20260625-140929_execute-P002.log
+docs\progress\logs\20260625-141105_execute-P002.log
+docs\progress\logs\20260625-141110_execute-P002.log
+docs\progress\logs\20260625-141115_execute-P002.log
+docs\progress\logs\20260625-141120_execute-P002.last.txt
+docs\progress\logs\20260625-141120_execute-P002.log
+docs\progress\logs\20260625-141530_execute-P003.log
+docs\progress\logs\20260625-141535_execute-P003.log
+docs\progress\logs\20260625-141540_execute-P003.log
+docs\progress\logs\20260625-141545_execute-P003.log
+docs\progress\logs\20260625-141705_execute-P003.log
+docs\progress\logs\20260625-141940_execute-P003.log
+docs\progress\logs\20260625-141945_execute-P003.log
+docs\progress\logs\20260625-142005_execute-P003.log
+docs\progress\logs\20260625-142010_execute-P003.log
+docs\progress\logs\20260625-142015_execute-P003.log
+docs\progress\logs\20260625-142136_execute-P003.log
+docs\progress\logs\20260625-142201_execute-P003.log
+docs\progress\logs\20260625-142626_execute-P003.log
+docs\progress\logs\20260625-142656_execute-P003.log
+docs\progress\logs\20260625-142911_execute-P003.log
+docs\progress\logs\20260625-143026_execute-P003.log
+docs\progress\logs\20260625-143031_execute-P003.log
+docs\progress\logs\20260625-143036_execute-P003.log
+docs\progress\logs\20260625-143041_execute-P003.log
+docs\progress\logs\20260625-143046_execute-P003.log
+docs\progress\logs\20260625-143106_execute-P003.log
+docs\progress\logs\20260625-143111_execute-P003.log
+docs\progress\logs\20260625-143116_execute-P003.log
+docs\progress\logs\20260625-143121_execute-P003.log
+docs\progress\logs\20260625-143252_execute-P003.log
+docs\progress\logs\20260625-143257_execute-P003.log
+docs\progress\logs\20260625-143337_execute-P003.log
+docs\progress\logs\20260625-143342_execute-P003.log
+docs\progress\logs\20260625-143432_execute-P003.last.txt
+docs\progress\logs\20260625-143432_execute-P003.log
+docs\progress\logs\20260625-143952_execute-P004.log
+docs\progress\logs\20260625-143957_execute-P004.last.txt
+docs\progress\logs\20260625-143957_execute-P004.log
+docs\progress\logs\20260625-144808_execute-P005.log
+docs\progress\logs\20260625-145103_execute-P005.log
+docs\progress\logs\20260625-145108_execute-P005.log
+docs\progress\logs\20260625-145113_execute-P005.log
+docs\progress\logs\20260625-145118_execute-P005.log
+docs\progress\logs\20260625-145123_execute-P005.log
+docs\progress\logs\20260625-145129_execute-P005.log
+docs\progress\logs\20260625-145134_execute-P005.log
+docs\progress\logs\20260625-145154_execute-P005.log
+docs\progress\logs\20260625-145159_execute-P005.log
+docs\progress\logs\20260625-145204_execute-P005.log
+docs\progress\logs\20260625-145209_execute-P005.log
+docs\progress\logs\20260625-145214_execute-P005.log
+docs\progress\logs\20260625-145334_execute-P005.log
+docs\progress\logs\20260625-145339_execute-P005.log
+docs\progress\logs\20260625-145344_execute-P005.log
+docs\progress\logs\20260625-145349_execute-P005.log
+docs\progress\logs\20260625-145354_execute-P005.log
+docs\progress\logs\20260625-145509_execute-P005.log
+docs\progress\logs\20260625-145549_execute-P005.log
+docs\progress\logs\20260625-145554_execute-P005.log
+docs\progress\logs\20260625-145559_execute-P005.log
+docs\progress\logs\20260625-145854_execute-P005.log
+docs\progress\logs\20260625-145859_execute-P005.log
+docs\progress\logs\20260625-150039_execute-P005.log
+docs\progress\logs\20260625-150044_execute-P005.log
+docs\progress\logs\20260625-150049_execute-P005.log
+docs\progress\logs\20260625-150104_execute-P005.log
+docs\progress\logs\20260625-150109_execute-P005.log
+docs\progress\logs\20260625-150144_execute-P005.log
+docs\progress\logs\20260625-150259_execute-P005.log
+docs\progress\logs\20260625-150304_execute-P005.log
+docs\progress\logs\20260625-150515_execute-P005.log
+docs\progress\logs\20260625-150525_execute-P005.log
+docs\progress\logs\20260625-150535_execute-P005.log
+docs\progress\logs\20260625-150540_execute-P005.log
+docs\progress\logs\20260625-150545_execute-P005.log
+docs\progress\logs\20260625-150605_execute-P005.log
+docs\progress\logs\20260625-150610_execute-P005.log
+docs\progress\logs\20260625-150615_execute-P005.log
+docs\progress\logs\20260625-150620_execute-P005.log
+docs\progress\logs\20260625-150625_execute-P005.log
+docs\progress\logs\20260625-150630_execute-P005.log
+docs\progress\logs\20260625-150915_execute-P005.log
+docs\progress\logs\20260625-150925_execute-P005.log
+docs\progress\logs\20260625-151050_execute-P005.log
+docs\progress\logs\20260625-151100_execute-P005.log
+docs\progress\logs\20260625-151105_execute-P005.log
+docs\progress\logs\20260625-151110_execute-P005.log
+docs\progress\logs\20260625-151115_execute-P005.log
+docs\progress\logs\20260625-151125_execute-P005.log
+docs\progress\logs\20260625-151140_execute-P005.log
+docs\progress\logs\20260625-151255_execute-P005.log
+docs\progress\logs\20260625-151300_execute-P005.log
+docs\progress\logs\20260625-151426_execute-P005.log
+docs\progress\logs\20260625-151431_execute-P005.log
+docs\progress\logs\20260625-151516_execute-P005.log
+docs\progress\logs\20260625-151521_execute-P005.log
+docs\progress\logs\20260625-151606_execute-P005.log
+docs\progress\logs\20260625-151611_execute-P005.log
+docs\progress\logs\20260625-151616_execute-P005.log
+docs\progress\logs\20260625-151621_execute-P005.log
+docs\progress\logs\20260625-151626_execute-P005.log
+docs\progress\logs\20260625-151706_execute-P005.log
+docs\progress\logs\20260625-152156_execute-P005.log
+docs\progress\logs\20260625-152201_execute-P005.log
+docs\progress\logs\20260625-152206_execute-P005.log
+docs\progress\logs\20260625-152211_execute-P005.log
+docs\progress\logs\20260625-152216_execute-P005.log
+docs\progress\logs\20260625-152221_execute-P005.log
+docs\progress\logs\20260625-152226_execute-P005.log
+docs\progress\logs\20260625-152241_execute-P005.log
+docs\progress\logs\20260625-152332_execute-P005.log
+docs\progress\logs\20260625-152337_execute-P005.log
+docs\progress\logs\20260625-152432_execute-P005.log
+docs\progress\logs\20260625-152442_execute-P005.log
+docs\progress\logs\20260625-152607_execute-P005.log
+docs\progress\logs\20260625-152617_execute-P005.log
+docs\progress\logs\20260625-153057_execute-P005.log
+docs\progress\logs\20260625-153102_execute-P005.log
+docs\progress\logs\20260625-153107_execute-P005.log
+docs\progress\logs\20260625-153117_execute-P005.log
+docs\progress\logs\20260625-153122_execute-P005.log
+docs\progress\logs\20260625-153127_execute-P005.log
+docs\progress\logs\20260625-153132_execute-P005.log
+docs\progress\logs\20260625-153137_execute-P005.log
+docs\progress\logs\20260625-153152_execute-P005.log
+docs\progress\logs\20260625-153157_execute-P005.log
+docs\progress\logs\20260625-153227_execute-P005.log
+docs\progress\logs\20260625-153247_execute-P005.log
+docs\progress\logs\20260625-153252_execute-P005.log
+docs\progress\logs\20260625-153257_execute-P005.log
+docs\progress\logs\20260625-153713_execute-P005.log
+docs\progress\logs\20260625-153848_execute-P005.log
+docs\progress\logs\20260625-153858_execute-P005.log
+docs\progress\logs\20260625-153928_execute-P005.log
+docs\progress\logs\20260625-154008_execute-P005.log
+docs\progress\logs\20260625-154013_execute-P005.log
+docs\progress\logs\20260625-154018_execute-P005.log
+docs\progress\logs\20260625-154023_execute-P005.log
+docs\progress\logs\20260625-154028_execute-P005.log
+docs\progress\logs\20260625-154033_execute-P005.log
+docs\progress\logs\20260625-154038_execute-P005.log
+docs\progress\logs\20260625-154043_execute-P005.log
+docs\progress\logs\20260625-154048_execute-P005.log
+docs\progress\logs\20260625-154103_execute-P005.log
+docs\progress\logs\20260625-154108_execute-P005.log
+docs\progress\logs\20260625-154113_execute-P005.log
+docs\progress\logs\20260625-154118_execute-P005.log
+docs\progress\logs\20260625-154123_execute-P005.log
+docs\progress\logs\20260625-154328_execute-P005.log
+docs\progress\logs\20260625-154333_execute-P005.log
+docs\progress\logs\20260625-154338_execute-P005.log
+docs\progress\logs\20260625-154429_execute-P005.log
+docs\progress\logs\20260625-154434_execute-P005.log
+docs\progress\logs\20260625-154439_execute-P005.log
+docs\progress\logs\20260625-154444_execute-P005.log
+docs\progress\logs\20260625-154514_execute-P005.log
+docs\progress\logs\20260625-154519_execute-P005.log
+docs\progress\logs\20260625-154534_execute-P005.log
+docs\progress\logs\20260625-154539_execute-P005.log
+docs\progress\logs\20260625-154544_execute-P005.log
+docs\progress\logs\20260625-154549_execute-P005.log
+docs\progress\logs\20260625-154554_execute-P005.log
+docs\progress\logs\20260625-154559_execute-P005.log
+docs\progress\logs\20260625-154634_execute-P005.log
+docs\progress\logs\20260625-154639_execute-P005.log
+docs\progress\logs\20260625-154644_execute-P005.log
+docs\progress\logs\20260625-154659_execute-P005.log
+docs\progress\logs\20260625-154704_execute-P005.log
+docs\progress\logs\20260625-154724_execute-P005.log
+docs\progress\logs\20260625-154759_execute-P005.log
+docs\progress\logs\20260625-154804_execute-P005.log
+docs\progress\logs\20260625-154809_execute-P005.log
+docs\progress\logs\20260625-154814_execute-P005.log
+docs\progress\logs\20260625-154819_execute-P005.log
+docs\progress\logs\20260625-154824_execute-P005.log
+docs\progress\logs\20260625-154829_execute-P005.log
+docs\progress\logs\20260625-154834_execute-P005.log
+docs\progress\logs\20260625-155054_execute-P005.log
+docs\progress\logs\20260625-155059_execute-P005.log
+docs\progress\logs\20260625-155104_execute-P005.log
+docs\progress\logs\20260625-155219_execute-P005.log
+docs\progress\logs\20260625-155224_execute-P005.log
+docs\progress\logs\20260625-155635_execute-P005.log
+docs\progress\logs\20260625-155640_execute-P005.log
+docs\progress\logs\20260625-155645_execute-P005.log
+docs\progress\logs\20260625-155650_execute-P005.log
+docs\progress\logs\20260625-155935_execute-P005.log
+docs\progress\logs\20260625-155940_execute-P005.log
+docs\progress\logs\20260625-160030_execute-P005.log
+docs\progress\logs\20260625-160035_execute-P005.log
+docs\progress\logs\20260625-160040_execute-P005.log
+docs\progress\logs\20260625-160100_execute-P005.log
+docs\progress\logs\20260625-160105_execute-P005.log
+docs\progress\logs\20260625-160125_execute-P005.log
+docs\progress\logs\20260625-160130_execute-P005.log
+docs\progress\logs\20260625-160145_execute-P005.log
+docs\progress\logs\20260625-160150_execute-P005.log
+docs\progress\logs\20260625-160526_execute-P005.log
+docs\progress\logs\20260625-160531_execute-P005.log
+docs\progress\logs\20260625-160551_execute-P005.log
+docs\progress\logs\20260625-160556_execute-P005.log
+docs\progress\logs\20260625-161226_execute-P005.log
+docs\progress\logs\20260625-161522_execute-P005.log
+docs\progress\logs\20260625-161527_execute-P005.log
+docs\progress\logs\20260625-163013_execute-P005.log
+docs\progress\logs\20260625-163058_execute-P005.log
+docs\progress\logs\20260625-163929_execute-P005.log
+docs\progress\logs\20260625-164805_execute-P005.log
+docs\progress\logs\20260625-164810_execute-P005.log
+docs\progress\logs\20260625-164830_execute-P005.log
+docs\progress\logs\20260625-165140_execute-P005.log
+docs\progress\logs\20260625-165150_execute-P005.log
+docs\progress\logs\20260625-165230_execute-P005.log
+docs\progress\logs\20260625-165235_execute-P005.log
+docs\progress\logs\20260625-165240_execute-P005.log
+docs\progress\logs\20260625-165245_execute-P005.log
+docs\progress\logs\20260625-165315_execute-P005.log
+docs\progress\logs\20260625-165551_execute-P005.log
+docs\progress\logs\20260625-165556_execute-P005.log
+docs\progress\logs\20260625-165601_execute-P005.log
+docs\progress\logs\20260625-165606_execute-P005.log
+docs\progress\logs\20260625-165636_execute-P005.log
+docs\progress\logs\20260625-165641_execute-P005.log
+docs\progress\logs\20260625-165646_execute-P005.log
+docs\progress\logs\20260625-165706_execute-P005.log
+docs\progress\logs\20260625-165711_execute-P005.log
+docs\progress\logs\20260625-165716_execute-P005.log
+docs\progress\logs\20260625-165721_execute-P005.log
+docs\progress\logs\20260625-165841_execute-P005.log
+docs\progress\logs\20260625-165906_execute-P005.log
+docs\progress\logs\20260625-165911_execute-P005.log
+docs\progress\logs\20260625-165916_execute-P005.log
+docs\progress\logs\20260625-165921_execute-P005.log
+docs\progress\logs\20260625-165926_execute-P005.log
+docs\progress\logs\20260625-165931_execute-P005.log
+docs\progress\logs\20260625-165941_execute-P005.log
+docs\progress\logs\20260625-170121_execute-P005.log
+docs\progress\logs\20260625-170126_execute-P005.log
+docs\progress\logs\20260625-170131_execute-P005.log
+docs\progress\logs\20260625-170136_execute-P005.log
+docs\progress\logs\20260625-170141_execute-P005.log
+docs\progress\logs\20260625-170146_execute-P005.log
+docs\progress\logs\20260625-170151_execute-P005.log
+docs\progress\logs\20260625-170156_execute-P005.log
+docs\progress\logs\20260625-170231_execute-P005.log
+docs\progress\logs\20260625-170236_execute-P005.log
+docs\progress\logs\20260625-170256_execute-P005.log
+docs\progress\logs\20260625-170301_execute-P005.log
+docs\progress\logs\20260625-170306_execute-P005.log
+docs\progress\logs\20260625-170316_execute-P005.log
+docs\progress\logs\20260625-170336_execute-P005.log
+docs\progress\logs\20260625-170341_execute-P005.log
+docs\progress\logs\20260625-170346_execute-P005.log
+docs\progress\logs\20260625-170351_execute-P005.log
+docs\progress\logs\20260625-170437_execute-P005.log
+docs\progress\logs\20260625-170442_execute-P005.log
+docs\progress\logs\20260625-170447_execute-P005.log
+docs\progress\logs\20260625-170457_execute-P005.log
+docs\progress\logs\20260625-170522_execute-P005.log
+docs\progress\logs\20260625-170532_execute-P005.log
+docs\progress\logs\20260625-170537_execute-P005.log
+docs\progress\logs\20260625-170542_execute-P005.log
+docs\progress\logs\20260625-170547_execute-P005.log
+docs\progress\logs\20260625-170552_execute-P005.log
+docs\progress\logs\20260625-170622_execute-P005.log
+docs\progress\logs\20260625-170627_execute-P005.log
+docs\progress\logs\20260625-170632_execute-P005.log
+docs\progress\logs\20260625-170637_execute-P005.log
+docs\progress\logs\20260625-170642_execute-P005.log
+docs\progress\logs\20260625-170647_execute-P005.log
+docs\progress\logs\20260625-170652_execute-P005.log
+docs\progress\logs\20260625-170657_execute-P005.log
+docs\progress\logs\20260625-170702_execute-P005.log
+docs\progress\logs\20260625-170707_execute-P005.log
+docs\progress\logs\20260625-170712_execute-P005.log
+docs\progress\logs\20260625-170717_execute-P005.log
+docs\progress\logs\20260625-170722_execute-P005.log
+docs\progress\logs\20260625-170727_execute-P005.log
+docs\progress\logs\20260625-170732_execute-P005.log
+docs\progress\logs\20260625-170802_execute-P005.log
+docs\progress\logs\20260625-170807_execute-P005.log
+docs\progress\logs\20260625-170842_execute-P005.log
+docs\progress\logs\20260625-170847_execute-P005.log
+docs\progress\logs\20260625-170852_execute-P005.log
+docs\progress\logs\20260625-170907_execute-P005.log
+docs\progress\logs\20260625-170937_execute-P005.log
+docs\progress\logs\20260625-170942_execute-P005.log
+docs\progress\logs\20260625-170947_execute-P005.log
+docs\progress\logs\20260625-171047_execute-P005.log
+docs\progress\logs\20260625-171057_execute-P005.log
+docs\progress\logs\20260625-171102_execute-P005.log
+docs\progress\logs\20260625-171202_execute-P005.log
+docs\progress\logs\20260625-171207_execute-P005.log
+docs\progress\logs\20260625-171212_execute-P005.log
+docs\progress\logs\20260625-171217_execute-P005.log
+docs\progress\logs\20260625-171222_execute-P005.log
+docs\progress\logs\20260625-171227_execute-P005.log
+docs\progress\logs\20260625-171232_execute-P005.log
+docs\progress\logs\20260625-171237_execute-P005.log
+docs\progress\logs\20260625-171242_execute-P005.log
+docs\progress\logs\20260625-171247_execute-P005.log
+docs\progress\logs\20260625-171317_execute-P005.log
+docs\progress\logs\20260625-171322_execute-P005.log
+docs\progress\logs\20260625-171327_execute-P005.log
+docs\progress\logs\20260625-171332_execute-P005.log
+docs\progress\logs\20260625-171402_execute-P005.log
+docs\progress\logs\20260625-171407_execute-P005.log
+docs\progress\logs\20260625-171412_execute-P005.log
+docs\progress\logs\20260625-171458_execute-P005.log
+docs\progress\logs\20260625-171503_execute-P005.log
+docs\progress\logs\20260625-171508_execute-P005.log
+docs\progress\logs\20260625-171538_execute-P005.log
+docs\progress\logs\20260625-171543_execute-P005.log
+docs\progress\logs\20260625-171548_execute-P005.log
+docs\progress\logs\20260625-171553_execute-P005.log
+docs\progress\logs\20260625-171843_execute-P005.log
+docs\progress\logs\20260625-171903_execute-P005.log
+docs\progress\logs\20260625-171908_execute-P005.log
+docs\progress\logs\20260625-172053_execute-P005.log
+docs\progress\logs\20260625-172058_execute-P005.log
+docs\progress\logs\20260625-172108_execute-P005.log
+docs\progress\logs\20260625-172113_execute-P005.log
+docs\progress\logs\20260625-172118_execute-P005.log
+docs\progress\logs\20260625-172123_execute-P005.log
+docs\progress\logs\20260625-172133_execute-P005.log
+docs\progress\logs\20260625-172233_execute-P005.log
+docs\progress\logs\20260625-172238_execute-P005.log
+docs\progress\logs\20260625-172248_execute-P005.log
+docs\progress\logs\20260625-172253_execute-P005.log
+docs\progress\logs\20260625-172258_execute-P005.log
+docs\progress\logs\20260625-172303_execute-P005.log
+docs\progress\logs\20260625-172539_execute-P005.log
+docs\progress\logs\20260625-172544_execute-P005.log
+docs\progress\logs\20260625-172549_execute-P005.log
+docs\progress\logs\20260625-172554_execute-P005.log
+docs\progress\logs\20260625-172559_execute-P005.log
+docs\progress\logs\20260625-172604_execute-P005.log
+docs\progress\logs\20260625-172624_execute-P005.log
+docs\progress\logs\20260625-172629_execute-P005.log
+docs\progress\logs\20260625-172649_execute-P005.log
+docs\progress\logs\20260625-172654_execute-P005.log
+docs\progress\logs\20260625-172949_execute-P005.log
+docs\progress\logs\20260625-172954_execute-P005.log
+docs\progress\logs\20260625-172959_execute-P005.log
+docs\progress\logs\20260625-173004_execute-P005.log
+docs\progress\logs\20260625-173009_execute-P005.log
+docs\progress\logs\20260625-173014_execute-P005.log
+docs\progress\logs\20260625-173019_execute-P005.log
+docs\progress\logs\20260625-173024_execute-P005.log
+docs\progress\logs\20260625-173029_execute-P005.log
+docs\progress\logs\20260625-173034_execute-P005.log
+docs\progress\logs\20260625-173039_execute-P005.log
+docs\progress\logs\20260625-173044_execute-P005.log
+docs\progress\logs\20260625-173049_execute-P005.log
+docs\progress\logs\20260625-173114_execute-P005.log
+docs\progress\logs\20260625-173119_execute-P005.log
+docs\progress\logs\20260625-173124_execute-P005.log
+docs\progress\logs\20260625-173159_execute-P005.log
+docs\progress\logs\20260625-173204_execute-P005.log
+docs\progress\logs\20260625-173319_execute-P005.log
+docs\progress\logs\20260625-173324_execute-P005.log
+docs\progress\logs\20260625-173334_execute-P005.log
+docs\progress\logs\20260625-173339_execute-P005.log
+docs\progress\logs\20260625-173344_execute-P005.log
+docs\progress\logs\20260625-173349_execute-P005.log
+docs\progress\logs\20260625-173354_execute-P005.log
+docs\progress\logs\20260625-173424_execute-P005.log
+docs\progress\logs\20260625-173429_execute-P005.log
+docs\progress\logs\20260625-173434_execute-P005.log
+docs\progress\logs\20260625-173700_execute-P005.log
+docs\progress\logs\20260625-173705_execute-P005.log
+docs\progress\logs\20260625-173710_execute-P005.log
+docs\progress\logs\20260625-173730_execute-P005.log
+docs\progress\logs\20260625-173735_execute-P005.log
+docs\progress\logs\20260625-173740_execute-P005.log
+docs\progress\logs\20260625-173745_execute-P005.log
+docs\progress\logs\20260625-173750_execute-P005.log
+docs\progress\logs\20260625-173755_execute-P005.log
+docs\progress\logs\20260625-173800_execute-P005.log
+docs\progress\logs\20260625-173810_execute-P005.log
+docs\progress\logs\20260625-173815_execute-P005.log
+docs\progress\logs\20260625-173830_execute-P005.log
+docs\progress\logs\20260625-173835_execute-P005.log
+docs\progress\logs\20260625-173840_execute-P005.log
+docs\progress\logs\20260625-173845_execute-P005.log
+docs\progress\logs\20260625-173850_execute-P005.log
+docs\progress\logs\20260625-173855_execute-P005.log
+docs\progress\logs\20260625-173945_execute-P005.log
+docs\progress\logs\20260625-173950_execute-P005.log
+docs\progress\logs\20260625-173955_execute-P005.log
+docs\progress\logs\20260625-174000_execute-P005.log
+docs\progress\logs\20260625-174005_execute-P005.log
+docs\progress\logs\20260625-174010_execute-P005.log
+docs\progress\logs\20260625-174015_execute-P005.log
+docs\progress\logs\20260625-174020_execute-P005.log
+docs\progress\logs\20260625-174025_execute-P005.log
+docs\progress\logs\20260625-174045_execute-P005.log
+docs\progress\logs\20260625-174050_execute-P005.log
+docs\progress\logs\20260625-174055_execute-P005.log
+docs\progress\logs\20260625-174100_execute-P005.log
+docs\progress\logs\20260625-174105_execute-P005.log
+docs\progress\logs\20260625-174110_execute-P005.log
+docs\progress\logs\20260625-174115_execute-P005.log
+docs\progress\logs\20260625-174120_execute-P005.log
+docs\progress\logs\20260625-174125_execute-P005.log
+docs\progress\logs\20260625-174130_execute-P005.log
+docs\progress\logs\20260625-174135_execute-P005.log
+docs\progress\logs\20260625-174140_execute-P005.log
+docs\progress\logs\20260625-174145_execute-P005.log
+docs\progress\logs\20260625-174150_execute-P005.log
+docs\progress\logs\20260625-174155_execute-P005.log
+docs\progress\logs\20260625-174200_execute-P005.log
+docs\progress\logs\20260625-174205_execute-P005.log
+docs\progress\logs\20260625-174210_execute-P005.log
+docs\progress\logs\20260625-174215_execute-P005.log
+docs\progress\logs\20260625-174225_execute-P005.log
+docs\progress\logs\20260625-174230_execute-P005.log
+docs\progress\logs\20260625-174235_execute-P005.log
+docs\progress\logs\20260625-174240_execute-P005.log
+docs\progress\logs\20260625-174245_execute-P005.log
+docs\progress\logs\20260625-174250_execute-P005.log
+docs\progress\logs\20260625-174255_execute-P005.log
+docs\progress\logs\20260625-174300_execute-P005.log
+docs\progress\logs\20260625-174305_execute-P005.log
+docs\progress\logs\20260625-174310_execute-P005.log
+docs\progress\logs\20260625-174315_execute-P005.log
+docs\progress\logs\20260625-174320_execute-P005.log
+docs\progress\logs\20260625-174325_execute-P005.log
+docs\progress\logs\20260625-174330_execute-P005.log
+docs\progress\logs\20260625-174335_execute-P005.log
+docs\progress\logs\20260625-174340_execute-P005.log
+docs\progress\logs\20260625-174345_execute-P005.log
+docs\progress\logs\20260625-174350_execute-P005.log
+docs\progress\logs\20260625-174355_execute-P005.log
+docs\progress\logs\20260625-174430_execute-P005.log
+docs\progress\logs\20260625-174435_execute-P005.log
+docs\progress\logs\20260625-174550_execute-P005.log
+docs\progress\logs\20260625-174555_execute-P005.log
+docs\progress\logs\20260625-174625_execute-P005.log
+docs\progress\logs\20260625-174630_execute-P005.log
+docs\progress\logs\20260625-174635_execute-P005.log
+docs\progress\logs\20260625-174700_execute-P005.log
+docs\progress\logs\20260625-174705_execute-P005.log
+docs\progress\logs\20260625-174710_execute-P005.log
+docs\progress\logs\20260625-174715_execute-P005.log
+docs\progress\logs\20260625-174806_execute-P005.log
+docs\progress\logs\20260625-174811_execute-P005.log
+docs\progress\logs\20260625-174816_execute-P005.log
+docs\progress\logs\20260625-174821_execute-P005.log
+docs\progress\logs\20260625-174826_execute-P005.log
+docs\progress\logs\20260625-174831_execute-P005.log
+docs\progress\logs\20260625-174836_execute-P005.log
+docs\progress\logs\20260625-174856_execute-P005.log
+docs\progress\logs\20260625-174901_execute-P005.log
+docs\progress\logs\20260625-174906_execute-P005.log
+docs\progress\logs\20260625-174911_execute-P005.log
+docs\progress\logs\20260625-174921_execute-P005.log
+docs\progress\logs\20260625-174926_execute-P005.log
+docs\progress\logs\20260625-174931_execute-P005.log
+docs\progress\logs\20260625-174936_execute-P005.log
+docs\progress\logs\20260625-174956_execute-P005.log
+docs\progress\logs\20260625-175001_execute-P005.log
+docs\progress\logs\20260625-175006_execute-P005.log
+docs\progress\logs\20260625-175011_execute-P005.log
+docs\progress\logs\20260625-175016_execute-P005.log
+docs\progress\logs\20260625-175036_execute-P005.log
+docs\progress\logs\20260625-175041_execute-P005.log
+docs\progress\logs\20260625-175046_execute-P005.log
+docs\progress\logs\20260625-175051_execute-P005.log
+docs\progress\logs\20260625-175056_execute-P005.log
+docs\progress\logs\20260625-175101_execute-P005.log
+docs\progress\logs\20260625-175106_execute-P005.log
+docs\progress\logs\20260625-175111_execute-P005.log
+docs\progress\logs\20260625-175116_execute-P005.log
+docs\progress\logs\20260625-175121_execute-P005.log
+docs\progress\logs\20260625-175126_execute-P005.log
+docs\progress\logs\20260625-175131_execute-P005.log
+docs\progress\logs\20260625-175136_execute-P005.log
+docs\progress\logs\20260625-175141_execute-P005.log
+docs\progress\logs\20260625-175216_execute-P005.log
+docs\progress\logs\20260625-175221_execute-P005.log
+docs\progress\logs\20260625-175226_execute-P005.log
+docs\progress\logs\20260625-175231_execute-P005.log
+docs\progress\logs\20260625-175236_execute-P005.log
+docs\progress\logs\20260625-175241_execute-P005.log
+docs\progress\logs\20260625-175246_execute-P005.log
+docs\progress\logs\20260625-175251_execute-P005.log
+docs\progress\logs\20260625-175321_execute-P005.log
+docs\progress\logs\20260625-175326_execute-P005.log
+docs\progress\logs\20260625-175431_execute-P005.log
+docs\progress\logs\20260625-175536_execute-P005.log
+docs\progress\logs\20260625-175541_execute-P005.log
+docs\progress\logs\20260625-175546_execute-P005.log
+docs\progress\logs\20260625-175551_execute-P005.log
+docs\progress\logs\20260625-175556_execute-P005.log
+docs\progress\logs\20260625-175601_execute-P005.log
+docs\progress\logs\20260625-175606_execute-P005.log
+docs\progress\logs\20260625-175611_execute-P005.log
+docs\progress\logs\20260625-175702_execute-P005.log
+docs\progress\logs\20260625-175706_execute-P005.log
+docs\progress\logs\20260625-175712_execute-P005.log
+docs\progress\logs\20260625-175717_execute-P005.log
+docs\progress\logs\20260625-175722_execute-P005.log
+docs\progress\logs\20260625-175727_execute-P005.log
+docs\progress\logs\20260625-175732_execute-P005.log
+docs\progress\logs\20260625-175802_execute-P005.log
+docs\progress\logs\20260625-175807_execute-P005.log
+docs\progress\logs\20260625-175822_execute-P005.log
+docs\progress\logs\20260625-175827_execute-P005.log
+docs\progress\logs\20260625-175832_execute-P005.log
+docs\progress\logs\20260625-175852_execute-P005.log
+docs\progress\logs\20260625-175857_execute-P005.log
+docs\progress\logs\20260625-175902_execute-P005.log
+docs\progress\logs\20260625-175907_execute-P005.log
+docs\progress\logs\20260625-175912_execute-P005.log
+docs\progress\logs\20260625-175917_execute-P005.log
+docs\progress\logs\20260625-175932_execute-P005.log
+docs\progress\logs\20260625-175957_execute-P005.log
+docs\progress\logs\20260625-180002_execute-P005.log
+docs\progress\logs\20260625-180007_execute-P005.log
+docs\progress\logs\20260625-180012_execute-P005.log
+docs\progress\logs\20260625-180017_execute-P005.log
+docs\progress\logs\20260625-180032_execute-P005.log
+docs\progress\logs\20260625-180037_execute-P005.log
+docs\progress\logs\20260625-180042_execute-P005.log
+docs\progress\logs\20260625-180047_execute-P005.log
+docs\progress\logs\20260625-180052_execute-P005.log
+docs\progress\logs\20260625-180057_execute-P005.log
+docs\progress\logs\20260625-180102_execute-P005.log
+docs\progress\logs\20260625-180107_execute-P005.log
+docs\progress\logs\20260625-180112_execute-P005.log
+docs\progress\logs\20260625-180117_execute-P005.log
+docs\progress\logs\20260625-180122_execute-P005.log
+docs\progress\logs\20260625-180127_execute-P005.log
+docs\progress\logs\20260625-180212_execute-P005.log
+docs\progress\logs\20260625-180217_execute-P005.log
+docs\progress\logs\20260625-180237_execute-P005.log
+docs\progress\logs\20260625-180242_execute-P005.log
+docs\progress\logs\20260625-180247_execute-P005.log
+docs\progress\logs\20260625-180252_execute-P005.log
+docs\progress\logs\20260625-180257_execute-P005.log
+docs\progress\logs\20260625-180302_execute-P005.log
+docs\progress\logs\20260625-180307_execute-P005.log
+docs\progress\logs\20260625-180312_execute-P005.log
+docs\progress\logs\20260625-180317_execute-P005.log
+docs\progress\logs\20260625-180322_execute-P005.log
+docs\progress\logs\20260625-180327_execute-P005.log
+docs\progress\logs\20260625-180332_execute-P005.log
+docs\progress\logs\20260625-180337_execute-P005.log
+docs\progress\logs\20260625-180342_execute-P005.log
+docs\progress\logs\20260625-180347_execute-P005.log
+docs\progress\logs\20260625-180352_execute-P005.log
+docs\progress\logs\20260625-180357_execute-P005.log
+docs\progress\logs\20260625-180402_execute-P005.log
+docs\progress\logs\20260625-180412_execute-P005.log
+docs\progress\logs\20260625-180417_execute-P005.log
+docs\progress\logs\20260625-180422_execute-P005.log
+docs\progress\logs\20260625-180427_execute-P005.log
+docs\progress\logs\20260625-180432_execute-P005.log
+docs\progress\logs\20260625-180437_execute-P005.log
+docs\progress\logs\20260625-180442_execute-P005.log
+docs\progress\logs\20260625-180447_execute-P005.log
+docs\progress\logs\20260625-180457_execute-P005.log
+docs\progress\logs\20260625-180522_execute-P005.log
+docs\progress\logs\20260625-180527_execute-P005.log
+docs\progress\logs\20260625-180612_execute-P005.log
+docs\progress\logs\20260625-180632_execute-P005.log
+docs\progress\logs\20260625-180637_execute-P005.log
+docs\progress\logs\20260625-180642_execute-P005.log
+docs\progress\logs\20260625-180707_execute-P005.log
+docs\progress\logs\20260625-180712_execute-P005.log
+docs\progress\logs\20260625-180813_execute-P005.log
+docs\progress\logs\20260625-180913_execute-P005.log
+docs\progress\logs\20260625-180918_execute-P005.log
+docs\progress\logs\20260625-181023_execute-P005.log
+docs\progress\logs\20260625-181123_execute-P005.log
+docs\progress\logs\20260625-181138_execute-P005.log
+docs\progress\logs\20260625-181143_execute-P005.log
+docs\progress\logs\20260625-181148_execute-P005.log
+docs\progress\logs\20260625-181153_execute-P005.log
+docs\progress\logs\20260625-181158_execute-P005.log
+docs\progress\logs\20260625-181228_execute-P005.log
+docs\progress\logs\20260625-181233_execute-P005.log
+docs\progress\logs\20260625-181333_execute-P005.log
+docs\progress\logs\20260625-181338_execute-P005.log
+docs\progress\logs\20260625-181458_execute-P005.log
+docs\progress\logs\20260625-181503_execute-P005.log
+docs\progress\logs\20260625-181508_execute-P005.log
+docs\progress\logs\20260625-181513_execute-P005.log
+docs\progress\logs\20260625-181518_execute-P005.log
+docs\progress\logs\20260625-181538_execute-P005.log
+docs\progress\logs\20260625-181543_execute-P005.log
+docs\progress\logs\20260625-181548_execute-P005.log
+docs\progress\logs\20260625-181553_execute-P005.log
+docs\progress\logs\20260625-181828_execute-P005.log
+docs\progress\logs\20260625-181859_execute-P005.log
+docs\progress\logs\20260625-181919_execute-P005.log
+docs\progress\logs\20260625-181924_execute-P005.log
+docs\progress\logs\20260625-181929_execute-P005.log
+docs\progress\logs\20260625-182304_execute-P005.log
+docs\progress\logs\20260625-182319_execute-P005.log
+docs\progress\logs\20260625-182444_execute-P005.log
+docs\progress\logs\20260625-182504_execute-P005.last.txt
+docs\progress\logs\20260625-182504_execute-P005.log
+docs\progress\logs\20260625-183455_execute-P006.log
+docs\progress\logs\20260625-183540_execute-P006.log
+docs\progress\logs\20260625-183545_execute-P006.log
+docs\progress\logs\20260625-183550_execute-P006.log
+docs\progress\logs\20260625-183555_execute-P006.log
+docs\progress\state.json
+docs\progress\state.json.bak
+docs\progress\state.json.mirror
+docs\project_acceptance_roadmap_plan.md
+docs\README.md
+docs\refactor_plan.md
+docs\release_checklist.md
+docs\rendering.md
+docs\running_guide.md
+docs\schema_and_commands.md
+docs\schema_migration_impact.md
+docs\selection_engine.md
+docs\selection_model.md
+docs\windows_ime_third_party_position_issue.md
+test\benchmarks\editor_benchmarks.dart
+test\codecs\document_errors_test.dart
+test\codecs\document_migration_test.dart
+test\codecs\html_codec_test.dart
+test\codecs\legacy_wen_json_codec_test.dart
+test\codecs\markdown_codec_test.dart
+test\codecs\plain_text_codec_test.dart
+test\codecs\rich_text_json_codec_test.dart
+test\collaboration\collaboration_adapter_test.dart
+test\controller\autosave_controller_test.dart
+test\controller\block_embed_controller_test.dart
+test\controller\callout_controller_test.dart
+test\controller\controller_callbacks_test.dart
+test\controller\controller_try_load_test.dart
+test\controller\document_stats_controller_test.dart
+test\controller\file_block_controller_test.dart
+test\controller\find_replace_controller_test.dart
+test\controller\image_block_controller_test.dart
+test\controller\outline_controller_test.dart
+test\controller\slash_menu_controller_test.dart
+test\controller\toolbar_controller_test.dart
+test\controller\video_block_controller_test.dart
+test\core\block_commands_test.dart
+test\core\block_structure_commands_test.dart
+test\core\command_merging_test.dart
+test\core\command_pipeline_test.dart
+test\core\comment_model_test.dart
+test\core\controller_test.dart
+test\core\document_position_test.dart
+test\core\document_schema_test.dart
+test\core\document_version_snapshot_test.dart
+test\core\history_manager_test.dart
+test\core\inline_commands_test.dart
+test\core\markdown_shortcut_commands_test.dart
+test\core\model_test.dart
+test\core\revision_model_test.dart
+test\core\selection_commands_test.dart
+test\core\style_commands_test.dart
+test\core\table_commands_test.dart
+test\core\text_commands_test.dart
+test\exporters\document_conversion_plan_test.dart
+test\fixtures\legacy_basic.json
+test\fixtures\legacy_code_image_formula.json
+test\fixtures\legacy_table.json
+test\helpers\selection_test_helpers.dart
+test\input\clipboard_service_test.dart
+test\input\editor_text_input_client_test.dart
+test\input\shortcut_manager_test.dart
+test\plugins\editor_plugin_test.dart
+test\widgets\block_geometry_registry_test.dart
+test\widgets\comment_sidebar_test.dart
+test\widgets\editor_golden_test.dart
+test\widgets\find_replace_panel_test.dart
+test\widgets\goldens\editor_advanced_blocks.png
+test\widgets\goldens\editor_block_drop_indicator.png
+test\widgets\goldens\editor_block_handle_menu.png
+test\widgets\goldens\editor_blocks.png
+test\widgets\goldens\editor_caret.png
+test\widgets\goldens\editor_merged_table.png
+test\widgets\goldens\editor_selection.png
+test\widgets\import_export_demo_test.dart
+test\widgets\link_edit_dialog_test.dart
+test\widgets\media_resolver_test.dart
+test\widgets\shared_text_layout_cache_test.dart
+test\widgets\slash_menu_overlay_test.dart
+test\widgets\wenz_rich_text_editor_test.dart
+
+**Inspecting test files**
+
+I need to inspect the target test file and relevant documentation, perhaps using `rg` for searching specific lines with tests. There's also the possibility of utilizing codegraph, but for a straightforward task, I could use `cat` in the shell. I might consider whether AGENTS instructions are required for the documentation. I’ll also need to check the current test file and possibly use `Get-Content` with line numbers for clarity.
+codex
+我在对齐现有测试结构，接着看目标测试和验收文档。
+exec
+powershell.exe -Command 'Get-Content test/widgets/wenz_rich_text_editor_test.dart -TotalCount 260' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 227ms:
+import 'dart:ui' show LineMetrics, PointerDeviceKind, Tristate;
+
+import 'package:flutter/gestures.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_math_fork/flutter_math.dart';
+import 'package:wenz_richtext/wenz_richtext.dart';
+
+import '../helpers/selection_test_helpers.dart';
+
+const String _formulaPlaceholder = '\uFFFC';
+const _inlineFormulaKey = ValueKey<String>('wenz-richtext-inline-formula');
+const _codeBlockBackground = Color(0xFF1E1E2E);
+const _codeBlockText = Color(0xFFE6E6F0);
+const _codeKeyword = Color(0xFFC792EA);
+const _codeString = Color(0xFFC3E88D);
+const _codeType = Color(0xFF82AAFF);
+const _codeNumber = Color(0xFFF78C6C);
+const _codeComment = Color(0xFF6B7394);
+const _dividerLine = Color(0xFFE4E1EE);
+const _calloutInfoBackground = Color(0xFFF2F0F7);
+const _calloutInfoForeground = Color(0xFF46464F);
+const _calloutInfoBorder = Color(0xFFD8D5E2);
+const _calloutSuccessBackground = Color(0x99D6E4E0);
+const _calloutSuccessForeground = Color(0xFF0E1F1B);
+const _calloutSuccessBorder = Color(0xFFBCD8D0);
+const _calloutWarningBackground = Color(0xFFFFF8E1);
+const _calloutWarningForeground = Color(0xFFC97B00);
+const _calloutWarningBorder = Color(0xFFFFE082);
+const _calloutDangerBackground = Color(0xB3FFDAD6);
+const _calloutDangerForeground = Color(0xFF410002);
+const _calloutDangerBorder = Color(0xFFF5B8B0);
+
+void main() {
+  testWidgets('renders document blocks', (tester) async {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'h1',
+            type: BlockType.heading,
+            attributes: BlockAttributes(level: 1),
+            content: <InlineNode>[
+              TextRun(text: 'Roadmap', attributes: TextAttributes(bold: true)),
+            ],
+          ),
+          TextBlockNode(
+            id: 'task1',
+            type: BlockType.listItem,
+            attributes: BlockAttributes(listType: 'task', checked: true),
+            content: <InlineNode>[TextRun(text: 'Ship core')],
+          ),
+          CodeBlockNode(
+            id: 'code1',
+            code: 'final done = true;',
+            language: 'dart',
+          ),
+          TableBlockNode(
+            id: 'table1',
+            table: TableModel(
+              rows: <List<TableCellNode>>[
+                <TableCellNode>[
+                  TableCellNode(
+                    id: 'cell1',
+                    blocks: <BlockNode>[
+                      TextBlockNode(
+                        id: 'cell-p1',
+                        type: BlockType.paragraph,
+                        content: <InlineNode>[TextRun(text: 'Cell A')],
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+              columnAlignments: <int, String>{0: 'center'},
+            ),
+          ),
+          ImageBlockNode(
+            id: 'image1',
+            assetId: 'hero',
+            file: 'hero.png',
+            caption: 'Hero caption',
+          ),
+          DividerBlockNode(id: 'divider1'),
+          VideoBlockNode(id: 'video1', assetId: 'clip'),
+        ],
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WenzRichTextEditor(
+            controller: controller,
+            enableIme: false,
+          ),
+        ),
+      ),
+    );
+
+    expect(_richText('Roadmap'), findsOneWidget);
+    expect(_richText('Ship core'), findsOneWidget);
+    final taskCheckbox = tester.widget<Checkbox>(find.byKey(
+      const ValueKey<String>('wenz-richtext-todo-checkbox-task1'),
+    ));
+    expect(taskCheckbox.value, isTrue);
+    expect(find.text('[x]'), findsNothing);
+    expect(_richText('final done = true;'), findsOneWidget);
+    expect(_richText('Cell A'), findsOneWidget);
+    expect(_imageBlockFinder('image1'), findsOneWidget);
+    expect(find.text('[image: hero.png]'), findsNothing);
+    expect(find.text('Hero caption'), findsOneWidget);
+    expect(find.byTooltip('璁剧疆鍥剧墖瀹藉害'), findsNothing);
+    expect(find.text('[video: clip]'), findsOneWidget);
+  });
+
+  testWidgets('applies design body baseline and inline text attributes', (
+    tester,
+  ) async {
+    const onSurface = Color(0xFF123456);
+    const primary = Color(0xFF4F6DF5);
+    const primaryContainer = Color(0xFFDDE0FF);
+    const plainText =
+        'plain bold italic underStrike colored highlight big mono '
+        'link comment revision';
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[
+              TextRun(text: 'plain'),
+              TextRun(text: ' '),
+              TextRun(
+                text: 'bold',
+                attributes: TextAttributes(bold: true),
+              ),
+              TextRun(text: ' '),
+              TextRun(
+                text: 'italic',
+                attributes: TextAttributes(italic: true),
+              ),
+              TextRun(text: ' '),
+              TextRun(
+                text: 'underStrike',
+                attributes: TextAttributes(
+                  underline: true,
+                  lineThrough: true,
+                ),
+              ),
+              TextRun(text: ' '),
+              TextRun(
+                text: 'colored',
+                attributes: TextAttributes(color: 0xFFD81B60),
+              ),
+              TextRun(text: ' '),
+              TextRun(
+                text: 'highlight',
+                attributes: TextAttributes(background: 0xFFFFF59D),
+              ),
+              TextRun(text: ' '),
+              TextRun(
+                text: 'big',
+                attributes: TextAttributes(fontSize: 22),
+              ),
+              TextRun(text: ' '),
+              TextRun(
+                text: 'mono',
+                attributes: TextAttributes(fontFamily: 'JetBrains Mono'),
+              ),
+              TextRun(text: ' '),
+              TextRun(
+                text: 'link',
+                attributes: TextAttributes(url: 'https://example.com'),
+              ),
+              TextRun(text: ' '),
+              TextRun(
+                text: 'comment',
+                attributes: TextAttributes(
+                  remark: true,
+                  commentIds: <String>['c1'],
+                ),
+              ),
+              TextRun(text: ' '),
+              TextRun(
+                text: 'revision',
+                attributes: TextAttributes(revisionIds: <String>['r1']),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(seedColor: primary).copyWith(
+            onSurface: onSurface,
+            primary: primary,
+            primaryContainer: primaryContainer,
+          ),
+          useMaterial3: true,
+        ),
+        home: Scaffold(
+          body: SizedBox(
+            width: 640,
+            child: WenzRichTextEditor(
+              controller: controller,
+              padding: EdgeInsets.zero,
+              enableIme: false,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final rootSpan = _richTextSpan(tester, plainText);
+    final rootStyle = rootSpan.style!;
+    TextStyle styleOf(String text) => _leafSpan(rootSpan, text)!.style!;
+
+    expect(rootStyle.fontSize, 16);
+    expect(rootStyle.height, 1.75);
+    expect(rootStyle.color, onSurface);
+    expect(styleOf('bold').fontWeight, FontWeight.w700);
+    expect(styleOf('italic').fontStyle, FontStyle.italic);
+    expect(
+      styleOf('underStrike').decoration?.contains(TextDecoration.underline),
+      isTrue,
+    );
+    expect(
+      styleOf('underStrike').decoration?.contains(TextDecoration.lineThrough),
+      isTrue,
+    );
+    expect(styleOf('colored').color, const Color(0xFFD81B60));
+    expect(styleOf('highlight').backgroundColor, const Color(0xFFFFF59D));
+    expect(styleOf('big').fontSize, 22);
+    expect(styleOf('mono').fontFamily, 'JetBrains Mono');
+    expect(styleOf('link').color, const Color(0xFF1976D2));
+    expect(
+      styleOf('link').decoration?.contains(TextDecoration.underline),
+      isTrue,
+    );
+    expect(styleOf('comment').decorationStyle, TextDecorationStyle.dotted);
+    expect(styleOf('comment').decorationColor, const Color(0xFFC97B00));
+    expect(styleOf('comment').decorationThickness, 2);
+    expect(
+      styleOf('revision').backgroundColor,
+      primaryContainer.withAlpha(72),
+    );
+    expect(styleOf('revision').decorationColor, primary);
+  });
+
+  testWidgets('applies design heading hierarchy and weak heading tones', (
+    tester,
+  ) async {
+    const onSurface = Color(0xFF101018);
+
+ERROR: Selected model is at capacity. Please try a different model.
+ERROR: Selected model is at capacity. Please try a different model.
+tokens used
+38,074

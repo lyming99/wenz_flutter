@@ -52,6 +52,77 @@ void main() {
     expect(notifyCount, 3);
   });
 
+  test('controller moves blocks through the command interface', () {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'one')],
+          ),
+          TextBlockNode(
+            id: 'p2',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'two')],
+          ),
+          TextBlockNode(
+            id: 'p3',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'three')],
+          ),
+        ],
+      ),
+      selection: collapsedTextSelection('p1', 0, 0),
+    );
+    var notifyCount = 0;
+    var changedCount = 0;
+    var selectionChangedCount = 0;
+    EditorCommand? executedCommand;
+    ChangeSet? executedChange;
+    controller.addListener(() => notifyCount++);
+    controller.onChanged = (_) => changedCount++;
+    controller.onSelectionChanged = (_) => selectionChangedCount++;
+    controller.onCommandExecuted = (command, change) {
+      executedCommand = command;
+      executedChange = change;
+    };
+
+    controller.moveBlock(fromIndex: 0, toIndex: 2);
+
+    expect(controller.document.blocks.map((block) => block.id), [
+      'p2',
+      'p3',
+      'p1',
+    ]);
+    expect(controller.selection, collapsedTextSelection('p1', 2, 3));
+    expect(notifyCount, 1);
+    expect(changedCount, 1);
+    expect(selectionChangedCount, 1);
+    expect(executedCommand, isA<MoveBlockCommand>());
+    expect(executedChange?.metadata?['blockId'], 'p1');
+    expect(controller.canUndo, isTrue);
+  });
+
+  test('controller block move no-op does not notify', () {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(id: 'p1', type: BlockType.paragraph),
+          TextBlockNode(id: 'p2', type: BlockType.paragraph),
+        ],
+      ),
+    );
+    var notifyCount = 0;
+    controller.addListener(() => notifyCount++);
+
+    final change = controller.moveBlock(fromIndex: 0, toIndex: 0);
+
+    expect(change.isNoop, isTrue);
+    expect(notifyCount, 0);
+    expect(controller.canUndo, isFalse);
+  });
+
   test('controller loads rich text json and legacy json', () {
     final controller = WenzRichTextController();
     const richCodec = RichTextJsonCodec();
@@ -254,6 +325,22 @@ void main() {
       expect(controller.lastChangedBlockIds, {'p2'});
     });
   });
+
+  test('outline jump expands parent collapsed heading before selection', () {
+    final controller =
+        WenzRichTextController(document: _foldedOutlineDocument());
+    final outline = WenzOutlineController(editor: controller);
+    addTearDown(outline.dispose);
+
+    expect(outline.collapseByBlockId('h1'), isTrue);
+    expect(outline.isBlockHidden('h2'), isTrue);
+
+    expect(outline.selectByBlockId('h2', requestFocus: false), isTrue);
+
+    expect(outline.isCollapsed('h1'), isFalse);
+    expect(outline.isBlockHidden('h2'), isFalse);
+    expect(controller.selection, collapsedTextSelection('h2', 2, 0));
+  });
 }
 
 RichTextDocument _tableDocument() {
@@ -329,6 +416,41 @@ RichTextDocument _tableDocument() {
             ],
           ],
         ),
+      ),
+    ],
+  );
+}
+
+RichTextDocument _foldedOutlineDocument() {
+  return const RichTextDocument(
+    blocks: <BlockNode>[
+      TextBlockNode(
+        id: 'h1',
+        type: BlockType.heading,
+        attributes: BlockAttributes(level: 1),
+        content: <InlineNode>[TextRun(text: 'Chapter')],
+      ),
+      TextBlockNode(
+        id: 'p1',
+        type: BlockType.paragraph,
+        content: <InlineNode>[TextRun(text: 'Body')],
+      ),
+      TextBlockNode(
+        id: 'h2',
+        type: BlockType.heading,
+        attributes: BlockAttributes(level: 2),
+        content: <InlineNode>[TextRun(text: 'Section')],
+      ),
+      TextBlockNode(
+        id: 'p2',
+        type: BlockType.paragraph,
+        content: <InlineNode>[TextRun(text: 'Nested body')],
+      ),
+      TextBlockNode(
+        id: 'h3',
+        type: BlockType.heading,
+        attributes: BlockAttributes(level: 1),
+        content: <InlineNode>[TextRun(text: 'Next')],
       ),
     ],
   );

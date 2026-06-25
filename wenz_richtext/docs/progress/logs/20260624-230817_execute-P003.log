@@ -1,0 +1,3911 @@
+2026-06-24T15:08:17.452864Z  WARN codex_core::plugins::startup_sync: startup remote plugin sync failed; will retry on next app-server start error=chatgpt authentication required to sync remote plugins; api key auth is not supported
+2026-06-24T15:08:17.594220Z  WARN codex_core::plugins::manifest: ignoring interface.defaultPrompt: maximum of 3 prompts is supported path=C:\Users\98000\.codex\plugins\cache\openai-primary-runtime\template-creator\26.623.12021\.codex-plugin/plugin.json
+2026-06-24T15:08:17.739939Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=gpt-5.5 personality=pragmatic
+2026-06-24T15:08:17.781681Z  WARN codex_core::shell_snapshot: Failed to create shell snapshot for powershell: Shell snapshot not supported yet for PowerShell
+OpenAI Codex v0.121.0 (research preview)
+--------
+workdir: D:\project\GitHub\wenz_flutter\wenz_richtext
+model: gpt-5.5
+provider: custom
+approval: never
+sandbox: danger-full-access
+reasoning effort: xhigh
+reasoning summaries: none
+session id: 019efa2c-c1cc-7103-9c2a-dc40216e0ffb
+--------
+user
+你是开发执行者。
+请只执行 plan 中指定的下一个未完成任务，不要提前执行其它任务。
+
+plan 文件：D:\project\GitHub\wenz_flutter\wenz_richtext\docs\plan\plan_feedback_1_20260624-220759.md
+任务：
+- [ ] P003: 修正命中测试与 offset 映射
+
+完成后必须：
+- 将该任务 checkbox 改为 [x]
+- 更新 plan 进度区
+- 不输出完整 diff、源码全文或长文件列表
+- 中文文件读写使用 UTF-8
+2026-06-24T15:08:18.371446Z  WARN codex_core::plugins::manager: failed to warm featured plugin ids cache error=remote plugin sync request to https://chatgpt.com/backend-api/plugins/featured failed with status 401 Unauthorized: {"detail":"Unauthorized"}
+2026-06-24T15:08:20.011998Z  WARN codex_core::plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=C:\Users\98000\.codex\.tmp\plugins\plugins\ngs-analysis\.codex-plugin/plugin.json
+codex
+我先读取计划和相关说明，确认 P003 的精确范围。
+  → 读取 P003 计划要求
+  • 定位命中测试代码
+  • 修正并更新计划
+  • 运行针对性验证
+2026-06-24T15:08:30.398001Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=gpt-5.5 personality=pragmatic
+mcp: codegraph/codegraph_explore started
+mcp: codegraph/codegraph_explore (completed)
+2026-06-24T15:08:34.473991Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=gpt-5.5 personality=pragmatic
+**Evaluating code and tools**
+
+I’m looking at the code graph, but the relevant snippet is truncated. I think I need to read the plan file and possibly check the git status using the shell. I wonder if I should include a preamble to provide context. Also, I need to check the AGENTS, and I know I can use the shell to access the plan and repo information. That should help clarify things!
+codex
+已初步定位到编辑器命中映射区域；现在读取计划细节和仓库约束。
+exec
+powershell.exe -NoProfile -Command '[Console]::OutputEncoding=[System.Text.Encoding]::UTF8; $OutputEncoding=[System.Text.Encoding]::UTF8; if (Test-Path AGENTS.md) { Get-Content -Raw -Encoding UTF8 AGENTS.md }; Write-Output '"'---PLAN---'; Get-Content -Raw -Encoding UTF8 'docs\\plan\\plan_feedback_1_20260624-220759.md'; Write-Output '---STATUS---'; git status --short" in D:\project\GitHub\wenz_flutter\wenz_richtext
+2026-06-24T15:08:42.387331Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=gpt-5.5 personality=pragmatic
+ succeeded in 292ms:
+---PLAN---
+# 开发计划：修复选择器无法选中 emoji 与提及
+
+## 来源
+- 类型：用户反馈
+- 编号：#1
+- 生成时间：2026-06-24 22:07:59
+- 原始反馈：选择器bug：emoji、提及无法正常被选中
+
+## 问题理解
+- 富文本选择器在包含 `emoji`、`mention` 等内联嵌入内容时，可能无法通过点击、拖拽或键盘扩展将其纳入选区。
+- 初步影响范围包括内联节点偏移计算、文本布局命中测试、选区高亮绘制、复制/命令读取选区等链路。
+- 修复目标是把 emoji 与提及作为可选择的原子内联单元处理，同时不破坏普通文本、表格、代码块和块级对象选择行为。
+
+## 任务计划
+- [x] P001: 复现并定义缺陷边界
+  - 验收要点：构造包含普通文本、emoji、mention 混排的最小文档，记录点击、拖拽、Shift+方向键、全选等场景中无法选中的具体表现。
+  - 验收要点：明确问题发生在段落内联内容、表格单元格内联内容还是两者都受影响，并形成可复现步骤。
+
+- [x] P002: 梳理内联节点选择模型
+  - 验收要点：确认 `TextRun` 与 `InlineEmbed` 在文档 offset、渲染占位宽度、选区边界中的映射规则。
+  - 验收要点：定义 emoji 与 mention 的原子选择语义，即选区只能落在其前后边界，不能拆分到嵌入内容内部。
+
+- [ ] P003: 修正命中测试与 offset 映射
+  - 验收要点：点击或拖拽落在 emoji、mention 可视区域时，能够稳定映射到对应内联原子单元的前后选择边界。
+  - 验收要点：拖拽选区跨过 emoji、mention 时，选区范围包含该内联节点，不再被跳过或截断。
+  - 验收要点：边界场景包括行首、行尾、连续多个内联嵌入、文本与嵌入相邻无空格。
+
+- [ ] P004: 修正选区高亮与光标反馈
+  - 验收要点：emoji、mention 被选中时有清晰选区高亮或等效选中态，不出现高亮缺失、错位、宽度为 0 的情况。
+  - 验收要点：光标停在 emoji、mention 前后边界时位置正确，不覆盖相邻文本或跳到错误行。
+
+- [ ] P005: 补充自动化回归测试
+  - 验收要点：新增或更新 widget 测试，覆盖 emoji、mention 的点击选择、拖拽跨选、键盘扩展选择。
+  - 验收要点：测试同时覆盖段落内混排与表格单元格内混排，避免只修复单一路径。
+  - 验收要点：测试断言 `DocumentSelection` 的 base、extent、offset 与预期一致。
+
+- [ ] P006: 执行选择器相关回归验证
+  - 验收要点：`flutter test test/widgets/wenz_rich_text_editor_test.dart` 通过，或失败项被确认与本缺陷无关并记录原因。
+  - 验收要点：`flutter test test/core/selection_commands_test.dart` 通过，确保选择命令行为未被破坏。
+  - 验收要点：普通文本选择、块级对象选择、表格选择、代码块选择核心场景保持原有行为。
+
+- [ ] P007: 更新缺陷进度与验证记录
+  - 验收要点：在进度记录中注明修复范围、验证命令、验证结果和遗留风险。
+  - 验收要点：如发现复制、删除、格式化等下游行为仍受内联嵌入影响，拆分为独立后续任务，不混入本次选择器修复。
+
+## 总体验收标准
+- 所有任务 checkbox 均完成，且每个任务的验收要点都有明确结论。
+- emoji 与 mention 在可视区域内可被正常点击定位、拖拽选中、键盘扩展纳入选区。
+- emoji 与 mention 作为原子内联单元参与选择，不产生半选、错位、跳选或无法显示选中态的问题。
+- 修复不回退普通文本、表格单元格、代码块、块级对象的既有选择能力。
+- 相关自动化测试通过；若存在非本次变更导致的失败，需在进度记录中说明失败命令、失败原因和处理建议。
+
+## 进度区
+- 当前状态：P001、P002 已完成，缺陷边界与内联节点选择模型已确认；等待进入 P003。
+- 当前负责人：开发执行者
+- 下一步：执行 P003，修正命中测试与文档 offset / 渲染 offset 的双向映射。
+- P001 复现记录：使用最小混排内容 `A` + `emoji(😄)` + `B` + `mention(@bob)` + `C`；文档 offset 长度为 5，实际渲染文本 `A😄B@bobC` 的 UTF-16 长度为 9。
+- P001 段落边界：点击 mention 视觉中心后选区折叠到 offset 5，而预期只能落在 mention 原子边界 3/4；拖拽 emoji 视觉范围 `[1,3]` 后选区仍折叠在 offset 1，无法形成 emoji 原子选区 `[1,2]`；拖拽 mention 视觉范围 `[4,8]` 得到文档选区 `[4,5]`，实际选中尾部 `C`，不是 mention 原子 `[3,4]`。
+- P001 表格边界：同样的混排内容放入表格单元格后，点击 mention 视觉中心折叠到单元格 offset 5；拖拽 emoji 视觉范围仍折叠；拖拽 mention 视觉范围会把选区推出原 `r0c0` 单元格，出现 `r1c0` 路径，说明段落内联内容与表格单元格内联内容都受影响。
+- P001 键盘与全选观察：段落内从 mention 前 offset 3 执行 Shift+Right 可得到 `[3,4]`，干净核心命令状态下表格单元格也可得到 `[3,4]`；Ctrl+A 的逻辑选区为 `[0,5]`，但当前高亮绘制使用文档 offset 直接查询 `TextPainter`，推断视觉覆盖会截断在渲染文本 offset 5（`A😄B@`），存在全选高亮不完整风险。
+- P001 复现方式：曾使用临时 widget 诊断测试运行 `flutter test test/p001_inline_embed_repro_tmp_test.dart --reporter expanded`，仅打印上述结果且已删除临时文件；该诊断用例通过，但输出确认实际行为与原子内联选择预期不一致。
+- 风险记录：初步缺陷集中在 `InlineEmbed` 文档长度为 1，但 `_inlineEmbedSpanFor` 渲染为变长 `TextSpan`，命中测试和高亮绘制直接使用 `TextPainter` 的渲染 offset；后续需要校准文档 offset 与渲染 offset 映射，避免 emoji grapheme cluster、mention 文本长度和表格单元命中路径继续错位。
+- P002 文档长度规则：`TextRun` 的逻辑长度来自 `text.length`，即当前 Dart 字符串 UTF-16 code unit 长度；`InlineEmbed` 逻辑长度固定为 1；段落与表格单元格的 `textLength` 都由 `inlineNodesLength` 聚合得到，因此两条路径共享同一套文档 offset 模型。
+- P002 渲染长度规则：`TextRun` 直接渲染原文本；`InlineEmbed` 通过 `_inlineEmbedSpanFor` 渲染为 `TextSpan`，默认 mention 显示为 `@label` / `@id`，emoji 显示为 data 中的 `emoji` / `text` / `value` / `shortName` / `label`，自定义 `InlineEmbedRenderer` 也可能返回其它紧凑 `TextSpan`；因此每个 embed 的视觉宽度和 `TextPainter` offset 范围由渲染文本决定，不等于逻辑长度 1。
+- P002 当前映射缺口：命中测试 `_offsetForLocalPosition` 调用 `TextLayoutService.offsetAt`，直接使用 `TextPainter.getPositionForOffset` 的渲染 offset 并仅用逻辑 `textLength` clamp；caret、选区高亮、查找高亮和组合区矩形也直接把逻辑 offset 传给 `TextPainter`，缺少逻辑 offset 与渲染 offset 的转换层。
+- P002 原子选择语义：每个 `InlineEmbed` 占用逻辑区间 `[nodeStart, nodeStart + 1)`；合法折叠光标位置只能是该区间的前边界或后边界；非折叠选区只要包含该逻辑单元，就必须覆盖该 embed 的完整视觉渲染范围，不能产生落在 embed 内部的半选或内部 offset。
+- P002 映射规则结论：需要维护按 inline 节点累计的双向映射；`TextRun` 在现有模型下按 UTF-16 code unit 做逻辑/渲染一一映射；`InlineEmbed` 的逻辑前边界映射到 `renderStart`，逻辑后边界映射到 `renderEnd`，渲染内部命中应按视觉位置归一到前/后边界，选区盒与 caret 查询应先把逻辑边界转换为渲染边界。
+- P002 表格结论：表格单元格只是使用 `PositionPath.tableCellText` 与 `_hitLocalToTextLocal` 进入同一 `_TextSelectionSurface`，内联节点长度、span 构建、命中测试和绘制链路与普通段落一致；P003 修复必须同时覆盖段落和表格单元格，不应分叉出两套选择语义。
+
+---STATUS---
+ M .codegraph/daemon.pid
+ M lib/src/widgets/block_renderer_registry.dart
+ M lib/src/widgets/comment_sidebar.dart
+ M lib/src/widgets/wenz_rich_text_editor.dart
+ M test/widgets/goldens/editor_blocks.png
+ M test/widgets/import_export_demo_test.dart
+ M test/widgets/wenz_rich_text_editor_test.dart
+?? docs/plan/
+?? docs/progress/logs/
+?? nul
+?? test/widgets/goldens/editor_advanced_blocks.png
+
+**Inspecting modified files**
+
+It looks like I've modified some existing files, probably from past user tasks, and I don't want to overwrite anything unintentionally. I really need to inspect the relevant files and understand the changes made by the user. I could use git diff for the wenz_rich_text_editor, but I have to be cautious not to output the full diff to the user. I’ll focus on reading the code and locating the mappings and spans using tools like rg.
+codex
+计划确认了映射缺口；接下来只查看相关选择与 span 构建代码。
+exec
+powershell.exe -NoProfile -Command '[Console]::OutputEncoding=[System.Text.Encoding]::UTF8; $OutputEncoding=[System.Text.Encoding]::UTF8; rg -n "class _TextSelectionSurface|_offsetForLocalPosition|_inlineEmbedSpanFor|selectionBoxes'"\\(|caretOffset\\(|TextLayoutService|textLength|inlineNodesLength|selectionBoxes\" lib/src test -S" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 175ms:
+lib/src\widgets\wenz_rich_text_editor.dart:63:/// [_TextSelectionSurface] can fetch (and reuse) its [TextLayoutService] across
+lib/src\widgets\wenz_rich_text_editor.dart:1169:          offset: inlineNodesLength(block.content),
+lib/src\widgets\wenz_rich_text_editor.dart:3250:    final textLength = inlineNodesLength(block.content);
+lib/src\widgets\wenz_rich_text_editor.dart:3255:          textLength,
+lib/src\widgets\wenz_rich_text_editor.dart:3262:      textLength: textLength,
+lib/src\widgets\wenz_rich_text_editor.dart:3284:        textLength,
+lib/src\widgets\wenz_rich_text_editor.dart:3386:                textLength: block.code.length,
+lib/src\widgets\wenz_rich_text_editor.dart:4287:    final textLength = inlineNodesLength(inlineContent);
+lib/src\widgets\wenz_rich_text_editor.dart:4299:      textLength: textLength,
+lib/src\widgets\wenz_rich_text_editor.dart:4302:        children: textLength == 0
+lib/src\widgets\wenz_rich_text_editor.dart:4323:        textLength,
+lib/src\widgets\wenz_rich_text_editor.dart:4337:              textLength,
+lib/src\widgets\wenz_rich_text_editor.dart:4475:        textLength: _kAtomicBlockSelectionLength,
+lib/src\widgets\wenz_rich_text_editor.dart:4477:        positionFromLocal: _offsetForLocalPosition,
+lib/src\widgets\wenz_rich_text_editor.dart:4490:  int _offsetForLocalPosition(Offset localPosition) {
+lib/src\widgets\wenz_rich_text_editor.dart:4605:class _TextSelectionSurface extends StatefulWidget {
+lib/src\widgets\wenz_rich_text_editor.dart:4610:    required this.textLength,
+lib/src\widgets\wenz_rich_text_editor.dart:4625:  final int textLength;
+lib/src\widgets\wenz_rich_text_editor.dart:4646:class _TextSelectionSurfaceState extends State<_TextSelectionSurface> {
+lib/src\widgets\wenz_rich_text_editor.dart:4647:  TextLayoutService? _ownedLayoutService;
+lib/src\widgets\wenz_rich_text_editor.dart:4671:  TextLayoutService get _layoutService {
+lib/src\widgets\wenz_rich_text_editor.dart:4676:    return _ownedLayoutService ??= TextLayoutService();
+lib/src\widgets\wenz_rich_text_editor.dart:4694:        oldWidget.textLength != widget.textLength ||
+lib/src\widgets\wenz_rich_text_editor.dart:4770:        textLength: widget.textLength,
+lib/src\widgets\wenz_rich_text_editor.dart:4772:        positionFromLocal: _offsetForLocalPosition,
+lib/src\widgets\wenz_rich_text_editor.dart:4823:  int _offsetForLocalPosition(Offset localPosition) {
+lib/src\widgets\wenz_rich_text_editor.dart:4830:    return _layoutService.offsetAt(painter, localPosition, widget.textLength);
+lib/src\widgets\wenz_rich_text_editor.dart:4865:    final clamped = offset.clamp(0, widget.textLength).toInt();
+lib/src\widgets\wenz_rich_text_editor.dart:4866:    final local = _layoutService.caretOffset(painter, clamped);
+lib/src\widgets\wenz_rich_text_editor.dart:4886:    final safeStart = start.clamp(0, widget.textLength).toInt();
+lib/src\widgets\wenz_rich_text_editor.dart:4887:    final safeEnd = end.clamp(safeStart, widget.textLength).toInt();
+lib/src\widgets\wenz_rich_text_editor.dart:4891:    final boxes = _layoutService.selectionBoxes(painter, safeStart, safeEnd);
+lib/src\widgets\wenz_rich_text_editor.dart:4932:      widget.textLength,
+lib/src\widgets\wenz_rich_text_editor.dart:4939:      widget.textLength,
+lib/src\widgets\wenz_rich_text_editor.dart:4979:          textLength: widget.textLength,
+lib/src\widgets\wenz_rich_text_editor.dart:5147:  final TextLayoutService layoutService;
+lib/src\widgets\wenz_rich_text_editor.dart:5172:      final boxes = layoutService.selectionBoxes(
+lib/src\widgets\wenz_rich_text_editor.dart:5206:  final TextLayoutService layoutService;
+lib/src\widgets\wenz_rich_text_editor.dart:5226:    final boxes = layoutService.selectionBoxes(painter, range.start, range.end);
+lib/src\widgets\wenz_rich_text_editor.dart:5254:    required this.textLength,
+lib/src\widgets\wenz_rich_text_editor.dart:5258:  final TextLayoutService layoutService;
+lib/src\widgets\wenz_rich_text_editor.dart:5265:  final int textLength;
+lib/src\widgets\wenz_rich_text_editor.dart:5283:    final safeOffset = caretOffset.clamp(0, textLength).toInt();
+lib/src\widgets\wenz_rich_text_editor.dart:5284:    final caretTop = layoutService.caretOffset(painter, safeOffset);
+lib/src\widgets\wenz_rich_text_editor.dart:5304:        oldDelegate.textLength != textLength ||
+lib/src\widgets\wenz_rich_text_editor.dart:6185:      _inlineEmbedSpanFor(
+lib/src\widgets\wenz_rich_text_editor.dart:6229:    final InlineEmbed embed => _inlineEmbedSpanFor(
+lib/src\widgets\wenz_rich_text_editor.dart:6240:TextSpan _inlineEmbedSpanFor(
+lib/src\widgets\wenz_rich_text_editor.dart:6418:  int textLength,
+lib/src\widgets\wenz_rich_text_editor.dart:6427:  return position.offset.clamp(0, textLength).toInt();
+lib/src\widgets\wenz_rich_text_editor.dart:6435:  int textLength,
+lib/src\widgets\wenz_rich_text_editor.dart:6440:  if (_selectionRangeForPath(selection, blockIndex, path, textLength) != null) {
+lib/src\widgets\wenz_rich_text_editor.dart:6468:  int textLength,
+lib/src\widgets\wenz_rich_text_editor.dart:6477:          start: match.start.clamp(0, textLength).toInt(),
+lib/src\widgets\wenz_rich_text_editor.dart:6478:          end: match.end.clamp(0, textLength).toInt(),
+lib/src\widgets\wenz_rich_text_editor.dart:6488:  int textLength,
+lib/src\widgets\wenz_rich_text_editor.dart:6497:  return position.offset.clamp(0, textLength).toInt();
+lib/src\widgets\wenz_rich_text_editor.dart:6504:  int textLength,
+lib/src\widgets\wenz_rich_text_editor.dart:6530:      localEnd = textLength;
+lib/src\widgets\wenz_rich_text_editor.dart:6533:    localEnd = textLength;
+lib/src\widgets\wenz_rich_text_editor.dart:6539:  final safeStart = localStart.clamp(0, textLength).toInt();
+lib/src\widgets\wenz_rich_text_editor.dart:6540:  final safeEnd = localEnd.clamp(0, textLength).toInt();
+lib/src\widgets\shared_text_layout_cache.dart:5:/// Document-level cache of [TextLayoutService] instances keyed by a surface's
+lib/src\widgets\shared_text_layout_cache.dart:8:/// Each [_TextSelectionSurface] used to own a private [TextLayoutService] that
+lib/src\widgets\shared_text_layout_cache.dart:16:/// - [entryFor] lazily creates / returns the [TextLayoutService] for a surface.
+lib/src\widgets\shared_text_layout_cache.dart:29:  final Map<String, TextLayoutService> _entries = <String, TextLayoutService>{};
+lib/src\widgets\shared_text_layout_cache.dart:36:  /// Returns the [TextLayoutService] for the surface identified by
+lib/src\widgets\shared_text_layout_cache.dart:39:  TextLayoutService entryFor(String blockId, String pathIdentity) {
+lib/src\widgets\shared_text_layout_cache.dart:41:    return _entries.putIfAbsent(key, () => TextLayoutService());
+test\widgets\block_geometry_registry_test.dart:296:    // a hard 0 / textLength offset regardless of the tap's horizontal column.
+test\widgets\block_geometry_registry_test.dart:344:      // not at 0 or textLength (10). Allow some tolerance for glyph widths.
+test\widgets\block_geometry_registry_test.dart:350:  group('TextLayoutService word/paragraph ranges', () {
+test\widgets\block_geometry_registry_test.dart:352:      final service = TextLayoutService();
+test\widgets\block_geometry_registry_test.dart:372:      final service = TextLayoutService();
+test\widgets\block_geometry_registry_test.dart:389:  // cases the gesture overlay relies on so a regression in TextLayoutService
+test\widgets\block_geometry_registry_test.dart:391:  group('TextLayoutService word boundaries (B1)', () {
+test\widgets\block_geometry_registry_test.dart:393:      final service = TextLayoutService();
+test\widgets\block_geometry_registry_test.dart:404:      final range = TextLayoutService().wordRangeAt(painter, 0);
+test\widgets\block_geometry_registry_test.dart:413:      final range = TextLayoutService().wordRangeAt(painter, 4);
+test\widgets\block_geometry_registry_test.dart:420:      final range = TextLayoutService().wordRangeAt(painter, 2);
+test\widgets\block_geometry_registry_test.dart:427:      final range = TextLayoutService().wordRangeAt(painter, 7);
+test\widgets\block_geometry_registry_test.dart:434:      final range = TextLayoutService().wordRangeAt(painter, 0);
+test\widgets\block_geometry_registry_test.dart:443:      final range = TextLayoutService().wordRangeAt(painter, 100);
+test\widgets\block_geometry_registry_test.dart:455:      final range = TextLayoutService().wordRangeAt(painter, 0);
+test\widgets\block_geometry_registry_test.dart:459:      final asciiRange = TextLayoutService().wordRangeAt(painter, 3);
+test\widgets\block_geometry_registry_test.dart:465:  group('TextLayoutService paragraph boundaries (B1)', () {
+test\widgets\block_geometry_registry_test.dart:467:      final service = TextLayoutService();
+test\widgets\block_geometry_registry_test.dart:478:      final range = TextLayoutService().paragraphRange(painter);
+test\widgets\block_geometry_registry_test.dart:486:      final range = TextLayoutService().paragraphRange(painter);
+test\widgets\block_geometry_registry_test.dart:490:      final word = TextLayoutService().wordRangeAt(painter, 0);
+lib/src\widgets\block_geometry_registry.dart:11:/// own [TextLayoutService]. The document-level gesture overlay queries the
+lib/src\widgets\block_geometry_registry.dart:211:    // hard 0 / textLength edges.
+lib/src\widgets\block_geometry_registry.dart:229:    final offset = clampToEnd ? nearest.textLength : 0;
+lib/src\widgets\block_geometry_registry.dart:299:    return TextRange(start: 0, end: entry.textLength);
+lib/src\widgets\block_geometry_registry.dart:404:    required this.textLength,
+lib/src\widgets\block_geometry_registry.dart:419:  final int textLength;
+lib/src\rendering\text_layout_service.dart:16:class TextLayoutService {
+lib/src\rendering\text_layout_service.dart:51:  Offset caretOffset(TextPainter painter, int offset) {
+lib/src\rendering\text_layout_service.dart:64:  int offsetAt(TextPainter painter, Offset localPosition, int textLength) {
+lib/src\rendering\text_layout_service.dart:66:    return position.offset.clamp(0, textLength).toInt();
+lib/src\rendering\text_layout_service.dart:70:  List<TextBox> selectionBoxes(TextPainter painter, int start, int end) {
+lib/src\rendering\text_layout_service.dart:81:    final clamped = offset.clamp(0, _textLength(painter)).toInt();
+lib/src\rendering\text_layout_service.dart:89:    return TextRange(start: 0, end: _textLength(painter));
+lib/src\rendering\text_layout_service.dart:106:    final textLength = _textLength(painter);
+lib/src\rendering\text_layout_service.dart:107:    final clamped = offset.clamp(0, textLength).toInt();
+lib/src\rendering\text_layout_service.dart:150:    final next = pos.offset.clamp(0, textLength).toInt();
+lib/src\rendering\text_layout_service.dart:160:    final clamped = offset.clamp(0, _textLength(painter)).toInt();
+lib/src\rendering\text_layout_service.dart:164:  int _textLength(TextPainter painter) {
+lib/src\controller\toolbar_controller.dart:703:          i == end.blockIndex ? end.offset : inlineNodesLength(block.content);
+lib/src\input\editor_text_input_client.dart:231:  TextRange _clampTextRange(TextRange range, int textLength) {
+lib/src\input\editor_text_input_client.dart:235:    final start = range.start.clamp(0, textLength).toInt();
+lib/src\input\editor_text_input_client.dart:236:    final end = range.end.clamp(start, textLength).toInt();
+lib/src\input\editor_text_input_client.dart:477:    final textLength = _plainTextForPosition(position).length;
+lib/src\input\editor_text_input_client.dart:479:        platformSelection.baseOffset.clamp(0, textLength).toInt();
+lib/src\input\editor_text_input_client.dart:481:        platformSelection.extentOffset.clamp(0, textLength).toInt();
+lib/src\input\editor_text_input_client.dart:499:    final textLength = _plainTextForPosition(position).length;
+lib/src\input\editor_text_input_client.dart:500:    final safeComposing = _clampTextRange(composing, textLength);
+lib/src\input\clipboard_service.dart:281:          inlineNodesLength(block.content),
+lib/src\core\commands\markdown_shortcut_commands.dart:36:        position.offset.clamp(0, inlineNodesLength(block.content)).toInt();
+lib/src\core\commands\inline_editing.dart:273:int inlineNodesLength(List<InlineNode> nodes) {
+lib/src\core\commands\selection_commands.dart:120:/// lines) is resolved in the widget layer using [TextLayoutService]; this
+lib/src\core\commands\selection_commands.dart:939:  return inlineNodesLength(cellTextBlock(cell).content);
+lib/src\core\commands\selection_commands.dart:1064:    return inlineNodesLength(block.content);
+lib/src\core\commands\inline_commands.dart:136:      rangeEnd ?? inlineNodesLength(block.content),
+lib/src\core\commands\inline_commands.dart:346:    rangeEnd ?? target.textLength,
+lib/src\core\commands\table_cell_editing.dart:87:  int get textLength => inlineNodesLength(textBlock.content);
+lib/src\core\commands\table_cell_editing.dart:108:  final safeOffset = offset.clamp(0, target.textLength).toInt();
+lib/src\core\commands\table_cell_editing.dart:153:  final safeStart = startOffset.clamp(0, target.textLength).toInt();
+lib/src\core\commands\table_cell_editing.dart:154:  final safeEnd = endOffset.clamp(safeStart, target.textLength).toInt();
+lib/src\core\commands\table_cell_editing.dart:198:  final safeStart = startOffset.clamp(0, target.textLength).toInt();
+lib/src\core\commands\table_cell_editing.dart:199:  final safeEnd = endOffset.clamp(safeStart, target.textLength).toInt();
+lib/src\core\commands\table_cell_editing.dart:249:  final safeStart = startOffset.clamp(0, target.textLength).toInt();
+lib/src\core\commands\table_cell_editing.dart:250:  final safeEnd = endOffset.clamp(safeStart, target.textLength).toInt();
+lib/src\core\commands\table_cell_editing.dart:309:  final safeStart = startOffset.clamp(0, target.textLength).toInt();
+lib/src\core\commands\table_cell_editing.dart:310:  final safeEnd = endOffset.clamp(safeStart, target.textLength).toInt();
+lib/src\core\commands\table_cell_editing.dart:358:  final safeStart = startOffset.clamp(0, target.textLength).toInt();
+lib/src\core\commands\table_cell_editing.dart:359:  final safeEnd = endOffset.clamp(safeStart, target.textLength).toInt();
+lib/src\core\commands\table_cell_editing.dart:408:  final safeOffset = offset.clamp(0, target.textLength).toInt();
+lib/src\core\commands\text_commands.dart:212:      final offset = position.offset.clamp(0, target.textLength).toInt();
+lib/src\core\commands\text_commands.dart:229:        inlineNodesLength(block.content),
+lib/src\core\commands\text_commands.dart:273:      final offset = position.offset.clamp(0, target.textLength).toInt();
+lib/src\core\commands\text_commands.dart:274:      if (offset >= target.textLength) {
+lib/src\core\commands\text_commands.dart:290:        inlineNodesLength(block.content),
+lib/src\core\commands\text_commands.dart:292:      if (offset < inlineNodesLength(block.content)) {
+lib/src\core\commands\text_commands.dart:534:      offset: inlineNodesLength(block.content),
+lib/src\core\commands\text_commands.dart:645:  final length = inlineNodesLength(textBlock.content);
+lib/src\core\commands\text_commands.dart:696:  return inlineNodesLength(cellTextBlock(cell).content);
+lib/src\core\commands\text_commands.dart:709:  final length = inlineNodesLength(block.content);
+lib/src\core\commands\text_commands.dart:767:    final previousLength = inlineNodesLength(previous.content);
+lib/src\core\commands\text_commands.dart:827:    final currentLength = inlineNodesLength(current.content);
+lib/src\core\commands\text_commands.dart:989:    final end = inlineNodesLength(block.content);
+lib/src\core\commands\style_commands.dart:64:          i == end.blockIndex ? end.offset : inlineNodesLength(block.content);
+lib/src\core\commands\style_commands.dart:135:          i == end.blockIndex ? end.offset : inlineNodesLength(block.content);
+lib/src\core\commands\block_commands.dart:173:  final length = inlineNodesLength(block.content);
+lib/src\core\commands\block_commands.dart:539:      return inlineNodesLength(last.content);
+lib/src\core\commands\block_commands.dart:552:        offset: inlineNodesLength(last.content),
+lib/src\core\commands\block_commands.dart:721:        offset: inlineNodesLength(cellTextBlock(cell).content),
+
+2026-06-24T15:08:49.508825Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=gpt-5.5 personality=pragmatic
+codex
+我会补齐关键符号上下文，避免碰其它已改文件。
+mcp: codegraph/codegraph_explore started
+mcp: codegraph/codegraph_explore (completed)
+2026-06-24T15:09:00.480824Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=gpt-5.5 personality=pragmatic
+**Reviewing code components**
+
+I noticed that Codegraph didn't include everything it should have. It looks like I might need to include `codegraph_node` for `_TextSelectionSurfaceState`. I'm thinking through how this affects the overall functionality and if there are deeper implications. Adding this node could be crucial for completeness. I should double-check the documentation to verify the requirements and ensure that I'm on the right track. Let’s see how this connects with other components!
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+2026-06-24T15:09:05.605746Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=gpt-5.5 personality=pragmatic
+codex
+命中面状态类较长，我只展开 P003 需要修改的方法。
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+2026-06-24T15:09:10.371979Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=gpt-5.5 personality=pragmatic
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+2026-06-24T15:09:15.061451Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=gpt-5.5 personality=pragmatic
+codex
+我还需要选区绘制调用点，确保偏移双向一致。
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+2026-06-24T15:09:20.061311Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=gpt-5.5 personality=pragmatic
+exec
+powershell.exe -NoProfile -Command '[Console]::OutputEncoding=[System.Text.Encoding]::UTF8; $OutputEncoding=[System.Text.Encoding]::UTF8; rg -n "class _.*Painter|selectionBoxes'"\\(\" lib/src/widgets/wenz_rich_text_editor.dart lib/src/rendering -S" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 164ms:
+lib/src/widgets/wenz_rich_text_editor.dart:4891:    final boxes = _layoutService.selectionBoxes(painter, safeStart, safeEnd);
+lib/src/widgets/wenz_rich_text_editor.dart:5135:class _FindHighlightPainter extends CustomPainter {
+lib/src/widgets/wenz_rich_text_editor.dart:5172:      final boxes = layoutService.selectionBoxes(
+lib/src/widgets/wenz_rich_text_editor.dart:5195:class _SelectionHighlightPainter extends CustomPainter {
+lib/src/widgets/wenz_rich_text_editor.dart:5226:    final boxes = layoutService.selectionBoxes(painter, range.start, range.end);
+lib/src/widgets/wenz_rich_text_editor.dart:5245:class _CaretPainter extends CustomPainter {
+lib/src/rendering\text_layout_service.dart:70:  List<TextBox> selectionBoxes(TextPainter painter, int start, int end) {
+
+2026-06-24T15:09:27.230196Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=gpt-5.5 personality=pragmatic
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+2026-06-24T15:09:31.381258Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=gpt-5.5 personality=pragmatic
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+2026-06-24T15:09:35.813339Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=gpt-5.5 personality=pragmatic
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+2026-06-24T15:09:40.715611Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=gpt-5.5 personality=pragmatic
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+2026-06-24T15:09:44.543711Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=gpt-5.5 personality=pragmatic
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+2026-06-24T15:09:47.926144Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=gpt-5.5 personality=pragmatic
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+2026-06-24T15:09:52.987545Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=gpt-5.5 personality=pragmatic
+**Adding mapping parameter**
+
+I’m realizing that I need constructors to include a mapping parameter. This is essential for establishing the correct associations and ensuring the functionality works as intended. It’s one of those things that can seem minor at first, but actually makes a big difference in the overall effectiveness of whatever I’m working on. I really want to make sure everything aligns perfectly, so I’ll prioritize updating the constructors with this mapping parameter!
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+2026-06-24T15:10:01.322291Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=gpt-5.5 personality=pragmatic
+**Exploring codegraph options**
+
+I see that I might need the full class, but the codegraph_node doesn't give the body. I could turn to the shell for a small range, though I'm seeing a note about not reading the shown file. It's tricky because codegraph also doesn’t provide the body. Maybe I should try using codegraph_explore with a specific query like "final InlineSpan textSpan final TextRange range class _TextSelectionSurface" and limit it to one file. Let's see if that works!
+codex
+需要类构造参数来接入映射；我只读取这一小段。
+exec
+powershell.exe -NoProfile -Command '[Console]::OutputEncoding=[System.Text.Encoding]::UTF8; $OutputEncoding=[System.Text.Encoding]::UTF8; $path='"'lib/src/widgets/wenz_rich_text_editor.dart'; "'$lines=Get-Content -Encoding UTF8 $path; foreach ($range in @(@(4598,4648),@(4920,5310),@(6120,6268),@(3230,3305),@(4270,4350))) { Write-Output "--- $($range[0])-$($range[1]) ---"; for ($i=$range[0]; $i -le $range[1]; $i++) { if ($i -le $lines.Length) { '"'{0}"'`t{1}'"' -f "'$i,$lines[$i-1] } } }' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 273ms:
+--- 4598-4648 ---
+4598`t            ),
+4599`t          ),
+4600`t      ],
+4601`t    );
+4602`t  }
+4603`t}
+4604`t
+4605`tclass _TextSelectionSurface extends StatefulWidget {
+4606`t  const _TextSelectionSurface({
+4607`t    required this.blockId,
+4608`t    required this.blockIndex,
+4609`t    required this.path,
+4610`t    required this.textLength,
+4611`t    required this.textSpan,
+4612`t    required this.textAlign,
+4613`t    required this.minHeight,
+4614`t    required this.selection,
+4615`t    required this.showCaret,
+4616`t    required this.registry,
+4617`t    required this.showDebugOverlay,
+4618`t    this.findRanges = const <_FindHighlightRange>[],
+4619`t    this.hitTestKey,
+4620`t  });
+4621`t
+4622`t  final String blockId;
+4623`t  final int blockIndex;
+4624`t  final PositionPath path;
+4625`t  final int textLength;
+4626`t  final InlineSpan textSpan;
+4627`t  final TextAlign textAlign;
+4628`t  final double minHeight;
+4629`t  final DocumentSelection? selection;
+4630`t  final bool showCaret;
+4631`t  final BlockGeometryRegistry registry;
+4632`t  final bool showDebugOverlay;
+4633`t  final List<_FindHighlightRange> findRanges;
+4634`t
+4635`t  /// Optional GlobalKey on a wider hit-test frame (e.g. a table cell's whole
+4636`t  /// frame) whose local space differs from this surface's text-local space.
+4637`t  /// When null the surface's own [_surfaceKey] is used for hit-testing. When
+4638`t  /// set, the State registers a transform that maps hit-local offsets onto
+4639`t  /// this surface's text-local space (see [_hitLocalToTextLocal]).
+4640`t  final GlobalKey? hitTestKey;
+4641`t
+4642`t  @override
+4643`t  State<_TextSelectionSurface> createState() => _TextSelectionSurfaceState();
+4644`t}
+4645`t
+4646`tclass _TextSelectionSurfaceState extends State<_TextSelectionSurface> {
+4647`t  TextLayoutService? _ownedLayoutService;
+4648`t  final GlobalKey _surfaceKey = GlobalKey();
+--- 4920-5310 ---
+4920`t      targetOffset: target,
+4921`t      caretX: _layoutService.caretLocalX(painter, offset),
+4922`t    );
+4923`t  }
+4924`t
+4925`t  @override
+4926`t  Widget build(BuildContext context) {
+4927`t    final direction = Directionality.of(context);
+4928`t    final selectionRange = _selectionRangeForPath(
+4929`t      widget.selection,
+4930`t      widget.blockIndex,
+4931`t      widget.path,
+4932`t      widget.textLength,
+4933`t    );
+4934`t    final caretOffset = _caretOffsetForPath(
+4935`t      widget.selection,
+4936`t      widget.showCaret,
+4937`t      widget.blockId,
+4938`t      widget.path,
+4939`t      widget.textLength,
+4940`t    );
+4941`t    final theme = Theme.of(context);
+4942`t    final highlightColor = theme.colorScheme.primary.withAlpha(54);
+4943`t    final findHighlightColor = theme.colorScheme.tertiaryContainer.withAlpha(
+4944`t      150,
+4945`t    );
+4946`t    final activeFindHighlightColor = theme.colorScheme.tertiary.withAlpha(120);
+4947`t    final caretColor = theme.colorScheme.primary;
+4948`t
+4949`t    return LayoutBuilder(
+4950`t      builder: (context, constraints) {
+4951`t        final maxWidth = constraints.maxWidth.isFinite
+4952`t            ? constraints.maxWidth
+4953`t            : MediaQuery.sizeOf(context).width;
+4954`t        _lastMaxWidth = maxWidth;
+4955`t        // Warm the layout cache so painters and hit-testing reuse the same
+4956`t        // laid-out TextPainter this frame.
+4957`t        _layoutService.layout(
+4958`t          span: widget.textSpan,
+4959`t          textAlign: widget.textAlign,
+4960`t          textDirection: direction,
+4961`t          maxWidth: maxWidth,
+4962`t        );
+4963`t        // The caret's opacity is driven by the blink timer; while blinking it
+4964`t        // toggles between fully visible (1.0) and hidden (0.0).
+4965`t        final caretOpacity = caretOffset == null ? 1.0 : _blinkValue;
+4966`t        // The caret is painted on its own CustomPaint, wrapped in a
+4967`t        // RepaintBoundary. Blinking toggles opacity via setState, which would
+4968`t        // otherwise dirty the whole surface — including the RichText child —
+4969`t        // every half second. The boundary confines the repaint to the caret
+4970`t        // layer, so the (much heavier) text layout/paint is untouched.
+4971`t        final caretPainter = _CaretPainter(
+4972`t          layoutService: _layoutService,
+4973`t          textSpan: widget.textSpan,
+4974`t          textAlign: widget.textAlign,
+4975`t          textDirection: direction,
+4976`t          maxWidth: maxWidth,
+4977`t          caretOffset: caretOffset,
+4978`t          color: caretColor,
+4979`t          textLength: widget.textLength,
+4980`t          opacity: caretOpacity,
+4981`t        );
+4982`t        final text = CustomPaint(
+4983`t          painter: _FindHighlightPainter(
+4984`t            layoutService: _layoutService,
+4985`t            textSpan: widget.textSpan,
+4986`t            textAlign: widget.textAlign,
+4987`t            textDirection: direction,
+4988`t            maxWidth: maxWidth,
+4989`t            ranges: widget.findRanges,
+4990`t            color: findHighlightColor,
+4991`t            activeColor: activeFindHighlightColor,
+4992`t          ),
+4993`t          child: CustomPaint(
+4994`t            painter: _SelectionHighlightPainter(
+4995`t              layoutService: _layoutService,
+4996`t              textSpan: widget.textSpan,
+4997`t              textAlign: widget.textAlign,
+4998`t              textDirection: direction,
+4999`t              maxWidth: maxWidth,
+5000`t              range: selectionRange,
+5001`t              color: highlightColor,
+5002`t            ),
+5003`t            child: ConstrainedBox(
+5004`t              constraints: BoxConstraints(minHeight: widget.minHeight),
+5005`t              child: RichText(
+5006`t                text: widget.textSpan,
+5007`t                textAlign: widget.textAlign,
+5008`t                textDirection: direction,
+5009`t              ),
+5010`t            ),
+5011`t          ),
+5012`t        );
+5013`t        // Keep the blink timer in step with whether the caret is showing.
+5014`t        // Deferred to post-frame so we do not mutate timer state mid-build.
+5015`t        // Guarded by [_blinkSyncPending] so repeated builds within the same
+5016`t        // frame (or callbacks that have not fired yet) schedule at most one
+5017`t        // sync, avoiding timer churn on rapid rebuilds.
+5018`t        final caretVisible = caretOffset != null;
+5019`t        if (caretVisible != _blinkActive && !_blinkSyncPending) {
+5020`t          _blinkSyncPending = true;
+5021`t          WidgetsBinding.instance.addPostFrameCallback((_) {
+5022`t            _blinkSyncPending = false;
+5023`t            if (mounted) {
+5024`t              _syncBlink(caretVisible);
+5025`t            }
+5026`t          });
+5027`t        }
+5028`t
+5029`t        // Gestures live in the document-level SelectionGestureOverlay; the
+5030`t        // surface only renders text, highlight, caret, and registers its
+5031`t        // geometry for cross-block hit-testing.
+5032`t        return Stack(
+5033`t          key: _surfaceKey,
+5034`t          children: <Widget>[
+5035`t            text,
+5036`t            if (selectionRange != null)
+5037`t              const Positioned.fill(
+5038`t                child: IgnorePointer(
+5039`t                  child: SizedBox(key: _selectionHighlightKey),
+5040`t                ),
+5041`t              ),
+5042`t            if (widget.findRanges.isNotEmpty)
+5043`t              const Positioned.fill(
+5044`t                child: IgnorePointer(
+5045`t                  child: SizedBox(key: _findHighlightKey),
+5046`t                ),
+5047`t              ),
+5048`t            // Caret lives in its own layer inside a RepaintBoundary so blink
+5049`t            // repaints never reach the RichText below.
+5050`t            if (caretOffset != null) ...[
+5051`t              Positioned.fill(
+5052`t                child: IgnorePointer(
+5053`t                  child: RepaintBoundary(
+5054`t                    child: CustomPaint(
+5055`t                      key: _caretKey,
+5056`t                      foregroundPainter: caretPainter,
+5057`t                      child: const SizedBox.expand(),
+5058`t                    ),
+5059`t                  ),
+5060`t                ),
+5061`t              ),
+5062`t            ],
+5063`t            if (widget.showDebugOverlay)
+5064`t              Positioned(
+5065`t                top: 0,
+5066`t                right: 0,
+5067`t                child: IgnorePointer(
+5068`t                  child: _DebugSelectionTag(
+5069`t                    blockId: widget.blockId,
+5070`t                    blockIndex: widget.blockIndex,
+5071`t                    path: widget.path,
+5072`t                    offset: caretOffset ?? selectionRange?.end,
+5073`t                  ),
+5074`t                ),
+5075`t              ),
+5076`t          ],
+5077`t        );
+5078`t      },
+5079`t    );
+5080`t  }
+5081`t}
+5082`t
+5083`tclass _DebugSelectionTag extends StatelessWidget {
+5084`t  const _DebugSelectionTag({
+5085`t    required this.blockId,
+5086`t    required this.blockIndex,
+5087`t    required this.path,
+5088`t    required this.offset,
+5089`t  });
+5090`t
+5091`t  final String blockId;
+5092`t  final int blockIndex;
+5093`t  final PositionPath path;
+5094`t  final int? offset;
+5095`t
+5096`t  @override
+5097`t  Widget build(BuildContext context) {
+5098`t    final theme = Theme.of(context);
+5099`t    return Container(
+5100`t      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+5101`t      decoration: BoxDecoration(
+5102`t        color: theme.colorScheme.errorContainer.withAlpha(220),
+5103`t        borderRadius: BorderRadius.circular(4),
+5104`t      ),
+5105`t      child: Text(
+5106`t        '#$blockIndex ${blockId.isEmpty ? "<blockId>" : blockId}\n'
+5107`t        '${path.toString()}\n'
+5108`t        'offset=${offset ?? "-"}',
+5109`t        style: theme.textTheme.labelSmall?.copyWith(
+5110`t          fontFamily: 'monospace',
+5111`t          color: theme.colorScheme.onErrorContainer,
+5112`t        ),
+5113`t      ),
+5114`t    );
+5115`t  }
+5116`t}
+5117`t
+5118`tclass _LocalSelectionRange {
+5119`t  const _LocalSelectionRange({required this.start, required this.end});
+5120`t
+5121`t  final int start;
+5122`t  final int end;
+5123`t}
+5124`t
+5125`tclass _FindHighlightRange extends _LocalSelectionRange {
+5126`t  const _FindHighlightRange({
+5127`t    required super.start,
+5128`t    required super.end,
+5129`t    required this.active,
+5130`t  });
+5131`t
+5132`t  final bool active;
+5133`t}
+5134`t
+5135`tclass _FindHighlightPainter extends CustomPainter {
+5136`t  const _FindHighlightPainter({
+5137`t    required this.layoutService,
+5138`t    required this.textSpan,
+5139`t    required this.textAlign,
+5140`t    required this.textDirection,
+5141`t    required this.maxWidth,
+5142`t    required this.ranges,
+5143`t    required this.color,
+5144`t    required this.activeColor,
+5145`t  });
+5146`t
+5147`t  final TextLayoutService layoutService;
+5148`t  final InlineSpan textSpan;
+5149`t  final TextAlign textAlign;
+5150`t  final TextDirection textDirection;
+5151`t  final double maxWidth;
+5152`t  final List<_FindHighlightRange> ranges;
+5153`t  final Color color;
+5154`t  final Color activeColor;
+5155`t
+5156`t  @override
+5157`t  void paint(Canvas canvas, Size size) {
+5158`t    if (ranges.isEmpty) {
+5159`t      return;
+5160`t    }
+5161`t    final painter = layoutService.layout(
+5162`t      span: textSpan,
+5163`t      textAlign: textAlign,
+5164`t      textDirection: textDirection,
+5165`t      maxWidth: maxWidth,
+5166`t    );
+5167`t    for (final range in ranges) {
+5168`t      if (range.start == range.end) {
+5169`t        continue;
+5170`t      }
+5171`t      final paint = Paint()..color = range.active ? activeColor : color;
+5172`t      final boxes = layoutService.selectionBoxes(
+5173`t        painter,
+5174`t        range.start,
+5175`t        range.end,
+5176`t      );
+5177`t      for (final box in boxes) {
+5178`t        canvas.drawRect(box.toRect(), paint);
+5179`t      }
+5180`t    }
+5181`t  }
+5182`t
+5183`t  @override
+5184`t  bool shouldRepaint(covariant _FindHighlightPainter oldDelegate) {
+5185`t    return oldDelegate.textSpan != textSpan ||
+5186`t        oldDelegate.textAlign != textAlign ||
+5187`t        oldDelegate.textDirection != textDirection ||
+5188`t        oldDelegate.maxWidth != maxWidth ||
+5189`t        oldDelegate.ranges != ranges ||
+5190`t        oldDelegate.color != color ||
+5191`t        oldDelegate.activeColor != activeColor;
+5192`t  }
+5193`t}
+5194`t
+5195`tclass _SelectionHighlightPainter extends CustomPainter {
+5196`t  const _SelectionHighlightPainter({
+5197`t    required this.layoutService,
+5198`t    required this.textSpan,
+5199`t    required this.textAlign,
+5200`t    required this.textDirection,
+5201`t    required this.maxWidth,
+5202`t    required this.range,
+5203`t    required this.color,
+5204`t  });
+5205`t
+5206`t  final TextLayoutService layoutService;
+5207`t  final InlineSpan textSpan;
+5208`t  final TextAlign textAlign;
+5209`t  final TextDirection textDirection;
+5210`t  final double maxWidth;
+5211`t  final _LocalSelectionRange? range;
+5212`t  final Color color;
+5213`t
+5214`t  @override
+5215`t  void paint(Canvas canvas, Size size) {
+5216`t    final range = this.range;
+5217`t    if (range == null || range.start == range.end) {
+5218`t      return;
+5219`t    }
+5220`t    final painter = layoutService.layout(
+5221`t      span: textSpan,
+5222`t      textAlign: textAlign,
+5223`t      textDirection: textDirection,
+5224`t      maxWidth: maxWidth,
+5225`t    );
+5226`t    final boxes = layoutService.selectionBoxes(painter, range.start, range.end);
+5227`t    final paint = Paint()..color = color;
+5228`t    for (final box in boxes) {
+5229`t      canvas.drawRect(box.toRect(), paint);
+5230`t    }
+5231`t  }
+5232`t
+5233`t  @override
+5234`t  bool shouldRepaint(covariant _SelectionHighlightPainter oldDelegate) {
+5235`t    return oldDelegate.textSpan != textSpan ||
+5236`t        oldDelegate.textAlign != textAlign ||
+5237`t        oldDelegate.textDirection != textDirection ||
+5238`t        oldDelegate.maxWidth != maxWidth ||
+5239`t        oldDelegate.range?.start != range?.start ||
+5240`t        oldDelegate.range?.end != range?.end ||
+5241`t        oldDelegate.color != color;
+5242`t  }
+5243`t}
+5244`t
+5245`tclass _CaretPainter extends CustomPainter {
+5246`t  const _CaretPainter({
+5247`t    required this.layoutService,
+5248`t    required this.textSpan,
+5249`t    required this.textAlign,
+5250`t    required this.textDirection,
+5251`t    required this.maxWidth,
+5252`t    required this.caretOffset,
+5253`t    required this.color,
+5254`t    required this.textLength,
+5255`t    this.opacity = 1.0,
+5256`t  });
+5257`t
+5258`t  final TextLayoutService layoutService;
+5259`t  final InlineSpan textSpan;
+5260`t  final TextAlign textAlign;
+5261`t  final TextDirection textDirection;
+5262`t  final double maxWidth;
+5263`t  final int? caretOffset;
+5264`t  final Color color;
+5265`t  final int textLength;
+5266`t
+5267`t  /// Caret alpha multiplier driven by the blink animation (1.0 = fully visible,
+5268`t  /// 0.0 = hidden).
+5269`t  final double opacity;
+5270`t
+5271`t  @override
+5272`t  void paint(Canvas canvas, Size size) {
+5273`t    final caretOffset = this.caretOffset;
+5274`t    if (caretOffset == null) {
+5275`t      return;
+5276`t    }
+5277`t    final painter = layoutService.layout(
+5278`t      span: textSpan,
+5279`t      textAlign: textAlign,
+5280`t      textDirection: textDirection,
+5281`t      maxWidth: maxWidth,
+5282`t    );
+5283`t    final safeOffset = caretOffset.clamp(0, textLength).toInt();
+5284`t    final caretTop = layoutService.caretOffset(painter, safeOffset);
+5285`t    // Fall back to preferredLineHeight (matching _caretRectAt) so the caret is
+5286`t    // always drawn with a sensible height even when getFullHeightForCaret
+5287`t    // returns null (e.g. at empty/whitespace runs).
+5288`t    final height = layoutService.caretHeight(painter, safeOffset) ??
+5289`t        painter.preferredLineHeight;
+5290`t    final paint = Paint()
+5291`t      ..color = color.withValues(alpha: opacity.clamp(0.0, 1.0))
+5292`t      ..strokeWidth = _kCaretStrokeWidth;
+5293`t    canvas.drawLine(caretTop, caretTop.translate(0, height), paint);
+5294`t  }
+5295`t
+5296`t  @override
+5297`t  bool shouldRepaint(covariant _CaretPainter oldDelegate) {
+5298`t    return oldDelegate.textSpan != textSpan ||
+5299`t        oldDelegate.textAlign != textAlign ||
+5300`t        oldDelegate.textDirection != textDirection ||
+5301`t        oldDelegate.maxWidth != maxWidth ||
+5302`t        oldDelegate.caretOffset != caretOffset ||
+5303`t        oldDelegate.color != color ||
+5304`t        oldDelegate.textLength != textLength ||
+5305`t        oldDelegate.opacity != opacity;
+5306`t  }
+5307`t}
+5308`t
+5309`tclass _MediaPlaceholder extends StatelessWidget {
+5310`t  const _MediaPlaceholder({required this.label, required this.value});
+--- 6120-6268 ---
+6120`t  final spans = <InlineSpan>[];
+6121`t  var cursor = 0;
+6122`t  for (final node in nodes) {
+6123`t    final length = inlineLength(node);
+6124`t    final nodeStart = cursor;
+6125`t    final nodeEnd = cursor + length;
+6126`t    cursor = nodeEnd;
+6127`t    final overlapStart =
+6128`t        nodeStart < compositionRange.start ? compositionRange.start : nodeStart;
+6129`t    final overlapEnd =
+6130`t        nodeEnd > compositionRange.end ? compositionRange.end : nodeEnd;
+6131`t    if (overlapStart < overlapEnd) {
+6132`t      spans.addAll(
+6133`t        _inlineSpansForNodeWithComposition(
+6134`t          context,
+6135`t          node,
+6136`t          baseStyle,
+6137`t          inlineEmbedRenderer,
+6138`t          start: overlapStart - nodeStart,
+6139`t          end: overlapEnd - nodeStart,
+6140`t        ),
+6141`t      );
+6142`t    } else {
+6143`t      spans.add(
+6144`t        _inlineSpanFor(
+6145`t          context,
+6146`t          node,
+6147`t          baseStyle,
+6148`t          inlineEmbedRenderer,
+6149`t          decorate: false,
+6150`t        ),
+6151`t      );
+6152`t    }
+6153`t  }
+6154`t  return spans;
+6155`t}
+6156`t
+6157`tList<InlineSpan> _inlineSpansForNodeWithComposition(
+6158`t  BuildContext context,
+6159`t  InlineNode node,
+6160`t  TextStyle baseStyle,
+6161`t  InlineEmbedRenderer? inlineEmbedRenderer, {
+6162`t  required int start,
+6163`t  required int end,
+6164`t}) {
+6165`t  if (node is TextRun) {
+6166`t    final text = node.text;
+6167`t    final safeStart = start.clamp(0, text.length).toInt();
+6168`t    final safeEnd = end.clamp(safeStart, text.length).toInt();
+6169`t    final style = _textStyleForAttributes(baseStyle, node.attributes);
+6170`t    return <InlineSpan>[
+6171`t      if (safeStart > 0)
+6172`t        TextSpan(text: text.substring(0, safeStart), style: style),
+6173`t      if (safeStart < safeEnd)
+6174`t        TextSpan(
+6175`t          text: text.substring(safeStart, safeEnd),
+6176`t          style: _compositionTextStyle(style),
+6177`t        ),
+6178`t      if (safeEnd < text.length)
+6179`t        TextSpan(text: text.substring(safeEnd), style: style),
+6180`t    ];
+6181`t  }
+6182`t
+6183`t  if (node is InlineEmbed) {
+6184`t    return <InlineSpan>[
+6185`t      _inlineEmbedSpanFor(
+6186`t        context,
+6187`t        node,
+6188`t        baseStyle,
+6189`t        inlineEmbedRenderer,
+6190`t        decorate: true,
+6191`t      ),
+6192`t    ];
+6193`t  }
+6194`t
+6195`t  final text = node.plainText;
+6196`t  final safeStart = start.clamp(0, text.length).toInt();
+6197`t  final safeEnd = end.clamp(safeStart, text.length).toInt();
+6198`t  return <InlineSpan>[
+6199`t    if (safeStart > 0)
+6200`t      TextSpan(text: text.substring(0, safeStart), style: baseStyle),
+6201`t    if (safeStart < safeEnd)
+6202`t      TextSpan(
+6203`t        text: text.substring(safeStart, safeEnd),
+6204`t        style: _compositionTextStyle(baseStyle),
+6205`t      ),
+6206`t    if (safeEnd < text.length)
+6207`t      TextSpan(text: text.substring(safeEnd), style: baseStyle),
+6208`t  ];
+6209`t}
+6210`t
+6211`tTextSpan _inlineSpanFor(
+6212`t  BuildContext context,
+6213`t  InlineNode node,
+6214`t  TextStyle baseStyle,
+6215`t  InlineEmbedRenderer? inlineEmbedRenderer, {
+6216`t  bool decorate = false,
+6217`t}) {
+6218`t  final undecoratedStyle = switch (node) {
+6219`t    final TextRun textRun =>
+6220`t      _textStyleForAttributes(baseStyle, textRun.attributes),
+6221`t    final InlineEmbed embed =>
+6222`t      _textStyleForAttributes(baseStyle, embed.attributes),
+6223`t    _ => baseStyle,
+6224`t  };
+6225`t  final style =
+6226`t      decorate ? _compositionTextStyle(undecoratedStyle) : undecoratedStyle;
+6227`t  return switch (node) {
+6228`t    final TextRun textRun => TextSpan(text: textRun.text, style: style),
+6229`t    final InlineEmbed embed => _inlineEmbedSpanFor(
+6230`t        context,
+6231`t        embed,
+6232`t        baseStyle,
+6233`t        inlineEmbedRenderer,
+6234`t        decorate: decorate,
+6235`t      ),
+6236`t    _ => TextSpan(text: node.plainText, style: style),
+6237`t  };
+6238`t}
+6239`t
+6240`tTextSpan _inlineEmbedSpanFor(
+6241`t  BuildContext context,
+6242`t  InlineEmbed embed,
+6243`t  TextStyle baseStyle,
+6244`t  InlineEmbedRenderer? inlineEmbedRenderer, {
+6245`t  bool decorate = false,
+6246`t}) {
+6247`t  final base = _textStyleForAttributes(baseStyle, embed.attributes);
+6248`t  final style = decorate ? _compositionTextStyle(base) : base;
+6249`t  final custom = inlineEmbedRenderer?.buildTextSpan(context, embed, style);
+6250`t  if (custom != null) {
+6251`t    return custom;
+6252`t  }
+6253`t  return TextSpan(
+6254`t    text: _embedDisplayText(embed),
+6255`t    style: _defaultInlineEmbedStyle(context, embed, style),
+6256`t  );
+6257`t}
+6258`t
+6259`tTextStyle _defaultInlineEmbedStyle(
+6260`t  BuildContext context,
+6261`t  InlineEmbed embed,
+6262`t  TextStyle style,
+6263`t) {
+6264`t  final scheme = Theme.of(context).colorScheme;
+6265`t  return switch (embed.embedType) {
+6266`t    'mention' => style.copyWith(
+6267`t        color: scheme.primary,
+6268`t        fontWeight: FontWeight.w600,
+--- 3230-3305 ---
+3230`t  final InlineEmbedRenderer? inlineEmbedRenderer;
+3231`t  final TableToolbarActionHandler? onToolbarAction;
+3232`t  final TableColumnResizeHandler? onColumnResize;
+3233`t  final List<FindReplaceMatch> findMatches;
+3234`t  final FindReplaceMatch? currentFindMatch;
+3235`t
+3236`t  @override
+3237`t  Widget build(BuildContext context) {
+3238`t    final effectiveStyle = _blockTextStyle(
+3239`t      context,
+3240`t      block,
+3241`t      textStyle ?? DefaultTextStyle.of(context).style,
+3242`t    );
+3243`t    final compositionRange = _localCompositionRange(
+3244`t      compositionState,
+3245`t      block.id,
+3246`t      blockIndex,
+3247`t      PositionPath.blockText(block.id),
+3248`t    );
+3249`t    final path = PositionPath.blockText(block.id);
+3250`t    final textLength = inlineNodesLength(block.content);
+3251`t    final selected = _selectionRangeForPath(
+3252`t          selection,
+3253`t          blockIndex,
+3254`t          path,
+3255`t          textLength,
+3256`t        ) !=
+3257`t        null;
+3258`t    final text = _TextSelectionSurface(
+3259`t      blockId: block.id,
+3260`t      blockIndex: blockIndex,
+3261`t      path: path,
+3262`t      textLength: textLength,
+3263`t      textSpan: TextSpan(
+3264`t        style: effectiveStyle,
+3265`t        children: _inlineSpansFor(
+3266`t          context,
+3267`t          block.content,
+3268`t          effectiveStyle,
+3269`t          compositionRange,
+3270`t          inlineEmbedRenderer,
+3271`t        ),
+3272`t      ),
+3273`t      textAlign: _textAlign(block.attributes.alignment),
+3274`t      minHeight: (effectiveStyle.fontSize ?? 14) * _kBlockMinHeightFactor,
+3275`t      selection: selection,
+3276`t      showCaret: showCaret,
+3277`t      registry: registry,
+3278`t      showDebugOverlay: showDebugOverlay,
+3279`t      findRanges: _findRangesForPath(
+3280`t        findMatches,
+3281`t        currentFindMatch,
+3282`t        blockIndex,
+3283`t        path,
+3284`t        textLength,
+3285`t      ),
+3286`t    );
+3287`t    final prefix = _prefixFor(block);
+3288`t    if (prefix == null) {
+3289`t      return _withBlockSemantics(block, text, selected: selected);
+3290`t    }
+3291`t    return _withBlockSemantics(
+3292`t      block,
+3293`t      Row(
+3294`t        crossAxisAlignment: CrossAxisAlignment.start,
+3295`t        children: <Widget>[
+3296`t          SizedBox(
+3297`t            width: 32,
+3298`t            child:
+3299`t                Text(prefix, style: effectiveStyle, textAlign: TextAlign.end),
+3300`t          ),
+3301`t          const SizedBox(width: 8),
+3302`t          Expanded(child: text),
+3303`t        ],
+3304`t      ),
+3305`t      selected: selected,
+--- 4270-4350 ---
+4270`t    if (cell?.covered ?? false) {
+4271`t      return const SizedBox.shrink();
+4272`t    }
+4273`t    final tableBlock = widget.tableBlock;
+4274`t    final blockIndex = widget.blockIndex;
+4275`t    final path = PositionPath.tableCellText(
+4276`t      tableBlock.id,
+4277`t      widget.rowIndex,
+4278`t      widget.columnIndex,
+4279`t    );
+4280`t    final compositionRange = _localCompositionRange(
+4281`t      widget.compositionState,
+4282`t      tableBlock.id,
+4283`t      blockIndex,
+4284`t      path,
+4285`t    );
+4286`t    final inlineContent = _tableCellInlineContent(cell);
+4287`t    final textLength = inlineNodesLength(inlineContent);
+4288`t    final theme = Theme.of(context);
+4289`t    final highlightColor = theme.colorScheme.primary.withAlpha(54);
+4290`t    final effectiveTextStyle = (cell?.isHeader ?? false)
+4291`t        ? widget.textStyle.copyWith(fontWeight: FontWeight.w600)
+4292`t        : widget.textStyle;
+4293`t    final backgroundColor =
+4294`t        cell?.backgroundColor == null ? null : Color(cell!.backgroundColor!);
+4295`t    final surface = _TextSelectionSurface(
+4296`t      blockId: tableBlock.id,
+4297`t      blockIndex: blockIndex,
+4298`t      path: path,
+4299`t      textLength: textLength,
+4300`t      textSpan: TextSpan(
+4301`t        style: effectiveTextStyle,
+4302`t        children: textLength == 0
+4303`t            ? const <InlineSpan>[TextSpan(text: ' ')]
+4304`t            : _inlineSpansFor(
+4305`t                context,
+4306`t                inlineContent,
+4307`t                effectiveTextStyle,
+4308`t                compositionRange,
+4309`t                widget.inlineEmbedRenderer,
+4310`t              ),
+4311`t      ),
+4312`t      textAlign: widget.textAlign,
+4313`t      minHeight: (widget.textStyle.fontSize ?? 14) * _kBlockMinHeightFactor,
+4314`t      selection: widget.selection,
+4315`t      showCaret: widget.showCaret,
+4316`t      registry: widget.registry,
+4317`t      showDebugOverlay: widget.showDebugOverlay,
+4318`t      findRanges: _findRangesForPath(
+4319`t        widget.findMatches,
+4320`t        widget.currentFindMatch,
+4321`t        blockIndex,
+4322`t        path,
+4323`t        textLength,
+4324`t      ),
+4325`t      // The cell frame — not the centred text surface — is the hit-test box.
+4326`t      // The surface resolves the cell→text-local offset itself (it owns the
+4327`t      // text-surface render box via its own key), stripping the padding and
+4328`t      // the vertical centring gap that TableCellVerticalAlignment.middle
+4329`t      // introduces for short cells.
+4330`t      hitTestKey: _cellFrameKey,
+4331`t    );
+4332`t    final selected = widget.highlightWholeCell ||
+4333`t        _selectionRangeForPath(
+4334`t              widget.selection,
+4335`t              blockIndex,
+4336`t              path,
+4337`t              textLength,
+4338`t            ) !=
+4339`t            null;
+4340`t    return Semantics(
+4341`t      container: true,
+4342`t      explicitChildNodes: true,
+4343`t      label: _tableCellSemanticsLabel(
+4344`t        tableBlock: tableBlock,
+4345`t        cell: cell,
+4346`t        rowIndex: widget.rowIndex,
+4347`t        columnIndex: widget.columnIndex,
+4348`t        selected: selected,
+4349`t      ),
+4350`t      selected: selected,
+
+2026-06-24T15:10:09.925241Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=gpt-5.5 personality=pragmatic
+codex
+输出被截断了；我改用更窄范围读取 span 构建和绘制参数。
+exec
+powershell.exe -NoProfile -Command '[Console]::OutputEncoding=[System.Text.Encoding]::UTF8; $OutputEncoding=[System.Text.Encoding]::UTF8; $path='"'lib/src/widgets/wenz_rich_text_editor.dart'; "'$lines=Get-Content -Encoding UTF8 $path; foreach ($range in @(@(4970,5065),@(5066,5132),@(5133,5194),@(5195,5310),@(6120,6208),@(6209,6275),@(3238,3287),@(4295,4331))) { Write-Output "--- $($range[0])-$($range[1]) ---"; for ($i=$range[0]; $i -le $range[1]; $i++) { if ($i -le $lines.Length) { '"'{0}"'`t{1}'"' -f "'$i,$lines[$i-1] } } }' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 282ms:
+--- 4970-5065 ---
+4970`t        // layer, so the (much heavier) text layout/paint is untouched.
+4971`t        final caretPainter = _CaretPainter(
+4972`t          layoutService: _layoutService,
+4973`t          textSpan: widget.textSpan,
+4974`t          textAlign: widget.textAlign,
+4975`t          textDirection: direction,
+4976`t          maxWidth: maxWidth,
+4977`t          caretOffset: caretOffset,
+4978`t          color: caretColor,
+4979`t          textLength: widget.textLength,
+4980`t          opacity: caretOpacity,
+4981`t        );
+4982`t        final text = CustomPaint(
+4983`t          painter: _FindHighlightPainter(
+4984`t            layoutService: _layoutService,
+4985`t            textSpan: widget.textSpan,
+4986`t            textAlign: widget.textAlign,
+4987`t            textDirection: direction,
+4988`t            maxWidth: maxWidth,
+4989`t            ranges: widget.findRanges,
+4990`t            color: findHighlightColor,
+4991`t            activeColor: activeFindHighlightColor,
+4992`t          ),
+4993`t          child: CustomPaint(
+4994`t            painter: _SelectionHighlightPainter(
+4995`t              layoutService: _layoutService,
+4996`t              textSpan: widget.textSpan,
+4997`t              textAlign: widget.textAlign,
+4998`t              textDirection: direction,
+4999`t              maxWidth: maxWidth,
+5000`t              range: selectionRange,
+5001`t              color: highlightColor,
+5002`t            ),
+5003`t            child: ConstrainedBox(
+5004`t              constraints: BoxConstraints(minHeight: widget.minHeight),
+5005`t              child: RichText(
+5006`t                text: widget.textSpan,
+5007`t                textAlign: widget.textAlign,
+5008`t                textDirection: direction,
+5009`t              ),
+5010`t            ),
+5011`t          ),
+5012`t        );
+5013`t        // Keep the blink timer in step with whether the caret is showing.
+5014`t        // Deferred to post-frame so we do not mutate timer state mid-build.
+5015`t        // Guarded by [_blinkSyncPending] so repeated builds within the same
+5016`t        // frame (or callbacks that have not fired yet) schedule at most one
+5017`t        // sync, avoiding timer churn on rapid rebuilds.
+5018`t        final caretVisible = caretOffset != null;
+5019`t        if (caretVisible != _blinkActive && !_blinkSyncPending) {
+5020`t          _blinkSyncPending = true;
+5021`t          WidgetsBinding.instance.addPostFrameCallback((_) {
+5022`t            _blinkSyncPending = false;
+5023`t            if (mounted) {
+5024`t              _syncBlink(caretVisible);
+5025`t            }
+5026`t          });
+5027`t        }
+5028`t
+5029`t        // Gestures live in the document-level SelectionGestureOverlay; the
+5030`t        // surface only renders text, highlight, caret, and registers its
+5031`t        // geometry for cross-block hit-testing.
+5032`t        return Stack(
+5033`t          key: _surfaceKey,
+5034`t          children: <Widget>[
+5035`t            text,
+5036`t            if (selectionRange != null)
+5037`t              const Positioned.fill(
+5038`t                child: IgnorePointer(
+5039`t                  child: SizedBox(key: _selectionHighlightKey),
+5040`t                ),
+5041`t              ),
+5042`t            if (widget.findRanges.isNotEmpty)
+5043`t              const Positioned.fill(
+5044`t                child: IgnorePointer(
+5045`t                  child: SizedBox(key: _findHighlightKey),
+5046`t                ),
+5047`t              ),
+5048`t            // Caret lives in its own layer inside a RepaintBoundary so blink
+5049`t            // repaints never reach the RichText below.
+5050`t            if (caretOffset != null) ...[
+5051`t              Positioned.fill(
+5052`t                child: IgnorePointer(
+5053`t                  child: RepaintBoundary(
+5054`t                    child: CustomPaint(
+5055`t                      key: _caretKey,
+5056`t                      foregroundPainter: caretPainter,
+5057`t                      child: const SizedBox.expand(),
+5058`t                    ),
+5059`t                  ),
+5060`t                ),
+5061`t              ),
+5062`t            ],
+5063`t            if (widget.showDebugOverlay)
+5064`t              Positioned(
+5065`t                top: 0,
+--- 5066-5132 ---
+5066`t                right: 0,
+5067`t                child: IgnorePointer(
+5068`t                  child: _DebugSelectionTag(
+5069`t                    blockId: widget.blockId,
+5070`t                    blockIndex: widget.blockIndex,
+5071`t                    path: widget.path,
+5072`t                    offset: caretOffset ?? selectionRange?.end,
+5073`t                  ),
+5074`t                ),
+5075`t              ),
+5076`t          ],
+5077`t        );
+5078`t      },
+5079`t    );
+5080`t  }
+5081`t}
+5082`t
+5083`tclass _DebugSelectionTag extends StatelessWidget {
+5084`t  const _DebugSelectionTag({
+5085`t    required this.blockId,
+5086`t    required this.blockIndex,
+5087`t    required this.path,
+5088`t    required this.offset,
+5089`t  });
+5090`t
+5091`t  final String blockId;
+5092`t  final int blockIndex;
+5093`t  final PositionPath path;
+5094`t  final int? offset;
+5095`t
+5096`t  @override
+5097`t  Widget build(BuildContext context) {
+5098`t    final theme = Theme.of(context);
+5099`t    return Container(
+5100`t      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+5101`t      decoration: BoxDecoration(
+5102`t        color: theme.colorScheme.errorContainer.withAlpha(220),
+5103`t        borderRadius: BorderRadius.circular(4),
+5104`t      ),
+5105`t      child: Text(
+5106`t        '#$blockIndex ${blockId.isEmpty ? "<blockId>" : blockId}\n'
+5107`t        '${path.toString()}\n'
+5108`t        'offset=${offset ?? "-"}',
+5109`t        style: theme.textTheme.labelSmall?.copyWith(
+5110`t          fontFamily: 'monospace',
+5111`t          color: theme.colorScheme.onErrorContainer,
+5112`t        ),
+5113`t      ),
+5114`t    );
+5115`t  }
+5116`t}
+5117`t
+5118`tclass _LocalSelectionRange {
+5119`t  const _LocalSelectionRange({required this.start, required this.end});
+5120`t
+5121`t  final int start;
+5122`t  final int end;
+5123`t}
+5124`t
+5125`tclass _FindHighlightRange extends _LocalSelectionRange {
+5126`t  const _FindHighlightRange({
+5127`t    required super.start,
+5128`t    required super.end,
+5129`t    required this.active,
+5130`t  });
+5131`t
+5132`t  final bool active;
+--- 5133-5194 ---
+5133`t}
+5134`t
+5135`tclass _FindHighlightPainter extends CustomPainter {
+5136`t  const _FindHighlightPainter({
+5137`t    required this.layoutService,
+5138`t    required this.textSpan,
+5139`t    required this.textAlign,
+5140`t    required this.textDirection,
+5141`t    required this.maxWidth,
+5142`t    required this.ranges,
+5143`t    required this.color,
+5144`t    required this.activeColor,
+5145`t  });
+5146`t
+5147`t  final TextLayoutService layoutService;
+5148`t  final InlineSpan textSpan;
+5149`t  final TextAlign textAlign;
+5150`t  final TextDirection textDirection;
+5151`t  final double maxWidth;
+5152`t  final List<_FindHighlightRange> ranges;
+5153`t  final Color color;
+5154`t  final Color activeColor;
+5155`t
+5156`t  @override
+5157`t  void paint(Canvas canvas, Size size) {
+5158`t    if (ranges.isEmpty) {
+5159`t      return;
+5160`t    }
+5161`t    final painter = layoutService.layout(
+5162`t      span: textSpan,
+5163`t      textAlign: textAlign,
+5164`t      textDirection: textDirection,
+5165`t      maxWidth: maxWidth,
+5166`t    );
+5167`t    for (final range in ranges) {
+5168`t      if (range.start == range.end) {
+5169`t        continue;
+5170`t      }
+5171`t      final paint = Paint()..color = range.active ? activeColor : color;
+5172`t      final boxes = layoutService.selectionBoxes(
+5173`t        painter,
+5174`t        range.start,
+5175`t        range.end,
+5176`t      );
+5177`t      for (final box in boxes) {
+5178`t        canvas.drawRect(box.toRect(), paint);
+5179`t      }
+5180`t    }
+5181`t  }
+5182`t
+5183`t  @override
+5184`t  bool shouldRepaint(covariant _FindHighlightPainter oldDelegate) {
+5185`t    return oldDelegate.textSpan != textSpan ||
+5186`t        oldDelegate.textAlign != textAlign ||
+5187`t        oldDelegate.textDirection != textDirection ||
+5188`t        oldDelegate.maxWidth != maxWidth ||
+5189`t        oldDelegate.ranges != ranges ||
+5190`t        oldDelegate.color != color ||
+5191`t        oldDelegate.activeColor != activeColor;
+5192`t  }
+5193`t}
+5194`t
+--- 5195-5310 ---
+5195`tclass _SelectionHighlightPainter extends CustomPainter {
+5196`t  const _SelectionHighlightPainter({
+5197`t    required this.layoutService,
+5198`t    required this.textSpan,
+5199`t    required this.textAlign,
+5200`t    required this.textDirection,
+5201`t    required this.maxWidth,
+5202`t    required this.range,
+5203`t    required this.color,
+5204`t  });
+5205`t
+5206`t  final TextLayoutService layoutService;
+5207`t  final InlineSpan textSpan;
+5208`t  final TextAlign textAlign;
+5209`t  final TextDirection textDirection;
+5210`t  final double maxWidth;
+5211`t  final _LocalSelectionRange? range;
+5212`t  final Color color;
+5213`t
+5214`t  @override
+5215`t  void paint(Canvas canvas, Size size) {
+5216`t    final range = this.range;
+5217`t    if (range == null || range.start == range.end) {
+5218`t      return;
+5219`t    }
+5220`t    final painter = layoutService.layout(
+5221`t      span: textSpan,
+5222`t      textAlign: textAlign,
+5223`t      textDirection: textDirection,
+5224`t      maxWidth: maxWidth,
+5225`t    );
+5226`t    final boxes = layoutService.selectionBoxes(painter, range.start, range.end);
+5227`t    final paint = Paint()..color = color;
+5228`t    for (final box in boxes) {
+5229`t      canvas.drawRect(box.toRect(), paint);
+5230`t    }
+5231`t  }
+5232`t
+5233`t  @override
+5234`t  bool shouldRepaint(covariant _SelectionHighlightPainter oldDelegate) {
+5235`t    return oldDelegate.textSpan != textSpan ||
+5236`t        oldDelegate.textAlign != textAlign ||
+5237`t        oldDelegate.textDirection != textDirection ||
+5238`t        oldDelegate.maxWidth != maxWidth ||
+5239`t        oldDelegate.range?.start != range?.start ||
+5240`t        oldDelegate.range?.end != range?.end ||
+5241`t        oldDelegate.color != color;
+5242`t  }
+5243`t}
+5244`t
+5245`tclass _CaretPainter extends CustomPainter {
+5246`t  const _CaretPainter({
+5247`t    required this.layoutService,
+5248`t    required this.textSpan,
+5249`t    required this.textAlign,
+5250`t    required this.textDirection,
+5251`t    required this.maxWidth,
+5252`t    required this.caretOffset,
+5253`t    required this.color,
+5254`t    required this.textLength,
+5255`t    this.opacity = 1.0,
+5256`t  });
+5257`t
+5258`t  final TextLayoutService layoutService;
+5259`t  final InlineSpan textSpan;
+5260`t  final TextAlign textAlign;
+5261`t  final TextDirection textDirection;
+5262`t  final double maxWidth;
+5263`t  final int? caretOffset;
+5264`t  final Color color;
+5265`t  final int textLength;
+5266`t
+5267`t  /// Caret alpha multiplier driven by the blink animation (1.0 = fully visible,
+5268`t  /// 0.0 = hidden).
+5269`t  final double opacity;
+5270`t
+5271`t  @override
+5272`t  void paint(Canvas canvas, Size size) {
+5273`t    final caretOffset = this.caretOffset;
+5274`t    if (caretOffset == null) {
+5275`t      return;
+5276`t    }
+5277`t    final painter = layoutService.layout(
+5278`t      span: textSpan,
+5279`t      textAlign: textAlign,
+5280`t      textDirection: textDirection,
+5281`t      maxWidth: maxWidth,
+5282`t    );
+5283`t    final safeOffset = caretOffset.clamp(0, textLength).toInt();
+5284`t    final caretTop = layoutService.caretOffset(painter, safeOffset);
+5285`t    // Fall back to preferredLineHeight (matching _caretRectAt) so the caret is
+5286`t    // always drawn with a sensible height even when getFullHeightForCaret
+5287`t    // returns null (e.g. at empty/whitespace runs).
+5288`t    final height = layoutService.caretHeight(painter, safeOffset) ??
+5289`t        painter.preferredLineHeight;
+5290`t    final paint = Paint()
+5291`t      ..color = color.withValues(alpha: opacity.clamp(0.0, 1.0))
+5292`t      ..strokeWidth = _kCaretStrokeWidth;
+5293`t    canvas.drawLine(caretTop, caretTop.translate(0, height), paint);
+5294`t  }
+5295`t
+5296`t  @override
+5297`t  bool shouldRepaint(covariant _CaretPainter oldDelegate) {
+5298`t    return oldDelegate.textSpan != textSpan ||
+5299`t        oldDelegate.textAlign != textAlign ||
+5300`t        oldDelegate.textDirection != textDirection ||
+5301`t        oldDelegate.maxWidth != maxWidth ||
+5302`t        oldDelegate.caretOffset != caretOffset ||
+5303`t        oldDelegate.color != color ||
+5304`t        oldDelegate.textLength != textLength ||
+5305`t        oldDelegate.opacity != opacity;
+5306`t  }
+5307`t}
+5308`t
+5309`tclass _MediaPlaceholder extends StatelessWidget {
+5310`t  const _MediaPlaceholder({required this.label, required this.value});
+--- 6120-6208 ---
+6120`t  final spans = <InlineSpan>[];
+6121`t  var cursor = 0;
+6122`t  for (final node in nodes) {
+6123`t    final length = inlineLength(node);
+6124`t    final nodeStart = cursor;
+6125`t    final nodeEnd = cursor + length;
+6126`t    cursor = nodeEnd;
+6127`t    final overlapStart =
+6128`t        nodeStart < compositionRange.start ? compositionRange.start : nodeStart;
+6129`t    final overlapEnd =
+6130`t        nodeEnd > compositionRange.end ? compositionRange.end : nodeEnd;
+6131`t    if (overlapStart < overlapEnd) {
+6132`t      spans.addAll(
+6133`t        _inlineSpansForNodeWithComposition(
+6134`t          context,
+6135`t          node,
+6136`t          baseStyle,
+6137`t          inlineEmbedRenderer,
+6138`t          start: overlapStart - nodeStart,
+6139`t          end: overlapEnd - nodeStart,
+6140`t        ),
+6141`t      );
+6142`t    } else {
+6143`t      spans.add(
+6144`t        _inlineSpanFor(
+6145`t          context,
+6146`t          node,
+6147`t          baseStyle,
+6148`t          inlineEmbedRenderer,
+6149`t          decorate: false,
+6150`t        ),
+6151`t      );
+6152`t    }
+6153`t  }
+6154`t  return spans;
+6155`t}
+6156`t
+6157`tList<InlineSpan> _inlineSpansForNodeWithComposition(
+6158`t  BuildContext context,
+6159`t  InlineNode node,
+6160`t  TextStyle baseStyle,
+6161`t  InlineEmbedRenderer? inlineEmbedRenderer, {
+6162`t  required int start,
+6163`t  required int end,
+6164`t}) {
+6165`t  if (node is TextRun) {
+6166`t    final text = node.text;
+6167`t    final safeStart = start.clamp(0, text.length).toInt();
+6168`t    final safeEnd = end.clamp(safeStart, text.length).toInt();
+6169`t    final style = _textStyleForAttributes(baseStyle, node.attributes);
+6170`t    return <InlineSpan>[
+6171`t      if (safeStart > 0)
+6172`t        TextSpan(text: text.substring(0, safeStart), style: style),
+6173`t      if (safeStart < safeEnd)
+6174`t        TextSpan(
+6175`t          text: text.substring(safeStart, safeEnd),
+6176`t          style: _compositionTextStyle(style),
+6177`t        ),
+6178`t      if (safeEnd < text.length)
+6179`t        TextSpan(text: text.substring(safeEnd), style: style),
+6180`t    ];
+6181`t  }
+6182`t
+6183`t  if (node is InlineEmbed) {
+6184`t    return <InlineSpan>[
+6185`t      _inlineEmbedSpanFor(
+6186`t        context,
+6187`t        node,
+6188`t        baseStyle,
+6189`t        inlineEmbedRenderer,
+6190`t        decorate: true,
+6191`t      ),
+6192`t    ];
+6193`t  }
+6194`t
+6195`t  final text = node.plainText;
+6196`t  final safeStart = start.clamp(0, text.length).toInt();
+6197`t  final safeEnd = end.clamp(safeStart, text.length).toInt();
+6198`t  return <InlineSpan>[
+6199`t    if (safeStart > 0)
+6200`t      TextSpan(text: text.substring(0, safeStart), style: baseStyle),
+6201`t    if (safeStart < safeEnd)
+6202`t      TextSpan(
+6203`t        text: text.substring(safeStart, safeEnd),
+6204`t        style: _compositionTextStyle(baseStyle),
+6205`t      ),
+6206`t    if (safeEnd < text.length)
+6207`t      TextSpan(text: text.substring(safeEnd), style: baseStyle),
+6208`t  ];
+--- 6209-6275 ---
+6209`t}
+6210`t
+6211`tTextSpan _inlineSpanFor(
+6212`t  BuildContext context,
+6213`t  InlineNode node,
+6214`t  TextStyle baseStyle,
+6215`t  InlineEmbedRenderer? inlineEmbedRenderer, {
+6216`t  bool decorate = false,
+6217`t}) {
+6218`t  final undecoratedStyle = switch (node) {
+6219`t    final TextRun textRun =>
+6220`t      _textStyleForAttributes(baseStyle, textRun.attributes),
+6221`t    final InlineEmbed embed =>
+6222`t      _textStyleForAttributes(baseStyle, embed.attributes),
+6223`t    _ => baseStyle,
+6224`t  };
+6225`t  final style =
+6226`t      decorate ? _compositionTextStyle(undecoratedStyle) : undecoratedStyle;
+6227`t  return switch (node) {
+6228`t    final TextRun textRun => TextSpan(text: textRun.text, style: style),
+6229`t    final InlineEmbed embed => _inlineEmbedSpanFor(
+6230`t        context,
+6231`t        embed,
+6232`t        baseStyle,
+6233`t        inlineEmbedRenderer,
+6234`t        decorate: decorate,
+6235`t      ),
+6236`t    _ => TextSpan(text: node.plainText, style: style),
+6237`t  };
+6238`t}
+6239`t
+6240`tTextSpan _inlineEmbedSpanFor(
+6241`t  BuildContext context,
+6242`t  InlineEmbed embed,
+6243`t  TextStyle baseStyle,
+6244`t  InlineEmbedRenderer? inlineEmbedRenderer, {
+6245`t  bool decorate = false,
+6246`t}) {
+6247`t  final base = _textStyleForAttributes(baseStyle, embed.attributes);
+6248`t  final style = decorate ? _compositionTextStyle(base) : base;
+6249`t  final custom = inlineEmbedRenderer?.buildTextSpan(context, embed, style);
+6250`t  if (custom != null) {
+6251`t    return custom;
+6252`t  }
+6253`t  return TextSpan(
+6254`t    text: _embedDisplayText(embed),
+6255`t    style: _defaultInlineEmbedStyle(context, embed, style),
+6256`t  );
+6257`t}
+6258`t
+6259`tTextStyle _defaultInlineEmbedStyle(
+6260`t  BuildContext context,
+6261`t  InlineEmbed embed,
+6262`t  TextStyle style,
+6263`t) {
+6264`t  final scheme = Theme.of(context).colorScheme;
+6265`t  return switch (embed.embedType) {
+6266`t    'mention' => style.copyWith(
+6267`t        color: scheme.primary,
+6268`t        fontWeight: FontWeight.w600,
+6269`t        backgroundColor: scheme.primaryContainer.withAlpha(80),
+6270`t      ),
+6271`t    'formula' => style.copyWith(
+6272`t        color: scheme.onSecondaryContainer,
+6273`t        backgroundColor: scheme.secondaryContainer.withAlpha(90),
+6274`t        fontFamily: 'monospace',
+6275`t      ),
+--- 3238-3287 ---
+3238`t    final effectiveStyle = _blockTextStyle(
+3239`t      context,
+3240`t      block,
+3241`t      textStyle ?? DefaultTextStyle.of(context).style,
+3242`t    );
+3243`t    final compositionRange = _localCompositionRange(
+3244`t      compositionState,
+3245`t      block.id,
+3246`t      blockIndex,
+3247`t      PositionPath.blockText(block.id),
+3248`t    );
+3249`t    final path = PositionPath.blockText(block.id);
+3250`t    final textLength = inlineNodesLength(block.content);
+3251`t    final selected = _selectionRangeForPath(
+3252`t          selection,
+3253`t          blockIndex,
+3254`t          path,
+3255`t          textLength,
+3256`t        ) !=
+3257`t        null;
+3258`t    final text = _TextSelectionSurface(
+3259`t      blockId: block.id,
+3260`t      blockIndex: blockIndex,
+3261`t      path: path,
+3262`t      textLength: textLength,
+3263`t      textSpan: TextSpan(
+3264`t        style: effectiveStyle,
+3265`t        children: _inlineSpansFor(
+3266`t          context,
+3267`t          block.content,
+3268`t          effectiveStyle,
+3269`t          compositionRange,
+3270`t          inlineEmbedRenderer,
+3271`t        ),
+3272`t      ),
+3273`t      textAlign: _textAlign(block.attributes.alignment),
+3274`t      minHeight: (effectiveStyle.fontSize ?? 14) * _kBlockMinHeightFactor,
+3275`t      selection: selection,
+3276`t      showCaret: showCaret,
+3277`t      registry: registry,
+3278`t      showDebugOverlay: showDebugOverlay,
+3279`t      findRanges: _findRangesForPath(
+3280`t        findMatches,
+3281`t        currentFindMatch,
+3282`t        blockIndex,
+3283`t        path,
+3284`t        textLength,
+3285`t      ),
+3286`t    );
+3287`t    final prefix = _prefixFor(block);
+--- 4295-4331 ---
+4295`t    final surface = _TextSelectionSurface(
+4296`t      blockId: tableBlock.id,
+4297`t      blockIndex: blockIndex,
+4298`t      path: path,
+4299`t      textLength: textLength,
+4300`t      textSpan: TextSpan(
+4301`t        style: effectiveTextStyle,
+4302`t        children: textLength == 0
+4303`t            ? const <InlineSpan>[TextSpan(text: ' ')]
+4304`t            : _inlineSpansFor(
+4305`t                context,
+4306`t                inlineContent,
+4307`t                effectiveTextStyle,
+4308`t                compositionRange,
+4309`t                widget.inlineEmbedRenderer,
+4310`t              ),
+4311`t      ),
+4312`t      textAlign: widget.textAlign,
+4313`t      minHeight: (widget.textStyle.fontSize ?? 14) * _kBlockMinHeightFactor,
+4314`t      selection: widget.selection,
+4315`t      showCaret: widget.showCaret,
+4316`t      registry: widget.registry,
+4317`t      showDebugOverlay: widget.showDebugOverlay,
+4318`t      findRanges: _findRangesForPath(
+4319`t        widget.findMatches,
+4320`t        widget.currentFindMatch,
+4321`t        blockIndex,
+4322`t        path,
+4323`t        textLength,
+4324`t      ),
+4325`t      // The cell frame — not the centred text surface — is the hit-test box.
+4326`t      // The surface resolves the cell→text-local offset itself (it owns the
+4327`t      // text-surface render box via its own key), stripping the padding and
+4328`t      // the vertical centring gap that TableCellVerticalAlignment.middle
+4329`t      // introduces for short cells.
+4330`t      hitTestKey: _cellFrameKey,
+4331`t    );
+
+2026-06-24T15:10:20.289855Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=gpt-5.5 personality=pragmatic
+codex
+现在切到精确 grep 上下文，减少干扰。
+exec
+powershell.exe -NoProfile -Command '[Console]::OutputEncoding=[System.Text.Encoding]::UTF8; $OutputEncoding=[System.Text.Encoding]::UTF8; rg -n -C 20 "List<InlineSpan> _inlineSpansFor|InlineSpan _inlineSpanFor|TextSpan _inlineEmbedSpanFor|String _embedDisplayText|class _FindHighlightPainter|class _SelectionHighlightPainter|class _CaretPainter" lib/src/widgets/wenz_rich_text_editor.dart' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 165ms:
+5115-  }
+5116-}
+5117-
+5118-class _LocalSelectionRange {
+5119-  const _LocalSelectionRange({required this.start, required this.end});
+5120-
+5121-  final int start;
+5122-  final int end;
+5123-}
+5124-
+5125-class _FindHighlightRange extends _LocalSelectionRange {
+5126-  const _FindHighlightRange({
+5127-    required super.start,
+5128-    required super.end,
+5129-    required this.active,
+5130-  });
+5131-
+5132-  final bool active;
+5133-}
+5134-
+5135:class _FindHighlightPainter extends CustomPainter {
+5136-  const _FindHighlightPainter({
+5137-    required this.layoutService,
+5138-    required this.textSpan,
+5139-    required this.textAlign,
+5140-    required this.textDirection,
+5141-    required this.maxWidth,
+5142-    required this.ranges,
+5143-    required this.color,
+5144-    required this.activeColor,
+5145-  });
+5146-
+5147-  final TextLayoutService layoutService;
+5148-  final InlineSpan textSpan;
+5149-  final TextAlign textAlign;
+5150-  final TextDirection textDirection;
+5151-  final double maxWidth;
+5152-  final List<_FindHighlightRange> ranges;
+5153-  final Color color;
+5154-  final Color activeColor;
+5155-
+--
+5175-        range.end,
+5176-      );
+5177-      for (final box in boxes) {
+5178-        canvas.drawRect(box.toRect(), paint);
+5179-      }
+5180-    }
+5181-  }
+5182-
+5183-  @override
+5184-  bool shouldRepaint(covariant _FindHighlightPainter oldDelegate) {
+5185-    return oldDelegate.textSpan != textSpan ||
+5186-        oldDelegate.textAlign != textAlign ||
+5187-        oldDelegate.textDirection != textDirection ||
+5188-        oldDelegate.maxWidth != maxWidth ||
+5189-        oldDelegate.ranges != ranges ||
+5190-        oldDelegate.color != color ||
+5191-        oldDelegate.activeColor != activeColor;
+5192-  }
+5193-}
+5194-
+5195:class _SelectionHighlightPainter extends CustomPainter {
+5196-  const _SelectionHighlightPainter({
+5197-    required this.layoutService,
+5198-    required this.textSpan,
+5199-    required this.textAlign,
+5200-    required this.textDirection,
+5201-    required this.maxWidth,
+5202-    required this.range,
+5203-    required this.color,
+5204-  });
+5205-
+5206-  final TextLayoutService layoutService;
+5207-  final InlineSpan textSpan;
+5208-  final TextAlign textAlign;
+5209-  final TextDirection textDirection;
+5210-  final double maxWidth;
+5211-  final _LocalSelectionRange? range;
+5212-  final Color color;
+5213-
+5214-  @override
+5215-  void paint(Canvas canvas, Size size) {
+--
+5225-    );
+5226-    final boxes = layoutService.selectionBoxes(painter, range.start, range.end);
+5227-    final paint = Paint()..color = color;
+5228-    for (final box in boxes) {
+5229-      canvas.drawRect(box.toRect(), paint);
+5230-    }
+5231-  }
+5232-
+5233-  @override
+5234-  bool shouldRepaint(covariant _SelectionHighlightPainter oldDelegate) {
+5235-    return oldDelegate.textSpan != textSpan ||
+5236-        oldDelegate.textAlign != textAlign ||
+5237-        oldDelegate.textDirection != textDirection ||
+5238-        oldDelegate.maxWidth != maxWidth ||
+5239-        oldDelegate.range?.start != range?.start ||
+5240-        oldDelegate.range?.end != range?.end ||
+5241-        oldDelegate.color != color;
+5242-  }
+5243-}
+5244-
+5245:class _CaretPainter extends CustomPainter {
+5246-  const _CaretPainter({
+5247-    required this.layoutService,
+5248-    required this.textSpan,
+5249-    required this.textAlign,
+5250-    required this.textDirection,
+5251-    required this.maxWidth,
+5252-    required this.caretOffset,
+5253-    required this.color,
+5254-    required this.textLength,
+5255-    this.opacity = 1.0,
+5256-  });
+5257-
+5258-  final TextLayoutService layoutService;
+5259-  final InlineSpan textSpan;
+5260-  final TextAlign textAlign;
+5261-  final TextDirection textDirection;
+5262-  final double maxWidth;
+5263-  final int? caretOffset;
+5264-  final Color color;
+5265-  final int textLength;
+--
+6080-  TextBlockNode block,
+6081-  TextStyle baseStyle,
+6082-) {
+6083-  final theme = Theme.of(context);
+6084-  return switch (block.type) {
+6085-    BlockType.heading => baseStyle.merge(
+6086-        theme.textTheme.titleLarge?.copyWith(
+6087-          fontSize: _headingSize(block.attributes.level),
+6088-          fontWeight: FontWeight.w700,
+6089-        ),
+6090-      ),
+6091-    BlockType.quote => baseStyle.merge(
+6092-        theme.textTheme.bodyMedium?.copyWith(fontStyle: FontStyle.italic),
+6093-      ),
+6094-    _ => baseStyle.merge(theme.textTheme.bodyMedium),
+6095-  };
+6096-}
+6097-
+6098-/// Builds the inline spans for a text block, overlaying the IME composition
+6099-/// decoration (underline) on the runs that fall inside [compositionRange].
+6100:List<InlineSpan> _inlineSpansFor(
+6101-  BuildContext context,
+6102-  List<InlineNode> nodes,
+6103-  TextStyle baseStyle,
+6104-  _LocalSelectionRange? compositionRange,
+6105-  InlineEmbedRenderer? inlineEmbedRenderer,
+6106-) {
+6107-  if (compositionRange == null) {
+6108-    return nodes
+6109-        .map(
+6110-          (node) => _inlineSpanFor(
+6111-            context,
+6112-            node,
+6113-            baseStyle,
+6114-            inlineEmbedRenderer,
+6115-            decorate: false,
+6116-          ),
+6117-        )
+6118-        .toList();
+6119-  }
+6120-  final spans = <InlineSpan>[];
+--
+6137-          inlineEmbedRenderer,
+6138-          start: overlapStart - nodeStart,
+6139-          end: overlapEnd - nodeStart,
+6140-        ),
+6141-      );
+6142-    } else {
+6143-      spans.add(
+6144-        _inlineSpanFor(
+6145-          context,
+6146-          node,
+6147-          baseStyle,
+6148-          inlineEmbedRenderer,
+6149-          decorate: false,
+6150-        ),
+6151-      );
+6152-    }
+6153-  }
+6154-  return spans;
+6155-}
+6156-
+6157:List<InlineSpan> _inlineSpansForNodeWithComposition(
+6158-  BuildContext context,
+6159-  InlineNode node,
+6160-  TextStyle baseStyle,
+6161-  InlineEmbedRenderer? inlineEmbedRenderer, {
+6162-  required int start,
+6163-  required int end,
+6164-}) {
+6165-  if (node is TextRun) {
+6166-    final text = node.text;
+6167-    final safeStart = start.clamp(0, text.length).toInt();
+6168-    final safeEnd = end.clamp(safeStart, text.length).toInt();
+6169-    final style = _textStyleForAttributes(baseStyle, node.attributes);
+6170-    return <InlineSpan>[
+6171-      if (safeStart > 0)
+6172-        TextSpan(text: text.substring(0, safeStart), style: style),
+6173-      if (safeStart < safeEnd)
+6174-        TextSpan(
+6175-          text: text.substring(safeStart, safeEnd),
+6176-          style: _compositionTextStyle(style),
+6177-        ),
+--
+6220-      _textStyleForAttributes(baseStyle, textRun.attributes),
+6221-    final InlineEmbed embed =>
+6222-      _textStyleForAttributes(baseStyle, embed.attributes),
+6223-    _ => baseStyle,
+6224-  };
+6225-  final style =
+6226-      decorate ? _compositionTextStyle(undecoratedStyle) : undecoratedStyle;
+6227-  return switch (node) {
+6228-    final TextRun textRun => TextSpan(text: textRun.text, style: style),
+6229-    final InlineEmbed embed => _inlineEmbedSpanFor(
+6230-        context,
+6231-        embed,
+6232-        baseStyle,
+6233-        inlineEmbedRenderer,
+6234-        decorate: decorate,
+6235-      ),
+6236-    _ => TextSpan(text: node.plainText, style: style),
+6237-  };
+6238-}
+6239-
+6240:TextSpan _inlineEmbedSpanFor(
+6241-  BuildContext context,
+6242-  InlineEmbed embed,
+6243-  TextStyle baseStyle,
+6244-  InlineEmbedRenderer? inlineEmbedRenderer, {
+6245-  bool decorate = false,
+6246-}) {
+6247-  final base = _textStyleForAttributes(baseStyle, embed.attributes);
+6248-  final style = decorate ? _compositionTextStyle(base) : base;
+6249-  final custom = inlineEmbedRenderer?.buildTextSpan(context, embed, style);
+6250-  if (custom != null) {
+6251-    return custom;
+6252-  }
+6253-  return TextSpan(
+6254-    text: _embedDisplayText(embed),
+6255-    style: _defaultInlineEmbedStyle(context, embed, style),
+6256-  );
+6257-}
+6258-
+6259-TextStyle _defaultInlineEmbedStyle(
+6260-  BuildContext context,
+--
+6276-    'emoji' => style,
+6277-    _ => style.copyWith(
+6278-        color: scheme.onSurfaceVariant,
+6279-        fontStyle: FontStyle.italic,
+6280-      ),
+6281-  };
+6282-}
+6283-
+6284-TextStyle _compositionTextStyle(TextStyle style) {
+6285-  final decoration = style.decoration;
+6286-  return style.copyWith(
+6287-    decoration: decoration == null
+6288-        ? TextDecoration.underline
+6289-        : TextDecoration.combine(<TextDecoration>[
+6290-            decoration,
+6291-            TextDecoration.underline,
+6292-          ]),
+6293-  );
+6294-}
+6295-
+6296:String _embedDisplayText(InlineEmbed embed) {
+6297-  return switch (embed.embedType) {
+6298-    'mention' => _mentionDisplayText(embed),
+6299-    'image' => '[img]',
+6300-    'formula' => _formulaDisplayText(embed),
+6301-    'emoji' => _emojiDisplayText(embed),
+6302-    _ => '[${embed.embedType}]',
+6303-  };
+6304-}
+6305-
+6306-String _inlineDisplayText(InlineNode node) {
+6307-  return switch (node) {
+6308-    TextRun() => node.text,
+6309-    InlineEmbed() => _embedDisplayText(node),
+6310-    _ => node.plainText,
+6311-  };
+6312-}
+6313-
+6314-String _mentionDisplayText(InlineEmbed embed) {
+6315-  final raw = embed.data['label'] ?? embed.data['id'];
+6316-  final label = raw?.toString() ?? '';
+
+2026-06-24T15:10:27.577933Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=gpt-5.5 personality=pragmatic
+codex
+span 组合逻辑已定位；再看剩余小段以保持映射长度一致。
+exec
+powershell.exe -NoProfile -Command '[Console]::OutputEncoding=[System.Text.Encoding]::UTF8; $OutputEncoding=[System.Text.Encoding]::UTF8; $path='"'lib/src/widgets/wenz_rich_text_editor.dart'; "'$lines=Get-Content -Encoding UTF8 $path; foreach ($range in @(@(6100,6238),@(5135,5192),@(5195,5242),@(5245,5310),@(6296,6348))) { Write-Output "--- $($range[0])-$($range[1]) ---"; for ($i=$range[0]; $i -le $range[1]; $i++) { '"'{0}"'`t{1}'"' -f "'$i,$lines[$i-1] } }' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 323ms:
+--- 6100-6238 ---
+6100`tList<InlineSpan> _inlineSpansFor(
+6101`t  BuildContext context,
+6102`t  List<InlineNode> nodes,
+6103`t  TextStyle baseStyle,
+6104`t  _LocalSelectionRange? compositionRange,
+6105`t  InlineEmbedRenderer? inlineEmbedRenderer,
+6106`t) {
+6107`t  if (compositionRange == null) {
+6108`t    return nodes
+6109`t        .map(
+6110`t          (node) => _inlineSpanFor(
+6111`t            context,
+6112`t            node,
+6113`t            baseStyle,
+6114`t            inlineEmbedRenderer,
+6115`t            decorate: false,
+6116`t          ),
+6117`t        )
+6118`t        .toList();
+6119`t  }
+6120`t  final spans = <InlineSpan>[];
+6121`t  var cursor = 0;
+6122`t  for (final node in nodes) {
+6123`t    final length = inlineLength(node);
+6124`t    final nodeStart = cursor;
+6125`t    final nodeEnd = cursor + length;
+6126`t    cursor = nodeEnd;
+6127`t    final overlapStart =
+6128`t        nodeStart < compositionRange.start ? compositionRange.start : nodeStart;
+6129`t    final overlapEnd =
+6130`t        nodeEnd > compositionRange.end ? compositionRange.end : nodeEnd;
+6131`t    if (overlapStart < overlapEnd) {
+6132`t      spans.addAll(
+6133`t        _inlineSpansForNodeWithComposition(
+6134`t          context,
+6135`t          node,
+6136`t          baseStyle,
+6137`t          inlineEmbedRenderer,
+6138`t          start: overlapStart - nodeStart,
+6139`t          end: overlapEnd - nodeStart,
+6140`t        ),
+6141`t      );
+6142`t    } else {
+6143`t      spans.add(
+6144`t        _inlineSpanFor(
+6145`t          context,
+6146`t          node,
+6147`t          baseStyle,
+6148`t          inlineEmbedRenderer,
+6149`t          decorate: false,
+6150`t        ),
+6151`t      );
+6152`t    }
+6153`t  }
+6154`t  return spans;
+6155`t}
+6156`t
+6157`tList<InlineSpan> _inlineSpansForNodeWithComposition(
+6158`t  BuildContext context,
+6159`t  InlineNode node,
+6160`t  TextStyle baseStyle,
+6161`t  InlineEmbedRenderer? inlineEmbedRenderer, {
+6162`t  required int start,
+6163`t  required int end,
+6164`t}) {
+6165`t  if (node is TextRun) {
+6166`t    final text = node.text;
+6167`t    final safeStart = start.clamp(0, text.length).toInt();
+6168`t    final safeEnd = end.clamp(safeStart, text.length).toInt();
+6169`t    final style = _textStyleForAttributes(baseStyle, node.attributes);
+6170`t    return <InlineSpan>[
+6171`t      if (safeStart > 0)
+6172`t        TextSpan(text: text.substring(0, safeStart), style: style),
+6173`t      if (safeStart < safeEnd)
+6174`t        TextSpan(
+6175`t          text: text.substring(safeStart, safeEnd),
+6176`t          style: _compositionTextStyle(style),
+6177`t        ),
+6178`t      if (safeEnd < text.length)
+6179`t        TextSpan(text: text.substring(safeEnd), style: style),
+6180`t    ];
+6181`t  }
+6182`t
+6183`t  if (node is InlineEmbed) {
+6184`t    return <InlineSpan>[
+6185`t      _inlineEmbedSpanFor(
+6186`t        context,
+6187`t        node,
+6188`t        baseStyle,
+6189`t        inlineEmbedRenderer,
+6190`t        decorate: true,
+6191`t      ),
+6192`t    ];
+6193`t  }
+6194`t
+6195`t  final text = node.plainText;
+6196`t  final safeStart = start.clamp(0, text.length).toInt();
+6197`t  final safeEnd = end.clamp(safeStart, text.length).toInt();
+6198`t  return <InlineSpan>[
+6199`t    if (safeStart > 0)
+6200`t      TextSpan(text: text.substring(0, safeStart), style: baseStyle),
+6201`t    if (safeStart < safeEnd)
+6202`t      TextSpan(
+6203`t        text: text.substring(safeStart, safeEnd),
+6204`t        style: _compositionTextStyle(baseStyle),
+6205`t      ),
+6206`t    if (safeEnd < text.length)
+6207`t      TextSpan(text: text.substring(safeEnd), style: baseStyle),
+6208`t  ];
+6209`t}
+6210`t
+6211`tTextSpan _inlineSpanFor(
+6212`t  BuildContext context,
+6213`t  InlineNode node,
+6214`t  TextStyle baseStyle,
+6215`t  InlineEmbedRenderer? inlineEmbedRenderer, {
+6216`t  bool decorate = false,
+6217`t}) {
+6218`t  final undecoratedStyle = switch (node) {
+6219`t    final TextRun textRun =>
+6220`t      _textStyleForAttributes(baseStyle, textRun.attributes),
+6221`t    final InlineEmbed embed =>
+6222`t      _textStyleForAttributes(baseStyle, embed.attributes),
+6223`t    _ => baseStyle,
+6224`t  };
+6225`t  final style =
+6226`t      decorate ? _compositionTextStyle(undecoratedStyle) : undecoratedStyle;
+6227`t  return switch (node) {
+6228`t    final TextRun textRun => TextSpan(text: textRun.text, style: style),
+6229`t    final InlineEmbed embed => _inlineEmbedSpanFor(
+6230`t        context,
+6231`t        embed,
+6232`t        baseStyle,
+6233`t        inlineEmbedRenderer,
+6234`t        decorate: decorate,
+6235`t      ),
+6236`t    _ => TextSpan(text: node.plainText, style: style),
+6237`t  };
+6238`t}
+--- 5135-5192 ---
+5135`tclass _FindHighlightPainter extends CustomPainter {
+5136`t  const _FindHighlightPainter({
+5137`t    required this.layoutService,
+5138`t    required this.textSpan,
+5139`t    required this.textAlign,
+5140`t    required this.textDirection,
+5141`t    required this.maxWidth,
+5142`t    required this.ranges,
+5143`t    required this.color,
+5144`t    required this.activeColor,
+5145`t  });
+5146`t
+5147`t  final TextLayoutService layoutService;
+5148`t  final InlineSpan textSpan;
+5149`t  final TextAlign textAlign;
+5150`t  final TextDirection textDirection;
+5151`t  final double maxWidth;
+5152`t  final List<_FindHighlightRange> ranges;
+5153`t  final Color color;
+5154`t  final Color activeColor;
+5155`t
+5156`t  @override
+5157`t  void paint(Canvas canvas, Size size) {
+5158`t    if (ranges.isEmpty) {
+5159`t      return;
+5160`t    }
+5161`t    final painter = layoutService.layout(
+5162`t      span: textSpan,
+5163`t      textAlign: textAlign,
+5164`t      textDirection: textDirection,
+5165`t      maxWidth: maxWidth,
+5166`t    );
+5167`t    for (final range in ranges) {
+5168`t      if (range.start == range.end) {
+5169`t        continue;
+5170`t      }
+5171`t      final paint = Paint()..color = range.active ? activeColor : color;
+5172`t      final boxes = layoutService.selectionBoxes(
+5173`t        painter,
+5174`t        range.start,
+5175`t        range.end,
+5176`t      );
+5177`t      for (final box in boxes) {
+5178`t        canvas.drawRect(box.toRect(), paint);
+5179`t      }
+5180`t    }
+5181`t  }
+5182`t
+5183`t  @override
+5184`t  bool shouldRepaint(covariant _FindHighlightPainter oldDelegate) {
+5185`t    return oldDelegate.textSpan != textSpan ||
+5186`t        oldDelegate.textAlign != textAlign ||
+5187`t        oldDelegate.textDirection != textDirection ||
+5188`t        oldDelegate.maxWidth != maxWidth ||
+5189`t        oldDelegate.ranges != ranges ||
+5190`t        oldDelegate.color != color ||
+5191`t        oldDelegate.activeColor != activeColor;
+5192`t  }
+--- 5195-5242 ---
+5195`tclass _SelectionHighlightPainter extends CustomPainter {
+5196`t  const _SelectionHighlightPainter({
+5197`t    required this.layoutService,
+5198`t    required this.textSpan,
+5199`t    required this.textAlign,
+5200`t    required this.textDirection,
+5201`t    required this.maxWidth,
+5202`t    required this.range,
+5203`t    required this.color,
+5204`t  });
+5205`t
+5206`t  final TextLayoutService layoutService;
+5207`t  final InlineSpan textSpan;
+5208`t  final TextAlign textAlign;
+5209`t  final TextDirection textDirection;
+5210`t  final double maxWidth;
+5211`t  final _LocalSelectionRange? range;
+5212`t  final Color color;
+5213`t
+5214`t  @override
+5215`t  void paint(Canvas canvas, Size size) {
+5216`t    final range = this.range;
+5217`t    if (range == null || range.start == range.end) {
+5218`t      return;
+5219`t    }
+5220`t    final painter = layoutService.layout(
+5221`t      span: textSpan,
+5222`t      textAlign: textAlign,
+5223`t      textDirection: textDirection,
+5224`t      maxWidth: maxWidth,
+5225`t    );
+5226`t    final boxes = layoutService.selectionBoxes(painter, range.start, range.end);
+5227`t    final paint = Paint()..color = color;
+5228`t    for (final box in boxes) {
+5229`t      canvas.drawRect(box.toRect(), paint);
+5230`t    }
+5231`t  }
+5232`t
+5233`t  @override
+5234`t  bool shouldRepaint(covariant _SelectionHighlightPainter oldDelegate) {
+5235`t    return oldDelegate.textSpan != textSpan ||
+5236`t        oldDelegate.textAlign != textAlign ||
+5237`t        oldDelegate.textDirection != textDirection ||
+5238`t        oldDelegate.maxWidth != maxWidth ||
+5239`t        oldDelegate.range?.start != range?.start ||
+5240`t        oldDelegate.range?.end != range?.end ||
+5241`t        oldDelegate.color != color;
+5242`t  }
+--- 5245-5310 ---
+5245`tclass _CaretPainter extends CustomPainter {
+5246`t  const _CaretPainter({
+5247`t    required this.layoutService,
+5248`t    required this.textSpan,
+5249`t    required this.textAlign,
+5250`t    required this.textDirection,
+5251`t    required this.maxWidth,
+5252`t    required this.caretOffset,
+5253`t    required this.color,
+5254`t    required this.textLength,
+5255`t    this.opacity = 1.0,
+5256`t  });
+5257`t
+5258`t  final TextLayoutService layoutService;
+5259`t  final InlineSpan textSpan;
+5260`t  final TextAlign textAlign;
+5261`t  final TextDirection textDirection;
+5262`t  final double maxWidth;
+5263`t  final int? caretOffset;
+5264`t  final Color color;
+5265`t  final int textLength;
+5266`t
+5267`t  /// Caret alpha multiplier driven by the blink animation (1.0 = fully visible,
+5268`t  /// 0.0 = hidden).
+5269`t  final double opacity;
+5270`t
+5271`t  @override
+5272`t  void paint(Canvas canvas, Size size) {
+5273`t    final caretOffset = this.caretOffset;
+5274`t    if (caretOffset == null) {
+5275`t      return;
+5276`t    }
+5277`t    final painter = layoutService.layout(
+5278`t      span: textSpan,
+5279`t      textAlign: textAlign,
+5280`t      textDirection: textDirection,
+5281`t      maxWidth: maxWidth,
+5282`t    );
+5283`t    final safeOffset = caretOffset.clamp(0, textLength).toInt();
+5284`t    final caretTop = layoutService.caretOffset(painter, safeOffset);
+5285`t    // Fall back to preferredLineHeight (matching _caretRectAt) so the caret is
+5286`t    // always drawn with a sensible height even when getFullHeightForCaret
+5287`t    // returns null (e.g. at empty/whitespace runs).
+5288`t    final height = layoutService.caretHeight(painter, safeOffset) ??
+5289`t        painter.preferredLineHeight;
+5290`t    final paint = Paint()
+5291`t      ..color = color.withValues(alpha: opacity.clamp(0.0, 1.0))
+5292`t      ..strokeWidth = _kCaretStrokeWidth;
+5293`t    canvas.drawLine(caretTop, caretTop.translate(0, height), paint);
+5294`t  }
+5295`t
+5296`t  @override
+5297`t  bool shouldRepaint(covariant _CaretPainter oldDelegate) {
+5298`t    return oldDelegate.textSpan != textSpan ||
+5299`t        oldDelegate.textAlign != textAlign ||
+5300`t        oldDelegate.textDirection != textDirection ||
+5301`t        oldDelegate.maxWidth != maxWidth ||
+5302`t        oldDelegate.caretOffset != caretOffset ||
+5303`t        oldDelegate.color != color ||
+5304`t        oldDelegate.textLength != textLength ||
+5305`t        oldDelegate.opacity != opacity;
+5306`t  }
+5307`t}
+5308`t
+5309`tclass _MediaPlaceholder extends StatelessWidget {
+5310`t  const _MediaPlaceholder({required this.label, required this.value});
+--- 6296-6348 ---
+6296`tString _embedDisplayText(InlineEmbed embed) {
+6297`t  return switch (embed.embedType) {
+6298`t    'mention' => _mentionDisplayText(embed),
+6299`t    'image' => '[img]',
+6300`t    'formula' => _formulaDisplayText(embed),
+6301`t    'emoji' => _emojiDisplayText(embed),
+6302`t    _ => '[${embed.embedType}]',
+6303`t  };
+6304`t}
+6305`t
+6306`tString _inlineDisplayText(InlineNode node) {
+6307`t  return switch (node) {
+6308`t    TextRun() => node.text,
+6309`t    InlineEmbed() => _embedDisplayText(node),
+6310`t    _ => node.plainText,
+6311`t  };
+6312`t}
+6313`t
+6314`tString _mentionDisplayText(InlineEmbed embed) {
+6315`t  final raw = embed.data['label'] ?? embed.data['id'];
+6316`t  final label = raw?.toString() ?? '';
+6317`t  return label.isEmpty ? '@mention' : '@$label';
+6318`t}
+6319`t
+6320`tString _formulaDisplayText(InlineEmbed embed) {
+6321`t  final raw = embed.data['text'] ?? embed.data['latex'] ?? embed.data['value'];
+6322`t  final text = raw?.toString() ?? '';
+6323`t  return text.isEmpty ? '[formula]' : text;
+6324`t}
+6325`t
+6326`tString _emojiDisplayText(InlineEmbed embed) {
+6327`t  final raw = embed.data['emoji'] ??
+6328`t      embed.data['text'] ??
+6329`t      embed.data['value'] ??
+6330`t      embed.data['shortName'] ??
+6331`t      embed.data['label'];
+6332`t  final text = raw?.toString() ?? '';
+6333`t  return text.isEmpty ? '[emoji]' : text;
+6334`t}
+6335`t
+6336`t/// Splits a code string into up to three spans, underlining the composition
+6337`t/// region.
+6338`tTextSpan _codeSpan(
+6339`t  String code,
+6340`t  TextStyle codeStyle,
+6341`t  _LocalSelectionRange? compositionRange,
+6342`t) {
+6343`t  if (compositionRange == null ||
+6344`t      compositionRange.start == compositionRange.end) {
+6345`t    return TextSpan(text: code, style: codeStyle);
+6346`t  }
+6347`t  final start = compositionRange.start.clamp(0, code.length).toInt();
+6348`t  final end = compositionRange.end.clamp(start, code.length).toInt();
+
+2026-06-24T15:10:36.252061Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=gpt-5.5 personality=pragmatic
+**Considering output methods**
+
+I realize I need to adjust the output size for painters. Maybe I should use Python, but the developer advises against it for larger chunks. Instead, I might consider using PowerShell to manage smaller outputs, like around 60 lines. This feels like a puzzle I’m trying to solve! It's all about finding the right tool to fit my needs without hitting any limitations.
+codex
+绘制类参数还缺一点，我再分段查看。
+exec
+powershell.exe -NoProfile -Command '[Console]::OutputEncoding=[System.Text.Encoding]::UTF8; $OutputEncoding=[System.Text.Encoding]::UTF8; $path='"'lib/src/widgets/wenz_rich_text_editor.dart'; "'$lines=Get-Content -Encoding UTF8 $path; foreach ($range in @(@(5135,5192),@(5195,5242))) { Write-Output "--- $($range[0])-$($range[1]) ---"; for ($i=$range[0]; $i -le $range[1]; $i++) { '"'{0}"'`t{1}'"' -f "'$i,$lines[$i-1] } }' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 256ms:
+--- 5135-5192 ---
+5135`tclass _FindHighlightPainter extends CustomPainter {
+5136`t  const _FindHighlightPainter({
+5137`t    required this.layoutService,
+5138`t    required this.textSpan,
+5139`t    required this.textAlign,
+5140`t    required this.textDirection,
+5141`t    required this.maxWidth,
+5142`t    required this.ranges,
+5143`t    required this.color,
+5144`t    required this.activeColor,
+5145`t  });
+5146`t
+5147`t  final TextLayoutService layoutService;
+5148`t  final InlineSpan textSpan;
+5149`t  final TextAlign textAlign;
+5150`t  final TextDirection textDirection;
+5151`t  final double maxWidth;
+5152`t  final List<_FindHighlightRange> ranges;
+5153`t  final Color color;
+5154`t  final Color activeColor;
+5155`t
+5156`t  @override
+5157`t  void paint(Canvas canvas, Size size) {
+5158`t    if (ranges.isEmpty) {
+5159`t      return;
+5160`t    }
+5161`t    final painter = layoutService.layout(
+5162`t      span: textSpan,
+5163`t      textAlign: textAlign,
+5164`t      textDirection: textDirection,
+5165`t      maxWidth: maxWidth,
+5166`t    );
+5167`t    for (final range in ranges) {
+5168`t      if (range.start == range.end) {
+5169`t        continue;
+5170`t      }
+5171`t      final paint = Paint()..color = range.active ? activeColor : color;
+5172`t      final boxes = layoutService.selectionBoxes(
+5173`t        painter,
+5174`t        range.start,
+5175`t        range.end,
+5176`t      );
+5177`t      for (final box in boxes) {
+5178`t        canvas.drawRect(box.toRect(), paint);
+5179`t      }
+5180`t    }
+5181`t  }
+5182`t
+5183`t  @override
+5184`t  bool shouldRepaint(covariant _FindHighlightPainter oldDelegate) {
+5185`t    return oldDelegate.textSpan != textSpan ||
+5186`t        oldDelegate.textAlign != textAlign ||
+5187`t        oldDelegate.textDirection != textDirection ||
+5188`t        oldDelegate.maxWidth != maxWidth ||
+5189`t        oldDelegate.ranges != ranges ||
+5190`t        oldDelegate.color != color ||
+5191`t        oldDelegate.activeColor != activeColor;
+5192`t  }
+--- 5195-5242 ---
+5195`tclass _SelectionHighlightPainter extends CustomPainter {
+5196`t  const _SelectionHighlightPainter({
+5197`t    required this.layoutService,
+5198`t    required this.textSpan,
+5199`t    required this.textAlign,
+5200`t    required this.textDirection,
+5201`t    required this.maxWidth,
+5202`t    required this.range,
+5203`t    required this.color,
+5204`t  });
+5205`t
+5206`t  final TextLayoutService layoutService;
+5207`t  final InlineSpan textSpan;
+5208`t  final TextAlign textAlign;
+5209`t  final TextDirection textDirection;
+5210`t  final double maxWidth;
+5211`t  final _LocalSelectionRange? range;
+5212`t  final Color color;
+5213`t
+5214`t  @override
+5215`t  void paint(Canvas canvas, Size size) {
+5216`t    final range = this.range;
+5217`t    if (range == null || range.start == range.end) {
+5218`t      return;
+5219`t    }
+5220`t    final painter = layoutService.layout(
+5221`t      span: textSpan,
+5222`t      textAlign: textAlign,
+5223`t      textDirection: textDirection,
+5224`t      maxWidth: maxWidth,
+5225`t    );
+5226`t    final boxes = layoutService.selectionBoxes(painter, range.start, range.end);
+5227`t    final paint = Paint()..color = color;
+5228`t    for (final box in boxes) {
+5229`t      canvas.drawRect(box.toRect(), paint);
+5230`t    }
+5231`t  }
+5232`t
+5233`t  @override
+5234`t  bool shouldRepaint(covariant _SelectionHighlightPainter oldDelegate) {
+5235`t    return oldDelegate.textSpan != textSpan ||
+5236`t        oldDelegate.textAlign != textAlign ||
+5237`t        oldDelegate.textDirection != textDirection ||
+5238`t        oldDelegate.maxWidth != maxWidth ||
+5239`t        oldDelegate.range?.start != range?.start ||
+5240`t        oldDelegate.range?.end != range?.end ||
+5241`t        oldDelegate.color != color;
+5242`t  }
+
+2026-06-24T15:10:44.095810Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=gpt-5.5 personality=pragmatic
+**Understanding code requirements**
+
+I see there are closing braces needed on line 5193, but they're not critical. However, I really want to grasp how the selection registry works, specifically how it uses positionFromLocal. I should also look into the _register function and the selection overlay, as they seem important for understanding the overall context. I'll definitely check into those next to get a clearer picture of how it all fits together.
+codex
+接着查看注册到全局选择系统的接口，确保只改映射层。
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+2026-06-24T15:10:50.914733Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=gpt-5.5 personality=pragmatic
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+2026-06-24T15:10:54.601464Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=gpt-5.5 personality=pragmatic
+codex
+还要确认拖拽如何使用 offset，避免只修点击。
+mcp: codegraph/codegraph_explore started
+mcp: codegraph/codegraph_explore (completed)
+2026-06-24T15:10:59.485253Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=gpt-5.5 personality=pragmatic
+exec
+powershell.exe -NoProfile -Command '[Console]::OutputEncoding=[System.Text.Encoding]::UTF8; $OutputEncoding=[System.Text.Encoding]::UTF8; rg -n "positionFromLocal|wordRangeAt|handleDrag|Drag|TextRange|DocumentSelection|hitLocalToTextLocal" lib/src/widgets/selection_gesture_overlay.dart -S' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 165ms:
+44:  final ValueChanged<DocumentSelection> onSelectionChanged;
+65:  // Drag tracking.
+67:  bool _isDragging = false;
+69:  Offset? _lastDragPosition;
+187:      _isDragging = false;
+213:    _isDragging = false;
+214:    _lastDragPosition = null;
+222:    if (!_isDragging) {
+227:      _isDragging = true;
+229:    _lastDragPosition = position;
+238:    final wasDragging = _isDragging;
+240:    _isDragging = false;
+242:    _lastDragPosition = null;
+244:    if (wasDragging) {
+251:          DocumentSelection(base: base, extent: extent),
+276:          DocumentSelection(base: anchor, extent: anchor),
+299:    _isDragging = false;
+302:    _lastDragPosition = null;
+316:      DocumentSelection(base: base, extent: extent),
+321:    final range = widget.registry.wordRangeAt(
+328:        DocumentSelection(base: anchor, extent: anchor),
+334:    widget.onSelectionChanged(DocumentSelection(base: start, extent: end));
+347:    widget.onSelectionChanged(DocumentSelection(base: start, extent: end));
+462:      if (!mounted || !_isDragging) {
+465:      final pointer = _lastDragPosition;
+
+2026-06-24T15:11:08.709261Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=gpt-5.5 personality=pragmatic
+exec
+powershell.exe -NoProfile -Command '[Console]::OutputEncoding=[System.Text.Encoding]::UTF8; $OutputEncoding=[System.Text.Encoding]::UTF8; $path='"'lib/src/widgets/selection_gesture_overlay.dart'; "'$lines=Get-Content -Encoding UTF8 $path; foreach ($range in @(@(1,120),@(120,360),@(360,520))) { Write-Output "--- $($range[0])-$($range[1]) ---"; for ($i=$range[0]; $i -le $range[1]; $i++) { if ($i -le $lines.Length) { '"'{0}"'`t{1}'"' -f "'$i,$lines[$i-1] } } }' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 250ms:
+--- 1-120 ---
+1`timport 'package:flutter/gestures.dart';
+2`timport 'package:flutter/scheduler.dart';
+3`timport 'package:flutter/widgets.dart';
+4`t
+5`timport '../core/position/document_position.dart';
+6`timport 'block_geometry_registry.dart';
+7`t
+8`t/// Document-level gesture surface that owns mouse/touch selection across all
+9`t/// editable blocks.
+10`t///
+11`t/// Wraps the scrollable editor content. Pointer events are translated to
+12`t/// [DocumentPosition]s via the [BlockGeometryRegistry], so a drag that starts
+13`t/// in one block can extend the selection into a neighbouring block. This
+14`t/// replaces the per-block gesture detectors that previously trapped drags
+15`t/// inside a single [TextSelectionSurface].
+16`t///
+17`t/// Supports:
+18`t/// - tap → place collapsed caret
+19`t/// - drag → extend selection (cross-block), with auto-scroll near viewport edges
+20`t/// - auto-scroll → every drag (touch or mouse) synchronously scrolls one step
+21`t///   when the pointer enters the viewport edge band, so the list follows the
+22`t///   drag. For mouse/pen, a per-frame [Ticker] *additionally* keeps scrolling
+23`t///   while the pointer is held still near an edge, letting the user scroll
+24`t///   past the visible area. (Touch selection past the viewport uses dedicated
+25`t///   handles, tracked separately as C9.)
+26`t/// - double-tap → select word
+27`t/// - triple-tap → select block (paragraph)
+28`tclass SelectionGestureOverlay extends StatefulWidget {
+29`t  const SelectionGestureOverlay({
+30`t    super.key,
+31`t    required this.registry,
+32`t    required this.scrollController,
+33`t    required this.focusNode,
+34`t    required this.readOnly,
+35`t    required this.onSelectionChanged,
+36`t    this.onTapBeyondContent,
+37`t    required this.child,
+38`t  });
+39`t
+40`t  final BlockGeometryRegistry registry;
+41`t  final ScrollController scrollController;
+42`t  final FocusNode focusNode;
+43`t  final bool readOnly;
+44`t  final ValueChanged<DocumentSelection> onSelectionChanged;
+45`t  final bool Function(Offset globalPosition)? onTapBeyondContent;
+46`t  final Widget child;
+47`t
+48`t  /// The mouse cursor shown while hovering the editing surface. Editable
+49`t  /// surfaces show the text (I-beam) cursor so users know they can click to
+50`t  /// place the caret; read-only surfaces keep the default arrow.
+51`t  MouseCursor get cursor =>
+52`t      readOnly ? SystemMouseCursors.basic : SystemMouseCursors.text;
+53`t
+54`t  @override
+55`t  State<SelectionGestureOverlay> createState() =>
+56`t      _SelectionGestureOverlayState();
+57`t}
+58`t
+59`tclass _SelectionGestureOverlayState extends State<SelectionGestureOverlay> {
+60`t  // Multi-click tracking.
+61`t  DateTime? _lastTapTime;
+62`t  Offset? _lastTapPosition;
+63`t  int _tapCount = 0;
+64`t
+65`t  // Drag tracking.
+66`t  DocumentPosition? _dragBase;
+67`t  bool _isDragging = false;
+68`t  Offset? _dragOrigin;
+69`t  Offset? _lastDragPosition;
+70`t  // Anchor position from the most recent pointer down, used for tap /
+71`t  // multi-click selection regardless of whether a drag starts.
+72`t  DocumentPosition? _tapAnchor;
+73`t
+74`t  // Continuous auto-scroll (mouse/pen only). While the pointer is held near a
+75`t  // viewport edge, a ticker advances the scroll offset every frame, so a mouse
+76`t  // drag can scroll past the visible area without moving the pointer. Touch
+77`t  // relies on the per-move synchronous edge scroll plus its own pan recognizer.
+78`t  Ticker? _autoScrollTicker;
+79`t  bool _autoScrollActive = false;
+80`t  bool _autoScrollExtendPending = false;
+81`t  // Signed pixels-per-frame velocity: >0 scrolls down, <0 up, 0 stops. Scaled
+82`t  // by proximity to the viewport edge (capped at [_maxAutoScrollPerFrame]).
+83`t  double _autoScrollVelocity = 0;
+84`t
+85`t  static const Duration _multiClickWindow = Duration(milliseconds: 300);
+86`t  static const double _dragSlop = 18.0; // kTouchSlop-ish; generous for mouse.
+87`t  static const double _autoScrollEdge = 48.0;
+88`t  static const double _maxAutoScrollPerFrame = 24.0;
+89`t
+90`t  /// Width of the trailing-edge band treated as the scrollbar gutter. Hovering
+91`t  /// here switches the cursor away from the text (I-beam) so the scrollbar
+92`t  /// thumb does not inherit the editing cursor. Sized to cover a typical
+93`t  /// desktop scrollbar (Material's ~8px thumb plus its cross-axis margin).
+94`t  static const double _kScrollbarGutterWidth = 16.0;
+95`t
+96`t  /// Whether the mouse currently hovers the scrollbar gutter. Drives
+97`t  /// [_resolvedCursor] so the scrollbar shows a click cursor instead of the
+98`t  /// text cursor. Toggled only on gutter crossings to avoid rebuilding on
+99`t  /// every hover move.
+100`t  bool _overScrollbar = false;
+101`t
+102`t  @override
+103`t  void dispose() {
+104`t    _stopAutoScroll();
+105`t    _autoScrollTicker?.dispose();
+106`t    super.dispose();
+107`t  }
+108`t
+109`t  @override
+110`t  Widget build(BuildContext context) {
+111`t    return MouseRegion(
+112`t      cursor: _resolvedCursor(),
+113`t      onHover: _onPointerHover,
+114`t      child: Listener(
+115`t        behavior: HitTestBehavior.translucent,
+116`t        onPointerDown: _onPointerDown,
+117`t        onPointerMove: _onPointerMove,
+118`t        onPointerUp: _onPointerUp,
+119`t        onPointerCancel: _onPointerCancel,
+120`t        child: widget.child,
+--- 120-360 ---
+120`t        child: widget.child,
+121`t      ),
+122`t    );
+123`t  }
+124`t
+125`t  /// Tracks whether the pointer sits over the scrollbar gutter so the thumb
+126`t  /// does not show the text (I-beam) cursor. The gutter is the trailing-edge
+127`t  /// band when the list is scrollable; hovering it toggles [_overScrollbar].
+128`t  void _onPointerHover(PointerHoverEvent event) {
+129`t    final overScrollbar = _isOverScrollbar(event.position);
+130`t    if (overScrollbar != _overScrollbar) {
+131`t      _overScrollbar = overScrollbar;
+132`t      setState(() {});
+133`t    }
+134`t  }
+135`t
+136`t  /// The cursor for the current hover region. Over the scrollbar gutter we
+137`t  /// show a click cursor (so the thumb does not inherit the editing cursor);
+138`t  /// elsewhere the editable surface shows the text (I-beam) cursor and a
+139`t  /// read-only surface keeps the default arrow.
+140`t  MouseCursor _resolvedCursor() {
+141`t    if (_overScrollbar) {
+142`t      return SystemMouseCursors.click;
+143`t    }
+144`t    return widget.cursor;
+145`t  }
+146`t
+147`t  /// Whether [global] sits inside the scrollbar gutter — the trailing-edge
+148`t  /// band of a vertically scrollable list. The list's own scrollbar is added by
+149`t  /// the ambient scroll behaviour and its MouseRegion defers its cursor to us,
+150`t  /// so without this check the thumb would show the text cursor.
+151`t  bool _isOverScrollbar(Offset global) {
+152`t    final scrollable = widget.scrollController;
+153`t    if (!scrollable.hasClients) {
+154`t      return false;
+155`t    }
+156`t    // Only intercept when there is actually something to scroll; a fully
+157`t    // visible list has no scrollbar thumb to hover.
+158`t    if (scrollable.position.maxScrollExtent <= 0) {
+159`t      return false;
+160`t    }
+161`t    final renderBox = context.findRenderObject() as RenderBox?;
+162`t    if (renderBox == null || !renderBox.hasSize) {
+163`t      return false;
+164`t    }
+165`t    final local = renderBox.globalToLocal(global);
+166`t    if (local.dx < 0 || local.dy < 0) {
+167`t      return false;
+168`t    }
+169`t    final size = renderBox.size;
+170`t    if (local.dx > size.width || local.dy > size.height) {
+171`t      return false;
+172`t    }
+173`t    final isRtl = Directionality.maybeOf(context) == TextDirection.rtl;
+174`t    final gutterStart = isRtl ? 0.0 : size.width - _kScrollbarGutterWidth;
+175`t    final gutterEnd = isRtl ? _kScrollbarGutterWidth : size.width;
+176`t    return local.dx >= gutterStart && local.dx <= gutterEnd;
+177`t  }
+178`t
+179`t  void _onPointerDown(PointerDownEvent event) {
+180`t    // A press on the scrollbar gutter (desktop) is a scroll gesture, not a
+181`t    // content selection. Bail before resolving a content position so dragging
+182`t    // the thumb does not also start a selection drag.
+183`t    if (_isOverScrollbar(event.position)) {
+184`t      _dragBase = null;
+185`t      _dragOrigin = null;
+186`t      _tapAnchor = null;
+187`t      _isDragging = false;
+188`t      return;
+189`t    }
+190`t    final now = DateTime.now();
+191`t    final position = event.position;
+192`t    final isMultiClick = _lastTapTime != null &&
+193`t        _lastTapPosition != null &&
+194`t        now.difference(_lastTapTime!) < _multiClickWindow &&
+195`t        (position - _lastTapPosition!).distance <= _dragSlop;
+196`t
+197`t    if (isMultiClick) {
+198`t      _tapCount += 1;
+199`t    } else {
+200`t      _tapCount = 1;
+201`t    }
+202`t    _lastTapTime = now;
+203`t    _lastTapPosition = position;
+204`t
+205`t    _tapAnchor = widget.registry.positionFromGlobalOffset(position);
+206`t    if (_tapCount < 2) {
+207`t      _dragOrigin = position;
+208`t      _dragBase = _tapAnchor;
+209`t    } else {
+210`t      _dragOrigin = null;
+211`t      _dragBase = null;
+212`t    }
+213`t    _isDragging = false;
+214`t    _lastDragPosition = null;
+215`t  }
+216`t
+217`t  void _onPointerMove(PointerMoveEvent event) {
+218`t    if (_dragBase == null || _dragOrigin == null) {
+219`t      return;
+220`t    }
+221`t    final position = event.position;
+222`t    if (!_isDragging) {
+223`t      final moved = (position - _dragOrigin!).distance;
+224`t      if (moved < _dragSlop) {
+225`t        return;
+226`t      }
+227`t      _isDragging = true;
+228`t    }
+229`t    _lastDragPosition = position;
+230`t    _extendSelection(position);
+231`t    _syncScrollToEdge(position);
+232`t    _maybeStartAutoScroll(event.kind, position);
+233`t  }
+234`t
+235`t  void _onPointerUp(PointerUpEvent event) {
+236`t    _stopAutoScroll();
+237`t    final position = event.position;
+238`t    final wasDragging = _isDragging;
+239`t    final tapCount = _tapCount;
+240`t    _isDragging = false;
+241`t    _dragOrigin = null;
+242`t    _lastDragPosition = null;
+243`t
+244`t    if (wasDragging) {
+245`t      final extent = widget.registry.positionFromGlobalOffset(position);
+246`t      final base = _dragBase;
+247`t      _dragBase = null;
+248`t      if (base != null && extent != null) {
+249`t        widget.focusNode.requestFocus();
+250`t        widget.onSelectionChanged(
+251`t          DocumentSelection(base: base, extent: extent),
+252`t        );
+253`t      }
+254`t      return;
+255`t    }
+256`t
+257`t    final handledBeyondContent =
+258`t        tapCount == 1 && _handleTapBeyondContent(position);
+259`t    if (handledBeyondContent) {
+260`t      _dragBase = null;
+261`t      _tapAnchor = null;
+262`t      return;
+263`t    }
+264`t
+265`t    final anchor = _tapAnchor;
+266`t    if (anchor != null) {
+267`t      widget.focusNode.requestFocus();
+268`t      if (tapCount >= 3) {
+269`t        _selectBlock(anchor);
+270`t      } else if (tapCount == 2) {
+271`t        _selectWord(anchor, position);
+272`t      } else if (anchor.path.isBlockObject) {
+273`t        _selectBlock(anchor);
+274`t      } else {
+275`t        widget.onSelectionChanged(
+276`t          DocumentSelection(base: anchor, extent: anchor),
+277`t        );
+278`t      }
+279`t    }
+280`t    _dragBase = null;
+281`t    _tapAnchor = null;
+282`t  }
+283`t
+284`t  bool _handleTapBeyondContent(Offset globalPosition) {
+285`t    final contentBottom = widget.registry.contentExtent();
+286`t    if (contentBottom == null || globalPosition.dy <= contentBottom) {
+287`t      return false;
+288`t    }
+289`t    final handler = widget.onTapBeyondContent;
+290`t    if (handler == null) {
+291`t      return false;
+292`t    }
+293`t    widget.focusNode.requestFocus();
+294`t    return handler(globalPosition);
+295`t  }
+296`t
+297`t  void _onPointerCancel(PointerCancelEvent event) {
+298`t    _stopAutoScroll();
+299`t    _isDragging = false;
+300`t    _dragBase = null;
+301`t    _dragOrigin = null;
+302`t    _lastDragPosition = null;
+303`t    _tapAnchor = null;
+304`t  }
+305`t
+306`t  void _extendSelection(Offset global) {
+307`t    final base = _dragBase;
+308`t    if (base == null) {
+309`t      return;
+310`t    }
+311`t    final extent = widget.registry.positionFromGlobalOffset(global);
+312`t    if (extent == null) {
+313`t      return;
+314`t    }
+315`t    widget.onSelectionChanged(
+316`t      DocumentSelection(base: base, extent: extent),
+317`t    );
+318`t  }
+319`t
+320`t  void _selectWord(DocumentPosition anchor, Offset global) {
+321`t    final range = widget.registry.wordRangeAt(
+322`t      anchor.blockId,
+323`t      anchor.offset,
+324`t      path: anchor.path,
+325`t    );
+326`t    if (range == null || range.isCollapsed) {
+327`t      widget.onSelectionChanged(
+328`t        DocumentSelection(base: anchor, extent: anchor),
+329`t      );
+330`t      return;
+331`t    }
+332`t    final start = anchor.copyWith(offset: range.start);
+333`t    final end = anchor.copyWith(offset: range.end);
+334`t    widget.onSelectionChanged(DocumentSelection(base: start, extent: end));
+335`t  }
+336`t
+337`t  void _selectBlock(DocumentPosition anchor) {
+338`t    final length = widget.registry
+339`t            .paragraphRange(
+340`t              anchor.blockId,
+341`t              path: anchor.path,
+342`t            )
+343`t            ?.end ??
+344`t        anchor.offset;
+345`t    final start = anchor.copyWith(offset: 0);
+346`t    final end = anchor.copyWith(offset: length);
+347`t    widget.onSelectionChanged(DocumentSelection(base: start, extent: end));
+348`t  }
+349`t
+350`t  /// Synchronously advances the scroll offset by one step when [global] is in
+351`t  /// the viewport edge band. This runs on every pointer-move for *every* device
+352`t  /// — it is the primary driver that keeps the list scrolling under a drag
+353`t  /// (the scrollable's own pan recognizer does not win the gesture arena here).
+354`t  /// Mouse/pen get additional continuous scrolling via [_maybeStartAutoScroll].
+355`t  void _syncScrollToEdge(Offset global) {
+356`t    final scrollable = widget.scrollController;
+357`t    if (!scrollable.hasClients) {
+358`t      return;
+359`t    }
+360`t    final renderBox = context.findRenderObject() as RenderBox?;
+--- 360-520 ---
+360`t    final renderBox = context.findRenderObject() as RenderBox?;
+361`t    if (renderBox == null || !renderBox.hasSize) {
+362`t      return;
+363`t    }
+364`t    final viewportOrigin = renderBox.localToGlobal(Offset.zero);
+365`t    final viewportHeight = renderBox.size.height;
+366`t    final localY = global.dy - viewportOrigin.dy;
+367`t
+368`t    double delta = 0;
+369`t    if (localY < _autoScrollEdge) {
+370`t      delta = -(_autoScrollEdge - localY).clamp(0.0, _maxAutoScrollPerFrame);
+371`t    } else if (localY > viewportHeight - _autoScrollEdge) {
+372`t      delta = (localY - (viewportHeight - _autoScrollEdge))
+373`t          .clamp(0.0, _maxAutoScrollPerFrame);
+374`t    }
+375`t    if (delta == 0) {
+376`t      return;
+377`t    }
+378`t    final next = (scrollable.offset + delta)
+379`t        .clamp(0.0, scrollable.position.maxScrollExtent);
+380`t    scrollable.position.jumpTo(next);
+381`t  }
+382`t
+383`t  /// For mouse/pen drags, starts (or stops) a continuous auto-scroll ticker so
+384`t  /// that holding the pointer still near an edge keeps scrolling and extending
+385`t  /// the selection. Touch is left out: a touch drag's continuous motion already
+386`t  /// drives [_syncScrollToEdge] per move, and touch selection past the viewport
+387`t  /// uses dedicated handles (C9).
+388`t  void _maybeStartAutoScroll(PointerDeviceKind kind, Offset global) {
+389`t    if (kind != PointerDeviceKind.mouse && kind != PointerDeviceKind.stylus) {
+390`t      _stopAutoScroll();
+391`t      return;
+392`t    }
+393`t    final scrollable = widget.scrollController;
+394`t    if (!scrollable.hasClients) {
+395`t      return;
+396`t    }
+397`t    final renderBox = context.findRenderObject() as RenderBox?;
+398`t    if (renderBox == null || !renderBox.hasSize) {
+399`t      return;
+400`t    }
+401`t    final viewportOrigin = renderBox.localToGlobal(Offset.zero);
+402`t    final viewportHeight = renderBox.size.height;
+403`t    final localY = global.dy - viewportOrigin.dy;
+404`t
+405`t    // Compute the signed pixels-per-frame velocity. The closer the pointer is
+406`t    // to an edge, the faster we scroll (linear ramp up to the cap).
+407`t    double velocity = 0;
+408`t    if (localY < _autoScrollEdge) {
+409`t      final proximity = (_autoScrollEdge - localY) / _autoScrollEdge;
+410`t      velocity = -(_maxAutoScrollPerFrame * proximity);
+411`t    } else if (localY > viewportHeight - _autoScrollEdge) {
+412`t      final proximity =
+413`t          (localY - (viewportHeight - _autoScrollEdge)) / _autoScrollEdge;
+414`t      velocity = _maxAutoScrollPerFrame * proximity;
+415`t    }
+416`t
+417`t    if (velocity.abs() < 0.5) {
+418`t      // Pointer left the edge band: stop continuous auto-scroll. The synchronous
+419`t      // edge scroll above still handled this move.
+420`t      _stopAutoScroll();
+421`t      return;
+422`t    }
+423`t    _autoScrollVelocity = velocity;
+424`t    _autoScrollTicker ??= Ticker(_onAutoScrollTick);
+425`t    if (!_autoScrollActive) {
+426`t      _autoScrollActive = true;
+427`t      _autoScrollTicker!.start();
+428`t    }
+429`t  }
+430`t
+431`t  void _onAutoScrollTick(Duration elapsed) {
+432`t    final scrollable = widget.scrollController;
+433`t    if (!scrollable.hasClients) {
+434`t      _stopAutoScroll();
+435`t      return;
+436`t    }
+437`t    // Advance the scroll offset by one frame's worth of velocity and clamp to
+438`t    // the scroll bounds. When we reach a bound there is nothing more to scroll,
+439`t    // so stop the ticker to avoid burning frames.
+440`t    final maxExtent = scrollable.position.maxScrollExtent;
+441`t    final current = scrollable.offset;
+442`t    final next = (current + _autoScrollVelocity).clamp(0.0, maxExtent);
+443`t    if ((next - current).abs() < 0.1) {
+444`t      // Already at the scroll bound in the requested direction.
+445`t      _stopAutoScroll();
+446`t      return;
+447`t    }
+448`t    scrollable.position.jumpTo(next);
+449`t    // As content scrolls under a stationary mouse/stylus pointer, keep resolving
+450`t    // the extent at that same global coordinate so the visible highlight grows
+451`t    // with the scroll instead of jumping only on pointer-up.
+452`t    _scheduleAutoScrollSelectionExtend();
+453`t  }
+454`t
+455`t  void _scheduleAutoScrollSelectionExtend() {
+456`t    if (_autoScrollExtendPending) {
+457`t      return;
+458`t    }
+459`t    _autoScrollExtendPending = true;
+460`t    WidgetsBinding.instance.addPostFrameCallback((_) {
+461`t      _autoScrollExtendPending = false;
+462`t      if (!mounted || !_isDragging) {
+463`t        return;
+464`t      }
+465`t      final pointer = _lastDragPosition;
+466`t      if (pointer != null) {
+467`t        _extendSelection(pointer);
+468`t      }
+469`t    });
+470`t  }
+471`t
+472`t  void _stopAutoScroll() {
+473`t    if (_autoScrollActive) {
+474`t      _autoScrollActive = false;
+475`t      _autoScrollTicker?.stop();
+476`t    }
+477`t    _autoScrollVelocity = 0;
+478`t  }
+479`t}
+
+2026-06-24T15:11:14.974752Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=gpt-5.5 personality=pragmatic
+codex
+拖拽处理在同文件中；我读取核心函数即可。
+exec
+powershell.exe -NoProfile -Command '[Console]::OutputEncoding=[System.Text.Encoding]::UTF8; $OutputEncoding=[System.Text.Encoding]::UTF8; $path='"'lib/src/widgets/selection_gesture_overlay.dart'; "'$lines=Get-Content -Encoding UTF8 $path; foreach ($range in @(@(170,340),@(340,360))) { Write-Output "--- $($range[0])-$($range[1]) ---"; for ($i=$range[0]; $i -le $range[1]; $i++) { '"'{0}"'`t{1}'"' -f "'$i,$lines[$i-1] } }' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 229ms:
+--- 170-340 ---
+170`t    if (local.dx > size.width || local.dy > size.height) {
+171`t      return false;
+172`t    }
+173`t    final isRtl = Directionality.maybeOf(context) == TextDirection.rtl;
+174`t    final gutterStart = isRtl ? 0.0 : size.width - _kScrollbarGutterWidth;
+175`t    final gutterEnd = isRtl ? _kScrollbarGutterWidth : size.width;
+176`t    return local.dx >= gutterStart && local.dx <= gutterEnd;
+177`t  }
+178`t
+179`t  void _onPointerDown(PointerDownEvent event) {
+180`t    // A press on the scrollbar gutter (desktop) is a scroll gesture, not a
+181`t    // content selection. Bail before resolving a content position so dragging
+182`t    // the thumb does not also start a selection drag.
+183`t    if (_isOverScrollbar(event.position)) {
+184`t      _dragBase = null;
+185`t      _dragOrigin = null;
+186`t      _tapAnchor = null;
+187`t      _isDragging = false;
+188`t      return;
+189`t    }
+190`t    final now = DateTime.now();
+191`t    final position = event.position;
+192`t    final isMultiClick = _lastTapTime != null &&
+193`t        _lastTapPosition != null &&
+194`t        now.difference(_lastTapTime!) < _multiClickWindow &&
+195`t        (position - _lastTapPosition!).distance <= _dragSlop;
+196`t
+197`t    if (isMultiClick) {
+198`t      _tapCount += 1;
+199`t    } else {
+200`t      _tapCount = 1;
+201`t    }
+202`t    _lastTapTime = now;
+203`t    _lastTapPosition = position;
+204`t
+205`t    _tapAnchor = widget.registry.positionFromGlobalOffset(position);
+206`t    if (_tapCount < 2) {
+207`t      _dragOrigin = position;
+208`t      _dragBase = _tapAnchor;
+209`t    } else {
+210`t      _dragOrigin = null;
+211`t      _dragBase = null;
+212`t    }
+213`t    _isDragging = false;
+214`t    _lastDragPosition = null;
+215`t  }
+216`t
+217`t  void _onPointerMove(PointerMoveEvent event) {
+218`t    if (_dragBase == null || _dragOrigin == null) {
+219`t      return;
+220`t    }
+221`t    final position = event.position;
+222`t    if (!_isDragging) {
+223`t      final moved = (position - _dragOrigin!).distance;
+224`t      if (moved < _dragSlop) {
+225`t        return;
+226`t      }
+227`t      _isDragging = true;
+228`t    }
+229`t    _lastDragPosition = position;
+230`t    _extendSelection(position);
+231`t    _syncScrollToEdge(position);
+232`t    _maybeStartAutoScroll(event.kind, position);
+233`t  }
+234`t
+235`t  void _onPointerUp(PointerUpEvent event) {
+236`t    _stopAutoScroll();
+237`t    final position = event.position;
+238`t    final wasDragging = _isDragging;
+239`t    final tapCount = _tapCount;
+240`t    _isDragging = false;
+241`t    _dragOrigin = null;
+242`t    _lastDragPosition = null;
+243`t
+244`t    if (wasDragging) {
+245`t      final extent = widget.registry.positionFromGlobalOffset(position);
+246`t      final base = _dragBase;
+247`t      _dragBase = null;
+248`t      if (base != null && extent != null) {
+249`t        widget.focusNode.requestFocus();
+250`t        widget.onSelectionChanged(
+251`t          DocumentSelection(base: base, extent: extent),
+252`t        );
+253`t      }
+254`t      return;
+255`t    }
+256`t
+257`t    final handledBeyondContent =
+258`t        tapCount == 1 && _handleTapBeyondContent(position);
+259`t    if (handledBeyondContent) {
+260`t      _dragBase = null;
+261`t      _tapAnchor = null;
+262`t      return;
+263`t    }
+264`t
+265`t    final anchor = _tapAnchor;
+266`t    if (anchor != null) {
+267`t      widget.focusNode.requestFocus();
+268`t      if (tapCount >= 3) {
+269`t        _selectBlock(anchor);
+270`t      } else if (tapCount == 2) {
+271`t        _selectWord(anchor, position);
+272`t      } else if (anchor.path.isBlockObject) {
+273`t        _selectBlock(anchor);
+274`t      } else {
+275`t        widget.onSelectionChanged(
+276`t          DocumentSelection(base: anchor, extent: anchor),
+277`t        );
+278`t      }
+279`t    }
+280`t    _dragBase = null;
+281`t    _tapAnchor = null;
+282`t  }
+283`t
+284`t  bool _handleTapBeyondContent(Offset globalPosition) {
+285`t    final contentBottom = widget.registry.contentExtent();
+286`t    if (contentBottom == null || globalPosition.dy <= contentBottom) {
+287`t      return false;
+288`t    }
+289`t    final handler = widget.onTapBeyondContent;
+290`t    if (handler == null) {
+291`t      return false;
+292`t    }
+293`t    widget.focusNode.requestFocus();
+294`t    return handler(globalPosition);
+295`t  }
+296`t
+297`t  void _onPointerCancel(PointerCancelEvent event) {
+298`t    _stopAutoScroll();
+299`t    _isDragging = false;
+300`t    _dragBase = null;
+301`t    _dragOrigin = null;
+302`t    _lastDragPosition = null;
+303`t    _tapAnchor = null;
+304`t  }
+305`t
+306`t  void _extendSelection(Offset global) {
+307`t    final base = _dragBase;
+308`t    if (base == null) {
+309`t      return;
+310`t    }
+311`t    final extent = widget.registry.positionFromGlobalOffset(global);
+312`t    if (extent == null) {
+313`t      return;
+314`t    }
+315`t    widget.onSelectionChanged(
+316`t      DocumentSelection(base: base, extent: extent),
+317`t    );
+318`t  }
+319`t
+320`t  void _selectWord(DocumentPosition anchor, Offset global) {
+321`t    final range = widget.registry.wordRangeAt(
+322`t      anchor.blockId,
+323`t      anchor.offset,
+324`t      path: anchor.path,
+325`t    );
+326`t    if (range == null || range.isCollapsed) {
+327`t      widget.onSelectionChanged(
+328`t        DocumentSelection(base: anchor, extent: anchor),
+329`t      );
+330`t      return;
+331`t    }
+332`t    final start = anchor.copyWith(offset: range.start);
+333`t    final end = anchor.copyWith(offset: range.end);
+334`t    widget.onSelectionChanged(DocumentSelection(base: start, extent: end));
+335`t  }
+336`t
+337`t  void _selectBlock(DocumentPosition anchor) {
+338`t    final length = widget.registry
+339`t            .paragraphRange(
+340`t              anchor.blockId,
+--- 340-360 ---
+340`t              anchor.blockId,
+341`t              path: anchor.path,
+342`t            )
+343`t            ?.end ??
+344`t        anchor.offset;
+345`t    final start = anchor.copyWith(offset: 0);
+346`t    final end = anchor.copyWith(offset: length);
+347`t    widget.onSelectionChanged(DocumentSelection(base: start, extent: end));
+348`t  }
+349`t
+350`t  /// Synchronously advances the scroll offset by one step when [global] is in
+351`t  /// the viewport edge band. This runs on every pointer-move for *every* device
+352`t  /// — it is the primary driver that keeps the list scrolling under a drag
+353`t  /// (the scrollable's own pan recognizer does not win the gesture arena here).
+354`t  /// Mouse/pen get additional continuous scrolling via [_maybeStartAutoScroll].
+355`t  void _syncScrollToEdge(Offset global) {
+356`t    final scrollable = widget.scrollController;
+357`t    if (!scrollable.hasClients) {
+358`t      return;
+359`t    }
+360`t    final renderBox = context.findRenderObject() as RenderBox?;
+
+2026-06-24T15:11:21.674741Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=gpt-5.5 personality=pragmatic
+**Implementing registry position**
+
+I'm focused on figuring out the implementation for the registry's positionFromGlobalOffset. It seems like I need to clarify how this method should work. I should probably outline its parameters and expected output. After that, I can consider how it interacts with the rest of the system. It's important to ensure it's efficient and fits well into the overall architecture. I wonder what edge cases I should think about, too!
+codex
+映射入口来自注册表；我确认坐标转换细节后再补丁。
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+2026-06-24T15:11:33.676869Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=gpt-5.5 personality=pragmatic
+codex
+映射需要知道 embed 的实际渲染文本长度；我检查文件头和现有工具。
+exec
+powershell.exe -NoProfile -Command '[Console]::OutputEncoding=[System.Text.Encoding]::UTF8; $OutputEncoding=[System.Text.Encoding]::UTF8; Get-Content -Encoding UTF8 -TotalCount 90 lib/src/widgets/wenz_rich_text_editor.dart; Write-Output '"'--- tests rg ---'; rg -n \"InlineEmbed|emoji|mention|positionFromGlobalOffset|selection|tap|drag\" test/widgets -S" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 306ms:
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
+
+import '../controller/find_replace_controller.dart';
+import '../controller/slash_menu_controller.dart';
+import '../controller/wenz_rich_text_controller.dart';
+import '../core/commands/inline_editing.dart';
+import '../core/model/attributes.dart';
+import '../core/model/block_node.dart';
+import '../core/model/inline_node.dart';
+import '../core/model/table_model.dart';
+import '../core/position/document_position.dart';
+import '../input/composition_state.dart';
+import '../input/editor_text_input_client.dart';
+import '../input/shortcut_manager.dart';
+import '../rendering/text_layout_service.dart';
+import 'block_geometry_registry.dart';
+import 'block_renderer_registry.dart';
+import 'inline_embed_renderer.dart';
+import 'media_resolver.dart';
+import 'selection_gesture_overlay.dart';
+import 'shared_text_layout_cache.dart';
+import 'slash_menu_overlay.dart';
+
+const _caretKey = ValueKey<String>('wenz-richtext-caret');
+const _selectionHighlightKey = ValueKey<String>(
+  'wenz-richtext-selection-highlight',
+);
+const _findHighlightKey = ValueKey<String>('wenz-richtext-find-highlight');
+const _accessibilityFocusHighlightKey = ValueKey<String>(
+  'wenz-richtext-accessibility-focus-highlight',
+);
+
+/// Caret geometry constants — kept in one place so the painted caret, the caret
+/// rect reported to the IME, and any future theming all share the same source.
+const double _kCaretStrokeWidth = 1.5;
+const Duration _kBlinkHalfPeriod = Duration(milliseconds: 530);
+const double _kDefaultBlockExtent = 48.0;
+const double _kVirtualListOverscan = 600.0;
+const double _kTableResizeHandleWidth = 12.0;
+const double _kTableResizeHandleTopInset = 48.0;
+const double _kMinTableColumnWidth = 48.0;
+const double _kMaxTableColumnWidth = 640.0;
+const double _kTableToolbarMinWidth = 620.0;
+const int _kTableToolbarBackgroundColor = 0xFFFFF3CD;
+
+/// Minimum block height multiplier applied to the block's font size, ensuring
+/// a tap target even for empty paragraphs. A single constant so the text,
+/// code, and table-cell renderers stay in sync.
+const double _kBlockMinHeightFactor = 1.35;
+
+/// Atomic block-level objects (images, videos, files, dividers) occupy one
+/// selectable document slot, mirroring inline embeds' object-replacement slot.
+const int _kAtomicBlockSelectionLength = 1;
+
+/// Pixels of horizontal indent per indent level.
+const double _kIndentPixelsPerLevel = 24;
+
+/// Exposes the editor's [SharedTextLayoutCache] down the subtree so each
+/// [_TextSelectionSurface] can fetch (and reuse) its [TextLayoutService] across
+/// remount, without threading the cache through every renderer widget.
+class _SharedLayoutCacheScope extends InheritedWidget {
+  const _SharedLayoutCacheScope({required this.cache, required super.child});
+
+  final SharedTextLayoutCache cache;
+
+  static SharedTextLayoutCache? of(BuildContext context) {
+    final scope =
+        context.dependOnInheritedWidgetOfExactType<_SharedLayoutCacheScope>();
+    return scope?.cache;
+  }
+
+  @override
+  bool updateShouldNotify(_SharedLayoutCacheScope oldWidget) =>
+      cache != oldWidget.cache;
+}
+
+@immutable
+class WenzRichTextEditorAccessibility {
+  const WenzRichTextEditorAccessibility({
+    this.label = 'Rich text editor',
+    this.readOnlyLabel = 'Rich text document',
+    this.hint =
+        'Edit rich text content with text input and keyboard shortcuts.',
+    this.readOnlyHint = 'Read-only rich text document.',
+    this.highContrastFocusColor,
+    this.highContrastFocusWidth = 3,
+--- tests rg ---
+test/widgets\comment_sidebar_test.dart:6:  testWidgets('sidebar reveals anchor selection when tapping a thread',
+test/widgets\comment_sidebar_test.dart:18:            onRevealAnchor: (thread, selection) => revealedSelection = selection,
+test/widgets\comment_sidebar_test.dart:28:    await tester.tap(find.byKey(const ValueKey<String>('wenz-comment-thread-t1')));
+test/widgets\comment_sidebar_test.dart:32:    expect(revealedSelection, thread.anchor.selection);
+test/widgets\comment_sidebar_test.dart:61:    await tester.tap(find.byKey(const ValueKey<String>('wenz-comment-resolve-t1')));
+test/widgets\comment_sidebar_test.dart:62:    await tester.tap(find.byKey(const ValueKey<String>('wenz-comment-reopen-t2')));
+test/widgets\find_replace_panel_test.dart:29:    await tester.tap(find.byKey(const ValueKey<String>('wenz-find-next')));
+test/widgets\find_replace_panel_test.dart:39:    await tester.tap(
+test/widgets\editor_golden_test.dart:5:import '../helpers/selection_test_helpers.dart';
+test/widgets\editor_golden_test.dart:117:  testWidgets('golden: selection highlight', (tester) async {
+test/widgets\editor_golden_test.dart:132:        selection: textSelection('p1', 0, 0, 14),
+test/widgets\editor_golden_test.dart:138:      matchesGoldenFile('goldens/editor_selection.png'),
+test/widgets\editor_golden_test.dart:157:        selection: collapsedTextSelection('p1', 0, 8),
+test/widgets\editor_golden_test.dart:195:                InlineEmbed(
+test/widgets\editor_golden_test.dart:196:                  embedType: 'mention',
+test/widgets\editor_golden_test.dart:200:                InlineEmbed(
+test/widgets\import_export_demo_test.dart:17:    await _tapInspectorAction(
+test/widgets\import_export_demo_test.dart:35:    await _tapInspectorAction(
+test/widgets\import_export_demo_test.dart:49:    await _tapInspectorAction(
+test/widgets\import_export_demo_test.dart:59:    final inlineImage = paragraph.content.whereType<InlineEmbed>().single;
+test/widgets\import_export_demo_test.dart:80:    await _tapInspectorAction(
+test/widgets\import_export_demo_test.dart:91:Future<void> _tapInspectorAction(WidgetTester tester, Key key) async {
+test/widgets\slash_menu_overlay_test.dart:6:import '../helpers/selection_test_helpers.dart';
+test/widgets\slash_menu_overlay_test.dart:9:  testWidgets('overlay renders slash items and activates tapped item',
+test/widgets\slash_menu_overlay_test.dart:13:      selection: collapsedTextSelection('p1', 0, 8),
+test/widgets\slash_menu_overlay_test.dart:35:    await tester.tap(
+test/widgets\slash_menu_overlay_test.dart:47:      selection: collapsedTextSelection('p1', 0, 8),
+test/widgets\link_edit_dialog_test.dart:21:    await tester.tap(find.text('Open'));
+test/widgets\link_edit_dialog_test.dart:24:    await tester.tap(find.text('Apply'));
+test/widgets\block_geometry_registry_test.dart:28:      // Drive a tap so the surfaces register; verify behaviour through the
+test/widgets\block_geometry_registry_test.dart:29:      // resulting selection rather than touching the private registry.
+test/widgets\block_geometry_registry_test.dart:30:      await tester.tapAt(_globalTextOffset(tester, 'abcdef', 3));
+test/widgets\block_geometry_registry_test.dart:33:      expect(controller.selection?.extent.blockId, 'p1');
+test/widgets\block_geometry_registry_test.dart:34:      expect(controller.selection?.extent.offset, 3);
+test/widgets\block_geometry_registry_test.dart:37:    testWidgets('resolves a tap inside a table cell to tableCellText path', (
+test/widgets\block_geometry_registry_test.dart:72:      await tester.tapAt(_globalTextOffset(tester, 'Cell', 2));
+test/widgets\block_geometry_registry_test.dart:75:      final extent = controller.selection?.extent;
+test/widgets\block_geometry_registry_test.dart:133:      await tester.tapAt(_globalTextOffset(tester, 'Right', 3));
+test/widgets\block_geometry_registry_test.dart:136:      final extent = controller.selection?.extent;
+test/widgets\block_geometry_registry_test.dart:145:    // Regression: a tap anywhere inside a table cell — including the 8px
+test/widgets\block_geometry_registry_test.dart:148:    // which attributed the tap to the wrong column. The hit-test box now
+test/widgets\block_geometry_registry_test.dart:150:    testWidgets('tap in cell padding resolves to that cell, not a neighbour', (
+test/widgets\block_geometry_registry_test.dart:203:      await tester.tapAt(Offset(topLeft.dx - 4, topLeft.dy + 6));
+test/widgets\block_geometry_registry_test.dart:206:      final extent = controller.selection?.extent;
+test/widgets\block_geometry_registry_test.dart:211:          reason: 'padding tap must stay in the right cell');
+test/widgets\block_geometry_registry_test.dart:217:    testWidgets('tap above/below a short centred cell stays in its row', (
+test/widgets\block_geometry_registry_test.dart:284:      await tester.tapAt(Offset(rect.center.dx, rect.bottom + 14));
+test/widgets\block_geometry_registry_test.dart:287:      final extent = controller.selection?.extent;
+test/widgets\block_geometry_registry_test.dart:291:          reason: 'gutter tap in the short cell must stay in its row');
+test/widgets\block_geometry_registry_test.dart:295:    // A tap in the vertical gap between two paragraph blocks used to clamp to
+test/widgets\block_geometry_registry_test.dart:296:    // a hard 0 / textLength offset regardless of the tap's horizontal column.
+test/widgets\block_geometry_registry_test.dart:297:    // It now resolves through the nearest block's layout so a gap-tap on the
+test/widgets\block_geometry_registry_test.dart:299:    testWidgets('gap tap between blocks honours the horizontal column', (
+test/widgets\block_geometry_registry_test.dart:326:      // Locate the two blocks and tap midway between them, on the 5th column.
+test/widgets\block_geometry_registry_test.dart:338:      await tester.tapAt(Offset(columnX, gapY));
+test/widgets\block_geometry_registry_test.dart:341:      final extent = controller.selection?.extent;
+test/widgets\block_geometry_registry_test.dart:346:          reason: 'gap tap must honour the horizontal column, not clamp to an edge');
+test/widgets\block_geometry_registry_test.dart:388:  // (double/triple-tap widget tests existed); these unit tests pin the edge
+test/widgets\wenz_rich_text_editor_test.dart:9:import '../helpers/selection_test_helpers.dart';
+test/widgets\wenz_rich_text_editor_test.dart:112:      selection: collapsedCodeSelection('code1', 0, 0),
+test/widgets\wenz_rich_text_editor_test.dart:129:    await tester.tap(find.byTooltip('Copy code'));
+test/widgets\wenz_rich_text_editor_test.dart:133:    await tester.tap(find.text('dart'));
+test/widgets\wenz_rich_text_editor_test.dart:135:    await tester.tap(find.text('python').last);
+test/widgets\wenz_rich_text_editor_test.dart:178:      selection: objectBlockSelection('image1', 1),
+test/widgets\wenz_rich_text_editor_test.dart:193:    await tester.tap(find.byTooltip('Copy block reference'));
+test/widgets\wenz_rich_text_editor_test.dart:197:    await tester.tap(find.byTooltip('Duplicate block'));
+test/widgets\wenz_rich_text_editor_test.dart:204:    expect(controller.selection?.extent.blockId, duplicate.id);
+test/widgets\wenz_rich_text_editor_test.dart:205:    expect(controller.selection?.extent.blockIndex, 2);
+test/widgets\wenz_rich_text_editor_test.dart:207:    await tester.tap(find.byTooltip('Move block up'));
+test/widgets\wenz_rich_text_editor_test.dart:212:    expect(controller.selection?.extent.blockIndex, 1);
+test/widgets\wenz_rich_text_editor_test.dart:214:    await tester.tap(find.byTooltip('Delete block'));
+test/widgets\wenz_rich_text_editor_test.dart:240:      selection: objectBlockSelection('image1', 0),
+test/widgets\wenz_rich_text_editor_test.dart:265:    await tester.tap(find.byTooltip('Reset image size'));
+test/widgets\wenz_rich_text_editor_test.dart:287:      selection: objectBlockSelection('file1', 0),
+test/widgets\wenz_rich_text_editor_test.dart:354:    await tester.tap(find.text('Warning'));
+test/widgets\wenz_rich_text_editor_test.dart:356:    await tester.tap(find.text('Danger').last);
+test/widgets\wenz_rich_text_editor_test.dart:389:        selection: textSelection('p1', 1, 0, 5),
+test/widgets\wenz_rich_text_editor_test.dart:569:        selection: DocumentSelection(
+test/widgets\wenz_rich_text_editor_test.dart:628:      selection: _tableCellSelection(),
+test/widgets\wenz_rich_text_editor_test.dart:680:      selection: _tableCellSelection(),
+test/widgets\wenz_rich_text_editor_test.dart:699:    await tester.drag(
+test/widgets\wenz_rich_text_editor_test.dart:711:    'renders formula, mention, and emoji inline embeds',
+test/widgets\wenz_rich_text_editor_test.dart:721:                InlineEmbed(
+test/widgets\wenz_rich_text_editor_test.dart:726:                InlineEmbed(
+test/widgets\wenz_rich_text_editor_test.dart:727:                  embedType: 'emoji',
+test/widgets\wenz_rich_text_editor_test.dart:728:                  data: <String, Object?>{'emoji': '😀'},
+test/widgets\wenz_rich_text_editor_test.dart:731:                InlineEmbed(
+test/widgets\wenz_rich_text_editor_test.dart:732:                  embedType: 'mention',
+test/widgets\wenz_rich_text_editor_test.dart:750:                            InlineEmbed(
+test/widgets\wenz_rich_text_editor_test.dart:791:              InlineEmbed(
+test/widgets\wenz_rich_text_editor_test.dart:796:              InlineEmbed(
+test/widgets\wenz_rich_text_editor_test.dart:797:                embedType: 'emoji',
+test/widgets\wenz_rich_text_editor_test.dart:798:                data: <String, Object?>{'emoji': '😀'},
+test/widgets\wenz_rich_text_editor_test.dart:801:              InlineEmbed(
+test/widgets\wenz_rich_text_editor_test.dart:802:                embedType: 'mention',
+test/widgets\wenz_rich_text_editor_test.dart:810:    final renderer = InlineEmbedRendererCallback((context, embed, style) {
+test/widgets\wenz_rich_text_editor_test.dart:843:      selection: collapsedTextSelection('p1', 0, 2),
+test/widgets\wenz_rich_text_editor_test.dart:876:      selection: collapsedTextSelection('p1', 0, 2),
+test/widgets\wenz_rich_text_editor_test.dart:904:    expect(controller.selection?.extent.offset, 2);
+test/widgets\wenz_rich_text_editor_test.dart:909:    expect(controller.selection?.extent.blockIndex, 1);
+test/widgets\wenz_rich_text_editor_test.dart:937:      selection: DocumentSelection(
+test/widgets\wenz_rich_text_editor_test.dart:974:    expect(controller.selection?.extent.path.isTableCellText, isTrue);
+test/widgets\wenz_rich_text_editor_test.dart:975:    expect(controller.selection?.extent.offset, 3);
+test/widgets\wenz_rich_text_editor_test.dart:983:    expect(controller.selection?.extent.path.isTableCellText, isTrue);
+test/widgets\wenz_rich_text_editor_test.dart:984:    expect(controller.selection?.extent.offset, 2);
+test/widgets\wenz_rich_text_editor_test.dart:1019:      selection: DocumentSelection(base: position, extent: position),
+test/widgets\wenz_rich_text_editor_test.dart:1041:    expect(controller.selection?.extent.path.isTableCellText, isTrue);
+test/widgets\wenz_rich_text_editor_test.dart:1042:    expect(controller.selection?.extent.offset, 2);
+test/widgets\wenz_rich_text_editor_test.dart:1080:      selection: DocumentSelection(
+test/widgets\wenz_rich_text_editor_test.dart:1113:    expect(controller.selection?.extent.path.tableColumnIndex, 0);
+test/widgets\wenz_rich_text_editor_test.dart:1114:    expect(controller.selection?.extent.offset, 2);
+test/widgets\wenz_rich_text_editor_test.dart:1118:    expect(controller.selection?.extent.path.tableColumnIndex, 1);
+test/widgets\wenz_rich_text_editor_test.dart:1119:    expect(controller.selection?.extent.offset, 0);
+test/widgets\wenz_rich_text_editor_test.dart:1125:    expect(controller.selection?.extent.path.tableRowIndex, 1);
+test/widgets\wenz_rich_text_editor_test.dart:1126:    expect(controller.selection?.extent.path.tableColumnIndex, 0);
+test/widgets\wenz_rich_text_editor_test.dart:1134:    expect(controller.selection?.extent.path.tableRowIndex, 0);
+test/widgets\wenz_rich_text_editor_test.dart:1135:    expect(controller.selection?.extent.path.tableColumnIndex, 1);
+test/widgets\wenz_rich_text_editor_test.dart:1136:    expect(controller.selection?.extent.offset, 2);
+test/widgets\wenz_rich_text_editor_test.dart:1146:      selection: collapsedCodeSelection('code1', 0, 4),
+test/widgets\wenz_rich_text_editor_test.dart:1167:    expect(controller.selection?.extent.offset, 6);
+test/widgets\wenz_rich_text_editor_test.dart:1175:    expect(controller.selection?.extent.offset, 4);
+test/widgets\wenz_rich_text_editor_test.dart:1215:      selection: DocumentSelection(
+test/widgets\wenz_rich_text_editor_test.dart:1248:    expect(controller.selection?.extent.path.tableRowIndex, 1);
+test/widgets\wenz_rich_text_editor_test.dart:1249:    expect(controller.selection?.extent.path.tableColumnIndex, 0);
+test/widgets\wenz_rich_text_editor_test.dart:1250:    expect(controller.selection?.extent.offset, 1);
+test/widgets\wenz_rich_text_editor_test.dart:1254:    expect(controller.selection?.extent.path.tableRowIndex, 0);
+test/widgets\wenz_rich_text_editor_test.dart:1255:    expect(controller.selection?.extent.path.tableColumnIndex, 0);
+test/widgets\wenz_rich_text_editor_test.dart:1256:    expect(controller.selection?.extent.offset, 1);
+test/widgets\wenz_rich_text_editor_test.dart:1270:      selection: collapsedTextSelection('p1', 0, 2),
+test/widgets\wenz_rich_text_editor_test.dart:1292:    expect(controller.selection?.extent.offset, 1);
+test/widgets\wenz_rich_text_editor_test.dart:1297:    expect(controller.selection?.extent.offset, 2);
+test/widgets\wenz_rich_text_editor_test.dart:1318:      selection: collapsedTextSelection('p1', 0, 5),
+test/widgets\wenz_rich_text_editor_test.dart:1336:    expect(controller.selection?.extent.blockId, 'p2');
+test/widgets\wenz_rich_text_editor_test.dart:1337:    expect(controller.selection?.extent.offset, 0);
+test/widgets\wenz_rich_text_editor_test.dart:1342:    expect(controller.selection?.extent.blockId, 'p1');
+test/widgets\wenz_rich_text_editor_test.dart:1343:    expect(controller.selection?.extent.offset, 5);
+test/widgets\wenz_rich_text_editor_test.dart:1362:      selection: collapsedTextSelection('p1', 0, 0),
+test/widgets\wenz_rich_text_editor_test.dart:1381:    expect(controller.selection?.extent.offset, 1);
+test/widgets\wenz_rich_text_editor_test.dart:1386:    expect(controller.selection?.extent.offset, 2);
+test/widgets\wenz_rich_text_editor_test.dart:1390:    expect(controller.selection?.extent.offset, 3);
+test/widgets\wenz_rich_text_editor_test.dart:1394:    expect(controller.selection?.extent.offset, 3);
+test/widgets\wenz_rich_text_editor_test.dart:1397:  testWidgets('extends selection with shift and arrow keys', (tester) async {
+test/widgets\wenz_rich_text_editor_test.dart:1408:      selection: collapsedTextSelection('p1', 0, 2),
+test/widgets\wenz_rich_text_editor_test.dart:1428:    expect(controller.selection?.isCollapsed, isFalse);
+test/widgets\wenz_rich_text_editor_test.dart:1429:    expect(controller.selection?.base.offset, 2);
+test/widgets\wenz_rich_text_editor_test.dart:1430:    expect(controller.selection?.extent.offset, 1);
+test/widgets\wenz_rich_text_editor_test.dart:1433:  testWidgets('tap editable block places caret at block end', (tester) async {
+test/widgets\wenz_rich_text_editor_test.dart:1457:    await _tapTextOffset(tester, 'Hi', 2);
+test/widgets\wenz_rich_text_editor_test.dart:1460:    expect(controller.selection?.extent.blockId, 'p1');
+test/widgets\wenz_rich_text_editor_test.dart:1461:    expect(controller.selection?.extent.offset, 2);
+test/widgets\wenz_rich_text_editor_test.dart:1468:  testWidgets('tap image block selects the image object', (tester) async {
+test/widgets\wenz_rich_text_editor_test.dart:1498:    await tester.tapAt(tester.getCenter(find.text('[image: hero.png]')));
+test/widgets\wenz_rich_text_editor_test.dart:1501:    final selection = controller.selection;
+test/widgets\wenz_rich_text_editor_test.dart:1502:    expect(selection, isNotNull);
+test/widgets\wenz_rich_text_editor_test.dart:1503:    expect(selection!.isCollapsed, isFalse);
+test/widgets\wenz_rich_text_editor_test.dart:1504:    expect(selection.start.blockId, 'image1');
+test/widgets\wenz_rich_text_editor_test.dart:1505:    expect(selection.start.offset, 0);
+test/widgets\wenz_rich_text_editor_test.dart:1506:    expect(selection.end.blockId, 'image1');
+test/widgets\wenz_rich_text_editor_test.dart:1507:    expect(selection.end.offset, 1);
+test/widgets\wenz_rich_text_editor_test.dart:1508:    expect(selection.extent.path.isBlockObject, isTrue);
+test/widgets\wenz_rich_text_editor_test.dart:1510:      find.byKey(const ValueKey<String>('wenz-richtext-selection-highlight')),
+test/widgets\wenz_rich_text_editor_test.dart:1515:  testWidgets('tap below a trailing image appends a paragraph', (tester) async {
+test/widgets\wenz_rich_text_editor_test.dart:1540:    await tester.tapAt(Offset(editorRect.left + 24, editorRect.bottom - 24));
+test/widgets\wenz_rich_text_editor_test.dart:1545:    expect(controller.selection?.extent.blockIndex, 1);
+test/widgets\wenz_rich_text_editor_test.dart:1546:    expect(controller.selection?.extent.path.isBlockText, isTrue);
+test/widgets\wenz_rich_text_editor_test.dart:1549:  testWidgets('tap below a trailing table appends a paragraph', (tester) async {
+test/widgets\wenz_rich_text_editor_test.dart:1592:    await tester.tapAt(Offset(editorRect.left + 24, editorRect.bottom - 24));
+test/widgets\wenz_rich_text_editor_test.dart:1597:    expect(controller.selection?.extent.blockIndex, 1);
+test/widgets\wenz_rich_text_editor_test.dart:1598:    expect(controller.selection?.extent.path.isBlockText, isTrue);
+test/widgets\wenz_rich_text_editor_test.dart:1625:    await tester.tapAt(tester.getCenter(find.text('[image: hero.png]')));
+test/widgets\wenz_rich_text_editor_test.dart:1632:    expect(controller.selection?.extent.blockIndex, 1);
+test/widgets\wenz_rich_text_editor_test.dart:1633:    expect(controller.selection?.extent.path.isBlockText, isTrue);
+test/widgets\wenz_rich_text_editor_test.dart:1678:    await _tapTextOffset(tester, 'cell', 4);
+test/widgets\wenz_rich_text_editor_test.dart:1685:    expect(controller.selection?.extent.blockIndex, 1);
+test/widgets\wenz_rich_text_editor_test.dart:1686:    expect(controller.selection?.extent.path.isBlockText, isTrue);
+test/widgets\wenz_rich_text_editor_test.dart:1689:  testWidgets('tap text uses text layout to place caret at offset', (
+test/widgets\wenz_rich_text_editor_test.dart:1715:    await _tapTextOffset(tester, 'abcdef', 3);
+test/widgets\wenz_rich_text_editor_test.dart:1718:    expect(controller.selection?.extent.offset, 3);
+test/widgets\wenz_rich_text_editor_test.dart:1725:  testWidgets('dragging text creates highlighted selection range', (
+test/widgets\wenz_rich_text_editor_test.dart:1753:    await tester.dragFrom(start, end - start);
+test/widgets\wenz_rich_text_editor_test.dart:1756:    expect(controller.selection?.isCollapsed, isFalse);
+test/widgets\wenz_rich_text_editor_test.dart:1757:    expect(controller.selection?.base.offset, inInclusiveRange(1, 2));
+test/widgets\wenz_rich_text_editor_test.dart:1758:    expect(controller.selection?.extent.offset, 4);
+test/widgets\wenz_rich_text_editor_test.dart:1760:      find.byKey(const ValueKey<String>('wenz-richtext-selection-highlight')),
+test/widgets\wenz_rich_text_editor_test.dart:1765:  testWidgets('dragging across table cells creates table cell range', (
+test/widgets\wenz_rich_text_editor_test.dart:1839:    await tester.dragFrom(start, end - start);
+test/widgets\wenz_rich_text_editor_test.dart:1842:    final selection = controller.selection;
+test/widgets\wenz_rich_text_editor_test.dart:1843:    expect(selection, isNotNull);
+test/widgets\wenz_rich_text_editor_test.dart:1844:    expect(selection!.base.path.isTableCellText, isTrue);
+test/widgets\wenz_rich_text_editor_test.dart:1845:    expect(selection.extent.path.isTableCellText, isTrue);
+test/widgets\wenz_rich_text_editor_test.dart:1846:    expect(selection.base.path.tableRowIndex, 0);
+test/widgets\wenz_rich_text_editor_test.dart:1847:    expect(selection.base.path.tableColumnIndex, 0);
+test/widgets\wenz_rich_text_editor_test.dart:1848:    expect(selection.extent.path.tableRowIndex, 1);
+test/widgets\wenz_rich_text_editor_test.dart:1849:    expect(selection.extent.path.tableColumnIndex, 1);
+test/widgets\wenz_rich_text_editor_test.dart:1851:    final range = selection.tableCellRange;
+test/widgets\wenz_rich_text_editor_test.dart:1859:      find.byKey(const ValueKey<String>('wenz-richtext-selection-highlight')),
+test/widgets\wenz_rich_text_editor_test.dart:1918:    await tester.tapAt(
+test/widgets\wenz_rich_text_editor_test.dart:1923:    final extent = controller.selection?.extent;
+test/widgets\wenz_rich_text_editor_test.dart:1978:    await tester.tapAt(
+test/widgets\wenz_rich_text_editor_test.dart:1983:    final extent = controller.selection?.extent;
+test/widgets\wenz_rich_text_editor_test.dart:1991:      'selection from a table cell into a later block highlights later cells', (
+test/widgets\wenz_rich_text_editor_test.dart:2045:      selection: DocumentSelection(base: start, extent: end),
+test/widgets\wenz_rich_text_editor_test.dart:2061:      find.byKey(const ValueKey<String>('wenz-richtext-selection-highlight')),
+test/widgets\wenz_rich_text_editor_test.dart:2066:  testWidgets('read-only mode still allows placing a selection',
+test/widgets\wenz_rich_text_editor_test.dart:2092:    await _tapTextOffset(tester, 'abcdef', 3);
+test/widgets\wenz_rich_text_editor_test.dart:2096:    expect(controller.selection, isNotNull);
+test/widgets\wenz_rich_text_editor_test.dart:2097:    expect(controller.selection?.extent.offset, 3);
+test/widgets\wenz_rich_text_editor_test.dart:2118:      selection: collapsedTextSelection('p1', 0, 3),
+test/widgets\wenz_rich_text_editor_test.dart:2152:      selection: collapsedTextSelection('p1', 0, 2),
+test/widgets\wenz_rich_text_editor_test.dart:2191:      selection: collapsedTextSelection('p1', 0, 20),
+test/widgets\wenz_rich_text_editor_test.dart:2233:      selection: collapsedTextSelection('p1', 0, 5),
+test/widgets\wenz_rich_text_editor_test.dart:2291:      selection: collapsedTextSelection('p1', 0, 11),
+test/widgets\wenz_rich_text_editor_test.dart:2309:    expect(controller.selection?.extent.offset, 10);
+test/widgets\wenz_rich_text_editor_test.dart:2318:    expect(controller.selection?.extent.offset, 6);
+test/widgets\wenz_rich_text_editor_test.dart:2321:  testWidgets('Backspace deletes an expanded selection', (tester) async {
+test/widgets\wenz_rich_text_editor_test.dart:2332:      selection: textSelection('p1', 0, 1, 4),
+test/widgets\wenz_rich_text_editor_test.dart:2352:    expect(controller.selection?.isCollapsed, isTrue);
+test/widgets\wenz_rich_text_editor_test.dart:2353:    expect(controller.selection?.extent.offset, 1);
+test/widgets\wenz_rich_text_editor_test.dart:2356:  testWidgets('Delete deletes an expanded selection', (tester) async {
+test/widgets\wenz_rich_text_editor_test.dart:2367:      selection: textSelection('p1', 0, 1, 4),
+test/widgets\wenz_rich_text_editor_test.dart:2387:    expect(controller.selection?.isCollapsed, isTrue);
+test/widgets\wenz_rich_text_editor_test.dart:2388:    expect(controller.selection?.extent.offset, 1);
+test/widgets\wenz_rich_text_editor_test.dart:2391:  testWidgets('platform delete selector deletes an expanded selection', (
+test/widgets\wenz_rich_text_editor_test.dart:2404:      selection: textSelection('p1', 0, 1, 4),
+test/widgets\wenz_rich_text_editor_test.dart:2423:    expect(controller.selection?.isCollapsed, isTrue);
+test/widgets\wenz_rich_text_editor_test.dart:2424:    expect(controller.selection?.extent.offset, 1);
+test/widgets\wenz_rich_text_editor_test.dart:2427:  testWidgets('debug overlay renders selection tag when enabled', (
+test/widgets\wenz_rich_text_editor_test.dart:2440:      selection: collapsedTextSelection('p1', 0, 3),
+test/widgets\wenz_rich_text_editor_test.dart:2472:      selection: collapsedTextSelection('p1', 0, 0),
+test/widgets\wenz_rich_text_editor_test.dart:2491:    expect(controller.selection?.isCollapsed, isFalse);
+test/widgets\wenz_rich_text_editor_test.dart:2492:    expect(controller.selection?.start.offset, 0);
+test/widgets\wenz_rich_text_editor_test.dart:2493:    expect(controller.selection?.end.offset, 6);
+test/widgets\wenz_rich_text_editor_test.dart:2521:    expect(controller.selection?.isCollapsed, isFalse);
+test/widgets\wenz_rich_text_editor_test.dart:2522:    expect(controller.selection?.start.blockId, 'image1');
+test/widgets\wenz_rich_text_editor_test.dart:2523:    expect(controller.selection?.start.path.isBlockObject, isTrue);
+test/widgets\wenz_rich_text_editor_test.dart:2524:    expect(controller.selection?.start.offset, 0);
+test/widgets\wenz_rich_text_editor_test.dart:2525:    expect(controller.selection?.end.blockId, 'image1');
+test/widgets\wenz_rich_text_editor_test.dart:2526:    expect(controller.selection?.end.path.isBlockObject, isTrue);
+test/widgets\wenz_rich_text_editor_test.dart:2527:    expect(controller.selection?.end.offset, 1);
+test/widgets\wenz_rich_text_editor_test.dart:2529:      find.byKey(const ValueKey<String>('wenz-richtext-selection-highlight')),
+test/widgets\wenz_rich_text_editor_test.dart:2572:    expect(controller.selection?.extent.blockIndex, 0);
+test/widgets\wenz_rich_text_editor_test.dart:2573:    expect(controller.selection?.extent.path.isBlockText, isTrue);
+test/widgets\wenz_rich_text_editor_test.dart:2574:    expect(controller.selection?.extent.offset, 0);
+test/widgets\wenz_rich_text_editor_test.dart:2606:    await _tapTextOffset(tester, 'after', 0);
+test/widgets\wenz_rich_text_editor_test.dart:2615:    expect(controller.selection?.start.blockId, 'image1');
+test/widgets\wenz_rich_text_editor_test.dart:2616:    expect(controller.selection?.start.path.isBlockObject, isTrue);
+test/widgets\wenz_rich_text_editor_test.dart:2617:    expect(controller.selection?.start.blockIndex, 0);
+test/widgets\wenz_rich_text_editor_test.dart:2618:    expect(controller.selection?.start.offset, 0);
+test/widgets\wenz_rich_text_editor_test.dart:2619:    expect(controller.selection?.end.offset, 1);
+test/widgets\wenz_rich_text_editor_test.dart:2633:      selection: collapsedTextSelection('p1', 0, 2),
+test/widgets\wenz_rich_text_editor_test.dart:2673:      selection: collapsedTextSelection('p1', 0, 3),
+test/widgets\wenz_rich_text_editor_test.dart:2691:    expect(controller.selection?.extent.offset, 0);
+test/widgets\wenz_rich_text_editor_test.dart:2695:    expect(controller.selection?.extent.offset, 6);
+test/widgets\wenz_rich_text_editor_test.dart:2709:      selection: collapsedTextSelection('p1', 0, 0),
+test/widgets\wenz_rich_text_editor_test.dart:2727:    expect(controller.selection?.extent.offset, 4);
+test/widgets\wenz_rich_text_editor_test.dart:2731:    expect(controller.selection?.extent.offset, 0);
+test/widgets\wenz_rich_text_editor_test.dart:2745:      selection: collapsedTextSelection('p1', 0, 0),
+test/widgets\wenz_rich_text_editor_test.dart:2764:    expect(controller.selection?.isCollapsed, isFalse);
+test/widgets\wenz_rich_text_editor_test.dart:2765:    expect(controller.selection?.end.offset, 6);
+test/widgets\wenz_rich_text_editor_test.dart:2768:  testWidgets('cross-block drag extends selection across paragraphs', (
+test/widgets\wenz_rich_text_editor_test.dart:2801:    await tester.dragFrom(start, end - start);
+test/widgets\wenz_rich_text_editor_test.dart:2804:    expect(controller.selection, isNotNull);
+test/widgets\wenz_rich_text_editor_test.dart:2805:    expect(controller.selection!.isCollapsed, isFalse);
+test/widgets\wenz_rich_text_editor_test.dart:2806:    // The drag started in p1 and ended in p2 — a genuine cross-block selection.
+test/widgets\wenz_rich_text_editor_test.dart:2807:    expect(controller.selection!.start.blockId, 'p1');
+test/widgets\wenz_rich_text_editor_test.dart:2808:    expect(controller.selection!.end.blockId, 'p2');
+test/widgets\wenz_rich_text_editor_test.dart:2811:  testWidgets('double-tap selects a word', (tester) async {
+test/widgets\wenz_rich_text_editor_test.dart:2834:    await tester.tapAt(target);
+test/widgets\wenz_rich_text_editor_test.dart:2836:    await tester.tapAt(target);
+test/widgets\wenz_rich_text_editor_test.dart:2839:    expect(controller.selection?.isCollapsed, isFalse);
+test/widgets\wenz_rich_text_editor_test.dart:2841:    expect(controller.selection!.start.offset, 0);
+test/widgets\wenz_rich_text_editor_test.dart:2842:    expect(controller.selection!.end.offset, 5);
+test/widgets\wenz_rich_text_editor_test.dart:2845:  testWidgets('triple-tap selects the whole block', (tester) async {
+test/widgets\wenz_rich_text_editor_test.dart:2867:    await tester.tapAt(target);
+test/widgets\wenz_rich_text_editor_test.dart:2869:    await tester.tapAt(target);
+test/widgets\wenz_rich_text_editor_test.dart:2871:    await tester.tapAt(target);
+test/widgets\wenz_rich_text_editor_test.dart:2874:    expect(controller.selection?.isCollapsed, isFalse);
+test/widgets\wenz_rich_text_editor_test.dart:2875:    expect(controller.selection!.start.offset, 0);
+test/widgets\wenz_rich_text_editor_test.dart:2876:    expect(controller.selection!.end.offset, 'hello world'.length);
+test/widgets\wenz_rich_text_editor_test.dart:2879:  // B2: auto-scroll-on-drag. A mouse drag held near a viewport edge drives a
+test/widgets\wenz_rich_text_editor_test.dart:2880:  // per-frame ticker that keeps scrolling and re-extends the selection, so the
+test/widgets\wenz_rich_text_editor_test.dart:2881:  // user can drag-select past the visible area without moving the pointer.
+test/widgets\wenz_rich_text_editor_test.dart:2882:  group('auto-scroll on drag', () {
+test/widgets\wenz_rich_text_editor_test.dart:2897:    testWidgets('dragging the scrollbar gutter does not start a selection', (
+test/widgets\wenz_rich_text_editor_test.dart:2918:      await tester.tapAt(contentPoint);
+test/widgets\wenz_rich_text_editor_test.dart:2920:      expect(controller.selection, isNotNull);
+test/widgets\wenz_rich_text_editor_test.dart:2921:      final selectionBefore = controller.selection;
+test/widgets\wenz_rich_text_editor_test.dart:2935:      // The selection must be unchanged — scrolling the thumb is not a content
+test/widgets\wenz_rich_text_editor_test.dart:2936:      // selection drag.
+test/widgets\wenz_rich_text_editor_test.dart:2937:      expect(controller.selection, selectionBefore);
+test/widgets\wenz_rich_text_editor_test.dart:2940:    testWidgets('mouse drag held at the bottom edge keeps scrolling down', (
+test/widgets\wenz_rich_text_editor_test.dart:2963:      // Start the drag near the top so the drag base is in an early block.
+test/widgets\wenz_rich_text_editor_test.dart:2964:      final dragStart = Offset(editorBox.left + 20, editorBox.top + 20);
+test/widgets\wenz_rich_text_editor_test.dart:2969:        dragStart,
+test/widgets\wenz_rich_text_editor_test.dart:2977:      final extentBefore = controller.selection!.extent.blockIndex;
+test/widgets\wenz_rich_text_editor_test.dart:2986:      final extentAfter = controller.selection!.extent.blockIndex;
+test/widgets\wenz_rich_text_editor_test.dart:2993:    testWidgets('mouse drag held at the top edge keeps scrolling up', (
+test/widgets\wenz_rich_text_editor_test.dart:3021:      // Start the drag in the middle, then move up into the top edge band.
+test/widgets\wenz_rich_text_editor_test.dart:3022:      final dragStart = Offset(editorBox.left + 20, editorBox.center.dy);
+test/widgets\wenz_rich_text_editor_test.dart:3026:        dragStart,
+test/widgets\wenz_rich_text_editor_test.dart:3066:      final dragStart = Offset(editorBox.left + 20, editorBox.top + 20);
+test/widgets\wenz_rich_text_editor_test.dart:3070:        dragStart,
+test/widgets\wenz_rich_text_editor_test.dart:3123:      selection: collapsedTextSelection('p1', 0, 0),
+test/widgets\wenz_rich_text_editor_test.dart:3145:    expect(controller.selection, isNotNull);
+test/widgets\wenz_rich_text_editor_test.dart:3146:    expect(controller.selection!.extent.blockId, 'p3');
+test/widgets\wenz_rich_text_editor_test.dart:3147:    expect(controller.selection!.isCollapsed, isTrue);
+test/widgets\wenz_rich_text_editor_test.dart:3174:      selection: collapsedTextSelection('p3', 2, 3),
+test/widgets\wenz_rich_text_editor_test.dart:3196:    expect(controller.selection, isNotNull);
+test/widgets\wenz_rich_text_editor_test.dart:3197:    expect(controller.selection!.extent.blockId, 'p1');
+test/widgets\wenz_rich_text_editor_test.dart:3198:    expect(controller.selection!.isCollapsed, isTrue);
+test/widgets\wenz_rich_text_editor_test.dart:3201:  testWidgets('Shift+PageDown extends the selection keeping the anchor', (
+test/widgets\wenz_rich_text_editor_test.dart:3224:      selection: collapsedTextSelection('p1', 0, 0),
+test/widgets\wenz_rich_text_editor_test.dart:3248:    expect(controller.selection, isNotNull);
+test/widgets\wenz_rich_text_editor_test.dart:3249:    expect(controller.selection!.isCollapsed, isFalse);
+test/widgets\wenz_rich_text_editor_test.dart:3251:    expect(controller.selection!.base.blockId, 'p1');
+test/widgets\wenz_rich_text_editor_test.dart:3252:    expect(controller.selection!.extent.blockId, 'p3');
+test/widgets\wenz_rich_text_editor_test.dart:3268:      selection: collapsedTextSelection('p1', 0, 3),
+test/widgets\wenz_rich_text_editor_test.dart:3291:    expect(controller.selection!.extent.blockId, 'p1');
+test/widgets\wenz_rich_text_editor_test.dart:3292:    expect(controller.selection!.extent.offset, 3);
+test/widgets\wenz_rich_text_editor_test.dart:3435:  // assert that off-screen blocks are NOT built, and that the caret / selection
+test/widgets\wenz_rich_text_editor_test.dart:3518:        selection: collapsedTextSelection('p1', 0, 0),
+test/widgets\wenz_rich_text_editor_test.dart:3539:      await tester.drag(
+test/widgets\wenz_rich_text_editor_test.dart:3550:    testWidgets('keeps both selection endpoints alive across a range', (
+test/widgets\wenz_rich_text_editor_test.dart:3564:        selection: DocumentSelection(base: start, extent: end),
+test/widgets\wenz_rich_text_editor_test.dart:3577:      await tester.drag(
+test/widgets\wenz_rich_text_editor_test.dart:3593:        selection: collapsedTextSelection('p1', 0, 0),
+test/widgets\wenz_rich_text_editor_test.dart:3628:        selection: collapsedTextSelection('p0', 0, 0),
+test/widgets\wenz_rich_text_editor_test.dart:3948:Future<void> _tapTextOffset(
+test/widgets\wenz_rich_text_editor_test.dart:3953:  await tester.tapAt(_globalTextOffset(tester, text, offset));
+test/widgets\wenz_rich_text_editor_test.dart:3975:/// auto-scroll-on-drag tests to assert the ticker advances the offset.
+
+2026-06-24T15:11:55.608677Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=gpt-5.5 personality=pragmatic
+**Evaluating testing needs**
+
+I need to think about testing helpers, especially for P005, which isn't current. Maybe I should write temporary tests for validation, but I shouldn't add anything permanent. As for P003, it looks like there aren't any tests available. I need to consider running targeted existing tests, but I have to identify the package structure first. Also, I should inspect TextLayoutService fully, particularly for verticalMove and paragraph functionalities.
+codex
+垂直移动也用 TextPainter offset；P003 先确认是否纳入。
+exec
+powershell.exe -NoProfile -Command '[Console]::OutputEncoding=[System.Text.Encoding]::UTF8; $OutputEncoding=[System.Text.Encoding]::UTF8; Get-Content -Raw -Encoding UTF8 lib/src/rendering/text_layout_service.dart' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 208ms:
+import 'package:flutter/foundation.dart';
+import 'package:flutter/painting.dart';
+
+/// Single-block text layout cache.
+///
+/// Wraps a [TextPainter] and caches the laid-out instance keyed by
+/// `(span, textAlign, direction, maxWidth)`. Consumers within a single
+/// `_TextSelectionSurface` call [layout] repeatedly (caret placement, hit
+/// testing, selection boxes, painting) for the same content each frame;
+/// caching avoids re-creating and re-laying-out the painter on every call.
+///
+/// Scope (stage 0): single block only. Cross-block selection layout is a
+/// stage 2 concern. This class is internal — it is not exported from the
+/// public package API until the layout layer stabilises.
+@internal
+class TextLayoutService {
+  TextLayoutData? _cache;
+
+  /// Returns a laid-out [TextPainter] for the given inputs, reusing a cached
+  /// instance when all inputs match.
+  TextPainter layout({
+    required InlineSpan span,
+    required TextAlign textAlign,
+    required TextDirection textDirection,
+    required double maxWidth,
+  }) {
+    final cache = _cache;
+    if (cache != null &&
+        cache.span == span &&
+        cache.textAlign == textAlign &&
+        cache.textDirection == textDirection &&
+        cache.maxWidth == maxWidth) {
+      return cache.painter;
+    }
+    final painter = TextPainter(
+      text: span,
+      textAlign: textAlign,
+      textDirection: textDirection,
+    )..layout(maxWidth: maxWidth);
+    _cache = TextLayoutData(
+      span: span,
+      textAlign: textAlign,
+      textDirection: textDirection,
+      maxWidth: maxWidth,
+      painter: painter,
+    );
+    return painter;
+  }
+
+  /// Caret top-left for [offset].
+  Offset caretOffset(TextPainter painter, int offset) {
+    return painter.getOffsetForCaret(TextPosition(offset: offset), Rect.zero);
+  }
+
+  /// Caret height for [offset], or `null` when unavailable.
+  double? caretHeight(TextPainter painter, int offset) {
+    return painter.getFullHeightForCaret(
+      TextPosition(offset: offset),
+      Rect.zero,
+    );
+  }
+
+  /// Character offset under [localPosition].
+  int offsetAt(TextPainter painter, Offset localPosition, int textLength) {
+    final position = painter.getPositionForOffset(localPosition);
+    return position.offset.clamp(0, textLength).toInt();
+  }
+
+  /// Selection highlight boxes for [start, end).
+  List<TextBox> selectionBoxes(TextPainter painter, int start, int end) {
+    return painter.getBoxesForSelection(
+      TextSelection(baseOffset: start, extentOffset: end),
+    );
+  }
+
+  /// Returns the word range covering [offset] using the platform text
+  /// segmentation exposed by [TextPainter.getWordBoundary]. This handles
+  /// CJK and locale-specific boundaries, which a hand-rolled ASCII rule
+  /// cannot. Used by double-click select-word.
+  TextRange wordRangeAt(TextPainter painter, int offset) {
+    final clamped = offset.clamp(0, _textLength(painter)).toInt();
+    return painter.getWordBoundary(TextPosition(offset: clamped));
+  }
+
+  /// Returns the full editable range of the block. Stage 2 treats a "paragraph"
+  /// as a single block (the block itself is the paragraph unit); triple-click
+  /// selects the whole block.
+  TextRange paragraphRange(TextPainter painter) {
+    return TextRange(start: 0, end: _textLength(painter));
+  }
+
+  /// Resolves the caret offset one visual line up ([forward] = false) or down
+  /// ([forward] = true) from [offset], keeping the horizontal position at
+  /// [preferX] (the remembered column for repeated vertical moves).
+  ///
+  /// Returns:
+  /// - the new offset if a neighbouring visual line exists within this block;
+  /// - `null` if the caret is already on the first (Up) / last (Down) line and
+  ///   the caller should fall back to cross-block / boundary motion.
+  int? verticalMoveOffset(
+    TextPainter painter,
+    int offset,
+    bool forward, {
+    double? preferX,
+  }) {
+    final textLength = _textLength(painter);
+    final clamped = offset.clamp(0, textLength).toInt();
+    final caret = painter.getOffsetForCaret(
+      TextPosition(offset: clamped),
+      Rect.zero,
+    );
+    // preferX is in the painter's LOCAL coordinate space (same as caret).
+    final prefer = preferX ?? caret.dx;
+    // Use exact line metrics to find the current line and step to the neighbour.
+    // Estimating with caret.dy ± lineHeight is imprecise at line boundaries
+    // (leading/strut shifts the caret y off the line's top), so getPositionForOffset
+    // resolves back to the same line.
+    final metrics = painter.computeLineMetrics();
+    if (metrics.isEmpty) {
+      return null;
+    }
+    int currentIndex = -1;
+    for (var i = 0; i < metrics.length; i++) {
+      final m = metrics[i];
+      if (caret.dy >= m.baseline - m.height && caret.dy <= m.baseline + 1) {
+        currentIndex = i;
+        break;
+      }
+    }
+    if (currentIndex < 0) {
+      // Fallback: pick the line whose top is nearest the caret.
+      currentIndex = 0;
+      var bestDelta = (caret.dy - metrics[0].baseline).abs();
+      for (var i = 1; i < metrics.length; i++) {
+        final d = (caret.dy - metrics[i].baseline).abs();
+        if (d < bestDelta) {
+          bestDelta = d;
+          currentIndex = i;
+        }
+      }
+    }
+    final targetIndex = forward ? currentIndex + 1 : currentIndex - 1;
+    if (targetIndex < 0 || targetIndex >= metrics.length) {
+      return null; // at the first/last line: caller crosses blocks
+    }
+    final targetLine = metrics[targetIndex];
+    final pos = painter.getPositionForOffset(
+      Offset(prefer, targetLine.baseline - targetLine.height / 2),
+    );
+    final next = pos.offset.clamp(0, textLength).toInt();
+    if (next == clamped) {
+      return null;
+    }
+    return next;
+  }
+
+  /// Returns the caret's LOCAL x for [offset] (painter coordinate space), used
+  /// to seed the remembered column for repeated vertical moves.
+  double caretLocalX(TextPainter painter, int offset) {
+    final clamped = offset.clamp(0, _textLength(painter)).toInt();
+    return painter.getOffsetForCaret(TextPosition(offset: clamped), Rect.zero).dx;
+  }
+
+  int _textLength(TextPainter painter) {
+    return painter.text?.toPlainText().length ?? 0;
+  }
+
+  /// Drop the cached painter (e.g. when the owning surface is disposed).
+  void forget() {
+    _cache = null;
+  }
+}
+
+@immutable
+class TextLayoutData {
+  const TextLayoutData({
+    required this.span,
+    required this.textAlign,
+    required this.textDirection,
+    required this.maxWidth,
+    required this.painter,
+  });
+
+  final InlineSpan span;
+  final TextAlign textAlign;
+  final TextDirection textDirection;
+  final double maxWidth;
+  final TextPainter painter;
+}
+
+
+2026-06-24T15:12:03.114109Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=gpt-5.5 personality=pragmatic
+**Considering rendering details**
+
+It seems like the expectation is for a stable nearest boundary, which is good. Now, I need to focus on rendering lengths. For the custom renderer, I see that `_inlineEmbedSpanFor` is called during span building. I might want to call it separately to compute the display text. But I have to be careful to avoid any duplicate builds in the custom renderer. That's something I want to get right to enhance the efficiency!
+exec
+powershell.exe -NoProfile -Command '[Console]::OutputEncoding=[System.Text.Encoding]::UTF8; $OutputEncoding=[System.Text.Encoding]::UTF8; rg -n "_inlineSpansFor'"\\(\" lib/src/widgets/wenz_rich_text_editor.dart" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 172ms:
+3265:        children: _inlineSpansFor(
+4304:            : _inlineSpansFor(
+6100:List<InlineSpan> _inlineSpansFor(
+
+2026-06-24T15:12:18.802303Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=gpt-5.5 personality=pragmatic
+codex
+我发现双击词选也走 offset 映射，顺手纳入同一层不触碰高亮样式。
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+2026-06-24T15:12:52.815308Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=gpt-5.5 personality=pragmatic
+**Considering testing procedures**
+
+I might need to determine if tests are necessary, possibly starting with P003. There could be some diagnostics involved. I think writing temporary tests could be a solution, and then I’d delete them after verifying results. This way, it keeps things clean since P005 will contain the permanent tests later. It's all about ensuring everything is working before moving forward! Let’s figure this out!
+codex
+接入新参数前，我确认组件更新时的重新注册条件。
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+2026-06-24T15:13:19.269421Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=gpt-5.5 personality=pragmatic

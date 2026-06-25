@@ -393,43 +393,147 @@ class DividerBlockNode extends BlockNode {
 }
 
 class VideoBlockNode extends BlockNode {
+  static const double defaultAspectRatio = 16 / 9;
+
   const VideoBlockNode({
     required super.id,
     required this.assetId,
+    this.playbackUrl = '',
     this.file = '',
+    this.coverUrl = '',
+    this.title = '',
+    this.description = '',
+    this.aspectRatio,
+    this.uploadStatus = FileUploadStatus.none,
+    this.uploadError = '',
     super.attributes,
   }) : super(type: BlockType.video);
 
   final String assetId;
+  final String playbackUrl;
   final String file;
+  final String coverUrl;
+  final String title;
+  final String description;
+  final double? aspectRatio;
+  final FileUploadStatus uploadStatus;
+  final String uploadError;
+
+  bool get hasSource =>
+      assetId.trim().isNotEmpty ||
+      playbackUrl.trim().isNotEmpty ||
+      file.trim().isNotEmpty;
+
+  String get effectivePlaybackUrl {
+    final remote = playbackUrl.trim();
+    if (remote.isNotEmpty) {
+      return remote;
+    }
+    final local = file.trim();
+    if (local.isNotEmpty) {
+      return local;
+    }
+    return assetId.trim();
+  }
+
+  String get displayText {
+    final heading = title.trim();
+    if (heading.isNotEmpty) {
+      return heading;
+    }
+    final body = description.trim();
+    if (body.isNotEmpty) {
+      return body;
+    }
+    return effectivePlaybackUrl;
+  }
+
+  double get effectiveAspectRatio =>
+      _positiveDouble(aspectRatio) ?? defaultAspectRatio;
 
   @override
-  String get plainText => '';
+  String get plainText => displayText;
 
   @override
   VideoBlockNode copy() {
     return VideoBlockNode(
       id: id,
       assetId: assetId,
+      playbackUrl: playbackUrl,
       file: file,
+      coverUrl: coverUrl,
+      title: title,
+      description: description,
+      aspectRatio: aspectRatio,
+      uploadStatus: uploadStatus,
+      uploadError: uploadError,
       attributes: attributes,
+    );
+  }
+
+  VideoBlockNode copyWith({
+    String? id,
+    String? assetId,
+    String? playbackUrl,
+    String? file,
+    String? coverUrl,
+    String? title,
+    String? description,
+    double? aspectRatio,
+    bool clearAspectRatio = false,
+    FileUploadStatus? uploadStatus,
+    String? uploadError,
+    BlockAttributes? attributes,
+  }) {
+    return VideoBlockNode(
+      id: id ?? this.id,
+      assetId: assetId ?? this.assetId,
+      playbackUrl: playbackUrl ?? this.playbackUrl,
+      file: file ?? this.file,
+      coverUrl: coverUrl ?? this.coverUrl,
+      title: title ?? this.title,
+      description: description ?? this.description,
+      aspectRatio: clearAspectRatio ? null : aspectRatio ?? this.aspectRatio,
+      uploadStatus: uploadStatus ?? this.uploadStatus,
+      uploadError: uploadError ?? this.uploadError,
+      attributes: attributes ?? this.attributes,
     );
   }
 
   @override
   Map<String, Object?> toJson() {
+    final ratio = _positiveDouble(aspectRatio);
     return baseJson()
       ..addAll(<String, Object?>{
         'assetId': assetId,
+        if (playbackUrl.isNotEmpty) 'playbackUrl': playbackUrl,
         if (file.isNotEmpty) 'file': file,
+        if (coverUrl.isNotEmpty) 'coverUrl': coverUrl,
+        if (title.isNotEmpty) 'title': title,
+        if (description.isNotEmpty) 'description': description,
+        if (ratio != null) 'aspectRatio': ratio,
+        if (uploadStatus != FileUploadStatus.none)
+          'uploadStatus': uploadStatus.name,
+        if (uploadError.isNotEmpty) 'uploadError': uploadError,
       });
   }
 
   factory VideoBlockNode.fromJson(Map<String, Object?> json) {
     return VideoBlockNode(
-      id: json['id'] as String? ?? '',
-      assetId: json['assetId'] as String? ?? '',
-      file: json['file'] as String? ?? '',
+      id: _asString(json['id']),
+      assetId: _asString(json['assetId']),
+      playbackUrl:
+          _firstString(json, const <String>['playbackUrl', 'url', 'src']),
+      file: _firstString(json, const <String>['file', 'localFile']),
+      coverUrl: _firstString(
+        json,
+        const <String>['coverUrl', 'poster', 'thumbnail', 'cover'],
+      ),
+      title: _firstString(json, const <String>['title', 'caption']),
+      description: _firstString(json, const <String>['description', 'desc']),
+      aspectRatio: _videoAspectRatioFromJson(json),
+      uploadStatus: FileUploadStatus.parse(json['uploadStatus']),
+      uploadError: _asString(json['uploadError']),
       attributes: BlockNode.attrsFromJson(json),
     );
   }
@@ -457,6 +561,14 @@ class BlockEmbedNode extends BlockNode {
     final fallback = fallbackText.trim();
     if (fallback.isNotEmpty) {
       return fallback;
+    }
+    if (normalizedEmbedType == 'formula') {
+      for (final key in const <String>['text', 'latex', 'value', 'formula']) {
+        final value = data[key];
+        if (value != null && value.toString().trim().isNotEmpty) {
+          return value.toString().trim();
+        }
+      }
     }
     for (final key in const <String>['title', 'label', 'name', 'url']) {
       final value = data[key];
@@ -806,6 +918,9 @@ int _asInt(Object? value) {
   if (value is num) {
     return value.toInt();
   }
+  if (value is String) {
+    return int.tryParse(value) ?? 0;
+  }
   return 0;
 }
 
@@ -815,6 +930,61 @@ double? _asDouble(Object? value) {
   }
   if (value is num) {
     return value.toDouble();
+  }
+  if (value is String) {
+    return double.tryParse(value);
+  }
+  return null;
+}
+
+String _asString(Object? value) {
+  if (value == null) {
+    return '';
+  }
+  if (value is String) {
+    return value;
+  }
+  return value.toString();
+}
+
+String _firstString(Map<String, Object?> json, List<String> keys) {
+  for (final key in keys) {
+    final value = _asString(json[key]);
+    if (value.trim().isNotEmpty) {
+      return value;
+    }
+  }
+  return '';
+}
+
+double? _firstPositiveDouble(Map<String, Object?> json, List<String> keys) {
+  for (final key in keys) {
+    final value = _positiveDouble(json[key]);
+    if (value != null) {
+      return value;
+    }
+  }
+  return null;
+}
+
+double? _positiveDouble(Object? value) {
+  final number = _asDouble(value);
+  if (number == null || number <= 0 || !number.isFinite) {
+    return null;
+  }
+  return number;
+}
+
+double? _videoAspectRatioFromJson(Map<String, Object?> json) {
+  final explicit =
+      _firstPositiveDouble(json, const <String>['aspectRatio', 'ratio']);
+  if (explicit != null) {
+    return explicit;
+  }
+  final width = _positiveDouble(json['width']);
+  final height = _positiveDouble(json['height']);
+  if (width != null && height != null) {
+    return width / height;
   }
   return null;
 }

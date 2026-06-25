@@ -9,19 +9,24 @@ void main() {
   runApp(const WenzRichTextExampleApp());
 }
 
-/// Example [MediaResolver] (acceptance task B6): renders image blocks whose
-/// `assetId` is an http(s) URL via [Image.network], with an `errorBuilder`
-/// fallback so a failed load shows a message instead of crashing. Video/file
-/// blocks are left to the built-in placeholder.
-class _NetworkImageResolver implements MediaResolver {
+/// Example [MediaResolver]: images use [Image.network], while videos render a
+/// lightweight preview card. Blocks without a usable URL return `null` so the
+/// built-in placeholder remains visible.
+class _ExampleMediaResolver implements MediaResolver {
   @override
   Widget? resolve(BuildContext context, BlockNode block) {
-    if (block is! ImageBlockNode) {
-      return null;
+    if (block is ImageBlockNode) {
+      return _resolveImage(block);
     }
+    if (block is VideoBlockNode) {
+      return _resolveVideo(context, block);
+    }
+    return null;
+  }
+
+  Widget? _resolveImage(ImageBlockNode block) {
     final url = block.assetId;
     if (!url.startsWith('http')) {
-      // Not a network URL — let the placeholder render.
       return null;
     }
     return ClipRRect(
@@ -48,6 +53,97 @@ class _NetworkImageResolver implements MediaResolver {
           height: 80,
           child: Center(child: Text('⚠ image load failed')),
         ),
+      ),
+    );
+  }
+
+  Widget? _resolveVideo(BuildContext context, VideoBlockNode block) {
+    final source = block.effectivePlaybackUrl;
+    if (!source.startsWith('http')) {
+      return null;
+    }
+    final theme = Theme.of(context);
+    final title = block.displayText.isEmpty ? 'Video' : block.displayText;
+    final coverUrl = block.coverUrl.trim();
+    final hasCover = coverUrl.startsWith('http');
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          ClipRRect(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+            child: AspectRatio(
+              aspectRatio: block.effectiveAspectRatio,
+              child: Stack(
+                fit: StackFit.expand,
+                children: <Widget>[
+                  if (hasCover)
+                    Image.network(
+                      coverUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) =>
+                          _videoCoverFallback(theme),
+                    )
+                  else
+                    _videoCoverFallback(theme),
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: <Color>[
+                          Colors.transparent,
+                          Colors.black.withAlpha(105),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const Center(
+                    child: Icon(
+                      Icons.play_circle_fill,
+                      color: Colors.white,
+                      size: 56,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(title, style: theme.textTheme.titleSmall),
+                const SizedBox(height: 4),
+                Text(
+                  source,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _videoCoverFallback(ThemeData theme) {
+    return ColoredBox(
+      color: theme.colorScheme.primaryContainer,
+      child: Icon(
+        Icons.smart_display_outlined,
+        size: 72,
+        color: theme.colorScheme.onPrimaryContainer,
       ),
     );
   }
@@ -187,7 +283,7 @@ class _EditorWorkbenchState extends State<EditorWorkbench> {
   late final ToolbarController _toolbar;
   late final WenzDocumentStatsController _stats;
   late final WenzAutoSaveController _autosave;
-  final MediaResolver _mediaResolver = _NetworkImageResolver();
+  final MediaResolver _mediaResolver = _ExampleMediaResolver();
   final BlockRendererRegistry _blockRenderers = _createExampleBlockRenderers();
   final _draftAdapter = _InMemoryDraftAdapter();
   var _nextId = 0;
@@ -268,12 +364,12 @@ class _EditorWorkbenchState extends State<EditorWorkbench> {
         title: const Text('Wenz RichText'),
         actions: <Widget>[
           IconButton(
-            tooltip: 'Undo',
+            tooltip: '撤销',
             onPressed: _controller.canUndo ? _controller.undo : null,
             icon: const Icon(Icons.undo),
           ),
           IconButton(
-            tooltip: 'Redo',
+            tooltip: '重做',
             onPressed: _controller.canRedo ? _controller.redo : null,
             icon: const Icon(Icons.redo),
           ),
@@ -333,6 +429,7 @@ class _EditorWorkbenchState extends State<EditorWorkbench> {
                     onInsertCallout: _insertCallout,
                     onInsertTable: _insertTable,
                     onInsertImage: _insertImage,
+                    onInsertVideo: _insertVideo,
                     onInsertFile: _insertFile,
                     onInsertEmbed: _insertBlockEmbed,
                     onInsertRow: _insertTableRow,
@@ -473,6 +570,20 @@ class _EditorWorkbenchState extends State<EditorWorkbench> {
           height: 360,
         ),
       ],
+    );
+  }
+
+  void _insertVideo() {
+    final id = _newId('video');
+    _toolbar.insertVideo(
+      blockId: id,
+      assetId: 'video-$id',
+      playbackUrl: 'https://example.com/videos/product-tour.mp4',
+      coverUrl: 'https://picsum.photos/seed/$id/960/540',
+      title: 'Inserted product tour',
+      description: 'Rendered by the example MediaResolver preview card.',
+      aspectRatio: VideoBlockNode.defaultAspectRatio,
+      uploadStatus: FileUploadStatus.uploaded,
     );
   }
 
@@ -645,6 +756,7 @@ class _Toolbar extends StatelessWidget {
     required this.onInsertCallout,
     required this.onInsertTable,
     required this.onInsertImage,
+    required this.onInsertVideo,
     required this.onInsertFile,
     required this.onInsertEmbed,
     required this.onInsertRow,
@@ -661,6 +773,7 @@ class _Toolbar extends StatelessWidget {
   final VoidCallback onInsertCallout;
   final VoidCallback onInsertTable;
   final VoidCallback onInsertImage;
+  final VoidCallback onInsertVideo;
   final VoidCallback onInsertFile;
   final VoidCallback onInsertEmbed;
   final VoidCallback onInsertRow;
@@ -691,41 +804,41 @@ class _Toolbar extends StatelessWidget {
           children: <Widget>[
             _MarkButton(
               icon: Icons.format_bold,
-              label: 'Bold',
+              label: '加粗',
               toolbar: toolbar,
               mark: TextMark.bold,
             ),
             _MarkButton(
               icon: Icons.format_italic,
-              label: 'Italic',
+              label: '斜体',
               toolbar: toolbar,
               mark: TextMark.italic,
             ),
             _MarkButton(
               icon: Icons.format_underline,
-              label: 'Underline',
+              label: '下划线',
               toolbar: toolbar,
               mark: TextMark.underline,
             ),
             _MarkButton(
               icon: Icons.format_strikethrough,
-              label: 'Strikethrough',
+              label: '删除线',
               toolbar: toolbar,
               mark: TextMark.lineThrough,
             ),
             _MarkButton(
               icon: Icons.comment,
-              label: 'Remark',
+              label: '备注',
               toolbar: toolbar,
               mark: TextMark.remark,
             ),
             IconButton(
-              tooltip: 'Clear style',
+              tooltip: '清除样式',
               onPressed: toolbar.canFormatInline ? toolbar.clearStyle : null,
               icon: const Icon(Icons.format_clear),
             ),
             IconButton(
-              tooltip: 'Link',
+              tooltip: '链接',
               isSelected: toolbar.linkUrl != null,
               onPressed: toolbar.canSetLink
                   ? () => _showLinkDialog(context)
@@ -733,21 +846,21 @@ class _Toolbar extends StatelessWidget {
               icon: const Icon(Icons.link),
             ),
             IconButton(
-              tooltip: 'Formula',
+              tooltip: '公式',
               onPressed: toolbar.canFormatInline
                   ? () => controller.insertFormula('E=mc^2')
                   : null,
               icon: const Icon(Icons.functions),
             ),
             IconButton(
-              tooltip: 'Mention',
+              tooltip: '提及',
               onPressed: toolbar.canFormatInline
                   ? () => controller.insertMention('u-demo', 'Ada')
                   : null,
               icon: const Icon(Icons.alternate_email),
             ),
             IconButton(
-              tooltip: 'Emoji',
+              tooltip: '表情',
               onPressed: toolbar.canFormatInline
                   ? () => controller.insertEmoji('😀', shortName: 'grinning')
                   : null,
@@ -756,35 +869,35 @@ class _Toolbar extends StatelessWidget {
             const SizedBox(width: 8),
             _BlockTypeButton(
               icon: Icons.title,
-              label: 'Heading 1',
+              label: '一级标题',
               toolbar: toolbar,
               active: toolbar.isHeading(1),
               onPressed: () => toolbar.setHeading(1),
             ),
             _BlockTypeButton(
               icon: Icons.title,
-              label: 'Heading 2',
+              label: '二级标题',
               toolbar: toolbar,
               active: toolbar.isHeading(2),
               onPressed: () => toolbar.setHeading(2),
             ),
             _BlockTypeButton(
               icon: Icons.title,
-              label: 'Heading 3',
+              label: '三级标题',
               toolbar: toolbar,
               active: toolbar.isHeading(3),
               onPressed: () => toolbar.setHeading(3),
             ),
             _BlockTypeButton(
               icon: Icons.notes,
-              label: 'Paragraph',
+              label: '段落',
               toolbar: toolbar,
               active: toolbar.isParagraph,
               onPressed: toolbar.setParagraph,
             ),
             _BlockTypeButton(
               icon: Icons.format_quote,
-              label: 'Quote',
+              label: '引用',
               toolbar: toolbar,
               active: toolbar.isQuoteBlock,
               onPressed: toolbar.toggleQuoteBlock,
@@ -792,96 +905,101 @@ class _Toolbar extends StatelessWidget {
             const SizedBox(width: 8),
             _BlockTypeButton(
               icon: Icons.checklist,
-              label: 'Task list',
+              label: '任务列表',
               toolbar: toolbar,
               active: toolbar.isTodo,
               onPressed: toolbar.setTodo,
             ),
             _BlockTypeButton(
               icon: Icons.format_list_numbered,
-              label: 'Ordered list',
+              label: '有序列表',
               toolbar: toolbar,
               active: toolbar.isOrderedList,
               onPressed: toolbar.setOrderedList,
             ),
             _BlockTypeButton(
               icon: Icons.format_list_bulleted,
-              label: 'Unordered list',
+              label: '无序列表',
               toolbar: toolbar,
               active: toolbar.isUnorderedList,
               onPressed: toolbar.setUnorderedList,
             ),
             const SizedBox(width: 8),
             IconButton(
-              tooltip: 'Indent',
+              tooltip: '增加缩进',
               onPressed: toolbar.canIndent ? toolbar.indent : null,
               icon: const Icon(Icons.format_indent_increase),
             ),
             IconButton(
-              tooltip: 'Outdent',
+              tooltip: '减少缩进',
               onPressed: toolbar.canOutdent ? toolbar.outdent : null,
               icon: const Icon(Icons.format_indent_decrease),
             ),
             const SizedBox(width: 8),
             IconButton(
-              tooltip: 'Insert code',
+              tooltip: '插入代码',
               onPressed: onInsertCode,
               icon: const Icon(Icons.code),
             ),
             IconButton(
-              tooltip: 'Insert callout',
+              tooltip: '插入提示块',
               onPressed: onInsertCallout,
               icon: const Icon(Icons.tips_and_updates),
             ),
             IconButton(
-              tooltip: 'Insert table',
+              tooltip: '插入表格',
               onPressed: onInsertTable,
               icon: const Icon(Icons.table_chart),
             ),
             IconButton(
-              tooltip: 'Insert image',
+              tooltip: '插入图片',
               onPressed: onInsertImage,
               icon: const Icon(Icons.image),
             ),
             IconButton(
-              tooltip: 'Insert file',
+              tooltip: '插入视频',
+              onPressed: toolbar.canInsertVideo ? onInsertVideo : null,
+              icon: const Icon(Icons.smart_display),
+            ),
+            IconButton(
+              tooltip: '插入文件',
               onPressed: onInsertFile,
               icon: const Icon(Icons.attach_file),
             ),
             IconButton(
-              tooltip: 'Insert CRM embed',
+              tooltip: '插入客户关系管理嵌入',
               onPressed: onInsertEmbed,
               icon: const Icon(Icons.badge_outlined),
             ),
             if (inTable) ...<Widget>[
               const SizedBox(width: 8),
               IconButton(
-                tooltip: 'Add row',
+                tooltip: '添加行',
                 onPressed: onInsertRow,
                 icon: const Icon(Icons.table_rows),
               ),
               IconButton(
-                tooltip: 'Add column',
+                tooltip: '添加列',
                 onPressed: onInsertColumn,
                 icon: const Icon(Icons.view_column),
               ),
               IconButton(
-                tooltip: 'Delete row',
+                tooltip: '删除行',
                 onPressed: onDeleteRow,
                 icon: const Icon(Icons.remove_circle_outline),
               ),
               IconButton(
-                tooltip: 'Delete column',
+                tooltip: '删除列',
                 onPressed: onDeleteColumn,
                 icon: const Icon(Icons.highlight_remove_outlined),
               ),
               IconButton(
-                tooltip: 'Merge cells',
+                tooltip: '合并单元格',
                 onPressed: onMergeCells,
                 icon: const Icon(Icons.call_merge),
               ),
               IconButton(
-                tooltip: 'Split cell',
+                tooltip: '拆分单元格',
                 onPressed: onSplitCell,
                 icon: const Icon(Icons.call_split),
               ),
@@ -1374,6 +1492,23 @@ RichTextDocument _sampleDocument() {
         file: 'sample.jpg',
         width: 1200,
         height: 675,
+      ),
+      VideoBlockNode(
+        id: 'video-placeholder',
+        assetId: '',
+        title: 'Video upload placeholder',
+        description: 'No playback URL yet; the built-in placeholder is used.',
+        uploadStatus: FileUploadStatus.pending,
+      ),
+      VideoBlockNode(
+        id: 'video-sample',
+        assetId: 'video-sample-asset',
+        playbackUrl: 'https://example.com/videos/sample.mp4',
+        coverUrl: 'https://picsum.photos/seed/wenz-video/960/540',
+        title: 'Sample product walkthrough',
+        description: 'Custom-rendered by the example MediaResolver.',
+        aspectRatio: VideoBlockNode.defaultAspectRatio,
+        uploadStatus: FileUploadStatus.uploaded,
       ),
       FileBlockNode(
         id: 'file-sample',

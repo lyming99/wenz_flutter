@@ -1,0 +1,2365 @@
+OpenAI Codex v0.121.0 (research preview)
+--------
+workdir: D:\project\GitHub\wenz_flutter\wenz_richtext
+model: gpt-5.5
+provider: custom
+approval: never
+sandbox: danger-full-access
+reasoning effort: xhigh
+reasoning summaries: none
+session id: 019efd75-cee8-7c50-aa31-1a8ebe744e22
+--------
+user
+你是开发执行者。
+请只执行指定任务 P003，不要提前执行其它任务，也不要顺手处理其它 checkbox。
+
+plan 文件（只读）：D:\project\GitHub\wenz_flutter\wenz_richtext\docs\plan\plan_feedback_6_20260625-035040.md
+指定任务：
+- [ ] P003: 迁移表格工具栏渲染到 Overlay <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/table_floating_toolbar_overlay.dart -->
+任务 scope：lib/src/widgets/wenz_rich_text_editor.dart, lib/src/widgets/table_floating_toolbar_overlay.dart
+
+完成后必须：
+- plan 文件是只读上下文：不要修改 plan 文件，不要勾选 checkbox，不要更新 plan 进度区
+- AutoPlan 会在任务成功后统一写回数据库、checkbox 和进度区
+- 只修改当前任务 scope 直接相关的业务文件
+- 如需测试，只运行与当前任务直接相关的最小测试集，不要运行全量测试或与本任务无关的测试
+- 只有当前任务本身明确要求全量验证时，才允许运行全量测试
+- 不输出完整 diff、源码全文或长文件列表
+- 中文文件读写使用 UTF-8
+**Exploring codegraph tasks**
+
+I'm thinking about starting with codegraph for code exploration. I should check the status first, potentially using the `codegraph_explore` function with a specific query. Also, I need to read the plan file, perhaps with a shell command like `Get-Content`. I'll look into using `update_plan` since this task seems to require multiple actions. So, I'll create a detailed plan to ensure everything's in order!
+codex
+我会先只读取计划上下文和相关组件代码，确认 P003 的精确改动范围。
+  → 读取 P003 上下文
+  • 审视工具栏现状
+  • 迁移 Overlay 渲染
+  • 最小验证检查
+mcp: codegraph/codegraph_explore started
+mcp: codegraph/codegraph_explore (completed)
+codex
+代码索引已显示 Overlay 文件存在；我继续读取 P003 计划说明和限定文件结构。
+exec
+powershell.exe -Command '$ErrorActionPreference='"'Stop'; if (Test-Path AGENTS.md) { Get-Content -Raw -Encoding UTF8 AGENTS.md }; Write-Output '---PLAN P003---'; Select-String -Path 'D:\\project\\GitHub\\wenz_flutter\\wenz_richtext\\docs\\plan\\plan_feedback_6_20260625-035040.md' -Pattern 'P003|表格工具栏|Overlay' -Context 3,6 | ForEach-Object { "'$_.Context.PreContext; $_.Line; $_.Context.PostContext; '"'---' }; Write-Output '---FILES---'; Get-ChildItem -Path lib\\src\\widgets -Filter '*table*toolbar*' | Select-Object -ExpandProperty FullName" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 256ms:
+---PLAN P003---
+# 反馈开发计划：表格悬浮工具栏改用系统 Overlay
+
+## 来源
+- 类型：反馈
+- 编号：6
+- 生成时间：2026-06-25 03:50:40
+
+---
+- 生成时间：2026-06-25 03:50:40
+
+## 原始内容
+表格悬浮工具栏，应该使用系统悬浮overlay实现，目前存在事件穿透问题
+
+## 需求理解
+- 当前表格悬浮工具栏仍依赖表格渲染树内部的浮动定位，容易受到父级 `Stack`、裁剪、命中测试范围和选区手势层影响，导致点击工具栏时事件继续穿透到底层表格或编辑器。
+- 本次目标是将表格工具栏迁移为 Flutter 系统浮层能力承载的 overlay，例如 `OverlayEntry` / `OverlayPortal` / `CompositedTransformFollower` 方案，让工具栏在独立浮层中完成定位、命中测试和生命周期管理。
+- 修复重点是事件不穿透、定位稳定、滚动跟随、选区变化自动刷新，以及现有表格命令能力不回归。
+- 本次不调整表格数据模型、命令语义、导入导出协议和列宽拖拽逻辑，除非为 overlay 锚点和状态同步提供必要的渲染层适配。
+---
+
+## 需求理解
+- 当前表格悬浮工具栏仍依赖表格渲染树内部的浮动定位，容易受到父级 `Stack`、裁剪、命中测试范围和选区手势层影响，导致点击工具栏时事件继续穿透到底层表格或编辑器。
+- 本次目标是将表格工具栏迁移为 Flutter 系统浮层能力承载的 overlay，例如 `OverlayEntry` / `OverlayPortal` / `CompositedTransformFollower` 方案，让工具栏在独立浮层中完成定位、命中测试和生命周期管理。
+- 修复重点是事件不穿透、定位稳定、滚动跟随、选区变化自动刷新，以及现有表格命令能力不回归。
+- 本次不调整表格数据模型、命令语义、导入导出协议和列宽拖拽逻辑，除非为 overlay 锚点和状态同步提供必要的渲染层适配。
+
+## 任务计划
+- [x] P001: 复现并界定工具栏事件穿透 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/selection_gesture_overlay.dart,test/widgets/wenz_rich_text_editor_test.dart -->
+  - 验收要点：明确当前工具栏点击后会穿透到表格单元格、文本选区、拖拽手势或编辑器空白区域的最小复现场景。
+---
+- 当前表格悬浮工具栏仍依赖表格渲染树内部的浮动定位，容易受到父级 `Stack`、裁剪、命中测试范围和选区手势层影响，导致点击工具栏时事件继续穿透到底层表格或编辑器。
+- 本次目标是将表格工具栏迁移为 Flutter 系统浮层能力承载的 overlay，例如 `OverlayEntry` / `OverlayPortal` / `CompositedTransformFollower` 方案，让工具栏在独立浮层中完成定位、命中测试和生命周期管理。
+- 修复重点是事件不穿透、定位稳定、滚动跟随、选区变化自动刷新，以及现有表格命令能力不回归。
+- 本次不调整表格数据模型、命令语义、导入导出协议和列宽拖拽逻辑，除非为 overlay 锚点和状态同步提供必要的渲染层适配。
+
+## 任务计划
+- [x] P001: 复现并界定工具栏事件穿透 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/selection_gesture_overlay.dart,test/widgets/wenz_rich_text_editor_test.dart -->
+  - 验收要点：明确当前工具栏点击后会穿透到表格单元格、文本选区、拖拽手势或编辑器空白区域的最小复现场景。
+  - 验收要点：记录穿透发生时的命中测试链路、工具栏所在渲染层、父级尺寸/裁剪约束和选区手势层关系。
+  - 验收要点：确认问题修复范围限定在表格工具栏浮层、定位和事件拦截，不改变表格命令、文档模型和序列化结构。
+---
+- 本次不调整表格数据模型、命令语义、导入导出协议和列宽拖拽逻辑，除非为 overlay 锚点和状态同步提供必要的渲染层适配。
+
+## 任务计划
+- [x] P001: 复现并界定工具栏事件穿透 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/selection_gesture_overlay.dart,test/widgets/wenz_rich_text_editor_test.dart -->
+  - 验收要点：明确当前工具栏点击后会穿透到表格单元格、文本选区、拖拽手势或编辑器空白区域的最小复现场景。
+  - 验收要点：记录穿透发生时的命中测试链路、工具栏所在渲染层、父级尺寸/裁剪约束和选区手势层关系。
+  - 验收要点：确认问题修复范围限定在表格工具栏浮层、定位和事件拦截，不改变表格命令、文档模型和序列化结构。
+
+- [x] P002: 设计系统 Overlay 承载结构 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/table_floating_toolbar_overlay.dart,lib/src/widgets/block_renderer_registry.dart -->
+  - 验收要点：确定表格工具栏由编辑器级 overlay 宿主管理，而不是继续作为表格 `Stack` 的负偏移子节点显示。
+---
+- [x] P001: 复现并界定工具栏事件穿透 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/selection_gesture_overlay.dart,test/widgets/wenz_rich_text_editor_test.dart -->
+  - 验收要点：明确当前工具栏点击后会穿透到表格单元格、文本选区、拖拽手势或编辑器空白区域的最小复现场景。
+  - 验收要点：记录穿透发生时的命中测试链路、工具栏所在渲染层、父级尺寸/裁剪约束和选区手势层关系。
+  - 验收要点：确认问题修复范围限定在表格工具栏浮层、定位和事件拦截，不改变表格命令、文档模型和序列化结构。
+
+- [x] P002: 设计系统 Overlay 承载结构 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/table_floating_toolbar_overlay.dart,lib/src/widgets/block_renderer_registry.dart -->
+  - 验收要点：确定表格工具栏由编辑器级 overlay 宿主管理，而不是继续作为表格 `Stack` 的负偏移子节点显示。
+  - 验收要点：定义表格锚点、选区范围、工具栏 action 回调、可用状态和关闭条件的数据传递方式，避免 renderer 与 overlay 状态双向耦合。
+  - 验收要点：选择并记录具体 overlay 技术路线，优先保证跟随锚点、跨父级边界显示、可命中和可在测试中稳定定位。
+
+---
+  - 验收要点：记录穿透发生时的命中测试链路、工具栏所在渲染层、父级尺寸/裁剪约束和选区手势层关系。
+  - 验收要点：确认问题修复范围限定在表格工具栏浮层、定位和事件拦截，不改变表格命令、文档模型和序列化结构。
+
+- [x] P002: 设计系统 Overlay 承载结构 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/table_floating_toolbar_overlay.dart,lib/src/widgets/block_renderer_registry.dart -->
+  - 验收要点：确定表格工具栏由编辑器级 overlay 宿主管理，而不是继续作为表格 `Stack` 的负偏移子节点显示。
+  - 验收要点：定义表格锚点、选区范围、工具栏 action 回调、可用状态和关闭条件的数据传递方式，避免 renderer 与 overlay 状态双向耦合。
+  - 验收要点：选择并记录具体 overlay 技术路线，优先保证跟随锚点、跨父级边界显示、可命中和可在测试中稳定定位。
+
+- [ ] P003: 迁移表格工具栏渲染到 Overlay <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/table_floating_toolbar_overlay.dart -->
+  - 验收要点：选中表格单元格后，工具栏通过系统 overlay 显示在表格上方或可见区域内，不再依赖表格内部 `Positioned` 负偏移。
+---
+  - 验收要点：确认问题修复范围限定在表格工具栏浮层、定位和事件拦截，不改变表格命令、文档模型和序列化结构。
+
+- [x] P002: 设计系统 Overlay 承载结构 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/table_floating_toolbar_overlay.dart,lib/src/widgets/block_renderer_registry.dart -->
+  - 验收要点：确定表格工具栏由编辑器级 overlay 宿主管理，而不是继续作为表格 `Stack` 的负偏移子节点显示。
+  - 验收要点：定义表格锚点、选区范围、工具栏 action 回调、可用状态和关闭条件的数据传递方式，避免 renderer 与 overlay 状态双向耦合。
+  - 验收要点：选择并记录具体 overlay 技术路线，优先保证跟随锚点、跨父级边界显示、可命中和可在测试中稳定定位。
+
+- [ ] P003: 迁移表格工具栏渲染到 Overlay <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/table_floating_toolbar_overlay.dart -->
+  - 验收要点：选中表格单元格后，工具栏通过系统 overlay 显示在表格上方或可见区域内，不再依赖表格内部 `Positioned` 负偏移。
+  - 验收要点：工具栏在编辑器滚动、窗口尺寸变化、表格宽度变化、表格靠近视口顶部时保持位置稳定并自动重新计算。
+---
+
+- [x] P002: 设计系统 Overlay 承载结构 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/table_floating_toolbar_overlay.dart,lib/src/widgets/block_renderer_registry.dart -->
+  - 验收要点：确定表格工具栏由编辑器级 overlay 宿主管理，而不是继续作为表格 `Stack` 的负偏移子节点显示。
+  - 验收要点：定义表格锚点、选区范围、工具栏 action 回调、可用状态和关闭条件的数据传递方式，避免 renderer 与 overlay 状态双向耦合。
+  - 验收要点：选择并记录具体 overlay 技术路线，优先保证跟随锚点、跨父级边界显示、可命中和可在测试中稳定定位。
+
+- [ ] P003: 迁移表格工具栏渲染到 Overlay <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/table_floating_toolbar_overlay.dart -->
+  - 验收要点：选中表格单元格后，工具栏通过系统 overlay 显示在表格上方或可见区域内，不再依赖表格内部 `Positioned` 负偏移。
+  - 验收要点：工具栏在编辑器滚动、窗口尺寸变化、表格宽度变化、表格靠近视口顶部时保持位置稳定并自动重新计算。
+  - 验收要点：取消表格选区、切换到非表格 block、进入只读态或编辑器销毁时，overlay 能及时移除且不残留悬浮组件。
+---
+- [x] P002: 设计系统 Overlay 承载结构 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/table_floating_toolbar_overlay.dart,lib/src/widgets/block_renderer_registry.dart -->
+  - 验收要点：确定表格工具栏由编辑器级 overlay 宿主管理，而不是继续作为表格 `Stack` 的负偏移子节点显示。
+  - 验收要点：定义表格锚点、选区范围、工具栏 action 回调、可用状态和关闭条件的数据传递方式，避免 renderer 与 overlay 状态双向耦合。
+  - 验收要点：选择并记录具体 overlay 技术路线，优先保证跟随锚点、跨父级边界显示、可命中和可在测试中稳定定位。
+
+- [ ] P003: 迁移表格工具栏渲染到 Overlay <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/table_floating_toolbar_overlay.dart -->
+  - 验收要点：选中表格单元格后，工具栏通过系统 overlay 显示在表格上方或可见区域内，不再依赖表格内部 `Positioned` 负偏移。
+  - 验收要点：工具栏在编辑器滚动、窗口尺寸变化、表格宽度变化、表格靠近视口顶部时保持位置稳定并自动重新计算。
+  - 验收要点：取消表格选区、切换到非表格 block、进入只读态或编辑器销毁时，overlay 能及时移除且不残留悬浮组件。
+
+---
+  - 验收要点：定义表格锚点、选区范围、工具栏 action 回调、可用状态和关闭条件的数据传递方式，避免 renderer 与 overlay 状态双向耦合。
+  - 验收要点：选择并记录具体 overlay 技术路线，优先保证跟随锚点、跨父级边界显示、可命中和可在测试中稳定定位。
+
+- [ ] P003: 迁移表格工具栏渲染到 Overlay <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/table_floating_toolbar_overlay.dart -->
+  - 验收要点：选中表格单元格后，工具栏通过系统 overlay 显示在表格上方或可见区域内，不再依赖表格内部 `Positioned` 负偏移。
+  - 验收要点：工具栏在编辑器滚动、窗口尺寸变化、表格宽度变化、表格靠近视口顶部时保持位置稳定并自动重新计算。
+  - 验收要点：取消表格选区、切换到非表格 block、进入只读态或编辑器销毁时，overlay 能及时移除且不残留悬浮组件。
+
+- [ ] P004: 阻断工具栏事件穿透 <!-- scope: lib/src/widgets/table_floating_toolbar_overlay.dart,lib/src/widgets/selection_gesture_overlay.dart,test/widgets/wenz_rich_text_editor_test.dart -->
+  - 验收要点：工具栏背景、按钮、分隔线和空白填充区域均有明确命中测试策略，点击和拖动不会继续触发表格选区、单元格聚焦或文本选择。
+---
+  - 验收要点：选择并记录具体 overlay 技术路线，优先保证跟随锚点、跨父级边界显示、可命中和可在测试中稳定定位。
+
+- [ ] P003: 迁移表格工具栏渲染到 Overlay <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/table_floating_toolbar_overlay.dart -->
+  - 验收要点：选中表格单元格后，工具栏通过系统 overlay 显示在表格上方或可见区域内，不再依赖表格内部 `Positioned` 负偏移。
+  - 验收要点：工具栏在编辑器滚动、窗口尺寸变化、表格宽度变化、表格靠近视口顶部时保持位置稳定并自动重新计算。
+  - 验收要点：取消表格选区、切换到非表格 block、进入只读态或编辑器销毁时，overlay 能及时移除且不残留悬浮组件。
+
+- [ ] P004: 阻断工具栏事件穿透 <!-- scope: lib/src/widgets/table_floating_toolbar_overlay.dart,lib/src/widgets/selection_gesture_overlay.dart,test/widgets/wenz_rich_text_editor_test.dart -->
+  - 验收要点：工具栏背景、按钮、分隔线和空白填充区域均有明确命中测试策略，点击和拖动不会继续触发表格选区、单元格聚焦或文本选择。
+  - 验收要点：工具栏按钮点击只触发对应 `TableToolbarActionIntent` 一次，不额外产生底层 tap、long press、drag 或 selection change。
+---
+- [ ] P003: 迁移表格工具栏渲染到 Overlay <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/table_floating_toolbar_overlay.dart -->
+  - 验收要点：选中表格单元格后，工具栏通过系统 overlay 显示在表格上方或可见区域内，不再依赖表格内部 `Positioned` 负偏移。
+  - 验收要点：工具栏在编辑器滚动、窗口尺寸变化、表格宽度变化、表格靠近视口顶部时保持位置稳定并自动重新计算。
+  - 验收要点：取消表格选区、切换到非表格 block、进入只读态或编辑器销毁时，overlay 能及时移除且不残留悬浮组件。
+
+- [ ] P004: 阻断工具栏事件穿透 <!-- scope: lib/src/widgets/table_floating_toolbar_overlay.dart,lib/src/widgets/selection_gesture_overlay.dart,test/widgets/wenz_rich_text_editor_test.dart -->
+  - 验收要点：工具栏背景、按钮、分隔线和空白填充区域均有明确命中测试策略，点击和拖动不会继续触发表格选区、单元格聚焦或文本选择。
+  - 验收要点：工具栏按钮点击只触发对应 `TableToolbarActionIntent` 一次，不额外产生底层 tap、long press、drag 或 selection change。
+  - 验收要点：工具栏之外的编辑器区域仍可正常点击、拖选、滚动和唤起表格选区，不因 overlay 引入全屏遮罩阻塞正常交互。
+
+---
+  - 验收要点：工具栏在编辑器滚动、窗口尺寸变化、表格宽度变化、表格靠近视口顶部时保持位置稳定并自动重新计算。
+  - 验收要点：取消表格选区、切换到非表格 block、进入只读态或编辑器销毁时，overlay 能及时移除且不残留悬浮组件。
+
+- [ ] P004: 阻断工具栏事件穿透 <!-- scope: lib/src/widgets/table_floating_toolbar_overlay.dart,lib/src/widgets/selection_gesture_overlay.dart,test/widgets/wenz_rich_text_editor_test.dart -->
+  - 验收要点：工具栏背景、按钮、分隔线和空白填充区域均有明确命中测试策略，点击和拖动不会继续触发表格选区、单元格聚焦或文本选择。
+  - 验收要点：工具栏按钮点击只触发对应 `TableToolbarActionIntent` 一次，不额外产生底层 tap、long press、drag 或 selection change。
+  - 验收要点：工具栏之外的编辑器区域仍可正常点击、拖选、滚动和唤起表格选区，不因 overlay 引入全屏遮罩阻塞正常交互。
+
+- [ ] P005: 保持表格操作与生命周期一致 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/table_floating_toolbar_overlay.dart,lib/src/core/commands/table_commands.dart,test/widgets/wenz_rich_text_editor_test.dart -->
+  - 验收要点：插入/删除行列、切换表头、设置/清除背景色、列对齐、合并/拆分单元格、重置列宽等原有工具栏操作行为不回归。
+---
+- [ ] P004: 阻断工具栏事件穿透 <!-- scope: lib/src/widgets/table_floating_toolbar_overlay.dart,lib/src/widgets/selection_gesture_overlay.dart,test/widgets/wenz_rich_text_editor_test.dart -->
+  - 验收要点：工具栏背景、按钮、分隔线和空白填充区域均有明确命中测试策略，点击和拖动不会继续触发表格选区、单元格聚焦或文本选择。
+  - 验收要点：工具栏按钮点击只触发对应 `TableToolbarActionIntent` 一次，不额外产生底层 tap、long press、drag 或 selection change。
+  - 验收要点：工具栏之外的编辑器区域仍可正常点击、拖选、滚动和唤起表格选区，不因 overlay 引入全屏遮罩阻塞正常交互。
+
+- [ ] P005: 保持表格操作与生命周期一致 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/table_floating_toolbar_overlay.dart,lib/src/core/commands/table_commands.dart,test/widgets/wenz_rich_text_editor_test.dart -->
+  - 验收要点：插入/删除行列、切换表头、设置/清除背景色、列对齐、合并/拆分单元格、重置列宽等原有工具栏操作行为不回归。
+  - 验收要点：工具栏 action 执行后，表格选区、焦点、撤销/重做、文档变更通知和 overlay 刷新顺序保持一致，不出现 stale range 或空引用。
+  - 验收要点：多表格文档中只显示当前活动表格的工具栏，选区跨表格或表格被删除后 overlay 自动关闭。
+
+---
+  - 验收要点：工具栏按钮点击只触发对应 `TableToolbarActionIntent` 一次，不额外产生底层 tap、long press、drag 或 selection change。
+  - 验收要点：工具栏之外的编辑器区域仍可正常点击、拖选、滚动和唤起表格选区，不因 overlay 引入全屏遮罩阻塞正常交互。
+
+- [ ] P005: 保持表格操作与生命周期一致 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/table_floating_toolbar_overlay.dart,lib/src/core/commands/table_commands.dart,test/widgets/wenz_rich_text_editor_test.dart -->
+  - 验收要点：插入/删除行列、切换表头、设置/清除背景色、列对齐、合并/拆分单元格、重置列宽等原有工具栏操作行为不回归。
+  - 验收要点：工具栏 action 执行后，表格选区、焦点、撤销/重做、文档变更通知和 overlay 刷新顺序保持一致，不出现 stale range 或空引用。
+  - 验收要点：多表格文档中只显示当前活动表格的工具栏，选区跨表格或表格被删除后 overlay 自动关闭。
+
+- [ ] P006: 补充自动化与手工验收记录 <!-- scope: test/widgets/wenz_rich_text_editor_test.dart,docs/acceptance_manual_checklist.md,docs/plan/plan_feedback_6_20260625-035040.md -->
+  - 验收要点：新增或更新 widget 测试，覆盖工具栏显示于 overlay、按钮点击不穿透、点击工具栏外仍能编辑、滚动后工具栏跟随、选区取消后 overlay 消失。
+---
+
+- [ ] P005: 保持表格操作与生命周期一致 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/table_floating_toolbar_overlay.dart,lib/src/core/commands/table_commands.dart,test/widgets/wenz_rich_text_editor_test.dart -->
+  - 验收要点：插入/删除行列、切换表头、设置/清除背景色、列对齐、合并/拆分单元格、重置列宽等原有工具栏操作行为不回归。
+  - 验收要点：工具栏 action 执行后，表格选区、焦点、撤销/重做、文档变更通知和 overlay 刷新顺序保持一致，不出现 stale range 或空引用。
+  - 验收要点：多表格文档中只显示当前活动表格的工具栏，选区跨表格或表格被删除后 overlay 自动关闭。
+
+- [ ] P006: 补充自动化与手工验收记录 <!-- scope: test/widgets/wenz_rich_text_editor_test.dart,docs/acceptance_manual_checklist.md,docs/plan/plan_feedback_6_20260625-035040.md -->
+  - 验收要点：新增或更新 widget 测试，覆盖工具栏显示于 overlay、按钮点击不穿透、点击工具栏外仍能编辑、滚动后工具栏跟随、选区取消后 overlay 消失。
+  - 验收要点：执行 `flutter analyze`、相关 widget 测试和必要的回归测试；若存在失败，需区分本次改动导致失败与既有失败。
+  - 验收要点：在本计划进度区记录每个任务的完成范围、验证命令、验证结果、遗留风险和后续建议。
+---
+- [ ] P005: 保持表格操作与生命周期一致 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/table_floating_toolbar_overlay.dart,lib/src/core/commands/table_commands.dart,test/widgets/wenz_rich_text_editor_test.dart -->
+  - 验收要点：插入/删除行列、切换表头、设置/清除背景色、列对齐、合并/拆分单元格、重置列宽等原有工具栏操作行为不回归。
+  - 验收要点：工具栏 action 执行后，表格选区、焦点、撤销/重做、文档变更通知和 overlay 刷新顺序保持一致，不出现 stale range 或空引用。
+  - 验收要点：多表格文档中只显示当前活动表格的工具栏，选区跨表格或表格被删除后 overlay 自动关闭。
+
+- [ ] P006: 补充自动化与手工验收记录 <!-- scope: test/widgets/wenz_rich_text_editor_test.dart,docs/acceptance_manual_checklist.md,docs/plan/plan_feedback_6_20260625-035040.md -->
+  - 验收要点：新增或更新 widget 测试，覆盖工具栏显示于 overlay、按钮点击不穿透、点击工具栏外仍能编辑、滚动后工具栏跟随、选区取消后 overlay 消失。
+  - 验收要点：执行 `flutter analyze`、相关 widget 测试和必要的回归测试；若存在失败，需区分本次改动导致失败与既有失败。
+  - 验收要点：在本计划进度区记录每个任务的完成范围、验证命令、验证结果、遗留风险和后续建议。
+
+---
+  - 验收要点：多表格文档中只显示当前活动表格的工具栏，选区跨表格或表格被删除后 overlay 自动关闭。
+
+- [ ] P006: 补充自动化与手工验收记录 <!-- scope: test/widgets/wenz_rich_text_editor_test.dart,docs/acceptance_manual_checklist.md,docs/plan/plan_feedback_6_20260625-035040.md -->
+  - 验收要点：新增或更新 widget 测试，覆盖工具栏显示于 overlay、按钮点击不穿透、点击工具栏外仍能编辑、滚动后工具栏跟随、选区取消后 overlay 消失。
+  - 验收要点：执行 `flutter analyze`、相关 widget 测试和必要的回归测试；若存在失败，需区分本次改动导致失败与既有失败。
+  - 验收要点：在本计划进度区记录每个任务的完成范围、验证命令、验证结果、遗留风险和后续建议。
+
+## 总体验收标准
+- 所有任务 checkbox 均完成，且每个任务的验收要点都有明确结论或验证记录。
+- 表格悬浮工具栏使用系统 overlay 方案承载，不再依赖表格内部负偏移浮动节点来模拟悬浮效果。
+---
+
+## 总体验收标准
+- 所有任务 checkbox 均完成，且每个任务的验收要点都有明确结论或验证记录。
+- 表格悬浮工具栏使用系统 overlay 方案承载，不再依赖表格内部负偏移浮动节点来模拟悬浮效果。
+- 点击表格工具栏任意可见区域不会穿透到底层表格、文本选区、编辑器手势层或滚动手势；工具栏外区域仍保持正常编辑交互。
+- 工具栏能随当前活动表格选区稳定显示、刷新和关闭，滚动、视口贴边、窗口尺寸变化、多表格切换和表格删除场景均无残留 overlay。
+- 原有表格工具栏命令、列宽拖拽、单元格选择、撤销/重做、只读态和焦点行为不回归。
+- 相关自动化测试、静态分析和必要手工验收通过；若存在既有失败，需要在进度区记录命令、失败原因判断和影响范围。
+
+## 进度区
+---
+## 总体验收标准
+- 所有任务 checkbox 均完成，且每个任务的验收要点都有明确结论或验证记录。
+- 表格悬浮工具栏使用系统 overlay 方案承载，不再依赖表格内部负偏移浮动节点来模拟悬浮效果。
+- 点击表格工具栏任意可见区域不会穿透到底层表格、文本选区、编辑器手势层或滚动手势；工具栏外区域仍保持正常编辑交互。
+- 工具栏能随当前活动表格选区稳定显示、刷新和关闭，滚动、视口贴边、窗口尺寸变化、多表格切换和表格删除场景均无残留 overlay。
+- 原有表格工具栏命令、列宽拖拽、单元格选择、撤销/重做、只读态和焦点行为不回归。
+- 相关自动化测试、静态分析和必要手工验收通过；若存在既有失败，需要在进度区记录命令、失败原因判断和影响范围。
+
+## 进度区
+- 当前状态：计划已创建，P001-P006 待开发执行。
+---
+- 所有任务 checkbox 均完成，且每个任务的验收要点都有明确结论或验证记录。
+- 表格悬浮工具栏使用系统 overlay 方案承载，不再依赖表格内部负偏移浮动节点来模拟悬浮效果。
+- 点击表格工具栏任意可见区域不会穿透到底层表格、文本选区、编辑器手势层或滚动手势；工具栏外区域仍保持正常编辑交互。
+- 工具栏能随当前活动表格选区稳定显示、刷新和关闭，滚动、视口贴边、窗口尺寸变化、多表格切换和表格删除场景均无残留 overlay。
+- 原有表格工具栏命令、列宽拖拽、单元格选择、撤销/重做、只读态和焦点行为不回归。
+- 相关自动化测试、静态分析和必要手工验收通过；若存在既有失败，需要在进度区记录命令、失败原因判断和影响范围。
+
+## 进度区
+- 当前状态：计划已创建，P001-P006 待开发执行。
+- 当前负责人：待分配。
+---
+- 表格悬浮工具栏使用系统 overlay 方案承载，不再依赖表格内部负偏移浮动节点来模拟悬浮效果。
+- 点击表格工具栏任意可见区域不会穿透到底层表格、文本选区、编辑器手势层或滚动手势；工具栏外区域仍保持正常编辑交互。
+- 工具栏能随当前活动表格选区稳定显示、刷新和关闭，滚动、视口贴边、窗口尺寸变化、多表格切换和表格删除场景均无残留 overlay。
+- 原有表格工具栏命令、列宽拖拽、单元格选择、撤销/重做、只读态和焦点行为不回归。
+- 相关自动化测试、静态分析和必要手工验收通过；若存在既有失败，需要在进度区记录命令、失败原因判断和影响范围。
+
+## 进度区
+- 当前状态：计划已创建，P001-P006 待开发执行。
+- 当前负责人：待分配。
+- 下一步：从 P001 开始复现并记录表格工具栏事件穿透的命中测试链路。
+---
+## 进度区
+- 当前状态：计划已创建，P001-P006 待开发执行。
+- 当前负责人：待分配。
+- 下一步：从 P001 开始复现并记录表格工具栏事件穿透的命中测试链路。
+- 验证记录：本次仅生成计划文件，未修改业务代码，未执行自动化测试或手工验收。
+- 风险记录：系统 overlay 迁移会改变工具栏所在渲染树，需重点关注焦点保持、选区刷新、滚动跟随、测试定位和 overlay 生命周期清理。
+- P001 AutoPlan 完成：2026-06-24T20:01:25.268Z；日志：docs/progress/logs/20260625-035238_execute-P001.log
+- P002 AutoPlan 完成：2026-06-25T06:15:27.920Z；日志：docs/progress/logs/20260625-141120_execute-P002.log
+---
+- 当前负责人：待分配。
+- 下一步：从 P001 开始复现并记录表格工具栏事件穿透的命中测试链路。
+- 验证记录：本次仅生成计划文件，未修改业务代码，未执行自动化测试或手工验收。
+- 风险记录：系统 overlay 迁移会改变工具栏所在渲染树，需重点关注焦点保持、选区刷新、滚动跟随、测试定位和 overlay 生命周期清理。
+- P001 AutoPlan 完成：2026-06-24T20:01:25.268Z；日志：docs/progress/logs/20260625-035238_execute-P001.log
+- P002 AutoPlan 完成：2026-06-25T06:15:27.920Z；日志：docs/progress/logs/20260625-141120_execute-P002.log
+---
+---FILES---
+D:\project\GitHub\wenz_flutter\wenz_richtext\lib\src\widgets\table_floating_toolbar_overlay.dart
+
+**Resolving output issues**
+
+Okay, it seems like the output got truncated and duplicated with Select-String. I really need the exact P003 lines. I'll have to use some commands for that. Also, I might want to check the root AGENTS for any outputs. It would be a good idea to read the plan section around P003 precisely, possibly by using PowerShell to parse the line numbers. Let's focus on clearing up these output issues!
+codex
+计划内容确认到 P003 依赖 P002 设计；现在精确抽取 P003 验收点。
+exec
+powershell.exe -Command '$ErrorActionPreference='"'Stop'; "'$path='"'D:\\project\\GitHub\\wenz_flutter\\wenz_richtext\\docs\\plan\\plan_feedback_6_20260625-035040.md'; "'$lines=Get-Content -Encoding UTF8 $path; for ($i=0; $i -lt $lines.Length; $i++) { if ($lines[$i] -match '"'"'^'"\\- \\[ \\] P003') { "'$start=[Math]::Max(0,$i); $end=[Math]::Min($lines.Length-1,$i+8); for ($j=$start; $j -le $end; $j++) { '"'{0}:{1}' -f ("'$j+1), $lines[$j] } } }' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 202ms:
+28:- [ ] P003: 迁移表格工具栏渲染到 Overlay <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/table_floating_toolbar_overlay.dart -->
+29:  - 验收要点：选中表格单元格后，工具栏通过系统 overlay 显示在表格上方或可见区域内，不再依赖表格内部 `Positioned` 负偏移。
+30:  - 验收要点：工具栏在编辑器滚动、窗口尺寸变化、表格宽度变化、表格靠近视口顶部时保持位置稳定并自动重新计算。
+31:  - 验收要点：取消表格选区、切换到非表格 block、进入只读态或编辑器销毁时，overlay 能及时移除且不残留悬浮组件。
+32:
+33:- [ ] P004: 阻断工具栏事件穿透 <!-- scope: lib/src/widgets/table_floating_toolbar_overlay.dart,lib/src/widgets/selection_gesture_overlay.dart,test/widgets/wenz_rich_text_editor_test.dart -->
+34:  - 验收要点：工具栏背景、按钮、分隔线和空白填充区域均有明确命中测试策略，点击和拖动不会继续触发表格选区、单元格聚焦或文本选择。
+35:  - 验收要点：工具栏按钮点击只触发对应 `TableToolbarActionIntent` 一次，不额外产生底层 tap、long press、drag 或 selection change。
+36:  - 验收要点：工具栏之外的编辑器区域仍可正常点击、拖选、滚动和唤起表格选区，不因 overlay 引入全屏遮罩阻塞正常交互。
+
+**Evaluating migration steps**
+
+I only need P003, skipping P004. My main focus is migrating the rendering to Overlay. There's a file named table_floating_toolbar_overlay.dart, which I suspect relates to P002, but it seems it wasn't integrated. I should inspect the relevant code for clarity. I’ll also use codegraph_explore to locate the exact wenz file related to the table toolbar and so on. Let me search and gather the necessary information!
+codex
+P003 验收点已定位；接下来只检查两个 scope 文件里的渲染接入点。
+mcp: codegraph/codegraph_explore started
+mcp: codegraph/codegraph_explore (completed)
+**Searching for code symbols**
+
+I need to find the exact symbols in the wenz file, so it looks like I'm going to search for them. I’m considering using the `rg` tool since `codegraph` doesn’t seem sufficient. It feels necessary to inspect the imports and the build as well. Shell access is permitted, so using `rg` to locate `TableFloatingToolbar` and similar symbols sounds like a solid plan. Let's get into this!
+codex
+Overlay 支撑类已有雏形；我会查找编辑器里是否尚未接入宿主/控制器。
+exec
+powershell.exe -Command '$ErrorActionPreference='"'Stop'; rg -n \"TableFloatingToolbar|tableFloating|floatingToolbar|toolbarOverlay|OverlayHost|OverlayAnchor|Positioned|CompositedTransform\" lib/src/widgets/wenz_rich_text_editor.dart lib/src/widgets/table_floating_toolbar_overlay.dart" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 174ms:
+lib/src/widgets/table_floating_toolbar_overlay.dart:9:typedef TableFloatingToolbarOverlayBuilder = Widget Function(
+lib/src/widgets/table_floating_toolbar_overlay.dart:14:typedef TableFloatingToolbarOverlayRequestBuilder
+lib/src/widgets/table_floating_toolbar_overlay.dart:15:    = TableFloatingToolbarOverlayRequest Function({
+lib/src/widgets/table_floating_toolbar_overlay.dart:25:/// editor owns [TableFloatingToolbarOverlayHost], which renders this payload with
+lib/src/widgets/table_floating_toolbar_overlay.dart:26:/// Flutter's system [OverlayPortal] plus [CompositedTransformFollower]. This
+lib/src/widgets/table_floating_toolbar_overlay.dart:31:class TableFloatingToolbarOverlayRequest {
+lib/src/widgets/table_floating_toolbar_overlay.dart:32:  const TableFloatingToolbarOverlayRequest({
+lib/src/widgets/table_floating_toolbar_overlay.dart:70:  final TableFloatingToolbarOverlayBuilder toolbarBuilder;
+lib/src/widgets/table_floating_toolbar_overlay.dart:86:class TableFloatingToolbarOverlayController extends ChangeNotifier {
+lib/src/widgets/table_floating_toolbar_overlay.dart:87:  TableFloatingToolbarOverlayRequest? _request;
+lib/src/widgets/table_floating_toolbar_overlay.dart:89:  TableFloatingToolbarOverlayRequest? get request => _request;
+lib/src/widgets/table_floating_toolbar_overlay.dart:91:  void show(TableFloatingToolbarOverlayRequest request) {
+lib/src/widgets/table_floating_toolbar_overlay.dart:110:class TableFloatingToolbarOverlayHost extends StatefulWidget {
+lib/src/widgets/table_floating_toolbar_overlay.dart:111:  const TableFloatingToolbarOverlayHost({
+lib/src/widgets/table_floating_toolbar_overlay.dart:117:  final TableFloatingToolbarOverlayController controller;
+lib/src/widgets/table_floating_toolbar_overlay.dart:121:  State<TableFloatingToolbarOverlayHost> createState() =>
+lib/src/widgets/table_floating_toolbar_overlay.dart:122:      _TableFloatingToolbarOverlayHostState();
+lib/src/widgets/table_floating_toolbar_overlay.dart:125:class _TableFloatingToolbarOverlayHostState
+lib/src/widgets/table_floating_toolbar_overlay.dart:126:    extends State<TableFloatingToolbarOverlayHost> {
+lib/src/widgets/table_floating_toolbar_overlay.dart:128:  TableFloatingToolbarOverlayRequest? _request;
+lib/src/widgets/table_floating_toolbar_overlay.dart:139:  void didUpdateWidget(covariant TableFloatingToolbarOverlayHost oldWidget) {
+lib/src/widgets/table_floating_toolbar_overlay.dart:168:        return _TableFloatingToolbarOverlayEntry(request: request);
+lib/src/widgets/table_floating_toolbar_overlay.dart:209:/// leaving overlay ownership with [TableFloatingToolbarOverlayHost].
+lib/src/widgets/table_floating_toolbar_overlay.dart:210:class TableFloatingToolbarOverlayAnchor extends StatefulWidget {
+lib/src/widgets/table_floating_toolbar_overlay.dart:211:  const TableFloatingToolbarOverlayAnchor({
+lib/src/widgets/table_floating_toolbar_overlay.dart:218:  final TableFloatingToolbarOverlayController? controller;
+lib/src/widgets/table_floating_toolbar_overlay.dart:219:  final TableFloatingToolbarOverlayRequestBuilder? requestBuilder;
+lib/src/widgets/table_floating_toolbar_overlay.dart:223:  State<TableFloatingToolbarOverlayAnchor> createState() =>
+lib/src/widgets/table_floating_toolbar_overlay.dart:224:      _TableFloatingToolbarOverlayAnchorState();
+lib/src/widgets/table_floating_toolbar_overlay.dart:227:class _TableFloatingToolbarOverlayAnchorState
+lib/src/widgets/table_floating_toolbar_overlay.dart:228:    extends State<TableFloatingToolbarOverlayAnchor> {
+lib/src/widgets/table_floating_toolbar_overlay.dart:240:  void didUpdateWidget(covariant TableFloatingToolbarOverlayAnchor oldWidget) {
+lib/src/widgets/table_floating_toolbar_overlay.dart:263:    return CompositedTransformTarget(
+lib/src/widgets/table_floating_toolbar_overlay.dart:321:class _TableFloatingToolbarOverlayEntry extends StatefulWidget {
+lib/src/widgets/table_floating_toolbar_overlay.dart:322:  const _TableFloatingToolbarOverlayEntry({required this.request});
+lib/src/widgets/table_floating_toolbar_overlay.dart:324:  final TableFloatingToolbarOverlayRequest request;
+lib/src/widgets/table_floating_toolbar_overlay.dart:327:  State<_TableFloatingToolbarOverlayEntry> createState() =>
+lib/src/widgets/table_floating_toolbar_overlay.dart:328:      _TableFloatingToolbarOverlayEntryState();
+lib/src/widgets/table_floating_toolbar_overlay.dart:331:class _TableFloatingToolbarOverlayEntryState
+lib/src/widgets/table_floating_toolbar_overlay.dart:332:    extends State<_TableFloatingToolbarOverlayEntry> {
+lib/src/widgets/table_floating_toolbar_overlay.dart:347:    return Positioned.fill(
+lib/src/widgets/table_floating_toolbar_overlay.dart:348:      child: CompositedTransformFollower(
+lib/src/widgets/wenz_rich_text_editor.dart:67:const double _kTableFloatingToolbarGap = 4.0;
+lib/src/widgets/wenz_rich_text_editor.dart:68:const double _kTableFloatingToolbarEstimatedHeight = 56.0;
+lib/src/widgets/wenz_rich_text_editor.dart:523:  late final TableFloatingToolbarOverlayController
+lib/src/widgets/wenz_rich_text_editor.dart:524:      _tableToolbarOverlayController = TableFloatingToolbarOverlayController();
+lib/src/widgets/wenz_rich_text_editor.dart:1037:            Positioned(
+lib/src/widgets/wenz_rich_text_editor.dart:1076:            TableFloatingToolbarOverlayHost(
+lib/src/widgets/wenz_rich_text_editor.dart:3038:                  Positioned(
+lib/src/widgets/wenz_rich_text_editor.dart:3227:  final TableFloatingToolbarOverlayController? tableToolbarOverlayController;
+lib/src/widgets/wenz_rich_text_editor.dart:3417:  final TableFloatingToolbarOverlayController? tableToolbarOverlayController;
+lib/src/widgets/wenz_rich_text_editor.dart:3532:          PositionedDirectional(
+lib/src/widgets/wenz_rich_text_editor.dart:3913:    return Positioned(
+lib/src/widgets/wenz_rich_text_editor.dart:4238:    toolbarOverlayController: rc.tableToolbarOverlayController,
+lib/src/widgets/wenz_rich_text_editor.dart:4789:            PositionedDirectional(
+lib/src/widgets/wenz_rich_text_editor.dart:4941:          PositionedDirectional(
+lib/src/widgets/wenz_rich_text_editor.dart:5217:    this.toolbarOverlayController,
+lib/src/widgets/wenz_rich_text_editor.dart:5233:  final TableFloatingToolbarOverlayController? toolbarOverlayController;
+lib/src/widgets/wenz_rich_text_editor.dart:5269:                Positioned.fill(
+lib/src/widgets/wenz_rich_text_editor.dart:5287:                          Positioned(
+lib/src/widgets/wenz_rich_text_editor.dart:5342:                    Positioned(
+lib/src/widgets/wenz_rich_text_editor.dart:5367:          return TableFloatingToolbarOverlayAnchor(
+lib/src/widgets/wenz_rich_text_editor.dart:5368:            controller: toolbarOverlayController,
+lib/src/widgets/wenz_rich_text_editor.dart:5376:                    TableFloatingToolbarOverlayRequest(
+lib/src/widgets/wenz_rich_text_editor.dart:5385:                      gap: _kTableFloatingToolbarGap,
+lib/src/widgets/wenz_rich_text_editor.dart:5386:                      fallbackHeight: _kTableFloatingToolbarEstimatedHeight,
+lib/src/widgets/wenz_rich_text_editor.dart:5387:                      toolbarBuilder: (context) => _TableFloatingToolbar(
+lib/src/widgets/wenz_rich_text_editor.dart:5417:class _TableFloatingToolbar extends StatelessWidget {
+lib/src/widgets/wenz_rich_text_editor.dart:5418:  const _TableFloatingToolbar({
+lib/src/widgets/wenz_rich_text_editor.dart:6179:                Positioned.fill(
+lib/src/widgets/wenz_rich_text_editor.dart:6397:          Positioned.fill(
+lib/src/widgets/wenz_rich_text_editor.dart:6410:          Positioned(
+lib/src/widgets/wenz_rich_text_editor.dart:6903:              const Positioned.fill(
+lib/src/widgets/wenz_rich_text_editor.dart:6909:              const Positioned.fill(
+lib/src/widgets/wenz_rich_text_editor.dart:6917:              Positioned.fill(
+lib/src/widgets/wenz_rich_text_editor.dart:6930:              Positioned(
+lib/src/widgets/wenz_rich_text_editor.dart:7403:                PositionedDirectional(
+lib/src/widgets/wenz_rich_text_editor.dart:7431:              PositionedDirectional(
+lib/src/widgets/wenz_rich_text_editor.dart:7814:                    PositionedDirectional(
+
+**Inspecting relevant portions**
+
+I think P003 is mostly done, but I need to check specific lines: 500, 1000, 3227, 3417, and 5217-5390. I might need to address some imports as well. I’m considering reading the targeted snippets using Get-Content. Using `rg` with context could also help. It sounds like a solid plan! I'll make sure I get this done to ensure quality.
+codex
+看起来 P002 已放入控制器/Anchor；我现在核对具体 build 路径是否仍保留内部负偏移工具栏。
+exec
+powershell.exe -Command '$ErrorActionPreference='"'Stop'; "'$path='"'lib/src/widgets/wenz_rich_text_editor.dart'; "'$ranges=@(@(1,90),@(500,545),@(1010,1095),@(3210,3245),@(3400,3435),@(5200,5405),@(5405,5475)); $lines=Get-Content -Encoding UTF8 $path; foreach ($r in $ranges) { Write-Output ("--- {0}:{1}-{2} ---" -f $path,$r[0],$r[1]); for ($i=$r[0]-1; $i -lt $r[1] -and $i -lt $lines.Length; $i++) { '"'{0}:{1}' -f ("'$i+1), $lines[$i] } }' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 305ms:
+--- lib/src/widgets/wenz_rich_text_editor.dart:1-90 ---
+1:import 'dart:async';
+2:import 'dart:math' as math;
+3:
+4:import 'package:flutter/gestures.dart';
+5:import 'package:flutter/material.dart';
+6:import 'package:flutter_math_fork/flutter_math.dart';
+7:import 'package:flutter/rendering.dart';
+8:import 'package:flutter/services.dart';
+9:
+10:import '../controller/find_replace_controller.dart';
+11:import '../controller/outline_controller.dart';
+12:import '../controller/slash_menu_controller.dart';
+13:import '../controller/wenz_rich_text_controller.dart';
+14:import '../core/commands/inline_editing.dart';
+15:import '../core/model/attributes.dart';
+16:import '../core/model/block_node.dart';
+17:import '../core/model/inline_node.dart';
+18:import '../core/model/table_model.dart';
+19:import '../core/position/document_position.dart';
+20:import '../input/composition_state.dart';
+21:import '../input/editor_text_input_client.dart';
+22:import '../input/shortcut_manager.dart';
+23:import '../rendering/text_layout_service.dart';
+24:import 'block_geometry_registry.dart';
+25:import 'block_renderer_registry.dart';
+26:import 'code_syntax_highlighter.dart';
+27:import 'inline_embed_renderer.dart';
+28:import 'media_resolver.dart';
+29:import 'selection_gesture_overlay.dart';
+30:import 'shared_text_layout_cache.dart';
+31:import 'slash_menu_overlay.dart';
+32:
+33:const _caretKey = ValueKey<String>('wenz-richtext-caret');
+34:const _selectionHighlightKey = ValueKey<String>(
+35:  'wenz-richtext-selection-highlight',
+36:);
+37:const _findHighlightKey = ValueKey<String>('wenz-richtext-find-highlight');
+38:const _inlineFormulaKey = ValueKey<String>('wenz-richtext-inline-formula');
+39:const _accessibilityFocusHighlightKey = ValueKey<String>(
+40:  'wenz-richtext-accessibility-focus-highlight',
+41:);
+42:const _blockReorderDropIndicatorKey = ValueKey<String>(
+43:  'wenz-richtext-block-reorder-drop-indicator',
+44:);
+45:
+46:/// Caret geometry constants — kept in one place so the painted caret, the caret
+47:/// rect reported to the IME, and any future theming all share the same source.
+48:const double _kCaretStrokeWidth = 1.5;
+49:const Duration _kBlinkHalfPeriod = Duration(milliseconds: 530);
+50:const double _kRichTextBodyFontSize = 16.0;
+51:const double _kRichTextBodyLineHeight = 1.75;
+52:const double _kParagraphMarginEm = 0.55;
+53:const double _kHeadingMarginTopEm = 0.6;
+54:const double _kHeadingMarginBottomEm = 0.35;
+55:const double _kDefaultBlockSpacing =
+56:    _kRichTextBodyFontSize * _kParagraphMarginEm;
+57:const int _kInlineLinkColor = 0xFF1976D2;
+58:const int _kInlineRemarkColor = 0xFFC97B00;
+59:const int _kInlineRevisionBackgroundAlpha = 72;
+60:const double _kDefaultBlockExtent = 48.0;
+61:const double _kVirtualListOverscan = 600.0;
+62:const double _kBlockReorderIndicatorHeight = 3.0;
+63:const double _kTableResizeHandleWidth = 12.0;
+64:const double _kMinTableColumnWidth = 48.0;
+65:const double _kMaxTableColumnWidth = 640.0;
+66:const double _kTableToolbarMinWidth = 620.0;
+67:const double _kTableFloatingToolbarGap = 4.0;
+68:const double _kTableFloatingToolbarEstimatedHeight = 56.0;
+69:const int _kTableToolbarBackgroundColor = 0xFFFFF3CD;
+70:const double _kTableSurfaceRadius = 8.0;
+71:const double _kTableCellFontSize = 15.0;
+72:const EdgeInsets _kTableCellPadding = EdgeInsets.symmetric(
+73:  horizontal: 14,
+74:  vertical: 10,
+75:);
+76:const Color _kTableBorderColor = Color(0xFFECE9F5);
+77:const Color _kTableEvenRowBackgroundColor = Color(0xFFFAFAFF);
+78:const double _kImageFloatingToolbarGap = 6.0;
+79:
+80:/// Minimum block height multiplier applied to the block's font size, ensuring
+81:/// a tap target even for empty paragraphs. A single constant so the text,
+82:/// code, and table-cell renderers stay in sync.
+83:const double _kBlockMinHeightFactor = 1.35;
+84:const double _kTodoCheckboxWidth = 32.0;
+85:const double _kTodoCheckboxHeight = 28.0;
+86:const double _kTodoTextGap = 10.0;
+87:const double _kTaskListPaddingLeft = 8.0;
+88:const double _kListTextInset = 26.0;
+89:const double _kListMarkerWidth = 18.0;
+90:const double _kListMarkerGap = _kListTextInset - _kListMarkerWidth;
+--- lib/src/widgets/wenz_rich_text_editor.dart:500-545 ---
+500:  State<WenzRichTextEditor> createState() => _WenzRichTextEditorState();
+501:}
+502:
+503:class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
+504:  FocusNode? _internalFocusNode;
+505:  FocusNode? _listenedFocusNode;
+506:
+507:  /// The focus node currently registered with the controller, tracked so we can
+508:  /// detect swaps and clear it cleanly on dispose.
+509:  FocusNode? _controllerAttachedFocusNode;
+510:
+511:  /// Remembered horizontal column for repeated Up/Down moves, so the caret
+512:  /// keeps its column across multiple line jumps. Cleared on Left/Right/Home/
+513:  /// End/clicks (any horizontal repositioning).
+514:  double? _verticalPreferX;
+515:  int _generatedBlockCount = 0;
+516:  late final EditorTextInputClient _inputClient;
+517:  late final EditorShortcutManager _shortcutManager =
+518:      const EditorShortcutManager();
+519:  late final BlockGeometryRegistry _registry = BlockGeometryRegistry();
+520:  late final ScrollController _scrollController = ScrollController();
+521:  late final SharedTextLayoutCache _layoutCache = SharedTextLayoutCache();
+522:  final GlobalKey _editorOverlayKey = GlobalKey();
+523:  late final TableFloatingToolbarOverlayController
+524:      _tableToolbarOverlayController = TableFloatingToolbarOverlayController();
+525:  final _BlockExtentCache _extentCache = _BlockExtentCache();
+526:  BlockRendererRegistry? _ownedBlockRenderers;
+527:
+528:  /// Guards [_scrollCaretIntoView]'s virtualised estimate-and-realign loop.
+529:  /// Each estimate-driven re-arm increments this; once it exceeds
+530:  /// [_maxScrollRealignFrames] we stop, so a persistently mis-estimated block
+531:  /// height cannot spin the viewport indefinitely.
+532:  int _scrollRealignDepth = 0;
+533:  static const int _maxScrollRealignFrames = 4;
+534:
+535:  /// The caret position (block index + offset) at the last scroll-into-view
+536:  /// check. IME composition updates call `notifyListeners` without moving the
+537:  /// caret; remembering the last-checked position lets us skip the (layout +
+538:  /// localToGlobal) scroll check when the caret hasn't moved — a hot path
+539:  /// during pinyin/japanese input.
+540:  _CaretKey? _lastScrollCheckedCaret;
+541:  bool _skipNextCaretScrollIntoView = false;
+542:  bool _inputGeometrySyncPending = false;
+543:
+544:  /// The active block renderer registry. When the widget supplies one it is
+545:  /// used as-is; otherwise a private registry with built-in defaults is lazily
+--- lib/src/widgets/wenz_rich_text_editor.dart:1010-1095 ---
+1010:              widget.readOnly ? null : _handleTableColumnResize,
+1011:          onTodoCheckedChanged:
+1012:              widget.readOnly ? null : _handleTodoCheckedChanged,
+1013:          onObjectBlockAction: _handleObjectBlockAction,
+1014:          findMatches: findMatches,
+1015:          currentFindMatch: currentFindMatch,
+1016:        );
+1017:      },
+1018:    );
+1019:    return _buildEditorShell(
+1020:      context,
+1021:      focusNode,
+1022:      Stack(
+1023:        key: _editorOverlayKey,
+1024:        fit: StackFit.expand,
+1025:        clipBehavior: Clip.none,
+1026:        children: <Widget>[
+1027:          SelectionGestureOverlay(
+1028:            registry: _registry,
+1029:            scrollController: _scrollController,
+1030:            focusNode: focusNode,
+1031:            readOnly: widget.readOnly,
+1032:            onSelectionChanged: _handleSelectionChanged,
+1033:            onTapBeyondContent: _handleTapBeyondContent,
+1034:            child: editor,
+1035:          ),
+1036:          if (widget.slashMenuController?.isOpen == true)
+1037:            Positioned(
+1038:              left: _slashMenuOffset().dx,
+1039:              top: _slashMenuOffset().dy,
+1040:              child: WenzSlashMenuOverlay(
+1041:                controller: widget.slashMenuController!,
+1042:              ),
+1043:            ),
+1044:        ],
+1045:      ),
+1046:    );
+1047:  }
+1048:
+1049:  Widget _buildEditorShell(
+1050:    BuildContext context,
+1051:    FocusNode focusNode,
+1052:    Widget child,
+1053:  ) {
+1054:    return _SharedLayoutCacheScope(
+1055:      cache: _layoutCache,
+1056:      child: Focus(
+1057:        focusNode: focusNode,
+1058:        autofocus: widget.autofocus,
+1059:        onKeyEvent: _handleKeyEvent,
+1060:        child: Semantics(
+1061:          container: true,
+1062:          explicitChildNodes: true,
+1063:          enabled: true,
+1064:          textField: true,
+1065:          readOnly: widget.readOnly,
+1066:          focusable: true,
+1067:          focused: focusNode.hasFocus,
+1068:          multiline: true,
+1069:          label: widget.accessibility.effectiveLabel(readOnly: widget.readOnly),
+1070:          hint: widget.accessibility.effectiveHint(readOnly: widget.readOnly),
+1071:          onTap: () => focusNode.requestFocus(),
+1072:          onFocus: () => focusNode.requestFocus(),
+1073:          child: _withHighContrastFocusHighlight(
+1074:            context,
+1075:            focusNode,
+1076:            TableFloatingToolbarOverlayHost(
+1077:              controller: _tableToolbarOverlayController,
+1078:              child: child,
+1079:            ),
+1080:          ),
+1081:        ),
+1082:      ),
+1083:    );
+1084:  }
+1085:
+1086:  Widget _withHighContrastFocusHighlight(
+1087:    BuildContext context,
+1088:    FocusNode focusNode,
+1089:    Widget child,
+1090:  ) {
+1091:    final accessibility = widget.accessibility;
+1092:    if (!focusNode.hasFocus ||
+1093:        !(MediaQuery.maybeHighContrastOf(context) ?? false) ||
+1094:        accessibility.highContrastFocusWidth == 0) {
+1095:      return child;
+--- lib/src/widgets/wenz_rich_text_editor.dart:3210-3245 ---
+3210:  final bool blockChanged;
+3211:  final DocumentSelection? selection;
+3212:  final CompositionState? compositionState;
+3213:  final BlockGeometryRegistry registry;
+3214:  final BlockRendererRegistry blockRenderers;
+3215:  final bool showCaret;
+3216:  final TextStyle? textStyle;
+3217:  final bool showDebugOverlay;
+3218:  final bool canEdit;
+3219:  final MediaResolver? mediaResolver;
+3220:  final InlineEmbedRenderer? inlineEmbedRenderer;
+3221:  final HeadingCollapseState? headingCollapseState;
+3222:  final ValueChanged<String>? onHeadingCollapseToggled;
+3223:  final ValueChanged<String>? onCodeLanguageChanged;
+3224:  final Future<void> Function(String code)? onCodeCopied;
+3225:  final ValueChanged<String>? onCalloutVariantChanged;
+3226:  final TableToolbarActionHandler? onTableToolbarAction;
+3227:  final TableFloatingToolbarOverlayController? tableToolbarOverlayController;
+3228:  final TableColumnResizeHandler? onTableColumnResize;
+3229:  final TodoCheckedChangeHandler? onTodoCheckedChanged;
+3230:  final ObjectBlockActionHandler? onObjectBlockAction;
+3231:  final List<FindReplaceMatch> findMatches;
+3232:  final FindReplaceMatch? currentFindMatch;
+3233:
+3234:  @override
+3235:  State<_KeepAliveBlock> createState() => _KeepAliveBlockState();
+3236:}
+3237:
+3238:class _KeepAliveBlockState extends State<_KeepAliveBlock>
+3239:    with AutomaticKeepAliveClientMixin {
+3240:  @override
+3241:  bool get wantKeepAlive => widget.keepAlive;
+3242:
+3243:  /// Cached child from the last build that actually rendered. Reused when the
+3244:  /// block's content and selection-relevance are unchanged.
+3245:  Widget? _cachedChild;
+--- lib/src/widgets/wenz_rich_text_editor.dart:3400-3435 ---
+3400:  final String? listMarker;
+3401:  final DocumentSelection? selection;
+3402:  final CompositionState? compositionState;
+3403:  final BlockGeometryRegistry registry;
+3404:  final BlockRendererRegistry blockRenderers;
+3405:  final bool showCaret;
+3406:  final TextStyle? textStyle;
+3407:  final bool showDebugOverlay;
+3408:  final bool canEdit;
+3409:  final MediaResolver? mediaResolver;
+3410:  final InlineEmbedRenderer? inlineEmbedRenderer;
+3411:  final HeadingCollapseState? headingCollapseState;
+3412:  final ValueChanged<String>? onHeadingCollapseToggled;
+3413:  final ValueChanged<String>? onCodeLanguageChanged;
+3414:  final Future<void> Function(String code)? onCodeCopied;
+3415:  final ValueChanged<String>? onCalloutVariantChanged;
+3416:  final TableToolbarActionHandler? onTableToolbarAction;
+3417:  final TableFloatingToolbarOverlayController? tableToolbarOverlayController;
+3418:  final TableColumnResizeHandler? onTableColumnResize;
+3419:  final TodoCheckedChangeHandler? onTodoCheckedChanged;
+3420:  final ObjectBlockActionHandler? onObjectBlockAction;
+3421:  final List<FindReplaceMatch> findMatches;
+3422:  final FindReplaceMatch? currentFindMatch;
+3423:
+3424:  @override
+3425:  Widget build(BuildContext context) {
+3426:    final renderContext = BlockRenderContext(
+3427:      block: block,
+3428:      blockIndex: blockIndex,
+3429:      blockCount: blockCount,
+3430:      listMarker: listMarker,
+3431:      selection: selection,
+3432:      compositionState: compositionState,
+3433:      registry: registry,
+3434:      showCaret: showCaret,
+3435:      textStyle: textStyle,
+--- lib/src/widgets/wenz_rich_text_editor.dart:5200-5405 ---
+5200:      ),
+5201:    );
+5202:  }
+5203:}
+5204:
+5205:class _TableBlockRenderer extends StatelessWidget {
+5206:  const _TableBlockRenderer({
+5207:    required this.block,
+5208:    required this.blockIndex,
+5209:    required this.selection,
+5210:    required this.compositionState,
+5211:    required this.registry,
+5212:    required this.showCaret,
+5213:    this.textStyle,
+5214:    this.showDebugOverlay = false,
+5215:    this.inlineEmbedRenderer,
+5216:    this.onToolbarAction,
+5217:    this.toolbarOverlayController,
+5218:    this.onColumnResize,
+5219:    this.findMatches = const <FindReplaceMatch>[],
+5220:    this.currentFindMatch,
+5221:  });
+5222:
+5223:  final TableBlockNode block;
+5224:  final int blockIndex;
+5225:  final DocumentSelection? selection;
+5226:  final CompositionState? compositionState;
+5227:  final BlockGeometryRegistry registry;
+5228:  final bool showCaret;
+5229:  final TextStyle? textStyle;
+5230:  final bool showDebugOverlay;
+5231:  final InlineEmbedRenderer? inlineEmbedRenderer;
+5232:  final TableToolbarActionHandler? onToolbarAction;
+5233:  final TableFloatingToolbarOverlayController? toolbarOverlayController;
+5234:  final TableColumnResizeHandler? onColumnResize;
+5235:  final List<FindReplaceMatch> findMatches;
+5236:  final FindReplaceMatch? currentFindMatch;
+5237:
+5238:  @override
+5239:  Widget build(BuildContext context) {
+5240:    final table = block.table;
+5241:    final columnCount = table.columnCount;
+5242:    if (table.rowCount == 0 || columnCount == 0) {
+5243:      return const SizedBox.shrink();
+5244:    }
+5245:    final theme = Theme.of(context);
+5246:    final effectiveStyle = textStyle ?? DefaultTextStyle.of(context).style;
+5247:    final tableTextStyle =
+5248:        effectiveStyle.copyWith(fontSize: _kTableCellFontSize);
+5249:    return _withBlockSemantics(
+5250:      block,
+5251:      LayoutBuilder(
+5252:        builder: (context, constraints) {
+5253:          final metrics = _TableGridMetrics.compute(
+5254:            table: table,
+5255:            maxWidth: _tableMaxWidth(constraints, columnCount),
+5256:            textStyle: tableTextStyle,
+5257:            textDirection: Directionality.of(context),
+5258:          );
+5259:          final activeRange =
+5260:              _activeTableRange(selection, block.id, blockIndex);
+5261:          final stackWidth = metrics.width;
+5262:          final resizeHeight = metrics.height;
+5263:          final tableSurface = SizedBox(
+5264:            width: stackWidth,
+5265:            height: metrics.height,
+5266:            child: Stack(
+5267:              clipBehavior: Clip.none,
+5268:              children: <Widget>[
+5269:                Positioned.fill(
+5270:                  child: DecoratedBox(
+5271:                    decoration: BoxDecoration(
+5272:                      color: theme.colorScheme.surface,
+5273:                      borderRadius: BorderRadius.circular(_kTableSurfaceRadius),
+5274:                      boxShadow: _kSurfaceBoxShadow,
+5275:                    ),
+5276:                  ),
+5277:                ),
+5278:                ClipRRect(
+5279:                  borderRadius: BorderRadius.circular(_kTableSurfaceRadius),
+5280:                  child: SizedBox(
+5281:                    width: stackWidth,
+5282:                    height: metrics.height,
+5283:                    child: Stack(
+5284:                      clipBehavior: Clip.none,
+5285:                      children: <Widget>[
+5286:                        for (final cell in metrics.cells)
+5287:                          Positioned(
+5288:                            left: cell.left,
+5289:                            top: cell.top,
+5290:                            width: cell.width,
+5291:                            height: cell.height,
+5292:                            child: DecoratedBox(
+5293:                              key: ValueKey<String>(
+5294:                                'table-cell-border-${block.id}-${cell.rowIndex}-${cell.columnIndex}',
+5295:                              ),
+5296:                              decoration: BoxDecoration(
+5297:                                border: _tableCellBorder(
+5298:                                  cell: cell,
+5299:                                  rowCount: table.rowCount,
+5300:                                  columnCount: columnCount,
+5301:                                  color: _kTableBorderColor,
+5302:                                ),
+5303:                              ),
+5304:                              child: _TableCellSurface(
+5305:                                tableBlock: block,
+5306:                                blockIndex: blockIndex,
+5307:                                rowIndex: cell.rowIndex,
+5308:                                columnIndex: cell.columnIndex,
+5309:                                cell: cell.cell,
+5310:                                textStyle: tableTextStyle,
+5311:                                textAlign: _textAlign(
+5312:                                  table.columnAlignments[cell.columnIndex],
+5313:                                ),
+5314:                                selection: selection,
+5315:                                compositionState: compositionState,
+5316:                                registry: registry,
+5317:                                showCaret: showCaret,
+5318:                                highlightWholeCell: _shouldHighlightTableCell(
+5319:                                  selection,
+5320:                                  block.id,
+5321:                                  blockIndex,
+5322:                                  cell.rowIndex,
+5323:                                  cell.columnIndex,
+5324:                                ),
+5325:                                showDebugOverlay: showDebugOverlay,
+5326:                                inlineEmbedRenderer: inlineEmbedRenderer,
+5327:                                findMatches: findMatches,
+5328:                                currentFindMatch: currentFindMatch,
+5329:                              ),
+5330:                            ),
+5331:                          ),
+5332:                      ],
+5333:                    ),
+5334:                  ),
+5335:                ),
+5336:                if (activeRange != null &&
+5337:                    onColumnResize != null &&
+5338:                    resizeHeight > 0)
+5339:                  for (var column = 0;
+5340:                      column < metrics.columnWidths.length;
+5341:                      column++)
+5342:                    Positioned(
+5343:                      left: metrics.columnLefts[column] +
+5344:                          metrics.columnWidths[column] -
+5345:                          (_kTableResizeHandleWidth / 2),
+5346:                      top: 0,
+5347:                      width: _kTableResizeHandleWidth,
+5348:                      height: resizeHeight,
+5349:                      child: _TableColumnResizeHandle(
+5350:                        key: ValueKey<String>(
+5351:                          'table-resize-${block.id}-$column',
+5352:                        ),
+5353:                        columnIndex: column,
+5354:                        width: metrics.columnWidths[column],
+5355:                        onResize: (width) {
+5356:                          onColumnResize!(
+5357:                            blockIndex: blockIndex,
+5358:                            columnIndex: column,
+5359:                            width: width,
+5360:                          );
+5361:                        },
+5362:                      ),
+5363:                    ),
+5364:              ],
+5365:            ),
+5366:          );
+5367:          return TableFloatingToolbarOverlayAnchor(
+5368:            controller: toolbarOverlayController,
+5369:            requestBuilder: activeRange != null && onToolbarAction != null
+5370:                ? ({
+5371:                    required Object owner,
+5372:                    required LayerLink anchorLink,
+5373:                    required Rect anchorRect,
+5374:                    required double visibleTop,
+5375:                  }) =>
+5376:                    TableFloatingToolbarOverlayRequest(
+5377:                      owner: owner,
+5378:                      anchorLink: anchorLink,
+5379:                      anchorRect: anchorRect,
+5380:                      visibleTop: visibleTop,
+5381:                      tableBlockId: block.id,
+5382:                      blockIndex: blockIndex,
+5383:                      selectionRange: activeRange,
+5384:                      minWidth: _kTableToolbarMinWidth,
+5385:                      gap: _kTableFloatingToolbarGap,
+5386:                      fallbackHeight: _kTableFloatingToolbarEstimatedHeight,
+5387:                      toolbarBuilder: (context) => _TableFloatingToolbar(
+5388:                        block: block,
+5389:                        blockIndex: blockIndex,
+5390:                        range: activeRange,
+5391:                        onAction: onToolbarAction!,
+5392:                      ),
+5393:                    )
+5394:                : null,
+5395:            child: tableSurface,
+5396:          );
+5397:        },
+5398:      ),
+5399:    );
+5400:  }
+5401:}
+5402:
+5403:TableCellRange? _activeTableRange(
+5404:  DocumentSelection? selection,
+5405:  String tableBlockId,
+--- lib/src/widgets/wenz_rich_text_editor.dart:5405-5475 ---
+5405:  String tableBlockId,
+5406:  int blockIndex,
+5407:) {
+5408:  final range = selection?.tableCellRange;
+5409:  if (range == null ||
+5410:      range.tableBlockId != tableBlockId ||
+5411:      range.blockIndex != blockIndex) {
+5412:    return null;
+5413:  }
+5414:  return range;
+5415:}
+5416:
+5417:class _TableFloatingToolbar extends StatelessWidget {
+5418:  const _TableFloatingToolbar({
+5419:    required this.block,
+5420:    required this.blockIndex,
+5421:    required this.range,
+5422:    required this.onAction,
+5423:  });
+5424:
+5425:  final TableBlockNode block;
+5426:  final int blockIndex;
+5427:  final TableCellRange range;
+5428:  final TableToolbarActionHandler onAction;
+5429:
+5430:  @override
+5431:  Widget build(BuildContext context) {
+5432:    final theme = Theme.of(context);
+5433:    final cell = block.table.cellAt(range.startRow, range.startColumn);
+5434:    final canDeleteRow = block.table.rowCount > 1;
+5435:    final canDeleteColumn = block.table.columnCount > 1;
+5436:    final canMerge = !range.isSingleCell;
+5437:    final canSplit = cell != null &&
+5438:        !cell.covered &&
+5439:        (cell.rowSpan > 1 || cell.columnSpan > 1);
+5440:    return Material(
+5441:      key: const ValueKey<String>('table-floating-toolbar'),
+5442:      elevation: 3,
+5443:      color: theme.colorScheme.surface,
+5444:      borderRadius: BorderRadius.circular(8),
+5445:      child: DecoratedBox(
+5446:        decoration: BoxDecoration(
+5447:          border: Border.all(color: theme.dividerColor.withAlpha(160)),
+5448:          borderRadius: BorderRadius.circular(8),
+5449:        ),
+5450:        child: Padding(
+5451:          padding: const EdgeInsets.all(4),
+5452:          child: Wrap(
+5453:            spacing: 2,
+5454:            runSpacing: 2,
+5455:            children: <Widget>[
+5456:              _button(
+5457:                icon: Icons.keyboard_arrow_up,
+5458:                tooltip: '在上方插入行',
+5459:                action: TableToolbarAction.insertRowAbove,
+5460:              ),
+5461:              _button(
+5462:                icon: Icons.keyboard_arrow_down,
+5463:                tooltip: '在下方插入行',
+5464:                action: TableToolbarAction.insertRowBelow,
+5465:              ),
+5466:              _button(
+5467:                icon: Icons.delete_outline,
+5468:                tooltip: '删除行',
+5469:                action: TableToolbarAction.deleteRow,
+5470:                enabled: canDeleteRow,
+5471:              ),
+5472:              _divider(theme),
+5473:              _button(
+5474:                icon: Icons.keyboard_arrow_left,
+5475:                tooltip: '在左侧插入列',
+
+codex
+上一段输出被截断；我分段读取 build 接入和表格 surface 代码。
+exec
+powershell.exe -Command '$ErrorActionPreference='"'Stop'; "'$path='"'lib/src/widgets/wenz_rich_text_editor.dart'; "'$lines=Get-Content -Encoding UTF8 $path; foreach ($range in @('"'520-540','1018-1086','3218-3238','3408-3428','5210-5398')) { "'$parts=$range.Split('"'-'); "'$start=[int]$parts[0]; $end=[int]$parts[1]; Write-Output "--- $path:$range ---"; for ($i=$start-1; $i -lt $end -and $i -lt $lines.Length; $i++) { '"'{0}:{1}' -f ("'$i+1), $lines[$i] } }' in D:\project\GitHub\wenz_flutter\wenz_richtext
+2026-06-25T06:28:04.726580Z ERROR codex_core::tools::router: error={"output":"At line:2 char:296\r\n+ ... [int]$parts[0]; $end=[int]$parts[1]; Write-Output \"--- $path:$range - ...\r\n+                                                            ~~~~~~\r\nVariable reference is not valid. ':' was not followed by a valid variable name character. Consider using ${} to delimit\r\n the name.\r\n    + CategoryInfo          : ParserError: (:) [], ParentContainsErrorRecordException\r\n    + FullyQualifiedErrorId : InvalidVariableReferenceWithDrive\r\n \r\n","metadata":{"exit_code":1,"duration_seconds":0.2}}
+ exited 1 in 188ms:
+At line:2 char:296
++ ... [int]$parts[0]; $end=[int]$parts[1]; Write-Output "--- $path:$range - ...
++                                                            ~~~~~~
+Variable reference is not valid. ':' was not followed by a valid variable name character. Consider using ${} to delimit
+ the name.
+    + CategoryInfo          : ParserError: (:) [], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : InvalidVariableReferenceWithDrive
+ 
+
+codex
+读取命令有个 PowerShell 字符串冒号问题，我修正后继续。
+exec
+powershell.exe -Command '$ErrorActionPreference='"'Stop'; "'$path='"'lib/src/widgets/wenz_rich_text_editor.dart'; "'$lines=Get-Content -Encoding UTF8 $path; foreach ($range in @('"'520-540','1018-1086','3218-3238','3408-3428','5210-5398')) { "'$parts=$range.Split('"'-'); "'$start=[int]$parts[0]; $end=[int]$parts[1]; Write-Output ("--- {0}:{1} ---" -f $path,$range); for ($i=$start-1; $i -lt $end -and $i -lt $lines.Length; $i++) { '"'{0}:{1}' -f ("'$i+1), $lines[$i] } }' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 280ms:
+--- lib/src/widgets/wenz_rich_text_editor.dart:520-540 ---
+520:  late final ScrollController _scrollController = ScrollController();
+521:  late final SharedTextLayoutCache _layoutCache = SharedTextLayoutCache();
+522:  final GlobalKey _editorOverlayKey = GlobalKey();
+523:  late final TableFloatingToolbarOverlayController
+524:      _tableToolbarOverlayController = TableFloatingToolbarOverlayController();
+525:  final _BlockExtentCache _extentCache = _BlockExtentCache();
+526:  BlockRendererRegistry? _ownedBlockRenderers;
+527:
+528:  /// Guards [_scrollCaretIntoView]'s virtualised estimate-and-realign loop.
+529:  /// Each estimate-driven re-arm increments this; once it exceeds
+530:  /// [_maxScrollRealignFrames] we stop, so a persistently mis-estimated block
+531:  /// height cannot spin the viewport indefinitely.
+532:  int _scrollRealignDepth = 0;
+533:  static const int _maxScrollRealignFrames = 4;
+534:
+535:  /// The caret position (block index + offset) at the last scroll-into-view
+536:  /// check. IME composition updates call `notifyListeners` without moving the
+537:  /// caret; remembering the last-checked position lets us skip the (layout +
+538:  /// localToGlobal) scroll check when the caret hasn't moved — a hot path
+539:  /// during pinyin/japanese input.
+540:  _CaretKey? _lastScrollCheckedCaret;
+--- lib/src/widgets/wenz_rich_text_editor.dart:1018-1086 ---
+1018:    );
+1019:    return _buildEditorShell(
+1020:      context,
+1021:      focusNode,
+1022:      Stack(
+1023:        key: _editorOverlayKey,
+1024:        fit: StackFit.expand,
+1025:        clipBehavior: Clip.none,
+1026:        children: <Widget>[
+1027:          SelectionGestureOverlay(
+1028:            registry: _registry,
+1029:            scrollController: _scrollController,
+1030:            focusNode: focusNode,
+1031:            readOnly: widget.readOnly,
+1032:            onSelectionChanged: _handleSelectionChanged,
+1033:            onTapBeyondContent: _handleTapBeyondContent,
+1034:            child: editor,
+1035:          ),
+1036:          if (widget.slashMenuController?.isOpen == true)
+1037:            Positioned(
+1038:              left: _slashMenuOffset().dx,
+1039:              top: _slashMenuOffset().dy,
+1040:              child: WenzSlashMenuOverlay(
+1041:                controller: widget.slashMenuController!,
+1042:              ),
+1043:            ),
+1044:        ],
+1045:      ),
+1046:    );
+1047:  }
+1048:
+1049:  Widget _buildEditorShell(
+1050:    BuildContext context,
+1051:    FocusNode focusNode,
+1052:    Widget child,
+1053:  ) {
+1054:    return _SharedLayoutCacheScope(
+1055:      cache: _layoutCache,
+1056:      child: Focus(
+1057:        focusNode: focusNode,
+1058:        autofocus: widget.autofocus,
+1059:        onKeyEvent: _handleKeyEvent,
+1060:        child: Semantics(
+1061:          container: true,
+1062:          explicitChildNodes: true,
+1063:          enabled: true,
+1064:          textField: true,
+1065:          readOnly: widget.readOnly,
+1066:          focusable: true,
+1067:          focused: focusNode.hasFocus,
+1068:          multiline: true,
+1069:          label: widget.accessibility.effectiveLabel(readOnly: widget.readOnly),
+1070:          hint: widget.accessibility.effectiveHint(readOnly: widget.readOnly),
+1071:          onTap: () => focusNode.requestFocus(),
+1072:          onFocus: () => focusNode.requestFocus(),
+1073:          child: _withHighContrastFocusHighlight(
+1074:            context,
+1075:            focusNode,
+1076:            TableFloatingToolbarOverlayHost(
+1077:              controller: _tableToolbarOverlayController,
+1078:              child: child,
+1079:            ),
+1080:          ),
+1081:        ),
+1082:      ),
+1083:    );
+1084:  }
+1085:
+1086:  Widget _withHighContrastFocusHighlight(
+--- lib/src/widgets/wenz_rich_text_editor.dart:3218-3238 ---
+3218:  final bool canEdit;
+3219:  final MediaResolver? mediaResolver;
+3220:  final InlineEmbedRenderer? inlineEmbedRenderer;
+3221:  final HeadingCollapseState? headingCollapseState;
+3222:  final ValueChanged<String>? onHeadingCollapseToggled;
+3223:  final ValueChanged<String>? onCodeLanguageChanged;
+3224:  final Future<void> Function(String code)? onCodeCopied;
+3225:  final ValueChanged<String>? onCalloutVariantChanged;
+3226:  final TableToolbarActionHandler? onTableToolbarAction;
+3227:  final TableFloatingToolbarOverlayController? tableToolbarOverlayController;
+3228:  final TableColumnResizeHandler? onTableColumnResize;
+3229:  final TodoCheckedChangeHandler? onTodoCheckedChanged;
+3230:  final ObjectBlockActionHandler? onObjectBlockAction;
+3231:  final List<FindReplaceMatch> findMatches;
+3232:  final FindReplaceMatch? currentFindMatch;
+3233:
+3234:  @override
+3235:  State<_KeepAliveBlock> createState() => _KeepAliveBlockState();
+3236:}
+3237:
+3238:class _KeepAliveBlockState extends State<_KeepAliveBlock>
+--- lib/src/widgets/wenz_rich_text_editor.dart:3408-3428 ---
+3408:  final bool canEdit;
+3409:  final MediaResolver? mediaResolver;
+3410:  final InlineEmbedRenderer? inlineEmbedRenderer;
+3411:  final HeadingCollapseState? headingCollapseState;
+3412:  final ValueChanged<String>? onHeadingCollapseToggled;
+3413:  final ValueChanged<String>? onCodeLanguageChanged;
+3414:  final Future<void> Function(String code)? onCodeCopied;
+3415:  final ValueChanged<String>? onCalloutVariantChanged;
+3416:  final TableToolbarActionHandler? onTableToolbarAction;
+3417:  final TableFloatingToolbarOverlayController? tableToolbarOverlayController;
+3418:  final TableColumnResizeHandler? onTableColumnResize;
+3419:  final TodoCheckedChangeHandler? onTodoCheckedChanged;
+3420:  final ObjectBlockActionHandler? onObjectBlockAction;
+3421:  final List<FindReplaceMatch> findMatches;
+3422:  final FindReplaceMatch? currentFindMatch;
+3423:
+3424:  @override
+3425:  Widget build(BuildContext context) {
+3426:    final renderContext = BlockRenderContext(
+3427:      block: block,
+3428:      blockIndex: blockIndex,
+--- lib/src/widgets/wenz_rich_text_editor.dart:5210-5398 ---
+5210:    required this.compositionState,
+5211:    required this.registry,
+5212:    required this.showCaret,
+5213:    this.textStyle,
+5214:    this.showDebugOverlay = false,
+5215:    this.inlineEmbedRenderer,
+5216:    this.onToolbarAction,
+5217:    this.toolbarOverlayController,
+5218:    this.onColumnResize,
+5219:    this.findMatches = const <FindReplaceMatch>[],
+5220:    this.currentFindMatch,
+5221:  });
+5222:
+5223:  final TableBlockNode block;
+5224:  final int blockIndex;
+5225:  final DocumentSelection? selection;
+5226:  final CompositionState? compositionState;
+5227:  final BlockGeometryRegistry registry;
+5228:  final bool showCaret;
+5229:  final TextStyle? textStyle;
+5230:  final bool showDebugOverlay;
+5231:  final InlineEmbedRenderer? inlineEmbedRenderer;
+5232:  final TableToolbarActionHandler? onToolbarAction;
+5233:  final TableFloatingToolbarOverlayController? toolbarOverlayController;
+5234:  final TableColumnResizeHandler? onColumnResize;
+5235:  final List<FindReplaceMatch> findMatches;
+5236:  final FindReplaceMatch? currentFindMatch;
+5237:
+5238:  @override
+5239:  Widget build(BuildContext context) {
+5240:    final table = block.table;
+5241:    final columnCount = table.columnCount;
+5242:    if (table.rowCount == 0 || columnCount == 0) {
+5243:      return const SizedBox.shrink();
+5244:    }
+5245:    final theme = Theme.of(context);
+5246:    final effectiveStyle = textStyle ?? DefaultTextStyle.of(context).style;
+5247:    final tableTextStyle =
+5248:        effectiveStyle.copyWith(fontSize: _kTableCellFontSize);
+5249:    return _withBlockSemantics(
+5250:      block,
+5251:      LayoutBuilder(
+5252:        builder: (context, constraints) {
+5253:          final metrics = _TableGridMetrics.compute(
+5254:            table: table,
+5255:            maxWidth: _tableMaxWidth(constraints, columnCount),
+5256:            textStyle: tableTextStyle,
+5257:            textDirection: Directionality.of(context),
+5258:          );
+5259:          final activeRange =
+5260:              _activeTableRange(selection, block.id, blockIndex);
+5261:          final stackWidth = metrics.width;
+5262:          final resizeHeight = metrics.height;
+5263:          final tableSurface = SizedBox(
+5264:            width: stackWidth,
+5265:            height: metrics.height,
+5266:            child: Stack(
+5267:              clipBehavior: Clip.none,
+5268:              children: <Widget>[
+5269:                Positioned.fill(
+5270:                  child: DecoratedBox(
+5271:                    decoration: BoxDecoration(
+5272:                      color: theme.colorScheme.surface,
+5273:                      borderRadius: BorderRadius.circular(_kTableSurfaceRadius),
+5274:                      boxShadow: _kSurfaceBoxShadow,
+5275:                    ),
+5276:                  ),
+5277:                ),
+5278:                ClipRRect(
+5279:                  borderRadius: BorderRadius.circular(_kTableSurfaceRadius),
+5280:                  child: SizedBox(
+5281:                    width: stackWidth,
+5282:                    height: metrics.height,
+5283:                    child: Stack(
+5284:                      clipBehavior: Clip.none,
+5285:                      children: <Widget>[
+5286:                        for (final cell in metrics.cells)
+5287:                          Positioned(
+5288:                            left: cell.left,
+5289:                            top: cell.top,
+5290:                            width: cell.width,
+5291:                            height: cell.height,
+5292:                            child: DecoratedBox(
+5293:                              key: ValueKey<String>(
+5294:                                'table-cell-border-${block.id}-${cell.rowIndex}-${cell.columnIndex}',
+5295:                              ),
+5296:                              decoration: BoxDecoration(
+5297:                                border: _tableCellBorder(
+5298:                                  cell: cell,
+5299:                                  rowCount: table.rowCount,
+5300:                                  columnCount: columnCount,
+5301:                                  color: _kTableBorderColor,
+5302:                                ),
+5303:                              ),
+5304:                              child: _TableCellSurface(
+5305:                                tableBlock: block,
+5306:                                blockIndex: blockIndex,
+5307:                                rowIndex: cell.rowIndex,
+5308:                                columnIndex: cell.columnIndex,
+5309:                                cell: cell.cell,
+5310:                                textStyle: tableTextStyle,
+5311:                                textAlign: _textAlign(
+5312:                                  table.columnAlignments[cell.columnIndex],
+5313:                                ),
+5314:                                selection: selection,
+5315:                                compositionState: compositionState,
+5316:                                registry: registry,
+5317:                                showCaret: showCaret,
+5318:                                highlightWholeCell: _shouldHighlightTableCell(
+5319:                                  selection,
+5320:                                  block.id,
+5321:                                  blockIndex,
+5322:                                  cell.rowIndex,
+5323:                                  cell.columnIndex,
+5324:                                ),
+5325:                                showDebugOverlay: showDebugOverlay,
+5326:                                inlineEmbedRenderer: inlineEmbedRenderer,
+5327:                                findMatches: findMatches,
+5328:                                currentFindMatch: currentFindMatch,
+5329:                              ),
+5330:                            ),
+5331:                          ),
+5332:                      ],
+5333:                    ),
+5334:                  ),
+5335:                ),
+5336:                if (activeRange != null &&
+5337:                    onColumnResize != null &&
+5338:                    resizeHeight > 0)
+5339:                  for (var column = 0;
+5340:                      column < metrics.columnWidths.length;
+5341:                      column++)
+5342:                    Positioned(
+5343:                      left: metrics.columnLefts[column] +
+5344:                          metrics.columnWidths[column] -
+5345:                          (_kTableResizeHandleWidth / 2),
+5346:                      top: 0,
+5347:                      width: _kTableResizeHandleWidth,
+5348:                      height: resizeHeight,
+5349:                      child: _TableColumnResizeHandle(
+5350:                        key: ValueKey<String>(
+5351:                          'table-resize-${block.id}-$column',
+5352:                        ),
+5353:                        columnIndex: column,
+5354:                        width: metrics.columnWidths[column],
+5355:                        onResize: (width) {
+5356:                          onColumnResize!(
+5357:                            blockIndex: blockIndex,
+5358:                            columnIndex: column,
+5359:                            width: width,
+5360:                          );
+5361:                        },
+5362:                      ),
+5363:                    ),
+5364:              ],
+5365:            ),
+5366:          );
+5367:          return TableFloatingToolbarOverlayAnchor(
+5368:            controller: toolbarOverlayController,
+5369:            requestBuilder: activeRange != null && onToolbarAction != null
+5370:                ? ({
+5371:                    required Object owner,
+5372:                    required LayerLink anchorLink,
+5373:                    required Rect anchorRect,
+5374:                    required double visibleTop,
+5375:                  }) =>
+5376:                    TableFloatingToolbarOverlayRequest(
+5377:                      owner: owner,
+5378:                      anchorLink: anchorLink,
+5379:                      anchorRect: anchorRect,
+5380:                      visibleTop: visibleTop,
+5381:                      tableBlockId: block.id,
+5382:                      blockIndex: blockIndex,
+5383:                      selectionRange: activeRange,
+5384:                      minWidth: _kTableToolbarMinWidth,
+5385:                      gap: _kTableFloatingToolbarGap,
+5386:                      fallbackHeight: _kTableFloatingToolbarEstimatedHeight,
+5387:                      toolbarBuilder: (context) => _TableFloatingToolbar(
+5388:                        block: block,
+5389:                        blockIndex: blockIndex,
+5390:                        range: activeRange,
+5391:                        onAction: onToolbarAction!,
+5392:                      ),
+5393:                    )
+5394:                : null,
+5395:            child: tableSurface,
+5396:          );
+5397:        },
+5398:      ),
+
+**Troubleshooting imports**
+
+I think I'm facing a problem with missing imports. I'm wondering if I need to check if there's a specific import for "table_floating_toolbar_overlay.dart" since it's not showing up at the beginning. It could be that certain parts are needed if Wenz uses classes. I should search for the required import. I don't have a clear view of the structure yet. Let’s figure out what’s missing!
+codex
+宿主和 Anchor 已接入，但我还需要确认 import/构造传参完整性。
+exec
+powershell.exe -Command '$ErrorActionPreference='"'Stop'; rg -n \"table_floating_toolbar_overlay|_KeepAliveBlock\\(|_BlockList\\(|tableToolbarOverlayController|toolbarOverlayController|_TableBlockView\\(\" lib/src/widgets/wenz_rich_text_editor.dart" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 164ms:
+524:      _tableToolbarOverlayController = TableFloatingToolbarOverlayController();
+689:    _tableToolbarOverlayController.hide();
+690:    _tableToolbarOverlayController.dispose();
+969:        return _KeepAliveBlock(
+1008:          tableToolbarOverlayController: _tableToolbarOverlayController,
+1077:              controller: _tableToolbarOverlayController,
+3173:  const _KeepAliveBlock({
+3197:    this.tableToolbarOverlayController,
+3227:  final TableFloatingToolbarOverlayController? tableToolbarOverlayController;
+3283:        oldWidget.tableToolbarOverlayController !=
+3284:            widget.tableToolbarOverlayController ||
+3325:      tableToolbarOverlayController: widget.tableToolbarOverlayController,
+3389:    this.tableToolbarOverlayController,
+3417:  final TableFloatingToolbarOverlayController? tableToolbarOverlayController;
+3446:      tableToolbarOverlayController: tableToolbarOverlayController,
+4238:    toolbarOverlayController: rc.tableToolbarOverlayController,
+5217:    this.toolbarOverlayController,
+5233:  final TableFloatingToolbarOverlayController? toolbarOverlayController;
+5368:            controller: toolbarOverlayController,
+
+codex
+发现文件使用 Overlay 类型但未显式 import；我继续核对生命周期和渲染上下文。
+exec
+powershell.exe -Command '$ErrorActionPreference='"'Stop'; "'$path='"'lib/src/widgets/wenz_rich_text_editor.dart'; "'$lines=Get-Content -Encoding UTF8 $path; foreach ($range in @('"'660-705','940-1012','3168-3335','3378-3455','4218-4245')) { "'$parts=$range.Split('"'-'); "'$start=[int]$parts[0]; $end=[int]$parts[1]; Write-Output ("--- {0}:{1} ---" -f $path,$range); for ($i=$start-1; $i -lt $end -and $i -lt $lines.Length; $i++) { '"'{0}:{1}' -f ("'$i+1), $lines[$i] } }' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 293ms:
+--- lib/src/widgets/wenz_rich_text_editor.dart:660-705 ---
+660:      _handleOutlineControllerChanged();
+661:    } else if (oldWidget.findController != widget.findController) {
+662:      _syncFindControllerOutline();
+663:    }
+664:    // The effective focus node may change when the caller swaps focusNode or
+665:    // controller; re-inject so controller.requestFocus() targets the right node.
+666:    final focusNode = _effectiveFocusNode;
+667:    if (focusNode != _controllerAttachedFocusNode) {
+668:      widget.controller.attachFocusNode(focusNode);
+669:      _controllerAttachedFocusNode = focusNode;
+670:    }
+671:  }
+672:
+673:  @override
+674:  void dispose() {
+675:    widget.controller.removeListener(_handleControllerChanged);
+676:    widget.findController?.removeListener(_handleFindControllerChanged);
+677:    widget.slashMenuController?.removeListener(_handleSlashMenuChanged);
+678:    widget.outlineController?.removeListener(_handleOutlineControllerChanged);
+679:    // Release the focus node from the controller so a later requestFocus() on
+680:    // a disposed editor is a safe no-op. Only clear when this widget was the
+681:    // one that injected it.
+682:    if (_controllerAttachedFocusNode != null) {
+683:      widget.controller.attachFocusNode(null);
+684:    }
+685:    _controllerAttachedFocusNode = null;
+686:    _listenedFocusNode?.removeListener(_handleFocusChanged);
+687:    _inputClient.performSelectorHandler = null;
+688:    _inputClient.detach();
+689:    _tableToolbarOverlayController.hide();
+690:    _tableToolbarOverlayController.dispose();
+691:    _scrollController.dispose();
+692:    // BlockGeometryRegistry holds no native resources; clearing its maps is
+693:    // unnecessary once the editor is gone.
+694:    _layoutCache.dispose();
+695:    _internalFocusNode?.dispose();
+696:    super.dispose();
+697:  }
+698:
+699:  void _handleFindControllerChanged() {
+700:    _revealCurrentSelectionIfHidden();
+701:    if (mounted) {
+702:      setState(() {});
+703:    }
+704:  }
+705:
+--- lib/src/widgets/wenz_rich_text_editor.dart:940-1012 ---
+940:    // means the caret and selection highlight always paint and the geometry
+941:    // registry always knows their box, so cross-block selection / caret do not
+942:    // break under virtualisation. Usually resolves to 1-2 ids.
+943:    final keepAliveIds = _keepAliveBlockIds(widget.controller.selection)
+944:        .intersection(projection.visibleBlockIds);
+945:    // Block ids whose content changed in the most recent controller mutation.
+946:    // null = treat every block as changed (full rebuild), e.g. after a document
+947:    // replace where no diff was available. Used by _KeepAliveBlock to skip
+948:    // re-rendering blocks whose content + selection-relevance did not change.
+949:    final dirtyIds = widget.controller.lastChangedBlockIds;
+950:    final findMatches =
+951:        widget.findController?.matches ?? const <FindReplaceMatch>[];
+952:    final currentFindMatch = widget.findController?.currentMatch;
+953:    final listMarkers = _listMarkersFor(sourceBlocks);
+954:
+955:    _extentCache.retainBlocks(sourceBlocks);
+956:
+957:    final editor = _MeasuredVirtualBlockList(
+958:      controller: _scrollController,
+959:      padding: widget.padding,
+960:      physics: widget.physics,
+961:      blocks: blocks,
+962:      blockIndexes: blockIndexes,
+963:      blockSpacing: widget.blockSpacing,
+964:      extentCache: _extentCache,
+965:      keepAliveIds: keepAliveIds,
+966:      onExtentUpdated: _scrollCaretIntoViewIfNeeded,
+967:      itemBuilder: (context, blockIndex) {
+968:        final block = sourceBlocks[blockIndex];
+969:        return _KeepAliveBlock(
+970:          key: ValueKey<String>(block.id),
+971:          block: block,
+972:          blockIndex: blockIndex,
+973:          blockCount: sourceBlocks.length,
+974:          listMarker: listMarkers[blockIndex],
+975:          keepAlive: keepAliveIds.contains(block.id),
+976:          blockChanged: dirtyIds == null || dirtyIds.contains(block.id),
+977:          selection: widget.controller.selection,
+978:          compositionState: widget.controller.compositionState,
+979:          registry: _registry,
+980:          blockRenderers: _blockRenderers,
+981:          showCaret: showCaret,
+982:          textStyle: widget.textStyle,
+983:          showDebugOverlay: widget.showDebugOverlay,
+984:          canEdit: !widget.readOnly,
+985:          mediaResolver: widget.mediaResolver,
+986:          inlineEmbedRenderer: widget.inlineEmbedRenderer,
+987:          headingCollapseState: _headingCollapseStateFor(block),
+988:          onHeadingCollapseToggled: _handleHeadingCollapseToggled,
+989:          onCodeLanguageChanged: widget.readOnly
+990:              ? null
+991:              : (language) {
+992:                  widget.controller.setCodeLanguage(
+993:                    language,
+994:                    blockIndex: blockIndex,
+995:                  );
+996:                },
+997:          onCodeCopied: _copyTextToClipboard,
+998:          onCalloutVariantChanged: widget.readOnly
+999:              ? null
+1000:              : (variant) {
+1001:                  widget.controller.setCalloutVariant(
+1002:                    variant,
+1003:                    blockIndex: blockIndex,
+1004:                  );
+1005:                },
+1006:          onTableToolbarAction:
+1007:              widget.readOnly ? null : _handleTableToolbarAction,
+1008:          tableToolbarOverlayController: _tableToolbarOverlayController,
+1009:          onTableColumnResize:
+1010:              widget.readOnly ? null : _handleTableColumnResize,
+1011:          onTodoCheckedChanged:
+1012:              widget.readOnly ? null : _handleTodoCheckedChanged,
+--- lib/src/widgets/wenz_rich_text_editor.dart:3168-3335 ---
+3168:/// content changed ([blockChanged]) *or* when the selection / caret / IME
+3169:/// composition touches it. A pure caret move inside a different block leaves
+3170:/// this block's cached child intact, avoiding the inline-span rebuild that
+3171:/// would otherwise run for every block on every keystroke.
+3172:class _KeepAliveBlock extends StatefulWidget {
+3173:  const _KeepAliveBlock({
+3174:    super.key,
+3175:    required this.block,
+3176:    required this.blockIndex,
+3177:    required this.blockCount,
+3178:    this.listMarker,
+3179:    required this.keepAlive,
+3180:    required this.blockChanged,
+3181:    required this.selection,
+3182:    required this.compositionState,
+3183:    required this.registry,
+3184:    required this.blockRenderers,
+3185:    required this.showCaret,
+3186:    this.textStyle,
+3187:    this.showDebugOverlay = false,
+3188:    this.canEdit = true,
+3189:    this.mediaResolver,
+3190:    this.inlineEmbedRenderer,
+3191:    this.headingCollapseState,
+3192:    this.onHeadingCollapseToggled,
+3193:    this.onCodeLanguageChanged,
+3194:    this.onCodeCopied,
+3195:    this.onCalloutVariantChanged,
+3196:    this.onTableToolbarAction,
+3197:    this.tableToolbarOverlayController,
+3198:    this.onTableColumnResize,
+3199:    this.onTodoCheckedChanged,
+3200:    this.onObjectBlockAction,
+3201:    this.findMatches = const <FindReplaceMatch>[],
+3202:    this.currentFindMatch,
+3203:  });
+3204:
+3205:  final BlockNode block;
+3206:  final int blockIndex;
+3207:  final int blockCount;
+3208:  final String? listMarker;
+3209:  final bool keepAlive;
+3210:  final bool blockChanged;
+3211:  final DocumentSelection? selection;
+3212:  final CompositionState? compositionState;
+3213:  final BlockGeometryRegistry registry;
+3214:  final BlockRendererRegistry blockRenderers;
+3215:  final bool showCaret;
+3216:  final TextStyle? textStyle;
+3217:  final bool showDebugOverlay;
+3218:  final bool canEdit;
+3219:  final MediaResolver? mediaResolver;
+3220:  final InlineEmbedRenderer? inlineEmbedRenderer;
+3221:  final HeadingCollapseState? headingCollapseState;
+3222:  final ValueChanged<String>? onHeadingCollapseToggled;
+3223:  final ValueChanged<String>? onCodeLanguageChanged;
+3224:  final Future<void> Function(String code)? onCodeCopied;
+3225:  final ValueChanged<String>? onCalloutVariantChanged;
+3226:  final TableToolbarActionHandler? onTableToolbarAction;
+3227:  final TableFloatingToolbarOverlayController? tableToolbarOverlayController;
+3228:  final TableColumnResizeHandler? onTableColumnResize;
+3229:  final TodoCheckedChangeHandler? onTodoCheckedChanged;
+3230:  final ObjectBlockActionHandler? onObjectBlockAction;
+3231:  final List<FindReplaceMatch> findMatches;
+3232:  final FindReplaceMatch? currentFindMatch;
+3233:
+3234:  @override
+3235:  State<_KeepAliveBlock> createState() => _KeepAliveBlockState();
+3236:}
+3237:
+3238:class _KeepAliveBlockState extends State<_KeepAliveBlock>
+3239:    with AutomaticKeepAliveClientMixin {
+3240:  @override
+3241:  bool get wantKeepAlive => widget.keepAlive;
+3242:
+3243:  /// Cached child from the last build that actually rendered. Reused when the
+3244:  /// block's content and selection-relevance are unchanged.
+3245:  Widget? _cachedChild;
+3246:
+3247:  @override
+3248:  void didUpdateWidget(covariant _KeepAliveBlock oldWidget) {
+3249:    super.didUpdateWidget(oldWidget);
+3250:    if (oldWidget.keepAlive != widget.keepAlive) {
+3251:      updateKeepAlive();
+3252:    }
+3253:    // Invalidate the cache when something this block renders depends on
+3254:    // changed. Content change, selection/caret/composition touching this block,
+3255:    // or ambient style/debug toggles all force a fresh render.
+3256:    //
+3257:    // Selection requires care: a block that stays selected while the selection
+3258:    // extent moves within it (e.g. dragging to resize a range) does not flip
+3259:    // the boolean "touches" flag, but the rendered highlight/caret offset DID
+3260:    // change. So when this block is touched by the selection, a different
+3261:    // selection object must also invalidate the cache.
+3262:    final selectionTouchedChanged =
+3263:        _selectionTouchesBlock(oldWidget) != _selectionTouchesBlock(widget);
+3264:    final selectionShiftedWhileTouched = _selectionTouchesBlock(widget) &&
+3265:        oldWidget.selection != widget.selection;
+3266:    if (widget.blockChanged ||
+3267:        oldWidget.blockIndex != widget.blockIndex ||
+3268:        oldWidget.blockCount != widget.blockCount ||
+3269:        selectionTouchedChanged ||
+3270:        selectionShiftedWhileTouched ||
+3271:        oldWidget.showCaret != widget.showCaret ||
+3272:        oldWidget.showDebugOverlay != widget.showDebugOverlay ||
+3273:        oldWidget.listMarker != widget.listMarker ||
+3274:        oldWidget.canEdit != widget.canEdit ||
+3275:        oldWidget.textStyle != widget.textStyle ||
+3276:        oldWidget.inlineEmbedRenderer != widget.inlineEmbedRenderer ||
+3277:        oldWidget.headingCollapseState != widget.headingCollapseState ||
+3278:        oldWidget.onHeadingCollapseToggled != widget.onHeadingCollapseToggled ||
+3279:        oldWidget.onCodeLanguageChanged != widget.onCodeLanguageChanged ||
+3280:        oldWidget.onCodeCopied != widget.onCodeCopied ||
+3281:        oldWidget.onCalloutVariantChanged != widget.onCalloutVariantChanged ||
+3282:        oldWidget.onTableToolbarAction != widget.onTableToolbarAction ||
+3283:        oldWidget.tableToolbarOverlayController !=
+3284:            widget.tableToolbarOverlayController ||
+3285:        oldWidget.onTableColumnResize != widget.onTableColumnResize ||
+3286:        oldWidget.onTodoCheckedChanged != widget.onTodoCheckedChanged ||
+3287:        oldWidget.onObjectBlockAction != widget.onObjectBlockAction ||
+3288:        oldWidget.findMatches != widget.findMatches ||
+3289:        oldWidget.currentFindMatch != widget.currentFindMatch ||
+3290:        _compositionTouchesBlock(oldWidget) !=
+3291:            _compositionTouchesBlock(widget) ||
+3292:        oldWidget.blockRenderers != widget.blockRenderers) {
+3293:      _cachedChild = null;
+3294:    }
+3295:  }
+3296:
+3297:  @override
+3298:  Widget build(BuildContext context) {
+3299:    super.build(context);
+3300:    final cached = _cachedChild;
+3301:    if (cached != null) {
+3302:      return cached;
+3303:    }
+3304:    final child = _BlockRenderer(
+3305:      block: widget.block,
+3306:      blockIndex: widget.blockIndex,
+3307:      blockCount: widget.blockCount,
+3308:      listMarker: widget.listMarker,
+3309:      selection: widget.selection,
+3310:      compositionState: widget.compositionState,
+3311:      registry: widget.registry,
+3312:      blockRenderers: widget.blockRenderers,
+3313:      showCaret: widget.showCaret,
+3314:      textStyle: widget.textStyle,
+3315:      showDebugOverlay: widget.showDebugOverlay,
+3316:      canEdit: widget.canEdit,
+3317:      mediaResolver: widget.mediaResolver,
+3318:      inlineEmbedRenderer: widget.inlineEmbedRenderer,
+3319:      headingCollapseState: widget.headingCollapseState,
+3320:      onHeadingCollapseToggled: widget.onHeadingCollapseToggled,
+3321:      onCodeLanguageChanged: widget.onCodeLanguageChanged,
+3322:      onCodeCopied: widget.onCodeCopied,
+3323:      onCalloutVariantChanged: widget.onCalloutVariantChanged,
+3324:      onTableToolbarAction: widget.onTableToolbarAction,
+3325:      tableToolbarOverlayController: widget.tableToolbarOverlayController,
+3326:      onTableColumnResize: widget.onTableColumnResize,
+3327:      onTodoCheckedChanged: widget.onTodoCheckedChanged,
+3328:      onObjectBlockAction: widget.onObjectBlockAction,
+3329:      findMatches: widget.findMatches,
+3330:      currentFindMatch: widget.currentFindMatch,
+3331:    );
+3332:    _cachedChild = child;
+3333:    return child;
+3334:  }
+3335:
+--- lib/src/widgets/wenz_rich_text_editor.dart:3378-3455 ---
+3378:    this.textStyle,
+3379:    this.showDebugOverlay = false,
+3380:    this.canEdit = true,
+3381:    this.mediaResolver,
+3382:    this.inlineEmbedRenderer,
+3383:    this.headingCollapseState,
+3384:    this.onHeadingCollapseToggled,
+3385:    this.onCodeLanguageChanged,
+3386:    this.onCodeCopied,
+3387:    this.onCalloutVariantChanged,
+3388:    this.onTableToolbarAction,
+3389:    this.tableToolbarOverlayController,
+3390:    this.onTableColumnResize,
+3391:    this.onTodoCheckedChanged,
+3392:    this.onObjectBlockAction,
+3393:    this.findMatches = const <FindReplaceMatch>[],
+3394:    this.currentFindMatch,
+3395:  });
+3396:
+3397:  final BlockNode block;
+3398:  final int blockIndex;
+3399:  final int blockCount;
+3400:  final String? listMarker;
+3401:  final DocumentSelection? selection;
+3402:  final CompositionState? compositionState;
+3403:  final BlockGeometryRegistry registry;
+3404:  final BlockRendererRegistry blockRenderers;
+3405:  final bool showCaret;
+3406:  final TextStyle? textStyle;
+3407:  final bool showDebugOverlay;
+3408:  final bool canEdit;
+3409:  final MediaResolver? mediaResolver;
+3410:  final InlineEmbedRenderer? inlineEmbedRenderer;
+3411:  final HeadingCollapseState? headingCollapseState;
+3412:  final ValueChanged<String>? onHeadingCollapseToggled;
+3413:  final ValueChanged<String>? onCodeLanguageChanged;
+3414:  final Future<void> Function(String code)? onCodeCopied;
+3415:  final ValueChanged<String>? onCalloutVariantChanged;
+3416:  final TableToolbarActionHandler? onTableToolbarAction;
+3417:  final TableFloatingToolbarOverlayController? tableToolbarOverlayController;
+3418:  final TableColumnResizeHandler? onTableColumnResize;
+3419:  final TodoCheckedChangeHandler? onTodoCheckedChanged;
+3420:  final ObjectBlockActionHandler? onObjectBlockAction;
+3421:  final List<FindReplaceMatch> findMatches;
+3422:  final FindReplaceMatch? currentFindMatch;
+3423:
+3424:  @override
+3425:  Widget build(BuildContext context) {
+3426:    final renderContext = BlockRenderContext(
+3427:      block: block,
+3428:      blockIndex: blockIndex,
+3429:      blockCount: blockCount,
+3430:      listMarker: listMarker,
+3431:      selection: selection,
+3432:      compositionState: compositionState,
+3433:      registry: registry,
+3434:      showCaret: showCaret,
+3435:      textStyle: textStyle,
+3436:      showDebugOverlay: showDebugOverlay,
+3437:      canEdit: canEdit,
+3438:      mediaResolver: mediaResolver,
+3439:      inlineEmbedRenderer: inlineEmbedRenderer,
+3440:      headingCollapseState: headingCollapseState,
+3441:      onHeadingCollapseToggled: onHeadingCollapseToggled,
+3442:      onCodeLanguageChanged: onCodeLanguageChanged,
+3443:      onCodeCopied: onCodeCopied,
+3444:      onCalloutVariantChanged: onCalloutVariantChanged,
+3445:      onTableToolbarAction: onTableToolbarAction,
+3446:      tableToolbarOverlayController: tableToolbarOverlayController,
+3447:      onTableColumnResize: onTableColumnResize,
+3448:      onTodoCheckedChanged: onTodoCheckedChanged,
+3449:      onObjectBlockAction: onObjectBlockAction,
+3450:      findMatches: _matchesForBlock(findMatches, blockIndex),
+3451:      currentFindMatch:
+3452:          currentFindMatch?.blockIndex == blockIndex ? currentFindMatch : null,
+3453:    );
+3454:    final builder = blockRenderers.resolveForBlock(
+3455:      block,
+--- lib/src/widgets/wenz_rich_text_editor.dart:4218-4245 ---
+4218:      child: media,
+4219:    ),
+4220:  );
+4221:}
+4222:
+4223:Widget _defaultTableBlockRenderer(
+4224:  BuildContext context,
+4225:  BlockRenderContext rc,
+4226:) {
+4227:  return _TableBlockRenderer(
+4228:    block: rc.block as TableBlockNode,
+4229:    blockIndex: rc.blockIndex,
+4230:    selection: rc.selection,
+4231:    compositionState: rc.compositionState,
+4232:    registry: rc.registry,
+4233:    showCaret: rc.showCaret,
+4234:    textStyle: rc.textStyle,
+4235:    showDebugOverlay: rc.showDebugOverlay,
+4236:    inlineEmbedRenderer: rc.inlineEmbedRenderer,
+4237:    onToolbarAction: rc.onTableToolbarAction,
+4238:    toolbarOverlayController: rc.tableToolbarOverlayController,
+4239:    onColumnResize: rc.onTableColumnResize,
+4240:    findMatches: rc.findMatches,
+4241:    currentFindMatch: rc.currentFindMatch,
+4242:  );
+4243:}
+4244:
+4245:Widget _defaultDividerBlockRenderer(
+
+**Inspecting import requirements**
+
+I’m thinking about whether I need an import for my code. It seems like I shouldn’t, but maybe the code could fail without it. There’s a mention of the `table_floating_toolbar_overlay.dart` file, and it might be important. I should take a closer look at the top of the table file to confirm what’s needed for it to work correctly. I’m curious if this will help clarify things!
+codex
+生命周期隐藏逻辑已经在 dispose；现在检查 Overlay helper 文件完整 API 和潜在刷新缺口。
+exec
+powershell.exe -Command '$ErrorActionPreference='"'Stop'; "'$path='"'lib/src/widgets/table_floating_toolbar_overlay.dart'; "'$lines=Get-Content -Encoding UTF8 $path; foreach ($range in @('"'1-120','120-260','260-396')) { "'$parts=$range.Split('"'-'); "'$start=[int]$parts[0]; $end=[int]$parts[1]; Write-Output ("--- {0}:{1} ---" -f $path,$range); for ($i=$start-1; $i -lt $end -and $i -lt $lines.Length; $i++) { '"'{0}:{1}' -f ("'$i+1), $lines[$i] } }' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 253ms:
+--- lib/src/widgets/table_floating_toolbar_overlay.dart:1-120 ---
+1:import 'dart:math' as math;
+2:
+3:import 'package:flutter/material.dart';
+4:import 'package:flutter/scheduler.dart';
+5:
+6:import '../core/position/document_position.dart';
+7:
+8:/// Builds the visible table toolbar for an overlay request.
+9:typedef TableFloatingToolbarOverlayBuilder = Widget Function(
+10:  BuildContext context,
+11:);
+12:
+13:/// Creates a request after the table anchor owns a [LayerLink] and global rect.
+14:typedef TableFloatingToolbarOverlayRequestBuilder
+15:    = TableFloatingToolbarOverlayRequest Function({
+16:  required Object owner,
+17:  required LayerLink anchorLink,
+18:  required Rect anchorRect,
+19:  required double visibleTop,
+20:});
+21:
+22:/// Immutable payload sent from a table renderer to the editor-owned overlay host.
+23:///
+24:/// The table renderer owns only the anchor and the current toolbar payload. The
+25:/// editor owns [TableFloatingToolbarOverlayHost], which renders this payload with
+26:/// Flutter's system [OverlayPortal] plus [CompositedTransformFollower]. This
+27:/// keeps the toolbar outside the table block's internal [Stack], so it can cross
+28:/// parent bounds and participate in overlay hit testing without making renderers
+29:/// manage overlay entries directly.
+30:@immutable
+31:class TableFloatingToolbarOverlayRequest {
+32:  const TableFloatingToolbarOverlayRequest({
+33:    required this.owner,
+34:    required this.anchorLink,
+35:    required this.anchorRect,
+36:    required this.visibleTop,
+37:    required this.tableBlockId,
+38:    required this.blockIndex,
+39:    required this.selectionRange,
+40:    required this.toolbarBuilder,
+41:    this.enabled = true,
+42:    this.minWidth = 0,
+43:    this.gap = 4,
+44:    this.fallbackHeight = 40,
+45:  });
+46:
+47:  /// Opaque identity of the renderer anchor that published this request.
+48:  final Object owner;
+49:
+50:  /// Link followed by the system overlay entry.
+51:  final LayerLink anchorLink;
+52:
+53:  /// Current global rect of the table block anchor.
+54:  final Rect anchorRect;
+55:
+56:  /// Top edge of the visible editor viewport in global coordinates.
+57:  final double visibleTop;
+58:
+59:  /// Active table identity used by hosts/tests to reason about request staleness.
+60:  final String tableBlockId;
+61:
+62:  /// Active table block index in the source document.
+63:  final int blockIndex;
+64:
+65:  /// Current table-cell selection range that the toolbar actions target.
+66:  final TableCellRange selectionRange;
+67:
+68:  /// Builds toolbar chrome. The renderer captures the table action callback here
+69:  /// so the overlay host never calls back into renderer state directly.
+70:  final TableFloatingToolbarOverlayBuilder toolbarBuilder;
+71:
+72:  /// Whether this request may be shown. Hosts hide disabled requests.
+73:  final bool enabled;
+74:
+75:  /// Minimum toolbar width, independent from the table block's layout width.
+76:  final double minWidth;
+77:
+78:  /// Gap between the toolbar bottom and the table anchor top.
+79:  final double gap;
+80:
+81:  /// Height used until the overlay measures its real toolbar child.
+82:  final double fallbackHeight;
+83:}
+84:
+85:/// Editor-owned controller for the active table toolbar overlay request.
+86:class TableFloatingToolbarOverlayController extends ChangeNotifier {
+87:  TableFloatingToolbarOverlayRequest? _request;
+88:
+89:  TableFloatingToolbarOverlayRequest? get request => _request;
+90:
+91:  void show(TableFloatingToolbarOverlayRequest request) {
+92:    _request = request;
+93:    notifyListeners();
+94:  }
+95:
+96:  void hide({Object? owner}) {
+97:    final current = _request;
+98:    if (current == null) {
+99:      return;
+100:    }
+101:    if (owner != null && !identical(current.owner, owner)) {
+102:      return;
+103:    }
+104:    _request = null;
+105:    notifyListeners();
+106:  }
+107:}
+108:
+109:/// Editor-level host that renders table toolbar requests into the system overlay.
+110:class TableFloatingToolbarOverlayHost extends StatefulWidget {
+111:  const TableFloatingToolbarOverlayHost({
+112:    super.key,
+113:    required this.controller,
+114:    required this.child,
+115:  });
+116:
+117:  final TableFloatingToolbarOverlayController controller;
+118:  final Widget child;
+119:
+120:  @override
+--- lib/src/widgets/table_floating_toolbar_overlay.dart:120-260 ---
+120:  @override
+121:  State<TableFloatingToolbarOverlayHost> createState() =>
+122:      _TableFloatingToolbarOverlayHostState();
+123:}
+124:
+125:class _TableFloatingToolbarOverlayHostState
+126:    extends State<TableFloatingToolbarOverlayHost> {
+127:  final OverlayPortalController _portalController = OverlayPortalController();
+128:  TableFloatingToolbarOverlayRequest? _request;
+129:
+130:  @override
+131:  void initState() {
+132:    super.initState();
+133:    _request = widget.controller.request;
+134:    widget.controller.addListener(_handleControllerChanged);
+135:    WidgetsBinding.instance.addPostFrameCallback((_) => _syncPortal());
+136:  }
+137:
+138:  @override
+139:  void didUpdateWidget(covariant TableFloatingToolbarOverlayHost oldWidget) {
+140:    super.didUpdateWidget(oldWidget);
+141:    if (oldWidget.controller == widget.controller) {
+142:      return;
+143:    }
+144:    oldWidget.controller.removeListener(_handleControllerChanged);
+145:    _request = widget.controller.request;
+146:    widget.controller.addListener(_handleControllerChanged);
+147:    WidgetsBinding.instance.addPostFrameCallback((_) => _syncPortal());
+148:  }
+149:
+150:  @override
+151:  void dispose() {
+152:    widget.controller.removeListener(_handleControllerChanged);
+153:    if (_portalController.isShowing) {
+154:      _portalController.hide();
+155:    }
+156:    super.dispose();
+157:  }
+158:
+159:  @override
+160:  Widget build(BuildContext context) {
+161:    return OverlayPortal(
+162:      controller: _portalController,
+163:      overlayChildBuilder: (context) {
+164:        final request = _request;
+165:        if (request == null || !request.enabled) {
+166:          return const SizedBox.shrink();
+167:        }
+168:        return _TableFloatingToolbarOverlayEntry(request: request);
+169:      },
+170:      child: widget.child,
+171:    );
+172:  }
+173:
+174:  void _handleControllerChanged() {
+175:    if (!mounted) {
+176:      return;
+177:    }
+178:    setState(() {
+179:      _request = widget.controller.request;
+180:    });
+181:    _syncPortalSafely();
+182:  }
+183:
+184:  void _syncPortalSafely() {
+185:    if (SchedulerBinding.instance.schedulerPhase ==
+186:        SchedulerPhase.persistentCallbacks) {
+187:      WidgetsBinding.instance.addPostFrameCallback((_) => _syncPortal());
+188:      return;
+189:    }
+190:    _syncPortal();
+191:  }
+192:
+193:  void _syncPortal() {
+194:    if (!mounted) {
+195:      return;
+196:    }
+197:    final shouldShow = _request?.enabled == true;
+198:    if (shouldShow) {
+199:      if (!_portalController.isShowing) {
+200:        _portalController.show();
+201:      }
+202:    } else if (_portalController.isShowing) {
+203:      _portalController.hide();
+204:    }
+205:  }
+206:}
+207:
+208:/// Anchor installed by table renderers. It publishes or withdraws requests while
+209:/// leaving overlay ownership with [TableFloatingToolbarOverlayHost].
+210:class TableFloatingToolbarOverlayAnchor extends StatefulWidget {
+211:  const TableFloatingToolbarOverlayAnchor({
+212:    super.key,
+213:    required this.controller,
+214:    required this.requestBuilder,
+215:    required this.child,
+216:  });
+217:
+218:  final TableFloatingToolbarOverlayController? controller;
+219:  final TableFloatingToolbarOverlayRequestBuilder? requestBuilder;
+220:  final Widget child;
+221:
+222:  @override
+223:  State<TableFloatingToolbarOverlayAnchor> createState() =>
+224:      _TableFloatingToolbarOverlayAnchorState();
+225:}
+226:
+227:class _TableFloatingToolbarOverlayAnchorState
+228:    extends State<TableFloatingToolbarOverlayAnchor> {
+229:  final LayerLink _anchorLink = LayerLink();
+230:  final Object _owner = Object();
+231:  bool _syncScheduled = false;
+232:
+233:  @override
+234:  void initState() {
+235:    super.initState();
+236:    _scheduleSync();
+237:  }
+238:
+239:  @override
+240:  void didUpdateWidget(covariant TableFloatingToolbarOverlayAnchor oldWidget) {
+241:    super.didUpdateWidget(oldWidget);
+242:    if (oldWidget.controller != widget.controller) {
+243:      oldWidget.controller?.hide(owner: _owner);
+244:    }
+245:    _scheduleSync();
+246:  }
+247:
+248:  @override
+249:  void didChangeDependencies() {
+250:    super.didChangeDependencies();
+251:    _scheduleSync();
+252:  }
+253:
+254:  @override
+255:  void dispose() {
+256:    widget.controller?.hide(owner: _owner);
+257:    super.dispose();
+258:  }
+259:
+260:  @override
+--- lib/src/widgets/table_floating_toolbar_overlay.dart:260-396 ---
+260:  @override
+261:  Widget build(BuildContext context) {
+262:    _scheduleSync();
+263:    return CompositedTransformTarget(
+264:      link: _anchorLink,
+265:      child: widget.child,
+266:    );
+267:  }
+268:
+269:  void _scheduleSync() {
+270:    if (_syncScheduled) {
+271:      return;
+272:    }
+273:    _syncScheduled = true;
+274:    WidgetsBinding.instance.addPostFrameCallback((_) {
+275:      _syncScheduled = false;
+276:      _syncRequest();
+277:    });
+278:  }
+279:
+280:  void _syncRequest() {
+281:    if (!mounted) {
+282:      return;
+283:    }
+284:    final controller = widget.controller;
+285:    final requestBuilder = widget.requestBuilder;
+286:    if (controller == null || requestBuilder == null) {
+287:      controller?.hide(owner: _owner);
+288:      return;
+289:    }
+290:    final renderObject = context.findRenderObject();
+291:    if (renderObject is! RenderBox ||
+292:        !renderObject.attached ||
+293:        !renderObject.hasSize) {
+294:      controller.hide(owner: _owner);
+295:      return;
+296:    }
+297:    final anchorTopLeft = renderObject.localToGlobal(Offset.zero);
+298:    final anchorRect = anchorTopLeft & renderObject.size;
+299:    controller.show(
+300:      requestBuilder(
+301:        owner: _owner,
+302:        anchorLink: _anchorLink,
+303:        anchorRect: anchorRect,
+304:        visibleTop: _visibleTopFor(context),
+305:      ),
+306:    );
+307:  }
+308:
+309:  double _visibleTopFor(BuildContext context) {
+310:    final scrollable = Scrollable.maybeOf(context);
+311:    final viewportObject = scrollable?.context.findRenderObject();
+312:    if (viewportObject is RenderBox &&
+313:        viewportObject.attached &&
+314:        viewportObject.hasSize) {
+315:      return viewportObject.localToGlobal(Offset.zero).dy;
+316:    }
+317:    return MediaQuery.maybeOf(context)?.padding.top ?? 0;
+318:  }
+319:}
+320:
+321:class _TableFloatingToolbarOverlayEntry extends StatefulWidget {
+322:  const _TableFloatingToolbarOverlayEntry({required this.request});
+323:
+324:  final TableFloatingToolbarOverlayRequest request;
+325:
+326:  @override
+327:  State<_TableFloatingToolbarOverlayEntry> createState() =>
+328:      _TableFloatingToolbarOverlayEntryState();
+329:}
+330:
+331:class _TableFloatingToolbarOverlayEntryState
+332:    extends State<_TableFloatingToolbarOverlayEntry> {
+333:  final GlobalKey _toolbarKey = GlobalKey();
+334:  double? _toolbarHeight;
+335:  bool _measureScheduled = false;
+336:
+337:  @override
+338:  Widget build(BuildContext context) {
+339:    _scheduleMeasure();
+340:    final request = widget.request;
+341:    final toolbarHeight = _toolbarHeight ?? request.fallbackHeight;
+342:    final preferredTop = -(toolbarHeight + request.gap);
+343:    final visibleTop = request.visibleTop - request.anchorRect.top;
+344:    final top = math.max(preferredTop, visibleTop);
+345:    final minWidth = math.max(request.minWidth, request.anchorRect.width);
+346:
+347:    return Positioned.fill(
+348:      child: CompositedTransformFollower(
+349:        link: request.anchorLink,
+350:        showWhenUnlinked: false,
+351:        targetAnchor: Alignment.topLeft,
+352:        followerAnchor: Alignment.topLeft,
+353:        offset: Offset(0, top),
+354:        child: Align(
+355:          alignment: AlignmentDirectional.topStart,
+356:          widthFactor: 1,
+357:          heightFactor: 1,
+358:          child: ConstrainedBox(
+359:            key: _toolbarKey,
+360:            constraints: BoxConstraints(minWidth: minWidth),
+361:            child: request.toolbarBuilder(context),
+362:          ),
+363:        ),
+364:      ),
+365:    );
+366:  }
+367:
+368:  void _scheduleMeasure() {
+369:    if (_measureScheduled) {
+370:      return;
+371:    }
+372:    _measureScheduled = true;
+373:    WidgetsBinding.instance.addPostFrameCallback((_) {
+374:      _measureScheduled = false;
+375:      _syncToolbarHeight();
+376:    });
+377:  }
+378:
+379:  void _syncToolbarHeight() {
+380:    if (!mounted) {
+381:      return;
+382:    }
+383:    final renderObject = _toolbarKey.currentContext?.findRenderObject();
+384:    if (renderObject is! RenderBox || !renderObject.hasSize) {
+385:      return;
+386:    }
+387:    final nextHeight = renderObject.size.height;
+388:    if (_toolbarHeight != null && (_toolbarHeight! - nextHeight).abs() < 0.5) {
+389:      return;
+390:    }
+391:    setState(() {
+392:      _toolbarHeight = nextHeight;
+393:    });
+394:  }
+395:}
+
+codex
+helper 文件输出仍有截断；我补看 Anchor 中间段，避免漏掉刷新逻辑。
+exec
+powershell.exe -Command '$ErrorActionPreference='"'Stop'; "'$path='"'lib/src/widgets/table_floating_toolbar_overlay.dart'; "'$lines=Get-Content -Encoding UTF8 $path; foreach ($range in @('"'125-210','210-260')) { "'$parts=$range.Split('"'-'); "'$start=[int]$parts[0]; $end=[int]$parts[1]; Write-Output ("--- {0}:{1} ---" -f $path,$range); for ($i=$start-1; $i -lt $end -and $i -lt $lines.Length; $i++) { '"'{0}:{1}' -f ("'$i+1), $lines[$i] } }' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 256ms:
+--- lib/src/widgets/table_floating_toolbar_overlay.dart:125-210 ---
+125:class _TableFloatingToolbarOverlayHostState
+126:    extends State<TableFloatingToolbarOverlayHost> {
+127:  final OverlayPortalController _portalController = OverlayPortalController();
+128:  TableFloatingToolbarOverlayRequest? _request;
+129:
+130:  @override
+131:  void initState() {
+132:    super.initState();
+133:    _request = widget.controller.request;
+134:    widget.controller.addListener(_handleControllerChanged);
+135:    WidgetsBinding.instance.addPostFrameCallback((_) => _syncPortal());
+136:  }
+137:
+138:  @override
+139:  void didUpdateWidget(covariant TableFloatingToolbarOverlayHost oldWidget) {
+140:    super.didUpdateWidget(oldWidget);
+141:    if (oldWidget.controller == widget.controller) {
+142:      return;
+143:    }
+144:    oldWidget.controller.removeListener(_handleControllerChanged);
+145:    _request = widget.controller.request;
+146:    widget.controller.addListener(_handleControllerChanged);
+147:    WidgetsBinding.instance.addPostFrameCallback((_) => _syncPortal());
+148:  }
+149:
+150:  @override
+151:  void dispose() {
+152:    widget.controller.removeListener(_handleControllerChanged);
+153:    if (_portalController.isShowing) {
+154:      _portalController.hide();
+155:    }
+156:    super.dispose();
+157:  }
+158:
+159:  @override
+160:  Widget build(BuildContext context) {
+161:    return OverlayPortal(
+162:      controller: _portalController,
+163:      overlayChildBuilder: (context) {
+164:        final request = _request;
+165:        if (request == null || !request.enabled) {
+166:          return const SizedBox.shrink();
+167:        }
+168:        return _TableFloatingToolbarOverlayEntry(request: request);
+169:      },
+170:      child: widget.child,
+171:    );
+172:  }
+173:
+174:  void _handleControllerChanged() {
+175:    if (!mounted) {
+176:      return;
+177:    }
+178:    setState(() {
+179:      _request = widget.controller.request;
+180:    });
+181:    _syncPortalSafely();
+182:  }
+183:
+184:  void _syncPortalSafely() {
+185:    if (SchedulerBinding.instance.schedulerPhase ==
+186:        SchedulerPhase.persistentCallbacks) {
+187:      WidgetsBinding.instance.addPostFrameCallback((_) => _syncPortal());
+188:      return;
+189:    }
+190:    _syncPortal();
+191:  }
+192:
+193:  void _syncPortal() {
+194:    if (!mounted) {
+195:      return;
+196:    }
+197:    final shouldShow = _request?.enabled == true;
+198:    if (shouldShow) {
+199:      if (!_portalController.isShowing) {
+200:        _portalController.show();
+201:      }
+202:    } else if (_portalController.isShowing) {
+203:      _portalController.hide();
+204:    }
+205:  }
+206:}
+207:
+208:/// Anchor installed by table renderers. It publishes or withdraws requests while
+209:/// leaving overlay ownership with [TableFloatingToolbarOverlayHost].
+210:class TableFloatingToolbarOverlayAnchor extends StatefulWidget {
+--- lib/src/widgets/table_floating_toolbar_overlay.dart:210-260 ---
+210:class TableFloatingToolbarOverlayAnchor extends StatefulWidget {
+211:  const TableFloatingToolbarOverlayAnchor({
+212:    super.key,
+213:    required this.controller,
+214:    required this.requestBuilder,
+215:    required this.child,
+216:  });
+217:
+218:  final TableFloatingToolbarOverlayController? controller;
+219:  final TableFloatingToolbarOverlayRequestBuilder? requestBuilder;
+220:  final Widget child;
+221:
+222:  @override
+223:  State<TableFloatingToolbarOverlayAnchor> createState() =>
+224:      _TableFloatingToolbarOverlayAnchorState();
+225:}
+226:
+227:class _TableFloatingToolbarOverlayAnchorState
+228:    extends State<TableFloatingToolbarOverlayAnchor> {
+229:  final LayerLink _anchorLink = LayerLink();
+230:  final Object _owner = Object();
+231:  bool _syncScheduled = false;
+232:
+233:  @override
+234:  void initState() {
+235:    super.initState();
+236:    _scheduleSync();
+237:  }
+238:
+239:  @override
+240:  void didUpdateWidget(covariant TableFloatingToolbarOverlayAnchor oldWidget) {
+241:    super.didUpdateWidget(oldWidget);
+242:    if (oldWidget.controller != widget.controller) {
+243:      oldWidget.controller?.hide(owner: _owner);
+244:    }
+245:    _scheduleSync();
+246:  }
+247:
+248:  @override
+249:  void didChangeDependencies() {
+250:    super.didChangeDependencies();
+251:    _scheduleSync();
+252:  }
+253:
+254:  @override
+255:  void dispose() {
+256:    widget.controller?.hide(owner: _owner);
+257:    super.dispose();
+258:  }
+259:
+260:  @override
+
+**Considering code analysis**
+
+I’m thinking that if `readOnly` becomes true and both `onToolbarAction` and `requestBuilder` are null, we should hide the post frame. That's good! But what if the host doesn't have the necessary import? I might need to run `dart analyze` but should I limit it to just certain files, like `lib/src/widgets/wenz_rich_text_editor.dart` and `lib/src/widgets/table_floating_toolbar_overlay.dart`? I'm curious if I should do this before making any edits.
+**Analyzing code errors**
+
+I’m thinking about the errors I’m encountering. It seems the approval policy can't run, which might mean I need to adjust the scope. I should avoid modifying other files and first try to understand the situation better. I'll consider using `dart analyze` to analyze the Dart package, and maybe even `flutter analyze` could help. I should check the `pubspec` as well to ensure everything is in order.
+codex
+当前缺口是滚动/窗口变化后的请求刷新；我先跑限定文件分析确认基础编译问题。
+exec
+powershell.exe -Command '$ErrorActionPreference='"'Stop'; dart analyze lib/src/widgets/wenz_rich_text_editor.dart lib/src/widgets/table_floating_toolbar_overlay.dart" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 2409ms:
+Analyzing wenz_rich_text_editor.dart, table_floating_toolbar_overlay.dart...
+No issues found!
+
+ERROR: You've hit your usage limit. Try again later.
+ERROR: You've hit your usage limit. Try again later.
+tokens used
+96,213

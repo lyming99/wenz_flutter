@@ -2,13 +2,17 @@ import 'package:flutter/widgets.dart';
 
 import '../core/model/inline_node.dart';
 
-/// Builds a text span for an [InlineEmbed].
+/// Builds an inline span for an [InlineEmbed].
 ///
 /// The editor still treats every embed as one logical character for selection
-/// and caret movement. Custom renderers should therefore return compact
-/// [TextSpan]s; use a block renderer when an embed needs a large interactive
-/// widget.
-typedef InlineEmbedSpanBuilder = TextSpan? Function(
+/// and caret movement. Custom renderers should therefore return compact spans;
+/// use a block renderer when an embed needs a large interactive widget.
+///
+/// [textStyle] is the effective inline style after the editor applies its body
+/// baseline and the embed's own [InlineEmbed.attributes]. Reuse it (or merge
+/// from it) so custom embeds keep line height, color, and selection geometry in
+/// sync with surrounding text.
+typedef InlineEmbedSpanBuilder = InlineSpan? Function(
   BuildContext context,
   InlineEmbed embed,
   TextStyle textStyle,
@@ -18,8 +22,8 @@ typedef InlineEmbedSpanBuilder = TextSpan? Function(
 abstract class InlineEmbedRenderer {
   const InlineEmbedRenderer();
 
-  /// Returns a [TextSpan] for [embed], or `null` to use the built-in fallback.
-  TextSpan? buildTextSpan(
+  /// Returns an [InlineSpan] for [embed], or `null` to use the built-in fallback.
+  InlineSpan? buildTextSpan(
     BuildContext context,
     InlineEmbed embed,
     TextStyle textStyle,
@@ -33,7 +37,7 @@ class InlineEmbedRendererCallback extends InlineEmbedRenderer {
   final InlineEmbedSpanBuilder builder;
 
   @override
-  TextSpan? buildTextSpan(
+  InlineSpan? buildTextSpan(
     BuildContext context,
     InlineEmbed embed,
     TextStyle textStyle,
@@ -85,7 +89,7 @@ class InlineEmbedRendererRegistry extends InlineEmbedRenderer {
   bool has(String embedType) => _builders.containsKey(embedType);
 
   @override
-  TextSpan? buildTextSpan(
+  InlineSpan? buildTextSpan(
     BuildContext context,
     InlineEmbed embed,
     TextStyle textStyle,

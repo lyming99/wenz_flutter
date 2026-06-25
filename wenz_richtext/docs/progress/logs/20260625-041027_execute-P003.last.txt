@@ -1,0 +1,13 @@
+**完成情况**
+- 已完成 P003：代码块按语言生成语法高亮 `TextSpan`，支持 Dart/JavaScript/TypeScript/JSON/Markdown，未知语言安全降级为纯等宽文本。
+- 高亮颜色来自当前 `ColorScheme`，保留原有 composition 下划线、纯文本长度和 identity offset mapper，不改变选区/光标映射。
+- 接入点在 `lib/src/widgets/wenz_rich_text_editor.dart:3752` 和 `lib/src/widgets/wenz_rich_text_editor.dart:7358`。
+- 新增高亮实现位于 `lib/src/widgets/code_syntax_highlighter.dart:5`、语言分发位于 `lib/src/widgets/code_syntax_highlighter.dart:164`。
+- 新增 widget 覆盖用例位于 `test/widgets/wenz_rich_text_editor_test.dart:424`，span 检查助手位于 `test/widgets/wenz_rich_text_editor_test.dart:5204`。
+
+**验证**
+- `flutter test test/widgets/wenz_rich_text_editor_test.dart --plain-name "code block syntax highlights supported languages and leaves unsupported plain"` 通过
+- `flutter test test/widgets/wenz_rich_text_editor_test.dart --plain-name "code block toolbar copies code and changes language"` 通过
+- `flutter analyze lib/src/widgets/code_syntax_highlighter.dart lib/src/widgets/wenz_rich_text_editor.dart test/widgets/wenz_rich_text_editor_test.dart` 通过
+
+未修改 plan 文件、未勾选 checkbox、未更新进度区。当前工作区本身已有多处非本任务未提交/未跟踪改动，我没有处理这些非 P003 内容。

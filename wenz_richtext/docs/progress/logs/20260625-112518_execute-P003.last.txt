@@ -1,0 +1,12 @@
+完成 P003，未修改 plan 文件、未勾选 checkbox、未运行全量测试。
+
+**变更**
+- `lib/src/widgets/wenz_rich_text_editor.dart:2227`：滚动估算改为基于 `OutlineBlockProjection` 的可见 block 列表，隐藏 block 会定位到最近可见项，避免折叠后滚动位置残留。
+- `test/controller/outline_controller_test.dart:84`：新增可见 block 投影测试，验证原始 `blockIndex`、隐藏集合和 document JSON 不变。
+- `test/controller/outline_controller_test.dart:112`：新增嵌套折叠测试，验证父折叠优先、父展开后子折叠状态仍生效。
+- `test/widgets/block_geometry_registry_test.dart:9`：新增 `retainBlocks` 测试，验证隐藏 block 的文本/row 几何缓存会被清理。
+- `test/widgets/block_geometry_registry_test.dart:592`：新增 registry 测试 helper。
+
+**验证**
+- 已运行：`flutter test test/controller/outline_controller_test.dart test/widgets/block_geometry_registry_test.dart`
+- 结果：全部通过，`29` 个测试 passed。

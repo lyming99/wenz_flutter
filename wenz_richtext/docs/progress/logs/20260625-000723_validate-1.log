@@ -1,0 +1,6 @@
+Flutter assets will be downloaded from https://storage.flutter-io.cn. Make sure you trust this source!
+Analyzing wenz_richtext...                                      
+
+warning - The value of the local variable 'mentionLeft' isn't used - test\widgets\wenz_rich_text_editor_test.dart:1809:11 - unused_local_variable
+
+1 issue found. (ran in 31.7s)

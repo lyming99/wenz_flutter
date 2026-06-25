@@ -13,6 +13,12 @@ class RichTextJsonCodec {
   /// legacy data should pass a registry with the relevant steps registered.
   final DocumentMigrationRegistry? migrations;
 
+  /// Encodes only the persisted document content model.
+  ///
+  /// Editor view state such as heading collapse is intentionally excluded from
+  /// this payload. Host applications that need to persist that state should
+  /// store it alongside this JSON (for example in their own UI metadata) and
+  /// reapply it to the editor view after loading the document.
   String encode(RichTextDocument document) {
     return jsonEncode(document.toJson());
   }
@@ -23,6 +29,8 @@ class RichTextJsonCodec {
   /// wrong root type, a gap in the migration chain, or an invalid block
   /// shape); the originating error is preserved on [DocumentDecodeException.raw].
   /// Use `WenzRichTextController.tryLoadJson` for a no-throw entry point.
+  /// Unknown extension metadata is ignored by the content model, so documents
+  /// load with view-only state (including heading collapse) reset by default.
   RichTextDocument decode(String source) {
     Object? decoded;
     try {

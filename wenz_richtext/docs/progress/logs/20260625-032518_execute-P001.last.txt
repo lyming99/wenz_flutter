@@ -1,0 +1,8 @@
+**P001 已完成**
+- 已按 `docs/plan/plan_feedback_3_20260625-014905.md:23` 只执行 P001；未修改 plan、checkbox 或进度区。
+- 复现边界：正文段落执行 `setBlockType(BlockType.quote)` 后，点击转换后的引用文本并 `Shift+Right`，实际选区落到下一条直接创建的引用 `q-direct@1 0->1`；预期应为 `p-convert@0 0->1`。
+- 恢复边界：在转换后的引用内重新输入 `!` 后，同样操作恢复为预期选区 `p-convert@0 0->1`；直接创建的引用选择一直正常。
+- 代码边界：`lib/src/widgets/wenz_rich_text_editor.dart:7324` 当前只返回单一 `TextSpan`，无 token children，因此未实现语法高亮。
+- 图片/附件边界：图片仍显示 `Image` 标题、文件名副标题、caption 和卡片内固定菜单，见 `lib/src/widgets/wenz_rich_text_editor.dart:6555`；附件仍显示文件名、大小/MIME/状态、URL 详情和卡片内菜单，见 `lib/src/widgets/wenz_rich_text_editor.dart:6479`。
+- Tooltip 边界：英文 tooltip 覆盖代码、表格、对象块、查找替换、评论入口，例如 `lib/src/widgets/wenz_rich_text_editor.dart:3816`、`lib/src/widgets/find_replace_panel.dart:112`、`lib/src/widgets/comment_sidebar.dart:175`。
+- 最小验证：运行临时诊断 `flutter test test\p001_feedback_3_repro_tmp_test.dart --reporter expanded`，2 项通过；临时文件已删除，未留下本次持久源码改动。

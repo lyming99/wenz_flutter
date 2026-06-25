@@ -1,5 +1,42 @@
+import 'dart:ui' as ui show ParagraphBuilder;
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart';
+import 'package:flutter/widgets.dart' show WidgetSpan;
+
+@internal
+class MeasuredWidgetSpan extends WidgetSpan {
+  const MeasuredWidgetSpan({
+    required this.placeholderSize,
+    required super.child,
+    super.alignment,
+    super.baseline,
+    super.style,
+  });
+
+  final Size placeholderSize;
+
+  @override
+  void build(
+    ui.ParagraphBuilder builder, {
+    TextScaler textScaler = TextScaler.noScaling,
+    List<PlaceholderDimensions>? dimensions,
+  }) {
+    super.build(
+      builder,
+      textScaler: textScaler,
+      dimensions: dimensions ??
+          <PlaceholderDimensions>[
+            PlaceholderDimensions(
+              size: placeholderSize,
+              alignment: alignment,
+              baseline: baseline,
+              baselineOffset: _placeholderBaselineOffset(this, placeholderSize),
+            ),
+          ],
+    );
+  }
+}
 
 /// Single-block text layout cache.
 ///
@@ -36,7 +73,12 @@ class TextLayoutService {
       text: span,
       textAlign: textAlign,
       textDirection: textDirection,
-    )..layout(maxWidth: maxWidth);
+    );
+    final placeholderDimensions = _placeholderDimensionsFor(span);
+    if (placeholderDimensions != null) {
+      painter.setPlaceholderDimensions(placeholderDimensions);
+    }
+    painter.layout(maxWidth: maxWidth);
     _cache = TextLayoutData(
       span: span,
       textAlign: textAlign,
@@ -158,7 +200,9 @@ class TextLayoutService {
   /// to seed the remembered column for repeated vertical moves.
   double caretLocalX(TextPainter painter, int offset) {
     final clamped = offset.clamp(0, _textLength(painter)).toInt();
-    return painter.getOffsetForCaret(TextPosition(offset: clamped), Rect.zero).dx;
+    return painter
+        .getOffsetForCaret(TextPosition(offset: clamped), Rect.zero)
+        .dx;
   }
 
   int _textLength(TextPainter painter) {
@@ -169,6 +213,46 @@ class TextLayoutService {
   void forget() {
     _cache = null;
   }
+}
+
+List<PlaceholderDimensions>? _placeholderDimensionsFor(InlineSpan span) {
+  final dimensions = <PlaceholderDimensions>[];
+
+  void collect(InlineSpan current) {
+    if (current is PlaceholderSpan) {
+      final size = current is MeasuredWidgetSpan
+          ? current.placeholderSize
+          : _estimatedPlaceholderSize(current);
+      dimensions.add(
+        PlaceholderDimensions(
+          size: size,
+          alignment: current.alignment,
+          baseline: current.baseline,
+          baselineOffset: _placeholderBaselineOffset(current, size),
+        ),
+      );
+    }
+    if (current is TextSpan) {
+      for (final child in current.children ?? const <InlineSpan>[]) {
+        collect(child);
+      }
+    }
+  }
+
+  collect(span);
+  return dimensions.isEmpty ? null : dimensions;
+}
+
+Size _estimatedPlaceholderSize(PlaceholderSpan span) {
+  final fontSize = span.style?.fontSize ?? 14;
+  return Size(fontSize, fontSize * 1.2);
+}
+
+double? _placeholderBaselineOffset(PlaceholderSpan span, Size size) {
+  if (span.baseline == null) {
+    return null;
+  }
+  return size.height * 0.82;
 }
 
 @immutable

@@ -1,0 +1,12 @@
+Flutter assets will be downloaded from https://storage.flutter-io.cn. Make sure you trust this source!
+Analyzing wenz_richtext...                                      
+
+   info - Use 'const' with the constructor to improve performance - lib\src\widgets\wenz_rich_text_editor.dart:6377:26 - prefer_const_constructors
+warning - A value for optional parameter 'strokeWidth' isn't ever given - lib\src\widgets\wenz_rich_text_editor.dart:6943:10 - unused_element_parameter
+warning - A value for optional parameter 'dashLength' isn't ever given - lib\src\widgets\wenz_rich_text_editor.dart:6944:10 - unused_element_parameter
+warning - A value for optional parameter 'gapLength' isn't ever given - lib\src\widgets\wenz_rich_text_editor.dart:6945:10 - unused_element_parameter
+warning - A value for optional parameter 'dense' isn't ever given - lib\src\widgets\wenz_rich_text_editor.dart:6997:10 - unused_element_parameter
+   info - Use 'const' with the constructor to improve performance - lib\src\widgets\wenz_rich_text_editor.dart:7564:18 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\src\widgets\wenz_rich_text_editor.dart:8486:10 - prefer_const_constructors
+
+7 issues found. (ran in 1.9s)

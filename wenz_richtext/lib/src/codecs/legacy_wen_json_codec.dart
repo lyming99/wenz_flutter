@@ -56,7 +56,8 @@ class LegacyWenJsonCodec {
     for (var i = 0; i < values.length; i++) {
       final entry = values[i];
       if (entry is Map) {
-        blocks.add(_decodeElement(Map<String, Object?>.from(entry), 'legacy-$i'));
+        blocks
+            .add(_decodeElement(Map<String, Object?>.from(entry), 'legacy-$i'));
       } else if (kDebugMode) {
         debugPrint(
           'LegacyWenJsonCodec: skipping non-object block at index $i '
@@ -120,12 +121,7 @@ class LegacyWenJsonCodec {
       case 'line':
         return DividerBlockNode(id: id, attributes: _blockAttributes(json));
       case 'video':
-        return VideoBlockNode(
-          id: id,
-          assetId: json['id'] as String? ?? '',
-          file: json['file'] as String? ?? '',
-          attributes: _blockAttributes(json),
-        );
+        return _videoBlock(json, id);
       default:
         return TextBlockNode(
           id: id,
@@ -134,6 +130,41 @@ class LegacyWenJsonCodec {
           content: _textContent(json),
         );
     }
+  }
+
+  VideoBlockNode _videoBlock(Map<String, Object?> json, String id) {
+    return VideoBlockNode(
+      id: id,
+      assetId: _firstString(json, const <String>[
+        'assetId',
+        'id',
+        'videoId',
+        'asset',
+      ]),
+      playbackUrl: _firstString(json, const <String>[
+        'playbackUrl',
+        'url',
+        'src',
+        'source',
+        'videoUrl',
+      ]),
+      file: _firstString(json, const <String>['file', 'localFile', 'path']),
+      coverUrl: _firstString(json, const <String>[
+        'coverUrl',
+        'poster',
+        'thumbnail',
+        'cover',
+      ]),
+      title: _firstString(json, const <String>['title', 'caption', 'name']),
+      description: _firstString(json, const <String>['description', 'desc']),
+      aspectRatio: _positiveDouble(json['aspectRatio']) ??
+          _aspectRatioFromSize(json['width'], json['height']),
+      uploadStatus: FileUploadStatus.parse(
+        _firstString(json, const <String>['uploadStatus', 'status']),
+      ),
+      uploadError: _firstString(json, const <String>['uploadError', 'error']),
+      attributes: _blockAttributes(json),
+    );
   }
 
   BlockAttributes _blockAttributes(
@@ -277,5 +308,42 @@ double? _asDouble(Object? value) {
   if (value is num) {
     return value.toDouble();
   }
+  if (value is String) {
+    return double.tryParse(value);
+  }
   return null;
+}
+
+String _asString(Object? value) {
+  if (value == null) {
+    return '';
+  }
+  if (value is String) {
+    return value.trim();
+  }
+  return value.toString().trim();
+}
+
+String _firstString(Map<String, Object?> json, List<String> keys) {
+  for (final key in keys) {
+    final value = _asString(json[key]);
+    if (value.isNotEmpty) {
+      return value;
+    }
+  }
+  return '';
+}
+
+double? _positiveDouble(Object? value) {
+  final parsed = _asDouble(value);
+  return parsed != null && parsed > 0 ? parsed : null;
+}
+
+double? _aspectRatioFromSize(Object? width, Object? height) {
+  final parsedWidth = _positiveDouble(width);
+  final parsedHeight = _positiveDouble(height);
+  if (parsedWidth == null || parsedHeight == null) {
+    return null;
+  }
+  return parsedWidth / parsedHeight;
 }

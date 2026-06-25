@@ -1,0 +1,9 @@
+**完成**
+- 在 `test/widgets/wenz_rich_text_editor_test.dart:1188` 新增 P009 组合回归 widget 测试。
+- 覆盖 mention 后续文字选择、info 卡片选择定位、todo checkbox 切换、引言背景、表格内部边框、表格工具栏上方位置、行内/块级公式渲染。
+- 未修改 `docs/plan/plan_feedback_2_20260625-004108.md`，未勾选 checkbox。
+
+**验证**
+- `dart format test/widgets/wenz_rich_text_editor_test.dart`
+- `flutter test test/widgets/wenz_rich_text_editor_test.dart --plain-name "feedback #2 regressions keep selection controls and layout"` 通过
+- `git diff --check -- test/widgets/wenz_rich_text_editor_test.dart` 通过

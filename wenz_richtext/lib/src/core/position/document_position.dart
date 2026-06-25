@@ -192,6 +192,21 @@ class DocumentPosition implements Comparable<DocumentPosition> {
     );
   }
 
+  /// Position at [offset] on an atomic block-level object such as an image,
+  /// video, file attachment, embed, or divider.
+  factory DocumentPosition.object({
+    required String blockId,
+    required int blockIndex,
+    int offset = 0,
+  }) {
+    return DocumentPosition(
+      blockId: blockId,
+      blockIndex: blockIndex,
+      path: PositionPath.blockObject(blockId),
+      offset: offset,
+    );
+  }
+
   final String blockId;
   final int blockIndex;
   final PositionPath path;

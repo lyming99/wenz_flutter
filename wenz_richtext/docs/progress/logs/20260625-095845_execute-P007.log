@@ -1,0 +1,1637 @@
+OpenAI Codex v0.121.0 (research preview)
+--------
+workdir: D:\project\GitHub\wenz_flutter\wenz_richtext
+model: gpt-5.5
+provider: custom
+approval: never
+sandbox: danger-full-access
+reasoning effort: xhigh
+reasoning summaries: none
+session id: 019efc80-537c-7310-b30b-9f65a7d57377
+--------
+user
+你是开发执行者。
+请只执行指定任务 P007，不要提前执行其它任务，也不要顺手处理其它 checkbox。
+
+plan 文件（只读）：D:\project\GitHub\wenz_flutter\wenz_richtext\docs\plan\plan_requirement_9_20260625-033413.md
+指定任务：
+- [ ] P007: 完成回归测试与使用文档更新 <!-- scope: test/widgets/wenz_rich_text_editor_test.dart,test/widgets/editor_golden_test.dart,test/core/block_structure_commands_test.dart,docs/selection_engine.md,README.md -->
+任务 scope：test/widgets/wenz_rich_text_editor_test.dart, test/widgets/editor_golden_test.dart, test/core/block_structure_commands_test.dart, docs/selection_engine.md, readme.md
+
+完成后必须：
+- plan 文件是只读上下文：不要修改 plan 文件，不要勾选 checkbox，不要更新 plan 进度区
+- AutoPlan 会在任务成功后统一写回数据库、checkbox 和进度区
+- 只修改当前任务 scope 直接相关的业务文件
+- 如需测试，只运行与当前任务直接相关的最小测试集，不要运行全量测试或与本任务无关的测试
+- 只有当前任务本身明确要求全量验证时，才允许运行全量测试
+- 不输出完整 diff、源码全文或长文件列表
+- 中文文件读写使用 UTF-8
+**Considering updates to regression tests**
+
+I think I need to update the regression tests and documentation to reflect changes in the selection engine and block structure commands. First, I'll take a moment to inspect the repository structure as well as the AGENTS to see what's needed. It’s important to ensure everything is accurately represented, so the tests run smoothly and the documentation is clear for anyone who references it later. Let’s dive in!
+codex
+我先看相关测试和文档，确认这次只改 P007 需要的部分。
+exec
+powershell.exe -Command "Get-ChildItem -Force; Write-Host '---'; rg --files -g 'AGENTS.md'; Write-Host '---'; rg --files docs test | Select-Object -First 200" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 313ms:
+
+
+    目录: D:\project\GitHub\wenz_flutter\wenz_richtext
+
+
+Mode                 LastWriteTime         Length Name                                                                 
+----                 -------------         ------ ----                                                                 
+d-----         2026/6/25      9:57                .codegraph                                                           
+d-----         2026/6/24     15:10                .dart_appdata                                                        
+d-----         2026/6/24     15:10                .dart_localappdata                                                   
+d-----         2026/6/24     16:11                .dart_tool                                                           
+d-----         2026/6/24     16:13                .dart_tool_appdata                                                   
+d-----         2026/6/24     16:06                .dart_tool_localappdata                                              
+d-----         2026/6/20      0:26                .idea                                                                
+d-----         2026/6/25      2:25                build                                                                
+d-----         2026/6/19     17:02                doc                                                                  
+d-----         2026/6/24     18:05                docs                                                                 
+d-----         2026/6/22     14:56                example                                                              
+d-----         2026/6/22     17:09                lib                                                                  
+d-----         2026/6/24      3:35                scripts                                                              
+d-----         2026/6/25      3:33                test                                                                 
+d-----         2026/6/24     18:04                tool                                                                 
+d-----         2026/6/25      2:40                ui                                                                   
+-a----         2026/6/19     14:04             87 .gitignore                                                           
+-a----         2026/6/24     16:16             94 analysis_options.yaml                                                
+-a----         2026/6/24     14:38            726 CHANGELOG.md                                                         
+-a----         2026/6/25      2:56            157 nul                                                                  
+-a----         2026/6/25      2:18          10389 pubspec.lock                                                         
+-a----         2026/6/25      2:18            382 pubspec.yaml                                                         
+-a----         2026/6/25      6:01           3524 README.md                                                            
+---
+---
+docs\windows_ime_third_party_position_issue.md
+test\widgets\wenz_rich_text_editor_test.dart
+docs\selection_model.md
+test\widgets\slash_menu_overlay_test.dart
+docs\selection_engine.md
+test\widgets\shared_text_layout_cache_test.dart
+docs\schema_migration_impact.md
+test\widgets\media_resolver_test.dart
+docs\schema_and_commands.md
+test\widgets\link_edit_dialog_test.dart
+docs\running_guide.md
+test\widgets\import_export_demo_test.dart
+docs\rendering.md
+docs\release_checklist.md
+docs\refactor_plan.md
+docs\README.md
+docs\project_acceptance_roadmap_plan.md
+test\widgets\goldens\editor_selection.png
+test\widgets\goldens\editor_merged_table.png
+test\widgets\goldens\editor_caret.png
+test\widgets\goldens\editor_blocks.png
+test\widgets\goldens\editor_advanced_blocks.png
+test\widgets\find_replace_panel_test.dart
+docs\progress\state.json.mirror
+docs\progress\state.json.bak
+docs\progress\state.json
+test\widgets\editor_golden_test.dart
+test\widgets\comment_sidebar_test.dart
+test\widgets\block_geometry_registry_test.dart
+test\plugins\editor_plugin_test.dart
+test\input\shortcut_manager_test.dart
+test\input\editor_text_input_client_test.dart
+test\input\clipboard_service_test.dart
+test\helpers\selection_test_helpers.dart
+test\fixtures\legacy_table.json
+test\fixtures\legacy_code_image_formula.json
+test\fixtures\legacy_basic.json
+test\exporters\document_conversion_plan_test.dart
+test\core\text_commands_test.dart
+test\core\table_commands_test.dart
+test\core\style_commands_test.dart
+test\core\selection_commands_test.dart
+test\core\revision_model_test.dart
+test\core\model_test.dart
+test\core\markdown_shortcut_commands_test.dart
+test\core\inline_commands_test.dart
+test\core\history_manager_test.dart
+test\core\document_version_snapshot_test.dart
+test\core\document_schema_test.dart
+test\core\document_position_test.dart
+test\core\controller_test.dart
+test\core\comment_model_test.dart
+test\core\command_pipeline_test.dart
+test\core\command_merging_test.dart
+test\core\block_structure_commands_test.dart
+test\core\block_commands_test.dart
+docs\progress\logs\20260625-095845_execute-P007.log
+docs\progress\logs\20260625-094353_execute-P006.log
+docs\progress\logs\20260625-094353_execute-P006.last.txt
+docs\progress\logs\20260625-094348_execute-P006.log
+docs\progress\logs\20260625-092957_execute-P005.log
+docs\progress\logs\20260625-092957_execute-P005.last.txt
+docs\progress\logs\20260625-092952_execute-P005.log
+docs\progress\logs\20260625-091821_execute-P004.log
+docs\progress\logs\20260625-091821_execute-P004.last.txt
+docs\progress\logs\20260625-091806_execute-P004.log
+docs\progress\logs\20260625-090420_execute-P003.log
+docs\progress\logs\20260625-090420_execute-P003.last.txt
+docs\progress\logs\20260625-085204_execute-P002.log
+docs\progress\logs\20260625-085204_execute-P002.last.txt
+docs\progress\logs\20260625-085158_validate-6-repair-1.log
+docs\progress\logs\20260625-084726_repair-6-1.log
+docs\progress\logs\20260625-084726_repair-6-1.last.txt
+docs\progress\logs\20260625-084723_validate-6.log
+docs\progress\logs\20260625-084716_validate-6-repair-2.log
+docs\progress\logs\20260625-084641_repair-6-2.log
+docs\progress\logs\20260625-084638_validate-6-repair-1.log
+docs\progress\logs\20260625-084542_repair-6-1.log
+docs\progress\logs\20260625-084538_validate-6.log
+docs\progress\logs\20260625-083337_execute-P008.log
+docs\progress\logs\20260625-083337_execute-P008.last.txt
+docs\progress\logs\20260625-080424_execute-P007.log
+docs\progress\logs\20260625-080424_execute-P007.last.txt
+docs\progress\logs\20260625-074137_execute-P006.log
+docs\progress\logs\20260625-074137_execute-P006.last.txt
+docs\progress\logs\20260625-072310_execute-P005.log
+docs\progress\logs\20260625-072310_execute-P005.last.txt
+docs\progress\logs\20260625-071034_execute-P004.log
+docs\progress\logs\20260625-071034_execute-P004.last.txt
+docs\progress\logs\20260625-065948_execute-P003.log
+docs\progress\logs\20260625-065948_execute-P003.last.txt
+docs\progress\logs\20260625-064456_execute-P002.log
+docs\progress\logs\20260625-064456_execute-P002.last.txt
+docs\progress\logs\20260625-064451_validate-5.log
+docs\progress\logs\20260625-063635_execute-P005.log
+docs\progress\logs\20260625-063635_execute-P005.last.txt
+docs\progress\logs\20260625-063035_execute-P004.log
+docs\progress\logs\20260625-063035_execute-P004.last.txt
+docs\progress\logs\20260625-062339_execute-P003.log
+docs\progress\logs\20260625-062339_execute-P003.last.txt
+docs\progress\logs\20260625-061423_execute-P002.log
+docs\progress\logs\20260625-061423_execute-P002.last.txt
+docs\progress\logs\20260625-061418_validate-4-repair-1.log
+docs\progress\logs\20260625-061302_repair-4-1.log
+docs\progress\logs\20260625-061302_repair-4-1.last.txt
+docs\progress\logs\20260625-061258_validate-4.log
+docs\progress\logs\20260625-060327_execute-P007.log
+docs\progress\logs\20260625-060327_execute-P007.last.txt
+docs\progress\logs\20260625-055336_execute-P006.log
+docs\progress\logs\20260625-055336_execute-P006.last.txt
+docs\progress\logs\20260625-054120_execute-P005.log
+docs\progress\logs\20260625-054120_execute-P005.last.txt
+docs\progress\logs\20260625-052249_execute-P004.log
+docs\progress\logs\20260625-052249_execute-P004.last.txt
+docs\progress\logs\20260625-050932_execute-P003.log
+docs\progress\logs\20260625-050932_execute-P003.last.txt
+docs\progress\logs\20260625-045726_execute-P002.log
+docs\progress\logs\20260625-045726_execute-P002.last.txt
+docs\progress\logs\20260625-045721_validate-3.log
+docs\progress\logs\20260625-044720_execute-P007.log
+docs\progress\logs\20260625-044720_execute-P007.last.txt
+docs\progress\logs\20260625-043950_execute-P006.log
+docs\progress\logs\20260625-043950_execute-P006.last.txt
+docs\progress\logs\20260625-042909_execute-P005.log
+docs\progress\logs\20260625-042909_execute-P005.last.txt
+docs\progress\logs\20260625-042313_execute-P004.log
+docs\progress\logs\20260625-042313_execute-P004.last.txt
+docs\progress\logs\20260625-041027_execute-P003.log
+docs\progress\logs\20260625-041027_execute-P003.last.txt
+docs\progress\logs\20260625-040126_execute-P002.log
+docs\progress\logs\20260625-040126_execute-P002.last.txt
+docs\progress\logs\20260625-035238_execute-P001.log
+docs\progress\logs\20260625-035238_execute-P001.last.txt
+docs\progress\logs\20260625-035040_gen-feedback-6.log
+docs\progress\logs\20260625-035040_gen-feedback-6.last.txt
+docs\progress\logs\20260625-034550_execute-P001.log
+docs\progress\logs\20260625-034550_execute-P001.last.txt
+docs\progress\logs\20260625-034349_gen-requirement-10.log
+docs\progress\logs\20260625-034349_gen-requirement-10.last.txt
+docs\progress\logs\20260625-033741_execute-P001.log
+docs\progress\logs\20260625-033741_execute-P001.last.txt
+docs\progress\logs\20260625-033413_gen-requirement-9.log
+docs\progress\logs\20260625-033413_gen-requirement-9.last.txt
+docs\progress\logs\20260625-032518_execute-P001.log
+docs\progress\logs\20260625-032518_execute-P001.last.txt
+docs\progress\logs\20260625-032513_validate-2.log
+docs\progress\logs\20260625-031622_execute-P010.log
+docs\progress\logs\20260625-031622_execute-P010.last.txt
+docs\progress\logs\20260625-031051_execute-P009.log
+docs\progress\logs\20260625-031051_execute-P009.last.txt
+docs\progress\logs\20260625-030253_execute-P001.log
+docs\progress\logs\20260625-030253_execute-P001.last.txt
+docs\progress\logs\20260625-025750_gen-requirement-3.log
+docs\progress\logs\20260625-025750_gen-requirement-3.last.txt
+docs\progress\logs\20260625-025017_execute-P001.log
+docs\progress\logs\20260625-025017_execute-P001.last.txt
+docs\progress\logs\20260625-024854_gen-feedback-4.log
+docs\progress\logs\20260625-024854_gen-feedback-4.last.txt
+docs\progress\logs\20260625-024055_execute-P001.log
+docs\progress\logs\20260625-024055_execute-P001.last.txt
+docs\progress\logs\20260625-023728_gen-requirement-2.log
+docs\progress\logs\20260625-023728_gen-requirement-2.last.txt
+docs\progress\logs\20260625-022707_execute-P008.log
+docs\progress\logs\20260625-022707_execute-P008.last.txt
+docs\progress\logs\20260625-021211_execute-P008.log
+docs\progress\logs\20260625-020620_execute-P007.log
+docs\progress\logs\20260625-020620_execute-P007.last.txt
+docs\progress\logs\20260625-020615_execute-P007.log
+docs\progress\logs\20260625-015334_execute-P006.log
+docs\progress\logs\20260625-015334_execute-P006.last.txt
+docs\progress\logs\20260625-015035_execute-P001.log
+docs\progress\logs\20260625-014905_gen-feedback-3.log
+docs\progress\logs\20260625-014905_gen-feedback-3.last.txt
+docs\progress\logs\20260625-013108_execute-P005.log
+docs\progress\logs\20260625-013108_execute-P005.last.txt
+docs\progress\logs\20260625-011332_execute-P004.log
+docs\progress\logs\20260625-011332_execute-P004.last.txt
+docs\progress\logs\20260625-010626_execute-P003.log
+docs\progress\logs\20260625-010626_execute-P003.last.txt
+docs\progress\logs\20260625-010621_execute-P003.log
+docs\progress\logs\20260625-005220_execute-P002.log
+docs\progress\logs\20260625-005220_execute-P002.last.txt
+docs\progress\logs\20260625-004352_execute-P001.log
+docs\progress\logs\20260625-004352_execute-P001.last.txt
+docs\progress\logs\20260625-004108_gen-feedback-2.log
+docs\progress\logs\20260625-004108_gen-feedback-2.last.txt
+docs\progress\logs\20260625-000841_validate-1-repair-1.log
+docs\progress\logs\20260625-000756_repair-1-1.log
+docs\progress\logs\20260625-000756_repair-1-1.last.txt
+docs\progress\logs\20260625-000723_validate-1.log
+docs\progress\logs\20260625-000532_execute-P007.log
+docs\progress\logs\20260625-000532_execute-P007.last.txt
+docs\progress\logs\20260625-000439_execute-P007.log
+docs\progress\logs\20260625-000254_execute-P006.log
+docs\progress\logs\20260625-000254_execute-P006.last.txt
+docs\progress\logs\20260624-235018_execute-P005.log
+test\controller\video_block_controller_test.dart
+test\controller\toolbar_controller_test.dart
+test\controller\slash_menu_controller_test.dart
+test\controller\outline_controller_test.dart
+
+
+
+**Looking into logs**
+
+I think I need to check logs P007 and inspect those files for details. There might be important information that could clarify things. It could also be helpful to look at the current logs from earlier attempts to see if they provide any insights. I'll focus on gathering that information to understand better what's going on! Let's make sure I have a clear picture.
+codex
+我在对照现有测试和文档，找出这次回归要补的差异。
+exec
+powershell.exe -Command "Get-Content test/widgets/wenz_rich_text_editor_test.dart -TotalCount 260; Write-Host '---FILE2---'; Get-Content test/widgets/editor_golden_test.dart -TotalCount 320; Write-Host '---FILE3---'; Get-Content test/core/block_structure_commands_test.dart -TotalCount 320; Write-Host '---DOC1---'; Get-Content docs/selection_engine.md -TotalCount 320; Write-Host '---README---'; Get-Content README.md -TotalCount 260" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 286ms:
+import 'dart:ui' show LineMetrics, PointerDeviceKind, Tristate;
+
+import 'package:flutter/gestures.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_math_fork/flutter_math.dart';
+import 'package:wenz_richtext/wenz_richtext.dart';
+
+import '../helpers/selection_test_helpers.dart';
+
+const String _formulaPlaceholder = '\uFFFC';
+const _inlineFormulaKey = ValueKey<String>('wenz-richtext-inline-formula');
+const _codeBlockBackground = Color(0xFF1E1E2E);
+const _codeBlockText = Color(0xFFE6E6F0);
+const _codeKeyword = Color(0xFFC792EA);
+const _codeString = Color(0xFFC3E88D);
+const _codeType = Color(0xFF82AAFF);
+const _codeNumber = Color(0xFFF78C6C);
+const _codeComment = Color(0xFF6B7394);
+const _dividerLine = Color(0xFFE4E1EE);
+const _calloutInfoBackground = Color(0xFFF2F0F7);
+const _calloutInfoForeground = Color(0xFF46464F);
+const _calloutInfoBorder = Color(0xFFD8D5E2);
+const _calloutSuccessBackground = Color(0x99D6E4E0);
+const _calloutSuccessForeground = Color(0xFF0E1F1B);
+const _calloutSuccessBorder = Color(0xFFBCD8D0);
+const _calloutWarningBackground = Color(0xFFFFF8E1);
+const _calloutWarningForeground = Color(0xFFC97B00);
+const _calloutWarningBorder = Color(0xFFFFE082);
+const _calloutDangerBackground = Color(0xB3FFDAD6);
+const _calloutDangerForeground = Color(0xFF410002);
+const _calloutDangerBorder = Color(0xFFF5B8B0);
+
+void main() {
+  testWidgets('renders document blocks', (tester) async {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'h1',
+            type: BlockType.heading,
+            attributes: BlockAttributes(level: 1),
+            content: <InlineNode>[
+              TextRun(text: 'Roadmap', attributes: TextAttributes(bold: true)),
+            ],
+          ),
+          TextBlockNode(
+            id: 'task1',
+            type: BlockType.listItem,
+            attributes: BlockAttributes(listType: 'task', checked: true),
+            content: <InlineNode>[TextRun(text: 'Ship core')],
+          ),
+          CodeBlockNode(
+            id: 'code1',
+            code: 'final done = true;',
+            language: 'dart',
+          ),
+          TableBlockNode(
+            id: 'table1',
+            table: TableModel(
+              rows: <List<TableCellNode>>[
+                <TableCellNode>[
+                  TableCellNode(
+                    id: 'cell1',
+                    blocks: <BlockNode>[
+                      TextBlockNode(
+                        id: 'cell-p1',
+                        type: BlockType.paragraph,
+                        content: <InlineNode>[TextRun(text: 'Cell A')],
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+              columnAlignments: <int, String>{0: 'center'},
+            ),
+          ),
+          ImageBlockNode(
+            id: 'image1',
+            assetId: 'hero',
+            file: 'hero.png',
+            caption: 'Hero caption',
+          ),
+          DividerBlockNode(id: 'divider1'),
+          VideoBlockNode(id: 'video1', assetId: 'clip'),
+        ],
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WenzRichTextEditor(
+            controller: controller,
+            enableIme: false,
+          ),
+        ),
+      ),
+    );
+
+    expect(_richText('Roadmap'), findsOneWidget);
+    expect(_richText('Ship core'), findsOneWidget);
+    final taskCheckbox = tester.widget<Checkbox>(find.byKey(
+      const ValueKey<String>('wenz-richtext-todo-checkbox-task1'),
+    ));
+    expect(taskCheckbox.value, isTrue);
+    expect(find.text('[x]'), findsNothing);
+    expect(_richText('final done = true;'), findsOneWidget);
+    expect(_richText('Cell A'), findsOneWidget);
+    expect(_imageBlockFinder('image1'), findsOneWidget);
+    expect(find.text('[image: hero.png]'), findsNothing);
+    expect(find.text('Hero caption'), findsNothing);
+    expect(find.byTooltip('璁剧疆鍥剧墖瀹藉害'), findsNothing);
+    expect(find.text('[video: clip]'), findsOneWidget);
+  });
+
+  testWidgets('applies design body baseline and inline text attributes', (
+    tester,
+  ) async {
+    const onSurface = Color(0xFF123456);
+    const primary = Color(0xFF4F6DF5);
+    const primaryContainer = Color(0xFFDDE0FF);
+    const plainText =
+        'plain bold italic underStrike colored highlight big mono '
+        'link comment revision';
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[
+              TextRun(text: 'plain'),
+              TextRun(text: ' '),
+              TextRun(
+                text: 'bold',
+                attributes: TextAttributes(bold: true),
+              ),
+              TextRun(text: ' '),
+              TextRun(
+                text: 'italic',
+                attributes: TextAttributes(italic: true),
+              ),
+              TextRun(text: ' '),
+              TextRun(
+                text: 'underStrike',
+                attributes: TextAttributes(
+                  underline: true,
+                  lineThrough: true,
+                ),
+              ),
+              TextRun(text: ' '),
+              TextRun(
+                text: 'colored',
+                attributes: TextAttributes(color: 0xFFD81B60),
+              ),
+              TextRun(text: ' '),
+              TextRun(
+                text: 'highlight',
+                attributes: TextAttributes(background: 0xFFFFF59D),
+              ),
+              TextRun(text: ' '),
+              TextRun(
+                text: 'big',
+                attributes: TextAttributes(fontSize: 22),
+              ),
+              TextRun(text: ' '),
+              TextRun(
+                text: 'mono',
+                attributes: TextAttributes(fontFamily: 'JetBrains Mono'),
+              ),
+              TextRun(text: ' '),
+              TextRun(
+                text: 'link',
+                attributes: TextAttributes(url: 'https://example.com'),
+              ),
+              TextRun(text: ' '),
+              TextRun(
+                text: 'comment',
+                attributes: TextAttributes(
+                  remark: true,
+                  commentIds: <String>['c1'],
+                ),
+              ),
+              TextRun(text: ' '),
+              TextRun(
+                text: 'revision',
+                attributes: TextAttributes(revisionIds: <String>['r1']),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(seedColor: primary).copyWith(
+            onSurface: onSurface,
+            primary: primary,
+            primaryContainer: primaryContainer,
+          ),
+          useMaterial3: true,
+        ),
+        home: Scaffold(
+          body: SizedBox(
+            width: 640,
+            child: WenzRichTextEditor(
+              controller: controller,
+              padding: EdgeInsets.zero,
+              enableIme: false,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final rootSpan = _richTextSpan(tester, plainText);
+    final rootStyle = rootSpan.style!;
+    TextStyle styleOf(String text) => _leafSpan(rootSpan, text)!.style!;
+
+    expect(rootStyle.fontSize, 16);
+    expect(rootStyle.height, 1.75);
+    expect(rootStyle.color, onSurface);
+    expect(styleOf('bold').fontWeight, FontWeight.w700);
+    expect(styleOf('italic').fontStyle, FontStyle.italic);
+    expect(
+      styleOf('underStrike').decoration?.contains(TextDecoration.underline),
+      isTrue,
+    );
+    expect(
+      styleOf('underStrike').decoration?.contains(TextDecoration.lineThrough),
+      isTrue,
+    );
+    expect(styleOf('colored').color, const Color(0xFFD81B60));
+    expect(styleOf('highlight').backgroundColor, const Color(0xFFFFF59D));
+    expect(styleOf('big').fontSize, 22);
+    expect(styleOf('mono').fontFamily, 'JetBrains Mono');
+    expect(styleOf('link').color, const Color(0xFF1976D2));
+    expect(
+      styleOf('link').decoration?.contains(TextDecoration.underline),
+      isTrue,
+    );
+    expect(styleOf('comment').decorationStyle, TextDecorationStyle.dotted);
+    expect(styleOf('comment').decorationColor, const Color(0xFFC97B00));
+    expect(styleOf('comment').decorationThickness, 2);
+    expect(
+      styleOf('revision').backgroundColor,
+      primaryContainer.withAlpha(72),
+    );
+    expect(styleOf('revision').decorationColor, primary);
+  });
+
+  testWidgets('applies design heading hierarchy and weak heading tones', (
+    tester,
+  ) async {
+    const onSurface = Color(0xFF101018);
+---FILE2---
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:wenz_richtext/wenz_richtext.dart';
+
+import '../helpers/selection_test_helpers.dart';
+
+const _goldenKey = ValueKey<String>('editor-golden-surface');
+
+void main() {
+  test('design baseline maps default renderer coverage and tokens', () {
+    expect(WenzRichTextDesignBaseline.source, 'ui/richtext_design.html');
+    expect(
+      WenzRichTextDesignBaseline.defaultRendererBlockTypes,
+      BlockType.values,
+    );
+
+    final registry = BlockRendererRegistry()..installDefaultBuilders();
+    expect(
+      registry.blockTypes.toList(growable: false),
+      WenzRichTextDesignBaseline.defaultRendererBlockTypes,
+    );
+    expect(registry.embedTypes, isEmpty);
+
+    for (final type in WenzRichTextDesignBaseline.defaultRendererBlockTypes) {
+      expect(
+          WenzRichTextDesignBaseline.currentRendererGaps, contains(type.name));
+    }
+    expect(WenzRichTextDesignBaseline.colorTokens['primary'], 0xFF4F6DF5);
+    expect(WenzRichTextDesignBaseline.colorTokens['surface'], 0xFFFBFAFF);
+    expect(WenzRichTextDesignBaseline.colorTokens['blueLink'], 0xFF1976D2);
+    expect(WenzRichTextDesignBaseline.colorTokens['amberStrong'], 0xFFC97B00);
+    expect(WenzRichTextDesignBaseline.typographyTokens['bodyFontSize'], 16.0);
+    expect(WenzRichTextDesignBaseline.typographyTokens['bodyLineHeight'], 1.75);
+    expect(
+      WenzRichTextDesignBaseline.typographyTokens['headingFontSizes'],
+      <int, double>{1: 24.0, 2: 21.0, 3: 18.0, 4: 16.0},
+    );
+    expect(WenzRichTextDesignBaseline.typographyTokens['headingStrongWeight'],
+        700);
+    expect(
+        WenzRichTextDesignBaseline.typographyTokens['headingWeakWeight'], 600);
+    expect(WenzRichTextDesignBaseline.typographyTokens['codeFontSize'], 13.5);
+    expect(WenzRichTextDesignBaseline.typographyTokens['codeLineHeight'], 1.6);
+    expect(WenzRichTextDesignBaseline.layoutTokens['radius'], 12.0);
+    expect(WenzRichTextDesignBaseline.layoutTokens['paragraphMarginEm'], 0.55);
+    expect(
+      WenzRichTextDesignBaseline.layoutTokens['quotePadding'],
+      <double>[8.0, 18.0],
+    );
+    expect(
+        WenzRichTextDesignBaseline.layoutTokens['quoteBorderLeftWidth'], 4.0);
+    expect(WenzRichTextDesignBaseline.layoutTokens['listPaddingLeft'], 26.0);
+    expect(WenzRichTextDesignBaseline.layoutTokens['taskGap'], 10.0);
+    expect(
+      WenzRichTextDesignBaseline.layoutTokens['codePadding'],
+      <double>[18.0, 20.0],
+    );
+    expect(WenzRichTextDesignBaseline.layoutTokens['dividerMarginEm'], 1.6);
+    expect(
+      WenzRichTextDesignBaseline.layoutTokens['headingMarginEm'],
+      <String, double>{'top': 0.6, 'bottom': 0.35},
+    );
+    expect(BlockDragHandleSpec.railWidth, 32.0);
+    expect(BlockDragHandleSpec.hitSize, const Size.square(28.0));
+    expect(BlockDragHandleSpec.visualSize, const Size.square(18.0));
+    expect(BlockDragHandleSpec.hoverOpacity, 0.72);
+    expect(
+        WenzRichTextDesignBaseline.stateTokens, contains('inline.highlight'));
+    expect(WenzRichTextDesignBaseline.stateTokens, contains('callout.info'));
+    expect(WenzRichTextDesignBaseline.stateTokens, contains('callout.success'));
+    expect(WenzRichTextDesignBaseline.stateTokens, contains('callout.warning'));
+    expect(WenzRichTextDesignBaseline.stateTokens, contains('callout.danger'));
+
+    Widget fallbackBuilder(BuildContext context, BlockRenderContext rc) {
+      return const SizedBox.shrink();
+    }
+
+    Widget customBuilder(BuildContext context, BlockRenderContext rc) {
+      return const SizedBox.shrink();
+    }
+
+    final previous = registry.register(BlockType.paragraph, customBuilder);
+    expect(previous, isNotNull);
+    expect(
+      registry.resolve(BlockType.paragraph, fallback: fallbackBuilder),
+      same(customBuilder),
+    );
+  });
+
+  testWidgets('golden: paragraph code and image placeholder', (tester) async {
+    await _pumpGoldenEditor(
+      tester,
+      WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'title',
+              type: BlockType.heading,
+              attributes: BlockAttributes(level: 2),
+              content: <InlineNode>[
+                TextRun(
+                  text: 'Release checklist',
+                  attributes: TextAttributes(bold: true),
+                ),
+              ],
+            ),
+            TextBlockNode(
+              id: 'body',
+              type: BlockType.paragraph,
+              content: <InlineNode>[
+                TextRun(text: 'Paragraph rendering with inline text.'),
+              ],
+            ),
+            CodeBlockNode(
+              id: 'code',
+              language: 'dart',
+              code: 'final ready = true;',
+            ),
+            ImageBlockNode(id: 'image', assetId: 'hero', file: 'hero.png'),
+          ],
+        ),
+      ),
+    );
+
+    await expectLater(
+      find.byKey(_goldenKey),
+      matchesGoldenFile('goldens/editor_blocks.png'),
+    );
+  });
+
+  testWidgets('golden: merged table cell visual span', (tester) async {
+    await _pumpGoldenEditor(
+      tester,
+      WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TableBlockNode(
+              id: 'table',
+              table: TableModel(
+                rows: <List<TableCellNode>>[
+                  <TableCellNode>[
+                    TableCellNode(
+                      id: 'head-a',
+                      isHeader: true,
+                      blocks: <BlockNode>[
+                        TextBlockNode(
+                          id: 'head-a-p',
+                          type: BlockType.paragraph,
+                          content: <InlineNode>[
+                            TextRun(text: 'Header A'),
+                          ],
+                        ),
+                      ],
+                    ),
+                    TableCellNode(
+                      id: 'head-b',
+                      isHeader: true,
+                      blocks: <BlockNode>[
+                        TextBlockNode(
+                          id: 'head-b-p',
+                          type: BlockType.paragraph,
+                          content: <InlineNode>[TextRun(text: 'Header B')],
+                        ),
+                      ],
+                    ),
+                    TableCellNode(
+                      id: 'head-c',
+                      isHeader: true,
+                      blocks: <BlockNode>[
+                        TextBlockNode(
+                          id: 'head-c-p',
+                          type: BlockType.paragraph,
+                          content: <InlineNode>[TextRun(text: 'Header C')],
+                        ),
+                      ],
+                    ),
+                  ],
+                  <TableCellNode>[
+                    TableCellNode(
+                      id: 'row-b1',
+                      blocks: <BlockNode>[
+                        TextBlockNode(
+                          id: 'row-b1-p',
+                          type: BlockType.paragraph,
+                          content: <InlineNode>[TextRun(text: 'Row stripe')],
+                        ),
+                      ],
+                    ),
+                    TableCellNode(
+                      id: 'row-b2',
+                      blocks: <BlockNode>[
+                        TextBlockNode(
+                          id: 'row-b2-p',
+                          type: BlockType.paragraph,
+                          content: <InlineNode>[TextRun(text: 'Row stripe')],
+                        ),
+                      ],
+                    ),
+                    TableCellNode(
+                      id: 'row-b3',
+                      blocks: <BlockNode>[
+                        TextBlockNode(
+                          id: 'row-b3-p',
+                          type: BlockType.paragraph,
+                          content: <InlineNode>[TextRun(text: 'Row stripe')],
+                        ),
+                      ],
+                    ),
+                  ],
+                  <TableCellNode>[
+                    TableCellNode(
+                      id: 'merge-a',
+                      rowSpan: 2,
+                      columnSpan: 2,
+                      backgroundColor: 0xFFEAF4FF,
+                      blocks: <BlockNode>[
+                        TextBlockNode(
+                          id: 'merge-a-p',
+                          type: BlockType.paragraph,
+                          content: <InlineNode>[
+                            TextRun(text: 'Merged 2 x 2'),
+                          ],
+                        ),
+                      ],
+                    ),
+                    TableCellNode(id: 'merge-b', covered: true),
+                    TableCellNode(
+                      id: 'merge-c',
+                      blocks: <BlockNode>[
+                        TextBlockNode(
+                          id: 'merge-c-p',
+                          type: BlockType.paragraph,
+                          content: <InlineNode>[TextRun(text: 'Right')],
+                        ),
+                      ],
+                    ),
+                  ],
+                  <TableCellNode>[
+                    TableCellNode(id: 'merge-d', covered: true),
+                    TableCellNode(id: 'merge-e', covered: true),
+                    TableCellNode(
+                      id: 'merge-f',
+                      blocks: <BlockNode>[
+                        TextBlockNode(
+                          id: 'merge-f-p',
+                          type: BlockType.paragraph,
+                          content: <InlineNode>[TextRun(text: 'Bottom')],
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    await expectLater(
+      find.byKey(_goldenKey),
+      matchesGoldenFile('goldens/editor_merged_table.png'),
+    );
+  });
+
+  testWidgets('golden: selection highlight', (tester) async {
+    await _pumpGoldenEditor(
+      tester,
+      WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'p1',
+              type: BlockType.paragraph,
+              content: <InlineNode>[
+                TextRun(text: 'Selected words stay highlighted.'),
+              ],
+            ),
+          ],
+        ),
+        selection: textSelection('p1', 0, 0, 14),
+      ),
+    );
+
+    await expectLater(
+      find.byKey(_goldenKey),
+      matchesGoldenFile('goldens/editor_selection.png'),
+    );
+  });
+
+  testWidgets('golden: collapsed caret', (tester) async {
+    await _pumpGoldenEditor(
+      tester,
+      WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'p1',
+              type: BlockType.paragraph,
+              content: <InlineNode>[
+                TextRun(text: 'Caret is visible here.'),
+              ],
+            ),
+          ],
+        ),
+        selection: collapsedTextSelection('p1', 0, 8),
+      ),
+    );
+
+    await expectLater(
+      find.byKey(_goldenKey),
+      matchesGoldenFile('goldens/editor_caret.png'),
+    );
+  });
+
+  testWidgets('golden: advanced blocks and inline embeds', (tester) async {
+    await _pumpGoldenEditor(
+      tester,
+      WenzRichTextController(
+        document: const RichTextDocument(
+---FILE3---
+import 'package:flutter_test/flutter_test.dart';
+import 'package:wenz_richtext/wenz_richtext.dart';
+
+import '../helpers/selection_test_helpers.dart';
+
+void main() {
+  group('IndentCommand', () {
+    test('increases indent on text blocks in the selection', () {
+      final session = DocumentSession(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'p1',
+              type: BlockType.paragraph,
+              attributes: BlockAttributes(anchor: 'intro'),
+              content: <InlineNode>[TextRun(text: 'a')],
+            ),
+            TextBlockNode(
+              id: 'p2',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'b')],
+            ),
+          ],
+        ),
+        selection: collapsedTextSelection('p1', 0, 0),
+      );
+      final executor = CommandExecutor(session);
+
+      executor.execute(const IndentCommand(1));
+
+      final block = session.document.blocks[0] as TextBlockNode;
+      expect(block.attributes.indent, 1);
+      expect(block.attributes.anchor, 'intro');
+      // block 2 untouched (not in the collapsed selection); normaliser clamps
+      // a null indent to 0.
+      expect(
+        (session.document.blocks[1] as TextBlockNode).attributes.indent,
+        0,
+      );
+    });
+
+    test('clamps at zero when outdenting an unindented block', () {
+      final session = DocumentSession(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'p1',
+              type: BlockType.paragraph,
+              content: <InlineNode>[],
+            ),
+          ],
+        ),
+        selection: collapsedTextSelection('p1', 0, 0),
+      );
+      final executor = CommandExecutor(session);
+
+      executor.execute(const IndentCommand(-1));
+
+      expect(
+        (session.document.blocks.single as TextBlockNode).attributes.indent,
+        0,
+      );
+    });
+  });
+
+  group('ToggleTodoCommand', () {
+    test('converts a paragraph to an unchecked task item', () {
+      final session = DocumentSession(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'p1',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'todo')],
+            ),
+          ],
+        ),
+        selection: collapsedTextSelection('p1', 0, 0),
+      );
+      final executor = CommandExecutor(session);
+
+      executor.execute(const ToggleTodoCommand());
+
+      final block = session.document.blocks.single as TextBlockNode;
+      expect(block.type, BlockType.listItem);
+      expect(block.attributes.listType, 'task');
+      expect(block.attributes.checked, isFalse);
+    });
+
+    test('toggles checked state on an existing task item', () {
+      final session = DocumentSession(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 't1',
+              type: BlockType.listItem,
+              attributes: BlockAttributes(listType: 'task', checked: false),
+              content: <InlineNode>[TextRun(text: 'todo')],
+            ),
+          ],
+        ),
+        selection: collapsedTextSelection('t1', 0, 0),
+      );
+      final executor = CommandExecutor(session);
+
+      executor.execute(const ToggleTodoCommand());
+
+      expect(
+        (session.document.blocks.single as TextBlockNode).attributes.checked,
+        isTrue,
+      );
+    });
+  });
+
+  group('MoveBlockCommand', () {
+    test('moves a block to the requested final index and records history', () {
+      final session = DocumentSession(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'p1',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'one')],
+            ),
+            TextBlockNode(
+              id: 'p2',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'two')],
+            ),
+            TextBlockNode(
+              id: 'p3',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'three')],
+            ),
+          ],
+        ),
+        selection: collapsedTextSelection('p1', 0, 0),
+      );
+      final executor = CommandExecutor(session);
+
+      final change = executor.execute(
+        const MoveBlockCommand(fromIndex: 0, toIndex: 2),
+      );
+
+      expect(change.description, 'moveBlock');
+      expect(session.document.blocks.map((block) => block.id), [
+        'p2',
+        'p3',
+        'p1',
+      ]);
+      expect(session.selection, collapsedTextSelection('p1', 2, 3));
+      expect(session.canUndo, isTrue);
+
+      expect(session.undo(), isTrue);
+      expect(session.document.blocks.map((block) => block.id), [
+        'p1',
+        'p2',
+        'p3',
+      ]);
+      expect(session.selection, collapsedTextSelection('p1', 0, 0));
+
+      expect(session.redo(), isTrue);
+      expect(session.document.blocks.map((block) => block.id), [
+        'p2',
+        'p3',
+        'p1',
+      ]);
+      expect(session.selection, collapsedTextSelection('p1', 2, 3));
+    });
+
+    test('preserves object metadata and retargets comments and revisions', () {
+      final createdAt = DateTime.utc(2026, 6, 25);
+      final session = DocumentSession(
+        document: RichTextDocument(
+          version: 7,
+          blocks: const <BlockNode>[
+            FileBlockNode(
+              id: 'f1',
+              assetId: 'asset-1',
+              name: 'doc.pdf',
+              size: 2048,
+              mimeType: 'application/pdf',
+              downloadUrl: 'https://cdn.example.com/doc.pdf',
+              uploadStatus: FileUploadStatus.failed,
+              uploadError: 'network timeout',
+            ),
+            TextBlockNode(
+              id: 'p1',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'after')],
+            ),
+          ],
+          comments: <CommentThread>[
+            CommentThread(
+              id: 'comment-1',
+              anchor: CommentAnchor(
+                blockId: 'f1',
+                blockIndex: 0,
+                path: PositionPath.blockObject('f1'),
+                startOffset: 0,
+                endOffset: 1,
+              ),
+              messages: <CommentEntry>[
+                CommentEntry(
+                  id: 'message-1',
+                  authorName: 'A',
+                  text: 'check file',
+                  createdAt: createdAt,
+                ),
+              ],
+              createdAt: createdAt,
+            ),
+          ],
+          revisions: <RevisionChange>[
+            RevisionChange(
+              id: 'rev-1',
+              type: RevisionChangeType.insert,
+              range: RevisionRange(
+                blockId: 'f1',
+                blockIndex: 0,
+                path: PositionPath.blockObject('f1'),
+                startOffset: 0,
+                endOffset: 1,
+              ),
+              createdAt: createdAt,
+              metadata: <String, Object?>{'source': 'test'},
+            ),
+          ],
+        ),
+      );
+      final executor = CommandExecutor(session);
+
+      executor.execute(const MoveBlockCommand(fromIndex: 0, toIndex: 1));
+
+      expect(session.document.version, 7);
+      expect(session.document.blocks.map((block) => block.id), ['p1', 'f1']);
+      final file = session.document.blocks[1] as FileBlockNode;
+      expect(file.assetId, 'asset-1');
+      expect(file.name, 'doc.pdf');
+      expect(file.size, 2048);
+      expect(file.mimeType, 'application/pdf');
+      expect(file.effectiveDownloadUrl, 'https://cdn.example.com/doc.pdf');
+      expect(file.uploadStatus, FileUploadStatus.failed);
+      expect(file.uploadError, 'network timeout');
+      expect(session.document.comments.single.anchor.blockIndex, 1);
+      expect(session.document.revisions.single.range.blockIndex, 1);
+      expect(session.document.revisions.single.metadata, {'source': 'test'});
+      expect(
+          session.selection,
+          DocumentSelection(
+            base: DocumentPosition.object(blockId: 'f1', blockIndex: 1),
+            extent: DocumentPosition.object(blockId: 'f1', blockIndex: 1)
+                .copyWith(offset: 1),
+          ));
+    });
+
+    test('does not record history for out-of-range or same-index moves', () {
+      final session = DocumentSession(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(id: 'p1', type: BlockType.paragraph),
+            TextBlockNode(id: 'p2', type: BlockType.paragraph),
+          ],
+        ),
+      );
+      final executor = CommandExecutor(session);
+
+      final sameIndex = executor.execute(
+        const MoveBlockCommand(fromIndex: 1, toIndex: 1),
+      );
+      final outOfRange = executor.execute(
+        const MoveBlockCommand(fromIndex: 0, toIndex: 2),
+      );
+
+      expect(sameIndex.isNoop, isTrue);
+      expect(outOfRange.isNoop, isTrue);
+      expect(session.document.blocks.map((block) => block.id), ['p1', 'p2']);
+      expect(session.canUndo, isFalse);
+    });
+  });
+
+  group('SetCodeLanguageCommand', () {
+    test('updates the language of the code block at the caret', () {
+      final session = DocumentSession(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            CodeBlockNode(id: 'c1', code: 'print(1)', language: 'text'),
+          ],
+        ),
+        selection: collapsedCodeSelection('c1', 0, 0),
+      );
+      final executor = CommandExecutor(session);
+
+      executor.execute(const SetCodeLanguageCommand('python'));
+
+      expect(
+        (session.document.blocks.single as CodeBlockNode).language,
+        'python',
+      );
+    });
+
+    test('records language changes in history', () {
+      final session = DocumentSession(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            CodeBlockNode(id: 'c1', code: 'print(1)', language: 'text'),
+          ],
+        ),
+        selection: collapsedCodeSelection('c1', 0, 0),
+      );
+      final executor = CommandExecutor(session);
+
+      executor.execute(const SetCodeLanguageCommand('python'));
+
+      expect(session.canUndo, isTrue);
+      expect(session.undo(), isTrue);
+      expect(
+          (session.document.blocks.single as CodeBlockNode).language, 'text');
+    });
+
+---DOC1---
+# Selection Engine
+
+闃舵 2 閫夊尯涓庡竷灞€寮曟搸鐨勬灦鏋勮鏄庯細璺ㄥ潡鎷栨嫿銆侀€夎瘝/閫夋銆佽嚜鍔ㄦ粴鍔ㄣ€佸彧璇婚€夋嫨銆?
+## 鎬昏
+
+闃舵 0 鐨勯€夊尯鏄?*鍗曞潡鎵嬪娍**鈥斺€旀瘡涓?`_TextSelectionSurface` 鐙崰 `GestureDetector`锛屾嫋鎷芥棤娉曡法鍧椼€傞樁娈?2 鎶婃墜鍔夸笂绉诲埌**鏂囨。绾?overlay**锛岄€氳繃 `BlockGeometryRegistry` 鎶婂叏灞€鍧愭爣瑙ｆ瀽涓?`DocumentPosition`锛屼粠鑰屾敮鎸佽法鍧椼€?
+鍏抽敭浜嬪疄锛?*閫夊尯妯″瀷銆佸懡浠ゅ眰銆佽法鍧楅珮浜粯鍒跺湪闃舵 0/1 宸叉敮鎸佽法鍧?*锛坄DocumentSelection` 鏃犲崟鍧楃害鏉熴€乣_selectionRangeForPath` 鎸?blockIndex 鍖洪棿鍏ㄥ潡楂樹寒锛夈€傞樁娈?2 琛ョ殑鍙槸鎵嬪娍鐢熶骇銆?
+## 鏋舵瀯
+
+```
+SelectionGestureOverlay锛堟枃妗ｇ骇 Listener + 鎵嬪娍鍒ゅ畾锛?        鈹?        鈹? 鍏ㄥ眬鍧愭爣 鈫?DocumentPosition
+        鈻?BlockGeometryRegistry锛堟敞鍐岃〃锛歜lockId 鈫?GlobalKey + layoutResolver锛?        鈹?        鈹? 閬嶅巻宸叉敞鍐?surface锛孯enderBox.globalToLocal + TextLayoutService.offsetAt
+        鈻?controller.setSelection(DocumentSelection)  鈹€鈹€鈻?鍚?_TextSelectionSurface 鎸夊尯闂撮噸缁橀珮浜?```
+
+## BlockGeometryRegistry
+
+`lib/src/widgets/block_geometry_registry.dart`銆傛枃妗ｇ骇鍗曚緥锛坄_WenzRichTextEditorState` 鎸佹湁锛屾敞鍏ユ瘡涓?surface锛夈€?
+- 姣忎釜 `_TextSelectionSurface` 鍦?`initState` 鐢?`register(BlockEntry)` 娉ㄥ唽锛歚blockId`銆乣blockIndex`銆乣path`銆乣textLength`銆乣GlobalKey`銆乣positionFromLocal` 鍥炶皟銆乣wordRangeAt` 鍥炶皟銆俙dispose` 鏃?`unregister`銆?- `positionFromGlobalOffset(Offset global)`锛氶亶鍘?entries锛岀敤 `RenderBox.globalToLocal` + `contains` 鎵惧懡涓潡锛涘懡涓垯鐢ㄨ鍧?`TextLayoutService.offsetAt` 寰?offset 鏋勯€?`DocumentPosition`銆傛湭鍛戒腑锛堝潡闂寸┖闅?瑙嗗彛澶栵級鍒?`_clampToNearest`鈥斺€旀寜鍨傜洿閭昏繎閫夋渶杩戝潡鐨勯/灏撅紝淇濊瘉鎷栨嫿鍒板潡闂撮殭涔熻兘棰勬祴鍦版墿灞曢€夊尯銆?- `wordRangeAt(blockId, offset)` / `paragraphRange(blockId)`锛氬鎵樼粰鍛戒腑鍧楃殑 `TextLayoutService`锛屼緵鍙屽嚮/涓夊嚮銆?
+## SelectionGestureOverlay
+
+`lib/src/widgets/selection_gesture_overlay.dart`銆傚寘瑁?`SingleChildScrollView`锛岀敤 `Listener`锛坄PointerDown/Move/Up/Cancel`锛夌粺涓€鎺ョ鎸囬拡浜嬩欢銆?
+### 鎵嬪娍绫诲瀷
+
+| 杈撳叆 | 琛屼负 |
+| --- | --- |
+| 鍗曞嚮 | `_tapAnchor` 鈫?collapsed caret |
+| 鎷栨嫿锛堜綅绉?> slop 闃堝€硷級 | base 鍥哄畾锛宔xtent 璺熼殢鍏ㄥ眬鍧愭爣锛?*鍙法鍧?*锛夛紝up 鏃跺畾绋?|
+| 鍙屽嚮 | `wordRangeAt` 鈫?閫夎瘝 |
+| 涓夊嚮 | `paragraphRange` 鈫?閫夋暣鍧?|
+
+- **澶氬嚮璁℃暟**锛歚_lastTapTime` + `_lastTapPosition`锛?00ms 鏃堕棿绐?+ slop 浣嶇Щ鍐呯畻杩炵画銆俙_tapCount` 绱姞锛涘弻鍑?涓夊嚮鎶戝埗 drag 鍚姩锛坄_dragOrigin = null`锛夛紝浣?`_tapAnchor` 濮嬬粓璁板綍銆?- **鎷栨嫿璺ㄥ潡**锛歚_extendSelection` 姣忓抚鐢?registry 瑙ｆ瀽 extent锛屽彲钀藉湪浠绘剰宸叉敞鍐屽潡銆傜粯鍒跺眰锛坄_selectionRangeForPath`锛夎嚜鍔ㄥ鐞嗚法鍧楅珮浜細涓棿鍧楀叏鍧楅珮浜紝棣栧熬鍧楁寜 offset 鎴柇銆?
+### 鑷姩婊氬姩
+
+`_maybeAutoScroll`锛氭嫋鎷?move 鏃讹紝鑻ュ叏灞€鍧愭爣璺濊鍙ｈ竟缂?< 48px锛屾寜宸€硷紙涓婇檺 24px/甯э級`scrollable.position.jumpTo`銆傝鍙ｈ竟鐣岀敤 overlay 鑷韩 RenderBox 杩戜技銆?
+### Block 鎷栨嫿鎶婃墜鎺掗櫎杈圭晫
+
+Block 宸︿晶鎶婃墜灞炰簬**椤跺眰 block 琛?chrome**锛屼笉灞炰簬 `_TextSelectionSurface`銆乣BlockRendererBuilder` 鎴栧璞″潡鍐呴儴鎺т欢銆傚悗缁覆鏌?鎷栨嫿瀹炵幇蹇呴』澶嶇敤 `BlockDragHandleSpec` 涓殑灏哄涓庨槇鍊硷紝骞跺湪鍛戒腑鎶婃墜鏃跺厛娑堣垂鎸囬拡浜嬩欢锛岄伩鍏嶄簨浠剁户缁繘鍏?`SelectionGestureOverlay` 鐢熸垚鏂囨湰閫夊尯銆?
+| 椤?| 浜や簰绾﹀畾 |
+| --- | --- |
+| 褰掑睘 | 鍙寕鍦?`_MeasuredVirtualBlockList` 浜х敓鐨?`controller.document.blocks` 椤跺眰琛屽澹筹紱琛ㄦ牸鍗曞厓鏍兼枃鏈€佽鍐?embed銆佸璞″潡鍐呴儴鎸夐挳/resize 鎺т欢閮戒笉鏄彲鎺掑簭琛屻€?|
+| 浣嶇疆 | 浣跨敤 leading 鏂瑰悜鐨勮澶?gutter锛岄伒寰?`Directionality`锛涙妸鎵嬪湪鍐呭妗嗗渚э紝涓嶆敼鍙?renderer 鍐呭瀹藉害銆佺缉杩涙垨琛ㄦ牸鍒楀銆?|
+| 灏哄 | gutter 瀹?`32px`锛屽懡涓?鐒︾偣鍖哄煙 `28脳28px`锛屽浘鏍?`18脳18px`锛屼笌鍐呭杈圭紭闂磋窛 `4px`锛岃窛 block 椤堕儴 `2px`锛岃瑙変笂閿氬畾棣栬鎴栧璞″潡椤堕儴鎺у埗琛屻€?|
+| 鐘舵€?| 榛樿閫忔槑浣嗕繚鐣欑ǔ瀹氬懡涓尯鍩燂紱琛?rail hover 鏃舵樉绀?`0.72` opacity锛涢敭鐩?focus銆佽彍鍗曟墦寮€鎴栨嫋鎷戒腑涓?`1.0`锛涘彧璇绘垨鏃犵紪杈戞潈闄愭椂涓嶆樉绀恒€佷笉鍙仛鐒︺€?|
+| 鑿滃崟 vs 鎷栨嫿 | pointer down 鍦ㄥ懡涓尯鍚庤繘鍏?pending锛氶噴鏀惧墠绉诲姩璺濈 `< 6px` 瑙嗕负鐐瑰嚮/杞昏Е骞舵墦寮€ block 鑿滃崟锛涚Щ鍔ㄨ窛绂?`>= 6px` 杩涘叆鎺掑簭鎷栨嫿锛屾姂鍒惰彍鍗曘€佹枃鏈€夊尯鍜?IME caret 鍙樻洿銆?|
+| 鍚堟硶钀界偣 | 浠呭厑璁歌惤鍒伴《灞?block 涔嬮棿鎴栭灏捐竟鐣岋紝涓嶅厑璁歌惤鍏ヨ〃鏍煎崟鍏冩牸銆佽鍐?embed 鎴栧璞″潡鍐呴儴鎺т欢锛涘悓浣嶇疆/鏃犲悎娉曠洰鏍囦负 no-op 涓斾笉璁板巻鍙层€?|
+| 绂佺敤/no-op | 绌烘枃妗ｆ棤鎶婃墜锛涘彧璇绘垨 `canEdit=false` 鏃犺彍鍗曞拰鎷栨嫿锛涘崟 block 鏂囨。鍙墦寮€鑿滃崟浣嗘帓搴忔嫋鎷姐€佷笂绉?涓嬬Щ涓?no-op锛涢琛岀鐢ㄤ笂绉伙紝鏈绂佺敤涓嬬Щ銆?|
+
+## TextLayoutService 澧炲己
+
+`lib/src/rendering/text_layout_service.dart`锛堥樁娈?0 鎶藉嚭锛岄樁娈?2 澧炲己锛夛細
+- `wordRangeAt(painter, offset)`锛歚TextPainter.getWordBoundary`锛坧latform 鏂囨湰鍒嗘锛屾敮鎸佷腑鏂囷級銆?- `paragraphRange(painter)`锛歚TextRange(0, textLength)`鈥斺€旈樁娈?2 "娈? = 鍗曞潡銆?
+## 鍙妯″紡
+
+overlay 鍦ㄥ彧璇讳笅浠嶆帴绠℃墍鏈夋墜鍔夸骇鐢?selection锛堥樁娈?0 宸茶鍙鍙€夛紱闃舵 2 overlay 缁熶竴鍚庝繚鎸侊級銆傜紪杈戠被鍛戒护浠嶇敱 `_handleKeyEvent` 鐨?`readOnly` 瀹堝崼銆傚彧璇讳笅涓嶆樉绀?caret锛屽彧鏄剧ず selection 楂樹寒銆?
+## IME 鍚屾
+
+overlay 浜х敓 selection 鍚庯紝`_handleSelectionChanged` 璋?`EditorTextInputClient.syncBuffer()` 鍒锋柊 IME 缂撳啿锛岃骞冲彴杈撳叆璺熼殢鏂板厜鏍囦綅缃€?
+## 闃舵杈圭晫锛堢暀鍒板悗缁級
+
+- **selection overlay handles**锛堢Щ鍔ㄧ鎷栨嫿鎵嬫焺锛夆啋 闃舵 8銆?- 琛岀骇 layout锛圚ome/End 绉诲埌鐪熷疄琛岄鑰岄潪鍧楅锛夆啋 闃舵 5锛堜緷璧栬櫄鎷熷寲鍚庣殑琛屽竷灞€缂撳瓨锛夈€?- 瀵屾枃鏈法鍧楀鍒剁矘璐?鈫?闅忚法鍧楅€夊尯宸插湪锛屽壀璐存澘灞傝ˉ榻愶紙闃舵 1 宸查鐣欙級銆?
+---README---
+# wenz_richtext
+
+`wenz_richtext` 鏄竴涓嚜鐮?Flutter 瀵屾枃鏈紪杈戝櫒 package锛屽寘鍚枃妗ｆā鍨嬨€佸懡浠や綋绯汇€佸巻鍙茶褰曘€佽緭鍏ユˉ銆佹覆鏌撶粍浠躲€佸鍏ュ鍑哄拰鎵╁睍鐐广€傚綋鍓嶇増鏈潰鍚戝唴閮?alpha / 涓氬姟鎺ュ叆楠岃瘉銆?
+## 瀹夎
+
+Flutter SDK 闇€婊¤冻 `>=3.22.0`锛孌art SDK 闇€婊¤冻 `>=3.3.4`銆傚湪鏈粨搴撴垨 monorepo 鍐呴儴鎺ュ叆鏃朵娇鐢?path dependency锛?
+```yaml
+dependencies:
+  wenz_richtext:
+    path: ../wenz_richtext
+```
+
+鍙戝竷鍒板寘浠撳簱鍚庡彲鍒囨崲涓虹増鏈緷璧栵紝渚嬪 `wenz_richtext: ^0.1.0`銆?
+## 蹇€熷紑濮?
+```dart
+import 'package:flutter/material.dart';
+import 'package:wenz_richtext/wenz_richtext.dart';
+
+class EditorPage extends StatefulWidget {
+  const EditorPage({super.key});
+
+  @override
+  State<EditorPage> createState() => _EditorPageState();
+}
+
+class _EditorPageState extends State<EditorPage> {
+  late final WenzRichTextController controller = WenzRichTextController();
+
+  @override
+  void dispose() {
+    controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: WenzRichTextEditor(
+        controller: controller,
+        autofocus: true,
+      ),
+    );
+  }
+}
+```
+
+## 甯哥敤鑳藉姏
+
+- **鍛戒护**锛氱洿鎺ヨ皟鐢?`WenzRichTextController.insertText`銆乣setBlockType`銆乣insertTable`銆乣insertVideo` 绛?typed helper锛涘伐鍏锋爮鍦烘櫙浼樺厛鐢?`ToolbarController` 娲剧敓 active / enabled 鐘舵€併€?- **搴忓垪鍖?*锛歚controller.toJson()` 杈撳嚭褰撳墠 canonical rich JSON锛沗controller.loadJson(source)` 璇诲彇 rich JSON锛沗controller.loadJson(source, legacy: true)` 璇诲彇鏃?`wenz_editor` JSON銆?- **Markdown / HTML**锛氶€氳繃 `controller.toMarkdown()`銆乣controller.loadMarkdown(source)` 鍜?`HtmlCodec` 瑕嗙洊甯歌 block / inline 浜掕浆锛涘鏉傚獟浣撲笌涓氬姟 embed 鎸夋枃妗ｇ瓥鐣ラ檷绾с€?- **瑙嗛缁勪欢**锛氶€氳繃鏂滄潬鑿滃崟 `video`/`瑙嗛`銆乣ToolbarController.insertVideo` 鎴?`WenzRichTextController.insertVideo` 鍐欏叆 `VideoBlockNode`锛涢粯璁ゅ彧鎻愪緵鍗犱綅娓叉煋锛岀湡瀹炴挱鏀惧櫒鐢变笟鍔￠€氳繃 `MediaResolver` 娉ㄥ叆锛屾牳蹇冨寘涓嶄緷璧?`video_player`銆?- **鎵╁睍**锛氶€氳繃 `BlockRendererRegistry`銆乣InlineEmbedRenderer`銆乣MediaResolver` 鍜?`WenzRichTextPlugin` 娉ㄥ叆涓氬姟 block銆乮nline embed銆佸獟浣撴覆鏌撱€乻lash item銆乼oolbar item 涓?paste transformer銆?- **璐ㄩ噺闂ㄧ**锛欸olden baseline 瑕嗙洊鍩虹鍧椼€佸悎骞惰〃鏍笺€乻election / caret銆侀珮绾у潡涓?inline embed锛沚enchmark 瑕嗙洊澶ф枃妗ｃ€佸鏉傝〃鏍笺€佹粴鍔?remount 涓庨珮绾ф贩鍚堟枃妗ｃ€?
+## 鏂囨。鍦板浘
+
+- API 鍏ュ彛锛歚docs/api_reference.md`
+- 鏋舵瀯姒傝锛歚docs/architecture.md`
+- 杩佺Щ鎸囧崡锛歚docs/migration_guide.md`
+- 鍛戒护涓?schema锛歚docs/schema_and_commands.md`
+- 瀵煎叆瀵煎嚭锛歚docs/import_export_strategy.md`
+- 杩愯 example锛歚docs/running_guide.md`
+- 鍙戝竷妫€鏌ワ細`docs/release_checklist.md`
+
+## FAQ
+
+- **鏄惁渚濊禆鍘熺敓鎻掍欢锛?* 涓嶄緷璧栥€傛牳蹇?package 鏄函 Flutter / Dart锛涜棰戞挱鏀俱€佷笅杞姐€佽繙绔祫婧愬姞杞界瓑鐢变笟鍔￠€氳繃 resolver 鎴?adapter 娉ㄥ叆銆?- **鏄惁鍏煎鏃ф暟鎹紵** 鏀寔銆傛棫 `wenz_editor` JSON 鍙敤 `legacy: true` 瀵煎叆锛況ich JSON 浣跨敤 `DocumentMigrationRegistry` 绠＄悊 schema version銆?- **PDF / DOCX 鏄惁鍐呭缓锛?* 褰撳墠鍙彁渚涘钩鍙般€佷緷璧栧拰 adapter 鍚堢害鏂规锛屾牳蹇冨簱涓嶅紩鍏?PDF銆乸rint銆丱OXML 渚濊禆銆?- **alpha 杩樻湁鍝簺杈圭晫锛?* 灞忓箷闃呰鍣ㄦ娊鏍锋墜楠屻€佺Щ鍔ㄧ selection handles銆侀儴鍒嗕笁绔?IME 鎵嬮獙浠嶆寜 `docs/release_checklist.md` 浣滀负鍙戝竷闂ㄧ銆?
+
+**Investigating encoding issues**
+
+I'm looking into output encoding issues that might be related to UTF-8. It could be garbled because of the terminal's code page. I'll try `Get-Content -Encoding utf8` to check the file again. I wonder if there’s a chance the repository isn't using UTF-8, even though the instructions mention Chinese files do. I'll inspect relevant sections and logs for any failures. Checking the last log might help clarify what went wrong.
+codex
+我先看上次 P007 的执行记录，避免重复踩坑。
+exec
+powershell.exe -Command "Get-Content -Encoding utf8 docs/progress/logs/20260625-044720_execute-P007.last.txt; Write-Host '---LOG---'; Get-Content -Encoding utf8 docs/progress/logs/20260625-044720_execute-P007.log -Tail 220" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 233ms:
+**完成情况**
+- 已补充附件简化展示与操作菜单回归：`test/widgets/wenz_rich_text_editor_test.dart:652`
+- 已补充反馈 #3 主要操作 tooltip 中文化回归：`test/widgets/wenz_rich_text_editor_test.dart:714`
+- 已新增 tooltip 中文断言 helper：`test/widgets/wenz_rich_text_editor_test.dart:5479`
+- 已新增反馈 #3 回归验证记录与手工清单：`docs/issues/feedback_3_regression_report.md:1`
+
+**验证**
+- `flutter test test\widgets\wenz_rich_text_editor_test.dart --name "file block stays compact|feedback 3 primary operation tooltips|paragraph converted to quote|code block syntax highlights|image object toolbar" --reporter expanded`：通过，5 项。
+- `flutter analyze`：通过，`No issues found!`。
+
+**说明**
+- 未修改 plan 文件、checkbox 或进度区。
+- 未运行全量测试；真实 Win/Web/Android 三端手工点击未在本 CLI 环境执行，已在 `docs/issues/feedback_3_regression_report.md:34` 记录为未覆盖风险与后续建议。
+---LOG---
++| 图片块 | 插入带标题/文件名的图片块，分别查看未选中和单独选中状态。 | 未选中只显示图片本体；单独选中时仅在图片上方显示悬浮操作菜单。 |
++| 附件块 | 插入普通文件和图片附件，使用长文件名、失败/上传中状态抽样。 | 只显示图标/缩略图、文件名和操作菜单；长文件名不撑破编辑器宽度。 |
++
++## 未覆盖风险与建议
++
++- 本次未运行全量测试；P007 只执行反馈 #3 直接相关 widget 回归与 `flutter analyze`。
++- 本次未启动 Windows/Web/Android 示例应用做真实三端人工点击；建议发布前按「手工回归清单」在目标平台各抽样一次。
++- 代码高亮的视觉对比度已由主题色断言覆盖基础映射，仍建议在业务自定义主题下做截图抽检。
++- 图片上方悬浮菜单在强裁剪父容器或极窄宽度下可能受宿主布局影响，建议集成方在真实页面复核。
++
++## 范围确认
++
++- 未修改计划文件、checkbox 或计划进度区。
++- 未扩展反馈 #3 以外的新功能；本次业务代码未改动，仅补充 P007 直接相关测试与验证记录。
+diff --git a/wenz_richtext/test/widgets/wenz_rich_text_editor_test.dart b/wenz_richtext/test/widgets/wenz_rich_text_editor_test.dart
+index 835dcb0f9fdfa00a06b582318628b8f2a25d8e9c..5367d475a5360ff7db06856bf7c72cfeae1b45ab
+--- a/wenz_richtext/test/widgets/wenz_rich_text_editor_test.dart
++++ b/wenz_richtext/test/widgets/wenz_rich_text_editor_test.dart
+@@ -649,7 +649,8 @@
+     expect(image.showHeight, isNull);
+   });
+ 
+-  testWidgets('file object toolbar updates upload status', (tester) async {
++  testWidgets('file block stays compact and updates status from action menu',
++      (tester) async {
+     final controller = WenzRichTextController(
+       document: const RichTextDocument(
+         blocks: <BlockNode>[
+@@ -659,6 +660,8 @@
+             name: 'brief.pdf',
+             size: 4096,
+             mimeType: 'application/pdf',
++            file: 'storage/brief.pdf',
++            downloadUrl: 'https://cdn.example.com/brief.pdf',
+             uploadStatus: FileUploadStatus.uploading,
+           ),
+         ],
+@@ -678,20 +681,29 @@
+     );
+     await tester.pump();
+ 
+-    var fileStatusMenu = tester.widget<PopupMenuButton<FileUploadStatus>>(
+-      find.byType(PopupMenuButton<FileUploadStatus>),
++    expect(find.byIcon(Icons.insert_drive_file_outlined), findsOneWidget);
++    expect(find.text('brief.pdf'), findsOneWidget);
++    expect(find.byTooltip('附件操作'), findsOneWidget);
++    expect(find.text('4096'), findsNothing);
++    expect(find.text('application/pdf'), findsNothing);
++    expect(find.text('storage/brief.pdf'), findsNothing);
++    expect(find.text('https://cdn.example.com/brief.pdf'), findsNothing);
++    expect(find.byTooltip('设置文件状态'), findsNothing);
++
++    var fileActionMenu = tester.widget<PopupMenuButton<ObjectBlockAction>>(
++      find.byType(PopupMenuButton<ObjectBlockAction>),
+     );
+-    fileStatusMenu.onSelected?.call(FileUploadStatus.uploaded);
++    fileActionMenu.onSelected?.call(ObjectBlockAction.markFileUploaded);
+     await tester.pump();
+ 
+     var file = controller.document.blocks.single as FileBlockNode;
+     expect(file.uploadStatus, FileUploadStatus.uploaded);
+     expect(file.uploadError, isEmpty);
+ 
+-    fileStatusMenu = tester.widget<PopupMenuButton<FileUploadStatus>>(
+-      find.byType(PopupMenuButton<FileUploadStatus>),
++    fileActionMenu = tester.widget<PopupMenuButton<ObjectBlockAction>>(
++      find.byType(PopupMenuButton<ObjectBlockAction>),
+     );
+-    fileStatusMenu.onSelected?.call(FileUploadStatus.failed);
++    fileActionMenu.onSelected?.call(ObjectBlockAction.markFileFailed);
+     await tester.pump();
+ 
+     file = controller.document.blocks.single as FileBlockNode;
+@@ -699,6 +711,118 @@
+     expect(file.uploadError, 'Upload failed');
+   });
+ 
++  testWidgets('feedback 3 primary operation tooltips stay localized',
++      (tester) async {
++    Future<void> pumpEditor(WenzRichTextController controller) async {
++      await tester.pumpWidget(
++        MaterialApp(
++          home: Scaffold(
++            body: SizedBox(
++              width: 960,
++              height: 360,
++              child: WenzRichTextEditor(
++                controller: controller,
++                enableIme: false,
++              ),
++            ),
++          ),
++        ),
++      );
++      await tester.pump();
++    }
++
++    await pumpEditor(
++      WenzRichTextController(
++        document: const RichTextDocument(
++          blocks: <BlockNode>[
++            CodeBlockNode(
++              id: 'code1',
++              code: 'final value = 1;',
++              language: 'dart',
++            ),
++          ],
++        ),
++        selection: collapsedCodeSelection('code1', 0, 0),
++      ),
++    );
++    _expectLocalizedTooltip('复制代码');
++
++    await pumpEditor(
++      WenzRichTextController(
++        document: const RichTextDocument(
++          blocks: <BlockNode>[
++            ImageBlockNode(id: 'image1', assetId: 'hero', file: 'hero.png'),
++          ],
++        ),
++        selection: objectBlockSelection('image1', 0),
++      ),
++    );
++    for (final tooltip in <String>[
++      '复制块引用',
++      '创建块副本',
++      '上移块',
++      '下移块',
++      '设置图片宽度',
++      '重置图片尺寸',
++      '删除块',
++    ]) {
++      _expectLocalizedTooltip(tooltip);
++    }
++
++    await pumpEditor(
++      WenzRichTextController(
++        document: const RichTextDocument(
++          blocks: <BlockNode>[
++            FileBlockNode(id: 'file1', assetId: 'file-1', name: 'brief.pdf'),
++          ],
++        ),
++        selection: objectBlockSelection('file1', 0),
++      ),
++    );
++    _expectLocalizedTooltip('附件操作');
++    await tester.tap(find.byTooltip('附件操作'));
++    await tester.pumpAndSettle();
++    for (final label in <String>[
++      '复制块引用',
++      '创建块副本',
++      '上移块',
++      '下移块',
++      '标记为上传中',
++      '标记为已上传',
++      '标记为失败',
++      '删除块',
++    ]) {
++      expect(find.text(label), findsOneWidget);
++    }
++
++    await pumpEditor(
++      WenzRichTextController(
++        document: _toolbarTableDocument(),
++        selection: _tableCellSelection(),
++      ),
++    );
++    for (final tooltip in <String>[
++      '在上方插入行',
++      '在下方插入行',
++      '删除行',
++      '在左侧插入列',
++      '在右侧插入列',
++      '删除列',
++      '切换表头单元格',
++      '设置单元格背景',
++      '清除单元格背景',
++      '列左对齐',
++      '列居中对齐',
++      '列右对齐',
++      '清除列对齐',
++      '合并所选单元格',
++      '拆分单元格',
++      '重置列宽',
++    ]) {
++      _expectLocalizedTooltip(tooltip);
++    }
++  });
++
+   testWidgets('callout renders metadata and changes variant', (tester) async {
+     final controller = WenzRichTextController(
+       document: const RichTextDocument(
+@@ -5352,6 +5476,11 @@
+   expect(selection.extent.offset, extentOffset);
+ }
+ 
++void _expectLocalizedTooltip(String tooltip) {
++  expect(tooltip, matches(RegExp(r'[\u4e00-\u9fff]')));
++  expect(find.byTooltip(tooltip), findsOneWidget);
++}
++
+ void pressIconButtonByTooltip(WidgetTester tester, String tooltip) {
+   final tooltipFinder = find.byTooltip(tooltip);
+   expect(tooltipFinder, findsOneWidget);
+
+tokens used
+126,151
+**完成情况**
+- 已补充附件简化展示与操作菜单回归：`test/widgets/wenz_rich_text_editor_test.dart:652`
+- 已补充反馈 #3 主要操作 tooltip 中文化回归：`test/widgets/wenz_rich_text_editor_test.dart:714`
+- 已新增 tooltip 中文断言 helper：`test/widgets/wenz_rich_text_editor_test.dart:5479`
+- 已新增反馈 #3 回归验证记录与手工清单：`docs/issues/feedback_3_regression_report.md:1`
+
+**验证**
+- `flutter test test\widgets\wenz_rich_text_editor_test.dart --name "file block stays compact|feedback 3 primary operation tooltips|paragraph converted to quote|code block syntax highlights|image object toolbar" --reporter expanded`：通过，5 项。
+- `flutter analyze`：通过，`No issues found!`。
+
+**说明**
+- 未修改 plan 文件、checkbox 或进度区。
+- 未运行全量测试；真实 Win/Web/Android 三端手工点击未在本 CLI 环境执行，已在 `docs/issues/feedback_3_regression_report.md:34` 记录为未覆盖风险与后续建议。
+
+**Inspecting file modifications**
+
+I’m looking at an interesting log from a previous file related to feedback on regression, but it seems it might not be completely relevant to the current scope of the task. I need to check the status of current files to see if modifications have been made. It looks like there have been changes in the wenz_rich_text_editor_test.dart and some other docs. The current task only includes specific files, so I’ll verify their contents to see what modifications are still needed.
+**Understanding P007 context**
+
+I think I need to compare my current tasks related to P007, which likely involves updates to regression tests and user documentation. I need to identify the expected modifications based on prior issues, like updates in `docs/selection_engine.md` and the README regarding new localization for the selection overlay or tooltip. I could look at plan requirement 9 to clarify. Since the plan file is read-only, it’s fine to read through it to gather details about tasks P001 to P010 and specifically P007.
+codex
+我再看一下计划里 P007 的上下文，确认文档该补什么。
+exec
+powershell.exe -Command 'Get-Content -Encoding utf8 docs/plan/plan_requirement_9_20260625-033413.md | Select-Object -First 260' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 213ms:
+# 需求开发计划：Block 左侧拖拽调节行位置
+
+## 来源
+- 类型：需求
+- 编号：9
+- 生成时间：2026-06-25 03:34:13
+
+## 原始内容
+增加block拖拽调节行功能，在block左侧增加拖拽按钮，这个按钮支持打开菜单，如果是拖拽，则调节block行位置
+
+## 需求理解
+- 在每个顶层 block 左侧增加统一的拖拽按钮/把手，作为 block 行级操作入口。
+- 按钮点击或轻触时打开 block 操作菜单；拖拽时不打开菜单，而是根据拖拽落点调整 block 在文档中的行位置。
+- 拖拽调节应覆盖普通文本块、标题、列表、引用、代码、callout、表格和对象块等顶层 block，并避免影响行内编辑、选区拖拽、表格列宽拖拽、图片尺寸调节等已有交互。
+- 行位置调整应进入编辑器命令/历史体系，保证选区、撤销/重做、只读模式和自定义 block renderer 扩展点行为一致。
+
+## 任务计划
+- [x] P001: 明确 block 拖拽把手交互边界 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/block_renderer_registry.dart,docs/selection_engine.md -->
+  - 验收要点：明确把手展示位置、尺寸、hover/focus 状态、点击打开菜单与拖拽排序的触发阈值，形成实现侧可落地的交互约定。
+  - 验收要点：确认把手只作用于顶层 block，不把表格单元格内部块、行内 embed 或对象块内部控件误识别为可排序行。
+  - 验收要点：确认只读模式、无编辑权限、移动到首尾边界、空文档和单 block 文档的禁用/无操作规则。
+
+- [x] P002: 抽象 block 行移动命令与控制器接口 <!-- scope: lib/src/core/commands/block_structure_commands.dart,lib/src/controller/wenz_rich_text_controller.dart,lib/src/widgets/wenz_rich_text_editor.dart,test/core/block_structure_commands_test.dart,test/core/controller_test.dart -->
+  - 验收要点：提供按 `fromIndex` 与 `toIndex` 移动顶层 block 的统一能力，支持向上、向下和跨多行移动，越界或同位置移动为无历史记录的 no-op。
+  - 验收要点：移动后保留 block id、属性、内容、评论/修订相关数据和对象块元数据，目标 block 被选中或光标落点符合交互约定。
+  - 验收要点：移动操作进入历史栈，撤销/重做后文档顺序、选区和回调通知保持一致；现有对象块工具栏的上移/下移改为复用同一能力。
+
+- [x] P003: 渲染左侧 block 拖拽按钮与菜单入口 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/block_renderer_registry.dart,test/widgets/wenz_rich_text_editor_test.dart,test/widgets/editor_golden_test.dart -->
+  - 验收要点：每个可编辑顶层 block 左侧都有稳定对齐的拖拽把手，文本块、代码块、callout、表格、图片、视频、文件和分割线等视觉上不被挤压或遮挡。
+  - 验收要点：点击把手可打开菜单，菜单至少提供复制/复制引用、复制块、上移、下移、删除等与当前 block 能力匹配的操作。
+  - 验收要点：把手命中区域注册为选区排除区域，点击、hover、长按和焦点状态不会触发文本选区、IME 输入或 block 内容编辑。
+
+- [x] P004: 区分点击菜单与拖拽排序手势 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/block_geometry_registry.dart,lib/src/widgets/selection_gesture_overlay.dart,test/widgets/wenz_rich_text_editor_test.dart,test/widgets/block_geometry_registry_test.dart -->
+  - 验收要点：短点击/键盘激活只打开菜单，超过拖拽阈值后进入排序模式；进入排序模式后不会再弹出菜单。
+  - 验收要点：鼠标、触控板和触屏长按/拖拽均可稳定识别，拖拽把手不干扰现有跨 block 选区拖拽、双击/三击选词选段和自动滚动选区。
+  - 验收要点：拖拽开始、移动、取消和结束状态可恢复，异常取消后不残留高亮、遮罩、菜单或错误选区。
+
+- [x] P005: 实现拖拽落点指示与 block 重排提交 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/block_geometry_registry.dart,test/widgets/wenz_rich_text_editor_test.dart,test/widgets/editor_golden_test.dart -->
+  - 验收要点：拖拽过程中显示清晰的插入位置指示线，落点可区分插入到目标 block 前/后，并在首尾、滚动容器边缘和可视区域外夹取到合法位置。
+  - 验收要点：释放后按落点完成文档 block 顺序调整，拖到原位置不产生变更，跨多行移动时目标索引计算正确且无 off-by-one 问题。
+  - 验收要点：靠近编辑器上下边缘拖拽时可自动滚动，长文档中能把 block 拖到当前视口外的合法位置。
+
+- [x] P006: 完善 block 菜单动作与对象块兼容 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/block_renderer_registry.dart,lib/src/controller/wenz_rich_text_controller.dart,test/widgets/wenz_rich_text_editor_test.dart -->
+  - 验收要点：菜单动作复用统一 block action/command 链路，普通文本块和对象块均可执行可用动作，首行禁用上移、末行禁用下移。
+  - 验收要点：现有对象块内置工具栏、图片尺寸菜单、文件上传状态菜单和复制引用功能不回归，不与左侧把手菜单产生重复触发或状态不同步。
+  - 验收要点：自定义 block renderer 仍可通过既有 `BlockRenderContext` 与对象块 action 扩展点接入，不要求业务方重写渲染器才能获得默认拖拽能力。
+
+- [ ] P007: 完成回归测试与使用文档更新 <!-- scope: test/widgets/wenz_rich_text_editor_test.dart,test/widgets/editor_golden_test.dart,test/core/block_structure_commands_test.dart,docs/selection_engine.md,README.md -->
+  - 验收要点：新增或更新 widget 测试覆盖点击打开菜单、拖拽排序、取消拖拽、首尾边界、只读模式、撤销/重做和长文档自动滚动。
+  - 验收要点：新增或更新 golden 覆盖左侧把手、拖拽落点指示和菜单入口在常见 block 组合下的视觉表现。
+  - 验收要点：执行 `flutter analyze`、定向测试和 `flutter test` 通过；如存在环境限制或非本需求引入失败，需要记录失败原因和复现命令。
+
+## 总体验收标准
+- 计划中的所有 checkbox 任务完成，且每个任务的验收要点均有对应实现或验证记录。
+- 编辑器顶层 block 左侧出现统一拖拽把手：点击打开菜单，拖拽调整 block 行位置，拖拽过程有明确落点指示。
+- block 重排不丢失任何 block 内容、属性、id、对象块元数据、评论/修订关联和文档版本信息。
+- block 重排行为纳入命令与历史体系，撤销/重做、选区更新、编辑回调、只读模式和权限限制表现一致。
+- 左侧把手不破坏文本输入、跨 block 选区、表格交互、图片/文件/视频对象块操作、slash 菜单、快捷键和剪贴板能力。
+- 默认实现兼容自定义 block renderer；业务方无需修改已有 renderer 即可获得外层拖拽把手与菜单入口。
+- `flutter analyze`、相关定向测试、golden 测试和 `flutter test` 均通过，或已明确记录非本需求导致的失败项。
+
+## 进度区
+- 当前状态：draft
+- 下一步：评审计划后从 P001/P002 开始执行，优先确认交互边界并抽象统一 block 行移动能力。
+- 并行建议：P001 完成后，P002 可先行实现命令层；P003/P006 可在 P002 接口稳定后并行；P004/P005 涉及同一拖拽状态机，建议串行推进；P007 最后统一回归。
+- 风险记录：左侧把手拖拽与现有跨 block 选区拖拽、表格列宽拖拽、对象块内部按钮和自动滚动逻辑存在手势冲突风险，需要通过排除区域、拖拽阈值和取消态测试重点验证。
+- P001 AutoPlan 完成：2026-06-24T19:43:47.753Z；日志：docs/progress/logs/20260625-033741_execute-P001.log
+- P002 AutoPlan 完成：2026-06-25T01:04:17.313Z；日志：docs/progress/logs/20260625-085204_execute-P002.log
+- P003 AutoPlan 完成：2026-06-25T01:18:02.093Z；日志：docs/progress/logs/20260625-090420_execute-P003.log
+- P004 AutoPlan 完成：2026-06-25T01:29:52.075Z；日志：docs/progress/logs/20260625-091821_execute-P004.log
+- P005 AutoPlan 完成：2026-06-25T01:43:46.659Z；日志：docs/progress/logs/20260625-092957_execute-P005.log
+- P006 AutoPlan 完成：2026-06-25T01:58:43.069Z；日志：docs/progress/logs/20260625-094353_execute-P006.log
+
+ERROR: Selected model is at capacity. Please try a different model.
+ERROR: Selected model is at capacity. Please try a different model.
+tokens used
+52,828

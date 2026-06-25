@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -51,5 +52,36 @@ void main() {
     expect((text.content.last as InlineEmbed).embedType, 'formula');
 
     expect(document.blocks[3], isA<DividerBlockNode>());
+  });
+
+  test('decodes legacy video metadata with compatible aliases', () {
+    final source = jsonEncode(<Map<String, Object?>>[
+      <String, Object?>{
+        'type': 'video',
+        'id': 'video-1',
+        'url': 'https://cdn.example.com/video.mp4',
+        'file': 'local/video.mp4',
+        'poster': 'https://cdn.example.com/cover.jpg',
+        'caption': 'Launch clip',
+        'desc': 'Product launch overview',
+        'aspectRatio': '1.7777777777777777',
+        'uploadStatus': 'uploaded',
+        'uploadError': 'retry ignored',
+      },
+    ]);
+
+    final document = codec.decode(source);
+
+    expect(document.blocks, hasLength(1));
+    final video = document.blocks.single as VideoBlockNode;
+    expect(video.assetId, 'video-1');
+    expect(video.playbackUrl, 'https://cdn.example.com/video.mp4');
+    expect(video.file, 'local/video.mp4');
+    expect(video.coverUrl, 'https://cdn.example.com/cover.jpg');
+    expect(video.title, 'Launch clip');
+    expect(video.description, 'Product launch overview');
+    expect(video.aspectRatio, 16 / 9);
+    expect(video.uploadStatus, FileUploadStatus.uploaded);
+    expect(video.uploadError, 'retry ignored');
   });
 }

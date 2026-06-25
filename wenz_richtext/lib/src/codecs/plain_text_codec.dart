@@ -87,7 +87,7 @@ class PlainTextCodec {
         return '[image: ${_imageLabel(image)}]';
       case BlockType.video:
         final video = block as VideoBlockNode;
-        return '[video: ${video.assetId}]';
+        return '[video: ${_videoLabel(video)}]';
       case BlockType.embed:
         final embed = block as BlockEmbedNode;
         return '[embed:${embed.normalizedEmbedType}: ${embed.displayText}]';
@@ -110,5 +110,21 @@ class PlainTextCodec {
       return image.file;
     }
     return image.assetId;
+  }
+
+  String _videoLabel(VideoBlockNode video) {
+    if (video.title.isNotEmpty) {
+      return video.title;
+    }
+    if (video.description.isNotEmpty) {
+      return video.description;
+    }
+    if (video.playbackUrl.isNotEmpty) {
+      return video.playbackUrl;
+    }
+    if (video.file.isNotEmpty) {
+      return video.file;
+    }
+    return video.assetId;
   }
 }

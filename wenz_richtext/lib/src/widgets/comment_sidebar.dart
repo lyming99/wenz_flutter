@@ -61,7 +61,8 @@ class WenzCommentSidebar extends StatelessWidget {
                 child: ListView.separated(
                   padding: const EdgeInsets.all(12),
                   itemCount: visibleThreads.length,
-                  separatorBuilder: (context, index) => const SizedBox(height: 8),
+                  separatorBuilder: (context, index) =>
+                      const SizedBox(height: 8),
                   itemBuilder: (context, index) {
                     final thread = visibleThreads[index];
                     return _CommentThreadCard(
@@ -70,7 +71,8 @@ class WenzCommentSidebar extends StatelessWidget {
                       onTap: () => _selectAndReveal(thread),
                       onReveal: onRevealAnchor == null
                           ? null
-                          : () => onRevealAnchor!(thread, thread.anchor.selection),
+                          : () =>
+                              onRevealAnchor!(thread, thread.anchor.selection),
                       onResolve: thread.isOpen && onResolveThread != null
                           ? () => onResolveThread!(thread)
                           : null,
@@ -94,7 +96,8 @@ class WenzCommentSidebar extends StatelessWidget {
 }
 
 class _CommentSidebarHeader extends StatelessWidget {
-  const _CommentSidebarHeader({required this.openCount, required this.totalCount});
+  const _CommentSidebarHeader(
+      {required this.openCount, required this.totalCount});
 
   final int openCount;
   final int totalCount;
@@ -152,10 +155,10 @@ class _CommentThreadCard extends StatelessWidget {
           color: isActive ? colorScheme.primary : colorScheme.outlineVariant,
           width: isActive ? 1.5 : 1,
         ),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(8),
       ),
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(8),
         onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.all(12),
@@ -169,21 +172,22 @@ class _CommentThreadCard extends StatelessWidget {
                   if (onReveal != null)
                     IconButton(
                       key: ValueKey<String>('wenz-comment-reveal-${thread.id}'),
-                      tooltip: 'Show in document',
+                      tooltip: '在文档中显示',
                       icon: const Icon(Icons.my_location, size: 18),
                       onPressed: onReveal,
                     ),
                   if (onResolve != null)
                     IconButton(
-                      key: ValueKey<String>('wenz-comment-resolve-${thread.id}'),
-                      tooltip: 'Resolve comment',
+                      key:
+                          ValueKey<String>('wenz-comment-resolve-${thread.id}'),
+                      tooltip: '解决评论',
                       icon: const Icon(Icons.check_circle_outline, size: 18),
                       onPressed: onResolve,
                     ),
                   if (onReopen != null)
                     IconButton(
                       key: ValueKey<String>('wenz-comment-reopen-${thread.id}'),
-                      tooltip: 'Reopen comment',
+                      tooltip: '重新打开评论',
                       icon: const Icon(Icons.undo, size: 18),
                       onPressed: onReopen,
                     ),
@@ -207,16 +211,28 @@ class _CommentThreadCard extends StatelessWidget {
               const SizedBox(height: 8),
               Row(
                 children: <Widget>[
-                  Text(
-                    '${thread.messages.length} message${thread.messages.length == 1 ? '' : 's'}',
-                    style: theme.textTheme.labelSmall,
-                  ),
-                  const Spacer(),
-                  if (lastMessage != null)
-                    Text(
-                      _formatTimestamp(lastMessage.createdAt),
+                  Expanded(
+                    child: Text(
+                      '${thread.messages.length} message${thread.messages.length == 1 ? '' : 's'}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.labelSmall,
                     ),
+                  ),
+                  if (lastMessage != null) ...<Widget>[
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Align(
+                        alignment: AlignmentDirectional.centerEnd,
+                        child: Text(
+                          _formatTimestamp(lastMessage.createdAt),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.labelSmall,
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ],

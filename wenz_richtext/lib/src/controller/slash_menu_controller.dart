@@ -387,6 +387,35 @@ List<SlashMenuItem> defaultSlashMenuItems() {
         );
       },
     ),
+    SlashMenuItem(
+      id: 'video',
+      title: 'Video',
+      description: 'Video placeholder',
+      icon: 'video',
+      keywords: const <String>['media', 'movie', 'play', '视频'],
+      action: (editor, context) {
+        _replaceCurrentBlock(
+          editor,
+          context,
+          (block) => VideoBlockNode(
+            id: block.id,
+            assetId: context.generatedId('video'),
+            title: 'Video placeholder',
+            aspectRatio: VideoBlockNode.defaultAspectRatio,
+          ),
+          (block) {
+            final base = DocumentPosition(
+              blockId: block.id,
+              blockIndex: context.blockIndex,
+              path: PositionPath.blockObject(block.id),
+              offset: 0,
+            );
+            final extent = base.copyWith(offset: 1);
+            return DocumentSelection(base: base, extent: extent);
+          },
+        );
+      },
+    ),
   ];
 }
 

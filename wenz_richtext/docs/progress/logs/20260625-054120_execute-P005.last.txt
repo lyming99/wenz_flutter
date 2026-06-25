@@ -1,0 +1,12 @@
+完成 P005，未修改 plan 文件、未勾选 checkbox。
+
+**变更摘要**
+- 补齐 Markdown 视频占位导出/导入元数据恢复：`lib/src/codecs/markdown_codec.dart:275`、`lib/src/codecs/markdown_codec.dart:821`
+- 补齐 HTML `<video>` 导出/导入字段：`lib/src/codecs/html_codec.dart:310`、`lib/src/codecs/html_codec.dart:609`
+- 补齐 legacy Wen JSON 视频字段兼容解析：`lib/src/codecs/legacy_wen_json_codec.dart:135`
+- 优化纯文本视频 sentinel 标签来源优先级：`lib/src/codecs/plain_text_codec.dart:115`
+- 增加 JSON、legacy、Markdown、HTML、plain text 定向测试：`test/codecs/rich_text_json_codec_test.dart:5`、`test/codecs/legacy_wen_json_codec_test.dart:57`、`test/codecs/markdown_codec_test.dart:450`、`test/codecs/html_codec_test.dart:288`、`test/codecs/plain_text_codec_test.dart:123`
+
+**验证**
+- 已运行最小相关测试：`flutter test test/codecs/rich_text_json_codec_test.dart test/codecs/legacy_wen_json_codec_test.dart test/codecs/markdown_codec_test.dart test/codecs/html_codec_test.dart test/codecs/plain_text_codec_test.dart`
+- 结果：全部通过。

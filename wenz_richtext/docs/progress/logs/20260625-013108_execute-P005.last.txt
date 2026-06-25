@@ -1,0 +1,11 @@
+**完成**
+- 已完成 P005，并勾选计划项：`docs/plan/plan_feedback_2_20260625-004108.md:46`；进度区已更新：`docs/plan/plan_feedback_2_20260625-004108.md:92`。
+- info/callout 正文接入选择面，支持整卡命中、选中边框反馈和菜单排除区：`lib/src/widgets/wenz_rich_text_editor.dart:3126`、`lib/src/widgets/wenz_rich_text_editor.dart:6290`。
+- callout 内容纳入键盘选择与复制 offset 逻辑：`lib/src/core/commands/selection_commands.dart:518`、`lib/src/input/clipboard_service.dart:350`。
+- 新增 P005 回归：`test/widgets/wenz_rich_text_editor_test.dart:540`、`test/input/clipboard_service_test.dart:26`。
+- 进度区补充了 P005 修复范围、验收、验证和风险记录：`docs/plan/plan_feedback_2_20260625-004108.md:113`。
+
+**验证**
+- `flutter analyze` 通过。
+- `flutter test --reporter expanded` 通过，591 项通过。
+- 仅执行了 P005，未提前处理 P006。

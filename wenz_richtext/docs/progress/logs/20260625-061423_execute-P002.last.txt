@@ -1,0 +1,11 @@
+完成 P002，未修改 plan 文件、未勾选 checkbox、未更新进度区。
+
+**改动**
+- `lib/src/widgets/wenz_rich_text_editor.dart:7427` 将公式 `WidgetSpan` 改为 `PlaceholderAlignment.middle`，让公式按文字中线视觉居中。
+- `lib/src/widgets/wenz_rich_text_editor.dart:7543` 优化公式占位尺寸：普通公式降低行高占用，高公式按 `frac/sum/sqrt/matrix` 等内容提高占位高度。
+- `test/widgets/wenz_rich_text_editor_test.dart:1815` 将 P001 的记录型公式基线测试改为 P002 的目标断言，覆盖居中与高公式行高。
+
+**验证**
+- `flutter test test/widgets/wenz_rich_text_editor_test.dart --plain-name "keeps inline formulas centered and sizes tall formulas"`
+- `flutter test test/widgets/wenz_rich_text_editor_test.dart --plain-name "renders formula, mention, and emoji inline embeds"`
+- 两个最小相关测试均通过。

@@ -344,6 +344,68 @@ void main() {
     expect(session.selection!.end.offset, 1);
   });
 
+  test('arrow navigation selects a video block as an atomic object', () {
+    final session = DocumentSession(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'before')],
+          ),
+          VideoBlockNode(
+            id: 'video1',
+            assetId: 'clip',
+            playbackUrl: 'https://cdn.example.test/clip.mp4',
+          ),
+          TextBlockNode(
+            id: 'p2',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'after')],
+          ),
+        ],
+      ),
+      selection: collapsedTextSelection('p1', 0, 6),
+    );
+    final executor = CommandExecutor(session);
+
+    executor.execute(const MoveCaretCommand(CaretMovementDirection.forward));
+
+    expect(session.selection?.isCollapsed, isFalse);
+    expect(session.selection?.start.blockId, 'video1');
+    expect(session.selection?.start.path.isBlockObject, isTrue);
+    expect(session.selection?.start.offset, 0);
+    expect(session.selection?.end.blockId, 'video1');
+    expect(session.selection?.end.offset, 1);
+    expect(session.canUndo, isFalse);
+  });
+
+  test('arrow navigation selects previous video from following text', () {
+    final session = DocumentSession(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          VideoBlockNode(id: 'video1', assetId: 'clip'),
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'after')],
+          ),
+        ],
+      ),
+      selection: collapsedTextSelection('p1', 1, 0),
+    );
+    final executor = CommandExecutor(session);
+
+    executor.execute(const MoveCaretCommand(CaretMovementDirection.backward));
+
+    expect(session.selection?.isCollapsed, isFalse);
+    expect(session.selection?.start.blockId, 'video1');
+    expect(session.selection?.start.path.isBlockObject, isTrue);
+    expect(session.selection?.start.offset, 0);
+    expect(session.selection?.end.offset, 1);
+    expect(session.canUndo, isFalse);
+  });
+
   test('table cell caret moves within and across cells', () {
     final session = DocumentSession(
       document: _tableDocument(),
@@ -681,6 +743,30 @@ void main() {
       expect(session.document.blocks, hasLength(2));
       expect(session.document.blocks.last, isA<TextBlockNode>());
       expect(session.selection?.extent.blockId, 'img1-next');
+      expect(session.selection?.extent.offset, 0);
+      expect(session.canUndo, isTrue);
+    });
+
+    test('ArrowDown from a trailing video appends a paragraph', () {
+      final pos = objectPosition('video1');
+      final session = DocumentSession(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            VideoBlockNode(id: 'video1', assetId: 'clip'),
+          ],
+        ),
+        selection:
+            DocumentSelection(base: pos, extent: pos.copyWith(offset: 1)),
+      );
+      final executor = CommandExecutor(session);
+
+      executor.execute(
+        const MoveCaretVerticalCommand(CaretMovementDirection.forward),
+      );
+
+      expect(session.document.blocks, hasLength(2));
+      expect(session.document.blocks.last, isA<TextBlockNode>());
+      expect(session.selection?.extent.blockId, 'video1-next');
       expect(session.selection?.extent.offset, 0);
       expect(session.canUndo, isTrue);
     });

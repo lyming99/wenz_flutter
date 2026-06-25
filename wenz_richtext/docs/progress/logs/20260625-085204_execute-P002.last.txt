@@ -1,0 +1,14 @@
+已完成 P002，未修改 plan 文件、未勾选 checkbox。
+
+**完成内容**
+- 新增统一块移动命令：`lib/src/core/commands/block_structure_commands.dart:16`
+- 新增控制器接口 `moveBlock`：`lib/src/controller/wenz_rich_text_controller.dart:1200`
+- 对象块上移/下移改为复用控制器移动能力：`lib/src/widgets/wenz_rich_text_editor.dart:1354`
+- 移动后 blockIndex 变化会使缓存渲染失效：`lib/src/widgets/wenz_rich_text_editor.dart:3002`
+- 补充命令与控制器定向测试：`test/core/block_structure_commands_test.dart:115`、`test/core/controller_test.dart:55`
+
+**验证**
+- `flutter test test/core/block_structure_commands_test.dart test/core/controller_test.dart` 通过
+- `dart analyze lib/src/core/commands/block_structure_commands.dart lib/src/controller/wenz_rich_text_controller.dart lib/src/widgets/wenz_rich_text_editor.dart test/core/block_structure_commands_test.dart test/core/controller_test.dart` 通过
+
+注意：工作区已有大量 P002 scope 外的未提交改动，我没有处理或展开它们。

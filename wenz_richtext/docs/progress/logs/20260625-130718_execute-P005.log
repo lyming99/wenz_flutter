@@ -1,0 +1,557 @@
+OpenAI Codex v0.121.0 (research preview)
+--------
+workdir: D:\project\GitHub\wenz_flutter\wenz_richtext
+model: gpt-5.5
+provider: custom
+approval: never
+sandbox: danger-full-access
+reasoning effort: xhigh
+reasoning summaries: none
+session id: 019efd2c-e82c-7d03-af8e-17a363dd0843
+--------
+user
+你是开发执行者。
+请只执行指定任务 P005，不要提前执行其它任务，也不要顺手处理其它 checkbox。
+
+plan 文件（只读）：D:\project\GitHub\wenz_flutter\wenz_richtext\docs\plan\plan_requirement_10_20260625-034349.md
+指定任务：
+- [ ] P005: 处理折叠状态下的编辑与导航 <!-- scope: lib/src/controller/wenz_rich_text_controller.dart,lib/src/controller/find_replace_controller.dart,lib/src/controller/outline_controller.dart,lib/src/widgets/wenz_rich_text_editor.dart,test/core/controller_test.dart,test/controller/find_replace_controller_test.dart,test/widgets/wenz_rich_text_editor_test.dart -->
+任务 scope：lib/src/controller/wenz_rich_text_controller.dart, lib/src/controller/find_replace_controller.dart, lib/src/controller/outline_controller.dart, lib/src/widgets/wenz_rich_text_editor.dart, test/core/controller_test.dart, test/controller/find_replace_controller_test.dart, test/widgets/wenz_rich_text_editor_test.dart
+
+完成后必须：
+- plan 文件是只读上下文：不要修改 plan 文件，不要勾选 checkbox，不要更新 plan 进度区
+- AutoPlan 会在任务成功后统一写回数据库、checkbox 和进度区
+- 只修改当前任务 scope 直接相关的业务文件
+- 如需测试，只运行与当前任务直接相关的最小测试集，不要运行全量测试或与本任务无关的测试
+- 只有当前任务本身明确要求全量验证时，才允许运行全量测试
+- 不输出完整 diff、源码全文或长文件列表
+- 中文文件读写使用 UTF-8
+**Understanding task requirements**
+
+I think I need to use an existing local repository since browsing the internet isn't necessary. I'll make sure to use the commentary channel for tool calls. I’m considering whether I need to use an agent, but it seems I won’t unless there's a specific request for it. Now, I need to understand the task, which involves handling editing and navigation when sections are collapsed, so I’ll scope out the controllers, widget, and tests before inspecting the code.
+codex
+我先检查相关代码和本地规范，再定位折叠状态的处理点。
+exec
+powershell.exe -Command 'Get-ChildItem -Force -Filter AGENTS.md -Recurse | Select-Object -ExpandProperty FullName' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 290ms:
+**Investigating agents issue**
+
+I’m wondering why there are no agents found. It could be that there simply aren’t any, but I need to inspect the files to confirm. I think I’ll use a tool like `rg` to locate relevant classes that might be involved. This way, I can get a clearer picture of the situation and address whatever issue is going on. Let’s see what I can find!
+codex
+我找到目标范围了，接着看控制器和测试的现状。
+exec
+powershell.exe -Command 'rg -n "class WenzRichTextController|class FindReplaceController|class OutlineController|class WenzRichTextEditor|collapsed|collapse|outline|findReplace|find replace" lib test' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 268ms:
+lib\wenz_richtext.dart:59:///   [WenzSlashMenuOverlay]), outline state ([WenzOutlineController],
+lib\wenz_richtext.dart:113:export 'src/controller/outline_controller.dart';
+test\collaboration\collaboration_adapter_test.dart:45:        selection: collapsedTextSelection('p1', 0, 5),
+test\collaboration\collaboration_adapter_test.dart:73:      host.setSelection(collapsedTextSelection('p1', 0, 0));
+test\collaboration\collaboration_adapter_test.dart:88:        selection: collapsedTextSelection('p1', 0, 5),
+test\collaboration\collaboration_adapter_test.dart:103:          selection: collapsedTextSelection('p1', 0, 6),
+test\collaboration\collaboration_adapter_test.dart:115:          selection: collapsedTextSelection('p1', 0, 3),
+lib\src\input\editor_text_input_client.dart:208:        selection: TextSelection.collapsed(offset: offset),
+lib\src\input\editor_text_input_client.dart:489:    // Only TextRange.empty (start == -1) means "no composition". A collapsed
+lib\src\input\clipboard_service.dart:95:  /// Returns `null` when the selection is collapsed or points at nothing
+test\core\command_pipeline_test.dart:19:        selection: collapsedTextSelection('p1', 0, 0),
+test\core\command_pipeline_test.dart:44:        selection: collapsedTextSelection('p1', 0, 0),
+test\core\command_pipeline_test.dart:77:        selection: collapsedTextSelection('p1', 0, 0),
+test\core\command_pipeline_test.dart:100:        selection: collapsedTextSelection('p1', 0, 4),
+test\core\command_pipeline_test.dart:132:        selection: collapsedTextSelection('p1', 0, 0),
+test\core\command_pipeline_test.dart:170:        selection: collapsedTextSelection('p1', 0, 2),
+test\core\command_pipeline_test.dart:208:        selection: collapsedTextSelection('p1', 0, 2),
+test\core\command_pipeline_test.dart:252:        selection: collapsedTextSelection('p1', 0, 2),
+lib\src\widgets\block_renderer_registry.dart:293:  /// Optional view-state for a top-level heading's collapse affordance. `null`
+lib\src\widgets\block_renderer_registry.dart:294:  /// means the host editor is not exposing heading collapse for this block.
+lib\src\widgets\block_renderer_registry.dart:297:  /// Optional callback used by heading renderers to toggle collapse view-state.
+lib\src\widgets\block_renderer_registry.dart:308:  /// Whether the active (collapsed) selection sits inside [block], i.e. this
+lib\src\widgets\block_renderer_registry.dart:320:/// Presentation-only collapse state for a top-level heading block.
+test\core\command_merging_test.dart:19:        selection: collapsedTextSelection('p1', 0, 0),
+test\core\command_merging_test.dart:46:        selection: collapsedTextSelection('p1', 0, 0),
+test\core\command_merging_test.dart:77:        selection: collapsedTextSelection('p1', 0, 0),
+test\core\command_merging_test.dart:109:        selection: collapsedTextSelection('p1', 0, 0),
+test\core\command_merging_test.dart:116:      session.selection = collapsedTextSelection('p1', 0, 4);
+test\core\command_merging_test.dart:139:        selection: collapsedTextSelection('p1', 0, 3),
+test\core\command_merging_test.dart:164:        selection: collapsedTextSelection('p1', 0, 1),
+test\core\command_merging_test.dart:169:      session.selection = collapsedTextSelection('p1', 0, 0);
+test\core\command_merging_test.dart:192:        selection: collapsedTextSelection('p1', 0, 1),
+test\core\command_merging_test.dart:273:        selection: collapsedTextSelection('p1', 0, 0),
+test\controller\video_block_controller_test.dart:9:      final initialSelection = _collapsedTextSelection('p1', 0, 6);
+test\controller\video_block_controller_test.dart:160:        selection: _collapsedTextSelection('p1', 0, 0),
+test\controller\video_block_controller_test.dart:248:DocumentSelection _collapsedTextSelection(
+test\core\block_structure_commands_test.dart:25:        selection: collapsedTextSelection('p1', 0, 0),
+test\core\block_structure_commands_test.dart:34:      // block 2 untouched (not in the collapsed selection); normaliser clamps
+test\core\block_structure_commands_test.dart:53:        selection: collapsedTextSelection('p1', 0, 0),
+test\core\block_structure_commands_test.dart:78:        selection: collapsedTextSelection('p1', 0, 0),
+test\core\block_structure_commands_test.dart:102:        selection: collapsedTextSelection('t1', 0, 0),
+test\core\block_structure_commands_test.dart:137:        selection: collapsedTextSelection('p1', 0, 0),
+test\core\block_structure_commands_test.dart:151:      expect(session.selection, collapsedTextSelection('p1', 2, 3));
+test\core\block_structure_commands_test.dart:160:      expect(session.selection, collapsedTextSelection('p1', 0, 0));
+test\core\block_structure_commands_test.dart:168:      expect(session.selection, collapsedTextSelection('p1', 2, 3));
+test\core\block_structure_commands_test.dart:380:        selection: collapsedCodeSelection('c1', 0, 0),
+test\core\block_structure_commands_test.dart:399:        selection: collapsedCodeSelection('c1', 0, 0),
+test\core\block_structure_commands_test.dart:422:        selection: collapsedTextSelection('p1', 0, 0),
+test\core\block_structure_commands_test.dart:438:        selection: collapsedCodeSelection('c1', 0, 4),
+test\core\block_structure_commands_test.dart:488:        selection: collapsedTextSelection('p1', 0, 1),
+test\core\block_structure_commands_test.dart:511:        selection: collapsedTextSelection('p1', 0, 0),
+test\core\block_structure_commands_test.dart:562:        selection: collapsedTextSelection('co1', 0, 0),
+test\core\block_structure_commands_test.dart:607:        selection: collapsedTextSelection('p1', 0, 0),
+test\controller\toolbar_controller_test.dart:27:    test('collapsed caret inherits typing attributes from left run', () {
+test\controller\toolbar_controller_test.dart:31:        selection: collapsedTextSelection('mixed', 0, 2),
+test\controller\toolbar_controller_test.dart:42:    test('collapsed caret after the bold run drops the mark', () {
+test\controller\toolbar_controller_test.dart:46:        selection: collapsedTextSelection('mixed', 0, 5),
+test\controller\toolbar_controller_test.dart:126:    test('link URL for collapsed caret is the left run url', () {
+test\controller\toolbar_controller_test.dart:129:        selection: collapsedTextSelection('linked', 2, 1),
+test\controller\toolbar_controller_test.dart:143:          selection: collapsedTextSelection('h1', 3, 0),
+test\controller\toolbar_controller_test.dart:160:          selection: collapsedTextSelection('para', 4, 0),
+test\controller\toolbar_controller_test.dart:174:          selection: collapsedTextSelection('quote', 5, 0),
+test\controller\toolbar_controller_test.dart:187:          selection: collapsedTextSelection('task', 6, 0),
+test\controller\toolbar_controller_test.dart:202:          selection: collapsedTextSelection('ol', 7, 0),
+test\controller\toolbar_controller_test.dart:216:          selection: collapsedTextSelection('ul', 8, 0),
+test\controller\toolbar_controller_test.dart:233:          selection: collapsedCodeSelection('code', 9, 0),
+test\controller\toolbar_controller_test.dart:353:          selection: collapsedTextSelection('para', 4, 0),
+test\controller\toolbar_controller_test.dart:369:          selection: collapsedTextSelection('h1', 3, 0),
+test\controller\toolbar_controller_test.dart:402:          selection: collapsedCodeSelection('code', 9, 0),
+test\controller\toolbar_controller_test.dart:422:          selection: collapsedTextSelection('para', 4, 0),
+test\controller\toolbar_controller_test.dart:616:        selection: collapsedTextSelection('mixed', 0, 2),
+test\controller\toolbar_controller_test.dart:640:/// labels the tests reference via [collapsedTextSelection]/[textSelection];
+test\controller\slash_menu_controller_test.dart:10:      selection: collapsedTextSelection('p1', 0, 4),
+test\controller\slash_menu_controller_test.dart:24:      selection: collapsedTextSelection('p1', 0, 1),
+test\controller\slash_menu_controller_test.dart:39:      selection: collapsedTextSelection('p1', 0, 8),
+test\controller\slash_menu_controller_test.dart:56:      selection: collapsedTextSelection('p1', 0, 6),
+test\controller\slash_menu_controller_test.dart:75:      selection: collapsedTextSelection('p1', 0, 6),
+test\core\block_commands_test.dart:54:      selection: collapsedTextSelection('p1', 0, 0),
+test\core\block_commands_test.dart:86:      selection: collapsedTextSelection('p1', 0, 4),
+test\core\block_commands_test.dart:115:      selection: collapsedTextSelection('p1', 0, 5),
+test\core\block_commands_test.dart:150:      selection: collapsedTextSelection('p1', 0, 5),
+test\core\block_commands_test.dart:265:      selection: collapsedTextSelection('p1', 0, 5),
+test\core\block_commands_test.dart:289:      selection: collapsedTextSelection('li1', 0, 5),
+test\core\block_commands_test.dart:319:      selection: collapsedTextSelection('task1', 0, 4),
+test\core\block_commands_test.dart:350:      selection: collapsedTextSelection('li1', 0, 0),
+test\core\block_commands_test.dart:374:      selection: collapsedCodeSelection('c1', 0, 1),
+test\core\block_commands_test.dart:387:      selection: _collapsedTableCellSelection(5),
+test\core\block_commands_test.dart:427:DocumentSelection _collapsedTableCellSelection(int offset) {
+test\controller\outline_controller_test.dart:6:    test('derives outline items from non-empty headings', () {
+test\controller\outline_controller_test.dart:8:      final outline = WenzOutlineController(editor: host);
+test\controller\outline_controller_test.dart:10:      expect(outline.items, hasLength(2));
+test\controller\outline_controller_test.dart:11:      expect(outline.items[0].blockId, 'h1');
+test\controller\outline_controller_test.dart:12:      expect(outline.items[0].blockIndex, 0);
+test\controller\outline_controller_test.dart:13:      expect(outline.items[0].level, 1);
+test\controller\outline_controller_test.dart:14:      expect(outline.items[0].title, 'Intro');
+test\controller\outline_controller_test.dart:15:      expect(outline.items[0].anchor, 'intro');
+test\controller\outline_controller_test.dart:16:      expect(outline.items[0].target, 'intro');
+test\controller\outline_controller_test.dart:17:      expect(outline.items[1].blockId, 'h2');
+test\controller\outline_controller_test.dart:18:      expect(outline.items[1].level, 2);
+test\controller\outline_controller_test.dart:19:      expect(outline.items[1].target, 'h2');
+test\controller\outline_controller_test.dart:21:      outline.dispose();
+test\controller\outline_controller_test.dart:25:    test('computes collapse ranges from heading levels', () {
+test\controller\outline_controller_test.dart:27:      final outline = WenzOutlineController(editor: host);
+test\controller\outline_controller_test.dart:29:      final chapter = outline.itemForBlockId('h1')!;
+test\controller\outline_controller_test.dart:32:      expect(chapter.collapseStartBlockIndex, 1);
+test\controller\outline_controller_test.dart:33:      expect(chapter.collapseEndBlockIndexExclusive, 7);
+test\controller\outline_controller_test.dart:40:      final section = outline.itemForBlockId('h2')!;
+test\controller\outline_controller_test.dart:43:      expect(section.collapseRange.endBlockIndex, 5);
+test\controller\outline_controller_test.dart:45:      final leaf = outline.itemForBlockId('h2b')!;
+test\controller\outline_controller_test.dart:48:      expect(leaf.collapseRange.endBlockIndex, isNull);
+test\controller\outline_controller_test.dart:50:      outline.dispose();
+test\controller\outline_controller_test.dart:54:    test('collapses expands toggles and keeps document unchanged', () {
+test\controller\outline_controller_test.dart:56:      final outline = WenzOutlineController(editor: host);
+test\controller\outline_controller_test.dart:59:      outline.addListener(() => notifications++);
+test\controller\outline_controller_test.dart:61:      expect(outline.collapseByBlockId('h1'), isTrue);
+test\controller\outline_controller_test.dart:62:      expect(outline.isCollapsed('h1'), isTrue);
+test\controller\outline_controller_test.dart:63:      expect(outline.itemForBlockId('h1')?.isCollapsed, isTrue);
+test\controller\outline_controller_test.dart:64:      expect(outline.collapsedBlockIds, <String>{'h1'});
+test\controller\outline_controller_test.dart:66:      expect(outline.collapseByBlockId('h1'), isFalse);
+test\controller\outline_controller_test.dart:67:      expect(outline.expandByAnchor('chapter'), isTrue);
+test\controller\outline_controller_test.dart:68:      expect(outline.isCollapsedByAnchor('chapter'), isFalse);
+test\controller\outline_controller_test.dart:70:      final section = outline.itemForBlockId('h2')!;
+test\controller\outline_controller_test.dart:71:      expect(outline.toggle(section), isTrue);
+test\controller\outline_controller_test.dart:72:      expect(outline.isCollapsedItem(section), isTrue);
+test\controller\outline_controller_test.dart:73:      expect(outline.expandAll(), isTrue);
+test\controller\outline_controller_test.dart:74:      expect(outline.collapsedBlockIds, isEmpty);
+test\controller\outline_controller_test.dart:80:      outline.dispose();
+test\controller\outline_controller_test.dart:86:      final outline = WenzOutlineController(editor: host);
+test\controller\outline_controller_test.dart:89:      expect(outline.collapseByBlockId('h2'), isTrue);
+test\controller\outline_controller_test.dart:91:      final projection = outline.visibleBlockProjection();
+test\controller\outline_controller_test.dart:99:      expect(outline.hiddenBlockIds, <String>{'p2', 'h3', 'p3'});
+test\controller\outline_controller_test.dart:100:      expect(outline.isBlockHidden('p2'), isTrue);
+test\controller\outline_controller_test.dart:101:      expect(outline.isBlockIndexHidden(3), isTrue);
+test\controller\outline_controller_test.dart:108:      outline.dispose();
+test\controller\outline_controller_test.dart:112:    test('keeps nested child collapse after parent expands', () {
+test\controller\outline_controller_test.dart:114:      final outline = WenzOutlineController(editor: host);
+test\controller\outline_controller_test.dart:116:      expect(outline.collapseByBlockId('h2'), isTrue);
+test\controller\outline_controller_test.dart:117:      expect(outline.collapseByBlockId('h1'), isTrue);
+test\controller\outline_controller_test.dart:119:      final parentCollapsed = outline.visibleBlockProjection();
+test\controller\outline_controller_test.dart:128:      expect(outline.isCollapsed('h2'), isTrue);
+test\controller\outline_controller_test.dart:130:      expect(outline.expandByBlockId('h1'), isTrue);
+test\controller\outline_controller_test.dart:132:      final parentExpanded = outline.visibleBlockProjection();
+test\controller\outline_controller_test.dart:138:      expect(outline.isCollapsed('h2'), isTrue);
+test\controller\outline_controller_test.dart:140:      outline.dispose();
+test\controller\outline_controller_test.dart:144:    test('collapse API safely no-ops for invalid targets', () {
+test\controller\outline_controller_test.dart:146:      final outline = WenzOutlineController(editor: host);
+test\controller\outline_controller_test.dart:148:      expect(outline.collapseByBlockId('missing'), isFalse);
+test\controller\outline_controller_test.dart:149:      expect(outline.collapseByBlockId('p1'), isFalse);
+test\controller\outline_controller_test.dart:150:      expect(outline.toggleByBlockId('h2b'), isFalse);
+test\controller\outline_controller_test.dart:151:      expect(outline.collapseByAnchor('missing'), isFalse);
+test\controller\outline_controller_test.dart:152:      expect(outline.expandAll(), isFalse);
+test\controller\outline_controller_test.dart:153:      expect(outline.collapsedBlockIds, isEmpty);
+test\controller\outline_controller_test.dart:155:      outline.dispose();
+test\controller\outline_controller_test.dart:159:    test('cleans invalid collapse state after document changes', () {
+test\controller\outline_controller_test.dart:161:      final outline = WenzOutlineController(editor: host);
+test\controller\outline_controller_test.dart:163:      expect(outline.collapseByBlockId('h2'), isTrue);
+test\controller\outline_controller_test.dart:165:      outline.addListener(() => notifications++);
+test\controller\outline_controller_test.dart:179:      expect(outline.itemForBlockId('h2'), isNull);
+test\controller\outline_controller_test.dart:180:      expect(outline.isCollapsed('h2'), isFalse);
+test\controller\outline_controller_test.dart:181:      expect(outline.collapsedBlockIds, isEmpty);
+test\controller\outline_controller_test.dart:184:      outline.dispose();
+test\controller\outline_controller_test.dart:190:      final outline = WenzOutlineController(editor: host);
+test\controller\outline_controller_test.dart:192:      outline.addListener(() => notifications++);
+test\controller\outline_controller_test.dart:197:      expect(outline.itemForBlockId('h2')?.anchor, 'details');
+test\controller\outline_controller_test.dart:198:      expect(outline.itemForAnchor('details')?.blockId, 'h2');
+test\controller\outline_controller_test.dart:200:      outline.dispose();
+test\controller\outline_controller_test.dart:206:      final outline = WenzOutlineController(editor: host);
+test\controller\outline_controller_test.dart:208:      final selected = outline.selectByAnchor('intro', requestFocus: false);
+test\controller\outline_controller_test.dart:216:      outline.dispose();
+test\controller\outline_controller_test.dart:222:      final outline = WenzOutlineController(editor: host);
+test\controller\outline_controller_test.dart:224:      expect(outline.selectByBlockId('p1', requestFocus: false), isFalse);
+test\controller\outline_controller_test.dart:227:      outline.dispose();
+test\helpers\selection_test_helpers.dart:3:/// Shared selection builders for tests, replacing the per-file `_collapsed` /
+test\helpers\selection_test_helpers.dart:8:DocumentSelection collapsedTextSelection(
+test\helpers\selection_test_helpers.dart:23:DocumentSelection collapsedCodeSelection(
+test\core\controller_test.dart:18:      selection: collapsedTextSelection('p1', 0, 2),
+test\core\controller_test.dart:42:      selection: collapsedTextSelection('p1', 0, 2),
+test\core\controller_test.dart:76:      selection: collapsedTextSelection('p1', 0, 0),
+test\core\controller_test.dart:98:    expect(controller.selection, collapsedTextSelection('p1', 2, 3));
+test\core\controller_test.dart:250:        selection: collapsedTextSelection('p2', 1, 3),
+test\core\controller_test.dart:260:        selection: collapsedTextSelection('p2', 1, 1),
+test\core\controller_test.dart:271:        selection: collapsedTextSelection('p1', 0, 3),
+test\core\controller_test.dart:285:        selection: collapsedTextSelection('p1', 0, 0),
+test\core\controller_test.dart:287:      controller.setSelection(collapsedTextSelection('p3', 2, 5));
+test\core\controller_test.dart:295:        selection: collapsedTextSelection('p2', 1, 3),
+test\controller\document_stats_controller_test.dart:37:        selection: collapsedTextSelection('p1', 0, 2),
+test\controller\document_stats_controller_test.dart:46:      host.setSelection(collapsedTextSelection('p1', 0, 1));
+test\controller\controller_try_load_test.dart:93:        selection: collapsedTextSelection('p1', 0, 0),
+test\controller\controller_try_load_test.dart:116:        selection: collapsedTextSelection('p1', 0, 0),
+test\core\markdown_shortcut_commands_test.dart:172:    selection: collapsedTextSelection('p1', 0, 0),
+test\controller\controller_callbacks_test.dart:13:        selection: collapsedTextSelection('p1', 0, 0),
+test\controller\controller_callbacks_test.dart:50:        selection: collapsedTextSelection('p1', 0, 0),
+test\controller\controller_callbacks_test.dart:73:        selection: collapsedTextSelection('p1', 0, 0),
+test\controller\controller_callbacks_test.dart:95:        selection: collapsedTextSelection('p1', 0, 0),
+test\controller\controller_callbacks_test.dart:108:      controller.setSelection(collapsedTextSelection('p1', 0, 0));
+test\controller\controller_callbacks_test.dart:112:      controller.setSelection(collapsedTextSelection('p1', 0, 2));
+test\controller\controller_callbacks_test.dart:154:        selection: collapsedTextSelection('p1', 0, 0),
+test\controller\controller_callbacks_test.dart:181:        selection: collapsedTextSelection('p1', 0, 0),
+test\controller\controller_callbacks_test.dart:208:        selection: collapsedTextSelection('p1', 0, 0),
+test\controller\controller_callbacks_test.dart:236:        selection: collapsedTextSelection('p1', 0, 0),
+test\core\inline_commands_test.dart:51:      selection: collapsedTextSelection('p1', 0, 45),
+test\core\inline_commands_test.dart:83:      selection: collapsedTextSelection('p1', 0, 6),
+test\core\inline_commands_test.dart:177:    controller.setSelection(collapsedTextSelection('p1', 0, 5));
+lib\src\widgets\find_replace_panel.dart:67:      selection: TextSelection.collapsed(offset: value.length),
+lib\src\widgets\find_replace_panel.dart:127:              icon: const Icon(Icons.text_fields_outlined),
+lib\src\widgets\comment_sidebar.dart:112:          const Icon(Icons.mode_comment_outlined, size: 20),
+lib\src\widgets\comment_sidebar.dart:155:          color: isActive ? colorScheme.primary : colorScheme.outlineVariant,
+lib\src\widgets\comment_sidebar.dart:184:                      icon: const Icon(Icons.check_circle_outline, size: 18),
+test\core\revision_model_test.dart:61:      selection: collapsedTextSelection('p1', 0, 5),
+test\core\revision_model_test.dart:154:      selection: collapsedTextSelection('p1', 0, 5),
+test\controller\autosave_controller_test.dart:11:        selection: collapsedTextSelection('p1', 0, 0),
+test\controller\autosave_controller_test.dart:20:      host.setSelection(collapsedTextSelection('p1', 0, 1));
+test\controller\autosave_controller_test.dart:40:        selection: collapsedTextSelection('p1', 0, 0),
+test\controller\autosave_controller_test.dart:68:        selection: collapsedTextSelection('p1', 0, 0),
+test\controller\autosave_controller_test.dart:92:        selection: collapsedTextSelection('p1', 0, 0),
+test\core\style_commands_test.dart:119:      selection: collapsedTextSelection('p1', 0, 0),
+test\core\style_commands_test.dart:143:      selection: collapsedTextSelection('p1', 0, 0),
+test\core\style_commands_test.dart:174:      selection: collapsedTextSelection('p1', 0, 0),
+test\core\style_commands_test.dart:205:      selection: collapsedTextSelection('li1', 0, 0),
+test\input\editor_text_input_client_test.dart:25:        selection: collapsedTextSelection('p1', 0, 0),
+test\input\editor_text_input_client_test.dart:36:          selection: TextSelection.collapsed(offset: 2),
+test\input\editor_text_input_client_test.dart:54:          selection: TextSelection.collapsed(offset: 2),
+test\input\editor_text_input_client_test.dart:73:          selection: TextSelection.collapsed(offset: 2),
+test\input\editor_text_input_client_test.dart:83:          selection: TextSelection.collapsed(offset: 1),
+test\input\editor_text_input_client_test.dart:104:        selection: collapsedTextSelection('p1', 0, 3),
+test\input\editor_text_input_client_test.dart:114:          selection: TextSelection.collapsed(offset: 4),
+test\input\editor_text_input_client_test.dart:123:          selection: TextSelection.collapsed(offset: 5),
+test\input\editor_text_input_client_test.dart:132:          selection: TextSelection.collapsed(offset: 4),
+test\input\editor_text_input_client_test.dart:154:        selection: collapsedTextSelection('p1', 0, 3),
+test\input\editor_text_input_client_test.dart:164:          selection: TextSelection.collapsed(offset: 1),
+test\input\editor_text_input_client_test.dart:186:        selection: collapsedTextSelection('p1', 0, 3),
+test\input\editor_text_input_client_test.dart:196:          selection: TextSelection.collapsed(offset: 1),
+test\input\editor_text_input_client_test.dart:205:          selection: TextSelection.collapsed(offset: 2),
+test\input\editor_text_input_client_test.dart:214:          selection: TextSelection.collapsed(offset: 1),
+test\input\editor_text_input_client_test.dart:236:        selection: collapsedTextSelection('p1', 0, 3),
+test\input\editor_text_input_client_test.dart:244:          selection: TextSelection.collapsed(offset: 6),
+test\input\editor_text_input_client_test.dart:258:          selection: TextSelection.collapsed(offset: 4),
+test\input\editor_text_input_client_test.dart:276:          selection: TextSelection.collapsed(offset: 2),
+test\input\editor_text_input_client_test.dart:284:          selection: TextSelection.collapsed(offset: 1),
+test\input\editor_text_input_client_test.dart:298:      controller.setSelection(collapsedTextSelection('p1', 0, 2));
+test\input\editor_text_input_client_test.dart:318:      controller.setSelection(collapsedTextSelection('p1', 0, 5));
+test\input\editor_text_input_client_test.dart:325:          selection: TextSelection.collapsed(offset: 1),
+test\input\editor_text_input_client_test.dart:391:          selection: TextSelection.collapsed(offset: 1),
+test\input\editor_text_input_client_test.dart:422:          selection: TextSelection.collapsed(offset: 2),
+test\input\editor_text_input_client_test.dart:445:          selection: TextSelection.collapsed(offset: 1),
+test\input\editor_text_input_client_test.dart:460:          selection: TextSelection.collapsed(offset: 2),
+test\input\editor_text_input_client_test.dart:474:          selection: TextSelection.collapsed(offset: 1),
+test\input\editor_text_input_client_test.dart:493:          selection: TextSelection.collapsed(offset: 1),
+test\input\editor_text_input_client_test.dart:514:          selection: TextSelection.collapsed(offset: 2),
+test\input\editor_text_input_client_test.dart:536:          selection: TextSelection.collapsed(offset: 3),
+test\input\editor_text_input_client_test.dart:552:          selection: TextSelection.collapsed(offset: 1),
+test\input\editor_text_input_client_test.dart:561:          selection: TextSelection.collapsed(offset: 2),
+test\input\editor_text_input_client_test.dart:578:        selection: _collapsedTableCellSelection(2),
+test\input\editor_text_input_client_test.dart:590:        selection: _collapsedTableCellSelection(5),
+test\input\editor_text_input_client_test.dart:599:          selection: TextSelection.collapsed(offset: 6),
+test\input\editor_text_input_client_test.dart:608:          selection: TextSelection.collapsed(offset: 1),
+test\input\editor_text_input_client_test.dart:727:DocumentSelection _collapsedTableCellSelection(int offset) {
+lib\src\widgets\selection_gesture_overlay.dart:18:/// - tap → place collapsed caret
+lib\src\widgets\slash_menu_overlay.dart:121:    'check_box' => Icons.check_box_outlined,
+lib\src\widgets\slash_menu_overlay.dart:125:    'image' => Icons.image_outlined,
+lib\src\widgets\slash_menu_overlay.dart:126:    'video' => Icons.smart_display_outlined,
+lib\src\widgets\wenz_rich_text_editor.dart:11:import '../controller/outline_controller.dart';
+lib\src\widgets\wenz_rich_text_editor.dart:195:    'outline': 0xFF777680,
+lib\src\widgets\wenz_rich_text_editor.dart:273:    'heading.collapse': 'primary hover/focus control + hidden-count badge',
+lib\src\widgets\wenz_rich_text_editor.dart:284:    'heading': 'aligned: hierarchy styles plus collapse affordance states.',
+lib\src\widgets\wenz_rich_text_editor.dart:320:class WenzRichTextEditorAccessibility {
+lib\src\widgets\wenz_rich_text_editor.dart:383:/// Heading collapse is a view concern of this surface: built-in collapse
+lib\src\widgets\wenz_rich_text_editor.dart:387:class WenzRichTextEditor extends StatefulWidget {
+lib\src\widgets\wenz_rich_text_editor.dart:407:    this.outlineController,
+lib\src\widgets\wenz_rich_text_editor.dart:467:  /// Optional outline controller whose collapsed-heading state projects the
+lib\src\widgets\wenz_rich_text_editor.dart:469:  final WenzOutlineController? outlineController;
+lib\src\widgets\wenz_rich_text_editor.dart:611:    widget.outlineController?.addListener(_handleOutlineControllerChanged);
+lib\src\widgets\wenz_rich_text_editor.dart:650:    if (oldWidget.outlineController != widget.outlineController) {
+lib\src\widgets\wenz_rich_text_editor.dart:651:      oldWidget.outlineController?.removeListener(
+lib\src\widgets\wenz_rich_text_editor.dart:654:      widget.outlineController?.addListener(_handleOutlineControllerChanged);
+lib\src\widgets\wenz_rich_text_editor.dart:671:    widget.outlineController?.removeListener(_handleOutlineControllerChanged);
+lib\src\widgets\wenz_rich_text_editor.dart:803:    final outline = widget.outlineController;
+lib\src\widgets\wenz_rich_text_editor.dart:804:    if (outline == null) {
+lib\src\widgets\wenz_rich_text_editor.dart:808:      identical(outline.editor, widget.controller),
+lib\src\widgets\wenz_rich_text_editor.dart:809:      'outlineController must be created with the same WenzRichTextController.',
+lib\src\widgets\wenz_rich_text_editor.dart:811:    if (!identical(outline.editor, widget.controller)) {
+lib\src\widgets\wenz_rich_text_editor.dart:814:    return outline.visibleBlockProjection();
+lib\src\widgets\wenz_rich_text_editor.dart:818:    final outline = widget.outlineController;
+lib\src\widgets\wenz_rich_text_editor.dart:819:    if (outline == null || !identical(outline.editor, widget.controller)) {
+lib\src\widgets\wenz_rich_text_editor.dart:825:    final item = outline.itemForBlockId(block.id);
+lib\src\widgets\wenz_rich_text_editor.dart:834:    widget.outlineController?.toggleByBlockId(blockId);
+lib\src\widgets\wenz_rich_text_editor.dart:846:    // Heading collapse should project this original block list for rendering
+lib\src\widgets\wenz_rich_text_editor.dart:864:    // (collapsed selection) and the selection endpoints. Keeping these alive
+lib\src\widgets\wenz_rich_text_editor.dart:1717:  /// (collapsed selection) and the selection endpoints. Keeping these alive
+lib\src\widgets\wenz_rich_text_editor.dart:2053:      // page yields a collapsed caret (moveCaretToDocumentBoundary would keep
+lib\src\widgets\wenz_rich_text_editor.dart:3222:  /// (so it would be fully highlighted), or the selection is collapsed inside
+lib\src\widgets\wenz_rich_text_editor.dart:4546:    debugLabel: 'Wenz heading collapse button',
+lib\src\widgets\wenz_rich_text_editor.dart:4617:                'wenz-richtext-heading-collapse-${widget.blockId}',
+lib\src\widgets\wenz_rich_text_editor.dart:4631:              disabledColor: scheme.outline.withAlpha(110),
+lib\src\widgets\wenz_rich_text_editor.dart:5423:                  icon: Icons.delete_outline,
+lib\src\widgets\wenz_rich_text_editor.dart:5440:                  icon: Icons.delete_forever_outlined,
+lib\src\widgets\wenz_rich_text_editor.dart:7306:        border: Border.all(color: theme.colorScheme.outlineVariant),
+lib\src\widgets\wenz_rich_text_editor.dart:7313:          Icons.image_outlined,
+lib\src\widgets\wenz_rich_text_editor.dart:7664:        icon: Icons.smart_display_outlined,
+lib\src\widgets\wenz_rich_text_editor.dart:7831:                border: Border.all(color: theme.colorScheme.outlineVariant),
+lib\src\widgets\wenz_rich_text_editor.dart:8036:        selected ? theme.colorScheme.primary : theme.colorScheme.outlineVariant;
+lib\src\widgets\wenz_rich_text_editor.dart:8179:            icon: Icons.delete_outline,
+lib\src\widgets\wenz_rich_text_editor.dart:8242:        side: BorderSide(color: theme.colorScheme.outlineVariant),
+lib\src\widgets\wenz_rich_text_editor.dart:8317:      icon: const Icon(Icons.cloud_sync_outlined),
+lib\src\widgets\wenz_rich_text_editor.dart:9060:    6 => theme.colorScheme.outline,
+test\core\text_commands_test.dart:18:      selection: collapsedTextSelection('p1', 0, 5),
+test\core\text_commands_test.dart:29:  test('insert text replaces non collapsed selection', () {
+test\core\text_commands_test.dart:373:  test('delete backward removes character before collapsed selection', () {
+test\core\text_commands_test.dart:384:      selection: collapsedTextSelection('p1', 0, 5),
+test\core\text_commands_test.dart:410:      selection: collapsedTextSelection('p2', 1, 0),
+test\core\text_commands_test.dart:439:      selection: collapsedTextSelection('p2', 2, 0),
+test\core\text_commands_test.dart:486:      selection: collapsedTextSelection('p1', 1, 0),
+test\core\text_commands_test.dart:534:      selection: collapsedTextSelection('p1', 1, 0),
+test\core\text_commands_test.dart:561:      selection: collapsedTextSelection('p1', 1, 0),
+test\core\text_commands_test.dart:584:      selection: collapsedCodeSelection('c1', 0, 10),
+test\core\text_commands_test.dart:613:      selection: collapsedTextSelection('p1', 0, 6),
+test\core\text_commands_test.dart:660:      selection: collapsedTextSelection('p1', 0, 6),
+test\core\text_commands_test.dart:680:      selection: _collapsedTableCellSelection(5),
+test\core\text_commands_test.dart:988:DocumentSelection _collapsedTableCellSelection(int offset) {
+lib\src\core\commands\text_commands.dart:336:    nextSelection = _collapsedAfterLeading(start, leading!, before.length);
+lib\src\core\commands\text_commands.dart:340:      nextSelection = _collapsedAfterLeading(start, leading, before.length);
+lib\src\core\commands\text_commands.dart:344:      nextSelection ??= _collapsedAtTrailingStart(
+lib\src\core\commands\text_commands.dart:372:  nextSelection ??= _collapsedNearDeletion(blocks, before.length);
+lib\src\core\commands\text_commands.dart:392:DocumentSelection? _collapsedNearDeletion(
+lib\src\core\commands\text_commands.dart:530:DocumentSelection? _collapsedAfterLeading(
+lib\src\core\commands\text_commands.dart:567:DocumentSelection? _collapsedAtTrailingStart(
+test\input\clipboard_service_test.dart:10:    test('returns null for a collapsed selection', () {
+test\input\clipboard_service_test.dart:12:      expect(service.copy(doc, collapsedTextSelection('p1', 0, 0)), isNull);
+test\input\clipboard_service_test.dart:499:        selection: collapsedTextSelection('p1', 0, 1),
+test\input\clipboard_service_test.dart:511:        selection: collapsedTextSelection('p1', 0, 1),
+test\input\clipboard_service_test.dart:523:        selection: collapsedTextSelection('p1', 0, 0),
+test\input\clipboard_service_test.dart:536:        selection: collapsedTextSelection('p1', 0, 0),
+test\input\clipboard_service_test.dart:553:        selection: collapsedTextSelection('p1', 0, 0),
+test\input\clipboard_service_test.dart:584:        selection: collapsedTextSelection('p1', 0, 1),
+test\input\clipboard_service_test.dart:621:        selection: collapsedTextSelection('p1', 0, 1),
+test\input\clipboard_service_test.dart:681:        selection: _collapsedTableCellSelection(2),
+test\input\clipboard_service_test.dart:696:        selection: _collapsedTableCellSelection(1),
+test\input\clipboard_service_test.dart:753:        selection: collapsedTextSelection('p1', 0, 1),
+test\input\clipboard_service_test.dart:869:        selection: collapsedTextSelection('t1', 0, 0),
+test\input\clipboard_service_test.dart:892:        selection: collapsedTextSelection('p1', 0, 1),
+test\input\clipboard_service_test.dart:929:        selection: collapsedTextSelection('p1', 0, 1),
+test\input\clipboard_service_test.dart:963:        selection: collapsedObjectSelection('target-img', 0),
+test\input\clipboard_service_test.dart:1152:DocumentSelection _collapsedTableCellSelection(int offset) {
+test\input\clipboard_service_test.dart:1167:DocumentSelection collapsedObjectSelection(String blockId, int blockIndex) {
+test\widgets\block_geometry_registry_test.dart:519:      // length and return a valid (possibly collapsed) range, not throw.
+test\widgets\block_geometry_registry_test.dart:561:    test('an empty paragraph returns a collapsed range at 0', () {
+test\widgets\editor_golden_test.dart:87:        WenzRichTextDesignBaseline.stateTokens, contains('heading.collapse'));
+test\widgets\editor_golden_test.dart:195:    final outlineController = WenzOutlineController(editor: controller);
+test\widgets\editor_golden_test.dart:196:    addTearDown(outlineController.dispose);
+test\widgets\editor_golden_test.dart:202:      outlineController: outlineController,
+test\widgets\editor_golden_test.dart:422:  testWidgets('golden: collapsed caret', (tester) async {
+test\widgets\editor_golden_test.dart:437:        selection: collapsedTextSelection('p1', 0, 8),
+test\widgets\editor_golden_test.dart:511:  WenzOutlineController? outlineController,
+test\widgets\editor_golden_test.dart:533:                outlineController: outlineController,
+lib\src\core\commands\inline_commands.dart:245:/// selection is non-collapsed the range is deleted first. The caret moves past
+lib\src\core\commands\command_executor.dart:86:    // The new command must start with a collapsed caret at the exact position
+lib\src\core\commands\command_executor.dart:87:    // the previous command ended. A non-collapsed selection (e.g. after a
+lib\src\core\commands\selection_commands.dart:341:        expandSelection ? selection.base : _collapseTo(selection, direction);
+lib\src\core\commands\selection_commands.dart:402:        expandSelection ? selection.base : _collapseTo(selection, direction);
+lib\src\core\commands\selection_commands.dart:469:        expandSelection ? selection.base : _collapseTo(selection, direction);
+lib\src\core\commands\selection_commands.dart:510:DocumentPosition _collapseTo(
+lib\src\core\commands\selection_commands.dart:1078:/// Appends an empty paragraph after [afterBlockIndex] and returns a collapsed
+test\widgets\wenz_rich_text_editor_test.dart:262:    const outline = Color(0xFF777680);
+test\widgets\wenz_rich_text_editor_test.dart:312:            outline: outline,
+test\widgets\wenz_rich_text_editor_test.dart:350:    expect(styleOf('Heading 6').color, outline);
+test\widgets\wenz_rich_text_editor_test.dart:461:  testWidgets('renders heading collapse affordance and toggles by keyboard', (
+test\widgets\wenz_rich_text_editor_test.dart:498:    final outline = WenzOutlineController(editor: controller);
+test\widgets\wenz_rich_text_editor_test.dart:499:    addTearDown(outline.dispose);
+test\widgets\wenz_rich_text_editor_test.dart:509:              outlineController: outline,
+test\widgets\wenz_rich_text_editor_test.dart:520:      const ValueKey<String>('wenz-richtext-heading-collapse-section'),
+test\widgets\wenz_rich_text_editor_test.dart:523:      const ValueKey<String>('wenz-richtext-heading-collapse-leaf'),
+test\widgets\wenz_rich_text_editor_test.dart:552:    expect(outline.isCollapsed('section'), isTrue);
+test\widgets\wenz_rich_text_editor_test.dart:572:    expect(outline.isCollapsed('section'), isFalse);
+test\widgets\wenz_rich_text_editor_test.dart:657:    final initialSelection = collapsedTextSelection('task1', 0, 4);
+test\widgets\wenz_rich_text_editor_test.dart:986:      selection: collapsedTextSelection('p-convert', 0, 0),
+test\widgets\wenz_rich_text_editor_test.dart:1094:      selection: collapsedCodeSelection('code1', 0, 0),
+test\widgets\wenz_rich_text_editor_test.dart:1213:      selection: collapsedCodeSelection('code1', 0, 0),
+test\widgets\wenz_rich_text_editor_test.dart:2213:        selection: collapsedCodeSelection('code1', 0, 0),
+test\widgets\wenz_rich_text_editor_test.dart:2661:  testWidgets('shows high contrast focus outline when focused', (tester) async {
+test\widgets\wenz_rich_text_editor_test.dart:3021:      selection: _collapsedTableCellTextSelection(
+test\widgets\wenz_rich_text_editor_test.dart:3467:      selection: collapsedTextSelection('mention-p', 0, 4),
+test\widgets\wenz_rich_text_editor_test.dart:3965:      selection: collapsedTextSelection('p1', 0, 2),
+test\widgets\wenz_rich_text_editor_test.dart:3998:      selection: collapsedTextSelection('p1', 0, 2),
+test\widgets\wenz_rich_text_editor_test.dart:4268:      selection: collapsedCodeSelection('code1', 0, 4),
+test\widgets\wenz_rich_text_editor_test.dart:4392:      selection: collapsedTextSelection('p1', 0, 2),
+test\widgets\wenz_rich_text_editor_test.dart:4440:      selection: collapsedTextSelection('p1', 0, 5),
+test\widgets\wenz_rich_text_editor_test.dart:4484:      selection: collapsedTextSelection('p1', 0, 0),
+test\widgets\wenz_rich_text_editor_test.dart:4530:      selection: collapsedTextSelection('p1', 0, 2),
+test\widgets\wenz_rich_text_editor_test.dart:4827:      selection: collapsedTextSelection('p1', 0, 6),
+test\widgets\wenz_rich_text_editor_test.dart:5101:    controller.setSelection(collapsedTextSelection('p-inline', 0, 1));
+test\widgets\wenz_rich_text_editor_test.dart:5112:    controller.setSelection(collapsedTextSelection('p-inline', 0, 3));
+test\widgets\wenz_rich_text_editor_test.dart:5123:    controller.setSelection(collapsedTextSelection('p-inline', 0, 4));
+test\widgets\wenz_rich_text_editor_test.dart:5288:      _collapsedTableCellTextSelection(
+test\widgets\wenz_rich_text_editor_test.dart:5309:      _collapsedTableCellTextSelection(
+test\widgets\wenz_rich_text_editor_test.dart:5330:      _collapsedTableCellTextSelection(
+test\widgets\wenz_rich_text_editor_test.dart:5704:      selection: collapsedTextSelection('p1', 0, 3),
+test\widgets\wenz_rich_text_editor_test.dart:5738:      selection: collapsedTextSelection('p1', 0, 2),
+test\widgets\wenz_rich_text_editor_test.dart:5777:      selection: collapsedTextSelection('p1', 0, 20),
+test\widgets\wenz_rich_text_editor_test.dart:5819:      selection: collapsedTextSelection('p1', 0, 5),
+test\widgets\wenz_rich_text_editor_test.dart:5877:      selection: collapsedTextSelection('p1', 0, 11),
+test\widgets\wenz_rich_text_editor_test.dart:5897:    controller.setSelection(collapsedTextSelection('p1', 0, 11));
+test\widgets\wenz_rich_text_editor_test.dart:6026:      selection: collapsedTextSelection('p1', 0, 3),
+test\widgets\wenz_rich_text_editor_test.dart:6058:      selection: collapsedTextSelection('p1', 0, 0),
+test\widgets\wenz_rich_text_editor_test.dart:6337:      selection: collapsedTextSelection('p1', 0, 2),
+test\widgets\wenz_rich_text_editor_test.dart:6377:      selection: collapsedTextSelection('p1', 0, 3),
+test\widgets\wenz_rich_text_editor_test.dart:6413:      selection: collapsedTextSelection('p1', 0, 0),
+test\widgets\wenz_rich_text_editor_test.dart:6449:      selection: collapsedTextSelection('p1', 0, 0),
+test\widgets\wenz_rich_text_editor_test.dart:6619:      // Place an initial collapsed caret in the content so we can detect any
+test\widgets\wenz_rich_text_editor_test.dart:6719:      controller.setSelection(collapsedTextSelection('p25', 25, 0));
+test\widgets\wenz_rich_text_editor_test.dart:6827:      selection: collapsedTextSelection('p1', 0, 0),
+test\widgets\wenz_rich_text_editor_test.dart:6878:      selection: collapsedTextSelection('p3', 2, 3),
+test\widgets\wenz_rich_text_editor_test.dart:6928:      selection: collapsedTextSelection('p1', 0, 0),
+test\widgets\wenz_rich_text_editor_test.dart:6972:      selection: collapsedTextSelection('p1', 0, 3),
+test\widgets\wenz_rich_text_editor_test.dart:7222:        selection: collapsedTextSelection('p1', 0, 0),
+test\widgets\wenz_rich_text_editor_test.dart:7259:      final start = collapsedTextSelection('p0', 0, 0).base;
+test\widgets\wenz_rich_text_editor_test.dart:7297:        selection: collapsedTextSelection('p1', 0, 0),
+test\widgets\wenz_rich_text_editor_test.dart:7319:      controller.setSelection(collapsedTextSelection('p400', 400, 0));
+test\widgets\wenz_rich_text_editor_test.dart:7332:        selection: collapsedTextSelection('p0', 0, 0),
+test\widgets\wenz_rich_text_editor_test.dart:7360:      controller.setSelection(collapsedTextSelection('p450', 450, 0));
+test\widgets\wenz_rich_text_editor_test.dart:7612:DocumentSelection _collapsedTableCellTextSelection({
+test\widgets\slash_menu_overlay_test.dart:13:      selection: collapsedTextSelection('p1', 0, 8),
+test\widgets\slash_menu_overlay_test.dart:47:      selection: collapsedTextSelection('p1', 0, 8),
+test\widgets\media_resolver_test.dart:61:      expect(find.byIcon(Icons.image_outlined), findsOneWidget);
+test\widgets\media_resolver_test.dart:119:      expect(find.byIcon(Icons.image_outlined), findsOneWidget);
+test\widgets\media_resolver_test.dart:204:      expect(find.byIcon(Icons.image_outlined), findsOneWidget);
+test\widgets\media_resolver_test.dart:374:      expect(find.byIcon(Icons.image_outlined), findsOneWidget);
+lib\src\controller\outline_controller.dart:13:/// Heading collapse uses the same top-level heading source but remains view
+lib\src\controller\outline_controller.dart:15:/// blocks never own a collapse entry themselves.
+lib\src\controller\outline_controller.dart:23:    this.collapseRange = OutlineCollapseRange.empty,
+lib\src\controller\outline_controller.dart:32:  final OutlineCollapseRange collapseRange;
+lib\src\controller\outline_controller.dart:36:  bool get canCollapse => collapseRange.isNotEmpty;
+lib\src\controller\outline_controller.dart:38:  /// Top-level block ids covered when this heading is collapsed.
+lib\src\controller\outline_controller.dart:39:  List<String> get coveredBlockIds => collapseRange.blockIds;
+lib\src\controller\outline_controller.dart:41:  /// Top-level block indexes covered when this heading is collapsed.
+lib\src\controller\outline_controller.dart:42:  List<int> get coveredBlockIndexes => collapseRange.blockIndexes;
+lib\src\controller\outline_controller.dart:46:  int get collapseStartBlockIndex => collapseRange.startBlockIndex;
+lib\src\controller\outline_controller.dart:49:  int get collapseEndBlockIndexExclusive =>
+lib\src\controller\outline_controller.dart:50:      collapseRange.endBlockIndexExclusive;
+lib\src\controller\outline_controller.dart:66:        other.collapseRange == collapseRange &&
+lib\src\controller\outline_controller.dart:77:        collapseRange,
+lib\src\controller\outline_controller.dart:82:/// The top-level block range hidden by a collapsed outline heading.
+lib\src\controller\outline_controller.dart:139:/// View-only projection of [RichTextDocument.blocks] after applying collapsed
+lib\src\controller\outline_controller.dart:140:/// outline ranges.
+lib\src\controller\outline_controller.dart:183:      final start = item.collapseStartBlockIndex.clamp(0, blocks.length);
+lib\src\controller\outline_controller.dart:184:      final end = item.collapseEndBlockIndexExclusive.clamp(0, blocks.length);
+lib\src\controller\outline_controller.dart:258:/// Derives a document outline from heading blocks.
+lib\src\controller\outline_controller.dart:266:/// Heading collapse interaction contract:
+lib\src\controller\outline_controller.dart:267:/// * A collapse handle is eligible only for a non-empty top-level
+lib\src\controller\outline_controller.dart:274:/// * Toggling collapse is editor view state. It must not mutate document
+lib\src\controller\outline_controller.dart:295:  Set<String> _collapsedBlockIds = const <String>{};
+lib\src\controller\outline_controller.dart:296:  Set<String> get collapsedBlockIds =>
+lib\src\controller\outline_controller.dart:297:      Set<String>.unmodifiable(_collapsedBlockIds);
+lib\src\controller\outline_controller.dart:353:        _collapsedBlockIds.contains(blockId);
+lib\src\controller\outline_controller.dart:363:  OutlineCollapseRange? collapseRangeForBlockId(String blockId) {
+lib\src\controller\outline_controller.dart:364:    return itemForBlockId(blockId)?.collapseRange;
+lib\src\controller\outline_controller.dart:367:  bool collapse(OutlineItem item) => collapseByBlockId(item.blockId);
+lib\src\controller\outline_controller.dart:369:  bool collapseByBlockId(String blockId) {
+lib\src\controller\outline_controller.dart:370:    return _setCollapsed(blockId: blockId, collapsed: true);
+lib\src\controller\outline_controller.dart:373:  bool collapseByAnchor(String anchor) {
+lib\src\controller\outline_controller.dart:375:    return item != null && collapse(item);
+lib\src\controller\outline_controller.dart:381:    return _setCollapsed(blockId: blockId, collapsed: false);
+lib\src\controller\outline_controller.dart:398:      collapsed: !_collapsedBlockIds.contains(blockId),
+lib\src\controller\outline_controller.dart:408:    if (_collapsedBlockIds.isEmpty) {
+lib\src\controller\outline_controller.dart:411:    _collapsedBlockIds = const <String>{};
+lib\src\controller\outline_controller.dart:485:      final collapseRange = _collapseRangeForHeading(
+lib\src\controller\outline_controller.dart:490:      if (collapseRange.isNotEmpty) {
+lib\src\controller\outline_controller.dart:500:          collapseRange: collapseRange,
+lib\src\controller\outline_controller.dart:506:      _collapsedBlockIds.where(collapsibleIds.contains),
+lib\src\controller\outline_controller.dart:517:    final collapseStateChanged =
+lib\src\controller\outline_controller.dart:518:        !setEquals(_collapsedBlockIds, nextCollapsedBlockIds);
+lib\src\controller\outline_controller.dart:519:    if (!itemsChanged && !collapseStateChanged) {
+lib\src\controller\outline_controller.dart:523:    _collapsedBlockIds = nextCollapsedBlockIds;
+lib\src\controller\outline_controller.dart:529:    required bool collapsed,
+lib\src\controller\outline_controller.dart:535:    final next = Set<String>.of(_collapsedBlockIds);
+lib\src\controller\outline_controller.dart:536:    final changed = collapsed ? next.add(blockId) : next.remove(blockId);
+lib\src\controller\outline_controller.dart:540:    _collapsedBlockIds = Set<String>.unmodifiable(next);
+lib\src\controller\outline_controller.dart:553:    required this.collapseRange,
+lib\src\controller\outline_controller.dart:561:  final OutlineCollapseRange collapseRange;
+lib\src\controller\outline_controller.dart:570:      collapseRange: collapseRange,
+lib\src\controller\outline_controller.dart:576:OutlineCollapseRange _collapseRangeForHeading({
+lib\src\controller\wenz_rich_text_controller.dart:47:class WenzRichTextController extends ChangeNotifier {
+lib\src\controller\toolbar_controller.dart:129:  /// Whether any selection is active (collapsed caret counts).
+lib\src\controller\toolbar_controller.dart:133:  /// the selection to sit inside a [TextBlockNode] text path. A collapsed
+lib\src\controller\toolbar_controller.dart:177:  /// selection has no link or mixes different URLs. For a collapsed caret,
+lib\src\controller\toolbar_controller.dart:677:      // FormatTextCommand applies to any TextBlockNode text range (collapsed
+test\core\selection_commands_test.dart:20:      selection: collapsedTextSelection('p1', 0, 2),
+test\core\selection_commands_test.dart:41:  test('move caret collapses expanded selection without recording history', () {
+test\core\selection_commands_test.dart:89:      selection: collapsedTextSelection('p1', 0, 3),
+test\core\selection_commands_test.dart:142:        selection: collapsedTextSelection('p1', 0, 0),
+test\core\selection_commands_test.dart:171:        selection: collapsedTextSelection('p1', 0, 7),
+test\core\selection_commands_test.dart:197:        selection: collapsedTextSelection('p1', 0, 0),
+test\core\selection_commands_test.dart:231:        selection: collapsedTextSelection('p2', 1, 1),
+test\core\selection_commands_test.dart:263:        selection: collapsedTextSelection('p1', 0, 1),
+test\core\selection_commands_test.dart:368:      selection: collapsedTextSelection('p1', 0, 6),
+test\core\selection_commands_test.dart:395:      selection: collapsedTextSelection('p1', 1, 0),
+test\core\selection_commands_test.dart:643:      selection: collapsedTextSelection('p1', 0, 3),
+test\core\selection_commands_test.dart:682:      selection: collapsedTextSelection('p1', 0, 2),
+test\core\selection_commands_test.dart:705:      selection: collapsedTextSelection('p1', 0, 2),
+test\core\selection_commands_test.dart:852:        selection: collapsedTextSelection('p1', 0, 2),
+test\core\selection_commands_test.dart:903:      selection: collapsedTextSelection('p1', 0, 1),
+test\plugins\editor_plugin_test.dart:20:      selection: collapsedTextSelection('p1', 0, 0),
+
+**Exploring target files**
+
+I need to inspect certain target files that might relate to controller behavior. Using codegraph seems like a good idea since it could simplify things. First, I want to get a clear picture of the current implementation. I think it would be best to use codegraph_explore to analyze these symbols, as that should streamline my assessment with just one call. Let's get started on this!
+codex
+我先抓核心控制器实现，确认折叠时的选区、查找和大纲路径。
+mcp: codegraph/codegraph_explore started
+mcp: codegraph/codegraph_explore (completed)
+ERROR: Selected model is at capacity. Please try a different model.
+ERROR: Selected model is at capacity. Please try a different model.
+tokens used
+20,514

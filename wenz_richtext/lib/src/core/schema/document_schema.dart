@@ -68,15 +68,67 @@ class DocumentSchema {
         return _normalizeBlockEmbed(embed);
       case final TableBlockNode table:
         return _normalizeTableBlock(table);
+      case final VideoBlockNode video:
+        return _normalizeVideoBlock(video);
       case final CodeBlockNode _:
       case final ImageBlockNode _:
       case final DividerBlockNode _:
-      case final VideoBlockNode _:
       case final FileBlockNode _:
         return block;
       default:
         return block;
     }
+  }
+
+  BlockNode _normalizeVideoBlock(VideoBlockNode block) {
+    final attrs = _normalizeAttributes(block.type, block.attributes);
+    final assetId = block.assetId.trim();
+    final playbackUrl = block.playbackUrl.trim();
+    final file = block.file.trim();
+    final coverUrl = block.coverUrl.trim();
+    final title = block.title.trim();
+    final description = block.description.trim();
+    final uploadError = block.uploadError.trim();
+    final aspectRatio = _normalizeAspectRatio(block.aspectRatio);
+
+    final normalized = VideoBlockNode(
+      id: block.id,
+      assetId: assetId,
+      playbackUrl: playbackUrl,
+      file: file,
+      coverUrl: coverUrl,
+      title: title,
+      description: description,
+      aspectRatio: aspectRatio,
+      uploadStatus: block.uploadStatus,
+      uploadError: uploadError,
+      attributes: attrs,
+    );
+
+    if (!normalized.hasSource) {
+      return BlockEmbedNode(
+        id: block.id,
+        embedType: 'video',
+        data: _videoEmbedData(normalized),
+        fallbackText: normalized.displayText.isEmpty
+            ? 'Unsupported video'
+            : normalized.displayText,
+        attributes: attrs,
+      );
+    }
+
+    if (attrs == block.attributes &&
+        assetId == block.assetId &&
+        playbackUrl == block.playbackUrl &&
+        file == block.file &&
+        coverUrl == block.coverUrl &&
+        title == block.title &&
+        description == block.description &&
+        aspectRatio == block.aspectRatio &&
+        uploadError == block.uploadError) {
+      return block;
+    }
+    return normalized;
   }
 
   BlockEmbedNode _normalizeBlockEmbed(BlockEmbedNode block) {
@@ -243,6 +295,28 @@ class DocumentSchema {
         return listType;
     }
   }
+}
+
+Map<String, Object?> _videoEmbedData(VideoBlockNode block) {
+  return <String, Object?>{
+    if (block.assetId.isNotEmpty) 'assetId': block.assetId,
+    if (block.playbackUrl.isNotEmpty) 'playbackUrl': block.playbackUrl,
+    if (block.file.isNotEmpty) 'file': block.file,
+    if (block.coverUrl.isNotEmpty) 'coverUrl': block.coverUrl,
+    if (block.title.isNotEmpty) 'title': block.title,
+    if (block.description.isNotEmpty) 'description': block.description,
+    if (block.aspectRatio != null) 'aspectRatio': block.aspectRatio,
+    if (block.uploadStatus != FileUploadStatus.none)
+      'uploadStatus': block.uploadStatus.name,
+    if (block.uploadError.isNotEmpty) 'uploadError': block.uploadError,
+  };
+}
+
+double? _normalizeAspectRatio(double? value) {
+  if (value == null || value <= 0 || !value.isFinite) {
+    return null;
+  }
+  return value;
 }
 
 int _idCounter = 0;

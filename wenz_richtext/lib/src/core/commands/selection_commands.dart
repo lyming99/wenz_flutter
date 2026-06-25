@@ -41,10 +41,10 @@ class MoveCaretCommand extends EditorCommand {
     final selection = session.selection;
     if (selection == null) {
       final position = switch (direction) {
-        CaretMovementDirection.backward => _lastEditablePosition(
+        CaretMovementDirection.backward => _lastNavigablePosition(
             session.document,
           ),
-        CaretMovementDirection.forward => _firstEditablePosition(
+        CaretMovementDirection.forward => _firstNavigablePosition(
             session.document,
           ),
       };
@@ -52,7 +52,7 @@ class MoveCaretCommand extends EditorCommand {
         return const CommandResult(recordHistory: false);
       }
       return CommandResult(
-        selection: DocumentSelection(base: position, extent: position),
+        selection: _selectionForNavigatedPosition(position),
         recordHistory: false,
       );
     }
@@ -98,7 +98,7 @@ class MoveCaretCommand extends EditorCommand {
       return const CommandResult(recordHistory: false);
     }
     return CommandResult(
-      selection: DocumentSelection(base: position, extent: position),
+      selection: _selectionForNavigatedPosition(position),
       recordHistory: false,
     );
   }
@@ -148,8 +148,8 @@ class MoveCaretVerticalCommand extends EditorCommand {
         return const CommandResult(recordHistory: false);
       }
       next = direction == CaretMovementDirection.forward
-          ? _nextEditablePosition(session.document, extent.blockIndex)
-          : _previousEditablePosition(session.document, extent.blockIndex);
+          ? _nextNavigablePosition(session.document, extent.blockIndex)
+          : _previousNavigablePosition(session.document, extent.blockIndex);
     } else {
       // Plain text/code blocks: the widget layer resolves visual-line motion
       // (keeping the horizontal column across wrapped lines) and only calls
@@ -159,8 +159,8 @@ class MoveCaretVerticalCommand extends EditorCommand {
       // the last wrapped line) must NOT gate a boundary transition, otherwise
       // a wrapped single-line block would be unreachable from above/below.
       next = direction == CaretMovementDirection.forward
-          ? _nextEditablePosition(session.document, extent.blockIndex)
-          : _previousEditablePosition(session.document, extent.blockIndex);
+          ? _nextNavigablePosition(session.document, extent.blockIndex)
+          : _previousNavigablePosition(session.document, extent.blockIndex);
     }
     if (next == null || next == extent) {
       // Forward motion off a trailing object/table block would otherwise stall.
@@ -188,7 +188,7 @@ class MoveCaretVerticalCommand extends EditorCommand {
       );
     }
     return CommandResult(
-      selection: DocumentSelection(base: next, extent: next),
+      selection: _selectionForNavigatedPosition(next),
       recordHistory: false,
     );
   }
@@ -324,9 +324,9 @@ class MoveCaretByWordCommand extends EditorCommand {
     if (selection == null) {
       final position = switch (direction) {
         CaretMovementDirection.backward =>
-          _lastEditablePosition(session.document),
+          _lastNavigablePosition(session.document),
         CaretMovementDirection.forward =>
-          _firstEditablePosition(session.document),
+          _firstNavigablePosition(session.document),
       };
       if (position == null) {
         return const CommandResult(recordHistory: false);
@@ -354,6 +354,12 @@ class MoveCaretByWordCommand extends EditorCommand {
         }
       }
       return const CommandResult(recordHistory: false);
+    }
+    if (!expandSelection && next.path.isBlockObject) {
+      return CommandResult(
+        selection: _selectionForNavigatedPosition(next),
+        recordHistory: false,
+      );
     }
     return CommandResult(
       selection: DocumentSelection(base: anchor, extent: next),
@@ -448,19 +454,25 @@ class MoveCaretToDocumentBoundaryCommand extends EditorCommand {
   CommandResult execute(DocumentSession session) {
     final selection = session.selection;
     final target = direction == CaretMovementDirection.backward
-        ? _firstEditablePosition(session.document)
-        : _lastEditablePosition(session.document);
+        ? _firstNavigablePosition(session.document)
+        : _lastNavigablePosition(session.document);
     if (target == null) {
       return const CommandResult(recordHistory: false);
     }
     if (selection == null) {
       return CommandResult(
-        selection: DocumentSelection(base: target, extent: target),
+        selection: _selectionForNavigatedPosition(target),
         recordHistory: false,
       );
     }
     final anchor =
         expandSelection ? selection.base : _collapseTo(selection, direction);
+    if (!expandSelection) {
+      return CommandResult(
+        selection: _selectionForNavigatedPosition(target),
+        recordHistory: false,
+      );
+    }
     return CommandResult(
       selection: DocumentSelection(base: anchor, extent: target),
       recordHistory: false,
@@ -504,6 +516,25 @@ DocumentPosition _collapseTo(
       : selection.end;
 }
 
+DocumentSelection _selectionForNavigatedPosition(DocumentPosition position) {
+  if (position.path.isBlockObject) {
+    return _objectSelectionForPosition(position);
+  }
+  return DocumentSelection(base: position, extent: position);
+}
+
+DocumentSelection _objectSelectionForPosition(DocumentPosition position) {
+  final start = DocumentPosition.object(
+    blockId: position.blockId,
+    blockIndex: position.blockIndex,
+    offset: 0,
+  );
+  return DocumentSelection(
+    base: start,
+    extent: start.copyWith(offset: _kObjectSelectionLength),
+  );
+}
+
 DocumentPosition? _moveWordFrom(
   RichTextDocument document,
   DocumentPosition position,
@@ -512,10 +543,10 @@ DocumentPosition? _moveWordFrom(
   final block = _blockAt(document, position.blockIndex);
   if (block == null || !_isEditable(block)) {
     return direction == CaretMovementDirection.backward
-        ? _previousEditablePosition(document, position.blockIndex)
-        : _nextEditablePosition(document, position.blockIndex);
+        ? _previousNavigablePosition(document, position.blockIndex)
+        : _nextNavigablePosition(document, position.blockIndex);
   }
-  final text = block.plainText;
+  final text = _editablePlainText(block);
   final length = text.length;
   var offset = position.offset.clamp(0, length).toInt();
   if (direction == CaretMovementDirection.forward) {
@@ -554,8 +585,8 @@ DocumentPosition? _moveWordFrom(
   if (offset == position.offset.clamp(0, length).toInt()) {
     // Did not move within the block: jump to the neighbouring editable block.
     return direction == CaretMovementDirection.backward
-        ? _previousEditablePosition(document, position.blockIndex)
-        : _nextEditablePosition(document, position.blockIndex);
+        ? _previousNavigablePosition(document, position.blockIndex)
+        : _nextNavigablePosition(document, position.blockIndex);
   }
   return position.copyWith(offset: offset);
 }
@@ -620,18 +651,21 @@ DocumentPosition? _moveBackward(
           position,
           CaretMovementDirection.backward,
         ) ??
-        _previousEditablePosition(document, position.blockIndex);
+        _previousNavigablePosition(document, position.blockIndex);
   }
 
   final block = _blockAt(document, position.blockIndex);
+  if (block != null && _isKeyboardSelectableObject(block)) {
+    return _previousNavigablePosition(document, position.blockIndex);
+  }
   if (block == null || !_isEditable(block)) {
-    return _previousEditablePosition(document, position.blockIndex);
+    return _previousNavigablePosition(document, position.blockIndex);
   }
   final offset = position.offset.clamp(0, _editableLength(block));
   if (offset > 0) {
     return position.copyWith(offset: offset - 1);
   }
-  return _previousEditablePosition(document, position.blockIndex);
+  return _previousNavigablePosition(document, position.blockIndex);
 }
 
 DocumentPosition? _moveForward(
@@ -649,22 +683,25 @@ DocumentPosition? _moveForward(
           position,
           CaretMovementDirection.forward,
         ) ??
-        _nextEditablePosition(document, position.blockIndex);
+        _nextNavigablePosition(document, position.blockIndex);
   }
 
   final block = _blockAt(document, position.blockIndex);
+  if (block != null && _isKeyboardSelectableObject(block)) {
+    return _nextNavigablePosition(document, position.blockIndex);
+  }
   if (block == null || !_isEditable(block)) {
-    return _nextEditablePosition(document, position.blockIndex);
+    return _nextNavigablePosition(document, position.blockIndex);
   }
   final length = _editableLength(block);
   final offset = position.offset.clamp(0, length);
   if (offset < length) {
     return position.copyWith(offset: offset + 1);
   }
-  return _nextEditablePosition(document, position.blockIndex);
+  return _nextNavigablePosition(document, position.blockIndex);
 }
 
-DocumentPosition? _firstEditablePosition(RichTextDocument document) {
+DocumentPosition? _firstNavigablePosition(RichTextDocument document) {
   for (var i = 0; i < document.blocks.length; i++) {
     final block = document.blocks[i];
     if (_isEditable(block)) {
@@ -675,6 +712,9 @@ DocumentPosition? _firstEditablePosition(RichTextDocument document) {
       if (firstCell != null) {
         return firstCell;
       }
+    }
+    if (_isKeyboardSelectableObject(block)) {
+      return _objectPositionFor(block, i, 0);
     }
   }
   return null;
@@ -699,7 +739,7 @@ DocumentPosition? _firstSelectablePosition(RichTextDocument document) {
   return null;
 }
 
-DocumentPosition? _lastEditablePosition(RichTextDocument document) {
+DocumentPosition? _lastNavigablePosition(RichTextDocument document) {
   for (var i = document.blocks.length - 1; i >= 0; i--) {
     final block = document.blocks[i];
     if (_isEditable(block)) {
@@ -710,6 +750,9 @@ DocumentPosition? _lastEditablePosition(RichTextDocument document) {
       if (lastCell != null) {
         return lastCell;
       }
+    }
+    if (_isKeyboardSelectableObject(block)) {
+      return _objectPositionFor(block, i, _kObjectSelectionLength);
     }
   }
   return null;
@@ -734,7 +777,7 @@ DocumentPosition? _lastSelectablePosition(RichTextDocument document) {
   return null;
 }
 
-DocumentPosition? _previousEditablePosition(
+DocumentPosition? _previousNavigablePosition(
   RichTextDocument document,
   int fromIndex,
 ) {
@@ -749,11 +792,14 @@ DocumentPosition? _previousEditablePosition(
         return position;
       }
     }
+    if (_isKeyboardSelectableObject(block)) {
+      return _objectPositionFor(block, i, 0);
+    }
   }
   return null;
 }
 
-DocumentPosition? _nextEditablePosition(
+DocumentPosition? _nextNavigablePosition(
   RichTextDocument document,
   int fromIndex,
 ) {
@@ -767,6 +813,9 @@ DocumentPosition? _nextEditablePosition(
       if (position != null) {
         return position;
       }
+    }
+    if (_isKeyboardSelectableObject(block)) {
+      return _objectPositionFor(block, i, _kObjectSelectionLength);
     }
   }
   return null;
@@ -959,10 +1008,9 @@ DocumentPosition _objectPositionFor(
   int blockIndex,
   int offset,
 ) {
-  return DocumentPosition(
+  return DocumentPosition.object(
     blockId: block.id,
     blockIndex: blockIndex,
-    path: PositionPath.blockObject(block.id),
     offset: offset,
   );
 }
@@ -975,13 +1023,20 @@ BlockNode? _blockAt(RichTextDocument document, int index) {
 }
 
 bool _isEditable(BlockNode block) {
-  return block is TextBlockNode || block is CodeBlockNode;
+  return block is TextBlockNode ||
+      block is CodeBlockNode ||
+      block is CalloutBlockNode;
 }
 
 bool _isSelectableObject(BlockNode block) {
-  return block is! TextBlockNode &&
-      block is! CodeBlockNode &&
-      block is! TableBlockNode;
+  return !_isEditable(block) && block is! TableBlockNode;
+}
+
+bool _isKeyboardSelectableObject(BlockNode block) {
+  return block is ImageBlockNode ||
+      block is VideoBlockNode ||
+      block is BlockEmbedNode ||
+      block is FileBlockNode;
 }
 
 const int _kObjectSelectionLength = 1;
@@ -1063,8 +1118,21 @@ int _editableLength(BlockNode block) {
   if (block is TextBlockNode) {
     return inlineNodesLength(block.content);
   }
+  if (block is CalloutBlockNode) {
+    return inlineNodesLength(block.content);
+  }
   if (block is CodeBlockNode) {
     return block.code.length;
   }
   return 0;
+}
+
+String _editablePlainText(BlockNode block) {
+  if (block is TextBlockNode) {
+    return block.plainText;
+  }
+  if (block is CalloutBlockNode) {
+    return block.content.map((node) => node.plainText).join();
+  }
+  return block.plainText;
 }

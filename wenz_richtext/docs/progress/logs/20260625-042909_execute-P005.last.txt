@@ -1,0 +1,14 @@
+P005 已完成，未修改 plan 文件、未勾选 checkbox。
+
+**变更摘要**
+- `lib/src/widgets/wenz_rich_text_editor.dart:3180` 图片块改为最小化渲染，不再走通用对象卡片标题/文件名/说明布局。
+- `lib/src/widgets/wenz_rich_text_editor.dart:3395` 新增图片专用选择外壳，选区高亮仍只绑定图片本体。
+- `lib/src/widgets/wenz_rich_text_editor.dart:6061` 图片无 resolver 时改为无文件名的最小占位。
+- `lib/src/widgets/wenz_rich_text_editor.dart:6466` 复用现有对象操作，选中图片时在图片上方显示浮层菜单。
+- `test/widgets/wenz_rich_text_editor_test.dart:16`、`test/widgets/wenz_rich_text_editor_test.dart:594` 更新图片块最小化与浮层菜单相关断言。
+
+**验证**
+- `flutter analyze lib\src\widgets\wenz_rich_text_editor.dart test\widgets\wenz_rich_text_editor_test.dart` 通过。
+- `flutter test test\widgets\wenz_rich_text_editor_test.dart --name 'renders document blocks|image object toolbar updates and resets display size|tap image block selects the image object|tap below a trailing image appends a paragraph|ArrowDown from a trailing image appends a paragraph|Ctrl\+A selects a lone image block|Backspace at text start selects the previous image block'` 通过，7 个用例。
+
+注意：`git status` 显示工作区已有大量非本次任务改动，我没有处理这些无关文件。

@@ -27,6 +27,36 @@ void main() {
       expect(codec.encode(document), '<h1>Title</h1>\n<h3>Sub</h3>');
     });
 
+    test('heading collapse state is not exported', () {
+      final controller = WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'h1',
+              type: BlockType.heading,
+              attributes: BlockAttributes(level: 1),
+              content: <InlineNode>[TextRun(text: 'Section')],
+            ),
+            TextBlockNode(
+              id: 'p1',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'Body stays exported')],
+            ),
+          ],
+        ),
+      );
+      final outline = WenzOutlineController(editor: controller);
+      addTearDown(outline.dispose);
+      addTearDown(controller.dispose);
+      expect(outline.collapseByBlockId('h1'), isTrue);
+
+      final html = codec.encode(controller.document);
+
+      expect(html, '<h1>Section</h1>\n<p>Body stays exported</p>');
+      expect(html, isNot(contains('collapse')));
+      expect(html, isNot(contains('hidden')));
+    });
+
     test('paragraph with bold + italic + strike inline', () {
       const document = RichTextDocument(
         blocks: <BlockNode>[
@@ -285,20 +315,27 @@ void main() {
       );
     });
 
-    test('video exports asset and file metadata', () {
+    test('video exports semantic video metadata', () {
       const document = RichTextDocument(
         blocks: <BlockNode>[
           VideoBlockNode(
             id: 'video1',
             assetId: 'video-asset',
+            playbackUrl: 'https://cdn.example.com/video.mp4',
             file: 'video.mp4',
+            coverUrl: 'https://cdn.example.com/cover.jpg',
+            title: 'Launch clip',
+            description: 'Product launch overview',
+            aspectRatio: 16 / 9,
+            uploadStatus: FileUploadStatus.failed,
+            uploadError: 'network timeout',
           ),
         ],
       );
 
       expect(
         codec.encode(document),
-        '<video src="video.mp4" data-asset-id="video-asset" data-file="video.mp4"></video>',
+        '<video src="https://cdn.example.com/video.mp4" data-wenz-block="video" data-asset-id="video-asset" data-playback-url="https://cdn.example.com/video.mp4" data-file="video.mp4" poster="https://cdn.example.com/cover.jpg" title="Launch clip" data-title="Launch clip" data-description="Product launch overview" data-aspect-ratio="1.7777777777777777" data-upload-status="failed" data-upload-error="network timeout"></video>',
       );
     });
 
@@ -380,6 +417,22 @@ void main() {
   });
 
   group('HtmlCodec.decode (import)', () {
+    test('external collapse metadata imports as expanded content', () {
+      final document = codec.decode(
+        '<h1 data-wenz-collapsed="true" aria-expanded="false">Section</h1>'
+        '<p hidden data-hidden-by-heading="h1">Body stays imported</p>',
+      );
+      final controller = WenzRichTextController(document: document);
+      final outline = WenzOutlineController(editor: controller);
+      addTearDown(outline.dispose);
+      addTearDown(controller.dispose);
+
+      expect(document.blocks, hasLength(2));
+      expect(document.plainText, 'Section\nBody stays imported');
+      expect(outline.collapsedBlockIds, isEmpty);
+      expect(outline.hiddenBlockIds, isEmpty);
+    });
+
     test('heading levels parsed with correct level', () {
       final doc = codec.decode('<h1>Title</h1><h3>Sub</h3>');
       expect(doc.blocks, hasLength(2));
@@ -564,14 +617,25 @@ void main() {
     test('video becomes a video block', () {
       final doc = codec.decode(
         '<video src="https://cdn.example.com/video.mp4" '
-        'data-asset-id="video-1" data-file="video.mp4"></video>',
+        'data-asset-id="video-1" data-file="video.mp4" '
+        'poster="https://cdn.example.com/cover.jpg" '
+        'title="Launch clip" '
+        'data-description="Product launch overview" '
+        'data-aspect-ratio="1.7777777777777777" '
+        'data-upload-status="uploaded"></video>',
       );
 
       expect(doc.blocks, hasLength(1));
       expect(doc.blocks.single, isA<VideoBlockNode>());
       final video = doc.blocks.single as VideoBlockNode;
       expect(video.assetId, 'video-1');
+      expect(video.playbackUrl, 'https://cdn.example.com/video.mp4');
       expect(video.file, 'video.mp4');
+      expect(video.coverUrl, 'https://cdn.example.com/cover.jpg');
+      expect(video.title, 'Launch clip');
+      expect(video.description, 'Product launch overview');
+      expect(video.aspectRatio, 16 / 9);
+      expect(video.uploadStatus, FileUploadStatus.uploaded);
     });
 
     test('hr becomes a divider', () {
@@ -643,7 +707,13 @@ void main() {
           VideoBlockNode(
             id: 'video1',
             assetId: 'video-1',
+            playbackUrl: 'https://cdn.example.com/video.mp4',
             file: 'local/video.mp4',
+            coverUrl: 'https://cdn.example.com/cover.jpg',
+            title: 'Launch clip',
+            description: 'Product launch overview',
+            aspectRatio: 16 / 9,
+            uploadStatus: FileUploadStatus.uploaded,
           ),
         ],
       );
@@ -661,7 +731,13 @@ void main() {
       expect(file.uploadStatus, FileUploadStatus.uploaded);
       final video = reimported.blocks[1] as VideoBlockNode;
       expect(video.assetId, 'video-1');
+      expect(video.playbackUrl, 'https://cdn.example.com/video.mp4');
       expect(video.file, 'local/video.mp4');
+      expect(video.coverUrl, 'https://cdn.example.com/cover.jpg');
+      expect(video.title, 'Launch clip');
+      expect(video.description, 'Product launch overview');
+      expect(video.aspectRatio, 16 / 9);
+      expect(video.uploadStatus, FileUploadStatus.uploaded);
     });
 
     test('block embed metadata survives export → import', () {

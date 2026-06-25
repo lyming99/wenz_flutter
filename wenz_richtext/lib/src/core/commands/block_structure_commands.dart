@@ -1,9 +1,143 @@
 import '../model/attributes.dart';
 import '../model/block_node.dart';
+import '../model/comment_model.dart';
+import '../model/revision_model.dart';
 import '../model/rich_text_document.dart';
 import '../position/document_position.dart';
 import '../transaction/document_session.dart';
 import 'editor_command.dart';
+
+const int _atomicBlockSelectionLength = 1;
+
+/// Moves a top-level block from [fromIndex] to [toIndex].
+///
+/// [toIndex] is the moved block's final index after removal/insertion. Invalid
+/// indexes and same-index moves are no-op and do not record history.
+class MoveBlockCommand extends EditorCommand {
+  const MoveBlockCommand({required this.fromIndex, required this.toIndex});
+
+  final int fromIndex;
+  final int toIndex;
+
+  @override
+  String get description => 'moveBlock';
+
+  @override
+  CommandResult execute(DocumentSession session) {
+    final document = session.document;
+    final blockCount = document.blocks.length;
+    if (fromIndex < 0 ||
+        fromIndex >= blockCount ||
+        toIndex < 0 ||
+        toIndex >= blockCount ||
+        fromIndex == toIndex) {
+      return const CommandResult(recordHistory: false);
+    }
+
+    final blocks = document.blocks.map((block) => block.copy()).toList();
+    final moved = blocks.removeAt(fromIndex);
+    blocks.insert(toIndex, moved);
+    final blockIndexes = <String, int>{
+      for (var index = 0; index < blocks.length; index++)
+        blocks[index].id: index,
+    };
+
+    session.document = RichTextDocument(
+      version: document.version,
+      blocks: blocks,
+      comments: _retargetCommentThreads(document.comments, blockIndexes),
+      revisions: _retargetRevisionChanges(document.revisions, blockIndexes),
+    );
+    return CommandResult(
+      selection: _selectionForMovedBlock(moved, toIndex),
+      metadata: <String, Object?>{
+        'fromIndex': fromIndex,
+        'toIndex': toIndex,
+        'blockId': moved.id,
+      },
+    );
+  }
+}
+
+List<CommentThread> _retargetCommentThreads(
+  List<CommentThread> comments,
+  Map<String, int> blockIndexes,
+) {
+  return comments.map((thread) {
+    final nextIndex = blockIndexes[thread.anchor.blockId];
+    if (nextIndex == null || nextIndex == thread.anchor.blockIndex) {
+      return thread.copy();
+    }
+    return thread.copyWith(
+      anchor: thread.anchor.copyWith(blockIndex: nextIndex),
+      messages: thread.messages.map((message) => message.copy()).toList(),
+    );
+  }).toList();
+}
+
+List<RevisionChange> _retargetRevisionChanges(
+  List<RevisionChange> revisions,
+  Map<String, int> blockIndexes,
+) {
+  return revisions.map((revision) {
+    final nextIndex = blockIndexes[revision.range.blockId];
+    if (nextIndex == null || nextIndex == revision.range.blockIndex) {
+      return revision.copy();
+    }
+    return revision.copyWith(
+      range: revision.range.copyWith(blockIndex: nextIndex),
+      metadata: Map<String, Object?>.from(revision.metadata),
+    );
+  }).toList();
+}
+
+DocumentSelection _selectionForMovedBlock(BlockNode block, int blockIndex) {
+  final position = switch (block) {
+    TextBlockNode() => DocumentPosition.text(
+        blockId: block.id,
+        blockIndex: blockIndex,
+        offset: block.plainText.length,
+      ),
+    CodeBlockNode() => DocumentPosition.code(
+        blockId: block.id,
+        blockIndex: blockIndex,
+        offset: block.code.length,
+      ),
+    TableBlockNode() => _firstTableCellPosition(block, blockIndex) ??
+        DocumentPosition.object(blockId: block.id, blockIndex: blockIndex),
+    _ => DocumentPosition.object(blockId: block.id, blockIndex: blockIndex),
+  };
+  if (position.path.isBlockObject) {
+    return DocumentSelection(
+      base: position,
+      extent: position.copyWith(offset: _atomicBlockSelectionLength),
+    );
+  }
+  return DocumentSelection(base: position, extent: position);
+}
+
+DocumentPosition? _firstTableCellPosition(
+  TableBlockNode block,
+  int blockIndex,
+) {
+  for (var rowIndex = 0; rowIndex < block.table.rows.length; rowIndex++) {
+    final row = block.table.rows[rowIndex];
+    for (var columnIndex = 0; columnIndex < row.length; columnIndex++) {
+      final cell = row[columnIndex];
+      if (cell.covered) {
+        continue;
+      }
+      return DocumentPosition.tableCell(
+        tableBlockId: block.id,
+        blockIndex: blockIndex,
+        tableRowIndex: rowIndex,
+        tableColumnIndex: columnIndex,
+        offset: 0,
+      );
+    }
+  }
+  return null;
+}
 
 /// Adjusts the [BlockAttributes.indent] of every text block covered by the
 /// current selection by [delta] (clamped to >= 0 and the schema max). Stage 3
@@ -94,7 +228,10 @@ class ToggleTodoCommand extends EditorCommand {
       final isTask = block.type == BlockType.listItem &&
           block.attributes.listType == 'task';
       if (isTask) {
-        blocks[i] = _withChecked(block, !(block.attributes.checked ?? false));
+        blocks[i] = _textBlockWithChecked(
+          block,
+          !(block.attributes.checked ?? false),
+        );
       } else {
         blocks[i] = TextBlockNode(
           id: block.id,
@@ -121,23 +258,59 @@ class ToggleTodoCommand extends EditorCommand {
     );
     return CommandResult(selection: target);
   }
+}
 
-  TextBlockNode _withChecked(TextBlockNode block, bool checked) {
-    return TextBlockNode(
-      id: block.id,
-      type: block.type,
-      attributes: BlockAttributes(
-        level: block.attributes.level,
-        indent: block.attributes.indent,
-        alignment: block.attributes.alignment,
-        listType: block.attributes.listType,
-        checked: checked,
-        childNote: block.attributes.childNote,
-        anchor: block.attributes.anchor,
-      ),
-      content: block.content,
+/// Sets the checked state of an existing task list item without moving the
+/// current selection.
+class SetTodoCheckedCommand extends EditorCommand {
+  const SetTodoCheckedCommand({
+    required this.blockIndex,
+    required this.checked,
+  });
+
+  final int blockIndex;
+  final bool checked;
+
+  @override
+  String get description => 'setTodoChecked';
+
+  @override
+  CommandResult execute(DocumentSession session) {
+    if (blockIndex < 0 || blockIndex >= session.document.blocks.length) {
+      return const CommandResult(recordHistory: false);
+    }
+    final block = session.document.blocks[blockIndex];
+    if (block is! TextBlockNode ||
+        block.type != BlockType.listItem ||
+        block.attributes.listType != 'task' ||
+        block.attributes.checked == checked) {
+      return const CommandResult(recordHistory: false);
+    }
+    final blocks = session.document.blocks.map((node) => node.copy()).toList();
+    blocks[blockIndex] = _textBlockWithChecked(block, checked);
+    session.document = RichTextDocument(
+      version: session.document.version,
+      blocks: blocks,
     );
+    return const CommandResult();
   }
+}
+
+TextBlockNode _textBlockWithChecked(TextBlockNode block, bool checked) {
+  return TextBlockNode(
+    id: block.id,
+    type: block.type,
+    attributes: BlockAttributes(
+      level: block.attributes.level,
+      indent: block.attributes.indent,
+      alignment: block.attributes.alignment,
+      listType: block.attributes.listType,
+      checked: checked,
+      childNote: block.attributes.childNote,
+      anchor: block.attributes.anchor,
+    ),
+    content: block.content,
+  );
 }
 
 /// Sets the [CodeBlockNode.language] of the code block at the caret.

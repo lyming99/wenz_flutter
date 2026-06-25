@@ -1,0 +1,821 @@
+2026-06-24T15:24:35.178000Z  WARN codex_core::plugins::startup_sync: startup remote plugin sync failed; will retry on next app-server start error=chatgpt authentication required to sync remote plugins; api key auth is not supported
+2026-06-24T15:24:35.333779Z  WARN codex_core::plugins::manifest: ignoring interface.defaultPrompt: maximum of 3 prompts is supported path=C:\Users\98000\.codex\plugins\cache\openai-primary-runtime\template-creator\26.623.12021\.codex-plugin/plugin.json
+2026-06-24T15:24:35.502378Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=gpt-5.5 personality=pragmatic
+2026-06-24T15:24:35.556199Z  WARN codex_core::shell_snapshot: Failed to create shell snapshot for powershell: Shell snapshot not supported yet for PowerShell
+OpenAI Codex v0.121.0 (research preview)
+--------
+workdir: D:\project\GitHub\wenz_flutter\wenz_richtext
+model: gpt-5.5
+provider: custom
+approval: never
+sandbox: danger-full-access
+reasoning effort: xhigh
+reasoning summaries: none
+session id: 019efa3b-ad2e-7ff0-ab87-b6b5749e3635
+--------
+user
+你是开发执行者。
+请只执行 plan 中指定的下一个未完成任务，不要提前执行其它任务。
+
+plan 文件：D:\project\GitHub\wenz_flutter\wenz_richtext\docs\plan\plan_feedback_1_20260624-220759.md
+任务：
+- [ ] P004: 修正选区高亮与光标反馈
+
+完成后必须：
+- 将该任务 checkbox 改为 [x]
+- 更新 plan 进度区
+- 不输出完整 diff、源码全文或长文件列表
+- 中文文件读写使用 UTF-8
+2026-06-24T15:24:36.405625Z  WARN codex_core::plugins::manager: failed to warm featured plugin ids cache error=remote plugin sync request to https://chatgpt.com/backend-api/plugins/featured failed with status 401 Unauthorized: {"detail":"Unauthorized"}
+2026-06-24T15:24:36.441796Z  WARN codex_core::plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=C:\Users\98000\.codex\.tmp\plugins\plugins\ngs-analysis\.codex-plugin/plugin.json
+**Considering tool usage**
+
+I’m thinking about whether to use codegraph first since the system recommends using the primary tool for almost any question. I might need to inspect AGENTS, so I could potentially use shell commands to list them. I’ll start with a preamble in Chinese to read the plan and project guidelines, then check the AGENTS. I need to ensure UTF-8 encoding is set correctly to avoid any garbled output, so I’ll include that in my commands.
+codex
+我先读取计划和项目指引，定位 P004 的具体要求。
+exec
+powershell.exe -Command '$OutputEncoding=[Console]::OutputEncoding=[System.Text.UTF8Encoding]::new(); Get-ChildItem -Path . -Filter AGENTS.md -Recurse -Force | Select-Object -ExpandProperty FullName; Write-Host '"'---PLAN---'; Get-Content -Path 'D:\\project\\GitHub\\wenz_flutter\\wenz_richtext\\docs\\plan\\plan_feedback_1_20260624-220759.md' -Encoding UTF8" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 354ms:
+---PLAN---
+# 开发计划：修复选择器无法选中 emoji 与提及
+
+## 来源
+- 类型：用户反馈
+- 编号：#1
+- 生成时间：2026-06-24 22:07:59
+- 原始反馈：选择器bug：emoji、提及无法正常被选中
+
+## 问题理解
+- 富文本选择器在包含 `emoji`、`mention` 等内联嵌入内容时，可能无法通过点击、拖拽或键盘扩展将其纳入选区。
+- 初步影响范围包括内联节点偏移计算、文本布局命中测试、选区高亮绘制、复制/命令读取选区等链路。
+- 修复目标是把 emoji 与提及作为可选择的原子内联单元处理，同时不破坏普通文本、表格、代码块和块级对象选择行为。
+
+## 任务计划
+- [x] P001: 复现并定义缺陷边界
+  - 验收要点：构造包含普通文本、emoji、mention 混排的最小文档，记录点击、拖拽、Shift+方向键、全选等场景中无法选中的具体表现。
+  - 验收要点：明确问题发生在段落内联内容、表格单元格内联内容还是两者都受影响，并形成可复现步骤。
+
+- [x] P002: 梳理内联节点选择模型
+  - 验收要点：确认 `TextRun` 与 `InlineEmbed` 在文档 offset、渲染占位宽度、选区边界中的映射规则。
+  - 验收要点：定义 emoji 与 mention 的原子选择语义，即选区只能落在其前后边界，不能拆分到嵌入内容内部。
+
+- [x] P003: 修正命中测试与 offset 映射
+  - 验收要点：点击或拖拽落在 emoji、mention 可视区域时，能够稳定映射到对应内联原子单元的前后选择边界。
+  - 验收要点：拖拽选区跨过 emoji、mention 时，选区范围包含该内联节点，不再被跳过或截断。
+  - 验收要点：边界场景包括行首、行尾、连续多个内联嵌入、文本与嵌入相邻无空格。
+
+- [ ] P004: 修正选区高亮与光标反馈
+  - 验收要点：emoji、mention 被选中时有清晰选区高亮或等效选中态，不出现高亮缺失、错位、宽度为 0 的情况。
+  - 验收要点：光标停在 emoji、mention 前后边界时位置正确，不覆盖相邻文本或跳到错误行。
+
+- [ ] P005: 补充自动化回归测试
+  - 验收要点：新增或更新 widget 测试，覆盖 emoji、mention 的点击选择、拖拽跨选、键盘扩展选择。
+  - 验收要点：测试同时覆盖段落内混排与表格单元格内混排，避免只修复单一路径。
+  - 验收要点：测试断言 `DocumentSelection` 的 base、extent、offset 与预期一致。
+
+- [ ] P006: 执行选择器相关回归验证
+  - 验收要点：`flutter test test/widgets/wenz_rich_text_editor_test.dart` 通过，或失败项被确认与本缺陷无关并记录原因。
+  - 验收要点：`flutter test test/core/selection_commands_test.dart` 通过，确保选择命令行为未被破坏。
+  - 验收要点：普通文本选择、块级对象选择、表格选择、代码块选择核心场景保持原有行为。
+
+- [ ] P007: 更新缺陷进度与验证记录
+  - 验收要点：在进度记录中注明修复范围、验证命令、验证结果和遗留风险。
+  - 验收要点：如发现复制、删除、格式化等下游行为仍受内联嵌入影响，拆分为独立后续任务，不混入本次选择器修复。
+
+## 总体验收标准
+- 所有任务 checkbox 均完成，且每个任务的验收要点都有明确结论。
+- emoji 与 mention 在可视区域内可被正常点击定位、拖拽选中、键盘扩展纳入选区。
+- emoji 与 mention 作为原子内联单元参与选择，不产生半选、错位、跳选或无法显示选中态的问题。
+- 修复不回退普通文本、表格单元格、代码块、块级对象的既有选择能力。
+- 相关自动化测试通过；若存在非本次变更导致的失败，需在进度记录中说明失败命令、失败原因和处理建议。
+
+## 进度区
+- 当前状态：P001、P002、P003 已完成；命中测试已通过内联 offset 映射修正，等待进入 P004。
+- 当前负责人：开发执行者
+- 下一步：执行 P004，修正选区高亮与光标反馈。
+- P001 复现记录：使用最小混排内容 `A` + `emoji(😄)` + `B` + `mention(@bob)` + `C`；文档 offset 长度为 5，实际渲染文本 `A😄B@bobC` 的 UTF-16 长度为 9。
+- P001 段落边界：点击 mention 视觉中心后选区折叠到 offset 5，而预期只能落在 mention 原子边界 3/4；拖拽 emoji 视觉范围 `[1,3]` 后选区仍折叠在 offset 1，无法形成 emoji 原子选区 `[1,2]`；拖拽 mention 视觉范围 `[4,8]` 得到文档选区 `[4,5]`，实际选中尾部 `C`，不是 mention 原子 `[3,4]`。
+- P001 表格边界：同样的混排内容放入表格单元格后，点击 mention 视觉中心折叠到单元格 offset 5；拖拽 emoji 视觉范围仍折叠；拖拽 mention 视觉范围会把选区推出原 `r0c0` 单元格，出现 `r1c0` 路径，说明段落内联内容与表格单元格内联内容都受影响。
+- P001 键盘与全选观察：段落内从 mention 前 offset 3 执行 Shift+Right 可得到 `[3,4]`，干净核心命令状态下表格单元格也可得到 `[3,4]`；Ctrl+A 的逻辑选区为 `[0,5]`，但当前高亮绘制使用文档 offset 直接查询 `TextPainter`，推断视觉覆盖会截断在渲染文本 offset 5（`A😄B@`），存在全选高亮不完整风险。
+- P001 复现方式：曾使用临时 widget 诊断测试运行 `flutter test test/p001_inline_embed_repro_tmp_test.dart --reporter expanded`，仅打印上述结果且已删除临时文件；该诊断用例通过，但输出确认实际行为与原子内联选择预期不一致。
+- 风险记录：初步缺陷集中在 `InlineEmbed` 文档长度为 1，但 `_inlineEmbedSpanFor` 渲染为变长 `TextSpan`，命中测试和高亮绘制直接使用 `TextPainter` 的渲染 offset；后续需要校准文档 offset 与渲染 offset 映射，避免 emoji grapheme cluster、mention 文本长度和表格单元命中路径继续错位。
+- P002 文档长度规则：`TextRun` 的逻辑长度来自 `text.length`，即当前 Dart 字符串 UTF-16 code unit 长度；`InlineEmbed` 逻辑长度固定为 1；段落与表格单元格的 `textLength` 都由 `inlineNodesLength` 聚合得到，因此两条路径共享同一套文档 offset 模型。
+- P002 渲染长度规则：`TextRun` 直接渲染原文本；`InlineEmbed` 通过 `_inlineEmbedSpanFor` 渲染为 `TextSpan`，默认 mention 显示为 `@label` / `@id`，emoji 显示为 data 中的 `emoji` / `text` / `value` / `shortName` / `label`，自定义 `InlineEmbedRenderer` 也可能返回其它紧凑 `TextSpan`；因此每个 embed 的视觉宽度和 `TextPainter` offset 范围由渲染文本决定，不等于逻辑长度 1。
+- P002 当前映射缺口：命中测试 `_offsetForLocalPosition` 调用 `TextLayoutService.offsetAt`，直接使用 `TextPainter.getPositionForOffset` 的渲染 offset 并仅用逻辑 `textLength` clamp；caret、选区高亮、查找高亮和组合区矩形也直接把逻辑 offset 传给 `TextPainter`，缺少逻辑 offset 与渲染 offset 的转换层。
+- P002 原子选择语义：每个 `InlineEmbed` 占用逻辑区间 `[nodeStart, nodeStart + 1)`；合法折叠光标位置只能是该区间的前边界或后边界；非折叠选区只要包含该逻辑单元，就必须覆盖该 embed 的完整视觉渲染范围，不能产生落在 embed 内部的半选或内部 offset。
+- P002 映射规则结论：需要维护按 inline 节点累计的双向映射；`TextRun` 在现有模型下按 UTF-16 code unit 做逻辑/渲染一一映射；`InlineEmbed` 的逻辑前边界映射到 `renderStart`，逻辑后边界映射到 `renderEnd`，渲染内部命中应按视觉位置归一到前/后边界，选区盒与 caret 查询应先把逻辑边界转换为渲染边界。
+- P002 表格结论：表格单元格只是使用 `PositionPath.tableCellText` 与 `_hitLocalToTextLocal` 进入同一 `_TextSelectionSurface`，内联节点长度、span 构建、命中测试和绘制链路与普通段落一致；P003 修复必须同时覆盖段落和表格单元格，不应分叉出两套选择语义。
+- P003 修复记录：`_TextSelectionSurface` 现接收与实际 `InlineSpan` 同源生成的 `_InlineOffsetMapper`，命中测试先取 `TextPainter` 渲染 offset，再映射回文档 offset；`InlineEmbed` 渲染区间内部命中会按可视盒左右半区归一到原子前/后边界。
+- P003 覆盖范围：普通段落与表格单元格共用 `_inlineTextLayoutFor` 生成 span 与映射段；`TextRun` 保持 UTF-16 一一映射，`InlineEmbed` 保持逻辑长度 1、渲染长度取实际 span 文本长度；代码块使用 identity 映射，避免影响原有代码块选择。
+- P003 验证记录：已执行 `flutter analyze`，结果通过；未执行 P006 中的选择器回归测试，留待对应任务处理。
+
+
+2026-06-24T15:25:13.527503Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=gpt-5.5 personality=pragmatic
+**Planning agent selection**
+
+I noticed that the command didn’t display any agents; it just showed “---PLAN---.” I'm wondering if the command actually skipped the listing due to missing agents or something else. I think I might need to explore the codegraph or inspect the repository. We can focus on just P004 and create an internal plan, but using codegraph first for selection seems like the way to go!
+只处理 P004，不推进 P005 及后续任务。
+  → 定位高亮光标绘制链路
+  • 修正逻辑渲染 offset 转换
+  • 运行针对性静态验证
+  • 更新 P004 计划记录
+2026-06-24T15:25:19.914140Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=gpt-5.5 personality=pragmatic
+codex
+计划已限定在 P004；现在定位高亮和光标绘制代码。
+mcp: codegraph/codegraph_explore started
+mcp: codegraph/codegraph_explore (completed)
+2026-06-24T15:25:23.767922Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=gpt-5.5 personality=pragmatic
+codex
+已看到 P003 的映射层；继续查看它在绘制侧的使用。
+mcp: codegraph/codegraph_explore started
+mcp: codegraph/codegraph_explore (completed)
+2026-06-24T15:25:31.583057Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=gpt-5.5 personality=pragmatic
+codex
+需要完整绘制类上下文，接着只拉取相关符号。
+mcp: codegraph/codegraph_search started
+mcp: codegraph/codegraph_search (completed)
+2026-06-24T15:25:36.797152Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=gpt-5.5 personality=pragmatic
+codex
+高亮应该在 surface 构建里，抓完整状态类方法。
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+2026-06-24T15:25:42.564479Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=gpt-5.5 personality=pragmatic
+codex
+方法体没直接展开；我改按具体方法读取，避免整文件。
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+2026-06-24T15:25:46.406239Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=gpt-5.5 personality=pragmatic
+codex
+绘制器缺少 mapper 参数的迹象明显，现在确认具体实现。
+mcp: codegraph/codegraph_search started
+mcp: codegraph/codegraph_search (completed)
+2026-06-24T15:25:50.198355Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=gpt-5.5 personality=pragmatic
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+2026-06-24T15:25:54.199476Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=gpt-5.5 personality=pragmatic
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+2026-06-24T15:25:57.929863Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=gpt-5.5 personality=pragmatic
+codex
+需要光标绘制器和 mapper 方法一起改，继续抓取。
+mcp: codegraph/codegraph_search started
+mcp: codegraph/codegraph_search (completed)
+2026-06-24T15:26:02.742340Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=gpt-5.5 personality=pragmatic
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+2026-06-24T15:26:06.909412Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=gpt-5.5 personality=pragmatic
+codex
+本地 caret 矩形也参与注册/组合区，继续确认。
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+2026-06-24T15:26:13.192738Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=gpt-5.5 personality=pragmatic
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+2026-06-24T15:26:21.197017Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=gpt-5.5 personality=pragmatic
+codex
+还要确认 vertical move、find highlight 是否也受 P004 范围。
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+2026-06-24T15:26:29.551249Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=gpt-5.5 personality=pragmatic
+**Considering vertical mapping**
+
+I see that the vertical already uses a mapper, which makes sense. Now, I'm thinking about how _offsetForLocalPosition might also need to use that mapper. It makes me wonder if the class constructor should include the offsetMapper as well. It's a bit tricky, so I need to ensure everything is connected properly. I want to get this right, especially if it relates to how the positioning is handled. Let's clarify this!
+codex
+命中和垂直移动已映射；P004 聚焦绘制/反馈映射。
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+2026-06-24T15:26:35.339393Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=gpt-5.5 personality=pragmatic
+**Exploring codegraph usage**
+
+I'm considering the codegraph class, noting that I might need to use a shell command for editing around specific lines. However, I'm seeing that codegraph cautions against re-reading shown files. It seems the output isn’t complete for the constructor, so I’m wondering if using codegraph_node createState might work. Maybe I can still utilize PowerShell's Get-Content command to focus on specific line ranges. I'm looking at certain lines to pull out highlights, and I think a preamble could be helpful.
+codex
+还缺构造签名和 mapper 方法细节，我读取小范围行。
+exec
+powershell.exe -Command '$OutputEncoding=[Console]::OutputEncoding=[System.Text.UTF8Encoding]::new(); $p='"'lib/src/widgets/wenz_rich_text_editor.dart'; "'$lines=Get-Content -Path $p -Encoding UTF8; foreach($range in @(@(4610,4652),@(5170,5265),@(5360,5495),@(5530,5595))){ Write-Host ('"'---LINES {0}-{1}---' -f "'$range[0],$range[1]); for($i=$range[0]; $i -le $range[1]; $i++){ '"'{0}"'`t{1}'"' -f "'$i,$lines[$i-1] } }' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 278ms:
+---LINES 4610-4652---
+4610`tclass _TextSelectionSurface extends StatefulWidget {
+4611`t  const _TextSelectionSurface({
+4612`t    required this.blockId,
+4613`t    required this.blockIndex,
+4614`t    required this.path,
+4615`t    required this.textLength,
+4616`t    required this.textSpan,
+4617`t    required this.offsetMapper,
+4618`t    required this.textAlign,
+4619`t    required this.minHeight,
+4620`t    required this.selection,
+4621`t    required this.showCaret,
+4622`t    required this.registry,
+4623`t    required this.showDebugOverlay,
+4624`t    this.findRanges = const <_FindHighlightRange>[],
+4625`t    this.hitTestKey,
+4626`t  });
+4627`t
+4628`t  final String blockId;
+4629`t  final int blockIndex;
+4630`t  final PositionPath path;
+4631`t  final int textLength;
+4632`t  final InlineSpan textSpan;
+4633`t  final _InlineOffsetMapper offsetMapper;
+4634`t  final TextAlign textAlign;
+4635`t  final double minHeight;
+4636`t  final DocumentSelection? selection;
+4637`t  final bool showCaret;
+4638`t  final BlockGeometryRegistry registry;
+4639`t  final bool showDebugOverlay;
+4640`t  final List<_FindHighlightRange> findRanges;
+4641`t
+4642`t  /// Optional GlobalKey on a wider hit-test frame (e.g. a table cell's whole
+4643`t  /// frame) whose local space differs from this surface's text-local space.
+4644`t  /// When null the surface's own [_surfaceKey] is used for hit-testing. When
+4645`t  /// set, the State registers a transform that maps hit-local offsets onto
+4646`t  /// this surface's text-local space (see [_hitLocalToTextLocal]).
+4647`t  final GlobalKey? hitTestKey;
+4648`t
+4649`t  @override
+4650`t  State<_TextSelectionSurface> createState() => _TextSelectionSurfaceState();
+4651`t}
+4652`t
+---LINES 5170-5265---
+5170`t    required this.logicalLength,
+5171`t    required this.renderLength,
+5172`t  });
+5173`t
+5174`t  factory _InlineOffsetMapper.identity(int length) {
+5175`t    final safeLength = length < 0 ? 0 : length;
+5176`t    return _InlineOffsetMapper(
+5177`t      segments: safeLength == 0
+5178`t          ? const <_InlineOffsetSegment>[]
+5179`t          : <_InlineOffsetSegment>[
+5180`t              _InlineOffsetSegment(
+5181`t                logicalStart: 0,
+5182`t                logicalEnd: safeLength,
+5183`t                renderStart: 0,
+5184`t                renderEnd: safeLength,
+5185`t                atomic: false,
+5186`t              ),
+5187`t            ],
+5188`t      logicalLength: safeLength,
+5189`t      renderLength: safeLength,
+5190`t    );
+5191`t  }
+5192`t
+5193`t  final List<_InlineOffsetSegment> segments;
+5194`t  final int logicalLength;
+5195`t  final int renderLength;
+5196`t
+5197`t  int logicalOffsetForHit(
+5198`t    TextPainter painter,
+5199`t    Offset localPosition,
+5200`t    int renderOffset,
+5201`t  ) {
+5202`t    final atomicHit = _atomicLogicalOffsetForHit(painter, localPosition);
+5203`t    if (atomicHit != null) {
+5204`t      return atomicHit;
+5205`t    }
+5206`t    return logicalOffsetForRenderOffset(renderOffset);
+5207`t  }
+5208`t
+5209`t  int logicalOffsetForRenderOffset(int renderOffset) {
+5210`t    final safeRenderOffset = renderOffset.clamp(0, renderLength).toInt();
+5211`t    for (final segment in segments) {
+5212`t      if (!segment.coversRenderOffset(safeRenderOffset)) {
+5213`t        continue;
+5214`t      }
+5215`t      if (segment.atomic) {
+5216`t        return segment.atomicLogicalOffsetForRenderOffset(safeRenderOffset);
+5217`t      }
+5218`t      return segment.logicalOffsetForRenderOffset(safeRenderOffset);
+5219`t    }
+5220`t    return safeRenderOffset == renderLength ? logicalLength : 0;
+5221`t  }
+5222`t
+5223`t  int renderOffsetForLogicalOffset(int logicalOffset) {
+5224`t    final safeLogicalOffset = logicalOffset.clamp(0, logicalLength).toInt();
+5225`t    for (final segment in segments) {
+5226`t      if (!segment.coversLogicalOffset(safeLogicalOffset)) {
+5227`t        continue;
+5228`t      }
+5229`t      return segment.renderOffsetForLogicalOffset(safeLogicalOffset);
+5230`t    }
+5231`t    return safeLogicalOffset == logicalLength ? renderLength : 0;
+5232`t  }
+5233`t
+5234`t  int? _atomicLogicalOffsetForHit(
+5235`t    TextPainter painter,
+5236`t    Offset localPosition,
+5237`t  ) {
+5238`t    for (final segment in segments) {
+5239`t      if (!segment.atomic || segment.renderStart == segment.renderEnd) {
+5240`t        continue;
+5241`t      }
+5242`t      final boxes = painter.getBoxesForSelection(
+5243`t        TextSelection(
+5244`t          baseOffset: segment.renderStart,
+5245`t          extentOffset: segment.renderEnd,
+5246`t        ),
+5247`t      );
+5248`t      for (final box in boxes) {
+5249`t        final rect = box.toRect();
+5250`t        if (!rect.inflate(1).contains(localPosition)) {
+5251`t          continue;
+5252`t        }
+5253`t        final after = switch (box.direction) {
+5254`t          TextDirection.ltr => localPosition.dx >= rect.center.dx,
+5255`t          TextDirection.rtl => localPosition.dx < rect.center.dx,
+5256`t        };
+5257`t        return after ? segment.logicalEnd : segment.logicalStart;
+5258`t      }
+5259`t    }
+5260`t    return null;
+5261`t  }
+5262`t}
+5263`t
+5264`tclass _InlineOffsetSegment {
+5265`t  const _InlineOffsetSegment({
+---LINES 5360-5495---
+5360`t        canvas.drawRect(box.toRect(), paint);
+5361`t      }
+5362`t    }
+5363`t  }
+5364`t
+5365`t  @override
+5366`t  bool shouldRepaint(covariant _FindHighlightPainter oldDelegate) {
+5367`t    return oldDelegate.textSpan != textSpan ||
+5368`t        oldDelegate.textAlign != textAlign ||
+5369`t        oldDelegate.textDirection != textDirection ||
+5370`t        oldDelegate.maxWidth != maxWidth ||
+5371`t        oldDelegate.ranges != ranges ||
+5372`t        oldDelegate.color != color ||
+5373`t        oldDelegate.activeColor != activeColor;
+5374`t  }
+5375`t}
+5376`t
+5377`tclass _SelectionHighlightPainter extends CustomPainter {
+5378`t  const _SelectionHighlightPainter({
+5379`t    required this.layoutService,
+5380`t    required this.textSpan,
+5381`t    required this.textAlign,
+5382`t    required this.textDirection,
+5383`t    required this.maxWidth,
+5384`t    required this.range,
+5385`t    required this.color,
+5386`t  });
+5387`t
+5388`t  final TextLayoutService layoutService;
+5389`t  final InlineSpan textSpan;
+5390`t  final TextAlign textAlign;
+5391`t  final TextDirection textDirection;
+5392`t  final double maxWidth;
+5393`t  final _LocalSelectionRange? range;
+5394`t  final Color color;
+5395`t
+5396`t  @override
+5397`t  void paint(Canvas canvas, Size size) {
+5398`t    final range = this.range;
+5399`t    if (range == null || range.start == range.end) {
+5400`t      return;
+5401`t    }
+5402`t    final painter = layoutService.layout(
+5403`t      span: textSpan,
+5404`t      textAlign: textAlign,
+5405`t      textDirection: textDirection,
+5406`t      maxWidth: maxWidth,
+5407`t    );
+5408`t    final boxes = layoutService.selectionBoxes(painter, range.start, range.end);
+5409`t    final paint = Paint()..color = color;
+5410`t    for (final box in boxes) {
+5411`t      canvas.drawRect(box.toRect(), paint);
+5412`t    }
+5413`t  }
+5414`t
+5415`t  @override
+5416`t  bool shouldRepaint(covariant _SelectionHighlightPainter oldDelegate) {
+5417`t    return oldDelegate.textSpan != textSpan ||
+5418`t        oldDelegate.textAlign != textAlign ||
+5419`t        oldDelegate.textDirection != textDirection ||
+5420`t        oldDelegate.maxWidth != maxWidth ||
+5421`t        oldDelegate.range?.start != range?.start ||
+5422`t        oldDelegate.range?.end != range?.end ||
+5423`t        oldDelegate.color != color;
+5424`t  }
+5425`t}
+5426`t
+5427`tclass _CaretPainter extends CustomPainter {
+5428`t  const _CaretPainter({
+5429`t    required this.layoutService,
+5430`t    required this.textSpan,
+5431`t    required this.textAlign,
+5432`t    required this.textDirection,
+5433`t    required this.maxWidth,
+5434`t    required this.caretOffset,
+5435`t    required this.color,
+5436`t    required this.textLength,
+5437`t    this.opacity = 1.0,
+5438`t  });
+5439`t
+5440`t  final TextLayoutService layoutService;
+5441`t  final InlineSpan textSpan;
+5442`t  final TextAlign textAlign;
+5443`t  final TextDirection textDirection;
+5444`t  final double maxWidth;
+5445`t  final int? caretOffset;
+5446`t  final Color color;
+5447`t  final int textLength;
+5448`t
+5449`t  /// Caret alpha multiplier driven by the blink animation (1.0 = fully visible,
+5450`t  /// 0.0 = hidden).
+5451`t  final double opacity;
+5452`t
+5453`t  @override
+5454`t  void paint(Canvas canvas, Size size) {
+5455`t    final caretOffset = this.caretOffset;
+5456`t    if (caretOffset == null) {
+5457`t      return;
+5458`t    }
+5459`t    final painter = layoutService.layout(
+5460`t      span: textSpan,
+5461`t      textAlign: textAlign,
+5462`t      textDirection: textDirection,
+5463`t      maxWidth: maxWidth,
+5464`t    );
+5465`t    final safeOffset = caretOffset.clamp(0, textLength).toInt();
+5466`t    final caretTop = layoutService.caretOffset(painter, safeOffset);
+5467`t    // Fall back to preferredLineHeight (matching _caretRectAt) so the caret is
+5468`t    // always drawn with a sensible height even when getFullHeightForCaret
+5469`t    // returns null (e.g. at empty/whitespace runs).
+5470`t    final height = layoutService.caretHeight(painter, safeOffset) ??
+5471`t        painter.preferredLineHeight;
+5472`t    final paint = Paint()
+5473`t      ..color = color.withValues(alpha: opacity.clamp(0.0, 1.0))
+5474`t      ..strokeWidth = _kCaretStrokeWidth;
+5475`t    canvas.drawLine(caretTop, caretTop.translate(0, height), paint);
+5476`t  }
+5477`t
+5478`t  @override
+5479`t  bool shouldRepaint(covariant _CaretPainter oldDelegate) {
+5480`t    return oldDelegate.textSpan != textSpan ||
+5481`t        oldDelegate.textAlign != textAlign ||
+5482`t        oldDelegate.textDirection != textDirection ||
+5483`t        oldDelegate.maxWidth != maxWidth ||
+5484`t        oldDelegate.caretOffset != caretOffset ||
+5485`t        oldDelegate.color != color ||
+5486`t        oldDelegate.textLength != textLength ||
+5487`t        oldDelegate.opacity != opacity;
+5488`t  }
+5489`t}
+5490`t
+5491`tclass _MediaPlaceholder extends StatelessWidget {
+5492`t  const _MediaPlaceholder({required this.label, required this.value});
+5493`t
+5494`t  final String label;
+5495`t  final String value;
+---LINES 5530-5595---
+5530`t          ],
+5531`t        ),
+5532`t      ),
+5533`t    );
+5534`t  }
+5535`t}
+5536`t
+5537`tclass _BlockEmbedContent extends StatelessWidget {
+5538`t  const _BlockEmbedContent({
+5539`t    required this.block,
+5540`t    required this.blockIndex,
+5541`t    required this.selected,
+5542`t    required this.canEdit,
+5543`t    this.onAction,
+5544`t  });
+5545`t
+5546`t  final BlockEmbedNode block;
+5547`t  final int blockIndex;
+5548`t  final bool selected;
+5549`t  final bool canEdit;
+5550`t  final ObjectBlockActionHandler? onAction;
+5551`t
+5552`t  @override
+5553`t  Widget build(BuildContext context) {
+5554`t    return _ObjectBlockCard(
+5555`t      icon: Icons.extension_outlined,
+5556`t      title: block.normalizedEmbedType,
+5557`t      subtitle: block.displayText,
+5558`t      blockIndex: blockIndex,
+5559`t      selected: selected,
+5560`t      canEdit: canEdit,
+5561`t      onAction: onAction,
+5562`t      child: _ObjectMetadataList(
+5563`t        entries: <String>[
+5564`t          for (final entry in block.data.entries.take(4))
+5565`t            '${entry.key}: ${entry.value}',
+5566`t        ],
+5567`t      ),
+5568`t    );
+5569`t  }
+5570`t}
+5571`t
+5572`tclass _VideoBlockContent extends StatelessWidget {
+5573`t  const _VideoBlockContent({
+5574`t    required this.block,
+5575`t    required this.blockIndex,
+5576`t    required this.selected,
+5577`t    required this.canEdit,
+5578`t    required this.child,
+5579`t    this.onAction,
+5580`t  });
+5581`t
+5582`t  final VideoBlockNode block;
+5583`t  final int blockIndex;
+5584`t  final bool selected;
+5585`t  final bool canEdit;
+5586`t  final Widget child;
+5587`t  final ObjectBlockActionHandler? onAction;
+5588`t
+5589`t  @override
+5590`t  Widget build(BuildContext context) {
+5591`t    return _ObjectBlockCard(
+5592`t      icon: Icons.smart_display_outlined,
+5593`t      title: 'Video',
+5594`t      subtitle: _assetLabel(block.assetId, block.file),
+5595`t      blockIndex: blockIndex,
+
+2026-06-24T15:26:45.174324Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=gpt-5.5 personality=pragmatic
+**Refining output parameters**
+
+I need to adjust my output parameters to fit within a specific budget, which means narrowing down the query range. It looks like I should probably use the shell. I’m thinking it might work to focus on getting the values from 5230 to 5295 and 5360 to 5430, plus considering 5280 as well. That should help streamline things!
+codex
+上一段输出被截断；我补齐两个小片段。
+exec
+powershell.exe -Command '$OutputEncoding=[Console]::OutputEncoding=[System.Text.UTF8Encoding]::new(); $p='"'lib/src/widgets/wenz_rich_text_editor.dart'; "'$lines=Get-Content -Path $p -Encoding UTF8; foreach($range in @(@(5230,5298),@(5360,5430))){ Write-Host ('"'---LINES {0}-{1}---' -f "'$range[0],$range[1]); for($i=$range[0]; $i -le $range[1]; $i++){ '"'{0}"'`t{1}'"' -f "'$i,$lines[$i-1] } }' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 308ms:
+---LINES 5230-5298---
+5230`t    }
+5231`t    return safeLogicalOffset == logicalLength ? renderLength : 0;
+5232`t  }
+5233`t
+5234`t  int? _atomicLogicalOffsetForHit(
+5235`t    TextPainter painter,
+5236`t    Offset localPosition,
+5237`t  ) {
+5238`t    for (final segment in segments) {
+5239`t      if (!segment.atomic || segment.renderStart == segment.renderEnd) {
+5240`t        continue;
+5241`t      }
+5242`t      final boxes = painter.getBoxesForSelection(
+5243`t        TextSelection(
+5244`t          baseOffset: segment.renderStart,
+5245`t          extentOffset: segment.renderEnd,
+5246`t        ),
+5247`t      );
+5248`t      for (final box in boxes) {
+5249`t        final rect = box.toRect();
+5250`t        if (!rect.inflate(1).contains(localPosition)) {
+5251`t          continue;
+5252`t        }
+5253`t        final after = switch (box.direction) {
+5254`t          TextDirection.ltr => localPosition.dx >= rect.center.dx,
+5255`t          TextDirection.rtl => localPosition.dx < rect.center.dx,
+5256`t        };
+5257`t        return after ? segment.logicalEnd : segment.logicalStart;
+5258`t      }
+5259`t    }
+5260`t    return null;
+5261`t  }
+5262`t}
+5263`t
+5264`tclass _InlineOffsetSegment {
+5265`t  const _InlineOffsetSegment({
+5266`t    required this.logicalStart,
+5267`t    required this.logicalEnd,
+5268`t    required this.renderStart,
+5269`t    required this.renderEnd,
+5270`t    required this.atomic,
+5271`t  });
+5272`t
+5273`t  final int logicalStart;
+5274`t  final int logicalEnd;
+5275`t  final int renderStart;
+5276`t  final int renderEnd;
+5277`t  final bool atomic;
+5278`t
+5279`t  int get logicalLength => logicalEnd - logicalStart;
+5280`t  int get renderLength => renderEnd - renderStart;
+5281`t
+5282`t  bool coversLogicalOffset(int offset) {
+5283`t    return offset >= logicalStart && offset <= logicalEnd;
+5284`t  }
+5285`t
+5286`t  bool coversRenderOffset(int offset) {
+5287`t    return offset >= renderStart && offset <= renderEnd;
+5288`t  }
+5289`t
+5290`t  int logicalOffsetForRenderOffset(int offset) {
+5291`t    final delta = (offset - renderStart).clamp(0, renderLength).toInt();
+5292`t    return (logicalStart + delta).clamp(logicalStart, logicalEnd).toInt();
+5293`t  }
+5294`t
+5295`t  int renderOffsetForLogicalOffset(int offset) {
+5296`t    final delta = (offset - logicalStart).clamp(0, logicalLength).toInt();
+5297`t    return (renderStart + delta).clamp(renderStart, renderEnd).toInt();
+5298`t  }
+---LINES 5360-5430---
+5360`t        canvas.drawRect(box.toRect(), paint);
+5361`t      }
+5362`t    }
+5363`t  }
+5364`t
+5365`t  @override
+5366`t  bool shouldRepaint(covariant _FindHighlightPainter oldDelegate) {
+5367`t    return oldDelegate.textSpan != textSpan ||
+5368`t        oldDelegate.textAlign != textAlign ||
+5369`t        oldDelegate.textDirection != textDirection ||
+5370`t        oldDelegate.maxWidth != maxWidth ||
+5371`t        oldDelegate.ranges != ranges ||
+5372`t        oldDelegate.color != color ||
+5373`t        oldDelegate.activeColor != activeColor;
+5374`t  }
+5375`t}
+5376`t
+5377`tclass _SelectionHighlightPainter extends CustomPainter {
+5378`t  const _SelectionHighlightPainter({
+5379`t    required this.layoutService,
+5380`t    required this.textSpan,
+5381`t    required this.textAlign,
+5382`t    required this.textDirection,
+5383`t    required this.maxWidth,
+5384`t    required this.range,
+5385`t    required this.color,
+5386`t  });
+5387`t
+5388`t  final TextLayoutService layoutService;
+5389`t  final InlineSpan textSpan;
+5390`t  final TextAlign textAlign;
+5391`t  final TextDirection textDirection;
+5392`t  final double maxWidth;
+5393`t  final _LocalSelectionRange? range;
+5394`t  final Color color;
+5395`t
+5396`t  @override
+5397`t  void paint(Canvas canvas, Size size) {
+5398`t    final range = this.range;
+5399`t    if (range == null || range.start == range.end) {
+5400`t      return;
+5401`t    }
+5402`t    final painter = layoutService.layout(
+5403`t      span: textSpan,
+5404`t      textAlign: textAlign,
+5405`t      textDirection: textDirection,
+5406`t      maxWidth: maxWidth,
+5407`t    );
+5408`t    final boxes = layoutService.selectionBoxes(painter, range.start, range.end);
+5409`t    final paint = Paint()..color = color;
+5410`t    for (final box in boxes) {
+5411`t      canvas.drawRect(box.toRect(), paint);
+5412`t    }
+5413`t  }
+5414`t
+5415`t  @override
+5416`t  bool shouldRepaint(covariant _SelectionHighlightPainter oldDelegate) {
+5417`t    return oldDelegate.textSpan != textSpan ||
+5418`t        oldDelegate.textAlign != textAlign ||
+5419`t        oldDelegate.textDirection != textDirection ||
+5420`t        oldDelegate.maxWidth != maxWidth ||
+5421`t        oldDelegate.range?.start != range?.start ||
+5422`t        oldDelegate.range?.end != range?.end ||
+5423`t        oldDelegate.color != color;
+5424`t  }
+5425`t}
+5426`t
+5427`tclass _CaretPainter extends CustomPainter {
+5428`t  const _CaretPainter({
+5429`t    required this.layoutService,
+5430`t    required this.textSpan,
+
+2026-06-24T15:26:56.335414Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=gpt-5.5 personality=pragmatic
+exec
+powershell.exe -Command '$OutputEncoding=[Console]::OutputEncoding=[System.Text.UTF8Encoding]::new(); $p='"'lib/src/widgets/wenz_rich_text_editor.dart'; "'$lines=Get-Content -Path $p -Encoding UTF8; for($i=5290; $i -le 5335; $i++){ '"'{0}"'`t{1}'"' -f "'$i,$lines[$i-1] }' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 219ms:
+5290`t  int logicalOffsetForRenderOffset(int offset) {
+5291`t    final delta = (offset - renderStart).clamp(0, renderLength).toInt();
+5292`t    return (logicalStart + delta).clamp(logicalStart, logicalEnd).toInt();
+5293`t  }
+5294`t
+5295`t  int renderOffsetForLogicalOffset(int offset) {
+5296`t    final delta = (offset - logicalStart).clamp(0, logicalLength).toInt();
+5297`t    return (renderStart + delta).clamp(renderStart, renderEnd).toInt();
+5298`t  }
+5299`t
+5300`t  int atomicLogicalOffsetForRenderOffset(int offset) {
+5301`t    final beforeDistance = (offset - renderStart).abs();
+5302`t    final afterDistance = (renderEnd - offset).abs();
+5303`t    return afterDistance <= beforeDistance ? logicalEnd : logicalStart;
+5304`t  }
+5305`t}
+5306`t
+5307`tclass _FindHighlightRange extends _LocalSelectionRange {
+5308`t  const _FindHighlightRange({
+5309`t    required super.start,
+5310`t    required super.end,
+5311`t    required this.active,
+5312`t  });
+5313`t
+5314`t  final bool active;
+5315`t}
+5316`t
+5317`tclass _FindHighlightPainter extends CustomPainter {
+5318`t  const _FindHighlightPainter({
+5319`t    required this.layoutService,
+5320`t    required this.textSpan,
+5321`t    required this.textAlign,
+5322`t    required this.textDirection,
+5323`t    required this.maxWidth,
+5324`t    required this.ranges,
+5325`t    required this.color,
+5326`t    required this.activeColor,
+5327`t  });
+5328`t
+5329`t  final TextLayoutService layoutService;
+5330`t  final InlineSpan textSpan;
+5331`t  final TextAlign textAlign;
+5332`t  final TextDirection textDirection;
+5333`t  final double maxWidth;
+5334`t  final List<_FindHighlightRange> ranges;
+5335`t  final Color color;
+
+2026-06-24T15:27:02.588596Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=gpt-5.5 personality=pragmatic
+**Considering painter and selection logic**
+
+I need to explore the painter aspect and see if selection boxes with ranges could be logical. P004 mentions selection highlights but seems to have issues. However, according to plan P002, I need to think about caret, selection, find highlight, and how composition needs mapping. P004 specifically mentions that selection highlight and cursor feedback are important. I should consider including the composing rect as feedback and avoid P005. I’ll need to inspect call sites for creating _TextSelectionSurface and layout, using the rg offsetMapper.
+codex
+现在找所有 surface 构造点，确保传参一致。
+exec
+powershell.exe -Command '$OutputEncoding=[Console]::OutputEncoding=[System.Text.UTF8Encoding]::new(); rg -n "offsetMapper|_TextSelectionSurface'"\\(\" lib/src/widgets/wenz_rich_text_editor.dart" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 182ms:
+3265:    final text = _TextSelectionSurface(
+3274:      offsetMapper: inlineTextLayout.offsetMapper,
+3384:              child: _TextSelectionSurface(
+3390:                offsetMapper: _InlineOffsetMapper.identity(block.code.length),
+4305:    final surface = _TextSelectionSurface(
+4316:      offsetMapper: inlineTextLayout.offsetMapper,
+4611:  const _TextSelectionSurface({
+4617:    required this.offsetMapper,
+4633:  final _InlineOffsetMapper offsetMapper;
+4843:    return widget.offsetMapper.logicalOffsetForHit(
+4858:        widget.offsetMapper.renderOffsetForLogicalOffset(offset);
+4860:    final start = widget.offsetMapper.logicalOffsetForRenderOffset(
+4864:        widget.offsetMapper.logicalOffsetForRenderOffset(renderRange.end);
+4942:        widget.offsetMapper.renderOffsetForLogicalOffset(offset);
+4952:          : widget.offsetMapper.logicalOffsetForRenderOffset(target),
+5160:    required this.offsetMapper,
+5164:  final _InlineOffsetMapper offsetMapper;
+6341:    offsetMapper: _InlineOffsetMapper(
+
+2026-06-24T15:27:18.889369Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=gpt-5.5 personality=pragmatic
+codex
+word range 也已经用 mapper，接下来只修改绘制侧。
+exec
+powershell.exe -Command '$OutputEncoding=[Console]::OutputEncoding=[System.Text.UTF8Encoding]::new(); $p='"'lib/src/widgets/wenz_rich_text_editor.dart'; "'$lines=Get-Content -Path $p -Encoding UTF8; for($i=4828; $i -le 4868; $i++){ '"'{0}"'`t{1}'"' -f "'$i,$lines[$i-1] }' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 229ms:
+4828`t  }
+4829`t
+4830`t  int _offsetForLocalPosition(Offset localPosition) {
+4831`t    final painter = _layoutService.layout(
+4832`t      span: widget.textSpan,
+4833`t      textAlign: widget.textAlign,
+4834`t      textDirection: Directionality.of(context),
+4835`t      maxWidth: _lastMaxWidth,
+4836`t    );
+4837`t    final renderLength = widget.textSpan.toPlainText().length;
+4838`t    final renderOffset = _layoutService.offsetAt(
+4839`t      painter,
+4840`t      localPosition,
+4841`t      renderLength,
+4842`t    );
+4843`t    return widget.offsetMapper.logicalOffsetForHit(
+4844`t      painter,
+4845`t      localPosition,
+4846`t      renderOffset,
+4847`t    );
+4848`t  }
+4849`t
+4850`t  TextRange _wordRangeAt(int offset) {
+4851`t    final painter = _layoutService.layout(
+4852`t      span: widget.textSpan,
+4853`t      textAlign: widget.textAlign,
+4854`t      textDirection: Directionality.of(context),
+4855`t      maxWidth: _lastMaxWidth,
+4856`t    );
+4857`t    final renderOffset =
+4858`t        widget.offsetMapper.renderOffsetForLogicalOffset(offset);
+4859`t    final renderRange = _layoutService.wordRangeAt(painter, renderOffset);
+4860`t    final start = widget.offsetMapper.logicalOffsetForRenderOffset(
+4861`t      renderRange.start,
+4862`t    );
+4863`t    final end =
+4864`t        widget.offsetMapper.logicalOffsetForRenderOffset(renderRange.end);
+4865`t    return TextRange(
+4866`t      start: start < end ? start : end,
+4867`t      end: start < end ? end : start,
+4868`t    );
+
+2026-06-24T15:27:27.093649Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=gpt-5.5 personality=pragmatic

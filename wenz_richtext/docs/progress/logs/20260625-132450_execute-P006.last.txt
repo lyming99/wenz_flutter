@@ -1,0 +1,10 @@
+**P006 已完成**
+- 在 `lib/src/codecs/rich_text_json_codec.dart:16`、`lib/src/codecs/html_codec.dart:31`、`lib/src/codecs/markdown_codec.dart:28` 明确 codec 只序列化内容模型，不写入折叠 view-state。
+- 在 `lib/src/widgets/block_renderer_registry.dart:351` 明确隐藏 block 不会收到 renderer context、resolver 调用或几何保留事件。
+- 新增 codec 回归测试：JSON/HTML/Markdown 导出不带折叠状态，导入后默认展开且内容完整，见 `test/codecs/rich_text_json_codec_test.dart:114`、`test/codecs/html_codec_test.dart:30`、`test/codecs/markdown_codec_test.dart:30`。
+- 新增插件扩展测试：隐藏折叠内容不触发插件 renderer、media resolver、row geometry，展开后恢复，见 `test/plugins/editor_plugin_test.dart:117`。
+- 未修改 plan 文件、未勾选 checkbox、未更新进度区。
+
+**验证**
+- 通过：`flutter test test/codecs/rich_text_json_codec_test.dart test/codecs/html_codec_test.dart test/codecs/markdown_codec_test.dart test/plugins/editor_plugin_test.dart`
+- 通过：`git diff --check -- <P006 scope files>`

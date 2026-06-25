@@ -1,0 +1,8 @@
+已完成 P004，未推进 P005/P006。
+
+- 修正选区高亮：`lib/src/widgets/wenz_rich_text_editor.dart:5420` 先把逻辑 offset 转为渲染 offset，再查询 selection boxes。
+- 修正光标反馈：`lib/src/widgets/wenz_rich_text_editor.dart:4894` 与 `lib/src/widgets/wenz_rich_text_editor.dart:5483` 使用 `offsetMapper` 定位 emoji/mention 前后边界。
+- 同步几何反馈：`lib/src/widgets/wenz_rich_text_editor.dart:4922` 组合区/本地矩形也改用渲染 offset，避免 IME/几何上报错位。
+- 已更新计划：`docs/plan/plan_feedback_1_20260624-220759.md:28` 勾选 P004，`docs/plan/plan_feedback_1_20260624-220759.md:54` 更新进度区。
+- 已验证：`dart format lib/src/widgets/wenz_rich_text_editor.dart`、`flutter analyze lib/src/widgets/wenz_rich_text_editor.dart`、`git diff --check -- ...` 均通过。
+- 未执行 P006 的回归测试，已在计划记录中注明留待 P006。

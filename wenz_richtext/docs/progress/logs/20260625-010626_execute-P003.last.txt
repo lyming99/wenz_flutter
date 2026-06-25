@@ -1,0 +1,10 @@
+已完成 P003，未提前执行 P004 或其它任务。
+
+- 引言渲染改为主题化背景块，保留文本选择面与 offset 映射：`lib/src/widgets/wenz_rich_text_editor.dart:3293`
+- 新增 `_QuoteBlockSurface`，包含背景色、边框、圆角、内边距和强调条：`lib/src/widgets/wenz_rich_text_editor.dart:3319`
+- 新增 widget 回归，覆盖多行/空/相邻引言、内联内容与引言内选择：`test/widgets/wenz_rich_text_editor_test.dart:82`
+- 已勾选 P003 并更新进度区到 P004：`docs/plan/plan_feedback_2_20260625-004108.md:34`
+
+验证通过：
+- `flutter test test\widgets\wenz_rich_text_editor_test.dart --name "renders quote blocks with themed background" --reporter expanded`
+- `git diff --check` 未报告 whitespace error，仅有 Git 既有换行转换 warning。

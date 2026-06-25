@@ -1,0 +1,12 @@
+完成 P004，未修改 plan 文件、未勾选 checkbox。
+
+**变更**
+- 已将编辑器内代码块、表格浮动工具栏、对象浮动菜单、图片/附件/提示块 tooltip 中文化：`lib/src/widgets/wenz_rich_text_editor.dart:3839`
+- 已中文化评论侧栏与查找替换面板 tooltip：`lib/src/widgets/comment_sidebar.dart:175`、`lib/src/widgets/find_replace_panel.dart:112`
+- 已中文化示例工具栏与集成测试辅助界面 tooltip：`example/lib/main.dart:271`、`example/integration_test/helpers/test_app.dart:183`
+- 已同步直接依赖 tooltip 文案的测试查找：`test/widgets/wenz_rich_text_editor_test.dart:409`、`example/integration_test/editor_richtext_test.dart:31`
+
+**验证**
+- 通过：`flutter test test/widgets/wenz_rich_text_editor_test.dart --name "code block toolbar|object block toolbar|image object toolbar|table floating toolbar"`
+- 通过：`flutter test integration_test/editor_richtext_test.dart -d windows --name "Bold toolbar|Italic toolbar|Heading toolbar"`（在 `example` 目录）
+- `git diff --check` 无空白错误，仅有 Git 的 LF/CRLF 提示。

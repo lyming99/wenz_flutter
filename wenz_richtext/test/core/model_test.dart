@@ -75,6 +75,80 @@ void main() {
     expect(decoded.altText, 'Legacy alt');
   });
 
+  test('video block round trips media protocol fields', () {
+    const video = VideoBlockNode(
+      id: 'video1',
+      assetId: 'asset-1',
+      playbackUrl: 'https://cdn.example.com/video.mp4',
+      file: 'file:///tmp/video.mp4',
+      coverUrl: 'https://cdn.example.com/poster.jpg',
+      title: 'Launch demo',
+      description: 'Two minute walkthrough',
+      aspectRatio: 16 / 9,
+      uploadStatus: FileUploadStatus.failed,
+      uploadError: 'network timeout',
+    );
+
+    final decoded = BlockNode.fromJson(video.toJson()) as VideoBlockNode;
+
+    expect(decoded.assetId, 'asset-1');
+    expect(decoded.playbackUrl, 'https://cdn.example.com/video.mp4');
+    expect(decoded.file, 'file:///tmp/video.mp4');
+    expect(decoded.coverUrl, 'https://cdn.example.com/poster.jpg');
+    expect(decoded.title, 'Launch demo');
+    expect(decoded.description, 'Two minute walkthrough');
+    expect(decoded.aspectRatio, closeTo(16 / 9, 0.0001));
+    expect(decoded.effectiveAspectRatio, closeTo(16 / 9, 0.0001));
+    expect(decoded.uploadStatus, FileUploadStatus.failed);
+    expect(decoded.uploadError, 'network timeout');
+    expect(decoded.hasSource, isTrue);
+    expect(decoded.effectivePlaybackUrl, 'https://cdn.example.com/video.mp4');
+    expect(decoded.plainText, 'Launch demo');
+  });
+
+  test('video block accepts aliases and safe defaults', () {
+    final legacy = BlockNode.fromJson(<String, Object?>{
+      'id': 'video2',
+      'type': 'video',
+      'assetId': 'asset-2',
+      'src': 'https://cdn.example.com/legacy.mp4',
+      'localFile': '/tmp/legacy.mp4',
+      'poster': 'https://cdn.example.com/legacy.jpg',
+      'caption': 'Legacy title',
+      'desc': 'Legacy description',
+      'width': 640,
+      'height': 360,
+      'uploadStatus': 'unknown-status',
+      'unknown': <String, Object?>{'ignored': true},
+    }) as VideoBlockNode;
+
+    expect(legacy.playbackUrl, 'https://cdn.example.com/legacy.mp4');
+    expect(legacy.file, '/tmp/legacy.mp4');
+    expect(legacy.coverUrl, 'https://cdn.example.com/legacy.jpg');
+    expect(legacy.title, 'Legacy title');
+    expect(legacy.description, 'Legacy description');
+    expect(legacy.aspectRatio, closeTo(16 / 9, 0.0001));
+    expect(legacy.uploadStatus, FileUploadStatus.none);
+
+    final missing = BlockNode.fromJson(<String, Object?>{
+      'id': 'video3',
+      'type': 'video',
+      'unknown': 'ignored',
+    }) as VideoBlockNode;
+
+    expect(missing.assetId, isEmpty);
+    expect(missing.playbackUrl, isEmpty);
+    expect(missing.file, isEmpty);
+    expect(missing.coverUrl, isEmpty);
+    expect(missing.title, isEmpty);
+    expect(missing.description, isEmpty);
+    expect(missing.aspectRatio, isNull);
+    expect(missing.effectiveAspectRatio,
+        closeTo(VideoBlockNode.defaultAspectRatio, 0.0001));
+    expect(missing.uploadStatus, FileUploadStatus.none);
+    expect(missing.uploadError, isEmpty);
+  });
+
   test('block embed round trips data and fallback text', () {
     const block = BlockEmbedNode(
       id: 'embed1',

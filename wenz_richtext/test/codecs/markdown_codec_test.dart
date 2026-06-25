@@ -27,6 +27,36 @@ void main() {
       expect(codec.encode(document), '# Title\n\n### Subtitle');
     });
 
+    test('heading collapse state is not exported', () {
+      final controller = WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'h1',
+              type: BlockType.heading,
+              attributes: BlockAttributes(level: 1),
+              content: <InlineNode>[TextRun(text: 'Section')],
+            ),
+            TextBlockNode(
+              id: 'p1',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'Body stays exported')],
+            ),
+          ],
+        ),
+      );
+      final outline = WenzOutlineController(editor: controller);
+      addTearDown(outline.dispose);
+      addTearDown(controller.dispose);
+      expect(outline.collapseByBlockId('h1'), isTrue);
+
+      final markdown = codec.encode(controller.document);
+
+      expect(markdown, '# Section\n\nBody stays exported');
+      expect(markdown, isNot(contains('collapse')));
+      expect(markdown, isNot(contains('hidden')));
+    });
+
     test('paragraph with bold + italic + strikethrough inline', () {
       const document = RichTextDocument(
         blocks: <BlockNode>[
@@ -323,6 +353,19 @@ void main() {
   });
 
   group('MarkdownCodec.decode (import)', () {
+    test('import starts expanded with all heading content present', () {
+      final document = codec.decode('# Section\n\nBody stays imported');
+      final controller = WenzRichTextController(document: document);
+      final outline = WenzOutlineController(editor: controller);
+      addTearDown(outline.dispose);
+      addTearDown(controller.dispose);
+
+      expect(document.blocks, hasLength(2));
+      expect(document.plainText, 'Section\nBody stays imported');
+      expect(outline.collapsedBlockIds, isEmpty);
+      expect(outline.hiddenBlockIds, isEmpty);
+    });
+
     test('heading levels parsed with correct level', () {
       const source = '# Title\n\n### Subtitle';
       final doc = codec.decode(source);
@@ -447,6 +490,30 @@ void main() {
       expect(video.file, isEmpty);
     });
 
+    test('standalone video placeholder metadata becomes video block', () {
+      const source = '![video: Launch clip](https://cdn.example.com/video.mp4 '
+          '"wenz-video; assetId=video-1; '
+          'playbackUrl=https://cdn.example.com/video.mp4; '
+          'file=local/video.mp4; '
+          'coverUrl=https://cdn.example.com/cover.jpg; '
+          'title=Launch clip; '
+          'description=Product launch overview; '
+          'aspectRatio=1.7777777777777777; '
+          'uploadStatus=uploaded")';
+      final doc = codec.decode(source);
+
+      expect(doc.blocks, hasLength(1));
+      final video = doc.blocks.single as VideoBlockNode;
+      expect(video.assetId, 'video-1');
+      expect(video.playbackUrl, 'https://cdn.example.com/video.mp4');
+      expect(video.file, 'local/video.mp4');
+      expect(video.coverUrl, 'https://cdn.example.com/cover.jpg');
+      expect(video.title, 'Launch clip');
+      expect(video.description, 'Product launch overview');
+      expect(video.aspectRatio, 16 / 9);
+      expect(video.uploadStatus, FileUploadStatus.uploaded);
+    });
+
     test('unrecognised content falls back to a paragraph (no throw)', () {
       const source = 'just some text\nwith no markdown';
       final doc = codec.decode(source);
@@ -506,7 +573,13 @@ void main() {
           VideoBlockNode(
             id: 'video1',
             assetId: 'video-1',
+            playbackUrl: 'https://cdn.example.com/video.mp4',
             file: 'local/video.mp4',
+            coverUrl: 'https://cdn.example.com/cover.jpg',
+            title: 'Launch clip',
+            description: 'Product launch overview',
+            aspectRatio: 16 / 9,
+            uploadStatus: FileUploadStatus.uploaded,
           ),
         ],
       );
@@ -517,7 +590,15 @@ void main() {
       expect(
         exported,
         '[report.pdf](https://cdn.example.com/report.pdf)\n\n'
-        '![video](local/video.mp4)',
+        '![video](https://cdn.example.com/video.mp4 '
+        '"wenz-video; assetId=video-1; '
+        'playbackUrl=https://cdn.example.com/video.mp4; '
+        'file=local/video.mp4; '
+        'coverUrl=https://cdn.example.com/cover.jpg; '
+        'title=Launch clip; '
+        'description=Product launch overview; '
+        'aspectRatio=1.7777777777777777; '
+        'uploadStatus=uploaded")',
       );
       expect(reimported.blocks, hasLength(2));
 
@@ -527,7 +608,14 @@ void main() {
       expect(linkedRun.attributes.url, 'https://cdn.example.com/report.pdf');
 
       final video = reimported.blocks[1] as VideoBlockNode;
-      expect(video.assetId, 'local/video.mp4');
+      expect(video.assetId, 'video-1');
+      expect(video.playbackUrl, 'https://cdn.example.com/video.mp4');
+      expect(video.file, 'local/video.mp4');
+      expect(video.coverUrl, 'https://cdn.example.com/cover.jpg');
+      expect(video.title, 'Launch clip');
+      expect(video.description, 'Product launch overview');
+      expect(video.aspectRatio, 16 / 9);
+      expect(video.uploadStatus, FileUploadStatus.uploaded);
     });
   });
 

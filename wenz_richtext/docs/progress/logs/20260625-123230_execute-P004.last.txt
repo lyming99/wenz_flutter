@@ -1,0 +1,11 @@
+**P004 完成**
+- 已确认标题折叠渲染入口、tooltip、禁用态、键盘切换、隐藏数量徽标在 `lib/src/widgets/wenz_rich_text_editor.dart:4485` 和 `lib/src/widgets/wenz_rich_text_editor.dart:4526`。
+- 折叠状态通过渲染上下文暴露给 renderer，见 `lib/src/widgets/block_renderer_registry.dart:295` 和 `lib/src/widgets/block_renderer_registry.dart:321`。
+- 相关 widget 测试覆盖点击/键盘切换、禁用标题、隐藏内容计数，见 `test/widgets/wenz_rich_text_editor_test.dart:461`。
+- 相关 golden 用例已覆盖 `editor_blocks.png`，见 `test/widgets/editor_golden_test.dart:164`。
+- 未修改 plan 文件，未勾选 checkbox，未更新进度区。
+
+**验证**
+- `flutter test test/widgets/wenz_rich_text_editor_test.dart --plain-name "renders heading collapse affordance"` 通过。
+- `flutter test test/widgets/editor_golden_test.dart --plain-name "golden: paragraph code and image placeholder"` 通过。
+- `dart format --output=none --set-exit-if-changed ...` 通过。

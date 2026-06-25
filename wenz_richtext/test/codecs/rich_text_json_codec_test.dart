@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wenz_richtext/wenz_richtext.dart';
 
@@ -35,6 +37,17 @@ void main() {
           showHeight: 90,
           caption: 'Hero caption',
           altText: 'Hero alt',
+        ),
+        VideoBlockNode(
+          id: 'video',
+          assetId: 'video-1',
+          playbackUrl: 'https://cdn.example.com/video.mp4',
+          file: 'local/video.mp4',
+          coverUrl: 'https://cdn.example.com/cover.jpg',
+          title: 'Launch clip',
+          description: 'Product launch overview',
+          aspectRatio: 16 / 9,
+          uploadStatus: FileUploadStatus.uploaded,
         ),
         BlockEmbedNode(
           id: 'embed',
@@ -75,7 +88,7 @@ void main() {
     final decoded = codec.decode(encoded);
 
     expect(decoded.version, 1);
-    expect(decoded.blocks, hasLength(4));
+    expect(decoded.blocks, hasLength(5));
     expect(decoded.blocks.first, isA<TextBlockNode>());
     expect(
       (decoded.blocks.first as TextBlockNode).content.last,
@@ -86,6 +99,60 @@ void main() {
     expect(emoji.embedType, 'emoji');
     expect(emoji.data['emoji'], '😀');
     expect(emoji.data['shortName'], 'grinning');
+    final video = decoded.blocks[2] as VideoBlockNode;
+    expect(video.assetId, 'video-1');
+    expect(video.playbackUrl, 'https://cdn.example.com/video.mp4');
+    expect(video.file, 'local/video.mp4');
+    expect(video.coverUrl, 'https://cdn.example.com/cover.jpg');
+    expect(video.title, 'Launch clip');
+    expect(video.description, 'Product launch overview');
+    expect(video.aspectRatio, 16 / 9);
+    expect(video.uploadStatus, FileUploadStatus.uploaded);
     expect(decoded.toJson(), document.toJson());
+  });
+
+  test('json import ignores collapse UI metadata and re-exports content only',
+      () {
+    const codec = RichTextJsonCodec();
+    const source = '''
+{
+  "version": 1,
+  "metadata": {
+    "outlineCollapse": {
+      "collapsedBlockIds": ["h1"]
+    }
+  },
+  "blocks": [
+    {
+      "id": "h1",
+      "type": "heading",
+      "attrs": {"level": 1, "collapsed": true},
+      "content": [{"text": "Section"}]
+    },
+    {
+      "id": "p1",
+      "type": "paragraph",
+      "attrs": {"hiddenByHeading": "h1"},
+      "content": [{"text": "Body stays in the document"}]
+    }
+  ]
+}
+''';
+
+    final document = codec.decode(source);
+    final controller = WenzRichTextController(document: document);
+    final outline = WenzOutlineController(editor: controller);
+    addTearDown(outline.dispose);
+    addTearDown(controller.dispose);
+
+    expect(document.blocks, hasLength(2));
+    expect(document.plainText, 'Section\nBody stays in the document');
+    expect(outline.collapsedBlockIds, isEmpty);
+    expect(outline.hiddenBlockIds, isEmpty);
+
+    final encoded = jsonDecode(codec.encode(document)) as Map<String, Object?>;
+    expect(encoded, isNot(contains('metadata')));
+    expect(jsonEncode(encoded), isNot(contains('collapsed')));
+    expect(jsonEncode(encoded), isNot(contains('hiddenByHeading')));
   });
 }

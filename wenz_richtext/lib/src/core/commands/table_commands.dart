@@ -121,11 +121,18 @@ class InsertTableColumnCommand extends EditorCommand {
       tableBlock.table.columnWidths,
       insertIndex,
     );
-    return replaceTable(
+    return _replaceTableWithSelection(
       session,
       blockIndex,
       tableBlock,
       rows,
+      selection: _tableSelectionAfterColumnInserted(
+        session.selection,
+        tableBlock,
+        blockIndex,
+        rows,
+        insertIndex,
+      ),
       columnAlignments: alignments,
       columnWidths: widths,
     );
@@ -157,7 +164,19 @@ class DeleteTableRowCommand extends EditorCommand {
       for (var i = 0; i < tableBlock.table.rowCount; i++)
         if (i != rowIndex) copyRow(tableBlock.table.rows[i]),
     ];
-    return replaceTable(session, blockIndex, tableBlock, rows);
+    return _replaceTableWithSelection(
+      session,
+      blockIndex,
+      tableBlock,
+      rows,
+      selection: _tableSelectionAfterRowDeleted(
+        session.selection,
+        tableBlock,
+        blockIndex,
+        rows,
+        rowIndex,
+      ),
+    );
   }
 }
 
@@ -197,11 +216,18 @@ class DeleteTableColumnCommand extends EditorCommand {
       tableBlock.table.columnWidths,
       columnIndex,
     );
-    return replaceTable(
+    return _replaceTableWithSelection(
       session,
       blockIndex,
       tableBlock,
       rows,
+      selection: _tableSelectionAfterColumnDeleted(
+        session.selection,
+        tableBlock,
+        blockIndex,
+        rows,
+        columnIndex,
+      ),
       columnAlignments: alignments,
       columnWidths: widths,
     );
@@ -417,11 +443,12 @@ class MergeTableCellsCommand extends EditorCommand {
         );
       }
     }
-    return replaceTable(
+    return _replaceTableWithSelection(
       session,
       blockIndex,
       tableBlock,
       rows,
+      selection: cellSelection(tableBlock.id, blockIndex, top, left, 0),
       columnAlignments: tableBlock.table.columnAlignments,
       columnWidths: tableBlock.table.columnWidths,
     );
@@ -470,11 +497,13 @@ class SplitTableCellCommand extends EditorCommand {
         );
       }
     }
-    return replaceTable(
+    return _replaceTableWithSelection(
       session,
       blockIndex,
       tableBlock,
       rows,
+      selection:
+          cellSelection(tableBlock.id, blockIndex, rowIndex, columnIndex, 0),
       columnAlignments: tableBlock.table.columnAlignments,
       columnWidths: tableBlock.table.columnWidths,
     );
@@ -602,7 +631,19 @@ CommandResult insertTableRowAt(
     for (var i = insertIndex; i < tableBlock.table.rowCount; i++)
       copyRow(tableBlock.table.rows[i]),
   ];
-  return replaceTable(session, blockIndex, tableBlock, rows);
+  return _replaceTableWithSelection(
+    session,
+    blockIndex,
+    tableBlock,
+    rows,
+    selection: _tableSelectionAfterRowInserted(
+      session.selection,
+      tableBlock,
+      blockIndex,
+      rows,
+      insertIndex,
+    ),
+  );
 }
 
 CommandResult updateTableCell(
@@ -628,6 +669,174 @@ CommandResult updateTableCell(
     selection: selection,
     recordHistory: result.recordHistory,
     metadata: result.metadata,
+  );
+}
+
+CommandResult _replaceTableWithSelection(
+  DocumentSession session,
+  int blockIndex,
+  TableBlockNode tableBlock,
+  List<List<TableCellNode>> rows, {
+  DocumentSelection? selection,
+  Map<int, String>? columnAlignments,
+  Map<int, double>? columnWidths,
+}) {
+  final result = replaceTable(
+    session,
+    blockIndex,
+    tableBlock,
+    rows,
+    columnAlignments: columnAlignments,
+    columnWidths: columnWidths,
+  );
+  if (selection == null) {
+    return result;
+  }
+  return CommandResult(
+    selection: selection,
+    recordHistory: result.recordHistory,
+    metadata: result.metadata,
+  );
+}
+
+DocumentSelection? _tableSelectionAfterRowInserted(
+  DocumentSelection? selection,
+  TableBlockNode tableBlock,
+  int blockIndex,
+  List<List<TableCellNode>> rows,
+  int insertIndex,
+) {
+  return _mapTableSelection(
+    selection,
+    tableBlock,
+    blockIndex,
+    rows,
+    mapRow: (rowIndex) => rowIndex >= insertIndex ? rowIndex + 1 : rowIndex,
+    mapColumn: (columnIndex) => columnIndex,
+  );
+}
+
+DocumentSelection? _tableSelectionAfterColumnInserted(
+  DocumentSelection? selection,
+  TableBlockNode tableBlock,
+  int blockIndex,
+  List<List<TableCellNode>> rows,
+  int insertIndex,
+) {
+  return _mapTableSelection(
+    selection,
+    tableBlock,
+    blockIndex,
+    rows,
+    mapRow: (rowIndex) => rowIndex,
+    mapColumn: (columnIndex) =>
+        columnIndex >= insertIndex ? columnIndex + 1 : columnIndex,
+  );
+}
+
+DocumentSelection? _tableSelectionAfterRowDeleted(
+  DocumentSelection? selection,
+  TableBlockNode tableBlock,
+  int blockIndex,
+  List<List<TableCellNode>> rows,
+  int deletedRowIndex,
+) {
+  return _mapTableSelection(
+    selection,
+    tableBlock,
+    blockIndex,
+    rows,
+    mapRow: (rowIndex) => rowIndex > deletedRowIndex ? rowIndex - 1 : rowIndex,
+    mapColumn: (columnIndex) => columnIndex,
+  );
+}
+
+DocumentSelection? _tableSelectionAfterColumnDeleted(
+  DocumentSelection? selection,
+  TableBlockNode tableBlock,
+  int blockIndex,
+  List<List<TableCellNode>> rows,
+  int deletedColumnIndex,
+) {
+  return _mapTableSelection(
+    selection,
+    tableBlock,
+    blockIndex,
+    rows,
+    mapRow: (rowIndex) => rowIndex,
+    mapColumn: (columnIndex) =>
+        columnIndex > deletedColumnIndex ? columnIndex - 1 : columnIndex,
+  );
+}
+
+DocumentSelection? _mapTableSelection(
+  DocumentSelection? selection,
+  TableBlockNode tableBlock,
+  int blockIndex,
+  List<List<TableCellNode>> rows, {
+  required int Function(int rowIndex) mapRow,
+  required int Function(int columnIndex) mapColumn,
+}) {
+  final range = selection?.tableCellRange;
+  if (selection == null ||
+      range == null ||
+      range.tableBlockId != tableBlock.id ||
+      range.blockIndex != blockIndex) {
+    return null;
+  }
+  final base = _mapTablePosition(
+    selection.base,
+    tableBlock,
+    blockIndex,
+    rows,
+    mapRow: mapRow,
+    mapColumn: mapColumn,
+  );
+  final extent = _mapTablePosition(
+    selection.extent,
+    tableBlock,
+    blockIndex,
+    rows,
+    mapRow: mapRow,
+    mapColumn: mapColumn,
+  );
+  if (base == null || extent == null) {
+    return null;
+  }
+  return DocumentSelection(base: base, extent: extent);
+}
+
+DocumentPosition? _mapTablePosition(
+  DocumentPosition position,
+  TableBlockNode tableBlock,
+  int blockIndex,
+  List<List<TableCellNode>> rows, {
+  required int Function(int rowIndex) mapRow,
+  required int Function(int columnIndex) mapColumn,
+}) {
+  final sourceRowIndex = position.path.tableRowIndex;
+  final sourceColumnIndex = position.path.tableColumnIndex;
+  if (position.blockId != tableBlock.id ||
+      position.blockIndex != blockIndex ||
+      sourceRowIndex == null ||
+      sourceColumnIndex == null ||
+      rows.isEmpty) {
+    return null;
+  }
+  final rowIndex = mapRow(sourceRowIndex).clamp(0, rows.length - 1).toInt();
+  final row = rows[rowIndex];
+  if (row.isEmpty) {
+    return null;
+  }
+  final columnIndex =
+      mapColumn(sourceColumnIndex).clamp(0, row.length - 1).toInt();
+  final textLength = cellTextBlock(row[columnIndex]).plainText.length;
+  return DocumentPosition.tableCell(
+    tableBlockId: tableBlock.id,
+    blockIndex: blockIndex,
+    tableRowIndex: rowIndex,
+    tableColumnIndex: columnIndex,
+    offset: position.offset.clamp(0, textLength).toInt(),
   );
 }
 

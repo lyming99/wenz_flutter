@@ -120,6 +120,41 @@ void main() {
       );
     });
 
+    test('video sentinel prefers title then playable source', () {
+      const codec = PlainTextCodec();
+
+      expect(
+        codec.encode(
+          const RichTextDocument(
+            blocks: <BlockNode>[
+              VideoBlockNode(
+                id: 'video1',
+                assetId: 'video-1',
+                playbackUrl: 'https://cdn.example.com/video.mp4',
+                title: 'Launch clip',
+              ),
+            ],
+          ),
+        ),
+        '[video: Launch clip]',
+      );
+
+      expect(
+        codec.encode(
+          const RichTextDocument(
+            blocks: <BlockNode>[
+              VideoBlockNode(
+                id: 'video2',
+                assetId: 'video-2',
+                playbackUrl: 'https://cdn.example.com/video.mp4',
+              ),
+            ],
+          ),
+        ),
+        '[video: https://cdn.example.com/video.mp4]',
+      );
+    });
+
     test('omits empty blocks when configured', () {
       const document = RichTextDocument(
         blocks: <BlockNode>[

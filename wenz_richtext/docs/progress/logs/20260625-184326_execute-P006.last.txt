@@ -1,0 +1,15 @@
+已完成 P006，未修改 `docs/plan/plan_feedback_6_20260625-035040.md`，也未勾选 checkbox 或更新计划进度区。
+
+**变更**
+- 新增 toolbar overlay 自动化覆盖：Overlay/OverlayPortal 承载与选区清理，见 `test/widgets/wenz_rich_text_editor_test.dart:3482`
+- 新增滚动跟随与工具栏外可编辑测试，见 `test/widgets/wenz_rich_text_editor_test.dart:3672`、`test/widgets/wenz_rich_text_editor_test.dart:3741`
+- 新增测试文档 helper，见 `test/widgets/wenz_rich_text_editor_test.dart:8566`
+- 补充 P006 自动化记录、手工验收表和遗留风险说明，见 `docs/acceptance_manual_checklist.md:14`
+
+**验证**
+- `flutter test test/widgets/wenz_rich_text_editor_test.dart --name "^table floating toolbar ...$" --reporter expanded`：通过，`+6`
+- `flutter analyze`：通过，`No issues found!`
+- `dart format test/widgets/wenz_rich_text_editor_test.dart`：已执行
+
+**说明**
+- 扩展抽查发现既有 3 条 toolbar 几何定位用例仍失败，已在 `docs/acceptance_manual_checklist.md:45` 区分记录为旧几何期望/当前顶部 clamp 策略风险；本次按 P006 未改实现文件。

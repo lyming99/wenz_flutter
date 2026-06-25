@@ -1,0 +1,15 @@
+P008 已完成，未修改 plan 文件、checkbox 或进度区。
+
+**完成内容**
+- `lib/src/widgets/wenz_rich_text_editor.dart:3120` 使用 `_FormulaBlockContent` 渲染块级公式。
+- `lib/src/widgets/wenz_rich_text_editor.dart:6926` 行内公式走专用 `Math.tex` 渲染，不再按普通文本显示。
+- `lib/src/widgets/wenz_rich_text_editor.dart:7029` 参考 `gpt_markdown` 的 `Math.tex` 思路，加入宽松解析与安全 fallback。
+- `lib/src/input/clipboard_service.dart:495` 复制公式时保留源文本，避免只复制渲染占位符。
+- `pubspec.yaml:13` 使用 `flutter_math_fork: 0.7.4` 作为公式渲染依赖。
+
+**验证**
+- `flutter test test\widgets\wenz_rich_text_editor_test.dart --name "renders formula, mention, and emoji inline embeds" --reporter expanded`
+- `flutter test test\input\clipboard_service_test.dart --name "formula" --reporter expanded`
+- 两项均通过；未运行全量测试。
+
+参考来源：`gpt_markdown` 仓库 `https://github.com/Infinitix-LLC/gpt_markdown`、pub.dev 包页 `https://pub.dev/packages/gpt_markdown`。

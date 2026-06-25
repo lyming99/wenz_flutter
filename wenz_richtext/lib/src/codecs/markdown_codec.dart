@@ -14,7 +14,7 @@ import '../core/model/table_model.dart';
 /// ATX headings (`#{1,6}`), unordered (`- `/`* `), ordered (`1. `), and task
 /// (`- [x] `/`- [ ]`) lists, blockquotes (`> `), fenced code blocks
 /// (``` ``` ```), GFM pipe tables, thematic breaks (`---`/`***`), images
-/// (`![alt](url)`), Wenz video placeholders (`![video](url)`), and inline
+/// (`![alt](url)`), Wenz video placeholders (`![video](url "wenz-video; …")`), and inline
 /// `**bold**`/`*italic*`/`~~strike~~`/`<u>u</u>`/`[text](url)`. Anything
 /// unrecognised falls back to a paragraph (Markdown's usual leniency —
 /// [decode] never throws for content).
@@ -23,6 +23,10 @@ import '../core/model/table_model.dart';
 /// inline kinds this package models; LaTeX / radio buttons have no model
 /// counterpart and are left as plain text. Underline uses `<u>` because GFM
 /// has no native underline syntax.
+///
+/// The codec serializes document content only. Editor-owned view state such as
+/// heading collapse is not emitted, so imported Markdown starts expanded while
+/// preserving every block in source order.
 class MarkdownCodec {
   const MarkdownCodec();
 
@@ -79,8 +83,12 @@ class MarkdownCodec {
         return '![${_escapeImageAlt(alt)}]($src$title)';
       case BlockType.video:
         final video = block as VideoBlockNode;
-        final src = video.file.isNotEmpty ? video.file : video.assetId;
-        return '![video]($src)';
+        final src = _videoSource(video);
+        final title = _videoMarkdownTitle(video, src);
+        if (title.isEmpty) {
+          return '![video]($src)';
+        }
+        return '![video]($src "${_escapeImageTitle(title)}")';
       case BlockType.embed:
         final embed = block as BlockEmbedNode;
         return '[${_escapeInline(embed.normalizedEmbedType)} embed: '
@@ -268,12 +276,68 @@ class MarkdownCodec {
     return 'image';
   }
 
+  String _videoSource(VideoBlockNode video) {
+    if (video.playbackUrl.isNotEmpty) {
+      return video.playbackUrl;
+    }
+    if (video.file.isNotEmpty) {
+      return video.file;
+    }
+    return video.assetId;
+  }
+
+  String _videoMarkdownTitle(VideoBlockNode video, String source) {
+    final fields = <String, String>{};
+
+    void add(String key, Object? value) {
+      final text = value?.toString() ?? '';
+      if (text.isNotEmpty) {
+        fields[key] = text;
+      }
+    }
+
+    if (video.assetId.isNotEmpty &&
+        (video.assetId != source ||
+            video.playbackUrl.isNotEmpty ||
+            video.file.isNotEmpty)) {
+      add('assetId', video.assetId);
+    }
+    add('playbackUrl', video.playbackUrl);
+    add('file', video.file);
+    add('coverUrl', video.coverUrl);
+    add('title', video.title);
+    add('description', video.description);
+    final aspectRatio = video.aspectRatio;
+    if (aspectRatio != null && aspectRatio > 0) {
+      add('aspectRatio', aspectRatio);
+    }
+    if (video.uploadStatus != FileUploadStatus.none) {
+      add('uploadStatus', video.uploadStatus.name);
+    }
+    add('uploadError', video.uploadError);
+
+    if (fields.isEmpty) {
+      return '';
+    }
+    final body = fields.entries
+        .map((entry) => '${entry.key}=${_escapeVideoMetaValue(entry.value)}')
+        .join('; ');
+    return 'wenz-video; $body';
+  }
+
   String _escapeImageAlt(String text) {
     return text.replaceAll('\\', r'\\').replaceAll(']', r'\]');
   }
 
   String _escapeImageTitle(String text) {
     return text.replaceAll('\\', r'\\').replaceAll('"', r'\"');
+  }
+
+  String _escapeVideoMetaValue(String text) {
+    return text
+        .replaceAll('\\', r'\\')
+        .replaceAll(';', r'\;')
+        .replaceAll('=', r'\=');
   }
 
   // ---------------------------------------------------------------------------
@@ -437,8 +501,13 @@ class MarkdownCodec {
         final alt = _unescapeImageToken(imageOnly.group(1) ?? '');
         final caption = _unescapeImageToken(imageOnly.group(3) ?? '');
         final source = imageOnly.group(2)!;
-        if (_isVideoPlaceholderAlt(alt) && caption.isEmpty) {
-          blocks.add(VideoBlockNode(id: newId('video'), assetId: source));
+        if (_isVideoPlaceholderAlt(alt)) {
+          blocks.add(_videoFromMarkdown(
+            id: newId('video'),
+            source: source,
+            alt: alt,
+            title: caption,
+          ));
         } else {
           blocks.add(ImageBlockNode(
             id: newId('image'),
@@ -753,6 +822,164 @@ class MarkdownCodec {
     );
   }
 
+  VideoBlockNode _videoFromMarkdown({
+    required String id,
+    required String source,
+    required String alt,
+    required String title,
+  }) {
+    final metadata = _parseVideoMetadata(title);
+    final plainTitle = metadata == null ? title.trim() : '';
+    final altTitle = _videoTitleFromAlt(alt);
+    final resolvedTitle =
+        metadata?['title'] ?? (plainTitle.isNotEmpty ? plainTitle : altTitle);
+    var assetId = metadata?['assetId'] ?? '';
+    var playbackUrl = metadata?['playbackUrl'] ?? '';
+    var file = metadata?['file'] ?? '';
+
+    if (assetId.isEmpty && playbackUrl.isEmpty && file.isEmpty) {
+      assetId = source;
+    } else if (playbackUrl.isEmpty &&
+        source.isNotEmpty &&
+        source != assetId &&
+        source != file) {
+      playbackUrl = source;
+    }
+
+    return VideoBlockNode(
+      id: id,
+      assetId: assetId,
+      playbackUrl: playbackUrl,
+      file: file,
+      coverUrl: metadata?['coverUrl'] ?? '',
+      title: resolvedTitle,
+      description: metadata?['description'] ?? '',
+      aspectRatio: _positiveDouble(metadata?['aspectRatio']),
+      uploadStatus: FileUploadStatus.parse(metadata?['uploadStatus']),
+      uploadError: metadata?['uploadError'] ?? '',
+    );
+  }
+
+  Map<String, String>? _parseVideoMetadata(String title) {
+    final trimmed = title.trim();
+    if (trimmed.isEmpty) {
+      return null;
+    }
+    final marker =
+        RegExp(r'^wenz-video\b', caseSensitive: false).firstMatch(trimmed);
+    if (marker == null) {
+      return null;
+    }
+    var body = trimmed.substring(marker.end).trimLeft();
+    if (body.startsWith(';')) {
+      body = body.substring(1).trimLeft();
+    }
+    if (body.isEmpty) {
+      return <String, String>{};
+    }
+    final result = <String, String>{};
+    for (final part in _splitEscaped(body, ';')) {
+      final trimmedPart = part.trim();
+      if (trimmedPart.isEmpty) {
+        continue;
+      }
+      final equalIndex = _indexOfUnescaped(trimmedPart, '=');
+      if (equalIndex <= 0) {
+        continue;
+      }
+      final key = trimmedPart.substring(0, equalIndex).trim();
+      final value = trimmedPart.substring(equalIndex + 1).trim();
+      if (key.isNotEmpty) {
+        result[key] = _unescapeVideoMetaValue(value);
+      }
+    }
+    return result;
+  }
+
+  List<String> _splitEscaped(String text, String separator) {
+    final parts = <String>[];
+    final buffer = StringBuffer();
+    var escaped = false;
+    for (var i = 0; i < text.length; i++) {
+      final char = text[i];
+      if (escaped) {
+        buffer.write('\\');
+        buffer.write(char);
+        escaped = false;
+        continue;
+      }
+      if (char == '\\') {
+        escaped = true;
+        continue;
+      }
+      if (char == separator) {
+        parts.add(buffer.toString());
+        buffer.clear();
+        continue;
+      }
+      buffer.write(char);
+    }
+    if (escaped) {
+      buffer.write('\\');
+    }
+    parts.add(buffer.toString());
+    return parts;
+  }
+
+  int _indexOfUnescaped(String text, String target) {
+    var escaped = false;
+    for (var i = 0; i < text.length; i++) {
+      final char = text[i];
+      if (escaped) {
+        escaped = false;
+        continue;
+      }
+      if (char == '\\') {
+        escaped = true;
+        continue;
+      }
+      if (char == target) {
+        return i;
+      }
+    }
+    return -1;
+  }
+
+  String _unescapeVideoMetaValue(String text) {
+    final buffer = StringBuffer();
+    var escaped = false;
+    for (var i = 0; i < text.length; i++) {
+      final char = text[i];
+      if (escaped) {
+        buffer.write(char);
+        escaped = false;
+        continue;
+      }
+      if (char == '\\') {
+        escaped = true;
+        continue;
+      }
+      buffer.write(char);
+    }
+    if (escaped) {
+      buffer.write('\\');
+    }
+    return buffer.toString();
+  }
+
+  String _videoTitleFromAlt(String alt) {
+    final trimmed = alt.trim();
+    final match =
+        RegExp(r'^video\s*:\s*(.+)$', caseSensitive: false).firstMatch(trimmed);
+    return match?.group(1)?.trim() ?? '';
+  }
+
+  double? _positiveDouble(Object? value) {
+    final text = value?.toString() ?? '';
+    final parsed = double.tryParse(text);
+    return parsed != null && parsed > 0 ? parsed : null;
+  }
+
   String _unescapeImageToken(String text) {
     if (!text.contains('\\')) {
       return text;
@@ -770,7 +997,8 @@ class MarkdownCodec {
   }
 
   bool _isVideoPlaceholderAlt(String alt) {
-    return alt.trim().toLowerCase() == 'video';
+    final normalized = alt.trim().toLowerCase();
+    return normalized == 'video' || normalized.startsWith('video:');
   }
 }
 

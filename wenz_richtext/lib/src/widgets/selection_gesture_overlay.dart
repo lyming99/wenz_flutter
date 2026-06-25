@@ -67,6 +67,7 @@ class _SelectionGestureOverlayState extends State<SelectionGestureOverlay> {
   bool _isDragging = false;
   Offset? _dragOrigin;
   Offset? _lastDragPosition;
+  int? _selectionExcludedPointer;
   // Anchor position from the most recent pointer down, used for tap /
   // multi-click selection regardless of whether a drag starts.
   DocumentPosition? _tapAnchor;
@@ -177,6 +178,17 @@ class _SelectionGestureOverlayState extends State<SelectionGestureOverlay> {
   }
 
   void _onPointerDown(PointerDownEvent event) {
+    if (widget.registry.isSelectionExcluded(event.position)) {
+      _selectionExcludedPointer = event.pointer;
+      _stopAutoScroll();
+      _dragBase = null;
+      _dragOrigin = null;
+      _lastDragPosition = null;
+      _tapAnchor = null;
+      _isDragging = false;
+      return;
+    }
+    _selectionExcludedPointer = null;
     // A press on the scrollbar gutter (desktop) is a scroll gesture, not a
     // content selection. Bail before resolving a content position so dragging
     // the thumb does not also start a selection drag.
@@ -215,6 +227,9 @@ class _SelectionGestureOverlayState extends State<SelectionGestureOverlay> {
   }
 
   void _onPointerMove(PointerMoveEvent event) {
+    if (_selectionExcludedPointer == event.pointer) {
+      return;
+    }
     if (_dragBase == null || _dragOrigin == null) {
       return;
     }
@@ -233,6 +248,10 @@ class _SelectionGestureOverlayState extends State<SelectionGestureOverlay> {
   }
 
   void _onPointerUp(PointerUpEvent event) {
+    if (_selectionExcludedPointer == event.pointer) {
+      _selectionExcludedPointer = null;
+      return;
+    }
     _stopAutoScroll();
     final position = event.position;
     final wasDragging = _isDragging;
@@ -295,6 +314,9 @@ class _SelectionGestureOverlayState extends State<SelectionGestureOverlay> {
   }
 
   void _onPointerCancel(PointerCancelEvent event) {
+    if (_selectionExcludedPointer == event.pointer) {
+      _selectionExcludedPointer = null;
+    }
     _stopAutoScroll();
     _isDragging = false;
     _dragBase = null;
