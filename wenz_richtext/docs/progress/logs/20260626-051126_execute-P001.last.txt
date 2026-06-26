@@ -1,0 +1,7 @@
+已完成 P001，未修改 plan 文件、未勾选 checkbox。
+
+- 变更：在 `docs/api_reference.md:551` 新增 `Theme token boundary` 小节。
+- 内容：明确不新增公开主题 API，仅依赖现有 `WenzRichTextEditor` 构造参数与 Flutter `ThemeData`。
+- 边界：记录正文、块级组件、inline、选区/光标、浮层、媒体、表格等颜色来源，区分 `ColorScheme` 与私有编辑器 token。
+- 背景落点：记录浅色 `Colors.white`、深色 `Colors.black` 只属于 widget/example 层，不进入模型、命令、codec、插件协议。
+- 验证：未运行测试；本任务为文档边界梳理。检查确认 plan 文件无 diff。

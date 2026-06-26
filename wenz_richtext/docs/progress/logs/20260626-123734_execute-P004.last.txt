@@ -1,0 +1,12 @@
+已完成指定任务 P004；未修改 plan 文件、未勾选 checkbox、未运行测试/构建/分析命令。
+
+**完成内容**
+- `lib/src/controller/slash_menu_controller.dart:24`：为菜单项增加 `handlesTriggerDeletion`，默认保持兼容自定义 action，内置 action 可自行合并删除触发文本与执行逻辑。
+- `lib/src/controller/slash_menu_controller.dart:296`：标题、列表、todo、引用改为单次 `replaceBlocks` 完成 `/query` 删除与块类型转换。
+- `lib/src/controller/slash_menu_controller.dart:355`：代码块、表格、图片、视频改为单次替换逻辑执行，避免残留触发文本。
+- `lib/src/controller/slash_menu_controller.dart:482`：对象类插入保留触发文本前后内容，不再丢弃段落中 `/query` 之外的文字。
+- `test/controller/slash_menu_controller_test.dart:311`：补充默认菜单项执行、前后文本保留、选区落点、撤销/重做相关测试覆盖。
+
+**未执行验证**
+- 按本阶段要求，未运行 `flutter test`、`dart test`、`flutter analyze`、`dart analyze`、格式化或构建命令。
+- 注意：`git status` 显示 `docs/plan/plan_requirement_14_20260626-034143.md` 为未跟踪状态，但本次未写入该 plan 文件；另外 `wenz_rich_text_controller.dart` 的修改来自前序任务上下文。

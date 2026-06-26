@@ -1,0 +1,7 @@
+P001 已完成，未修改 plan 文件、未勾选 checkbox，也未推进 P002+ 的 UI 实现。
+
+- 在 `lib/src/widgets/wenz_rich_text_editor.dart:108`、`lib/src/widgets/wenz_rich_text_editor.dart:319` 明确行号为展示层策略，定义 1-based、换行切分、样式与不参与模型/codec/复制/历史/offset 映射的边界。
+- 在 `docs/rendering.md:96`、`docs/rendering.md:129` 补充代码块行号语义、空行/末尾换行预期、视觉位置与横向滚动边界。
+- 在 `test/widgets/wenz_rich_text_editor_test.dart:1393` 添加 P001 最小测试，覆盖行号语义、codec/复制/undo-redo 不写入行号。
+- 已运行：`flutter test test/widgets/wenz_rich_text_editor_test.dart --plain-name "code block line-number policy is display-only"`，通过。
+- 备注：工作区存在其他既有未提交/未跟踪改动，我只处理了当前 scope 的 P001 相关文件。

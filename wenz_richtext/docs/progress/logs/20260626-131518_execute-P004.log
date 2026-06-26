@@ -1,0 +1,1523 @@
+OpenAI Codex v0.121.0 (research preview)
+--------
+workdir: D:\project\GitHub\wenz_flutter\wenz_richtext
+model: gpt-5.5
+provider: custom
+approval: never
+sandbox: workspace-write [workdir, /tmp, $TMPDIR, C:\Users\98000\.codex\memories]
+reasoning effort: medium
+reasoning summaries: none
+session id: 019f006d-732b-7cd1-800b-46c5ce7751a3
+--------
+user
+你是开发执行者。
+请只执行指定任务 P004，不要提前执行其它任务，也不要顺手处理其它 checkbox。
+
+plan 文件（只读）：D:\project\GitHub\wenz_flutter\wenz_richtext\docs\plan\plan_requirement_15_20260626-041316.md
+指定任务：
+- [ ] P004: 支持扩展层注册快捷键 <!-- scope: lib/src/plugins/editor_plugin.dart,lib/wenz_richtext.dart,test/plugins/editor_plugin_test.dart,test/input/shortcut_manager_test.dart -->
+任务 scope：lib/src/plugins/editor_plugin.dart, lib/wenz_richtext.dart, test/plugins/editor_plugin_test.dart, test/input/shortcut_manager_test.dart
+
+完成后必须：
+- 当前任务已恢复同一 plan 前序任务的 Codex 会话，请沿用已有分析结论和修改背景，避免重新从零梳理
+- plan 文件是只读上下文：不要修改 plan 文件，不要勾选 checkbox，不要更新 plan 进度区
+- AutoPlan 会在任务成功后统一写回数据库、checkbox 和进度区
+- 只修改当前任务 scope 直接相关的业务文件
+- 当前阶段只做开发修改，不运行测试、回归、验收、构建、lint/analyze、coverage、e2e 或 benchmark 命令；AutoPlan 会在所有任务完成后统一执行最终验收命令
+- 即使任务验收要点提到测试，也只补充或调整必要代码/测试文件，不在当前任务内启动测试进程；除非当前任务或 plan 总体说明明确写着“本任务必须执行某命令”
+- 若识别到 Flutter/Dart 项目，可遵循其代码组织、格式和测试文件约定，但当前任务内不要运行 flutter test、dart test、flutter analyze 或 dart analyze
+- 如果工具链命令因 PathAccessException、Permission denied、拒绝访问或超时失败，停止重试并说明环境阻塞，把验证留给最终验收阶段
+- 不输出完整 diff、源码全文或长文件列表
+- 中文文件读写使用 UTF-8
+**Inspecting file features**
+
+I realize I don't need to comply with any tests right now, but I do need to inspect the files. I should probably use a commentary preamble for clarity. It's worth noting that P003 may not have included the plugin in the editor, while P004’s scope doesn’t involve the editor widget at all. I suspect the support extensions are meant to register shortcuts through the plugin system, so I should inspect that to figure out what's going on.
+codex
+我会沿用前序快捷键模型，只查看插件导出与相关测试。
+  → 检查插件扩展结构
+  • 加入快捷键贡献模型
+  • 补充插件配置测试
+  • 核对 scope 变更
+exec
+powershell.exe -Command "Get-Content -Raw -Encoding UTF8 'lib\\src\\plugins\\editor_plugin.dart'; \""'`n--- exports ---"; Select-String -Path '"'lib\\wenz_richtext.dart' -Pattern 'plugin|shortcut|export'; \""'`n--- plugin tests ---"; Get-Content -Raw -Encoding UTF8 '"'test\\plugins\\editor_plugin_test.dart'; \""'`n--- shortcut tests refs ---"; Select-String -Path '"'test\\input\\shortcut_manager_test.dart' -Pattern 'configuration|merge|disabled|passThrough|EditorShortcut'" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 742ms:
+import '../controller/slash_menu_controller.dart';
+import '../controller/toolbar_controller.dart';
+import '../controller/wenz_rich_text_controller.dart';
+import '../core/commands/command_registry.dart';
+import '../core/commands/editor_command.dart';
+import '../core/model/block_node.dart';
+import '../input/clipboard_service.dart';
+import '../widgets/block_renderer_registry.dart';
+import '../widgets/inline_embed_renderer.dart';
+
+/// Stability marker for plugin-facing API surface.
+enum WenzPluginApiStatus {
+  stable,
+  stabilising,
+  experimental,
+}
+
+/// A package or app module that contributes editor behaviour through the
+/// supported extension registries.
+abstract class WenzRichTextPlugin {
+  const WenzRichTextPlugin();
+
+  /// Unique plugin id, usually reverse-domain or package-scoped.
+  String get id;
+
+  /// Stability of the plugin's own integration contract.
+  WenzPluginApiStatus get apiStatus => WenzPluginApiStatus.stabilising;
+
+  /// Installs commands, renderers, menu items, toolbar items, middleware, or
+  /// paste transformers into [context].
+  void install(WenzPluginContext context);
+}
+
+/// Context passed to [WenzRichTextPlugin.install].
+///
+/// Core command APIs are always available through [controller]. Widget/input UI
+/// registries are optional because a host may choose to render its own toolbar,
+/// slash surface, or block widgets.
+class WenzPluginContext {
+  WenzPluginContext({
+    required this.controller,
+    this.blockRenderers,
+    this.inlineEmbedRenderers,
+    this.slashMenuRegistry,
+    this.toolbarItems,
+    List<ClipboardPasteTransformer>? pasteTransformers,
+  }) : pasteTransformers =
+            pasteTransformers ?? controller.clipboardService.pasteTransformers;
+
+  final WenzRichTextController controller;
+  final BlockRendererRegistry? blockRenderers;
+  final InlineEmbedRendererRegistry? inlineEmbedRenderers;
+  final SlashMenuRegistry? slashMenuRegistry;
+  final WenzToolbarItemRegistry? toolbarItems;
+
+  /// Paste transformers used by [ClipboardService]. Pass a growable list to
+  /// [ClipboardService.pasteTransformers] when plugins install after controller
+  /// construction.
+  final List<ClipboardPasteTransformer> pasteTransformers;
+
+  CommandRegistry get commandRegistry => controller.registry;
+
+  List<CommandMiddleware> get middlewares => controller.middlewares;
+
+  void registerCommand(CommandDescriptor descriptor) {
+    commandRegistry.register(descriptor);
+  }
+
+  void addMiddleware(CommandMiddleware middleware) {
+    middlewares.add(middleware);
+  }
+
+  BlockRendererBuilder? registerBlockRenderer(
+    BlockType type,
+    BlockRendererBuilder builder,
+  ) {
+    final registry = blockRenderers;
+    if (registry == null) {
+      throw StateError('No BlockRendererRegistry was provided for plugins.');
+    }
+    return registry.register(type, builder);
+  }
+
+  BlockRendererBuilder? registerBlockEmbedRenderer(
+    String embedType,
+    BlockRendererBuilder builder,
+  ) {
+    final registry = blockRenderers;
+    if (registry == null) {
+      throw StateError('No BlockRendererRegistry was provided for plugins.');
+    }
+    return registry.registerEmbed(embedType, builder);
+  }
+
+  InlineEmbedSpanBuilder? registerInlineEmbedRenderer(
+    String embedType,
+    InlineEmbedSpanBuilder builder,
+  ) {
+    final registry = inlineEmbedRenderers;
+    if (registry == null) {
+      throw StateError(
+        'No InlineEmbedRendererRegistry was provided for plugins.',
+      );
+    }
+    return registry.register(embedType, builder);
+  }
+
+  void registerSlashMenuItem(SlashMenuItem item) {
+    final registry = slashMenuRegistry;
+    if (registry == null) {
+      throw StateError('No SlashMenuRegistry was provided for plugins.');
+    }
+    registry.register(item);
+  }
+
+  void registerSlashMenuItems(Iterable<SlashMenuItem> items) {
+    final registry = slashMenuRegistry;
+    if (registry == null) {
+      throw StateError('No SlashMenuRegistry was provided for plugins.');
+    }
+    registry.registerAll(items);
+  }
+
+  void addSlashMenuFilter(SlashMenuItemFilter filter) {
+    final registry = slashMenuRegistry;
+    if (registry == null) {
+      throw StateError('No SlashMenuRegistry was provided for plugins.');
+    }
+    registry.addFilter(filter);
+  }
+
+  void setSlashMenuSorter(SlashMenuItemSorter? sorter) {
+    final registry = slashMenuRegistry;
+    if (registry == null) {
+      throw StateError('No SlashMenuRegistry was provided for plugins.');
+    }
+    registry.setSorter(sorter);
+  }
+
+  void registerToolbarItem(WenzToolbarItem item) {
+    final registry = toolbarItems;
+    if (registry == null) {
+      throw StateError('No WenzToolbarItemRegistry was provided for plugins.');
+    }
+    registry.register(item);
+  }
+
+  void registerPasteTransformer(ClipboardPasteTransformer transformer) {
+    try {
+      pasteTransformers.add(transformer);
+    } on UnsupportedError catch (error) {
+      throw StateError(
+        'Clipboard paste transformers are immutable. Pass a growable list to '
+        'ClipboardService(pasteTransformers: <ClipboardPasteTransformer>[]). '
+        'Original error: $error',
+      );
+    }
+  }
+}
+
+/// Declarative plugin implementation for common extension contributions.
+class WenzPluginBundle extends WenzRichTextPlugin {
+  const WenzPluginBundle({
+    required this.id,
+    this.apiStatus = WenzPluginApiStatus.stabilising,
+    this.commands = const <CommandDescriptor>[],
+    this.middlewares = const <CommandMiddleware>[],
+    this.blockRenderers = const <BlockType, BlockRendererBuilder>{},
+    this.blockEmbedRenderers = const <String, BlockRendererBuilder>{},
+    this.inlineEmbedRenderers = const <String, InlineEmbedSpanBuilder>{},
+    this.slashMenuItems = const <SlashMenuItem>[],
+    this.slashMenuFilters = const <SlashMenuItemFilter>[],
+    this.slashMenuSorter,
+    this.toolbarItems = const <WenzToolbarItem>[],
+    this.pasteTransformers = const <ClipboardPasteTransformer>[],
+  });
+
+  @override
+  final String id;
+
+  @override
+  final WenzPluginApiStatus apiStatus;
+
+  final List<CommandDescriptor> commands;
+  final List<CommandMiddleware> middlewares;
+  final Map<BlockType, BlockRendererBuilder> blockRenderers;
+  final Map<String, BlockRendererBuilder> blockEmbedRenderers;
+  final Map<String, InlineEmbedSpanBuilder> inlineEmbedRenderers;
+  final List<SlashMenuItem> slashMenuItems;
+  final List<SlashMenuItemFilter> slashMenuFilters;
+  final SlashMenuItemSorter? slashMenuSorter;
+  final List<WenzToolbarItem> toolbarItems;
+  final List<ClipboardPasteTransformer> pasteTransformers;
+
+  @override
+  void install(WenzPluginContext context) {
+    for (final descriptor in commands) {
+      context.registerCommand(descriptor);
+    }
+    for (final middleware in middlewares) {
+      context.addMiddleware(middleware);
+    }
+    for (final entry in blockRenderers.entries) {
+      context.registerBlockRenderer(entry.key, entry.value);
+    }
+    for (final entry in blockEmbedRenderers.entries) {
+      context.registerBlockEmbedRenderer(entry.key, entry.value);
+    }
+    for (final entry in inlineEmbedRenderers.entries) {
+      context.registerInlineEmbedRenderer(entry.key, entry.value);
+    }
+    for (final item in slashMenuItems) {
+      context.registerSlashMenuItem(item);
+    }
+    for (final filter in slashMenuFilters) {
+      context.addSlashMenuFilter(filter);
+    }
+    if (slashMenuSorter != null) {
+      context.setSlashMenuSorter(slashMenuSorter);
+    }
+    for (final item in toolbarItems) {
+      context.registerToolbarItem(item);
+    }
+    for (final transformer in pasteTransformers) {
+      context.registerPasteTransformer(transformer);
+    }
+  }
+}
+
+/// Installs a batch of plugins and rejects duplicate ids within that batch.
+void installWenzRichTextPlugins({
+  required Iterable<WenzRichTextPlugin> plugins,
+  required WenzPluginContext context,
+}) {
+  final seen = <String>{};
+  for (final plugin in plugins) {
+    if (!seen.add(plugin.id)) {
+      throw StateError('Duplicate WenzRichTextPlugin id: ${plugin.id}');
+    }
+    plugin.install(context);
+  }
+}
+
+
+--- exports ---
+
+lib\wenz_richtext.dart:41:///   [WenzEditorPermission]), the plugin
+lib\wenz_richtext.dart:42:///   install surface ([WenzRichTextPlugin], [WenzPluginBundle],
+lib\wenz_richtext.dart:43:///   [WenzPluginContext], [WenzPluginApiStatus]), the
+lib\wenz_richtext.dart:97:/// `docs/input_system.md` for the IME/clipboard/shortcut/command-merge design,
+lib\wenz_richtext.dart:101:export 'src/codecs/document_errors.dart';
+lib\wenz_richtext.dart:102:export 'src/codecs/document_migration.dart';
+lib\wenz_richtext.dart:103:export 'src/codecs/document_version_snapshot_codec.dart';
+lib\wenz_richtext.dart:104:export 'src/codecs/html_codec.dart';
+lib\wenz_richtext.dart:105:export 'src/codecs/legacy_wen_json_codec.dart';
+lib\wenz_richtext.dart:106:export 'src/codecs/markdown_codec.dart';
+lib\wenz_richtext.dart:107:export 'src/codecs/plain_text_codec.dart';
+lib\wenz_richtext.dart:108:export 'src/codecs/rich_text_json_codec.dart';
+lib\wenz_richtext.dart:109:export 'src/collaboration/collaboration_adapter.dart';
+lib\wenz_richtext.dart:110:export 'src/controller/autosave_controller.dart';
+lib\wenz_richtext.dart:111:export 'src/controller/document_stats_controller.dart';
+lib\wenz_richtext.dart:112:export 'src/controller/find_replace_controller.dart';
+lib\wenz_richtext.dart:113:export 'src/controller/outline_controller.dart';
+lib\wenz_richtext.dart:114:export 'src/controller/slash_menu_controller.dart';
+lib\wenz_richtext.dart:115:export 'src/controller/toolbar_controller.dart';
+lib\wenz_richtext.dart:116:export 'src/controller/wenz_rich_text_controller.dart';
+lib\wenz_richtext.dart:117:export 'src/core/commands/block_commands.dart';
+lib\wenz_richtext.dart:118:export 'src/core/commands/block_structure_commands.dart';
+lib\wenz_richtext.dart:119:export 'src/core/commands/command_executor.dart';
+lib\wenz_richtext.dart:120:export 'src/core/commands/command_registry.dart';
+lib\wenz_richtext.dart:121:export 'src/core/commands/editor_command.dart';
+lib\wenz_richtext.dart:122:export 'src/core/commands/inline_commands.dart';
+lib\wenz_richtext.dart:123:export 'src/core/commands/inline_editing.dart';
+lib\wenz_richtext.dart:124:export 'src/core/commands/markdown_shortcut_commands.dart';
+lib\wenz_richtext.dart:125:export 'src/core/commands/revision_commands.dart';
+lib\wenz_richtext.dart:126:export 'src/core/commands/selection_commands.dart';
+lib\wenz_richtext.dart:127:export 'src/core/commands/style_commands.dart';
+lib\wenz_richtext.dart:128:export 'src/core/commands/table_commands.dart';
+lib\wenz_richtext.dart:129:export 'src/core/commands/text_commands.dart';
+lib\wenz_richtext.dart:130:export 'src/core/model/attributes.dart';
+lib\wenz_richtext.dart:131:export 'src/core/model/block_node.dart';
+lib\wenz_richtext.dart:132:export 'src/core/model/comment_model.dart';
+lib\wenz_richtext.dart:133:export 'src/core/model/document_version_snapshot.dart';
+lib\wenz_richtext.dart:134:export 'src/core/model/inline_node.dart';
+lib\wenz_richtext.dart:135:export 'src/core/model/revision_model.dart';
+lib\wenz_richtext.dart:136:export 'src/core/model/rich_text_document.dart';
+lib\wenz_richtext.dart:137:export 'src/core/model/table_model.dart';
+lib\wenz_richtext.dart:138:export 'src/core/position/document_position.dart';
+lib\wenz_richtext.dart:139:export 'src/core/schema/document_schema.dart';
+lib\wenz_richtext.dart:140:export 'src/core/transaction/change_set.dart';
+lib\wenz_richtext.dart:141:export 'src/core/transaction/document_session.dart';
+lib\wenz_richtext.dart:142:export 'src/exporters/document_conversion_plan.dart';
+lib\wenz_richtext.dart:143:export 'src/history/history_manager.dart';
+lib\wenz_richtext.dart:144:export 'src/input/clipboard_service.dart';
+lib\wenz_richtext.dart:145:export 'src/input/composition_state.dart';
+lib\wenz_richtext.dart:146:export 'src/input/editor_text_input_client.dart';
+lib\wenz_richtext.dart:147:export 'src/input/shortcut_manager.dart';
+lib\wenz_richtext.dart:148:export 'src/plugins/editor_plugin.dart';
+lib\wenz_richtext.dart:149:export 'src/widgets/block_renderer_registry.dart';
+lib\wenz_richtext.dart:150:export 'src/widgets/comment_sidebar.dart';
+lib\wenz_richtext.dart:151:export 'src/widgets/find_replace_panel.dart';
+lib\wenz_richtext.dart:152:export 'src/widgets/inline_embed_renderer.dart';
+lib\wenz_richtext.dart:153:export 'src/widgets/link_edit_dialog.dart';
+lib\wenz_richtext.dart:154:export 'src/widgets/media_resolver.dart';
+lib\wenz_richtext.dart:155:export 'src/widgets/slash_menu_overlay.dart';
+lib\wenz_richtext.dart:156:export 'src/widgets/wenz_rich_text_editor.dart';
+
+--- plugin tests ---
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:wenz_richtext/wenz_richtext.dart';
+
+import '../helpers/selection_test_helpers.dart';
+
+void main() {
+  test('plugin bundle installs every public extension registry', () {
+    final pasteTransformers = <ClipboardPasteTransformer>[];
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[],
+          ),
+        ],
+      ),
+      selection: collapsedTextSelection('p1', 0, 0),
+      clipboardService: ClipboardService(
+        pasteTransformers: pasteTransformers,
+      ),
+    );
+    final blockRenderers = BlockRendererRegistry();
+    final inlineEmbeds = InlineEmbedRendererRegistry();
+    final slashMenu = SlashMenuRegistry();
+    final toolbarItems = WenzToolbarItemRegistry();
+    final toolbar = ToolbarController(controller);
+    addTearDown(toolbar.dispose);
+
+    installWenzRichTextPlugins(
+      plugins: <WenzRichTextPlugin>[
+        WenzPluginBundle(
+          id: 'test.bundle',
+          commands: <CommandDescriptor>[
+            CommandDescriptor(
+              name: 'test.insert',
+              factory: (args) =>
+                  InsertTextCommand(args.readString('text') ?? 'plugin'),
+            ),
+          ],
+          middlewares: <CommandMiddleware>[_CountingMiddleware()],
+          blockRenderers: <BlockType, BlockRendererBuilder>{
+            BlockType.quote: (_, __) => const SizedBox.shrink(),
+          },
+          blockEmbedRenderers: <String, BlockRendererBuilder>{
+            'crm-card': (_, __) => const SizedBox.shrink(),
+          },
+          inlineEmbedRenderers: <String, InlineEmbedSpanBuilder>{
+            'token': (_, embed, __) => TextSpan(text: '[${embed.embedType}]'),
+          },
+          slashMenuItems: <SlashMenuItem>[
+            SlashMenuItem(
+              id: 'test.item',
+              title: 'Test Item',
+              icon: 'extension',
+              keywords: const <String>['plugin'],
+              action: (_, __) {},
+            ),
+            SlashMenuItem(
+              id: 'test.hidden',
+              title: 'Hidden Item',
+              icon: 'extension',
+              keywords: const <String>['plugin'],
+              action: (_, __) {},
+            ),
+          ],
+          slashMenuFilters: <SlashMenuItemFilter>[
+            (item, query) => item.id != 'test.hidden',
+          ],
+          slashMenuSorter: (a, b, query) => b.id.compareTo(a.id),
+          toolbarItems: <WenzToolbarItem>[
+            WenzToolbarItem(
+              id: 'test.toolbar',
+              title: 'Test Toolbar',
+              action: (_, __) {},
+              isEnabled: (state) => state.hasSelection,
+            ),
+          ],
+          pasteTransformers: <ClipboardPasteTransformer>[
+            ClipboardPasteTransformer(
+              id: 'test.paste',
+              transform: (context) {
+                if (!context.raw.startsWith('plugin:')) {
+                  return null;
+                }
+                return ClipboardPaste.plain(
+                  context.raw.substring('plugin:'.length),
+                );
+              },
+            ),
+          ],
+        ),
+      ],
+      context: WenzPluginContext(
+        controller: controller,
+        blockRenderers: blockRenderers,
+        inlineEmbedRenderers: inlineEmbeds,
+        slashMenuRegistry: slashMenu,
+        toolbarItems: toolbarItems,
+        pasteTransformers: pasteTransformers,
+      ),
+    );
+
+    expect(controller.registry.contains('test.insert'), isTrue);
+    controller.executeCommand('test.insert', <String, Object?>{'text': 'ok'});
+    expect(controller.document.plainText, 'ok');
+    expect(controller.middlewares.single, isA<_CountingMiddleware>());
+
+    expect(blockRenderers.has(BlockType.quote), isTrue);
+    expect(blockRenderers.hasEmbed('crm-card'), isTrue);
+    expect(inlineEmbeds.has('token'), isTrue);
+    expect(
+      (inlineEmbeds.buildTextSpan(
+        _FakeBuildContext(),
+        const InlineEmbed(embedType: 'token'),
+        const TextStyle(),
+      ) as TextSpan?)
+          ?.text,
+      '[token]',
+    );
+    expect(slashMenu.items.map((item) => item.id), contains('test.item'));
+    expect(slashMenu.items.map((item) => item.id), contains('test.hidden'));
+    expect(slashMenu.filter('plugin').map((item) => item.id), <String>[
+      'test.item',
+    ]);
+    expect(toolbarItems.has('test.toolbar'), isTrue);
+    expect(toolbarItems['test.toolbar']?.enabledFor(toolbar.state), isTrue);
+    expect(controller.clipboardService.parse('plugin:value').text, 'value');
+  });
+
+  testWidgets('plugin renderers and media resolvers skip collapsed descendants',
+      (tester) async {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'section',
+            type: BlockType.heading,
+            attributes: BlockAttributes(level: 1),
+            content: <InlineNode>[TextRun(text: 'Section')],
+          ),
+          TextBlockNode(
+            id: 'hidden-p',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'Hidden paragraph')],
+          ),
+          ImageBlockNode(id: 'hidden-img', assetId: 'hidden-asset'),
+          TextBlockNode(
+            id: 'next',
+            type: BlockType.heading,
+            attributes: BlockAttributes(level: 1),
+            content: <InlineNode>[TextRun(text: 'Next')],
+          ),
+          TextBlockNode(
+            id: 'visible-p',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'Visible paragraph')],
+          ),
+          ImageBlockNode(id: 'visible-img', assetId: 'visible-asset'),
+        ],
+      ),
+    );
+    addTearDown(controller.dispose);
+    final outline = WenzOutlineController(editor: controller);
+    addTearDown(outline.dispose);
+    expect(outline.collapseByBlockId('section'), isTrue);
+
+    final builtBlockIds = <String>[];
+    dynamic seenGeometryRegistry;
+    final blockRenderers = BlockRendererRegistry();
+    WenzRichTextEditor.installDefaultRenderers(blockRenderers);
+    final mediaResolver = _RecordingMediaResolver();
+    installWenzRichTextPlugins(
+      plugins: <WenzRichTextPlugin>[
+        WenzPluginBundle(
+          id: 'collapse.extensions',
+          blockRenderers: <BlockType, BlockRendererBuilder>{
+            BlockType.paragraph: (context, renderContext) {
+              builtBlockIds.add(renderContext.block.id);
+              seenGeometryRegistry = renderContext.registry;
+              return Text('plugin:${renderContext.block.id}');
+            },
+          },
+        ),
+      ],
+      context: WenzPluginContext(
+        controller: controller,
+        blockRenderers: blockRenderers,
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 480,
+            height: 720,
+            child: WenzRichTextEditor(
+              controller: controller,
+              outlineController: outline,
+              blockRenderers: blockRenderers,
+              mediaResolver: mediaResolver,
+              enableIme: false,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(builtBlockIds, contains('visible-p'));
+    expect(builtBlockIds, isNot(contains('hidden-p')));
+    expect(mediaResolver.seenBlockIds, contains('visible-img'));
+    expect(mediaResolver.seenBlockIds, isNot(contains('hidden-img')));
+    expect(find.text('plugin:hidden-p'), findsNothing);
+    expect(find.text('resolved:hidden-img'), findsNothing);
+
+    Iterable<String> rowBlockIds() {
+      final entries = seenGeometryRegistry.rowEntries as Iterable<dynamic>;
+      return entries.map((entry) => entry.blockId as String);
+    }
+
+    expect(rowBlockIds(), contains('visible-p'));
+    expect(rowBlockIds(), isNot(contains('hidden-p')));
+    expect(rowBlockIds(), isNot(contains('hidden-img')));
+
+    builtBlockIds.clear();
+    mediaResolver.seenBlockIds.clear();
+    expect(outline.expandByBlockId('section'), isTrue);
+    await tester.pump();
+
+    expect(builtBlockIds, contains('hidden-p'));
+    expect(mediaResolver.seenBlockIds, contains('hidden-img'));
+    expect(find.text('plugin:hidden-p'), findsOneWidget);
+    expect(find.text('resolved:hidden-img'), findsOneWidget);
+    expect(rowBlockIds(), contains('hidden-p'));
+    expect(rowBlockIds(), contains('hidden-img'));
+  });
+
+  test('plugin batch rejects duplicate ids', () {
+    final controller = WenzRichTextController();
+    const plugin = WenzPluginBundle(id: 'dup');
+
+    expect(
+      () => installWenzRichTextPlugins(
+        plugins: <WenzRichTextPlugin>[plugin, plugin],
+        context: WenzPluginContext(controller: controller),
+      ),
+      throwsStateError,
+    );
+  });
+
+  test('plugin context exposes slash menu registry extension helpers', () {
+    final controller = WenzRichTextController();
+    final slashMenu = SlashMenuRegistry();
+    final context = WenzPluginContext(
+      controller: controller,
+      slashMenuRegistry: slashMenu,
+    );
+
+    context.registerSlashMenuItems(<SlashMenuItem>[
+      SlashMenuItem(
+        id: 'b',
+        title: 'B item',
+        icon: 'extension',
+        keywords: const <String>['custom'],
+        action: (_, __) {},
+      ),
+      SlashMenuItem(
+        id: 'a',
+        title: 'A item',
+        icon: 'extension',
+        keywords: const <String>['custom'],
+        action: (_, __) {},
+      ),
+    ]);
+    context.addSlashMenuFilter((item, query) => item.id != 'b');
+    context.setSlashMenuSorter((a, b, query) => a.id.compareTo(b.id));
+
+    expect(slashMenu.filter('custom').map((item) => item.id), <String>['a']);
+  });
+
+  test('plugin context rejects slash extensions without registry', () {
+    final context = WenzPluginContext(controller: WenzRichTextController());
+
+    expect(
+      () => context.addSlashMenuFilter((item, query) => true),
+      throwsStateError,
+    );
+    expect(
+      () => context.setSlashMenuSorter(null),
+      throwsStateError,
+    );
+  });
+}
+
+class _CountingMiddleware extends CommandMiddleware {}
+
+class _RecordingMediaResolver implements MediaResolver {
+  final List<String> seenBlockIds = <String>[];
+
+  @override
+  Widget? resolve(BuildContext context, BlockNode block) {
+    seenBlockIds.add(block.id);
+    return Text('resolved:${block.id}');
+  }
+}
+
+class _FakeBuildContext implements BuildContext {
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+
+--- shortcut tests refs ---
+test\input\shortcut_manager_test.dart:6:  const manager = EditorShortcutManager();
+test\input\shortcut_manager_test.dart:8:  EditorShortcutResolution resolve(
+test\input\shortcut_manager_test.dart:30:  EditorShortcutResolution resolveWith(
+test\input\shortcut_manager_test.dart:31:    EditorShortcutManager manager,
+test\input\shortcut_manager_test.dart:59:  test('configuration overrides default binding with later match', () {
+test\input\shortcut_manager_test.dart:60:    const configured = EditorShortcutManager(
+test\input\shortcut_manager_test.dart:61:      configuration: EditorShortcutConfiguration(
+test\input\shortcut_manager_test.dart:62:        bindings: <EditorShortcutBinding>[
+test\input\shortcut_manager_test.dart:63:          EditorShortcutBinding.handled(
+test\input\shortcut_manager_test.dart:64:            shortcut: EditorShortcutKey(
+test\input\shortcut_manager_test.dart:66:              modifiers: <EditorShortcutModifier>{EditorShortcutModifier.prima
+ry},
+test\input\shortcut_manager_test.dart:68:            intent: EditorShortcutIntent.copy,
+test\input\shortcut_manager_test.dart:80:    expect(result.disposition, EditorShortcutDisposition.handled);
+test\input\shortcut_manager_test.dart:81:    expect(result.intent, EditorShortcutIntent.copy);
+test\input\shortcut_manager_test.dart:84:  test('configuration adds exact modifier bindings', () {
+test\input\shortcut_manager_test.dart:85:    const configured = EditorShortcutManager(
+test\input\shortcut_manager_test.dart:86:      configuration: EditorShortcutConfiguration(
+test\input\shortcut_manager_test.dart:87:        bindings: <EditorShortcutBinding>[
+test\input\shortcut_manager_test.dart:88:          EditorShortcutBinding.handled(
+test\input\shortcut_manager_test.dart:89:            shortcut: EditorShortcutKey(
+test\input\shortcut_manager_test.dart:91:              modifiers: <EditorShortcutModifier>{
+test\input\shortcut_manager_test.dart:92:                EditorShortcutModifier.shift,
+test\input\shortcut_manager_test.dart:93:                EditorShortcutModifier.alt,
+test\input\shortcut_manager_test.dart:96:            intent: EditorShortcutIntent.find,
+test\input\shortcut_manager_test.dart:116:    expect(match.intent, EditorShortcutIntent.find);
+test\input\shortcut_manager_test.dart:117:    expect(extraModifier.disposition, EditorShortcutDisposition.ignored);
+test\input\shortcut_manager_test.dart:120:  test('configuration disables intents and passes through bindings', () {
+test\input\shortcut_manager_test.dart:121:    const configured = EditorShortcutManager(
+test\input\shortcut_manager_test.dart:122:      configuration: EditorShortcutConfiguration(
+test\input\shortcut_manager_test.dart:123:        bindings: <EditorShortcutBinding>[
+test\input\shortcut_manager_test.dart:124:          EditorShortcutBinding.passThrough(
+test\input\shortcut_manager_test.dart:125:            shortcut: EditorShortcutKey(
+test\input\shortcut_manager_test.dart:127:              modifiers: <EditorShortcutModifier>{EditorShortcutModifier.prim
+ary},
+test\input\shortcut_manager_test.dart:131:        disabledIntents: <EditorShortcutIntent>{EditorShortcutIntent.paste},
+test\input\shortcut_manager_test.dart:146:    expect(paste.disposition, EditorShortcutDisposition.ignored);
+test\input\shortcut_manager_test.dart:147:    expect(save.disposition, EditorShortcutDisposition.passThrough);
+test\input\shortcut_manager_test.dart:150:  test('configuration supports platform-specific primary shortcuts', () {
+test\input\shortcut_manager_test.dart:151:    const configured = EditorShortcutManager(
+test\input\shortcut_manager_test.dart:152:      platform: EditorShortcutPlatform.macOS,
+test\input\shortcut_manager_test.dart:153:      configuration: EditorShortcutConfiguration(
+test\input\shortcut_manager_test.dart:154:        bindings: <EditorShortcutBinding>[
+test\input\shortcut_manager_test.dart:155:          EditorShortcutBinding.handled(
+test\input\shortcut_manager_test.dart:156:            shortcut: EditorShortcutKey(
+test\input\shortcut_manager_test.dart:158:              modifiers: <EditorShortcutModifier>{EditorShortcutModifier.prim
+ary},
+test\input\shortcut_manager_test.dart:159:              platforms: <EditorShortcutPlatform>{EditorShortcutPlatform.macO
+S},
+test\input\shortcut_manager_test.dart:161:            intent: EditorShortcutIntent.find,
+test\input\shortcut_manager_test.dart:174:    expect(result.intent, EditorShortcutIntent.find);
+test\input\shortcut_manager_test.dart:177:  test('configuration guards read-only writes and IME characters', () {
+test\input\shortcut_manager_test.dart:178:    const configured = EditorShortcutManager(
+test\input\shortcut_manager_test.dart:179:      configuration: EditorShortcutConfiguration(
+test\input\shortcut_manager_test.dart:180:        bindings: <EditorShortcutBinding>[
+test\input\shortcut_manager_test.dart:181:          EditorShortcutBinding.handled(
+test\input\shortcut_manager_test.dart:182:            shortcut: EditorShortcutKey(LogicalKeyboardKey.keyD),
+test\input\shortcut_manager_test.dart:183:            intent: EditorShortcutIntent.deleteForward,
+test\input\shortcut_manager_test.dart:185:          EditorShortcutBinding.handled(
+test\input\shortcut_manager_test.dart:186:            shortcut: EditorShortcutKey(LogicalKeyboardKey.keyE),
+test\input\shortcut_manager_test.dart:187:            intent: EditorShortcutIntent.insertCharacter,
+test\input\shortcut_manager_test.dart:205:    expect(readOnlyDelete.disposition, EditorShortcutDisposition.ignored);
+test\input\shortcut_manager_test.dart:206:    expect(imeCharacter.disposition, EditorShortcutDisposition.ignored);
+test\input\shortcut_manager_test.dart:209:  test('configuration merge and validation are deterministic', () {
+test\input\shortcut_manager_test.dart:210:    const first = EditorShortcutConfiguration(
+test\input\shortcut_manager_test.dart:211:      bindings: <EditorShortcutBinding>[
+test\input\shortcut_manager_test.dart:212:        EditorShortcutBinding.handled(
+test\input\shortcut_manager_test.dart:213:          shortcut: EditorShortcutKey(
+test\input\shortcut_manager_test.dart:215:            modifiers: <EditorShortcutModifier>{EditorShortcutModifier.primar
+y},
+test\input\shortcut_manager_test.dart:217:          intent: EditorShortcutIntent.copy,
+test\input\shortcut_manager_test.dart:219:        EditorShortcutBinding.handled(
+test\input\shortcut_manager_test.dart:220:          shortcut: EditorShortcutKey(LogicalKeyboardKey.keyI),
+test\input\shortcut_manager_test.dart:221:          intent: EditorShortcutIntent.insertCharacter,
+test\input\shortcut_manager_test.dart:224:      disabledIntents: <EditorShortcutIntent>{EditorShortcutIntent.cut},
+test\input\shortcut_manager_test.dart:226:    const second = EditorShortcutConfiguration(
+test\input\shortcut_manager_test.dart:227:      bindings: <EditorShortcutBinding>[
+test\input\shortcut_manager_test.dart:228:        EditorShortcutBinding.passThrough(
+test\input\shortcut_manager_test.dart:229:          shortcut: EditorShortcutKey(
+test\input\shortcut_manager_test.dart:231:            modifiers: <EditorShortcutModifier>{EditorShortcutModifier.primar
+y},
+test\input\shortcut_manager_test.dart:234:        EditorShortcutBinding.ignored(
+test\input\shortcut_manager_test.dart:235:          shortcut: EditorShortcutKey(
+test\input\shortcut_manager_test.dart:237:            platforms: <EditorShortcutPlatform>{},
+test\input\shortcut_manager_test.dart:241:      disabledIntents: <EditorShortcutIntent>{EditorShortcutIntent.paste},
+test\input\shortcut_manager_test.dart:244:    final merged = EditorShortcutConfiguration.merge(<EditorShortcutConfigura
+tion>[
+test\input\shortcut_manager_test.dart:248:    final issues = merged.validate();
+test\input\shortcut_manager_test.dart:250:      EditorShortcutManager(configuration: merged),
+test\input\shortcut_manager_test.dart:255:    expect(merged.bindings, hasLength(4));
+test\input\shortcut_manager_test.dart:256:    expect(merged.disabledIntents, contains(EditorShortcutIntent.cut));
+test\input\shortcut_manager_test.dart:257:    expect(merged.disabledIntents, contains(EditorShortcutIntent.paste));
+test\input\shortcut_manager_test.dart:258:    expect(resolved.disposition, EditorShortcutDisposition.passThrough);
+test\input\shortcut_manager_test.dart:261:      containsAll(<EditorShortcutConfigurationIssueCode>[
+test\input\shortcut_manager_test.dart:262:        EditorShortcutConfigurationIssueCode.duplicateShortcut,
+test\input\shortcut_manager_test.dart:263:        EditorShortcutConfigurationIssueCode.invalidCharacter,
+test\input\shortcut_manager_test.dart:264:        EditorShortcutConfigurationIssueCode.emptyPlatforms,
+test\input\shortcut_manager_test.dart:272:    expect(result.disposition, EditorShortcutDisposition.ignored);
+test\input\shortcut_manager_test.dart:283:    expect(result.disposition, EditorShortcutDisposition.handled);
+test\input\shortcut_manager_test.dart:284:    expect(result.intent, EditorShortcutIntent.selectAll);
+test\input\shortcut_manager_test.dart:290:    expect(result.disposition, EditorShortcutDisposition.passThrough);
+test\input\shortcut_manager_test.dart:294:  test('keeps default shortcut baseline without configuration', () {
+test\input\shortcut_manager_test.dart:297:          LogicalKeyboardKey.keyA, EditorShortcutIntent.selectAll),
+test\input\shortcut_manager_test.dart:299:          LogicalKeyboardKey.keyC, EditorShortcutIntent.copy),
+test\input\shortcut_manager_test.dart:301:          LogicalKeyboardKey.keyX, EditorShortcutIntent.cut),
+test\input\shortcut_manager_test.dart:303:          LogicalKeyboardKey.keyV, EditorShortcutIntent.paste),
+test\input\shortcut_manager_test.dart:305:          LogicalKeyboardKey.keyZ, EditorShortcutIntent.undo),
+test\input\shortcut_manager_test.dart:307:          LogicalKeyboardKey.keyY, EditorShortcutIntent.redo),
+test\input\shortcut_manager_test.dart:310:        EditorShortcutIntent.moveCaretByWordBackward,
+test\input\shortcut_manager_test.dart:314:        EditorShortcutIntent.moveCaretByWordForward,
+test\input\shortcut_manager_test.dart:318:        EditorShortcutIntent.moveCaretToDocumentStart,
+test\input\shortcut_manager_test.dart:322:        EditorShortcutIntent.moveCaretToDocumentEnd,
+test\input\shortcut_manager_test.dart:325:          LogicalKeyboardKey.arrowLeft, EditorShortcutIntent.moveCaretBackwar
+d),
+test\input\shortcut_manager_test.dart:327:          LogicalKeyboardKey.arrowRight, EditorShortcutIntent.moveCaretForwar
+d),
+test\input\shortcut_manager_test.dart:329:          LogicalKeyboardKey.arrowUp, EditorShortcutIntent.moveCaretUp),
+test\input\shortcut_manager_test.dart:331:          LogicalKeyboardKey.arrowDown, EditorShortcutIntent.moveCaretDown),
+test\input\shortcut_manager_test.dart:333:          LogicalKeyboardKey.home, EditorShortcutIntent.moveCaretToBlockStart
+),
+test\input\shortcut_manager_test.dart:335:          LogicalKeyboardKey.end, EditorShortcutIntent.moveCaretToBlockEnd),
+test\input\shortcut_manager_test.dart:337:          LogicalKeyboardKey.pageUp, EditorShortcutIntent.pageUp),
+test\input\shortcut_manager_test.dart:339:          LogicalKeyboardKey.pageDown, EditorShortcutIntent.pageDown),
+test\input\shortcut_manager_test.dart:341:          LogicalKeyboardKey.backspace, EditorShortcutIntent.deleteBackward),
+test\input\shortcut_manager_test.dart:343:          LogicalKeyboardKey.delete, EditorShortcutIntent.deleteForward),
+test\input\shortcut_manager_test.dart:345:          LogicalKeyboardKey.enter, EditorShortcutIntent.enter),
+test\input\shortcut_manager_test.dart:347:          LogicalKeyboardKey.keyA, EditorShortcutIntent.insertCharacter,
+test\input\shortcut_manager_test.dart:356:      expect(result.disposition, EditorShortcutDisposition.handled);
+test\input\shortcut_manager_test.dart:376:    expect(undo.disposition, EditorShortcutDisposition.ignored);
+test\input\shortcut_manager_test.dart:377:    expect(paste.disposition, EditorShortcutDisposition.ignored);
+test\input\shortcut_manager_test.dart:387:    expect(result.intent, EditorShortcutIntent.redo);
+test\input\shortcut_manager_test.dart:391:    final disabled = resolve(_down(LogicalKeyboardKey.keyF), primary: true);
+test\input\shortcut_manager_test.dart:409:    expect(disabled.disposition, EditorShortcutDisposition.passThrough);
+test\input\shortcut_manager_test.dart:410:    expect(findEnabled.intent, EditorShortcutIntent.find);
+test\input\shortcut_manager_test.dart:411:    expect(replaceEnabled.intent, EditorShortcutIntent.replace);
+test\input\shortcut_manager_test.dart:412:    expect(readOnlyReplace.disposition, EditorShortcutDisposition.passThrough
+);
+test\input\shortcut_manager_test.dart:422:    expect(result.intent, EditorShortcutIntent.moveCaretByWordBackward);
+test\input\shortcut_manager_test.dart:429:    expect(result.intent, EditorShortcutIntent.moveTableCellBackward);
+test\input\shortcut_manager_test.dart:435:    expect(result.disposition, EditorShortcutDisposition.handled);
+test\input\shortcut_manager_test.dart:436:    expect(result.intent, EditorShortcutIntent.moveCaretForward);
+test\input\shortcut_manager_test.dart:450:    expect(character.intent, EditorShortcutIntent.insertCharacter);
+test\input\shortcut_manager_test.dart:452:    expect(ime.disposition, EditorShortcutDisposition.ignored);
+test\input\shortcut_manager_test.dart:453:    expect(attached.disposition, EditorShortcutDisposition.ignored);
+test\input\shortcut_manager_test.dart:461:    expect(result.intent, EditorShortcutIntent.enter);
+test\input\shortcut_manager_test.dart:466:    expect(control.disposition, EditorShortcutDisposition.ignored);
+test\input\shortcut_manager_test.dart:484:  final EditorShortcutIntent intent;
+
+
+
+codex
+插件文件较长；我会按注册器和安装 helper 分段读取。
+exec
+powershell.exe -Command '$f='"'lib\\src\\plugins\\editor_plugin.dart'; "'$lines=Get-Content -Encoding UTF8 $f; for($i=1;$i -le $lines.Length;$i++){ if($i -le 260){ '"'{0,4}: {1}' -f "'$i,$lines[$i-1] } }; "--- exports tail ---"; $e=Get-Content -Encoding UTF8 '"'lib\\wenz_richtext.dart'; for("'$i=120;$i -le $e.Length;$i++){ '"'{0,4}: {1}' -f "'$i,$e[$i-1] }' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 587ms:
+   1: import '../controller/slash_menu_controller.dart';
+   2: import '../controller/toolbar_controller.dart';
+   3: import '../controller/wenz_rich_text_controller.dart';
+   4: import '../core/commands/command_registry.dart';
+   5: import '../core/commands/editor_command.dart';
+   6: import '../core/model/block_node.dart';
+   7: import '../input/clipboard_service.dart';
+   8: import '../widgets/block_renderer_registry.dart';
+   9: import '../widgets/inline_embed_renderer.dart';
+  10: 
+  11: /// Stability marker for plugin-facing API surface.
+  12: enum WenzPluginApiStatus {
+  13:   stable,
+  14:   stabilising,
+  15:   experimental,
+  16: }
+  17: 
+  18: /// A package or app module that contributes editor behaviour through the
+  19: /// supported extension registries.
+  20: abstract class WenzRichTextPlugin {
+  21:   const WenzRichTextPlugin();
+  22: 
+  23:   /// Unique plugin id, usually reverse-domain or package-scoped.
+  24:   String get id;
+  25: 
+  26:   /// Stability of the plugin's own integration contract.
+  27:   WenzPluginApiStatus get apiStatus => WenzPluginApiStatus.stabilising;
+  28: 
+  29:   /// Installs commands, renderers, menu items, toolbar items, middleware, or
+  30:   /// paste transformers into [context].
+  31:   void install(WenzPluginContext context);
+  32: }
+  33: 
+  34: /// Context passed to [WenzRichTextPlugin.install].
+  35: ///
+  36: /// Core command APIs are always available through [controller]. Widget/input UI
+  37: /// registries are optional because a host may choose to render its own toolbar,
+  38: /// slash surface, or block widgets.
+  39: class WenzPluginContext {
+  40:   WenzPluginContext({
+  41:     required this.controller,
+  42:     this.blockRenderers,
+  43:     this.inlineEmbedRenderers,
+  44:     this.slashMenuRegistry,
+  45:     this.toolbarItems,
+  46:     List<ClipboardPasteTransformer>? pasteTransformers,
+  47:   }) : pasteTransformers =
+  48:             pasteTransformers ?? controller.clipboardService.pasteTransformers;
+  49: 
+  50:   final WenzRichTextController controller;
+  51:   final BlockRendererRegistry? blockRenderers;
+  52:   final InlineEmbedRendererRegistry? inlineEmbedRenderers;
+  53:   final SlashMenuRegistry? slashMenuRegistry;
+  54:   final WenzToolbarItemRegistry? toolbarItems;
+  55: 
+  56:   /// Paste transformers used by [ClipboardService]. Pass a growable list to
+  57:   /// [ClipboardService.pasteTransformers] when plugins install after controller
+  58:   /// construction.
+  59:   final List<ClipboardPasteTransformer> pasteTransformers;
+  60: 
+  61:   CommandRegistry get commandRegistry => controller.registry;
+  62: 
+  63:   List<CommandMiddleware> get middlewares => controller.middlewares;
+  64: 
+  65:   void registerCommand(CommandDescriptor descriptor) {
+  66:     commandRegistry.register(descriptor);
+  67:   }
+  68: 
+  69:   void addMiddleware(CommandMiddleware middleware) {
+  70:     middlewares.add(middleware);
+  71:   }
+  72: 
+  73:   BlockRendererBuilder? registerBlockRenderer(
+  74:     BlockType type,
+  75:     BlockRendererBuilder builder,
+  76:   ) {
+  77:     final registry = blockRenderers;
+  78:     if (registry == null) {
+  79:       throw StateError('No BlockRendererRegistry was provided for plugins.');
+  80:     }
+  81:     return registry.register(type, builder);
+  82:   }
+  83: 
+  84:   BlockRendererBuilder? registerBlockEmbedRenderer(
+  85:     String embedType,
+  86:     BlockRendererBuilder builder,
+  87:   ) {
+  88:     final registry = blockRenderers;
+  89:     if (registry == null) {
+  90:       throw StateError('No BlockRendererRegistry was provided for plugins.');
+  91:     }
+  92:     return registry.registerEmbed(embedType, builder);
+  93:   }
+  94: 
+  95:   InlineEmbedSpanBuilder? registerInlineEmbedRenderer(
+  96:     String embedType,
+  97:     InlineEmbedSpanBuilder builder,
+  98:   ) {
+  99:     final registry = inlineEmbedRenderers;
+ 100:     if (registry == null) {
+ 101:       throw StateError(
+ 102:         'No InlineEmbedRendererRegistry was provided for plugins.',
+ 103:       );
+ 104:     }
+ 105:     return registry.register(embedType, builder);
+ 106:   }
+ 107: 
+ 108:   void registerSlashMenuItem(SlashMenuItem item) {
+ 109:     final registry = slashMenuRegistry;
+ 110:     if (registry == null) {
+ 111:       throw StateError('No SlashMenuRegistry was provided for plugins.');
+ 112:     }
+ 113:     registry.register(item);
+ 114:   }
+ 115: 
+ 116:   void registerSlashMenuItems(Iterable<SlashMenuItem> items) {
+ 117:     final registry = slashMenuRegistry;
+ 118:     if (registry == null) {
+ 119:       throw StateError('No SlashMenuRegistry was provided for plugins.');
+ 120:     }
+ 121:     registry.registerAll(items);
+ 122:   }
+ 123: 
+ 124:   void addSlashMenuFilter(SlashMenuItemFilter filter) {
+ 125:     final registry = slashMenuRegistry;
+ 126:     if (registry == null) {
+ 127:       throw StateError('No SlashMenuRegistry was provided for plugins.');
+ 128:     }
+ 129:     registry.addFilter(filter);
+ 130:   }
+ 131: 
+ 132:   void setSlashMenuSorter(SlashMenuItemSorter? sorter) {
+ 133:     final registry = slashMenuRegistry;
+ 134:     if (registry == null) {
+ 135:       throw StateError('No SlashMenuRegistry was provided for plugins.');
+ 136:     }
+ 137:     registry.setSorter(sorter);
+ 138:   }
+ 139: 
+ 140:   void registerToolbarItem(WenzToolbarItem item) {
+ 141:     final registry = toolbarItems;
+ 142:     if (registry == null) {
+ 143:       throw StateError('No WenzToolbarItemRegistry was provided for plugins.');
+ 144:     }
+ 145:     registry.register(item);
+ 146:   }
+ 147: 
+ 148:   void registerPasteTransformer(ClipboardPasteTransformer transformer) {
+ 149:     try {
+ 150:       pasteTransformers.add(transformer);
+ 151:     } on UnsupportedError catch (error) {
+ 152:       throw StateError(
+ 153:         'Clipboard paste transformers are immutable. Pass a growable list to '
+ 154:         'ClipboardService(pasteTransformers: <ClipboardPasteTransformer>[]). '
+ 155:         'Original error: $error',
+ 156:       );
+ 157:     }
+ 158:   }
+ 159: }
+ 160: 
+ 161: /// Declarative plugin implementation for common extension contributions.
+ 162: class WenzPluginBundle extends WenzRichTextPlugin {
+ 163:   const WenzPluginBundle({
+ 164:     required this.id,
+ 165:     this.apiStatus = WenzPluginApiStatus.stabilising,
+ 166:     this.commands = const <CommandDescriptor>[],
+ 167:     this.middlewares = const <CommandMiddleware>[],
+ 168:     this.blockRenderers = const <BlockType, BlockRendererBuilder>{},
+ 169:     this.blockEmbedRenderers = const <String, BlockRendererBuilder>{},
+ 170:     this.inlineEmbedRenderers = const <String, InlineEmbedSpanBuilder>{},
+ 171:     this.slashMenuItems = const <SlashMenuItem>[],
+ 172:     this.slashMenuFilters = const <SlashMenuItemFilter>[],
+ 173:     this.slashMenuSorter,
+ 174:     this.toolbarItems = const <WenzToolbarItem>[],
+ 175:     this.pasteTransformers = const <ClipboardPasteTransformer>[],
+ 176:   });
+ 177: 
+ 178:   @override
+ 179:   final String id;
+ 180: 
+ 181:   @override
+ 182:   final WenzPluginApiStatus apiStatus;
+ 183: 
+ 184:   final List<CommandDescriptor> commands;
+ 185:   final List<CommandMiddleware> middlewares;
+ 186:   final Map<BlockType, BlockRendererBuilder> blockRenderers;
+ 187:   final Map<String, BlockRendererBuilder> blockEmbedRenderers;
+ 188:   final Map<String, InlineEmbedSpanBuilder> inlineEmbedRenderers;
+ 189:   final List<SlashMenuItem> slashMenuItems;
+ 190:   final List<SlashMenuItemFilter> slashMenuFilters;
+ 191:   final SlashMenuItemSorter? slashMenuSorter;
+ 192:   final List<WenzToolbarItem> toolbarItems;
+ 193:   final List<ClipboardPasteTransformer> pasteTransformers;
+ 194: 
+ 195:   @override
+ 196:   void install(WenzPluginContext context) {
+ 197:     for (final descriptor in commands) {
+ 198:       context.registerCommand(descriptor);
+ 199:     }
+ 200:     for (final middleware in middlewares) {
+ 201:       context.addMiddleware(middleware);
+ 202:     }
+ 203:     for (final entry in blockRenderers.entries) {
+ 204:       context.registerBlockRenderer(entry.key, entry.value);
+ 205:     }
+ 206:     for (final entry in blockEmbedRenderers.entries) {
+ 207:       context.registerBlockEmbedRenderer(entry.key, entry.value);
+ 208:     }
+ 209:     for (final entry in inlineEmbedRenderers.entries) {
+ 210:       context.registerInlineEmbedRenderer(entry.key, entry.value);
+ 211:     }
+ 212:     for (final item in slashMenuItems) {
+ 213:       context.registerSlashMenuItem(item);
+ 214:     }
+ 215:     for (final filter in slashMenuFilters) {
+ 216:       context.addSlashMenuFilter(filter);
+ 217:     }
+ 218:     if (slashMenuSorter != null) {
+ 219:       context.setSlashMenuSorter(slashMenuSorter);
+ 220:     }
+ 221:     for (final item in toolbarItems) {
+ 222:       context.registerToolbarItem(item);
+ 223:     }
+ 224:     for (final transformer in pasteTransformers) {
+ 225:       context.registerPasteTransformer(transformer);
+ 226:     }
+ 227:   }
+ 228: }
+ 229: 
+ 230: /// Installs a batch of plugins and rejects duplicate ids within that batch.
+ 231: void installWenzRichTextPlugins({
+ 232:   required Iterable<WenzRichTextPlugin> plugins,
+ 233:   required WenzPluginContext context,
+ 234: }) {
+ 235:   final seen = <String>{};
+ 236:   for (final plugin in plugins) {
+ 237:     if (!seen.add(plugin.id)) {
+ 238:       throw StateError('Duplicate WenzRichTextPlugin id: ${plugin.id}');
+ 239:     }
+ 240:     plugin.install(context);
+ 241:   }
+ 242: }
+--- exports tail ---
+ 120: export 'src/core/commands/command_registry.dart';
+ 121: export 'src/core/commands/editor_command.dart';
+ 122: export 'src/core/commands/inline_commands.dart';
+ 123: export 'src/core/commands/inline_editing.dart';
+ 124: export 'src/core/commands/markdown_shortcut_commands.dart';
+ 125: export 'src/core/commands/revision_commands.dart';
+ 126: export 'src/core/commands/selection_commands.dart';
+ 127: export 'src/core/commands/style_commands.dart';
+ 128: export 'src/core/commands/table_commands.dart';
+ 129: export 'src/core/commands/text_commands.dart';
+ 130: export 'src/core/model/attributes.dart';
+ 131: export 'src/core/model/block_node.dart';
+ 132: export 'src/core/model/comment_model.dart';
+ 133: export 'src/core/model/document_version_snapshot.dart';
+ 134: export 'src/core/model/inline_node.dart';
+ 135: export 'src/core/model/revision_model.dart';
+ 136: export 'src/core/model/rich_text_document.dart';
+ 137: export 'src/core/model/table_model.dart';
+ 138: export 'src/core/position/document_position.dart';
+ 139: export 'src/core/schema/document_schema.dart';
+ 140: export 'src/core/transaction/change_set.dart';
+ 141: export 'src/core/transaction/document_session.dart';
+ 142: export 'src/exporters/document_conversion_plan.dart';
+ 143: export 'src/history/history_manager.dart';
+ 144: export 'src/input/clipboard_service.dart';
+ 145: export 'src/input/composition_state.dart';
+ 146: export 'src/input/editor_text_input_client.dart';
+ 147: export 'src/input/shortcut_manager.dart';
+ 148: export 'src/plugins/editor_plugin.dart';
+ 149: export 'src/widgets/block_renderer_registry.dart';
+ 150: export 'src/widgets/comment_sidebar.dart';
+ 151: export 'src/widgets/find_replace_panel.dart';
+ 152: export 'src/widgets/inline_embed_renderer.dart';
+ 153: export 'src/widgets/link_edit_dialog.dart';
+ 154: export 'src/widgets/media_resolver.dart';
+ 155: export 'src/widgets/slash_menu_overlay.dart';
+ 156: export 'src/widgets/wenz_rich_text_editor.dart';
+
+codex
+我会补读插件中段，确认声明式插件字段结构。
+exec
+powershell.exe -Command '$f='"'lib\\src\\plugins\\editor_plugin.dart'; "'$lines=Get-Content -Encoding UTF8 $f; for($i=124;$i -le 180;$i++){ '"'{0,4}: {1}' -f "'$i,$lines[$i-1] }; "--- plugin test head ---"; $t='"'test\\plugins\\editor_plugin_test.dart'; "'$tl=Get-Content -Encoding UTF8 $t; for($i=1;$i -le 240 -and $i -le $tl.Length;$i++){ '"'{0,4}: {1}' -f "'$i,$tl[$i-1] }' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 627ms:
+ 124:   void addSlashMenuFilter(SlashMenuItemFilter filter) {
+ 125:     final registry = slashMenuRegistry;
+ 126:     if (registry == null) {
+ 127:       throw StateError('No SlashMenuRegistry was provided for plugins.');
+ 128:     }
+ 129:     registry.addFilter(filter);
+ 130:   }
+ 131: 
+ 132:   void setSlashMenuSorter(SlashMenuItemSorter? sorter) {
+ 133:     final registry = slashMenuRegistry;
+ 134:     if (registry == null) {
+ 135:       throw StateError('No SlashMenuRegistry was provided for plugins.');
+ 136:     }
+ 137:     registry.setSorter(sorter);
+ 138:   }
+ 139: 
+ 140:   void registerToolbarItem(WenzToolbarItem item) {
+ 141:     final registry = toolbarItems;
+ 142:     if (registry == null) {
+ 143:       throw StateError('No WenzToolbarItemRegistry was provided for plugins.');
+ 144:     }
+ 145:     registry.register(item);
+ 146:   }
+ 147: 
+ 148:   void registerPasteTransformer(ClipboardPasteTransformer transformer) {
+ 149:     try {
+ 150:       pasteTransformers.add(transformer);
+ 151:     } on UnsupportedError catch (error) {
+ 152:       throw StateError(
+ 153:         'Clipboard paste transformers are immutable. Pass a growable list to '
+ 154:         'ClipboardService(pasteTransformers: <ClipboardPasteTransformer>[]). '
+ 155:         'Original error: $error',
+ 156:       );
+ 157:     }
+ 158:   }
+ 159: }
+ 160: 
+ 161: /// Declarative plugin implementation for common extension contributions.
+ 162: class WenzPluginBundle extends WenzRichTextPlugin {
+ 163:   const WenzPluginBundle({
+ 164:     required this.id,
+ 165:     this.apiStatus = WenzPluginApiStatus.stabilising,
+ 166:     this.commands = const <CommandDescriptor>[],
+ 167:     this.middlewares = const <CommandMiddleware>[],
+ 168:     this.blockRenderers = const <BlockType, BlockRendererBuilder>{},
+ 169:     this.blockEmbedRenderers = const <String, BlockRendererBuilder>{},
+ 170:     this.inlineEmbedRenderers = const <String, InlineEmbedSpanBuilder>{},
+ 171:     this.slashMenuItems = const <SlashMenuItem>[],
+ 172:     this.slashMenuFilters = const <SlashMenuItemFilter>[],
+ 173:     this.slashMenuSorter,
+ 174:     this.toolbarItems = const <WenzToolbarItem>[],
+ 175:     this.pasteTransformers = const <ClipboardPasteTransformer>[],
+ 176:   });
+ 177: 
+ 178:   @override
+ 179:   final String id;
+ 180: 
+--- plugin test head ---
+   1: import 'package:flutter/material.dart';
+   2: import 'package:flutter_test/flutter_test.dart';
+   3: import 'package:wenz_richtext/wenz_richtext.dart';
+   4: 
+   5: import '../helpers/selection_test_helpers.dart';
+   6: 
+   7: void main() {
+   8:   test('plugin bundle installs every public extension registry', () {
+   9:     final pasteTransformers = <ClipboardPasteTransformer>[];
+  10:     final controller = WenzRichTextController(
+  11:       document: const RichTextDocument(
+  12:         blocks: <BlockNode>[
+  13:           TextBlockNode(
+  14:             id: 'p1',
+  15:             type: BlockType.paragraph,
+  16:             content: <InlineNode>[],
+  17:           ),
+  18:         ],
+  19:       ),
+  20:       selection: collapsedTextSelection('p1', 0, 0),
+  21:       clipboardService: ClipboardService(
+  22:         pasteTransformers: pasteTransformers,
+  23:       ),
+  24:     );
+  25:     final blockRenderers = BlockRendererRegistry();
+  26:     final inlineEmbeds = InlineEmbedRendererRegistry();
+  27:     final slashMenu = SlashMenuRegistry();
+  28:     final toolbarItems = WenzToolbarItemRegistry();
+  29:     final toolbar = ToolbarController(controller);
+  30:     addTearDown(toolbar.dispose);
+  31: 
+  32:     installWenzRichTextPlugins(
+  33:       plugins: <WenzRichTextPlugin>[
+  34:         WenzPluginBundle(
+  35:           id: 'test.bundle',
+  36:           commands: <CommandDescriptor>[
+  37:             CommandDescriptor(
+  38:               name: 'test.insert',
+  39:               factory: (args) =>
+  40:                   InsertTextCommand(args.readString('text') ?? 'plugin'),
+  41:             ),
+  42:           ],
+  43:           middlewares: <CommandMiddleware>[_CountingMiddleware()],
+  44:           blockRenderers: <BlockType, BlockRendererBuilder>{
+  45:             BlockType.quote: (_, __) => const SizedBox.shrink(),
+  46:           },
+  47:           blockEmbedRenderers: <String, BlockRendererBuilder>{
+  48:             'crm-card': (_, __) => const SizedBox.shrink(),
+  49:           },
+  50:           inlineEmbedRenderers: <String, InlineEmbedSpanBuilder>{
+  51:             'token': (_, embed, __) => TextSpan(text: '[${embed.embedType}]'),
+  52:           },
+  53:           slashMenuItems: <SlashMenuItem>[
+  54:             SlashMenuItem(
+  55:               id: 'test.item',
+  56:               title: 'Test Item',
+  57:               icon: 'extension',
+  58:               keywords: const <String>['plugin'],
+  59:               action: (_, __) {},
+  60:             ),
+  61:             SlashMenuItem(
+  62:               id: 'test.hidden',
+  63:               title: 'Hidden Item',
+  64:               icon: 'extension',
+  65:               keywords: const <String>['plugin'],
+  66:               action: (_, __) {},
+  67:             ),
+  68:           ],
+  69:           slashMenuFilters: <SlashMenuItemFilter>[
+  70:             (item, query) => item.id != 'test.hidden',
+  71:           ],
+  72:           slashMenuSorter: (a, b, query) => b.id.compareTo(a.id),
+  73:           toolbarItems: <WenzToolbarItem>[
+  74:             WenzToolbarItem(
+  75:               id: 'test.toolbar',
+  76:               title: 'Test Toolbar',
+  77:               action: (_, __) {},
+  78:               isEnabled: (state) => state.hasSelection,
+  79:             ),
+  80:           ],
+  81:           pasteTransformers: <ClipboardPasteTransformer>[
+  82:             ClipboardPasteTransformer(
+  83:               id: 'test.paste',
+  84:               transform: (context) {
+  85:                 if (!context.raw.startsWith('plugin:')) {
+  86:                   return null;
+  87:                 }
+  88:                 return ClipboardPaste.plain(
+  89:                   context.raw.substring('plugin:'.length),
+  90:                 );
+  91:               },
+  92:             ),
+  93:           ],
+  94:         ),
+  95:       ],
+  96:       context: WenzPluginContext(
+  97:         controller: controller,
+  98:         blockRenderers: blockRenderers,
+  99:         inlineEmbedRenderers: inlineEmbeds,
+ 100:         slashMenuRegistry: slashMenu,
+ 101:         toolbarItems: toolbarItems,
+ 102:         pasteTransformers: pasteTransformers,
+ 103:       ),
+ 104:     );
+ 105: 
+ 106:     expect(controller.registry.contains('test.insert'), isTrue);
+ 107:     controller.executeCommand('test.insert', <String, Object?>{'text': 'ok'});
+ 108:     expect(controller.document.plainText, 'ok');
+ 109:     expect(controller.middlewares.single, isA<_CountingMiddleware>());
+ 110: 
+ 111:     expect(blockRenderers.has(BlockType.quote), isTrue);
+ 112:     expect(blockRenderers.hasEmbed('crm-card'), isTrue);
+ 113:     expect(inlineEmbeds.has('token'), isTrue);
+ 114:     expect(
+ 115:       (inlineEmbeds.buildTextSpan(
+ 116:         _FakeBuildContext(),
+ 117:         const InlineEmbed(embedType: 'token'),
+ 118:         const TextStyle(),
+ 119:       ) as TextSpan?)
+ 120:           ?.text,
+ 121:       '[token]',
+ 122:     );
+ 123:     expect(slashMenu.items.map((item) => item.id), contains('test.item'));
+ 124:     expect(slashMenu.items.map((item) => item.id), contains('test.hidden'));
+ 125:     expect(slashMenu.filter('plugin').map((item) => item.id), <String>[
+ 126:       'test.item',
+ 127:     ]);
+ 128:     expect(toolbarItems.has('test.toolbar'), isTrue);
+ 129:     expect(toolbarItems['test.toolbar']?.enabledFor(toolbar.state), isTrue);
+ 130:     expect(controller.clipboardService.parse('plugin:value').text, 'value');
+ 131:   });
+ 132: 
+ 133:   testWidgets('plugin renderers and media resolvers skip collapsed descendants',
+ 134:       (tester) async {
+ 135:     final controller = WenzRichTextController(
+ 136:       document: const RichTextDocument(
+ 137:         blocks: <BlockNode>[
+ 138:           TextBlockNode(
+ 139:             id: 'section',
+ 140:             type: BlockType.heading,
+ 141:             attributes: BlockAttributes(level: 1),
+ 142:             content: <InlineNode>[TextRun(text: 'Section')],
+ 143:           ),
+ 144:           TextBlockNode(
+ 145:             id: 'hidden-p',
+ 146:             type: BlockType.paragraph,
+ 147:             content: <InlineNode>[TextRun(text: 'Hidden paragraph')],
+ 148:           ),
+ 149:           ImageBlockNode(id: 'hidden-img', assetId: 'hidden-asset'),
+ 150:           TextBlockNode(
+ 151:             id: 'next',
+ 152:             type: BlockType.heading,
+ 153:             attributes: BlockAttributes(level: 1),
+ 154:             content: <InlineNode>[TextRun(text: 'Next')],
+ 155:           ),
+ 156:           TextBlockNode(
+ 157:             id: 'visible-p',
+ 158:             type: BlockType.paragraph,
+ 159:             content: <InlineNode>[TextRun(text: 'Visible paragraph')],
+ 160:           ),
+ 161:           ImageBlockNode(id: 'visible-img', assetId: 'visible-asset'),
+ 162:         ],
+ 163:       ),
+ 164:     );
+ 165:     addTearDown(controller.dispose);
+ 166:     final outline = WenzOutlineController(editor: controller);
+ 167:     addTearDown(outline.dispose);
+ 168:     expect(outline.collapseByBlockId('section'), isTrue);
+ 169: 
+ 170:     final builtBlockIds = <String>[];
+ 171:     dynamic seenGeometryRegistry;
+ 172:     final blockRenderers = BlockRendererRegistry();
+ 173:     WenzRichTextEditor.installDefaultRenderers(blockRenderers);
+ 174:     final mediaResolver = _RecordingMediaResolver();
+ 175:     installWenzRichTextPlugins(
+ 176:       plugins: <WenzRichTextPlugin>[
+ 177:         WenzPluginBundle(
+ 178:           id: 'collapse.extensions',
+ 179:           blockRenderers: <BlockType, BlockRendererBuilder>{
+ 180:             BlockType.paragraph: (context, renderContext) {
+ 181:               builtBlockIds.add(renderContext.block.id);
+ 182:               seenGeometryRegistry = renderContext.registry;
+ 183:               return Text('plugin:${renderContext.block.id}');
+ 184:             },
+ 185:           },
+ 186:         ),
+ 187:       ],
+ 188:       context: WenzPluginContext(
+ 189:         controller: controller,
+ 190:         blockRenderers: blockRenderers,
+ 191:       ),
+ 192:     );
+ 193: 
+ 194:     await tester.pumpWidget(
+ 195:       MaterialApp(
+ 196:         home: Scaffold(
+ 197:           body: SizedBox(
+ 198:             width: 480,
+ 199:             height: 720,
+ 200:             child: WenzRichTextEditor(
+ 201:               controller: controller,
+ 202:               outlineController: outline,
+ 203:               blockRenderers: blockRenderers,
+ 204:               mediaResolver: mediaResolver,
+ 205:               enableIme: false,
+ 206:             ),
+ 207:           ),
+ 208:         ),
+ 209:       ),
+ 210:     );
+ 211:     await tester.pump();
+ 212: 
+ 213:     expect(builtBlockIds, contains('visible-p'));
+ 214:     expect(builtBlockIds, isNot(contains('hidden-p')));
+ 215:     expect(mediaResolver.seenBlockIds, contains('visible-img'));
+ 216:     expect(mediaResolver.seenBlockIds, isNot(contains('hidden-img')));
+ 217:     expect(find.text('plugin:hidden-p'), findsNothing);
+ 218:     expect(find.text('resolved:hidden-img'), findsNothing);
+ 219: 
+ 220:     Iterable<String> rowBlockIds() {
+ 221:       final entries = seenGeometryRegistry.rowEntries as Iterable<dynamic>;
+ 222:       return entries.map((entry) => entry.blockId as String);
+ 223:     }
+ 224: 
+ 225:     expect(rowBlockIds(), contains('visible-p'));
+ 226:     expect(rowBlockIds(), isNot(contains('hidden-p')));
+ 227:     expect(rowBlockIds(), isNot(contains('hidden-img')));
+ 228: 
+ 229:     builtBlockIds.clear();
+ 230:     mediaResolver.seenBlockIds.clear();
+ 231:     expect(outline.expandByBlockId('section'), isTrue);
+ 232:     await tester.pump();
+ 233: 
+ 234:     expect(builtBlockIds, contains('hidden-p'));
+ 235:     expect(mediaResolver.seenBlockIds, contains('hidden-img'));
+ 236:     expect(find.text('plugin:hidden-p'), findsOneWidget);
+ 237:     expect(find.text('resolved:hidden-img'), findsOneWidget);
+ 238:     expect(rowBlockIds(), contains('hidden-p'));
+ 239:     expect(rowBlockIds(), contains('hidden-img'));
+ 240:   });
+
+codex
+我会再读首个插件测试完整主体，准备最小改动。
+exec
+powershell.exe -Command '$t='"'test\\plugins\\editor_plugin_test.dart'; "'$tl=Get-Content -Encoding UTF8 $t; for($i=32;$i -le 132;$i++){ '"'{0,4}: {1}' -f "'$i,$tl[$i-1] }' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 672ms:
+  32:     installWenzRichTextPlugins(
+  33:       plugins: <WenzRichTextPlugin>[
+  34:         WenzPluginBundle(
+  35:           id: 'test.bundle',
+  36:           commands: <CommandDescriptor>[
+  37:             CommandDescriptor(
+  38:               name: 'test.insert',
+  39:               factory: (args) =>
+  40:                   InsertTextCommand(args.readString('text') ?? 'plugin'),
+  41:             ),
+  42:           ],
+  43:           middlewares: <CommandMiddleware>[_CountingMiddleware()],
+  44:           blockRenderers: <BlockType, BlockRendererBuilder>{
+  45:             BlockType.quote: (_, __) => const SizedBox.shrink(),
+  46:           },
+  47:           blockEmbedRenderers: <String, BlockRendererBuilder>{
+  48:             'crm-card': (_, __) => const SizedBox.shrink(),
+  49:           },
+  50:           inlineEmbedRenderers: <String, InlineEmbedSpanBuilder>{
+  51:             'token': (_, embed, __) => TextSpan(text: '[${embed.embedType}]'),
+  52:           },
+  53:           slashMenuItems: <SlashMenuItem>[
+  54:             SlashMenuItem(
+  55:               id: 'test.item',
+  56:               title: 'Test Item',
+  57:               icon: 'extension',
+  58:               keywords: const <String>['plugin'],
+  59:               action: (_, __) {},
+  60:             ),
+  61:             SlashMenuItem(
+  62:               id: 'test.hidden',
+  63:               title: 'Hidden Item',
+  64:               icon: 'extension',
+  65:               keywords: const <String>['plugin'],
+  66:               action: (_, __) {},
+  67:             ),
+  68:           ],
+  69:           slashMenuFilters: <SlashMenuItemFilter>[
+  70:             (item, query) => item.id != 'test.hidden',
+  71:           ],
+  72:           slashMenuSorter: (a, b, query) => b.id.compareTo(a.id),
+  73:           toolbarItems: <WenzToolbarItem>[
+  74:             WenzToolbarItem(
+  75:               id: 'test.toolbar',
+  76:               title: 'Test Toolbar',
+  77:               action: (_, __) {},
+  78:               isEnabled: (state) => state.hasSelection,
+  79:             ),
+  80:           ],
+  81:           pasteTransformers: <ClipboardPasteTransformer>[
+  82:             ClipboardPasteTransformer(
+  83:               id: 'test.paste',
+  84:               transform: (context) {
+  85:                 if (!context.raw.startsWith('plugin:')) {
+  86:                   return null;
+  87:                 }
+  88:                 return ClipboardPaste.plain(
+  89:                   context.raw.substring('plugin:'.length),
+  90:                 );
+  91:               },
+  92:             ),
+  93:           ],
+  94:         ),
+  95:       ],
+  96:       context: WenzPluginContext(
+  97:         controller: controller,
+  98:         blockRenderers: blockRenderers,
+  99:         inlineEmbedRenderers: inlineEmbeds,
+ 100:         slashMenuRegistry: slashMenu,
+ 101:         toolbarItems: toolbarItems,
+ 102:         pasteTransformers: pasteTransformers,
+ 103:       ),
+ 104:     );
+ 105: 
+ 106:     expect(controller.registry.contains('test.insert'), isTrue);
+ 107:     controller.executeCommand('test.insert', <String, Object?>{'text': 'ok'});
+ 108:     expect(controller.document.plainText, 'ok');
+ 109:     expect(controller.middlewares.single, isA<_CountingMiddleware>());
+ 110: 
+ 111:     expect(blockRenderers.has(BlockType.quote), isTrue);
+ 112:     expect(blockRenderers.hasEmbed('crm-card'), isTrue);
+ 113:     expect(inlineEmbeds.has('token'), isTrue);
+ 114:     expect(
+ 115:       (inlineEmbeds.buildTextSpan(
+ 116:         _FakeBuildContext(),
+ 117:         const InlineEmbed(embedType: 'token'),
+ 118:         const TextStyle(),
+ 119:       ) as TextSpan?)
+ 120:           ?.text,
+ 121:       '[token]',
+ 122:     );
+ 123:     expect(slashMenu.items.map((item) => item.id), contains('test.item'));
+ 124:     expect(slashMenu.items.map((item) => item.id), contains('test.hidden'));
+ 125:     expect(slashMenu.filter('plugin').map((item) => item.id), <String>[
+ 126:       'test.item',
+ 127:     ]);
+ 128:     expect(toolbarItems.has('test.toolbar'), isTrue);
+ 129:     expect(toolbarItems['test.toolbar']?.enabledFor(toolbar.state), isTrue);
+ 130:     expect(controller.clipboardService.parse('plugin:value').text, 'value');
+ 131:   });
+ 132: 
+
+codex
+我会在插件上下文加入快捷键配置片段注册，并提供确定优先级合并 helper。
+  ✓ 检查插件扩展结构
+  → 加入快捷键贡献模型
+  • 补充插件配置测试
+  • 核对 scope 变更
+codex
+开始修改插件文件，保持现有声明式 bundle 风格。

@@ -1,0 +1,2947 @@
+OpenAI Codex v0.121.0 (research preview)
+--------
+workdir: D:\project\GitHub\wenz_flutter\wenz_richtext
+model: gpt-5.5
+provider: custom
+approval: never
+sandbox: danger-full-access
+reasoning effort: xhigh
+reasoning summaries: none
+session id: 019f00cb-aa89-7693-bb27-71d913ee2182
+--------
+user
+你是开发执行者。
+请只执行指定任务 P001，不要提前执行其它任务，也不要顺手处理其它 checkbox。
+
+plan 文件（只读）：D:\project\GitHub\wenz_flutter\wenz_richtext\docs\plan\plan_requirement_22_20260626-055230.md
+指定任务：- [ ] P001: 明确空白行点击语义边界 <!-- scope: lib/src/widgets/selection_gesture_overlay.dart,lib/src/widgets/block_geometry_registry.dart,lib/src/widgets/wenz_rich_text_editor.dart,docs/selection_engine.md -->
+任务 scope：lib/src/widgets/selection_gesture_overlay.dart, lib/src/widgets/block_geometry_registry.dart, lib/src/widgets/wenz_rich_text_editor.dart, docs/selection_engine.md
+
+完成后必须：
+- plan 文件是只读上下文：不要修改 plan 文件，不要勾选 checkbox，不要更新 plan 进度区
+- AutoPlan 会在任务成功后统一写回数据库、checkbox 和进度区
+- 只修改当前任务 scope 直接相关的业务文件
+- 如需测试，只运行与当前任务直接相关的最小测试集，不要运行全量测试或与本任务无关的测试
+- 只有当前任务本身明确要求全量验证时，才允许运行全量测试
+- 不输出完整 diff、源码全文或长文件列表
+- 中文文件读写使用 UTF-8
+codex
+我会先只读计划和相关 scope 文件，确认 P001 的边界。
+  → 读取 P001 上下文
+  • 定位相关点击逻辑
+  • 实施最小业务改动
+  • 运行最小相关验证
+exec
+powershell.exe -Command "Get-ChildItem -Force -Filter AGENTS.md; Get-Content -LiteralPath 'D:\\project\\GitHub\\wenz_flutter\\wenz_richtext\\docs\\plan\\plan_requirement_22_20260626-055230.md' -Encoding UTF8" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 182ms:
+# 需求开发计划：空白行支持点击
+
+## 来源
+- 类型：需求
+- 编号：22
+- 生成时间：2026-06-26 05:52:30
+
+## 原始内容
+空白行要支持点击
+
+## 需求理解
+- “空白行”指编辑器中可见但文本长度为 0 的文本承载区域，例如空段落、空列表项、空引用/标题文本面，以及表格单元格内的空文本行；它们应像普通文本行一样可以被点击并放置光标。
+- 当前点击链路主要由 `SelectionGestureOverlay` 接收指针事件，再通过 `BlockGeometryRegistry.positionFromGlobalOffset` 映射到 `DocumentPosition`，具体文本 offset 由 `_TextSelectionSurface` 和 `TextLayoutService` 计算。
+- 需求目标是点击空白行的可见行高区域时，编辑器获得焦点并把选区折叠到对应 block/path 的 offset `0`，而不是命中相邻 block、落到文档末尾、触发“内容区域外点击”或无响应。
+- 实现应优先修正命中区域和空文本 offset/caret fallback，不改变文档模型、序列化格式、输入命令语义或非空文本的点击/拖拽选择行为。
+- 需重点保护列表 marker、todo checkbox、标题折叠按钮、表格单元格 padding、隐藏折叠内容、滚动条 gutter、选择排除区和 block 间隙点击的既有行为。
+
+## 任务计划
+- [ ] P001: 明确空白行点击语义边界 <!-- scope: lib/src/widgets/selection_gesture_overlay.dart,lib/src/widgets/block_geometry_registry.dart,lib/src/widgets/wenz_rich_text_editor.dart,docs/selection_engine.md -->
+  - 验收要点：确认空白行点击的目标语义为对应 block/path 的 collapsed selection，offset 固定为 `0`，并请求编辑器焦点。
+  - 验收要点：确认覆盖范围包含空段落、空列表项、空引用/标题文本区域和表格单元格内空文本；非文本对象块仍按现有 block 对象选择语义处理。
+  - 验收要点：确认点击文本行可见区域才算命中空白行，列表 marker、todo checkbox、标题折叠按钮、block handle、滚动条 gutter 和选择排除区不被空白行命中抢占。
+
+- [ ] P002: 扩展空文本可点击命中区域 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/block_geometry_registry.dart -->
+  - 验收要点：`_TextSelectionSurface` 对 `textLength == 0` 的文本面仍注册稳定的 hit-test box，命中高度不小于该 block 的最小行高，宽度覆盖实际可编辑文本区域。
+  - 验收要点：`BlockGeometryRegistry.positionFromGlobalOffset` 在点击空白行可见区域时优先返回该空 block/path，不退化到 `_clampToNearest` 或相邻 block。
+  - 验收要点：空白行命中区域不越过父级布局边界，不覆盖列表前缀、todo checkbox、标题折叠按钮、表格相邻单元格或文档内容区域外空白。
+
+- [ ] P003: 修正空文本 offset 与光标定位 <!-- scope: lib/src/rendering/text_layout_service.dart,lib/src/widgets/wenz_rich_text_editor.dart -->
+  - 验收要点：空文本点击计算 offset 时始终安全返回 `0`，不会因空 `TextSpan`、零宽文本或 `TextPainter.getPositionForOffset` 边界行为产生异常或错误 offset。
+  - 验收要点：空白行被点击后 caret 可见，caret 高度与当前 block 文本样式行高一致或使用现有 minHeight fallback，不出现 0 高度或不可见光标。
+  - 验收要点：非空文本、内联 embed、组合输入、查找高亮、选区绘制和垂直方向移动光标的 offset 映射保持既有行为。
+
+- [ ] P004: 补充基础空白行点击测试 <!-- scope: test/widgets/block_geometry_registry_test.dart,test/widgets/wenz_rich_text_editor_test.dart -->
+  - 验收要点：新增 widget 测试覆盖空段落点击，断言 `controller.selection` 折叠到该段落的 `blockId/blockIndex/path/offset: 0`。
+  - 验收要点：新增测试覆盖位于两个非空段落之间的空段落，点击空段落行内不同水平位置均不会命中上下相邻段落。
+  - 验收要点：新增测试覆盖空列表项、空 todo 列表项、空引用或空标题的可点击行为，同时验证 marker/checkbox/折叠按钮交互不回归。
+
+- [ ] P005: 覆盖复杂容器和手势回归 <!-- scope: test/widgets/block_geometry_registry_test.dart,test/widgets/wenz_rich_text_editor_test.dart,test/helpers/selection_test_helpers.dart -->
+  - 验收要点：新增测试覆盖表格单元格内空文本点击，断言命中正确 `tableCellText` path、行列索引和 offset `0`，不会落到相邻单元格或整表对象。
+  - 验收要点：新增测试覆盖从空白行开始拖拽、双击/三击空白行、点击隐藏折叠内容原位置和点击文档内容底部之外的行为，确保手势链路稳定。
+  - 验收要点：保留已有 block 间隙点击、表格 padding 点击、隐藏内容点击和 scrollbar gutter 相关测试预期，无新增 flaky 或平台相关失败。
+
+- [ ] P006: 更新交互说明并执行回归验证 <!-- scope: docs/selection_engine.md,docs/rendering.md,flutter analyze,flutter test test/widgets/block_geometry_registry_test.dart,flutter test test/widgets/wenz_rich_text_editor_test.dart,flutter test -->
+  - 验收要点：`docs/selection_engine.md` 或 `docs/rendering.md` 补充空白行命中说明；如评审认为无需文档更新，需要在进度记录中说明原因。
+  - 验收要点：执行 `flutter analyze` 通过，且无新增 lint、格式或未使用代码问题。
+  - 验收要点：执行定向 widget 测试和全量 `flutter test` 通过；如存在非本需求导致的失败，需要记录失败命令、失败摘要和排除依据。
+
+## 总体验收标准
+- 计划中的所有 checkbox 任务完成，且每个任务的验收要点均有对应实现、测试或记录说明。
+- 用户点击任意可见空白文本行时，编辑器获得焦点并把 caret 放到该空白行对应位置，选区折叠到正确 block/path 的 offset `0`。
+- 空段落、空列表项、空 todo 列表项、空引用/标题文本区域和表格单元格内空文本均支持点击；非文本对象块继续保持既有对象选择行为。
+- 空白行点击不再误命中上下相邻 block、文档末尾或内容区域外处理逻辑，也不会抢占 checkbox、折叠按钮、列表 marker、滚动条 gutter、block handle 和选择排除区事件。
+- 非空文本点击、拖拽选择、双击选词、三击选块、block 间隙点击、表格 padding 点击、隐藏折叠内容、组合输入、查找高亮、选区绘制和 caret 绘制行为不回归。
+- 相关定向测试、`flutter analyze` 和全量 `flutter test` 通过，或已清晰记录与本需求无关的环境/历史失败。
+
+## 进度区
+- 当前状态：draft
+- 下一步：评审 P001 的空白行范围与命中边界，确认后进入 P002/P003 的命中区域和 offset/caret 实现。
+- 并行建议：P001 需先串行完成；P002 与 P003 都会触及 `_TextSelectionSurface` 和命中映射，建议串行推进；P004/P005 可在 P002/P003 稳定后并行补测试；P006 最后统一文档与回归。
+- 风险记录：空文本 `RichText` 的实际绘制尺寸、`TextPainter` 空文本 offset 行为和父级 Row/Expanded 布局可能导致命中框为 0 或覆盖过宽；实现时需要以可见文本区域为边界，避免抢占列表/表格/按钮交互。
+
+codex
+计划显示 P001 仅需固化语义边界；接着定位相关手势和几何映射说明。
+mcp: codegraph/codegraph_explore started
+mcp: codegraph/codegraph_explore (completed)
+**Checking file handling for Codegraph**
+
+I see that the Codegraph truncated the Wenz file, and I need specific symbols around gestures. It sounds like I need to inspect some files using shell commands, particularly `rg` and possibly check the documentation's selection engine. I think using `Get-Content` snippets could help, but I don't want to output something lengthy. There might be a need to check AGENTS recursively; using `Get-ChildItem -Recurse` with a filter could work. I’ll try `rg --files -g AGENTS.md`.
+codex
+已确认任务只要求边界定义，不进入 P002/P003 的实现修复。
+exec
+powershell.exe -Command 'rg --files -g AGENTS.md; rg -n "positionFromGlobalOffset|onTapBeyondContent|requestFocus|focusNode|_handleTap|_handlePan|TextSelectionSurface|register|BlockEntry|SelectionGestureOverlay|empty|blank|空白|selection" lib/src/widgets/selection_gesture_overlay.dart lib/src/widgets/block_geometry_registry.dart lib/src/widgets/wenz_rich_text_editor.dart docs/selection_engine.md' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 183ms:
+docs/selection_engine.md:7:阶段 0 的选区是**单块手势**——每个 `_TextSelectionSurface` 独占 `GestureDetector`，拖拽无法跨块。阶段 2 把手势上移到**文档级 overlay**，通过 `BlockGeometryRegistry` 把全局坐标解析为 `DocumentPosition`，从而支持跨块。
+docs/selection_engine.md:9:关键事实：**选区模型、命令层、跨块高亮绘制在阶段 0/1 已支持跨块**（`DocumentSelection` 无单块约束、`_selectionRangeForPath` 按 blockIndex 区间全块高亮）。阶段 2 补的只是手势生产。
+docs/selection_engine.md:14:SelectionGestureOverlay（文档级 Listener + 手势判定）
+docs/selection_engine.md:22:controller.setSelection(DocumentSelection)  ──▶ 各 _TextSelectionSurface 按区间重绘高亮
+docs/selection_engine.md:29:- 每个 `_TextSelectionSurface` 在 `initState` 用 `register(BlockEntry)` 注册：`blockId`、`blockIndex`、`path`、`textLength`、`GlobalKey`、`positionFromLocal` 回调、`wordRangeAt` 回调。`dispose` 时 `unregister`。
+docs/selection_engine.md:30:- `positionFromGlobalOffset(Offset global)`：遍历 entries，用 `RenderBox.globalToLocal` + `contains` 找命中块；命中则用该块 `TextLayoutService.offsetAt` 得 offset 构造 `DocumentPosition`。未命中（块间空隙/视口外）则 `_clampToNearest`——按垂直邻近选最近块的首/尾，保证拖拽到块间隙也能预测地扩展选区。
+docs/selection_engine.md:33:## SelectionGestureOverlay
+docs/selection_engine.md:35:`lib/src/widgets/selection_gesture_overlay.dart`。包裹 `SingleChildScrollView`，用 `Listener`（`PointerDown/Move/Up/Cancel`）统一接管指针事件。
+docs/selection_engine.md:47:- **拖拽跨块**：`_extendSelection` 每帧用 registry 解析 extent，可落在任意已注册块。绘制层（`_selectionRangeForPath`）自动处理跨块高亮：中间块全块高亮，首尾块按 offset 截断。
+docs/selection_engine.md:55:Block 左侧把手属于**顶层 block 行 chrome**，不属于 `_TextSelectionSurface`、`BlockRendererBuilder` 或对象块内部控件。后续渲染/拖拽实现必须复用 `BlockDragHandleSpec` 中的尺寸与阈值，并在命中把手时先消费指针事件，避免事件继续进入 `SelectionGestureOverlay` 生成文本选区。
+docs/selection_engine.md:72:- **只读与选区**：只读模式仍允许文本选区和复制，但不渲染 block 把手；把手命中区注册为 selection exclusion，避免拖拽排序误触发跨 block 文本选区。
+docs/selection_engine.md:73:- **长文档与虚拟化**：排序落点只基于已注册顶层 block 行，首尾/视口边缘通过 `BlockGeometryRegistry.blockReorderDropTargetFromGlobalOffset` 夹取到合法位置；命中把手时不会启动 `SelectionGestureOverlay` 的文本选区自动滚动，普通文本长拖拽的自动滚动仍由 overlay 覆盖。
+docs/selection_engine.md:90:overlay 在只读下仍接管所有手势产生 selection（阶段 0 已让只读可选；阶段 2 overlay 统一后保持）。编辑类命令仍由 `_handleKeyEvent` 的 `readOnly` 守卫。只读下不显示 caret，只显示 selection 高亮。
+docs/selection_engine.md:94:overlay 产生 selection 后，`_handleSelectionChanged` 调 `EditorTextInputClient.syncBuffer()` 刷新 IME 缓冲，让平台输入跟随新光标位置。
+docs/selection_engine.md:98:- **selection overlay handles**（移动端拖拽手柄）→ 阶段 8。
+lib/src/widgets/selection_gesture_overlay.dart:8:/// Document-level gesture surface that owns mouse/touch selection across all
+lib/src/widgets/selection_gesture_overlay.dart:13:/// in one block can extend the selection into a neighbouring block. This
+lib/src/widgets/selection_gesture_overlay.dart:15:/// inside a single [TextSelectionSurface].
+lib/src/widgets/selection_gesture_overlay.dart:19:/// - drag → extend selection (cross-block), with auto-scroll near viewport edges
+lib/src/widgets/selection_gesture_overlay.dart:24:///   past the visible area. (Touch selection past the viewport uses dedicated
+lib/src/widgets/selection_gesture_overlay.dart:28:class SelectionGestureOverlay extends StatefulWidget {
+lib/src/widgets/selection_gesture_overlay.dart:29:  const SelectionGestureOverlay({
+lib/src/widgets/selection_gesture_overlay.dart:33:    required this.focusNode,
+lib/src/widgets/selection_gesture_overlay.dart:36:    this.onTapBeyondContent,
+lib/src/widgets/selection_gesture_overlay.dart:42:  final FocusNode focusNode;
+lib/src/widgets/selection_gesture_overlay.dart:45:  final bool Function(Offset globalPosition)? onTapBeyondContent;
+lib/src/widgets/selection_gesture_overlay.dart:55:  State<SelectionGestureOverlay> createState() =>
+lib/src/widgets/selection_gesture_overlay.dart:56:      _SelectionGestureOverlayState();
+lib/src/widgets/selection_gesture_overlay.dart:59:class _SelectionGestureOverlayState extends State<SelectionGestureOverlay> {
+lib/src/widgets/selection_gesture_overlay.dart:70:  int? _selectionExcludedPointer;
+lib/src/widgets/selection_gesture_overlay.dart:72:  // multi-click selection regardless of whether a drag starts.
+lib/src/widgets/selection_gesture_overlay.dart:182:      _selectionExcludedPointer = event.pointer;
+lib/src/widgets/selection_gesture_overlay.dart:191:    _selectionExcludedPointer = null;
+lib/src/widgets/selection_gesture_overlay.dart:193:    // content selection. Bail before resolving a content position so dragging
+lib/src/widgets/selection_gesture_overlay.dart:194:    // the thumb does not also start a selection drag.
+lib/src/widgets/selection_gesture_overlay.dart:217:    _tapAnchor = widget.registry.positionFromGlobalOffset(position);
+lib/src/widgets/selection_gesture_overlay.dart:230:    if (_selectionExcludedPointer == event.pointer) {
+lib/src/widgets/selection_gesture_overlay.dart:251:    if (_selectionExcludedPointer == event.pointer) {
+lib/src/widgets/selection_gesture_overlay.dart:252:      _selectionExcludedPointer = null;
+lib/src/widgets/selection_gesture_overlay.dart:264:      final extent = widget.registry.positionFromGlobalOffset(position);
+lib/src/widgets/selection_gesture_overlay.dart:268:        widget.focusNode.requestFocus();
+lib/src/widgets/selection_gesture_overlay.dart:277:        tapCount == 1 && _handleTapBeyondContent(position);
+lib/src/widgets/selection_gesture_overlay.dart:286:      widget.focusNode.requestFocus();
+lib/src/widgets/selection_gesture_overlay.dart:303:  bool _handleTapBeyondContent(Offset globalPosition) {
+lib/src/widgets/selection_gesture_overlay.dart:308:    final handler = widget.onTapBeyondContent;
+lib/src/widgets/selection_gesture_overlay.dart:312:    widget.focusNode.requestFocus();
+lib/src/widgets/selection_gesture_overlay.dart:317:    if (_selectionExcludedPointer == event.pointer) {
+lib/src/widgets/selection_gesture_overlay.dart:318:      _selectionExcludedPointer = null;
+lib/src/widgets/selection_gesture_overlay.dart:333:    final extent = widget.registry.positionFromGlobalOffset(global);
+lib/src/widgets/selection_gesture_overlay.dart:407:  /// the selection. Touch is left out: a touch drag's continuous motion already
+lib/src/widgets/selection_gesture_overlay.dart:408:  /// drives [_syncScrollToEdge] per move, and touch selection past the viewport
+lib/src/widgets/block_geometry_registry.dart:6:/// registered editable blocks.
+lib/src/widgets/block_geometry_registry.dart:8:/// Each [_TextSelectionSurface] registers itself (via [register]) with its
+lib/src/widgets/block_geometry_registry.dart:14:/// cross-block drag selection.
+lib/src/widgets/block_geometry_registry.dart:20:  final List<BlockEntry> _entries = <BlockEntry>[];
+lib/src/widgets/block_geometry_registry.dart:23:  /// register/unregister so hot paths (caret rect, word range, vertical move —
+lib/src/widgets/block_geometry_registry.dart:25:  final Map<String, BlockEntry> _byKey = <String, BlockEntry>{};
+lib/src/widgets/block_geometry_registry.dart:28:  /// editable text/object selection surfaces and therefore suit row-level drag
+lib/src/widgets/block_geometry_registry.dart:29:  /// sorting, including custom renderers that do not register text geometry.
+lib/src/widgets/block_geometry_registry.dart:34:  final Set<GlobalKey> _selectionExclusionKeys = <GlobalKey>{};
+lib/src/widgets/block_geometry_registry.dart:37:  /// [blockId] and [BlockEntry.path].
+lib/src/widgets/block_geometry_registry.dart:38:  void register(BlockEntry entry) {
+lib/src/widgets/block_geometry_registry.dart:60:  void unregister(String blockId, [PositionPath? path, GlobalKey? ownerKey]) {
+lib/src/widgets/block_geometry_registry.dart:86:  void registerBlockRow(BlockRowGeometryEntry entry) {
+lib/src/widgets/block_geometry_registry.dart:101:  void unregisterBlockRow(String blockId, GlobalKey ownerKey) {
+lib/src/widgets/block_geometry_registry.dart:134:  /// Registers an interactive control that should not start document selection.
+lib/src/widgets/block_geometry_registry.dart:135:  void registerSelectionExclusion(GlobalKey key) {
+lib/src/widgets/block_geometry_registry.dart:136:    _selectionExclusionKeys.add(key);
+lib/src/widgets/block_geometry_registry.dart:139:  void unregisterSelectionExclusion(GlobalKey key) {
+lib/src/widgets/block_geometry_registry.dart:140:    _selectionExclusionKeys.remove(key);
+lib/src/widgets/block_geometry_registry.dart:144:    for (final key in _selectionExclusionKeys) {
+lib/src/widgets/block_geometry_registry.dart:163:  /// All registered entries in block-index order.
+lib/src/widgets/block_geometry_registry.dart:165:  List<BlockEntry> get entries => List<BlockEntry>.unmodifiable(_entries);
+lib/src/widgets/block_geometry_registry.dart:296:  /// If the point lands inside a registered block's hit-test box (the whole
+lib/src/widgets/block_geometry_registry.dart:300:  /// [BlockEntry.hitLocalToTextLocal] so padding/centring offsets are stripped.
+lib/src/widgets/block_geometry_registry.dart:303:  /// blocks (or beyond the last block) still extends the selection predictably.
+lib/src/widgets/block_geometry_registry.dart:304:  DocumentPosition? positionFromGlobalOffset(Offset global) {
+lib/src/widgets/block_geometry_registry.dart:305:    BlockEntry? hitEntry;
+lib/src/widgets/block_geometry_registry.dart:343:    BlockEntry? nearest;
+lib/src/widgets/block_geometry_registry.dart:428:    BlockEntry? nearest;
+lib/src/widgets/block_geometry_registry.dart:457:  /// for double-click selection. Returns null when no surface is registered.
+lib/src/widgets/block_geometry_registry.dart:464:  /// triple-click (select-paragraph) selection.
+lib/src/widgets/block_geometry_registry.dart:474:  /// owning block surface is not registered / not laid out. Used by the IME
+lib/src/widgets/block_geometry_registry.dart:541:  BlockEntry? _entry(String blockId, PositionPath? path) {
+lib/src/widgets/block_geometry_registry.dart:556:/// A registered editable block's geometry and layout access.
+lib/src/widgets/block_geometry_registry.dart:560:///   [TextPainter] is painted into. It anchors caret/selection painting and
+lib/src/widgets/block_geometry_registry.dart:564:///   [BlockGeometryRegistry.positionFromGlobalOffset] containment and
+lib/src/widgets/block_geometry_registry.dart:570:class BlockEntry {
+lib/src/widgets/block_geometry_registry.dart:571:  BlockEntry({
+lib/src/widgets/block_geometry_registry.dart:645:  /// [hitTestKey] is registered (the common case).
+lib/src/widgets/block_geometry_registry.dart:657:  /// registered transform or identity when none was provided.
+lib/src/widgets/wenz_rich_text_editor.dart:29:import 'selection_gesture_overlay.dart';
+lib/src/widgets/wenz_rich_text_editor.dart:34:const _selectionHighlightKey = ValueKey<String>(
+lib/src/widgets/wenz_rich_text_editor.dart:35:  'wenz-richtext-selection-highlight',
+lib/src/widgets/wenz_rich_text_editor.dart:87:/// a tap target even for empty paragraphs. A single constant so the text,
+lib/src/widgets/wenz_rich_text_editor.dart:355:/// [_TextSelectionSurface] can fetch (and reuse) its [TextLayoutService] across
+lib/src/widgets/wenz_rich_text_editor.dart:413:/// object-block selection, geometry registration, caret anchoring, and debug
+lib/src/widgets/wenz_rich_text_editor.dart:449:    this.focusNode,
+lib/src/widgets/wenz_rich_text_editor.dart:474:  final FocusNode? focusNode;
+lib/src/widgets/wenz_rich_text_editor.dart:479:  /// for debugging selection behaviour. Does not affect layout or offsets.
+lib/src/widgets/wenz_rich_text_editor.dart:491:  /// blocks) or to register business [BlockEmbedNode.embedType] renderers. Use
+lib/src/widgets/wenz_rich_text_editor.dart:539:  /// registry.register(BlockType.image, myImageRenderer);
+lib/src/widgets/wenz_rich_text_editor.dart:543:      ..register(BlockType.paragraph, _defaultTextBlockRenderer)
+lib/src/widgets/wenz_rich_text_editor.dart:544:      ..register(BlockType.heading, _defaultTextBlockRenderer)
+lib/src/widgets/wenz_rich_text_editor.dart:545:      ..register(BlockType.quote, _defaultTextBlockRenderer)
+lib/src/widgets/wenz_rich_text_editor.dart:546:      ..register(BlockType.listItem, _defaultTextBlockRenderer)
+lib/src/widgets/wenz_rich_text_editor.dart:547:      ..register(BlockType.code, _defaultCodeBlockRenderer)
+lib/src/widgets/wenz_rich_text_editor.dart:548:      ..register(BlockType.image, _defaultImageBlockRenderer)
+lib/src/widgets/wenz_rich_text_editor.dart:549:      ..register(BlockType.table, _defaultTableBlockRenderer)
+lib/src/widgets/wenz_rich_text_editor.dart:550:      ..register(BlockType.divider, _defaultDividerBlockRenderer)
+lib/src/widgets/wenz_rich_text_editor.dart:551:      ..register(BlockType.video, _defaultVideoBlockRenderer)
+lib/src/widgets/wenz_rich_text_editor.dart:552:      ..register(BlockType.embed, _defaultBlockEmbedRenderer)
+lib/src/widgets/wenz_rich_text_editor.dart:553:      ..register(BlockType.callout, _defaultCalloutBlockRenderer)
+lib/src/widgets/wenz_rich_text_editor.dart:554:      ..register(BlockType.file, _defaultFileBlockRenderer);
+lib/src/widgets/wenz_rich_text_editor.dart:565:  /// The focus node currently registered with the controller, tracked so we can
+lib/src/widgets/wenz_rich_text_editor.dart:624:      final selection = widget.controller.selection;
+lib/src/widgets/wenz_rich_text_editor.dart:625:      if (selection == null || !selection.isCollapsed) {
+lib/src/widgets/wenz_rich_text_editor.dart:628:      return _registry.caretRectForPosition(selection.extent);
+lib/src/widgets/wenz_rich_text_editor.dart:631:      final selection = widget.controller.selection;
+lib/src/widgets/wenz_rich_text_editor.dart:632:      if (selection == null || !selection.isCollapsed) {
+lib/src/widgets/wenz_rich_text_editor.dart:635:      final position = selection.extent;
+lib/src/widgets/wenz_rich_text_editor.dart:678:    // Expose the focus node to the controller so controller.requestFocus() can
+lib/src/widgets/wenz_rich_text_editor.dart:680:    // controller/focusNode change).
+lib/src/widgets/wenz_rich_text_editor.dart:681:    final focusNode = _effectiveFocusNode;
+lib/src/widgets/wenz_rich_text_editor.dart:682:    widget.controller.attachFocusNode(focusNode);
+lib/src/widgets/wenz_rich_text_editor.dart:683:    _controllerAttachedFocusNode = focusNode;
+lib/src/widgets/wenz_rich_text_editor.dart:732:    // The effective focus node may change when the caller swaps focusNode or
+lib/src/widgets/wenz_rich_text_editor.dart:733:    // controller; re-inject so controller.requestFocus() targets the right node.
+lib/src/widgets/wenz_rich_text_editor.dart:734:    final focusNode = _effectiveFocusNode;
+lib/src/widgets/wenz_rich_text_editor.dart:735:    if (focusNode != _controllerAttachedFocusNode) {
+lib/src/widgets/wenz_rich_text_editor.dart:736:      widget.controller.attachFocusNode(focusNode);
+lib/src/widgets/wenz_rich_text_editor.dart:737:      _controllerAttachedFocusNode = focusNode;
+lib/src/widgets/wenz_rich_text_editor.dart:748:    // Release the focus node from the controller so a later requestFocus() on
+lib/src/widgets/wenz_rich_text_editor.dart:808:      // composition-only changes (empty set) do not invalidate anything.
+lib/src/widgets/wenz_rich_text_editor.dart:830:      // selection (and any keep-alive mount) before we read its global rect.
+lib/src/widgets/wenz_rich_text_editor.dart:842:        final selection = widget.controller.selection;
+lib/src/widgets/wenz_rich_text_editor.dart:843:        if (selection?.isCollapsed == true) {
+lib/src/widgets/wenz_rich_text_editor.dart:847:            selection!.extent.blockIndex,
+lib/src/widgets/wenz_rich_text_editor.dart:848:            selection.extent.offset,
+lib/src/widgets/wenz_rich_text_editor.dart:879:    final tableRange = widget.controller.selection?.tableCellRange;
+lib/src/widgets/wenz_rich_text_editor.dart:907:      selectionRange: normalizedRange,
+lib/src/widgets/wenz_rich_text_editor.dart:924:    final focusNode = _effectiveFocusNode;
+lib/src/widgets/wenz_rich_text_editor.dart:925:    if (widget.enableIme && focusNode.hasFocus && !widget.readOnly) {
+lib/src/widgets/wenz_rich_text_editor.dart:930:    if (focusNode.hasFocus) {
+lib/src/widgets/wenz_rich_text_editor.dart:971:    final selection = widget.controller.selection;
+lib/src/widgets/wenz_rich_text_editor.dart:973:        selection == null ||
+lib/src/widgets/wenz_rich_text_editor.dart:977:    return outline.expandToRevealSelection(selection);
+lib/src/widgets/wenz_rich_text_editor.dart:985:    final selection = widget.controller.selection;
+lib/src/widgets/wenz_rich_text_editor.dart:987:        selection == null ||
+lib/src/widgets/wenz_rich_text_editor.dart:988:        !selection.isCollapsed ||
+lib/src/widgets/wenz_rich_text_editor.dart:992:    final position = selection.extent;
+lib/src/widgets/wenz_rich_text_editor.dart:1050:    final focusNode = _effectiveFocusNode;
+lib/src/widgets/wenz_rich_text_editor.dart:1051:    _syncFocusListener(focusNode);
+lib/src/widgets/wenz_rich_text_editor.dart:1064:        focusNode,
+lib/src/widgets/wenz_rich_text_editor.dart:1070:    // selection (see _handleSelectionChanged) but has no editing caret.
+lib/src/widgets/wenz_rich_text_editor.dart:1072:        focusNode.hasFocus &&
+lib/src/widgets/wenz_rich_text_editor.dart:1073:        widget.controller.selection?.isCollapsed == true;
+lib/src/widgets/wenz_rich_text_editor.dart:1075:    // (collapsed selection) and the selection endpoints. Keeping these alive
+lib/src/widgets/wenz_rich_text_editor.dart:1076:    // means the caret and selection highlight always paint and the geometry
+lib/src/widgets/wenz_rich_text_editor.dart:1077:    // registry always knows their box, so cross-block selection / caret do not
+lib/src/widgets/wenz_rich_text_editor.dart:1079:    final keepAliveIds = _keepAliveBlockIds(widget.controller.selection)
+lib/src/widgets/wenz_rich_text_editor.dart:1084:    // re-rendering blocks whose content + selection-relevance did not change.
+lib/src/widgets/wenz_rich_text_editor.dart:1113:          selection: widget.controller.selection,
+lib/src/widgets/wenz_rich_text_editor.dart:1159:      focusNode,
+lib/src/widgets/wenz_rich_text_editor.dart:1165:          SelectionGestureOverlay(
+lib/src/widgets/wenz_rich_text_editor.dart:1168:            focusNode: focusNode,
+lib/src/widgets/wenz_rich_text_editor.dart:1171:            onTapBeyondContent: _handleTapBeyondContent,
+lib/src/widgets/wenz_rich_text_editor.dart:1189:    FocusNode focusNode,
+lib/src/widgets/wenz_rich_text_editor.dart:1199:          focusNode: focusNode,
+lib/src/widgets/wenz_rich_text_editor.dart:1209:            focused: focusNode.hasFocus,
+lib/src/widgets/wenz_rich_text_editor.dart:1214:            onTap: () => focusNode.requestFocus(),
+lib/src/widgets/wenz_rich_text_editor.dart:1215:            onFocus: () => focusNode.requestFocus(),
+lib/src/widgets/wenz_rich_text_editor.dart:1218:              focusNode,
+lib/src/widgets/wenz_rich_text_editor.dart:1232:    FocusNode focusNode,
+lib/src/widgets/wenz_rich_text_editor.dart:1236:    if (!focusNode.hasFocus ||
+lib/src/widgets/wenz_rich_text_editor.dart:1257:    final selection = widget.controller.selection;
+lib/src/widgets/wenz_rich_text_editor.dart:1260:    if (selection == null ||
+lib/src/widgets/wenz_rich_text_editor.dart:1261:        !selection.isCollapsed ||
+lib/src/widgets/wenz_rich_text_editor.dart:1266:    final caret = _registry.caretRectForPosition(selection.extent);
+lib/src/widgets/wenz_rich_text_editor.dart:1278:  void _handleSelectionChanged(DocumentSelection selection) {
+lib/src/widgets/wenz_rich_text_editor.dart:1280:    widget.controller.setSelection(selection);
+lib/src/widgets/wenz_rich_text_editor.dart:1281:    // A selection change from the gesture overlay repositions the caret, so
+lib/src/widgets/wenz_rich_text_editor.dart:1286:  bool _handleTapBeyondContent(Offset _) {
+lib/src/widgets/wenz_rich_text_editor.dart:1318:      selection: nextSelection,
+lib/src/widgets/wenz_rich_text_editor.dart:1334:    widget.controller.requestFocus();
+lib/src/widgets/wenz_rich_text_editor.dart:1512:            selection: _selectionForBlock(block, blockIndex),
+lib/src/widgets/wenz_rich_text_editor.dart:1530:            selection: _selectionForBlock(nextBlock, blockIndex),
+lib/src/widgets/wenz_rich_text_editor.dart:1539:            selection: _selectionForBlock(block, blockIndex),
+lib/src/widgets/wenz_rich_text_editor.dart:1557:            selection: _selectionForBlock(nextBlock, blockIndex),
+lib/src/widgets/wenz_rich_text_editor.dart:1575:            selection: _selectionForBlock(nextBlock, blockIndex),
+lib/src/widgets/wenz_rich_text_editor.dart:1595:    final range = widget.controller.selection?.tableCellRange;
+lib/src/widgets/wenz_rich_text_editor.dart:1698:          selection: _selectionForBlock(duplicate, intent.blockIndex + 1),
+lib/src/widgets/wenz_rich_text_editor.dart:1837:        selection: _selectionForBlock(replacement, 0),
+lib/src/widgets/wenz_rich_text_editor.dart:1851:      selection: _selectionForBlock(nextBlock, nextIndex),
+lib/src/widgets/wenz_rich_text_editor.dart:1855:  DocumentSelection _selectionForBlock(BlockNode block, int blockIndex) {
+lib/src/widgets/wenz_rich_text_editor.dart:2046:  /// (collapsed selection) and the selection endpoints. Keeping these alive
+lib/src/widgets/wenz_rich_text_editor.dart:2047:  /// guarantees the caret/selection highlight always paint and the geometry
+lib/src/widgets/wenz_rich_text_editor.dart:2048:  /// registry always knows their box. Returns an empty set when there is no
+lib/src/widgets/wenz_rich_text_editor.dart:2049:  /// selection.
+lib/src/widgets/wenz_rich_text_editor.dart:2050:  Set<String> _keepAliveBlockIds(DocumentSelection? selection) {
+lib/src/widgets/wenz_rich_text_editor.dart:2051:    if (selection == null) {
+lib/src/widgets/wenz_rich_text_editor.dart:2055:      selection.base.blockId,
+lib/src/widgets/wenz_rich_text_editor.dart:2056:      selection.extent.blockId,
+lib/src/widgets/wenz_rich_text_editor.dart:2061:    return widget.focusNode ??
+lib/src/widgets/wenz_rich_text_editor.dart:2065:  void _syncFocusListener(FocusNode focusNode) {
+lib/src/widgets/wenz_rich_text_editor.dart:2066:    if (_listenedFocusNode == focusNode) {
+lib/src/widgets/wenz_rich_text_editor.dart:2070:    focusNode.addListener(_handleFocusChanged);
+lib/src/widgets/wenz_rich_text_editor.dart:2071:    _listenedFocusNode = focusNode;
+lib/src/widgets/wenz_rich_text_editor.dart:2072:    // Keep the controller's injected node in sync so requestFocus() targets the
+lib/src/widgets/wenz_rich_text_editor.dart:2074:    widget.controller.attachFocusNode(focusNode);
+lib/src/widgets/wenz_rich_text_editor.dart:2075:    _controllerAttachedFocusNode = focusNode;
+lib/src/widgets/wenz_rich_text_editor.dart:2077:      if (mounted && _listenedFocusNode == focusNode) {
+lib/src/widgets/wenz_rich_text_editor.dart:2121:    final selection = widget.controller.selection;
+lib/src/widgets/wenz_rich_text_editor.dart:2122:    if (selection == null ||
+lib/src/widgets/wenz_rich_text_editor.dart:2123:        selection.start.blockIndex != selection.end.blockIndex ||
+lib/src/widgets/wenz_rich_text_editor.dart:2124:        selection.start.path != selection.end.path ||
+lib/src/widgets/wenz_rich_text_editor.dart:2125:        !selection.start.path.isBlockCode) {
+lib/src/widgets/wenz_rich_text_editor.dart:2128:    if (selection.start.blockIndex < 0 ||
+lib/src/widgets/wenz_rich_text_editor.dart:2129:        selection.start.blockIndex >=
+lib/src/widgets/wenz_rich_text_editor.dart:2133:    final block = widget.controller.document.blocks[selection.start.blockIndex];
+lib/src/widgets/wenz_rich_text_editor.dart:2331:    final selection = controller.selection;
+lib/src/widgets/wenz_rich_text_editor.dart:2332:    if (selection == null) {
+lib/src/widgets/wenz_rich_text_editor.dart:2339:    final caretRect = _registry.caretRectForPosition(selection.extent);
+lib/src/widgets/wenz_rich_text_editor.dart:2392:      // the pre-move range end as the anchor, producing a selection range).
+lib/src/widgets/wenz_rich_text_editor.dart:2397:      final boundary = _registry.positionFromGlobalOffset(
+lib/src/widgets/wenz_rich_text_editor.dart:2407:            ? DocumentSelection(base: selection.base, extent: boundary)
+lib/src/widgets/wenz_rich_text_editor.dart:2423:        base: selection.base,
+lib/src/widgets/wenz_rich_text_editor.dart:2424:        previousExtent: selection.extent,
+lib/src/widgets/wenz_rich_text_editor.dart:2440:        base: selection.base,
+lib/src/widgets/wenz_rich_text_editor.dart:2441:        previousExtent: selection.extent,
+lib/src/widgets/wenz_rich_text_editor.dart:2447:  /// top of the full scrollable content), sets the selection, then pixel-realigns
+lib/src/widgets/wenz_rich_text_editor.dart:2470:    final target = _registry.positionFromGlobalOffset(Offset(caretX, globalY));
+lib/src/widgets/wenz_rich_text_editor.dart:2503:    final selection = widget.controller.selection;
+lib/src/widgets/wenz_rich_text_editor.dart:2504:    if (selection?.isCollapsed != true) {
+lib/src/widgets/wenz_rich_text_editor.dart:2516:  /// Used after PageUp/PageDown jumps and after programmatic selection
+lib/src/widgets/wenz_rich_text_editor.dart:2529:    final selection = widget.controller.selection;
+lib/src/widgets/wenz_rich_text_editor.dart:2530:    if (selection == null) {
+lib/src/widgets/wenz_rich_text_editor.dart:2537:    final caretRect = _registry.caretRectForPosition(selection.extent);
+lib/src/widgets/wenz_rich_text_editor.dart:2547:        selection.extent.blockIndex,
+lib/src/widgets/wenz_rich_text_editor.dart:2625:    final selection = controller.selection;
+lib/src/widgets/wenz_rich_text_editor.dart:2626:    if (selection == null) {
+lib/src/widgets/wenz_rich_text_editor.dart:2629:    final extent = selection.extent;
+lib/src/widgets/wenz_rich_text_editor.dart:2633:      final before = controller.selection;
+lib/src/widgets/wenz_rich_text_editor.dart:2635:      if (controller.selection != before) {
+lib/src/widgets/wenz_rich_text_editor.dart:2660:            ? DocumentSelection(base: selection.base, extent: next)
+lib/src/widgets/wenz_rich_text_editor.dart:2853:    final selection = widget.controller.selection;
+lib/src/widgets/wenz_rich_text_editor.dart:2854:    if (selection == null || selection.isCollapsed) {
+lib/src/widgets/wenz_rich_text_editor.dart:2861:    widget.controller.deleteSelection(selection);
+lib/src/widgets/wenz_rich_text_editor.dart:2867:    final selection = widget.controller.selection;
+lib/src/widgets/wenz_rich_text_editor.dart:2868:    if (selection == null) {
+lib/src/widgets/wenz_rich_text_editor.dart:2871:    if (!selection.isCollapsed) {
+lib/src/widgets/wenz_rich_text_editor.dart:2886:    final selection = widget.controller.selection;
+lib/src/widgets/wenz_rich_text_editor.dart:2887:    if (selection == null) {
+lib/src/widgets/wenz_rich_text_editor.dart:2890:    if (!selection.isCollapsed) {
+lib/src/widgets/wenz_rich_text_editor.dart:3407:/// [_TextSelectionSurface] children, geometry registration, and text-layout
+lib/src/widgets/wenz_rich_text_editor.dart:3409:/// [keepAlive] is true. Used to keep the caret block and selection endpoints
+lib/src/widgets/wenz_rich_text_editor.dart:3410:/// alive under editor virtualisation, so the caret and selection
+lib/src/widgets/wenz_rich_text_editor.dart:3414:/// content changed ([blockChanged]) *or* when the selection / caret / IME
+lib/src/widgets/wenz_rich_text_editor.dart:3427:    required this.selection,
+lib/src/widgets/wenz_rich_text_editor.dart:3458:  final DocumentSelection? selection;
+lib/src/widgets/wenz_rich_text_editor.dart:3492:  /// block's content and selection-relevance are unchanged.
+lib/src/widgets/wenz_rich_text_editor.dart:3502:    // changed. Content change, selection/caret/composition touching this block,
+lib/src/widgets/wenz_rich_text_editor.dart:3505:    // Selection requires care: a block that stays selected while the selection
+lib/src/widgets/wenz_rich_text_editor.dart:3508:    // change. So when this block is touched by the selection, a different
+lib/src/widgets/wenz_rich_text_editor.dart:3509:    // selection object must also invalidate the cache.
+lib/src/widgets/wenz_rich_text_editor.dart:3510:    final selectionTouchedChanged =
+lib/src/widgets/wenz_rich_text_editor.dart:3511:        _selectionTouchesBlock(oldWidget) != _selectionTouchesBlock(widget);
+lib/src/widgets/wenz_rich_text_editor.dart:3512:    final selectionShiftedWhileTouched = _selectionTouchesBlock(widget) &&
+lib/src/widgets/wenz_rich_text_editor.dart:3513:        oldWidget.selection != widget.selection;
+lib/src/widgets/wenz_rich_text_editor.dart:3517:        selectionTouchedChanged ||
+lib/src/widgets/wenz_rich_text_editor.dart:3518:        selectionShiftedWhileTouched ||
+lib/src/widgets/wenz_rich_text_editor.dart:3558:      selection: widget.selection,
+lib/src/widgets/wenz_rich_text_editor.dart:3586:  /// Whether the current selection could affect this block's rendering: it is
+lib/src/widgets/wenz_rich_text_editor.dart:3587:  /// an endpoint, or it lies strictly between the selection's start and end
+lib/src/widgets/wenz_rich_text_editor.dart:3588:  /// (so it would be fully highlighted), or the selection is collapsed inside
+lib/src/widgets/wenz_rich_text_editor.dart:3590:  bool _selectionTouchesBlock(_KeepAliveBlock w) {
+lib/src/widgets/wenz_rich_text_editor.dart:3591:    return _selectionTouchesBlockIndex(w.selection, w.blockIndex);
+lib/src/widgets/wenz_rich_text_editor.dart:3601:    final selection = w.selection;
+lib/src/widgets/wenz_rich_text_editor.dart:3602:    return selection != null && selection.extent.blockIndex == w.blockIndex;
+lib/src/widgets/wenz_rich_text_editor.dart:3612:    required this.selection,
+lib/src/widgets/wenz_rich_text_editor.dart:3641:  final DocumentSelection? selection;
+lib/src/widgets/wenz_rich_text_editor.dart:3672:      selection: selection,
+lib/src/widgets/wenz_rich_text_editor.dart:3834:    _register();
+lib/src/widgets/wenz_rich_text_editor.dart:3842:      oldWidget.registry.unregisterBlockRow(oldWidget.blockId, _rowKey);
+lib/src/widgets/wenz_rich_text_editor.dart:3847:      _register();
+lib/src/widgets/wenz_rich_text_editor.dart:3853:    widget.registry.unregisterBlockRow(widget.blockId, _rowKey);
+lib/src/widgets/wenz_rich_text_editor.dart:3857:  void _register() {
+lib/src/widgets/wenz_rich_text_editor.dart:3858:    widget.registry.registerBlockRow(
+lib/src/widgets/wenz_rich_text_editor.dart:3920:    widget.registry.registerSelectionExclusion(_hitTestKey);
+lib/src/widgets/wenz_rich_text_editor.dart:3927:      oldWidget.registry.unregisterSelectionExclusion(_hitTestKey);
+lib/src/widgets/wenz_rich_text_editor.dart:3928:      widget.registry.registerSelectionExclusion(_hitTestKey);
+lib/src/widgets/wenz_rich_text_editor.dart:3938:    widget.registry.unregisterSelectionExclusion(_hitTestKey);
+lib/src/widgets/wenz_rich_text_editor.dart:4245:    final selection = await showMenu<_ObjectMenuSelection>(
+lib/src/widgets/wenz_rich_text_editor.dart:4255:    if (selection == null) {
+lib/src/widgets/wenz_rich_text_editor.dart:4258:    if (selection.more) {
+lib/src/widgets/wenz_rich_text_editor.dart:4262:    _handleActionSelected(selection);
+lib/src/widgets/wenz_rich_text_editor.dart:4283:    final selection = await showMenu<_ObjectMenuSelection>(
+lib/src/widgets/wenz_rich_text_editor.dart:4289:    if (!mounted || selection == null) {
+lib/src/widgets/wenz_rich_text_editor.dart:4292:    _handleActionSelected(selection);
+lib/src/widgets/wenz_rich_text_editor.dart:4403:  void _handleActionSelected(_ObjectMenuSelection selection) {
+lib/src/widgets/wenz_rich_text_editor.dart:4404:    final format = selection.format;
+lib/src/widgets/wenz_rich_text_editor.dart:4409:    final action = selection.action;
+lib/src/widgets/wenz_rich_text_editor.dart:4417:        value: selection.value,
+lib/src/widgets/wenz_rich_text_editor.dart:4481:bool _selectionTouchesBlockIndex(DocumentSelection? selection, int blockIndex) {
+lib/src/widgets/wenz_rich_text_editor.dart:4482:  if (selection == null) {
+lib/src/widgets/wenz_rich_text_editor.dart:4485:  final start = selection.start;
+lib/src/widgets/wenz_rich_text_editor.dart:4486:  final end = selection.end;
+lib/src/widgets/wenz_rich_text_editor.dart:4538:/// Plain-text fallback used when no renderer is registered for a block type.
+lib/src/widgets/wenz_rich_text_editor.dart:4552:    register(BlockType.paragraph, _defaultTextBlockRenderer);
+lib/src/widgets/wenz_rich_text_editor.dart:4553:    register(BlockType.heading, _defaultTextBlockRenderer);
+lib/src/widgets/wenz_rich_text_editor.dart:4554:    register(BlockType.quote, _defaultTextBlockRenderer);
+lib/src/widgets/wenz_rich_text_editor.dart:4555:    register(BlockType.listItem, _defaultTextBlockRenderer);
+lib/src/widgets/wenz_rich_text_editor.dart:4556:    register(BlockType.code, _defaultCodeBlockRenderer);
+lib/src/widgets/wenz_rich_text_editor.dart:4557:    register(BlockType.image, _defaultImageBlockRenderer);
+lib/src/widgets/wenz_rich_text_editor.dart:4558:    register(BlockType.table, _defaultTableBlockRenderer);
+lib/src/widgets/wenz_rich_text_editor.dart:4559:    register(BlockType.divider, _defaultDividerBlockRenderer);
+lib/src/widgets/wenz_rich_text_editor.dart:4560:    register(BlockType.video, _defaultVideoBlockRenderer);
+lib/src/widgets/wenz_rich_text_editor.dart:4561:    register(BlockType.embed, _defaultBlockEmbedRenderer);
+lib/src/widgets/wenz_rich_text_editor.dart:4562:    register(BlockType.callout, _defaultCalloutBlockRenderer);
+lib/src/widgets/wenz_rich_text_editor.dart:4563:    register(BlockType.file, _defaultFileBlockRenderer);
+lib/src/widgets/wenz_rich_text_editor.dart:4574:    selection: rc.selection,
+lib/src/widgets/wenz_rich_text_editor.dart:4599:    selection: rc.selection,
+lib/src/widgets/wenz_rich_text_editor.dart:4636:    selection: rc.selection,
+lib/src/widgets/wenz_rich_text_editor.dart:4723:  final selected = _selectionRangeForPath(
+lib/src/widgets/wenz_rich_text_editor.dart:4724:        rc.selection,
+lib/src/widgets/wenz_rich_text_editor.dart:4735:      selection: rc.selection,
+lib/src/widgets/wenz_rich_text_editor.dart:4865:  final selected = _selectionTouchesPath(
+lib/src/widgets/wenz_rich_text_editor.dart:4866:    rc.selection,
+lib/src/widgets/wenz_rich_text_editor.dart:4878:      selection: rc.selection,
+lib/src/widgets/wenz_rich_text_editor.dart:4894:  final selected = _selectionTouchesPath(
+lib/src/widgets/wenz_rich_text_editor.dart:4895:    rc.selection,
+lib/src/widgets/wenz_rich_text_editor.dart:4915:        selection: rc.selection,
+lib/src/widgets/wenz_rich_text_editor.dart:4933:  final selected = _selectionTouchesPath(
+lib/src/widgets/wenz_rich_text_editor.dart:4934:    rc.selection,
+lib/src/widgets/wenz_rich_text_editor.dart:4954:        selection: rc.selection,
+lib/src/widgets/wenz_rich_text_editor.dart:4966:  return _selectionTouchesPath(
+lib/src/widgets/wenz_rich_text_editor.dart:4967:    rc.selection,
+lib/src/widgets/wenz_rich_text_editor.dart:4979:    required this.selection,
+lib/src/widgets/wenz_rich_text_editor.dart:4998:  final DocumentSelection? selection;
+lib/src/widgets/wenz_rich_text_editor.dart:5039:    final selected = _selectionRangeForPath(
+lib/src/widgets/wenz_rich_text_editor.dart:5040:          selection,
+lib/src/widgets/wenz_rich_text_editor.dart:5046:    final text = _TextSelectionSurface(
+lib/src/widgets/wenz_rich_text_editor.dart:5060:      selection: selection,
+lib/src/widgets/wenz_rich_text_editor.dart:5171:  final FocusNode _focusNode = FocusNode(
+lib/src/widgets/wenz_rich_text_editor.dart:5178:    widget.registry.registerSelectionExclusion(_hitTestKey);
+lib/src/widgets/wenz_rich_text_editor.dart:5185:      oldWidget.registry.unregisterSelectionExclusion(_hitTestKey);
+lib/src/widgets/wenz_rich_text_editor.dart:5186:      widget.registry.registerSelectionExclusion(_hitTestKey);
+lib/src/widgets/wenz_rich_text_editor.dart:5192:    widget.registry.unregisterSelectionExclusion(_hitTestKey);
+lib/src/widgets/wenz_rich_text_editor.dart:5193:    _focusNode.dispose();
+lib/src/widgets/wenz_rich_text_editor.dart:5198:    _focusNode.requestFocus();
+lib/src/widgets/wenz_rich_text_editor.dart:5202:        _focusNode.requestFocus();
+lib/src/widgets/wenz_rich_text_editor.dart:5245:              focusNode: _focusNode,
+lib/src/widgets/wenz_rich_text_editor.dart:5379:    widget.registry.registerSelectionExclusion(_hitTestKey);
+lib/src/widgets/wenz_rich_text_editor.dart:5386:      oldWidget.registry.unregisterSelectionExclusion(_hitTestKey);
+lib/src/widgets/wenz_rich_text_editor.dart:5387:      widget.registry.registerSelectionExclusion(_hitTestKey);
+lib/src/widgets/wenz_rich_text_editor.dart:5393:    widget.registry.unregisterSelectionExclusion(_hitTestKey);
+lib/src/widgets/wenz_rich_text_editor.dart:5482:    required this.selection,
+lib/src/widgets/wenz_rich_text_editor.dart:5495:  final DocumentSelection? selection;
+lib/src/widgets/wenz_rich_text_editor.dart:5537:    final selected = _selectionTouchesPath(
+lib/src/widgets/wenz_rich_text_editor.dart:5538:      selection,
+lib/src/widgets/wenz_rich_text_editor.dart:5596:                    child: _TextSelectionSurface(
+lib/src/widgets/wenz_rich_text_editor.dart:5608:                      selection: selection,
+lib/src/widgets/wenz_rich_text_editor.dart:5763:    required this.selection,
+lib/src/widgets/wenz_rich_text_editor.dart:5779:  final DocumentSelection? selection;
+lib/src/widgets/wenz_rich_text_editor.dart:5813:          final activeRange = _activeTableRange(selection, block, blockIndex);
+lib/src/widgets/wenz_rich_text_editor.dart:5868:                                selection: selection,
+lib/src/widgets/wenz_rich_text_editor.dart:5873:                                  selection,
+lib/src/widgets/wenz_rich_text_editor.dart:5937:                      selectionRange: activeRange,
+lib/src/widgets/wenz_rich_text_editor.dart:5960:  DocumentSelection? selection,
+lib/src/widgets/wenz_rich_text_editor.dart:5964:  final range = selection?.tableCellRange;
+lib/src/widgets/wenz_rich_text_editor.dart:6187:  void _dispatchSelection(_TableToolbarSelection selection) {
+lib/src/widgets/wenz_rich_text_editor.dart:6188:    _dispatch(selection.action, backgroundColor: selection.backgroundColor);
+lib/src/widgets/wenz_rich_text_editor.dart:6610:  DocumentSelection? selection,
+lib/src/widgets/wenz_rich_text_editor.dart:6616:  if (selection == null || selection.isCollapsed) {
+lib/src/widgets/wenz_rich_text_editor.dart:6621:  final range = selection.tableCellRange;
+lib/src/widgets/wenz_rich_text_editor.dart:6630:  // Cross-block selection that spans this table block (e.g. select-all across
+lib/src/widgets/wenz_rich_text_editor.dart:6632:  // selection endpoints, every cell is part of the selection and highlights.
+lib/src/widgets/wenz_rich_text_editor.dart:6633:  final start = selection.start;
+lib/src/widgets/wenz_rich_text_editor.dart:6634:  final end = selection.end;
+lib/src/widgets/wenz_rich_text_editor.dart:6667:    required this.selection,
+lib/src/widgets/wenz_rich_text_editor.dart:6685:  final DocumentSelection? selection;
+lib/src/widgets/wenz_rich_text_editor.dart:6703:  /// text-local surface is registered separately by [_TextSelectionSurface].
+lib/src/widgets/wenz_rich_text_editor.dart:6747:    final surface = _TextSelectionSurface(
+lib/src/widgets/wenz_rich_text_editor.dart:6761:      selection: widget.selection,
+lib/src/widgets/wenz_rich_text_editor.dart:6780:        _selectionRangeForPath(
+lib/src/widgets/wenz_rich_text_editor.dart:6781:              widget.selection,
+lib/src/widgets/wenz_rich_text_editor.dart:6810:                    key: _selectionHighlightKey,
+lib/src/widgets/wenz_rich_text_editor.dart:6865:    required this.selection,
+lib/src/widgets/wenz_rich_text_editor.dart:6875:  final DocumentSelection? selection;
+lib/src/widgets/wenz_rich_text_editor.dart:6893:    _register();
+lib/src/widgets/wenz_rich_text_editor.dart:6902:      oldWidget.registry.unregister(
+lib/src/widgets/wenz_rich_text_editor.dart:6912:      _register();
+lib/src/widgets/wenz_rich_text_editor.dart:6918:    widget.registry.unregister(widget.blockId, widget.path, _surfaceKey);
+lib/src/widgets/wenz_rich_text_editor.dart:6922:  void _register() {
+lib/src/widgets/wenz_rich_text_editor.dart:6923:    widget.registry.register(
+lib/src/widgets/wenz_rich_text_editor.dart:6924:      BlockEntry(
+lib/src/widgets/wenz_rich_text_editor.dart:7006:    final selected = _selectionTouchesPath(
+lib/src/widgets/wenz_rich_text_editor.dart:7007:      widget.selection,
+lib/src/widgets/wenz_rich_text_editor.dart:7016:      widget.selection,
+lib/src/widgets/wenz_rich_text_editor.dart:7031:                key: _selectionHighlightKey,
+lib/src/widgets/wenz_rich_text_editor.dart:7067:class _TextSelectionSurface extends StatefulWidget {
+lib/src/widgets/wenz_rich_text_editor.dart:7068:  const _TextSelectionSurface({
+lib/src/widgets/wenz_rich_text_editor.dart:7077:    required this.selection,
+lib/src/widgets/wenz_rich_text_editor.dart:7093:  final DocumentSelection? selection;
+lib/src/widgets/wenz_rich_text_editor.dart:7102:  /// set, the State registers a transform that maps hit-local offsets onto
+lib/src/widgets/wenz_rich_text_editor.dart:7107:  State<_TextSelectionSurface> createState() => _TextSelectionSurfaceState();
+lib/src/widgets/wenz_rich_text_editor.dart:7110:class _TextSelectionSurfaceState extends State<_TextSelectionSurface> {
+lib/src/widgets/wenz_rich_text_editor.dart:7146:    _register();
+lib/src/widgets/wenz_rich_text_editor.dart:7150:  void didUpdateWidget(covariant _TextSelectionSurface oldWidget) {
+lib/src/widgets/wenz_rich_text_editor.dart:7155:      oldWidget.registry.unregister(
+lib/src/widgets/wenz_rich_text_editor.dart:7167:      _register();
+lib/src/widgets/wenz_rich_text_editor.dart:7172:    // matching the platform EditableText behaviour where every selection
+lib/src/widgets/wenz_rich_text_editor.dart:7174:    if (oldWidget.selection != widget.selection) {
+lib/src/widgets/wenz_rich_text_editor.dart:7182:    widget.registry.unregister(widget.blockId, widget.path, _surfaceKey);
+lib/src/widgets/wenz_rich_text_editor.dart:7204:  /// caret first becomes visible, and again on every selection change while it
+lib/src/widgets/wenz_rich_text_editor.dart:7235:  void _register() {
+lib/src/widgets/wenz_rich_text_editor.dart:7236:    widget.registry.register(
+lib/src/widgets/wenz_rich_text_editor.dart:7237:      BlockEntry(
+lib/src/widgets/wenz_rich_text_editor.dart:7256:  /// Maps a tap offset in the registered hit-test frame's local space into
+lib/src/widgets/wenz_rich_text_editor.dart:7391:        _layoutService.selectionBoxes(painter, renderStart, renderEnd);
+lib/src/widgets/wenz_rich_text_editor.dart:7432:    final selectionRange = _selectionRangeForPath(
+lib/src/widgets/wenz_rich_text_editor.dart:7433:      widget.selection,
+lib/src/widgets/wenz_rich_text_editor.dart:7439:      widget.selection,
+lib/src/widgets/wenz_rich_text_editor.dart:7506:              range: selectionRange,
+lib/src/widgets/wenz_rich_text_editor.dart:7535:        // Gestures live in the document-level SelectionGestureOverlay; the
+lib/src/widgets/wenz_rich_text_editor.dart:7536:        // surface only renders text, highlight, caret, and registers its
+lib/src/widgets/wenz_rich_text_editor.dart:7542:            if (selectionRange != null)
+lib/src/widgets/wenz_rich_text_editor.dart:7545:                  child: SizedBox(key: _selectionHighlightKey),
+lib/src/widgets/wenz_rich_text_editor.dart:7578:                    offset: caretOffset ?? selectionRange?.end,
+lib/src/widgets/wenz_rich_text_editor.dart:7843:      final boxes = layoutService.selectionBoxes(
+lib/src/widgets/wenz_rich_text_editor.dart:7901:    final boxes = layoutService.selectionBoxes(painter, renderStart, renderEnd);
+lib/src/widgets/wenz_rich_text_editor.dart:7966:    // returns null (e.g. at empty/whitespace runs).
+lib/src/widgets/wenz_rich_text_editor.dart:8825:  void _dispatchSelection(_ObjectMenuSelection selection) {
+lib/src/widgets/wenz_rich_text_editor.dart:8826:    final action = selection.action;
+lib/src/widgets/wenz_rich_text_editor.dart:8828:      _dispatch(action, selection.value);
+lib/src/widgets/wenz_rich_text_editor.dart:9287:      onSelected: (selection) {
+lib/src/widgets/wenz_rich_text_editor.dart:9288:        unawaited(_handleSelected(context, selection));
+lib/src/widgets/wenz_rich_text_editor.dart:9317:    _ObjectMenuSelection selection,
+lib/src/widgets/wenz_rich_text_editor.dart:9319:    if (selection.more) {
+lib/src/widgets/wenz_rich_text_editor.dart:9335:    _dispatch(selection);
+lib/src/widgets/wenz_rich_text_editor.dart:9386:  void _dispatch(_ObjectMenuSelection selection) {
+lib/src/widgets/wenz_rich_text_editor.dart:9387:    final action = selection.action;
+lib/src/widgets/wenz_rich_text_editor.dart:9395:        value: selection.value,
+lib/src/widgets/wenz_rich_text_editor.dart:9507:    required this.selection,
+lib/src/widgets/wenz_rich_text_editor.dart:9522:  final DocumentSelection? selection;
+lib/src/widgets/wenz_rich_text_editor.dart:9604:                    _TextSelectionSurface(
+lib/src/widgets/wenz_rich_text_editor.dart:9617:                      selection: widget.selection,
+lib/src/widgets/wenz_rich_text_editor.dart:9686:    widget.registry.registerSelectionExclusion(_hitTestKey);
+lib/src/widgets/wenz_rich_text_editor.dart:9693:      oldWidget.registry.unregisterSelectionExclusion(_hitTestKey);
+lib/src/widgets/wenz_rich_text_editor.dart:9694:      widget.registry.registerSelectionExclusion(_hitTestKey);
+lib/src/widgets/wenz_rich_text_editor.dart:9700:    widget.registry.unregisterSelectionExclusion(_hitTestKey);
+lib/src/widgets/wenz_rich_text_editor.dart:10392:  DocumentSelection? selection,
+lib/src/widgets/wenz_rich_text_editor.dart:10398:  if (!showCaret || selection == null || !selection.isCollapsed) {
+lib/src/widgets/wenz_rich_text_editor.dart:10401:  final position = selection.extent;
+lib/src/widgets/wenz_rich_text_editor.dart:10408:bool _selectionTouchesPath(
+lib/src/widgets/wenz_rich_text_editor.dart:10409:  DocumentSelection? selection,
+lib/src/widgets/wenz_rich_text_editor.dart:10415:  if (selection == null) {
+lib/src/widgets/wenz_rich_text_editor.dart:10418:  if (_selectionRangeForPath(selection, blockIndex, path, textLength) != null) {
+lib/src/widgets/wenz_rich_text_editor.dart:10421:  if (!selection.isCollapsed) {
+lib/src/widgets/wenz_rich_text_editor.dart:10424:  final position = selection.extent;
+lib/src/widgets/wenz_rich_text_editor.dart:10463:  DocumentSelection? selection,
+lib/src/widgets/wenz_rich_text_editor.dart:10468:  if (selection == null) {
+lib/src/widgets/wenz_rich_text_editor.dart:10471:  final position = selection.extent;
+lib/src/widgets/wenz_rich_text_editor.dart:10478:_LocalSelectionRange? _selectionRangeForPath(
+lib/src/widgets/wenz_rich_text_editor.dart:10479:  DocumentSelection? selection,
+lib/src/widgets/wenz_rich_text_editor.dart:10484:  if (selection == null || selection.isCollapsed) {
+lib/src/widgets/wenz_rich_text_editor.dart:10487:  final start = selection.start;
+lib/src/widgets/wenz_rich_text_editor.dart:10488:  final end = selection.end;
+
+**Inspecting codegraph files**
+
+I'm checking the output to see if AGENTS were mentioned. It seems like there were none. I need to inspect the files closely. The codegraph has some selections, but I should use a method similar to sed to read specific line ranges. I'll focus on the selection_gesture_overlay, which might be around 300 lines. I'm not sure if I need to reopen the files since codegraph showed snippets. But, to edit, I definitely need to explore more.
+codex
+现在只查看命中、聚焦、注册的具体实现，不触碰计划文件。
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+mcp: codegraph/codegraph_explore started
+mcp: codegraph/codegraph_explore (completed)
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+mcp: codegraph/codegraph_explore started
+mcp: codegraph/codegraph_explore (completed)
+mcp: codegraph/codegraph_explore started
+mcp: codegraph/codegraph_explore (completed)
+codex
+P001 是语义澄清任务；我会添加注释/文档，不改点击算法。
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+codex
+接下来查看文本面注册点和排除区组件，确保注释覆盖正确边界。
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+mcp: codegraph/codegraph_explore started
+mcp: codegraph/codegraph_explore (completed)
+**Searching for guidelines**
+
+I realize I need to search for more information. To narrow down my options, I could use shell commands to extract selected lines. It seems reading through the chunks might help too. If the tool isn’t restricted, maybe I can proceed with the Get-Content command using selected line indices. I should also check the documentation and inspect the repository status before making any edits to ensure everything is in order.
+codex
+我还需要精确行号来做最小注释补丁和最终引用。
+exec
+powershell.exe -Command 'git status --short; $files=@('"'lib/src/widgets/selection_gesture_overlay.dart','lib/src/widgets/block_geometry_registry.dart','lib/src/widgets/wenz_rich_text_editor.dart','docs/selection_engine.md'); foreach("'$f in $files){ Write-Output "--- $f"; (Get-Content -LiteralPath $f -Encoding UTF8 | Select-Object -First 40) }' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 263ms:
+ M docs/api_reference.md
+ M docs/input_system.md
+ M docs/progress/logs/20260626-025328_gen-feedback-8.log
+ M docs/rendering.md
+ M lib/src/controller/slash_menu_controller.dart
+ M lib/src/controller/wenz_rich_text_controller.dart
+ M lib/src/core/commands/text_commands.dart
+ M lib/src/core/model/attributes.dart
+ M lib/src/core/model/block_node.dart
+ M lib/src/core/schema/document_schema.dart
+ M lib/src/input/shortcut_manager.dart
+ M lib/src/widgets/table_floating_toolbar_overlay.dart
+ M lib/src/widgets/wenz_rich_text_editor.dart
+ M test/controller/slash_menu_controller_test.dart
+ M test/core/style_commands_test.dart
+ M test/core/text_commands_test.dart
+ M test/input/shortcut_manager_test.dart
+ M test/widgets/slash_menu_overlay_test.dart
+ M test/widgets/wenz_rich_text_editor_test.dart
+?? docs/plan/plan_feedback_8_20260626-025328.md
+?? docs/plan/plan_requirement_14_20260626-034143.md
+?? docs/plan/plan_requirement_15_20260626-041316.md
+?? docs/plan/plan_requirement_16_20260626-042807.md
+?? docs/plan/plan_requirement_17_20260626-044909.md
+?? docs/plan/plan_requirement_18_20260626-050406.md
+?? docs/plan/plan_requirement_19_20260626-051837.md
+?? docs/plan/plan_requirement_20_20260626-053824.md
+?? docs/plan/plan_requirement_22_20260626-055230.md
+?? docs/progress/logs/20260626-025328_gen-feedback-8.last.txt
+?? docs/progress/logs/20260626-025638_execute-P001.log
+?? docs/progress/logs/20260626-034143_gen-requirement-14.last.txt
+?? docs/progress/logs/20260626-034143_gen-requirement-14.log
+?? docs/progress/logs/20260626-034448_execute-P001.last.txt
+?? docs/progress/logs/20260626-034448_execute-P001.log
+?? docs/progress/logs/20260626-041316_gen-requirement-15.last.txt
+?? docs/progress/logs/20260626-041316_gen-requirement-15.log
+?? docs/progress/logs/20260626-041640_execute-P001.last.txt
+?? docs/progress/logs/20260626-041640_execute-P001.log
+?? docs/progress/logs/20260626-042807_gen-requirement-16.last.txt
+?? docs/progress/logs/20260626-042807_gen-requirement-16.log
+?? docs/progress/logs/20260626-043330_execute-P001.last.txt
+?? docs/progress/logs/20260626-043330_execute-P001.log
+?? docs/progress/logs/20260626-044909_gen-requirement-17.last.txt
+?? docs/progress/logs/20260626-044909_gen-requirement-17.log
+?? docs/progress/logs/20260626-045359_execute-P001.last.txt
+?? docs/progress/logs/20260626-045359_execute-P001.log
+?? docs/progress/logs/20260626-050406_gen-requirement-18.last.txt
+?? docs/progress/logs/20260626-050406_gen-requirement-18.log
+?? docs/progress/logs/20260626-051126_execute-P001.last.txt
+?? docs/progress/logs/20260626-051126_execute-P001.log
+?? docs/progress/logs/20260626-051837_gen-requirement-19.last.txt
+?? docs/progress/logs/20260626-051837_gen-requirement-19.log
+?? docs/progress/logs/20260626-052252_execute-P001.last.txt
+?? docs/progress/logs/20260626-052252_execute-P001.log
+?? docs/progress/logs/20260626-053824_gen-requirement-20.last.txt
+?? docs/progress/logs/20260626-053824_gen-requirement-20.log
+?? docs/progress/logs/20260626-054424_execute-P001.last.txt
+?? docs/progress/logs/20260626-054424_execute-P001.log
+?? docs/progress/logs/20260626-055230_gen-requirement-22.last.txt
+?? docs/progress/logs/20260626-055230_gen-requirement-22.log
+?? docs/progress/logs/20260626-055935_execute-P001.log
+?? nul
+--- lib/src/widgets/selection_gesture_overlay.dart
+import 'package:flutter/gestures.dart';
+import 'package:flutter/scheduler.dart';
+import 'package:flutter/widgets.dart';
+
+import '../core/position/document_position.dart';
+import 'block_geometry_registry.dart';
+
+/// Document-level gesture surface that owns mouse/touch selection across all
+/// editable blocks.
+///
+/// Wraps the scrollable editor content. Pointer events are translated to
+/// [DocumentPosition]s via the [BlockGeometryRegistry], so a drag that starts
+/// in one block can extend the selection into a neighbouring block. This
+/// replaces the per-block gesture detectors that previously trapped drags
+/// inside a single [TextSelectionSurface].
+///
+/// Supports:
+/// - tap → place collapsed caret
+/// - drag → extend selection (cross-block), with auto-scroll near viewport edges
+/// - auto-scroll → every drag (touch or mouse) synchronously scrolls one step
+///   when the pointer enters the viewport edge band, so the list follows the
+///   drag. For mouse/pen, a per-frame [Ticker] *additionally* keeps scrolling
+///   while the pointer is held still near an edge, letting the user scroll
+///   past the visible area. (Touch selection past the viewport uses dedicated
+///   handles, tracked separately as C9.)
+/// - double-tap → select word
+/// - triple-tap → select block (paragraph)
+class SelectionGestureOverlay extends StatefulWidget {
+  const SelectionGestureOverlay({
+    super.key,
+    required this.registry,
+    required this.scrollController,
+    required this.focusNode,
+    required this.readOnly,
+    required this.onSelectionChanged,
+    this.onTapBeyondContent,
+    required this.child,
+  });
+
+  final BlockGeometryRegistry registry;
+--- lib/src/widgets/block_geometry_registry.dart
+import 'package:flutter/widgets.dart';
+
+import '../core/position/document_position.dart';
+
+/// Resolves a global screen coordinate to a [DocumentPosition] across all
+/// registered editable blocks.
+///
+/// Each [_TextSelectionSurface] registers itself (via [register]) with its
+/// block id, path, text length, a [GlobalKey] on its render object, and a
+/// callback that converts a *local* offset to a character offset using its
+/// own [TextLayoutService]. The document-level gesture overlay queries the
+/// registry during a drag to map the pointer position to a document position,
+/// which may live in a different block than where the drag started — enabling
+/// cross-block drag selection.
+class BlockGeometryRegistry {
+  BlockGeometryRegistry();
+
+  /// Entries in block-index order, for ordered traversal (hit-testing,
+  /// nearest-block clamping, average height).
+  final List<BlockEntry> _entries = <BlockEntry>[];
+
+  /// O(1) lookup by (blockId, path). Kept in sync with [_entries] on
+  /// register/unregister so hot paths (caret rect, word range, vertical move —
+  /// hit on every IME keystroke and every drag move) avoid a linear scan.
+  final Map<String, BlockEntry> _byKey = <String, BlockEntry>{};
+
+  /// Top-level block row boxes, keyed by block id. These are wider than the
+  /// editable text/object selection surfaces and therefore suit row-level drag
+  /// sorting, including custom renderers that do not register text geometry.
+  final List<BlockRowGeometryEntry> _rowEntries = <BlockRowGeometryEntry>[];
+  final Map<String, BlockRowGeometryEntry> _rowByBlockId =
+      <String, BlockRowGeometryEntry>{};
+
+  final Set<GlobalKey> _selectionExclusionKeys = <GlobalKey>{};
+
+  /// Registers a block/path surface. Replaces any prior entry with the same
+  /// [blockId] and [BlockEntry.path].
+  void register(BlockEntry entry) {
+    final key = _key(entry.blockId, entry.path);
+    final existing = _byKey[key];
+--- lib/src/widgets/wenz_rich_text_editor.dart
+import 'dart:async';
+import 'dart:math' as math;
+
+import 'package:flutter/gestures.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_math_fork/flutter_math.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
+
+import '../controller/find_replace_controller.dart';
+import '../controller/outline_controller.dart';
+import '../controller/slash_menu_controller.dart';
+import '../controller/wenz_rich_text_controller.dart';
+import '../core/commands/inline_editing.dart';
+import '../core/model/attributes.dart';
+import '../core/model/block_node.dart';
+import '../core/model/inline_node.dart';
+import '../core/model/table_model.dart';
+import '../core/position/document_position.dart';
+import '../input/composition_state.dart';
+import '../input/editor_text_input_client.dart';
+import '../input/shortcut_manager.dart';
+import '../rendering/text_layout_service.dart';
+import 'block_geometry_registry.dart';
+import 'block_renderer_registry.dart';
+import 'code_syntax_highlighter.dart';
+import 'inline_embed_renderer.dart';
+import 'media_resolver.dart';
+import 'selection_gesture_overlay.dart';
+import 'shared_text_layout_cache.dart';
+import 'slash_menu_overlay.dart';
+
+const _caretKey = ValueKey<String>('wenz-richtext-caret');
+const _selectionHighlightKey = ValueKey<String>(
+  'wenz-richtext-selection-highlight',
+);
+const _findHighlightKey = ValueKey<String>('wenz-richtext-find-highlight');
+const _inlineFormulaKey = ValueKey<String>('wenz-richtext-inline-formula');
+const _accessibilityFocusHighlightKey = ValueKey<String>(
+  'wenz-richtext-accessibility-focus-highlight',
+--- docs/selection_engine.md
+# Selection Engine
+
+阶段 2 选区与布局引擎的架构说明：跨块拖拽、选词/选段、自动滚动、只读选择。
+
+## 总览
+
+阶段 0 的选区是**单块手势**——每个 `_TextSelectionSurface` 独占 `GestureDetector`，拖拽无法跨块。阶段 2 把手势上移到**文档级 overlay**，通过 `BlockGeometryRegistry` 把全局坐标解析为 `DocumentPosition`，从而支持跨块。
+
+关键事实：**选区模型、命令层、跨块高亮绘制在阶段 0/1 已支持跨块**（`DocumentSelection` 无单块约束、`_selectionRangeForPath` 按 blockIndex 区间全块高亮）。阶段 2 补的只是手势生产。
+
+## 架构
+
+```
+SelectionGestureOverlay（文档级 Listener + 手势判定）
+        │
+        │  全局坐标 → DocumentPosition
+        ▼
+BlockGeometryRegistry（注册表：blockId → GlobalKey + layoutResolver）
+        │
+        │  遍历已注册 surface，RenderBox.globalToLocal + TextLayoutService.offsetAt
+        ▼
+controller.setSelection(DocumentSelection)  ──▶ 各 _TextSelectionSurface 按区间重绘高亮
+```
+
+## BlockGeometryRegistry
+
+`lib/src/widgets/block_geometry_registry.dart`。文档级单例（`_WenzRichTextEditorState` 持有，注入每个 surface）。
+
+- 每个 `_TextSelectionSurface` 在 `initState` 用 `register(BlockEntry)` 注册：`blockId`、`blockIndex`、`path`、`textLength`、`GlobalKey`、`positionFromLocal` 回调、`wordRangeAt` 回调。`dispose` 时 `unregister`。
+- `positionFromGlobalOffset(Offset global)`：遍历 entries，用 `RenderBox.globalToLocal` + `contains` 找命中块；命中则用该块 `TextLayoutService.offsetAt` 得 offset 构造 `DocumentPosition`。未命中（块间空隙/视口外）则 `_clampToNearest`——按垂直邻近选最近块的首/尾，保证拖拽到块间隙也能预测地扩展选区。
+- `wordRangeAt(blockId, offset)` / `paragraphRange(blockId)`：委托给命中块的 `TextLayoutService`，供双击/三击。
+
+## SelectionGestureOverlay
+
+`lib/src/widgets/selection_gesture_overlay.dart`。包裹 `SingleChildScrollView`，用 `Listener`（`PointerDown/Move/Up/Cancel`）统一接管指针事件。
+
+### 手势类型
+
+| 输入 | 行为 |
+| --- | --- |
+
+**Clarifying code comments**
+
+To ensure "任务成功," I’m thinking about adding comments in all three code files, along with the documentation. No changes to behavior are needed, and I don’t think tests are necessary either. I need to understand the current documentation and may want to append a section under SelectionGestureOverlay or BlockGeometryRegistry regarding empty-line tap semantics. 
+
+I’ll detail the specifics about text targets, coverage, exclusions, and how empty surfaces behave when interacted with.
+**Updating documentation and comments**
+
+I need to make sure that P001 doesn't modify behavior, and the documentation must state "must/contract," not "currently does." It seems like I might want to add code comments in _onPointerUp when the anchor is not null, and also in the registry for the positionFromGlobalOffset. Maybe I could include a TODO note?
+
+I should avoid P002, and I need to update the code comment in block_registry for positionFromGlobalOffset, especially around lines 295. I’ll inspect lines 284 to 304 using shell or codegraph.
+codex
+我会把“空白行”定义成选区契约，并标出不应抢占的区域。
+exec
+powershell.exe -Command '$ranges=@(@('"'lib/src/widgets/block_geometry_registry.dart',280,340),@('lib/src/widgets/selection_gesture_overlay.dart',1,35),@('lib/src/widgets/selection_gesture_overlay.dart',276,298),@('lib/src/widgets/wenz_rich_text_editor.dart',7067,7120),@('lib/src/widgets/wenz_rich_text_editor.dart',7235,7255),@('lib/src/widgets/wenz_rich_text_editor.dart',7529,7539),@('docs/selection_engine.md',24,70)); foreach("'$r in $ranges){ $f=$r[0]; $start=[int]$r[1]; $end=[int]$r[2]; Write-Output "--- $f:$start-$end"; $i=0; Get-Content -LiteralPath $f -Encoding UTF8 | ForEach-Object { $i++; if($i -ge $start -and $i -le $end){ '"'{0,5}: {1}' -f "'$i,$_ } } }' in D:\project\GitHub\wenz_flutter\wenz_richtext
+2026-06-25T22:02:41.139873Z ERROR codex_core::tools::router: error={"output":"At line:2 char:486\r\n+ ... 0]; $start=[int]$r[1]; $end=[int]$r[2]; Write-Output \"--- $f:$start-$ ...\r\n+                                                               ~~~\r\nVariable reference is not valid. ':' was not followed by a valid variable name character. Consider using ${} to delimit\r\n the name.\r\n    + CategoryInfo          : ParserError: (:) [], ParentContainsErrorRecordException\r\n    + FullyQualifiedErrorId : InvalidVariableReferenceWithDrive\r\n \r\n","metadata":{"exit_code":1,"duration_seconds":0.2}}
+ exited 1 in 222ms:
+At line:2 char:486
++ ... 0]; $start=[int]$r[1]; $end=[int]$r[2]; Write-Output "--- $f:$start-$ ...
++                                                               ~~~
+Variable reference is not valid. ':' was not followed by a valid variable name character. Consider using ${} to delimit
+ the name.
+    + CategoryInfo          : ParserError: (:) [], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : InvalidVariableReferenceWithDrive
+ 
+
+codex
+上个读取命令只是格式问题；我马上用安全的行号输出重试。
+exec
+powershell.exe -Command '$ranges=@(@('"'lib/src/widgets/block_geometry_registry.dart',280,340),@('lib/src/widgets/selection_gesture_overlay.dart',1,35),@('lib/src/widgets/selection_gesture_overlay.dart',276,298),@('lib/src/widgets/wenz_rich_text_editor.dart',7067,7120),@('lib/src/widgets/wenz_rich_text_editor.dart',7235,7255),@('lib/src/widgets/wenz_rich_text_editor.dart',7529,7539),@('docs/selection_engine.md',24,70)); foreach("'$r in $ranges){ $f=$r[0]; $start=[int]$r[1]; $end=[int]$r[2]; Write-Output ('"'--- {0}:{1}-{2}' -f "'$f,$start,$end); $i=0; Get-Content -LiteralPath $f -Encoding UTF8 | ForEach-Object { $i++; if($i -ge $start -and $i -le $end){ '"'{0,5}: {1}' -f "'$i,$_ } } }' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 489ms:
+--- lib/src/widgets/block_geometry_registry.dart:280-340
+  280:         continue;
+  281:       }
+  282:       if (firstIndex < 0) {
+  283:         firstIndex = entry.blockIndex;
+  284:       }
+  285:       totalHeight += box.size.height;
+  286:       counted += 1;
+  287:     }
+  288:     if (counted == 0 || firstIndex < 0) {
+  289:       return null;
+  290:     }
+  291:     return (meanHeight: totalHeight / counted, firstBlockIndex: firstIndex);
+  292:   }
+  293: 
+  294:   /// Resolves a global screen offset to a [DocumentPosition].
+  295:   ///
+  296:   /// If the point lands inside a registered block's hit-test box (the whole
+  297:   /// cell frame for table cells, otherwise the text surface itself), the
+  298:   /// position is computed from that block's *text-local* coordinates — the
+  299:   /// hit-test local offset is first translated through the entry's
+  300:   /// [BlockEntry.hitLocalToTextLocal] so padding/centring offsets are stripped.
+  301:   /// Otherwise the nearest block is chosen by 2-D rect proximity and the caret
+  302:   /// is clamped to that block's start or end — so a drag into the gap between
+  303:   /// blocks (or beyond the last block) still extends the selection predictably.
+  304:   DocumentPosition? positionFromGlobalOffset(Offset global) {
+  305:     BlockEntry? hitEntry;
+  306:     Offset? hitTextLocal;
+  307:     var nearestHitDelta = double.infinity;
+  308:     for (final entry in _entries) {
+  309:       final box = entry.hitTestBox;
+  310:       if (box == null) {
+  311:         continue;
+  312:       }
+  313:       final local = box.globalToLocal(global);
+  314:       if (local.dx >= 0 &&
+  315:           local.dx <= box.size.width &&
+  316:           local.dy >= 0 &&
+  317:           local.dy <= box.size.height) {
+  318:         final rect = box.localToGlobal(Offset.zero) & box.size;
+  319:         final delta = (global - rect.center).distanceSquared;
+  320:         if (delta < nearestHitDelta) {
+  321:           nearestHitDelta = delta;
+  322:           hitEntry = entry;
+  323:           hitTextLocal = entry.hitLocalToTextLocal(local);
+  324:         }
+  325:       }
+  326:     }
+  327:     if (hitEntry != null && hitTextLocal != null) {
+  328:       return DocumentPosition(
+  329:         blockId: hitEntry.blockId,
+  330:         blockIndex: hitEntry.blockIndex,
+  331:         path: hitEntry.path,
+  332:         offset: hitEntry.positionFromLocal(hitTextLocal),
+  333:       );
+  334:     }
+  335:     // Missed every block: clamp to the nearest block's start/end.
+  336:     return _clampToNearest(global);
+  337:   }
+  338: 
+  339:   DocumentPosition? _clampToNearest(Offset global) {
+  340:     if (_entries.isEmpty) {
+--- lib/src/widgets/selection_gesture_overlay.dart:1-35
+    1: import 'package:flutter/gestures.dart';
+    2: import 'package:flutter/scheduler.dart';
+    3: import 'package:flutter/widgets.dart';
+    4: 
+    5: import '../core/position/document_position.dart';
+    6: import 'block_geometry_registry.dart';
+    7: 
+    8: /// Document-level gesture surface that owns mouse/touch selection across all
+    9: /// editable blocks.
+   10: ///
+   11: /// Wraps the scrollable editor content. Pointer events are translated to
+   12: /// [DocumentPosition]s via the [BlockGeometryRegistry], so a drag that starts
+   13: /// in one block can extend the selection into a neighbouring block. This
+   14: /// replaces the per-block gesture detectors that previously trapped drags
+   15: /// inside a single [TextSelectionSurface].
+   16: ///
+   17: /// Supports:
+   18: /// - tap → place collapsed caret
+   19: /// - drag → extend selection (cross-block), with auto-scroll near viewport edges
+   20: /// - auto-scroll → every drag (touch or mouse) synchronously scrolls one step
+   21: ///   when the pointer enters the viewport edge band, so the list follows the
+   22: ///   drag. For mouse/pen, a per-frame [Ticker] *additionally* keeps scrolling
+   23: ///   while the pointer is held still near an edge, letting the user scroll
+   24: ///   past the visible area. (Touch selection past the viewport uses dedicated
+   25: ///   handles, tracked separately as C9.)
+   26: /// - double-tap → select word
+   27: /// - triple-tap → select block (paragraph)
+   28: class SelectionGestureOverlay extends StatefulWidget {
+   29:   const SelectionGestureOverlay({
+   30:     super.key,
+   31:     required this.registry,
+   32:     required this.scrollController,
+   33:     required this.focusNode,
+   34:     required this.readOnly,
+   35:     required this.onSelectionChanged,
+--- lib/src/widgets/selection_gesture_overlay.dart:276-298
+  276:     final handledBeyondContent =
+  277:         tapCount == 1 && _handleTapBeyondContent(position);
+  278:     if (handledBeyondContent) {
+  279:       _dragBase = null;
+  280:       _tapAnchor = null;
+  281:       return;
+  282:     }
+  283: 
+  284:     final anchor = _tapAnchor;
+  285:     if (anchor != null) {
+  286:       widget.focusNode.requestFocus();
+  287:       if (tapCount >= 3) {
+  288:         _selectBlock(anchor);
+  289:       } else if (tapCount == 2) {
+  290:         _selectWord(anchor, position);
+  291:       } else if (anchor.path.isBlockObject) {
+  292:         _selectBlock(anchor);
+  293:       } else {
+  294:         widget.onSelectionChanged(
+  295:           DocumentSelection(base: anchor, extent: anchor),
+  296:         );
+  297:       }
+  298:     }
+--- lib/src/widgets/wenz_rich_text_editor.dart:7067-7120
+ 7067: class _TextSelectionSurface extends StatefulWidget {
+ 7068:   const _TextSelectionSurface({
+ 7069:     required this.blockId,
+ 7070:     required this.blockIndex,
+ 7071:     required this.path,
+ 7072:     required this.textLength,
+ 7073:     required this.textSpan,
+ 7074:     required this.offsetMapper,
+ 7075:     required this.textAlign,
+ 7076:     required this.minHeight,
+ 7077:     required this.selection,
+ 7078:     required this.showCaret,
+ 7079:     required this.registry,
+ 7080:     required this.showDebugOverlay,
+ 7081:     this.findRanges = const <_FindHighlightRange>[],
+ 7082:     this.hitTestKey,
+ 7083:   });
+ 7084: 
+ 7085:   final String blockId;
+ 7086:   final int blockIndex;
+ 7087:   final PositionPath path;
+ 7088:   final int textLength;
+ 7089:   final InlineSpan textSpan;
+ 7090:   final _InlineOffsetMapper offsetMapper;
+ 7091:   final TextAlign textAlign;
+ 7092:   final double minHeight;
+ 7093:   final DocumentSelection? selection;
+ 7094:   final bool showCaret;
+ 7095:   final BlockGeometryRegistry registry;
+ 7096:   final bool showDebugOverlay;
+ 7097:   final List<_FindHighlightRange> findRanges;
+ 7098: 
+ 7099:   /// Optional GlobalKey on a wider hit-test frame (e.g. a table cell's whole
+ 7100:   /// frame) whose local space differs from this surface's text-local space.
+ 7101:   /// When null the surface's own [_surfaceKey] is used for hit-testing. When
+ 7102:   /// set, the State registers a transform that maps hit-local offsets onto
+ 7103:   /// this surface's text-local space (see [_hitLocalToTextLocal]).
+ 7104:   final GlobalKey? hitTestKey;
+ 7105: 
+ 7106:   @override
+ 7107:   State<_TextSelectionSurface> createState() => _TextSelectionSurfaceState();
+ 7108: }
+ 7109: 
+ 7110: class _TextSelectionSurfaceState extends State<_TextSelectionSurface> {
+ 7111:   TextLayoutService? _ownedLayoutService;
+ 7112:   final GlobalKey _surfaceKey = GlobalKey();
+ 7113:   double _lastMaxWidth = 0;
+ 7114: 
+ 7115:   /// Drives the caret blink. Period ~530ms, toggling [value] between 0 and 1.
+ 7116:   /// Uses a real [Timer] rather than an [AnimationController]+ticker so the
+ 7117:   /// repeating blink does not keep the frame scheduler busy — this lets tests
+ 7118:   /// (and idle frames) settle. The timer only fires on real time progress, so
+ 7119:   /// headless `pump()`/`pumpAndSettle()` without a duration are not blocked.
+ 7120:   Timer? _blinkTimer;
+--- lib/src/widgets/wenz_rich_text_editor.dart:7235-7255
+ 7235:   void _register() {
+ 7236:     widget.registry.register(
+ 7237:       BlockEntry(
+ 7238:         blockId: widget.blockId,
+ 7239:         blockIndex: widget.blockIndex,
+ 7240:         path: widget.path,
+ 7241:         textLength: widget.textLength,
+ 7242:         key: _surfaceKey,
+ 7243:         positionFromLocal: _offsetForLocalPosition,
+ 7244:         wordRangeAt: _wordRangeAt,
+ 7245:         caretRectAt: _caretRectAt,
+ 7246:         localCaretRectAt: _localCaretRectAt,
+ 7247:         localComposingRectForRange: _localComposingRectForRange,
+ 7248:         verticalMoveAt: _verticalMoveAt,
+ 7249:         hitTestKey: widget.hitTestKey,
+ 7250:         hitLocalToTextLocal:
+ 7251:             widget.hitTestKey == null ? null : _hitLocalToTextLocal,
+ 7252:       ),
+ 7253:     );
+ 7254:   }
+ 7255: 
+--- lib/src/widgets/wenz_rich_text_editor.dart:7529-7539
+ 7529:             if (mounted) {
+ 7530:               _syncBlink(caretVisible);
+ 7531:             }
+ 7532:           });
+ 7533:         }
+ 7534: 
+ 7535:         // Gestures live in the document-level SelectionGestureOverlay; the
+ 7536:         // surface only renders text, highlight, caret, and registers its
+ 7537:         // geometry for cross-block hit-testing.
+ 7538:         return Stack(
+ 7539:           key: _surfaceKey,
+--- docs/selection_engine.md:24-70
+   24: 
+   25: ## BlockGeometryRegistry
+   26: 
+   27: `lib/src/widgets/block_geometry_registry.dart`。文档级单例（`_WenzRichTextEditorState` 持有，注入每个 surface）。
+   28: 
+   29: - 每个 `_TextSelectionSurface` 在 `initState` 用 `register(BlockEntry)` 注册：`blockId`、`blockIndex`、`path`、`textLength`、`GlobalKey`、`positionFromLocal` 回调、`wordRangeAt` 回调。`dispose` 时 `unregister`。
+   30: - `positionFromGlobalOffset(Offset global)`：遍历 entries，用 `RenderBox.globalToLocal` + `contains` 找命中块；命中则用该块 `TextLayoutService.offsetAt` 得 offset 构造 `DocumentPosition`。未命中（块间空隙/视口外）则 `_clampToNearest`——按垂直邻近选最近块的首/尾，保证拖拽到块间隙也能预测地扩展选区。
+   31: - `wordRangeAt(blockId, offset)` / `paragraphRange(blockId)`：委托给命中块的 `TextLayoutService`，供双击/三击。
+   32: 
+   33: ## SelectionGestureOverlay
+   34: 
+   35: `lib/src/widgets/selection_gesture_overlay.dart`。包裹 `SingleChildScrollView`，用 `Listener`（`PointerDown/Move/Up/Cancel`）统一接管指针事件。
+   36: 
+   37: ### 手势类型
+   38: 
+   39: | 输入 | 行为 |
+   40: | --- | --- |
+   41: | 单击 | `_tapAnchor` → collapsed caret |
+   42: | 拖拽（位移 > slop 阈值） | base 固定，extent 跟随全局坐标（**可跨块**），up 时定稿 |
+   43: | 双击 | `wordRangeAt` → 选词 |
+   44: | 三击 | `paragraphRange` → 选整块 |
+   45: 
+   46: - **多击计数**：`_lastTapTime` + `_lastTapPosition`，300ms 时间窗 + slop 位移内算连续。`_tapCount` 累加；双击/三击抑制 drag 启动（`_dragOrigin = null`），但 `_tapAnchor` 始终记录。
+   47: - **拖拽跨块**：`_extendSelection` 每帧用 registry 解析 extent，可落在任意已注册块。绘制层（`_selectionRangeForPath`）自动处理跨块高亮：中间块全块高亮，首尾块按 offset 截断。
+   48: 
+   49: ### 自动滚动
+   50: 
+   51: `_maybeAutoScroll`：拖拽 move 时，若全局坐标距视口边缘 < 48px，按差值（上限 24px/帧）`scrollable.position.jumpTo`。视口边界用 overlay 自身 RenderBox 近似。
+   52: 
+   53: ### Block 拖拽把手排除边界
+   54: 
+   55: Block 左侧把手属于**顶层 block 行 chrome**，不属于 `_TextSelectionSurface`、`BlockRendererBuilder` 或对象块内部控件。后续渲染/拖拽实现必须复用 `BlockDragHandleSpec` 中的尺寸与阈值，并在命中把手时先消费指针事件，避免事件继续进入 `SelectionGestureOverlay` 生成文本选区。
+   56: 
+   57: | 项 | 交互约定 |
+   58: | --- | --- |
+   59: | 归属 | 只挂在 `_MeasuredVirtualBlockList` 产生的 `controller.document.blocks` 顶层行外壳；表格单元格文本、行内 embed、对象块内部按钮/resize 控件都不是可排序行。 |
+   60: | 位置 | 使用 leading 方向的行外 gutter，遵循 `Directionality`；把手在内容框外侧，不改变 renderer 内容宽度、缩进或表格列宽。 |
+   61: | 尺寸 | gutter 宽 `32px`，命中/焦点区域 `28×28px`，图标 `18×18px`，与内容边缘间距 `4px`，距 block 顶部 `2px`，视觉上锚定首行或对象块顶部控制行。 |
+   62: | 状态 | 默认透明但保留稳定命中区域；行/rail hover 时显示 `0.72` opacity；键盘 focus、菜单打开或拖拽中为 `1.0`；只读或无编辑权限时不显示、不可聚焦。 |
+   63: | 菜单 vs 拖拽 | pointer down 在命中区后进入 pending：释放前移动距离 `< 6px` 视为点击/轻触并打开 block 菜单；移动距离 `>= 6px` 进入排序拖拽，抑制菜单、文本选区和 IME caret 变更。 |
+   64: | 合法落点 | 仅允许落到顶层 block 之间或首尾边界，不允许落入表格单元格、行内 embed 或对象块内部控件；同位置/无合法目标为 no-op 且不记历史。 |
+   65: | 禁用/no-op | 空文档无把手；只读或 `canEdit=false` 无菜单和拖拽；单 block 文档可打开菜单但排序拖拽、上移/下移为 no-op；首行禁用上移，末行禁用下移。 |
+   66: 
+   67: ### Block 拖拽把手回归矩阵
+   68: 
+   69: - **菜单入口**：点击/轻触或键盘 Enter/Space 打开统一 block 菜单；菜单动作复用 `ObjectBlockAction`，普通文本块和对象块都走同一分发链路。
+   70: - **拖拽排序**：超过 `BlockDragHandleSpec.dragStartSlop` 后进入排序态，显示 `wenz-richtext-block-reorder-drop-indicator`，释放后调用 `MoveBlockCommand` 写入历史；拖到原位置不记 history。
+
+codex
+我将只做注释和文档补丁，避免改变运行时行为。
+exec
+powershell.exe -Command '$i=0; Get-Content -LiteralPath '"'lib/src/widgets/wenz_rich_text_editor.dart' -Encoding UTF8 | ForEach-Object { "'$i++; if($i -ge 7058 -and $i -le 7110){ '"'{0,5}: {1}' -f "'$i,$_ } }' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 283ms:
+ 7058:     }
+ 7059:     return GestureDetector(
+ 7060:       behavior: HitTestBehavior.translucent,
+ 7061:       onDoubleTap: onDoubleTap,
+ 7062:       child: surface,
+ 7063:     );
+ 7064:   }
+ 7065: }
+ 7066: 
+ 7067: class _TextSelectionSurface extends StatefulWidget {
+ 7068:   const _TextSelectionSurface({
+ 7069:     required this.blockId,
+ 7070:     required this.blockIndex,
+ 7071:     required this.path,
+ 7072:     required this.textLength,
+ 7073:     required this.textSpan,
+ 7074:     required this.offsetMapper,
+ 7075:     required this.textAlign,
+ 7076:     required this.minHeight,
+ 7077:     required this.selection,
+ 7078:     required this.showCaret,
+ 7079:     required this.registry,
+ 7080:     required this.showDebugOverlay,
+ 7081:     this.findRanges = const <_FindHighlightRange>[],
+ 7082:     this.hitTestKey,
+ 7083:   });
+ 7084: 
+ 7085:   final String blockId;
+ 7086:   final int blockIndex;
+ 7087:   final PositionPath path;
+ 7088:   final int textLength;
+ 7089:   final InlineSpan textSpan;
+ 7090:   final _InlineOffsetMapper offsetMapper;
+ 7091:   final TextAlign textAlign;
+ 7092:   final double minHeight;
+ 7093:   final DocumentSelection? selection;
+ 7094:   final bool showCaret;
+ 7095:   final BlockGeometryRegistry registry;
+ 7096:   final bool showDebugOverlay;
+ 7097:   final List<_FindHighlightRange> findRanges;
+ 7098: 
+ 7099:   /// Optional GlobalKey on a wider hit-test frame (e.g. a table cell's whole
+ 7100:   /// frame) whose local space differs from this surface's text-local space.
+ 7101:   /// When null the surface's own [_surfaceKey] is used for hit-testing. When
+ 7102:   /// set, the State registers a transform that maps hit-local offsets onto
+ 7103:   /// this surface's text-local space (see [_hitLocalToTextLocal]).
+ 7104:   final GlobalKey? hitTestKey;
+ 7105: 
+ 7106:   @override
+ 7107:   State<_TextSelectionSurface> createState() => _TextSelectionSurfaceState();
+ 7108: }
+ 7109: 
+ 7110: class _TextSelectionSurfaceState extends State<_TextSelectionSurface> {
+
+**Evaluating hitTestKey implementation**
+
+I'm thinking about how the `hitTestKey` for table cell might vary, especially regarding empty-line semantics and padding. The current comment suggests it applies to the whole cell. If I add a contract regarding widening too much, it could clash with existing implementations. The task "明确语义边界" isn't implemented yet. Maybe we need to clarify that `hitTestKey` can only be wider if it represents a text-line hit region? I'll need to inspect how the table is using this as well.
+codex
+我会顺便确认表格/控件的注册入口，只看相关位置。
+exec
+powershell.exe -Command "rg -n \"hitTestKey:|registerSelectionExclusion|_TextSelectionSurface\\(\" lib/src/widgets/wenz_rich_text_editor.dart" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 158ms:
+3920:    widget.registry.registerSelectionExclusion(_hitTestKey);
+3927:      oldWidget.registry.unregisterSelectionExclusion(_hitTestKey);
+3928:      widget.registry.registerSelectionExclusion(_hitTestKey);
+3938:    widget.registry.unregisterSelectionExclusion(_hitTestKey);
+5046:    final text = _TextSelectionSurface(
+5178:    widget.registry.registerSelectionExclusion(_hitTestKey);
+5185:      oldWidget.registry.unregisterSelectionExclusion(_hitTestKey);
+5186:      widget.registry.registerSelectionExclusion(_hitTestKey);
+5192:    widget.registry.unregisterSelectionExclusion(_hitTestKey);
+5379:    widget.registry.registerSelectionExclusion(_hitTestKey);
+5386:      oldWidget.registry.unregisterSelectionExclusion(_hitTestKey);
+5387:      widget.registry.registerSelectionExclusion(_hitTestKey);
+5393:    widget.registry.unregisterSelectionExclusion(_hitTestKey);
+5596:                    child: _TextSelectionSurface(
+6747:    final surface = _TextSelectionSurface(
+6777:      hitTestKey: _cellFrameKey,
+7068:  const _TextSelectionSurface({
+7249:        hitTestKey: widget.hitTestKey,
+9604:                    _TextSelectionSurface(
+9628:                      hitTestKey: _cardKey,
+9686:    widget.registry.registerSelectionExclusion(_hitTestKey);
+9693:      oldWidget.registry.unregisterSelectionExclusion(_hitTestKey);
+9694:      widget.registry.registerSelectionExclusion(_hitTestKey);
+9700:    widget.registry.unregisterSelectionExclusion(_hitTestKey);
+
+codex
+定位到多个文本面注册点；现在读取小范围以避免误定义。
+exec
+powershell.exe -Command '$ranges=@(@('"'lib/src/widgets/wenz_rich_text_editor.dart',5018,5075),@('lib/src/widgets/wenz_rich_text_editor.dart',5565,5625),@('lib/src/widgets/wenz_rich_text_editor.dart',6720,6788),@('lib/src/widgets/wenz_rich_text_editor.dart',9585,9635),@('lib/src/widgets/wenz_rich_text_editor.dart',3908,3942),@('lib/src/widgets/wenz_rich_text_editor.dart',5168,5196),@('lib/src/widgets/wenz_rich_text_editor.dart',5368,5398),@('lib/src/widgets/wenz_rich_text_editor.dart',9678,9705)); foreach("'$r in $ranges){ $f=$r[0]; $start=[int]$r[1]; $end=[int]$r[2]; Write-Output ('"'--- {0}:{1}-{2}' -f "'$f,$start,$end); $i=0; Get-Content -LiteralPath $f -Encoding UTF8 | ForEach-Object { $i++; if($i -ge $start -and $i -le $end){ '"'{0,5}: {1}' -f "'$i,$_ } } }' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 745ms:
+--- lib/src/widgets/wenz_rich_text_editor.dart:5018-5075
+ 5018:     final isTaskChecked = block.attributes.checked == true;
+ 5019:     final baseStyle = _blockTextStyle(context, block, textStyle);
+ 5020:     final todoStyle = isTaskListItem ? _todoTextStyle(baseStyle) : baseStyle;
+ 5021:     final effectiveStyle = isTaskListItem && isTaskChecked
+ 5022:         ? _completedTodoTextStyle(context, todoStyle)
+ 5023:         : todoStyle;
+ 5024:     final compositionRange = _localCompositionRange(
+ 5025:       compositionState,
+ 5026:       block.id,
+ 5027:       blockIndex,
+ 5028:       PositionPath.blockText(block.id),
+ 5029:     );
+ 5030:     final path = PositionPath.blockText(block.id);
+ 5031:     final textLength = inlineNodesLength(block.content);
+ 5032:     final inlineTextLayout = _inlineTextLayoutFor(
+ 5033:       context,
+ 5034:       block.content,
+ 5035:       effectiveStyle,
+ 5036:       compositionRange,
+ 5037:       inlineEmbedRenderer,
+ 5038:     );
+ 5039:     final selected = _selectionRangeForPath(
+ 5040:           selection,
+ 5041:           blockIndex,
+ 5042:           path,
+ 5043:           textLength,
+ 5044:         ) !=
+ 5045:         null;
+ 5046:     final text = _TextSelectionSurface(
+ 5047:       blockId: block.id,
+ 5048:       blockIndex: blockIndex,
+ 5049:       path: path,
+ 5050:       textLength: textLength,
+ 5051:       textSpan: TextSpan(
+ 5052:         style: effectiveStyle,
+ 5053:         children: inlineTextLayout.spans,
+ 5054:       ),
+ 5055:       offsetMapper: inlineTextLayout.offsetMapper,
+ 5056:       textAlign: _textAlign(block.attributes.alignment),
+ 5057:       minHeight: isTaskListItem
+ 5058:           ? _lineHeightFor(effectiveStyle)
+ 5059:           : (effectiveStyle.fontSize ?? 14) * _kBlockMinHeightFactor,
+ 5060:       selection: selection,
+ 5061:       showCaret: showCaret,
+ 5062:       registry: registry,
+ 5063:       showDebugOverlay: showDebugOverlay,
+ 5064:       findRanges: _findRangesForPath(
+ 5065:         findMatches,
+ 5066:         currentFindMatch,
+ 5067:         blockIndex,
+ 5068:         path,
+ 5069:         textLength,
+ 5070:       ),
+ 5071:     );
+ 5072:     final prefix = listMarker ?? _prefixFor(block);
+ 5073:     if (block.type == BlockType.quote) {
+ 5074:       return _withBlockSemantics(
+ 5075:         block,
+--- lib/src/widgets/wenz_rich_text_editor.dart:5565-5625
+ 5565:           ),
+ 5566:           child: _BlockFloatingToolbarSurface(
+ 5567:             estimatedToolbarHeight: _kCodeFloatingToolbarEstimatedHeight,
+ 5568:             toolbar: selected
+ 5569:                 ? _CodeBlockToolbar(
+ 5570:                     language: block.language,
+ 5571:                     onLanguageChanged: onLanguageChanged,
+ 5572:                     onCopyPressed: onCodeCopied == null
+ 5573:                         ? null
+ 5574:                         : () {
+ 5575:                             unawaited(onCodeCopied!(block.code));
+ 5576:                           },
+ 5577:                   )
+ 5578:                 : null,
+ 5579:             child: LayoutBuilder(
+ 5580:               builder: (context, constraints) {
+ 5581:                 final textDirection = Directionality.of(context);
+ 5582:                 final availableWidth = constraints.maxWidth.isFinite
+ 5583:                     ? constraints.maxWidth
+ 5584:                     : MediaQuery.sizeOf(context).width;
+ 5585:                 final contentWidth = math.max(
+ 5586:                   availableWidth,
+ 5587:                   _measureInlineSpanWidth(codeSpan, textDirection) + 1,
+ 5588:                 );
+ 5589:                 return SingleChildScrollView(
+ 5590:                   key: ValueKey<String>(
+ 5591:                     'wenz-richtext-code-scroll-${block.id}',
+ 5592:                   ),
+ 5593:                   scrollDirection: Axis.horizontal,
+ 5594:                   child: SizedBox(
+ 5595:                     width: contentWidth,
+ 5596:                     child: _TextSelectionSurface(
+ 5597:                       blockId: block.id,
+ 5598:                       blockIndex: blockIndex,
+ 5599:                       path: path,
+ 5600:                       textLength: block.code.length,
+ 5601:                       textSpan: codeSpan,
+ 5602:                       offsetMapper: _InlineOffsetMapper.identity(
+ 5603:                         block.code.length,
+ 5604:                       ),
+ 5605:                       textAlign: TextAlign.start,
+ 5606:                       minHeight: (codeStyle.fontSize ?? _kCodeBlockFontSize) *
+ 5607:                           _kBlockMinHeightFactor,
+ 5608:                       selection: selection,
+ 5609:                       showCaret: showCaret,
+ 5610:                       registry: registry,
+ 5611:                       showDebugOverlay: showDebugOverlay,
+ 5612:                       findRanges: _findRangesForPath(
+ 5613:                         findMatches,
+ 5614:                         currentFindMatch,
+ 5615:                         blockIndex,
+ 5616:                         path,
+ 5617:                         block.code.length,
+ 5618:                       ),
+ 5619:                     ),
+ 5620:                   ),
+ 5621:                 );
+ 5622:               },
+ 5623:             ),
+ 5624:           ),
+ 5625:         ),
+--- lib/src/widgets/wenz_rich_text_editor.dart:6720-6788
+ 6720:       widget.compositionState,
+ 6721:       tableBlock.id,
+ 6722:       blockIndex,
+ 6723:       path,
+ 6724:     );
+ 6725:     final inlineContent = _tableCellInlineContent(cell);
+ 6726:     final textLength = inlineNodesLength(inlineContent);
+ 6727:     final theme = Theme.of(context);
+ 6728:     final highlightColor = theme.colorScheme.primary.withAlpha(54);
+ 6729:     final effectiveTextStyle = (cell?.isHeader ?? false)
+ 6730:         ? widget.textStyle.copyWith(
+ 6731:             fontWeight: FontWeight.w700,
+ 6732:             color: theme.colorScheme.onSurfaceVariant,
+ 6733:           )
+ 6734:         : widget.textStyle;
+ 6735:     final inlineTextLayout = _inlineTextLayoutFor(
+ 6736:       context,
+ 6737:       inlineContent,
+ 6738:       effectiveTextStyle,
+ 6739:       compositionRange,
+ 6740:       widget.inlineEmbedRenderer,
+ 6741:     );
+ 6742:     final backgroundColor = _tableCellBackgroundColor(
+ 6743:       theme: theme,
+ 6744:       cell: cell,
+ 6745:       rowIndex: widget.rowIndex,
+ 6746:     );
+ 6747:     final surface = _TextSelectionSurface(
+ 6748:       blockId: tableBlock.id,
+ 6749:       blockIndex: blockIndex,
+ 6750:       path: path,
+ 6751:       textLength: textLength,
+ 6752:       textSpan: TextSpan(
+ 6753:         style: effectiveTextStyle,
+ 6754:         children: textLength == 0
+ 6755:             ? const <InlineSpan>[TextSpan(text: ' ')]
+ 6756:             : inlineTextLayout.spans,
+ 6757:       ),
+ 6758:       offsetMapper: inlineTextLayout.offsetMapper,
+ 6759:       textAlign: widget.textAlign,
+ 6760:       minHeight: (widget.textStyle.fontSize ?? 14) * _kBlockMinHeightFactor,
+ 6761:       selection: widget.selection,
+ 6762:       showCaret: widget.showCaret,
+ 6763:       registry: widget.registry,
+ 6764:       showDebugOverlay: widget.showDebugOverlay,
+ 6765:       findRanges: _findRangesForPath(
+ 6766:         widget.findMatches,
+ 6767:         widget.currentFindMatch,
+ 6768:         blockIndex,
+ 6769:         path,
+ 6770:         textLength,
+ 6771:       ),
+ 6772:       // The cell frame — not the centred text surface — is the hit-test box.
+ 6773:       // The surface resolves the cell→text-local offset itself (it owns the
+ 6774:       // text-surface render box via its own key), stripping the padding and
+ 6775:       // the vertical centring gap that TableCellVerticalAlignment.middle
+ 6776:       // introduces for short cells.
+ 6777:       hitTestKey: _cellFrameKey,
+ 6778:     );
+ 6779:     final selected = widget.highlightWholeCell ||
+ 6780:         _selectionRangeForPath(
+ 6781:               widget.selection,
+ 6782:               blockIndex,
+ 6783:               path,
+ 6784:               textLength,
+ 6785:             ) !=
+ 6786:             null;
+ 6787:     return Semantics(
+ 6788:       container: true,
+--- lib/src/widgets/wenz_rich_text_editor.dart:9585-9635
+ 9585:                 child: Column(
+ 9586:                   crossAxisAlignment: CrossAxisAlignment.start,
+ 9587:                   mainAxisSize: MainAxisSize.min,
+ 9588:                   children: <Widget>[
+ 9589:                     Row(
+ 9590:                       children: <Widget>[
+ 9591:                         Expanded(
+ 9592:                           child: Text(widget.block.effectiveTitle,
+ 9593:                               style: titleStyle),
+ 9594:                         ),
+ 9595:                         _CalloutVariantMenu(
+ 9596:                           registry: widget.registry,
+ 9597:                           variant: variant,
+ 9598:                           foreground: foreground,
+ 9599:                           onChanged: widget.onVariantChanged,
+ 9600:                         ),
+ 9601:                       ],
+ 9602:                     ),
+ 9603:                     const SizedBox(height: 2),
+ 9604:                     _TextSelectionSurface(
+ 9605:                       blockId: widget.block.id,
+ 9606:                       blockIndex: widget.blockIndex,
+ 9607:                       path: path,
+ 9608:                       textLength: textLength,
+ 9609:                       textSpan: TextSpan(
+ 9610:                         style: bodyStyle,
+ 9611:                         children: inlineTextLayout.spans,
+ 9612:                       ),
+ 9613:                       offsetMapper: inlineTextLayout.offsetMapper,
+ 9614:                       textAlign: TextAlign.start,
+ 9615:                       minHeight:
+ 9616:                           (bodyStyle.fontSize ?? 14) * _kBlockMinHeightFactor,
+ 9617:                       selection: widget.selection,
+ 9618:                       showCaret: widget.showCaret,
+ 9619:                       registry: widget.registry,
+ 9620:                       showDebugOverlay: widget.showDebugOverlay,
+ 9621:                       findRanges: _findRangesForPath(
+ 9622:                         widget.findMatches,
+ 9623:                         widget.currentFindMatch,
+ 9624:                         widget.blockIndex,
+ 9625:                         path,
+ 9626:                         textLength,
+ 9627:                       ),
+ 9628:                       hitTestKey: _cardKey,
+ 9629:                     ),
+ 9630:                   ],
+ 9631:                 ),
+ 9632:               ),
+ 9633:             ],
+ 9634:           ),
+ 9635:         ),
+--- lib/src/widgets/wenz_rich_text_editor.dart:3908-3942
+ 3908:   bool _focused = false;
+ 3909:   bool _menuOpen = false;
+ 3910:   bool _dragging = false;
+ 3911:   int? _activePointer;
+ 3912:   Offset? _pressOrigin;
+ 3913:   bool _suppressMenuForPointer = false;
+ 3914:   OverlayEntry? _dropIndicatorEntry;
+ 3915:   BlockReorderDropTarget? _dropTarget;
+ 3916: 
+ 3917:   @override
+ 3918:   void initState() {
+ 3919:     super.initState();
+ 3920:     widget.registry.registerSelectionExclusion(_hitTestKey);
+ 3921:   }
+ 3922: 
+ 3923:   @override
+ 3924:   void didUpdateWidget(covariant _BlockDragHandleButton oldWidget) {
+ 3925:     super.didUpdateWidget(oldWidget);
+ 3926:     if (oldWidget.registry != widget.registry) {
+ 3927:       oldWidget.registry.unregisterSelectionExclusion(_hitTestKey);
+ 3928:       widget.registry.registerSelectionExclusion(_hitTestKey);
+ 3929:     }
+ 3930:     if (!_enabled) {
+ 3931:       _resetPointerGesture();
+ 3932:     }
+ 3933:   }
+ 3934: 
+ 3935:   @override
+ 3936:   void dispose() {
+ 3937:     _removeDropIndicator();
+ 3938:     widget.registry.unregisterSelectionExclusion(_hitTestKey);
+ 3939:     super.dispose();
+ 3940:   }
+ 3941: 
+ 3942:   @override
+--- lib/src/widgets/wenz_rich_text_editor.dart:5168-5196
+ 5168: 
+ 5169: class _HeadingCollapseButtonState extends State<_HeadingCollapseButton> {
+ 5170:   final GlobalKey _hitTestKey = GlobalKey();
+ 5171:   final FocusNode _focusNode = FocusNode(
+ 5172:     debugLabel: 'Wenz heading collapse button',
+ 5173:   );
+ 5174: 
+ 5175:   @override
+ 5176:   void initState() {
+ 5177:     super.initState();
+ 5178:     widget.registry.registerSelectionExclusion(_hitTestKey);
+ 5179:   }
+ 5180: 
+ 5181:   @override
+ 5182:   void didUpdateWidget(covariant _HeadingCollapseButton oldWidget) {
+ 5183:     super.didUpdateWidget(oldWidget);
+ 5184:     if (oldWidget.registry != widget.registry) {
+ 5185:       oldWidget.registry.unregisterSelectionExclusion(_hitTestKey);
+ 5186:       widget.registry.registerSelectionExclusion(_hitTestKey);
+ 5187:     }
+ 5188:   }
+ 5189: 
+ 5190:   @override
+ 5191:   void dispose() {
+ 5192:     widget.registry.unregisterSelectionExclusion(_hitTestKey);
+ 5193:     _focusNode.dispose();
+ 5194:     super.dispose();
+ 5195:   }
+ 5196: 
+--- lib/src/widgets/wenz_rich_text_editor.dart:5368-5398
+ 5368: 
+ 5369:   @override
+ 5370:   State<_TodoCheckbox> createState() => _TodoCheckboxState();
+ 5371: }
+ 5372: 
+ 5373: class _TodoCheckboxState extends State<_TodoCheckbox> {
+ 5374:   final GlobalKey _hitTestKey = GlobalKey();
+ 5375: 
+ 5376:   @override
+ 5377:   void initState() {
+ 5378:     super.initState();
+ 5379:     widget.registry.registerSelectionExclusion(_hitTestKey);
+ 5380:   }
+ 5381: 
+ 5382:   @override
+ 5383:   void didUpdateWidget(covariant _TodoCheckbox oldWidget) {
+ 5384:     super.didUpdateWidget(oldWidget);
+ 5385:     if (oldWidget.registry != widget.registry) {
+ 5386:       oldWidget.registry.unregisterSelectionExclusion(_hitTestKey);
+ 5387:       widget.registry.registerSelectionExclusion(_hitTestKey);
+ 5388:     }
+ 5389:   }
+ 5390: 
+ 5391:   @override
+ 5392:   void dispose() {
+ 5393:     widget.registry.unregisterSelectionExclusion(_hitTestKey);
+ 5394:     super.dispose();
+ 5395:   }
+ 5396: 
+ 5397:   @override
+ 5398:   Widget build(BuildContext context) {
+--- lib/src/widgets/wenz_rich_text_editor.dart:9678-9705
+ 9678: }
+ 9679: 
+ 9680: class _CalloutVariantMenuState extends State<_CalloutVariantMenu> {
+ 9681:   final GlobalKey _hitTestKey = GlobalKey();
+ 9682: 
+ 9683:   @override
+ 9684:   void initState() {
+ 9685:     super.initState();
+ 9686:     widget.registry.registerSelectionExclusion(_hitTestKey);
+ 9687:   }
+ 9688: 
+ 9689:   @override
+ 9690:   void didUpdateWidget(covariant _CalloutVariantMenu oldWidget) {
+ 9691:     super.didUpdateWidget(oldWidget);
+ 9692:     if (oldWidget.registry != widget.registry) {
+ 9693:       oldWidget.registry.unregisterSelectionExclusion(_hitTestKey);
+ 9694:       widget.registry.registerSelectionExclusion(_hitTestKey);
+ 9695:     }
+ 9696:   }
+ 9697: 
+ 9698:   @override
+ 9699:   void dispose() {
+ 9700:     widget.registry.unregisterSelectionExclusion(_hitTestKey);
+ 9701:     super.dispose();
+ 9702:   }
+ 9703: 
+ 9704:   @override
+ 9705:   Widget build(BuildContext context) {
+
+exec
+powershell.exe -Command '$i=0; Get-Content -LiteralPath '"'lib/src/widgets/wenz_rich_text_editor.dart' -Encoding UTF8 | ForEach-Object { "'$i++; if($i -ge 6720 -and $i -le 6795){ '"'{0,5}: {1}' -f "'$i,$_ } }' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 282ms:
+ 6720:       widget.compositionState,
+ 6721:       tableBlock.id,
+ 6722:       blockIndex,
+ 6723:       path,
+ 6724:     );
+ 6725:     final inlineContent = _tableCellInlineContent(cell);
+ 6726:     final textLength = inlineNodesLength(inlineContent);
+ 6727:     final theme = Theme.of(context);
+ 6728:     final highlightColor = theme.colorScheme.primary.withAlpha(54);
+ 6729:     final effectiveTextStyle = (cell?.isHeader ?? false)
+ 6730:         ? widget.textStyle.copyWith(
+ 6731:             fontWeight: FontWeight.w700,
+ 6732:             color: theme.colorScheme.onSurfaceVariant,
+ 6733:           )
+ 6734:         : widget.textStyle;
+ 6735:     final inlineTextLayout = _inlineTextLayoutFor(
+ 6736:       context,
+ 6737:       inlineContent,
+ 6738:       effectiveTextStyle,
+ 6739:       compositionRange,
+ 6740:       widget.inlineEmbedRenderer,
+ 6741:     );
+ 6742:     final backgroundColor = _tableCellBackgroundColor(
+ 6743:       theme: theme,
+ 6744:       cell: cell,
+ 6745:       rowIndex: widget.rowIndex,
+ 6746:     );
+ 6747:     final surface = _TextSelectionSurface(
+ 6748:       blockId: tableBlock.id,
+ 6749:       blockIndex: blockIndex,
+ 6750:       path: path,
+ 6751:       textLength: textLength,
+ 6752:       textSpan: TextSpan(
+ 6753:         style: effectiveTextStyle,
+ 6754:         children: textLength == 0
+ 6755:             ? const <InlineSpan>[TextSpan(text: ' ')]
+ 6756:             : inlineTextLayout.spans,
+ 6757:       ),
+ 6758:       offsetMapper: inlineTextLayout.offsetMapper,
+ 6759:       textAlign: widget.textAlign,
+ 6760:       minHeight: (widget.textStyle.fontSize ?? 14) * _kBlockMinHeightFactor,
+ 6761:       selection: widget.selection,
+ 6762:       showCaret: widget.showCaret,
+ 6763:       registry: widget.registry,
+ 6764:       showDebugOverlay: widget.showDebugOverlay,
+ 6765:       findRanges: _findRangesForPath(
+ 6766:         widget.findMatches,
+ 6767:         widget.currentFindMatch,
+ 6768:         blockIndex,
+ 6769:         path,
+ 6770:         textLength,
+ 6771:       ),
+ 6772:       // The cell frame — not the centred text surface — is the hit-test box.
+ 6773:       // The surface resolves the cell→text-local offset itself (it owns the
+ 6774:       // text-surface render box via its own key), stripping the padding and
+ 6775:       // the vertical centring gap that TableCellVerticalAlignment.middle
+ 6776:       // introduces for short cells.
+ 6777:       hitTestKey: _cellFrameKey,
+ 6778:     );
+ 6779:     final selected = widget.highlightWholeCell ||
+ 6780:         _selectionRangeForPath(
+ 6781:               widget.selection,
+ 6782:               blockIndex,
+ 6783:               path,
+ 6784:               textLength,
+ 6785:             ) !=
+ 6786:             null;
+ 6787:     return Semantics(
+ 6788:       container: true,
+ 6789:       explicitChildNodes: true,
+ 6790:       label: _tableCellSemanticsLabel(
+ 6791:         tableBlock: tableBlock,
+ 6792:         cell: cell,
+ 6793:         rowIndex: widget.rowIndex,
+ 6794:         columnIndex: widget.columnIndex,
+ 6795:         selected: selected,
+
+**Considering frame semantics**
+
+I'm thinking about how the frame might include cell padding for coordinate normalization, but later hit testing seems to only consider the visible text-line area as a semantic empty-line target. There’s something interesting here about how the current positionFromGlobalOffset hits the entire frame. I wonder if the documentation mentions "eventual semantics." I might need to update the table comment regarding this.
+codex
+补丁会明确契约：空文本命中 = 同 path、offset 0、请求焦点。
+apply patch
+patch: completed
+D:\project\GitHub\wenz_flutter\wenz_richtext\lib\src\widgets\selection_gesture_overlay.dart
+diff --git a/wenz_richtext/lib/src/widgets/selection_gesture_overlay.dart b/wenz_richtext/lib/src/widgets/selection_gesture_overlay.dart
+index 4332bcd8b4a25cb98aa4a460b5227f082ca4de4a..74e2188abfaa683f8a57f6a7f3d7b0a274552adb
+--- a/wenz_richtext/lib/src/widgets/selection_gesture_overlay.dart
++++ b/wenz_richtext/lib/src/widgets/selection_gesture_overlay.dart
+@@ -15,17 +15,22 @@
+ /// inside a single [TextSelectionSurface].
+ ///
+ /// Supports:
+-/// - tap → place collapsed caret
+-/// - drag → extend selection (cross-block), with auto-scroll near viewport edges
++/// - tap → place collapsed caret. Empty text surfaces follow the same tap
++///   semantics: when their visible line area resolves to a text anchor, focus is
++///   requested and the selection collapses to that block/path at offset 0.
++/// - drag → extend selection (cross-block), with auto-scroll near viewport edges
+ /// - auto-scroll → every drag (touch or mouse) synchronously scrolls one step
+ ///   when the pointer enters the viewport edge band, so the list follows the
+ ///   drag. For mouse/pen, a per-frame [Ticker] *additionally* keeps scrolling
+ ///   while the pointer is held still near an edge, letting the user scroll
+ ///   past the visible area. (Touch selection past the viewport uses dedicated
+ ///   handles, tracked separately as C9.)
+-/// - double-tap → select word
+-/// - triple-tap → select block (paragraph)
+-class SelectionGestureOverlay extends StatefulWidget {
++/// - double-tap → select word
++/// - triple-tap → select block (paragraph)
++/// Selection exclusions and the scrollbar gutter are checked before resolving a
++/// text anchor, so block chrome (handles, checkboxes, collapse buttons, menus)
++/// cannot be claimed as an empty-line text tap.
++class SelectionGestureOverlay extends StatefulWidget {
+   const SelectionGestureOverlay({
+     super.key,
+     required this.registry,
+
+diff --git a/wenz_richtext/lib/src/widgets/selection_gesture_overlay.dart b/wenz_richtext/lib/src/widgets/selection_gesture_overlay.dart
+index 4332bcd8b4a25cb98aa4a460b5227f082ca4de4a..74e2188abfaa683f8a57f6a7f3d7b0a274552adb
+--- a/wenz_richtext/lib/src/widgets/selection_gesture_overlay.dart
++++ b/wenz_richtext/lib/src/widgets/selection_gesture_overlay.dart
+@@ -15,17 +15,22 @@
+ /// inside a single [TextSelectionSurface].
+ ///
+ /// Supports:
+-/// - tap → place collapsed caret
+-/// - drag → extend selection (cross-block), with auto-scroll near viewport edges
++/// - tap → place collapsed caret. Empty text surfaces follow the same tap
++///   semantics: when their visible line area resolves to a text anchor, focus is
++///   requested and the selection collapses to that block/path at offset 0.
++/// - drag → extend selection (cross-block), with auto-scroll near viewport edges
+ /// - auto-scroll → every drag (touch or mouse) synchronously scrolls one step
+ ///   when the pointer enters the viewport edge band, so the list follows the
+ ///   drag. For mouse/pen, a per-frame [Ticker] *additionally* keeps scrolling
+ ///   while the pointer is held still near an edge, letting the user scroll
+ ///   past the visible area. (Touch selection past the viewport uses dedicated
+ ///   handles, tracked separately as C9.)
+-/// - double-tap → select word
+-/// - triple-tap → select block (paragraph)
+-class SelectionGestureOverlay extends StatefulWidget {
++/// - double-tap → select word
++/// - triple-tap → select block (paragraph)
++/// Selection exclusions and the scrollbar gutter are checked before resolving a
++/// text anchor, so block chrome (handles, checkboxes, collapse buttons, menus)
++/// cannot be claimed as an empty-line text tap.
++class SelectionGestureOverlay extends StatefulWidget {
+   const SelectionGestureOverlay({
+     super.key,
+     required this.registry,
+
+**Clarifying text selection issues**
+
+I’m thinking about how to handle coverage for specific elements like empty paragraphs, lists, and tables. I wonder if the non-text object blocks will let me keep the object selection intact. There are some complexities around markers too, like whether they affect text selection. If I click a marker, does the overlay capture that event? It seems the registry only applies to the text area, but it’s still a bit unclear. I need to explore this further.
+codex
+已完成 overlay 契约注释；继续补注册表和文档边界。
+apply patch
+patch: completed
+D:\project\GitHub\wenz_flutter\wenz_richtext\lib\src\widgets\block_geometry_registry.dart
+diff --git a/wenz_richtext/lib/src/widgets/block_geometry_registry.dart b/wenz_richtext/lib/src/widgets/block_geometry_registry.dart
+index ede6d0e2a96150bca08a53586cbff5c05981e80b..d661481ea56f2cb5b6ea835f3dd8b9c1b963b35c
+--- a/wenz_richtext/lib/src/widgets/block_geometry_registry.dart
++++ b/wenz_richtext/lib/src/widgets/block_geometry_registry.dart
+@@ -295,13 +295,17 @@
+   ///
+   /// If the point lands inside a registered block's hit-test box (the whole
+   /// cell frame for table cells, otherwise the text surface itself), the
+-  /// position is computed from that block's *text-local* coordinates — the
+-  /// hit-test local offset is first translated through the entry's
+-  /// [BlockEntry.hitLocalToTextLocal] so padding/centring offsets are stripped.
+-  /// Otherwise the nearest block is chosen by 2-D rect proximity and the caret
+-  /// is clamped to that block's start or end — so a drag into the gap between
+-  /// blocks (or beyond the last block) still extends the selection predictably.
+-  DocumentPosition? positionFromGlobalOffset(Offset global) {
++  /// position is computed from that block's *text-local* coordinates — the
++  /// hit-test local offset is first translated through the entry's
++  /// [BlockEntry.hitLocalToTextLocal] so padding/centring offsets are stripped.
++  /// A zero-length text entry is resolved as a normal text target when its
++  /// visible line hit-test box is hit: the resulting [DocumentPosition] belongs
++  /// to that exact block/path and clamps to offset 0. Non-text chrome should be
++  /// registered as a selection exclusion instead of widening this hit box.
++  /// Otherwise the nearest block is chosen by 2-D rect proximity and the caret
++  /// is clamped to that block's start or end — so a drag into the gap between
++  /// blocks (or beyond the last block) still extends the selection predictably.
++  DocumentPosition? positionFromGlobalOffset(Offset global) {
+     BlockEntry? hitEntry;
+     Offset? hitTextLocal;
+     var nearestHitDelta = double.infinity;
+diff --git a/wenz_richtext/lib/src/widgets/selection_gesture_overlay.dart b/wenz_richtext/lib/src/widgets/selection_gesture_overlay.dart
+index 4332bcd8b4a25cb98aa4a460b5227f082ca4de4a..74e2188abfaa683f8a57f6a7f3d7b0a274552adb
+--- a/wenz_richtext/lib/src/widgets/selection_gesture_overlay.dart
++++ b/wenz_richtext/lib/src/widgets/selection_gesture_overlay.dart
+@@ -15,17 +15,22 @@
+ /// inside a single [TextSelectionSurface].
+ ///
+ /// Supports:
+-/// - tap → place collapsed caret
+-/// - drag → extend selection (cross-block), with auto-scroll near viewport edges
++/// - tap → place collapsed caret. Empty text surfaces follow the same tap
++///   semantics: when their visible line area resolves to a text anchor, focus is
++///   requested and the selection collapses to that block/path at offset 0.
++/// - drag → extend selection (cross-block), with auto-scroll near viewport edges
+ /// - auto-scroll → every drag (touch or mouse) synchronously scrolls one step
+ ///   when the pointer enters the viewport edge band, so the list follows the
+ ///   drag. For mouse/pen, a per-frame [Ticker] *additionally* keeps scrolling
+ ///   while the pointer is held still near an edge, letting the user scroll
+ ///   past the visible area. (Touch selection past the viewport uses dedicated
+ ///   handles, tracked separately as C9.)
+-/// - double-tap → select word
+-/// - triple-tap → select block (paragraph)
+-class SelectionGestureOverlay extends StatefulWidget {
++/// - double-tap → select word
++/// - triple-tap → select block (paragraph)
++/// Selection exclusions and the scrollbar gutter are checked before resolving a
++/// text anchor, so block chrome (handles, checkboxes, collapse buttons, menus)
++/// cannot be claimed as an empty-line text tap.
++class SelectionGestureOverlay extends StatefulWidget {
+   const SelectionGestureOverlay({
+     super.key,
+     required this.registry,
+
+diff --git a/wenz_richtext/lib/src/widgets/block_geometry_registry.dart b/wenz_richtext/lib/src/widgets/block_geometry_registry.dart
+index ede6d0e2a96150bca08a53586cbff5c05981e80b..d661481ea56f2cb5b6ea835f3dd8b9c1b963b35c
+--- a/wenz_richtext/lib/src/widgets/block_geometry_registry.dart
++++ b/wenz_richtext/lib/src/widgets/block_geometry_registry.dart
+@@ -295,13 +295,17 @@
+   ///
+   /// If the point lands inside a registered block's hit-test box (the whole
+   /// cell frame for table cells, otherwise the text surface itself), the
+-  /// position is computed from that block's *text-local* coordinates — the
+-  /// hit-test local offset is first translated through the entry's
+-  /// [BlockEntry.hitLocalToTextLocal] so padding/centring offsets are stripped.
+-  /// Otherwise the nearest block is chosen by 2-D rect proximity and the caret
+-  /// is clamped to that block's start or end — so a drag into the gap between
+-  /// blocks (or beyond the last block) still extends the selection predictably.
+-  DocumentPosition? positionFromGlobalOffset(Offset global) {
++  /// position is computed from that block's *text-local* coordinates — the
++  /// hit-test local offset is first translated through the entry's
++  /// [BlockEntry.hitLocalToTextLocal] so padding/centring offsets are stripped.
++  /// A zero-length text entry is resolved as a normal text target when its
++  /// visible line hit-test box is hit: the resulting [DocumentPosition] belongs
++  /// to that exact block/path and clamps to offset 0. Non-text chrome should be
++  /// registered as a selection exclusion instead of widening this hit box.
++  /// Otherwise the nearest block is chosen by 2-D rect proximity and the caret
++  /// is clamped to that block's start or end — so a drag into the gap between
++  /// blocks (or beyond the last block) still extends the selection predictably.
++  DocumentPosition? positionFromGlobalOffset(Offset global) {
+     BlockEntry? hitEntry;
+     Offset? hitTextLocal;
+     var nearestHitDelta = double.infinity;
+diff --git a/wenz_richtext/lib/src/widgets/selection_gesture_overlay.dart b/wenz_richtext/lib/src/widgets/selection_gesture_overlay.dart
+index 4332bcd8b4a25cb98aa4a460b5227f082ca4de4a..74e2188abfaa683f8a57f6a7f3d7b0a274552adb
+--- a/wenz_richtext/lib/src/widgets/selection_gesture_overlay.dart
++++ b/wenz_richtext/lib/src/widgets/selection_gesture_overlay.dart
+@@ -15,17 +15,22 @@
+ /// inside a single [TextSelectionSurface].
+ ///
+ /// Supports:
+-/// - tap → place collapsed caret
+-/// - drag → extend selection (cross-block), with auto-scroll near viewport edges
++/// - tap → place collapsed caret. Empty text surfaces follow the same tap
++///   semantics: when their visible line area resolves to a text anchor, focus is
++///   requested and the selection collapses to that block/path at offset 0.
++/// - drag → extend selection (cross-block), with auto-scroll near viewport edges
+ /// - auto-scroll → every drag (touch or mouse) synchronously scrolls one step
+ ///   when the pointer enters the viewport edge band, so the list follows the
+ ///   drag. For mouse/pen, a per-frame [Ticker] *additionally* keeps scrolling
+ ///   while the pointer is held still near an edge, letting the user scroll
+ ///   past the visible area. (Touch selection past the viewport uses dedicated
+ ///   handles, tracked separately as C9.)
+-/// - double-tap → select word
+-/// - triple-tap → select block (paragraph)
+-class SelectionGestureOverlay extends StatefulWidget {
++/// - double-tap → select word
++/// - triple-tap → select block (paragraph)
++/// Selection exclusions and the scrollbar gutter are checked before resolving a
++/// text anchor, so block chrome (handles, checkboxes, collapse buttons, menus)
++/// cannot be claimed as an empty-line text tap.
++class SelectionGestureOverlay extends StatefulWidget {
+   const SelectionGestureOverlay({
+     super.key,
+     required this.registry,
+
+**Evaluating patch application**
+
+We’ve already patched, so should I just continue with applying the patch? Using Python sounds tempting for editing, but that goes against applying the patch directly. Sticking with shell for apply_patch might be better, though there’s this warning from the user; it may not even be from them. It's important to avoid repeated warnings. 
+
+I need to ensure no other modifications conflict with user changes and handle the working tree carefully. I’ll focus on adding documentation comments without overwriting existing work.
+**Adding class documentation**
+
+I'm planning to add documentation above the class. It should explain that this class paints or registers a text-bearing surface, and that empty content is still considered text-bearing. If the surface has no logical characters, the hit-test area is limited to the visible editable line, which maps any tap to offset 0. It’s important to clarify that UI chrome and other elements are outside of registered selection exclusions. I might want to mention that object blocks use object selection, but maybe that's not relevant to this class? There’s also _ObjectBlock to consider.
+codex
+下一处是在文本面定义上记录哪些空白行属于文本目标。
+apply patch
+patch: completed
+D:\project\GitHub\wenz_flutter\wenz_richtext\lib\src\widgets\wenz_rich_text_editor.dart
+diff --git a/wenz_richtext/lib/src/widgets/block_geometry_registry.dart b/wenz_richtext/lib/src/widgets/block_geometry_registry.dart
+index ede6d0e2a96150bca08a53586cbff5c05981e80b..d661481ea56f2cb5b6ea835f3dd8b9c1b963b35c
+--- a/wenz_richtext/lib/src/widgets/block_geometry_registry.dart
++++ b/wenz_richtext/lib/src/widgets/block_geometry_registry.dart
+@@ -295,13 +295,17 @@
+   ///
+   /// If the point lands inside a registered block's hit-test box (the whole
+   /// cell frame for table cells, otherwise the text surface itself), the
+-  /// position is computed from that block's *text-local* coordinates — the
+-  /// hit-test local offset is first translated through the entry's
+-  /// [BlockEntry.hitLocalToTextLocal] so padding/centring offsets are stripped.
+-  /// Otherwise the nearest block is chosen by 2-D rect proximity and the caret
+-  /// is clamped to that block's start or end — so a drag into the gap between
+-  /// blocks (or beyond the last block) still extends the selection predictably.
+-  DocumentPosition? positionFromGlobalOffset(Offset global) {
++  /// position is computed from that block's *text-local* coordinates — the
++  /// hit-test local offset is first translated through the entry's
++  /// [BlockEntry.hitLocalToTextLocal] so padding/centring offsets are stripped.
++  /// A zero-length text entry is resolved as a normal text target when its
++  /// visible line hit-test box is hit: the resulting [DocumentPosition] belongs
++  /// to that exact block/path and clamps to offset 0. Non-text chrome should be
++  /// registered as a selection exclusion instead of widening this hit box.
++  /// Otherwise the nearest block is chosen by 2-D rect proximity and the caret
++  /// is clamped to that block's start or end — so a drag into the gap between
++  /// blocks (or beyond the last block) still extends the selection predictably.
++  DocumentPosition? positionFromGlobalOffset(Offset global) {
+     BlockEntry? hitEntry;
+     Offset? hitTextLocal;
+     var nearestHitDelta = double.infinity;
+diff --git a/wenz_richtext/lib/src/widgets/selection_gesture_overlay.dart b/wenz_richtext/lib/src/widgets/selection_gesture_overlay.dart
+index 4332bcd8b4a25cb98aa4a460b5227f082ca4de4a..74e2188abfaa683f8a57f6a7f3d7b0a274552adb
+--- a/wenz_richtext/lib/src/widgets/selection_gesture_overlay.dart
++++ b/wenz_richtext/lib/src/widgets/selection_gesture_overlay.dart
+@@ -15,17 +15,22 @@
+ /// inside a single [TextSelectionSurface].
+ ///
+ /// Supports:
+-/// - tap → place collapsed caret
+-/// - drag → extend selection (cross-block), with auto-scroll near viewport edges
++/// - tap → place collapsed caret. Empty text surfaces follow the same tap
++///   semantics: when their visible line area resolves to a text anchor, focus is
++///   requested and the selection collapses to that block/path at offset 0.
++/// - drag → extend selection (cross-block), with auto-scroll near viewport edges
+ /// - auto-scroll → every drag (touch or mouse) synchronously scrolls one step
+ ///   when the pointer enters the viewport edge band, so the list follows the
+ ///   drag. For mouse/pen, a per-frame [Ticker] *additionally* keeps scrolling
+ ///   while the pointer is held still near an edge, letting the user scroll
+ ///   past the visible area. (Touch selection past the viewport uses dedicated
+ ///   handles, tracked separately as C9.)
+-/// - double-tap → select word
+-/// - triple-tap → select block (paragraph)
+-class SelectionGestureOverlay extends StatefulWidget {
++/// - double-tap → select word
++/// - triple-tap → select block (paragraph)
++/// Selection exclusions and the scrollbar gutter are checked before resolving a
++/// text anchor, so block chrome (handles, checkboxes, collapse buttons, menus)
++/// cannot be claimed as an empty-line text tap.
++class SelectionGestureOverlay extends StatefulWidget {
+   const SelectionGestureOverlay({
+     super.key,
+     required this.registry,
+diff --git a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+index bbf9b6298312bb0f9c75e9b691a740e97c741d35..571788ca1398911b18b76612e529db6284cd52a0
+--- a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
++++ b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+@@ -7064,6 +7064,16 @@
+   }
+ }
+ 
++/// Text-bearing surface that paints text/selection/caret and registers geometry
++/// for document-level selection hit testing.
++///
++/// Empty text content is still a text target for paragraphs, list/todo items,
++/// quote/heading text, and table-cell text. When the visible editable line area
++/// is hit, the selection should collapse to this surface's block/path at offset
++/// 0; object-only blocks keep their separate block-object selection semantics.
++/// Interactive chrome such as list markers, todo checkboxes, heading collapse
++/// buttons, block handles, menus, and scrollbar gutters must stay outside this
++/// text hit target or be registered as selection exclusions.
+ class _TextSelectionSurface extends StatefulWidget {
+   const _TextSelectionSurface({
+     required this.blockId,
+
+diff --git a/wenz_richtext/lib/src/widgets/block_geometry_registry.dart b/wenz_richtext/lib/src/widgets/block_geometry_registry.dart
+index ede6d0e2a96150bca08a53586cbff5c05981e80b..d661481ea56f2cb5b6ea835f3dd8b9c1b963b35c
+--- a/wenz_richtext/lib/src/widgets/block_geometry_registry.dart
++++ b/wenz_richtext/lib/src/widgets/block_geometry_registry.dart
+@@ -295,13 +295,17 @@
+   ///
+   /// If the point lands inside a registered block's hit-test box (the whole
+   /// cell frame for table cells, otherwise the text surface itself), the
+-  /// position is computed from that block's *text-local* coordinates — the
+-  /// hit-test local offset is first translated through the entry's
+-  /// [BlockEntry.hitLocalToTextLocal] so padding/centring offsets are stripped.
+-  /// Otherwise the nearest block is chosen by 2-D rect proximity and the caret
+-  /// is clamped to that block's start or end — so a drag into the gap between
+-  /// blocks (or beyond the last block) still extends the selection predictably.
+-  DocumentPosition? positionFromGlobalOffset(Offset global) {
++  /// position is computed from that block's *text-local* coordinates — the
++  /// hit-test local offset is first translated through the entry's
++  /// [BlockEntry.hitLocalToTextLocal] so padding/centring offsets are stripped.
++  /// A zero-length text entry is resolved as a normal text target when its
++  /// visible line hit-test box is hit: the resulting [DocumentPosition] belongs
++  /// to that exact block/path and clamps to offset 0. Non-text chrome should be
++  /// registered as a selection exclusion instead of widening this hit box.
++  /// Otherwise the nearest block is chosen by 2-D rect proximity and the caret
++  /// is clamped to that block's start or end — so a drag into the gap between
++  /// blocks (or beyond the last block) still extends the selection predictably.
++  DocumentPosition? positionFromGlobalOffset(Offset global) {
+     BlockEntry? hitEntry;
+     Offset? hitTextLocal;
+     var nearestHitDelta = double.infinity;
+diff --git a/wenz_richtext/lib/src/widgets/selection_gesture_overlay.dart b/wenz_richtext/lib/src/widgets/selection_gesture_overlay.dart
+index 4332bcd8b4a25cb98aa4a460b5227f082ca4de4a..74e2188abfaa683f8a57f6a7f3d7b0a274552adb
+--- a/wenz_richtext/lib/src/widgets/selection_gesture_overlay.dart
++++ b/wenz_richtext/lib/src/widgets/selection_gesture_overlay.dart
+@@ -15,17 +15,22 @@
+ /// inside a single [TextSelectionSurface].
+ ///
+ /// Supports:
+-/// - tap → place collapsed caret
+-/// - drag → extend selection (cross-block), with auto-scroll near viewport edges
++/// - tap → place collapsed caret. Empty text surfaces follow the same tap
++///   semantics: when their visible line area resolves to a text anchor, focus is
++///   requested and the selection collapses to that block/path at offset 0.
++/// - drag → extend selection (cross-block), with auto-scroll near viewport edges
+ /// - auto-scroll → every drag (touch or mouse) synchronously scrolls one step
+ ///   when the pointer enters the viewport edge band, so the list follows the
+ ///   drag. For mouse/pen, a per-frame [Ticker] *additionally* keeps scrolling
+ ///   while the pointer is held still near an edge, letting the user scroll
+ ///   past the visible area. (Touch selection past the viewport uses dedicated
+ ///   handles, tracked separately as C9.)
+-/// - double-tap → select word
+-/// - triple-tap → select block (paragraph)
+-class SelectionGestureOverlay extends StatefulWidget {
++/// - double-tap → select word
++/// - triple-tap → select block (paragraph)
++/// Selection exclusions and the scrollbar gutter are checked before resolving a
++/// text anchor, so block chrome (handles, checkboxes, collapse buttons, menus)
++/// cannot be claimed as an empty-line text tap.
++class SelectionGestureOverlay extends StatefulWidget {
+   const SelectionGestureOverlay({
+     super.key,
+     required this.registry,
+diff --git a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+index bbf9b6298312bb0f9c75e9b691a740e97c741d35..571788ca1398911b18b76612e529db6284cd52a0
+--- a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
++++ b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+@@ -7064,6 +7064,16 @@
+   }
+ }
+ 
++/// Text-bearing surface that paints text/selection/caret and registers geometry
++/// for document-level selection hit testing.
++///
++/// Empty text content is still a text target for paragraphs, list/todo items,
++/// quote/heading text, and table-cell text. When the visible editable line area
++/// is hit, the selection should collapse to this surface's block/path at offset
++/// 0; object-only blocks keep their separate block-object selection semantics.
++/// Interactive chrome such as list markers, todo checkboxes, heading collapse
++/// buttons, block handles, menus, and scrollbar gutters must stay outside this
++/// text hit target or be registered as selection exclusions.
+ class _TextSelectionSurface extends StatefulWidget {
+   const _TextSelectionSurface({
+     required this.blockId,
+
+codex
+语义已写进三处代码注释；最后补 selection 文档说明。
+  ✓ 读取 P001 上下文
+  ✓ 定位相关点击逻辑
+  → 实施最小业务改动
+  • 运行最小相关验证
+diff --git a/wenz_richtext/lib/src/widgets/block_geometry_registry.dart b/wenz_richtext/lib/src/widgets/block_geometry_registry.dart
+index ede6d0e2a96150bca08a53586cbff5c05981e80b..d661481ea56f2cb5b6ea835f3dd8b9c1b963b35c
+--- a/wenz_richtext/lib/src/widgets/block_geometry_registry.dart
++++ b/wenz_richtext/lib/src/widgets/block_geometry_registry.dart
+@@ -295,13 +295,17 @@
+   ///
+   /// If the point lands inside a registered block's hit-test box (the whole
+   /// cell frame for table cells, otherwise the text surface itself), the
+-  /// position is computed from that block's *text-local* coordinates — the
+-  /// hit-test local offset is first translated through the entry's
+-  /// [BlockEntry.hitLocalToTextLocal] so padding/centring offsets are stripped.
+-  /// Otherwise the nearest block is chosen by 2-D rect proximity and the caret
+-  /// is clamped to that block's start or end — so a drag into the gap between
+-  /// blocks (or beyond the last block) still extends the selection predictably.
+-  DocumentPosition? positionFromGlobalOffset(Offset global) {
++  /// position is computed from that block's *text-local* coordinates — the
++  /// hit-test local offset is first translated through the entry's
++  /// [BlockEntry.hitLocalToTextLocal] so padding/centring offsets are stripped.
++  /// A zero-length text entry is resolved as a normal text target when its
++  /// visible line hit-test box is hit: the resulting [DocumentPosition] belongs
++  /// to that exact block/path and clamps to offset 0. Non-text chrome should be
++  /// registered as a selection exclusion instead of widening this hit box.
++  /// Otherwise the nearest block is chosen by 2-D rect proximity and the caret
++  /// is clamped to that block's start or end — so a drag into the gap between
++  /// blocks (or beyond the last block) still extends the selection predictably.
++  DocumentPosition? positionFromGlobalOffset(Offset global) {
+     BlockEntry? hitEntry;
+     Offset? hitTextLocal;
+     var nearestHitDelta = double.infinity;
+diff --git a/wenz_richtext/lib/src/widgets/selection_gesture_overlay.dart b/wenz_richtext/lib/src/widgets/selection_gesture_overlay.dart
+index 4332bcd8b4a25cb98aa4a460b5227f082ca4de4a..74e2188abfaa683f8a57f6a7f3d7b0a274552adb
+--- a/wenz_richtext/lib/src/widgets/selection_gesture_overlay.dart
++++ b/wenz_richtext/lib/src/widgets/selection_gesture_overlay.dart
+@@ -15,17 +15,22 @@
+ /// inside a single [TextSelectionSurface].
+ ///
+ /// Supports:
+-/// - tap → place collapsed caret
+-/// - drag → extend selection (cross-block), with auto-scroll near viewport edges
++/// - tap → place collapsed caret. Empty text surfaces follow the same tap
++///   semantics: when their visible line area resolves to a text anchor, focus is
++///   requested and the selection collapses to that block/path at offset 0.
++/// - drag → extend selection (cross-block), with auto-scroll near viewport edges
+ /// - auto-scroll → every drag (touch or mouse) synchronously scrolls one step
+ ///   when the pointer enters the viewport edge band, so the list follows the
+ ///   drag. For mouse/pen, a per-frame [Ticker] *additionally* keeps scrolling
+ ///   while the pointer is held still near an edge, letting the user scroll
+ ///   past the visible area. (Touch selection past the viewport uses dedicated
+ ///   handles, tracked separately as C9.)
+-/// - double-tap → select word
+-/// - triple-tap → select block (paragraph)
+-class SelectionGestureOverlay extends StatefulWidget {
++/// - double-tap → select word
++/// - triple-tap → select block (paragraph)
++/// Selection exclusions and the scrollbar gutter are checked before resolving a
++/// text anchor, so block chrome (handles, checkboxes, collapse buttons, menus)
++/// cannot be claimed as an empty-line text tap.
++class SelectionGestureOverlay extends StatefulWidget {
+   const SelectionGestureOverlay({
+     super.key,
+     required this.registry,
+diff --git a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+index bbf9b6298312bb0f9c75e9b691a740e97c741d35..571788ca1398911b18b76612e529db6284cd52a0
+--- a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
++++ b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+@@ -7064,6 +7064,16 @@
+   }
+ }
+ 
++/// Text-bearing surface that paints text/selection/caret and registers geometry
++/// for document-level selection hit testing.
++///
++/// Empty text content is still a text target for paragraphs, list/todo items,
++/// quote/heading text, and table-cell text. When the visible editable line area
++/// is hit, the selection should collapse to this surface's block/path at offset
++/// 0; object-only blocks keep their separate block-object selection semantics.
++/// Interactive chrome such as list markers, todo checkboxes, heading collapse
++/// buttons, block handles, menus, and scrollbar gutters must stay outside this
++/// text hit target or be registered as selection exclusions.
+ class _TextSelectionSurface extends StatefulWidget {
+   const _TextSelectionSurface({
+     required this.blockId,
+
+apply patch
+patch: completed
+D:\project\GitHub\wenz_flutter\wenz_richtext\docs\selection_engine.md
+diff --git a/wenz_richtext/docs/selection_engine.md b/wenz_richtext/docs/selection_engine.md
+index 4b2670d945580a175420fdd38dc56eabdf7656b9..ee5d644c58b8b2523e51a4d74c6813c875d595f6
+--- a/wenz_richtext/docs/selection_engine.md
++++ b/wenz_richtext/docs/selection_engine.md
+@@ -30,6 +30,14 @@
+ - `positionFromGlobalOffset(Offset global)`：遍历 entries，用 `RenderBox.globalToLocal` + `contains` 找命中块；命中则用该块 `TextLayoutService.offsetAt` 得 offset 构造 `DocumentPosition`。未命中（块间空隙/视口外）则 `_clampToNearest`——按垂直邻近选最近块的首/尾，保证拖拽到块间隙也能预测地扩展选区。
+ - `wordRangeAt(blockId, offset)` / `paragraphRange(blockId)`：委托给命中块的 `TextLayoutService`，供双击/三击。
+ 
++### 空白行点击语义边界
++
++空白行指已注册 `_TextSelectionSurface` 中 `textLength == 0`、但界面上存在可见文本承载行高的文本目标。点击该可见文本行区域时，registry 必须解析到该 surface 对应的 `blockId` / `blockIndex` / `path`，overlay 请求编辑器焦点，并产生折叠的 `DocumentSelection(base == extent)`；offset 固定为 `0`。
++
++覆盖范围包括：空段落、空列表项、空 todo 列表项、空引用文本区域、空标题文本区域，以及表格单元格内的空文本。非文本对象块不纳入空白行语义，继续按现有 block object 选择语义处理。
++
++命中只以可见、可编辑的文本行区域为准；列表 marker、todo checkbox、标题折叠按钮、block handle、对象块/菜单控件、滚动条 gutter、选择排除区，以及 block 间隙或文档内容区域外空白，都不能被空白行命中抢占。
++
+ ## SelectionGestureOverlay
+ 
+ `lib/src/widgets/selection_gesture_overlay.dart`。包裹 `SingleChildScrollView`，用 `Listener`（`PointerDown/Move/Up/Cancel`）统一接管指针事件。
+diff --git a/wenz_richtext/lib/src/widgets/block_geometry_registry.dart b/wenz_richtext/lib/src/widgets/block_geometry_registry.dart
+index ede6d0e2a96150bca08a53586cbff5c05981e80b..d661481ea56f2cb5b6ea835f3dd8b9c1b963b35c
+--- a/wenz_richtext/lib/src/widgets/block_geometry_registry.dart
++++ b/wenz_richtext/lib/src/widgets/block_geometry_registry.dart
+@@ -295,13 +295,17 @@
+   ///
+   /// If the point lands inside a registered block's hit-test box (the whole
+   /// cell frame for table cells, otherwise the text surface itself), the
+-  /// position is computed from that block's *text-local* coordinates — the
+-  /// hit-test local offset is first translated through the entry's
+-  /// [BlockEntry.hitLocalToTextLocal] so padding/centring offsets are stripped.
+-  /// Otherwise the nearest block is chosen by 2-D rect proximity and the caret
+-  /// is clamped to that block's start or end — so a drag into the gap between
+-  /// blocks (or beyond the last block) still extends the selection predictably.
+-  DocumentPosition? positionFromGlobalOffset(Offset global) {
++  /// position is computed from that block's *text-local* coordinates — the
++  /// hit-test local offset is first translated through the entry's
++  /// [BlockEntry.hitLocalToTextLocal] so padding/centring offsets are stripped.
++  /// A zero-length text entry is resolved as a normal text target when its
++  /// visible line hit-test box is hit: the resulting [DocumentPosition] belongs
++  /// to that exact block/path and clamps to offset 0. Non-text chrome should be
++  /// registered as a selection exclusion instead of widening this hit box.
++  /// Otherwise the nearest block is chosen by 2-D rect proximity and the caret
++  /// is clamped to that block's start or end — so a drag into the gap between
++  /// blocks (or beyond the last block) still extends the selection predictably.
++  DocumentPosition? positionFromGlobalOffset(Offset global) {
+     BlockEntry? hitEntry;
+     Offset? hitTextLocal;
+     var nearestHitDelta = double.infinity;
+diff --git a/wenz_richtext/lib/src/widgets/selection_gesture_overlay.dart b/wenz_richtext/lib/src/widgets/selection_gesture_overlay.dart
+index 4332bcd8b4a25cb98aa4a460b5227f082ca4de4a..74e2188abfaa683f8a57f6a7f3d7b0a274552adb
+--- a/wenz_richtext/lib/src/widgets/selection_gesture_overlay.dart
++++ b/wenz_richtext/lib/src/widgets/selection_gesture_overlay.dart
+@@ -15,17 +15,22 @@
+ /// inside a single [TextSelectionSurface].
+ ///
+ /// Supports:
+-/// - tap → place collapsed caret
+-/// - drag → extend selection (cross-block), with auto-scroll near viewport edges
++/// - tap → place collapsed caret. Empty text surfaces follow the same tap
++///   semantics: when their visible line area resolves to a text anchor, focus is
++///   requested and the selection collapses to that block/path at offset 0.
++/// - drag → extend selection (cross-block), with auto-scroll near viewport edges
+ /// - auto-scroll → every drag (touch or mouse) synchronously scrolls one step
+ ///   when the pointer enters the viewport edge band, so the list follows the
+ ///   drag. For mouse/pen, a per-frame [Ticker] *additionally* keeps scrolling
+ ///   while the pointer is held still near an edge, letting the user scroll
+ ///   past the visible area. (Touch selection past the viewport uses dedicated
+ ///   handles, tracked separately as C9.)
+-/// - double-tap → select word
+-/// - triple-tap → select block (paragraph)
+-class SelectionGestureOverlay extends StatefulWidget {
++/// - double-tap → select word
++/// - triple-tap → select block (paragraph)
++/// Selection exclusions and the scrollbar gutter are checked before resolving a
++/// text anchor, so block chrome (handles, checkboxes, collapse buttons, menus)
++/// cannot be claimed as an empty-line text tap.
++class SelectionGestureOverlay extends StatefulWidget {
+   const SelectionGestureOverlay({
+     super.key,
+     required this.registry,
+diff --git a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+index bbf9b6298312bb0f9c75e9b691a740e97c741d35..571788ca1398911b18b76612e529db6284cd52a0
+--- a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
++++ b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+@@ -7064,6 +7064,16 @@
+   }
+ }
+ 
++/// Text-bearing surface that paints text/selection/caret and registers geometry
++/// for document-level selection hit testing.
++///
++/// Empty text content is still a text target for paragraphs, list/todo items,
++/// quote/heading text, and table-cell text. When the visible editable line area
++/// is hit, the selection should collapse to this surface's block/path at offset
++/// 0; object-only blocks keep their separate block-object selection semantics.
++/// Interactive chrome such as list markers, todo checkboxes, heading collapse
++/// buttons, block handles, menus, and scrollbar gutters must stay outside this
++/// text hit target or be registered as selection exclusions.
+ class _TextSelectionSurface extends StatefulWidget {
+   const _TextSelectionSurface({
+     required this.blockId,
+
+diff --git a/wenz_richtext/docs/selection_engine.md b/wenz_richtext/docs/selection_engine.md
+index 4b2670d945580a175420fdd38dc56eabdf7656b9..ee5d644c58b8b2523e51a4d74c6813c875d595f6
+--- a/wenz_richtext/docs/selection_engine.md
++++ b/wenz_richtext/docs/selection_engine.md
+@@ -30,6 +30,14 @@
+ - `positionFromGlobalOffset(Offset global)`：遍历 entries，用 `RenderBox.globalToLocal` + `contains` 找命中块；命中则用该块 `TextLayoutService.offsetAt` 得 offset 构造 `DocumentPosition`。未命中（块间空隙/视口外）则 `_clampToNearest`——按垂直邻近选最近块的首/尾，保证拖拽到块间隙也能预测地扩展选区。
+ - `wordRangeAt(blockId, offset)` / `paragraphRange(blockId)`：委托给命中块的 `TextLayoutService`，供双击/三击。
+ 
++### 空白行点击语义边界
++
++空白行指已注册 `_TextSelectionSurface` 中 `textLength == 0`、但界面上存在可见文本承载行高的文本目标。点击该可见文本行区域时，registry 必须解析到该 surface 对应的 `blockId` / `blockIndex` / `path`，overlay 请求编辑器焦点，并产生折叠的 `DocumentSelection(base == extent)`；offset 固定为 `0`。
++
++覆盖范围包括：空段落、空列表项、空 todo 列表项、空引用文本区域、空标题文本区域，以及表格单元格内的空文本。非文本对象块不纳入空白行语义，继续按现有 block object 选择语义处理。
++
++命中只以可见、可编辑的文本行区域为准；列表 marker、todo checkbox、标题折叠按钮、block handle、对象块/菜单控件、滚动条 gutter、选择排除区，以及 block 间隙或文档内容区域外空白，都不能被空白行命中抢占。
++
+ ## SelectionGestureOverlay
+ 
+ `lib/src/widgets/selection_gesture_overlay.dart`。包裹 `SingleChildScrollView`，用 `Listener`（`PointerDown/Move/Up/Cancel`）统一接管指针事件。
+diff --git a/wenz_richtext/lib/src/widgets/block_geometry_registry.dart b/wenz_richtext/lib/src/widgets/block_geometry_registry.dart
+index ede6d0e2a96150bca08a53586cbff5c05981e80b..d661481ea56f2cb5b6ea835f3dd8b9c1b963b35c
+--- a/wenz_richtext/lib/src/widgets/block_geometry_registry.dart
++++ b/wenz_richtext/lib/src/widgets/block_geometry_registry.dart
+@@ -295,13 +295,17 @@
+   ///
+   /// If the point lands inside a registered block's hit-test box (the whole
+   /// cell frame for table cells, otherwise the text surface itself), the
+-  /// position is computed from that block's *text-local* coordinates — the
+-  /// hit-test local offset is first translated through the entry's
+-  /// [BlockEntry.hitLocalToTextLocal] so padding/centring offsets are stripped.
+-  /// Otherwise the nearest block is chosen by 2-D rect proximity and the caret
+-  /// is clamped to that block's start or end — so a drag into the gap between
+-  /// blocks (or beyond the last block) still extends the selection predictably.
+-  DocumentPosition? positionFromGlobalOffset(Offset global) {
++  /// position is computed from that block's *text-local* coordinates — the
++  /// hit-test local offset is first translated through the entry's
++  /// [BlockEntry.hitLocalToTextLocal] so padding/centring offsets are stripped.
++  /// A zero-length text entry is resolved as a normal text target when its
++  /// visible line hit-test box is hit: the resulting [DocumentPosition] belongs
++  /// to that exact block/path and clamps to offset 0. Non-text chrome should be
++  /// registered as a selection exclusion instead of widening this hit box.
++  /// Otherwise the nearest block is chosen by 2-D rect proximity and the caret
++  /// is clamped to that block's start or end — so a drag into the gap between
++  /// blocks (or beyond the last block) still extends the selection predictably.
++  DocumentPosition? positionFromGlobalOffset(Offset global) {
+     BlockEntry? hitEntry;
+     Offset? hitTextLocal;
+     var nearestHitDelta = double.infinity;
+diff --git a/wenz_richtext/lib/src/widgets/selection_gesture_overlay.dart b/wenz_richtext/lib/src/widgets/selection_gesture_overlay.dart
+index 4332bcd8b4a25cb98aa4a460b5227f082ca4de4a..74e2188abfaa683f8a57f6a7f3d7b0a274552adb
+--- a/wenz_richtext/lib/src/widgets/selection_gesture_overlay.dart
++++ b/wenz_richtext/lib/src/widgets/selection_gesture_overlay.dart
+@@ -15,17 +15,22 @@
+ /// inside a single [TextSelectionSurface].
+ ///
+ /// Supports:
+-/// - tap → place collapsed caret
+-/// - drag → extend selection (cross-block), with auto-scroll near viewport edges
++/// - tap → place collapsed caret. Empty text surfaces follow the same tap
++///   semantics: when their visible line area resolves to a text anchor, focus is
++///   requested and the selection collapses to that block/path at offset 0.
++/// - drag → extend selection (cross-block), with auto-scroll near viewport edges
+ /// - auto-scroll → every drag (touch or mouse) synchronously scrolls one step
+ ///   when the pointer enters the viewport edge band, so the list follows the
+ ///   drag. For mouse/pen, a per-frame [Ticker] *additionally* keeps scrolling
+ ///   while the pointer is held still near an edge, letting the user scroll
+ ///   past the visible area. (Touch selection past the viewport uses dedicated
+ ///   handles, tracked separately as C9.)
+-/// - double-tap → select word
+-/// - triple-tap → select block (paragraph)
+-class SelectionGestureOverlay extends StatefulWidget {
++/// - double-tap → select word
++/// - triple-tap → select block (paragraph)
++/// Selection exclusions and the scrollbar gutter are checked before resolving a
++/// text anchor, so block chrome (handles, checkboxes, collapse buttons, menus)
++/// cannot be claimed as an empty-line text tap.
++class SelectionGestureOverlay extends StatefulWidget {
+   const SelectionGestureOverlay({
+     super.key,
+     required this.registry,
+diff --git a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+index bbf9b6298312bb0f9c75e9b691a740e97c741d35..571788ca1398911b18b76612e529db6284cd52a0
+--- a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
++++ b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+@@ -7064,6 +7064,16 @@
+   }
+ }
+ 
++/// Text-bearing surface that paints text/selection/caret and registers geometry
++/// for document-level selection hit testing.
++///
++/// Empty text content is still a text target for paragraphs, list/todo items,
++/// quote/heading text, and table-cell text. When the visible editable line area
++/// is hit, the selection should collapse to this surface's block/path at offset
++/// 0; object-only blocks keep their separate block-object selection semantics.
++/// Interactive chrome such as list markers, todo checkboxes, heading collapse
++/// buttons, block handles, menus, and scrollbar gutters must stay outside this
++/// text hit target or be registered as selection exclusions.
+ class _TextSelectionSurface extends StatefulWidget {
+   const _TextSelectionSurface({
+     required this.blockId,
+
+**Considering formatting checks**
+
+I’m thinking about the potential impact of reformatting large files, which might create unrelated diffs. It may not be necessary to run `dart analyze` fully, especially if comments are the only changes. The requirement mentions that minimal tests are needed, and runtime tests may not be necessary for documentation changes. I’m also considering running `dart format --output=none --set-exit-if-changed` since it checks formatting, though it might flag pre-existing formatting issues. I guess I can skip validation if comments are wrapped correctly.
+codex
+文档边界也已补上；我会做最小状态检查，不跑全量测试。
+  ✓ 读取 P001 上下文
+  ✓ 定位相关点击逻辑
+  ✓ 实施最小业务改动
+  → 运行最小相关验证
+diff --git a/wenz_richtext/docs/selection_engine.md b/wenz_richtext/docs/selection_engine.md
+index 4b2670d945580a175420fdd38dc56eabdf7656b9..ee5d644c58b8b2523e51a4d74c6813c875d595f6
+--- a/wenz_richtext/docs/selection_engine.md
++++ b/wenz_richtext/docs/selection_engine.md
+@@ -30,6 +30,14 @@
+ - `positionFromGlobalOffset(Offset global)`：遍历 entries，用 `RenderBox.globalToLocal` + `contains` 找命中块；命中则用该块 `TextLayoutService.offsetAt` 得 offset 构造 `DocumentPosition`。未命中（块间空隙/视口外）则 `_clampToNearest`——按垂直邻近选最近块的首/尾，保证拖拽到块间隙也能预测地扩展选区。
+ - `wordRangeAt(blockId, offset)` / `paragraphRange(blockId)`：委托给命中块的 `TextLayoutService`，供双击/三击。
+ 
++### 空白行点击语义边界
++
++空白行指已注册 `_TextSelectionSurface` 中 `textLength == 0`、但界面上存在可见文本承载行高的文本目标。点击该可见文本行区域时，registry 必须解析到该 surface 对应的 `blockId` / `blockIndex` / `path`，overlay 请求编辑器焦点，并产生折叠的 `DocumentSelection(base == extent)`；offset 固定为 `0`。
++
++覆盖范围包括：空段落、空列表项、空 todo 列表项、空引用文本区域、空标题文本区域，以及表格单元格内的空文本。非文本对象块不纳入空白行语义，继续按现有 block object 选择语义处理。
++
++命中只以可见、可编辑的文本行区域为准；列表 marker、todo checkbox、标题折叠按钮、block handle、对象块/菜单控件、滚动条 gutter、选择排除区，以及 block 间隙或文档内容区域外空白，都不能被空白行命中抢占。
++
+ ## SelectionGestureOverlay
+ 
+ `lib/src/widgets/selection_gesture_overlay.dart`。包裹 `SingleChildScrollView`，用 `Listener`（`PointerDown/Move/Up/Cancel`）统一接管指针事件。
+diff --git a/wenz_richtext/lib/src/widgets/block_geometry_registry.dart b/wenz_richtext/lib/src/widgets/block_geometry_registry.dart
+index ede6d0e2a96150bca08a53586cbff5c05981e80b..d661481ea56f2cb5b6ea835f3dd8b9c1b963b35c
+--- a/wenz_richtext/lib/src/widgets/block_geometry_registry.dart
++++ b/wenz_richtext/lib/src/widgets/block_geometry_registry.dart
+@@ -295,13 +295,17 @@
+   ///
+   /// If the point lands inside a registered block's hit-test box (the whole
+   /// cell frame for table cells, otherwise the text surface itself), the
+-  /// position is computed from that block's *text-local* coordinates — the
+-  /// hit-test local offset is first translated through the entry's
+-  /// [BlockEntry.hitLocalToTextLocal] so padding/centring offsets are stripped.
+-  /// Otherwise the nearest block is chosen by 2-D rect proximity and the caret
+-  /// is clamped to that block's start or end — so a drag into the gap between
+-  /// blocks (or beyond the last block) still extends the selection predictably.
+-  DocumentPosition? positionFromGlobalOffset(Offset global) {
++  /// position is computed from that block's *text-local* coordinates — the
++  /// hit-test local offset is first translated through the entry's
++  /// [BlockEntry.hitLocalToTextLocal] so padding/centring offsets are stripped.
++  /// A zero-length text entry is resolved as a normal text target when its
++  /// visible line hit-test box is hit: the resulting [DocumentPosition] belongs
++  /// to that exact block/path and clamps to offset 0. Non-text chrome should be
++  /// registered as a selection exclusion instead of widening this hit box.
++  /// Otherwise the nearest block is chosen by 2-D rect proximity and the caret
++  /// is clamped to that block's start or end — so a drag into the gap between
++  /// blocks (or beyond the last block) still extends the selection predictably.
++  DocumentPosition? positionFromGlobalOffset(Offset global) {
+     BlockEntry? hitEntry;
+     Offset? hitTextLocal;
+     var nearestHitDelta = double.infinity;
+diff --git a/wenz_richtext/lib/src/widgets/selection_gesture_overlay.dart b/wenz_richtext/lib/src/widgets/selection_gesture_overlay.dart
+index 4332bcd8b4a25cb98aa4a460b5227f082ca4de4a..74e2188abfaa683f8a57f6a7f3d7b0a274552adb
+--- a/wenz_richtext/lib/src/widgets/selection_gesture_overlay.dart
++++ b/wenz_richtext/lib/src/widgets/selection_gesture_overlay.dart
+@@ -15,17 +15,22 @@
+ /// inside a single [TextSelectionSurface].
+ ///
+ /// Supports:
+-/// - tap → place collapsed caret
+-/// - drag → extend selection (cross-block), with auto-scroll near viewport edges
++/// - tap → place collapsed caret. Empty text surfaces follow the same tap
++///   semantics: when their visible line area resolves to a text anchor, focus is
++///   requested and the selection collapses to that block/path at offset 0.
++/// - drag → extend selection (cross-block), with auto-scroll near viewport edges
+ /// - auto-scroll → every drag (touch or mouse) synchronously scrolls one step
+ ///   when the pointer enters the viewport edge band, so the list follows the
+ ///   drag. For mouse/pen, a per-frame [Ticker] *additionally* keeps scrolling
+ ///   while the pointer is held still near an edge, letting the user scroll
+ ///   past the visible area. (Touch selection past the viewport uses dedicated
+ ///   handles, tracked separately as C9.)
+-/// - double-tap → select word
+-/// - triple-tap → select block (paragraph)
+-class SelectionGestureOverlay extends StatefulWidget {
++/// - double-tap → select word
++/// - triple-tap → select block (paragraph)
++/// Selection exclusions and the scrollbar gutter are checked before resolving a
++/// text anchor, so block chrome (handles, checkboxes, collapse buttons, menus)
++/// cannot be claimed as an empty-line text tap.
++class SelectionGestureOverlay extends StatefulWidget {
+   const SelectionGestureOverlay({
+     super.key,
+     required this.registry,
+diff --git a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+index bbf9b6298312bb0f9c75e9b691a740e97c741d35..571788ca1398911b18b76612e529db6284cd52a0
+--- a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
++++ b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+@@ -7064,6 +7064,16 @@
+   }
+ }
+ 
++/// Text-bearing surface that paints text/selection/caret and registers geometry
++/// for document-level selection hit testing.
++///
++/// Empty text content is still a text target for paragraphs, list/todo items,
++/// quote/heading text, and table-cell text. When the visible editable line area
++/// is hit, the selection should collapse to this surface's block/path at offset
++/// 0; object-only blocks keep their separate block-object selection semantics.
++/// Interactive chrome such as list markers, todo checkboxes, heading collapse
++/// buttons, block handles, menus, and scrollbar gutters must stay outside this
++/// text hit target or be registered as selection exclusions.
+ class _TextSelectionSurface extends StatefulWidget {
+   const _TextSelectionSurface({
+     required this.blockId,
+
+exec
+powershell.exe -Command 'git status --short -- lib/src/widgets/selection_gesture_overlay.dart lib/src/widgets/block_geometry_registry.dart lib/src/widgets/wenz_rich_text_editor.dart docs/selection_engine.md docs/plan/plan_requirement_22_20260626-055230.md; git diff --check -- lib/src/widgets/selection_gesture_overlay.dart lib/src/widgets/block_geometry_registry.dart lib/src/widgets/wenz_rich_text_editor.dart docs/selection_engine.md' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 219ms:
+ M docs/selection_engine.md
+ M lib/src/widgets/block_geometry_registry.dart
+ M lib/src/widgets/selection_gesture_overlay.dart
+ M lib/src/widgets/wenz_rich_text_editor.dart
+?? docs/plan/plan_requirement_22_20260626-055230.md
+warning: in the working copy of 'wenz_richtext/docs/selection_engine.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'wenz_richtext/lib/src/widgets/block_geometry_registry.dart', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'wenz_richtext/lib/src/widgets/selection_gesture_overlay.dart', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart', LF will be replaced by CRLF the next time Git touches it
+
+diff --git a/wenz_richtext/docs/selection_engine.md b/wenz_richtext/docs/selection_engine.md
+index 4b2670d945580a175420fdd38dc56eabdf7656b9..ee5d644c58b8b2523e51a4d74c6813c875d595f6
+--- a/wenz_richtext/docs/selection_engine.md
++++ b/wenz_richtext/docs/selection_engine.md
+@@ -30,6 +30,14 @@
+ - `positionFromGlobalOffset(Offset global)`：遍历 entries，用 `RenderBox.globalToLocal` + `contains` 找命中块；命中则用该块 `TextLayoutService.offsetAt` 得 offset 构造 `DocumentPosition`。未命中（块间空隙/视口外）则 `_clampToNearest`——按垂直邻近选最近块的首/尾，保证拖拽到块间隙也能预测地扩展选区。
+ - `wordRangeAt(blockId, offset)` / `paragraphRange(blockId)`：委托给命中块的 `TextLayoutService`，供双击/三击。
+ 
++### 空白行点击语义边界
++
++空白行指已注册 `_TextSelectionSurface` 中 `textLength == 0`、但界面上存在可见文本承载行高的文本目标。点击该可见文本行区域时，registry 必须解析到该 surface 对应的 `blockId` / `blockIndex` / `path`，overlay 请求编辑器焦点，并产生折叠的 `DocumentSelection(base == extent)`；offset 固定为 `0`。
++
++覆盖范围包括：空段落、空列表项、空 todo 列表项、空引用文本区域、空标题文本区域，以及表格单元格内的空文本。非文本对象块不纳入空白行语义，继续按现有 block object 选择语义处理。
++
++命中只以可见、可编辑的文本行区域为准；列表 marker、todo checkbox、标题折叠按钮、block handle、对象块/菜单控件、滚动条 gutter、选择排除区，以及 block 间隙或文档内容区域外空白，都不能被空白行命中抢占。
++
+ ## SelectionGestureOverlay
+ 
+ `lib/src/widgets/selection_gesture_overlay.dart`。包裹 `SingleChildScrollView`，用 `Listener`（`PointerDown/Move/Up/Cancel`）统一接管指针事件。
+diff --git a/wenz_richtext/lib/src/widgets/block_geometry_registry.dart b/wenz_richtext/lib/src/widgets/block_geometry_registry.dart
+index ede6d0e2a96150bca08a53586cbff5c05981e80b..d661481ea56f2cb5b6ea835f3dd8b9c1b963b35c
+--- a/wenz_richtext/lib/src/widgets/block_geometry_registry.dart
++++ b/wenz_richtext/lib/src/widgets/block_geometry_registry.dart
+@@ -295,13 +295,17 @@
+   ///
+   /// If the point lands inside a registered block's hit-test box (the whole
+   /// cell frame for table cells, otherwise the text surface itself), the
+-  /// position is computed from that block's *text-local* coordinates — the
+-  /// hit-test local offset is first translated through the entry's
+-  /// [BlockEntry.hitLocalToTextLocal] so padding/centring offsets are stripped.
+-  /// Otherwise the nearest block is chosen by 2-D rect proximity and the caret
+-  /// is clamped to that block's start or end — so a drag into the gap between
+-  /// blocks (or beyond the last block) still extends the selection predictably.
+-  DocumentPosition? positionFromGlobalOffset(Offset global) {
++  /// position is computed from that block's *text-local* coordinates — the
++  /// hit-test local offset is first translated through the entry's
++  /// [BlockEntry.hitLocalToTextLocal] so padding/centring offsets are stripped.
++  /// A zero-length text entry is resolved as a normal text target when its
++  /// visible line hit-test box is hit: the resulting [DocumentPosition] belongs
++  /// to that exact block/path and clamps to offset 0. Non-text chrome should be
++  /// registered as a selection exclusion instead of widening this hit box.
++  /// Otherwise the nearest block is chosen by 2-D rect proximity and the caret
++  /// is clamped to that block's start or end — so a drag into the gap between
++  /// blocks (or beyond the last block) still extends the selection predictably.
++  DocumentPosition? positionFromGlobalOffset(Offset global) {
+     BlockEntry? hitEntry;
+     Offset? hitTextLocal;
+     var nearestHitDelta = double.infinity;
+diff --git a/wenz_richtext/lib/src/widgets/selection_gesture_overlay.dart b/wenz_richtext/lib/src/widgets/selection_gesture_overlay.dart
+index 4332bcd8b4a25cb98aa4a460b5227f082ca4de4a..74e2188abfaa683f8a57f6a7f3d7b0a274552adb
+--- a/wenz_richtext/lib/src/widgets/selection_gesture_overlay.dart
++++ b/wenz_richtext/lib/src/widgets/selection_gesture_overlay.dart
+@@ -15,17 +15,22 @@
+ /// inside a single [TextSelectionSurface].
+ ///
+ /// Supports:
+-/// - tap → place collapsed caret
+-/// - drag → extend selection (cross-block), with auto-scroll near viewport edges
++/// - tap → place collapsed caret. Empty text surfaces follow the same tap
++///   semantics: when their visible line area resolves to a text anchor, focus is
++///   requested and the selection collapses to that block/path at offset 0.
++/// - drag → extend selection (cross-block), with auto-scroll near viewport edges
+ /// - auto-scroll → every drag (touch or mouse) synchronously scrolls one step
+ ///   when the pointer enters the viewport edge band, so the list follows the
+ ///   drag. For mouse/pen, a per-frame [Ticker] *additionally* keeps scrolling
+ ///   while the pointer is held still near an edge, letting the user scroll
+ ///   past the visible area. (Touch selection past the viewport uses dedicated
+ ///   handles, tracked separately as C9.)
+-/// - double-tap → select word
+-/// - triple-tap → select block (paragraph)
+-class SelectionGestureOverlay extends StatefulWidget {
++/// - double-tap → select word
++/// - triple-tap → select block (paragraph)
++/// Selection exclusions and the scrollbar gutter are checked before resolving a
++/// text anchor, so block chrome (handles, checkboxes, collapse buttons, menus)
++/// cannot be claimed as an empty-line text tap.
++class SelectionGestureOverlay extends StatefulWidget {
+   const SelectionGestureOverlay({
+     super.key,
+     required this.registry,
+diff --git a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+index bbf9b6298312bb0f9c75e9b691a740e97c741d35..571788ca1398911b18b76612e529db6284cd52a0
+--- a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
++++ b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+@@ -7064,6 +7064,16 @@
+   }
+ }
+ 
++/// Text-bearing surface that paints text/selection/caret and registers geometry
++/// for document-level selection hit testing.
++///
++/// Empty text content is still a text target for paragraphs, list/todo items,
++/// quote/heading text, and table-cell text. When the visible editable line area
++/// is hit, the selection should collapse to this surface's block/path at offset
++/// 0; object-only blocks keep their separate block-object selection semantics.
++/// Interactive chrome such as list markers, todo checkboxes, heading collapse
++/// buttons, block handles, menus, and scrollbar gutters must stay outside this
++/// text hit target or be registered as selection exclusions.
+ class _TextSelectionSurface extends StatefulWidget {
+   const _TextSelectionSurface({
+     required this.blockId,
+
+codex
+最小检查通过，仅有 Git 换行提示；我再取修改位置行号。
+exec
+powershell.exe -Command 'rg -n "Empty text surfaces|Selection exclusions|zero-length text entry|Empty text content|空白行点击语义边界|空白行指" lib/src/widgets/selection_gesture_overlay.dart lib/src/widgets/block_geometry_registry.dart lib/src/widgets/wenz_rich_text_editor.dart docs/selection_engine.md' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 168ms:
+docs/selection_engine.md:33:### 空白行点击语义边界
+docs/selection_engine.md:35:空白行指已注册 `_TextSelectionSurface` 中 `textLength == 0`、但界面上存在可见文本承载行高的文本目标。点击该可见文本行区域时，registry 必须解析到该 surface 对应的 `blockId` / `blockIndex` / `path`，overlay 请求编辑器焦点，并产生折叠的 `DocumentSelection(base == extent)`；offset 固定为 `0`。
+lib/src/widgets/block_geometry_registry.dart:301:  /// A zero-length text entry is resolved as a normal text target when its
+lib/src/widgets/selection_gesture_overlay.dart:18:/// - tap → place collapsed caret. Empty text surfaces follow the same tap
+lib/src/widgets/selection_gesture_overlay.dart:30:/// Selection exclusions and the scrollbar gutter are checked before resolving a
+lib/src/widgets/wenz_rich_text_editor.dart:7070:/// Empty text content is still a text target for paragraphs, list/todo items,
+
+diff --git a/wenz_richtext/docs/selection_engine.md b/wenz_richtext/docs/selection_engine.md
+index 4b2670d945580a175420fdd38dc56eabdf7656b9..ee5d644c58b8b2523e51a4d74c6813c875d595f6
+--- a/wenz_richtext/docs/selection_engine.md
++++ b/wenz_richtext/docs/selection_engine.md
+@@ -30,6 +30,14 @@
+ - `positionFromGlobalOffset(Offset global)`：遍历 entries，用 `RenderBox.globalToLocal` + `contains` 找命中块；命中则用该块 `TextLayoutService.offsetAt` 得 offset 构造 `DocumentPosition`。未命中（块间空隙/视口外）则 `_clampToNearest`——按垂直邻近选最近块的首/尾，保证拖拽到块间隙也能预测地扩展选区。
+ - `wordRangeAt(blockId, offset)` / `paragraphRange(blockId)`：委托给命中块的 `TextLayoutService`，供双击/三击。
+ 
++### 空白行点击语义边界
++
++空白行指已注册 `_TextSelectionSurface` 中 `textLength == 0`、但界面上存在可见文本承载行高的文本目标。点击该可见文本行区域时，registry 必须解析到该 surface 对应的 `blockId` / `blockIndex` / `path`，overlay 请求编辑器焦点，并产生折叠的 `DocumentSelection(base == extent)`；offset 固定为 `0`。
++
++覆盖范围包括：空段落、空列表项、空 todo 列表项、空引用文本区域、空标题文本区域，以及表格单元格内的空文本。非文本对象块不纳入空白行语义，继续按现有 block object 选择语义处理。
++
++命中只以可见、可编辑的文本行区域为准；列表 marker、todo checkbox、标题折叠按钮、block handle、对象块/菜单控件、滚动条 gutter、选择排除区，以及 block 间隙或文档内容区域外空白，都不能被空白行命中抢占。
++
+ ## SelectionGestureOverlay
+ 
+ `lib/src/widgets/selection_gesture_overlay.dart`。包裹 `SingleChildScrollView`，用 `Listener`（`PointerDown/Move/Up/Cancel`）统一接管指针事件。
+diff --git a/wenz_richtext/lib/src/widgets/block_geometry_registry.dart b/wenz_richtext/lib/src/widgets/block_geometry_registry.dart
+index ede6d0e2a96150bca08a53586cbff5c05981e80b..d661481ea56f2cb5b6ea835f3dd8b9c1b963b35c
+--- a/wenz_richtext/lib/src/widgets/block_geometry_registry.dart
++++ b/wenz_richtext/lib/src/widgets/block_geometry_registry.dart
+@@ -295,13 +295,17 @@
+   ///
+   /// If the point lands inside a registered block's hit-test box (the whole
+   /// cell frame for table cells, otherwise the text surface itself), the
+-  /// position is computed from that block's *text-local* coordinates — the
+-  /// hit-test local offset is first translated through the entry's
+-  /// [BlockEntry.hitLocalToTextLocal] so padding/centring offsets are stripped.
+-  /// Otherwise the nearest block is chosen by 2-D rect proximity and the caret
+-  /// is clamped to that block's start or end — so a drag into the gap between
+-  /// blocks (or beyond the last block) still extends the selection predictably.
+-  DocumentPosition? positionFromGlobalOffset(Offset global) {
++  /// position is computed from that block's *text-local* coordinates — the
++  /// hit-test local offset is first translated through the entry's
++  /// [BlockEntry.hitLocalToTextLocal] so padding/centring offsets are stripped.
++  /// A zero-length text entry is resolved as a normal text target when its
++  /// visible line hit-test box is hit: the resulting [DocumentPosition] belongs
++  /// to that exact block/path and clamps to offset 0. Non-text chrome should be
++  /// registered as a selection exclusion instead of widening this hit box.
++  /// Otherwise the nearest block is chosen by 2-D rect proximity and the caret
++  /// is clamped to that block's start or end — so a drag into the gap between
++  /// blocks (or beyond the last block) still extends the selection predictably.
++  DocumentPosition? positionFromGlobalOffset(Offset global) {
+     BlockEntry? hitEntry;
+     Offset? hitTextLocal;
+     var nearestHitDelta = double.infinity;
+diff --git a/wenz_richtext/lib/src/widgets/selection_gesture_overlay.dart b/wenz_richtext/lib/src/widgets/selection_gesture_overlay.dart
+index 4332bcd8b4a25cb98aa4a460b5227f082ca4de4a..74e2188abfaa683f8a57f6a7f3d7b0a274552adb
+--- a/wenz_richtext/lib/src/widgets/selection_gesture_overlay.dart
++++ b/wenz_richtext/lib/src/widgets/selection_gesture_overlay.dart
+@@ -15,17 +15,22 @@
+ /// inside a single [TextSelectionSurface].
+ ///
+ /// Supports:
+-/// - tap → place collapsed caret
+-/// - drag → extend selection (cross-block), with auto-scroll near viewport edges
++/// - tap → place collapsed caret. Empty text surfaces follow the same tap
++///   semantics: when their visible line area resolves to a text anchor, focus is
++///   requested and the selection collapses to that block/path at offset 0.
++/// - drag → extend selection (cross-block), with auto-scroll near viewport edges
+ /// - auto-scroll → every drag (touch or mouse) synchronously scrolls one step
+ ///   when the pointer enters the viewport edge band, so the list follows the
+ ///   drag. For mouse/pen, a per-frame [Ticker] *additionally* keeps scrolling
+ ///   while the pointer is held still near an edge, letting the user scroll
+ ///   past the visible area. (Touch selection past the viewport uses dedicated
+ ///   handles, tracked separately as C9.)
+-/// - double-tap → select word
+-/// - triple-tap → select block (paragraph)
+-class SelectionGestureOverlay extends StatefulWidget {
++/// - double-tap → select word
++/// - triple-tap → select block (paragraph)
++/// Selection exclusions and the scrollbar gutter are checked before resolving a
++/// text anchor, so block chrome (handles, checkboxes, collapse buttons, menus)
++/// cannot be claimed as an empty-line text tap.
++class SelectionGestureOverlay extends StatefulWidget {
+   const SelectionGestureOverlay({
+     super.key,
+     required this.registry,
+diff --git a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+index bbf9b6298312bb0f9c75e9b691a740e97c741d35..571788ca1398911b18b76612e529db6284cd52a0
+--- a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
++++ b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+@@ -7064,6 +7064,16 @@
+   }
+ }
+ 
++/// Text-bearing surface that paints text/selection/caret and registers geometry
++/// for document-level selection hit testing.
++///
++/// Empty text content is still a text target for paragraphs, list/todo items,
++/// quote/heading text, and table-cell text. When the visible editable line area
++/// is hit, the selection should collapse to this surface's block/path at offset
++/// 0; object-only blocks keep their separate block-object selection semantics.
++/// Interactive chrome such as list markers, todo checkboxes, heading collapse
++/// buttons, block handles, menus, and scrollbar gutters must stay outside this
++/// text hit target or be registered as selection exclusions.
+ class _TextSelectionSurface extends StatefulWidget {
+   const _TextSelectionSurface({
+     required this.blockId,
+
+  ✓ 读取 P001 上下文
+  ✓ 定位相关点击逻辑
+  ✓ 实施最小业务改动
+  ✓ 运行最小相关验证
+diff --git a/wenz_richtext/docs/selection_engine.md b/wenz_richtext/docs/selection_engine.md
+index 4b2670d945580a175420fdd38dc56eabdf7656b9..ee5d644c58b8b2523e51a4d74c6813c875d595f6
+--- a/wenz_richtext/docs/selection_engine.md
++++ b/wenz_richtext/docs/selection_engine.md
+@@ -30,6 +30,14 @@
+ - `positionFromGlobalOffset(Offset global)`：遍历 entries，用 `RenderBox.globalToLocal` + `contains` 找命中块；命中则用该块 `TextLayoutService.offsetAt` 得 offset 构造 `DocumentPosition`。未命中（块间空隙/视口外）则 `_clampToNearest`——按垂直邻近选最近块的首/尾，保证拖拽到块间隙也能预测地扩展选区。
+ - `wordRangeAt(blockId, offset)` / `paragraphRange(blockId)`：委托给命中块的 `TextLayoutService`，供双击/三击。
+ 
++### 空白行点击语义边界
++
++空白行指已注册 `_TextSelectionSurface` 中 `textLength == 0`、但界面上存在可见文本承载行高的文本目标。点击该可见文本行区域时，registry 必须解析到该 surface 对应的 `blockId` / `blockIndex` / `path`，overlay 请求编辑器焦点，并产生折叠的 `DocumentSelection(base == extent)`；offset 固定为 `0`。
++
++覆盖范围包括：空段落、空列表项、空 todo 列表项、空引用文本区域、空标题文本区域，以及表格单元格内的空文本。非文本对象块不纳入空白行语义，继续按现有 block object 选择语义处理。
++
++命中只以可见、可编辑的文本行区域为准；列表 marker、todo checkbox、标题折叠按钮、block handle、对象块/菜单控件、滚动条 gutter、选择排除区，以及 block 间隙或文档内容区域外空白，都不能被空白行命中抢占。
++
+ ## SelectionGestureOverlay
+ 
+ `lib/src/widgets/selection_gesture_overlay.dart`。包裹 `SingleChildScrollView`，用 `Listener`（`PointerDown/Move/Up/Cancel`）统一接管指针事件。
+diff --git a/wenz_richtext/lib/src/widgets/block_geometry_registry.dart b/wenz_richtext/lib/src/widgets/block_geometry_registry.dart
+index ede6d0e2a96150bca08a53586cbff5c05981e80b..d661481ea56f2cb5b6ea835f3dd8b9c1b963b35c
+--- a/wenz_richtext/lib/src/widgets/block_geometry_registry.dart
++++ b/wenz_richtext/lib/src/widgets/block_geometry_registry.dart
+@@ -295,13 +295,17 @@
+   ///
+   /// If the point lands inside a registered block's hit-test box (the whole
+   /// cell frame for table cells, otherwise the text surface itself), the
+-  /// position is computed from that block's *text-local* coordinates — the
+-  /// hit-test local offset is first translated through the entry's
+-  /// [BlockEntry.hitLocalToTextLocal] so padding/centring offsets are stripped.
+-  /// Otherwise the nearest block is chosen by 2-D rect proximity and the caret
+-  /// is clamped to that block's start or end — so a drag into the gap between
+-  /// blocks (or beyond the last block) still extends the selection predictably.
+-  DocumentPosition? positionFromGlobalOffset(Offset global) {
++  /// position is computed from that block's *text-local* coordinates — the
++  /// hit-test local offset is first translated through the entry's
++  /// [BlockEntry.hitLocalToTextLocal] so padding/centring offsets are stripped.
++  /// A zero-length text entry is resolved as a normal text target when its
++  /// visible line hit-test box is hit: the resulting [DocumentPosition] belongs
++  /// to that exact block/path and clamps to offset 0. Non-text chrome should be
++  /// registered as a selection exclusion instead of widening this hit box.
++  /// Otherwise the nearest block is chosen by 2-D rect proximity and the caret
++  /// is clamped to that block's start or end — so a drag into the gap between
++  /// blocks (or beyond the last block) still extends the selection predictably.
++  DocumentPosition? positionFromGlobalOffset(Offset global) {
+     BlockEntry? hitEntry;
+     Offset? hitTextLocal;
+     var nearestHitDelta = double.infinity;
+diff --git a/wenz_richtext/lib/src/widgets/selection_gesture_overlay.dart b/wenz_richtext/lib/src/widgets/selection_gesture_overlay.dart
+index 4332bcd8b4a25cb98aa4a460b5227f082ca4de4a..74e2188abfaa683f8a57f6a7f3d7b0a274552adb
+--- a/wenz_richtext/lib/src/widgets/selection_gesture_overlay.dart
++++ b/wenz_richtext/lib/src/widgets/selection_gesture_overlay.dart
+@@ -15,17 +15,22 @@
+ /// inside a single [TextSelectionSurface].
+ ///
+ /// Supports:
+-/// - tap → place collapsed caret
+-/// - drag → extend selection (cross-block), with auto-scroll near viewport edges
++/// - tap → place collapsed caret. Empty text surfaces follow the same tap
++///   semantics: when their visible line area resolves to a text anchor, focus is
++///   requested and the selection collapses to that block/path at offset 0.
++/// - drag → extend selection (cross-block), with auto-scroll near viewport edges
+ /// - auto-scroll → every drag (touch or mouse) synchronously scrolls one step
+ ///   when the pointer enters the viewport edge band, so the list follows the
+ ///   drag. For mouse/pen, a per-frame [Ticker] *additionally* keeps scrolling
+ ///   while the pointer is held still near an edge, letting the user scroll
+ ///   past the visible area. (Touch selection past the viewport uses dedicated
+ ///   handles, tracked separately as C9.)
+-/// - double-tap → select word
+-/// - triple-tap → select block (paragraph)
+-class SelectionGestureOverlay extends StatefulWidget {
++/// - double-tap → select word
++/// - triple-tap → select block (paragraph)
++/// Selection exclusions and the scrollbar gutter are checked before resolving a
++/// text anchor, so block chrome (handles, checkboxes, collapse buttons, menus)
++/// cannot be claimed as an empty-line text tap.
++class SelectionGestureOverlay extends StatefulWidget {
+   const SelectionGestureOverlay({
+     super.key,
+     required this.registry,
+diff --git a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+index bbf9b6298312bb0f9c75e9b691a740e97c741d35..571788ca1398911b18b76612e529db6284cd52a0
+--- a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
++++ b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+@@ -7064,6 +7064,16 @@
+   }
+ }
+ 
++/// Text-bearing surface that paints text/selection/caret and registers geometry
++/// for document-level selection hit testing.
++///
++/// Empty text content is still a text target for paragraphs, list/todo items,
++/// quote/heading text, and table-cell text. When the visible editable line area
++/// is hit, the selection should collapse to this surface's block/path at offset
++/// 0; object-only blocks keep their separate block-object selection semantics.
++/// Interactive chrome such as list markers, todo checkboxes, heading collapse
++/// buttons, block handles, menus, and scrollbar gutters must stay outside this
++/// text hit target or be registered as selection exclusions.
+ class _TextSelectionSurface extends StatefulWidget {
+   const _TextSelectionSurface({
+     required this.blockId,
+
+codex
+完成 P001，只做了语义边界澄清，没有实现 P002/P003 的命中或 offset 行为改动。
+
+**变更**
+- `docs/selection_engine.md:33` 增加空白行点击语义：命中可见文本行区域后请求焦点，选区折叠到对应 `blockId/blockIndex/path`，offset 固定 `0`。
+- `lib/src/widgets/selection_gesture_overlay.dart:18` 明确空文本 surface 的 tap 语义与普通文本一致。
+- `lib/src/widgets/block_geometry_registry.dart:301` 明确零长度文本 entry 命中后属于原 block/path，不应靠扩大 hit box 抢占 chrome。
+- `lib/src/widgets/wenz_rich_text_editor.dart:7070` 明确覆盖空段落、列表/todo、引用/标题、表格单元格；对象块仍走对象选择语义。
+
+**验证**
+- 运行 `git diff --check -- ...` 通过；仅出现 Git 的 CRLF 换行提示。
+- 未运行测试：本次仅注释/文档语义边界变更，无运行时逻辑改动。
+- 未修改 plan 文件、未勾选 checkbox、未更新进度区。
+diff --git a/wenz_richtext/docs/selection_engine.md b/wenz_richtext/docs/selection_engine.md
+index 4b2670d945580a175420fdd38dc56eabdf7656b9..ee5d644c58b8b2523e51a4d74c6813c875d595f6
+--- a/wenz_richtext/docs/selection_engine.md
++++ b/wenz_richtext/docs/selection_engine.md
+@@ -30,6 +30,14 @@
+ - `positionFromGlobalOffset(Offset global)`：遍历 entries，用 `RenderBox.globalToLocal` + `contains` 找命中块；命中则用该块 `TextLayoutService.offsetAt` 得 offset 构造 `DocumentPosition`。未命中（块间空隙/视口外）则 `_clampToNearest`——按垂直邻近选最近块的首/尾，保证拖拽到块间隙也能预测地扩展选区。
+ - `wordRangeAt(blockId, offset)` / `paragraphRange(blockId)`：委托给命中块的 `TextLayoutService`，供双击/三击。
+ 
++### 空白行点击语义边界
++
++空白行指已注册 `_TextSelectionSurface` 中 `textLength == 0`、但界面上存在可见文本承载行高的文本目标。点击该可见文本行区域时，registry 必须解析到该 surface 对应的 `blockId` / `blockIndex` / `path`，overlay 请求编辑器焦点，并产生折叠的 `DocumentSelection(base == extent)`；offset 固定为 `0`。
++
++覆盖范围包括：空段落、空列表项、空 todo 列表项、空引用文本区域、空标题文本区域，以及表格单元格内的空文本。非文本对象块不纳入空白行语义，继续按现有 block object 选择语义处理。
++
++命中只以可见、可编辑的文本行区域为准；列表 marker、todo checkbox、标题折叠按钮、block handle、对象块/菜单控件、滚动条 gutter、选择排除区，以及 block 间隙或文档内容区域外空白，都不能被空白行命中抢占。
++
+ ## SelectionGestureOverlay
+ 
+ `lib/src/widgets/selection_gesture_overlay.dart`。包裹 `SingleChildScrollView`，用 `Listener`（`PointerDown/Move/Up/Cancel`）统一接管指针事件。
+diff --git a/wenz_richtext/lib/src/widgets/block_geometry_registry.dart b/wenz_richtext/lib/src/widgets/block_geometry_registry.dart
+index ede6d0e2a96150bca08a53586cbff5c05981e80b..d661481ea56f2cb5b6ea835f3dd8b9c1b963b35c
+--- a/wenz_richtext/lib/src/widgets/block_geometry_registry.dart
++++ b/wenz_richtext/lib/src/widgets/block_geometry_registry.dart
+@@ -295,13 +295,17 @@
+   ///
+   /// If the point lands inside a registered block's hit-test box (the whole
+   /// cell frame for table cells, otherwise the text surface itself), the
+-  /// position is computed from that block's *text-local* coordinates — the
+-  /// hit-test local offset is first translated through the entry's
+-  /// [BlockEntry.hitLocalToTextLocal] so padding/centring offsets are stripped.
+-  /// Otherwise the nearest block is chosen by 2-D rect proximity and the caret
+-  /// is clamped to that block's start or end — so a drag into the gap between
+-  /// blocks (or beyond the last block) still extends the selection predictably.
+-  DocumentPosition? positionFromGlobalOffset(Offset global) {
++  /// position is computed from that block's *text-local* coordinates — the
++  /// hit-test local offset is first translated through the entry's
++  /// [BlockEntry.hitLocalToTextLocal] so padding/centring offsets are stripped.
++  /// A zero-length text entry is resolved as a normal text target when its
++  /// visible line hit-test box is hit: the resulting [DocumentPosition] belongs
++  /// to that exact block/path and clamps to offset 0. Non-text chrome should be
++  /// registered as a selection exclusion instead of widening this hit box.
++  /// Otherwise the nearest block is chosen by 2-D rect proximity and the caret
++  /// is clamped to that block's start or end — so a drag into the gap between
++  /// blocks (or beyond the last block) still extends the selection predictably.
++  DocumentPosition? positionFromGlobalOffset(Offset global) {
+     BlockEntry? hitEntry;
+     Offset? hitTextLocal;
+     var nearestHitDelta = double.infinity;
+diff --git a/wenz_richtext/lib/src/widgets/selection_gesture_overlay.dart b/wenz_richtext/lib/src/widgets/selection_gesture_overlay.dart
+index 4332bcd8b4a25cb98aa4a460b5227f082ca4de4a..74e2188abfaa683f8a57f6a7f3d7b0a274552adb
+--- a/wenz_richtext/lib/src/widgets/selection_gesture_overlay.dart
++++ b/wenz_richtext/lib/src/widgets/selection_gesture_overlay.dart
+@@ -15,17 +15,22 @@
+ /// inside a single [TextSelectionSurface].
+ ///
+ /// Supports:
+-/// - tap → place collapsed caret
+-/// - drag → extend selection (cross-block), with auto-scroll near viewport edges
++/// - tap → place collapsed caret. Empty text surfaces follow the same tap
++///   semantics: when their visible line area resolves to a text anchor, focus is
++///   requested and the selection collapses to that block/path at offset 0.
++/// - drag → extend selection (cross-block), with auto-scroll near viewport edges
+ /// - auto-scroll → every drag (touch or mouse) synchronously scrolls one step
+ ///   when the pointer enters the viewport edge band, so the list follows the
+ ///   drag. For mouse/pen, a per-frame [Ticker] *additionally* keeps scrolling
+ ///   while the pointer is held still near an edge, letting the user scroll
+ ///   past the visible area. (Touch selection past the viewport uses dedicated
+ ///   handles, tracked separately as C9.)
+-/// - double-tap → select word
+-/// - triple-tap → select block (paragraph)
+-class SelectionGestureOverlay extends StatefulWidget {
++/// - double-tap → select word
++/// - triple-tap → select block (paragraph)
++/// Selection exclusions and the scrollbar gutter are checked before resolving a
++/// text anchor, so block chrome (handles, checkboxes, collapse buttons, menus)
++/// cannot be claimed as an empty-line text tap.
++class SelectionGestureOverlay extends StatefulWidget {
+   const SelectionGestureOverlay({
+     super.key,
+     required this.registry,
+diff --git a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+index bbf9b6298312bb0f9c75e9b691a740e97c741d35..571788ca1398911b18b76612e529db6284cd52a0
+--- a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
++++ b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+@@ -7064,6 +7064,16 @@
+   }
+ }
+ 
++/// Text-bearing surface that paints text/selection/caret and registers geometry
++/// for document-level selection hit testing.
++///
++/// Empty text content is still a text target for paragraphs, list/todo items,
++/// quote/heading text, and table-cell text. When the visible editable line area
++/// is hit, the selection should collapse to this surface's block/path at offset
++/// 0; object-only blocks keep their separate block-object selection semantics.
++/// Interactive chrome such as list markers, todo checkboxes, heading collapse
++/// buttons, block handles, menus, and scrollbar gutters must stay outside this
++/// text hit target or be registered as selection exclusions.
+ class _TextSelectionSurface extends StatefulWidget {
+   const _TextSelectionSurface({
+     required this.blockId,
+
+完成 P001，只做了语义边界澄清，没有实现 P002/P003 的命中或 offset 行为改动。
+
+**变更**
+- `docs/selection_engine.md:33` 增加空白行点击语义：命中可见文本行区域后请求焦点，选区折叠到对应 `blockId/blockIndex/path`，offset 固定 `0`。
+- `lib/src/widgets/selection_gesture_overlay.dart:18` 明确空文本 surface 的 tap 语义与普通文本一致。
+- `lib/src/widgets/block_geometry_registry.dart:301` 明确零长度文本 entry 命中后属于原 block/path，不应靠扩大 hit box 抢占 chrome。
+- `lib/src/widgets/wenz_rich_text_editor.dart:7070` 明确覆盖空段落、列表/todo、引用/标题、表格单元格；对象块仍走对象选择语义。
+
+**验证**
+- 运行 `git diff --check -- ...` 通过；仅出现 Git 的 CRLF 换行提示。
+- 未运行测试：本次仅注释/文档语义边界变更，无运行时逻辑改动。
+- 未修改 plan 文件、未勾选 checkbox、未更新进度区。
+tokens used
+102,083

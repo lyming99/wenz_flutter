@@ -13,7 +13,11 @@ import '../model/table_model.dart';
 /// so every command output, loaded JSON, and session default is well-formed.
 ///
 /// Canonical `listType` values (after normalize): `'ordered'`, `'task'`, or
-/// `null` (unordered). Legacy values `li`/`oli`/`check` are mapped on decode.
+/// `null` (unordered). `listType` only describes the list marker/numbering
+/// family; todo state is carried by `BlockAttributes.checked` and may coexist
+/// with `'ordered'` for ordered todo items. Legacy `'task'` remains the
+/// compatible unordered todo representation. Legacy values `li`/`oli`/`check`
+/// are mapped on decode.
 class DocumentSchema {
   const DocumentSchema({this.maxIndent = 8});
 
@@ -230,6 +234,10 @@ class DocumentSchema {
 
   /// Returns attributes consistent with [type], or the same instance if already
   /// consistent. Canonicalises `listType` (li/oli/check → ordered/task/null).
+  ///
+  /// List items split marker type from todo state: `listType` controls bullet or
+  /// numbering, while `checked != null` marks a todo item. Historical
+  /// `listType == 'task'` data stays valid as an unordered todo variant.
   BlockAttributes _normalizeAttributes(BlockType type, BlockAttributes attrs) {
     final indent = (attrs.indent ?? 0).clamp(0, maxIndent).toInt();
     switch (type) {

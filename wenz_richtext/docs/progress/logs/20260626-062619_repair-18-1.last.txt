@@ -1,0 +1,6 @@
+已只修复 `flutter analyze` 验证错误，未修改 plan 文件。
+
+- `lib/src/widgets/wenz_rich_text_editor.dart:5641` 移除未传入的私有可选参数 `inset/placeAbove`。
+- `lib/src/widgets/wenz_rich_text_editor.dart:5661` 直接使用 `_kBlockFloatingToolbarInset` 定位 toolbar，并清理派生未用常量。
+- `test/input/shortcut_manager_test.dart:56` 将快捷键期望列表改为 `const` 声明。
+- 验证通过：`flutter analyze` → `No issues found!`

@@ -69,6 +69,51 @@ void main() {
     expect(session.selection?.extent.offset, 5);
   });
 
+  test('callout deletion boundary is editable body content only', () {
+    const block = CalloutBlockNode(
+      id: 'callout1',
+      variant: CalloutBlockNode.warningVariant,
+      title: 'Heads up',
+      icon: '!',
+      attributes: BlockAttributes(anchor: 'note-anchor'),
+      content: <InlineNode>[
+        TextRun(text: 'Keep '),
+        TextRun(
+          text: 'body',
+          attributes: TextAttributes(bold: true),
+        ),
+      ],
+    );
+
+    final bodyPath = PositionPath.blockText(block.id);
+    final selection = DocumentSelection(
+      base: DocumentPosition(
+        blockId: block.id,
+        blockIndex: 0,
+        path: bodyPath,
+        offset: 0,
+      ),
+      extent: DocumentPosition(
+        blockId: block.id,
+        blockIndex: 0,
+        path: bodyPath,
+        offset: 9,
+      ),
+    );
+    final emptyBody = block.copyWith(content: const <InlineNode>[]);
+
+    expect(selection.start.path.isBlockText, isTrue);
+    expect(selection.start.path.isBlockObject, isFalse);
+    expect(block.content.map((node) => node.plainText).join(), 'Keep body');
+    expect(emptyBody.id, block.id);
+    expect(emptyBody.variant, block.variant);
+    expect(emptyBody.title, block.title);
+    expect(emptyBody.icon, block.icon);
+    expect(emptyBody.attributes, block.attributes);
+    expect(emptyBody.content, isEmpty);
+    expect(emptyBody.toJson()['type'], BlockType.callout.name);
+  });
+
   test('delete selection merges text across blocks', () {
     final session = DocumentSession(
       document: const RichTextDocument(

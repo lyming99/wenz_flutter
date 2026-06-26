@@ -1,0 +1,1142 @@
+OpenAI Codex v0.121.0 (research preview)
+--------
+workdir: D:\project\GitHub\wenz_flutter\wenz_richtext
+model: gpt-5.5
+provider: custom
+approval: never
+sandbox: danger-full-access
+reasoning effort: xhigh
+reasoning summaries: none
+session id: 019f004d-7309-7562-bb3a-2525309095f5
+--------
+user
+你是需求整理与开发计划生成者。
+请根据以下需求，生成一个开发计划和验收标准。
+
+输出文件：D:\project\GitHub\wenz_flutter\wenz_richtext\docs\plan\plan_requirement_14_20260626-034143.md
+
+格式要求：
+- 每个任务必须严格使用固定格式：- [ ] P001: 任务标题 <!-- scope: lib/foo.dart,test/foo_test.dart -->
+- scope 必填，表示该任务预计修改的文件或模块；多个 scope 用英文逗号分隔；无法判断时写 <!-- scope: unknown -->，unknown 任务不会并发执行
+- 每个任务要有验收要点
+- 必须包含总体验收标准和进度区
+- 只写 plan 文件，不要改业务代码
+
+需求 #14 内容：
+要支持斜杆输入时弹出插入元素popup
+codex
+我先查看项目约定和已有计划格式，然后只写入指定 plan 文件。
+exec
+powershell.exe -Command "Get-ChildItem -Force; Get-ChildItem -Recurse -Filter AGENTS.md -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName; if (Test-Path docs\\plan) { Get-ChildItem docs\\plan -File | Select-Object -First 5 -ExpandProperty FullName }" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 376ms:
+
+
+    目录: D:\project\GitHub\wenz_flutter\wenz_richtext
+
+
+Mode                 LastWriteTime         Length Name                                                                 
+----                 -------------         ------ ----                                                                 
+d-----         2026/6/26      3:40                .codegraph                                                           
+d-----         2026/6/24     15:10                .dart_appdata                                                        
+d-----         2026/6/24     15:10                .dart_localappdata                                                   
+d-----         2026/6/24     16:11                .dart_tool                                                           
+d-----         2026/6/24     16:13                .dart_tool_appdata                                                   
+d-----         2026/6/24     16:06                .dart_tool_localappdata                                              
+d-----         2026/6/20      0:26                .idea                                                                
+d-----         2026/6/25     10:14                build                                                                
+d-----         2026/6/19     17:02                doc                                                                  
+d-----         2026/6/24     18:05                docs                                                                 
+d-----         2026/6/22     14:56                example                                                              
+d-----         2026/6/22     17:09                lib                                                                  
+d-----         2026/6/24      3:35                scripts                                                              
+d-----         2026/6/25      3:33                test                                                                 
+d-----         2026/6/24     18:04                tool                                                                 
+d-----         2026/6/25      2:40                ui                                                                   
+-a----         2026/6/19     14:04             87 .gitignore                                                           
+-a----         2026/6/24     16:16             94 analysis_options.yaml                                                
+-a----         2026/6/24     14:38            726 CHANGELOG.md                                                         
+-a----         2026/6/25      2:56            157 nul                                                                  
+-a----         2026/6/25      2:18          10389 pubspec.lock                                                         
+-a----         2026/6/25      2:18            382 pubspec.yaml                                                         
+-a----         2026/6/25     10:45           4516 README.md                                                            
+D:\project\GitHub\wenz_flutter\wenz_richtext\docs\plan\plan_feedback_1_20260624-220759.md
+D:\project\GitHub\wenz_flutter\wenz_richtext\docs\plan\plan_feedback_2_20260625-004108.md
+D:\project\GitHub\wenz_flutter\wenz_richtext\docs\plan\plan_feedback_3_20260625-014905.md
+D:\project\GitHub\wenz_flutter\wenz_richtext\docs\plan\plan_feedback_4_20260625-024854.md
+D:\project\GitHub\wenz_flutter\wenz_richtext\docs\plan\plan_feedback_6_20260625-035040.md
+
+
+
+codex
+已确认没有额外代理约束；接着对齐现有计划文档格式。
+exec
+powershell.exe -Command "Get-Content -Raw docs\\plan\\plan_feedback_4_20260625-024854.md; '---NEXT---'; Get-Content -Raw docs\\plan\\plan_feedback_6_20260625-035040.md" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 204ms:
+# 反馈开发计划：公式、todo 与表格工具栏细节优化
+
+## 来源
+- 类型：反馈
+- 编号：4
+- 生成时间：2026-06-25 02:48:54
+
+## 原始内容
+1. 公式渲染要垂直居中文字，渲染内容要考虑公式内容进行优化，例如调整行高。
+2. todo 的 checkbox 要对齐文字，要根据 checkbox 和文字，调整文字行高。
+3. 表格工具栏优化一下位置，目前离表格顶部较远。
+
+## 需求理解
+- 本次反馈聚焦编辑器默认渲染的视觉对齐与间距优化，不改变富文本文档模型、命令语义和导入导出协议。
+- 公式属于内联 embed 渲染问题，需要以文字基线、公式实际高度和段落行高为依据，让公式与同一行文字视觉垂直居中，并避免高公式被裁剪或挤压。
+- todo 属于列表项默认渲染问题，需要让 checkbox 与文字首行垂直对齐，同时根据 checkbox 尺寸与文本字号/行高统一整行高度。
+- 表格工具栏属于浮层定位问题，需要缩短工具栏与表格顶部的距离，并继续兼容滚动、选区和顶部边界贴合场景。
+
+## 任务计划
+- [x] P001: 梳理渲染基线与复现用例 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/inline_embed_renderer.dart,test/widgets/wenz_rich_text_editor_test.dart -->
+  - 验收要点：补齐或明确公式同行文字、普通高度公式、高公式、todo 单行、todo 多行、表格选中后工具栏定位的最小复现用例。
+  - 验收要点：记录当前公式、todo、表格工具栏的实际偏移或间距问题，确保后续修复有可量化对比标准。
+  - 验收要点：确认本次仅调整默认渲染层样式和布局，不改 `BlockNode`、`TableModel`、命令、序列化和剪贴板协议。
+
+- [x] P002: 优化公式内联垂直对齐 <!-- scope: lib/src/widgets/inline_embed_renderer.dart,lib/src/widgets/wenz_rich_text_editor.dart,test/widgets/wenz_rich_text_editor_test.dart -->
+  - 验收要点：公式 embed 与同一行普通文字在视觉上垂直居中，基线不明显上浮或下沉，中文、英文和 emoji 混排时表现稳定。
+  - 验收要点：根据公式实际渲染高度动态调整所在行的高度或占位尺寸，高公式不被裁剪，普通公式不额外撑出过大行距。
+  - 验收要点：公式渲染失败或公式内容为空时仍使用安全占位，不影响文本选区、点击定位、复制和撤销/重做行为。
+
+- [x] P003: 调整 todo checkbox 与文字行高 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/block_renderer_registry.dart,test/widgets/wenz_rich_text_editor_test.dart -->
+  - 验收要点：todo checkbox 的视觉中心与文字首行中心对齐，不再相对文字明显偏上或偏下。
+  - 验收要点：todo 行高综合 checkbox 尺寸、文本字号、文本行高和内边距计算，单行 todo 不拥挤，多行 todo 首行对齐且后续换行缩进一致。
+  - 验收要点：点击 checkbox 切换完成状态、文本选择、删除线样式、列表缩进和普通有序/无序列表渲染均不回归。
+
+- [x] P004: 收紧表格工具栏顶部定位 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,test/widgets/wenz_rich_text_editor_test.dart -->
+  - 验收要点：表格获得选区后，浮动工具栏贴近表格顶部显示，间距控制在设计可接受范围内，不再与表格顶部明显脱节。
+  - 验收要点：表格靠近编辑器视口顶部或滚动过程中，工具栏仍保持可见且不遮挡表格首行主要内容。
+  - 验收要点：工具栏插入行列、切换表头、背景色、对齐、删除等现有按钮位置变化后仍可点击，行为与原先一致。
+
+- [x] P005: 补充视觉回归与验证记录 <!-- scope: test/widgets/wenz_rich_text_editor_test.dart,docs/acceptance_manual_checklist.md,docs/plan/plan_feedback_4_20260625-024854.md -->
+  - 验收要点：新增或更新 widget 测试，覆盖公式同行居中、公式高内容行高兜底、todo checkbox 首行对齐、多行 todo 缩进、表格工具栏贴近顶部。
+  - 验收要点：执行 `flutter analyze`、相关 widget 测试和必要的全量测试；若失败，需区分本次改动失败和既有失败。
+  - 验收要点：在本计划进度区记录每个任务的完成范围、验证命令、验证结果、未覆盖风险和后续建议。
+
+## 总体验收标准
+- 所有任务 checkbox 均完成，且每个任务的验收要点都有明确结论。
+- 公式在正文中与周围文字视觉垂直居中，高公式可安全撑开行高，普通公式不会造成异常大行距。
+- todo checkbox 与文字首行对齐，单行和多行 todo 的行高、缩进、点击区域和完成态样式稳定。
+- 表格浮动工具栏更贴近表格顶部，滚动、视口贴边和选区变化时位置稳定，原有表格操作不回归。
+- 本次改动不改变文档模型、命令协议、导入导出数据结构和业务自定义渲染扩展方式。
+- 相关自动化测试、静态检查和必要手工验证通过；若存在非本次变更导致的失败，需在进度区记录失败命令、原因和处理建议。
+
+## 进度区
+- 当前状态：计划已创建，P001-P005 待开发执行。
+- 当前负责人：待分配。
+- 下一步：从 P001 开始补充公式、todo 和表格工具栏的最小复现与定位基准。
+- 验证记录：尚未执行代码修改、自动化测试或手工验收。
+- 风险记录：公式行高优化可能受 `flutter_math_fork` 实际布局影响；todo 对齐需兼顾 Material `Checkbox` 默认触控尺寸；表格工具栏位置需继续验证滚动视口和外层裁剪容器。
+- P001 AutoPlan 完成：2026-06-24T18:57:46.063Z；日志：docs/progress/logs/20260625-025017_execute-P001.log
+- P002 AutoPlan 完成：2026-06-24T22:23:37.536Z；日志：docs/progress/logs/20260625-061423_execute-P002.log
+- P003 AutoPlan 完成：2026-06-24T22:30:33.319Z；日志：docs/progress/logs/20260625-062339_execute-P003.log
+- P004 AutoPlan 完成：2026-06-24T22:36:33.306Z；日志：docs/progress/logs/20260625-063035_execute-P004.log
+- P005 AutoPlan 完成：2026-06-24T22:44:50.307Z；日志：docs/progress/logs/20260625-063635_execute-P005.log
+
+---NEXT---
+# 鍙嶉寮€鍙戣鍒掞細琛ㄦ牸鎮诞宸ュ叿鏍忔敼鐢ㄧ郴缁?Overlay
+
+## 鏉ユ簮
+- 绫诲瀷锛氬弽棣?- 缂栧彿锛?
+- 鐢熸垚鏃堕棿锛?026-06-25 03:50:40
+
+## 鍘熷鍐呭
+琛ㄦ牸鎮诞宸ュ叿鏍忥紝搴旇浣跨敤绯荤粺鎮诞overlay瀹炵幇锛岀洰鍓嶅瓨鍦ㄤ簨浠剁┛閫忛棶棰?
+## 闇€姹傜悊瑙?- 褰撳墠琛ㄦ牸鎮诞宸ュ叿鏍忎粛渚濊禆琛ㄦ牸娓叉煋鏍戝唴閮ㄧ殑娴姩瀹氫綅锛屽鏄撳彈鍒扮埗绾?`Stack`銆佽鍓€佸懡涓祴璇曡寖鍥村拰閫夊尯鎵嬪娍灞傚奖鍝嶏紝瀵艰嚧鐐瑰嚮宸ュ叿鏍忔椂浜嬩欢缁х画绌块€忓埌搴曞眰琛ㄦ牸鎴栫紪杈戝櫒銆?- 鏈鐩爣鏄皢琛ㄦ牸宸ュ叿鏍忚縼绉讳负 Flutter 绯荤粺娴眰鑳藉姏鎵胯浇鐨?overlay锛屼緥濡?`OverlayEntry` / `OverlayPortal` / `CompositedTransformFollower` 鏂规锛岃宸ュ叿鏍忓湪鐙珛娴眰涓畬鎴愬畾浣嶃€佸懡涓祴璇曞拰鐢熷懡鍛ㄦ湡绠＄悊銆?- 淇閲嶇偣鏄簨浠朵笉绌块€忋€佸畾浣嶇ǔ瀹氥€佹粴鍔ㄨ窡闅忋€侀€夊尯鍙樺寲鑷姩鍒锋柊锛屼互鍙婄幇鏈夎〃鏍煎懡浠よ兘鍔涗笉鍥炲綊銆?- 鏈涓嶈皟鏁磋〃鏍兼暟鎹ā鍨嬨€佸懡浠よ涔夈€佸鍏ュ鍑哄崗璁拰鍒楀鎷栨嫿閫昏緫锛岄櫎闈炰负 overlay 閿氱偣鍜岀姸鎬佸悓姝ユ彁渚涘繀瑕佺殑娓叉煋灞傞€傞厤銆?
+## 浠诲姟璁″垝
+- [x] P001: 澶嶇幇骞剁晫瀹氬伐鍏锋爮浜嬩欢绌块€?<!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/selection_gesture_overlay.dart,test/widgets/wenz_rich_text_editor_test.dart -->
+  - 楠屾敹瑕佺偣锛氭槑纭綋鍓嶅伐鍏锋爮鐐瑰嚮鍚庝細绌块€忓埌琛ㄦ牸鍗曞厓鏍笺€佹枃鏈€夊尯銆佹嫋鎷芥墜鍔挎垨缂栬緫鍣ㄧ┖鐧藉尯鍩熺殑鏈€灏忓鐜板満鏅€?  - 楠屾敹瑕佺偣锛氳褰曠┛閫忓彂鐢熸椂鐨勫懡涓祴璇曢摼璺€佸伐鍏锋爮鎵€鍦ㄦ覆鏌撳眰銆佺埗绾у昂瀵?瑁佸壀绾︽潫鍜岄€夊尯鎵嬪娍灞傚叧绯汇€?  - 楠屾敹瑕佺偣锛氱‘璁ら棶棰樹慨澶嶈寖鍥撮檺瀹氬湪琛ㄦ牸宸ュ叿鏍忔诞灞傘€佸畾浣嶅拰浜嬩欢鎷︽埅锛屼笉鏀瑰彉琛ㄦ牸鍛戒护銆佹枃妗ｆā鍨嬪拰搴忓垪鍖栫粨鏋勩€?
+- [x] P002: 璁捐绯荤粺 Overlay 鎵胯浇缁撴瀯 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/table_floating_toolbar_overlay.dart,lib/src/widgets/block_renderer_registry.dart -->
+  - 楠屾敹瑕佺偣锛氱‘瀹氳〃鏍煎伐鍏锋爮鐢辩紪杈戝櫒绾?overlay 瀹夸富绠＄悊锛岃€屼笉鏄户缁綔涓鸿〃鏍?`Stack` 鐨勮礋鍋忕Щ瀛愯妭鐐规樉绀恒€?  - 楠屾敹瑕佺偣锛氬畾涔夎〃鏍奸敋鐐广€侀€夊尯鑼冨洿銆佸伐鍏锋爮 action 鍥炶皟銆佸彲鐢ㄧ姸鎬佸拰鍏抽棴鏉′欢鐨勬暟鎹紶閫掓柟寮忥紝閬垮厤 renderer 涓?overlay 鐘舵€佸弻鍚戣€﹀悎銆?  - 楠屾敹瑕佺偣锛氶€夋嫨骞惰褰曞叿浣?overlay 鎶€鏈矾绾匡紝浼樺厛淇濊瘉璺熼殢閿氱偣銆佽法鐖剁骇杈圭晫鏄剧ず銆佸彲鍛戒腑鍜屽彲鍦ㄦ祴璇曚腑绋冲畾瀹氫綅銆?
+- [x] P003: 杩佺Щ琛ㄦ牸宸ュ叿鏍忔覆鏌撳埌 Overlay <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/table_floating_toolbar_overlay.dart -->
+  - 楠屾敹瑕佺偣锛氶€変腑琛ㄦ牸鍗曞厓鏍煎悗锛屽伐鍏锋爮閫氳繃绯荤粺 overlay 鏄剧ず鍦ㄨ〃鏍间笂鏂规垨鍙鍖哄煙鍐咃紝涓嶅啀渚濊禆琛ㄦ牸鍐呴儴 `Positioned` 璐熷亸绉汇€?  - 楠屾敹瑕佺偣锛氬伐鍏锋爮鍦ㄧ紪杈戝櫒婊氬姩銆佺獥鍙ｅ昂瀵稿彉鍖栥€佽〃鏍煎搴﹀彉鍖栥€佽〃鏍奸潬杩戣鍙ｉ《閮ㄦ椂淇濇寔浣嶇疆绋冲畾骞惰嚜鍔ㄩ噸鏂拌绠椼€?  - 楠屾敹瑕佺偣锛氬彇娑堣〃鏍奸€夊尯銆佸垏鎹㈠埌闈炶〃鏍?block銆佽繘鍏ュ彧璇绘€佹垨缂栬緫鍣ㄩ攢姣佹椂锛宱verlay 鑳藉強鏃剁Щ闄や笖涓嶆畫鐣欐偓娴粍浠躲€?
+- [x] P004: 闃绘柇宸ュ叿鏍忎簨浠剁┛閫?<!-- scope: lib/src/widgets/table_floating_toolbar_overlay.dart,lib/src/widgets/selection_gesture_overlay.dart,test/widgets/wenz_rich_text_editor_test.dart -->
+  - 楠屾敹瑕佺偣锛氬伐鍏锋爮鑳屾櫙銆佹寜閽€佸垎闅旂嚎鍜岀┖鐧藉～鍏呭尯鍩熷潎鏈夋槑纭懡涓祴璇曠瓥鐣ワ紝鐐瑰嚮鍜屾嫋鍔ㄤ笉浼氱户缁Е鍙戣〃鏍奸€夊尯銆佸崟鍏冩牸鑱氱劍鎴栨枃鏈€夋嫨銆?  - 楠屾敹瑕佺偣锛氬伐鍏锋爮鎸夐挳鐐瑰嚮鍙Е鍙戝搴?`TableToolbarActionIntent` 涓€娆★紝涓嶉澶栦骇鐢熷簳灞?tap銆乴ong press銆乨rag 鎴?selection change銆?  - 楠屾敹瑕佺偣锛氬伐鍏锋爮涔嬪鐨勭紪杈戝櫒鍖哄煙浠嶅彲姝ｅ父鐐瑰嚮銆佹嫋閫夈€佹粴鍔ㄥ拰鍞よ捣琛ㄦ牸閫夊尯锛屼笉鍥?overlay 寮曞叆鍏ㄥ睆閬僵闃诲姝ｅ父浜や簰銆?
+- [x] P005: 淇濇寔琛ㄦ牸鎿嶄綔涓庣敓鍛藉懆鏈熶竴鑷?<!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/table_floating_toolbar_overlay.dart,lib/src/core/commands/table_commands.dart,test/widgets/wenz_rich_text_editor_test.dart -->
+  - 楠屾敹瑕佺偣锛氭彃鍏?鍒犻櫎琛屽垪銆佸垏鎹㈣〃澶淬€佽缃?娓呴櫎鑳屾櫙鑹层€佸垪瀵归綈銆佸悎骞?鎷嗗垎鍗曞厓鏍笺€侀噸缃垪瀹界瓑鍘熸湁宸ュ叿鏍忔搷浣滆涓轰笉鍥炲綊銆?  - 楠屾敹瑕佺偣锛氬伐鍏锋爮 action 鎵ц鍚庯紝琛ㄦ牸閫夊尯銆佺劍鐐广€佹挙閿€/閲嶅仛銆佹枃妗ｅ彉鏇撮€氱煡鍜?overlay 鍒锋柊椤哄簭淇濇寔涓€鑷达紝涓嶅嚭鐜?stale range 鎴栫┖寮曠敤銆?  - 楠屾敹瑕佺偣锛氬琛ㄦ牸鏂囨。涓彧鏄剧ず褰撳墠娲诲姩琛ㄦ牸鐨勫伐鍏锋爮锛岄€夊尯璺ㄨ〃鏍兼垨琛ㄦ牸琚垹闄ゅ悗 overlay 鑷姩鍏抽棴銆?
+- [x] P006: 琛ュ厖鑷姩鍖栦笌鎵嬪伐楠屾敹璁板綍 <!-- scope: test/widgets/wenz_rich_text_editor_test.dart,docs/acceptance_manual_checklist.md,docs/plan/plan_feedback_6_20260625-035040.md -->
+  - 楠屾敹瑕佺偣锛氭柊澧炴垨鏇存柊 widget 娴嬭瘯锛岃鐩栧伐鍏锋爮鏄剧ず浜?overlay銆佹寜閽偣鍑讳笉绌块€忋€佺偣鍑诲伐鍏锋爮澶栦粛鑳界紪杈戙€佹粴鍔ㄥ悗宸ュ叿鏍忚窡闅忋€侀€夊尯鍙栨秷鍚?overlay 娑堝け銆?  - 楠屾敹瑕佺偣锛氭墽琛?`flutter analyze`銆佺浉鍏?widget 娴嬭瘯鍜屽繀瑕佺殑鍥炲綊娴嬭瘯锛涜嫢瀛樺湪澶辫触锛岄渶鍖哄垎鏈鏀瑰姩瀵艰嚧澶辫触涓庢棦鏈夊け璐ャ€?  - 楠屾敹瑕佺偣锛氬湪鏈鍒掕繘搴﹀尯璁板綍姣忎釜浠诲姟鐨勫畬鎴愯寖鍥淬€侀獙璇佸懡浠ゃ€侀獙璇佺粨鏋溿€侀仐鐣欓闄╁拰鍚庣画寤鸿銆?
+## 鎬讳綋楠屾敹鏍囧噯
+- 鎵€鏈変换鍔?checkbox 鍧囧畬鎴愶紝涓旀瘡涓换鍔＄殑楠屾敹瑕佺偣閮芥湁鏄庣‘缁撹鎴栭獙璇佽褰曘€?- 琛ㄦ牸鎮诞宸ュ叿鏍忎娇鐢ㄧ郴缁?overlay 鏂规鎵胯浇锛屼笉鍐嶄緷璧栬〃鏍煎唴閮ㄨ礋鍋忕Щ娴姩鑺傜偣鏉ユā鎷熸偓娴晥鏋溿€?- 鐐瑰嚮琛ㄦ牸宸ュ叿鏍忎换鎰忓彲瑙佸尯鍩熶笉浼氱┛閫忓埌搴曞眰琛ㄦ牸銆佹枃鏈€夊尯銆佺紪杈戝櫒鎵嬪娍灞傛垨婊氬姩鎵嬪娍锛涘伐鍏锋爮澶栧尯鍩熶粛淇濇寔姝ｅ父缂栬緫浜や簰銆?- 宸ュ叿鏍忚兘闅忓綋鍓嶆椿鍔ㄨ〃鏍奸€夊尯绋冲畾鏄剧ず銆佸埛鏂板拰鍏抽棴锛屾粴鍔ㄣ€佽鍙ｈ创杈广€佺獥鍙ｅ昂瀵稿彉鍖栥€佸琛ㄦ牸鍒囨崲鍜岃〃鏍煎垹闄ゅ満鏅潎鏃犳畫鐣?overlay銆?- 鍘熸湁琛ㄦ牸宸ュ叿鏍忓懡浠ゃ€佸垪瀹芥嫋鎷姐€佸崟鍏冩牸閫夋嫨銆佹挙閿€/閲嶅仛銆佸彧璇绘€佸拰鐒︾偣琛屼负涓嶅洖褰掋€?- 鐩稿叧鑷姩鍖栨祴璇曘€侀潤鎬佸垎鏋愬拰蹇呰鎵嬪伐楠屾敹閫氳繃锛涜嫢瀛樺湪鏃㈡湁澶辫触锛岄渶瑕佸湪杩涘害鍖鸿褰曞懡浠ゃ€佸け璐ュ師鍥犲垽鏂拰褰卞搷鑼冨洿銆?
+## 杩涘害鍖?- 褰撳墠鐘舵€侊細璁″垝宸插垱寤猴紝P001-P006 寰呭紑鍙戞墽琛屻€?- 褰撳墠璐熻矗浜猴細寰呭垎閰嶃€?- 涓嬩竴姝ワ細浠?P001 寮€濮嬪鐜板苟璁板綍琛ㄦ牸宸ュ叿鏍忎簨浠剁┛閫忕殑鍛戒腑娴嬭瘯閾捐矾銆?- 楠岃瘉璁板綍锛氭湰娆′粎鐢熸垚璁″垝鏂囦欢锛屾湭淇敼涓氬姟浠ｇ爜锛屾湭鎵ц鑷姩鍖栨祴璇曟垨鎵嬪伐楠屾敹銆?- 椋庨櫓璁板綍锛氱郴缁?overlay 杩佺Щ浼氭敼鍙樺伐鍏锋爮鎵€鍦ㄦ覆鏌撴爲锛岄渶閲嶇偣鍏虫敞鐒︾偣淇濇寔銆侀€夊尯鍒锋柊銆佹粴鍔ㄨ窡闅忋€佹祴璇曞畾浣嶅拰 overlay 鐢熷懡鍛ㄦ湡娓呯悊銆?- P001 AutoPlan 瀹屾垚锛?026-06-24T20:01:25.268Z锛涙棩蹇楋細docs/progress/logs/20260625-035238_execute-P001.log
+- P002 AutoPlan 瀹屾垚锛?026-06-25T06:15:27.920Z锛涙棩蹇楋細docs/progress/logs/20260625-141120_execute-P002.log
+- P003 AutoPlan 瀹屾垚锛?026-06-25T06:39:51.664Z锛涙棩蹇楋細docs/progress/logs/20260625-143432_execute-P003.log
+- P004 AutoPlan 瀹屾垚锛?026-06-25T06:48:07.109Z锛涙棩蹇楋細docs/progress/logs/20260625-143957_execute-P004.log
+- P005 AutoPlan 瀹屾垚锛?026-06-25T10:34:52.915Z锛涙棩蹇楋細docs/progress/logs/20260625-182504_execute-P005.log
+- P006 AutoPlan 瀹屾垚锛?026-06-25T10:54:29.041Z锛涙棩蹇楋細docs/progress/logs/20260625-184326_execute-P006.log
+
+
+**Checking output encoding**
+
+I'm noticing that the output combined weirdly due to some encoding issues. It seems like I might need to use UTF-8 encoding to fix this. Okay, so let me list out the latest relevant plans or requirements that I need to address to make sure everything works smoothly. I want to get this right, so I'm being careful about how I approach it!
+codex
+我看到了已有文档结构；现在查找相关编辑器模块，确保 scope 写得准确。
+exec
+powershell.exe -Command 'rg --files lib test | rg "(editor|toolbar|popup|slash|insert|embed|menu|command|shortcut|composer|input|rich_text|richtext|floating|overlay)"' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 236ms:
+lib\wenz_richtext.dart
+test\widgets\wenz_rich_text_editor_test.dart
+test\widgets\slash_menu_overlay_test.dart
+test\widgets\goldens\editor_selection.png
+test\widgets\goldens\editor_merged_table.png
+test\widgets\goldens\editor_caret.png
+test\widgets\goldens\editor_block_handle_menu.png
+test\widgets\goldens\editor_block_drop_indicator.png
+test\widgets\goldens\editor_blocks.png
+test\widgets\goldens\editor_advanced_blocks.png
+lib\src\widgets\wenz_rich_text_editor.dart
+lib\src\widgets\table_floating_toolbar_overlay.dart
+lib\src\widgets\slash_menu_overlay.dart
+lib\src\widgets\selection_gesture_overlay.dart
+lib\src\widgets\inline_embed_renderer.dart
+test\widgets\failures\editor_selection_testImage.png
+test\widgets\failures\editor_selection_masterImage.png
+test\widgets\failures\editor_selection_maskedDiff.png
+test\widgets\failures\editor_selection_isolatedDiff.png
+test\widgets\failures\editor_caret_testImage.png
+test\widgets\failures\editor_caret_masterImage.png
+test\widgets\failures\editor_caret_maskedDiff.png
+test\widgets\failures\editor_caret_isolatedDiff.png
+test\widgets\failures\editor_block_handle_menu_testImage.png
+test\widgets\failures\editor_block_handle_menu_masterImage.png
+test\widgets\failures\editor_block_handle_menu_maskedDiff.png
+test\widgets\failures\editor_block_handle_menu_isolatedDiff.png
+test\widgets\editor_golden_test.dart
+lib\src\plugins\editor_plugin.dart
+test\plugins\editor_plugin_test.dart
+lib\src\input\shortcut_manager.dart
+lib\src\input\editor_text_input_client.dart
+lib\src\input\composition_state.dart
+lib\src\input\clipboard_service.dart
+test\input\shortcut_manager_test.dart
+test\input\editor_text_input_client_test.dart
+test\input\clipboard_service_test.dart
+test\codecs\rich_text_json_codec_test.dart
+test\core\text_commands_test.dart
+test\core\table_commands_test.dart
+test\core\style_commands_test.dart
+test\core\selection_commands_test.dart
+test\core\markdown_shortcut_commands_test.dart
+test\core\inline_commands_test.dart
+test\core\command_pipeline_test.dart
+test\core\command_merging_test.dart
+test\core\block_structure_commands_test.dart
+test\core\block_commands_test.dart
+lib\src\core\model\rich_text_document.dart
+test\benchmarks\editor_benchmarks.dart
+lib\src\core\commands\block_commands.dart
+lib\src\core\commands\inline_commands.dart
+lib\src\core\commands\editor_command.dart
+lib\src\core\commands\command_registry.dart
+lib\src\core\commands\command_executor.dart
+lib\src\core\commands\block_structure_commands.dart
+lib\src\core\commands\revision_commands.dart
+lib\src\core\commands\markdown_shortcut_commands.dart
+lib\src\core\commands\inline_editing.dart
+lib\src\core\commands\style_commands.dart
+lib\src\core\commands\selection_commands.dart
+lib\src\core\commands\table_cell_editing.dart
+lib\src\core\commands\table_commands.dart
+lib\src\core\commands\text_commands.dart
+lib\src\controller\wenz_rich_text_controller.dart
+lib\src\controller\toolbar_controller.dart
+lib\src\controller\slash_menu_controller.dart
+lib\src\codecs\rich_text_json_codec.dart
+test\controller\toolbar_controller_test.dart
+test\controller\slash_menu_controller_test.dart
+test\controller\block_embed_controller_test.dart
+
+**Planning for file inspection**
+
+I need to inspect the relevant files to create a specific plan. It seems like using the codegraph_explore tool could help with that, especially when it comes to navigating through the slash menu. I'll want to make sure I gather all the necessary details to proceed effectively! This is going to help me have a clearer path moving forward. Let's see how it works out!
+codex
+已找到斜杆菜单相关文件；我再快速确认现有能力边界。
+mcp: codegraph/codegraph_explore started
+mcp: codegraph/codegraph_explore (completed)
+**Planning task execution**
+
+I’m considering how to approach the task effectively. It looks like I need to inspect the slash_menu_controller, particularly the top default items. To do that well, I might need to utilize tools like rg or codegraph. There’s also a mention of finding the SlashMenuRegistry, which could help clarify things. It’s all about gathering enough data to craft tasks efficiently!
+codex
+现有 slash 菜单已具备控制器和 overlay；我补看默认菜单项名称。
+exec
+powershell.exe -Command "rg -n \"class SlashMenuRegistry|SlashMenuRegistry|SlashMenuItem|defaults|BlockType|embed|image|table|todo|heading\" lib\\src\\controller\\slash_menu_controller.dart lib\\src\\widgets\\slash_menu_overlay.dart lib\\src\\widgets\\wenz_rich_text_editor.dart test\\widgets\\slash_menu_overlay_test.dart test\\controller\\slash_menu_controller_test.dart" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 163ms:
+test\widgets\slash_menu_overlay_test.dart:12:      document: _document('/heading'),
+test\widgets\slash_menu_overlay_test.dart:31:      find.byKey(const ValueKey<String>('wenz-slash-item-heading')),
+test\widgets\slash_menu_overlay_test.dart:36:      find.byKey(const ValueKey<String>('wenz-slash-item-heading')),
+test\widgets\slash_menu_overlay_test.dart:41:        BlockType.heading);
+test\widgets\slash_menu_overlay_test.dart:46:      document: _document('/heading'),
+test\widgets\slash_menu_overlay_test.dart:78:    expect(block.type, BlockType.heading);
+test\widgets\slash_menu_overlay_test.dart:89:        type: BlockType.paragraph,
+test\controller\slash_menu_controller_test.dart:17:    expect(slash.items.map((item) => item.id), contains('heading'));
+test\controller\slash_menu_controller_test.dart:36:  test('activating heading removes trigger and runs block command', () {
+test\controller\slash_menu_controller_test.dart:38:      document: _document('/heading'),
+test\controller\slash_menu_controller_test.dart:47:    expect(block.type, BlockType.heading);
+test\controller\slash_menu_controller_test.dart:53:  test('built-in table item replaces the trigger paragraph', () {
+test\controller\slash_menu_controller_test.dart:55:      document: _document('/table'),
+test\controller\slash_menu_controller_test.dart:61:    final tableIndex = slash.items.indexWhere((item) => item.id == 'table');
+test\controller\slash_menu_controller_test.dart:62:    slash.selectIndex(tableIndex);
+test\controller\slash_menu_controller_test.dart:67:    expect((block as TableBlockNode).table.rowCount, 3);
+test\controller\slash_menu_controller_test.dart:68:    expect(block.table.columnCount, 3);
+test\controller\slash_menu_controller_test.dart:77:    final registry = SlashMenuRegistry(<SlashMenuItem>[
+test\controller\slash_menu_controller_test.dart:78:      SlashMenuItem(
+test\controller\slash_menu_controller_test.dart:83:          editor.setBlockType(type: BlockType.quote);
+test\controller\slash_menu_controller_test.dart:93:        (editor.document.blocks.single as TextBlockNode).type, BlockType.quote);
+test\controller\slash_menu_controller_test.dart:102:        type: BlockType.paragraph,
+lib\src\widgets\slash_menu_overlay.dart:71:  final SlashMenuItem item;
+lib\src\widgets\slash_menu_overlay.dart:124:    'table_chart' => Icons.table_chart,
+lib\src\widgets\slash_menu_overlay.dart:125:    'image' => Icons.image_outlined,
+lib\src\controller\slash_menu_controller.dart:12:class SlashMenuItem {
+lib\src\controller\slash_menu_controller.dart:13:  const SlashMenuItem({
+lib\src\controller\slash_menu_controller.dart:41:class SlashMenuRegistry {
+lib\src\controller\slash_menu_controller.dart:42:  SlashMenuRegistry([Iterable<SlashMenuItem> items = const <SlashMenuItem>[]]) {
+lib\src\controller\slash_menu_controller.dart:48:  factory SlashMenuRegistry.defaults() {
+lib\src\controller\slash_menu_controller.dart:49:    return SlashMenuRegistry(defaultSlashMenuItems());
+lib\src\controller\slash_menu_controller.dart:52:  final Map<String, SlashMenuItem> _items = <String, SlashMenuItem>{};
+lib\src\controller\slash_menu_controller.dart:54:  List<SlashMenuItem> get items => List<SlashMenuItem>.unmodifiable(
+lib\src\controller\slash_menu_controller.dart:58:  void register(SlashMenuItem item) {
+lib\src\controller\slash_menu_controller.dart:66:  List<SlashMenuItem> filter(String query) {
+lib\src\controller\slash_menu_controller.dart:67:    return <SlashMenuItem>[
+lib\src\controller\slash_menu_controller.dart:123:    SlashMenuRegistry? registry,
+lib\src\controller\slash_menu_controller.dart:125:        registry = registry ?? SlashMenuRegistry.defaults() {
+lib\src\controller\slash_menu_controller.dart:133:  final SlashMenuRegistry registry;
+lib\src\controller\slash_menu_controller.dart:140:  List<SlashMenuItem> get items => List<SlashMenuItem>.unmodifiable(_items);
+lib\src\controller\slash_menu_controller.dart:141:  List<SlashMenuItem> _items = const <SlashMenuItem>[];
+lib\src\controller\slash_menu_controller.dart:148:  SlashMenuItem? get highlightedItem {
+lib\src\controller\slash_menu_controller.dart:178:        ? const <SlashMenuItem>[]
+lib\src\controller\slash_menu_controller.dart:225:  bool activate(SlashMenuItem item) {
+lib\src\controller\slash_menu_controller.dart:240:    _items = const <SlashMenuItem>[];
+lib\src\controller\slash_menu_controller.dart:262:List<SlashMenuItem> defaultSlashMenuItems() {
+lib\src\controller\slash_menu_controller.dart:263:  return <SlashMenuItem>[
+lib\src\controller\slash_menu_controller.dart:264:    SlashMenuItem(
+lib\src\controller\slash_menu_controller.dart:265:      id: 'heading',
+lib\src\controller\slash_menu_controller.dart:271:        editor.setBlockType(type: BlockType.heading, level: 1);
+lib\src\controller\slash_menu_controller.dart:274:    SlashMenuItem(
+lib\src\controller\slash_menu_controller.dart:281:        editor.setBlockType(type: BlockType.listItem);
+lib\src\controller\slash_menu_controller.dart:284:    SlashMenuItem(
+lib\src\controller\slash_menu_controller.dart:285:      id: 'todo',
+lib\src\controller\slash_menu_controller.dart:294:    SlashMenuItem(
+lib\src\controller\slash_menu_controller.dart:301:        editor.setBlockType(type: BlockType.quote);
+lib\src\controller\slash_menu_controller.dart:304:    SlashMenuItem(
+lib\src\controller\slash_menu_controller.dart:330:    SlashMenuItem(
+lib\src\controller\slash_menu_controller.dart:331:      id: 'table',
+lib\src\controller\slash_menu_controller.dart:333:      description: '3 by 3 table',
+lib\src\controller\slash_menu_controller.dart:334:      icon: 'table_chart',
+lib\src\controller\slash_menu_controller.dart:337:        final tableId = context.generatedId('table');
+lib\src\controller\slash_menu_controller.dart:339:          base: DocumentPosition.tableCell(
+lib\src\controller\slash_menu_controller.dart:340:            tableBlockId: tableId,
+lib\src\controller\slash_menu_controller.dart:342:            tableRowIndex: 0,
+lib\src\controller\slash_menu_controller.dart:343:            tableColumnIndex: 0,
+lib\src\controller\slash_menu_controller.dart:346:          extent: DocumentPosition.tableCell(
+lib\src\controller\slash_menu_controller.dart:347:            tableBlockId: tableId,
+lib\src\controller\slash_menu_controller.dart:349:            tableRowIndex: 0,
+lib\src\controller\slash_menu_controller.dart:350:            tableColumnIndex: 0,
+lib\src\controller\slash_menu_controller.dart:356:          tableId: tableId,
+lib\src\controller\slash_menu_controller.dart:363:    SlashMenuItem(
+lib\src\controller\slash_menu_controller.dart:364:      id: 'image',
+lib\src\controller\slash_menu_controller.dart:367:      icon: 'image',
+lib\src\controller\slash_menu_controller.dart:375:            assetId: context.generatedId('image'),
+lib\src\controller\slash_menu_controller.dart:390:    SlashMenuItem(
+lib\src\widgets\wenz_rich_text_editor.dart:18:import '../core/model/table_model.dart';
+lib\src\widgets\wenz_rich_text_editor.dart:27:import 'inline_embed_renderer.dart';
+lib\src\widgets\wenz_rich_text_editor.dart:46:enum _RowBlockFormat { paragraph, heading, code }
+lib\src\widgets\wenz_rich_text_editor.dart:88:/// code, and table-cell renderers stay in sync.
+lib\src\widgets\wenz_rich_text_editor.dart:166:/// Atomic block-level objects (images, videos, files, dividers) occupy one
+lib\src\widgets\wenz_rich_text_editor.dart:167:/// selectable document slot, mirroring inline embeds' object-replacement slot.
+lib\src\widgets\wenz_rich_text_editor.dart:183:  static const List<BlockType> defaultRendererBlockTypes = <BlockType>[
+lib\src\widgets\wenz_rich_text_editor.dart:184:    BlockType.paragraph,
+lib\src\widgets\wenz_rich_text_editor.dart:185:    BlockType.heading,
+lib\src\widgets\wenz_rich_text_editor.dart:186:    BlockType.quote,
+lib\src\widgets\wenz_rich_text_editor.dart:187:    BlockType.listItem,
+lib\src\widgets\wenz_rich_text_editor.dart:188:    BlockType.code,
+lib\src\widgets\wenz_rich_text_editor.dart:189:    BlockType.image,
+lib\src\widgets\wenz_rich_text_editor.dart:190:    BlockType.table,
+lib\src\widgets\wenz_rich_text_editor.dart:191:    BlockType.divider,
+lib\src\widgets\wenz_rich_text_editor.dart:192:    BlockType.video,
+lib\src\widgets\wenz_rich_text_editor.dart:193:    BlockType.embed,
+lib\src\widgets\wenz_rich_text_editor.dart:194:    BlockType.callout,
+lib\src\widgets\wenz_rich_text_editor.dart:195:    BlockType.file,
+lib\src\widgets\wenz_rich_text_editor.dart:219:    'tableBorder': 0xFFECE9F5,
+lib\src\widgets\wenz_rich_text_editor.dart:220:    'tableEvenRow': 0xFFFAFAFF,
+lib\src\widgets\wenz_rich_text_editor.dart:221:    'embedBorder': 0xFFCFCBE0,
+lib\src\widgets\wenz_rich_text_editor.dart:227:    'headingFontSizes': <int, double>{1: 24.0, 2: 21.0, 3: 18.0, 4: 16.0},
+lib\src\widgets\wenz_rich_text_editor.dart:228:    'headingStrongWeight': 700,
+lib\src\widgets\wenz_rich_text_editor.dart:229:    'headingWeakWeight': 600,
+lib\src\widgets\wenz_rich_text_editor.dart:232:    'tableFontSize': 15.0,
+lib\src\widgets\wenz_rich_text_editor.dart:247:    'headingMarginEm': <String, double>{'top': 0.6, 'bottom': 0.35},
+lib\src\widgets\wenz_rich_text_editor.dart:254:    'headingCollapse': <String, double>{
+lib\src\widgets\wenz_rich_text_editor.dart:264:    'imageCaptionGap': 8.0,
+lib\src\widgets\wenz_rich_text_editor.dart:265:    'tableCellPadding': <double>[10.0, 14.0],
+lib\src\widgets\wenz_rich_text_editor.dart:271:    'embedGap': 12.0,
+lib\src\widgets\wenz_rich_text_editor.dart:272:    'embedPadding': 16.0,
+lib\src\widgets\wenz_rich_text_editor.dart:283:    'todo.done': 'onSurfaceVariant + line-through',
+lib\src\widgets\wenz_rich_text_editor.dart:289:    'embed.formula': 'secondaryContainer math chip',
+lib\src\widgets\wenz_rich_text_editor.dart:290:    'heading.collapse': 'primary hover/focus control + hidden-count badge',
+lib\src\widgets\wenz_rich_text_editor.dart:300:    'inlineEmbed': 'structure: mention/formula/image need pill/image parity.',
+lib\src\widgets\wenz_rich_text_editor.dart:301:    'heading': 'aligned: hierarchy styles plus collapse affordance states.',
+lib\src\widgets\wenz_rich_text_editor.dart:306:    'image': 'style+golden: figure radius, shadow, max width, and caption.',
+lib\src\widgets\wenz_rich_text_editor.dart:309:    'table': 'style+golden: 15px text, padding, header/even rows, shadow.',
+lib\src\widgets\wenz_rich_text_editor.dart:312:    'embed':
+lib\src\widgets\wenz_rich_text_editor.dart:336:@immutable
+lib\src\widgets\wenz_rich_text_editor.dart:348:  /// Screen-reader label announced for an editable editor.
+lib\src\widgets\wenz_rich_text_editor.dart:354:  /// Screen-reader hint announced for an editable editor.
+lib\src\widgets\wenz_rich_text_editor.dart:377:/// overlays behave like the built-in image/video/file/embed renderers.
+lib\src\widgets\wenz_rich_text_editor.dart:390:    return _withSelectableObjectBlock(
+lib\src\widgets\wenz_rich_text_editor.dart:401:/// affordances belong only to top-level heading blocks, can be toggled in
+lib\src\widgets\wenz_rich_text_editor.dart:449:  /// how specific [BlockType]s render (e.g. a real image decoder for image
+lib\src\widgets\wenz_rich_text_editor.dart:450:  /// blocks) or to register business [BlockEmbedNode.embedType] renderers. Use
+lib\src\widgets\wenz_rich_text_editor.dart:455:  /// Optional [MediaResolver] that takes over rendering for image/video/file
+lib\src\widgets\wenz_rich_text_editor.dart:464:  /// Optional renderer for inline embeds such as formula / mention. The
+lib\src\widgets\wenz_rich_text_editor.dart:484:  /// Optional outline controller whose collapsed-heading state projects the
+lib\src\widgets\wenz_rich_text_editor.dart:491:  /// Seeds [registry] with the built-in block renderers for every [BlockType].
+lib\src\widgets\wenz_rich_text_editor.dart:493:  /// to override only a few types while keeping the defaults for the rest:
+lib\src\widgets\wenz_rich_text_editor.dart:498:  /// registry.register(BlockType.image, myImageRenderer);
+lib\src\widgets\wenz_rich_text_editor.dart:502:      ..register(BlockType.paragraph, _defaultTextBlockRenderer)
+lib\src\widgets\wenz_rich_text_editor.dart:503:      ..register(BlockType.heading, _defaultTextBlockRenderer)
+lib\src\widgets\wenz_rich_text_editor.dart:504:      ..register(BlockType.quote, _defaultTextBlockRenderer)
+lib\src\widgets\wenz_rich_text_editor.dart:505:      ..register(BlockType.listItem, _defaultTextBlockRenderer)
+lib\src\widgets\wenz_rich_text_editor.dart:506:      ..register(BlockType.code, _defaultCodeBlockRenderer)
+lib\src\widgets\wenz_rich_text_editor.dart:507:      ..register(BlockType.image, _defaultImageBlockRenderer)
+lib\src\widgets\wenz_rich_text_editor.dart:508:      ..register(BlockType.table, _defaultTableBlockRenderer)
+lib\src\widgets\wenz_rich_text_editor.dart:509:      ..register(BlockType.divider, _defaultDividerBlockRenderer)
+lib\src\widgets\wenz_rich_text_editor.dart:510:      ..register(BlockType.video, _defaultVideoBlockRenderer)
+lib\src\widgets\wenz_rich_text_editor.dart:511:      ..register(BlockType.embed, _defaultBlockEmbedRenderer)
+lib\src\widgets\wenz_rich_text_editor.dart:512:      ..register(BlockType.callout, _defaultCalloutBlockRenderer)
+lib\src\widgets\wenz_rich_text_editor.dart:513:      ..register(BlockType.file, _defaultFileBlockRenderer);
+lib\src\widgets\wenz_rich_text_editor.dart:541:      _tableToolbarOverlayController = TableFloatingToolbarOverlayController();
+lib\src\widgets\wenz_rich_text_editor.dart:562:  /// used as-is; otherwise a private registry with built-in defaults is lazily
+lib\src\widgets\wenz_rich_text_editor.dart:613:        editableSize: geometry.editableSize,
+lib\src\widgets\wenz_rich_text_editor.dart:639:    // Ensure owned defaults are installed eagerly when no external registry is
+lib\src\widgets\wenz_rich_text_editor.dart:707:    _tableToolbarOverlayController.hide();
+lib\src\widgets\wenz_rich_text_editor.dart:708:    _tableToolbarOverlayController.dispose();
+lib\src\widgets\wenz_rich_text_editor.dart:812:    final request = _tableToolbarRequestForCurrentSelection();
+lib\src\widgets\wenz_rich_text_editor.dart:814:      _tableToolbarOverlayController.hide();
+lib\src\widgets\wenz_rich_text_editor.dart:817:    _tableToolbarOverlayController.show(request);
+lib\src\widgets\wenz_rich_text_editor.dart:821:      _tableToolbarRequestForCurrentSelection() {
+lib\src\widgets\wenz_rich_text_editor.dart:825:    final tableRange = widget.controller.selection?.tableCellRange;
+lib\src\widgets\wenz_rich_text_editor.dart:826:    if (tableRange == null) {
+lib\src\widgets\wenz_rich_text_editor.dart:829:    final tableBlock = _tableBlockAt(tableRange.blockIndex);
+lib\src\widgets\wenz_rich_text_editor.dart:831:        tableBlock != null && tableBlock.id == tableRange.tableBlockId
+lib\src\widgets\wenz_rich_text_editor.dart:832:            ? _normalizeTableRange(tableBlock, tableRange)
+lib\src\widgets\wenz_rich_text_editor.dart:834:    if (tableBlock == null ||
+lib\src\widgets\wenz_rich_text_editor.dart:836:        tableBlock.id != tableRange.tableBlockId) {
+lib\src\widgets\wenz_rich_text_editor.dart:839:    final anchor = _tableToolbarOverlayController.anchorFor(
+lib\src\widgets\wenz_rich_text_editor.dart:840:      tableBlock.id,
+lib\src\widgets\wenz_rich_text_editor.dart:841:      blockIndex: tableRange.blockIndex,
+lib\src\widgets\wenz_rich_text_editor.dart:851:      tableBlockId: tableBlock.id,
+lib\src\widgets\wenz_rich_text_editor.dart:852:      blockIndex: tableRange.blockIndex,
+lib\src\widgets\wenz_rich_text_editor.dart:858:        block: tableBlock,
+lib\src\widgets\wenz_rich_text_editor.dart:859:        blockIndex: tableRange.blockIndex,
+lib\src\widgets\wenz_rich_text_editor.dart:966:  HeadingCollapseState? _headingCollapseStateFor(BlockNode block) {
+lib\src\widgets\wenz_rich_text_editor.dart:971:    // Only top-level heading text blocks expose the left-side collapse slot.
+lib\src\widgets\wenz_rich_text_editor.dart:972:    // Non-heading text rows plus code, table, divider, media, and file blocks
+lib\src\widgets\wenz_rich_text_editor.dart:973:    // must not reserve the affordance or respond to heading-collapse gestures.
+lib\src\widgets\wenz_rich_text_editor.dart:974:    if (block is! TextBlockNode || block.type != BlockType.heading) {
+lib\src\widgets\wenz_rich_text_editor.dart:1000:    // history remain unchanged while read-only and editable editors may toggle
+lib\src\widgets\wenz_rich_text_editor.dart:1010:    // Show a caret only in editable mode. Read-only mode still allows
+lib\src\widgets\wenz_rich_text_editor.dart:1064:          headingCollapseState: _headingCollapseStateFor(block),
+lib\src\widgets\wenz_rich_text_editor.dart:1085:          tableToolbarOverlayController: _tableToolbarOverlayController,
+lib\src\widgets\wenz_rich_text_editor.dart:1156:              controller: _tableToolbarOverlayController,
+lib\src\widgets\wenz_rich_text_editor.dart:1249:          type: BlockType.paragraph,
+lib\src\widgets\wenz_rich_text_editor.dart:1260:    final tableBlock = _tableBlockAt(intent.blockIndex);
+lib\src\widgets\wenz_rich_text_editor.dart:1261:    if (tableBlock == null) {
+lib\src\widgets\wenz_rich_text_editor.dart:1265:    final range = _currentTableRange(tableBlock, intent);
+lib\src\widgets\wenz_rich_text_editor.dart:1286:          final current = _tableBlockAt(intent.blockIndex);
+lib\src\widgets\wenz_rich_text_editor.dart:1287:          if (current == null || current.table.rowCount <= 1) {
+lib\src\widgets\wenz_rich_text_editor.dart:1312:          final current = _tableBlockAt(intent.blockIndex);
+lib\src\widgets\wenz_rich_text_editor.dart:1313:          if (current == null || current.table.columnCount <= 1) {
+lib\src\widgets\wenz_rich_text_editor.dart:1323:        final anchor = _firstVisibleTableCell(tableBlock, range);
+lib\src\widgets\wenz_rich_text_editor.dart:1328:        _forEachVisibleTableCell(tableBlock, range, (row, column) {
+lib\src\widgets\wenz_rich_text_editor.dart:1338:        _forEachVisibleTableCell(tableBlock, range, (row, column) {
+lib\src\widgets\wenz_rich_text_editor.dart:1348:        _forEachVisibleTableCell(tableBlock, range, (row, column) {
+lib\src\widgets\wenz_rich_text_editor.dart:1406:    final tableBlock = _tableBlockAt(blockIndex);
+lib\src\widgets\wenz_rich_text_editor.dart:1407:    if (tableBlock == null ||
+lib\src\widgets\wenz_rich_text_editor.dart:1409:        columnIndex >= tableBlock.table.columnCount) {
+lib\src\widgets\wenz_rich_text_editor.dart:1445:          widget.controller.setBlockType(
+lib\src\widgets\wenz_rich_text_editor.dart:1446:            type: BlockType.paragraph,
+lib\src\widgets\wenz_rich_text_editor.dart:1454:            type: BlockType.paragraph,
+lib\src\widgets\wenz_rich_text_editor.dart:1469:      case _RowBlockFormat.heading:
+lib\src\widgets\wenz_rich_text_editor.dart:1471:          widget.controller.setBlockType(
+lib\src\widgets\wenz_rich_text_editor.dart:1472:            type: BlockType.heading,
+lib\src\widgets\wenz_rich_text_editor.dart:1481:            type: BlockType.heading,
+lib\src\widgets\wenz_rich_text_editor.dart:1484:              _RowBlockFormat.heading,
+lib\src\widgets\wenz_rich_text_editor.dart:1517:  TableBlockNode? _tableBlockAt(int blockIndex) {
+lib\src\widgets\wenz_rich_text_editor.dart:1527:    TableBlockNode tableBlock,
+lib\src\widgets\wenz_rich_text_editor.dart:1530:    final range = widget.controller.selection?.tableCellRange;
+lib\src\widgets\wenz_rich_text_editor.dart:1533:        range.tableBlockId != tableBlock.id) {
+lib\src\widgets\wenz_rich_text_editor.dart:1536:    return _normalizeTableRange(tableBlock, range);
+lib\src\widgets\wenz_rich_text_editor.dart:1540:    TableBlockNode tableBlock,
+lib\src\widgets\wenz_rich_text_editor.dart:1543:    final rowCount = tableBlock.table.rowCount;
+lib\src\widgets\wenz_rich_text_editor.dart:1544:    final columnCount = tableBlock.table.columnCount;
+lib\src\widgets\wenz_rich_text_editor.dart:1549:      tableBlockId: tableBlock.id,
+lib\src\widgets\wenz_rich_text_editor.dart:1559:    TableBlockNode tableBlock,
+lib\src\widgets\wenz_rich_text_editor.dart:1567:        final cell = tableBlock.table.cellAt(row, column);
+lib\src\widgets\wenz_rich_text_editor.dart:1577:    TableBlockNode tableBlock,
+lib\src\widgets\wenz_rich_text_editor.dart:1584:        final cell = tableBlock.table.cellAt(row, column);
+lib\src\widgets\wenz_rich_text_editor.dart:1765:        type: BlockType.paragraph,
+lib\src\widgets\wenz_rich_text_editor.dart:1829:    for (var rowIndex = 0; rowIndex < block.table.rows.length; rowIndex++) {
+lib\src\widgets\wenz_rich_text_editor.dart:1830:      final row = block.table.rows[rowIndex];
+lib\src\widgets\wenz_rich_text_editor.dart:1836:        return DocumentPosition.tableCell(
+lib\src\widgets\wenz_rich_text_editor.dart:1837:          tableBlockId: block.id,
+lib\src\widgets\wenz_rich_text_editor.dart:1839:          tableRowIndex: rowIndex,
+lib\src\widgets\wenz_rich_text_editor.dart:1840:          tableColumnIndex: columnIndex,
+lib\src\widgets\wenz_rich_text_editor.dart:1882:        table: TableModel(
+lib\src\widgets\wenz_rich_text_editor.dart:1883:          rows: block.table.rows
+lib\src\widgets\wenz_rich_text_editor.dart:1901:          columnAlignments: Map<int, String>.from(block.table.columnAlignments),
+lib\src\widgets\wenz_rich_text_editor.dart:1902:          columnWidths: Map<int, double>.from(block.table.columnWidths),
+lib\src\widgets\wenz_rich_text_editor.dart:1921:        embedType: block.embedType,
+lib\src\widgets\wenz_rich_text_editor.dart:2281:      // the key still does something predictable (matches prior behaviour).
+lib\src\widgets\wenz_rich_text_editor.dart:2557:  /// exiting a table cell at the table's first/last row.
+lib\src\widgets\wenz_rich_text_editor.dart:2566:    // Table cells: try intra-table row navigation first.
+lib\src\widgets\wenz_rich_text_editor.dart:2571:        // Moved within the table.
+lib\src\widgets\wenz_rich_text_editor.dart:2574:      // On the table boundary row: fall through to cross-block exit.
+lib\src\widgets\wenz_rich_text_editor.dart:3119:  /// output. That keeps table-cell text, inline embeds, and object-block
+lib\src\widgets\wenz_rich_text_editor.dart:3120:  /// internal controls from being mistaken for sortable rows.
+lib\src\widgets\wenz_rich_text_editor.dart:3372:    this.headingCollapseState,
+lib\src\widgets\wenz_rich_text_editor.dart:3378:    this.tableToolbarOverlayController,
+lib\src\widgets\wenz_rich_text_editor.dart:3403:  final HeadingCollapseState? headingCollapseState;
+lib\src\widgets\wenz_rich_text_editor.dart:3409:  final TableFloatingToolbarOverlayController? tableToolbarOverlayController;
+lib\src\widgets\wenz_rich_text_editor.dart:3460:        oldWidget.headingCollapseState != widget.headingCollapseState ||
+lib\src\widgets\wenz_rich_text_editor.dart:3466:        oldWidget.tableToolbarOverlayController !=
+lib\src\widgets\wenz_rich_text_editor.dart:3467:            widget.tableToolbarOverlayController ||
+lib\src\widgets\wenz_rich_text_editor.dart:3503:      headingCollapseState: widget.headingCollapseState,
+lib\src\widgets\wenz_rich_text_editor.dart:3509:      tableToolbarOverlayController: widget.tableToolbarOverlayController,
+lib\src\widgets\wenz_rich_text_editor.dart:3557:    this.headingCollapseState,
+lib\src\widgets\wenz_rich_text_editor.dart:3563:    this.tableToolbarOverlayController,
+lib\src\widgets\wenz_rich_text_editor.dart:3586:  final HeadingCollapseState? headingCollapseState;
+lib\src\widgets\wenz_rich_text_editor.dart:3592:  final TableFloatingToolbarOverlayController? tableToolbarOverlayController;
+lib\src\widgets\wenz_rich_text_editor.dart:3616:      headingCollapseState: headingCollapseState,
+lib\src\widgets\wenz_rich_text_editor.dart:3622:      tableToolbarOverlayController: tableToolbarOverlayController,
+lib\src\widgets\wenz_rich_text_editor.dart:4291:        _rowFormatMenuItem(_RowBlockFormat.heading, '标题'),
+lib\src\widgets\wenz_rich_text_editor.dart:4399:  if (block is TextBlockNode && block.type == BlockType.heading) {
+lib\src\widgets\wenz_rich_text_editor.dart:4406:  if (block is TextBlockNode && block.type == BlockType.heading) {
+lib\src\widgets\wenz_rich_text_editor.dart:4413:  return block is TextBlockNode && block.type == BlockType.listItem;
+lib\src\widgets\wenz_rich_text_editor.dart:4434:    TextBlockNode(type: BlockType.heading) => _RowBlockFormat.heading,
+lib\src\widgets\wenz_rich_text_editor.dart:4449:    level: format == _RowBlockFormat.heading ? current.level ?? 1 : null,
+lib\src\widgets\wenz_rich_text_editor.dart:4483:/// can wire defaults into a caller-supplied registry without duplicating the
+lib\src\widgets\wenz_rich_text_editor.dart:4484:/// dispatch table.
+lib\src\widgets\wenz_rich_text_editor.dart:4487:    register(BlockType.paragraph, _defaultTextBlockRenderer);
+lib\src\widgets\wenz_rich_text_editor.dart:4488:    register(BlockType.heading, _defaultTextBlockRenderer);
+lib\src\widgets\wenz_rich_text_editor.dart:4489:    register(BlockType.quote, _defaultTextBlockRenderer);
+lib\src\widgets\wenz_rich_text_editor.dart:4490:    register(BlockType.listItem, _defaultTextBlockRenderer);
+lib\src\widgets\wenz_rich_text_editor.dart:4491:    register(BlockType.code, _defaultCodeBlockRenderer);
+lib\src\widgets\wenz_rich_text_editor.dart:4492:    register(BlockType.image, _defaultImageBlockRenderer);
+lib\src\widgets\wenz_rich_text_editor.dart:4493:    register(BlockType.table, _defaultTableBlockRenderer);
+lib\src\widgets\wenz_rich_text_editor.dart:4494:    register(BlockType.divider, _defaultDividerBlockRenderer);
+lib\src\widgets\wenz_rich_text_editor.dart:4495:    register(BlockType.video, _defaultVideoBlockRenderer);
+lib\src\widgets\wenz_rich_text_editor.dart:4496:    register(BlockType.embed, _defaultBlockEmbedRenderer);
+lib\src\widgets\wenz_rich_text_editor.dart:4497:    register(BlockType.callout, _defaultCalloutBlockRenderer);
+lib\src\widgets\wenz_rich_text_editor.dart:4498:    register(BlockType.file, _defaultFileBlockRenderer);
+lib\src\widgets\wenz_rich_text_editor.dart:4517:    headingCollapseState: rc.headingCollapseState,
+lib\src\widgets\wenz_rich_text_editor.dart:4550:  final image = rc.block as ImageBlockNode;
+lib\src\widgets\wenz_rich_text_editor.dart:4553:  return _withSelectableImageBlock(
+lib\src\widgets\wenz_rich_text_editor.dart:4554:    image,
+lib\src\widgets\wenz_rich_text_editor.dart:4557:      block: image,
+lib\src\widgets\wenz_rich_text_editor.dart:4560:    onPreview: () => _showImagePreview(context, image, rc),
+lib\src\widgets\wenz_rich_text_editor.dart:4579:    toolbarOverlayController: rc.tableToolbarOverlayController,
+lib\src\widgets\wenz_rich_text_editor.dart:4591:  return _withSelectableObjectBlock(
+lib\src\widgets\wenz_rich_text_editor.dart:4612:  return _withSelectableVideoBlock(
+lib\src\widgets\wenz_rich_text_editor.dart:4627:  final embed = rc.block as BlockEmbedNode;
+lib\src\widgets\wenz_rich_text_editor.dart:4628:  final selected = _objectBlockSelected(embed, rc);
+lib\src\widgets\wenz_rich_text_editor.dart:4631:    child: embed.normalizedEmbedType == 'formula'
+lib\src\widgets\wenz_rich_text_editor.dart:4633:            block: embed,
+lib\src\widgets\wenz_rich_text_editor.dart:4641:            block: embed,
+lib\src\widgets\wenz_rich_text_editor.dart:4693:    return _withSelectableObjectBlock(file, rc, resolved);
+lib\src\widgets\wenz_rich_text_editor.dart:4695:  return _withSelectableObjectBlock(
+lib\src\widgets\wenz_rich_text_editor.dart:4738:  final label = _imageAccessibleLabel(block);
+lib\src\widgets\wenz_rich_text_editor.dart:4749:              image: true,
+lib\src\widgets\wenz_rich_text_editor.dart:4781:              image: true,
+lib\src\widgets\wenz_rich_text_editor.dart:4794:Widget _withSelectableObjectBlock(
+lib\src\widgets\wenz_rich_text_editor.dart:4822:Widget _withSelectableImageBlock(
+lib\src\widgets\wenz_rich_text_editor.dart:4843:      imageActions: true,
+lib\src\widgets\wenz_rich_text_editor.dart:4861:Widget _withSelectableVideoBlock(
+lib\src\widgets\wenz_rich_text_editor.dart:4882:      imageActions: false,
+lib\src\widgets\wenz_rich_text_editor.dart:4922:    this.headingCollapseState,
+lib\src\widgets\wenz_rich_text_editor.dart:4941:  final HeadingCollapseState? headingCollapseState;
+lib\src\widgets\wenz_rich_text_editor.dart:4952:        block.type == BlockType.listItem && block.attributes.listType == 'task';
+lib\src\widgets\wenz_rich_text_editor.dart:4955:    final todoStyle = isTaskListItem ? _todoTextStyle(baseStyle) : baseStyle;
+lib\src\widgets\wenz_rich_text_editor.dart:4957:        ? _completedTodoTextStyle(context, todoStyle)
+lib\src\widgets\wenz_rich_text_editor.dart:4958:        : todoStyle;
+lib\src\widgets\wenz_rich_text_editor.dart:5008:    if (block.type == BlockType.quote) {
+lib\src\widgets\wenz_rich_text_editor.dart:5046:    if (block.type == BlockType.heading && headingCollapseState != null) {
+lib\src\widgets\wenz_rich_text_editor.dart:5054:              state: headingCollapseState!,
+lib\src\widgets\wenz_rich_text_editor.dart:5107:    debugLabel: 'Wenz heading collapse button',
+lib\src\widgets\wenz_rich_text_editor.dart:5178:                'wenz-richtext-heading-collapse-${widget.blockId}',
+lib\src\widgets\wenz_rich_text_editor.dart:5181:              tooltip: _headingCollapseTooltip(widget.state),
+lib\src\widgets\wenz_rich_text_editor.dart:5260:          _headingCollapseCountText(count),
+lib\src\widgets\wenz_rich_text_editor.dart:5274:String _headingCollapseTooltip(HeadingCollapseState state) {
+lib\src\widgets\wenz_rich_text_editor.dart:5284:String _headingCollapseCountText(int count) {
+lib\src\widgets\wenz_rich_text_editor.dart:5347:                'wenz-richtext-todo-checkbox-${widget.blockId}'),
+lib\src\widgets\wenz_rich_text_editor.dart:5729:    final table = block.table;
+lib\src\widgets\wenz_rich_text_editor.dart:5730:    final columnCount = table.columnCount;
+lib\src\widgets\wenz_rich_text_editor.dart:5731:    if (table.rowCount == 0 || columnCount == 0) {
+lib\src\widgets\wenz_rich_text_editor.dart:5736:    final tableTextStyle =
+lib\src\widgets\wenz_rich_text_editor.dart:5743:            table: table,
+lib\src\widgets\wenz_rich_text_editor.dart:5744:            maxWidth: _tableMaxWidth(constraints, columnCount),
+lib\src\widgets\wenz_rich_text_editor.dart:5745:            textStyle: tableTextStyle,
+lib\src\widgets\wenz_rich_text_editor.dart:5751:          final tableSurface = SizedBox(
+lib\src\widgets\wenz_rich_text_editor.dart:5782:                                'table-cell-border-${block.id}-${cell.rowIndex}-${cell.columnIndex}',
+lib\src\widgets\wenz_rich_text_editor.dart:5786:                                border: _tableCellBorder(
+lib\src\widgets\wenz_rich_text_editor.dart:5788:                                  rowCount: table.rowCount,
+lib\src\widgets\wenz_rich_text_editor.dart:5794:                                tableBlock: block,
+lib\src\widgets\wenz_rich_text_editor.dart:5799:                                textStyle: tableTextStyle,
+lib\src\widgets\wenz_rich_text_editor.dart:5801:                                  table.columnAlignments[cell.columnIndex],
+lib\src\widgets\wenz_rich_text_editor.dart:5840:                          'table-resize-${block.id}-$column',
+lib\src\widgets\wenz_rich_text_editor.dart:5870:                      tableBlockId: block.id,
+lib\src\widgets\wenz_rich_text_editor.dart:5884:            tableBlockId: block.id,
+lib\src\widgets\wenz_rich_text_editor.dart:5886:            child: tableSurface,
+lib\src\widgets\wenz_rich_text_editor.dart:5896:  TableBlockNode tableBlock,
+lib\src\widgets\wenz_rich_text_editor.dart:5899:  final range = selection?.tableCellRange;
+lib\src\widgets\wenz_rich_text_editor.dart:5901:      range.tableBlockId != tableBlock.id ||
+lib\src\widgets\wenz_rich_text_editor.dart:5905:  final rowCount = tableBlock.table.rowCount;
+lib\src\widgets\wenz_rich_text_editor.dart:5906:  final columnCount = tableBlock.table.columnCount;
+lib\src\widgets\wenz_rich_text_editor.dart:5911:    tableBlockId: tableBlock.id,
+lib\src\widgets\wenz_rich_text_editor.dart:5936:    final cell = block.table.cellAt(range.startRow, range.startColumn);
+lib\src\widgets\wenz_rich_text_editor.dart:5937:    final canDeleteRow = block.table.rowCount > 1;
+lib\src\widgets\wenz_rich_text_editor.dart:5938:    final canDeleteColumn = block.table.columnCount > 1;
+lib\src\widgets\wenz_rich_text_editor.dart:5944:      key: const ValueKey<String>('table-floating-toolbar'),
+lib\src\widgets\wenz_rich_text_editor.dart:6198:      label: 'Resize table column ${widget.columnIndex + 1}',
+lib\src\widgets\wenz_rich_text_editor.dart:6236:  final headingLevel = block is TextBlockNode && block.type == BlockType.heading
+lib\src\widgets\wenz_rich_text_editor.dart:6244:    header: headingLevel != null,
+lib\src\widgets\wenz_rich_text_editor.dart:6245:    headingLevel: headingLevel,
+lib\src\widgets\wenz_rich_text_editor.dart:6246:    image: block is ImageBlockNode,
+lib\src\widgets\wenz_rich_text_editor.dart:6253:    TextBlockNode(type: BlockType.heading) =>
+lib\src\widgets\wenz_rich_text_editor.dart:6255:    TextBlockNode(type: BlockType.quote) => 'Quote block',
+lib\src\widgets\wenz_rich_text_editor.dart:6256:    TextBlockNode(type: BlockType.listItem) => 'List item block',
+lib\src\widgets\wenz_rich_text_editor.dart:6260:      'Table block, ${block.table.rowCount} rows, ${block.table.columnCount} columns',
+lib\src\widgets\wenz_rich_text_editor.dart:6261:    ImageBlockNode() => 'Image block ${_imageAccessibleLabel(block)}',
+lib\src\widgets\wenz_rich_text_editor.dart:6273:double _tableMaxWidth(BoxConstraints constraints, int columnCount) {
+lib\src\widgets\wenz_rich_text_editor.dart:6280:Border _tableCellBorder({
+lib\src\widgets\wenz_rich_text_editor.dart:6313:    required TableModel table,
+lib\src\widgets\wenz_rich_text_editor.dart:6318:    final columnCount = table.columnCount;
+lib\src\widgets\wenz_rich_text_editor.dart:6319:    final rowCount = table.rowCount;
+lib\src\widgets\wenz_rich_text_editor.dart:6320:    final columnWidths = _resolveTableColumnWidths(table, maxWidth);
+lib\src\widgets\wenz_rich_text_editor.dart:6328:        final cell = table.cellAt(row, column);
+lib\src\widgets\wenz_rich_text_editor.dart:6355:    final lefts = _tableOffsets(columnWidths);
+lib\src\widgets\wenz_rich_text_editor.dart:6356:    final tops = _tableOffsets(rowHeights);
+lib\src\widgets\wenz_rich_text_editor.dart:6360:        final cell = table.cellAt(row, column);
+lib\src\widgets\wenz_rich_text_editor.dart:6420:List<double> _resolveTableColumnWidths(TableModel table, double maxWidth) {
+lib\src\widgets\wenz_rich_text_editor.dart:6421:  final columnCount = table.columnCount;
+lib\src\widgets\wenz_rich_text_editor.dart:6426:    final explicit = table.columnWidths[i];
+lib\src\widgets\wenz_rich_text_editor.dart:6456:  final text = _tableCellDisplayText(cell);
+lib\src\widgets\wenz_rich_text_editor.dart:6470:List<InlineNode> _tableCellInlineContent(TableCellNode? cell) {
+lib\src\widgets\wenz_rich_text_editor.dart:6482:String _tableCellDisplayText(TableCellNode cell) {
+lib\src\widgets\wenz_rich_text_editor.dart:6483:  final inline = _tableCellInlineContent(cell);
+lib\src\widgets\wenz_rich_text_editor.dart:6496:Color? _tableCellBackgroundColor({
+lib\src\widgets\wenz_rich_text_editor.dart:6525:List<double> _tableOffsets(List<double> sizes) {
+lib\src\widgets\wenz_rich_text_editor.dart:6546:  String tableBlockId,
+lib\src\widgets\wenz_rich_text_editor.dart:6554:  // Intra-table cell range (drag within the table): highlight cells inside the
+lib\src\widgets\wenz_rich_text_editor.dart:6556:  final range = selection.tableCellRange;
+lib\src\widgets\wenz_rich_text_editor.dart:6561:    return range.tableBlockId == tableBlockId &&
+lib\src\widgets\wenz_rich_text_editor.dart:6565:  // Cross-block selection that spans this table block (e.g. select-all across
+lib\src\widgets\wenz_rich_text_editor.dart:6566:  // a paragraph + table): when the table block sits strictly between the
+lib\src\widgets\wenz_rich_text_editor.dart:6570:  final tableCovered =
+lib\src\widgets\wenz_rich_text_editor.dart:6572:  if (tableCovered) {
+lib\src\widgets\wenz_rich_text_editor.dart:6575:  final cellPath = PositionPath.tableCellText(
+lib\src\widgets\wenz_rich_text_editor.dart:6576:    tableBlockId,
+lib\src\widgets\wenz_rich_text_editor.dart:6583:    return start.blockId == tableBlockId && cellPath.compare(start.path) > 0;
+lib\src\widgets\wenz_rich_text_editor.dart:6588:    return end.blockId == tableBlockId && cellPath.compare(end.path) < 0;
+lib\src\widgets\wenz_rich_text_editor.dart:6595:    required this.tableBlock,
+lib\src\widgets\wenz_rich_text_editor.dart:6613:  final TableBlockNode tableBlock;
+lib\src\widgets\wenz_rich_text_editor.dart:6647:    final tableBlock = widget.tableBlock;
+lib\src\widgets\wenz_rich_text_editor.dart:6649:    final path = PositionPath.tableCellText(
+lib\src\widgets\wenz_rich_text_editor.dart:6650:      tableBlock.id,
+lib\src\widgets\wenz_rich_text_editor.dart:6656:      tableBlock.id,
+lib\src\widgets\wenz_rich_text_editor.dart:6660:    final inlineContent = _tableCellInlineContent(cell);
+lib\src\widgets\wenz_rich_text_editor.dart:6677:    final backgroundColor = _tableCellBackgroundColor(
+lib\src\widgets\wenz_rich_text_editor.dart:6683:      blockId: tableBlock.id,
+lib\src\widgets\wenz_rich_text_editor.dart:6725:      label: _tableCellSemanticsLabel(
+lib\src\widgets\wenz_rich_text_editor.dart:6726:        tableBlock: tableBlock,
+lib\src\widgets\wenz_rich_text_editor.dart:6758:String _tableCellSemanticsLabel({
+lib\src\widgets\wenz_rich_text_editor.dart:6759:  required TableBlockNode tableBlock,
+lib\src\widgets\wenz_rich_text_editor.dart:6775:      tableBlock.table.rowCount,
+lib\src\widgets\wenz_rich_text_editor.dart:6780:      tableBlock.table.columnCount,
+lib\src\widgets\wenz_rich_text_editor.dart:7034:  /// Optional GlobalKey on a wider hit-test frame (e.g. a table cell's whole
+lib\src\widgets\wenz_rich_text_editor.dart:7058:  /// [_blinkTimer]; defaults to visible so the caret shows immediately on focus.
+lib\src\widgets\wenz_rich_text_editor.dart:7107:    // matching the platform EditableText behaviour where every selection
+lib\src\widgets\wenz_rich_text_editor.dart:7193:  /// was provided (table cells); otherwise the registry treats the text
+lib\src\widgets\wenz_rich_text_editor.dart:7940:          Icons.image_outlined,
+lib\src\widgets\wenz_rich_text_editor.dart:8211:      key: ValueKey<String>('wenz-richtext-embed-card-${block.id}'),
+lib\src\widgets\wenz_rich_text_editor.dart:8226:            key: ValueKey<String>('wenz-richtext-embed-fallback-${block.id}'),
+lib\src\widgets\wenz_rich_text_editor.dart:8434:                    imageActions: false,
+lib\src\widgets\wenz_rich_text_editor.dart:8574:                      imageActions: false,
+lib\src\widgets\wenz_rich_text_editor.dart:8676:    required this.imageActions,
+lib\src\widgets\wenz_rich_text_editor.dart:8686:  final bool imageActions;
+lib\src\widgets\wenz_rich_text_editor.dart:8697:        canRunMutation && (blockCount > 1 || imageActions || fileActions);
+lib\src\widgets\wenz_rich_text_editor.dart:8712:            imageActions: imageActions,
+lib\src\widgets\wenz_rich_text_editor.dart:8744:              imageActions: imageActions,
+lib\src\widgets\wenz_rich_text_editor.dart:8803:    required this.imageActions,
+lib\src\widgets\wenz_rich_text_editor.dart:8812:  final bool imageActions;
+lib\src\widgets\wenz_rich_text_editor.dart:8875:    if (imageActions && canRunMutation) {
+lib\src\widgets\wenz_rich_text_editor.dart:8938:    required this.imageActions,
+lib\src\widgets\wenz_rich_text_editor.dart:8948:  final bool imageActions;
+lib\src\widgets\wenz_rich_text_editor.dart:8971:          imageActions: imageActions,
+lib\src\widgets\wenz_rich_text_editor.dart:9351:        key: ValueKey<String>('wenz-richtext-image-size-${block.id}'),
+lib\src\widgets\wenz_rich_text_editor.dart:9358:      key: ValueKey<String>('wenz-richtext-image-block-${block.id}'),
+lib\src\widgets\wenz_rich_text_editor.dart:9373:                    'wenz-richtext-image-frame-${block.id}',
+lib\src\widgets\wenz_rich_text_editor.dart:9400:    required this.imageActions,
+lib\src\widgets\wenz_rich_text_editor.dart:9410:  final bool imageActions;
+lib\src\widgets\wenz_rich_text_editor.dart:9425:                imageActions: imageActions,
+lib\src\widgets\wenz_rich_text_editor.dart:9734:    BlockType.heading => baseStyle.merge(
+lib\src\widgets\wenz_rich_text_editor.dart:9735:        _headingTextStyle(theme, baseStyle, block.attributes.level),
+lib\src\widgets\wenz_rich_text_editor.dart:9737:    BlockType.quote => baseStyle.merge(
+lib\src\widgets\wenz_rich_text_editor.dart:9756:TextStyle _headingTextStyle(
+lib\src\widgets\wenz_rich_text_editor.dart:9761:  final headingLevel = (level ?? 1).clamp(1, 6).toInt();
+lib\src\widgets\wenz_rich_text_editor.dart:9762:  final color = switch (headingLevel) {
+lib\src\widgets\wenz_rich_text_editor.dart:9769:    fontSize: _headingSize(headingLevel),
+lib\src\widgets\wenz_rich_text_editor.dart:9770:    fontWeight: headingLevel >= 5 ? FontWeight.w600 : FontWeight.w700,
+lib\src\widgets\wenz_rich_text_editor.dart:9774:TextStyle _todoTextStyle(TextStyle baseStyle) {
+lib\src\widgets\wenz_rich_text_editor.dart:9935:    final InlineEmbed embed =>
+lib\src\widgets\wenz_rich_text_editor.dart:9936:      _textStyleForAttributes(context, baseStyle, embed.attributes),
+lib\src\widgets\wenz_rich_text_editor.dart:9943:    final InlineEmbed embed => _inlineEmbedSpanFor(
+lib\src\widgets\wenz_rich_text_editor.dart:9945:        embed,
+lib\src\widgets\wenz_rich_text_editor.dart:9956:  InlineEmbed embed,
+lib\src\widgets\wenz_rich_text_editor.dart:9961:  final base = _textStyleForAttributes(context, baseStyle, embed.attributes);
+lib\src\widgets\wenz_rich_text_editor.dart:9963:  final custom = inlineEmbedRenderer?.buildTextSpan(context, embed, style);
+lib\src\widgets\wenz_rich_text_editor.dart:9967:  if (_isFormulaEmbedType(embed.embedType)) {
+lib\src\widgets\wenz_rich_text_editor.dart:9968:    return _formulaInlineSpanFor(context, embed, style, decorate: decorate);
+lib\src\widgets\wenz_rich_text_editor.dart:9971:    text: _embedDisplayText(embed),
+lib\src\widgets\wenz_rich_text_editor.dart:9972:    style: _defaultInlineEmbedStyle(context, embed, style),
+lib\src\widgets\wenz_rich_text_editor.dart:9978:  InlineEmbed embed,
+lib\src\widgets\wenz_rich_text_editor.dart:9982:  final formula = _formulaSourceText(embed.data);
+lib\src\widgets\wenz_rich_text_editor.dart:9983:  final effectiveStyle = _defaultInlineEmbedStyle(context, embed, style);
+lib\src\widgets\wenz_rich_text_editor.dart:10157:  InlineEmbed embed,
+lib\src\widgets\wenz_rich_text_editor.dart:10161:  return switch (embed.embedType.trim()) {
+lib\src\widgets\wenz_rich_text_editor.dart:10205:String _embedDisplayText(InlineEmbed embed) {
+lib\src\widgets\wenz_rich_text_editor.dart:10206:  return switch (embed.embedType.trim()) {
+lib\src\widgets\wenz_rich_text_editor.dart:10207:    'mention' => _mentionDisplayText(embed),
+lib\src\widgets\wenz_rich_text_editor.dart:10208:    'image' => '[img]',
+lib\src\widgets\wenz_rich_text_editor.dart:10209:    'formula' => _formulaDisplayText(embed),
+lib\src\widgets\wenz_rich_text_editor.dart:10210:    'emoji' => _emojiDisplayText(embed),
+lib\src\widgets\wenz_rich_text_editor.dart:10211:    _ => '[${embed.embedType}]',
+lib\src\widgets\wenz_rich_text_editor.dart:10215:bool _isFormulaEmbedType(String embedType) => embedType.trim() == 'formula';
+lib\src\widgets\wenz_rich_text_editor.dart:10220:    InlineEmbed() => _embedDisplayText(node),
+lib\src\widgets\wenz_rich_text_editor.dart:10225:String _mentionDisplayText(InlineEmbed embed) {
+lib\src\widgets\wenz_rich_text_editor.dart:10226:  final raw = embed.data['label'] ?? embed.data['id'];
+lib\src\widgets\wenz_rich_text_editor.dart:10231:String _formulaDisplayText(InlineEmbed embed) {
+lib\src\widgets\wenz_rich_text_editor.dart:10232:  final text = _formulaSourceText(embed.data);
+lib\src\widgets\wenz_rich_text_editor.dart:10236:String _emojiDisplayText(InlineEmbed embed) {
+lib\src\widgets\wenz_rich_text_editor.dart:10237:  final raw = embed.data['emoji'] ??
+lib\src\widgets\wenz_rich_text_editor.dart:10238:      embed.data['text'] ??
+lib\src\widgets\wenz_rich_text_editor.dart:10239:      embed.data['value'] ??
+lib\src\widgets\wenz_rich_text_editor.dart:10240:      embed.data['shortName'] ??
+lib\src\widgets\wenz_rich_text_editor.dart:10241:      embed.data['label'];
+lib\src\widgets\wenz_rich_text_editor.dart:10535:double _headingSize(int? level) {
+lib\src\widgets\wenz_rich_text_editor.dart:10546:    BlockType.quote => '|',
+lib\src\widgets\wenz_rich_text_editor.dart:10547:    BlockType.listItem => switch (block.attributes.listType) {
+lib\src\widgets\wenz_rich_text_editor.dart:10565:  if (block is! TextBlockNode || block.type != BlockType.listItem) {
+lib\src\widgets\wenz_rich_text_editor.dart:10587:    if (previous is TextBlockNode && previous.type == BlockType.listItem) {
+lib\src\widgets\wenz_rich_text_editor.dart:10661:String _imageAccessibleLabel(ImageBlockNode image) {
+lib\src\widgets\wenz_rich_text_editor.dart:10662:  if (image.altText.isNotEmpty) {
+lib\src\widgets\wenz_rich_text_editor.dart:10663:    return image.altText;
+lib\src\widgets\wenz_rich_text_editor.dart:10665:  if (image.caption.isNotEmpty) {
+lib\src\widgets\wenz_rich_text_editor.dart:10666:    return image.caption;
+lib\src\widgets\wenz_rich_text_editor.dart:10668:  return _assetLabel(image.assetId, image.file);
+
+**Examining code efficiency**
+
+I don't want to overdo it, but I think I should inspect a specific slice using Get-Content. Since the code graph explored the controller but is truncated, I can use rg on the lines I need. Using PowerShell's Get-Content with Select-Object to skip lines seems fine too. I’ll keep it simple; I just need this for my planned scope. Also, I need to consider which default menu items to include.
+codex
+scope 基本明确；我会补充 controller/overlay/输入测试三条主线到计划里。
+exec
+powershell.exe -Command '$p='"'lib\\src\\controller\\slash_menu_controller.dart'; (Get-Content "'$p | Select-Object -Skip 250 -First 170) -join "`n"' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 845ms:
+  void _handleEditorChanged() {
+    refresh();
+  }
+
+  @override
+  void dispose() {
+    _editor.removeListener(_handleEditorChanged);
+    super.dispose();
+  }
+}
+
+List<SlashMenuItem> defaultSlashMenuItems() {
+  return <SlashMenuItem>[
+    SlashMenuItem(
+      id: 'heading',
+      title: 'Heading',
+      description: 'Large section title',
+      icon: 'title',
+      keywords: const <String>['h1', 'title'],
+      action: (editor, context) {
+        editor.setBlockType(type: BlockType.heading, level: 1);
+      },
+    ),
+    SlashMenuItem(
+      id: 'list',
+      title: 'Bulleted list',
+      description: 'Unordered list item',
+      icon: 'list',
+      keywords: const <String>['bullet', 'unordered'],
+      action: (editor, context) {
+        editor.setBlockType(type: BlockType.listItem);
+      },
+    ),
+    SlashMenuItem(
+      id: 'todo',
+      title: 'Todo',
+      description: 'Task list item',
+      icon: 'check_box',
+      keywords: const <String>['task', 'checkbox'],
+      action: (editor, context) {
+        editor.toggleTodo();
+      },
+    ),
+    SlashMenuItem(
+      id: 'quote',
+      title: 'Quote',
+      description: 'Quoted block',
+      icon: 'format_quote',
+      keywords: const <String>['blockquote'],
+      action: (editor, context) {
+        editor.setBlockType(type: BlockType.quote);
+      },
+    ),
+    SlashMenuItem(
+      id: 'code',
+      title: 'Code block',
+      description: 'Preformatted code',
+      icon: 'code',
+      keywords: const <String>['pre'],
+      action: (editor, context) {
+        _replaceCurrentBlock(
+          editor,
+          context,
+          (block) => CodeBlockNode(id: block.id, code: block.plainText),
+          (block) => DocumentSelection(
+            base: DocumentPosition.code(
+              blockId: block.id,
+              blockIndex: context.blockIndex,
+              offset: 0,
+            ),
+            extent: DocumentPosition.code(
+              blockId: block.id,
+              blockIndex: context.blockIndex,
+              offset: 0,
+            ),
+          ),
+        );
+      },
+    ),
+    SlashMenuItem(
+      id: 'table',
+      title: 'Table',
+      description: '3 by 3 table',
+      icon: 'table_chart',
+      keywords: const <String>['grid'],
+      action: (editor, context) {
+        final tableId = context.generatedId('table');
+        final selection = DocumentSelection(
+          base: DocumentPosition.tableCell(
+            tableBlockId: tableId,
+            blockIndex: context.blockIndex,
+            tableRowIndex: 0,
+            tableColumnIndex: 0,
+            offset: 0,
+          ),
+          extent: DocumentPosition.tableCell(
+            tableBlockId: tableId,
+            blockIndex: context.blockIndex,
+            tableRowIndex: 0,
+            tableColumnIndex: 0,
+            offset: 0,
+          ),
+        );
+        editor.insertTable(
+          index: context.blockIndex,
+          tableId: tableId,
+          rowCount: 3,
+          columnCount: 3,
+          selection: selection,
+        );
+      },
+    ),
+    SlashMenuItem(
+      id: 'image',
+      title: 'Image',
+      description: 'Image placeholder',
+      icon: 'image',
+      keywords: const <String>['media', 'picture'],
+      action: (editor, context) {
+        _replaceCurrentBlock(
+          editor,
+          context,
+          (block) => ImageBlockNode(
+            id: block.id,
+            assetId: context.generatedId('image'),
+          ),
+          (block) {
+            final base = DocumentPosition(
+              blockId: block.id,
+              blockIndex: context.blockIndex,
+              path: PositionPath.blockObject(block.id),
+              offset: 0,
+            );
+            final extent = base.copyWith(offset: 1);
+            return DocumentSelection(base: base, extent: extent);
+          },
+        );
+      },
+    ),
+    SlashMenuItem(
+      id: 'video',
+      title: 'Video',
+      description: 'Video placeholder',
+      icon: 'video',
+      keywords: const <String>['media', 'movie', 'play', '瑙嗛'],
+      action: (editor, context) {
+        _replaceCurrentBlock(
+          editor,
+          context,
+          (block) => VideoBlockNode(
+            id: block.id,
+            assetId: context.generatedId('video'),
+            title: 'Video placeholder',
+            aspectRatio: VideoBlockNode.defaultAspectRatio,
+          ),
+          (block) {
+            final base = DocumentPosition(
+              blockId: block.id,
+              blockIndex: context.blockIndex,
+              path: PositionPath.blockObject(block.id),
+              offset: 0,
+            );
+            final extent = base.copyWith(offset: 1);
+            return DocumentSelection(base: base, extent: extent);
+          },
+        );
+      },
+    ),
+  ];
+}
+
+codex
+计划内容已成型；现在只创建指定 Markdown 文件，不改业务代码。
+apply patch
+patch: completed
+D:\project\GitHub\wenz_flutter\wenz_richtext\docs\plan\plan_requirement_14_20260626-034143.md
+diff --git a/wenz_richtext/docs/plan/plan_requirement_14_20260626-034143.md b/wenz_richtext/docs/plan/plan_requirement_14_20260626-034143.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..50feda6fa8942da7e57c81ba40c2f095edd32dfb
+--- /dev/null
++++ b/wenz_richtext/docs/plan/plan_requirement_14_20260626-034143.md
+@@ -0,0 +1,62 @@
++# 需求开发计划：斜杆输入插入元素 Popup
++
++## 来源
++- 类型：需求
++- 编号：14
++- 生成时间：2026-06-26 03:41:43
++
++## 原始内容
++要支持斜杆输入时弹出插入元素popup
++
++## 需求理解
++- 用户在编辑器文本输入位置输入 `/` 后，应自动弹出“插入元素” popup，用于快速插入或转换常用内容块。
++- popup 应跟随当前光标或触发行位置展示，支持根据 `/` 后续输入内容过滤菜单项。
++- 选择菜单项后，应删除触发文本并执行对应插入动作，例如标题、列表、todo、引用、代码块、表格、图片、视频等已有或规划内元素。
++- 交互需兼容键盘、鼠标、触摸、滚动、撤销/重做、中文输入法组合态和编辑器焦点变化。
++- 本需求优先复用现有编辑器控制器、命令体系、浮层组件和测试结构，避免引入与文档模型不一致的旁路逻辑。
++
++## 任务计划
++- [ ] P001: 明确斜杆菜单触发规则 <!-- scope: lib/src/controller/slash_menu_controller.dart,lib/src/widgets/wenz_rich_text_editor.dart,test/controller/slash_menu_controller_test.dart,test/widgets/slash_menu_overlay_test.dart -->
++  - 验收要点：明确 popup 仅在文本块内光标折叠、输入 `/` 且触发位置有效时打开；非文本块、跨块选区、表格对象选区、只读态不误触发。
++  - 验收要点：明确 `/` 后输入查询文本时的过滤规则，包括大小写、空查询、无匹配、中文关键字和删除查询文本后的状态恢复。
++  - 验收要点：明确关闭规则，包括删除触发字符、移动光标、点击外部、按 Escape、执行菜单项、编辑器失焦和文档结构变化。
++
++- [ ] P002: 完善斜杆触发状态检测 <!-- scope: lib/src/controller/slash_menu_controller.dart,lib/src/input/editor_text_input_client.dart,lib/src/controller/wenz_rich_text_controller.dart,test/controller/slash_menu_controller_test.dart,test/input/editor_text_input_client_test.dart -->
++  - 验收要点：输入 `/` 后控制器能够识别触发 block、触发范围、查询文本和当前高亮项，并在编辑器内容变化后稳定刷新。
++  - 验收要点：中文输入法 composing 期间不提前弹出或错误提交菜单，组合态结束后再按最终文本判断是否打开 popup。
++  - 验收要点：触发文本被撤销、重做、剪切、粘贴、批量删除或程序化修改时，菜单状态与当前文档内容保持一致，无 stale selection。
++
++- [ ] P003: 实现插入元素 popup 展示交互 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/slash_menu_overlay.dart,test/widgets/slash_menu_overlay_test.dart,test/widgets/wenz_rich_text_editor_test.dart -->
++  - 验收要点：popup 锚定在当前光标或触发行附近，滚动、窗口尺寸变化、软键盘占位和编辑器边界贴近时仍保持可见并避免遮挡输入位置。
++  - 验收要点：菜单展示元素标题、描述、图标和高亮态；空查询展示默认插入元素列表，无匹配时展示明确空态或自动关闭策略。
++  - 验收要点：支持键盘方向键切换、高亮项 Enter 确认、Escape 关闭、鼠标/触摸点击选择，并避免点击 popup 时事件穿透到底层编辑器。
++
++- [ ] P004: 接入插入元素执行逻辑 <!-- scope: lib/src/controller/slash_menu_controller.dart,lib/src/controller/wenz_rich_text_controller.dart,lib/src/core/commands/block_structure_commands.dart,lib/src/core/commands/table_commands.dart,test/controller/slash_menu_controller_test.dart,test/core/block_structure_commands_test.dart,test/core/table_commands_test.dart -->
++  - 验收要点：选择菜单项后准确删除 `/query` 触发文本，再执行对应元素插入或当前块转换，文档中不残留触发字符。
++  - 验收要点：标题、无序列表、todo、引用、代码块、表格、图片、视频等菜单项能复用现有命令或模型创建逻辑，选区落点符合编辑预期。
++  - 验收要点：插入元素后撤销/重做、文档变更通知、焦点保持、光标定位和序列化结果均与普通命令执行路径一致。
++
++- [ ] P005: 支持菜单项注册与扩展 <!-- scope: lib/src/controller/slash_menu_controller.dart,lib/src/plugins/editor_plugin.dart,lib/wenz_richtext.dart,test/controller/slash_menu_controller_test.dart,test/plugins/editor_plugin_test.dart -->
++  - 验收要点：默认菜单项集中注册，外部插件或调用方可追加、覆盖或过滤插入元素项，不需要修改编辑器核心渲染代码。
++  - 验收要点：每个菜单项包含稳定 id、标题、描述、图标、关键字和 action，过滤、排序、去重及高亮索引在自定义菜单下表现稳定。
++  - 验收要点：公共导出 API 与现有包结构一致，新增扩展能力有测试覆盖，不破坏已有插件和工具栏能力。
++
++- [ ] P006: 补充自动化与手工验收 <!-- scope: test/controller/slash_menu_controller_test.dart,test/widgets/slash_menu_overlay_test.dart,test/widgets/wenz_rich_text_editor_test.dart,docs/acceptance_manual_checklist.md,docs/plan/plan_requirement_14_20260626-034143.md -->
++  - 验收要点：新增或更新 controller、widget、输入链路测试，覆盖打开、过滤、关闭、键盘导航、点击选择、无匹配、滚动跟随和只读态。
++  - 验收要点：执行 `flutter analyze`、相关单元测试和 widget 测试；如存在失败，需区分本次需求引入问题与既有失败。
++  - 验收要点：在本计划进度区记录每个任务的完成范围、验证命令、验证结果、未覆盖风险和后续建议。
++
++## 总体验收标准
++- 所有任务 checkbox 均完成，且每个任务的验收要点都有明确实现结论或验证记录。
++- 在普通段落中输入 `/` 能弹出插入元素 popup，继续输入查询文本可过滤菜单项，删除或移动光标时状态正确关闭或刷新。
++- popup 在键盘、鼠标、触摸、滚动、视口边界、软键盘和编辑器焦点变化场景下位置稳定、可操作且不阻断正常编辑。
++- 选择任意默认菜单项后，`/query` 触发文本被正确移除，对应元素插入或块转换成功，选区、焦点、撤销/重做和文档变更通知不回归。
++- 菜单项注册与扩展机制稳定，默认元素和自定义元素均可通过统一 action 执行，不绕过现有命令与文档模型约束。
++- 相关自动化测试、静态分析和必要手工验收通过；若存在既有失败，需在进度区记录命令、失败现象、影响范围和判断依据。
++
++## 进度区
++- 当前状态：计划已创建，P001-P006 待开发执行。
++- 当前负责人：待分配。
++- 下一步：从 P001 开始确认斜杆触发范围、默认元素清单和关闭规则。
++- 验证记录：本次仅生成计划文件，未修改业务代码，未执行自动化测试或手工验收。
++- 风险记录：斜杆 popup 涉及输入法组合态、选区刷新、浮层定位和命令执行链路，需重点防止 stale selection、事件穿透和撤销/重做不一致。
+
+diff --git a/wenz_richtext/docs/plan/plan_requirement_14_20260626-034143.md b/wenz_richtext/docs/plan/plan_requirement_14_20260626-034143.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..50feda6fa8942da7e57c81ba40c2f095edd32dfb
+--- /dev/null
++++ b/wenz_richtext/docs/plan/plan_requirement_14_20260626-034143.md
+@@ -0,0 +1,62 @@
++# 需求开发计划：斜杆输入插入元素 Popup
++
++## 来源
++- 类型：需求
++- 编号：14
++- 生成时间：2026-06-26 03:41:43
++
++## 原始内容
++要支持斜杆输入时弹出插入元素popup
++
++## 需求理解
++- 用户在编辑器文本输入位置输入 `/` 后，应自动弹出“插入元素” popup，用于快速插入或转换常用内容块。
++- popup 应跟随当前光标或触发行位置展示，支持根据 `/` 后续输入内容过滤菜单项。
++- 选择菜单项后，应删除触发文本并执行对应插入动作，例如标题、列表、todo、引用、代码块、表格、图片、视频等已有或规划内元素。
++- 交互需兼容键盘、鼠标、触摸、滚动、撤销/重做、中文输入法组合态和编辑器焦点变化。
++- 本需求优先复用现有编辑器控制器、命令体系、浮层组件和测试结构，避免引入与文档模型不一致的旁路逻辑。
++
++## 任务计划
++- [ ] P001: 明确斜杆菜单触发规则 <!-- scope: lib/src/controller/slash_menu_controller.dart,lib/src/widgets/wenz_rich_text_editor.dart,test/controller/slash_menu_controller_test.dart,test/widgets/slash_menu_overlay_test.dart -->
++  - 验收要点：明确 popup 仅在文本块内光标折叠、输入 `/` 且触发位置有效时打开；非文本块、跨块选区、表格对象选区、只读态不误触发。
++  - 验收要点：明确 `/` 后输入查询文本时的过滤规则，包括大小写、空查询、无匹配、中文关键字和删除查询文本后的状态恢复。
++  - 验收要点：明确关闭规则，包括删除触发字符、移动光标、点击外部、按 Escape、执行菜单项、编辑器失焦和文档结构变化。
++
++- [ ] P002: 完善斜杆触发状态检测 <!-- scope: lib/src/controller/slash_menu_controller.dart,lib/src/input/editor_text_input_client.dart,lib/src/controller/wenz_rich_text_controller.dart,test/controller/slash_menu_controller_test.dart,test/input/editor_text_input_client_test.dart -->
++  - 验收要点：输入 `/` 后控制器能够识别触发 block、触发范围、查询文本和当前高亮项，并在编辑器内容变化后稳定刷新。
++  - 验收要点：中文输入法 composing 期间不提前弹出或错误提交菜单，组合态结束后再按最终文本判断是否打开 popup。
++  - 验收要点：触发文本被撤销、重做、剪切、粘贴、批量删除或程序化修改时，菜单状态与当前文档内容保持一致，无 stale selection。
++
++- [ ] P003: 实现插入元素 popup 展示交互 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/slash_menu_overlay.dart,test/widgets/slash_menu_overlay_test.dart,test/widgets/wenz_rich_text_editor_test.dart -->
++  - 验收要点：popup 锚定在当前光标或触发行附近，滚动、窗口尺寸变化、软键盘占位和编辑器边界贴近时仍保持可见并避免遮挡输入位置。
++  - 验收要点：菜单展示元素标题、描述、图标和高亮态；空查询展示默认插入元素列表，无匹配时展示明确空态或自动关闭策略。
++  - 验收要点：支持键盘方向键切换、高亮项 Enter 确认、Escape 关闭、鼠标/触摸点击选择，并避免点击 popup 时事件穿透到底层编辑器。
++
++- [ ] P004: 接入插入元素执行逻辑 <!-- scope: lib/src/controller/slash_menu_controller.dart,lib/src/controller/wenz_rich_text_controller.dart,lib/src/core/commands/block_structure_commands.dart,lib/src/core/commands/table_commands.dart,test/controller/slash_menu_controller_test.dart,test/core/block_structure_commands_test.dart,test/core/table_commands_test.dart -->
++  - 验收要点：选择菜单项后准确删除 `/query` 触发文本，再执行对应元素插入或当前块转换，文档中不残留触发字符。
++  - 验收要点：标题、无序列表、todo、引用、代码块、表格、图片、视频等菜单项能复用现有命令或模型创建逻辑，选区落点符合编辑预期。
++  - 验收要点：插入元素后撤销/重做、文档变更通知、焦点保持、光标定位和序列化结果均与普通命令执行路径一致。
++
++- [ ] P005: 支持菜单项注册与扩展 <!-- scope: lib/src/controller/slash_menu_controller.dart,lib/src/plugins/editor_plugin.dart,lib/wenz_richtext.dart,test/controller/slash_menu_controller_test.dart,test/plugins/editor_plugin_test.dart -->
++  - 验收要点：默认菜单项集中注册，外部插件或调用方可追加、覆盖或过滤插入元素项，不需要修改编辑器核心渲染代码。
++  - 验收要点：每个菜单项包含稳定 id、标题、描述、图标、关键字和 action，过滤、排序、去重及高亮索引在自定义菜单下表现稳定。
++  - 验收要点：公共导出 API 与现有包结构一致，新增扩展能力有测试覆盖，不破坏已有插件和工具栏能力。
++
++- [ ] P006: 补充自动化与手工验收 <!-- scope: test/controller/slash_menu_controller_test.dart,test/widgets/slash_menu_overlay_test.dart,test/widgets/wenz_rich_text_editor_test.dart,docs/acceptance_manual_checklist.md,docs/plan/plan_requirement_14_20260626-034143.md -->
++  - 验收要点：新增或更新 controller、widget、输入链路测试，覆盖打开、过滤、关闭、键盘导航、点击选择、无匹配、滚动跟随和只读态。
++  - 验收要点：执行 `flutter analyze`、相关单元测试和 widget 测试；如存在失败，需区分本次需求引入问题与既有失败。
++  - 验收要点：在本计划进度区记录每个任务的完成范围、验证命令、验证结果、未覆盖风险和后续建议。
++
++## 总体验收标准
++- 所有任务 checkbox 均完成，且每个任务的验收要点都有明确实现结论或验证记录。
++- 在普通段落中输入 `/` 能弹出插入元素 popup，继续输入查询文本可过滤菜单项，删除或移动光标时状态正确关闭或刷新。
++- popup 在键盘、鼠标、触摸、滚动、视口边界、软键盘和编辑器焦点变化场景下位置稳定、可操作且不阻断正常编辑。
++- 选择任意默认菜单项后，`/query` 触发文本被正确移除，对应元素插入或块转换成功，选区、焦点、撤销/重做和文档变更通知不回归。
++- 菜单项注册与扩展机制稳定，默认元素和自定义元素均可通过统一 action 执行，不绕过现有命令与文档模型约束。
++- 相关自动化测试、静态分析和必要手工验收通过；若存在既有失败，需在进度区记录命令、失败现象、影响范围和判断依据。
++
++## 进度区
++- 当前状态：计划已创建，P001-P006 待开发执行。
++- 当前负责人：待分配。
++- 下一步：从 P001 开始确认斜杆触发范围、默认元素清单和关闭规则。
++- 验证记录：本次仅生成计划文件，未修改业务代码，未执行自动化测试或手工验收。
++- 风险记录：斜杆 popup 涉及输入法组合态、选区刷新、浮层定位和命令执行链路，需重点防止 stale selection、事件穿透和撤销/重做不一致。
+
+codex
+已完成，仅生成计划文件，未修改业务代码。
+
+- 文件：`docs/plan/plan_requirement_14_20260626-034143.md:1`
+- 内容包含：任务计划、每项固定格式与 `scope`、每项验收要点、总体验收标准、进度区
+- 验证：本次是计划文档生成任务，未执行业务测试或改动代码
+diff --git a/wenz_richtext/docs/plan/plan_requirement_14_20260626-034143.md b/wenz_richtext/docs/plan/plan_requirement_14_20260626-034143.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..50feda6fa8942da7e57c81ba40c2f095edd32dfb
+--- /dev/null
++++ b/wenz_richtext/docs/plan/plan_requirement_14_20260626-034143.md
+@@ -0,0 +1,62 @@
++# 需求开发计划：斜杆输入插入元素 Popup
++
++## 来源
++- 类型：需求
++- 编号：14
++- 生成时间：2026-06-26 03:41:43
++
++## 原始内容
++要支持斜杆输入时弹出插入元素popup
++
++## 需求理解
++- 用户在编辑器文本输入位置输入 `/` 后，应自动弹出“插入元素” popup，用于快速插入或转换常用内容块。
++- popup 应跟随当前光标或触发行位置展示，支持根据 `/` 后续输入内容过滤菜单项。
++- 选择菜单项后，应删除触发文本并执行对应插入动作，例如标题、列表、todo、引用、代码块、表格、图片、视频等已有或规划内元素。
++- 交互需兼容键盘、鼠标、触摸、滚动、撤销/重做、中文输入法组合态和编辑器焦点变化。
++- 本需求优先复用现有编辑器控制器、命令体系、浮层组件和测试结构，避免引入与文档模型不一致的旁路逻辑。
++
++## 任务计划
++- [ ] P001: 明确斜杆菜单触发规则 <!-- scope: lib/src/controller/slash_menu_controller.dart,lib/src/widgets/wenz_rich_text_editor.dart,test/controller/slash_menu_controller_test.dart,test/widgets/slash_menu_overlay_test.dart -->
++  - 验收要点：明确 popup 仅在文本块内光标折叠、输入 `/` 且触发位置有效时打开；非文本块、跨块选区、表格对象选区、只读态不误触发。
++  - 验收要点：明确 `/` 后输入查询文本时的过滤规则，包括大小写、空查询、无匹配、中文关键字和删除查询文本后的状态恢复。
++  - 验收要点：明确关闭规则，包括删除触发字符、移动光标、点击外部、按 Escape、执行菜单项、编辑器失焦和文档结构变化。
++
++- [ ] P002: 完善斜杆触发状态检测 <!-- scope: lib/src/controller/slash_menu_controller.dart,lib/src/input/editor_text_input_client.dart,lib/src/controller/wenz_rich_text_controller.dart,test/controller/slash_menu_controller_test.dart,test/input/editor_text_input_client_test.dart -->
++  - 验收要点：输入 `/` 后控制器能够识别触发 block、触发范围、查询文本和当前高亮项，并在编辑器内容变化后稳定刷新。
++  - 验收要点：中文输入法 composing 期间不提前弹出或错误提交菜单，组合态结束后再按最终文本判断是否打开 popup。
++  - 验收要点：触发文本被撤销、重做、剪切、粘贴、批量删除或程序化修改时，菜单状态与当前文档内容保持一致，无 stale selection。
++
++- [ ] P003: 实现插入元素 popup 展示交互 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/slash_menu_overlay.dart,test/widgets/slash_menu_overlay_test.dart,test/widgets/wenz_rich_text_editor_test.dart -->
++  - 验收要点：popup 锚定在当前光标或触发行附近，滚动、窗口尺寸变化、软键盘占位和编辑器边界贴近时仍保持可见并避免遮挡输入位置。
++  - 验收要点：菜单展示元素标题、描述、图标和高亮态；空查询展示默认插入元素列表，无匹配时展示明确空态或自动关闭策略。
++  - 验收要点：支持键盘方向键切换、高亮项 Enter 确认、Escape 关闭、鼠标/触摸点击选择，并避免点击 popup 时事件穿透到底层编辑器。
++
++- [ ] P004: 接入插入元素执行逻辑 <!-- scope: lib/src/controller/slash_menu_controller.dart,lib/src/controller/wenz_rich_text_controller.dart,lib/src/core/commands/block_structure_commands.dart,lib/src/core/commands/table_commands.dart,test/controller/slash_menu_controller_test.dart,test/core/block_structure_commands_test.dart,test/core/table_commands_test.dart -->
++  - 验收要点：选择菜单项后准确删除 `/query` 触发文本，再执行对应元素插入或当前块转换，文档中不残留触发字符。
++  - 验收要点：标题、无序列表、todo、引用、代码块、表格、图片、视频等菜单项能复用现有命令或模型创建逻辑，选区落点符合编辑预期。
++  - 验收要点：插入元素后撤销/重做、文档变更通知、焦点保持、光标定位和序列化结果均与普通命令执行路径一致。
++
++- [ ] P005: 支持菜单项注册与扩展 <!-- scope: lib/src/controller/slash_menu_controller.dart,lib/src/plugins/editor_plugin.dart,lib/wenz_richtext.dart,test/controller/slash_menu_controller_test.dart,test/plugins/editor_plugin_test.dart -->
++  - 验收要点：默认菜单项集中注册，外部插件或调用方可追加、覆盖或过滤插入元素项，不需要修改编辑器核心渲染代码。
++  - 验收要点：每个菜单项包含稳定 id、标题、描述、图标、关键字和 action，过滤、排序、去重及高亮索引在自定义菜单下表现稳定。
++  - 验收要点：公共导出 API 与现有包结构一致，新增扩展能力有测试覆盖，不破坏已有插件和工具栏能力。
++
++- [ ] P006: 补充自动化与手工验收 <!-- scope: test/controller/slash_menu_controller_test.dart,test/widgets/slash_menu_overlay_test.dart,test/widgets/wenz_rich_text_editor_test.dart,docs/acceptance_manual_checklist.md,docs/plan/plan_requirement_14_20260626-034143.md -->
++  - 验收要点：新增或更新 controller、widget、输入链路测试，覆盖打开、过滤、关闭、键盘导航、点击选择、无匹配、滚动跟随和只读态。
++  - 验收要点：执行 `flutter analyze`、相关单元测试和 widget 测试；如存在失败，需区分本次需求引入问题与既有失败。
++  - 验收要点：在本计划进度区记录每个任务的完成范围、验证命令、验证结果、未覆盖风险和后续建议。
++
++## 总体验收标准
++- 所有任务 checkbox 均完成，且每个任务的验收要点都有明确实现结论或验证记录。
++- 在普通段落中输入 `/` 能弹出插入元素 popup，继续输入查询文本可过滤菜单项，删除或移动光标时状态正确关闭或刷新。
++- popup 在键盘、鼠标、触摸、滚动、视口边界、软键盘和编辑器焦点变化场景下位置稳定、可操作且不阻断正常编辑。
++- 选择任意默认菜单项后，`/query` 触发文本被正确移除，对应元素插入或块转换成功，选区、焦点、撤销/重做和文档变更通知不回归。
++- 菜单项注册与扩展机制稳定，默认元素和自定义元素均可通过统一 action 执行，不绕过现有命令与文档模型约束。
++- 相关自动化测试、静态分析和必要手工验收通过；若存在既有失败，需在进度区记录命令、失败现象、影响范围和判断依据。
++
++## 进度区
++- 当前状态：计划已创建，P001-P006 待开发执行。
++- 当前负责人：待分配。
++- 下一步：从 P001 开始确认斜杆触发范围、默认元素清单和关闭规则。
++- 验证记录：本次仅生成计划文件，未修改业务代码，未执行自动化测试或手工验收。
++- 风险记录：斜杆 popup 涉及输入法组合态、选区刷新、浮层定位和命令执行链路，需重点防止 stale selection、事件穿透和撤销/重做不一致。
+
+tokens used
+40,256
+已完成，仅生成计划文件，未修改业务代码。
+
+- 文件：`docs/plan/plan_requirement_14_20260626-034143.md:1`
+- 内容包含：任务计划、每项固定格式与 `scope`、每项验收要点、总体验收标准、进度区
+- 验证：本次是计划文档生成任务，未执行业务测试或改动代码

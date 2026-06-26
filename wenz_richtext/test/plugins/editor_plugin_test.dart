@@ -55,9 +55,21 @@ void main() {
               id: 'test.item',
               title: 'Test Item',
               icon: 'extension',
+              keywords: const <String>['plugin'],
+              action: (_, __) {},
+            ),
+            SlashMenuItem(
+              id: 'test.hidden',
+              title: 'Hidden Item',
+              icon: 'extension',
+              keywords: const <String>['plugin'],
               action: (_, __) {},
             ),
           ],
+          slashMenuFilters: <SlashMenuItemFilter>[
+            (item, query) => item.id != 'test.hidden',
+          ],
+          slashMenuSorter: (a, b, query) => b.id.compareTo(a.id),
           toolbarItems: <WenzToolbarItem>[
             WenzToolbarItem(
               id: 'test.toolbar',
@@ -109,6 +121,10 @@ void main() {
       '[token]',
     );
     expect(slashMenu.items.map((item) => item.id), contains('test.item'));
+    expect(slashMenu.items.map((item) => item.id), contains('test.hidden'));
+    expect(slashMenu.filter('plugin').map((item) => item.id), <String>[
+      'test.item',
+    ]);
     expect(toolbarItems.has('test.toolbar'), isTrue);
     expect(toolbarItems['test.toolbar']?.enabledFor(toolbar.state), isTrue);
     expect(controller.clipboardService.parse('plugin:value').text, 'value');
@@ -232,6 +248,49 @@ void main() {
         plugins: <WenzRichTextPlugin>[plugin, plugin],
         context: WenzPluginContext(controller: controller),
       ),
+      throwsStateError,
+    );
+  });
+
+  test('plugin context exposes slash menu registry extension helpers', () {
+    final controller = WenzRichTextController();
+    final slashMenu = SlashMenuRegistry();
+    final context = WenzPluginContext(
+      controller: controller,
+      slashMenuRegistry: slashMenu,
+    );
+
+    context.registerSlashMenuItems(<SlashMenuItem>[
+      SlashMenuItem(
+        id: 'b',
+        title: 'B item',
+        icon: 'extension',
+        keywords: const <String>['custom'],
+        action: (_, __) {},
+      ),
+      SlashMenuItem(
+        id: 'a',
+        title: 'A item',
+        icon: 'extension',
+        keywords: const <String>['custom'],
+        action: (_, __) {},
+      ),
+    ]);
+    context.addSlashMenuFilter((item, query) => item.id != 'b');
+    context.setSlashMenuSorter((a, b, query) => a.id.compareTo(b.id));
+
+    expect(slashMenu.filter('custom').map((item) => item.id), <String>['a']);
+  });
+
+  test('plugin context rejects slash extensions without registry', () {
+    final context = WenzPluginContext(controller: WenzRichTextController());
+
+    expect(
+      () => context.addSlashMenuFilter((item, query) => true),
+      throwsStateError,
+    );
+    expect(
+      () => context.setSlashMenuSorter(null),
       throwsStateError,
     );
   });

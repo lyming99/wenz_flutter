@@ -1,0 +1,10 @@
+**完成**
+- 已完成 P004，未修改 plan 文件、checkbox 或进度区。
+- 统一了块工具栏按钮尺寸、图标尺寸、圆角、前景/禁用色，以及 hover/focus/pressed 状态：`lib/src/widgets/wenz_rich_text_editor.dart:122`、`lib/src/widgets/wenz_rich_text_editor.dart:230`
+- 已应用到代码块、表格浮动工具栏、对象块工具栏和附件菜单按钮：`lib/src/widgets/wenz_rich_text_editor.dart:5973`、`lib/src/widgets/wenz_rich_text_editor.dart:6356`、`lib/src/widgets/wenz_rich_text_editor.dart:9329`
+- 补充了相关 widget 尺寸断言，覆盖代码块、对象块、附件、表格工具栏：`test/widgets/wenz_rich_text_editor_test.dart:1634`、`test/widgets/wenz_rich_text_editor_test.dart:9142`
+
+**验证**
+- 已运行最小相关测试：`flutter test test/widgets/wenz_rich_text_editor_test.dart --name "code block toolbar copies code and changes language|object block toolbar copies duplicates moves and deletes|file block stays compact and updates status from action menu|table floating toolbar pointer does not penetrate selection layer"`
+- 结果：4 个用例全部通过。
+- 另做了 scoped whitespace 检查，通过；仅有既有 LF/CRLF 提示。

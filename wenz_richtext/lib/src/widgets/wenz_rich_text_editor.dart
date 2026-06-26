@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_math_fork/flutter_math.dart';
@@ -50,6 +51,28 @@ typedef _RowBlockFormatChangeHandler = void Function(
   _RowBlockFormat format,
 );
 
+EditorShortcutPlatform _currentShortcutPlatform() {
+  if (kIsWeb) {
+    return EditorShortcutPlatform.web;
+  }
+  return switch (defaultTargetPlatform) {
+    TargetPlatform.android => EditorShortcutPlatform.android,
+    TargetPlatform.fuchsia => EditorShortcutPlatform.all,
+    TargetPlatform.iOS => EditorShortcutPlatform.iOS,
+    TargetPlatform.linux => EditorShortcutPlatform.linux,
+    TargetPlatform.macOS => EditorShortcutPlatform.macOS,
+    TargetPlatform.windows => EditorShortcutPlatform.windows,
+  };
+}
+
+IconData _iconForRowFormat(_RowBlockFormat format) {
+  return switch (format) {
+    _RowBlockFormat.paragraph => Icons.notes,
+    _RowBlockFormat.heading => Icons.title,
+    _RowBlockFormat.code => Icons.code,
+  };
+}
+
 /// Caret geometry constants — kept in one place so the painted caret, the caret
 /// rect reported to the IME, and any future theming all share the same source.
 const double _kCaretStrokeWidth = 1.5;
@@ -70,9 +93,10 @@ const double _kBlockReorderIndicatorHeight = 3.0;
 const double _kTableResizeHandleWidth = 12.0;
 const double _kMinTableColumnWidth = 48.0;
 const double _kMaxTableColumnWidth = 640.0;
-const double _kTableToolbarMinWidth = 420.0;
+const double _kTableToolbarMinWidth = 150.0;
 const double _kTableFloatingToolbarGap = 4.0;
-const double _kTableFloatingToolbarEstimatedHeight = 56.0;
+const double _kTableFloatingToolbarEstimatedHeight = 40.0;
+const double _kTableFloatingToolbarEstimatedWidth = 160.0;
 const int _kTableToolbarBackgroundColor = 0xFFFFF3CD;
 const double _kTableSurfaceRadius = 8.0;
 const double _kTableCellFontSize = 15.0;
@@ -82,7 +106,6 @@ const EdgeInsets _kTableCellPadding = EdgeInsets.symmetric(
 );
 const Color _kTableBorderColor = Color(0xFFECE9F5);
 const Color _kTableEvenRowBackgroundColor = Color(0xFFFAFAFF);
-const double _kImageFloatingToolbarGap = 6.0;
 
 /// Minimum block height multiplier applied to the block's font size, ensuring
 /// a tap target even for empty paragraphs. A single constant so the text,
@@ -106,7 +129,21 @@ const double _kCodeBlockPaddingVertical = 18.0;
 const double _kCodeBlockPaddingHorizontal = 20.0;
 const int _kCodeBlockBackgroundColor = 0xFF1E1E2E;
 const int _kCodeBlockTextColor = 0xFFE6E6F0;
+const int _kCodeBlockSelectionHighlightColor = 0x944C7DFF;
+const int _kCodeLineNumberColor = 0x8AE6E6F0;
+const double _kCodeLineNumberGap = 12.0;
 const int _kCodeLanguageTagColor = 0xB38A8AFF;
+const double _kBlockFloatingToolbarInset = 6.0;
+const double _kBlockToolbarButtonSize = 32.0;
+const double _kBlockToolbarIconSize = 18.0;
+const double _kBlockToolbarButtonRadius = 8.0;
+const Size _kBlockToolbarButtonFixedSize =
+    Size.square(_kBlockToolbarButtonSize);
+const BoxConstraints _kBlockToolbarButtonConstraints = BoxConstraints.tightFor(
+  width: _kBlockToolbarButtonSize,
+  height: _kBlockToolbarButtonSize,
+);
+const double _kCodeFloatingToolbarHeight = _kBlockToolbarButtonSize;
 const int _kCodeKeywordColor = 0xFFC792EA;
 const int _kCodeStringColor = 0xFFC3E88D;
 const int _kCodeTypeColor = 0xFF82AAFF;
@@ -140,9 +177,26 @@ const double _kVideoFrameFallbackWidth = 320.0;
 const int _kFileCardBorderColor = 0xFFECE9F5;
 const double _kFileIconSize = 40.0;
 const double _kFileCardGap = 14.0;
-const double _kFileActionMenuButtonSize = 32.0;
-const double _kFileActionMenuMinWidth = 176.0;
-const double _kFileActionMenuMaxWidth = 320.0;
+const double _kPopupMenuRadius = 12.0;
+const double _kPopupMenuElevation = 6.0;
+const double _kPopupMenuMinWidth = 184.0;
+const double _kPopupMenuMaxWidth = 320.0;
+const double _kPopupMenuMaxHeight = 560.0;
+const double _kPopupMenuItemHeight = 32.0;
+const double _kPopupMenuDividerHeight = 8.0;
+const double _kPopupMenuTextMaxWidth = 212.0;
+const double _kSlashMenuGap = 6.0;
+const double _kPopupViewportInset = 8.0;
+const EdgeInsets _kPopupMenuPadding = EdgeInsets.all(4);
+const EdgeInsets _kPopupMenuItemPadding = EdgeInsets.symmetric(horizontal: 12);
+const RouteSettings _kPopupMenuRouteSettings = RouteSettings(
+  name: 'wenz-richtext-popup-menu',
+);
+const BoxConstraints _kPopupMenuConstraints = BoxConstraints(
+  minWidth: _kPopupMenuMinWidth,
+  maxWidth: _kPopupMenuMaxWidth,
+  maxHeight: _kPopupMenuMaxHeight,
+);
 const int _kEmbedBlockBorderColor = 0xFFCFCBE0;
 const int _kEmbedBlockBackgroundColor = 0xFFFAFAFF;
 const int _kFormulaBlockBackgroundColor = 0xFFE8E0FF;
@@ -166,6 +220,140 @@ const int _kAtomicBlockSelectionLength = 1;
 
 /// Pixels of horizontal indent per indent level.
 const double _kIndentPixelsPerLevel = 24;
+
+Color _popupMenuColor(ThemeData theme) => theme.colorScheme.surfaceContainerLow;
+
+Color _popupMenuShadowColor(ThemeData theme) =>
+    theme.colorScheme.shadow.withAlpha(48);
+
+ShapeBorder _popupMenuShape(ThemeData theme) {
+  return RoundedRectangleBorder(
+    side: BorderSide(color: theme.colorScheme.outlineVariant.withAlpha(180)),
+    borderRadius: BorderRadius.circular(_kPopupMenuRadius),
+  );
+}
+
+Color _blockToolbarIconColor(ThemeData theme) =>
+    theme.colorScheme.onSurfaceVariant;
+
+Color _blockToolbarDisabledIconColor(ThemeData theme) =>
+    theme.colorScheme.onSurfaceVariant.withAlpha(96);
+
+Color _blockToolbarPressedOverlayColor(ThemeData theme) =>
+    theme.colorScheme.primary.withAlpha(34);
+
+ButtonStyle _blockToolbarIconButtonStyle(
+  ThemeData theme, {
+  Color? foregroundColor,
+  Color? disabledForegroundColor,
+}) {
+  final colorScheme = theme.colorScheme;
+  return IconButton.styleFrom(
+    fixedSize: _kBlockToolbarButtonFixedSize,
+    minimumSize: _kBlockToolbarButtonFixedSize,
+    maximumSize: _kBlockToolbarButtonFixedSize,
+    padding: EdgeInsets.zero,
+    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    visualDensity: VisualDensity.standard,
+    foregroundColor: foregroundColor ?? _blockToolbarIconColor(theme),
+    disabledForegroundColor:
+        disabledForegroundColor ?? _blockToolbarDisabledIconColor(theme),
+    backgroundColor: Colors.transparent,
+    disabledBackgroundColor: Colors.transparent,
+    hoverColor: colorScheme.surfaceContainerHighest.withAlpha(150),
+    focusColor: colorScheme.primary.withAlpha(26),
+    highlightColor: _blockToolbarPressedOverlayColor(theme),
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(_kBlockToolbarButtonRadius),
+    ),
+  );
+}
+
+class _PopupMenuItemContent extends StatelessWidget {
+  const _PopupMenuItemContent({
+    required this.icon,
+    required this.label,
+    this.shortcut,
+    this.enabled = true,
+    this.selected = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final String? shortcut;
+  final bool enabled;
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final effectiveIcon = selected ? Icons.check : icon;
+    final iconColor = !enabled
+        ? colorScheme.onSurfaceVariant.withAlpha(110)
+        : selected
+            ? colorScheme.primary
+            : colorScheme.onSurfaceVariant;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        SizedBox(
+          width: 22,
+          child: Icon(
+            effectiveIcon,
+            size: 18,
+            color: iconColor,
+          ),
+        ),
+        const SizedBox(width: 10),
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: _kPopupMenuTextMaxWidth),
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        if (shortcut != null) ...<Widget>[
+          const SizedBox(width: 18),
+          Text(
+            shortcut!,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _EditorPopupMenuDismissal {
+  static NavigatorState? _navigator;
+
+  static void register(NavigatorState? navigator) {
+    _navigator = navigator;
+  }
+
+  static void unregister(NavigatorState? navigator) {
+    if (identical(_navigator, navigator)) {
+      _navigator = null;
+    }
+  }
+
+  static void dismiss() {
+    dismissFrom(_navigator);
+    _navigator = null;
+  }
+
+  static void dismissFrom(NavigatorState? navigator) {
+    if (navigator?.mounted == true && navigator!.canPop()) {
+      navigator.popUntil(
+        (route) => route.settings.name != _kPopupMenuRouteSettings.name,
+      );
+    }
+  }
+}
 
 /// Implementation-side baseline extracted from `ui/richtext_design.html`.
 ///
@@ -311,6 +499,41 @@ final class WenzRichTextDesignBaseline {
   };
 }
 
+/// Display-only policy for code-block line numbers.
+///
+/// Line numbers are derived from [CodeBlockNode.code] at render time. They do
+/// not add fields to [CodeBlockNode], codecs, clipboard payloads, undo/redo
+/// commands, or text-offset mapping.
+final class WenzCodeBlockLineNumbers {
+  const WenzCodeBlockLineNumbers._();
+
+  static const int firstNumber = 1;
+  static const bool displayOnly = true;
+  static const bool storedInDocumentModel = false;
+  static const bool storedInCodecs = false;
+  static const bool copiedWithCode = false;
+  static const bool recordedInUndoRedoCommands = false;
+  static const bool participatesInTextOffsetMapping = false;
+  static const bool gutterScrollsHorizontallyWithCode = false;
+  static const TextAlign gutterTextAlign = TextAlign.right;
+  static const String fontFamily = 'JetBrains Mono';
+  static const double fontSize = _kCodeBlockFontSize;
+  static const double lineHeight = _kCodeBlockLineHeight;
+  static const int color = _kCodeLineNumberColor;
+  static const double gapToCode = _kCodeLineNumberGap;
+
+  static int lineCount(String code) => code.split('\n').length;
+
+  static List<String> labelsForCode(String code) {
+    return List<String>.generate(
+      lineCount(code),
+      (index) => '${firstNumber + index}',
+    );
+  }
+
+  static int maxLabelDigits(String code) => lineCount(code).toString().length;
+}
+
 /// Exposes the editor's [SharedTextLayoutCache] down the subtree so each
 /// [_TextSelectionSurface] can fetch (and reuse) its [TextLayoutService] across
 /// remount, without threading the cache through every renderer widget.
@@ -411,6 +634,7 @@ class WenzRichTextEditor extends StatefulWidget {
     this.readOnly = false,
     this.showDebugOverlay = false,
     this.enableIme = true,
+    this.shortcutConfiguration = const EditorShortcutConfiguration(),
     this.blockRenderers,
     this.mediaResolver,
     this.inlineEmbedRenderer,
@@ -425,6 +649,10 @@ class WenzRichTextEditor extends StatefulWidget {
   final WenzRichTextController controller;
   final EdgeInsetsGeometry padding;
   final double blockSpacing;
+
+  /// Baseline text style for editable content. [TextStyle.color] is the
+  /// editor's default font color; runs without [TextAttributes.color] inherit
+  /// it unless a link style supplies the foreground color.
   final TextStyle? textStyle;
   final ScrollPhysics? physics;
   final FocusNode? focusNode;
@@ -440,6 +668,12 @@ class WenzRichTextEditor extends StatefulWidget {
   /// fall back to direct key-event character insertion (used by headless
   /// widget tests that inject characters via [sendKeyEvent]).
   final bool enableIme;
+
+  /// Optional shortcut configuration applied on top of the built-in keymap.
+  ///
+  /// Updating this value rebuilds the resolver used by subsequent key events;
+  /// the editor controller does not need to be recreated.
+  final EditorShortcutConfiguration shortcutConfiguration;
 
   /// Optional [BlockRendererRegistry]. When `null`, the editor builds a fresh
   /// registry with the built-in default renderers. Pass your own to override
@@ -521,6 +755,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
   /// The focus node currently registered with the controller, tracked so we can
   /// detect swaps and clear it cleanly on dispose.
   FocusNode? _controllerAttachedFocusNode;
+  bool _hadEditorFocus = false;
 
   /// Remembered horizontal column for repeated Up/Down moves, so the caret
   /// keeps its column across multiple line jumps. Cleared on Left/Right/Home/
@@ -528,8 +763,10 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
   double? _verticalPreferX;
   int _generatedBlockCount = 0;
   late final EditorTextInputClient _inputClient;
-  late final EditorShortcutManager _shortcutManager =
-      const EditorShortcutManager();
+  late EditorShortcutManager _shortcutManager = EditorShortcutManager(
+    configuration: widget.shortcutConfiguration,
+    platform: _currentShortcutPlatform(),
+  );
   late final BlockGeometryRegistry _registry = BlockGeometryRegistry();
   late final ScrollController _scrollController = ScrollController();
   late final SharedTextLayoutCache _layoutCache = SharedTextLayoutCache();
@@ -621,8 +858,12 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     _inputClient.viewIdProvider = _resolveViewId;
     _inputClient.performSelectorHandler = _handlePlatformSelector;
     widget.controller.addListener(_handleControllerChanged);
+    _scrollController.addListener(_handleScrollChanged);
     widget.findController?.addListener(_handleFindControllerChanged);
     widget.slashMenuController?.attachEditor(widget.controller);
+    if (widget.readOnly) {
+      widget.slashMenuController?.close();
+    }
     widget.slashMenuController?.addListener(_handleSlashMenuChanged);
     widget.outlineController?.addListener(_handleOutlineControllerChanged);
     _syncFindControllerOutline();
@@ -642,6 +883,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
   void didUpdateWidget(covariant WenzRichTextEditor oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.controller != widget.controller) {
+      _EditorPopupMenuDismissal.dismiss();
       oldWidget.controller.removeListener(_handleControllerChanged);
       oldWidget.controller.attachFocusNode(null);
       widget.controller.addListener(_handleControllerChanged);
@@ -658,12 +900,24 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
       oldWidget.findController?.removeListener(_handleFindControllerChanged);
       widget.findController?.addListener(_handleFindControllerChanged);
     }
+    if (oldWidget.shortcutConfiguration != widget.shortcutConfiguration) {
+      _shortcutManager = EditorShortcutManager(
+        configuration: widget.shortcutConfiguration,
+        platform: _currentShortcutPlatform(),
+      );
+    }
     if (oldWidget.slashMenuController != widget.slashMenuController) {
       oldWidget.slashMenuController?.removeListener(_handleSlashMenuChanged);
       widget.slashMenuController?.attachEditor(widget.controller);
+      if (widget.readOnly) {
+        widget.slashMenuController?.close();
+      }
       widget.slashMenuController?.addListener(_handleSlashMenuChanged);
     } else if (oldWidget.controller != widget.controller) {
       widget.slashMenuController?.attachEditor(widget.controller);
+    }
+    if (!oldWidget.readOnly && widget.readOnly) {
+      widget.slashMenuController?.close();
     }
     if (oldWidget.outlineController != widget.outlineController) {
       oldWidget.outlineController?.removeListener(
@@ -687,7 +941,9 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
 
   @override
   void dispose() {
+    _EditorPopupMenuDismissal.dismiss();
     widget.controller.removeListener(_handleControllerChanged);
+    _scrollController.removeListener(_handleScrollChanged);
     widget.findController?.removeListener(_handleFindControllerChanged);
     widget.slashMenuController?.removeListener(_handleSlashMenuChanged);
     widget.outlineController?.removeListener(_handleOutlineControllerChanged);
@@ -724,6 +980,12 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     }
   }
 
+  void _handleScrollChanged() {
+    if (mounted && widget.slashMenuController?.isOpen == true) {
+      setState(() {});
+    }
+  }
+
   void _handleOutlineControllerChanged() {
     if (!mounted) {
       return;
@@ -741,6 +1003,9 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
 
   void _handleControllerChanged() {
     if (mounted) {
+      if (widget.readOnly) {
+        widget.slashMenuController?.close();
+      }
       _syncTableToolbarOverlayWithSelection();
       if (_revealCurrentSelectionIfHidden()) {
         _lastScrollCheckedCaret = null;
@@ -869,6 +1134,11 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
       _inputClient.attach();
     } else {
       _inputClient.detach();
+    }
+    if (focusNode.hasFocus) {
+      _hadEditorFocus = true;
+    } else if (_hadEditorFocus) {
+      widget.slashMenuController?.close();
     }
     setState(() {});
   }
@@ -1109,15 +1379,42 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
             onTapBeyondContent: _handleTapBeyondContent,
             child: editor,
           ),
-          if (widget.slashMenuController?.isOpen == true)
-            Positioned(
-              left: _slashMenuOffset().dx,
-              top: _slashMenuOffset().dy,
-              child: WenzSlashMenuOverlay(
-                controller: widget.slashMenuController!,
-              ),
-            ),
+          if (!widget.readOnly && widget.slashMenuController?.isOpen == true)
+            _buildSlashMenuOverlay(widget.slashMenuController!),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSlashMenuOverlay(SlashMenuController controller) {
+    final anchor = _slashMenuAnchor();
+    final overlayBox = _editorOverlayKey.currentContext?.findRenderObject();
+    final hasOverlaySize = overlayBox is RenderBox && overlayBox.hasSize;
+    final overlaySize = hasOverlaySize ? overlayBox.size : Size.zero;
+    final availableWidth = math.max(
+      0.0,
+      hasOverlaySize
+          ? overlaySize.width - anchor.offset.dx - _kPopupViewportInset
+          : _kPopupMenuMaxWidth,
+    );
+    final availableHeight = math.max(
+      0.0,
+      hasOverlaySize
+          ? (anchor.opensAbove
+              ? anchor.offset.dy - _kPopupViewportInset
+              : overlaySize.height - anchor.offset.dy - _kPopupViewportInset)
+          : _kPopupMenuMaxHeight,
+    );
+    return Positioned(
+      left: anchor.offset.dx,
+      top: anchor.opensAbove ? null : anchor.offset.dy,
+      bottom: anchor.opensAbove && hasOverlaySize
+          ? overlaySize.height - anchor.offset.dy
+          : null,
+      child: WenzSlashMenuOverlay(
+        controller: controller,
+        maxWidth: math.min(_kPopupMenuMaxWidth, availableWidth),
+        maxHeight: math.min(_kPopupMenuMaxHeight, availableHeight),
       ),
     );
   }
@@ -1127,31 +1424,37 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     FocusNode focusNode,
     Widget child,
   ) {
-    return _SharedLayoutCacheScope(
-      cache: _layoutCache,
-      child: Focus(
-        focusNode: focusNode,
-        autofocus: widget.autofocus,
-        onKeyEvent: _handleKeyEvent,
-        child: Semantics(
-          container: true,
-          explicitChildNodes: true,
-          enabled: true,
-          textField: true,
-          readOnly: widget.readOnly,
-          focusable: true,
-          focused: focusNode.hasFocus,
-          multiline: true,
-          label: widget.accessibility.effectiveLabel(readOnly: widget.readOnly),
-          hint: widget.accessibility.effectiveHint(readOnly: widget.readOnly),
-          onTap: () => focusNode.requestFocus(),
-          onFocus: () => focusNode.requestFocus(),
-          child: _withHighContrastFocusHighlight(
-            context,
-            focusNode,
-            TableFloatingToolbarOverlayHost(
-              controller: _tableToolbarOverlayController,
-              child: child,
+    return TapRegion(
+      groupId: this,
+      enabled: widget.slashMenuController?.isOpen == true,
+      onTapOutside: (_) => widget.slashMenuController?.close(),
+      child: _SharedLayoutCacheScope(
+        cache: _layoutCache,
+        child: Focus(
+          focusNode: focusNode,
+          autofocus: widget.autofocus,
+          onKeyEvent: _handleKeyEvent,
+          child: Semantics(
+            container: true,
+            explicitChildNodes: true,
+            enabled: true,
+            textField: true,
+            readOnly: widget.readOnly,
+            focusable: true,
+            focused: focusNode.hasFocus,
+            multiline: true,
+            label:
+                widget.accessibility.effectiveLabel(readOnly: widget.readOnly),
+            hint: widget.accessibility.effectiveHint(readOnly: widget.readOnly),
+            onTap: () => focusNode.requestFocus(),
+            onFocus: () => focusNode.requestFocus(),
+            child: _withHighContrastFocusHighlight(
+              context,
+              focusNode,
+              TableFloatingToolbarOverlayHost(
+                controller: _tableToolbarOverlayController,
+                child: child,
+              ),
             ),
           ),
         ),
@@ -1184,7 +1487,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     );
   }
 
-  Offset _slashMenuOffset() {
+  _SlashMenuAnchor _slashMenuAnchor() {
     final fallback = widget.padding.resolve(TextDirection.ltr).topLeft;
     final selection = widget.controller.selection;
     final overlayContext = _editorOverlayKey.currentContext;
@@ -1193,17 +1496,43 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
         !selection.isCollapsed ||
         overlayBox is! RenderBox ||
         !overlayBox.hasSize) {
-      return fallback;
+      return _SlashMenuAnchor(offset: fallback);
     }
     final caret = _registry.caretRectForPosition(selection.extent);
     if (caret == null) {
-      return fallback;
+      return _SlashMenuAnchor(offset: fallback);
     }
-    final local = overlayBox.globalToLocal(caret.bottomLeft);
-    final maxLeft = overlayBox.size.width - 280;
-    return Offset(
-      local.dx.clamp(0, maxLeft > 0 ? maxLeft : 0).toDouble(),
-      (local.dy + 6).clamp(0, overlayBox.size.height).toDouble(),
+    final mediaQuery = MediaQuery.maybeOf(context);
+    final keyboardInset = mediaQuery?.viewInsets.bottom ?? 0.0;
+    final viewportHeight = mediaQuery?.size.height ?? overlayBox.size.height;
+    final overlayTop = overlayBox.localToGlobal(Offset.zero).dy;
+    final keyboardTop = viewportHeight - keyboardInset;
+    final keyboardClippedBottom = keyboardInset > 0
+        ? keyboardTop - overlayTop
+        : overlayBox.size.height;
+    final caretTop = overlayBox.globalToLocal(caret.topLeft);
+    final caretBottom = overlayBox.globalToLocal(caret.bottomLeft);
+    final maxLeft =
+        overlayBox.size.width - _kPopupMenuMinWidth - _kPopupViewportInset;
+    final visibleBottom = math.max(
+      _kPopupViewportInset,
+      math.min(overlayBox.size.height, keyboardClippedBottom),
+    );
+    final preferredBelowTop = caretBottom.dy + _kSlashMenuGap;
+    final roomBelow = visibleBottom - preferredBelowTop - _kPopupViewportInset;
+    final roomAbove = caretTop.dy - _kSlashMenuGap - _kPopupViewportInset;
+    final opensAbove = roomBelow < _kPopupMenuItemHeight && roomAbove > roomBelow;
+    final preferredTop =
+        opensAbove ? caretTop.dy - _kSlashMenuGap : preferredBelowTop;
+    final maxTop = visibleBottom - _kPopupViewportInset;
+    return _SlashMenuAnchor(
+      offset: Offset(
+        caretBottom.dx.clamp(0, maxLeft > 0 ? maxLeft : 0).toDouble(),
+        preferredTop
+            .clamp(_kPopupViewportInset, maxTop > 0 ? maxTop : 0)
+            .toDouble(),
+      ),
+      opensAbove: opensAbove,
     );
   }
 
@@ -2024,6 +2353,9 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
       event,
       shiftPressed: keyboard.isShiftPressed,
       primaryPressed: keyboard.isControlPressed || keyboard.isMetaPressed,
+      controlPressed: keyboard.isControlPressed,
+      altPressed: keyboard.isAltPressed,
+      metaPressed: keyboard.isMetaPressed,
       readOnly: widget.readOnly,
       imeEnabled: widget.enableIme,
       inputClientAttached: _inputClient.isAttached,
@@ -2074,7 +2406,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
 
   bool _handleSlashMenuKeyEvent(KeyEvent event) {
     final slashMenu = widget.slashMenuController;
-    if (slashMenu == null || !slashMenu.isOpen) {
+    if (widget.readOnly || slashMenu == null || !slashMenu.isOpen) {
       return false;
     }
     if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
@@ -3026,6 +3358,16 @@ class _BlockExtentCache {
       cache: this,
     );
   }
+}
+
+class _SlashMenuAnchor {
+  const _SlashMenuAnchor({
+    required this.offset,
+    this.opensAbove = false,
+  });
+
+  final Offset offset;
+  final bool opensAbove;
 }
 
 class _BlockLayoutMetrics {
@@ -4177,7 +4519,16 @@ class _BlockDragHandleButtonState extends State<_BlockDragHandleButton> {
     final selection = await showMenu<_ObjectMenuSelection>(
       context: context,
       position: position,
+      elevation: _kPopupMenuElevation,
+      shadowColor: _popupMenuShadowColor(Theme.of(context)),
+      surfaceTintColor: Colors.transparent,
+      shape: _popupMenuShape(Theme.of(context)),
+      menuPadding: _kPopupMenuPadding,
+      color: _popupMenuColor(Theme.of(context)),
+      constraints: _kPopupMenuConstraints,
+      clipBehavior: Clip.antiAlias,
       semanticLabel: '块操作',
+      routeSettings: _kPopupMenuRouteSettings,
       items: _buildMenuItems(context),
     );
     if (!mounted) {
@@ -4215,7 +4566,16 @@ class _BlockDragHandleButtonState extends State<_BlockDragHandleButton> {
     final selection = await showMenu<_ObjectMenuSelection>(
       context: context,
       position: position,
+      elevation: _kPopupMenuElevation,
+      shadowColor: _popupMenuShadowColor(Theme.of(context)),
+      surfaceTintColor: Colors.transparent,
+      shape: _popupMenuShape(Theme.of(context)),
+      menuPadding: _kPopupMenuPadding,
+      color: _popupMenuColor(Theme.of(context)),
+      constraints: _kPopupMenuConstraints,
+      clipBehavior: Clip.antiAlias,
       semanticLabel: '更多块操作',
+      routeSettings: _kPopupMenuRouteSettings,
       items: _buildMoreMenuItems(),
     );
     if (!mounted || selection == null) {
@@ -4235,16 +4595,33 @@ class _BlockDragHandleButtonState extends State<_BlockDragHandleButton> {
             ObjectBlockAction.copyContent,
           ),
           enabled: widget.blockPlainText.isNotEmpty,
-          child: const Text('复制块内容'),
+          height: _kPopupMenuItemHeight,
+          padding: _kPopupMenuItemPadding,
+          child: _PopupMenuItemContent(
+            icon: Icons.content_copy,
+            label: '复制块内容',
+            shortcut: 'Ctrl+C',
+            enabled: widget.blockPlainText.isNotEmpty,
+          ),
         ),
         const PopupMenuItem<_ObjectMenuSelection>(
           value: _ObjectMenuSelection.action(ObjectBlockAction.copyReference),
-          child: Text('复制块引用'),
+          height: _kPopupMenuItemHeight,
+          padding: _kPopupMenuItemPadding,
+          child: _PopupMenuItemContent(
+            icon: Icons.link,
+            label: '复制块引用',
+          ),
         ),
-        const PopupMenuDivider(),
+        const PopupMenuDivider(height: _kPopupMenuDividerHeight),
         const PopupMenuItem<_ObjectMenuSelection>(
           value: _ObjectMenuSelection.action(ObjectBlockAction.duplicate),
-          child: Text('创建块副本'),
+          height: _kPopupMenuItemHeight,
+          padding: _kPopupMenuItemPadding,
+          child: _PopupMenuItemContent(
+            icon: Icons.copy_all_outlined,
+            label: '创建块副本',
+          ),
         ),
       ]);
     }
@@ -4254,7 +4631,12 @@ class _BlockDragHandleButtonState extends State<_BlockDragHandleButton> {
       entries.add(
         const PopupMenuItem<_ObjectMenuSelection>(
           value: _ObjectMenuSelection.more(),
-          child: Text('更多块操作'),
+          height: _kPopupMenuItemHeight,
+          padding: _kPopupMenuItemPadding,
+          child: _PopupMenuItemContent(
+            icon: Icons.more_horiz,
+            label: '更多块操作',
+          ),
         ),
       );
     }
@@ -4263,7 +4645,12 @@ class _BlockDragHandleButtonState extends State<_BlockDragHandleButton> {
         PopupMenuDivider(),
         PopupMenuItem<_ObjectMenuSelection>(
           value: _ObjectMenuSelection.action(ObjectBlockAction.delete),
-          child: Text('删除块'),
+          height: _kPopupMenuItemHeight,
+          padding: _kPopupMenuItemPadding,
+          child: _PopupMenuItemContent(
+            icon: Icons.delete_outline,
+            label: '删除块',
+          ),
         ),
       ]);
     }
@@ -4289,7 +4676,7 @@ class _BlockDragHandleButtonState extends State<_BlockDragHandleButton> {
         _rowFormatMenuItem(_RowBlockFormat.code, '代码块'),
       ]);
       if (widget.blockCount > 1) {
-        entries.add(const PopupMenuDivider());
+        entries.add(const PopupMenuDivider(height: _kPopupMenuDividerHeight));
       }
     }
     if (widget.blockCount > 1) {
@@ -4297,12 +4684,24 @@ class _BlockDragHandleButtonState extends State<_BlockDragHandleButton> {
         PopupMenuItem<_ObjectMenuSelection>(
           value: const _ObjectMenuSelection.action(ObjectBlockAction.moveUp),
           enabled: canMoveUp && widget.onAction != null,
-          child: const Text('上移块'),
+          height: _kPopupMenuItemHeight,
+          padding: _kPopupMenuItemPadding,
+          child: _PopupMenuItemContent(
+            icon: Icons.arrow_upward,
+            label: '上移块',
+            enabled: canMoveUp && widget.onAction != null,
+          ),
         ),
         PopupMenuItem<_ObjectMenuSelection>(
           value: const _ObjectMenuSelection.action(ObjectBlockAction.moveDown),
           enabled: canMoveDown && widget.onAction != null,
-          child: const Text('下移块'),
+          height: _kPopupMenuItemHeight,
+          padding: _kPopupMenuItemPadding,
+          child: _PopupMenuItemContent(
+            icon: Icons.arrow_downward,
+            label: '下移块',
+            enabled: canMoveDown && widget.onAction != null,
+          ),
         ),
       ]);
     }
@@ -4316,7 +4715,14 @@ class _BlockDragHandleButtonState extends State<_BlockDragHandleButton> {
     return PopupMenuItem<_ObjectMenuSelection>(
       value: _ObjectMenuSelection.format(format),
       enabled: widget.blockFormat != format,
-      child: Text(label),
+      height: _kPopupMenuItemHeight,
+      padding: _kPopupMenuItemPadding,
+      child: _PopupMenuItemContent(
+        icon: _iconForRowFormat(format),
+        label: label,
+        enabled: widget.blockFormat != format,
+        selected: widget.blockFormat == format,
+      ),
     );
   }
 
@@ -5466,13 +5872,13 @@ class _CodeBlockRenderer extends StatelessWidget {
       PositionPath.blockCode(block.id),
     );
     final path = PositionPath.blockCode(block.id);
-    final selected = _selectionRangeForPath(
-          selection,
-          blockIndex,
-          path,
-          block.code.length,
-        ) !=
-        null;
+    final selected = _selectionTouchesPath(
+      selection,
+      blockIndex,
+      block.id,
+      path,
+      block.code.length,
+    );
     final codeSpan = _codeSpan(
       block.code,
       block.language,
@@ -5495,66 +5901,67 @@ class _CodeBlockRenderer extends StatelessWidget {
             horizontal: _kCodeBlockPaddingHorizontal,
             vertical: _kCodeBlockPaddingVertical,
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              _CodeBlockToolbar(
-                language: block.language,
-                onLanguageChanged: onLanguageChanged,
-                onCopyPressed: onCodeCopied == null
-                    ? null
-                    : () {
-                        unawaited(onCodeCopied!(block.code));
-                      },
-              ),
-              const SizedBox(height: 10),
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final textDirection = Directionality.of(context);
-                  final availableWidth = constraints.maxWidth.isFinite
-                      ? constraints.maxWidth
-                      : MediaQuery.sizeOf(context).width;
-                  final contentWidth = math.max(
-                    availableWidth,
-                    _measureInlineSpanWidth(codeSpan, textDirection) + 1,
-                  );
-                  return SingleChildScrollView(
-                    key: ValueKey<String>(
-                      'wenz-richtext-code-scroll-${block.id}',
-                    ),
-                    scrollDirection: Axis.horizontal,
-                    child: SizedBox(
-                      width: contentWidth,
-                      child: _TextSelectionSurface(
-                        blockId: block.id,
-                        blockIndex: blockIndex,
-                        path: path,
-                        textLength: block.code.length,
-                        textSpan: codeSpan,
-                        offsetMapper: _InlineOffsetMapper.identity(
-                          block.code.length,
-                        ),
-                        textAlign: TextAlign.start,
-                        minHeight: (codeStyle.fontSize ?? _kCodeBlockFontSize) *
-                            _kBlockMinHeightFactor,
-                        selection: selection,
-                        showCaret: showCaret,
-                        registry: registry,
-                        showDebugOverlay: showDebugOverlay,
-                        findRanges: _findRangesForPath(
-                          findMatches,
-                          currentFindMatch,
-                          blockIndex,
-                          path,
-                          block.code.length,
-                        ),
+          child: _BlockFloatingToolbarSurface(
+            toolbarTop: 1 - (_kCodeFloatingToolbarHeight / 2),
+            toolbar: selected
+                ? _CodeBlockToolbar(
+                    language: block.language,
+                    onLanguageChanged: onLanguageChanged,
+                    onCopyPressed: onCodeCopied == null
+                        ? null
+                        : () {
+                            unawaited(onCodeCopied!(block.code));
+                          },
+                  )
+                : null,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final textDirection = Directionality.of(context);
+                final availableWidth = constraints.maxWidth.isFinite
+                    ? constraints.maxWidth
+                    : MediaQuery.sizeOf(context).width;
+                final contentWidth = math.max(
+                  availableWidth,
+                  _measureInlineSpanWidth(codeSpan, textDirection) + 1,
+                );
+                return SingleChildScrollView(
+                  key: ValueKey<String>(
+                    'wenz-richtext-code-scroll-${block.id}',
+                  ),
+                  scrollDirection: Axis.horizontal,
+                  child: SizedBox(
+                    width: contentWidth,
+                    child: _TextSelectionSurface(
+                      blockId: block.id,
+                      blockIndex: blockIndex,
+                      path: path,
+                      textLength: block.code.length,
+                      textSpan: codeSpan,
+                      offsetMapper: _InlineOffsetMapper.identity(
+                        block.code.length,
+                      ),
+                      textAlign: TextAlign.start,
+                      minHeight: (codeStyle.fontSize ?? _kCodeBlockFontSize) *
+                          _kBlockMinHeightFactor,
+                      selection: selection,
+                      showCaret: showCaret,
+                      registry: registry,
+                      showDebugOverlay: showDebugOverlay,
+                      selectionHighlightColor: const Color(
+                        _kCodeBlockSelectionHighlightColor,
+                      ),
+                      findRanges: _findRangesForPath(
+                        findMatches,
+                        currentFindMatch,
+                        blockIndex,
+                        path,
+                        block.code.length,
                       ),
                     ),
-                  );
-                },
-              ),
-            ],
+                  ),
+                );
+              },
+            ),
           ),
         ),
       ),
@@ -5573,6 +5980,50 @@ double _measureInlineSpanWidth(InlineSpan span, TextDirection textDirection) {
   return width.isFinite ? width : 0;
 }
 
+class _BlockFloatingToolbarSurface extends StatelessWidget {
+  const _BlockFloatingToolbarSurface({
+    required this.child,
+    this.toolbar,
+    this.toolbarTop = _kBlockFloatingToolbarInset,
+  });
+
+  final Widget child;
+  final Widget? toolbar;
+  final double toolbarTop;
+
+  @override
+  Widget build(BuildContext context) {
+    final toolbar = this.toolbar;
+    if (toolbar == null) {
+      return child;
+    }
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final maxToolbarWidth = constraints.maxWidth.isFinite
+            ? math.max(
+                0.0,
+                constraints.maxWidth - (_kBlockFloatingToolbarInset * 2),
+              )
+            : double.infinity;
+        return Stack(
+          clipBehavior: Clip.none,
+          children: <Widget>[
+            child,
+            PositionedDirectional(
+              top: toolbarTop,
+              end: _kBlockFloatingToolbarInset,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: maxToolbarWidth),
+                child: toolbar,
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
 class _CodeBlockToolbar extends StatelessWidget {
   const _CodeBlockToolbar({
     required this.language,
@@ -5586,64 +6037,70 @@ class _CodeBlockToolbar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     const tagColor = Color(_kCodeLanguageTagColor);
-    final labelStyle = theme.textTheme.labelSmall?.copyWith(
-          color: tagColor,
-          fontWeight: FontWeight.w600,
-          fontSize: 11,
-        ) ??
-        const TextStyle(
-          color: tagColor,
-          fontWeight: FontWeight.w600,
-          fontSize: 11,
-        );
     final languages = _codeLanguageOptions(language);
-    final value = languages.contains(language) ? language : '';
+    final current = languages.contains(language) ? language : '';
 
-    return SizedBox(
-      height: 28,
-      child: Row(
-        children: <Widget>[
-          const Icon(Icons.code, size: 16, color: tagColor),
-          const SizedBox(width: 6),
-          DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              value: value,
-              isDense: true,
-              borderRadius: BorderRadius.circular(8),
-              dropdownColor: const Color(0xFF2A2A3E),
-              style: labelStyle,
-              iconSize: 18,
-              iconEnabledColor: tagColor,
-              iconDisabledColor: tagColor.withAlpha(96),
-              onChanged: onLanguageChanged == null
-                  ? null
-                  : (value) {
-                      if (value != null) {
-                        onLanguageChanged!(value);
-                      }
-                    },
-              items: <DropdownMenuItem<String>>[
-                for (final option in languages)
-                  DropdownMenuItem<String>(
-                    value: option,
-                    child: Text(_codeLanguageLabel(option)),
-                  ),
-              ],
+    return Material(
+      color: Colors.transparent,
+      child: SizedBox(
+        height: _kCodeFloatingToolbarHeight,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            IconButton(
+              tooltip: '复制代码',
+              padding: EdgeInsets.zero,
+              constraints: _kBlockToolbarButtonConstraints,
+              iconSize: _kBlockToolbarIconSize,
+              style: _blockToolbarIconButtonStyle(
+                Theme.of(context),
+                foregroundColor: tagColor,
+                disabledForegroundColor: tagColor.withAlpha(96),
+              ),
+              onPressed: onCopyPressed,
+              icon: const Icon(Icons.copy),
             ),
-          ),
-          const Spacer(),
-          IconButton(
-            tooltip: '复制代码',
-            visualDensity: VisualDensity.compact,
-            iconSize: 18,
-            color: tagColor,
-            disabledColor: tagColor.withAlpha(96),
-            onPressed: onCopyPressed,
-            icon: const Icon(Icons.copy),
-          ),
-        ],
+            if (onLanguageChanged != null)
+              PopupMenuButton<String>(
+                tooltip: '更多块操作',
+                icon: const Icon(Icons.more_horiz),
+                iconSize: _kBlockToolbarIconSize,
+                padding: EdgeInsets.zero,
+                constraints: _kPopupMenuConstraints,
+                style: _blockToolbarIconButtonStyle(
+                  Theme.of(context),
+                  foregroundColor: tagColor,
+                  disabledForegroundColor: tagColor.withAlpha(96),
+                ),
+                color: _popupMenuColor(Theme.of(context)),
+                elevation: _kPopupMenuElevation,
+                shadowColor: _popupMenuShadowColor(Theme.of(context)),
+                surfaceTintColor: Colors.transparent,
+                shape: _popupMenuShape(Theme.of(context)),
+                menuPadding: _kPopupMenuPadding,
+                position: PopupMenuPosition.under,
+                clipBehavior: Clip.antiAlias,
+                onSelected: onLanguageChanged,
+                routeSettings: _kPopupMenuRouteSettings,
+                itemBuilder: (context) => <PopupMenuEntry<String>>[
+                  for (final option in languages)
+                    PopupMenuItem<String>(
+                      value: option,
+                      enabled: option != current,
+                      height: _kPopupMenuItemHeight,
+                      padding: _kPopupMenuItemPadding,
+                      child: _PopupMenuItemContent(
+                        icon: Icons.code,
+                        label: _codeLanguageLabel(option),
+                        enabled: option != current,
+                        selected: option == current,
+                      ),
+                    ),
+                ],
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -5811,37 +6268,42 @@ class _TableBlockRenderer extends StatelessWidget {
               ],
             ),
           );
-          return TableFloatingToolbarOverlayAnchor(
-            controller: toolbarOverlayController,
-            requestBuilder: activeRange != null && onToolbarAction != null
-                ? ({
-                    required Object owner,
-                    required LayerLink anchorLink,
-                    required Rect anchorRect,
-                    required double visibleTop,
-                  }) =>
-                    TableFloatingToolbarOverlayRequest(
-                      owner: owner,
-                      anchorLink: anchorLink,
-                      anchorRect: anchorRect,
-                      visibleTop: visibleTop,
-                      tableBlockId: block.id,
-                      blockIndex: blockIndex,
-                      selectionRange: activeRange,
-                      minWidth: _kTableToolbarMinWidth,
-                      gap: _kTableFloatingToolbarGap,
-                      fallbackHeight: _kTableFloatingToolbarEstimatedHeight,
-                      toolbarBuilder: (context) => _TableFloatingToolbar(
-                        block: block,
+          return Align(
+            alignment: AlignmentDirectional.centerStart,
+            widthFactor: 1,
+            heightFactor: 1,
+            child: TableFloatingToolbarOverlayAnchor(
+              controller: toolbarOverlayController,
+              requestBuilder: activeRange != null && onToolbarAction != null
+                  ? ({
+                      required Object owner,
+                      required LayerLink anchorLink,
+                      required Rect anchorRect,
+                      required double visibleTop,
+                    }) =>
+                      TableFloatingToolbarOverlayRequest(
+                        owner: owner,
+                        anchorLink: anchorLink,
+                        anchorRect: anchorRect,
+                        visibleTop: visibleTop,
+                        tableBlockId: block.id,
                         blockIndex: blockIndex,
-                        range: activeRange,
-                        onAction: onToolbarAction!,
-                      ),
-                    )
-                : null,
-            tableBlockId: block.id,
-            blockIndex: blockIndex,
-            child: tableSurface,
+                        selectionRange: activeRange,
+                        minWidth: _kTableFloatingToolbarEstimatedWidth,
+                        gap: _kTableFloatingToolbarGap,
+                        fallbackHeight: _kTableFloatingToolbarEstimatedHeight,
+                        toolbarBuilder: (context) => _TableFloatingToolbar(
+                          block: block,
+                          blockIndex: blockIndex,
+                          range: activeRange,
+                          onAction: onToolbarAction!,
+                        ),
+                      )
+                  : null,
+              tableBlockId: block.id,
+              blockIndex: blockIndex,
+              child: tableSurface,
+            ),
           );
         },
       ),
@@ -5900,13 +6362,17 @@ class _TableFloatingToolbar extends StatelessWidget {
         (cell.rowSpan > 1 || cell.columnSpan > 1);
     return Material(
       key: const ValueKey<String>('table-floating-toolbar'),
-      elevation: 3,
-      color: theme.colorScheme.surface,
-      borderRadius: BorderRadius.circular(8),
+      elevation: _kPopupMenuElevation,
+      color: _popupMenuColor(theme),
+      shadowColor: _popupMenuShadowColor(theme),
+      surfaceTintColor: Colors.transparent,
+      borderRadius: BorderRadius.circular(_kPopupMenuRadius),
       child: DecoratedBox(
         decoration: BoxDecoration(
-          border: Border.all(color: theme.dividerColor.withAlpha(160)),
-          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: theme.colorScheme.outlineVariant.withAlpha(180),
+          ),
+          borderRadius: BorderRadius.circular(_kPopupMenuRadius),
         ),
         child: Padding(
           padding: const EdgeInsets.all(4),
@@ -5915,11 +6381,13 @@ class _TableFloatingToolbar extends StatelessWidget {
             runSpacing: 2,
             children: <Widget>[
               _button(
+                theme: theme,
                 icon: Icons.keyboard_arrow_down,
                 tooltip: '在下方插入行',
                 action: TableToolbarAction.insertRowBelow,
               ),
               _button(
+                theme: theme,
                 icon: Icons.keyboard_arrow_right,
                 tooltip: '在右侧插入列',
                 action: TableToolbarAction.insertColumnAfter,
@@ -5927,18 +6395,21 @@ class _TableFloatingToolbar extends StatelessWidget {
               _divider(theme),
               if (canSplit)
                 _button(
+                  theme: theme,
                   icon: Icons.call_split,
                   tooltip: '拆分单元格',
                   action: TableToolbarAction.splitCell,
                 )
               else
                 _button(
+                  theme: theme,
                   icon: Icons.call_merge,
                   tooltip: '合并所选单元格',
                   action: TableToolbarAction.mergeCells,
                   enabled: canMerge,
                 ),
               _moreButton(
+                context,
                 canDeleteRow: canDeleteRow,
                 canDeleteColumn: canDeleteColumn,
                 canMerge: canMerge,
@@ -5951,19 +6422,31 @@ class _TableFloatingToolbar extends StatelessWidget {
     );
   }
 
-  Widget _moreButton({
+  Widget _moreButton(
+    BuildContext context, {
     required bool canDeleteRow,
     required bool canDeleteColumn,
     required bool canMerge,
     required bool canSplit,
   }) {
+    final theme = Theme.of(context);
     return PopupMenuButton<_TableToolbarSelection>(
       tooltip: '更多表格操作',
       icon: const Icon(Icons.more_horiz),
-      iconSize: 18,
+      iconSize: _kBlockToolbarIconSize,
       padding: EdgeInsets.zero,
-      constraints: const BoxConstraints.tightFor(width: 32, height: 32),
+      constraints: _kPopupMenuConstraints,
+      style: _blockToolbarIconButtonStyle(theme),
+      color: _popupMenuColor(theme),
+      elevation: _kPopupMenuElevation,
+      shadowColor: _popupMenuShadowColor(theme),
+      surfaceTintColor: Colors.transparent,
+      shape: _popupMenuShape(theme),
+      menuPadding: _kPopupMenuPadding,
+      position: PopupMenuPosition.under,
+      clipBehavior: Clip.antiAlias,
       onSelected: _dispatchSelection,
+      routeSettings: _kPopupMenuRouteSettings,
       itemBuilder: (context) => _moreItems(
         canDeleteRow: canDeleteRow,
         canDeleteColumn: canDeleteColumn,
@@ -5982,83 +6465,168 @@ class _TableFloatingToolbar extends StatelessWidget {
     return <PopupMenuEntry<_TableToolbarSelection>>[
       const PopupMenuItem<_TableToolbarSelection>(
         value: _TableToolbarSelection(TableToolbarAction.insertRowAbove),
-        child: Text('在上方插入行'),
+        height: _kPopupMenuItemHeight,
+        padding: _kPopupMenuItemPadding,
+        child: _PopupMenuItemContent(
+          icon: Icons.keyboard_arrow_up,
+          label: '在上方插入行',
+        ),
       ),
       const PopupMenuItem<_TableToolbarSelection>(
         value: _TableToolbarSelection(TableToolbarAction.insertRowBelow),
-        child: Text('在下方插入行'),
+        height: _kPopupMenuItemHeight,
+        padding: _kPopupMenuItemPadding,
+        child: _PopupMenuItemContent(
+          icon: Icons.keyboard_arrow_down,
+          label: '在下方插入行',
+        ),
       ),
       PopupMenuItem<_TableToolbarSelection>(
         value: const _TableToolbarSelection(TableToolbarAction.deleteRow),
         enabled: canDeleteRow,
-        child: const Text('删除行'),
+        height: _kPopupMenuItemHeight,
+        padding: _kPopupMenuItemPadding,
+        child: _PopupMenuItemContent(
+          icon: Icons.table_rows_outlined,
+          label: '删除行',
+          enabled: canDeleteRow,
+        ),
       ),
-      const PopupMenuDivider(),
+      const PopupMenuDivider(height: _kPopupMenuDividerHeight),
       const PopupMenuItem<_TableToolbarSelection>(
         value: _TableToolbarSelection(TableToolbarAction.insertColumnBefore),
-        child: Text('在左侧插入列'),
+        height: _kPopupMenuItemHeight,
+        padding: _kPopupMenuItemPadding,
+        child: _PopupMenuItemContent(
+          icon: Icons.keyboard_arrow_left,
+          label: '在左侧插入列',
+        ),
       ),
       const PopupMenuItem<_TableToolbarSelection>(
         value: _TableToolbarSelection(TableToolbarAction.insertColumnAfter),
-        child: Text('在右侧插入列'),
+        height: _kPopupMenuItemHeight,
+        padding: _kPopupMenuItemPadding,
+        child: _PopupMenuItemContent(
+          icon: Icons.keyboard_arrow_right,
+          label: '在右侧插入列',
+        ),
       ),
       PopupMenuItem<_TableToolbarSelection>(
         value: const _TableToolbarSelection(TableToolbarAction.deleteColumn),
         enabled: canDeleteColumn,
-        child: const Text('删除列'),
+        height: _kPopupMenuItemHeight,
+        padding: _kPopupMenuItemPadding,
+        child: _PopupMenuItemContent(
+          icon: Icons.view_column_outlined,
+          label: '删除列',
+          enabled: canDeleteColumn,
+        ),
       ),
-      const PopupMenuDivider(),
+      const PopupMenuDivider(height: _kPopupMenuDividerHeight),
       const PopupMenuItem<_TableToolbarSelection>(
         value: _TableToolbarSelection(TableToolbarAction.toggleHeader),
-        child: Text('切换表头单元格'),
+        height: _kPopupMenuItemHeight,
+        padding: _kPopupMenuItemPadding,
+        child: _PopupMenuItemContent(
+          icon: Icons.table_chart_outlined,
+          label: '切换表头单元格',
+        ),
       ),
       const PopupMenuItem<_TableToolbarSelection>(
         value: _TableToolbarSelection(
           TableToolbarAction.setBackgroundColor,
           backgroundColor: _kTableToolbarBackgroundColor,
         ),
-        child: Text('设置单元格背景'),
+        height: _kPopupMenuItemHeight,
+        padding: _kPopupMenuItemPadding,
+        child: _PopupMenuItemContent(
+          icon: Icons.format_color_fill_outlined,
+          label: '设置单元格背景',
+        ),
       ),
       const PopupMenuItem<_TableToolbarSelection>(
         value: _TableToolbarSelection(TableToolbarAction.clearBackgroundColor),
-        child: Text('清除单元格背景'),
+        height: _kPopupMenuItemHeight,
+        padding: _kPopupMenuItemPadding,
+        child: _PopupMenuItemContent(
+          icon: Icons.format_color_reset_outlined,
+          label: '清除单元格背景',
+        ),
       ),
-      const PopupMenuDivider(),
+      const PopupMenuDivider(height: _kPopupMenuDividerHeight),
       const PopupMenuItem<_TableToolbarSelection>(
         value: _TableToolbarSelection(TableToolbarAction.alignLeft),
-        child: Text('列左对齐'),
+        height: _kPopupMenuItemHeight,
+        padding: _kPopupMenuItemPadding,
+        child: _PopupMenuItemContent(
+          icon: Icons.format_align_left,
+          label: '列左对齐',
+        ),
       ),
       const PopupMenuItem<_TableToolbarSelection>(
         value: _TableToolbarSelection(TableToolbarAction.alignCenter),
-        child: Text('列居中对齐'),
+        height: _kPopupMenuItemHeight,
+        padding: _kPopupMenuItemPadding,
+        child: _PopupMenuItemContent(
+          icon: Icons.format_align_center,
+          label: '列居中对齐',
+        ),
       ),
       const PopupMenuItem<_TableToolbarSelection>(
         value: _TableToolbarSelection(TableToolbarAction.alignRight),
-        child: Text('列右对齐'),
+        height: _kPopupMenuItemHeight,
+        padding: _kPopupMenuItemPadding,
+        child: _PopupMenuItemContent(
+          icon: Icons.format_align_right,
+          label: '列右对齐',
+        ),
       ),
       const PopupMenuItem<_TableToolbarSelection>(
         value: _TableToolbarSelection(TableToolbarAction.clearAlignment),
-        child: Text('清除列对齐'),
+        height: _kPopupMenuItemHeight,
+        padding: _kPopupMenuItemPadding,
+        child: _PopupMenuItemContent(
+          icon: Icons.format_align_justify,
+          label: '清除列对齐',
+        ),
       ),
-      const PopupMenuDivider(),
+      const PopupMenuDivider(height: _kPopupMenuDividerHeight),
       PopupMenuItem<_TableToolbarSelection>(
         value: const _TableToolbarSelection(TableToolbarAction.mergeCells),
         enabled: canMerge,
-        child: const Text('合并所选单元格'),
+        height: _kPopupMenuItemHeight,
+        padding: _kPopupMenuItemPadding,
+        child: _PopupMenuItemContent(
+          icon: Icons.call_merge,
+          label: '合并所选单元格',
+          enabled: canMerge,
+        ),
       ),
       PopupMenuItem<_TableToolbarSelection>(
         value: const _TableToolbarSelection(TableToolbarAction.splitCell),
         enabled: canSplit,
-        child: const Text('拆分单元格'),
+        height: _kPopupMenuItemHeight,
+        padding: _kPopupMenuItemPadding,
+        child: _PopupMenuItemContent(
+          icon: Icons.call_split,
+          label: '拆分单元格',
+          enabled: canSplit,
+        ),
       ),
       const PopupMenuItem<_TableToolbarSelection>(
         value: _TableToolbarSelection(TableToolbarAction.resetColumnWidth),
-        child: Text('重置列宽'),
+        height: _kPopupMenuItemHeight,
+        padding: _kPopupMenuItemPadding,
+        child: _PopupMenuItemContent(
+          icon: Icons.width_normal_outlined,
+          label: '重置列宽',
+        ),
       ),
     ];
   }
 
   Widget _button({
+    required ThemeData theme,
     required IconData icon,
     required String tooltip,
     required TableToolbarAction action,
@@ -6067,10 +6635,11 @@ class _TableFloatingToolbar extends StatelessWidget {
   }) {
     return IconButton(
       icon: Icon(icon),
-      iconSize: 18,
+      iconSize: _kBlockToolbarIconSize,
       tooltip: tooltip,
       padding: EdgeInsets.zero,
-      constraints: const BoxConstraints.tightFor(width: 32, height: 32),
+      constraints: _kBlockToolbarButtonConstraints,
+      style: _blockToolbarIconButtonStyle(theme),
       onPressed: enabled
           ? () => _dispatch(action, backgroundColor: backgroundColor)
           : null,
@@ -6097,7 +6666,7 @@ class _TableFloatingToolbar extends StatelessWidget {
 
   Widget _divider(ThemeData theme) {
     return SizedBox(
-      height: 32,
+      height: _kBlockToolbarButtonSize,
       child: VerticalDivider(
         width: 6,
         thickness: 1,
@@ -6957,6 +7526,16 @@ class _BlockObjectSelectionSurfaceState
   }
 }
 
+/// Text-bearing surface that paints text/selection/caret and registers geometry
+/// for document-level selection hit testing.
+///
+/// Empty text content is still a text target for paragraphs, list/todo items,
+/// quote/heading text, and table-cell text. When the visible editable line area
+/// is hit, the selection should collapse to this surface's block/path at offset
+/// 0; object-only blocks keep their separate block-object selection semantics.
+/// Interactive chrome such as list markers, todo checkboxes, heading collapse
+/// buttons, block handles, menus, and scrollbar gutters must stay outside this
+/// text hit target or be registered as selection exclusions.
 class _TextSelectionSurface extends StatefulWidget {
   const _TextSelectionSurface({
     required this.blockId,
@@ -6972,6 +7551,7 @@ class _TextSelectionSurface extends StatefulWidget {
     required this.registry,
     required this.showDebugOverlay,
     this.findRanges = const <_FindHighlightRange>[],
+    this.selectionHighlightColor,
     this.hitTestKey,
   });
 
@@ -6988,6 +7568,7 @@ class _TextSelectionSurface extends StatefulWidget {
   final BlockGeometryRegistry registry;
   final bool showDebugOverlay;
   final List<_FindHighlightRange> findRanges;
+  final Color? selectionHighlightColor;
 
   /// Optional GlobalKey on a wider hit-test frame (e.g. a table cell's whole
   /// frame) whose local space differs from this surface's text-local space.
@@ -7336,7 +7917,8 @@ class _TextSelectionSurfaceState extends State<_TextSelectionSurface> {
       widget.textLength,
     );
     final theme = Theme.of(context);
-    final highlightColor = theme.colorScheme.primary.withAlpha(54);
+    final selectionHighlightColor = widget.selectionHighlightColor ??
+        theme.colorScheme.primary.withAlpha(54);
     final findHighlightColor = theme.colorScheme.tertiaryContainer.withAlpha(
       150,
     );
@@ -7378,26 +7960,26 @@ class _TextSelectionSurfaceState extends State<_TextSelectionSurface> {
           opacity: caretOpacity,
         );
         final text = CustomPaint(
-          painter: _FindHighlightPainter(
+          painter: _SelectionHighlightPainter(
             layoutService: _layoutService,
             textSpan: widget.textSpan,
+            offsetMapper: widget.offsetMapper,
             textAlign: widget.textAlign,
             textDirection: direction,
             maxWidth: maxWidth,
-            ranges: widget.findRanges,
-            color: findHighlightColor,
-            activeColor: activeFindHighlightColor,
+            range: selectionRange,
+            color: selectionHighlightColor,
           ),
           child: CustomPaint(
-            painter: _SelectionHighlightPainter(
+            painter: _FindHighlightPainter(
               layoutService: _layoutService,
               textSpan: widget.textSpan,
-              offsetMapper: widget.offsetMapper,
               textAlign: widget.textAlign,
               textDirection: direction,
               maxWidth: maxWidth,
-              range: selectionRange,
-              color: highlightColor,
+              ranges: widget.findRanges,
+              color: findHighlightColor,
+              activeColor: activeFindHighlightColor,
             ),
             child: ConstrainedBox(
               constraints: BoxConstraints(minHeight: widget.minHeight),
@@ -8383,61 +8965,53 @@ class _DividerBlockContent extends StatelessWidget {
             horizontal: selected ? 8 : 0,
             vertical: selected ? 8 : 0,
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              if (selected) ...<Widget>[
-                Align(
-                  alignment: AlignmentDirectional.centerStart,
-                  child: _ObjectBlockToolbar(
+          child: _BlockFloatingToolbarSurface(
+            toolbar: selected
+                ? _FloatingObjectBlockToolbar(
                     blockIndex: blockIndex,
                     blockCount: blockCount,
                     canEdit: canEdit,
                     imageActions: false,
                     fileActions: false,
                     onAction: onAction,
-                  ),
-                ),
-                const SizedBox(height: 8),
-              ],
-              SizedBox(
-                height: _kDividerDotSize,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: <Widget>[
-                    PositionedDirectional(
-                      start: 0,
-                      end: 0,
-                      top: (_kDividerDotSize - 1) / 2,
-                      child: SizedBox(
-                        height: 1,
-                        child: DecoratedBox(
-                          key: ValueKey<String>(
-                            'wenz-richtext-divider-line-$blockId',
-                          ),
-                          decoration: const BoxDecoration(
-                            color: Color(_kDividerLineColor),
-                          ),
-                        ),
-                      ),
-                    ),
-                    SizedBox.square(
-                      dimension: _kDividerDotSize,
+                  )
+                : null,
+            child: SizedBox(
+              height: _kDividerDotSize,
+              child: Stack(
+                alignment: Alignment.center,
+                children: <Widget>[
+                  PositionedDirectional(
+                    start: 0,
+                    end: 0,
+                    top: (_kDividerDotSize - 1) / 2,
+                    child: SizedBox(
+                      height: 1,
                       child: DecoratedBox(
                         key: ValueKey<String>(
-                          'wenz-richtext-divider-dot-$blockId',
+                          'wenz-richtext-divider-line-$blockId',
                         ),
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.primary,
-                          shape: BoxShape.circle,
+                        decoration: const BoxDecoration(
+                          color: Color(_kDividerLineColor),
                         ),
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                  SizedBox.square(
+                    dimension: _kDividerDotSize,
+                    child: DecoratedBox(
+                      key: ValueKey<String>(
+                        'wenz-richtext-divider-dot-$blockId',
+                      ),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primary,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),
@@ -8531,33 +9105,25 @@ class _EmbedBlockCard extends StatelessWidget {
           ),
           child: Padding(
             padding: const EdgeInsets.all(16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: <Widget>[
-                if (selected) ...<Widget>[
-                  Align(
-                    alignment: AlignmentDirectional.centerStart,
-                    child: _ObjectBlockToolbar(
+            child: _BlockFloatingToolbarSurface(
+              toolbar: selected
+                  ? _FloatingObjectBlockToolbar(
                       blockIndex: blockIndex,
                       blockCount: blockCount,
                       canEdit: canEdit,
                       imageActions: false,
                       fileActions: false,
                       onAction: onAction,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
+                    )
+                  : null,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  _EmbedTypeChip(label: label),
+                  const SizedBox(width: 12),
+                  Expanded(child: child),
                 ],
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    _EmbedTypeChip(label: label),
-                    const SizedBox(width: 12),
-                    Expanded(child: child),
-                  ],
-                ),
-              ],
+              ),
             ),
           ),
         ),
@@ -8667,8 +9233,7 @@ class _ObjectBlockToolbar extends StatelessWidget {
   Widget build(BuildContext context) {
     final canDispatch = onAction != null;
     final canRunMutation = canEdit && canDispatch;
-    final hasMoreActions =
-        canRunMutation && (blockCount > 1 || imageActions || fileActions);
+    final hasMoreActions = canRunMutation;
     if (mediaActions) {
       return Wrap(
         spacing: 2,
@@ -8679,15 +9244,22 @@ class _ObjectBlockToolbar extends StatelessWidget {
             tooltip: '预览媒体',
             onPressed: onPreview,
           ),
-          _ObjectMoreMenu(
-            blockIndex: blockIndex,
-            blockCount: blockCount,
-            canRunMutation: canRunMutation,
-            imageActions: imageActions,
-            fileActions: fileActions,
-            includePrimaryActions: true,
-            onSelected: _dispatchSelection,
+          _ObjectActionButton(
+            icon: Icons.copy,
+            tooltip: '复制块引用',
+            onPressed: canDispatch
+                ? () => _dispatch(ObjectBlockAction.copyReference)
+                : null,
           ),
+          if (hasMoreActions)
+            _ObjectMoreMenu(
+              blockIndex: blockIndex,
+              blockCount: blockCount,
+              canRunMutation: canRunMutation,
+              imageActions: imageActions,
+              fileActions: fileActions,
+              onSelected: _dispatchSelection,
+            ),
         ],
       );
     }
@@ -8702,31 +9274,15 @@ class _ObjectBlockToolbar extends StatelessWidget {
               ? () => _dispatch(ObjectBlockAction.copyReference)
               : null,
         ),
-        if (canEdit) ...<Widget>[
-          _ObjectActionButton(
-            icon: Icons.content_copy,
-            tooltip: '创建块副本',
-            onPressed: canRunMutation
-                ? () => _dispatch(ObjectBlockAction.duplicate)
-                : null,
+        if (hasMoreActions)
+          _ObjectMoreMenu(
+            blockIndex: blockIndex,
+            blockCount: blockCount,
+            canRunMutation: canRunMutation,
+            imageActions: imageActions,
+            fileActions: fileActions,
+            onSelected: _dispatchSelection,
           ),
-          if (hasMoreActions)
-            _ObjectMoreMenu(
-              blockIndex: blockIndex,
-              blockCount: blockCount,
-              canRunMutation: canRunMutation,
-              imageActions: imageActions,
-              fileActions: fileActions,
-              onSelected: _dispatchSelection,
-            ),
-          _ObjectActionButton(
-            icon: Icons.delete_outline,
-            tooltip: '删除块',
-            onPressed: canRunMutation
-                ? () => _dispatch(ObjectBlockAction.delete)
-                : null,
-          ),
-        ],
       ],
     );
   }
@@ -8769,14 +9325,35 @@ class _ObjectMenuSelection {
   final bool more;
 }
 
-class _ObjectMoreMenu extends StatelessWidget {
+PopupMenuItem<_ObjectMenuSelection> _objectActionMenuItem({
+  required ObjectBlockAction action,
+  required IconData icon,
+  required String label,
+  Object? value,
+  bool enabled = true,
+  String? shortcut,
+}) {
+  return PopupMenuItem<_ObjectMenuSelection>(
+    value: _ObjectMenuSelection.action(action, value),
+    enabled: enabled,
+    height: _kPopupMenuItemHeight,
+    padding: _kPopupMenuItemPadding,
+    child: _PopupMenuItemContent(
+      icon: icon,
+      label: label,
+      shortcut: shortcut,
+      enabled: enabled,
+    ),
+  );
+}
+
+class _ObjectMoreMenu extends StatefulWidget {
   const _ObjectMoreMenu({
     required this.blockIndex,
     required this.blockCount,
     required this.canRunMutation,
     required this.imageActions,
     required this.fileActions,
-    this.includePrimaryActions = false,
     required this.onSelected,
   });
 
@@ -8785,120 +9362,185 @@ class _ObjectMoreMenu extends StatelessWidget {
   final bool canRunMutation;
   final bool imageActions;
   final bool fileActions;
-  final bool includePrimaryActions;
   final ValueChanged<_ObjectMenuSelection> onSelected;
 
   @override
+  State<_ObjectMoreMenu> createState() => _ObjectMoreMenuState();
+}
+
+class _ObjectMoreMenuState extends State<_ObjectMoreMenu> {
+  bool _menuOpen = false;
+  NavigatorState? _navigator;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _navigator = Navigator.maybeOf(context);
+  }
+
+  @override
+  void deactivate() {
+    _closeOpenMenu();
+    super.deactivate();
+  }
+
+  @override
+  void dispose() {
+    _closeOpenMenu();
+    super.dispose();
+  }
+
+  void _closeOpenMenu() {
+    if (!_menuOpen) {
+      return;
+    }
+    _menuOpen = false;
+    final navigator = _navigator;
+    _EditorPopupMenuDismissal.unregister(navigator);
+    _EditorPopupMenuDismissal.dismissFrom(navigator);
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _EditorPopupMenuDismissal.dismissFrom(navigator),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return PopupMenuButton<_ObjectMenuSelection>(
       tooltip: '更多块操作',
       icon: const Icon(Icons.more_horiz),
-      iconSize: 17,
+      iconSize: _kBlockToolbarIconSize,
       padding: EdgeInsets.zero,
-      constraints: const BoxConstraints.tightFor(width: 30, height: 30),
-      onSelected: onSelected,
+      constraints: _kPopupMenuConstraints,
+      style: _blockToolbarIconButtonStyle(theme),
+      color: _popupMenuColor(theme),
+      elevation: _kPopupMenuElevation,
+      shadowColor: _popupMenuShadowColor(theme),
+      surfaceTintColor: Colors.transparent,
+      shape: _popupMenuShape(theme),
+      menuPadding: _kPopupMenuPadding,
+      position: PopupMenuPosition.under,
+      clipBehavior: Clip.antiAlias,
+      onOpened: () {
+        _menuOpen = true;
+        _EditorPopupMenuDismissal.register(_navigator);
+      },
+      onCanceled: () {
+        _menuOpen = false;
+        _EditorPopupMenuDismissal.unregister(_navigator);
+      },
+      onSelected: (selection) {
+        _menuOpen = false;
+        _EditorPopupMenuDismissal.unregister(_navigator);
+        widget.onSelected(selection);
+      },
+      routeSettings: _kPopupMenuRouteSettings,
       itemBuilder: (context) => _items(),
     );
   }
 
   List<PopupMenuEntry<_ObjectMenuSelection>> _items() {
     final entries = <PopupMenuEntry<_ObjectMenuSelection>>[];
-    if (includePrimaryActions) {
-      entries.addAll(<PopupMenuEntry<_ObjectMenuSelection>>[
-        const PopupMenuItem<_ObjectMenuSelection>(
-          value: _ObjectMenuSelection.action(ObjectBlockAction.copyReference),
-          child: Text('复制块引用'),
+    if (widget.canRunMutation) {
+      entries.add(
+        _objectActionMenuItem(
+          action: ObjectBlockAction.duplicate,
+          icon: Icons.copy_all_outlined,
+          label: '创建块副本',
         ),
-        if (canRunMutation) ...const <PopupMenuEntry<_ObjectMenuSelection>>[
-          PopupMenuItem<_ObjectMenuSelection>(
-            value: _ObjectMenuSelection.action(ObjectBlockAction.duplicate),
-            child: Text('创建块副本'),
-          ),
-          PopupMenuItem<_ObjectMenuSelection>(
-            value: _ObjectMenuSelection.action(ObjectBlockAction.delete),
-            child: Text('删除块'),
-          ),
-        ],
-      ]);
+      );
     }
-    if (blockCount > 1 && canRunMutation) {
+    if (widget.canRunMutation) {
       if (entries.isNotEmpty) {
-        entries.add(const PopupMenuDivider());
+        entries.add(const PopupMenuDivider(height: _kPopupMenuDividerHeight));
       }
       entries.addAll(<PopupMenuEntry<_ObjectMenuSelection>>[
-        PopupMenuItem<_ObjectMenuSelection>(
-          value: const _ObjectMenuSelection.action(ObjectBlockAction.moveUp),
+        _objectActionMenuItem(
+          action: ObjectBlockAction.moveUp,
+          icon: Icons.arrow_upward,
+          label: '上移块',
           enabled: BlockDragHandleSpec.canMoveUp(
-            canEdit: canRunMutation,
-            blockIndex: blockIndex,
-            blockCount: blockCount,
+            canEdit: widget.canRunMutation,
+            blockIndex: widget.blockIndex,
+            blockCount: widget.blockCount,
           ),
-          child: const Text('上移块'),
         ),
-        PopupMenuItem<_ObjectMenuSelection>(
-          value: const _ObjectMenuSelection.action(ObjectBlockAction.moveDown),
+        _objectActionMenuItem(
+          action: ObjectBlockAction.moveDown,
+          icon: Icons.arrow_downward,
+          label: '下移块',
           enabled: BlockDragHandleSpec.canMoveDown(
-            canEdit: canRunMutation,
-            blockIndex: blockIndex,
-            blockCount: blockCount,
+            canEdit: widget.canRunMutation,
+            blockIndex: widget.blockIndex,
+            blockCount: widget.blockCount,
           ),
-          child: const Text('下移块'),
         ),
       ]);
     }
-    if (imageActions && canRunMutation) {
+    if (widget.imageActions && widget.canRunMutation) {
       if (entries.isNotEmpty) {
-        entries.add(const PopupMenuDivider());
+        entries.add(const PopupMenuDivider(height: _kPopupMenuDividerHeight));
       }
-      entries.addAll(const <PopupMenuEntry<_ObjectMenuSelection>>[
-        PopupMenuItem<_ObjectMenuSelection>(
-          value: _ObjectMenuSelection.action(
-            ObjectBlockAction.setImageDisplayWidth,
-            240.0,
-          ),
-          child: Text('图片宽度：小'),
+      entries.addAll(<PopupMenuEntry<_ObjectMenuSelection>>[
+        _objectActionMenuItem(
+          action: ObjectBlockAction.setImageDisplayWidth,
+          icon: Icons.photo_size_select_small_outlined,
+          label: '图片宽度：小',
+          value: 240.0,
         ),
-        PopupMenuItem<_ObjectMenuSelection>(
-          value: _ObjectMenuSelection.action(
-            ObjectBlockAction.setImageDisplayWidth,
-            360.0,
-          ),
-          child: Text('图片宽度：中'),
+        _objectActionMenuItem(
+          action: ObjectBlockAction.setImageDisplayWidth,
+          icon: Icons.photo_size_select_large_outlined,
+          label: '图片宽度：中',
+          value: 360.0,
         ),
-        PopupMenuItem<_ObjectMenuSelection>(
-          value: _ObjectMenuSelection.action(
-            ObjectBlockAction.setImageDisplayWidth,
-            520.0,
-          ),
-          child: Text('图片宽度：大'),
+        _objectActionMenuItem(
+          action: ObjectBlockAction.setImageDisplayWidth,
+          icon: Icons.fit_screen_outlined,
+          label: '图片宽度：大',
+          value: 520.0,
         ),
-        PopupMenuDivider(),
-        PopupMenuItem<_ObjectMenuSelection>(
-          value: _ObjectMenuSelection.action(ObjectBlockAction.resetImageSize),
-          child: Text('重置图片尺寸'),
+        const PopupMenuDivider(height: _kPopupMenuDividerHeight),
+        _objectActionMenuItem(
+          action: ObjectBlockAction.resetImageSize,
+          icon: Icons.restart_alt,
+          label: '重置图片尺寸',
         ),
       ]);
     }
-    if (fileActions && canRunMutation) {
+    if (widget.fileActions && widget.canRunMutation) {
       if (entries.isNotEmpty) {
-        entries.add(const PopupMenuDivider());
+        entries.add(const PopupMenuDivider(height: _kPopupMenuDividerHeight));
       }
-      entries.addAll(const <PopupMenuEntry<_ObjectMenuSelection>>[
-        PopupMenuItem<_ObjectMenuSelection>(
-          value:
-              _ObjectMenuSelection.action(ObjectBlockAction.markFileUploading),
-          child: Text('标记为上传中'),
+      entries.addAll(<PopupMenuEntry<_ObjectMenuSelection>>[
+        _objectActionMenuItem(
+          action: ObjectBlockAction.markFileUploading,
+          icon: Icons.cloud_upload_outlined,
+          label: '标记为上传中',
         ),
-        PopupMenuItem<_ObjectMenuSelection>(
-          value:
-              _ObjectMenuSelection.action(ObjectBlockAction.markFileUploaded),
-          child: Text('标记为已上传'),
+        _objectActionMenuItem(
+          action: ObjectBlockAction.markFileUploaded,
+          icon: Icons.cloud_done_outlined,
+          label: '标记为已上传',
         ),
-        PopupMenuItem<_ObjectMenuSelection>(
-          value: _ObjectMenuSelection.action(ObjectBlockAction.markFileFailed),
-          child: Text('标记为失败'),
+        _objectActionMenuItem(
+          action: ObjectBlockAction.markFileFailed,
+          icon: Icons.cloud_off_outlined,
+          label: '标记为失败',
         ),
       ]);
+    }
+    if (widget.canRunMutation) {
+      if (entries.isNotEmpty) {
+        entries.add(const PopupMenuDivider(height: _kPopupMenuDividerHeight));
+      }
+      entries.add(
+        _objectActionMenuItem(
+          action: ObjectBlockAction.delete,
+          icon: Icons.delete_outline,
+          label: '删除块',
+        ),
+      );
     }
     return entries;
   }
@@ -8966,12 +9608,13 @@ class _ObjectActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return IconButton(
       tooltip: tooltip,
-      visualDensity: VisualDensity.compact,
       padding: EdgeInsets.zero,
-      constraints: const BoxConstraints.tightFor(width: 30, height: 30),
-      iconSize: 17,
+      constraints: _kBlockToolbarButtonConstraints,
+      iconSize: _kBlockToolbarIconSize,
+      style: _blockToolbarIconButtonStyle(theme),
       onPressed: onPressed,
       icon: Icon(icon),
     );
@@ -9042,83 +9685,85 @@ class _FileBlockContentState extends State<_FileBlockContent> {
           borderRadius: BorderRadius.circular(8),
           boxShadow: _hovered || _focused ? _kSurfaceBoxShadow : null,
         ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: <Widget>[
-              _FileTypeBadge(
-                label: _fileTypeLabel(block),
-                failed: failed,
-              ),
-              const SizedBox(width: _kFileCardGap),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    Text(
-                      block.displayName.isEmpty
-                          ? 'Untitled file'
-                          : block.displayName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.labelLarge?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: theme.colorScheme.onSurface,
-                      ),
-                    ),
-                    if (subtitle.isNotEmpty) ...<Widget>[
-                      const SizedBox(height: 4),
-                      Text(
-                        subtitle,
-                        key: ValueKey<String>(
-                            'wenz-richtext-file-meta-${block.id}'),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                    if (statusText.isNotEmpty) ...<Widget>[
-                      const SizedBox(height: 4),
-                      Text(
-                        statusText,
-                        key: ValueKey<String>(
-                            'wenz-richtext-file-status-${block.id}'),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: failed
-                              ? theme.colorScheme.error
-                              : theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ],
+        child: _BlockFloatingToolbarSurface(
+          toolbar: _FileBlockActionMenu(
+            blockIndex: widget.blockIndex,
+            blockCount: widget.blockCount,
+            canEdit: widget.canEdit,
+            onAction: widget.onAction,
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: <Widget>[
+                _FileTypeBadge(
+                  label: _fileTypeLabel(block),
+                  failed: failed,
                 ),
-              ),
-              if (sizeLabel.isNotEmpty) ...<Widget>[
-                const SizedBox(width: 12),
-                Text(
-                  sizeLabel,
-                  key: ValueKey<String>('wenz-richtext-file-size-${block.id}'),
-                  maxLines: 1,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: foregroundColor,
-                    fontWeight: FontWeight.w600,
+                const SizedBox(width: _kFileCardGap),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      Text(
+                        block.displayName.isEmpty
+                            ? 'Untitled file'
+                            : block.displayName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: theme.colorScheme.onSurface,
+                        ),
+                      ),
+                      if (subtitle.isNotEmpty) ...<Widget>[
+                        const SizedBox(height: 4),
+                        Text(
+                          subtitle,
+                          key: ValueKey<String>(
+                              'wenz-richtext-file-meta-${block.id}'),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                      if (statusText.isNotEmpty) ...<Widget>[
+                        const SizedBox(height: 4),
+                        Text(
+                          statusText,
+                          key: ValueKey<String>(
+                              'wenz-richtext-file-status-${block.id}'),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: failed
+                                ? theme.colorScheme.error
+                                : theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
+                if (sizeLabel.isNotEmpty) ...<Widget>[
+                  const SizedBox(width: 12),
+                  Text(
+                    sizeLabel,
+                    key:
+                        ValueKey<String>('wenz-richtext-file-size-${block.id}'),
+                    maxLines: 1,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: foregroundColor,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
               ],
-              const SizedBox(width: 6),
-              _FileBlockActionMenu(
-                blockIndex: widget.blockIndex,
-                blockCount: widget.blockCount,
-                canEdit: widget.canEdit,
-                onAction: widget.onAction,
-              ),
-            ],
+            ),
           ),
         ),
       ),
@@ -9176,116 +9821,91 @@ class _FileBlockActionMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return PopupMenuButton<_ObjectMenuSelection>(
       tooltip: '附件操作',
       icon: const Icon(Icons.more_horiz),
-      iconSize: 18,
+      iconSize: _kBlockToolbarIconSize,
       padding: EdgeInsets.zero,
-      constraints: const BoxConstraints(
-        minWidth: _kFileActionMenuMinWidth,
-        maxWidth: _kFileActionMenuMaxWidth,
-      ),
-      style: IconButton.styleFrom(
-        fixedSize: const Size.square(_kFileActionMenuButtonSize),
-        minimumSize: const Size.square(_kFileActionMenuButtonSize),
-        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-      ),
-      enabled: onAction != null,
-      onSelected: (selection) {
-        unawaited(_handleSelected(context, selection));
-      },
+      constraints: _kPopupMenuConstraints,
+      style: _blockToolbarIconButtonStyle(theme),
+      color: _popupMenuColor(theme),
+      elevation: _kPopupMenuElevation,
+      shadowColor: _popupMenuShadowColor(theme),
+      surfaceTintColor: Colors.transparent,
+      shape: _popupMenuShape(theme),
+      menuPadding: _kPopupMenuPadding,
+      position: PopupMenuPosition.under,
+      clipBehavior: Clip.antiAlias,
+      onSelected: _dispatch,
+      routeSettings: _kPopupMenuRouteSettings,
       itemBuilder: (context) => <PopupMenuEntry<_ObjectMenuSelection>>[
-        const PopupMenuItem<_ObjectMenuSelection>(
-          value: _ObjectMenuSelection.action(ObjectBlockAction.copyReference),
-          child: Text('复制块引用'),
+        _objectActionMenuItem(
+          action: ObjectBlockAction.copyReference,
+          icon: Icons.link,
+          label: '复制块引用',
         ),
-        if (canEdit) ...<PopupMenuEntry<_ObjectMenuSelection>>[
-          const PopupMenuDivider(),
-          const PopupMenuItem<_ObjectMenuSelection>(
-            value: _ObjectMenuSelection.action(ObjectBlockAction.duplicate),
-            child: Text('创建块副本'),
-          ),
-          const PopupMenuItem<_ObjectMenuSelection>(
-            value: _ObjectMenuSelection.more(),
-            child: Text('更多块操作'),
-          ),
-          const PopupMenuDivider(),
-          const PopupMenuItem<_ObjectMenuSelection>(
-            value: _ObjectMenuSelection.action(ObjectBlockAction.delete),
-            child: Text('删除块'),
-          ),
-        ],
+        const PopupMenuDivider(height: _kPopupMenuDividerHeight),
+        ..._moreItems(),
       ],
     );
   }
 
-  Future<void> _handleSelected(
-    BuildContext context,
-    _ObjectMenuSelection selection,
-  ) async {
-    if (selection.more) {
-      final selected = await showMenu<_ObjectMenuSelection>(
-        context: context,
-        position: _fileMenuPosition(context),
-        semanticLabel: '更多块操作',
-        constraints: const BoxConstraints(
-          minWidth: _kFileActionMenuMinWidth,
-          maxWidth: _kFileActionMenuMaxWidth,
-        ),
-        items: _moreItems(),
-      );
-      if (selected != null) {
-        _dispatch(selected);
-      }
-      return;
-    }
-    _dispatch(selection);
-  }
-
-  RelativeRect _fileMenuPosition(BuildContext context) {
-    final overlay =
-        Overlay.of(context).context.findRenderObject() as RenderBox?;
-    final box = context.findRenderObject() as RenderBox?;
-    if (overlay == null || box == null || !overlay.hasSize || !box.hasSize) {
-      return RelativeRect.fill;
-    }
-    final topLeft = box.localToGlobal(Offset.zero, ancestor: overlay);
-    return RelativeRect.fromRect(
-        topLeft & box.size, Offset.zero & overlay.size);
-  }
-
   List<PopupMenuEntry<_ObjectMenuSelection>> _moreItems() {
+    final canRunMutation = canEdit && onAction != null;
     return <PopupMenuEntry<_ObjectMenuSelection>>[
-      PopupMenuItem<_ObjectMenuSelection>(
-        value: const _ObjectMenuSelection.action(ObjectBlockAction.moveUp),
+      _objectActionMenuItem(
+        action: ObjectBlockAction.duplicate,
+        icon: Icons.copy_all_outlined,
+        label: '创建块副本',
+        enabled: canRunMutation,
+      ),
+      const PopupMenuDivider(height: _kPopupMenuDividerHeight),
+      _objectActionMenuItem(
+        action: ObjectBlockAction.moveUp,
+        icon: Icons.arrow_upward,
+        label: '上移块',
         enabled: BlockDragHandleSpec.canMoveUp(
-          canEdit: canEdit && onAction != null,
+          canEdit: canRunMutation,
           blockIndex: blockIndex,
           blockCount: blockCount,
         ),
-        child: const Text('上移块'),
       ),
-      PopupMenuItem<_ObjectMenuSelection>(
-        value: const _ObjectMenuSelection.action(ObjectBlockAction.moveDown),
+      _objectActionMenuItem(
+        action: ObjectBlockAction.moveDown,
+        icon: Icons.arrow_downward,
+        label: '下移块',
         enabled: BlockDragHandleSpec.canMoveDown(
-          canEdit: canEdit && onAction != null,
+          canEdit: canRunMutation,
           blockIndex: blockIndex,
           blockCount: blockCount,
         ),
-        child: const Text('下移块'),
       ),
-      const PopupMenuDivider(),
-      const PopupMenuItem<_ObjectMenuSelection>(
-        value: _ObjectMenuSelection.action(ObjectBlockAction.markFileUploading),
-        child: Text('标记为上传中'),
+      const PopupMenuDivider(height: _kPopupMenuDividerHeight),
+      _objectActionMenuItem(
+        action: ObjectBlockAction.markFileUploading,
+        icon: Icons.cloud_upload_outlined,
+        label: '标记为上传中',
+        enabled: canRunMutation,
       ),
-      const PopupMenuItem<_ObjectMenuSelection>(
-        value: _ObjectMenuSelection.action(ObjectBlockAction.markFileUploaded),
-        child: Text('标记为已上传'),
+      _objectActionMenuItem(
+        action: ObjectBlockAction.markFileUploaded,
+        icon: Icons.cloud_done_outlined,
+        label: '标记为已上传',
+        enabled: canRunMutation,
       ),
-      const PopupMenuItem<_ObjectMenuSelection>(
-        value: _ObjectMenuSelection.action(ObjectBlockAction.markFileFailed),
-        child: Text('标记为失败'),
+      _objectActionMenuItem(
+        action: ObjectBlockAction.markFileFailed,
+        icon: Icons.cloud_off_outlined,
+        label: '标记为失败',
+        enabled: canRunMutation,
+      ),
+      const PopupMenuDivider(height: _kPopupMenuDividerHeight),
+      _objectActionMenuItem(
+        action: ObjectBlockAction.delete,
+        icon: Icons.delete_outline,
+        label: '删除块',
+        enabled: canRunMutation,
       ),
     ];
   }
@@ -9386,28 +10006,22 @@ class _MediaBlockChrome extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final children = <Widget>[
-      if (selected) ...<Widget>[
-        _FloatingObjectBlockToolbar(
-          blockIndex: blockIndex,
-          blockCount: blockCount,
-          canEdit: canEdit,
-          imageActions: imageActions,
-          fileActions: false,
-          mediaActions: true,
-          onAction: onAction,
-          onPreview: onPreview,
-        ),
-        const SizedBox(height: _kImageFloatingToolbarGap),
-      ],
-      child,
-    ];
     return Align(
       alignment: AlignmentDirectional.centerStart,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: children,
+      child: _BlockFloatingToolbarSurface(
+        toolbar: selected
+            ? _FloatingObjectBlockToolbar(
+                blockIndex: blockIndex,
+                blockCount: blockCount,
+                canEdit: canEdit,
+                imageActions: imageActions,
+                fileActions: false,
+                mediaActions: true,
+                onAction: onAction,
+                onPreview: onPreview,
+              )
+            : null,
+        child: child,
       ),
     );
   }
@@ -10443,6 +11057,10 @@ TextStyle _textStyleForAttributes(
   TextStyle baseStyle,
   TextAttributes attrs,
 ) {
+  // Foreground precedence is inline color > link color > base/default color.
+  // Remark and revision styling decorate the text without replacing inline
+  // color. Background precedence is inline background > revision background >
+  // base background.
   final scheme = Theme.of(context).colorScheme;
   final hasRemark = attrs.remark == true || attrs.commentIds.isNotEmpty;
   final hasRevision = attrs.revisionIds.isNotEmpty;

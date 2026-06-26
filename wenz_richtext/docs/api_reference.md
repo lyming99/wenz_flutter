@@ -14,7 +14,7 @@ typical call shape. For the layered design behind these types, see
 | `BlockNode` (abstract) + concrete subclasses | `TextBlockNode` (paragraph/heading/quote/listItem), `CodeBlockNode`, `ImageBlockNode`, `VideoBlockNode`, `BlockEmbedNode`, `FileBlockNode`, `DividerBlockNode`, `CalloutBlockNode`, `TableBlockNode`. Immutable; `copy()` / `toJson()` / `fromJson()`. `BlockEmbedNode` stores `embedType/data/fallbackText` for business-owned block embeds; `FileBlockNode` stores `assetId/name/size/file` plus `mimeType/downloadUrl/uploadStatus/uploadError`. |
 | `InlineNode` | `TextRun(text, attributes)` and `InlineEmbed(embedType, data, attributes)` (link/formula/mention/emoji/image). |
 | `FileUploadStatus` | Attachment workflow state: `none`, `pending`, `uploading`, `uploaded`, `failed`; JSON stores the string name when not `none`. |
-| `TextAttributes` / `BlockAttributes` | Inline run attributes (bold/italic/color/url/commentIds/revisionIds/…) and block attributes (level/indent/alignment/listType/checked/childNote/anchor). |
+| `TextAttributes` / `BlockAttributes` | Inline run attributes (bold/italic/color/url/commentIds/revisionIds/…) and block attributes (level/indent/alignment/listType/checked/childNote/anchor). `listType` describes list marker/numbering (`null` unordered, `'ordered'` numbered, `'task'` legacy unordered todo); `checked` is the independent todo state, so `'ordered'` + non-null `checked` represents an ordered todo item. |
 | `CommentAnchor` / `CommentThread` / `CommentEntry` | Comment-thread model: stores selection-compatible anchors, author/time/message payloads, and `open` / `resolved` status. |
 | `RevisionRange` / `RevisionChange` | Revision model: stores selection-compatible ranges, insert/delete/format type, pending/accepted/rejected status, author/time payloads, and optional before/after format attributes. |
 | `DocumentVersionSnapshot` | Application-owned version snapshot: deep-copied `RichTextDocument` plus id/time/author/description, optional `baseSnapshotId` for future diff flows, and JSON-compatible metadata. |
@@ -35,6 +35,13 @@ fallback line.
 (`info`/`success`/`warning`/`danger`), and optional custom `title`/`icon`.
 When `title` or `icon` is empty, renderers and Markdown/HTML export use the
 variant default through `effectiveTitle` / `effectiveIcon`.
+
+List items may freely mix unordered, ordered, legacy unordered todo, and ordered
+todo semantics in the same document or nested list. Existing
+`listType == 'task'` documents remain compatible as unordered todo items and are
+not forcibly migrated. Ordered numbering is scoped by indent level: consecutive
+same-level ordered items increment, a same-level non-ordered item interrupts the
+run so later ordered items restart, and nested levels count independently.
 
 ## Commands (tier 1 / tier 2 / tier 3)
 
@@ -59,8 +66,10 @@ All mutations are `EditorCommand` objects routed through `CommandExecutor`.
   `SetCalloutVariantCommand`, `UpdateCalloutBlockCommand`,
   `ToggleQuoteCommand`.
   Lists use the shared `BlockAttributes.listType/checked/indent` model:
-  unordered (`listType == null`), ordered (`'ordered'`), and task
-  (`'task'` + `checked`).
+  `listType` controls unordered/ordered marker semantics, while non-null
+  `checked` controls todo state. The legacy unordered todo form is
+  `listType == 'task'` + `checked`; the ordered todo form is
+  `listType == 'ordered'` + `checked`.
   Code blocks use `CodeBlockNode.language` plus command-backed line
   indent/outdent so toolbar and Tab edits enter undo/redo.
   Callouts use command-backed variant/title/icon updates so toolbar or business
@@ -547,6 +556,35 @@ normalisation, and `onCommandExecuted` stay consistent.
   with `WenzRichTextController` plus current `ToolbarState`.
 - `WenzRichTextController` also re-exports `HistoryManager` (tier 1) and
   `ChangeSet` (tier 1).
+
+### Theme token boundary
+
+`WenzRichTextEditor` does not expose a dedicated editor theme object or
+background override. The public compatibility boundary remains the existing
+constructor plus Flutter's ambient `ThemeData`; host apps should configure
+`theme` / `darkTheme` / `ThemeMode` and may still wrap the editor in their own
+surface when they need custom chrome. This keeps the public API unchanged and
+avoids introducing theme data into the document model, command layer, codecs,
+or plugin contracts.
+
+The built-in widget layer should resolve editor colors from these sources:
+
+| Area | Direct `ColorScheme` use | Private editor token needed |
+| --- | --- | --- |
+| Editor surface | Body text from `onSurface`; focus outline, caret, selection, active object/table state, task checkbox, heading-collapse control, quote accent, resize handles, and toolbar selection from `primary`; subdued text from `onSurfaceVariant` / `outline`; find highlights from `tertiary` / `tertiaryContainer`. | The editor's own default carrying background must be derived in the widget layer: light theme uses `Colors.white`, dark theme uses `Colors.black`. This is visual chrome only and must not be serialized. |
+| Text blocks and inline styles | Paragraphs/headings/quotes/lists inherit the editor body style; checked task text, heading level 5/6, inline formula/mention fallbacks, composition underline, revision background, and table-cell text can use `ColorScheme` plus caller-supplied `TextStyle` / explicit inline attributes. | Legacy fixed link / remark colors (`_kInlineLinkColor`, `_kInlineRemarkColor`) should be treated as private semantic tokens or replaced by derived scheme colors; explicit `TextAttributes.color` / `background` remain document-authored data and are not theme tokens. |
+| Selection, caret, and search | `_TextSelectionSurface` derives selection highlight, caret, and find-match colors from `primary`, `tertiaryContainer`, and `tertiary`. | Alpha levels for selection/search/caret contrast are private editor tokens so they can be tuned for both black and white editor backgrounds without changing public API. |
+| Block surfaces | Quote, image placeholder, video fallback gradient, file-card surface/type badge/status, floating object toolbar, debug tag, selected block borders, table header cells, and formula preview already have clear `ColorScheme` counterparts. | Surface shadows, hover fills, and selected object shells should stay private visual tokens because they are implementation details of the default renderer. |
+| Tables | Cell text/header text, selected-cell overlay, column resize handles, table card surface, and toolbar state can use `ColorScheme`. | Table border, zebra row, and toolbar sample background (`_kTableBorderColor`, `_kTableEvenRowBackgroundColor`, `_kTableToolbarBackgroundColor`) are currently fixed light tokens and should become private theme-derived editor tokens. Persisted `TableCellNode.backgroundColor` stays authored cell data. |
+| Code, divider, callout, file, embed/formula | Selected borders and many labels can use `ColorScheme`; code syntax colors may remain a private syntax palette. | Code block background/text palette, divider line, callout variant tint/foreground/border, file-card idle border, embed card background/border, and formula card foreground/background are private renderer tokens that need light/dark derivation. |
+| Media placeholders and previews | Image placeholders, video cover fallback gradients, and metadata text can use `ColorScheme`. | Hard black/white overlay controls inside video previews are media-preview private tokens; they are not editor-background tokens and may stay fixed only where contrast is guaranteed by the preview gradient. |
+
+The black/white background requirement lands in the widget/example layer only:
+the default editor carrying surface should be white for `Brightness.light` and
+black for `Brightness.dark`, while the example app configures matching light
+and dark scaffold/editor surfaces. No document JSON, commands, undo/redo,
+selection model, import/export codec, or plugin registration behavior should
+change for theme adaptation.
 
 ## Running the example
 

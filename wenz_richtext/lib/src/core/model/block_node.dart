@@ -635,6 +635,11 @@ class BlockEmbedNode extends BlockNode {
 
 /// A callout block: emphasised text in a tinted box, optionally carrying a
 /// variant (e.g. `'info'`, `'warning'`) for styling.
+///
+/// The editable body is [content] and is addressed by `PositionPath.blockText`
+/// at command/widget boundaries. [variant], [title], [icon], and [attributes]
+/// are block metadata, not part of the body text deletion range. Empty
+/// [content] is still a valid callout block.
 class CalloutBlockNode extends BlockNode {
   const CalloutBlockNode({
     required super.id,

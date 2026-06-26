@@ -1,0 +1,13 @@
+已完成 P005，未修改 plan 文件、未勾选 checkbox。
+
+**变更**
+- 增强代码块选中底色：`lib/src/widgets/wenz_rich_text_editor.dart:117`
+  - 从 `0x703D6BFF` 调整为 `0x944C7DFF`，提高深色代码背景下的可见度。
+- 更新对应 widget 测试预期：`test/widgets/wenz_rich_text_editor_test.dart:18`
+- 加强选区采样断言并避免 deprecated 颜色通道 API：`test/widgets/wenz_rich_text_editor_test.dart:1842`
+- 新增测试颜色通道 helper：`test/widgets/wenz_rich_text_editor_test.dart:9687`
+
+**验证**
+- 已运行 `dart format`，无格式改动。
+- `dart analyze lib/src/widgets/wenz_rich_text_editor.dart test/widgets/wenz_rich_text_editor_test.dart`：仅剩既有警告 `_kBlockFloatingToolbarGap` 未使用，非本次 P005 改动。
+- 最小 widget 用例 `code block selection highlight is visible on dark surface` 多次运行超时，已清理本次遗留测试进程。

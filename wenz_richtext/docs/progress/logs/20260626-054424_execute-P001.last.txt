@@ -1,0 +1,6 @@
+**P001 已完成**
+- 在 `lib/src/core/model/attributes.dart:196` 明确 `listType` 表示列表标记/编号，`checked` 独立表示 todo 状态，允许 `ordered + checked` 语义。
+- 在 `lib/src/core/schema/document_schema.dart:15` 和 `lib/src/core/schema/document_schema.dart:235` 补充 schema 语义边界与历史 `task` 兼容说明。
+- 在 `docs/api_reference.md:17`、`docs/api_reference.md:39`、`docs/api_reference.md:68` 更新公共 API 文档，明确混排、历史无序 todo 兼容、同层级有序编号中断/重启规则。
+- 未修改 plan 文件，未勾选 checkbox，未更新进度区；也未提前执行 P002 的 schema 行为调整。
+- 最小验证：已运行并通过 `dart format --output=none --set-exit-if-changed lib/src/core/model/attributes.dart lib/src/core/schema/document_schema.dart`。

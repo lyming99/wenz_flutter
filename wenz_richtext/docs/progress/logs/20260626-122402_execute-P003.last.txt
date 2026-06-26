@@ -1,0 +1,12 @@
+已完成指定任务 P003；未修改 plan 文件，也未勾选 checkbox。
+
+**完成内容**
+- `lib/src/widgets/wenz_rich_text_editor.dart:953`：滚动时刷新 slash popup 位置，支持跟随光标/触发行。
+- `lib/src/widgets/wenz_rich_text_editor.dart:1360`：重做 popup 锚定计算，支持边界夹取、底部空间不足时向上展开、软键盘 `viewInsets` 避让。
+- `lib/src/widgets/slash_menu_overlay.dart:39`：popup 使用 `Listener` 吸收命中，避免点击穿透到底层编辑器。
+- `lib/src/widgets/slash_menu_overlay.dart:109`：为菜单项补充语义选中态、按钮语义、标题/描述可访问标签。
+- `test/widgets/slash_menu_overlay_test.dart:118`：补充标题/描述/图标/语义、方向键高亮、视口边界、点击不穿透等必要测试覆盖。
+
+**未执行验证**
+- 按本任务要求，本阶段没有运行 `flutter test`、`dart format`、`flutter analyze` 等命令。
+- 曾尝试 `dart format ...`，命令超时，已停止重试；格式化/测试留给 AutoPlan 最终验收阶段。

@@ -1,0 +1,15 @@
+已完成 P007，仅处理当前 scope 相关文件；没有写入 plan 文件、没有勾选 checkbox。
+
+**变更**
+- `test/controller/outline_controller_test.dart:284` 补动态首尾标题插入/删除后的范围重算与折叠状态清理。
+- `test/widgets/wenz_rich_text_editor_test.dart:465` 扩展键盘激活覆盖到 `Space`；`test/widgets/wenz_rich_text_editor_test.dart:592` 新增只读模式折叠切换且不改文档断言。
+- `test/widgets/editor_golden_test.dart:214` 扩展 `editor_blocks.png` golden 场景，覆盖展开、折叠、禁用、hover/focus 与拖拽把手共存。
+- `test/widgets/goldens/editor_blocks.png` 已更新视觉基线。
+- `docs/acceptance_manual_checklist.md:112` 新增 P007 自动化、golden 与三端手工验收记录。
+
+**验证**
+- `flutter test test/controller/outline_controller_test.dart --reporter expanded` 通过，`+14`。
+- `flutter test test/widgets/wenz_rich_text_editor_test.dart --name "^(renders heading collapse affordance and toggles by keyboard|read-only mode toggles heading collapse without editing|programmatic selection in hidden block expands its heading|Delete at collapsed heading boundary expands before editing|tap at a hidden block position does not target hidden content|find match inside hidden content expands and restores selection|outline jump to hidden heading reveals it and moves selection)$" --reporter expanded` 通过，`+7`。
+- `flutter test test/widgets/editor_golden_test.dart --plain-name "golden: paragraph code and image placeholder" --reporter expanded` 通过，`+1`。
+
+注意：工作区已有大量非本任务未提交变更，且 `docs/plan/plan_requirement_13_20260626-024112.md` 已在 Git 中显示为 modified；我未写入该 plan 文件，时间戳仍为 `2026-06-26 07:14:24`。

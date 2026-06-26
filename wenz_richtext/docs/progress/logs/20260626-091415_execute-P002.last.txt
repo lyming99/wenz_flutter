@@ -1,0 +1,12 @@
+已完成 P002，未修改 plan 文件、未勾选 checkbox，也未更新进度区。
+
+**变更**
+- `lib/src/widgets/wenz_rich_text_editor.dart:5685`：代码块工具栏精简为“复制代码 + 更多块操作”，语言切换收纳进更多菜单。
+- `lib/src/widgets/wenz_rich_text_editor.dart:8753`：媒体/对象块一级入口保留预览、复制块引用、更多菜单；副本、移动、图片尺寸、删除等收纳进更多菜单。
+- `lib/src/widgets/wenz_rich_text_editor.dart:9267`：文件块保持单个紧凑“附件操作”入口，内部承载复制、移动、状态、删除等操作，并保留禁用态。
+- `test/widgets/wenz_rich_text_editor_test.dart:1588` 等：更新相关 widget 测试期望，覆盖精简入口和更多菜单可达性。
+
+**验证**
+- 已运行并通过：`dart format lib/src/widgets/wenz_rich_text_editor.dart test/widgets/wenz_rich_text_editor_test.dart`
+- 已运行并通过若干 P002 相关最小 widget 用例（代码块、对象块、边界移动、图片、文件菜单）。
+- 当前权限切换后，`flutter test` / `dart analyze` 后续命令出现超时，未继续扩大测试范围；`git diff --check` 通过，仅有既有 CRLF 提示。

@@ -151,6 +151,12 @@ class WenzRichTextController extends ChangeNotifier {
   CompositionState? get compositionState => _compositionState;
   CompositionState? _compositionState;
 
+  bool get isApplyingComposingTextInput => _isApplyingComposingTextInput;
+  bool _isApplyingComposingTextInput = false;
+
+  bool get lastChangeWasCompositionOnly => _lastChangeWasCompositionOnly;
+  bool _lastChangeWasCompositionOnly = false;
+
   RichTextDocument get document => session.document;
 
   DocumentSelection? get selection => session.selection;
@@ -223,6 +229,7 @@ class WenzRichTextController extends ChangeNotifier {
     session.selection = selection;
     // Selection-only change: no block content changed.
     _lastChangedBlockIds = <String>{};
+    _lastChangeWasCompositionOnly = false;
     onSelectionChanged?.call(selection);
     notifyListeners();
   }
@@ -239,7 +246,18 @@ class WenzRichTextController extends ChangeNotifier {
     _compositionState = next;
     // Composition-only change: no block content changed.
     _lastChangedBlockIds = <String>{};
+    _lastChangeWasCompositionOnly = true;
     notifyListeners();
+  }
+
+  void runWithComposingTextInput(VoidCallback action) {
+    final previous = _isApplyingComposingTextInput;
+    _isApplyingComposingTextInput = true;
+    try {
+      action();
+    } finally {
+      _isApplyingComposingTextInput = previous;
+    }
   }
 
   void replaceDocument(
@@ -253,6 +271,7 @@ class WenzRichTextController extends ChangeNotifier {
       session.history.clear();
     }
     _lastChangedBlockIds = _changedBlockIds(before, session.document);
+    _lastChangeWasCompositionOnly = false;
     onChanged?.call(session.document);
     notifyListeners();
   }
@@ -422,6 +441,7 @@ class WenzRichTextController extends ChangeNotifier {
     final selectionChanged = change.selectionBefore != change.selectionAfter;
     if (docChanged || selectionChanged) {
       _lastChangedBlockIds = _changedBlockIds(before, change.after);
+      _lastChangeWasCompositionOnly = false;
       if (docChanged) {
         onChanged?.call(change.after);
       }
@@ -506,6 +526,7 @@ class WenzRichTextController extends ChangeNotifier {
     final changed = session.undo();
     if (changed) {
       _lastChangedBlockIds = _changedBlockIds(before, session.document);
+      _lastChangeWasCompositionOnly = false;
       onChanged?.call(session.document);
       if (session.selection != selectionBefore) {
         onSelectionChanged?.call(session.selection);
@@ -524,6 +545,7 @@ class WenzRichTextController extends ChangeNotifier {
     final changed = session.redo();
     if (changed) {
       _lastChangedBlockIds = _changedBlockIds(before, session.document);
+      _lastChangeWasCompositionOnly = false;
       onChanged?.call(session.document);
       if (session.selection != selectionBefore) {
         onSelectionChanged?.call(session.selection);
@@ -1335,6 +1357,13 @@ class WenzRichTextController extends ChangeNotifier {
     TextAttributes attributes, {
     DocumentSelection? selection,
   }) {
+    // Font color follows the same inline-formatting contract as the other
+    // nullable [TextAttributes] fields: callers store `0xAARRGGBB` in
+    // [TextAttributes.color], `null` means no inline override, and merging a
+    // null color does not clear an existing color. A collapsed, missing,
+    // empty-attributes, invalid, object-block, or non-text-only selection is a
+    // no-op at the command layer; same-cell table selections are routed through
+    // table-cell editing. Edit permission is still enforced by [execute].
     if (_revisionModeEnabled) {
       return markFormatRevision(attributes, selection: selection);
     }
@@ -1344,6 +1373,9 @@ class WenzRichTextController extends ChangeNotifier {
   }
 
   ChangeSet clearStyle({DocumentSelection? selection}) {
+    // This clears the selected inline attributes as a whole. A future
+    // color-only clear entry should remove only [TextAttributes.color] while
+    // preserving unrelated attributes such as link, background, and emphasis.
     return execute(ClearStyleCommand(selection: selection));
   }
 

@@ -1,0 +1,12 @@
+完成 P001，只做了语义边界澄清，没有实现 P002/P003 的命中或 offset 行为改动。
+
+**变更**
+- `docs/selection_engine.md:33` 增加空白行点击语义：命中可见文本行区域后请求焦点，选区折叠到对应 `blockId/blockIndex/path`，offset 固定 `0`。
+- `lib/src/widgets/selection_gesture_overlay.dart:18` 明确空文本 surface 的 tap 语义与普通文本一致。
+- `lib/src/widgets/block_geometry_registry.dart:301` 明确零长度文本 entry 命中后属于原 block/path，不应靠扩大 hit box 抢占 chrome。
+- `lib/src/widgets/wenz_rich_text_editor.dart:7070` 明确覆盖空段落、列表/todo、引用/标题、表格单元格；对象块仍走对象选择语义。
+
+**验证**
+- 运行 `git diff --check -- ...` 通过；仅出现 Git 的 CRLF 换行提示。
+- 未运行测试：本次仅注释/文档语义边界变更，无运行时逻辑改动。
+- 未修改 plan 文件、未勾选 checkbox、未更新进度区。

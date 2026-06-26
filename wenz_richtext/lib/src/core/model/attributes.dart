@@ -1,3 +1,15 @@
+/// Inline text styling stored on [TextRun] and inline embed nodes.
+///
+/// Font and background colors are persisted as unsigned `0xAARRGGBB` integers
+/// so the document model and JSON codecs stay UI-framework agnostic. Public
+/// Flutter-facing APIs may accept `Color`, but should convert it to this stable
+/// integer representation before storing it here.
+///
+/// Nullable fields use absence semantics: `null` means "no inline override" and
+/// is omitted from JSON. Because [mergeWith] treats `null` as "leave the current
+/// value unchanged", clearing a nullable inline style must replace the covered
+/// run attributes (for example through a clear-style command) rather than merge
+/// another `TextAttributes` with a `null` value.
 class TextAttributes {
   const TextAttributes({
     this.color,
@@ -14,7 +26,12 @@ class TextAttributes {
     this.revisionIds = const <String>[],
   });
 
+  /// Inline font color as `0xAARRGGBB`; `null` falls back to link/default text
+  /// color during rendering and is omitted from JSON.
   final int? color;
+
+  /// Inline background/highlight color as `0xAARRGGBB`; independent from
+  /// [color] and omitted from JSON when `null`.
   final int? background;
   final bool? bold;
   final bool? italic;
@@ -176,6 +193,15 @@ class TextAttributes {
   }
 }
 
+/// Block-level attributes stored on [BlockNode]s.
+///
+/// List semantics are intentionally split across two fields. [listType]
+/// describes the marker/numbering family: `null` means the default unordered
+/// bullet, `'ordered'` means a numbered item, and `'task'` is kept as the legacy
+/// unordered todo marker. [checked] describes todo state independently: `null`
+/// means the item is not a todo, while `true`/`false` means checked/unchecked.
+/// This allows ordered todo items to use `listType == 'ordered'` together with
+/// a non-null [checked] value without migrating existing `'task'` data.
 class BlockAttributes {
   const BlockAttributes({
     this.level,
@@ -190,7 +216,11 @@ class BlockAttributes {
   final int? level;
   final int? indent;
   final String? alignment;
+
+  /// List marker/numbering family; todo state lives in [checked].
   final String? listType;
+
+  /// Todo completion state; non-null values mark this block as a todo item.
   final bool? checked;
   final String? childNote;
   final String? anchor;

@@ -298,6 +298,10 @@ class BlockGeometryRegistry {
   /// position is computed from that block's *text-local* coordinates — the
   /// hit-test local offset is first translated through the entry's
   /// [BlockEntry.hitLocalToTextLocal] so padding/centring offsets are stripped.
+  /// A zero-length text entry is resolved as a normal text target when its
+  /// visible line hit-test box is hit: the resulting [DocumentPosition] belongs
+  /// to that exact block/path and clamps to offset 0. Non-text chrome should be
+  /// registered as a selection exclusion instead of widening this hit box.
   /// Otherwise the nearest block is chosen by 2-D rect proximity and the caret
   /// is clamped to that block's start or end — so a drag into the gap between
   /// blocks (or beyond the last block) still extends the selection predictably.

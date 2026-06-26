@@ -341,6 +341,40 @@ void main() {
     expect(outline.isBlockHidden('h2'), isFalse);
     expect(controller.selection, collapsedTextSelection('h2', 2, 0));
   });
+
+  test('collapsing heading moves covered selection to heading', () {
+    final controller = WenzRichTextController(
+      document: _foldedOutlineDocument(),
+      selection: DocumentSelection(
+        base: DocumentPosition.text(blockId: 'p1', blockIndex: 1, offset: 0),
+        extent: DocumentPosition.text(blockId: 'p2', blockIndex: 3, offset: 6),
+      ),
+    );
+    final outline = WenzOutlineController(editor: controller);
+    addTearDown(outline.dispose);
+
+    expect(outline.collapseByBlockId('h1'), isTrue);
+
+    expect(outline.isCollapsed('h1'), isTrue);
+    expect(controller.selection, collapsedTextSelection('h1', 0, 0));
+  });
+
+  test('programmatic selection expands collapsed outline ranges', () {
+    final controller =
+        WenzRichTextController(document: _foldedOutlineDocument());
+    final outline = WenzOutlineController(editor: controller);
+    addTearDown(outline.dispose);
+
+    expect(outline.collapseByBlockId('h2'), isTrue);
+    expect(outline.collapseByBlockId('h1'), isTrue);
+    expect(outline.isBlockHidden('p2'), isTrue);
+
+    controller.setSelection(collapsedTextSelection('p2', 3, 6));
+
+    expect(outline.collapsedBlockIds, isEmpty);
+    expect(outline.isBlockHidden('p2'), isFalse);
+    expect(controller.selection, collapsedTextSelection('p2', 3, 6));
+  });
 }
 
 RichTextDocument _tableDocument() {

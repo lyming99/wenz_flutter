@@ -93,7 +93,7 @@ Markdown/plain text intentionally degrade to readable fallback text.
 | BlockType | Renderer | Notes |
 | --- | --- | --- |
 | paragraph / heading / quote / listItem | `_TextBlockRenderer` | Inline-aware; formula/mention fallback + optional `InlineEmbedRenderer`; selection/caret/composition via `_TextSelectionSurface`. |
-| code | `_CodeBlockRenderer` | Monospace body with composition underline span; toolbar includes language dropdown and copy-code button. Language changes call `SetCodeLanguageCommand`; Tab/Shift+Tab in the editor call `IndentCodeBlockCommand`. |
+| code | `_CodeBlockRenderer` | Monospace body with composition underline span; code blocks reserve a display-only left gutter for 1-based line numbers; toolbar includes language dropdown and copy-code button. Language changes call `SetCodeLanguageCommand`; Tab/Shift+Tab in the editor call `IndentCodeBlockCommand`. |
 | image / video / file | asks `MediaResolver`, then built-in fallback | Built-in media renderers consult the injected [MediaResolver] first; when it returns `null` (or no resolver is set) images/videos fall back to `_MediaPlaceholder`, while files fall back to a metadata card. Image blocks wrap the result with `showWidth`/`showHeight` sizing and optional caption text; file cards show display name, size, MIME type, upload status, and failure text. See [Media resolver](#media-resolver). |
 | embed | `_BlockEmbedContent` or business renderer | Generic block embed placeholder displays `embedType` + `fallbackText`/data label. Register per business type with `BlockRendererRegistry.registerEmbed`; wrap large custom widgets in `WenzObjectBlockSurface` for object-block selection semantics. |
 | table | `_TableBlockRenderer` | Custom Stack grid layout; visible cells are positioned by `rowSpan`/`columnSpan`, covered cells are not rendered or hit-tested; table-cell text uses the same inline embed fallback/renderer path. When a table cell/range is selected, the default renderer shows a floating toolbar for row/column insert/delete, header/background/alignment, merge/split, width reset, plus drag handles that persist explicit column widths via `SetTableColumnWidthCommand`. |
@@ -125,6 +125,28 @@ movement and selection. Prefer compact `TextSpan`s here; use
 `BlockRendererRegistry` when a feature needs a large interactive widget.
 Built-in fallbacks display formula text, mention `@label`, emoji unicode, inline
 images as `[img]`, and unknown custom types as `[type]`.
+
+## Code block line numbers
+
+Code line numbers are a renderer concern, not document content:
+
+- They are derived from `CodeBlockNode.code` at paint time and never persist to
+  `CodeBlockNode`, rich/legacy JSON, Markdown, HTML, plain-text export,
+  clipboard payloads, command history, or undo/redo snapshots.
+- Numbering is 1-based. The line count is `code.split('\n').length`, so empty
+  code displays line `1`, blank lines are counted, consecutive newlines produce
+  blank numbered rows, and a trailing newline produces a final empty numbered
+  row.
+- The line-number gutter sits to the left of the code text, uses the same
+  monospace family, `13.5px` font size, and `1.6` line height as code content,
+  aligns labels to the right, uses `0x8AE6E6F0`, and keeps `12px` between the
+  gutter and code text.
+- The gutter is not part of `_TextSelectionSurface`: it does not participate in
+  text offset mapping, selection, caret/composition rectangles, find highlights,
+  Tab indentation, language changes, or copy-code output.
+- Horizontal scrolling moves only the code text surface; the line-number gutter
+  remains visually anchored at the left edge of the code block so long lines can
+  scroll without dragging line numbers away from their rows.
 
 ## Media resolver
 

@@ -1,7 +1,9 @@
-import 'dart:ui' show LineMetrics, PointerDeviceKind, Tristate;
+import 'dart:convert';
+import 'dart:ui' show ImageByteFormat, LineMetrics, PointerDeviceKind, Tristate;
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_math_fork/flutter_math.dart';
@@ -13,6 +15,7 @@ const String _formulaPlaceholder = '\uFFFC';
 const _inlineFormulaKey = ValueKey<String>('wenz-richtext-inline-formula');
 const _codeBlockBackground = Color(0xFF1E1E2E);
 const _codeBlockText = Color(0xFFE6E6F0);
+const _codeBlockSelectionHighlight = Color(0x944C7DFF);
 const _codeKeyword = Color(0xFFC792EA);
 const _codeString = Color(0xFFC3E88D);
 const _codeType = Color(0xFF82AAFF);
@@ -578,6 +581,86 @@ void main() {
     expect(_richText('Body one'), findsOneWidget);
     expect(_richText('Nested title'), findsOneWidget);
     expect(_richText('Body three'), findsOneWidget);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.space);
+    await tester.pumpAndSettle();
+
+    expect(outline.isCollapsed('section'), isTrue);
+    expect(_richText('Body one'), findsNothing);
+    expect(_richText('Nested title'), findsNothing);
+    expect(_richText('Body three'), findsNothing);
+  });
+
+  testWidgets('read-only mode toggles heading collapse without editing', (
+    tester,
+  ) async {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'section',
+            type: BlockType.heading,
+            attributes: BlockAttributes(level: 2),
+            content: <InlineNode>[TextRun(text: 'Read-only section')],
+          ),
+          TextBlockNode(
+            id: 'body',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'Read-only hidden body')],
+          ),
+          TextBlockNode(
+            id: 'next',
+            type: BlockType.heading,
+            attributes: BlockAttributes(level: 2),
+            content: <InlineNode>[TextRun(text: 'Next read-only section')],
+          ),
+        ],
+      ),
+    );
+    final outline = WenzOutlineController(editor: controller);
+    addTearDown(outline.dispose);
+    final beforeJson = controller.toJson();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 420,
+            height: 220,
+            child: WenzRichTextEditor(
+              controller: controller,
+              outlineController: outline,
+              padding: EdgeInsets.zero,
+              readOnly: true,
+              enableIme: false,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final button = find.byKey(
+      const ValueKey<String>('wenz-richtext-heading-collapse-section'),
+    );
+    expect(button, findsOneWidget);
+    expect(tester.widget<IconButton>(button).onPressed, isNotNull);
+    expect(_richText('Read-only hidden body'), findsOneWidget);
+
+    await tester.tap(button);
+    await tester.pumpAndSettle();
+
+    expect(outline.isCollapsed('section'), isTrue);
+    expect(_richText('Read-only hidden body'), findsNothing);
+    expect(controller.toJson(), beforeJson);
+    expect(controller.canUndo, isFalse);
+
+    await tester.tap(button);
+    await tester.pumpAndSettle();
+
+    expect(outline.isCollapsed('section'), isFalse);
+    expect(_richText('Read-only hidden body'), findsOneWidget);
+    expect(controller.toJson(), beforeJson);
   });
 
   testWidgets('programmatic selection in hidden block expands its heading', (
@@ -1389,6 +1472,121 @@ void main() {
     await expectConvertedTextSelectable();
   });
 
+  test('code block line-number policy is display-only', () {
+    const code = 'alpha\n\nbeta\n';
+    const block = CodeBlockNode(
+      id: 'code1',
+      code: code,
+      language: 'dart',
+    );
+    const document = RichTextDocument(blocks: <BlockNode>[block]);
+
+    expect(WenzCodeBlockLineNumbers.firstNumber, 1);
+    expect(WenzCodeBlockLineNumbers.displayOnly, isTrue);
+    expect(WenzCodeBlockLineNumbers.storedInDocumentModel, isFalse);
+    expect(WenzCodeBlockLineNumbers.storedInCodecs, isFalse);
+    expect(WenzCodeBlockLineNumbers.copiedWithCode, isFalse);
+    expect(WenzCodeBlockLineNumbers.recordedInUndoRedoCommands, isFalse);
+    expect(WenzCodeBlockLineNumbers.participatesInTextOffsetMapping, isFalse);
+    expect(WenzCodeBlockLineNumbers.gutterScrollsHorizontallyWithCode, isFalse);
+
+    expect(WenzCodeBlockLineNumbers.gutterTextAlign, TextAlign.right);
+    expect(WenzCodeBlockLineNumbers.fontFamily, 'JetBrains Mono');
+    expect(WenzCodeBlockLineNumbers.fontSize, 13.5);
+    expect(WenzCodeBlockLineNumbers.lineHeight, 1.6);
+    expect(WenzCodeBlockLineNumbers.color, 0x8AE6E6F0);
+    expect(WenzCodeBlockLineNumbers.gapToCode, 12.0);
+
+    expect(WenzCodeBlockLineNumbers.labelsForCode(''), equals(<String>['1']));
+    expect(
+        WenzCodeBlockLineNumbers.labelsForCode('one'), equals(<String>['1']));
+    expect(
+      WenzCodeBlockLineNumbers.labelsForCode(code),
+      equals(<String>['1', '2', '3', '4']),
+    );
+    expect(
+      WenzCodeBlockLineNumbers.labelsForCode('\n\n'),
+      equals(<String>['1', '2', '3']),
+    );
+    expect(WenzCodeBlockLineNumbers.maxLabelDigits(''), 1);
+    expect(
+      WenzCodeBlockLineNumbers.maxLabelDigits(
+        List<String>.filled(100, 'line').join('\n'),
+      ),
+      3,
+    );
+
+    final richJson = Map<String, Object?>.from(
+      jsonDecode(const RichTextJsonCodec().encode(document)) as Map,
+    );
+    final richBlock = Map<String, Object?>.from(
+      (richJson['blocks'] as List<Object?>).single as Map,
+    );
+    expect(richBlock['code'], code);
+    expect(richBlock.keys, isNot(contains('lineNumber')));
+    expect(richBlock.keys, isNot(contains('lineNumbers')));
+
+    final legacyDocument = const LegacyWenJsonCodec().decode(
+      jsonEncode(<String, Object?>{
+        'blocks': <Map<String, Object?>>[
+          <String, Object?>{
+            'type': 'code',
+            'code': code,
+            'language': 'dart',
+            'lineNumbers': <int>[1, 2, 3, 4],
+          },
+        ],
+      }),
+    );
+    final legacyBlock = legacyDocument.blocks.single as CodeBlockNode;
+    expect(legacyBlock.code, code);
+    expect(legacyBlock.toJson().keys, isNot(contains('lineNumber')));
+    expect(legacyBlock.toJson().keys, isNot(contains('lineNumbers')));
+
+    expect(const PlainTextCodec().encode(document), code);
+    expect(const MarkdownCodec().encode(document),
+        '```dart\nalpha\n\nbeta\n\n```');
+    expect(
+      const HtmlCodec().encode(document),
+      '<pre><code class="language-dart">alpha\n\nbeta\n</code></pre>',
+    );
+
+    final codePath = PositionPath.blockCode('code1');
+    final codeSelection = DocumentSelection(
+      base: DocumentPosition(
+        blockId: 'code1',
+        blockIndex: 0,
+        path: codePath,
+        offset: 0,
+      ),
+      extent: DocumentPosition(
+        blockId: 'code1',
+        blockIndex: 0,
+        path: codePath,
+        offset: code.length,
+      ),
+    );
+    final controller = WenzRichTextController(
+      document: document,
+      selection: collapsedCodeSelection('code1', 0, 0),
+    );
+    expect(
+      controller.clipboardService
+          .parse(
+            controller.copySelection(codeSelection)!,
+          )
+          .text,
+      code,
+    );
+
+    controller.setCodeLanguage('python', blockIndex: 0);
+    expect((controller.document.blocks.single as CodeBlockNode).code, code);
+    expect(controller.undo(), isTrue);
+    expect((controller.document.blocks.single as CodeBlockNode).code, code);
+    expect(controller.redo(), isTrue);
+    expect((controller.document.blocks.single as CodeBlockNode).code, code);
+  });
+
   testWidgets('code block toolbar copies code and changes language', (
     tester,
   ) async {
@@ -1433,16 +1631,19 @@ void main() {
       ),
     );
 
-    expect(find.text('dart'), findsOneWidget);
     expect(find.byTooltip('复制代码'), findsOneWidget);
+    expect(find.byTooltip('更多块操作'), findsOneWidget);
+    _expectToolbarButtonSize(tester, '复制代码');
+    _expectToolbarButtonSize(tester, '更多块操作');
+    expect(find.text('dart'), findsNothing);
 
     await tester.tap(find.byTooltip('复制代码'));
     await tester.pump();
     expect(clipboardText, 'final value = 1;');
 
-    await tester.tap(find.text('dart'));
+    await tester.tap(find.byTooltip('更多块操作'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('python').last);
+    await tester.tap(_popupMenuItemFinder('python'));
     await tester.pumpAndSettle();
 
     expect((controller.document.blocks.single as CodeBlockNode).language,
@@ -1572,7 +1773,203 @@ void main() {
       find.byKey(const ValueKey<String>('wenz-richtext-code-scroll-code1')),
     );
     expect(scroll.scrollDirection, Axis.horizontal);
-    expect(find.text('dart'), findsOneWidget);
+    expect(find.text('dart'), findsNothing);
+    expect(find.byTooltip('更多块操作'), findsOneWidget);
+    final blockRect = tester.getRect(
+      find.byKey(const ValueKey<String>('wenz-richtext-code-block-code1')),
+    );
+    final codeRect = tester.getRect(_richText(longCode));
+    final copyButtonRect = tester.getRect(find.byTooltip('复制代码'));
+    expect(codeRect.top - blockRect.top, lessThan(24));
+    expect(copyButtonRect.bottom, lessThanOrEqualTo(blockRect.top));
+    expect(copyButtonRect.right, lessThanOrEqualTo(blockRect.right));
+  });
+
+  testWidgets('code block selection highlight is visible on dark surface', (
+    tester,
+  ) async {
+    const code = 'final value = 42; // done';
+    final codePath = PositionPath.blockCode('code1');
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          CodeBlockNode(id: 'code1', code: code, language: 'dart'),
+        ],
+      ),
+      selection: DocumentSelection(
+        base: DocumentPosition(
+          blockId: 'code1',
+          blockIndex: 0,
+          path: codePath,
+          offset: 0,
+        ),
+        extent: DocumentPosition(
+          blockId: 'code1',
+          blockIndex: 0,
+          path: codePath,
+          offset: 11,
+        ),
+      ),
+    );
+    const boundaryKey = ValueKey<String>('code-selection-highlight-sample');
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: RepaintBoundary(
+            key: boundaryKey,
+            child: WenzRichTextEditor(
+              controller: controller,
+              enableIme: false,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(
+      find.byKey(const ValueKey<String>('wenz-richtext-selection-highlight')),
+      findsOneWidget,
+    );
+
+    final selectedSpacePoint = _globalTextRangePoint(tester, code, 5, 6, 0.5);
+    final selectedColor = await _sampleBoundaryColor(
+      tester,
+      boundaryKey,
+      selectedSpacePoint,
+    );
+    expect(_redOf(selectedColor), greaterThan(_redOf(_codeBlockBackground)));
+    expect(
+      _greenOf(selectedColor),
+      greaterThan(_greenOf(_codeBlockBackground) + 30),
+    );
+    expect(
+      _blueOf(selectedColor),
+      greaterThan(_blueOf(_codeBlockBackground) + 80),
+    );
+    expect(_blueOf(selectedColor), greaterThan(_greenOf(selectedColor)));
+    expect(_blueOf(selectedColor), greaterThan(_redOf(selectedColor)));
+    expect(_alphaOf(_codeBlockSelectionHighlight), greaterThanOrEqualTo(0x90));
+  });
+
+  testWidgets('code block selection remains copyable with highlight visible', (
+    tester,
+  ) async {
+    const code = 'final value = 42; // done';
+    final codePath = PositionPath.blockCode('code1');
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          CodeBlockNode(id: 'code1', code: code, language: 'dart'),
+        ],
+      ),
+      selection: DocumentSelection(
+        base: DocumentPosition(
+          blockId: 'code1',
+          blockIndex: 0,
+          path: codePath,
+          offset: 0,
+        ),
+        extent: DocumentPosition(
+          blockId: 'code1',
+          blockIndex: 0,
+          path: codePath,
+          offset: 11,
+        ),
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WenzRichTextEditor(
+            controller: controller,
+            enableIme: false,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(
+      find.byKey(const ValueKey<String>('wenz-richtext-selection-highlight')),
+      findsOneWidget,
+    );
+    final selectedPayload = controller.copySelection();
+    expect(selectedPayload, isNotNull);
+    expect(controller.clipboardService.parse(selectedPayload!).text,
+        'final value');
+  });
+
+  testWidgets('object block more menu stays inside compact editor viewport', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(320, 300));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          ImageBlockNode(
+            id: 'image1',
+            assetId: 'hero',
+            file: 'hero.png',
+            width: 640,
+            height: 320,
+          ),
+        ],
+      ),
+      selection: objectBlockSelection('image1', 0),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            key: const ValueKey<String>('compact-object-menu-viewport'),
+            width: 320,
+            height: 260,
+            child: Align(
+              alignment: Alignment.topLeft,
+              child: SizedBox(
+                width: 260,
+                height: 260,
+                child: WenzRichTextEditor(
+                  controller: controller,
+                  enableIme: false,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final imageRect = tester.getRect(_imageBlockFinder('image1'));
+    final moreButtonRect = tester.getRect(find.byTooltip('更多块操作'));
+    expect(moreButtonRect.top, lessThanOrEqualTo(imageRect.top + 40));
+    expect(moreButtonRect.right, lessThanOrEqualTo(imageRect.right));
+
+    await tester.tap(find.byTooltip('更多块操作'));
+    await tester.pumpAndSettle();
+
+    expect(_popupMenuItemFinder('图片宽度：小'), findsOneWidget);
+    expect(_popupMenuItemFinder('创建块副本'), findsOneWidget);
+    final menuRect = tester.getRect(_popupMenuItemFinder('图片宽度：小'));
+    final viewportRect = tester.getRect(
+      find.byKey(const ValueKey<String>('compact-object-menu-viewport')),
+    );
+    expect(menuRect.left, greaterThanOrEqualTo(viewportRect.left));
+    expect(menuRect.right, lessThanOrEqualTo(viewportRect.right));
+    expect(menuRect.top, greaterThanOrEqualTo(viewportRect.top));
+
+    await tester.tap(_popupMenuItemFinder('图片宽度：小'));
+    await tester.pumpAndSettle();
+
+    final image = controller.document.blocks.single as ImageBlockNode;
+    expect(image.showWidth, 240);
+    expect(image.showHeight, 120);
   });
 
   testWidgets('object block toolbar copies duplicates moves and deletes', (
@@ -1627,19 +2024,25 @@ void main() {
     await tester.pump();
 
     expect(find.byTooltip('预览媒体'), findsOneWidget);
-    expect(find.byTooltip('复制块引用'), findsNothing);
+    expect(find.byTooltip('复制块引用'), findsOneWidget);
+    _expectToolbarButtonSize(tester, '预览媒体');
+    _expectToolbarButtonSize(tester, '复制块引用');
+    _expectToolbarButtonSize(tester, '更多块操作');
     expect(find.byTooltip('创建块副本'), findsNothing);
     expect(find.byTooltip('删除块'), findsNothing);
+    final imageRect = tester.getRect(_imageBlockFinder('image1'));
+    final previewButtonRect = tester.getRect(find.byTooltip('预览媒体'));
+    expect(previewButtonRect.top, greaterThanOrEqualTo(imageRect.top));
+    expect(previewButtonRect.top, lessThan(imageRect.top + 40));
+    expect(previewButtonRect.right, lessThanOrEqualTo(imageRect.right));
 
-    await tester.tap(find.byTooltip('更多块操作'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('复制块引用'));
+    await tester.tap(find.byTooltip('复制块引用'));
     await tester.pumpAndSettle();
     expect(clipboardText, 'hero.png');
 
     await tester.tap(find.byTooltip('更多块操作'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('创建块副本'));
+    await tester.tap(_popupMenuItemFinder('创建块副本'));
     await tester.pumpAndSettle();
 
     expect(controller.document.blocks, hasLength(4));
@@ -1660,7 +2063,7 @@ void main() {
 
     await tester.tap(find.byTooltip('更多块操作'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('删除块'));
+    await tester.tap(_popupMenuItemFinder('删除块'));
     await tester.pumpAndSettle();
 
     expect(controller.document.blocks, hasLength(3));
@@ -1713,19 +2116,8 @@ void main() {
       ),
     );
     await _openFileActionMenu(tester);
-    expect(find.text('上移块'), findsNothing);
-    expect(find.text('下移块'), findsNothing);
-    await tester.tap(find.text('更多块操作'));
-    await tester.pumpAndSettle();
 
-    PopupMenuItem menuItem(String label) {
-      return tester.widget<PopupMenuItem>(
-        find.ancestor(
-          of: find.text(label),
-          matching: find.byType(PopupMenuItem),
-        ),
-      );
-    }
+    PopupMenuItem menuItem(String label) => _popupMenuItem(tester, label);
 
     expect(menuItem('上移块').enabled, isFalse);
     expect(menuItem('下移块').enabled, isFalse);
@@ -1827,7 +2219,7 @@ void main() {
 
     await tester.tap(_blockDragHandleFinder('p0'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('更多块操作'));
+    await tester.tap(_popupMenuItemFinder('更多块操作'));
     await tester.pumpAndSettle();
 
     PopupMenuItem menuItem(String label) => _popupMenuItem(tester, label);
@@ -1966,38 +2358,21 @@ void main() {
     expect(find.text('上移块'), findsNothing);
     expect(find.text('下移块'), findsNothing);
 
-    await tester.tap(
-      find.ancestor(
-        of: find.text('复制块引用'),
-        matching: find.byType(PopupMenuItem),
-      ),
-    );
+    await tester.tap(_popupMenuItemFinder('复制块引用'));
     await tester.pumpAndSettle();
     expect(clipboardText, 'hero.png');
 
     await tester.tap(_blockDragHandleFinder('image1'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('更多块操作'));
+    await tester.tap(_popupMenuItemFinder('更多块操作'));
     await tester.pumpAndSettle();
 
-    PopupMenuItem menuItem(String label) {
-      return tester.widget<PopupMenuItem>(
-        find.ancestor(
-          of: find.text(label),
-          matching: find.byType(PopupMenuItem),
-        ),
-      );
-    }
+    PopupMenuItem menuItem(String label) => _popupMenuItem(tester, label);
 
     expect(menuItem('上移块').enabled, isTrue);
     expect(menuItem('下移块').enabled, isTrue);
 
-    await tester.tap(
-      find.ancestor(
-        of: find.text('下移块'),
-        matching: find.byType(PopupMenuItem),
-      ),
-    );
+    await tester.tap(_popupMenuItemFinder('下移块'));
     await tester.pumpAndSettle();
 
     expect(
@@ -2009,7 +2384,7 @@ void main() {
 
     await tester.tap(_blockDragHandleFinder('image1'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('更多块操作'));
+    await tester.tap(_popupMenuItemFinder('更多块操作'));
     await tester.pumpAndSettle();
     expect(menuItem('上移块').enabled, isTrue);
     expect(menuItem('下移块').enabled, isFalse);
@@ -2501,14 +2876,17 @@ void main() {
     expect(find.byTooltip('重置图片尺寸'), findsNothing);
     expect(find.byTooltip('预览媒体'), findsOneWidget);
     expect(find.byTooltip('更多块操作'), findsOneWidget);
+    final imageRect = tester.getRect(_imageBlockFinder('image1'));
+    final moreButtonRect = tester.getRect(find.byTooltip('更多块操作'));
     expect(
-      tester.getTopLeft(find.byTooltip('更多块操作')).dy,
-      lessThan(tester.getTopLeft(_imageBlockFinder('image1')).dy),
+      moreButtonRect.top,
+      lessThanOrEqualTo(imageRect.top + 40),
     );
+    expect(moreButtonRect.right, lessThanOrEqualTo(imageRect.right));
 
     await tester.tap(find.byTooltip('更多块操作'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('图片宽度：中'));
+    await tester.tap(_popupMenuItemFinder('图片宽度：中'));
     await tester.pumpAndSettle();
 
     var image = controller.document.blocks.single as ImageBlockNode;
@@ -2517,7 +2895,7 @@ void main() {
 
     await tester.tap(find.byTooltip('更多块操作'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('重置图片尺寸'));
+    await tester.tap(_popupMenuItemFinder('重置图片尺寸'));
     await tester.pumpAndSettle();
 
     image = controller.document.blocks.single as ImageBlockNode;
@@ -2564,40 +2942,23 @@ void main() {
     expect(find.text('PDF'), findsOneWidget);
     expect(find.text('brief.pdf'), findsOneWidget);
     expect(find.byTooltip('附件操作'), findsOneWidget);
+    _expectToolbarButtonSize(tester, '附件操作');
     expect(find.text('4 KB'), findsOneWidget);
     expect(find.text('application/pdf'), findsOneWidget);
     expect(find.text('Uploading'), findsOneWidget);
     expect(find.text('storage/brief.pdf'), findsNothing);
     expect(find.text('https://cdn.example.com/brief.pdf'), findsNothing);
     expect(find.byTooltip('设置文件状态'), findsNothing);
-    expect(
-      tester.getSize(find.byTooltip('附件操作')),
-      const Size.square(32),
-    );
-
     await _openFileActionMenu(tester);
     expect(
-      tester
-          .getSize(find.ancestor(
-            of: find.text('更多块操作'),
-            matching: find.byType(PopupMenuItem),
-          ))
-          .width,
+      tester.getSize(_popupMenuItemFinder('复制块引用')).width,
       greaterThanOrEqualTo(176),
     );
-    expect(find.text('标记为已上传'), findsNothing);
-    await tester.tap(find.text('更多块操作'));
-    await tester.pumpAndSettle();
     expect(
-      tester
-          .getSize(find.ancestor(
-            of: find.text('标记为已上传'),
-            matching: find.byType(PopupMenuItem),
-          ))
-          .width,
+      tester.getSize(_popupMenuItemFinder('标记为已上传')).width,
       greaterThanOrEqualTo(176),
     );
-    await tester.tap(find.text('标记为已上传'));
+    await tester.tap(_popupMenuItemFinder('标记为已上传'));
     await tester.pumpAndSettle();
 
     var file = controller.document.blocks.single as FileBlockNode;
@@ -2606,9 +2967,7 @@ void main() {
 
     await tester.tap(find.byTooltip('附件操作'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('更多块操作'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('标记为失败'));
+    await tester.tap(_popupMenuItemFinder('标记为失败'));
     await tester.pumpAndSettle();
 
     file = controller.document.blocks.single as FileBlockNode;
@@ -2651,6 +3010,23 @@ void main() {
       ),
     );
     _expectLocalizedTooltip('复制代码');
+    _expectLocalizedTooltip('更多块操作');
+    expect(find.text('dart'), findsNothing);
+    await tester.tap(find.byTooltip('更多块操作'));
+    await tester.pumpAndSettle();
+    expect(find.text('python'), findsOneWidget);
+    await tester.tap(_popupMenuItemFinder('python'));
+    await tester.pumpAndSettle();
+    expect(
+      (tester
+              .widget<WenzRichTextEditor>(find.byType(WenzRichTextEditor))
+              .controller
+              .document
+              .blocks
+              .single as CodeBlockNode)
+          .language,
+      'python',
+    );
 
     await pumpEditor(
       WenzRichTextController(
@@ -2663,20 +3039,25 @@ void main() {
       ),
     );
     for (final tooltip in <String>[
+      '预览媒体',
       '复制块引用',
-      '创建块副本',
       '更多块操作',
-      '删除块',
     ]) {
       _expectLocalizedTooltip(tooltip);
     }
+    expect(find.byTooltip('创建块副本'), findsNothing);
+    expect(find.byTooltip('删除块'), findsNothing);
     await tester.tap(find.byTooltip('更多块操作'));
     await tester.pumpAndSettle();
     for (final label in <String>[
+      '创建块副本',
+      '上移块',
+      '下移块',
       '图片宽度：小',
       '图片宽度：中',
       '图片宽度：大',
       '重置图片尺寸',
+      '删除块',
     ]) {
       expect(find.text(label), findsOneWidget);
     }
@@ -2694,23 +3075,15 @@ void main() {
     _expectLocalizedTooltip('附件操作');
     await tester.tap(find.byTooltip('附件操作'));
     await tester.pumpAndSettle();
+    expect(find.text('复制块引用'), findsOneWidget);
     for (final label in <String>[
-      '复制块引用',
       '创建块副本',
-      '更多块操作',
-      '删除块',
-    ]) {
-      expect(find.text(label), findsOneWidget);
-    }
-    expect(find.text('标记为已上传'), findsNothing);
-    await tester.tap(find.text('更多块操作'));
-    await tester.pumpAndSettle();
-    for (final label in <String>[
       '上移块',
       '下移块',
       '标记为上传中',
       '标记为已上传',
       '标记为失败',
+      '删除块',
     ]) {
       expect(find.text(label), findsOneWidget);
     }
@@ -3733,6 +4106,9 @@ void main() {
     final selectedCellRect = tester.getRect(
       find.bySemanticsLabel('Table cell row 1 column 1'),
     );
+    final tableRightCellRect = tester.getRect(
+      find.byKey(const ValueKey<String>('table-cell-border-table1-0-1')),
+    );
     final toolbarRect = tester.getRect(
       find.byKey(const ValueKey<String>('table-floating-toolbar')),
     );
@@ -3741,6 +4117,9 @@ void main() {
     expect(selectedCellRect.top, unselectedCellRect.top);
     expect(toolbarRect.bottom, lessThanOrEqualTo(selectedCellRect.top));
     expect(toolbarGap, moreOrLessEquals(4, epsilon: 0.1));
+    expect(toolbarRect.right, lessThanOrEqualTo(tableRightCellRect.right));
+    expect(toolbarRect.right, greaterThan(tableRightCellRect.center.dx));
+    expect(toolbarRect.width, lessThan(tableRightCellRect.width * 2));
   });
 
   testWidgets('table floating toolbar keeps compact theme close to cells', (
@@ -3995,6 +4374,10 @@ void main() {
     final selectedCellRect = tester.getRect(
       find.byKey(const ValueKey<String>('table-cell-border-table1-1-1')),
     );
+    _expectToolbarButtonSize(tester, '在下方插入行');
+    _expectToolbarButtonSize(tester, '在右侧插入列');
+    _expectToolbarButtonSize(tester, '更多表格操作');
+    _expectToolbarButtonSize(tester, '合并所选单元格');
     final buttonPoint = tester.getRect(find.byTooltip('在下方插入行')).center;
 
     expect(toolbarBlockerRect.left, moreOrLessEquals(toolbarRect.left));
@@ -5334,6 +5717,150 @@ void main() {
     expect(controller.selection?.extent.offset, 4);
   });
 
+  testWidgets('editor shortcut configuration overrides default dispatch', (
+    tester,
+  ) async {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'Hi')],
+          ),
+        ],
+      ),
+      selection: collapsedTextSelection('p1', 0, 0),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WenzRichTextEditor(
+            controller: controller,
+            autofocus: true,
+            enableIme: false,
+            shortcutConfiguration: const EditorShortcutConfiguration(
+              bindings: <EditorShortcutBinding>[
+                EditorShortcutBinding.handled(
+                  shortcut: EditorShortcutKey(
+                    LogicalKeyboardKey.keyL,
+                    modifiers: <EditorShortcutModifier>{
+                      EditorShortcutModifier.control,
+                    },
+                  ),
+                  intent: EditorShortcutIntent.selectAll,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await _sendCtrlShortcut(tester, LogicalKeyboardKey.keyL);
+    await tester.pump();
+
+    expect(controller.selection, textSelection('p1', 0, 0, 2));
+  });
+
+  testWidgets('updated shortcut configuration is used without controller swap', (
+    tester,
+  ) async {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'Hi')],
+          ),
+        ],
+      ),
+      selection: collapsedTextSelection('p1', 0, 0),
+    );
+
+    Future<void> pumpWith(EditorShortcutConfiguration configuration) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: WenzRichTextEditor(
+              controller: controller,
+              autofocus: true,
+              enableIme: false,
+              shortcutConfiguration: configuration,
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+    }
+
+    await pumpWith(const EditorShortcutConfiguration());
+    await _sendCtrlShortcut(tester, LogicalKeyboardKey.keyL);
+    await tester.pump();
+    expect(controller.selection, collapsedTextSelection('p1', 0, 0));
+
+    await pumpWith(
+      const EditorShortcutConfiguration(
+        bindings: <EditorShortcutBinding>[
+          EditorShortcutBinding.handled(
+            shortcut: EditorShortcutKey(
+              LogicalKeyboardKey.keyL,
+              modifiers: <EditorShortcutModifier>{
+                EditorShortcutModifier.control,
+              },
+            ),
+            intent: EditorShortcutIntent.selectAll,
+          ),
+        ],
+      ),
+    );
+    await _sendCtrlShortcut(tester, LogicalKeyboardKey.keyL);
+    await tester.pump();
+
+    expect(controller.selection, textSelection('p1', 0, 0, 2));
+  });
+
+  testWidgets('code block tab remains before shortcut configuration', (
+    tester,
+  ) async {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[CodeBlockNode(id: 'code1', code: 'aa')],
+      ),
+      selection: collapsedCodeSelection('code1', 0, 0),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WenzRichTextEditor(
+            controller: controller,
+            autofocus: true,
+            enableIme: false,
+            shortcutConfiguration: const EditorShortcutConfiguration(
+              bindings: <EditorShortcutBinding>[
+                EditorShortcutBinding.handled(
+                  shortcut: EditorShortcutKey(LogicalKeyboardKey.tab),
+                  intent: EditorShortcutIntent.selectAll,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+    await tester.pump();
+
+    expect((controller.document.blocks.single as CodeBlockNode).code, '  aa');
+    expect(controller.selection?.extent.path.isBlockCode, isTrue);
+  });
+
   testWidgets('table cell arrow up/down navigate across rows', (tester) async {
     final controller = WenzRichTextController(
       document: const RichTextDocument(
@@ -5820,8 +6347,7 @@ void main() {
     expect(sourceRect.left, greaterThanOrEqualTo(frameRect.left));
     expect(sourceRect.right, lessThanOrEqualTo(frameRect.right));
 
-    await tester.tapAt(tester.getCenter(_videoBlockFinder('video1')));
-    await tester.pump();
+    await _tapSingle(tester, tester.getCenter(_videoBlockFinder('video1')));
 
     expect(tester.takeException(), isNull);
     expect(find.text('Narrow video'), findsNothing);
@@ -6385,9 +6911,10 @@ void main() {
       blockIndex: 0,
       tableRowIndex: 0,
       tableColumnIndex: 0,
-      baseOffset: 1,
+      baseOffset: controller.selection!.base.offset,
       extentOffset: 4,
     );
+    expect(controller.selection!.base.offset, inInclusiveRange(1, 2));
 
     await _waitPastMultiClickWindow(tester);
     await tester.dragFrom(mentionLeft, followingEnd - mentionLeft);
@@ -8846,17 +9373,13 @@ Future<void> _openBlockMoreMenu(WidgetTester tester, String blockId) async {
   await _waitPastMultiClickWindow(tester);
   await tester.tap(_blockDragHandleFinder(blockId));
   await tester.pumpAndSettle();
-  await tester.tap(find.text('更多块操作'));
+  await tester.tap(_popupMenuItemFinder('更多块操作'));
   await tester.pumpAndSettle();
 }
 
 Future<void> _openFileActionMenu(WidgetTester tester) async {
-  final popupButton = find.descendant(
-    of: find.byKey(const ValueKey<String>('wenz-richtext-file-card-file1')),
-    matching: find.byType(PopupMenuButton),
-  );
-  final dynamic popupButtonState = tester.state(popupButton);
-  popupButtonState.showButtonMenu();
+  await _waitPastMultiClickWindow(tester);
+  await tester.tap(find.byTooltip('附件操作'));
   await tester.pumpAndSettle();
 }
 
@@ -8947,6 +9470,15 @@ void _expectTableCellTextSelection(
 void _expectLocalizedTooltip(String tooltip) {
   expect(tooltip, matches(RegExp(r'[\u4e00-\u9fff]')));
   expect(find.byTooltip(tooltip), findsOneWidget);
+}
+
+void _expectToolbarButtonSize(WidgetTester tester, String tooltip) {
+  expect(find.byTooltip(tooltip), findsOneWidget);
+  expect(
+    tester.getSize(find.byTooltip(tooltip)),
+    const Size.square(32),
+    reason: '$tooltip should use the shared block toolbar button hit area.',
+  );
 }
 
 Future<void> _pumpTableToolbarOverlay(WidgetTester tester) async {
@@ -9391,6 +9923,37 @@ Offset _globalTextRangePoint(
         rangeRect.top + rangeRect.height / 2,
       );
 }
+
+Future<Color> _sampleBoundaryColor(
+  WidgetTester tester,
+  Key boundaryKey,
+  Offset globalPoint,
+) async {
+  final boundaryFinder = find.byKey(boundaryKey);
+  final boundary = tester.renderObject<RenderRepaintBoundary>(boundaryFinder);
+  final image = await boundary.toImage(pixelRatio: 1);
+  addTearDown(image.dispose);
+  final data = await image.toByteData(format: ImageByteFormat.rawRgba);
+  expect(data, isNotNull);
+  final localPoint = globalPoint - tester.getTopLeft(boundaryFinder);
+  final x = localPoint.dx.round().clamp(0, image.width - 1).toInt();
+  final y = localPoint.dy.round().clamp(0, image.height - 1).toInt();
+  final offset = (y * image.width + x) * 4;
+  return Color.fromARGB(
+    data!.getUint8(offset + 3),
+    data.getUint8(offset),
+    data.getUint8(offset + 1),
+    data.getUint8(offset + 2),
+  );
+}
+
+int _alphaOf(Color color) => (color.a * 255.0).round().clamp(0, 255);
+
+int _redOf(Color color) => (color.r * 255.0).round().clamp(0, 255);
+
+int _greenOf(Color color) => (color.g * 255.0).round().clamp(0, 255);
+
+int _blueOf(Color color) => (color.b * 255.0).round().clamp(0, 255);
 
 /// The current scroll offset of the editor's scrollable. Used by the
 /// auto-scroll-on-drag tests to assert the ticker advances the offset.

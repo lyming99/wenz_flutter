@@ -1,0 +1,2511 @@
+OpenAI Codex v0.121.0 (research preview)
+--------
+workdir: D:\project\GitHub\wenz_flutter\wenz_richtext
+model: gpt-5.5
+provider: custom
+approval: never
+sandbox: danger-full-access
+reasoning effort: xhigh
+reasoning summaries: none
+session id: 019f0077-eff2-7983-854c-17a571a69838
+--------
+user
+你是需求整理与开发计划生成者。
+请根据以下需求，生成一个开发计划和验收标准。
+
+输出文件：D:\project\GitHub\wenz_flutter\wenz_richtext\docs\plan\plan_requirement_16_20260626-042807.md
+
+格式要求：
+- 每个任务必须严格使用固定格式：- [ ] P001: 任务标题 <!-- scope: lib/foo.dart,test/foo_test.dart -->
+- scope 必填，表示该任务预计修改的文件或模块；多个 scope 用英文逗号分隔；无法判断时写 <!-- scope: unknown -->，unknown 任务不会并发执行
+- 每个任务要有验收要点
+- 必须包含总体验收标准和进度区
+- 只写 plan 文件，不要改业务代码
+
+需求 #16 内容：
+要支持配置字体颜色
+codex
+我先查看现有计划文档格式，然后只写入指定 plan 文件。
+exec
+powershell.exe -Command "Get-ChildItem -Force; Get-ChildItem -Recurse -Filter AGENTS.md -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName; if (Test-Path docs\\plan) { Get-ChildItem docs\\plan | Select-Object -First 10 Name }" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 400ms:
+
+
+    目录: D:\project\GitHub\wenz_flutter\wenz_richtext
+
+
+Mode                 LastWriteTime         Length Name                                                                 
+----                 -------------         ------ ----                                                                 
+d-----         2026/6/26      4:27                .codegraph                                                           
+d-----         2026/6/24     15:10                .dart_appdata                                                        
+d-----         2026/6/24     15:10                .dart_localappdata                                                   
+d-----         2026/6/24     16:11                .dart_tool                                                           
+d-----         2026/6/24     16:13                .dart_tool_appdata                                                   
+d-----         2026/6/24     16:06                .dart_tool_localappdata                                              
+d-----         2026/6/20      0:26                .idea                                                                
+d-----         2026/6/25     10:14                build                                                                
+d-----         2026/6/19     17:02                doc                                                                  
+d-----         2026/6/24     18:05                docs                                                                 
+d-----         2026/6/22     14:56                example                                                              
+d-----         2026/6/22     17:09                lib                                                                  
+d-----         2026/6/24      3:35                scripts                                                              
+d-----         2026/6/25      3:33                test                                                                 
+d-----         2026/6/24     18:04                tool                                                                 
+d-----         2026/6/25      2:40                ui                                                                   
+-a----         2026/6/19     14:04             87 .gitignore                                                           
+-a----         2026/6/24     16:16             94 analysis_options.yaml                                                
+-a----         2026/6/24     14:38            726 CHANGELOG.md                                                         
+-a----         2026/6/25      2:56            157 nul                                                                  
+-a----         2026/6/25      2:18          10389 pubspec.lock                                                         
+-a----         2026/6/25      2:18            382 pubspec.yaml                                                         
+-a----         2026/6/25     10:45           4516 README.md                                                            
+
+Name : plan_feedback_1_20260624-220759.md
+
+
+Name : plan_feedback_2_20260625-004108.md
+
+
+Name : plan_feedback_3_20260625-014905.md
+
+
+Name : plan_feedback_4_20260625-024854.md
+
+
+Name : plan_feedback_6_20260625-035040.md
+
+
+Name : plan_feedback_7_20260625-202854.md
+
+
+Name : plan_feedback_8_20260626-025328.md
+
+
+Name : plan_requirement_10_20260625-034349.md
+
+
+Name : plan_requirement_13_20260626-024112.md
+
+
+Name : plan_requirement_14_20260626-034143.md
+
+
+
+
+codex
+已确认没有额外 AGENTS 指令；接着参考现有计划格式和相关模块范围。
+exec
+powershell.exe -Command "Get-Content docs\\plan\\plan_requirement_14_20260626-034143.md -Raw; '---'; Get-Content docs\\plan\\plan_requirement_13_20260626-024112.md -Raw; '---LIB---'; rg --files lib test | Sort-Object" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 256ms:
+# 闇€姹傚紑鍙戣鍒掞細鏂滄潌杈撳叆鎻掑叆鍏冪礌 Popup
+
+## 鏉ユ簮
+- 绫诲瀷锛氶渶姹?- 缂栧彿锛?4
+- 鐢熸垚鏃堕棿锛?026-06-26 03:41:43
+
+## 鍘熷鍐呭
+瑕佹敮鎸佹枩鏉嗚緭鍏ユ椂寮瑰嚭鎻掑叆鍏冪礌popup
+
+## 闇€姹傜悊瑙?- 鐢ㄦ埛鍦ㄧ紪杈戝櫒鏂囨湰杈撳叆浣嶇疆杈撳叆 `/` 鍚庯紝搴旇嚜鍔ㄥ脊鍑衡€滄彃鍏ュ厓绱犫€?popup锛岀敤浜庡揩閫熸彃鍏ユ垨杞崲甯哥敤鍐呭鍧椼€?- popup 搴旇窡闅忓綋鍓嶅厜鏍囨垨瑙﹀彂琛屼綅缃睍绀猴紝鏀寔鏍规嵁 `/` 鍚庣画杈撳叆鍐呭杩囨护鑿滃崟椤广€?- 閫夋嫨鑿滃崟椤瑰悗锛屽簲鍒犻櫎瑙﹀彂鏂囨湰骞舵墽琛屽搴旀彃鍏ュ姩浣滐紝渚嬪鏍囬銆佸垪琛ㄣ€乼odo銆佸紩鐢ㄣ€佷唬鐮佸潡銆佽〃鏍笺€佸浘鐗囥€佽棰戠瓑宸叉湁鎴栬鍒掑唴鍏冪礌銆?- 浜や簰闇€鍏煎閿洏銆侀紶鏍囥€佽Е鎽搞€佹粴鍔ㄣ€佹挙閿€/閲嶅仛銆佷腑鏂囪緭鍏ユ硶缁勫悎鎬佸拰缂栬緫鍣ㄧ劍鐐瑰彉鍖栥€?- 鏈渶姹備紭鍏堝鐢ㄧ幇鏈夌紪杈戝櫒鎺у埗鍣ㄣ€佸懡浠や綋绯汇€佹诞灞傜粍浠跺拰娴嬭瘯缁撴瀯锛岄伩鍏嶅紩鍏ヤ笌鏂囨。妯″瀷涓嶄竴鑷寸殑鏃佽矾閫昏緫銆?
+## 浠诲姟璁″垝
+- [x] P001: 鏄庣‘鏂滄潌鑿滃崟瑙﹀彂瑙勫垯 <!-- scope: lib/src/controller/slash_menu_controller.dart,lib/src/widgets/wenz_rich_text_editor.dart,test/controller/slash_menu_controller_test.dart,test/widgets/slash_menu_overlay_test.dart -->
+  - 楠屾敹瑕佺偣锛氭槑纭?popup 浠呭湪鏂囨湰鍧楀唴鍏夋爣鎶樺彔銆佽緭鍏?`/` 涓旇Е鍙戜綅缃湁鏁堟椂鎵撳紑锛涢潪鏂囨湰鍧椼€佽法鍧楅€夊尯銆佽〃鏍煎璞￠€夊尯銆佸彧璇绘€佷笉璇Е鍙戙€?  - 楠屾敹瑕佺偣锛氭槑纭?`/` 鍚庤緭鍏ユ煡璇㈡枃鏈椂鐨勮繃婊よ鍒欙紝鍖呮嫭澶у皬鍐欍€佺┖鏌ヨ銆佹棤鍖归厤銆佷腑鏂囧叧閿瓧鍜屽垹闄ゆ煡璇㈡枃鏈悗鐨勭姸鎬佹仮澶嶃€?  - 楠屾敹瑕佺偣锛氭槑纭叧闂鍒欙紝鍖呮嫭鍒犻櫎瑙﹀彂瀛楃銆佺Щ鍔ㄥ厜鏍囥€佺偣鍑诲閮ㄣ€佹寜 Escape銆佹墽琛岃彍鍗曢」銆佺紪杈戝櫒澶辩劍鍜屾枃妗ｇ粨鏋勫彉鍖栥€?
+- [ ] P002: 瀹屽杽鏂滄潌瑙﹀彂鐘舵€佹娴?<!-- scope: lib/src/controller/slash_menu_controller.dart,lib/src/input/editor_text_input_client.dart,lib/src/controller/wenz_rich_text_controller.dart,test/controller/slash_menu_controller_test.dart,test/input/editor_text_input_client_test.dart -->
+  - 楠屾敹瑕佺偣锛氳緭鍏?`/` 鍚庢帶鍒跺櫒鑳藉璇嗗埆瑙﹀彂 block銆佽Е鍙戣寖鍥淬€佹煡璇㈡枃鏈拰褰撳墠楂樹寒椤癸紝骞跺湪缂栬緫鍣ㄥ唴瀹瑰彉鍖栧悗绋冲畾鍒锋柊銆?  - 楠屾敹瑕佺偣锛氫腑鏂囪緭鍏ユ硶 composing 鏈熼棿涓嶆彁鍓嶅脊鍑烘垨閿欒鎻愪氦鑿滃崟锛岀粍鍚堟€佺粨鏉熷悗鍐嶆寜鏈€缁堟枃鏈垽鏂槸鍚︽墦寮€ popup銆?  - 楠屾敹瑕佺偣锛氳Е鍙戞枃鏈鎾ら攢銆侀噸鍋氥€佸壀鍒囥€佺矘璐淬€佹壒閲忓垹闄ゆ垨绋嬪簭鍖栦慨鏀规椂锛岃彍鍗曠姸鎬佷笌褰撳墠鏂囨。鍐呭淇濇寔涓€鑷达紝鏃?stale selection銆?
+- [ ] P003: 瀹炵幇鎻掑叆鍏冪礌 popup 灞曠ず浜や簰 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/slash_menu_overlay.dart,test/widgets/slash_menu_overlay_test.dart,test/widgets/wenz_rich_text_editor_test.dart -->
+  - 楠屾敹瑕佺偣锛歱opup 閿氬畾鍦ㄥ綋鍓嶅厜鏍囨垨瑙﹀彂琛岄檮杩戯紝婊氬姩銆佺獥鍙ｅ昂瀵稿彉鍖栥€佽蒋閿洏鍗犱綅鍜岀紪杈戝櫒杈圭晫璐磋繎鏃朵粛淇濇寔鍙骞堕伩鍏嶉伄鎸¤緭鍏ヤ綅缃€?  - 楠屾敹瑕佺偣锛氳彍鍗曞睍绀哄厓绱犳爣棰樸€佹弿杩般€佸浘鏍囧拰楂樹寒鎬侊紱绌烘煡璇㈠睍绀洪粯璁ゆ彃鍏ュ厓绱犲垪琛紝鏃犲尮閰嶆椂灞曠ず鏄庣‘绌烘€佹垨鑷姩鍏抽棴绛栫暐銆?  - 楠屾敹瑕佺偣锛氭敮鎸侀敭鐩樻柟鍚戦敭鍒囨崲銆侀珮浜」 Enter 纭銆丒scape 鍏抽棴銆侀紶鏍?瑙︽懜鐐瑰嚮閫夋嫨锛屽苟閬垮厤鐐瑰嚮 popup 鏃朵簨浠剁┛閫忓埌搴曞眰缂栬緫鍣ㄣ€?
+- [ ] P004: 鎺ュ叆鎻掑叆鍏冪礌鎵ц閫昏緫 <!-- scope: lib/src/controller/slash_menu_controller.dart,lib/src/controller/wenz_rich_text_controller.dart,lib/src/core/commands/block_structure_commands.dart,lib/src/core/commands/table_commands.dart,test/controller/slash_menu_controller_test.dart,test/core/block_structure_commands_test.dart,test/core/table_commands_test.dart -->
+  - 楠屾敹瑕佺偣锛氶€夋嫨鑿滃崟椤瑰悗鍑嗙‘鍒犻櫎 `/query` 瑙﹀彂鏂囨湰锛屽啀鎵ц瀵瑰簲鍏冪礌鎻掑叆鎴栧綋鍓嶅潡杞崲锛屾枃妗ｄ腑涓嶆畫鐣欒Е鍙戝瓧绗︺€?  - 楠屾敹瑕佺偣锛氭爣棰樸€佹棤搴忓垪琛ㄣ€乼odo銆佸紩鐢ㄣ€佷唬鐮佸潡銆佽〃鏍笺€佸浘鐗囥€佽棰戠瓑鑿滃崟椤硅兘澶嶇敤鐜版湁鍛戒护鎴栨ā鍨嬪垱寤洪€昏緫锛岄€夊尯钀界偣绗﹀悎缂栬緫棰勬湡銆?  - 楠屾敹瑕佺偣锛氭彃鍏ュ厓绱犲悗鎾ら攢/閲嶅仛銆佹枃妗ｅ彉鏇撮€氱煡銆佺劍鐐逛繚鎸併€佸厜鏍囧畾浣嶅拰搴忓垪鍖栫粨鏋滃潎涓庢櫘閫氬懡浠ゆ墽琛岃矾寰勪竴鑷淬€?
+- [ ] P005: 鏀寔鑿滃崟椤规敞鍐屼笌鎵╁睍 <!-- scope: lib/src/controller/slash_menu_controller.dart,lib/src/plugins/editor_plugin.dart,lib/wenz_richtext.dart,test/controller/slash_menu_controller_test.dart,test/plugins/editor_plugin_test.dart -->
+  - 楠屾敹瑕佺偣锛氶粯璁よ彍鍗曢」闆嗕腑娉ㄥ唽锛屽閮ㄦ彃浠舵垨璋冪敤鏂瑰彲杩藉姞銆佽鐩栨垨杩囨护鎻掑叆鍏冪礌椤癸紝涓嶉渶瑕佷慨鏀圭紪杈戝櫒鏍稿績娓叉煋浠ｇ爜銆?  - 楠屾敹瑕佺偣锛氭瘡涓彍鍗曢」鍖呭惈绋冲畾 id銆佹爣棰樸€佹弿杩般€佸浘鏍囥€佸叧閿瓧鍜?action锛岃繃婊ゃ€佹帓搴忋€佸幓閲嶅強楂樹寒绱㈠紩鍦ㄨ嚜瀹氫箟鑿滃崟涓嬭〃鐜扮ǔ瀹氥€?  - 楠屾敹瑕佺偣锛氬叕鍏卞鍑?API 涓庣幇鏈夊寘缁撴瀯涓€鑷达紝鏂板鎵╁睍鑳藉姏鏈夋祴璇曡鐩栵紝涓嶇牬鍧忓凡鏈夋彃浠跺拰宸ュ叿鏍忚兘鍔涖€?
+- [ ] P006: 琛ュ厖鑷姩鍖栦笌鎵嬪伐楠屾敹 <!-- scope: test/controller/slash_menu_controller_test.dart,test/widgets/slash_menu_overlay_test.dart,test/widgets/wenz_rich_text_editor_test.dart,docs/acceptance_manual_checklist.md,docs/plan/plan_requirement_14_20260626-034143.md -->
+  - 楠屾敹瑕佺偣锛氭柊澧炴垨鏇存柊 controller銆亀idget銆佽緭鍏ラ摼璺祴璇曪紝瑕嗙洊鎵撳紑銆佽繃婊ゃ€佸叧闂€侀敭鐩樺鑸€佺偣鍑婚€夋嫨銆佹棤鍖归厤銆佹粴鍔ㄨ窡闅忓拰鍙鎬併€?  - 楠屾敹瑕佺偣锛氭墽琛?`flutter analyze`銆佺浉鍏冲崟鍏冩祴璇曞拰 widget 娴嬭瘯锛涘瀛樺湪澶辫触锛岄渶鍖哄垎鏈闇€姹傚紩鍏ラ棶棰樹笌鏃㈡湁澶辫触銆?  - 楠屾敹瑕佺偣锛氬湪鏈鍒掕繘搴﹀尯璁板綍姣忎釜浠诲姟鐨勫畬鎴愯寖鍥淬€侀獙璇佸懡浠ゃ€侀獙璇佺粨鏋溿€佹湭瑕嗙洊椋庨櫓鍜屽悗缁缓璁€?
+## 鎬讳綋楠屾敹鏍囧噯
+- 鎵€鏈変换鍔?checkbox 鍧囧畬鎴愶紝涓旀瘡涓换鍔＄殑楠屾敹瑕佺偣閮芥湁鏄庣‘瀹炵幇缁撹鎴栭獙璇佽褰曘€?- 鍦ㄦ櫘閫氭钀戒腑杈撳叆 `/` 鑳藉脊鍑烘彃鍏ュ厓绱?popup锛岀户缁緭鍏ユ煡璇㈡枃鏈彲杩囨护鑿滃崟椤癸紝鍒犻櫎鎴栫Щ鍔ㄥ厜鏍囨椂鐘舵€佹纭叧闂垨鍒锋柊銆?- popup 鍦ㄩ敭鐩樸€侀紶鏍囥€佽Е鎽搞€佹粴鍔ㄣ€佽鍙ｈ竟鐣屻€佽蒋閿洏鍜岀紪杈戝櫒鐒︾偣鍙樺寲鍦烘櫙涓嬩綅缃ǔ瀹氥€佸彲鎿嶄綔涓斾笉闃绘柇姝ｅ父缂栬緫銆?- 閫夋嫨浠绘剰榛樿鑿滃崟椤瑰悗锛宍/query` 瑙﹀彂鏂囨湰琚纭Щ闄わ紝瀵瑰簲鍏冪礌鎻掑叆鎴栧潡杞崲鎴愬姛锛岄€夊尯銆佺劍鐐广€佹挙閿€/閲嶅仛鍜屾枃妗ｅ彉鏇撮€氱煡涓嶅洖褰掋€?- 鑿滃崟椤规敞鍐屼笌鎵╁睍鏈哄埗绋冲畾锛岄粯璁ゅ厓绱犲拰鑷畾涔夊厓绱犲潎鍙€氳繃缁熶竴 action 鎵ц锛屼笉缁曡繃鐜版湁鍛戒护涓庢枃妗ｆā鍨嬬害鏉熴€?- 鐩稿叧鑷姩鍖栨祴璇曘€侀潤鎬佸垎鏋愬拰蹇呰鎵嬪伐楠屾敹閫氳繃锛涜嫢瀛樺湪鏃㈡湁澶辫触锛岄渶鍦ㄨ繘搴﹀尯璁板綍鍛戒护銆佸け璐ョ幇璞°€佸奖鍝嶈寖鍥村拰鍒ゆ柇渚濇嵁銆?
+## 杩涘害鍖?- 褰撳墠鐘舵€侊細璁″垝宸插垱寤猴紝P001-P006 寰呭紑鍙戞墽琛屻€?- 褰撳墠璐熻矗浜猴細寰呭垎閰嶃€?- 涓嬩竴姝ワ細浠?P001 寮€濮嬬‘璁ゆ枩鏉嗚Е鍙戣寖鍥淬€侀粯璁ゅ厓绱犳竻鍗曞拰鍏抽棴瑙勫垯銆?- 楠岃瘉璁板綍锛氭湰娆′粎鐢熸垚璁″垝鏂囦欢锛屾湭淇敼涓氬姟浠ｇ爜锛屾湭鎵ц鑷姩鍖栨祴璇曟垨鎵嬪伐楠屾敹銆?- 椋庨櫓璁板綍锛氭枩鏉?popup 娑夊強杈撳叆娉曠粍鍚堟€併€侀€夊尯鍒锋柊銆佹诞灞傚畾浣嶅拰鍛戒护鎵ц閾捐矾锛岄渶閲嶇偣闃叉 stale selection銆佷簨浠剁┛閫忓拰鎾ら攢/閲嶅仛涓嶄竴鑷淬€?- P001 AutoPlan 瀹屾垚锛?026-06-25T20:13:13.093Z锛涙棩蹇楋細docs/progress/logs/20260626-034448_execute-P001.log
+
+---
+# 闇€姹傚紑鍙戣鍒掞細澶х翰鏍囬宸︿晶鎶樺彔鎸夐挳
+
+## 鏉ユ簮
+- 绫诲瀷锛氶渶姹?- 缂栧彿锛?3
+- 鐢熸垚鏃堕棿锛?026-06-26 02:41:12
+
+## 鍘熷鍐呭
+濡傛灉琛屽唴瀹规槸澶х翰鏍囬锛屽垯鏀寔鎶樺彔澶х翰鍐呯殑鎵€鏈夊唴瀹癸紝鍦ㄦ爣棰樺乏渚ф湁涓姌鍙犳寜閽紝鍒囨崲鎶樺彔鐘舵€侊紱
+
+## 闇€姹傜悊瑙?- 褰撻《灞傝鍐呭灞炰簬澶х翰鏍囬锛坄BlockType.heading`锛夋椂锛岃鏍囬琛屽乏渚ф樉绀烘姌鍙犳寜閽紝鐢ㄤ簬鍒囨崲灞曞紑/鎶樺彔鐘舵€併€?- 鎶樺彔鑼冨洿涓鸿鏍囬澶х翰鑺傜偣涓嬬殑鎵€鏈夊唴瀹癸細浠庡綋鍓嶆爣棰樹箣鍚庡紑濮嬶紝鍒颁笅涓€涓悓绾ф垨鏇撮珮绾ф爣棰樹箣鍓嶇粨鏉燂紝鍖呭惈浣庣骇鏍囬銆佹櫘閫氭枃鏈潡鍜屽璞″潡銆?- 鎶樺彔浠呭奖鍝嶇紪杈戝櫒瑙嗗浘鍙鎬э紝涓嶅垹闄ゃ€佷笉绉诲姩銆佷笉鏀瑰啓浠讳綍鏂囨。 block锛屼篃涓嶆敼鍙樺鍏ュ鍑哄唴瀹广€?- 琚姌鍙犻殣钘忕殑鍐呭涓嶅簲鍙備笌鏅€氭覆鏌撱€侀紶鏍囧懡涓拰鍑犱綍缂撳瓨锛屼絾鏌ユ壘銆佽烦杞€侀€夊尯鎭㈠绛夎兘鍔涢渶瑕佹湁涓€鑷寸殑灞曞紑鎴栧畾浣嶇瓥鐣ャ€?- 鎶樺彔鎸夐挳闇€瑕佷笌宸叉湁宸︿晶琛屾搷浣溿€佹嫋鎷芥妸鎵嬨€佹枃鏈€夊尯銆侀摼鎺ョ偣鍑汇€両ME 杈撳叆鍜屽璞″潡宸ュ叿鏍忎氦浜掕竟鐣屾竻鏅般€?
+## 浠诲姟璁″垝
+- [x] P001: 鏄庣‘澶х翰鎶樺彔鑼冨洿涓庝氦浜掕鍒?<!-- scope: lib/src/controller/outline_controller.dart,lib/src/widgets/wenz_rich_text_editor.dart,docs/acceptance_manual_checklist.md -->
+  - 楠屾敹瑕佺偣锛氱‘璁ゅ彧鏈夐《灞傛爣棰樿鏄剧ず鎶樺彔鎸夐挳锛屾櫘閫氭钀姐€佸垪琛ㄣ€佸紩鐢ㄣ€佷唬鐮佸潡銆佽〃鏍笺€佸浘鐗囥€佽棰戙€佹枃浠跺拰鍒嗗壊绾跨瓑闈炴爣棰樿涓嶆樉绀恒€?  - 楠屾敹瑕佺偣锛氱‘璁ゆ姌鍙犺寖鍥存寜鏍囬灞傜骇璁＄畻锛宍H1` 瑕嗙洊鍒颁笅涓€涓?`H1` 鍓嶏紝`H2` 瑕嗙洊鍒颁笅涓€涓?`H1/H2` 鍓嶏紝渚濇閫傞厤 `H1-H6`銆?  - 楠屾敹瑕佺偣锛氱‘璁ゆ棤瀛愬唴瀹规爣棰樸€佺┖鏂囨。銆佽繛缁悓绾ф爣棰樸€佹枃妗ｆ湯灏炬爣棰樺拰宓屽鏍囬鐨勬寜閽樉绀恒€佺鐢ㄦ€佹垨 no-op 琛屼负銆?
+- [ ] P002: 寤虹珛鏍囬鎶樺彔鐘舵€佹ā鍨?<!-- scope: lib/src/controller/outline_controller.dart,lib/src/controller/wenz_rich_text_controller.dart,test/controller/outline_controller_test.dart,test/core/controller_test.dart -->
+  - 楠屾敹瑕佺偣锛氫负姣忎釜澶х翰鏍囬鏉＄洰鎻愪緵鍙姌鍙犵姸鎬併€佸綋鍓嶆槸鍚︽姌鍙犮€佽鐩栫殑 block id/index 鑼冨洿鍜岄殣钘忔暟閲忕瓑鍙淇℃伅銆?  - 楠屾敹瑕佺偣锛氭彁渚涙寜鏍囬 blockId 鎴栧ぇ绾叉潯鐩垏鎹€佸睍寮€銆佹姌鍙犮€佹煡璇㈠拰鍏ㄩ儴灞曞紑鐨?API锛涢潪娉?block銆侀潪鏍囬 block 鎴栦笉鍙姌鍙犳爣棰樺畨鍏?no-op銆?  - 楠屾敹瑕佺偣锛氭枃妗ｆ彃鍏ャ€佸垹闄ゃ€佺Щ鍔ㄣ€佹爣棰樺眰绾у彉鍖栥€佹爣棰樼被鍨嬪彉鍖栧拰鏂囨。鏁翠綋鏇挎崲鍚庯紝鎶樺彔鑼冨洿鑷姩閲嶇畻骞舵竻鐞嗗け鏁堟姌鍙犵姸鎬併€?
+- [ ] P003: 瀹炵幇鎶樺彔鍚庣殑鍙鍐呭鎶曞奖 <!-- scope: lib/src/controller/outline_controller.dart,lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/block_geometry_registry.dart,test/controller/outline_controller_test.dart,test/widgets/block_geometry_registry_test.dart -->
+  - 楠屾敹瑕佺偣锛氱紪杈戝櫒娓叉煋鍩轰簬鎶樺彔鐘舵€佽繃婊ら殣钘?block锛屽師濮?`document.blocks` 椤哄簭銆乥lock id銆乥lockIndex 璇箟鍜屽簭鍒楀寲鏁版嵁淇濇寔涓嶅彉銆?  - 楠屾敹瑕佺偣锛氶殣钘?block 涓嶆敞鍐屾垨娈嬬暀鍙懡涓殑鍑犱綍淇℃伅锛屽睍寮€鍚庡嚑浣曠紦瀛樺彲閲嶆柊寤虹珛锛屾粴鍔ㄥ畾浣嶅拰閫夊尯瑕嗙洊灞備笉鍑虹幇鏃т綅缃畫褰便€?  - 楠屾敹瑕佺偣锛氱埗鏍囬鎶樺彔鏃堕殣钘忔墍鏈夊悗浠ｅ唴瀹癸紱鐖舵爣棰樺睍寮€鍚庯紝瀛愭爣棰樺師鏈夋姌鍙犵姸鎬佺户缁敓鏁堬紝涓嶄涪澶卞祵濂楁姌鍙犲叧绯汇€?
+- [ ] P004: 娓叉煋鏍囬宸︿晶鎶樺彔鎸夐挳 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/block_renderer_registry.dart,test/widgets/wenz_rich_text_editor_test.dart,test/widgets/editor_golden_test.dart,test/widgets/goldens/editor_blocks.png -->
+  - 楠屾敹瑕佺偣锛氭爣棰樺乏渚ф樉绀虹ǔ瀹氬榻愮殑灞曞紑/鎶樺彔鎸夐挳锛屽睍寮€鎬併€佹姌鍙犳€併€乭over銆乫ocus銆乸ressed銆乨isabled 鍜屽彧璇绘€佽瑙夊弽棣堟竻鏅般€?  - 楠屾敹瑕佺偣锛氭寜閽笉鎸ゅ帇鏍囬鏂囨湰甯冨眬锛屼笉閬尅宸︿晶鎷栨嫿鎶婃墜鎴栧叾浠栬绾у叆鍙ｏ紝骞惰兘鍦ㄥ绾ф爣棰樼缉杩涖€佺獎瀹藉害鍜岄暱鏍囬鎹㈣鏃朵繚鎸佸彲鐢ㄣ€?  - 楠屾敹瑕佺偣锛氱偣鍑汇€佽Е鎺ф垨閿洏婵€娲绘寜閽彲鍒囨崲鎶樺彔鐘舵€侊紝鎸夐挳鍛戒腑鍖哄煙涓嶄細瑙﹀彂鏂囨湰閫夊尯銆佽緭鍏ユ硶缁勫悎銆侀摼鎺ョ偣鍑汇€佽鎷栨嫿鎴?block 鑿滃崟銆?
+- [ ] P005: 澶勭悊鎶樺彔鐘舵€佷笅鐨勭紪杈戜笌瀵艰埅 <!-- scope: lib/src/controller/wenz_rich_text_controller.dart,lib/src/controller/find_replace_controller.dart,lib/src/controller/outline_controller.dart,lib/src/widgets/wenz_rich_text_editor.dart,test/core/controller_test.dart,test/controller/find_replace_controller_test.dart,test/widgets/wenz_rich_text_editor_test.dart -->
+  - 楠屾敹瑕佺偣锛氬綋鍓嶉€夊尯浣嶄簬鍗冲皢闅愯棌鐨勫唴瀹瑰唴鏃讹紝鎶樺彔鎿嶄綔浼氬皢鍏夋爣瀹夊叏鏀舵暃鍒版爣棰樿鎴栨寜绾﹀畾娓呯悊涓嶅彲瑙侀€夊尯锛屼笉鍑虹幇涓嶅彲瑙佸厜鏍囥€?  - 楠屾敹瑕佺偣锛氭煡鎵炬浛鎹€佸ぇ绾茶烦杞€侀敋鐐硅烦杞€佹粴鍔ㄥ埌閫夊尯鍜岀▼搴忓寲閫夋嫨鍛戒腑闅愯棌鍐呭鏃讹紝浼氬厛灞曞紑鐩稿叧鏍囬鎴栭噰鐢ㄦ槑纭彲瑙佸畾浣嶇瓥鐣ャ€?  - 楠屾敹瑕佺偣锛氭姌鍙犵姸鎬佷笅鎻掑叆銆佸垹闄ゃ€佺矘璐淬€佹挙閿€/閲嶅仛銆佷慨鏀规爣棰樺眰绾у拰绉诲姩 block 鍚庯紝鏂囨。鍐呭瀹屾暣锛屾姌鍙犵姸鎬佷笌閫夊尯鍙仮澶嶃€?
+- [ ] P006: 淇濊瘉瀵煎叆瀵煎嚭涓庢墿灞曞吋瀹?<!-- scope: lib/src/codecs/rich_text_json_codec.dart,lib/src/codecs/html_codec.dart,lib/src/codecs/markdown_codec.dart,lib/src/widgets/block_renderer_registry.dart,test/codecs/rich_text_json_codec_test.dart,test/codecs/html_codec_test.dart,test/codecs/markdown_codec_test.dart,test/plugins/editor_plugin_test.dart -->
+  - 楠屾敹瑕佺偣锛氭姌鍙犵姸鎬侀粯璁や笉鍐欏叆 JSON銆丠TML銆丮arkdown 鎴栫函鏂囨湰瀵煎嚭锛屽鍏ュ凡鏈夋枃妗ｅ悗榛樿鍏ㄩ儴灞曞紑涓旀墍鏈夊ぇ绾插唴瀹瑰畬鏁翠繚鐣欍€?  - 楠屾敹瑕佺偣锛氳嚜瀹氫箟 block renderer銆佹彃浠跺拰濯掍綋 resolver 鍦ㄩ殣钘?block 涓嶆覆鏌撴椂涓嶆敹鍒板浣欐瀯寤恒€佸懡涓垨鍑犱綍浜嬩欢锛屽睍寮€鍚庤涓轰笌鏅€?block 涓€鑷淬€?  - 楠屾敹瑕佺偣锛氬涓氬姟鍚庣画闇€瑕佹寔涔呭寲鎶樺彔鐘舵€侊紝搴旈€氳繃鐙珛 UI 鐘舵€佹垨 metadata 鎵╁睍鐐瑰疄鐜帮紝涓嶆薄鏌撶幇鏈夊唴瀹规ā鍨嬪拰鍘嗗彶璁板綍銆?
+- [ ] P007: 琛ュ厖鑷姩鍖栦笌瑙嗚鍥炲綊楠岃瘉 <!-- scope: test/controller/outline_controller_test.dart,test/widgets/wenz_rich_text_editor_test.dart,test/widgets/editor_golden_test.dart,test/widgets/goldens/editor_blocks.png,docs/acceptance_manual_checklist.md,docs/plan/plan_requirement_13_20260626-024112.md -->
+  - 楠屾敹瑕佺偣锛氳嚜鍔ㄥ寲娴嬭瘯瑕嗙洊 `H1-H6`銆佸绾у祵濂椼€佽繛缁爣棰樸€佹棤瀛愬唴瀹规爣棰樸€佹枃妗ｉ灏炬爣棰樸€佺埗瀛愬悓鏃舵姌鍙犲拰鍔ㄦ€佺紪杈戝悗鐨勮寖鍥撮噸绠椼€?  - 楠屾敹瑕佺偣锛歸idget 娴嬭瘯瑕嗙洊鎶樺彔鎸夐挳鐐瑰嚮銆侀敭鐩樻縺娲汇€侀殣钘?block 涓嶅懡涓€佸睍寮€鍚庨€夊尯鎭㈠銆佹煡鎵惧懡涓殣钘忓唴瀹瑰拰鍙妯″紡琛屼负銆?  - 楠屾敹瑕佺偣锛歡olden 鎴栨埅鍥惧洖褰掕鐩栨爣棰樺乏渚ф寜閽殑灞曞紑鎬併€佹姌鍙犳€併€佺鐢ㄦ€併€乭over/focus 鎬佷互鍙婁笌宸︿晶鎷栨嫿鎶婃墜鍏卞瓨鐨勫満鏅€?
+## 鎬讳綋楠屾敹鏍囧噯
+- 璁″垝涓殑鎵€鏈?checkbox 浠诲姟瀹屾垚锛屼笖姣忎釜浠诲姟鐨勯獙鏀惰鐐归兘鏈夊搴斿疄鐜扮粨璁恒€佽嚜鍔ㄥ寲娴嬭瘯缁撹鎴栨槑纭闄╄褰曘€?- 鎵€鏈夊ぇ绾叉爣棰樿宸︿晶鍧囧彲灞曠ず鎶樺彔鎸夐挳锛屽苟鑳藉彲闈犲垏鎹㈣鏍囬澶х翰鑼冨洿鍐呭叏閮ㄥ唴瀹圭殑灞曞紑/鎶樺彔鐘舵€併€?- 鎶樺彔鑼冨洿涓ユ牸鎸夋爣棰樺眰绾ц绠楋紝瑕嗙洊澶氱骇鏍囬宓屽銆佽繛缁爣棰樸€佺┖鍐呭銆佹枃妗ｉ灏惧拰鍔ㄦ€佺紪杈戝悗鐨勮竟鐣屽満鏅€?- 鎶樺彔琛屼负浠呮敼鍙樼紪杈戝櫒瑙嗗浘鐘舵€侊紝涓嶅垹闄ゃ€佷笉绉诲姩銆佷笉鏀瑰啓浠讳綍 block 鍐呭銆佸睘鎬с€乮d銆佸璞″潡鍏冩暟鎹垨瀵煎叆瀵煎嚭缁撴瀯銆?- 鎶樺彔鎸夐挳涓庢枃鏈紪杈戙€侀€夊尯銆両ME銆侀摼鎺ャ€佸乏渚ф嫋鎷芥妸鎵嬨€乥lock 鑿滃崟銆佽〃鏍间氦浜掑拰濯掍綋瀵硅薄宸ュ叿鏍忎簰涓嶅共鎵般€?- 闅愯棌鍐呭鍦ㄦ煡鎵俱€佸ぇ绾茶烦杞€侀敋鐐硅烦杞€侀€夊尯鎭㈠銆佹挙閿€/閲嶅仛鍜屾粴鍔ㄥ畾浣嶄腑鏈変竴鑷村彲瑙佹€х瓥鐣ワ紝涓嶅嚭鐜颁笉鍙鍏夋爣鎴栨棤娉曞畾浣嶇洰鏍囥€?- `flutter analyze`銆佺浉鍏?controller/widget/codec/plugin 瀹氬悜娴嬭瘯銆乬olden 鍥炲綊鍜屽繀瑕佺殑鎵嬪伐楠屾敹閫氳繃锛涘瀛樺湪鏃㈡湁澶辫触锛岄渶璁板綍鍛戒护銆佸け璐ュ師鍥犲拰褰卞搷鑼冨洿銆?
+## 杩涘害鍖?- 褰撳墠鐘舵€侊細draft锛孭001-P007 寰呭紑鍙戞墽琛屻€?- 褰撳墠璐熻矗浜猴細寰呭垎閰嶃€?- 涓嬩竴姝ワ細浠?P001 寮€濮嬬‘璁ゆ爣棰樿瘑鍒€佹姌鍙犺寖鍥淬€佸乏渚ф寜閽綅缃拰浜や簰鍐茬獊杈圭晫銆?- 骞惰寤鸿锛歅001 瀹屾垚鍚庯紝P002 涓?P003 鍙厛涓茶寤虹珛鐘舵€佸拰鎶曞奖鍩虹锛汸004/P005 鍦ㄧ姸鎬?API 绋冲畾鍚庢帹杩涳紱P006 鍙嫭绔嬮獙璇佸鍏ュ鍑鸿竟鐣岋紱P007 鏈€鍚庣粺涓€鍥炲綊銆?- 楠岃瘉璁板綍锛氭湰娆′粎鐢熸垚璁″垝鏂囦欢锛屾湭淇敼涓氬姟浠ｇ爜锛屾湭鎵ц鑷姩鍖栨祴璇曟垨鎵嬪伐楠屾敹銆?- 椋庨櫓璁板綍锛氭爣棰樺乏渚у尯鍩熷彲鑳藉悓鏃舵壙杞芥姌鍙犳寜閽€佽鎷栨嫿鎶婃墜鍜?block 鑿滃崟鍏ュ彛锛岄渶閲嶇偣楠岃瘉鍛戒腑鍖哄煙銆佺劍鐐归『搴忋€佺獎灞忓竷灞€鍜屾墜鍔垮啿绐併€?- P001 AutoPlan 瀹屾垚锛?026-06-25T18:53:23.774Z锛涙棩蹇楋細docs/progress/logs/20260626-024441_execute-P001.log
+
+---LIB---
+lib\src\codecs\document_errors.dart
+lib\src\codecs\document_migration.dart
+lib\src\codecs\document_version_snapshot_codec.dart
+lib\src\codecs\html_codec.dart
+lib\src\codecs\legacy_wen_json_codec.dart
+lib\src\codecs\markdown_codec.dart
+lib\src\codecs\plain_text_codec.dart
+lib\src\codecs\rich_text_json_codec.dart
+lib\src\collaboration\collaboration_adapter.dart
+lib\src\controller\autosave_controller.dart
+lib\src\controller\document_stats_controller.dart
+lib\src\controller\find_replace_controller.dart
+lib\src\controller\outline_controller.dart
+lib\src\controller\slash_menu_controller.dart
+lib\src\controller\toolbar_controller.dart
+lib\src\controller\wenz_rich_text_controller.dart
+lib\src\core\commands\block_commands.dart
+lib\src\core\commands\block_structure_commands.dart
+lib\src\core\commands\command_executor.dart
+lib\src\core\commands\command_registry.dart
+lib\src\core\commands\editor_command.dart
+lib\src\core\commands\inline_commands.dart
+lib\src\core\commands\inline_editing.dart
+lib\src\core\commands\markdown_shortcut_commands.dart
+lib\src\core\commands\revision_commands.dart
+lib\src\core\commands\selection_commands.dart
+lib\src\core\commands\style_commands.dart
+lib\src\core\commands\table_cell_editing.dart
+lib\src\core\commands\table_commands.dart
+lib\src\core\commands\text_commands.dart
+lib\src\core\model\attributes.dart
+lib\src\core\model\block_node.dart
+lib\src\core\model\comment_model.dart
+lib\src\core\model\document_version_snapshot.dart
+lib\src\core\model\inline_node.dart
+lib\src\core\model\revision_model.dart
+lib\src\core\model\rich_text_document.dart
+lib\src\core\model\table_model.dart
+lib\src\core\position\document_position.dart
+lib\src\core\schema\document_schema.dart
+lib\src\core\transaction\change_set.dart
+lib\src\core\transaction\document_session.dart
+lib\src\exporters\document_conversion_plan.dart
+lib\src\history\history_manager.dart
+lib\src\input\clipboard_service.dart
+lib\src\input\composition_state.dart
+lib\src\input\editor_text_input_client.dart
+lib\src\input\shortcut_manager.dart
+lib\src\plugins\editor_plugin.dart
+lib\src\rendering\text_layout_service.dart
+lib\src\widgets\block_geometry_registry.dart
+lib\src\widgets\block_renderer_registry.dart
+lib\src\widgets\code_syntax_highlighter.dart
+lib\src\widgets\comment_sidebar.dart
+lib\src\widgets\find_replace_panel.dart
+lib\src\widgets\inline_embed_renderer.dart
+lib\src\widgets\link_edit_dialog.dart
+lib\src\widgets\media_resolver.dart
+lib\src\widgets\selection_gesture_overlay.dart
+lib\src\widgets\shared_text_layout_cache.dart
+lib\src\widgets\slash_menu_overlay.dart
+lib\src\widgets\table_floating_toolbar_overlay.dart
+lib\src\widgets\wenz_rich_text_editor.dart
+lib\wenz_richtext.dart
+test\benchmarks\editor_benchmarks.dart
+test\codecs\document_errors_test.dart
+test\codecs\document_migration_test.dart
+test\codecs\html_codec_test.dart
+test\codecs\legacy_wen_json_codec_test.dart
+test\codecs\markdown_codec_test.dart
+test\codecs\plain_text_codec_test.dart
+test\codecs\rich_text_json_codec_test.dart
+test\collaboration\collaboration_adapter_test.dart
+test\controller\autosave_controller_test.dart
+test\controller\block_embed_controller_test.dart
+test\controller\callout_controller_test.dart
+test\controller\controller_callbacks_test.dart
+test\controller\controller_try_load_test.dart
+test\controller\document_stats_controller_test.dart
+test\controller\file_block_controller_test.dart
+test\controller\find_replace_controller_test.dart
+test\controller\image_block_controller_test.dart
+test\controller\outline_controller_test.dart
+test\controller\slash_menu_controller_test.dart
+test\controller\toolbar_controller_test.dart
+test\controller\video_block_controller_test.dart
+test\core\block_commands_test.dart
+test\core\block_structure_commands_test.dart
+test\core\command_merging_test.dart
+test\core\command_pipeline_test.dart
+test\core\comment_model_test.dart
+test\core\controller_test.dart
+test\core\document_position_test.dart
+test\core\document_schema_test.dart
+test\core\document_version_snapshot_test.dart
+test\core\history_manager_test.dart
+test\core\inline_commands_test.dart
+test\core\markdown_shortcut_commands_test.dart
+test\core\model_test.dart
+test\core\revision_model_test.dart
+test\core\selection_commands_test.dart
+test\core\style_commands_test.dart
+test\core\table_commands_test.dart
+test\core\text_commands_test.dart
+test\exporters\document_conversion_plan_test.dart
+test\fixtures\legacy_basic.json
+test\fixtures\legacy_code_image_formula.json
+test\fixtures\legacy_table.json
+test\helpers\selection_test_helpers.dart
+test\input\clipboard_service_test.dart
+test\input\editor_text_input_client_test.dart
+test\input\shortcut_manager_test.dart
+test\plugins\editor_plugin_test.dart
+test\widgets\block_geometry_registry_test.dart
+test\widgets\comment_sidebar_test.dart
+test\widgets\editor_golden_test.dart
+test\widgets\failures\editor_block_handle_menu_isolatedDiff.png
+test\widgets\failures\editor_block_handle_menu_maskedDiff.png
+test\widgets\failures\editor_block_handle_menu_masterImage.png
+test\widgets\failures\editor_block_handle_menu_testImage.png
+test\widgets\failures\editor_caret_isolatedDiff.png
+test\widgets\failures\editor_caret_maskedDiff.png
+test\widgets\failures\editor_caret_masterImage.png
+test\widgets\failures\editor_caret_testImage.png
+test\widgets\failures\editor_selection_isolatedDiff.png
+test\widgets\failures\editor_selection_maskedDiff.png
+test\widgets\failures\editor_selection_masterImage.png
+test\widgets\failures\editor_selection_testImage.png
+test\widgets\find_replace_panel_test.dart
+test\widgets\goldens\editor_advanced_blocks.png
+test\widgets\goldens\editor_block_drop_indicator.png
+test\widgets\goldens\editor_block_handle_menu.png
+test\widgets\goldens\editor_blocks.png
+test\widgets\goldens\editor_caret.png
+test\widgets\goldens\editor_merged_table.png
+test\widgets\goldens\editor_selection.png
+test\widgets\import_export_demo_test.dart
+test\widgets\link_edit_dialog_test.dart
+test\widgets\media_resolver_test.dart
+test\widgets\shared_text_layout_cache_test.dart
+test\widgets\slash_menu_overlay_test.dart
+test\widgets\wenz_rich_text_editor_test.dart
+
+**Investigating encoding issues**
+
+I’m dealing with an encoding issue where mojibake appears, likely due to the default encoding in PowerShell. I'll check if existing files are UTF-8 but may display differently. Using `Get-Content -Encoding UTF8` can help, but I might need to inspect file handling in Python or through PowerShell’s `[IO.File]` with UTF-8. Setting console output encoding could resolve some display problems, which I'll tackle by adjusting the output settings.
+codex
+现有输出编码不友好；我切到 UTF-8 再读取关键样例。
+exec
+powershell.exe -Command '[Console]::OutputEncoding=[System.Text.UTF8Encoding]::new(); $OutputEncoding=[System.Text.UTF8Encoding]::new(); Get-Content docs'"\\plan\\plan_requirement_14_20260626-034143.md -Encoding UTF8 -TotalCount 80; '---'; Get-Content docs\\plan\\plan_requirement_10_20260625-034349.md -Encoding UTF8 -TotalCount 80" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 193ms:
+# 需求开发计划：斜杆输入插入元素 Popup
+
+## 来源
+- 类型：需求
+- 编号：14
+- 生成时间：2026-06-26 03:41:43
+
+## 原始内容
+要支持斜杆输入时弹出插入元素popup
+
+## 需求理解
+- 用户在编辑器文本输入位置输入 `/` 后，应自动弹出“插入元素” popup，用于快速插入或转换常用内容块。
+- popup 应跟随当前光标或触发行位置展示，支持根据 `/` 后续输入内容过滤菜单项。
+- 选择菜单项后，应删除触发文本并执行对应插入动作，例如标题、列表、todo、引用、代码块、表格、图片、视频等已有或规划内元素。
+- 交互需兼容键盘、鼠标、触摸、滚动、撤销/重做、中文输入法组合态和编辑器焦点变化。
+- 本需求优先复用现有编辑器控制器、命令体系、浮层组件和测试结构，避免引入与文档模型不一致的旁路逻辑。
+
+## 任务计划
+- [x] P001: 明确斜杆菜单触发规则 <!-- scope: lib/src/controller/slash_menu_controller.dart,lib/src/widgets/wenz_rich_text_editor.dart,test/controller/slash_menu_controller_test.dart,test/widgets/slash_menu_overlay_test.dart -->
+  - 验收要点：明确 popup 仅在文本块内光标折叠、输入 `/` 且触发位置有效时打开；非文本块、跨块选区、表格对象选区、只读态不误触发。
+  - 验收要点：明确 `/` 后输入查询文本时的过滤规则，包括大小写、空查询、无匹配、中文关键字和删除查询文本后的状态恢复。
+  - 验收要点：明确关闭规则，包括删除触发字符、移动光标、点击外部、按 Escape、执行菜单项、编辑器失焦和文档结构变化。
+
+- [ ] P002: 完善斜杆触发状态检测 <!-- scope: lib/src/controller/slash_menu_controller.dart,lib/src/input/editor_text_input_client.dart,lib/src/controller/wenz_rich_text_controller.dart,test/controller/slash_menu_controller_test.dart,test/input/editor_text_input_client_test.dart -->
+  - 验收要点：输入 `/` 后控制器能够识别触发 block、触发范围、查询文本和当前高亮项，并在编辑器内容变化后稳定刷新。
+  - 验收要点：中文输入法 composing 期间不提前弹出或错误提交菜单，组合态结束后再按最终文本判断是否打开 popup。
+  - 验收要点：触发文本被撤销、重做、剪切、粘贴、批量删除或程序化修改时，菜单状态与当前文档内容保持一致，无 stale selection。
+
+- [ ] P003: 实现插入元素 popup 展示交互 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/slash_menu_overlay.dart,test/widgets/slash_menu_overlay_test.dart,test/widgets/wenz_rich_text_editor_test.dart -->
+  - 验收要点：popup 锚定在当前光标或触发行附近，滚动、窗口尺寸变化、软键盘占位和编辑器边界贴近时仍保持可见并避免遮挡输入位置。
+  - 验收要点：菜单展示元素标题、描述、图标和高亮态；空查询展示默认插入元素列表，无匹配时展示明确空态或自动关闭策略。
+  - 验收要点：支持键盘方向键切换、高亮项 Enter 确认、Escape 关闭、鼠标/触摸点击选择，并避免点击 popup 时事件穿透到底层编辑器。
+
+- [ ] P004: 接入插入元素执行逻辑 <!-- scope: lib/src/controller/slash_menu_controller.dart,lib/src/controller/wenz_rich_text_controller.dart,lib/src/core/commands/block_structure_commands.dart,lib/src/core/commands/table_commands.dart,test/controller/slash_menu_controller_test.dart,test/core/block_structure_commands_test.dart,test/core/table_commands_test.dart -->
+  - 验收要点：选择菜单项后准确删除 `/query` 触发文本，再执行对应元素插入或当前块转换，文档中不残留触发字符。
+  - 验收要点：标题、无序列表、todo、引用、代码块、表格、图片、视频等菜单项能复用现有命令或模型创建逻辑，选区落点符合编辑预期。
+  - 验收要点：插入元素后撤销/重做、文档变更通知、焦点保持、光标定位和序列化结果均与普通命令执行路径一致。
+
+- [ ] P005: 支持菜单项注册与扩展 <!-- scope: lib/src/controller/slash_menu_controller.dart,lib/src/plugins/editor_plugin.dart,lib/wenz_richtext.dart,test/controller/slash_menu_controller_test.dart,test/plugins/editor_plugin_test.dart -->
+  - 验收要点：默认菜单项集中注册，外部插件或调用方可追加、覆盖或过滤插入元素项，不需要修改编辑器核心渲染代码。
+  - 验收要点：每个菜单项包含稳定 id、标题、描述、图标、关键字和 action，过滤、排序、去重及高亮索引在自定义菜单下表现稳定。
+  - 验收要点：公共导出 API 与现有包结构一致，新增扩展能力有测试覆盖，不破坏已有插件和工具栏能力。
+
+- [ ] P006: 补充自动化与手工验收 <!-- scope: test/controller/slash_menu_controller_test.dart,test/widgets/slash_menu_overlay_test.dart,test/widgets/wenz_rich_text_editor_test.dart,docs/acceptance_manual_checklist.md,docs/plan/plan_requirement_14_20260626-034143.md -->
+  - 验收要点：新增或更新 controller、widget、输入链路测试，覆盖打开、过滤、关闭、键盘导航、点击选择、无匹配、滚动跟随和只读态。
+  - 验收要点：执行 `flutter analyze`、相关单元测试和 widget 测试；如存在失败，需区分本次需求引入问题与既有失败。
+  - 验收要点：在本计划进度区记录每个任务的完成范围、验证命令、验证结果、未覆盖风险和后续建议。
+
+## 总体验收标准
+- 所有任务 checkbox 均完成，且每个任务的验收要点都有明确实现结论或验证记录。
+- 在普通段落中输入 `/` 能弹出插入元素 popup，继续输入查询文本可过滤菜单项，删除或移动光标时状态正确关闭或刷新。
+- popup 在键盘、鼠标、触摸、滚动、视口边界、软键盘和编辑器焦点变化场景下位置稳定、可操作且不阻断正常编辑。
+- 选择任意默认菜单项后，`/query` 触发文本被正确移除，对应元素插入或块转换成功，选区、焦点、撤销/重做和文档变更通知不回归。
+- 菜单项注册与扩展机制稳定，默认元素和自定义元素均可通过统一 action 执行，不绕过现有命令与文档模型约束。
+- 相关自动化测试、静态分析和必要手工验收通过；若存在既有失败，需在进度区记录命令、失败现象、影响范围和判断依据。
+
+## 进度区
+- 当前状态：计划已创建，P001-P006 待开发执行。
+- 当前负责人：待分配。
+- 下一步：从 P001 开始确认斜杆触发范围、默认元素清单和关闭规则。
+- 验证记录：本次仅生成计划文件，未修改业务代码，未执行自动化测试或手工验收。
+- 风险记录：斜杆 popup 涉及输入法组合态、选区刷新、浮层定位和命令执行链路，需重点防止 stale selection、事件穿透和撤销/重做不一致。
+- P001 AutoPlan 完成：2026-06-25T20:13:13.093Z；日志：docs/progress/logs/20260626-034448_execute-P001.log
+---
+# 需求开发计划：大纲折叠功能
+
+## 来源
+- 类型：需求
+- 编号：10
+- 生成时间：2026-06-25 03:43:49
+
+## 原始内容
+增加大纲折叠功能，如果行内容是大纲标题，则支持折叠内容；
+
+## 需求理解
+- 当顶层 block 是大纲标题（`BlockType.heading`）时，该行应展示可折叠入口，并支持折叠/展开其下属内容。
+- 折叠范围按标题层级计算：从当前标题之后开始，直到遇到下一个同级或更高级标题为止；低级标题及普通 block 均属于当前标题的可折叠内容。
+- 折叠是编辑器视图状态，不应删除或改写文档内容；导入导出、历史记录、协作数据和大纲条目生成应保持原文档结构。
+- 折叠后隐藏的 block 不参与屏幕渲染和普通鼠标命中，但仍需保证选区、搜索、撤销/重做、滚动定位和程序化跳转有明确行为。
+
+## 任务计划
+- [x] P001: 明确标题折叠交互规则 <!-- scope: lib/src/controller/outline_controller.dart,lib/src/widgets/wenz_rich_text_editor.dart,docs/acceptance_manual_checklist.md -->
+  - 验收要点：明确只有顶层 `heading` block 显示折叠入口，段落、引用、列表、代码、表格、媒体和对象块不显示入口。
+  - 验收要点：明确折叠范围按标题 level 计算，`H2` 折叠到下一个 `H1/H2` 前，`H3` 折叠到下一个 `H1/H2/H3` 前，空标题或无子内容标题不可折叠或显示禁用态。
+  - 验收要点：明确只读模式下可展开/折叠但不可改变文档内容，编辑模式下折叠状态不进入撤销/重做历史。
+
+- [x] P002: 扩展大纲折叠状态模型 <!-- scope: lib/src/controller/outline_controller.dart,lib/src/controller/wenz_rich_text_controller.dart,test/controller/outline_controller_test.dart,test/core/controller_test.dart -->
+  - 验收要点：为标题条目提供是否可折叠、是否已折叠、折叠覆盖的 block id/index 范围等只读信息，并在文档变化后自动重算。
+  - 验收要点：提供按 blockId/anchor/OutlineItem 折叠、展开、切换、全部展开和查询折叠状态的 API；无效 block、非标题 block 和无子内容标题返回安全 no-op。
+  - 验收要点：折叠状态以标题 block id 为主键维护；标题删除、类型变更、层级变更、block 移动或文档替换后会清理无效状态并通知监听者。
+
+- [x] P003: 构建可见 block 投影视图 <!-- scope: lib/src/controller/outline_controller.dart,lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/block_geometry_registry.dart,test/controller/outline_controller_test.dart,test/widgets/block_geometry_registry_test.dart -->
+  - 验收要点：编辑器渲染可根据折叠状态过滤被隐藏的顶层 block，同时保留原始 document.blocks 顺序、blockIndex 语义和文档 JSON 不变。
+  - 验收要点：隐藏 block 的几何缓存、命中测试、滚动定位和选择覆盖层不会残留旧位置；展开后几何信息能重新注册并用于选区/滚动。
+  - 验收要点：嵌套折叠时父标题折叠优先隐藏所有后代内容，展开父标题后子标题自身的折叠状态仍可继续生效。
+
+- [x] P004: 渲染标题折叠入口与状态反馈 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/block_renderer_registry.dart,test/widgets/wenz_rich_text_editor_test.dart,test/widgets/editor_golden_test.dart,test/widgets/goldens/editor_blocks.png -->
+  - 验收要点：可折叠标题左侧或标题内容起始处显示稳定的展开/收起图标，hover/focus/pressed/disabled 状态清晰，且不挤压标题文本布局。
+  - 验收要点：点击或键盘激活图标可切换折叠状态；图标命中区域不触发文本选区、输入法组合、链接点击或 block 拖拽菜单。
+  - 验收要点：折叠标题可显示子内容数量、轻量提示或视觉标识，便于用户判断标题下存在被隐藏内容。
+
+- [x] P005: 处理折叠状态下的编辑与导航 <!-- scope: lib/src/controller/wenz_rich_text_controller.dart,lib/src/controller/find_replace_controller.dart,lib/src/controller/outline_controller.dart,lib/src/widgets/wenz_rich_text_editor.dart,test/core/controller_test.dart,test/controller/find_replace_controller_test.dart,test/widgets/wenz_rich_text_editor_test.dart -->
+  - 验收要点：当当前选区或程序化跳转目标位于隐藏 block 内时，编辑器会先展开相关标题或将光标安全移动到折叠标题处，避免不可见光标。
+  - 验收要点：查找替换、大纲跳转、锚点跳转和滚动到选区在命中隐藏内容时有一致策略，并能让目标内容重新可见。
+  - 验收要点：在折叠状态下插入、删除、粘贴、撤销/重做、修改标题层级和移动 block 后，隐藏范围、选区和滚动位置保持可恢复且不丢内容。
+
+- [x] P006: 兼容导入导出与外部扩展 <!-- scope: lib/src/codecs/rich_text_json_codec.dart,lib/src/codecs/html_codec.dart,lib/src/codecs/markdown_codec.dart,lib/src/widgets/block_renderer_registry.dart,test/codecs/rich_text_json_codec_test.dart,test/codecs/html_codec_test.dart,test/codecs/markdown_codec_test.dart,test/plugins/editor_plugin_test.dart -->
+  - 验收要点：折叠状态默认不写入文档 JSON、HTML、Markdown 或纯文本导出，导入已有文档后默认全部展开且内容完整。
+  - 验收要点：自定义 block renderer、插件和媒体 resolver 在隐藏 block 不渲染时不收到多余构建/几何事件，展开后行为与普通 block 一致。
+  - 验收要点：如果后续需要业务侧持久化折叠状态，应通过独立 UI 状态或 metadata 扩展点实现，不污染现有内容模型。
+
+- [x] P007: 补充自动化与视觉回归测试 <!-- scope: test/controller/outline_controller_test.dart,test/widgets/wenz_rich_text_editor_test.dart,test/widgets/editor_golden_test.dart,test/widgets/goldens/editor_blocks.png,test/widgets/goldens/editor_advanced_blocks.png,docs/plan/plan_requirement_10_20260625-034349.md -->
+  - 验收要点：覆盖 H1-H6、多级嵌套、连续标题、空标题、无子内容标题、父子同时折叠、标题删除/改级/移动后的范围重算。
+  - 验收要点：覆盖折叠图标点击、键盘访问、隐藏 block 不命中、展开后选区恢复、查找命中隐藏内容和大纲跳转隐藏标题等 widget 行为。
+  - 验收要点：更新或新增 golden 展示展开态、折叠态、禁用态和嵌套标题场景；记录 `flutter analyze` 与相关测试执行结果。
+
+## 总体验收标准
+- 所有任务 checkbox 均完成，且每个任务的验收要点都有明确结论或验证记录。
+- 标题折叠仅改变编辑器视图状态，不删除、不移动、不改写任何 block 内容或导入导出数据结构。
+- 折叠范围按标题层级稳定计算，覆盖多级标题嵌套、连续标题、空内容、文档首尾和动态编辑后的边界场景。
+- 折叠/展开交互可被鼠标、触控和键盘可靠触发，并不影响文本编辑、选区、IME、链接、表格、媒体块和对象块既有交互。
+- 隐藏内容在查找、大纲跳转、锚点跳转、选区恢复和滚动定位时有一致可见性策略，不出现不可见光标或无法定位目标。
+- 相关 controller、widget、codec、plugin 和 golden 测试通过；若存在既有失败，需在进度区记录命令、失败原因判断和后续建议。
+
+## 进度区
+- 当前状态：计划已创建，P001-P007 待开发执行。
+- 当前负责人：待分配。
+- 下一步：从 P001 开始确认折叠范围、入口位置、只读模式和隐藏内容导航策略。
+- 验证记录：本次仅生成计划文件，未修改业务代码，未执行自动化测试或手工验收。
+- 风险记录：编辑器当前渲染、选区和几何命中集中在大型 widget 中，过滤隐藏 block 可能影响 blockIndex、滚动定位和 selection overlay；需要优先通过测试约束行为再实现。
+- P001 AutoPlan 完成：2026-06-24T19:50:35.751Z；日志：docs/progress/logs/20260625-034550_execute-P001.log
+- P002 AutoPlan 完成：2026-06-25T02:57:51.543Z；日志：docs/progress/logs/20260625-104955_execute-P002.log
+- P003 AutoPlan 完成：2026-06-25T03:33:19.947Z；日志：docs/progress/logs/20260625-112518_execute-P003.log
+- P004 AutoPlan 完成：2026-06-25T04:36:47.833Z；日志：docs/progress/logs/20260625-123230_execute-P004.log
+- P005 AutoPlan 完成：2026-06-25T05:23:26.649Z；日志：docs/progress/logs/20260625-131109_execute-P005.log
+- P006 AutoPlan 完成：2026-06-25T05:34:40.490Z；日志：docs/progress/logs/20260625-132450_execute-P006.log
+- P007 AutoPlan 完成：2026-06-25T05:50:45.065Z；日志：docs/progress/logs/20260625-134052_execute-P007.log
+
+**Planning code exploration**
+
+I see that the output got cut off, so I need to create a new plan. I want to explore modules related to color styles. Since the task involves "configuring font color", it’s likely related to a rich text editor package. My next steps should include inspecting files for attributes, commands, and the editor widget. I'll use CodeGraph for this first, as suggested by the developer. I might start with a query to investigate font color text style attributes.
+codex
+计划格式清楚了；现在定位字体样式相关代码，确保 scope 写得具体。
+mcp: codegraph/codegraph_explore started
+mcp: codegraph/codegraph_explore (completed)
+codex
+我找到内联样式入口了；继续确认颜色是否已有模型字段或仅需规划新增。
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+**Considering text attributes**
+
+I see that the TextAttributes already has a color. Perhaps the requirement is to support the configuration of font color for the UI/API. I think I should plan to mention that the current model can handle color, but I need to inspect the style commands and toolbar to clarify everything. It seems there’s a lot to consider to ensure a smooth user experience! Let’s dive deeper into the specifics.
+mcp: codegraph/codegraph_explore started
+mcp: codegraph/codegraph_explore (completed)
+**Considering codecoloring**
+
+I think I need to use shell commands, perhaps specifically `rg`, to add color to my outputs. Since the codegraph output seems to be truncated, using `rg` could help clarify things. It looks like this might be an effective way to enhance the presentation and readability of my outputs. I'll have to take a closer look at how to implement that properly! Let's see how that goes.
+codex
+确认模型已有 `color` 字段；我再用快速搜索补齐渲染、编解码和测试 scope。
+exec
+powershell.exe -Command '[Console]::OutputEncoding=[System.Text.UTF8Encoding]::new(); $OutputEncoding=[System.Text.UTF8Encoding]::new(); rg -n "color|foreground|fontColor|TextAttributes'"\\(|formatInline|SetInline|ToggleMark|ToolbarState|tableCellBackgroundColor\" lib test README.md" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 176ms:
+lib\wenz_richtext.dart:30:///   commands ([SetLinkCommand], [AutoLinkUrlsCommand], [ToggleMarkCommand],
+lib\wenz_richtext.dart:51:///   toolbar binding ([ToolbarController], [ToolbarState],
+test\collaboration\collaboration_adapter_test.dart:17:          color: 0xFF3366FF,
+test\codecs\rich_text_json_codec_test.dart:16:            TextRun(text: 'Hello', attributes: TextAttributes(bold: true)),
+test\controller\toolbar_controller_test.dart:17:      expect(toolbar.canToggleMark, isFalse);
+test\controller\toolbar_controller_test.dart:64:      expect(toolbar.canToggleMark, isTrue);
+test\controller\toolbar_controller_test.dart:238:        expect(toolbar.canToggleMark, isFalse);
+test\controller\toolbar_controller_test.dart:270:        // ToggleMarkCommand / SetLinkCommand require a single block + path.
+test\controller\toolbar_controller_test.dart:271:        expect(toolbar.canToggleMark, isFalse);
+test\controller\toolbar_controller_test.dart:471:        expect(toolbar.canToggleMark, isTrue,
+test\controller\toolbar_controller_test.dart:496:        expect(toolbar.tableCellBackgroundColor, isNull);
+test\controller\toolbar_controller_test.dart:505:        expect(toolbar.tableCellBackgroundColor, 0xFFFFEEAA);
+test\controller\toolbar_controller_test.dart:515:        expect(toolbar.tableCellBackgroundColor, 0xFFFFEEAA);
+test\controller\toolbar_controller_test.dart:538:                                attributes: TextAttributes(bold: true)),
+test\controller\toolbar_controller_test.dart:541:                                attributes: TextAttributes(bold: true)),
+test\controller\toolbar_controller_test.dart:622:      expect(toolbar.canToggleMark, isFalse);
+test\controller\toolbar_controller_test.dart:629:      expect(toolbar.canToggleMark, isTrue);
+test\controller\toolbar_controller_test.dart:650:          TextRun(text: 'He', attributes: TextAttributes(bold: true)),
+test\controller\toolbar_controller_test.dart:659:          TextRun(text: 'boldRun', attributes: TextAttributes(bold: true)),
+test\controller\toolbar_controller_test.dart:660:          TextRun(text: 'italicRun', attributes: TextAttributes(italic: true)),
+test\controller\toolbar_controller_test.dart:670:            attributes: TextAttributes(url: 'https://wenz.dev'),
+test\codecs\plain_text_codec_test.dart:36:              TextRun(text: 'bo', attributes: TextAttributes(bold: true)),
+test\codecs\plain_text_codec_test.dart:37:              TextRun(text: 'ld', attributes: TextAttributes(italic: true)),
+test\codecs\markdown_codec_test.dart:67:              TextRun(text: 'a ', attributes: TextAttributes()),
+test\codecs\markdown_codec_test.dart:70:                attributes: TextAttributes(bold: true),
+test\codecs\markdown_codec_test.dart:75:                attributes: TextAttributes(italic: true),
+test\codecs\markdown_codec_test.dart:80:                attributes: TextAttributes(lineThrough: true),
+test\codecs\markdown_codec_test.dart:103:                attributes: TextAttributes(url: 'https://x.dev'),
+test\widgets\wenz_rich_text_editor_test.dart:45:              TextRun(text: 'Roadmap', attributes: TextAttributes(bold: true)),
+test\widgets\wenz_rich_text_editor_test.dart:128:        'plain bold italic underStrike colored highlight big mono '
+test\widgets\wenz_rich_text_editor_test.dart:141:                attributes: TextAttributes(bold: true),
+test\widgets\wenz_rich_text_editor_test.dart:146:                attributes: TextAttributes(italic: true),
+test\widgets\wenz_rich_text_editor_test.dart:151:                attributes: TextAttributes(
+test\widgets\wenz_rich_text_editor_test.dart:158:                text: 'colored',
+test\widgets\wenz_rich_text_editor_test.dart:159:                attributes: TextAttributes(color: 0xFFD81B60),
+test\widgets\wenz_rich_text_editor_test.dart:164:                attributes: TextAttributes(background: 0xFFFFF59D),
+test\widgets\wenz_rich_text_editor_test.dart:169:                attributes: TextAttributes(fontSize: 22),
+test\widgets\wenz_rich_text_editor_test.dart:174:                attributes: TextAttributes(fontFamily: 'JetBrains Mono'),
+test\widgets\wenz_rich_text_editor_test.dart:179:                attributes: TextAttributes(url: 'https://example.com'),
+test\widgets\wenz_rich_text_editor_test.dart:184:                attributes: TextAttributes(
+test\widgets\wenz_rich_text_editor_test.dart:192:                attributes: TextAttributes(revisionIds: <String>['r1']),
+test\widgets\wenz_rich_text_editor_test.dart:203:          colorScheme: ColorScheme.fromSeed(seedColor: primary).copyWith(
+test\widgets\wenz_rich_text_editor_test.dart:230:    expect(rootStyle.color, onSurface);
+test\widgets\wenz_rich_text_editor_test.dart:241:    expect(styleOf('colored').color, const Color(0xFFD81B60));
+test\widgets\wenz_rich_text_editor_test.dart:245:    expect(styleOf('link').color, const Color(0xFF1976D2));
+test\widgets\wenz_rich_text_editor_test.dart:312:          colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue).copyWith(
+test\widgets\wenz_rich_text_editor_test.dart:346:      expect(styleOf(text).color, onSurface);
+test\widgets\wenz_rich_text_editor_test.dart:350:    expect(styleOf('Heading 5').color, onSurfaceVariant);
+test\widgets\wenz_rich_text_editor_test.dart:353:    expect(styleOf('Heading 6').color, outline);
+test\widgets\wenz_rich_text_editor_test.dart:1048:      colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),
+test\widgets\wenz_rich_text_editor_test.dart:1113:    expect(decoration.color, theme.colorScheme.surfaceContainer);
+test\widgets\wenz_rich_text_editor_test.dart:1137:    expect(accentDecoration.color, theme.colorScheme.primary);
+test\widgets\wenz_rich_text_editor_test.dart:1140:    expect(quoteSpan.style?.color, theme.colorScheme.onSurfaceVariant);
+test\widgets\wenz_rich_text_editor_test.dart:1172:      colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
+test\widgets\wenz_rich_text_editor_test.dart:1285:    expect(doneSpan.style?.color, theme.colorScheme.onSurfaceVariant);
+test\widgets\wenz_rich_text_editor_test.dart:1302:                attributes: TextAttributes(bold: true),
+test\widgets\wenz_rich_text_editor_test.dart:1493:      expect(_leafSpan(dartSpan, 'final')?.style?.color, _codeKeyword);
+test\widgets\wenz_rich_text_editor_test.dart:1494:      expect(_leafSpan(dartSpan, 'String')?.style?.color, _codeType);
+test\widgets\wenz_rich_text_editor_test.dart:1495:      expect(_leafSpan(dartSpan, '42')?.style?.color, _codeNumber);
+test\widgets\wenz_rich_text_editor_test.dart:1496:      expect(_leafSpan(dartSpan, '"Ada"')?.style?.color, _codeString);
+test\widgets\wenz_rich_text_editor_test.dart:1498:        _leafSpan(dartSpan, '// done')?.style?.color,
+test\widgets\wenz_rich_text_editor_test.dart:1503:        _leafSpan(_richTextSpan(tester, jsCode), 'const')?.style?.color,
+test\widgets\wenz_rich_text_editor_test.dart:1507:        _leafSpan(_richTextSpan(tester, jsonCode), 'true')?.style?.color,
+test\widgets\wenz_rich_text_editor_test.dart:1511:        _leafSpan(_richTextSpan(tester, jsonCode), '3')?.style?.color,
+test\widgets\wenz_rich_text_editor_test.dart:1515:        _leafSpan(_richTextSpan(tester, markdownCode), '#')?.style?.color,
+test\widgets\wenz_rich_text_editor_test.dart:1519:        _leafSpan(_richTextSpan(tester, markdownCode), '`code`')?.style?.color,
+test\widgets\wenz_rich_text_editor_test.dart:1525:      expect(unsupportedSpan.style?.color, _codeBlockText);
+test\widgets\wenz_rich_text_editor_test.dart:1562:    expect(decoration.color, _codeBlockBackground);
+test\widgets\wenz_rich_text_editor_test.dart:1566:    expect(codeSpan.style?.color, _codeBlockText);
+test\widgets\wenz_rich_text_editor_test.dart:2920:  testWidgets('callout variants use design colors and safe fallbacks', (
+test\widgets\wenz_rich_text_editor_test.dart:2966:      expect(decoration.color, background);
+test\widgets\wenz_rich_text_editor_test.dart:2967:      expect((decoration.border as Border).top.color, border);
+test\widgets\wenz_rich_text_editor_test.dart:2989:    expect(infoIcon.style?.color, _calloutInfoForeground);
+test\widgets\wenz_rich_text_editor_test.dart:2991:    expect(_richTextSpan(tester, 'Success body').style?.color,
+test\widgets\wenz_rich_text_editor_test.dart:2993:    expect(_richTextSpan(tester, 'Warning body').style?.color,
+test\widgets\wenz_rich_text_editor_test.dart:2995:    expect(_richTextSpan(tester, 'Danger body').style?.color,
+test\widgets\wenz_rich_text_editor_test.dart:3025:    expect((shell.border as Border).top.color, theme.colorScheme.primary);
+test\widgets\wenz_rich_text_editor_test.dart:3032:    expect(line.color, _dividerLine);
+test\widgets\wenz_rich_text_editor_test.dart:3037:    expect(dot.color, theme.colorScheme.primary);
+test\widgets\wenz_rich_text_editor_test.dart:4178:    expect(topLeftBorderBox.position, DecorationPosition.foreground);
+test\widgets\wenz_rich_text_editor_test.dart:4226:    expect(headerBorder.top.color, const Color(0xFFECE9F5));
+test\widgets\wenz_rich_text_editor_test.dart:4253:        headerRichText.text.style?.color, theme.colorScheme.onSurfaceVariant);
+test\widgets\wenz_rich_text_editor_test.dart:4262:      (headerBackground.decoration as BoxDecoration).color,
+test\widgets\wenz_rich_text_editor_test.dart:4263:      theme.colorScheme.surfaceContainer,
+test\widgets\wenz_rich_text_editor_test.dart:4273:      (stripedBackground.decoration as BoxDecoration).color,
+test\widgets\wenz_rich_text_editor_test.dart:4284:      (customBackground.decoration as BoxDecoration).color,
+test\widgets\wenz_rich_text_editor_test.dart:4553:    expect((quoteBackground.decoration as BoxDecoration).color, isNotNull);
+test\widgets\wenz_rich_text_editor_test.dart:8199:        color: Color(0xFF123456),
+test\widgets\wenz_rich_text_editor_test.dart:8220:            widget is ColoredBox && widget.color == const Color(0xFF123456),
+test\codecs\html_codec_test.dart:70:                attributes: TextAttributes(bold: true),
+test\codecs\html_codec_test.dart:75:                attributes: TextAttributes(italic: true),
+test\codecs\html_codec_test.dart:80:                attributes: TextAttributes(lineThrough: true),
+test\codecs\html_codec_test.dart:102:                attributes: TextAttributes(url: 'https://x.dev'),
+lib\src\controller\wenz_rich_text_controller.dart:538:    TextAttributes attributes = const TextAttributes(),
+lib\src\controller\wenz_rich_text_controller.dart:638:    TextAttributes attributes = const TextAttributes(),
+lib\src\controller\wenz_rich_text_controller.dart:1359:    return execute(ToggleMarkCommand(TextMark.remark, selection: selection));
+lib\src\controller\wenz_rich_text_controller.dart:1690:    TextAttributes attributes = const TextAttributes(),
+lib\src\controller\toolbar_controller.dart:15:  ToolbarState state,
+lib\src\controller\toolbar_controller.dart:18:typedef WenzToolbarItemPredicate = bool Function(ToolbarState state);
+lib\src\controller\toolbar_controller.dart:24:/// call [action] with the current [ToolbarState].
+lib\src\controller\toolbar_controller.dart:51:  bool enabledFor(ToolbarState state) => isEnabled?.call(state) ?? true;
+lib\src\controller\toolbar_controller.dart:53:  bool activeFor(ToolbarState state) => isActive?.call(state) ?? false;
+lib\src\controller\toolbar_controller.dart:100:class ToolbarState {
+lib\src\controller\toolbar_controller.dart:101:  const ToolbarState({
+lib\src\controller\toolbar_controller.dart:104:    required this.canToggleMark,
+lib\src\controller\toolbar_controller.dart:114:    this.tableCellBackgroundColor,
+lib\src\controller\toolbar_controller.dart:138:  /// Whether a boolean mark toggle (ToggleMarkCommand) can apply — same rule
+lib\src\controller\toolbar_controller.dart:139:  /// as [canFormatInline] but ToggleMarkCommand additionally requires a single
+lib\src\controller\toolbar_controller.dart:141:  final bool canToggleMark;
+lib\src\controller\toolbar_controller.dart:165:  final int? tableCellBackgroundColor;
+lib\src\controller\toolbar_controller.dart:228:  static const ToolbarState empty = ToolbarState(
+lib\src\controller\toolbar_controller.dart:231:    canToggleMark: false,
+lib\src\controller\toolbar_controller.dart:254:  ToolbarState copyWith({
+lib\src\controller\toolbar_controller.dart:257:    bool? canToggleMark,
+lib\src\controller\toolbar_controller.dart:267:    Object? tableCellBackgroundColor = _sentinel,
+lib\src\controller\toolbar_controller.dart:281:    return ToolbarState(
+lib\src\controller\toolbar_controller.dart:284:      canToggleMark: canToggleMark ?? this.canToggleMark,
+lib\src\controller\toolbar_controller.dart:296:      tableCellBackgroundColor: identical(tableCellBackgroundColor, _sentinel)
+lib\src\controller\toolbar_controller.dart:297:          ? this.tableCellBackgroundColor
+lib\src\controller\toolbar_controller.dart:298:          : tableCellBackgroundColor as int?,
+lib\src\controller\toolbar_controller.dart:323:    return other is ToolbarState &&
+lib\src\controller\toolbar_controller.dart:326:        other.canToggleMark == canToggleMark &&
+lib\src\controller\toolbar_controller.dart:336:        other.tableCellBackgroundColor == tableCellBackgroundColor &&
+lib\src\controller\toolbar_controller.dart:357:        canToggleMark,
+lib\src\controller\toolbar_controller.dart:367:        tableCellBackgroundColor,
+lib\src\controller\toolbar_controller.dart:392:/// [ToolbarState] snapshot that tracks the active selection's inline marks,
+lib\src\controller\toolbar_controller.dart:409:  ToolbarState _state = ToolbarState.empty;
+lib\src\controller\toolbar_controller.dart:410:  ToolbarState get state => _state;
+lib\src\controller\toolbar_controller.dart:415:  bool get canToggleMark => _state.canToggleMark;
+lib\src\controller\toolbar_controller.dart:426:  int? get tableCellBackgroundColor => _state.tableCellBackgroundColor;
+lib\src\controller\toolbar_controller.dart:458:  /// [canToggleMark] is false. Lets the toolbar drive an arbitrary mark
+lib\src\controller\toolbar_controller.dart:463:    if (!_state.canToggleMark) {
+lib\src\controller\toolbar_controller.dart:466:    _host.execute(ToggleMarkCommand(mark));
+lib\src\controller\toolbar_controller.dart:612:      _state = ToolbarState.empty.copyWith(
+lib\src\controller\toolbar_controller.dart:675:    _state = ToolbarState(
+lib\src\controller\toolbar_controller.dart:680:      // ToggleMarkCommand requires a single block + single path.
+lib\src\controller\toolbar_controller.dart:681:      canToggleMark: canEdit && extentOnText && singleBlock,
+lib\src\controller\toolbar_controller.dart:695:      tableCellBackgroundColor: cellStyle?.backgroundColor,
+lib\src\controller\toolbar_controller.dart:728:    return last ?? const TextAttributes();
+lib\src\widgets\comment_sidebar.dart:45:        color: theme.colorScheme.surface,
+lib\src\widgets\comment_sidebar.dart:147:    final colorScheme = theme.colorScheme;
+lib\src\widgets\comment_sidebar.dart:155:          color: isActive ? colorScheme.primary : colorScheme.outlineVariant,
+lib\src\widgets\comment_sidebar.dart:260:          ? theme.colorScheme.secondaryContainer
+lib\src\widgets\comment_sidebar.dart:261:          : theme.colorScheme.primaryContainer,
+lib\src\widgets\inline_embed_renderer.dart:13:/// from it) so custom embeds keep line height, color, and selection geometry in
+lib\src\widgets\code_syntax_highlighter.dart:86:          color: palette.keyword,
+lib\src\widgets\code_syntax_highlighter.dart:90:          color: palette.type,
+lib\src\widgets\code_syntax_highlighter.dart:93:      _CodeSyntaxTokenKind.string => baseStyle.copyWith(color: palette.string),
+lib\src\widgets\code_syntax_highlighter.dart:95:          color: palette.comment,
+lib\src\widgets\code_syntax_highlighter.dart:98:      _CodeSyntaxTokenKind.number => baseStyle.copyWith(color: palette.number),
+lib\src\widgets\code_syntax_highlighter.dart:100:          color: palette.marker,
+lib\src\widgets\wenz_rich_text_editor.dart:155:    color: Color(0x14141428),
+lib\src\widgets\wenz_rich_text_editor.dart:160:    color: Color(0x0F141428),
+lib\src\widgets\wenz_rich_text_editor.dart:198:  static const Map<String, int> colorTokens = <String, int>{
+lib\src\widgets\wenz_rich_text_editor.dart:360:  /// Optional border color for the focused editor when high contrast is active.
+lib\src\widgets\wenz_rich_text_editor.dart:1202:      position: DecorationPosition.foreground,
+lib\src\widgets\wenz_rich_text_editor.dart:1205:          color: accessibility.highContrastFocusColor ??
+lib\src\widgets\wenz_rich_text_editor.dart:1206:              Theme.of(context).colorScheme.primary,
+lib\src\widgets\wenz_rich_text_editor.dart:3914:        ? theme.colorScheme.primaryContainer.withAlpha(180)
+lib\src\widgets\wenz_rich_text_editor.dart:3916:            ? theme.colorScheme.surfaceContainerHighest.withAlpha(150)
+lib\src\widgets\wenz_rich_text_editor.dart:3956:                        color: backgroundColor,
+lib\src\widgets\wenz_rich_text_editor.dart:3963:                          color: theme.colorScheme.onSurfaceVariant,
+lib\src\widgets\wenz_rich_text_editor.dart:4138:    final color = Theme.of(context).colorScheme.primary;
+lib\src\widgets\wenz_rich_text_editor.dart:4148:            color: color,
+lib\src\widgets\wenz_rich_text_editor.dart:4154:                color: color.withAlpha(72),
+lib\src\widgets\wenz_rich_text_editor.dart:5185:    final scheme = theme.colorScheme;
+lib\src\widgets\wenz_rich_text_editor.dart:5215:              color: scheme.onSurfaceVariant,
+lib\src\widgets\wenz_rich_text_editor.dart:5274:    final scheme = Theme.of(context).colorScheme;
+lib\src\widgets\wenz_rich_text_editor.dart:5277:        color: scheme.primaryContainer,
+lib\src\widgets\wenz_rich_text_editor.dart:5279:        border: Border.all(color: scheme.surface, width: 1.5),
+lib\src\widgets\wenz_rich_text_editor.dart:5287:            color: scheme.onPrimaryContainer,
+lib\src\widgets\wenz_rich_text_editor.dart:5376:            activeColor: theme.colorScheme.primary,
+lib\src\widgets\wenz_rich_text_editor.dart:5394:    final scheme = theme.colorScheme;
+lib\src\widgets\wenz_rich_text_editor.dart:5400:            color: scheme.surfaceContainer,
+lib\src\widgets\wenz_rich_text_editor.dart:5416:                    color: scheme.primary,
+lib\src\widgets\wenz_rich_text_editor.dart:5468:          color: const Color(_kCodeBlockTextColor),
+lib\src\widgets\wenz_rich_text_editor.dart:5479:          color: Color(_kCodeBlockTextColor),
+lib\src\widgets\wenz_rich_text_editor.dart:5514:          color: const Color(_kCodeBlockBackgroundColor),
+lib\src\widgets\wenz_rich_text_editor.dart:5516:              ? Border.all(color: theme.colorScheme.primary, width: 1.5)
+lib\src\widgets\wenz_rich_text_editor.dart:5654:          color: tagColor,
+lib\src\widgets\wenz_rich_text_editor.dart:5659:          color: tagColor,
+lib\src\widgets\wenz_rich_text_editor.dart:5667:      color: Colors.transparent,
+lib\src\widgets\wenz_rich_text_editor.dart:5673:            const Icon(Icons.code, size: 16, color: tagColor),
+lib\src\widgets\wenz_rich_text_editor.dart:5706:              color: tagColor,
+lib\src\widgets\wenz_rich_text_editor.dart:5784:                      color: theme.colorScheme.surface,
+lib\src\widgets\wenz_rich_text_editor.dart:5808:                              position: DecorationPosition.foreground,
+lib\src\widgets\wenz_rich_text_editor.dart:5814:                                  color: _kTableBorderColor,
+lib\src\widgets\wenz_rich_text_editor.dart:5970:      color: theme.colorScheme.surface,
+lib\src\widgets\wenz_rich_text_editor.dart:5974:          border: Border.all(color: theme.dividerColor.withAlpha(160)),
+lib\src\widgets\wenz_rich_text_editor.dart:6170:        color: theme.dividerColor.withAlpha(160),
+lib\src\widgets\wenz_rich_text_editor.dart:6241:                  color: theme.colorScheme.primary.withAlpha(120),
+lib\src\widgets\wenz_rich_text_editor.dart:6308:  required Color color,
+lib\src\widgets\wenz_rich_text_editor.dart:6310:  final side = BorderSide(color: color);
+lib\src\widgets\wenz_rich_text_editor.dart:6520:Color? _tableCellBackgroundColor({
+lib\src\widgets\wenz_rich_text_editor.dart:6532:    return theme.colorScheme.surfaceContainer;
+lib\src\widgets\wenz_rich_text_editor.dart:6687:    final highlightColor = theme.colorScheme.primary.withAlpha(54);
+lib\src\widgets\wenz_rich_text_editor.dart:6691:            color: theme.colorScheme.onSurfaceVariant,
+lib\src\widgets\wenz_rich_text_editor.dart:6701:    final backgroundColor = _tableCellBackgroundColor(
+lib\src\widgets\wenz_rich_text_editor.dart:6760:          color: backgroundColor,
+lib\src\widgets\wenz_rich_text_editor.dart:6770:                    decoration: BoxDecoration(color: highlightColor),
+lib\src\widgets\wenz_rich_text_editor.dart:6973:    final selectedColor = theme.colorScheme.primary;
+lib\src\widgets\wenz_rich_text_editor.dart:6992:                  color: selectedColor.withAlpha(24),
+lib\src\widgets\wenz_rich_text_editor.dart:6993:                  border: Border.all(color: selectedColor, width: 2),
+lib\src\widgets\wenz_rich_text_editor.dart:7405:    final highlightColor = theme.colorScheme.primary.withAlpha(54);
+lib\src\widgets\wenz_rich_text_editor.dart:7406:    final findHighlightColor = theme.colorScheme.tertiaryContainer.withAlpha(
+lib\src\widgets\wenz_rich_text_editor.dart:7409:    final activeFindHighlightColor = theme.colorScheme.tertiary.withAlpha(120);
+lib\src\widgets\wenz_rich_text_editor.dart:7410:    final caretColor = theme.colorScheme.primary;
+lib\src\widgets\wenz_rich_text_editor.dart:7442:          color: caretColor,
+lib\src\widgets\wenz_rich_text_editor.dart:7454:            color: findHighlightColor,
+lib\src\widgets\wenz_rich_text_editor.dart:7466:              color: highlightColor,
+lib\src\widgets\wenz_rich_text_editor.dart:7521:                      foregroundPainter: caretPainter,
+lib\src\widgets\wenz_rich_text_editor.dart:7567:        color: theme.colorScheme.errorContainer.withAlpha(220),
+lib\src\widgets\wenz_rich_text_editor.dart:7576:          color: theme.colorScheme.onErrorContainer,
+lib\src\widgets\wenz_rich_text_editor.dart:7773:    required this.color,
+lib\src\widgets\wenz_rich_text_editor.dart:7783:  final Color color;
+lib\src\widgets\wenz_rich_text_editor.dart:7801:      final paint = Paint()..color = range.active ? activeColor : color;
+lib\src\widgets\wenz_rich_text_editor.dart:7820:        oldDelegate.color != color ||
+lib\src\widgets\wenz_rich_text_editor.dart:7834:    required this.color,
+lib\src\widgets\wenz_rich_text_editor.dart:7844:  final Color color;
+lib\src\widgets\wenz_rich_text_editor.dart:7861:    final paint = Paint()..color = color;
+lib\src\widgets\wenz_rich_text_editor.dart:7876:        oldDelegate.color != color;
+lib\src\widgets\wenz_rich_text_editor.dart:7889:    required this.color,
+lib\src\widgets\wenz_rich_text_editor.dart:7901:  final Color color;
+lib\src\widgets\wenz_rich_text_editor.dart:7929:      ..color = color.withValues(alpha: opacity.clamp(0.0, 1.0))
+lib\src\widgets\wenz_rich_text_editor.dart:7942:        oldDelegate.color != color ||
+lib\src\widgets\wenz_rich_text_editor.dart:7956:        color: theme.colorScheme.surfaceContainerHighest.withAlpha(90),
+lib\src\widgets\wenz_rich_text_editor.dart:7957:        border: Border.all(color: theme.colorScheme.outlineVariant),
+lib\src\widgets\wenz_rich_text_editor.dart:7966:          color: theme.colorScheme.onSurfaceVariant,
+lib\src\widgets\wenz_rich_text_editor.dart:7988:          color: Colors.black,
+lib\src\widgets\wenz_rich_text_editor.dart:8012:                        colors: <Color>[
+lib\src\widgets\wenz_rich_text_editor.dart:8037:                        color: Colors.white.withAlpha(230),
+lib\src\widgets\wenz_rich_text_editor.dart:8041:                            color: Colors.black.withAlpha(76),
+lib\src\widgets\wenz_rich_text_editor.dart:8051:                          color: Colors.black87,
+lib\src\widgets\wenz_rich_text_editor.dart:8070:                            color: Colors.white,
+lib\src\widgets\wenz_rich_text_editor.dart:8080:                            color: Colors.white.withAlpha(220),
+lib\src\widgets\wenz_rich_text_editor.dart:8127:          colors: <Color>[
+lib\src\widgets\wenz_rich_text_editor.dart:8128:            theme.colorScheme.inverseSurface,
+lib\src\widgets\wenz_rich_text_editor.dart:8129:            theme.colorScheme.surfaceContainerHighest,
+lib\src\widgets\wenz_rich_text_editor.dart:8147:        color: Colors.black.withAlpha(150),
+lib\src\widgets\wenz_rich_text_editor.dart:8149:        border: Border.all(color: Colors.white.withAlpha(60)),
+lib\src\widgets\wenz_rich_text_editor.dart:8158:            color: Colors.white,
+lib\src\widgets\wenz_rich_text_editor.dart:8252:              color: theme.colorScheme.onSurface,
+lib\src\widgets\wenz_rich_text_editor.dart:8296:      color: const Color(_kFormulaBlockForegroundColor),
+lib\src\widgets\wenz_rich_text_editor.dart:8323:              color: theme.colorScheme.onSurfaceVariant,
+lib\src\widgets\wenz_rich_text_editor.dart:8330:              color: theme.colorScheme.secondaryContainer,
+lib\src\widgets\wenz_rich_text_editor.dart:8390:                      color: Colors.black,
+lib\src\widgets\wenz_rich_text_editor.dart:8437:            color: theme.colorScheme.surfaceContainerHighest.withAlpha(48),
+lib\src\widgets\wenz_rich_text_editor.dart:8438:            border: Border.all(color: theme.colorScheme.primary, width: 1.5),
+lib\src\widgets\wenz_rich_text_editor.dart:8479:                          color: Color(_kDividerLineColor),
+lib\src\widgets\wenz_rich_text_editor.dart:8491:                        color: theme.colorScheme.primary,
+lib\src\widgets\wenz_rich_text_editor.dart:8526:                color: theme.colorScheme.surface,
+lib\src\widgets\wenz_rich_text_editor.dart:8527:                border: Border.all(color: theme.colorScheme.outlineVariant),
+lib\src\widgets\wenz_rich_text_editor.dart:8535:                    color: theme.colorScheme.onSurfaceVariant,
+lib\src\widgets\wenz_rich_text_editor.dart:8574:        selected ? theme.colorScheme.primary : borderColor;
+lib\src\widgets\wenz_rich_text_editor.dart:8578:        foregroundPainter: _DashedRRectBorderPainter(
+lib\src\widgets\wenz_rich_text_editor.dart:8579:          color: resolvedBorderColor,
+lib\src\widgets\wenz_rich_text_editor.dart:8587:            color: backgroundColor,
+lib\src\widgets\wenz_rich_text_editor.dart:8629:        color: theme.colorScheme.primaryContainer,
+lib\src\widgets\wenz_rich_text_editor.dart:8637:            color: theme.colorScheme.primary,
+lib\src\widgets\wenz_rich_text_editor.dart:8649:    required this.color,
+lib\src\widgets\wenz_rich_text_editor.dart:8656:  final Color color;
+lib\src\widgets\wenz_rich_text_editor.dart:8665:      ..color = color
+lib\src\widgets\wenz_rich_text_editor.dart:8687:    return oldDelegate.color != color ||
+lib\src\widgets\wenz_rich_text_editor.dart:8982:      color: theme.colorScheme.surface,
+lib\src\widgets\wenz_rich_text_editor.dart:8984:      shadowColor: theme.colorScheme.shadow.withAlpha(40),
+lib\src\widgets\wenz_rich_text_editor.dart:8986:        side: BorderSide(color: theme.colorScheme.outlineVariant),
+lib\src\widgets\wenz_rich_text_editor.dart:9063:        active ? theme.colorScheme.primary : const Color(_kFileCardBorderColor);
+lib\src\widgets\wenz_rich_text_editor.dart:9064:    final foregroundColor =
+lib\src\widgets\wenz_rich_text_editor.dart:9065:        failed ? theme.colorScheme.error : theme.colorScheme.onSurfaceVariant;
+lib\src\widgets\wenz_rich_text_editor.dart:9090:          color: theme.colorScheme.surface,
+lib\src\widgets\wenz_rich_text_editor.dart:9091:          border: Border.all(color: borderColor),
+lib\src\widgets\wenz_rich_text_editor.dart:9125:                          color: theme.colorScheme.onSurface,
+lib\src\widgets\wenz_rich_text_editor.dart:9137:                            color: theme.colorScheme.onSurfaceVariant,
+lib\src\widgets\wenz_rich_text_editor.dart:9150:                            color: failed
+lib\src\widgets\wenz_rich_text_editor.dart:9151:                                ? theme.colorScheme.error
+lib\src\widgets\wenz_rich_text_editor.dart:9152:                                : theme.colorScheme.onSurfaceVariant,
+lib\src\widgets\wenz_rich_text_editor.dart:9167:                      color: foregroundColor,
+lib\src\widgets\wenz_rich_text_editor.dart:9191:        ? theme.colorScheme.errorContainer
+lib\src\widgets\wenz_rich_text_editor.dart:9192:        : theme.colorScheme.primaryContainer;
+lib\src\widgets\wenz_rich_text_editor.dart:9193:    final foregroundColor =
+lib\src\widgets\wenz_rich_text_editor.dart:9194:        failed ? theme.colorScheme.onErrorContainer : theme.colorScheme.primary;
+lib\src\widgets\wenz_rich_text_editor.dart:9199:          color: backgroundColor,
+lib\src\widgets\wenz_rich_text_editor.dart:9206:              color: foregroundColor,
+lib\src\widgets\wenz_rich_text_editor.dart:9400:                    color: theme.colorScheme.surface,
+lib\src\widgets\wenz_rich_text_editor.dart:9506:    final foreground = _calloutForeground(variant);
+lib\src\widgets\wenz_rich_text_editor.dart:9507:    final bodyStyle = base.copyWith(color: foreground);
+lib\src\widgets\wenz_rich_text_editor.dart:9525:        widget.selected ? theme.colorScheme.primary : _calloutBorder(variant);
+lib\src\widgets\wenz_rich_text_editor.dart:9532:          color: tint,
+lib\src\widgets\wenz_rich_text_editor.dart:9533:          border: Border.all(color: borderColor, width: borderWidth),
+lib\src\widgets\wenz_rich_text_editor.dart:9541:              _CalloutIcon(icon: widget.block.effectiveIcon, color: foreground),
+lib\src\widgets\wenz_rich_text_editor.dart:9557:                          foreground: foreground,
+lib\src\widgets\wenz_rich_text_editor.dart:9601:  const _CalloutIcon({required this.icon, required this.color});
+lib\src\widgets\wenz_rich_text_editor.dart:9604:  final Color color;
+lib\src\widgets\wenz_rich_text_editor.dart:9613:          color: color,
+lib\src\widgets\wenz_rich_text_editor.dart:9626:    required this.foreground,
+lib\src\widgets\wenz_rich_text_editor.dart:9632:  final Color foreground;
+lib\src\widgets\wenz_rich_text_editor.dart:9676:                      color: widget.foreground,
+lib\src\widgets\wenz_rich_text_editor.dart:9680:                  color: widget.foreground,
+lib\src\widgets\wenz_rich_text_editor.dart:9763:          color: theme.colorScheme.onSurfaceVariant,
+lib\src\widgets\wenz_rich_text_editor.dart:9773:    color: theme.colorScheme.onSurface,
+lib\src\widgets\wenz_rich_text_editor.dart:9786:  final color = switch (headingLevel) {
+lib\src\widgets\wenz_rich_text_editor.dart:9787:    5 => theme.colorScheme.onSurfaceVariant,
+lib\src\widgets\wenz_rich_text_editor.dart:9788:    6 => theme.colorScheme.outline,
+lib\src\widgets\wenz_rich_text_editor.dart:9789:    _ => baseStyle.color ?? theme.colorScheme.onSurface,
+lib\src\widgets\wenz_rich_text_editor.dart:9792:    color: color,
+lib\src\widgets\wenz_rich_text_editor.dart:10037:    final scheme = Theme.of(context).colorScheme;
+lib\src\widgets\wenz_rich_text_editor.dart:10043:          color: scheme.secondaryContainer.withAlpha(90),
+lib\src\widgets\wenz_rich_text_editor.dart:10047:                  bottom: BorderSide(color: textStyle.color ?? scheme.primary))
+lib\src\widgets\wenz_rich_text_editor.dart:10083:      color: textStyle.color ?? theme.colorScheme.onSurface,
+lib\src\widgets\wenz_rich_text_editor.dart:10097:        color: style.color ?? theme.colorScheme.onSurface,
+lib\src\widgets\wenz_rich_text_editor.dart:10116:    final scheme = Theme.of(context).colorScheme;
+lib\src\widgets\wenz_rich_text_editor.dart:10120:        color: scheme.onErrorContainer,
+lib\src\widgets\wenz_rich_text_editor.dart:10184:  final scheme = Theme.of(context).colorScheme;
+lib\src\widgets\wenz_rich_text_editor.dart:10187:        color: scheme.primary,
+lib\src\widgets\wenz_rich_text_editor.dart:10192:        color: scheme.onSecondaryContainer,
+lib\src\widgets\wenz_rich_text_editor.dart:10198:        color: scheme.onSurfaceVariant,
+lib\src\widgets\wenz_rich_text_editor.dart:10219:    color: Theme.of(context).colorScheme.onSurfaceVariant,
+lib\src\widgets\wenz_rich_text_editor.dart:10492:  final scheme = Theme.of(context).colorScheme;
+lib\src\widgets\wenz_rich_text_editor.dart:10531:    color: attrs.color != null
+lib\src\widgets\wenz_rich_text_editor.dart:10532:        ? Color(attrs.color!)
+lib\src\widgets\slash_menu_overlay.dart:29:          color: theme.colorScheme.surface,
+lib\src\widgets\slash_menu_overlay.dart:78:    final selectedColor = theme.colorScheme.primaryContainer.withAlpha(130);
+lib\src\widgets\slash_menu_overlay.dart:83:          color: selected ? selectedColor : Colors.transparent,
+lib\src\widgets\slash_menu_overlay.dart:103:                          color: theme.colorScheme.onSurfaceVariant,
+test\benchmarks\editor_benchmarks.dart:97:    runs.add(TextRun(text: 'a', attributes: TextAttributes(bold: i.isEven)));
+test\input\clipboard_service_test.dart:50:              TextRun(text: 'He', attributes: TextAttributes(bold: true)),
+test\input\clipboard_service_test.dart:298:              TextRun(text: 'abc', attributes: TextAttributes(bold: true)),
+test\input\clipboard_service_test.dart:305:              TextRun(text: 'def', attributes: TextAttributes(italic: true)),
+test\input\clipboard_service_test.dart:572:              TextRun(text: 'bold', attributes: TextAttributes(bold: true)),
+test\input\clipboard_service_test.dart:721:              TextRun(text: 'bo', attributes: TextAttributes(bold: true)),
+test\input\clipboard_service_test.dart:729:              TextRun(text: 'it', attributes: TextAttributes(italic: true)),
+test\input\clipboard_service_test.dart:1022:                        attributes: TextAttributes(bold: true),
+test\core\command_merging_test.dart:52:        const InsertTextCommand('b', attributes: TextAttributes(bold: true)),
+test\core\command_merging_test.dart:227:        const FormatTextCommand(attributes: TextAttributes(bold: true)),
+test\core\command_merging_test.dart:230:        const FormatTextCommand(attributes: TextAttributes(italic: true)),
+lib\src\collaboration\collaboration_adapter.dart:39:    this.color,
+lib\src\collaboration\collaboration_adapter.dart:49:      color: _asIntOrNull(json['color']),
+lib\src\collaboration\collaboration_adapter.dart:60:  /// ARGB color value used by UI integrations for remote caret/selection tint.
+lib\src\collaboration\collaboration_adapter.dart:61:  final int? color;
+lib\src\collaboration\collaboration_adapter.dart:68:    Object? color = _unset,
+lib\src\collaboration\collaboration_adapter.dart:75:      color: identical(color, _unset) ? this.color : color as int?,
+lib\src\collaboration\collaboration_adapter.dart:86:      if (color != null) 'color': color,
+lib\src\collaboration\collaboration_adapter.dart:97:        other.color == color &&
+lib\src\collaboration\collaboration_adapter.dart:107:      color,
+test\widgets\editor_golden_test.dart:30:    expect(WenzRichTextDesignBaseline.colorTokens['primary'], 0xFF4F6DF5);
+test\widgets\editor_golden_test.dart:31:    expect(WenzRichTextDesignBaseline.colorTokens['surface'], 0xFFFBFAFF);
+test\widgets\editor_golden_test.dart:32:    expect(WenzRichTextDesignBaseline.colorTokens['blueLink'], 0xFF1976D2);
+test\widgets\editor_golden_test.dart:33:    expect(WenzRichTextDesignBaseline.colorTokens['amberStrong'], 0xFFC97B00);
+test\widgets\editor_golden_test.dart:225:                attributes: TextAttributes(bold: true),
+test\widgets\editor_golden_test.dart:605:        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
+test\widgets\editor_golden_test.dart:646:            colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
+lib\src\input\clipboard_service.dart:533:/// runs at the boundaries (mirrors [formatInline] semantics without applying
+test\core\comment_model_test.dart:20:    const attributes = TextAttributes(
+test\core\comment_model_test.dart:43:              attributes: TextAttributes(commentIds: <String>['thread-1']),
+lib\src\widgets\find_replace_panel.dart:79:      color: theme.colorScheme.surface,
+test\core\revision_model_test.dart:12:    const attributes = TextAttributes(
+test\core\revision_model_test.dart:34:              attributes: TextAttributes(revisionIds: <String>['rev-1']),
+test\core\revision_model_test.dart:129:        attributes: const TextAttributes(bold: true),
+test\core\revision_model_test.dart:138:    expect((run as TextRun).attributes, const TextAttributes());
+lib\src\codecs\legacy_wen_json_codec.dart:227:    return TextAttributes(
+lib\src\codecs\legacy_wen_json_codec.dart:228:      color: _asNullableInt(json['color']),
+lib\src\codecs\markdown_codec.dart:572:          attributes: attrs ?? const TextAttributes(),
+lib\src\codecs\html_codec.dart:800:      runs.addAll(_parseInlineNode(child, const TextAttributes()));
+lib\src\codecs\html_codec.dart:966:      runs.addAll(_parseInlineNode(child, const TextAttributes()));
+test\core\inline_commands_test.dart:119:    executor.execute(const ToggleMarkCommand(TextMark.remark));
+test\core\inline_commands_test.dart:124:    executor.execute(const ToggleMarkCommand(TextMark.remark));
+lib\src\core\commands\revision_commands.dart:15:    this.attributes = const TextAttributes(),
+lib\src\core\commands\revision_commands.dart:175:    final formatted = formatInline(block.content, start, end, attributes);
+lib\src\core\commands\revision_commands.dart:290:          revision.beforeAttributes ?? const TextAttributes(),
+lib\src\core\commands\revision_commands.dart:502:        _ => const TextAttributes(),
+lib\src\core\commands\revision_commands.dart:512:      _ => const TextAttributes(),
+lib\src\core\commands\revision_commands.dart:515:  return const TextAttributes();
+test\core\table_commands_test.dart:236:        attributes: TextAttributes(bold: true),
+test\core\table_commands_test.dart:250:  test('ToggleMarkCommand toggles bold inside a table cell', () {
+test\core\table_commands_test.dart:280:    executor.execute(ToggleMarkCommand(TextMark.bold, selection: selection));
+test\core\table_commands_test.dart:287:    executor.execute(ToggleMarkCommand(TextMark.bold, selection: selection));
+test\core\table_commands_test.dart:405:      ..execute(ToggleMarkCommand(TextMark.bold, selection: selection))
+test\core\table_commands_test.dart:406:      ..execute(ToggleMarkCommand(TextMark.italic, selection: selection))
+lib\src\core\commands\style_commands.dart:69:        content: formatInline(block.content, rangeStart, rangeEnd, attributes),
+lib\src\core\commands\markdown_shortcut_commands.dart:58:          _simpleTextAttributes(block.attributes),
+lib\src\core\commands\markdown_shortcut_commands.dart:197:      attributes: _simpleTextAttributes(block.attributes),
+lib\src\core\commands\markdown_shortcut_commands.dart:221:BlockAttributes _simpleTextAttributes(BlockAttributes current) {
+lib\src\core\commands\table_commands.dart:520:    this.attributes = const TextAttributes(),
+lib\src\core\commands\table_cell_editing.dart:99:  TextAttributes attributes = const TextAttributes(),
+lib\src\core\commands\table_cell_editing.dart:207:    content: formatInline(
+lib\src\core\commands\table_cell_editing.dart:235:/// clears it across the range. Mirrors [ToggleMarkCommand] for cell selections.
+lib\src\core\commands\table_cell_editing.dart:262:    nextContent = formatInline(
+lib\src\core\commands\table_cell_editing.dart:416:      const TextAttributes(),
+lib\src\core\commands\text_commands.dart:15:    this.attributes = const TextAttributes(),
+test\core\style_commands_test.dart:23:      const FormatTextCommand(attributes: TextAttributes(bold: true)),
+test\core\style_commands_test.dart:68:      const FormatTextCommand(attributes: TextAttributes(italic: true)),
+test\core\style_commands_test.dart:89:                attributes: TextAttributes(bold: true, italic: true),
+lib\src\core\commands\inline_commands.dart:159:class ToggleMarkCommand extends EditorCommand {
+lib\src\core\commands\inline_commands.dart:160:  const ToggleMarkCommand(this.mark, {this.selection});
+lib\src\core\commands\inline_commands.dart:303:      const TextAttributes(),
+lib\src\core\commands\inline_editing.dart:99:List<InlineNode> formatInline(
+lib\src\core\commands\inline_editing.dart:186:        result.add(TextRun(text: middle, attributes: const TextAttributes()));
+lib\src\core\commands\inline_editing.dart:196:          attributes: const TextAttributes(),
+lib\src\core\commands\inline_editing.dart:281:/// Boolean inline marks toggleable by [ToggleMarkCommand] / [toggleTableCellMark].
+lib\src\core\commands\inline_editing.dart:287:    TextMark.bold => const TextAttributes(bold: true),
+lib\src\core\commands\inline_editing.dart:288:    TextMark.italic => const TextAttributes(italic: true),
+lib\src\core\commands\inline_editing.dart:289:    TextMark.underline => const TextAttributes(underline: true),
+lib\src\core\commands\inline_editing.dart:290:    TextMark.lineThrough => const TextAttributes(lineThrough: true),
+lib\src\core\commands\inline_editing.dart:291:    TextMark.remark => const TextAttributes(remark: true),
+lib\src\core\commands\inline_editing.dart:362:  return TextAttributes(
+lib\src\core\commands\inline_editing.dart:363:    color: attrs.color,
+lib\src\core\commands\inline_editing.dart:378:/// [formatInline] but overwrites the url field rather than merging.
+lib\src\core\commands\inline_editing.dart:415:          attributes: TextAttributes(
+lib\src\core\commands\inline_editing.dart:416:            color: node.attributes.color,
+lib\src\core\model\attributes.dart:2:  const TextAttributes({
+lib\src\core\model\attributes.dart:3:    this.color,
+lib\src\core\model\attributes.dart:17:  final int? color;
+lib\src\core\model\attributes.dart:31:      color == null &&
+lib\src\core\model\attributes.dart:45:    return TextAttributes(
+lib\src\core\model\attributes.dart:46:      color: color ?? parent.color,
+lib\src\core\model\attributes.dart:62:    int? color,
+lib\src\core\model\attributes.dart:75:    return TextAttributes(
+lib\src\core\model\attributes.dart:76:      color: color ?? this.color,
+lib\src\core\model\attributes.dart:92:    return TextAttributes(
+lib\src\core\model\attributes.dart:93:      color: overlay.color ?? color,
+lib\src\core\model\attributes.dart:111:      if (color != null) 'color': color,
+lib\src\core\model\attributes.dart:127:    return TextAttributes(
+lib\src\core\model\attributes.dart:128:      color: _asInt(json['color']),
+lib\src\core\model\attributes.dart:146:        other.color == color &&
+lib\src\core\model\attributes.dart:163:      color,
+lib\src\core\model\inline_node.dart:22:  const TextRun({required this.text, this.attributes = const TextAttributes()});
+lib\src\core\model\inline_node.dart:50:          : const TextAttributes(),
+lib\src\core\model\inline_node.dart:59:    this.attributes = const TextAttributes(),
+lib\src\core\model\inline_node.dart:98:          : const TextAttributes(),
+
+**Inspecting existing capabilities**
+
+I think I need to check relevant snippets from the toolbar, commands, and widgets. I'll keep the context manageable while understanding the current capabilities. It looks like color is already included in TextAttributes and the widget test. I wonder if the config refers to a public API, possibly an editor config for default font color or toolbar settings. Planning ahead is essential, but I won’t implement anything just yet. I'll need to look for the current files and maybe check the README for API details.
+codex
+已有渲染测试覆盖颜色显示；我会把计划聚焦在“可配置/可操作”的 API 与工具栏能力。
+exec
+powershell.exe -Command '[Console]::OutputEncoding=[System.Text.UTF8Encoding]::new(); $OutputEncoding=[System.Text.UTF8Encoding]::new(); function Show($p,$s,$e){ Write-Output "--- $p:$s-$e ---"; $lines=Get-Content $p -Encoding UTF8; for($i=$s;$i -le $e -and $i -le $lines.Length;$i++){ '"'{0,4}: {1}' -f "'$i,$lines[$i-1] } }; Show lib'"\\src\\core\\commands\\style_commands.dart 1 130; Show lib\\src\\core\\commands\\inline_editing.dart 340 430; Show lib\\src\\controller\\toolbar_controller.dart 1 140; Show lib\\src\\controller\\toolbar_controller.dart 449 560; Show lib\\src\\widgets\\wenz_rich_text_editor.dart 120 270" in D:\project\GitHub\wenz_flutter\wenz_richtext
+2026-06-25T20:29:35.038079Z ERROR codex_core::tools::router: error={"output":"At line:2 char:156\r\n+ ... oding]::new(); function Show($p,$s,$e){ Write-Output \"--- $p:$s-$e -- ...\r\n+                                                               ~~~\r\nVariable reference is not valid. ':' was not followed by a valid variable name character. Consider using ${} to delimit\r\n the name.\r\n    + CategoryInfo          : ParserError: (:) [], ParentContainsErrorRecordException\r\n    + FullyQualifiedErrorId : InvalidVariableReferenceWithDrive\r\n \r\n","metadata":{"exit_code":1,"duration_seconds":0.2}}
+ exited 1 in 218ms:
+At line:2 char:156
++ ... oding]::new(); function Show($p,$s,$e){ Write-Output "--- $p:$s-$e -- ...
++                                                               ~~~
+Variable reference is not valid. ':' was not followed by a valid variable name character. Consider using ${} to delimit
+ the name.
+    + CategoryInfo          : ParserError: (:) [], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : InvalidVariableReferenceWithDrive
+ 
+
+codex
+上个读取命令只是字符串转义问题；我修正后继续查看局部代码。
+exec
+powershell.exe -Command '[Console]::OutputEncoding=[System.Text.UTF8Encoding]::new(); $OutputEncoding=[System.Text.UTF8Encoding]::new(); function Show($p,$s,$e){ Write-Output ('"'--- {0}:{1}-{2} ---' -f "'$p,$s,$e); $lines=Get-Content $p -Encoding UTF8; for($i=$s;$i -le $e -and $i -le $lines.Length;$i++){ '"'{0,4}: {1}' -f "'$i,$lines[$i-1] } }; Show lib'"\\src\\core\\commands\\style_commands.dart 1 140; Show lib\\src\\core\\commands\\inline_editing.dart 340 430; Show lib\\src\\controller\\toolbar_controller.dart 1 160; Show lib\\src\\controller\\toolbar_controller.dart 449 580; Show lib\\src\\widgets\\wenz_rich_text_editor.dart 120 270" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 322ms:
+--- lib\src\core\commands\style_commands.dart:1-140 ---
+   1: import '../model/attributes.dart';
+   2: import '../model/block_node.dart';
+   3: import '../model/rich_text_document.dart';
+   4: import '../position/document_position.dart';
+   5: import '../transaction/document_session.dart';
+   6: import 'editor_command.dart';
+   7: import 'inline_editing.dart';
+   8: import 'table_cell_editing.dart';
+   9: 
+  10: class FormatTextCommand extends EditorCommand {
+  11:   const FormatTextCommand({required this.attributes, this.selection});
+  12: 
+  13:   final TextAttributes attributes;
+  14:   final DocumentSelection? selection;
+  15: 
+  16:   @override
+  17:   String get description => 'formatText';
+  18: 
+  19:   @override
+  20:   CommandResult execute(DocumentSession session) {
+  21:     final target = selection ?? session.selection;
+  22:     if (target == null || target.isCollapsed || attributes.isEmpty) {
+  23:       return const CommandResult(recordHistory: false);
+  24:     }
+  25: 
+  26:     final start = target.start;
+  27:     final end = target.end;
+  28:     // Table cell selection: route to the cell-aware formatter, which edits the
+  29:     // cell's first text block via replaceCellTextBlock (the loop below only
+  30:     // handles top-level TextBlockNode blocks and would skip the table block).
+  31:     if (start.path.isTableCellText &&
+  32:         start.blockIndex == end.blockIndex &&
+  33:         start.path == end.path) {
+  34:       final rowIndex = start.path.tableRowIndex;
+  35:       final columnIndex = start.path.tableColumnIndex;
+  36:       if (rowIndex == null || columnIndex == null) {
+  37:         return const CommandResult(recordHistory: false);
+  38:       }
+  39:       return formatTableCellInlineRange(
+  40:         session,
+  41:         start.blockIndex,
+  42:         rowIndex,
+  43:         columnIndex,
+  44:         start.offset,
+  45:         end.offset,
+  46:         attributes,
+  47:       );
+  48:     }
+  49: 
+  50:     final blocks =
+  51:         session.document.blocks.map((block) => block.copy()).toList();
+  52:     var changed = false;
+  53: 
+  54:     for (var i = start.blockIndex; i <= end.blockIndex; i++) {
+  55:       if (i < 0 || i >= blocks.length) {
+  56:         continue;
+  57:       }
+  58:       final block = blocks[i];
+  59:       if (block is! TextBlockNode) {
+  60:         continue;
+  61:       }
+  62:       final rangeStart = i == start.blockIndex ? start.offset : 0;
+  63:       final rangeEnd =
+  64:           i == end.blockIndex ? end.offset : inlineNodesLength(block.content);
+  65:       blocks[i] = TextBlockNode(
+  66:         id: block.id,
+  67:         type: block.type,
+  68:         attributes: block.attributes,
+  69:         content: formatInline(block.content, rangeStart, rangeEnd, attributes),
+  70:       );
+  71:       changed = true;
+  72:     }
+  73: 
+  74:     if (!changed) {
+  75:       return const CommandResult(recordHistory: false);
+  76:     }
+  77:     session.document = RichTextDocument(
+  78:       version: session.document.version,
+  79:       blocks: blocks,
+  80:     );
+  81:     return CommandResult(selection: target);
+  82:   }
+  83: }
+  84: 
+  85: class ClearStyleCommand extends EditorCommand {
+  86:   const ClearStyleCommand({this.selection});
+  87: 
+  88:   final DocumentSelection? selection;
+  89: 
+  90:   @override
+  91:   String get description => 'clearStyle';
+  92: 
+  93:   @override
+  94:   CommandResult execute(DocumentSession session) {
+  95:     final target = selection ?? session.selection;
+  96:     if (target == null || target.isCollapsed) {
+  97:       return const CommandResult(recordHistory: false);
+  98:     }
+  99: 
+ 100:     final start = target.start;
+ 101:     final end = target.end;
+ 102:     // Table cell selection: route to the cell-aware clear, which edits the
+ 103:     // cell's first text block via replaceCellTextBlock.
+ 104:     if (start.path.isTableCellText &&
+ 105:         start.blockIndex == end.blockIndex &&
+ 106:         start.path == end.path) {
+ 107:       final rowIndex = start.path.tableRowIndex;
+ 108:       final columnIndex = start.path.tableColumnIndex;
+ 109:       if (rowIndex == null || columnIndex == null) {
+ 110:         return const CommandResult(recordHistory: false);
+ 111:       }
+ 112:       return clearTableCellInlineStyle(
+ 113:         session,
+ 114:         start.blockIndex,
+ 115:         rowIndex,
+ 116:         columnIndex,
+ 117:         start.offset,
+ 118:         end.offset,
+ 119:       );
+ 120:     }
+ 121: 
+ 122:     final blocks =
+ 123:         session.document.blocks.map((block) => block.copy()).toList();
+ 124:     var changed = false;
+ 125:     for (var i = start.blockIndex; i <= end.blockIndex; i++) {
+ 126:       if (i < 0 || i >= blocks.length) {
+ 127:         continue;
+ 128:       }
+ 129:       final block = blocks[i];
+ 130:       if (block is! TextBlockNode) {
+ 131:         continue;
+ 132:       }
+ 133:       final rangeStart = i == start.blockIndex ? start.offset : 0;
+ 134:       final rangeEnd =
+ 135:           i == end.blockIndex ? end.offset : inlineNodesLength(block.content);
+ 136:       blocks[i] = TextBlockNode(
+ 137:         id: block.id,
+ 138:         type: block.type,
+ 139:         attributes: block.attributes,
+ 140:         content: clearInlineFormatting(block.content, rangeStart, rangeEnd),
+--- lib\src\core\commands\inline_editing.dart:340-430 ---
+ 340:     }
+ 341:     final localStart = start > nodeStart ? start - nodeStart : 0;
+ 342:     final localEnd = end < nodeEnd ? end - nodeStart : node.text.length;
+ 343:     final before = node.text.substring(0, localStart);
+ 344:     final middle = node.text.substring(localStart, localEnd);
+ 345:     final after = node.text.substring(localEnd);
+ 346:     final middleAttrs = withoutMark(node.attributes, mark);
+ 347:     if (before.isNotEmpty) {
+ 348:       result.add(TextRun(text: before, attributes: node.attributes));
+ 349:     }
+ 350:     if (middle.isNotEmpty) {
+ 351:       result.add(TextRun(text: middle, attributes: middleAttrs));
+ 352:     }
+ 353:     if (after.isNotEmpty) {
+ 354:       result.add(TextRun(text: after, attributes: node.attributes));
+ 355:     }
+ 356:   }
+ 357:   return mergeTextRuns(result);
+ 358: }
+ 359: 
+ 360: /// Returns [attrs] with [mark] removed (set to null).
+ 361: TextAttributes withoutMark(TextAttributes attrs, TextMark mark) {
+ 362:   return TextAttributes(
+ 363:     color: attrs.color,
+ 364:     background: attrs.background,
+ 365:     bold: mark == TextMark.bold ? null : attrs.bold,
+ 366:     italic: mark == TextMark.italic ? null : attrs.italic,
+ 367:     fontSize: attrs.fontSize,
+ 368:     fontFamily: attrs.fontFamily,
+ 369:     underline: mark == TextMark.underline ? null : attrs.underline,
+ 370:     lineThrough: mark == TextMark.lineThrough ? null : attrs.lineThrough,
+ 371:     remark: mark == TextMark.remark ? null : attrs.remark,
+ 372:     url: attrs.url,
+ 373:   );
+ 374: }
+ 375: 
+ 376: /// Rewrites the runs covering [start, end) so each carries [url] (or has its
+ 377: /// url removed when [url] is null). Splits runs at the boundaries like
+ 378: /// [formatInline] but overwrites the url field rather than merging.
+ 379: List<InlineNode> withUrl(
+ 380:   List<InlineNode> nodes,
+ 381:   int start,
+ 382:   int end,
+ 383:   String? url,
+ 384: ) {
+ 385:   if (end <= start) {
+ 386:     return nodes.map((n) => n.copy()).toList();
+ 387:   }
+ 388:   final result = <InlineNode>[];
+ 389:   var cursor = 0;
+ 390:   for (final node in nodes) {
+ 391:     final nodeStart = cursor;
+ 392:     final nodeEnd = cursor + inlineLength(node);
+ 393:     cursor = nodeEnd;
+ 394: 
+ 395:     if (nodeEnd <= start || nodeStart >= end) {
+ 396:       result.add(node.copy());
+ 397:       continue;
+ 398:     }
+ 399:     if (node is! TextRun) {
+ 400:       result.add(node.copy());
+ 401:       continue;
+ 402:     }
+ 403:     final localStart = start > nodeStart ? start - nodeStart : 0;
+ 404:     final localEnd = end < nodeEnd ? end - nodeStart : node.text.length;
+ 405:     final before = node.text.substring(0, localStart);
+ 406:     final middle = node.text.substring(localStart, localEnd);
+ 407:     final after = node.text.substring(localEnd);
+ 408:     if (before.isNotEmpty) {
+ 409:       result.add(TextRun(text: before, attributes: node.attributes));
+ 410:     }
+ 411:     if (middle.isNotEmpty) {
+ 412:       result.add(
+ 413:         TextRun(
+ 414:           text: middle,
+ 415:           attributes: TextAttributes(
+ 416:             color: node.attributes.color,
+ 417:             background: node.attributes.background,
+ 418:             bold: node.attributes.bold,
+ 419:             italic: node.attributes.italic,
+ 420:             fontSize: node.attributes.fontSize,
+ 421:             fontFamily: node.attributes.fontFamily,
+ 422:             underline: node.attributes.underline,
+ 423:             lineThrough: node.attributes.lineThrough,
+ 424:             remark: node.attributes.remark,
+ 425:             url: url, // overwrite (not merge) so null clears the link
+ 426:           ),
+ 427:         ),
+ 428:       );
+ 429:     }
+ 430:     if (after.isNotEmpty) {
+--- lib\src\controller\toolbar_controller.dart:1-160 ---
+   1: import 'package:flutter/foundation.dart';
+   2: 
+   3: import '../core/commands/inline_commands.dart';
+   4: import '../core/commands/inline_editing.dart';
+   5: import '../core/commands/table_cell_editing.dart';
+   6: import '../core/model/attributes.dart';
+   7: import '../core/model/block_node.dart';
+   8: import '../core/model/inline_node.dart';
+   9: import '../core/model/rich_text_document.dart';
+  10: import '../core/position/document_position.dart';
+  11: import 'wenz_rich_text_controller.dart';
+  12: 
+  13: typedef WenzToolbarItemAction = void Function(
+  14:   WenzRichTextController editor,
+  15:   ToolbarState state,
+  16: );
+  17: 
+  18: typedef WenzToolbarItemPredicate = bool Function(ToolbarState state);
+  19: 
+  20: /// Headless toolbar item descriptor contributed by a plugin.
+  21: ///
+  22: /// The package intentionally does not ship a fixed toolbar widget. Hosts can
+  23: /// render these descriptors in Material, Cupertino, or business-specific UI and
+  24: /// call [action] with the current [ToolbarState].
+  25: class WenzToolbarItem {
+  26:   const WenzToolbarItem({
+  27:     required this.id,
+  28:     required this.title,
+  29:     required this.action,
+  30:     this.icon,
+  31:     this.tooltip,
+  32:     this.priority = 0,
+  33:     this.isEnabled,
+  34:     this.isActive,
+  35:   });
+  36: 
+  37:   /// Unique item id, usually namespaced by plugin.
+  38:   final String id;
+  39: 
+  40:   final String title;
+  41:   final String? icon;
+  42:   final String? tooltip;
+  43: 
+  44:   /// Lower values should be rendered earlier by host toolbars.
+  45:   final int priority;
+  46: 
+  47:   final WenzToolbarItemPredicate? isEnabled;
+  48:   final WenzToolbarItemPredicate? isActive;
+  49:   final WenzToolbarItemAction action;
+  50: 
+  51:   bool enabledFor(ToolbarState state) => isEnabled?.call(state) ?? true;
+  52: 
+  53:   bool activeFor(ToolbarState state) => isActive?.call(state) ?? false;
+  54: }
+  55: 
+  56: /// Registry for toolbar descriptors contributed by plugins.
+  57: class WenzToolbarItemRegistry {
+  58:   WenzToolbarItemRegistry([
+  59:     Iterable<WenzToolbarItem> items = const <WenzToolbarItem>[],
+  60:   ]) {
+  61:     for (final item in items) {
+  62:       register(item);
+  63:     }
+  64:   }
+  65: 
+  66:   final Map<String, WenzToolbarItem> _items = <String, WenzToolbarItem>{};
+  67: 
+  68:   List<WenzToolbarItem> get items {
+  69:     final ordered = _items.values.toList()
+  70:       ..sort((a, b) {
+  71:         final byPriority = a.priority.compareTo(b.priority);
+  72:         if (byPriority != 0) {
+  73:           return byPriority;
+  74:         }
+  75:         return a.id.compareTo(b.id);
+  76:       });
+  77:     return List<WenzToolbarItem>.unmodifiable(ordered);
+  78:   }
+  79: 
+  80:   void register(WenzToolbarItem item) {
+  81:     _items[item.id] = item;
+  82:   }
+  83: 
+  84:   void unregister(String id) {
+  85:     _items.remove(id);
+  86:   }
+  87: 
+  88:   bool has(String id) => _items.containsKey(id);
+  89: 
+  90:   WenzToolbarItem? operator [](String id) => _items[id];
+  91: }
+  92: 
+  93: /// A read-only snapshot of the toolbar-relevant state derived from a
+  94: /// [WenzRichTextController]'s current document + selection.
+  95: ///
+  96: /// [ToolbarController] recomputes a fresh snapshot every time the host
+  97: /// controller notifies, then exposes it via [ToolbarController.state]. The
+  98: /// snapshot is immutable and value-equal, so callers can short-circuit
+  99: /// rebuilds when nothing changed.
+ 100: class ToolbarState {
+ 101:   const ToolbarState({
+ 102:     required this.hasSelection,
+ 103:     required this.canFormatInline,
+ 104:     required this.canToggleMark,
+ 105:     required this.canSetLink,
+ 106:     required this.canSetBlockType,
+ 107:     required this.canSetCodeLanguage,
+ 108:     required this.canIndent,
+ 109:     required this.canOutdent,
+ 110:     required this.canToggleTodo,
+ 111:     required this.canToggleQuote,
+ 112:     required this.canTableStruct,
+ 113:     this.tableCellIsHeader,
+ 114:     this.tableCellBackgroundColor,
+ 115:     required this.bold,
+ 116:     required this.italic,
+ 117:     required this.underline,
+ 118:     required this.lineThrough,
+ 119:     required this.remark,
+ 120:     required this.linkUrl,
+ 121:     required this.uniformBlockType,
+ 122:     required this.uniformListType,
+ 123:     required this.uniformHeadingLevel,
+ 124:     required this.codeLanguage,
+ 125:     required this.canUndo,
+ 126:     required this.canRedo,
+ 127:   });
+ 128: 
+ 129:   /// Whether any selection is active (collapsed caret counts).
+ 130:   final bool hasSelection;
+ 131: 
+ 132:   /// Whether inline text formatting (FormatTextCommand) can apply — requires
+ 133:   /// the selection to sit inside a [TextBlockNode] text path. A collapsed
+ 134:   /// caret still qualifies because it sets the typing attributes for the next
+ 135:   /// input.
+ 136:   final bool canFormatInline;
+ 137: 
+ 138:   /// Whether a boolean mark toggle (ToggleMarkCommand) can apply — same rule
+ 139:   /// as [canFormatInline] but ToggleMarkCommand additionally requires a single
+ 140:   /// block + path, so cross-block ranges are disabled.
+ 141:   final bool canToggleMark;
+ 142: 
+ 143:   /// Whether set/clear link can apply. SetLinkCommand requires a single block
+ 144:   /// + single path, so cross-block ranges are disabled.
+ 145:   final bool canSetLink;
+ 146: 
+ 147:   /// Whether block type switch (SetBlockTypeCommand) can apply — requires the
+ 148:   /// selection to cover at least one [TextBlockNode]. Only text-block types
+ 149:   /// (paragraph/heading/quote/listItem) are switchable.
+ 150:   final bool canSetBlockType;
+ 151: 
+ 152:   /// Whether the selection sits inside a [CodeBlockNode] and the toolbar can
+ 153:   /// change its language.
+ 154:   final bool canSetCodeLanguage;
+ 155: 
+ 156:   final bool canIndent;
+ 157:   final bool canOutdent;
+ 158:   final bool canToggleTodo;
+ 159:   final bool canToggleQuote;
+ 160: 
+--- lib\src\controller\toolbar_controller.dart:449-580 ---
+ 449:   // ---- Mutating helpers ----------------------------------------------------
+ 450: 
+ 451:   void toggleBold() => _toggleMark(TextMark.bold);
+ 452:   void toggleItalic() => _toggleMark(TextMark.italic);
+ 453:   void toggleUnderline() => _toggleMark(TextMark.underline);
+ 454:   void toggleLineThrough() => _toggleMark(TextMark.lineThrough);
+ 455:   void toggleRemark() => _toggleMark(TextMark.remark);
+ 456: 
+ 457:   /// Generic toggle for any [TextMark]. Disabled (no-op) when
+ 458:   /// [canToggleMark] is false. Lets the toolbar drive an arbitrary mark
+ 459:   /// without one method per button.
+ 460:   void toggleMark(TextMark mark) => _toggleMark(mark);
+ 461: 
+ 462:   void _toggleMark(TextMark mark) {
+ 463:     if (!_state.canToggleMark) {
+ 464:       return;
+ 465:     }
+ 466:     _host.execute(ToggleMarkCommand(mark));
+ 467:   }
+ 468: 
+ 469:   void setLink(String? url) {
+ 470:     if (!_state.canSetLink) {
+ 471:       return;
+ 472:     }
+ 473:     _host.setLink(url);
+ 474:   }
+ 475: 
+ 476:   void clearStyle() {
+ 477:     if (!_state.canFormatInline) {
+ 478:       return;
+ 479:     }
+ 480:     _host.clearStyle();
+ 481:   }
+ 482: 
+ 483:   void setHeading(int level) => _setBlockType(BlockType.heading, level: level);
+ 484:   void setParagraph() => _setBlockType(BlockType.paragraph);
+ 485:   void toggleQuoteBlock() {
+ 486:     if (_state.isQuoteBlock) {
+ 487:       _setBlockType(BlockType.paragraph);
+ 488:     } else {
+ 489:       _setBlockType(BlockType.quote);
+ 490:     }
+ 491:   }
+ 492: 
+ 493:   void setTodo() =>
+ 494:       _setBlockType(BlockType.listItem, listType: 'task', checked: false);
+ 495:   void setOrderedList() =>
+ 496:       _setBlockType(BlockType.listItem, listType: 'ordered');
+ 497:   void setUnorderedList() => _setBlockType(BlockType.listItem, listType: null);
+ 498: 
+ 499:   void setCodeLanguage(String language) {
+ 500:     if (_state.canSetCodeLanguage) {
+ 501:       _host.setCodeLanguage(language);
+ 502:     }
+ 503:   }
+ 504: 
+ 505:   void _setBlockType(
+ 506:     BlockType type, {
+ 507:     int? level,
+ 508:     String? listType,
+ 509:     bool? checked,
+ 510:   }) {
+ 511:     if (!_state.canSetBlockType) {
+ 512:       return;
+ 513:     }
+ 514:     _host.setBlockType(
+ 515:       type: type,
+ 516:       level: level,
+ 517:       listType: listType,
+ 518:       checked: checked,
+ 519:     );
+ 520:   }
+ 521: 
+ 522:   void indent() {
+ 523:     if (_state.canIndent) {
+ 524:       _host.indent();
+ 525:     }
+ 526:   }
+ 527: 
+ 528:   void outdent() {
+ 529:     if (_state.canOutdent) {
+ 530:       _host.outdent();
+ 531:     }
+ 532:   }
+ 533: 
+ 534:   void toggleTodoBlock() {
+ 535:     if (_state.canToggleTodo) {
+ 536:       _host.toggleTodo();
+ 537:     }
+ 538:   }
+ 539: 
+ 540:   void insertVideo({
+ 541:     int? index,
+ 542:     required String blockId,
+ 543:     String assetId = '',
+ 544:     String playbackUrl = '',
+ 545:     String file = '',
+ 546:     String coverUrl = '',
+ 547:     String title = '',
+ 548:     String description = '',
+ 549:     double? aspectRatio,
+ 550:     FileUploadStatus uploadStatus = FileUploadStatus.none,
+ 551:     String uploadError = '',
+ 552:     DocumentSelection? selection,
+ 553:   }) {
+ 554:     if (!canInsertVideo) {
+ 555:       return;
+ 556:     }
+ 557:     _host.insertVideo(
+ 558:       index: index ?? _currentBlockInsertionIndex(),
+ 559:       blockId: blockId,
+ 560:       assetId: assetId,
+ 561:       playbackUrl: playbackUrl,
+ 562:       file: file,
+ 563:       coverUrl: coverUrl,
+ 564:       title: title,
+ 565:       description: description,
+ 566:       aspectRatio: aspectRatio,
+ 567:       uploadStatus: uploadStatus,
+ 568:       uploadError: uploadError,
+ 569:       selection: selection,
+ 570:     );
+ 571:   }
+ 572: 
+ 573:   void undo() => _host.undo();
+ 574:   void redo() => _host.redo();
+ 575: 
+ 576:   int _currentBlockInsertionIndex() {
+ 577:     final selection = _host.selection;
+ 578:     final blockCount = _host.document.blocks.length;
+ 579:     if (selection == null) {
+ 580:       return blockCount;
+--- lib\src\widgets\wenz_rich_text_editor.dart:120-270 ---
+ 120: const double _kDividerDotSize = 6.0;
+ 121: const double _kCalloutIconFontSize = 20.0;
+ 122: const int _kCalloutInfoBackgroundColor = 0xFFF2F0F7;
+ 123: const int _kCalloutInfoForegroundColor = 0xFF46464F;
+ 124: const int _kCalloutSuccessForegroundColor = 0xFF0E1F1B;
+ 125: const int _kCalloutWarningBackgroundColor = 0xFFFFF8E1;
+ 126: const int _kCalloutWarningForegroundColor = 0xFFC97B00;
+ 127: const int _kCalloutDangerForegroundColor = 0xFF410002;
+ 128: const int _kCalloutInfoBorderColor = 0xFFD8D5E2;
+ 129: const int _kCalloutSuccessBorderColor = 0xFFBCD8D0;
+ 130: const int _kCalloutWarningBorderColor = 0xFFFFE082;
+ 131: const int _kCalloutDangerBorderColor = 0xFFF5B8B0;
+ 132: const int _kCalloutSuccessBackgroundColor = 0x99D6E4E0;
+ 133: const int _kCalloutDangerBackgroundColor = 0xB3FFDAD6;
+ 134: const double _kMediaBlockMarginVertical = _kRichTextBodyFontSize * 1.2;
+ 135: const double _kMediaCornerRadius = 12.0;
+ 136: const double _kVideoPlayButtonSize = 64.0;
+ 137: const double _kVideoPlayIconSize = 24.0;
+ 138: const double _kVideoMinAspectRatio = 1 / 3;
+ 139: const double _kVideoMaxAspectRatio = 4.0;
+ 140: const double _kVideoMinFrameHeight = 96.0;
+ 141: const double _kVideoMaxFrameHeight = 420.0;
+ 142: const double _kVideoFrameFallbackWidth = 320.0;
+ 143: const int _kFileCardBorderColor = 0xFFECE9F5;
+ 144: const double _kFileIconSize = 40.0;
+ 145: const double _kFileCardGap = 14.0;
+ 146: const double _kFileActionMenuButtonSize = 32.0;
+ 147: const double _kFileActionMenuMinWidth = 176.0;
+ 148: const double _kFileActionMenuMaxWidth = 320.0;
+ 149: const int _kEmbedBlockBorderColor = 0xFFCFCBE0;
+ 150: const int _kEmbedBlockBackgroundColor = 0xFFFAFAFF;
+ 151: const int _kFormulaBlockBackgroundColor = 0xFFE8E0FF;
+ 152: const int _kFormulaBlockForegroundColor = 0xFF241946;
+ 153: const List<BoxShadow> _kSurfaceBoxShadow = <BoxShadow>[
+ 154:   BoxShadow(
+ 155:     color: Color(0x14141428),
+ 156:     blurRadius: 3,
+ 157:     offset: Offset(0, 1),
+ 158:   ),
+ 159:   BoxShadow(
+ 160:     color: Color(0x0F141428),
+ 161:     blurRadius: 2,
+ 162:     offset: Offset(0, 1),
+ 163:   ),
+ 164: ];
+ 165: 
+ 166: /// Atomic block-level objects (images, videos, files, dividers) occupy one
+ 167: /// selectable document slot, mirroring inline embeds' object-replacement slot.
+ 168: const int _kAtomicBlockSelectionLength = 1;
+ 169: 
+ 170: /// Pixels of horizontal indent per indent level.
+ 171: const double _kIndentPixelsPerLevel = 24;
+ 172: 
+ 173: /// Implementation-side baseline extracted from `ui/richtext_design.html`.
+ 174: ///
+ 175: /// This is intentionally data-only: P001 records the target design tokens,
+ 176: /// default renderer coverage, and the known gap categories without changing the
+ 177: /// editor model, codecs, command protocol, or renderer extension points.
+ 178: final class WenzRichTextDesignBaseline {
+ 179:   const WenzRichTextDesignBaseline._();
+ 180: 
+ 181:   static const String source = 'ui/richtext_design.html';
+ 182: 
+ 183:   static const List<BlockType> defaultRendererBlockTypes = <BlockType>[
+ 184:     BlockType.paragraph,
+ 185:     BlockType.heading,
+ 186:     BlockType.quote,
+ 187:     BlockType.listItem,
+ 188:     BlockType.code,
+ 189:     BlockType.image,
+ 190:     BlockType.table,
+ 191:     BlockType.divider,
+ 192:     BlockType.video,
+ 193:     BlockType.embed,
+ 194:     BlockType.callout,
+ 195:     BlockType.file,
+ 196:   ];
+ 197: 
+ 198:   static const Map<String, int> colorTokens = <String, int>{
+ 199:     'primary': 0xFF4F6DF5,
+ 200:     'onPrimary': 0xFFFFFFFF,
+ 201:     'primaryContainer': 0xFFDDE0FF,
+ 202:     'secondaryContainer': 0xFFE8E0FF,
+ 203:     'onSecondaryContainer': 0xFF241946,
+ 204:     'tertiaryContainer': 0xFFD6E4E0,
+ 205:     'onTertiaryContainer': 0xFF0E1F1B,
+ 206:     'errorContainer': 0xFFFFDAD6,
+ 207:     'onErrorContainer': 0xFF410002,
+ 208:     'surface': 0xFFFBFAFF,
+ 209:     'surfaceContainer': 0xFFF2F0F7,
+ 210:     'onSurface': 0xFF1B1B21,
+ 211:     'onSurfaceVariant': 0xFF46464F,
+ 212:     'outline': 0xFF777680,
+ 213:     'amberStrong': 0xFFC97B00,
+ 214:     'amberBackground': 0xFFFFF8E1,
+ 215:     'blueLink': 0xFF1976D2,
+ 216:     'codeBackground': 0xFF1E1E2E,
+ 217:     'codeText': 0xFFE6E6F0,
+ 218:     'dividerLine': 0xFFE4E1EE,
+ 219:     'tableBorder': 0xFFECE9F5,
+ 220:     'tableEvenRow': 0xFFFAFAFF,
+ 221:     'embedBorder': 0xFFCFCBE0,
+ 222:   };
+ 223: 
+ 224:   static const Map<String, Object> typographyTokens = <String, Object>{
+ 225:     'bodyFontSize': 16.0,
+ 226:     'bodyLineHeight': 1.75,
+ 227:     'headingFontSizes': <int, double>{1: 24.0, 2: 21.0, 3: 18.0, 4: 16.0},
+ 228:     'headingStrongWeight': 700,
+ 229:     'headingWeakWeight': 600,
+ 230:     'codeFontSize': 13.5,
+ 231:     'codeLineHeight': 1.6,
+ 232:     'tableFontSize': 15.0,
+ 233:     'captionFontSize': 13.0,
+ 234:     'languageTagFontSize': 11.0,
+ 235:     'calloutIconFontSize': 20.0,
+ 236:     'videoPlayIconSize': 24.0,
+ 237:     'inlineSmallFontSize': 12.0,
+ 238:     'inlineLargeFontSize': 22.0,
+ 239:   };
+ 240: 
+ 241:   static const Map<String, Object> layoutTokens = <String, Object>{
+ 242:     'radius': 12.0,
+ 243:     'radiusSmall': 8.0,
+ 244:     'chipRadius': 6.0,
+ 245:     'highlightRadius': 3.0,
+ 246:     'paragraphMarginEm': 0.55,
+ 247:     'headingMarginEm': <String, double>{'top': 0.6, 'bottom': 0.35},
+ 248:     'blockMarginEm': 1.0,
+ 249:     'mediaMarginEm': 1.2,
+ 250:     'dividerMarginEm': 1.6,
+ 251:     'quotePadding': <double>[8.0, 18.0],
+ 252:     'quoteBorderLeftWidth': 4.0,
+ 253:     'listPaddingLeft': 26.0,
+ 254:     'headingCollapse': <String, double>{
+ 255:       'slotWidth': 30.0,
+ 256:       'buttonSize': 26.0,
+ 257:       'iconSize': 20.0,
+ 258:     },
+ 259:     'listItemMarginEm': 0.25,
+ 260:     'nestedListMarginEm': 0.15,
+ 261:     'taskPaddingLeft': 8.0,
+ 262:     'taskGap': 10.0,
+ 263:     'codePadding': <double>[18.0, 20.0],
+ 264:     'imageCaptionGap': 8.0,
+ 265:     'tableCellPadding': <double>[10.0, 14.0],
+ 266:     'fileIconSize': 40.0,
+ 267:     'fileGap': 14.0,
+ 268:     'filePadding': <double>[14.0, 16.0],
+ 269:     'calloutGap': 12.0,
+ 270:     'calloutPadding': <double>[14.0, 16.0],
+
+**Considering text formatting options**
+
+I’m thinking about whether collapsed styles could allow future text insertion. It seems like the existing FormatTextCommand does nothing if the target is collapsed. If the user wants "配置字体颜色," it might be better to make the default font color adjustable in the editor's constructor, rather than just applying color to selected text. I wonder what "配置字体颜色" means. It probably relates to setting text color in the editor’s display or theme configuration. I’ll need to check the constructor of `WenzRichTextEditor`.
+codex
+我会把需求拆成模型命令、控制器 API、编辑器配置与编解码测试几个并行度较高的任务。
+exec
+powershell.exe -Command '[Console]::OutputEncoding=[System.Text.UTF8Encoding]::new(); $OutputEncoding=[System.Text.UTF8Encoding]::new(); function Show($p,$s,$e){ Write-Output ('"'--- {0}:{1}-{2} ---' -f "'$p,$s,$e); $lines=Get-Content $p -Encoding UTF8; for($i=$s;$i -le $e -and $i -le $lines.Length;$i++){ '"'{0,4}: {1}' -f "'$i,$lines[$i-1] } }; Show lib'"\\src\\widgets\\wenz_rich_text_editor.dart 1 120; Show lib\\src\\widgets\\wenz_rich_text_editor.dart 700 850; Show lib\\src\\widgets\\wenz_rich_text_editor.dart 1760 1860; Show lib\\src\\controller\\wenz_rich_text_controller.dart 300 430; Show lib\\wenz_richtext.dart 1 90" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 453ms:
+--- lib\src\widgets\wenz_rich_text_editor.dart:1-120 ---
+   1: import 'dart:async';
+   2: import 'dart:math' as math;
+   3: 
+   4: import 'package:flutter/gestures.dart';
+   5: import 'package:flutter/material.dart';
+   6: import 'package:flutter_math_fork/flutter_math.dart';
+   7: import 'package:flutter/rendering.dart';
+   8: import 'package:flutter/services.dart';
+   9: 
+  10: import '../controller/find_replace_controller.dart';
+  11: import '../controller/outline_controller.dart';
+  12: import '../controller/slash_menu_controller.dart';
+  13: import '../controller/wenz_rich_text_controller.dart';
+  14: import '../core/commands/inline_editing.dart';
+  15: import '../core/model/attributes.dart';
+  16: import '../core/model/block_node.dart';
+  17: import '../core/model/inline_node.dart';
+  18: import '../core/model/table_model.dart';
+  19: import '../core/position/document_position.dart';
+  20: import '../input/composition_state.dart';
+  21: import '../input/editor_text_input_client.dart';
+  22: import '../input/shortcut_manager.dart';
+  23: import '../rendering/text_layout_service.dart';
+  24: import 'block_geometry_registry.dart';
+  25: import 'block_renderer_registry.dart';
+  26: import 'code_syntax_highlighter.dart';
+  27: import 'inline_embed_renderer.dart';
+  28: import 'media_resolver.dart';
+  29: import 'selection_gesture_overlay.dart';
+  30: import 'shared_text_layout_cache.dart';
+  31: import 'slash_menu_overlay.dart';
+  32: 
+  33: const _caretKey = ValueKey<String>('wenz-richtext-caret');
+  34: const _selectionHighlightKey = ValueKey<String>(
+  35:   'wenz-richtext-selection-highlight',
+  36: );
+  37: const _findHighlightKey = ValueKey<String>('wenz-richtext-find-highlight');
+  38: const _inlineFormulaKey = ValueKey<String>('wenz-richtext-inline-formula');
+  39: const _accessibilityFocusHighlightKey = ValueKey<String>(
+  40:   'wenz-richtext-accessibility-focus-highlight',
+  41: );
+  42: const _blockReorderDropIndicatorKey = ValueKey<String>(
+  43:   'wenz-richtext-block-reorder-drop-indicator',
+  44: );
+  45: 
+  46: enum _RowBlockFormat { paragraph, heading, code }
+  47: 
+  48: typedef _RowBlockFormatChangeHandler = void Function(
+  49:   int blockIndex,
+  50:   _RowBlockFormat format,
+  51: );
+  52: 
+  53: /// Caret geometry constants — kept in one place so the painted caret, the caret
+  54: /// rect reported to the IME, and any future theming all share the same source.
+  55: const double _kCaretStrokeWidth = 1.5;
+  56: const Duration _kBlinkHalfPeriod = Duration(milliseconds: 530);
+  57: const double _kRichTextBodyFontSize = 16.0;
+  58: const double _kRichTextBodyLineHeight = 1.75;
+  59: const double _kParagraphMarginEm = 0.55;
+  60: const double _kHeadingMarginTopEm = 0.6;
+  61: const double _kHeadingMarginBottomEm = 0.35;
+  62: const double _kDefaultBlockSpacing =
+  63:     _kRichTextBodyFontSize * _kParagraphMarginEm;
+  64: const int _kInlineLinkColor = 0xFF1976D2;
+  65: const int _kInlineRemarkColor = 0xFFC97B00;
+  66: const int _kInlineRevisionBackgroundAlpha = 72;
+  67: const double _kDefaultBlockExtent = 48.0;
+  68: const double _kVirtualListOverscan = 600.0;
+  69: const double _kBlockReorderIndicatorHeight = 3.0;
+  70: const double _kTableResizeHandleWidth = 12.0;
+  71: const double _kMinTableColumnWidth = 48.0;
+  72: const double _kMaxTableColumnWidth = 640.0;
+  73: const double _kTableToolbarMinWidth = 150.0;
+  74: const double _kTableFloatingToolbarGap = 4.0;
+  75: const double _kTableFloatingToolbarEstimatedHeight = 56.0;
+  76: const int _kTableToolbarBackgroundColor = 0xFFFFF3CD;
+  77: const double _kTableSurfaceRadius = 8.0;
+  78: const double _kTableCellFontSize = 15.0;
+  79: const EdgeInsets _kTableCellPadding = EdgeInsets.symmetric(
+  80:   horizontal: 14,
+  81:   vertical: 10,
+  82: );
+  83: const Color _kTableBorderColor = Color(0xFFECE9F5);
+  84: const Color _kTableEvenRowBackgroundColor = Color(0xFFFAFAFF);
+  85: 
+  86: /// Minimum block height multiplier applied to the block's font size, ensuring
+  87: /// a tap target even for empty paragraphs. A single constant so the text,
+  88: /// code, and table-cell renderers stay in sync.
+  89: const double _kBlockMinHeightFactor = 1.35;
+  90: const double _kTodoCheckboxWidth = 24.0;
+  91: const double _kTodoCheckboxHeight = 28.0;
+  92: const double _kTodoTextGap = 10.0;
+  93: const double _kTaskListPaddingLeft = 8.0;
+  94: const double _kListTextInset = 26.0;
+  95: const double _kListMarkerWidth = 18.0;
+  96: const double _kListMarkerGap = _kListTextInset - _kListMarkerWidth;
+  97: const double _kListItemSpacing = _kRichTextBodyFontSize * 0.25;
+  98: const double _kNestedListItemSpacing = _kRichTextBodyFontSize * 0.15;
+  99: const double _kHeadingCollapseSlotWidth = 30.0;
+ 100: const double _kHeadingCollapseButtonSize = 26.0;
+ 101: const double _kHeadingCollapseIconSize = 20.0;
+ 102: const double _kCodeBlockFontSize = 13.5;
+ 103: const double _kCodeBlockLineHeight = 1.6;
+ 104: const double _kCodeBlockPaddingVertical = 18.0;
+ 105: const double _kCodeBlockPaddingHorizontal = 20.0;
+ 106: const int _kCodeBlockBackgroundColor = 0xFF1E1E2E;
+ 107: const int _kCodeBlockTextColor = 0xFFE6E6F0;
+ 108: const int _kCodeLanguageTagColor = 0xB38A8AFF;
+ 109: const double _kBlockFloatingToolbarInset = 6.0;
+ 110: const double _kBlockFloatingToolbarGap = 6.0;
+ 111: const double _kCodeFloatingToolbarEstimatedHeight = 28.0;
+ 112: const double _kObjectFloatingToolbarEstimatedHeight = 36.0;
+ 113: const int _kCodeKeywordColor = 0xFFC792EA;
+ 114: const int _kCodeStringColor = 0xFFC3E88D;
+ 115: const int _kCodeTypeColor = 0xFF82AAFF;
+ 116: const int _kCodeNumberColor = 0xFFF78C6C;
+ 117: const int _kCodeCommentColor = 0xFF6B7394;
+ 118: const double _kDividerMarginVertical = _kRichTextBodyFontSize * 1.6;
+ 119: const int _kDividerLineColor = 0xFFE4E1EE;
+ 120: const double _kDividerDotSize = 6.0;
+--- lib\src\widgets\wenz_rich_text_editor.dart:700-850 ---
+ 700: 
+ 701:   @override
+ 702:   void dispose() {
+ 703:     widget.controller.removeListener(_handleControllerChanged);
+ 704:     widget.findController?.removeListener(_handleFindControllerChanged);
+ 705:     widget.slashMenuController?.removeListener(_handleSlashMenuChanged);
+ 706:     widget.outlineController?.removeListener(_handleOutlineControllerChanged);
+ 707:     // Release the focus node from the controller so a later requestFocus() on
+ 708:     // a disposed editor is a safe no-op. Only clear when this widget was the
+ 709:     // one that injected it.
+ 710:     if (_controllerAttachedFocusNode != null) {
+ 711:       widget.controller.attachFocusNode(null);
+ 712:     }
+ 713:     _controllerAttachedFocusNode = null;
+ 714:     _listenedFocusNode?.removeListener(_handleFocusChanged);
+ 715:     _inputClient.performSelectorHandler = null;
+ 716:     _inputClient.detach();
+ 717:     _tableToolbarOverlayController.hide();
+ 718:     _tableToolbarOverlayController.dispose();
+ 719:     _scrollController.dispose();
+ 720:     // BlockGeometryRegistry holds no native resources; clearing its maps is
+ 721:     // unnecessary once the editor is gone.
+ 722:     _layoutCache.dispose();
+ 723:     _internalFocusNode?.dispose();
+ 724:     super.dispose();
+ 725:   }
+ 726: 
+ 727:   void _handleFindControllerChanged() {
+ 728:     _revealCurrentSelectionIfHidden();
+ 729:     if (mounted) {
+ 730:       setState(() {});
+ 731:     }
+ 732:   }
+ 733: 
+ 734:   void _handleSlashMenuChanged() {
+ 735:     if (mounted) {
+ 736:       setState(() {});
+ 737:     }
+ 738:   }
+ 739: 
+ 740:   void _handleOutlineControllerChanged() {
+ 741:     if (!mounted) {
+ 742:       return;
+ 743:     }
+ 744:     _revealCurrentSelectionIfHidden();
+ 745:     _lastScrollCheckedCaret = null;
+ 746:     _scrollRealignDepth = 0;
+ 747:     setState(() {});
+ 748:     WidgetsBinding.instance.addPostFrameCallback((_) {
+ 749:       if (mounted) {
+ 750:         _scrollCaretIntoView();
+ 751:       }
+ 752:     });
+ 753:   }
+ 754: 
+ 755:   void _handleControllerChanged() {
+ 756:     if (mounted) {
+ 757:       if (widget.readOnly) {
+ 758:         widget.slashMenuController?.close();
+ 759:       }
+ 760:       _syncTableToolbarOverlayWithSelection();
+ 761:       if (_revealCurrentSelectionIfHidden()) {
+ 762:         _lastScrollCheckedCaret = null;
+ 763:         _scrollRealignDepth = 0;
+ 764:       }
+ 765:       // Drop the cached laid-out painter for blocks whose content changed so a
+ 766:       // stale painter is not reused on the next build. Selection-only /
+ 767:       // composition-only changes (empty set) do not invalidate anything.
+ 768:       //
+ 769:       // The block *extent* cache is intentionally NOT invalidated here. While a
+ 770:       // block's text is being edited (most acutely during IME composition such
+ 771:       // as pinyin input) its content mutates on every keystroke, but its height
+ 772:       // barely changes. Dropping the cached height mid-edit would fall back to
+ 773:       // the document-wide average height for one frame, repositioning every
+ 774:       // following block — a visible flicker of the content below the caret. The
+ 775:       // real (possibly unchanged) height is reconciled on the next frame by the
+ 776:       // measured-block widget, so leaving the stale value yields one frame of a
+ 777:       // near-correct height instead of one frame of a wrong average.
+ 778:       final dirty = widget.controller.lastChangedBlockIds;
+ 779:       if (dirty == null) {
+ 780:         _extentCache.clear();
+ 781:       } else if (dirty.isNotEmpty) {
+ 782:         for (final id in dirty) {
+ 783:           _layoutCache.removeBlock(id);
+ 784:         }
+ 785:       }
+ 786:       // Keep the platform IME candidate window anchored at the caret, and
+ 787:       // scroll a programmatically-moved caret back into view. Both run in a
+ 788:       // post-frame callback so the caret's render box reflects the latest
+ 789:       // selection (and any keep-alive mount) before we read its global rect.
+ 790:       WidgetsBinding.instance.addPostFrameCallback((_) {
+ 791:         if (!mounted) {
+ 792:           return;
+ 793:         }
+ 794:         if (_inputClient.isAttached) {
+ 795:           _inputClient.syncBuffer();
+ 796:         }
+ 797:         // Bring an off-screen caret into view — but only when it actually
+ 798:         // moved. IME composition updates fire notifyListeners without changing
+ 799:         // the caret's position; skipping the scroll check there avoids a
+ 800:         // layout + localToGlobal round-trip per composition keystroke.
+ 801:         final selection = widget.controller.selection;
+ 802:         if (selection?.isCollapsed == true) {
+ 803:           final skipCaretScroll = _skipNextCaretScrollIntoView;
+ 804:           _skipNextCaretScrollIntoView = false;
+ 805:           final caretKey = _CaretKey(
+ 806:             selection!.extent.blockIndex,
+ 807:             selection.extent.offset,
+ 808:           );
+ 809:           if (caretKey != _lastScrollCheckedCaret) {
+ 810:             _lastScrollCheckedCaret = caretKey;
+ 811:             if (!skipCaretScroll) {
+ 812:               _scrollCaretIntoView();
+ 813:             }
+ 814:           }
+ 815:         } else {
+ 816:           _skipNextCaretScrollIntoView = false;
+ 817:           _lastScrollCheckedCaret = null;
+ 818:         }
+ 819:       });
+ 820:       setState(() {});
+ 821:     }
+ 822:   }
+ 823: 
+ 824:   void _syncTableToolbarOverlayWithSelection() {
+ 825:     final request = _tableToolbarRequestForCurrentSelection();
+ 826:     if (request == null) {
+ 827:       _tableToolbarOverlayController.hide();
+ 828:       return;
+ 829:     }
+ 830:     _tableToolbarOverlayController.show(request);
+ 831:   }
+ 832: 
+ 833:   TableFloatingToolbarOverlayRequest?
+ 834:       _tableToolbarRequestForCurrentSelection() {
+ 835:     if (widget.readOnly) {
+ 836:       return null;
+ 837:     }
+ 838:     final tableRange = widget.controller.selection?.tableCellRange;
+ 839:     if (tableRange == null) {
+ 840:       return null;
+ 841:     }
+ 842:     final tableBlock = _tableBlockAt(tableRange.blockIndex);
+ 843:     final normalizedRange =
+ 844:         tableBlock != null && tableBlock.id == tableRange.tableBlockId
+ 845:             ? _normalizeTableRange(tableBlock, tableRange)
+ 846:             : null;
+ 847:     if (tableBlock == null ||
+ 848:         normalizedRange == null ||
+ 849:         tableBlock.id != tableRange.tableBlockId) {
+ 850:       return null;
+--- lib\src\widgets\wenz_rich_text_editor.dart:1760-1860 ---
+1760:     final blocks = widget.controller.document.blocks;
+1761:     if (intent.blockIndex < 0 || intent.blockIndex >= blocks.length) {
+1762:       return null;
+1763:     }
+1764:     final value = intent.value;
+1765:     final toIndex = value is int ? value : fallback;
+1766:     if (toIndex < 0 ||
+1767:         toIndex >= blocks.length ||
+1768:         toIndex == intent.blockIndex) {
+1769:       return null;
+1770:     }
+1771:     return toIndex;
+1772:   }
+1773: 
+1774:   void _moveBlock(int fromIndex, int toIndex) {
+1775:     widget.controller.moveBlock(
+1776:       fromIndex: fromIndex,
+1777:       toIndex: toIndex,
+1778:     );
+1779:   }
+1780: 
+1781:   void _deleteBlock(int blockIndex) {
+1782:     final blocks = widget.controller.document.blocks;
+1783:     if (blockIndex < 0 || blockIndex >= blocks.length) {
+1784:       return;
+1785:     }
+1786:     if (blocks.length == 1) {
+1787:       final replacement = TextBlockNode(
+1788:         id: _nextBlockId(),
+1789:         type: BlockType.paragraph,
+1790:         content: const <InlineNode>[],
+1791:       );
+1792:       widget.controller.replaceBlocks(
+1793:         index: 0,
+1794:         deleteCount: 1,
+1795:         blocks: <BlockNode>[replacement],
+1796:         selection: _selectionForBlock(replacement, 0),
+1797:       );
+1798:       return;
+1799:     }
+1800: 
+1801:     final nextIndex =
+1802:         blockIndex < blocks.length - 1 ? blockIndex : blockIndex - 1;
+1803:     final nextBlock = blockIndex < blocks.length - 1
+1804:         ? blocks[blockIndex + 1]
+1805:         : blocks[nextIndex];
+1806:     widget.controller.replaceBlocks(
+1807:       index: blockIndex,
+1808:       deleteCount: 1,
+1809:       blocks: const <BlockNode>[],
+1810:       selection: _selectionForBlock(nextBlock, nextIndex),
+1811:     );
+1812:   }
+1813: 
+1814:   DocumentSelection _selectionForBlock(BlockNode block, int blockIndex) {
+1815:     final position = switch (block) {
+1816:       TextBlockNode() => DocumentPosition.text(
+1817:           blockId: block.id,
+1818:           blockIndex: blockIndex,
+1819:           offset: inlineNodesLength(block.content),
+1820:         ),
+1821:       CodeBlockNode() => DocumentPosition.code(
+1822:           blockId: block.id,
+1823:           blockIndex: blockIndex,
+1824:           offset: block.code.length,
+1825:         ),
+1826:       TableBlockNode() => _firstTableCellPosition(block, blockIndex) ??
+1827:           DocumentPosition(
+1828:             blockId: block.id,
+1829:             blockIndex: blockIndex,
+1830:             path: PositionPath.blockObject(block.id),
+1831:             offset: 0,
+1832:           ),
+1833:       _ => DocumentPosition(
+1834:           blockId: block.id,
+1835:           blockIndex: blockIndex,
+1836:           path: PositionPath.blockObject(block.id),
+1837:           offset: 0,
+1838:         ),
+1839:     };
+1840:     if (position.path.isBlockObject) {
+1841:       return DocumentSelection(
+1842:         base: position,
+1843:         extent: position.copyWith(offset: _kAtomicBlockSelectionLength),
+1844:       );
+1845:     }
+1846:     return DocumentSelection(base: position, extent: position);
+1847:   }
+1848: 
+1849:   DocumentPosition? _firstTableCellPosition(
+1850:     TableBlockNode block,
+1851:     int blockIndex,
+1852:   ) {
+1853:     for (var rowIndex = 0; rowIndex < block.table.rows.length; rowIndex++) {
+1854:       final row = block.table.rows[rowIndex];
+1855:       for (var columnIndex = 0; columnIndex < row.length; columnIndex++) {
+1856:         final cell = row[columnIndex];
+1857:         if (cell.covered) {
+1858:           continue;
+1859:         }
+1860:         return DocumentPosition.tableCell(
+--- lib\src\controller\wenz_rich_text_controller.dart:300-430 ---
+ 300:   /// Restores [snapshot] into the editor via [replaceDocument].
+ 301:   void restoreVersionSnapshot(
+ 302:     DocumentVersionSnapshot snapshot, {
+ 303:     DocumentSelection? selection,
+ 304:     bool clearHistory = true,
+ 305:   }) {
+ 306:     replaceDocument(
+ 307:       snapshot.restoreDocument(),
+ 308:       selection: selection,
+ 309:       clearHistory: clearHistory,
+ 310:     );
+ 311:   }
+ 312: 
+ 313:   String toJson() => _richTextJsonCodec.encode(document);
+ 314: 
+ 315:   /// Exports the document as plain text with paragraphs separated by blank
+ 316:   /// lines. Non-text blocks (image/video/file/divider) emit a short sentinel
+ 317:   /// line so their position in the flow is still visible. See
+ 318:   /// [PlainTextCodec] for the format and options.
+ 319:   String toPlainText() => _plainTextCodec.encode(document);
+ 320: 
+ 321:   /// Exports the document as GitHub-Flavored Markdown. See [MarkdownCodec]
+ 322:   /// for the supported block/inline syntax matrix.
+ 323:   String toMarkdown() => _markdownCodec.encode(document);
+ 324: 
+ 325:   /// Exports the document as an HTML fragment. See [HtmlCodec] for the
+ 326:   /// supported tag matrix.
+ 327:   String toHtml() => _htmlCodec.encode(document);
+ 328: 
+ 329:   /// Loads a document from an HTML fragment, replacing the current document,
+ 330:   /// clearing history, and firing [onChanged]. HTML5's leniency means
+ 331:   /// unrecognised / malformed content falls back to paragraphs, so this does
+ 332:   /// not throw for content. For a no-throw entry point, use [tryLoadHtml].
+ 333:   void loadHtml(String source, {DocumentSelection? selection}) {
+ 334:     replaceDocument(_htmlCodec.decode(source), selection: selection);
+ 335:   }
+ 336: 
+ 337:   /// No-throw variant of [loadHtml]. Returns a [TryLoadResult] (`ok` /
+ 338:   /// `document?` / `error?`); on failure the current document, selection,
+ 339:   /// history, and change callbacks are untouched.
+ 340:   TryLoadResult tryLoadHtml(String source, {DocumentSelection? selection}) {
+ 341:     try {
+ 342:       final nextDocument = _htmlCodec.decode(source);
+ 343:       replaceDocument(nextDocument, selection: selection);
+ 344:       return TryLoadResult.ok(nextDocument);
+ 345:     } on Object catch (error) {
+ 346:       return TryLoadResult.failed(error);
+ 347:     }
+ 348:   }
+ 349: 
+ 350:   /// Loads a document from GitHub-Flavored Markdown, replacing the current
+ 351:   /// document, clearing history, and firing [onChanged]. Unrecognised lines
+ 352:   /// fall back to paragraphs (Markdown's usual leniency), so this does not
+ 353:   /// throw for content. For a no-throw entry point symmetric with
+ 354:   /// [tryLoadJson], use [tryLoadMarkdown].
+ 355:   void loadMarkdown(String source, {DocumentSelection? selection}) {
+ 356:     replaceDocument(_markdownCodec.decode(source), selection: selection);
+ 357:   }
+ 358: 
+ 359:   /// No-throw variant of [loadMarkdown]. Returns a [TryLoadResult] (`ok` /
+ 360:   /// `document?` / `error?`); on failure the current document, selection,
+ 361:   /// history, and change callbacks are untouched.
+ 362:   TryLoadResult tryLoadMarkdown(String source, {DocumentSelection? selection}) {
+ 363:     try {
+ 364:       final nextDocument = _markdownCodec.decode(source);
+ 365:       replaceDocument(nextDocument, selection: selection);
+ 366:       return TryLoadResult.ok(nextDocument);
+ 367:     } on Object catch (error) {
+ 368:       return TryLoadResult.failed(error);
+ 369:     }
+ 370:   }
+ 371: 
+ 372:   /// Loads a document from JSON, replacing the current document, clearing
+ 373:   /// history, and firing [onChanged]. Throws [DocumentDecodeException] when
+ 374:   /// [source] is malformed (the originating error is preserved on
+ 375:   /// [DocumentDecodeException.raw]); the current document and selection are
+ 376:   /// left untouched on failure.
+ 377:   ///
+ 378:   /// Set [legacy] to `true` to decode legacy `wenz_editor` JSON via the
+ 379:   /// [LegacyWenJsonCodec]. For a no-throw entry point, use [tryLoadJson].
+ 380:   void loadJson(
+ 381:     String source, {
+ 382:     bool legacy = false,
+ 383:     DocumentSelection? selection,
+ 384:   }) {
+ 385:     final nextDocument = legacy
+ 386:         ? _legacyWenJsonCodec.decode(source)
+ 387:         : _richTextJsonCodec.decode(source);
+ 388:     replaceDocument(nextDocument, selection: selection);
+ 389:   }
+ 390: 
+ 391:   /// No-throw variant of [loadJson]. Decodes [source] and, on success,
+ 392:   /// replaces the current document (firing [onChanged] exactly like
+ 393:   /// [loadJson]). On failure returns a [TryLoadResult] with `ok: false` and
+ 394:   /// the originating error on [TryLoadResult.error]; the current document,
+ 395:   /// selection, history, and change callbacks are **not** touched.
+ 396:   ///
+ 397:   /// Use this from UI code paths that must not throw (e.g. paste/open-file
+ 398:   /// handlers); use [loadJson] when you prefer typed exception handling.
+ 399:   TryLoadResult tryLoadJson(
+ 400:     String source, {
+ 401:     bool legacy = false,
+ 402:     DocumentSelection? selection,
+ 403:   }) {
+ 404:     try {
+ 405:       final nextDocument = legacy
+ 406:           ? _legacyWenJsonCodec.decode(source)
+ 407:           : _richTextJsonCodec.decode(source);
+ 408:       replaceDocument(nextDocument, selection: selection);
+ 409:       return TryLoadResult.ok(nextDocument);
+ 410:     } on Object catch (error) {
+ 411:       return TryLoadResult.failed(error);
+ 412:     }
+ 413:   }
+ 414: 
+ 415:   ChangeSet execute(EditorCommand command) {
+ 416:     if (!canExecute(command)) {
+ 417:       return _permissionDeniedChange(command);
+ 418:     }
+ 419:     final before = session.document;
+ 420:     final change = _executor.execute(command);
+ 421:     final docChanged = !change.isNoop;
+ 422:     final selectionChanged = change.selectionBefore != change.selectionAfter;
+ 423:     if (docChanged || selectionChanged) {
+ 424:       _lastChangedBlockIds = _changedBlockIds(before, change.after);
+ 425:       if (docChanged) {
+ 426:         onChanged?.call(change.after);
+ 427:       }
+ 428:       if (selectionChanged) {
+ 429:         onSelectionChanged?.call(change.selectionAfter);
+ 430:       }
+--- lib\wenz_richtext.dart:1-90 ---
+   1: /// Wenz RichText — self-owned rich text editor.
+   2: ///
+   3: /// # API stability (as of stage 6)
+   4: ///
+   5: /// This package is pre-`0.1.0` and its public surface is still stabilising.
+   6: /// APIs fall into three tiers:
+   7: ///
+   8: /// - **Stable core (tier 1)**: document model
+   9: ///   ([RichTextDocument], [BlockNode], [InlineNode], [TableModel],
+  10: ///   [CommentAnchor], [CommentThread], [CommentEntry], [RevisionRange],
+  11: ///   [RevisionChange]),
+  12: ///   position/selection model ([DocumentPosition], [DocumentSelection],
+  13: ///   [PositionPath]), [WenzRichTextController] (including the incremental-
+  14: ///   rebuild signal [WenzRichTextController.lastChangedBlockIds]),
+  15: ///   [HistoryManager], the core
+  16: ///   text/block/style commands ([InsertTextCommand], [DeleteSelectionCommand],
+  17: ///   [EnterCommand], [FormatTextCommand], [SetBlockTypeCommand], …), the
+  18: ///   selection commands ([MoveCaretCommand], [MoveCaretByWordCommand],
+  19: ///   [MoveCaretToBlockBoundaryCommand], [MoveCaretToDocumentBoundaryCommand],
+  20: ///   [SelectAllCommand], [MoveTableCellCommand],
+  21: ///   [MoveTableCellVerticalCommand]), [ClipboardService], and
+  22: ///   [EditorTextInputClient]. These are the intended integration points and
+  23: ///   change only with a documented reason.
+  24: /// - **Stabilising (tier 2)**: [WenzRichTextEditor] widget,
+  25: ///   [WenzRichTextEditorAccessibility], [DocumentSchema],
+  26: ///   the rich/legacy JSON codecs, the plain-text codec ([PlainTextCodec]),
+  27: ///   the Markdown codec ([MarkdownCodec]), the HTML codec ([HtmlCodec]),
+  28: ///   the schema migration framework ([DocumentMigration],
+  29: ///   [DocumentMigrationRegistry], [V1ToV2DocumentMigration]), semantic inline
+  30: ///   commands ([SetLinkCommand], [AutoLinkUrlsCommand], [ToggleMarkCommand],
+  31: ///   [InsertInlineEmbedCommand]) and controller helpers for formula, mention,
+  32: ///   emoji, inline image embeds, and block embeds, block structure commands
+  33: ///   ([IndentCommand], [ToggleTodoCommand], [SetTodoCheckedCommand],
+  34: ///   [SetCodeLanguageCommand],
+  35: ///   [IndentCodeBlockCommand], [SetCalloutVariantCommand],
+  36: ///   [UpdateCalloutBlockCommand], [ToggleQuoteCommand]), media-block commands
+  37: ///   ([InsertVideoBlockCommand], [UpdateImageBlockCommand],
+  38: ///   [UpdateFileBlockCommand], [UpdateVideoBlockCommand],
+  39: ///   [DeleteVideoBlockCommand]), the command pipeline/registry
+  40: ///   ([CommandMiddleware], [CommandRegistry], [CommandDescriptor],
+  41: ///   [WenzEditorPermission]), the plugin
+  42: ///   install surface ([WenzRichTextPlugin], [WenzPluginBundle],
+  43: ///   [WenzPluginContext], [WenzPluginApiStatus]), the
+  44: ///   callout block model ([CalloutBlockNode] with variant/title/icon metadata),
+  45: ///   generic business block embed model ([BlockEmbedNode]),
+  46: ///   rendering extension point ([BlockRendererRegistry],
+  47: ///   [BlockRendererBuilder], [BlockRenderContext], [TableToolbarActionIntent],
+  48: ///   [WenzObjectBlockSurface], [MediaResolver], [InlineEmbedRenderer],
+  49: ///   [InlineEmbedRendererRegistry]), video insertion via slash menu / toolbar
+  50: ///   helpers without a bundled player dependency, the
+  51: ///   toolbar binding ([ToolbarController], [ToolbarState],
+  52: ///   [WenzToolbarItemRegistry]), the controller change
+  53: ///   callbacks ([WenzRichTextController.onChanged],
+  54: ///   [WenzRichTextController.onSelectionChanged],
+  55: ///   [WenzRichTextController.onCommandExecuted]), find/replace state and UI
+  56: ///   ([WenzFindReplaceController], [FindReplaceMatch],
+  57: ///   [FindReplaceOptions], [WenzFindReplacePanel]), slash-menu state and UI
+  58: ///   ([SlashMenuController], [SlashMenuRegistry], [SlashMenuItem],
+  59: ///   [WenzSlashMenuOverlay]), outline state ([WenzOutlineController],
+  60: ///   [OutlineItem]), document statistics ([WenzDocumentStatsController],
+  61: ///   [DocumentStats]), autosave dirty-state helpers
+  62: ///   ([WenzAutoSaveController], [AutoSaveState], [AutoSaveSnapshot]),
+  63: ///   application-owned version snapshots ([DocumentVersionSnapshot],
+  64: ///   [DocumentVersionSnapshotJsonCodec]),
+  65: ///   revision commands ([InsertRevisionTextCommand],
+  66: ///   [MarkDeletionRevisionCommand], [MarkFormatRevisionCommand],
+  67: ///   [AcceptRevisionCommand], [RejectRevisionCommand]),
+  68: ///   collaboration adapter primitives ([WenzCollaborationAdapter],
+  69: ///   [WenzCollaborationController], [WenzRemoteSelectionUpdate]), comment
+  70: ///   sidebar UI ([WenzCommentSidebar]), block anchor command
+  71: ///   ([SetBlockAnchorCommand]), the
+  72: ///   structured error types
+  73: ///   ([DocumentDecodeException], [UnknownCommandException]) and the no-throw
+  74: ///   safe-entry helpers ([WenzRichTextController.tryLoadJson],
+  75: ///   [TryLoadResult], [WenzRichTextController.tryExecuteCommand]). The codec
+  76: ///   JSON shape is versioned but migration tooling is not yet in place.
+  77: /// - **Experimental (tier 3)**: the table command family
+  78: ///   ([InsertTableCommand], [InsertTableRowCommand], [InsertTableColumnCommand],
+  79: ///   [DeleteTableRowCommand], [DeleteTableColumnCommand],
+  80: ///   [SetTableColumnAlignmentCommand], [SetTableColumnWidthCommand],
+  81: ///   [SetTableCellHeaderCommand], [SetTableCellBackgroundCommand],
+  82: ///   [MergeTableCellsCommand], [SplitTableCellCommand],
+  83: ///   [InsertTableCellTextCommand], [DeleteTableCellTextCommand],
+  84: ///   [FormatTableCellTextCommand]) plus stage-3 rich block models such as
+  85: ///   [VideoBlockNode], [FileBlockNode], and [BlockEmbedNode]. The default table renderer now provides a command-backed
+  86: ///   floating toolbar and column-width drag handles. [FileBlockNode] includes
+  87: ///   attachment metadata (`mimeType`, `downloadUrl`, upload status/error) but
+  88: ///   retry/upload orchestration remains a business-layer concern; the low-level
+  89: ///   table cell editing contract (see `docs/selection_model.md`) may still evolve.
+  90: ///
+
+codex
+马上写入指定 Markdown 文件，保持任务行符合固定格式。
+exec
+powershell.exe -Command "Test-Path docs\\plan\\plan_requirement_16_20260626-042807.md" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 190ms:
+False
+
+codex
+我还需确认 example 目录文件名，避免 scope 写错。
+exec
+powershell.exe -Command '[Console]::OutputEncoding=[System.Text.UTF8Encoding]::new(); rg --files example | Sort-Object | Select-Object -First 80' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 212ms:
+example\analysis_options.yaml
+example\integration_test\editor_caret_blink_test.dart
+example\integration_test\editor_focus_test.dart
+example\integration_test\editor_ime_test.dart
+example\integration_test\editor_keyboard_test.dart
+example\integration_test\editor_mouse_cursor_test.dart
+example\integration_test\editor_mouse_test.dart
+example\integration_test\editor_pointer_precision_test.dart
+example\integration_test\editor_richtext_test.dart
+example\integration_test\editor_selection_refresh_test.dart
+example\integration_test\editor_table_test.dart
+example\integration_test\helpers\expect_helpers.dart
+example\integration_test\helpers\keyboard_helpers.dart
+example\integration_test\helpers\pointer_helpers.dart
+example\integration_test\helpers\test_app.dart
+example\integration_test\README.md
+example\lib\main.dart
+example\lib\test_host.dart
+example\pubspec.lock
+example\pubspec.yaml
+example\README.md
+example\test\widget_test.dart
+example\web\favicon.png
+example\web\icons\Icon-192.png
+example\web\icons\Icon-512.png
+example\web\icons\Icon-maskable-192.png
+example\web\icons\Icon-maskable-512.png
+example\web\index.html
+example\web\manifest.json
+example\windows\CMakeLists.txt
+example\windows\flutter\CMakeLists.txt
+example\windows\flutter\generated_plugin_registrant.cc
+example\windows\flutter\generated_plugin_registrant.h
+example\windows\flutter\generated_plugins.cmake
+example\windows\runner\CMakeLists.txt
+example\windows\runner\flutter_window.cpp
+example\windows\runner\flutter_window.h
+example\windows\runner\main.cpp
+example\windows\runner\resource.h
+example\windows\runner\resources\app_icon.ico
+example\windows\runner\runner.exe.manifest
+example\windows\runner\Runner.rc
+example\windows\runner\utils.cpp
+example\windows\runner\utils.h
+example\windows\runner\win32_window.cpp
+example\windows\runner\win32_window.h
+
+codex
+确认 example 路径无误；现在创建计划文档。
+apply patch
+patch: completed
+D:\project\GitHub\wenz_flutter\wenz_richtext\docs\plan\plan_requirement_16_20260626-042807.md
+diff --git a/wenz_richtext/docs/plan/plan_requirement_16_20260626-042807.md b/wenz_richtext/docs/plan/plan_requirement_16_20260626-042807.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..8e7e75ef1c27c15e996e9137af9e69c184a87586
+--- /dev/null
++++ b/wenz_richtext/docs/plan/plan_requirement_16_20260626-042807.md
+@@ -0,0 +1,67 @@
++# 需求开发计划：支持配置字体颜色
++
++## 来源
++- 类型：需求
++- 编号：16
++- 生成时间：2026-06-26 04:28:07
++
++## 原始内容
++要支持配置字体颜色
++
++## 需求理解
++- 需要让调用方或用户能够配置富文本字体颜色，覆盖“默认文字颜色配置”和“选中文本字体颜色格式化”两类常见诉求。
++- 文档模型中已有 `TextAttributes.color` 字段，后续实现应优先复用现有内联属性、命令、渲染、表格单元格编辑和编解码链路。
++- 字体颜色应与现有链接色、批注/修订色、背景色、字号、字体族、加粗/斜体等内联样式明确优先级，避免渲染和状态回显冲突。
++- 颜色配置需要支持设置、清除、状态读取、撤销/重做、复制粘贴、导入导出以及只读态/无效选区保护。
++- API 应保持 Flutter 使用习惯，公共输入可面向 `Color`，底层序列化继续使用稳定的 ARGB 整数表示。
++
++## 任务计划
++- [ ] P001: 明确字体颜色配置边界 <!-- scope: lib/src/core/model/attributes.dart,lib/src/controller/wenz_rich_text_controller.dart,lib/src/widgets/wenz_rich_text_editor.dart,test/core/style_commands_test.dart -->
++  - 验收要点：明确颜色值格式、空值语义和清除语义；公共 API 使用 `Color` 或等价类型，文档模型和 JSON 存储使用 `0xAARRGGBB` 整数。
++  - 验收要点：明确选区设置、折叠光标、跨 block、表格单元格文本、只读态、对象块选区和无效选区的行为，不出现隐式丢内容或误改样式。
++  - 验收要点：明确默认字体颜色、内联 `TextAttributes.color`、链接色、remark 色、revision 样式和背景色的优先级，形成可测试规则。
++
++- [ ] P002: 补齐字体颜色命令语义 <!-- scope: lib/src/core/commands/style_commands.dart,lib/src/core/commands/inline_editing.dart,lib/src/core/commands/table_cell_editing.dart,test/core/style_commands_test.dart,test/core/table_commands_test.dart -->
++  - 验收要点：对普通文本块和表格单元格内文本执行字体颜色设置时，能正确拆分/合并 `TextRun`，仅影响目标范围并保留其他内联属性。
++  - 验收要点：支持单独清除字体颜色且不清除加粗、斜体、链接、背景色、字号、字体族等其他属性；重复设置同色不会产生多余历史记录。
++  - 验收要点：字体颜色设置、清除、撤销、重做、跨 block 选择、空选区和不可编辑状态均有命令级测试覆盖。
++
++- [ ] P003: 暴露控制器与工具栏状态 <!-- scope: lib/src/controller/wenz_rich_text_controller.dart,lib/src/controller/toolbar_controller.dart,lib/wenz_richtext.dart,test/core/controller_test.dart,test/controller/toolbar_controller_test.dart -->
++  - 验收要点：控制器提供设置和清除字体颜色的稳定入口，或明确推荐使用的命令入口，并通过公共导出对业务侧可见。
++  - 验收要点：`ToolbarState` 能回显当前选区字体颜色；单一颜色返回具体值，混合颜色、无颜色和不可格式化状态有明确区分策略。
++  - 验收要点：控制器入口尊重 `canEdit`、当前 selection、命令历史和变更通知，不绕过现有 `DocumentSession` 与命令管线。
++
++- [ ] P004: 增加默认文字颜色配置 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/rendering/text_layout_service.dart,lib/src/widgets/shared_text_layout_cache.dart,test/widgets/wenz_rich_text_editor_test.dart,test/widgets/editor_golden_test.dart -->
++  - 验收要点：编辑器支持配置默认字体颜色；未设置内联颜色的文本使用默认颜色或主题颜色，已设置内联颜色的文本保持覆盖优先级。
++  - 验收要点：默认颜色变更后文本布局、缓存、光标、选择高亮和可访问性语义能正确刷新，不丢失当前文档和选区状态。
++  - 验收要点：链接、代码块、表格、标题、列表、引用、批注/修订等渲染场景在默认颜色下保持可读，并有 widget 或 golden 覆盖关键视觉差异。
++
++- [ ] P005: 适配导入导出和复制粘贴 <!-- scope: lib/src/codecs/rich_text_json_codec.dart,lib/src/codecs/html_codec.dart,lib/src/codecs/markdown_codec.dart,lib/src/input/clipboard_service.dart,test/codecs/rich_text_json_codec_test.dart,test/codecs/html_codec_test.dart,test/codecs/markdown_codec_test.dart,test/input/clipboard_service_test.dart -->
++  - 验收要点：富文本 JSON 对字体颜色完整往返，兼容已有 `TextAttributes.color` 字段，不改变未设置颜色内容的序列化结果。
++  - 验收要点：HTML 导入导出支持常见字体颜色表达方式，非法颜色安全忽略；导出样式与渲染结果一致。
++  - 验收要点：Markdown、纯文本、剪贴板复制粘贴对字体颜色的保留或降级策略明确，富文本粘贴不丢颜色，纯文本粘贴不引入多余样式。
++
++- [ ] P006: 更新示例与使用文档 <!-- scope: README.md,example/lib/main.dart,example/lib/test_host.dart,docs/plan/plan_requirement_16_20260626-042807.md -->
++  - 验收要点：README 展示字体颜色设置、清除、默认颜色配置和读取当前颜色的最小示例，说明颜色值格式和优先级。
++  - 验收要点：example 中提供可手工操作的字体颜色配置入口，能验证选区设置、清除、撤销/重做和默认颜色变化。
++  - 验收要点：进度区记录已实现 API、示例入口、兼容限制和验证命令，便于后续需求追踪。
++
++- [ ] P007: 完成自动化与回归验收 <!-- scope: test/core/style_commands_test.dart,test/controller/toolbar_controller_test.dart,test/widgets/wenz_rich_text_editor_test.dart,test/codecs/rich_text_json_codec_test.dart,test/codecs/html_codec_test.dart,test/input/clipboard_service_test.dart,docs/plan/plan_requirement_16_20260626-042807.md -->
++  - 验收要点：执行 `flutter analyze` 以及与字体颜色相关的 core、controller、widget、codec、clipboard 测试，并在进度区记录结果。
++  - 验收要点：如涉及 golden 更新，记录 golden 生成命令和人工确认结论；若存在既有失败，注明失败用例、原因判断和是否与本需求相关。
++  - 验收要点：所有任务 checkbox 完成后，回归确认旧有文本样式、链接、背景色、表格文本、复制粘贴和导入导出能力未被破坏。
++
++## 总体验收标准
++- 所有任务 checkbox 均完成，且每个任务的验收要点都有明确实现结论或验证记录。
++- 调用方可以配置编辑器默认字体颜色，也可以对富文本选区设置和清除字体颜色；行为与只读态、无效选区和表格单元格选择兼容。
++- 字体颜色在渲染、工具栏状态、命令历史、撤销/重做、复制粘贴、JSON/HTML 导入导出中保持一致，不影响未设置颜色的旧文档。
++- 颜色优先级明确：内联字体颜色优先于默认文字颜色，链接、remark、revision、背景色等特殊样式按任务 P001 结论稳定渲染并有测试约束。
++- 公共 API、README 和 example 能让业务侧独立完成“设置颜色、清除颜色、读取当前颜色、配置默认颜色”的闭环。
++- `flutter analyze` 和相关测试通过；若存在非本需求导致的既有失败，需在进度区记录命令、失败摘要和后续建议。
++
++## 进度区
++- 当前状态：计划已创建，P001-P007 待开发执行。
++- 当前负责人：待分配。
++- 下一步：从 P001 开始确认字体颜色配置范围、颜色值格式、清除语义和默认颜色优先级。
++- 验证记录：本次仅生成计划文件，未修改业务代码，未执行自动化测试或手工验收。
++- 风险记录：当前模型已有 `TextAttributes.color`，但设置/清除 API、工具栏状态、默认颜色配置和编解码链路可能不完整；实现时需避免重复新增与现有内联属性体系冲突的平行结构。
+
+diff --git a/wenz_richtext/docs/plan/plan_requirement_16_20260626-042807.md b/wenz_richtext/docs/plan/plan_requirement_16_20260626-042807.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..8e7e75ef1c27c15e996e9137af9e69c184a87586
+--- /dev/null
++++ b/wenz_richtext/docs/plan/plan_requirement_16_20260626-042807.md
+@@ -0,0 +1,67 @@
++# 需求开发计划：支持配置字体颜色
++
++## 来源
++- 类型：需求
++- 编号：16
++- 生成时间：2026-06-26 04:28:07
++
++## 原始内容
++要支持配置字体颜色
++
++## 需求理解
++- 需要让调用方或用户能够配置富文本字体颜色，覆盖“默认文字颜色配置”和“选中文本字体颜色格式化”两类常见诉求。
++- 文档模型中已有 `TextAttributes.color` 字段，后续实现应优先复用现有内联属性、命令、渲染、表格单元格编辑和编解码链路。
++- 字体颜色应与现有链接色、批注/修订色、背景色、字号、字体族、加粗/斜体等内联样式明确优先级，避免渲染和状态回显冲突。
++- 颜色配置需要支持设置、清除、状态读取、撤销/重做、复制粘贴、导入导出以及只读态/无效选区保护。
++- API 应保持 Flutter 使用习惯，公共输入可面向 `Color`，底层序列化继续使用稳定的 ARGB 整数表示。
++
++## 任务计划
++- [ ] P001: 明确字体颜色配置边界 <!-- scope: lib/src/core/model/attributes.dart,lib/src/controller/wenz_rich_text_controller.dart,lib/src/widgets/wenz_rich_text_editor.dart,test/core/style_commands_test.dart -->
++  - 验收要点：明确颜色值格式、空值语义和清除语义；公共 API 使用 `Color` 或等价类型，文档模型和 JSON 存储使用 `0xAARRGGBB` 整数。
++  - 验收要点：明确选区设置、折叠光标、跨 block、表格单元格文本、只读态、对象块选区和无效选区的行为，不出现隐式丢内容或误改样式。
++  - 验收要点：明确默认字体颜色、内联 `TextAttributes.color`、链接色、remark 色、revision 样式和背景色的优先级，形成可测试规则。
++
++- [ ] P002: 补齐字体颜色命令语义 <!-- scope: lib/src/core/commands/style_commands.dart,lib/src/core/commands/inline_editing.dart,lib/src/core/commands/table_cell_editing.dart,test/core/style_commands_test.dart,test/core/table_commands_test.dart -->
++  - 验收要点：对普通文本块和表格单元格内文本执行字体颜色设置时，能正确拆分/合并 `TextRun`，仅影响目标范围并保留其他内联属性。
++  - 验收要点：支持单独清除字体颜色且不清除加粗、斜体、链接、背景色、字号、字体族等其他属性；重复设置同色不会产生多余历史记录。
++  - 验收要点：字体颜色设置、清除、撤销、重做、跨 block 选择、空选区和不可编辑状态均有命令级测试覆盖。
++
++- [ ] P003: 暴露控制器与工具栏状态 <!-- scope: lib/src/controller/wenz_rich_text_controller.dart,lib/src/controller/toolbar_controller.dart,lib/wenz_richtext.dart,test/core/controller_test.dart,test/controller/toolbar_controller_test.dart -->
++  - 验收要点：控制器提供设置和清除字体颜色的稳定入口，或明确推荐使用的命令入口，并通过公共导出对业务侧可见。
++  - 验收要点：`ToolbarState` 能回显当前选区字体颜色；单一颜色返回具体值，混合颜色、无颜色和不可格式化状态有明确区分策略。
++  - 验收要点：控制器入口尊重 `canEdit`、当前 selection、命令历史和变更通知，不绕过现有 `DocumentSession` 与命令管线。
++
++- [ ] P004: 增加默认文字颜色配置 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/rendering/text_layout_service.dart,lib/src/widgets/shared_text_layout_cache.dart,test/widgets/wenz_rich_text_editor_test.dart,test/widgets/editor_golden_test.dart -->
++  - 验收要点：编辑器支持配置默认字体颜色；未设置内联颜色的文本使用默认颜色或主题颜色，已设置内联颜色的文本保持覆盖优先级。
++  - 验收要点：默认颜色变更后文本布局、缓存、光标、选择高亮和可访问性语义能正确刷新，不丢失当前文档和选区状态。
++  - 验收要点：链接、代码块、表格、标题、列表、引用、批注/修订等渲染场景在默认颜色下保持可读，并有 widget 或 golden 覆盖关键视觉差异。
++
++- [ ] P005: 适配导入导出和复制粘贴 <!-- scope: lib/src/codecs/rich_text_json_codec.dart,lib/src/codecs/html_codec.dart,lib/src/codecs/markdown_codec.dart,lib/src/input/clipboard_service.dart,test/codecs/rich_text_json_codec_test.dart,test/codecs/html_codec_test.dart,test/codecs/markdown_codec_test.dart,test/input/clipboard_service_test.dart -->
++  - 验收要点：富文本 JSON 对字体颜色完整往返，兼容已有 `TextAttributes.color` 字段，不改变未设置颜色内容的序列化结果。
++  - 验收要点：HTML 导入导出支持常见字体颜色表达方式，非法颜色安全忽略；导出样式与渲染结果一致。
++  - 验收要点：Markdown、纯文本、剪贴板复制粘贴对字体颜色的保留或降级策略明确，富文本粘贴不丢颜色，纯文本粘贴不引入多余样式。
++
++- [ ] P006: 更新示例与使用文档 <!-- scope: README.md,example/lib/main.dart,example/lib/test_host.dart,docs/plan/plan_requirement_16_20260626-042807.md -->
++  - 验收要点：README 展示字体颜色设置、清除、默认颜色配置和读取当前颜色的最小示例，说明颜色值格式和优先级。
++  - 验收要点：example 中提供可手工操作的字体颜色配置入口，能验证选区设置、清除、撤销/重做和默认颜色变化。
++  - 验收要点：进度区记录已实现 API、示例入口、兼容限制和验证命令，便于后续需求追踪。
++
++- [ ] P007: 完成自动化与回归验收 <!-- scope: test/core/style_commands_test.dart,test/controller/toolbar_controller_test.dart,test/widgets/wenz_rich_text_editor_test.dart,test/codecs/rich_text_json_codec_test.dart,test/codecs/html_codec_test.dart,test/input/clipboard_service_test.dart,docs/plan/plan_requirement_16_20260626-042807.md -->
++  - 验收要点：执行 `flutter analyze` 以及与字体颜色相关的 core、controller、widget、codec、clipboard 测试，并在进度区记录结果。
++  - 验收要点：如涉及 golden 更新，记录 golden 生成命令和人工确认结论；若存在既有失败，注明失败用例、原因判断和是否与本需求相关。
++  - 验收要点：所有任务 checkbox 完成后，回归确认旧有文本样式、链接、背景色、表格文本、复制粘贴和导入导出能力未被破坏。
++
++## 总体验收标准
++- 所有任务 checkbox 均完成，且每个任务的验收要点都有明确实现结论或验证记录。
++- 调用方可以配置编辑器默认字体颜色，也可以对富文本选区设置和清除字体颜色；行为与只读态、无效选区和表格单元格选择兼容。
++- 字体颜色在渲染、工具栏状态、命令历史、撤销/重做、复制粘贴、JSON/HTML 导入导出中保持一致，不影响未设置颜色的旧文档。
++- 颜色优先级明确：内联字体颜色优先于默认文字颜色，链接、remark、revision、背景色等特殊样式按任务 P001 结论稳定渲染并有测试约束。
++- 公共 API、README 和 example 能让业务侧独立完成“设置颜色、清除颜色、读取当前颜色、配置默认颜色”的闭环。
++- `flutter analyze` 和相关测试通过；若存在非本需求导致的既有失败，需在进度区记录命令、失败摘要和后续建议。
++
++## 进度区
++- 当前状态：计划已创建，P001-P007 待开发执行。
++- 当前负责人：待分配。
++- 下一步：从 P001 开始确认字体颜色配置范围、颜色值格式、清除语义和默认颜色优先级。
++- 验证记录：本次仅生成计划文件，未修改业务代码，未执行自动化测试或手工验收。
++- 风险记录：当前模型已有 `TextAttributes.color`，但设置/清除 API、工具栏状态、默认颜色配置和编解码链路可能不完整；实现时需避免重复新增与现有内联属性体系冲突的平行结构。
+
+codex
+已完成计划文件：`docs/plan/plan_requirement_16_20260626-042807.md:1`
+
+- 包含 P001-P007 任务，任务行均按固定格式编写并带必填 `scope`。
+- 每个任务均包含验收要点。
+- 已包含“总体验收标准”和“进度区”。
+- 仅新增计划文档，未修改业务代码，未执行测试。
+diff --git a/wenz_richtext/docs/plan/plan_requirement_16_20260626-042807.md b/wenz_richtext/docs/plan/plan_requirement_16_20260626-042807.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..8e7e75ef1c27c15e996e9137af9e69c184a87586
+--- /dev/null
++++ b/wenz_richtext/docs/plan/plan_requirement_16_20260626-042807.md
+@@ -0,0 +1,67 @@
++# 需求开发计划：支持配置字体颜色
++
++## 来源
++- 类型：需求
++- 编号：16
++- 生成时间：2026-06-26 04:28:07
++
++## 原始内容
++要支持配置字体颜色
++
++## 需求理解
++- 需要让调用方或用户能够配置富文本字体颜色，覆盖“默认文字颜色配置”和“选中文本字体颜色格式化”两类常见诉求。
++- 文档模型中已有 `TextAttributes.color` 字段，后续实现应优先复用现有内联属性、命令、渲染、表格单元格编辑和编解码链路。
++- 字体颜色应与现有链接色、批注/修订色、背景色、字号、字体族、加粗/斜体等内联样式明确优先级，避免渲染和状态回显冲突。
++- 颜色配置需要支持设置、清除、状态读取、撤销/重做、复制粘贴、导入导出以及只读态/无效选区保护。
++- API 应保持 Flutter 使用习惯，公共输入可面向 `Color`，底层序列化继续使用稳定的 ARGB 整数表示。
++
++## 任务计划
++- [ ] P001: 明确字体颜色配置边界 <!-- scope: lib/src/core/model/attributes.dart,lib/src/controller/wenz_rich_text_controller.dart,lib/src/widgets/wenz_rich_text_editor.dart,test/core/style_commands_test.dart -->
++  - 验收要点：明确颜色值格式、空值语义和清除语义；公共 API 使用 `Color` 或等价类型，文档模型和 JSON 存储使用 `0xAARRGGBB` 整数。
++  - 验收要点：明确选区设置、折叠光标、跨 block、表格单元格文本、只读态、对象块选区和无效选区的行为，不出现隐式丢内容或误改样式。
++  - 验收要点：明确默认字体颜色、内联 `TextAttributes.color`、链接色、remark 色、revision 样式和背景色的优先级，形成可测试规则。
++
++- [ ] P002: 补齐字体颜色命令语义 <!-- scope: lib/src/core/commands/style_commands.dart,lib/src/core/commands/inline_editing.dart,lib/src/core/commands/table_cell_editing.dart,test/core/style_commands_test.dart,test/core/table_commands_test.dart -->
++  - 验收要点：对普通文本块和表格单元格内文本执行字体颜色设置时，能正确拆分/合并 `TextRun`，仅影响目标范围并保留其他内联属性。
++  - 验收要点：支持单独清除字体颜色且不清除加粗、斜体、链接、背景色、字号、字体族等其他属性；重复设置同色不会产生多余历史记录。
++  - 验收要点：字体颜色设置、清除、撤销、重做、跨 block 选择、空选区和不可编辑状态均有命令级测试覆盖。
++
++- [ ] P003: 暴露控制器与工具栏状态 <!-- scope: lib/src/controller/wenz_rich_text_controller.dart,lib/src/controller/toolbar_controller.dart,lib/wenz_richtext.dart,test/core/controller_test.dart,test/controller/toolbar_controller_test.dart -->
++  - 验收要点：控制器提供设置和清除字体颜色的稳定入口，或明确推荐使用的命令入口，并通过公共导出对业务侧可见。
++  - 验收要点：`ToolbarState` 能回显当前选区字体颜色；单一颜色返回具体值，混合颜色、无颜色和不可格式化状态有明确区分策略。
++  - 验收要点：控制器入口尊重 `canEdit`、当前 selection、命令历史和变更通知，不绕过现有 `DocumentSession` 与命令管线。
++
++- [ ] P004: 增加默认文字颜色配置 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/rendering/text_layout_service.dart,lib/src/widgets/shared_text_layout_cache.dart,test/widgets/wenz_rich_text_editor_test.dart,test/widgets/editor_golden_test.dart -->
++  - 验收要点：编辑器支持配置默认字体颜色；未设置内联颜色的文本使用默认颜色或主题颜色，已设置内联颜色的文本保持覆盖优先级。
++  - 验收要点：默认颜色变更后文本布局、缓存、光标、选择高亮和可访问性语义能正确刷新，不丢失当前文档和选区状态。
++  - 验收要点：链接、代码块、表格、标题、列表、引用、批注/修订等渲染场景在默认颜色下保持可读，并有 widget 或 golden 覆盖关键视觉差异。
++
++- [ ] P005: 适配导入导出和复制粘贴 <!-- scope: lib/src/codecs/rich_text_json_codec.dart,lib/src/codecs/html_codec.dart,lib/src/codecs/markdown_codec.dart,lib/src/input/clipboard_service.dart,test/codecs/rich_text_json_codec_test.dart,test/codecs/html_codec_test.dart,test/codecs/markdown_codec_test.dart,test/input/clipboard_service_test.dart -->
++  - 验收要点：富文本 JSON 对字体颜色完整往返，兼容已有 `TextAttributes.color` 字段，不改变未设置颜色内容的序列化结果。
++  - 验收要点：HTML 导入导出支持常见字体颜色表达方式，非法颜色安全忽略；导出样式与渲染结果一致。
++  - 验收要点：Markdown、纯文本、剪贴板复制粘贴对字体颜色的保留或降级策略明确，富文本粘贴不丢颜色，纯文本粘贴不引入多余样式。
++
++- [ ] P006: 更新示例与使用文档 <!-- scope: README.md,example/lib/main.dart,example/lib/test_host.dart,docs/plan/plan_requirement_16_20260626-042807.md -->
++  - 验收要点：README 展示字体颜色设置、清除、默认颜色配置和读取当前颜色的最小示例，说明颜色值格式和优先级。
++  - 验收要点：example 中提供可手工操作的字体颜色配置入口，能验证选区设置、清除、撤销/重做和默认颜色变化。
++  - 验收要点：进度区记录已实现 API、示例入口、兼容限制和验证命令，便于后续需求追踪。
++
++- [ ] P007: 完成自动化与回归验收 <!-- scope: test/core/style_commands_test.dart,test/controller/toolbar_controller_test.dart,test/widgets/wenz_rich_text_editor_test.dart,test/codecs/rich_text_json_codec_test.dart,test/codecs/html_codec_test.dart,test/input/clipboard_service_test.dart,docs/plan/plan_requirement_16_20260626-042807.md -->
++  - 验收要点：执行 `flutter analyze` 以及与字体颜色相关的 core、controller、widget、codec、clipboard 测试，并在进度区记录结果。
++  - 验收要点：如涉及 golden 更新，记录 golden 生成命令和人工确认结论；若存在既有失败，注明失败用例、原因判断和是否与本需求相关。
++  - 验收要点：所有任务 checkbox 完成后，回归确认旧有文本样式、链接、背景色、表格文本、复制粘贴和导入导出能力未被破坏。
++
++## 总体验收标准
++- 所有任务 checkbox 均完成，且每个任务的验收要点都有明确实现结论或验证记录。
++- 调用方可以配置编辑器默认字体颜色，也可以对富文本选区设置和清除字体颜色；行为与只读态、无效选区和表格单元格选择兼容。
++- 字体颜色在渲染、工具栏状态、命令历史、撤销/重做、复制粘贴、JSON/HTML 导入导出中保持一致，不影响未设置颜色的旧文档。
++- 颜色优先级明确：内联字体颜色优先于默认文字颜色，链接、remark、revision、背景色等特殊样式按任务 P001 结论稳定渲染并有测试约束。
++- 公共 API、README 和 example 能让业务侧独立完成“设置颜色、清除颜色、读取当前颜色、配置默认颜色”的闭环。
++- `flutter analyze` 和相关测试通过；若存在非本需求导致的既有失败，需在进度区记录命令、失败摘要和后续建议。
++
++## 进度区
++- 当前状态：计划已创建，P001-P007 待开发执行。
++- 当前负责人：待分配。
++- 下一步：从 P001 开始确认字体颜色配置范围、颜色值格式、清除语义和默认颜色优先级。
++- 验证记录：本次仅生成计划文件，未修改业务代码，未执行自动化测试或手工验收。
++- 风险记录：当前模型已有 `TextAttributes.color`，但设置/清除 API、工具栏状态、默认颜色配置和编解码链路可能不完整；实现时需避免重复新增与现有内联属性体系冲突的平行结构。
+
+tokens used
+75,541
+已完成计划文件：`docs/plan/plan_requirement_16_20260626-042807.md:1`
+
+- 包含 P001-P007 任务，任务行均按固定格式编写并带必填 `scope`。
+- 每个任务均包含验收要点。
+- 已包含“总体验收标准”和“进度区”。
+- 仅新增计划文档，未修改业务代码，未执行测试。

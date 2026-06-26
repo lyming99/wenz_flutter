@@ -15,7 +15,9 @@ import 'block_geometry_registry.dart';
 /// inside a single [TextSelectionSurface].
 ///
 /// Supports:
-/// - tap → place collapsed caret
+/// - tap → place collapsed caret. Empty text surfaces follow the same tap
+///   semantics: when their visible line area resolves to a text anchor, focus is
+///   requested and the selection collapses to that block/path at offset 0.
 /// - drag → extend selection (cross-block), with auto-scroll near viewport edges
 /// - auto-scroll → every drag (touch or mouse) synchronously scrolls one step
 ///   when the pointer enters the viewport edge band, so the list follows the
@@ -25,6 +27,9 @@ import 'block_geometry_registry.dart';
 ///   handles, tracked separately as C9.)
 /// - double-tap → select word
 /// - triple-tap → select block (paragraph)
+/// Selection exclusions and the scrollbar gutter are checked before resolving a
+/// text anchor, so block chrome (handles, checkboxes, collapse buttons, menus)
+/// cannot be claimed as an empty-line text tap.
 class SelectionGestureOverlay extends StatefulWidget {
   const SelectionGestureOverlay({
     super.key,

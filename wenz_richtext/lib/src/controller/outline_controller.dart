@@ -37,6 +37,21 @@ class OutlineItem {
   /// Whether this heading currently has child blocks that can be hidden.
   bool get canCollapse => collapseRange.isNotEmpty;
 
+  /// Number of top-level blocks covered when this heading is collapsed.
+  int get coveredBlockCount => collapseRange.coveredBlockCount;
+
+  /// Number of top-level blocks hidden by this heading's own collapsed state.
+  int get hiddenBlockCount => isCollapsed ? coveredBlockCount : 0;
+
+  /// Read-only collapse snapshot for this outline item.
+  OutlineCollapseState get collapseState => OutlineCollapseState(
+        blockId: blockId,
+        blockIndex: blockIndex,
+        canCollapse: canCollapse,
+        isCollapsed: isCollapsed,
+        collapseRange: collapseRange,
+      );
+
   /// Top-level block ids covered when this heading is collapsed.
   List<String> get coveredBlockIds => collapseRange.blockIds;
 
@@ -110,8 +125,15 @@ class OutlineCollapseRange {
   /// Top-level block ids in the covered range.
   final List<String> blockIds;
 
-  int get length => endBlockIndexExclusive - startBlockIndex;
-  bool get isEmpty => length <= 0;
+  int get length {
+    final count = endBlockIndexExclusive - startBlockIndex;
+    return count <= 0 ? 0 : count;
+  }
+
+  /// Number of top-level blocks covered by this range.
+  int get coveredBlockCount => length;
+
+  bool get isEmpty => length == 0;
   bool get isNotEmpty => !isEmpty;
 
   /// Inclusive end index, or `null` when the range is empty.
@@ -142,6 +164,55 @@ class OutlineCollapseRange {
         startBlockIndex,
         endBlockIndexExclusive,
         Object.hashAll(blockIds),
+      );
+}
+
+/// Read-only collapse state for a heading outline entry.
+class OutlineCollapseState {
+  const OutlineCollapseState({
+    required this.blockId,
+    required this.blockIndex,
+    required this.canCollapse,
+    required this.isCollapsed,
+    this.collapseRange = OutlineCollapseRange.empty,
+  });
+
+  final String blockId;
+  final int blockIndex;
+  final bool canCollapse;
+  final bool isCollapsed;
+  final OutlineCollapseRange collapseRange;
+
+  int get coveredBlockCount => collapseRange.coveredBlockCount;
+
+  int get hiddenBlockCount => isCollapsed ? coveredBlockCount : 0;
+
+  List<String> get coveredBlockIds => collapseRange.blockIds;
+
+  List<int> get coveredBlockIndexes => collapseRange.blockIndexes;
+
+  int get collapseStartBlockIndex => collapseRange.startBlockIndex;
+
+  int get collapseEndBlockIndexExclusive =>
+      collapseRange.endBlockIndexExclusive;
+
+  @override
+  bool operator ==(Object other) {
+    return other is OutlineCollapseState &&
+        other.blockId == blockId &&
+        other.blockIndex == blockIndex &&
+        other.canCollapse == canCollapse &&
+        other.isCollapsed == isCollapsed &&
+        other.collapseRange == collapseRange;
+  }
+
+  @override
+  int get hashCode => Object.hash(
+        blockId,
+        blockIndex,
+        canCollapse,
+        isCollapsed,
+        collapseRange,
       );
 }
 
@@ -234,6 +305,8 @@ class OutlineBlockProjection {
 
   bool get hasHiddenBlocks => hiddenBlockIds.isNotEmpty;
 
+  int get hiddenBlockCount => hiddenBlockIds.length;
+
   bool isBlockHidden(String blockId) => hiddenBlockIds.contains(blockId);
 
   bool isBlockIndexHidden(int blockIndex) {
@@ -315,6 +388,8 @@ class WenzOutlineController extends ChangeNotifier {
   }
 
   Set<String> get hiddenBlockIds => visibleBlockProjection().hiddenBlockIds;
+
+  int get hiddenBlockCount => visibleBlockProjection().hiddenBlockCount;
 
   bool isBlockHidden(String blockId) {
     return visibleBlockProjection().isBlockHidden(blockId);
@@ -443,6 +518,14 @@ class WenzOutlineController extends ChangeNotifier {
     return itemForBlockId(blockId)?.collapseRange;
   }
 
+  OutlineCollapseState? collapseStateForBlockId(String blockId) {
+    return itemForBlockId(blockId)?.collapseState;
+  }
+
+  OutlineCollapseState? collapseStateForAnchor(String anchor) {
+    return itemForAnchor(anchor)?.collapseState;
+  }
+
   bool collapse(OutlineItem item) => collapseByBlockId(item.blockId);
 
   bool collapseByBlockId(String blockId) {
@@ -545,6 +628,7 @@ class WenzOutlineController extends ChangeNotifier {
 
   void _handleHostChanged() {
     _recompute();
+    expandToRevealSelection(_host.selection);
   }
 
   void _recompute() {

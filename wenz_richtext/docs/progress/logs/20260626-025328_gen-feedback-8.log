@@ -3520,3 +3520,234 @@ class _MediaBlockChrome extends StatelessWidget {
 
 codex
 结构和范围已明确，接下来只新增指定的计划 Markdown 文件。
+apply patch
+patch: completed
+D:\project\GitHub\wenz_flutter\wenz_richtext\docs\plan\plan_feedback_8_20260626-025328.md
+diff --git a/wenz_richtext/docs/plan/plan_feedback_8_20260626-025328.md b/wenz_richtext/docs/plan/plan_feedback_8_20260626-025328.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..66b1506d6b5b399529394c99bd1eaed44c8d328f
+--- /dev/null
++++ b/wenz_richtext/docs/plan/plan_feedback_8_20260626-025328.md
+@@ -0,0 +1,64 @@
++# 反馈开发计划：块菜单工具栏与代码块选中态视觉优化
++
++## 来源
++- 类型：反馈
++- 编号：8
++- 生成时间：2026-06-26 02:53:28
++
++## 原始内容
++1. 所有块的菜单工具栏，放到右上角显示，尽可能简约，不需要占用全行。
++2. 优化一下菜单 popup 的样式。
++3. 优化一下工具栏的图标样式。
++4. 优化一下代码块的选中底色，目前在深色背景下显示不明显。
++
++## 需求理解
++- 本次反馈聚焦块级元素的悬浮操作区、菜单弹层、图标视觉和代码块选中态对比度，属于编辑器渲染与交互层优化。
++- “所有块的菜单工具栏”应覆盖代码块、表格、图片、视频、文件、引用块等块级元素；工具栏应贴近块右上角，以轻量浮层形式出现，不再占用整行布局空间。
++- 菜单 popup 与工具栏图标需要统一视觉语言，包括尺寸、圆角、阴影、间距、hover/pressed/disabled 状态和深浅主题可读性。
++- 代码块选中底色需要在深色代码背景下具备足够对比度，同时不破坏语法高亮、查找高亮、光标、拖选和复制行为。
++
++## 任务计划
++- [ ] P001: 统一块工具栏右上角定位 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/table_floating_toolbar_overlay.dart,test/widgets/wenz_rich_text_editor_test.dart,test/widgets/editor_golden_test.dart -->
++  - 验收要点：代码块、表格、图片、视频、文件、引用块等块级元素在 hover、聚焦或选中时，菜单工具栏显示在块内容区域右上角或右上方合理偏移位置。
++  - 验收要点：工具栏不再以全行容器占位，不改变块正文宽度、行高、滚动高度和周围块的排版位置。
++  - 验收要点：右上角工具栏在窄宽度、靠近编辑器边缘、滚动容器内和只读态场景下不会溢出、遮挡核心内容或误触发文本选择。
++
++- [ ] P002: 精简块工具栏操作入口 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/controller/toolbar_controller.dart,test/widgets/wenz_rich_text_editor_test.dart,test/controller/toolbar_controller_test.dart -->
++  - 验收要点：块工具栏默认仅保留预览、复制、更多菜单等高频入口，低频或破坏布局简洁性的操作收纳到更多菜单或按规则隐藏。
++  - 验收要点：不同块类型的工具栏入口数量、排序、tooltip 文案和禁用态保持一致，不因块类型差异出现全行按钮组或冗余文字按钮。
++  - 验收要点：既有块级命令仍可通过工具栏或更多菜单触达，复制、删除、替换、下载、表格结构操作、代码语言切换等行为不回归。
++
++- [ ] P003: 优化菜单 popup 视觉样式 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/slash_menu_overlay.dart,lib/src/widgets/table_floating_toolbar_overlay.dart,test/widgets/editor_golden_test.dart,test/widgets/wenz_rich_text_editor_test.dart,test/widgets/slash_menu_overlay_test.dart -->
++  - 验收要点：块菜单、文件菜单、表格菜单、行菜单和 slash 菜单的 popup 圆角、阴影、背景色、边框、内边距、最小宽度和最大宽度保持统一且简约。
++  - 验收要点：菜单项图标、文字、快捷提示、分隔线、hover、pressed、selected、disabled 状态在浅色与深色背景下都清晰可读。
++  - 验收要点：popup 在编辑器边缘、小屏、滚动视口、长文案和多级菜单场景下自动约束在可见区域内，不出现截断、异常换行或红屏报错。
++
++- [ ] P004: 统一工具栏图标样式 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/table_floating_toolbar_overlay.dart,test/widgets/editor_golden_test.dart,test/widgets/wenz_rich_text_editor_test.dart -->
++  - 验收要点：所有块工具栏图标使用统一尺寸、描边/填充风格、颜色层级、圆形或圆角按钮底、点击热区和视觉密度。
++  - 验收要点：图标在普通、hover、pressed、selected、disabled、只读态下有明确反馈，且不会显得过重、过大或与块内容竞争注意力。
++  - 验收要点：图标按钮 tooltip、语义标签和键盘焦点样式保留可访问性，不影响鼠标点击、键盘导航和屏幕阅读器识别。
++
++- [ ] P005: 增强代码块选中底色 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/code_syntax_highlighter.dart,test/widgets/wenz_rich_text_editor_test.dart,test/widgets/editor_golden_test.dart -->
++  - 验收要点：代码块内文本选区在深色代码背景下明显可见，选中底色与正文、注释、字符串、关键字等语法高亮均保持足够对比度。
++  - 验收要点：选区底色不会覆盖或削弱光标、组合输入下划线、查找高亮、当前查找命中和代码块整体选中边框的层级关系。
++  - 验收要点：鼠标拖选、Shift 选择、全选、复制、跨块选区和只读态选择在代码块内行为稳定，不因底色调整改变选择范围。
++
++- [ ] P006: 补充视觉回归与交互验证 <!-- scope: test/widgets/editor_golden_test.dart,test/widgets/wenz_rich_text_editor_test.dart,test/widgets/slash_menu_overlay_test.dart,docs/plan/plan_feedback_8_20260626-025328.md -->
++  - 验收要点：新增或更新 golden 覆盖块工具栏右上角定位、简约图标、菜单 popup 样式和代码块深色背景选区效果。
++  - 验收要点：新增或更新 widget 测试覆盖 hover/聚焦/选中触发工具栏、菜单打开关闭、边缘约束、按钮点击命令和代码块选择行为。
++  - 验收要点：执行 `flutter analyze`、相关 widget 测试和必要 golden 校验；若存在非本次改动导致的失败，需要在进度区记录命令、失败原因和影响范围。
++
++## 总体验收标准
++- 所有任务 checkbox 均完成，且每个任务的验收要点都有实现结论、测试结论或明确风险记录。
++- 块级元素的菜单工具栏统一以右上角轻量浮层呈现，不占用整行布局空间，不改变块正文排版和滚动尺寸。
++- 菜单 popup 与工具栏图标形成统一、简约、可读的视觉体系，在浅色、深色、hover、selected、disabled 和只读态下表现稳定。
++- 代码块文本选区在深色背景下清晰可见，且语法高亮、查找高亮、光标、复制和跨块选择行为不回归。
++- 表格、媒体、文件、代码块、引用块等代表性块类型均完成桌面鼠标手工验证，覆盖 hover、点击、菜单弹出、滚动、窄宽度和编辑器边缘场景。
++- 相关自动化测试、golden 校验和静态分析通过；如存在既有失败或环境限制，需记录复现命令、失败原因、规避方式和是否阻塞上线。
++
++## 进度区
++- 当前状态：计划已创建，P001-P006 待开发执行。
++- 当前负责人：待分配。
++- 下一步：从 P001 开始梳理现有块工具栏渲染入口，确认哪些块类型仍存在全行占位工具栏。
++- 验证记录：本次仅生成计划文件，未修改业务代码，未执行自动化测试或手工验收。
++- 风险记录：多个任务集中在 `lib/src/widgets/wenz_rich_text_editor.dart` 的渲染与交互区域，实施时需避免并发修改同一工具栏/菜单片段导致冲突，并重点回归 overlay 定位、命中测试、选区和滚动边界。
+
+diff --git a/wenz_richtext/docs/plan/plan_feedback_8_20260626-025328.md b/wenz_richtext/docs/plan/plan_feedback_8_20260626-025328.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..66b1506d6b5b399529394c99bd1eaed44c8d328f
+--- /dev/null
++++ b/wenz_richtext/docs/plan/plan_feedback_8_20260626-025328.md
+@@ -0,0 +1,64 @@
++# 反馈开发计划：块菜单工具栏与代码块选中态视觉优化
++
++## 来源
++- 类型：反馈
++- 编号：8
++- 生成时间：2026-06-26 02:53:28
++
++## 原始内容
++1. 所有块的菜单工具栏，放到右上角显示，尽可能简约，不需要占用全行。
++2. 优化一下菜单 popup 的样式。
++3. 优化一下工具栏的图标样式。
++4. 优化一下代码块的选中底色，目前在深色背景下显示不明显。
++
++## 需求理解
++- 本次反馈聚焦块级元素的悬浮操作区、菜单弹层、图标视觉和代码块选中态对比度，属于编辑器渲染与交互层优化。
++- “所有块的菜单工具栏”应覆盖代码块、表格、图片、视频、文件、引用块等块级元素；工具栏应贴近块右上角，以轻量浮层形式出现，不再占用整行布局空间。
++- 菜单 popup 与工具栏图标需要统一视觉语言，包括尺寸、圆角、阴影、间距、hover/pressed/disabled 状态和深浅主题可读性。
++- 代码块选中底色需要在深色代码背景下具备足够对比度，同时不破坏语法高亮、查找高亮、光标、拖选和复制行为。
++
++## 任务计划
++- [ ] P001: 统一块工具栏右上角定位 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/table_floating_toolbar_overlay.dart,test/widgets/wenz_rich_text_editor_test.dart,test/widgets/editor_golden_test.dart -->
++  - 验收要点：代码块、表格、图片、视频、文件、引用块等块级元素在 hover、聚焦或选中时，菜单工具栏显示在块内容区域右上角或右上方合理偏移位置。
++  - 验收要点：工具栏不再以全行容器占位，不改变块正文宽度、行高、滚动高度和周围块的排版位置。
++  - 验收要点：右上角工具栏在窄宽度、靠近编辑器边缘、滚动容器内和只读态场景下不会溢出、遮挡核心内容或误触发文本选择。
++
++- [ ] P002: 精简块工具栏操作入口 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/controller/toolbar_controller.dart,test/widgets/wenz_rich_text_editor_test.dart,test/controller/toolbar_controller_test.dart -->
++  - 验收要点：块工具栏默认仅保留预览、复制、更多菜单等高频入口，低频或破坏布局简洁性的操作收纳到更多菜单或按规则隐藏。
++  - 验收要点：不同块类型的工具栏入口数量、排序、tooltip 文案和禁用态保持一致，不因块类型差异出现全行按钮组或冗余文字按钮。
++  - 验收要点：既有块级命令仍可通过工具栏或更多菜单触达，复制、删除、替换、下载、表格结构操作、代码语言切换等行为不回归。
++
++- [ ] P003: 优化菜单 popup 视觉样式 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/slash_menu_overlay.dart,lib/src/widgets/table_floating_toolbar_overlay.dart,test/widgets/editor_golden_test.dart,test/widgets/wenz_rich_text_editor_test.dart,test/widgets/slash_menu_overlay_test.dart -->
++  - 验收要点：块菜单、文件菜单、表格菜单、行菜单和 slash 菜单的 popup 圆角、阴影、背景色、边框、内边距、最小宽度和最大宽度保持统一且简约。
++  - 验收要点：菜单项图标、文字、快捷提示、分隔线、hover、pressed、selected、disabled 状态在浅色与深色背景下都清晰可读。
++  - 验收要点：popup 在编辑器边缘、小屏、滚动视口、长文案和多级菜单场景下自动约束在可见区域内，不出现截断、异常换行或红屏报错。
++
++- [ ] P004: 统一工具栏图标样式 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/table_floating_toolbar_overlay.dart,test/widgets/editor_golden_test.dart,test/widgets/wenz_rich_text_editor_test.dart -->
++  - 验收要点：所有块工具栏图标使用统一尺寸、描边/填充风格、颜色层级、圆形或圆角按钮底、点击热区和视觉密度。
++  - 验收要点：图标在普通、hover、pressed、selected、disabled、只读态下有明确反馈，且不会显得过重、过大或与块内容竞争注意力。
++  - 验收要点：图标按钮 tooltip、语义标签和键盘焦点样式保留可访问性，不影响鼠标点击、键盘导航和屏幕阅读器识别。
++
++- [ ] P005: 增强代码块选中底色 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/code_syntax_highlighter.dart,test/widgets/wenz_rich_text_editor_test.dart,test/widgets/editor_golden_test.dart -->
++  - 验收要点：代码块内文本选区在深色代码背景下明显可见，选中底色与正文、注释、字符串、关键字等语法高亮均保持足够对比度。
++  - 验收要点：选区底色不会覆盖或削弱光标、组合输入下划线、查找高亮、当前查找命中和代码块整体选中边框的层级关系。
++  - 验收要点：鼠标拖选、Shift 选择、全选、复制、跨块选区和只读态选择在代码块内行为稳定，不因底色调整改变选择范围。
++
++- [ ] P006: 补充视觉回归与交互验证 <!-- scope: test/widgets/editor_golden_test.dart,test/widgets/wenz_rich_text_editor_test.dart,test/widgets/slash_menu_overlay_test.dart,docs/plan/plan_feedback_8_20260626-025328.md -->
++  - 验收要点：新增或更新 golden 覆盖块工具栏右上角定位、简约图标、菜单 popup 样式和代码块深色背景选区效果。
++  - 验收要点：新增或更新 widget 测试覆盖 hover/聚焦/选中触发工具栏、菜单打开关闭、边缘约束、按钮点击命令和代码块选择行为。
++  - 验收要点：执行 `flutter analyze`、相关 widget 测试和必要 golden 校验；若存在非本次改动导致的失败，需要在进度区记录命令、失败原因和影响范围。
++
++## 总体验收标准
++- 所有任务 checkbox 均完成，且每个任务的验收要点都有实现结论、测试结论或明确风险记录。
++- 块级元素的菜单工具栏统一以右上角轻量浮层呈现，不占用整行布局空间，不改变块正文排版和滚动尺寸。
++- 菜单 popup 与工具栏图标形成统一、简约、可读的视觉体系，在浅色、深色、hover、selected、disabled 和只读态下表现稳定。
++- 代码块文本选区在深色背景下清晰可见，且语法高亮、查找高亮、光标、复制和跨块选择行为不回归。
++- 表格、媒体、文件、代码块、引用块等代表性块类型均完成桌面鼠标手工验证，覆盖 hover、点击、菜单弹出、滚动、窄宽度和编辑器边缘场景。
++- 相关自动化测试、golden 校验和静态分析通过；如存在既有失败或环境限制，需记录复现命令、失败原因、规避方式和是否阻塞上线。
++
++## 进度区
++- 当前状态：计划已创建，P001-P006 待开发执行。
++- 当前负责人：待分配。
++- 下一步：从 P001 开始梳理现有块工具栏渲染入口，确认哪些块类型仍存在全行占位工具栏。
++- 验证记录：本次仅生成计划文件，未修改业务代码，未执行自动化测试或手工验收。
++- 风险记录：多个任务集中在 `lib/src/widgets/wenz_rich_text_editor.dart` 的渲染与交互区域，实施时需避免并发修改同一工具栏/菜单片段导致冲突，并重点回归 overlay 定位、命中测试、选区和滚动边界。
+
+codex
+已生成计划文件，未修改业务代码。
+
+- 文件：`docs/plan/plan_feedback_8_20260626-025328.md:1`
+- 内容包含：任务计划、每项验收要点、总体验收标准、进度区
+- 任务格式已按要求使用 `- [ ] P001: ... <!-- scope: ... -->`
+- 未执行测试：本次仅创建 plan 文档
+diff --git a/wenz_richtext/docs/plan/plan_feedback_8_20260626-025328.md b/wenz_richtext/docs/plan/plan_feedback_8_20260626-025328.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..66b1506d6b5b399529394c99bd1eaed44c8d328f
+--- /dev/null
++++ b/wenz_richtext/docs/plan/plan_feedback_8_20260626-025328.md
+@@ -0,0 +1,64 @@
++# 反馈开发计划：块菜单工具栏与代码块选中态视觉优化
++
++## 来源
++- 类型：反馈
++- 编号：8
++- 生成时间：2026-06-26 02:53:28
++
++## 原始内容
++1. 所有块的菜单工具栏，放到右上角显示，尽可能简约，不需要占用全行。
++2. 优化一下菜单 popup 的样式。
++3. 优化一下工具栏的图标样式。
++4. 优化一下代码块的选中底色，目前在深色背景下显示不明显。
++
++## 需求理解
++- 本次反馈聚焦块级元素的悬浮操作区、菜单弹层、图标视觉和代码块选中态对比度，属于编辑器渲染与交互层优化。
++- “所有块的菜单工具栏”应覆盖代码块、表格、图片、视频、文件、引用块等块级元素；工具栏应贴近块右上角，以轻量浮层形式出现，不再占用整行布局空间。
++- 菜单 popup 与工具栏图标需要统一视觉语言，包括尺寸、圆角、阴影、间距、hover/pressed/disabled 状态和深浅主题可读性。
++- 代码块选中底色需要在深色代码背景下具备足够对比度，同时不破坏语法高亮、查找高亮、光标、拖选和复制行为。
++
++## 任务计划
++- [ ] P001: 统一块工具栏右上角定位 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/table_floating_toolbar_overlay.dart,test/widgets/wenz_rich_text_editor_test.dart,test/widgets/editor_golden_test.dart -->
++  - 验收要点：代码块、表格、图片、视频、文件、引用块等块级元素在 hover、聚焦或选中时，菜单工具栏显示在块内容区域右上角或右上方合理偏移位置。
++  - 验收要点：工具栏不再以全行容器占位，不改变块正文宽度、行高、滚动高度和周围块的排版位置。
++  - 验收要点：右上角工具栏在窄宽度、靠近编辑器边缘、滚动容器内和只读态场景下不会溢出、遮挡核心内容或误触发文本选择。
++
++- [ ] P002: 精简块工具栏操作入口 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/controller/toolbar_controller.dart,test/widgets/wenz_rich_text_editor_test.dart,test/controller/toolbar_controller_test.dart -->
++  - 验收要点：块工具栏默认仅保留预览、复制、更多菜单等高频入口，低频或破坏布局简洁性的操作收纳到更多菜单或按规则隐藏。
++  - 验收要点：不同块类型的工具栏入口数量、排序、tooltip 文案和禁用态保持一致，不因块类型差异出现全行按钮组或冗余文字按钮。
++  - 验收要点：既有块级命令仍可通过工具栏或更多菜单触达，复制、删除、替换、下载、表格结构操作、代码语言切换等行为不回归。
++
++- [ ] P003: 优化菜单 popup 视觉样式 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/slash_menu_overlay.dart,lib/src/widgets/table_floating_toolbar_overlay.dart,test/widgets/editor_golden_test.dart,test/widgets/wenz_rich_text_editor_test.dart,test/widgets/slash_menu_overlay_test.dart -->
++  - 验收要点：块菜单、文件菜单、表格菜单、行菜单和 slash 菜单的 popup 圆角、阴影、背景色、边框、内边距、最小宽度和最大宽度保持统一且简约。
++  - 验收要点：菜单项图标、文字、快捷提示、分隔线、hover、pressed、selected、disabled 状态在浅色与深色背景下都清晰可读。
++  - 验收要点：popup 在编辑器边缘、小屏、滚动视口、长文案和多级菜单场景下自动约束在可见区域内，不出现截断、异常换行或红屏报错。
++
++- [ ] P004: 统一工具栏图标样式 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/table_floating_toolbar_overlay.dart,test/widgets/editor_golden_test.dart,test/widgets/wenz_rich_text_editor_test.dart -->
++  - 验收要点：所有块工具栏图标使用统一尺寸、描边/填充风格、颜色层级、圆形或圆角按钮底、点击热区和视觉密度。
++  - 验收要点：图标在普通、hover、pressed、selected、disabled、只读态下有明确反馈，且不会显得过重、过大或与块内容竞争注意力。
++  - 验收要点：图标按钮 tooltip、语义标签和键盘焦点样式保留可访问性，不影响鼠标点击、键盘导航和屏幕阅读器识别。
++
++- [ ] P005: 增强代码块选中底色 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/code_syntax_highlighter.dart,test/widgets/wenz_rich_text_editor_test.dart,test/widgets/editor_golden_test.dart -->
++  - 验收要点：代码块内文本选区在深色代码背景下明显可见，选中底色与正文、注释、字符串、关键字等语法高亮均保持足够对比度。
++  - 验收要点：选区底色不会覆盖或削弱光标、组合输入下划线、查找高亮、当前查找命中和代码块整体选中边框的层级关系。
++  - 验收要点：鼠标拖选、Shift 选择、全选、复制、跨块选区和只读态选择在代码块内行为稳定，不因底色调整改变选择范围。
++
++- [ ] P006: 补充视觉回归与交互验证 <!-- scope: test/widgets/editor_golden_test.dart,test/widgets/wenz_rich_text_editor_test.dart,test/widgets/slash_menu_overlay_test.dart,docs/plan/plan_feedback_8_20260626-025328.md -->
++  - 验收要点：新增或更新 golden 覆盖块工具栏右上角定位、简约图标、菜单 popup 样式和代码块深色背景选区效果。
++  - 验收要点：新增或更新 widget 测试覆盖 hover/聚焦/选中触发工具栏、菜单打开关闭、边缘约束、按钮点击命令和代码块选择行为。
++  - 验收要点：执行 `flutter analyze`、相关 widget 测试和必要 golden 校验；若存在非本次改动导致的失败，需要在进度区记录命令、失败原因和影响范围。
++
++## 总体验收标准
++- 所有任务 checkbox 均完成，且每个任务的验收要点都有实现结论、测试结论或明确风险记录。
++- 块级元素的菜单工具栏统一以右上角轻量浮层呈现，不占用整行布局空间，不改变块正文排版和滚动尺寸。
++- 菜单 popup 与工具栏图标形成统一、简约、可读的视觉体系，在浅色、深色、hover、selected、disabled 和只读态下表现稳定。
++- 代码块文本选区在深色背景下清晰可见，且语法高亮、查找高亮、光标、复制和跨块选择行为不回归。
++- 表格、媒体、文件、代码块、引用块等代表性块类型均完成桌面鼠标手工验证，覆盖 hover、点击、菜单弹出、滚动、窄宽度和编辑器边缘场景。
++- 相关自动化测试、golden 校验和静态分析通过；如存在既有失败或环境限制，需记录复现命令、失败原因、规避方式和是否阻塞上线。
++
++## 进度区
++- 当前状态：计划已创建，P001-P006 待开发执行。
++- 当前负责人：待分配。
++- 下一步：从 P001 开始梳理现有块工具栏渲染入口，确认哪些块类型仍存在全行占位工具栏。
++- 验证记录：本次仅生成计划文件，未修改业务代码，未执行自动化测试或手工验收。
++- 风险记录：多个任务集中在 `lib/src/widgets/wenz_rich_text_editor.dart` 的渲染与交互区域，实施时需避免并发修改同一工具栏/菜单片段导致冲突，并重点回归 overlay 定位、命中测试、选区和滚动边界。
+
+tokens used
+58,846
+已生成计划文件，未修改业务代码。
+
+- 文件：`docs/plan/plan_feedback_8_20260626-025328.md:1`
+- 内容包含：任务计划、每项验收要点、总体验收标准、进度区
+- 任务格式已按要求使用 `- [ ] P001: ... <!-- scope: ... -->`
+- 未执行测试：本次仅创建 plan 文档

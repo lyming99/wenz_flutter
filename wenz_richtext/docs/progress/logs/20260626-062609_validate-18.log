@@ -1,0 +1,29 @@
+Flutter assets will be downloaded from https://storage.flutter-io.cn. Make sure you trust this source!
+Analyzing wenz_richtext...                                      
+
+warning - A value for optional parameter 'inset' isn't ever given - lib\src\widgets\wenz_rich_text_editor.dart:5646:10 - unused_element_parameter
+warning - A value for optional parameter 'placeAbove' isn't ever given - lib\src\widgets\wenz_rich_text_editor.dart:5647:10 - unused_element_parameter
+   info - Use 'const' with the constructor to improve performance - test\input\shortcut_manager_test.dart:57:7 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\input\shortcut_manager_test.dart:59:7 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\input\shortcut_manager_test.dart:61:7 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\input\shortcut_manager_test.dart:63:7 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\input\shortcut_manager_test.dart:65:7 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\input\shortcut_manager_test.dart:67:7 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\input\shortcut_manager_test.dart:69:7 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\input\shortcut_manager_test.dart:73:7 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\input\shortcut_manager_test.dart:77:7 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\input\shortcut_manager_test.dart:81:7 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\input\shortcut_manager_test.dart:85:7 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\input\shortcut_manager_test.dart:87:7 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\input\shortcut_manager_test.dart:89:7 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\input\shortcut_manager_test.dart:91:7 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\input\shortcut_manager_test.dart:93:7 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\input\shortcut_manager_test.dart:95:7 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\input\shortcut_manager_test.dart:97:7 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\input\shortcut_manager_test.dart:99:7 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\input\shortcut_manager_test.dart:101:7 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\input\shortcut_manager_test.dart:103:7 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\input\shortcut_manager_test.dart:105:7 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\input\shortcut_manager_test.dart:107:7 - prefer_const_constructors
+
+24 issues found. (ran in 8.4s)

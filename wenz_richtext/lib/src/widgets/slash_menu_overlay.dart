@@ -1,3 +1,5 @@
+﻿import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../controller/slash_menu_controller.dart';
@@ -6,11 +8,13 @@ class WenzSlashMenuOverlay extends StatelessWidget {
   const WenzSlashMenuOverlay({
     super.key,
     required this.controller,
-    this.maxWidth = 280,
+    this.minWidth = 184,
+    this.maxWidth = 320,
     this.maxHeight = 320,
   });
 
   final SlashMenuController controller;
+  final double minWidth;
   final double maxWidth;
   final double maxHeight;
 
@@ -24,34 +28,51 @@ class WenzSlashMenuOverlay extends StatelessWidget {
         }
         final items = controller.items;
         final theme = Theme.of(context);
-        return Material(
-          key: const ValueKey<String>('wenz-slash-menu-overlay'),
-          color: theme.colorScheme.surface,
-          elevation: 6,
-          borderRadius: BorderRadius.circular(8),
-          clipBehavior: Clip.antiAlias,
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              maxWidth: maxWidth,
-              maxHeight: maxHeight,
+        final colorScheme = theme.colorScheme;
+        final effectiveMaxWidth = math.max(0.0, maxWidth);
+        final effectiveMinWidth = math.min(
+          math.max(0.0, minWidth),
+          effectiveMaxWidth,
+        );
+        final effectiveMaxHeight = math.max(0.0, maxHeight);
+        return Listener(
+          behavior: HitTestBehavior.opaque,
+          child: Material(
+            key: const ValueKey<String>('wenz-slash-menu-overlay'),
+            color: colorScheme.surfaceContainerLow,
+            elevation: 6,
+            shadowColor: colorScheme.shadow.withAlpha(48),
+            surfaceTintColor: Colors.transparent,
+            shape: RoundedRectangleBorder(
+              side:
+                  BorderSide(color: colorScheme.outlineVariant.withAlpha(180)),
+              borderRadius: BorderRadius.circular(12),
             ),
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              shrinkWrap: true,
-              itemCount: items.length,
-              itemBuilder: (context, index) {
-                final item = items[index];
-                final selected = index == controller.highlightedIndex;
-                return _SlashMenuTile(
-                  key: ValueKey<String>('wenz-slash-item-${item.id}'),
-                  item: item,
-                  selected: selected,
-                  onTap: () {
-                    controller.selectIndex(index);
-                    controller.activate(item);
-                  },
-                );
-              },
+            clipBehavior: Clip.antiAlias,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minWidth: effectiveMinWidth,
+                maxWidth: effectiveMaxWidth,
+                maxHeight: effectiveMaxHeight,
+              ),
+              child: ListView.builder(
+                padding: const EdgeInsets.all(6),
+                shrinkWrap: true,
+                itemCount: items.length,
+                itemBuilder: (context, index) {
+                  final item = items[index];
+                  final selected = index == controller.highlightedIndex;
+                  return _SlashMenuTile(
+                    key: ValueKey<String>('wenz-slash-item-${item.id}'),
+                    item: item,
+                    selected: selected,
+                    onTap: () {
+                      controller.selectIndex(index);
+                      controller.activate(item);
+                    },
+                  );
+                },
+              ),
             ),
           ),
         );
@@ -75,38 +96,62 @@ class _SlashMenuTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final selectedColor = theme.colorScheme.primaryContainer.withAlpha(130);
-    return InkWell(
-      onTap: onTap,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: selected ? selectedColor : Colors.transparent,
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-          child: Row(
-            children: <Widget>[
-              Icon(_iconFor(item.icon), size: 20),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    Text(item.title, style: theme.textTheme.bodyMedium),
-                    if (item.description.isNotEmpty)
-                      Text(
-                        item.description,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                  ],
-                ),
+    final colorScheme = theme.colorScheme;
+    final selectedColor = colorScheme.primaryContainer.withAlpha(
+      theme.brightness == Brightness.dark ? 112 : 150,
+    );
+    final iconColor =
+        selected ? colorScheme.primary : colorScheme.onSurfaceVariant;
+    final titleStyle = theme.textTheme.bodyMedium?.copyWith(
+      color: colorScheme.onSurface,
+      fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+    );
+    return Semantics(
+      selected: selected,
+      button: true,
+      label: item.description.isEmpty
+          ? item.title
+          : '${item.title}, ${item.description}',
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 1),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(8),
+          hoverColor: colorScheme.onSurface.withAlpha(10),
+          highlightColor: colorScheme.primary.withAlpha(20),
+          splashColor: colorScheme.primary.withAlpha(24),
+          onTap: onTap,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: selected ? selectedColor : Colors.transparent,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              child: Row(
+                children: <Widget>[
+                  Icon(_iconFor(item.icon), size: 20, color: iconColor),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        Text(item.title, style: titleStyle),
+                        if (item.description.isNotEmpty)
+                          Text(
+                            item.description,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),
@@ -127,3 +172,4 @@ IconData _iconFor(String icon) {
     _ => Icons.auto_awesome,
   };
 }
+

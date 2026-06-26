@@ -29,6 +29,8 @@ void main() {
       final chapter = outline.itemForBlockId('h1')!;
       expect(chapter.canCollapse, isTrue);
       expect(chapter.isCollapsed, isFalse);
+      expect(chapter.coveredBlockCount, 6);
+      expect(chapter.hiddenBlockCount, 0);
       expect(chapter.collapseStartBlockIndex, 1);
       expect(chapter.collapseEndBlockIndexExclusive, 7);
       expect(
@@ -44,8 +46,36 @@ void main() {
 
       final leaf = outline.itemForBlockId('h2b')!;
       expect(leaf.canCollapse, isFalse);
+      expect(leaf.coveredBlockCount, 0);
+      expect(leaf.hiddenBlockCount, 0);
       expect(leaf.coveredBlockIds, isEmpty);
       expect(leaf.collapseRange.endBlockIndex, isNull);
+
+      outline.dispose();
+      host.dispose();
+    });
+
+    test('exposes read-only collapse state and hidden counts', () {
+      final host = WenzRichTextController(document: _foldingDoc());
+      final outline = WenzOutlineController(editor: host);
+
+      final initial = outline.collapseStateForBlockId('h2')!;
+      expect(initial.canCollapse, isTrue);
+      expect(initial.isCollapsed, isFalse);
+      expect(initial.coveredBlockIds, <String>['p2', 'h3', 'p3']);
+      expect(initial.coveredBlockIndexes, <int>[3, 4, 5]);
+      expect(initial.coveredBlockCount, 3);
+      expect(initial.hiddenBlockCount, 0);
+      expect(outline.hiddenBlockCount, 0);
+
+      expect(outline.collapseByAnchor('section'), isTrue);
+
+      final collapsed = outline.collapseStateForAnchor('section')!;
+      expect(collapsed.isCollapsed, isTrue);
+      expect(collapsed.hiddenBlockCount, 3);
+      expect(outline.itemForBlockId('h2')?.hiddenBlockCount, 3);
+      expect(outline.hiddenBlockCount, 3);
+      expect(outline.collapseStateForBlockId('missing'), isNull);
 
       outline.dispose();
       host.dispose();
@@ -246,6 +276,73 @@ void main() {
       );
       expect(parentExpanded.hiddenBlockIds, <String>{'p2', 'h3', 'p3'});
       expect(outline.isCollapsed('h2'), isTrue);
+
+      outline.dispose();
+      host.dispose();
+    });
+
+    test('recomputes first and tail heading ranges after dynamic edits', () {
+      final host = WenzRichTextController(document: _dynamicBoundaryDoc());
+      final outline = WenzOutlineController(editor: host);
+
+      expect(outline.itemForBlockId('start')?.coveredBlockIds, <String>[
+        'child',
+        'child-body',
+      ]);
+      expect(outline.itemForBlockId('tail')?.canCollapse, isFalse);
+      expect(outline.collapseByBlockId('start'), isTrue);
+
+      host.replaceBlocks(
+        index: 4,
+        deleteCount: 0,
+        blocks: const <BlockNode>[
+          TextBlockNode(
+            id: 'tail-body',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'Tail body')],
+          ),
+        ],
+      );
+
+      expect(outline.isCollapsed('start'), isTrue);
+      expect(outline.itemForBlockId('tail')?.coveredBlockIds, <String>[
+        'tail-body',
+      ]);
+      expect(outline.collapseByBlockId('tail'), isTrue);
+
+      host.replaceBlocks(
+        index: 1,
+        deleteCount: 0,
+        blocks: const <BlockNode>[
+          TextBlockNode(
+            id: 'intro-body',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'Inserted intro')],
+          ),
+        ],
+      );
+
+      expect(outline.itemForBlockId('start')?.coveredBlockIds, <String>[
+        'intro-body',
+        'child',
+        'child-body',
+      ]);
+      expect(
+        outline.visibleBlockProjection().visibleBlocks.map((block) => block.id),
+        <String>['start', 'tail'],
+      );
+      expect(outline.hiddenBlockIds, <String>{
+        'intro-body',
+        'child',
+        'child-body',
+        'tail-body',
+      });
+
+      host.replaceBlocks(index: 5, deleteCount: 1, blocks: const <BlockNode>[]);
+
+      expect(outline.itemForBlockId('tail')?.canCollapse, isFalse);
+      expect(outline.isCollapsed('tail'), isFalse);
+      expect(outline.collapsedBlockIds, <String>{'start'});
 
       outline.dispose();
       host.dispose();
@@ -485,6 +582,36 @@ RichTextDocument _headingEdgeDoc() {
       ),
       TextBlockNode(
         id: 'h1-tail',
+        type: BlockType.heading,
+        attributes: BlockAttributes(level: 1),
+        content: <InlineNode>[TextRun(text: 'Tail')],
+      ),
+    ],
+  );
+}
+
+RichTextDocument _dynamicBoundaryDoc() {
+  return const RichTextDocument(
+    blocks: <BlockNode>[
+      TextBlockNode(
+        id: 'start',
+        type: BlockType.heading,
+        attributes: BlockAttributes(level: 1),
+        content: <InlineNode>[TextRun(text: 'Start')],
+      ),
+      TextBlockNode(
+        id: 'child',
+        type: BlockType.heading,
+        attributes: BlockAttributes(level: 2),
+        content: <InlineNode>[TextRun(text: 'Child')],
+      ),
+      TextBlockNode(
+        id: 'child-body',
+        type: BlockType.paragraph,
+        content: <InlineNode>[TextRun(text: 'Child body')],
+      ),
+      TextBlockNode(
+        id: 'tail',
         type: BlockType.heading,
         attributes: BlockAttributes(level: 1),
         content: <InlineNode>[TextRun(text: 'Tail')],

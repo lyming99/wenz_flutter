@@ -1,0 +1,11 @@
+已完成 P005，未修改 plan 文件、未勾选 checkbox。
+
+**变更**
+- `lib/src/controller/outline_controller.dart:629`：宿主控制器变化后自动展开覆盖当前选区的折叠标题，避免程序化选择/导航命中隐藏内容后出现不可见光标。
+- `test/core/controller_test.dart:345`：补充折叠时将被隐藏选区收敛到标题行的测试。
+- `test/core/controller_test.dart:362`：补充程序化选择隐藏块时自动展开折叠范围的测试。
+
+**验证**
+- 已运行 P005 最小相关测试：
+  `flutter test test/core/controller_test.dart test/controller/find_replace_controller_test.dart test/widgets/wenz_rich_text_editor_test.dart --name "...P005相关用例..."`
+- 结果：`All tests passed!`

@@ -109,6 +109,38 @@
 
 ---
 
+## REQ-013-P007 · 自动化与视觉回归验证
+
+来源：需求 13 / P007。`docs/plan/plan_requirement_13_20260626-024112.md` 是 AutoPlan 只读上下文，本节只记录当前任务的自动化、golden 和手工验收入口，不勾选 plan checkbox，不更新进度区。
+
+| 覆盖项 | 自动化记录 | 结论 |
+|--------|------------|------|
+| H1-H6 与边界范围 | `outline_controller_test.dart` 覆盖 H1-H6、多级嵌套、连续标题、空标题、无子内容标题、文档首尾标题和父子同时折叠投影 | 通过 |
+| 动态编辑后重算 | `recomputes ranges after heading delete level change and move` 与 `recomputes first and tail heading ranges after dynamic edits` 覆盖删除、层级变化、移动、首尾插入/删除后的范围和失效折叠清理 | 通过 |
+| widget 交互回归 | `wenz_rich_text_editor_test.dart` 覆盖折叠按钮点击、Enter/Space 键盘激活、隐藏 block 不命中、展开后选区恢复、查找命中隐藏内容、大纲跳转和只读模式切换 | 通过 |
+| 视觉回归 | `editor_golden_test.dart` 的 `golden: paragraph code and image placeholder` 更新 `editor_blocks.png`，覆盖展开态、折叠态、禁用态、hover/focus 态以及与左侧拖拽把手相邻布局 | 通过 |
+
+验证命令：
+- `flutter test test/controller/outline_controller_test.dart --reporter expanded`：通过，`+14`。
+- `flutter test test/widgets/wenz_rich_text_editor_test.dart --name "^(renders heading collapse affordance and toggles by keyboard|read-only mode toggles heading collapse without editing|programmatic selection in hidden block expands its heading|Delete at collapsed heading boundary expands before editing|tap at a hidden block position does not target hidden content|find match inside hidden content expands and restores selection|outline jump to hidden heading reveals it and moves selection)$" --reporter expanded`：通过，`+7`。
+- `flutter test test/widgets/editor_golden_test.dart --plain-name "golden: paragraph code and image placeholder" --update-goldens --reporter expanded`：通过，`+1`，用于同步 `editor_blocks.png`。
+- `flutter test test/widgets/editor_golden_test.dart --plain-name "golden: paragraph code and image placeholder" --reporter expanded`：通过，`+1`。
+
+手工验收：运行 `example/`，准备至少包含 H1-H6、多级嵌套、连续标题、叶子标题和只读切换的文档，按三端抽样确认视觉与手势。
+
+| 端 | 展开/折叠按钮 | 禁用态 | Hover/Focus | 隐藏内容不命中 | 只读可切换 | 备注 |
+|----|----------------|--------|-------------|----------------|------------|------|
+| Windows | [ ] | [ ] | [ ] | [ ] | [ ] | |
+| Web (Chrome) | [ ] | [ ] | [ ] | [ ] | [ ] | |
+| Android | [ ] | [ ] | [ ] | [ ] | [ ] | |
+
+预期：
+- 标题左侧折叠按钮与左侧拖拽把手保持独立命中区；hover、focus、禁用态和折叠计数在不同 DPI / 缩放下不遮挡标题文本。
+- 折叠后被隐藏 block 不响应点击、拖拽、选区、对象工具栏或媒体 resolver；展开、查找命中和大纲跳转后选区回到可见目标。
+- 只读模式下仍允许切换折叠视图，但不写入文档 JSON / Markdown / HTML，不产生 undo 记录。
+
+---
+
 ## ADV-030 · 富文本设计稿样式基线
 
 来源：`ui/richtext_design.html`。实现侧基线记录在 `WenzRichTextDesignBaseline`，用于后续 P002-P008 对齐默认渲染；其中 P008 已补齐综合排版 golden 与必要 widget 记录，不新增 block 类型，不改变 JSON / Markdown / HTML 编解码协议。

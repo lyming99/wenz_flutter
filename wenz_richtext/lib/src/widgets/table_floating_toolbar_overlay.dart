@@ -457,17 +457,25 @@ class _TableFloatingToolbarOverlayEntry extends StatefulWidget {
 class _TableFloatingToolbarOverlayEntryState
     extends State<_TableFloatingToolbarOverlayEntry> {
   final GlobalKey _toolbarKey = GlobalKey();
-  double? _toolbarHeight;
+  Size? _toolbarSize;
   bool _measureScheduled = false;
 
   @override
   Widget build(BuildContext context) {
     _scheduleMeasure();
     final request = widget.request;
-    final toolbarHeight = _toolbarHeight ?? request.fallbackHeight;
-    final minWidth = math.max(request.minWidth, request.anchorRect.width);
-    final maxLeft = math.max(0, widget.overlaySize.width - minWidth);
-    final left = request.anchorRect.left.clamp(0.0, maxLeft).toDouble();
+    final toolbarHeight = _toolbarSize?.height ?? request.fallbackHeight;
+    final overlayWidth = math.max(0.0, widget.overlaySize.width);
+    final maxWidth = overlayWidth;
+    final minWidth = math.min(request.minWidth, maxWidth);
+    final toolbarWidth = (_toolbarSize?.width ?? minWidth).clamp(
+      0.0,
+      maxWidth,
+    );
+    final maxLeft = math.max(0.0, overlayWidth - toolbarWidth);
+    final left = (request.anchorRect.right - toolbarWidth)
+        .clamp(0.0, maxLeft)
+        .toDouble();
     final top = math.max(
       request.anchorRect.top - toolbarHeight - request.gap,
       request.visibleTop,
@@ -478,7 +486,10 @@ class _TableFloatingToolbarOverlayEntryState
       top: top,
       child: ConstrainedBox(
         key: _toolbarKey,
-        constraints: BoxConstraints(minWidth: minWidth),
+        constraints: BoxConstraints(
+          minWidth: minWidth,
+          maxWidth: maxWidth,
+        ),
         child: Listener(
           key: const ValueKey<String>(
             'table-floating-toolbar-hit-test-blocker',
@@ -509,12 +520,15 @@ class _TableFloatingToolbarOverlayEntryState
     if (renderObject is! RenderBox || !renderObject.hasSize) {
       return;
     }
-    final nextHeight = renderObject.size.height;
-    if (_toolbarHeight != null && (_toolbarHeight! - nextHeight).abs() < 0.5) {
+    final nextSize = renderObject.size;
+    final currentSize = _toolbarSize;
+    if (currentSize != null &&
+        (currentSize.width - nextSize.width).abs() < 0.5 &&
+        (currentSize.height - nextSize.height).abs() < 0.5) {
       return;
     }
     setState(() {
-      _toolbarHeight = nextHeight;
+      _toolbarSize = nextSize;
     });
   }
 }

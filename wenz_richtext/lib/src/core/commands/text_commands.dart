@@ -165,6 +165,10 @@ class DeleteSelectionCommand extends EditorCommand {
       );
       _replaceBlock(session, start.blockIndex, nextBlock);
     } else if (start.path.isBlockObject) {
+      // Callout bodies are editable inline content addressed by blockText. A
+      // body selection must only trim CalloutBlockNode.content and preserve
+      // metadata such as title/icon/variant; it must not fall through to this
+      // whole-object deletion branch unless the object path is explicitly used.
       // A whole object block (image/divider/video/file) is selected. Remove the
       // block and land the caret on a neighbouring editable block — the end of
       // the previous block if any, else the start of the next. When the block

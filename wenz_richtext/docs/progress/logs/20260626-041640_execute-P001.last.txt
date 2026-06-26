@@ -1,0 +1,10 @@
+P001 已完成，未修改 plan 文件、未勾选 checkbox。
+
+**变更**
+- 在 `lib/src/input/shortcut_manager.dart:74` 明确快捷键配置边界：配置只影响解析，不绕过现有 `EditorShortcutResolution` / `_performShortcut` 路径。
+- 在 `test/input/shortcut_manager_test.dart:55` 增加“未配置时默认快捷键基线”测试，锁定选择、撤销/重做、复制/剪切/粘贴、导航、删除、回车、字符输入等兼容行为。
+- 在 `docs/input_system.md:127` 补充快捷键配置契约：追加、覆盖、禁用、透传、主修饰键、冲突策略、只读态、IME、斜杆菜单和代码块 Tab 优先级。
+
+**验证**
+- 已运行最小相关测试：`flutter test test\input\shortcut_manager_test.dart`
+- 结果：12 项全部通过。

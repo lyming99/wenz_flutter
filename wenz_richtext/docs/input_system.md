@@ -124,6 +124,33 @@ flavour，可以直接调用对应入口。
 `onReplaceRequested` 时才会处理 Ctrl/Cmd+F/H；否则这些组合键继续冒泡给
 浏览器或宿主应用。
 
+### 快捷键配置契约
+
+快捷键配置只描述“键盘事件如何解析”，不直接执行命令、不访问 Clipboard，
+也不绕过 `_performShortcut`。未传入配置时必须保持上表默认行为兼容，包括
+选择、撤销/重做、复制/剪切/粘贴、查找/替换、方向键、Home/End、
+PageUp/PageDown、删除、回车和普通字符输入。
+
+配置对象需要能表达以下能力：
+
+- 追加绑定：为某个 `EditorShortcutIntent` 增加新的组合键，同一 intent 可以有多个别名。
+- 覆盖默认绑定：同一标准化组合键后定义的绑定覆盖先定义的绑定。
+- 禁用 intent：把指定 intent 的解析结果转为 `ignored`，常用于关闭写操作或业务不开放的能力。
+- 透传组合键：把指定组合键解析为 `passThrough`，交回宿主 `Focus`/`Actions`、浏览器或外层应用处理。
+- 平台主修饰键：使用 `primary` 表示 Windows/Linux/Web/Android 上的 Ctrl、macOS/iOS 上的 Cmd，也允许精确指定 Ctrl/Alt/Meta/Shift。
+
+合并与冲突策略固定为：默认 keymap → 插件/扩展贡献 → 编辑器显式配置。
+标准化组合键由平台集合、修饰键集合和 `LogicalKeyboardKey` 组成；同一组合键
+绑定多个 intent 时后者覆盖前者，同一 intent 绑定多个组合键时全部保留。
+无效字符键（例如空字符、多字符、控制字符，或没有 `character` 的
+`insertCharacter` 绑定）视为配置校验失败，不应退化为普通文本输入。
+
+配置解析仍需遵守输入系统边界：只读态下写 intent（撤销/重做、剪切、粘贴、
+删除、回车、插入字符等）解析后转为 `ignored`；IME composing 或 text input
+client 已 attach 时禁止把普通字符键解析成 `insertCharacter`，但带主修饰键的
+命令快捷键仍可继续解析。斜杆菜单打开时的 ArrowUp/ArrowDown/Enter/Escape，
+以及代码块内的 Tab/Shift+Tab，仍由 widget 层优先处理，不由普通 keymap 覆盖。
+
 ## 查找替换
 
 `WenzFindReplaceController` 监听宿主 `WenzRichTextController`，维护 query、

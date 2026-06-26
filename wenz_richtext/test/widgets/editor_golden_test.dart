@@ -216,24 +216,7 @@ void main() {
       document: const RichTextDocument(
         blocks: <BlockNode>[
           TextBlockNode(
-            id: 'title',
-            type: BlockType.heading,
-            attributes: BlockAttributes(level: 2),
-            content: <InlineNode>[
-              TextRun(
-                text: 'Release checklist',
-                attributes: TextAttributes(bold: true),
-              ),
-            ],
-          ),
-          TextBlockNode(
-            id: 'leaf',
-            type: BlockType.heading,
-            attributes: BlockAttributes(level: 3),
-            content: <InlineNode>[TextRun(text: 'No children heading')],
-          ),
-          TextBlockNode(
-            id: 'content-section',
+            id: 'expanded-section',
             type: BlockType.heading,
             attributes: BlockAttributes(level: 2),
             content: <InlineNode>[TextRun(text: 'Expanded blocks')],
@@ -251,18 +234,66 @@ void main() {
             code: 'final ready = true;',
           ),
           ImageBlockNode(id: 'image', assetId: 'hero', file: 'hero.png'),
+          TextBlockNode(
+            id: 'collapsed-section',
+            type: BlockType.heading,
+            attributes: BlockAttributes(level: 2),
+            content: <InlineNode>[TextRun(text: 'Collapsed details')],
+          ),
+          TextBlockNode(
+            id: 'hidden-detail',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'Hidden detail')],
+          ),
+          TextBlockNode(
+            id: 'leaf',
+            type: BlockType.heading,
+            attributes: BlockAttributes(level: 2),
+            content: <InlineNode>[TextRun(text: 'No children heading')],
+          ),
         ],
       ),
     );
     final outlineController = WenzOutlineController(editor: controller);
     addTearDown(outlineController.dispose);
+    expect(outlineController.collapseByBlockId('collapsed-section'), isTrue);
 
     // Includes the leading row chrome gutter reserved for block drag handles.
     await _pumpGoldenEditor(
       tester,
       controller,
       outlineController: outlineController,
+      size: const Size(520, 420),
     );
+
+    final expandedButton = find.byKey(
+      const ValueKey<String>('wenz-richtext-heading-collapse-expanded-section'),
+    );
+    final collapsedButton = find.byKey(
+      const ValueKey<String>(
+          'wenz-richtext-heading-collapse-collapsed-section'),
+    );
+    final leafButton = find.byKey(
+      const ValueKey<String>('wenz-richtext-heading-collapse-leaf'),
+    );
+    expect(expandedButton, findsOneWidget);
+    expect(collapsedButton, findsOneWidget);
+    expect(leafButton, findsOneWidget);
+    expect(find.text('Hidden detail'), findsNothing);
+    expect(tester.widget<IconButton>(leafButton).onPressed, isNull);
+    expect(
+      tester.getRect(_blockDragHandleFinder('expanded-section')).right,
+      lessThanOrEqualTo(tester.getRect(expandedButton).left),
+    );
+
+    await tester.tap(expandedButton);
+    await tester.pumpAndSettle();
+    await tester.tap(expandedButton);
+    await tester.pumpAndSettle();
+    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    addTearDown(mouse.removePointer);
+    await mouse.addPointer(location: tester.getCenter(collapsedButton));
+    await tester.pumpAndSettle();
 
     await expectLater(
       find.byKey(_goldenKey),
@@ -475,6 +506,12 @@ void main() {
       ),
     );
 
+    expect(_richText('Selected words stay highlighted.'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('wenz-richtext-selection-highlight')),
+      findsOneWidget,
+    );
+
     await expectLater(
       find.byKey(_goldenKey),
       matchesGoldenFile('goldens/editor_selection.png'),
@@ -594,8 +631,8 @@ Future<void> _pumpGoldenEditor(
   WidgetTester tester,
   WenzRichTextController controller, {
   WenzOutlineController? outlineController,
+  Size size = const Size(520, 320),
 }) async {
-  const size = Size(520, 320);
   await tester.binding.setSurfaceSize(size);
   addTearDown(() => tester.binding.setSurfaceSize(null));
 

@@ -64,6 +64,37 @@ void main() {
       expect(controller.compositionState!.blockId, 'p1');
     });
 
+    test('slash menu waits until IME composition is committed', () {
+      final slash = SlashMenuController(editor: controller);
+      addTearDown(slash.dispose);
+
+      client.injectDelta(
+        const TextEditingDeltaInsertion(
+          insertionOffset: 0,
+          textInserted: '/',
+          selection: TextSelection.collapsed(offset: 1),
+          composing: TextRange(start: 0, end: 1),
+          oldText: '',
+        ),
+      );
+
+      expect(controller.document.plainText, '/');
+      expect(controller.compositionState, isNotNull);
+      expect(slash.isOpen, isFalse);
+
+      client.injectDelta(
+        const TextEditingDeltaNonTextUpdate(
+          oldText: '/',
+          selection: TextSelection.collapsed(offset: 1),
+          composing: TextRange.empty,
+        ),
+      );
+
+      expect(controller.compositionState, isNull);
+      expect(slash.isOpen, isTrue);
+      expect(slash.query, isEmpty);
+    });
+
     test('committing the composition clears the composition state', () {
       // Compose "ni" then replace it with the committed candidate "你".
       client.injectDelta(

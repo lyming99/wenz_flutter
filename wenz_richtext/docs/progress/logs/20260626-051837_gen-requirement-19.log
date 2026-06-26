@@ -1,0 +1,881 @@
+OpenAI Codex v0.121.0 (research preview)
+--------
+workdir: D:\project\GitHub\wenz_flutter\wenz_richtext
+model: gpt-5.5
+provider: custom
+approval: never
+sandbox: danger-full-access
+reasoning effort: xhigh
+reasoning summaries: none
+session id: 019f00a6-2a88-75f0-8be9-891741f80ac4
+--------
+user
+你是需求整理与开发计划生成者。
+请根据以下需求，生成一个开发计划和验收标准。
+
+输出文件：D:\project\GitHub\wenz_flutter\wenz_richtext\docs\plan\plan_requirement_19_20260626-051837.md
+
+格式要求：
+- 每个任务必须严格使用固定格式：- [ ] P001: 任务标题 <!-- scope: lib/foo.dart,test/foo_test.dart -->
+- scope 必填，表示该任务预计修改的文件或模块；多个 scope 用英文逗号分隔；无法判断时写 <!-- scope: unknown -->，unknown 任务不会并发执行
+- 每个任务要有验收要点
+- 必须包含总体验收标准和进度区
+- 只写 plan 文件，不要改业务代码
+
+需求 #19 内容：
+代码内容要支持行号显示
+**Considering documentation options**
+
+I'm thinking about the best approach for our codebase survey. For something like codegraph, it seems appropriate, while for simpler documentation, perhaps shell is the way to go. I just need to make sure that the plan file is written correctly. I also wonder if we should be cautious about paths related to Chinese content? It might be worth it to check the docs or the plan more closely.
+codex
+我先看一下现有计划文档格式和项目结构，再只写入目标 plan 文件。
+  → 查看现有计划格式
+  • 梳理行号支持任务
+  • 写入目标计划文件
+  • 确认文件内容完整
+exec
+powershell.exe -Command "Get-ChildItem -Force; if (Test-Path AGENTS.md) { Get-Content AGENTS.md -Raw }; if (Test-Path docs\\plan) { Get-ChildItem docs\\plan | Select-Object -First 10 | Format-Table -AutoSize }" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 268ms:
+
+
+    目录: D:\project\GitHub\wenz_flutter\wenz_richtext
+
+
+Mode                 LastWriteTime         Length Name                                                                 
+----                 -------------         ------ ----                                                                 
+d-----         2026/6/26      5:02                .codegraph                                                           
+d-----         2026/6/24     15:10                .dart_appdata                                                        
+d-----         2026/6/24     15:10                .dart_localappdata                                                   
+d-----         2026/6/24     16:11                .dart_tool                                                           
+d-----         2026/6/24     16:13                .dart_tool_appdata                                                   
+d-----         2026/6/24     16:06                .dart_tool_localappdata                                              
+d-----         2026/6/20      0:26                .idea                                                                
+d-----         2026/6/25     10:14                build                                                                
+d-----         2026/6/19     17:02                doc                                                                  
+d-----         2026/6/24     18:05                docs                                                                 
+d-----         2026/6/22     14:56                example                                                              
+d-----         2026/6/22     17:09                lib                                                                  
+d-----         2026/6/24      3:35                scripts                                                              
+d-----         2026/6/25      3:33                test                                                                 
+d-----         2026/6/24     18:04                tool                                                                 
+d-----         2026/6/25      2:40                ui                                                                   
+-a----         2026/6/19     14:04             87 .gitignore                                                           
+-a----         2026/6/24     16:16             94 analysis_options.yaml                                                
+-a----         2026/6/24     14:38            726 CHANGELOG.md                                                         
+-a----         2026/6/25      2:56            157 nul                                                                  
+-a----         2026/6/25      2:18          10389 pubspec.lock                                                         
+-a----         2026/6/25      2:18            382 pubspec.yaml                                                         
+-a----         2026/6/25     10:45           4516 README.md                                                            
+
+
+
+
+    目录: D:\project\GitHub\wenz_flutter\wenz_richtext\docs\plan
+
+
+Mode          LastWriteTime Length Name                                  
+----          ------------- ------ ----                                  
+-a----  2026/6/25      0:06  11555 plan_feedback_1_20260624-220759.md    
+-a----  2026/6/25      3:25  17553 plan_feedback_2_20260625-004108.md    
+-a----  2026/6/25      4:57   7973 plan_feedback_3_20260625-014905.md    
+-a----  2026/6/25      6:44   6253 plan_feedback_4_20260625-024854.md    
+-a----  2026/6/25     18:54   7304 plan_feedback_6_20260625-035040.md    
+-a----  2026/6/26      2:19  12284 plan_feedback_7_20260625-202854.md    
+-a----  2026/6/26      2:56   7337 plan_feedback_8_20260626-025328.md    
+-a----  2026/6/25     13:50   8792 plan_requirement_10_20260625-034349.md
+-a----  2026/6/26      2:53   8705 plan_requirement_13_20260626-024112.md
+-a----  2026/6/26      4:13   7185 plan_requirement_14_20260626-034143.md
+
+
+
+**Inspecting requirement plan**
+
+I think I need to review the existing requirement plan to see if it’s well-structured. I might use a shell command, like Get-Content, to check the first few lines of the document, just to get a feel for what's there. This’ll help me figure out how to format or adjust things moving forward. It feels like a straightforward approach, and I'm curious about what I might uncover!
+codex
+已有计划文件存在，我继续抽样对齐它们的结构和任务格式。
+exec
+powershell.exe -Command "Get-ChildItem docs\\plan\\plan_requirement_*.md | Sort-Object Name | Select-Object -Last 5 | ForEach-Object { '--- ' + "'$_.Name; Get-Content $_.FullName -TotalCount 120 }' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 247ms:
+--- plan_requirement_17_20260626-044909.md
+# 需求开发计划：提示块选区删除对齐代码块
+
+## 来源
+- 类型：需求
+- 编号：17
+- 生成时间：2026-06-26 04:49:09
+
+## 原始内容
+提示类的块组件，删除内容要和代码块的逻辑一致，删除内容时只删除选中的内容
+
+## 需求理解
+- “提示类的块组件”对应现有文档模型中的 `CalloutBlockNode` / `BlockType.callout`，其正文内容存储在 `content: List<InlineNode>` 中，并使用 `PositionPath.blockText` 参与文本编辑。
+- 当前删除命令已对普通文本块和代码块做选区内删除，但提示块正文需要与代码块一致：当选中提示块内部分内容并删除时，只移除选中范围，不删除整个提示块。
+- 删除后提示块的 `id`、`variant`、`title`、`icon`、`attributes` 等块级元数据必须保持不变；仅正文 inline 内容按选区范围变化。
+- 同块选区、跨块边界选区、退格/前删触发的非折叠选区删除、撤销/重做和序列化结果都应走现有命令体系，避免在 UI 层绕过模型逻辑。
+- 空正文提示块仍是合法提示块；除非用户明确选中整个对象块或执行已有结构删除命令，否则不应因正文被删空而移除提示块本身。
+
+## 任务计划
+- [x] P001: 明确提示块删除语义边界 <!-- scope: lib/src/core/commands/text_commands.dart,lib/src/core/model/block_node.dart,test/core/text_commands_test.dart -->
+  - 验收要点：确认 `CalloutBlockNode` 的可编辑正文使用 `content` 和 `PositionPath.blockText`，删除范围仅作用于正文 inline 内容，不包含标题、图标、变体等展示元数据。
+  - 验收要点：确认提示块同块选区删除应与代码块 `CodeBlockNode` 同块删除一致：按 start/end offset 裁剪范围，删除后选区折叠到原 start。
+  - 验收要点：确认正文被全部选中删除时保留空提示块，不把提示块当作图片、视频、分割线等对象块整体删除。
+
+- [ ] P002: 补齐提示块同块选区删除 <!-- scope: lib/src/core/commands/text_commands.dart,test/core/text_commands_test.dart -->
+  - 验收要点：`DeleteSelectionCommand` 在 `CalloutBlockNode` 且 `start.path == end.path == PositionPath.blockText(...)` 时，仅通过 `deleteInline` 删除选中正文内容。
+  - 验收要点：删除后新 `CalloutBlockNode` 保留原 `id`、`variant`、`title`、`icon`、`attributes`，正文只少掉选中范围，未选中文本和 inline 样式保持原顺序。
+  - 验收要点：无效 block、折叠选区、跨 path 选区或 offset 越界场景遵循现有命令 no-op / clamp 约定，不产生异常或误删整个提示块。
+
+- [ ] P003: 对齐提示块跨块边界删除 <!-- scope: lib/src/core/commands/text_commands.dart,test/core/text_commands_test.dart -->
+  - 验收要点：`_leadingRemainderForPosition` 与 `_trailingRemainderForPosition` 支持提示块正文边界，跨块删除时保留选区外的提示块正文片段。
+  - 验收要点：从提示块选到后续文本/代码/表格，或从文本/代码/表格选到提示块时，只删除选区覆盖内容；提示块未选中部分、元数据和相邻块未选中部分保留。
+  - 验收要点：提示块到提示块的跨块删除可按现有文本块/代码块策略处理边界余量和光标落点；不支持合并的异类边界必须稳定保留合法余量且不误删。
+
+- [ ] P004: 统一提示块编辑辅助判断 <!-- scope: lib/src/core/commands/text_commands.dart,lib/src/core/commands/selection_commands.dart,test/core/text_commands_test.dart,test/core/selection_commands_test.dart -->
+  - 验收要点：与删除相关的可编辑块判断、块首/块尾光标定位、空可编辑块判断和非文本对象判断将提示块视为正文可编辑块，而不是整体对象块。
+  - 验收要点：退格和前删在存在非折叠选区时继续委托 `DeleteSelectionCommand`，提示块选区删除行为与工具栏、键盘和程序化命令入口一致。
+  - 验收要点：提示块与相邻普通文本块、代码块、对象块、表格块之间的块级删除/导航行为保持现有语义，不因本需求引入额外合并或结构删除副作用。
+
+- [ ] P005: 补充核心命令回归测试 <!-- scope: test/core/text_commands_test.dart,test/helpers/selection_test_helpers.dart -->
+  - 验收要点：新增同块提示块正文部分删除、全文删除为空正文、带 inline 样式内容删除、offset 边界删除和删除后选区折叠位置测试。
+  - 验收要点：新增跨块删除边界测试，覆盖提示块作为起点、终点、两端均为提示块，以及中间存在对象块/表格块的回归场景。
+  - 验收要点：如现有 helper 缺少提示块选区构造，可补充最小测试辅助方法；测试 helper 不改变生产 API，不影响已有文本块和代码块用例。
+
+- [ ] P006: 验证历史记录与导出一致性 <!-- scope: lib/src/core/commands/text_commands.dart,test/core/text_commands_test.dart,test/codecs/rich_text_json_codec_test.dart,test/codecs/plain_text_codec_test.dart -->
+  - 验收要点：提示块正文删除通过 `CommandExecutor` 记录历史，撤销恢复原正文和块级元数据，重做再次只删除选中正文。
+  - 验收要点：删除后的 JSON、纯文本或相关 codec 输出只反映正文内容变化，提示块类型、变体、标题、图标和属性序列化保持一致。
+  - 验收要点：相关定向测试与 `flutter analyze` 通过；若存在既有失败，记录命令、失败用例、原因判断和本需求影响范围。
+
+## 总体验收标准
+- 计划中的所有 checkbox 任务完成，且每个任务的验收要点都有对应实现结论、自动化测试结论或明确风险记录。
+- 用户在提示块正文中选中任意部分内容并执行删除时，只删除选中的正文内容，不删除整个提示块，不影响未选中文本。
+- 提示块删除逻辑与代码块保持一致：同块按 offset 范围裁剪，跨块只处理选区覆盖边界，删除后选区折叠到合理位置。
+- 提示块的 `id`、`variant`、`title`、`icon`、`attributes` 等块级信息在正文删除、撤销、重做和导出后保持不变。
+- 正文被删空后提示块仍保留为空正文提示块；除已有整体对象删除语义外，不因内容为空而移除提示块。
+- 键盘 Backspace/Delete、命令调用、工具栏或编辑器 UI 触发删除时行为一致，不出现选区错位、误删块、历史记录缺失或序列化异常。
+- `flutter analyze`、`test/core/text_commands_test.dart`、相关 selection/codec 定向测试通过；如存在既有失败，需记录失败原因和影响范围。
+
+## 进度区
+- 当前状态：draft，P001-P006 待开发执行。
+- 当前负责人：待分配。
+- 下一步：从 P001 开始确认提示块正文 path、删除命令分支和代码块现有行为的差异点。
+- 并行建议：P001 完成后，P002 与 P003 需串行推进以避免删除辅助逻辑冲突；P004 可在 P002/P003 稳定后统一整理判断；P005/P006 在实现完成后并行补充验证。
+- 验证记录：本次仅生成计划文件，未修改业务代码，未执行自动化测试或手工验收。
+- 风险记录：提示块正文使用文本 path 但块类型不是 `TextBlockNode`，需重点排查所有仅判断 `TextBlockNode || CodeBlockNode` 的删除、光标和空块辅助逻辑，避免将提示块误判为对象块。
+- P001 AutoPlan 完成：2026-06-25T21:04:01.746Z；日志：docs/progress/logs/20260626-045359_execute-P001.log
+--- plan_requirement_18_20260626-050406.md
+# 需求开发计划：主题深浅切换与黑白背景适配
+
+## 来源
+- 类型：需求
+- 编号：18
+- 生成时间：2026-06-26 05:04:06
+
+## 原始内容
+要支持主题深浅切换，背景色为黑白，编辑器要适应2种主题，example增加切换深浅主题配置
+
+## 需求理解
+- 需要让 `WenzRichTextEditor` 在 `ThemeData` 的浅色/深色两种模式下都可读、可操作，不只依赖当前浅色设计 token。
+- “背景色为黑白”应落到示例和编辑器承载面：浅色主题背景为白色，深色主题背景为黑色；编辑器内部文本、块背景、边框、选区、光标和浮层必须跟随主题保持对比度。
+- 当前 example 只配置了 `ThemeData(... brightness: Brightness.light)`，需要增加 `theme` / `darkTheme` / `themeMode` 以及可交互的深浅切换入口。
+- 当前编辑器已有大量使用 `Theme.of(context).colorScheme` 的逻辑，但仍存在硬编码浅色 token（表格、分割线、文件/嵌入块、提示块、公式块等）和固定暗色代码块，需要统一梳理主题派生策略。
+- 本需求不涉及文档模型、命令、codec、导入导出格式变化；主题适配应保持现有内容编辑、选择、撤销重做和插件扩展行为不变。
+
+## 任务计划
+- [x] P001: 明确主题 token 与兼容边界 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/wenz_richtext.dart,docs/api_reference.md -->
+  - 验收要点：梳理编辑器正文、块级组件、inline 样式、选区/光标、浮层、媒体占位和表格使用的颜色来源，区分可直接使用 `ColorScheme` 的项目与需新增编辑器内部主题 token 的项目。
+  - 验收要点：确认是否新增公开配置（例如编辑器背景/主题覆盖参数）；若新增，保持现有构造参数兼容，`lib/wenz_richtext.dart` 导出与 `docs/api_reference.md` 同步；若不新增公开 API，记录仅依赖 `ThemeData` 的原因。
+  - 验收要点：明确浅色背景为 `Colors.white`、深色背景为 `Colors.black` 的落点，避免文档数据层、命令层、序列化层出现与主题无关的改动。
+
+- [ ] P002: 增加编辑器黑白背景适配 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,test/widgets/wenz_rich_text_editor_test.dart -->
+  - 验收要点：`WenzRichTextEditor` 在浅色主题下默认承载背景为白色，在深色主题下默认承载背景为黑色；外部已有背景容器或未来覆盖参数不被破坏。
+  - 验收要点：正文基础 `TextStyle`、placeholder/空块点击区域、只读/可编辑状态、焦点高对比边框、光标颜色和选区高亮在黑白背景上均保持可见。
+  - 验收要点：新增 widget 测试覆盖浅色与深色主题下编辑器背景、正文颜色、光标/选区颜色取值，不影响现有浅色断言。
+
+- [ ] P003: 适配内置块渲染深浅主题 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,test/widgets/wenz_rich_text_editor_test.dart,test/widgets/editor_golden_test.dart -->
+  - 验收要点：段落、标题、引用、列表、任务列表、代码块、表格、分割线、图片、视频、文件、callout、embed/formula 等默认渲染器均从主题派生背景、前景、边框和弱化文本颜色。
+  - 验收要点：现有硬编码浅色表格边框/斑马纹、divider 线、文件卡片、embed 虚线边框、callout tint、公式块背景等在深色背景下不刺眼、不丢失层次；代码块保持语法高亮可读。
+  - 验收要点：inline 链接、备注、修订、高亮、mention/formula pill、查找高亮、折叠标题徽标等状态色在两种主题下满足基础对比度并保持原交互语义。
+
+- [ ] P004: 适配浮层和辅助面板主题 <!-- scope: lib/src/widgets/slash_menu_overlay.dart,lib/src/widgets/find_replace_panel.dart,lib/src/widgets/link_edit_dialog.dart,lib/src/widgets/comment_sidebar.dart,lib/src/widgets/table_floating_toolbar_overlay.dart,test/widgets/slash_menu_overlay_test.dart,test/widgets/find_replace_panel_test.dart,test/widgets/link_edit_dialog_test.dart,test/widgets/comment_sidebar_test.dart -->
+  - 验收要点：斜杠菜单、查找替换面板、链接编辑弹窗、评论侧栏、表格浮动工具条等编辑器周边 UI 在深浅主题下使用 `ThemeData` / `ColorScheme` 的 surface、outline、primary、onSurface 等颜色。
+  - 验收要点：悬停/选中/禁用/焦点/错误状态在深色主题下文字、图标、边框和阴影仍可辨识，不残留只适合浅色背景的固定白底或浅灰边框。
+  - 验收要点：相关组件测试补充至少一个深色主题场景，验证关键 surface、文字颜色或状态色来自当前主题。
+
+- [ ] P005: example 增加深浅主题切换 <!-- scope: example/lib/main.dart,example/integration_test/helpers/test_app.dart,example/integration_test/theme_toggle_test.dart -->
+  - 验收要点：`WenzRichTextExampleApp` 配置 `theme`、`darkTheme`、`themeMode`，浅色主题背景/编辑器 surface 为白色，深色主题背景/编辑器 surface 为黑色，并统一保留现有 seedColor 与 Material3 风格。
+  - 验收要点：example 的 AppBar 或设置区提供可点击切换入口，切换后无需重启即可更新 Scaffold、工具栏、侧栏、编辑器和弹窗主题。
+  - 验收要点：integration test helper 与新增主题切换测试能驱动同一套 workbench，验证点击切换后 `WenzRichTextEditor` 仍显示原文档内容且背景从白色切到黑色/反向切回。
+
+- [ ] P006: 补充双主题 golden 与回归验证 <!-- scope: test/widgets/editor_golden_test.dart,test/widgets/goldens/editor_theme_light.png,test/widgets/goldens/editor_theme_dark.png,test/widgets/wenz_rich_text_editor_test.dart -->
+  - 验收要点：新增或扩展 golden 场景覆盖包含段落、标题、引用、代码、表格、callout、媒体占位和 inline 状态的编辑器，在浅色/深色两种主题下生成稳定基线。
+  - 验收要点：深色 golden 使用黑色背景，浅色 golden 使用白色背景；图片差异仅来自预期主题色变化，不引入布局尺寸、滚动位置或文字内容变化。
+  - 验收要点：若 golden 更新受平台字体或已有基线影响，记录更新命令、差异截图和是否属于本需求预期。
+
+- [ ] P007: 更新文档并完成验收记录 <!-- scope: README.md,docs/api_reference.md,CHANGELOG.md,docs/progress/logs -->
+  - 验收要点：README 增加 example 深浅主题切换或嵌入方配置 `ThemeData` 的说明，明确黑白背景示例与编辑器自动适配行为。
+  - 验收要点：如新增公开 API，`docs/api_reference.md` 与 `CHANGELOG.md` 记录参数、默认值、兼容性和迁移说明；如未新增公开 API，则记录仅需配置 Flutter 主题。
+  - 验收要点：记录 `flutter analyze`、主题相关 widget/golden 测试、example integration test 的执行结果；如存在既有失败，标明失败用例、原因判断和本需求影响范围。
+
+## 总体验收标准
+- 所有计划任务完成，且每个任务的验收要点都有实现结论、测试结论或明确风险记录。
+- example 可在运行时切换浅色/深色主题；浅色背景为白色，深色背景为黑色，切换后编辑器内容、工具栏、侧栏和弹窗同步更新。
+- `WenzRichTextEditor` 在浅色与深色主题下均保持正文、标题、列表、引用、代码、表格、callout、媒体占位、文件块、embed/formula、链接和 inline 高亮可读。
+- 光标、文本选区、查找高亮、拖拽手柄、折叠标题控件、表格选择/resize 状态在黑白背景上可见且不改变原交互语义。
+- 主题适配不改变文档模型、命令执行、撤销重做、导入导出、序列化格式和插件注册方式；已有公开 API 保持向后兼容。
+- 浅色现有 golden 或关键 widget 断言不出现非预期回归；新增深色测试能稳定验证主题来源和可读性。
+- `flutter analyze`、相关 widget 测试、golden 测试和 example 主题切换集成测试通过；若存在既有失败，需在验收记录中说明。
+
+## 进度区
+- 当前状态：draft，P001-P007 待开发执行。
+- 当前负责人：待分配。
+- 下一步：从 P001 开始梳理 `WenzRichTextEditor` 内部硬编码颜色与 example 主题配置，确定是否需要新增公开主题覆盖参数。
+- 并行建议：P001 完成前不要并发修改主题 API；P002 与 P003 都集中在 `wenz_rich_text_editor.dart`，建议串行；P004 可与 P005 并行；P006/P007 在实现稳定后执行。
+- 验证记录：本次仅生成计划文件，未修改业务代码，未执行自动化测试或手工验收。
+- 风险记录：深色适配涉及大量硬编码浅色 token 和 golden 基线，需避免为了视觉调整改动布局尺寸；example 主题黑白背景需与 Flutter 默认 `ColorScheme` surface 差异明确处理。
+- P001 AutoPlan 完成：2026-06-25T21:18:32.751Z；日志：docs/progress/logs/20260626-051126_execute-P001.log
+--- plan_requirement_2_20260625-023728.md
+# 闇€姹傚紑鍙戣鍒掞細瀵屾枃鏈鍔犺棰戠粍浠跺厓绱?
+## 鏉ユ簮
+- 绫诲瀷锛氶渶姹?- 缂栧彿锛?
+- 鐢熸垚鏃堕棿锛?026-06-25 02:37:28
+
+## 鍘熷鍐呭
+瀵屾枃鏈鍔犺棰戠粍浠跺厓绱?
+## 闇€姹傜悊瑙?- 鍦ㄥ瘜鏂囨湰鏂囨。涓柊澧炲彲鎻掑叆銆佸彲娓叉煋銆佸彲閫夋嫨銆佸彲搴忓垪鍖栫殑瑙嗛缁勪欢鍏冪礌锛屼娇鍏朵綔涓哄潡绾у獟浣撳厓绱犲弬涓庣紪杈戝櫒鐨勬甯哥紪杈戞祦绋嬨€?- 瑙嗛缁勪欢搴斿鐢ㄧ幇鏈夊獟浣撴墿灞曟€濊矾锛氫笟鍔′晶鍙€氳繃 `MediaResolver` 鎺ョ鐪熷疄鎾斁鍣ㄦ覆鏌擄紝鍩虹搴撴彁渚涚ǔ瀹氱殑鏁版嵁缁撴瀯銆佸崰浣嶆覆鏌撳拰浜や簰鍏滃簳銆?- 鎵ц鍓嶉渶鍏堝鏍哥幇鏈?`BlockType.video`銆乣VideoBlockNode`銆佺紪瑙ｇ爜鍜岄粯璁ゆ覆鏌撳熀纭€锛岄伩鍏嶉噸澶嶅疄鐜帮紝骞惰ˉ榻愮己澶卞瓧娈点€佸叆鍙ｃ€佹祴璇曞拰鏂囨。銆?
+## 浠诲姟璁″垝
+- [x] P001: 鏄庣‘瑙嗛鑺傜偣鍗忚涓庡吋瀹圭瓥鐣?<!-- scope: lib/src/core/model/block_node.dart,lib/src/core/schema/document_schema.dart,docs/schema_and_commands.md,test/core/model_test.dart,test/core/document_schema_test.dart -->
+  - 楠屾敹瑕佺偣锛氱‘璁よ棰戜綔涓哄潡绾у師瀛愬厓绱犵殑瀛楁濂戠害锛屽寘鎷?`assetId`銆佹挱鏀惧湴鍧€銆佹湰鍦版枃浠躲€佸皝闈€佹爣棰?璇存槑銆佸昂瀵告瘮渚嬨€佷笂浼犵姸鎬佸拰鎵╁睍灞炴€х殑鍙栬垗銆?  - 楠屾敹瑕佺偣锛氭棫鏂囨。涓凡鏈夋垨缂哄け鐨勮棰戝瓧娈靛彲瀹夊叏瑙ｆ瀽锛屾湭鐭ュ瓧娈典笉浼氬鑷存枃妗ｅ姞杞藉け璐ワ紝缂虹渷瀛楁鏈夋槑纭厹搴曞€笺€?  - 楠屾敹瑕佺偣锛氭枃妗?schema 鑳藉尯鍒嗚棰戙€佸浘鐗囥€佹枃浠跺拰閫氱敤 embed锛岄潪娉曡棰戣妭鐐硅兘琚槑纭嫆缁濇垨闄嶇骇銆?
+- [x] P002: 瀹屽杽瑙嗛妯″瀷涓庡懡浠よ兘鍔?<!-- scope: lib/src/core/model/block_node.dart,lib/src/core/commands/block_commands.dart,lib/src/controller/wenz_rich_text_controller.dart,test/controller/video_block_controller_test.dart -->
+  - 楠屾敹瑕佺偣锛氭彁渚涙彃鍏ャ€佹洿鏂般€佸鍒跺拰鍒犻櫎瑙嗛鍧楃殑绋冲畾 API 鎴栧懡浠よ矾寰勶紝璋冪敤鏂规棤闇€鐩存帴鎷艰鍐呴儴鍛戒护缁嗚妭銆?  - 楠屾敹瑕佺偣锛氭彃鍏ヨ棰戝悗鍧?ID銆佹枃妗ｉ『搴忋€佹挙閿€/閲嶅仛璁板綍鍜岄€夊尯钀界偣淇濇寔涓€鑷达紝涓嶇牬鍧忕浉閭绘枃鏈潡銆?  - 楠屾敹瑕佺偣锛氭洿鏂拌棰戝厓鏁版嵁鏃跺彧褰卞搷鐩爣瑙嗛鍧楋紝鍥剧墖銆佹枃浠躲€乨ivider銆乪mbed 绛夊璞″潡琛屼负涓嶅洖褰掋€?
+- [x] P003: 鎺ュ叆榛樿瑙嗛娓叉煋涓庡獟浣撹В鏋愬櫒 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/block_renderer_registry.dart,lib/src/widgets/media_resolver.dart,test/widgets/media_resolver_test.dart,test/widgets/wenz_rich_text_editor_test.dart -->
+  - 楠屾敹瑕佺偣锛氭湭娉ㄥ叆 `MediaResolver` 鎴?resolver 杩斿洖 `null` 鏃讹紝瑙嗛鍧楁樉绀烘竻鏅扮殑鍐呯疆鍗犱綅缁勪欢锛屽寘鍚彲璇嗗埆鐨勮棰戞爣棰樻垨鏉ユ簮鎻愮ず銆?  - 楠屾敹瑕佺偣锛氭敞鍏?`MediaResolver` 鍚庡彲鐢变笟鍔′晶杩斿洖鑷畾涔夎棰戞挱鏀惧櫒缁勪欢锛屽紓甯告姏鍑烘椂缂栬緫鍣ㄤ笉宕╂簝骞跺洖閫€鍗犱綅娓叉煋銆?  - 楠屾敹瑕佺偣锛氳棰戝潡鏀寔鍩虹灏哄銆佸皝闈€佹爣棰?璇存槑鍜屼富棰樻牱寮忥紝涓嶅己鍒跺紩鍏?`video_player` 绛変笟鍔′緷璧栥€?
+- [x] P004: 琛ラ綈瑙嗛閫夋嫨涓庣紪杈戜氦浜?<!-- scope: lib/src/core/position/document_position.dart,lib/src/core/commands/selection_commands.dart,lib/src/core/commands/text_commands.dart,lib/src/input/clipboard_service.dart,test/core/selection_commands_test.dart,test/input/clipboard_service_test.dart,test/widgets/wenz_rich_text_editor_test.dart -->
+  - 楠屾敹瑕佺偣锛氳棰戝潡鍙榧犳爣鐐瑰嚮銆佹嫋鎷藉拰閿洏鏂瑰紡浣滀负鍘熷瓙鍧楅€変腑锛岄€夊尯楂樹寒涓庡璞″潡杈圭晫涓€鑷淬€?  - 楠屾敹瑕佺偣锛欱ackspace/Delete銆佸鍒躲€佸壀鍒囥€佺矘璐村拰璺ㄥ潡閫夋嫨鑳芥纭鐞嗚棰戝潡锛屼笉鍑虹幇 offset 瓒婄晫鎴栬鍒犵浉閭绘枃鏈€?  - 楠屾敹瑕佺偣锛氬鍒跺埌绾枃鏈€丠TML 鎴栧唴閮ㄥ壀璐存澘鏍煎紡鏃讹紝瑙嗛鑳借緭鍑哄彲璇诲崰浣嶆垨瀹屾暣鍏冩暟鎹紝绮樿创鍚庡彲鎭㈠涓鸿棰戝潡銆?
+- [x] P005: 瀹屾垚瑙嗛瀵煎叆瀵煎嚭閾捐矾 <!-- scope: lib/src/codecs/rich_text_json_codec.dart,lib/src/codecs/legacy_wen_json_codec.dart,lib/src/codecs/markdown_codec.dart,lib/src/codecs/html_codec.dart,lib/src/codecs/plain_text_codec.dart,test/codecs/rich_text_json_codec_test.dart,test/codecs/legacy_wen_json_codec_test.dart,test/codecs/markdown_codec_test.dart,test/codecs/html_codec_test.dart,test/codecs/plain_text_codec_test.dart -->
+  - 楠屾敹瑕佺偣锛氬瘜鏂囨湰 JSON 鍙畬鏁?round-trip 瑙嗛鑺傜偣鍙婂叾鍏冩暟鎹紝鍘嗗彶 Wen JSON 鍙寜鍏煎绛栫暐杩佺Щ鎴栭檷绾с€?  - 楠屾敹瑕佺偣锛歁arkdown 瀵煎嚭浣跨敤绋冲畾涓斿彲璇荤殑鍗犱綅璇硶锛岄噸鏂板鍏ュ悗鑳芥仮澶嶈棰戝潡鐨勬牳蹇冩潵婧愪俊鎭€?  - 楠屾敹瑕佺偣锛欻TML 瀵煎嚭浣跨敤璇箟鍖?`<video>` 鎴栫害瀹氭暟鎹睘鎬э紝HTML 瀵煎叆鍙仮澶嶈棰戝潡涓斾笉浼氳璇嗗埆鏅€氶摼鎺ユ垨鍥剧墖銆?
+- [x] P006: 澧炲姞瑙嗛鎻掑叆鍏ュ彛涓庣ず渚?<!-- scope: lib/src/controller/slash_menu_controller.dart,lib/src/controller/toolbar_controller.dart,lib/src/widgets/slash_menu_overlay.dart,lib/wenz_richtext.dart,example/lib/main.dart,docs/rendering.md,docs/running_guide.md,README.md -->
+  - 楠屾敹瑕佺偣锛氭枩鏉犺彍鍗曟垨宸ュ叿鏍忔彁渚涙竻鏅扮殑瑙嗛鎻掑叆鍏ュ彛锛屽叧閿瘝鍙€氳繃 `video`銆乣瑙嗛` 绛夋柟寮忓懡涓€?  - 楠屾敹瑕佺偣锛氱ず渚嬪伐绋嬪睍绀鸿棰戝潡鎻掑叆銆佸崰浣嶆覆鏌撳拰閫氳繃 `MediaResolver` 鑷畾涔夋覆鏌撶殑鏈€灏忕敤娉曘€?  - 楠屾敹瑕佺偣锛氬叕鍏卞鍑恒€丷EADME 鍜屾覆鏌撴枃妗ｈ鏄庤棰戠粍浠惰兘鍔涜竟鐣屻€佷笟鍔℃挱鏀惧櫒鎺ュ叆鏂瑰紡鍜屾棤鎾斁鍣ㄤ緷璧栧師鍒欍€?
+- [x] P007: 瀹屾垚瑙嗛缁勪欢鍥炲綊楠岃瘉 <!-- scope: test/widgets/media_resolver_test.dart,test/widgets/wenz_rich_text_editor_test.dart,test/controller/video_block_controller_test.dart,test/codecs/rich_text_json_codec_test.dart,test/codecs/markdown_codec_test.dart,test/codecs/html_codec_test.dart,example/integration_test/editor_richtext_test.dart -->
+  - 楠屾敹瑕佺偣锛氭柊澧炴垨鏇存柊鍗曟祴瑕嗙洊妯″瀷銆佸懡浠ゃ€佹覆鏌撱€侀€夋嫨銆佸壀璐存澘銆丮arkdown銆丠TML 鍜?JSON 鐨勮棰戜富娴佺▼銆?  - 楠屾敹瑕佺偣锛氭柊澧為泦鎴愰獙璇佽鐩栧湪缂栬緫鍣ㄤ腑鎻掑叆瑙嗛銆侀€変腑瑙嗛銆佸鍒剁矘璐磋棰戝拰瀵煎叆瀵煎嚭瑙嗛鐨勫叧閿矾寰勩€?  - 楠屾敹瑕佺偣锛氭墽琛?`flutter analyze`銆佽棰戠浉鍏冲畾鍚戞祴璇曞拰 `flutter test` 鍧囬€氳繃锛涘け璐ユ椂璁板綍鍘熷洜骞舵媶鍑哄悗缁慨澶嶄换鍔°€?
+## 鎬讳綋楠屾敹鏍囧噯
+- 璁″垝涓殑鎵€鏈?checkbox 浠诲姟瀹屾垚锛屼笖姣忎釜浠诲姟鐨勯獙鏀惰鐐瑰潎鏈夊搴斿疄鐜版垨楠岃瘉璁板綍銆?- 瀵屾枃鏈彲鎻掑叆瑙嗛缁勪欢鍏冪礌锛岃棰戝湪鏂囨。妯″瀷銆佹覆鏌撱€侀€夋嫨銆佸壀璐存澘銆佹挙閿€/閲嶅仛銆佸鍏ュ鍑洪摼璺腑琛屼负涓€鑷淬€?- 榛樿瀹炵幇涓嶅己鍒朵緷璧栧钩鍙版挱鏀惧櫒锛涗笟鍔℃柟鍙€氳繃 `MediaResolver` 鎺ュ叆鐪熷疄鎾斁鍣紝resolver 澶辫触鏃剁紪杈戝櫒淇濇寔鍙敤銆?- 鏃㈡湁鍥剧墖銆佹枃浠躲€乨ivider銆乥lock embed銆佽〃鏍煎拰鏅€氭枃鏈紪杈戣兘鍔涙棤鍥炲綊銆?- 鏂囨。鍜岀ず渚嬭兘鎸囧涓氬姟渚у畬鎴愯棰戞暟鎹啓鍏ャ€佽嚜瀹氫箟娓叉煋鍜屽吋瀹瑰鍏ュ鍑恒€?
+## 杩涘害鍖?- 褰撳墠鐘舵€侊細draft
+- 涓嬩竴姝ワ細璇勫璁″垝鍚庝粠 P001 寮€濮嬫墽琛岋紝鍏堢‘璁ょ幇鏈夎棰戝熀纭€鑳藉姏涓庣己鍙ｃ€?- 椋庨櫓璁板綍锛氳棰戠湡瀹炴挱鏀炬秹鍙婂钩鍙版潈闄愩€佺綉缁溿€佺紦瀛樸€佸叏灞忓拰鐢熷懡鍛ㄦ湡锛屽熀纭€搴撳簲鍙彁渚涙墿灞曠偣涓庡厹搴曟覆鏌擄紝閬垮厤鎶婁笟鍔℃挱鏀惧櫒澶嶆潅搴︾粦瀹氬埌鏍稿績缂栬緫鍣ㄣ€?- P001 AutoPlan 瀹屾垚锛?026-06-24T18:48:52.519Z锛涙棩蹇楋細docs/progress/logs/20260625-024055_execute-P001.log
+- P002 AutoPlan 瀹屾垚锛?026-06-24T21:09:28.743Z锛涙棩蹇楋細docs/progress/logs/20260625-045726_execute-P002.log
+- P003 AutoPlan 瀹屾垚锛?026-06-24T21:22:45.213Z锛涙棩蹇楋細docs/progress/logs/20260625-050932_execute-P003.log
+- P004 AutoPlan 瀹屾垚锛?026-06-24T21:41:18.819Z锛涙棩蹇楋細docs/progress/logs/20260625-052249_execute-P004.log
+- P005 AutoPlan 瀹屾垚锛?026-06-24T21:53:35.621Z锛涙棩蹇楋細docs/progress/logs/20260625-054120_execute-P005.log
+- P006 AutoPlan 瀹屾垚锛?026-06-24T22:03:27.181Z锛涙棩蹇楋細docs/progress/logs/20260625-055336_execute-P006.log
+- P007 AutoPlan 瀹屾垚锛?026-06-24T22:12:56.098Z锛涙棩蹇楋細docs/progress/logs/20260625-060327_execute-P007.log
+--- plan_requirement_3_20260625-025750.md
+# 闇€姹傚紑鍙戣鍒掞細鏍规嵁璁捐绋夸紭鍖栧瘜鏂囨湰鍏冪礌鏍峰紡
+
+## 鏉ユ簮
+- 绫诲瀷锛氶渶姹?- 缂栧彿锛?
+- 鐢熸垚鏃堕棿锛?026-06-25 02:57:50
+
+## 鍘熷鍐呭
+鏍规嵁璁捐绋匡紝浼樺寲瀵屾枃鏈厓绱犳牱寮忥細ui/richtext_design.html
+
+## 闇€姹傜悊瑙?- `ui/richtext_design.html` 鏄湰娆″瘜鏂囨湰鍏冪礌榛樿瑙嗚鐨勭洰鏍囩锛岃鐩栨鏂囨帓鐗堛€佽鍐呭睘鎬с€佽鍐呭祵鍏ャ€佹爣棰樸€佸榻愮缉杩涖€佸紩鐢ㄣ€佸垪琛ㄣ€佷唬鐮佸潡銆乧allout銆佸垎鍓茬嚎銆佸浘鐗囥€佽棰戙€佹枃浠躲€佽〃鏍煎拰鍧楃骇宓屽叆銆?- 鏈鐩爣鏄紭鍖栭粯璁ゆ覆鏌撴牱寮忎笌瑙嗚涓€鑷存€э紝浼樺厛钀藉湪 `lib/src/widgets/wenz_rich_text_editor.dart` 鍙婄浉鍏虫覆鏌撴墿灞曠偣锛屼笉涓诲姩鏀瑰彉鏂囨。妯″瀷銆佸懡浠ゅ崗璁€佺紪瑙ｇ爜鏍煎紡鎴栦笟鍔¤嚜瀹氫箟 renderer 鐨勬帴鍏ユ柟寮忋€?- 寮€鍙戞椂闇€鍏堝缓绔嬭璁＄鍒?Flutter 鏍峰紡鐨勬槧灏勮〃锛屽啀鍒嗗潡钀藉湴骞堕€氳繃 widget/golden 娴嬭瘯楠岃瘉锛岄伩鍏嶄竴娆℃€уぇ鏀瑰鑷撮€夊尯銆佸厜鏍囥€佸鍒剁矘璐淬€佽〃鏍间氦浜掔瓑缂栬緫琛屼负鍥炲綊銆?
+## 浠诲姟璁″垝
+- [x] P001: 寤虹珛璁捐绋挎牱寮忔槧灏勪笌宸紓鍩虹嚎 <!-- scope: ui/richtext_design.html,lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/block_renderer_registry.dart,test/widgets/editor_golden_test.dart,docs/acceptance_manual_checklist.md -->
+  - 楠屾敹瑕佺偣锛氭彁鍙栬璁＄涓殑棰滆壊銆佸渾瑙掋€侀槾褰便€佸瓧鍙枫€佽楂樸€侀棿璺濆拰鍚勫厓绱犵姸鎬侊紝褰㈡垚瀹炵幇渚у彲澶嶇敤鐨勬牱寮忔槧灏勬竻鍗曘€?  - 楠屾敹瑕佺偣锛氬鐓у綋鍓嶉粯璁ゆ覆鏌擄紝鏄庣‘鍝簺鍏冪礌鍙渶璋冩牱寮忋€佸摢浜涘厓绱犻渶瑕佽ˉ鍏呭崰浣嶇粨鏋勬垨 golden 瑕嗙洊锛岄伩鍏嶄慨鏀规棤鍏充笟鍔￠€昏緫銆?  - 楠屾敹瑕佺偣锛氱‘璁ゆ湰闇€姹備笉鏂板 `BlockType`銆佷笉鏀?JSON/Markdown/HTML 缂栬В鐮佸崗璁€佷笉鐮村潖澶栭儴 `BlockRendererRegistry` 鍜?`InlineEmbedRenderer` 鎵╁睍鐐广€?
+- [x] P002: 缁熶竴姝ｆ枃鍩虹嚎涓庤鍐呮枃鏈睘鎬?<!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/inline_embed_renderer.dart,test/widgets/wenz_rich_text_editor_test.dart,test/widgets/editor_golden_test.dart -->
+  - 楠屾敹瑕佺偣锛氭鏂囬粯璁よ揪鍒拌璁＄ `16px` 瀛楀彿銆佺害 `1.75` 琛岄珮銆侀灏惧潡闂磋窛鏀舵暃鍜?Material 浜壊涓婚涓嬬殑 `onSurface` 涓绘枃鏈壊銆?  - 楠屾敹瑕佺偣锛氬姞绮椼€佹枩浣撱€佷笅鍒掔嚎銆佸垹闄ょ嚎銆佷笅鍒掔嚎鍔犲垹闄ょ嚎銆侀鑹层€侀珮浜€佸瓧鍙枫€佸瓧浣撱€侀摼鎺ャ€佹壒娉ㄥ拰淇鏍囪鐨勮瑙変笌璁捐绋夸竴鑷存垨鏈夋槑纭?Flutter 绛変环瀹炵幇銆?  - 楠屾敹瑕佺偣锛氳鍐呮牱寮忎紭鍖栧悗锛屾枃鏈€夋嫨銆侀珮浜€佸厜鏍囧懡涓€佸揩鎹烽敭鏍煎紡鍒囨崲銆佸鍒剁矘璐村拰鎾ら攢/閲嶅仛琛屼负涓嶅洖褰掋€?
+- [x] P003: 浼樺寲鏍囬灞傜骇涓庢钀藉榻愮缉杩?<!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,test/widgets/wenz_rich_text_editor_test.dart,test/widgets/editor_golden_test.dart -->
+  - 楠屾敹瑕佺偣锛氭爣棰?H1-H6 涓庤璁＄灞傜骇涓€鑷达紝H1/H2/H3/H4 鍒嗗埆浣跨敤 `24/21/18/16` 瑙嗚瀛楀彿锛孒5/H6 浣跨敤杈冨急鏉冮噸鎴栭鑹插尯鍒嗐€?  - 楠屾敹瑕佺偣锛氭爣棰樹笂涓嬮棿璺濄€佹钀?`.55em` 绫婚棿璺濄€侀灏惧潡闂磋窛鍜屾鏂囪楂樺湪杩炵画娈佃惤銆佹爣棰樺悗娈佃惤銆佺┖鏂囨。杈圭晫涓〃鐜扮ǔ瀹氥€?  - 楠屾敹瑕佺偣锛氬乏瀵归綈銆佸眳涓€佸彸瀵归綈銆佺缉杩涘拰鍒楄〃鍐呮钀戒笉鍥犳牱寮忚皟鏁撮€犳垚鏂囨湰瑁佸壀銆侀€夊尯閿欎綅鎴栨粴鍔ㄥ畾浣嶅紓甯搞€?
+- [x] P004: 浼樺寲寮曠敤鍒楄〃涓?todo 鏍峰紡 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/block_renderer_registry.dart,test/widgets/wenz_rich_text_editor_test.dart,test/widgets/editor_golden_test.dart -->
+  - 楠屾敹瑕佺偣锛氬紩鐢ㄥ潡鍏峰涓昏壊 `4px` 宸﹁竟妗嗐€乻urface-container 鑳屾櫙銆佸彸渚у渾瑙掋€佹枩浣撳拰寮卞寲鏂囨湰鑹诧紝涓旈€夊尯楂樹寒涓嶈鑳屾櫙閬洊銆?  - 楠屾敹瑕佺偣锛氭湁搴忓垪琛ㄣ€佹棤搴忓垪琛ㄣ€佸祵濂楀垪琛ㄧ殑缂╄繘銆侀」鐩鍙?缂栧彿銆佸潡闂磋窛鍜屽琛屾崲琛岀缉杩涚鍚堣璁＄ `26px` 宸︾缉杩涗笌绱у噾宓屽鑺傚銆?  - 楠屾敹瑕佺偣锛歵odo checkbox 涓庢枃瀛楅琛屽榻愶紝瀹屾垚鎬佷娇鐢ㄥ急鍖栨枃鏈壊鍜屽垹闄ょ嚎锛岀偣鍑?checkbox銆佹枃鏈紪杈戙€佸垪琛ㄥ崌闄嶇骇鍜屾櫘閫氬垪琛ㄦ覆鏌撳潎涓嶅洖褰掋€?
+- [x] P005: 浼樺寲浠ｇ爜鍧楀垎鍓茬嚎涓?callout <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/block_renderer_registry.dart,test/widgets/wenz_rich_text_editor_test.dart,test/widgets/editor_golden_test.dart -->
+  - 楠屾敹瑕佺偣锛氫唬鐮佸潡浣跨敤娣辫壊鑳屾櫙銆佺瓑瀹藉瓧浣撱€乣13.5px` 绛変环瀛楀彿銆佺害 `1.6` 琛岄珮銆乣18x20` 鍐呰竟璺濄€佸渾瑙掑拰璇█鏍囩灞曠ず锛岄暱浠ｇ爜妯悜婊氬姩涓嶈鍓€?  - 楠屾敹瑕佺偣锛氬垎鍓茬嚎浣跨敤娴呰壊缁嗙嚎銆佺害 `1.6em` 涓婁笅闂磋窛鍜屽眳涓富鑹插渾鐐癸紝浣滀负瀵硅薄鍧楅€変腑鏃惰竟鐣屽拰蹇嵎鎿嶄綔浠嶆竻鏅板彲瑙併€?  - 楠屾敹瑕佺偣锛歝allout 鐨?info/success/warning/danger 鍥涚鍙樹綋鍏峰瀵瑰簲鑳屾櫙銆佽竟妗嗐€佸浘鏍囥€佹爣棰樻潈閲嶅拰姝ｆ枃棰滆壊锛岀┖鏍囬鎴栫┖鍐呭鏃舵湁瀹夊叏鍏滃簳銆?
+- [x] P006: 浼樺寲鍥剧墖瑙嗛鏂囦欢涓庡潡绾у祵鍏?<!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/media_resolver.dart,lib/src/widgets/block_renderer_registry.dart,test/widgets/media_resolver_test.dart,test/widgets/editor_golden_test.dart -->
+  - 楠屾敹瑕佺偣锛氬浘鐗囧潡浠?figure 璇箟鍛堢幇瑙嗚鏁堟灉锛屾敮鎸佸眳涓€佹渶澶у搴︺€佽嚜瀹氫箟鏄剧ず灏哄銆佸渾瑙掋€侀槾褰卞拰 `13px` 寮卞寲 caption銆?  - 楠屾敹瑕佺偣锛氳棰戦粯璁ゅ崰浣嶄笌璁捐绋夸竴鑷达紝鍏峰榛戣壊棰勮瀹瑰櫒銆佸渾瑙掗槾褰便€佸眳涓挱鏀炬寜閽拰灏侀潰/鏍囬鍏滃簳锛屽悓鏃剁户缁厑璁?`MediaResolver` 鎺ョ鐪熷疄鎾斁鍣ㄣ€?  - 楠屾敹瑕佺偣锛氭枃浠跺潡浣跨敤鍗＄墖寮忓竷灞€銆乣40x40` 绫诲瀷鍥炬爣銆佹枃浠跺悕/鍏冧俊鎭?澶у皬鍒嗗尯銆乭over/focus 杈规鍙嶉鍜屼笂浼犵姸鎬佹枃妗堬紝涓嶅奖鍝嶅璞″潡閫夋嫨涓庡揩鎹锋搷浣溿€?  - 楠屾敹瑕佺偣锛氶€氱敤鍧楃骇 embed 浣跨敤铏氱嚎杈规銆佹祬鑹茶儗鏅€乧hip 鏍囩鍜?fallbackText 鍏滃簳锛涘叕寮忕被 block embed 浣跨敤鏁板瀛椾綋銆佹祬绱儗鏅拰鏇村ぇ瀛楀彿銆?
+- [x] P007: 浼樺寲琛ㄦ牸瑙嗚涓庡崟鍏冩牸鏍峰紡 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,test/widgets/wenz_rich_text_editor_test.dart,test/widgets/editor_golden_test.dart -->
+  - 楠屾敹瑕佺偣锛氳〃鏍兼暣浣撳叿澶囧叏瀹藉竷灞€銆佸渾瑙掋€侀槾褰便€佹祬鑹茶竟妗嗐€乣15px` 绛変环瀛椾綋銆乣10x14` 鍗曞厓鏍煎唴杈硅窛鍜岃〃澶村急鑳屾櫙銆?  - 楠屾敹瑕佺偣锛氬垪瀹姐€佸垪瀵归綈銆佸悎骞跺崟鍏冩牸銆佽〃澶村崟鍏冩牸銆佸崟鍏冩牸鑳屾櫙鑹插拰鍋舵暟琛屽簳鑹蹭笌褰撳墠琛ㄦ牸妯″瀷鑳藉姏鍏煎锛岃瑙変笂鎺ヨ繎璁捐绋裤€?  - 楠屾敹瑕佺偣锛氳〃鏍奸€夊尯銆佹嫋鎷藉垪瀹姐€佹诞鍔ㄥ伐鍏锋爮銆佹彃鍏?鍒犻櫎琛屽垪銆佸悎骞?鎷嗗垎鍗曞厓鏍煎拰鍗曞厓鏍兼枃鏈紪杈戝湪鏍峰紡璋冩暣鍚庝笉鍥炲綊銆?
+- [x] P008: 琛ュ厖瑙嗚鍥炲綊涓庨獙鏀惰褰?<!-- scope: test/widgets/editor_golden_test.dart,test/widgets/wenz_rich_text_editor_test.dart,test/widgets/goldens/editor_advanced_blocks.png,docs/acceptance_manual_checklist.md,docs/plan/plan_requirement_3_20260625-025750.md -->
+  - 楠屾敹瑕佺偣锛氭柊澧炴垨鏇存柊瑕嗙洊缁煎悎鎺掔増鐨?golden锛屽寘鎷鍐呭睘鎬с€佹爣棰樸€佸紩鐢ㄣ€佸垪琛ㄣ€佷唬鐮併€乧allout銆乨ivider銆佸浘鐗囥€佽棰戙€佹枃浠躲€佽〃鏍煎拰 block embed銆?  - 楠屾敹瑕佺偣锛氳ˉ鍏呭繀瑕?widget 娴嬭瘯锛岄獙璇佸叧閿牱寮忎笉浼氱牬鍧忛€夊尯鍛戒腑銆佸璞″潡閫夋嫨銆丮ediaResolver fallback銆佽〃鏍兼搷浣滃拰 todo 浜や簰銆?  - 楠屾敹瑕佺偣锛氭墽琛?`flutter analyze`銆佺浉鍏?widget/golden 娴嬭瘯鍜屽繀瑕佸叏閲忔祴璇曪紱鑻ュ瓨鍦ㄦ棦鏈夊け璐ワ紝闇€鍦ㄨ繘搴﹀尯璁板綍澶辫触鍛戒护銆佸師鍥犲垽鏂拰鍚庣画寤鸿銆?
+## 鎬讳綋楠屾敹鏍囧噯
+- 鎵€鏈変换鍔?checkbox 鍧囧畬鎴愶紝涓旀瘡涓换鍔＄殑楠屾敹瑕佺偣閮芥湁鏄庣‘缁撹鎴栭獙鏀惰褰曘€?- 榛樿缂栬緫鍣ㄦ覆鏌撳湪浜壊涓婚涓嬩笌 `ui/richtext_design.html` 鐨勫厓绱犳牱寮忓熀鏈竴鑷达紝瑕嗙洊琛屽唴灞炴€с€佽鍐呭祵鍏ャ€佹爣棰樸€佹钀姐€佸紩鐢ㄣ€佸垪琛ㄣ€佷唬鐮併€乧allout銆佸垎鍓茬嚎銆佸浘鐗囥€佽棰戙€佹枃浠躲€佽〃鏍煎拰鍧楃骇宓屽叆銆?- 鏍峰紡浼樺寲涓嶆敼鍙樻枃妗ｆā鍨嬨€佸懡浠ゅ崗璁€佸鍏ュ鍑烘暟鎹粨鏋勩€佹彃浠舵敞鍐屾柟寮忓拰涓氬姟鑷畾涔?renderer 鎺ュ叆鏂瑰紡銆?- 鏂囨湰缂栬緫銆侀€夊尯楂樹寒銆佸厜鏍囧懡涓€佸鍒剁矘璐淬€佹挙閿€/閲嶅仛銆佸璞″潡閫夋嫨銆乼odo 鍒囨崲銆佸獟浣?fallback 鍜岃〃鏍肩紪杈戣兘鍔涗笉鍥炲綊銆?- 鐩稿叧鑷姩鍖栨祴璇曘€乬olden 娴嬭瘯銆侀潤鎬佹鏌ュ拰蹇呰鎵嬪伐楠屾敹閫氳繃锛涗笉鑳介€氳繃鏃堕渶鍖哄垎鏈寮曞叆闂涓庢棦鏈夐棶棰橈紝骞舵彁渚涘彲澶嶇幇璁板綍銆?- 瑙嗚宸紓鑻ュ洜 Flutter/Material 缁勪欢闄愬埗鏃犳硶瀹屽叏杩樺師锛岄渶鍦ㄨ繘搴﹀尯璁板綍璁捐宸紓銆佹浛浠ｆ柟妗堝拰鍚庣画鏄惁闇€瑕佽璁＄‘璁ゃ€?
+## 杩涘害鍖?- 褰撳墠鐘舵€侊細璁″垝宸插垱寤猴紝P001-P008 寰呭紑鍙戞墽琛屻€?- 褰撳墠璐熻矗浜猴細寰呭垎閰嶃€?- 涓嬩竴姝ワ細浠?P001 寮€濮嬪缓绔嬭璁＄鏍峰紡鏄犲皠涓庡綋鍓嶆覆鏌撳樊寮傚熀绾裤€?- 楠岃瘉璁板綍锛氭湰娆′粎鐢熸垚璁″垝鏂囦欢锛屾湭淇敼涓氬姟浠ｇ爜锛屾湭鎵ц鑷姩鍖栨祴璇曟垨鎵嬪伐楠屾敹銆?- 椋庨櫓璁板綍锛氶粯璁ゆ覆鏌撻泦涓湪澶у瀷 widget 鏂囦欢涓紝鏍峰紡璋冩暣鍙兘褰卞搷閫夊尯鍜屽懡涓祴璇曪紱golden 鏇存柊闇€纭鐩爣骞冲彴瀛椾綋涓庢姉閿娇宸紓锛涜棰戝拰鍥剧墖鐪熷疄娓叉煋闇€鍏煎涓氬姟渚?`MediaResolver`銆?- P001 AutoPlan 瀹屾垚锛?026-06-24T19:10:49.708Z锛涙棩蹇楋細docs/progress/logs/20260625-030253_execute-P001.log
+- P002 AutoPlan 瀹屾垚锛?026-06-24T22:59:46.429Z锛涙棩蹇楋細docs/progress/logs/20260625-064456_execute-P002.log
+- P003 AutoPlan 瀹屾垚锛?026-06-24T23:10:32.380Z锛涙棩蹇楋細docs/progress/logs/20260625-065948_execute-P003.log
+- P004 AutoPlan 瀹屾垚锛?026-06-24T23:23:10.141Z锛涙棩蹇楋細docs/progress/logs/20260625-071034_execute-P004.log
+- P005 AutoPlan 瀹屾垚锛?026-06-24T23:41:35.914Z锛涙棩蹇楋細docs/progress/logs/20260625-072310_execute-P005.log
+- P006 AutoPlan 瀹屾垚锛?026-06-25T00:04:20.536Z锛涙棩蹇楋細docs/progress/logs/20260625-074137_execute-P006.log
+- P007 AutoPlan 瀹屾垚锛?026-06-25T00:33:34.968Z锛涙棩蹇楋細docs/progress/logs/20260625-080424_execute-P007.log
+- P008 AutoPlan 瀹屾垚锛?026-06-25T00:45:33.577Z锛涙棩蹇楋細docs/progress/logs/20260625-083337_execute-P008.log
+--- plan_requirement_9_20260625-033413.md
+# 需求开发计划：Block 左侧拖拽调节行位置
+
+## 来源
+- 类型：需求
+- 编号：9
+- 生成时间：2026-06-25 03:34:13
+
+## 原始内容
+增加block拖拽调节行功能，在block左侧增加拖拽按钮，这个按钮支持打开菜单，如果是拖拽，则调节block行位置
+
+## 需求理解
+- 在每个顶层 block 左侧增加统一的拖拽按钮/把手，作为 block 行级操作入口。
+- 按钮点击或轻触时打开 block 操作菜单；拖拽时不打开菜单，而是根据拖拽落点调整 block 在文档中的行位置。
+- 拖拽调节应覆盖普通文本块、标题、列表、引用、代码、callout、表格和对象块等顶层 block，并避免影响行内编辑、选区拖拽、表格列宽拖拽、图片尺寸调节等已有交互。
+- 行位置调整应进入编辑器命令/历史体系，保证选区、撤销/重做、只读模式和自定义 block renderer 扩展点行为一致。
+
+## 任务计划
+- [x] P001: 明确 block 拖拽把手交互边界 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/block_renderer_registry.dart,docs/selection_engine.md -->
+  - 验收要点：明确把手展示位置、尺寸、hover/focus 状态、点击打开菜单与拖拽排序的触发阈值，形成实现侧可落地的交互约定。
+  - 验收要点：确认把手只作用于顶层 block，不把表格单元格内部块、行内 embed 或对象块内部控件误识别为可排序行。
+  - 验收要点：确认只读模式、无编辑权限、移动到首尾边界、空文档和单 block 文档的禁用/无操作规则。
+
+- [x] P002: 抽象 block 行移动命令与控制器接口 <!-- scope: lib/src/core/commands/block_structure_commands.dart,lib/src/controller/wenz_rich_text_controller.dart,lib/src/widgets/wenz_rich_text_editor.dart,test/core/block_structure_commands_test.dart,test/core/controller_test.dart -->
+  - 验收要点：提供按 `fromIndex` 与 `toIndex` 移动顶层 block 的统一能力，支持向上、向下和跨多行移动，越界或同位置移动为无历史记录的 no-op。
+  - 验收要点：移动后保留 block id、属性、内容、评论/修订相关数据和对象块元数据，目标 block 被选中或光标落点符合交互约定。
+  - 验收要点：移动操作进入历史栈，撤销/重做后文档顺序、选区和回调通知保持一致；现有对象块工具栏的上移/下移改为复用同一能力。
+
+- [x] P003: 渲染左侧 block 拖拽按钮与菜单入口 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/block_renderer_registry.dart,test/widgets/wenz_rich_text_editor_test.dart,test/widgets/editor_golden_test.dart -->
+  - 验收要点：每个可编辑顶层 block 左侧都有稳定对齐的拖拽把手，文本块、代码块、callout、表格、图片、视频、文件和分割线等视觉上不被挤压或遮挡。
+  - 验收要点：点击把手可打开菜单，菜单至少提供复制/复制引用、复制块、上移、下移、删除等与当前 block 能力匹配的操作。
+  - 验收要点：把手命中区域注册为选区排除区域，点击、hover、长按和焦点状态不会触发文本选区、IME 输入或 block 内容编辑。
+
+- [x] P004: 区分点击菜单与拖拽排序手势 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/block_geometry_registry.dart,lib/src/widgets/selection_gesture_overlay.dart,test/widgets/wenz_rich_text_editor_test.dart,test/widgets/block_geometry_registry_test.dart -->
+  - 验收要点：短点击/键盘激活只打开菜单，超过拖拽阈值后进入排序模式；进入排序模式后不会再弹出菜单。
+  - 验收要点：鼠标、触控板和触屏长按/拖拽均可稳定识别，拖拽把手不干扰现有跨 block 选区拖拽、双击/三击选词选段和自动滚动选区。
+  - 验收要点：拖拽开始、移动、取消和结束状态可恢复，异常取消后不残留高亮、遮罩、菜单或错误选区。
+
+- [x] P005: 实现拖拽落点指示与 block 重排提交 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/block_geometry_registry.dart,test/widgets/wenz_rich_text_editor_test.dart,test/widgets/editor_golden_test.dart -->
+  - 验收要点：拖拽过程中显示清晰的插入位置指示线，落点可区分插入到目标 block 前/后，并在首尾、滚动容器边缘和可视区域外夹取到合法位置。
+  - 验收要点：释放后按落点完成文档 block 顺序调整，拖到原位置不产生变更，跨多行移动时目标索引计算正确且无 off-by-one 问题。
+  - 验收要点：靠近编辑器上下边缘拖拽时可自动滚动，长文档中能把 block 拖到当前视口外的合法位置。
+
+- [x] P006: 完善 block 菜单动作与对象块兼容 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/block_renderer_registry.dart,lib/src/controller/wenz_rich_text_controller.dart,test/widgets/wenz_rich_text_editor_test.dart -->
+  - 验收要点：菜单动作复用统一 block action/command 链路，普通文本块和对象块均可执行可用动作，首行禁用上移、末行禁用下移。
+  - 验收要点：现有对象块内置工具栏、图片尺寸菜单、文件上传状态菜单和复制引用功能不回归，不与左侧把手菜单产生重复触发或状态不同步。
+  - 验收要点：自定义 block renderer 仍可通过既有 `BlockRenderContext` 与对象块 action 扩展点接入，不要求业务方重写渲染器才能获得默认拖拽能力。
+
+- [x] P007: 完成回归测试与使用文档更新 <!-- scope: test/widgets/wenz_rich_text_editor_test.dart,test/widgets/editor_golden_test.dart,test/core/block_structure_commands_test.dart,docs/selection_engine.md,README.md -->
+  - 验收要点：新增或更新 widget 测试覆盖点击打开菜单、拖拽排序、取消拖拽、首尾边界、只读模式、撤销/重做和长文档自动滚动。
+  - 验收要点：新增或更新 golden 覆盖左侧把手、拖拽落点指示和菜单入口在常见 block 组合下的视觉表现。
+  - 验收要点：执行 `flutter analyze`、定向测试和 `flutter test` 通过；如存在环境限制或非本需求引入失败，需要记录失败原因和复现命令。
+
+## 总体验收标准
+- 计划中的所有 checkbox 任务完成，且每个任务的验收要点均有对应实现或验证记录。
+- 编辑器顶层 block 左侧出现统一拖拽把手：点击打开菜单，拖拽调整 block 行位置，拖拽过程有明确落点指示。
+- block 重排不丢失任何 block 内容、属性、id、对象块元数据、评论/修订关联和文档版本信息。
+- block 重排行为纳入命令与历史体系，撤销/重做、选区更新、编辑回调、只读模式和权限限制表现一致。
+- 左侧把手不破坏文本输入、跨 block 选区、表格交互、图片/文件/视频对象块操作、slash 菜单、快捷键和剪贴板能力。
+- 默认实现兼容自定义 block renderer；业务方无需修改已有 renderer 即可获得外层拖拽把手与菜单入口。
+- `flutter analyze`、相关定向测试、golden 测试和 `flutter test` 均通过，或已明确记录非本需求导致的失败项。
+
+## 进度区
+- 当前状态：draft
+- 下一步：评审计划后从 P001/P002 开始执行，优先确认交互边界并抽象统一 block 行移动能力。
+- 并行建议：P001 完成后，P002 可先行实现命令层；P003/P006 可在 P002 接口稳定后并行；P004/P005 涉及同一拖拽状态机，建议串行推进；P007 最后统一回归。
+- 风险记录：左侧把手拖拽与现有跨 block 选区拖拽、表格列宽拖拽、对象块内部按钮和自动滚动逻辑存在手势冲突风险，需要通过排除区域、拖拽阈值和取消态测试重点验证。
+- P001 AutoPlan 完成：2026-06-24T19:43:47.753Z；日志：docs/progress/logs/20260625-033741_execute-P001.log
+- P002 AutoPlan 完成：2026-06-25T01:04:17.313Z；日志：docs/progress/logs/20260625-085204_execute-P002.log
+- P003 AutoPlan 完成：2026-06-25T01:18:02.093Z；日志：docs/progress/logs/20260625-090420_execute-P003.log
+- P004 AutoPlan 完成：2026-06-25T01:29:52.075Z；日志：docs/progress/logs/20260625-091821_execute-P004.log
+- P005 AutoPlan 完成：2026-06-25T01:43:46.659Z；日志：docs/progress/logs/20260625-092957_execute-P005.log
+- P006 AutoPlan 完成：2026-06-25T01:58:43.069Z；日志：docs/progress/logs/20260625-094353_execute-P006.log
+- P007 AutoPlan 完成：2026-06-25T02:49:41.044Z；日志：docs/progress/logs/20260625-103703_execute-P007.log
+
+**Exploring code structure**
+
+I’m thinking about how the output was truncated weirdly and it seems to include multiple files. I really need to focus on reading just one. I could consider using codegraph to analyze the repository structure. I also have to draft a plan to support line number display in code content. It looks like I need to inspect code for code block nodes or renderers to ensure I'm making accurate scopes, starting with codegraph_explore for the codebase question per developer primary. I'll need to explore symbols like CodeBlockNode and the code block renderer too.
+codex
+格式已明确。接下来定位代码块模型与渲染入口，确保 scope 写得准确。
+mcp: codegraph/codegraph_explore started
+mcp: codegraph/codegraph_explore (completed)
+**Analyzing code structure**
+
+I'm trying to identify files from the Codegraph output, even though it's truncated. Maybe I could search for code block renderer names using something like `rg`. I believe I need to inspect these files without heavily editing the business logic. I don't think I need to read everything in detail; instead, I focus on creating an accurate plan for what to do next. It's also important to know the current tests that are in place, so I’ll search for those too!
+codex
+定位到代码块模型了；我再快速查找 UI 渲染与测试命名，避免计划 scope 过粗。
+exec
+powershell.exe -Command "rg -n \"CodeBlock|code block|BlockType\\.code|language|code\" lib test README.md docs -g \"*.dart\" -g \"*.md\" | Select-Object -First 200" in D:\project\GitHub\wenz_flutter\wenz_richtext
+2026-06-25T21:19:25.212953Z ERROR codex_core::tools::router: error={"output":"Total output lines: 200\n\nlib\\wenz_richtext.dart:26:///   the rich/legacy JSON codecs, the plain-text codec ([PlainTextCodec]),\r\nlib\\wenz_richtext.dart:27:///   the Markdown codec ([MarkdownCodec]), the HTML codec ([HtmlCodec]),\r\nlib\\wenz_richtext.dart:35:///   [IndentCodeBlockCommand], [SetCalloutVariantCommand],\r\nlib\\wenz_richtext.dart:73:///   ([DocumentDecodeException], [UnknownCommandException]) and the no-throw\r\nlib\\wenz_richtext.dart:75:///   [TryLoadResult], [WenzRichTextController.tryExecuteCommand]). The codec\r\nlib\\wenz_richtext.dart:101:export 'src/codecs/document_errors.dart';\r\nlib\\wenz_richtext.dart:102:export 'src/codecs/document_migration.dart';\r\nlib\\wenz_richtext.dart:103:export 'src/codecs/document_version_snapshot_codec.dart';\r\nlib\\wenz_richtext.dart:104:export 'src/codecs/html_codec.dart';\r\nlib\\wenz_richtext.dart:105:export 'src/codecs/legacy_wen_json_codec.dart';\r\nlib\\wenz_richtext.dart:106:export 'src/codecs/markdown_codec.dart';\r\nlib\\wenz_richtext.dart:107:export 'src/codecs/plain_text_codec.dart';\r\nlib\\wenz_richtext.dart:108:export 'src/codecs/rich_text_json_codec.dart';\r\ndocs\\refactor_plan.md:43:| `lib/editor/crdt/YsCode.dart` | 代码块输入、删除、缩进 | 由 `CodeBlockCommandService` 替代 |\r\ndocs\\refactor_plan.md:51:| `lib/editor/block/text/text.dart` | `WenTextElement.getYMap()` 生成 `YText` delta | 改为 `TextRun` 列表和 JSON codec |\r\ndocs\\refactor_plan.md:53:| `lib/editor/block/code/code.dart` | 代码块生成 `YText` | 改为 `CodeBlockNode` |\r\ndocs\\refactor_plan.md:55:| `lib/commons/util/encrypt.dart` | 复用 `ydart/lib0` 字节流 | 自研 varint/string byte stream 或改用标准 codec |\r\ndocs\\refactor_plan.md:61:| `lib/editor/block/*` 渲染类 | 高 | `TextBlock`、`TableBlock`、`ImageBlock`、`CodeBlock` 的 layout、hit test、paint 经验可迁移 |\r\ndocs\\refactor_plan.md:195:  Model --> Codec[\"codecs: json/html/markdown/plain\"]\r\ndocs\\refactor_plan.md:220:| Codecs | `lib/src/codecs/` | JSON、legacy JSON、HTML、Markdown、plain text、PDF |\r\ndocs\\refactor_plan.md:224:| Tests | `test/` | 模型、命令、codec、widget、golden、integration 测试 |\r\ndocs\\refactor_plan.md:270:- `CodeBlockNode`：代码文本和语言。\r\ndocs\\refactor_plan.md:289:  - 代码块：`block/<blockId>/code`\r\ndocs\\refactor_plan.md:318:- `InsertCodeBlockCommand`\r\ndocs\\refactor_plan.md:336:1. 兼容适配期：把新 model 映射为现有 `WenElement` 和 `WenzBlock`，复用现有 `TextBlock/TableBlock/ImageBlock/CodeBlock` 的 layout 与 widget。\r\ndocs\\refactor_plan.md:428:  class CodeBlockNode {\r\ndocs\\refactor_plan.md:429:    +String code\r\ndocs\\refactor_plan.md:430:    +String language\r\ndocs\\refactor_plan.md:497:  BlockNode <|-- CodeBlockNode\r\ndocs\\refactor_plan.md:604:- `rg \"package:ydart|YDoc|YMap|YArray|YText\" lib test pubspec.yaml` 不命中新 model 和 codec。\r\ndocs\\refactor_plan.md:636:- 保留现有 `TextBlock/TableBlock/ImageBlock/CodeBlock/LineBlock` 的首轮渲染能力。\r\ndocs\\refactor_plan.md:733:| T025 | 实现 HTML/Markdown/plain codecs | P4 | P1 | 复制导出一致 |\r\ndocs\\refactor_plan.md:761:      codecs/\r\ndocs\\refactor_plan.md:762:        rich_text_json_codec.dart\r\ndocs\\refactor_plan.md:763:        legacy_wen_json_codec.dart\r\ndocs\\refactor_plan.md:764:        html_codec.dart\r\ndocs\\refactor_plan.md:765:        markdown_codec.dart\r\ndocs\\refactor_plan.md:766:        plain_text_codec.dart\r\ndocs\\refactor_plan.md:780:          code_commands.dart\r\ndocs\\refactor_plan.md:820:        code_block_renderer.dart\r\ndocs\\refactor_plan.md:847:    codecs/\r\ndocs\\refactor_plan.md:848:      rich_text_json_codec_test.dart\r\ndocs\\refactor_plan.md:849:      legacy_wen_json_codec_test.dart\r\ndocs\\refactor_plan.md:850:      markdown_codec_test.dart\r\ndocs\\refactor_plan.md:851:      html_codec_test.dart\r\ndocs\\refactor_plan.md:857:      legacy_code_image_formula.json\r\ndocs\\refactor_plan.md:872:| `lib/editor/block/code/code.dart` | `core/model/block_node.dart` 与 `render/code_block_renderer.dart` |\r\ndocs\\refactor_plan.md:879:| `lib/editor/crdt/doc_utils.dart` | `codecs/legacy_wen_json_codec.dart` |\r\ndocs\\refactor_plan.md:913:flutter test test/codecs\r\ndocs\\refactor_plan.md:958:- 不出现 `dynamic` 滥用作为核心模型类型，codec 边界除外。\r\ndocs\\refactor_plan.md:965:2. 写 model、position、codec。\r\ndocs\\migration_guide.md:13:   `RichTextJsonCodec.encode` / `controller.toJson()`. An object with a\r\ndocs\\migration_guide.md:17:   array of blocks, or `{\"blocks\": [...]}`. Decode-only (`LegacyWenJsonCodec`);\r\ndocs\\migration_guide.md:18:   there is no legacy *encoder*.\r\ndocs\\migration_guide.md:44:// A version-1 document is migrated to version 2 on decode.\r\ndocs\\migration_guide.md:51:step is missing from the registry, decode raises a\r\ndocs\\migration_guide.md:52:`DocumentDecodeException` with the originating `StateError` on `.raw`.\r\ndocs\\migration_guide.md:54:### One-shot decode helper\r\ndocs\\migration_guide.md:56:`decodeWithMigrations(source, registry)` does JSON decode + migration in one\r\ndocs\\migr…10234 chars truncated…or_test.dart:1922:    expect(controller.document.blocks.first, isA<CodeBlockNode>());\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:2655:            CodeBlockNode(\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:2656:              id: 'code1',\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:2657:              code: 'final value = 1;',\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:2658:              language: 'dart',\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:2662:        selection: collapsedCodeSelection('code1', 0, 0),\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:3061:            CodeBlockNode(id: 'code1', code: 'print(1);', language: 'dart'),\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:5318:  testWidgets('tab indents code blocks instead of navigating tables', (\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:5323:        blocks: <BlockNode>[CodeBlockNode(id: 'code1', code: 'aa\\nbb')],\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:5325:      selection: collapsedCodeSelection('code1', 0, 4),\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:5345:        (controller.document.blocks.single as CodeBlockNode).code, 'aa\\n  bb');\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:5353:    expect((controller.document.blocks.single as CodeBlockNode).code, 'aa\\nbb');\r\ntest\\widgets\\wenz_rich_text_editor_test.dart:8663:    SystemChannels.textInput.codec.encodeMethodCall(\r\ntest\\core\\comment_model_test.dart:12:    final decoded = CommentAnchor.fromJson(anchor.toJson());\r\ntest\\core\\comment_model_test.dart:15:    expect(decoded, anchor);\r\ntest\\core\\comment_model_test.dart:16:    expect(decoded.selection, selection);\r\ntest\\core\\comment_model_test.dart:25:    final decoded = TextAttributes.fromJson(attributes.toJson());\r\ntest\\core\\comment_model_test.dart:27:    expect(decoded.commentIds, <String>['thread-1']);\r\ntest\\core\\comment_model_test.dart:28:    expect(decoded.remark, isTrue);\r\ntest\\core\\comment_model_test.dart:29:    expect(decoded.isEmpty, isFalse);\r\ntest\\core\\comment_model_test.dart:30:    expect(decoded, attributes);\r\ntest\\core\\comment_model_test.dart:51:    const codec = RichTextJsonCodec();\r\ntest\\core\\comment_model_test.dart:52:    final decoded = codec.decode(codec.encode(document));\r\ntest\\core\\comment_model_test.dart:53:    final decodedRun = (decoded.blocks.single as TextBlockNode).content.single;\r\ntest\\core\\comment_model_test.dart:55:    expect(decoded.comments, <CommentThread>[thread]);\r\ntest\\core\\comment_model_test.dart:56:    expect((decodedRun as TextRun).attributes.commentIds, <String>['thread-1']);\r\ndocs\\rendering.md:19:  optional code/callout/table hooks (`onCodeLanguageChanged`, `onCodeCopied`,\r\ndocs\\rendering.md:43:  return MyImageDecoder(assetId: (rc.block as ImageBlockNode).assetId);\r\ndocs\\rendering.md:96:| code | `_CodeBlockRenderer` | Monospace body with composition underline span; toolbar includes language dropdown and copy-code button. Language changes call `SetCodeLanguageCommand`; Tab/Shift+Tab in the editor call `IndentCodeBlockCommand`. |\r\ndocs\\rendering.md:126:Built-in fallbacks display formula text, mention `@label`, emoji unicode, inline\r\ndocs\\rendering.md:276:  block heights vary wildly (mixed media / code blocks); in that case the\r\ndocs\\rendering.md:369:| advanced mixed document | 200 groups of paragraph/callout/code/file blocks with mention/formula inline embeds | avg < 90ms/frame |\r\nlib\\src\\widgets\\wenz_rich_text_editor.dart:26:import 'code_syntax_highlighter.dart';\r\nlib\\src\\widgets\\wenz_rich_text_editor.dart:46:enum _RowBlockFormat { paragraph, heading, code }\r\nlib\\src\\widgets\\wenz_rich_text_editor.dart:88:/// code, and table-cell renderers stay in sync.\r\nlib\\src\\widgets\\wenz_rich_text_editor.dart:102:const double _kCodeBlockFontSize = 13.5;\r\nlib\\src\\widgets\\wenz_rich_text_editor.dart:103:const double _kCodeBlockLineHeight = 1.6;\r\nlib\\src\\widgets\\wenz_rich_text_editor.dart:104:const double _kCodeBlockPaddingVertical = 18.0;\r\nlib\\src\\widgets\\wenz_rich_text_editor.dart:105:const double _kCodeBlockPaddingHorizontal = 20.0;\r\nlib\\src\\widgets\\wenz_rich_text_editor.dart:106:const int _kCodeBlockBackgroundColor = 0xFF1E1E2E;\r\nlib\\src\\widgets\\wenz_rich_text_editor.dart:107:const int _kCodeBlockTextColor = 0xFFE6E6F0;\r\nlib\\src\\widgets\\wenz_rich_text_editor.dart:177:/// editor model, codecs, command protocol, or renderer extension points.\r\nlib\\src\\widgets\\wenz_rich_text_editor.dart:188:    BlockType.code,\r\nlib\\src\\widgets\\wenz_rich_text_editor.dart:216:    'codeBackground': 0xFF1E1E2E,\r\nlib\\src\\widgets\\wenz_rich_text_editor.dart:217:    'codeText': 0xFFE6E6F0,\r\nlib\\src\\widgets\\wenz_rich_text_editor.dart:230:    'codeFontSize': 13.5,\r\nlib\\src\\widgets\\wenz_rich_text_editor.dart:231:    'codeLineHeight': 1.6,\r\nlib\\src\\widgets\\wenz_rich_text_editor.dart:234:    'languageTagFontSize': 11.0,\r\nlib\\src\\widgets\\wenz_rich_text_editor.dart:263:    'codePadding': <double>[18.0, 20.0],\r\nlib\\src\\widgets\\wenz_rich_text_editor.dart:304:    'code': 'aligned: dark surface, monospace scale, language tag, and scroll.',\r\n","metadata":{"exit_code":1,"duration_seconds":0.2}}
+ exited 1 in 226ms:
+lib\wenz_richtext.dart:26:///   the rich/legacy JSON codecs, the plain-text codec ([PlainTextCodec]),
+lib\wenz_richtext.dart:27:///   the Markdown codec ([MarkdownCodec]), the HTML codec ([HtmlCodec]),
+lib\wenz_richtext.dart:35:///   [IndentCodeBlockCommand], [SetCalloutVariantCommand],
+lib\wenz_richtext.dart:73:///   ([DocumentDecodeException], [UnknownCommandException]) and the no-throw
+lib\wenz_richtext.dart:75:///   [TryLoadResult], [WenzRichTextController.tryExecuteCommand]). The codec
+lib\wenz_richtext.dart:101:export 'src/codecs/document_errors.dart';
+lib\wenz_richtext.dart:102:export 'src/codecs/document_migration.dart';
+lib\wenz_richtext.dart:103:export 'src/codecs/document_version_snapshot_codec.dart';
+lib\wenz_richtext.dart:104:export 'src/codecs/html_codec.dart';
+lib\wenz_richtext.dart:105:export 'src/codecs/legacy_wen_json_codec.dart';
+lib\wenz_richtext.dart:106:export 'src/codecs/markdown_codec.dart';
+lib\wenz_richtext.dart:107:export 'src/codecs/plain_text_codec.dart';
+lib\wenz_richtext.dart:108:export 'src/codecs/rich_text_json_codec.dart';
+docs\refactor_plan.md:43:| `lib/editor/crdt/YsCode.dart` | 代码块输入、删除、缩进 | 由 `CodeBlockCommandService` 替代 |
+docs\refactor_plan.md:51:| `lib/editor/block/text/text.dart` | `WenTextElement.getYMap()` 生成 `YText` delta | 改为 `TextRun` 列表和 JSON codec |
+docs\refactor_plan.md:53:| `lib/editor/block/code/code.dart` | 代码块生成 `YText` | 改为 `CodeBlockNode` |
+docs\refactor_plan.md:55:| `lib/commons/util/encrypt.dart` | 复用 `ydart/lib0` 字节流 | 自研 varint/string byte stream 或改用标准 codec |
+docs\refactor_plan.md:61:| `lib/editor/block/*` 渲染类 | 高 | `TextBlock`、`TableBlock`、`ImageBlock`、`CodeBlock` 的 layout、hit test、paint 经验可迁移 |
+docs\refactor_plan.md:195:  Model --> Codec["codecs: json/html/markdown/plain"]
+docs\refactor_plan.md:220:| Codecs | `lib/src/codecs/` | JSON、legacy JSON、HTML、Markdown、plain text、PDF |
+docs\refactor_plan.md:224:| Tests | `test/` | 模型、命令、codec、widget、golden、integration 测试 |
+docs\refactor_plan.md:270:- `CodeBlockNode`：代码文本和语言。
+docs\refactor_plan.md:289:  - 代码块：`block/<blockId>/code`
+docs\refactor_plan.md:318:- `InsertCodeBlockCommand`
+docs\refactor_plan.md:336:1. 兼容适配期：把新 model 映射为现有 `WenElement` 和 `WenzBlock`，复用现有 `TextBlock/TableBlock/ImageBlock/CodeBlock` 的 layout 与 widget。
+docs\refactor_plan.md:428:  class CodeBlockNode {
+docs\refactor_plan.md:429:    +String code
+docs\refactor_plan.md:430:    +String language
+docs\refactor_plan.md:497:  BlockNode <|-- CodeBlockNode
+docs\refactor_plan.md:604:- `rg "package:ydart|YDoc|YMap|YArray|YText" lib test pubspec.yaml` 不命中新 model 和 codec。
+docs\refactor_plan.md:636:- 保留现有 `TextBlock/TableBlock/ImageBlock/CodeBlock/LineBlock` 的首轮渲染能力。
+docs\refactor_plan.md:733:| T025 | 实现 HTML/Markdown/plain codecs | P4 | P1 | 复制导出一致 |
+docs\refactor_plan.md:761:      codecs/
+docs\refactor_plan.md:762:        rich_text_json_codec.dart
+docs\refactor_plan.md:763:        legacy_wen_json_codec.dart
+docs\refactor_plan.md:764:        html_codec.dart
+docs\refactor_plan.md:765:        markdown_codec.dart
+docs\refactor_plan.md:766:        plain_text_codec.dart
+docs\refactor_plan.md:780:          code_commands.dart
+docs\refactor_plan.md:820:        code_block_renderer.dart
+docs\refactor_plan.md:847:    codecs/
+docs\refactor_plan.md:848:      rich_text_json_codec_test.dart
+docs\refactor_plan.md:849:      legacy_wen_json_codec_test.dart
+docs\refactor_plan.md:850:      markdown_codec_test.dart
+docs\refactor_plan.md:851:      html_codec_test.dart
+docs\refactor_plan.md:857:      legacy_code_image_formula.json
+docs\refactor_plan.md:872:| `lib/editor/block/code/code.dart` | `core/model/block_node.dart` 与 `render/code_block_renderer.dart` |
+docs\refactor_plan.md:879:| `lib/editor/crdt/doc_utils.dart` | `codecs/legacy_wen_json_codec.dart` |
+docs\refactor_plan.md:913:flutter test test/codecs
+docs\refactor_plan.md:958:- 不出现 `dynamic` 滥用作为核心模型类型，codec 边界除外。
+docs\refactor_plan.md:965:2. 写 model、position、codec。
+docs\migration_guide.md:13:   `RichTextJsonCodec.encode` / `controller.toJson()`. An object with a
+docs\migration_guide.md:17:   array of blocks, or `{"blocks": [...]}`. Decode-only (`LegacyWenJsonCodec`);
+docs\migration_guide.md:18:   there is no legacy *encoder*.
+docs\migration_guide.md:44:// A version-1 document is migrated to version 2 on decode.
+docs\migration_guide.md:51:step is missing from the registry, decode raises a
+docs\migration_guide.md:52:`DocumentDecodeException` with the originating `StateError` on `.raw`.
+docs\migration_guide.md:54:### One-shot decode helper
+docs\migration_guide.md:56:`decodeWithMigrations(source, registry)` does JSON decode + migration in one
+docs\migration_guide.md:61:final json = decodeWithMigrations(source, migrations);
+docs\migration_guide.md:68:`V1ToV2DocumentMigration` (`lib/src/codecs/document_migration.dart`) handles
+docs\migration_guide.md:72:  `id` (the model synthesised one on decode). v2 requires every block to
+docs\migration_guide.md:105:## Handling decode failures
+docs\migration_guide.md:107:`loadJson` throws `DocumentDecodeException` on bad input (the originating
+docs\migration_guide.md:109:is left untouched. For UI code paths that must not throw, use `tryLoadJson`:
+docs\migration_guide.md:143:  fenced code (``` ``` ``` with language), GFM pipe tables (with `:---` alignment),
+docs\migration_guide.md:150:- Markdown is lenient by design — `decode` never throws for content; any
+docs\migration_guide.md:186:  `<input type="checkbox">` for task items), `<pre><code class="language-x">`,
+docs\migration_guide.md:191:  decode.
+docs\migration_guide.md:198:  it. It has no native code and works on all Flutter platforms.
+docs\migration_guide.md:199:- HTML5 leniency: `decode` never throws for content — malformed HTML becomes
+docs\migration_guide.md:201:- HTML entities are decoded on import and re-encoded on export.
+docs\migration_guide.md:240:- **Tier 2 (stabilising)** — editor widget, schema, codecs, migration
+docs\migration_guide.md:270:  JSON without these fields still decodes; new retry/upload workflows should use
+docs\project_acceptance_roadmap_plan.md:73:- 已覆盖段落/heading、code、merged cell、image placeholder、caret、selection highlight。
+docs\selection_model.md:29:| `PositionPath.blockCode(blockId)` | `CodeBlockNode` 的 code 字符串 | `DocumentPosition.code(...)` |
+docs\selection_model.md:46:截至阶段 0，`path` 是**结构性元数据**，命令的编辑路由仍主要依赖 `blockIndex` + block 运行时类型判断（`is TextBlockNode` / `is CodeBlockNode` / `is TableBlockNode`）：
+docs\running_guide.md:51:- **工具栏**：`ToolbarController` 驱动 active 样式 + 命令 enable 态；example 工具栏接 bold/italic/underline/strikethrough/remark/link/clear style/H1-H3/paragraph/quote/todo/ordered/unordered/indent/outdent + 插入 code/callout/table/image/video/file/CRM embed + 表格结构按钮；Callout 默认渲染器内置类型下拉。
+docs\running_guide.md:62:- **Markdown 导入导出**：已支持（`MarkdownCodec`，覆盖 heading/段落/list/code/table/image/divider + bold/italic/strike/underline/link）。**HTML 导入导出**：已支持（`HtmlCodec`，引 `package:html` 依赖；覆盖同上标签矩阵 + Wenz file/video 元数据 round-trip + 嵌套 emphasis 合并；malformed HTML 容错降级段落不抛）。
+docs\schema_migration_impact.md:3:本文档对应 `ADV-002`，用于在继续开发进阶功能前固定 schema 决策边界：哪些能力复用现有模型，哪些能力需要新增 JSON 字段，以及新增字段时必须补哪些 migration、codec 和测试入口。
+docs\schema_migration_impact.md:7:- **Canonical rich JSON**：顶层对象包含 `version` 与 `blocks`；`RichTextJsonCodec.encode` 写出当前模型，`RichTextJsonCodec.decode` 可通过可选 `DocumentMigrationRegistry` 在模型反序列化前迁移旧版本。
+docs\schema_migration_impact.md:10:- **Codec boundary**：Markdown/HTML/PlainText codec 只映射已有模型字段；无法稳定 round-trip 的内容必须明确降级，而不是引入 codec 专用 schema。
+docs\schema_migration_impact.md:16:| 新增可选字段且旧 JSON 可按默认值安全读取 | 通常不 bump | `fromJson` 默认值、`toJson` 省略空值、schema normalize 保持幂等、codec 降级策略。 |
+docs\schema_migration_impact.md:18:| 新增 core block type | 通常 bump | `BlockType`/`BlockNode.fromJson`/renderer/command/codec 策略、未知或旧数据降级说明。 |
+docs\schema_migration_impact.md:27:| Markdown 快捷输入、快捷键、粘贴、查找替换、Slash 菜单 | 无新增字段 | 不 bump；全部落到既有命令和 schema normalize | 粘贴输入通过 Markdown/HTML codec 后仍进入现有模型。 |
+docs\schema_migration_impact.md:31:| 大纲、文档统计、自动保存 dirty state、权限态 | 从文档派生或外部 controller 状态 | 不 bump；不写入 rich JSON | 无 codec 字段。 |
+docs\schema_migration_impact.md:38:| 协作 adapter、remote cursor/selection | `[done] ADV-025` 不写入正文 schema；`WenzRemoteSelectionUpdate` 仅用于 adapter transport / renderer runtime | 不 bump；协作状态外部化 | 不进入 codecs；远端 presence/session 状态由业务 adapter 持久化或丢弃。 |
+docs\schema_migration_impact.md:39:| 插件 API | `[done] ADV-027` 新增 `WenzRichTextPlugin`、runtime registry、toolbar descriptor、paste transformer | 不 bump；插件安装只修改运行时 registry，文档变更仍必须通过既有命令和模型 | 不进入 codecs；插件若定义新的 block/embed 持久语义，需按对应 block/embed 规则单独评估。 |
+docs\schema_migration_impact.md:46:3. 更新 codecs：rich JSON 必须 round-trip；Markdown/HTML/PlainText 要么 round-trip，要么写明可读降级。
+docs\schema_migration_impact.md:48:5. 更新测试：至少覆盖 model JSON、migration fixture、schema normalize、相关 command/controller，以及必要的 codec 降级。
+test\widgets\wenz_rich_text_editor_test.dart:14:const _codeBlockBackground = Color(0xFF1E1E2E);
+test\widgets\wenz_rich_text_editor_test.dart:15:const _codeBlockText = Color(0xFFE6E6F0);
+test\widgets\wenz_rich_text_editor_test.dart:16:const _codeKeyword = Color(0xFFC792EA);
+test\widgets\wenz_rich_text_editor_test.dart:17:const _codeString = Color(0xFFC3E88D);
+test\widgets\wenz_rich_text_editor_test.dart:18:const _codeType = Color(0xFF82AAFF);
+test\widgets\wenz_rich_text_editor_test.dart:19:const _codeNumber = Color(0xFFF78C6C);
+test\widgets\wenz_rich_text_editor_test.dart:20:const _codeComment = Color(0xFF6B7394);
+test\widgets\wenz_rich_text_editor_test.dart:54:          CodeBlockNode(
+test\widgets\wenz_rich_text_editor_test.dart:55:            id: 'code1',
+test\widgets\wenz_rich_text_editor_test.dart:56:            code: 'final done = true;',
+test\widgets\wenz_rich_text_editor_test.dart:57:            language: 'dart',
+test\widgets\wenz_rich_text_editor_test.dart:1392:  testWidgets('code block toolbar copies code and changes language', (
+test\widgets\wenz_rich_text_editor_test.dart:1415:          CodeBlockNode(
+test\widgets\wenz_rich_text_editor_test.dart:1416:            id: 'code1',
+test\widgets\wenz_rich_text_editor_test.dart:1417:            code: 'final value = 1;',
+test\widgets\wenz_rich_text_editor_test.dart:1418:            language: 'dart',
+test\widgets\wenz_rich_text_editor_test.dart:1422:      selection: collapsedCodeSelection('code1', 0, 0),
+test\widgets\wenz_rich_text_editor_test.dart:1448:    expect((controller.document.blocks.single as CodeBlockNode).language,
+test\widgets\wenz_rich_text_editor_test.dart:1453:    'code block syntax highlights supported languages and leaves unsupported plain',
+test\widgets\wenz_rich_text_editor_test.dart:1458:      const markdownCode = '# Title\n- item with `code`';
+test\widgets\wenz_rich_text_editor_test.dart:1463:            CodeBlockNode(id: 'dart1', code: dartCode, language: 'dart'),
+test\widgets\wenz_rich_text_editor_test.dart:1464:            CodeBlockNode(id: 'js1', code: jsCode, language: 'javascript'),
+test\widgets\wenz_rich_text_editor_test.dart:1465:            CodeBlockNode(id: 'json1', code: jsonCode, language: 'json'),
+test\widgets\wenz_rich_text_editor_test.dart:1466:            CodeBlockNode(
+test\widgets\wenz_rich_text_editor_test.dart:1468:              code: markdownCode,
+test\widgets\wenz_rich_text_editor_test.dart:1469:              language: 'markdown',
+test\widgets\wenz_rich_text_editor_test.dart:1471:            CodeBlockNode(
+test\widgets\wenz_rich_text_editor_test.dart:1473:              code: unsupportedCode,
+test\widgets\wenz_rich_text_editor_test.dart:1474:              language: 'unknown',
+test\widgets\wenz_rich_text_editor_test.dart:1493:      expect(_leafSpan(dartSpan, 'final')?.style?.color, _codeKeyword);
+test\widgets\wenz_rich_text_editor_test.dart:1494:      expect(_leafSpan(dartSpan, 'String')?.style?.color, _codeType);
+test\widgets\wenz_rich_text_editor_test.dart:1495:      expect(_leafSpan(dartSpan, '42')?.style?.color, _codeNumber);
+test\widgets\wenz_rich_text_editor_test.dart:1496:      expect(_leafSpan(dartSpan, '"Ada"')?.style?.color, _codeString);
+test\widgets\wenz_rich_text_editor_test.dart:1499:        _codeComment,
+test\widgets\wenz_rich_text_editor_test.dart:1504:        _codeKeyword,
+test\widgets\wenz_rich_text_editor_test.dart:1508:        _codeKeyword,
+test\widgets\wenz_rich_text_editor_test.dart:1512:        _codeNumber,
+test\widgets\wenz_rich_text_editor_test.dart:1516:        _codeKeyword,
+test\widgets\wenz_rich_text_editor_test.dart:1519:        _leafSpan(_richTextSpan(tester, markdownCode), '`code`')?.style?.color,
+test\widgets\wenz_rich_text_editor_test.dart:1520:        _codeString,
+test\widgets\wenz_rich_text_editor_test.dart:1525:      expect(unsupportedSpan.style?.color, _codeBlockText);
+test\widgets\wenz_rich_text_editor_test.dart:1530:  testWidgets('code block uses dark design surface and horizontal scroll', (
+test\widgets\wenz_rich_text_editor_test.dart:1538:          CodeBlockNode(id: 'code1', code: longCode, language: 'dart'),
+test\widgets\wenz_rich_text_editor_test.dart:1541:      selection: collapsedCodeSelection('code1', 0, 0),
+test\widgets\wenz_rich_text_editor_test.dart:1560:      const ValueKey<String>('wenz-richtext-code-block-code1'),
+test\widgets\wenz_rich_text_editor_test.dart:1562:    expect(decoration.color, _codeBlockBackground);
+test\widgets\wenz_rich_text_editor_test.dart:1565:    final codeSpan = _richTextSpan(tester, longCode);
+test\widgets\wenz_rich_text_editor_test.dart:1566:    expect(codeSpan.style?.color, _codeBlockText);
+test\widgets\wenz_rich_text_editor_test.dart:1567:    expect(codeSpan.style?.fontFamily, 'JetBrains Mono');
+test\widgets\wenz_rich_text_editor_test.dart:1568:    expect(codeSpan.style?.fontSize, 13.5);
+test\widgets\wenz_rich_text_editor_test.dart:1569:    expect(codeSpan.style?.height, 1.6);
+test\widgets\wenz_rich_text_editor_test.dart:1572:      find.byKey(const ValueKey<String>('wenz-richtext-code-scroll-code1')),
+test\widgets\wenz_rich_text_editor_test.dart:1577:      find.byKey(const ValueKey<String>('wenz-richtext-code-block-code1')),
+test\widgets\wenz_rich_text_editor_test.dart:1579:    final codeRect = tester.getRect(_richText(longCode));
+test\widgets\wenz_rich_text_editor_test.dart:1581:    expect(codeRect.top - blockRect.top, lessThan(36));
+test\widgets\wenz_rich_text_editor_test.dart:1774:          CodeBlockNode(id: 'code1', code: 'final value = 1;'),
+test\widgets\wenz_rich_text_editor_test.dart:1793:    expect(_blockDragHandleFinder('code1'), findsOneWidget);
+test\widgets\wenz_rich_text_editor_test.dart:1855:      <String>['code1', 'p0', 'divider1'],
+test\widgets\wenz_rich_text_editor_test.dart:1909:    final codeBlock = controller.document.blocks.first as CodeBlockNode;
+test\widgets\wenz_rich_text_editor_test.dart:1910:    expect(codeBlock.code, 'print(1)');
+test\widgets\wenz_rich_text_editor_test.dart:1922:    expect(controller.document.blocks.first, isA<CodeBlockNode>());
+test\widgets\wenz_rich_text_editor_test.dart:2655:            CodeBlockNode(
+test\widgets\wenz_rich_text_editor_test.dart:2656:              id: 'code1',
+test\widgets\wenz_rich_text_editor_test.dart:2657:              code: 'final value = 1;',
+test\widgets\wenz_rich_text_editor_test.dart:2658:              language: 'dart',
+test\widgets\wenz_rich_text_editor_test.dart:2662:        selection: collapsedCodeSelection('code1', 0, 0),
+test\widgets\wenz_rich_text_editor_test.dart:3061:            CodeBlockNode(id: 'code1', code: 'print(1);', language: 'dart'),
+test\widgets\wenz_rich_text_editor_test.dart:5318:  testWidgets('tab indents code blocks instead of navigating tables', (
+test\widgets\wenz_rich_text_editor_test.dart:5323:        blocks: <BlockNode>[CodeBlockNode(id: 'code1', code: 'aa\nbb')],
+test\widgets\wenz_rich_text_editor_test.dart:5325:      selection: collapsedCodeSelection('code1', 0, 4),
+test\widgets\wenz_rich_text_editor_test.dart:5345:        (controller.document.blocks.single as CodeBlockNode).code, 'aa\n  bb');
+test\widgets\wenz_rich_text_editor_test.dart:5353:    expect((controller.document.blocks.single as CodeBlockNode).code, 'aa\nbb');
+test\widgets\wenz_rich_text_editor_test.dart:8663:    SystemChannels.textInput.codec.encodeMethodCall(
+test\core\comment_model_test.dart:12:    final decoded = CommentAnchor.fromJson(anchor.toJson());
+test\core\comment_model_test.dart:15:    expect(decoded, anchor);
+test\core\comment_model_test.dart:16:    expect(decoded.selection, selection);
+test\core\comment_model_test.dart:25:    final decoded = TextAttributes.fromJson(attributes.toJson());
+test\core\comment_model_test.dart:27:    expect(decoded.commentIds, <String>['thread-1']);
+test\core\comment_model_test.dart:28:    expect(decoded.remark, isTrue);
+test\core\comment_model_test.dart:29:    expect(decoded.isEmpty, isFalse);
+test\core\comment_model_test.dart:30:    expect(decoded, attributes);
+test\core\comment_model_test.dart:51:    const codec = RichTextJsonCodec();
+test\core\comment_model_test.dart:52:    final decoded = codec.decode(codec.encode(document));
+test\core\comment_model_test.dart:53:    final decodedRun = (decoded.blocks.single as TextBlockNode).content.single;
+test\core\comment_model_test.dart:55:    expect(decoded.comments, <CommentThread>[thread]);
+test\core\comment_model_test.dart:56:    expect((decodedRun as TextRun).attributes.commentIds, <String>['thread-1']);
+docs\rendering.md:19:  optional code/callout/table hooks (`onCodeLanguageChanged`, `onCodeCopied`,
+docs\rendering.md:43:  return MyImageDecoder(assetId: (rc.block as ImageBlockNode).assetId);
+docs\rendering.md:96:| code | `_CodeBlockRenderer` | Monospace body with composition underline span; toolbar includes language dropdown and copy-code button. Language changes call `SetCodeLanguageCommand`; Tab/Shift+Tab in the editor call `IndentCodeBlockCommand`. |
+docs\rendering.md:126:Built-in fallbacks display formula text, mention `@label`, emoji unicode, inline
+docs\rendering.md:276:  block heights vary wildly (mixed media / code blocks); in that case the
+docs\rendering.md:369:| advanced mixed document | 200 groups of paragraph/callout/code/file blocks with mention/formula inline embeds | avg < 90ms/frame |
+lib\src\widgets\wenz_rich_text_editor.dart:26:import 'code_syntax_highlighter.dart';
+lib\src\widgets\wenz_rich_text_editor.dart:46:enum _RowBlockFormat { paragraph, heading, code }
+lib\src\widgets\wenz_rich_text_editor.dart:88:/// code, and table-cell renderers stay in sync.
+lib\src\widgets\wenz_rich_text_editor.dart:102:const double _kCodeBlockFontSize = 13.5;
+lib\src\widgets\wenz_rich_text_editor.dart:103:const double _kCodeBlockLineHeight = 1.6;
+lib\src\widgets\wenz_rich_text_editor.dart:104:const double _kCodeBlockPaddingVertical = 18.0;
+lib\src\widgets\wenz_rich_text_editor.dart:105:const double _kCodeBlockPaddingHorizontal = 20.0;
+lib\src\widgets\wenz_rich_text_editor.dart:106:const int _kCodeBlockBackgroundColor = 0xFF1E1E2E;
+lib\src\widgets\wenz_rich_text_editor.dart:107:const int _kCodeBlockTextColor = 0xFFE6E6F0;
+lib\src\widgets\wenz_rich_text_editor.dart:177:/// editor model, codecs, command protocol, or renderer extension points.
+lib\src\widgets\wenz_rich_text_editor.dart:188:    BlockType.code,
+lib\src\widgets\wenz_rich_text_editor.dart:216:    'codeBackground': 0xFF1E1E2E,
+lib\src\widgets\wenz_rich_text_editor.dart:217:    'codeText': 0xFFE6E6F0,
+lib\src\widgets\wenz_rich_text_editor.dart:230:    'codeFontSize': 13.5,
+lib\src\widgets\wenz_rich_text_editor.dart:231:    'codeLineHeight': 1.6,
+lib\src\widgets\wenz_rich_text_editor.dart:234:    'languageTagFontSize': 11.0,
+lib\src\widgets\wenz_rich_text_editor.dart:263:    'codePadding': <double>[18.0, 20.0],
+lib\src\widgets\wenz_rich_text_editor.dart:304:    'code': 'aligned: dark surface, monospace scale, language tag, and scroll.',
+
+**Investigating code functionality**
+
+I'm trying to understand a potential issue that might be causing an exit code of 1. It could be related to how Select-Object is functioning, right? But I also need to check the output from rg. It seems like I should inspect the relevant code for wenz_rich_text_editor, particularly around the code block renderer. I'll look into that with codegraph_explore to see if it sheds any light on the problem.
+codex
+代码块渲染集中在编辑器组件中；我会读取相关符号片段来制定分解任务。
+mcp: codegraph/codegraph_explore started
+mcp: codegraph/codegraph_explore (completed)
+codex
+我还需要精确类名与测试文件，下面只列命中位置不改代码。
+exec
+powershell.exe -Command "rg -n \"class _.*Code|CodeBlockRenderer|codeBlock|_renderCode|BlockType\\.code|_kCodeBlock\" lib\\src\\widgets\\wenz_rich_text_editor.dart test\\widgets test\\core docs\\rendering.md README.md" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 166ms:
+docs\rendering.md:96:| code | `_CodeBlockRenderer` | Monospace body with composition underline span; toolbar includes language dropdown and copy-code button. Language changes call `SetCodeLanguageCommand`; Tab/Shift+Tab in the editor call `IndentCodeBlockCommand`. |
+lib\src\widgets\wenz_rich_text_editor.dart:102:const double _kCodeBlockFontSize = 13.5;
+lib\src\widgets\wenz_rich_text_editor.dart:103:const double _kCodeBlockLineHeight = 1.6;
+lib\src\widgets\wenz_rich_text_editor.dart:104:const double _kCodeBlockPaddingVertical = 18.0;
+lib\src\widgets\wenz_rich_text_editor.dart:105:const double _kCodeBlockPaddingHorizontal = 20.0;
+lib\src\widgets\wenz_rich_text_editor.dart:106:const int _kCodeBlockBackgroundColor = 0xFF1E1E2E;
+lib\src\widgets\wenz_rich_text_editor.dart:107:const int _kCodeBlockTextColor = 0xFFE6E6F0;
+lib\src\widgets\wenz_rich_text_editor.dart:188:    BlockType.code,
+lib\src\widgets\wenz_rich_text_editor.dart:510:      ..register(BlockType.code, _defaultCodeBlockRenderer)
+lib\src\widgets\wenz_rich_text_editor.dart:4519:    register(BlockType.code, _defaultCodeBlockRenderer);
+lib\src\widgets\wenz_rich_text_editor.dart:4555:Widget _defaultCodeBlockRenderer(
+lib\src\widgets\wenz_rich_text_editor.dart:4559:  return _CodeBlockRenderer(
+lib\src\widgets\wenz_rich_text_editor.dart:5441:class _CodeBlockRenderer extends StatelessWidget {
+lib\src\widgets\wenz_rich_text_editor.dart:5442:  const _CodeBlockRenderer({
+lib\src\widgets\wenz_rich_text_editor.dart:5472:          color: const Color(_kCodeBlockTextColor),
+lib\src\widgets\wenz_rich_text_editor.dart:5479:          fontSize: _kCodeBlockFontSize,
+lib\src\widgets\wenz_rich_text_editor.dart:5480:          height: _kCodeBlockLineHeight,
+lib\src\widgets\wenz_rich_text_editor.dart:5483:          color: Color(_kCodeBlockTextColor),
+lib\src\widgets\wenz_rich_text_editor.dart:5490:          fontSize: _kCodeBlockFontSize,
+lib\src\widgets\wenz_rich_text_editor.dart:5491:          height: _kCodeBlockLineHeight,
+lib\src\widgets\wenz_rich_text_editor.dart:5518:          color: const Color(_kCodeBlockBackgroundColor),
+lib\src\widgets\wenz_rich_text_editor.dart:5526:            horizontal: _kCodeBlockPaddingHorizontal,
+lib\src\widgets\wenz_rich_text_editor.dart:5527:            vertical: _kCodeBlockPaddingVertical,
+lib\src\widgets\wenz_rich_text_editor.dart:5569:                      minHeight: (codeStyle.fontSize ?? _kCodeBlockFontSize) *
+lib\src\widgets\wenz_rich_text_editor.dart:5642:class _CodeBlockToolbar extends StatelessWidget {
+test\widgets\wenz_rich_text_editor_test.dart:14:const _codeBlockBackground = Color(0xFF1E1E2E);
+test\widgets\wenz_rich_text_editor_test.dart:15:const _codeBlockText = Color(0xFFE6E6F0);
+test\widgets\wenz_rich_text_editor_test.dart:1525:      expect(unsupportedSpan.style?.color, _codeBlockText);
+test\widgets\wenz_rich_text_editor_test.dart:1562:    expect(decoration.color, _codeBlockBackground);
+test\widgets\wenz_rich_text_editor_test.dart:1566:    expect(codeSpan.style?.color, _codeBlockText);
+test\widgets\wenz_rich_text_editor_test.dart:1909:    final codeBlock = controller.document.blocks.first as CodeBlockNode;
+test\widgets\wenz_rich_text_editor_test.dart:1910:    expect(codeBlock.code, 'print(1)');
+
+**Considering code renderer adjustments**
+
+I'm thinking about adding a line around the code renderer. I believe using `codegraph_node` for `_CodeBlockRenderer` with `includeCode` could be the way to go. I want to ensure that the output is visually clear and improves readability, so I’ll check if this change enhances overall usability. I may also want to experiment with different styles to see what looks best. It's a good opportunity to refine the presentation!
+codex
+已锁定 `_CodeBlockRenderer`，我读取它的完整实现来规划行号插入点。
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+codex
+类节点只给了结构，我补读 `build` 方法主体即可。
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+**Considering text alignment and scrolling**
+
+I'm trying to figure out how to achieve multi-line content alignment and scrolling. I see that the line number column needs proper vertical alignment with text lines, but it seems the horizontal scroll doesn’t affect the line numbers. For the best user experience, a fixed gutter might be necessary. I should also consider long lines, text direction, minimum height, and padding as part of the scope for the wenz_rich_text_editor.dart or maybe the text_layout_service. There's quite a bit to handle!
+exec
+powershell.exe -Command "Get-ChildItem test\\widgets -Name; rg -n \"golden|matchesGolden|editor_golden|CodeBlockNode\" test -g \"*.dart\" | Select-Object -First 120" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 225ms:
+failures
+goldens
+block_geometry_registry_test.dart
+comment_sidebar_test.dart
+editor_golden_test.dart
+find_replace_panel_test.dart
+import_export_demo_test.dart
+link_edit_dialog_test.dart
+media_resolver_test.dart
+shared_text_layout_cache_test.dart
+slash_menu_overlay_test.dart
+wenz_rich_text_editor_test.dart
+test\widgets\wenz_rich_text_editor_test.dart:54:          CodeBlockNode(
+test\widgets\wenz_rich_text_editor_test.dart:1415:          CodeBlockNode(
+test\widgets\wenz_rich_text_editor_test.dart:1448:    expect((controller.document.blocks.single as CodeBlockNode).language,
+test\widgets\wenz_rich_text_editor_test.dart:1463:            CodeBlockNode(id: 'dart1', code: dartCode, language: 'dart'),
+test\widgets\wenz_rich_text_editor_test.dart:1464:            CodeBlockNode(id: 'js1', code: jsCode, language: 'javascript'),
+test\widgets\wenz_rich_text_editor_test.dart:1465:            CodeBlockNode(id: 'json1', code: jsonCode, language: 'json'),
+test\widgets\wenz_rich_text_editor_test.dart:1466:            CodeBlockNode(
+test\widgets\wenz_rich_text_editor_test.dart:1471:            CodeBlockNode(
+test\widgets\wenz_rich_text_editor_test.dart:1538:          CodeBlockNode(id: 'code1', code: longCode, language: 'dart'),
+test\widgets\wenz_rich_text_editor_test.dart:1774:          CodeBlockNode(id: 'code1', code: 'final value = 1;'),
+test\widgets\wenz_rich_text_editor_test.dart:1909:    final codeBlock = controller.document.blocks.first as CodeBlockNode;
+test\widgets\wenz_rich_text_editor_test.dart:1922:    expect(controller.document.blocks.first, isA<CodeBlockNode>());
+test\widgets\wenz_rich_text_editor_test.dart:2655:            CodeBlockNode(
+test\widgets\wenz_rich_text_editor_test.dart:3061:            CodeBlockNode(id: 'code1', code: 'print(1);', language: 'dart'),
+test\widgets\wenz_rich_text_editor_test.dart:5323:        blocks: <BlockNode>[CodeBlockNode(id: 'code1', code: 'aa\nbb')],
+test\widgets\wenz_rich_text_editor_test.dart:5345:        (controller.document.blocks.single as CodeBlockNode).code, 'aa\n  bb');
+test\widgets\wenz_rich_text_editor_test.dart:5353:    expect((controller.document.blocks.single as CodeBlockNode).code, 'aa\nbb');
+test\widgets\editor_golden_test.dart:9:const _goldenKey = ValueKey<String>('editor-golden-surface');
+test\widgets\editor_golden_test.dart:214:  testWidgets('golden: paragraph code and image placeholder', (tester) async {
+test\widgets\editor_golden_test.dart:248:          CodeBlockNode(
+test\widgets\editor_golden_test.dart:268:      find.byKey(_goldenKey),
+test\widgets\editor_golden_test.dart:269:      matchesGoldenFile('goldens/editor_blocks.png'),
+test\widgets\editor_golden_test.dart:273:  testWidgets('golden: block handle opens row action menu', (tester) async {
+test\widgets\editor_golden_test.dart:286:      find.byKey(_goldenKey),
+test\widgets\editor_golden_test.dart:287:      matchesGoldenFile('goldens/editor_block_handle_menu.png'),
+test\widgets\editor_golden_test.dart:291:  testWidgets('golden: block drag shows reorder drop indicator', (
+test\widgets\editor_golden_test.dart:316:      find.byKey(_goldenKey),
+test\widgets\editor_golden_test.dart:317:      matchesGoldenFile('goldens/editor_block_drop_indicator.png'),
+test\widgets\editor_golden_test.dart:324:  testWidgets('golden: merged table cell visual span', (tester) async {
+test\widgets\editor_golden_test.dart:454:      find.byKey(_goldenKey),
+test\widgets\editor_golden_test.dart:455:      matchesGoldenFile('goldens/editor_merged_table.png'),
+test\widgets\editor_golden_test.dart:459:  testWidgets('golden: selection highlight', (tester) async {
+test\widgets\editor_golden_test.dart:479:      find.byKey(_goldenKey),
+test\widgets\editor_golden_test.dart:480:      matchesGoldenFile('goldens/editor_selection.png'),
+test\widgets\editor_golden_test.dart:484:  testWidgets('golden: collapsed caret', (tester) async {
+test\widgets\editor_golden_test.dart:504:      find.byKey(_goldenKey),
+test\widgets\editor_golden_test.dart:505:      matchesGoldenFile('goldens/editor_caret.png'),
+test\widgets\editor_golden_test.dart:509:  testWidgets('golden: advanced blocks and inline embeds', (tester) async {
+test\widgets\editor_golden_test.dart:587:      find.byKey(_goldenKey),
+test\widgets\editor_golden_test.dart:588:      matchesGoldenFile('goldens/editor_advanced_blocks.png'),
+test\widgets\editor_golden_test.dart:610:          key: _goldenKey,
+test\widgets\editor_golden_test.dart:640:      key: _goldenKey,
+test\widgets\editor_golden_test.dart:680:        CodeBlockNode(
+test\benchmarks\editor_benchmarks.dart:163:        CodeBlockNode(
+test\core\block_commands_test.dart:371:          CodeBlockNode(id: 'c1', code: 'ab', language: 'text'),
+test\core\block_structure_commands_test.dart:377:            CodeBlockNode(id: 'c1', code: 'print(1)', language: 'text'),
+test\core\block_structure_commands_test.dart:387:        (session.document.blocks.single as CodeBlockNode).language,
+test\core\block_structure_commands_test.dart:396:            CodeBlockNode(id: 'c1', code: 'print(1)', language: 'text'),
+test\core\block_structure_commands_test.dart:408:          (session.document.blocks.single as CodeBlockNode).language, 'text');
+test\core\block_structure_commands_test.dart:436:          blocks: <BlockNode>[CodeBlockNode(id: 'c1', code: 'aa\nbb')],
+test\core\block_structure_commands_test.dart:445:          (session.document.blocks.single as CodeBlockNode).code, 'aa\n  bb');
+test\core\block_structure_commands_test.dart:463:          blocks: <BlockNode>[CodeBlockNode(id: 'c1', code: '  aa\n  bb\ncc')],
+test\core\block_structure_commands_test.dart:472:          (session.document.blocks.single as CodeBlockNode).code, 'aa\nbb\ncc');
+test\codecs\plain_text_codec_test.dart:56:          CodeBlockNode(
+test\input\clipboard_service_test.dart:378:          CodeBlockNode(id: 'c1', code: 'abcdef'),
+test\codecs\markdown_codec_test.dart:4:/// C2 — verifies the Markdown codec export/import against golden strings.
+test\codecs\markdown_codec_test.dart:225:          CodeBlockNode(
+test\codecs\markdown_codec_test.dart:428:      final code = doc.blocks[0] as CodeBlockNode;
+test\codecs\markdown_codec_test.dart:530:          CodeBlockNode(id: 'c1', language: 'dart', code: 'var x = 1;'),
+test\codecs\markdown_codec_test.dart:544:      expect((reimported.blocks[0] as CodeBlockNode).code, 'var x = 1;');
+test\codecs\legacy_wen_json_codec_test.dart:45:    expect(document.blocks[0], isA<CodeBlockNode>());
+test\codecs\legacy_wen_json_codec_test.dart:46:    expect((document.blocks[0] as CodeBlockNode).language, 'dart');
+test\controller\document_stats_controller_test.dart:88:      CodeBlockNode(
+test\controller\find_replace_controller_test.dart:73:    expect((editor.document.blocks[1] as CodeBlockNode).code, 'x();');
+test\controller\find_replace_controller_test.dart:111:      CodeBlockNode(id: 'c1', code: 'ALPHA();'),
+test\codecs\html_codec_test.dart:243:          CodeBlockNode(
+test\codecs\html_codec_test.dart:505:      final code = doc.blocks[0] as CodeBlockNode;
+test\codecs\html_codec_test.dart:682:          CodeBlockNode(id: 'c1', language: 'dart', code: 'var x = 1;'),
+test\codecs\html_codec_test.dart:691:      expect((reimported.blocks[2] as CodeBlockNode).code, 'var x = 1;');
+test\controller\toolbar_controller_test.dart:412:        expect((host.document.blocks[9] as CodeBlockNode).language, 'python');
+test\controller\toolbar_controller_test.dart:715:      CodeBlockNode(id: 'code', language: 'dart', code: 'final x = 1;'),
+test\core\document_schema_test.dart:267:          CodeBlockNode(id: 'c1', code: 'x'),
+test\core\document_schema_test.dart:273:      expect(normalized.blocks[0], isA<CodeBlockNode>());
+test\controller\slash_menu_controller_test.dart:307:      CodeBlockNode(id: 'code1', code: code),
+test\core\markdown_shortcut_commands_test.dart:116:      final block = controller.document.blocks.single as CodeBlockNode;
+test\core\model_test.dart:13:        CodeBlockNode(id: 'c1', code: 'print(1);', language: 'dart'),
+test\core\selection_commands_test.dart:17:          CodeBlockNode(id: 'c1', code: 'ok'),
+test\core\selection_commands_test.dart:640:          CodeBlockNode(id: 'c1', code: 'ok'),
+test\core\text_commands_test.dart:167:          CodeBlockNode(id: 'c1', code: 'final value = 1;'),
+test\core\text_commands_test.dart:212:    expect((session.document.blocks[0] as CodeBlockNode).code, 'final ');
+test\core\text_commands_test.dart:228:          CodeBlockNode(id: 'c2', code: 'print("tail");'),
+test\core\text_commands_test.dart:250:    expect((session.document.blocks[1] as CodeBlockNode).code, '"tail");');
+test\core\text_commands_test.dart:393:          CodeBlockNode(id: 'c1', code: 'print();', language: 'dart'),
+test\core\text_commands_test.dart:625:          CodeBlockNode(id: 'c1', code: 'final a = '),
+test\core\text_commands_test.dart:626:          CodeBlockNode(id: 'c2', code: '1;'),
+
+codex
+任务拆分已经清楚；现在只写入指定的计划 Markdown 文件。
+  ✓ 查看现有计划格式
+  → 梳理行号支持任务
+  • 写入目标计划文件
+  • 确认文件内容完整
+codex
+我已完成任务拆分，接着生成目标文件，不触碰业务代码。
+  ✓ 查看现有计划格式
+  ✓ 梳理行号支持任务
+  → 写入目标计划文件
+  • 确认文件内容完整
+exec
+powershell.exe -Command "@'
+# 需求开发计划：代码块支持行号显示
+
+## 来源
+- 类型：需求
+- 编号：19
+- 生成时间：2026-06-26 05:18:37
+
+## 原始内容
+代码内容要支持行号显示
+
+## 需求理解
+- “代码内容”对应编辑器中的 "'`CodeBlockNode` / `BlockType.code`，当前代码块正文由 `_CodeBlockRenderer` 使用 `_TextSelectionSurface` 渲染，并支持语法高亮、横向滚动、选区、输入法组合态、查找高亮、语言切换和复制代码。
+- 本需求目标是在代码块 UI 中展示 1-based 行号，帮助用户阅读多行代码；行号属于展示层能力，不应写入 `CodeBlockNode.code`、导出/导入 codec、剪贴板复制结果或命令历史内容。
+- 行号数量应由代码文本的实际行数决定：单行代码显示 `1`，包含空行时空行也有行号，末尾换行产生的最后空行需要按编辑器现有代码文本语义稳定处理。
+- 行号需要与代码正文逐行垂直对齐，且不影响现有代码文本 offset 映射、拖拽选区、光标、组合输入下划线、查找匹配高亮、Tab 缩进、语言标签和复制按钮。
+- 如果后续产品希望支持开关，可在本次实现中预留样式/构建函数边界；但默认验收以代码块显示行号为准，不引入模型字段作为必要条件。
+
+## 任务计划
+- [ ] P001: 明确行号显示语义边界 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,docs/rendering.md,test/widgets/wenz_rich_text_editor_test.dart -->
+  - 验收要点：确认行号是代码块展示层能力，不进入 `CodeBlockNode`、JSON/Markdown/HTML/plain text codec、复制代码结果和撤销/重做命令内容。
+  - 验收要点：确认行号使用 1-based 编号，行数由 `CodeBlockNode.code` 中的换行切分得到，单行、空代码、空行、连续换行和末尾换行均有明确预期。
+  - 验收要点：确认行号视觉位置、颜色、字体、间距和是否随横向滚动移动的产品边界，避免实现阶段影响现有代码块语法高亮与工具栏布局。
+
+- [ ] P002: 实现代码块行号栏布局 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart -->
+  - 验收要点：`_CodeBlockRenderer` 在代码正文左侧渲染独立行号栏，行号字体使用等宽风格并与代码正文 `fontSize`、`height` 保持逐行对齐。
+  - 验收要点：行号栏宽度根据最大行号位数自适应，至少容纳 `1` 到最大行号，右侧与代码正文保留稳定间距，多位数行号不挤压或覆盖代码内容。
+  - 验收要点：代码块现有背景、圆角、选中边框、内边距、语言工具栏、复制按钮和最小高度表现不回归。
+
+- [ ] P003: 兼容滚动选区与文本映射 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/rendering/text_layout_service.dart -->
+  - 验收要点：横向滚动长代码时，代码正文仍可完整滚动阅读；行号栏不参与文本 offset 计算，选区起止位置仍只映射到 `block.code`。
+  - 验收要点：点击、拖拽选区、光标绘制、组合输入下划线、查找高亮和当前匹配高亮与改造前保持一致，行号不会被选中或复制。
+  - 验收要点：多行代码、超长单行、空代码块、只读模式、编辑模式和选中状态下均不产生布局溢出、裁剪异常或错位。
+
+- [ ] P004: 补充代码块行号控件测试 <!-- scope: test/widgets/wenz_rich_text_editor_test.dart -->
+  - 验收要点：新增测试覆盖单行、多行、空行、末尾换行和超过 9 行/99 行时的行号文本显示，断言行号数量与编号正确。
+  - 验收要点：新增测试确认复制代码、语言切换、Tab 缩进、选区拖拽或光标定位仍作用于真实代码内容，不把行号写入 `CodeBlockNode.code`。
+  - 验收要点：新增测试确认长代码触发横向滚动时不出现布局异常，行号栏与代码正文基础结构可被稳定定位。
+
+- [ ] P005: 更新视觉回归与渲染文档 <!-- scope: test/widgets/editor_golden_test.dart,test/widgets/goldens/editor_blocks.png,test/widgets/goldens/editor_advanced_blocks.png,docs/rendering.md,README.md -->
+  - 验收要点：更新或新增 golden 覆盖包含代码块的常见编辑器画面，行号栏在暗色代码块背景下可读且与正文对齐。
+  - 验收要点：`docs/rendering.md` 中代码块渲染说明更新为包含行号显示，并说明行号为展示层，不影响复制、序列化和命令模型。
+  - 验收要点：如 README 展示代码块能力列表或截图说明，补充“代码块行号显示”能力；未涉及则记录无需更新原因。
+
+- [ ] P006: 执行回归验证并记录结果 <!-- scope: flutter analyze,flutter test test/widgets/wenz_rich_text_editor_test.dart,flutter test test/widgets/editor_golden_test.dart,flutter test -->
+  - 验收要点：执行 `flutter analyze` 通过，且无新增 lint、格式或未使用代码问题。
+  - 验收要点：执行 `flutter test test/widgets/wenz_rich_text_editor_test.dart` 和 `flutter test test/widgets/editor_golden_test.dart` 通过，必要时按项目流程更新 golden。
+  - 验收要点：执行全量 `flutter test` 通过；如存在非本需求导致的失败，需要记录失败命令、失败摘要和判断依据。
+
+## 总体验收标准
+- 计划中的所有 checkbox 任务完成，且每个任务的验收要点均有对应实现或验证记录。
+- 所有代码块默认显示清晰的 1-based 行号，行号覆盖单行、多行、空行、连续换行和长代码场景。
+- 行号与代码正文逐行垂直对齐，宽度随行数位数自适应，在暗色代码块背景下可读，且不遮挡语言标签、复制按钮或正文内容。
+- 行号只作为 UI 展示存在，不进入文档模型、导入导出结果、复制代码结果、撤销/重做历史或文本 offset 映射。
+- 代码块原有语法高亮、横向滚动、选区、光标、组合输入、查找高亮、Tab 缩进、语言切换、复制代码和只读模式行为不回归。
+- 相关 widget 测试、golden 测试、`flutter analyze` 和全量 `flutter test` 通过，或已记录与本需求无关的环境/历史失败。
+
+## 进度区
+- 当前状态：draft
+- 下一步：评审计划后从 P001 开始确认行号显示边界，再进入 P002/P003 的渲染实现。
+- 并行建议：P001 完成后，P002 与 P003 涉及同一 `_CodeBlockRenderer`，建议串行推进；P004 可在 P002/P003 基本稳定后并行补测试；P005/P006 放在最后统一处理。
+- 风险记录：代码块当前通过 `_TextSelectionSurface` 维护文本 offset、选区、组合输入和查找高亮；行号栏若与文本 surface 混排不当，可能导致行号被纳入选区、横向滚动宽度计算错误或多行垂直错位，需要重点验证。
+'"'@ | Set-Content -Path 'D:\\project\\GitHub\\wenz_flutter\\wenz_richtext\\docs\\plan\\plan_requirement_19_20260626-051837.md' -Encoding UTF8" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 192ms:
+**Verifying file content**
+
+I need to verify the content of the file and make a note that only the "plan file" is completed. It’s essential to check that the task lines are formatted correctly. I think using `rg` could help, and I might also need to use `Get-Content` for accessing the file. I want to ensure every detail is checked so that everything is in order. Let’s get started on this!
+codex
+计划文件已写入；我最后校验任务行格式和关键章节。
+  ✓ 查看现有计划格式
+  ✓ 梳理行号支持任务
+  ✓ 写入目标计划文件
+  → 确认文件内容完整
+exec
+powershell.exe -Command '$path='"'D:\\project\\GitHub\\wenz_flutter\\wenz_richtext\\docs\\plan\\plan_requirement_19_20260626-051837.md'; if ("'!(Test-Path $path)) { throw '"'missing plan file' }; "'$content=Get-Content $path -Raw; $tasks=Select-String -Path $path -Pattern '"'"'^- '"\\[ \\] P\\d{3}: .+ <"'!-- scope: .+ -->$'"'; "'$bad=Select-String -Path $path -Pattern '"'"'^- '"\\[ \\] P\\d{3}:' | Where-Object { "'$_.Line -notmatch '"'"'^- '"\\[ \\] P\\d{3}: .+ <"'!-- scope: .+ -->$'"' }; [pscustomobject]@{Exists=Test-Path "'$path; TaskCount=$tasks.Count; BadTaskLines=$bad.Count; HasOverall=$content.Contains('"'## 总体验收标准'); HasProgress="'$content.Contains('"'## 进度区'); Length="'$content.Length} | Format-List' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 247ms:
+
+
+Exists       : True
+TaskCount    : 6
+BadTaskLines : 0
+HasOverall   : True
+HasProgress  : True
+Length       : 3391
+
+
+
+
+codex
+格式校验通过：6 个任务行都有 scope，总体验收和进度区都已包含。
+  ✓ 查看现有计划格式
+  ✓ 梳理行号支持任务
+  ✓ 写入目标计划文件
+  ✓ 确认文件内容完整
+codex
+已生成计划文件，未修改业务代码。
+
+- 文件：`docs/plan/plan_requirement_19_20260626-051837.md:1`
+- 校验：包含 6 个固定格式任务行，均带 `scope`
+- 校验：已包含每个任务的验收要点、`总体验收标准`、`进度区`
+- 范围：仅写入指定 plan 文件，没有改动 `lib/` 或 `test/` 业务实现文件
+tokens used
+36,117
+已生成计划文件，未修改业务代码。
+
+- 文件：`docs/plan/plan_requirement_19_20260626-051837.md:1`
+- 校验：包含 6 个固定格式任务行，均带 `scope`
+- 校验：已包含每个任务的验收要点、`总体验收标准`、`进度区`
+- 范围：仅写入指定 plan 文件，没有改动 `lib/` 或 `test/` 业务实现文件

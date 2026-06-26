@@ -281,16 +281,24 @@ class EditorTextInputClient with DeltaTextInputClient {
   }
 
   void _applyDelta(TextEditingDelta delta) {
-    if (delta is TextEditingDeltaInsertion) {
-      _handleInsertion(delta);
-    } else if (delta is TextEditingDeltaDeletion) {
-      _handleDeletion(delta);
-    } else if (delta is TextEditingDeltaReplacement) {
-      _handleReplacement(delta);
-    } else if (delta is TextEditingDeltaNonTextUpdate) {
-      _handleNonTextUpdate(delta);
+    void apply() {
+      if (delta is TextEditingDeltaInsertion) {
+        _handleInsertion(delta);
+      } else if (delta is TextEditingDeltaDeletion) {
+        _handleDeletion(delta);
+      } else if (delta is TextEditingDeltaReplacement) {
+        _handleReplacement(delta);
+      } else if (delta is TextEditingDeltaNonTextUpdate) {
+        _handleNonTextUpdate(delta);
+      }
+      _syncBuffer();
     }
-    _syncBuffer();
+
+    if (delta.composing == TextRange.empty) {
+      apply();
+    } else {
+      _controller.runWithComposingTextInput(apply);
+    }
   }
 
   void _handleInsertion(TextEditingDeltaInsertion delta) {
@@ -516,30 +524,38 @@ class EditorTextInputClient with DeltaTextInputClient {
     // Non-delta fallback. Some desktop IMEs still exercise this path during
     // composition, so handle it like EditableText: diff the previous editing
     // value against the new one and apply only the changed span.
-    final activeSelection = _controller.selection;
-    if (activeSelection != null &&
-        !activeSelection.isCollapsed &&
-        !_isSingleTextInputTarget(activeSelection)) {
-      _replaceCrossTargetSelectionFromEditingValue(activeSelection, value);
-      return;
-    }
-    if (_applyDetachedCompositionEditingValue(value)) {
-      return;
-    }
-    final old = _buffer;
-    if (old.text != value.text) {
-      final diff = _TextDiff.between(old.text, value.text);
-      if (diff.oldStart < diff.oldEnd) {
-        _deleteRange(diff.oldStart, diff.oldEnd);
+    void apply() {
+      final activeSelection = _controller.selection;
+      if (activeSelection != null &&
+          !activeSelection.isCollapsed &&
+          !_isSingleTextInputTarget(activeSelection)) {
+        _replaceCrossTargetSelectionFromEditingValue(activeSelection, value);
+        return;
       }
-      _placeCaretAt(diff.oldStart);
-      if (diff.replacement.isNotEmpty) {
-        _controller.insertText(diff.replacement);
+      if (_applyDetachedCompositionEditingValue(value)) {
+        return;
       }
+      final old = _buffer;
+      if (old.text != value.text) {
+        final diff = _TextDiff.between(old.text, value.text);
+        if (diff.oldStart < diff.oldEnd) {
+          _deleteRange(diff.oldStart, diff.oldEnd);
+        }
+        _placeCaretAt(diff.oldStart);
+        if (diff.replacement.isNotEmpty) {
+          _controller.insertText(diff.replacement);
+        }
+      }
+      _syncSelection(value.selection);
+      _syncComposition(value.composing);
+      _syncBuffer();
     }
-    _syncSelection(value.selection);
-    _syncComposition(value.composing);
-    _syncBuffer();
+
+    if (value.composing == TextRange.empty) {
+      apply();
+    } else {
+      _controller.runWithComposingTextInput(apply);
+    }
   }
 
   void _replaceCrossTargetSelectionFromEditingValue(

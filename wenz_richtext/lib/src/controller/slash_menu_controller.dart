@@ -1,12 +1,24 @@
 import 'package:flutter/foundation.dart';
 
+import '../core/commands/inline_editing.dart';
+import '../core/model/attributes.dart';
 import '../core/model/block_node.dart';
+import '../core/model/inline_node.dart';
+import '../core/model/table_model.dart';
 import '../core/position/document_position.dart';
 import 'wenz_rich_text_controller.dart';
 
 typedef SlashMenuAction = void Function(
   WenzRichTextController editor,
   SlashMenuContext context,
+);
+
+typedef SlashMenuItemFilter = bool Function(SlashMenuItem item, String query);
+
+typedef SlashMenuItemSorter = int Function(
+  SlashMenuItem a,
+  SlashMenuItem b,
+  String query,
 );
 
 class SlashMenuItem {
@@ -17,6 +29,7 @@ class SlashMenuItem {
     required this.action,
     this.description = '',
     this.keywords = const <String>[],
+    this.handlesTriggerDeletion = false,
   });
 
   final String id;
@@ -25,6 +38,7 @@ class SlashMenuItem {
   final String icon;
   final List<String> keywords;
   final SlashMenuAction action;
+  final bool handlesTriggerDeletion;
 
   bool matches(String query) {
     if (query.isEmpty) {
@@ -39,7 +53,9 @@ class SlashMenuItem {
 }
 
 class SlashMenuRegistry {
-  SlashMenuRegistry([Iterable<SlashMenuItem> items = const <SlashMenuItem>[]]) {
+  SlashMenuRegistry([
+    Iterable<SlashMenuItem> items = const <SlashMenuItem>[],
+  ]) {
     for (final item in items) {
       register(item);
     }
@@ -50,6 +66,8 @@ class SlashMenuRegistry {
   }
 
   final Map<String, SlashMenuItem> _items = <String, SlashMenuItem>{};
+  final List<SlashMenuItemFilter> _filters = <SlashMenuItemFilter>[];
+  SlashMenuItemSorter? _sorter;
 
   List<SlashMenuItem> get items => List<SlashMenuItem>.unmodifiable(
         _items.values,
@@ -59,15 +77,48 @@ class SlashMenuRegistry {
     _items[item.id] = item;
   }
 
+  void registerAll(Iterable<SlashMenuItem> items) {
+    for (final item in items) {
+      register(item);
+    }
+  }
+
   void unregister(String id) {
     _items.remove(id);
   }
 
+  bool contains(String id) => _items.containsKey(id);
+
+  SlashMenuItem? operator [](String id) => _items[id];
+
+  void addFilter(SlashMenuItemFilter filter) {
+    _filters.add(filter);
+  }
+
+  bool removeFilter(SlashMenuItemFilter filter) {
+    return _filters.remove(filter);
+  }
+
+  void clearFilters() {
+    _filters.clear();
+  }
+
+  void setSorter(SlashMenuItemSorter? sorter) {
+    _sorter = sorter;
+  }
+
   List<SlashMenuItem> filter(String query) {
-    return <SlashMenuItem>[
+    final result = <SlashMenuItem>[
       for (final item in _items.values)
-        if (item.matches(query)) item,
+        if (item.matches(query) &&
+            _filters.every((filter) => filter(item, query)))
+          item,
     ];
+    final sorter = _sorter;
+    if (sorter != null) {
+      result.sort((a, b) => sorter(a, b, query));
+    }
+    return result;
   }
 }
 
@@ -155,6 +206,7 @@ class SlashMenuController extends ChangeNotifier {
   }
 
   bool _closedManually = false;
+  List<String> _documentBlockIds = const <String>[];
   int _generatedSequence = 0;
 
   void attachEditor(WenzRichTextController editor) {
@@ -168,10 +220,21 @@ class SlashMenuController extends ChangeNotifier {
   }
 
   void refresh() {
+    final nextDocumentBlockIds = _blockIdsFor(_editor.document.blocks);
+    final structureChanged =
+        !listEquals(_documentBlockIds, nextDocumentBlockIds);
     final nextTrigger = _detectTrigger(_editor);
     final sameTrigger = _sameTrigger(_trigger, nextTrigger);
+    final selectionOnlyTriggerChange =
+        _editor.lastChangedBlockIds?.isEmpty == true &&
+            !_editor.lastChangeWasCompositionOnly &&
+            !sameTrigger;
+    final closeForStructureChange = structureChanged && _trigger != null;
+    _documentBlockIds = nextDocumentBlockIds;
     _trigger = nextTrigger;
-    if (!sameTrigger) {
+    if (closeForStructureChange || selectionOnlyTriggerChange) {
+      _closedManually = true;
+    } else if (!sameTrigger) {
       _closedManually = false;
     }
     _items = nextTrigger == null
@@ -186,7 +249,7 @@ class SlashMenuController extends ChangeNotifier {
   }
 
   void close() {
-    if (_trigger == null && _closedManually) {
+    if (_closedManually) {
       return;
     }
     _closedManually = true;
@@ -223,12 +286,18 @@ class SlashMenuController extends ChangeNotifier {
   }
 
   bool activate(SlashMenuItem item) {
-    final activeTrigger = _trigger;
+    final activeTrigger = _detectTrigger(_editor);
     if (activeTrigger == null) {
+      _trigger = null;
+      _items = const <SlashMenuItem>[];
+      _highlightedIndex = 0;
+      notifyListeners();
       return false;
     }
     _closedManually = true;
-    _editor.deleteSelection(activeTrigger.selection);
+    if (!item.handlesTriggerDeletion) {
+      _editor.deleteSelection(activeTrigger.selection);
+    }
     item.action(
       _editor,
       SlashMenuContext(
@@ -267,8 +336,14 @@ List<SlashMenuItem> defaultSlashMenuItems() {
       description: 'Large section title',
       icon: 'title',
       keywords: const <String>['h1', 'title'],
+      handlesTriggerDeletion: true,
       action: (editor, context) {
-        editor.setBlockType(type: BlockType.heading, level: 1);
+        _replaceTriggerWithTextBlock(
+          editor,
+          context,
+          type: BlockType.heading,
+          attributes: const BlockAttributes(level: 1),
+        );
       },
     ),
     SlashMenuItem(
@@ -277,8 +352,14 @@ List<SlashMenuItem> defaultSlashMenuItems() {
       description: 'Unordered list item',
       icon: 'list',
       keywords: const <String>['bullet', 'unordered'],
+      handlesTriggerDeletion: true,
       action: (editor, context) {
-        editor.setBlockType(type: BlockType.listItem);
+        _replaceTriggerWithTextBlock(
+          editor,
+          context,
+          type: BlockType.listItem,
+          attributes: const BlockAttributes(listType: 'bullet'),
+        );
       },
     ),
     SlashMenuItem(
@@ -287,8 +368,14 @@ List<SlashMenuItem> defaultSlashMenuItems() {
       description: 'Task list item',
       icon: 'check_box',
       keywords: const <String>['task', 'checkbox'],
+      handlesTriggerDeletion: true,
       action: (editor, context) {
-        editor.toggleTodo();
+        _replaceTriggerWithTextBlock(
+          editor,
+          context,
+          type: BlockType.listItem,
+          attributes: const BlockAttributes(listType: 'task', checked: false),
+        );
       },
     ),
     SlashMenuItem(
@@ -297,8 +384,9 @@ List<SlashMenuItem> defaultSlashMenuItems() {
       description: 'Quoted block',
       icon: 'format_quote',
       keywords: const <String>['blockquote'],
+      handlesTriggerDeletion: true,
       action: (editor, context) {
-        editor.setBlockType(type: BlockType.quote);
+        _replaceTriggerWithTextBlock(editor, context, type: BlockType.quote);
       },
     ),
     SlashMenuItem(
@@ -307,20 +395,24 @@ List<SlashMenuItem> defaultSlashMenuItems() {
       description: 'Preformatted code',
       icon: 'code',
       keywords: const <String>['pre'],
+      handlesTriggerDeletion: true,
       action: (editor, context) {
-        _replaceCurrentBlock(
+        _replaceTriggerWithObjectBlock(
           editor,
           context,
-          (block) => CodeBlockNode(id: block.id, code: block.plainText),
-          (block) => DocumentSelection(
+          (block, content) => CodeBlockNode(
+            id: block.id,
+            code: content.map((node) => node.plainText).join(),
+          ),
+          (block, blockIndex) => DocumentSelection(
             base: DocumentPosition.code(
               blockId: block.id,
-              blockIndex: context.blockIndex,
+              blockIndex: blockIndex,
               offset: 0,
             ),
             extent: DocumentPosition.code(
               blockId: block.id,
-              blockIndex: context.blockIndex,
+              blockIndex: blockIndex,
               offset: 0,
             ),
           ),
@@ -333,30 +425,17 @@ List<SlashMenuItem> defaultSlashMenuItems() {
       description: '3 by 3 table',
       icon: 'table_chart',
       keywords: const <String>['grid'],
+      handlesTriggerDeletion: true,
       action: (editor, context) {
         final tableId = context.generatedId('table');
-        final selection = DocumentSelection(
-          base: DocumentPosition.tableCell(
-            tableBlockId: tableId,
-            blockIndex: context.blockIndex,
-            tableRowIndex: 0,
-            tableColumnIndex: 0,
-            offset: 0,
+        _replaceTriggerWithObjectBlock(
+          editor,
+          context,
+          (block, content) => TableBlockNode(
+            id: tableId,
+            table: _createSlashTable(tableId, 3, 3, context.generatedId),
           ),
-          extent: DocumentPosition.tableCell(
-            tableBlockId: tableId,
-            blockIndex: context.blockIndex,
-            tableRowIndex: 0,
-            tableColumnIndex: 0,
-            offset: 0,
-          ),
-        );
-        editor.insertTable(
-          index: context.blockIndex,
-          tableId: tableId,
-          rowCount: 3,
-          columnCount: 3,
-          selection: selection,
+          (block, blockIndex) => _tableCellSelection(tableId, blockIndex),
         );
       },
     ),
@@ -366,18 +445,19 @@ List<SlashMenuItem> defaultSlashMenuItems() {
       description: 'Image placeholder',
       icon: 'image',
       keywords: const <String>['media', 'picture'],
+      handlesTriggerDeletion: true,
       action: (editor, context) {
-        _replaceCurrentBlock(
+        _replaceTriggerWithObjectBlock(
           editor,
           context,
-          (block) => ImageBlockNode(
+          (block, content) => ImageBlockNode(
             id: block.id,
             assetId: context.generatedId('image'),
           ),
-          (block) {
+          (block, blockIndex) {
             final base = DocumentPosition(
               blockId: block.id,
-              blockIndex: context.blockIndex,
+              blockIndex: blockIndex,
               path: PositionPath.blockObject(block.id),
               offset: 0,
             );
@@ -393,20 +473,21 @@ List<SlashMenuItem> defaultSlashMenuItems() {
       description: 'Video placeholder',
       icon: 'video',
       keywords: const <String>['media', 'movie', 'play', '视频'],
+      handlesTriggerDeletion: true,
       action: (editor, context) {
-        _replaceCurrentBlock(
+        _replaceTriggerWithObjectBlock(
           editor,
           context,
-          (block) => VideoBlockNode(
+          (block, content) => VideoBlockNode(
             id: block.id,
             assetId: context.generatedId('video'),
             title: 'Video placeholder',
             aspectRatio: VideoBlockNode.defaultAspectRatio,
           ),
-          (block) {
+          (block, blockIndex) {
             final base = DocumentPosition(
               blockId: block.id,
-              blockIndex: context.blockIndex,
+              blockIndex: blockIndex,
               path: PositionPath.blockObject(block.id),
               offset: 0,
             );
@@ -419,11 +500,99 @@ List<SlashMenuItem> defaultSlashMenuItems() {
   ];
 }
 
-void _replaceCurrentBlock(
+void _replaceTriggerWithTextBlock(
   WenzRichTextController editor,
   SlashMenuContext context,
-  BlockNode Function(TextBlockNode block) buildBlock,
-  DocumentSelection Function(BlockNode block) buildSelection,
+  {
+  required BlockType type,
+  BlockAttributes attributes = const BlockAttributes(),
+}) {
+  _replaceTriggerBlock(
+    editor,
+    context,
+    (block, content) => TextBlockNode(
+      id: block.id,
+      type: type,
+      attributes: attributes,
+      content: content,
+    ),
+    (block, blockIndex, textLength) {
+      final position = DocumentPosition.text(
+        blockId: block.id,
+        blockIndex: blockIndex,
+        offset: textLength,
+      );
+      return DocumentSelection(base: position, extent: position);
+    },
+  );
+}
+
+void _replaceTriggerWithObjectBlock(
+  WenzRichTextController editor,
+  SlashMenuContext context,
+  BlockNode Function(TextBlockNode block, List<InlineNode> content) buildBlock,
+  DocumentSelection Function(BlockNode block, int blockIndex) buildSelection,
+) {
+  _replaceTriggerBlockWithBlocks(
+    editor,
+    context,
+    (block, content) {
+      final split = _splitContentAroundTrigger(block, context.trigger);
+      final insertedBlock = buildBlock(block, content);
+      final blocks = <BlockNode>[
+        if (split.before.isNotEmpty)
+          TextBlockNode(
+            id: block.id,
+            type: block.type,
+            attributes: block.attributes,
+            content: split.before,
+          ),
+        insertedBlock,
+        if (split.after.isNotEmpty)
+          TextBlockNode(
+            id: context.generatedId('${block.id}-after'),
+            type: block.type,
+            attributes: block.attributes,
+            content: split.after,
+          ),
+      ];
+      final insertedIndex = context.blockIndex + (split.before.isEmpty ? 0 : 1);
+      return _SlashReplacement(
+        blocks: blocks,
+        selection: buildSelection(insertedBlock, insertedIndex),
+      );
+    },
+  );
+}
+
+void _replaceTriggerBlock(
+  WenzRichTextController editor,
+  SlashMenuContext context,
+  BlockNode Function(TextBlockNode block, List<InlineNode> content) buildBlock,
+  DocumentSelection Function(BlockNode block, int blockIndex, int caretOffset)
+      buildSelection,
+) {
+  _replaceTriggerBlockWithBlocks(
+    editor,
+    context,
+    (block, content) {
+      final nextBlock = buildBlock(block, content);
+      final caretOffset = context.trigger.start
+          .clamp(0, inlineNodesLength(content))
+          .toInt();
+      return _SlashReplacement(
+        blocks: <BlockNode>[nextBlock],
+        selection: buildSelection(nextBlock, context.blockIndex, caretOffset),
+      );
+    },
+  );
+}
+
+void _replaceTriggerBlockWithBlocks(
+  WenzRichTextController editor,
+  SlashMenuContext context,
+  _SlashReplacement Function(TextBlockNode block, List<InlineNode> content)
+      buildReplacement,
 ) {
   final index = context.blockIndex;
   if (index < 0 || index >= editor.document.blocks.length) {
@@ -433,21 +602,101 @@ void _replaceCurrentBlock(
   if (block is! TextBlockNode) {
     return;
   }
-  final nextBlock = buildBlock(block);
+  final start = context.trigger.start.clamp(0, block.plainText.length).toInt();
+  final end = context.trigger.end.clamp(start, block.plainText.length).toInt();
+  final content = deleteInline(block.content, start, end);
+  final replacement = buildReplacement(block, content);
   editor.replaceBlocks(
     index: index,
     deleteCount: 1,
-    blocks: <BlockNode>[nextBlock],
-    selection: buildSelection(nextBlock),
+    blocks: replacement.blocks,
+    selection: replacement.selection,
   );
 }
 
+_SlashContentSplit _splitContentAroundTrigger(
+  TextBlockNode block,
+  SlashMenuTrigger trigger,
+) {
+  final start = trigger.start.clamp(0, block.plainText.length).toInt();
+  final end = trigger.end.clamp(start, block.plainText.length).toInt();
+  final before = splitInline(block.content, start).before;
+  final after = splitInline(block.content, end).after;
+  return _SlashContentSplit(before: before, after: after);
+}
+
+DocumentSelection _tableCellSelection(String tableId, int blockIndex) {
+  final position = DocumentPosition.tableCell(
+    tableBlockId: tableId,
+    blockIndex: blockIndex,
+    tableRowIndex: 0,
+    tableColumnIndex: 0,
+    offset: 0,
+  );
+  return DocumentSelection(base: position, extent: position);
+}
+
+TableModel _createSlashTable(
+  String tableId,
+  int rowCount,
+  int columnCount,
+  String Function(String prefix) generatedId,
+) {
+  return TableModel(
+    rows: <List<TableCellNode>>[
+      for (var rowIndex = 0; rowIndex < rowCount; rowIndex++)
+        <TableCellNode>[
+          for (var columnIndex = 0; columnIndex < columnCount; columnIndex++)
+            TableCellNode(
+              id: generatedId('$tableId-cell-$rowIndex-$columnIndex'),
+              blocks: <BlockNode>[
+                TextBlockNode(
+                  id: generatedId('$tableId-p-$rowIndex-$columnIndex'),
+                  type: BlockType.paragraph,
+                  content: const <InlineNode>[],
+                ),
+              ],
+            ),
+        ],
+    ],
+  );
+}
+
+class _SlashReplacement {
+  const _SlashReplacement({
+    required this.blocks,
+    required this.selection,
+  });
+
+  final List<BlockNode> blocks;
+  final DocumentSelection selection;
+}
+
+class _SlashContentSplit {
+  const _SlashContentSplit({
+    required this.before,
+    required this.after,
+  });
+
+  final List<InlineNode> before;
+  final List<InlineNode> after;
+}
+
 SlashMenuTrigger? _detectTrigger(WenzRichTextController editor) {
+  if (!editor.canEdit) {
+    return null;
+  }
+  if (editor.isApplyingComposingTextInput || editor.compositionState != null) {
+    return null;
+  }
   final selection = editor.selection;
   if (selection == null || !selection.isCollapsed) {
     return null;
   }
   final position = selection.extent;
+  if (position.blockId.isEmpty) {
+    return null;
+  }
   if (!position.path.isBlockText) {
     return null;
   }
@@ -457,6 +706,9 @@ SlashMenuTrigger? _detectTrigger(WenzRichTextController editor) {
   }
   final block = editor.document.blocks[position.blockIndex];
   if (block is! TextBlockNode) {
+    return null;
+  }
+  if (block.id != position.blockId) {
     return null;
   }
   final text = block.plainText;
@@ -473,6 +725,12 @@ SlashMenuTrigger? _detectTrigger(WenzRichTextController editor) {
     end: caret,
     query: text.substring(slashStart + 1, caret),
   );
+}
+
+List<String> _blockIdsFor(List<BlockNode> blocks) {
+  return <String>[
+    for (final block in blocks) block.id,
+  ];
 }
 
 int? _slashStartBeforeCaret(String text, int caret) {

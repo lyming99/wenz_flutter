@@ -30,6 +30,14 @@ controller.setSelection(DocumentSelection)  ──▶ 各 _TextSelectionSurface 
 - `positionFromGlobalOffset(Offset global)`：遍历 entries，用 `RenderBox.globalToLocal` + `contains` 找命中块；命中则用该块 `TextLayoutService.offsetAt` 得 offset 构造 `DocumentPosition`。未命中（块间空隙/视口外）则 `_clampToNearest`——按垂直邻近选最近块的首/尾，保证拖拽到块间隙也能预测地扩展选区。
 - `wordRangeAt(blockId, offset)` / `paragraphRange(blockId)`：委托给命中块的 `TextLayoutService`，供双击/三击。
 
+### 空白行点击语义边界
+
+空白行指已注册 `_TextSelectionSurface` 中 `textLength == 0`、但界面上存在可见文本承载行高的文本目标。点击该可见文本行区域时，registry 必须解析到该 surface 对应的 `blockId` / `blockIndex` / `path`，overlay 请求编辑器焦点，并产生折叠的 `DocumentSelection(base == extent)`；offset 固定为 `0`。
+
+覆盖范围包括：空段落、空列表项、空 todo 列表项、空引用文本区域、空标题文本区域，以及表格单元格内的空文本。非文本对象块不纳入空白行语义，继续按现有 block object 选择语义处理。
+
+命中只以可见、可编辑的文本行区域为准；列表 marker、todo checkbox、标题折叠按钮、block handle、对象块/菜单控件、滚动条 gutter、选择排除区，以及 block 间隙或文档内容区域外空白，都不能被空白行命中抢占。
+
 ## SelectionGestureOverlay
 
 `lib/src/widgets/selection_gesture_overlay.dart`。包裹 `SingleChildScrollView`，用 `Listener`（`PointerDown/Move/Up/Cancel`）统一接管指针事件。

@@ -35,6 +35,182 @@ enum EditorShortcutIntent {
   insertCharacter,
 }
 
+enum EditorShortcutModifier {
+  shift,
+  control,
+  alt,
+  meta,
+  primary,
+}
+
+enum EditorShortcutPlatform {
+  all,
+  windows,
+  macOS,
+  linux,
+  android,
+  iOS,
+  web,
+}
+
+enum EditorShortcutConfigurationIssueCode {
+  duplicateShortcut,
+  emptyPlatforms,
+  invalidCharacter,
+}
+
+class EditorShortcutKey {
+  const EditorShortcutKey(
+    this.key, {
+    this.modifiers = const <EditorShortcutModifier>{},
+    this.platforms = const <EditorShortcutPlatform>{EditorShortcutPlatform.all},
+  });
+
+  final LogicalKeyboardKey key;
+  final Set<EditorShortcutModifier> modifiers;
+  final Set<EditorShortcutPlatform> platforms;
+
+  bool matches({
+    required LogicalKeyboardKey key,
+    required bool shiftPressed,
+    required bool controlPressed,
+    required bool altPressed,
+    required bool metaPressed,
+    required bool primaryPressed,
+    required EditorShortcutPlatform platform,
+  }) {
+    if (this.key != key || !_matchesPlatform(platform)) {
+      return false;
+    }
+    final actual = <EditorShortcutModifier>{
+      if (shiftPressed) EditorShortcutModifier.shift,
+      if (controlPressed) EditorShortcutModifier.control,
+      if (altPressed) EditorShortcutModifier.alt,
+      if (metaPressed) EditorShortcutModifier.meta,
+    };
+    final expected = modifiers.toSet();
+    if (expected.remove(EditorShortcutModifier.primary)) {
+      if (!primaryPressed) {
+        return false;
+      }
+      actual
+        ..remove(EditorShortcutModifier.control)
+        ..remove(EditorShortcutModifier.meta);
+    }
+    return _setEquals(actual, expected);
+  }
+
+  bool sameCombination(EditorShortcutKey other) {
+    return key == other.key &&
+        _setEquals(modifiers, other.modifiers) &&
+        _setEquals(platforms, other.platforms);
+  }
+
+  bool _matchesPlatform(EditorShortcutPlatform platform) {
+    return platforms.contains(EditorShortcutPlatform.all) ||
+        platforms.contains(platform);
+  }
+}
+
+class EditorShortcutBinding {
+  const EditorShortcutBinding.handled({
+    required this.shortcut,
+    required EditorShortcutIntent intent,
+    bool expandSelection = false,
+    String? character,
+  }) : resolution = EditorShortcutResolution.handled(
+          intent,
+          expandSelection: expandSelection,
+          character: character,
+        );
+
+  const EditorShortcutBinding.ignored({required this.shortcut})
+      : resolution = const EditorShortcutResolution.ignored();
+
+  const EditorShortcutBinding.passThrough({required this.shortcut})
+      : resolution = const EditorShortcutResolution.passThrough();
+
+  final EditorShortcutKey shortcut;
+  final EditorShortcutResolution resolution;
+}
+
+class EditorShortcutConfiguration {
+  const EditorShortcutConfiguration({
+    this.bindings = const <EditorShortcutBinding>[],
+    this.disabledIntents = const <EditorShortcutIntent>{},
+  });
+
+  final List<EditorShortcutBinding> bindings;
+  final Set<EditorShortcutIntent> disabledIntents;
+
+  static EditorShortcutConfiguration merge(
+    Iterable<EditorShortcutConfiguration> configurations,
+  ) {
+    final bindings = <EditorShortcutBinding>[];
+    final disabledIntents = <EditorShortcutIntent>{};
+    for (final configuration in configurations) {
+      bindings.addAll(configuration.bindings);
+      disabledIntents.addAll(configuration.disabledIntents);
+    }
+    return EditorShortcutConfiguration(
+      bindings: List<EditorShortcutBinding>.unmodifiable(bindings),
+      disabledIntents: Set<EditorShortcutIntent>.unmodifiable(disabledIntents),
+    );
+  }
+
+  List<EditorShortcutConfigurationIssue> validate() {
+    final issues = <EditorShortcutConfigurationIssue>[];
+    for (var i = 0; i < bindings.length; i++) {
+      final binding = bindings[i];
+      if (binding.shortcut.platforms.isEmpty) {
+        issues.add(
+          EditorShortcutConfigurationIssue(
+            code: EditorShortcutConfigurationIssueCode.emptyPlatforms,
+            bindingIndex: i,
+            binding: binding,
+          ),
+        );
+      }
+      if (binding.resolution.intent == EditorShortcutIntent.insertCharacter &&
+          !_isValidShortcutCharacter(binding.resolution.character)) {
+        issues.add(
+          EditorShortcutConfigurationIssue(
+            code: EditorShortcutConfigurationIssueCode.invalidCharacter,
+            bindingIndex: i,
+            binding: binding,
+          ),
+        );
+      }
+      for (var previousIndex = 0; previousIndex < i; previousIndex++) {
+        final previous = bindings[previousIndex];
+        if (binding.shortcut.sameCombination(previous.shortcut)) {
+          issues.add(
+            EditorShortcutConfigurationIssue(
+              code: EditorShortcutConfigurationIssueCode.duplicateShortcut,
+              bindingIndex: i,
+              binding: binding,
+            ),
+          );
+          break;
+        }
+      }
+    }
+    return List<EditorShortcutConfigurationIssue>.unmodifiable(issues);
+  }
+}
+
+class EditorShortcutConfigurationIssue {
+  const EditorShortcutConfigurationIssue({
+    required this.code,
+    required this.bindingIndex,
+    required this.binding,
+  });
+
+  final EditorShortcutConfigurationIssueCode code;
+  final int bindingIndex;
+  final EditorShortcutBinding binding;
+}
+
 class EditorShortcutResolution {
   const EditorShortcutResolution._({
     required this.disposition,
@@ -70,8 +246,20 @@ class EditorShortcutResolution {
 ///
 /// This class is pure keymap logic: it does not mutate the controller, touch the
 /// clipboard, or know about widget state beyond the flags passed into [resolve].
+///
+/// Shortcut configuration must preserve this boundary: configuration can add,
+/// override, disable, or pass through key combinations, but final execution
+/// still happens through the returned [EditorShortcutResolution]. When a future
+/// configuration object is supplied, it should keep the built-in keymap as the
+/// default layer and apply caller overrides only during resolution.
 class EditorShortcutManager {
-  const EditorShortcutManager();
+  const EditorShortcutManager({
+    this.configuration = const EditorShortcutConfiguration(),
+    this.platform = EditorShortcutPlatform.all,
+  });
+
+  final EditorShortcutConfiguration configuration;
+  final EditorShortcutPlatform platform;
 
   EditorShortcutResolution resolve(
     KeyEvent event, {
@@ -80,6 +268,9 @@ class EditorShortcutManager {
     required bool readOnly,
     required bool imeEnabled,
     required bool inputClientAttached,
+    bool controlPressed = false,
+    bool altPressed = false,
+    bool metaPressed = false,
     bool findEnabled = false,
     bool replaceEnabled = false,
   }) {
@@ -87,14 +278,29 @@ class EditorShortcutManager {
       return const EditorShortcutResolution.ignored();
     }
 
+    final configured = _resolveConfiguredShortcut(
+      event.logicalKey,
+      shiftPressed: shiftPressed,
+      controlPressed: controlPressed,
+      altPressed: altPressed,
+      metaPressed: metaPressed,
+      primaryPressed: primaryPressed,
+      readOnly: readOnly,
+      imeEnabled: imeEnabled,
+      inputClientAttached: inputClientAttached,
+    );
+    if (configured != null) {
+      return configured;
+    }
+
     if (primaryPressed) {
-      return _resolvePrimaryShortcut(
+      return _applyDisabledIntent(_resolvePrimaryShortcut(
         event.logicalKey,
         shiftPressed: shiftPressed,
         readOnly: readOnly,
         findEnabled: findEnabled,
         replaceEnabled: replaceEnabled,
-      );
+      ));
     }
 
     if (readOnly) {
@@ -103,75 +309,75 @@ class EditorShortcutManager {
 
     final key = event.logicalKey;
     if (key == LogicalKeyboardKey.tab) {
-      return EditorShortcutResolution.handled(
+      return _applyDisabledIntent(EditorShortcutResolution.handled(
         shiftPressed
             ? EditorShortcutIntent.moveTableCellBackward
             : EditorShortcutIntent.moveTableCellForward,
-      );
+      ));
     }
     if (key == LogicalKeyboardKey.arrowLeft) {
-      return EditorShortcutResolution.handled(
+      return _applyDisabledIntent(EditorShortcutResolution.handled(
         EditorShortcutIntent.moveCaretBackward,
         expandSelection: shiftPressed,
-      );
+      ));
     }
     if (key == LogicalKeyboardKey.arrowRight) {
-      return EditorShortcutResolution.handled(
+      return _applyDisabledIntent(EditorShortcutResolution.handled(
         EditorShortcutIntent.moveCaretForward,
         expandSelection: shiftPressed,
-      );
+      ));
     }
     if (key == LogicalKeyboardKey.arrowUp) {
-      return EditorShortcutResolution.handled(
+      return _applyDisabledIntent(EditorShortcutResolution.handled(
         EditorShortcutIntent.moveCaretUp,
         expandSelection: shiftPressed,
-      );
+      ));
     }
     if (key == LogicalKeyboardKey.arrowDown) {
-      return EditorShortcutResolution.handled(
+      return _applyDisabledIntent(EditorShortcutResolution.handled(
         EditorShortcutIntent.moveCaretDown,
         expandSelection: shiftPressed,
-      );
+      ));
     }
     if (key == LogicalKeyboardKey.home) {
-      return EditorShortcutResolution.handled(
+      return _applyDisabledIntent(EditorShortcutResolution.handled(
         EditorShortcutIntent.moveCaretToBlockStart,
         expandSelection: shiftPressed,
-      );
+      ));
     }
     if (key == LogicalKeyboardKey.end) {
-      return EditorShortcutResolution.handled(
+      return _applyDisabledIntent(EditorShortcutResolution.handled(
         EditorShortcutIntent.moveCaretToBlockEnd,
         expandSelection: shiftPressed,
-      );
+      ));
     }
     if (key == LogicalKeyboardKey.pageUp) {
-      return EditorShortcutResolution.handled(
+      return _applyDisabledIntent(EditorShortcutResolution.handled(
         EditorShortcutIntent.pageUp,
         expandSelection: shiftPressed,
-      );
+      ));
     }
     if (key == LogicalKeyboardKey.pageDown) {
-      return EditorShortcutResolution.handled(
+      return _applyDisabledIntent(EditorShortcutResolution.handled(
         EditorShortcutIntent.pageDown,
         expandSelection: shiftPressed,
-      );
+      ));
     }
     if (key == LogicalKeyboardKey.backspace) {
-      return const EditorShortcutResolution.handled(
+      return _applyDisabledIntent(const EditorShortcutResolution.handled(
         EditorShortcutIntent.deleteBackward,
-      );
+      ));
     }
     if (key == LogicalKeyboardKey.delete) {
-      return const EditorShortcutResolution.handled(
+      return _applyDisabledIntent(const EditorShortcutResolution.handled(
         EditorShortcutIntent.deleteForward,
-      );
+      ));
     }
     if (key == LogicalKeyboardKey.enter ||
         key == LogicalKeyboardKey.numpadEnter) {
-      return const EditorShortcutResolution.handled(
+      return _applyDisabledIntent(const EditorShortcutResolution.handled(
         EditorShortcutIntent.enter,
-      );
+      ));
     }
 
     final character = event.character;
@@ -183,10 +389,68 @@ class EditorShortcutManager {
     if (imeEnabled || inputClientAttached) {
       return const EditorShortcutResolution.ignored();
     }
-    return EditorShortcutResolution.handled(
+    return _applyDisabledIntent(EditorShortcutResolution.handled(
       EditorShortcutIntent.insertCharacter,
       character: character,
-    );
+    ));
+  }
+
+  EditorShortcutResolution? _resolveConfiguredShortcut(
+    LogicalKeyboardKey key, {
+    required bool shiftPressed,
+    required bool controlPressed,
+    required bool altPressed,
+    required bool metaPressed,
+    required bool primaryPressed,
+    required bool readOnly,
+    required bool imeEnabled,
+    required bool inputClientAttached,
+  }) {
+    for (final binding in configuration.bindings.reversed) {
+      if (!binding.shortcut.matches(
+        key: key,
+        shiftPressed: shiftPressed,
+        controlPressed: controlPressed,
+        altPressed: altPressed,
+        metaPressed: metaPressed,
+        primaryPressed: primaryPressed,
+        platform: platform,
+      )) {
+        continue;
+      }
+      final resolution = binding.resolution;
+      if (resolution.intent == EditorShortcutIntent.insertCharacter &&
+          (imeEnabled || inputClientAttached ||
+              !_isValidShortcutCharacter(resolution.character))) {
+        return const EditorShortcutResolution.ignored();
+      }
+      return _applyReadOnlyGuard(_applyDisabledIntent(resolution), readOnly);
+    }
+    return null;
+  }
+
+  EditorShortcutResolution _applyDisabledIntent(
+    EditorShortcutResolution resolution,
+  ) {
+    final intent = resolution.intent;
+    if (intent != null && configuration.disabledIntents.contains(intent)) {
+      return const EditorShortcutResolution.ignored();
+    }
+    return resolution;
+  }
+
+  EditorShortcutResolution _applyReadOnlyGuard(
+    EditorShortcutResolution resolution,
+    bool readOnly,
+  ) {
+    if (!readOnly || resolution.disposition != EditorShortcutDisposition.handled) {
+      return resolution;
+    }
+    final intent = resolution.intent;
+    if (intent != null && _writeIntents.contains(intent)) {
+      return const EditorShortcutResolution.ignored();
+    }
+    return resolution;
   }
 
   EditorShortcutResolution _resolvePrimaryShortcut(
@@ -274,3 +538,27 @@ bool _isControlCharacter(String character) {
   final codeUnit = character.codeUnitAt(0);
   return codeUnit < 0x20 || codeUnit == 0x7F;
 }
+
+bool _isValidShortcutCharacter(String? character) {
+  return character != null &&
+      character.length == 1 &&
+      !_isControlCharacter(character);
+}
+
+bool _setEquals<T>(Set<T> left, Set<T> right) {
+  return left.length == right.length && left.containsAll(right);
+}
+
+const Set<EditorShortcutIntent> _writeIntents = <EditorShortcutIntent>{
+  EditorShortcutIntent.undo,
+  EditorShortcutIntent.redo,
+  EditorShortcutIntent.cut,
+  EditorShortcutIntent.paste,
+  EditorShortcutIntent.replace,
+  EditorShortcutIntent.moveTableCellBackward,
+  EditorShortcutIntent.moveTableCellForward,
+  EditorShortcutIntent.deleteBackward,
+  EditorShortcutIntent.deleteForward,
+  EditorShortcutIntent.enter,
+  EditorShortcutIntent.insertCharacter,
+};
