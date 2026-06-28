@@ -13,7 +13,10 @@ void main() {
           type: BlockType.heading,
           attributes: BlockAttributes(level: 2),
           content: <InlineNode>[
-            TextRun(text: 'Hello', attributes: TextAttributes(bold: true)),
+            TextRun(
+              text: 'Hello',
+              attributes: TextAttributes(bold: true, color: 0xFFD81B60),
+            ),
             InlineEmbed(
               embedType: 'formula',
               data: <String, Object?>{'text': 'x^2'},
@@ -91,6 +94,12 @@ void main() {
     expect(decoded.blocks, hasLength(5));
     expect(decoded.blocks.first, isA<TextBlockNode>());
     expect(
+      ((decoded.blocks.first as TextBlockNode).content.first as TextRun)
+          .attributes
+          .color,
+      0xFFD81B60,
+    );
+    expect(
       (decoded.blocks.first as TextBlockNode).content.last,
       isA<InlineEmbed>(),
     );
@@ -154,5 +163,79 @@ void main() {
     expect(encoded, isNot(contains('metadata')));
     expect(jsonEncode(encoded), isNot(contains('collapsed')));
     expect(jsonEncode(encoded), isNot(contains('hiddenByHeading')));
+  });
+
+  test('callout body deletion keeps metadata in json export', () {
+    const codec = RichTextJsonCodec();
+    const document = RichTextDocument(
+      blocks: <BlockNode>[
+        CalloutBlockNode(
+          id: 'callout1',
+          variant: CalloutBlockNode.warningVariant,
+          title: 'Heads up',
+          icon: '!',
+          attributes: BlockAttributes(anchor: 'note-anchor'),
+          content: <InlineNode>[TextRun(text: 'Keep body')],
+        ),
+      ],
+    );
+
+    final encoded = jsonDecode(codec.encode(document)) as Map<String, Object?>;
+    final blocks = encoded['blocks'] as List<Object?>;
+    final callout = blocks.single as Map<String, Object?>;
+    final content = callout['content'] as List<Object?>;
+    final textRun = content.single as Map<String, Object?>;
+
+    expect(callout['id'], 'callout1');
+    expect(callout['type'], BlockType.callout.name);
+    expect(callout['variant'], CalloutBlockNode.warningVariant);
+    expect(callout['title'], 'Heads up');
+    expect(callout['icon'], '!');
+    expect(callout['attrs'], <String, Object?>{'anchor': 'note-anchor'});
+    expect(textRun['text'], 'Keep body');
+    expect(codec.decode(codec.encode(document)).toJson(), document.toJson());
+  });
+
+  test('ordered todo list items preserve checked state in json round trip', () {
+    const codec = RichTextJsonCodec();
+    const document = RichTextDocument(
+      blocks: <BlockNode>[
+        TextBlockNode(
+          id: 'todo-checked',
+          type: BlockType.listItem,
+          attributes: BlockAttributes(listType: 'ordered', checked: true),
+          content: <InlineNode>[TextRun(text: 'Done')],
+        ),
+        TextBlockNode(
+          id: 'todo-open',
+          type: BlockType.listItem,
+          attributes: BlockAttributes(listType: 'ordered', checked: false),
+          content: <InlineNode>[TextRun(text: 'Open')],
+        ),
+        TextBlockNode(
+          id: 'ordered-only',
+          type: BlockType.listItem,
+          attributes: BlockAttributes(listType: 'ordered'),
+          content: <InlineNode>[TextRun(text: 'Numbered')],
+        ),
+      ],
+    );
+
+    final encoded = jsonDecode(codec.encode(document)) as Map<String, Object?>;
+    final blocks = encoded['blocks'] as List<Object?>;
+    final checkedAttrs = (blocks[0] as Map<String, Object?>)['attrs'];
+    final openAttrs = (blocks[1] as Map<String, Object?>)['attrs'];
+    final orderedAttrs = (blocks[2] as Map<String, Object?>)['attrs'];
+
+    expect(checkedAttrs, <String, Object?>{
+      'listType': 'ordered',
+      'checked': true,
+    });
+    expect(openAttrs, <String, Object?>{
+      'listType': 'ordered',
+      'checked': false,
+    });
+    expect(orderedAttrs, <String, Object?>{'listType': 'ordered'});
+    expect(codec.decode(codec.encode(document)).toJson(), document.toJson());
   });
 }

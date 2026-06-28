@@ -3,6 +3,30 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wenz_richtext/wenz_richtext.dart';
 
+const testThemeToggleKey = ValueKey<String>('wenz-example-theme-toggle');
+const testEditorSurfaceKey = ValueKey<String>('wenz-example-editor-surface');
+const _testSeedColor = Color(0xFF0F766E);
+
+ThemeData _testWorkbenchTheme(Brightness brightness) {
+  final background =
+      brightness == Brightness.dark ? Colors.black : Colors.white;
+  final scheme = ColorScheme.fromSeed(
+    seedColor: _testSeedColor,
+    brightness: brightness,
+  ).copyWith(surface: background);
+  return ThemeData(
+    colorScheme: scheme,
+    scaffoldBackgroundColor: background,
+    useMaterial3: true,
+  );
+}
+
+Color _testEditorBackground(BuildContext context) {
+  return Theme.of(context).brightness == Brightness.dark
+      ? Colors.black
+      : Colors.white;
+}
+
 /// The in-memory clipboard buffer shared between copy and paste within a test.
 ///
 /// `flutter test`'s integration binding does not wire a real `Clipboard`
@@ -87,31 +111,51 @@ class TestWorkbench {
   Widget build() => _WorkbenchApp(this);
 }
 
-class _WorkbenchApp extends StatelessWidget {
+class _WorkbenchApp extends StatefulWidget {
   const _WorkbenchApp(this.workbench);
 
   final TestWorkbench workbench;
 
   @override
+  State<_WorkbenchApp> createState() => _WorkbenchAppState();
+}
+
+class _WorkbenchAppState extends State<_WorkbenchApp> {
+  var _themeMode = ThemeMode.light;
+
+  void _toggleThemeMode() {
+    setState(() {
+      _themeMode =
+          _themeMode == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF0F766E),
-          brightness: Brightness.light,
-        ),
-        useMaterial3: true,
+      theme: _testWorkbenchTheme(Brightness.light),
+      darkTheme: _testWorkbenchTheme(Brightness.dark),
+      themeMode: _themeMode,
+      home: _WorkbenchScaffold(
+        workbench: widget.workbench,
+        themeMode: _themeMode,
+        onToggleThemeMode: _toggleThemeMode,
       ),
-      home: _WorkbenchScaffold(workbench),
     );
   }
 }
 
 class _WorkbenchScaffold extends StatefulWidget {
-  const _WorkbenchScaffold(this.workbench);
+  const _WorkbenchScaffold({
+    required this.workbench,
+    required this.themeMode,
+    required this.onToggleThemeMode,
+  });
 
   final TestWorkbench workbench;
+  final ThemeMode themeMode;
+  final VoidCallback onToggleThemeMode;
 
   @override
   State<_WorkbenchScaffold> createState() => _WorkbenchScaffoldState();
@@ -140,13 +184,30 @@ class _WorkbenchScaffoldState extends State<_WorkbenchScaffold> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Wenz RichText')),
+      appBar: AppBar(
+        title: const Text('Wenz RichText'),
+        actions: <Widget>[
+          IconButton(
+            key: testThemeToggleKey,
+            tooltip: widget.themeMode == ThemeMode.dark
+                ? '切换浅色主题'
+                : '切换深色主题',
+            onPressed: widget.onToggleThemeMode,
+            icon: Icon(
+              widget.themeMode == ThemeMode.dark
+                  ? Icons.light_mode_outlined
+                  : Icons.dark_mode_outlined,
+            ),
+          ),
+        ],
+      ),
       body: Column(
         children: <Widget>[
           _TestToolbar(controller: widget.workbench.controller),
           Expanded(
             child: ColoredBox(
-              color: theme.colorScheme.surface,
+              key: testEditorSurfaceKey,
+              color: _testEditorBackground(context),
               child: WenzRichTextEditor(
                 controller: widget.workbench.controller,
                 autofocus: true,

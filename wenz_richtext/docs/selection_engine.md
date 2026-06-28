@@ -38,6 +38,10 @@ controller.setSelection(DocumentSelection)  ──▶ 各 _TextSelectionSurface 
 
 命中只以可见、可编辑的文本行区域为准；列表 marker、todo checkbox、标题折叠按钮、block handle、对象块/菜单控件、滚动条 gutter、选择排除区，以及 block 间隙或文档内容区域外空白，都不能被空白行命中抢占。
 
+实现约束：空文本 `_TextSelectionSurface` 在父级给出有限宽度时将可点击 hit-test box 撑满当前文本区域宽度，同时保留 `minHeight` 作为可见行高；该宽度只来自文本 surface 所在的布局槽，因此不会越过列表前缀、checkbox、折叠按钮或表格相邻单元格。`BlockGeometryRegistry` 命中 `textLength == 0` 的 entry 后直接返回 offset `0`，避免落入 `_clampToNearest` 或相邻 block。
+
+手势回归：空白行单击、从空白行开始拖拽、双击、三击都必须保持同一 block/path 的 offset `0` 语义；拖拽 extent 可继续跨到后续文本块。折叠后的隐藏空白行不再保留可命中 surface，点击其折叠前位置不得重新命中隐藏子块。
+
 ## SelectionGestureOverlay
 
 `lib/src/widgets/selection_gesture_overlay.dart`。包裹 `SingleChildScrollView`，用 `Listener`（`PointerDown/Move/Up/Cancel`）统一接管指针事件。

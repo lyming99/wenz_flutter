@@ -389,6 +389,55 @@ CommandResult clearTableCellInlineStyle(
   );
 }
 
+CommandResult clearTableCellInlineTextColor(
+  DocumentSession session,
+  int blockIndex,
+  int rowIndex,
+  int columnIndex,
+  int startOffset,
+  int endOffset,
+) {
+  if (endOffset <= startOffset) {
+    return const CommandResult(recordHistory: false);
+  }
+  final target = tableCellTarget(session, blockIndex, rowIndex, columnIndex);
+  if (target == null) {
+    return const CommandResult(recordHistory: false);
+  }
+  final safeStart = startOffset.clamp(0, target.textLength).toInt();
+  final safeEnd = endOffset.clamp(safeStart, target.textLength).toInt();
+  if (safeStart == safeEnd) {
+    return const CommandResult(recordHistory: false);
+  }
+  final nextTextBlock = TextBlockNode(
+    id: target.textBlock.id,
+    type: target.textBlock.type,
+    attributes: target.textBlock.attributes,
+    content: clearInlineTextColor(
+      target.textBlock.content,
+      safeStart,
+      safeEnd,
+    ),
+  );
+  return replaceCellTextBlock(
+    session,
+    blockIndex,
+    target.tableBlock,
+    rowIndex,
+    columnIndex,
+    target.cell,
+    nextTextBlock,
+    cellRangeSelection(
+      target.tableBlock.id,
+      blockIndex,
+      rowIndex,
+      columnIndex,
+      safeStart,
+      safeEnd,
+    ),
+  );
+}
+
 /// Inserts an inline embed (formula / mention / image) at a cell caret. The
 /// caret moves past the inserted embed. Mirrors [InsertInlineEmbedCommand] for
 /// cell selections.

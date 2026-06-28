@@ -327,6 +327,108 @@ class InsertInlineEmbedCommand extends EditorCommand {
   }
 }
 
+class UpdateInlineFormulaCommand extends EditorCommand {
+  const UpdateInlineFormulaCommand({
+    required this.position,
+    required this.text,
+  });
+
+  final DocumentPosition position;
+  final String text;
+
+  @override
+  String get description => 'updateInlineFormula';
+
+  @override
+  CommandResult execute(DocumentSession session) {
+    final normalizedText = text.trim();
+    if (normalizedText.isEmpty) {
+      return const CommandResult(recordHistory: false);
+    }
+    if (position.path.isTableCellText) {
+      return _updateTableCellInlineFormula(
+        session,
+        position,
+        normalizedText,
+      );
+    }
+    if (!position.path.isBlockText) {
+      return const CommandResult(recordHistory: false);
+    }
+    final block = _blockAt(session.document, position.blockIndex);
+    if (block is! TextBlockNode) {
+      return const CommandResult(recordHistory: false);
+    }
+    final result = _updateInlineFormulaContent(
+      block.content,
+      position.offset,
+      normalizedText,
+    );
+    if (!result.changed) {
+      return const CommandResult(recordHistory: false);
+    }
+    final nextBlock = TextBlockNode(
+      id: block.id,
+      type: block.type,
+      attributes: block.attributes,
+      content: result.content,
+    );
+    final blocks = session.document.blocks
+        .map((block) => block.copy())
+        .toList();
+    blocks[position.blockIndex] = nextBlock;
+    session.document = RichTextDocument(
+      version: session.document.version,
+      blocks: blocks,
+    );
+    return const CommandResult();
+  }
+}
+
+class UpdateBlockFormulaCommand extends EditorCommand {
+  const UpdateBlockFormulaCommand({
+    required this.blockId,
+    required this.text,
+  });
+
+  final String blockId;
+  final String text;
+
+  @override
+  String get description => 'updateBlockFormula';
+
+  @override
+  CommandResult execute(DocumentSession session) {
+    final normalizedText = text.trim();
+    if (normalizedText.isEmpty) {
+      return const CommandResult(recordHistory: false);
+    }
+    final blockIndex = session.document.blocks.indexWhere(
+      (block) => block.id == blockId,
+    );
+    if (blockIndex < 0) {
+      return const CommandResult(recordHistory: false);
+    }
+    final block = session.document.blocks[blockIndex];
+    if (block is! BlockEmbedNode || !block.isFormula) {
+      return const CommandResult(recordHistory: false);
+    }
+    final nextBlock = block.copyWithFormulaText(normalizedText);
+    if (_sameFormulaBlock(block, nextBlock)) {
+      return const CommandResult(recordHistory: false);
+    }
+    final blocks = session.document.blocks
+        .map((block) => block.copy())
+        .toList();
+    blocks[blockIndex] = nextBlock;
+    session.document = RichTextDocument(
+      version: session.document.version,
+      blocks: blocks,
+    );
+    return const CommandResult();
+  }
+}
+
 CommandResult _autoLinkTableCell(
   DocumentSession session,
   int blockIndex,
@@ -490,6 +592,118 @@ bool _rangeHasLinkedRun(List<InlineNode> content, int start, int end) {
     }
   }
   return false;
+}
+
+CommandResult _updateTableCellInlineFormula(
+  DocumentSession session,
+  DocumentPosition position,
+  String text,
+) {
+  final target = tableCellTargetFromPosition(session, position);
+  final rowIndex = position.path.tableRowIndex;
+  final columnIndex = position.path.tableColumnIndex;
+  if (target == null || rowIndex == null || columnIndex == null) {
+    return const CommandResult(recordHistory: false);
+  }
+  final result = _updateInlineFormulaContent(
+    target.textBlock.content,
+    position.offset,
+    text,
+  );
+  if (!result.changed) {
+    return const CommandResult(recordHistory: false);
+  }
+  final nextTextBlock = TextBlockNode(
+    id: target.textBlock.id,
+    type: target.textBlock.type,
+    attributes: target.textBlock.attributes,
+    content: result.content,
+  );
+  return replaceCellTextBlock(
+    session,
+    position.blockIndex,
+    target.tableBlock,
+    rowIndex,
+    columnIndex,
+    target.cell,
+    nextTextBlock,
+    session.selection ??
+        cellSelection(
+          target.tableBlock.id,
+          position.blockIndex,
+          rowIndex,
+          columnIndex,
+          position.offset,
+        ),
+  );
+}
+
+_InlineFormulaUpdateResult _updateInlineFormulaContent(
+  List<InlineNode> content,
+  int offset,
+  String text,
+) {
+  var cursor = 0;
+  for (var index = 0; index < content.length; index++) {
+    final node = content[index];
+    final nodeStart = cursor;
+    final nodeEnd = cursor + inlineLength(node);
+    cursor = nodeEnd;
+    if (node is! InlineEmbed || !node.isFormula) {
+      continue;
+    }
+    if (offset < nodeStart || offset > nodeEnd) {
+      continue;
+    }
+    final nextNode = node.copyWithFormulaText(text);
+    if (_sameInlineEmbed(node, nextNode)) {
+      return _InlineFormulaUpdateResult(content: content, changed: false);
+    }
+    final nextContent = <InlineNode>[
+      for (var contentIndex = 0; contentIndex < content.length; contentIndex++)
+        contentIndex == index ? nextNode : content[contentIndex].copy(),
+    ];
+    return _InlineFormulaUpdateResult(content: nextContent, changed: true);
+  }
+  return _InlineFormulaUpdateResult(content: content, changed: false);
+}
+
+bool _sameInlineEmbed(InlineEmbed current, InlineEmbed next) {
+  return current.embedType == next.embedType &&
+      current.attributes == next.attributes &&
+      _shallowMapEquals(current.data, next.data);
+}
+
+bool _sameFormulaBlock(BlockEmbedNode current, BlockEmbedNode next) {
+  return current.embedType == next.embedType &&
+      current.fallbackText == next.fallbackText &&
+      current.attributes == next.attributes &&
+      _shallowMapEquals(current.data, next.data);
+}
+
+bool _shallowMapEquals(Map<String, Object?> left, Map<String, Object?> right) {
+  if (identical(left, right)) {
+    return true;
+  }
+  if (left.length != right.length) {
+    return false;
+  }
+  for (final entry in left.entries) {
+    if (!right.containsKey(entry.key) || right[entry.key] != entry.value) {
+      return false;
+    }
+  }
+  return true;
+}
+
+class _InlineFormulaUpdateResult {
+  const _InlineFormulaUpdateResult({
+    required this.content,
+    required this.changed,
+  });
+
+  final List<InlineNode> content;
+  final bool changed;
 }
 
 // replacePlaceholderWithEmbed and withUrl live in inline_editing.dart so both

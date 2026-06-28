@@ -277,6 +277,105 @@ void main() {
     expect((textBlock.content[1] as TextRun).attributes.color, _fontColor);
   });
 
+  test('clear text color preserves other inline attributes', () {
+    final session = DocumentSession(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[
+              TextRun(
+                text: 'Hello',
+                attributes: TextAttributes(
+                  color: _fontColor,
+                  background: _backgroundColor,
+                  bold: true,
+                  italic: true,
+                  url: 'https://example.com',
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+      selection: textSelection('p1', 0, 1, 4),
+    );
+    final executor = CommandExecutor(session);
+
+    executor.execute(const ClearTextColorCommand());
+
+    final block = session.document.blocks.single as TextBlockNode;
+    final middle = block.content[1] as TextRun;
+    expect(middle.text, 'ell');
+    expect(middle.attributes.color, isNull);
+    expect(middle.attributes.background, _backgroundColor);
+    expect(middle.attributes.bold, isTrue);
+    expect(middle.attributes.italic, isTrue);
+    expect(middle.attributes.url, 'https://example.com');
+    expect((block.content.first as TextRun).attributes.color, _fontColor);
+    expect((block.content.last as TextRun).attributes.color, _fontColor);
+  });
+
+  test('format text color supports undo and redo', () {
+    final session = DocumentSession(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'Hello')],
+          ),
+        ],
+      ),
+      selection: textSelection('p1', 0, 1, 4),
+    );
+    final executor = CommandExecutor(session);
+
+    executor.execute(
+      const FormatTextCommand(attributes: TextAttributes(color: _fontColor)),
+    );
+    var block = session.document.blocks.single as TextBlockNode;
+    expect((block.content[1] as TextRun).attributes.color, _fontColor);
+
+    expect(session.undo(), isTrue);
+    block = session.document.blocks.single as TextBlockNode;
+    expect(block.content, hasLength(1));
+    expect((block.content.single as TextRun).attributes.color, isNull);
+
+    expect(session.redo(), isTrue);
+    block = session.document.blocks.single as TextBlockNode;
+    expect((block.content[1] as TextRun).attributes.color, _fontColor);
+  });
+
+  test('format text color with same value does not add history', () {
+    final session = DocumentSession(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[
+              TextRun(
+                text: 'Hello',
+                attributes: TextAttributes(color: _fontColor),
+              ),
+            ],
+          ),
+        ],
+      ),
+      selection: textSelection('p1', 0, 0, 5),
+    );
+    final executor = CommandExecutor(session);
+
+    final change = executor.execute(
+      const FormatTextCommand(attributes: TextAttributes(color: _fontColor)),
+    );
+
+    expect(change.isNoop, isTrue);
+    expect(session.history.undoDepth, 0);
+  });
+
   test('controller blocks font color formatting without edit permission', () {
     final controller = WenzRichTextController(
       document: const RichTextDocument(
@@ -424,6 +523,64 @@ void main() {
     expect(block.attributes.listType, 'task');
     expect(block.attributes.checked, isTrue);
     expect(block.attributes.anchor, 'task-anchor');
+  });
+
+  test('set block type supports ordered todo list item', () {
+    final session = DocumentSession(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'Task')],
+          ),
+        ],
+      ),
+      selection: collapsedTextSelection('p1', 0, 0),
+    );
+    final executor = CommandExecutor(session);
+
+    executor.execute(
+      const SetBlockTypeCommand(
+        type: BlockType.listItem,
+        listType: 'ordered',
+        checked: true,
+      ),
+    );
+
+    final block = session.document.blocks.single as TextBlockNode;
+    expect(block.type, BlockType.listItem);
+    expect(block.attributes.listType, 'ordered');
+    expect(block.attributes.checked, isTrue);
+  });
+
+  test('set block type keeps ordered todo state when staying ordered', () {
+    final session = DocumentSession(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'li1',
+            type: BlockType.listItem,
+            attributes: BlockAttributes(listType: 'ordered', checked: true),
+            content: <InlineNode>[TextRun(text: 'Task')],
+          ),
+        ],
+      ),
+      selection: collapsedTextSelection('li1', 0, 0),
+    );
+    final executor = CommandExecutor(session);
+
+    executor.execute(
+      const SetBlockTypeCommand(
+        type: BlockType.listItem,
+        listType: 'ordered',
+      ),
+    );
+
+    final block = session.document.blocks.single as TextBlockNode;
+    expect(block.type, BlockType.listItem);
+    expect(block.attributes.listType, 'ordered');
+    expect(block.attributes.checked, isTrue);
   });
 
   test('set block type can switch an existing list item to unordered', () {

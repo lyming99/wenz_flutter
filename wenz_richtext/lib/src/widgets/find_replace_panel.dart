@@ -75,10 +75,17 @@ class _WenzFindReplacePanelState extends State<WenzFindReplacePanel> {
     final current =
         controller.currentIndex >= 0 ? controller.currentIndex + 1 : 0;
     final total = controller.matches.length;
+    final colorScheme = theme.colorScheme;
     return Material(
-      color: theme.colorScheme.surface,
+      key: const ValueKey<String>('wenz-find-replace-panel-surface'),
+      color: colorScheme.surface,
       elevation: 2,
-      borderRadius: BorderRadius.circular(8),
+      shadowColor: colorScheme.shadow.withAlpha(40),
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(
+        side: BorderSide(color: colorScheme.outlineVariant),
+        borderRadius: BorderRadius.circular(8),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(8),
         child: Wrap(
@@ -123,6 +130,7 @@ class _WenzFindReplacePanelState extends State<WenzFindReplacePanel> {
               key: const ValueKey<String>('wenz-find-case-sensitive'),
               tooltip: '区分大小写',
               isSelected: controller.options.caseSensitive,
+              style: _findPanelToggleStyle(theme),
               selectedIcon: const Icon(Icons.text_fields),
               icon: const Icon(Icons.text_fields_outlined),
               onPressed: () {
@@ -135,6 +143,7 @@ class _WenzFindReplacePanelState extends State<WenzFindReplacePanel> {
               key: const ValueKey<String>('wenz-find-whole-word'),
               tooltip: '全字匹配',
               isSelected: controller.options.wholeWord,
+              style: _findPanelToggleStyle(theme),
               selectedIcon: const Icon(Icons.short_text),
               icon: const Icon(Icons.subject),
               onPressed: () {
@@ -182,4 +191,29 @@ class _WenzFindReplacePanelState extends State<WenzFindReplacePanel> {
       ),
     );
   }
+}
+
+ButtonStyle _findPanelToggleStyle(ThemeData theme) {
+  final colorScheme = theme.colorScheme;
+  return IconButton.styleFrom(
+    foregroundColor: colorScheme.onSurfaceVariant,
+    backgroundColor: Colors.transparent,
+    disabledForegroundColor: colorScheme.onSurface.withAlpha(96),
+  ).copyWith(
+    foregroundColor: WidgetStateProperty.resolveWith<Color?>((states) {
+      if (states.contains(WidgetState.disabled)) {
+        return colorScheme.onSurface.withAlpha(96);
+      }
+      if (states.contains(WidgetState.selected)) {
+        return colorScheme.onPrimaryContainer;
+      }
+      return colorScheme.onSurfaceVariant;
+    }),
+    backgroundColor: WidgetStateProperty.resolveWith<Color?>((states) {
+      if (states.contains(WidgetState.selected)) {
+        return colorScheme.primaryContainer;
+      }
+      return Colors.transparent;
+    }),
+  );
 }

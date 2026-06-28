@@ -4,6 +4,48 @@ import 'package:flutter/material.dart';
 
 import '../controller/slash_menu_controller.dart';
 
+// Keep slash menu chrome aligned with docs/design/menu_toolbar_minimal_spec.md.
+const double _kSlashMenuSurfaceRadius = 12.0;
+const double _kSlashMenuSurfaceElevation = 6.0;
+const int _kSlashMenuSurfaceShadowAlpha = 48;
+const int _kSlashMenuSurfaceBorderAlpha = 180;
+const EdgeInsets _kSlashMenuPadding = EdgeInsets.all(6);
+const double _kSlashMenuItemRadius = 8.0;
+const EdgeInsets _kSlashMenuItemOuterPadding = EdgeInsets.symmetric(vertical: 1);
+const EdgeInsets _kSlashMenuItemPadding = EdgeInsets.symmetric(
+  horizontal: 10,
+  vertical: 8,
+);
+const EdgeInsets _kSlashMenuEmptyPadding = EdgeInsets.symmetric(
+  horizontal: 18,
+  vertical: 22,
+);
+const double _kSlashMenuEmptyMinHeight = 132.0;
+const double _kSlashMenuIconSize = 20.0;
+const double _kSlashMenuIconTextGap = 10.0;
+const int _kSlashMenuHoverAlpha = 10;
+const int _kSlashMenuHighlightAlpha = 20;
+const int _kSlashMenuSplashAlpha = 24;
+const int _kSlashMenuSelectedAlphaLight = 150;
+const int _kSlashMenuSelectedAlphaDark = 112;
+
+Color _slashMenuSurfaceColor(ThemeData theme) =>
+    theme.colorScheme.surfaceContainerLow;
+
+Color _slashMenuShadowColor(ThemeData theme) =>
+    theme.colorScheme.shadow.withAlpha(_kSlashMenuSurfaceShadowAlpha);
+
+ShapeBorder _slashMenuShape(ThemeData theme) {
+  return RoundedRectangleBorder(
+    side: BorderSide(
+      color: theme.colorScheme.outlineVariant.withAlpha(
+        _kSlashMenuSurfaceBorderAlpha,
+      ),
+    ),
+    borderRadius: BorderRadius.circular(_kSlashMenuSurfaceRadius),
+  );
+}
+
 class WenzSlashMenuOverlay extends StatelessWidget {
   const WenzSlashMenuOverlay({
     super.key,
@@ -39,15 +81,11 @@ class WenzSlashMenuOverlay extends StatelessWidget {
           behavior: HitTestBehavior.opaque,
           child: Material(
             key: const ValueKey<String>('wenz-slash-menu-overlay'),
-            color: colorScheme.surfaceContainerLow,
-            elevation: 6,
-            shadowColor: colorScheme.shadow.withAlpha(48),
-            surfaceTintColor: Colors.transparent,
-            shape: RoundedRectangleBorder(
-              side:
-                  BorderSide(color: colorScheme.outlineVariant.withAlpha(180)),
-              borderRadius: BorderRadius.circular(12),
-            ),
+            color: _slashMenuSurfaceColor(theme),
+            elevation: _kSlashMenuSurfaceElevation,
+            shadowColor: _slashMenuShadowColor(theme),
+            surfaceTintColor: colorScheme.surfaceTint.withAlpha(0),
+            shape: _slashMenuShape(theme),
             clipBehavior: Clip.antiAlias,
             child: ConstrainedBox(
               constraints: BoxConstraints(
@@ -55,24 +93,29 @@ class WenzSlashMenuOverlay extends StatelessWidget {
                 maxWidth: effectiveMaxWidth,
                 maxHeight: effectiveMaxHeight,
               ),
-              child: ListView.builder(
-                padding: const EdgeInsets.all(6),
-                shrinkWrap: true,
-                itemCount: items.length,
-                itemBuilder: (context, index) {
-                  final item = items[index];
-                  final selected = index == controller.highlightedIndex;
-                  return _SlashMenuTile(
-                    key: ValueKey<String>('wenz-slash-item-${item.id}'),
-                    item: item,
-                    selected: selected,
-                    onTap: () {
-                      controller.selectIndex(index);
-                      controller.activate(item);
-                    },
-                  );
-                },
-              ),
+              child: items.isEmpty
+                  ? const _SlashMenuEmptyState()
+                  : Scrollbar(
+                      thumbVisibility: false,
+                      child: ListView.builder(
+                        padding: _kSlashMenuPadding,
+                        shrinkWrap: true,
+                        itemCount: items.length,
+                        itemBuilder: (context, index) {
+                          final item = items[index];
+                          final selected = index == controller.highlightedIndex;
+                          return _SlashMenuTile(
+                            key: ValueKey<String>('wenz-slash-item-${item.id}'),
+                            item: item,
+                            selected: selected,
+                            onTap: () {
+                              controller.selectIndex(index);
+                              controller.activate(item);
+                            },
+                          );
+                        },
+                      ),
+                    ),
             ),
           ),
         );
@@ -98,12 +141,14 @@ class _SlashMenuTile extends StatelessWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final selectedColor = colorScheme.primaryContainer.withAlpha(
-      theme.brightness == Brightness.dark ? 112 : 150,
+      theme.brightness == Brightness.dark
+          ? _kSlashMenuSelectedAlphaDark
+          : _kSlashMenuSelectedAlphaLight,
     );
     final iconColor =
         selected ? colorScheme.primary : colorScheme.onSurfaceVariant;
     final titleStyle = theme.textTheme.bodyMedium?.copyWith(
-      color: colorScheme.onSurface,
+      color: selected ? colorScheme.primary : colorScheme.onSurface,
       fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
     );
     return Semantics(
@@ -113,24 +158,30 @@ class _SlashMenuTile extends StatelessWidget {
           ? item.title
           : '${item.title}, ${item.description}',
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 1),
+        padding: _kSlashMenuItemOuterPadding,
         child: InkWell(
-          borderRadius: BorderRadius.circular(8),
-          hoverColor: colorScheme.onSurface.withAlpha(10),
-          highlightColor: colorScheme.primary.withAlpha(20),
-          splashColor: colorScheme.primary.withAlpha(24),
+          borderRadius: BorderRadius.circular(_kSlashMenuItemRadius),
+          hoverColor: colorScheme.onSurface.withAlpha(_kSlashMenuHoverAlpha),
+          highlightColor: colorScheme.primary.withAlpha(
+            _kSlashMenuHighlightAlpha,
+          ),
+          splashColor: colorScheme.primary.withAlpha(_kSlashMenuSplashAlpha),
           onTap: onTap,
           child: DecoratedBox(
             decoration: BoxDecoration(
-              color: selected ? selectedColor : Colors.transparent,
-              borderRadius: BorderRadius.circular(8),
+              color: selected ? selectedColor : colorScheme.surface.withAlpha(0),
+              borderRadius: BorderRadius.circular(_kSlashMenuItemRadius),
             ),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              padding: _kSlashMenuItemPadding,
               child: Row(
                 children: <Widget>[
-                  Icon(_iconFor(item.icon), size: 20, color: iconColor),
-                  const SizedBox(width: 10),
+                  Icon(
+                    _iconFor(item.icon),
+                    size: _kSlashMenuIconSize,
+                    color: iconColor,
+                  ),
+                  const SizedBox(width: _kSlashMenuIconTextGap),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -152,6 +203,54 @@ class _SlashMenuTile extends StatelessWidget {
                 ],
               ),
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SlashMenuEmptyState extends StatelessWidget {
+  const _SlashMenuEmptyState();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    return Semantics(
+      liveRegion: true,
+      label: 'No slash commands found',
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: _kSlashMenuEmptyMinHeight),
+        child: Padding(
+          padding: _kSlashMenuEmptyPadding,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              Icon(
+                Icons.search_off,
+                size: _kSlashMenuIconSize,
+                color: colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'No commands found',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: colorScheme.onSurface,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Try a different keyword.',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
           ),
         ),
       ),

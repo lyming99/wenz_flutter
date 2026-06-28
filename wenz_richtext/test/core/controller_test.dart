@@ -1,3 +1,4 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wenz_richtext/wenz_richtext.dart';
 
@@ -374,6 +375,74 @@ void main() {
     expect(outline.collapsedBlockIds, isEmpty);
     expect(outline.isBlockHidden('p2'), isFalse);
     expect(controller.selection, collapsedTextSelection('p2', 3, 6));
+  });
+
+  test('controller sets and clears text color through public API', () {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[
+              TextRun(
+                text: 'Hello',
+                attributes: TextAttributes(
+                  background: 0xFFFFF59D,
+                  bold: true,
+                  url: 'https://example.com',
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+      selection: textSelection('p1', 0, 1, 4),
+    );
+
+    controller.setTextColor(const Color(0xFF336699));
+
+    var block = controller.document.blocks.single as TextBlockNode;
+    var middle = block.content[1] as TextRun;
+    expect(middle.attributes.color, 0xFF336699);
+    expect(middle.attributes.background, 0xFFFFF59D);
+    expect(middle.attributes.bold, isTrue);
+    expect(middle.attributes.url, 'https://example.com');
+    expect(controller.canUndo, isTrue);
+
+    controller.clearTextColor();
+
+    block = controller.document.blocks.single as TextBlockNode;
+    final run = block.content.single as TextRun;
+    expect(run.text, 'Hello');
+    expect(run.attributes.color, isNull);
+    expect(run.attributes.background, 0xFFFFF59D);
+    expect(run.attributes.bold, isTrue);
+    expect(run.attributes.url, 'https://example.com');
+  });
+
+  test('controller text color API respects edit permission', () {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'Read only')],
+          ),
+        ],
+      ),
+      selection: textSelection('p1', 0, 0, 4),
+      permission: WenzEditorPermission.read,
+    );
+
+    final change = controller.setTextColorValue(0xFF336699);
+
+    final block = controller.document.blocks.single as TextBlockNode;
+    expect(change.isNoop, isTrue);
+    expect(change.metadata, containsPair('reason', 'permissionDenied'));
+    expect((block.content.single as TextRun).attributes.color, isNull);
+    expect(controller.canUndo, isFalse);
   });
 }
 

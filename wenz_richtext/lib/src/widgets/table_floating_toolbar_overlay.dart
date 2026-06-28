@@ -5,6 +5,12 @@ import 'package:flutter/scheduler.dart';
 
 import '../core/position/document_position.dart';
 
+// Visual chrome is owned by toolbar builders; this host only measures, clamps,
+// and positions overlays per docs/design/menu_toolbar_minimal_spec.md.
+const double _kTableFloatingToolbarDefaultMinWidth = 0.0;
+const double _kTableFloatingToolbarDefaultGap = 4.0;
+const double _kTableFloatingToolbarDefaultFallbackHeight = 36.0;
+
 /// Builds the visible table toolbar for an overlay request.
 typedef TableFloatingToolbarOverlayBuilder = Widget Function(
   BuildContext context,
@@ -38,9 +44,9 @@ class TableFloatingToolbarOverlayRequest {
     required this.selectionRange,
     required this.toolbarBuilder,
     this.enabled = true,
-    this.minWidth = 0,
-    this.gap = 4,
-    this.fallbackHeight = 40,
+    this.minWidth = _kTableFloatingToolbarDefaultMinWidth,
+    this.gap = _kTableFloatingToolbarDefaultGap,
+    this.fallbackHeight = _kTableFloatingToolbarDefaultFallbackHeight,
   });
 
   /// Opaque identity of the renderer anchor that published this request.

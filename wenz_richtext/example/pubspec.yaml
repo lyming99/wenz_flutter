@@ -11,6 +11,12 @@ dependencies:
     sdk: flutter
   wenz_richtext:
     path: ..
+  # 真实视频播放依赖（仅 example 端，核心包 wenz_richtext 不引入播放依赖）。
+  # 选型：media_kit（基于 libmpv）—— Windows 桌面/Web 均原生可播 mp4/webm，
+  # 无需额外手改 native 目录；video_player 路线官方不含 Windows 桌面端故弃用。
+  media_kit: ^1.2.6 # 核心 API：Player/Media/Playlist。
+  media_kit_video: ^2.0.1 # 视频渲染：VideoController/Video。
+  media_kit_libs_video: ^1.0.7 # 各平台 libmpv 运行时库（Windows/Web 等）。
 
 dev_dependencies:
   flutter_test:
@@ -21,3 +27,8 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    # 本地样例视频素材（来源 d:/video，详见 docs/plan/plan_requirement_56）。
+    # 拷贝自 d:/video/v1.0.10.beta更新视频/split/00_开场介绍.mp4（mp4/H.264/AAC，~22.5s，4.4MB），
+    # 供 example 端 VideoBlockNode.file='assets/videos/sample.mp4' 真实播放使用。
+    - assets/videos/

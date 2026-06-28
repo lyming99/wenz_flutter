@@ -5,7 +5,10 @@
 /// This package is pre-`0.1.0` and its public surface is still stabilising.
 /// APIs fall into three tiers:
 ///
-/// - **Stable core (tier 1)**: document model
+/// - **Stable core (tier 1)**: the standard external interface — the
+///   recommended facade entry point [WenzEditorConfiguration] +
+///   [WenzEditorBootstrap] (assemble → build the editor widget → read/write
+///   data → dispose), the document model
 ///   ([RichTextDocument], [BlockNode], [InlineNode], [TableModel],
 ///   [CommentAnchor], [CommentThread], [CommentEntry], [RevisionRange],
 ///   [RevisionChange]),
@@ -90,6 +93,9 @@
 ///
 /// See `docs/optimization_roadmap.md` for the stage breakdown,
 /// `docs/architecture.md` for the layer overview,
+/// `docs/integration_guide.md` for the standard external interface contract
+/// (the recommended `WenzEditorConfiguration` + `WenzEditorBootstrap` entry
+/// point and the tier 1/tier 2/internal stability boundary),
 /// `docs/api_reference.md` for the public-API surface,
 /// `docs/schema_and_commands.md` for schema/command extension points,
 /// `docs/selection_model.md` for the selection contract,
@@ -146,6 +152,8 @@ export 'src/input/composition_state.dart';
 export 'src/input/editor_text_input_client.dart';
 export 'src/input/shortcut_manager.dart';
 export 'src/plugins/editor_plugin.dart';
+export 'src/integration/wenz_editor_bootstrap.dart';
+export 'src/integration/wenz_editor_configuration.dart';
 export 'src/widgets/block_renderer_registry.dart';
 export 'src/widgets/comment_sidebar.dart';
 export 'src/widgets/find_replace_panel.dart';

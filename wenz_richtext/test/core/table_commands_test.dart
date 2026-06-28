@@ -247,6 +247,99 @@ void main() {
     expect(session.selection?.extent.offset, 4);
   });
 
+  test('format table cell text applies and clears font color only', () {
+    final session = DocumentSession(document: _tableDocument());
+    final executor = CommandExecutor(session);
+    executor.execute(
+      const InsertTableCellTextCommand(
+        blockIndex: 0,
+        rowIndex: 1,
+        columnIndex: 1,
+        offset: 0,
+        text: 'Hello',
+        attributes: TextAttributes(
+          background: 0xFFFFF59D,
+          bold: true,
+          url: 'https://example.com',
+        ),
+      ),
+    );
+
+    executor.execute(
+      const FormatTableCellTextCommand(
+        blockIndex: 0,
+        rowIndex: 1,
+        columnIndex: 1,
+        startOffset: 1,
+        endOffset: 4,
+        attributes: TextAttributes(color: 0xFF336699),
+      ),
+    );
+    var textBlock = _cellTextBlock(session, 1, 1);
+    var middle = textBlock.content[1] as TextRun;
+    expect(middle.text, 'ell');
+    expect(middle.attributes.color, 0xFF336699);
+    expect(middle.attributes.background, 0xFFFFF59D);
+    expect(middle.attributes.bold, isTrue);
+    expect(middle.attributes.url, 'https://example.com');
+
+    final selection = DocumentSelection(
+      base: DocumentPosition.tableCell(
+        tableBlockId: 't1',
+        blockIndex: 0,
+        tableRowIndex: 1,
+        tableColumnIndex: 1,
+        offset: 1,
+      ),
+      extent: DocumentPosition.tableCell(
+        tableBlockId: 't1',
+        blockIndex: 0,
+        tableRowIndex: 1,
+        tableColumnIndex: 1,
+        offset: 4,
+      ),
+    );
+    executor.execute(ClearTextColorCommand(selection: selection));
+
+    textBlock = _cellTextBlock(session, 1, 1);
+    final run = textBlock.content.single as TextRun;
+    expect(run.text, 'Hello');
+    expect(run.attributes.color, isNull);
+    expect(run.attributes.background, 0xFFFFF59D);
+    expect(run.attributes.bold, isTrue);
+    expect(run.attributes.url, 'https://example.com');
+  });
+
+  test('format table cell text with same color does not add history', () {
+    final session = DocumentSession(document: _tableDocument());
+    final executor = CommandExecutor(session);
+    executor.execute(
+      const InsertTableCellTextCommand(
+        blockIndex: 0,
+        rowIndex: 1,
+        columnIndex: 1,
+        offset: 0,
+        text: 'Hello',
+        attributes: TextAttributes(color: 0xFF336699),
+      ),
+    );
+    final undoDepth = session.history.undoDepth;
+
+    final change = executor.execute(
+      const FormatTableCellTextCommand(
+        blockIndex: 0,
+        rowIndex: 1,
+        columnIndex: 1,
+        startOffset: 0,
+        endOffset: 5,
+        attributes: TextAttributes(color: 0xFF336699),
+      ),
+    );
+
+    expect(change.isNoop, isTrue);
+    expect(session.history.undoDepth, undoDepth);
+  });
+
   test('ToggleMarkCommand toggles bold inside a table cell', () {
     final session = DocumentSession(document: _tableDocument());
     final executor = CommandExecutor(session);

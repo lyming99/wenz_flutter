@@ -107,7 +107,12 @@ the intent is part of the rich text feature set.
 - `WenzRichTextController.insertFormula(text)` inserts a formula embed with
   `embedType: 'formula'`.
 - `WenzRichTextController.insertMention(id, label)` inserts a mention embed with
-  `embedType: 'mention'` and renders as `@label`.
+  `embedType: 'mention'` and data shaped as `{'id': id, 'label': label}`.
+  Default renderers display `@label` (or `@mention` when the label is empty)
+  and `WenzRichTextEditor.onMentionTap` reports the same original `data` plus
+  the embed's `DocumentPosition` / selection context. Opening a profile page,
+  member card, or any other business UI remains the host application's
+  responsibility; the document schema only stores the inline embed payload.
 - `WenzRichTextController.insertEmoji(emoji, shortName: ...)` inserts an emoji
   embed with `embedType: 'emoji'`; JSON stores the unicode value and optional
   short name while default renderers display the emoji character.
@@ -278,6 +283,31 @@ normalisation. The same context can also receive runtime registries for block
 renderers, block embed renderers (`BlockRendererRegistry.registerEmbed`), inline
 embed renderers, slash menu items, headless toolbar items, and paste
 transformers; none of those runtime registrations writes to rich JSON.
+
+Slash menu commands follow the same runtime-extension rule. Start from
+`SlashMenuRegistry.defaults()` when you want the built-in paragraph, heading,
+list, table, quote, code, and media entries, then use `register` / `registerAll`
+to add app or plugin entries. A slash item should call the typed controller
+helpers or `executeCommand` from its `action` callback instead of mutating the
+document directly; that keeps permission checks, middleware, history,
+undo/redo, and schema normalisation on the normal command path. The default
+slash items are backed by those helpers, so selecting an item is undoable and
+does not add any slash-specific field to rich JSON.
+
+```dart
+final slashMenu = SlashMenuRegistry.defaults()
+  ..register(
+    SlashMenuItem(
+      id: 'insertCallout',
+      title: 'Callout',
+      icon: '💡',
+      keywords: const ['tip', 'note'],
+      action: (editor, context) {
+        editor.executeCommand('insertCallout');
+      },
+    ),
+  );
+```
 
 ## Error handling
 

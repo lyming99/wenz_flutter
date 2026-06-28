@@ -157,6 +157,11 @@ class WenzRichTextController extends ChangeNotifier {
   bool get lastChangeWasCompositionOnly => _lastChangeWasCompositionOnly;
   bool _lastChangeWasCompositionOnly = false;
 
+  int _inputUpdateBatchDepth = 0;
+  bool _hasPendingInputUpdateNotification = false;
+  Set<String>? _batchedInputChangedBlockIds;
+  bool _batchedInputHasNonCompositionChange = false;
+
   RichTextDocument get document => session.document;
 
   DocumentSelection? get selection => session.selection;
@@ -231,7 +236,10 @@ class WenzRichTextController extends ChangeNotifier {
     _lastChangedBlockIds = <String>{};
     _lastChangeWasCompositionOnly = false;
     onSelectionChanged?.call(selection);
-    notifyListeners();
+    _notifyInputAwareListeners(
+      documentChanged: false,
+      compositionOnly: false,
+    );
   }
 
   /// Updates the IME composition region. Called by the TextInputClient bridge.
@@ -247,7 +255,10 @@ class WenzRichTextController extends ChangeNotifier {
     // Composition-only change: no block content changed.
     _lastChangedBlockIds = <String>{};
     _lastChangeWasCompositionOnly = true;
-    notifyListeners();
+    _notifyInputAwareListeners(
+      documentChanged: false,
+      compositionOnly: true,
+    );
   }
 
   void runWithComposingTextInput(VoidCallback action) {
@@ -258,6 +269,61 @@ class WenzRichTextController extends ChangeNotifier {
     } finally {
       _isApplyingComposingTextInput = previous;
     }
+  }
+
+  void runWithInputUpdate(VoidCallback action) {
+    final isOuterBatch = _inputUpdateBatchDepth == 0;
+    if (isOuterBatch) {
+      _hasPendingInputUpdateNotification = false;
+      _batchedInputChangedBlockIds = null;
+      _batchedInputHasNonCompositionChange = false;
+    }
+    _inputUpdateBatchDepth += 1;
+    try {
+      action();
+    } finally {
+      _inputUpdateBatchDepth -= 1;
+      if (isOuterBatch) {
+        _flushInputUpdateNotification();
+      }
+    }
+  }
+
+  void _notifyInputAwareListeners({
+    required bool documentChanged,
+    required bool compositionOnly,
+  }) {
+    if (_inputUpdateBatchDepth == 0) {
+      notifyListeners();
+      return;
+    }
+    _hasPendingInputUpdateNotification = true;
+    if (documentChanged) {
+      final changedBlockIds = _lastChangedBlockIds;
+      final batched = _batchedInputChangedBlockIds ?? <String>{};
+      if (changedBlockIds != null) {
+        batched.addAll(changedBlockIds);
+      }
+      _batchedInputChangedBlockIds = batched;
+    }
+    if (!compositionOnly) {
+      _batchedInputHasNonCompositionChange = true;
+    }
+  }
+
+  void _flushInputUpdateNotification() {
+    if (!_hasPendingInputUpdateNotification) {
+      return;
+    }
+    final changedBlockIds = _batchedInputChangedBlockIds;
+    if (changedBlockIds != null) {
+      _lastChangedBlockIds = changedBlockIds;
+    }
+    _lastChangeWasCompositionOnly = !_batchedInputHasNonCompositionChange;
+    _hasPendingInputUpdateNotification = false;
+    _batchedInputChangedBlockIds = null;
+    _batchedInputHasNonCompositionChange = false;
+    notifyListeners();
   }
 
   void replaceDocument(
@@ -449,7 +515,10 @@ class WenzRichTextController extends ChangeNotifier {
         onSelectionChanged?.call(change.selectionAfter);
       }
       onCommandExecuted?.call(command, change);
-      notifyListeners();
+      _notifyInputAwareListeners(
+        documentChanged: docChanged,
+        compositionOnly: false,
+      );
     }
     return change;
   }
@@ -1372,6 +1441,23 @@ class WenzRichTextController extends ChangeNotifier {
     );
   }
 
+  /// Applies an inline font [color] to the current selection, storing it in the
+  /// document model as a stable `0xAARRGGBB` integer.
+  ChangeSet setTextColor(Color color, {DocumentSelection? selection}) {
+    return setTextColorValue(color.toARGB32(), selection: selection);
+  }
+
+  /// Applies an inline font color already encoded as `0xAARRGGBB`.
+  ChangeSet setTextColorValue(int color, {DocumentSelection? selection}) {
+    return formatText(TextAttributes(color: color), selection: selection);
+  }
+
+  /// Clears only inline font color for the current selection while preserving
+  /// other inline attributes such as links, background, and emphasis.
+  ChangeSet clearTextColor({DocumentSelection? selection}) {
+    return execute(ClearTextColorCommand(selection: selection));
+  }
+
   ChangeSet clearStyle({DocumentSelection? selection}) {
     // This clears the selected inline attributes as a whole. A future
     // color-only clear entry should remove only [TextAttributes.color] while
@@ -1401,6 +1487,30 @@ class WenzRichTextController extends ChangeNotifier {
     );
   }
 
+  ChangeSet updateInlineFormula({
+    required DocumentPosition position,
+    required String text,
+  }) {
+    return execute(
+      UpdateInlineFormulaCommand(position: position, text: text),
+    );
+  }
+
+  ChangeSet updateBlockFormula({
+    required String blockId,
+    required String text,
+  }) {
+    return execute(
+      UpdateBlockFormulaCommand(blockId: blockId, text: text),
+    );
+  }
+
+  /// Inserts a `mention` inline embed.
+  ///
+  /// The stored payload is the interaction contract for mention opening: the
+  /// editor keeps the original embed data available to renderers/events and the
+  /// required stable fields are `id` and `label`. The embed remains one logical
+  /// character, so taps and drag selections can share the same hit boundary.
   ChangeSet insertMention(
     String id,
     String label, {

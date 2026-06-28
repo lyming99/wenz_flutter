@@ -151,7 +151,7 @@ class MoveCaretVerticalCommand extends EditorCommand {
           ? _nextNavigablePosition(session.document, extent.blockIndex)
           : _previousNavigablePosition(session.document, extent.blockIndex);
     } else {
-      // Plain text/code blocks: the widget layer resolves visual-line motion
+      // Plain text/code/callout blocks: the widget layer resolves visual-line motion
       // (keeping the horizontal column across wrapped lines) and only calls
       // this command once the caret reaches the block's first/last visual
       // line. We trust that signal and cross to the neighbouring editable
@@ -1050,9 +1050,9 @@ const int _kObjectSelectionLength = 1;
 /// - A table cell on the table's last row *and* last column when the table is
 ///   the final block.
 ///
-/// Editable blocks (paragraph/code) are excluded on purpose: Enter or typing
-/// already adds content there, and we must not auto-append a paragraph just
-/// because the user arrowed off the end of a normal text block.
+/// Editable blocks (paragraph/code/callout) are excluded on purpose: Enter or
+/// typing already adds content there, and we must not auto-append a paragraph
+/// just because the user arrowed off the end of a normal text block.
 bool _isAtTrailingLeaf(RichTextDocument document, DocumentPosition position) {
   final block = _blockAt(document, position.blockIndex);
   if (block == null) {

@@ -333,7 +333,9 @@ class BlockGeometryRegistry {
         blockId: hitEntry.blockId,
         blockIndex: hitEntry.blockIndex,
         path: hitEntry.path,
-        offset: hitEntry.positionFromLocal(hitTextLocal),
+        offset: hitEntry.textLength == 0
+            ? 0
+            : hitEntry.positionFromLocal(hitTextLocal),
       );
     }
     // Missed every block: clamp to the nearest block's start/end.

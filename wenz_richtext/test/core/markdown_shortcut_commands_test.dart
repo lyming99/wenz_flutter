@@ -62,6 +62,32 @@ void main() {
       expect(block.plainText, isEmpty);
     });
 
+    test('typing "1. [ ] " creates an ordered todo item', () {
+      final controller = _controller();
+
+      controller.insertText('1. [ ]', applyMarkdownShortcuts: false);
+      controller.insertText(' ');
+
+      final block = controller.document.blocks.single as TextBlockNode;
+      expect(block.type, BlockType.listItem);
+      expect(block.attributes.listType, 'ordered');
+      expect(block.attributes.checked, isFalse);
+      expect(block.plainText, isEmpty);
+    });
+
+    test('typing "1. [x] " creates a checked ordered todo item', () {
+      final controller = _controller();
+
+      controller.insertText('1. [x]', applyMarkdownShortcuts: false);
+      controller.insertText(' ');
+
+      final block = controller.document.blocks.single as TextBlockNode;
+      expect(block.type, BlockType.listItem);
+      expect(block.attributes.listType, 'ordered');
+      expect(block.attributes.checked, isTrue);
+      expect(block.plainText, isEmpty);
+    });
+
     test('typing a task marker inside a bullet converts it to a task item', () {
       final controller = _controller();
 
@@ -92,6 +118,33 @@ void main() {
       final block = controller.document.blocks.single as TextBlockNode;
       expect(block.attributes.listType, 'task');
       expect(block.attributes.checked, isTrue);
+      expect(block.plainText, isEmpty);
+    });
+
+    test('typing a task marker inside ordered list preserves numbering', () {
+      final controller = WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'ordered',
+              type: BlockType.listItem,
+              attributes: BlockAttributes(listType: 'ordered'),
+              content: <InlineNode>[],
+            ),
+          ],
+        ),
+        selection: collapsedTextSelection('ordered', 0, 0),
+      );
+
+      controller.insertText('[');
+      controller.insertText(' ');
+      controller.insertText(']');
+      controller.insertText(' ');
+
+      final block = controller.document.blocks.single as TextBlockNode;
+      expect(block.type, BlockType.listItem);
+      expect(block.attributes.listType, 'ordered');
+      expect(block.attributes.checked, isFalse);
       expect(block.plainText, isEmpty);
     });
 

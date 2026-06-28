@@ -111,6 +111,28 @@ void main() {
       );
     });
 
+    test('font color exports as an inline CSS color', () {
+      const document = RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[
+              TextRun(text: 'plain '),
+              TextRun(
+                text: 'red',
+                attributes: TextAttributes(color: 0xFFD81B60),
+              ),
+            ],
+          ),
+        ],
+      );
+
+      expect(
+        codec.encode(document),
+        '<p>plain <span style="color: #D81B60">red</span></p>',
+      );
+    });
     test('inline embeds export readable fallbacks', () {
       const document = RichTextDocument(
         blocks: <BlockNode>[
@@ -234,6 +256,38 @@ void main() {
         '<ul><li>one</li></ul>\n'
         '<ol><li>two</li></ol>\n'
         '<ul><li><input type="checkbox" checked disabled> done</li></ul>',
+      );
+    });
+
+    test('ordered todo list exports number and checkbox semantics', () {
+      const document = RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'ordered',
+            type: BlockType.listItem,
+            attributes: BlockAttributes(listType: 'ordered'),
+            content: <InlineNode>[TextRun(text: 'plain ordered')],
+          ),
+          TextBlockNode(
+            id: 'orderedTodo',
+            type: BlockType.listItem,
+            attributes: BlockAttributes(listType: 'ordered', checked: false),
+            content: <InlineNode>[TextRun(text: 'ordered todo')],
+          ),
+          TextBlockNode(
+            id: 'task',
+            type: BlockType.listItem,
+            attributes: BlockAttributes(listType: 'task', checked: true),
+            content: <InlineNode>[TextRun(text: 'unordered todo')],
+          ),
+        ],
+      );
+
+      expect(
+        codec.encode(document),
+        '<ol><li>plain ordered</li></ol>\n'
+        '<ol><li><input type="checkbox" disabled> ordered todo</li></ol>\n'
+        '<ul><li><input type="checkbox" checked disabled> unordered todo</li></ul>',
       );
     });
 
@@ -452,6 +506,25 @@ void main() {
       expect(both.first.text, 'both');
     });
 
+    test('font color imports from style, color attribute, and rgba', () {
+      final doc = codec.decode(
+        '<p><span style="color: #d81b60">hex</span> '
+        '<font color="blue">named</font> '
+        '<span style="color: rgba(1, 2, 3, 0.5)">rgba</span> '
+        '<span style="color: #01020380">hexAlpha</span> '
+        '<span style="color: not-a-color">plain</span></p>',
+      );
+      final para = doc.blocks.single as TextBlockNode;
+      final runs = para.content.whereType<TextRun>().toList();
+
+      TextRun run(String text) => runs.firstWhere((node) => node.text == text);
+      expect(run('hex').attributes.color, 0xFFD81B60);
+      expect(run('named').attributes.color, 0xFF0000FF);
+      expect(run('rgba').attributes.color, 0x80010203);
+      expect(run('hexAlpha').attributes.color, 0x80010203);
+      expect(run('plain').attributes.color, isNull);
+    });
+
     test('link parsed with href', () {
       final doc = codec.decode('<p>see <a href="https://x.dev">docs</a></p>');
       final para = doc.blocks[0] as TextBlockNode;
@@ -495,6 +568,26 @@ void main() {
       expect(items[2].attributes.listType, 'task');
       expect(items[2].attributes.checked, true);
       expect(items[3].attributes.checked, false);
+    });
+
+    test('ordered todo list imports ordered type with checked state', () {
+      final doc = codec.decode(
+        '<ol><li>plain ordered</li></ol>'
+        '<ol><li><input type="checkbox"> ordered todo</li></ol>'
+        '<ol><li><input type="checkbox" checked> done</li></ol>'
+        '<ul><li><input type="checkbox" checked> unordered todo</li></ul>',
+      );
+      expect(doc.blocks, hasLength(4));
+      final items = doc.blocks.cast<TextBlockNode>();
+
+      expect(items[0].attributes.listType, 'ordered');
+      expect(items[0].attributes.checked, isNull);
+      expect(items[1].attributes.listType, 'ordered');
+      expect(items[1].attributes.checked, isFalse);
+      expect(items[2].attributes.listType, 'ordered');
+      expect(items[2].attributes.checked, isTrue);
+      expect(items[3].attributes.listType, 'task');
+      expect(items[3].attributes.checked, isTrue);
     });
 
     test('pre + code with language class', () {
@@ -665,6 +758,69 @@ void main() {
   });
 
   group('HtmlCodec round-trip', () {
+    test('font color and link survive export → import', () {
+      const document = RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[
+              TextRun(text: 'see '),
+              TextRun(
+                text: 'docs',
+                attributes: TextAttributes(
+                  color: 0xFFD81B60,
+                  url: 'https://x.dev',
+                ),
+              ),
+            ],
+          ),
+        ],
+      );
+
+      final reimported = codec.decode(codec.encode(document));
+      final block = reimported.blocks.single as TextBlockNode;
+      final linked = block.content
+          .whereType<TextRun>()
+          .firstWhere((run) => run.text == 'docs');
+
+      expect(linked.attributes.color, 0xFFD81B60);
+      expect(linked.attributes.url, 'https://x.dev');
+    });
+    test('ordered todo list preserves numbering type and checked state', () {
+      const document = RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'ordered',
+            type: BlockType.listItem,
+            attributes: BlockAttributes(listType: 'ordered'),
+            content: <InlineNode>[TextRun(text: 'plain ordered')],
+          ),
+          TextBlockNode(
+            id: 'orderedTodo',
+            type: BlockType.listItem,
+            attributes: BlockAttributes(listType: 'ordered', checked: true),
+            content: <InlineNode>[TextRun(text: 'ordered todo')],
+          ),
+          TextBlockNode(
+            id: 'task',
+            type: BlockType.listItem,
+            attributes: BlockAttributes(listType: 'task', checked: false),
+            content: <InlineNode>[TextRun(text: 'unordered todo')],
+          ),
+        ],
+      );
+
+      final reimported = codec.decode(codec.encode(document));
+      final items = reimported.blocks.cast<TextBlockNode>();
+
+      expect(items[0].attributes.listType, 'ordered');
+      expect(items[0].attributes.checked, isNull);
+      expect(items[1].attributes.listType, 'ordered');
+      expect(items[1].attributes.checked, isTrue);
+      expect(items[2].attributes.listType, 'task');
+      expect(items[2].attributes.checked, isFalse);
+    });
     test('heading + paragraph + code survive export → import', () {
       const document = RichTextDocument(
         blocks: <BlockNode>[

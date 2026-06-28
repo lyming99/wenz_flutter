@@ -19,6 +19,15 @@ DocumentSelection collapsedTextSelection(
   return DocumentSelection(base: position, extent: position);
 }
 
+/// Collapsed selection at [offset] inside the inline body of a callout block.
+DocumentSelection collapsedCalloutSelection(
+  String blockId,
+  int blockIndex,
+  int offset,
+) {
+  return collapsedTextSelection(blockId, blockIndex, offset);
+}
+
 /// Collapsed selection at [offset] inside the code of a code block.
 DocumentSelection collapsedCodeSelection(
   String blockId,
@@ -58,4 +67,22 @@ DocumentSelection textSelection(
     offset: endOffset,
   );
   return DocumentSelection(base: reversed ? b : a, extent: reversed ? a : b);
+}
+
+/// Callout body selection spanning [startOffset, endOffset). The body uses the
+/// same `PositionPath.blockText` address space as normal text blocks.
+DocumentSelection calloutSelection(
+  String blockId,
+  int blockIndex,
+  int startOffset,
+  int endOffset, {
+  bool reversed = false,
+}) {
+  return textSelection(
+    blockId,
+    blockIndex,
+    startOffset,
+    endOffset,
+    reversed: reversed,
+  );
 }

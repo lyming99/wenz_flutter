@@ -1,4 +1,29 @@
 import 'package:flutter/material.dart';
+import 'package:highlight/highlight_core.dart';
+import 'package:highlight/languages/bash.dart';
+import 'package:highlight/languages/cpp.dart';
+import 'package:highlight/languages/cs.dart';
+import 'package:highlight/languages/css.dart';
+import 'package:highlight/languages/dart.dart';
+import 'package:highlight/languages/go.dart';
+import 'package:highlight/languages/ini.dart';
+import 'package:highlight/languages/java.dart';
+import 'package:highlight/languages/javascript.dart';
+import 'package:highlight/languages/json.dart';
+import 'package:highlight/languages/kotlin.dart';
+import 'package:highlight/languages/markdown.dart';
+import 'package:highlight/languages/php.dart';
+import 'package:highlight/languages/plaintext.dart';
+import 'package:highlight/languages/python.dart';
+import 'package:highlight/languages/ruby.dart';
+import 'package:highlight/languages/rust.dart';
+import 'package:highlight/languages/scala.dart';
+import 'package:highlight/languages/shell.dart';
+import 'package:highlight/languages/sql.dart';
+import 'package:highlight/languages/swift.dart';
+import 'package:highlight/languages/typescript.dart';
+import 'package:highlight/languages/xml.dart';
+import 'package:highlight/languages/yaml.dart';
 
 enum _CodeSyntaxTokenKind { keyword, type, string, comment, number, marker }
 
@@ -47,7 +72,7 @@ final class CodeSyntaxHighlighter {
   final int? compositionEnd;
 
   TextSpan highlight(String code) {
-    final tokens = _tokensForLanguage(code, language);
+    final tokens = _tokensForCode(code, language);
     if (tokens == null || tokens.isEmpty) {
       return _plainSpan(code);
     }
@@ -161,727 +186,206 @@ final class _CodeSyntaxToken {
   final _CodeSyntaxTokenKind kind;
 }
 
-List<_CodeSyntaxToken>? _tokensForLanguage(String code, String language) {
-  return switch (_normalizeLanguage(language)) {
-    'dart' => _highlightCodeLike(
-        code,
-        keywords: _dartKeywords,
-        types: _dartTypes,
-        rawStrings: true,
-        tripleQuotedStrings: true,
-      ),
-    'javascript' => _highlightCodeLike(
-        code,
-        keywords: _javascriptKeywords,
-        types: _javascriptTypes,
-        backtickStrings: true,
-      ),
-    'typescript' => _highlightCodeLike(
-        code,
-        keywords: _typescriptKeywords,
-        types: _typescriptTypes,
-        backtickStrings: true,
-      ),
-    'json' => _highlightJson(code),
-    'markdown' => _highlightMarkdown(code),
-    _ => null,
-  };
+/// Selectively registered `highlight` instance (controls bundle size by only
+/// pulling in the languages we actually need, rather than `allLanguages`).
+///
+/// The set covers every entry of `_kDefaultCodeLanguages` (dart, javascript,
+/// typescript, python, java, kotlin, swift, go, rust, sql, json, yaml, html,
+/// css, markdown, bash) plus commonly requested languages. highlight.js
+/// aliases registered alongside each mode — e.g. `html`/`xhtml` → `xml`,
+/// `toml` → `ini`, `c` → `cpp`, `csharp`/`c#` → `cs`, `sh` → `bash`, `md` →
+/// `markdown` — are resolved automatically by [Highlight.parse].
+final Highlight _highlighter = Highlight()
+  ..registerLanguages({
+    'plaintext': plaintext,
+    'dart': dart,
+    'javascript': javascript,
+    'typescript': typescript,
+    'python': python,
+    'java': java,
+    'kotlin': kotlin,
+    'swift': swift,
+    'go': go,
+    'rust': rust,
+    'sql': sql,
+    'json': json,
+    'yaml': yaml,
+    'xml': xml,
+    'css': css,
+    'markdown': markdown,
+    'bash': bash,
+    'shell': shell,
+    'php': php,
+    'ruby': ruby,
+    'cpp': cpp,
+    'cs': cs,
+    'scala': scala,
+    'ini': ini,
+  });
+
+/// Parses [code] with the `highlight` library and flattens the resulting
+/// [Node] tree into the colored-token list consumed by [CodeSyntaxHighlighter].
+///
+/// Returns `null` when the language is unknown / unregistered, when parsing
+/// yields no colored tokens, or on a parse error — in all those cases the
+/// caller falls back to plain (uncolored) text, matching prior behaviour.
+List<_CodeSyntaxToken>? _tokensForCode(String code, String language) {
+  if (code.isEmpty) {
+    return null;
+  }
+  final normalized = _normalizeLanguage(language);
+  final List<Node> nodes;
+  try {
+    final result = _highlighter.parse(code, language: normalized);
+    nodes = result.nodes ?? const <Node>[];
+  } catch (_) {
+    return null;
+  }
+  final tokens = _flattenNodes(nodes);
+  return tokens.isEmpty ? null : tokens;
 }
 
+/// Walks the highlight.js [Node] tree in document order, accumulating the
+/// absolute character offset of each leaf text segment. Only leaves that map
+/// to a palette category are emitted; unclassified text (punctuation,
+/// operators, whitespace) is intentionally omitted so [CodeSyntaxHighlighter]
+/// fills those gaps with `baseStyle`, exactly as the legacy scanner did.
+List<_CodeSyntaxToken> _flattenNodes(List<Node> nodes) {
+  final tokens = <_CodeSyntaxToken>[];
+  var offset = 0;
+
+  void visit(Node node, _CodeSyntaxTokenKind? inheritedKind) {
+    final kind = _kindForScope(node.className) ?? inheritedKind;
+    final value = node.value;
+    if (value != null && value.isNotEmpty) {
+      final start = offset;
+      offset += value.length;
+      if (kind != null) {
+        tokens.add(_CodeSyntaxToken(start, offset, kind));
+      }
+      return;
+    }
+    final children = node.children;
+    if (children != null) {
+      for (final child in children) {
+        visit(child, kind);
+      }
+    }
+  }
+
+  for (final node in nodes) {
+    visit(node, null);
+  }
+  return tokens;
+}
+
+/// Maps a highlight.js scope (`Node.className`, space separated when compound)
+/// onto a palette category. A scope may carry several words (e.g.
+/// `"title function"`); the first word with an explicit mapping wins.
+_CodeSyntaxTokenKind? _kindForScope(String? className) {
+  if (className == null || className.isEmpty) {
+    return null;
+  }
+  final parts = className.split(' ');
+  for (final part in parts) {
+    final mapped = _scopeKinds[part];
+    if (mapped != null) {
+      return mapped;
+    }
+  }
+  for (final part in parts) {
+    if (_markerScopes.contains(part)) {
+      return _CodeSyntaxTokenKind.marker;
+    }
+  }
+  return null;
+}
+
+/// Normalizes a user- or selector-facing language string into a canonical id
+/// registered with the [_highlighter] instance.
+///
+/// The input is lower-cased, trimmed, and stripped of any *leading or
+/// trailing* dots (so `"Python"`, `".py"` and `"ts."` all resolve). Common
+/// aliases and dialects are mapped to their canonical registered id — this
+/// both documents the supported surface and takes the direct
+/// `_languages[id]` lookup path instead of relying on highlight.js alias
+/// resolution. Every entry of `_kDefaultCodeLanguages` resolves through here
+/// to a registered language; anything unrecognized passes through unchanged
+/// and is left to degrade to plain text by [_tokensForCode].
 String _normalizeLanguage(String language) {
-  final normalized = language.trim().toLowerCase();
-  if (normalized.startsWith('.')) {
-    return _normalizeLanguage(normalized.substring(1));
+  var normalized = language.trim().toLowerCase();
+  while (normalized.startsWith('.')) {
+    normalized = normalized.substring(1);
+  }
+  while (normalized.endsWith('.')) {
+    normalized = normalized.substring(0, normalized.length - 1);
   }
   return switch (normalized) {
-    'js' || 'jsx' => 'javascript',
+    // Markdown dialects / extensions → registered `markdown`.
+    'md' || 'mdown' || 'mkdown' || 'mkd' || 'gfm' => 'markdown',
+    // Shell family → registered `bash`.
+    'sh' || 'zsh' => 'bash',
+    // JavaScript family → registered `javascript`.
+    'js' || 'jsx' || 'mjs' || 'cjs' => 'javascript',
+    // TypeScript family → registered `typescript`.
     'ts' || 'tsx' => 'typescript',
-    'md' || 'mdown' || 'gfm' => 'markdown',
+    // C# → registered `cs`.
+    'c#' || 'csharp' => 'cs',
+    // C / C++ → registered `cpp`.
+    'c' || 'cc' || 'cxx' || 'c++' || 'hpp' || 'hh' || 'hxx' || 'h++' => 'cpp',
+    // Markup dialects → registered `xml`.
+    'html' || 'xhtml' || 'htm' || 'rss' || 'atom' || 'plist' => 'xml',
+    // TOML → registered `ini`.
+    'toml' => 'ini',
+    // Python aliases → registered `python`.
+    'py' || 'gyp' || 'ipython' => 'python',
+    // Go alias → registered `go`.
+    'golang' => 'go',
+    // Rust alias → registered `rust`.
+    'rs' => 'rust',
+    // Ruby aliases → registered `ruby`.
+    'rb' || 'gemspec' || 'podspec' => 'ruby',
+    // Kotlin alias → registered `kotlin`.
+    'kt' || 'kts' => 'kotlin',
+    // YAML alias → registered `yaml`.
+    'yml' => 'yaml',
     _ => normalized,
   };
 }
 
-List<_CodeSyntaxToken> _highlightCodeLike(
-  String code, {
-  required Set<String> keywords,
-  required Set<String> types,
-  bool rawStrings = false,
-  bool tripleQuotedStrings = false,
-  bool backtickStrings = false,
-}) {
-  final tokens = <_CodeSyntaxToken>[];
-  var index = 0;
-  while (index < code.length) {
-    if (_startsWithAt(code, index, '//')) {
-      final end = _lineEnd(code, index + 2);
-      tokens.add(_CodeSyntaxToken(index, end, _CodeSyntaxTokenKind.comment));
-      index = end;
-      continue;
-    }
-    if (_startsWithAt(code, index, '/*')) {
-      final close = code.indexOf('*/', index + 2);
-      final end = close < 0 ? code.length : close + 2;
-      tokens.add(_CodeSyntaxToken(index, end, _CodeSyntaxTokenKind.comment));
-      index = end;
-      continue;
-    }
-    final char = code.codeUnitAt(index);
-    if (rawStrings &&
-        char == _rCodeUnit &&
-        index + 1 < code.length &&
-        _isQuote(code.codeUnitAt(index + 1)) &&
-        !_hasIdentifierBefore(code, index)) {
-      final end = _scanString(
-        code,
-        index + 1,
-        raw: true,
-        tripleQuotedStrings: tripleQuotedStrings,
-      );
-      tokens.add(_CodeSyntaxToken(index, end, _CodeSyntaxTokenKind.string));
-      index = end;
-      continue;
-    }
-    if (_isQuote(char) || (backtickStrings && char == _backtickCodeUnit)) {
-      final end = _scanString(
-        code,
-        index,
-        raw: false,
-        tripleQuotedStrings: tripleQuotedStrings,
-        multiline: char == _backtickCodeUnit,
-      );
-      tokens.add(_CodeSyntaxToken(index, end, _CodeSyntaxTokenKind.string));
-      index = end;
-      continue;
-    }
-    if (_isDigit(char)) {
-      final end = _scanNumber(code, index);
-      tokens.add(_CodeSyntaxToken(index, end, _CodeSyntaxTokenKind.number));
-      index = end;
-      continue;
-    }
-    if (_isIdentifierStart(char)) {
-      final end = _scanIdentifier(code, index);
-      final text = code.substring(index, end);
-      if (keywords.contains(text)) {
-        tokens.add(_CodeSyntaxToken(
-          index,
-          end,
-          _CodeSyntaxTokenKind.keyword,
-        ));
-      } else if (types.contains(text) || _looksLikeTypeName(text)) {
-        tokens.add(_CodeSyntaxToken(index, end, _CodeSyntaxTokenKind.type));
-      }
-      index = end;
-      continue;
-    }
-    index += 1;
-  }
-  return tokens;
-}
-
-List<_CodeSyntaxToken> _highlightJson(String code) {
-  final tokens = <_CodeSyntaxToken>[];
-  var index = 0;
-  while (index < code.length) {
-    final char = code.codeUnitAt(index);
-    if (_isQuote(char)) {
-      final end = _scanString(code, index, raw: false);
-      tokens.add(_CodeSyntaxToken(index, end, _CodeSyntaxTokenKind.string));
-      index = end;
-      continue;
-    }
-    if (_isDigit(char) || char == _dashCodeUnit) {
-      final end = _scanNumber(code, index);
-      if (end > index + (char == _dashCodeUnit ? 1 : 0)) {
-        tokens.add(_CodeSyntaxToken(index, end, _CodeSyntaxTokenKind.number));
-        index = end;
-        continue;
-      }
-    }
-    if (_isIdentifierStart(char)) {
-      final end = _scanIdentifier(code, index);
-      if (_jsonKeywords.contains(code.substring(index, end))) {
-        tokens.add(_CodeSyntaxToken(
-          index,
-          end,
-          _CodeSyntaxTokenKind.keyword,
-        ));
-      }
-      index = end;
-      continue;
-    }
-    index += 1;
-  }
-  return tokens;
-}
-
-List<_CodeSyntaxToken> _highlightMarkdown(String code) {
-  final tokens = <_CodeSyntaxToken>[];
-  _addMarkdownLineMarkers(code, tokens);
-  var index = 0;
-  while (index < code.length) {
-    if (_startsWithAt(code, index, '<!--')) {
-      final close = code.indexOf('-->', index + 4);
-      final end = close < 0 ? code.length : close + 3;
-      tokens.add(_CodeSyntaxToken(index, end, _CodeSyntaxTokenKind.comment));
-      index = end;
-      continue;
-    }
-    if (code.codeUnitAt(index) == _backtickCodeUnit) {
-      final end = _scanMarkdownCodeSpan(code, index);
-      tokens.add(_CodeSyntaxToken(index, end, _CodeSyntaxTokenKind.string));
-      index = end;
-      continue;
-    }
-    if (code.codeUnitAt(index) == _leftBracketCodeUnit) {
-      final labelEnd = code.indexOf('](', index + 1);
-      if (labelEnd > index) {
-        final urlEnd = code.indexOf(')', labelEnd + 2);
-        if (urlEnd > labelEnd) {
-          tokens.add(_CodeSyntaxToken(
-            index,
-            index + 1,
-            _CodeSyntaxTokenKind.marker,
-          ));
-          tokens.add(_CodeSyntaxToken(
-            labelEnd,
-            labelEnd + 2,
-            _CodeSyntaxTokenKind.marker,
-          ));
-          tokens.add(_CodeSyntaxToken(
-            labelEnd + 2,
-            urlEnd,
-            _CodeSyntaxTokenKind.string,
-          ));
-          tokens.add(_CodeSyntaxToken(
-            urlEnd,
-            urlEnd + 1,
-            _CodeSyntaxTokenKind.marker,
-          ));
-          index = urlEnd + 1;
-          continue;
-        }
-      }
-    }
-    if (_isMarkdownEmphasis(code.codeUnitAt(index))) {
-      final end = _scanMarkdownEmphasisMarker(code, index);
-      tokens.add(_CodeSyntaxToken(index, end, _CodeSyntaxTokenKind.marker));
-      index = end;
-      continue;
-    }
-    index += 1;
-  }
-  return _normalizeTokens(tokens, code.length);
-}
-
-void _addMarkdownLineMarkers(String code, List<_CodeSyntaxToken> tokens) {
-  var lineStart = 0;
-  while (lineStart < code.length) {
-    final lineEnd = _lineEnd(code, lineStart);
-    var markerStart = lineStart;
-    while (markerStart < lineEnd &&
-        (code.codeUnitAt(markerStart) == _spaceCodeUnit ||
-            code.codeUnitAt(markerStart) == _tabCodeUnit)) {
-      markerStart += 1;
-    }
-    if (_startsWithAt(code, markerStart, '```') ||
-        _startsWithAt(code, markerStart, '~~~')) {
-      tokens.add(_CodeSyntaxToken(
-        markerStart,
-        markerStart + 3,
-        _CodeSyntaxTokenKind.marker,
-      ));
-    } else if (markerStart < lineEnd &&
-        code.codeUnitAt(markerStart) == _hashCodeUnit) {
-      final markerEnd = _scanRepeated(code, markerStart, _hashCodeUnit);
-      if (markerEnd <= markerStart + 6 &&
-          (markerEnd == lineEnd ||
-              code.codeUnitAt(markerEnd) == _spaceCodeUnit ||
-              code.codeUnitAt(markerEnd) == _tabCodeUnit)) {
-        tokens.add(_CodeSyntaxToken(
-          markerStart,
-          markerEnd,
-          _CodeSyntaxTokenKind.keyword,
-        ));
-      }
-    } else if (markerStart < lineEnd &&
-        code.codeUnitAt(markerStart) == _greaterThanCodeUnit) {
-      tokens.add(_CodeSyntaxToken(
-        markerStart,
-        markerStart + 1,
-        _CodeSyntaxTokenKind.marker,
-      ));
-    } else {
-      final listMarkerEnd = _markdownListMarkerEnd(code, markerStart, lineEnd);
-      if (listMarkerEnd > markerStart) {
-        tokens.add(_CodeSyntaxToken(
-          markerStart,
-          listMarkerEnd,
-          _CodeSyntaxTokenKind.marker,
-        ));
-      }
-    }
-    if (lineEnd == code.length) {
-      break;
-    }
-    lineStart = lineEnd + 1;
-  }
-}
-
-List<_CodeSyntaxToken> _normalizeTokens(
-  List<_CodeSyntaxToken> tokens,
-  int codeLength,
-) {
-  tokens.sort((a, b) {
-    final byStart = a.start.compareTo(b.start);
-    return byStart == 0 ? a.end.compareTo(b.end) : byStart;
-  });
-  final normalized = <_CodeSyntaxToken>[];
-  var cursor = 0;
-  for (final token in tokens) {
-    final start = token.start.clamp(0, codeLength).toInt();
-    final end = token.end.clamp(start, codeLength).toInt();
-    if (end <= cursor) {
-      continue;
-    }
-    normalized.add(_CodeSyntaxToken(
-      start < cursor ? cursor : start,
-      end,
-      token.kind,
-    ));
-    cursor = end;
-  }
-  return normalized;
-}
-
-int _scanString(
-  String code,
-  int quoteIndex, {
-  required bool raw,
-  bool tripleQuotedStrings = false,
-  bool multiline = false,
-}) {
-  final quote = code.codeUnitAt(quoteIndex);
-  if (tripleQuotedStrings &&
-      quoteIndex + 2 < code.length &&
-      code.codeUnitAt(quoteIndex + 1) == quote &&
-      code.codeUnitAt(quoteIndex + 2) == quote) {
-    final delimiter = String.fromCharCodes(<int>[quote, quote, quote]);
-    final close = code.indexOf(delimiter, quoteIndex + 3);
-    return close < 0 ? code.length : close + 3;
-  }
-  var index = quoteIndex + 1;
-  var escaped = false;
-  while (index < code.length) {
-    final char = code.codeUnitAt(index);
-    if (!raw && escaped) {
-      escaped = false;
-      index += 1;
-      continue;
-    }
-    if (!raw && char == _backslashCodeUnit) {
-      escaped = true;
-      index += 1;
-      continue;
-    }
-    if (char == quote) {
-      return index + 1;
-    }
-    if (!multiline && _isNewline(char)) {
-      return index;
-    }
-    index += 1;
-  }
-  return code.length;
-}
-
-int _scanNumber(String code, int start) {
-  var index = start;
-  if (index < code.length && code.codeUnitAt(index) == _dashCodeUnit) {
-    index += 1;
-  }
-  if (index + 1 < code.length &&
-      code.codeUnitAt(index) == _zeroCodeUnit &&
-      (code.codeUnitAt(index + 1) == _xCodeUnit ||
-          code.codeUnitAt(index + 1) == _upperXCodeUnit)) {
-    index += 2;
-    while (
-        index < code.length && _isHexDigitOrSeparator(code.codeUnitAt(index))) {
-      index += 1;
-    }
-    return index;
-  }
-  while (index < code.length && _isDigitOrSeparator(code.codeUnitAt(index))) {
-    index += 1;
-  }
-  if (index + 1 < code.length &&
-      code.codeUnitAt(index) == _dotCodeUnit &&
-      _isDigit(code.codeUnitAt(index + 1))) {
-    index += 1;
-    while (index < code.length && _isDigitOrSeparator(code.codeUnitAt(index))) {
-      index += 1;
-    }
-  }
-  if (index < code.length &&
-      (code.codeUnitAt(index) == _eCodeUnit ||
-          code.codeUnitAt(index) == _upperECodeUnit)) {
-    final exponentStart = index;
-    index += 1;
-    if (index < code.length &&
-        (code.codeUnitAt(index) == _plusCodeUnit ||
-            code.codeUnitAt(index) == _dashCodeUnit)) {
-      index += 1;
-    }
-    final digitsStart = index;
-    while (index < code.length && _isDigitOrSeparator(code.codeUnitAt(index))) {
-      index += 1;
-    }
-    if (index == digitsStart) {
-      return exponentStart;
-    }
-  }
-  return index;
-}
-
-int _scanIdentifier(String code, int start) {
-  var index = start + 1;
-  while (index < code.length && _isIdentifierPart(code.codeUnitAt(index))) {
-    index += 1;
-  }
-  return index;
-}
-
-int _scanMarkdownCodeSpan(String code, int start) {
-  final markerEnd = _scanRepeated(code, start, _backtickCodeUnit);
-  final marker = code.substring(start, markerEnd);
-  final close = code.indexOf(marker, markerEnd);
-  return close < 0 ? markerEnd : close + marker.length;
-}
-
-int _scanMarkdownEmphasisMarker(String code, int start) {
-  final char = code.codeUnitAt(start);
-  var index = start;
-  while (index < code.length &&
-      code.codeUnitAt(index) == char &&
-      index - start < 3) {
-    index += 1;
-  }
-  return index;
-}
-
-int _markdownListMarkerEnd(String code, int start, int lineEnd) {
-  if (start >= lineEnd) {
-    return start;
-  }
-  final char = code.codeUnitAt(start);
-  if ((char == _dashCodeUnit ||
-          char == _plusCodeUnit ||
-          char == _asteriskCodeUnit) &&
-      start + 1 < lineEnd &&
-      _isWhitespace(code.codeUnitAt(start + 1))) {
-    return start + 1;
-  }
-  if (!_isDigit(char)) {
-    return start;
-  }
-  var index = start + 1;
-  while (index < lineEnd && _isDigit(code.codeUnitAt(index))) {
-    index += 1;
-  }
-  if (index < lineEnd &&
-      (code.codeUnitAt(index) == _dotCodeUnit ||
-          code.codeUnitAt(index) == _rightParenCodeUnit) &&
-      index + 1 < lineEnd &&
-      _isWhitespace(code.codeUnitAt(index + 1))) {
-    return index + 1;
-  }
-  return start;
-}
-
-int _scanRepeated(String code, int start, int char) {
-  var index = start;
-  while (index < code.length && code.codeUnitAt(index) == char) {
-    index += 1;
-  }
-  return index;
-}
-
-int _lineEnd(String code, int start) {
-  final newline = code.indexOf('\n', start);
-  return newline < 0 ? code.length : newline;
-}
-
-bool _startsWithAt(String code, int index, String pattern) {
-  return index + pattern.length <= code.length &&
-      code.substring(index, index + pattern.length) == pattern;
-}
-
-bool _hasIdentifierBefore(String code, int index) {
-  return index > 0 && _isIdentifierPart(code.codeUnitAt(index - 1));
-}
-
-bool _looksLikeTypeName(String text) {
-  if (text.isEmpty || text.length == 1) {
-    return false;
-  }
-  final first = text.codeUnitAt(0);
-  return first >= _upperACodeUnit && first <= _upperZCodeUnit;
-}
-
-bool _isIdentifierStart(int char) {
-  return (char >= _lowerACodeUnit && char <= _lowerZCodeUnit) ||
-      (char >= _upperACodeUnit && char <= _upperZCodeUnit) ||
-      char == _underscoreCodeUnit ||
-      char == _dollarCodeUnit;
-}
-
-bool _isIdentifierPart(int char) {
-  return _isIdentifierStart(char) || _isDigit(char);
-}
-
-bool _isDigit(int char) => char >= _zeroCodeUnit && char <= _nineCodeUnit;
-
-bool _isDigitOrSeparator(int char) {
-  return _isDigit(char) || char == _underscoreCodeUnit;
-}
-
-bool _isHexDigitOrSeparator(int char) {
-  return _isDigitOrSeparator(char) ||
-      (char >= _lowerACodeUnit && char <= _lowerFCodeUnit) ||
-      (char >= _upperACodeUnit && char <= _upperFCodeUnit);
-}
-
-bool _isQuote(int char) {
-  return char == _singleQuoteCodeUnit || char == _doubleQuoteCodeUnit;
-}
-
-bool _isNewline(int char) {
-  return char == _lineFeedCodeUnit || char == _carriageReturnCodeUnit;
-}
-
-bool _isWhitespace(int char) {
-  return char == _spaceCodeUnit || char == _tabCodeUnit;
-}
-
-bool _isMarkdownEmphasis(int char) {
-  return char == _asteriskCodeUnit || char == _underscoreCodeUnit;
-}
-
-const Set<String> _dartKeywords = <String>{
-  'abstract',
-  'as',
-  'assert',
-  'async',
-  'await',
-  'base',
-  'break',
-  'case',
-  'catch',
-  'class',
-  'const',
-  'continue',
-  'covariant',
-  'default',
-  'deferred',
-  'do',
-  'else',
-  'enum',
-  'export',
-  'extends',
-  'extension',
-  'external',
-  'factory',
-  'false',
-  'final',
-  'finally',
-  'for',
-  'get',
-  'hide',
-  'if',
-  'implements',
-  'import',
-  'in',
-  'interface',
-  'is',
-  'late',
-  'library',
-  'mixin',
-  'new',
-  'null',
-  'on',
-  'operator',
-  'part',
-  'required',
-  'rethrow',
-  'return',
-  'sealed',
-  'set',
-  'show',
-  'static',
-  'super',
-  'switch',
-  'sync',
-  'this',
-  'throw',
-  'true',
-  'try',
-  'typedef',
-  'var',
-  'void',
-  'when',
-  'while',
-  'with',
-  'yield',
+/// highlight.js scopes → palette category. Covers the core semantic scopes
+/// across the registered languages (keywords/literals, types & callable names,
+/// strings, comments, numbers).
+const Map<String, _CodeSyntaxTokenKind> _scopeKinds =
+    <String, _CodeSyntaxTokenKind>{
+  'keyword': _CodeSyntaxTokenKind.keyword,
+  'literal': _CodeSyntaxTokenKind.keyword,
+  'built_in': _CodeSyntaxTokenKind.type,
+  'type': _CodeSyntaxTokenKind.type,
+  'class': _CodeSyntaxTokenKind.type,
+  'title': _CodeSyntaxTokenKind.type,
+  'function': _CodeSyntaxTokenKind.type,
+  'attr': _CodeSyntaxTokenKind.type,
+  'attribute': _CodeSyntaxTokenKind.type,
+  'section': _CodeSyntaxTokenKind.type,
+  'string': _CodeSyntaxTokenKind.string,
+  'subst': _CodeSyntaxTokenKind.string,
+  'addition': _CodeSyntaxTokenKind.string,
+  'comment': _CodeSyntaxTokenKind.comment,
+  'quote': _CodeSyntaxTokenKind.comment,
+  'doctag': _CodeSyntaxTokenKind.comment,
+  'number': _CodeSyntaxTokenKind.number,
+  'symbol': _CodeSyntaxTokenKind.number,
 };
 
-const Set<String> _dartTypes = <String>{
-  'BigInt',
-  'bool',
-  'DateTime',
-  'double',
-  'Duration',
-  'dynamic',
-  'Future',
-  'int',
-  'Iterable',
-  'List',
-  'Map',
-  'Never',
-  'num',
-  'Object',
-  'Pattern',
-  'Record',
-  'RegExp',
-  'Set',
-  'Stream',
-  'String',
-  'Symbol',
+/// Structural scopes with no dedicated palette slot — tag names, markup
+/// markers, preprocessor lines, regexps — collapse onto the marker category.
+const Set<String> _markerScopes = <String>{
+  'tag',
+  'name',
+  'bullet',
+  'link',
+  'meta',
+  'regexp',
+  'selector',
 };
-
-const Set<String> _javascriptKeywords = <String>{
-  'as',
-  'async',
-  'await',
-  'break',
-  'case',
-  'catch',
-  'class',
-  'const',
-  'continue',
-  'debugger',
-  'default',
-  'delete',
-  'do',
-  'else',
-  'export',
-  'extends',
-  'false',
-  'finally',
-  'for',
-  'from',
-  'function',
-  'get',
-  'if',
-  'import',
-  'in',
-  'instanceof',
-  'let',
-  'new',
-  'null',
-  'of',
-  'return',
-  'set',
-  'static',
-  'super',
-  'switch',
-  'this',
-  'throw',
-  'true',
-  'try',
-  'typeof',
-  'undefined',
-  'var',
-  'void',
-  'while',
-  'with',
-  'yield',
-};
-
-const Set<String> _javascriptTypes = <String>{
-  'Array',
-  'BigInt',
-  'Boolean',
-  'Date',
-  'Error',
-  'Map',
-  'Number',
-  'Object',
-  'Promise',
-  'Record',
-  'RegExp',
-  'Set',
-  'String',
-  'Symbol',
-  'WeakMap',
-  'WeakSet',
-};
-
-const Set<String> _typescriptKeywords = <String>{
-  ..._javascriptKeywords,
-  'abstract',
-  'declare',
-  'enum',
-  'implements',
-  'interface',
-  'keyof',
-  'namespace',
-  'private',
-  'protected',
-  'public',
-  'readonly',
-  'type',
-};
-
-const Set<String> _typescriptTypes = <String>{
-  ..._javascriptTypes,
-  'any',
-  'boolean',
-  'never',
-  'number',
-  'string',
-  'unknown',
-};
-
-const Set<String> _jsonKeywords = <String>{'true', 'false', 'null'};
-
-const int _lineFeedCodeUnit = 0x0A;
-const int _carriageReturnCodeUnit = 0x0D;
-const int _tabCodeUnit = 0x09;
-const int _spaceCodeUnit = 0x20;
-const int _doubleQuoteCodeUnit = 0x22;
-const int _hashCodeUnit = 0x23;
-const int _dollarCodeUnit = 0x24;
-const int _singleQuoteCodeUnit = 0x27;
-const int _rightParenCodeUnit = 0x29;
-const int _asteriskCodeUnit = 0x2A;
-const int _plusCodeUnit = 0x2B;
-const int _dashCodeUnit = 0x2D;
-const int _dotCodeUnit = 0x2E;
-const int _zeroCodeUnit = 0x30;
-const int _nineCodeUnit = 0x39;
-const int _greaterThanCodeUnit = 0x3E;
-const int _upperACodeUnit = 0x41;
-const int _upperECodeUnit = 0x45;
-const int _upperFCodeUnit = 0x46;
-const int _upperXCodeUnit = 0x58;
-const int _upperZCodeUnit = 0x5A;
-const int _leftBracketCodeUnit = 0x5B;
-const int _backslashCodeUnit = 0x5C;
-const int _underscoreCodeUnit = 0x5F;
-const int _backtickCodeUnit = 0x60;
-const int _lowerACodeUnit = 0x61;
-const int _eCodeUnit = 0x65;
-const int _lowerFCodeUnit = 0x66;
-const int _rCodeUnit = 0x72;
-const int _xCodeUnit = 0x78;
-const int _lowerZCodeUnit = 0x7A;

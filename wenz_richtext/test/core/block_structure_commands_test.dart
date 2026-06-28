@@ -39,6 +39,30 @@ void main() {
       );
     });
 
+    test('preserves ordered todo state while changing indent', () {
+      final session = DocumentSession(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'todo',
+              type: BlockType.listItem,
+              attributes: BlockAttributes(listType: 'ordered', checked: true),
+              content: <InlineNode>[TextRun(text: 'todo')],
+            ),
+          ],
+        ),
+        selection: collapsedTextSelection('todo', 0, 0),
+      );
+      final executor = CommandExecutor(session);
+
+      executor.execute(const IndentCommand(1));
+
+      final block = session.document.blocks.single as TextBlockNode;
+      expect(block.attributes.indent, 1);
+      expect(block.attributes.listType, 'ordered');
+      expect(block.attributes.checked, isTrue);
+    });
+
     test('clamps at zero when outdenting an unindented block', () {
       final session = DocumentSession(
         document: const RichTextDocument(
@@ -109,6 +133,106 @@ void main() {
         (session.document.blocks.single as TextBlockNode).attributes.checked,
         isTrue,
       );
+    });
+
+    test('toggles ordered todo without changing list type', () {
+      final session = DocumentSession(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'ordered',
+              type: BlockType.listItem,
+              attributes: BlockAttributes(listType: 'ordered', checked: false),
+              content: <InlineNode>[TextRun(text: 'todo')],
+            ),
+          ],
+        ),
+        selection: collapsedTextSelection('ordered', 0, 0),
+      );
+      final executor = CommandExecutor(session);
+
+      executor.execute(const ToggleTodoCommand());
+
+      final block = session.document.blocks.single as TextBlockNode;
+      expect(block.type, BlockType.listItem);
+      expect(block.attributes.listType, 'ordered');
+      expect(block.attributes.checked, isTrue);
+    });
+
+    test('adds todo state to ordered item without downgrading numbering', () {
+      final session = DocumentSession(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'ordered',
+              type: BlockType.listItem,
+              attributes: BlockAttributes(listType: 'ordered'),
+              content: <InlineNode>[TextRun(text: 'todo')],
+            ),
+          ],
+        ),
+        selection: collapsedTextSelection('ordered', 0, 0),
+      );
+      final executor = CommandExecutor(session);
+
+      executor.execute(const ToggleTodoCommand());
+
+      final block = session.document.blocks.single as TextBlockNode;
+      expect(block.attributes.listType, 'ordered');
+      expect(block.attributes.checked, isFalse);
+    });
+
+    test('sets checked state on ordered todo item', () {
+      final session = DocumentSession(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'ordered',
+              type: BlockType.listItem,
+              attributes: BlockAttributes(listType: 'ordered', checked: false),
+              content: <InlineNode>[TextRun(text: 'todo')],
+            ),
+          ],
+        ),
+        selection: collapsedTextSelection('ordered', 0, 0),
+      );
+      final executor = CommandExecutor(session);
+
+      final result = executor.execute(
+        const SetTodoCheckedCommand(blockIndex: 0, checked: true),
+      );
+
+      final block = session.document.blocks.single as TextBlockNode;
+      expect(result.isNoop, isFalse);
+      expect(block.attributes.listType, 'ordered');
+      expect(block.attributes.checked, isTrue);
+    });
+
+    test('set checked no-ops on ordered item without todo state', () {
+      final session = DocumentSession(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'ordered',
+              type: BlockType.listItem,
+              attributes: BlockAttributes(listType: 'ordered'),
+              content: <InlineNode>[TextRun(text: 'todo')],
+            ),
+          ],
+        ),
+        selection: collapsedTextSelection('ordered', 0, 0),
+      );
+      final executor = CommandExecutor(session);
+
+      final result = executor.execute(
+        const SetTodoCheckedCommand(blockIndex: 0, checked: true),
+      );
+
+      final block = session.document.blocks.single as TextBlockNode;
+      expect(result.isNoop, isTrue);
+      expect(block.attributes.listType, 'ordered');
+      expect(block.attributes.checked, isNull);
+      expect(session.history.undoDepth, 0);
     });
   });
 

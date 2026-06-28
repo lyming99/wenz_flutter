@@ -64,6 +64,66 @@ void main() {
     expect(resolved, openThread);
     expect(reopened, resolvedThread);
   });
+
+  testWidgets('sidebar uses dark theme surfaces and status colors',
+      (tester) async {
+    final openThread = _thread();
+    final resolvedThread = _thread(
+      id: 't2',
+      status: CommentThreadStatus.resolved,
+      resolvedAt: DateTime.utc(2026, 1, 2, 10),
+    );
+    final theme = ThemeData(
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: Colors.deepPurple,
+        brightness: Brightness.dark,
+      ),
+      useMaterial3: true,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: theme,
+        home: Scaffold(
+          body: WenzCommentSidebar(
+            threads: <CommentThread>[openThread, resolvedThread],
+            activeThreadId: 't1',
+          ),
+        ),
+      ),
+    );
+
+    final colorScheme = theme.colorScheme;
+    final sidebar = tester.widget<Material>(
+      find.byKey(const ValueKey<String>('wenz-comment-sidebar-surface')),
+    );
+    expect(sidebar.color, colorScheme.surface);
+    expect(sidebar.surfaceTintColor, Colors.transparent);
+
+    final activeCard = tester.widget<Card>(
+      find.byKey(const ValueKey<String>('wenz-comment-thread-t1')),
+    );
+    expect(activeCard.color, colorScheme.primaryContainer.withAlpha(72));
+    final activeShape = activeCard.shape as RoundedRectangleBorder;
+    expect(activeShape.side.color, colorScheme.primary);
+
+    final inactiveCard = tester.widget<Card>(
+      find.byKey(const ValueKey<String>('wenz-comment-thread-t2')),
+    );
+    expect(inactiveCard.color, colorScheme.surfaceContainerLow);
+
+    final openChip = tester.widget<Chip>(
+      find.widgetWithText(Chip, 'Open'),
+    );
+    expect(openChip.backgroundColor, colorScheme.primaryContainer);
+    expect(openChip.labelStyle?.color, colorScheme.onPrimaryContainer);
+
+    final resolvedChip = tester.widget<Chip>(
+      find.widgetWithText(Chip, 'Resolved'),
+    );
+    expect(resolvedChip.backgroundColor, colorScheme.secondaryContainer);
+    expect(resolvedChip.labelStyle?.color, colorScheme.onSecondaryContainer);
+  });
 }
 
 CommentThread _thread({

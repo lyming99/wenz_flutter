@@ -107,6 +107,128 @@ void main() {
     expect(slash.items.every((item) => item.matches('hea')), isTrue);
   });
 
+  test('detects empty paragraph paragraph-start and unicode-space triggers', () {
+    final cases = <_SlashTriggerCase>[
+      _SlashTriggerCase(
+        description: 'empty paragraph receives slash',
+        editor: WenzRichTextController(
+          document: _document(''),
+          selection: collapsedTextSelection('p1', 0, 0),
+        )..insertText('/'),
+        isOpen: true,
+      ),
+      _SlashTriggerCase(
+        description: 'paragraph start receives slash before existing text',
+        editor: WenzRichTextController(
+          document: _document('body'),
+          selection: collapsedTextSelection('p1', 0, 0),
+        )..insertText('/'),
+        isOpen: true,
+      ),
+      _SlashTriggerCase(
+        description: 'full-width space is a command boundary',
+        editor: WenzRichTextController(
+          document: _document('intro\u3000/'),
+          selection: collapsedTextSelection('p1', 0, 7),
+        ),
+        isOpen: true,
+      ),
+    ];
+
+    for (final testCase in cases) {
+      final slash = SlashMenuController(editor: testCase.editor);
+      addTearDown(slash.dispose);
+
+      expect(slash.isOpen, testCase.isOpen, reason: testCase.description);
+      expect(slash.query, isEmpty, reason: testCase.description);
+      expect(slash.trigger?.end, testCase.editor.selection?.extent.offset,
+          reason: testCase.description);
+    }
+  });
+
+  test('updates query and filtered items while typing table command', () {
+    final editor = WenzRichTextController(
+      document: _document('/'),
+      selection: collapsedTextSelection('p1', 0, 1),
+    );
+    final slash = SlashMenuController(editor: editor);
+    addTearDown(slash.dispose);
+
+    expect(slash.isOpen, isTrue);
+    expect(slash.query, isEmpty);
+
+    editor.insertText('t');
+    expect(slash.query, 't');
+    expect(slash.items.map((item) => item.id), contains('table'));
+
+    editor.insertText('able');
+    expect(slash.query, 'table');
+    expect(slash.items.map((item) => item.id), contains('table'));
+    expect(slash.items.every((item) => item.matches('table')), isTrue);
+  });
+
+  test('refreshes from editor document changes after slash input', () {
+    final editor = WenzRichTextController(
+      document: _document(''),
+      selection: collapsedTextSelection('p1', 0, 0),
+    );
+    final slash = SlashMenuController(editor: editor);
+    addTearDown(slash.dispose);
+
+    expect(slash.trigger, isNull);
+    expect(slash.isOpen, isFalse);
+
+    editor.insertText('/');
+    expect(slash.trigger?.blockId, 'p1');
+    expect(slash.trigger?.blockIndex, 0);
+    expect(slash.trigger?.start, 0);
+    expect(slash.trigger?.end, 1);
+    expect(slash.query, isEmpty);
+    expect(slash.items, isNotEmpty);
+    expect(slash.isOpen, isTrue);
+
+    editor.insertText('hea');
+    expect(slash.trigger?.start, 0);
+    expect(slash.trigger?.end, 4);
+    expect(slash.query, 'hea');
+    expect(slash.items.map((item) => item.id), contains('heading'));
+    expect(slash.isOpen, isTrue);
+  });
+
+  test('reports each closed slash-menu state in the refresh chain', () {
+    final editor = WenzRichTextController(
+      document: _document('/'),
+      selection: collapsedTextSelection('p1', 0, 1),
+    );
+    final slash = SlashMenuController(editor: editor);
+    addTearDown(slash.dispose);
+
+    expect(slash.trigger, isNotNull);
+    expect(slash.items, isNotEmpty);
+    expect(slash.isOpen, isTrue);
+
+    slash.close();
+    expect(slash.trigger, isNotNull);
+    expect(slash.items, isNotEmpty);
+    expect(slash.isOpen, isFalse);
+
+    editor.replaceDocument(
+      _document('/no-such-item'),
+      selection: collapsedTextSelection('p1', 0, 13),
+    );
+    expect(slash.trigger, isNotNull);
+    expect(slash.items, isEmpty);
+    expect(slash.isOpen, isFalse);
+
+    editor.replaceDocument(
+      _document('plain text'),
+      selection: collapsedTextSelection('p1', 0, 10),
+    );
+    expect(slash.trigger, isNull);
+    expect(slash.items, isEmpty);
+    expect(slash.isOpen, isFalse);
+  });
+
   test('tracks trigger block range query and highlighted item', () {
     final editor = WenzRichTextController(
       document: _document('hello /hea'),
@@ -183,6 +305,98 @@ void main() {
     expect(slash.query, isEmpty);
     expect(slash.items, hasLength(defaultCount));
     expect(slash.isOpen, isTrue);
+  });
+
+  test('query matches item id title description and keywords', () {
+    final registry = SlashMenuRegistry.defaults();
+
+    // id
+    expect(
+      registry.filter('heading').map((item) => item.id),
+      contains('heading'),
+    );
+    // title
+    expect(
+      registry.filter('bulleted').map((item) => item.id),
+      contains('list'),
+    );
+    // description
+    expect(
+      registry.filter('section').map((item) => item.id),
+      contains('heading'),
+    );
+    // keywords (English)
+    expect(
+      registry.filter('bullet').map((item) => item.id),
+      contains('list'),
+    );
+    expect(
+      registry.filter('blockquote').map((item) => item.id),
+      contains('quote'),
+    );
+    // keywords (Chinese)
+    expect(
+      registry.filter('图片').map((item) => item.id),
+      contains('image'),
+    );
+  });
+
+  test('does not open while an IME composition is in progress', () {
+    final editor = WenzRichTextController(
+      document: _document('/hea'),
+      selection: collapsedTextSelection('p1', 0, 4),
+    );
+    editor.setCompositionState(const CompositionState(
+      blockId: 'p1',
+      blockIndex: 0,
+      path: PositionPath(<Object>['block', 'p1', 'text']),
+      startOffset: 1,
+      endOffset: 4,
+    ));
+    final slash = SlashMenuController(editor: editor);
+    addTearDown(slash.dispose);
+
+    // Mid-composition the platform owns the composing text, so the menu must
+    // not open on the partial `/hea` run.
+    expect(slash.isOpen, isFalse);
+    expect(slash.trigger, isNull);
+
+    // Committing the composition re-evaluates the trigger and opens normally.
+    editor.setCompositionState(null);
+    expect(slash.isOpen, isTrue);
+    expect(slash.query, 'hea');
+  });
+
+  test('freezes an open menu during composition-only changes', () {
+    final editor = WenzRichTextController(
+      document: _document('/hea'),
+      selection: collapsedTextSelection('p1', 0, 4),
+    );
+    final slash = SlashMenuController(editor: editor);
+    addTearDown(slash.dispose);
+
+    expect(slash.isOpen, isTrue);
+    expect(slash.query, 'hea');
+    final queryBefore = slash.query;
+    final itemsBefore = slash.items.length;
+
+    // A pure composition-only notification (e.g. pinyin starts composing) must
+    // not refresh the query, swap the items, or close the already-open menu.
+    editor.setCompositionState(const CompositionState(
+      blockId: 'p1',
+      blockIndex: 0,
+      path: PositionPath(<Object>['block', 'p1', 'text']),
+      startOffset: 1,
+      endOffset: 4,
+    ));
+    expect(slash.isOpen, isTrue);
+    expect(slash.query, queryBefore);
+    expect(slash.items, hasLength(itemsBefore));
+
+    // Once the composition clears, the menu is free to refresh again.
+    editor.setCompositionState(null);
+    expect(slash.isOpen, isTrue);
+    expect(slash.query, queryBefore);
   });
 
   test('closes when trigger is removed, caret moves, or structure changes', () {
@@ -284,6 +498,41 @@ void main() {
     expect(slash.highlightedIndex, 0);
   });
 
+  test('highlight navigation is safe on empty results and clamps selection', () {
+    final editor = WenzRichTextController(
+      document: _document('/no-such-item'),
+      selection: collapsedTextSelection('p1', 0, 13),
+    );
+    final slash = SlashMenuController(editor: editor);
+    addTearDown(slash.dispose);
+
+    // No matching items: the menu is closed and navigation/activation are
+    // harmless no-ops rather than throwing.
+    expect(slash.items, isEmpty);
+    expect(slash.isOpen, isFalse);
+    expect(slash.highlightedItem, isNull);
+    expect(slash.activateHighlighted(), isFalse);
+
+    slash.moveHighlight(1);
+    slash.moveHighlight(-1);
+    slash.selectIndex(5);
+    expect(slash.highlightedIndex, 0);
+
+    // With the menu open, selectIndex clamps out-of-range values into bounds.
+    editor.replaceDocument(
+      _document('/'),
+      selection: collapsedTextSelection('p1', 0, 1),
+    );
+    expect(slash.isOpen, isTrue);
+    final count = slash.items.length;
+    expect(count, greaterThan(1));
+
+    slash.selectIndex(-3);
+    expect(slash.highlightedIndex, 0);
+    slash.selectIndex(count + 50);
+    expect(slash.highlightedIndex, count - 1);
+  });
+
   test('activating heading removes trigger and runs block command', () {
     final editor = WenzRichTextController(
       document: _document('/heading'),
@@ -306,6 +555,36 @@ void main() {
     expect(editor.redo(), isTrue);
     expect((editor.document.blocks.single as TextBlockNode).type,
         BlockType.heading);
+  });
+
+  test('built-in heading items expose H1 through H6 levels', () {
+    final registry = SlashMenuRegistry.defaults();
+    // H1 keeps the historical `heading` id; H2–H6 carry their own ids.
+    expect(registry.contains('heading'), isTrue);
+    for (var level = 2; level <= 6; level++) {
+      expect(registry.contains('h$level'), isTrue, reason: 'h$level id');
+    }
+
+    // Each level filter resolves to its own item and inserts the right level.
+    for (var level = 2; level <= 6; level++) {
+      final id = 'h$level';
+      final editor = WenzRichTextController(
+        document: _document('/$id'),
+        selection: collapsedTextSelection('p1', 0, 1 + id.length),
+      );
+      final slash = SlashMenuController(editor: editor);
+      addTearDown(slash.dispose);
+
+      slash.selectIndex(
+        slash.items.indexWhere((item) => item.id == id),
+      );
+      expect(slash.activateHighlighted(), isTrue, reason: id);
+
+      final block = editor.document.blocks.single as TextBlockNode;
+      expect(block.type, BlockType.heading, reason: id);
+      expect(block.attributes.level, level, reason: id);
+      expect(block.plainText, isEmpty, reason: id);
+    }
   });
 
   test('built-in block type items remove trigger and keep surrounding text', () {

@@ -139,17 +139,69 @@ PageUp/PageDown、删除、回车和普通字符输入。
 - 透传组合键：把指定组合键解析为 `passThrough`，交回宿主 `Focus`/`Actions`、浏览器或外层应用处理。
 - 平台主修饰键：使用 `primary` 表示 Windows/Linux/Web/Android 上的 Ctrl、macOS/iOS 上的 Cmd，也允许精确指定 Ctrl/Alt/Meta/Shift。
 
+最小示例：
+
+```dart
+import 'package:flutter/services.dart';
+
+final pluginShortcuts = <EditorShortcutConfiguration>[];
+installWenzRichTextPlugins(
+  plugins: [myPlugin],
+  context: WenzPluginContext(
+    controller: controller,
+    shortcutConfigurations: pluginShortcuts,
+  ),
+);
+
+final appShortcuts = EditorShortcutConfiguration(
+  bindings: const <EditorShortcutBinding>[
+    // Ctrl/Cmd+S 不由编辑器处理，交给宿主保存逻辑。
+    EditorShortcutBinding.passThrough(
+      shortcut: EditorShortcutKey(
+        LogicalKeyboardKey.keyS,
+        modifiers: <EditorShortcutModifier>{EditorShortcutModifier.primary},
+      ),
+    ),
+    // Ctrl/Cmd+K 改为触发现有查找 intent。
+    EditorShortcutBinding.handled(
+      shortcut: EditorShortcutKey(
+        LogicalKeyboardKey.keyK,
+        modifiers: <EditorShortcutModifier>{EditorShortcutModifier.primary},
+      ),
+      intent: EditorShortcutIntent.find,
+    ),
+  ],
+  // 禁用默认粘贴 intent。
+  disabledIntents: const <EditorShortcutIntent>{EditorShortcutIntent.paste},
+);
+
+WenzRichTextEditor(
+  controller: controller,
+  onFindRequested: openFindPanel,
+  shortcutConfiguration: mergeWenzShortcutConfigurations(
+    pluginConfigurations: pluginShortcuts,
+    editorConfiguration: appShortcuts,
+  ),
+);
+```
+
 合并与冲突策略固定为：默认 keymap → 插件/扩展贡献 → 编辑器显式配置。
 标准化组合键由平台集合、修饰键集合和 `LogicalKeyboardKey` 组成；同一组合键
 绑定多个 intent 时后者覆盖前者，同一 intent 绑定多个组合键时全部保留。
 无效字符键（例如空字符、多字符、控制字符，或没有 `character` 的
-`insertCharacter` 绑定）视为配置校验失败，不应退化为普通文本输入。
+`insertCharacter` 绑定）会出现在 `EditorShortcutConfiguration.validate()` 的
+结果中，运行时不应退化为普通文本输入。
 
 配置解析仍需遵守输入系统边界：只读态下写 intent（撤销/重做、剪切、粘贴、
 删除、回车、插入字符等）解析后转为 `ignored`；IME composing 或 text input
 client 已 attach 时禁止把普通字符键解析成 `insertCharacter`，但带主修饰键的
 命令快捷键仍可继续解析。斜杆菜单打开时的 ArrowUp/ArrowDown/Enter/Escape，
 以及代码块内的 Tab/Shift+Tab，仍由 widget 层优先处理，不由普通 keymap 覆盖。
+
+配置能力的边界是“键盘事件 → 解析结果”：它不会绕过
+`WenzRichTextController`、不会直接修改文档模型，也不会替代外层 Flutter
+`Focus`/`Actions`。业务自定义命令若不属于现有 `EditorShortcutIntent`，应把组合键
+配置为 `passThrough`，在宿主层处理后再调用自己的 controller 命令或 UI 逻辑。
 
 ## 查找替换
 
@@ -175,17 +227,40 @@ replacement、匹配项列表和当前命中。匹配范围使用现有
 `heading`、`list`、`todo`、`quote`、`code`、`table`、`image`；业务侧可以
 通过 `registry.register(SlashMenuItem(...))` 扩展。
 
+触发规则与代码编辑器的命令补全类似：
+
+- caret 必须位于可编辑的普通文本块内，且 selection 是 collapsed。
+- `/` 可以出现在段落开头，或出现在 ASCII/Unicode 空白字符之后；例如空段落输入
+  `/`、段首输入 `/`、正文中输入 `hello /` 都会打开菜单。
+- `/` 后面的连续非空白文本作为 query；输入 `/h`、`/table`、`/video` 会实时刷新
+  `SlashMenuController.query` 和过滤后的菜单项。
+- URL、单词中间的 `/`、跨 block selection、对象块 selection、表格对象 selection
+  不会触发，避免把普通文本误判为命令。
+
 `WenzRichTextEditor.slashMenuController` 接入后会：
 
-- 在菜单打开时绘制 `WenzSlashMenuOverlay`。
+- 在菜单打开时把 `WenzSlashMenuOverlay` 绘制到全局 Overlay，并以当前 caret 作为
+  锚点；空间不足时会在可视区域内选择上方或下方展示，避免被编辑器父布局裁剪。
 - ArrowUp / ArrowDown 移动高亮项。
 - Enter 执行当前项。
 - Esc 关闭菜单。
+- 鼠标点击菜单项会执行对应命令，焦点仍回到编辑器。
 
 执行菜单项时，controller 先用现有 `deleteSelection` 删除 `/query` 触发文本，
 再运行菜单项 action。默认项都转成既有命令或 controller helper，因此进入
 undo/redo：文本类走 `setBlockType` / `toggleTodo`，代码/图片走
 `insertBlocks` / `replaceBlocks`，表格走 `insertTable`。
+
+不展示 popup 时优先按以下顺序排查：
+
+- 是否把同一个 `WenzRichTextController` 传给了 `WenzRichTextEditor.controller` 和
+  `SlashMenuController(editor: controller)`，并把后者传入
+  `WenzRichTextEditor.slashMenuController`。
+- 编辑器是否处于 `readOnly: true`，或 controller 权限不是可编辑状态。
+- 输入法是否仍在 composing 阶段；组合输入期间菜单会冻结/不打开，commit 后再重新检测。
+- 当前 query 是否无匹配项；无匹配命令时 `isOpen` 为 false，不显示空 popup。
+- 是否刚手动 Esc/点击外部关闭；只有触发范围或 query 发生变化后才会重新打开。
+- caret 是否已经离开 `/query` 范围，或 `/` 已被删除。
 
 ## 代码块 Tab 缩进
 

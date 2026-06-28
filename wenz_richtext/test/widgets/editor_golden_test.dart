@@ -1,4 +1,4 @@
-import 'dart:ui' show PointerDeviceKind;
+﻿import 'dart:ui' show PointerDeviceKind;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -211,6 +211,217 @@ void main() {
     expect(indentedQuoteRect.right, closeTo(rowEnd, 0.001));
   });
 
+  testWidgets(
+      'consecutive same-indent quote blocks fuse into one continuous background',
+      (tester) async {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'lead-paragraph',
+            type: BlockType.paragraph,
+            content: <InlineNode>[
+              TextRun(text: 'Lead paragraph flanking the run.'),
+            ],
+          ),
+          TextBlockNode(
+            id: 'run-first',
+            type: BlockType.quote,
+            content: <InlineNode>[TextRun(text: 'First of the run')],
+          ),
+          TextBlockNode(
+            id: 'run-empty',
+            type: BlockType.quote,
+            content: <InlineNode>[],
+          ),
+          TextBlockNode(
+            id: 'run-last',
+            type: BlockType.quote,
+            content: <InlineNode>[TextRun(text: 'Last of the run')],
+          ),
+          TextBlockNode(
+            id: 'indented-quote',
+            type: BlockType.quote,
+            attributes: BlockAttributes(indent: 1),
+            content: <InlineNode>[TextRun(text: 'Different indent level')],
+          ),
+          TextBlockNode(
+            id: 'gap-paragraph',
+            type: BlockType.paragraph,
+            content: <InlineNode>[
+              TextRun(text: 'Gap paragraph between quotes.'),
+            ],
+          ),
+          TextBlockNode(
+            id: 'standalone-quote',
+            type: BlockType.quote,
+            content: <InlineNode>[TextRun(text: 'Standalone quote')],
+          ),
+        ],
+      ),
+    );
+
+    await _pumpGoldenEditor(tester, controller, size: const Size(520, 720));
+
+    const endRadius = Radius.circular(8);
+    const fusedTolerance = 0.01;
+
+    final backgroundFinder = find.byKey(
+      const ValueKey<String>('wenz-richtext-quote-background'),
+    );
+    final accentFinder = find.byKey(
+      const ValueKey<String>('wenz-richtext-quote-accent'),
+    );
+    // Five quote surfaces, in tree order: run first, run interior (empty),
+    // run last, an indent:1 standalone, and a standalone flanked by paragraphs.
+    expect(backgroundFinder, findsNWidgets(5));
+    // The accent bar is drawn per block; adjacent accents stack to read as one
+    // continuous rail now that the inter-quote gap is collapsed.
+    expect(accentFinder, findsNWidgets(5));
+
+    final rects = <Rect>[
+      for (var i = 0; i < 5; i++) tester.getRect(backgroundFinder.at(i)),
+    ];
+    final radii = <BorderRadius>[
+      for (var i = 0; i < 5; i++)
+        _quoteBackgroundRadius(tester, backgroundFinder.at(i)),
+    ];
+
+    // Same-indent quotes share one left column; the indent:1 quote starts
+    // further right and is treated as a separate standalone block.
+    expect(rects[1].left, closeTo(rects[0].left, 0.001));
+    expect(rects[2].left, closeTo(rects[1].left, 0.001));
+    expect(rects[3].left, greaterThan(rects[2].left));
+
+    // The run fuses: neighbours touch vertically with no default-spacing gap.
+    expect(rects[1].top, closeTo(rects[0].bottom, fusedTolerance));
+    expect(rects[2].top, closeTo(rects[1].bottom, fusedTolerance));
+    expect(rects[1].top - rects[0].bottom, lessThan(1.0));
+    expect(rects[2].top - rects[1].bottom, lessThan(1.0));
+
+    // Corners redistribute by group position so the right join edge carries no
+    // inward notch: first keeps only the top-end corner, interior is square on
+    // both joins, last keeps only the bottom-end corner.
+    expect(radii[0].topRight, endRadius);
+    expect(radii[0].bottomRight, Radius.zero);
+    expect(radii[1].topRight, Radius.zero);
+    expect(radii[1].bottomRight, Radius.zero);
+    expect(radii[2].topRight, Radius.zero);
+    expect(radii[2].bottomRight, endRadius);
+
+    // A different-indent neighbour keeps the default inter-block gap and stays
+    // standalone (both end corners rounded) — the run must not absorb it.
+    expect(rects[3].top - rects[2].bottom, greaterThan(4.0));
+    expect(radii[3].topRight, endRadius);
+    expect(radii[3].bottomRight, endRadius);
+
+    // A quote flanked by non-quote blocks is standalone as well.
+    expect(rects[4].top - rects[3].bottom, greaterThan(4.0));
+    expect(radii[4].topRight, endRadius);
+    expect(radii[4].bottomRight, endRadius);
+  });
+
+  testWidgets(
+      'heading and list neighbours split quote runs into standalone groups',
+      (tester) async {
+    // Only quote -> quote fuses; a heading or list between two quotes breaks
+    // the run so each side keeps its own end-side corners as an independent
+    // group. Two runs (split by a heading) and a list-flanked standalone cover
+    // the heading/list/paragraph adjacency cases for criterion P005.
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'run-a-first',
+            type: BlockType.quote,
+            content: <InlineNode>[TextRun(text: 'Run A first')],
+          ),
+          TextBlockNode(
+            id: 'run-a-last',
+            type: BlockType.quote,
+            content: <InlineNode>[TextRun(text: 'Run A last')],
+          ),
+          TextBlockNode(
+            id: 'heading-split',
+            type: BlockType.heading,
+            attributes: BlockAttributes(level: 2),
+            content: <InlineNode>[TextRun(text: 'Heading between runs')],
+          ),
+          TextBlockNode(
+            id: 'run-b-first',
+            type: BlockType.quote,
+            content: <InlineNode>[TextRun(text: 'Run B first')],
+          ),
+          TextBlockNode(
+            id: 'run-b-last',
+            type: BlockType.quote,
+            content: <InlineNode>[TextRun(text: 'Run B last')],
+          ),
+          TextBlockNode(
+            id: 'list-split',
+            type: BlockType.listItem,
+            attributes: BlockAttributes(listType: 'bullet'),
+            content: <InlineNode>[TextRun(text: 'List item after run')],
+          ),
+          TextBlockNode(
+            id: 'solo-quote',
+            type: BlockType.quote,
+            content: <InlineNode>[TextRun(text: 'Standalone after list')],
+          ),
+        ],
+      ),
+    );
+
+    await _pumpGoldenEditor(tester, controller, size: const Size(520, 640));
+
+    const endRadius = Radius.circular(8);
+
+    final backgroundFinder = find.byKey(
+      const ValueKey<String>('wenz-richtext-quote-background'),
+    );
+    // Five quote surfaces in tree order: run A first/last, run B first/last,
+    // and a list-flanked standalone.
+    expect(backgroundFinder, findsNWidgets(5));
+
+    final rects = <Rect>[
+      for (var i = 0; i < 5; i++) tester.getRect(backgroundFinder.at(i)),
+    ];
+    final radii = <BorderRadius>[
+      for (var i = 0; i < 5; i++)
+        _quoteBackgroundRadius(tester, backgroundFinder.at(i)),
+    ];
+
+    // Within each run the same-indent column is shared.
+    expect(rects[1].left, closeTo(rects[0].left, 0.001));
+    expect(rects[3].left, closeTo(rects[2].left, 0.001));
+    expect(rects[4].left, closeTo(rects[0].left, 0.001));
+
+    // Each run fuses internally: neighbours touch with no default-spacing gap.
+    expect(rects[1].top - rects[0].bottom, lessThan(1.0));
+    expect(rects[3].top - rects[2].bottom, lessThan(1.0));
+
+    // Corners distribute by group position within each fused run: the first
+    // keeps only the top-end corner and the last keeps only the bottom-end.
+    expect(radii[0].topRight, endRadius);
+    expect(radii[0].bottomRight, Radius.zero);
+    expect(radii[1].topRight, Radius.zero);
+    expect(radii[1].bottomRight, endRadius);
+    expect(radii[2].topRight, endRadius);
+    expect(radii[2].bottomRight, Radius.zero);
+    expect(radii[3].topRight, Radius.zero);
+    expect(radii[3].bottomRight, endRadius);
+
+    // A heading between the runs keeps the default inter-block gap, so the two
+    // runs stay physically separate rather than absorbing into one surface.
+    expect(rects[2].top - rects[1].bottom, greaterThan(4.0));
+
+    // A list between a run and a trailing quote keeps the same default gap, and
+    // the trailing quote is standalone with both end corners rounded.
+    expect(rects[4].top - rects[3].bottom, greaterThan(4.0));
+    expect(radii[4].topRight, endRadius);
+    expect(radii[4].bottomRight, endRadius);
+  });
+
   testWidgets('golden: paragraph code and image placeholder', (tester) async {
     final controller = WenzRichTextController(
       document: const RichTextDocument(
@@ -231,7 +442,7 @@ void main() {
           CodeBlockNode(
             id: 'code',
             language: 'dart',
-            code: 'final ready = true;',
+            code: 'final ready = true;\nprint(ready);',
           ),
           ImageBlockNode(id: 'image', assetId: 'hero', file: 'hero.png'),
           TextBlockNode(
@@ -312,6 +523,12 @@ void main() {
 
     expect(find.text('复制块内容'), findsOneWidget);
     expect(find.text('更多块操作'), findsOneWidget);
+    expect(find.text('删除块'), findsOneWidget);
+    final deleteLabel = tester.widget<Text>(find.text('删除块'));
+    expect(
+      deleteLabel.style?.color,
+      Theme.of(tester.element(find.text('删除块'))).colorScheme.error,
+    );
 
     await expectLater(
       find.byKey(_goldenKey),
@@ -598,6 +815,12 @@ void main() {
             attributes: BlockAttributes(level: 2),
             content: <InlineNode>[TextRun(text: 'Follow-up artifact')],
           ),
+          CodeBlockNode(
+            id: 'advanced-code',
+            language: 'dart',
+            code: 'final ids = List.generate(100, (index) => "ticket-\$index");\n'
+                'debugPrint(ids.join(", "));',
+          ),
           FileBlockNode(
             id: 'advanced-file',
             assetId: 'spec-v2',
@@ -618,11 +841,46 @@ void main() {
       tester,
       controller,
       outlineController: outlineController,
+      size: const Size(520, 420),
     );
+
+    expect(find.byTooltip('复制代码内容'), findsOneWidget);
+    expect(
+      tester.getSize(find.byTooltip('复制代码内容')),
+      const Size.square(32),
+    );
+    expect(find.text('release-spec.pdf'), findsOneWidget);
+    expect(find.text('Retry required'), findsOneWidget);
 
     await expectLater(
       find.byKey(_goldenKey),
       matchesGoldenFile('goldens/editor_advanced_blocks.png'),
+    );
+  });
+
+  testWidgets('golden: editor light theme surface', (tester) async {
+    await _pumpThemeSurfaceGoldenEditor(
+      tester,
+      _emptyThemeGoldenController(),
+      brightness: Brightness.light,
+    );
+
+    await expectLater(
+      find.byKey(_goldenKey),
+      matchesGoldenFile('goldens/editor_theme_light.png'),
+    );
+  });
+
+  testWidgets('golden: editor dark theme surface', (tester) async {
+    await _pumpThemeSurfaceGoldenEditor(
+      tester,
+      _emptyThemeGoldenController(),
+      brightness: Brightness.dark,
+    );
+
+    await expectLater(
+      find.byKey(_goldenKey),
+      matchesGoldenFile('goldens/editor_theme_dark.png'),
     );
   });
 }
@@ -699,6 +957,51 @@ Future<void> _pumpGoldenEditorWithOverlayCapture(
   await tester.pumpAndSettle();
 }
 
+Future<void> _pumpThemeSurfaceGoldenEditor(
+  WidgetTester tester,
+  WenzRichTextController controller, {
+  required Brightness brightness,
+}) async {
+  const size = Size(520, 320);
+  final background =
+      brightness == Brightness.dark ? Colors.black : Colors.white;
+  await tester.binding.setSurfaceSize(size);
+  addTearDown(() => tester.binding.setSurfaceSize(null));
+
+  await tester.pumpWidget(
+    MaterialApp(
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.blue,
+          brightness: brightness,
+        ),
+        scaffoldBackgroundColor: background,
+        useMaterial3: true,
+      ),
+      home: Scaffold(
+        body: RepaintBoundary(
+          key: _goldenKey,
+          child: SizedBox(
+            width: size.width,
+            height: size.height,
+            child: WenzRichTextEditor(
+              controller: controller,
+              enableIme: false,
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+  await tester.pump();
+}
+
+WenzRichTextController _emptyThemeGoldenController() {
+  return WenzRichTextController(
+    document: const RichTextDocument(blocks: <BlockNode>[]),
+  );
+}
+
 WenzRichTextController _blockHandleGoldenController() {
   return WenzRichTextController(
     document: const RichTextDocument(
@@ -736,3 +1039,13 @@ Finder _richText(String text) {
     description: 'RichText with plain text "$text"',
   );
 }
+
+/// Resolved (LTR) border radius of the quote background found by [finder], so
+/// tests can assert which end-side corners stay rounded per group position.
+BorderRadius _quoteBackgroundRadius(WidgetTester tester, Finder finder) {
+  final decoration =
+      tester.widget<DecoratedBox>(finder).decoration as BoxDecoration;
+  final borderRadius = decoration.borderRadius ?? BorderRadius.zero;
+  return borderRadius.resolve(TextDirection.ltr);
+}
+

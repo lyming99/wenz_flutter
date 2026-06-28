@@ -24,13 +24,14 @@ class PlainTextCodec {
 
   String encode(RichTextDocument document) {
     final lines = <String>[];
-    for (final block in document.blocks) {
+    for (var index = 0; index < document.blocks.length; index++) {
+      final block = document.blocks[index];
       if (omitEmptyBlocks && _isStructural(block)) {
         // Media / divider blocks are structural — skip them when the caller
         // wants only textual content.
         continue;
       }
-      final rendered = _renderBlock(block);
+      final rendered = _renderBlock(document.blocks, index);
       if (rendered == null || rendered.isEmpty) {
         if (omitEmptyBlocks) {
           continue;
@@ -68,14 +69,16 @@ class PlainTextCodec {
   /// has no textual representation at all (an empty paragraph / callout).
   /// Media blocks always go through their sentinel so file names / asset ids
   /// are not mistaken for body text.
-  String? _renderBlock(BlockNode block) {
+  String? _renderBlock(List<BlockNode> blocks, int index) {
+    final block = blocks[index];
     switch (block.type) {
       case BlockType.paragraph:
       case BlockType.heading:
       case BlockType.quote:
-      case BlockType.listItem:
       case BlockType.callout:
         return block.plainText;
+      case BlockType.listItem:
+        return _renderListItem(blocks, index, block as TextBlockNode);
       case BlockType.code:
         // Code is emitted verbatim (keeps internal newlines).
         return block.plainText;
@@ -97,6 +100,52 @@ class PlainTextCodec {
       case BlockType.divider:
         return '---';
     }
+  }
+
+  String _renderListItem(
+    List<BlockNode> blocks,
+    int index,
+    TextBlockNode block,
+  ) {
+    final indent = block.attributes.indent ?? 0;
+    final pad = '  ' * indent;
+    final text = block.plainText;
+    if (block.attributes.listType == 'ordered') {
+      final marker = '${_orderedListNumberFor(blocks, index, indent)}.';
+      if (block.attributes.checked != null) {
+        final box = block.attributes.checked == true ? '[x]' : '[ ]';
+        return '$pad$marker $box $text';
+      }
+      return '$pad$marker $text';
+    }
+    if (block.attributes.listType == 'task') {
+      final box = block.attributes.checked == true ? '[x]' : '[ ]';
+      return '$pad- $box $text';
+    }
+    return '$pad- $text';
+  }
+
+  int _orderedListNumberFor(List<BlockNode> blocks, int index, int indent) {
+    var number = 1;
+    for (var previousIndex = index - 1; previousIndex >= 0; previousIndex--) {
+      final previous = blocks[previousIndex];
+      final previousIndent = previous.attributes.indent ?? 0;
+      if (previousIndent > indent) {
+        continue;
+      }
+      if (previousIndent < indent) {
+        break;
+      }
+      if (previous is TextBlockNode && previous.type == BlockType.listItem) {
+        if (previous.attributes.listType == 'ordered') {
+          number++;
+          continue;
+        }
+        break;
+      }
+      break;
+    }
+    return number;
   }
 
   String _imageLabel(ImageBlockNode image) {

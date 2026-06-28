@@ -81,6 +81,72 @@ void main() {
       expect(blocks[1].attributes.listType, 'ordered');
       // 'check' -> 'task'.
       expect(blocks[2].attributes.listType, 'task');
+      expect(blocks[2].attributes.checked, isFalse);
+    });
+
+    test('listItem preserves ordered todo checked state', () {
+      const doc = RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'todo1',
+            type: BlockType.listItem,
+            attributes: BlockAttributes(listType: 'ordered', checked: true),
+            content: <InlineNode>[TextRun(text: 'done')],
+          ),
+          TextBlockNode(
+            id: 'todo2',
+            type: BlockType.listItem,
+            attributes: BlockAttributes(listType: 'ordered', checked: false),
+            content: <InlineNode>[TextRun(text: 'open')],
+          ),
+          TextBlockNode(
+            id: 'ordered',
+            type: BlockType.listItem,
+            attributes: BlockAttributes(listType: 'ordered'),
+            content: <InlineNode>[TextRun(text: 'plain ordered')],
+          ),
+        ],
+      );
+      final blocks = schema.normalize(doc).blocks.cast<TextBlockNode>();
+
+      expect(blocks[0].attributes.listType, 'ordered');
+      expect(blocks[0].attributes.checked, isTrue);
+      expect(blocks[1].attributes.listType, 'ordered');
+      expect(blocks[1].attributes.checked, isFalse);
+      expect(blocks[2].attributes.listType, 'ordered');
+      expect(blocks[2].attributes.checked, isNull);
+    });
+
+    test('non-list blocks drop listType and checked attributes', () {
+      const listAttrs = BlockAttributes(
+        listType: 'ordered',
+        checked: true,
+        anchor: 'keep-anchor',
+      );
+      const doc = RichTextDocument(
+        blocks: <BlockNode>[
+          CodeBlockNode(id: 'code', code: 'x', attributes: listAttrs),
+          DividerBlockNode(id: 'divider', attributes: listAttrs),
+          BlockEmbedNode(
+            id: 'embed',
+            embedType: 'card',
+            fallbackText: 'Card',
+            attributes: listAttrs,
+          ),
+          TableBlockNode(
+            id: 'table',
+            table: TableModel(),
+            attributes: listAttrs,
+          ),
+        ],
+      );
+      final normalized = schema.normalize(doc);
+
+      for (final block in normalized.blocks) {
+        expect(block.attributes.listType, isNull);
+        expect(block.attributes.checked, isNull);
+        expect(block.attributes.anchor, 'keep-anchor');
+      }
     });
 
     test('paragraph drops level/listType/checked but keeps indent/alignment',

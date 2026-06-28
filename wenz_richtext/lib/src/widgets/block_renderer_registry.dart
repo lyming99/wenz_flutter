@@ -199,6 +199,35 @@ abstract final class BlockDragHandleSpec {
   }
 }
 
+/// Where a quote block sits within a run of consecutive quote blocks. The
+/// built-in `_QuoteBlockSurface` reads it (via
+/// [BlockRenderContext.quoteGroupPosition]) to redistribute its end-side
+/// rounded corners so index-adjacent quote surfaces fuse into one continuous
+/// background instead of leaving an inward notch at every join.
+///
+/// A run is decided purely by block order and type — only index-adjacent
+/// `BlockType.quote` neighbours belong to it. An `indent` attribute does not
+/// extend or break the run; a non-quote block terminates it and the quote
+/// keeps [QuoteGroupPosition.standalone]. See "Consecutive quote block
+/// background" in `docs/rendering.md`.
+enum QuoteGroupPosition {
+  /// No quote neighbour above or below. Both end-side corners stay
+  /// rounded — the legacy, standalone appearance.
+  standalone,
+
+  /// Top of a run: keeps the top-end corner, squares the bottom edge so the
+  /// quote directly below joins without a seam.
+  first,
+
+  /// Middle of a run: both vertical edges square so it bridges the quotes
+  /// above and below without an inward notch.
+  interior,
+
+  /// Bottom of a run: keeps the bottom-end corner, squares the top edge so the
+  /// quote directly above joins without a seam.
+  last,
+}
+
 /// Bundles everything a block renderer needs to paint a block. Passed to every
 /// [BlockRendererBuilder] so custom renderers get the same surface as the
 /// built-in ones (selection, caret, geometry, IME composition, debug overlay).
@@ -226,6 +255,7 @@ class BlockRenderContext {
     this.mediaResolver,
     this.inlineEmbedRenderer,
     this.listMarker,
+    this.quoteGroupPosition = QuoteGroupPosition.standalone,
     this.onCodeLanguageChanged,
     this.onCodeCopied,
     this.onCalloutVariantChanged,
@@ -272,7 +302,31 @@ class BlockRenderContext {
   /// Optional list marker precomputed by the host editor for list item blocks.
   /// Ordered markers depend on sibling blocks, so the editor supplies them here
   /// instead of making renderers inspect the whole document.
+  ///
+  /// Convention: any rendering detail that depends on a block's siblings — not
+  /// just list markers — is precomputed by the host from the block list and
+  /// exposed here as an optional, nullable field that defaults to a standalone
+  /// value when the host (or a hand-built context) omits it. Consecutive quote
+  /// background continuity uses the same pattern: the host derives each quote
+  /// block's position in its continuous-quote group (first / interior / last)
+  /// and supplies it here so `_QuoteBlockSurface` can fuse neighbours. See
+  /// "Consecutive quote block background" in `docs/rendering.md`.
   final String? listMarker;
+
+  /// Position of this quote block within its run of consecutive quote blocks,
+  /// precomputed by the host editor. The built-in `_QuoteBlockSurface` reads
+  /// it to fuse neighbours into one continuous background (corners, padding,
+  /// accent bar redistribute by group position).
+  ///
+  /// Follows the same convention as [listMarker]: any rendering detail that
+  /// depends on a block's siblings is precomputed by the host and supplied
+  /// here. A run is decided purely by block order and type — an `indent`
+  /// attribute does not extend or break it — so non-quote blocks and
+  /// hand-built contexts default to [QuoteGroupPosition.standalone],
+  /// preserving the legacy single-block appearance and leaving custom
+  /// renderers unaffected. See "Consecutive quote block background" in
+  /// `docs/rendering.md`.
+  final QuoteGroupPosition quoteGroupPosition;
 
   /// Optional callback used by code block renderers to change the block's
   /// language through the host controller.

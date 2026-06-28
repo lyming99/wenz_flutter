@@ -58,6 +58,15 @@ class SharedTextLayoutCache extends ChangeNotifier {
     }
   }
 
+  /// Drops every cached layout entry. Use when global render inputs such as the
+  /// editor default text color or base text style change.
+  void clear() {
+    for (final service in _entries.values) {
+      service.forget();
+    }
+    _entries.clear();
+  }
+
   /// Number of cached entries (for tests / observation).
   @visibleForTesting
   int get length => _entries.length;

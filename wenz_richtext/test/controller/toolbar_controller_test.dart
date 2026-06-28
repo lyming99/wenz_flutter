@@ -1,3 +1,4 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wenz_richtext/wenz_richtext.dart';
 
@@ -131,6 +132,56 @@ void main() {
       final toolbar = ToolbarController(host);
 
       expect(toolbar.linkUrl, 'https://wenz.dev');
+
+      toolbar.dispose();
+      host.dispose();
+    });
+
+    test('text color reports uniform, mixed, and empty states', () {
+      final uniformHost = WenzRichTextController(
+        document: _doc(),
+        selection: textSelection('colored', 10, 0, 3),
+      );
+      final uniformToolbar = ToolbarController(uniformHost);
+
+      expect(uniformToolbar.textColor, 0xFF336699);
+      expect(uniformToolbar.textColorMixed, isFalse);
+
+      final mixedHost = WenzRichTextController(
+        document: _doc(),
+        selection: textSelection('colored', 10, 0, 8),
+      );
+      final mixedToolbar = ToolbarController(mixedHost);
+
+      expect(mixedToolbar.textColor, isNull);
+      expect(mixedToolbar.textColorMixed, isTrue);
+
+      final emptyHost = WenzRichTextController(
+        document: _doc(),
+        selection: textSelection('para', 4, 0, 3),
+      );
+      final emptyToolbar = ToolbarController(emptyHost);
+
+      expect(emptyToolbar.textColor, isNull);
+      expect(emptyToolbar.textColorMixed, isFalse);
+
+      uniformToolbar.dispose();
+      uniformHost.dispose();
+      mixedToolbar.dispose();
+      mixedHost.dispose();
+      emptyToolbar.dispose();
+      emptyHost.dispose();
+    });
+
+    test('collapsed caret reports left run text color', () {
+      final host = WenzRichTextController(
+        document: _doc(),
+        selection: collapsedTextSelection('colored', 10, 2),
+      );
+      final toolbar = ToolbarController(host);
+
+      expect(toolbar.textColor, 0xFF336699);
+      expect(toolbar.textColorMixed, isFalse);
 
       toolbar.dispose();
       host.dispose();
@@ -575,6 +626,43 @@ void main() {
         host.dispose();
       });
 
+      test('range inside a colored table cell reports text color', () {
+        final start = DocumentPosition.tableCell(
+          tableBlockId: 'table',
+          blockIndex: 0,
+          tableRowIndex: 0,
+          tableColumnIndex: 0,
+          offset: 0,
+        );
+        final end = DocumentPosition.tableCell(
+          tableBlockId: 'table',
+          blockIndex: 0,
+          tableRowIndex: 0,
+          tableColumnIndex: 0,
+          offset: 4,
+        );
+        final selection = DocumentSelection(base: start, extent: end);
+        final host = WenzRichTextController(
+          document: _tableDoc(),
+          selection: selection,
+        );
+        final toolbar = ToolbarController(host);
+
+        toolbar.setTextColorValue(0xFF336699);
+
+        expect(host.selection, selection);
+        expect(toolbar.textColor, 0xFF336699);
+        expect(toolbar.textColorMixed, isFalse);
+        final table = host.document.blocks.single as TableBlockNode;
+        final textBlock =
+            table.table.cellAt(0, 0)!.blocks.single as TextBlockNode;
+        expect((textBlock.content.single as TextRun).attributes.color,
+            0xFF336699);
+
+        toolbar.dispose();
+        host.dispose();
+      });
+
       test('toggleBold preserves a table cell range selection', () {
         final start = DocumentPosition.tableCell(
           tableBlockId: 'table',
@@ -629,6 +717,56 @@ void main() {
       expect(toolbar.canToggleMark, isTrue);
       expect(toolbar.canSetLink, isTrue);
       expect(toolbar.canSetBlockType, isTrue);
+
+      toolbar.dispose();
+      host.dispose();
+    });
+
+    test('set and clear text color preserve other inline attributes', () {
+      final host = WenzRichTextController(
+        document: _doc(),
+        selection: textSelection('colored', 10, 1, 3),
+      );
+      final toolbar = ToolbarController(host);
+
+      toolbar.setTextColor(const Color(0xFFE91E63));
+
+      var block = host.document.blocks[10] as TextBlockNode;
+      var middle = block.content[1] as TextRun;
+      expect(middle.text, 'ol');
+      expect(middle.attributes.color, 0xFFE91E63);
+      expect(middle.attributes.bold, isTrue);
+      expect(toolbar.textColor, 0xFFE91E63);
+      expect(toolbar.textColorMixed, isFalse);
+
+      toolbar.clearTextColor();
+
+      block = host.document.blocks[10] as TextBlockNode;
+      final run = block.content.single as TextRun;
+      expect(run.text, 'Colored');
+      expect(run.attributes.color, isNull);
+      expect(run.attributes.bold, isTrue);
+      expect(toolbar.textColor, isNull);
+      expect(toolbar.textColorMixed, isFalse);
+
+      toolbar.dispose();
+      host.dispose();
+    });
+
+    test('text color actions are no-op when formatting is disabled', () {
+      final host = WenzRichTextController(
+        document: _doc(),
+        selection: textSelection('colored', 10, 0, 3),
+        permission: WenzEditorPermission.comment,
+      );
+      final toolbar = ToolbarController(host);
+
+      toolbar.setTextColorValue(0xFFE91E63);
+      toolbar.clearTextColor();
+
+      final block = host.document.blocks[10] as TextBlockNode;
+      expect((block.content.first as TextRun).attributes.color, 0xFF336699);
+      expect(host.canUndo, isFalse);
 
       toolbar.dispose();
       host.dispose();
@@ -713,6 +851,18 @@ RichTextDocument _doc() {
       ),
       // 9 — code block.
       CodeBlockNode(id: 'code', language: 'dart', code: 'final x = 1;'),
+      // 10 — colored: 'Col' blue+bold + 'ored' plain.
+      TextBlockNode(
+        id: 'colored',
+        type: BlockType.paragraph,
+        content: <InlineNode>[
+          TextRun(
+            text: 'Col',
+            attributes: TextAttributes(color: 0xFF336699, bold: true),
+          ),
+          TextRun(text: 'ored'),
+        ],
+      ),
     ],
   );
 }

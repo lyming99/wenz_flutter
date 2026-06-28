@@ -153,6 +153,75 @@ class ClearStyleCommand extends EditorCommand {
   }
 }
 
+class ClearTextColorCommand extends EditorCommand {
+  const ClearTextColorCommand({this.selection});
+
+  final DocumentSelection? selection;
+
+  @override
+  String get description => 'clearTextColor';
+
+  @override
+  CommandResult execute(DocumentSession session) {
+    final target = selection ?? session.selection;
+    if (target == null || target.isCollapsed) {
+      return const CommandResult(recordHistory: false);
+    }
+
+    final start = target.start;
+    final end = target.end;
+    if (start.path.isTableCellText &&
+        start.blockIndex == end.blockIndex &&
+        start.path == end.path) {
+      final rowIndex = start.path.tableRowIndex;
+      final columnIndex = start.path.tableColumnIndex;
+      if (rowIndex == null || columnIndex == null) {
+        return const CommandResult(recordHistory: false);
+      }
+      return clearTableCellInlineTextColor(
+        session,
+        start.blockIndex,
+        rowIndex,
+        columnIndex,
+        start.offset,
+        end.offset,
+      );
+    }
+
+    final blocks =
+        session.document.blocks.map((block) => block.copy()).toList();
+    var changed = false;
+    for (var i = start.blockIndex; i <= end.blockIndex; i++) {
+      if (i < 0 || i >= blocks.length) {
+        continue;
+      }
+      final block = blocks[i];
+      if (block is! TextBlockNode) {
+        continue;
+      }
+      final rangeStart = i == start.blockIndex ? start.offset : 0;
+      final rangeEnd =
+          i == end.blockIndex ? end.offset : inlineNodesLength(block.content);
+      blocks[i] = TextBlockNode(
+        id: block.id,
+        type: block.type,
+        attributes: block.attributes,
+        content: clearInlineTextColor(block.content, rangeStart, rangeEnd),
+      );
+      changed = true;
+    }
+
+    if (!changed) {
+      return const CommandResult(recordHistory: false);
+    }
+    session.document = RichTextDocument(
+      version: session.document.version,
+      blocks: blocks,
+    );
+    return CommandResult(selection: target);
+  }
+}
+
 class SetBlockTypeCommand extends EditorCommand {
   const SetBlockTypeCommand({
     required this.type,
@@ -211,13 +280,23 @@ class SetBlockTypeCommand extends EditorCommand {
       indent: current.indent,
       alignment: current.alignment,
       listType: type == BlockType.listItem ? listType : null,
-      checked: type == BlockType.listItem &&
-              (listType == 'check' || listType == 'task')
-          ? checked ?? current.checked
-          : null,
+      checked: type == BlockType.listItem ? _checkedForListType(current) : null,
       childNote: current.childNote,
       anchor: current.anchor,
     );
+  }
+
+  bool? _checkedForListType(BlockAttributes current) {
+    if (checked != null) {
+      return checked;
+    }
+    if (listType == 'check' || listType == 'task') {
+      return current.checked ?? false;
+    }
+    if (listType == 'ordered') {
+      return current.checked;
+    }
+    return null;
   }
 }
 

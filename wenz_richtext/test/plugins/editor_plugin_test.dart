@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wenz_richtext/wenz_richtext.dart';
 
@@ -26,6 +27,7 @@ void main() {
     final inlineEmbeds = InlineEmbedRendererRegistry();
     final slashMenu = SlashMenuRegistry();
     final toolbarItems = WenzToolbarItemRegistry();
+    final shortcutConfigurations = <EditorShortcutConfiguration>[];
     final toolbar = ToolbarController(controller);
     addTearDown(toolbar.dispose);
 
@@ -78,6 +80,21 @@ void main() {
               isEnabled: (state) => state.hasSelection,
             ),
           ],
+          shortcutConfigurations: <EditorShortcutConfiguration>[
+            const EditorShortcutConfiguration(
+              bindings: <EditorShortcutBinding>[
+                EditorShortcutBinding.handled(
+                  shortcut: EditorShortcutKey(
+                    LogicalKeyboardKey.keyK,
+                    modifiers: <EditorShortcutModifier>{
+                      EditorShortcutModifier.primary,
+                    },
+                  ),
+                  intent: EditorShortcutIntent.find,
+                ),
+              ],
+            ),
+          ],
           pasteTransformers: <ClipboardPasteTransformer>[
             ClipboardPasteTransformer(
               id: 'test.paste',
@@ -99,6 +116,7 @@ void main() {
         inlineEmbedRenderers: inlineEmbeds,
         slashMenuRegistry: slashMenu,
         toolbarItems: toolbarItems,
+        shortcutConfigurations: shortcutConfigurations,
         pasteTransformers: pasteTransformers,
       ),
     );
@@ -127,7 +145,79 @@ void main() {
     ]);
     expect(toolbarItems.has('test.toolbar'), isTrue);
     expect(toolbarItems['test.toolbar']?.enabledFor(toolbar.state), isTrue);
+    expect(shortcutConfigurations, hasLength(1));
+    expect(
+      shortcutConfigurations.single.bindings.single.resolution.intent,
+      EditorShortcutIntent.find,
+    );
     expect(controller.clipboardService.parse('plugin:value').text, 'value');
+  });
+
+  test('plugin shortcuts merge before explicit editor configuration', () {
+    const firstPlugin = EditorShortcutConfiguration(
+      bindings: <EditorShortcutBinding>[
+        EditorShortcutBinding.handled(
+          shortcut: EditorShortcutKey(
+            LogicalKeyboardKey.keyS,
+            modifiers: <EditorShortcutModifier>{EditorShortcutModifier.primary},
+          ),
+          intent: EditorShortcutIntent.copy,
+        ),
+      ],
+    );
+    const secondPlugin = EditorShortcutConfiguration(
+      bindings: <EditorShortcutBinding>[
+        EditorShortcutBinding.ignored(
+          shortcut: EditorShortcutKey(
+            LogicalKeyboardKey.keyS,
+            modifiers: <EditorShortcutModifier>{EditorShortcutModifier.primary},
+          ),
+        ),
+      ],
+    );
+    const editor = EditorShortcutConfiguration(
+      bindings: <EditorShortcutBinding>[
+        EditorShortcutBinding.passThrough(
+          shortcut: EditorShortcutKey(
+            LogicalKeyboardKey.keyS,
+            modifiers: <EditorShortcutModifier>{EditorShortcutModifier.primary},
+          ),
+        ),
+      ],
+      disabledIntents: <EditorShortcutIntent>{EditorShortcutIntent.paste},
+    );
+
+    final merged = mergeWenzShortcutConfigurations(
+      pluginConfigurations: const <EditorShortcutConfiguration>[
+        firstPlugin,
+        secondPlugin,
+      ],
+      editorConfiguration: editor,
+    );
+    final manager = EditorShortcutManager(configuration: merged);
+    final save = manager.resolve(
+      _down(LogicalKeyboardKey.keyS),
+      shiftPressed: false,
+      primaryPressed: true,
+      readOnly: false,
+      imeEnabled: false,
+      inputClientAttached: false,
+    );
+    final paste = manager.resolve(
+      _down(LogicalKeyboardKey.keyV),
+      shiftPressed: false,
+      primaryPressed: true,
+      readOnly: false,
+      imeEnabled: false,
+      inputClientAttached: false,
+    );
+
+    expect(merged.bindings, hasLength(3));
+    expect(merged.validate().map((issue) => issue.code), contains(
+      EditorShortcutConfigurationIssueCode.duplicateShortcut,
+    ));
+    expect(save.disposition, EditorShortcutDisposition.passThrough);
+    expect(paste.disposition, EditorShortcutDisposition.ignored);
   });
 
   testWidgets('plugin renderers and media resolvers skip collapsed descendants',
@@ -294,6 +384,14 @@ void main() {
       throwsStateError,
     );
   });
+}
+
+KeyDownEvent _down(LogicalKeyboardKey key) {
+  return KeyDownEvent(
+    physicalKey: PhysicalKeyboardKey.keyA,
+    logicalKey: key,
+    timeStamp: Duration.zero,
+  );
 }
 
 class _CountingMiddleware extends CommandMiddleware {}

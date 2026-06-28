@@ -93,12 +93,118 @@ Markdown/plain text intentionally degrade to readable fallback text.
 | BlockType | Renderer | Notes |
 | --- | --- | --- |
 | paragraph / heading / quote / listItem | `_TextBlockRenderer` | Inline-aware; formula/mention fallback + optional `InlineEmbedRenderer`; selection/caret/composition via `_TextSelectionSurface`. |
-| code | `_CodeBlockRenderer` | Monospace body with composition underline span; code blocks reserve a display-only left gutter for 1-based line numbers; toolbar includes language dropdown and copy-code button. Language changes call `SetCodeLanguageCommand`; Tab/Shift+Tab in the editor call `IndentCodeBlockCommand`. |
-| image / video / file | asks `MediaResolver`, then built-in fallback | Built-in media renderers consult the injected [MediaResolver] first; when it returns `null` (or no resolver is set) images/videos fall back to `_MediaPlaceholder`, while files fall back to a metadata card. Image blocks wrap the result with `showWidth`/`showHeight` sizing and optional caption text; file cards show display name, size, MIME type, upload status, and failure text. See [Media resolver](#media-resolver). |
+| code | `_CodeBlockRenderer` | Monospace body with syntax highlighting (`CodeSyntaxHighlighter`, see [Code block syntax highlighting](#code-block-syntax-highlighting)) and composition underline span; code blocks reserve a display-only left gutter for 1-based line numbers; toolbar includes language dropdown and copy-code button. Language changes call `SetCodeLanguageCommand`; Tab/Shift+Tab in the editor call `IndentCodeBlockCommand`. |
+| image / video / file | asks `MediaResolver`, then built-in fallback | Built-in media renderers consult the injected [MediaResolver] first; when it returns `null` (or no resolver is set) images/videos fall back to built-in placeholders, while files fall back to a metadata card. Image blocks wrap the result with `showWidth`/`showHeight` sizing and optional caption text; video blocks place both the fallback chrome and resolver child inside a finite rounded frame that is clipped to the editor content width and safe aspect-ratio height; file cards show display name, size, MIME type, upload status, and failure text. See [Media resolver](#media-resolver). |
 | embed | `_BlockEmbedContent` or business renderer | Generic block embed placeholder displays `embedType` + `fallbackText`/data label. Register per business type with `BlockRendererRegistry.registerEmbed`; wrap large custom widgets in `WenzObjectBlockSurface` for object-block selection semantics. |
 | table | `_TableBlockRenderer` | Custom Stack grid layout; visible cells are positioned by `rowSpan`/`columnSpan`, covered cells are not rendered or hit-tested; table-cell text uses the same inline embed fallback/renderer path. When a table cell/range is selected, the default renderer shows a floating toolbar for row/column insert/delete, header/background/alignment, merge/split, width reset, plus drag handles that persist explicit column widths via `SetTableColumnWidthCommand`. |
 | divider | Flutter `Divider`. | |
 | callout | `_CalloutRenderer` | Variant-tinted surface with icon, title, body, and an editable type dropdown for `info`/`success`/`warning`/`danger`; uses the same inline embed fallback/renderer path. |
+
+## Consecutive quote block background
+
+A run of index-adjacent `BlockType.quote` text blocks renders as a **single
+continuous quote surface**, not as a row of separate boxed blocks. This section
+pins the visual contract, the grouping boundary, and the render-only scope that
+the default quote renderer must satisfy.
+
+### Visual contract
+
+Adjacent quote blocks fuse into one continuous background rectangle:
+
+- **No vertical gap.** The vertical spacing between two quote blocks in the same
+  group is `0`, so the two `surfaceContainer` backgrounds touch with no visible
+  seam.
+- **Corners only on the outer ends.** Rounded corners appear only on the first
+  block's top edge and the last block's bottom edge of the whole run. Interior
+  joins are square, so the run reads as one rectangle rather than stacked boxes.
+  The quote surface already keeps the start (accent-bar) edge square; only the
+  end edge is currently rounded (`topEnd` / `bottomEnd`).
+- **Accent bar runs through.** The 4px `primary` accent bar on the start edge is
+  continuous across the whole group — no break, no offset, no double stroke at
+  joins.
+- **Uniform internal rhythm.** Vertical padding is redistributed by group
+  position so the join between two blocks does not double the top/bottom inset.
+  Merged text keeps a natural, even line rhythm with no doubled whitespace or
+  corner notch.
+
+### Grouping boundary
+
+A **continuous quote group** is a maximal run of top-level blocks that are both:
+
+1. consecutive by document index, **and**
+2. `TextBlockNode` with `type == BlockType.quote`.
+
+The group is decided purely by block order and type — not by indentation, list
+markers, or attributes. Consequences:
+
+- `quote → non-quote → quote` produces **two independent groups**. Each keeps
+  its own outer rounded corners and its own accent bar; the non-quote block
+  between them is a clean boundary.
+- `BlockType` is exclusive per block (`TextBlockNode` constrains its type to
+  paragraph / heading / quote / listItem). A todo or list item is a distinct
+  `BlockType`, so it always terminates a quote group: a quote block cannot
+  "contain" a list/todo prefix, and an adjacent list/todo block is a group
+  boundary.
+- A quote block may still carry an `indent` attribute; indentation does not
+  extend or break the group. Grouping is adjacency + type only.
+
+### Why the background fuses visually, not via one container
+
+Blocks are laid out as a virtualised, absolutely-positioned `Stack`
+(`_MeasuredVirtualBlockList`): each block is measured on its own by
+`_MeasuredBlockExtent`, positioned by an absolute `top`, recycled off-screen,
+and selectively kept alive. Continuous quotes **must not** be collapsed into a
+single container — that would break per-block measurement, virtualised
+recycling, and keep-alive (caret / selection endpoints). The continuity is
+achieved purely by **visual fusion** at the default quote renderer:
+
+- `_spacingBetweenBlocks` returns `0` for `quote → quote`,
+- the quote group position (first / interior / last) is precomputed by the host
+  from the block list and threaded to the surface the same way `listMarker`
+  already is (a sibling-derived field on `BlockRenderContext`),
+- `_QuoteBlockSurface` redistributes corners and vertical padding by that
+  position and keeps the accent bar continuous.
+
+### Render-only scope (what does NOT change)
+
+This is a presentation fix. The following stay untouched:
+
+- **Document model** — `BlockType.quote` blocks remain individual blocks;
+  nothing is merged or re-typed.
+- **Quote toggle** — `ToggleQuoteCommand` /
+  `WenzRichTextController.toggleQuote` behaviour is unchanged.
+- **Serialization** — Markdown / rich JSON / HTML / plain-text export keep
+  treating each quote block independently (e.g. one `>` line per block).
+- **Selection & hit-testing** — caret placement, range selection,
+  `_TextSelectionSurface` geometry, and `BlockGeometryRegistry` hit resolution
+  are unchanged. The fused background is paint-only; each block still owns its
+  own surface and geometry.
+- **Find highlight** — quote blocks' find-match painting is unchanged.
+- **Virtual list** — per-block measurement (`_MeasuredBlockExtent`),
+  `offsetFor` / `totalExtent` accounting, virtualised recycling, and keep-alive
+  semantics are unchanged. The only layout change is the `quote → quote` spacing
+  value flowing through the existing spacing path.
+
+### Edge-case coverage matrix
+
+| Scenario | Expected appearance |
+| --- | --- |
+| Single quote (isolated group) | Original rounded corners and full top/bottom padding; visually identical to pre-change. |
+| Quote at document start | First block of its group: top corners rounded, keeps top padding; no neighbour above. |
+| Quote at document end | Last block of its group: bottom corners rounded, keeps bottom padding; no neighbour below. |
+| 3+ consecutive quotes | Interior blocks: square corners, top/bottom padding removed/narrowed so joins are seamless. |
+| `quote → heading/list/code/paragraph/callout/… → quote` | Two independent groups; each keeps outer corners; the intervening block uses its normal spacing on both sides. |
+| Quote adjacent to heading | Heading margin (`_blockMarginBefore` / `_blockMarginAfter`) applies at the quote↔heading boundary as today; only `quote → quote` collapses. |
+| Quote with `indent` attribute | Indent does not affect grouping; the block still joins its adjacent quote neighbours by type. |
+| Adjacent todo / list item | Distinct `BlockType` → group boundary; todo/list spacing (`_kListItemSpacing` / `_kNestedListItemSpacing`) is unchanged. |
+
+## Empty text row hit targets
+
+Text-bearing renderers must keep empty text rows visible and targetable. `_TextSelectionSurface` owns the selection geometry for paragraphs, headings, quotes, list/todo items, callout body text, code text, and table-cell text. When its logical `textLength` is `0`, the surface still contributes a hit-test box with at least the current block's minimum line height; in finite parent layouts it expands to the available editable text width.
+
+That expansion is intentionally local to the text slot. List markers, todo checkboxes, heading collapse buttons, block handles, toolbar/menu chrome, code gutters, and table neighbouring cells stay outside the text surface or register as selection exclusions. Table cells may use the whole cell frame as `hitTestKey`, but hit coordinates are mapped back into the centred text surface so padding taps remain in the same cell instead of jumping to adjacent cells or rows.
+
+Caret rendering also treats empty text as a normal text target: hit-testing returns offset `0`, and caret height falls back through measured height, preferred line height, and style-derived line height so the caret remains visible instead of painting with zero height.
 
 ## Inline embed renderer
 
@@ -137,16 +243,88 @@ Code line numbers are a renderer concern, not document content:
   code displays line `1`, blank lines are counted, consecutive newlines produce
   blank numbered rows, and a trailing newline produces a final empty numbered
   row.
-- The line-number gutter sits to the left of the code text, uses the same
+- `_CodeLineNumberGutter` sits to the left of the code text, uses the same
   monospace family, `13.5px` font size, and `1.6` line height as code content,
   aligns labels to the right, uses `0x8AE6E6F0`, and keeps `12px` between the
-  gutter and code text.
-- The gutter is not part of `_TextSelectionSurface`: it does not participate in
-  text offset mapping, selection, caret/composition rectangles, find highlights,
-  Tab indentation, language changes, or copy-code output.
-- Horizontal scrolling moves only the code text surface; the line-number gutter
-  remains visually anchored at the left edge of the code block so long lines can
-  scroll without dragging line numbers away from their rows.
+  gutter and code text. The gutter width is measured from the widest current
+  line number so `9` → `10` → `100` grows without overlapping code content.
+- `_CodeLineNumberGutter` registers as a selection exclusion and is not part of
+  `_TextSelectionSurface`: it does not participate in text offset mapping,
+  selection, caret/composition rectangles, find highlights, Tab indentation,
+  language changes, or copy-code output.
+- `_CodeScrollableTextSurface` owns the horizontal `SingleChildScrollView` for
+  the code text only. The line-number gutter remains visually anchored at the
+  left edge of the code block so long lines can scroll without dragging line
+  numbers away from their rows.
+- Golden coverage: `editor_blocks.png` includes the common single/multi-line
+  code-block surface, while `editor_advanced_blocks.png` includes a long code
+  snippet so the fixed gutter and horizontally scrollable text body remain part
+  of visual regression review.
+
+## Code block syntax highlighting
+
+`CodeSyntaxHighlighter` (`lib/src/widgets/code_syntax_highlighter.dart`) turns a
+`CodeBlockNode`'s code into a coloured `TextSpan`. It is backed by the
+[`highlight`](https://pub.dev/packages/highlight) package (a Dart port of
+highlight.js), not a hand-written tokenizer. `highlight()` still returns a single
+`TextSpan`, so `_codeSpan()` / `_darkCodeSyntaxPalette()` in
+`wenz_rich_text_editor.dart` are unchanged.
+
+### Language coverage and registration
+
+Languages are **selectively registered** (not `allLanguages`) to keep the bundle
+small. The registered set covers every entry of `_kDefaultCodeLanguages`
+(dart, javascript, typescript, python, java, kotlin, swift, go, rust, sql, json,
+yaml, html/xml, css, markdown, bash) plus commonly requested languages — cpp,
+cs (c#), php, ruby, scala, shell, ini (toml) and plaintext — 24 in total.
+
+`_normalizeLanguage` lower-cases, trims, strips leading/trailing dots, and maps
+common aliases to their canonical registered id before parsing, so `js`→
+`javascript`, `ts`→`typescript`, `sh`/`zsh`→`bash`, `md`/`gfm`→`markdown`,
+`c#`/`csharp`→`cs`, `c`→`cpp`, `html`/`xhtml`→`xml`, `toml`→`ini` all resolve.
+highlight.js aliases registered alongside each mode are also resolved
+automatically by `Highlight.parse`.
+
+### Palette → highlight.js scope mapping
+
+The highlight.js `Node` tree is walked in document order; each leaf's
+`className` (scope, space-separated when compound) is mapped to one of six
+`CodeSyntaxPalette` categories. Scopes with no mapping (punctuation, operators,
+whitespace) are intentionally omitted, and the caller fills those gaps with
+`baseStyle` — exactly as the legacy scanner did, so token granularity is finer
+but unclassified text keeps the monospace base colour.
+
+| Palette category | highlight.js scopes |
+| --- | --- |
+| `keyword` | `keyword`, `literal` |
+| `type` | `built_in`, `type`, `class`, `title`, `function`, `attr`, `attribute`, `section` |
+| `string` | `string`, `subst`, `addition` |
+| `comment` | `comment`, `quote`, `doctag` |
+| `number` | `number`, `symbol` |
+| `marker` | `tag`, `name`, `bullet`, `link`, `meta`, `regexp`, `selector` |
+
+Structural scopes (`tag`/`name`/`bullet`/`link`/`meta`/`regexp`/`selector`) have
+no dedicated palette slot and collapse onto the `marker` category as a fallback
+when no explicit mapping matches. `CodeSyntaxPalette.fromColorScheme` derives
+the six colours from the ambient `ColorScheme`: `keyword`/`marker`→`primary`,
+`type`→`secondary`, `string`→`tertiary`, `comment`→`onSurfaceVariant`,
+`number`→`error`.
+
+### Degradation
+
+When highlighting cannot produce coloured tokens, the highlighter falls back to a
+single `baseStyle` plain-text span (the editor's monospace code style) and never
+throws. This happens when the language is unknown or not registered (after
+normalization), when `highlight.parse` returns an empty node tree (e.g.
+whitespace-only code), or when parsing throws.
+
+### Composition underline
+
+`CodeSyntaxHighlighter` accepts optional `compositionStart` / `compositionEnd`
+offsets. While an IME composition is active, the corresponding character range
+is overlaid with `TextDecoration.underline` during segment assembly
+(`_appendSegment`), so the candidate-spelling underline survives inside
+highlighted code blocks.
 
 ## Media resolver
 
@@ -224,6 +402,15 @@ Semantics:
   `WenzRichTextController.updateVideoBlock`. The built-in renderer is a
   placeholder only; real playback belongs in the business `MediaResolver`, so
   this package does not depend on `video_player`.
+- Video layout is bounded by the rounded video frame. The frame width never
+  exceeds the editor content width, the aspect ratio/height are clamped to safe
+  values, and the fallback cover, play button, cover chip, title/source text,
+  upload state, and `MediaResolver` child are constrained and clipped inside
+  that frame. Custom players should size to the incoming constraints instead of
+  relying on unbounded width or height.
+- Golden status: the current `editor_blocks.png` and
+  `editor_advanced_blocks.png` baselines do not render a video block, so this
+  overflow fix is covered by widget tests instead of updating those images.
 
 ### MediaResolver vs BlockRendererRegistry
 

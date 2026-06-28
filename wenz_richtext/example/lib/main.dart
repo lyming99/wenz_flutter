@@ -3,15 +3,41 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:wenz_richtext/wenz_richtext.dart';
 
+import 'example_video_player.dart';
 import 'test_host.dart';
 
 void main() {
   runApp(const WenzRichTextExampleApp());
 }
 
-/// Example [MediaResolver]: images use [Image.network], while videos render a
-/// lightweight preview card. Blocks without a usable URL return `null` so the
-/// built-in placeholder remains visible.
+const _exampleSeedColor = Color(0xFF0F766E);
+const _themeToggleKey = ValueKey<String>('wenz-example-theme-toggle');
+const _editorSurfaceKey = ValueKey<String>('wenz-example-editor-surface');
+
+ThemeData _exampleTheme(Brightness brightness) {
+  final background =
+      brightness == Brightness.dark ? Colors.black : Colors.white;
+  final scheme = ColorScheme.fromSeed(
+    seedColor: _exampleSeedColor,
+    brightness: brightness,
+  ).copyWith(surface: background);
+  return ThemeData(
+    colorScheme: scheme,
+    scaffoldBackgroundColor: background,
+    useMaterial3: true,
+  );
+}
+
+Color _exampleEditorBackground(BuildContext context) {
+  return Theme.of(context).brightness == Brightness.dark
+      ? Colors.black
+      : Colors.white;
+}
+
+/// Example [MediaResolver]: images use [Image.network], while videos are handed
+/// to [ExampleVideoPlayer] (asset / network / local-file sources). Blocks
+/// without a usable URL return `null` so the built-in placeholder remains
+/// visible.
 class _ExampleMediaResolver implements MediaResolver {
   @override
   Widget? resolve(BuildContext context, BlockNode block) {
@@ -58,108 +84,28 @@ class _ExampleMediaResolver implements MediaResolver {
   }
 
   Widget? _resolveVideo(BuildContext context, VideoBlockNode block) {
-    final source = block.effectivePlaybackUrl;
-    if (!source.startsWith('http')) {
+    // Dispatch by source type so the real player plays registered assets,
+    // http(s) streams, and local file paths. An empty effective source still
+    // returns null, preserving the built-in placeholder fallback for blocks
+    // without a usable URL (e.g. the `video-placeholder` sample).
+    final source = block.effectivePlaybackUrl.trim();
+    if (source.isEmpty) {
       return null;
     }
-    final theme = Theme.of(context);
-    final title = block.displayText.isEmpty ? 'Video' : block.displayText;
-    final coverUrl = block.coverUrl.trim();
-    final hasCover = coverUrl.startsWith('http');
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: theme.colorScheme.outlineVariant),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
-            child: AspectRatio(
-              aspectRatio: block.effectiveAspectRatio,
-              child: Stack(
-                fit: StackFit.expand,
-                children: <Widget>[
-                  if (hasCover)
-                    Image.network(
-                      coverUrl,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) =>
-                          _videoCoverFallback(theme),
-                    )
-                  else
-                    _videoCoverFallback(theme),
-                  DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: <Color>[
-                          Colors.transparent,
-                          Colors.black.withAlpha(105),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const Center(
-                    child: Icon(
-                      Icons.play_circle_fill,
-                      color: Colors.white,
-                      size: 56,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(title, style: theme.textTheme.titleSmall),
-                const SizedBox(height: 4),
-                Text(
-                  source,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+    final ExampleVideoSource videoSource;
+    if (source.startsWith('http://') || source.startsWith('https://')) {
+      videoSource = ExampleVideoSource.network(source);
+    } else if (source.startsWith('assets/')) {
+      videoSource = ExampleVideoSource.asset(source);
+    } else {
+      videoSource = ExampleVideoSource.file(source);
+    }
+    return ExampleVideoPlayer(
+      source: videoSource,
+      aspectRatio: block.effectiveAspectRatio,
+      coverUrl: block.coverUrl,
     );
   }
-
-  Widget _videoCoverFallback(ThemeData theme) {
-    return ColoredBox(
-      color: theme.colorScheme.primaryContainer,
-      child: Icon(
-        Icons.smart_display_outlined,
-        size: 72,
-        color: theme.colorScheme.onPrimaryContainer,
-      ),
-    );
-  }
-}
-
-BlockRendererRegistry _createExampleBlockRenderers() {
-  final registry = BlockRendererRegistry();
-  WenzRichTextEditor.installDefaultRenderers(registry);
-  registry.registerEmbed('crm-card', (_, renderContext) {
-    final block = renderContext.block as BlockEmbedNode;
-    return WenzObjectBlockSurface(
-      renderContext: renderContext,
-      child: _CrmCardEmbed(block: block),
-    );
-  });
-  return registry;
 }
 
 class _CrmCardEmbed extends StatelessWidget {
@@ -251,40 +197,65 @@ const _htmlImportExportDemo = '''
 <a href="https://example.com/spec.pdf" data-wenz-block="file" data-asset-id="file-demo" data-file="spec.pdf" data-size="4096" data-mime-type="application/pdf">Spec PDF</a>
 ''';
 
-class WenzRichTextExampleApp extends StatelessWidget {
+class WenzRichTextExampleApp extends StatefulWidget {
   const WenzRichTextExampleApp({super.key});
+
+  @override
+  State<WenzRichTextExampleApp> createState() => _WenzRichTextExampleAppState();
+}
+
+class _WenzRichTextExampleAppState extends State<WenzRichTextExampleApp> {
+  var _themeMode = ThemeMode.light;
+
+  void _toggleThemeMode() {
+    setState(() {
+      _themeMode =
+          _themeMode == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Wenz RichText',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF0F766E),
-          brightness: Brightness.light,
-        ),
-        useMaterial3: true,
+      theme: _exampleTheme(Brightness.light),
+      darkTheme: _exampleTheme(Brightness.dark),
+      themeMode: _themeMode,
+      home: EditorWorkbench(
+        themeMode: _themeMode,
+        onToggleThemeMode: _toggleThemeMode,
       ),
-      home: const EditorWorkbench(),
     );
   }
 }
 
 class EditorWorkbench extends StatefulWidget {
-  const EditorWorkbench({super.key});
+  const EditorWorkbench({
+    super.key,
+    required this.themeMode,
+    required this.onToggleThemeMode,
+  });
+
+  final ThemeMode themeMode;
+  final VoidCallback onToggleThemeMode;
 
   @override
   State<EditorWorkbench> createState() => _EditorWorkbenchState();
 }
 
 class _EditorWorkbenchState extends State<EditorWorkbench> {
+  // The bootstrap owns the controller, the registries, and the derived
+  // controllers in one assembly step. The example keeps non-nullable handles to
+  // the four controllers it actually drives (toolbar / stats / autosave + the
+  // controller itself) so the toolbar and inspector stay terse; the slash-menu
+  // controller is wired into the editor automatically by buildEditor.
+  late final WenzEditorBootstrap _bootstrap;
   late final WenzRichTextController _controller;
   late final ToolbarController _toolbar;
   late final WenzDocumentStatsController _stats;
   late final WenzAutoSaveController _autosave;
   final MediaResolver _mediaResolver = _ExampleMediaResolver();
-  final BlockRendererRegistry _blockRenderers = _createExampleBlockRenderers();
   final _draftAdapter = _InMemoryDraftAdapter();
   var _nextId = 0;
   var _showDebugOverlay = false;
@@ -297,56 +268,77 @@ class _EditorWorkbenchState extends State<EditorWorkbench> {
   @override
   void initState() {
     super.initState();
-    _controller = WenzRichTextController(
-      document: _sampleDocument(),
-      selection: _collapsed('intro', 1, 18),
-      mediaResolver: _mediaResolver,
-    )..addListener(_handleControllerChanged);
-    _toolbar = ToolbarController(_controller)
-      ..addListener(_handleControllerChanged);
-    _stats = WenzDocumentStatsController(editor: _controller)
-      ..addListener(_handleControllerChanged);
-    _autosave = WenzAutoSaveController(
-      editor: _controller,
-      debounceDuration: const Duration(milliseconds: 800),
-      onSave: _draftAdapter.save,
-    )..addListener(_handleControllerChanged);
-    // Wire the three business-integration callbacks. They fire synchronously
-    // before notifyListeners, so reading controller state here is safe.
-    _controller.onChanged = (doc) {
-      _lastEvent = 'Doc changed · blocks=${doc.blocks.length}';
-    };
-    _controller.onSelectionChanged = (selection) {
-      if (selection == null) {
-        _lastEvent = 'Selection cleared';
-      } else if (selection.isCollapsed) {
-        _lastEvent =
-            'Selection · caret @block ${selection.extent.blockIndex}+${selection.extent.offset}';
-      } else {
-        _lastEvent =
-            'Selection · range ${selection.start.offset}→${selection.end.offset}';
-      }
-    };
-    _controller.onCommandExecuted = (command, change) {
-      _lastEvent =
-          'Command · ${command.description} (${change.after.blocks.length} blocks)';
-    };
+    _bootstrap = WenzEditorBootstrap.create(
+      WenzEditorConfiguration(
+        document: _sampleDocument(),
+        selection: _collapsed('intro', 1, 18),
+        mediaResolver: _mediaResolver,
+        // CRM record card as a business block embed. The bootstrap seeds the
+        // built-in renderers first and layers this builder on top, so default
+        // blocks keep working alongside the embed.
+        blockEmbedRenderers: <String, BlockRendererBuilder>{
+          'crm-card': (_, renderContext) {
+            final block = renderContext.block as BlockEmbedNode;
+            return WenzObjectBlockSurface(
+              renderContext: renderContext,
+              child: _CrmCardEmbed(block: block),
+            );
+          },
+        },
+        // Autosave is opt-in: it needs a host-supplied sink. The example
+        // persists snapshots in memory and reports state in the inspector.
+        enableAutosave: true,
+        onAutosave: _draftAdapter.save,
+        autosaveDebounce: const Duration(milliseconds: 800),
+        // The example drives the toolbar / stats / slash-menu but does not
+        // expose a find&replace or outline surface, so those derived
+        // controllers stay off and the editor is wired exactly as before.
+        enableFindReplace: false,
+        enableOutline: false,
+        // The three business-integration callbacks fire synchronously before
+        // notifyListeners, so reading controller state here is safe.
+        onChanged: (doc) {
+          _lastEvent = 'Doc changed · blocks=${doc.blocks.length}';
+        },
+        onSelectionChanged: (selection) {
+          if (selection == null) {
+            _lastEvent = 'Selection cleared';
+          } else if (selection.isCollapsed) {
+            _lastEvent =
+                'Selection · caret @block ${selection.extent.blockIndex}+${selection.extent.offset}';
+          } else {
+            _lastEvent =
+                'Selection · range ${selection.start.offset}→${selection.end.offset}';
+          }
+        },
+        onCommandExecuted: (command, change) {
+          _lastEvent =
+              'Command · ${command.description} (${change.after.blocks.length} blocks)';
+        },
+      ),
+    );
+    _controller = _bootstrap.controller;
+    _toolbar = _bootstrap.toolbarController!;
+    _stats = _bootstrap.statsController!;
+    _autosave = _bootstrap.autosaveController!;
+    // Drive setState from the assembled controllers so the toolbar and inspector
+    // stay in sync with the document, selection, stats, and autosave.
+    _controller.addListener(_handleControllerChanged);
+    _toolbar.addListener(_handleControllerChanged);
+    _stats.addListener(_handleControllerChanged);
+    _autosave.addListener(_handleControllerChanged);
   }
 
   @override
   void dispose() {
-    _toolbar
-      ..removeListener(_handleControllerChanged)
-      ..dispose();
-    _stats
-      ..removeListener(_handleControllerChanged)
-      ..dispose();
-    _autosave
-      ..removeListener(_handleControllerChanged)
-      ..dispose();
-    _controller
-      ..removeListener(_handleControllerChanged)
-      ..dispose();
+    // Detach the host setState listeners before the bootstrap releases the
+    // controllers. The bootstrap disposes the derived controllers (listeners of
+    // the editor) before the controller itself, matching the hand-wired order.
+    _controller.removeListener(_handleControllerChanged);
+    _toolbar.removeListener(_handleControllerChanged);
+    _stats.removeListener(_handleControllerChanged);
+    _autosave.removeListener(_handleControllerChanged);
+    _bootstrap.dispose();
     super.dispose();
   }
 
@@ -372,6 +364,18 @@ class _EditorWorkbenchState extends State<EditorWorkbench> {
             tooltip: '重做',
             onPressed: _controller.canRedo ? _controller.redo : null,
             icon: const Icon(Icons.redo),
+          ),
+          IconButton(
+            key: _themeToggleKey,
+            tooltip: widget.themeMode == ThemeMode.dark
+                ? '切换浅色主题'
+                : '切换深色主题',
+            onPressed: widget.onToggleThemeMode,
+            icon: Icon(
+              widget.themeMode == ThemeMode.dark
+                  ? Icons.light_mode_outlined
+                  : Icons.dark_mode_outlined,
+            ),
           ),
           const SizedBox(width: 8),
         ],
@@ -441,16 +445,15 @@ class _EditorWorkbenchState extends State<EditorWorkbench> {
                   ),
                   Expanded(
                     child: ColoredBox(
-                      color: theme.colorScheme.surface,
-                      child: WenzRichTextEditor(
-                        controller: _controller,
+                      key: _editorSurfaceKey,
+                      color: _exampleEditorBackground(context),
+                      child: _bootstrap.buildEditor(
                         autofocus: true,
                         padding: const EdgeInsets.fromLTRB(32, 28, 32, 48),
                         blockSpacing: 14,
                         textStyle: theme.textTheme.bodyLarge,
+                        defaultTextColor: theme.colorScheme.onSurface,
                         showDebugOverlay: _showDebugOverlay,
-                        blockRenderers: _blockRenderers,
-                        mediaResolver: _mediaResolver,
                       ),
                     ),
                   ),
@@ -578,10 +581,12 @@ class _EditorWorkbenchState extends State<EditorWorkbench> {
     _toolbar.insertVideo(
       blockId: id,
       assetId: 'video-$id',
-      playbackUrl: 'https://example.com/videos/product-tour.mp4',
+      // Insert a real playable source (local asset) instead of the dead
+      // example.com URL, so the inserted block plays in the example app.
+      file: 'assets/videos/sample.mp4',
       coverUrl: 'https://picsum.photos/seed/$id/960/540',
       title: 'Inserted product tour',
-      description: 'Rendered by the example MediaResolver preview card.',
+      description: 'Played by the example MediaResolver + media_kit player.',
       aspectRatio: VideoBlockNode.defaultAspectRatio,
       uploadStatus: FileUploadStatus.uploaded,
     );
@@ -832,6 +837,31 @@ class _Toolbar extends StatelessWidget {
               toolbar: toolbar,
               mark: TextMark.remark,
             ),
+            _TextColorButton(
+              label: '品牌色',
+              color: const Color(0xFF0F766E),
+              toolbar: toolbar,
+            ),
+            _TextColorButton(
+              label: '强调色',
+              color: const Color(0xFFD81B60),
+              toolbar: toolbar,
+            ),
+            IconButton(
+              tooltip: toolbar.textColorMixed
+                  ? '清除混合字体颜色'
+                  : toolbar.textColor == null
+                      ? '无内联字体颜色'
+                      : '清除字体颜色',
+              onPressed:
+                  toolbar.canFormatInline ? toolbar.clearTextColor : null,
+              icon: Icon(
+                Icons.format_color_reset,
+                color: toolbar.textColor == null
+                    ? null
+                    : Color(toolbar.textColor!),
+              ),
+            ),
             IconButton(
               tooltip: '清除样式',
               onPressed: toolbar.canFormatInline ? toolbar.clearStyle : null,
@@ -1047,6 +1077,32 @@ class _MarkButton extends StatelessWidget {
       isSelected: active,
       onPressed: toolbar.canToggleMark ? () => toolbar.toggleMark(mark) : null,
       icon: Icon(icon),
+    );
+  }
+}
+
+class _TextColorButton extends StatelessWidget {
+  const _TextColorButton({
+    required this.label,
+    required this.color,
+    required this.toolbar,
+  });
+
+  final String label;
+  final Color color;
+  final ToolbarController toolbar;
+
+  @override
+  Widget build(BuildContext context) {
+    final active =
+        toolbar.textColor == color.toARGB32() && !toolbar.textColorMixed;
+    return IconButton.filledTonal(
+      tooltip: label,
+      isSelected: active,
+      onPressed: toolbar.canFormatInline
+          ? () => toolbar.setTextColor(color)
+          : null,
+      icon: Icon(Icons.format_color_text, color: color),
     );
   }
 }
@@ -1503,10 +1559,15 @@ RichTextDocument _sampleDocument() {
       VideoBlockNode(
         id: 'video-sample',
         assetId: 'video-sample-asset',
-        playbackUrl: 'https://example.com/videos/sample.mp4',
+        // Point at the local asset registered in example/pubspec.yaml
+        // (copied from d:/video). The example MediaResolver reads the
+        // `assets/` prefix as a real playback source, so this block plays on
+        // startup. `playbackUrl` stays empty so it is never a dead example.com
+        // URL; `effectivePlaybackUrl` falls back to `file`.
+        file: 'assets/videos/sample.mp4',
         coverUrl: 'https://picsum.photos/seed/wenz-video/960/540',
         title: 'Sample product walkthrough',
-        description: 'Custom-rendered by the example MediaResolver.',
+        description: 'Played by the example MediaResolver + media_kit player.',
         aspectRatio: VideoBlockNode.defaultAspectRatio,
         uploadStatus: FileUploadStatus.uploaded,
       ),

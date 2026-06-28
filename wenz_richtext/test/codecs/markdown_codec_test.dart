@@ -112,6 +112,26 @@ void main() {
       );
     });
 
+    test('font color degrades to plain Markdown text', () {
+      const document = RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[
+              TextRun(text: 'plain '),
+              TextRun(
+                text: 'red',
+                attributes: TextAttributes(color: 0xFFD81B60),
+              ),
+            ],
+          ),
+        ],
+      );
+
+      expect(codec.encode(document), 'plain red');
+    });
+
     test('inline embeds export readable fallbacks', () {
       const document = RichTextDocument(
         blocks: <BlockNode>[
@@ -217,6 +237,33 @@ void main() {
         codec.encode(document),
         '- one\n\n1. two\n\n- [x] done\n\n- [ ] todo',
       );
+    });
+
+    test('ordered todo list items include checkbox marker', () {
+      const document = RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'todo1',
+            type: BlockType.listItem,
+            attributes: BlockAttributes(listType: 'ordered', checked: false),
+            content: <InlineNode>[TextRun(text: 'todo')],
+          ),
+          TextBlockNode(
+            id: 'todo2',
+            type: BlockType.listItem,
+            attributes: BlockAttributes(listType: 'ordered', checked: true),
+            content: <InlineNode>[TextRun(text: 'done')],
+          ),
+          TextBlockNode(
+            id: 'ordered',
+            type: BlockType.listItem,
+            attributes: BlockAttributes(listType: 'ordered'),
+            content: <InlineNode>[TextRun(text: 'plain')],
+          ),
+        ],
+      );
+
+      expect(codec.encode(document), '1. [ ] todo\n\n1. [x] done\n\n1. plain');
     });
 
     test('code block with language', () {
@@ -419,6 +466,21 @@ void main() {
       expect(items[2].attributes.listType, 'task');
       expect(items[2].attributes.checked, true);
       expect(items[3].attributes.checked, false);
+    });
+
+    test('ordered todo list items keep ordered list type and checked state', () {
+      const source = '1. [ ] todo\n  1. [x] nested\n1. plain';
+      final doc = codec.decode(source);
+      expect(doc.blocks, hasLength(3));
+      final items = doc.blocks.cast<TextBlockNode>();
+
+      expect(items[0].attributes.listType, 'ordered');
+      expect(items[0].attributes.checked, isFalse);
+      expect(items[1].attributes.indent, 1);
+      expect(items[1].attributes.listType, 'ordered');
+      expect(items[1].attributes.checked, isTrue);
+      expect(items[2].attributes.listType, 'ordered');
+      expect(items[2].attributes.checked, isNull);
     });
 
     test('code fence preserves content verbatim and language', () {

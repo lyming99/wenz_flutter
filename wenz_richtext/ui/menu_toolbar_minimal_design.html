@@ -1,0 +1,634 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Wenz RichText 菜单与悬浮工具栏简约风设计稿</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --page: #f6f7fb;
+      --canvas: #ffffff;
+      --surface: #fffdfb;
+      --surface-soft: #f7f8fc;
+      --surface-hover: rgba(28, 31, 38, 0.045);
+      --surface-selected: rgba(67, 99, 235, 0.14);
+      --surface-pressed: rgba(67, 99, 235, 0.18);
+      --border: rgba(91, 97, 115, 0.22);
+      --border-soft: rgba(91, 97, 115, 0.14);
+      --text: #1d2430;
+      --muted: #697386;
+      --disabled: rgba(105, 115, 134, 0.46);
+      --primary: #4363eb;
+      --primary-soft: #edf1ff;
+      --danger: #c23b3b;
+      --shadow: 0 14px 34px rgba(22, 27, 45, 0.10), 0 3px 10px rgba(22, 27, 45, 0.08);
+      --shadow-soft: 0 8px 22px rgba(22, 27, 45, 0.08);
+      --radius-menu: 12px;
+      --radius-item: 8px;
+      --radius-button: 8px;
+      --menu-pad: 6px;
+      --item-x: 10px;
+      --item-y: 8px;
+      --toolbar-button: 32px;
+      --toolbar-icon: 18px;
+      --slash-icon: 20px;
+      --ease: 140ms ease;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-width: 1160px;
+      background:
+        radial-gradient(circle at 8% 0%, rgba(67, 99, 235, 0.10), transparent 30%),
+        linear-gradient(180deg, #fbfcff 0%, var(--page) 100%);
+      color: var(--text);
+    }
+
+    .page {
+      width: 1120px;
+      margin: 0 auto;
+      padding: 40px 0 56px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      gap: 32px;
+      margin-bottom: 28px;
+    }
+
+    h1, h2, h3, p { margin: 0; }
+
+    h1 {
+      font-size: 28px;
+      line-height: 1.25;
+      letter-spacing: -0.02em;
+    }
+
+    h2 {
+      font-size: 18px;
+      line-height: 1.35;
+      margin-bottom: 14px;
+    }
+
+    h3 {
+      font-size: 13px;
+      line-height: 1.4;
+      color: var(--muted);
+      font-weight: 650;
+      margin-bottom: 10px;
+    }
+
+    .subtitle {
+      max-width: 680px;
+      margin-top: 10px;
+      color: var(--muted);
+      line-height: 1.7;
+      font-size: 14px;
+    }
+
+    .badge-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-content: flex-start;
+      justify-content: flex-end;
+      max-width: 360px;
+    }
+
+    .badge {
+      padding: 6px 10px;
+      border: 1px solid var(--border-soft);
+      border-radius: 999px;
+      background: rgba(255,255,255,0.72);
+      color: var(--muted);
+      font-size: 12px;
+      box-shadow: 0 1px 0 rgba(255,255,255,0.9) inset;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 22px;
+      align-items: start;
+    }
+
+    .panel {
+      position: relative;
+      min-height: 360px;
+      padding: 22px;
+      border: 1px solid var(--border-soft);
+      border-radius: 22px;
+      background: rgba(255,255,255,0.72);
+      box-shadow: 0 1px 0 rgba(255,255,255,0.88) inset;
+      overflow: hidden;
+    }
+
+    .panel.large { min-height: 432px; }
+
+    .editor-canvas {
+      position: relative;
+      min-height: 300px;
+      padding: 24px;
+      border: 1px solid #eceff6;
+      border-radius: 16px;
+      background: var(--canvas);
+    }
+
+    .doc-line {
+      height: 12px;
+      border-radius: 999px;
+      background: #eef1f7;
+      margin-bottom: 14px;
+    }
+
+    .doc-line.short { width: 62%; }
+    .doc-line.mid { width: 78%; }
+    .doc-line.tiny { width: 34%; }
+
+    .caret-anchor {
+      position: absolute;
+      left: 74px;
+      top: 92px;
+      width: 2px;
+      height: 22px;
+      border-radius: 2px;
+      background: var(--primary);
+    }
+
+    .menu, .toolbar {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-menu);
+      background: var(--surface);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .menu {
+      width: 276px;
+      padding: var(--menu-pad);
+    }
+
+    .menu.scroll { max-height: 232px; overflow-y: auto; }
+
+    .slash-menu {
+      position: absolute;
+      left: 58px;
+      top: 124px;
+    }
+
+    .menu-section-label {
+      padding: 7px 10px 5px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .menu-item {
+      display: flex;
+      align-items: center;
+      min-height: 40px;
+      gap: 10px;
+      padding: var(--item-y) var(--item-x);
+      border-radius: var(--radius-item);
+      color: var(--text);
+      transition: background var(--ease), color var(--ease), transform var(--ease);
+    }
+
+    .menu-item.compact { min-height: 32px; padding-top: 6px; padding-bottom: 6px; }
+    .menu-item.hover { background: var(--surface-hover); }
+    .menu-item.selected { background: var(--surface-selected); }
+    .menu-item.pressed { background: var(--surface-pressed); transform: translateY(1px); }
+    .menu-item.disabled { color: var(--disabled); cursor: not-allowed; }
+    .menu-item.danger:not(.disabled) { color: var(--danger); }
+
+    .menu-item.selected .icon-box,
+    .menu-item.selected .title,
+    .menu-item.pressed .icon-box { color: var(--primary); }
+
+    .icon-box {
+      display: grid;
+      place-items: center;
+      flex: 0 0 var(--slash-icon);
+      width: var(--slash-icon);
+      height: var(--slash-icon);
+      color: var(--muted);
+    }
+
+    .icon-box.small {
+      flex-basis: var(--toolbar-icon);
+      width: var(--toolbar-icon);
+      height: var(--toolbar-icon);
+      font-size: 15px;
+    }
+
+    .item-copy { min-width: 0; flex: 1; }
+
+    .title {
+      display: block;
+      font-size: 13px;
+      line-height: 1.25;
+      font-weight: 650;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .desc {
+      display: block;
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.25;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .menu-item.disabled .desc,
+    .menu-item.disabled .shortcut,
+    .menu-item.disabled .icon-box { color: var(--disabled); }
+
+    .shortcut {
+      flex: 0 0 auto;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .divider {
+      height: 1px;
+      margin: 6px 4px;
+      background: var(--border-soft);
+    }
+
+    .empty-state {
+      display: grid;
+      place-items: center;
+      min-height: 132px;
+      padding: 20px;
+      text-align: center;
+      color: var(--muted);
+    }
+
+    .empty-state strong {
+      display: block;
+      color: var(--text);
+      font-size: 13px;
+      margin-bottom: 6px;
+    }
+
+    .block-card {
+      position: relative;
+      margin-top: 38px;
+      padding: 22px;
+      border: 1px solid #e8ebf3;
+      border-radius: 14px;
+      background: #fbfcff;
+    }
+
+    .block-card.selected {
+      border-color: rgba(67, 99, 235, 0.22);
+      background: #f9fbff;
+    }
+
+    .floating-toolbar {
+      position: absolute;
+      top: -18px;
+      right: 20px;
+      display: flex;
+      gap: 2px;
+      padding: 4px;
+      border-radius: var(--radius-menu);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .tool-button {
+      display: grid;
+      place-items: center;
+      width: var(--toolbar-button);
+      height: var(--toolbar-button);
+      border: 0;
+      border-radius: var(--radius-button);
+      background: transparent;
+      color: var(--muted);
+      font: inherit;
+      transition: background var(--ease), color var(--ease), transform var(--ease);
+    }
+
+    .tool-button.hover, .tool-button:focus-visible {
+      background: var(--surface-hover);
+      color: var(--text);
+      outline: none;
+    }
+
+    .tool-button.selected {
+      background: var(--primary-soft);
+      color: var(--primary);
+    }
+
+    .tool-button.pressed {
+      background: var(--surface-pressed);
+      color: var(--primary);
+      transform: translateY(1px);
+    }
+
+    .tool-button.disabled {
+      color: var(--disabled);
+      cursor: not-allowed;
+    }
+
+    .block-menu {
+      position: absolute;
+      right: 22px;
+      top: 56px;
+      width: 244px;
+    }
+
+    .table-wrap {
+      position: relative;
+      margin-top: 34px;
+      padding-top: 42px;
+    }
+
+    .table-toolbar {
+      position: absolute;
+      right: 18px;
+      top: 0;
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      min-width: 166px;
+      padding: 4px;
+    }
+
+    .mini-separator {
+      width: 1px;
+      height: 18px;
+      margin: 0 4px;
+      background: var(--border-soft);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      overflow: hidden;
+      border: 1px solid #e6e9f1;
+      border-radius: 12px;
+      background: #fff;
+      font-size: 13px;
+    }
+
+    th, td {
+      padding: 12px 14px;
+      border-right: 1px solid #edf0f6;
+      border-bottom: 1px solid #edf0f6;
+      text-align: left;
+    }
+
+    th { background: #f8f9fd; font-weight: 700; }
+    tr:last-child td { border-bottom: 0; }
+    th:last-child, td:last-child { border-right: 0; }
+    td.active { background: var(--primary-soft); box-shadow: inset 0 0 0 1px rgba(67, 99, 235, 0.24); }
+
+    .state-strip {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .state-card {
+      padding: 12px;
+      border: 1px solid var(--border-soft);
+      border-radius: 14px;
+      background: rgba(255,255,255,0.72);
+    }
+
+    .state-card .menu-item { margin-top: 8px; }
+
+    .long-menu-layout {
+      display: grid;
+      grid-template-columns: 276px 1fr;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .params {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+    .param {
+      padding: 12px;
+      border: 1px solid var(--border-soft);
+      border-radius: 14px;
+      background: rgba(255,255,255,0.72);
+    }
+
+    .param b {
+      display: block;
+      font-size: 12px;
+      margin-bottom: 5px;
+    }
+
+    .param span {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .swatches {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+
+    .swatch {
+      width: 42px;
+      height: 30px;
+      border-radius: 10px;
+      border: 1px solid var(--border-soft);
+      box-shadow: 0 1px 0 rgba(255,255,255,0.8) inset;
+    }
+
+    .note {
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.65;
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header>
+      <div>
+        <h1>Wenz RichText 菜单与悬浮工具栏简约风设计稿</h1>
+        <p class="subtitle">用于对齐 Flutter 落地的静态 HTML 设计稿：低噪声、轻阴影、少色彩、清晰层级，保持现有键盘、鼠标与触控行为不变。</p>
+      </div>
+      <div class="badge-row" aria-label="设计范围标签">
+        <span class="badge">Slash 菜单</span>
+        <span class="badge">Block 操作菜单</span>
+        <span class="badge">表格悬浮工具栏</span>
+        <span class="badge">通用按钮组</span>
+        <span class="badge">浅色主题</span>
+      </div>
+    </header>
+
+    <section class="grid">
+      <article class="panel large">
+        <h2>Slash 菜单：打开态 + 选中 + 悬停</h2>
+        <div class="editor-canvas">
+          <div class="doc-line mid"></div>
+          <div class="doc-line short"></div>
+          <div class="caret-anchor" aria-hidden="true"></div>
+          <div class="menu slash-menu" role="menu" aria-label="Slash 菜单示例">
+            <div class="menu-section-label">基础块</div>
+            <div class="menu-item selected" role="menuitem">
+              <span class="icon-box">T</span>
+              <span class="item-copy"><span class="title">标题</span><span class="desc">创建章节标题</span></span>
+            </div>
+            <div class="menu-item hover" role="menuitem">
+              <span class="icon-box">☑</span>
+              <span class="item-copy"><span class="title">待办列表</span><span class="desc">插入可勾选任务</span></span>
+            </div>
+            <div class="menu-item" role="menuitem">
+              <span class="icon-box">“</span>
+              <span class="item-copy"><span class="title">引用</span><span class="desc">强调一段引用内容</span></span>
+            </div>
+            <div class="divider"></div>
+            <div class="menu-section-label">媒体</div>
+            <div class="menu-item" role="menuitem">
+              <span class="icon-box">▧</span>
+              <span class="item-copy"><span class="title">表格</span><span class="desc">插入数据表格</span></span>
+            </div>
+            <div class="menu-item disabled" role="menuitem" aria-disabled="true">
+              <span class="icon-box">▣</span>
+              <span class="item-copy"><span class="title">图片上传</span><span class="desc">只读状态不可用</span></span>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="panel large">
+        <h2>Block 操作菜单：分组 + 禁用 + 危险动作</h2>
+        <div class="editor-canvas">
+          <div class="block-card selected">
+            <div class="floating-toolbar" aria-label="对象块悬浮工具栏">
+              <button class="tool-button hover" aria-label="复制">⛓</button>
+              <button class="tool-button" aria-label="预览">◉</button>
+              <button class="tool-button selected" aria-label="更多">⋯</button>
+            </div>
+            <div class="doc-line"></div>
+            <div class="doc-line short"></div>
+            <div class="doc-line tiny"></div>
+          </div>
+          <div class="menu block-menu" role="menu" aria-label="块操作菜单示例">
+            <div class="menu-item compact" role="menuitem"><span class="icon-box small">⛓</span><span class="item-copy"><span class="title">复制块引用</span></span><span class="shortcut">⌘L</span></div>
+            <div class="divider"></div>
+            <div class="menu-item compact" role="menuitem"><span class="icon-box small">⧉</span><span class="item-copy"><span class="title">创建块副本</span></span></div>
+            <div class="menu-item compact hover" role="menuitem"><span class="icon-box small">↑</span><span class="item-copy"><span class="title">上移块</span></span></div>
+            <div class="menu-item compact disabled" role="menuitem" aria-disabled="true"><span class="icon-box small">↓</span><span class="item-copy"><span class="title">下移块</span></span></div>
+            <div class="divider"></div>
+            <div class="menu-item compact danger" role="menuitem"><span class="icon-box small">⌫</span><span class="item-copy"><span class="title">删除块</span></span></div>
+          </div>
+        </div>
+      </article>
+
+      <article class="panel">
+        <h2>表格悬浮工具栏：右对齐 + 轻量分隔</h2>
+        <div class="editor-canvas">
+          <div class="table-wrap">
+            <div class="toolbar table-toolbar" aria-label="表格悬浮工具栏示例">
+              <button class="tool-button hover" aria-label="插入行">＋</button>
+              <button class="tool-button" aria-label="插入列">⊕</button>
+              <span class="mini-separator"></span>
+              <button class="tool-button selected" aria-label="对齐">≡</button>
+              <button class="tool-button disabled" aria-label="合并单元格" aria-disabled="true">▦</button>
+            </div>
+            <table>
+              <thead><tr><th>字段</th><th>说明</th><th>状态</th></tr></thead>
+              <tbody>
+                <tr><td>Title</td><td class="active">选中单元格</td><td>Active</td></tr>
+                <tr><td>Owner</td><td>编辑者</td><td>Readonly</td></tr>
+                <tr><td>Date</td><td>更新时间</td><td>Done</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </article>
+
+      <article class="panel">
+        <h2>通用悬浮按钮组：默认/悬停/选中/按下/禁用</h2>
+        <div class="state-strip" aria-label="通用按钮状态">
+          <div class="state-card"><h3>Default</h3><button class="tool-button">B</button></div>
+          <div class="state-card"><h3>Hover</h3><button class="tool-button hover">I</button></div>
+          <div class="state-card"><h3>Selected</h3><button class="tool-button selected">U</button></div>
+          <div class="state-card"><h3>Pressed</h3><button class="tool-button pressed">S</button></div>
+          <div class="state-card"><h3>Disabled</h3><button class="tool-button disabled" aria-disabled="true">A</button></div>
+        </div>
+        <p class="note">按钮组保持 32px 命中尺寸，使用 18px 图标；状态只改变低透明度背景和前景色，不改变布局尺寸。</p>
+      </article>
+
+      <article class="panel large">
+        <h2>长菜单滚动 + 搜索为空</h2>
+        <div class="long-menu-layout">
+          <div class="menu scroll" role="menu" aria-label="长菜单滚动示例">
+            <div class="menu-section-label">插入</div>
+            <div class="menu-item compact selected"><span class="icon-box small">T</span><span class="item-copy"><span class="title">标题 1</span></span></div>
+            <div class="menu-item compact"><span class="icon-box small">T</span><span class="item-copy"><span class="title">标题 2</span></span></div>
+            <div class="menu-item compact hover"><span class="icon-box small">•</span><span class="item-copy"><span class="title">项目符号列表</span></span></div>
+            <div class="menu-item compact"><span class="icon-box small">1</span><span class="item-copy"><span class="title">有序列表</span></span></div>
+            <div class="menu-item compact"><span class="icon-box small">☑</span><span class="item-copy"><span class="title">待办列表</span></span></div>
+            <div class="divider"></div>
+            <div class="menu-section-label">高级</div>
+            <div class="menu-item compact"><span class="icon-box small">{}</span><span class="item-copy"><span class="title">代码块</span></span></div>
+            <div class="menu-item compact"><span class="icon-box small">∑</span><span class="item-copy"><span class="title">公式</span></span></div>
+            <div class="menu-item compact"><span class="icon-box small">▧</span><span class="item-copy"><span class="title">表格</span></span></div>
+            <div class="menu-item compact"><span class="icon-box small">▣</span><span class="item-copy"><span class="title">图片</span></span></div>
+            <div class="menu-item compact"><span class="icon-box small">▶</span><span class="item-copy"><span class="title">视频</span></span></div>
+          </div>
+          <div class="menu" role="status" aria-label="搜索为空示例">
+            <div class="empty-state">
+              <p><strong>未找到匹配命令</strong>试试输入「表格」「图片」或「代码」。</p>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="panel large">
+        <h2>关键参数：Flutter 落地对齐</h2>
+        <div class="params">
+          <div class="param"><b>容器</b><span>radius 12px；padding 4–6px；border outlineVariant/22%；background surfaceContainerLow；shadow alpha 约 48。</span></div>
+          <div class="param"><b>菜单项</b><span>radius 8px；height 32–40px；padding 10–12px；图标文字间距 10px；pressed 位移 1px。</span></div>
+          <div class="param"><b>工具栏</b><span>button 32px；icon 18px；gap 2px；分隔线 1px × 18px；hover/focus 使用同强度反馈。</span></div>
+          <div class="param"><b>动效</b><span>background/color/transform 140ms ease；只做轻量反馈，不改变 overlay 定位和尺寸。</span></div>
+          <div class="param"><b>状态色</b><span>selected 使用 primary 14%；pressed 使用 primary 18%；hover 使用 onSurface 4.5%；disabled 前景约 46%。</span></div>
+          <div class="param"><b>滚动</b><span>长菜单 max-height 约 232px，保留容器圆角和内边距；滚动不隐藏分组与空状态语义。</span></div>
+        </div>
+        <div class="swatches" aria-label="颜色样本">
+          <span class="swatch" style="background:#fffdfb"></span>
+          <span class="swatch" style="background:#f7f8fc"></span>
+          <span class="swatch" style="background:#edf1ff"></span>
+          <span class="swatch" style="background:#4363eb"></span>
+          <span class="swatch" style="background:#697386"></span>
+          <span class="swatch" style="background:#c23b3b"></span>
+        </div>
+        <p class="note">本页面使用纯 HTML/CSS，无外部依赖，可直接在浏览器打开；后续 Flutter 实现优先映射到共享 token/helper，避免在具体 item 中新增分散硬编码。</p>
+      </article>
+    </section>
+  </main>
+</body>
+</html>

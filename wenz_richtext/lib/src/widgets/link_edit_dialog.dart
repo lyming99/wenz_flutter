@@ -31,14 +31,31 @@ class _WenzLinkEditDialogState extends State<WenzLinkEditDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final inputBorder = OutlineInputBorder(
+      borderSide: BorderSide(color: colorScheme.outlineVariant),
+    );
     return AlertDialog(
+      key: const ValueKey<String>('wenz-link-edit-dialog'),
+      backgroundColor: colorScheme.surface,
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(
+        side: BorderSide(color: colorScheme.outlineVariant),
+        borderRadius: BorderRadius.circular(12),
+      ),
       title: const Text('Link URL'),
       content: TextField(
         controller: _controller,
         autofocus: true,
-        decoration: const InputDecoration(
+        decoration: InputDecoration(
           hintText: 'https://example.com',
           labelText: 'URL',
+          border: inputBorder,
+          enabledBorder: inputBorder,
+          focusedBorder: OutlineInputBorder(
+            borderSide: BorderSide(color: colorScheme.primary, width: 1.5),
+          ),
         ),
         keyboardType: TextInputType.url,
         textInputAction: TextInputAction.done,
@@ -47,6 +64,7 @@ class _WenzLinkEditDialogState extends State<WenzLinkEditDialog> {
       actions: <Widget>[
         if (widget.canRemove)
           TextButton(
+            style: TextButton.styleFrom(foregroundColor: colorScheme.error),
             onPressed: () => Navigator.of(context).pop(''),
             child: const Text('Remove'),
           ),

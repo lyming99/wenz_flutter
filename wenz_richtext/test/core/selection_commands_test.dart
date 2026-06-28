@@ -127,6 +127,30 @@ void main() {
     expect(session.canUndo, isFalse);
   });
 
+  test('move caret creates selection inside first callout block', () {
+    final session = DocumentSession(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          DividerBlockNode(id: 'd1'),
+          CalloutBlockNode(
+            id: 'callout1',
+            content: <InlineNode>[TextRun(text: 'Hello')],
+          ),
+        ],
+      ),
+    );
+    final executor = CommandExecutor(session);
+
+    executor.execute(
+      const MoveCaretCommand(CaretMovementDirection.forward),
+    );
+
+    expect(session.selection?.extent.blockId, 'callout1');
+    expect(session.selection?.extent.path, PositionPath.blockText('callout1'));
+    expect(session.selection?.extent.offset, 0);
+    expect(session.canUndo, isFalse);
+  });
+
   group('move caret by word', () {
     test('forward skips a word run then following separators', () {
       final session = DocumentSession(
@@ -342,6 +366,31 @@ void main() {
     expect(session.selection!.end.blockId, 'img2');
     expect(session.selection!.end.path.isBlockObject, isTrue);
     expect(session.selection!.end.offset, 1);
+  });
+
+  test('select all treats callout as editable text range', () {
+    final session = DocumentSession(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          CalloutBlockNode(
+            id: 'callout1',
+            title: 'Info',
+            content: <InlineNode>[TextRun(text: 'abc')],
+          ),
+        ],
+      ),
+    );
+    final executor = CommandExecutor(session);
+
+    executor.execute(const SelectAllCommand());
+
+    expect(session.selection, isNotNull);
+    expect(session.selection!.start.blockId, 'callout1');
+    expect(session.selection!.start.path, PositionPath.blockText('callout1'));
+    expect(session.selection!.start.offset, 0);
+    expect(session.selection!.end.blockId, 'callout1');
+    expect(session.selection!.end.path, PositionPath.blockText('callout1'));
+    expect(session.selection!.end.offset, 3);
   });
 
   test('arrow navigation selects a video block as an atomic object', () {

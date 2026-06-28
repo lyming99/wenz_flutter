@@ -1,5 +1,42 @@
 import 'attributes.dart';
 
+const List<String> formulaTextDataKeys = <String>[
+  'text',
+  'latex',
+  'value',
+  'formula',
+];
+
+bool isFormulaEmbedType(String embedType) => embedType.trim() == 'formula';
+
+String formulaTextFromData(
+  Map<String, Object?> data, {
+  String fallbackText = '',
+}) {
+  final fallback = fallbackText.trim();
+  if (fallback.isNotEmpty) {
+    return fallback;
+  }
+  for (final key in formulaTextDataKeys) {
+    final value = data[key];
+    if (value != null && value.toString().trim().isNotEmpty) {
+      return value.toString().trim();
+    }
+  }
+  return '';
+}
+
+Map<String, Object?> formulaDataWithText(
+  Map<String, Object?> data,
+  String text,
+) {
+  final normalizedText = text.trim();
+  return <String, Object?>{
+    ...data,
+    for (final key in formulaTextDataKeys) key: normalizedText,
+  };
+}
+
 abstract class InlineNode {
   const InlineNode();
 
@@ -63,8 +100,17 @@ class InlineEmbed extends InlineNode {
   final Map<String, Object?> data;
   final TextAttributes attributes;
 
+  String get normalizedEmbedType {
+    final value = embedType.trim();
+    return value.isEmpty ? 'custom' : value;
+  }
+
+  bool get isFormula => isFormulaEmbedType(normalizedEmbedType);
+
+  String get formulaText => formulaTextFromData(data);
+
   @override
-  String get plainText => embedType == 'formula' ? ' ' : '\uFFFC';
+  String get plainText => isFormula ? ' ' : '\uFFFC';
 
   @override
   InlineEmbed copy() {
@@ -73,6 +119,22 @@ class InlineEmbed extends InlineNode {
       data: Map<String, Object?>.from(data),
       attributes: attributes,
     );
+  }
+
+  InlineEmbed copyWith({
+    String? embedType,
+    Map<String, Object?>? data,
+    TextAttributes? attributes,
+  }) {
+    return InlineEmbed(
+      embedType: embedType ?? this.embedType,
+      data: data ?? this.data,
+      attributes: attributes ?? this.attributes,
+    );
+  }
+
+  InlineEmbed copyWithFormulaText(String text) {
+    return copyWith(data: formulaDataWithText(data, text));
   }
 
   @override

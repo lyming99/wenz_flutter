@@ -1531,7 +1531,9 @@ class EnterCommand extends EditorCommand {
         indent: current.indent,
         alignment: current.alignment,
         listType: current.listType,
-        checked: current.listType == 'task' ? false : null,
+        checked: current.checked != null || current.listType == 'task'
+            ? false
+            : null,
         childNote: current.childNote,
       );
     }

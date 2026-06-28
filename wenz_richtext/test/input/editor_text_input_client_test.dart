@@ -95,6 +95,101 @@ void main() {
       expect(slash.query, isEmpty);
     });
 
+    test('slash menu follows committed delta input and backspace updates', () {
+      final slash = SlashMenuController(editor: controller);
+      addTearDown(slash.dispose);
+
+      client.updateEditingValueWithDeltas(<TextEditingDelta>[
+        const TextEditingDeltaInsertion(
+          insertionOffset: 0,
+          textInserted: '/',
+          selection: TextSelection.collapsed(offset: 1),
+          composing: TextRange.empty,
+          oldText: '',
+        ),
+      ]);
+
+      expect(controller.document.plainText, '/');
+      expect(controller.selection?.extent.offset, 1);
+      expect(slash.isOpen, isTrue);
+      expect(slash.query, isEmpty);
+
+      client.updateEditingValueWithDeltas(<TextEditingDelta>[
+        const TextEditingDeltaInsertion(
+          insertionOffset: 1,
+          textInserted: 'h',
+          selection: TextSelection.collapsed(offset: 2),
+          composing: TextRange.empty,
+          oldText: '/',
+        ),
+      ]);
+
+      expect(controller.document.plainText, '/h');
+      expect(controller.selection?.extent.offset, 2);
+      expect(slash.query, 'h');
+      expect(slash.items.map((item) => item.id), contains('heading'));
+
+      client.updateEditingValueWithDeltas(<TextEditingDelta>[
+        const TextEditingDeltaDeletion(
+          oldText: '/h',
+          deletedRange: TextRange(start: 1, end: 2),
+          selection: TextSelection.collapsed(offset: 1),
+          composing: TextRange.empty,
+        ),
+      ]);
+
+      expect(controller.document.plainText, '/');
+      expect(controller.selection?.extent.offset, 1);
+      expect(slash.isOpen, isTrue);
+      expect(slash.query, isEmpty);
+
+      client.updateEditingValueWithDeltas(<TextEditingDelta>[
+        const TextEditingDeltaDeletion(
+          oldText: '/',
+          deletedRange: TextRange(start: 0, end: 1),
+          selection: TextSelection.collapsed(offset: 0),
+          composing: TextRange.empty,
+        ),
+      ]);
+
+      expect(controller.document.plainText, isEmpty);
+      expect(controller.selection?.extent.offset, 0);
+      expect(slash.trigger, isNull);
+      expect(slash.isOpen, isFalse);
+    });
+
+    test('slash menu follows legacy TextInput commit and query filtering', () {
+      final slash = SlashMenuController(editor: controller);
+      addTearDown(slash.dispose);
+
+      client.updateEditingValue(
+        const TextEditingValue(
+          text: '/',
+          selection: TextSelection.collapsed(offset: 1),
+          composing: TextRange.empty,
+        ),
+      );
+
+      expect(controller.document.plainText, '/');
+      expect(controller.selection?.extent.offset, 1);
+      expect(slash.isOpen, isTrue);
+      expect(slash.query, isEmpty);
+
+      client.updateEditingValue(
+        const TextEditingValue(
+          text: '/table',
+          selection: TextSelection.collapsed(offset: 6),
+          composing: TextRange.empty,
+        ),
+      );
+
+      expect(controller.document.plainText, '/table');
+      expect(controller.selection?.extent.offset, 6);
+      expect(slash.query, 'table');
+      expect(slash.items.map((item) => item.id), contains('table'));
+      expect(slash.isOpen, isTrue);
+    });
+
     test('committing the composition clears the composition state', () {
       // Compose "ni" then replace it with the committed candidate "你".
       client.injectDelta(

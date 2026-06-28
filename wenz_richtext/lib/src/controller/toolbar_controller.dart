@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 
 import '../core/commands/inline_commands.dart';
 import '../core/commands/inline_editing.dart';
@@ -117,6 +117,8 @@ class ToolbarState {
     required this.underline,
     required this.lineThrough,
     required this.remark,
+    required this.textColor,
+    required this.textColorMixed,
     required this.linkUrl,
     required this.uniformBlockType,
     required this.uniformListType,
@@ -172,6 +174,12 @@ class ToolbarState {
   final bool underline;
   final bool lineThrough;
   final bool remark;
+
+  /// The single inline font color shared by the selection as `0xAARRGGBB`.
+  /// `null` with [textColorMixed] false means no inline color; `null` with
+  /// [textColorMixed] true means the range mixes multiple color states.
+  final int? textColor;
+  final bool textColorMixed;
 
   /// The link URL shared by every run in the selection, or `null` when the
   /// selection has no link or mixes different URLs. For a collapsed caret,
@@ -242,6 +250,8 @@ class ToolbarState {
     underline: false,
     lineThrough: false,
     remark: false,
+    textColor: null,
+    textColorMixed: false,
     linkUrl: null,
     uniformBlockType: null,
     uniformListType: null,
@@ -270,6 +280,8 @@ class ToolbarState {
     bool? underline,
     bool? lineThrough,
     bool? remark,
+    Object? textColor = _sentinel,
+    bool? textColorMixed,
     Object? linkUrl = _sentinel,
     BlockType? uniformBlockType,
     Object? uniformListType = _sentinel,
@@ -301,6 +313,9 @@ class ToolbarState {
       underline: underline ?? this.underline,
       lineThrough: lineThrough ?? this.lineThrough,
       remark: remark ?? this.remark,
+      textColor:
+          identical(textColor, _sentinel) ? this.textColor : textColor as int?,
+      textColorMixed: textColorMixed ?? this.textColorMixed,
       linkUrl:
           identical(linkUrl, _sentinel) ? this.linkUrl : linkUrl as String?,
       uniformBlockType: uniformBlockType ?? this.uniformBlockType,
@@ -339,6 +354,8 @@ class ToolbarState {
         other.underline == underline &&
         other.lineThrough == lineThrough &&
         other.remark == remark &&
+        other.textColor == textColor &&
+        other.textColorMixed == textColorMixed &&
         other.linkUrl == linkUrl &&
         other.uniformBlockType == uniformBlockType &&
         other.uniformListType == uniformListType &&
@@ -372,6 +389,8 @@ class ToolbarState {
         underline,
         lineThrough,
         remark,
+        textColor,
+        textColorMixed,
         linkUrl,
         uniformBlockType,
         uniformListType,
@@ -430,6 +449,8 @@ class ToolbarController extends ChangeNotifier {
   bool get underline => _state.underline;
   bool get lineThrough => _state.lineThrough;
   bool get remark => _state.remark;
+  int? get textColor => _state.textColor;
+  bool get textColorMixed => _state.textColorMixed;
   bool isMarkActive(TextMark mark) => _state.isMarkActive(mark);
 
   String? get linkUrl => _state.linkUrl;
@@ -471,6 +492,24 @@ class ToolbarController extends ChangeNotifier {
       return;
     }
     _host.setLink(url);
+  }
+
+  void setTextColor(Color color) {
+    setTextColorValue(color.toARGB32());
+  }
+
+  void setTextColorValue(int color) {
+    if (!_state.canFormatInline) {
+      return;
+    }
+    _host.setTextColorValue(color);
+  }
+
+  void clearTextColor() {
+    if (!_state.canFormatInline) {
+      return;
+    }
+    _host.clearTextColor();
   }
 
   void clearStyle() {
@@ -698,6 +737,8 @@ class ToolbarController extends ChangeNotifier {
       underline: inlineSummary.underline,
       lineThrough: inlineSummary.lineThrough,
       remark: inlineSummary.remark,
+      textColor: inlineSummary.color,
+      textColorMixed: inlineSummary.colorMixed,
       linkUrl: inlineSummary.url,
       uniformBlockType: blockSummary.uniformType,
       uniformListType: blockSummary.uniformListType,
@@ -740,6 +781,9 @@ class ToolbarController extends ChangeNotifier {
     var remark = true;
     String? url;
     var urlSet = false;
+    int? color;
+    var colorSet = false;
+    var colorMixed = false;
     var sawAny = false;
 
     for (var i = start.blockIndex; i <= end.blockIndex; i++) {
@@ -764,6 +808,9 @@ class ToolbarController extends ChangeNotifier {
         remark: remark,
         url: url,
         urlSet: urlSet,
+        color: color,
+        colorSet: colorSet,
+        colorMixed: colorMixed,
         sawAny: sawAny,
       );
       bold = partial.bold;
@@ -773,6 +820,9 @@ class ToolbarController extends ChangeNotifier {
       remark = partial.remark;
       url = partial.url;
       urlSet = partial.urlSet;
+      color = partial.color;
+      colorSet = partial.colorSet;
+      colorMixed = partial.colorMixed;
       sawAny = partial.sawAny;
     }
 
@@ -786,6 +836,8 @@ class ToolbarController extends ChangeNotifier {
       lineThrough: lineThrough,
       remark: remark,
       url: url,
+      color: colorMixed ? null : color,
+      colorMixed: colorMixed,
     );
   }
 
@@ -808,6 +860,9 @@ class ToolbarController extends ChangeNotifier {
       remark: true,
       url: null,
       urlSet: false,
+      color: null,
+      colorSet: false,
+      colorMixed: false,
       sawAny: false,
     );
     if (!partial.sawAny) {
@@ -820,6 +875,8 @@ class ToolbarController extends ChangeNotifier {
       lineThrough: partial.lineThrough,
       remark: partial.remark,
       url: partial.url,
+      color: partial.colorMixed ? null : partial.color,
+      colorMixed: partial.colorMixed,
     );
   }
 
@@ -887,6 +944,9 @@ class ToolbarController extends ChangeNotifier {
     required bool remark,
     required String? url,
     required bool urlSet,
+    required int? color,
+    required bool colorSet,
+    required bool colorMixed,
     required bool sawAny,
   }) {
     var cursor = 0;
@@ -923,6 +983,13 @@ class ToolbarController extends ChangeNotifier {
       } else if (node.attributes.url != url) {
         url = null;
       }
+      if (!colorSet) {
+        color = node.attributes.color;
+        colorSet = true;
+      } else if (node.attributes.color != color) {
+        color = null;
+        colorMixed = true;
+      }
     }
     return _AttributeScan(
       bold: bold,
@@ -932,6 +999,9 @@ class ToolbarController extends ChangeNotifier {
       remark: remark,
       url: url,
       urlSet: urlSet,
+      color: color,
+      colorSet: colorSet,
+      colorMixed: colorMixed,
       sawAny: sawAny,
     );
   }
@@ -1031,8 +1101,9 @@ class ToolbarController extends ChangeNotifier {
 }
 
 /// Aggregated inline attributes across a selection. Each bool is `true` only
-/// when every covered run has the mark set; the URL is `null` when the range
-/// mixes URLs or has none.
+/// when every covered run has the mark set; the URL/color is `null` when the
+/// range has none. Color additionally exposes [colorMixed] to distinguish no
+/// inline color from mixed color states.
 class InlineAttributeSummary {
   const InlineAttributeSummary({
     required this.bold,
@@ -1041,6 +1112,8 @@ class InlineAttributeSummary {
     required this.lineThrough,
     required this.remark,
     required this.url,
+    required this.color,
+    required this.colorMixed,
   });
 
   factory InlineAttributeSummary.single(TextAttributes attrs) {
@@ -1051,6 +1124,8 @@ class InlineAttributeSummary {
       lineThrough: attrs.lineThrough == true,
       remark: attrs.remark == true,
       url: attrs.url,
+      color: attrs.color,
+      colorMixed: false,
     );
   }
 
@@ -1061,6 +1136,8 @@ class InlineAttributeSummary {
     lineThrough: false,
     remark: false,
     url: null,
+    color: null,
+    colorMixed: false,
   );
 
   final bool bold;
@@ -1069,6 +1146,8 @@ class InlineAttributeSummary {
   final bool lineThrough;
   final bool remark;
   final String? url;
+  final int? color;
+  final bool colorMixed;
 }
 
 class _TableCellStyleSummary {
@@ -1092,6 +1171,9 @@ class _AttributeScan {
     required this.remark,
     required this.url,
     required this.urlSet,
+    required this.color,
+    required this.colorSet,
+    required this.colorMixed,
     required this.sawAny,
   });
 
@@ -1102,6 +1184,9 @@ class _AttributeScan {
   final bool remark;
   final String? url;
   final bool urlSet;
+  final int? color;
+  final bool colorSet;
+  final bool colorMixed;
   final bool sawAny;
 }
 

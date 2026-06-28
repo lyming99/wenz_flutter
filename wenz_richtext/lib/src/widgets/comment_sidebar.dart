@@ -42,8 +42,11 @@ class WenzCommentSidebar extends StatelessWidget {
     return SizedBox(
       width: width,
       child: Material(
+        key: const ValueKey<String>('wenz-comment-sidebar-surface'),
         color: theme.colorScheme.surface,
         elevation: 1,
+        shadowColor: theme.colorScheme.shadow.withAlpha(32),
+        surfaceTintColor: Colors.transparent,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
@@ -51,7 +54,7 @@ class WenzCommentSidebar extends StatelessWidget {
               openCount: threads.where((thread) => thread.isOpen).length,
               totalCount: threads.length,
             ),
-            const Divider(height: 1),
+            Divider(height: 1, color: theme.colorScheme.outlineVariant),
             if (visibleThreads.isEmpty)
               Expanded(
                 child: emptyBuilder?.call(context) ?? const _EmptyComments(),
@@ -109,14 +112,25 @@ class _CommentSidebarHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
       child: Row(
         children: <Widget>[
-          const Icon(Icons.mode_comment_outlined, size: 20),
+          Icon(
+            Icons.mode_comment_outlined,
+            size: 20,
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
           const SizedBox(width: 8),
           Expanded(
-            child: Text('Comments', style: theme.textTheme.titleSmall),
+            child: Text(
+              'Comments',
+              style: theme.textTheme.titleSmall?.copyWith(
+                color: theme.colorScheme.onSurface,
+              ),
+            ),
           ),
           Text(
             '$openCount open / $totalCount total',
-            style: theme.textTheme.labelSmall,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
           ),
         ],
       ),
@@ -149,7 +163,14 @@ class _CommentThreadCard extends StatelessWidget {
     final lastMessage = thread.lastMessage;
     return Card(
       key: ValueKey<String>('wenz-comment-thread-${thread.id}'),
+      color: isActive
+          ? colorScheme.primaryContainer.withAlpha(
+              theme.brightness == Brightness.dark ? 72 : 48,
+            )
+          : colorScheme.surfaceContainerLow,
       elevation: isActive ? 2 : 0,
+      shadowColor: colorScheme.shadow.withAlpha(32),
+      surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(
         side: BorderSide(
           color: isActive ? colorScheme.primary : colorScheme.outlineVariant,
@@ -198,7 +219,9 @@ class _CommentThreadCard extends StatelessWidget {
                 firstMessage?.authorName.isNotEmpty == true
                     ? firstMessage!.authorName
                     : 'Unknown author',
-                style: theme.textTheme.labelMedium,
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: colorScheme.onSurface,
+                ),
               ),
               const SizedBox(height: 4),
               Text(
@@ -207,6 +230,9 @@ class _CommentThreadCard extends StatelessWidget {
                     : 'No comment text',
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: colorScheme.onSurface,
+                ),
               ),
               const SizedBox(height: 8),
               Row(
@@ -216,7 +242,9 @@ class _CommentThreadCard extends StatelessWidget {
                       '${thread.messages.length} message${thread.messages.length == 1 ? '' : 's'}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.labelSmall,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ),
                   if (lastMessage != null) ...<Widget>[
@@ -228,7 +256,9 @@ class _CommentThreadCard extends StatelessWidget {
                           _formatTimestamp(lastMessage.createdAt),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.labelSmall,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
                         ),
                       ),
                     ),
@@ -251,14 +281,21 @@ class _StatusChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final isResolved = status == CommentThreadStatus.resolved;
     return Chip(
       label: Text(isResolved ? 'Resolved' : 'Open'),
       visualDensity: VisualDensity.compact,
       side: BorderSide.none,
       backgroundColor: isResolved
-          ? theme.colorScheme.secondaryContainer
-          : theme.colorScheme.primaryContainer,
+          ? colorScheme.secondaryContainer
+          : colorScheme.primaryContainer,
+      labelStyle: theme.textTheme.labelSmall?.copyWith(
+        color: isResolved
+            ? colorScheme.onSecondaryContainer
+            : colorScheme.onPrimaryContainer,
+        fontWeight: FontWeight.w600,
+      ),
     );
   }
 }
@@ -272,7 +309,9 @@ class _EmptyComments extends StatelessWidget {
     return Center(
       child: Text(
         'No comments',
-        style: theme.textTheme.bodyMedium,
+        style: theme.textTheme.bodyMedium?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
       ),
     );
   }

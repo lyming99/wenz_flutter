@@ -118,6 +118,10 @@ class MarkdownCodec {
     final attrs = block.attributes;
     final body = _encodeInline(block.content);
     if (attrs.listType == 'ordered') {
+      if (attrs.checked != null) {
+        final box = attrs.checked == true ? '[x]' : '[ ]';
+        return '${pad}1. $box $body';
+      }
       return '${pad}1. $body';
     }
     if (attrs.listType == 'task') {
@@ -435,12 +439,14 @@ class MarkdownCodec {
 
         if (marker.startsWith(RegExp(r'\d'))) {
           // Ordered list.
+          final checked = taskBox?.toLowerCase().contains('x');
           blocks.add(TextBlockNode(
             id: newId('oli'),
             type: BlockType.listItem,
             attributes: BlockAttributes(
               indent: indent,
               listType: 'ordered',
+              checked: checked,
             ),
             content: _parseInline(body),
           ));

@@ -6,6 +6,100 @@ tier list); this page groups them by module for quick lookup and shows the
 typical call shape. For the layered design behind these types, see
 `architecture.md`.
 
+## Standard external interface (tier 1, recommended entry)
+
+The facade + configuration pair is the recommended way to integrate the editor
+without assembling the six-plus registries and controllers by hand. Both types
+are tier 1 (standard external interface / recommended entry) and live behind
+the single entry point `import 'package:wenz_richtext/wenz_richtext.dart';` —
+no `src/` path is required. They are additive: the existing typed API
+(`WenzRichTextController`, `WenzRichTextEditor`, the registries, the plugins)
+stays tier 1/2 and is not deprecated.
+
+| Type | Role |
+| --- | --- |
+| `WenzEditorConfiguration` | `@immutable`, side-effect-free description of *intent*. Every field is optional with a sane default, so `WenzEditorConfiguration()` is a runnable zero-config setup. Derive per-scenario variants with `copyWith`. Creates nothing and holds no `BuildContext`. |
+| `WenzEditorBootstrap` | The facade. `WenzEditorBootstrap.create(configuration)` assembles the controller + every registry + derived controllers + plugins in one call, exposes unified data I/O and getters, builds the editor widget via `buildEditor({...})`, and releases everything via `dispose()` (idempotent, dependency-reverse order). |
+
+End-to-end skeleton — `create()` → `buildEditor()` → read/write data →
+`dispose()`:
+
+```dart
+import 'package:wenz_richtext/wenz_richtext.dart';
+
+// 1) Assemble once: controller + registries + derived controllers + plugins.
+final bootstrap = WenzEditorBootstrap.create(
+  WenzEditorConfiguration(
+    document: myDoc,                       // optional; defaults to an empty doc
+    permission: WenzEditorPermission.edit, // read / comment / edit (gate, never bypassed)
+    plugins: [myPlugin],                   // optional extension injection
+    onChanged: (doc) => log('blocks=${doc.blocks.length}'),
+  ),
+);
+// bootstrap.controller.document is a valid empty doc; permission == .edit
+
+// 2) Render the editor widget from a build() method.
+//    buildEditor() returns a plain WenzRichTextEditor with the assembly injected
+//    (controller, blockRenderers, mediaResolver, slashMenuController,
+//    findController, shortcutConfiguration, accessibility, …).
+final editor = bootstrap.buildEditor(autofocus: true);
+
+// 3) Read / write data through the facade I/O surface (delegates verbatim to
+//    WenzRichTextController; no new serialization format is introduced).
+final json = bootstrap.toJson();                 // rich JSON (versioned)
+bootstrap.loadJson(json);                        // round-trip
+bootstrap.loadMarkdown('# Hello');               // Markdown import
+bootstrap.loadHtml('<h1>Hello</h1>');             // HTML import
+final snap = bootstrap.createVersionSnapshot(id: 'v1'); // app-owned snapshot
+bootstrap.restoreVersionSnapshot(snap);
+
+// 4) Release everything once, in dependency-reverse order.
+@override
+void dispose() {
+  bootstrap.dispose(); // idempotent; derived listeners released before controller
+  super.dispose();
+}
+```
+
+Facade getters expose the assembled pieces so a host that needs to drive a
+derived controller directly still can: `controller`, `blockRendererRegistry`,
+`inlineEmbedRendererRegistry`, `slashMenuRegistry`, `toolbarItemRegistry`,
+`toolbarController`, `slashMenuController`, `findReplaceController`,
+`outlineController`, `statsController`, `autosaveController`, plus `document`
+and `selection` convenience aliases. Each derived controller is `null` when its
+`enable*` flag is `false` (or, for autosave, when no `onAutosave` sink was
+given).
+
+### Configuration field → advanced extension point
+
+Every extension is a `WenzEditorConfiguration` field; the facade feeds it into
+the same registry/plugin install surface it already assembles, so an injected
+custom renderer is indistinguishable from a plugin-contributed one. The fields
+below map to tier 2 advanced extension points (the facade is built *on top* of
+these and never bypasses them):
+
+| Configuration field | Feeds | Advanced extension point (tier 2) |
+| --- | --- | --- |
+| `mediaResolver` | controller + `buildEditor` | `MediaResolver` |
+| `richTextJsonCodec` | controller ctor | `RichTextJsonCodec` (+ `DocumentMigrationRegistry`) |
+| `accessibility` | `buildEditor` | `WenzRichTextEditorAccessibility` |
+| `plugins` | `installWenzRichTextPlugins` | `WenzRichTextPlugin` / `WenzPluginBundle` |
+| `shortcutConfiguration` | merged last (host wins) | `EditorShortcutConfiguration` |
+| `pasteTransformers` | `ClipboardService` | `ClipboardPasteTransformer` |
+| `blockRenderers` / `blockEmbedRenderers` | `BlockRendererRegistry` | `BlockRendererBuilder` |
+| `inlineEmbedRenderers` | `InlineEmbedRendererRegistry` | `InlineEmbedSpanBuilder` |
+| `slashMenuItems` | `SlashMenuRegistry` | `SlashMenuItem` |
+| `toolbarItems` | `WenzToolbarItemRegistry` | `WenzToolbarItem` |
+| `enableSlashMenu` / `enableFindReplace` / `enableOutline` / `enableStats` / `enableToolbar` / `enableAutosave` | facade only | derived controllers (tier 2) |
+
+The tiering is kept in sync with the library doc comment at the top of
+`lib/wenz_richtext.dart`: facade/configuration are tier 1 (recommended entry),
+the registries/plugins the facade wires internally remain tier 2, and anything
+under `src/*` that is not re-exported stays internal. No existing public type
+is renamed or removed, no runtime dependency is added, and no serialization
+format changes. See `integration_guide.md` for the full contract (minimal
+access, three modes, dispose order, the `src/*` internal boundary).
+
 ## Model layer (tier 1)
 
 | Type | Purpose |
@@ -396,9 +490,9 @@ CRDT, OT, WebSocket, or a server implementation; adapters own that translation.
 | --- | --- |
 | `RichTextJsonCodec({migrations})` | Encode/decode the canonical versioned rich JSON. Optional `DocumentMigrationRegistry` lifts older versions. |
 | `LegacyWenJsonCodec()` | Decode the old `wenz_editor` block-list format. |
-| `PlainTextCodec({omitEmptyBlocks})` | Export to plain text (paragraphs blank-line separated, media sentinels; image sentinel prefers caption, then alt text). |
-| `MarkdownCodec()` | GFM Markdown import/export. `encode` → Markdown; `decode` → document (line-oriented state machine; unrecognised lines fall back to paragraphs). Image caption uses Markdown image title: `![alt](src "caption")`; video blocks export/import through the Wenz `![video](src)` placeholder; file and block embed content degrade to readable text/links on import. |
-| `HtmlCodec()` | HTML fragment import/export via `package:html`. `encode` → HTML; `decode` → document (DOM walk; malformed HTML falls back to paragraphs). Image block captions use `<figure><img ...><figcaption>...`; inline image embeds preserve `altText`/`caption`/`width`/`height` through `<img>` attributes; Wenz file links, video tags, and `BlockEmbedNode` preserve metadata through `data-*` attributes; table `rowspan`/`colspan` maps to `TableCellNode` spans. |
+| `PlainTextCodec({omitEmptyBlocks})` | Export to plain text (paragraphs blank-line separated, media sentinels; image sentinel prefers caption, then alt text). List exports preserve unordered / ordered markers and todo checkboxes, including ordered todo as `1. [ ] text` / `1. [x] text`. |
+| `MarkdownCodec()` | GFM Markdown import/export. `encode` → Markdown; `decode` → document (line-oriented state machine; unrecognised lines fall back to paragraphs). Image caption uses Markdown image title: `![alt](src "caption")`; video blocks export/import through the Wenz `![video](src)` placeholder; file and block embed content degrade to readable text/links on import. Lists preserve the combined `ordered + checked` model with legacy `task` kept as unordered todo. |
+| `HtmlCodec()` | HTML fragment import/export via `package:html`. `encode` → HTML; `decode` → document (DOM walk; malformed HTML falls back to paragraphs). Image block captions use `<figure><img ...><figcaption>...`; inline image embeds preserve `altText`/`caption`/`width`/`height` through `<img>` attributes; Wenz file links, video tags, and `BlockEmbedNode` preserve metadata through `data-*` attributes; table `rowspan`/`colspan` maps to `TableCellNode` spans. Ordered todo uses `<ol><li><input type="checkbox" ...>` so numbering and checked state both round-trip. |
 | `DocumentVersionSnapshotJsonCodec()` | Encode/decode one `DocumentVersionSnapshot` or a snapshot list for app-owned version history persistence. |
 | `DocumentMigration` / `DocumentMigrationRegistry` | JSON-level schema migration framework; ships `V1ToV2DocumentMigration`. |
 | `decodeWithMigrations(source, registry)` | Helper: JSON decode + migrate in one step. |
@@ -461,9 +555,12 @@ optionally exposes widget/input registries created by the host app.
 
 - `WenzPluginBundle` — declarative plugin for common contributions:
   `commands`, `middlewares`, `blockRenderers`, `blockEmbedRenderers`, `inlineEmbedRenderers`,
-  `slashMenuItems`, `toolbarItems`, and `pasteTransformers`.
+  `slashMenuItems`, `toolbarItems`, `shortcutConfigurations`, and
+  `pasteTransformers`.
 - `installWenzRichTextPlugins` — installs a batch and rejects duplicate plugin
   ids in that batch.
+- `mergeWenzShortcutConfigurations` — merges plugin shortcut fragments before
+  the editor-level configuration so host apps can override plugin defaults.
 - `WenzPluginApiStatus` — marks plugin-facing contracts as `stable`,
   `stabilising`, or `experimental`.
 
@@ -479,6 +576,7 @@ WenzRichTextEditor.installDefaultRenderers(blockRenderers);
 final inlineEmbeds = InlineEmbedRendererRegistry();
 final slashItems = SlashMenuRegistry.defaults();
 final toolbarItems = WenzToolbarItemRegistry();
+final shortcutConfigurations = <EditorShortcutConfiguration>[];
 
 installWenzRichTextPlugins(
   plugins: [myPlugin],
@@ -488,6 +586,7 @@ installWenzRichTextPlugins(
     inlineEmbedRenderers: inlineEmbeds,
     slashMenuRegistry: slashItems,
     toolbarItems: toolbarItems,
+    shortcutConfigurations: shortcutConfigurations,
     pasteTransformers: pasteTransformers,
   ),
 );
@@ -511,14 +610,42 @@ normalisation, and `onCommandExecuted` stay consistent.
 - `CompositionState` — the IME composing region rendered as an underline span.
 - `EditorShortcutManager` — pure keymap resolver used by the widget layer;
   includes opt-in Ctrl/Cmd+F and Ctrl/Cmd+H intents for find/replace.
+- `EditorShortcutConfiguration` — shortcut keymap fragment with `bindings` and
+  `disabledIntents`. Use `EditorShortcutConfiguration.merge` for low-level
+  composition or `mergeWenzShortcutConfigurations` when combining plugin and
+  editor-level fragments.
+- `EditorShortcutBinding` / `EditorShortcutKey` — map a normalized combination
+  (`LogicalKeyboardKey`, `EditorShortcutModifier`s, optional
+  `EditorShortcutPlatform`s) to `handled`, `ignored`, or `passThrough`.
+  `EditorShortcutModifier.primary` abstracts Ctrl on Windows/Linux/Web/Android
+  and Cmd on macOS/iOS; exact `control` / `meta` / `alt` / `shift` matching is
+  also available.
+- `EditorShortcutResolution` / `EditorShortcutIntent` — resolver output passed
+  to the widget's existing shortcut execution path. Configuration never calls
+  controller commands directly.
+- `EditorShortcutConfiguration.validate()` — reports duplicate combinations,
+  empty platform sets, and invalid `insertCharacter` bindings. Duplicate
+  combinations are deterministic: later bindings win, while multiple bindings
+  for the same intent are allowed as aliases.
 
 ## Widget layer (tier 2)
 
-- `WenzRichTextEditor({controller, blockRenderers, mediaResolver, inlineEmbedRenderer, findController, slashMenuController, accessibility, …})` — the editor widget.
+- `WenzRichTextEditor({controller, shortcutConfiguration, blockRenderers, mediaResolver, inlineEmbedRenderer, onMentionTap, findController, slashMenuController, accessibility, …})` — the editor widget.
+  Pass `shortcutConfiguration` to append/override the built-in keymap, disable
+  intents, or return `passThrough` for host-level shortcuts such as save.
   Passing `findController` paints all search matches; `onFindRequested` and
   `onReplaceRequested` let the host open its own panel for Ctrl/Cmd+F/H.
   Passing `slashMenuController` shows the built-in slash overlay and routes
   ArrowUp/ArrowDown/Enter/Escape while it is open.
+  Passing `onMentionTap` lets the host open a user profile, member card, or
+  another business surface when a default `mention` inline embed is activated.
+  The package only emits the event; it does not own navigation or profile UI.
+- `WenzMentionTapCallback` / `WenzMentionTapDetails` — mention activation API.
+  `details.id` and `details.label` are normalized from the mention embed data,
+  `details.data` is the original `InlineEmbed.data`, and `details.position`,
+  `blockId`, `blockIndex`, `path`, `offset`, and optional `selection` identify
+  where the mention lives. Host data should provide at least `id` and `label`;
+  additional business fields are preserved in `data`.
 - `WenzRichTextEditorAccessibility` — screen-reader label/hint configuration
   for editable and read-only editors, plus high-contrast focus-outline color
   and width. The default editor semantics is a focusable multiline text field;
@@ -549,7 +676,12 @@ normalisation, and `onCommandExecuted` stay consistent.
   `InlineEmbedRendererCallback` — quick path for formula / mention / emoji /
   custom inline embed text-span rendering. The built-in text, callout, and
   table-cell renderers consult it before falling back to compact formula /
-  mention / emoji labels.
+  mention / emoji labels. When a custom renderer returns a non-null span for
+  `mention`, it owns any tap recognizer or business action; return `null` to
+  keep the default `@label` rendering and editor-level `onMentionTap` event, or
+  call `WenzMentionTapHandler.maybeOf(context)?.notifyMentionTap(embed,
+  position)` from custom code that already has a `DocumentPosition` for that
+  mention.
 - `WenzToolbarItem` / `WenzToolbarItemRegistry` — headless toolbar descriptor
   registry for plugin-contributed buttons or menu entries. The package does not
   impose a toolbar widget; host UI renders descriptors and calls their actions
@@ -567,24 +699,24 @@ surface when they need custom chrome. This keeps the public API unchanged and
 avoids introducing theme data into the document model, command layer, codecs,
 or plugin contracts.
 
-The built-in widget layer should resolve editor colors from these sources:
+The built-in widget layer resolves editor colors from these sources:
 
 | Area | Direct `ColorScheme` use | Private editor token needed |
 | --- | --- | --- |
 | Editor surface | Body text from `onSurface`; focus outline, caret, selection, active object/table state, task checkbox, heading-collapse control, quote accent, resize handles, and toolbar selection from `primary`; subdued text from `onSurfaceVariant` / `outline`; find highlights from `tertiary` / `tertiaryContainer`. | The editor's own default carrying background must be derived in the widget layer: light theme uses `Colors.white`, dark theme uses `Colors.black`. This is visual chrome only and must not be serialized. |
-| Text blocks and inline styles | Paragraphs/headings/quotes/lists inherit the editor body style; checked task text, heading level 5/6, inline formula/mention fallbacks, composition underline, revision background, and table-cell text can use `ColorScheme` plus caller-supplied `TextStyle` / explicit inline attributes. | Legacy fixed link / remark colors (`_kInlineLinkColor`, `_kInlineRemarkColor`) should be treated as private semantic tokens or replaced by derived scheme colors; explicit `TextAttributes.color` / `background` remain document-authored data and are not theme tokens. |
+| Text blocks and inline styles | Paragraphs/headings/quotes/lists inherit the editor body style; checked task text, heading level 5/6, inline formula/mention fallbacks, composition underline, revision background, and table-cell text use `ColorScheme` plus caller-supplied `TextStyle` / explicit inline attributes. | Link / remark colors are private semantic tokens derived for readability. Explicit `TextAttributes.color` / `background` remain document-authored data and are not theme tokens. |
 | Selection, caret, and search | `_TextSelectionSurface` derives selection highlight, caret, and find-match colors from `primary`, `tertiaryContainer`, and `tertiary`. | Alpha levels for selection/search/caret contrast are private editor tokens so they can be tuned for both black and white editor backgrounds without changing public API. |
-| Block surfaces | Quote, image placeholder, video fallback gradient, file-card surface/type badge/status, floating object toolbar, debug tag, selected block borders, table header cells, and formula preview already have clear `ColorScheme` counterparts. | Surface shadows, hover fills, and selected object shells should stay private visual tokens because they are implementation details of the default renderer. |
-| Tables | Cell text/header text, selected-cell overlay, column resize handles, table card surface, and toolbar state can use `ColorScheme`. | Table border, zebra row, and toolbar sample background (`_kTableBorderColor`, `_kTableEvenRowBackgroundColor`, `_kTableToolbarBackgroundColor`) are currently fixed light tokens and should become private theme-derived editor tokens. Persisted `TableCellNode.backgroundColor` stays authored cell data. |
-| Code, divider, callout, file, embed/formula | Selected borders and many labels can use `ColorScheme`; code syntax colors may remain a private syntax palette. | Code block background/text palette, divider line, callout variant tint/foreground/border, file-card idle border, embed card background/border, and formula card foreground/background are private renderer tokens that need light/dark derivation. |
+| Block surfaces | Quote, image placeholder, video fallback gradient, file-card surface/type badge/status, floating object toolbar, debug tag, selected block borders, table header cells, and formula preview use `ColorScheme` counterparts. | Surface shadows, hover fills, and selected object shells stay private visual tokens because they are implementation details of the default renderer. |
+| Tables | Cell text/header text, selected-cell overlay, column resize handles, table card surface, toolbar state, table border, zebra row, and toolbar sample background are derived for light/dark themes. | Persisted `TableCellNode.backgroundColor` stays authored cell data and is not treated as a theme token. |
+| Code, divider, callout, file, embed/formula | Selected borders, labels, code block background/text palette, divider line, callout variant tint/foreground/border, file-card idle border, embed card background/border, and formula card foreground/background are derived for light/dark themes. | Code syntax colors remain a private syntax palette; renderer token names are not public API. |
 | Media placeholders and previews | Image placeholders, video cover fallback gradients, and metadata text can use `ColorScheme`. | Hard black/white overlay controls inside video previews are media-preview private tokens; they are not editor-background tokens and may stay fixed only where contrast is guaranteed by the preview gradient. |
 
 The black/white background requirement lands in the widget/example layer only:
-the default editor carrying surface should be white for `Brightness.light` and
-black for `Brightness.dark`, while the example app configures matching light
-and dark scaffold/editor surfaces. No document JSON, commands, undo/redo,
-selection model, import/export codec, or plugin registration behavior should
-change for theme adaptation.
+the default editor carrying surface is white for `Brightness.light` and black
+for `Brightness.dark`, while the example app configures matching light and dark
+scaffold/editor surfaces plus a runtime toggle. No document JSON, commands,
+undo/redo, selection model, import/export codec, or plugin registration behavior
+changes for theme adaptation.
 
 ## Running the example
 

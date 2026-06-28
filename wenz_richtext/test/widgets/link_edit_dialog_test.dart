@@ -26,4 +26,49 @@ void main() {
 
     expect(result, 'https://wenz.dev');
   });
+
+  testWidgets('link edit dialog uses dark theme surface and outline',
+      (tester) async {
+    final theme = ThemeData(
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: Colors.teal,
+        brightness: Brightness.dark,
+      ),
+      useMaterial3: true,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: theme,
+        home: const Scaffold(
+          body: WenzLinkEditDialog(
+            initialUrl: 'https://wenz.dev',
+            canRemove: true,
+          ),
+        ),
+      ),
+    );
+
+    final colorScheme = theme.colorScheme;
+    final dialog = tester.widget<AlertDialog>(
+      find.byKey(const ValueKey<String>('wenz-link-edit-dialog')),
+    );
+    expect(dialog.backgroundColor, colorScheme.surface);
+    expect(dialog.surfaceTintColor, Colors.transparent);
+    final shape = dialog.shape as RoundedRectangleBorder;
+    expect(shape.side.color, colorScheme.outlineVariant);
+
+    final textField = tester.widget<TextField>(find.byType(TextField));
+    final decoration = textField.decoration!;
+    final enabledBorder = decoration.enabledBorder! as OutlineInputBorder;
+    expect(enabledBorder.borderSide.color, colorScheme.outlineVariant);
+
+    final removeButton = tester.widget<TextButton>(
+      find.widgetWithText(TextButton, 'Remove'),
+    );
+    expect(
+      removeButton.style?.foregroundColor?.resolve(<WidgetState>{}),
+      colorScheme.error,
+    );
+  });
 }

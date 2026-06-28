@@ -47,7 +47,10 @@ void main() {
             id: 'p1',
             type: BlockType.paragraph,
             content: <InlineNode>[
-              TextRun(text: 'He', attributes: TextAttributes(bold: true)),
+              TextRun(
+                text: 'He',
+                attributes: TextAttributes(bold: true, color: 0xFFD81B60),
+              ),
               TextRun(text: 'llo'),
             ],
           ),
@@ -62,7 +65,9 @@ void main() {
       // The slice crosses the bold/plain boundary: 'e' (bold) + 'll' (plain).
       expect(paste.inlineRuns, hasLength(2));
       expect((paste.inlineRuns[0] as TextRun).attributes.bold, isTrue);
+      expect((paste.inlineRuns[0] as TextRun).attributes.color, 0xFFD81B60);
       expect((paste.inlineRuns[1] as TextRun).attributes.bold, isNull);
+      expect((paste.inlineRuns[1] as TextRun).attributes.color, isNull);
     });
 
     test('same-block range preserves an inline embed through copy and parse',
@@ -413,7 +418,9 @@ void main() {
       expect(paste.text, 'Hell');
       expect(paste.inlineRuns, hasLength(2));
       expect((paste.inlineRuns[0] as TextRun).attributes.bold, isTrue);
+      expect((paste.inlineRuns[0] as TextRun).attributes.color, 0xFFD81B60);
       expect((paste.inlineRuns[1] as TextRun).attributes.bold, isNull);
+      expect((paste.inlineRuns[1] as TextRun).attributes.color, isNull);
     });
 
     test('table cell range copies as TSV plain text', () {
@@ -484,6 +491,18 @@ void main() {
       expect((paste.blocks[1] as TextBlockNode).plainText, 'body');
     });
 
+    test('html format preserves inline font color', () {
+      final paste = service.parse(
+        '<p><span style="color: #d81b60">colored</span></p>',
+        format: ClipboardPasteFormat.html,
+      );
+
+      expect(paste.isBlocks, isTrue);
+      final block = paste.blocks.single as TextBlockNode;
+      final run = block.content.single as TextRun;
+      expect(run.text, 'colored');
+      expect(run.attributes.color, 0xFFD81B60);
+    });
     test('legacy pasteMarkdown returns inline content for one paragraph', () {
       final inline = service.pasteMarkdown('hello **world**');
 
@@ -569,7 +588,10 @@ void main() {
             id: 'p1',
             type: BlockType.paragraph,
             content: <InlineNode>[
-              TextRun(text: 'bold', attributes: TextAttributes(bold: true)),
+              TextRun(
+                text: 'bold',
+                attributes: TextAttributes(bold: true, color: 0xFFD81B60),
+              ),
             ],
           ),
         ],
@@ -590,6 +612,7 @@ void main() {
           .whereType<TextRun>()
           .firstWhere((r) => r.text == 'bold');
       expect(pastedRun.attributes.bold, isTrue);
+      expect(pastedRun.attributes.color, 0xFFD81B60);
     });
 
     test('paste rich payload re-inserts an inline embed', () {
@@ -1019,7 +1042,7 @@ RichTextDocument _tableDoc([String plainTail = 'llo']) {
                     content: <InlineNode>[
                       const TextRun(
                         text: 'He',
-                        attributes: TextAttributes(bold: true),
+                        attributes: TextAttributes(bold: true, color: 0xFFD81B60),
                       ),
                       TextRun(text: plainTail),
                     ],

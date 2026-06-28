@@ -107,6 +107,11 @@ class HtmlCodec {
       return '<ul><li><input type="checkbox"$checked disabled> $body</li></ul>';
     }
     if (attrs.listType == 'ordered') {
+      if (attrs.checked != null) {
+        final checked = attrs.checked == true ? ' checked' : '';
+        return '<ol><li><input type="checkbox"$checked disabled> '
+            '$body</li></ol>';
+      }
       return '<ol><li>$body</li></ol>';
     }
     return '<ul><li>$body</li></ul>';
@@ -181,6 +186,10 @@ class HtmlCodec {
     if (attrs.url != null && attrs.url!.isNotEmpty) {
       final href = _escapeHtml(attrs.url!);
       text = '<a href="$href">$text</a>';
+    }
+    if (attrs.color != null) {
+      final color = _formatCssColor(attrs.color!);
+      text = '<span style="color: $color">$text</span>';
     }
     return text;
   }
@@ -409,6 +418,22 @@ class HtmlCodec {
     return asDouble == asDouble.roundToDouble()
         ? value.toInt().toString()
         : value.toString();
+  }
+
+  String _formatCssColor(int color) {
+    final alpha = (color >> 24) & 0xFF;
+    final red = (color >> 16) & 0xFF;
+    final green = (color >> 8) & 0xFF;
+    final blue = color & 0xFF;
+    if (alpha < 0xFF) {
+      final opacity = (alpha / 255).toStringAsFixed(3);
+      return 'rgba($red, $green, $blue, $opacity)';
+    }
+    return '#${_hexByte(red)}${_hexByte(green)}${_hexByte(blue)}';
+  }
+
+  String _hexByte(int value) {
+    return value.toRadixString(16).padLeft(2, '0').toUpperCase();
   }
 
   String _escapeHtml(String text) {
@@ -851,9 +876,14 @@ class HtmlCodec {
       inline.addAll(_parseInline(child));
     }
 
-    final effectiveListType = isTask ? 'task' : listType;
+    final effectiveListType = isTask
+        ? (listType == 'ordered' ? 'ordered' : 'task')
+        : listType;
+    final idPrefix = isTask
+        ? (listType == 'ordered' ? 'oli-task' : 'task')
+        : (listType == 'ordered' ? 'oli' : 'li');
     return TextBlockNode(
-      id: newId(isTask ? 'task' : (listType == 'ordered' ? 'oli' : 'li')),
+      id: newId(idPrefix),
       type: BlockType.listItem,
       attributes: BlockAttributes(
         listType: effectiveListType,
@@ -983,23 +1013,32 @@ class HtmlCodec {
     }
     if (node is dom.Element) {
       final tag = node.localName!.toLowerCase();
+      final elementAttributes = _attributesWithElementStyle(node, attributes);
       switch (tag) {
         case 'strong':
         case 'b':
-          return _parseChildren(node, attributes.copyWith(bold: true));
+          return _parseChildren(node, elementAttributes.copyWith(bold: true));
         case 'em':
         case 'i':
-          return _parseChildren(node, attributes.copyWith(italic: true));
+          return _parseChildren(node, elementAttributes.copyWith(italic: true));
         case 's':
         case 'del':
         case 'strike':
-          return _parseChildren(node, attributes.copyWith(lineThrough: true));
+          return _parseChildren(
+            node,
+            elementAttributes.copyWith(lineThrough: true),
+          );
         case 'u':
-          return _parseChildren(node, attributes.copyWith(underline: true));
+          return _parseChildren(
+            node,
+            elementAttributes.copyWith(underline: true),
+          );
         case 'a':
           final href = node.attributes['href'] ?? '';
           return _parseChildren(
-              node, attributes.copyWith(url: href.isEmpty ? null : href));
+            node,
+            elementAttributes.copyWith(url: href.isEmpty ? null : href),
+          );
         case 'br':
           return const <InlineNode>[TextRun(text: '\n')];
         case 'img':
@@ -1027,7 +1066,7 @@ class HtmlCodec {
                 if (width != null) 'width': width,
                 if (height != null) 'height': height,
               },
-              attributes: attributes,
+              attributes: elementAttributes,
             ),
           ];
         case 'span':
@@ -1035,12 +1074,142 @@ class HtmlCodec {
         case 'sup':
         case 'code':
           // Inline code / generic wrappers: recurse with current attrs.
-          return _parseChildren(node, attributes);
+          return _parseChildren(node, elementAttributes);
         default:
-          return _parseChildren(node, attributes);
+          return _parseChildren(node, elementAttributes);
       }
     }
     return const <InlineNode>[];
+  }
+
+  TextAttributes _attributesWithElementStyle(
+    dom.Element element,
+    TextAttributes attributes,
+  ) {
+    final color = _parseElementColor(element);
+    if (color == null) {
+      return attributes;
+    }
+    return TextAttributes(
+      color: color,
+      background: attributes.background,
+      bold: attributes.bold,
+      italic: attributes.italic,
+      fontSize: attributes.fontSize,
+      fontFamily: attributes.fontFamily,
+      underline: attributes.underline,
+      lineThrough: attributes.lineThrough,
+      remark: attributes.remark,
+      url: attributes.url,
+      commentIds: attributes.commentIds,
+      revisionIds: attributes.revisionIds,
+    );
+  }
+
+  int? _parseElementColor(dom.Element element) {
+    return _parseCssColor(_styleProperty(element.attributes['style'], 'color')) ??
+        _parseCssColor(element.attributes['color']);
+  }
+
+  String? _styleProperty(String? style, String name) {
+    if (style == null || style.isEmpty) {
+      return null;
+    }
+    for (final declaration in style.split(';')) {
+      final separator = declaration.indexOf(':');
+      if (separator <= 0) {
+        continue;
+      }
+      final property = declaration.substring(0, separator).trim().toLowerCase();
+      if (property == name) {
+        return declaration.substring(separator + 1).trim();
+      }
+    }
+    return null;
+  }
+
+  int? _parseCssColor(String? value) {
+    if (value == null) {
+      return null;
+    }
+    final normalized = value.trim().toLowerCase();
+    if (normalized.isEmpty) {
+      return null;
+    }
+    if (normalized.startsWith('#')) {
+      final hex = normalized.substring(1);
+      if (hex.length == 3) {
+        final expanded = hex.split('').map((part) => '$part$part').join();
+        return _parseHexColor(expanded);
+      }
+      return _parseHexColor(hex);
+    }
+    final rgbMatch = RegExp(r'^rgba?\(([^)]+)\)$').firstMatch(normalized);
+    if (rgbMatch != null) {
+      return _parseRgbColor(rgbMatch.group(1)!);
+    }
+    return _namedCssColors[normalized];
+  }
+
+  int? _parseHexColor(String hex) {
+    if (hex.length != 6 && hex.length != 8) {
+      return null;
+    }
+    final value = int.tryParse(hex, radix: 16);
+    if (value == null) {
+      return null;
+    }
+    if (hex.length == 6) {
+      return 0xFF000000 | value;
+    }
+    final alpha = value & 0xFF;
+    final rgb = value >> 8;
+    return alpha << 24 | rgb;
+  }
+
+  int? _parseRgbColor(String channels) {
+    final parts = channels.split(',').map((part) => part.trim()).toList();
+    if (parts.length != 3 && parts.length != 4) {
+      return null;
+    }
+    final red = _parseRgbChannel(parts[0]);
+    final green = _parseRgbChannel(parts[1]);
+    final blue = _parseRgbChannel(parts[2]);
+    final alpha = parts.length == 4 ? _parseAlphaChannel(parts[3]) : 0xFF;
+    if (red == null || green == null || blue == null || alpha == null) {
+      return null;
+    }
+    return alpha << 24 | red << 16 | green << 8 | blue;
+  }
+
+  int? _parseRgbChannel(String value) {
+    if (value.endsWith('%')) {
+      final percent = double.tryParse(value.substring(0, value.length - 1));
+      if (percent == null || percent < 0 || percent > 100) {
+        return null;
+      }
+      return (percent * 255 / 100).round();
+    }
+    final channel = int.tryParse(value);
+    if (channel == null || channel < 0 || channel > 255) {
+      return null;
+    }
+    return channel;
+  }
+
+  int? _parseAlphaChannel(String value) {
+    if (value.endsWith('%')) {
+      final percent = double.tryParse(value.substring(0, value.length - 1));
+      if (percent == null || percent < 0 || percent > 100) {
+        return null;
+      }
+      return (percent * 255 / 100).round();
+    }
+    final alpha = double.tryParse(value);
+    if (alpha == null || alpha < 0 || alpha > 1) {
+      return null;
+    }
+    return (alpha * 255).round();
   }
 
   List<InlineNode> _parseChildren(
@@ -1086,3 +1255,25 @@ class HtmlCodec {
     return result;
   }
 }
+
+const Map<String, int> _namedCssColors = <String, int>{
+  'black': 0xFF000000,
+  'blue': 0xFF0000FF,
+  'cyan': 0xFF00FFFF,
+  'fuchsia': 0xFFFF00FF,
+  'gray': 0xFF808080,
+  'green': 0xFF008000,
+  'grey': 0xFF808080,
+  'lime': 0xFF00FF00,
+  'magenta': 0xFFFF00FF,
+  'maroon': 0xFF800000,
+  'navy': 0xFF000080,
+  'olive': 0xFF808000,
+  'orange': 0xFFFFA500,
+  'purple': 0xFF800080,
+  'red': 0xFFFF0000,
+  'silver': 0xFFC0C0C0,
+  'teal': 0xFF008080,
+  'white': 0xFFFFFFFF,
+  'yellow': 0xFFFFFF00,
+};

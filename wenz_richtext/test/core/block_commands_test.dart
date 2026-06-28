@@ -330,6 +330,33 @@ void main() {
     expect(second.attributes.checked, isFalse);
   });
 
+  test('enter after checked ordered todo keeps numbering and resets checked', () {
+    final session = DocumentSession(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'ordered1',
+            type: BlockType.listItem,
+            attributes: BlockAttributes(listType: 'ordered', checked: true),
+            content: <InlineNode>[TextRun(text: 'Done')],
+          ),
+        ],
+      ),
+      selection: collapsedTextSelection('ordered1', 0, 4),
+    );
+    final executor = CommandExecutor(session);
+
+    executor.execute(const EnterCommand(newBlockId: 'ordered2'));
+
+    final first = session.document.blocks[0] as TextBlockNode;
+    final second = session.document.blocks[1] as TextBlockNode;
+    expect(first.attributes.listType, 'ordered');
+    expect(first.attributes.checked, isTrue);
+    expect(second.type, BlockType.listItem);
+    expect(second.attributes.listType, 'ordered');
+    expect(second.attributes.checked, isFalse);
+  });
+
   test('enter on an empty list item exits the list', () {
     final session = DocumentSession(
       document: const RichTextDocument(

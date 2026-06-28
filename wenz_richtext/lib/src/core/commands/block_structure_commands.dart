@@ -225,13 +225,15 @@ class ToggleTodoCommand extends EditorCommand {
       if (block is! TextBlockNode) {
         continue;
       }
-      final isTask = block.type == BlockType.listItem &&
-          block.attributes.listType == 'task';
-      if (isTask) {
+      final isListItem = block.type == BlockType.listItem;
+      final isTodo = isListItem && block.attributes.checked != null;
+      if (isTodo) {
         blocks[i] = _textBlockWithChecked(
           block,
           !(block.attributes.checked ?? false),
         );
+      } else if (isListItem) {
+        blocks[i] = _textBlockWithChecked(block, false);
       } else {
         blocks[i] = TextBlockNode(
           id: block.id,
@@ -282,7 +284,8 @@ class SetTodoCheckedCommand extends EditorCommand {
     final block = session.document.blocks[blockIndex];
     if (block is! TextBlockNode ||
         block.type != BlockType.listItem ||
-        block.attributes.listType != 'task' ||
+        (block.attributes.listType != 'task' &&
+            block.attributes.checked == null) ||
         block.attributes.checked == checked) {
       return const CommandResult(recordHistory: false);
     }

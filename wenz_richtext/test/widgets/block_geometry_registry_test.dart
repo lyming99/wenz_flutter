@@ -108,6 +108,66 @@ void main() {
       expect(controller.selection?.extent.offset, 3);
     });
 
+    testWidgets('resolves taps in an empty paragraph to that block', (
+      tester,
+    ) async {
+      final controller = WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'before',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'Before')],
+            ),
+            TextBlockNode(
+              id: 'empty',
+              type: BlockType.paragraph,
+              content: <InlineNode>[],
+            ),
+            TextBlockNode(
+              id: 'after',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'After')],
+            ),
+          ],
+        ),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 320,
+              height: 160,
+              child: WenzRichTextEditor(
+                controller: controller,
+                padding: EdgeInsets.zero,
+                enableIme: false,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final emptyRect = tester.getRect(_emptyRichText());
+      for (final fraction in <double>[0.1, 0.9]) {
+        await tester.tapAt(
+          Offset(
+            emptyRect.left + emptyRect.width * fraction,
+            emptyRect.center.dy,
+          ),
+        );
+        await tester.pump();
+
+        final extent = controller.selection?.extent;
+        expect(extent?.blockId, 'empty');
+        expect(extent?.blockIndex, 1);
+        expect(extent?.path, PositionPath.blockText('empty'));
+        expect(extent?.offset, 0);
+      }
+    });
+
     testWidgets('resolves a tap inside a table cell to tableCellText path', (
       tester,
     ) async {
@@ -283,6 +343,76 @@ void main() {
       expect(extent.path.isTableCellText, isTrue);
       expect(extent.path.tableColumnIndex, 1,
           reason: 'padding tap must stay in the right cell');
+    });
+
+    testWidgets('tap in empty table cell resolves to that cell text path', (
+      tester,
+    ) async {
+      final controller = WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TableBlockNode(
+              id: 'table1',
+              table: TableModel(
+                rows: <List<TableCellNode>>[
+                  <TableCellNode>[
+                    TableCellNode(
+                      id: 'left-cell',
+                      blocks: <BlockNode>[
+                        TextBlockNode(
+                          id: 'left-cell-text',
+                          type: BlockType.paragraph,
+                          content: <InlineNode>[TextRun(text: 'Left')],
+                        ),
+                      ],
+                    ),
+                    TableCellNode(
+                      id: 'empty-cell',
+                      blocks: <BlockNode>[
+                        TextBlockNode(
+                          id: 'empty-cell-text',
+                          type: BlockType.paragraph,
+                          content: <InlineNode>[],
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 360,
+              height: 160,
+              child: WenzRichTextEditor(
+                controller: controller,
+                padding: EdgeInsets.zero,
+                enableIme: false,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final emptyCell = tester.getRect(
+        find.byKey(const ValueKey<String>('table-cell-border-table1-0-1')),
+      );
+      await tester.tapAt(emptyCell.center);
+      await tester.pump();
+
+      final extent = controller.selection?.extent;
+      expect(extent, isNotNull);
+      expect(extent!.blockId, 'table1');
+      expect(extent.blockIndex, 0);
+      expect(extent.path, PositionPath.tableCellText('table1', 0, 1));
+      expect(extent.offset, 0);
     });
 
     // Regression: when a row is stretched tall by a multi-line sibling, a
@@ -587,6 +717,15 @@ Offset _globalTextOffset(WidgetTester tester, String text, int offset) {
   return tester.getTopLeft(finder) +
       local +
       Offset(1, painter.preferredLineHeight / 2);
+}
+
+Finder _emptyRichText([int index = 0]) {
+  return find
+      .byWidgetPredicate(
+        (widget) => widget is RichText && widget.text.toPlainText().isEmpty,
+        description: 'empty RichText at index $index',
+      )
+      .at(index);
 }
 
 BlockEntry _entry(String blockId, int blockIndex) {

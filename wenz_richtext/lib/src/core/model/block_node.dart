@@ -557,17 +557,22 @@ class BlockEmbedNode extends BlockNode {
     return value.isEmpty ? 'custom' : value;
   }
 
+  bool get isFormula => isFormulaEmbedType(normalizedEmbedType);
+
+  String get formulaText => formulaTextFromData(
+        data,
+        fallbackText: fallbackText,
+      );
+
   String get displayText {
     final fallback = fallbackText.trim();
     if (fallback.isNotEmpty) {
       return fallback;
     }
-    if (normalizedEmbedType == 'formula') {
-      for (final key in const <String>['text', 'latex', 'value', 'formula']) {
-        final value = data[key];
-        if (value != null && value.toString().trim().isNotEmpty) {
-          return value.toString().trim();
-        }
+    if (isFormula) {
+      final formula = formulaTextFromData(data);
+      if (formula.isNotEmpty) {
+        return formula;
       }
     }
     for (final key in const <String>['title', 'label', 'name', 'url']) {
@@ -606,6 +611,14 @@ class BlockEmbedNode extends BlockNode {
       data: data ?? this.data,
       fallbackText: fallbackText ?? this.fallbackText,
       attributes: attributes ?? this.attributes,
+    );
+  }
+
+  BlockEmbedNode copyWithFormulaText(String text) {
+    final normalizedText = text.trim();
+    return copyWith(
+      data: formulaDataWithText(data, normalizedText),
+      fallbackText: fallbackText.trim().isEmpty ? fallbackText : normalizedText,
     );
   }
 

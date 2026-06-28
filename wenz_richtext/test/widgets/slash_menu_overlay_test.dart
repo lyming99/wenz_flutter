@@ -81,7 +81,7 @@ void main() {
     final colorScheme = theme.colorScheme;
     expect(material.color, colorScheme.surfaceContainerLow);
     expect(material.elevation, 6);
-    expect(material.surfaceTintColor, Colors.transparent);
+    expect(material.surfaceTintColor, colorScheme.surfaceTint.withAlpha(0));
     expect(material.clipBehavior, Clip.antiAlias);
     final shape = material.shape as RoundedRectangleBorder;
     expect(shape.borderRadius, BorderRadius.circular(12));
@@ -109,6 +109,32 @@ void main() {
     expect(selectedBox.borderRadius, BorderRadius.circular(8));
   });
 
+  testWidgets('overlay shows minimal empty state when no command matches',
+      (tester) async {
+    final editor = WenzRichTextController(
+      document: _document('/unknown-command'),
+      selection: collapsedTextSelection('p1', 0, 16),
+    );
+    final slash = SlashMenuController(
+      editor: editor,
+      registry: SlashMenuRegistry(),
+    );
+    addTearDown(slash.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WenzSlashMenuOverlay(controller: slash),
+        ),
+      ),
+    );
+
+    expect(find.text('No commands found'), findsOneWidget);
+    expect(find.text('Try a different keyword.'), findsOneWidget);
+    expect(find.byIcon(Icons.search_off), findsOneWidget);
+    expect(find.byType(ListView), findsNothing);
+  });
+
   testWidgets('overlay exposes item text icon description and semantics',
       (tester) async {
     final editor = WenzRichTextController(
@@ -128,7 +154,9 @@ void main() {
 
     expect(find.text('Heading'), findsOneWidget);
     expect(find.text('Large section title'), findsOneWidget);
-    expect(find.byIcon(Icons.title), findsOneWidget);
+    // Every heading level (H1–H6) renders the shared `title` icon, so several
+    // tiles carry it once the full heading family is in the registry.
+    expect(find.byIcon(Icons.title), findsAtLeastNWidgets(1));
     expect(
       find.bySemanticsLabel('Heading, Large section title'),
       findsOneWidget,
@@ -209,6 +237,14 @@ void main() {
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
     await tester.pump();
     expect(slash.highlightedIndex, 0);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+    await tester.pump();
+    expect(slash.highlightedIndex, slash.items.length - 1);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pump();
+    expect(slash.highlightedIndex, 0);
   });
 
   testWidgets('editor keeps slash menu inside viewport near bottom',
@@ -251,6 +287,38 @@ void main() {
     );
     expect(overlayRect.top, greaterThanOrEqualTo(0));
     expect(overlayRect.bottom, lessThanOrEqualTo(220));
+  });
+
+  testWidgets('overlay keeps long command list scrollable within max height',
+      (tester) async {
+    final editor = WenzRichTextController(
+      document: _document('/'),
+      selection: collapsedTextSelection('p1', 0, 1),
+    );
+    final slash = SlashMenuController(editor: editor);
+    addTearDown(slash.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WenzSlashMenuOverlay(
+            controller: slash,
+            maxHeight: 96,
+          ),
+        ),
+      ),
+    );
+
+    final overlayFinder =
+        find.byKey(const ValueKey<String>('wenz-slash-menu-overlay'));
+    expect(overlayFinder, findsOneWidget);
+    expect(tester.getSize(overlayFinder).height, lessThanOrEqualTo(96));
+    expect(find.byType(Scrollbar), findsOneWidget);
+
+    await tester.drag(find.byType(ListView), const Offset(0, -480));
+    await tester.pump();
+
+    expect(find.text('Video'), findsOneWidget);
   });
 
   testWidgets('read-only editor does not render an open slash menu',
@@ -439,6 +507,49 @@ void main() {
     );
     expect(editor.selection?.isCollapsed, isTrue);
     expect(editor.selection?.extent.offset, 0);
+  });
+
+  testWidgets('overlay renders nothing while the menu is closed', (tester) async {
+    final editor = WenzRichTextController(
+      document: _document('plain text'),
+      selection: collapsedTextSelection('p1', 0, 4),
+    );
+    final slash = SlashMenuController(editor: editor);
+    addTearDown(slash.dispose);
+
+    // No slash trigger present: the overlay must not occupy any space.
+    expect(slash.isOpen, isFalse);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WenzSlashMenuOverlay(controller: slash),
+        ),
+      ),
+    );
+    expect(
+      find.byKey(const ValueKey<String>('wenz-slash-menu-overlay')),
+      findsNothing,
+    );
+
+    // Triggering the slash later renders the overlay.
+    editor.replaceDocument(
+      _document('/heading'),
+      selection: collapsedTextSelection('p1', 0, 8),
+    );
+    await tester.pump();
+    expect(
+      find.byKey(const ValueKey<String>('wenz-slash-menu-overlay')),
+      findsOneWidget,
+    );
+
+    // Closing hides it again (renders SizedBox.shrink, no overlay key).
+    slash.close();
+    await tester.pump();
+    expect(
+      find.byKey(const ValueKey<String>('wenz-slash-menu-overlay')),
+      findsNothing,
+    );
   });
 }
 

@@ -74,14 +74,54 @@ class DocumentSchema {
         return _normalizeTableBlock(table);
       case final VideoBlockNode video:
         return _normalizeVideoBlock(video);
-      case final CodeBlockNode _:
-      case final ImageBlockNode _:
-      case final DividerBlockNode _:
-      case final FileBlockNode _:
-        return block;
+      case final CodeBlockNode code:
+        return _normalizeCodeBlock(code);
+      case final ImageBlockNode image:
+        return _normalizeImageBlock(image);
+      case final DividerBlockNode divider:
+        return _normalizeDividerBlock(divider);
+      case final FileBlockNode file:
+        return _normalizeFileBlock(file);
       default:
         return block;
     }
+  }
+
+  BlockNode _normalizeCodeBlock(CodeBlockNode block) {
+    final attrs = _normalizeAttributes(block.type, block.attributes);
+    if (attrs == block.attributes) {
+      return block;
+    }
+    return CodeBlockNode(
+      id: block.id,
+      code: block.code,
+      language: block.language,
+      attributes: attrs,
+    );
+  }
+
+  BlockNode _normalizeImageBlock(ImageBlockNode block) {
+    final attrs = _normalizeAttributes(block.type, block.attributes);
+    if (attrs == block.attributes) {
+      return block;
+    }
+    return block.copyWith(attributes: attrs);
+  }
+
+  BlockNode _normalizeDividerBlock(DividerBlockNode block) {
+    final attrs = _normalizeAttributes(block.type, block.attributes);
+    if (attrs == block.attributes) {
+      return block;
+    }
+    return DividerBlockNode(id: block.id, attributes: attrs);
+  }
+
+  BlockNode _normalizeFileBlock(FileBlockNode block) {
+    final attrs = _normalizeAttributes(block.type, block.attributes);
+    if (attrs == block.attributes) {
+      return block;
+    }
+    return block.copyWith(attributes: attrs);
   }
 
   BlockNode _normalizeVideoBlock(VideoBlockNode block) {
@@ -188,6 +228,7 @@ class DocumentSchema {
   }
 
   TableBlockNode _normalizeTableBlock(TableBlockNode block) {
+    final attrs = _normalizeAttributes(block.type, block.attributes);
     var changed = false;
     final rows = <List<TableCellNode>>[];
     for (final row in block.table.rows) {
@@ -218,12 +259,12 @@ class DocumentSchema {
       }
       rows.add(nextRow);
     }
-    if (!changed) {
+    if (!changed && attrs == block.attributes) {
       return block;
     }
     return TableBlockNode(
       id: block.id,
-      attributes: block.attributes,
+      attributes: attrs,
       table: TableModel(
         rows: rows,
         columnAlignments: Map<int, String>.from(block.table.columnAlignments),
@@ -262,7 +303,7 @@ class DocumentSchema {
           indent: indent,
           alignment: attrs.alignment,
           listType: canonical,
-          checked: canonical == 'task' ? (attrs.checked ?? false) : null,
+          checked: canonical == 'task' ? (attrs.checked ?? false) : attrs.checked,
           childNote: attrs.childNote,
           anchor: attrs.anchor,
         );
@@ -281,9 +322,19 @@ class DocumentSchema {
       case BlockType.video:
       case BlockType.embed:
       case BlockType.file:
-        // Non-text blocks don't carry text-block attrs; leave as-is.
-        return attrs;
+        // Non-text blocks don't carry text-block list/todo attrs.
+        return _withoutListTodoAttrs(attrs);
     }
+  }
+
+  static BlockAttributes _withoutListTodoAttrs(BlockAttributes attrs) {
+    return BlockAttributes(
+      level: attrs.level,
+      indent: attrs.indent,
+      alignment: attrs.alignment,
+      childNote: attrs.childNote,
+      anchor: attrs.anchor,
+    );
   }
 
   /// Maps legacy list-type strings to the canonical set. Canonical values pass

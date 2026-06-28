@@ -37,6 +37,9 @@ const _selectionHighlightKey = ValueKey<String>(
 );
 const _findHighlightKey = ValueKey<String>('wenz-richtext-find-highlight');
 const _inlineFormulaKey = ValueKey<String>('wenz-richtext-inline-formula');
+const _editorBackgroundKey = ValueKey<String>(
+  'wenz-richtext-editor-background',
+);
 const _accessibilityFocusHighlightKey = ValueKey<String>(
   'wenz-richtext-accessibility-focus-highlight',
 );
@@ -95,7 +98,7 @@ const double _kMinTableColumnWidth = 48.0;
 const double _kMaxTableColumnWidth = 640.0;
 const double _kTableToolbarMinWidth = 150.0;
 const double _kTableFloatingToolbarGap = 4.0;
-const double _kTableFloatingToolbarEstimatedHeight = 40.0;
+const double _kTableFloatingToolbarEstimatedHeight = 36.0;
 const double _kTableFloatingToolbarEstimatedWidth = 160.0;
 const int _kTableToolbarBackgroundColor = 0xFFFFF3CD;
 const double _kTableSurfaceRadius = 8.0;
@@ -120,6 +123,10 @@ const double _kListMarkerWidth = 18.0;
 const double _kListMarkerGap = _kListTextInset - _kListMarkerWidth;
 const double _kListItemSpacing = _kRichTextBodyFontSize * 0.25;
 const double _kNestedListItemSpacing = _kRichTextBodyFontSize * 0.15;
+/// Collapses index-adjacent quote blocks so their surface backgrounds fuse
+/// into one continuous run (see `_spacingBetweenBlocks`). Grouping is
+/// adjacency + type only; an `indent` attribute does not break the run.
+const double _kAdjacentQuoteSpacing = 0.0;
 const double _kHeadingCollapseSlotWidth = 30.0;
 const double _kHeadingCollapseButtonSize = 26.0;
 const double _kHeadingCollapseIconSize = 20.0;
@@ -127,23 +134,68 @@ const double _kCodeBlockFontSize = 13.5;
 const double _kCodeBlockLineHeight = 1.6;
 const double _kCodeBlockPaddingVertical = 18.0;
 const double _kCodeBlockPaddingHorizontal = 20.0;
+const double _kCodeBlockHeaderGap = 14.0;
+const double _kCodeBlockHeaderHeight = 36.0;
+const double _kCodeBlockHeaderPaddingHorizontal = 10.0;
+const double _kCodeBlockHeaderToolbarEndPadding = 4.0;
+const double _kCodeBlockRadius = 12.0;
+const double _kCodeBlockHeaderRadius = 9.0;
 const int _kCodeBlockBackgroundColor = 0xFF1E1E2E;
 const int _kCodeBlockTextColor = 0xFFE6E6F0;
 const int _kCodeBlockSelectionHighlightColor = 0x944C7DFF;
 const int _kCodeLineNumberColor = 0x8AE6E6F0;
 const double _kCodeLineNumberGap = 12.0;
 const int _kCodeLanguageTagColor = 0xB38A8AFF;
+
+// Menu and floating toolbar tokens are documented in
+// docs/design/menu_toolbar_minimal_spec.md; keep future chrome changes here.
+const double _kMinimalMenuSurfaceRadius = 12.0;
+const double _kMinimalMenuSurfaceElevation = 6.0;
+const int _kMinimalMenuSurfaceShadowAlpha = 48;
+const int _kMinimalMenuSurfaceBorderAlpha = 180;
+const double _kMinimalMenuItemHeight = 32.0;
+const double _kMinimalMenuDividerHeight = 8.0;
+const double _kMinimalMenuItemRadius = 8.0;
+const double _kMinimalMenuIconSlotWidth = 22.0;
+const double _kMinimalMenuIconSize = 18.0;
+const double _kMinimalMenuIconTextGap = 10.0;
+const double _kMinimalMenuShortcutGap = 18.0;
+const EdgeInsets _kMinimalMenuSurfacePadding = EdgeInsets.all(4);
+const EdgeInsets _kMinimalMenuItemPadding = EdgeInsets.symmetric(
+  horizontal: 12,
+);
+const double _kMinimalToolbarButtonSize = 32.0;
+const double _kMinimalToolbarIconSize = 18.0;
+const double _kMinimalToolbarButtonRadius = 8.0;
+const double _kMinimalFloatingToolbarSurfaceRadius = 12.0;
+const double _kMinimalFloatingToolbarSurfaceElevation = 3.0;
+const int _kMinimalFloatingToolbarShadowAlpha = 40;
+const int _kMinimalFloatingToolbarBorderAlpha = 180;
+const EdgeInsets _kMinimalFloatingToolbarPadding = EdgeInsets.symmetric(
+  horizontal: 4,
+  vertical: 2,
+);
+const double _kMinimalFloatingToolbarButtonGap = 2.0;
+const double _kMinimalFloatingToolbarDividerWidth = 9.0;
+const double _kMinimalFloatingToolbarDividerHeight = 18.0;
+const int _kMinimalFloatingToolbarDividerAlpha = 120;
+const int _kMinimalToolbarDisabledAlpha = 96;
+const int _kMinimalMenuDisabledAlpha = 110;
+const int _kMinimalMenuSelectedAlphaLight = 36;
+const int _kMinimalMenuSelectedAlphaDark = 48;
+const int _kMinimalToolbarHoverAlpha = 150;
+const int _kMinimalToolbarFocusAlpha = 26;
+const int _kMinimalToolbarPressedAlpha = 34;
 const double _kBlockFloatingToolbarInset = 6.0;
-const double _kBlockToolbarButtonSize = 32.0;
-const double _kBlockToolbarIconSize = 18.0;
-const double _kBlockToolbarButtonRadius = 8.0;
+const double _kBlockToolbarButtonSize = _kMinimalToolbarButtonSize;
+const double _kBlockToolbarIconSize = _kMinimalToolbarIconSize;
+const double _kBlockToolbarButtonRadius = _kMinimalToolbarButtonRadius;
 const Size _kBlockToolbarButtonFixedSize =
     Size.square(_kBlockToolbarButtonSize);
 const BoxConstraints _kBlockToolbarButtonConstraints = BoxConstraints.tightFor(
   width: _kBlockToolbarButtonSize,
   height: _kBlockToolbarButtonSize,
 );
-const double _kCodeFloatingToolbarHeight = _kBlockToolbarButtonSize;
 const int _kCodeKeywordColor = 0xFFC792EA;
 const int _kCodeStringColor = 0xFFC3E88D;
 const int _kCodeTypeColor = 0xFF82AAFF;
@@ -167,6 +219,12 @@ const int _kCalloutSuccessBackgroundColor = 0x99D6E4E0;
 const int _kCalloutDangerBackgroundColor = 0xB3FFDAD6;
 const double _kMediaBlockMarginVertical = _kRichTextBodyFontSize * 1.2;
 const double _kMediaCornerRadius = 12.0;
+
+// Video blocks have a single overflow boundary: the rounded video frame.
+// The frame width is capped by the editor content width, its aspect ratio is
+// clamped to avoid unusable extremes, and its computed height is clamped below.
+// Everything inside the frame (built-in chrome or MediaResolver output) must be
+// laid out by these finite constraints and clipped by the frame.
 const double _kVideoPlayButtonSize = 64.0;
 const double _kVideoPlayIconSize = 24.0;
 const double _kVideoMinAspectRatio = 1 / 3;
@@ -177,18 +235,21 @@ const double _kVideoFrameFallbackWidth = 320.0;
 const int _kFileCardBorderColor = 0xFFECE9F5;
 const double _kFileIconSize = 40.0;
 const double _kFileCardGap = 14.0;
-const double _kPopupMenuRadius = 12.0;
-const double _kPopupMenuElevation = 6.0;
+const double _kPopupMenuRadius = _kMinimalMenuSurfaceRadius;
+const double _kPopupMenuElevation = _kMinimalMenuSurfaceElevation;
 const double _kPopupMenuMinWidth = 184.0;
 const double _kPopupMenuMaxWidth = 320.0;
 const double _kPopupMenuMaxHeight = 560.0;
-const double _kPopupMenuItemHeight = 32.0;
-const double _kPopupMenuDividerHeight = 8.0;
+const double _kPopupMenuItemHeight = _kMinimalMenuItemHeight;
+const double _kPopupMenuDividerHeight = _kMinimalMenuDividerHeight;
 const double _kPopupMenuTextMaxWidth = 212.0;
 const double _kSlashMenuGap = 6.0;
+const double _kFormulaEditorGap = 8.0;
+const double _kFormulaEditorWidth = 360.0;
+const double _kFormulaEditorEstimatedHeight = 180.0;
 const double _kPopupViewportInset = 8.0;
-const EdgeInsets _kPopupMenuPadding = EdgeInsets.all(4);
-const EdgeInsets _kPopupMenuItemPadding = EdgeInsets.symmetric(horizontal: 12);
+const EdgeInsets _kPopupMenuPadding = _kMinimalMenuSurfacePadding;
+const EdgeInsets _kPopupMenuItemPadding = _kMinimalMenuItemPadding;
 const RouteSettings _kPopupMenuRouteSettings = RouteSettings(
   name: 'wenz-richtext-popup-menu',
 );
@@ -224,12 +285,33 @@ const double _kIndentPixelsPerLevel = 24;
 Color _popupMenuColor(ThemeData theme) => theme.colorScheme.surfaceContainerLow;
 
 Color _popupMenuShadowColor(ThemeData theme) =>
-    theme.colorScheme.shadow.withAlpha(48);
+    theme.colorScheme.shadow.withAlpha(_kMinimalMenuSurfaceShadowAlpha);
 
 ShapeBorder _popupMenuShape(ThemeData theme) {
   return RoundedRectangleBorder(
-    side: BorderSide(color: theme.colorScheme.outlineVariant.withAlpha(180)),
+    side: BorderSide(
+      color: theme.colorScheme.outlineVariant.withAlpha(
+        _kMinimalMenuSurfaceBorderAlpha,
+      ),
+    ),
     borderRadius: BorderRadius.circular(_kPopupMenuRadius),
+  );
+}
+
+Color _floatingToolbarSurfaceColor(ThemeData theme) =>
+    theme.colorScheme.surfaceContainerLow;
+
+Color _floatingToolbarShadowColor(ThemeData theme) =>
+    theme.colorScheme.shadow.withAlpha(_kMinimalFloatingToolbarShadowAlpha);
+
+ShapeBorder _floatingToolbarShape(ThemeData theme) {
+  return RoundedRectangleBorder(
+    side: BorderSide(
+      color: theme.colorScheme.outlineVariant.withAlpha(
+        _kMinimalFloatingToolbarBorderAlpha,
+      ),
+    ),
+    borderRadius: BorderRadius.circular(_kMinimalFloatingToolbarSurfaceRadius),
   );
 }
 
@@ -237,10 +319,10 @@ Color _blockToolbarIconColor(ThemeData theme) =>
     theme.colorScheme.onSurfaceVariant;
 
 Color _blockToolbarDisabledIconColor(ThemeData theme) =>
-    theme.colorScheme.onSurfaceVariant.withAlpha(96);
+    theme.colorScheme.onSurfaceVariant.withAlpha(_kMinimalToolbarDisabledAlpha);
 
 Color _blockToolbarPressedOverlayColor(ThemeData theme) =>
-    theme.colorScheme.primary.withAlpha(34);
+    theme.colorScheme.primary.withAlpha(_kMinimalToolbarPressedAlpha);
 
 ButtonStyle _blockToolbarIconButtonStyle(
   ThemeData theme, {
@@ -260,13 +342,41 @@ ButtonStyle _blockToolbarIconButtonStyle(
         disabledForegroundColor ?? _blockToolbarDisabledIconColor(theme),
     backgroundColor: Colors.transparent,
     disabledBackgroundColor: Colors.transparent,
-    hoverColor: colorScheme.surfaceContainerHighest.withAlpha(150),
-    focusColor: colorScheme.primary.withAlpha(26),
+    hoverColor: colorScheme.surfaceContainerHighest.withAlpha(
+      _kMinimalToolbarHoverAlpha,
+    ),
+    focusColor: colorScheme.primary.withAlpha(_kMinimalToolbarFocusAlpha),
     highlightColor: _blockToolbarPressedOverlayColor(theme),
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(_kBlockToolbarButtonRadius),
     ),
   );
+}
+
+class _MinimalFloatingToolbarSurface extends StatelessWidget {
+  const _MinimalFloatingToolbarSurface({
+    super.key,
+    required this.child,
+  });
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Material(
+      color: _floatingToolbarSurfaceColor(theme),
+      elevation: _kMinimalFloatingToolbarSurfaceElevation,
+      shadowColor: _floatingToolbarShadowColor(theme),
+      surfaceTintColor: Colors.transparent,
+      shape: _floatingToolbarShape(theme),
+      clipBehavior: Clip.antiAlias,
+      child: Padding(
+        padding: _kMinimalFloatingToolbarPadding,
+        child: child,
+      ),
+    );
+  }
 }
 
 class _PopupMenuItemContent extends StatelessWidget {
@@ -276,6 +386,7 @@ class _PopupMenuItemContent extends StatelessWidget {
     this.shortcut,
     this.enabled = true,
     this.selected = false,
+    this.destructive = false,
   });
 
   final IconData icon;
@@ -283,47 +394,83 @@ class _PopupMenuItemContent extends StatelessWidget {
   final String? shortcut;
   final bool enabled;
   final bool selected;
+  final bool destructive;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final effectiveIcon = selected ? Icons.check : icon;
+    final foregroundColor = !enabled
+        ? colorScheme.onSurfaceVariant.withAlpha(_kMinimalMenuDisabledAlpha)
+        : destructive
+            ? colorScheme.error
+            : selected
+                ? colorScheme.primary
+                : colorScheme.onSurface;
     final iconColor = !enabled
-        ? colorScheme.onSurfaceVariant.withAlpha(110)
-        : selected
-            ? colorScheme.primary
-            : colorScheme.onSurfaceVariant;
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        SizedBox(
-          width: 22,
-          child: Icon(
-            effectiveIcon,
-            size: 18,
-            color: iconColor,
-          ),
+        ? colorScheme.onSurfaceVariant.withAlpha(
+            _kMinimalMenuDisabledAlpha,
+          )
+        : destructive
+            ? colorScheme.error
+            : selected
+                ? colorScheme.primary
+                : colorScheme.onSurfaceVariant;
+    final selectedBackgroundAlpha =
+        theme.brightness == Brightness.dark
+            ? _kMinimalMenuSelectedAlphaDark
+            : _kMinimalMenuSelectedAlphaLight;
+    return Semantics(
+      selected: selected,
+      enabled: enabled,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: selected
+              ? colorScheme.primaryContainer.withAlpha(selectedBackgroundAlpha)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(_kMinimalMenuItemRadius),
         ),
-        const SizedBox(width: 10),
-        ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: _kPopupMenuTextMaxWidth),
-          child: Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-        if (shortcut != null) ...<Widget>[
-          const SizedBox(width: 18),
-          Text(
-            shortcut!,
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: colorScheme.onSurfaceVariant,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            SizedBox(
+              width: _kMinimalMenuIconSlotWidth,
+              child: Icon(
+                effectiveIcon,
+                size: _kMinimalMenuIconSize,
+                color: iconColor,
+              ),
             ),
-          ),
-        ],
-      ],
+            const SizedBox(width: _kMinimalMenuIconTextGap),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: _kPopupMenuTextMaxWidth),
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: foregroundColor,
+                  fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                ),
+              ),
+            ),
+            if (shortcut != null) ...<Widget>[
+              const SizedBox(width: _kMinimalMenuShortcutGap),
+              Text(
+                shortcut!,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: enabled
+                      ? colorScheme.onSurfaceVariant
+                      : colorScheme.onSurfaceVariant.withAlpha(
+                          _kMinimalMenuDisabledAlpha,
+                        ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }
@@ -553,6 +700,170 @@ class _SharedLayoutCacheScope extends InheritedWidget {
       cache != oldWidget.cache;
 }
 
+class _FormulaEditRequestController {
+  const _FormulaEditRequestController({required this.onRequested});
+
+  final ValueChanged<_FormulaEditTarget> onRequested;
+
+  void request(_FormulaEditTarget target) => onRequested(target);
+}
+
+class _FormulaEditRequestScope extends InheritedWidget {
+  const _FormulaEditRequestScope({
+    required this.controller,
+    required super.child,
+  });
+
+  final _FormulaEditRequestController controller;
+
+  static _FormulaEditRequestController? maybeOf(BuildContext context) {
+    final scope =
+        context.dependOnInheritedWidgetOfExactType<_FormulaEditRequestScope>();
+    return scope?.controller;
+  }
+
+  @override
+  bool updateShouldNotify(_FormulaEditRequestScope oldWidget) =>
+      controller != oldWidget.controller;
+}
+
+class _FormulaEditTarget {
+  const _FormulaEditTarget.inline({
+    required this.position,
+    required this.formula,
+    required this.anchor,
+  }) : blockId = null;
+
+  const _FormulaEditTarget.block({
+    required this.blockId,
+    required this.formula,
+    required this.anchor,
+  }) : position = null;
+
+  final DocumentPosition? position;
+  final String? blockId;
+  final String formula;
+  final Rect anchor;
+}
+
+class _FormulaEditorAnchor {
+  const _FormulaEditorAnchor({
+    required this.left,
+    required this.top,
+    required this.width,
+  });
+
+  final double left;
+  final double top;
+  final double width;
+}
+
+Rect _globalRectForContext(BuildContext context, Offset fallback) {
+  final renderObject = context.findRenderObject();
+  if (renderObject is RenderBox && renderObject.hasSize) {
+    return renderObject.localToGlobal(Offset.zero) & renderObject.size;
+  }
+  return fallback & Size.zero;
+}
+
+class _FormulaEditPopup extends StatelessWidget {
+  const _FormulaEditPopup({
+    required this.controller,
+    required this.focusNode,
+    required this.onConfirm,
+    required this.onCancel,
+  });
+
+  final TextEditingController controller;
+  final FocusNode focusNode;
+  final VoidCallback onConfirm;
+  final VoidCallback onCancel;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Semantics(
+      container: true,
+      namesRoute: true,
+      label: '公式编辑弹窗',
+      child: Material(
+        key: const ValueKey<String>('wenz-richtext-formula-editor-popup'),
+        color: _popupMenuColor(theme),
+        elevation: _kPopupMenuElevation,
+        shadowColor: _popupMenuShadowColor(theme),
+        shape: _popupMenuShape(theme),
+        clipBehavior: Clip.antiAlias,
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+            Row(
+              children: <Widget>[
+                Expanded(
+                  child: Text(
+                    '编辑公式',
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  key: const ValueKey<String>(
+                    'wenz-richtext-formula-editor-close',
+                  ),
+                  tooltip: '关闭公式编辑',
+                  visualDensity: VisualDensity.compact,
+                  onPressed: onCancel,
+                  icon: const Icon(Icons.close),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              key: const ValueKey<String>('wenz-richtext-formula-editor-input'),
+              controller: controller,
+              focusNode: focusNode,
+              minLines: 1,
+              maxLines: 4,
+              textInputAction: TextInputAction.done,
+              decoration: const InputDecoration(
+                labelText: 'LaTeX 公式',
+                border: OutlineInputBorder(),
+                isDense: true,
+              ),
+              onSubmitted: (_) => onConfirm(),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: <Widget>[
+                TextButton(
+                  key: const ValueKey<String>(
+                    'wenz-richtext-formula-editor-cancel',
+                  ),
+                  onPressed: onCancel,
+                  child: const Text('取消'),
+                ),
+                const SizedBox(width: 8),
+                FilledButton(
+                  key: const ValueKey<String>(
+                    'wenz-richtext-formula-editor-confirm',
+                  ),
+                  onPressed: onConfirm,
+                  child: const Text('确认'),
+                ),
+              ],
+            ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 @immutable
 class WenzRichTextEditorAccessibility {
   const WenzRichTextEditorAccessibility({
@@ -628,6 +939,7 @@ class WenzRichTextEditor extends StatefulWidget {
     this.padding = const EdgeInsets.all(16),
     this.blockSpacing = _kDefaultBlockSpacing,
     this.textStyle,
+    this.defaultTextColor,
     this.physics,
     this.focusNode,
     this.autofocus = false,
@@ -638,6 +950,7 @@ class WenzRichTextEditor extends StatefulWidget {
     this.blockRenderers,
     this.mediaResolver,
     this.inlineEmbedRenderer,
+    this.onMentionTap,
     this.findController,
     this.onFindRequested,
     this.onReplaceRequested,
@@ -654,6 +967,13 @@ class WenzRichTextEditor extends StatefulWidget {
   /// editor's default font color; runs without [TextAttributes.color] inherit
   /// it unless a link style supplies the foreground color.
   final TextStyle? textStyle;
+
+  /// Default foreground color for uncolored text runs.
+  ///
+  /// This is a convenience override for [textStyle.color]. Inline
+  /// [TextAttributes.color] still wins, and link text keeps the built-in link
+  /// foreground when no inline color is set.
+  final Color? defaultTextColor;
   final ScrollPhysics? physics;
   final FocusNode? focusNode;
   final bool autofocus;
@@ -686,6 +1006,8 @@ class WenzRichTextEditor extends StatefulWidget {
   /// Optional [MediaResolver] that takes over rendering for image/video/file
   /// blocks. The built-in media renderers ask the resolver first and fall back
   /// to the placeholder when it returns `null` (or when no resolver is set).
+  /// Video resolver output is placed inside the same finite, clipped video
+  /// frame as the built-in placeholder, both in-editor and in preview dialogs.
   /// This is the quick path for real media rendering; for finer control
   /// (e.g. swapping the whole block widget) use [blockRenderers] instead.
   /// Throwing from the resolver is tolerated — the editor falls back to the
@@ -695,7 +1017,23 @@ class WenzRichTextEditor extends StatefulWidget {
   /// Optional renderer for inline embeds such as formula / mention. The
   /// built-in text renderers ask this first and use their compact fallback
   /// labels when it returns `null`.
+  ///
+  /// Mention interaction boundary: the built-in fallback renders mentions as
+  /// compact `@label` text, keeps each mention as one logical document slot for
+  /// caret/selection math, and lets the editor's normal tap/drag gestures handle
+  /// hit testing in both editing and read-only modes. If a custom renderer
+  /// returns a span for `mention`, it is responsible for any recognizer it adds;
+  /// return `null` to preserve the built-in mention boundary and editor-level
+  /// mention click handling.
   final InlineEmbedRenderer? inlineEmbedRenderer;
+
+  /// Called when a `mention` inline embed is activated by the editor.
+  ///
+  /// The callback receives [WenzMentionTapDetails], including the mention `id`,
+  /// `label`, original embed [WenzMentionTapDetails.data], and document
+  /// position. When omitted, mention rendering and selection behaviour remain
+  /// unchanged.
+  final WenzMentionTapCallback? onMentionTap;
 
   /// Optional find/replace controller. When provided, the editor paints all
   /// current matches and enables Ctrl/Cmd+F/H shortcut dispatch.
@@ -771,10 +1109,17 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
   late final ScrollController _scrollController = ScrollController();
   late final SharedTextLayoutCache _layoutCache = SharedTextLayoutCache();
   final GlobalKey _editorOverlayKey = GlobalKey();
+  OverlayEntry? _slashMenuOverlayEntry;
+  bool _slashMenuOverlaySyncScheduled = false;
+  final TextEditingController _formulaEditController = TextEditingController();
+  final FocusNode _formulaEditFocusNode = FocusNode(
+    debugLabel: 'WenzFormulaEditor',
+  );
   late final TableFloatingToolbarOverlayController
       _tableToolbarOverlayController = TableFloatingToolbarOverlayController();
   final _BlockExtentCache _extentCache = _BlockExtentCache();
   BlockRendererRegistry? _ownedBlockRenderers;
+  _FormulaEditTarget? _formulaEditTarget;
 
   /// Guards [_scrollCaretIntoView]'s virtualised estimate-and-realign loop.
   /// Each estimate-driven re-arm increments this; once it exceeds
@@ -865,6 +1210,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
       widget.slashMenuController?.close();
     }
     widget.slashMenuController?.addListener(_handleSlashMenuChanged);
+    _scheduleSlashMenuOverlaySync();
     widget.outlineController?.addListener(_handleOutlineControllerChanged);
     _syncFindControllerOutline();
     _revealCurrentSelectionIfHidden();
@@ -880,6 +1226,12 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _scheduleSlashMenuOverlaySync();
+  }
+
+  @override
   void didUpdateWidget(covariant WenzRichTextEditor oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.controller != widget.controller) {
@@ -888,13 +1240,17 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
       oldWidget.controller.attachFocusNode(null);
       widget.controller.addListener(_handleControllerChanged);
       _extentCache.clear();
+      _layoutCache.clear();
     } else if (oldWidget.textStyle != widget.textStyle ||
+        oldWidget.defaultTextColor != widget.defaultTextColor ||
         oldWidget.blockRenderers != widget.blockRenderers ||
         oldWidget.mediaResolver != widget.mediaResolver ||
         oldWidget.inlineEmbedRenderer != widget.inlineEmbedRenderer ||
+        oldWidget.onMentionTap != widget.onMentionTap ||
         oldWidget.findController != widget.findController ||
         oldWidget.slashMenuController != widget.slashMenuController) {
       _extentCache.clear();
+      _layoutCache.clear();
     }
     if (oldWidget.findController != widget.findController) {
       oldWidget.findController?.removeListener(_handleFindControllerChanged);
@@ -908,6 +1264,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     }
     if (oldWidget.slashMenuController != widget.slashMenuController) {
       oldWidget.slashMenuController?.removeListener(_handleSlashMenuChanged);
+      _removeSlashMenuOverlay();
       widget.slashMenuController?.attachEditor(widget.controller);
       if (widget.readOnly) {
         widget.slashMenuController?.close();
@@ -918,7 +1275,10 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     }
     if (!oldWidget.readOnly && widget.readOnly) {
       widget.slashMenuController?.close();
+      _removeSlashMenuOverlay();
+      _closeFormulaEditor();
     }
+    _scheduleSlashMenuOverlaySync();
     if (oldWidget.outlineController != widget.outlineController) {
       oldWidget.outlineController?.removeListener(
         _handleOutlineControllerChanged,
@@ -946,6 +1306,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     _scrollController.removeListener(_handleScrollChanged);
     widget.findController?.removeListener(_handleFindControllerChanged);
     widget.slashMenuController?.removeListener(_handleSlashMenuChanged);
+    _removeSlashMenuOverlay();
     widget.outlineController?.removeListener(_handleOutlineControllerChanged);
     // Release the focus node from the controller so a later requestFocus() on
     // a disposed editor is a safe no-op. Only clear when this widget was the
@@ -959,6 +1320,8 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     _inputClient.detach();
     _tableToolbarOverlayController.hide();
     _tableToolbarOverlayController.dispose();
+    _formulaEditController.dispose();
+    _formulaEditFocusNode.dispose();
     _scrollController.dispose();
     // BlockGeometryRegistry holds no native resources; clearing its maps is
     // unnecessary once the editor is gone.
@@ -976,14 +1339,70 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
 
   void _handleSlashMenuChanged() {
     if (mounted) {
+      _scheduleSlashMenuOverlaySync();
       setState(() {});
     }
   }
 
   void _handleScrollChanged() {
-    if (mounted && widget.slashMenuController?.isOpen == true) {
+    if (mounted &&
+        (widget.slashMenuController?.isOpen == true ||
+            _formulaEditTarget != null)) {
+      _scheduleSlashMenuOverlaySync();
       setState(() {});
     }
+  }
+
+  void _scheduleSlashMenuOverlaySync() {
+    if (!mounted || _slashMenuOverlaySyncScheduled) {
+      return;
+    }
+    _slashMenuOverlaySyncScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _slashMenuOverlaySyncScheduled = false;
+      if (mounted) {
+        _syncSlashMenuOverlay();
+      }
+    });
+  }
+
+  void _syncSlashMenuOverlay() {
+    final shouldShow =
+        !widget.readOnly && widget.slashMenuController?.isOpen == true;
+    if (!shouldShow) {
+      _removeSlashMenuOverlay();
+      return;
+    }
+    final entry = _slashMenuOverlayEntry;
+    if (entry != null) {
+      entry.markNeedsBuild();
+      return;
+    }
+    final overlay = Overlay.maybeOf(context);
+    if (overlay == null) {
+      return;
+    }
+    _slashMenuOverlayEntry = OverlayEntry(
+      builder: (_) {
+        final controller = widget.slashMenuController;
+        if (!mounted || widget.readOnly || controller == null ||
+            !controller.isOpen) {
+          return const SizedBox.shrink();
+        }
+        return _buildSlashMenuOverlay(controller);
+      },
+    );
+    overlay.insert(_slashMenuOverlayEntry!);
+  }
+
+  void _removeSlashMenuOverlay() {
+    final entry = _slashMenuOverlayEntry;
+    if (entry == null) {
+      return;
+    }
+    _slashMenuOverlayEntry = null;
+    entry.remove();
+    entry.dispose();
   }
 
   void _handleOutlineControllerChanged() {
@@ -1253,6 +1672,57 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     widget.outlineController?.toggleByBlockId(blockId);
   }
 
+  void _openFormulaEditor(_FormulaEditTarget target) {
+    if (widget.readOnly) {
+      return;
+    }
+    widget.slashMenuController?.close();
+    _formulaEditController.text = target.formula;
+    _formulaEditController.selection = TextSelection.collapsed(
+      offset: _formulaEditController.text.length,
+    );
+    setState(() {
+      _formulaEditTarget = target;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _formulaEditTarget == target) {
+        _formulaEditFocusNode.requestFocus();
+      }
+    });
+  }
+
+  void _closeFormulaEditor() {
+    if (_formulaEditTarget == null) {
+      return;
+    }
+    setState(() {
+      _formulaEditTarget = null;
+    });
+  }
+
+  void _confirmFormulaEditor() {
+    final target = _formulaEditTarget;
+    if (target == null) {
+      return;
+    }
+    final text = _formulaEditController.text.trim();
+    if (text.isNotEmpty) {
+      if (target.position != null) {
+        widget.controller.updateInlineFormula(
+          position: target.position!,
+          text: text,
+        );
+      } else if (target.blockId != null) {
+        widget.controller.updateBlockFormula(
+          blockId: target.blockId!,
+          text: text,
+        );
+      }
+    }
+    _closeFormulaEditor();
+    widget.controller.requestFocus();
+  }
+
   @override
   Widget build(BuildContext context) {
     final focusNode = _effectiveFocusNode;
@@ -1270,7 +1740,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
       return _buildEditorShell(
         context,
         focusNode,
-        const SizedBox.shrink(),
+        _wrapMentionTapHandler(const SizedBox.shrink()),
       );
     }
 
@@ -1295,6 +1765,10 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
         widget.findController?.matches ?? const <FindReplaceMatch>[];
     final currentFindMatch = widget.findController?.currentMatch;
     final listMarkers = _listMarkersFor(sourceBlocks);
+    final effectiveTextStyle = _effectiveEditorTextStyle(
+      widget.textStyle,
+      widget.defaultTextColor,
+    );
 
     _extentCache.retainBlocks(sourceBlocks);
 
@@ -1316,6 +1790,8 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
           blockIndex: blockIndex,
           blockCount: sourceBlocks.length,
           listMarker: listMarkers[blockIndex],
+          quoteGroupPosition:
+              _quoteGroupPositionFor(sourceBlocks, blockIndex),
           keepAlive: keepAliveIds.contains(block.id),
           blockChanged: dirtyIds == null || dirtyIds.contains(block.id),
           selection: widget.controller.selection,
@@ -1323,11 +1799,12 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
           registry: _registry,
           blockRenderers: _blockRenderers,
           showCaret: showCaret,
-          textStyle: widget.textStyle,
+          textStyle: effectiveTextStyle,
           showDebugOverlay: widget.showDebugOverlay,
           canEdit: !widget.readOnly,
           mediaResolver: widget.mediaResolver,
           inlineEmbedRenderer: widget.inlineEmbedRenderer,
+          onMentionTap: widget.onMentionTap,
           headingCollapseState: _headingCollapseStateFor(block),
           onHeadingCollapseToggled: _handleHeadingCollapseToggled,
           onCodeLanguageChanged: widget.readOnly
@@ -1362,44 +1839,138 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
         );
       },
     );
+    final editorStack = Stack(
+      key: _editorOverlayKey,
+      fit: StackFit.expand,
+      clipBehavior: Clip.none,
+      children: <Widget>[
+        SelectionGestureOverlay(
+          registry: _registry,
+          scrollController: _scrollController,
+          focusNode: focusNode,
+          readOnly: widget.readOnly,
+          onSelectionChanged: _handleSelectionChanged,
+          onTapBeyondContent: _handleTapBeyondContent,
+          child: editor,
+        ),
+        if (_formulaEditTarget != null)
+          Positioned.fill(
+            child: GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onTap: _closeFormulaEditor,
+            ),
+        ),
+        if (_formulaEditTarget != null) _buildFormulaEditorOverlay(),
+      ],
+    );
+    final scopedEditorStack = _wrapMentionTapHandler(editorStack);
     return _buildEditorShell(
       context,
       focusNode,
-      Stack(
-        key: _editorOverlayKey,
-        fit: StackFit.expand,
-        clipBehavior: Clip.none,
-        children: <Widget>[
-          SelectionGestureOverlay(
-            registry: _registry,
-            scrollController: _scrollController,
-            focusNode: focusNode,
-            readOnly: widget.readOnly,
-            onSelectionChanged: _handleSelectionChanged,
-            onTapBeyondContent: _handleTapBeyondContent,
-            child: editor,
-          ),
-          if (!widget.readOnly && widget.slashMenuController?.isOpen == true)
-            _buildSlashMenuOverlay(widget.slashMenuController!),
-        ],
+      widget.readOnly
+          ? scopedEditorStack
+          : _FormulaEditRequestScope(
+              controller: _FormulaEditRequestController(
+                onRequested: _openFormulaEditor,
+              ),
+              child: scopedEditorStack,
+            ),
+    );
+  }
+
+  Widget _wrapMentionTapHandler(Widget child) {
+    return WenzMentionTapHandler(
+      onMentionTap: widget.onMentionTap,
+      selection: widget.controller.selection,
+      child: child,
+    );
+  }
+
+  Widget _buildFormulaEditorOverlay() {
+    final anchor = _formulaEditorAnchor();
+    final width = anchor.width;
+    return Positioned(
+      left: anchor.left,
+      top: anchor.top,
+      child: SizedBox(
+        width: width,
+        child: _FormulaEditPopup(
+          controller: _formulaEditController,
+          focusNode: _formulaEditFocusNode,
+          onConfirm: _confirmFormulaEditor,
+          onCancel: _closeFormulaEditor,
+        ),
       ),
+    );
+  }
+
+  _FormulaEditorAnchor _formulaEditorAnchor() {
+    final target = _formulaEditTarget;
+    final overlayBox = _editorOverlayKey.currentContext?.findRenderObject();
+    if (target == null || overlayBox is! RenderBox || !overlayBox.hasSize) {
+      final fallback = widget.padding.resolve(TextDirection.ltr).topLeft;
+      return _FormulaEditorAnchor(
+        left: fallback.dx,
+        top: fallback.dy,
+        width: _kFormulaEditorWidth,
+      );
+    }
+    final mediaQuery = MediaQuery.maybeOf(context);
+    final keyboardInset = mediaQuery?.viewInsets.bottom ?? 0.0;
+    final viewportHeight = mediaQuery?.size.height ?? overlayBox.size.height;
+    final overlayTop = overlayBox.localToGlobal(Offset.zero).dy;
+    final keyboardTop = viewportHeight - keyboardInset;
+    final visibleBottom = math.max(
+      _kPopupViewportInset,
+      math.min(
+        overlayBox.size.height,
+        keyboardInset > 0 ? keyboardTop - overlayTop : overlayBox.size.height,
+      ),
+    );
+    final localRect = overlayBox.globalToLocal(target.anchor.topLeft) &
+        target.anchor.size;
+    final width = math.min(
+      _kFormulaEditorWidth,
+      math.max(0.0, overlayBox.size.width - _kPopupViewportInset * 2),
+    );
+    final preferredBelowTop = localRect.bottom + _kFormulaEditorGap;
+    final roomBelow = visibleBottom - preferredBelowTop - _kPopupViewportInset;
+    final roomAbove = localRect.top - _kFormulaEditorGap - _kPopupViewportInset;
+    final opensAbove = roomBelow < _kFormulaEditorEstimatedHeight &&
+        roomAbove > roomBelow;
+    final preferredTop = opensAbove
+        ? localRect.top - _kFormulaEditorEstimatedHeight - _kFormulaEditorGap
+        : preferredBelowTop;
+    final maxLeft = overlayBox.size.width - width - _kPopupViewportInset;
+    final maxTop = visibleBottom - _kFormulaEditorEstimatedHeight;
+    final leftMin = maxLeft >= _kPopupViewportInset ? _kPopupViewportInset : 0.0;
+    final topMin = maxTop >= _kPopupViewportInset ? _kPopupViewportInset : 0.0;
+    return _FormulaEditorAnchor(
+      left: localRect.left
+          .clamp(leftMin, maxLeft > 0 ? maxLeft : 0)
+          .toDouble(),
+      top: preferredTop
+          .clamp(topMin, maxTop > 0 ? maxTop : 0)
+          .toDouble(),
+      width: width,
     );
   }
 
   Widget _buildSlashMenuOverlay(SlashMenuController controller) {
     final anchor = _slashMenuAnchor();
-    final overlayBox = _editorOverlayKey.currentContext?.findRenderObject();
-    final hasOverlaySize = overlayBox is RenderBox && overlayBox.hasSize;
-    final overlaySize = hasOverlaySize ? overlayBox.size : Size.zero;
+    final positioningBox = _slashMenuPositioningBox();
+    final hasPositioningSize =
+        positioningBox is RenderBox && positioningBox.hasSize;
+    final overlaySize = hasPositioningSize ? positioningBox.size : Size.zero;
     final availableWidth = math.max(
       0.0,
-      hasOverlaySize
+      hasPositioningSize
           ? overlaySize.width - anchor.offset.dx - _kPopupViewportInset
           : _kPopupMenuMaxWidth,
     );
     final availableHeight = math.max(
       0.0,
-      hasOverlaySize
+      hasPositioningSize
           ? (anchor.opensAbove
               ? anchor.offset.dy - _kPopupViewportInset
               : overlaySize.height - anchor.offset.dy - _kPopupViewportInset)
@@ -1408,13 +1979,16 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     return Positioned(
       left: anchor.offset.dx,
       top: anchor.opensAbove ? null : anchor.offset.dy,
-      bottom: anchor.opensAbove && hasOverlaySize
+      bottom: anchor.opensAbove && hasPositioningSize
           ? overlaySize.height - anchor.offset.dy
           : null,
-      child: WenzSlashMenuOverlay(
-        controller: controller,
-        maxWidth: math.min(_kPopupMenuMaxWidth, availableWidth),
-        maxHeight: math.min(_kPopupMenuMaxHeight, availableHeight),
+      child: TapRegion(
+        groupId: this,
+        child: WenzSlashMenuOverlay(
+          controller: controller,
+          maxWidth: math.min(_kPopupMenuMaxWidth, availableWidth),
+          maxHeight: math.min(_kPopupMenuMaxHeight, availableHeight),
+        ),
       ),
     );
   }
@@ -1426,8 +2000,12 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
   ) {
     return TapRegion(
       groupId: this,
-      enabled: widget.slashMenuController?.isOpen == true,
-      onTapOutside: (_) => widget.slashMenuController?.close(),
+      enabled: widget.slashMenuController?.isOpen == true ||
+          _formulaEditTarget != null,
+      onTapOutside: (_) {
+        widget.slashMenuController?.close();
+        _closeFormulaEditor();
+      },
       child: _SharedLayoutCacheScope(
         cache: _layoutCache,
         child: Focus(
@@ -1451,9 +2029,13 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
             child: _withHighContrastFocusHighlight(
               context,
               focusNode,
-              TableFloatingToolbarOverlayHost(
-                controller: _tableToolbarOverlayController,
-                child: child,
+              ColoredBox(
+                key: _editorBackgroundKey,
+                color: _editorBackgroundColor(Theme.of(context)),
+                child: TableFloatingToolbarOverlayHost(
+                  controller: _tableToolbarOverlayController,
+                  child: child,
+                ),
               ),
             ),
           ),
@@ -1488,14 +2070,23 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
   }
 
   _SlashMenuAnchor _slashMenuAnchor() {
-    final fallback = widget.padding.resolve(TextDirection.ltr).topLeft;
+    final paddingFallback = widget.padding.resolve(TextDirection.ltr).topLeft;
     final selection = widget.controller.selection;
     final overlayContext = _editorOverlayKey.currentContext;
-    final overlayBox = overlayContext?.findRenderObject();
+    final editorBox = overlayContext?.findRenderObject();
+    final positioningBox = _slashMenuPositioningBox();
+    final fallback = editorBox is RenderBox &&
+            editorBox.hasSize &&
+            positioningBox != null &&
+            positioningBox.hasSize
+        ? positioningBox.globalToLocal(
+            editorBox.localToGlobal(paddingFallback),
+          )
+        : paddingFallback;
     if (selection == null ||
         !selection.isCollapsed ||
-        overlayBox is! RenderBox ||
-        !overlayBox.hasSize) {
+        positioningBox == null ||
+        !positioningBox.hasSize) {
       return _SlashMenuAnchor(offset: fallback);
     }
     final caret = _registry.caretRectForPosition(selection.extent);
@@ -1504,19 +2095,19 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     }
     final mediaQuery = MediaQuery.maybeOf(context);
     final keyboardInset = mediaQuery?.viewInsets.bottom ?? 0.0;
-    final viewportHeight = mediaQuery?.size.height ?? overlayBox.size.height;
-    final overlayTop = overlayBox.localToGlobal(Offset.zero).dy;
+    final viewportHeight = mediaQuery?.size.height ?? positioningBox.size.height;
+    final overlayTop = positioningBox.localToGlobal(Offset.zero).dy;
     final keyboardTop = viewportHeight - keyboardInset;
     final keyboardClippedBottom = keyboardInset > 0
         ? keyboardTop - overlayTop
-        : overlayBox.size.height;
-    final caretTop = overlayBox.globalToLocal(caret.topLeft);
-    final caretBottom = overlayBox.globalToLocal(caret.bottomLeft);
+        : positioningBox.size.height;
+    final caretTop = positioningBox.globalToLocal(caret.topLeft);
+    final caretBottom = positioningBox.globalToLocal(caret.bottomLeft);
     final maxLeft =
-        overlayBox.size.width - _kPopupMenuMinWidth - _kPopupViewportInset;
+        positioningBox.size.width - _kPopupMenuMinWidth - _kPopupViewportInset;
     final visibleBottom = math.max(
       _kPopupViewportInset,
-      math.min(overlayBox.size.height, keyboardClippedBottom),
+      math.min(positioningBox.size.height, keyboardClippedBottom),
     );
     final preferredBelowTop = caretBottom.dy + _kSlashMenuGap;
     final roomBelow = visibleBottom - preferredBelowTop - _kPopupViewportInset;
@@ -1536,12 +2127,108 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     );
   }
 
+  RenderBox? _slashMenuPositioningBox() {
+    final overlay = Overlay.maybeOf(context);
+    final renderObject = overlay?.context.findRenderObject();
+    if (renderObject is RenderBox && renderObject.hasSize) {
+      return renderObject;
+    }
+    final editorObject = _editorOverlayKey.currentContext?.findRenderObject();
+    if (editorObject is RenderBox && editorObject.hasSize) {
+      return editorObject;
+    }
+    return null;
+  }
+
   void _handleSelectionChanged(DocumentSelection selection) {
     _skipNextCaretScrollIntoView = true;
     widget.controller.setSelection(selection);
+    _dispatchMentionTapForSelection(selection);
     // A selection change from the gesture overlay repositions the caret, so
     // refresh the IME buffer so the platform input follows the new location.
     _inputClient.syncBuffer();
+  }
+
+  void _dispatchMentionTapForSelection(DocumentSelection selection) {
+    final callback = widget.onMentionTap;
+    if (callback == null || !selection.isCollapsed) {
+      return;
+    }
+    final position = selection.extent;
+    final mention = _mentionEmbedAtPosition(position);
+    if (mention == null) {
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || widget.controller.selection != selection) {
+        return;
+      }
+      callback(
+        WenzMentionTapDetails(
+          embed: mention,
+          position: position,
+          selection: selection,
+        ),
+      );
+    });
+  }
+
+  InlineEmbed? _mentionEmbedAtPosition(DocumentPosition position) {
+    final nodes = _inlineNodesForPosition(position);
+    if (nodes == null) {
+      return null;
+    }
+    var offset = 0;
+    for (final node in nodes) {
+      final length = inlineLength(node);
+      final start = offset;
+      final end = offset + length;
+      if (node is InlineEmbed &&
+          _isMentionEmbedType(node.embedType) &&
+          (position.offset == start || position.offset == end)) {
+        return node;
+      }
+      offset = end;
+    }
+    return null;
+  }
+
+  List<InlineNode>? _inlineNodesForPosition(DocumentPosition position) {
+    final blocks = widget.controller.document.blocks;
+    if (position.blockIndex < 0 || position.blockIndex >= blocks.length) {
+      return null;
+    }
+    final block = blocks[position.blockIndex];
+    if (block.id != position.blockId) {
+      return null;
+    }
+    if (position.path.isBlockText) {
+      if (block is TextBlockNode) {
+        return block.content;
+      }
+      if (block is CalloutBlockNode) {
+        return block.content;
+      }
+      return null;
+    }
+    if (position.path.isTableCellText && block is TableBlockNode) {
+      final rowIndex = position.path.tableRowIndex;
+      final columnIndex = position.path.tableColumnIndex;
+      if (rowIndex == null || columnIndex == null) {
+        return null;
+      }
+      final cell = block.table.cellAt(rowIndex, columnIndex);
+      final cellBlocks = cell?.blocks;
+      if (cellBlocks == null) {
+        return null;
+      }
+      for (final cellBlock in cellBlocks) {
+        if (cellBlock is TextBlockNode) {
+          return cellBlock.content;
+        }
+      }
+    }
+    return null;
   }
 
   bool _handleTapBeyondContent(Offset _) {
@@ -3696,6 +4383,7 @@ class _KeepAliveBlock extends StatefulWidget {
     required this.blockIndex,
     required this.blockCount,
     this.listMarker,
+    this.quoteGroupPosition = QuoteGroupPosition.standalone,
     required this.keepAlive,
     required this.blockChanged,
     required this.selection,
@@ -3708,6 +4396,7 @@ class _KeepAliveBlock extends StatefulWidget {
     this.canEdit = true,
     this.mediaResolver,
     this.inlineEmbedRenderer,
+    this.onMentionTap,
     this.headingCollapseState,
     this.onHeadingCollapseToggled,
     this.onCodeLanguageChanged,
@@ -3727,6 +4416,7 @@ class _KeepAliveBlock extends StatefulWidget {
   final int blockIndex;
   final int blockCount;
   final String? listMarker;
+  final QuoteGroupPosition quoteGroupPosition;
   final bool keepAlive;
   final bool blockChanged;
   final DocumentSelection? selection;
@@ -3739,6 +4429,7 @@ class _KeepAliveBlock extends StatefulWidget {
   final bool canEdit;
   final MediaResolver? mediaResolver;
   final InlineEmbedRenderer? inlineEmbedRenderer;
+  final WenzMentionTapCallback? onMentionTap;
   final HeadingCollapseState? headingCollapseState;
   final ValueChanged<String>? onHeadingCollapseToggled;
   final ValueChanged<String>? onCodeLanguageChanged;
@@ -3793,9 +4484,11 @@ class _KeepAliveBlockState extends State<_KeepAliveBlock>
         oldWidget.showCaret != widget.showCaret ||
         oldWidget.showDebugOverlay != widget.showDebugOverlay ||
         oldWidget.listMarker != widget.listMarker ||
+        oldWidget.quoteGroupPosition != widget.quoteGroupPosition ||
         oldWidget.canEdit != widget.canEdit ||
         oldWidget.textStyle != widget.textStyle ||
         oldWidget.inlineEmbedRenderer != widget.inlineEmbedRenderer ||
+        oldWidget.onMentionTap != widget.onMentionTap ||
         oldWidget.headingCollapseState != widget.headingCollapseState ||
         oldWidget.onHeadingCollapseToggled != widget.onHeadingCollapseToggled ||
         oldWidget.onCodeLanguageChanged != widget.onCodeLanguageChanged ||
@@ -3829,6 +4522,7 @@ class _KeepAliveBlockState extends State<_KeepAliveBlock>
       blockIndex: widget.blockIndex,
       blockCount: widget.blockCount,
       listMarker: widget.listMarker,
+      quoteGroupPosition: widget.quoteGroupPosition,
       selection: widget.selection,
       compositionState: widget.compositionState,
       registry: widget.registry,
@@ -3883,6 +4577,7 @@ class _BlockRenderer extends StatelessWidget {
     required this.blockIndex,
     required this.blockCount,
     this.listMarker,
+    this.quoteGroupPosition = QuoteGroupPosition.standalone,
     required this.selection,
     required this.compositionState,
     required this.registry,
@@ -3912,6 +4607,7 @@ class _BlockRenderer extends StatelessWidget {
   final int blockIndex;
   final int blockCount;
   final String? listMarker;
+  final QuoteGroupPosition quoteGroupPosition;
   final DocumentSelection? selection;
   final CompositionState? compositionState;
   final BlockGeometryRegistry registry;
@@ -3943,6 +4639,7 @@ class _BlockRenderer extends StatelessWidget {
       blockIndex: blockIndex,
       blockCount: blockCount,
       listMarker: listMarker,
+      quoteGroupPosition: quoteGroupPosition,
       selection: selection,
       compositionState: compositionState,
       registry: registry,
@@ -4642,7 +5339,7 @@ class _BlockDragHandleButtonState extends State<_BlockDragHandleButton> {
     }
     if (widget.onAction != null) {
       entries.addAll(const <PopupMenuEntry<_ObjectMenuSelection>>[
-        PopupMenuDivider(),
+        PopupMenuDivider(height: _kPopupMenuDividerHeight),
         PopupMenuItem<_ObjectMenuSelection>(
           value: _ObjectMenuSelection.action(ObjectBlockAction.delete),
           height: _kPopupMenuItemHeight,
@@ -4650,6 +5347,7 @@ class _BlockDragHandleButtonState extends State<_BlockDragHandleButton> {
           child: _PopupMenuItemContent(
             icon: Icons.delete_outline,
             label: '删除块',
+            destructive: true,
           ),
         ),
       ]);
@@ -4777,6 +5475,18 @@ double _indentStartFor(BlockNode block) {
   return indent * step;
 }
 
+/// Vertical spacing between two index-adjacent top-level blocks.
+///
+/// Render-layer concern only: it feeds the virtual list's `offsetFor` /
+/// `totalExtent` accounting but never the document model, measurement of an
+/// individual block, or keep-alive. Returns `fallback` unchanged when the host
+/// passes custom spacing that deviates from `_kDefaultBlockSpacing` (the custom
+/// path must keep winning). Otherwise list pairs collapse to
+/// `_kListItemSpacing` / `_kNestedListItemSpacing` and heading margins apply via
+/// `_blockMarginBefore` / `_blockMarginAfter`. Per the "Consecutive quote block
+/// background" contract in `docs/rendering.md`, `quote → quote` collapses to `0`
+/// so adjacent quote surfaces fuse; every other adjacency keeps its current
+/// spacing, including `quote → non-quote` boundaries.
 double _spacingBetweenBlocks(
   BlockNode previous,
   BlockNode next,
@@ -4791,6 +5501,14 @@ double _spacingBetweenBlocks(
     return previousIndent > 0 || nextIndent > 0
         ? _kNestedListItemSpacing
         : _kListItemSpacing;
+  }
+  // Any index-adjacent `quote → quote` pair collapses to 0 so their surface
+  // backgrounds fuse into one continuous run. Grouping is adjacency + type
+  // only — an `indent` attribute does not start a new column or break the
+  // run (see the "Consecutive quote block background" contract in
+  // `docs/rendering.md`).
+  if (_isQuoteBlock(previous) && _isQuoteBlock(next)) {
+    return _kAdjacentQuoteSpacing;
   }
   return math.max(
     _blockMarginAfter(previous, fallback),
@@ -4816,6 +5534,10 @@ bool _isListItemBlock(BlockNode block) {
   return block is TextBlockNode && block.type == BlockType.listItem;
 }
 
+bool _isQuoteBlock(BlockNode block) {
+  return block is TextBlockNode && block.type == BlockType.quote;
+}
+
 bool _selectionTouchesBlockIndex(DocumentSelection? selection, int blockIndex) {
   if (selection == null) {
     return false;
@@ -4829,6 +5551,34 @@ bool _selectionTouchesBlockIndex(DocumentSelection? selection, int blockIndex) {
 
 int _blockIndentLevel(BlockNode block) {
   return (block.attributes.indent ?? 0).clamp(0, 8).toInt();
+}
+
+/// Position of [blocks[index]] within its run of consecutive quote blocks,
+/// mirroring the adjacency rule used by [_spacingBetweenBlocks] exactly: two
+/// quotes join into one continuous background when (and only when) they are
+/// index-adjacent and both `BlockType.quote`. Grouping is adjacency + type
+/// only — an `indent` attribute does not extend or break the run, so a quote
+/// flanked by quotes of any indent still joins them. A non-quote block (or a
+/// quote flanked only by non-quotes) is [QuoteGroupPosition.standalone]. See
+/// "Consecutive quote block background" in `docs/rendering.md`.
+QuoteGroupPosition _quoteGroupPositionFor(List<BlockNode> blocks, int index) {
+  final block = blocks[index];
+  if (!_isQuoteBlock(block)) {
+    return QuoteGroupPosition.standalone;
+  }
+  final joinsPrevious = index > 0 && _isQuoteBlock(blocks[index - 1]);
+  final joinsNext =
+      index < blocks.length - 1 && _isQuoteBlock(blocks[index + 1]);
+  if (joinsPrevious && joinsNext) {
+    return QuoteGroupPosition.interior;
+  }
+  if (joinsPrevious) {
+    return QuoteGroupPosition.last;
+  }
+  if (joinsNext) {
+    return QuoteGroupPosition.first;
+  }
+  return QuoteGroupPosition.standalone;
 }
 
 _RowBlockFormat? _rowBlockFormatFor(BlockNode block) {
@@ -4916,6 +5666,7 @@ Widget _defaultTextBlockRenderer(
     textStyle: rc.textStyle,
     showDebugOverlay: rc.showDebugOverlay,
     listMarker: rc.listMarker,
+    quoteGroupPosition: rc.quoteGroupPosition,
     inlineEmbedRenderer: rc.inlineEmbedRenderer,
     headingCollapseState: rc.headingCollapseState,
     onHeadingCollapseToggled: rc.onHeadingCollapseToggled,
@@ -5184,7 +5935,7 @@ void _showVideoPreview(
               image: true,
               child: AspectRatio(
                 aspectRatio: aspectRatio,
-                child: media,
+                child: _VideoFrameChildBoundary(child: media),
               ),
             ),
           ),
@@ -5321,6 +6072,7 @@ class _TextBlockRenderer extends StatelessWidget {
     this.textStyle,
     this.showDebugOverlay = false,
     this.listMarker,
+    this.quoteGroupPosition = QuoteGroupPosition.standalone,
     this.inlineEmbedRenderer,
     this.headingCollapseState,
     this.onHeadingCollapseToggled,
@@ -5340,6 +6092,7 @@ class _TextBlockRenderer extends StatelessWidget {
   final TextStyle? textStyle;
   final bool showDebugOverlay;
   final String? listMarker;
+  final QuoteGroupPosition quoteGroupPosition;
   final InlineEmbedRenderer? inlineEmbedRenderer;
   final HeadingCollapseState? headingCollapseState;
   final ValueChanged<String>? onHeadingCollapseToggled;
@@ -5351,12 +6104,14 @@ class _TextBlockRenderer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isTaskListItem =
-        block.type == BlockType.listItem && block.attributes.listType == 'task';
+    final isTodoListItem = block.type == BlockType.listItem &&
+        (block.attributes.listType == 'task' || block.attributes.checked != null);
+    final showTodoListMarker =
+        isTodoListItem && block.attributes.listType == 'ordered';
     final isTaskChecked = block.attributes.checked == true;
     final baseStyle = _blockTextStyle(context, block, textStyle);
-    final todoStyle = isTaskListItem ? _todoTextStyle(baseStyle) : baseStyle;
-    final effectiveStyle = isTaskListItem && isTaskChecked
+    final todoStyle = isTodoListItem ? _todoTextStyle(baseStyle) : baseStyle;
+    final effectiveStyle = isTodoListItem && isTaskChecked
         ? _completedTodoTextStyle(context, todoStyle)
         : todoStyle;
     final compositionRange = _localCompositionRange(
@@ -5373,6 +6128,9 @@ class _TextBlockRenderer extends StatelessWidget {
       effectiveStyle,
       compositionRange,
       inlineEmbedRenderer,
+      blockId: block.id,
+      blockIndex: blockIndex,
+      path: path,
     );
     final selected = _selectionRangeForPath(
           selection,
@@ -5392,7 +6150,7 @@ class _TextBlockRenderer extends StatelessWidget {
       ),
       offsetMapper: inlineTextLayout.offsetMapper,
       textAlign: _textAlign(block.attributes.alignment),
-      minHeight: isTaskListItem
+      minHeight: isTodoListItem
           ? _lineHeightFor(effectiveStyle)
           : (effectiveStyle.fontSize ?? 14) * _kBlockMinHeightFactor,
       selection: selection,
@@ -5411,11 +6169,14 @@ class _TextBlockRenderer extends StatelessWidget {
     if (block.type == BlockType.quote) {
       return _withBlockSemantics(
         block,
-        _QuoteBlockSurface(child: text),
+        _QuoteBlockSurface(
+          position: quoteGroupPosition,
+          child: text,
+        ),
         selected: selected,
       );
     }
-    if (isTaskListItem) {
+    if (isTodoListItem) {
       return _withBlockSemantics(
         block,
         Padding(
@@ -5425,6 +6186,20 @@ class _TextBlockRenderer extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
+              if (showTodoListMarker && prefix != null) ...<Widget>[
+                SizedBox(
+                  key: ValueKey<String>(
+                    'wenz-richtext-list-marker-${block.id}',
+                  ),
+                  width: _kListMarkerWidth,
+                  child: Text(
+                    prefix,
+                    style: effectiveStyle,
+                    textAlign: TextAlign.end,
+                  ),
+                ),
+                const SizedBox(width: _kListMarkerGap),
+              ],
               _TodoCheckbox(
                 blockId: block.id,
                 registry: registry,
@@ -5762,25 +6537,98 @@ class _TodoCheckboxState extends State<_TodoCheckbox> {
   }
 }
 
+/// Paint-only background for a single `BlockType.quote` text block.
+///
+/// Visual elements: a `surfaceContainer` fill, a 4px `primary` accent bar on
+/// the start edge (running the full block height), end-side rounded corners
+/// that redistribute by [QuoteGroupPosition] (start edge stays square so the
+/// accent bar seats flush and neighbours join without a seam), and a content
+/// inset of `EdgeInsetsDirectional.fromSTEB(22, top, 18, bottom)` whose
+/// vertical halves redistribute by group position — outer edges of a run keep
+/// the original 8px while inner edges tighten to 4px so fused paragraphs share
+/// a uniform 8px line gap.
+///
+/// This surface is decoration only: selection, caret, composition, hit-testing
+/// geometry, and find highlights all live in the inner `_TextSelectionSurface`
+/// (`child`), not here. See "Consecutive quote block background" in
+/// `docs/rendering.md` for the contract by which index-adjacent quote blocks
+/// fuse into one continuous background — corners, vertical padding, and the
+/// accent bar redistribute by group position (first / interior / last) while
+/// the start edge stays square so neighbours join without a seam.
 class _QuoteBlockSurface extends StatelessWidget {
-  const _QuoteBlockSurface({required this.child});
+  const _QuoteBlockSurface({
+    required this.child,
+    this.position = QuoteGroupPosition.standalone,
+  });
 
   final Widget child;
+
+  /// Group position controlling corner rounding and inner vertical padding so
+  /// consecutive quote surfaces fuse into one continuous background.
+  final QuoteGroupPosition position;
+
+  /// End-side corner radius kept on a standalone quote and on the outer edge
+  /// of a run's top/bottom blocks.
+  static const Radius _endRadius = Radius.circular(8);
+
+  /// Vertical inset on the outer edge of a fused run — the top of the run's
+  /// first block and the bottom of its last block — matching the original
+  /// standalone quote breathing room.
+  static const double _outerVerticalPadding = 8.0;
+
+  /// Vertical inset where a quote fuses with a neighbour. Two abutting
+  /// `_innerVerticalPadding` halves meet across the collapsed inter-quote gap
+  /// and sum to [_outerVerticalPadding], so stacked paragraphs read as one
+  /// continuous surface with uniform line spacing and no doubled whitespace.
+  static const double _innerVerticalPadding = 4.0;
+
+  /// Top inset: full [_outerVerticalPadding] on a standalone quote and on the
+  /// first block of a run; tightened to [_innerVerticalPadding] otherwise so
+  /// the block joins the quote below without a doubled gap.
+  double get _topPadding =>
+      position == QuoteGroupPosition.standalone ||
+              position == QuoteGroupPosition.first
+          ? _outerVerticalPadding
+          : _innerVerticalPadding;
+
+  /// Bottom inset: full [_outerVerticalPadding] on a standalone quote and on
+  /// the last block of a run; tightened to [_innerVerticalPadding] otherwise
+  /// so the block joins the quote above without a doubled gap.
+  double get _bottomPadding =>
+      position == QuoteGroupPosition.standalone ||
+              position == QuoteGroupPosition.last
+          ? _outerVerticalPadding
+          : _innerVerticalPadding;
+
+  BorderRadiusDirectional get _borderRadius {
+    final topEnd = position == QuoteGroupPosition.standalone ||
+            position == QuoteGroupPosition.first
+        ? _endRadius
+        : Radius.zero;
+    final bottomEnd = position == QuoteGroupPosition.standalone ||
+            position == QuoteGroupPosition.last
+        ? _endRadius
+        : Radius.zero;
+    return BorderRadiusDirectional.only(
+      topEnd: topEnd,
+      bottomEnd: bottomEnd,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final topPadding = _topPadding;
+    final bottomPadding = _bottomPadding;
+    final borderRadius = _borderRadius;
     return LayoutBuilder(
       builder: (context, constraints) {
         final quote = DecoratedBox(
           key: const ValueKey<String>('wenz-richtext-quote-background'),
           decoration: BoxDecoration(
             color: scheme.surfaceContainer,
-            borderRadius: const BorderRadiusDirectional.only(
-              topEnd: Radius.circular(8),
-              bottomEnd: Radius.circular(8),
-            ),
+            borderRadius: borderRadius,
           ),
           child: Stack(
             children: <Widget>[
@@ -5797,7 +6645,12 @@ class _QuoteBlockSurface extends StatelessWidget {
                 ),
               ),
               Padding(
-                padding: const EdgeInsetsDirectional.fromSTEB(22, 8, 18, 8),
+                padding: EdgeInsetsDirectional.fromSTEB(
+                  22,
+                  topPadding,
+                  18,
+                  bottomPadding,
+                ),
                 child: constraints.maxWidth.isFinite
                     ? SizedBox(width: double.infinity, child: child)
                     : child,
@@ -5843,8 +6696,10 @@ class _CodeBlockRenderer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final codeBlockBackground = _codeBlockBackgroundColor(theme);
+    final codeBlockText = _codeBlockTextColor(theme);
     final codeStyle = theme.textTheme.bodyMedium?.copyWith(
-          color: const Color(_kCodeBlockTextColor),
+          color: codeBlockText,
           fontFamily: 'JetBrains Mono',
           fontFamilyFallback: const <String>[
             'Fira Code',
@@ -5854,10 +6709,10 @@ class _CodeBlockRenderer extends StatelessWidget {
           fontSize: _kCodeBlockFontSize,
           height: _kCodeBlockLineHeight,
         ) ??
-        const TextStyle(
-          color: Color(_kCodeBlockTextColor),
+        TextStyle(
+          color: codeBlockText,
           fontFamily: 'JetBrains Mono',
-          fontFamilyFallback: <String>[
+          fontFamilyFallback: const <String>[
             'Fira Code',
             'Consolas',
             'monospace',
@@ -5885,87 +6740,269 @@ class _CodeBlockRenderer extends StatelessWidget {
       codeStyle,
       compositionRange,
     );
+    final lineNumberStyle = codeStyle.copyWith(
+      color: const Color(WenzCodeBlockLineNumbers.color),
+      fontFamily: WenzCodeBlockLineNumbers.fontFamily,
+      fontSize: WenzCodeBlockLineNumbers.fontSize,
+      height: WenzCodeBlockLineNumbers.lineHeight,
+    );
+    final lineNumberLabels = WenzCodeBlockLineNumbers.labelsForCode(block.code);
+    final lineNumberText = lineNumberLabels.join('\n');
     return _withBlockSemantics(
       block,
       DecoratedBox(
         key: ValueKey<String>('wenz-richtext-code-block-${block.id}'),
         decoration: BoxDecoration(
-          color: const Color(_kCodeBlockBackgroundColor),
+          color: codeBlockBackground,
           border: selected
               ? Border.all(color: theme.colorScheme.primary, width: 1.5)
-              : null,
-          borderRadius: BorderRadius.circular(12),
+              : Border.all(color: _codeBlockBorderColor(theme)),
+          borderRadius: BorderRadius.circular(_kCodeBlockRadius),
         ),
         child: Padding(
           padding: const EdgeInsets.symmetric(
             horizontal: _kCodeBlockPaddingHorizontal,
             vertical: _kCodeBlockPaddingVertical,
           ),
-          child: _BlockFloatingToolbarSurface(
-            toolbarTop: 1 - (_kCodeFloatingToolbarHeight / 2),
-            toolbar: selected
-                ? _CodeBlockToolbar(
-                    language: block.language,
-                    onLanguageChanged: onLanguageChanged,
-                    onCopyPressed: onCodeCopied == null
-                        ? null
-                        : () {
-                            unawaited(onCodeCopied!(block.code));
-                          },
-                  )
-                : null,
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final textDirection = Directionality.of(context);
-                final availableWidth = constraints.maxWidth.isFinite
-                    ? constraints.maxWidth
-                    : MediaQuery.sizeOf(context).width;
-                final contentWidth = math.max(
-                  availableWidth,
-                  _measureInlineSpanWidth(codeSpan, textDirection) + 1,
-                );
-                return SingleChildScrollView(
-                  key: ValueKey<String>(
-                    'wenz-richtext-code-scroll-${block.id}',
-                  ),
-                  scrollDirection: Axis.horizontal,
-                  child: SizedBox(
-                    width: contentWidth,
-                    child: _TextSelectionSurface(
-                      blockId: block.id,
-                      blockIndex: blockIndex,
-                      path: path,
-                      textLength: block.code.length,
-                      textSpan: codeSpan,
-                      offsetMapper: _InlineOffsetMapper.identity(
-                        block.code.length,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              _CodeBlockToolbar(
+                blockId: block.id,
+                language: block.language,
+                onLanguageChanged: onLanguageChanged,
+                onCopyPressed: onCodeCopied == null
+                    ? null
+                    : () {
+                        unawaited(onCodeCopied!(block.code));
+                      },
+              ),
+              const SizedBox(height: _kCodeBlockHeaderGap),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final textDirection = Directionality.of(context);
+                  final availableWidth = constraints.maxWidth.isFinite
+                      ? constraints.maxWidth
+                      : MediaQuery.sizeOf(context).width;
+                  final lineNumberDigits =
+                      WenzCodeBlockLineNumbers.maxLabelDigits(block.code);
+                  final lineNumberWidth = _measureInlineSpanWidth(
+                        TextSpan(
+                          text: '8' * lineNumberDigits,
+                          style: lineNumberStyle,
+                        ),
+                        textDirection,
+                      ) +
+                      1;
+                  final effectiveLineNumberWidth = math.min(
+                    lineNumberWidth,
+                    availableWidth,
+                  );
+                  final effectiveLineNumberGap = math.min(
+                    WenzCodeBlockLineNumbers.gapToCode,
+                    math.max(0.0, availableWidth - effectiveLineNumberWidth),
+                  );
+                  final scrollViewportWidth = math.max(
+                    0.0,
+                    availableWidth -
+                        effectiveLineNumberWidth -
+                        effectiveLineNumberGap,
+                  );
+                  final contentWidth = math.max(
+                    scrollViewportWidth,
+                    _measureInlineSpanWidth(codeSpan, textDirection) + 1,
+                  );
+                  final minHeight =
+                      (codeStyle.fontSize ?? _kCodeBlockFontSize) *
+                          _kBlockMinHeightFactor;
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      _CodeLineNumberGutter(
+                        blockId: block.id,
+                        registry: registry,
+                        width: effectiveLineNumberWidth,
+                        minHeight: minHeight,
+                        text: lineNumberText,
+                        style: lineNumberStyle,
                       ),
-                      textAlign: TextAlign.start,
-                      minHeight: (codeStyle.fontSize ?? _kCodeBlockFontSize) *
-                          _kBlockMinHeightFactor,
-                      selection: selection,
-                      showCaret: showCaret,
-                      registry: registry,
-                      showDebugOverlay: showDebugOverlay,
-                      selectionHighlightColor: const Color(
-                        _kCodeBlockSelectionHighlightColor,
+                      SizedBox(width: effectiveLineNumberGap),
+                      Expanded(
+                        child: _CodeScrollableTextSurface(
+                          blockId: block.id,
+                          blockIndex: blockIndex,
+                          path: path,
+                          codeLength: block.code.length,
+                          codeSpan: codeSpan,
+                          contentWidth: contentWidth,
+                          minHeight: minHeight,
+                          selection: selection,
+                          showCaret: showCaret,
+                          registry: registry,
+                          showDebugOverlay: showDebugOverlay,
+                          findRanges: _findRangesForPath(
+                            findMatches,
+                            currentFindMatch,
+                            blockIndex,
+                            path,
+                            block.code.length,
+                          ),
+                        ),
                       ),
-                      findRanges: _findRangesForPath(
-                        findMatches,
-                        currentFindMatch,
-                        blockIndex,
-                        path,
-                        block.code.length,
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
+                    ],
+                  );
+                },
+              ),
+            ],
           ),
         ),
       ),
       selected: selected,
+    );
+  }
+}
+
+class _CodeLineNumberGutter extends StatefulWidget {
+  const _CodeLineNumberGutter({
+    required this.blockId,
+    required this.registry,
+    required this.width,
+    required this.minHeight,
+    required this.text,
+    required this.style,
+  });
+
+  final String blockId;
+  final BlockGeometryRegistry registry;
+  final double width;
+  final double minHeight;
+  final String text;
+  final TextStyle style;
+
+  @override
+  State<_CodeLineNumberGutter> createState() => _CodeLineNumberGutterState();
+}
+
+class _CodeLineNumberGutterState extends State<_CodeLineNumberGutter> {
+  final GlobalKey _gutterKey = GlobalKey();
+
+  @override
+  void initState() {
+    super.initState();
+    widget.registry.registerSelectionExclusion(_gutterKey);
+  }
+
+  @override
+  void didUpdateWidget(covariant _CodeLineNumberGutter oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.registry != widget.registry) {
+      oldWidget.registry.unregisterSelectionExclusion(_gutterKey);
+      widget.registry.registerSelectionExclusion(_gutterKey);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.registry.unregisterSelectionExclusion(_gutterKey);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ConstrainedBox(
+      key: _gutterKey,
+      constraints: BoxConstraints(
+        minHeight: widget.minHeight,
+        minWidth: widget.width,
+        maxWidth: widget.width,
+      ),
+      child: Align(
+        alignment: AlignmentDirectional.topEnd,
+        child: Text(
+          widget.text,
+          key: ValueKey<String>(
+            'wenz-richtext-code-line-numbers-${widget.blockId}',
+          ),
+          textAlign: WenzCodeBlockLineNumbers.gutterTextAlign,
+          style: widget.style,
+          strutStyle: StrutStyle.fromTextStyle(
+            widget.style,
+            forceStrutHeight: true,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CodeScrollableTextSurface extends StatefulWidget {
+  const _CodeScrollableTextSurface({
+    required this.blockId,
+    required this.blockIndex,
+    required this.path,
+    required this.codeLength,
+    required this.codeSpan,
+    required this.contentWidth,
+    required this.minHeight,
+    required this.selection,
+    required this.showCaret,
+    required this.registry,
+    required this.showDebugOverlay,
+    required this.findRanges,
+  });
+
+  final String blockId;
+  final int blockIndex;
+  final PositionPath path;
+  final int codeLength;
+  final InlineSpan codeSpan;
+  final double contentWidth;
+  final double minHeight;
+  final DocumentSelection? selection;
+  final bool showCaret;
+  final BlockGeometryRegistry registry;
+  final bool showDebugOverlay;
+  final List<_FindHighlightRange> findRanges;
+
+  @override
+  State<_CodeScrollableTextSurface> createState() =>
+      _CodeScrollableTextSurfaceState();
+}
+
+class _CodeScrollableTextSurfaceState extends State<_CodeScrollableTextSurface> {
+  final GlobalKey _viewportKey = GlobalKey();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      key: _viewportKey,
+      child: SingleChildScrollView(
+        key: ValueKey<String>('wenz-richtext-code-scroll-${widget.blockId}'),
+        scrollDirection: Axis.horizontal,
+        child: SizedBox(
+          width: widget.contentWidth,
+          child: _TextSelectionSurface(
+            blockId: widget.blockId,
+            blockIndex: widget.blockIndex,
+            path: widget.path,
+            textLength: widget.codeLength,
+            textSpan: widget.codeSpan,
+            offsetMapper: _InlineOffsetMapper.identity(widget.codeLength),
+            textAlign: TextAlign.start,
+            minHeight: widget.minHeight,
+            selection: widget.selection,
+            showCaret: widget.showCaret,
+            registry: widget.registry,
+            showDebugOverlay: widget.showDebugOverlay,
+            selectionHighlightColor: const Color(
+              _kCodeBlockSelectionHighlightColor,
+            ),
+            findRanges: widget.findRanges,
+            hitTestKey: _viewportKey,
+            clampHitTestToVisibleBounds: true,
+          ),
+        ),
+      ),
     );
   }
 }
@@ -5984,12 +7021,10 @@ class _BlockFloatingToolbarSurface extends StatelessWidget {
   const _BlockFloatingToolbarSurface({
     required this.child,
     this.toolbar,
-    this.toolbarTop = _kBlockFloatingToolbarInset,
   });
 
   final Widget child;
   final Widget? toolbar;
-  final double toolbarTop;
 
   @override
   Widget build(BuildContext context) {
@@ -6010,7 +7045,7 @@ class _BlockFloatingToolbarSurface extends StatelessWidget {
           children: <Widget>[
             child,
             PositionedDirectional(
-              top: toolbarTop,
+              top: _kBlockFloatingToolbarInset,
               end: _kBlockFloatingToolbarInset,
               child: ConstrainedBox(
                 constraints: BoxConstraints(maxWidth: maxToolbarWidth),
@@ -6026,80 +7061,150 @@ class _BlockFloatingToolbarSurface extends StatelessWidget {
 
 class _CodeBlockToolbar extends StatelessWidget {
   const _CodeBlockToolbar({
+    required this.blockId,
     required this.language,
     this.onLanguageChanged,
     this.onCopyPressed,
   });
 
+  final String blockId;
   final String language;
   final ValueChanged<String>? onLanguageChanged;
   final VoidCallback? onCopyPressed;
 
   @override
   Widget build(BuildContext context) {
-    const tagColor = Color(_kCodeLanguageTagColor);
+    final theme = Theme.of(context);
+    final accentColor = _codeBlockAccentColor(theme);
     final languages = _codeLanguageOptions(language);
     final current = languages.contains(language) ? language : '';
+    final languageTag = _CodeLanguageTag(
+      label: _codeLanguageLabel(language),
+      accentColor: accentColor,
+    );
 
     return Material(
       color: Colors.transparent,
-      child: SizedBox(
-        height: _kCodeFloatingToolbarHeight,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            IconButton(
-              tooltip: '复制代码',
-              padding: EdgeInsets.zero,
-              constraints: _kBlockToolbarButtonConstraints,
-              iconSize: _kBlockToolbarIconSize,
-              style: _blockToolbarIconButtonStyle(
-                Theme.of(context),
-                foregroundColor: tagColor,
-                disabledForegroundColor: tagColor.withAlpha(96),
-              ),
-              onPressed: onCopyPressed,
-              icon: const Icon(Icons.copy),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: _codeBlockHeaderBackgroundColor(theme),
+          border: Border.all(color: _codeBlockHeaderBorderColor(theme)),
+          borderRadius: BorderRadius.circular(_kCodeBlockHeaderRadius),
+        ),
+        child: SizedBox(
+          height: _kCodeBlockHeaderHeight,
+          child: Padding(
+            padding: const EdgeInsetsDirectional.only(
+              start: _kCodeBlockHeaderPaddingHorizontal,
+              end: _kCodeBlockHeaderToolbarEndPadding,
             ),
-            if (onLanguageChanged != null)
-              PopupMenuButton<String>(
-                tooltip: '更多块操作',
-                icon: const Icon(Icons.more_horiz),
-                iconSize: _kBlockToolbarIconSize,
-                padding: EdgeInsets.zero,
-                constraints: _kPopupMenuConstraints,
-                style: _blockToolbarIconButtonStyle(
-                  Theme.of(context),
-                  foregroundColor: tagColor,
-                  disabledForegroundColor: tagColor.withAlpha(96),
+            child: Row(
+              mainAxisSize: MainAxisSize.max,
+              children: <Widget>[
+                Expanded(
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final constrainedTag = ConstrainedBox(
+                        constraints: BoxConstraints(
+                          maxWidth: constraints.maxWidth,
+                        ),
+                        child: languageTag,
+                      );
+                      return Align(
+                        alignment: AlignmentDirectional.centerStart,
+                        child: onLanguageChanged == null
+                            ? constrainedTag
+                            : PopupMenuButton<String>(
+                                tooltip: '切换代码语言',
+                                padding: EdgeInsets.zero,
+                                color: _popupMenuColor(theme),
+                                elevation: _kPopupMenuElevation,
+                                shadowColor: _popupMenuShadowColor(theme),
+                                surfaceTintColor: Colors.transparent,
+                                shape: _popupMenuShape(theme),
+                                menuPadding: _kPopupMenuPadding,
+                                position: PopupMenuPosition.under,
+                                clipBehavior: Clip.antiAlias,
+                                onSelected: onLanguageChanged,
+                                routeSettings: _kPopupMenuRouteSettings,
+                                itemBuilder: (context) => <PopupMenuEntry<String>>[
+                                  for (final option in languages)
+                                    PopupMenuItem<String>(
+                                      value: option,
+                                      enabled: option != current,
+                                      height: _kPopupMenuItemHeight,
+                                      padding: _kPopupMenuItemPadding,
+                                      child: _PopupMenuItemContent(
+                                        icon: Icons.code,
+                                        label: _codeLanguageLabel(option),
+                                        enabled: option != current,
+                                        selected: option == current,
+                                      ),
+                                    ),
+                                ],
+                                child: constrainedTag,
+                              ),
+                      );
+                    },
+                  ),
                 ),
-                color: _popupMenuColor(Theme.of(context)),
-                elevation: _kPopupMenuElevation,
-                shadowColor: _popupMenuShadowColor(Theme.of(context)),
-                surfaceTintColor: Colors.transparent,
-                shape: _popupMenuShape(Theme.of(context)),
-                menuPadding: _kPopupMenuPadding,
-                position: PopupMenuPosition.under,
-                clipBehavior: Clip.antiAlias,
-                onSelected: onLanguageChanged,
-                routeSettings: _kPopupMenuRouteSettings,
-                itemBuilder: (context) => <PopupMenuEntry<String>>[
-                  for (final option in languages)
-                    PopupMenuItem<String>(
-                      value: option,
-                      enabled: option != current,
-                      height: _kPopupMenuItemHeight,
-                      padding: _kPopupMenuItemPadding,
-                      child: _PopupMenuItemContent(
-                        icon: Icons.code,
-                        label: _codeLanguageLabel(option),
-                        enabled: option != current,
-                        selected: option == current,
-                      ),
+                IconButton(
+                  key: ValueKey<String>('wenz-richtext-code-copy-$blockId'),
+                  tooltip: '复制代码内容',
+                  padding: EdgeInsets.zero,
+                  constraints: _kBlockToolbarButtonConstraints,
+                  iconSize: _kBlockToolbarIconSize,
+                  style: _blockToolbarIconButtonStyle(
+                    theme,
+                    foregroundColor: accentColor,
+                    disabledForegroundColor: accentColor.withAlpha(
+                      _kMinimalToolbarDisabledAlpha,
                     ),
-                ],
-              ),
-          ],
+                  ),
+                  onPressed: onCopyPressed,
+                  icon: const Icon(Icons.copy, semanticLabel: '复制代码内容'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CodeLanguageTag extends StatelessWidget {
+  const _CodeLanguageTag({required this.label, required this.accentColor});
+
+  final String label;
+  final Color accentColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final style = Theme.of(context).textTheme.labelMedium?.copyWith(
+              color: accentColor,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.2,
+            ) ??
+        TextStyle(
+          color: accentColor,
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.2,
+        );
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: accentColor.withAlpha(22),
+        borderRadius: BorderRadius.circular(7),
+        border: Border.all(color: accentColor.withAlpha(54)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        child: Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: style,
         ),
       ),
     );
@@ -6150,6 +7255,7 @@ class _TableBlockRenderer extends StatelessWidget {
     final effectiveStyle = textStyle ?? DefaultTextStyle.of(context).style;
     final tableTextStyle =
         effectiveStyle.copyWith(fontSize: _kTableCellFontSize);
+    final tableBorderColor = _tableBorderColor(theme);
     return _withBlockSemantics(
       block,
       LayoutBuilder(
@@ -6202,7 +7308,7 @@ class _TableBlockRenderer extends StatelessWidget {
                                   cell: cell,
                                   rowCount: table.rowCount,
                                   columnCount: columnCount,
-                                  color: _kTableBorderColor,
+                                  color: tableBorderColor,
                                 ),
                               ),
                               child: _TableCellSurface(
@@ -6360,64 +7466,48 @@ class _TableFloatingToolbar extends StatelessWidget {
     final canSplit = cell != null &&
         !cell.covered &&
         (cell.rowSpan > 1 || cell.columnSpan > 1);
-    return Material(
+    return _MinimalFloatingToolbarSurface(
       key: const ValueKey<String>('table-floating-toolbar'),
-      elevation: _kPopupMenuElevation,
-      color: _popupMenuColor(theme),
-      shadowColor: _popupMenuShadowColor(theme),
-      surfaceTintColor: Colors.transparent,
-      borderRadius: BorderRadius.circular(_kPopupMenuRadius),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          border: Border.all(
-            color: theme.colorScheme.outlineVariant.withAlpha(180),
+      child: Wrap(
+        spacing: _kMinimalFloatingToolbarButtonGap,
+        runSpacing: _kMinimalFloatingToolbarButtonGap,
+        children: <Widget>[
+          _button(
+            theme: theme,
+            icon: Icons.keyboard_arrow_down,
+            tooltip: '在下方插入行',
+            action: TableToolbarAction.insertRowBelow,
           ),
-          borderRadius: BorderRadius.circular(_kPopupMenuRadius),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(4),
-          child: Wrap(
-            spacing: 2,
-            runSpacing: 2,
-            children: <Widget>[
-              _button(
-                theme: theme,
-                icon: Icons.keyboard_arrow_down,
-                tooltip: '在下方插入行',
-                action: TableToolbarAction.insertRowBelow,
-              ),
-              _button(
-                theme: theme,
-                icon: Icons.keyboard_arrow_right,
-                tooltip: '在右侧插入列',
-                action: TableToolbarAction.insertColumnAfter,
-              ),
-              _divider(theme),
-              if (canSplit)
-                _button(
-                  theme: theme,
-                  icon: Icons.call_split,
-                  tooltip: '拆分单元格',
-                  action: TableToolbarAction.splitCell,
-                )
-              else
-                _button(
-                  theme: theme,
-                  icon: Icons.call_merge,
-                  tooltip: '合并所选单元格',
-                  action: TableToolbarAction.mergeCells,
-                  enabled: canMerge,
-                ),
-              _moreButton(
-                context,
-                canDeleteRow: canDeleteRow,
-                canDeleteColumn: canDeleteColumn,
-                canMerge: canMerge,
-                canSplit: canSplit,
-              ),
-            ],
+          _button(
+            theme: theme,
+            icon: Icons.keyboard_arrow_right,
+            tooltip: '在右侧插入列',
+            action: TableToolbarAction.insertColumnAfter,
           ),
-        ),
+          _divider(theme),
+          if (canSplit)
+            _button(
+              theme: theme,
+              icon: Icons.call_split,
+              tooltip: '拆分单元格',
+              action: TableToolbarAction.splitCell,
+            )
+          else
+            _button(
+              theme: theme,
+              icon: Icons.call_merge,
+              tooltip: '合并所选单元格',
+              action: TableToolbarAction.mergeCells,
+              enabled: canMerge,
+            ),
+          _moreButton(
+            context,
+            canDeleteRow: canDeleteRow,
+            canDeleteColumn: canDeleteColumn,
+            canMerge: canMerge,
+            canSplit: canSplit,
+          ),
+        ],
       ),
     );
   }
@@ -6490,6 +7580,7 @@ class _TableFloatingToolbar extends StatelessWidget {
           icon: Icons.table_rows_outlined,
           label: '删除行',
           enabled: canDeleteRow,
+          destructive: true,
         ),
       ),
       const PopupMenuDivider(height: _kPopupMenuDividerHeight),
@@ -6520,6 +7611,7 @@ class _TableFloatingToolbar extends StatelessWidget {
           icon: Icons.view_column_outlined,
           label: '删除列',
           enabled: canDeleteColumn,
+          destructive: true,
         ),
       ),
       const PopupMenuDivider(height: _kPopupMenuDividerHeight),
@@ -6666,11 +7758,18 @@ class _TableFloatingToolbar extends StatelessWidget {
 
   Widget _divider(ThemeData theme) {
     return SizedBox(
+      width: _kMinimalFloatingToolbarDividerWidth,
       height: _kBlockToolbarButtonSize,
-      child: VerticalDivider(
-        width: 6,
-        thickness: 1,
-        color: theme.dividerColor.withAlpha(160),
+      child: Center(
+        child: SizedBox(
+          width: 1,
+          height: _kMinimalFloatingToolbarDividerHeight,
+          child: ColoredBox(
+            color: theme.colorScheme.outlineVariant.withAlpha(
+              _kMinimalFloatingToolbarDividerAlpha,
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -7035,7 +8134,7 @@ Color? _tableCellBackgroundColor({
     return theme.colorScheme.surfaceContainer;
   }
   if (rowIndex.isOdd) {
-    return _kTableEvenRowBackgroundColor;
+    return _tableEvenRowBackgroundColor(theme);
   }
   return null;
 }
@@ -7200,6 +8299,9 @@ class _TableCellSurfaceState extends State<_TableCellSurface> {
       effectiveTextStyle,
       compositionRange,
       widget.inlineEmbedRenderer,
+      blockId: tableBlock.id,
+      blockIndex: blockIndex,
+      path: path,
     );
     final backgroundColor = _tableCellBackgroundColor(
       theme: theme,
@@ -7553,6 +8655,7 @@ class _TextSelectionSurface extends StatefulWidget {
     this.findRanges = const <_FindHighlightRange>[],
     this.selectionHighlightColor,
     this.hitTestKey,
+    this.clampHitTestToVisibleBounds = false,
   });
 
   final String blockId;
@@ -7569,6 +8672,7 @@ class _TextSelectionSurface extends StatefulWidget {
   final bool showDebugOverlay;
   final List<_FindHighlightRange> findRanges;
   final Color? selectionHighlightColor;
+  final bool clampHitTestToVisibleBounds;
 
   /// Optional GlobalKey on a wider hit-test frame (e.g. a table cell's whole
   /// frame) whose local space differs from this surface's text-local space.
@@ -7729,7 +8833,8 @@ class _TextSelectionSurfaceState extends State<_TextSelectionSurface> {
 
   /// Maps a tap offset in the registered hit-test frame's local space into
   /// this surface's text-local space. Only used when a separate [hitTestKey]
-  /// was provided (table cells); otherwise the registry treats the text
+  /// was provided (table cells, object-card body, or the visible viewport of a
+  /// horizontally scrolled code block); otherwise the registry treats the text
   /// surface itself as the hit-test box and this is never called.
   ///
   /// Resolves both render boxes at hit-test time and adds the global delta
@@ -7743,10 +8848,9 @@ class _TextSelectionSurfaceState extends State<_TextSelectionSurface> {
     final cellBox = hitKey.currentContext?.findRenderObject();
     final textBox = _surfaceKey.currentContext?.findRenderObject();
     if (cellBox is! RenderBox || textBox is! RenderBox) {
-      // Layout not ready: fall back to stripping the known 8px cell padding.
-      // There is no centring correction here, but this path is only hit
-      // before first layout and is strictly better than the raw offset.
-      return hitLocal - const Offset(8, 8);
+      return widget.clampHitTestToVisibleBounds
+          ? Offset.zero
+          : hitLocal - const Offset(8, 8);
     }
     final cellOrigin = cellBox.localToGlobal(Offset.zero);
     final textOrigin = textBox.localToGlobal(Offset.zero);
@@ -7757,8 +8861,25 @@ class _TextSelectionSurfaceState extends State<_TextSelectionSurface> {
     final textLocal = hitLocal +
         Offset(cellOrigin.dx - textOrigin.dx, cellOrigin.dy - textOrigin.dy);
     // Clamp into the text surface so an off-text tap (e.g. a bottom gutter
-    // below a centred short cell) maps to the nearest caret edge rather than a
-    // point outside the painter's line metrics.
+    // below a centred short cell, or a code tap inside the visible viewport but
+    // outside the scrolled child's current local bounds) maps to the nearest
+    // caret edge rather than a point outside the painter's line metrics.
+    if (widget.clampHitTestToVisibleBounds) {
+      final visibleLeft = cellOrigin.dx - textOrigin.dx;
+      final visibleRight = visibleLeft + cellBox.size.width;
+      final visibleTop = cellOrigin.dy - textOrigin.dy;
+      final visibleBottom = visibleTop + cellBox.size.height;
+      return Offset(
+        textLocal.dx.clamp(
+          math.max(0, visibleLeft),
+          math.min(textBox.size.width, visibleRight),
+        ),
+        textLocal.dy.clamp(
+          math.max(0, visibleTop),
+          math.min(textBox.size.height, visibleBottom),
+        ),
+      );
+    }
     return Offset(
       textLocal.dx.clamp(0, textBox.size.width),
       textLocal.dy.clamp(0, textBox.size.height),
@@ -7766,6 +8887,9 @@ class _TextSelectionSurfaceState extends State<_TextSelectionSurface> {
   }
 
   int _offsetForLocalPosition(Offset localPosition) {
+    if (widget.textLength <= 0) {
+      return 0;
+    }
     final painter = _layoutService.layout(
       span: widget.textSpan,
       textAlign: widget.textAlign,
@@ -7833,8 +8957,10 @@ class _TextSelectionSurfaceState extends State<_TextSelectionSurface> {
       clamped,
     );
     final local = _layoutService.caretOffset(painter, renderOffset);
-    final height = _layoutService.caretHeight(painter, renderOffset) ??
-        painter.preferredLineHeight;
+    final height = _caretHeightFor(
+      painter,
+      _layoutService.caretHeight(painter, renderOffset),
+    );
     // Width matches the painted stroke so the IME candidate window is anchored
     // to the caret the user actually sees.
     return Rect.fromLTWH(
@@ -7959,6 +9085,9 @@ class _TextSelectionSurfaceState extends State<_TextSelectionSurface> {
           textLength: widget.textLength,
           opacity: caretOpacity,
         );
+        final expandEmptyTextHitBox =
+            widget.textLength == 0 && constraints.maxWidth.isFinite;
+        final emptyTextMinWidth = expandEmptyTextHitBox ? maxWidth : 0.0;
         final text = CustomPaint(
           painter: _SelectionHighlightPainter(
             layoutService: _layoutService,
@@ -7982,7 +9111,10 @@ class _TextSelectionSurfaceState extends State<_TextSelectionSurface> {
               activeColor: activeFindHighlightColor,
             ),
             child: ConstrainedBox(
-              constraints: BoxConstraints(minHeight: widget.minHeight),
+              constraints: BoxConstraints(
+                minWidth: emptyTextMinWidth,
+                minHeight: widget.minHeight,
+              ),
               child: RichText(
                 text: widget.textSpan,
                 textAlign: widget.textAlign,
@@ -8436,11 +9568,12 @@ class _CaretPainter extends CustomPainter {
     final safeOffset = caretOffset.clamp(0, textLength).toInt();
     final renderOffset = offsetMapper.renderOffsetForLogicalOffset(safeOffset);
     final caretTop = layoutService.caretOffset(painter, renderOffset);
-    // Fall back to preferredLineHeight (matching _caretRectAt) so the caret is
-    // always drawn with a sensible height even when getFullHeightForCaret
-    // returns null (e.g. at empty/whitespace runs).
-    final height = layoutService.caretHeight(painter, renderOffset) ??
-        painter.preferredLineHeight;
+    // Fall back through preferred/style heights (matching _localCaretRectAt) so
+    // the caret is visible even when getFullHeightForCaret returns null or 0.
+    final height = _caretHeightFor(
+      painter,
+      layoutService.caretHeight(painter, renderOffset),
+    );
     final paint = Paint()
       ..color = color.withValues(alpha: opacity.clamp(0.0, 1.0))
       ..strokeWidth = _kCaretStrokeWidth;
@@ -8459,6 +9592,26 @@ class _CaretPainter extends CustomPainter {
         oldDelegate.textLength != textLength ||
         oldDelegate.opacity != opacity;
   }
+}
+
+double _caretHeightFor(TextPainter painter, double? measured) {
+  if (measured != null && measured > 0) {
+    return measured;
+  }
+  final preferred = painter.preferredLineHeight;
+  if (preferred > 0) {
+    return preferred;
+  }
+  final style = painter.text?.style;
+  final fontSize = style?.fontSize;
+  final safeFontSize = fontSize != null && fontSize > 0
+      ? fontSize
+      : _kRichTextBodyFontSize;
+  final lineHeight = style?.height;
+  final safeLineHeight = lineHeight != null && lineHeight > 0
+      ? lineHeight
+      : _kBlockMinHeightFactor;
+  return safeFontSize * safeLineHeight;
 }
 
 class _ImageBlockPlaceholder extends StatelessWidget {
@@ -8493,7 +9646,6 @@ class _VideoBlockPlaceholder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final coverUrl = block.coverUrl.trim();
     final source = _videoSourceLabel(block);
     return Semantics(
@@ -8511,6 +9663,14 @@ class _VideoBlockPlaceholder extends StatelessWidget {
             builder: (context, constraints) {
               final horizontalInset = _videoOverlayInset(constraints.maxWidth);
               final verticalInset = _videoOverlayInset(constraints.maxHeight);
+              final overlayMaxWidth = _videoOverlayMaxWidth(
+                constraints.maxWidth,
+                horizontalInset,
+              );
+              final metadataMaxHeight = _videoMetadataMaxHeight(
+                constraints.maxHeight,
+                verticalInset,
+              );
               final buttonSize = _videoPlayButtonSizeFor(constraints.biggest);
               final iconSize = math.min(
                 _kVideoPlayIconSize,
@@ -8538,10 +9698,7 @@ class _VideoBlockPlaceholder extends StatelessWidget {
                       start: horizontalInset,
                       child: ConstrainedBox(
                         constraints: BoxConstraints(
-                          maxWidth: _videoOverlayMaxWidth(
-                            constraints.maxWidth,
-                            horizontalInset,
-                          ),
+                          maxWidth: overlayMaxWidth,
                         ),
                         child:
                             _VideoCoverChip(label: _videoCoverLabel(coverUrl)),
@@ -8574,35 +9731,84 @@ class _VideoBlockPlaceholder extends StatelessWidget {
                     start: horizontalInset,
                     end: horizontalInset,
                     bottom: verticalInset,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        Text(
-                          _videoPreviewTitle(block),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.titleSmall?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          '[video: $source]',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: Colors.white.withAlpha(220),
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
+                    child: _VideoMetadataOverlay(
+                      title: _videoPreviewTitle(block),
+                      source: source,
+                      maxWidth: overlayMaxWidth,
+                      maxHeight: metadataMaxHeight,
                     ),
                   ),
                 ],
               );
             },
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _VideoMetadataOverlay extends StatelessWidget {
+  const _VideoMetadataOverlay({
+    required this.title,
+    required this.source,
+    required this.maxWidth,
+    required this.maxHeight,
+  });
+
+  final String title;
+  final String source;
+  final double maxWidth;
+  final double maxHeight;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!maxWidth.isFinite ||
+        !maxHeight.isFinite ||
+        maxWidth <= 0 ||
+        maxHeight <= 0) {
+      return const SizedBox.shrink();
+    }
+    final theme = Theme.of(context);
+    final titleStyle = theme.textTheme.titleSmall?.copyWith(
+      color: Colors.white,
+      fontWeight: FontWeight.w700,
+    );
+    final sourceStyle = theme.textTheme.bodySmall?.copyWith(
+      color: Colors.white.withAlpha(220),
+      fontWeight: FontWeight.w600,
+    );
+    return SizedBox(
+      width: maxWidth,
+      height: maxHeight,
+      child: ClipRect(
+        child: Align(
+          alignment: AlignmentDirectional.bottomStart,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: AlignmentDirectional.bottomStart,
+            child: SizedBox(
+              width: maxWidth,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: titleStyle,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '[video: $source]',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: sourceStyle,
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       ),
@@ -8713,6 +9919,13 @@ double _videoOverlayMaxWidth(double width, double inset) {
   return math.max(0.0, width - inset * 2);
 }
 
+double _videoMetadataMaxHeight(double height, double inset) {
+  if (!height.isFinite || height <= 0) {
+    return 0;
+  }
+  return math.max(0.0, height - inset * 2);
+}
+
 double _videoPlayButtonSizeFor(Size size) {
   final shortestSide = math.min(size.width, size.height);
   if (!shortestSide.isFinite || shortestSide <= 0) {
@@ -8755,8 +9968,8 @@ class _BlockEmbedContent extends StatelessWidget {
       canEdit: canEdit,
       onAction: onAction,
       label: block.normalizedEmbedType,
-      backgroundColor: const Color(_kEmbedBlockBackgroundColor),
-      borderColor: const Color(_kEmbedBlockBorderColor),
+      backgroundColor: _embedBlockBackgroundColor(theme),
+      borderColor: _embedBlockBorderColor(theme),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
@@ -8809,7 +10022,7 @@ class _FormulaBlockContent extends StatelessWidget {
       fallbackText: block.fallbackText,
     );
     final style = (theme.textTheme.titleLarge ?? const TextStyle()).copyWith(
-      color: const Color(_kFormulaBlockForegroundColor),
+      color: _formulaBlockForegroundColor(theme),
       fontSize: 22,
       fontStyle: FontStyle.italic,
       fontFamilyFallback: const <String>[
@@ -8818,7 +10031,7 @@ class _FormulaBlockContent extends StatelessWidget {
         'serif',
       ],
     );
-    return _EmbedBlockCard(
+    final card = _EmbedBlockCard(
       key: ValueKey<String>('wenz-richtext-formula-card-${block.id}'),
       blockIndex: blockIndex,
       blockCount: blockCount,
@@ -8826,8 +10039,8 @@ class _FormulaBlockContent extends StatelessWidget {
       canEdit: canEdit,
       onAction: onAction,
       label: 'formula',
-      backgroundColor: const Color(_kFormulaBlockBackgroundColor),
-      borderColor: const Color(_kEmbedBlockBorderColor),
+      backgroundColor: _formulaBlockBackgroundColor(theme),
+      borderColor: _embedBlockBorderColor(theme),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
@@ -8863,6 +10076,31 @@ class _FormulaBlockContent extends StatelessWidget {
         ],
       ),
     );
+    final requestController = _FormulaEditRequestScope.maybeOf(context);
+    final canRequestEdit = canEdit && requestController != null;
+    final semanticCard = Semantics(
+      label: canRequestEdit ? '编辑块级公式' : '块级公式',
+      value: formula.trim().isEmpty ? '空公式' : formula.trim(),
+      button: canRequestEdit,
+      enabled: canRequestEdit,
+      child: card,
+    );
+    if (!canRequestEdit) {
+      return semanticCard;
+    }
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onTapUp: (details) {
+        requestController.request(
+          _FormulaEditTarget.block(
+            blockId: block.id,
+            formula: formula,
+            anchor: _globalRectForContext(context, details.globalPosition),
+          ),
+        );
+      },
+      child: semanticCard,
+    );
   }
 }
 
@@ -8885,6 +10123,10 @@ class _VideoBlockContent extends StatelessWidget {
         ),
         child: LayoutBuilder(
           builder: (context, constraints) {
+            // Explicit overflow boundary for video content. The editor's
+            // available width and the block's possibly unsafe aspect ratio are
+            // normalized into finite frame constraints before any placeholder
+            // or resolver-provided video player is laid out.
             final frameWidth = constraints.maxWidth.isFinite
                 ? constraints.maxWidth.clamp(0.0, double.infinity).toDouble()
                 : _kVideoFrameFallbackWidth;
@@ -8914,7 +10156,7 @@ class _VideoBlockContent extends StatelessWidget {
                           'wenz-richtext-video-aspect-${block.id}',
                         ),
                         aspectRatio: aspectRatio,
-                        child: child,
+                        child: _VideoFrameChildBoundary(child: child),
                       ),
                     ),
                   ),
@@ -8924,6 +10166,32 @@ class _VideoBlockContent extends StatelessWidget {
           },
         ),
       ),
+    );
+  }
+}
+
+class _VideoFrameChildBoundary extends StatelessWidget {
+  const _VideoFrameChildBoundary({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final height = constraints.maxHeight;
+        if (!width.isFinite || !height.isFinite || width <= 0 || height <= 0) {
+          return const SizedBox.shrink();
+        }
+        return SizedBox(
+          width: width,
+          height: height,
+          child: ClipRect(
+            child: child,
+          ),
+        );
+      },
     );
   }
 }
@@ -8991,8 +10259,8 @@ class _DividerBlockContent extends StatelessWidget {
                         key: ValueKey<String>(
                           'wenz-richtext-divider-line-$blockId',
                         ),
-                        decoration: const BoxDecoration(
-                          color: Color(_kDividerLineColor),
+                        decoration: BoxDecoration(
+                          color: _dividerLineColor(theme),
                         ),
                       ),
                     ),
@@ -9236,7 +10504,7 @@ class _ObjectBlockToolbar extends StatelessWidget {
     final hasMoreActions = canRunMutation;
     if (mediaActions) {
       return Wrap(
-        spacing: 2,
+        spacing: _kMinimalFloatingToolbarButtonGap,
         crossAxisAlignment: WrapCrossAlignment.center,
         children: <Widget>[
           _ObjectActionButton(
@@ -9264,7 +10532,7 @@ class _ObjectBlockToolbar extends StatelessWidget {
       );
     }
     return Wrap(
-      spacing: 2,
+      spacing: _kMinimalFloatingToolbarButtonGap,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: <Widget>[
         _ObjectActionButton(
@@ -9332,6 +10600,7 @@ PopupMenuItem<_ObjectMenuSelection> _objectActionMenuItem({
   Object? value,
   bool enabled = true,
   String? shortcut,
+  bool destructive = false,
 }) {
   return PopupMenuItem<_ObjectMenuSelection>(
     value: _ObjectMenuSelection.action(action, value),
@@ -9343,6 +10612,7 @@ PopupMenuItem<_ObjectMenuSelection> _objectActionMenuItem({
       label: label,
       shortcut: shortcut,
       enabled: enabled,
+      destructive: destructive,
     ),
   );
 }
@@ -9539,6 +10809,7 @@ class _ObjectMoreMenuState extends State<_ObjectMoreMenu> {
           action: ObjectBlockAction.delete,
           icon: Icons.delete_outline,
           label: '删除块',
+          destructive: true,
         ),
       );
     }
@@ -9569,27 +10840,16 @@ class _FloatingObjectBlockToolbar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Material(
-      color: theme.colorScheme.surface,
-      elevation: 3,
-      shadowColor: theme.colorScheme.shadow.withAlpha(40),
-      shape: RoundedRectangleBorder(
-        side: BorderSide(color: theme.colorScheme.outlineVariant),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-        child: _ObjectBlockToolbar(
-          blockIndex: blockIndex,
-          blockCount: blockCount,
-          canEdit: canEdit,
-          imageActions: imageActions,
-          fileActions: fileActions,
-          mediaActions: mediaActions,
-          onAction: onAction,
-          onPreview: onPreview,
-        ),
+    return _MinimalFloatingToolbarSurface(
+      child: _ObjectBlockToolbar(
+        blockIndex: blockIndex,
+        blockCount: blockCount,
+        canEdit: canEdit,
+        imageActions: imageActions,
+        fileActions: fileActions,
+        mediaActions: mediaActions,
+        onAction: onAction,
+        onPreview: onPreview,
       ),
     );
   }
@@ -9653,7 +10913,7 @@ class _FileBlockContentState extends State<_FileBlockContent> {
     final failed = block.uploadStatus == FileUploadStatus.failed;
     final active = widget.selected || _hovered || _focused;
     final borderColor =
-        active ? theme.colorScheme.primary : const Color(_kFileCardBorderColor);
+        active ? theme.colorScheme.primary : _fileCardBorderColor(theme);
     final foregroundColor =
         failed ? theme.colorScheme.error : theme.colorScheme.onSurfaceVariant;
     final sizeLabel = block.size > 0 ? _formatFileSize(block.size) : '';
@@ -9906,6 +11166,7 @@ class _FileBlockActionMenu extends StatelessWidget {
         icon: Icons.delete_outline,
         label: '删除块',
         enabled: canRunMutation,
+        destructive: true,
       ),
     ];
   }
@@ -10070,8 +11331,8 @@ class _CalloutRendererState extends State<_CalloutRenderer> {
     final theme = Theme.of(context);
     final base = _richTextBodyStyle(theme, widget.textStyle);
     final variant = widget.block.normalizedVariant;
-    final tint = _calloutTint(variant);
-    final foreground = _calloutForeground(variant);
+    final tint = _calloutTint(theme, variant);
+    final foreground = _calloutForeground(theme, variant);
     final bodyStyle = base.copyWith(color: foreground);
     final titleStyle = bodyStyle.copyWith(fontWeight: FontWeight.w700);
     final path = PositionPath.blockText(widget.block.id);
@@ -10088,9 +11349,13 @@ class _CalloutRendererState extends State<_CalloutRenderer> {
       bodyStyle,
       compositionRange,
       widget.inlineEmbedRenderer,
+      blockId: widget.block.id,
+      blockIndex: widget.blockIndex,
+      path: path,
     );
-    final borderColor =
-        widget.selected ? theme.colorScheme.primary : _calloutBorder(variant);
+    final borderColor = widget.selected
+        ? theme.colorScheme.primary
+        : _calloutBorder(theme, variant);
     final borderWidth = widget.selected ? 1.5 : 1.0;
     return KeyedSubtree(
       key: ValueKey<String>('wenz-richtext-callout-${widget.block.id}'),
@@ -10269,7 +11534,102 @@ class _CalloutVariantMenuState extends State<_CalloutVariantMenu> {
   }
 }
 
-Color _calloutTint(String variant) {
+Color _codeBlockBackgroundColor(ThemeData theme) {
+  return theme.brightness == Brightness.dark
+      ? theme.colorScheme.surfaceContainerHighest
+      : const Color(_kCodeBlockBackgroundColor);
+}
+
+Color _codeBlockTextColor(ThemeData theme) {
+  return theme.brightness == Brightness.dark
+      ? theme.colorScheme.onSurface
+      : const Color(_kCodeBlockTextColor);
+}
+
+Color _codeBlockBorderColor(ThemeData theme) {
+  return theme.brightness == Brightness.dark
+      ? theme.colorScheme.outlineVariant.withAlpha(150)
+      : Colors.white.withAlpha(30);
+}
+
+Color _codeBlockHeaderBackgroundColor(ThemeData theme) {
+  return theme.brightness == Brightness.dark
+      ? theme.colorScheme.surface.withAlpha(120)
+      : Colors.white.withAlpha(18);
+}
+
+Color _codeBlockHeaderBorderColor(ThemeData theme) {
+  return theme.brightness == Brightness.dark
+      ? theme.colorScheme.outlineVariant.withAlpha(120)
+      : Colors.white.withAlpha(24);
+}
+
+Color _codeBlockAccentColor(ThemeData theme) {
+  return theme.brightness == Brightness.dark
+      ? theme.colorScheme.primary
+      : const Color(_kCodeLanguageTagColor);
+}
+
+Color _tableBorderColor(ThemeData theme) {
+  return theme.brightness == Brightness.dark
+      ? theme.colorScheme.outlineVariant
+      : _kTableBorderColor;
+}
+
+Color _tableEvenRowBackgroundColor(ThemeData theme) {
+  return theme.brightness == Brightness.dark
+      ? theme.colorScheme.surfaceContainerHighest.withAlpha(70)
+      : _kTableEvenRowBackgroundColor;
+}
+
+Color _dividerLineColor(ThemeData theme) {
+  return theme.brightness == Brightness.dark
+      ? theme.colorScheme.outlineVariant
+      : const Color(_kDividerLineColor);
+}
+
+Color _fileCardBorderColor(ThemeData theme) {
+  return theme.brightness == Brightness.dark
+      ? theme.colorScheme.outlineVariant
+      : const Color(_kFileCardBorderColor);
+}
+
+Color _embedBlockBackgroundColor(ThemeData theme) {
+  return theme.brightness == Brightness.dark
+      ? theme.colorScheme.surfaceContainerHighest.withAlpha(72)
+      : const Color(_kEmbedBlockBackgroundColor);
+}
+
+Color _embedBlockBorderColor(ThemeData theme) {
+  return theme.brightness == Brightness.dark
+      ? theme.colorScheme.outlineVariant
+      : const Color(_kEmbedBlockBorderColor);
+}
+
+Color _formulaBlockBackgroundColor(ThemeData theme) {
+  return theme.brightness == Brightness.dark
+      ? theme.colorScheme.secondaryContainer.withAlpha(110)
+      : const Color(_kFormulaBlockBackgroundColor);
+}
+
+Color _formulaBlockForegroundColor(ThemeData theme) {
+  return theme.brightness == Brightness.dark
+      ? theme.colorScheme.onSecondaryContainer
+      : const Color(_kFormulaBlockForegroundColor);
+}
+
+Color _calloutTint(ThemeData theme, String variant) {
+  if (theme.brightness == Brightness.dark) {
+    return switch (CalloutBlockNode.normalizeVariant(variant)) {
+      CalloutBlockNode.successVariant =>
+        theme.colorScheme.tertiaryContainer.withAlpha(96),
+      CalloutBlockNode.warningVariant =>
+        theme.colorScheme.secondaryContainer.withAlpha(104),
+      CalloutBlockNode.dangerVariant =>
+        theme.colorScheme.errorContainer.withAlpha(104),
+      _ => theme.colorScheme.surfaceContainerHighest.withAlpha(96),
+    };
+  }
   switch (CalloutBlockNode.normalizeVariant(variant)) {
     case CalloutBlockNode.successVariant:
       return const Color(_kCalloutSuccessBackgroundColor);
@@ -10283,7 +11643,15 @@ Color _calloutTint(String variant) {
   }
 }
 
-Color _calloutForeground(String variant) {
+Color _calloutForeground(ThemeData theme, String variant) {
+  if (theme.brightness == Brightness.dark) {
+    return switch (CalloutBlockNode.normalizeVariant(variant)) {
+      CalloutBlockNode.successVariant => theme.colorScheme.onTertiaryContainer,
+      CalloutBlockNode.warningVariant => theme.colorScheme.onSecondaryContainer,
+      CalloutBlockNode.dangerVariant => theme.colorScheme.onErrorContainer,
+      _ => theme.colorScheme.onSurfaceVariant,
+    };
+  }
   switch (CalloutBlockNode.normalizeVariant(variant)) {
     case CalloutBlockNode.successVariant:
       return const Color(_kCalloutSuccessForegroundColor);
@@ -10297,7 +11665,15 @@ Color _calloutForeground(String variant) {
   }
 }
 
-Color _calloutBorder(String variant) {
+Color _calloutBorder(ThemeData theme, String variant) {
+  if (theme.brightness == Brightness.dark) {
+    return switch (CalloutBlockNode.normalizeVariant(variant)) {
+      CalloutBlockNode.successVariant => theme.colorScheme.tertiary,
+      CalloutBlockNode.warningVariant => theme.colorScheme.secondary,
+      CalloutBlockNode.dangerVariant => theme.colorScheme.error,
+      _ => theme.colorScheme.outlineVariant,
+    };
+  }
   switch (CalloutBlockNode.normalizeVariant(variant)) {
     case CalloutBlockNode.successVariant:
       return const Color(_kCalloutSuccessBorderColor);
@@ -10309,6 +11685,18 @@ Color _calloutBorder(String variant) {
     default:
       return const Color(_kCalloutInfoBorderColor);
   }
+}
+
+Color _inlineLinkColor(ColorScheme scheme) {
+  return scheme.brightness == Brightness.dark
+      ? scheme.primary
+      : const Color(_kInlineLinkColor);
+}
+
+Color _inlineRemarkColor(ColorScheme scheme) {
+  return scheme.brightness == Brightness.dark
+      ? scheme.secondary
+      : const Color(_kInlineRemarkColor);
 }
 
 String _calloutVariantLabel(String variant) {
@@ -10343,6 +11731,20 @@ TextStyle _richTextBodyStyle(ThemeData theme, TextStyle? overrideStyle) {
     height: _kRichTextBodyLineHeight,
   );
   return overrideStyle == null ? baseline : baseline.merge(overrideStyle);
+}
+
+Color _editorBackgroundColor(ThemeData theme) {
+  return theme.brightness == Brightness.dark ? Colors.black : Colors.white;
+}
+
+TextStyle? _effectiveEditorTextStyle(
+  TextStyle? textStyle,
+  Color? defaultTextColor,
+) {
+  if (defaultTextColor == null) {
+    return textStyle;
+  }
+  return (textStyle ?? const TextStyle()).copyWith(color: defaultTextColor);
 }
 
 TextStyle _headingTextStyle(
@@ -10390,8 +11792,11 @@ _InlineTextLayout _inlineTextLayoutFor(
   List<InlineNode> nodes,
   TextStyle baseStyle,
   _LocalSelectionRange? compositionRange,
-  InlineEmbedRenderer? inlineEmbedRenderer,
-) {
+  InlineEmbedRenderer? inlineEmbedRenderer, {
+  required String blockId,
+  required int blockIndex,
+  required PositionPath path,
+}) {
   final spans = <InlineSpan>[];
   final segments = <_InlineOffsetSegment>[];
   var logicalCursor = 0;
@@ -10400,6 +11805,12 @@ _InlineTextLayout _inlineTextLayoutFor(
     final logicalLength = inlineLength(node);
     final nodeStart = logicalCursor;
     final nodeEnd = logicalCursor + logicalLength;
+    final nodePosition = DocumentPosition(
+      blockId: blockId,
+      blockIndex: blockIndex,
+      path: path,
+      offset: nodeStart,
+    );
     final overlapStart = compositionRange == null
         ? nodeStart
         : (nodeStart < compositionRange.start
@@ -10414,6 +11825,7 @@ _InlineTextLayout _inlineTextLayoutFor(
             node,
             baseStyle,
             inlineEmbedRenderer,
+            position: nodePosition,
             start: overlapStart - nodeStart,
             end: overlapEnd - nodeStart,
           )
@@ -10423,6 +11835,7 @@ _InlineTextLayout _inlineTextLayoutFor(
               node,
               baseStyle,
               inlineEmbedRenderer,
+              position: nodePosition,
               decorate: false,
             )
           ];
@@ -10465,6 +11878,7 @@ List<InlineSpan> _inlineSpansForNodeWithComposition(
   InlineNode node,
   TextStyle baseStyle,
   InlineEmbedRenderer? inlineEmbedRenderer, {
+  required DocumentPosition position,
   required int start,
   required int end,
 }) {
@@ -10493,6 +11907,7 @@ List<InlineSpan> _inlineSpansForNodeWithComposition(
         node,
         baseStyle,
         inlineEmbedRenderer,
+        position: position,
         decorate: true,
       ),
     ];
@@ -10519,6 +11934,7 @@ InlineSpan _inlineSpanFor(
   InlineNode node,
   TextStyle baseStyle,
   InlineEmbedRenderer? inlineEmbedRenderer, {
+  required DocumentPosition position,
   bool decorate = false,
 }) {
   final undecoratedStyle = switch (node) {
@@ -10537,6 +11953,7 @@ InlineSpan _inlineSpanFor(
         embed,
         baseStyle,
         inlineEmbedRenderer,
+        position: position,
         decorate: decorate,
       ),
     _ => TextSpan(text: node.plainText, style: style),
@@ -10548,6 +11965,7 @@ InlineSpan _inlineEmbedSpanFor(
   InlineEmbed embed,
   TextStyle baseStyle,
   InlineEmbedRenderer? inlineEmbedRenderer, {
+  required DocumentPosition position,
   bool decorate = false,
 }) {
   final base = _textStyleForAttributes(context, baseStyle, embed.attributes);
@@ -10557,7 +11975,13 @@ InlineSpan _inlineEmbedSpanFor(
     return custom;
   }
   if (_isFormulaEmbedType(embed.embedType)) {
-    return _formulaInlineSpanFor(context, embed, style, decorate: decorate);
+    return _formulaInlineSpanFor(
+      context,
+      embed,
+      style,
+      position: position,
+      decorate: decorate,
+    );
   }
   return TextSpan(
     text: _embedDisplayText(embed),
@@ -10569,6 +11993,7 @@ InlineSpan _formulaInlineSpanFor(
   BuildContext context,
   InlineEmbed embed,
   TextStyle style, {
+  required DocumentPosition position,
   required bool decorate,
 }) {
   final formula = _formulaSourceText(embed.data);
@@ -10582,6 +12007,7 @@ InlineSpan _formulaInlineSpanFor(
       formula: formula,
       textStyle: effectiveStyle,
       placeholderSize: size,
+      position: position,
       composing: decorate,
     ),
   );
@@ -10592,18 +12018,20 @@ class _InlineFormulaView extends StatelessWidget {
     required this.formula,
     required this.textStyle,
     required this.placeholderSize,
+    required this.position,
     required this.composing,
   });
 
   final String formula;
   final TextStyle textStyle;
   final Size placeholderSize;
+  final DocumentPosition position;
   final bool composing;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return SizedBox.fromSize(
+    final view = SizedBox.fromSize(
       key: _inlineFormulaKey,
       size: placeholderSize,
       child: DecoratedBox(
@@ -10628,6 +12056,31 @@ class _InlineFormulaView extends StatelessWidget {
           ),
         ),
       ),
+    );
+    final requestController = _FormulaEditRequestScope.maybeOf(context);
+    final canRequestEdit = requestController != null;
+    final semanticView = Semantics(
+      label: canRequestEdit ? '编辑行内公式' : '行内公式',
+      value: formula.trim().isEmpty ? '空公式' : formula.trim(),
+      button: canRequestEdit,
+      enabled: canRequestEdit,
+      child: view,
+    );
+    if (!canRequestEdit) {
+      return semanticView;
+    }
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onTapUp: (details) {
+        requestController.request(
+          _FormulaEditTarget.inline(
+            position: position,
+            formula: formula,
+            anchor: _globalRectForContext(context, details.globalPosition),
+          ),
+        );
+      },
+      child: semanticView,
     );
   }
 }
@@ -10806,6 +12259,8 @@ String _embedDisplayText(InlineEmbed embed) {
 
 bool _isFormulaEmbedType(String embedType) => embedType.trim() == 'formula';
 
+bool _isMentionEmbedType(String embedType) => embedType.trim() == 'mention';
+
 String _inlineDisplayText(InlineNode node) {
   return switch (node) {
     TextRun() => node.text,
@@ -10815,6 +12270,9 @@ String _inlineDisplayText(InlineNode node) {
 }
 
 String _mentionDisplayText(InlineEmbed embed) {
+  // Mention click/open integrations should receive the original embed data
+  // alongside at least `id` and `label`; display text intentionally derives
+  // from those fields without mutating or normalizing the payload.
   final raw = embed.data['label'] ?? embed.data['id'];
   final label = raw?.toString() ?? '';
   return label.isEmpty ? '@mention' : '@$label';
@@ -10891,7 +12349,8 @@ List<String> _codeLanguageOptions(String current) {
 }
 
 String _codeLanguageLabel(String language) {
-  return language.isEmpty ? 'Plain text' : language;
+  final normalized = language.trim();
+  return normalized.isEmpty ? 'Plain text' : normalized;
 }
 
 /// Maps a [CompositionState] to a local offset range when it targets the given
@@ -11088,11 +12547,11 @@ TextStyle _textStyleForAttributes(
   }
 
   final decorationColor = hasRemark
-      ? const Color(_kInlineRemarkColor)
+      ? _inlineRemarkColor(scheme)
       : hasRevision
           ? scheme.primary
           : attrs.url != null
-              ? const Color(_kInlineLinkColor)
+              ? _inlineLinkColor(scheme)
               : baseStyle.decorationColor;
   final backgroundColor = attrs.background != null
       ? Color(attrs.background!)
@@ -11103,7 +12562,7 @@ TextStyle _textStyleForAttributes(
     color: attrs.color != null
         ? Color(attrs.color!)
         : attrs.url != null
-            ? const Color(_kInlineLinkColor)
+            ? _inlineLinkColor(scheme)
             : null,
     backgroundColor: backgroundColor,
     fontWeight: attrs.bold == true ? FontWeight.w700 : null,

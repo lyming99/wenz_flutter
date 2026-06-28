@@ -104,6 +104,9 @@ class TextLayoutService {
 
   /// Character offset under [localPosition].
   int offsetAt(TextPainter painter, Offset localPosition, int textLength) {
+    if (textLength <= 0) {
+      return 0;
+    }
     final position = painter.getPositionForOffset(localPosition);
     return position.offset.clamp(0, textLength).toInt();
   }

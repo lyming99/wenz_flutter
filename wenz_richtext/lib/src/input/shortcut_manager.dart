@@ -118,20 +118,37 @@ class EditorShortcutBinding {
     required EditorShortcutIntent intent,
     bool expandSelection = false,
     String? character,
-  }) : resolution = EditorShortcutResolution.handled(
-          intent,
-          expandSelection: expandSelection,
-          character: character,
-        );
+  })  : _disposition = EditorShortcutDisposition.handled,
+        _intent = intent,
+        _expandSelection = expandSelection,
+        _character = character;
 
   const EditorShortcutBinding.ignored({required this.shortcut})
-      : resolution = const EditorShortcutResolution.ignored();
+      : _disposition = EditorShortcutDisposition.ignored,
+        _intent = null,
+        _expandSelection = false,
+        _character = null;
 
   const EditorShortcutBinding.passThrough({required this.shortcut})
-      : resolution = const EditorShortcutResolution.passThrough();
+      : _disposition = EditorShortcutDisposition.passThrough,
+        _intent = null,
+        _expandSelection = false,
+        _character = null;
 
   final EditorShortcutKey shortcut;
-  final EditorShortcutResolution resolution;
+  final EditorShortcutDisposition _disposition;
+  final EditorShortcutIntent? _intent;
+  final bool _expandSelection;
+  final String? _character;
+
+  EditorShortcutResolution get resolution {
+    return EditorShortcutResolution._(
+      disposition: _disposition,
+      intent: _intent,
+      expandSelection: _expandSelection,
+      character: _character,
+    );
+  }
 }
 
 class EditorShortcutConfiguration {

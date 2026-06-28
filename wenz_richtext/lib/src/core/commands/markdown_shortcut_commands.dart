@@ -71,7 +71,12 @@ class ApplyMarkdownShortcutCommand extends EditorCommand {
           block,
           position.blockIndex,
           BlockType.listItem,
-          _listAttributes(block.attributes, 'ordered', false),
+          _listAttributes(
+            block.attributes,
+            'ordered',
+            shortcut.checked,
+            hasTodoState: shortcut.hasTodoState,
+          ),
           split.after,
         ),
       _ShortcutKind.taskList => _replaceTextBlock(
@@ -79,7 +84,12 @@ class ApplyMarkdownShortcutCommand extends EditorCommand {
           block,
           position.blockIndex,
           BlockType.listItem,
-          _listAttributes(block.attributes, 'task', shortcut.checked),
+          _listAttributes(
+            block.attributes,
+            shortcut.listType ?? 'task',
+            shortcut.checked,
+            hasTodoState: shortcut.hasTodoState,
+          ),
           split.after,
         ),
       _ShortcutKind.codeBlock => _replaceWithCodeBlock(
@@ -103,6 +113,16 @@ _Shortcut? _matchShortcut(TextBlockNode block, String prefix) {
     final heading = RegExp(r'^(#{1,6}) $').firstMatch(prefix);
     if (heading != null) {
       return _Shortcut.heading(heading.group(1)!.length);
+    }
+    final orderedTodo = RegExp(
+      r'^\d+\. \[([ xX])\] $',
+    ).firstMatch(prefix);
+    if (orderedTodo != null) {
+      return _Shortcut(
+        _ShortcutKind.orderedList,
+        checked: orderedTodo.group(1)!.toLowerCase() == 'x',
+        hasTodoState: true,
+      );
     }
     final ordered = RegExp(r'^\d+\. $').firstMatch(prefix);
     if (ordered != null) {
@@ -128,10 +148,20 @@ _Shortcut? _matchShortcut(TextBlockNode block, String prefix) {
   if (block.type == BlockType.listItem && block.attributes.listType != 'task') {
     switch (prefix) {
       case '[ ] ':
-        return const _Shortcut(_ShortcutKind.taskList, checked: false);
+        return _Shortcut(
+          _ShortcutKind.taskList,
+          checked: false,
+          listType: block.attributes.listType,
+          hasTodoState: true,
+        );
       case '[x] ':
       case '[X] ':
-        return const _Shortcut(_ShortcutKind.taskList, checked: true);
+        return _Shortcut(
+          _ShortcutKind.taskList,
+          checked: true,
+          listType: block.attributes.listType,
+          hasTodoState: true,
+        );
     }
   }
   return null;
@@ -229,13 +259,14 @@ BlockAttributes _simpleTextAttributes(BlockAttributes current) {
 BlockAttributes _listAttributes(
   BlockAttributes current,
   String? listType,
-  bool checked,
-) {
+  bool checked, {
+  bool hasTodoState = false,
+}) {
   return BlockAttributes(
     indent: current.indent,
     alignment: current.alignment,
     listType: listType,
-    checked: listType == 'task' ? checked : null,
+    checked: hasTodoState || listType == 'task' ? checked : null,
     childNote: current.childNote,
   );
 }
@@ -288,7 +319,13 @@ enum _ShortcutKind {
 }
 
 class _Shortcut {
-  const _Shortcut(this.kind, {this.level = 1, this.checked = false});
+  const _Shortcut(
+    this.kind, {
+    this.level = 1,
+    this.checked = false,
+    this.listType,
+    this.hasTodoState = false,
+  });
 
   const _Shortcut.heading(int level)
       : this(_ShortcutKind.heading, level: level);
@@ -296,4 +333,6 @@ class _Shortcut {
   final _ShortcutKind kind;
   final int level;
   final bool checked;
+  final String? listType;
+  final bool hasTodoState;
 }

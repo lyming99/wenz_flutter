@@ -164,6 +164,11 @@ class DeleteSelectionCommand extends EditorCommand {
         attributes: block.attributes,
       );
       _replaceBlock(session, start.blockIndex, nextBlock);
+    } else if (block is CalloutBlockNode && start.path.isBlockText) {
+      final nextBlock = block.copyWith(
+        content: deleteInline(block.content, start.offset, end.offset),
+      );
+      _replaceBlock(session, start.blockIndex, nextBlock);
     } else if (start.path.isBlockObject) {
       // Callout bodies are editable inline content addressed by blockText. A
       // body selection must only trim CalloutBlockNode.content and preserve
@@ -247,6 +252,16 @@ class DeleteBackwardCommand extends EditorCommand {
       }
       return _mergeWithPreviousBlock(session, position);
     }
+    if (block is CalloutBlockNode && position.path.isBlockText) {
+      final offset = position.offset.clamp(
+        0,
+        inlineNodesLength(block.content),
+      );
+      if (offset > 0) {
+        return _deleteCalloutRange(session, position, offset - 1, offset);
+      }
+      return _mergeWithPreviousBlock(session, position);
+    }
     return const CommandResult(recordHistory: false);
   }
 }
@@ -308,6 +323,14 @@ class DeleteForwardCommand extends EditorCommand {
       final offset = position.offset.clamp(0, block.code.length);
       if (offset < block.code.length) {
         return _deleteCodeRange(session, position, offset, offset + 1);
+      }
+      return _mergeWithNextBlock(session, position);
+    }
+    if (block is CalloutBlockNode && position.path.isBlockText) {
+      final length = inlineNodesLength(block.content);
+      final offset = position.offset.clamp(0, length);
+      if (offset < length) {
+        return _deleteCalloutRange(session, position, offset, offset + 1);
       }
       return _mergeWithNextBlock(session, position);
     }
@@ -413,7 +436,7 @@ DocumentSelection? _collapsedNearDeletion(
 }
 
 DocumentSelection? _caretAtBlockStartOrFirstCell(BlockNode block, int index) {
-  if (block is TextBlockNode || block is CodeBlockNode) {
+  if (_isEditableBlock(block)) {
     return _caretAtBlockStart(block, index);
   }
   if (block is TableBlockNode && block.table.rowCount > 0) {
@@ -430,7 +453,7 @@ DocumentSelection? _caretAtBlockStartOrFirstCell(BlockNode block, int index) {
 }
 
 DocumentSelection? _caretAtBlockEndOrLastCell(BlockNode block, int index) {
-  if (block is TextBlockNode || block is CodeBlockNode) {
+  if (_isEditableBlock(block)) {
     return _caretAtBlockEnd(block, index);
   }
   if (block is TableBlockNode &&
@@ -473,6 +496,10 @@ BlockNode? _leadingRemainderForPosition(
       attributes: block.attributes,
     );
   }
+  if (block is CalloutBlockNode && position.path.isBlockText) {
+    final split = splitInline(block.content, position.offset);
+    return block.copyWith(content: split.before);
+  }
   if (block is TableBlockNode && position.path.isTableCellText) {
     return _trimTableAroundPosition(block, position, keepBefore: true);
   }
@@ -502,6 +529,10 @@ BlockNode? _trailingRemainderForPosition(
       attributes: block.attributes,
     );
   }
+  if (block is CalloutBlockNode && position.path.isBlockText) {
+    final split = splitInline(block.content, position.offset);
+    return block.copyWith(content: split.after);
+  }
   if (block is TableBlockNode && position.path.isTableCellText) {
     return _trimTableAroundPosition(block, position, keepBefore: false);
   }
@@ -528,6 +559,14 @@ BlockNode? _mergeBoundaryRemainders(BlockNode? leading, BlockNode? trailing) {
       attributes: leading.attributes,
     );
   }
+  if (leading is CalloutBlockNode && trailing is CalloutBlockNode) {
+    return leading.copyWith(
+      content: mergeTextRuns(<InlineNode>[
+        ...leading.content.map((node) => node.copy()),
+        ...trailing.content.map((node) => node.copy()),
+      ]),
+    );
+  }
   return null;
 }
 
@@ -548,6 +587,12 @@ DocumentSelection? _collapsedAfterLeading(
       blockId: block.id,
       blockIndex: blockIndex,
       offset: block.code.length,
+    );
+  } else if (block is CalloutBlockNode && originalStart.path.isBlockText) {
+    position = DocumentPosition.text(
+      blockId: block.id,
+      blockIndex: blockIndex,
+      offset: inlineNodesLength(block.content),
     );
   } else if (block is TableBlockNode && originalStart.path.isTableCellText) {
     final rowIndex = originalStart.path.tableRowIndex;
@@ -582,6 +627,12 @@ DocumentSelection? _collapsedAtTrailingStart(
     );
   } else if (block is CodeBlockNode && originalEnd.path.isBlockCode) {
     position = DocumentPosition.code(
+      blockId: block.id,
+      blockIndex: blockIndex,
+      offset: 0,
+    );
+  } else if (block is CalloutBlockNode && originalEnd.path.isBlockText) {
+    position = DocumentPosition.text(
       blockId: block.id,
       blockIndex: blockIndex,
       offset: 0,
@@ -763,6 +814,32 @@ CommandResult _deleteCodeRange(
   );
 }
 
+CommandResult _deleteCalloutRange(
+  DocumentSession session,
+  DocumentPosition position,
+  int start,
+  int end,
+) {
+  final block = _blockAt(session.document, position.blockIndex);
+  if (block is! CalloutBlockNode || !position.path.isBlockText) {
+    return const CommandResult(recordHistory: false);
+  }
+  final length = inlineNodesLength(block.content);
+  final startOffset = start.clamp(0, length);
+  final endOffset = end.clamp(startOffset, length);
+  if (startOffset == endOffset) {
+    return const CommandResult(recordHistory: false);
+  }
+  final nextBlock = block.copyWith(
+    content: deleteInline(block.content, startOffset, endOffset),
+  );
+  _replaceBlock(session, position.blockIndex, nextBlock);
+  final nextPosition = position.copyWith(offset: startOffset);
+  return CommandResult(
+    selection: DocumentSelection(base: nextPosition, extent: nextPosition),
+  );
+}
+
 CommandResult _mergeWithPreviousBlock(
   DocumentSession session,
   DocumentPosition position,
@@ -804,6 +881,24 @@ CommandResult _mergeWithPreviousBlock(
     );
     _replaceBlocks(session, previousIndex, 2, <BlockNode>[mergedBlock]);
     final nextPosition = DocumentPosition.code(
+      blockId: previous.id,
+      blockIndex: previousIndex,
+      offset: previousLength,
+    );
+    return CommandResult(
+      selection: DocumentSelection(base: nextPosition, extent: nextPosition),
+    );
+  }
+  if (previous is CalloutBlockNode && current is CalloutBlockNode) {
+    final previousLength = inlineNodesLength(previous.content);
+    final mergedBlock = previous.copyWith(
+      content: mergeTextRuns(<InlineNode>[
+        ...previous.content.map((node) => node.copy()),
+        ...current.content.map((node) => node.copy()),
+      ]),
+    );
+    _replaceBlocks(session, previousIndex, 2, <BlockNode>[mergedBlock]);
+    final nextPosition = DocumentPosition.text(
       blockId: previous.id,
       blockIndex: previousIndex,
       offset: previousLength,
@@ -864,6 +959,20 @@ CommandResult _mergeWithNextBlock(
       selection: DocumentSelection(base: nextPosition, extent: nextPosition),
     );
   }
+  if (current is CalloutBlockNode && next is CalloutBlockNode) {
+    final currentLength = inlineNodesLength(current.content);
+    final mergedBlock = current.copyWith(
+      content: mergeTextRuns(<InlineNode>[
+        ...current.content.map((node) => node.copy()),
+        ...next.content.map((node) => node.copy()),
+      ]),
+    );
+    _replaceBlocks(session, position.blockIndex, 2, <BlockNode>[mergedBlock]);
+    final nextPosition = position.copyWith(offset: currentLength);
+    return CommandResult(
+      selection: DocumentSelection(base: nextPosition, extent: nextPosition),
+    );
+  }
   if (current != null && _isNonTextBlock(next)) {
     final selection = _selectionAtBlockStartOrObject(
       next!,
@@ -879,17 +988,26 @@ CommandResult _mergeWithNextBlock(
 }
 
 bool _isNonTextBlock(BlockNode? block) {
-  return block != null && block is! TextBlockNode && block is! CodeBlockNode;
+  return block != null && !_isEditableBlock(block);
 }
 
 bool _isEmptyEditableBlock(BlockNode block) {
   if (block is TextBlockNode) {
     return block.plainText.trim().isEmpty;
   }
+  if (block is CalloutBlockNode) {
+    return block.content.map((node) => node.plainText).join().trim().isEmpty;
+  }
   if (block is CodeBlockNode) {
     return block.code.isEmpty;
   }
   return false;
+}
+
+bool _isEditableBlock(BlockNode block) {
+  return block is TextBlockNode ||
+      block is CodeBlockNode ||
+      block is CalloutBlockNode;
 }
 
 DocumentSelection _selectionAtBlockEndOrObject(BlockNode block, int index) {
@@ -935,10 +1053,11 @@ void _replaceBlock(DocumentSession session, int index, BlockNode block) {
 }
 
 /// Removes the object block at [index] (image/divider/video/file) and lands the
-/// caret on a neighbouring editable block — the end of the previous text/code
-/// block if one exists, otherwise the start of the first editable block in the
-/// resulting document. The schema normalise pass (run by the executor after the
-/// command) re-adds an empty paragraph when the removed block was the only one.
+/// caret on a neighbouring editable block — the end of the previous text/code/
+/// callout block if one exists, otherwise the start of the first editable block
+/// in the resulting document. The schema normalise pass (run by the executor
+/// after the command) re-adds an empty paragraph when the removed block was the
+/// only one.
 CommandResult _deleteObjectBlock(DocumentSession session, int index) {
   final blocks = session.document.blocks;
   if (index < 0 || index >= blocks.length) {
@@ -951,7 +1070,7 @@ CommandResult _deleteObjectBlock(DocumentSession session, int index) {
   BlockNode? previousEditable;
   var previousIndex = -1;
   for (var i = index - 1; i >= 0; i--) {
-    if (blocks[i] is TextBlockNode || blocks[i] is CodeBlockNode) {
+    if (_isEditableBlock(blocks[i])) {
       previousEditable = blocks[i];
       previousIndex = i;
       break;
@@ -986,7 +1105,7 @@ CommandResult _deleteObjectBlock(DocumentSession session, int index) {
   final next = session.document.blocks;
   for (var i = 0; i < next.length; i++) {
     final block = next[i];
-    if (block is TextBlockNode || block is CodeBlockNode) {
+    if (_isEditableBlock(block)) {
       return CommandResult(selection: _caretAtBlockStart(block, i));
     }
   }
@@ -1003,7 +1122,15 @@ DocumentSelection _caretAtBlockEnd(BlockNode block, int blockIndex) {
     );
     return DocumentSelection(base: pos, extent: pos);
   }
-  // CodeBlockNode.
+  if (block is CalloutBlockNode) {
+    final end = inlineNodesLength(block.content);
+    final pos = DocumentPosition.text(
+      blockId: block.id,
+      blockIndex: blockIndex,
+      offset: end,
+    );
+    return DocumentSelection(base: pos, extent: pos);
+  }
   final end = (block as CodeBlockNode).code.length;
   final pos = DocumentPosition.code(
     blockId: block.id,
@@ -1016,6 +1143,14 @@ DocumentSelection _caretAtBlockEnd(BlockNode block, int blockIndex) {
 DocumentSelection _caretAtBlockStart(BlockNode block, int blockIndex) {
   if (block is CodeBlockNode) {
     final pos = DocumentPosition.code(
+      blockId: block.id,
+      blockIndex: blockIndex,
+      offset: 0,
+    );
+    return DocumentSelection(base: pos, extent: pos);
+  }
+  if (block is CalloutBlockNode) {
+    final pos = DocumentPosition.text(
       blockId: block.id,
       blockIndex: blockIndex,
       offset: 0,

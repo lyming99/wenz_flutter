@@ -197,4 +197,143 @@ void main() {
     expect(embeds[2].data['shortName'], 'grinning');
     expect(embeds[3].data['assetId'], 'asset-1');
   });
+
+  test('controller updates inline formula data and preserves undo history', () {
+    final initialSelection = collapsedTextSelection('p1', 0, 0);
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[
+              TextRun(text: 'Solve '),
+              InlineEmbed(
+                embedType: 'formula',
+                data: <String, Object?>{'latex': 'x^2'},
+              ),
+              TextRun(text: ' now'),
+            ],
+          ),
+        ],
+      ),
+      selection: initialSelection,
+    );
+
+    controller.updateInlineFormula(
+      position: DocumentPosition.text(
+        blockId: 'p1',
+        blockIndex: 0,
+        offset: 6,
+      ),
+      text: ' y^2 ',
+    );
+
+    var block = controller.document.blocks.single as TextBlockNode;
+    var formula = block.content[1] as InlineEmbed;
+    expect(controller.selection, initialSelection);
+    expect(formula.data['text'], 'y^2');
+    expect(formula.data['latex'], 'y^2');
+    expect(formula.data['value'], 'y^2');
+    expect(formula.data['formula'], 'y^2');
+
+    expect(controller.undo(), isTrue);
+    block = controller.document.blocks.single as TextBlockNode;
+    formula = block.content[1] as InlineEmbed;
+    expect(formula.data['text'], isNull);
+    expect(formula.data['latex'], 'x^2');
+
+    expect(controller.redo(), isTrue);
+    block = controller.document.blocks.single as TextBlockNode;
+    formula = block.content[1] as InlineEmbed;
+    expect(formula.data['text'], 'y^2');
+
+    controller.dispose();
+  });
+
+  test('controller updates block formula by id and keeps fallback in sync', () {
+    final initialSelection = collapsedTextSelection('p1', 0, 0);
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'Before')],
+          ),
+          BlockEmbedNode(
+            id: 'formula-block',
+            embedType: 'formula',
+            data: <String, Object?>{'value': 'old'},
+            fallbackText: 'old fallback',
+          ),
+        ],
+      ),
+      selection: initialSelection,
+    );
+
+    controller.updateBlockFormula(blockId: 'formula-block', text: r'\frac{1}{2}');
+
+    var block = controller.document.blocks[1] as BlockEmbedNode;
+    expect(controller.selection, initialSelection);
+    expect(block.fallbackText, r'\frac{1}{2}');
+    expect(block.data['text'], r'\frac{1}{2}');
+    expect(block.data['latex'], r'\frac{1}{2}');
+    expect(block.data['value'], r'\frac{1}{2}');
+    expect(block.data['formula'], r'\frac{1}{2}');
+
+    expect(controller.undo(), isTrue);
+    block = controller.document.blocks[1] as BlockEmbedNode;
+    expect(block.fallbackText, 'old fallback');
+    expect(block.data['value'], 'old');
+
+    expect(controller.redo(), isTrue);
+    block = controller.document.blocks[1] as BlockEmbedNode;
+    expect(block.fallbackText, r'\frac{1}{2}');
+
+    controller.dispose();
+  });
+
+  test('formula updates are no-op for empty or non-formula targets', () {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[
+              TextRun(text: 'Hi '),
+              InlineEmbed(
+                embedType: 'mention',
+                data: <String, Object?>{'id': 'u1', 'label': 'Ada'},
+              ),
+            ],
+          ),
+          BlockEmbedNode(
+            id: 'chart-block',
+            embedType: 'chart',
+            data: <String, Object?>{'text': 'chart'},
+          ),
+        ],
+      ),
+    );
+    final before = controller.toJson();
+
+    controller.updateInlineFormula(
+      position: DocumentPosition.text(
+        blockId: 'p1',
+        blockIndex: 0,
+        offset: 3,
+      ),
+      text: 'x^2',
+    );
+    controller.updateBlockFormula(blockId: 'chart-block', text: 'x^2');
+    controller.updateBlockFormula(blockId: 'missing', text: 'x^2');
+    controller.updateBlockFormula(blockId: 'chart-block', text: '   ');
+
+    expect(controller.toJson(), before);
+    expect(controller.canUndo, isFalse);
+
+    controller.dispose();
+  });
 }

@@ -275,9 +275,11 @@ class EditorTextInputClient with DeltaTextInputClient {
 
   @override
   void updateEditingValueWithDeltas(List<TextEditingDelta> textEditingDeltas) {
-    for (final delta in textEditingDeltas) {
-      _applyDelta(delta);
-    }
+    _controller.runWithInputUpdate(() {
+      for (final delta in textEditingDeltas) {
+        _applyDelta(delta);
+      }
+    });
   }
 
   void _applyDelta(TextEditingDelta delta) {
@@ -551,11 +553,13 @@ class EditorTextInputClient with DeltaTextInputClient {
       _syncBuffer();
     }
 
-    if (value.composing == TextRange.empty) {
-      apply();
-    } else {
-      _controller.runWithComposingTextInput(apply);
-    }
+    _controller.runWithInputUpdate(() {
+      if (value.composing == TextRange.empty) {
+        apply();
+      } else {
+        _controller.runWithComposingTextInput(apply);
+      }
+    });
   }
 
   void _replaceCrossTargetSelectionFromEditingValue(

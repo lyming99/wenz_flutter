@@ -50,6 +50,46 @@ void main() {
       expect(codec.encode(document), contains('bold'));
     });
 
+    test('exports mixed ordered and todo list markers', () {
+      const document = RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'ordered1',
+            type: BlockType.listItem,
+            attributes: BlockAttributes(listType: 'ordered'),
+            content: <InlineNode>[TextRun(text: 'plain ordered')],
+          ),
+          TextBlockNode(
+            id: 'orderedTodo1',
+            type: BlockType.listItem,
+            attributes: BlockAttributes(listType: 'ordered', checked: false),
+            content: <InlineNode>[TextRun(text: 'ordered todo')],
+          ),
+          TextBlockNode(
+            id: 'task1',
+            type: BlockType.listItem,
+            attributes: BlockAttributes(listType: 'task', checked: true),
+            content: <InlineNode>[TextRun(text: 'unordered todo')],
+          ),
+          TextBlockNode(
+            id: 'ordered2',
+            type: BlockType.listItem,
+            attributes: BlockAttributes(listType: 'ordered'),
+            content: <InlineNode>[TextRun(text: 'restarted ordered')],
+          ),
+        ],
+      );
+      const codec = PlainTextCodec();
+
+      expect(
+        codec.encode(document),
+        '1. plain ordered\n\n'
+        '2. [ ] ordered todo\n\n'
+        '- [x] unordered todo\n\n'
+        '1. restarted ordered',
+      );
+    });
+
     test('keeps internal newlines inside a code block', () {
       const document = RichTextDocument(
         blocks: <BlockNode>[
@@ -238,6 +278,27 @@ void main() {
       // single paragraph.
       expect(codec.encode(document), contains('A1'));
       expect(codec.encode(document), contains('B1'));
+    });
+
+    test('exports callout body after deletion without metadata', () {
+      const document = RichTextDocument(
+        blocks: <BlockNode>[
+          CalloutBlockNode(
+            id: 'callout1',
+            variant: CalloutBlockNode.warningVariant,
+            title: 'Heads up',
+            icon: '!',
+            attributes: BlockAttributes(anchor: 'note-anchor'),
+            content: <InlineNode>[TextRun(text: 'Keep body')],
+          ),
+        ],
+      );
+      const codec = PlainTextCodec();
+
+      expect(codec.encode(document), 'Heads up\nKeep body');
+      expect(codec.encode(document), isNot(contains('warning')));
+      expect(codec.encode(document), isNot(contains('note-anchor')));
+      expect(codec.encode(document), isNot(contains('!')));
     });
   });
 }
