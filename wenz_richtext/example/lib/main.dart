@@ -1,9 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:wenz_richtext/wenz_richtext.dart';
 
 import 'example_video_player.dart';
+import 'outline_panel.dart';
 import 'test_host.dart';
 
 void main() {
@@ -255,6 +257,7 @@ class _EditorWorkbenchState extends State<EditorWorkbench> {
   late final ToolbarController _toolbar;
   late final WenzDocumentStatsController _stats;
   late final WenzAutoSaveController _autosave;
+  late final WenzOutlineController _outline;
   final MediaResolver _mediaResolver = _ExampleMediaResolver();
   final _draftAdapter = _InMemoryDraftAdapter();
   var _nextId = 0;
@@ -290,11 +293,11 @@ class _EditorWorkbenchState extends State<EditorWorkbench> {
         enableAutosave: true,
         onAutosave: _draftAdapter.save,
         autosaveDebounce: const Duration(milliseconds: 800),
-        // The example drives the toolbar / stats / slash-menu but does not
-        // expose a find&replace or outline surface, so those derived
-        // controllers stay off and the editor is wired exactly as before.
+        // The example drives the toolbar / stats / slash-menu and renders an
+        // outline tree on the right, so the outline controller is enabled; the
+        // find&replace surface stays off. The editor is wired exactly as before.
         enableFindReplace: false,
-        enableOutline: false,
+        enableOutline: true,
         // The three business-integration callbacks fire synchronously before
         // notifyListeners, so reading controller state here is safe.
         onChanged: (doc) {
@@ -321,12 +324,15 @@ class _EditorWorkbenchState extends State<EditorWorkbench> {
     _toolbar = _bootstrap.toolbarController!;
     _stats = _bootstrap.statsController!;
     _autosave = _bootstrap.autosaveController!;
-    // Drive setState from the assembled controllers so the toolbar and inspector
-    // stay in sync with the document, selection, stats, and autosave.
+    _outline = _bootstrap.outlineController!;
+    // Drive setState from the assembled controllers so the toolbar, inspector,
+    // and outline tree stay in sync with the document, selection, stats,
+    // autosave, and outline (fold) state.
     _controller.addListener(_handleControllerChanged);
     _toolbar.addListener(_handleControllerChanged);
     _stats.addListener(_handleControllerChanged);
     _autosave.addListener(_handleControllerChanged);
+    _outline.addListener(_handleControllerChanged);
   }
 
   @override
@@ -338,6 +344,7 @@ class _EditorWorkbenchState extends State<EditorWorkbench> {
     _toolbar.removeListener(_handleControllerChanged);
     _stats.removeListener(_handleControllerChanged);
     _autosave.removeListener(_handleControllerChanged);
+    _outline.removeListener(_handleControllerChanged);
     _bootstrap.dispose();
     super.dispose();
   }
@@ -454,10 +461,26 @@ class _EditorWorkbenchState extends State<EditorWorkbench> {
                         textStyle: theme.textTheme.bodyLarge,
                         defaultTextColor: theme.colorScheme.onSurface,
                         showDebugOverlay: _showDebugOverlay,
+                        onOpenLink: (url, position) => _openLink(url),
                       ),
                     ),
                   ),
                 ],
+              ),
+            ),
+            // Right-side outline tree: the heading list driven by the outline
+            // controller, with a separating left border and an active highlight
+            // that follows the caret. Tapping a row moves the selection to that
+            // heading, and the mounted editor scrolls it into view.
+            DecoratedBox(
+              decoration: BoxDecoration(
+                border: Border(
+                  left: BorderSide(color: theme.colorScheme.outlineVariant),
+                ),
+              ),
+              child: ExampleOutlinePanel(
+                outlineController: _outline,
+                selection: _controller.selection,
               ),
             ),
           ],
@@ -750,6 +773,20 @@ class _EditorWorkbenchState extends State<EditorWorkbench> {
       return (index + 1).clamp(0, blockCount).toInt();
     }
     return index;
+  }
+
+  /// Opens a link when the host activates one (Ctrl/Cmd+click on link text, or
+  /// the link hover overlay's "open" action). Empty or unparseable URLs are
+  /// skipped so a malformed link never throws.
+  Future<void> _openLink(String url) async {
+    if (url.trim().isEmpty) {
+      return;
+    }
+    final uri = Uri.tryParse(url);
+    if (uri == null || !uri.hasScheme) {
+      return;
+    }
+    await launchUrl(uri);
   }
 }
 

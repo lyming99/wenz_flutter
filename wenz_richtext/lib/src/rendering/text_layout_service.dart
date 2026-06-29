@@ -1,5 +1,3 @@
-import 'dart:ui' as ui show ParagraphBuilder;
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart';
 import 'package:flutter/widgets.dart' show WidgetSpan;
@@ -15,27 +13,6 @@ class MeasuredWidgetSpan extends WidgetSpan {
   });
 
   final Size placeholderSize;
-
-  @override
-  void build(
-    ui.ParagraphBuilder builder, {
-    TextScaler textScaler = TextScaler.noScaling,
-    List<PlaceholderDimensions>? dimensions,
-  }) {
-    super.build(
-      builder,
-      textScaler: textScaler,
-      dimensions: dimensions ??
-          <PlaceholderDimensions>[
-            PlaceholderDimensions(
-              size: placeholderSize,
-              alignment: alignment,
-              baseline: baseline,
-              baselineOffset: _placeholderBaselineOffset(this, placeholderSize),
-            ),
-          ],
-    );
-  }
 }
 
 /// Single-block text layout cache.

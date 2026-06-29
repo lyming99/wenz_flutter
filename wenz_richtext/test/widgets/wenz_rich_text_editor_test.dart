@@ -1154,6 +1154,68 @@ void main() {
     expect(_richText('Body three'), findsNothing);
   });
 
+  testWidgets('renders all blocks without a collapse button when no outline '
+      'controller is attached', (tester) async {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'section',
+            type: BlockType.heading,
+            attributes: BlockAttributes(level: 2),
+            content: <InlineNode>[TextRun(text: 'Section title')],
+          ),
+          TextBlockNode(
+            id: 'body',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'Section body')],
+          ),
+          TextBlockNode(
+            id: 'next',
+            type: BlockType.heading,
+            attributes: BlockAttributes(level: 2),
+            content: <InlineNode>[TextRun(text: 'Next title')],
+          ),
+        ],
+      ),
+    );
+
+    // No outlineController: the editor must fall back to rendering every block
+    // and never reserve the left-side heading collapse slot, without throwing.
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 420,
+            height: 220,
+            child: WenzRichTextEditor(
+              controller: controller,
+              padding: EdgeInsets.zero,
+              enableIme: false,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(
+        const ValueKey<String>('wenz-richtext-heading-collapse-section'),
+      ),
+      findsNothing,
+    );
+    expect(
+      find.byKey(
+        const ValueKey<String>('wenz-richtext-heading-collapse-next'),
+      ),
+      findsNothing,
+    );
+    expect(_richText('Section title'), findsOneWidget);
+    expect(_richText('Section body'), findsOneWidget);
+    expect(_richText('Next title'), findsOneWidget);
+  });
+
   testWidgets('read-only mode toggles heading collapse without editing', (
     tester,
   ) async {
@@ -6644,6 +6706,91 @@ void main() {
     expect(block.data['formula'], 'c+d');
   });
 
+  testWidgets(
+      'formula popup keeps arrow keys in input away from editor body (inline)',
+      (tester) async {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'inline-formula',
+            type: BlockType.paragraph,
+            content: <InlineNode>[
+              TextRun(text: 'Solve '),
+              InlineEmbed(
+                embedType: 'formula',
+                data: <String, Object?>{'text': 'x^2'},
+              ),
+              TextRun(text: ' now'),
+            ],
+          ),
+        ],
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WenzRichTextEditor(
+            controller: controller,
+            enableIme: false,
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(_inlineFormulaKey));
+    await tester.pump();
+
+    await _verifyFormulaPopupOwnsArrowKeys(tester, controller, inputLength: 3);
+  });
+
+  testWidgets(
+      'formula popup keeps arrow keys in input away from editor body (block)',
+      (tester) async {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'intro',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'Intro line')],
+          ),
+          BlockEmbedNode(
+            id: 'formula-block',
+            embedType: 'formula',
+            data: <String, Object?>{'latex': 'a+b'},
+            fallbackText: 'a+b',
+          ),
+        ],
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WenzRichTextEditor(
+            controller: controller,
+            enableIme: false,
+          ),
+        ),
+      ),
+    );
+
+    // Seed a known body caret so a stolen arrow key would visibly move it.
+    await _tapTextOffset(tester, 'Intro line', 0);
+    await tester.pump();
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('wenz-richtext-formula-card-formula-block'),
+      ),
+    );
+    await tester.pump();
+
+    await _verifyFormulaPopupOwnsArrowKeys(tester, controller, inputLength: 3);
+  });
+
   testWidgets('formula popup cancel close and empty input keep document unchanged',
       (tester) async {
     final controller = WenzRichTextController(
@@ -6830,6 +6977,410 @@ void main() {
       ),
       findsNothing,
     );
+  });
+
+  // Regression coverage for "formula popup updates then the rendering
+  // disappears" (plan #60). The data-layer update was already covered; these
+  // tests assert the *rendered output*: the formula widget stays present and
+  // sized (not collapsed to nothing) and the laid-out math subtree reflects the
+  // current content after popup confirm / cancel / undo / redo.
+  group('formula update rendering regression', () {
+    Widget editorFor(WenzRichTextController controller) => MaterialApp(
+          home: Scaffold(
+            body: WenzRichTextEditor(
+              controller: controller,
+              enableIme: false,
+            ),
+          ),
+        );
+
+    testWidgets('inline formula keeps rendering new content after popup confirm',
+        (tester) async {
+      final controller = WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'inline-formula',
+              type: BlockType.paragraph,
+              content: <InlineNode>[
+                TextRun(text: 'Solve '),
+                InlineEmbed(
+                  embedType: 'formula',
+                  data: <String, Object?>{'text': 'x^2'},
+                ),
+                TextRun(text: ' now'),
+              ],
+            ),
+          ],
+        ),
+      );
+
+      await tester.pumpWidget(editorFor(controller));
+      await tester.pump();
+
+      // Baseline: the formula is laid out with its original content.
+      expect(find.byKey(_inlineFormulaKey), findsOneWidget);
+      expect(find.byKey(_formulaMathKey('x^2')), findsOneWidget);
+      final before = tester.getRect(find.byKey(_inlineFormulaKey));
+      expect(before.height, greaterThan(0));
+      expect(before.width, greaterThan(0));
+
+      await tester.tap(find.byKey(_inlineFormulaKey));
+      await tester.pump();
+      await tester.enterText(find.byKey(_formulaEditorInputKey), 'y^2');
+      await tester.tap(find.byKey(_formulaEditorConfirmKey));
+      await tester.pump();
+
+      expect(find.byKey(_formulaEditorPopupKey), findsNothing);
+      final inlineBlock = controller.document.blocks.single as TextBlockNode;
+      expect((inlineBlock.content[1] as InlineEmbed).data['text'], 'y^2');
+
+      // The formula did not disappear: it is still present, sized, and the math
+      // subtree rebuilt with the new source (stale content is gone).
+      expect(find.byKey(_inlineFormulaKey), findsOneWidget);
+      expect(find.byKey(_formulaMathKey('y^2')), findsOneWidget);
+      expect(find.byKey(_formulaMathKey('x^2')), findsNothing);
+      final after = tester.getRect(find.byKey(_inlineFormulaKey));
+      expect(after.height, greaterThan(0));
+      expect(after.width, greaterThan(0));
+    });
+
+    testWidgets('multiple inline formulas update independently and keep sizing',
+        (tester) async {
+      final controller = WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'inline-formula',
+              type: BlockType.paragraph,
+              content: <InlineNode>[
+                TextRun(text: 'Ask '),
+                InlineEmbed(
+                  embedType: 'formula',
+                  data: <String, Object?>{'text': 'a+b'},
+                ),
+                TextRun(text: ' then '),
+                InlineEmbed(
+                  embedType: 'formula',
+                  data: <String, Object?>{'text': 'c+d'},
+                ),
+                TextRun(text: ' end'),
+              ],
+            ),
+          ],
+        ),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 720,
+              height: 160,
+              child: WenzRichTextEditor(
+                controller: controller,
+                enableIme: false,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      final formulaFinder = find.byKey(_inlineFormulaKey);
+      expect(formulaFinder, findsNWidgets(2));
+      expect(find.byKey(_formulaMathKey('a+b')), findsOneWidget);
+      expect(find.byKey(_formulaMathKey('c+d')), findsOneWidget);
+      // Both placeholders lay out non-zero — the multi-placeholder dimension
+      // path that previously collapsed one of them now keeps both.
+      final firstBefore = tester.getRect(formulaFinder.at(0));
+      final secondBefore = tester.getRect(formulaFinder.at(1));
+      expect(firstBefore.height, greaterThan(0));
+      expect(firstBefore.width, greaterThan(0));
+      expect(secondBefore.height, greaterThan(0));
+      expect(secondBefore.width, greaterThan(0));
+
+      // Update only the first formula via its popup.
+      await tester.tap(formulaFinder.at(0));
+      await tester.pump();
+      await tester.enterText(find.byKey(_formulaEditorInputKey), 'x+y');
+      await tester.tap(find.byKey(_formulaEditorConfirmKey));
+      await tester.pump();
+
+      expect(find.byKey(_formulaEditorPopupKey), findsNothing);
+      expect(find.byKey(_inlineFormulaKey), findsNWidgets(2));
+      // The first formula rebuilt with the new content; the second is untouched.
+      expect(find.byKey(_formulaMathKey('x+y')), findsOneWidget);
+      expect(find.byKey(_formulaMathKey('a+b')), findsNothing);
+      expect(find.byKey(_formulaMathKey('c+d')), findsOneWidget);
+
+      final firstAfter = tester.getRect(find.byKey(_inlineFormulaKey).at(0));
+      final secondAfter = tester.getRect(find.byKey(_inlineFormulaKey).at(1));
+      expect(firstAfter.height, greaterThan(0));
+      expect(firstAfter.width, greaterThan(0));
+      // The untouched formula keeps exactly its original slot size.
+      expect(
+        secondAfter.height,
+        moreOrLessEquals(secondBefore.height, epsilon: 0.01),
+      );
+      expect(
+        secondAfter.width,
+        moreOrLessEquals(secondBefore.width, epsilon: 0.01),
+      );
+
+      final block = controller.document.blocks.single as TextBlockNode;
+      expect((block.content[1] as InlineEmbed).data['text'], 'x+y');
+      expect((block.content[3] as InlineEmbed).data['text'], 'c+d');
+    });
+
+    testWidgets('inline formula grows when updated to a tall fraction',
+        (tester) async {
+      final controller = WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'inline-formula',
+              type: BlockType.paragraph,
+              content: <InlineNode>[
+                TextRun(text: 'Answer '),
+                InlineEmbed(
+                  embedType: 'formula',
+                  data: <String, Object?>{'text': 'a'},
+                ),
+                TextRun(text: ' done'),
+              ],
+            ),
+          ],
+        ),
+      );
+
+      await tester.pumpWidget(editorFor(controller));
+      await tester.pump();
+
+      expect(find.byKey(_formulaMathKey('a')), findsOneWidget);
+      final before = tester.getRect(find.byKey(_inlineFormulaKey));
+      expect(before.height, greaterThan(0));
+
+      await tester.tap(find.byKey(_inlineFormulaKey));
+      await tester.pump();
+      await tester.enterText(find.byKey(_formulaEditorInputKey), r'\frac{1}{2}');
+      await tester.tap(find.byKey(_formulaEditorConfirmKey));
+      await tester.pump();
+
+      expect(find.byKey(_formulaEditorPopupKey), findsNothing);
+      // New tall content laid out from scratch; old flat content gone.
+      expect(find.byKey(_formulaMathKey(r'\frac{1}{2}')), findsOneWidget);
+      expect(find.byKey(_formulaMathKey('a')), findsNothing);
+      final after = tester.getRect(find.byKey(_inlineFormulaKey));
+      expect(after.height, greaterThan(0));
+      expect(after.width, greaterThan(0));
+      // The taller formula reserves more vertical space than the flat one.
+      expect(after.height, greaterThan(before.height + 8));
+      expect(after.height, lessThan(48));
+    });
+
+    testWidgets('block formula preview renders new content after popup confirm',
+        (tester) async {
+      const blockId = 'formula-block';
+      const cardKey = ValueKey<String>('wenz-richtext-formula-card-$blockId');
+      const previewKey =
+          ValueKey<String>('wenz-richtext-formula-preview-$blockId');
+      final controller = WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            BlockEmbedNode(
+              id: blockId,
+              embedType: 'formula',
+              data: <String, Object?>{'latex': 'a+b'},
+              fallbackText: 'a+b',
+            ),
+          ],
+        ),
+      );
+
+      await tester.pumpWidget(editorFor(controller));
+      await tester.pump();
+
+      expect(find.byKey(cardKey), findsOneWidget);
+      expect(find.byKey(previewKey), findsOneWidget);
+      expect(find.byKey(_formulaMathKey('a+b')), findsOneWidget);
+      expect(find.text('a+b'), findsOneWidget);
+
+      await tester.tap(find.byKey(cardKey));
+      await tester.pump();
+      expect(
+        tester.widget<TextField>(find.byKey(_formulaEditorInputKey))
+            .controller
+            ?.text,
+        'a+b',
+      );
+      await tester.enterText(find.byKey(_formulaEditorInputKey), 'c+d');
+      await tester.tap(find.byKey(_formulaEditorConfirmKey));
+      await tester.pump();
+
+      expect(find.byKey(_formulaEditorPopupKey), findsNothing);
+      // Preview refreshes (does not disappear): preview widget present, source
+      // text and laid-out math reflect the new content.
+      expect(find.byKey(previewKey), findsOneWidget);
+      expect(find.text('c+d'), findsOneWidget);
+      expect(find.byKey(_formulaMathKey('c+d')), findsOneWidget);
+      expect(find.byKey(_formulaMathKey('a+b')), findsNothing);
+      final block = controller.document.blocks.single as BlockEmbedNode;
+      expect(block.data['text'], 'c+d');
+    });
+
+    testWidgets(
+        'cancel close empty and outside tap leave inline rendering intact',
+        (tester) async {
+      final controller = WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'inline-formula',
+              type: BlockType.paragraph,
+              content: <InlineNode>[
+                TextRun(text: 'Solve '),
+                InlineEmbed(
+                  embedType: 'formula',
+                  data: <String, Object?>{'text': 'x^2'},
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+
+      await tester.pumpWidget(editorFor(controller));
+      await tester.pump();
+
+      Rect formulaRect() => tester.getRect(find.byKey(_inlineFormulaKey));
+      // Baseline render present and sized.
+      expect(find.byKey(_formulaMathKey('x^2')), findsOneWidget);
+      expect(formulaRect().height, greaterThan(0));
+
+      Future<void> dismissKeepingRender(Future<void> Function() dismiss) async {
+        await tester.tap(find.byKey(_inlineFormulaKey));
+        await tester.pump();
+        await tester.enterText(find.byKey(_formulaEditorInputKey), 'changed');
+        await dismiss();
+        await tester.pump();
+        expect(find.byKey(_formulaEditorPopupKey), findsNothing);
+        expect(find.byKey(_formulaMathKey('x^2')), findsOneWidget);
+        expect(find.byKey(_formulaMathKey('changed')), findsNothing);
+        expect(formulaRect().height, greaterThan(0));
+      }
+
+      // Cancel button.
+      await dismissKeepingRender(
+        () async => tester.tap(find.byKey(_formulaEditorCancelKey)),
+      );
+      // Empty/whitespace confirm is a no-op.
+      await dismissKeepingRender(() async {
+        await tester.enterText(find.byKey(_formulaEditorInputKey), '   ');
+        await tester.tap(find.byKey(_formulaEditorConfirmKey));
+      });
+      // Close button.
+      await dismissKeepingRender(
+        () async => tester.tap(find.byKey(_formulaEditorCloseKey)),
+      );
+      // Outside tap dismisses the popup.
+      await tester.tap(find.byKey(_inlineFormulaKey));
+      await tester.pump();
+      await tester.tapAt(const Offset(780, 580));
+      await tester.pump();
+      expect(find.byKey(_formulaEditorPopupKey), findsNothing);
+      expect(find.byKey(_formulaMathKey('x^2')), findsOneWidget);
+      expect(formulaRect().height, greaterThan(0));
+
+      // None of the dismiss paths mutated the document.
+      final embed = (controller.document.blocks.single as TextBlockNode)
+          .content[1] as InlineEmbed;
+      expect(embed.data['text'], 'x^2');
+    });
+
+    testWidgets('undo and redo re-render inline and block formulas per history',
+        (tester) async {
+      final controller = WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'p1',
+              type: BlockType.paragraph,
+              content: <InlineNode>[
+                TextRun(text: 'Solve '),
+                InlineEmbed(
+                  embedType: 'formula',
+                  data: <String, Object?>{'text': 'x^2'},
+                ),
+              ],
+            ),
+            BlockEmbedNode(
+              id: 'formula-block',
+              embedType: 'formula',
+              data: <String, Object?>{'latex': 'a+b'},
+              fallbackText: 'a+b',
+            ),
+          ],
+        ),
+      );
+
+      await tester.pumpWidget(editorFor(controller));
+      await tester.pump();
+
+      // Step A: update the inline formula via its popup.
+      await tester.tap(find.byKey(_inlineFormulaKey));
+      await tester.pump();
+      await tester.enterText(find.byKey(_formulaEditorInputKey), 'y^2');
+      await tester.tap(find.byKey(_formulaEditorConfirmKey));
+      await tester.pump();
+      // Step B: update the block formula via its popup.
+      await tester.tap(
+        find.byKey(
+          const ValueKey<String>('wenz-richtext-formula-card-formula-block'),
+        ),
+      );
+      await tester.pump();
+      await tester.enterText(find.byKey(_formulaEditorInputKey), 'c+d');
+      await tester.tap(find.byKey(_formulaEditorConfirmKey));
+      await tester.pump();
+
+      // Both rendered to their new content and the inline slot stays sized.
+      expect(find.byKey(_formulaMathKey('y^2')), findsOneWidget);
+      expect(find.byKey(_formulaMathKey('c+d')), findsOneWidget);
+      expect(
+        tester.getRect(find.byKey(_inlineFormulaKey)).height,
+        greaterThan(0),
+      );
+
+      // Undo B (most recent): block reverts, inline unchanged.
+      expect(controller.undo(), isTrue);
+      await tester.pump();
+      expect(find.byKey(_formulaMathKey('a+b')), findsOneWidget);
+      expect(find.byKey(_formulaMathKey('c+d')), findsNothing);
+      expect(find.byKey(_formulaMathKey('y^2')), findsOneWidget);
+
+      // Undo A: inline reverts, still rendered.
+      expect(controller.undo(), isTrue);
+      await tester.pump();
+      expect(find.byKey(_formulaMathKey('x^2')), findsOneWidget);
+      expect(find.byKey(_formulaMathKey('y^2')), findsNothing);
+      expect(
+        tester.getRect(find.byKey(_inlineFormulaKey)).height,
+        greaterThan(0),
+      );
+
+      // Redo A then B: content replays in order.
+      expect(controller.redo(), isTrue);
+      await tester.pump();
+      expect(find.byKey(_formulaMathKey('y^2')), findsOneWidget);
+      expect(controller.redo(), isTrue);
+      await tester.pump();
+      expect(find.byKey(_formulaMathKey('c+d')), findsOneWidget);
+      expect(
+        tester.getRect(find.byKey(_inlineFormulaKey)).height,
+        greaterThan(0),
+      );
+    });
   });
 
   testWidgets('aligns todo checkbox with adjusted text line height',
@@ -8435,6 +8986,207 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.byTooltip('预览媒体'), findsOneWidget);
     expect(find.byTooltip('更多块操作'), findsOneWidget);
+  });
+
+  testWidgets('video block shows non-editing cursor like the file block',
+      (tester) async {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p0',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'Editable paragraph text')],
+          ),
+          VideoBlockNode(id: 'video1', assetId: 'clip'),
+          FileBlockNode(id: 'file1', assetId: 'file-1', name: 'brief.pdf'),
+        ],
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WenzRichTextEditor(
+            controller: controller,
+            enableIme: false,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    // A plain editable text block keeps the text (I-beam) cursor, confirming
+    // the change is scoped to the video block and did not affect text areas.
+    final textCursor = _resolvedMouseCursor(
+      tester,
+      tester.getCenter(_richText('Editable paragraph text')),
+    );
+    expect(textCursor, SystemMouseCursors.text);
+
+    // The video block resolves to the non-editing click cursor (matching the
+    // file attachment card), not the text I-beam.
+    final videoCursor = _resolvedMouseCursor(
+      tester,
+      tester.getCenter(_videoBlockFinder('video1')),
+    );
+    expect(videoCursor, isNot(SystemMouseCursors.text));
+    expect(videoCursor, SystemMouseCursors.click);
+
+    // The file attachment card resolves to the same non-editing click cursor.
+    final fileCursor = _resolvedMouseCursor(
+      tester,
+      tester.getCenter(
+        find.byKey(const ValueKey<String>('wenz-richtext-file-card-file1')),
+      ),
+    );
+    expect(fileCursor, SystemMouseCursors.click);
+    expect(fileCursor, videoCursor);
+  });
+
+  group('media block display states', () {
+    testWidgets(
+        'image caption renders as a centered figcaption below the frame',
+        (tester) async {
+      final controller = WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            ImageBlockNode(
+              id: 'image1',
+              assetId: 'hero',
+              file: 'hero.png',
+              caption: 'A scenic view',
+              altText: 'Scenery alt',
+              showWidth: 220,
+              showHeight: 120,
+            ),
+          ],
+        ),
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: WenzRichTextEditor(
+              controller: controller,
+              // An empty resolver widget keeps the frame free of placeholder
+              // text, so the caption + altText are the only content here.
+              mediaResolver: _EmptyMediaResolver(),
+              enableIme: false,
+            ),
+          ),
+        ),
+      );
+
+      final caption = tester.widget<Text>(find.text('A scenic view'));
+      expect(caption.style?.fontSize, 12.5);
+      expect(caption.textAlign, TextAlign.center);
+
+      // The figcaption sits below the figure frame (the shared chrome).
+      final frameRect = tester.getRect(
+        find.byKey(const ValueKey<String>('wenz-richtext-image-frame-image1')),
+      );
+      final captionRect = tester.getRect(find.text('A scenic view'));
+      expect(captionRect.top, greaterThanOrEqualTo(frameRect.bottom));
+
+      // altText surfaces as the frame's accessible label via Semantics.
+      final semantics = tester.ensureSemantics();
+      expect(find.bySemanticsLabel('Scenery alt'), findsWidgets);
+      semantics.dispose();
+    });
+
+    testWidgets(
+        'image without a caption renders no figcaption (no extra height)',
+        (tester) async {
+      final controller = WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            ImageBlockNode(
+              id: 'plain',
+              assetId: 'a',
+              file: 'a.png',
+              showWidth: 200,
+              showHeight: 120,
+            ),
+            ImageBlockNode(
+              id: 'captioned',
+              assetId: 'b',
+              file: 'b.png',
+              caption: 'With a caption',
+              showWidth: 200,
+              showHeight: 120,
+            ),
+          ],
+        ),
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: WenzRichTextEditor(
+              controller: controller,
+              enableIme: false,
+            ),
+          ),
+        ),
+      );
+
+      // The captioned block shows its figcaption below the frame; the plain
+      // block does not.
+      expect(find.text('With a caption'), findsOneWidget);
+      final captionedFrameRect = tester.getRect(
+        find.byKey(
+          const ValueKey<String>('wenz-richtext-image-frame-captioned'),
+        ),
+      );
+      final captionRect = tester.getRect(find.text('With a caption'));
+      expect(captionRect.top, greaterThanOrEqualTo(captionedFrameRect.bottom));
+
+      // An empty caption produces no figcaption and therefore no extra height:
+      // the plain block is shorter than the captioned one (same showHeight).
+      final plainRect = tester.getRect(_imageBlockFinder('plain'));
+      final captionedRect = tester.getRect(_imageBlockFinder('captioned'));
+      expect(captionedRect.height, greaterThan(plainRect.height));
+    });
+
+    testWidgets(
+        'read-only hides the media block drag handle (no mutation entry)',
+        (tester) async {
+      final controller = WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            ImageBlockNode(id: 'image1', assetId: 'hero', file: 'hero.png'),
+            VideoBlockNode(id: 'video1', assetId: 'clip'),
+          ],
+        ),
+      );
+
+      Future<void> pump({required bool readOnly}) async {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: WenzRichTextEditor(
+                controller: controller,
+                readOnly: readOnly,
+                enableIme: false,
+              ),
+            ),
+          ),
+        );
+        await tester.pump();
+      }
+
+      // Editable: each media block exposes a drag handle (mutation entry).
+      await pump(readOnly: false);
+      expect(_blockDragHandleFinder('image1'), findsOneWidget);
+      expect(_blockDragHandleFinder('video1'), findsOneWidget);
+
+      // Read-only: the drag handle is gone — media blocks keep only safe
+      // actions, with no destructive/reorder mutation entry. Display is intact.
+      await pump(readOnly: true);
+      expect(_blockDragHandleFinder('image1'), findsNothing);
+      expect(_blockDragHandleFinder('video1'), findsNothing);
+      expect(_imageBlockFinder('image1'), findsOneWidget);
+      expect(_videoBlockFinder('video1'), findsOneWidget);
+    });
   });
 
   testWidgets('tap below a trailing image appends a paragraph', (tester) async {
@@ -10082,6 +10834,167 @@ void main() {
     );
   });
 
+  group('media block selection stroke', () {
+    // The selection stroke drawn directly on the media frame (image/video).
+    const strokeKey = ValueKey<String>('wenz-richtext-media-selection-stroke');
+    const imageFrameKey = ValueKey<String>('wenz-richtext-image-frame-image1');
+    const videoFrameKey = ValueKey<String>('wenz-richtext-video-frame-video1');
+    // Media frame corner radius (_kMediaCornerRadius) and the vertical block
+    // margin (_kMediaBlockMarginVertical) are private in the editor; assert the
+    // spec'd values directly so the test pins the user-facing behaviour.
+    const mediaCornerRadius = 12.0;
+    const primaryStroke = Color(0xFF0B6E4F);
+
+    Future<void> pumpMediaEditor(
+      WidgetTester tester,
+      WenzRichTextController controller,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData(
+            colorScheme: const ColorScheme.light(primary: primaryStroke),
+          ),
+          home: Scaffold(
+            body: WenzRichTextEditor(
+              controller: controller,
+              enableIme: false,
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+    }
+
+    testWidgets(
+      'selected image selection stroke hugs the media frame and uses media radius',
+      (tester) async {
+        final controller = WenzRichTextController(
+          document: const RichTextDocument(
+            blocks: <BlockNode>[
+              ImageBlockNode(id: 'image1', assetId: 'hero', file: 'hero.png'),
+            ],
+          ),
+          selection: objectBlockSelection('image1', 0),
+        );
+        await pumpMediaEditor(tester, controller);
+
+        final decoration =
+            tester.widget<DecoratedBox>(find.byKey(strokeKey)).decoration
+                as BoxDecoration;
+        // Radius matches the media frame (_kMediaCornerRadius), not the old
+        // loose BorderRadius.circular(6) overlay rectangle.
+        expect(
+          decoration.borderRadius,
+          BorderRadius.circular(mediaCornerRadius),
+        );
+        expect(decoration.border, isA<Border>());
+        final side = (decoration.border as Border).top;
+        expect(side.color, primaryStroke);
+        expect(side.width, 2.0);
+
+        // The stroke sits exactly on the media frame instead of floating over
+        // the vertical _kMediaBlockMarginVertical padding above and below it.
+        final strokeRect = tester.getRect(find.byKey(strokeKey));
+        expect(strokeRect, tester.getRect(find.byKey(imageFrameKey)));
+        final blockRect = tester.getRect(_imageBlockFinder('image1'));
+        expect(strokeRect.top, greaterThan(blockRect.top));
+        expect(strokeRect.bottom, lessThan(blockRect.bottom));
+      },
+    );
+
+    testWidgets(
+      'selected video selection stroke hugs the media frame and uses media radius',
+      (tester) async {
+        final controller = WenzRichTextController(
+          document: const RichTextDocument(
+            blocks: <BlockNode>[
+              VideoBlockNode(id: 'video1', assetId: 'clip'),
+            ],
+          ),
+          selection: objectBlockSelection('video1', 0),
+        );
+        await pumpMediaEditor(tester, controller);
+
+        final decoration =
+            tester.widget<DecoratedBox>(find.byKey(strokeKey)).decoration
+                as BoxDecoration;
+        expect(
+          decoration.borderRadius,
+          BorderRadius.circular(mediaCornerRadius),
+        );
+        final side = (decoration.border as Border).top;
+        expect(side.color, primaryStroke);
+        expect(side.width, 2.0);
+
+        final strokeRect = tester.getRect(find.byKey(strokeKey));
+        expect(strokeRect, tester.getRect(find.byKey(videoFrameKey)));
+        final blockRect = tester.getRect(_videoBlockFinder('video1'));
+        expect(strokeRect.top, greaterThan(blockRect.top));
+        expect(strokeRect.bottom, lessThan(blockRect.bottom));
+      },
+    );
+
+    testWidgets('deselected media blocks render no primary selection stroke', (
+      tester,
+    ) async {
+      final controller = WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            ImageBlockNode(id: 'image1', assetId: 'hero', file: 'hero.png'),
+            VideoBlockNode(id: 'video1', assetId: 'clip'),
+          ],
+        ),
+      );
+      await pumpMediaEditor(tester, controller);
+
+      expect(find.byKey(strokeKey), findsNothing);
+      // The media frames themselves carry no selection border either.
+      final imageDecoration =
+          tester.widget<DecoratedBox>(find.byKey(imageFrameKey)).decoration
+              as BoxDecoration;
+      expect(imageDecoration.border, isNull);
+    });
+
+    testWidgets(
+      'non-media selection highlight is unaffected by the media stroke',
+      (tester) async {
+        const code = 'final value = 42;';
+        final codePath = PositionPath.blockCode('code1');
+        final controller = WenzRichTextController(
+          document: const RichTextDocument(
+            blocks: <BlockNode>[
+              CodeBlockNode(id: 'code1', code: code, language: 'dart'),
+              ImageBlockNode(id: 'image1', assetId: 'hero', file: 'hero.png'),
+            ],
+          ),
+          selection: DocumentSelection(
+            base: DocumentPosition(
+              blockId: 'code1',
+              blockIndex: 0,
+              path: codePath,
+              offset: 0,
+            ),
+            extent: DocumentPosition(
+              blockId: 'code1',
+              blockIndex: 0,
+              path: codePath,
+              offset: 11,
+            ),
+          ),
+        );
+        await pumpMediaEditor(tester, controller);
+
+        // Text/code selection highlight still renders normally.
+        expect(
+          find.byKey(const ValueKey<String>('wenz-richtext-selection-highlight')),
+          findsOneWidget,
+        );
+        // The media stroke does not appear for non-media selections.
+        expect(find.byKey(strokeKey), findsNothing);
+      },
+    );
+  });
+
   testWidgets('Delete after Ctrl+A leaves one empty paragraph', (tester) async {
     final controller = WenzRichTextController(
       document: const RichTextDocument(
@@ -11508,6 +12421,323 @@ void main() {
       expect(tester.getTopLeft(secondBlock).dy, 40);
     });
   });
+
+  group('link hover and Ctrl/Cmd+click interaction', () {
+    testWidgets('hovering a link shows the edit/open overlay above it',
+        (tester) async {
+      await _pumpLinkEditor(tester, onOpenLink: (url, position) {});
+      final linkTop = _textRangeGlobalRect(
+        tester,
+        _kLinkRenderedText,
+        _kLinkStart,
+        _kLinkEnd,
+      ).top;
+      await _hoverMouseAt(tester, _linkPoint(tester));
+
+      expect(find.text('Edit'), findsOneWidget);
+      expect(find.text('Open'), findsOneWidget);
+      // The popup anchors above the link run, so its bottom edge sits at or
+      // above the link's top edge.
+      final popupBottom = tester.getRect(find.text('Open')).bottom;
+      expect(popupBottom, lessThanOrEqualTo(linkTop + 1.0));
+    });
+
+    testWidgets('overlay hides after a delay once the pointer leaves the link',
+        (tester) async {
+      await _pumpLinkEditor(tester, onOpenLink: (url, position) {});
+      final gesture = await _hoverMouseAt(tester, _linkPoint(tester));
+      expect(find.text('Open'), findsOneWidget);
+
+      // Move onto plain (non-link) text and advance past the hide delay.
+      await gesture.moveTo(_plainTextPoint(tester));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 350));
+      expect(find.text('Open'), findsNothing);
+    });
+
+    testWidgets(
+        'overlay stays when the pointer travels onto it and hides after leaving both',
+        (tester) async {
+      await _pumpLinkEditor(tester, onOpenLink: (url, position) {});
+      final gesture = await _hoverMouseAt(tester, _linkPoint(tester));
+      expect(find.text('Open'), findsOneWidget);
+
+      // Travelling onto the popup must keep it alive past the hide delay so the
+      // user can reach the actions.
+      await gesture.moveTo(tester.getCenter(find.text('Open')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 350));
+      expect(find.text('Open'), findsOneWidget);
+
+      // Leaving both the link text and the popup dismisses it.
+      await gesture.moveTo(_plainTextPoint(tester));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 350));
+      expect(find.text('Open'), findsNothing);
+    });
+
+    testWidgets('Ctrl+click opens the link without moving the caret',
+        (tester) async {
+      final opens = <String>[];
+      final controller =
+          await _pumpLinkEditor(tester, onOpenLink: (url, position) {
+        opens.add(url);
+      });
+      controller.setSelection(collapsedTextSelection('p-link', 0, 0));
+      await tester.pumpAndSettle();
+
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      await _mouseClickAt(tester, _linkPoint(tester));
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+
+      expect(opens, <String>[_kLinkUrl]);
+      // The caret stays put — modifier+click suppresses caret/selection setup.
+      final selection = controller.selection;
+      expect(selection, isNotNull);
+      expect(selection!.extent.blockId, 'p-link');
+      expect(selection.extent.offset, 0);
+      expect(selection.isCollapsed, isTrue);
+    });
+
+    testWidgets('Cmd+click (macOS variant) also opens the link',
+        (tester) async {
+      final opens = <String>[];
+      await _pumpLinkEditor(tester, onOpenLink: (url, position) {
+        opens.add(url);
+      });
+
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.metaLeft);
+      await _mouseClickAt(tester, _linkPoint(tester));
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.metaLeft);
+
+      expect(opens, <String>[_kLinkUrl]);
+    });
+
+    testWidgets('a plain click on a link places the caret without opening it',
+        (tester) async {
+      final opens = <String>[];
+      final controller =
+          await _pumpLinkEditor(tester, onOpenLink: (url, position) {
+        opens.add(url);
+      });
+
+      await _tapSingle(tester, _linkPoint(tester));
+
+      expect(opens, isEmpty);
+      final selection = controller.selection;
+      expect(selection, isNotNull);
+      expect(selection!.extent.blockId, 'p-link');
+      // The caret lands somewhere inside the link run [_kLinkStart, _kLinkEnd).
+      expect(selection.extent.offset, greaterThanOrEqualTo(_kLinkStart));
+      expect(selection.extent.offset, lessThan(_kLinkEnd));
+      expect(selection.isCollapsed, isTrue);
+    });
+
+    testWidgets('overlay Open action invokes onOpenLink and dismisses',
+        (tester) async {
+      final opens = <String>[];
+      await _pumpLinkEditor(tester, onOpenLink: (url, position) {
+        opens.add(url);
+      });
+      await _hoverMouseAt(tester, _linkPoint(tester));
+      expect(find.text('Open'), findsOneWidget);
+
+      await tester.tap(find.text('Open'));
+      await tester.pumpAndSettle();
+
+      expect(opens, <String>[_kLinkUrl]);
+      expect(find.text('Open'), findsNothing);
+    });
+
+    testWidgets('overlay Edit applies a new URL to the link run',
+        (tester) async {
+      final controller = await _pumpLinkEditor(tester);
+      await _hoverMouseAt(tester, _linkPoint(tester));
+
+      await tester.tap(find.text('Edit'));
+      await tester.pumpAndSettle();
+      expect(find.text('Link URL'), findsOneWidget);
+
+      await tester.enterText(
+        find.descendant(
+          of: find.byKey(const ValueKey<String>('wenz-link-edit-dialog')),
+          matching: find.byType(TextField),
+        ),
+        'https://new.example',
+      );
+      await tester.tap(find.text('Apply'));
+      await tester.pumpAndSettle();
+
+      expect(_linkUrlInBlock(controller), 'https://new.example');
+    });
+
+    testWidgets('overlay Edit Remove clears the link URL', (tester) async {
+      final controller = await _pumpLinkEditor(tester);
+      await _hoverMouseAt(tester, _linkPoint(tester));
+
+      await tester.tap(find.text('Edit'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Remove'));
+      await tester.pumpAndSettle();
+
+      expect(_linkUrlInBlock(controller), isNull);
+    });
+
+    testWidgets('hovering non-link text shows no overlay', (tester) async {
+      await _pumpLinkEditor(tester, onOpenLink: (url, position) {});
+
+      await _hoverMouseAt(tester, _plainTextPoint(tester));
+      expect(find.text('Edit'), findsNothing);
+      expect(find.text('Open'), findsNothing);
+
+      // Hovering the link afterwards still reveals the overlay.
+      await _hoverMouseAt(tester, _linkPoint(tester));
+      expect(find.text('Open'), findsOneWidget);
+    });
+
+    testWidgets('read-only overlay hides Edit and keeps Open', (tester) async {
+      await _pumpLinkEditor(tester, readOnly: true, onOpenLink: (url, position) {});
+      await _hoverMouseAt(tester, _linkPoint(tester));
+
+      expect(find.text('Edit'), findsNothing);
+      expect(find.text('Open'), findsOneWidget);
+    });
+
+    testWidgets('overlay Open is disabled when onOpenLink is null',
+        (tester) async {
+      await _pumpLinkEditor(tester);
+      await _hoverMouseAt(tester, _linkPoint(tester));
+
+      expect(find.text('Edit'), findsOneWidget);
+      expect(find.text('Open'), findsOneWidget);
+      final openAction = find.ancestor(
+        of: find.text('Open'),
+        matching: find.byType(InkWell),
+      );
+      expect(tester.widget<InkWell>(openAction).onTap, isNull);
+    });
+
+    testWidgets('a link split across same-url runs resolves to one range',
+        (tester) async {
+      const rendered = 'abcdef';
+      final controller = WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'p-merge',
+              type: BlockType.paragraph,
+              content: <InlineNode>[
+                TextRun(text: 'a'),
+                TextRun(
+                  text: 'bc',
+                  attributes: TextAttributes(url: 'https://merge.example'),
+                ),
+                TextRun(
+                  text: 'de',
+                  attributes: TextAttributes(url: 'https://merge.example'),
+                ),
+                TextRun(text: 'f'),
+              ],
+            ),
+          ],
+        ),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: WenzRichTextEditor(controller: controller, enableIme: false),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await _hoverMouseAt(
+        tester,
+        _globalTextRangePoint(tester, rendered, 1, 5, 0.5),
+      );
+      expect(find.text('Open'), findsOneWidget);
+
+      // Edit selects the full merged run [1, 5), proving the two same-url runs
+      // collapsed into a single range.
+      await tester.tap(find.text('Edit'));
+      await tester.pumpAndSettle();
+      final selection = controller.selection;
+      expect(selection, isNotNull);
+      expect(selection!.start.offset, 1);
+      expect(selection.end.offset, 5);
+
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('a link inside a table cell hovers and opens on Ctrl+click',
+        (tester) async {
+      const cellText = 'go docs';
+      final opens = <String>[];
+      final controller = WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TableBlockNode(
+              id: 'table1',
+              table: TableModel(
+                rows: <List<TableCellNode>>[
+                  <TableCellNode>[
+                    TableCellNode(
+                      id: 'cell1',
+                      blocks: <BlockNode>[
+                        TextBlockNode(
+                          id: 'cell-p1',
+                          type: BlockType.paragraph,
+                          content: <InlineNode>[
+                            TextRun(text: 'go '),
+                            TextRun(
+                              text: 'docs',
+                              attributes: TextAttributes(
+                                url: 'https://table.example',
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 400,
+              height: 300,
+              child: WenzRichTextEditor(
+                controller: controller,
+                enableIme: false,
+                onOpenLink: (url, position) => opens.add(url),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final cellLinkPoint = _globalTextRangePoint(tester, cellText, 3, 7, 0.5);
+      await _hoverMouseAt(tester, cellLinkPoint);
+      expect(find.text('Open'), findsOneWidget);
+
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      await _mouseClickAt(tester, cellLinkPoint);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+
+      expect(opens, <String>['https://table.example']);
+    });
+  });
 }
 
 Future<void> _performPlatformSelectors(
@@ -11547,6 +12777,49 @@ Future<void> _sendShiftArrowRight(WidgetTester tester) async {
   await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
   await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
   await tester.pump();
+}
+
+/// While the formula edit popup is open, arrow keys must drive the popup's
+/// `TextField` and never reach the editor body's caret. See
+/// `_WenzRichTextEditorState._handleKeyEvent`'s popup-focus guard.
+Future<void> _verifyFormulaPopupOwnsArrowKeys(
+  WidgetTester tester,
+  WenzRichTextController controller, {
+  required int inputLength,
+}) async {
+  // Let the popup's post-frame requestFocus settle onto the input.
+  await tester.pump();
+
+  expect(find.byKey(_formulaEditorPopupKey), findsOneWidget);
+  final inputField = tester.widget<TextField>(
+    find.byKey(_formulaEditorInputKey),
+  );
+  final inputFocusNode = inputField.focusNode!;
+  final inputController = inputField.controller!;
+
+  // The popup input holds focus with its caret seeded at the end of the text.
+  expect(inputFocusNode.hasFocus, isTrue);
+  expect(inputController.text.length, inputLength);
+  expect(inputController.selection.extentOffset, inputLength);
+
+  // Snapshot the editor body caret before sending any arrow keys.
+  expect(controller.selection, isNotNull);
+  final bodyExtentBefore = controller.selection!.extent;
+
+  // Arrow keys reach the popup TextField: its caret moves inside the input.
+  await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
+  await tester.pump();
+  expect(inputController.selection.extentOffset, inputLength - 1);
+  await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+  await tester.pump();
+  expect(inputController.selection.extentOffset, inputLength);
+
+  // The editor body must not have stolen the arrows: its caret is unchanged and
+  // focus stays with the popup input.
+  expect(controller.selection, isNotNull);
+  expect(controller.selection!.extent, bodyExtentBefore);
+  expect(inputFocusNode.hasFocus, isTrue);
+  expect(find.byKey(_formulaEditorPopupKey), findsOneWidget);
 }
 
 Finder _richText(String text) {
@@ -11729,6 +13002,21 @@ Finder _imageBlockFinder(String blockId) {
 
 Finder _videoBlockFinder(String blockId) {
   return find.byKey(ValueKey<String>('wenz-richtext-video-block-$blockId'));
+}
+
+/// Resolves the mouse cursor at [location] the same way Flutter's
+/// [MouseTracker] does: the nearest (innermost) [MouseRegion] in the hit-test
+/// path whose cursor is not [MouseCursor.defer] wins. The video and file
+/// blocks override the editing surface's text cursor by nesting their own
+/// [MouseRegion] closer to the leaf.
+MouseCursor _resolvedMouseCursor(WidgetTester tester, Offset location) {
+  for (final entry in tester.hitTestOnBinding(location).path) {
+    final target = entry.target;
+    if (target is RenderMouseRegion && target.cursor != MouseCursor.defer) {
+      return target.cursor;
+    }
+  }
+  return MouseCursor.uncontrolled;
 }
 
 Finder _blockDragHandleFinder(String blockId) {
@@ -12224,6 +13512,12 @@ BoxDecoration _firstDescendantBoxDecorationByKey(
   return decoratedBoxes.first.decoration as BoxDecoration;
 }
 
+/// Key the rendered math subtree is tagged with in `_FormulaMathView`, derived
+/// from the (trimmed) formula source. Used by the formula-update rendering
+/// regression tests to assert the laid-out math reflects the current content.
+Key _formulaMathKey(String source) =>
+    ValueKey<String>('wenz-richtext-formula-math::$source');
+
 Color _customPainterColor(WidgetTester tester, String painterTypeName) {
   final customPaint = tester.widget<CustomPaint>(
     find.byWidgetPredicate((widget) {
@@ -12350,6 +13644,143 @@ Offset _globalTextRangePoint(
       );
 }
 
+// Link hover / Ctrl+Cmd+click interaction helpers.
+const String _kLinkRenderedText = 'See our docs now';
+const int _kLinkStart = 4; // 'our docs' begins at offset 4 in the rendered text.
+const int _kLinkEnd = 12; // 'our docs' ends at offset 12.
+const String _kLinkUrl = 'https://example.com';
+
+/// Pumps a single-paragraph editor whose 'our docs' run is a link. Generous
+/// top padding leaves room for the hover popup to anchor *above* a link on the
+/// first line instead of flipping below it.
+Future<WenzRichTextController> _pumpLinkEditor(
+  WidgetTester tester, {
+  bool readOnly = false,
+  WenzLinkInteractionCallback? onOpenLink,
+}) async {
+  final controller = WenzRichTextController(
+    document: const RichTextDocument(
+      blocks: <BlockNode>[
+        TextBlockNode(
+          id: 'p-link',
+          type: BlockType.paragraph,
+          content: <InlineNode>[
+            TextRun(text: 'See '),
+            TextRun(
+              text: 'our docs',
+              attributes: TextAttributes(url: _kLinkUrl),
+            ),
+            TextRun(text: ' now'),
+          ],
+        ),
+      ],
+    ),
+  );
+  await tester.pumpWidget(
+    MaterialApp(
+      home: Scaffold(
+        body: WenzRichTextEditor(
+          controller: controller,
+          readOnly: readOnly,
+          padding: const EdgeInsets.only(
+            top: 96,
+            left: 16,
+            right: 16,
+            bottom: 16,
+          ),
+          enableIme: false,
+          onOpenLink: onOpenLink,
+        ),
+      ),
+    ),
+  );
+  await tester.pumpAndSettle();
+  return controller;
+}
+
+Offset _linkPoint(WidgetTester tester) =>
+    _globalTextRangePoint(tester, _kLinkRenderedText, _kLinkStart, _kLinkEnd, 0.5);
+
+Offset _plainTextPoint(WidgetTester tester) => _globalTextRangePoint(
+      tester,
+      _kLinkRenderedText,
+      _kLinkEnd,
+      _kLinkRenderedText.length,
+      0.5,
+    );
+
+/// The url of the first link-bearing run in the editor's single block, or
+/// `null` once the link has been cleared.
+String? _linkUrlInBlock(WenzRichTextController controller) {
+  final block = controller.document.blocks.single as TextBlockNode;
+  for (final node in block.content) {
+    if (node is TextRun && node.attributes.url != null) {
+      return node.attributes.url;
+    }
+  }
+  return null;
+}
+
+/// Global bounding rect of a rendered text range, mirroring
+/// [_globalTextRangePoint] but returning the full [Rect] instead of a point.
+Rect _textRangeGlobalRect(
+  WidgetTester tester,
+  String text,
+  int startOffset,
+  int endOffset,
+) {
+  final finder = _richText(text);
+  final richText = tester.widget<RichText>(finder);
+  final size = tester.getSize(finder);
+  final painter = TextPainter(
+    text: richText.text,
+    textAlign: richText.textAlign,
+    textDirection: TextDirection.ltr,
+  )..layout(maxWidth: size.width);
+  final boxes = painter.getBoxesForSelection(
+    TextSelection(baseOffset: startOffset, extentOffset: endOffset),
+  );
+  final firstBox = boxes.first.toRect();
+  final rangeRect = boxes.skip(1).fold<Rect>(
+        firstBox,
+        (current, box) => current.expandToInclude(box.toRect()),
+      );
+  final topLeft = tester.getTopLeft(finder);
+  return Rect.fromLTWH(
+    topLeft.dx + rangeRect.left,
+    topLeft.dy + rangeRect.top,
+    rangeRect.width,
+    rangeRect.height,
+  );
+}
+
+/// Hovers a mouse pointer onto [point] and lets the link popup settle. Returns
+/// the gesture so the caller can keep moving it (across the popup, away, etc.).
+Future<TestGesture> _hoverMouseAt(WidgetTester tester, Offset point) async {
+  final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
+  addTearDown(gesture.removePointer);
+  // Start off the surface so the move produces a real hover-enter onto the
+  // link rather than a no-op move at the same location.
+  await gesture.addPointer(location: const Offset(-200, -200));
+  await tester.pump();
+  await gesture.moveTo(point);
+  await tester.pumpAndSettle();
+  return gesture;
+}
+
+/// A mouse (down + up) click at [point] — the only pointer kind the
+/// Ctrl/Cmd+click-to-open path responds to.
+Future<void> _mouseClickAt(WidgetTester tester, Offset point) async {
+  final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
+  addTearDown(gesture.removePointer);
+  await gesture.addPointer(location: point);
+  await tester.pump();
+  await gesture.down(point);
+  await tester.pump();
+  await gesture.up();
+  await tester.pump();
+}
+
 Future<Color> _sampleBoundaryColor(
   WidgetTester tester,
   Key boundaryKey,
@@ -12424,4 +13855,13 @@ class _OversizedVideoResolver implements MediaResolver {
       ),
     );
   }
+}
+
+/// A [MediaResolver] that returns an empty widget for every block. Used to
+/// keep the figure frame free of placeholder text so caption styling and
+/// altText semantics can be asserted without merged-label noise.
+class _EmptyMediaResolver implements MediaResolver {
+  @override
+  Widget? resolve(BuildContext context, BlockNode block) =>
+      const SizedBox.shrink();
 }

@@ -30,8 +30,10 @@ void main() {
       );
 
       expect(find.text('resolved:resolved-id'), findsOneWidget);
-      // Placeholder is NOT rendered for this block.
-      expect(find.text('[image: a.png]'), findsNothing);
+      // Placeholder is NOT rendered for this block — the resolver widget wins
+      // over both the empty-state and load-failure placeholder copy.
+      expect(find.text('图片占位'), findsNothing);
+      expect(find.text('图片加载失败'), findsNothing);
       // The resolver received the right block with its fields intact.
       expect(resolver.seenImageAssetIds, ['resolved-id']);
     });
@@ -117,6 +119,14 @@ void main() {
       );
 
       expect(find.byIcon(Icons.image_outlined), findsOneWidget);
+      // Empty placeholder (no resolver / resolver declines) renders the neutral
+      // 简体中文 empty-state copy inside the shared figure chrome.
+      expect(find.text('图片占位'), findsOneWidget);
+      expect(find.text('插入后将在此显示图片'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey<String>('wenz-richtext-image-frame-img1')),
+        findsOneWidget,
+      );
     });
 
     testWidgets('default file renderer shows failure state', (tester) async {
@@ -258,6 +268,14 @@ void main() {
         ),
       );
       expect(aspectRatio.aspectRatio, 2);
+
+      // The cover preview renders a play button whose icon is scaled by the
+      // frame size and clamped to the design token (24px max).
+      final playIcon = tester.widget<Icon>(
+        find.byIcon(Icons.play_arrow_rounded),
+      );
+      expect(playIcon.size, isNotNull);
+      expect(playIcon.size!, lessThanOrEqualTo(24));
     });
 
     testWidgets('resolver also drives video and file blocks', (tester) async {
@@ -372,6 +390,11 @@ void main() {
 
       // The editor caught the resolver error and rendered the placeholder.
       expect(find.byIcon(Icons.image_outlined), findsOneWidget);
+      // Catch-and-fallback renders the load-failure placeholder, visually
+      // distinct from the neutral empty-state copy above.
+      expect(find.text('图片加载失败'), findsOneWidget);
+      expect(find.text('无法显示该图片，请重新上传'), findsOneWidget);
+      expect(find.text('图片占位'), findsNothing);
       // The editor tree is still intact.
       expect(find.byType(WenzRichTextEditor), findsOneWidget);
       // The error was reported (not swallowed) so it surfaces in dev tools —
@@ -413,7 +436,13 @@ void main() {
         ),
         findsOneWidget,
       );
-      expect(find.text('[video: boom-video]'), findsOneWidget);
+      // Catch-and-fallback renders the load-failure slot, so the cover-preview
+      // metadata (source label, cover chip) and play button are suppressed.
+      expect(find.text('[video: boom-video]'), findsNothing);
+      expect(find.text('视频加载失败'), findsOneWidget);
+      expect(find.text('无法播放该视频，请重新上传'), findsOneWidget);
+      expect(find.byIcon(Icons.videocam_outlined), findsOneWidget);
+      expect(find.byIcon(Icons.play_arrow_rounded), findsNothing);
       expect(find.byType(WenzRichTextEditor), findsOneWidget);
 
       final exception = tester.takeException();
@@ -456,6 +485,115 @@ void main() {
       expect(seen.height, 360);
       expect(seen.showWidth, 320);
       expect(seen.showHeight, 180);
+    });
+
+    testWidgets('image empty and failed placeholders render distinct copy',
+        (tester) async {
+      final controller = WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            ImageBlockNode(id: 'fine', assetId: 'fine-asset', file: 'fine.png'),
+            ImageBlockNode(id: 'boom', assetId: 'boom-asset', file: 'boom.png'),
+          ],
+        ),
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: WenzRichTextEditor(
+              controller: controller,
+              // Throws only for the 'boom' block; declines the rest.
+              mediaResolver: const _SelectiveThrowingResolver('boom'),
+              enableIme: false,
+            ),
+          ),
+        ),
+      );
+
+      // 'fine' declined (no widget, didn't throw) → neutral empty-state copy.
+      expect(find.text('图片占位'), findsOneWidget);
+      expect(find.text('插入后将在此显示图片'), findsOneWidget);
+      // 'boom' threw → catch-and-fallback → load-failure copy.
+      expect(find.text('图片加载失败'), findsOneWidget);
+      expect(find.text('无法显示该图片，请重新上传'), findsOneWidget);
+      // Both slots surface image_outlined for screen-reader parity; the empty
+      // and failure states are distinguished by tone + copy, not by icon.
+      expect(find.byIcon(Icons.image_outlined), findsNWidgets(2));
+      expect(tester.takeException(), isA<StateError>());
+    });
+
+    testWidgets('video cover and failed placeholders render distinct chrome',
+        (tester) async {
+      final controller = WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            VideoBlockNode(id: 'fine', assetId: 'fine-video', title: 'Cover'),
+            VideoBlockNode(id: 'boom', assetId: 'boom-video', title: 'Broken'),
+          ],
+        ),
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: WenzRichTextEditor(
+              controller: controller,
+              mediaResolver: const _SelectiveThrowingResolver('boom'),
+              enableIme: false,
+            ),
+          ),
+        ),
+      );
+
+      // 'fine' (no widget, didn't throw) → cover preview with a play button.
+      expect(find.byIcon(Icons.play_arrow_rounded), findsOneWidget);
+      // 'boom' threw → load-failure slot: failure copy + videocam_outlined, and
+      // no play button (the cover preview is suppressed).
+      expect(find.text('视频加载失败'), findsOneWidget);
+      expect(find.text('无法播放该视频，请重新上传'), findsOneWidget);
+      expect(find.byIcon(Icons.videocam_outlined), findsOneWidget);
+      expect(tester.takeException(), isA<StateError>());
+    });
+
+    testWidgets('video frame normalizes unsafe aspect ratios',
+        (tester) async {
+      final controller = WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            VideoBlockNode(id: 'wide', assetId: 'w', aspectRatio: 10),
+            VideoBlockNode(id: 'tall', assetId: 't', aspectRatio: 0.05),
+          ],
+        ),
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: WenzRichTextEditor(
+              controller: controller,
+              enableIme: false,
+            ),
+          ),
+        ),
+      );
+
+      // _safeVideoAspectRatio clamps to [1/3, 4].
+      final wideAspect = tester.widget<AspectRatio>(
+        find.byKey(const ValueKey<String>('wenz-richtext-video-aspect-wide')),
+      );
+      expect(wideAspect.aspectRatio, 4);
+      final tallAspect = tester.widget<AspectRatio>(
+        find.byKey(const ValueKey<String>('wenz-richtext-video-aspect-tall')),
+      );
+      expect(tallAspect.aspectRatio, closeTo(1 / 3, 0.0001));
+
+      // The clamped aspect drives the frame height: the wide frame is ~width/4
+      // (not width/10), as long as that height stays inside the [96, 420] clamp.
+      final wideFrame = tester.getRect(
+        find.byKey(const ValueKey<String>('wenz-richtext-video-frame-wide')),
+      );
+      final expectedHeight = wideFrame.width / 4;
+      if (expectedHeight >= 96 && expectedHeight <= 420) {
+        expect(wideFrame.height, closeTo(expectedHeight, 1.0));
+      }
     });
 
     test('controller exposes the injected mediaResolver', () {
@@ -503,5 +641,23 @@ class _ThrowingResolver implements MediaResolver {
   @override
   Widget? resolve(BuildContext context, BlockNode block) {
     throw StateError('resolver blew up');
+  }
+}
+
+/// A [MediaResolver] that throws for a single block (identified by
+/// [throwForBlockId]) and declines (returns null) for every other block. Used
+/// to render the empty and load-failure placeholders side by side in one tree,
+/// proving the catch-and-fallback path is visually distinct from the empty slot.
+class _SelectiveThrowingResolver implements MediaResolver {
+  const _SelectiveThrowingResolver(this.throwForBlockId);
+
+  final String throwForBlockId;
+
+  @override
+  Widget? resolve(BuildContext context, BlockNode block) {
+    if (block.id == throwForBlockId) {
+      throw StateError('resolver blew up');
+    }
+    return null;
   }
 }

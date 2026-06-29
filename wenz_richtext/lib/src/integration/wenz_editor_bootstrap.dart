@@ -386,6 +386,7 @@ class WenzEditorBootstrap {
     bool enableIme = true,
     VoidCallback? onFindRequested,
     VoidCallback? onReplaceRequested,
+    WenzLinkInteractionCallback? onOpenLink,
   }) {
     final shortcutConfiguration = EditorShortcutConfiguration.merge(
       <EditorShortcutConfiguration>[
@@ -413,6 +414,7 @@ class WenzEditorBootstrap {
       mediaResolver: configuration.mediaResolver,
       inlineEmbedRenderer: inlineEmbedRendererRegistry,
       onMentionTap: configuration.onMentionTap,
+      onOpenLink: onOpenLink,
       findController: findReplaceController,
       onFindRequested: onFindRequested,
       onReplaceRequested: onReplaceRequested,

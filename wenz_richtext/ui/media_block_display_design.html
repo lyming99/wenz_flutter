@@ -1,0 +1,857 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Wenz RichText 图片/视频块显示 · Electron 桌面端风格设计稿</title>
+  <style>
+    /* =========================================================
+       Electron 桌面端风格 token —— 图片/视频块显示专用稿
+       与 ui/slash_popup_electron_design.html 同源（弱化高程/两层阴影、
+       清晰层级、紧凑节奏），复用既有 colorScheme token，仅收敛 chrome。
+       全部文案为简体中文；纯 HTML/CSS 无外部依赖，浏览器可直接打开。
+       本稿是图片/视频块「显示」的唯一视觉来源，供 P002 规范与
+       P003/P004 Flutter 落地逐项对齐。
+       ========================================================= */
+    :root {
+      color-scheme: light;
+
+      /* ===== colorScheme token（复用，不引入硬编码亮色） ===== */
+      --surface: #fffdfb;                 /* colorScheme.surface */
+      --surface-container-low: #f7f8fc;   /* surfaceContainerLow（页面底） */
+      --surface-container-highest: #edeef3; /* surfaceContainerHighest（占位底） */
+      --outline: rgba(91, 97, 115, 0.32); /* outline */
+      --outline-variant: rgba(91, 97, 115, 0.22); /* outlineVariant */
+      --outline-variant-soft: rgba(91, 97, 115, 0.14);
+      --primary: #4363eb;                 /* primary */
+      --primary-soft: #edf1ff;            /* primaryContainer */
+      --on-surface: #1d2430;              /* onSurface */
+      --on-surface-variant: #697386;      /* onSurfaceVariant */
+      --error: #c23b3b;                   /* error */
+      --error-soft: #fdecec;              /* errorContainer */
+
+      /* ===== 图片/视频块共享 media token（映射 Flutter 常量，见 ⑤） ===== */
+      --media-radius: 12px;               /* _kMediaCornerRadius = 12.0 */
+      --media-margin-v: 19.2px;           /* _kMediaBlockMarginVertical = 16*1.2 */
+      --media-margin-v-half: 9.6px;       /* block 实际 padding 每侧 = /2 */
+      --media-max-width: 720px;           /* figure 最大显示宽度 */
+      /* _kSurfaceBoxShadow：两层、弱化高程（alpha 8%/6%，blur 3/2，offset 0,1） */
+      --media-shadow: 0 1px 3px rgba(20, 20, 40, 0.08), 0 1px 2px rgba(20, 20, 40, 0.06);
+
+      /* ===== 视频块专属 token ===== */
+      --video-frame-fallback: 320px;      /* _kVideoFrameFallbackWidth = 320.0 */
+      --video-play-button: 64px;          /* _kVideoPlayButtonSize = 64.0 */
+      --video-play-icon: 24px;            /* _kVideoPlayIconSize = 24.0 */
+      --video-frame: #000000;             /* 视频 frame 背景（Colors.black） */
+      --video-cover-chip: rgba(255, 255, 255, 0.92);
+
+      /* ===== 选中描边（_MediaSelectionStroke） ===== */
+      --selection-stroke: var(--primary); /* primary */
+      --selection-stroke-width: 2px;      /* width: 2 */
+
+      /* ===== 状态叠加（不改尺寸/圆角） ===== */
+      --hover: rgba(28, 31, 38, 0.05);    /* onSurface 5% */
+      --press: rgba(67, 99, 235, 0.18);   /* primary 18% */
+
+      /* ===== 动效：桌面利落，120ms ease ===== */
+      --ease: 120ms ease;
+
+      /* ===== 页面框架（与 slash_popup / menu_toolbar 协调） ===== */
+      --page: #f6f7fb;
+      --canvas: #ffffff;
+      --panel-bg: rgba(255, 255, 255, 0.72);
+      --border-soft: rgba(91, 97, 115, 0.14);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+
+    /* ===== 暗色 token 版本（视频块要求「明色 + 暗色双 token」） ===== */
+    .dark {
+      color-scheme: dark;
+      --surface: #1b1d23;                 /* dark surface */
+      --surface-container-low: #23262e;
+      --surface-container-highest: #2c303a;
+      --outline: rgba(255, 255, 255, 0.26);
+      --outline-variant: rgba(255, 255, 255, 0.16);
+      --outline-variant-soft: rgba(255, 255, 255, 0.10);
+      --primary: #7a93f5;                 /* dark primary（更亮） */
+      --primary-soft: #2a3578;            /* dark primaryContainer */
+      --on-surface: #e6e8ef;
+      --on-surface-variant: #aab2c3;
+      --error: #ef9b9b;
+      --error-soft: #4a2727;
+      --hover: rgba(230, 232, 239, 0.08);
+      --press: rgba(122, 147, 245, 0.22);
+      --media-shadow: 0 1px 3px rgba(0, 0, 0, 0.42), 0 1px 2px rgba(0, 0, 0, 0.30);
+      --video-cover-chip: rgba(40, 44, 56, 0.92);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-width: 1160px;
+      background:
+        radial-gradient(circle at 8% 0%, rgba(67, 99, 235, 0.10), transparent 30%),
+        linear-gradient(180deg, #fbfcff 0%, var(--page) 100%);
+      color: var(--on-surface);
+    }
+
+    .page { width: 1120px; margin: 0 auto; padding: 40px 0 56px; }
+
+    header { display: flex; justify-content: space-between; gap: 32px; margin-bottom: 28px; }
+    h1, h2, h3, h4, p { margin: 0; }
+    h1 { font-size: 28px; line-height: 1.25; letter-spacing: -0.02em; }
+    h2 { font-size: 18px; line-height: 1.35; margin-bottom: 14px; }
+    h3 { font-size: 13px; line-height: 1.4; color: var(--on-surface-variant); font-weight: 650; margin-bottom: 10px; }
+
+    .subtitle { max-width: 720px; margin-top: 10px; color: var(--on-surface-variant); line-height: 1.7; font-size: 14px; }
+
+    .badge-row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; max-width: 360px; }
+    .badge {
+      padding: 6px 10px; border: 1px solid var(--border-soft); border-radius: 999px;
+      background: rgba(255, 255, 255, 0.72); color: var(--on-surface-variant); font-size: 12px;
+      box-shadow: 0 1px 0 rgba(255, 255, 255, 0.9) inset;
+    }
+
+    .panel {
+      position: relative; padding: 22px;
+      border: 1px solid var(--border-soft); border-radius: 22px;
+      background: var(--panel-bg); box-shadow: 0 1px 0 rgba(255, 255, 255, 0.88) inset;
+      overflow: hidden; margin-bottom: 22px;
+    }
+    .panel.large { padding: 24px; }
+
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; align-items: start; }
+
+    /* ===== 编辑器画布：模拟文档正文宽度，承载媒体块 ===== */
+    .editor-canvas {
+      position: relative; padding: 26px 28px;
+      border: 1px solid #eceff6; border-radius: 16px; background: var(--canvas);
+    }
+    .dark .editor-canvas { border-color: rgba(255,255,255,0.08); background: #15171c; }
+    .doc-line { height: 12px; border-radius: 999px; background: #eef1f7; margin-bottom: 14px; }
+    .doc-line.short { width: 62%; }
+    .doc-line.mid { width: 78%; }
+    .dark .doc-line { background: rgba(255,255,255,0.08); }
+
+    /* =========================================================
+       ① 图片块 figure chrome —— 映射 _ImageBlockContent
+       surface 底 + _kMediaCornerRadius 圆角 + _kSurfaceBoxShadow 阴影 + ClipRRect
+       ========================================================= */
+    .media-block { margin: var(--media-margin-v-half) 0; }   /* _kMediaBlockMarginVertical / 2 */
+    .figure {
+      position: relative;
+      max-width: var(--media-max-width);
+      margin: 0 auto;
+      background: var(--surface);
+      border-radius: var(--media-radius);
+      box-shadow: var(--media-shadow);
+      overflow: hidden;             /* ClipRRect */
+    }
+    .figure > .media-body {
+      display: block; width: 100%;
+      border-radius: var(--media-radius);
+    }
+
+    /* —— 内嵌占位图（纯 CSS 渐变，无外部依赖） —— */
+    .placeholder-img {
+      width: 100%; aspect-ratio: 2 / 1; border-radius: var(--media-radius);
+      background:
+        radial-gradient(circle at 30% 30%, #6f86ff 0%, transparent 46%),
+        radial-gradient(circle at 78% 62%, #5fc8ff 0%, transparent 50%),
+        linear-gradient(135deg, #4363eb 0%, #6f6df5 55%, #8a6df0 100%);
+    }
+    .placeholder-img.sq { aspect-ratio: 1 / 1; }
+    .placeholder-img.tall { aspect-ratio: 3 / 4; }
+    .placeholder-img.sized { width: 60%; }   /* showWidth 约束示意 */
+    .placeholder-img.video-cover {
+      aspect-ratio: 16 / 9;
+      background:
+        radial-gradient(circle at 50% 38%, #3a3f55 0%, transparent 55%),
+        linear-gradient(135deg, #1e2230 0%, #2b2540 60%, #14171f 100%);
+    }
+
+    /* —— figcaption：caption 渲染契约（仅图片块） —— */
+    .figure figcaption {
+      padding: 8px 14px 12px;
+      text-align: center;
+      color: var(--on-surface-variant);
+      font-size: 12.5px; line-height: 1.55;
+      max-width: var(--media-max-width);
+    }
+    .figure.no-caption { /* caption 为空 → 不占额外空间，无 figcaption */ }
+
+    /* —— 显示尺寸 showWidth/showHeight 约束（SizedBox 包装） —— */
+    .show-size { display: flex; justify-content: center; }
+    .show-size .figure { width: 60%; }
+
+    /* =========================================================
+       图片占位态 —— 映射 _ImageBlockPlaceholder（重做：撑满内容宽度）
+       区分：空占位 / 加载上传中 / 加载失败
+       ========================================================= */
+    .img-placeholder {
+      width: 100%; aspect-ratio: 2 / 1;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+      background: color-mix(in srgb, var(--surface-container-highest) 72%, transparent);
+      color: var(--on-surface-variant);
+    }
+    .img-placeholder .ph-icon { width: 34px; height: 34px; opacity: 0.7; }
+    .img-placeholder .ph-title { font-size: 13px; font-weight: 600; color: var(--on-surface); }
+    .img-placeholder .ph-hint { font-size: 12px; line-height: 1.5; }
+    /* 加载上传中：环形进度 */
+    .img-placeholder.loading .ph-icon { animation: spin 1.1s linear infinite; opacity: 0.9; }
+    /* 加载失败：error 色调 */
+    .img-placeholder.failed {
+      background: color-mix(in srgb, var(--error-soft) 60%, transparent);
+      color: var(--error);
+    }
+    .img-placeholder.failed .ph-title { color: var(--error); }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* =========================================================
+       选中描边 —— 映射 _MediaSelectionStroke（primary 2px，圆角对齐）
+       媒体框自身矩形绘制，非通用 overlay
+       ========================================================= */
+    .figure.selected {
+      box-shadow: var(--media-shadow);
+      outline: var(--selection-stroke-width) solid var(--selection-stroke);
+      outline-offset: 0;
+      border-radius: var(--media-radius);
+    }
+
+    /* 只读裁剪：只读模式下媒体块仅安全动作，裁剪/圆角不变，无破坏性入口 */
+    .figure.readonly { box-shadow: var(--media-shadow); }
+    .readonly-badge {
+      position: absolute; top: 8px; right: 8px;
+      padding: 3px 8px; border-radius: 999px; font-size: 10.5px; font-weight: 600;
+      background: rgba(0,0,0,0.45); color: #fff; backdrop-filter: blur(4px);
+    }
+
+    /* =========================================================
+       ② 视频块封面预览 + 播放覆盖层 —— 映射 _VideoBlockContent / _VideoBlockPlaceholder
+       ========================================================= */
+    .video-figure {
+      position: relative; max-width: var(--media-max-width); margin: 0 auto;
+      background: var(--video-frame); border-radius: var(--media-radius);
+      box-shadow: var(--media-shadow); overflow: hidden;
+    }
+    .video-cover { display: block; width: 100%; border-radius: var(--media-radius); }
+    /* 渐变蒙层（与 _VideoBlockPlaceholder 渐变一致） */
+    .video-grad {
+      position: absolute; inset: 0; border-radius: var(--media-radius);
+      background: linear-gradient(180deg, rgba(0,0,0,0.13) 0%, rgba(0,0,0,0.87) 100%);
+      pointer-events: none;
+    }
+    /* 封面 chip（_VideoCoverChip） */
+    .cover-chip {
+      position: absolute; top: 10px; left: 10px;
+      padding: 3px 8px; border-radius: 6px; font-size: 11px; color: #1d2430;
+      background: var(--video-cover-chip); max-width: 60%;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .dark .cover-chip { color: var(--on-surface); }
+    /* 播放按钮（_videoPlayButtonSizeFor / _kVideoPlayIconSize） */
+    .play-btn {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      width: var(--video-play-button); height: var(--video-play-button); border-radius: 50%;
+      background: rgba(255,255,255,0.92);
+      display: grid; place-items: center; color: #1d2430;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.30);
+      transition: background var(--ease), transform var(--ease);
+    }
+    .play-btn .play-icon { width: var(--video-play-icon); height: var(--video-play-icon); margin-left: 3px; }
+    .play-btn.hover { background: #ffffff; transform: translate(-50%, -50%) scale(1.04); }
+    .play-btn.press { background: var(--primary); color: #fff; transform: translate(-50%, -50%) scale(0.97); }
+
+    /* 视频占位/失败态（区别于封面占位） */
+    .video-state {
+      width: 100%; aspect-ratio: 16 / 9;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+      background: var(--video-frame); color: rgba(255,255,255,0.78);
+      border-radius: var(--media-radius);
+    }
+    .video-state .vs-icon { width: 32px; height: 32px; opacity: 0.85; }
+    .video-state .vs-title { font-size: 13px; font-weight: 600; color: #fff; }
+    .video-state .vs-hint { font-size: 12px; }
+    .video-state.buffering .vs-icon { animation: spin 1.1s linear infinite; }
+    .video-state.failed { color: var(--error); }
+    .video-state.failed .vs-title { color: var(--error); }
+
+    /* —— 宽高比处理示意 —— */
+    .ratio-row { display: flex; gap: 14px; align-items: end; flex-wrap: wrap; }
+    .ratio-card { flex: 0 0 auto; }
+    .ratio-card .label { font-size: 11px; color: var(--on-surface-variant); margin-top: 6px; text-align: center; }
+
+    /* =========================================================
+       状态对照通用样式
+       ========================================================= */
+    .state-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+    .state-card {
+      padding: 14px; border: 1px solid var(--border-soft); border-radius: 14px;
+      background: rgba(255, 255, 255, 0.72);
+    }
+    .dark .state-card { background: rgba(255,255,255,0.04); }
+    .state-card h4 { font-size: 12.5px; font-weight: 650; margin-bottom: 10px; color: var(--on-surface); }
+    .state-card .micro { margin-top: 10px; color: var(--on-surface-variant); font-size: 11.5px; line-height: 1.55; }
+    .state-card .micro code {
+      font-family: ui-monospace, "SF Mono", "Cascadia Code", Menlo, monospace;
+      background: var(--primary-soft); color: var(--primary); padding: 1px 5px; border-radius: 5px;
+    }
+    .mini-canvas {
+      border: 1px solid var(--border-soft); border-radius: 12px; padding: 14px; background: var(--canvas);
+    }
+    .dark .mini-canvas { background: #15171c; border-color: rgba(255,255,255,0.08); }
+
+    /* =========================================================
+       ⑤ 设计 Token 参数面板 + 色板 + 动效
+       ========================================================= */
+    .params { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .param { padding: 12px; border: 1px solid var(--border-soft); border-radius: 14px; background: rgba(255, 255, 255, 0.72); }
+    .param b { display: block; font-size: 12px; margin-bottom: 5px; }
+    .param span { color: var(--on-surface-variant); font-size: 12px; line-height: 1.6; }
+    .param code { font-family: ui-monospace, "SF Mono", Menlo, monospace; color: var(--primary); }
+
+    .swatches { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .swatch {
+      width: 44px; height: 30px; border-radius: 10px;
+      border: 1px solid var(--border-soft); box-shadow: 0 1px 0 rgba(255, 255, 255, 0.8) inset;
+      position: relative;
+    }
+    .swatch::after {
+      content: attr(data-name); position: absolute; left: 0; right: 0; top: 100%;
+      text-align: center; font-size: 9.5px; color: var(--on-surface-variant); margin-top: 4px;
+    }
+    .swatch-row { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 18px; padding-bottom: 18px; }
+
+    .motion-row { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
+    .motion-bar { flex: 1; height: 6px; border-radius: 999px; background: var(--hover); overflow: hidden; }
+    .motion-bar i { display: block; height: 100%; width: 30%; background: var(--primary); border-radius: 999px; }
+    .motion-row span { color: var(--on-surface-variant); font-size: 12px; white-space: nowrap; }
+
+    .note { margin-top: 14px; color: var(--on-surface-variant); font-size: 12px; line-height: 1.65; }
+    .note code { font-family: ui-monospace, "SF Mono", Menlo, monospace; color: var(--primary); }
+
+    .legend {
+      display: flex; flex-wrap: wrap; gap: 14px; margin-top: 14px;
+      font-size: 12px; color: var(--on-surface-variant);
+    }
+    .legend i { display: inline-block; width: 12px; height: 12px; border-radius: 4px; margin-right: 6px; vertical-align: -1px; }
+
+    /* 暗色面板容器 */
+    .dark-scope {
+      border-radius: 18px; padding: 22px; background: #15171c;
+      color: var(--on-surface);
+    }
+    .dark-scope h2, .dark-scope h3 { color: inherit; }
+  </style>
+</head>
+<body>
+  <!-- 可复用线框图标（currentColor 自动跟随文字色，无外部依赖） -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <defs>
+      <symbol id="i-image" viewBox="0 0 24 24">
+        <rect x="3.5" y="5" width="17" height="14" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" />
+        <circle cx="8.5" cy="10" r="1.6" fill="currentColor" />
+        <path d="M4.5 18l4.5-4.5 3 3 3.5-4 4.5 5.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
+      </symbol>
+      <symbol id="i-video" viewBox="0 0 24 24">
+        <rect x="3" y="6" width="18" height="12" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" />
+        <path d="M10.5 9.3l4.8 2.7-4.8 2.7z" fill="currentColor" />
+      </symbol>
+      <symbol id="i-play" viewBox="0 0 24 24">
+        <path d="M8 5.5l11 6.5-11 6.5z" fill="currentColor" />
+      </symbol>
+      <symbol id="i-loading" viewBox="0 0 24 24">
+        <g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+          <path d="M12 4a8 8 0 1 0 8 8" />
+        </g>
+      </symbol>
+      <symbol id="i-broken" viewBox="0 0 24 24">
+        <g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3.5" y="5" width="17" height="14" rx="2.5" />
+          <path d="M9 5l-3.5 4 3 2.5L6 16" />
+          <path d="M14.5 5l4 4.5" />
+          <circle cx="9" cy="20" r="0.3" fill="currentColor" />
+        </g>
+      </symbol>
+      <symbol id="i-error" viewBox="0 0 24 24">
+        <g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 4l9 16H3z" />
+          <path d="M12 10v5" /><circle cx="12" cy="17.5" r="0.4" fill="currentColor" stroke="none" />
+        </g>
+      </symbol>
+      <symbol id="i-buffer" viewBox="0 0 24 24">
+        <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M8 8a6 6 0 1 0 0 8" opacity="0.35" />
+          <path d="M16 4a10 10 0 0 1 0 16" opacity="0.7" />
+        </g>
+      </symbol>
+      <symbol id="i-alt" viewBox="0 0 24 24">
+        <g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3.5" y="5" width="17" height="14" rx="2.5" />
+          <path d="M7 16l2.5-8 2.5 8M8 13h3" />
+          <path d="M14 16v-8h1.6a2 2 0 0 1 0 4H14" />
+        </g>
+      </symbol>
+    </defs>
+  </svg>
+
+  <main class="page">
+    <header>
+      <div>
+        <h1>图片/视频块显示 · Electron 桌面端风格设计稿</h1>
+        <p class="subtitle">
+          覆盖编辑器内图片块（<code>BlockType.image</code>）与视频块（<code>BlockType.video</code>）的「显示」全集：figure chrome（圆角/阴影/最大宽度）、
+          caption / altText、显示尺寸、状态（空占位 / 加载上传中 / 已加载 / 加载失败）、选中描边、只读裁剪、宽高比处理。
+          风格与 <code>ui/slash_popup_electron_design.html</code> 同源（扁平克制、弱化高程、两层阴影、紧凑节奏），复用 colorScheme token，全部文案为简体中文。
+          纯 HTML/CSS 无外部依赖，可直接浏览器打开。本稿为后续 <code>docs/design/media_block_display_spec.md</code> 与 Flutter 落地的唯一视觉来源。
+        </p>
+      </div>
+      <div class="badge-row" aria-label="设计范围标签">
+        <span class="badge">Electron 风格</span>
+        <span class="badge">弱化高程 / 两层阴影</span>
+        <span class="badge">figure chrome</span>
+        <span class="badge">状态全集</span>
+        <span class="badge">明色 + 暗色 token</span>
+        <span class="badge">全中文文案</span>
+      </div>
+    </header>
+
+    <!-- ============================================================ -->
+    <!-- ① 图片块 figure chrome + caption + 显示尺寸                  -->
+    <!-- ============================================================ -->
+    <section class="panel large">
+      <h2>① 图片块 figure chrome：圆角 / 阴影 / 最大宽度 / caption / altText</h2>
+      <div class="grid">
+        <div>
+          <h3>figure + figcaption（caption 渲染）</h3>
+          <div class="editor-canvas">
+            <div class="doc-line mid"></div>
+            <div class="media-block">
+              <figure class="figure">
+                <div class="media-body placeholder-img" role="img" aria-label="altText 替代文本：封面示意图"></div>
+                <figcaption>图 1 · 这是图片块的 caption（figcaption），居中、<code>onSurfaceVariant</code> 小号文案，受最大宽度约束</figcaption>
+              </figure>
+            </div>
+            <div class="doc-line short"></div>
+          </div>
+          <p class="note">
+            figure 外框：<code>surface</code> 底 + <code>_kMediaCornerRadius</code>（12px）圆角 + <code>_kSurfaceBoxShadow</code> 两层阴影 + <code>ClipRRect</code>。
+            caption 在 figure 外框下方以 figcaption 呈现，<strong>居中</strong>、<code>onSurfaceVariant</code> 小号文案、受 <code>maxWidth</code> 约束。
+            <code>altText</code> 经 <code>Semantics(label:)</code> 朗读（与本块无障碍标签协同）。
+          </p>
+        </div>
+
+        <div>
+          <h3>空 caption 无占位 + 显示尺寸 showWidth/showHeight</h3>
+          <div class="editor-canvas">
+            <!-- caption 为空：无 figcaption，不占额外高度 -->
+            <div class="media-block">
+              <figure class="figure no-caption">
+                <div class="media-body placeholder-img" role="img" aria-label="无 caption 的图片"></div>
+              </figure>
+            </div>
+            <p style="font-size:11.5px;color:var(--on-surface-variant);margin:-4px 0 16px;">↑ caption 为空时不渲染 figcaption，figure 高度与正文紧凑衔接，不产生额外占位。</p>
+            <!-- showWidth/showHeight 约束（SizedBox 包装） -->
+            <div class="media-block show-size">
+              <figure class="figure" style="width:60%;">
+                <div class="media-body placeholder-img sq" role="img" aria-label="自定义显示宽度的图片"></div>
+                <figcaption>图 2 · 自定义显示宽度 showWidth（SizedBox 约束 60%）</figcaption>
+              </figure>
+            </div>
+          </div>
+          <p class="note">
+            空 <code>caption</code> → 不渲染 figcaption、不占空间；<code>showWidth/showHeight</code> 经 <code>SizedBox</code> 包装生效，
+            行为不变，仅外层 chrome 与 caption 收敛。
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- ② 图片块状态全集：空占位 / 加载上传中 / 已加载 / 加载失败      -->
+    <!--     × 默认 / 悬停 / 选中描边 / 只读裁剪                       -->
+    <!-- ============================================================ -->
+    <section class="panel large">
+      <h2>② 图片块状态全集（× 默认 / 悬停 / 选中描边 / 只读裁剪）</h2>
+      <div class="state-grid">
+        <!-- 空占位 -->
+        <div class="state-card">
+          <h4>空占位（待上传 / 无资源）</h4>
+          <div class="mini-canvas">
+            <div class="media-block">
+              <figure class="figure">
+                <div class="img-placeholder">
+                  <svg class="ph-icon" viewBox="0 0 24 24"><use href="#i-image" /></svg>
+                  <span class="ph-title">图片占位</span>
+                  <span class="ph-hint">插入后将在此显示图片</span>
+                </div>
+              </figure>
+            </div>
+          </div>
+          <p class="micro">撑满内容宽度的 figure chrome 空态；图标 + 简体中文提示。<code>_ImageBlockPlaceholder</code> 由 112×72 重做为整宽 chrome。</p>
+        </div>
+
+        <!-- 加载上传中 -->
+        <div class="state-card">
+          <h4>加载上传中</h4>
+          <div class="mini-canvas">
+            <div class="media-block">
+              <figure class="figure">
+                <div class="img-placeholder loading">
+                  <svg class="ph-icon" viewBox="0 0 24 24"><use href="#i-loading" /></svg>
+                  <span class="ph-title">图片上传中</span>
+                  <span class="ph-hint">正在处理，请稍候…</span>
+                </div>
+              </figure>
+            </div>
+          </div>
+          <p class="micro">环形进度 + 中文「上传中」；<code>uploadStatus = uploading</code>。<strong>新增态</strong>，区别于空占位。</p>
+        </div>
+
+        <!-- 已加载 -->
+        <div class="state-card">
+          <h4>已加载（默认）</h4>
+          <div class="mini-canvas">
+            <div class="media-block">
+              <figure class="figure">
+                <div class="media-body placeholder-img" role="img" aria-label="已加载的图片"></div>
+                <figcaption>已加载图片 + caption</figcaption>
+              </figure>
+            </div>
+          </div>
+          <p class="micro"><code>MediaResolver</code> 返回非空 widget 胜过任何占位；resolver 注入优先级不变。</p>
+        </div>
+
+        <!-- 加载失败 -->
+        <div class="state-card">
+          <h4>加载失败（resolver 抛错 / 无 resolver 回退）</h4>
+          <div class="mini-canvas">
+            <div class="media-block">
+              <figure class="figure">
+                <div class="img-placeholder failed">
+                  <svg class="ph-icon" viewBox="0 0 24 24"><use href="#i-broken" /></svg>
+                  <span class="ph-title">图片加载失败</span>
+                  <span class="ph-hint">无法显示该图片，请重新上传</span>
+                </div>
+              </figure>
+            </div>
+          </div>
+          <p class="micro">对接 <code>media_resolver.dart</code> 的 catch-and-fallback：无 resolver 或 resolver 抛错 → 失败态。<strong>新增态</strong>，与空态在视觉/语义上区分。</p>
+        </div>
+      </div>
+
+      <!-- 同一「已加载」块的四态交互：默认/悬停/选中描边/只读 -->
+      <h3 style="margin-top:22px;">「已加载」块 × 交互态：默认 / 悬停 / 选中描边 / 只读裁剪</h3>
+      <div class="state-grid">
+        <div class="state-card">
+          <h4>默认 Default</h4>
+          <div class="mini-canvas">
+            <div class="media-block">
+              <figure class="figure">
+                <div class="media-body placeholder-img" role="img" aria-label="默认态图片"></div>
+              </figure>
+            </div>
+          </div>
+          <p class="micro">无描边；仅 <code>surface</code> chrome + 弱阴影。</p>
+        </div>
+        <div class="state-card">
+          <h4>悬停 Hover</h4>
+          <div class="mini-canvas">
+            <div class="media-block">
+              <figure class="figure" style="box-shadow:var(--media-shadow),0 0 0 9999px rgba(28,31,38,0.04) inset;">
+                <div class="media-body placeholder-img" style="filter:brightness(0.97);"></div>
+              </figure>
+            </div>
+          </div>
+          <p class="micro"><code>onSurface</code> 5% 中性反馈；不改变尺寸/圆角，<code>120ms ease</code>。</p>
+        </div>
+        <div class="state-card">
+          <h4>选中描边 Selected</h4>
+          <div class="mini-canvas">
+            <div class="media-block">
+              <figure class="figure selected">
+                <div class="media-body placeholder-img" role="img" aria-label="选中态图片"></div>
+              </figure>
+            </div>
+          </div>
+          <p class="micro"><code>_MediaSelectionStroke</code>：在框自身矩形绘 <code>primary</code> <b>2px</b> 描边，圆角对齐 <code>_kMediaCornerRadius</code>；禁用通用 overlay。</p>
+        </div>
+        <div class="state-card">
+          <h4>只读裁剪 Readonly</h4>
+          <div class="mini-canvas">
+            <div class="media-block">
+              <figure class="figure readonly">
+                <span class="readonly-badge">只读</span>
+                <div class="media-body placeholder-img" role="img" aria-label="只读态图片"></div>
+              </figure>
+            </div>
+          </div>
+          <p class="micro"><code>readOnly / canEdit=false</code>：裁剪与圆角不变，仅安全动作（预览），无破坏性 mutation 入口。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- ③ 视频块封面预览 + 播放覆盖层 + 状态 + 宽高比               -->
+    <!-- ============================================================ -->
+    <section class="panel large">
+      <h2>③ 视频块封面预览 + 播放覆盖层（默认/悬停/按下）+ 状态全集</h2>
+      <div class="grid">
+        <!-- 封面预览 + 播放覆盖层三态 -->
+        <div>
+          <h3>封面预览 + 播放覆盖层（默认 / 悬停 / 按下）</h3>
+          <div class="editor-canvas">
+            <div class="media-block">
+              <figure class="video-figure">
+                <div class="media-body placeholder-img video-cover"></div>
+                <div class="video-grad"></div>
+                <span class="cover-chip">封面 · cover.jpg</span>
+                <div class="play-btn"><svg class="play-icon" viewBox="0 0 24 24"><use href="#i-play" /></svg></div>
+              </figure>
+            </div>
+            <div class="state-grid" style="margin-top:16px;">
+              <div class="mini-canvas">
+                <figure class="video-figure" style="max-width:none;">
+                  <div class="media-body placeholder-img video-cover"></div>
+                  <div class="video-grad"></div>
+                  <div class="play-btn"><svg class="play-icon" viewBox="0 0 24 24"><use href="#i-play" /></svg></div>
+                </figure>
+                <p class="micro" style="text-align:center;margin-top:8px;">默认</p>
+              </div>
+              <div class="mini-canvas">
+                <figure class="video-figure" style="max-width:none;">
+                  <div class="media-body placeholder-img video-cover"></div>
+                  <div class="video-grad"></div>
+                  <div class="play-btn hover"><svg class="play-icon" viewBox="0 0 24 24"><use href="#i-play" /></svg></div>
+                </figure>
+                <p class="micro" style="text-align:center;margin-top:8px;">悬停（放大 4%）</p>
+              </div>
+              <div class="mini-canvas" style="grid-column:1 / -1;">
+                <figure class="video-figure" style="max-width:none;">
+                  <div class="media-body placeholder-img video-cover"></div>
+                  <div class="video-grad"></div>
+                  <div class="play-btn press"><svg class="play-icon" viewBox="0 0 24 24"><use href="#i-play" /></svg></div>
+                </figure>
+                <p class="micro" style="text-align:center;margin-top:8px;">按下（回退 <code>primary</code>、缩小 3%）</p>
+              </div>
+            </div>
+          </div>
+          <p class="note">
+            封面背景 <code>_VideoCoverBackdrop</code> + 渐变蒙层 + 封面 chip（<code>_VideoCoverChip</code>）+ 播放按钮
+            （<code>_videoPlayButtonSizeFor</code> 64px / <code>_kVideoPlayIconSize</code> 24px）。覆盖层三态仅表达观感，不强制引入真实播放器。
+          </p>
+        </div>
+
+        <!-- 视频状态全集 -->
+        <div>
+          <h3>视频状态：封面占位 / 播放中 / 缓冲中 / 加载失败</h3>
+          <div class="editor-canvas">
+            <div class="state-grid">
+              <div>
+                <div class="media-block">
+                  <figure class="video-figure">
+                    <div class="media-body placeholder-img video-cover"></div>
+                    <div class="video-grad"></div>
+                    <span class="cover-chip">封面占位</span>
+                    <div class="play-btn"><svg class="play-icon" viewBox="0 0 24 24"><use href="#i-play" /></svg></div>
+                  </figure>
+                </div>
+                <p class="micro" style="text-align:center;">封面占位</p>
+              </div>
+              <div>
+                <div class="media-block">
+                  <div class="video-state">
+                    <svg class="vs-icon" viewBox="0 0 24 24"><use href="#i-play" /></svg>
+                    <span class="vs-title">播放中</span>
+                    <span class="vs-hint">视频正在播放</span>
+                  </div>
+                </div>
+                <p class="micro" style="text-align:center;">播放中（resolver 注入）</p>
+              </div>
+              <div>
+                <div class="media-block">
+                  <div class="video-state buffering">
+                    <svg class="vs-icon" viewBox="0 0 24 24"><use href="#i-buffer" /></svg>
+                    <span class="vs-title">缓冲中</span>
+                    <span class="vs-hint">正在缓冲…</span>
+                  </div>
+                </div>
+                <p class="micro" style="text-align:center;">缓冲中</p>
+              </div>
+              <div>
+                <div class="media-block">
+                  <div class="video-state failed">
+                    <svg class="vs-icon" viewBox="0 0 24 24"><use href="#i-error" /></svg>
+                    <span class="vs-title">视频加载失败</span>
+                    <span class="vs-hint">无法播放，请重试</span>
+                  </div>
+                </div>
+                <p class="micro" style="text-align:center;">加载失败（<strong>新增</strong>，区别于封面占位）</p>
+              </div>
+            </div>
+          </div>
+          <p class="note">
+            <code>_VideoBlockContent</code> / <code>_VideoBlockPlaceholder</code> 收敛同一组 media token；<strong>新增加载失败回退态</strong>（对接 resolver catch-and-fallback），
+            保留封面背景、渐变、封面 chip、播放按钮逻辑。宽高比归一（<code>_safeVideoAspectRatio</code> / <code>_videoFrameHeight</code>）与帧回退宽度（<code>_kVideoFrameFallbackWidth</code>）不变。
+          </p>
+        </div>
+      </div>
+
+      <!-- 宽高比处理 -->
+      <h3 style="margin-top:22px;">宽高比处理（aspectRatio 归一 + 帧高夹紧）</h3>
+      <div class="editor-canvas">
+        <div class="ratio-row">
+          <div class="ratio-card">
+            <figure class="video-figure" style="width:200px;">
+              <div class="media-body placeholder-img video-cover" style="aspect-ratio:21/9;"></div>
+              <div class="video-grad"></div>
+              <div class="play-btn"><svg class="play-icon" viewBox="0 0 24 24"><use href="#i-play" /></svg></div>
+            </figure>
+            <div class="label">21 : 9（宽屏，归一后）</div>
+          </div>
+          <div class="ratio-card">
+            <figure class="video-figure" style="width:200px;">
+              <div class="media-body placeholder-img video-cover" style="aspect-ratio:16/9;"></div>
+              <div class="video-grad"></div>
+              <div class="play-btn"><svg class="play-icon" viewBox="0 0 24 24"><use href="#i-play" /></svg></div>
+            </figure>
+            <div class="label">16 : 9（默认）</div>
+          </div>
+          <div class="ratio-card">
+            <figure class="video-figure" style="width:200px;">
+              <div class="media-body placeholder-img video-cover" style="aspect-ratio:1/1;"></div>
+              <div class="video-grad"></div>
+              <div class="play-btn"><svg class="play-icon" viewBox="0 0 24 24"><use href="#i-play" /></svg></div>
+            </figure>
+            <div class="label">1 : 1</div>
+          </div>
+          <div class="ratio-card">
+            <figure class="video-figure" style="width:200px;">
+              <div class="media-body placeholder-img video-cover" style="aspect-ratio:9/16;"></div>
+              <div class="video-grad"></div>
+              <div class="play-btn"><svg class="play-icon" viewBox="0 0 24 24"><use href="#i-play" /></svg></div>
+            </figure>
+            <div class="label">9 : 16（竖屏，夹紧 1/3~4）</div>
+          </div>
+        </div>
+      </div>
+      <p class="note">
+        <code>effectiveAspectRatio</code> 经 <code>_safeVideoAspectRatio</code> 夹紧到 <code>[1/3, 4]</code>，帧高 <code>_videoFrameHeight</code> 夹紧在
+        <code>[96, 420]</code>；宽度优先取编辑器内容宽，无限宽回退 <code>_kVideoFrameFallbackWidth = 320</code>。<code>LayoutBuilder</code> 帧约束与溢出夹紧语义不变。
+      </p>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- ④ 明色 + 暗色双 token 版本（视频块要求）                     -->
+    <!-- ============================================================ -->
+    <section class="panel large">
+      <h2>④ 明色 + 暗色双 token 版本</h2>
+      <div class="grid">
+        <!-- 明色 -->
+        <div>
+          <h3>明色 Light</h3>
+          <div class="editor-canvas">
+            <div class="media-block">
+              <figure class="figure selected">
+                <div class="media-body placeholder-img" role="img" aria-label="明色选中态图片"></div>
+                <figcaption>明色：caption + 选中描边</figcaption>
+              </figure>
+            </div>
+            <div class="media-block">
+              <figure class="video-figure">
+                <div class="media-body placeholder-img video-cover"></div>
+                <div class="video-grad"></div>
+                <span class="cover-chip">明色封面</span>
+                <div class="play-btn"><svg class="play-icon" viewBox="0 0 24 24"><use href="#i-play" /></svg></div>
+              </figure>
+            </div>
+          </div>
+          <p class="micro" style="margin-top:10px;">surface <code>#fffdfb</code>；选中描边 <code>primary</code> <b>2px</b>；caption <code>onSurfaceVariant</code>。</p>
+        </div>
+
+        <!-- 暗色 -->
+        <div>
+          <h3>暗色 Dark</h3>
+          <div class="dark dark-scope">
+            <div class="editor-canvas">
+              <div class="media-block">
+                <figure class="figure selected">
+                  <div class="media-body placeholder-img" role="img" aria-label="暗色选中态图片"></div>
+                  <figcaption>暗色：caption + 选中描边</figcaption>
+                </figure>
+              </div>
+              <div class="media-block">
+                <figure class="video-figure">
+                  <div class="media-body placeholder-img video-cover"></div>
+                  <div class="video-grad"></div>
+                  <span class="cover-chip">暗色封面</span>
+                  <div class="play-btn"><svg class="play-icon" viewBox="0 0 24 24"><use href="#i-play" /></svg></div>
+                </figure>
+              </div>
+            </div>
+            <p class="micro" style="margin-top:10px;">surface <code>#1b1d23</code>；primary 偏亮 <code>#7a93f5</code>；阴影加深；caption <code>onSurfaceVariant</code>。</p>
+          </div>
+        </div>
+      </div>
+      <p class="note">
+        暗色版仅替换 colorScheme token，<strong>圆角 / 阴影层数 / 描边线宽 / caption 布局与明色一致</strong>；选中描边口径统一（<code>_MediaSelectionStroke</code> primary 2px），
+        只读裁剪口径统一。视频 frame 在明暗两色下均为黑色（<code>Colors.black</code>），仅 chrome 外框与 caption 文字随主题切换。
+      </p>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- ⑤ 设计 Token 参数面板（映射 Flutter 常量）+ 色板 + 动效      -->
+    <!-- ============================================================ -->
+    <section class="panel large">
+      <h2>⑤ 设计 Token 参数面板（逐项映射 Flutter 常量名）</h2>
+      <div class="params">
+        <div class="param"><b>figure 圆角</b><span><code>_kMediaCornerRadius</code> = <b>12.0</b>；图片/视频共享同一圆角入口。</span></div>
+        <div class="param"><b>figure 阴影</b><span><code>_kSurfaceBoxShadow</code>：两层弱阴影（alpha 8% / 6%，blur 3 / 2，offset 0,1），等价弱高程。</span></div>
+        <div class="param"><b>垂直外边距</b><span><code>_kMediaBlockMarginVertical</code> = 16 × 1.2 = <b>19.2</b>；块上下各 <b>9.6</b>。</span></div>
+        <div class="param"><b>最大宽度</b><span>figure <code>maxWidth</code> 受编辑器内容宽约束；建议正文 ≤ <b>720px</b>，无限宽回退内容宽。</span></div>
+        <div class="param"><b>播放按钮尺寸</b><span><code>_kVideoPlayButtonSize</code> = <b>64</b>；图标 <code>_kVideoPlayIconSize</code> = <b>24</b>（按帧宽 <code>_videoPlayButtonSizeFor</code> 缩放）。</span></div>
+        <div class="param"><b>视频帧回退宽</b><span><code>_kVideoFrameFallbackWidth</code> = <b>320</b>；帧高夹紧 <code>[96, 420]</code>，宽高比夹紧 <code>[1/3, 4]</code>。</span></div>
+        <div class="param"><b>选中描边</b><span><code>_MediaSelectionStroke</code>：<code>primary</code> <b>2px</b>，圆角 <code>_kMediaCornerRadius</code>；框自身矩形，非通用 overlay。</span></div>
+        <div class="param"><b>悬停 / 按下</b><span>悬停 <code>onSurface</code> <b>5%</b>；按下 <code>primary</code> <b>18%</b>；不改尺寸/圆角。</span></div>
+        <div class="param"><b>caption（仅图片）</b><span>figure 下方 figcaption：居中、<code>onSurfaceVariant</code>、小号（~12.5px）、受 <code>maxWidth</code> 约束；空 caption 不占空间。</span></div>
+        <div class="param"><b>altText（无障碍）</b><span>图片 <code>altText</code> 经 <code>Semantics(label:)</code> 朗读，与 <code>_imageAccessibleLabel</code> 协同。</span></div>
+        <div class="param"><b>占位 chrome</b><span>图片占位底 <code>surfaceContainerHighest</code> + <code>outlineVariant</code>，圆角/阴影对齐 figure token；撑满内容宽。</span></div>
+        <div class="param"><b>动效 Motion</b><span>悬停/按下/描边 <code>120ms ease</code>；仅轻量反馈，不改定位与几何。</span></div>
+      </div>
+
+      <div class="swatch-row" aria-label="颜色样本">
+        <div>
+          <div class="swatches">
+            <span class="swatch" data-name="surface" style="background:#fffdfb"></span>
+            <span class="swatch" data-name="surf-high" style="background:#edeef3"></span>
+            <span class="swatch" data-name="outline-v" style="background:rgba(91,97,115,0.22)"></span>
+            <span class="swatch" data-name="hover" style="background:rgba(28,31,38,0.05)"></span>
+            <span class="swatch" data-name="selected" style="background:#4363eb"></span>
+            <span class="swatch" data-name="primary-soft" style="background:#edf1ff"></span>
+            <span class="swatch" data-name="on-surf" style="background:#1d2430"></span>
+            <span class="swatch" data-name="muted" style="background:#697386"></span>
+            <span class="swatch" data-name="error" style="background:#c23b3b"></span>
+            <span class="swatch" data-name="video-frame" style="background:#000000"></span>
+          </div>
+        </div>
+        <div style="flex:1;min-width:240px">
+          <div class="motion-row"><span>120ms</span><div class="motion-bar"><i></i></div><span>ease</span></div>
+          <div class="legend">
+            <span><i style="background:#4363eb"></i>选中描边 primary 2px</span>
+            <span><i style="background:rgba(28,31,38,0.05)"></i>悬停 onSurface 5%</span>
+            <span><i style="background:rgba(67,99,235,0.18)"></i>按下 primary 18%</span>
+            <span><i style="background:#c23b3b"></i>加载失败 error</span>
+          </div>
+        </div>
+      </div>
+
+      <p class="note">
+        与 <code>docs/design/media_block_display_spec.md</code> 的「视觉 Token」小节一一对应；<code>wenz_rich_text_editor.dart</code> 中
+        <code>_ImageBlockContent</code> / <code>_ImageBlockPlaceholder</code> / <code>_VideoBlockContent</code> / <code>_VideoBlockPlaceholder</code> / <code>_MediaSelectionStroke</code>
+        据此逐项落地（caption 渲染、占位三态、视频失败态、token 收敛），不改 schema / 序列化 / 插入删除 / 手势 / 选区 / 双击预览 / <code>MediaResolver</code> 接口。
+      </p>
+    </section>
+  </main>
+</body>
+</html>

@@ -26,6 +26,8 @@ import 'block_geometry_registry.dart';
 import 'block_renderer_registry.dart';
 import 'code_syntax_highlighter.dart';
 import 'inline_embed_renderer.dart';
+import 'link_edit_dialog.dart';
+import 'link_hover_overlay.dart';
 import 'media_resolver.dart';
 import 'selection_gesture_overlay.dart';
 import 'shared_text_layout_cache.dart';
@@ -34,6 +36,9 @@ import 'slash_menu_overlay.dart';
 const _caretKey = ValueKey<String>('wenz-richtext-caret');
 const _selectionHighlightKey = ValueKey<String>(
   'wenz-richtext-selection-highlight',
+);
+const _mediaSelectionStrokeKey = ValueKey<String>(
+  'wenz-richtext-media-selection-stroke',
 );
 const _findHighlightKey = ValueKey<String>('wenz-richtext-find-highlight');
 const _inlineFormulaKey = ValueKey<String>('wenz-richtext-inline-formula');
@@ -139,7 +144,6 @@ const double _kCodeBlockHeaderHeight = 36.0;
 const double _kCodeBlockHeaderPaddingHorizontal = 10.0;
 const double _kCodeBlockHeaderToolbarEndPadding = 4.0;
 const double _kCodeBlockRadius = 12.0;
-const double _kCodeBlockHeaderRadius = 9.0;
 const int _kCodeBlockBackgroundColor = 0xFF1E1E2E;
 const int _kCodeBlockTextColor = 0xFFE6E6F0;
 const int _kCodeBlockSelectionHighlightColor = 0x944C7DFF;
@@ -219,6 +223,11 @@ const int _kCalloutSuccessBackgroundColor = 0x99D6E4E0;
 const int _kCalloutDangerBackgroundColor = 0xB3FFDAD6;
 const double _kMediaBlockMarginVertical = _kRichTextBodyFontSize * 1.2;
 const double _kMediaCornerRadius = 12.0;
+// Image-block placeholder chrome: the placeholder fills the content width and
+// keeps a 2:1 figure slot (see ui/media_block_display_design.html
+// `.img-placeholder`). The caption gap mirrors the figcaption `padding-top`.
+const double _kImagePlaceholderAspectRatio = 2.0;
+const double _kImageCaptionGap = 8.0;
 
 // Video blocks have a single overflow boundary: the rounded video frame.
 // The frame width is capped by the editor content width, its aspect ratio is
@@ -825,6 +834,7 @@ class _FormulaEditPopup extends StatelessWidget {
               key: const ValueKey<String>('wenz-richtext-formula-editor-input'),
               controller: controller,
               focusNode: focusNode,
+              autofocus: true,
               minLines: 1,
               maxLines: 4,
               textInputAction: TextInputAction.done,
@@ -926,6 +936,17 @@ class WenzObjectBlockSurface extends StatelessWidget {
   }
 }
 
+/// Callback invoked when an inline link — text whose [TextAttributes.url] is
+/// non-null — is activated. The library reports the link [url] and the document
+/// [position] of the run that was activated (Ctrl/Cmd+click on the link text, or
+/// the link hover overlay's "open" action) and leaves the actual opening to the
+/// host, mirroring the callback-first philosophy of [WenzMentionTapCallback]. The
+/// library itself never depends on a platform launcher.
+typedef WenzLinkInteractionCallback = void Function(
+  String url,
+  DocumentPosition position,
+);
+
 /// Rich text editor surface backed by a [WenzRichTextController].
 ///
 /// Heading collapse is a view concern of this surface: built-in collapse
@@ -951,6 +972,7 @@ class WenzRichTextEditor extends StatefulWidget {
     this.mediaResolver,
     this.inlineEmbedRenderer,
     this.onMentionTap,
+    this.onOpenLink,
     this.findController,
     this.onFindRequested,
     this.onReplaceRequested,
@@ -1034,6 +1056,15 @@ class WenzRichTextEditor extends StatefulWidget {
   /// position. When omitted, mention rendering and selection behaviour remain
   /// unchanged.
   final WenzMentionTapCallback? onMentionTap;
+
+  /// Called when an inline link (`TextAttributes.url` non-null) is activated —
+  /// by a Ctrl/Cmd+click on the link text or the link hover overlay's "open"
+  /// action. The host receives the link [url] and the document [position] of the
+  /// link run and decides how to open it (browser / in-app / allow-list). The
+  /// library never launches a URL itself, mirroring [onMentionTap]. When
+  /// omitted, link activation is simply reported to no one; links keep their
+  /// visual styling and remain editable as before.
+  final WenzLinkInteractionCallback? onOpenLink;
 
   /// Optional find/replace controller. When provided, the editor paints all
   /// current matches and enables Ctrl/Cmd+F/H shortcut dispatch.
@@ -1120,6 +1151,27 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
   final _BlockExtentCache _extentCache = _BlockExtentCache();
   BlockRendererRegistry? _ownedBlockRenderers;
   _FormulaEditTarget? _formulaEditTarget;
+
+  /// The inline link run currently reported as hovered by the gesture surface,
+  /// driving the [WenzLinkHoverOverlay]. `null` while no link is hovered or
+  /// while a hide is pending (see [_linkHoverHideTimer]).
+  WenzLinkHoverInfo? _linkHover;
+
+  /// Whether the pointer currently rests over a link run on the editing surface
+  /// (reported by the gesture surface). Together with [_linkPopupHovered] it is
+  /// the hide-timer guard: the popup is only dismissed once the pointer is over
+  /// neither the link text nor the popup itself, which makes the dismiss
+  /// ordering-independent across the surface and popup event sources.
+  bool _surfaceLinkHovered = false;
+
+  /// Whether the pointer currently rests on the hover popup itself. See
+  /// [_surfaceLinkHovered].
+  bool _linkPopupHovered = false;
+  Timer? _linkHoverHideTimer;
+
+  /// Grace period before dismissing the popup after the pointer leaves the link
+  /// run, giving it time to move onto the popup.
+  static const Duration _kLinkHoverHideDelay = Duration(milliseconds: 300);
 
   /// Guards [_scrollCaretIntoView]'s virtualised estimate-and-realign loop.
   /// Each estimate-driven re-arm increments this; once it exceeds
@@ -1320,6 +1372,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     _inputClient.detach();
     _tableToolbarOverlayController.hide();
     _tableToolbarOverlayController.dispose();
+    _linkHoverHideTimer?.cancel();
     _formulaEditController.dispose();
     _formulaEditFocusNode.dispose();
     _scrollController.dispose();
@@ -1851,6 +1904,9 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
           readOnly: widget.readOnly,
           onSelectionChanged: _handleSelectionChanged,
           onTapBeyondContent: _handleTapBeyondContent,
+          linkProbe: _probeLinkAtGlobal,
+          onLinkHover: _handleLinkHover,
+          onLinkOpen: widget.onOpenLink == null ? null : _openHoveredLink,
           child: editor,
         ),
         if (_formulaEditTarget != null)
@@ -1861,6 +1917,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
             ),
         ),
         if (_formulaEditTarget != null) _buildFormulaEditorOverlay(),
+        if (_linkHover != null) _buildLinkHoverOverlay(),
       ],
     );
     final scopedEditorStack = _wrapMentionTapHandler(editorStack);
@@ -2229,6 +2286,262 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
       }
     }
     return null;
+  }
+
+  /// Resolves the contiguous inline link run that contains [position].
+  ///
+  /// Returns `null` when [position] is not over a link ([TextAttributes.url]
+  /// non-null), is out of range, or its block surface has not been laid out yet.
+  ///
+  /// The returned record's `range` is the run's `[start, end)` offset span within
+  /// the block's inline content (block-local, matching [DocumentPosition.offset]),
+  /// and its `globalRect` is the bounding global [Rect] of that span — the union
+  /// of the run's start and end caret rects, resolved via the geometry registry.
+  /// Adjacent runs carrying a different `url` (or no url) bound their own runs, so
+  /// a continuous same-`url` sequence collapses to a single range while same-`url`
+  /// runs split by other content stay independent. Works for both
+  /// paragraph/callout text and table-cell text paths via [_inlineNodesForPosition].
+  ({String url, TextRange range, Rect globalRect})? _linkInfoAtPosition(
+    DocumentPosition position,
+  ) {
+    final nodes = _inlineNodesForPosition(position);
+    if (nodes == null) {
+      return null;
+    }
+
+    // Build each inline node's `[start, end)` span alongside its resolved
+    // attributes, mirroring `_attributesAtOffset` (revision_commands.dart).
+    // Inline nodes are laid out contiguously, so each span starts where the
+    // previous one ended.
+    var cursor = 0;
+    final spans = <({int start, int end, TextAttributes attributes})>[];
+    for (final node in nodes) {
+      final length = inlineLength(node);
+      final start = cursor;
+      final attributes = switch (node) {
+        TextRun(:final attributes) => attributes,
+        InlineEmbed(:final attributes) => attributes,
+        _ => const TextAttributes(),
+      };
+      spans.add((start: start, end: cursor + length, attributes: attributes));
+      cursor += length;
+    }
+
+    // Find the node whose span contains the offset and carries a link url.
+    var hitIndex = -1;
+    String? hitUrl;
+    for (var i = 0; i < spans.length; i++) {
+      final span = spans[i];
+      if (position.offset >= span.start &&
+          position.offset < span.end &&
+          span.attributes.url != null) {
+        hitIndex = i;
+        hitUrl = span.attributes.url;
+        break;
+      }
+    }
+    if (hitIndex < 0 || hitUrl == null) {
+      return null;
+    }
+
+    // Expand to the maximal contiguous run sharing the same url. A run with a
+    // different url — or no url — terminates the expansion, so split same-`url`
+    // links stay independent ranges.
+    var rangeStart = spans[hitIndex].start;
+    var rangeEnd = spans[hitIndex].end;
+    for (var i = hitIndex - 1; i >= 0; i--) {
+      if (spans[i].attributes.url == hitUrl) {
+        rangeStart = spans[i].start;
+      } else {
+        break;
+      }
+    }
+    for (var i = hitIndex + 1; i < spans.length; i++) {
+      if (spans[i].attributes.url == hitUrl) {
+        rangeEnd = spans[i].end;
+      } else {
+        break;
+      }
+    }
+
+    // Merge the run's start/end caret rects into a single global bounding box.
+    final startRect = _registry.caretRectForPosition(
+      position.copyWith(offset: rangeStart),
+    );
+    final endRect = _registry.caretRectForPosition(
+      position.copyWith(offset: rangeEnd),
+    );
+    final globalRect = switch ((startRect, endRect)) {
+      (final Rect start, final Rect end) => start.expandToInclude(end),
+      (final Rect only, _) => only,
+      (_, final Rect only) => only,
+      _ => null,
+    };
+    if (globalRect == null) {
+      return null;
+    }
+    return (
+      url: hitUrl,
+      range: TextRange(start: rangeStart, end: rangeEnd),
+      globalRect: globalRect,
+    );
+  }
+
+  /// Probes a global pointer position for an inline link run, bundling the
+  /// resolved run with the block [DocumentPosition] (offset pinned to the run
+  /// start so the value is stable across the whole run). This is the
+  /// [SelectionGestureOverlay.linkProbe] implementation that backs the hover
+  /// popup. Returns `null` for non-link positions, out-of-range offsets, or
+  /// blocks that have not been laid out yet.
+  WenzLinkHoverInfo? _probeLinkAtGlobal(Offset global) {
+    final position = _registry.positionFromGlobalOffset(global);
+    if (position == null) {
+      return null;
+    }
+    final resolved = _linkInfoAtPosition(position);
+    if (resolved == null) {
+      return null;
+    }
+    return (
+      url: resolved.url,
+      range: resolved.range,
+      globalRect: resolved.globalRect,
+      position: position.copyWith(offset: resolved.range.start),
+    );
+  }
+
+  /// Receives the link (or its absence) currently under the hovering pointer
+  /// from the gesture surface. Shows / updates the popup immediately on a link,
+  /// and schedules a delayed hide otherwise — letting the pointer travel onto
+  /// the popup before it disappears.
+  void _handleLinkHover(WenzLinkHoverInfo? info) {
+    if (!mounted) {
+      return;
+    }
+    _cancelLinkHoverHide();
+    if (info != null) {
+      _surfaceLinkHovered = true;
+      // Stable per-run (offset pinned to run start), so skip redundant rebuilds
+      // while the pointer drifts within the same link.
+      if (_linkHover != info) {
+        setState(() {
+          _linkHover = info;
+        });
+      }
+    } else {
+      _surfaceLinkHovered = false;
+      if (_linkHover != null) {
+        _scheduleLinkHoverHide();
+      }
+    }
+  }
+
+  void _scheduleLinkHoverHide() {
+    _linkHoverHideTimer?.cancel();
+    _linkHoverHideTimer = Timer(_kLinkHoverHideDelay, () {
+      _linkHoverHideTimer = null;
+      // Ordering-independent guard: only hide once the pointer is over neither
+      // the link text nor the popup. The flags reflect the settled pointer
+      // state by the time this fires, so the order of surface/popup events in
+      // the originating frame does not matter.
+      if (!mounted ||
+          _surfaceLinkHovered ||
+          _linkPopupHovered ||
+          _linkHover == null) {
+        return;
+      }
+      setState(() {
+        _linkHover = null;
+      });
+    });
+  }
+
+  void _cancelLinkHoverHide() {
+    _linkHoverHideTimer?.cancel();
+    _linkHoverHideTimer = null;
+  }
+
+  /// The pointer entered the popup: keep it alive regardless of any pending
+  /// hide the gesture surface requested when the pointer left the link text.
+  void _onLinkPopupHoverEnter() {
+    _linkPopupHovered = true;
+    _cancelLinkHoverHide();
+  }
+
+  /// The pointer left the popup: dismiss after the grace delay (the pointer may
+  /// be heading back to the link text, which will re-report it).
+  void _onLinkPopupHoverExit() {
+    _linkPopupHovered = false;
+    _scheduleLinkHoverHide();
+  }
+
+  /// Hover popup "Edit": select the link run, dismiss the popup, and open the
+  /// library link-edit dialog over it. The dialog returns `null` (cancel),
+  /// `''` (remove the link), or a new URL; `setLink` maps an empty result to a
+  /// clear. The selection is passed explicitly so a link rewrite lands on the
+  /// run even if focus drifted while the dialog was open.
+  Future<void> _editHoveredLink(WenzLinkHoverInfo info) async {
+    final start = info.position.copyWith(offset: info.range.start);
+    final end = info.position.copyWith(offset: info.range.end);
+    final selection = DocumentSelection(base: start, extent: end);
+    widget.controller.setSelection(selection);
+    _dismissLinkHover();
+    final result = await showWenzLinkEditDialog(
+      context: context,
+      initialUrl: info.url,
+      canRemove: true,
+    );
+    if (!mounted || result == null) {
+      return;
+    }
+    widget.controller.setLink(
+      result.isEmpty ? null : result,
+      selection: selection,
+    );
+  }
+
+  /// Opens an inline link run: forwards its URL to the host callback, then
+  /// dismisses any showing hover popup. Serves both the hover popup's "Open"
+  /// action and a Ctrl/Cmd+click on the link, which the gesture surface routes
+  /// here via [SelectionGestureOverlay.onLinkOpen] (with the caret/selection
+  /// placement suppressed).
+  void _openHoveredLink(WenzLinkHoverInfo info) {
+    widget.onOpenLink?.call(info.url, info.position);
+    _dismissLinkHover();
+  }
+
+  void _dismissLinkHover() {
+    _linkPopupHovered = false;
+    _cancelLinkHoverHide();
+    if (_linkHover == null) {
+      return;
+    }
+    setState(() {
+      _linkHover = null;
+    });
+  }
+
+  Widget _buildLinkHoverOverlay() {
+    final info = _linkHover;
+    if (info == null) {
+      return const SizedBox.shrink();
+    }
+    final box = _editorOverlayKey.currentContext?.findRenderObject();
+    if (box is! RenderBox || !box.hasSize) {
+      return const SizedBox.shrink();
+    }
+    final localTopLeft = box.globalToLocal(info.globalRect.topLeft);
+    final linkRect = localTopLeft & info.globalRect.size;
+    return WenzLinkHoverOverlay(
+      linkRect: linkRect,
+      containerWidth: box.size.width,
+      url: info.url,
+      readOnly: widget.readOnly,
+      onEdit: () => _editHoveredLink(info),
+      onOpen: widget.onOpenLink == null ? null : () => _openHoveredLink(info),
+      onHoverEnter: _onLinkPopupHoverEnter,
+      onHoverExit: _onLinkPopupHoverExit,
+    );
   }
 
   bool _handleTapBeyondContent(Offset _) {
@@ -3029,6 +3342,14 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
   }
 
   KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
+    // The formula edit popup's TextField is a descendant of this editor Focus
+    // in the focus tree. Without this guard, key events (arrow keys, Home/End,
+    // backspace, characters) bubble up from the popup's FocusNode and get
+    // intercepted below as editor caret movement, hijacking the popup input.
+    // While the popup input holds focus, hand all keys to the TextField.
+    if (_formulaEditFocusNode.hasFocus) {
+      return KeyEventResult.ignored;
+    }
     if (_handleSlashMenuKeyEvent(event)) {
       return KeyEventResult.handled;
     }
@@ -5702,13 +6023,23 @@ Widget _defaultImageBlockRenderer(
   BlockRenderContext rc,
 ) {
   final image = rc.block as ImageBlockNode;
-  final resolved = _resolveMedia(context, rc);
-  final media = resolved ?? const _ImageBlockPlaceholder();
+  final result = _resolveMediaWithStatus(context, rc);
+  // A resolver-provided widget always wins over any placeholder; only the
+  // fallback distinguishes empty (no / declining resolver) from failed (threw),
+  // so the catch-and-fallback path surfaces a visually distinct failure state.
+  final media = result.hasWidget
+      ? result.widget!
+      : _ImageBlockPlaceholder(
+          status: result.threw
+              ? _ImageBlockPlaceholderStatus.failed
+              : _ImageBlockPlaceholderStatus.empty,
+        );
   return _withSelectableImageBlock(
     image,
     rc,
     _ImageBlockContent(
       block: image,
+      selected: _objectBlockSelected(image, rc),
       child: media,
     ),
     onPreview: () => _showImagePreview(context, image, rc),
@@ -5761,13 +6092,25 @@ Widget _defaultVideoBlockRenderer(
   BlockRenderContext rc,
 ) {
   final video = rc.block as VideoBlockNode;
-  final resolved = _resolveMedia(context, rc);
-  final media = resolved ?? _VideoBlockPlaceholder(block: video);
+  final result = _resolveMediaWithStatus(context, rc);
+  // A resolver-provided widget always wins over any placeholder; only the
+  // fallback distinguishes the cover placeholder (no / declining resolver)
+  // from the load-failure slot (threw), so the catch-and-fallback path
+  // surfaces a visually distinct failure state.
+  final media = result.hasWidget
+      ? result.widget!
+      : _VideoBlockPlaceholder(
+          block: video,
+          status: result.threw
+              ? _VideoBlockPlaceholderStatus.failed
+              : _VideoBlockPlaceholderStatus.cover,
+        );
   return _withSelectableVideoBlock(
     video,
     rc,
     _VideoBlockContent(
       block: video,
+      selected: _objectBlockSelected(video, rc),
       child: media,
     ),
     onPreview: () => _showVideoPreview(context, video, rc),
@@ -5844,7 +6187,15 @@ Widget _defaultFileBlockRenderer(
   final file = rc.block as FileBlockNode;
   final resolved = _resolveMedia(context, rc);
   if (resolved != null) {
-    return _withSelectableObjectBlock(file, rc, resolved);
+    return _withSelectableObjectBlock(
+      file,
+      rc,
+      _MediaSelectionStroke(
+        selected: _objectBlockSelected(file, rc),
+        child: resolved,
+      ),
+      showSelectionOverlay: false,
+    );
   }
   return _withSelectableObjectBlock(
     file,
@@ -5860,18 +6211,42 @@ Widget _defaultFileBlockRenderer(
   );
 }
 
+/// Outcome of consulting the injected [MediaResolver]: the resolved widget (if
+/// any) plus whether the resolver threw. Image blocks use [threw] to render the
+/// load-failure placeholder instead of the empty one, keeping the empty and
+/// failure fallbacks visually distinct (see
+/// `docs/design/media_block_display_spec.md` §占位状态契约).
+class _MediaResolveResult {
+  const _MediaResolveResult({this.widget, this.threw = false});
+
+  final Widget? widget;
+  final bool threw;
+
+  bool get hasWidget => widget != null;
+}
+
 /// Asks the injected [MediaResolver] (if any) to render [rc.block]. Returns
 /// `null` when no resolver is injected, the resolver declines (`null`), or the
 /// resolver throws — in all those cases the caller falls back to the built-in
 /// placeholder. The try/catch keeps a faulty resolver from crashing the editor
 /// (see `docs/schema_and_commands.md` §Error handling).
 Widget? _resolveMedia(BuildContext context, BlockRenderContext rc) {
+  return _resolveMediaWithStatus(context, rc).widget;
+}
+
+/// Same as [_resolveMedia] but also reports whether the resolver threw, so
+/// callers that distinguish the failure fallback (image blocks) can pick the
+/// right placeholder status.
+_MediaResolveResult _resolveMediaWithStatus(
+  BuildContext context,
+  BlockRenderContext rc,
+) {
   final resolver = rc.mediaResolver;
   if (resolver == null) {
-    return null;
+    return const _MediaResolveResult();
   }
   try {
-    return resolver.resolve(context, rc.block);
+    return _MediaResolveResult(widget: resolver.resolve(context, rc.block));
   } on Object catch (error) {
     FlutterError.reportError(FlutterErrorDetails(
       exception: error,
@@ -5879,7 +6254,7 @@ Widget? _resolveMedia(BuildContext context, BlockRenderContext rc) {
       context: ErrorDescription('MediaResolver.resolve threw for block '
           '${rc.block.id} (${rc.block.type}); falling back to placeholder.'),
     ));
-    return null;
+    return const _MediaResolveResult(threw: true);
   }
 }
 
@@ -5948,8 +6323,9 @@ void _showVideoPreview(
 Widget _withSelectableObjectBlock(
   BlockNode block,
   BlockRenderContext rc,
-  Widget child,
-) {
+  Widget child, {
+  bool showSelectionOverlay = true,
+}) {
   final path = PositionPath.blockObject(block.id);
   final selected = _selectionTouchesPath(
     rc.selection,
@@ -5967,6 +6343,7 @@ Widget _withSelectableObjectBlock(
       selection: rc.selection,
       registry: rc.registry,
       showDebugOverlay: rc.showDebugOverlay,
+      showSelectionOverlay: showSelectionOverlay,
       child: child,
     ),
     selected: selected,
@@ -6004,6 +6381,7 @@ Widget _withSelectableImageBlock(
         selection: rc.selection,
         registry: rc.registry,
         showDebugOverlay: rc.showDebugOverlay,
+        showSelectionOverlay: false,
         onDoubleTap: onPreview,
         child: child,
       ),
@@ -6028,23 +6406,26 @@ Widget _withSelectableVideoBlock(
   );
   return _withBlockSemantics(
     block,
-    _MediaBlockChrome(
-      blockIndex: rc.blockIndex,
-      blockCount: rc.blockCount,
-      selected: selected,
-      canEdit: rc.canEdit,
-      imageActions: false,
-      onAction: rc.onObjectBlockAction,
-      onPreview: onPreview,
-      child: _BlockObjectSelectionSurface(
-        blockId: block.id,
+    MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: _MediaBlockChrome(
         blockIndex: rc.blockIndex,
-        path: path,
-        selection: rc.selection,
-        registry: rc.registry,
-        showDebugOverlay: rc.showDebugOverlay,
-        onDoubleTap: onPreview,
-        child: child,
+        blockCount: rc.blockCount,
+        selected: selected,
+        canEdit: rc.canEdit,
+        imageActions: false,
+        onAction: rc.onObjectBlockAction,
+        onPreview: onPreview,
+        child: _BlockObjectSelectionSurface(
+          blockId: block.id,
+          blockIndex: rc.blockIndex,
+          path: path,
+          selection: rc.selection,
+          registry: rc.registry,
+          showDebugOverlay: rc.showDebugOverlay,
+          onDoubleTap: onPreview,
+          child: child,
+        ),
       ),
     ),
     selected: selected,
@@ -7085,87 +7466,80 @@ class _CodeBlockToolbar extends StatelessWidget {
 
     return Material(
       color: Colors.transparent,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: _codeBlockHeaderBackgroundColor(theme),
-          border: Border.all(color: _codeBlockHeaderBorderColor(theme)),
-          borderRadius: BorderRadius.circular(_kCodeBlockHeaderRadius),
-        ),
-        child: SizedBox(
-          height: _kCodeBlockHeaderHeight,
-          child: Padding(
-            padding: const EdgeInsetsDirectional.only(
-              start: _kCodeBlockHeaderPaddingHorizontal,
-              end: _kCodeBlockHeaderToolbarEndPadding,
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.max,
-              children: <Widget>[
-                Expanded(
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      final constrainedTag = ConstrainedBox(
-                        constraints: BoxConstraints(
-                          maxWidth: constraints.maxWidth,
-                        ),
-                        child: languageTag,
-                      );
-                      return Align(
-                        alignment: AlignmentDirectional.centerStart,
-                        child: onLanguageChanged == null
-                            ? constrainedTag
-                            : PopupMenuButton<String>(
-                                tooltip: '切换代码语言',
-                                padding: EdgeInsets.zero,
-                                color: _popupMenuColor(theme),
-                                elevation: _kPopupMenuElevation,
-                                shadowColor: _popupMenuShadowColor(theme),
-                                surfaceTintColor: Colors.transparent,
-                                shape: _popupMenuShape(theme),
-                                menuPadding: _kPopupMenuPadding,
-                                position: PopupMenuPosition.under,
-                                clipBehavior: Clip.antiAlias,
-                                onSelected: onLanguageChanged,
-                                routeSettings: _kPopupMenuRouteSettings,
-                                itemBuilder: (context) => <PopupMenuEntry<String>>[
-                                  for (final option in languages)
-                                    PopupMenuItem<String>(
-                                      value: option,
+      child: SizedBox(
+        height: _kCodeBlockHeaderHeight,
+        child: Padding(
+          padding: const EdgeInsetsDirectional.only(
+            start: _kCodeBlockHeaderPaddingHorizontal,
+            end: _kCodeBlockHeaderToolbarEndPadding,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.max,
+            children: <Widget>[
+              Expanded(
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final constrainedTag = ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxWidth: constraints.maxWidth,
+                      ),
+                      child: languageTag,
+                    );
+                    return Align(
+                      alignment: AlignmentDirectional.centerStart,
+                      child: onLanguageChanged == null
+                          ? constrainedTag
+                          : PopupMenuButton<String>(
+                              tooltip: '切换代码语言',
+                              padding: EdgeInsets.zero,
+                              color: _popupMenuColor(theme),
+                              elevation: _kPopupMenuElevation,
+                              shadowColor: _popupMenuShadowColor(theme),
+                              surfaceTintColor: Colors.transparent,
+                              shape: _popupMenuShape(theme),
+                              menuPadding: _kPopupMenuPadding,
+                              position: PopupMenuPosition.under,
+                              clipBehavior: Clip.antiAlias,
+                              onSelected: onLanguageChanged,
+                              routeSettings: _kPopupMenuRouteSettings,
+                              itemBuilder: (context) => <PopupMenuEntry<String>>[
+                                for (final option in languages)
+                                  PopupMenuItem<String>(
+                                    value: option,
+                                    enabled: option != current,
+                                    height: _kPopupMenuItemHeight,
+                                    padding: _kPopupMenuItemPadding,
+                                    child: _PopupMenuItemContent(
+                                      icon: Icons.code,
+                                      label: _codeLanguageLabel(option),
                                       enabled: option != current,
-                                      height: _kPopupMenuItemHeight,
-                                      padding: _kPopupMenuItemPadding,
-                                      child: _PopupMenuItemContent(
-                                        icon: Icons.code,
-                                        label: _codeLanguageLabel(option),
-                                        enabled: option != current,
-                                        selected: option == current,
-                                      ),
+                                      selected: option == current,
                                     ),
-                                ],
-                                child: constrainedTag,
-                              ),
-                      );
-                    },
+                                  ),
+                              ],
+                              child: constrainedTag,
+                            ),
+                    );
+                  },
+                ),
+              ),
+              IconButton(
+                key: ValueKey<String>('wenz-richtext-code-copy-$blockId'),
+                tooltip: '复制代码内容',
+                padding: EdgeInsets.zero,
+                constraints: _kBlockToolbarButtonConstraints,
+                iconSize: _kBlockToolbarIconSize,
+                style: _blockToolbarIconButtonStyle(
+                  theme,
+                  foregroundColor: accentColor,
+                  disabledForegroundColor: accentColor.withAlpha(
+                    _kMinimalToolbarDisabledAlpha,
                   ),
                 ),
-                IconButton(
-                  key: ValueKey<String>('wenz-richtext-code-copy-$blockId'),
-                  tooltip: '复制代码内容',
-                  padding: EdgeInsets.zero,
-                  constraints: _kBlockToolbarButtonConstraints,
-                  iconSize: _kBlockToolbarIconSize,
-                  style: _blockToolbarIconButtonStyle(
-                    theme,
-                    foregroundColor: accentColor,
-                    disabledForegroundColor: accentColor.withAlpha(
-                      _kMinimalToolbarDisabledAlpha,
-                    ),
-                  ),
-                  onPressed: onCopyPressed,
-                  icon: const Icon(Icons.copy, semanticLabel: '复制代码内容'),
-                ),
-              ],
-            ),
+                onPressed: onCopyPressed,
+                icon: const Icon(Icons.copy, semanticLabel: '复制代码内容'),
+              ),
+            ],
           ),
         ),
       ),
@@ -8431,6 +8805,7 @@ class _BlockObjectSelectionSurface extends StatefulWidget {
     required this.showDebugOverlay,
     required this.child,
     this.onDoubleTap,
+    this.showSelectionOverlay = true,
   });
 
   final String blockId;
@@ -8441,6 +8816,11 @@ class _BlockObjectSelectionSurface extends StatefulWidget {
   final bool showDebugOverlay;
   final Widget child;
   final VoidCallback? onDoubleTap;
+
+  /// Whether to paint the generic full-size selection overlay. Media blocks
+  /// (image/video/resolved-as-media file) draw their own frame-hugging stroke
+  /// and disable this to avoid a loose, double rectangle over the block margins.
+  final bool showSelectionOverlay;
 
   @override
   State<_BlockObjectSelectionSurface> createState() =>
@@ -8588,7 +8968,7 @@ class _BlockObjectSelectionSurfaceState
       clipBehavior: Clip.none,
       children: <Widget>[
         widget.child,
-        if (selected)
+        if (selected && widget.showSelectionOverlay)
           Positioned.fill(
             child: IgnorePointer(
               child: DecoratedBox(
@@ -9614,38 +9994,131 @@ double _caretHeightFor(TextPainter painter, double? measured) {
   return safeFontSize * safeLineHeight;
 }
 
+/// Display mode for the built-in image-block placeholder (see
+/// `docs/design/media_block_display_spec.md` §图片块占位状态契约).
+enum _ImageBlockPlaceholderStatus {
+  /// No resolver / resolver declined — a neutral empty figure slot.
+  empty,
+  /// Source is being uploaded/resolved — a spinner + 上传中 hint.
+  loading,
+  /// Resolver threw (catch-and-fallback) — error-toned failure slot.
+  failed,
+}
+
+/// Built-in image-block placeholder. Renders as a content-width figure-chrome
+/// empty state (icon + 简体中文 hint) and distinguishes the upload and
+/// load-failure fallbacks. The outer [_ImageBlockContent] figure frame supplies
+/// the shared chrome (surface base, `_kMediaCornerRadius`, `_kSurfaceBoxShadow`,
+/// clip), so the placeholder only paints its own background + content and fills
+/// the frame at a 2:1 slot ratio.
 class _ImageBlockPlaceholder extends StatelessWidget {
-  const _ImageBlockPlaceholder();
+  const _ImageBlockPlaceholder({
+    this.status = _ImageBlockPlaceholderStatus.empty,
+  });
+
+  final _ImageBlockPlaceholderStatus status;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withAlpha(90),
-        border: Border.all(color: theme.colorScheme.outlineVariant),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: SizedBox(
-        width: 112,
-        height: 72,
-        child: Icon(
-          Icons.image_outlined,
-          size: 24,
-          color: theme.colorScheme.onSurfaceVariant,
+    final colorScheme = theme.colorScheme;
+    final failed = status == _ImageBlockPlaceholderStatus.failed;
+    final titleColor = failed ? colorScheme.error : colorScheme.onSurface;
+    final hintColor =
+        failed ? colorScheme.error : colorScheme.onSurfaceVariant;
+    final iconColor =
+        failed ? colorScheme.error : colorScheme.onSurfaceVariant;
+    final background = failed
+        ? colorScheme.errorContainer.withAlpha(170)
+        : colorScheme.surfaceContainerHighest.withAlpha(190);
+    // The empty/uploading slot keeps image_outlined so the load-failure slot
+    // stays distinguishable by tone + copy alone (the throwing-resolver path
+    // still resolves to image_outlined for screen-reader parity).
+    final indicator = status == _ImageBlockPlaceholderStatus.loading
+        ? SizedBox(
+            width: 32,
+            height: 32,
+            child: CircularProgressIndicator(
+              strokeWidth: 3,
+              color: iconColor,
+            ),
+          )
+        : Icon(Icons.image_outlined, size: 34, color: iconColor);
+    final (title, hint) = switch (status) {
+      _ImageBlockPlaceholderStatus.empty =>
+        ('图片占位', '插入后将在此显示图片'),
+      _ImageBlockPlaceholderStatus.loading =>
+        ('图片上传中', '正在处理，请稍候…'),
+      _ImageBlockPlaceholderStatus.failed =>
+        ('图片加载失败', '无法显示该图片，请重新上传'),
+    };
+
+    return AspectRatio(
+      aspectRatio: _kImagePlaceholderAspectRatio,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: background,
+          borderRadius: BorderRadius.circular(_kMediaCornerRadius),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              indicator,
+              const SizedBox(height: 10),
+              Text(
+                title,
+                style: theme.textTheme.labelLarge?.copyWith(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: titleColor,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                hint,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  fontSize: 12,
+                  color: hintColor,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
+/// Display mode for the built-in video-block placeholder (see
+/// `docs/design/media_block_display_spec.md` §视频块占位状态契约).
+enum _VideoBlockPlaceholderStatus {
+  /// No resolver / resolver declined — cover backdrop + play button (default).
+  cover,
+  /// Resolver threw (catch-and-fallback) — error-toned failure slot.
+  failed,
+}
+
 class _VideoBlockPlaceholder extends StatelessWidget {
-  const _VideoBlockPlaceholder({required this.block});
+  const _VideoBlockPlaceholder({
+    required this.block,
+    this.status = _VideoBlockPlaceholderStatus.cover,
+  });
 
   final VideoBlockNode block;
 
+  /// Whether this slot renders the cover preview (default) or the
+  /// load-failure fallback (resolver threw). The cover branch keeps the
+  /// backdrop / gradient / chip / play-button logic intact; only the failure
+  /// branch swaps in an error-toned slot.
+  final _VideoBlockPlaceholderStatus status;
+
   @override
   Widget build(BuildContext context) {
+    final failed = status == _VideoBlockPlaceholderStatus.failed;
     final coverUrl = block.coverUrl.trim();
     final source = _videoSourceLabel(block);
     return Semantics(
@@ -9661,6 +10134,9 @@ class _VideoBlockPlaceholder extends StatelessWidget {
           borderRadius: BorderRadius.circular(_kMediaCornerRadius),
           child: LayoutBuilder(
             builder: (context, constraints) {
+              if (failed) {
+                return const _VideoLoadFailureSlot();
+              }
               final horizontalInset = _videoOverlayInset(constraints.maxWidth);
               final verticalInset = _videoOverlayInset(constraints.maxHeight);
               final overlayMaxWidth = _videoOverlayMaxWidth(
@@ -9741,6 +10217,53 @@ class _VideoBlockPlaceholder extends StatelessWidget {
                 ],
               );
             },
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Load-failure fallback for the built-in video-block placeholder (see
+/// `docs/design/media_block_display_spec.md` §视频块占位状态契约). Fills the
+/// frame with an `errorContainer` tone + 简体中文 failure copy so the throwing-
+/// resolver path stays visually distinct from the default black cover preview.
+class _VideoLoadFailureSlot extends StatelessWidget {
+  const _VideoLoadFailureSlot();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    return DecoratedBox(
+      decoration: BoxDecoration(color: colorScheme.errorContainer),
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Icon(Icons.videocam_outlined, size: 34, color: colorScheme.error),
+              const SizedBox(height: 10),
+              Text(
+                '视频加载失败',
+                style: theme.textTheme.labelLarge?.copyWith(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: colorScheme.error,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '无法播放该视频，请重新上传',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  fontSize: 12,
+                  color: colorScheme.error,
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -10108,10 +10631,12 @@ class _VideoBlockContent extends StatelessWidget {
   const _VideoBlockContent({
     required this.block,
     required this.child,
+    required this.selected,
   });
 
   final VideoBlockNode block;
   final Widget child;
+  final bool selected;
 
   @override
   Widget build(BuildContext context) {
@@ -10140,23 +10665,28 @@ class _VideoBlockContent extends StatelessWidget {
                 child: SizedBox(
                   width: double.infinity,
                   height: frameHeight,
-                  child: DecoratedBox(
-                    key: ValueKey<String>(
-                      'wenz-richtext-video-frame-${block.id}',
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.black,
-                      borderRadius: BorderRadius.circular(_kMediaCornerRadius),
-                      boxShadow: _kSurfaceBoxShadow,
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(_kMediaCornerRadius),
-                      child: AspectRatio(
-                        key: ValueKey<String>(
-                          'wenz-richtext-video-aspect-${block.id}',
+                  child: _MediaSelectionStroke(
+                    selected: selected,
+                    child: DecoratedBox(
+                      key: ValueKey<String>(
+                        'wenz-richtext-video-frame-${block.id}',
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.black,
+                        borderRadius:
+                            BorderRadius.circular(_kMediaCornerRadius),
+                        boxShadow: _kSurfaceBoxShadow,
+                      ),
+                      child: ClipRRect(
+                        borderRadius:
+                            BorderRadius.circular(_kMediaCornerRadius),
+                        child: AspectRatio(
+                          key: ValueKey<String>(
+                            'wenz-richtext-video-aspect-${block.id}',
+                          ),
+                          aspectRatio: aspectRatio,
+                          child: _VideoFrameChildBoundary(child: child),
                         ),
-                        aspectRatio: aspectRatio,
-                        child: _VideoFrameChildBoundary(child: child),
                       ),
                     ),
                   ),
@@ -11190,10 +11720,12 @@ class _ImageBlockContent extends StatelessWidget {
   const _ImageBlockContent({
     required this.block,
     required this.child,
+    required this.selected,
   });
 
   final ImageBlockNode block;
   final Widget child;
+  final bool selected;
 
   @override
   Widget build(BuildContext context) {
@@ -11207,6 +11739,7 @@ class _ImageBlockContent extends StatelessWidget {
         child: child,
       );
     }
+    final hasCaption = block.caption.trim().isNotEmpty;
     return KeyedSubtree(
       key: ValueKey<String>('wenz-richtext-image-block-${block.id}'),
       child: Padding(
@@ -11221,25 +11754,96 @@ class _ImageBlockContent extends StatelessWidget {
               alignment: AlignmentDirectional.center,
               child: ConstrainedBox(
                 constraints: BoxConstraints(maxWidth: maxWidth),
-                child: DecoratedBox(
-                  key: ValueKey<String>(
-                    'wenz-richtext-image-frame-${block.id}',
-                  ),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surface,
-                    borderRadius: BorderRadius.circular(_kMediaCornerRadius),
-                    boxShadow: _kSurfaceBoxShadow,
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(_kMediaCornerRadius),
-                    child: media,
-                  ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: <Widget>[
+                    _MediaSelectionStroke(
+                      selected: selected,
+                      child: Semantics(
+                        // altText surfaces here (altText > caption > asset),
+                        // cooperating with the block-level label so screen
+                        // readers announce the image without a duplicate node.
+                        label: _imageAccessibleLabel(block),
+                        image: true,
+                        child: DecoratedBox(
+                          key: ValueKey<String>(
+                            'wenz-richtext-image-frame-${block.id}',
+                          ),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.surface,
+                            borderRadius:
+                                BorderRadius.circular(_kMediaCornerRadius),
+                            boxShadow: _kSurfaceBoxShadow,
+                          ),
+                          child: ClipRRect(
+                            borderRadius:
+                                BorderRadius.circular(_kMediaCornerRadius),
+                            child: media,
+                          ),
+                        ),
+                      ),
+                    ),
+                    if (hasCaption)
+                      Padding(
+                        padding: const EdgeInsets.only(top: _kImageCaptionGap),
+                        child: Text(
+                          block.caption,
+                          textAlign: TextAlign.center,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            fontSize: 12.5,
+                            height: 1.55,
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
             );
           },
         ),
       ),
+    );
+  }
+}
+
+/// Paints a selection stroke that hugs the media frame. Unlike the generic
+/// [_BlockObjectSelectionSurface] overlay — which fills the whole block (and
+/// therefore floats over the vertical [_kMediaBlockMarginVertical] margins and
+/// uses a fixed radius) — this stroke is laid out on the frame's own rectangle,
+/// so it matches the media's real size and corner radius. Media blocks disable
+/// the generic overlay and draw this instead, keeping hit-test/geometry
+/// registration and double-tap preview untouched.
+class _MediaSelectionStroke extends StatelessWidget {
+  const _MediaSelectionStroke({required this.selected, required this.child});
+
+  final bool selected;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!selected) {
+      return child;
+    }
+    final primary = Theme.of(context).colorScheme.primary;
+    return Stack(
+      fit: StackFit.passthrough,
+      clipBehavior: Clip.none,
+      children: <Widget>[
+        child,
+        Positioned.fill(
+          child: IgnorePointer(
+            child: DecoratedBox(
+              key: _mediaSelectionStrokeKey,
+              decoration: BoxDecoration(
+                border: Border.all(color: primary, width: 2),
+                borderRadius: BorderRadius.circular(_kMediaCornerRadius),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -11550,18 +12154,6 @@ Color _codeBlockBorderColor(ThemeData theme) {
   return theme.brightness == Brightness.dark
       ? theme.colorScheme.outlineVariant.withAlpha(150)
       : Colors.white.withAlpha(30);
-}
-
-Color _codeBlockHeaderBackgroundColor(ThemeData theme) {
-  return theme.brightness == Brightness.dark
-      ? theme.colorScheme.surface.withAlpha(120)
-      : Colors.white.withAlpha(18);
-}
-
-Color _codeBlockHeaderBorderColor(ThemeData theme) {
-  return theme.brightness == Brightness.dark
-      ? theme.colorScheme.outlineVariant.withAlpha(120)
-      : Colors.white.withAlpha(24);
 }
 
 Color _codeBlockAccentColor(ThemeData theme) {
@@ -12104,24 +12696,36 @@ class _FormulaMathView extends StatelessWidget {
       color: textStyle.color ?? theme.colorScheme.onSurface,
       fontSize: textStyle.fontSize ?? 14,
     );
-    if (source.isEmpty) {
-      return _FormulaFallbackText(formula: '[formula]', textStyle: style);
-    }
-    return Math.tex(
-      source,
-      mathStyle: displayMode ? MathStyle.display : MathStyle.text,
-      textStyle: style,
-      textScaleFactor: 1,
-      settings: const TexParserSettings(strict: Strict.ignore),
-      options: MathOptions(
-        style: displayMode ? MathStyle.display : MathStyle.text,
-        color: style.color ?? theme.colorScheme.onSurface,
-        fontSize: style.fontSize,
-      ),
-      onErrorFallback: (_) => _FormulaFallbackText(
-        formula: source,
-        textStyle: style,
-      ),
+    final Widget content = source.isEmpty
+        ? _FormulaFallbackText(formula: '[formula]', textStyle: style)
+        : Math.tex(
+            source,
+            mathStyle: displayMode ? MathStyle.display : MathStyle.text,
+            textStyle: style,
+            textScaleFactor: 1,
+            settings: const TexParserSettings(strict: Strict.ignore),
+            options: MathOptions(
+              style: displayMode ? MathStyle.display : MathStyle.text,
+              color: style.color ?? theme.colorScheme.onSurface,
+              fontSize: style.fontSize,
+            ),
+            onErrorFallback: (_) => _FormulaFallbackText(
+              formula: source,
+              textStyle: style,
+            ),
+          );
+    // Key the rendered math subtree by its content so that editing a formula
+    // (popup confirm / undo / redo) rebuilds the Math element from scratch
+    // instead of reusing it via didUpdateWidget. flutter_math_fork's laid-out
+    // subtree can stay stale when the element is reused across a content
+    // change, collapsing the inline formula to nothing on the update frame —
+    // the "update then disappears" regression. A fresh element renders exactly
+    // like the initial mount. The key follows the rendered source, so only a
+    // formula whose content actually changed is rebuilt; other formulas in the
+    // same paragraph keep their element and layout untouched.
+    return KeyedSubtree(
+      key: ValueKey<String>('wenz-richtext-formula-math::$source'),
+      child: content,
     );
   }
 }

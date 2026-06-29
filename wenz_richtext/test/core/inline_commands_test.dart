@@ -336,4 +336,64 @@ void main() {
 
     controller.dispose();
   });
+
+  test('controller updates only the targeted inline formula among many', () {
+    // Two formulas share one paragraph. Updating the first by position must
+    // leave the second's data untouched — the data-level counterpart to the
+    // multi-formula rendering regression.
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[
+              TextRun(text: 'Ask '),
+              InlineEmbed(
+                embedType: 'formula',
+                data: <String, Object?>{'latex': 'a+b'},
+              ),
+              TextRun(text: ' then '),
+              InlineEmbed(
+                embedType: 'formula',
+                data: <String, Object?>{'latex': 'c+d'},
+              ),
+              TextRun(text: ' end'),
+            ],
+          ),
+        ],
+      ),
+      selection: collapsedTextSelection('p1', 0, 0),
+    );
+
+    // 'Ask ' occupies offsets 0..4; the first formula placeholder is 4..5.
+    controller.updateInlineFormula(
+      position: DocumentPosition.text(
+        blockId: 'p1',
+        blockIndex: 0,
+        offset: 4,
+      ),
+      text: 'x+y',
+    );
+
+    var block = controller.document.blocks.single as TextBlockNode;
+    final first = block.content[1] as InlineEmbed;
+    final second = block.content[3] as InlineEmbed;
+    expect(first.data['latex'], 'x+y');
+    expect(first.data['text'], 'x+y');
+    // The second formula keeps its original data.
+    expect(second.data['latex'], 'c+d');
+    expect(second.data['text'], isNull);
+
+    expect(controller.undo(), isTrue);
+    block = controller.document.blocks.single as TextBlockNode;
+    expect((block.content[1] as InlineEmbed).data['latex'], 'a+b');
+    expect((block.content[3] as InlineEmbed).data['latex'], 'c+d');
+
+    expect(controller.redo(), isTrue);
+    block = controller.document.blocks.single as TextBlockNode;
+    expect((block.content[1] as InlineEmbed).data['latex'], 'x+y');
+
+    controller.dispose();
+  });
 }

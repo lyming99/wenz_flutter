@@ -434,6 +434,84 @@ void main() {
       outline.dispose();
       host.dispose();
     });
+
+    test('folds a tail heading that runs to the end of the document', () {
+      final host = WenzRichTextController(document: _tailHeadingDoc());
+      final outline = WenzOutlineController(editor: host);
+
+      // The H1 is the only heading; with no following same-or-higher level
+      // heading to bound it, its collapse range runs to the document end.
+      final chapter = outline.itemForBlockId('h1')!;
+      expect(chapter.canCollapse, isTrue);
+      expect(chapter.coveredBlockIds, <String>['p1', 'p2', 'p3']);
+      expect(chapter.collapseStartBlockIndex, 1);
+      expect(chapter.collapseEndBlockIndexExclusive, 4);
+      expect(chapter.coveredBlockCount, 3);
+
+      expect(outline.collapseByBlockId('h1'), isTrue);
+      final projection = outline.visibleBlockProjection();
+      expect(
+        projection.visibleBlocks.map((block) => block.id),
+        <String>['h1'],
+      );
+      expect(projection.visibleBlockIndexes, <int>[0]);
+      expect(projection.hiddenBlockIds, <String>{'p1', 'p2', 'p3'});
+      expect(projection.hiddenBlockIndexes, <int>{1, 2, 3});
+      expect(projection.hiddenBlockCount, 3);
+      expect(outline.hiddenBlockCount, 3);
+      expect(host.canUndo, isFalse);
+
+      outline.dispose();
+      host.dispose();
+    });
+
+    test('expands collapsed ranges to reveal a selection or block', () {
+      final host = WenzRichTextController(document: _foldingDoc());
+      final outline = WenzOutlineController(editor: host);
+
+      // h2 covers p2, h3, p3 (document indexes 3, 4, 5).
+      expect(outline.collapseByBlockId('h2'), isTrue);
+      expect(outline.isCollapsed('h2'), isTrue);
+      expect(outline.isBlockHidden('p2'), isTrue);
+      expect(outline.isBlockHidden('h3'), isTrue);
+      expect(outline.isBlockHidden('p3'), isTrue);
+
+      // Revealing an already-visible block outside every collapsed range is a
+      // safe no-op that leaves the collapse state untouched.
+      expect(outline.expandToRevealBlockId('p1'), isFalse);
+      expect(outline.isCollapsed('h2'), isTrue);
+
+      // Reveal a hidden descendant by block id.
+      expect(outline.expandToRevealBlockId('h3'), isTrue);
+      expect(outline.isCollapsed('h2'), isFalse);
+      expect(outline.isBlockHidden('h3'), isFalse);
+
+      // Reveal by source block index.
+      expect(outline.collapseByBlockId('h2'), isTrue);
+      expect(outline.expandToRevealBlockIndex(5), isTrue); // p3
+      expect(outline.isCollapsed('h2'), isFalse);
+
+      // Reveal by a block range intersecting the collapsed section.
+      expect(outline.collapseByBlockId('h2'), isTrue);
+      expect(outline.expandToRevealBlockRange(3, 5), isTrue);
+      expect(outline.isCollapsed('h2'), isFalse);
+
+      // Reveal via a document selection pointing inside the collapsed section.
+      expect(outline.collapseByBlockId('h2'), isTrue);
+      final selection = DocumentSelection(
+        base: DocumentPosition.text(blockId: 'p2', blockIndex: 3, offset: 0),
+        extent: DocumentPosition.text(blockId: 'p2', blockIndex: 3, offset: 0),
+      );
+      expect(outline.expandToRevealSelection(selection), isTrue);
+      expect(outline.isCollapsed('h2'), isFalse);
+
+      // A null selection never expands, and an out-of-range index is safe.
+      expect(outline.expandToRevealSelection(null), isFalse);
+      expect(outline.expandToRevealBlockIndex(999), isFalse);
+
+      outline.dispose();
+      host.dispose();
+    });
   });
 }
 
@@ -615,6 +693,34 @@ RichTextDocument _dynamicBoundaryDoc() {
         type: BlockType.heading,
         attributes: BlockAttributes(level: 1),
         content: <InlineNode>[TextRun(text: 'Tail')],
+      ),
+    ],
+  );
+}
+
+RichTextDocument _tailHeadingDoc() {
+  return const RichTextDocument(
+    blocks: <BlockNode>[
+      TextBlockNode(
+        id: 'h1',
+        type: BlockType.heading,
+        attributes: BlockAttributes(level: 1),
+        content: <InlineNode>[TextRun(text: 'Only chapter')],
+      ),
+      TextBlockNode(
+        id: 'p1',
+        type: BlockType.paragraph,
+        content: <InlineNode>[TextRun(text: 'Para one')],
+      ),
+      TextBlockNode(
+        id: 'p2',
+        type: BlockType.paragraph,
+        content: <InlineNode>[TextRun(text: 'Para two')],
+      ),
+      TextBlockNode(
+        id: 'p3',
+        type: BlockType.paragraph,
+        content: <InlineNode>[TextRun(text: 'Para three')],
       ),
     ],
   );

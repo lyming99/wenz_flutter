@@ -25,7 +25,7 @@
 ///   [EditorTextInputClient]. These are the intended integration points and
 ///   change only with a documented reason.
 /// - **Stabilising (tier 2)**: [WenzRichTextEditor] widget,
-///   [WenzRichTextEditorAccessibility], [DocumentSchema],
+///   [WenzLinkInteractionCallback], [WenzRichTextEditorAccessibility], [DocumentSchema],
 ///   the rich/legacy JSON codecs, the plain-text codec ([PlainTextCodec]),
 ///   the Markdown codec ([MarkdownCodec]), the HTML codec ([HtmlCodec]),
 ///   the schema migration framework ([DocumentMigration],
@@ -159,6 +159,8 @@ export 'src/widgets/comment_sidebar.dart';
 export 'src/widgets/find_replace_panel.dart';
 export 'src/widgets/inline_embed_renderer.dart';
 export 'src/widgets/link_edit_dialog.dart';
+export 'src/widgets/link_hover_overlay.dart';
 export 'src/widgets/media_resolver.dart';
+export 'src/widgets/outline_tree.dart';
 export 'src/widgets/slash_menu_overlay.dart';
 export 'src/widgets/wenz_rich_text_editor.dart';

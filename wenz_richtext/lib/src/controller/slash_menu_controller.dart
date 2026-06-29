@@ -341,54 +341,54 @@ class SlashMenuController extends ChangeNotifier {
 List<SlashMenuItem> defaultSlashMenuItems() {
   return <SlashMenuItem>[
     // Heading levels H1–H6. The level-1 entry keeps the historical `heading`
-    // id (and title) so existing integrations and lookups keep working, while
-    // H2–H6 expose the remaining levels through their own ids.
+    // id so existing integrations and lookups keep working, while H2–H6 expose
+    // the remaining levels through their own ids.
     _slashHeadingItem(
       id: 'heading',
-      title: 'Heading',
-      description: 'Large section title',
+      title: '标题',
+      description: '大号章节标题',
       level: 1,
       keywords: const <String>['h1', 'title', '标题', '大标题', '一级标题'],
     ),
     _slashHeadingItem(
       id: 'h2',
-      title: 'Heading 2',
-      description: 'Medium section title',
+      title: '标题 2',
+      description: '中号章节标题',
       level: 2,
       keywords: const <String>['h2', 'subtitle', '副标题', '二级标题'],
     ),
     _slashHeadingItem(
       id: 'h3',
-      title: 'Heading 3',
-      description: 'Small section title',
+      title: '标题 3',
+      description: '小号章节标题',
       level: 3,
       keywords: const <String>['h3', '三级标题'],
     ),
     _slashHeadingItem(
       id: 'h4',
-      title: 'Heading 4',
-      description: 'Subsection title',
+      title: '标题 4',
+      description: '次级章节标题',
       level: 4,
       keywords: const <String>['h4', '四级标题'],
     ),
     _slashHeadingItem(
       id: 'h5',
-      title: 'Heading 5',
-      description: 'Minor section title',
+      title: '标题 5',
+      description: '细分章节标题',
       level: 5,
       keywords: const <String>['h5', '五级标题'],
     ),
     _slashHeadingItem(
       id: 'h6',
-      title: 'Heading 6',
-      description: 'Smallest section title',
+      title: '标题 6',
+      description: '最小章节标题',
       level: 6,
       keywords: const <String>['h6', '六级标题'],
     ),
     SlashMenuItem(
       id: 'list',
-      title: 'Bulleted list',
-      description: 'Unordered list item',
+      title: '无序列表',
+      description: '项目符号列表',
       icon: 'list',
       keywords: const <String>['bullet', 'unordered', '列表', '无序列表', '项目符号'],
       handlesTriggerDeletion: true,
@@ -403,8 +403,8 @@ List<SlashMenuItem> defaultSlashMenuItems() {
     ),
     SlashMenuItem(
       id: 'todo',
-      title: 'Todo',
-      description: 'Task list item',
+      title: '待办',
+      description: '可勾选任务',
       icon: 'check_box',
       keywords: const <String>['task', 'checkbox', '待办', '任务', '复选框'],
       handlesTriggerDeletion: true,
@@ -419,8 +419,8 @@ List<SlashMenuItem> defaultSlashMenuItems() {
     ),
     SlashMenuItem(
       id: 'quote',
-      title: 'Quote',
-      description: 'Quoted block',
+      title: '引用',
+      description: '引用内容块',
       icon: 'format_quote',
       keywords: const <String>['blockquote', '引用', '引言'],
       handlesTriggerDeletion: true,
@@ -430,8 +430,8 @@ List<SlashMenuItem> defaultSlashMenuItems() {
     ),
     SlashMenuItem(
       id: 'code',
-      title: 'Code block',
-      description: 'Preformatted code',
+      title: '代码块',
+      description: '预格式化代码',
       icon: 'code',
       keywords: const <String>['pre', '代码', '代码块'],
       handlesTriggerDeletion: true,
@@ -460,8 +460,8 @@ List<SlashMenuItem> defaultSlashMenuItems() {
     ),
     SlashMenuItem(
       id: 'table',
-      title: 'Table',
-      description: '3 by 3 table',
+      title: '表格',
+      description: '3 × 3 表格',
       icon: 'table_chart',
       keywords: const <String>['grid', '表格'],
       handlesTriggerDeletion: true,
@@ -480,8 +480,8 @@ List<SlashMenuItem> defaultSlashMenuItems() {
     ),
     SlashMenuItem(
       id: 'image',
-      title: 'Image',
-      description: 'Image placeholder',
+      title: '图片',
+      description: '图片占位',
       icon: 'image',
       keywords: const <String>['media', 'picture', '图片', '图像'],
       handlesTriggerDeletion: true,
@@ -508,8 +508,8 @@ List<SlashMenuItem> defaultSlashMenuItems() {
     ),
     SlashMenuItem(
       id: 'video',
-      title: 'Video',
-      description: 'Video placeholder',
+      title: '视频',
+      description: '视频占位',
       icon: 'video',
       keywords: const <String>['media', 'movie', 'play', '视频'],
       handlesTriggerDeletion: true,
@@ -520,7 +520,7 @@ List<SlashMenuItem> defaultSlashMenuItems() {
           (block, content) => VideoBlockNode(
             id: block.id,
             assetId: context.generatedId('video'),
-            title: 'Video placeholder',
+            title: '视频',
             aspectRatio: VideoBlockNode.defaultAspectRatio,
           ),
           (block, blockIndex) {

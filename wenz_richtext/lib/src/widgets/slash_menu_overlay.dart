@@ -4,17 +4,21 @@ import 'package:flutter/material.dart';
 
 import '../controller/slash_menu_controller.dart';
 
-// Keep slash menu chrome aligned with docs/design/menu_toolbar_minimal_spec.md.
-const double _kSlashMenuSurfaceRadius = 12.0;
-const double _kSlashMenuSurfaceElevation = 6.0;
-const int _kSlashMenuSurfaceShadowAlpha = 48;
-const int _kSlashMenuSurfaceBorderAlpha = 180;
+// Keep slash menu chrome aligned with the "Electron 风格斜杆 popup 规范" section in
+// docs/design/menu_toolbar_minimal_spec.md (visual source:
+// ui/slash_popup_electron_design.html). Flat/restrained shadow, clear hierarchy,
+// compact rhythm; all colors below stay within colorScheme (no hardcoded theme
+// colors), and behavior (sizing/anchoring/keyboard routing) is unchanged.
+const double _kSlashMenuSurfaceRadius = 10.0;
+const double _kSlashMenuSurfaceElevation = 3.0;
+const int _kSlashMenuSurfaceShadowAlpha = 24;
+const int _kSlashMenuSurfaceBorderAlpha = 36;
 const EdgeInsets _kSlashMenuPadding = EdgeInsets.all(6);
 const double _kSlashMenuItemRadius = 8.0;
 const EdgeInsets _kSlashMenuItemOuterPadding = EdgeInsets.symmetric(vertical: 1);
 const EdgeInsets _kSlashMenuItemPadding = EdgeInsets.symmetric(
   horizontal: 10,
-  vertical: 8,
+  vertical: 7,
 );
 const EdgeInsets _kSlashMenuEmptyPadding = EdgeInsets.symmetric(
   horizontal: 18,
@@ -23,11 +27,11 @@ const EdgeInsets _kSlashMenuEmptyPadding = EdgeInsets.symmetric(
 const double _kSlashMenuEmptyMinHeight = 132.0;
 const double _kSlashMenuIconSize = 20.0;
 const double _kSlashMenuIconTextGap = 10.0;
-const int _kSlashMenuHoverAlpha = 10;
-const int _kSlashMenuHighlightAlpha = 20;
-const int _kSlashMenuSplashAlpha = 24;
-const int _kSlashMenuSelectedAlphaLight = 150;
-const int _kSlashMenuSelectedAlphaDark = 112;
+const int _kSlashMenuHoverAlpha = 13;
+const int _kSlashMenuHighlightAlpha = 46;
+const int _kSlashMenuSplashAlpha = 32;
+const int _kSlashMenuSelectedAlphaLight = 31;
+const int _kSlashMenuSelectedAlphaDark = 41;
 
 Color _slashMenuSurfaceColor(ThemeData theme) =>
     theme.colorScheme.surfaceContainerLow;
@@ -140,7 +144,7 @@ class _SlashMenuTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final selectedColor = colorScheme.primaryContainer.withAlpha(
+    final selectedColor = colorScheme.primary.withAlpha(
       theme.brightness == Brightness.dark
           ? _kSlashMenuSelectedAlphaDark
           : _kSlashMenuSelectedAlphaLight,
@@ -148,8 +152,9 @@ class _SlashMenuTile extends StatelessWidget {
     final iconColor =
         selected ? colorScheme.primary : colorScheme.onSurfaceVariant;
     final titleStyle = theme.textTheme.bodyMedium?.copyWith(
+      fontSize: 13,
+      fontWeight: FontWeight.w600,
       color: selected ? colorScheme.primary : colorScheme.onSurface,
-      fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
     );
     return Semantics(
       selected: selected,
@@ -194,6 +199,8 @@ class _SlashMenuTile extends StatelessWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: theme.textTheme.labelSmall?.copyWith(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w400,
                               color: colorScheme.onSurfaceVariant,
                             ),
                           ),
@@ -219,7 +226,7 @@ class _SlashMenuEmptyState extends StatelessWidget {
     final colorScheme = theme.colorScheme;
     return Semantics(
       liveRegion: true,
-      label: 'No slash commands found',
+      label: '未找到斜杆命令',
       child: ConstrainedBox(
         constraints: const BoxConstraints(minHeight: _kSlashMenuEmptyMinHeight),
         child: Padding(
@@ -235,7 +242,7 @@ class _SlashMenuEmptyState extends StatelessWidget {
               ),
               const SizedBox(height: 10),
               Text(
-                'No commands found',
+                '未找到命令',
                 textAlign: TextAlign.center,
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: colorScheme.onSurface,
@@ -244,7 +251,7 @@ class _SlashMenuEmptyState extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                'Try a different keyword.',
+                '试试输入「表格」「图片」或「代码」。',
                 textAlign: TextAlign.center,
                 style: theme.textTheme.labelSmall?.copyWith(
                   color: colorScheme.onSurfaceVariant,

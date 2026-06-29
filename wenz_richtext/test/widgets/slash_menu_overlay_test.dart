@@ -80,12 +80,12 @@ void main() {
     final material = tester.widget<Material>(overlayFinder);
     final colorScheme = theme.colorScheme;
     expect(material.color, colorScheme.surfaceContainerLow);
-    expect(material.elevation, 6);
+    expect(material.elevation, 3);
     expect(material.surfaceTintColor, colorScheme.surfaceTint.withAlpha(0));
     expect(material.clipBehavior, Clip.antiAlias);
     final shape = material.shape as RoundedRectangleBorder;
-    expect(shape.borderRadius, BorderRadius.circular(12));
-    expect(shape.side.color, colorScheme.outlineVariant.withAlpha(180));
+    expect(shape.borderRadius, BorderRadius.circular(10));
+    expect(shape.side.color, colorScheme.outlineVariant.withAlpha(36));
 
     final constraints = tester.widget<ConstrainedBox>(
       find.descendant(of: overlayFinder, matching: find.byType(ConstrainedBox)),
@@ -105,7 +105,7 @@ void main() {
       find.descendant(of: headingTile, matching: find.byType(DecoratedBox)),
     );
     final selectedBox = selectedDecoration.decoration as BoxDecoration;
-    expect(selectedBox.color, colorScheme.primaryContainer.withAlpha(112));
+    expect(selectedBox.color, colorScheme.primary.withAlpha(41));
     expect(selectedBox.borderRadius, BorderRadius.circular(8));
   });
 
@@ -129,8 +129,8 @@ void main() {
       ),
     );
 
-    expect(find.text('No commands found'), findsOneWidget);
-    expect(find.text('Try a different keyword.'), findsOneWidget);
+    expect(find.text('未找到命令'), findsOneWidget);
+    expect(find.text('试试输入「表格」「图片」或「代码」。'), findsOneWidget);
     expect(find.byIcon(Icons.search_off), findsOneWidget);
     expect(find.byType(ListView), findsNothing);
   });
@@ -152,13 +152,13 @@ void main() {
       ),
     );
 
-    expect(find.text('Heading'), findsOneWidget);
-    expect(find.text('Large section title'), findsOneWidget);
+    expect(find.text('标题'), findsOneWidget);
+    expect(find.text('大号章节标题'), findsOneWidget);
     // Every heading level (H1–H6) renders the shared `title` icon, so several
     // tiles carry it once the full heading family is in the registry.
     expect(find.byIcon(Icons.title), findsAtLeastNWidgets(1));
     expect(
-      find.bySemanticsLabel('Heading, Large section title'),
+      find.bySemanticsLabel('标题, 大号章节标题'),
       findsOneWidget,
     );
   });
@@ -318,7 +318,7 @@ void main() {
     await tester.drag(find.byType(ListView), const Offset(0, -480));
     await tester.pump();
 
-    expect(find.text('Video'), findsOneWidget);
+    expect(find.text('视频'), findsOneWidget);
   });
 
   testWidgets('read-only editor does not render an open slash menu',

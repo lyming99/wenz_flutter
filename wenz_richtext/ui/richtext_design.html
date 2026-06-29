@@ -655,7 +655,7 @@ controller.<span class="fn">replaceSelection</span>([block]);</pre>
   <!-- ===================== 9. 图片 ===================== -->
   <section class="section">
     <h2 class="section-title"><span class="num">9</span>图片 Image</h2>
-    <p class="section-desc">对应 <code>BlockType.image</code>：支持 <code>caption</code>、<code>altText</code>、显示尺寸 <code>showWidth/showHeight</code>。</p>
+    <p class="section-desc">对应 <code>BlockType.image</code>：支持 <code>caption</code>、<code>altText</code>、显示尺寸 <code>showWidth/showHeight</code>。完整 figure chrome（圆角/阴影/最大宽度）、caption 渲染、空/加载上传中/加载失败状态全集、选中描边与只读裁剪等显示细节，见专门设计稿 <a href="media_block_display_design.html">ui/media_block_display_design.html</a>（①~⑤ 图片块部分）。</p>
 
     <div class="sheet">
       <div class="rt">
@@ -674,7 +674,7 @@ controller.<span class="fn">replaceSelection</span>([block]);</pre>
   <!-- ===================== 10. 视频 ===================== -->
   <section class="section">
     <h2 class="section-title"><span class="num">10</span>视频 Video</h2>
-    <p class="section-desc">对应 <code>BlockType.video</code>，<code>assetId</code> 指向资源。</p>
+    <p class="section-desc">对应 <code>BlockType.video</code>，<code>assetId</code> 指向资源。封面预览 + 播放覆盖层（默认/悬停/按下）、播放中/缓冲中/加载失败/占位态、宽高比处理、选中描边与明暗双 token 等显示细节，见专门设计稿 <a href="media_block_display_design.html">ui/media_block_display_design.html</a>（③~④ 视频块部分）。</p>
 
     <div class="sheet">
       <div class="rt">
