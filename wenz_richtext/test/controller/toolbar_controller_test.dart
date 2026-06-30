@@ -710,6 +710,7 @@ void main() {
       expect(toolbar.canToggleMark, isFalse);
       expect(toolbar.canSetLink, isFalse);
       expect(toolbar.canSetBlockType, isFalse);
+      expect(toolbar.canInsertImage, isFalse);
 
       host.permission = WenzEditorPermission.edit;
 
@@ -717,6 +718,86 @@ void main() {
       expect(toolbar.canToggleMark, isTrue);
       expect(toolbar.canSetLink, isTrue);
       expect(toolbar.canSetBlockType, isTrue);
+      expect(toolbar.canInsertImage, isTrue);
+
+      toolbar.dispose();
+      host.dispose();
+    });
+
+    test('insertImage uses the current text block insertion index', () {
+      final host = WenzRichTextController(
+        document: _doc(),
+        selection: collapsedTextSelection('para', 4, 0),
+      );
+      final toolbar = ToolbarController(host);
+
+      toolbar.insertImage(
+        blockId: 'img1',
+        file: '/tmp/hero.png',
+        caption: 'Hero',
+        altText: 'Hero alt',
+      );
+
+      expect(host.document.blocks[4], isA<ImageBlockNode>());
+      final image = host.document.blocks[4] as ImageBlockNode;
+      expect(image.id, 'img1');
+      expect(image.file, '/tmp/hero.png');
+      expect(image.caption, 'Hero');
+      expect(image.altText, 'Hero alt');
+      expect(host.document.blocks[5].id, 'para');
+
+      toolbar.dispose();
+      host.dispose();
+    });
+
+    test('insertImage after a selected object block inserts after the object',
+        () {
+      final host = WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            ImageBlockNode(id: 'existing', assetId: 'asset-1'),
+            TextBlockNode(
+              id: 'after',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'after')],
+            ),
+          ],
+        ),
+        selection: _objectSelection('existing', 0, 1),
+      );
+      final toolbar = ToolbarController(host);
+
+      toolbar.insertImage(blockId: 'img2', file: '/tmp/after-object.png');
+
+      expect(host.document.blocks[0].id, 'existing');
+      expect(host.document.blocks[1], isA<ImageBlockNode>());
+      expect(host.document.blocks[1].id, 'img2');
+      expect(host.document.blocks[2].id, 'after');
+
+      toolbar.dispose();
+      host.dispose();
+    });
+
+    test('insertImage from a table cell inserts after the table block', () {
+      final cellPosition = DocumentPosition.tableCell(
+        tableBlockId: 'table',
+        blockIndex: 0,
+        tableRowIndex: 0,
+        tableColumnIndex: 0,
+        offset: 2,
+      );
+      final host = WenzRichTextController(
+        document: _tableDoc(),
+        selection: DocumentSelection(base: cellPosition, extent: cellPosition),
+      );
+      final toolbar = ToolbarController(host);
+
+      toolbar.insertImage(blockId: 'img3', file: '/tmp/from-cell.png');
+
+      expect(host.document.blocks, hasLength(2));
+      expect(host.document.blocks[0], isA<TableBlockNode>());
+      expect(host.document.blocks[1], isA<ImageBlockNode>());
+      expect(host.document.blocks[1].id, 'img3');
 
       toolbar.dispose();
       host.dispose();
@@ -891,4 +972,18 @@ RichTextDocument _tableDoc() {
       ),
     ],
   );
+}
+
+DocumentSelection _objectSelection(
+  String blockId,
+  int blockIndex,
+  int offset,
+) {
+  final position = DocumentPosition(
+    blockId: blockId,
+    blockIndex: blockIndex,
+    path: PositionPath.blockObject(blockId),
+    offset: offset,
+  );
+  return DocumentSelection(base: position, extent: position);
 }

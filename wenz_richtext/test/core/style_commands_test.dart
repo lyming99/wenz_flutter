@@ -607,6 +607,96 @@ void main() {
     expect(block.attributes.checked, isNull);
   });
 
+  test('set quote preserves heading and todo list semantics', () {
+    final session = DocumentSession(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'heading',
+            type: BlockType.heading,
+            attributes: BlockAttributes(level: 3, anchor: 'h-anchor'),
+            content: <InlineNode>[TextRun(text: 'Quoted heading')],
+          ),
+          TextBlockNode(
+            id: 'ordered-todo',
+            type: BlockType.listItem,
+            attributes: BlockAttributes(listType: 'ordered', checked: true),
+            content: <InlineNode>[TextRun(text: 'Ordered todo')],
+          ),
+          TextBlockNode(
+            id: 'task',
+            type: BlockType.listItem,
+            attributes: BlockAttributes(listType: 'task', checked: false),
+            content: <InlineNode>[TextRun(text: 'Task todo')],
+          ),
+        ],
+      ),
+      selection: const DocumentSelection(
+        base: DocumentPosition(
+          blockId: 'heading',
+          blockIndex: 0,
+          path: PositionPath(<Object>['block', 'heading', 'text']),
+          offset: 0,
+        ),
+        extent: DocumentPosition(
+          blockId: 'task',
+          blockIndex: 2,
+          path: PositionPath(<Object>['block', 'task', 'text']),
+          offset: 9,
+        ),
+      ),
+    );
+    final executor = CommandExecutor(session);
+
+    executor.execute(const SetBlockTypeCommand(type: BlockType.quote));
+
+    final blocks = session.document.blocks.cast<TextBlockNode>().toList();
+    expect(blocks[0].type, BlockType.heading);
+    expect(blocks[0].attributes.level, 3);
+    expect(blocks[0].attributes.anchor, 'h-anchor');
+    expect(blocks[0].attributes.isQuoted, isTrue);
+    expect(blocks[1].type, BlockType.listItem);
+    expect(blocks[1].attributes.listType, 'ordered');
+    expect(blocks[1].attributes.checked, isTrue);
+    expect(blocks[1].attributes.isQuoted, isTrue);
+    expect(blocks[2].type, BlockType.listItem);
+    expect(blocks[2].attributes.listType, 'task');
+    expect(blocks[2].attributes.checked, isFalse);
+    expect(blocks[2].attributes.isQuoted, isTrue);
+  });
+
+  test('set block type preserves existing quote attribute', () {
+    final session = DocumentSession(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'quoted-heading',
+            type: BlockType.heading,
+            attributes: BlockAttributes(level: 2, quoted: true),
+            content: <InlineNode>[TextRun(text: 'Quoted heading')],
+          ),
+        ],
+      ),
+      selection: collapsedTextSelection('quoted-heading', 0, 0),
+    );
+    final executor = CommandExecutor(session);
+
+    executor.execute(
+      const SetBlockTypeCommand(
+        type: BlockType.listItem,
+        listType: 'ordered',
+        checked: true,
+      ),
+    );
+
+    final block = session.document.blocks.single as TextBlockNode;
+    expect(block.type, BlockType.listItem);
+    expect(block.attributes.level, isNull);
+    expect(block.attributes.listType, 'ordered');
+    expect(block.attributes.checked, isTrue);
+    expect(block.attributes.isQuoted, isTrue);
+  });
+
   test('set alignment updates non-text block attributes too', () {
     final session = DocumentSession(
       document: const RichTextDocument(

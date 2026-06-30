@@ -41,6 +41,34 @@ Schema evolution gate:
 - `docs/schema_migration_impact.md` is the ADV-002 decision record for planned
   advanced features and their schema/migration impact.
 
+### Block image protocol
+
+`ImageBlockNode` is a block-level atomic media node for figures and local/remote
+image sources:
+
+- `assetId` remains the stable app/media-library identifier and may also hold a
+  remote image URL for legacy integrations.
+- `file` stores the selected local path/URI or other host-owned source string.
+  Choosing that file is a host/example UI responsibility; the core package does
+  not depend on a platform file picker.
+- `width`/`height` store natural pixel dimensions when known, while
+  `showWidth`/`showHeight` store optional display sizing.
+- `caption` is visible figure text; `altText` is the preferred accessible label.
+
+Use `WenzRichTextController.insertImage(...)` or
+`ToolbarController.insertImage(...)` to create a block image through the same
+`insertBlocks` / history / permission path as other block insertions. The slash
+menu `image` item still inserts a placeholder `ImageBlockNode` synchronously;
+file selection flows should run in host UI first and then call the typed helper.
+Use `WenzRichTextController.updateImageBlock(...)` to patch source, size,
+caption, or alt text after upload/metadata extraction.
+
+Rendering remains separate from schema: the default image renderer asks
+`MediaResolver` first and otherwise shows the built-in placeholder. Apps that
+need real network or local-file previews should inject `MediaResolver` or a
+custom block renderer; unsupported sources can return `null` to keep the
+placeholder.
+
 ### Block video protocol
 
 `VideoBlockNode` is a block-level atomic media node. It is distinct from image,
@@ -117,8 +145,8 @@ the intent is part of the rich text feature set.
   embed with `embedType: 'emoji'`; JSON stores the unicode value and optional
   short name while default renderers display the emoji character.
 - `WenzRichTextController.insertInlineImage(...)` inserts an inline image embed
-  with `embedType: 'image'` and renders as `[img]` until a media renderer is
-  provided.
+  with `embedType: 'image'` and renders as `[img]` until an inline renderer is
+  provided. Use `insertImage(...)` for block-level figures.
 
 ## Comment threads
 

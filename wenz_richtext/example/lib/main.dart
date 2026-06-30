@@ -1,10 +1,12 @@
 import 'dart:async';
 
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:wenz_richtext/wenz_richtext.dart';
 
 import 'example_video_player.dart';
+import 'local_image_view.dart';
 import 'outline_panel.dart';
 import 'test_host.dart';
 
@@ -15,6 +17,17 @@ void main() {
 const _exampleSeedColor = Color(0xFF0F766E);
 const _themeToggleKey = ValueKey<String>('wenz-example-theme-toggle');
 const _editorSurfaceKey = ValueKey<String>('wenz-example-editor-surface');
+const _imageFileTypeGroup = XTypeGroup(
+  label: 'Images',
+  extensions: <String>['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'],
+  mimeTypes: <String>[
+    'image/jpeg',
+    'image/png',
+    'image/gif',
+    'image/webp',
+    'image/bmp',
+  ],
+);
 
 ThemeData _exampleTheme(Brightness brightness) {
   final background =
@@ -36,10 +49,10 @@ Color _exampleEditorBackground(BuildContext context) {
       : Colors.white;
 }
 
-/// Example [MediaResolver]: images use [Image.network], while videos are handed
-/// to [ExampleVideoPlayer] (asset / network / local-file sources). Blocks
-/// without a usable URL return `null` so the built-in placeholder remains
-/// visible.
+/// Example [MediaResolver]: images use [Image.network] or a local-file helper,
+/// while videos are handed to [ExampleVideoPlayer] (asset / network / local-file
+/// sources). Blocks without a usable URL return `null` so the built-in
+/// placeholder remains visible.
 class _ExampleMediaResolver implements MediaResolver {
   @override
   Widget? resolve(BuildContext context, BlockNode block) {
@@ -53,35 +66,42 @@ class _ExampleMediaResolver implements MediaResolver {
   }
 
   Widget? _resolveImage(ImageBlockNode block) {
-    final url = block.assetId;
-    if (!url.startsWith('http')) {
+    final url = block.assetId.trim();
+    if (url.startsWith('http')) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(6),
+        child: Image.network(
+          url,
+          fit: BoxFit.contain,
+          loadingBuilder: (context, child, progress) {
+            if (progress == null) {
+              return child;
+            }
+            return SizedBox(
+              height: 120,
+              child: Center(
+                child: CircularProgressIndicator(
+                  value:
+                      progress.cumulativeBytesLoaded /
+                      (progress.expectedTotalBytes ?? 1),
+                ),
+              ),
+            );
+          },
+          errorBuilder: (context, error, stackTrace) => const SizedBox(
+            height: 80,
+            child: Center(child: Text('⚠ image load failed')),
+          ),
+        ),
+      );
+    }
+    final localImage = buildLocalImageView(block.file);
+    if (localImage == null) {
       return null;
     }
     return ClipRRect(
       borderRadius: BorderRadius.circular(6),
-      child: Image.network(
-        url,
-        fit: BoxFit.contain,
-        loadingBuilder: (context, child, progress) {
-          if (progress == null) {
-            return child;
-          }
-          return SizedBox(
-            height: 120,
-            child: Center(
-              child: CircularProgressIndicator(
-                value:
-                    progress.cumulativeBytesLoaded /
-                    (progress.expectedTotalBytes ?? 1),
-              ),
-            ),
-          );
-        },
-        errorBuilder: (context, error, stackTrace) => const SizedBox(
-          height: 80,
-          child: Center(child: Text('⚠ image load failed')),
-        ),
-      ),
+      child: localImage,
     );
   }
 
@@ -164,6 +184,10 @@ This paragraph includes **bold**, *italic*, and [a link](https://example.com).
 - [x] Checked task
 - Plain list item
 
+> ## Quoted heading
+> 1. Quoted ordered item
+> 1. [x] Quoted ordered todo
+
 ```dart
 controller.loadMarkdown(source);
 ```
@@ -186,6 +210,13 @@ const _htmlImportExportDemo = '''
   <li><input type="checkbox" checked disabled> Checked task</li>
   <li>Plain list item</li>
 </ul>
+<blockquote>
+  <h2>Quoted heading</h2>
+  <ol>
+    <li>Quoted ordered item</li>
+    <li><input type="checkbox" checked disabled> Quoted ordered todo</li>
+  </ol>
+</blockquote>
 <pre><code class="language-dart">controller.loadHtml(source);</code></pre>
 <table>
   <tr><td rowspan="2" colspan="2">Merged</td><td>Status</td></tr>
@@ -480,7 +511,6 @@ class _EditorWorkbenchState extends State<EditorWorkbench> {
               ),
               child: ExampleOutlinePanel(
                 outlineController: _outline,
-                selection: _controller.selection,
               ),
             ),
           ],
@@ -583,19 +613,39 @@ class _EditorWorkbenchState extends State<EditorWorkbench> {
     );
   }
 
-  void _insertImage() {
+  Future<void> _insertImage() async {
+    if (!_toolbar.canInsertImage) {
+      return;
+    }
+    final insertionIndex = _currentBlockInsertionIndex();
+    final XFile? imageFile;
+    try {
+      imageFile = await openFile(
+        acceptedTypeGroups: const <XTypeGroup>[_imageFileTypeGroup],
+      );
+    } catch (_) {
+      return;
+    }
+    if (imageFile == null) {
+      return;
+    }
+    final fileName = imageFile.name.trim();
+    final source = imageFile.path.trim().isNotEmpty
+        ? imageFile.path.trim()
+        : fileName;
+    if (source.isEmpty) {
+      return;
+    }
+    final label = fileName.isEmpty
+        ? source.split(RegExp(r'[\\/]')).last
+        : fileName;
     final id = _newId('image');
-    _controller.insertBlocks(
-      index: _currentBlockInsertionIndex(),
-      blocks: <BlockNode>[
-        ImageBlockNode(
-          id: id,
-          assetId: 'https://picsum.photos/seed/$id/640/360',
-          file: 'inserted.jpg',
-          width: 640,
-          height: 360,
-        ),
-      ],
+    _toolbar.insertImage(
+      index: insertionIndex,
+      blockId: id,
+      file: source,
+      caption: label,
+      altText: label,
     );
   }
 
@@ -1020,7 +1070,7 @@ class _Toolbar extends StatelessWidget {
             ),
             IconButton(
               tooltip: '插入图片',
-              onPressed: onInsertImage,
+              onPressed: toolbar.canInsertImage ? onInsertImage : null,
               icon: const Icon(Icons.image),
             ),
             IconButton(
@@ -1336,8 +1386,8 @@ class _InspectorPanel extends StatelessWidget {
         const SizedBox(height: 8),
         Text(
           'Preview the current document as Markdown/HTML, or replace it with '
-          'codec samples that cover links, lists, code, tables, images, video, '
-          'and file fallbacks.',
+          'codec samples that cover links, lists, quoted headings/todos, code, '
+          'tables, images, video, and file fallbacks.',
           style: theme.textTheme.bodySmall?.copyWith(
             color: theme.colorScheme.onSurfaceVariant,
           ),
@@ -1376,7 +1426,8 @@ class _InspectorPanel extends StatelessWidget {
         const SizedBox(height: 8),
         Text(
           'Markdown reloads file blocks as linked text; Wenz HTML preserves '
-          'file/video data-* metadata.',
+          'file/video data-* metadata; both keep blockquote semantics on '
+          'headings, lists, and todo items.',
           style: theme.textTheme.bodySmall?.copyWith(
             color: theme.colorScheme.onSurfaceVariant,
           ),
@@ -1507,10 +1558,23 @@ RichTextDocument _sampleDocument() {
         ],
       ),
       TextBlockNode(
-        id: 'quote',
-        type: BlockType.quote,
+        id: 'quoted-heading',
+        type: BlockType.heading,
+        attributes: BlockAttributes(level: 2, quoted: true),
         content: <InlineNode>[
-          TextRun(text: 'Controller commands own document mutation.'),
+          TextRun(text: 'Quoted heading keeps heading semantics.'),
+        ],
+      ),
+      TextBlockNode(
+        id: 'quoted-task',
+        type: BlockType.listItem,
+        attributes: BlockAttributes(
+          listType: 'task',
+          checked: true,
+          quoted: true,
+        ),
+        content: <InlineNode>[
+          TextRun(text: 'Quoted todo keeps checkbox state.'),
         ],
       ),
       CalloutBlockNode(

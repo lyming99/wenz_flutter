@@ -205,7 +205,7 @@ void main() {
           ),
         ],
       );
-      expect(codec.encode(document), '<blockquote>quoted</blockquote>');
+      expect(codec.encode(document), '<blockquote><p>quoted</p></blockquote>');
     });
 
     test('callout with variant title and icon', () {
@@ -603,8 +603,31 @@ void main() {
     test('blockquote', () {
       final doc = codec.decode('<blockquote>quoted</blockquote>');
       expect(doc.blocks, hasLength(1));
-      expect(doc.blocks[0].type, BlockType.quote);
-      expect(doc.blocks[0].plainText, 'quoted');
+      final block = doc.blocks[0] as TextBlockNode;
+      expect(block.type, BlockType.paragraph);
+      expect(block.attributes.isQuoted, isTrue);
+      expect(block.plainText, 'quoted');
+    });
+
+    test('blockquote restores quoted heading and list semantics', () {
+      final doc = codec.decode(
+        '<blockquote><h2>Quoted title</h2>'
+        '<ul><li><input type="checkbox" disabled> Quoted todo</li></ul>'
+        '<ol><li>Quoted ordered</li></ol></blockquote>',
+      );
+      final blocks = doc.blocks.cast<TextBlockNode>().toList();
+
+      expect(blocks, hasLength(3));
+      expect(blocks[0].type, BlockType.heading);
+      expect(blocks[0].attributes.level, 2);
+      expect(blocks[0].attributes.isQuoted, isTrue);
+      expect(blocks[1].type, BlockType.listItem);
+      expect(blocks[1].attributes.listType, 'task');
+      expect(blocks[1].attributes.checked, isFalse);
+      expect(blocks[1].attributes.isQuoted, isTrue);
+      expect(blocks[2].type, BlockType.listItem);
+      expect(blocks[2].attributes.listType, 'ordered');
+      expect(blocks[2].attributes.isQuoted, isTrue);
     });
 
     test('callout restores variant title icon and body', () {
@@ -820,6 +843,48 @@ void main() {
       expect(items[1].attributes.checked, isTrue);
       expect(items[2].attributes.listType, 'task');
       expect(items[2].attributes.checked, isFalse);
+    });
+    test('quoted heading and lists survive export → import', () {
+      const document = RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'qh',
+            type: BlockType.heading,
+            attributes: BlockAttributes(level: 2, quoted: true),
+            content: <InlineNode>[TextRun(text: 'Quoted title')],
+          ),
+          TextBlockNode(
+            id: 'qtodo',
+            type: BlockType.listItem,
+            attributes: BlockAttributes(
+              listType: 'task',
+              checked: false,
+              quoted: true,
+            ),
+            content: <InlineNode>[TextRun(text: 'Quoted todo')],
+          ),
+          TextBlockNode(
+            id: 'qordered',
+            type: BlockType.listItem,
+            attributes: BlockAttributes(listType: 'ordered', quoted: true),
+            content: <InlineNode>[TextRun(text: 'Quoted ordered')],
+          ),
+        ],
+      );
+
+      final html = codec.encode(document);
+      expect(html, contains('<blockquote><h2>Quoted title</h2></blockquote>'));
+      expect(html, contains('<blockquote><ul>'));
+      expect(html, contains('<blockquote><ol>'));
+
+      final blocks = codec.decode(html).blocks.cast<TextBlockNode>().toList();
+      expect(blocks[0].type, BlockType.heading);
+      expect(blocks[0].attributes.isQuoted, isTrue);
+      expect(blocks[1].attributes.listType, 'task');
+      expect(blocks[1].attributes.checked, isFalse);
+      expect(blocks[1].attributes.isQuoted, isTrue);
+      expect(blocks[2].attributes.listType, 'ordered');
+      expect(blocks[2].attributes.isQuoted, isTrue);
     });
     test('heading + paragraph + code survive export → import', () {
       const document = RichTextDocument(

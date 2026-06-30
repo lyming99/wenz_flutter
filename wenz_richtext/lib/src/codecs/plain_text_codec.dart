@@ -76,9 +76,12 @@ class PlainTextCodec {
       case BlockType.heading:
       case BlockType.quote:
       case BlockType.callout:
-        return block.plainText;
+        return _quotePlainTextIfNeeded(block, block.plainText);
       case BlockType.listItem:
-        return _renderListItem(blocks, index, block as TextBlockNode);
+        return _quotePlainTextIfNeeded(
+          block,
+          _renderListItem(blocks, index, block as TextBlockNode),
+        );
       case BlockType.code:
         // Code is emitted verbatim (keeps internal newlines).
         return block.plainText;
@@ -100,6 +103,17 @@ class PlainTextCodec {
       case BlockType.divider:
         return '---';
     }
+  }
+
+  String _quotePlainTextIfNeeded(BlockNode block, String text) {
+    if (block is! TextBlockNode ||
+        (block.type != BlockType.quote && !block.attributes.isQuoted)) {
+      return text;
+    }
+    return text
+        .split('\n')
+        .map((line) => line.isEmpty ? '>' : '> $line')
+        .join('\n');
   }
 
   String _renderListItem(

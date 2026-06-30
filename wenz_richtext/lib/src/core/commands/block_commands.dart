@@ -1465,6 +1465,9 @@ class EnterCommand extends EditorCommand {
     if (block.type == BlockType.listItem && block.plainText.trim().isEmpty) {
       return _exitEmptyListItem(session, block, position);
     }
+    if (_isEmptyQuoteBlock(block)) {
+      return _exitEmptyQuoteBlock(session, block, position);
+    }
 
     final split = splitInline(block.content, position.offset);
     final nextBlockId = newBlockId ?? '${block.id}-next';
@@ -1489,6 +1492,38 @@ class EnterCommand extends EditorCommand {
       index: position.blockIndex,
       deleteCount: 1,
       blocks: <BlockNode>[before, after],
+      selection: DocumentSelection(
+        base: nextSelectionPosition,
+        extent: nextSelectionPosition,
+      ),
+    ).execute(session);
+  }
+
+  bool _isEmptyQuoteBlock(TextBlockNode block) {
+    return block.plainText.trim().isEmpty &&
+        (block.type == BlockType.quote || block.attributes.isQuoted);
+  }
+
+  CommandResult _exitEmptyQuoteBlock(
+    DocumentSession session,
+    TextBlockNode block,
+    DocumentPosition position,
+  ) {
+    final paragraph = TextBlockNode(
+      id: block.id,
+      type: block.type == BlockType.quote ? BlockType.paragraph : block.type,
+      attributes: _attributesAfterQuoteExit(block.attributes),
+      content: const <InlineNode>[],
+    );
+    final nextSelectionPosition = DocumentPosition.text(
+      blockId: paragraph.id,
+      blockIndex: position.blockIndex,
+      offset: 0,
+    );
+    return ReplaceBlocksCommand(
+      index: position.blockIndex,
+      deleteCount: 1,
+      blocks: <BlockNode>[paragraph],
       selection: DocumentSelection(
         base: nextSelectionPosition,
         extent: nextSelectionPosition,
@@ -1534,7 +1569,9 @@ class EnterCommand extends EditorCommand {
         checked: current.checked != null || current.listType == 'task'
             ? false
             : null,
+        quoted: current.quoted,
         childNote: current.childNote,
+        anchor: current.anchor,
       );
     }
     return BlockAttributes(
@@ -1543,7 +1580,21 @@ class EnterCommand extends EditorCommand {
       alignment: current.alignment,
       listType: current.listType,
       checked: current.checked,
+      quoted: current.quoted,
       childNote: current.childNote,
+      anchor: current.anchor,
+    );
+  }
+
+  BlockAttributes _attributesAfterQuoteExit(BlockAttributes current) {
+    return BlockAttributes(
+      level: current.level,
+      indent: current.indent,
+      alignment: current.alignment,
+      listType: current.listType,
+      checked: current.checked,
+      childNote: current.childNote,
+      anchor: current.anchor,
     );
   }
 
@@ -1553,6 +1604,7 @@ class EnterCommand extends EditorCommand {
     return BlockAttributes(
       indent: current.indent,
       alignment: current.alignment,
+      quoted: current.quoted,
       childNote: current.childNote,
       anchor: current.anchor,
     );

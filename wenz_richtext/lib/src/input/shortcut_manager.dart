@@ -15,6 +15,19 @@ enum EditorShortcutIntent {
   paste,
   find,
   replace,
+  toggleHeading1,
+  toggleHeading2,
+  toggleHeading3,
+  toggleHeading4,
+  toggleHeading5,
+  toggleHeading6,
+  toggleQuote,
+  insertFormula,
+  toggleCodeBlock,
+  toggleTodo,
+  cycleList,
+  insertTable,
+  insertLink,
   moveTableCellBackward,
   moveTableCellForward,
   moveCaretBackward,
@@ -310,6 +323,19 @@ class EditorShortcutManager {
       return configured;
     }
 
+    final defaultShortcut = _resolveDefaultShortcut(
+      event.logicalKey,
+      shiftPressed: shiftPressed,
+      controlPressed: controlPressed,
+      altPressed: altPressed,
+      metaPressed: metaPressed,
+      primaryPressed: primaryPressed,
+      readOnly: readOnly,
+    );
+    if (defaultShortcut != null) {
+      return defaultShortcut;
+    }
+
     if (primaryPressed) {
       return _applyDisabledIntent(_resolvePrimaryShortcut(
         event.logicalKey,
@@ -446,6 +472,35 @@ class EditorShortcutManager {
     return null;
   }
 
+  EditorShortcutResolution? _resolveDefaultShortcut(
+    LogicalKeyboardKey key, {
+    required bool shiftPressed,
+    required bool controlPressed,
+    required bool altPressed,
+    required bool metaPressed,
+    required bool primaryPressed,
+    required bool readOnly,
+  }) {
+    for (final binding in _defaultRichTextShortcutBindings) {
+      if (!binding.shortcut.matches(
+        key: key,
+        shiftPressed: shiftPressed,
+        controlPressed: controlPressed,
+        altPressed: altPressed,
+        metaPressed: metaPressed,
+        primaryPressed: primaryPressed,
+        platform: platform,
+      )) {
+        continue;
+      }
+      return _applyReadOnlyGuard(
+        _applyDisabledIntent(binding.resolution),
+        readOnly,
+      );
+    }
+    return null;
+  }
+
   EditorShortcutResolution _applyDisabledIntent(
     EditorShortcutResolution resolution,
   ) {
@@ -566,12 +621,137 @@ bool _setEquals<T>(Set<T> left, Set<T> right) {
   return left.length == right.length && left.containsAll(right);
 }
 
+const Set<EditorShortcutModifier> _controlShortcutModifiers =
+    <EditorShortcutModifier>{
+  EditorShortcutModifier.control,
+};
+
+const Set<EditorShortcutModifier> _controlAltShortcutModifiers =
+    <EditorShortcutModifier>{
+  EditorShortcutModifier.control,
+  EditorShortcutModifier.alt,
+};
+
+const Set<EditorShortcutModifier> _controlShiftShortcutModifiers =
+    <EditorShortcutModifier>{
+  EditorShortcutModifier.control,
+  EditorShortcutModifier.shift,
+};
+
+const List<EditorShortcutBinding> _defaultRichTextShortcutBindings =
+    <EditorShortcutBinding>[
+  EditorShortcutBinding.handled(
+    shortcut: EditorShortcutKey(
+      LogicalKeyboardKey.digit1,
+      modifiers: _controlShortcutModifiers,
+    ),
+    intent: EditorShortcutIntent.toggleHeading1,
+  ),
+  EditorShortcutBinding.handled(
+    shortcut: EditorShortcutKey(
+      LogicalKeyboardKey.digit2,
+      modifiers: _controlShortcutModifiers,
+    ),
+    intent: EditorShortcutIntent.toggleHeading2,
+  ),
+  EditorShortcutBinding.handled(
+    shortcut: EditorShortcutKey(
+      LogicalKeyboardKey.digit3,
+      modifiers: _controlShortcutModifiers,
+    ),
+    intent: EditorShortcutIntent.toggleHeading3,
+  ),
+  EditorShortcutBinding.handled(
+    shortcut: EditorShortcutKey(
+      LogicalKeyboardKey.digit4,
+      modifiers: _controlShortcutModifiers,
+    ),
+    intent: EditorShortcutIntent.toggleHeading4,
+  ),
+  EditorShortcutBinding.handled(
+    shortcut: EditorShortcutKey(
+      LogicalKeyboardKey.digit5,
+      modifiers: _controlShortcutModifiers,
+    ),
+    intent: EditorShortcutIntent.toggleHeading5,
+  ),
+  EditorShortcutBinding.handled(
+    shortcut: EditorShortcutKey(
+      LogicalKeyboardKey.digit6,
+      modifiers: _controlShortcutModifiers,
+    ),
+    intent: EditorShortcutIntent.toggleHeading6,
+  ),
+  EditorShortcutBinding.handled(
+    shortcut: EditorShortcutKey(
+      LogicalKeyboardKey.digit8,
+      modifiers: _controlShortcutModifiers,
+    ),
+    intent: EditorShortcutIntent.toggleQuote,
+  ),
+  EditorShortcutBinding.handled(
+    shortcut: EditorShortcutKey(
+      LogicalKeyboardKey.digit9,
+      modifiers: _controlShortcutModifiers,
+    ),
+    intent: EditorShortcutIntent.insertFormula,
+  ),
+  EditorShortcutBinding.handled(
+    shortcut: EditorShortcutKey(
+      LogicalKeyboardKey.keyK,
+      modifiers: _controlAltShortcutModifiers,
+    ),
+    intent: EditorShortcutIntent.toggleCodeBlock,
+  ),
+  EditorShortcutBinding.handled(
+    shortcut: EditorShortcutKey(
+      LogicalKeyboardKey.keyT,
+      modifiers: _controlShortcutModifiers,
+    ),
+    intent: EditorShortcutIntent.toggleTodo,
+  ),
+  EditorShortcutBinding.handled(
+    shortcut: EditorShortcutKey(
+      LogicalKeyboardKey.keyI,
+      modifiers: _controlShortcutModifiers,
+    ),
+    intent: EditorShortcutIntent.cycleList,
+  ),
+  EditorShortcutBinding.handled(
+    shortcut: EditorShortcutKey(
+      LogicalKeyboardKey.keyT,
+      modifiers: _controlShiftShortcutModifiers,
+    ),
+    intent: EditorShortcutIntent.insertTable,
+  ),
+  EditorShortcutBinding.handled(
+    shortcut: EditorShortcutKey(
+      LogicalKeyboardKey.keyL,
+      modifiers: _controlShiftShortcutModifiers,
+    ),
+    intent: EditorShortcutIntent.insertLink,
+  ),
+];
+
 const Set<EditorShortcutIntent> _writeIntents = <EditorShortcutIntent>{
   EditorShortcutIntent.undo,
   EditorShortcutIntent.redo,
   EditorShortcutIntent.cut,
   EditorShortcutIntent.paste,
   EditorShortcutIntent.replace,
+  EditorShortcutIntent.toggleHeading1,
+  EditorShortcutIntent.toggleHeading2,
+  EditorShortcutIntent.toggleHeading3,
+  EditorShortcutIntent.toggleHeading4,
+  EditorShortcutIntent.toggleHeading5,
+  EditorShortcutIntent.toggleHeading6,
+  EditorShortcutIntent.toggleQuote,
+  EditorShortcutIntent.insertFormula,
+  EditorShortcutIntent.toggleCodeBlock,
+  EditorShortcutIntent.toggleTodo,
+  EditorShortcutIntent.cycleList,
+  EditorShortcutIntent.insertTable,
+  EditorShortcutIntent.insertLink,
   EditorShortcutIntent.moveTableCellBackward,
   EditorShortcutIntent.moveTableCellForward,
   EditorShortcutIntent.deleteBackward,

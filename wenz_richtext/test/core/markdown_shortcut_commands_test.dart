@@ -148,14 +148,69 @@ void main() {
       expect(block.plainText, isEmpty);
     });
 
-    test('typing "> " creates a quote block', () {
+    test('typing "> " quotes a paragraph without changing its type', () {
       final controller = _controller();
 
       controller.insertText('>');
       controller.insertText(' ');
 
       final block = controller.document.blocks.single as TextBlockNode;
-      expect(block.type, BlockType.quote);
+      expect(block.type, BlockType.paragraph);
+      expect(block.attributes.isQuoted, isTrue);
+      expect(block.plainText, isEmpty);
+    });
+
+    test('typing heading marker inside a quote preserves quote attribute', () {
+      final controller = WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'quoted-paragraph',
+              type: BlockType.paragraph,
+              attributes: BlockAttributes(quoted: true),
+              content: <InlineNode>[],
+            ),
+          ],
+        ),
+        selection: collapsedTextSelection('quoted-paragraph', 0, 0),
+      );
+
+      controller.insertText('#');
+      controller.insertText('#');
+      controller.insertText(' ');
+
+      final block = controller.document.blocks.single as TextBlockNode;
+      expect(block.type, BlockType.heading);
+      expect(block.attributes.level, 2);
+      expect(block.attributes.isQuoted, isTrue);
+      expect(block.plainText, isEmpty);
+    });
+
+    test('typing task marker inside quoted ordered list preserves quote', () {
+      final controller = WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'quoted-ordered',
+              type: BlockType.listItem,
+              attributes: BlockAttributes(listType: 'ordered', quoted: true),
+              content: <InlineNode>[],
+            ),
+          ],
+        ),
+        selection: collapsedTextSelection('quoted-ordered', 0, 0),
+      );
+
+      controller.insertText('[');
+      controller.insertText('x');
+      controller.insertText(']');
+      controller.insertText(' ');
+
+      final block = controller.document.blocks.single as TextBlockNode;
+      expect(block.type, BlockType.listItem);
+      expect(block.attributes.listType, 'ordered');
+      expect(block.attributes.checked, isTrue);
+      expect(block.attributes.isQuoted, isTrue);
       expect(block.plainText, isEmpty);
     });
 

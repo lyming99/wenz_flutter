@@ -54,8 +54,8 @@ class ApplyMarkdownShortcutCommand extends EditorCommand {
           session,
           block,
           position.blockIndex,
-          BlockType.quote,
-          _simpleTextAttributes(block.attributes),
+          block.type == BlockType.quote ? BlockType.paragraph : block.type,
+          _quoteAttributes(block.attributes),
           split.after,
         ),
       _ShortcutKind.unorderedList => _replaceTextBlock(
@@ -244,7 +244,22 @@ BlockAttributes _headingAttributes(BlockAttributes current, int level) {
     level: level,
     indent: current.indent,
     alignment: current.alignment,
+    quoted: current.quoted,
     childNote: current.childNote,
+    anchor: current.anchor,
+  );
+}
+
+BlockAttributes _quoteAttributes(BlockAttributes current) {
+  return BlockAttributes(
+    level: current.level,
+    indent: current.indent,
+    alignment: current.alignment,
+    listType: current.listType,
+    checked: current.checked,
+    quoted: true,
+    childNote: current.childNote,
+    anchor: current.anchor,
   );
 }
 
@@ -252,7 +267,9 @@ BlockAttributes _simpleTextAttributes(BlockAttributes current) {
   return BlockAttributes(
     indent: current.indent,
     alignment: current.alignment,
+    quoted: current.quoted,
     childNote: current.childNote,
+    anchor: current.anchor,
   );
 }
 
@@ -267,7 +284,9 @@ BlockAttributes _listAttributes(
     alignment: current.alignment,
     listType: listType,
     checked: hasTodoState || listType == 'task' ? checked : null,
+    quoted: current.quoted,
     childNote: current.childNote,
+    anchor: current.anchor,
   );
 }
 

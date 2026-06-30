@@ -355,13 +355,16 @@ class OutlineBlockProjection {
 /// * Empty documents, empty-title headings, consecutive same/higher-level
 ///   headings, and document-end headings with no covered child blocks are
 ///   non-collapsible and toggle as disabled/no-op rows.
-/// * Toggling collapse is editor view state. It must not mutate document
+/// * Toggling collapse is editor-body view state. It must not mutate document
 ///   content or enter undo/redo history, and read-only editors may still toggle
-///   this view state.
+///   this view state through heading affordances.
 ///
 /// Fold state is keyed by heading block id and remains independent from the
 /// document model/history. Visible-block projection is layered on top of this
-/// model by the widget layer.
+/// model by the widget layer. Outline-tree expansion is intentionally separate
+/// UI state and must not write into this controller's collapsed ids; this state
+/// is changed only by editor heading controls and reveal flows such as
+/// selection, navigation, and find/replace.
 class WenzOutlineController extends ChangeNotifier {
   WenzOutlineController({required WenzRichTextController editor})
       : _host = editor {
@@ -532,6 +535,14 @@ class WenzOutlineController extends ChangeNotifier {
     return _setCollapsed(blockId: blockId, collapsed: true);
   }
 
+  /// Collapses a heading in the editor body projection.
+  ///
+  /// This is the explicit semantic entry point used by body heading affordances.
+  /// Outline-panel/tree folding should keep its own display state instead.
+  bool collapseBodyHeadingByBlockId(String blockId) {
+    return collapseByBlockId(blockId);
+  }
+
   bool collapseByAnchor(String anchor) {
     final item = itemForAnchor(anchor);
     return item != null && collapse(item);
@@ -541,6 +552,14 @@ class WenzOutlineController extends ChangeNotifier {
 
   bool expandByBlockId(String blockId) {
     return _setCollapsed(blockId: blockId, collapsed: false);
+  }
+
+  /// Expands a heading in the editor body projection.
+  ///
+  /// Reveal flows such as selection and find may also expand body headings so
+  /// hidden content can become visible without involving outline-tree state.
+  bool expandBodyHeadingByBlockId(String blockId) {
+    return expandByBlockId(blockId);
   }
 
   bool expandByAnchor(String anchor) {
@@ -559,6 +578,15 @@ class WenzOutlineController extends ChangeNotifier {
       blockId: blockId,
       collapsed: !_collapsedBlockIds.contains(blockId),
     );
+  }
+
+  /// Toggles a heading in the editor body projection.
+  ///
+  /// This preserves the original outline/controller projection behaviour while
+  /// making it explicit that the caller is changing body visibility, not the
+  /// outline tree's local expansion state.
+  bool toggleBodyHeadingByBlockId(String blockId) {
+    return toggleByBlockId(blockId);
   }
 
   bool toggleByAnchor(String anchor) {

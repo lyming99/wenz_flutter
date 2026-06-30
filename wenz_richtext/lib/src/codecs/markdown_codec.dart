@@ -53,20 +53,23 @@ class MarkdownCodec {
         final text = block as TextBlockNode;
         final level = text.attributes.level ?? 1;
         final hashes = '#' * level.clamp(1, 6);
-        return '$hashes ${_encodeInline(text.content)}';
+        return _quoteMarkdownIfNeeded(
+          text,
+          '$hashes ${_encodeInline(text.content)}',
+        );
       case BlockType.paragraph:
         final text = block as TextBlockNode;
         if (text.content.isEmpty) {
-          return null;
+          return text.attributes.isQuoted ? '>' : null;
         }
-        return _encodeInline(text.content);
+        return _quoteMarkdownIfNeeded(text, _encodeInline(text.content));
       case BlockType.quote:
         final text = block as TextBlockNode;
         final body = _encodeInline(text.content);
-        // Prefix every line with `> ` so multi-line quotes stay valid.
-        return body.split('\n').map((line) => '> $line').join('\n');
+        return _quoteMarkdownIfNeeded(text, body);
       case BlockType.listItem:
-        return _encodeListItem(block as TextBlockNode);
+        final text = block as TextBlockNode;
+        return _quoteMarkdownIfNeeded(text, _encodeListItem(text));
       case BlockType.code:
         final code = block as CodeBlockNode;
         final fence = '```${code.language}';
@@ -110,6 +113,20 @@ class MarkdownCodec {
         }
         return lines.map((line) => '> $line').join('\n');
     }
+  }
+
+  String _quoteMarkdownIfNeeded(TextBlockNode block, String markdown) {
+    if (!_isQuotedTextBlock(block)) {
+      return markdown;
+    }
+    return markdown
+        .split('\n')
+        .map((line) => line.isEmpty ? '>' : '> $line')
+        .join('\n');
+  }
+
+  bool _isQuotedTextBlock(TextBlockNode block) {
+    return block.type == BlockType.quote || block.attributes.isQuoted;
   }
 
   String _encodeListItem(TextBlockNode block) {
@@ -421,11 +438,7 @@ class MarkdownCodec {
               .add(lines[i].trimLeft().replaceFirst(RegExp(r'^>\s?'), ''));
           i++;
         }
-        blocks.add(TextBlockNode(
-          id: newId('quote'),
-          type: BlockType.quote,
-          content: _parseInline(quoteLines.join(' ')),
-        ));
+        blocks.addAll(_decodeQuotedMarkdown(quoteLines, newId));
         continue;
       }
 
@@ -559,6 +572,74 @@ class MarkdownCodec {
       return true;
     }
     return false;
+  }
+
+  List<BlockNode> _decodeQuotedMarkdown(
+    List<String> quoteLines,
+    String Function(String) newId,
+  ) {
+    final quoteSource = quoteLines.join('\n');
+    if (quoteSource.trim().isEmpty) {
+      return <BlockNode>[
+        TextBlockNode(
+          id: newId('quote'),
+          type: BlockType.paragraph,
+          attributes: const BlockAttributes(quoted: true),
+        ),
+      ];
+    }
+    final decoded = decode(quoteSource).blocks;
+    if (decoded.isEmpty) {
+      return <BlockNode>[
+        TextBlockNode(
+          id: newId('quote'),
+          type: BlockType.paragraph,
+          attributes: const BlockAttributes(quoted: true),
+          content: _parseInline(quoteLines.join(' ')),
+        ),
+      ];
+    }
+    return decoded
+        .map((block) => _quotedMarkdownBlock(block, newId))
+        .whereType<BlockNode>()
+        .toList();
+  }
+
+  BlockNode? _quotedMarkdownBlock(
+    BlockNode block,
+    String Function(String) newId,
+  ) {
+    if (block is TextBlockNode) {
+      final type = block.type == BlockType.quote
+          ? BlockType.paragraph
+          : block.type;
+      return TextBlockNode(
+        id: newId(_markdownIdPrefixFor(type)),
+        type: type,
+        attributes: block.attributes.mergeWith(
+          const BlockAttributes(quoted: true),
+        ),
+        content: block.content.map((node) => node.copy()).toList(),
+      );
+    }
+    final text = block.plainText.trim();
+    if (text.isEmpty) {
+      return null;
+    }
+    return TextBlockNode(
+      id: newId('quote'),
+      type: BlockType.paragraph,
+      attributes: const BlockAttributes(quoted: true),
+      content: <InlineNode>[TextRun(text: text)],
+    );
+  }
+
+  String _markdownIdPrefixFor(BlockType type) {
+    return switch (type) {
+      BlockType.heading => 'h',
+      BlockType.listItem => 'li',
+      _ => 'quote',
+    };
   }
 
   /// Parses inline markup (`**bold**`, `*italic*`, `~~strike~~`, `<u>u</u>`,

@@ -90,6 +90,41 @@ void main() {
       );
     });
 
+    test('exports quoted heading and list markers with quote prefix', () {
+      const document = RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'qh',
+            type: BlockType.heading,
+            attributes: BlockAttributes(level: 2, quoted: true),
+            content: <InlineNode>[TextRun(text: 'Quoted title')],
+          ),
+          TextBlockNode(
+            id: 'qtodo',
+            type: BlockType.listItem,
+            attributes: BlockAttributes(
+              listType: 'task',
+              checked: false,
+              quoted: true,
+            ),
+            content: <InlineNode>[TextRun(text: 'Quoted todo')],
+          ),
+          TextBlockNode(
+            id: 'qordered',
+            type: BlockType.listItem,
+            attributes: BlockAttributes(listType: 'ordered', quoted: true),
+            content: <InlineNode>[TextRun(text: 'Quoted ordered')],
+          ),
+        ],
+      );
+      const codec = PlainTextCodec();
+
+      expect(
+        codec.encode(document),
+        '> Quoted title\n\n> - [ ] Quoted todo\n\n> 1. Quoted ordered',
+      );
+    });
+
     test('keeps internal newlines inside a code block', () {
       const document = RichTextDocument(
         blocks: <BlockNode>[

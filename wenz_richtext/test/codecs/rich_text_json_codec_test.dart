@@ -238,4 +238,72 @@ void main() {
     expect(orderedAttrs, <String, Object?>{'listType': 'ordered'});
     expect(codec.decode(codec.encode(document)).toJson(), document.toJson());
   });
+
+  test('quoted heading and todo semantics round trip through json', () {
+    const codec = RichTextJsonCodec();
+    const document = RichTextDocument(
+      blocks: <BlockNode>[
+        TextBlockNode(
+          id: 'quoted-heading',
+          type: BlockType.heading,
+          attributes: BlockAttributes(level: 2, quoted: true),
+          content: <InlineNode>[TextRun(text: 'Quoted heading')],
+        ),
+        TextBlockNode(
+          id: 'quoted-ordered-todo',
+          type: BlockType.listItem,
+          attributes: BlockAttributes(
+            listType: 'ordered',
+            checked: false,
+            quoted: true,
+          ),
+          content: <InlineNode>[TextRun(text: 'Quoted ordered todo')],
+        ),
+        TextBlockNode(
+          id: 'plain-paragraph',
+          type: BlockType.paragraph,
+          content: <InlineNode>[TextRun(text: 'Plain paragraph')],
+        ),
+      ],
+    );
+
+    final encoded = jsonDecode(codec.encode(document)) as Map<String, Object?>;
+    final blocks = encoded['blocks'] as List<Object?>;
+    final headingAttrs = (blocks[0] as Map<String, Object?>)['attrs'];
+    final orderedTodoAttrs = (blocks[1] as Map<String, Object?>)['attrs'];
+    final plainAttrs = (blocks[2] as Map<String, Object?>)['attrs'];
+
+    expect(headingAttrs, <String, Object?>{'level': 2, 'quoted': true});
+    expect(orderedTodoAttrs, <String, Object?>{
+      'listType': 'ordered',
+      'checked': false,
+      'quoted': true,
+    });
+    expect(plainAttrs, isNull);
+    expect(codec.decode(codec.encode(document)).toJson(), document.toJson());
+  });
+
+  test('legacy quote json imports as quoted paragraph', () {
+    const codec = RichTextJsonCodec();
+    const source = '''
+{
+  "version": 1,
+  "blocks": [
+    {
+      "id": "legacy-quote",
+      "type": "quote",
+      "content": [{"text": "Legacy quote"}]
+    }
+  ]
+}
+''';
+
+    final document = codec.decode(source);
+    final block = document.blocks.single as TextBlockNode;
+
+    expect(block.type, BlockType.paragraph);
+    expect(block.attributes.isQuoted, isTrue);
+    expect(block.plainText, 'Legacy quote');
+    expect(jsonEncode(document.toJson()), isNot(contains('"type":"quote"')));
+  });
 }

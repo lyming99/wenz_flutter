@@ -109,6 +109,7 @@ class ToolbarState {
     required this.canOutdent,
     required this.canToggleTodo,
     required this.canToggleQuote,
+    required this.isQuoteBlock,
     required this.canTableStruct,
     this.tableCellIsHeader,
     this.tableCellBackgroundColor,
@@ -148,7 +149,8 @@ class ToolbarState {
 
   /// Whether block type switch (SetBlockTypeCommand) can apply — requires the
   /// selection to cover at least one [TextBlockNode]. Only text-block types
-  /// (paragraph/heading/quote/listItem) are switchable.
+  /// (paragraph/heading/listItem) are switchable; quote is toggled separately as
+  /// a block decoration.
   final bool canSetBlockType;
 
   /// Whether the selection sits inside a [CodeBlockNode] and the toolbar can
@@ -159,6 +161,9 @@ class ToolbarState {
   final bool canOutdent;
   final bool canToggleTodo;
   final bool canToggleQuote;
+
+  /// Whether every selected text block currently carries quote decoration.
+  final bool isQuoteBlock;
 
   /// Whether table structure commands (add/remove row/column, merge, split)
   /// make sense — the caret must sit inside a table cell.
@@ -225,7 +230,6 @@ class ToolbarState {
       uniformBlockType == BlockType.heading && uniformHeadingLevel == level;
 
   bool get isParagraph => uniformBlockType == BlockType.paragraph;
-  bool get isQuoteBlock => uniformBlockType == BlockType.quote;
   bool get isTodo =>
       uniformBlockType == BlockType.listItem && uniformListType == 'task';
   bool get isOrderedList =>
@@ -244,6 +248,7 @@ class ToolbarState {
     canOutdent: false,
     canToggleTodo: false,
     canToggleQuote: false,
+    isQuoteBlock: false,
     canTableStruct: false,
     bold: false,
     italic: false,
@@ -272,6 +277,7 @@ class ToolbarState {
     bool? canOutdent,
     bool? canToggleTodo,
     bool? canToggleQuote,
+    bool? isQuoteBlock,
     bool? canTableStruct,
     Object? tableCellIsHeader = _sentinel,
     Object? tableCellBackgroundColor = _sentinel,
@@ -301,6 +307,7 @@ class ToolbarState {
       canOutdent: canOutdent ?? this.canOutdent,
       canToggleTodo: canToggleTodo ?? this.canToggleTodo,
       canToggleQuote: canToggleQuote ?? this.canToggleQuote,
+      isQuoteBlock: isQuoteBlock ?? this.isQuoteBlock,
       canTableStruct: canTableStruct ?? this.canTableStruct,
       tableCellIsHeader: identical(tableCellIsHeader, _sentinel)
           ? this.tableCellIsHeader
@@ -346,6 +353,7 @@ class ToolbarState {
         other.canOutdent == canOutdent &&
         other.canToggleTodo == canToggleTodo &&
         other.canToggleQuote == canToggleQuote &&
+        other.isQuoteBlock == isQuoteBlock &&
         other.canTableStruct == canTableStruct &&
         other.tableCellIsHeader == tableCellIsHeader &&
         other.tableCellBackgroundColor == tableCellBackgroundColor &&
@@ -379,6 +387,7 @@ class ToolbarState {
         canOutdent,
         canToggleTodo,
         canToggleQuote,
+        isQuoteBlock,
         canTableStruct,
         tableCellIsHeader,
         tableCellBackgroundColor,
@@ -440,6 +449,7 @@ class ToolbarController extends ChangeNotifier {
   bool get canToggleTodo => _state.canToggleTodo;
   bool get canToggleQuote => _state.canToggleQuote;
   bool get canTableStruct => _state.canTableStruct;
+  bool get canInsertImage => _host.canEdit;
   bool get canInsertVideo => _host.canEdit;
   bool? get tableCellIsHeader => _state.tableCellIsHeader;
   int? get tableCellBackgroundColor => _state.tableCellBackgroundColor;
@@ -522,10 +532,8 @@ class ToolbarController extends ChangeNotifier {
   void setHeading(int level) => _setBlockType(BlockType.heading, level: level);
   void setParagraph() => _setBlockType(BlockType.paragraph);
   void toggleQuoteBlock() {
-    if (_state.isQuoteBlock) {
-      _setBlockType(BlockType.paragraph);
-    } else {
-      _setBlockType(BlockType.quote);
+    if (_state.canToggleQuote) {
+      _host.toggleQuote();
     }
   }
 
@@ -574,6 +582,37 @@ class ToolbarController extends ChangeNotifier {
     if (_state.canToggleTodo) {
       _host.toggleTodo();
     }
+  }
+
+  void insertImage({
+    int? index,
+    required String blockId,
+    String assetId = '',
+    String file = '',
+    int width = 0,
+    int height = 0,
+    double? showWidth,
+    double? showHeight,
+    String caption = '',
+    String altText = '',
+    DocumentSelection? selection,
+  }) {
+    if (!canInsertImage) {
+      return;
+    }
+    _host.insertImage(
+      index: index ?? _currentBlockInsertionIndex(),
+      blockId: blockId,
+      assetId: assetId,
+      file: file,
+      width: width,
+      height: height,
+      showWidth: showWidth,
+      showHeight: showHeight,
+      caption: caption,
+      altText: altText,
+      selection: selection,
+    );
   }
 
   void insertVideo({
@@ -729,6 +768,7 @@ class ToolbarController extends ChangeNotifier {
       // ToggleTodoCommand / ToggleQuoteCommand operate on text blocks.
       canToggleTodo: canEdit && blockSummary.hasTextBlock,
       canToggleQuote: canEdit && blockSummary.hasTextBlock,
+      isQuoteBlock: blockSummary.allTextBlocksQuoted,
       canTableStruct: canEdit && inTable,
       tableCellIsHeader: cellStyle?.isHeader,
       tableCellBackgroundColor: cellStyle?.backgroundColor,
@@ -1018,6 +1058,7 @@ class ToolbarController extends ChangeNotifier {
     int? uniformHeadingLevel;
     var headingLevelMixed = false;
     var hasTextBlock = false;
+    var allTextBlocksQuoted = true;
     var anyIndent = false;
     var seenAny = false;
 
@@ -1029,6 +1070,7 @@ class ToolbarController extends ChangeNotifier {
       if (block is! TextBlockNode) {
         // Mixed with a non-text block: no uniform type. Keep scanning so
         // hasTextBlock stays accurate for the remaining blocks.
+        allTextBlocksQuoted = false;
         if (seenAny) {
           blockTypeMixed = true;
         }
@@ -1036,6 +1078,9 @@ class ToolbarController extends ChangeNotifier {
         continue;
       }
       hasTextBlock = true;
+      if (block.type != BlockType.quote && !block.attributes.isQuoted) {
+        allTextBlocksQuoted = false;
+      }
       if (block.attributes.indent != null && block.attributes.indent! > 0) {
         anyIndent = true;
       }
@@ -1068,6 +1113,7 @@ class ToolbarController extends ChangeNotifier {
       uniformListType: listTypeMixed ? null : uniformListType,
       uniformHeadingLevel: headingLevelMixed ? null : uniformHeadingLevel,
       hasTextBlock: hasTextBlock,
+      allTextBlocksQuoted: hasTextBlock && allTextBlocksQuoted,
       anyIndent: anyIndent,
     );
   }
@@ -1196,6 +1242,7 @@ class _BlockTypeSummary {
     this.uniformListType,
     this.uniformHeadingLevel,
     required this.hasTextBlock,
+    required this.allTextBlocksQuoted,
     required this.anyIndent,
   });
 
@@ -1203,5 +1250,6 @@ class _BlockTypeSummary {
   final String? uniformListType;
   final int? uniformHeadingLevel;
   final bool hasTextBlock;
+  final bool allTextBlocksQuoted;
   final bool anyIndent;
 }

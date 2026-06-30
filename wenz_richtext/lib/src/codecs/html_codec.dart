@@ -58,18 +58,22 @@ class HtmlCodec {
       case BlockType.heading:
         final text = block as TextBlockNode;
         final level = (text.attributes.level ?? 1).clamp(1, 6);
-        return '<h$level>${_encodeInline(text.content)}</h$level>';
+        return _quoteHtmlIfNeeded(
+          text,
+          '<h$level>${_encodeInline(text.content)}</h$level>',
+        );
       case BlockType.paragraph:
         final text = block as TextBlockNode;
-        if (text.content.isEmpty) {
-          return '<p></p>';
-        }
-        return '<p>${_encodeInline(text.content)}</p>';
+        final html = text.content.isEmpty
+            ? '<p></p>'
+            : '<p>${_encodeInline(text.content)}</p>';
+        return _quoteHtmlIfNeeded(text, html);
       case BlockType.quote:
         final text = block as TextBlockNode;
-        return '<blockquote>${_encodeInline(text.content)}</blockquote>';
+        return _quoteHtmlIfNeeded(text, '<p>${_encodeInline(text.content)}</p>');
       case BlockType.listItem:
-        return _encodeListItem(block as TextBlockNode);
+        final text = block as TextBlockNode;
+        return _quoteHtmlIfNeeded(text, _encodeListItem(text));
       case BlockType.code:
         final code = block as CodeBlockNode;
         final langClass = code.language.isNotEmpty
@@ -97,6 +101,13 @@ class HtmlCodec {
         final callout = block as CalloutBlockNode;
         return _encodeCalloutBlock(callout);
     }
+  }
+
+  String _quoteHtmlIfNeeded(TextBlockNode block, String html) {
+    if (block.type != BlockType.quote && !block.attributes.isQuoted) {
+      return html;
+    }
+    return '<blockquote>$html</blockquote>';
   }
 
   String _encodeListItem(TextBlockNode block) {
@@ -519,12 +530,7 @@ class HtmlCodec {
           ));
           return;
         case 'blockquote':
-          // Flatten blockquote children into a single quote block.
-          blocks.add(TextBlockNode(
-            id: newId('quote'),
-            type: BlockType.quote,
-            content: _parseInline(node),
-          ));
+          _decodeBlockquote(node, blocks, newId);
           return;
         case 'ul':
         case 'ol':
@@ -633,6 +639,67 @@ class HtmlCodec {
       caption: resolvedCaption,
       altText: alt,
     ));
+  }
+
+  void _decodeBlockquote(
+    dom.Element node,
+    List<BlockNode> blocks,
+    String Function(String) newId,
+  ) {
+    final decoded = <BlockNode>[];
+    for (final child in node.nodes) {
+      _decodeNode(child, decoded, newId);
+    }
+    if (decoded.isEmpty && node.text.trim().isNotEmpty) {
+      decoded.add(TextBlockNode(
+        id: newId('quote'),
+        type: BlockType.paragraph,
+        content: _parseInline(node),
+      ));
+    }
+    if (decoded.isEmpty) {
+      blocks.add(TextBlockNode(
+        id: newId('quote'),
+        type: BlockType.paragraph,
+        attributes: const BlockAttributes(quoted: true),
+      ));
+      return;
+    }
+    for (final block in decoded) {
+      final quoted = _quotedHtmlBlock(block, newId);
+      if (quoted != null) {
+        blocks.add(quoted);
+      }
+    }
+  }
+
+  BlockNode? _quotedHtmlBlock(
+    BlockNode block,
+    String Function(String) newId,
+  ) {
+    if (block is TextBlockNode) {
+      final type = block.type == BlockType.quote
+          ? BlockType.paragraph
+          : block.type;
+      return TextBlockNode(
+        id: block.id,
+        type: type,
+        attributes: block.attributes.mergeWith(
+          const BlockAttributes(quoted: true),
+        ),
+        content: block.content.map((node) => node.copy()).toList(),
+      );
+    }
+    final text = block.plainText.trim();
+    if (text.isEmpty) {
+      return null;
+    }
+    return TextBlockNode(
+      id: newId('quote'),
+      type: BlockType.paragraph,
+      attributes: const BlockAttributes(quoted: true),
+      content: <InlineNode>[TextRun(text: text)],
+    );
   }
 
   void _decodeVideoElement(

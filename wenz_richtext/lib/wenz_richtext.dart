@@ -161,6 +161,6 @@ export 'src/widgets/inline_embed_renderer.dart';
 export 'src/widgets/link_edit_dialog.dart';
 export 'src/widgets/link_hover_overlay.dart';
 export 'src/widgets/media_resolver.dart';
-export 'src/widgets/outline_tree.dart';
+export 'src/widgets/outline_tree.dart' show WenzOutlineTree, WenzOutlinePanel;
 export 'src/widgets/slash_menu_overlay.dart';
 export 'src/widgets/wenz_rich_text_editor.dart';

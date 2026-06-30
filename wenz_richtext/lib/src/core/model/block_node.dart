@@ -150,10 +150,15 @@ class TextBlockNode extends BlockNode {
 
   factory TextBlockNode.fromJson(Map<String, Object?> json) {
     final rawContent = json['content'];
+    final type = BlockType.parse(json['type']);
+    final attrs = BlockNode.attrsFromJson(json);
+    final legacyQuote = type == BlockType.quote;
     return TextBlockNode(
       id: json['id'] as String? ?? '',
-      type: BlockType.parse(json['type']),
-      attributes: BlockNode.attrsFromJson(json),
+      type: legacyQuote ? BlockType.paragraph : type,
+      attributes: legacyQuote
+          ? attrs.mergeWith(const BlockAttributes(quoted: true))
+          : attrs,
       content: rawContent is List
           ? rawContent
               .whereType<Map>()

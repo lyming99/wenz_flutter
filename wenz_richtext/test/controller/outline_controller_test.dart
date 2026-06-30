@@ -221,6 +221,30 @@ void main() {
       host.dispose();
     });
 
+    test('body heading collapse aliases drive only visible projection', () {
+      final host = WenzRichTextController(document: _foldingDoc());
+      final outline = WenzOutlineController(editor: host);
+      final beforeJson = host.toJson();
+
+      expect(outline.toggleBodyHeadingByBlockId('h2'), isTrue);
+      expect(outline.isCollapsed('h2'), isTrue);
+      expect(
+        outline.visibleBlockProjection().hiddenBlockIds,
+        <String>{'p2', 'h3', 'p3'},
+      );
+
+      expect(outline.expandBodyHeadingByBlockId('h2'), isTrue);
+      expect(outline.hiddenBlockIds, isEmpty);
+
+      expect(outline.collapseBodyHeadingByBlockId('h1'), isTrue);
+      expect(outline.isCollapsed('h1'), isTrue);
+      expect(host.toJson(), beforeJson);
+      expect(host.canUndo, isFalse);
+
+      outline.dispose();
+      host.dispose();
+    });
+
     test('projects visible blocks without changing document indexes', () {
       final host = WenzRichTextController(document: _foldingDoc());
       final outline = WenzOutlineController(editor: host);

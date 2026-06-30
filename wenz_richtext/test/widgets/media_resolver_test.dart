@@ -38,6 +38,92 @@ void main() {
       expect(resolver.seenImageAssetIds, ['resolved-id']);
     });
 
+    testWidgets('resolver can render a local image file source',
+        (tester) async {
+      final controller = WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            ImageBlockNode(
+              id: 'img1',
+              assetId: '',
+              file: '/tmp/local-image.png',
+              caption: 'Local image',
+            ),
+          ],
+        ),
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: WenzRichTextEditor(
+              controller: controller,
+              mediaResolver: _SourceAwareImageResolver(),
+              enableIme: false,
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('local:/tmp/local-image.png'), findsOneWidget);
+      expect(find.text('Local image'), findsOneWidget);
+      expect(find.byIcon(Icons.image_outlined), findsNothing);
+    });
+
+    testWidgets('empty image source falls back to the built-in placeholder',
+        (tester) async {
+      final controller = WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            ImageBlockNode(id: 'img1', assetId: '', file: ''),
+          ],
+        ),
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: WenzRichTextEditor(
+              controller: controller,
+              mediaResolver: _SourceAwareImageResolver(),
+              enableIme: false,
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('local:'), findsNothing);
+      expect(find.text('network:'), findsNothing);
+      expect(find.byIcon(Icons.image_outlined), findsOneWidget);
+    });
+
+    testWidgets('network image source remains resolver driven',
+        (tester) async {
+      final controller = WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            ImageBlockNode(
+              id: 'img1',
+              assetId: 'https://cdn.example.com/hero.png',
+            ),
+          ],
+        ),
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: WenzRichTextEditor(
+              controller: controller,
+              mediaResolver: _SourceAwareImageResolver(),
+              enableIme: false,
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('network:https://cdn.example.com/hero.png'),
+          findsOneWidget);
+      expect(find.byIcon(Icons.image_outlined), findsNothing);
+    });
+
     testWidgets('resolver returning null falls back to placeholder',
         (tester) async {
       final controller = WenzRichTextController(
@@ -629,6 +715,23 @@ class _RecordingResolver implements MediaResolver {
       return Text('resolved:${block.assetId}');
     }
     return null;
+  }
+}
+
+class _SourceAwareImageResolver implements MediaResolver {
+  @override
+  Widget? resolve(BuildContext context, BlockNode block) {
+    if (block is! ImageBlockNode) {
+      return null;
+    }
+    final source = block.file.isNotEmpty ? block.file : block.assetId;
+    if (source.isEmpty) {
+      return null;
+    }
+    if (source.startsWith('http')) {
+      return Text('network:$source');
+    }
+    return Text('local:$source');
   }
 }
 

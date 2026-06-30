@@ -6,6 +6,10 @@ tier list); this page groups them by module for quick lookup and shows the
 typical call shape. For the layered design behind these types, see
 `architecture.md`.
 
+For business integrators, start with the root [README interface documentation](../README.md#接口文档)
+as the quick API reference. This page remains the detailed public API index and
+method-level contract.
+
 ## Standard external interface (tier 1, recommended entry)
 
 The facade + configuration pair is the recommended way to integrate the editor
@@ -97,7 +101,7 @@ The tiering is kept in sync with the library doc comment at the top of
 the registries/plugins the facade wires internally remain tier 2, and anything
 under `src/*` that is not re-exported stays internal. No existing public type
 is renamed or removed, no runtime dependency is added, and no serialization
-format changes. See `integration_guide.md` for the full contract (minimal
+format changes. See [`integration_guide.md`](./integration_guide.md) for the full contract (minimal
 access, three modes, dispose order, the `src/*` internal boundary).
 
 ## Model layer (tier 1)
@@ -105,10 +109,10 @@ access, three modes, dispose order, the `src/*` internal boundary).
 | Type | Purpose |
 | --- | --- |
 | `RichTextDocument` | Top-level document: `version` + ordered `BlockNode` list + optional `CommentThread` / `RevisionChange` lists. JSON-round-trippable via the codecs. |
-| `BlockNode` (abstract) + concrete subclasses | `TextBlockNode` (paragraph/heading/quote/listItem), `CodeBlockNode`, `ImageBlockNode`, `VideoBlockNode`, `BlockEmbedNode`, `FileBlockNode`, `DividerBlockNode`, `CalloutBlockNode`, `TableBlockNode`. Immutable; `copy()` / `toJson()` / `fromJson()`. `BlockEmbedNode` stores `embedType/data/fallbackText` for business-owned block embeds; `FileBlockNode` stores `assetId/name/size/file` plus `mimeType/downloadUrl/uploadStatus/uploadError`. |
+| `BlockNode` (abstract) + concrete subclasses | `TextBlockNode` (paragraph/heading/listItem plus legacy quote compatibility), `CodeBlockNode`, `ImageBlockNode`, `VideoBlockNode`, `BlockEmbedNode`, `FileBlockNode`, `DividerBlockNode`, `CalloutBlockNode`, `TableBlockNode`. Immutable; `copy()` / `toJson()` / `fromJson()`. `BlockEmbedNode` stores `embedType/data/fallbackText` for business-owned block embeds; `FileBlockNode` stores `assetId/name/size/file` plus `mimeType/downloadUrl/uploadStatus/uploadError`. |
 | `InlineNode` | `TextRun(text, attributes)` and `InlineEmbed(embedType, data, attributes)` (link/formula/mention/emoji/image). |
 | `FileUploadStatus` | Attachment workflow state: `none`, `pending`, `uploading`, `uploaded`, `failed`; JSON stores the string name when not `none`. |
-| `TextAttributes` / `BlockAttributes` | Inline run attributes (bold/italic/color/url/commentIds/revisionIds/…) and block attributes (level/indent/alignment/listType/checked/childNote/anchor). `listType` describes list marker/numbering (`null` unordered, `'ordered'` numbered, `'task'` legacy unordered todo); `checked` is the independent todo state, so `'ordered'` + non-null `checked` represents an ordered todo item. |
+| `TextAttributes` / `BlockAttributes` | Inline run attributes (bold/italic/color/url/commentIds/revisionIds/…) and block attributes (level/indent/alignment/listType/checked/quoted/childNote/anchor). `listType` describes list marker/numbering (`null` unordered, `'ordered'` numbered, `'task'` legacy unordered todo); `checked` is the independent todo state, so `'ordered'` + non-null `checked` represents an ordered todo item. `quoted == true` is an orthogonal quote decoration that can combine with heading/list/todo semantics. |
 | `CommentAnchor` / `CommentThread` / `CommentEntry` | Comment-thread model: stores selection-compatible anchors, author/time/message payloads, and `open` / `resolved` status. |
 | `RevisionRange` / `RevisionChange` | Revision model: stores selection-compatible ranges, insert/delete/format type, pending/accepted/rejected status, author/time payloads, and optional before/after format attributes. |
 | `DocumentVersionSnapshot` | Application-owned version snapshot: deep-copied `RichTextDocument` plus id/time/author/description, optional `baseSnapshotId` for future diff flows, and JSON-compatible metadata. |
@@ -137,6 +141,12 @@ not forcibly migrated. Ordered numbering is scoped by indent level: consecutive
 same-level ordered items increment, a same-level non-ordered item interrupts the
 run so later ordered items restart, and nested levels count independently.
 
+Quote is stored as `BlockAttributes.quoted` rather than as a mutually exclusive
+semantic type. New documents should set `quoted: true` on the existing
+paragraph/heading/list item; JSON import still accepts legacy `type: "quote"` and
+normalizes it to a quoted paragraph. Markdown and HTML import/export preserve
+composite quoted headings, lists, and todo items through `>` / `<blockquote>`.
+
 ## Commands (tier 1 / tier 2 / tier 3)
 
 All mutations are `EditorCommand` objects routed through `CommandExecutor`.
@@ -164,6 +174,9 @@ All mutations are `EditorCommand` objects routed through `CommandExecutor`.
   `checked` controls todo state. The legacy unordered todo form is
   `listType == 'task'` + `checked`; the ordered todo form is
   `listType == 'ordered'` + `checked`.
+  Quote commands set or clear `BlockAttributes.quoted` and preserve the current
+  text block semantics, so quoting a heading, ordered list, or todo item does not
+  rewrite it into a plain paragraph.
   Code blocks use `CodeBlockNode.language` plus command-backed line
   indent/outdent so toolbar and Tab edits enter undo/redo.
   Callouts use command-backed variant/title/icon updates so toolbar or business
@@ -214,8 +227,8 @@ Typed command surface (sample): `insertText`, `deleteBackward`, `deleteForward`,
 `formatText`, `clearStyle`, `setLink`, `autoLinkUrls`, `toggleRemark`, `setBlockType`,
 `setAlignment`, `indent`, `outdent`, `toggleTodo`, `toggleQuote`,
 `setCodeLanguage`, `indentCodeBlock`, `insertBlocks`, `replaceBlocks`,
-`setCalloutVariant`, `updateCalloutBlock`, `updateImageBlock`, `insertFile`,
-`updateFileBlock`, `insertBlockEmbed`,
+`setCalloutVariant`, `updateCalloutBlock`, `insertImage`, `updateImageBlock`,
+`insertFile`, `updateFileBlock`, `insertBlockEmbed`,
 `setBlockAnchor`, `setRevisionMode`, `insertRevisionText`,
 `markDeletionRevision`, `markFormatRevision`, `acceptRevision`,
 `rejectRevision`,
@@ -252,8 +265,19 @@ controller.tryLoadHtml(source);              // no-throw HTML import
 controller.createVersionSnapshot(id: 'v1');  // app-owned version snapshot
 controller.restoreVersionSnapshot(snapshot); // replace document from snapshot
 
+controller.insertImage(
+  index: 1,
+  blockId: 'image-1',
+  file: '/Users/ada/Pictures/diagram.png',
+  width: 1280,
+  height: 720,
+  showWidth: 480,
+  caption: 'Architecture diagram',
+  altText: 'Architecture diagram',
+);
+
 controller.updateImageBlock(
-  blockIndex: 0,
+  blockIndex: 1,
   showWidth: 320,
   clearShowHeight: true,
   caption: 'Figure 1',
@@ -314,8 +338,12 @@ edit flags and undo/redo follow the controller permission; plugin commands that
 should run in comment mode override `requiredPermission` to `comment`.
 
 `ToolbarController` (tier 2) derives `ToolbarState` (active marks, block type,
-command enable flags) off the host controller; see `README.md` for the
-toolbar sample.
+command enable flags) off the host controller; see the root
+[README interface documentation](../README.md#接口文档) for facade-first usage and
+the docs [toolbar sample](./README.md#工具栏与业务集成-api) for a direct controller
+example. Media helpers include `canInsertImage` / `insertImage` and
+`canInsertVideo` / `insertVideo`; they use the current block insertion rule and
+still delegate permission checks to the host controller.
 
 `WenzFindReplaceController` (tier 2) derives search state from a host
 `WenzRichTextController` without storing anything in the document model.
@@ -671,7 +699,10 @@ normalisation, and `onCommandExecuted` stay consistent.
   to placeholder). The default image renderer wraps the resolved widget with
   `showWidth`/`showHeight` sizing and caption text; the default file renderer
   shows display name, size, MIME type, upload status, and failure text. See
-  `rendering.md` §Media resolver.
+  `rendering.md` §Media resolver. System file selection is host/example UI
+  responsibility; core APIs persist the selected image source on
+  `ImageBlockNode.file` and leave real preview widgets to `MediaResolver` or a
+  custom block renderer.
 - `InlineEmbedRendererRegistry` / `InlineEmbedRenderer` /
   `InlineEmbedRendererCallback` — quick path for formula / mention / emoji /
   custom inline embed text-span rendering. The built-in text, callout, and
@@ -722,5 +753,3 @@ changes for theme adaptation.
 
 See `running_guide.md` for Web/Windows run instructions, the verified
 interaction set, and the current platform boundaries.
-
-

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wenz_richtext/wenz_richtext.dart';
 
@@ -169,6 +170,194 @@ void main() {
 
     expect(toggled, isNotNull);
     expect(toggled!.blockId, 'h1');
+  });
+
+  testWidgets('tree collapse hides only descendant outline rows',
+      (tester) async {
+    final items = <OutlineItem>[
+      _item(
+        blockId: 'h1',
+        blockIndex: 0,
+        level: 1,
+        title: 'Alpha',
+        collapseRange: const OutlineCollapseRange(
+          startBlockIndex: 1,
+          endBlockIndexExclusive: 4,
+        ),
+      ),
+      _item(blockId: 'h2', blockIndex: 1, level: 2, title: 'Beta'),
+      _item(blockId: 'h3', blockIndex: 2, level: 3, title: 'Gamma'),
+      _item(blockId: 'h1b', blockIndex: 4, level: 1, title: 'Next'),
+    ];
+    OutlineItem? selected;
+
+    await tester.pumpWidget(_wrap(WenzOutlineTree(
+      items: items,
+      onSelect: (item) => selected = item,
+    )));
+
+    await tester.tap(find.byIcon(Icons.expand_more));
+    await tester.pump();
+
+    expect(find.text('Alpha'), findsOneWidget);
+    expect(find.text('Beta'), findsNothing);
+    expect(find.text('Gamma'), findsNothing);
+    expect(find.text('Next'), findsOneWidget);
+
+    await tester.tap(find.text('Alpha'));
+    await tester.pump();
+    expect(selected?.blockId, 'h1');
+
+    await tester.tap(find.byIcon(Icons.chevron_right));
+    await tester.pump();
+
+    expect(find.text('Beta'), findsOneWidget);
+    expect(find.text('Gamma'), findsOneWidget);
+  });
+
+  // --- P003: heading level badge ---
+
+  testWidgets('renders H1–H6 level badges on each heading row',
+      (tester) async {
+    final items = <OutlineItem>[
+      _item(blockId: 'h1', level: 1, title: 'One'),
+      _item(blockId: 'h2', level: 2, title: 'Two'),
+      _item(blockId: 'h6', level: 6, title: 'Six'),
+    ];
+
+    await tester.pumpWidget(_wrap(WenzOutlineTree(items: items)));
+
+    expect(find.text('H1'), findsOneWidget);
+    expect(find.text('H2'), findsOneWidget);
+    expect(find.text('H6'), findsOneWidget);
+    expect(find.text('H3'), findsNothing);
+  });
+
+  // --- P004: expand / collapse all ---
+
+  testWidgets('shows expand/collapse all buttons when there are collapsible items',
+      (tester) async {
+    final collapsible = _item(
+      blockId: 'h1',
+      level: 1,
+      title: 'Alpha',
+      collapseRange: const OutlineCollapseRange(
+        startBlockIndex: 1,
+        endBlockIndexExclusive: 2,
+      ),
+    );
+    final items = <OutlineItem>[collapsible];
+
+    await tester.pumpWidget(_wrap(WenzOutlineTree(
+      items: items,
+      onExpandAll: () {},
+      onCollapseAll: () {},
+    )));
+
+    expect(find.byIcon(Icons.unfold_more), findsOneWidget);
+    expect(find.byIcon(Icons.unfold_less), findsOneWidget);
+  });
+
+  testWidgets('hides expand/collapse all buttons when no collapsible items',
+      (tester) async {
+    final items = <OutlineItem>[
+      _item(blockId: 'h1', level: 1, title: 'Alpha'),
+    ];
+
+    await tester.pumpWidget(_wrap(WenzOutlineTree(
+      items: items,
+      onExpandAll: () {},
+      onCollapseAll: () {},
+    )));
+
+    expect(find.byIcon(Icons.unfold_more), findsNothing);
+    expect(find.byIcon(Icons.unfold_less), findsNothing);
+  });
+
+  testWidgets('fires onCollapseAll and onExpandAll when buttons are tapped',
+      (tester) async {
+    final collapsible = _item(
+      blockId: 'h1',
+      level: 1,
+      title: 'Alpha',
+      collapseRange: const OutlineCollapseRange(
+        startBlockIndex: 1,
+        endBlockIndexExclusive: 2,
+      ),
+    );
+    var expandFired = false;
+    var collapseFired = false;
+
+    await tester.pumpWidget(_wrap(WenzOutlineTree(
+      items: <OutlineItem>[collapsible],
+      onExpandAll: () => expandFired = true,
+      onCollapseAll: () => collapseFired = true,
+    )));
+
+    await tester.tap(find.byIcon(Icons.unfold_less));
+    await tester.pump();
+    expect(collapseFired, isTrue);
+
+    await tester.tap(find.byIcon(Icons.unfold_more));
+    await tester.pump();
+    expect(expandFired, isTrue);
+  });
+
+  // --- P005: keyboard navigation ---
+
+  testWidgets('moves focused index on ArrowUp/ArrowDown when keyboard navigation enabled',
+      (tester) async {
+    final items = <OutlineItem>[
+      _item(blockId: 'h1', level: 1, title: 'First'),
+      _item(blockId: 'h2', level: 2, title: 'Second'),
+      _item(blockId: 'h3', level: 3, title: 'Third'),
+    ];
+
+    OutlineItem? selected;
+    await tester.pumpWidget(_wrap(WenzOutlineTree(
+      items: items,
+      enableKeyboardNavigation: true,
+      onSelect: (item) => selected = item,
+    )));
+
+    // Initial focus on index 0; send ArrowDown twice to reach index 2,
+    // then Enter to select "Third".
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pump();
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pump();
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pump();
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pump();
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.enter);
+    await tester.pump();
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.enter);
+    await tester.pump();
+
+    expect(selected, isNotNull);
+    expect(selected!.title, 'Third');
+  });
+
+  testWidgets('keyboard navigation respects item boundaries (clamp)',
+      (tester) async {
+    final items = <OutlineItem>[
+      _item(blockId: 'h1', level: 1, title: 'Alpha'),
+    ];
+
+    await tester.pumpWidget(_wrap(WenzOutlineTree(
+      items: items,
+      enableKeyboardNavigation: true,
+    )));
+
+    // Clamp to first item.
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.arrowUp);
+    await tester.pump();
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.arrowUp);
+    await tester.pump();
+
+    // Should not crash — single item, ArrowUp clamped.
+    expect(find.text('Alpha'), findsOneWidget);
   });
 }
 

@@ -1034,6 +1034,38 @@ class WenzRichTextController extends ChangeNotifier {
     );
   }
 
+  ChangeSet insertImage({
+    int? index,
+    required String blockId,
+    String assetId = '',
+    String file = '',
+    int width = 0,
+    int height = 0,
+    double? showWidth,
+    double? showHeight,
+    String caption = '',
+    String altText = '',
+    DocumentSelection? selection,
+  }) {
+    return insertBlocks(
+      index: index ?? document.blocks.length,
+      blocks: <BlockNode>[
+        ImageBlockNode(
+          id: blockId,
+          assetId: assetId,
+          file: file,
+          width: width,
+          height: height,
+          showWidth: showWidth,
+          showHeight: showHeight,
+          caption: caption,
+          altText: altText,
+        ),
+      ],
+      selection: selection,
+    );
+  }
+
   ChangeSet insertVideo({
     int? index,
     required String blockId,

@@ -255,9 +255,12 @@ class SetBlockTypeCommand extends EditorCommand {
         continue;
       }
       final block = blocks[i] as TextBlockNode;
+      final nextType = type == BlockType.quote
+          ? (block.type == BlockType.quote ? BlockType.paragraph : block.type)
+          : type;
       blocks[i] = TextBlockNode(
         id: block.id,
-        type: type,
+        type: nextType,
         attributes: _attributesForType(block.attributes),
         content: block.content.map((node) => node.copy()).toList(),
       );
@@ -275,12 +278,25 @@ class SetBlockTypeCommand extends EditorCommand {
   }
 
   BlockAttributes _attributesForType(BlockAttributes current) {
+    if (type == BlockType.quote) {
+      return BlockAttributes(
+        level: current.level,
+        indent: current.indent,
+        alignment: current.alignment,
+        listType: current.listType,
+        checked: current.checked,
+        quoted: true,
+        childNote: current.childNote,
+        anchor: current.anchor,
+      );
+    }
     return BlockAttributes(
       level: type == BlockType.heading ? level ?? current.level ?? 1 : null,
       indent: current.indent,
       alignment: current.alignment,
       listType: type == BlockType.listItem ? listType : null,
       checked: type == BlockType.listItem ? _checkedForListType(current) : null,
+      quoted: current.quoted,
       childNote: current.childNote,
       anchor: current.anchor,
     );
@@ -355,6 +371,7 @@ BlockAttributes _setAlignment(BlockAttributes current, String? alignment) {
     alignment: alignment,
     listType: current.listType,
     checked: current.checked,
+    quoted: current.quoted,
     childNote: current.childNote,
     anchor: current.anchor,
   );

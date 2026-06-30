@@ -40,7 +40,8 @@ Two equivalent entry points:
 final registry = BlockRendererRegistry();
 WenzRichTextEditor.installDefaultRenderers(registry);
 registry.register(BlockType.image, (context, rc) {
-  return MyImageDecoder(assetId: (rc.block as ImageBlockNode).assetId);
+  final image = rc.block as ImageBlockNode;
+  return MyImageDecoder(assetId: image.assetId, file: image.file);
 });
 
 WenzRichTextEditor(
@@ -92,28 +93,36 @@ Markdown/plain text intentionally degrade to readable fallback text.
 
 | BlockType | Renderer | Notes |
 | --- | --- | --- |
-| paragraph / heading / quote / listItem | `_TextBlockRenderer` | Inline-aware; formula/mention fallback + optional `InlineEmbedRenderer`; selection/caret/composition via `_TextSelectionSurface`. |
+| paragraph / heading / quote / listItem | `_TextBlockRenderer` | Inline-aware; formula/mention fallback + optional `InlineEmbedRenderer`; selection/caret/composition via `_TextSelectionSurface`. Quote is now an attribute-level decoration (`BlockAttributes.quoted`) that can wrap paragraph, heading, list, or todo semantics; legacy `BlockType.quote` is still accepted as compatible input. |
 | code | `_CodeBlockRenderer` | Monospace body with syntax highlighting (`CodeSyntaxHighlighter`, see [Code block syntax highlighting](#code-block-syntax-highlighting)) and composition underline span; code blocks reserve a display-only left gutter for 1-based line numbers; toolbar includes language dropdown and copy-code button. Language changes call `SetCodeLanguageCommand`; Tab/Shift+Tab in the editor call `IndentCodeBlockCommand`. |
-| image / video / file | asks `MediaResolver`, then built-in fallback | Built-in media renderers consult the injected [MediaResolver] first; when it returns `null` (or no resolver is set) images/videos fall back to built-in placeholders, while files fall back to a metadata card. Image blocks wrap the result with `showWidth`/`showHeight` sizing and optional caption text; video blocks place both the fallback chrome and resolver child inside a finite rounded frame that is clipped to the editor content width and safe aspect-ratio height; file cards show display name, size, MIME type, upload status, and failure text. See [Media resolver](#media-resolver). |
+| image / video / file | asks `MediaResolver`, then built-in fallback | Built-in media renderers consult the injected [MediaResolver] first; when it returns `null` (or no resolver is set) images/videos fall back to built-in placeholders, while files fall back to a metadata card. Image blocks can carry remote identifiers in `assetId` and local paths/URIs in `file`; the renderer wraps the resolved widget with `showWidth`/`showHeight` sizing and optional caption text. Video blocks place both the fallback chrome and resolver child inside a finite rounded frame that is clipped to the editor content width and safe aspect-ratio height; file cards show display name, size, MIME type, upload status, and failure text. See [Media resolver](#media-resolver). |
 | embed | `_BlockEmbedContent` or business renderer | Generic block embed placeholder displays `embedType` + `fallbackText`/data label. Register per business type with `BlockRendererRegistry.registerEmbed`; wrap large custom widgets in `WenzObjectBlockSurface` for object-block selection semantics. |
 | table | `_TableBlockRenderer` | Custom Stack grid layout; visible cells are positioned by `rowSpan`/`columnSpan`, covered cells are not rendered or hit-tested; table-cell text uses the same inline embed fallback/renderer path. When a table cell/range is selected, the default renderer shows a floating toolbar for row/column insert/delete, header/background/alignment, merge/split, width reset, plus drag handles that persist explicit column widths via `SetTableColumnWidthCommand`. |
 | divider | Flutter `Divider`. | |
 | callout | `_CalloutRenderer` | Variant-tinted surface with icon, title, body, and an editable type dropdown for `info`/`success`/`warning`/`danger`; uses the same inline embed fallback/renderer path. |
 
-## Consecutive quote block background
+## Consecutive quoted text block background
 
-A run of index-adjacent `BlockType.quote` text blocks renders as a **single
-continuous quote surface**, not as a row of separate boxed blocks. This section
-pins the visual contract, the grouping boundary, and the render-only scope that
-the default quote renderer must satisfy.
+A run of index-adjacent quoted `TextBlockNode`s renders as a **single continuous
+quote surface**, not as a row of separate boxed blocks. Quoted blocks are text
+blocks with `BlockAttributes.quoted == true`; that flag is independent from the
+semantic text type, so a paragraph, heading, unordered/ordered list item, or
+todo item can all be quoted without losing `level`, `listType`, or `checked`.
+Legacy `BlockType.quote` remains a compatible input and is treated as quoted for
+rendering. This section pins the visual contract, the grouping boundary, and the
+render-only scope that the default quote renderer must satisfy.
 
 ### Visual contract
 
-Adjacent quote blocks fuse into one continuous background rectangle:
+Adjacent quoted text blocks fuse into one continuous background rectangle, even
+when the run mixes quoted paragraphs, quoted headings, quoted lists, and quoted
+todo items:
 
-- **No vertical gap.** The vertical spacing between two quote blocks in the same
+- **No vertical gap.** The vertical spacing between two quoted blocks in the same
   group is `0`, so the two `surfaceContainer` backgrounds touch with no visible
-  seam.
+  seam. This collapse has priority over a host-supplied `blockSpacing`; custom
+  spacing still applies at quoted ↔ non-quoted boundaries, but never between two
+  adjacent quoted blocks in the same group.
 - **Corners only on the outer ends.** Rounded corners appear only on the first
   block's top edge and the last block's bottom edge of the whole run. Interior
   joins are square, so the run reads as one rectangle rather than stacked boxes.
@@ -121,7 +130,11 @@ Adjacent quote blocks fuse into one continuous background rectangle:
   end edge is currently rounded (`topEnd` / `bottomEnd`).
 - **Accent bar runs through.** The 4px `primary` accent bar on the start edge is
   continuous across the whole group — no break, no offset, no double stroke at
-  joins.
+  joins. It is a vertical emphasis bar, not a slash or diagonal marker.
+- **Subpixel-safe joins.** Joined edges overpaint by a tiny visual-only overlap
+  so fractional virtual-list offsets or backend layer snapping cannot reveal a
+  transparent seam. This overlap is decoration only and does not change block
+  measurement, hit-testing, selection geometry, or semantics.
 - **Uniform internal rhythm.** Vertical padding is redistributed by group
   position so the join between two blocks does not double the top/bottom inset.
   Merged text keeps a natural, even line rhythm with no doubled whitespace or
@@ -132,21 +145,24 @@ Adjacent quote blocks fuse into one continuous background rectangle:
 A **continuous quote group** is a maximal run of top-level blocks that are both:
 
 1. consecutive by document index, **and**
-2. `TextBlockNode` with `type == BlockType.quote`.
+2. `TextBlockNode` with `attributes.quoted == true`, or legacy
+   `type == BlockType.quote`.
 
-The group is decided purely by block order and type — not by indentation, list
-markers, or attributes. Consequences:
+The group is decided purely by block order and quote state — not by indentation,
+list markers, heading level, todo state, or list numbering. Consequences:
 
-- `quote → non-quote → quote` produces **two independent groups**. Each keeps
-  its own outer rounded corners and its own accent bar; the non-quote block
+- `quoted → non-quoted → quoted` produces **two independent groups**. Each keeps
+  its own outer rounded corners and its own accent bar; the non-quoted block
   between them is a clean boundary.
-- `BlockType` is exclusive per block (`TextBlockNode` constrains its type to
-  paragraph / heading / quote / listItem). A todo or list item is a distinct
-  `BlockType`, so it always terminates a quote group: a quote block cannot
-  "contain" a list/todo prefix, and an adjacent list/todo block is a group
-  boundary.
-- A quote block may still carry an `indent` attribute; indentation does not
-  extend or break the group. Grouping is adjacency + type only.
+- `BlockType` continues to express text semantics (`paragraph`, `heading`,
+  `listItem`). Quote is a decoration on those blocks, so quoted headings,
+  quoted todo items, quoted unordered lists, and quoted ordered lists remain in
+  the same quote group when adjacent.
+- A quoted block may still carry an `indent` attribute; indentation does not
+  extend or break the group. Grouping is adjacency + quote state only. The row
+  shell may still apply its normal horizontal indent to that block; this is not
+  a group boundary and must not restore vertical spacing or standalone quote
+  corners.
 
 ### Why the background fuses visually, not via one container
 
@@ -158,31 +174,33 @@ single container — that would break per-block measurement, virtualised
 recycling, and keep-alive (caret / selection endpoints). The continuity is
 achieved purely by **visual fusion** at the default quote renderer:
 
-- `_spacingBetweenBlocks` returns `0` for `quote → quote`,
+- `_spacingBetweenBlocks` returns `0` for quoted text block → quoted text block,
 - the quote group position (first / interior / last) is precomputed by the host
   from the block list and threaded to the surface the same way `listMarker`
   already is (a sibling-derived field on `BlockRenderContext`),
 - `_QuoteBlockSurface` redistributes corners and vertical padding by that
-  position and keeps the accent bar continuous.
+  position, keeps the accent bar continuous, and paints visual-only seam covers
+  on joined edges to guard against subpixel gaps.
 
 ### Render-only scope (what does NOT change)
 
 This is a presentation fix. The following stay untouched:
 
-- **Document model** — `BlockType.quote` blocks remain individual blocks;
-  nothing is merged or re-typed.
+- **Document model** — quoted text blocks remain individual blocks; nothing is
+  merged, and text semantics such as heading/list/todo are preserved.
 - **Quote toggle** — `ToggleQuoteCommand` /
-  `WenzRichTextController.toggleQuote` behaviour is unchanged.
+  `WenzRichTextController.toggleQuote` only changes `BlockAttributes.quoted`.
 - **Serialization** — Markdown / rich JSON / HTML / plain-text export keep
-  treating each quote block independently (e.g. one `>` line per block).
+  treating each quoted block independently (e.g. one `>` line per block).
 - **Selection & hit-testing** — caret placement, range selection,
   `_TextSelectionSurface` geometry, and `BlockGeometryRegistry` hit resolution
   are unchanged. The fused background is paint-only; each block still owns its
-  own surface and geometry.
-- **Find highlight** — quote blocks' find-match painting is unchanged.
+  own surface and geometry. Joined-edge seam covers are wrapped as ignored,
+  semantic-free decoration.
+- **Find highlight** — quoted blocks' find-match painting is unchanged.
 - **Virtual list** — per-block measurement (`_MeasuredBlockExtent`),
   `offsetFor` / `totalExtent` accounting, virtualised recycling, and keep-alive
-  semantics are unchanged. The only layout change is the `quote → quote` spacing
+  semantics are unchanged. The only layout change is the quoted → quoted spacing
   value flowing through the existing spacing path.
 
 ### Edge-case coverage matrix
@@ -193,10 +211,12 @@ This is a presentation fix. The following stay untouched:
 | Quote at document start | First block of its group: top corners rounded, keeps top padding; no neighbour above. |
 | Quote at document end | Last block of its group: bottom corners rounded, keeps bottom padding; no neighbour below. |
 | 3+ consecutive quotes | Interior blocks: square corners, top/bottom padding removed/narrowed so joins are seamless. |
-| `quote → heading/list/code/paragraph/callout/… → quote` | Two independent groups; each keeps outer corners; the intervening block uses its normal spacing on both sides. |
-| Quote adjacent to heading | Heading margin (`_blockMarginBefore` / `_blockMarginAfter`) applies at the quote↔heading boundary as today; only `quote → quote` collapses. |
-| Quote with `indent` attribute | Indent does not affect grouping; the block still joins its adjacent quote neighbours by type. |
-| Adjacent todo / list item | Distinct `BlockType` → group boundary; todo/list spacing (`_kListItemSpacing` / `_kNestedListItemSpacing`) is unchanged. |
+| Empty quote inside a run | Still renders its quote surface and accent bar, keeps the run continuous, and remains an independent selectable block. |
+| `quoted → non-quoted heading/list/code/paragraph/callout/… → quoted` | Two independent groups; each keeps outer corners; the intervening block uses its normal spacing on both sides. |
+| Quoted paragraph adjacent to quoted heading/list/todo | Both blocks join the same group; the heading size, list marker, checkbox, completion style, caret, selection, and find highlights stay owned by the original block type. |
+| Quote with `indent` attribute | Indent does not affect grouping; the block still joins its adjacent quoted neighbours by quote state. |
+| Custom `blockSpacing` | Preserved at quote-group boundaries, but ignored inside the group so quoted → quoted remains seamless. |
+| Adjacent non-quoted todo / list item | Not part of a quote group; todo/list spacing (`_kListItemSpacing` / `_kNestedListItemSpacing`) is unchanged outside quoted runs. |
 
 ## Empty text row hit targets
 
@@ -336,9 +356,11 @@ class ExampleMediaResolver implements MediaResolver {
   @override
   Widget? resolve(BuildContext context, BlockNode block) {
     if (block is ImageBlockNode) {
-      final url = block.file.isNotEmpty ? block.file : block.assetId;
-      if (!url.startsWith('http')) return null;
-      return Image.network(url, fit: BoxFit.contain);
+      final source = block.file.isNotEmpty ? block.file : block.assetId;
+      if (source.startsWith('http')) {
+        return Image.network(source, fit: BoxFit.contain);
+      }
+      return null;
     }
     if (block is VideoBlockNode) {
       final source = block.effectivePlaybackUrl;
@@ -357,6 +379,12 @@ class ExampleMediaResolver implements MediaResolver {
 
 final resolver = ExampleMediaResolver();
 final controller = WenzRichTextController(document: doc, mediaResolver: resolver);
+controller.insertImage(
+  blockId: 'image-1',
+  file: '/Users/ada/Pictures/diagram.png',
+  caption: 'Architecture diagram',
+  altText: 'Architecture diagram',
+);
 controller.insertVideo(
   blockId: 'video-1',
   playbackUrl: 'https://example.com/demo.mp4',
@@ -380,6 +408,12 @@ Semantics:
   package never needs to depend on `video_player`/`image`/etc.
 - Returning `null` declines the block → the editor falls back to the built-in
   placeholder. Use this to handle only some media types or some sources.
+- File picking is not part of the core package. Host UI (or the example app)
+  opens the platform picker, then stores the chosen local path/URI in
+  `ImageBlockNode.file` through `ToolbarController.insertImage` or
+  `WenzRichTextController.insertImage`. If a resolver needs `dart:io` for
+  `Image.file`, isolate it behind a conditional import so Web builds keep using
+  `null`/placeholder fallback for unsupported local sources.
 - Throwing from `resolve` is tolerated: the editor catches it, reports the
   error via `FlutterError.reportError` (so it surfaces in dev tools), and falls
   back to the placeholder. A faulty resolver never crashes the editor.
@@ -390,11 +424,12 @@ Semantics:
   `uploadStatus: FileUploadStatus.failed` and `uploadError`; business UI or a
   custom `MediaResolver` can expose a retry button and drive another update.
 - Image metadata stays on `ImageBlockNode`: use
+  `WenzRichTextController.insertImage` to create block-level figures and
   `WenzRichTextController.updateImageBlock` to update natural size
-  (`width`/`height`), display size (`showWidth`/`showHeight`), `caption`, and
-  `altText`. The default image renderer shows the caption below either the
-  resolver widget or fallback placeholder; semantics prefer `altText`, then
-  caption, then the asset/file label.
+  (`width`/`height`), display size (`showWidth`/`showHeight`), source,
+  `caption`, and `altText`. The default image renderer shows the caption below
+  either the resolver widget or fallback placeholder; semantics prefer
+  `altText`, then caption, then the asset/file label.
 - Video metadata stays on `VideoBlockNode`: use the slash menu keyword
   `video`/`视频`, `ToolbarController.insertVideo`, or
   `WenzRichTextController.insertVideo` to create a block; update playback URL,

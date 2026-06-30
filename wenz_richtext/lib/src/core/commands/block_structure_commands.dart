@@ -181,6 +181,7 @@ class IndentCommand extends EditorCommand {
           alignment: block.attributes.alignment,
           listType: block.attributes.listType,
           checked: block.attributes.checked,
+          quoted: block.attributes.quoted,
           childNote: block.attributes.childNote,
           anchor: block.attributes.anchor,
         ),
@@ -243,6 +244,7 @@ class ToggleTodoCommand extends EditorCommand {
             alignment: block.attributes.alignment,
             listType: 'task',
             checked: false,
+            quoted: block.attributes.quoted,
             childNote: block.attributes.childNote,
             anchor: block.attributes.anchor,
           ),
@@ -309,6 +311,7 @@ TextBlockNode _textBlockWithChecked(TextBlockNode block, bool checked) {
       alignment: block.attributes.alignment,
       listType: block.attributes.listType,
       checked: checked,
+      quoted: block.attributes.quoted,
       childNote: block.attributes.childNote,
       anchor: block.attributes.anchor,
     ),
@@ -611,8 +614,9 @@ int _transformCodeOffset(
   return offset + insertedLength - removedLength;
 }
 
-/// Toggles the quote type of the block at the caret: a non-quote becomes a
-/// quote, a quote becomes a paragraph. Quote nesting depth uses indent.
+/// Toggles the quote decoration of text blocks at the caret. Quote is stored as
+/// a block attribute, so heading, list, todo, indent, and alignment semantics
+/// are preserved while the quote surface is toggled.
 class ToggleQuoteCommand extends EditorCommand {
   const ToggleQuoteCommand({this.selection});
 
@@ -628,6 +632,7 @@ class ToggleQuoteCommand extends EditorCommand {
       return const CommandResult(recordHistory: false);
     }
     final blocks = session.document.blocks.map((b) => b.copy()).toList();
+    final quoted = !_allTextBlocksQuoted(target, blocks);
     var changed = false;
     for (var i = target.start.blockIndex; i <= target.end.blockIndex; i++) {
       if (i < 0 || i >= blocks.length) {
@@ -637,9 +642,7 @@ class ToggleQuoteCommand extends EditorCommand {
       if (block is! TextBlockNode) {
         continue;
       }
-      blocks[i] = block.type == BlockType.quote
-          ? _convert(block, BlockType.paragraph)
-          : _convert(block, BlockType.quote);
+      blocks[i] = _convert(block, quoted: quoted);
       changed = true;
     }
     if (!changed) {
@@ -652,13 +655,35 @@ class ToggleQuoteCommand extends EditorCommand {
     return CommandResult(selection: target);
   }
 
-  TextBlockNode _convert(TextBlockNode block, BlockType type) {
+  bool _allTextBlocksQuoted(DocumentSelection target, List<BlockNode> blocks) {
+    var sawTextBlock = false;
+    for (var i = target.start.blockIndex; i <= target.end.blockIndex; i++) {
+      if (i < 0 || i >= blocks.length) {
+        continue;
+      }
+      final block = blocks[i];
+      if (block is! TextBlockNode) {
+        continue;
+      }
+      sawTextBlock = true;
+      if (block.type != BlockType.quote && !block.attributes.isQuoted) {
+        return false;
+      }
+    }
+    return sawTextBlock;
+  }
+
+  TextBlockNode _convert(TextBlockNode block, {required bool quoted}) {
     return TextBlockNode(
       id: block.id,
-      type: type,
+      type: block.type == BlockType.quote ? BlockType.paragraph : block.type,
       attributes: BlockAttributes(
+        level: block.attributes.level,
         indent: block.attributes.indent,
         alignment: block.attributes.alignment,
+        listType: block.attributes.listType,
+        checked: block.attributes.checked,
+        quoted: quoted ? true : null,
         childNote: block.attributes.childNote,
         anchor: block.attributes.anchor,
       ),

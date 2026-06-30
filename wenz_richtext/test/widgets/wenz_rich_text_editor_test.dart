@@ -798,6 +798,469 @@ void main() {
     );
   });
 
+  testWidgets(
+      'enter in a quoted paragraph keeps adjacent quote backgrounds fused immediately',
+      (tester) async {
+    final quoteBackground = find.byKey(
+      const ValueKey<String>('wenz-richtext-quote-background'),
+    );
+    final caret = DocumentPosition.text(
+      blockId: 'quoted-enter',
+      blockIndex: 0,
+      offset: 5,
+    );
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'quoted-enter',
+            type: BlockType.paragraph,
+            attributes: BlockAttributes(quoted: true),
+            content: <InlineNode>[TextRun(text: 'HelloWorld')],
+          ),
+        ],
+      ),
+      selection: DocumentSelection(base: caret, extent: caret),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 360,
+            height: 160,
+            child: WenzRichTextEditor(
+              controller: controller,
+              padding: EdgeInsets.zero,
+              enableIme: false,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    controller.enter(newBlockId: 'quoted-enter-next');
+    await tester.pump();
+
+    final blocks = controller.document.blocks.cast<TextBlockNode>().toList();
+    expect(blocks, hasLength(2));
+    expect(blocks[0].attributes.isQuoted, isTrue);
+    expect(blocks[1].attributes.isQuoted, isTrue);
+    expect(quoteBackground, findsNWidgets(2));
+
+    final firstRect = tester.getRect(quoteBackground.at(0));
+    final secondRect = tester.getRect(quoteBackground.at(1));
+    expect(
+      secondRect.top - firstRect.bottom,
+      moreOrLessEquals(0, epsilon: 0.5),
+    );
+  });
+
+  testWidgets('keyboard enter on an empty quote line exits quote styling',
+      (tester) async {
+    final quoteBackground = find.byKey(
+      const ValueKey<String>('wenz-richtext-quote-background'),
+    );
+    final caret = DocumentPosition.text(
+      blockId: 'quote-keyboard',
+      blockIndex: 0,
+      offset: 5,
+    );
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'quote-keyboard',
+            type: BlockType.paragraph,
+            attributes: BlockAttributes(quoted: true),
+            content: <InlineNode>[TextRun(text: 'Quote')],
+          ),
+        ],
+      ),
+      selection: DocumentSelection(base: caret, extent: caret),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 360,
+            height: 160,
+            child: WenzRichTextEditor(
+              controller: controller,
+              padding: EdgeInsets.zero,
+              autofocus: true,
+              enableIme: false,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    expect(quoteBackground, findsOneWidget);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pump();
+
+    var blocks = controller.document.blocks.cast<TextBlockNode>().toList();
+    expect(blocks, hasLength(2));
+    expect(blocks[0].plainText, 'Quote');
+    expect(blocks[0].attributes.isQuoted, isTrue);
+    expect(blocks[1].plainText, isEmpty);
+    expect(blocks[1].attributes.isQuoted, isTrue);
+    expect(controller.selection?.extent.blockId, blocks[1].id);
+    expect(controller.selection?.extent.offset, 0);
+    expect(quoteBackground, findsNWidgets(2));
+
+    final emptyQuoteBlockId = blocks[1].id;
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pump();
+
+    blocks = controller.document.blocks.cast<TextBlockNode>().toList();
+    expect(blocks, hasLength(2));
+    expect(blocks[0].attributes.isQuoted, isTrue);
+    expect(blocks[1].id, emptyQuoteBlockId);
+    expect(blocks[1].type, BlockType.paragraph);
+    expect(blocks[1].plainText, isEmpty);
+    expect(blocks[1].attributes.isQuoted, isFalse);
+    expect(controller.selection?.extent.blockId, emptyQuoteBlockId);
+    expect(controller.selection?.extent.offset, 0);
+    expect(quoteBackground, findsOneWidget);
+  });
+
+  testWidgets(
+      'quote spacing still collapses when editor blockSpacing is customised',
+      (tester) async {
+    // Regression root cause for consecutive quote seams: `blockSpacing` is the
+    // transparent vertical offset between independently painted block surfaces.
+    // It must not win for quote -> quote, but must still win at quote run
+    // boundaries so paragraphs do not visually merge into the quote group.
+    const customSpacing = 24.0;
+    final quoteBackground = find.byKey(
+      const ValueKey<String>('wenz-richtext-quote-background'),
+    );
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p-before-custom-spacing',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'Before custom spacing.')],
+          ),
+          TextBlockNode(
+            id: 'q-first-custom-spacing',
+            type: BlockType.quote,
+            content: <InlineNode>[TextRun(text: 'First custom quote.')],
+          ),
+          TextBlockNode(
+            id: 'q-second-custom-spacing',
+            type: BlockType.quote,
+            content: <InlineNode>[TextRun(text: 'Second custom quote.')],
+          ),
+          TextBlockNode(
+            id: 'p-after-custom-spacing',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'After custom spacing.')],
+          ),
+        ],
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 360,
+            height: 260,
+            child: WenzRichTextEditor(
+              controller: controller,
+              padding: EdgeInsets.zero,
+              blockSpacing: customSpacing,
+              enableIme: false,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(quoteBackground, findsNWidgets(2));
+
+    final pBeforeRect = tester.getRect(_richText('Before custom spacing.'));
+    final qFirstRect = tester.getRect(quoteBackground.first);
+    final qSecondRect = tester.getRect(quoteBackground.last);
+    final pAfterRect = tester.getRect(_richText('After custom spacing.'));
+
+    expect(
+      qSecondRect.top - qFirstRect.bottom,
+      moreOrLessEquals(0, epsilon: 0.5),
+    );
+    expect(
+      qFirstRect.top - pBeforeRect.bottom,
+      moreOrLessEquals(customSpacing, epsilon: 0.75),
+    );
+    expect(
+      pAfterRect.top - qSecondRect.bottom,
+      moreOrLessEquals(customSpacing, epsilon: 0.75),
+    );
+  });
+
+  testWidgets(
+      'three or more adjacent quotes fuse across empty and indented quote blocks',
+      (tester) async {
+    final quoteBackground = find.byKey(
+      const ValueKey<String>('wenz-richtext-quote-background'),
+    );
+    final quoteAccent = find.byKey(
+      const ValueKey<String>('wenz-richtext-quote-accent'),
+    );
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p-before-long-quote-run',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'Before long quote run.')],
+          ),
+          TextBlockNode(
+            id: 'q-run-first',
+            type: BlockType.quote,
+            content: <InlineNode>[TextRun(text: 'First quote in run.')],
+          ),
+          TextBlockNode(
+            id: 'q-run-empty',
+            type: BlockType.quote,
+            content: <InlineNode>[],
+          ),
+          TextBlockNode(
+            id: 'q-run-indented',
+            type: BlockType.quote,
+            attributes: BlockAttributes(indent: 2),
+            content: <InlineNode>[TextRun(text: 'Indented quote in run.')],
+          ),
+          TextBlockNode(
+            id: 'q-run-last',
+            type: BlockType.quote,
+            content: <InlineNode>[TextRun(text: 'Last quote in run.')],
+          ),
+          TextBlockNode(
+            id: 'p-after-long-quote-run',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'After long quote run.')],
+          ),
+        ],
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 420,
+            height: 360,
+            child: WenzRichTextEditor(
+              controller: controller,
+              padding: EdgeInsets.zero,
+              enableIme: false,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(quoteBackground, findsNWidgets(4));
+    expect(quoteAccent, findsNWidgets(4));
+
+    final pBeforeRect = tester.getRect(_richText('Before long quote run.'));
+    final pAfterRect = tester.getRect(_richText('After long quote run.'));
+    final quoteRects = List<Rect>.generate(
+      4,
+      (index) => tester.getRect(quoteBackground.at(index)),
+    );
+    final accentRects = List<Rect>.generate(
+      4,
+      (index) => tester.getRect(quoteAccent.at(index)),
+    );
+
+    for (var index = 1; index < quoteRects.length; index++) {
+      expect(
+        quoteRects[index].top - quoteRects[index - 1].bottom,
+        moreOrLessEquals(0, epsilon: 0.5),
+      );
+      expect(
+        accentRects[index].top - accentRects[index - 1].bottom,
+        moreOrLessEquals(0, epsilon: 0.5),
+      );
+    }
+
+    // The indented quote remains part of the same quote group: it receives an
+    // interior radius and zero vertical gap. Horizontal indent still belongs to
+    // the row shell and is intentionally not asserted as a group break here.
+    expect(
+      quoteRects.first.top - pBeforeRect.bottom,
+      moreOrLessEquals(8.8, epsilon: 0.75),
+    );
+    expect(
+      pAfterRect.top - quoteRects.last.bottom,
+      moreOrLessEquals(8.8, epsilon: 0.75),
+    );
+
+    final decorations = tester
+        .widgetList<DecoratedBox>(quoteBackground)
+        .map((widget) => widget.decoration as BoxDecoration)
+        .toList();
+    expect(
+      decorations[0].borderRadius,
+      const BorderRadiusDirectional.only(
+        topEnd: Radius.circular(8),
+        bottomEnd: Radius.zero,
+      ),
+    );
+    expect(
+      decorations[1].borderRadius,
+      const BorderRadiusDirectional.only(
+        topEnd: Radius.zero,
+        bottomEnd: Radius.zero,
+      ),
+    );
+    expect(
+      decorations[2].borderRadius,
+      const BorderRadiusDirectional.only(
+        topEnd: Radius.zero,
+        bottomEnd: Radius.zero,
+      ),
+    );
+    expect(
+      decorations[3].borderRadius,
+      const BorderRadiusDirectional.only(
+        topEnd: Radius.zero,
+        bottomEnd: Radius.circular(8),
+      ),
+    );
+  });
+
+  testWidgets('quoted heading and list blocks fuse as one quote group',
+      (tester) async {
+    final quoteBackground = find.byKey(
+      const ValueKey<String>('wenz-richtext-quote-background'),
+    );
+    final quoteAccent = find.byKey(
+      const ValueKey<String>('wenz-richtext-quote-accent'),
+    );
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'before-composite-quote',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'Before composite quote.')],
+          ),
+          TextBlockNode(
+            id: 'quoted-heading',
+            type: BlockType.heading,
+            attributes: BlockAttributes(level: 2, quoted: true),
+            content: <InlineNode>[TextRun(text: 'Quoted heading')],
+          ),
+          TextBlockNode(
+            id: 'quoted-ordered',
+            type: BlockType.listItem,
+            attributes: BlockAttributes(listType: 'ordered', quoted: true),
+            content: <InlineNode>[TextRun(text: 'Quoted ordered item')],
+          ),
+          TextBlockNode(
+            id: 'quoted-task',
+            type: BlockType.listItem,
+            attributes: BlockAttributes(listType: 'task', checked: true, quoted: true),
+            content: <InlineNode>[TextRun(text: 'Quoted checked task')],
+          ),
+          TextBlockNode(
+            id: 'after-composite-quote',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'After composite quote.')],
+          ),
+        ],
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 420,
+            height: 360,
+            child: WenzRichTextEditor(
+              controller: controller,
+              padding: EdgeInsets.zero,
+              enableIme: false,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(quoteBackground, findsNWidgets(3));
+    expect(quoteAccent, findsNWidgets(3));
+
+    final beforeRect = tester.getRect(_richText('Before composite quote.'));
+    final afterRect = tester.getRect(_richText('After composite quote.'));
+    final quoteRects = List<Rect>.generate(
+      3,
+      (index) => tester.getRect(quoteBackground.at(index)),
+    );
+    final accentRects = List<Rect>.generate(
+      3,
+      (index) => tester.getRect(quoteAccent.at(index)),
+    );
+
+    for (var index = 1; index < quoteRects.length; index++) {
+      expect(
+        quoteRects[index].top - quoteRects[index - 1].bottom,
+        moreOrLessEquals(0, epsilon: 0.5),
+      );
+      expect(
+        accentRects[index].top - accentRects[index - 1].bottom,
+        moreOrLessEquals(0, epsilon: 0.5),
+      );
+    }
+    expect(
+      quoteRects.first.top - beforeRect.bottom,
+      moreOrLessEquals(8.8, epsilon: 0.75),
+    );
+    expect(
+      afterRect.top - quoteRects.last.bottom,
+      moreOrLessEquals(8.8, epsilon: 0.75),
+    );
+
+    final decorations = tester
+        .widgetList<DecoratedBox>(quoteBackground)
+        .map((widget) => widget.decoration as BoxDecoration)
+        .toList();
+    expect(
+      decorations[0].borderRadius,
+      const BorderRadiusDirectional.only(
+        topEnd: Radius.circular(8),
+        bottomEnd: Radius.zero,
+      ),
+    );
+    expect(
+      decorations[1].borderRadius,
+      const BorderRadiusDirectional.only(
+        topEnd: Radius.zero,
+        bottomEnd: Radius.zero,
+      ),
+    );
+    expect(
+      decorations[2].borderRadius,
+      const BorderRadiusDirectional.only(
+        topEnd: Radius.zero,
+        bottomEnd: Radius.circular(8),
+      ),
+    );
+  });
+
   testWidgets('empty paragraph accepts taps across its visible text row', (
     tester,
   ) async {
@@ -1343,6 +1806,140 @@ void main() {
     expect(outline.isCollapsed('section'), isFalse);
     expect(_richText('Hidden body'), findsOneWidget);
     expect(controller.selection, collapsedTextSelection('body', 1, 0));
+  });
+
+  testWidgets('body heading collapse leaves outline tree expanded', (
+    tester,
+  ) async {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'section',
+            type: BlockType.heading,
+            attributes: BlockAttributes(level: 1),
+            content: <InlineNode>[TextRun(text: 'Section title')],
+          ),
+          TextBlockNode(
+            id: 'child',
+            type: BlockType.heading,
+            attributes: BlockAttributes(level: 2),
+            content: <InlineNode>[TextRun(text: 'Child heading')],
+          ),
+          TextBlockNode(
+            id: 'body',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'Child body')],
+          ),
+          TextBlockNode(
+            id: 'next',
+            type: BlockType.heading,
+            attributes: BlockAttributes(level: 1),
+            content: <InlineNode>[TextRun(text: 'Next section')],
+          ),
+        ],
+      ),
+    );
+    final outline = WenzOutlineController(editor: controller);
+    addTearDown(outline.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Row(
+            children: <Widget>[
+              SizedBox(
+                width: 220,
+                child: WenzOutlinePanel(controller: outline, width: 220),
+              ),
+              Expanded(
+                child: WenzRichTextEditor(
+                  controller: controller,
+                  outlineController: outline,
+                  padding: EdgeInsets.zero,
+                  enableIme: false,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Child heading'), findsOneWidget);
+    expect(_richText('Child heading'), findsOneWidget);
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('wenz-richtext-heading-collapse-section'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(outline.isCollapsed('section'), isTrue);
+    expect(_richText('Child heading'), findsNothing);
+    expect(_richText('Child body'), findsNothing);
+    expect(find.text('Child heading'), findsOneWidget);
+  });
+
+  testWidgets('heading chrome does not indent heading text', (tester) async {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'title',
+            type: BlockType.heading,
+            attributes: BlockAttributes(level: 2),
+            content: <InlineNode>[TextRun(text: 'Aligned title')],
+          ),
+          TextBlockNode(
+            id: 'body',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'Aligned body')],
+          ),
+          TextBlockNode(
+            id: 'next',
+            type: BlockType.heading,
+            attributes: BlockAttributes(level: 2),
+            content: <InlineNode>[TextRun(text: 'Next title')],
+          ),
+        ],
+      ),
+    );
+    final outline = WenzOutlineController(editor: controller);
+    addTearDown(outline.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 520,
+            height: 260,
+            child: WenzRichTextEditor(
+              controller: controller,
+              outlineController: outline,
+              padding: EdgeInsets.zero,
+              enableIme: false,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final headingTextLeft = tester.getTopLeft(_richText('Aligned title')).dx;
+    final bodyTextLeft = tester.getTopLeft(_richText('Aligned body')).dx;
+    final dragLeft = tester.getTopLeft(_blockDragHandleFinder('title')).dx;
+    final collapseLeft = tester
+        .getTopLeft(find.byKey(
+          const ValueKey<String>('wenz-richtext-heading-collapse-title'),
+        ))
+        .dx;
+
+    expect(headingTextLeft, moreOrLessEquals(bodyTextLeft, epsilon: 0.5));
+    expect(dragLeft, lessThan(collapseLeft));
+    expect(collapseLeft, lessThan(headingTextLeft));
   });
 
   testWidgets('Delete at collapsed heading boundary expands before editing', (

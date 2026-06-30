@@ -391,6 +391,103 @@ void main() {
     expect(session.selection?.extent.offset, 0);
   });
 
+  test('enter on an empty quoted paragraph removes quote styling', () {
+    final session = DocumentSession(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'quote1',
+            type: BlockType.paragraph,
+            attributes: BlockAttributes(
+              indent: 2,
+              alignment: 'center',
+              quoted: true,
+              childNote: 'note1',
+              anchor: 'anchor1',
+            ),
+            content: <InlineNode>[TextRun(text: '   ')],
+          ),
+        ],
+      ),
+      selection: collapsedTextSelection('quote1', 0, 3),
+    );
+    final executor = CommandExecutor(session);
+
+    executor.execute(const EnterCommand(newBlockId: 'quote2'));
+
+    expect(session.document.blocks, hasLength(1));
+    final block = session.document.blocks.single as TextBlockNode;
+    expect(block.id, 'quote1');
+    expect(block.type, BlockType.paragraph);
+    expect(block.plainText, isEmpty);
+    expect(block.attributes.quoted, isNull);
+    expect(block.attributes.indent, 2);
+    expect(block.attributes.alignment, 'center');
+    expect(block.attributes.childNote, 'note1');
+    expect(block.attributes.anchor, 'anchor1');
+    expect(session.selection?.extent.blockId, 'quote1');
+    expect(session.selection?.extent.offset, 0);
+  });
+
+  test('enter on an empty legacy quote block converts it to a paragraph', () {
+    final session = DocumentSession(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'quote1',
+            type: BlockType.quote,
+            attributes: BlockAttributes(indent: 1, anchor: 'legacy'),
+            content: <InlineNode>[],
+          ),
+        ],
+      ),
+      selection: collapsedTextSelection('quote1', 0, 0),
+    );
+    final executor = CommandExecutor(session);
+
+    executor.execute(const EnterCommand(newBlockId: 'quote2'));
+
+    expect(session.document.blocks, hasLength(1));
+    final block = session.document.blocks.single as TextBlockNode;
+    expect(block.id, 'quote1');
+    expect(block.type, BlockType.paragraph);
+    expect(block.attributes.quoted, isNull);
+    expect(block.attributes.indent, 1);
+    expect(block.attributes.anchor, 'legacy');
+    expect(session.selection?.extent.blockId, 'quote1');
+    expect(session.selection?.extent.offset, 0);
+  });
+
+  test('enter on a non-empty quoted block continues quote styling', () {
+    final session = DocumentSession(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'quote1',
+            type: BlockType.paragraph,
+            attributes: BlockAttributes(quoted: true),
+            content: <InlineNode>[TextRun(text: 'HelloWorld')],
+          ),
+        ],
+      ),
+      selection: collapsedTextSelection('quote1', 0, 5),
+    );
+    final executor = CommandExecutor(session);
+
+    executor.execute(const EnterCommand(newBlockId: 'quote2'));
+
+    expect(session.document.blocks, hasLength(2));
+    final first = session.document.blocks[0] as TextBlockNode;
+    final second = session.document.blocks[1] as TextBlockNode;
+    expect(first.plainText, 'Hello');
+    expect(first.attributes.isQuoted, isTrue);
+    expect(second.id, 'quote2');
+    expect(second.plainText, 'World');
+    expect(second.attributes.isQuoted, isTrue);
+    expect(session.selection?.extent.blockId, 'quote2');
+    expect(session.selection?.extent.offset, 0);
+  });
+
   test('enter inserts newline into code block', () {
     final session = DocumentSession(
       document: const RichTextDocument(

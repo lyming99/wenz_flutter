@@ -18,6 +18,10 @@ import '../model/table_model.dart';
 /// with `'ordered'` for ordered todo items. Legacy `'task'` remains the
 /// compatible unordered todo representation. Legacy values `li`/`oli`/`check`
 /// are mapped on decode.
+///
+/// Quote is a block decoration carried by `BlockAttributes.quoted`, not a text
+/// semantic type. Legacy `BlockType.quote` is normalized to a paragraph with
+/// `quoted == true` so quote styling can compose with headings and lists.
 class DocumentSchema {
   const DocumentSchema({this.maxIndent = 8});
 
@@ -216,12 +220,15 @@ class DocumentSchema {
 
   TextBlockNode _normalizeTextBlock(TextBlockNode block) {
     final attrs = _normalizeAttributes(block.type, block.attributes);
-    if (attrs == block.attributes) {
+    final type = block.type == BlockType.quote
+        ? BlockType.paragraph
+        : block.type;
+    if (attrs == block.attributes && type == block.type) {
       return block;
     }
     return TextBlockNode(
       id: block.id,
-      type: block.type,
+      type: type,
       attributes: attrs,
       content: block.content,
     );
@@ -287,6 +294,7 @@ class DocumentSchema {
           level: attrs.level ?? 1,
           indent: indent,
           alignment: attrs.alignment,
+          quoted: attrs.quoted,
           childNote: attrs.childNote,
           anchor: attrs.anchor,
         );
@@ -294,6 +302,7 @@ class DocumentSchema {
         return BlockAttributes(
           indent: indent,
           alignment: attrs.alignment,
+          quoted: true,
           childNote: attrs.childNote,
           anchor: attrs.anchor,
         );
@@ -304,10 +313,18 @@ class DocumentSchema {
           alignment: attrs.alignment,
           listType: canonical,
           checked: canonical == 'task' ? (attrs.checked ?? false) : attrs.checked,
+          quoted: attrs.quoted,
           childNote: attrs.childNote,
           anchor: attrs.anchor,
         );
       case BlockType.paragraph:
+        return BlockAttributes(
+          indent: indent,
+          alignment: attrs.alignment,
+          quoted: attrs.quoted,
+          childNote: attrs.childNote,
+          anchor: attrs.anchor,
+        );
       case BlockType.callout:
         return BlockAttributes(
           indent: indent,

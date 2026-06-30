@@ -195,6 +195,10 @@ class TextAttributes {
 
 /// Block-level attributes stored on [BlockNode]s.
 ///
+/// Quote is stored as an independent block decoration in [quoted], so text
+/// semantics such as headings, list items, and todo state can coexist with a
+/// quote surface instead of competing with a quote-only block type.
+///
 /// List semantics are intentionally split across two fields. [listType]
 /// describes the marker/numbering family: `null` means the default unordered
 /// bullet, `'ordered'` means a numbered item, and `'task'` is kept as the legacy
@@ -209,6 +213,7 @@ class BlockAttributes {
     this.alignment,
     this.listType,
     this.checked,
+    this.quoted,
     this.childNote,
     this.anchor,
   });
@@ -222,8 +227,14 @@ class BlockAttributes {
 
   /// Todo completion state; non-null values mark this block as a todo item.
   final bool? checked;
+
+  /// Quote decoration state. `true` marks the block as quoted; `null` means the
+  /// block has no quote override and keeps ordinary JSON payloads compact.
+  final bool? quoted;
   final String? childNote;
   final String? anchor;
+
+  bool get isQuoted => quoted == true;
 
   bool get isEmpty =>
       level == null &&
@@ -231,6 +242,7 @@ class BlockAttributes {
       alignment == null &&
       listType == null &&
       checked == null &&
+      quoted == null &&
       childNote == null &&
       anchor == null;
 
@@ -241,6 +253,7 @@ class BlockAttributes {
       alignment: overlay.alignment ?? alignment,
       listType: overlay.listType ?? listType,
       checked: overlay.checked ?? checked,
+      quoted: overlay.quoted ?? quoted,
       childNote: overlay.childNote ?? childNote,
       anchor: overlay.anchor ?? anchor,
     );
@@ -253,6 +266,7 @@ class BlockAttributes {
       if (alignment != null) 'alignment': alignment,
       if (listType != null) 'listType': listType,
       if (checked != null) 'checked': checked,
+      if (quoted != null) 'quoted': quoted,
       if (childNote != null) 'childNote': childNote,
       if (anchor != null) 'anchor': anchor,
     };
@@ -265,6 +279,7 @@ class BlockAttributes {
       alignment: json['alignment'] as String?,
       listType: json['listType'] as String?,
       checked: json['checked'] as bool?,
+      quoted: _asBool(json['quoted']) ?? _asBool(json['quote']),
       childNote: json['childNote'] as String?,
       anchor: json['anchor'] as String?,
     );
@@ -278,6 +293,7 @@ class BlockAttributes {
         other.alignment == alignment &&
         other.listType == listType &&
         other.checked == checked &&
+        other.quoted == quoted &&
         other.childNote == childNote &&
         other.anchor == anchor;
   }
@@ -290,10 +306,18 @@ class BlockAttributes {
       alignment,
       listType,
       checked,
+      quoted,
       childNote,
       anchor,
     );
   }
+}
+
+bool? _asBool(Object? value) {
+  if (value is bool) {
+    return value;
+  }
+  return null;
 }
 
 int? _asInt(Object? value) {

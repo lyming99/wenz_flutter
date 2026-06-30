@@ -425,7 +425,7 @@ List<SlashMenuItem> defaultSlashMenuItems() {
       keywords: const <String>['blockquote', '引用', '引言'],
       handlesTriggerDeletion: true,
       action: (editor, context) {
-        _replaceTriggerWithTextBlock(editor, context, type: BlockType.quote);
+        _replaceTriggerWithQuotedBlock(editor, context);
       },
     ),
     SlashMenuItem(
@@ -591,6 +591,43 @@ void _replaceTriggerWithTextBlock(
       );
       return DocumentSelection(base: position, extent: position);
     },
+  );
+}
+
+void _replaceTriggerWithQuotedBlock(
+  WenzRichTextController editor,
+  SlashMenuContext context,
+) {
+  _replaceTriggerBlock(
+    editor,
+    context,
+    (block, content) => TextBlockNode(
+      id: block.id,
+      type: block.type == BlockType.quote ? BlockType.paragraph : block.type,
+      attributes: _quotedAttributes(block.attributes),
+      content: content,
+    ),
+    (block, blockIndex, textLength) {
+      final position = DocumentPosition.text(
+        blockId: block.id,
+        blockIndex: blockIndex,
+        offset: textLength,
+      );
+      return DocumentSelection(base: position, extent: position);
+    },
+  );
+}
+
+BlockAttributes _quotedAttributes(BlockAttributes current) {
+  return BlockAttributes(
+    level: current.level,
+    indent: current.indent,
+    alignment: current.alignment,
+    listType: current.listType,
+    checked: current.checked,
+    quoted: true,
+    childNote: current.childNote,
+    anchor: current.anchor,
   );
 }
 

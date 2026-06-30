@@ -128,9 +128,11 @@ const double _kListMarkerWidth = 18.0;
 const double _kListMarkerGap = _kListTextInset - _kListMarkerWidth;
 const double _kListItemSpacing = _kRichTextBodyFontSize * 0.25;
 const double _kNestedListItemSpacing = _kRichTextBodyFontSize * 0.15;
-/// Collapses index-adjacent quote blocks so their surface backgrounds fuse
-/// into one continuous run (see `_spacingBetweenBlocks`). Grouping is
-/// adjacency + type only; an `indent` attribute does not break the run.
+
+/// Collapses index-adjacent quoted text blocks so their surface backgrounds
+/// fuse into one continuous run (see `_spacingBetweenBlocks`). Grouping is
+/// adjacency + quote decoration only; an `indent` attribute does not break the
+/// run.
 const double _kAdjacentQuoteSpacing = 0.0;
 const double _kHeadingCollapseSlotWidth = 30.0;
 const double _kHeadingCollapseButtonSize = 26.0;
@@ -426,10 +428,9 @@ class _PopupMenuItemContent extends StatelessWidget {
             : selected
                 ? colorScheme.primary
                 : colorScheme.onSurfaceVariant;
-    final selectedBackgroundAlpha =
-        theme.brightness == Brightness.dark
-            ? _kMinimalMenuSelectedAlphaDark
-            : _kMinimalMenuSelectedAlphaLight;
+    final selectedBackgroundAlpha = theme.brightness == Brightness.dark
+        ? _kMinimalMenuSelectedAlphaDark
+        : _kMinimalMenuSelectedAlphaLight;
     return Semantics(
       selected: selected,
       enabled: enabled,
@@ -453,7 +454,8 @@ class _PopupMenuItemContent extends StatelessWidget {
             ),
             const SizedBox(width: _kMinimalMenuIconTextGap),
             ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: _kPopupMenuTextMaxWidth),
+              constraints:
+                  const BoxConstraints(maxWidth: _kPopupMenuTextMaxWidth),
               child: Text(
                 label,
                 maxLines: 1,
@@ -808,64 +810,65 @@ class _FormulaEditPopup extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
-            Row(
-              children: <Widget>[
-                Expanded(
-                  child: Text(
-                    '编辑公式',
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
+              Row(
+                children: <Widget>[
+                  Expanded(
+                    child: Text(
+                      '编辑公式',
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
-                ),
-                IconButton(
-                  key: const ValueKey<String>(
-                    'wenz-richtext-formula-editor-close',
+                  IconButton(
+                    key: const ValueKey<String>(
+                      'wenz-richtext-formula-editor-close',
+                    ),
+                    tooltip: '关闭公式编辑',
+                    visualDensity: VisualDensity.compact,
+                    onPressed: onCancel,
+                    icon: const Icon(Icons.close),
                   ),
-                  tooltip: '关闭公式编辑',
-                  visualDensity: VisualDensity.compact,
-                  onPressed: onCancel,
-                  icon: const Icon(Icons.close),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              key: const ValueKey<String>('wenz-richtext-formula-editor-input'),
-              controller: controller,
-              focusNode: focusNode,
-              autofocus: true,
-              minLines: 1,
-              maxLines: 4,
-              textInputAction: TextInputAction.done,
-              decoration: const InputDecoration(
-                labelText: 'LaTeX 公式',
-                border: OutlineInputBorder(),
-                isDense: true,
+                ],
               ),
-              onSubmitted: (_) => onConfirm(),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: <Widget>[
-                TextButton(
-                  key: const ValueKey<String>(
-                    'wenz-richtext-formula-editor-cancel',
-                  ),
-                  onPressed: onCancel,
-                  child: const Text('取消'),
+              const SizedBox(height: 8),
+              TextField(
+                key: const ValueKey<String>(
+                    'wenz-richtext-formula-editor-input'),
+                controller: controller,
+                focusNode: focusNode,
+                autofocus: true,
+                minLines: 1,
+                maxLines: 4,
+                textInputAction: TextInputAction.done,
+                decoration: const InputDecoration(
+                  labelText: 'LaTeX 公式',
+                  border: OutlineInputBorder(),
+                  isDense: true,
                 ),
-                const SizedBox(width: 8),
-                FilledButton(
-                  key: const ValueKey<String>(
-                    'wenz-richtext-formula-editor-confirm',
+                onSubmitted: (_) => onConfirm(),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: <Widget>[
+                  TextButton(
+                    key: const ValueKey<String>(
+                      'wenz-richtext-formula-editor-cancel',
+                    ),
+                    onPressed: onCancel,
+                    child: const Text('取消'),
                   ),
-                  onPressed: onConfirm,
-                  child: const Text('确认'),
-                ),
-              ],
-            ),
+                  const SizedBox(width: 8),
+                  FilledButton(
+                    key: const ValueKey<String>(
+                      'wenz-richtext-formula-editor-confirm',
+                    ),
+                    onPressed: onConfirm,
+                    child: const Text('确认'),
+                  ),
+                ],
+              ),
             ],
           ),
         ),
@@ -1081,8 +1084,9 @@ class WenzRichTextEditor extends StatefulWidget {
   /// while the menu is open.
   final SlashMenuController? slashMenuController;
 
-  /// Optional outline controller whose collapsed-heading state projects the
-  /// rendered top-level block list without mutating the source document.
+  /// Optional outline controller whose body-heading collapsed state projects
+  /// the rendered top-level block list without mutating the source document.
+  /// Outline-panel expansion is separate display state and does not write here.
   final WenzOutlineController? outlineController;
 
   /// Accessibility labels, hints, and high-contrast focus styling.
@@ -1438,7 +1442,9 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     _slashMenuOverlayEntry = OverlayEntry(
       builder: (_) {
         final controller = widget.slashMenuController;
-        if (!mounted || widget.readOnly || controller == null ||
+        if (!mounted ||
+            widget.readOnly ||
+            controller == null ||
             !controller.isOpen) {
           return const SizedBox.shrink();
         }
@@ -1702,6 +1708,11 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     return position.path.isBlockObject;
   }
 
+  bool get _hasHeadingCollapseChrome {
+    final outline = widget.outlineController;
+    return outline != null && identical(outline.editor, widget.controller);
+  }
+
   HeadingCollapseState? _headingCollapseStateFor(BlockNode block) {
     final outline = widget.outlineController;
     if (outline == null || !identical(outline.editor, widget.controller)) {
@@ -1713,16 +1724,16 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     if (block is! TextBlockNode || block.type != BlockType.heading) {
       return null;
     }
-    final item = outline.itemForBlockId(block.id);
+    final state = outline.collapseStateForBlockId(block.id);
     return HeadingCollapseState(
-      canCollapse: item?.canCollapse ?? false,
-      isCollapsed: item?.isCollapsed ?? false,
-      hiddenBlockCount: item?.coveredBlockIds.length ?? 0,
+      canCollapse: state?.canCollapse ?? false,
+      isCollapsed: state?.isCollapsed ?? false,
+      hiddenBlockCount: state?.coveredBlockCount ?? 0,
     );
   }
 
   void _handleHeadingCollapseToggled(String blockId) {
-    widget.outlineController?.toggleByBlockId(blockId);
+    widget.outlineController?.toggleBodyHeadingByBlockId(blockId);
   }
 
   void _openFormulaEditor(_FormulaEditTarget target) {
@@ -1843,8 +1854,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
           blockIndex: blockIndex,
           blockCount: sourceBlocks.length,
           listMarker: listMarkers[blockIndex],
-          quoteGroupPosition:
-              _quoteGroupPositionFor(sourceBlocks, blockIndex),
+          quoteGroupPosition: _quoteGroupPositionFor(sourceBlocks, blockIndex),
           keepAlive: keepAliveIds.contains(block.id),
           blockChanged: dirtyIds == null || dirtyIds.contains(block.id),
           selection: widget.controller.selection,
@@ -1858,6 +1868,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
           mediaResolver: widget.mediaResolver,
           inlineEmbedRenderer: widget.inlineEmbedRenderer,
           onMentionTap: widget.onMentionTap,
+          reserveHeadingCollapseRail: _hasHeadingCollapseChrome,
           headingCollapseState: _headingCollapseStateFor(block),
           onHeadingCollapseToggled: _handleHeadingCollapseToggled,
           onCodeLanguageChanged: widget.readOnly
@@ -1915,7 +1926,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
               behavior: HitTestBehavior.translucent,
               onTap: _closeFormulaEditor,
             ),
-        ),
+          ),
         if (_formulaEditTarget != null) _buildFormulaEditorOverlay(),
         if (_linkHover != null) _buildLinkHoverOverlay(),
       ],
@@ -1984,8 +1995,8 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
         keyboardInset > 0 ? keyboardTop - overlayTop : overlayBox.size.height,
       ),
     );
-    final localRect = overlayBox.globalToLocal(target.anchor.topLeft) &
-        target.anchor.size;
+    final localRect =
+        overlayBox.globalToLocal(target.anchor.topLeft) & target.anchor.size;
     final width = math.min(
       _kFormulaEditorWidth,
       math.max(0.0, overlayBox.size.width - _kPopupViewportInset * 2),
@@ -1993,22 +2004,19 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     final preferredBelowTop = localRect.bottom + _kFormulaEditorGap;
     final roomBelow = visibleBottom - preferredBelowTop - _kPopupViewportInset;
     final roomAbove = localRect.top - _kFormulaEditorGap - _kPopupViewportInset;
-    final opensAbove = roomBelow < _kFormulaEditorEstimatedHeight &&
-        roomAbove > roomBelow;
+    final opensAbove =
+        roomBelow < _kFormulaEditorEstimatedHeight && roomAbove > roomBelow;
     final preferredTop = opensAbove
         ? localRect.top - _kFormulaEditorEstimatedHeight - _kFormulaEditorGap
         : preferredBelowTop;
     final maxLeft = overlayBox.size.width - width - _kPopupViewportInset;
     final maxTop = visibleBottom - _kFormulaEditorEstimatedHeight;
-    final leftMin = maxLeft >= _kPopupViewportInset ? _kPopupViewportInset : 0.0;
+    final leftMin =
+        maxLeft >= _kPopupViewportInset ? _kPopupViewportInset : 0.0;
     final topMin = maxTop >= _kPopupViewportInset ? _kPopupViewportInset : 0.0;
     return _FormulaEditorAnchor(
-      left: localRect.left
-          .clamp(leftMin, maxLeft > 0 ? maxLeft : 0)
-          .toDouble(),
-      top: preferredTop
-          .clamp(topMin, maxTop > 0 ? maxTop : 0)
-          .toDouble(),
+      left: localRect.left.clamp(leftMin, maxLeft > 0 ? maxLeft : 0).toDouble(),
+      top: preferredTop.clamp(topMin, maxTop > 0 ? maxTop : 0).toDouble(),
       width: width,
     );
   }
@@ -2152,7 +2160,8 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     }
     final mediaQuery = MediaQuery.maybeOf(context);
     final keyboardInset = mediaQuery?.viewInsets.bottom ?? 0.0;
-    final viewportHeight = mediaQuery?.size.height ?? positioningBox.size.height;
+    final viewportHeight =
+        mediaQuery?.size.height ?? positioningBox.size.height;
     final overlayTop = positioningBox.localToGlobal(Offset.zero).dy;
     final keyboardTop = viewportHeight - keyboardInset;
     final keyboardClippedBottom = keyboardInset > 0
@@ -2169,7 +2178,8 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     final preferredBelowTop = caretBottom.dy + _kSlashMenuGap;
     final roomBelow = visibleBottom - preferredBelowTop - _kPopupViewportInset;
     final roomAbove = caretTop.dy - _kSlashMenuGap - _kPopupViewportInset;
-    final opensAbove = roomBelow < _kPopupMenuItemHeight && roomAbove > roomBelow;
+    final opensAbove =
+        roomBelow < _kPopupMenuItemHeight && roomAbove > roomBelow;
     final preferredTop =
         opensAbove ? caretTop.dy - _kSlashMenuGap : preferredBelowTop;
     final maxTop = visibleBottom - _kPopupViewportInset;
@@ -3441,6 +3451,174 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     return false;
   }
 
+  void _toggleHeadingShortcut(int level) {
+    if (widget.readOnly) {
+      return;
+    }
+    _revealCurrentSelectionIfHidden();
+    final type = _selectionIsHeadingLevel(level)
+        ? BlockType.paragraph
+        : BlockType.heading;
+    widget.controller.setBlockType(
+      type: type,
+      level: type == BlockType.heading ? level : null,
+    );
+  }
+
+  bool _selectionIsHeadingLevel(int level) {
+    final selection = widget.controller.selection;
+    if (selection == null) {
+      return false;
+    }
+    final blocks = widget.controller.document.blocks;
+    var sawTextBlock = false;
+    for (var index = selection.start.blockIndex;
+        index <= selection.end.blockIndex;
+        index++) {
+      if (index < 0 || index >= blocks.length) {
+        continue;
+      }
+      final block = blocks[index];
+      if (block is! TextBlockNode) {
+        continue;
+      }
+      sawTextBlock = true;
+      if (block.type != BlockType.heading ||
+          (block.attributes.level ?? 1) != level) {
+        return false;
+      }
+    }
+    return sawTextBlock;
+  }
+
+  void _toggleCodeBlockShortcut() {
+    if (widget.readOnly) {
+      return;
+    }
+    _revealCurrentSelectionIfHidden();
+    final selection = widget.controller.selection;
+    if (selection == null) {
+      return;
+    }
+    final blockIndex = selection.extent.blockIndex;
+    final blocks = widget.controller.document.blocks;
+    if (blockIndex < 0 || blockIndex >= blocks.length) {
+      return;
+    }
+    final block = blocks[blockIndex];
+    if (!_canChangeRowBlockFormat(block)) {
+      return;
+    }
+    _handleRowBlockFormatChanged(
+      blockIndex,
+      block is CodeBlockNode ? _RowBlockFormat.paragraph : _RowBlockFormat.code,
+    );
+  }
+
+  void _cycleListShortcut() {
+    if (widget.readOnly) {
+      return;
+    }
+    _revealCurrentSelectionIfHidden();
+    final selection = widget.controller.selection;
+    if (selection == null) {
+      return;
+    }
+    final blockIndex = selection.extent.blockIndex;
+    final blocks = widget.controller.document.blocks;
+    if (blockIndex < 0 || blockIndex >= blocks.length) {
+      return;
+    }
+    final block = blocks[blockIndex];
+    if (block is! TextBlockNode) {
+      return;
+    }
+    if (block.type != BlockType.listItem) {
+      widget.controller.setBlockType(type: BlockType.listItem);
+      return;
+    }
+    if (block.attributes.listType == 'ordered') {
+      widget.controller.setBlockType(type: BlockType.paragraph);
+      return;
+    }
+    widget.controller.setBlockType(
+      type: BlockType.listItem,
+      listType: 'ordered',
+    );
+  }
+
+  void _insertFormulaShortcut() {
+    if (widget.readOnly) {
+      return;
+    }
+    _revealCurrentSelectionIfHidden();
+    widget.controller.insertFormula('');
+  }
+
+  void _insertTableShortcut() {
+    if (widget.readOnly) {
+      return;
+    }
+    _revealCurrentSelectionIfHidden();
+    widget.controller.insertTable(
+      index: _currentBlockInsertionIndex(),
+      tableId: _nextBlockId(),
+      rowCount: 3,
+      columnCount: 3,
+    );
+  }
+
+  int _currentBlockInsertionIndex() {
+    final selection = widget.controller.selection;
+    final blockCount = widget.controller.document.blocks.length;
+    if (selection == null) {
+      return blockCount;
+    }
+    final position = selection.extent;
+    final index = position.blockIndex.clamp(0, blockCount).toInt();
+    if (position.path.isTableCellText) {
+      return (index + 1).clamp(0, blockCount).toInt();
+    }
+    if (position.path.isBlockObject && position.offset > 0) {
+      return (index + 1).clamp(0, blockCount).toInt();
+    }
+    return index;
+  }
+
+  Future<void> _insertLinkShortcut() async {
+    if (widget.readOnly) {
+      return;
+    }
+    _revealCurrentSelectionIfHidden();
+    final selection = widget.controller.selection;
+    if (selection == null) {
+      return;
+    }
+    final initialUrl = _shortcutLinkUrl(selection);
+    final result = await showWenzLinkEditDialog(
+      context: context,
+      initialUrl: initialUrl ?? '',
+      canRemove: initialUrl != null,
+    );
+    if (!mounted || result == null) {
+      return;
+    }
+    widget.controller.setLink(
+      result.isEmpty ? null : result,
+      selection: selection,
+    );
+    widget.controller.requestFocus();
+  }
+
+  String? _shortcutLinkUrl(DocumentSelection selection) {
+    if (selection.start.blockIndex != selection.end.blockIndex ||
+        selection.start.path != selection.end.path) {
+      return null;
+    }
+    final probe = selection.isCollapsed ? selection.extent : selection.start;
+    return _linkInfoAtPosition(probe)?.url;
+  }
+
   void _performShortcut(EditorShortcutResolution resolution) {
     final controller = widget.controller;
     switch (resolution.intent) {
@@ -3471,6 +3649,47 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
         return;
       case EditorShortcutIntent.replace:
         widget.onReplaceRequested?.call();
+        return;
+      case EditorShortcutIntent.toggleHeading1:
+        _toggleHeadingShortcut(1);
+        return;
+      case EditorShortcutIntent.toggleHeading2:
+        _toggleHeadingShortcut(2);
+        return;
+      case EditorShortcutIntent.toggleHeading3:
+        _toggleHeadingShortcut(3);
+        return;
+      case EditorShortcutIntent.toggleHeading4:
+        _toggleHeadingShortcut(4);
+        return;
+      case EditorShortcutIntent.toggleHeading5:
+        _toggleHeadingShortcut(5);
+        return;
+      case EditorShortcutIntent.toggleHeading6:
+        _toggleHeadingShortcut(6);
+        return;
+      case EditorShortcutIntent.toggleQuote:
+        _revealCurrentSelectionIfHidden();
+        controller.toggleQuote();
+        return;
+      case EditorShortcutIntent.insertFormula:
+        _insertFormulaShortcut();
+        return;
+      case EditorShortcutIntent.toggleCodeBlock:
+        _toggleCodeBlockShortcut();
+        return;
+      case EditorShortcutIntent.toggleTodo:
+        _revealCurrentSelectionIfHidden();
+        controller.toggleTodo();
+        return;
+      case EditorShortcutIntent.cycleList:
+        _cycleListShortcut();
+        return;
+      case EditorShortcutIntent.insertTable:
+        _insertTableShortcut();
+        return;
+      case EditorShortcutIntent.insertLink:
+        unawaited(_insertLinkShortcut());
         return;
       case EditorShortcutIntent.moveTableCellBackward:
         controller.moveTableCell(forward: false);
@@ -4718,6 +4937,7 @@ class _KeepAliveBlock extends StatefulWidget {
     this.mediaResolver,
     this.inlineEmbedRenderer,
     this.onMentionTap,
+    this.reserveHeadingCollapseRail = false,
     this.headingCollapseState,
     this.onHeadingCollapseToggled,
     this.onCodeLanguageChanged,
@@ -4751,6 +4971,7 @@ class _KeepAliveBlock extends StatefulWidget {
   final MediaResolver? mediaResolver;
   final InlineEmbedRenderer? inlineEmbedRenderer;
   final WenzMentionTapCallback? onMentionTap;
+  final bool reserveHeadingCollapseRail;
   final HeadingCollapseState? headingCollapseState;
   final ValueChanged<String>? onHeadingCollapseToggled;
   final ValueChanged<String>? onCodeLanguageChanged;
@@ -4810,6 +5031,8 @@ class _KeepAliveBlockState extends State<_KeepAliveBlock>
         oldWidget.textStyle != widget.textStyle ||
         oldWidget.inlineEmbedRenderer != widget.inlineEmbedRenderer ||
         oldWidget.onMentionTap != widget.onMentionTap ||
+        oldWidget.reserveHeadingCollapseRail !=
+            widget.reserveHeadingCollapseRail ||
         oldWidget.headingCollapseState != widget.headingCollapseState ||
         oldWidget.onHeadingCollapseToggled != widget.onHeadingCollapseToggled ||
         oldWidget.onCodeLanguageChanged != widget.onCodeLanguageChanged ||
@@ -4854,6 +5077,7 @@ class _KeepAliveBlockState extends State<_KeepAliveBlock>
       canEdit: widget.canEdit,
       mediaResolver: widget.mediaResolver,
       inlineEmbedRenderer: widget.inlineEmbedRenderer,
+      reserveHeadingCollapseRail: widget.reserveHeadingCollapseRail,
       headingCollapseState: widget.headingCollapseState,
       onHeadingCollapseToggled: widget.onHeadingCollapseToggled,
       onCodeLanguageChanged: widget.onCodeLanguageChanged,
@@ -4909,6 +5133,7 @@ class _BlockRenderer extends StatelessWidget {
     this.canEdit = true,
     this.mediaResolver,
     this.inlineEmbedRenderer,
+    this.reserveHeadingCollapseRail = false,
     this.headingCollapseState,
     this.onHeadingCollapseToggled,
     this.onCodeLanguageChanged,
@@ -4939,6 +5164,7 @@ class _BlockRenderer extends StatelessWidget {
   final bool canEdit;
   final MediaResolver? mediaResolver;
   final InlineEmbedRenderer? inlineEmbedRenderer;
+  final bool reserveHeadingCollapseRail;
   final HeadingCollapseState? headingCollapseState;
   final ValueChanged<String>? onHeadingCollapseToggled;
   final ValueChanged<String>? onCodeLanguageChanged;
@@ -5003,6 +5229,9 @@ class _BlockRenderer extends StatelessWidget {
       blockIndex: blockIndex,
       blockCount: blockCount,
       leadingIndent: leadingIndent,
+      reserveHeadingCollapseRail: reserveHeadingCollapseRail,
+      headingCollapseState: headingCollapseState,
+      onHeadingCollapseToggled: onHeadingCollapseToggled,
       canEdit: canEdit,
       registry: registry,
       onAction: onObjectBlockAction,
@@ -5021,6 +5250,9 @@ class _BlockDragHandleOverlay extends StatefulWidget {
     required this.blockIndex,
     required this.blockCount,
     required this.leadingIndent,
+    required this.reserveHeadingCollapseRail,
+    this.headingCollapseState,
+    this.onHeadingCollapseToggled,
     required this.canEdit,
     required this.registry,
     required this.child,
@@ -5035,6 +5267,9 @@ class _BlockDragHandleOverlay extends StatefulWidget {
   final int blockIndex;
   final int blockCount;
   final double leadingIndent;
+  final bool reserveHeadingCollapseRail;
+  final HeadingCollapseState? headingCollapseState;
+  final ValueChanged<String>? onHeadingCollapseToggled;
   final bool canEdit;
   final BlockGeometryRegistry registry;
   final Widget child;
@@ -5049,23 +5284,35 @@ class _BlockDragHandleOverlay extends StatefulWidget {
 class _BlockDragHandleOverlayState extends State<_BlockDragHandleOverlay> {
   @override
   Widget build(BuildContext context) {
-    if (!BlockDragHandleSpec.canShow(
+    final showDragHandle = BlockDragHandleSpec.canShow(
       canEdit: widget.canEdit,
       blockIndex: widget.blockIndex,
       blockCount: widget.blockCount,
-    )) {
+    );
+    final showHeadingCollapse = widget.headingCollapseState != null;
+    final reserveChromeRail =
+        showDragHandle || widget.reserveHeadingCollapseRail;
+    if (!reserveChromeRail && !showHeadingCollapse) {
       return widget.child;
     }
-    final handleStart = math.max(
+    final contentStart =
+        (reserveChromeRail ? BlockDragHandleSpec.railWidth : 0.0) +
+            widget.leadingIndent;
+    final handleStart = widget.leadingIndent;
+    final adjacentHeadingCollapseStart = handleStart +
+        BlockDragHandleSpec.hitSize.width +
+        BlockDragHandleSpec.chromeGap;
+    final contentAlignedHeadingCollapseStart = contentStart -
+        BlockDragHandleSpec.gapToContent -
+        _kHeadingCollapseSlotWidth;
+    final headingCollapseStart = math.max(
       0.0,
-      BlockDragHandleSpec.railWidth +
-          widget.leadingIndent -
-          BlockDragHandleSpec.gapToContent -
-          BlockDragHandleSpec.hitSize.width,
+      math.min(
+          adjacentHeadingCollapseStart, contentAlignedHeadingCollapseStart),
     );
     final content = Padding(
-      padding: const EdgeInsetsDirectional.only(
-        start: BlockDragHandleSpec.railWidth,
+      padding: EdgeInsetsDirectional.only(
+        start: reserveChromeRail ? BlockDragHandleSpec.railWidth : 0.0,
       ),
       child: widget.child,
     );
@@ -5077,22 +5324,34 @@ class _BlockDragHandleOverlayState extends State<_BlockDragHandleOverlay> {
         clipBehavior: Clip.none,
         children: <Widget>[
           content,
-          PositionedDirectional(
-            start: handleStart,
-            top: BlockDragHandleSpec.topInset,
-            child: _BlockDragHandleButton(
-              blockId: widget.blockId,
-              blockPlainText: widget.blockPlainText,
-              blockFormat: widget.blockFormat,
-              canChangeBlockFormat: widget.canChangeBlockFormat,
-              blockIndex: widget.blockIndex,
-              blockCount: widget.blockCount,
-              canEdit: widget.canEdit,
-              registry: widget.registry,
-              onAction: widget.onAction,
-              onFormatChanged: widget.onFormatChanged,
+          if (showDragHandle)
+            PositionedDirectional(
+              start: handleStart,
+              top: BlockDragHandleSpec.topInset,
+              child: _BlockDragHandleButton(
+                blockId: widget.blockId,
+                blockPlainText: widget.blockPlainText,
+                blockFormat: widget.blockFormat,
+                canChangeBlockFormat: widget.canChangeBlockFormat,
+                blockIndex: widget.blockIndex,
+                blockCount: widget.blockCount,
+                canEdit: widget.canEdit,
+                registry: widget.registry,
+                onAction: widget.onAction,
+                onFormatChanged: widget.onFormatChanged,
+              ),
             ),
-          ),
+          if (showHeadingCollapse)
+            PositionedDirectional(
+              start: headingCollapseStart,
+              top: BlockDragHandleSpec.topInset,
+              child: _HeadingCollapseButton(
+                blockId: widget.blockId,
+                state: widget.headingCollapseState!,
+                registry: widget.registry,
+                onToggled: widget.onHeadingCollapseToggled,
+              ),
+            ),
         ],
       ),
     );
@@ -5800,19 +6059,27 @@ double _indentStartFor(BlockNode block) {
 ///
 /// Render-layer concern only: it feeds the virtual list's `offsetFor` /
 /// `totalExtent` accounting but never the document model, measurement of an
-/// individual block, or keep-alive. Returns `fallback` unchanged when the host
-/// passes custom spacing that deviates from `_kDefaultBlockSpacing` (the custom
-/// path must keep winning). Otherwise list pairs collapse to
+/// individual block, or keep-alive. Per the "Consecutive quoted text block
+/// background" contract in `docs/rendering.md`, quoted → quoted always
+/// collapses to `0` before custom spacing is considered; otherwise a host
+/// `blockSpacing` value would become a transparent seam between two separately
+/// painted quote surfaces. Every other adjacency keeps its current spacing,
+/// including quoted ↔ non-quoted boundaries. List pairs collapse to
 /// `_kListItemSpacing` / `_kNestedListItemSpacing` and heading margins apply via
-/// `_blockMarginBefore` / `_blockMarginAfter`. Per the "Consecutive quote block
-/// background" contract in `docs/rendering.md`, `quote → quote` collapses to `0`
-/// so adjacent quote surfaces fuse; every other adjacency keeps its current
-/// spacing, including `quote → non-quote` boundaries.
+/// `_blockMarginBefore` / `_blockMarginAfter` only on the default-spacing path.
 double _spacingBetweenBlocks(
   BlockNode previous,
   BlockNode next,
   double fallback,
 ) {
+  // Any index-adjacent quoted → quoted pair collapses to 0 so their surface
+  // backgrounds fuse into one continuous run. Grouping is adjacency + quote
+  // decoration only — an `indent` attribute does not start a new column or
+  // break the run (see the "Consecutive quoted text block background" contract
+  // in `docs/rendering.md`).
+  if (_isQuoteBlock(previous) && _isQuoteBlock(next)) {
+    return _kAdjacentQuoteSpacing;
+  }
   if ((fallback - _kDefaultBlockSpacing).abs() > 0.01) {
     return fallback;
   }
@@ -5822,14 +6089,6 @@ double _spacingBetweenBlocks(
     return previousIndent > 0 || nextIndent > 0
         ? _kNestedListItemSpacing
         : _kListItemSpacing;
-  }
-  // Any index-adjacent `quote → quote` pair collapses to 0 so their surface
-  // backgrounds fuse into one continuous run. Grouping is adjacency + type
-  // only — an `indent` attribute does not start a new column or break the
-  // run (see the "Consecutive quote block background" contract in
-  // `docs/rendering.md`).
-  if (_isQuoteBlock(previous) && _isQuoteBlock(next)) {
-    return _kAdjacentQuoteSpacing;
   }
   return math.max(
     _blockMarginAfter(previous, fallback),
@@ -5856,7 +6115,8 @@ bool _isListItemBlock(BlockNode block) {
 }
 
 bool _isQuoteBlock(BlockNode block) {
-  return block is TextBlockNode && block.type == BlockType.quote;
+  return block is TextBlockNode &&
+      (block.type == BlockType.quote || block.attributes.isQuoted);
 }
 
 bool _selectionTouchesBlockIndex(DocumentSelection? selection, int blockIndex) {
@@ -5877,11 +6137,12 @@ int _blockIndentLevel(BlockNode block) {
 /// Position of [blocks[index]] within its run of consecutive quote blocks,
 /// mirroring the adjacency rule used by [_spacingBetweenBlocks] exactly: two
 /// quotes join into one continuous background when (and only when) they are
-/// index-adjacent and both `BlockType.quote`. Grouping is adjacency + type
-/// only — an `indent` attribute does not extend or break the run, so a quote
-/// flanked by quotes of any indent still joins them. A non-quote block (or a
-/// quote flanked only by non-quotes) is [QuoteGroupPosition.standalone]. See
-/// "Consecutive quote block background" in `docs/rendering.md`.
+/// index-adjacent and both carry quote decoration (or legacy `BlockType.quote`).
+/// Grouping is adjacency + quote state only — an `indent` attribute does not
+/// extend or break the run, so a quote flanked by quotes of any indent still
+/// joins them. A non-quote block (or a quote flanked only by non-quotes) is
+/// [QuoteGroupPosition.standalone]. See
+/// "Consecutive quoted text block background" in `docs/rendering.md`.
 QuoteGroupPosition _quoteGroupPositionFor(List<BlockNode> blocks, int index) {
   final block = blocks[index];
   if (!_isQuoteBlock(block)) {
@@ -5989,8 +6250,6 @@ Widget _defaultTextBlockRenderer(
     listMarker: rc.listMarker,
     quoteGroupPosition: rc.quoteGroupPosition,
     inlineEmbedRenderer: rc.inlineEmbedRenderer,
-    headingCollapseState: rc.headingCollapseState,
-    onHeadingCollapseToggled: rc.onHeadingCollapseToggled,
     onToolbarAction: rc.onTableToolbarAction,
     onColumnResize: rc.onTableColumnResize,
     onTodoCheckedChanged: rc.onTodoCheckedChanged,
@@ -6455,8 +6714,6 @@ class _TextBlockRenderer extends StatelessWidget {
     this.listMarker,
     this.quoteGroupPosition = QuoteGroupPosition.standalone,
     this.inlineEmbedRenderer,
-    this.headingCollapseState,
-    this.onHeadingCollapseToggled,
     this.onToolbarAction,
     this.onColumnResize,
     this.onTodoCheckedChanged,
@@ -6475,8 +6732,6 @@ class _TextBlockRenderer extends StatelessWidget {
   final String? listMarker;
   final QuoteGroupPosition quoteGroupPosition;
   final InlineEmbedRenderer? inlineEmbedRenderer;
-  final HeadingCollapseState? headingCollapseState;
-  final ValueChanged<String>? onHeadingCollapseToggled;
   final TableToolbarActionHandler? onToolbarAction;
   final TableColumnResizeHandler? onColumnResize;
   final TodoCheckedChangeHandler? onTodoCheckedChanged;
@@ -6486,7 +6741,8 @@ class _TextBlockRenderer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isTodoListItem = block.type == BlockType.listItem &&
-        (block.attributes.listType == 'task' || block.attributes.checked != null);
+        (block.attributes.listType == 'task' ||
+            block.attributes.checked != null);
     final showTodoListMarker =
         isTodoListItem && block.attributes.listType == 'ordered';
     final isTaskChecked = block.attributes.checked == true;
@@ -6547,96 +6803,90 @@ class _TextBlockRenderer extends StatelessWidget {
       ),
     );
     final prefix = listMarker ?? _prefixFor(block);
-    if (block.type == BlockType.quote) {
-      return _withBlockSemantics(
-        block,
-        _QuoteBlockSurface(
-          position: quoteGroupPosition,
-          child: text,
-        ),
-        selected: selected,
+    final isQuotedBlock = _isQuoteBlock(block);
+    Widget quoteSurface(Widget child) {
+      if (!isQuotedBlock) {
+        return child;
+      }
+      return _QuoteBlockSurface(
+        position: quoteGroupPosition,
+        child: child,
       );
     }
+
     if (isTodoListItem) {
       return _withBlockSemantics(
         block,
-        Padding(
-          padding: const EdgeInsetsDirectional.only(
-            start: _kTaskListPaddingLeft,
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              if (showTodoListMarker && prefix != null) ...<Widget>[
-                SizedBox(
-                  key: ValueKey<String>(
-                    'wenz-richtext-list-marker-${block.id}',
-                  ),
-                  width: _kListMarkerWidth,
-                  child: Text(
-                    prefix,
-                    style: effectiveStyle,
-                    textAlign: TextAlign.end,
-                  ),
-                ),
-                const SizedBox(width: _kListMarkerGap),
-              ],
-              _TodoCheckbox(
-                blockId: block.id,
-                registry: registry,
-                checked: isTaskChecked,
-                onChanged: onTodoCheckedChanged == null
-                    ? null
-                    : (checked) {
-                        onTodoCheckedChanged!(
-                          blockIndex: blockIndex,
-                          checked: checked,
-                        );
-                      },
-              ),
-              const SizedBox(width: _kTodoTextGap),
-              Expanded(child: text),
-            ],
-          ),
-        ),
-        selected: selected,
-      );
-    }
-    if (block.type == BlockType.heading && headingCollapseState != null) {
-      return _withBlockSemantics(
-        block,
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            _HeadingCollapseButton(
-              blockId: block.id,
-              state: headingCollapseState!,
-              registry: registry,
-              onToggled: onHeadingCollapseToggled,
+        quoteSurface(
+          Padding(
+            padding: const EdgeInsetsDirectional.only(
+              start: _kTaskListPaddingLeft,
             ),
-            Expanded(child: text),
-          ],
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                if (showTodoListMarker && prefix != null) ...<Widget>[
+                  SizedBox(
+                    key: ValueKey<String>(
+                      'wenz-richtext-list-marker-${block.id}',
+                    ),
+                    width: _kListMarkerWidth,
+                    child: Text(
+                      prefix,
+                      style: effectiveStyle,
+                      textAlign: TextAlign.end,
+                    ),
+                  ),
+                  const SizedBox(width: _kListMarkerGap),
+                ],
+                _TodoCheckbox(
+                  blockId: block.id,
+                  registry: registry,
+                  checked: isTaskChecked,
+                  onChanged: onTodoCheckedChanged == null
+                      ? null
+                      : (checked) {
+                          onTodoCheckedChanged!(
+                            blockIndex: blockIndex,
+                            checked: checked,
+                          );
+                        },
+                ),
+                const SizedBox(width: _kTodoTextGap),
+                Expanded(child: text),
+              ],
+            ),
+          ),
         ),
         selected: selected,
       );
     }
     if (prefix == null) {
-      return _withBlockSemantics(block, text, selected: selected);
+      return _withBlockSemantics(
+        block,
+        quoteSurface(text),
+        selected: selected,
+      );
     }
     return _withBlockSemantics(
       block,
-      Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          SizedBox(
-            key: ValueKey<String>('wenz-richtext-list-marker-${block.id}'),
-            width: _kListMarkerWidth,
-            child:
-                Text(prefix, style: effectiveStyle, textAlign: TextAlign.end),
-          ),
-          const SizedBox(width: _kListMarkerGap),
-          Expanded(child: text),
-        ],
+      quoteSurface(
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            SizedBox(
+              key: ValueKey<String>('wenz-richtext-list-marker-${block.id}'),
+              width: _kListMarkerWidth,
+              child: Text(
+                prefix,
+                style: effectiveStyle,
+                textAlign: TextAlign.end,
+              ),
+            ),
+            const SizedBox(width: _kListMarkerGap),
+            Expanded(child: text),
+          ],
+        ),
       ),
       selected: selected,
     );
@@ -6918,7 +7168,7 @@ class _TodoCheckboxState extends State<_TodoCheckbox> {
   }
 }
 
-/// Paint-only background for a single `BlockType.quote` text block.
+/// Paint-only background for a quoted text block.
 ///
 /// Visual elements: a `surfaceContainer` fill, a 4px `primary` accent bar on
 /// the start edge (running the full block height), end-side rounded corners
@@ -6931,11 +7181,14 @@ class _TodoCheckboxState extends State<_TodoCheckbox> {
 ///
 /// This surface is decoration only: selection, caret, composition, hit-testing
 /// geometry, and find highlights all live in the inner `_TextSelectionSurface`
-/// (`child`), not here. See "Consecutive quote block background" in
-/// `docs/rendering.md` for the contract by which index-adjacent quote blocks
+/// (`child`), not here. See "Consecutive quoted text block background" in
+/// `docs/rendering.md` for the contract by which index-adjacent quoted blocks
 /// fuse into one continuous background — corners, vertical padding, and the
 /// accent bar redistribute by group position (first / interior / last) while
-/// the start edge stays square so neighbours join without a seam.
+/// the start edge stays square so neighbours join without a seam. Joined edges
+/// intentionally overpaint by a physical-pixel-sized logical inset; this keeps
+/// the run visually solid even when virtual-list offsets land on fractional
+/// pixels or the backend snaps two adjacent block layers differently.
 class _QuoteBlockSurface extends StatelessWidget {
   const _QuoteBlockSurface({
     required this.child,
@@ -6963,23 +7216,27 @@ class _QuoteBlockSurface extends StatelessWidget {
   /// continuous surface with uniform line spacing and no doubled whitespace.
   static const double _innerVerticalPadding = 4.0;
 
+  /// A tiny visual-only overlap on joined edges. The block's measured height,
+  /// hit-test geometry, and semantics stay unchanged, but the background and
+  /// accent bar extend into the neighbouring quote by this amount to cover
+  /// subpixel seams.
+  static const double _seamOverlap = 1.0;
+
   /// Top inset: full [_outerVerticalPadding] on a standalone quote and on the
   /// first block of a run; tightened to [_innerVerticalPadding] otherwise so
   /// the block joins the quote below without a doubled gap.
-  double get _topPadding =>
-      position == QuoteGroupPosition.standalone ||
-              position == QuoteGroupPosition.first
-          ? _outerVerticalPadding
-          : _innerVerticalPadding;
+  double get _topPadding => position == QuoteGroupPosition.standalone ||
+          position == QuoteGroupPosition.first
+      ? _outerVerticalPadding
+      : _innerVerticalPadding;
 
   /// Bottom inset: full [_outerVerticalPadding] on a standalone quote and on
   /// the last block of a run; tightened to [_innerVerticalPadding] otherwise
   /// so the block joins the quote above without a doubled gap.
-  double get _bottomPadding =>
-      position == QuoteGroupPosition.standalone ||
-              position == QuoteGroupPosition.last
-          ? _outerVerticalPadding
-          : _innerVerticalPadding;
+  double get _bottomPadding => position == QuoteGroupPosition.standalone ||
+          position == QuoteGroupPosition.last
+      ? _outerVerticalPadding
+      : _innerVerticalPadding;
 
   BorderRadiusDirectional get _borderRadius {
     final topEnd = position == QuoteGroupPosition.standalone ||
@@ -6995,6 +7252,14 @@ class _QuoteBlockSurface extends StatelessWidget {
       bottomEnd: bottomEnd,
     );
   }
+
+  bool get _joinsPrevious =>
+      position == QuoteGroupPosition.interior ||
+      position == QuoteGroupPosition.last;
+
+  bool get _joinsNext =>
+      position == QuoteGroupPosition.first ||
+      position == QuoteGroupPosition.interior;
 
   @override
   Widget build(BuildContext context) {
@@ -7012,7 +7277,72 @@ class _QuoteBlockSurface extends StatelessWidget {
             borderRadius: borderRadius,
           ),
           child: Stack(
+            clipBehavior: Clip.none,
             children: <Widget>[
+              if (_joinsPrevious) ...<Widget>[
+                PositionedDirectional(
+                  start: 0,
+                  end: 0,
+                  top: -_seamOverlap,
+                  height: _seamOverlap,
+                  child: ExcludeSemantics(
+                    child: IgnorePointer(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: scheme.surfaceContainer,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                PositionedDirectional(
+                  start: 0,
+                  top: -_seamOverlap,
+                  width: 4,
+                  height: _seamOverlap,
+                  child: ExcludeSemantics(
+                    child: IgnorePointer(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: scheme.primary,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+              if (_joinsNext) ...<Widget>[
+                PositionedDirectional(
+                  start: 0,
+                  end: 0,
+                  bottom: -_seamOverlap,
+                  height: _seamOverlap,
+                  child: ExcludeSemantics(
+                    child: IgnorePointer(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: scheme.surfaceContainer,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                PositionedDirectional(
+                  start: 0,
+                  bottom: -_seamOverlap,
+                  width: 4,
+                  height: _seamOverlap,
+                  child: ExcludeSemantics(
+                    child: IgnorePointer(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: scheme.primary,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
               PositionedDirectional(
                 start: 0,
                 top: 0,
@@ -7350,7 +7680,8 @@ class _CodeScrollableTextSurface extends StatefulWidget {
       _CodeScrollableTextSurfaceState();
 }
 
-class _CodeScrollableTextSurfaceState extends State<_CodeScrollableTextSurface> {
+class _CodeScrollableTextSurfaceState
+    extends State<_CodeScrollableTextSurface> {
   final GlobalKey _viewportKey = GlobalKey();
 
   @override
@@ -7502,7 +7833,8 @@ class _CodeBlockToolbar extends StatelessWidget {
                               clipBehavior: Clip.antiAlias,
                               onSelected: onLanguageChanged,
                               routeSettings: _kPopupMenuRouteSettings,
-                              itemBuilder: (context) => <PopupMenuEntry<String>>[
+                              itemBuilder: (context) =>
+                                  <PopupMenuEntry<String>>[
                                 for (final option in languages)
                                   PopupMenuItem<String>(
                                     value: option,
@@ -9984,9 +10316,8 @@ double _caretHeightFor(TextPainter painter, double? measured) {
   }
   final style = painter.text?.style;
   final fontSize = style?.fontSize;
-  final safeFontSize = fontSize != null && fontSize > 0
-      ? fontSize
-      : _kRichTextBodyFontSize;
+  final safeFontSize =
+      fontSize != null && fontSize > 0 ? fontSize : _kRichTextBodyFontSize;
   final lineHeight = style?.height;
   final safeLineHeight = lineHeight != null && lineHeight > 0
       ? lineHeight
@@ -9999,8 +10330,10 @@ double _caretHeightFor(TextPainter painter, double? measured) {
 enum _ImageBlockPlaceholderStatus {
   /// No resolver / resolver declined — a neutral empty figure slot.
   empty,
+
   /// Source is being uploaded/resolved — a spinner + 上传中 hint.
   loading,
+
   /// Resolver threw (catch-and-fallback) — error-toned failure slot.
   failed,
 }
@@ -10024,10 +10357,8 @@ class _ImageBlockPlaceholder extends StatelessWidget {
     final colorScheme = theme.colorScheme;
     final failed = status == _ImageBlockPlaceholderStatus.failed;
     final titleColor = failed ? colorScheme.error : colorScheme.onSurface;
-    final hintColor =
-        failed ? colorScheme.error : colorScheme.onSurfaceVariant;
-    final iconColor =
-        failed ? colorScheme.error : colorScheme.onSurfaceVariant;
+    final hintColor = failed ? colorScheme.error : colorScheme.onSurfaceVariant;
+    final iconColor = failed ? colorScheme.error : colorScheme.onSurfaceVariant;
     final background = failed
         ? colorScheme.errorContainer.withAlpha(170)
         : colorScheme.surfaceContainerHighest.withAlpha(190);
@@ -10045,12 +10376,9 @@ class _ImageBlockPlaceholder extends StatelessWidget {
           )
         : Icon(Icons.image_outlined, size: 34, color: iconColor);
     final (title, hint) = switch (status) {
-      _ImageBlockPlaceholderStatus.empty =>
-        ('图片占位', '插入后将在此显示图片'),
-      _ImageBlockPlaceholderStatus.loading =>
-        ('图片上传中', '正在处理，请稍候…'),
-      _ImageBlockPlaceholderStatus.failed =>
-        ('图片加载失败', '无法显示该图片，请重新上传'),
+      _ImageBlockPlaceholderStatus.empty => ('图片占位', '插入后将在此显示图片'),
+      _ImageBlockPlaceholderStatus.loading => ('图片上传中', '正在处理，请稍候…'),
+      _ImageBlockPlaceholderStatus.failed => ('图片加载失败', '无法显示该图片，请重新上传'),
     };
 
     return AspectRatio(
@@ -10098,6 +10426,7 @@ class _ImageBlockPlaceholder extends StatelessWidget {
 enum _VideoBlockPlaceholderStatus {
   /// No resolver / resolver declined — cover backdrop + play button (default).
   cover,
+
   /// Resolver threw (catch-and-fallback) — error-toned failure slot.
   failed,
 }
@@ -12306,12 +12635,6 @@ TextStyle _blockTextStyle(
     BlockType.heading => baseStyle.merge(
         _headingTextStyle(theme, baseStyle, block.attributes.level),
       ),
-    BlockType.quote => baseStyle.merge(
-        TextStyle(
-          color: theme.colorScheme.onSurfaceVariant,
-          fontStyle: FontStyle.italic,
-        ),
-      ),
     _ => baseStyle,
   };
 }
@@ -13202,7 +13525,6 @@ double _headingSize(int? level) {
 
 String? _prefixFor(TextBlockNode block) {
   return switch (block.type) {
-    BlockType.quote => '|',
     BlockType.listItem => switch (block.attributes.listType) {
         'ordered' => '1.',
         'task' => block.attributes.checked == true ? '[x]' : '[ ]',

@@ -189,6 +189,40 @@ void main() {
       expect(codec.encode(document), '> quoted');
     });
 
+    test('quoted heading and list items keep their Markdown markers', () {
+      const document = RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'qh',
+            type: BlockType.heading,
+            attributes: BlockAttributes(level: 2, quoted: true),
+            content: <InlineNode>[TextRun(text: 'Quoted title')],
+          ),
+          TextBlockNode(
+            id: 'qtodo',
+            type: BlockType.listItem,
+            attributes: BlockAttributes(
+              listType: 'task',
+              checked: false,
+              quoted: true,
+            ),
+            content: <InlineNode>[TextRun(text: 'Quoted todo')],
+          ),
+          TextBlockNode(
+            id: 'qordered',
+            type: BlockType.listItem,
+            attributes: BlockAttributes(listType: 'ordered', quoted: true),
+            content: <InlineNode>[TextRun(text: 'Quoted ordered')],
+          ),
+        ],
+      );
+
+      expect(
+        codec.encode(document),
+        '> ## Quoted title\n\n> - [ ] Quoted todo\n\n> 1. Quoted ordered',
+      );
+    });
+
     test('callout degrades to blockquote with visible metadata', () {
       const document = RichTextDocument(
         blocks: <BlockNode>[
@@ -497,8 +531,28 @@ void main() {
       const source = '> line one\n> line two';
       final doc = codec.decode(source);
       expect(doc.blocks, hasLength(1));
-      expect(doc.blocks[0].type, BlockType.quote);
+      final block = doc.blocks[0] as TextBlockNode;
+      expect(block.type, BlockType.paragraph);
+      expect(block.attributes.isQuoted, isTrue);
       expect(doc.blocks[0].plainText, 'line one line two');
+    });
+
+    test('blockquote restores quoted heading and list item semantics', () {
+      const source = '> ## Quoted title\n> - [ ] Quoted todo\n> 1. Quoted ordered';
+      final doc = codec.decode(source);
+      final blocks = doc.blocks.cast<TextBlockNode>().toList();
+
+      expect(blocks, hasLength(3));
+      expect(blocks[0].type, BlockType.heading);
+      expect(blocks[0].attributes.level, 2);
+      expect(blocks[0].attributes.isQuoted, isTrue);
+      expect(blocks[1].type, BlockType.listItem);
+      expect(blocks[1].attributes.listType, 'task');
+      expect(blocks[1].attributes.checked, isFalse);
+      expect(blocks[1].attributes.isQuoted, isTrue);
+      expect(blocks[2].type, BlockType.listItem);
+      expect(blocks[2].attributes.listType, 'ordered');
+      expect(blocks[2].attributes.isQuoted, isTrue);
     });
 
     test('GFM table parses rows and alignment', () {

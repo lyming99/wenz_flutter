@@ -7,6 +7,11 @@ internal), and **how to wire the full lifecycle** — *create → render → rea
 write data → extend → destroy* — without reaching into the six-plus registries
 and controllers by hand.
 
+If you only need the business-facing quick reference, start with the root
+[README interface documentation](../README.md#接口文档). This guide keeps the
+detailed integration contract, lifecycle rules, permission boundary, and
+internal stability boundary.
+
 > **TL;DR** — The standard external interface is exactly two types:
 > [`WenzEditorConfiguration`](#1-what-the-standard-interface-is) (a declarative
 > description of intent) + [`WenzEditorBootstrap`](#1-what-the-standard-interface-is)
@@ -215,6 +220,12 @@ b.requestFocus();
 | `createVersionSnapshot` / `restoreVersionSnapshot` | `controller.createVersionSnapshot/restoreVersionSnapshot` | app-owned snapshots |
 | `setSelection` / `requestFocus` | `controller.setSelection/requestFocus` | selection contract unchanged |
 
+Codec note: quote is an attribute-level decoration in the canonical model. Hosts
+can round-trip quoted headings, quoted ordered/todo list items, and ordinary
+quoted paragraphs through rich JSON (`attrs.quoted`), Markdown (`>` prefixes),
+and HTML (`<blockquote>` wrapping the original block tag). Legacy rich JSON with
+`type: "quote"` is still accepted and normalizes to a quoted paragraph.
+
 ---
 
 ## 5. Extension injection
@@ -379,9 +390,9 @@ The facade is additive and conservative. Explicitly:
 - **It introduces no new runtime dependency.** PDF/DOCX/player/etc. still enter
   through the existing injection boundaries (`WenzDocumentExporter`,
   `MediaResolver`). Importing the facade adds nothing to the dependency tree.
-- **It changes no serialization format.** JSON/Markdown/HTML/plain-text codec
-  shapes, the document model, the schema, the selection contract, and command
-  semantics are untouched. The facade delegates; it does not re-encode.
+- **It adds no facade-specific serialization format.** JSON/Markdown/HTML/plain-
+  text codec shapes come from the controller codecs. The facade delegates; it
+  does not re-encode or maintain a second import/export model.
 - **Configuration describes intent only.** It creates no controller, no widget,
   holds no `BuildContext`, and produces no side effects. A
   `WenzEditorConfiguration` is safe to construct, `copyWith`, and pass around

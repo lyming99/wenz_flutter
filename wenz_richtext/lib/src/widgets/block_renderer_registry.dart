@@ -115,10 +115,17 @@ typedef ObjectBlockActionHandler = void Function(
 /// handle, and keeps nested surfaces (table cells, inline embeds, object-block
 /// controls) out of row-sorting hit testing.
 abstract final class BlockDragHandleSpec {
-  /// Reserved leading gutter for the handle, outside the renderer's content box.
-  static const double railWidth = 32.0;
+  /// Reserved leading gutter for row chrome, outside the renderer's content box.
+  ///
+  /// The rail is wide enough for the drag handle plus the optional heading
+  /// collapse affordance so neither control consumes renderer content width.
+  static const double railWidth = 66.0;
 
-  /// Gap between the renderer content edge and the handle hit target.
+  /// Gap between adjacent row-chrome hit targets.
+  static const double chromeGap = 4.0;
+
+  /// Minimum gap between the renderer content edge and the nearest row-chrome
+  /// hit target.
   static const double gapToContent = 4.0;
 
   /// Minimum pointer/focus hit target for mouse, touch, and keyboard traversal.
@@ -199,16 +206,17 @@ abstract final class BlockDragHandleSpec {
   }
 }
 
-/// Where a quote block sits within a run of consecutive quote blocks. The
-/// built-in `_QuoteBlockSurface` reads it (via
+/// Where a quoted text block sits within a run of consecutive quoted text
+/// blocks. The built-in `_QuoteBlockSurface` reads it (via
 /// [BlockRenderContext.quoteGroupPosition]) to redistribute its end-side
 /// rounded corners so index-adjacent quote surfaces fuse into one continuous
 /// background instead of leaving an inward notch at every join.
 ///
-/// A run is decided purely by block order and type — only index-adjacent
+/// A run is decided purely by block order and quote state — index-adjacent
+/// `TextBlockNode`s with `BlockAttributes.quoted == true` or legacy
 /// `BlockType.quote` neighbours belong to it. An `indent` attribute does not
-/// extend or break the run; a non-quote block terminates it and the quote
-/// keeps [QuoteGroupPosition.standalone]. See "Consecutive quote block
+/// extend or break the run; a non-quote block terminates it and the quote keeps
+/// [QuoteGroupPosition.standalone]. See "Consecutive quoted text block
 /// background" in `docs/rendering.md`.
 enum QuoteGroupPosition {
   /// No quote neighbour above or below. Both end-side corners stay
@@ -306,25 +314,25 @@ class BlockRenderContext {
   /// Convention: any rendering detail that depends on a block's siblings — not
   /// just list markers — is precomputed by the host from the block list and
   /// exposed here as an optional, nullable field that defaults to a standalone
-  /// value when the host (or a hand-built context) omits it. Consecutive quote
-  /// background continuity uses the same pattern: the host derives each quote
-  /// block's position in its continuous-quote group (first / interior / last)
-  /// and supplies it here so `_QuoteBlockSurface` can fuse neighbours. See
-  /// "Consecutive quote block background" in `docs/rendering.md`.
+  /// value when the host (or a hand-built context) omits it. Consecutive quoted
+  /// background continuity uses the same pattern: the host derives each quoted
+  /// text block's position in its continuous-quote group (first / interior /
+  /// last) and supplies it here so `_QuoteBlockSurface` can fuse neighbours. See
+  /// "Consecutive quoted text block background" in `docs/rendering.md`.
   final String? listMarker;
 
-  /// Position of this quote block within its run of consecutive quote blocks,
-  /// precomputed by the host editor. The built-in `_QuoteBlockSurface` reads
-  /// it to fuse neighbours into one continuous background (corners, padding,
-  /// accent bar redistribute by group position).
+  /// Position of this quoted text block within its run of consecutive quoted
+  /// text blocks, precomputed by the host editor. The built-in
+  /// `_QuoteBlockSurface` reads it to fuse neighbours into one continuous
+  /// background (corners, padding, accent bar redistribute by group position).
   ///
   /// Follows the same convention as [listMarker]: any rendering detail that
   /// depends on a block's siblings is precomputed by the host and supplied
-  /// here. A run is decided purely by block order and type — an `indent`
+  /// here. A run is decided purely by block order and quote state — an `indent`
   /// attribute does not extend or break it — so non-quote blocks and
   /// hand-built contexts default to [QuoteGroupPosition.standalone],
   /// preserving the legacy single-block appearance and leaving custom
-  /// renderers unaffected. See "Consecutive quote block background" in
+  /// renderers unaffected. See "Consecutive quoted text block background" in
   /// `docs/rendering.md`.
   final QuoteGroupPosition quoteGroupPosition;
 
@@ -360,9 +368,12 @@ class BlockRenderContext {
 
   /// Optional view-state for a top-level heading's collapse affordance. `null`
   /// means the host editor is not exposing heading collapse for this block.
+  ///
+  /// The built-in editor paints the affordance in row chrome outside the
+  /// renderer content box so heading text aligns with ordinary body text.
   final HeadingCollapseState? headingCollapseState;
 
-  /// Optional callback used by heading renderers to toggle collapse view-state.
+  /// Optional callback used to toggle heading collapse view-state.
   final ValueChanged<String>? onHeadingCollapseToggled;
 
   /// Find/replace matches currently visible for this block renderer. Built-in
