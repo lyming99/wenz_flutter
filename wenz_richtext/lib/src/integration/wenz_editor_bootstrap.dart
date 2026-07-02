@@ -15,6 +15,7 @@ import '../core/position/document_position.dart';
 import '../input/clipboard_service.dart';
 import '../input/shortcut_manager.dart';
 import '../plugins/editor_plugin.dart';
+import '../plugins/mermaid_diagram_plugin.dart';
 import '../widgets/block_renderer_registry.dart';
 import '../widgets/inline_embed_renderer.dart';
 import '../widgets/wenz_rich_text_editor.dart';
@@ -117,8 +118,17 @@ class WenzEditorBootstrap {
       shortcutConfigurations: pluginShortcutConfigurations,
       pasteTransformers: pasteTransformers,
     );
+    final plugins = <WenzRichTextPlugin>[
+      ...configuration.plugins,
+      if (configuration.enableMermaidDiagrams)
+        MermaidDiagramPlugin(
+          config: MermaidDiagramConfig(
+            svgSurface: configuration.diagramSvgSurface,
+          ),
+        ),
+    ];
     installWenzRichTextPlugins(
-      plugins: configuration.plugins,
+      plugins: plugins,
       context: context,
     );
 
@@ -190,6 +200,13 @@ class WenzEditorBootstrap {
 
   /// The configuration this bootstrap was assembled from.
   final WenzEditorConfiguration configuration;
+
+  /// Optional mention search callback supplied by
+  /// [WenzEditorConfiguration.mentionSearch].
+  ///
+  /// A `null` value means the assembled editor should keep the existing
+  /// behaviour and not open a mention search surface for `@` input.
+  WenzMentionSearchCallback? get mentionSearch => configuration.mentionSearch;
 
   /// The assembled editor controller.
   final WenzRichTextController controller;
@@ -357,9 +374,10 @@ class WenzEditorBootstrap {
   /// [blockRendererRegistry], [inlineEmbedRendererRegistry],
   /// [slashMenuController], [findReplaceController], [outlineController],
   /// the host [WenzEditorConfiguration.onMentionTap], the merged shortcut
-  /// configuration, and [WenzEditorConfiguration.accessibility] — is injected
-  /// automatically. The named parameters are appearance overrides a host may
-  /// pass through; each forwards verbatim to the [WenzRichTextEditor]
+  /// configuration, external image-input settings, and
+  /// [WenzEditorConfiguration.accessibility] — is injected automatically. The
+  /// named parameters are appearance overrides a host may pass through; each
+  /// forwards verbatim to the [WenzRichTextEditor]
   /// constructor.
   ///
   /// The shortcut configuration merges plugin-contributed fragments first and
@@ -420,6 +438,9 @@ class WenzEditorBootstrap {
       onReplaceRequested: onReplaceRequested,
       slashMenuController: slashMenuController,
       outlineController: outlineController,
+      enableExternalImageInput: configuration.enableExternalImageInput,
+      externalImageClipboardReader: configuration.externalImageClipboardReader,
+      externalImageStore: configuration.externalImageStore,
       accessibility: configuration.accessibility,
     );
   }

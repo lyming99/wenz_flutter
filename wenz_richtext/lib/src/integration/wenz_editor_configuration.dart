@@ -10,8 +10,10 @@ import '../core/model/rich_text_document.dart';
 import '../core/position/document_position.dart';
 import '../core/transaction/change_set.dart';
 import '../input/clipboard_service.dart';
+import '../input/external_image_input.dart';
 import '../input/shortcut_manager.dart';
 import '../plugins/editor_plugin.dart';
+import '../plugins/mermaid_diagram_plugin.dart';
 import '../widgets/block_renderer_registry.dart';
 import '../widgets/inline_embed_renderer.dart';
 import '../widgets/media_resolver.dart';
@@ -60,6 +62,10 @@ class WenzEditorConfiguration {
     this.slashMenuItems = const <SlashMenuItem>[],
     this.toolbarItems = const <WenzToolbarItem>[],
     this.plugins = const <WenzRichTextPlugin>[],
+    this.enableExternalImageInput = true,
+    this.externalImageClipboardReader,
+    this.externalImageStore,
+    this.mentionSearch,
     this.onMentionTap,
     this.onChanged,
     this.onSelectionChanged,
@@ -72,6 +78,8 @@ class WenzEditorConfiguration {
     this.enableAutosave = false,
     this.onAutosave,
     this.autosaveDebounce = const Duration(seconds: 2),
+    this.enableMermaidDiagrams = false,
+    this.diagramSvgSurface,
   });
 
   /// Initial document, or `null` for an empty document.
@@ -140,6 +148,37 @@ class WenzEditorConfiguration {
   /// `installWenzRichTextPlugins` during assembly.
   final List<WenzRichTextPlugin> plugins;
 
+  /// Whether the editor should accept platform image input from clipboard and
+  /// external file drops.
+  ///
+  /// Defaults to `true`. Set to `false` to keep ordinary text/HTML/Markdown
+  /// paste behaviour but skip image clipboard flavors and external image drop
+  /// targets entirely.
+  final bool enableExternalImageInput;
+
+  /// Optional reader for image-capable clipboard flavors.
+  ///
+  /// When omitted, the editor only reads the standard Flutter plain-text
+  /// clipboard unless the host supplies a platform reader here. The reader
+  /// returns stable [ExternalImageClipboardData] values, keeping concrete
+  /// plugin types outside the public configuration contract.
+  final ExternalImageClipboardReader? externalImageClipboardReader;
+
+  /// Optional storage/validation strategy for external image inputs.
+  ///
+  /// When omitted, [WenzRichTextEditor] uses its default platform store: IO
+  /// builds validate file paths/file URIs and materialise in-memory images into
+  /// temporary files; unsupported builds return a safe no-op failure.
+  final ExternalImageStore? externalImageStore;
+
+  /// Optional mention search callback used by editor mention suggestion UIs.
+  ///
+  /// When `null` (default), typing `@` keeps the editor's existing behaviour:
+  /// no mention search overlay is requested. Hosts that provide a callback own
+  /// the user directory lookup and return [WenzMentionCandidate] values for the
+  /// editor to insert as `mention` inline embeds.
+  final WenzMentionSearchCallback? mentionSearch;
+
   /// Callback invoked when a mention inline embed is activated. Forwarded to
   /// [WenzRichTextEditor] as the editor-level mention handler.
   final WenzMentionTapCallback? onMentionTap;
@@ -198,6 +237,20 @@ class WenzEditorConfiguration {
   /// enabled. Defaults to two seconds, matching the controller default.
   final Duration autosaveDebounce;
 
+  /// Whether the bootstrap should install the [MermaidDiagramPlugin] so that
+  /// [CodeBlockNode]s with `language == 'mermaid'` render as live diagrams.
+  ///
+  /// Defaults to `false` — mermaid support is opt-in because it requires the
+  /// `merman` native library at runtime.
+  final bool enableMermaidDiagrams;
+
+  /// The SVG surface used by [MermaidDiagramPlugin] to paint diagram output.
+  ///
+  /// When `null` (default) the plugin uses [VectorGraphicsDiagramSurface].
+  /// Host apps that need pixel-perfect rendering can inject a WebView-based
+  /// surface instead.
+  final DiagramSvgSurface? diagramSvgSurface;
+
   /// Returns a copy of this configuration with the given fields replaced.
   ///
   /// Nullable fields use an internal sentinel so that explicitly passing `null`
@@ -218,6 +271,10 @@ class WenzEditorConfiguration {
     List<SlashMenuItem>? slashMenuItems,
     List<WenzToolbarItem>? toolbarItems,
     List<WenzRichTextPlugin>? plugins,
+    bool? enableExternalImageInput,
+    Object? externalImageClipboardReader = _unset,
+    Object? externalImageStore = _unset,
+    Object? mentionSearch = _unset,
     Object? onMentionTap = _unset,
     Object? onChanged = _unset,
     Object? onSelectionChanged = _unset,
@@ -230,6 +287,8 @@ class WenzEditorConfiguration {
     bool? enableAutosave,
     Object? onAutosave = _unset,
     Duration? autosaveDebounce,
+    bool? enableMermaidDiagrams,
+    Object? diagramSvgSurface = _unset,
   }) {
     return WenzEditorConfiguration(
       document: identical(document, _unset)
@@ -254,6 +313,18 @@ class WenzEditorConfiguration {
       slashMenuItems: slashMenuItems ?? this.slashMenuItems,
       toolbarItems: toolbarItems ?? this.toolbarItems,
       plugins: plugins ?? this.plugins,
+      enableExternalImageInput:
+          enableExternalImageInput ?? this.enableExternalImageInput,
+      externalImageClipboardReader:
+          identical(externalImageClipboardReader, _unset)
+              ? this.externalImageClipboardReader
+              : externalImageClipboardReader as ExternalImageClipboardReader?,
+      externalImageStore: identical(externalImageStore, _unset)
+          ? this.externalImageStore
+          : externalImageStore as ExternalImageStore?,
+      mentionSearch: identical(mentionSearch, _unset)
+          ? this.mentionSearch
+          : mentionSearch as WenzMentionSearchCallback?,
       onMentionTap: identical(onMentionTap, _unset)
           ? this.onMentionTap
           : onMentionTap as WenzMentionTapCallback?,
@@ -277,6 +348,11 @@ class WenzEditorConfiguration {
           ? this.onAutosave
           : onAutosave as WenzAutoSaveCallback?,
       autosaveDebounce: autosaveDebounce ?? this.autosaveDebounce,
+      enableMermaidDiagrams:
+          enableMermaidDiagrams ?? this.enableMermaidDiagrams,
+      diagramSvgSurface: identical(diagramSvgSurface, _unset)
+          ? this.diagramSvgSurface
+          : diagramSvgSurface as DiagramSvgSurface?,
     );
   }
 }

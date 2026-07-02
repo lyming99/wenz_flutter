@@ -35,6 +35,7 @@ import '../core/transaction/document_session.dart';
 import '../history/history_manager.dart';
 import '../input/clipboard_service.dart';
 import '../input/composition_state.dart';
+import '../input/external_image_input.dart';
 import '../widgets/media_resolver.dart';
 
 final RegExp _autoLinkCandidateRegex = RegExp(
@@ -43,6 +44,67 @@ final RegExp _autoLinkCandidateRegex = RegExp(
 );
 
 const String _autoLinkTriggerCharacters = ' \t\n\r,!?;:)]}，。！？；：、';
+
+enum ExternalImagePasteStatus {
+  inserted,
+  emptyInput,
+  noInsertableImages,
+  permissionDenied,
+  unchanged,
+}
+
+class ExternalImagePasteResult {
+  const ExternalImagePasteResult._({
+    required this.status,
+    required this.insertedImageCount,
+    this.change,
+  });
+
+  const ExternalImagePasteResult.emptyInput()
+      : this._(
+          status: ExternalImagePasteStatus.emptyInput,
+          insertedImageCount: 0,
+        );
+
+  const ExternalImagePasteResult.noInsertableImages()
+      : this._(
+          status: ExternalImagePasteStatus.noInsertableImages,
+          insertedImageCount: 0,
+        );
+
+  factory ExternalImagePasteResult.fromChange(
+    ChangeSet change, {
+    required int insertedImageCount,
+  }) {
+    if (change.metadata?['reason'] == 'permissionDenied') {
+      return ExternalImagePasteResult._(
+        status: ExternalImagePasteStatus.permissionDenied,
+        insertedImageCount: 0,
+        change: change,
+      );
+    }
+    if (change.isNoop) {
+      return ExternalImagePasteResult._(
+        status: ExternalImagePasteStatus.unchanged,
+        insertedImageCount: 0,
+        change: change,
+      );
+    }
+    return ExternalImagePasteResult._(
+      status: ExternalImagePasteStatus.inserted,
+      insertedImageCount: insertedImageCount,
+      change: change,
+    );
+  }
+
+  final ExternalImagePasteStatus status;
+  final int insertedImageCount;
+  final ChangeSet? change;
+
+  bool get isSuccess => status == ExternalImagePasteStatus.inserted;
+
+  bool get isFailure => !isSuccess;
+}
 
 class WenzRichTextController extends ChangeNotifier {
   WenzRichTextController({
@@ -1152,6 +1214,76 @@ class WenzRichTextController extends ChangeNotifier {
     );
   }
 
+  /// Updates a custom block embed ([BlockEmbedNode]) in place — its [data],
+  /// [fallbackText], and/or [embedType] — without changing the block's id or
+  /// position. This is the embed counterpart to [updateImageBlock] /
+  /// [updateVideoBlock] / [updateFileBlock]: a business renderer (e.g. a
+  /// flowchart view whose nodes were just dragged) writes the new payload back
+  /// through this helper so the change flows through the command layer
+  /// (undo/redo history, [onChanged], [onCommandExecuted]) and the edit
+  /// permission gate, just like the typed media helpers.
+  ///
+  /// Each nullable field means "leave unchanged": a non-null [data] *replaces*
+  /// the whole data map (it is not deep-merged), so callers pass the full
+  /// updated payload. Rich JSON round-trips `data` verbatim; HTML / Markdown /
+  /// plain-text exports degrade via [BlockEmbedNode.displayText] /
+  /// `fallbackText`, exactly as on insert.
+  ///
+  /// A missing [blockId], a block that is not a [BlockEmbedNode], all three
+  /// fields being `null`, or an update that leaves the block unchanged is a
+  /// no-op: it returns an empty [ChangeSet] (`isNoop == true`) without throwing
+  /// or recording history. Under [WenzEditorPermission.read] a real update is
+  /// blocked by the gate (returns a blocked [ChangeSet], document untouched).
+  ChangeSet updateBlockEmbed({
+    required String blockId,
+    Map<String, Object?>? data,
+    String? fallbackText,
+    String? embedType,
+    DocumentSelection? selection,
+  }) {
+    final blockIndex = document.blocks.indexWhere(
+      (block) => block.id == blockId,
+    );
+    if (blockIndex < 0) {
+      return _noopChangeSet();
+    }
+    final block = document.blocks[blockIndex];
+    if (block is! BlockEmbedNode) {
+      return _noopChangeSet();
+    }
+    if (data == null && fallbackText == null && embedType == null) {
+      return _noopChangeSet();
+    }
+    final nextBlock = block.copyWith(
+      embedType: embedType,
+      data: data,
+      fallbackText: fallbackText,
+    );
+    if (_blockFingerprint(block) == _blockFingerprint(nextBlock)) {
+      return _noopChangeSet();
+    }
+    return replaceBlocks(
+      index: blockIndex,
+      deleteCount: 1,
+      blocks: <BlockNode>[nextBlock],
+      selection: selection,
+    );
+  }
+
+  /// Builds an empty (no-op) [ChangeSet] over the current document — two equal
+  /// snapshots so [ChangeSet.isNoop] is `true`. Used by helpers that bail out
+  /// without mutating (e.g. [updateBlockEmbed] on a missing/unchanged block) to
+  /// avoid recording history or firing change callbacks.
+  ChangeSet _noopChangeSet() {
+    final snapshot = session.document.copy();
+    return ChangeSet(
+      before: snapshot,
+      after: snapshot.copy(),
+      selectionBefore: session.selection,
+      selectionAfter: session.selection,
+    );
+  }
+
   /// Serialises the current selection into a clipboard string (rich JSON for a
   /// same-block range, plain text otherwise). Returns `null` when nothing is
   /// selected. Does not touch the platform clipboard — the caller writes the
@@ -1223,6 +1355,55 @@ class WenzRichTextController extends ChangeNotifier {
     );
   }
 
+  ExternalImagePasteResult pasteExternalImages(
+    List<ExternalImageBlockDescription> images,
+  ) {
+    if (images.isEmpty) {
+      return const ExternalImagePasteResult.emptyInput();
+    }
+    final paste = clipboardService.parseExternalImages(
+      images,
+      newBlockId: () => 'external-image-${_pasteBlockCounter()}',
+    );
+    if (paste == null || !paste.isBlocks || paste.blocks.isEmpty) {
+      return const ExternalImagePasteResult.noInsertableImages();
+    }
+    final change = _pasteExternalImageBlocks(paste.blocks);
+    return ExternalImagePasteResult.fromChange(
+      change,
+      insertedImageCount: paste.blocks.length,
+    );
+  }
+
+  ChangeSet _pasteExternalImageBlocks(List<BlockNode> blocks) {
+    final selection = session.selection;
+    if (selection == null || selection.extent.path.isTableCellText) {
+      return _insertExternalImageBlocksAt(
+        _currentBlockInsertionIndex(),
+        blocks,
+      );
+    }
+    return execute(
+      PasteBlocksCommand(
+        blocks,
+        newBlockId: 'paste-${_pasteBlockCounter()}',
+      ),
+    );
+  }
+
+  ChangeSet _insertExternalImageBlocksAt(int index, List<BlockNode> blocks) {
+    return execute(
+      InsertBlocksCommand(
+        index: index,
+        blocks: blocks,
+        selection: _selectionForExternalImageBlock(
+          blocks.last,
+          index + blocks.length - 1,
+        ),
+      ),
+    );
+  }
+
   void _pasteClipboard(ClipboardPaste paste) {
     if (paste.isBlocks) {
       execute(PasteBlocksCommand(paste.blocks,
@@ -1288,6 +1469,35 @@ class WenzRichTextController extends ChangeNotifier {
   String _pasteBlockCounter() {
     _pasteSequence += 1;
     return '${DateTime.now().microsecondsSinceEpoch}-$_pasteSequence';
+  }
+
+  int _currentBlockInsertionIndex() {
+    final selection = session.selection;
+    final blockCount = document.blocks.length;
+    if (selection == null) {
+      return blockCount;
+    }
+    final position = selection.extent;
+    final index = position.blockIndex.clamp(0, blockCount).toInt();
+    if (position.path.isTableCellText) {
+      return (index + 1).clamp(0, blockCount).toInt();
+    }
+    if (position.path.isBlockObject && position.offset > 0) {
+      return (index + 1).clamp(0, blockCount).toInt();
+    }
+    return index;
+  }
+
+  DocumentSelection _selectionForExternalImageBlock(
+    BlockNode block,
+    int blockIndex,
+  ) {
+    final start = DocumentPosition.object(
+      blockId: block.id,
+      blockIndex: blockIndex,
+      offset: 0,
+    );
+    return DocumentSelection(base: start, extent: start.copyWith(offset: 1));
   }
 
   ChangeSet enter({String? newBlockId}) {
@@ -1543,15 +1753,22 @@ class WenzRichTextController extends ChangeNotifier {
   /// editor keeps the original embed data available to renderers/events and the
   /// required stable fields are `id` and `label`. The embed remains one logical
   /// character, so taps and drag selections can share the same hit boundary.
+  /// Extra [data] is preserved for host-owned business fields; canonical
+  /// `id`/`label` values always win if the map also contains those keys.
   ChangeSet insertMention(
     String id,
     String label, {
+    Map<String, Object?> data = const <String, Object?>{},
     DocumentSelection? selection,
   }) {
     return execute(
       InsertInlineEmbedCommand(
         embedType: 'mention',
-        data: <String, Object?>{'id': id, 'label': label},
+        data: <String, Object?>{
+          ...data,
+          'id': id,
+          'label': label,
+        },
         selection: selection,
       ),
     );
@@ -1727,6 +1944,22 @@ class WenzRichTextController extends ChangeNotifier {
         rowIndex: rowIndex,
         columnIndex: columnIndex,
         backgroundColor: backgroundColor,
+      ),
+    );
+  }
+
+  ChangeSet setTableCellAlignment({
+    required int blockIndex,
+    required int rowIndex,
+    required int columnIndex,
+    required String? alignment,
+  }) {
+    return execute(
+      SetTableCellAlignmentCommand(
+        blockIndex: blockIndex,
+        rowIndex: rowIndex,
+        columnIndex: columnIndex,
+        alignment: alignment,
       ),
     );
   }

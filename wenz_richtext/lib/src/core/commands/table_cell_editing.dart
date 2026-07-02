@@ -533,6 +533,7 @@ CommandResult clearTableCellRange(
         isHeader: cell.isHeader,
         backgroundColor: cell.backgroundColor,
         covered: cell.covered,
+        alignment: cell.alignment,
       );
       changed = true;
     }
@@ -633,6 +634,7 @@ CommandResult replaceCellTextBlock(
     isHeader: cell.isHeader,
     backgroundColor: cell.backgroundColor,
     covered: cell.covered,
+    alignment: cell.alignment,
   );
   replaceTable(session, blockIndex, tableBlock, rows);
   return CommandResult(selection: selection);
@@ -693,5 +695,6 @@ TableCellNode copyCell(TableCellNode cell) {
     isHeader: cell.isHeader,
     backgroundColor: cell.backgroundColor,
     covered: cell.covered,
+    alignment: cell.alignment,
   );
 }

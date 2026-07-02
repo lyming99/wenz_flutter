@@ -270,7 +270,13 @@ class LegacyWenJsonCodec {
   }
 
   TableCellNode _tableCell(Map<String, Object?> json, String id) {
-    return TableCellNode(id: id, blocks: <BlockNode>[_decodeElement(json, id)]);
+    final alignment = json['alignment'];
+    return TableCellNode(
+      id: id,
+      blocks: <BlockNode>[_decodeElement(json, id)],
+      alignment:
+          alignment is String && alignment.isNotEmpty ? alignment : null,
+    );
   }
 
   bool _isListType(String? itemType) {

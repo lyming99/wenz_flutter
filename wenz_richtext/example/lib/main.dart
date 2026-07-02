@@ -6,17 +6,23 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:wenz_richtext/wenz_richtext.dart';
 
 import 'example_video_player.dart';
+import 'flowchart/flowchart_model.dart';
+import 'flowchart/flowchart_plugin.dart';
+import 'flowchart/flowchart_view.dart';
 import 'local_image_view.dart';
 import 'outline_panel.dart';
 import 'test_host.dart';
+import 'ai/conversation_list_page.dart';
 
 void main() {
   runApp(const WenzRichTextExampleApp());
 }
 
 const _exampleSeedColor = Color(0xFF0F766E);
+const _exampleFontFamily = '微软雅黑';
 const _themeToggleKey = ValueKey<String>('wenz-example-theme-toggle');
 const _editorSurfaceKey = ValueKey<String>('wenz-example-editor-surface');
+const _mentionInsertMenuKey = ValueKey<String>('wenz-example-mention-menu');
 const _imageFileTypeGroup = XTypeGroup(
   label: 'Images',
   extensions: <String>['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'],
@@ -29,6 +35,65 @@ const _imageFileTypeGroup = XTypeGroup(
   ],
 );
 
+const List<WenzMentionCandidate> _exampleMentionCandidates =
+    <WenzMentionCandidate>[
+  WenzMentionCandidate(
+    id: 'u-ada',
+    label: 'Ada Lovelace',
+    description: 'Product architecture',
+    data: <String, Object?>{
+      'email': 'ada@example.com',
+      'department': 'Product',
+    },
+  ),
+  WenzMentionCandidate(
+    id: 'u-grace',
+    label: 'Grace Hopper',
+    description: 'Compiler platform',
+    data: <String, Object?>{
+      'email': 'grace@example.com',
+      'department': 'Engineering',
+    },
+  ),
+  WenzMentionCandidate(
+    id: 'u-alan',
+    label: 'Alan Turing',
+    description: 'Research review',
+    data: <String, Object?>{
+      'email': 'alan@example.com',
+      'department': 'Research',
+    },
+  ),
+  WenzMentionCandidate(
+    id: 'team-design',
+    label: 'Design Team',
+    description: 'Shared design channel',
+    data: <String, Object?>{
+      'kind': 'team',
+      'department': 'Design',
+    },
+  ),
+];
+
+Future<List<WenzMentionCandidate>> _searchExampleMentions(
+  WenzMentionSearchRequest request,
+) async {
+  await Future<void>.delayed(const Duration(milliseconds: 160));
+  final query = request.query.trim().toLowerCase();
+  if (query.isEmpty) {
+    return _exampleMentionCandidates;
+  }
+  return _exampleMentionCandidates.where((candidate) {
+    final searchable = <String>[
+      candidate.id,
+      candidate.label,
+      candidate.description ?? '',
+      ...candidate.data.values.whereType<String>(),
+    ].join(' ').toLowerCase();
+    return searchable.contains(query);
+  }).toList(growable: false);
+}
+
 ThemeData _exampleTheme(Brightness brightness) {
   final background =
       brightness == Brightness.dark ? Colors.black : Colors.white;
@@ -38,6 +103,7 @@ ThemeData _exampleTheme(Brightness brightness) {
   ).copyWith(surface: background);
   return ThemeData(
     colorScheme: scheme,
+    fontFamily: _exampleFontFamily,
     scaffoldBackgroundColor: background,
     useMaterial3: true,
   );
@@ -49,10 +115,12 @@ Color _exampleEditorBackground(BuildContext context) {
       : Colors.white;
 }
 
-/// Example [MediaResolver]: images use [Image.network] or a local-file helper,
-/// while videos are handed to [ExampleVideoPlayer] (asset / network / local-file
-/// sources). Blocks without a usable URL return `null` so the built-in
-/// placeholder remains visible.
+/// Example [MediaResolver]: images use [Image.network] or the same local-file
+/// helper for toolbar selections, external image paste/drop temp files, and
+/// file:// URIs; videos are handed to [ExampleVideoPlayer] (asset / network /
+/// local-file sources). Blocks without a usable source return `null` so the
+/// built-in placeholder remains visible; local file failures render helper
+/// fallbacks.
 class _ExampleMediaResolver implements MediaResolver {
   @override
   Widget? resolve(BuildContext context, BlockNode block) {
@@ -291,8 +359,14 @@ class _EditorWorkbenchState extends State<EditorWorkbench> {
   late final WenzOutlineController _outline;
   final MediaResolver _mediaResolver = _ExampleMediaResolver();
   final _draftAdapter = _InMemoryDraftAdapter();
+
+  // AI conversation module — initialized once at startup.
+  final AIConfigManager _aiConfigManager = AIConfigManager();
+  late final ConversationManager _aiConversationManager;
+
   var _nextId = 0;
   var _showDebugOverlay = false;
+  var _isPickingImage = false;
 
   /// Most recent controller callback event, shown in the inspector's Events
   /// section as a live demonstration of onChanged / onSelectionChanged /
@@ -307,6 +381,12 @@ class _EditorWorkbenchState extends State<EditorWorkbench> {
         document: _sampleDocument(),
         selection: _collapsed('intro', 1, 18),
         mediaResolver: _mediaResolver,
+        mentionSearch: _searchExampleMentions,
+        onMentionTap: _showMentionDetails,
+        // Keep external image input enabled in the example so local image files
+        // inserted from the toolbar, platform image paste adapters, or file
+        // drops all flow into ImageBlockNode.file and the resolver below.
+        enableExternalImageInput: true,
         // CRM record card as a business block embed. The bootstrap seeds the
         // built-in renderers first and layers this builder on top, so default
         // blocks keep working alongside the embed.
@@ -318,7 +398,40 @@ class _EditorWorkbenchState extends State<EditorWorkbench> {
               child: _CrmCardEmbed(block: block),
             );
           },
+          // Flowchart via the config-injection path. Registered here AND
+          // through FlowchartPlugin (see `plugins` below) so the example
+          // demonstrates both integration paths side by side. The bootstrap
+          // applies host configuration last (defaults → plugins → host), so
+          // this entry overrides the plugin's identical builder and wins —
+          // exercising the host-overrides-plugin merge rule. Either path alone
+          // is sufficient; pick one in production. Dragging is gated on
+          // `renderContext.canEdit` inside the view, and a finished drag writes
+          // the new coordinates back through `updateBlockEmbed` (history,
+          // callbacks, and the permission gate all apply).
+          kFlowchartEmbedType: flowchartRendererBuilder(
+            onWriteBack: (blockId, data) => _controller.updateBlockEmbed(
+              blockId: blockId,
+              data: data,
+            ),
+          ),
         },
+        // `/流程图` slash entry + toolbar descriptor via the config-injection
+        // path. FlowchartPlugin (below) contributes the same items; host
+        // configuration wins on the shared id because it is applied last.
+        slashMenuItems: <SlashMenuItem>[flowchartSlashMenuItem()],
+        toolbarItems: <WenzToolbarItem>[flowchartToolbarItem()],
+        // Flowchart via the reusable-plugin path: install() registers the
+        // renderer, slash item, and toolbar item in one step, reusing the same
+        // builders/descriptors as the config-injection entries above. Any host
+        // can drop FlowchartPlugin() into this list for the full flowchart
+        // surface without touching its own configuration maps — the path to
+        // choose when the same component is shared across multiple hosts.
+        plugins: <WenzRichTextPlugin>[const FlowchartPlugin()],
+        // Mermaid diagrams: opt-in via the configuration flag. Uses the
+        // vector-graphics SVG surface so no additional native dependency
+        // is required for the example.
+        enableMermaidDiagrams: true,
+        diagramSvgSurface: const VectorGraphicsDiagramSurface(),
         // Autosave is opt-in: it needs a host-supplied sink. The example
         // persists snapshots in memory and reports state in the inspector.
         enableAutosave: true,
@@ -364,6 +477,11 @@ class _EditorWorkbenchState extends State<EditorWorkbench> {
     _stats.addListener(_handleControllerChanged);
     _autosave.addListener(_handleControllerChanged);
     _outline.addListener(_handleControllerChanged);
+
+    // Initialize AI conversation module.
+    _aiConversationManager = ConversationManager();
+    unawaited(_aiConfigManager.initialize());
+    unawaited(_aiConversationManager.initialize(_aiConfigManager));
   }
 
   @override
@@ -377,6 +495,8 @@ class _EditorWorkbenchState extends State<EditorWorkbench> {
     _autosave.removeListener(_handleControllerChanged);
     _outline.removeListener(_handleControllerChanged);
     _bootstrap.dispose();
+    _aiConfigManager.dispose();
+    _aiConversationManager.dispose();
     super.dispose();
   }
 
@@ -402,6 +522,20 @@ class _EditorWorkbenchState extends State<EditorWorkbench> {
             tooltip: '重做',
             onPressed: _controller.canRedo ? _controller.redo : null,
             icon: const Icon(Icons.redo),
+          ),
+          IconButton(
+            tooltip: 'AI 对话',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => ConversationListPage(
+                    conversationManager: _aiConversationManager,
+                    configManager: _aiConfigManager,
+                  ),
+                ),
+              );
+            },
+            icon: const Icon(Icons.auto_awesome),
           ),
           IconButton(
             key: _themeToggleKey,
@@ -467,6 +601,7 @@ class _EditorWorkbenchState extends State<EditorWorkbench> {
                   _Toolbar(
                     controller: _controller,
                     toolbar: _toolbar,
+                    isPickingImage: _isPickingImage,
                     onInsertCode: _insertCodeBlock,
                     onInsertCallout: _insertCallout,
                     onInsertTable: _insertTable,
@@ -474,6 +609,7 @@ class _EditorWorkbenchState extends State<EditorWorkbench> {
                     onInsertVideo: _insertVideo,
                     onInsertFile: _insertFile,
                     onInsertEmbed: _insertBlockEmbed,
+                    onInsertFlowchart: _insertFlowchart,
                     onInsertRow: _insertTableRow,
                     onInsertColumn: _insertTableColumn,
                     onDeleteRow: _deleteTableRow,
@@ -485,15 +621,7 @@ class _EditorWorkbenchState extends State<EditorWorkbench> {
                     child: ColoredBox(
                       key: _editorSurfaceKey,
                       color: _exampleEditorBackground(context),
-                      child: _bootstrap.buildEditor(
-                        autofocus: true,
-                        padding: const EdgeInsets.fromLTRB(32, 28, 32, 48),
-                        blockSpacing: 14,
-                        textStyle: theme.textTheme.bodyLarge,
-                        defaultTextColor: theme.colorScheme.onSurface,
-                        showDebugOverlay: _showDebugOverlay,
-                        onOpenLink: (url, position) => _openLink(url),
-                      ),
+                      child: _buildEditor(theme),
                     ),
                   ),
                 ],
@@ -515,6 +643,58 @@ class _EditorWorkbenchState extends State<EditorWorkbench> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  WenzRichTextEditor _buildEditor(ThemeData theme) {
+    final shortcutConfiguration = EditorShortcutConfiguration.merge(
+      <EditorShortcutConfiguration>[
+        ..._bootstrap.pluginShortcutConfigurations,
+        _bootstrap.configuration.shortcutConfiguration,
+      ],
+    );
+    return WenzRichTextEditor(
+      controller: _controller,
+      padding: const EdgeInsets.fromLTRB(32, 28, 32, 48),
+      blockSpacing: 14,
+      textStyle: theme.textTheme.bodyLarge,
+      defaultTextColor: theme.colorScheme.onSurface,
+      autofocus: true,
+      readOnly:
+          _bootstrap.configuration.permission == WenzEditorPermission.read,
+      showDebugOverlay: _showDebugOverlay,
+      shortcutConfiguration: shortcutConfiguration,
+      blockRenderers: _bootstrap.blockRendererRegistry,
+      mediaResolver: _bootstrap.configuration.mediaResolver,
+      inlineEmbedRenderer: _bootstrap.inlineEmbedRendererRegistry,
+      mentionSearch: _bootstrap.mentionSearch,
+      onMentionTap: _bootstrap.configuration.onMentionTap,
+      onOpenLink: (url, position) => _openLink(url),
+      findController: _bootstrap.findReplaceController,
+      slashMenuController: _bootstrap.slashMenuController,
+      outlineController: _outline,
+      enableExternalImageInput:
+          _bootstrap.configuration.enableExternalImageInput,
+      externalImageClipboardReader:
+          _bootstrap.configuration.externalImageClipboardReader,
+      externalImageStore: _bootstrap.configuration.externalImageStore,
+      accessibility: _bootstrap.configuration.accessibility,
+    );
+  }
+
+  void _showMentionDetails(WenzMentionTapDetails details) {
+    if (!mounted) {
+      return;
+    }
+    _lastEvent = 'Mention · ${details.label ?? details.id ?? 'unknown'}';
+    setState(() {});
+    unawaited(
+      showDialog<void>(
+        context: context,
+        builder: (dialogContext) {
+          return _MentionDetailsDialog(details: details);
+        },
       ),
     );
   }
@@ -614,39 +794,72 @@ class _EditorWorkbenchState extends State<EditorWorkbench> {
   }
 
   Future<void> _insertImage() async {
-    if (!_toolbar.canInsertImage) {
+    if (_isPickingImage || !_toolbar.canInsertImage) {
       return;
     }
-    final insertionIndex = _currentBlockInsertionIndex();
-    final XFile? imageFile;
+    setState(() {
+      _isPickingImage = true;
+    });
     try {
-      imageFile = await openFile(
+      final insertionIndex = _currentBlockInsertionIndex();
+      final imageFile = await openFile(
         acceptedTypeGroups: const <XTypeGroup>[_imageFileTypeGroup],
       );
+      if (!mounted || imageFile == null) {
+        return;
+      }
+      final source = imageFile.path.trim();
+      if (source.isEmpty) {
+        _showImageSelectionError('无法读取所选图片路径。');
+        return;
+      }
+      try {
+        final fileSize = await imageFile.length();
+        if (fileSize <= 0) {
+          _showImageSelectionError('所选图片文件为空。');
+          return;
+        }
+      } catch (_) {
+        if (mounted) {
+          _showImageSelectionError('无法访问所选图片文件。');
+        }
+        return;
+      }
+      if (!mounted) {
+        return;
+      }
+      final fileName = imageFile.name.trim();
+      final label = fileName.isEmpty
+          ? source.split(RegExp(r'[\\/]')).last
+          : fileName;
+      final id = _newId('image');
+      _toolbar.insertImage(
+        index: insertionIndex,
+        blockId: id,
+        file: source,
+        caption: label,
+        altText: label,
+      );
     } catch (_) {
+      if (mounted) {
+        _showImageSelectionError('选择图片失败，请重试。');
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isPickingImage = false;
+        });
+      }
+    }
+  }
+
+  void _showImageSelectionError(String message) {
+    if (!mounted) {
       return;
     }
-    if (imageFile == null) {
-      return;
-    }
-    final fileName = imageFile.name.trim();
-    final source = imageFile.path.trim().isNotEmpty
-        ? imageFile.path.trim()
-        : fileName;
-    if (source.isEmpty) {
-      return;
-    }
-    final label = fileName.isEmpty
-        ? source.split(RegExp(r'[\\/]')).last
-        : fileName;
-    final id = _newId('image');
-    _toolbar.insertImage(
-      index: insertionIndex,
-      blockId: id,
-      file: source,
-      caption: label,
-      altText: label,
-    );
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
   }
 
   void _insertVideo() {
@@ -692,6 +905,17 @@ class _EditorWorkbenchState extends State<EditorWorkbench> {
         'stage': 'Proposal',
       },
       fallbackText: 'Acme renewal',
+    );
+  }
+
+  void _insertFlowchart() {
+    final id = _newId('flowchart');
+    _controller.insertBlockEmbed(
+      index: _currentBlockInsertionIndex(),
+      blockId: id,
+      embedType: kFlowchartEmbedType,
+      data: FlowchartDocument.sample().toJson(),
+      fallbackText: kFlowchartFallbackText,
     );
   }
 
@@ -844,6 +1068,7 @@ class _Toolbar extends StatelessWidget {
   const _Toolbar({
     required this.controller,
     required this.toolbar,
+    required this.isPickingImage,
     required this.onInsertCode,
     required this.onInsertCallout,
     required this.onInsertTable,
@@ -851,6 +1076,7 @@ class _Toolbar extends StatelessWidget {
     required this.onInsertVideo,
     required this.onInsertFile,
     required this.onInsertEmbed,
+    required this.onInsertFlowchart,
     required this.onInsertRow,
     required this.onInsertColumn,
     required this.onDeleteRow,
@@ -861,6 +1087,7 @@ class _Toolbar extends StatelessWidget {
 
   final WenzRichTextController controller;
   final ToolbarController toolbar;
+  final bool isPickingImage;
   final VoidCallback onInsertCode;
   final VoidCallback onInsertCallout;
   final VoidCallback onInsertTable;
@@ -868,6 +1095,7 @@ class _Toolbar extends StatelessWidget {
   final VoidCallback onInsertVideo;
   final VoidCallback onInsertFile;
   final VoidCallback onInsertEmbed;
+  final VoidCallback onInsertFlowchart;
   final VoidCallback onInsertRow;
   final VoidCallback onInsertColumn;
   final VoidCallback onDeleteRow;
@@ -969,12 +1197,26 @@ class _Toolbar extends StatelessWidget {
                   : null,
               icon: const Icon(Icons.functions),
             ),
-            IconButton(
-              tooltip: '提及',
-              onPressed: toolbar.canFormatInline
-                  ? () => controller.insertMention('u-demo', 'Ada')
-                  : null,
+            PopupMenuButton<WenzMentionCandidate>(
+              key: _mentionInsertMenuKey,
+              tooltip: '插入提及',
+              enabled: toolbar.canFormatInline,
               icon: const Icon(Icons.alternate_email),
+              onSelected: (candidate) {
+                controller.insertMention(
+                  candidate.id,
+                  candidate.label,
+                  data: candidate.toMentionData(),
+                );
+              },
+              itemBuilder: (context) {
+                return _exampleMentionCandidates.map((candidate) {
+                  return PopupMenuItem<WenzMentionCandidate>(
+                    value: candidate,
+                    child: _MentionCandidateMenuItem(candidate: candidate),
+                  );
+                }).toList(growable: false);
+              },
             ),
             IconButton(
               tooltip: '表情',
@@ -1069,9 +1311,16 @@ class _Toolbar extends StatelessWidget {
               icon: const Icon(Icons.table_chart),
             ),
             IconButton(
-              tooltip: '插入图片',
-              onPressed: toolbar.canInsertImage ? onInsertImage : null,
-              icon: const Icon(Icons.image),
+              tooltip: isPickingImage ? '正在选择图片' : '插入图片',
+              onPressed: !isPickingImage && toolbar.canInsertImage
+                  ? onInsertImage
+                  : null,
+              icon: isPickingImage
+                  ? const SizedBox.square(
+                      dimension: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.image),
             ),
             IconButton(
               tooltip: '插入视频',
@@ -1087,6 +1336,11 @@ class _Toolbar extends StatelessWidget {
               tooltip: '插入客户关系管理嵌入',
               onPressed: onInsertEmbed,
               icon: const Icon(Icons.badge_outlined),
+            ),
+            IconButton(
+              tooltip: '插入流程图',
+              onPressed: onInsertFlowchart,
+              icon: const Icon(Icons.account_tree_outlined),
             ),
             if (inTable) ...<Widget>[
               const SizedBox(width: 8),
@@ -1138,6 +1392,189 @@ class _Toolbar extends StatelessWidget {
     }
     toolbar.setLink(result.isEmpty ? null : result);
   }
+}
+
+class _MentionCandidateMenuItem extends StatelessWidget {
+  const _MentionCandidateMenuItem({required this.candidate});
+
+  final WenzMentionCandidate candidate;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final description = candidate.description?.trim();
+    final initial = candidate.label.trim().isEmpty
+        ? '@'
+        : candidate.label.trim().substring(0, 1).toUpperCase();
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minWidth: 220),
+      child: Row(
+        children: <Widget>[
+          CircleAvatar(
+            radius: 14,
+            child: Text(
+              initial,
+              style: theme.textTheme.labelSmall,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  candidate.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  description == null || description.isEmpty
+                      ? candidate.id
+                      : '${candidate.id} · $description',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MentionDetailsDialog extends StatelessWidget {
+  const _MentionDetailsDialog({required this.details});
+
+  final WenzMentionTapDetails details;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final label = details.label ?? details.id ?? 'Unknown mention';
+    final entries = details.data.entries.toList(growable: false);
+    return AlertDialog(
+      title: Text('提及详情 · $label'),
+      content: SizedBox(
+        width: 420,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              _MentionDetailRow(label: 'ID', value: details.id ?? '—'),
+              _MentionDetailRow(label: 'Label', value: details.label ?? '—'),
+              _MentionDetailRow(
+                label: 'Block',
+                value: '${details.blockIndex} · ${details.blockId}',
+              ),
+              _MentionDetailRow(
+                label: 'Path',
+                value: details.path.toString(),
+              ),
+              _MentionDetailRow(
+                label: 'Offset',
+                value: '${details.offset}',
+              ),
+              const SizedBox(height: 14),
+              Text('Payload', style: theme.textTheme.titleSmall),
+              const SizedBox(height: 8),
+              if (entries.isEmpty)
+                Text(
+                  'No payload',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                )
+              else
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(
+                      color: theme.colorScheme.outlineVariant,
+                    ),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(10),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        for (final entry in entries)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 6),
+                            child: Text(
+                              '${entry.key}: ${_mentionPayloadValue(entry.value)}',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                fontFamily: 'monospace',
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+      actions: <Widget>[
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('关闭'),
+        ),
+      ],
+    );
+  }
+}
+
+class _MentionDetailRow extends StatelessWidget {
+  const _MentionDetailRow({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          SizedBox(
+            width: 72,
+            child: Text(
+              label,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: theme.textTheme.bodyMedium,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+String _mentionPayloadValue(Object? value) {
+  if (value == null) {
+    return 'null';
+  }
+  if (value is String) {
+    return value;
+  }
+  return value.toString();
 }
 
 /// A boolean-mark toggle button (bold/italic/underline/…) that highlights
@@ -1508,7 +1945,9 @@ class _MetricRow extends StatelessWidget {
 }
 
 RichTextDocument _sampleDocument() {
-  return const RichTextDocument(
+  // Not `const`: the flowchart sample is built through the `flowchartBlockEmbed`
+  // helper so the seed data matches the renderer's data contract exactly.
+  return RichTextDocument(
     blocks: <BlockNode>[
       TextBlockNode(
         id: 'title',
@@ -1553,7 +1992,7 @@ RichTextDocument _sampleDocument() {
           TextRun(text: ' '),
           InlineEmbed(
             embedType: 'mention',
-            data: <String, Object?>{'id': 'u-demo', 'label': 'Ada'},
+            data: _exampleMentionCandidates.first.toMentionData(),
           ),
         ],
       ),
@@ -1590,6 +2029,23 @@ RichTextDocument _sampleDocument() {
         id: 'code',
         language: 'dart',
         code: 'final json = controller.toJson();',
+      ),
+      CodeBlockNode(
+        id: 'mermaid-sample',
+        language: 'mermaid',
+        code: 'flowchart TD\n'
+            '  Start([客户提交续约申请]) --> Intake[销售录入线索与需求]\n'
+            '  Intake --> Review{资料是否完整?}\n'
+            '  Review -->|完整| Quote[生成报价与审批单]\n'
+            '  Review -->|缺失| Patch[补充客户资料]\n'
+            '  Patch --> Intake\n'
+            '  Quote --> Risk{合同金额超过阈值?}\n'
+            '  Risk -->|是| Legal[法务复核条款]\n'
+            '  Risk -->|否| Sign[发送电子签署]\n'
+            '  Legal --> Sign\n'
+            '  Sign --> Won([归档并通知客户成功])\n'
+            '  Sign -->|客户退回| Revise[调整方案]\n'
+            '  Revise --> Quote',
       ),
       TableBlockNode(
         id: 'table',
@@ -1691,6 +2147,10 @@ RichTextDocument _sampleDocument() {
           'stage': 'Proposal',
         },
         fallbackText: 'Acme renewal',
+      ),
+      flowchartBlockEmbed(
+        id: 'flowchart-sample',
+        document: FlowchartDocument.sample(),
       ),
     ],
   );

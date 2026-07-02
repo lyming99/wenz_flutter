@@ -53,6 +53,7 @@ flutter build web
 - **序列化**：rich JSON（版本化 + migration）、legacy JSON 导入、纯文本导出。
 - **媒体渲染**：`MediaResolver` 钩子让业务注入图片/视频/文件真渲染（example 用 `Image.network` 渲染 picsum 图片，并用纯 Flutter 视频预览卡演示业务播放器接入点）；未注入或 resolver 返回 `null` 时图片/视频回退占位，文件回退附件元数据卡片。
 - **业务 block embed**：example 通过 `BlockRendererRegistry.registerEmbed('crm-card', ...)` 注入 CRM card renderer，并提供 `Insert CRM embed` 工具栏按钮；rich JSON/HTML 保留 `BlockEmbedNode` 数据，Markdown/plain text 可读降级。
+- **Mermaid 预览**：example 默认启用 Mermaid code block 预览，初始文档内置中文流程图样例，可用于核验深色预览区的节点、连线、判断菱形和中文标签可读性。
 
 ## 当前边界（待办，详见 acceptance_report.md）
 
@@ -69,6 +70,15 @@ flutter build web
 ## Web 焦点
 
 点击编辑器区域会显式请求焦点以显示 caret。如遇 caret 不出现，确认浏览器未拦截焦点（部分 iframe 嵌入场景需要 `tabindex`）。
+
+## Mermaid 预览人工核验
+
+在 Windows desktop example 中打开初始文档里的 Mermaid 中文流程图 code block，执行以下手验：
+
+1. 点击 code block 右上角预览按钮，确认流程图完整适配在固定比例预览区内，节点、连线、箭头、判断菱形和中文标签在深色背景下清晰可读。
+2. 点击预览区使其聚焦，直接滚动鼠标滚轮或触控板，确认无需进入额外全图视图即可缩放。
+3. 在预览区拖拽平移，确认缩放后的流程图可移动查看，父级编辑器滚动不抢占当前缩放手势。
+4. 缩放或平移后切回源码，再切回预览，确认 SVG 仍可重新完整适配并继续响应滚轮缩放和拖拽平移。
 
 ## Debug overlay
 

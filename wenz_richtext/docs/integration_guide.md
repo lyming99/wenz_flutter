@@ -36,7 +36,7 @@ The standard external interface is **a facade plus a configuration object**:
 
 | Type | Role | Stability tier |
 | --- | --- | --- |
-| `WenzEditorConfiguration` | A `@immutable`, side-effect-free description of *intent*: initial document/selection, permission, media resolver, codec/migrations, accessibility, plugins, shortcuts, paste transformers, callbacks, and on/off switches for the built-in derived controllers. Describes what you want; never creates anything. | tier 1 (recommended entry) |
+| `WenzEditorConfiguration` | A `@immutable`, side-effect-free description of *intent*: initial document/selection, permission, media resolver, codec/migrations, accessibility, mention search/tap hooks, plugins, shortcuts, paste transformers, external image input, controller callbacks, and on/off switches for the built-in derived controllers. Describes what you want; never creates anything. | tier 1 (recommended entry) |
 | `WenzEditorBootstrap` | The facade. `WenzEditorBootstrap.create(configuration)` assembles the `WenzRichTextController` + every registry + the derived controllers + plugins in one call, exposes unified data I/O and getters, builds the `WenzRichTextEditor` via `buildEditor({...})`, and releases everything in dependency-reverse order via `dispose()`. | tier 1 (recommended entry) |
 
 ### Why facade + configuration, not a replacement typed API
@@ -95,6 +95,9 @@ first; reach lower only when the facade genuinely cannot express what you need.
 - **Permission policy:** `WenzEditorPermission` (`read` / `comment` / `edit`).
 - **Controller change callbacks:** `WenzRichTextController.onChanged`,
   `.onSelectionChanged`, `.onCommandExecuted`.
+- **External image input:** `ExternalImageInput`,
+  `ExternalImageClipboardData`, `ExternalImageClipboardReader`,
+  `ExternalImageStore`, and `ExternalImageBlockDescription`.
 
 ### tier 2 — advanced extension points
 
@@ -162,8 +165,10 @@ bootstrap.dispose(); // idempotent; safe to call once
 `buildEditor()` does not introduce a new widget type — it returns a plain
 `WenzRichTextEditor` and injects `controller`, `blockRenderers`, `mediaResolver`,
 `inlineEmbedRenderer`, `slashMenuController`, `findController` /
-`onFindRequested` / `onReplaceRequested`, `outlineController`, `onMentionTap`,
-`shortcutConfiguration`, and `accessibility`. Behaviour is identical to
+`onFindRequested` / `onReplaceRequested`, `outlineController`, `mentionSearch`,
+`onMentionTap`, external image-input settings, `shortcutConfiguration`, and
+`accessibility`.
+Behaviour is identical to
 constructing `WenzRichTextEditor` yourself; the facade only saves you the
 assembly.
 
@@ -245,29 +250,49 @@ final config = WenzEditorConfiguration(
     ),
   },
 
-  // 2) Custom inline embed renderer (e.g. a @mention chip).
+  // 2) Custom inline embed renderer (e.g. a status chip).
   inlineEmbedRenderers: <String, InlineEmbedSpanBuilder>{
-    'mention': (embed, _) => mentionSpan(embed),
+    'status': (context, embed, textStyle) => statusSpan(embed, textStyle),
   },
 
-  // 3) Slash-menu items / filters.
+  // 3) Mention lookup and activation.
+  mentionSearch: (request) async => users
+      .where((u) => u.name.toLowerCase().contains(request.query.toLowerCase()))
+      .map(
+        (u) => WenzMentionCandidate(
+          id: u.id,
+          label: u.name,
+          description: u.title,
+          avatarUrl: u.avatarUrl,
+          data: <String, Object?>{'email': u.email},
+        ),
+      )
+      .toList(),
+  onMentionTap: (details) => openProfile(details.id, details.data),
+
+  // 4) Slash-menu items / filters.
   slashMenuItems: <SlashMenuItem>[ mySlashItem ],
 
-  // 4) Toolbar items.
+  // 5) Toolbar items.
   toolbarItems: <WenzToolbarItem>[ myToolbarItem ],
 
-  // 5) Host-level shortcut overrides (applied last, so they win over plugins).
+  // 6) Host-level shortcut overrides (applied last, so they win over plugins).
   shortcutConfiguration: EditorShortcutConfiguration(
     bindings: <EditorShortcutBinding>[ myBinding ],
   ),
 
-  // 6) Paste transformers.
+  // 7) Paste transformers.
   pasteTransformers: <ClipboardPasteTransformer>[ myTransformer ],
 
-  // 7) Media resolution (images/videos) — the editor still needs the handle too.
+  // 8) Media resolution (images/videos) — the editor still needs the handle too.
   mediaResolver: myMediaResolver,
 
-  // 8) Whole plugins / bundles — commands, middleware, renderers, menu/toolbar
+  // 9) External image input policy.
+  enableExternalImageInput: true,
+  externalImageClipboardReader: myClipboardImageReader, // optional
+  externalImageStore: myImageStore,                     // optional
+
+  // 10) Whole plugins / bundles — commands, middleware, renderers, menu/toolbar
   //    items, shortcuts, paste transformers in one declarative package.
   plugins: <WenzRichTextPlugin>[
     WenzPluginBundle(id: 'acme.mentions', slashMenuItems: <SlashMenuItem>[...]),
@@ -285,8 +310,47 @@ indistinguishable to the editor. Shortcut fragments contributed by plugins are
 merged before the host's `shortcutConfiguration` (see
 `mergeWenzShortcutConfigurations`), so host bindings always win.
 
+Mention search is an editor-level hook, not an inline renderer. Use
+`mentionSearch` to feed the built-in `@` suggestions, insert selected candidates
+as `mention` inline embeds, and use `onMentionTap` for profile/detail UI. A
+custom `inlineEmbedRenderers['mention']` should be reserved for visual changes
+or fully custom tap handling.
+
+> Authoring a self-contained business block (e.g. a flowchart, CRM card, or
+> approval form)? The
+> [custom component guide](./custom_component_guide.md) walks the full four-layer
+> contract — `BlockEmbedNode` data → `BlockRendererBuilder` + `WenzObjectBlockSurface`
+> render → `insertBlockEmbed` insert → `updateBlockEmbed` in-place update → optional
+> `WenzRichTextPlugin` reuse — with a runnable flowchart sample in `example/lib/flowchart/`.
+
 See [§10](#10-configuration-field--extension-point-map) for the full
 field → extension-point mapping.
+
+### External image input
+
+External image input is enabled by default. With the stock widget, external file
+drops enter through the built-in drop adapter and the default image store writes
+memory-backed images to temporary files on IO platforms. Clipboard image flavors
+are intentionally represented by the stable `ExternalImageClipboardReader`
+contract; hosts that need screenshots, copied image files, or IM-app image
+flavors can pass their platform reader through
+`WenzEditorConfiguration.externalImageClipboardReader`.
+
+```dart
+final config = WenzEditorConfiguration(
+  enableExternalImageInput: true,
+  externalImageClipboardReader: MyClipboardImageReader(),
+  externalImageStore: MyUploadingImageStore(),
+);
+```
+
+Set `enableExternalImageInput: false` to keep ordinary text, Wenz rich JSON,
+HTML, and Markdown paste behavior while ignoring image clipboard flavors and
+external image file drops. Replacing `externalImageStore` is the handoff point
+for upload, permanent storage, security checks, temporary-file cleanup, or
+mapping a local path to an application asset id. The core package only produces
+image block descriptions and `ImageBlockNode.file`; it does not upload, retain,
+or clean application-owned media.
 
 ---
 
@@ -296,14 +360,16 @@ field → extension-point mapping.
 
 The three controller callbacks are exposed as configuration fields and wired
 onto the controller during `create()`. They fire synchronously *before*
-`notifyListeners`, so reading controller state inside them is safe.
+`notifyListeners`, so reading controller state inside them is safe. The
+editor-level `onMentionTap` callback is also exposed through configuration and
+receives normalized mention payload plus document position.
 
 ```dart
 final config = WenzEditorConfiguration(
   onChanged: (doc) => log('blocks=${doc.blocks.length}'),
   onSelectionChanged: (selection) => log('sel=$selection'),
   onCommandExecuted: (command, change) => log('cmd=${command.description}'),
-  onMentionTap: (mention) => openProfile(mention),
+  onMentionTap: (mention) => openProfile(mention.id, mention.data),
 );
 ```
 
@@ -420,16 +486,31 @@ This is the contract `WenzEditorConfiguration` (P002) implements and
 | `plugins` | `List<WenzRichTextPlugin>` | `installWenzRichTextPlugins` | tier 2 |
 | `shortcutConfiguration` | `EditorShortcutConfiguration` | merged last, wins | tier 2 |
 | `pasteTransformers` | `List<ClipboardPasteTransformer>` | `ClipboardService` | tier 2 |
+| `enableExternalImageInput` | `bool` (default `true`) | `buildEditor` | tier 1 |
+| `externalImageClipboardReader` | `ExternalImageClipboardReader?` | `buildEditor` | tier 1 |
+| `externalImageStore` | `ExternalImageStore?` | `buildEditor` | tier 1 |
 | `blockRenderers` | `Map<BlockType, BlockRendererBuilder>` | registry | tier 2 |
 | `blockEmbedRenderers` | `Map<String, BlockRendererBuilder>` | registry | tier 2 |
 | `inlineEmbedRenderers` | `Map<String, InlineEmbedSpanBuilder>` | registry | tier 2 |
+| `mentionSearch` | `WenzMentionSearchCallback?` | `buildEditor` | tier 1 |
 | `slashMenuItems` | `List<SlashMenuItem>` | `SlashMenuRegistry` | tier 2 |
 | `toolbarItems` | `List<WenzToolbarItem>` | `WenzToolbarItemRegistry` | tier 2 |
-| `onMentionTap` | mention tap callback | `buildEditor` | tier 1 |
+| `onMentionTap` | `WenzMentionTapCallback?` | `buildEditor` | tier 1 |
 | `onChanged` | doc-changed callback | controller | tier 1 |
 | `onSelectionChanged` | selection callback | controller | tier 1 |
 | `onCommandExecuted` | command callback | controller | tier 1 |
 | built-in derived-controller switches | `bool` (slash menu / find & replace / outline / autosave / stats / toolbar) | facade only creates the ones enabled | tier 2 |
+
+> **Custom components.** `blockEmbedRenderers` / `inlineEmbedRenderers` /
+> `blockRenderers` are the three injection seats for business embeds. The
+> [custom component guide](./custom_component_guide.md) gives the selection table
+> (block embed vs inline embed vs overriding a built-in `BlockType`) and the full
+> data → render → insert → update contract, with the flowchart as the worked
+> sample. Once a `BlockEmbedNode` is rendered, mutate its `data` in place through
+> `WenzRichTextController.updateBlockEmbed(blockId, data: ...)` — the typed helper
+> symmetric with `insertBlockEmbed` / `updateImageBlock` / `updateVideoBlock` /
+> `updateFileBlock` (recorded in [`api_reference.md`](./api_reference.md)); it
+> preserves `blockId`, history, callbacks, and the permission gate.
 
 `buildEditor({...})` pass-through appearance params (all optional, all forwarded
 verbatim to `WenzRichTextEditor`): `padding`, `blockSpacing`, `textStyle`,
@@ -456,8 +537,10 @@ When integrating, confirm each of these against your host:
    ad-hoc registry mutation after creation.
 5. Mode is `permission` (command gate) optionally combined with `readOnly`
    ([§7](#7-three-modes--read-only--comment--edit)); the gate is never bypassed.
-6. `dispose()` is called exactly once in your widget's `dispose()`
+6. If your app supports mentions, wire `mentionSearch` for `@` suggestions and
+   `onMentionTap` for profile/detail activation.
+7. `dispose()` is called exactly once in your widget's `dispose()`
    ([§8](#8-lifecycle--dispose-order)).
-7. If the facade cannot express what you need, drop to tier 2
+8. If the facade cannot express what you need, drop to tier 2
    ([§2](#2-stability-boundary--three-tiers)) — the typed API remains stable and
    is not deprecated.

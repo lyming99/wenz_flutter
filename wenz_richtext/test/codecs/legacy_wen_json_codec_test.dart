@@ -36,6 +36,43 @@ void main() {
     expect(table.table.cellAt(1, 1)?.blocks.single, isA<ImageBlockNode>());
   });
 
+  test('decodes per-cell alignment from legacy table cells', () {
+    // A legacy cell is its content element; a top-level `alignment` key on the
+    // cell maps to TableCellNode.alignment, coexisting with column alignments.
+    final source = jsonEncode(<Object?>[
+      <String, Object?>{
+        'type': 'table',
+        'alignments': <String, String>{'0': 'right'},
+        'rows': <List<Object?>>[
+          <Object?>[
+            <String, Object?>{
+              'type': 'text',
+              'alignment': 'center',
+              'children': <Object?>[
+                <String, Object?>{'type': 'text', 'text': 'Centered'},
+              ],
+            },
+            <String, Object?>{
+              'type': 'text',
+              'children': <Object?>[
+                <String, Object?>{'type': 'text', 'text': 'Column'},
+              ],
+            },
+          ],
+        ],
+      },
+    ]);
+    final document = codec.decode(source);
+    final table = document.blocks.single as TableBlockNode;
+
+    // Cell-level alignment is read directly off the cell element.
+    expect(table.table.cellAt(0, 0)?.alignment, 'center');
+    // Cells without alignment fall back to null (inherit column alignment).
+    expect(table.table.cellAt(0, 1)?.alignment, isNull);
+    // Column alignments still decode alongside cell alignment.
+    expect(table.table.columnAlignments[0], 'right');
+  });
+
   test('decodes code, image, formula embed, and divider', () {
     final source = File(
       'test/fixtures/legacy_code_image_formula.json',

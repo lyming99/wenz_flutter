@@ -382,6 +382,45 @@ class SetTableCellBackgroundCommand extends EditorCommand {
   }
 }
 
+class SetTableCellAlignmentCommand extends EditorCommand {
+  const SetTableCellAlignmentCommand({
+    required this.blockIndex,
+    required this.rowIndex,
+    required this.columnIndex,
+    required this.alignment,
+  });
+
+  final int blockIndex;
+  final int rowIndex;
+  final int columnIndex;
+  // 'left'/'center'/'right'/'justify'; `null` clears the cell alignment so the
+  // cell falls back to the column alignment.
+  final String? alignment;
+
+  @override
+  String get description => 'setTableCellAlignment';
+
+  @override
+  CommandResult execute(DocumentSession session) {
+    return updateTableCell(
+      session,
+      blockIndex,
+      rowIndex,
+      columnIndex,
+      (cell) => TableCellNode(
+        id: cell.id,
+        blocks: cell.blocks.map((block) => block.copy()).toList(),
+        rowSpan: cell.rowSpan,
+        columnSpan: cell.columnSpan,
+        isHeader: cell.isHeader,
+        backgroundColor: cell.backgroundColor,
+        covered: cell.covered,
+        alignment: alignment,
+      ),
+    );
+  }
+}
+
 class MergeTableCellsCommand extends EditorCommand {
   const MergeTableCellsCommand({
     required this.blockIndex,

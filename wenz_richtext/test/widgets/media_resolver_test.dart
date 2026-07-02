@@ -340,12 +340,14 @@ void main() {
         ),
         findsOneWidget,
       );
-      expect(find.text('Launch demo'), findsWidgets);
+      expect(
+        find.text('https://cdn.example.test/clip.mp4'),
+        findsWidgets,
+      );
       expect(
         find.text('[video: https://cdn.example.test/clip.mp4]'),
         findsOneWidget,
       );
-      expect(find.text('Quarterly launch reel'), findsOneWidget);
       expect(find.text('Cover: poster.png'), findsOneWidget);
 
       final aspectRatio = tester.widget<AspectRatio>(

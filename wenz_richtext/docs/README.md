@@ -4,6 +4,7 @@
 
 - [README 接口文档（首要 API 入口）](../README.md#接口文档)
 - [标准对外接口详细契约](./integration_guide.md)
+- [自定义组件接入指南（流程图样本）](./custom_component_guide.md)
 - [完整 API 参考](./api_reference.md)
 - [架构总览](./architecture.md)
 - [消费者接入 / 迁移指南](./migration_guide.md)

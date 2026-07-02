@@ -453,6 +453,51 @@ void main() {
       );
     });
 
+    test('table exports cell text-align inline style', () {
+      const document = RichTextDocument(
+        blocks: <BlockNode>[
+          TableBlockNode(
+            id: 'table1',
+            table: TableModel(
+              rows: <List<TableCellNode>>[
+                <TableCellNode>[
+                  TableCellNode(
+                    id: 'c0',
+                    alignment: 'center',
+                    blocks: <BlockNode>[
+                      TextBlockNode(
+                        id: 'c0p',
+                        type: BlockType.paragraph,
+                        content: <InlineNode>[TextRun(text: 'Centered')],
+                      ),
+                    ],
+                  ),
+                  TableCellNode(
+                    id: 'c1',
+                    blocks: <BlockNode>[
+                      TextBlockNode(
+                        id: 'c1p',
+                        type: BlockType.paragraph,
+                        content: <InlineNode>[TextRun(text: 'Default')],
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      );
+
+      expect(
+        codec.encode(document),
+        '<table><tr>'
+        '<td style="text-align: center">Centered</td>'
+        '<td>Default</td>'
+        '</tr></table>',
+      );
+    });
+
     test('HTML-escapes special characters in text', () {
       const document = RichTextDocument(
         blocks: <BlockNode>[
@@ -511,7 +556,7 @@ void main() {
         '<p><span style="color: #d81b60">hex</span> '
         '<font color="blue">named</font> '
         '<span style="color: rgba(1, 2, 3, 0.5)">rgba</span> '
-        '<span style="color: #01020380">hexAlpha</span> '
+        '<span style="color: #01020380">hexAlpha</span>'
         '<span style="color: not-a-color">plain</span></p>',
       );
       final para = doc.blocks.single as TextBlockNode;
@@ -680,6 +725,54 @@ void main() {
       expect(table.table.rows[1][0].covered, isTrue);
       expect(table.table.rows[1][1].covered, isTrue);
       expect(table.table.rows[1][2].plainText, 'Bottom');
+    });
+
+    test('table imports cell text-align from style and align attribute', () {
+      final doc = codec.decode(
+        '<table><tbody>'
+        '<tr><td style="text-align: center">A</td>'
+        '<td align="right">B</td>'
+        '<td>C</td></tr>'
+        '</tbody></table>',
+      );
+
+      expect(doc.blocks, hasLength(1));
+      final table = doc.blocks.single as TableBlockNode;
+      expect(table.table.cellAt(0, 0)?.alignment, 'center');
+      expect(table.table.cellAt(0, 1)?.alignment, 'right');
+      // No text-align/align falls back to null (column/default alignment).
+      expect(table.table.cellAt(0, 2)?.alignment, isNull);
+    });
+
+    test('table cell alignment round-trips through HTML', () {
+      const document = RichTextDocument(
+        blocks: <BlockNode>[
+          TableBlockNode(
+            id: 'table1',
+            table: TableModel(
+              rows: <List<TableCellNode>>[
+                <TableCellNode>[
+                  TableCellNode(
+                    id: 'c0',
+                    alignment: 'center',
+                    blocks: <BlockNode>[
+                      TextBlockNode(
+                        id: 'c0p',
+                        type: BlockType.paragraph,
+                        content: <InlineNode>[TextRun(text: 'A')],
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      );
+
+      final reimported = codec.decode(codec.encode(document));
+      final table = reimported.blocks.single as TableBlockNode;
+      expect(table.table.cellAt(0, 0)?.alignment, 'center');
     });
 
     test('img becomes an image block', () {

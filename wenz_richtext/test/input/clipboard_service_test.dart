@@ -503,6 +503,86 @@ void main() {
       expect(run.text, 'colored');
       expect(run.attributes.color, 0xFFD81B60);
     });
+
+    test('external image descriptions produce a blocks paste payload', () {
+      var id = 0;
+      final paste = service.parseExternalImages(
+        const <ExternalImageBlockDescription>[
+          ExternalImageBlockDescription(
+            file: 'C:/tmp/paste.png',
+            caption: 'paste',
+            altText: 'pasted image',
+          ),
+        ],
+        newBlockId: () => 'img-${++id}',
+      );
+
+      expect(paste, isNotNull);
+      expect(paste!.isBlocks, isTrue);
+      expect(paste.blocks, hasLength(1));
+      final image = paste.blocks.single as ImageBlockNode;
+      expect(image.id, 'img-1');
+      expect(image.file, 'C:/tmp/paste.png');
+      expect(image.caption, 'paste');
+      expect(image.altText, 'pasted image');
+    });
+
+    test('external image descriptions preserve multi-image order', () {
+      var id = 0;
+      final paste = service.parseExternalImages(
+        const <ExternalImageBlockDescription>[
+          ExternalImageBlockDescription(
+            file: 'C:/tmp/first.png',
+            caption: 'first',
+            altText: 'first alt',
+          ),
+          ExternalImageBlockDescription(
+            file: 'C:/tmp/second.webp',
+            caption: 'second',
+            altText: 'second alt',
+          ),
+        ],
+        newBlockId: () => 'img-${++id}',
+      );
+
+      expect(paste, isNotNull);
+      expect(paste!.blocks, hasLength(2));
+      final first = paste.blocks[0] as ImageBlockNode;
+      final second = paste.blocks[1] as ImageBlockNode;
+      expect(first.id, 'img-1');
+      expect(first.file, 'C:/tmp/first.png');
+      expect(first.caption, 'first');
+      expect(first.altText, 'first alt');
+      expect(second.id, 'img-2');
+      expect(second.file, 'C:/tmp/second.webp');
+      expect(second.caption, 'second');
+      expect(second.altText, 'second alt');
+      expect(paste.text, 'first\nsecond');
+    });
+
+    test('external image descriptions return null when none are insertable',
+        () {
+      var id = 0;
+      final empty = service.parseExternalImages(
+        const <ExternalImageBlockDescription>[],
+        newBlockId: () => 'img-${++id}',
+      );
+      final blank = service.parseExternalImages(
+        const <ExternalImageBlockDescription>[
+          ExternalImageBlockDescription(
+            file: '   ',
+            caption: 'blank',
+            altText: 'blank',
+          ),
+        ],
+        newBlockId: () => 'img-${++id}',
+      );
+
+      expect(empty, isNull);
+      expect(blank, isNull);
+      expect(id, 0);
+    });
+
     test('legacy pasteMarkdown returns inline content for one paragraph', () {
       final inline = service.pasteMarkdown('hello **world**');
 

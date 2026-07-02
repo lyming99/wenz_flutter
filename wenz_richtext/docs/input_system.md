@@ -4,12 +4,13 @@
 
 ## 总览
 
-输入由四条路径汇入 `WenzRichTextController`：
+输入由五条路径汇入 `WenzRichTextController`：
 
 1. **IME / TextInputClient**（字符输入、组合输入）— `EditorTextInputClient`。
 2. **键盘快捷键**（非字符键、Ctrl 组合）— `EditorShortcutManager` 解析 keymap，`WenzRichTextEditor` 执行动作。
 3. **剪贴板**（复制/剪切/粘贴）— `ClipboardService` + 控制器方法。
-4. **命令合并**（undo 粒度）— `CommandExecutor` + `HistoryManager.merge`。
+4. **外部图片输入**（图片剪贴板 flavor、外部文件拖拽）— `ExternalImageInput` + `ExternalImageStore`。
+5. **命令合并**（undo 粒度）— `CommandExecutor` + `HistoryManager.merge`。
 
 所有改动最终经 `EditorCommand` → `CommandExecutor.execute` → `DocumentSession`，保持单一变更入口。
 
@@ -77,6 +78,40 @@
 `pasteMarkdown(markdown)` / `pasteHtml(html)`。widget 的 Ctrl+C/X/V 调用纯文本
 入口并桥接 `Clipboard.setData/getText`；业务层如果能拿到平台 HTML/Markdown
 flavour，可以直接调用对应入口。
+
+### 图片粘贴与外部文件拖拽
+
+Flutter 标准 `Clipboard` 不暴露图片 bytes、文件 URI 或微信/QQ 等 IM 软件复制图片时的多 flavor 数据；这些平台数据通过 `ExternalImageClipboardReader` 进入 widget 层，并在进入控制器前转换成稳定的 `ExternalImageInput`：
+
+- `memory`：截图、IM 临时图片、平台暴露的 PNG/JPEG/GIF/WebP/BMP bytes。
+- `filePath`：复制图片文件或拖拽图片文件时得到的本地路径。
+- `fileUri`：平台拖放/剪贴板暴露的 `file://` URI。
+
+粘贴优先级保持兼容：
+
+1. Wenz rich JSON 前缀优先，保证编辑器自身复制的富文本语义不被图片 flavor 抢占。
+2. 其次处理外部图片输入；成功准备出的图片按现有块级粘贴语义插入 `ImageBlockNode`。
+3. 无可用图片时继续回退 HTML / Markdown / plain text。
+
+外部文件拖拽由 `WenzRichTextEditor` 的 drop target 接收，只在 `enableExternalImageInput == true`、非只读且 controller 可编辑时启用。拖入图片文件后，输入同样交给 `ExternalImageStore.prepare`，再通过 `WenzRichTextController.pasteExternalImages` 进入 `PasteBlocksCommand` / `InsertBlocksCommand`，因此撤销/重做、selection 和权限门禁与普通块粘贴一致。
+
+默认 IO store 的边界：
+
+- 文件 path / file URI：插入前校验路径存在、非目录、非空文件，并按扩展名/MIME/文件签名确认是支持的图片。
+- 内存 bytes：写入系统临时目录，文件名带 `wenz-external-image` 前缀，扩展名优先来自 MIME，其次来自 bytes 签名。
+- Web 或不支持平台：返回可诊断失败，不向 UI 抛异常。
+
+宿主可通过 `WenzEditorConfiguration` 或直接构造 `WenzRichTextEditor` 接管策略：
+
+```dart
+WenzEditorConfiguration(
+  enableExternalImageInput: true,
+  externalImageClipboardReader: myPlatformReader,
+  externalImageStore: myStore,
+);
+```
+
+`enableExternalImageInput: false` 只关闭图片 flavor 和外部图片拖拽；普通文本、Wenz rich JSON、HTML、Markdown 粘贴不受影响。核心包只生成图片块描述和临时/本地文件引用，不负责上传、长期持久化、清理临时文件或把本地路径映射为业务 asset，这些策略应由宿主通过 `ExternalImageStore` 或 `MediaResolver` 接管。
 
 ### HTML/Markdown 粘贴
 

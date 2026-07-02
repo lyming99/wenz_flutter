@@ -79,10 +79,10 @@ given).
 Every extension is a `WenzEditorConfiguration` field; the facade feeds it into
 the same registry/plugin install surface it already assembles, so an injected
 custom renderer is indistinguishable from a plugin-contributed one. The fields
-below map to tier 2 advanced extension points (the facade is built *on top* of
-these and never bypasses them):
+below map to tier 2 advanced extension points or editor-level tier 1 hooks (the
+facade is built *on top* of these and never bypasses them):
 
-| Configuration field | Feeds | Advanced extension point (tier 2) |
+| Configuration field | Feeds | Advanced extension point / hook |
 | --- | --- | --- |
 | `mediaResolver` | controller + `buildEditor` | `MediaResolver` |
 | `richTextJsonCodec` | controller ctor | `RichTextJsonCodec` (+ `DocumentMigrationRegistry`) |
@@ -92,6 +92,8 @@ these and never bypasses them):
 | `pasteTransformers` | `ClipboardService` | `ClipboardPasteTransformer` |
 | `blockRenderers` / `blockEmbedRenderers` | `BlockRendererRegistry` | `BlockRendererBuilder` |
 | `inlineEmbedRenderers` | `InlineEmbedRendererRegistry` | `InlineEmbedSpanBuilder` |
+| `mentionSearch` | `buildEditor` | built-in mention search overlay (tier 1) |
+| `onMentionTap` | `buildEditor` | mention activation callback (tier 1) |
 | `slashMenuItems` | `SlashMenuRegistry` | `SlashMenuItem` |
 | `toolbarItems` | `WenzToolbarItemRegistry` | `WenzToolbarItem` |
 | `enableSlashMenu` / `enableFindReplace` / `enableOutline` / `enableStats` / `enableToolbar` / `enableAutosave` | facade only | derived controllers (tier 2) |
@@ -123,6 +125,10 @@ access, three modes, dispose order, the `src/*` internal boundary).
 `ImageBlockNode` carries `assetId`/`file`, natural `width`/`height`, display
 `showWidth`/`showHeight`, plus `caption` and `altText`. JSON writes
 `altText` and also reads a legacy/external `alt` key for compatibility.
+`file` is the persisted local path/URI slot only: the core package does not
+open system file pickers, validate local files, upload media, or decode images.
+Hosts should perform those steps in their own UI and render real previews via
+`MediaResolver` or a custom block renderer.
 
 `BlockEmbedNode` is the generic business block embed model. It JSON round-trips
 `embedType`, JSON-compatible `data`, and `fallbackText`; HTML preserves these
@@ -228,7 +234,7 @@ Typed command surface (sample): `insertText`, `deleteBackward`, `deleteForward`,
 `setAlignment`, `indent`, `outdent`, `toggleTodo`, `toggleQuote`,
 `setCodeLanguage`, `indentCodeBlock`, `insertBlocks`, `replaceBlocks`,
 `setCalloutVariant`, `updateCalloutBlock`, `insertImage`, `updateImageBlock`,
-`insertFile`, `updateFileBlock`, `insertBlockEmbed`,
+`insertFile`, `updateFileBlock`, `insertBlockEmbed`, `updateBlockEmbed`,
 `setBlockAnchor`, `setRevisionMode`, `insertRevisionText`,
 `markDeletionRevision`, `markFormatRevision`, `acceptRevision`,
 `rejectRevision`,
@@ -241,6 +247,23 @@ When revision mode is enabled, typed insert/delete/format helpers route through
 revision commands and create inline `revisionIds` plus top-level `revisions`.
 `WenzLinkEditDialog` / `showWenzLinkEditDialog` provide the reusable Material
 link-edit popup used by the example toolbar; an empty result clears the link.
+
+Mention insertion preserves host-owned payload:
+
+```dart
+controller.insertMention(
+  'u-ada',
+  'Ada Lovelace',
+  data: <String, Object?>{
+    'email': 'ada@example.com',
+    'department': 'Product',
+  },
+);
+```
+
+`insertMention(id, label, data: ..., selection: ...)` creates a `mention`
+`InlineEmbed`. Extra `data` keys are preserved for rich JSON and tap/search
+payloads; if the map also contains `id` or `label`, the explicit arguments win.
 
 Callbacks (fire synchronously before `notifyListeners`):
 
@@ -308,6 +331,20 @@ controller.insertBlockEmbed(
   fallbackText: 'Acme account',
 );
 
+// In-place update of an existing block embed — the counterpart to the typed
+// media update helpers. `blockId` locates the block; each nullable field means
+// "leave unchanged" (a non-null `data` replaces the whole map). Routed through
+// `replaceBlocks`, so it shares history, callbacks, and the edit permission
+// gate. A missing blockId, a non-embed block, all fields null, or an unchanged
+// payload is a no-op returning an empty `ChangeSet` (no throw, no history).
+// `data` round-trips verbatim in rich JSON; `toHtml`/`toMarkdown`/`toPlainText`
+// degrade via `BlockEmbedNode.displayText` / `fallbackText`, same as on insert.
+controller.updateBlockEmbed(
+  blockId: 'crm-1',
+  data: <String, Object?>{'recordId': '42', 'stage': 'closed-won'},
+  fallbackText: 'Acme account (closed won)',
+);
+
 controller.updateCalloutBlock(
   blockIndex: 0,
   variant: 'warning',
@@ -343,7 +380,11 @@ command enable flags) off the host controller; see the root
 the docs [toolbar sample](./README.md#工具栏与业务集成-api) for a direct controller
 example. Media helpers include `canInsertImage` / `insertImage` and
 `canInsertVideo` / `insertVideo`; they use the current block insertion rule and
-still delegate permission checks to the host controller.
+still delegate permission checks to the host controller. For desktop image
+selection, host toolbars should guard the picker with their own pending state:
+disable repeated clicks while the picker is open, restore silently on cancel,
+and show a short UI error for picker failures, empty paths, or inaccessible
+files before calling `insertImage`.
 
 `WenzFindReplaceController` (tier 2) derives search state from a host
 `WenzRichTextController` without storing anything in the document model.
@@ -658,16 +699,29 @@ normalisation, and `onCommandExecuted` stay consistent.
 
 ## Widget layer (tier 2)
 
-- `WenzRichTextEditor({controller, shortcutConfiguration, blockRenderers, mediaResolver, inlineEmbedRenderer, onMentionTap, findController, slashMenuController, accessibility, …})` — the editor widget.
+- `WenzRichTextEditor({controller, shortcutConfiguration, blockRenderers, mediaResolver, inlineEmbedRenderer, mentionSearch, onMentionTap, findController, slashMenuController, accessibility, …})` — the editor widget.
   Pass `shortcutConfiguration` to append/override the built-in keymap, disable
   intents, or return `passThrough` for host-level shortcuts such as save.
   Passing `findController` paints all search matches; `onFindRequested` and
   `onReplaceRequested` let the host open its own panel for Ctrl/Cmd+F/H.
   Passing `slashMenuController` shows the built-in slash overlay and routes
   ArrowUp/ArrowDown/Enter/Escape while it is open.
+  Passing `mentionSearch` enables the built-in `@` overlay for editable,
+  collapsed-caret input after `@` or `@query`. The selected candidate replaces
+  the trigger range with a `mention` inline embed.
   Passing `onMentionTap` lets the host open a user profile, member card, or
   another business surface when a default `mention` inline embed is activated.
   The package only emits the event; it does not own navigation or profile UI.
+- `WenzMentionSearchCallback` / `WenzMentionSearchRequest` /
+  `WenzMentionCandidate` — mention lookup API. The callback may return
+  `List<WenzMentionCandidate>` synchronously or asynchronously. `request.query`
+  excludes the leading `@` and carries optional editor position/selection
+  context. Candidates expose canonical `id` and `label`, optional
+  `description` / `avatarUrl` display hints, and a JSON-friendly `data` payload.
+  `candidate.toMentionData()` merges business data with display hints and then
+  writes canonical `id` / `label` last so downstream renderers read stable
+  values. The built-in overlay handles ArrowUp/ArrowDown/Enter/Escape and calls
+  `insertMention(candidate.id, candidate.label, data: candidate.toMentionData())`.
 - `WenzMentionTapCallback` / `WenzMentionTapDetails` — mention activation API.
   `details.id` and `details.label` are normalized from the mention embed data,
   `details.data` is the original `InlineEmbed.data`, and `details.position`,
@@ -702,7 +756,10 @@ normalisation, and `onCommandExecuted` stay consistent.
   `rendering.md` §Media resolver. System file selection is host/example UI
   responsibility; core APIs persist the selected image source on
   `ImageBlockNode.file` and leave real preview widgets to `MediaResolver` or a
-  custom block renderer.
+  custom block renderer. Windows/local preview code should live behind
+  platform-appropriate imports, handle invalid paths with fallback widgets, and
+  limit large-image decoding with thumbnails, `cacheWidth`/`cacheHeight`, or an
+  equivalent bounded preview strategy.
 - `InlineEmbedRendererRegistry` / `InlineEmbedRenderer` /
   `InlineEmbedRendererCallback` — quick path for formula / mention / emoji /
   custom inline embed text-span rendering. The built-in text, callout, and

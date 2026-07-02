@@ -22,6 +22,7 @@ dependencies:
   media_kit: ^1.2.6 # 核心 API：Player/Media/Playlist。
   media_kit_video: ^2.0.1 # 视频渲染：VideoController/Video。
   media_kit_libs_video: ^1.0.7 # 各平台 libmpv 运行时库（Windows/Web 等）。
+  uuid: ^4.0.0
 
 dev_dependencies:
   flutter_test:

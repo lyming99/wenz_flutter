@@ -690,6 +690,7 @@ TableModel _copyTableForPaste(TableModel table, _PasteIdAllocator ids) {
                   isHeader: cell.isHeader,
                   backgroundColor: cell.backgroundColor,
                   covered: cell.covered,
+                  alignment: cell.alignment,
                 ),
               )
               .toList(),

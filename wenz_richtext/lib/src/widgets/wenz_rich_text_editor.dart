@@ -1,12 +1,13 @@
 import 'dart:async';
 import 'dart:math' as math;
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_math_fork/flutter_math.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
+import 'package:super_clipboard/super_clipboard.dart' as super_clipboard;
+import 'package:super_drag_and_drop/super_drag_and_drop.dart' as super_drag;
 
 import '../controller/find_replace_controller.dart';
 import '../controller/outline_controller.dart';
@@ -18,8 +19,13 @@ import '../core/model/block_node.dart';
 import '../core/model/inline_node.dart';
 import '../core/model/table_model.dart';
 import '../core/position/document_position.dart';
+import '../input/clipboard_service.dart';
 import '../input/composition_state.dart';
 import '../input/editor_text_input_client.dart';
+import '../input/external_image_input.dart';
+import '../input/external_image_store_stub.dart'
+    if (dart.library.io) '../input/external_image_store_io.dart'
+    as external_image_store;
 import '../input/shortcut_manager.dart';
 import '../rendering/text_layout_service.dart';
 import 'block_geometry_registry.dart';
@@ -29,6 +35,7 @@ import 'inline_embed_renderer.dart';
 import 'link_edit_dialog.dart';
 import 'link_hover_overlay.dart';
 import 'media_resolver.dart';
+import 'mention_search_overlay.dart';
 import 'selection_gesture_overlay.dart';
 import 'shared_text_layout_cache.dart';
 import 'slash_menu_overlay.dart';
@@ -51,6 +58,52 @@ const _accessibilityFocusHighlightKey = ValueKey<String>(
 const _blockReorderDropIndicatorKey = ValueKey<String>(
   'wenz-richtext-block-reorder-drop-indicator',
 );
+const _externalImageDropOverlayKey = ValueKey<String>(
+  'wenz-richtext-external-image-drop-overlay',
+);
+const String _kMentionSearchInlineBoundary = '\uFFFC';
+
+final List<_ExternalImageDropFileFormat> _externalImageDropFileFormats =
+    <_ExternalImageDropFileFormat>[
+  const _ExternalImageDropFileFormat(
+    super_clipboard.Formats.png,
+    'image/png',
+    'dropped-image.png',
+  ),
+  const _ExternalImageDropFileFormat(
+    super_clipboard.Formats.jpeg,
+    'image/jpeg',
+    'dropped-image.jpg',
+  ),
+  const _ExternalImageDropFileFormat(
+    super_clipboard.Formats.gif,
+    'image/gif',
+    'dropped-image.gif',
+  ),
+  const _ExternalImageDropFileFormat(
+    super_clipboard.Formats.webp,
+    'image/webp',
+    'dropped-image.webp',
+  ),
+];
+
+final List<super_clipboard.DataFormat<Object>> _externalImageDropFormats =
+    <super_clipboard.DataFormat<Object>>[
+  super_clipboard.Formats.fileUri,
+  for (final format in _externalImageDropFileFormats) format.format,
+];
+
+class _ExternalImageDropFileFormat {
+  const _ExternalImageDropFileFormat(
+    this.format,
+    this.mimeType,
+    this.fallbackFileName,
+  );
+
+  final super_clipboard.FileFormat format;
+  final String mimeType;
+  final String fallbackFileName;
+}
 
 enum _RowBlockFormat { paragraph, heading, code }
 
@@ -974,6 +1027,7 @@ class WenzRichTextEditor extends StatefulWidget {
     this.blockRenderers,
     this.mediaResolver,
     this.inlineEmbedRenderer,
+    this.mentionSearch,
     this.onMentionTap,
     this.onOpenLink,
     this.findController,
@@ -981,6 +1035,9 @@ class WenzRichTextEditor extends StatefulWidget {
     this.onReplaceRequested,
     this.slashMenuController,
     this.outlineController,
+    this.enableExternalImageInput = true,
+    this.externalImageClipboardReader,
+    this.externalImageStore,
     this.accessibility = const WenzRichTextEditorAccessibility(),
   });
 
@@ -1052,6 +1109,14 @@ class WenzRichTextEditor extends StatefulWidget {
   /// mention click handling.
   final InlineEmbedRenderer? inlineEmbedRenderer;
 
+  /// Optional search callback for editor-driven `@` mention suggestions.
+  ///
+  /// When provided, a collapsed caret after `@` or `@query` in editable text
+  /// opens the built-in mention search overlay. Selecting a candidate replaces
+  /// that query range with a `mention` inline embed. When omitted, typing `@`
+  /// behaves exactly like ordinary text.
+  final WenzMentionSearchCallback? mentionSearch;
+
   /// Called when a `mention` inline embed is activated by the editor.
   ///
   /// The callback receives [WenzMentionTapDetails], including the mention `id`,
@@ -1088,6 +1153,27 @@ class WenzRichTextEditor extends StatefulWidget {
   /// the rendered top-level block list without mutating the source document.
   /// Outline-panel expansion is separate display state and does not write here.
   final WenzOutlineController? outlineController;
+
+  /// Whether platform image clipboard flavors and external image file drops
+  /// should be accepted.
+  ///
+  /// Defaults to `true`. When `false`, the editor keeps existing text,
+  /// Wenz-rich JSON, HTML, and Markdown paste behaviour but ignores
+  /// [externalImageClipboardReader], [externalImageStore], and external image
+  /// drop targets.
+  final bool enableExternalImageInput;
+
+  /// Optional reader for image-capable clipboard flavors.
+  ///
+  /// Tests and host integrations can provide a reader backed by platform
+  /// plugins. The editor only consumes [ExternalImageClipboardData], so plugin
+  /// types do not leak into the editor surface.
+  final ExternalImageClipboardReader? externalImageClipboardReader;
+
+  /// Optional store/validator for image inputs from
+  /// [externalImageClipboardReader] or external file drops. Defaults to the
+  /// platform store where available and a no-op stub elsewhere.
+  final ExternalImageStore? externalImageStore;
 
   /// Accessibility labels, hints, and high-contrast focus styling.
   final WenzRichTextEditorAccessibility accessibility;
@@ -1155,6 +1241,15 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
   final _BlockExtentCache _extentCache = _BlockExtentCache();
   BlockRendererRegistry? _ownedBlockRenderers;
   _FormulaEditTarget? _formulaEditTarget;
+  _MentionSearchTrigger? _mentionSearchTrigger;
+  bool _mentionSearchLoading = false;
+  Object? _mentionSearchError;
+  List<WenzMentionCandidate> _mentionSearchCandidates =
+      const <WenzMentionCandidate>[];
+  int _mentionSearchHighlightedIndex = 0;
+  int _mentionSearchGeneration = 0;
+  String? _suppressedMentionSearchSignature;
+  bool _externalImageDropActive = false;
 
   /// The inline link run currently reported as hovered by the gesture surface,
   /// driving the [WenzLinkHoverOverlay]. `null` while no link is hovered or
@@ -1279,6 +1374,11 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     // Ensure owned defaults are installed eagerly when no external registry is
     // provided, mirroring the lazy getter above.
     _blockRenderers;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _refreshMentionSearch();
+      }
+    });
   }
 
   @override
@@ -1302,6 +1402,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
         oldWidget.blockRenderers != widget.blockRenderers ||
         oldWidget.mediaResolver != widget.mediaResolver ||
         oldWidget.inlineEmbedRenderer != widget.inlineEmbedRenderer ||
+        oldWidget.mentionSearch != widget.mentionSearch ||
         oldWidget.onMentionTap != widget.onMentionTap ||
         oldWidget.findController != widget.findController ||
         oldWidget.slashMenuController != widget.slashMenuController) {
@@ -1333,6 +1434,14 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
       widget.slashMenuController?.close();
       _removeSlashMenuOverlay();
       _closeFormulaEditor();
+      _closeMentionSearch();
+    }
+    if (oldWidget.mentionSearch != widget.mentionSearch ||
+        oldWidget.controller != widget.controller) {
+      _refreshMentionSearch();
+    }
+    if (!_canAcceptExternalImageDrop) {
+      _externalImageDropActive = false;
     }
     _scheduleSlashMenuOverlaySync();
     if (oldWidget.outlineController != widget.outlineController) {
@@ -1374,6 +1483,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     _listenedFocusNode?.removeListener(_handleFocusChanged);
     _inputClient.performSelectorHandler = null;
     _inputClient.detach();
+    _mentionSearchGeneration++;
     _tableToolbarOverlayController.hide();
     _tableToolbarOverlayController.dispose();
     _linkHoverHideTimer?.cancel();
@@ -1396,6 +1506,9 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
 
   void _handleSlashMenuChanged() {
     if (mounted) {
+      if (widget.slashMenuController?.isOpen == true) {
+        _closeMentionSearch();
+      }
       _scheduleSlashMenuOverlaySync();
       setState(() {});
     }
@@ -1404,6 +1517,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
   void _handleScrollChanged() {
     if (mounted &&
         (widget.slashMenuController?.isOpen == true ||
+            _mentionSearchTrigger != null ||
             _formulaEditTarget != null)) {
       _scheduleSlashMenuOverlaySync();
       setState(() {});
@@ -1483,6 +1597,11 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     if (mounted) {
       if (widget.readOnly) {
         widget.slashMenuController?.close();
+        _closeMentionSearch();
+      }
+      _refreshMentionSearch();
+      if (!_canAcceptExternalImageDrop) {
+        _externalImageDropActive = false;
       }
       _syncTableToolbarOverlayWithSelection();
       if (_revealCurrentSelectionIfHidden()) {
@@ -1617,6 +1736,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
       _hadEditorFocus = true;
     } else if (_hadEditorFocus) {
       widget.slashMenuController?.close();
+      _closeMentionSearch();
     }
     setState(() {});
   }
@@ -1741,6 +1861,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
       return;
     }
     widget.slashMenuController?.close();
+    _closeMentionSearch();
     _formulaEditController.text = target.formula;
     _formulaEditController.selection = TextSelection.collapsed(
       offset: _formulaEditController.text.length,
@@ -1929,6 +2050,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
           ),
         if (_formulaEditTarget != null) _buildFormulaEditorOverlay(),
         if (_linkHover != null) _buildLinkHoverOverlay(),
+        if (_mentionSearchTrigger != null) _buildMentionSearchOverlay(),
       ],
     );
     final scopedEditorStack = _wrapMentionTapHandler(editorStack);
@@ -2066,9 +2188,11 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     return TapRegion(
       groupId: this,
       enabled: widget.slashMenuController?.isOpen == true ||
+          _mentionSearchTrigger != null ||
           _formulaEditTarget != null,
       onTapOutside: (_) {
         widget.slashMenuController?.close();
+        _closeMentionSearch();
         _closeFormulaEditor();
       },
       child: _SharedLayoutCacheScope(
@@ -2099,7 +2223,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
                 color: _editorBackgroundColor(Theme.of(context)),
                 child: TableFloatingToolbarOverlayHost(
                   controller: _tableToolbarOverlayController,
-                  child: child,
+                  child: _buildExternalImageDropTarget(child),
                 ),
               ),
             ),
@@ -2107,6 +2231,340 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
         ),
       ),
     );
+  }
+
+  bool get _canAcceptExternalImageDrop =>
+      widget.enableExternalImageInput &&
+      !widget.readOnly &&
+      widget.controller.canEdit;
+
+  Widget _buildExternalImageDropTarget(Widget child) {
+    if (!_canAcceptExternalImageDrop) {
+      return child;
+    }
+    return DragTarget<List<ExternalImageInput>>(
+      onWillAcceptWithDetails: (details) {
+        final willAccept =
+            _canAcceptExternalImageDrop && details.data.isNotEmpty;
+        _setExternalImageDropActive(willAccept);
+        return willAccept;
+      },
+      onLeave: (_) => _setExternalImageDropActive(false),
+      onAcceptWithDetails: (details) {
+        _setExternalImageDropActive(false);
+        unawaited(_handleExternalImageDropInputs(details.data));
+      },
+      builder: (context, _, __) {
+        return super_drag.DropRegion(
+          formats: _externalImageDropFormats,
+          hitTestBehavior: HitTestBehavior.opaque,
+          onDropEnter: (dynamic event) {
+            _setExternalImageDropActive(
+              _externalImageDropOperationFor(event.session) !=
+                  super_drag.DropOperation.none,
+            );
+          },
+          onDropOver: (dynamic event) {
+            final operation = _externalImageDropOperationFor(event.session);
+            _setExternalImageDropActive(
+              operation != super_drag.DropOperation.none,
+            );
+            return operation;
+          },
+          onDropLeave: (dynamic event) {
+            _setExternalImageDropActive(false);
+          },
+          onPerformDrop: (dynamic event) async {
+            _setExternalImageDropActive(false);
+            final inputs = await _readExternalImageDropInputs(event.session);
+            await _handleExternalImageDropInputs(inputs);
+          },
+          child: _buildExternalImageDropStack(context, child),
+        );
+      },
+    );
+  }
+
+  Widget _buildExternalImageDropStack(BuildContext context, Widget child) {
+    return Stack(
+      fit: StackFit.expand,
+      children: <Widget>[
+        child,
+        if (_externalImageDropActive) _buildExternalImageDropOverlay(context),
+      ],
+    );
+  }
+
+  Widget _buildExternalImageDropOverlay(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Positioned.fill(
+      child: IgnorePointer(
+        child: DecoratedBox(
+          key: _externalImageDropOverlayKey,
+          decoration: BoxDecoration(
+            color: scheme.primary.withAlpha(24),
+            border: Border.all(
+              color: scheme.primary.withAlpha(180),
+              width: 2,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _setExternalImageDropActive(bool active) {
+    final next = active && _canAcceptExternalImageDrop;
+    if (_externalImageDropActive == next) {
+      return;
+    }
+    if (!mounted) {
+      _externalImageDropActive = next;
+      return;
+    }
+    setState(() {
+      _externalImageDropActive = next;
+    });
+  }
+
+  super_drag.DropOperation _externalImageDropOperationFor(dynamic session) {
+    if (!_canAcceptExternalImageDrop ||
+        !_dropSessionCanProvideExternalImage(session) ||
+        !_dropSessionAllowsCopy(session)) {
+      return super_drag.DropOperation.none;
+    }
+    return super_drag.DropOperation.copy;
+  }
+
+  bool _dropSessionAllowsCopy(dynamic session) {
+    try {
+      final allowedOperations = session.allowedOperations;
+      if (allowedOperations == null) {
+        return true;
+      }
+      if (allowedOperations is Iterable<Object?>) {
+        return allowedOperations.contains(super_drag.DropOperation.copy);
+      }
+      if (allowedOperations == super_drag.DropOperation.copy) {
+        return true;
+      }
+      try {
+        return allowedOperations.contains(super_drag.DropOperation.copy) ==
+            true;
+      } on Object {
+        return true;
+      }
+    } on Object {
+      return true;
+    }
+  }
+
+  bool _dropSessionCanProvideExternalImage(dynamic session) {
+    return _dropSessionItems(session).any(_dropItemCanProvideExternalImage);
+  }
+
+  bool _dropItemCanProvideExternalImage(dynamic item) {
+    final reader = _dropItemDataReader(item);
+    if (reader == null) {
+      return false;
+    }
+    if (_readerCanProvide(reader, super_clipboard.Formats.fileUri)) {
+      return true;
+    }
+    for (final format in _externalImageDropFileFormats) {
+      if (_readerCanProvide(reader, format.format)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  List<dynamic> _dropSessionItems(dynamic session) {
+    try {
+      final items = session.items;
+      if (items is Iterable<Object?>) {
+        return List<dynamic>.from(items);
+      }
+    } on Object {
+      return const <dynamic>[];
+    }
+    return const <dynamic>[];
+  }
+
+  dynamic _dropItemDataReader(dynamic item) {
+    try {
+      return item.dataReader;
+    } on Object {
+      return null;
+    }
+  }
+
+  bool _readerCanProvide(dynamic reader, dynamic format) {
+    try {
+      return reader.canProvide(format) == true;
+    } on Object {
+      return false;
+    }
+  }
+
+  Future<List<ExternalImageInput>> _readExternalImageDropInputs(
+    dynamic session,
+  ) async {
+    final inputs = <ExternalImageInput>[];
+    for (final item in _dropSessionItems(session)) {
+      final reader = _dropItemDataReader(item);
+      if (reader == null) {
+        continue;
+      }
+      final fileUriInput = await _readExternalImageDropFileUri(reader);
+      if (fileUriInput != null) {
+        inputs.add(fileUriInput);
+        continue;
+      }
+      final memoryInput = await _readExternalImageDropFile(reader);
+      if (memoryInput != null) {
+        inputs.add(memoryInput);
+      }
+    }
+    return inputs;
+  }
+
+  Future<ExternalImageInput?> _readExternalImageDropFileUri(
+    dynamic reader,
+  ) async {
+    if (!_readerCanProvide(reader, super_clipboard.Formats.fileUri)) {
+      return null;
+    }
+    final value = await _readDropValue(reader, super_clipboard.Formats.fileUri);
+    if (value is Uri) {
+      return ExternalImageInput.fileUri(
+        uri: value,
+        source: ExternalImageInputSource.drop,
+      );
+    }
+    if (value is String) {
+      return ExternalImageInput.fileLocation(
+        location: value,
+        source: ExternalImageInputSource.drop,
+      );
+    }
+    return null;
+  }
+
+  Future<ExternalImageInput?> _readExternalImageDropFile(dynamic reader) async {
+    for (final format in _externalImageDropFileFormats) {
+      if (!_readerCanProvide(reader, format.format)) {
+        continue;
+      }
+      final input = await _readDropFile(reader, format);
+      if (input != null) {
+        return input;
+      }
+    }
+    return null;
+  }
+
+  Future<Object?> _readDropValue(dynamic reader, dynamic format) {
+    final completer = Completer<Object?>();
+
+    void complete(Object? value) {
+      if (!completer.isCompleted) {
+        completer.complete(value);
+      }
+    }
+
+    try {
+      final progress = reader.getValue(
+        format,
+        (dynamic value) => complete(value),
+        onError: (Object error) => complete(null),
+      );
+      if (progress == null) {
+        complete(null);
+      }
+    } on Object {
+      complete(null);
+    }
+    return completer.future;
+  }
+
+  Future<ExternalImageInput?> _readDropFile(
+    dynamic reader,
+    _ExternalImageDropFileFormat format,
+  ) {
+    final completer = Completer<ExternalImageInput?>();
+
+    void complete(ExternalImageInput? input) {
+      if (!completer.isCompleted) {
+        completer.complete(input);
+      }
+    }
+
+    try {
+      final progress = reader.getFile(
+        format.format,
+        (dynamic file) async {
+          try {
+            final bytes = _dropFileBytes(await file.readAll());
+            if (bytes == null) {
+              complete(null);
+              return;
+            }
+            complete(
+              ExternalImageInput.memory(
+                bytes: bytes,
+                source: ExternalImageInputSource.drop,
+                mimeType: format.mimeType,
+                fileName: _dropFileName(file) ?? format.fallbackFileName,
+              ),
+            );
+          } on Object {
+            complete(null);
+          }
+        },
+        onError: (Object error) => complete(null),
+      );
+      if (progress == null) {
+        complete(null);
+      }
+    } on Object {
+      complete(null);
+    }
+    return completer.future;
+  }
+
+  Uint8List? _dropFileBytes(Object? value) {
+    if (value is Uint8List) {
+      return value;
+    }
+    if (value is List<int>) {
+      return Uint8List.fromList(value);
+    }
+    return null;
+  }
+
+  String? _dropFileName(dynamic file) {
+    try {
+      final name = file.fileName;
+      if (name is String && name.trim().isNotEmpty) {
+        return name.trim();
+      }
+    } on Object {
+      return null;
+    }
+    return null;
+  }
+
+  Future<void> _handleExternalImageDropInputs(
+    List<ExternalImageInput> inputs,
+  ) async {
+    if (!_canAcceptExternalImageDrop || inputs.isEmpty) {
+      return;
+    }
+    final images = await _prepareExternalImages(inputs);
+    if (images.isNotEmpty) {
+      _pasteExternalImages(images);
+    }
   }
 
   Widget _withHighContrastFocusHighlight(
@@ -2554,6 +3012,281 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     );
   }
 
+  Widget _buildMentionSearchOverlay() {
+    final trigger = _mentionSearchTrigger;
+    if (trigger == null) {
+      return const SizedBox.shrink();
+    }
+    final overlayBox = _editorOverlayKey.currentContext?.findRenderObject();
+    if (overlayBox is! RenderBox || !overlayBox.hasSize) {
+      return const SizedBox.shrink();
+    }
+    final caret = _registry.caretRectForPosition(trigger.endPosition);
+    if (caret == null) {
+      return const SizedBox.shrink();
+    }
+    final localCaret = overlayBox.globalToLocal(caret.topLeft) & caret.size;
+    return WenzMentionSearchOverlay(
+      anchorRect: localCaret,
+      containerSize: overlayBox.size,
+      candidates: _mentionSearchCandidates,
+      highlightedIndex: _mentionSearchHighlightedIndex,
+      loading: _mentionSearchLoading,
+      error: _mentionSearchError,
+      tapRegionGroupId: this,
+      onHighlightChanged: _setMentionSearchHighlight,
+      onCandidateSelected: _insertMentionCandidate,
+    );
+  }
+
+  WenzMentionCandidate? get _highlightedMentionCandidate {
+    if (_mentionSearchCandidates.isEmpty ||
+        _mentionSearchHighlightedIndex < 0 ||
+        _mentionSearchHighlightedIndex >= _mentionSearchCandidates.length) {
+      return null;
+    }
+    return _mentionSearchCandidates[_mentionSearchHighlightedIndex];
+  }
+
+  void _refreshMentionSearch() {
+    final callback = widget.mentionSearch;
+    if (widget.readOnly ||
+        callback == null ||
+        _formulaEditTarget != null ||
+        widget.slashMenuController?.isOpen == true) {
+      _closeMentionSearch();
+      return;
+    }
+    if (widget.controller.isApplyingComposingTextInput ||
+        widget.controller.compositionState != null) {
+      return;
+    }
+    final trigger = _detectMentionSearchTrigger();
+    if (trigger == null) {
+      _suppressedMentionSearchSignature = null;
+      _closeMentionSearch();
+      return;
+    }
+    if (_suppressedMentionSearchSignature == trigger.signature) {
+      _closeMentionSearch();
+      return;
+    }
+    if (_mentionSearchTrigger?.signature == trigger.signature) {
+      return;
+    }
+    _startMentionSearch(trigger, callback);
+  }
+
+  void _startMentionSearch(
+    _MentionSearchTrigger trigger,
+    WenzMentionSearchCallback callback,
+  ) {
+    final generation = ++_mentionSearchGeneration;
+    _dismissLinkHover();
+    setState(() {
+      _mentionSearchTrigger = trigger;
+      _mentionSearchLoading = true;
+      _mentionSearchError = null;
+      _mentionSearchCandidates = const <WenzMentionCandidate>[];
+      _mentionSearchHighlightedIndex = 0;
+    });
+    unawaited(_runMentionSearch(trigger, callback, generation));
+  }
+
+  Future<void> _runMentionSearch(
+    _MentionSearchTrigger trigger,
+    WenzMentionSearchCallback callback,
+    int generation,
+  ) async {
+    try {
+      final candidates = await Future<List<WenzMentionCandidate>>.value(
+        callback(
+          WenzMentionSearchRequest(
+            query: trigger.query,
+            position: trigger.endPosition,
+            selection: widget.controller.selection,
+          ),
+        ),
+      );
+      if (!mounted ||
+          generation != _mentionSearchGeneration ||
+          _mentionSearchTrigger?.signature != trigger.signature) {
+        return;
+      }
+      setState(() {
+        _mentionSearchLoading = false;
+        _mentionSearchError = null;
+        _mentionSearchCandidates =
+            List<WenzMentionCandidate>.unmodifiable(candidates);
+        _mentionSearchHighlightedIndex = 0;
+      });
+    } on Object catch (error) {
+      if (!mounted ||
+          generation != _mentionSearchGeneration ||
+          _mentionSearchTrigger?.signature != trigger.signature) {
+        return;
+      }
+      setState(() {
+        _mentionSearchLoading = false;
+        _mentionSearchError = error;
+        _mentionSearchCandidates = const <WenzMentionCandidate>[];
+        _mentionSearchHighlightedIndex = 0;
+      });
+    }
+  }
+
+  void _moveMentionSearchHighlight(int delta) {
+    if (_mentionSearchCandidates.isEmpty || delta == 0) {
+      return;
+    }
+    final next = (_mentionSearchHighlightedIndex + delta) %
+        _mentionSearchCandidates.length;
+    _setMentionSearchHighlight(
+      next < 0 ? next + _mentionSearchCandidates.length : next,
+    );
+  }
+
+  void _setMentionSearchHighlight(int index) {
+    if (_mentionSearchCandidates.isEmpty) {
+      return;
+    }
+    final next = index.clamp(0, _mentionSearchCandidates.length - 1).toInt();
+    if (next == _mentionSearchHighlightedIndex) {
+      return;
+    }
+    setState(() {
+      _mentionSearchHighlightedIndex = next;
+    });
+  }
+
+  void _insertMentionCandidate(WenzMentionCandidate candidate) {
+    final trigger = _mentionSearchTrigger;
+    if (trigger == null || widget.readOnly) {
+      return;
+    }
+    _closeMentionSearch();
+    final selection = DocumentSelection(
+      base: trigger.startPosition,
+      extent: trigger.endPosition,
+    );
+    widget.controller.insertMention(
+      candidate.id,
+      candidate.label,
+      data: candidate.toMentionData(),
+      selection: selection,
+    );
+    widget.controller.requestFocus();
+    _inputClient.syncBuffer();
+  }
+
+  void _suppressAndCloseMentionSearch() {
+    _suppressedMentionSearchSignature = _mentionSearchTrigger?.signature;
+    _closeMentionSearch();
+  }
+
+  void _closeMentionSearch() {
+    if (_mentionSearchTrigger == null &&
+        !_mentionSearchLoading &&
+        _mentionSearchError == null &&
+        _mentionSearchCandidates.isEmpty) {
+      return;
+    }
+    _mentionSearchGeneration++;
+    if (!mounted) {
+      _mentionSearchTrigger = null;
+      _mentionSearchLoading = false;
+      _mentionSearchError = null;
+      _mentionSearchCandidates = const <WenzMentionCandidate>[];
+      _mentionSearchHighlightedIndex = 0;
+      return;
+    }
+    setState(() {
+      _mentionSearchTrigger = null;
+      _mentionSearchLoading = false;
+      _mentionSearchError = null;
+      _mentionSearchCandidates = const <WenzMentionCandidate>[];
+      _mentionSearchHighlightedIndex = 0;
+    });
+  }
+
+  _MentionSearchTrigger? _detectMentionSearchTrigger() {
+    final selection = widget.controller.selection;
+    if (selection == null || !selection.isCollapsed) {
+      return null;
+    }
+    final position = selection.extent;
+    if (!position.path.isBlockText && !position.path.isTableCellText) {
+      return null;
+    }
+    final nodes = _inlineNodesForPosition(position);
+    if (nodes == null) {
+      return null;
+    }
+    final beforeCaret = _inlineTextBeforePosition(nodes, position.offset);
+    if (beforeCaret == null || beforeCaret.isEmpty) {
+      return null;
+    }
+    final atIndex = _mentionTriggerIndex(beforeCaret);
+    if (atIndex == null) {
+      return null;
+    }
+    final query = beforeCaret.substring(atIndex + 1);
+    final start = position.copyWith(offset: atIndex);
+    return _MentionSearchTrigger(
+      query: query,
+      startPosition: start,
+      endPosition: position,
+    );
+  }
+
+  String? _inlineTextBeforePosition(List<InlineNode> nodes, int offset) {
+    if (offset < 0) {
+      return null;
+    }
+    final buffer = StringBuffer();
+    var cursor = 0;
+    for (final node in nodes) {
+      final length = inlineLength(node);
+      final nodeStart = cursor;
+      final nodeEnd = cursor + length;
+      if (offset <= nodeStart) {
+        break;
+      }
+      if (node is TextRun) {
+        final end = math.min(offset, nodeEnd) - nodeStart;
+        if (end > 0) {
+          buffer.write(node.text.substring(0, end));
+        }
+      } else if (offset >= nodeEnd) {
+        buffer.write(_kMentionSearchInlineBoundary);
+      } else {
+        return null;
+      }
+      if (offset <= nodeEnd) {
+        break;
+      }
+      cursor = nodeEnd;
+    }
+    return buffer.toString();
+  }
+
+  int? _mentionTriggerIndex(String textBeforeCaret) {
+    for (var index = textBeforeCaret.length - 1; index >= 0; index--) {
+      final character = textBeforeCaret[index];
+      if (character == '@') {
+        if (index == 0 ||
+            _isMentionSearchBoundary(textBeforeCaret[index - 1])) {
+          return index;
+        }
+        return null;
+      }
+      if (_isMentionSearchBoundary(character)) {
+        return null;
+      }
+    }
+    return null;
+  }
+
   bool _handleTapBeyondContent(Offset _) {
     if (widget.readOnly) {
       return false;
@@ -2691,16 +3424,16 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
         });
         return;
       case TableToolbarAction.alignLeft:
-        _setTableColumnAlignment(intent.blockIndex, range, 'left');
+        _setTableCellAlignment(intent.blockIndex, tableBlock, range, 'left');
         return;
       case TableToolbarAction.alignCenter:
-        _setTableColumnAlignment(intent.blockIndex, range, 'center');
+        _setTableCellAlignment(intent.blockIndex, tableBlock, range, 'center');
         return;
       case TableToolbarAction.alignRight:
-        _setTableColumnAlignment(intent.blockIndex, range, 'right');
+        _setTableCellAlignment(intent.blockIndex, tableBlock, range, 'right');
         return;
       case TableToolbarAction.clearAlignment:
-        _setTableColumnAlignment(intent.blockIndex, range, null);
+        _setTableCellAlignment(intent.blockIndex, tableBlock, range, null);
         return;
       case TableToolbarAction.mergeCells:
         if (!range.isSingleCell) {
@@ -2926,18 +3659,20 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     return null;
   }
 
-  void _setTableColumnAlignment(
+  void _setTableCellAlignment(
     int blockIndex,
+    TableBlockNode tableBlock,
     TableCellRange range,
     String? alignment,
   ) {
-    for (var column = range.startColumn; column <= range.endColumn; column++) {
-      widget.controller.setTableColumnAlignment(
+    _forEachVisibleTableCell(tableBlock, range, (row, column) {
+      widget.controller.setTableCellAlignment(
         blockIndex: blockIndex,
+        rowIndex: row,
         columnIndex: column,
         alignment: alignment,
       );
-    }
+    });
   }
 
   void _handleObjectBlockAction(ObjectBlockActionIntent intent) {
@@ -3363,6 +4098,9 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     if (_handleSlashMenuKeyEvent(event)) {
       return KeyEventResult.handled;
     }
+    if (_handleMentionSearchKeyEvent(event)) {
+      return KeyEventResult.handled;
+    }
     if (_handleCodeBlockTabKeyEvent(event)) {
       return KeyEventResult.handled;
     }
@@ -3432,20 +4170,50 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     }
     final key = event.logicalKey;
     if (key == LogicalKeyboardKey.arrowDown) {
+      if (slashMenu.items.isEmpty) return false;
       slashMenu.moveHighlight(1);
       return true;
     }
     if (key == LogicalKeyboardKey.arrowUp) {
+      if (slashMenu.items.isEmpty) return false;
       slashMenu.moveHighlight(-1);
       return true;
     }
     if (key == LogicalKeyboardKey.enter ||
         key == LogicalKeyboardKey.numpadEnter) {
-      slashMenu.activateHighlighted();
-      return true;
+      return slashMenu.activateHighlighted();
     }
     if (key == LogicalKeyboardKey.escape) {
       slashMenu.close();
+      return true;
+    }
+    return false;
+  }
+
+  bool _handleMentionSearchKeyEvent(KeyEvent event) {
+    if (_mentionSearchTrigger == null ||
+        (event is! KeyDownEvent && event is! KeyRepeatEvent)) {
+      return false;
+    }
+    final key = event.logicalKey;
+    if (key == LogicalKeyboardKey.arrowDown) {
+      _moveMentionSearchHighlight(1);
+      return true;
+    }
+    if (key == LogicalKeyboardKey.arrowUp) {
+      _moveMentionSearchHighlight(-1);
+      return true;
+    }
+    if (key == LogicalKeyboardKey.enter ||
+        key == LogicalKeyboardKey.numpadEnter) {
+      final candidate = _highlightedMentionCandidate;
+      if (candidate != null) {
+        _insertMentionCandidate(candidate);
+      }
+      return true;
+    }
+    if (key == LogicalKeyboardKey.escape) {
+      _suppressAndCloseMentionSearch();
       return true;
     }
     return false;
@@ -4473,12 +5241,99 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
 
   Future<void> _handlePaste() async {
     _revealCurrentSelectionIfHidden();
-    final data = await Clipboard.getData('text/plain');
-    final text = data?.text;
-    if (text == null || text.isEmpty) {
+    final externalData = await _readExternalClipboardData();
+    final plainText =
+        _nonEmptyClipboardText(externalData.plainText) ?? await _readPlainText();
+    if (plainText != null && plainText.startsWith(wenzClipboardPrefix)) {
+      widget.controller.pasteText(plainText);
       return;
     }
-    widget.controller.pasteText(text);
+
+    final images = await _prepareExternalImages(externalData.images);
+    if (images.isNotEmpty) {
+      _pasteExternalImages(images);
+      return;
+    }
+
+    final html = _nonEmptyClipboardText(externalData.html);
+    if (html != null) {
+      widget.controller.pasteHtml(html);
+      return;
+    }
+    final markdown = _nonEmptyClipboardText(externalData.markdown);
+    if (markdown != null) {
+      widget.controller.pasteMarkdown(markdown);
+      return;
+    }
+    if (plainText == null) {
+      return;
+    }
+    widget.controller.pasteText(plainText);
+  }
+
+  Future<ExternalImageClipboardData> _readExternalClipboardData() async {
+    if (!widget.enableExternalImageInput) {
+      return const ExternalImageClipboardData();
+    }
+    final reader = widget.externalImageClipboardReader;
+    if (reader == null) {
+      return const ExternalImageClipboardData();
+    }
+    try {
+      return await reader.read();
+    } on Object {
+      return const ExternalImageClipboardData();
+    }
+  }
+
+  Future<String?> _readPlainText() async {
+    try {
+      return _nonEmptyClipboardText(
+        (await Clipboard.getData('text/plain'))?.text,
+      );
+    } on Object {
+      return null;
+    }
+  }
+
+  Future<List<ExternalImageBlockDescription>> _prepareExternalImages(
+    List<ExternalImageInput> inputs,
+  ) async {
+    if (inputs.isEmpty) {
+      return const <ExternalImageBlockDescription>[];
+    }
+    final store = widget.externalImageStore ??
+        external_image_store.createDefaultExternalImageStore();
+    final descriptions = <ExternalImageBlockDescription>[];
+    for (final input in inputs) {
+      try {
+        final result = await store.prepare(input);
+        final description = result.description;
+        if (description != null) {
+          descriptions.add(description);
+        }
+      } on Object {
+        continue;
+      }
+    }
+    return descriptions;
+  }
+
+  void _pasteExternalImages(List<ExternalImageBlockDescription> images) {
+    if (widget.readOnly) {
+      return;
+    }
+    final result = widget.controller.pasteExternalImages(images);
+    if (result.isSuccess) {
+      widget.controller.requestFocus();
+    }
+  }
+
+  String? _nonEmptyClipboardText(String? value) {
+    if (value == null || value.isEmpty) {
+      return null;
+    }
+    return value;
   }
 
   String _nextBlockId() {
@@ -6682,6 +7537,7 @@ Widget _withSelectableVideoBlock(
           selection: rc.selection,
           registry: rc.registry,
           showDebugOverlay: rc.showDebugOverlay,
+          showSelectionOverlay: false,
           onDoubleTap: onPreview,
           child: child,
         ),
@@ -8025,7 +8881,8 @@ class _TableBlockRenderer extends StatelessWidget {
                                 cell: cell.cell,
                                 textStyle: tableTextStyle,
                                 textAlign: _textAlign(
-                                  table.columnAlignments[cell.columnIndex],
+                                  cell.cell.alignment ??
+                                      table.columnAlignments[cell.columnIndex],
                                 ),
                                 selection: selection,
                                 compositionState: compositionState,
@@ -13266,6 +14123,7 @@ const List<String> _kDefaultCodeLanguages = <String>[
   'css',
   'markdown',
   'bash',
+  'mermaid',
 ];
 
 List<String> _codeLanguageOptions(String current) {
@@ -13761,6 +14619,34 @@ String _formatFileSize(int bytes) {
       ? value.toStringAsFixed(0)
       : value.toStringAsFixed(1);
   return '$fixed ${units[unit]}';
+}
+
+bool _isMentionSearchBoundary(String character) {
+  if (character == _kMentionSearchInlineBoundary || character.trim().isEmpty) {
+    return true;
+  }
+  return '.,;:!?()[]{}<>/\\|\'"`~#\$%^&*+=，。！？；：、（）【】《》'
+      .contains(character);
+}
+
+class _MentionSearchTrigger {
+  _MentionSearchTrigger({
+    required this.query,
+    required this.startPosition,
+    required this.endPosition,
+  }) : signature = <Object?>[
+          query,
+          startPosition.blockId,
+          startPosition.blockIndex,
+          startPosition.path.segments.join('/'),
+          startPosition.offset,
+          endPosition.offset,
+        ].join('|');
+
+  final String query;
+  final DocumentPosition startPosition;
+  final DocumentPosition endPosition;
+  final String signature;
 }
 
 /// A lightweight identity for a caret position, used to detect "the caret

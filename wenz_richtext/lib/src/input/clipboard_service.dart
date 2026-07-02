@@ -8,6 +8,7 @@ import '../core/model/block_node.dart';
 import '../core/model/inline_node.dart';
 import '../core/model/rich_text_document.dart';
 import '../core/position/document_position.dart';
+import 'external_image_input.dart';
 
 /// Magic prefix marking a clipboard payload as wenz-richtext rich JSON. The
 /// platform clipboard only carries plain text reliably across Windows/Web, so
@@ -429,6 +430,33 @@ class ClipboardService {
       return null;
     }
     return block.content.map((node) => node.copy()).toList();
+  }
+
+  /// Converts prepared external image descriptions into a blocks paste payload.
+  ClipboardPaste? parseExternalImages(
+    List<ExternalImageBlockDescription> images, {
+    required String Function() newBlockId,
+  }) {
+    final blocks = <ImageBlockNode>[];
+    for (final image in images) {
+      final file = image.file.trim();
+      if (file.isEmpty) {
+        continue;
+      }
+      blocks.add(
+        ImageBlockNode(
+          id: newBlockId(),
+          assetId: '',
+          file: file,
+          caption: image.caption,
+          altText: image.altText,
+        ),
+      );
+    }
+    if (blocks.isEmpty) {
+      return null;
+    }
+    return ClipboardPaste.blocks(blocks);
   }
 
   ClipboardPaste? _blocksPaste(RichTextDocument document) {

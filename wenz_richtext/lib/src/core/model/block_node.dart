@@ -345,6 +345,7 @@ class TableBlockNode extends BlockNode {
                       isHeader: cell.isHeader,
                       backgroundColor: cell.backgroundColor,
                       covered: cell.covered,
+                      alignment: cell.alignment,
                     ),
                   )
                   .toList(),

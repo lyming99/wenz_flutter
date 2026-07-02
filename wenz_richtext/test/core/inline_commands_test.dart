@@ -198,6 +198,112 @@ void main() {
     expect(embeds[3].data['assetId'], 'asset-1');
   });
 
+  test(
+    'controller insertMention stores canonical payload and extension data',
+    () {
+      final controller = WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'p1',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'Hello ')],
+            ),
+          ],
+        ),
+        selection: collapsedTextSelection('p1', 0, 6),
+      );
+
+      controller.insertMention(
+        'u1',
+        'Ada',
+        data: const <String, Object?>{
+          'id': 'stale-id',
+          'label': 'Stale label',
+          'role': 'admin',
+          'department': 'Platform',
+          'profile': <String, Object?>{'timezone': 'UTC'},
+        },
+      );
+
+      final block = controller.document.blocks.single as TextBlockNode;
+      final mention = block.content.singleWhere(
+        (node) => node is InlineEmbed && node.embedType == 'mention',
+      ) as InlineEmbed;
+      expect(mention.data['id'], 'u1');
+      expect(mention.data['label'], 'Ada');
+      expect(mention.data['role'], 'admin');
+      expect(mention.data['department'], 'Platform');
+      expect(
+        mention.data['profile'],
+        const <String, Object?>{'timezone': 'UTC'},
+      );
+      expect(controller.toMarkdown(), 'Hello @Ada');
+
+      controller.dispose();
+    },
+  );
+
+  test('controller insertMention keeps empty label fallback', () {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[],
+          ),
+        ],
+      ),
+      selection: collapsedTextSelection('p1', 0, 0),
+    );
+
+    controller.insertMention('u-empty', '');
+
+    final block = controller.document.blocks.single as TextBlockNode;
+    final mention = block.content.single as InlineEmbed;
+    expect(mention.data['id'], 'u-empty');
+    expect(mention.data['label'], '');
+    expect(controller.toMarkdown(), '@mention');
+
+    controller.dispose();
+  });
+
+  test('controller insertMention replaces selected query and moves caret', () {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'Ping @ad now')],
+          ),
+        ],
+      ),
+      selection: collapsedTextSelection('p1', 0, 12),
+    );
+
+    controller.insertMention(
+      'u-ada',
+      'Ada',
+      data: const <String, Object?>{'team': 'Core'},
+      selection: textSelection('p1', 0, 5, 8),
+    );
+
+    final block = controller.document.blocks.single as TextBlockNode;
+    expect(block.content, hasLength(3));
+    expect((block.content[0] as TextRun).text, 'Ping ');
+    final mention = block.content[1] as InlineEmbed;
+    expect(mention.embedType, 'mention');
+    expect(mention.data['id'], 'u-ada');
+    expect(mention.data['label'], 'Ada');
+    expect(mention.data['team'], 'Core');
+    expect((block.content[2] as TextRun).text, ' now');
+    expect(controller.selection, collapsedTextSelection('p1', 0, 6));
+
+    controller.dispose();
+  });
+
   test('controller updates inline formula data and preserves undo history', () {
     final initialSelection = collapsedTextSelection('p1', 0, 0);
     final controller = WenzRichTextController(

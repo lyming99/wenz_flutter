@@ -414,6 +414,22 @@ Semantics:
   `WenzRichTextController.insertImage`. If a resolver needs `dart:io` for
   `Image.file`, isolate it behind a conditional import so Web builds keep using
   `null`/placeholder fallback for unsupported local sources.
+- On Windows desktop, the picker interaction belongs to the host/example UI:
+  disable the image button while the platform picker is open, show a visible
+  pending indicator, treat cancellation as a silent UI restore, and surface
+  picker exceptions, empty paths, or inaccessible files with a short error
+  message without inserting an image block or adding history. The example keeps
+  this in `example/lib/main.dart`; the core package does not add a file-picker
+  dependency.
+- Local-image preview helpers should validate empty sources, non-`file`
+  schemes, Windows drive-letter paths, missing files, and unreadable files
+  before returning a widget. Failures should render a compact fallback/error
+  widget instead of throwing from the resolver into the editor.
+- For large local images, return a bounded preview rather than decoding the
+  original at full size. The example IO helper uses `Image.file` with
+  `cacheWidth`/`cacheHeight`, plus visible loading and error builders; hosts can
+  use the same strategy or generate thumbnails before handing a widget back
+  through `MediaResolver`.
 - Throwing from `resolve` is tolerated: the editor catches it, reports the
   error via `FlutterError.reportError` (so it surfaces in dev tools), and falls
   back to the placeholder. A faulty resolver never crashes the editor.

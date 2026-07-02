@@ -22,8 +22,8 @@
 ///   [MoveCaretToBlockBoundaryCommand], [MoveCaretToDocumentBoundaryCommand],
 ///   [SelectAllCommand], [MoveTableCellCommand],
 ///   [MoveTableCellVerticalCommand]), [ClipboardService], and
-///   [EditorTextInputClient]. These are the intended integration points and
-///   change only with a documented reason.
+///   [ExternalImageInput], and [EditorTextInputClient]. These are the intended
+///   integration points and change only with a documented reason.
 /// - **Stabilising (tier 2)**: [WenzRichTextEditor] widget,
 ///   [WenzLinkInteractionCallback], [WenzRichTextEditorAccessibility], [DocumentSchema],
 ///   the rich/legacy JSON codecs, the plain-text codec ([PlainTextCodec]),
@@ -49,7 +49,10 @@
 ///   rendering extension point ([BlockRendererRegistry],
 ///   [BlockRendererBuilder], [BlockRenderContext], [TableToolbarActionIntent],
 ///   [WenzObjectBlockSurface], [MediaResolver], [InlineEmbedRenderer],
-///   [InlineEmbedRendererRegistry]), video insertion via slash menu / toolbar
+///   [InlineEmbedRendererRegistry]), mention integration contracts
+///   ([WenzMentionSearchCallback], [WenzMentionSearchRequest],
+///   [WenzMentionCandidate], [WenzMentionTapCallback],
+///   [WenzMentionTapDetails]), video insertion via slash menu / toolbar
 ///   helpers without a bundled player dependency, the
 ///   toolbar binding ([ToolbarController], [ToolbarState],
 ///   [WenzToolbarItemRegistry]), the controller change
@@ -90,6 +93,12 @@
 ///   attachment metadata (`mimeType`, `downloadUrl`, upload status/error) but
 ///   retry/upload orchestration remains a business-layer concern; the low-level
 ///   table cell editing contract (see `docs/selection_model.md`) may still evolve.
+/// - **Experimental (tier 3)**: the AI conversation module
+///   ([AIConfigManager], [ConversationManager], [AIConfig], [OpenAIConfig],
+///   [DeepSeekConfig], [Conversation], [ChatMessage], [AIService],
+///   [AIServiceFactory], [AIServiceException]) — AI-powered chat with
+///   OpenAI / DeepSeek backends, managed through ChangeNotifier-based managers
+///   with JSON file persistence.
 ///
 /// See `docs/optimization_roadmap.md` for the stage breakdown,
 /// `docs/architecture.md` for the layer overview,
@@ -150,8 +159,17 @@ export 'src/history/history_manager.dart';
 export 'src/input/clipboard_service.dart';
 export 'src/input/composition_state.dart';
 export 'src/input/editor_text_input_client.dart';
+export 'src/input/external_image_input.dart';
 export 'src/input/shortcut_manager.dart';
 export 'src/plugins/editor_plugin.dart';
+export 'src/plugins/mermaid_diagram_plugin.dart'
+    show
+        DiagramSvgSurface,
+        MermaidDiagramConfig,
+        MermaidDiagramPlugin,
+        MermaidRenderer,
+        NativeMermaidRenderer,
+        VectorGraphicsDiagramSurface;
 export 'src/integration/wenz_editor_bootstrap.dart';
 export 'src/integration/wenz_editor_configuration.dart';
 export 'src/widgets/block_renderer_registry.dart';
@@ -159,8 +177,29 @@ export 'src/widgets/comment_sidebar.dart';
 export 'src/widgets/find_replace_panel.dart';
 export 'src/widgets/inline_embed_renderer.dart';
 export 'src/widgets/link_edit_dialog.dart';
+export 'src/widgets/mermaid/mermaid_code_block_widget.dart'
+    show MermaidCodeBlockWidget;
 export 'src/widgets/link_hover_overlay.dart';
 export 'src/widgets/media_resolver.dart';
 export 'src/widgets/outline_tree.dart' show WenzOutlineTree, WenzOutlinePanel;
 export 'src/widgets/slash_menu_overlay.dart';
 export 'src/widgets/wenz_rich_text_editor.dart';
+
+// ---------------------------------------------------------------------------
+// AI conversation module (tier 3 — experimental)
+// ---------------------------------------------------------------------------
+
+export 'src/ai/models/ai_config.dart'
+    show
+        AIProvider,
+        ThinkingDepth,
+        DeepSeekThinkingMode,
+        AIConfig,
+        OpenAIConfig,
+        DeepSeekConfig;
+export 'src/ai/models/conversation.dart'
+    show MessageRole, ConversationStatus, ChatMessage, Conversation;
+export 'src/ai/services/ai_service.dart'
+    show AIService, AIServiceFactory, AIServiceException;
+export 'src/ai/ai_config_manager.dart' show AIConfigManager;
+export 'src/ai/conversation_manager.dart' show ConversationManager;

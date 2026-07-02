@@ -306,4 +306,117 @@ void main() {
     expect(block.plainText, 'Legacy quote');
     expect(jsonEncode(document.toJson()), isNot(contains('"type":"quote"')));
   });
+
+  test('flowchart block embed round trips nodes edges and coordinates', () {
+    const codec = RichTextJsonCodec();
+    const document = RichTextDocument(
+      blocks: <BlockNode>[
+        BlockEmbedNode(
+          id: 'flowchart',
+          embedType: 'flowchart',
+          data: <String, Object?>{
+            'nodes': <Object?>[
+              <String, Object?>{
+                'id': 'start',
+                'label': '开始',
+                'x': 12,
+                'y': 34,
+                'kind': 'start',
+              },
+              <String, Object?>{
+                'id': 'approve',
+                'label': '放款',
+                'x': 56,
+                'y': 78,
+                'kind': 'process',
+              },
+            ],
+            'edges': <Object?>[
+              <String, Object?>{
+                'from': 'start',
+                'to': 'approve',
+                'label': '是',
+              },
+            ],
+            'direction': 'TB',
+            'version': 1,
+          },
+          fallbackText: '流程图',
+        ),
+      ],
+    );
+
+    final decoded = codec.decode(codec.encode(document));
+    expect(decoded.blocks, hasLength(1));
+    final embed = decoded.blocks.single as BlockEmbedNode;
+    expect(embed.embedType, 'flowchart');
+    expect(embed.fallbackText, '流程图');
+    expect(embed.displayText, '流程图');
+
+    final nodes = embed.data['nodes'] as List<Object?>;
+    expect(nodes, hasLength(2));
+    final firstNode = Map<String, Object?>.from(nodes.first as Map);
+    expect(firstNode['id'], 'start');
+    expect(firstNode['label'], '开始');
+    expect(firstNode['x'], 12);
+    expect(firstNode['y'], 34);
+    expect(firstNode['kind'], 'start');
+
+    final edges = embed.data['edges'] as List<Object?>;
+    expect(edges, hasLength(1));
+    final edge = Map<String, Object?>.from(edges.single as Map);
+    expect(edge['from'], 'start');
+    expect(edge['to'], 'approve');
+    expect(edge['label'], '是');
+
+    expect(embed.data['direction'], 'TB');
+    expect(embed.data['version'], 1);
+
+    // Nothing in the graph payload (nodes, edges, coordinates, version) is
+    // lost across the rich-JSON round trip.
+    expect(decoded.toJson(), document.toJson());
+  });
+
+  test('flowchart block embed degrades to display text in markdown and plain text',
+      () {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          BlockEmbedNode(
+            id: 'flowchart',
+            embedType: 'flowchart',
+            data: <String, Object?>{
+              'nodes': <Object?>[
+                <String, Object?>{
+                  'id': 'start',
+                  'label': '开始',
+                  'x': 1,
+                  'y': 2,
+                  'kind': 'start',
+                },
+              ],
+              'edges': <Object?>[],
+              'direction': 'TB',
+              'version': 1,
+            },
+            fallbackText: '流程图',
+          ),
+        ],
+      ),
+    );
+    addTearDown(controller.dispose);
+
+    // Plain text collapses to the embed's displayText (the fallbackText) and
+    // never leaks the raw node/edge payload.
+    expect(controller.toPlainText(), contains('流程图'));
+    expect(controller.toPlainText(), isNot(contains('开始')));
+
+    // Markdown degrades to a labelled reference built from the embed type +
+    // displayText, again without leaking the graph payload.
+    final markdown = controller.toMarkdown();
+    expect(markdown, contains('流程图'));
+    expect(markdown, contains('flowchart'));
+    expect(markdown, isNot(contains('开始')));
+    expect(markdown, isNot(contains('direction')));
+  });
 }

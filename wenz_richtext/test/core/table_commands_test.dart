@@ -654,6 +654,105 @@ void main() {
     expect(table.table.cellAt(0, 0)?.rowSpan, 2);
     expect(table.table.cellAt(1, 1)?.covered, isTrue);
   });
+
+  test('set table cell alignment updates and clears per-cell alignment', () {
+    final session = DocumentSession(document: _tableDocument());
+    final executor = CommandExecutor(session);
+
+    executor.execute(
+      const SetTableCellAlignmentCommand(
+        blockIndex: 0,
+        rowIndex: 0,
+        columnIndex: 1,
+        alignment: 'center',
+      ),
+    );
+    var table = session.document.blocks.single as TableBlockNode;
+    expect(table.table.cellAt(0, 1)?.alignment, 'center');
+    // Sibling cells are untouched.
+    expect(table.table.cellAt(0, 0)?.alignment, isNull);
+    expect(table.table.cellAt(1, 1)?.alignment, isNull);
+    // Cell alignment never leaks into the column alignment map.
+    expect(table.table.columnAlignments.containsKey(1), isFalse);
+
+    executor.execute(
+      const SetTableCellAlignmentCommand(
+        blockIndex: 0,
+        rowIndex: 1,
+        columnIndex: 0,
+        alignment: 'right',
+      ),
+    );
+    table = session.document.blocks.single as TableBlockNode;
+    expect(table.table.cellAt(1, 0)?.alignment, 'right');
+    expect(table.table.cellAt(0, 1)?.alignment, 'center');
+
+    executor.execute(
+      const SetTableCellAlignmentCommand(
+        blockIndex: 0,
+        rowIndex: 0,
+        columnIndex: 1,
+        alignment: 'justify',
+      ),
+    );
+    table = session.document.blocks.single as TableBlockNode;
+    expect(table.table.cellAt(0, 1)?.alignment, 'justify');
+
+    // Passing `null` clears the cell alignment so it falls back to the column.
+    executor.execute(
+      const SetTableCellAlignmentCommand(
+        blockIndex: 0,
+        rowIndex: 0,
+        columnIndex: 1,
+        alignment: null,
+      ),
+    );
+    table = session.document.blocks.single as TableBlockNode;
+    expect(table.table.cellAt(0, 1)?.alignment, isNull);
+  });
+
+  test('set table cell alignment ignores out-of-range coordinates', () {
+    final session = DocumentSession(document: _tableDocument());
+    final executor = CommandExecutor(session);
+    final undoDepth = session.history.undoDepth;
+
+    executor.execute(
+      const SetTableCellAlignmentCommand(
+        blockIndex: 0,
+        rowIndex: 9,
+        columnIndex: 9,
+        alignment: 'center',
+      ),
+    );
+    final table = session.document.blocks.single as TableBlockNode;
+    expect(table.table.cellAt(0, 0)?.alignment, isNull);
+    // Out-of-range cells must not record history.
+    expect(session.history.undoDepth, undoDepth);
+  });
+
+  test('set table cell alignment is undoable', () {
+    final session = DocumentSession(document: _tableDocument());
+    final executor = CommandExecutor(session);
+
+    executor.execute(
+      const SetTableCellAlignmentCommand(
+        blockIndex: 0,
+        rowIndex: 0,
+        columnIndex: 0,
+        alignment: 'center',
+      ),
+    );
+    var table = session.document.blocks.single as TableBlockNode;
+    expect(table.table.cellAt(0, 0)?.alignment, 'center');
+
+    expect(session.undo(), isTrue);
+    table = session.document.blocks.single as TableBlockNode;
+    expect(table.table.cellAt(0, 0)?.alignment, isNull);
+
+    expect(session.redo(), isTrue);
+    table = session.document.blocks.single as TableBlockNode;
+    expect(table.table.cellAt(0, 0)?.alignment, 'center');
+  });
 }
 
 RichTextDocument _tableDocument() {

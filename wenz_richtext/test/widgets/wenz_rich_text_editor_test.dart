@@ -28,6 +28,12 @@ const _formulaEditorCloseKey = ValueKey<String>(
 const _formulaEditorConfirmKey = ValueKey<String>(
   'wenz-richtext-formula-editor-confirm',
 );
+const _externalImageDropOverlayKey = ValueKey<String>(
+  'wenz-richtext-external-image-drop-overlay',
+);
+const _externalImageDragSourceKey = ValueKey<String>(
+  'wenz-richtext-external-image-drag-source',
+);
 const _codeBlockBackground = Color(0xFF1E1E2E);
 const _codeBlockText = Color(0xFFE6E6F0);
 const _codeBlockSelectionHighlight = Color(0x944C7DFF);
@@ -128,12 +134,633 @@ void main() {
     expect(_richText('Cell A'), findsOneWidget);
     expect(_imageBlockFinder('image1'), findsOneWidget);
     expect(find.text('[image: hero.png]'), findsNothing);
-    expect(find.text('Hero caption'), findsNothing);
+    expect(find.text('Hero caption'), findsOneWidget);
     final imageBlock =
         controller.document.blocks.whereType<ImageBlockNode>().single;
     expect(imageBlock.caption, 'Hero caption');
     expect(find.byTooltip('设置图片宽度'), findsNothing);
     expect(find.text('[video: clip]'), findsOneWidget);
+  });
+
+  testWidgets('paste keeps Wenz rich JSON ahead of image flavors',
+      (tester) async {
+    const service = ClipboardService();
+    const source = RichTextDocument(
+      blocks: <BlockNode>[
+        TextBlockNode(
+          id: 'src',
+          type: BlockType.paragraph,
+          content: <InlineNode>[TextRun(text: 'X')],
+        ),
+      ],
+    );
+    final richPayload = service.copy(
+      source,
+      textSelection('src', 0, 0, 1),
+    )!;
+    final store = _FakeExternalImageStore(
+      const <ExternalImageBlockDescription>[
+        ExternalImageBlockDescription(
+          file: 'C:/tmp/ignored.png',
+          caption: 'ignored',
+          altText: 'ignored',
+        ),
+      ],
+    );
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'ab')],
+          ),
+        ],
+      ),
+      selection: collapsedTextSelection('p1', 0, 1),
+    );
+
+    await _pumpPasteEditor(
+      tester,
+      controller,
+      reader: _FakeExternalImageClipboardReader(
+        ExternalImageClipboardData(
+          plainText: richPayload,
+          images: <ExternalImageInput>[
+            ExternalImageInput.filePath(
+              path: 'C:/tmp/ignored.png',
+              source: ExternalImageInputSource.clipboard,
+            ),
+          ],
+        ),
+      ),
+      store: store,
+    );
+
+    await _sendCtrlShortcut(tester, LogicalKeyboardKey.keyV);
+    await tester.pump();
+
+    expect(controller.document.plainText, 'aXb');
+    expect(controller.document.blocks.whereType<ImageBlockNode>(), isEmpty);
+    expect(store.prepareCount, 0);
+  });
+
+  testWidgets('paste inserts external clipboard images before text fallback',
+      (tester) async {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'ab')],
+          ),
+        ],
+      ),
+      selection: collapsedTextSelection('p1', 0, 1),
+    );
+
+    await _pumpPasteEditor(
+      tester,
+      controller,
+      reader: _FakeExternalImageClipboardReader(
+        ExternalImageClipboardData(
+          plainText: 'plain fallback',
+          images: <ExternalImageInput>[
+            ExternalImageInput.filePath(
+              path: 'C:/tmp/first.png',
+              source: ExternalImageInputSource.clipboard,
+            ),
+            ExternalImageInput.filePath(
+              path: 'C:/tmp/second.jpg',
+              source: ExternalImageInputSource.clipboard,
+            ),
+          ],
+        ),
+      ),
+      store: _FakeExternalImageStore(
+        const <ExternalImageBlockDescription>[
+          ExternalImageBlockDescription(
+            file: 'C:/tmp/first.png',
+            caption: 'first',
+            altText: 'first',
+          ),
+          ExternalImageBlockDescription(
+            file: 'C:/tmp/second.jpg',
+            caption: 'second',
+            altText: 'second',
+          ),
+        ],
+      ),
+    );
+
+    await _sendCtrlShortcut(tester, LogicalKeyboardKey.keyV);
+    await tester.pump();
+
+    final images = controller.document.blocks.whereType<ImageBlockNode>();
+    expect(images.map((image) => image.file), <String>[
+      'C:/tmp/first.png',
+      'C:/tmp/second.jpg',
+    ]);
+    expect(images.map((image) => image.caption), <String>['first', 'second']);
+    expect(controller.document.plainText, 'a\nfirst\nsecond\nb');
+    expect(controller.hasFocus, isTrue);
+    expect(controller.undo(), isTrue);
+    expect(controller.document.blocks, hasLength(1));
+    expect((controller.document.blocks.single as TextBlockNode).plainText,
+        'ab');
+    expect(controller.selection, collapsedTextSelection('p1', 0, 1));
+  });
+
+  testWidgets('paste inserts memory image clipboard flavors through store',
+      (tester) async {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'ab')],
+          ),
+        ],
+      ),
+      selection: collapsedTextSelection('p1', 0, 1),
+    );
+    final store = _FakeExternalImageStore(
+      const <ExternalImageBlockDescription>[
+        ExternalImageBlockDescription(
+          file: 'C:/tmp/materialized.png',
+          caption: 'memory paste',
+          altText: 'memory paste',
+        ),
+      ],
+    );
+
+    await _pumpPasteEditor(
+      tester,
+      controller,
+      reader: _FakeExternalImageClipboardReader(
+        ExternalImageClipboardData(
+          images: <ExternalImageInput>[
+            ExternalImageInput.memory(
+              bytes: _pngBytes,
+              source: ExternalImageInputSource.clipboard,
+              mimeType: 'image/png',
+              fileName: 'memory-source.png',
+            ),
+          ],
+        ),
+      ),
+      store: store,
+    );
+
+    await _sendCtrlShortcut(tester, LogicalKeyboardKey.keyV);
+    await tester.pump();
+
+    expect(store.prepareCount, 1);
+    expect(store.preparedInputs.single.kind, ExternalImageInputKind.memory);
+    expect(store.preparedInputs.single.fileName, 'memory-source.png');
+    final image = controller.document.blocks[1] as ImageBlockNode;
+    expect(image.file, 'C:/tmp/materialized.png');
+    expect(image.caption, 'memory paste');
+    expect(image.altText, 'memory paste');
+    expect(controller.document.plainText, 'a\nmemory paste\nb');
+  });
+
+  testWidgets('paste preserves mixed bytes and file image flavor order',
+      (tester) async {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'ab')],
+          ),
+        ],
+      ),
+      selection: collapsedTextSelection('p1', 0, 1),
+    );
+    final store = _FakeExternalImageStore(
+      const <ExternalImageBlockDescription>[
+        ExternalImageBlockDescription(
+          file: 'C:/tmp/wechat-bytes.png',
+          caption: 'wechat bytes',
+          altText: 'wechat bytes',
+        ),
+        ExternalImageBlockDescription(
+          file: 'C:/tmp/qq-file.jpg',
+          caption: 'qq file',
+          altText: 'qq file',
+        ),
+      ],
+    );
+
+    await _pumpPasteEditor(
+      tester,
+      controller,
+      reader: _FakeExternalImageClipboardReader(
+        ExternalImageClipboardData(
+          images: <ExternalImageInput>[
+            ExternalImageInput.memory(
+              bytes: _pngBytes,
+              source: ExternalImageInputSource.clipboard,
+              fileName: 'clipboard-image.png',
+            ),
+            ExternalImageInput.filePath(
+              path: 'C:/tmp/qq-file.jpg',
+              source: ExternalImageInputSource.clipboard,
+            ),
+          ],
+        ),
+      ),
+      store: store,
+    );
+
+    await _sendCtrlShortcut(tester, LogicalKeyboardKey.keyV);
+    await tester.pump();
+
+    expect(
+      store.preparedInputs.map((input) => input.kind),
+      <ExternalImageInputKind>[
+        ExternalImageInputKind.memory,
+        ExternalImageInputKind.filePath,
+      ],
+    );
+    final images = controller.document.blocks.whereType<ImageBlockNode>();
+    expect(images.map((image) => image.file), <String>[
+      'C:/tmp/wechat-bytes.png',
+      'C:/tmp/qq-file.jpg',
+    ]);
+    expect(images.map((image) => image.caption), <String>[
+      'wechat bytes',
+      'qq file',
+    ]);
+  });
+
+  testWidgets('paste ignores empty external clipboard data', (tester) async {
+    await Clipboard.setData(const ClipboardData(text: ''));
+    addTearDown(() => Clipboard.setData(const ClipboardData(text: '')));
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'ab')],
+          ),
+        ],
+      ),
+      selection: collapsedTextSelection('p1', 0, 1),
+    );
+    final store = _FakeExternalImageStore(
+      const <ExternalImageBlockDescription>[
+        ExternalImageBlockDescription(
+          file: 'C:/tmp/unexpected.png',
+          caption: 'unexpected',
+          altText: 'unexpected',
+        ),
+      ],
+    );
+
+    await _pumpPasteEditor(
+      tester,
+      controller,
+      reader: const _FakeExternalImageClipboardReader(
+        ExternalImageClipboardData(),
+      ),
+      store: store,
+    );
+
+    await _sendCtrlShortcut(tester, LogicalKeyboardKey.keyV);
+    await tester.pump();
+
+    expect(controller.document.plainText, 'ab');
+    expect(controller.document.blocks.whereType<ImageBlockNode>(), isEmpty);
+    expect(controller.canUndo, isFalse);
+    expect(store.prepareCount, 0);
+  });
+
+  testWidgets('paste keeps plain text fallback when external images are off',
+      (tester) async {
+    await Clipboard.setData(const ClipboardData(text: 'TEXT'));
+    addTearDown(() => Clipboard.setData(const ClipboardData(text: '')));
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'ab')],
+          ),
+        ],
+      ),
+      selection: collapsedTextSelection('p1', 0, 1),
+    );
+    final store = _FakeExternalImageStore(
+      const <ExternalImageBlockDescription>[
+        ExternalImageBlockDescription(
+          file: 'C:/tmp/ignored.png',
+          caption: 'ignored',
+          altText: 'ignored',
+        ),
+      ],
+    );
+
+    await _pumpPasteEditor(
+      tester,
+      controller,
+      reader: _FakeExternalImageClipboardReader(
+        ExternalImageClipboardData(
+          images: <ExternalImageInput>[
+            ExternalImageInput.memory(
+              bytes: _pngBytes,
+              source: ExternalImageInputSource.clipboard,
+              mimeType: 'image/png',
+            ),
+          ],
+        ),
+      ),
+      store: store,
+      enableExternalImageInput: false,
+    );
+
+    await _sendCtrlShortcut(tester, LogicalKeyboardKey.keyV);
+    await tester.pump();
+
+    expect(controller.document.plainText, 'aTEXTb');
+    expect(controller.document.blocks.whereType<ImageBlockNode>(), isEmpty);
+    expect(store.prepareCount, 0);
+  });
+
+  testWidgets('paste falls back to plain text when image flavors fail',
+      (tester) async {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'ab')],
+          ),
+        ],
+      ),
+      selection: collapsedTextSelection('p1', 0, 1),
+    );
+
+    await _pumpPasteEditor(
+      tester,
+      controller,
+      reader: _FakeExternalImageClipboardReader(
+        ExternalImageClipboardData(
+          plainText: 'TEXT',
+          images: <ExternalImageInput>[
+            ExternalImageInput.filePath(
+              path: 'C:/tmp/not-image.txt',
+              source: ExternalImageInputSource.clipboard,
+            ),
+          ],
+        ),
+      ),
+      store: _FakeExternalImageStore(const <ExternalImageBlockDescription>[]),
+    );
+
+    await _sendCtrlShortcut(tester, LogicalKeyboardKey.keyV);
+    await tester.pump();
+
+    expect(controller.document.plainText, 'aTEXTb');
+    expect(controller.document.blocks.whereType<ImageBlockNode>(), isEmpty);
+  });
+
+  testWidgets('paste uses HTML flavor before plain text fallback',
+      (tester) async {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[],
+          ),
+        ],
+      ),
+      selection: collapsedTextSelection('p1', 0, 0),
+    );
+
+    await _pumpPasteEditor(
+      tester,
+      controller,
+      reader: const _FakeExternalImageClipboardReader(
+        ExternalImageClipboardData(
+          plainText: 'fallback',
+          html: '<h1>Title</h1><p>Body</p>',
+        ),
+      ),
+    );
+
+    await _sendCtrlShortcut(tester, LogicalKeyboardKey.keyV);
+    await tester.pump();
+
+    expect(controller.document.blocks, hasLength(2));
+    expect((controller.document.blocks[0] as TextBlockNode).type,
+        BlockType.heading);
+    expect(controller.document.plainText, 'Title\nBody');
+  });
+
+  testWidgets('drop inserts external image files through command history',
+      (tester) async {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'ab')],
+          ),
+        ],
+      ),
+      selection: collapsedTextSelection('p1', 0, 1),
+    );
+    final store = _FakeExternalImageStore(
+      const <ExternalImageBlockDescription>[
+        ExternalImageBlockDescription(
+          file: 'C:/tmp/first.png',
+          caption: 'first',
+          altText: 'first',
+        ),
+        ExternalImageBlockDescription(
+          file: 'C:/tmp/second.jpg',
+          caption: 'second',
+          altText: 'second',
+        ),
+      ],
+    );
+
+    await _pumpExternalImageDropEditor(
+      tester,
+      controller,
+      dragData: <ExternalImageInput>[
+        ExternalImageInput.filePath(
+          path: 'C:/tmp/first.png',
+          source: ExternalImageInputSource.drop,
+        ),
+        ExternalImageInput.filePath(
+          path: 'C:/tmp/second.jpg',
+          source: ExternalImageInputSource.drop,
+        ),
+      ],
+      store: store,
+    );
+
+    await _dragExternalImagesOntoEditor(tester, expectOverlay: true);
+
+    final images = controller.document.blocks.whereType<ImageBlockNode>();
+    expect(images.map((image) => image.file), <String>[
+      'C:/tmp/first.png',
+      'C:/tmp/second.jpg',
+    ]);
+    expect(images.map((image) => image.caption), <String>['first', 'second']);
+    expect(controller.document.plainText, 'a\nfirst\nsecond\nb');
+    expect(controller.hasFocus, isTrue);
+    expect(store.prepareCount, 2);
+    expect(controller.undo(), isTrue);
+    expect(controller.document.blocks, hasLength(1));
+    expect((controller.document.blocks.single as TextBlockNode).plainText,
+        'ab');
+    expect(controller.selection, collapsedTextSelection('p1', 0, 1));
+  });
+
+  testWidgets('drop rejects non-image external file candidates',
+      (tester) async {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'ab')],
+          ),
+        ],
+      ),
+      selection: collapsedTextSelection('p1', 0, 1),
+    );
+    final store = _FakeExternalImageStore(
+      const <ExternalImageBlockDescription>[
+        ExternalImageBlockDescription(
+          file: 'C:/tmp/unexpected.png',
+          caption: 'unexpected',
+          altText: 'unexpected',
+        ),
+      ],
+    );
+
+    await _pumpExternalImageDropEditor(
+      tester,
+      controller,
+      dragData: <ExternalImageInput>[
+        ExternalImageInput.filePath(
+          path: 'C:/tmp/not-image.txt',
+          source: ExternalImageInputSource.drop,
+        ),
+      ],
+      store: store,
+    );
+
+    await _dragExternalImagesOntoEditor(tester, expectOverlay: true);
+
+    expect(controller.document.plainText, 'ab');
+    expect(controller.document.blocks.whereType<ImageBlockNode>(), isEmpty);
+    expect(store.prepareCount, 0);
+  });
+
+  testWidgets('drop ignores external image files in read-only mode',
+      (tester) async {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'ab')],
+          ),
+        ],
+      ),
+      selection: collapsedTextSelection('p1', 0, 1),
+    );
+    final store = _FakeExternalImageStore(
+      const <ExternalImageBlockDescription>[
+        ExternalImageBlockDescription(
+          file: 'C:/tmp/first.png',
+          caption: 'first',
+          altText: 'first',
+        ),
+      ],
+    );
+
+    await _pumpExternalImageDropEditor(
+      tester,
+      controller,
+      dragData: <ExternalImageInput>[
+        ExternalImageInput.filePath(
+          path: 'C:/tmp/first.png',
+          source: ExternalImageInputSource.drop,
+        ),
+      ],
+      store: store,
+      readOnly: true,
+    );
+
+    await _dragExternalImagesOntoEditor(tester);
+
+    expect(controller.document.plainText, 'ab');
+    expect(controller.document.blocks.whereType<ImageBlockNode>(), isEmpty);
+    expect(store.prepareCount, 0);
+    expect(find.byKey(_externalImageDropOverlayKey), findsNothing);
+  });
+
+  testWidgets('drop ignores external image files when the feature is disabled',
+      (tester) async {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'ab')],
+          ),
+        ],
+      ),
+      selection: collapsedTextSelection('p1', 0, 1),
+    );
+    final store = _FakeExternalImageStore(
+      const <ExternalImageBlockDescription>[
+        ExternalImageBlockDescription(
+          file: 'C:/tmp/ignored.png',
+          caption: 'ignored',
+          altText: 'ignored',
+        ),
+      ],
+    );
+
+    await _pumpExternalImageDropEditor(
+      tester,
+      controller,
+      dragData: <ExternalImageInput>[
+        ExternalImageInput.filePath(
+          path: 'C:/tmp/ignored.png',
+          source: ExternalImageInputSource.drop,
+        ),
+      ],
+      store: store,
+      enableExternalImageInput: false,
+    );
+
+    await _dragExternalImagesOntoEditor(tester);
+
+    expect(controller.document.plainText, 'ab');
+    expect(controller.document.blocks.whereType<ImageBlockNode>(), isEmpty);
+    expect(store.prepareCount, 0);
+    expect(find.byKey(_externalImageDropOverlayKey), findsNothing);
   });
 
   testWidgets('slash popup follows editor controller refresh chain',
@@ -188,11 +815,14 @@ void main() {
 
     expect(slash.trigger, isNotNull);
     expect(slash.items, isEmpty);
-    expect(slash.isOpen, isFalse);
+    // The menu stays open with an empty-state message when no items match
+    // the query, rather than disappearing silently.
+    expect(slash.isOpen, isTrue);
     expect(
       find.byKey(const ValueKey<String>('wenz-slash-menu-overlay')),
-      findsNothing,
+      findsOneWidget,
     );
+    expect(find.text('未找到命令'), findsOneWidget);
   });
 
   testWidgets('slash popup opens filters and executes from keyboard input',
@@ -263,6 +893,89 @@ void main() {
     );
   });
 
+  testWidgets('mention search overlay filters and inserts a candidate',
+      (tester) async {
+    const candidates = <WenzMentionCandidate>[
+      WenzMentionCandidate(
+        id: 'u-ada',
+        label: 'Ada Lovelace',
+        description: 'Product',
+        data: <String, Object?>{'email': 'ada@example.com'},
+      ),
+      WenzMentionCandidate(
+        id: 'u-grace',
+        label: 'Grace Hopper',
+        description: 'Engineering',
+        data: <String, Object?>{'email': 'grace@example.com'},
+      ),
+    ];
+    final requests = <WenzMentionSearchRequest>[];
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[],
+          ),
+        ],
+      ),
+      selection: collapsedTextSelection('p1', 0, 0),
+    );
+    final focusNode = FocusNode();
+    addTearDown(focusNode.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 420,
+            height: 260,
+            child: WenzRichTextEditor(
+              controller: controller,
+              focusNode: focusNode,
+              enableIme: false,
+              mentionSearch: (request) {
+                requests.add(request);
+                final query = request.query.toLowerCase();
+                return candidates.where((candidate) {
+                  return candidate.label.toLowerCase().contains(query) ||
+                      candidate.id.toLowerCase().contains(query);
+                }).toList(growable: false);
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+    focusNode.requestFocus();
+    await tester.pump();
+
+    controller.insertText('@g');
+    await tester.pump();
+    await tester.pump();
+
+    expect(requests.map((request) => request.query), contains('g'));
+    expect(requests.last.position?.blockId, 'p1');
+    expect(find.text('Grace Hopper'), findsOneWidget);
+    expect(find.text('Engineering'), findsOneWidget);
+    expect(find.text('Ada Lovelace'), findsNothing);
+
+    await tester.tap(find.text('Grace Hopper'));
+    await tester.pump();
+    await tester.pump();
+
+    final block = controller.document.blocks.single as TextBlockNode;
+    final mentions = block.content
+        .whereType<InlineEmbed>()
+        .where((node) => node.embedType == 'mention')
+        .toList();
+    expect(mentions, hasLength(1));
+    expect(mentions.single.data['id'], 'u-grace');
+    expect(mentions.single.data['label'], 'Grace Hopper');
+    expect(mentions.single.data['email'], 'grace@example.com');
+  });
+
   testWidgets('adapts editor surface, text, caret, and selection to theme', (
     tester,
   ) async {
@@ -301,7 +1014,11 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
-          theme: ThemeData(colorScheme: scheme, useMaterial3: true),
+          theme: ThemeData(
+            brightness: brightness,
+            colorScheme: scheme,
+            useMaterial3: true,
+          ),
           home: Scaffold(
             body: SizedBox(
               width: 480,
@@ -698,7 +1415,7 @@ void main() {
     final secondRect = tester.getRect(_richText('Second paragraph.'));
 
     expect(firstRect.top, moreOrLessEquals(editorTop, epsilon: 0.1));
-    expect(firstRect.height, moreOrLessEquals(28, epsilon: 0.5));
+    expect(firstRect.height, moreOrLessEquals(56, epsilon: 0.5));
     expect(
       secondRect.top - firstRect.bottom,
       moreOrLessEquals(8.8, epsilon: 0.75),
@@ -853,7 +1570,7 @@ void main() {
     final secondRect = tester.getRect(quoteBackground.at(1));
     expect(
       secondRect.top - firstRect.bottom,
-      moreOrLessEquals(0, epsilon: 0.5),
+      moreOrLessEquals(4, epsilon: 0.5),
     );
   });
 
@@ -5748,7 +6465,9 @@ void main() {
 
     await pressTableMoreItem('列居中对齐');
     table = controller.document.blocks.single as TableBlockNode;
-    expect(table.table.columnAlignments[0], 'center');
+    expect(table.table.cellAt(0, 0)!.alignment, 'center');
+    // Alignment is cell-level now: it must not leak into the column map.
+    expect(table.table.columnAlignments.containsKey(0), isFalse);
 
     await pressTableMoreItem('清除单元格背景');
     table = controller.document.blocks.single as TableBlockNode;
@@ -5756,6 +6475,7 @@ void main() {
 
     await pressTableMoreItem('清除列对齐');
     table = controller.document.blocks.single as TableBlockNode;
+    expect(table.table.cellAt(0, 0)!.alignment, isNull);
     expect(table.table.columnAlignments.containsKey(0), isFalse);
 
     controller.setTableColumnWidth(blockIndex: 0, columnIndex: 0, width: 180);
@@ -5871,6 +6591,153 @@ void main() {
       baseOffset: 0,
       extentOffset: 0,
     );
+  });
+
+  testWidgets('table renders cell alignment with column fallback', (
+    tester,
+  ) async {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TableBlockNode(
+            id: 'table1',
+            table: TableModel(
+              columnAlignments: <int, String>{1: 'right'},
+              rows: <List<TableCellNode>>[
+                <TableCellNode>[
+                  TableCellNode(
+                    id: 'c0',
+                    alignment: 'center',
+                    blocks: <BlockNode>[
+                      TextBlockNode(
+                        id: 'c0p',
+                        type: BlockType.paragraph,
+                        content: <InlineNode>[TextRun(text: 'CellCenter')],
+                      ),
+                    ],
+                  ),
+                  TableCellNode(
+                    id: 'c1',
+                    blocks: <BlockNode>[
+                      TextBlockNode(
+                        id: 'c1p',
+                        type: BlockType.paragraph,
+                        content: <InlineNode>[TextRun(text: 'CellColumn')],
+                      ),
+                    ],
+                  ),
+                  TableCellNode(
+                    id: 'c2',
+                    blocks: <BlockNode>[
+                      TextBlockNode(
+                        id: 'c2p',
+                        type: BlockType.paragraph,
+                        content: <InlineNode>[TextRun(text: 'CellDefault')],
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 600,
+            height: 240,
+            child: WenzRichTextEditor(
+              controller: controller,
+              enableIme: false,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    TextAlign alignOf(String text) =>
+        tester.widget<RichText>(_richText(text)).textAlign;
+
+    // Cell-level alignment wins over the column alignment.
+    expect(alignOf('CellCenter'), TextAlign.center);
+    // No cell alignment falls back to the column alignment.
+    expect(alignOf('CellColumn'), TextAlign.right);
+    // Neither cell nor column alignment resolves to the default (start).
+    expect(alignOf('CellDefault'), TextAlign.start);
+  });
+
+  testWidgets('table toolbar alignment targets selected cells not columns', (
+    tester,
+  ) async {
+    final controller = WenzRichTextController(
+      document: _toolbarTableDocument(),
+      selection: _tableCellSelection(),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 960,
+            height: 360,
+            child: WenzRichTextEditor(
+              controller: controller,
+              enableIme: false,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    Future<void> pressTableMoreItem(String label) async {
+      await tester.tap(find.byTooltip('更多表格操作'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(label));
+      await _pumpTableToolbarOverlay(tester);
+    }
+
+    // Single-cell selection aligns only that cell.
+    await pressTableMoreItem('列居中对齐');
+    var table = controller.document.blocks.single as TableBlockNode;
+    expect(table.table.cellAt(0, 0)!.alignment, 'center');
+    expect(table.table.cellAt(0, 1)!.alignment, isNull);
+    expect(table.table.cellAt(1, 0)!.alignment, isNull);
+    expect(table.table.columnAlignments, isEmpty);
+
+    // Multi-cell rectangular selection aligns every visible cell in range.
+    controller.setSelection(
+      DocumentSelection(
+        base: DocumentPosition.tableCell(
+          tableBlockId: 'table1',
+          blockIndex: 0,
+          tableRowIndex: 0,
+          tableColumnIndex: 0,
+          offset: 0,
+        ),
+        extent: DocumentPosition.tableCell(
+          tableBlockId: 'table1',
+          blockIndex: 0,
+          tableRowIndex: 1,
+          tableColumnIndex: 1,
+          offset: 0,
+        ),
+      ),
+    );
+    await _pumpTableToolbarOverlay(tester);
+    await pressTableMoreItem('列右对齐');
+    table = controller.document.blocks.single as TableBlockNode;
+    expect(table.table.cellAt(0, 0)!.alignment, 'right');
+    expect(table.table.cellAt(0, 1)!.alignment, 'right');
+    expect(table.table.cellAt(1, 0)!.alignment, 'right');
+    expect(table.table.cellAt(1, 1)!.alignment, 'right');
+    // Column alignment is never mutated by cell alignment actions.
+    expect(table.table.columnAlignments, isEmpty);
   });
 
   testWidgets('table floating toolbar follows active table lifecycle', (
@@ -11441,6 +12308,12 @@ void main() {
     // spec'd values directly so the test pins the user-facing behaviour.
     const mediaCornerRadius = 12.0;
     const primaryStroke = Color(0xFF0B6E4F);
+    // The generic full-size overlay painted by _BlockObjectSelectionSurface
+    // when showSelectionOverlay is true. Media blocks disable it and paint
+    // only the frame-hugging _MediaSelectionStroke, so a selected image/video
+    // must not render this loose rectangle.
+    const selectionHighlightKey =
+        ValueKey<String>('wenz-richtext-selection-highlight');
 
     Future<void> pumpMediaEditor(
       WidgetTester tester,
@@ -11461,6 +12334,19 @@ void main() {
       );
       await tester.pump();
     }
+
+    // Matches the generic full-size selection overlay uniquely: a DecoratedBox
+    // carrying the selection-highlight key with a non-null border (the loose
+    // BorderRadius.circular(6) rectangle that floats over the block margins).
+    // Excludes the plain SizedBox and border-less table-cell variants that
+    // share the same key.
+    Finder genericSelectionOverlay() => find.byWidgetPredicate(
+          (widget) =>
+              widget is DecoratedBox &&
+              widget.key == selectionHighlightKey &&
+              widget.decoration is BoxDecoration &&
+              (widget.decoration as BoxDecoration).border != null,
+        );
 
     testWidgets(
       'selected image selection stroke hugs the media frame and uses media radius',
@@ -11528,6 +12414,43 @@ void main() {
         final blockRect = tester.getRect(_videoBlockFinder('video1'));
         expect(strokeRect.top, greaterThan(blockRect.top));
         expect(strokeRect.bottom, lessThan(blockRect.bottom));
+      },
+    );
+
+    testWidgets(
+      'selected media blocks paint no generic full-size overlay (video mirrors image)',
+      (tester) async {
+        // Selected image: the generic _BlockObjectSelectionSurface overlay is
+        // disabled (showSelectionOverlay: false), so only the frame-hugging
+        // _MediaSelectionStroke paints.
+        final imageController = WenzRichTextController(
+          document: const RichTextDocument(
+            blocks: <BlockNode>[
+              ImageBlockNode(id: 'image1', assetId: 'hero', file: 'hero.png'),
+            ],
+          ),
+          selection: objectBlockSelection('image1', 0),
+        );
+        await pumpMediaEditor(tester, imageController);
+        expect(find.byKey(strokeKey), findsOneWidget);
+        expect(genericSelectionOverlay(), findsNothing);
+
+        // Selected video: must mirror the image exactly. Before the fix the
+        // video wrapper left showSelectionOverlay at its default (true), so the
+        // generic loose rectangle was painted over the block margins on top of
+        // the frame-hugging stroke — a double frame. Now both blocks render
+        // only the single _MediaSelectionStroke.
+        final videoController = WenzRichTextController(
+          document: const RichTextDocument(
+            blocks: <BlockNode>[
+              VideoBlockNode(id: 'video1', assetId: 'clip'),
+            ],
+          ),
+          selection: objectBlockSelection('video1', 0),
+        );
+        await pumpMediaEditor(tester, videoController);
+        expect(find.byKey(strokeKey), findsOneWidget);
+        expect(genericSelectionOverlay(), findsNothing);
       },
     );
 
@@ -13368,6 +14291,153 @@ Future<void> _sendCtrlShortcut(
   }
   await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
 }
+
+Future<void> _pumpPasteEditor(
+  WidgetTester tester,
+  WenzRichTextController controller, {
+  ExternalImageClipboardReader? reader,
+  ExternalImageStore? store,
+  bool enableExternalImageInput = true,
+}) async {
+  final focusNode = FocusNode();
+  addTearDown(focusNode.dispose);
+  await tester.pumpWidget(
+    MaterialApp(
+      home: Scaffold(
+        body: WenzRichTextEditor(
+          controller: controller,
+          focusNode: focusNode,
+          enableIme: false,
+          enableExternalImageInput: enableExternalImageInput,
+          externalImageClipboardReader: reader,
+          externalImageStore: store,
+        ),
+      ),
+    ),
+  );
+  focusNode.requestFocus();
+  await tester.pump();
+}
+
+Future<void> _pumpExternalImageDropEditor(
+  WidgetTester tester,
+  WenzRichTextController controller, {
+  required List<ExternalImageInput> dragData,
+  ExternalImageStore? store,
+  bool readOnly = false,
+  bool enableExternalImageInput = true,
+}) async {
+  final focusNode = FocusNode();
+  addTearDown(focusNode.dispose);
+  await tester.pumpWidget(
+    MaterialApp(
+      home: Scaffold(
+        body: Column(
+          children: <Widget>[
+            Draggable<List<ExternalImageInput>>(
+              data: dragData,
+              feedback: const SizedBox(width: 1, height: 1),
+              childWhenDragging: const SizedBox(
+                key: _externalImageDragSourceKey,
+                width: 48,
+                height: 48,
+              ),
+              child: const SizedBox(
+                key: _externalImageDragSourceKey,
+                width: 48,
+                height: 48,
+                child: ColoredBox(color: Colors.blue),
+              ),
+            ),
+            Expanded(
+              child: WenzRichTextEditor(
+                controller: controller,
+                focusNode: focusNode,
+                readOnly: readOnly,
+                enableIme: false,
+                enableExternalImageInput: enableExternalImageInput,
+                externalImageStore: store,
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+  focusNode.requestFocus();
+  await tester.pump();
+}
+
+Future<void> _dragExternalImagesOntoEditor(
+  WidgetTester tester, {
+  bool expectOverlay = false,
+}) async {
+  final source = tester.getCenter(find.byKey(_externalImageDragSourceKey));
+  final target = tester.getCenter(find.byType(WenzRichTextEditor));
+  final gesture = await tester.startGesture(source);
+  await tester.pump();
+  await gesture.moveBy(const Offset(0, 24));
+  await tester.pump();
+  await gesture.moveTo(target);
+  await tester.pump();
+  if (expectOverlay) {
+    expect(find.byKey(_externalImageDropOverlayKey), findsOneWidget);
+  }
+  await gesture.up();
+  await tester.pump();
+  await tester.pump();
+  expect(find.byKey(_externalImageDropOverlayKey), findsNothing);
+}
+
+class _FakeExternalImageClipboardReader
+    implements ExternalImageClipboardReader {
+  const _FakeExternalImageClipboardReader(this.data);
+
+  final ExternalImageClipboardData data;
+
+  @override
+  Future<ExternalImageClipboardData> read() async => data;
+}
+
+class _FakeExternalImageStore implements ExternalImageStore {
+  _FakeExternalImageStore(this.descriptions);
+
+  final List<ExternalImageBlockDescription> descriptions;
+  final List<ExternalImageInput> preparedInputs = <ExternalImageInput>[];
+  int prepareCount = 0;
+
+  @override
+  Future<ExternalImageStoreResult> prepare(ExternalImageInput input) async {
+    final rejection = input.rejection;
+    if (rejection != null) {
+      return ExternalImageStoreResult.failure(rejection);
+    }
+    preparedInputs.add(input);
+    final index = prepareCount;
+    prepareCount += 1;
+    if (index >= descriptions.length) {
+      return const ExternalImageStoreResult.failure(
+        ExternalImageInputRejection(
+          reason: ExternalImageInputRejectionReason.unsupportedImageType,
+          message: 'No fake image description is available.',
+        ),
+      );
+    }
+    return ExternalImageStoreResult.success(descriptions[index]);
+  }
+}
+
+final Uint8List _pngBytes = Uint8List.fromList(<int>[
+  0x89,
+  0x50,
+  0x4e,
+  0x47,
+  0x0d,
+  0x0a,
+  0x1a,
+  0x0a,
+  0x00,
+]);
 
 Future<void> _sendShiftArrowRight(WidgetTester tester) async {
   await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);

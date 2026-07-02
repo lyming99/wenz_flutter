@@ -149,6 +149,9 @@ class HtmlCodec {
         if (cell.columnSpan > 1) {
           spanAttrs.write(' colspan="${cell.columnSpan}"');
         }
+        if (cell.alignment != null) {
+          spanAttrs.write(' style="text-align: ${cell.alignment}"');
+        }
         buffer.write('<$tag$spanAttrs>');
         for (final innerBlock in cell.blocks) {
           if (innerBlock is TextBlockNode) {
@@ -1018,6 +1021,7 @@ class HtmlCodec {
           isHeader: isHeader,
           rowSpan: rowSpan,
           columnSpan: columnSpan,
+          alignment: _tableCellAlignment(cell),
           blocks: <BlockNode>[
             TextBlockNode(
               id: '$tableId-r$r-c$c-p',
@@ -1053,6 +1057,25 @@ class HtmlCodec {
   int _parseTableSpan(String? value) {
     final parsed = _parseIntAttribute(value);
     return parsed > 1 ? parsed : 1;
+  }
+
+  /// Resolves a table cell's text alignment from its `style="text-align:…"`
+  /// declaration, falling back to the legacy `align` attribute. Returns `null`
+  /// when neither is present or the value is unsupported, so the cell inherits
+  /// the column alignment.
+  String? _tableCellAlignment(dom.Element cell) {
+    final fromStyle = _styleProperty(cell.attributes['style'], 'text-align');
+    final normalized =
+        (fromStyle ?? cell.attributes['align'])?.trim().toLowerCase();
+    switch (normalized) {
+      case 'left':
+      case 'center':
+      case 'right':
+      case 'justify':
+        return normalized;
+      default:
+        return null;
+    }
   }
 
   /// Parses the inline content of [node] into a list of [InlineNode]s,

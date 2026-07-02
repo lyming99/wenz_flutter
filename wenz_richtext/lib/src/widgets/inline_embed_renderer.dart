@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/widgets.dart';
 
 import '../core/model/inline_node.dart';
@@ -5,6 +7,86 @@ import '../core/position/document_position.dart';
 
 /// Callback invoked when a mention inline embed is activated.
 typedef WenzMentionTapCallback = void Function(WenzMentionTapDetails details);
+
+/// Callback used by the editor to search mention candidates for an `@` query.
+///
+/// [WenzMentionSearchRequest.query] is the text after the trigger character,
+/// without the leading `@`. Implementations may return candidates immediately
+/// or complete them asynchronously from a remote directory.
+typedef WenzMentionSearchCallback = FutureOr<List<WenzMentionCandidate>>
+    Function(WenzMentionSearchRequest request);
+
+/// Context passed to [WenzMentionSearchCallback].
+///
+/// The request keeps the searchable query separate from editor context so host
+/// apps can filter by workspace, document position, or current selection when
+/// their user directory requires it. [query] does not include the trigger
+/// character.
+class WenzMentionSearchRequest {
+  const WenzMentionSearchRequest({
+    required this.query,
+    this.triggerCharacter = '@',
+    this.position,
+    this.selection,
+  });
+
+  /// Text after the mention trigger, without [triggerCharacter].
+  final String query;
+
+  /// Character that opened the mention query. Defaults to `@`.
+  final String triggerCharacter;
+
+  /// Caret/document position where the search was requested, when available.
+  final DocumentPosition? position;
+
+  /// Editor selection at request time, when available.
+  final DocumentSelection? selection;
+}
+
+/// Public candidate model returned by [WenzMentionSearchCallback].
+///
+/// [id] and [label] are the stable fields consumed by the built-in mention
+/// model. [description] and [avatarUrl] are optional display hints for search
+/// UIs, while [data] preserves business-specific fields that should travel with
+/// the inserted mention embed.
+class WenzMentionCandidate {
+  const WenzMentionCandidate({
+    required this.id,
+    required this.label,
+    this.description,
+    this.avatarUrl,
+    this.data = const <String, Object?>{},
+  });
+
+  /// Stable business id for the mentioned entity.
+  final String id;
+
+  /// Human-readable label displayed after `@`.
+  final String label;
+
+  /// Optional secondary text for search results, such as title or department.
+  final String? description;
+
+  /// Optional avatar URL for search-result UIs.
+  final String? avatarUrl;
+
+  /// Original business payload preserved by the host.
+  final Map<String, Object?> data;
+
+  /// Payload suitable for a `mention` [InlineEmbed].
+  ///
+  /// Business fields are preserved first; canonical mention fields then win so
+  /// downstream renderers can always read [id] and [label] consistently.
+  Map<String, Object?> toMentionData() {
+    return <String, Object?>{
+      ...data,
+      if (description != null) 'description': description,
+      if (avatarUrl != null) 'avatarUrl': avatarUrl,
+      'id': id,
+      'label': label,
+    };
+  }
+}
 
 /// Stable payload for mention activation events.
 ///

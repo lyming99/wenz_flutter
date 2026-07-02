@@ -194,7 +194,7 @@ class SlashMenuController extends ChangeNotifier {
   int get highlightedIndex => _highlightedIndex;
   int _highlightedIndex = 0;
 
-  bool get isOpen => _trigger != null && _items.isNotEmpty && !_closedManually;
+  bool get isOpen => _trigger != null && !_closedManually;
 
   SlashMenuItem? get highlightedItem {
     if (!isOpen ||
@@ -452,6 +452,43 @@ List<SlashMenuItem> defaultSlashMenuItems() {
               blockId: block.id,
               blockIndex: blockIndex,
               offset: caretOffset,
+            );
+            return DocumentSelection(base: position, extent: position);
+          },
+        );
+      },
+    ),
+    SlashMenuItem(
+      id: 'mermaid',
+      title: 'Mermaid 图',
+      description: '流程图 / 甘特图 / 思维导图',
+      icon: 'account_tree',
+      keywords: const <String>[
+        'diagram',
+        'flowchart',
+        'gantt',
+        'mindmap',
+        '图',
+        '流程图',
+        '甘特',
+        '思维导图',
+      ],
+      handlesTriggerDeletion: true,
+      action: (editor, context) {
+        const templateCode = 'flowchart TD\n  A[开始] --> B[结束]';
+        _replaceTriggerBlock(
+          editor,
+          context,
+          (block, content) => CodeBlockNode(
+            id: block.id,
+            language: 'mermaid',
+            code: templateCode,
+          ),
+          (block, blockIndex, caretOffset) {
+            final position = DocumentPosition.code(
+              blockId: block.id,
+              blockIndex: blockIndex,
+              offset: templateCode.length,
             );
             return DocumentSelection(base: position, extent: position);
           },

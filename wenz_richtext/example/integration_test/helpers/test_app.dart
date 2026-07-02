@@ -6,6 +6,7 @@ import 'package:wenz_richtext/wenz_richtext.dart';
 const testThemeToggleKey = ValueKey<String>('wenz-example-theme-toggle');
 const testEditorSurfaceKey = ValueKey<String>('wenz-example-editor-surface');
 const _testSeedColor = Color(0xFF0F766E);
+const _testWorkbenchFontFamily = '微软雅黑';
 
 ThemeData _testWorkbenchTheme(Brightness brightness) {
   final background =
@@ -16,6 +17,7 @@ ThemeData _testWorkbenchTheme(Brightness brightness) {
   ).copyWith(surface: background);
   return ThemeData(
     colorScheme: scheme,
+    fontFamily: _testWorkbenchFontFamily,
     scaffoldBackgroundColor: background,
     useMaterial3: true,
   );

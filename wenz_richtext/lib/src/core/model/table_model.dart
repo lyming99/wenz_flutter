@@ -98,6 +98,7 @@ class TableCellNode {
     this.isHeader = false,
     this.backgroundColor,
     this.covered = false,
+    this.alignment,
   });
 
   final String id;
@@ -107,6 +108,9 @@ class TableCellNode {
   final bool isHeader;
   final int? backgroundColor;
   final bool covered;
+  // Cell-level text alignment ('left'/'center'/'right'/'justify'). When `null`
+  // the cell inherits the column alignment (`TableModel.columnAlignments`).
+  final String? alignment;
 
   String get plainText => blocks.map((block) => block.plainText).join('\n');
 
@@ -119,11 +123,13 @@ class TableCellNode {
       if (isHeader) 'isHeader': true,
       if (backgroundColor != null) 'backgroundColor': backgroundColor,
       if (covered) 'covered': true,
+      if (alignment != null) 'alignment': alignment,
     };
   }
 
   factory TableCellNode.fromJson(Map<String, Object?> json) {
     final rawBlocks = json['blocks'];
+    final rawAlignment = json['alignment'];
     return TableCellNode(
       id: json['id'] as String? ?? '',
       blocks: rawBlocks is List
@@ -139,6 +145,9 @@ class TableCellNode {
       isHeader: json['isHeader'] as bool? ?? false,
       backgroundColor: _asNullableInt(json['backgroundColor']),
       covered: json['covered'] as bool? ?? false,
+      alignment: rawAlignment is String && rawAlignment.isNotEmpty
+          ? rawAlignment
+          : null,
     );
   }
 }

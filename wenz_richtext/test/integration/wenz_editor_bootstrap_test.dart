@@ -114,6 +114,89 @@ void main() {
       expect(roundTrip.toJson(), exported);
     });
 
+    testWidgets('mention search and tap callbacks stay on bootstrap surface',
+        (tester) async {
+      final searchRequests = <WenzMentionSearchRequest>[];
+      final tapEvents = <WenzMentionTapDetails>[];
+
+      List<WenzMentionCandidate> searchMentions(
+        WenzMentionSearchRequest request,
+      ) {
+        searchRequests.add(request);
+        return const <WenzMentionCandidate>[
+          WenzMentionCandidate(
+            id: 'u-ada',
+            label: 'Ada',
+            data: <String, Object?>{'email': 'ada@example.com'},
+          ),
+        ];
+      }
+
+      void handleMentionTap(WenzMentionTapDetails details) {
+        tapEvents.add(details);
+      }
+
+      final mentionSearch = searchMentions;
+      final onMentionTap = handleMentionTap;
+      final bootstrap = WenzEditorBootstrap.create(
+        WenzEditorConfiguration(
+          document: const RichTextDocument(
+            blocks: <BlockNode>[
+              TextBlockNode(
+                id: 'p1',
+                type: BlockType.paragraph,
+                content: <InlineNode>[
+                  TextRun(text: 'Hello '),
+                  InlineEmbed(
+                    embedType: 'mention',
+                    data: <String, Object?>{
+                      'id': 'u-ada',
+                      'label': 'Ada',
+                      'email': 'ada@example.com',
+                    },
+                  ),
+                ],
+              ),
+            ],
+          ),
+          mentionSearch: mentionSearch,
+          onMentionTap: onMentionTap,
+        ),
+      );
+      addTearDown(bootstrap.dispose);
+
+      expect(bootstrap.mentionSearch, same(mentionSearch));
+      final candidates = await Future<List<WenzMentionCandidate>>.value(
+        bootstrap.mentionSearch!(
+          const WenzMentionSearchRequest(query: 'ad'),
+        ),
+      );
+      expect(searchRequests.single.query, 'ad');
+      expect(candidates.single.data['email'], 'ada@example.com');
+
+      final editor = bootstrap.buildEditor(
+        enableIme: false,
+        padding: const EdgeInsets.all(24),
+      );
+      expect(editor.onMentionTap, same(onMentionTap));
+
+      await tester.pumpWidget(
+        MaterialApp(home: Scaffold(body: editor)),
+      );
+      await tester.pumpAndSettle();
+      expect(_richText('Hello @Ada'), findsOneWidget);
+
+      await tester.tapAt(_globalTextRangePoint(tester, 'Hello @Ada', 6, 10));
+      await tester.pump();
+      await tester.pump();
+
+      expect(tapEvents, hasLength(1));
+      expect(tapEvents.single.id, 'u-ada');
+      expect(tapEvents.single.label, 'Ada');
+      expect(tapEvents.single.data['email'], 'ada@example.com');
+      expect(tapEvents.single.blockId, 'p1');
+    });
+
     test('comment and read permissions reject write commands at the gate', () {
       void assertBlocked(WenzEditorPermission permission) {
         final bootstrap = WenzEditorBootstrap.create(
@@ -340,4 +423,43 @@ Finder _richText(String text) {
     (widget) => widget is RichText && widget.text.toPlainText() == text,
     description: 'RichText with plain text "$text"',
   );
+}
+
+Offset _globalTextRangePoint(
+  WidgetTester tester,
+  String text,
+  int startOffset,
+  int endOffset, [
+  double fraction = 0.75,
+]) {
+  final finder = _richText(text);
+  final richText = tester.widget<RichText>(finder);
+  final size = tester.getSize(finder);
+  final painter = TextPainter(
+    text: richText.text,
+    textAlign: richText.textAlign,
+    textDirection: TextDirection.ltr,
+  )..layout(maxWidth: size.width);
+  final boxes = painter.getBoxesForSelection(
+    TextSelection(baseOffset: startOffset, extentOffset: endOffset),
+  );
+  if (boxes.isEmpty) {
+    final local = painter.getOffsetForCaret(
+      TextPosition(offset: startOffset),
+      Rect.zero,
+    );
+    return tester.getTopLeft(finder) +
+        local +
+        Offset(1, painter.preferredLineHeight / 2);
+  }
+  final firstBox = boxes.first.toRect();
+  final rangeRect = boxes.skip(1).fold<Rect>(
+        firstBox,
+        (current, box) => current.expandToInclude(box.toRect()),
+      );
+  return tester.getTopLeft(finder) +
+      Offset(
+        rangeRect.left + rangeRect.width * fraction,
+        rangeRect.center.dy,
+      );
 }
