@@ -172,10 +172,11 @@ const Color _kTableEvenRowBackgroundColor = Color(0xFFFAFAFF);
 /// a tap target even for empty paragraphs. A single constant so the text,
 /// code, and table-cell renderers stay in sync.
 const double _kBlockMinHeightFactor = 1.35;
-const double _kTodoCheckboxWidth = 24.0;
-const double _kTodoCheckboxHeight = 28.0;
-const double _kTodoTextGap = 10.0;
-const double _kTaskListPaddingLeft = 8.0;
+const double _kTodoCheckboxWidth = 20.0;
+const double _kTodoCheckboxHeight =
+    _kRichTextBodyFontSize * _kRichTextBodyLineHeight;
+const double _kTodoTextGap = 6.0;
+const double _kTaskListPaddingLeft = 4.0;
 const double _kListTextInset = 26.0;
 const double _kListMarkerWidth = 18.0;
 const double _kListMarkerGap = _kListTextInset - _kListMarkerWidth;
@@ -187,9 +188,9 @@ const double _kNestedListItemSpacing = _kRichTextBodyFontSize * 0.15;
 /// adjacency + quote decoration only; an `indent` attribute does not break the
 /// run.
 const double _kAdjacentQuoteSpacing = 0.0;
-const double _kHeadingCollapseSlotWidth = 30.0;
-const double _kHeadingCollapseButtonSize = 26.0;
-const double _kHeadingCollapseIconSize = 20.0;
+const double _kHeadingCollapseSlotWidth = 24.0;
+const double _kHeadingCollapseButtonSize = 24.0;
+const double _kHeadingCollapseIconSize = 18.0;
 const double _kCodeBlockFontSize = 13.5;
 const double _kCodeBlockLineHeight = 1.6;
 const double _kCodeBlockPaddingVertical = 18.0;
@@ -208,10 +209,16 @@ const int _kCodeLanguageTagColor = 0xB38A8AFF;
 
 // Menu and floating toolbar tokens are documented in
 // docs/design/menu_toolbar_minimal_spec.md; keep future chrome changes here.
-const double _kMinimalMenuSurfaceRadius = 12.0;
-const double _kMinimalMenuSurfaceElevation = 6.0;
-const int _kMinimalMenuSurfaceShadowAlpha = 48;
-const int _kMinimalMenuSurfaceBorderAlpha = 180;
+const double _kMinimalMenuSurfaceRadius = 10.0;
+const double _kMinimalMenuSurfaceElevation = 3.0;
+const int _kMinimalMenuSurfaceShadowAlpha = 30;
+const Color _kMinimalMenuSurfaceColorLight = Color(0xFFF8F9FA);
+const Color _kMinimalMenuSurfaceColorDark = Color(0xFF292A2D);
+const Color _kMinimalMenuSurfaceBorderColorLight = Color(0xFFDADCE0);
+const Color _kMinimalMenuSurfaceBorderColorDark = Color(0xFF4A4C50);
+const Color _kMinimalMenuDividerColorLight = Color(0xFFE9ECEF);
+const Color _kMinimalMenuDividerColorDark = Color(0xFF383A3E);
+const double _kMinimalMenuSurfacePaddingValue = 4.0;
 const double _kMinimalMenuItemHeight = 32.0;
 const double _kMinimalMenuDividerHeight = 8.0;
 const double _kMinimalMenuItemRadius = 8.0;
@@ -219,17 +226,18 @@ const double _kMinimalMenuIconSlotWidth = 22.0;
 const double _kMinimalMenuIconSize = 18.0;
 const double _kMinimalMenuIconTextGap = 10.0;
 const double _kMinimalMenuShortcutGap = 18.0;
-const EdgeInsets _kMinimalMenuSurfacePadding = EdgeInsets.all(4);
-const EdgeInsets _kMinimalMenuItemPadding = EdgeInsets.symmetric(
-  horizontal: 12,
-);
+const EdgeInsets _kMinimalMenuSurfacePadding =
+    EdgeInsets.all(_kMinimalMenuSurfacePaddingValue);
+const EdgeInsets _kMinimalMenuItemPadding = EdgeInsets.zero;
+const EdgeInsets _kMinimalMenuItemContentPadding =
+    EdgeInsets.symmetric(horizontal: 10);
 const double _kMinimalToolbarButtonSize = 32.0;
 const double _kMinimalToolbarIconSize = 18.0;
-const double _kMinimalToolbarButtonRadius = 8.0;
-const double _kMinimalFloatingToolbarSurfaceRadius = 12.0;
+const double _kMinimalFloatingToolbarSurfaceRadius =
+    _kMinimalMenuSurfaceRadius;
 const double _kMinimalFloatingToolbarSurfaceElevation = 3.0;
-const int _kMinimalFloatingToolbarShadowAlpha = 40;
-const int _kMinimalFloatingToolbarBorderAlpha = 180;
+const int _kMinimalFloatingToolbarShadowAlpha =
+    _kMinimalMenuSurfaceShadowAlpha;
 const EdgeInsets _kMinimalFloatingToolbarPadding = EdgeInsets.symmetric(
   horizontal: 4,
   vertical: 2,
@@ -237,18 +245,24 @@ const EdgeInsets _kMinimalFloatingToolbarPadding = EdgeInsets.symmetric(
 const double _kMinimalFloatingToolbarButtonGap = 2.0;
 const double _kMinimalFloatingToolbarDividerWidth = 9.0;
 const double _kMinimalFloatingToolbarDividerHeight = 18.0;
-const int _kMinimalFloatingToolbarDividerAlpha = 120;
+const int _kMinimalFloatingToolbarDividerAlpha = 84;
 const int _kMinimalToolbarDisabledAlpha = 96;
 const int _kMinimalMenuDisabledAlpha = 110;
-const int _kMinimalMenuSelectedAlphaLight = 36;
-const int _kMinimalMenuSelectedAlphaDark = 48;
-const int _kMinimalToolbarHoverAlpha = 150;
-const int _kMinimalToolbarFocusAlpha = 26;
-const int _kMinimalToolbarPressedAlpha = 34;
+const Color _kMinimalMenuHoverColorLight = Color(0xFFF1F3F4);
+const Color _kMinimalMenuHoverColorDark = Color(0xFF34363A);
+const Color _kMinimalMenuSelectedColorLight = Color(0xFFE8EAED);
+const Color _kMinimalMenuSelectedColorDark = Color(0xFF3C4043);
+const Color _kMinimalToolbarHoverOverlayLight = Color(0x14000000);
+const Color _kMinimalToolbarHoverOverlayDark = Color(0x1AFFFFFF);
+const Color _kMinimalToolbarFocusOverlayLight = Color(0x1A000000);
+const Color _kMinimalToolbarFocusOverlayDark = Color(0x21FFFFFF);
+const Color _kMinimalToolbarPressedOverlayLight = Color(0x26000000);
+const Color _kMinimalToolbarPressedOverlayDark = Color(0x2EFFFFFF);
 const double _kBlockFloatingToolbarInset = 6.0;
 const double _kBlockToolbarButtonSize = _kMinimalToolbarButtonSize;
 const double _kBlockToolbarIconSize = _kMinimalToolbarIconSize;
-const double _kBlockToolbarButtonRadius = _kMinimalToolbarButtonRadius;
+const double _kMediaToolbarEstimatedHeight = 36.0;
+const double _kBlockToolbarButtonRadius = _kBlockToolbarButtonSize / 2;
 const Size _kBlockToolbarButtonFixedSize =
     Size.square(_kBlockToolbarButtonSize);
 const BoxConstraints _kBlockToolbarButtonConstraints = BoxConstraints.tightFor(
@@ -306,8 +320,13 @@ const double _kPopupMenuMaxWidth = 320.0;
 const double _kPopupMenuMaxHeight = 560.0;
 const double _kPopupMenuItemHeight = _kMinimalMenuItemHeight;
 const double _kPopupMenuDividerHeight = _kMinimalMenuDividerHeight;
+const double _kPopupMenuItemContentMinWidth =
+    _kPopupMenuMinWidth - _kMinimalMenuSurfacePaddingValue * 2;
+const double _kPopupMenuItemContentMaxWidth =
+    _kPopupMenuMaxWidth - _kMinimalMenuSurfacePaddingValue * 2;
 const double _kPopupMenuTextMaxWidth = 212.0;
 const double _kSlashMenuGap = 6.0;
+const double _kSlashMenuMinReadableHeight = 132.0;
 const double _kFormulaEditorGap = 8.0;
 const double _kFormulaEditorWidth = 360.0;
 const double _kFormulaEditorEstimatedHeight = 180.0;
@@ -346,7 +365,25 @@ const int _kAtomicBlockSelectionLength = 1;
 /// Pixels of horizontal indent per indent level.
 const double _kIndentPixelsPerLevel = 24;
 
-Color _popupMenuColor(ThemeData theme) => theme.colorScheme.surfaceContainerLow;
+Color _minimalMenuSurfaceColor(ThemeData theme) {
+  return theme.brightness == Brightness.dark
+      ? _kMinimalMenuSurfaceColorDark
+      : _kMinimalMenuSurfaceColorLight;
+}
+
+Color _minimalMenuBorderColor(ThemeData theme) {
+  return theme.brightness == Brightness.dark
+      ? _kMinimalMenuSurfaceBorderColorDark
+      : _kMinimalMenuSurfaceBorderColorLight;
+}
+
+Color _minimalMenuDividerColor(ThemeData theme) {
+  return theme.brightness == Brightness.dark
+      ? _kMinimalMenuDividerColorDark
+      : _kMinimalMenuDividerColorLight;
+}
+
+Color _popupMenuColor(ThemeData theme) => _minimalMenuSurfaceColor(theme);
 
 Color _popupMenuShadowColor(ThemeData theme) =>
     theme.colorScheme.shadow.withAlpha(_kMinimalMenuSurfaceShadowAlpha);
@@ -354,16 +391,14 @@ Color _popupMenuShadowColor(ThemeData theme) =>
 ShapeBorder _popupMenuShape(ThemeData theme) {
   return RoundedRectangleBorder(
     side: BorderSide(
-      color: theme.colorScheme.outlineVariant.withAlpha(
-        _kMinimalMenuSurfaceBorderAlpha,
-      ),
+      color: _minimalMenuBorderColor(theme),
     ),
     borderRadius: BorderRadius.circular(_kPopupMenuRadius),
   );
 }
 
 Color _floatingToolbarSurfaceColor(ThemeData theme) =>
-    theme.colorScheme.surfaceContainerLow;
+    _minimalMenuSurfaceColor(theme);
 
 Color _floatingToolbarShadowColor(ThemeData theme) =>
     theme.colorScheme.shadow.withAlpha(_kMinimalFloatingToolbarShadowAlpha);
@@ -371,9 +406,7 @@ Color _floatingToolbarShadowColor(ThemeData theme) =>
 ShapeBorder _floatingToolbarShape(ThemeData theme) {
   return RoundedRectangleBorder(
     side: BorderSide(
-      color: theme.colorScheme.outlineVariant.withAlpha(
-        _kMinimalFloatingToolbarBorderAlpha,
-      ),
+      color: _minimalMenuBorderColor(theme),
     ),
     borderRadius: BorderRadius.circular(_kMinimalFloatingToolbarSurfaceRadius),
   );
@@ -385,15 +418,44 @@ Color _blockToolbarIconColor(ThemeData theme) =>
 Color _blockToolbarDisabledIconColor(ThemeData theme) =>
     theme.colorScheme.onSurfaceVariant.withAlpha(_kMinimalToolbarDisabledAlpha);
 
+Color _minimalMenuSelectedColor(ThemeData theme) {
+  return theme.brightness == Brightness.dark
+      ? _kMinimalMenuSelectedColorDark
+      : _kMinimalMenuSelectedColorLight;
+}
+
+Color _minimalMenuHoverColor(ThemeData theme) {
+  return theme.brightness == Brightness.dark
+      ? _kMinimalMenuHoverColorDark
+      : _kMinimalMenuHoverColorLight;
+}
+
+Color _minimalToolbarHoverOverlayColor(ThemeData theme) {
+  return theme.brightness == Brightness.dark
+      ? _kMinimalToolbarHoverOverlayDark
+      : _kMinimalToolbarHoverOverlayLight;
+}
+
+Color _minimalToolbarFocusOverlayColor(ThemeData theme) {
+  return theme.brightness == Brightness.dark
+      ? _kMinimalToolbarFocusOverlayDark
+      : _kMinimalToolbarFocusOverlayLight;
+}
+
 Color _blockToolbarPressedOverlayColor(ThemeData theme) =>
-    theme.colorScheme.primary.withAlpha(_kMinimalToolbarPressedAlpha);
+    theme.brightness == Brightness.dark
+        ? _kMinimalToolbarPressedOverlayDark
+        : _kMinimalToolbarPressedOverlayLight;
+
+PopupMenuEntry<T> _popupMenuDivider<T>() {
+  return _MinimalPopupMenuDivider<T>(height: _kPopupMenuDividerHeight);
+}
 
 ButtonStyle _blockToolbarIconButtonStyle(
   ThemeData theme, {
   Color? foregroundColor,
   Color? disabledForegroundColor,
 }) {
-  final colorScheme = theme.colorScheme;
   return IconButton.styleFrom(
     fixedSize: _kBlockToolbarButtonFixedSize,
     minimumSize: _kBlockToolbarButtonFixedSize,
@@ -406,10 +468,8 @@ ButtonStyle _blockToolbarIconButtonStyle(
         disabledForegroundColor ?? _blockToolbarDisabledIconColor(theme),
     backgroundColor: Colors.transparent,
     disabledBackgroundColor: Colors.transparent,
-    hoverColor: colorScheme.surfaceContainerHighest.withAlpha(
-      _kMinimalToolbarHoverAlpha,
-    ),
-    focusColor: colorScheme.primary.withAlpha(_kMinimalToolbarFocusAlpha),
+    hoverColor: _minimalToolbarHoverOverlayColor(theme),
+    focusColor: _minimalToolbarFocusOverlayColor(theme),
     highlightColor: _blockToolbarPressedOverlayColor(theme),
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(_kBlockToolbarButtonRadius),
@@ -469,9 +529,7 @@ class _PopupMenuItemContent extends StatelessWidget {
         ? colorScheme.onSurfaceVariant.withAlpha(_kMinimalMenuDisabledAlpha)
         : destructive
             ? colorScheme.error
-            : selected
-                ? colorScheme.primary
-                : colorScheme.onSurface;
+            : colorScheme.onSurface;
     final iconColor = !enabled
         ? colorScheme.onSurfaceVariant.withAlpha(
             _kMinimalMenuDisabledAlpha,
@@ -479,62 +537,100 @@ class _PopupMenuItemContent extends StatelessWidget {
         : destructive
             ? colorScheme.error
             : selected
-                ? colorScheme.primary
+                ? colorScheme.onSurface
                 : colorScheme.onSurfaceVariant;
-    final selectedBackgroundAlpha = theme.brightness == Brightness.dark
-        ? _kMinimalMenuSelectedAlphaDark
-        : _kMinimalMenuSelectedAlphaLight;
+    final selectedBackgroundColor = selected
+        ? _minimalMenuSelectedColor(theme)
+        : Colors.transparent;
+    final labelStyle =
+        (theme.textTheme.bodyMedium ?? const TextStyle()).copyWith(
+      color: foregroundColor,
+      fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+    );
+    final shortcutStyle =
+        (theme.textTheme.labelSmall ?? const TextStyle()).copyWith(
+      color: enabled
+          ? colorScheme.onSurfaceVariant
+          : colorScheme.onSurfaceVariant.withAlpha(
+              _kMinimalMenuDisabledAlpha,
+            ),
+    );
     return Semantics(
       selected: selected,
       enabled: enabled,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: selected
-              ? colorScheme.primaryContainer.withAlpha(selectedBackgroundAlpha)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(_kMinimalMenuItemRadius),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            SizedBox(
-              width: _kMinimalMenuIconSlotWidth,
-              child: Icon(
-                effectiveIcon,
-                size: _kMinimalMenuIconSize,
-                color: iconColor,
+      child: SizedBox(
+        height: _kPopupMenuItemHeight,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(
+            minWidth: _kPopupMenuItemContentMinWidth,
+            maxWidth: _kPopupMenuItemContentMaxWidth,
+          ),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: selectedBackgroundColor,
+              borderRadius: BorderRadius.circular(_kMinimalMenuItemRadius),
+            ),
+            child: Padding(
+              padding: _kMinimalMenuItemContentPadding,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  SizedBox(
+                    width: _kMinimalMenuIconSlotWidth,
+                    child: Icon(
+                      effectiveIcon,
+                      size: _kMinimalMenuIconSize,
+                      color: iconColor,
+                    ),
+                  ),
+                  const SizedBox(width: _kMinimalMenuIconTextGap),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      maxWidth: _kPopupMenuTextMaxWidth,
+                    ),
+                    child: Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: labelStyle,
+                    ),
+                  ),
+                  if (shortcut != null) ...<Widget>[
+                    const SizedBox(width: _kMinimalMenuShortcutGap),
+                    Text(shortcut!, style: shortcutStyle),
+                  ],
+                ],
               ),
             ),
-            const SizedBox(width: _kMinimalMenuIconTextGap),
-            ConstrainedBox(
-              constraints:
-                  const BoxConstraints(maxWidth: _kPopupMenuTextMaxWidth),
-              child: Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: foregroundColor,
-                  fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-                ),
-              ),
-            ),
-            if (shortcut != null) ...<Widget>[
-              const SizedBox(width: _kMinimalMenuShortcutGap),
-              Text(
-                shortcut!,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: enabled
-                      ? colorScheme.onSurfaceVariant
-                      : colorScheme.onSurfaceVariant.withAlpha(
-                          _kMinimalMenuDisabledAlpha,
-                        ),
-                ),
-              ),
-            ],
-          ],
+          ),
         ),
       ),
+    );
+  }
+}
+
+class _MinimalPopupMenuDivider<T> extends PopupMenuEntry<T> {
+  const _MinimalPopupMenuDivider({required this.height});
+
+  @override
+  final double height;
+
+  @override
+  bool represents(T? value) => false;
+
+  @override
+  State<_MinimalPopupMenuDivider<T>> createState() =>
+      _MinimalPopupMenuDividerState<T>();
+}
+
+class _MinimalPopupMenuDividerState<T>
+    extends State<_MinimalPopupMenuDivider<T>> {
+  @override
+  Widget build(BuildContext context) {
+    return Divider(
+      height: widget.height,
+      thickness: 1,
+      color: _minimalMenuDividerColor(Theme.of(context)),
     );
   }
 }
@@ -648,9 +744,9 @@ final class WenzRichTextDesignBaseline {
     'quoteBorderLeftWidth': 4.0,
     'listPaddingLeft': 26.0,
     'headingCollapse': <String, double>{
-      'slotWidth': 30.0,
-      'buttonSize': 26.0,
-      'iconSize': 20.0,
+      'slotWidth': _kHeadingCollapseSlotWidth,
+      'buttonSize': _kHeadingCollapseButtonSize,
+      'iconSize': _kHeadingCollapseIconSize,
     },
     'listItemMarginEm': 0.25,
     'nestedListMarginEm': 0.15,
@@ -855,6 +951,7 @@ class _FormulaEditPopup extends StatelessWidget {
         color: _popupMenuColor(theme),
         elevation: _kPopupMenuElevation,
         shadowColor: _popupMenuShadowColor(theme),
+        surfaceTintColor: Colors.transparent,
         shape: _popupMenuShape(theme),
         clipBehavior: Clip.antiAlias,
         child: Padding(
@@ -1238,6 +1335,9 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
   );
   late final TableFloatingToolbarOverlayController
       _tableToolbarOverlayController = TableFloatingToolbarOverlayController();
+  late final ObjectBlockToolbarOverlayController
+      _objectBlockToolbarOverlayController =
+          ObjectBlockToolbarOverlayController();
   final _BlockExtentCache _extentCache = _BlockExtentCache();
   BlockRendererRegistry? _ownedBlockRenderers;
   _FormulaEditTarget? _formulaEditTarget;
@@ -1395,6 +1495,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
       oldWidget.controller.removeListener(_handleControllerChanged);
       oldWidget.controller.attachFocusNode(null);
       widget.controller.addListener(_handleControllerChanged);
+      _objectBlockToolbarOverlayController.hide();
       _extentCache.clear();
       _layoutCache.clear();
     } else if (oldWidget.textStyle != widget.textStyle ||
@@ -1462,6 +1563,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
       _controllerAttachedFocusNode = focusNode;
     }
     _syncTableToolbarOverlayWithSelection();
+    _syncObjectBlockToolbarOverlayWithSelection();
   }
 
   @override
@@ -1486,6 +1588,8 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     _mentionSearchGeneration++;
     _tableToolbarOverlayController.hide();
     _tableToolbarOverlayController.dispose();
+    _objectBlockToolbarOverlayController.hide();
+    _objectBlockToolbarOverlayController.dispose();
     _linkHoverHideTimer?.cancel();
     _formulaEditController.dispose();
     _formulaEditFocusNode.dispose();
@@ -1604,6 +1708,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
         _externalImageDropActive = false;
       }
       _syncTableToolbarOverlayWithSelection();
+      _syncObjectBlockToolbarOverlayWithSelection();
       if (_revealCurrentSelectionIfHidden()) {
         _lastScrollCheckedCaret = null;
         _scrollRealignDepth = 0;
@@ -1722,6 +1827,28 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     );
   }
 
+  void _syncObjectBlockToolbarOverlayWithSelection() {
+    final request = _objectBlockToolbarOverlayController.request;
+    if (request == null) {
+      return;
+    }
+    final block = _blockAt(request.blockIndex);
+    if (block == null || block.id != request.blockId) {
+      _objectBlockToolbarOverlayController.hide();
+      return;
+    }
+    final selected = _selectionTouchesPath(
+      widget.controller.selection,
+      request.blockIndex,
+      request.blockId,
+      PositionPath.blockObject(request.blockId),
+      _kAtomicBlockSelectionLength,
+    );
+    if (!selected) {
+      _objectBlockToolbarOverlayController.hide();
+    }
+  }
+
   void _handleFocusChanged() {
     if (!mounted) {
       return;
@@ -1838,22 +1965,43 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     if (outline == null || !identical(outline.editor, widget.controller)) {
       return null;
     }
-    // Only top-level heading text blocks expose the left-side collapse slot.
-    // Non-heading text rows plus code, table, divider, media, and file blocks
-    // must not reserve the affordance or respond to heading-collapse gestures.
+    // Only collapsible top-level heading text blocks expose the left-side
+    // collapse affordance. Leaf headings and non-heading blocks must not
+    // reserve the affordance or respond to heading-collapse gestures.
     if (block is! TextBlockNode || block.type != BlockType.heading) {
       return null;
     }
     final state = outline.collapseStateForBlockId(block.id);
+    if (state == null || !state.canCollapse) {
+      return null;
+    }
     return HeadingCollapseState(
-      canCollapse: state?.canCollapse ?? false,
-      isCollapsed: state?.isCollapsed ?? false,
-      hiddenBlockCount: state?.coveredBlockCount ?? 0,
+      canCollapse: state.canCollapse,
+      isCollapsed: state.isCollapsed,
+      hiddenBlockCount: state.coveredBlockCount,
     );
   }
 
   void _handleHeadingCollapseToggled(String blockId) {
     widget.outlineController?.toggleBodyHeadingByBlockId(blockId);
+  }
+
+  _BlockMoveRange? _blockMoveRangeFor(int blockIndex) {
+    final blocks = widget.controller.document.blocks;
+    if (blockIndex < 0 || blockIndex >= blocks.length) {
+      return null;
+    }
+    final outline = widget.outlineController;
+    if (outline != null && identical(outline.editor, widget.controller)) {
+      final headingRange = outline.headingRangeForBlockIndex(blockIndex);
+      if (headingRange != null) {
+        return _BlockMoveRange(
+          startBlockIndex: headingRange.startBlockIndex,
+          endBlockIndexExclusive: headingRange.endBlockIndexExclusive,
+        );
+      }
+    }
+    return _BlockMoveRange.single(blockIndex);
   }
 
   void _openFormulaEditor(_FormulaEditTarget target) {
@@ -1969,11 +2117,14 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
       onExtentUpdated: _scrollCaretIntoViewIfNeeded,
       itemBuilder: (context, blockIndex) {
         final block = sourceBlocks[blockIndex];
+        final blockMoveRange = _blockMoveRangeFor(blockIndex) ??
+            _BlockMoveRange.single(blockIndex);
         return _KeepAliveBlock(
           key: ValueKey<String>(block.id),
           block: block,
           blockIndex: blockIndex,
           blockCount: sourceBlocks.length,
+          blockMoveRange: blockMoveRange,
           listMarker: listMarkers[blockIndex],
           quoteGroupPosition: _quoteGroupPositionFor(sourceBlocks, blockIndex),
           keepAlive: keepAliveIds.contains(block.id),
@@ -2012,6 +2163,8 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
           onTableToolbarAction:
               widget.readOnly ? null : _handleTableToolbarAction,
           tableToolbarOverlayController: _tableToolbarOverlayController,
+          objectBlockToolbarOverlayController:
+              _objectBlockToolbarOverlayController,
           onTableColumnResize:
               widget.readOnly ? null : _handleTableColumnResize,
           onTodoCheckedChanged:
@@ -2158,9 +2311,12 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     final availableHeight = math.max(
       0.0,
       hasPositioningSize
-          ? (anchor.opensAbove
-              ? anchor.offset.dy - _kPopupViewportInset
-              : overlaySize.height - anchor.offset.dy - _kPopupViewportInset)
+          ? anchor.availableHeight ??
+              (anchor.opensAbove
+                  ? anchor.offset.dy - _kPopupViewportInset
+                  : overlaySize.height -
+                      anchor.offset.dy -
+                      _kPopupViewportInset)
           : _kPopupMenuMaxHeight,
     );
     return Positioned(
@@ -2223,7 +2379,10 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
                 color: _editorBackgroundColor(Theme.of(context)),
                 child: TableFloatingToolbarOverlayHost(
                   controller: _tableToolbarOverlayController,
-                  child: _buildExternalImageDropTarget(child),
+                  child: ObjectBlockToolbarOverlayHost(
+                    controller: _objectBlockToolbarOverlayController,
+                    child: _buildExternalImageDropTarget(child),
+                  ),
                 ),
               ),
             ),
@@ -2634,22 +2793,46 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
       math.min(positioningBox.size.height, keyboardClippedBottom),
     );
     final preferredBelowTop = caretBottom.dy + _kSlashMenuGap;
+    final preferredAboveBottom = caretTop.dy - _kSlashMenuGap;
     final roomBelow = visibleBottom - preferredBelowTop - _kPopupViewportInset;
-    final roomAbove = caretTop.dy - _kSlashMenuGap - _kPopupViewportInset;
-    final opensAbove =
-        roomBelow < _kPopupMenuItemHeight && roomAbove > roomBelow;
+    final roomAbove = preferredAboveBottom - _kPopupViewportInset;
+    final availableBelow = math.max(0.0, roomBelow);
+    final availableAbove = math.max(0.0, roomAbove);
+    final opensAbove = _shouldOpenSlashMenuAbove(
+      availableAbove: availableAbove,
+      availableBelow: availableBelow,
+    );
     final preferredTop =
-        opensAbove ? caretTop.dy - _kSlashMenuGap : preferredBelowTop;
+        opensAbove ? preferredAboveBottom : preferredBelowTop;
     final maxTop = visibleBottom - _kPopupViewportInset;
+    final topMin = maxTop >= _kPopupViewportInset ? _kPopupViewportInset : 0.0;
+    final clampedTop = preferredTop
+        .clamp(topMin, maxTop > 0 ? maxTop : 0)
+        .toDouble();
+    final availableHeight = opensAbove
+        ? math.max(0.0, clampedTop - _kPopupViewportInset)
+        : math.max(0.0, visibleBottom - clampedTop - _kPopupViewportInset);
     return _SlashMenuAnchor(
       offset: Offset(
         caretBottom.dx.clamp(0, maxLeft > 0 ? maxLeft : 0).toDouble(),
-        preferredTop
-            .clamp(_kPopupViewportInset, maxTop > 0 ? maxTop : 0)
-            .toDouble(),
+        clampedTop,
       ),
       opensAbove: opensAbove,
+      availableHeight: availableHeight,
     );
+  }
+
+  bool _shouldOpenSlashMenuAbove({
+    required double availableAbove,
+    required double availableBelow,
+  }) {
+    if (availableBelow >= _kSlashMenuMinReadableHeight) {
+      return false;
+    }
+    if (availableAbove >= _kSlashMenuMinReadableHeight) {
+      return true;
+    }
+    return availableAbove > availableBelow;
   }
 
   RenderBox? _slashMenuPositioningBox() {
@@ -3296,7 +3479,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
       return false;
     }
     final last = blocks.last;
-    if (last is TextBlockNode || last is CodeBlockNode) {
+    if (last is TextBlockNode) {
       return false;
     }
 
@@ -3596,6 +3779,29 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     TableBlockNode tableBlock,
     TableToolbarActionIntent intent,
   ) {
+    // Popup menu routes can briefly move focus/selection; use the range
+    // captured in the toolbar intent as the authoritative action target.
+    final intentRange = _normalizeTableRange(
+      tableBlock,
+      TableCellRange(
+        tableBlockId: tableBlock.id,
+        blockIndex: intent.blockIndex,
+        startRow: math.min(intent.rowIndex, intent.targetEndRowIndex),
+        endRow: math.max(intent.rowIndex, intent.targetEndRowIndex),
+        startColumn: math.min(
+          intent.columnIndex,
+          intent.targetEndColumnIndex,
+        ),
+        endColumn: math.max(
+          intent.columnIndex,
+          intent.targetEndColumnIndex,
+        ),
+      ),
+    );
+    if (intentRange != null) {
+      return intentRange;
+    }
+
     final range = widget.controller.selection?.tableCellRange;
     if (range == null ||
         range.blockIndex != intent.blockIndex ||
@@ -3665,14 +3871,37 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     TableCellRange range,
     String? alignment,
   ) {
-    _forEachVisibleTableCell(tableBlock, range, (row, column) {
-      widget.controller.setTableCellAlignment(
-        blockIndex: blockIndex,
-        rowIndex: row,
-        columnIndex: column,
-        alignment: alignment,
-      );
-    });
+    final currentSelection = widget.controller.selection;
+    final selection =
+        currentSelection != null && currentSelection.tableCellRange == range
+            ? currentSelection
+            : _tableRangeSelection(tableBlock, blockIndex, range);
+    widget.controller.setAlignment(
+      alignment,
+      selection: selection,
+    );
+  }
+
+  DocumentSelection _tableRangeSelection(
+    TableBlockNode tableBlock,
+    int blockIndex,
+    TableCellRange range,
+  ) {
+    final base = DocumentPosition.tableCell(
+      tableBlockId: tableBlock.id,
+      blockIndex: blockIndex,
+      tableRowIndex: range.startRow,
+      tableColumnIndex: range.startColumn,
+      offset: 0,
+    );
+    final extent = DocumentPosition.tableCell(
+      tableBlockId: tableBlock.id,
+      blockIndex: blockIndex,
+      tableRowIndex: range.endRow,
+      tableColumnIndex: range.endColumn,
+      offset: 0,
+    );
+    return DocumentSelection(base: base, extent: extent);
   }
 
   void _handleObjectBlockAction(ObjectBlockActionIntent intent) {
@@ -3688,6 +3917,9 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
         }
         return;
       case ObjectBlockAction.copyReference:
+        if (block is ImageBlockNode || block is VideoBlockNode) {
+          return;
+        }
         final reference = _objectBlockReference(block);
         if (reference.isNotEmpty) {
           unawaited(_copyTextToClipboard(reference));
@@ -3708,25 +3940,13 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
         if (widget.readOnly) {
           return;
         }
-        final toIndex = _resolveMoveBlockTarget(
-          intent,
-          fallback: intent.blockIndex - 1,
-        );
-        if (toIndex != null) {
-          _moveBlock(intent.blockIndex, toIndex);
-        }
+        _moveBlockFromIntent(intent, forward: false);
         return;
       case ObjectBlockAction.moveDown:
         if (widget.readOnly) {
           return;
         }
-        final toIndex = _resolveMoveBlockTarget(
-          intent,
-          fallback: intent.blockIndex + 1,
-        );
-        if (toIndex != null) {
-          _moveBlock(intent.blockIndex, toIndex);
-        }
+        _moveBlockFromIntent(intent, forward: true);
         return;
       case ObjectBlockAction.delete:
         if (widget.readOnly) {
@@ -3800,28 +4020,82 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     return blocks[blockIndex];
   }
 
-  int? _resolveMoveBlockTarget(
+  void _moveBlockFromIntent(
     ObjectBlockActionIntent intent, {
-    required int fallback,
+    required bool forward,
   }) {
     final blocks = widget.controller.document.blocks;
     if (intent.blockIndex < 0 || intent.blockIndex >= blocks.length) {
-      return null;
+      return;
     }
-    final value = intent.value;
-    final toIndex = value is int ? value : fallback;
-    if (toIndex < 0 ||
-        toIndex >= blocks.length ||
-        toIndex == intent.blockIndex) {
-      return null;
+    final range = _blockMoveRangeFor(intent.blockIndex);
+    if (range == null) {
+      return;
     }
-    return toIndex;
+    final insertionIndex = _resolveMoveBlockInsertionIndex(
+      intent,
+      range: range,
+      blockCount: blocks.length,
+      forward: forward,
+    );
+    if (insertionIndex == null) {
+      return;
+    }
+    _moveBlockRangeToInsertionBoundary(range, insertionIndex);
   }
 
-  void _moveBlock(int fromIndex, int toIndex) {
-    widget.controller.moveBlock(
-      fromIndex: fromIndex,
-      toIndex: toIndex,
+  int? _resolveMoveBlockInsertionIndex(
+    ObjectBlockActionIntent intent, {
+    required _BlockMoveRange range,
+    required int blockCount,
+    required bool forward,
+  }) {
+    final value = intent.value;
+    if (value is _BlockReorderDropRequest) {
+      final insertionIndex = value.insertionIndex.clamp(0, blockCount).toInt();
+      return range.containsInsertionBoundary(insertionIndex)
+          ? null
+          : insertionIndex;
+    }
+    if (value is int) {
+      return range.insertionBoundaryForFinalStartIndex(value, blockCount);
+    }
+    return forward
+        ? range.insertionBoundaryForMoveDown(blockCount)
+        : range.insertionBoundaryForMoveUp(blockCount);
+  }
+
+  void _moveBlockRangeToInsertionBoundary(
+    _BlockMoveRange range,
+    int insertionIndex,
+  ) {
+    final blocks = widget.controller.document.blocks;
+    if (range.isEmpty ||
+        range.startBlockIndex < 0 ||
+        range.endBlockIndexExclusive > blocks.length ||
+        insertionIndex < 0 ||
+        insertionIndex > blocks.length ||
+        range.containsInsertionBoundary(insertionIndex)) {
+      return;
+    }
+    final finalStartIndex =
+        range.finalStartIndexForInsertionBoundary(insertionIndex);
+    if (finalStartIndex < 0 ||
+        finalStartIndex >= blocks.length ||
+        finalStartIndex == range.startBlockIndex) {
+      return;
+    }
+    if (range.length == 1) {
+      widget.controller.moveBlock(
+        fromIndex: range.startBlockIndex,
+        toIndex: finalStartIndex,
+      );
+      return;
+    }
+    widget.controller.moveBlockRange(
+      fromIndex: range.startBlockIndex,
+      count: range.length,
+      toIndex: insertionIndex,
     );
   }
 
@@ -5442,14 +5716,106 @@ class _BlockExtentCache {
   }
 }
 
+class _BlockMoveRange {
+  const _BlockMoveRange({
+    required this.startBlockIndex,
+    required this.endBlockIndexExclusive,
+  });
+
+  factory _BlockMoveRange.single(int blockIndex) {
+    return _BlockMoveRange(
+      startBlockIndex: blockIndex,
+      endBlockIndexExclusive: blockIndex + 1,
+    );
+  }
+
+  final int startBlockIndex;
+  final int endBlockIndexExclusive;
+
+  int get length {
+    final count = endBlockIndexExclusive - startBlockIndex;
+    return count <= 0 ? 0 : count;
+  }
+
+  bool get isEmpty => length == 0;
+  bool get isNotEmpty => !isEmpty;
+
+  bool containsInsertionBoundary(int insertionIndex) {
+    return insertionIndex >= startBlockIndex &&
+        insertionIndex <= endBlockIndexExclusive;
+  }
+
+  bool canMoveUp(int blockCount) {
+    return !isEmpty && blockCount > length && startBlockIndex > 0;
+  }
+
+  bool canMoveDown(int blockCount) {
+    return !isEmpty &&
+        blockCount > length &&
+        endBlockIndexExclusive < blockCount;
+  }
+
+  int? insertionBoundaryForMoveUp(int blockCount) {
+    return canMoveUp(blockCount) ? startBlockIndex - 1 : null;
+  }
+
+  int? insertionBoundaryForMoveDown(int blockCount) {
+    return canMoveDown(blockCount) ? endBlockIndexExclusive + 1 : null;
+  }
+
+  int? insertionBoundaryForFinalStartIndex(
+    int finalStartIndex,
+    int blockCount,
+  ) {
+    if (finalStartIndex < 0 ||
+        finalStartIndex >= blockCount ||
+        finalStartIndex == startBlockIndex) {
+      return null;
+    }
+    final insertionIndex = finalStartIndex < startBlockIndex
+        ? finalStartIndex
+        : finalStartIndex + length;
+    if (insertionIndex < 0 ||
+        insertionIndex > blockCount ||
+        containsInsertionBoundary(insertionIndex)) {
+      return null;
+    }
+    return insertionIndex;
+  }
+
+  int finalStartIndexForInsertionBoundary(int insertionIndex) {
+    return insertionIndex < startBlockIndex
+        ? insertionIndex
+        : insertionIndex - length;
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is _BlockMoveRange &&
+        other.startBlockIndex == startBlockIndex &&
+        other.endBlockIndexExclusive == endBlockIndexExclusive;
+  }
+
+  @override
+  int get hashCode => Object.hash(startBlockIndex, endBlockIndexExclusive);
+}
+
+class _BlockReorderDropRequest {
+  const _BlockReorderDropRequest({required this.insertionIndex});
+
+  final int insertionIndex;
+}
+
 class _SlashMenuAnchor {
   const _SlashMenuAnchor({
     required this.offset,
     this.opensAbove = false,
+    this.availableHeight,
   });
 
   final Offset offset;
   final bool opensAbove;
+  final double? availableHeight;
 }
 
 class _BlockLayoutMetrics {
@@ -5777,6 +6143,7 @@ class _KeepAliveBlock extends StatefulWidget {
     required this.block,
     required this.blockIndex,
     required this.blockCount,
+    required this.blockMoveRange,
     this.listMarker,
     this.quoteGroupPosition = QuoteGroupPosition.standalone,
     required this.keepAlive,
@@ -5800,6 +6167,7 @@ class _KeepAliveBlock extends StatefulWidget {
     this.onCalloutVariantChanged,
     this.onTableToolbarAction,
     this.tableToolbarOverlayController,
+    this.objectBlockToolbarOverlayController,
     this.onTableColumnResize,
     this.onTodoCheckedChanged,
     this.onObjectBlockAction,
@@ -5811,6 +6179,7 @@ class _KeepAliveBlock extends StatefulWidget {
   final BlockNode block;
   final int blockIndex;
   final int blockCount;
+  final _BlockMoveRange blockMoveRange;
   final String? listMarker;
   final QuoteGroupPosition quoteGroupPosition;
   final bool keepAlive;
@@ -5834,6 +6203,8 @@ class _KeepAliveBlock extends StatefulWidget {
   final ValueChanged<String>? onCalloutVariantChanged;
   final TableToolbarActionHandler? onTableToolbarAction;
   final TableFloatingToolbarOverlayController? tableToolbarOverlayController;
+  final ObjectBlockToolbarOverlayController?
+      objectBlockToolbarOverlayController;
   final TableColumnResizeHandler? onTableColumnResize;
   final TodoCheckedChangeHandler? onTodoCheckedChanged;
   final ObjectBlockActionHandler? onObjectBlockAction;
@@ -5876,6 +6247,7 @@ class _KeepAliveBlockState extends State<_KeepAliveBlock>
     if (widget.blockChanged ||
         oldWidget.blockIndex != widget.blockIndex ||
         oldWidget.blockCount != widget.blockCount ||
+        oldWidget.blockMoveRange != widget.blockMoveRange ||
         selectionTouchedChanged ||
         selectionShiftedWhileTouched ||
         oldWidget.showCaret != widget.showCaret ||
@@ -5896,6 +6268,8 @@ class _KeepAliveBlockState extends State<_KeepAliveBlock>
         oldWidget.onTableToolbarAction != widget.onTableToolbarAction ||
         oldWidget.tableToolbarOverlayController !=
             widget.tableToolbarOverlayController ||
+        oldWidget.objectBlockToolbarOverlayController !=
+            widget.objectBlockToolbarOverlayController ||
         oldWidget.onTableColumnResize != widget.onTableColumnResize ||
         oldWidget.onTodoCheckedChanged != widget.onTodoCheckedChanged ||
         oldWidget.onObjectBlockAction != widget.onObjectBlockAction ||
@@ -5920,6 +6294,7 @@ class _KeepAliveBlockState extends State<_KeepAliveBlock>
       block: widget.block,
       blockIndex: widget.blockIndex,
       blockCount: widget.blockCount,
+      blockMoveRange: widget.blockMoveRange,
       listMarker: widget.listMarker,
       quoteGroupPosition: widget.quoteGroupPosition,
       selection: widget.selection,
@@ -5940,6 +6315,8 @@ class _KeepAliveBlockState extends State<_KeepAliveBlock>
       onCalloutVariantChanged: widget.onCalloutVariantChanged,
       onTableToolbarAction: widget.onTableToolbarAction,
       tableToolbarOverlayController: widget.tableToolbarOverlayController,
+      objectBlockToolbarOverlayController:
+          widget.objectBlockToolbarOverlayController,
       onTableColumnResize: widget.onTableColumnResize,
       onTodoCheckedChanged: widget.onTodoCheckedChanged,
       onObjectBlockAction: widget.onObjectBlockAction,
@@ -5976,6 +6353,7 @@ class _BlockRenderer extends StatelessWidget {
     required this.block,
     required this.blockIndex,
     required this.blockCount,
+    required this.blockMoveRange,
     this.listMarker,
     this.quoteGroupPosition = QuoteGroupPosition.standalone,
     required this.selection,
@@ -5996,6 +6374,7 @@ class _BlockRenderer extends StatelessWidget {
     this.onCalloutVariantChanged,
     this.onTableToolbarAction,
     this.tableToolbarOverlayController,
+    this.objectBlockToolbarOverlayController,
     this.onTableColumnResize,
     this.onTodoCheckedChanged,
     this.onObjectBlockAction,
@@ -6007,6 +6386,7 @@ class _BlockRenderer extends StatelessWidget {
   final BlockNode block;
   final int blockIndex;
   final int blockCount;
+  final _BlockMoveRange blockMoveRange;
   final String? listMarker;
   final QuoteGroupPosition quoteGroupPosition;
   final DocumentSelection? selection;
@@ -6027,6 +6407,8 @@ class _BlockRenderer extends StatelessWidget {
   final ValueChanged<String>? onCalloutVariantChanged;
   final TableToolbarActionHandler? onTableToolbarAction;
   final TableFloatingToolbarOverlayController? tableToolbarOverlayController;
+  final ObjectBlockToolbarOverlayController?
+      objectBlockToolbarOverlayController;
   final TableColumnResizeHandler? onTableColumnResize;
   final TodoCheckedChangeHandler? onTodoCheckedChanged;
   final ObjectBlockActionHandler? onObjectBlockAction;
@@ -6058,6 +6440,8 @@ class _BlockRenderer extends StatelessWidget {
       onCalloutVariantChanged: onCalloutVariantChanged,
       onTableToolbarAction: onTableToolbarAction,
       tableToolbarOverlayController: tableToolbarOverlayController,
+      objectBlockToolbarOverlayController:
+          objectBlockToolbarOverlayController,
       onTableColumnResize: onTableColumnResize,
       onTodoCheckedChanged: onTodoCheckedChanged,
       onObjectBlockAction: onObjectBlockAction,
@@ -6070,6 +6454,11 @@ class _BlockRenderer extends StatelessWidget {
       fallback: _defaultBlockFallback,
     );
     final leadingIndent = _indentStartFor(block);
+    final chromeLineExtent = _rowChromeLineExtentFor(
+      context,
+      block,
+      textStyle,
+    );
     final content = Padding(
       padding: EdgeInsetsDirectional.only(
         start: leadingIndent,
@@ -6083,7 +6472,9 @@ class _BlockRenderer extends StatelessWidget {
       canChangeBlockFormat: _canChangeRowBlockFormat(block),
       blockIndex: blockIndex,
       blockCount: blockCount,
+      blockMoveRange: blockMoveRange,
       leadingIndent: leadingIndent,
+      chromeLineExtent: chromeLineExtent,
       reserveHeadingCollapseRail: reserveHeadingCollapseRail,
       headingCollapseState: headingCollapseState,
       onHeadingCollapseToggled: onHeadingCollapseToggled,
@@ -6104,7 +6495,9 @@ class _BlockDragHandleOverlay extends StatefulWidget {
     required this.canChangeBlockFormat,
     required this.blockIndex,
     required this.blockCount,
+    required this.blockMoveRange,
     required this.leadingIndent,
+    required this.chromeLineExtent,
     required this.reserveHeadingCollapseRail,
     this.headingCollapseState,
     this.onHeadingCollapseToggled,
@@ -6121,7 +6514,9 @@ class _BlockDragHandleOverlay extends StatefulWidget {
   final bool canChangeBlockFormat;
   final int blockIndex;
   final int blockCount;
+  final _BlockMoveRange blockMoveRange;
   final double leadingIndent;
+  final double chromeLineExtent;
   final bool reserveHeadingCollapseRail;
   final HeadingCollapseState? headingCollapseState;
   final ValueChanged<String>? onHeadingCollapseToggled;
@@ -6153,17 +6548,27 @@ class _BlockDragHandleOverlayState extends State<_BlockDragHandleOverlay> {
     final contentStart =
         (reserveChromeRail ? BlockDragHandleSpec.railWidth : 0.0) +
             widget.leadingIndent;
-    final handleStart = widget.leadingIndent;
-    final adjacentHeadingCollapseStart = handleStart +
-        BlockDragHandleSpec.hitSize.width +
-        BlockDragHandleSpec.chromeGap;
-    final contentAlignedHeadingCollapseStart = contentStart -
-        BlockDragHandleSpec.gapToContent -
-        _kHeadingCollapseSlotWidth;
+    final contentSideChromeEnd =
+        contentStart - BlockDragHandleSpec.gapToContent;
     final headingCollapseStart = math.max(
       0.0,
-      math.min(
-          adjacentHeadingCollapseStart, contentAlignedHeadingCollapseStart),
+      contentSideChromeEnd - _kHeadingCollapseSlotWidth,
+    );
+    final handleStart = math.max(
+      0.0,
+      showHeadingCollapse
+          ? headingCollapseStart -
+              BlockDragHandleSpec.chromeGap -
+              BlockDragHandleSpec.hitSize.width
+          : contentSideChromeEnd - BlockDragHandleSpec.hitSize.width,
+    );
+    final handleTop = _rowChromeTopFor(
+      lineExtent: widget.chromeLineExtent,
+      controlHeight: BlockDragHandleSpec.hitSize.height,
+    );
+    final headingCollapseTop = _rowChromeTopFor(
+      lineExtent: widget.chromeLineExtent,
+      controlHeight: _kHeadingCollapseButtonSize,
     );
     final content = Padding(
       padding: EdgeInsetsDirectional.only(
@@ -6182,7 +6587,7 @@ class _BlockDragHandleOverlayState extends State<_BlockDragHandleOverlay> {
           if (showDragHandle)
             PositionedDirectional(
               start: handleStart,
-              top: BlockDragHandleSpec.topInset,
+              top: handleTop,
               child: _BlockDragHandleButton(
                 blockId: widget.blockId,
                 blockPlainText: widget.blockPlainText,
@@ -6190,6 +6595,7 @@ class _BlockDragHandleOverlayState extends State<_BlockDragHandleOverlay> {
                 canChangeBlockFormat: widget.canChangeBlockFormat,
                 blockIndex: widget.blockIndex,
                 blockCount: widget.blockCount,
+                blockMoveRange: widget.blockMoveRange,
                 canEdit: widget.canEdit,
                 registry: widget.registry,
                 onAction: widget.onAction,
@@ -6199,7 +6605,7 @@ class _BlockDragHandleOverlayState extends State<_BlockDragHandleOverlay> {
           if (showHeadingCollapse)
             PositionedDirectional(
               start: headingCollapseStart,
-              top: BlockDragHandleSpec.topInset,
+              top: headingCollapseTop,
               child: _HeadingCollapseButton(
                 blockId: widget.blockId,
                 state: widget.headingCollapseState!,
@@ -6287,6 +6693,7 @@ class _BlockDragHandleButton extends StatefulWidget {
     required this.canChangeBlockFormat,
     required this.blockIndex,
     required this.blockCount,
+    required this.blockMoveRange,
     required this.canEdit,
     required this.registry,
     this.onAction,
@@ -6299,6 +6706,7 @@ class _BlockDragHandleButton extends StatefulWidget {
   final bool canChangeBlockFormat;
   final int blockIndex;
   final int blockCount;
+  final _BlockMoveRange blockMoveRange;
   final bool canEdit;
   final BlockGeometryRegistry registry;
   final ObjectBlockActionHandler? onAction;
@@ -6333,7 +6741,9 @@ class _BlockDragHandleButtonState extends State<_BlockDragHandleButton> {
       oldWidget.registry.unregisterSelectionExclusion(_hitTestKey);
       widget.registry.registerSelectionExclusion(_hitTestKey);
     }
-    if (!_enabled) {
+    if (!_enabled ||
+        oldWidget.blockMoveRange != widget.blockMoveRange ||
+        oldWidget.blockCount != widget.blockCount) {
       _resetPointerGesture();
     }
   }
@@ -6358,9 +6768,9 @@ class _BlockDragHandleButtonState extends State<_BlockDragHandleButton> {
     final theme = Theme.of(context);
     final active = _menuOpen || _focused || _dragging;
     final backgroundColor = active
-        ? theme.colorScheme.primaryContainer.withAlpha(180)
+        ? _minimalMenuSelectedColor(theme)
         : _hovered
-            ? theme.colorScheme.surfaceContainerHighest.withAlpha(150)
+            ? _minimalMenuHoverColor(theme)
             : Colors.transparent;
     return KeyedSubtree(
       key:
@@ -6431,7 +6841,9 @@ class _BlockDragHandleButtonState extends State<_BlockDragHandleButton> {
         canEdit: widget.canEdit,
         blockIndex: widget.blockIndex,
         blockCount: widget.blockCount,
-      );
+      ) &&
+      widget.blockMoveRange.isNotEmpty &&
+      widget.blockMoveRange.length < widget.blockCount;
 
   KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
     if (!_enabled || (event is! KeyDownEvent && event is! KeyRepeatEvent)) {
@@ -6526,14 +6938,27 @@ class _BlockDragHandleButtonState extends State<_BlockDragHandleButton> {
   }
 
   void _updateDropTarget(Offset globalPosition) {
-    final next = widget.registry.blockReorderDropTargetFromGlobalOffset(
+    final rawTarget = widget.registry.blockReorderDropTargetFromGlobalOffset(
       globalPosition,
     );
+    final next = _validDropTarget(rawTarget);
     if (_sameDropTarget(_dropTarget, next)) {
       return;
     }
     _dropTarget = next;
     _syncDropIndicator();
+  }
+
+  BlockReorderDropTarget? _validDropTarget(BlockReorderDropTarget? target) {
+    if (target == null) {
+      return null;
+    }
+    final insertionIndex =
+        target.insertionIndex.clamp(0, widget.blockCount).toInt();
+    if (widget.blockMoveRange.containsInsertionBoundary(insertionIndex)) {
+      return null;
+    }
+    return target;
   }
 
   bool _sameDropTarget(
@@ -6620,21 +7045,17 @@ class _BlockDragHandleButtonState extends State<_BlockDragHandleButton> {
     }
     final insertionIndex =
         target.insertionIndex.clamp(0, widget.blockCount).toInt();
-    final toIndex = insertionIndex > widget.blockIndex
-        ? insertionIndex - 1
-        : insertionIndex;
-    if (toIndex < 0 ||
-        toIndex >= widget.blockCount ||
-        toIndex == widget.blockIndex) {
+    final moveRange = widget.blockMoveRange;
+    if (moveRange.containsInsertionBoundary(insertionIndex)) {
       return;
     }
     widget.onAction?.call(
       ObjectBlockActionIntent(
-        action: toIndex < widget.blockIndex
+        action: insertionIndex < moveRange.startBlockIndex
             ? ObjectBlockAction.moveUp
             : ObjectBlockAction.moveDown,
         blockIndex: widget.blockIndex,
-        value: toIndex,
+        value: _BlockReorderDropRequest(insertionIndex: insertionIndex),
       ),
     );
   }
@@ -6745,7 +7166,7 @@ class _BlockDragHandleButtonState extends State<_BlockDragHandleButton> {
             label: '复制块引用',
           ),
         ),
-        const PopupMenuDivider(height: _kPopupMenuDividerHeight),
+        _popupMenuDivider<_ObjectMenuSelection>(),
         const PopupMenuItem<_ObjectMenuSelection>(
           value: _ObjectMenuSelection.action(ObjectBlockAction.duplicate),
           height: _kPopupMenuItemHeight,
@@ -6773,9 +7194,9 @@ class _BlockDragHandleButtonState extends State<_BlockDragHandleButton> {
       );
     }
     if (widget.onAction != null) {
-      entries.addAll(const <PopupMenuEntry<_ObjectMenuSelection>>[
-        PopupMenuDivider(height: _kPopupMenuDividerHeight),
-        PopupMenuItem<_ObjectMenuSelection>(
+      entries.addAll(<PopupMenuEntry<_ObjectMenuSelection>>[
+        _popupMenuDivider<_ObjectMenuSelection>(),
+        const PopupMenuItem<_ObjectMenuSelection>(
           value: _ObjectMenuSelection.action(ObjectBlockAction.delete),
           height: _kPopupMenuItemHeight,
           padding: _kPopupMenuItemPadding,
@@ -6791,16 +7212,10 @@ class _BlockDragHandleButtonState extends State<_BlockDragHandleButton> {
   }
 
   List<PopupMenuEntry<_ObjectMenuSelection>> _buildMoreMenuItems() {
-    final canMoveUp = BlockDragHandleSpec.canMoveUp(
-      canEdit: widget.canEdit,
-      blockIndex: widget.blockIndex,
-      blockCount: widget.blockCount,
-    );
-    final canMoveDown = BlockDragHandleSpec.canMoveDown(
-      canEdit: widget.canEdit,
-      blockIndex: widget.blockIndex,
-      blockCount: widget.blockCount,
-    );
+    final canMoveUp =
+        widget.canEdit && widget.blockMoveRange.canMoveUp(widget.blockCount);
+    final canMoveDown =
+        widget.canEdit && widget.blockMoveRange.canMoveDown(widget.blockCount);
     final entries = <PopupMenuEntry<_ObjectMenuSelection>>[];
     if (widget.onFormatChanged != null && widget.canChangeBlockFormat) {
       entries.addAll(<PopupMenuEntry<_ObjectMenuSelection>>[
@@ -6809,7 +7224,7 @@ class _BlockDragHandleButtonState extends State<_BlockDragHandleButton> {
         _rowFormatMenuItem(_RowBlockFormat.code, '代码块'),
       ]);
       if (widget.blockCount > 1) {
-        entries.add(const PopupMenuDivider(height: _kPopupMenuDividerHeight));
+        entries.add(_popupMenuDivider<_ObjectMenuSelection>());
       }
     }
     if (widget.blockCount > 1) {
@@ -6908,6 +7323,40 @@ double _indentStartFor(BlockNode block) {
   final step =
       _isListItemBlock(block) ? _kListTextInset : _kIndentPixelsPerLevel;
   return indent * step;
+}
+
+double _rowChromeLineExtentFor(
+  BuildContext context,
+  BlockNode block,
+  TextStyle? textStyle,
+) {
+  if (block is TextBlockNode) {
+    final style = _blockTextStyle(context, block, textStyle);
+    final lineHeight = _lineHeightFor(style);
+    final isTodoListItem = block.type == BlockType.listItem &&
+        (block.attributes.listType == 'task' ||
+            block.attributes.checked != null);
+    return isTodoListItem
+        ? math.max(lineHeight, _kTodoCheckboxHeight)
+        : lineHeight;
+  }
+  if (block is CodeBlockNode) {
+    return _kCodeBlockHeaderHeight;
+  }
+  return BlockDragHandleSpec.hitSize.height;
+}
+
+double _rowChromeTopFor({
+  required double lineExtent,
+  required double controlHeight,
+}) {
+  if (!lineExtent.isFinite ||
+      lineExtent <= 0 ||
+      !controlHeight.isFinite ||
+      controlHeight <= 0) {
+    return BlockDragHandleSpec.topInset;
+  }
+  return math.max(0.0, (lineExtent - controlHeight) / 2);
 }
 
 /// Vertical spacing between two index-adjacent top-level blocks.
@@ -7483,9 +7932,12 @@ Widget _withSelectableImageBlock(
     _MediaBlockChrome(
       blockIndex: rc.blockIndex,
       blockCount: rc.blockCount,
+      blockId: block.id,
       selected: selected,
       canEdit: rc.canEdit,
       imageActions: true,
+      toolbarFrameWidth: _preferredImageFrameWidth(block),
+      toolbarOverlayController: rc.objectBlockToolbarOverlayController,
       onAction: rc.onObjectBlockAction,
       onPreview: onPreview,
       child: _BlockObjectSelectionSurface(
@@ -7525,9 +7977,11 @@ Widget _withSelectableVideoBlock(
       child: _MediaBlockChrome(
         blockIndex: rc.blockIndex,
         blockCount: rc.blockCount,
+        blockId: block.id,
         selected: selected,
         canEdit: rc.canEdit,
         imageActions: false,
+        toolbarOverlayController: rc.objectBlockToolbarOverlayController,
         onAction: rc.onObjectBlockAction,
         onPreview: onPreview,
         child: _BlockObjectSelectionSurface(
@@ -7833,7 +8287,7 @@ class _HeadingCollapseButtonState extends State<_HeadingCollapseButton> {
         width: _kHeadingCollapseSlotWidth,
         height: _kHeadingCollapseButtonSize,
         child: Align(
-          alignment: AlignmentDirectional.topStart,
+          alignment: AlignmentDirectional.centerEnd,
           child: Focus(
             canRequestFocus: false,
             skipTraversal: true,
@@ -7860,7 +8314,6 @@ class _HeadingCollapseButtonState extends State<_HeadingCollapseButton> {
               highlightColor: scheme.primary.withAlpha(34),
               icon: _HeadingCollapseGlyph(
                 state: widget.state,
-                enabled: enabled,
               ),
             ),
           ),
@@ -7873,11 +8326,9 @@ class _HeadingCollapseButtonState extends State<_HeadingCollapseButton> {
 class _HeadingCollapseGlyph extends StatelessWidget {
   const _HeadingCollapseGlyph({
     required this.state,
-    required this.enabled,
   });
 
   final HeadingCollapseState state;
-  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
@@ -7886,52 +8337,7 @@ class _HeadingCollapseGlyph extends StatelessWidget {
         : Icons.keyboard_arrow_down_rounded;
     return SizedBox.square(
       dimension: _kHeadingCollapseIconSize,
-      child: Stack(
-        clipBehavior: Clip.none,
-        alignment: Alignment.center,
-        children: <Widget>[
-          Icon(icon),
-          if (enabled && state.isCollapsed && state.hasHiddenBlocks)
-            PositionedDirectional(
-              end: -7,
-              bottom: -5,
-              child: _HeadingCollapseCountBadge(
-                count: state.hiddenBlockCount,
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _HeadingCollapseCountBadge extends StatelessWidget {
-  const _HeadingCollapseCountBadge({required this.count});
-
-  final int count;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: scheme.primaryContainer,
-        borderRadius: BorderRadius.circular(7),
-        border: Border.all(color: scheme.surface, width: 1.5),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
-        child: Text(
-          _headingCollapseCountText(count),
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: scheme.onPrimaryContainer,
-            fontSize: 8,
-            fontWeight: FontWeight.w700,
-            height: 1,
-          ),
-        ),
-      ),
+      child: Icon(icon),
     );
   }
 }
@@ -7944,13 +8350,6 @@ String _headingCollapseTooltip(HeadingCollapseState state) {
     return '展开标题内容（${state.hiddenBlockCount} 个块已隐藏）';
   }
   return '折叠标题内容（${state.hiddenBlockCount} 个块）';
-}
-
-String _headingCollapseCountText(int count) {
-  if (count > 99) {
-    return '99+';
-  }
-  return count.toString();
 }
 
 class _TodoCheckbox extends StatefulWidget {
@@ -8597,33 +8996,36 @@ class _BlockFloatingToolbarSurface extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final toolbar = this.toolbar;
-    if (toolbar == null) {
-      return child;
-    }
     return LayoutBuilder(
       builder: (context, constraints) {
         final maxToolbarWidth = constraints.maxWidth.isFinite
-            ? math.max(
-                0.0,
-                constraints.maxWidth - (_kBlockFloatingToolbarInset * 2),
-              )
+            ? math.max(0.0, constraints.maxWidth)
             : double.infinity;
-        return Stack(
-          clipBehavior: Clip.none,
+        final constrainedChild = _constrainChildWidth(maxToolbarWidth, child);
+        if (toolbar == null) {
+          return constrainedChild;
+        }
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.end,
           children: <Widget>[
-            child,
-            PositionedDirectional(
-              top: _kBlockFloatingToolbarInset,
-              end: _kBlockFloatingToolbarInset,
-              child: ConstrainedBox(
-                constraints: BoxConstraints(maxWidth: maxToolbarWidth),
-                child: toolbar,
-              ),
+            ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: maxToolbarWidth),
+              child: toolbar,
             ),
+            const SizedBox(height: _kBlockFloatingToolbarInset),
+            constrainedChild,
           ],
         );
       },
     );
+  }
+
+  Widget _constrainChildWidth(double width, Widget child) {
+    if (!width.isFinite || width <= 0) {
+      return child;
+    }
+    return SizedBox(width: width, child: child);
   }
 }
 
@@ -9146,7 +9548,7 @@ class _TableFloatingToolbar extends StatelessWidget {
           destructive: true,
         ),
       ),
-      const PopupMenuDivider(height: _kPopupMenuDividerHeight),
+      _popupMenuDivider<_TableToolbarSelection>(),
       const PopupMenuItem<_TableToolbarSelection>(
         value: _TableToolbarSelection(TableToolbarAction.insertColumnBefore),
         height: _kPopupMenuItemHeight,
@@ -9177,7 +9579,7 @@ class _TableFloatingToolbar extends StatelessWidget {
           destructive: true,
         ),
       ),
-      const PopupMenuDivider(height: _kPopupMenuDividerHeight),
+      _popupMenuDivider<_TableToolbarSelection>(),
       const PopupMenuItem<_TableToolbarSelection>(
         value: _TableToolbarSelection(TableToolbarAction.toggleHeader),
         height: _kPopupMenuItemHeight,
@@ -9208,14 +9610,14 @@ class _TableFloatingToolbar extends StatelessWidget {
           label: '清除单元格背景',
         ),
       ),
-      const PopupMenuDivider(height: _kPopupMenuDividerHeight),
+      _popupMenuDivider<_TableToolbarSelection>(),
       const PopupMenuItem<_TableToolbarSelection>(
         value: _TableToolbarSelection(TableToolbarAction.alignLeft),
         height: _kPopupMenuItemHeight,
         padding: _kPopupMenuItemPadding,
         child: _PopupMenuItemContent(
           icon: Icons.format_align_left,
-          label: '列左对齐',
+          label: '单元格左对齐',
         ),
       ),
       const PopupMenuItem<_TableToolbarSelection>(
@@ -9224,7 +9626,7 @@ class _TableFloatingToolbar extends StatelessWidget {
         padding: _kPopupMenuItemPadding,
         child: _PopupMenuItemContent(
           icon: Icons.format_align_center,
-          label: '列居中对齐',
+          label: '单元格居中对齐',
         ),
       ),
       const PopupMenuItem<_TableToolbarSelection>(
@@ -9233,7 +9635,7 @@ class _TableFloatingToolbar extends StatelessWidget {
         padding: _kPopupMenuItemPadding,
         child: _PopupMenuItemContent(
           icon: Icons.format_align_right,
-          label: '列右对齐',
+          label: '单元格右对齐',
         ),
       ),
       const PopupMenuItem<_TableToolbarSelection>(
@@ -9242,10 +9644,10 @@ class _TableFloatingToolbar extends StatelessWidget {
         padding: _kPopupMenuItemPadding,
         child: _PopupMenuItemContent(
           icon: Icons.format_align_justify,
-          label: '清除列对齐',
+          label: '清除单元格对齐',
         ),
       ),
-      const PopupMenuDivider(height: _kPopupMenuDividerHeight),
+      _popupMenuDivider<_TableToolbarSelection>(),
       PopupMenuItem<_TableToolbarSelection>(
         value: const _TableToolbarSelection(TableToolbarAction.mergeCells),
         enabled: canMerge,
@@ -9761,20 +10163,32 @@ bool _shouldHighlightTableCell(
   if (tableCovered) {
     return true;
   }
-  final cellPath = PositionPath.tableCellText(
-    tableBlockId,
-    rowIndex,
-    columnIndex,
-  );
+  // Selection partially covers this table block from one endpoint.
+  // Use explicit row/column comparison (2D bounding-box logic, consistent
+  // with TableCellRange.containsCell) rather than PositionPath.compare,
+  // so that the highlight decision does not depend on the internal path
+  // segment ordering.
   if (start.blockIndex == blockIndex &&
       start.path.isTableCellText &&
       end.blockIndex > blockIndex) {
-    return start.blockId == tableBlockId && cellPath.compare(start.path) > 0;
+    if (start.blockId != tableBlockId) {
+      return false;
+    }
+    final sr = start.path.tableRowIndex!;
+    final sc = start.path.tableColumnIndex!;
+    // Cells strictly after the start cell in row-major order.
+    return rowIndex > sr || (rowIndex == sr && columnIndex > sc);
   }
   if (end.blockIndex == blockIndex &&
       end.path.isTableCellText &&
       start.blockIndex < blockIndex) {
-    return end.blockId == tableBlockId && cellPath.compare(end.path) < 0;
+    if (end.blockId != tableBlockId) {
+      return false;
+    }
+    final er = end.path.tableRowIndex!;
+    final ec = end.path.tableColumnIndex!;
+    // Cells strictly before the end cell in row-major order.
+    return rowIndex < er || (rowIndex == er && columnIndex < ec);
   }
   return false;
 }
@@ -10310,7 +10724,10 @@ class _TextSelectionSurfaceState extends State<_TextSelectionSurface> {
         oldWidget.blockIndex != widget.blockIndex ||
         oldWidget.path != widget.path ||
         oldWidget.textLength != widget.textLength ||
-        oldWidget.textSpan != widget.textSpan) {
+        oldWidget.textSpan != widget.textSpan ||
+        oldWidget.hitTestKey != widget.hitTestKey ||
+        oldWidget.clampHitTestToVisibleBounds !=
+            widget.clampHitTestToVisibleBounds) {
       _register();
     }
     // When the caret stays visible but its position changes (typing, arrow
@@ -10654,9 +11071,12 @@ class _TextSelectionSurfaceState extends State<_TextSelectionSurface> {
           textLength: widget.textLength,
           opacity: caretOpacity,
         );
-        final expandEmptyTextHitBox =
-            widget.textLength == 0 && constraints.maxWidth.isFinite;
-        final emptyTextMinWidth = expandEmptyTextHitBox ? maxWidth : 0.0;
+        // Always stretch the text to the available width when maxWidth is finite
+        // so that textAlign (center/right/justify) has a visible effect. Even
+        // when a separate hitTestKey is set (table cells, object-card body), the
+        // text box must fill the available width — the registry already handles
+        // hit-local-to-text-local offset mapping via the hitTestKey mechanism.
+        final textHitBoxMinWidth = constraints.maxWidth.isFinite ? maxWidth : 0.0;
         final text = CustomPaint(
           painter: _SelectionHighlightPainter(
             layoutService: _layoutService,
@@ -10681,7 +11101,7 @@ class _TextSelectionSurfaceState extends State<_TextSelectionSurface> {
             ),
             child: ConstrainedBox(
               constraints: BoxConstraints(
-                minWidth: emptyTextMinWidth,
+                minWidth: textHitBoxMinWidth,
                 minHeight: widget.minHeight,
               ),
               child: RichText(
@@ -12221,19 +12641,13 @@ class _ObjectBlockToolbar extends StatelessWidget {
     if (mediaActions) {
       return Wrap(
         spacing: _kMinimalFloatingToolbarButtonGap,
+        runSpacing: _kMinimalFloatingToolbarButtonGap,
         crossAxisAlignment: WrapCrossAlignment.center,
         children: <Widget>[
           _ObjectActionButton(
             icon: Icons.open_in_full,
             tooltip: '预览媒体',
             onPressed: onPreview,
-          ),
-          _ObjectActionButton(
-            icon: Icons.copy,
-            tooltip: '复制块引用',
-            onPressed: canDispatch
-                ? () => _dispatch(ObjectBlockAction.copyReference)
-                : null,
           ),
           if (hasMoreActions)
             _ObjectMoreMenu(
@@ -12249,6 +12663,7 @@ class _ObjectBlockToolbar extends StatelessWidget {
     }
     return Wrap(
       spacing: _kMinimalFloatingToolbarButtonGap,
+      runSpacing: _kMinimalFloatingToolbarButtonGap,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: <Widget>[
         _ObjectActionButton(
@@ -12438,7 +12853,7 @@ class _ObjectMoreMenuState extends State<_ObjectMoreMenu> {
     }
     if (widget.canRunMutation) {
       if (entries.isNotEmpty) {
-        entries.add(const PopupMenuDivider(height: _kPopupMenuDividerHeight));
+        entries.add(_popupMenuDivider<_ObjectMenuSelection>());
       }
       entries.addAll(<PopupMenuEntry<_ObjectMenuSelection>>[
         _objectActionMenuItem(
@@ -12465,7 +12880,7 @@ class _ObjectMoreMenuState extends State<_ObjectMoreMenu> {
     }
     if (widget.imageActions && widget.canRunMutation) {
       if (entries.isNotEmpty) {
-        entries.add(const PopupMenuDivider(height: _kPopupMenuDividerHeight));
+        entries.add(_popupMenuDivider<_ObjectMenuSelection>());
       }
       entries.addAll(<PopupMenuEntry<_ObjectMenuSelection>>[
         _objectActionMenuItem(
@@ -12486,7 +12901,7 @@ class _ObjectMoreMenuState extends State<_ObjectMoreMenu> {
           label: '图片宽度：大',
           value: 520.0,
         ),
-        const PopupMenuDivider(height: _kPopupMenuDividerHeight),
+        _popupMenuDivider<_ObjectMenuSelection>(),
         _objectActionMenuItem(
           action: ObjectBlockAction.resetImageSize,
           icon: Icons.restart_alt,
@@ -12496,7 +12911,7 @@ class _ObjectMoreMenuState extends State<_ObjectMoreMenu> {
     }
     if (widget.fileActions && widget.canRunMutation) {
       if (entries.isNotEmpty) {
-        entries.add(const PopupMenuDivider(height: _kPopupMenuDividerHeight));
+        entries.add(_popupMenuDivider<_ObjectMenuSelection>());
       }
       entries.addAll(<PopupMenuEntry<_ObjectMenuSelection>>[
         _objectActionMenuItem(
@@ -12518,7 +12933,7 @@ class _ObjectMoreMenuState extends State<_ObjectMoreMenu> {
     }
     if (widget.canRunMutation) {
       if (entries.isNotEmpty) {
-        entries.add(const PopupMenuDivider(height: _kPopupMenuDividerHeight));
+        entries.add(_popupMenuDivider<_ObjectMenuSelection>());
       }
       entries.add(
         _objectActionMenuItem(
@@ -12821,7 +13236,7 @@ class _FileBlockActionMenu extends StatelessWidget {
           icon: Icons.link,
           label: '复制块引用',
         ),
-        const PopupMenuDivider(height: _kPopupMenuDividerHeight),
+        _popupMenuDivider<_ObjectMenuSelection>(),
         ..._moreItems(),
       ],
     );
@@ -12836,7 +13251,7 @@ class _FileBlockActionMenu extends StatelessWidget {
         label: '创建块副本',
         enabled: canRunMutation,
       ),
-      const PopupMenuDivider(height: _kPopupMenuDividerHeight),
+      _popupMenuDivider<_ObjectMenuSelection>(),
       _objectActionMenuItem(
         action: ObjectBlockAction.moveUp,
         icon: Icons.arrow_upward,
@@ -12857,7 +13272,7 @@ class _FileBlockActionMenu extends StatelessWidget {
           blockCount: blockCount,
         ),
       ),
-      const PopupMenuDivider(height: _kPopupMenuDividerHeight),
+      _popupMenuDivider<_ObjectMenuSelection>(),
       _objectActionMenuItem(
         action: ObjectBlockAction.markFileUploading,
         icon: Icons.cloud_upload_outlined,
@@ -12876,7 +13291,7 @@ class _FileBlockActionMenu extends StatelessWidget {
         label: '标记为失败',
         enabled: canRunMutation,
       ),
-      const PopupMenuDivider(height: _kPopupMenuDividerHeight),
+      _popupMenuDivider<_ObjectMenuSelection>(),
       _objectActionMenuItem(
         action: ObjectBlockAction.delete,
         icon: Icons.delete_outline,
@@ -13034,6 +13449,22 @@ class _MediaSelectionStroke extends StatelessWidget {
   }
 }
 
+double? _preferredImageFrameWidth(ImageBlockNode block) {
+  final showWidth = block.showWidth;
+  if (showWidth != null && showWidth.isFinite && showWidth > 0) {
+    return showWidth;
+  }
+  final showHeight = block.showHeight;
+  if (showHeight != null &&
+      showHeight.isFinite &&
+      showHeight > 0 &&
+      block.width > 0 &&
+      block.height > 0) {
+    return showHeight * block.width / block.height;
+  }
+  return null;
+}
+
 class _MediaBlockChrome extends StatelessWidget {
   const _MediaBlockChrome({
     required this.blockIndex,
@@ -13042,39 +13473,192 @@ class _MediaBlockChrome extends StatelessWidget {
     required this.canEdit,
     required this.imageActions,
     required this.child,
+    this.blockId,
+    this.toolbarFrameWidth,
+    this.toolbarOverlayController,
     this.onAction,
     this.onPreview,
   });
 
   final int blockIndex;
   final int blockCount;
+  final String? blockId;
   final bool selected;
   final bool canEdit;
   final bool imageActions;
   final Widget child;
+  final double? toolbarFrameWidth;
+  final ObjectBlockToolbarOverlayController? toolbarOverlayController;
   final ObjectBlockActionHandler? onAction;
   final VoidCallback? onPreview;
 
   @override
   Widget build(BuildContext context) {
-    return Align(
+    final content = Align(
       alignment: AlignmentDirectional.centerStart,
-      child: _BlockFloatingToolbarSurface(
-        toolbar: selected
-            ? _FloatingObjectBlockToolbar(
-                blockIndex: blockIndex,
-                blockCount: blockCount,
-                canEdit: canEdit,
-                imageActions: imageActions,
-                fileActions: false,
-                mediaActions: true,
-                onAction: onAction,
-                onPreview: onPreview,
-              )
-            : null,
-        child: child,
+      child: child,
+    );
+    final overlayController = toolbarOverlayController;
+    final overlayBlockId = blockId;
+    if (overlayController != null && overlayBlockId != null) {
+      return _buildOverlayAnchoredContent(
+        controller: overlayController,
+        overlayBlockId: overlayBlockId,
+        content: content,
+      );
+    }
+    if (!selected) {
+      return content;
+    }
+    final toolbar = _buildToolbar();
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final availableWidth = constraints.maxWidth;
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            _constrainToAvailableWidth(
+              availableWidth,
+              _buildToolbarHost(availableWidth, toolbar),
+            ),
+            const SizedBox(height: _kBlockFloatingToolbarInset),
+            _constrainToAvailableWidth(availableWidth, content),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildToolbar() {
+    return _FloatingObjectBlockToolbar(
+      blockIndex: blockIndex,
+      blockCount: blockCount,
+      canEdit: canEdit,
+      imageActions: imageActions,
+      fileActions: false,
+      mediaActions: true,
+      onAction: onAction,
+      onPreview: onPreview,
+    );
+  }
+
+  double _mediaToolbarEstimatedWidth() {
+    final canRunMutation = canEdit && onAction != null;
+    final buttonCount = canRunMutation ? 2 : 1;
+    return _kMinimalFloatingToolbarPadding.horizontal +
+        (_kBlockToolbarButtonSize * buttonCount) +
+        (_kMinimalFloatingToolbarButtonGap * (buttonCount - 1));
+  }
+
+  Widget _buildOverlayAnchoredContent({
+    required ObjectBlockToolbarOverlayController controller,
+    required String overlayBlockId,
+    required Widget content,
+  }) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final availableWidth = constraints.maxWidth;
+        final anchorWidth = _overlayToolbarFrameWidth(availableWidth);
+        return Stack(
+          clipBehavior: Clip.none,
+          children: <Widget>[
+            content,
+            PositionedDirectional(
+              start: 0,
+              end: 0,
+              top: _kMediaBlockMarginVertical / 2,
+              child: ExcludeSemantics(
+                child: IgnorePointer(
+                  child: Align(
+                    alignment: AlignmentDirectional.center,
+                    child: ObjectBlockToolbarOverlayAnchor(
+                      controller: controller,
+                      blockId: overlayBlockId,
+                      blockIndex: blockIndex,
+                      requestBuilder: selected
+                          ? ({
+                              required Object owner,
+                              required LayerLink anchorLink,
+                              required Rect anchorRect,
+                              required double visibleTop,
+                            }) =>
+                              ObjectBlockToolbarOverlayRequest(
+                                owner: owner,
+                                anchorLink: anchorLink,
+                                anchorRect: anchorRect,
+                                visibleTop: visibleTop,
+                                blockId: overlayBlockId,
+                                blockIndex: blockIndex,
+                                minWidth: _mediaToolbarEstimatedWidth(),
+                                gap: _kBlockFloatingToolbarInset,
+                                fallbackHeight: _kMediaToolbarEstimatedHeight,
+                                toolbarBuilder: (_) => _buildToolbar(),
+                              )
+                          : null,
+                      child: SizedBox(width: anchorWidth, height: 0),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  double _overlayToolbarFrameWidth(double availableWidth) {
+    final resolved = _resolvedToolbarFrameWidth(availableWidth);
+    if (resolved != null && resolved.isFinite && resolved > 0) {
+      return resolved;
+    }
+    if (availableWidth.isFinite && availableWidth > 0) {
+      return availableWidth;
+    }
+    return _mediaToolbarEstimatedWidth();
+  }
+
+  Widget _buildToolbarHost(double availableWidth, Widget toolbar) {
+    final frameWidth = _resolvedToolbarFrameWidth(availableWidth);
+    if (frameWidth == null) {
+      return Align(
+        alignment: AlignmentDirectional.centerEnd,
+        child: toolbar,
+      );
+    }
+    return Align(
+      alignment: AlignmentDirectional.center,
+      child: SizedBox(
+        width: frameWidth,
+        child: Align(
+          alignment: AlignmentDirectional.centerEnd,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: frameWidth),
+            child: toolbar,
+          ),
+        ),
       ),
     );
+  }
+
+  Widget _constrainToAvailableWidth(double availableWidth, Widget child) {
+    if (!availableWidth.isFinite || availableWidth <= 0) {
+      return child;
+    }
+    return SizedBox(width: availableWidth, child: child);
+  }
+
+  double? _resolvedToolbarFrameWidth(double availableWidth) {
+    final preferred = toolbarFrameWidth;
+    if (preferred != null && preferred.isFinite && preferred > 0) {
+      return availableWidth.isFinite && availableWidth > 0
+          ? math.min(preferred, availableWidth)
+          : preferred;
+    }
+    return availableWidth.isFinite && availableWidth > 0
+        ? availableWidth
+        : null;
   }
 }
 

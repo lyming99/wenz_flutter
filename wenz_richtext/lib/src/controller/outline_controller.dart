@@ -167,6 +167,68 @@ class OutlineCollapseRange {
       );
 }
 
+/// The top-level block range owned by a heading outline paragraph.
+///
+/// Unlike [OutlineCollapseRange], this range includes the heading block itself.
+/// It uses the same H1-H6 boundary rule as collapse: a heading owns blocks until
+/// the next heading whose normalized level is less than or equal to its level,
+/// or until the end of the document.
+class OutlineHeadingRange {
+  const OutlineHeadingRange({
+    required this.startBlockIndex,
+    required this.endBlockIndexExclusive,
+    required this.blockIds,
+  });
+
+  /// Inclusive index of the heading block in
+  /// [WenzRichTextController.document.blocks].
+  final int startBlockIndex;
+
+  /// Exclusive end index of the heading paragraph range.
+  final int endBlockIndexExclusive;
+
+  /// Top-level block ids in the range, including the heading id first.
+  final List<String> blockIds;
+
+  int get length {
+    final count = endBlockIndexExclusive - startBlockIndex;
+    return count <= 0 ? 0 : count;
+  }
+
+  bool get isEmpty => length == 0;
+  bool get isNotEmpty => !isEmpty;
+
+  /// Inclusive end index, or `null` when the range is empty.
+  int? get endBlockIndex => isEmpty ? null : endBlockIndexExclusive - 1;
+
+  List<int> get blockIndexes {
+    return List<int>.unmodifiable(
+      Iterable<int>.generate(length, (offset) => startBlockIndex + offset),
+    );
+  }
+
+  bool containsBlockId(String blockId) => blockIds.contains(blockId);
+
+  bool containsBlockIndex(int blockIndex) {
+    return blockIndex >= startBlockIndex && blockIndex < endBlockIndexExclusive;
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is OutlineHeadingRange &&
+        other.startBlockIndex == startBlockIndex &&
+        other.endBlockIndexExclusive == endBlockIndexExclusive &&
+        listEquals(other.blockIds, blockIds);
+  }
+
+  @override
+  int get hashCode => Object.hash(
+        startBlockIndex,
+        endBlockIndexExclusive,
+        Object.hashAll(blockIds),
+      );
+}
+
 /// Read-only collapse state for a heading outline entry.
 class OutlineCollapseState {
   const OutlineCollapseState({
@@ -521,6 +583,31 @@ class WenzOutlineController extends ChangeNotifier {
     return itemForBlockId(blockId)?.collapseRange;
   }
 
+  /// Resolves the movable heading paragraph range for [blockId].
+  ///
+  /// Returns `null` when the block does not exist or is not a heading. Empty
+  /// headings and headings without covered child blocks still return a
+  /// deterministic range containing the heading block itself.
+  OutlineHeadingRange? headingRangeForBlockId(String blockId) {
+    final index = _host.document.blocks.indexWhere(
+      (block) => block.id == blockId,
+    );
+    return headingRangeForBlockIndex(index);
+  }
+
+  /// Resolves the movable heading paragraph range at [blockIndex].
+  ///
+  /// The result includes the heading block and every following top-level block
+  /// until the next same-level or higher-level heading. Returns `null` for
+  /// out-of-bounds indexes and non-heading blocks so callers can fall back to a
+  /// normal single-block operation.
+  OutlineHeadingRange? headingRangeForBlockIndex(int blockIndex) {
+    return resolveOutlineHeadingRange(
+      blocks: _host.document.blocks,
+      headingIndex: blockIndex,
+    );
+  }
+
   OutlineCollapseState? collapseStateForBlockId(String blockId) {
     return itemForBlockId(blockId)?.collapseState;
   }
@@ -674,8 +761,7 @@ class WenzOutlineController extends ChangeNotifier {
         // outline/collapse target until it has a visible title.
         continue;
       }
-      final rawLevel = block.attributes.level ?? 1;
-      final level = rawLevel.clamp(1, 6).toInt();
+      final level = _normalizedHeadingLevel(block);
       final collapseRange = _collapseRangeForHeading(
         blocks: blocks,
         headingIndex: i,
@@ -806,6 +892,36 @@ class _OutlineItemDraft {
   }
 }
 
+/// Resolves the heading paragraph range for [headingIndex] from [blocks].
+///
+/// The returned range includes the heading block itself. A non-heading or
+/// out-of-bounds index returns `null`, allowing callers to explicitly fall back
+/// to a normal single-block range without changing outline state.
+OutlineHeadingRange? resolveOutlineHeadingRange({
+  required List<BlockNode> blocks,
+  required int headingIndex,
+}) {
+  if (headingIndex < 0 || headingIndex >= blocks.length) {
+    return null;
+  }
+  final heading = blocks[headingIndex];
+  if (heading is! TextBlockNode || heading.type != BlockType.heading) {
+    return null;
+  }
+  final collapseRange = _collapseRangeForHeading(
+    blocks: blocks,
+    headingIndex: headingIndex,
+    headingLevel: _normalizedHeadingLevel(heading),
+  );
+  return OutlineHeadingRange(
+    startBlockIndex: headingIndex,
+    endBlockIndexExclusive: collapseRange.endBlockIndexExclusive,
+    blockIds: List<String>.unmodifiable(
+      <String>[heading.id, ...collapseRange.blockIds],
+    ),
+  );
+}
+
 OutlineCollapseRange _collapseRangeForHeading({
   required List<BlockNode> blocks,
   required int headingIndex,
@@ -816,7 +932,7 @@ OutlineCollapseRange _collapseRangeForHeading({
   while (end < blocks.length) {
     final block = blocks[end];
     if (block is TextBlockNode && block.type == BlockType.heading) {
-      final level = (block.attributes.level ?? 1).clamp(1, 6).toInt();
+      final level = _normalizedHeadingLevel(block);
       if (level <= headingLevel) {
         break;
       }
@@ -830,6 +946,10 @@ OutlineCollapseRange _collapseRangeForHeading({
       blocks.sublist(start, end).map((block) => block.id),
     ),
   );
+}
+
+int _normalizedHeadingLevel(TextBlockNode block) {
+  return (block.attributes.level ?? 1).clamp(1, 6).toInt();
 }
 
 String _normalizeTitle(String title) {

@@ -118,7 +118,7 @@ access, three modes, dispose order, the `src/*` internal boundary).
 | `CommentAnchor` / `CommentThread` / `CommentEntry` | Comment-thread model: stores selection-compatible anchors, author/time/message payloads, and `open` / `resolved` status. |
 | `RevisionRange` / `RevisionChange` | Revision model: stores selection-compatible ranges, insert/delete/format type, pending/accepted/rejected status, author/time payloads, and optional before/after format attributes. |
 | `DocumentVersionSnapshot` | Application-owned version snapshot: deep-copied `RichTextDocument` plus id/time/author/description, optional `baseSnapshotId` for future diff flows, and JSON-compatible metadata. |
-| `TableModel` / `TableCellNode` | Table structure: rows/columns/spans/header/bg/width. |
+| `TableModel` / `TableCellNode` | Table structure: rows/columns/spans/header/bg/width/alignment. `TableCellNode.alignment` stores the explicit per-cell text alignment (`left` / `center` / `right` / `justify`) and takes precedence over `TableModel.columnAlignments`; when it is `null`, renderers fall back to the column alignment and then to start alignment. |
 | `DocumentSchema` | Canonical document normaliser; invariants enforced on every command and load. |
 | `DocumentPosition` / `DocumentSelection` / `PositionPath` | Selection contract — three position shapes (block text, block code, table cell) plus structured sort. |
 
@@ -163,7 +163,10 @@ All mutations are `EditorCommand` objects routed through `CommandExecutor`.
   exits the list when the current list item is empty; task-list continuations
   start unchecked.
 - **Style (tier 1):** `FormatTextCommand`, `ClearStyleCommand`,
-  `SetBlockTypeCommand`, `SetAlignmentCommand`.
+  `SetBlockTypeCommand`, `SetAlignmentCommand`. `SetAlignmentCommand` is the
+  block-alignment command; table-cell selections are handled by the table cell
+  alignment command so cell formatting does not accidentally rewrite the table
+  block or column defaults.
 - **Inline (tier 2):** `SetLinkCommand`, `AutoLinkUrlsCommand`,
   `ToggleMarkCommand`, `InsertInlineEmbedCommand`, plus controller helpers for
   formula, mention, emoji, and inline image embeds.
@@ -196,12 +199,15 @@ All mutations are `EditorCommand` objects routed through `CommandExecutor`.
 - **Table (tier 3):** `InsertTableCommand`, `InsertTableRowCommand`,
   `InsertTableColumnCommand`, `DeleteTableRowCommand`,
   `DeleteTableColumnCommand`, `SetTableColumnAlignmentCommand`,
-  `SetTableColumnWidthCommand`, `SetTableCellHeaderCommand`,
+  `SetTableCellRangeAlignmentCommand`, `SetTableColumnWidthCommand`,
+  `SetTableCellHeaderCommand`,
   `SetTableCellBackgroundCommand`, `MergeTableCellsCommand`,
   `SplitTableCellCommand`, `InsertTableCellTextCommand`,
   `DeleteTableCellTextCommand`, `FormatTableCellTextCommand`. The default
   editor table toolbar now routes row/column, cell style, merge/split, and
-  column resize interactions through this command family.
+  column resize interactions through this command family. Column alignment is a
+  table default; selection-level table alignment writes `TableCellNode.alignment`
+  over the selected visible cells and skips merged placeholder cells.
 - **Pipeline (tier 2):** `CommandRegistry`, `CommandDescriptor`,
   `CommandMiddleware`, `CommandExecutor`.
 
@@ -245,6 +251,11 @@ Typed command surface (sample): `insertText`, `deleteBackward`, `deleteForward`,
 tokens, and can opt out per call with `applyAutoLinkUrls: false`.
 When revision mode is enabled, typed insert/delete/format helpers route through
 revision commands and create inline `revisionIds` plus top-level `revisions`.
+`setAlignment(value)` is selection-aware: ordinary text-block selections write
+`BlockAttributes.alignment`, while table-cell selections write cell-level
+`TableCellNode.alignment` for the selected rectangular range. Passing `null`
+clears the explicit alignment at the same level, revealing the cell's fallback
+column alignment when one exists.
 `WenzLinkEditDialog` / `showWenzLinkEditDialog` provide the reusable Material
 link-edit popup used by the example toolbar; an empty result clears the link.
 
@@ -375,10 +386,15 @@ edit flags and undo/redo follow the controller permission; plugin commands that
 should run in comment mode override `requiredPermission` to `comment`.
 
 `ToolbarController` (tier 2) derives `ToolbarState` (active marks, block type,
-command enable flags) off the host controller; see the root
+alignment state, command enable flags) off the host controller; see the root
 [README interface documentation](../README.md#接口文档) for facade-first usage and
 the docs [toolbar sample](./README.md#工具栏与业务集成-api) for a direct controller
-example. Media helpers include `canInsertImage` / `insertImage` and
+example. Alignment helpers expose `canSetAlignment`, `alignment`,
+`alignmentMixed`, `isAlignment(value)`, `setAlignment(value)`, and
+`clearAlignment()`. The same helper should back paragraph and table-cell
+toolbar buttons: paragraph selections update block alignment, while table-cell
+selections update cell alignment and leave `TableModel.columnAlignments`
+unchanged. Media helpers include `canInsertImage` / `insertImage` and
 `canInsertVideo` / `insertVideo`; they use the current block insertion rule and
 still delegate permission checks to the host controller. For desktop image
 selection, host toolbars should guard the picker with their own pending state:

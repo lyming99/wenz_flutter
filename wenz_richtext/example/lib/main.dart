@@ -1284,6 +1284,37 @@ class _Toolbar extends StatelessWidget {
               onPressed: toolbar.setUnorderedList,
             ),
             const SizedBox(width: 8),
+            _AlignmentButton(
+              icon: Icons.format_align_left,
+              label: inTable ? '单元格左对齐' : '左对齐',
+              toolbar: toolbar,
+              alignment: 'left',
+            ),
+            _AlignmentButton(
+              icon: Icons.format_align_center,
+              label: inTable ? '单元格居中对齐' : '居中对齐',
+              toolbar: toolbar,
+              alignment: 'center',
+            ),
+            _AlignmentButton(
+              icon: Icons.format_align_right,
+              label: inTable ? '单元格右对齐' : '右对齐',
+              toolbar: toolbar,
+              alignment: 'right',
+            ),
+            _AlignmentButton(
+              icon: Icons.format_align_justify,
+              label: inTable ? '单元格两端对齐' : '两端对齐',
+              toolbar: toolbar,
+              alignment: 'justify',
+            ),
+            _AlignmentButton(
+              icon: Icons.format_clear,
+              label: inTable ? '清除单元格对齐' : '清除对齐',
+              toolbar: toolbar,
+              alignment: null,
+            ),
+            const SizedBox(width: 8),
             IconButton(
               tooltip: '增加缩进',
               onPressed: toolbar.canIndent ? toolbar.indent : null,
@@ -1627,6 +1658,34 @@ class _TextColorButton extends StatelessWidget {
           ? () => toolbar.setTextColor(color)
           : null,
       icon: Icon(Icons.format_color_text, color: color),
+    );
+  }
+}
+
+class _AlignmentButton extends StatelessWidget {
+  const _AlignmentButton({
+    required this.icon,
+    required this.label,
+    required this.toolbar,
+    required this.alignment,
+  });
+
+  final IconData icon;
+  final String label;
+  final ToolbarController toolbar;
+  final String? alignment;
+
+  @override
+  Widget build(BuildContext context) {
+    final active = toolbar.canSetAlignment && toolbar.isAlignment(alignment);
+    final tooltip = toolbar.alignmentMixed ? '$label（当前混合）' : label;
+    return IconButton.filledTonal(
+      tooltip: tooltip,
+      isSelected: active,
+      onPressed: toolbar.canSetAlignment
+          ? () => toolbar.setAlignment(alignment)
+          : null,
+      icon: Icon(icon),
     );
   }
 }

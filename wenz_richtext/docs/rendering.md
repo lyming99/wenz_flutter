@@ -16,8 +16,11 @@ work still on the roadmap.
   its `blockIndex`, the active `DocumentSelection`, the IME
   `CompositionState`, the `BlockGeometryRegistry` (for hit-testing), the
   `showCaret` flag, the ambient `textStyle`, the `showDebugOverlay` flag, and
-  optional code/callout/table hooks (`onCodeLanguageChanged`, `onCodeCopied`,
-  `onCalloutVariantChanged`, `onTableToolbarAction`, `onTableColumnResize`).
+  optional media/embed helpers (`mediaResolver`, `inlineEmbedRenderer`),
+  object-block hooks (`objectBlockToolbarOverlayController`,
+  `onObjectBlockAction`), and code/callout/table hooks
+  (`onCodeLanguageChanged`, `onCodeCopied`, `onCalloutVariantChanged`,
+  `onTableToolbarAction`, `onTableColumnResize`).
 
 The editor consults the registry once per block in `_BlockRenderer.build`. When
 no builder is registered for a block's type, the editor falls back to a
@@ -55,6 +58,13 @@ atomic object blocks, wrap the custom widget in
 `WenzObjectBlockSurface(renderContext: rc, child: widget)` to keep selection
 highlight, geometry registration, caret anchoring, and debug-overlay behaviour;
 or ignore the surface and paint freely.
+
+When a custom object-block renderer needs a floating toolbar, publish an
+`ObjectBlockToolbarOverlayRequest` through
+`BlockRenderContext.objectBlockToolbarOverlayController` and anchor it with
+`ObjectBlockToolbarOverlayAnchor` / `LayerLink`. Do not insert the toolbar as a
+block-layout child, spacer, or negative-offset node; selection state should not
+change the measured height or position of the object block.
 
 ## Block embed renderer injection
 
@@ -95,11 +105,34 @@ Markdown/plain text intentionally degrade to readable fallback text.
 | --- | --- | --- |
 | paragraph / heading / quote / listItem | `_TextBlockRenderer` | Inline-aware; formula/mention fallback + optional `InlineEmbedRenderer`; selection/caret/composition via `_TextSelectionSurface`. Quote is now an attribute-level decoration (`BlockAttributes.quoted`) that can wrap paragraph, heading, list, or todo semantics; legacy `BlockType.quote` is still accepted as compatible input. |
 | code | `_CodeBlockRenderer` | Monospace body with syntax highlighting (`CodeSyntaxHighlighter`, see [Code block syntax highlighting](#code-block-syntax-highlighting)) and composition underline span; code blocks reserve a display-only left gutter for 1-based line numbers; toolbar includes language dropdown and copy-code button. Language changes call `SetCodeLanguageCommand`; Tab/Shift+Tab in the editor call `IndentCodeBlockCommand`. |
-| image / video / file | asks `MediaResolver`, then built-in fallback | Built-in media renderers consult the injected [MediaResolver] first; when it returns `null` (or no resolver is set) images/videos fall back to built-in placeholders, while files fall back to a metadata card. Image blocks can carry remote identifiers in `assetId` and local paths/URIs in `file`; the renderer wraps the resolved widget with `showWidth`/`showHeight` sizing and optional caption text. Video blocks place both the fallback chrome and resolver child inside a finite rounded frame that is clipped to the editor content width and safe aspect-ratio height; file cards show display name, size, MIME type, upload status, and failure text. See [Media resolver](#media-resolver). |
+| image / video / file | asks `MediaResolver`, then built-in fallback | Built-in media renderers consult the injected [MediaResolver] first; when it returns `null` (or no resolver is set) images/videos fall back to built-in placeholders, while files fall back to a metadata card. Image blocks can carry remote identifiers in `assetId` and local paths/URIs in `file`; the renderer wraps the resolved widget with `showWidth`/`showHeight` sizing and optional caption text. Image/video selection actions are rendered by the editor-level object-toolbar overlay, not as children in the media block layout, so selecting media does not move the frame or caption. Video blocks place both the fallback chrome and resolver child inside a finite rounded frame that is clipped to the editor content width and safe aspect-ratio height; file cards show display name, size, MIME type, upload status, and failure text. See [Media resolver](#media-resolver). |
 | embed | `_BlockEmbedContent` or business renderer | Generic block embed placeholder displays `embedType` + `fallbackText`/data label. Register per business type with `BlockRendererRegistry.registerEmbed`; wrap large custom widgets in `WenzObjectBlockSurface` for object-block selection semantics. |
 | table | `_TableBlockRenderer` | Custom Stack grid layout; visible cells are positioned by `rowSpan`/`columnSpan`, covered cells are not rendered or hit-tested; table-cell text uses the same inline embed fallback/renderer path. When a table cell/range is selected, the default renderer shows a floating toolbar for row/column insert/delete, header/background/alignment, merge/split, width reset, plus drag handles that persist explicit column widths via `SetTableColumnWidthCommand`. |
 | divider | Flutter `Divider`. | |
 | callout | `_CalloutRenderer` | Variant-tinted surface with icon, title, body, and an editable type dropdown for `info`/`success`/`warning`/`danger`; uses the same inline embed fallback/renderer path. |
+
+## Todo list layout
+
+Default todo list items are a compact `_TextBlockRenderer` row:
+
+- the row starts with `_kTaskListPaddingLeft = 4.0`;
+- `_TodoCheckbox` keeps a stable selection-exclusion hit region and renders in a
+  `20x28` slot, with the `28px` height matching the default `16px / 1.75`
+  body line height;
+- `_kTodoTextGap = 6.0` separates the checkbox from the editable text surface;
+- wrapped todo lines remain inside the same `Expanded` text slot, so
+  continuation lines align with the first text line rather than with the
+  checkbox;
+- ordered todo keeps the existing sequence: marker column, marker gap,
+  checkbox, text gap, text.
+
+This is render-layer geometry only. `BlockAttributes.listType`, `checked`,
+todo toggle commands, serialization, clipboard handling, selection exclusion,
+and business renderer overrides are unchanged.
+
+Golden status: the current `editor_blocks.png` and `editor_advanced_blocks.png`
+fixtures do not render todo blocks, so the compact todo layout is covered by
+widget geometry assertions instead of updating those PNG baselines.
 
 ## Consecutive quoted text block background
 
@@ -462,6 +495,40 @@ Semantics:
 - Golden status: the current `editor_blocks.png` and
   `editor_advanced_blocks.png` baselines do not render a video block, so this
   overflow fix is covered by widget tests instead of updating those images.
+
+### Media object toolbar overlay
+
+Built-in image and video blocks render their selected-state object toolbar
+through the editor-owned `ObjectBlockToolbarOverlayHost`. The renderer owns an
+`ObjectBlockToolbarOverlayAnchor` on the media frame and publishes an
+`ObjectBlockToolbarOverlayRequest` through
+`BlockRenderContext.objectBlockToolbarOverlayController`; the host owns the
+`OverlayPortal` lifecycle. The toolbar is therefore not part of the block's
+measured layout, and selecting an image or video must not add vertical space,
+move the frame, or move the image caption.
+
+Positioning contract:
+
+- the anchor is the media frame top edge, not the whole block row;
+- the toolbar is aligned to the frame end edge and clamped inside the overlay
+  width;
+- the vertical gap from the frame is `_kBlockFloatingToolbarInset`;
+- the top coordinate is clamped to `visibleTop` so the toolbar stays inside the
+  visible editor viewport when the frame is near the top;
+- hit testing is limited to the positioned toolbar body; the overlay must not
+  install a full-screen blocker.
+
+Selection remains owned by `_MediaSelectionStroke`, which hugs the media frame
+rectangle and uses the media corner radius. Image and video blocks disable the
+generic full-block object selection overlay so the stroke does not cover block
+margins or captions.
+
+This is a rendering-only change. It does not change `VideoBlockNode`,
+`ImageBlockNode`, `MediaResolver` injection, preview callbacks, or rich
+JSON/HTML/Markdown/plain-text serialization and import/export protocols.
+Non-media object blocks such as file cards, dividers, and business embeds keep
+their existing block floating toolbar path unless their renderer explicitly
+migrates to `ObjectBlockToolbarOverlayController`.
 
 ### MediaResolver vs BlockRendererRegistry
 

@@ -1,5 +1,17 @@
 import 'package:flutter/material.dart';
 
+const double _kLinkEditDialogRadius = 10.0;
+const double _kLinkEditDialogElevation = 3.0;
+const int _kLinkEditDialogShadowAlpha = 30;
+const int _kLinkEditDialogBorderAlphaLight = 112;
+const int _kLinkEditDialogBorderAlphaDark = 96;
+
+int _linkEditDialogBorderAlpha(ThemeData theme) {
+  return theme.brightness == Brightness.dark
+      ? _kLinkEditDialogBorderAlphaDark
+      : _kLinkEditDialogBorderAlphaLight;
+}
+
 class WenzLinkEditDialog extends StatefulWidget {
   const WenzLinkEditDialog({
     super.key,
@@ -33,16 +45,21 @@ class _WenzLinkEditDialogState extends State<WenzLinkEditDialog> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final outlineColor = colorScheme.outlineVariant.withAlpha(
+      _linkEditDialogBorderAlpha(theme),
+    );
     final inputBorder = OutlineInputBorder(
-      borderSide: BorderSide(color: colorScheme.outlineVariant),
+      borderSide: BorderSide(color: outlineColor),
     );
     return AlertDialog(
       key: const ValueKey<String>('wenz-link-edit-dialog'),
-      backgroundColor: colorScheme.surface,
+      backgroundColor: colorScheme.surfaceContainerLow,
+      elevation: _kLinkEditDialogElevation,
+      shadowColor: colorScheme.shadow.withAlpha(_kLinkEditDialogShadowAlpha),
       surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(
-        side: BorderSide(color: colorScheme.outlineVariant),
-        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: outlineColor),
+        borderRadius: BorderRadius.circular(_kLinkEditDialogRadius),
       ),
       title: const Text('Link URL'),
       content: TextField(

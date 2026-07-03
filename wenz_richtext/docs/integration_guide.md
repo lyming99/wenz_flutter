@@ -138,6 +138,16 @@ models (`VideoBlockNode`, `FileBlockNode`, `BlockEmbedNode`) are experimental;
 their low-level contracts may still evolve. The facade exposes them through the
 same data/extension seams, but the per-type contract is less frozen than tier 1/2.
 
+Table alignment has two integration levels. `TableModel.columnAlignments`
+remains a column default used by Markdown-style tables and column tooling.
+Selection-level alignment from a toolbar should call
+`ToolbarController.setAlignment(value)` or
+`WenzRichTextController.setAlignment(value)`: ordinary text selections update
+`BlockAttributes.alignment`, while table-cell selections update
+`TableCellNode.alignment` for the selected visible cells. Clearing with `null`
+removes the explicit cell value and reveals the column fallback again. Host
+toolbars should not mutate `columnAlignments` for a cell-selection action.
+
 ---
 
 ## 3. Minimal access (zero configuration)
@@ -384,7 +394,7 @@ layer, not just by hiding UI.
 
 ```dart
 WenzEditorConfiguration(permission: WenzEditorPermission.comment)
-// -> insertText / formatText / setBlockType / etc. are rejected by the gate
+// -> insertText / formatText / setBlockType / setAlignment / etc. are rejected by the gate
 ```
 
 ---
@@ -500,6 +510,14 @@ This is the contract `WenzEditorConfiguration` (P002) implements and
 | `onSelectionChanged` | selection callback | controller | tier 1 |
 | `onCommandExecuted` | command callback | controller | tier 1 |
 | built-in derived-controller switches | `bool` (slash menu / find & replace / outline / autosave / stats / toolbar) | facade only creates the ones enabled | tier 2 |
+
+Toolbar integrations should read alignment state from `ToolbarController`:
+`canSetAlignment` gates the buttons, `alignment` is the uniform explicit value,
+and `alignmentMixed` marks a mixed selected range. Use `isAlignment('center')`
+for active button styling and call
+`setAlignment('left'|'center'|'right'|'justify')` or `clearAlignment()`. The
+controller keeps paragraph and table-cell semantics consistent, including
+permission checks and undo/redo.
 
 > **Custom components.** `blockEmbedRenderers` / `inlineEmbedRenderers` /
 > `blockRenderers` are the three injection seats for business embeds. The

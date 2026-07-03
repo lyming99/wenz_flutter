@@ -493,6 +493,138 @@ void main() {
     });
   });
 
+  group('MoveBlockRangeCommand', () {
+    test('moves a continuous range down to an external insertion boundary', () {
+      final session = DocumentSession(
+        document: _rangeMoveDocument(),
+        selection: collapsedTextSelection('h2', 1, 0),
+      );
+      final executor = CommandExecutor(session);
+
+      final change = executor.execute(
+        const MoveBlockRangeCommand(fromIndex: 1, count: 2, toIndex: 5),
+      );
+
+      expect(change.description, 'moveBlockRange');
+      expect(session.document.blocks.map((block) => block.id), <String>[
+        'h1',
+        'tail',
+        'file',
+        'h2',
+        'p2',
+      ]);
+      expect(session.selection, collapsedTextSelection('h2', 3, 7));
+      expect(change.metadata, containsPair('fromIndex', 1));
+      expect(change.metadata, containsPair('count', 2));
+      expect(change.metadata, containsPair('toIndex', 5));
+      expect(change.metadata, containsPair('finalStartIndex', 3));
+      expect(change.metadata?['blockIds'], <String>['h2', 'p2']);
+      expect(session.canUndo, isTrue);
+    });
+
+    test('moves a range to the document start and supports undo redo', () {
+      final session = DocumentSession(
+        document: _rangeMoveDocument(),
+      );
+      final executor = CommandExecutor(session);
+
+      executor.execute(
+        const MoveBlockRangeCommand(fromIndex: 2, count: 2, toIndex: 0),
+      );
+
+      expect(session.document.blocks.map((block) => block.id), <String>[
+        'p2',
+        'tail',
+        'h1',
+        'h2',
+        'file',
+      ]);
+      expect(session.selection, collapsedTextSelection('p2', 0, 4));
+      expect(session.document.comments.single.anchor.blockIndex, 1);
+      expect(session.document.revisions.single.range.blockIndex, 0);
+
+      expect(session.undo(), isTrue);
+      expect(session.document.blocks.map((block) => block.id), <String>[
+        'h1',
+        'h2',
+        'p2',
+        'tail',
+        'file',
+      ]);
+      expect(session.document.comments.single.anchor.blockIndex, 3);
+      expect(session.document.revisions.single.range.blockIndex, 2);
+
+      expect(session.redo(), isTrue);
+      expect(session.document.blocks.map((block) => block.id), <String>[
+        'p2',
+        'tail',
+        'h1',
+        'h2',
+        'file',
+      ]);
+      expect(session.document.comments.single.anchor.blockIndex, 1);
+      expect(session.document.revisions.single.range.blockIndex, 0);
+    });
+
+    test('moves a heterogeneous range to the document end', () {
+      final session = DocumentSession(
+        document: _rangeMoveDocument(),
+      );
+      final executor = CommandExecutor(session);
+
+      executor.execute(
+        const MoveBlockRangeCommand(fromIndex: 0, count: 2, toIndex: 5),
+      );
+
+      expect(session.document.blocks.map((block) => block.id), <String>[
+        'p2',
+        'tail',
+        'file',
+        'h1',
+        'h2',
+      ]);
+      final file = session.document.blocks[2] as FileBlockNode;
+      expect(file.assetId, 'asset-file');
+      expect(file.name, 'brief.pdf');
+      expect(session.selection, collapsedTextSelection('h1', 3, 7));
+    });
+
+    test('does not record history for invalid range moves', () {
+      final session = DocumentSession(document: _rangeMoveDocument());
+      final executor = CommandExecutor(session);
+
+      final empty = executor.execute(
+        const MoveBlockRangeCommand(fromIndex: 1, count: 0, toIndex: 4),
+      );
+      final insideStart = executor.execute(
+        const MoveBlockRangeCommand(fromIndex: 1, count: 2, toIndex: 1),
+      );
+      final insideEnd = executor.execute(
+        const MoveBlockRangeCommand(fromIndex: 1, count: 2, toIndex: 3),
+      );
+      final outOfBounds = executor.execute(
+        const MoveBlockRangeCommand(fromIndex: 4, count: 2, toIndex: 0),
+      );
+      final targetOutOfBounds = executor.execute(
+        const MoveBlockRangeCommand(fromIndex: 1, count: 2, toIndex: 6),
+      );
+
+      expect(empty.isNoop, isTrue);
+      expect(insideStart.isNoop, isTrue);
+      expect(insideEnd.isNoop, isTrue);
+      expect(outOfBounds.isNoop, isTrue);
+      expect(targetOutOfBounds.isNoop, isTrue);
+      expect(session.document.blocks.map((block) => block.id), <String>[
+        'h1',
+        'h2',
+        'p2',
+        'tail',
+        'file',
+      ]);
+      expect(session.history.undoDepth, 0);
+    });
+  });
+
   group('SetCodeLanguageCommand', () {
     test('updates the language of the code block at the caret', () {
       final session = DocumentSession(
@@ -764,4 +896,76 @@ void main() {
       expect(file.uploadError, 'network timeout');
     });
   });
+}
+
+RichTextDocument _rangeMoveDocument() {
+  final createdAt = DateTime.utc(2026, 7, 3);
+  return RichTextDocument(
+    blocks: const <BlockNode>[
+      TextBlockNode(
+        id: 'h1',
+        type: BlockType.heading,
+        attributes: BlockAttributes(level: 1),
+        content: <InlineNode>[TextRun(text: 'Chapter')],
+      ),
+      TextBlockNode(
+        id: 'h2',
+        type: BlockType.heading,
+        attributes: BlockAttributes(level: 2),
+        content: <InlineNode>[TextRun(text: 'Section')],
+      ),
+      TextBlockNode(
+        id: 'p2',
+        type: BlockType.paragraph,
+        content: <InlineNode>[TextRun(text: 'Body')],
+      ),
+      TextBlockNode(
+        id: 'tail',
+        type: BlockType.heading,
+        attributes: BlockAttributes(level: 1),
+        content: <InlineNode>[TextRun(text: 'Tail')],
+      ),
+      FileBlockNode(
+        id: 'file',
+        assetId: 'asset-file',
+        name: 'brief.pdf',
+        size: 64,
+      ),
+    ],
+    comments: <CommentThread>[
+      CommentThread(
+        id: 'comment-tail',
+        anchor: CommentAnchor(
+          blockId: 'tail',
+          blockIndex: 3,
+          path: PositionPath.blockText('tail'),
+          startOffset: 0,
+          endOffset: 4,
+        ),
+        messages: <CommentEntry>[
+          CommentEntry(
+            id: 'message-tail',
+            authorName: 'A',
+            text: 'tail',
+            createdAt: createdAt,
+          ),
+        ],
+        createdAt: createdAt,
+      ),
+    ],
+    revisions: <RevisionChange>[
+      RevisionChange(
+        id: 'revision-p2',
+        type: RevisionChangeType.insert,
+        range: RevisionRange(
+          blockId: 'p2',
+          blockIndex: 2,
+          path: PositionPath.blockText('p2'),
+          startOffset: 0,
+          endOffset: 4,
+        ),
+        createdAt: createdAt,
+      ),
+    ],
+  );
 }

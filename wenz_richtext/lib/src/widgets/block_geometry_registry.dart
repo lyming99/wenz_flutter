@@ -348,7 +348,12 @@ class BlockGeometryRegistry {
     }
     BlockEntry? nearest;
     var nearestDelta = double.infinity;
+    // Track clamp direction per axis. When the point sits diagonally outside
+    // the nearest rect (e.g. above-and-right), edgeY must follow the vertical
+    // axis (clampYToEnd) while clampToEnd is the combined flag used for the
+    // hard-start/end fallback offset.
     var clampToEnd = false;
+    var clampYToEnd = false;
     for (final entry in _entries) {
       final box = entry.hitTestBox;
       if (box == null) {
@@ -374,6 +379,7 @@ class BlockGeometryRegistry {
         // rule and behaves identically for paragraph cross-block drags while
         // also handling 2-D table geometries.
         clampToEnd = global.dx > rect.right || global.dy > rect.bottom;
+        clampYToEnd = global.dy > rect.bottom;
       }
     }
     if (nearest == null) {
@@ -391,7 +397,7 @@ class BlockGeometryRegistry {
       final origin = box.localToGlobal(Offset.zero);
       if (global.dx >= origin.dx && global.dx <= origin.dx + box.size.width) {
         final rect = origin & box.size;
-        final edgeY = clampToEnd ? rect.bottom - 1 : rect.top + 1;
+        final edgeY = clampYToEnd ? rect.bottom - 1 : rect.top + 1;
         final clamped = Offset(global.dx, edgeY.clamp(rect.top, rect.bottom));
         final local = box.globalToLocal(clamped);
         final textLocal = nearest.hitLocalToTextLocal(local);

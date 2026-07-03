@@ -55,6 +55,69 @@ void main() {
       host.dispose();
     });
 
+    test('resolves heading move ranges including the heading block', () {
+      final host = WenzRichTextController(document: _headingMoveRangeDoc());
+      final outline = WenzOutlineController(editor: host);
+      final beforeSelection = host.selection;
+
+      final root = outline.headingRangeForBlockId('h1')!;
+      expect(root.startBlockIndex, 1);
+      expect(root.endBlockIndexExclusive, 11);
+      expect(root.length, 10);
+      expect(root.blockIndexes, <int>[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+      expect(root.blockIds, <String>[
+        'h1',
+        'p1',
+        'h2',
+        'image',
+        'h3',
+        'file',
+        'empty-h4',
+        'divider',
+        'h2b',
+        'embed',
+      ]);
+      expect(root.containsBlockId('h3'), isTrue);
+      expect(root.containsBlockIndex(10), isTrue);
+      expect(root.containsBlockIndex(11), isFalse);
+
+      final section = outline.headingRangeForBlockIndex(3)!;
+      expect(section.blockIds, <String>[
+        'h2',
+        'image',
+        'h3',
+        'file',
+        'empty-h4',
+        'divider',
+      ]);
+      expect(section.startBlockIndex, 3);
+      expect(section.endBlockIndexExclusive, 9);
+
+      final emptyHeading = outline.headingRangeForBlockId('empty-h4')!;
+      expect(emptyHeading.blockIds, <String>['empty-h4', 'divider']);
+      expect(emptyHeading.length, 2);
+
+      final leaf = outline.headingRangeForBlockId('h1b')!;
+      expect(leaf.blockIds, <String>['h1b', 'video', 'p-tail']);
+      expect(leaf.endBlockIndexExclusive, host.document.blocks.length);
+
+      expect(outline.headingRangeForBlockId('p0'), isNull);
+      expect(outline.headingRangeForBlockIndex(-1), isNull);
+      expect(
+        resolveOutlineHeadingRange(
+          blocks: host.document.blocks,
+          headingIndex: 1,
+        ),
+        root,
+      );
+      expect(host.selection, beforeSelection);
+      expect(host.canUndo, isFalse);
+      expect(outline.collapsedBlockIds, isEmpty);
+
+      outline.dispose();
+      host.dispose();
+    });
+
     test('exposes read-only collapse state and hidden counts', () {
       final host = WenzRichTextController(document: _foldingDoc());
       final outline = WenzOutlineController(editor: host);
@@ -135,6 +198,51 @@ void main() {
       host.dispose();
     });
 
+    test('resolves move ranges for H1-H6 consecutive empty and leaf headings',
+        () {
+      final host = WenzRichTextController(document: _headingEdgeDoc());
+      final outline = WenzOutlineController(editor: host);
+
+      expect(outline.headingRangeForBlockId('h1')?.blockIds, <String>[
+        'h1',
+        'h2',
+        'h3',
+        'h4',
+        'h5',
+        'h6',
+        'p6',
+        'h6-leaf',
+        'empty-h2',
+        'p-empty',
+      ]);
+      expect(outline.headingRangeForBlockId('h2')?.blockIds, <String>[
+        'h2',
+        'h3',
+        'h4',
+        'h5',
+        'h6',
+        'p6',
+        'h6-leaf',
+      ]);
+      expect(outline.headingRangeForBlockId('h6')?.blockIds, <String>[
+        'h6',
+        'p6',
+      ]);
+      expect(outline.headingRangeForBlockId('h6-leaf')?.blockIds, <String>[
+        'h6-leaf',
+      ]);
+      expect(outline.headingRangeForBlockId('empty-h2')?.blockIds, <String>[
+        'empty-h2',
+        'p-empty',
+      ]);
+      expect(outline.headingRangeForBlockId('h1-tail')?.blockIds, <String>[
+        'h1-tail',
+      ]);
+
+      outline.dispose();
+      host.dispose();
+    });
+
     test('recomputes ranges after heading delete level change and move', () {
       final host = WenzRichTextController(document: _foldingDoc());
       final outline = WenzOutlineController(editor: host);
@@ -186,6 +294,55 @@ void main() {
       ]);
       expect(outline.itemForBlockId('h2b')?.canCollapse, isFalse);
       expect(outline.itemForBlockId('h3')?.coveredBlockIds, <String>['p3']);
+
+      outline.dispose();
+      host.dispose();
+    });
+
+    test('recomputes heading move ranges after block range moves', () {
+      final host = WenzRichTextController(document: _foldingDoc());
+      final outline = WenzOutlineController(editor: host);
+
+      expect(outline.headingRangeForBlockId('h1')?.blockIds, <String>[
+        'h1',
+        'p1',
+        'h2',
+        'p2',
+        'h3',
+        'p3',
+        'h2b',
+      ]);
+
+      host.moveBlockRange(fromIndex: 2, count: 4, toIndex: 8);
+
+      expect(host.document.blocks.map((block) => block.id), <String>[
+        'h1',
+        'p1',
+        'h2b',
+        'h1b',
+        'h2',
+        'p2',
+        'h3',
+        'p3',
+      ]);
+      expect(outline.headingRangeForBlockId('h1')?.blockIds, <String>[
+        'h1',
+        'p1',
+        'h2b',
+      ]);
+      expect(outline.headingRangeForBlockId('h2')?.blockIds, <String>[
+        'h2',
+        'p2',
+        'h3',
+        'p3',
+      ]);
+      expect(outline.headingRangeForBlockId('h1b')?.blockIds, <String>[
+        'h1b',
+        'h2',
+        'p2',
+        'h3',
+        'p3',
+      ]);
 
       outline.dispose();
       host.dispose();
@@ -616,6 +773,81 @@ RichTextDocument _foldingDoc() {
         type: BlockType.heading,
         attributes: BlockAttributes(level: 1),
         content: <InlineNode>[TextRun(text: 'Next chapter')],
+      ),
+    ],
+  );
+}
+
+RichTextDocument _headingMoveRangeDoc() {
+  return const RichTextDocument(
+    blocks: <BlockNode>[
+      TextBlockNode(
+        id: 'p0',
+        type: BlockType.paragraph,
+        content: <InlineNode>[TextRun(text: 'Before')],
+      ),
+      TextBlockNode(
+        id: 'h1',
+        type: BlockType.heading,
+        attributes: BlockAttributes(level: 1),
+        content: <InlineNode>[TextRun(text: 'Root')],
+      ),
+      TextBlockNode(
+        id: 'p1',
+        type: BlockType.paragraph,
+        content: <InlineNode>[TextRun(text: 'Root body')],
+      ),
+      TextBlockNode(
+        id: 'h2',
+        type: BlockType.heading,
+        attributes: BlockAttributes(level: 2),
+        content: <InlineNode>[TextRun(text: 'Section')],
+      ),
+      ImageBlockNode(
+        id: 'image',
+        assetId: 'image-asset',
+        caption: 'Image caption',
+      ),
+      TextBlockNode(
+        id: 'h3',
+        type: BlockType.heading,
+        attributes: BlockAttributes(level: 3),
+        content: <InlineNode>[TextRun(text: 'Nested')],
+      ),
+      FileBlockNode(id: 'file', assetId: 'file-asset', name: 'brief.pdf'),
+      TextBlockNode(
+        id: 'empty-h4',
+        type: BlockType.heading,
+        attributes: BlockAttributes(level: 4),
+        content: <InlineNode>[],
+      ),
+      DividerBlockNode(id: 'divider'),
+      TextBlockNode(
+        id: 'h2b',
+        type: BlockType.heading,
+        attributes: BlockAttributes(level: 2),
+        content: <InlineNode>[TextRun(text: 'Next section')],
+      ),
+      BlockEmbedNode(
+        id: 'embed',
+        embedType: 'ticket',
+        fallbackText: 'Ticket embed',
+      ),
+      TextBlockNode(
+        id: 'h1b',
+        type: BlockType.heading,
+        attributes: BlockAttributes(level: 1),
+        content: <InlineNode>[TextRun(text: 'Next root')],
+      ),
+      VideoBlockNode(
+        id: 'video',
+        assetId: 'video-asset',
+        title: 'Demo video',
+      ),
+      TextBlockNode(
+        id: 'p-tail',
+        type: BlockType.paragraph,
+        content: <InlineNode>[TextRun(text: 'Tail body')],
       ),
     ],
   );

@@ -144,6 +144,105 @@ void main() {
       controller.dispose();
     });
   });
+
+  group('WenzRichTextController.tryLoadJsonAuto', () {
+    // tryLoadJsonAuto is the lazy-migration entry point: it auto-detects
+    // whether a stored note is the legacy wenz_editor array format or the
+    // current Rich JSON object format, and reports which one it found so the
+    // host can upgrade the note on its next save.
+
+    test('detects and decodes legacy array format', () {
+      final controller = WenzRichTextController(document: _doc('original'));
+      var changes = 0;
+      controller.onChanged = (_) => changes++;
+
+      // A wenz_editor-style bare array payload.
+      const legacyJson =
+          '[{"type":"text","level":0,"children":[{"type":"text","text":"legacy note"}]}]';
+
+      final result = controller.tryLoadJsonAuto(legacyJson);
+
+      expect(result.ok, isTrue);
+      expect(result.format, JsonLoadFormat.legacy);
+      expect(result.document!.plainText, 'legacy note');
+      expect(controller.document.plainText, 'legacy note');
+      expect(changes, 1);
+
+      controller.dispose();
+    });
+
+    test('detects and decodes current Rich JSON object format', () {
+      final controller = WenzRichTextController(document: _doc('original'));
+
+      final currentJson = const RichTextJsonCodec().encode(_doc('current'));
+
+      final result = controller.tryLoadJsonAuto(currentJson);
+
+      expect(result.ok, isTrue);
+      expect(result.format, JsonLoadFormat.current);
+      expect(result.document!.plainText, 'current');
+
+      controller.dispose();
+    });
+
+    test('failed (malformed JSON): leaves document untouched, format null', () {
+      final controller = WenzRichTextController(document: _doc('original'));
+      final before = controller.document;
+      var changes = 0;
+      controller.onChanged = (_) => changes++;
+
+      final result = controller.tryLoadJsonAuto('{not valid json');
+
+      expect(result.ok, isFalse);
+      expect(result.format, isNull);
+      expect(result.error, isNotNull);
+      expect(controller.document, same(before));
+      expect(controller.document.plainText, 'original');
+      expect(changes, 0);
+
+      controller.dispose();
+    });
+
+    test('empty array is detected as legacy (empty document)', () {
+      // wenzflow stores empty notes as "[]" — must not be mistaken for a
+      // decode failure.
+      final controller = WenzRichTextController(document: _doc('original'));
+
+      final result = controller.tryLoadJsonAuto('[]');
+
+      expect(result.ok, isTrue);
+      expect(result.format, JsonLoadFormat.legacy);
+      expect(result.document!.blocks, isEmpty);
+
+      controller.dispose();
+    });
+
+    test(
+        'lazy migration: loaded as legacy, re-saved via toJson() upgrades to '
+        'current format', () {
+      // This is the core lazy-migration contract — a round-trip through
+      // tryLoadJsonAuto + toJson() converts a legacy note to the new format,
+      // so the *next* load detects it as current.
+      final controller = WenzRichTextController(document: _doc(''));
+
+      const legacyJson =
+          '[{"type":"title","level":1,"children":[{"type":"text","text":"升级"}]}]';
+      var firstResult = controller.tryLoadJsonAuto(legacyJson);
+      expect(firstResult.format, JsonLoadFormat.legacy);
+
+      // Re-save: toJson() always emits the current Rich JSON format.
+      final upgradedJson = controller.toJson();
+      controller.dispose();
+
+      // Re-load the upgraded payload: it must now be detected as current.
+      final controller2 = WenzRichTextController(document: _doc(''));
+      var secondResult = controller2.tryLoadJsonAuto(upgradedJson);
+      expect(secondResult.ok, isTrue);
+      expect(secondResult.format, JsonLoadFormat.current);
+      expect(secondResult.document!.plainText, '升级');
+      controller2.dispose();
+    });
+  });
 }
 
 RichTextDocument _doc(String text) {

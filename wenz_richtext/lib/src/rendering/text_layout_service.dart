@@ -84,8 +84,25 @@ class TextLayoutService {
     if (textLength <= 0) {
       return 0;
     }
-    final position = painter.getPositionForOffset(localPosition);
-    return position.offset.clamp(0, textLength).toInt();
+    final metrics = painter.computeLineMetrics();
+    if (metrics.isEmpty) {
+      final position = painter.getPositionForOffset(
+        Offset(localPosition.dx, 0),
+      );
+      return position.offset.clamp(0, textLength).toInt();
+    }
+    final line = _lineForY(metrics, localPosition.dy);
+    final lineRange = _lineRangeFor(painter, line, textLength);
+    if (localPosition.dx <= _lineLeft(line)) {
+      return lineRange.start;
+    }
+    if (localPosition.dx >= _lineRight(line)) {
+      return lineRange.end;
+    }
+    final position = painter.getPositionForOffset(
+      Offset(localPosition.dx, _lineCenterY(line)),
+    );
+    return position.offset.clamp(lineRange.start, lineRange.end).toInt();
   }
 
   /// Selection highlight boxes for [start, end).
@@ -193,6 +210,89 @@ class TextLayoutService {
   void forget() {
     _cache = null;
   }
+}
+
+LineMetrics _lineForY(List<LineMetrics> metrics, double y) {
+  var nearest = metrics.first;
+  var nearestDistance = _distanceToLine(nearest, y);
+  for (final line in metrics) {
+    final distance = _distanceToLine(line, y);
+    if (distance == 0) {
+      return line;
+    }
+    if (distance < nearestDistance) {
+      nearest = line;
+      nearestDistance = distance;
+    }
+  }
+  return nearest;
+}
+
+TextRange _lineRangeFor(
+  TextPainter painter,
+  LineMetrics line,
+  int textLength,
+) {
+  final sample = painter.getPositionForOffset(
+    Offset(_lineSampleX(line), _lineCenterY(line)),
+  );
+  final boundary = painter.getLineBoundary(sample);
+  final start = boundary.start.clamp(0, textLength).toInt();
+  final end = boundary.end.clamp(0, textLength).toInt();
+  if (start <= end) {
+    return TextRange(start: start, end: end);
+  }
+  return TextRange(start: end, end: start);
+}
+
+double _lineSampleX(LineMetrics line) {
+  final width = _lineWidth(line);
+  final left = _lineLeft(line);
+  if (width <= 0) {
+    return left;
+  }
+  return left + width / 2;
+}
+
+double _distanceToLine(LineMetrics line, double y) {
+  final top = _lineTop(line);
+  final bottom = _lineBottom(line);
+  if (y < top) {
+    return top - y;
+  }
+  if (y > bottom) {
+    return y - bottom;
+  }
+  return 0;
+}
+
+double _lineCenterY(LineMetrics line) {
+  final top = _lineTop(line);
+  final bottom = _lineBottom(line);
+  if (bottom <= top) {
+    return line.baseline;
+  }
+  return top + (bottom - top) / 2;
+}
+
+double _lineTop(LineMetrics line) {
+  return line.baseline - line.ascent;
+}
+
+double _lineBottom(LineMetrics line) {
+  return line.baseline + line.descent;
+}
+
+double _lineLeft(LineMetrics line) {
+  return line.left.isFinite ? line.left : 0.0;
+}
+
+double _lineRight(LineMetrics line) {
+  return _lineLeft(line) + _lineWidth(line);
+}
+
+double _lineWidth(LineMetrics line) {
+  return line.width.isFinite && line.width > 0 ? line.width : 0.0;
 }
 
 List<PlaceholderDimensions>? _placeholderDimensionsFor(InlineSpan span) {

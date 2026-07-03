@@ -112,9 +112,12 @@ builder 收到 `BlockRenderContext`，其中与自定义组件最相关的字段
 - `selection` / `showCaret`：当前选区与是否显示光标。
 - `canEdit`：是否处于可编辑态（由 `permission` 与 widget readOnly 派生）——**业务手势（拖拽节点）应只在 `canEdit` 时启用**。
 - `mediaResolver` / `inlineEmbedRenderer`：媒体解析与行内 embed 渲染（业务块通常用不到）。
+- `objectBlockToolbarOverlayController`：编辑器级对象块工具栏 Overlay 控制器；需要像内置图片 / 视频一样悬浮工具栏时，用它发布 `ObjectBlockToolbarOverlayRequest`。
 - `onObjectBlockAction`：对象块操作回调（命中测试 / 块把手相关，由外层处理）。
 
 **核心约束：业务 widget 必须用 `WenzObjectBlockSurface` 包裹**（`lib/src/widgets/wenz_rich_text_editor.dart`），这样它才能拿到与内置 image / video / file 一致的选区命中、光标、几何与块把手；不包裹则选区、行把手、排序 chrome 都不会正确生效。
+
+如果业务块还需要悬浮对象工具栏，不要把工具栏塞进业务 widget 的 `Column` / `Stack`，也不要靠负偏移或额外占位制造悬浮效果。正确做法是在业务对象框顶部布置 `ObjectBlockToolbarOverlayAnchor`，通过 `objectBlockToolbarOverlayController` 发布请求，由编辑器级 `ObjectBlockToolbarOverlayHost` 承载工具栏；这样选中 / 取消选中不会改变业务块高度、frame 位置或周边正文布局。未显式迁移的非媒体对象块仍沿用既有块级浮动工具栏路径。
 
 ```dart
 Widget Function(BuildContext, BlockRenderContext) flowchartBuilder =

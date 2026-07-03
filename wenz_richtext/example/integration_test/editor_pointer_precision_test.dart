@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:wenz_richtext/wenz_richtext.dart';
@@ -111,6 +112,75 @@ void main() {
       final controller = _controllerOf(tester);
       // Must land in the second half of the text, not jump back to line 1.
       expect(controller.selection?.extent.offset, greaterThan(25));
+    });
+
+    testWidgets('clicking wrapped-line right blank keeps caret on that line', (
+      tester,
+    ) async {
+      const wrappedText =
+          'one two extraordinarily three four magnificent five six seven eight';
+      final controller = WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'wrapped',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: wrappedText)],
+            ),
+          ],
+        ),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: SizedBox(
+                width: 180,
+                height: 240,
+                child: WenzRichTextEditor(
+                  controller: controller,
+                  padding: EdgeInsets.zero,
+                  enableIme: false,
+                  textStyle: const TextStyle(
+                    fontFamily: 'Ahem',
+                    fontSize: 10,
+                    height: 1.4,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final firstLine = rightBlankOnVisualLine(
+        tester,
+        wrappedText,
+        lineIndex: 0,
+      );
+      final secondLine = rightBlankOnVisualLine(
+        tester,
+        wrappedText,
+        lineIndex: 1,
+      );
+      expect(
+        firstLine.lineRange.end,
+        lessThanOrEqualTo(secondLine.lineRange.start),
+      );
+
+      await tester.tapAt(firstLine.globalPoint);
+      await tester.pump();
+      expect(controller.selection?.extent.blockId, 'wrapped');
+      expect(controller.selection?.extent.offset, firstLine.lineRange.end);
+      expect(isCaretVisible(tester), isTrue);
+
+      await tester.tapAt(secondLine.globalPoint);
+      await tester.pump();
+      expect(controller.selection?.extent.blockId, 'wrapped');
+      expect(controller.selection?.extent.offset, secondLine.lineRange.end);
+      expect(isCaretVisible(tester), isTrue);
     });
 
     testWidgets('a tap with small pointer-up drift still places the caret at '

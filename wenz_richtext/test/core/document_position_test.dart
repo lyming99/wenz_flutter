@@ -192,6 +192,132 @@ void main() {
       expect(range.isSingleCell, isFalse);
     });
 
+    test('single cell returns isSingleCell true', () {
+      final selection = DocumentSelection(
+        base: DocumentPosition.tableCell(
+          tableBlockId: 'table1',
+          blockIndex: 0,
+          tableRowIndex: 1,
+          tableColumnIndex: 2,
+          offset: 0,
+        ),
+        extent: DocumentPosition.tableCell(
+          tableBlockId: 'table1',
+          blockIndex: 0,
+          tableRowIndex: 1,
+          tableColumnIndex: 2,
+          offset: 5,
+        ),
+      );
+      final range = selection.tableCellRange;
+      expect(range, isNotNull);
+      expect(range!.isSingleCell, isTrue);
+      expect(range.startRow, 1);
+      expect(range.endRow, 1);
+      expect(range.startColumn, 2);
+      expect(range.endColumn, 2);
+      expect(range.containsCell(1, 2), isTrue);
+      expect(range.containsCell(1, 3), isFalse);
+    });
+
+    test('same-row drag normalizes columns across reversed endpoints', () {
+      final selection = DocumentSelection(
+        base: DocumentPosition.tableCell(
+          tableBlockId: 'table1',
+          blockIndex: 0,
+          tableRowIndex: 3,
+          tableColumnIndex: 5,
+          offset: 1,
+        ),
+        extent: DocumentPosition.tableCell(
+          tableBlockId: 'table1',
+          blockIndex: 0,
+          tableRowIndex: 3,
+          tableColumnIndex: 1,
+          offset: 2,
+        ),
+      );
+      final range = selection.tableCellRange;
+      expect(range, isNotNull);
+      expect(range!.startRow, 3);
+      expect(range.endRow, 3);
+      expect(range.startColumn, 1);
+      expect(range.endColumn, 5);
+      expect(range.containsCell(3, 3), isTrue);
+    });
+
+    test('same-column drag normalizes rows across reversed endpoints', () {
+      final selection = DocumentSelection(
+        base: DocumentPosition.tableCell(
+          tableBlockId: 'table1',
+          blockIndex: 0,
+          tableRowIndex: 0,
+          tableColumnIndex: 2,
+          offset: 1,
+        ),
+        extent: DocumentPosition.tableCell(
+          tableBlockId: 'table1',
+          blockIndex: 0,
+          tableRowIndex: 4,
+          tableColumnIndex: 2,
+          offset: 2,
+        ),
+      );
+      final range = selection.tableCellRange;
+      expect(range, isNotNull);
+      expect(range!.startRow, 0);
+      expect(range.endRow, 4);
+      expect(range.startColumn, 2);
+      expect(range.endColumn, 2);
+      expect(range.containsCell(2, 2), isTrue);
+      expect(range.containsCell(2, 1), isFalse);
+    });
+
+    test('already-normalized order preserves start <= end invariant', () {
+      final selection = DocumentSelection(
+        base: DocumentPosition.tableCell(
+          tableBlockId: 'table1',
+          blockIndex: 0,
+          tableRowIndex: 0,
+          tableColumnIndex: 0,
+          offset: 0,
+        ),
+        extent: DocumentPosition.tableCell(
+          tableBlockId: 'table1',
+          blockIndex: 0,
+          tableRowIndex: 2,
+          tableColumnIndex: 3,
+          offset: 5,
+        ),
+      );
+      final range = selection.tableCellRange;
+      expect(range, isNotNull);
+      expect(range!.startRow, 0);
+      expect(range.endRow, 2);
+      expect(range.startColumn, 0);
+      expect(range.endColumn, 3);
+    });
+
+    test('returns null when blockIndex differs for same table', () {
+      final selection = DocumentSelection(
+        base: DocumentPosition.tableCell(
+          tableBlockId: 'table1',
+          blockIndex: 0,
+          tableRowIndex: 0,
+          tableColumnIndex: 0,
+          offset: 0,
+        ),
+        extent: DocumentPosition.tableCell(
+          tableBlockId: 'table1',
+          blockIndex: 1,
+          tableRowIndex: 0,
+          tableColumnIndex: 0,
+          offset: 0,
+        ),
+      );
+      expect(selection.tableCellRange, isNull);
+    });
+
     test('returns null for non-table or different table selections', () {
       final textSelection = DocumentSelection(
         base: DocumentPosition.text(blockId: 'p1', blockIndex: 0, offset: 0),

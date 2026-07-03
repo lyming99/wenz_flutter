@@ -569,6 +569,96 @@ void main() {
         host.dispose();
       });
 
+      test('cell alignment helper sets and clears the selected cell', () {
+        final position = DocumentPosition.tableCell(
+          tableBlockId: 'table',
+          blockIndex: 0,
+          tableRowIndex: 0,
+          tableColumnIndex: 0,
+          offset: 0,
+        );
+        final selection = DocumentSelection(base: position, extent: position);
+        final host = WenzRichTextController(
+          document: _tableDoc(),
+          selection: selection,
+        );
+        final toolbar = ToolbarController(host);
+
+        expect(toolbar.canSetAlignment, isTrue);
+        expect(toolbar.alignment, isNull);
+        expect(toolbar.alignmentMixed, isFalse);
+        expect(toolbar.isAlignment(null), isTrue);
+
+        toolbar.setAlignment('center');
+
+        var table = host.document.blocks.single as TableBlockNode;
+        expect(table.table.cellAt(0, 0)?.alignment, 'center');
+        expect(table.attributes.alignment, isNull);
+        expect(table.table.columnAlignments, isEmpty);
+        expect(toolbar.alignment, 'center');
+        expect(toolbar.isAlignment('center'), isTrue);
+        expect(host.selection, selection);
+
+        toolbar.clearAlignment();
+
+        table = host.document.blocks.single as TableBlockNode;
+        expect(table.table.cellAt(0, 0)?.alignment, isNull);
+        expect(toolbar.alignment, isNull);
+        expect(toolbar.alignmentMixed, isFalse);
+
+        toolbar.dispose();
+        host.dispose();
+      });
+
+      test('multi-cell alignment reports uniform mixed and covered states', () {
+        final uniformHost = WenzRichTextController(
+          document: _tableAlignmentDoc(
+            firstAlignment: 'center',
+            secondAlignment: 'center',
+          ),
+          selection: _tableSelection(0, 0, 0, 1),
+        );
+        final uniformToolbar = ToolbarController(uniformHost);
+
+        expect(uniformToolbar.canSetAlignment, isTrue);
+        expect(uniformToolbar.alignment, 'center');
+        expect(uniformToolbar.alignmentMixed, isFalse);
+
+        final mixedHost = WenzRichTextController(
+          document: _tableAlignmentDoc(
+            firstAlignment: 'center',
+            secondAlignment: 'right',
+          ),
+          selection: _tableSelection(0, 0, 0, 1),
+        );
+        final mixedToolbar = ToolbarController(mixedHost);
+
+        expect(mixedToolbar.canSetAlignment, isTrue);
+        expect(mixedToolbar.alignment, isNull);
+        expect(mixedToolbar.alignmentMixed, isTrue);
+
+        final coveredHost = WenzRichTextController(
+          document: _tableAlignmentDoc(
+            firstAlignment: 'center',
+            secondAlignment: 'right',
+            secondCovered: true,
+          ),
+          selection: _tableSelection(0, 0, 0, 1),
+        );
+        final coveredToolbar = ToolbarController(coveredHost);
+
+        expect(coveredToolbar.canSetAlignment, isTrue);
+        expect(coveredToolbar.alignment, 'center');
+        expect(coveredToolbar.alignmentMixed, isFalse);
+
+        uniformToolbar.dispose();
+        uniformHost.dispose();
+        mixedToolbar.dispose();
+        mixedHost.dispose();
+        coveredToolbar.dispose();
+        coveredHost.dispose();
+      });
+
       test('range inside a bold table cell reports the mark active', () {
         const document = RichTextDocument(
           blocks: <BlockNode>[
@@ -710,7 +800,15 @@ void main() {
       expect(toolbar.canToggleMark, isFalse);
       expect(toolbar.canSetLink, isFalse);
       expect(toolbar.canSetBlockType, isFalse);
+      expect(toolbar.canSetAlignment, isFalse);
       expect(toolbar.canInsertImage, isFalse);
+
+      toolbar.setAlignment('center');
+      expect(
+        (host.document.blocks.first as TextBlockNode).attributes.alignment,
+        isNull,
+      );
+      expect(host.canUndo, isFalse);
 
       host.permission = WenzEditorPermission.edit;
 
@@ -718,6 +816,7 @@ void main() {
       expect(toolbar.canToggleMark, isTrue);
       expect(toolbar.canSetLink, isTrue);
       expect(toolbar.canSetBlockType, isTrue);
+      expect(toolbar.canSetAlignment, isTrue);
       expect(toolbar.canInsertImage, isTrue);
 
       toolbar.dispose();
@@ -963,6 +1062,73 @@ RichTextDocument _tableDoc() {
                     id: 'c0p',
                     type: BlockType.paragraph,
                     content: <InlineNode>[TextRun(text: 'cell')],
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+    ],
+  );
+}
+
+DocumentSelection _tableSelection(
+  int startRow,
+  int startColumn,
+  int endRow,
+  int endColumn,
+) {
+  return DocumentSelection(
+    base: DocumentPosition.tableCell(
+      tableBlockId: 'table',
+      blockIndex: 0,
+      tableRowIndex: startRow,
+      tableColumnIndex: startColumn,
+      offset: 0,
+    ),
+    extent: DocumentPosition.tableCell(
+      tableBlockId: 'table',
+      blockIndex: 0,
+      tableRowIndex: endRow,
+      tableColumnIndex: endColumn,
+      offset: 0,
+    ),
+  );
+}
+
+RichTextDocument _tableAlignmentDoc({
+  String? firstAlignment,
+  String? secondAlignment,
+  bool secondCovered = false,
+}) {
+  return RichTextDocument(
+    blocks: <BlockNode>[
+      TableBlockNode(
+        id: 'table',
+        table: TableModel(
+          rows: <List<TableCellNode>>[
+            <TableCellNode>[
+              TableCellNode(
+                id: 'c0',
+                alignment: firstAlignment,
+                blocks: const <BlockNode>[
+                  TextBlockNode(
+                    id: 'c0p',
+                    type: BlockType.paragraph,
+                    content: <InlineNode>[TextRun(text: 'left')],
+                  ),
+                ],
+              ),
+              TableCellNode(
+                id: 'c1',
+                alignment: secondAlignment,
+                covered: secondCovered,
+                blocks: const <BlockNode>[
+                  TextBlockNode(
+                    id: 'c1p',
+                    type: BlockType.paragraph,
+                    content: <InlineNode>[TextRun(text: 'right')],
                   ),
                 ],
               ),

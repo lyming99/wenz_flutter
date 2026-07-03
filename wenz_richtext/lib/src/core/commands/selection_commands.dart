@@ -339,23 +339,30 @@ class MoveCaretByWordCommand extends EditorCommand {
 
     final anchor =
         expandSelection ? selection.base : _collapseTo(selection, direction);
-    final next = _moveWordFrom(session.document, selection.extent, direction);
-    if (next == null || next == selection.extent) {
+    // When not expanding, compute the word-motion origin from the collapsed
+    // position so the caret lands at the word boundary without a selection.
+    // When expanding, the origin is the current extent to extend from.
+    final origin = expandSelection ? selection.extent : anchor;
+    final next = _moveWordFrom(session.document, origin, direction);
+    if (next == null || next == origin) {
       // Forward motion off a trailing object/table block: escape by appending a
       // paragraph (same escape hatch as the other caret commands).
       if (direction == CaretMovementDirection.forward &&
-          _isAtTrailingLeaf(session.document, selection.extent)) {
+          _isAtTrailingLeaf(session.document, origin)) {
         final appended =
-            _appendParagraphAfter(session, selection.extent.blockIndex);
+            _appendParagraphAfter(session, origin.blockIndex);
         if (appended != null) {
-          return CommandResult(
-            selection: DocumentSelection(base: anchor, extent: appended.extent),
-          );
+          if (expandSelection) {
+            return CommandResult(
+              selection: DocumentSelection(base: anchor, extent: appended.extent),
+            );
+          }
+          return CommandResult(selection: appended);
         }
       }
       return const CommandResult(recordHistory: false);
     }
-    if (!expandSelection && next.path.isBlockObject) {
+    if (!expandSelection) {
       return CommandResult(
         selection: _selectionForNavigatedPosition(next),
         recordHistory: false,
@@ -400,25 +407,41 @@ class MoveCaretToBlockBoundaryCommand extends EditorCommand {
     }
     final anchor =
         expandSelection ? selection.base : _collapseTo(selection, direction);
+    // When not expanding, compute the block-boundary target from the collapsed
+    // position so the caret lands at the boundary without a selection.
+    // When expanding, the origin is the current extent to extend from.
+    final origin = expandSelection ? selection.extent : anchor;
     final tableCellLength =
-        _tableCellLength(session.document, selection.extent);
+        _tableCellLength(session.document, origin);
     if (tableCellLength != null) {
       final targetOffset =
           direction == CaretMovementDirection.backward ? 0 : tableCellLength;
-      final next = selection.extent.copyWith(offset: targetOffset);
+      final next = origin.copyWith(offset: targetOffset);
+      if (!expandSelection) {
+        return CommandResult(
+          selection: DocumentSelection(base: next, extent: next),
+          recordHistory: false,
+        );
+      }
       return CommandResult(
         selection: DocumentSelection(base: anchor, extent: next),
         recordHistory: false,
       );
     }
-    final block = _blockAt(session.document, selection.extent.blockIndex);
+    final block = _blockAt(session.document, origin.blockIndex);
     if (block == null || !_isEditable(block)) {
       return const CommandResult(recordHistory: false);
     }
     final targetOffset = direction == CaretMovementDirection.backward
         ? 0
         : _editableLength(block);
-    final next = selection.extent.copyWith(offset: targetOffset);
+    final next = origin.copyWith(offset: targetOffset);
+    if (!expandSelection) {
+      return CommandResult(
+        selection: DocumentSelection(base: next, extent: next),
+        recordHistory: false,
+      );
+    }
     return CommandResult(
       selection: DocumentSelection(base: anchor, extent: next),
       recordHistory: false,
@@ -465,14 +488,14 @@ class MoveCaretToDocumentBoundaryCommand extends EditorCommand {
         recordHistory: false,
       );
     }
-    final anchor =
-        expandSelection ? selection.base : _collapseTo(selection, direction);
     if (!expandSelection) {
       return CommandResult(
         selection: _selectionForNavigatedPosition(target),
         recordHistory: false,
       );
     }
+    // expandSelection == true: extend from the original base to the document boundary.
+    final anchor = selection.base;
     return CommandResult(
       selection: DocumentSelection(base: anchor, extent: target),
       recordHistory: false,

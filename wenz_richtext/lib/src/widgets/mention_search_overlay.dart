@@ -7,6 +7,32 @@ import 'inline_embed_renderer.dart';
 const ValueKey<String> wenzMentionSearchOverlayKey =
     ValueKey<String>('wenz-mention-search-overlay');
 
+const double _kMentionSurfaceRadius = 10.0;
+const double _kMentionSurfaceElevation = 3.0;
+const int _kMentionSurfaceShadowAlpha = 30;
+const int _kMentionSurfaceBorderAlphaLight = 112;
+const int _kMentionSurfaceBorderAlphaDark = 96;
+const EdgeInsets _kMentionListPadding = EdgeInsets.all(4);
+const EdgeInsets _kMentionItemOuterPadding = EdgeInsets.symmetric(vertical: 1);
+const EdgeInsets _kMentionItemPadding = EdgeInsets.symmetric(horizontal: 10);
+const double _kMentionItemRadius = 8.0;
+const int _kMentionItemHoverAlpha = 13;
+const int _kMentionItemPressedAlpha = 34;
+const int _kMentionSelectedAlphaLight = 22;
+const int _kMentionSelectedAlphaDark = 34;
+
+int _mentionSurfaceBorderAlpha(ThemeData theme) {
+  return theme.brightness == Brightness.dark
+      ? _kMentionSurfaceBorderAlphaDark
+      : _kMentionSurfaceBorderAlphaLight;
+}
+
+int _mentionSelectedAlpha(ThemeData theme) {
+  return theme.brightness == Brightness.dark
+      ? _kMentionSelectedAlphaDark
+      : _kMentionSelectedAlphaLight;
+}
+
 class WenzMentionSearchOverlay extends StatelessWidget {
   const WenzMentionSearchOverlay({
     super.key,
@@ -106,12 +132,16 @@ class _MentionSearchSurface extends StatelessWidget {
     return Material(
       key: wenzMentionSearchOverlayKey,
       color: colorScheme.surfaceContainerLow,
-      elevation: 3,
-      shadowColor: colorScheme.shadow.withAlpha(24),
+      elevation: _kMentionSurfaceElevation,
+      shadowColor: colorScheme.shadow.withAlpha(_kMentionSurfaceShadowAlpha),
       surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10),
-        side: BorderSide(color: colorScheme.outlineVariant.withAlpha(70)),
+        borderRadius: BorderRadius.circular(_kMentionSurfaceRadius),
+        side: BorderSide(
+          color: colorScheme.outlineVariant.withAlpha(
+            _mentionSurfaceBorderAlpha(theme),
+          ),
+        ),
       ),
       clipBehavior: Clip.antiAlias,
       child: _buildBody(context),
@@ -129,7 +159,7 @@ class _MentionSearchSurface extends StatelessWidget {
       return const _MentionStatusRow.empty();
     }
     return ListView.builder(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: _kMentionListPadding,
       shrinkWrap: true,
       itemCount: candidates.length,
       itemBuilder: (context, index) {
@@ -217,59 +247,70 @@ class _MentionCandidateTile extends StatelessWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final background = selected
-        ? colorScheme.primary.withAlpha(28)
+        ? colorScheme.primary.withAlpha(_mentionSelectedAlpha(theme))
         : Colors.transparent;
-    return InkWell(
-      onTap: onTap,
-      onHover: (hovered) {
-        if (hovered) {
-          onHover();
-        }
-      },
-      child: ColoredBox(
-        color: background,
-        child: SizedBox(
-          height: 56,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Row(
-              children: <Widget>[
-                _MentionAvatar(candidate: candidate, selected: selected),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Text(
-                        candidate.label.isEmpty
-                            ? candidate.id
-                            : candidate.label,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          fontWeight:
-                              selected ? FontWeight.w600 : FontWeight.w500,
-                          color: colorScheme.onSurface,
-                        ),
-                      ),
-                      if (candidate.description != null &&
-                          candidate.description!.trim().isNotEmpty)
-                        ...<Widget>[
-                          const SizedBox(height: 2),
-                          Text(
-                            candidate.description!,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: colorScheme.onSurfaceVariant,
-                            ),
+    return Padding(
+      padding: _kMentionItemOuterPadding,
+      child: InkWell(
+        onTap: onTap,
+        onHover: (hovered) {
+          if (hovered) {
+            onHover();
+          }
+        },
+        borderRadius: BorderRadius.circular(_kMentionItemRadius),
+        hoverColor: colorScheme.onSurface.withAlpha(_kMentionItemHoverAlpha),
+        highlightColor:
+            colorScheme.primary.withAlpha(_kMentionItemPressedAlpha),
+        splashColor: colorScheme.primary.withAlpha(_kMentionItemPressedAlpha),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: background,
+            borderRadius: BorderRadius.circular(_kMentionItemRadius),
+          ),
+          child: SizedBox(
+            height: 56,
+            child: Padding(
+              padding: _kMentionItemPadding,
+              child: Row(
+                children: <Widget>[
+                  _MentionAvatar(candidate: candidate, selected: selected),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Text(
+                          candidate.label.isEmpty
+                              ? candidate.id
+                              : candidate.label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontWeight:
+                                selected ? FontWeight.w600 : FontWeight.w500,
+                            color: colorScheme.onSurface,
                           ),
-                        ],
-                    ],
+                        ),
+                        if (candidate.description != null &&
+                            candidate.description!.trim().isNotEmpty)
+                          ...<Widget>[
+                            const SizedBox(height: 2),
+                            Text(
+                              candidate.description!,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

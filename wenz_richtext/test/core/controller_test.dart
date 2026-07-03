@@ -124,6 +124,101 @@ void main() {
     expect(controller.canUndo, isFalse);
   });
 
+  test('controller moves block ranges through the command interface', () {
+    final controller = WenzRichTextController(
+      document: _rangeMoveControllerDocument(),
+      selection: collapsedTextSelection('h2', 1, 0),
+    );
+    var notifyCount = 0;
+    var changedCount = 0;
+    var selectionChangedCount = 0;
+    EditorCommand? executedCommand;
+    ChangeSet? executedChange;
+    controller.addListener(() => notifyCount++);
+    controller.onChanged = (_) => changedCount++;
+    controller.onSelectionChanged = (_) => selectionChangedCount++;
+    controller.onCommandExecuted = (command, change) {
+      executedCommand = command;
+      executedChange = change;
+    };
+
+    final change = controller.moveBlockRange(
+      fromIndex: 1,
+      count: 2,
+      toIndex: 5,
+    );
+
+    expect(change.isNoop, isFalse);
+    expect(controller.document.blocks.map((block) => block.id), <String>[
+      'h1',
+      'tail',
+      'file',
+      'h2',
+      'p2',
+    ]);
+    expect(controller.selection, collapsedTextSelection('h2', 3, 7));
+    expect(notifyCount, 1);
+    expect(changedCount, 1);
+    expect(selectionChangedCount, 1);
+    expect(executedCommand, isA<MoveBlockRangeCommand>());
+    expect(executedChange?.metadata?['blockIds'], <String>['h2', 'p2']);
+    expect(executedChange?.metadata?['finalStartIndex'], 3);
+    expect(controller.canUndo, isTrue);
+  });
+
+  test('controller block range move no-op does not notify', () {
+    final controller = WenzRichTextController(
+      document: _rangeMoveControllerDocument(),
+    );
+    var notifyCount = 0;
+    controller.addListener(() => notifyCount++);
+
+    final change = controller.moveBlockRange(
+      fromIndex: 1,
+      count: 2,
+      toIndex: 3,
+    );
+
+    expect(change.isNoop, isTrue);
+    expect(notifyCount, 0);
+    expect(controller.document.blocks.map((block) => block.id), <String>[
+      'h1',
+      'h2',
+      'p2',
+      'tail',
+      'file',
+    ]);
+    expect(controller.canUndo, isFalse);
+  });
+
+  test('controller block range move respects edit permission', () {
+    final controller = WenzRichTextController(
+      document: _rangeMoveControllerDocument(),
+      permission: WenzEditorPermission.read,
+    );
+    var notifyCount = 0;
+    controller.addListener(() => notifyCount++);
+
+    final change = controller.moveBlockRange(
+      fromIndex: 1,
+      count: 2,
+      toIndex: 5,
+    );
+
+    expect(change.isNoop, isTrue);
+    expect(change.metadata, containsPair('reason', 'permissionDenied'));
+    expect(change.metadata, containsPair('command', 'moveBlockRange'));
+    expect(controller.document.blocks.map((block) => block.id), <String>[
+      'h1',
+      'h2',
+      'p2',
+      'tail',
+      'file',
+    ]);
+    expect(notifyCount, 0);
+    expect(controller.canUndo, isFalse);
+  });
+
   test('controller loads rich text json and legacy json', () {
     final controller = WenzRichTextController();
     const richCodec = RichTextJsonCodec();
@@ -519,6 +614,41 @@ RichTextDocument _tableDocument() {
             ],
           ],
         ),
+      ),
+    ],
+  );
+}
+
+RichTextDocument _rangeMoveControllerDocument() {
+  return const RichTextDocument(
+    blocks: <BlockNode>[
+      TextBlockNode(
+        id: 'h1',
+        type: BlockType.heading,
+        attributes: BlockAttributes(level: 1),
+        content: <InlineNode>[TextRun(text: 'Chapter')],
+      ),
+      TextBlockNode(
+        id: 'h2',
+        type: BlockType.heading,
+        attributes: BlockAttributes(level: 2),
+        content: <InlineNode>[TextRun(text: 'Section')],
+      ),
+      TextBlockNode(
+        id: 'p2',
+        type: BlockType.paragraph,
+        content: <InlineNode>[TextRun(text: 'Body')],
+      ),
+      TextBlockNode(
+        id: 'tail',
+        type: BlockType.heading,
+        attributes: BlockAttributes(level: 1),
+        content: <InlineNode>[TextRun(text: 'Tail')],
+      ),
+      FileBlockNode(
+        id: 'file',
+        assetId: 'asset-file',
+        name: 'brief.pdf',
       ),
     ],
   );

@@ -55,11 +55,13 @@ void main() {
     expect(
       WenzRichTextDesignBaseline.layoutTokens['headingCollapse'],
       <String, double>{
-        'slotWidth': 30.0,
-        'buttonSize': 26.0,
-        'iconSize': 20.0,
+        'slotWidth': 24.0,
+        'buttonSize': 24.0,
+        'iconSize': 18.0,
       },
     );
+    // The screenshot golden fixtures in this file do not render todo blocks;
+    // compact todo geometry is covered by widget-level layout assertions.
     expect(WenzRichTextDesignBaseline.layoutTokens['taskGap'], 10.0);
     expect(
       WenzRichTextDesignBaseline.layoutTokens['codePadding'],
@@ -70,9 +72,12 @@ void main() {
       WenzRichTextDesignBaseline.layoutTokens['headingMarginEm'],
       <String, double>{'top': 0.6, 'bottom': 0.35},
     );
-    expect(BlockDragHandleSpec.railWidth, 32.0);
+    expect(BlockDragHandleSpec.railWidth, 68.0);
+    expect(BlockDragHandleSpec.chromeGap, 8.0);
+    expect(BlockDragHandleSpec.gapToContent, 8.0);
     expect(BlockDragHandleSpec.hitSize, const Size.square(28.0));
     expect(BlockDragHandleSpec.visualSize, const Size.square(18.0));
+    expect(BlockDragHandleSpec.topInset, 1.0);
     expect(BlockDragHandleSpec.dragStartSlop, 6.0);
     expect(BlockDragHandleSpec.idleOpacity, 0.0);
     expect(BlockDragHandleSpec.hoverOpacity, 0.72);
@@ -489,12 +494,14 @@ void main() {
     );
     expect(expandedButton, findsOneWidget);
     expect(collapsedButton, findsOneWidget);
-    expect(leafButton, findsOneWidget);
+    expect(leafButton, findsNothing);
     expect(find.text('Hidden detail'), findsNothing);
-    expect(tester.widget<IconButton>(leafButton).onPressed, isNull);
     expect(
       tester.getRect(_blockDragHandleFinder('expanded-section')).right,
-      lessThanOrEqualTo(tester.getRect(expandedButton).left),
+      moreOrLessEquals(
+        tester.getRect(expandedButton).left - BlockDragHandleSpec.chromeGap,
+        epsilon: 0.5,
+      ),
     );
 
     await tester.tap(expandedButton);
@@ -512,6 +519,103 @@ void main() {
     );
   });
 
+  testWidgets(
+      'selected image toolbar floats without shifting media layout or losing actions',
+      (tester) async {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'lead',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'Lead paragraph')],
+          ),
+          ImageBlockNode(
+            id: 'image1',
+            assetId: 'hero',
+            file: 'hero.png',
+            width: 640,
+            height: 320,
+            showWidth: 300,
+            showHeight: 150,
+          ),
+          TextBlockNode(
+            id: 'after',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'After image paragraph')],
+          ),
+        ],
+      ),
+    );
+
+    await _pumpGoldenEditorWithOverlayCapture(
+      tester,
+      controller,
+      size: const Size(520, 420),
+    );
+
+    final imageBlockFinder = find.byKey(
+      const ValueKey<String>('wenz-richtext-image-block-image1'),
+    );
+    final imageFrameFinder = find.byKey(
+      const ValueKey<String>('wenz-richtext-image-frame-image1'),
+    );
+    final trailingTextFinder = _richText('After image paragraph');
+    final initialBlockRect = tester.getRect(imageBlockFinder);
+    final initialFrameRect = tester.getRect(imageFrameFinder);
+    final initialTrailingRect = tester.getRect(trailingTextFinder);
+
+    controller.setSelection(_objectBlockSelection('image1', 1));
+    await tester.pump();
+    await tester.pump();
+
+    _expectRectClose(tester.getRect(imageBlockFinder), initialBlockRect);
+    _expectRectClose(tester.getRect(imageFrameFinder), initialFrameRect);
+    _expectRectClose(tester.getRect(trailingTextFinder), initialTrailingRect);
+
+    expect(find.byTooltip('预览媒体'), findsOneWidget);
+    expect(find.byTooltip('更多块操作'), findsOneWidget);
+
+    final toolbarRect = _toolbarButtonsRect(
+      tester,
+      const <String>['预览媒体', '更多块操作'],
+    );
+    final blockerRect = tester.getRect(
+      find.byKey(
+        const ValueKey<String>('object-block-toolbar-hit-test-blocker'),
+      ),
+    );
+    expect(toolbarRect.bottom, lessThanOrEqualTo(initialFrameRect.top));
+    expect(
+      toolbarRect.right,
+      moreOrLessEquals(initialFrameRect.right, epsilon: 0.75),
+    );
+    expect(blockerRect.width, lessThan(initialFrameRect.width));
+    expect(blockerRect.height, lessThan(64));
+    expect(blockerRect.left, lessThanOrEqualTo(toolbarRect.left));
+    expect(blockerRect.top, lessThanOrEqualTo(toolbarRect.top));
+    expect(blockerRect.right, greaterThanOrEqualTo(toolbarRect.right));
+    expect(blockerRect.bottom, greaterThanOrEqualTo(toolbarRect.bottom));
+
+    await tester.tap(find.byTooltip('预览媒体'));
+    await tester.pumpAndSettle();
+    expect(find.byType(Dialog), findsOneWidget);
+    Navigator.of(tester.element(find.byType(Dialog))).pop();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('更多块操作'));
+    await tester.pumpAndSettle();
+    expect(find.text('图片宽度：小'), findsOneWidget);
+    expect(find.text('重置图片尺寸'), findsOneWidget);
+
+    await tester.tap(find.text('图片宽度：小'));
+    await tester.pumpAndSettle();
+
+    final image = controller.document.blocks[1] as ImageBlockNode;
+    expect(image.showWidth, 240);
+    expect(image.showHeight, 120);
+  });
+
   testWidgets('golden: block handle opens row action menu', (tester) async {
     await _pumpGoldenEditorWithOverlayCapture(
       tester,
@@ -522,6 +626,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('复制块内容'), findsOneWidget);
+    expect(find.text('复制块引用'), findsOneWidget);
     expect(find.text('更多块操作'), findsOneWidget);
     expect(find.text('删除块'), findsOneWidget);
     final deleteLabel = tester.widget<Text>(find.text('删除块'));
@@ -529,6 +634,7 @@ void main() {
       deleteLabel.style?.color,
       Theme.of(tester.element(find.text('删除块'))).colorScheme.error,
     );
+    _expectBlockHandleMenuChrome(tester, '复制块内容');
 
     await expectLater(
       find.byKey(_goldenKey),
@@ -704,6 +810,210 @@ void main() {
     );
   });
 
+  testWidgets('golden: table cell alignment per column', (tester) async {
+    await _pumpGoldenEditor(
+      tester,
+      WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TableBlockNode(
+              id: 'table',
+              table: TableModel(
+                // Column-level alignments as fallback for cells that don't
+                // specify their own. Every cell in this table explicitly
+                // overrides it, so the column alignments are not used in
+                // rendering — they merely assert the per-cell path is taken.
+                columnAlignments: <int, String>{
+                  0: 'left',
+                  1: 'center',
+                  2: 'right',
+                  3: 'justify',
+                },
+                rows: <List<TableCellNode>>[
+                  // Header row: one header cell per alignment flavour.
+                  <TableCellNode>[
+                    TableCellNode(
+                      id: 'h0',
+                      isHeader: true,
+                      alignment: 'left',
+                      blocks: <BlockNode>[
+                        TextBlockNode(
+                          id: 'h0p',
+                          type: BlockType.paragraph,
+                          content: <InlineNode>[
+                            TextRun(text: 'Left Header'),
+                          ],
+                        ),
+                      ],
+                    ),
+                    TableCellNode(
+                      id: 'h1',
+                      isHeader: true,
+                      alignment: 'center',
+                      blocks: <BlockNode>[
+                        TextBlockNode(
+                          id: 'h1p',
+                          type: BlockType.paragraph,
+                          content: <InlineNode>[
+                            TextRun(text: 'Center Header'),
+                          ],
+                        ),
+                      ],
+                    ),
+                    TableCellNode(
+                      id: 'h2',
+                      isHeader: true,
+                      alignment: 'right',
+                      blocks: <BlockNode>[
+                        TextBlockNode(
+                          id: 'h2p',
+                          type: BlockType.paragraph,
+                          content: <InlineNode>[
+                            TextRun(text: 'Right Header'),
+                          ],
+                        ),
+                      ],
+                    ),
+                    TableCellNode(
+                      id: 'h3',
+                      isHeader: true,
+                      alignment: 'justify',
+                      blocks: <BlockNode>[
+                        TextBlockNode(
+                          id: 'h3p',
+                          type: BlockType.paragraph,
+                          content: <InlineNode>[
+                            TextRun(text: 'Justify Header'),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
+                  // Data row 1: short content to clearly show each alignment.
+                  <TableCellNode>[
+                    TableCellNode(
+                      id: 'd10',
+                      alignment: 'left',
+                      blocks: <BlockNode>[
+                        TextBlockNode(
+                          id: 'd10p',
+                          type: BlockType.paragraph,
+                          content: <InlineNode>[TextRun(text: 'Alpha')],
+                        ),
+                      ],
+                    ),
+                    TableCellNode(
+                      id: 'd11',
+                      alignment: 'center',
+                      blocks: <BlockNode>[
+                        TextBlockNode(
+                          id: 'd11p',
+                          type: BlockType.paragraph,
+                          content: <InlineNode>[TextRun(text: 'Beta')],
+                        ),
+                      ],
+                    ),
+                    TableCellNode(
+                      id: 'd12',
+                      alignment: 'right',
+                      blocks: <BlockNode>[
+                        TextBlockNode(
+                          id: 'd12p',
+                          type: BlockType.paragraph,
+                          content: <InlineNode>[TextRun(text: 'Gamma')],
+                        ),
+                      ],
+                    ),
+                    TableCellNode(
+                      id: 'd13',
+                      alignment: 'justify',
+                      blocks: <BlockNode>[
+                        TextBlockNode(
+                          id: 'd13p',
+                          type: BlockType.paragraph,
+                          content: <InlineNode>[
+                            TextRun(text: 'Short justify'),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
+                  // Data row 2: longer text so justify can be distinguished
+                  // from left-aligned text.
+                  <TableCellNode>[
+                    TableCellNode(
+                      id: 'd20',
+                      alignment: 'left',
+                      blocks: <BlockNode>[
+                        TextBlockNode(
+                          id: 'd20p',
+                          type: BlockType.paragraph,
+                          content: <InlineNode>[
+                            TextRun(text: 'Left aligned longer text'),
+                          ],
+                        ),
+                      ],
+                    ),
+                    TableCellNode(
+                      id: 'd21',
+                      alignment: 'center',
+                      blocks: <BlockNode>[
+                        TextBlockNode(
+                          id: 'd21p',
+                          type: BlockType.paragraph,
+                          content: <InlineNode>[
+                            TextRun(text: 'Centered longer text'),
+                          ],
+                        ),
+                      ],
+                    ),
+                    TableCellNode(
+                      id: 'd22',
+                      alignment: 'right',
+                      blocks: <BlockNode>[
+                        TextBlockNode(
+                          id: 'd22p',
+                          type: BlockType.paragraph,
+                          content: <InlineNode>[
+                            TextRun(text: 'Right aligned longer'),
+                          ],
+                        ),
+                      ],
+                    ),
+                    TableCellNode(
+                      id: 'd23',
+                      alignment: 'justify',
+                      blocks: <BlockNode>[
+                        TextBlockNode(
+                          id: 'd23p',
+                          type: BlockType.paragraph,
+                          content: <InlineNode>[
+                            TextRun(
+                              text: 'Justified text '
+                                  'wraps across lines',
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+      // Wider surface so all four alignment columns have enough room to
+      // show their effect.
+      size: const Size(740, 360),
+    );
+
+    await expectLater(
+      find.byKey(_goldenKey),
+      matchesGoldenFile('goldens/editor_table_alignment.png'),
+    );
+  });
+
   testWidgets('golden: selection highlight', (tester) async {
     await _pumpGoldenEditor(
       tester,
@@ -849,6 +1159,7 @@ void main() {
       tester.getSize(find.byTooltip('复制代码内容')),
       const Size.square(32),
     );
+    _expectGoldenToolbarButtonCapsule(tester, '复制代码内容');
     expect(find.text('release-spec.pdf'), findsOneWidget);
     expect(find.text('Retry required'), findsOneWidget);
 
@@ -924,9 +1235,9 @@ Future<void> _pumpGoldenEditor(
 
 Future<void> _pumpGoldenEditorWithOverlayCapture(
   WidgetTester tester,
-  WenzRichTextController controller,
-) async {
-  const size = Size(520, 320);
+  WenzRichTextController controller, {
+  Size size = const Size(520, 320),
+}) async {
   await tester.binding.setSurfaceSize(size);
   addTearDown(() => tester.binding.setSurfaceSize(null));
 
@@ -1030,6 +1341,113 @@ WenzRichTextController _blockHandleGoldenController() {
 Finder _blockDragHandleFinder(String blockId) {
   return find.byKey(
     ValueKey<String>('wenz-richtext-block-drag-handle-$blockId'),
+  );
+}
+
+DocumentSelection _objectBlockSelection(String blockId, int blockIndex) {
+  final start = DocumentPosition(
+    blockId: blockId,
+    blockIndex: blockIndex,
+    path: PositionPath.blockObject(blockId),
+    offset: 0,
+  );
+  return DocumentSelection(base: start, extent: start.copyWith(offset: 1));
+}
+
+Rect _toolbarButtonsRect(WidgetTester tester, List<String> tooltips) {
+  assert(tooltips.isNotEmpty);
+  var rect = tester.getRect(find.byTooltip(tooltips.first));
+  for (final tooltip in tooltips.skip(1)) {
+    rect = rect.expandToInclude(tester.getRect(find.byTooltip(tooltip)));
+  }
+  return rect;
+}
+
+void _expectRectClose(Rect actual, Rect expected, {double epsilon = 0.001}) {
+  expect(actual.left, moreOrLessEquals(expected.left, epsilon: epsilon));
+  expect(actual.top, moreOrLessEquals(expected.top, epsilon: epsilon));
+  expect(actual.right, moreOrLessEquals(expected.right, epsilon: epsilon));
+  expect(actual.bottom, moreOrLessEquals(expected.bottom, epsilon: epsilon));
+}
+
+void _expectBlockHandleMenuChrome(WidgetTester tester, String itemLabel) {
+  final materialFinder = find.ancestor(
+    of: find.text(itemLabel),
+    matching: find.byWidgetPredicate(
+      (widget) => widget is Material && widget.elevation == 3,
+    ),
+  );
+  expect(materialFinder, findsOneWidget);
+  final material = tester.widget<Material>(materialFinder);
+  final theme = Theme.of(tester.element(materialFinder));
+  expect(
+    material.color,
+    theme.brightness == Brightness.dark
+        ? const Color(0xFF292A2D)
+        : const Color(0xFFF8F9FA),
+  );
+  expect(material.shadowColor, theme.colorScheme.shadow.withAlpha(30));
+  expect(material.surfaceTintColor, Colors.transparent);
+  expect(material.clipBehavior, Clip.antiAlias);
+  final shape = material.shape as RoundedRectangleBorder;
+  expect(shape.borderRadius, BorderRadius.circular(10));
+  expect(
+    shape.side.color,
+    theme.brightness == Brightness.dark
+        ? const Color(0xFF4A4C50)
+        : const Color(0xFFDADCE0),
+  );
+}
+
+void _expectGoldenToolbarButtonCapsule(
+  WidgetTester tester,
+  String tooltip,
+) {
+  final button = _iconButtonByTooltip(tester, tooltip);
+  final style = button.style;
+  expect(style, isNotNull);
+  // Background is now transparent for all states — no independent capsule.
+  for (final states in <Set<WidgetState>>[
+    <WidgetState>{},
+    <WidgetState>{WidgetState.disabled},
+    <WidgetState>{WidgetState.hovered},
+    <WidgetState>{WidgetState.pressed},
+  ]) {
+    expect(
+      style!.fixedSize?.resolve(states),
+      const Size.square(32),
+    );
+    final background = style.backgroundColor?.resolve(states);
+    expect(background, Colors.transparent);
+    final shape = style.shape?.resolve(states);
+    expect(shape, isA<RoundedRectangleBorder>());
+    expect(
+      (shape! as RoundedRectangleBorder).borderRadius,
+      BorderRadius.circular(16),
+    );
+  }
+  // Hover / pressed states still show semi-transparent overlay highlight.
+  for (final states in <Set<WidgetState>>[
+    <WidgetState>{WidgetState.hovered},
+    <WidgetState>{WidgetState.pressed},
+  ]) {
+    final overlay = style!.overlayColor?.resolve(states);
+    expect(overlay, isNotNull);
+    expect(overlay, isNot(Colors.transparent));
+  }
+}
+
+IconButton _iconButtonByTooltip(WidgetTester tester, String tooltip) {
+  final tooltipFinder = find.byTooltip(tooltip);
+  final matchedWidget = tooltipFinder.evaluate().single.widget;
+  if (matchedWidget is IconButton) {
+    return matchedWidget;
+  }
+  return tester.widget<IconButton>(
+    find.ancestor(
+      of: tooltipFinder,
+      matching: find.byType(IconButton),
+    ),
   );
 }
 

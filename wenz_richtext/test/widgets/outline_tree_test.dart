@@ -172,6 +172,43 @@ void main() {
     expect(toggled!.blockId, 'h1');
   });
 
+  testWidgets('does not reserve collapse toggle space for leaf headings',
+      (tester) async {
+    final collapsible = _item(
+      blockId: 'parent',
+      blockIndex: 0,
+      level: 1,
+      title: 'Parent',
+      collapseRange: const OutlineCollapseRange(
+        startBlockIndex: 1,
+        endBlockIndexExclusive: 2,
+      ),
+    );
+    final leaf = _item(
+      blockId: 'leaf',
+      blockIndex: 2,
+      level: 2,
+      title: 'Leaf',
+    );
+    OutlineItem? selected;
+
+    await tester.pumpWidget(_wrap(WenzOutlineTree(
+      items: <OutlineItem>[collapsible, leaf],
+      onSelect: (item) => selected = item,
+    )));
+
+    expect(find.byIcon(Icons.expand_more), findsOneWidget);
+    expect(find.byIcon(Icons.chevron_right), findsNothing);
+
+    final parentBadgeLeft = tester.getTopLeft(find.text('H1')).dx;
+    final leafBadgeLeft = tester.getTopLeft(find.text('H2')).dx;
+    expect(leafBadgeLeft, lessThan(parentBadgeLeft));
+
+    await tester.tap(find.text('Leaf'));
+    await tester.pump();
+    expect(selected?.blockId, 'leaf');
+  });
+
   testWidgets('tree collapse hides only descendant outline rows',
       (tester) async {
     final items = <OutlineItem>[

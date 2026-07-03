@@ -11,6 +11,48 @@
 
 ---
 
+## REQ-042-P006 · 标题大纲范围拖拽手工验收
+
+来源：需求 42 / P006。`docs/plan/plan_requirement_42_20260703-154818.md` 是 AutoPlan 只读上下文，本节只补充命令说明对应的手工验收入口，不勾选 plan checkbox，不更新进度区。
+
+准备文档：至少包含 `H1 A`、A 下普通段落、`H2 A.1`、A.1 下普通段落或对象/媒体块、同级 `H1 B`、B 下段落、文档末尾 `H1 C`；另准备连续同级标题和一个普通段落块。
+
+| 验收项 | 操作 | 预期 |
+|--------|------|------|
+| 展开父标题拖拽 | 在展开状态拖拽 `H1 A` 到 `H1 B` 段落之后，再拖回 `H1 B` 之前 | `H1 A`、A 段落、`H2 A.1` 和 A.1 子内容整体移动；`H1 B` 及其段落不被带走 |
+| 折叠父标题拖拽 | 折叠 `H1 A` 后拖拽可见标题行到 `H1 B` 后方，再展开 `H1 A` | 折叠时隐藏的 A 子内容随父标题移动；折叠按钮仍绑定 `H1 A`，展开后文档顺序正确 |
+| 嵌套标题边界 | 分别拖拽 `H1 A` 与 `H2 A.1` | 拖拽 `H1 A` 带走低级标题和所有子内容；拖拽 `H2 A.1` 只带走自身子范围，不带走父标题或后续同级/更高级标题 |
+| 连续同级标题 | 拖拽连续 `H2` / `H1` 中的前一个标题 | 前一个标题只移动自身或自身子范围，后一个同级标题保持原分组，不被错误纳入 |
+| 自身范围内落点 | 将父标题拖到自己的子段落或低级标题区域 | 不显示有效 drop indicator，或松手后文档顺序不变且不产生可见移动 |
+| 文档首尾边界 | 将标题范围拖到文档开头、文档末尾，并尝试在已到首尾时继续上移/下移 | 合法边界插入位置正确；已触及首尾时菜单动作禁用或 no-op，不破坏顺序 |
+| 普通块回归 | 拖拽或菜单下移普通段落、代码块、媒体/对象块 | 仍只移动当前块，不带走相邻标题范围；对象块菜单、外部图片拖入、文本选区拖拽不受影响 |
+
+三端抽样：
+
+| 端 | 展开标题范围 | 折叠隐藏内容 | 嵌套/连续标题 | 首尾边界 | 普通块回归 | 备注 |
+|----|--------------|--------------|----------------|----------|------------|------|
+| Windows | [ ] | [ ] | [ ] | [ ] | [ ] | |
+| Web (Chrome) | [ ] | [ ] | [ ] | [ ] | [ ] | |
+| Android | [ ] | [ ] | [ ] | [ ] | [ ] | |
+
+验证命令：本阶段按 AutoPlan 要求未运行 `flutter test`、`flutter analyze`、golden 更新、构建、lint 或 benchmark；最终验收由后续统一执行。
+
+---
+
+## REQ-041-P004 · todo 紧凑布局视觉基线核对
+
+来源：需求 41 / P004。`docs/plan/plan_requirement_41_20260703-154132.md` 是 AutoPlan 只读上下文，本节只记录当前任务对 golden 覆盖和手工验收说明的核对结果，不勾选 plan checkbox，不更新进度区。
+
+| 覆盖项 | 记录 | 结论 |
+|--------|------|------|
+| golden 覆盖 | `test/widgets/editor_golden_test.dart` 当前截图场景不包含 todo 块，`editor_blocks.png` / `editor_advanced_blocks.png` 无需因本次 checkbox 收紧更新 PNG 基线 | 无需变更 golden 图片 |
+| widget 几何口径 | `test/widgets/wenz_rich_text_editor_test.dart` 的 todo 布局断言已按紧凑布局更新为 checkbox 槽位 `20x28px`、checkbox 到正文 `6px` | 留给最终验收命令执行 |
+| 手工抽查入口 | 单行 todo、多行 todo、已完成 todo、有序 todo、引用内 todo、只读态 todo 均应确认左侧空白减少，正文不贴死 checkbox，续行与正文首行左边界对齐 | 关注 `4px` 左 padding、`6px` 正文间距 |
+
+验证命令：本阶段按 AutoPlan 要求未运行 `flutter test`、golden 更新、analyze、构建或 lint；最终验收由 P005 统一执行。
+
+---
+
 ## FB-006-P006 · 表格悬浮工具栏 Overlay 验收记录
 
 来源：反馈 6 / P006。`docs/plan/plan_feedback_6_20260625-035040.md` 是 AutoPlan 只读上下文，本节仅记录本任务补充的自动化覆盖、手工验收入口与当前遗留风险。
@@ -56,8 +98,8 @@
 |--------|------------|------|
 | 公式同行居中 | `feedback #4 visual regressions keep formula todo and toolbar metrics` 覆盖中文、英文、emoji 同行普通公式中心偏移 | 通过，中心偏移阈值 `±0.75px` |
 | 高公式行高兜底 | 同一用例覆盖高公式高度、公式所在行实际渲染高度与中心对齐 | 通过，高公式不裁剪且高度小于 `48px` |
-| todo checkbox 首行对齐 | 同一用例覆盖单行 / 多行 todo checkbox 与首行中心偏移 | 通过，中心偏移阈值 `±0.75px` |
-| 多行 todo 缩进 | 同一用例覆盖 wrapped todo 多行 `LineMetrics.left` 一致，且文本起点不压住 checkbox | 通过，续行缩进保持一致 |
+| todo checkbox 首行对齐 | 同一用例覆盖单行 / 多行 todo checkbox 与首行中心偏移；REQ-041 的新断言槽位为 `20x28px` | 既有记录通过；REQ-041 留给最终验收复跑 |
+| 多行 todo 缩进 | 同一用例覆盖 wrapped todo 多行 `LineMetrics.left` 一致；REQ-041 的新断言要求文本起点与 checkbox 右边界保持 `6px` 间距 | 既有记录通过；REQ-041 留给最终验收复跑 |
 | 表格工具栏贴近顶部 | 同一用例与既有 toolbar 用例覆盖选中表格 cell 后工具栏间距 | 通过，toolbar 与 cell 顶部间距约 `4px` |
 
 验证命令：
@@ -68,7 +110,7 @@
 
 未覆盖风险与后续建议：
 - 真实 Windows / Web / Android 的字体栅格化、设备像素比和平台 checkbox 原生绘制差异仍需按本清单手验抽样确认。
-- 本次未更新 golden 图片；视觉回归以 widget 几何断言锁定关键偏移，后续如推进综合 golden，可将该组合场景纳入 `test/widgets/goldens/`。
+- 本次未更新 golden 图片；视觉回归以 widget 几何断言锁定关键偏移，REQ-041 已记录现有 `editor_golden_test.dart` 截图基线不含 todo 块。
 
 ---
 
@@ -157,8 +199,8 @@
 - 颜色：`primary #4f6df5`、`surface #fbfaff`、`surface-container #f2f0f7`、`on-surface #1b1b21`、`on-surface-variant #46464f`、`outline #777680`、`blue-link #1976d2`、`code-bg #1e1e2e`、`code-text #e6e6f0`。
 - 圆角/阴影：主圆角 `12px`，小圆角 `8px`，chip `6px`；卡片阴影为 `0 1px 3px rgba(20,20,40,.08)` + `0 1px 2px rgba(20,20,40,.06)`。
 - 字号/行高：正文 `16px / 1.75`；H1-H4 为 `24/21/18/16px`；代码块 `13.5px / 1.6`；表格 `15px`；caption/元信息 `13px`；语言标签 `11px`。
-- 间距：段落 `.55em`；常规块 `1em`；媒体块 `1.2em`；分割线 `1.6em`；列表左缩进 `26px`；引用 `8x18px`；代码 `18x20px`；表格 cell `10x14px`。
-- 状态：todo 完成态弱化 + 删除线；文件 hover/focus 使用主色边框 + 阴影；callout 覆盖 info/success/warning/danger；embed/formula/mention 使用 chip 或 pill fallback。
+- 间距：段落 `.55em`；常规块 `1em`；媒体块 `1.2em`；分割线 `1.6em`；列表左缩进 `26px`；todo 左 padding `4px`、checkbox 到正文 `6px`；引用 `8x18px`；代码 `18x20px`；表格 cell `10x14px`。
+- 状态：todo 完成态弱化 + 删除线，默认 checkbox 槽位 `20x28px`；文件 hover/focus 使用主色边框 + 阴影；callout 覆盖 info/success/warning/danger；embed/formula/mention 使用 chip 或 pill fallback。
 
 当前默认渲染差异基线：
 

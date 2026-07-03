@@ -331,6 +331,9 @@ class SetAlignmentCommand extends EditorCommand {
     if (target == null) {
       return const CommandResult(recordHistory: false);
     }
+    if (target.tableCellRange != null) {
+      return const CommandResult(recordHistory: false);
+    }
 
     final blocks =
         session.document.blocks.map((block) => block.copy()).toList();

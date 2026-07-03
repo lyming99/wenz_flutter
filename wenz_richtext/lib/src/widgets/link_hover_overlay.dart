@@ -25,8 +25,9 @@ typedef WenzLinkHoverInfo = ({
 // and the surface colour token.
 const double _kLinkHoverSurfaceRadius = 10.0;
 const double _kLinkHoverSurfaceElevation = 3.0;
-const int _kLinkHoverShadowAlpha = 24;
-const int _kLinkHoverBorderAlpha = 36;
+const int _kLinkHoverShadowAlpha = 30;
+const int _kLinkHoverBorderAlphaLight = 112;
+const int _kLinkHoverBorderAlphaDark = 96;
 const double _kLinkHoverGap = 6.0;
 const double _kLinkHoverMaxUrlWidth = 220.0;
 const double _kLinkHoverFallbackHeight = 44.0;
@@ -41,6 +42,12 @@ const EdgeInsets _kLinkHoverActionPadding = EdgeInsets.symmetric(
 );
 // Hover wash for action chips, matching the slash-menu item hover alpha.
 const int _kLinkHoverActionHoverAlpha = 13;
+
+int _linkHoverBorderAlpha(ThemeData theme) {
+  return theme.brightness == Brightness.dark
+      ? _kLinkHoverBorderAlphaDark
+      : _kLinkHoverBorderAlphaLight;
+}
 
 /// Mouse/pen popup shown above a hovered inline link with "Edit" and "Open"
 /// actions.
@@ -160,11 +167,12 @@ class _WenzLinkHoverOverlayState extends State<WenzLinkHoverOverlay> {
       color: colorScheme.surfaceContainerLow,
       elevation: _kLinkHoverSurfaceElevation,
       shadowColor: colorScheme.shadow.withAlpha(_kLinkHoverShadowAlpha),
-      surfaceTintColor: colorScheme.surfaceTint.withAlpha(0),
+      surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(
         side: BorderSide(
-          color:
-              colorScheme.outlineVariant.withAlpha(_kLinkHoverBorderAlpha),
+          color: colorScheme.outlineVariant.withAlpha(
+            _linkHoverBorderAlpha(theme),
+          ),
         ),
         borderRadius: BorderRadius.circular(_kLinkHoverSurfaceRadius),
       ),

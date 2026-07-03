@@ -7,10 +7,11 @@
 - 覆盖（与 P003/P004 落地点逐项对应）：
   - 图片块 figure chrome（圆角 / 阴影 / 最大宽度 / `caption` / `altText`）、显示尺寸 `showWidth/showHeight`、状态全集（空占位 / 加载上传中 / 已加载 / 加载失败，各含 默认 / 悬停 / 选中描边 / 只读裁剪）。
   - 视频块封面预览 + 播放覆盖层（默认 / 悬停 / 按下）、播放中 / 缓冲中 / 加载失败 / 占位态、宽高比处理（`aspectRatio`）、选中描边、只读裁剪。
+  - 图片 / 视频对象工具栏 Overlay：选中态工具栏由编辑器级 `ObjectBlockToolbarOverlayHost` 承载，锚定媒体 frame 顶部，不作为块布局子节点；覆盖定位、viewport 夹紧、命中范围与选中描边关系。
   - 明色 + 暗色双 token 版本（圆角 / 阴影层数 / 描边线宽 / caption 布局在两色下一致，仅颜色随主题切换）。
   - 设计 Token 参数面板：逐项给出圆角、阴影、垂直外边距、最大宽度、播放按钮尺寸、选中描边等，并标注对应 Flutter 常量名，作为本文件「视觉 Token」小节的来源。
 - 总览稿联动：`ui/richtext_design.html` 的图片（section 9）/视频（section 10）已各补一句指向本稿的说明，保持两稿口径一致；本约束不重写总览稿。
-- 范围边界：只动图片/视频块的**显示与交互态**（figure chrome、caption、占位、状态、选中描边、只读裁剪）；不新增视频播放器 / 网络图片插件依赖（维持 `MediaResolver` 注入式架构），不改 schema、序列化、插入 / 删除命令与既有手势 / 选区 / 双击预览。
+- 范围边界：只动图片/视频块的**显示与交互态**（figure chrome、caption、占位、状态、选中描边、只读裁剪、对象工具栏承载位置）；不新增视频播放器 / 网络图片插件依赖（维持 `MediaResolver` 注入式架构），不改 `VideoBlockNode` / `ImageBlockNode` schema、`MediaResolver` 注入、预览 API、序列化、导入导出、插入 / 删除命令与既有手势 / 选区 / 双击预览。
 
 ## 覆盖范围
 
@@ -18,6 +19,7 @@
 - 图片块占位：`_ImageBlockPlaceholder`，承载无 resolver / resolver 抛错 / 资源未就绪时的回退显示（需由「固定 112×72 小图标盒」重做为撑满内容宽度的 chrome 空态，并补加载中 / 加载失败两态）。
 - 视频块已加载 / 占位：`_VideoBlockContent`、`_VideoBlockPlaceholder`，承载封面背景 `_VideoCoverBackdrop`、渐变蒙层、封面 chip `_VideoCoverChip`、播放按钮（`_videoPlayButtonSizeFor` / `_kVideoPlayIconSize`），并经 `_safeVideoAspectRatio` / `_videoFrameHeight` 做宽高比归一与帧高夹紧；视频占位需补一个加载失败回退态。
 - 选中态：`_MediaSelectionStroke` 在媒体框自身矩形绘制 `primary` 2px 描边（非通用 `_BlockObjectSelectionSurface`），图片 / 视频块统一口径。
+- 对象工具栏 Overlay：图片 / 视频块选中时由 `_MediaBlockChrome` 发布 `ObjectBlockToolbarOverlayRequest`，经 `ObjectBlockToolbarOverlayAnchor` 锚定媒体 frame，再由编辑器级 `ObjectBlockToolbarOverlayHost` 承载；工具栏不再作为媒体块 `Column` / `Stack` 的可测量子节点。
 - 无障碍与预览：`_imageAccessibleLabel` / `_videoAccessibleLabel` 供读屏朗读，`_showImagePreview` / `_showVideoPreview` 提供双击 / 激活预览；本约束保留其行为，仅在图片块把 `altText` 接入 `Semantics`。
 
 ## 状态约束
@@ -28,6 +30,7 @@
 - 加载失败（图片 / 视频块新增态）：对接 `media_resolver.dart` 的 catch-and-fallback 契约（无 resolver 或 resolver 抛错 → 失败态）；使用 `error` / `errorContainer` 色调与中文失败文案，在视觉与语义上与空占位 / 封面占位可区分。
 - 悬停 / 按下：悬停 `onSurface` 约 5% 中性反馈，按下 `primary` 约 18% 叠加；只作轻量反馈，**不改变尺寸 / 圆角 / 图标布局**。
 - 选中描边：`_MediaSelectionStroke` 在框自身矩形（非整块 overlay）绘 `primary` 2px，圆角对齐 `_kMediaCornerRadius`；媒体块禁用通用 overlay，命中测试 / 几何注册 / 双击预览不受影响。
+- 选中工具栏：选中图片 / 视频时工具栏浮在媒体 frame 上方，由编辑器级 Overlay 承载；不插入布局占位，不改变 frame / caption / 后续正文的位置，也不扩大媒体块自身命中区域。
 - 只读裁剪：`readOnly` 或 `canEdit=false` 下，圆角 / 阴影 / 裁剪与可编辑态一致，仅保留预览等安全动作，无破坏性 mutation 入口；图片 / 视频块口径统一。
 - 明暗主题：圆角 / 阴影层数 / 描边线宽 / caption 布局在明暗两色下保持一致，仅 colorScheme 颜色随主题切换；视频 frame 在明暗两色下均为黑色（`Colors.black`）。
 
@@ -69,6 +72,18 @@
 | 悬停 | `onSurface` 约 5% | （P003/P004 内联） | 图片 / 视频块当前无 hover 叠加 | 可选增补：仅作轻量反馈，不改尺寸 / 圆角 |
 | 按下 | `primary` 约 18% | （P003/P004 内联） | 无 | 同上 |
 
+## 媒体工具栏 Overlay 契约
+
+图片 / 视频块的对象工具栏属于编辑器级 Overlay，而不是媒体块布局的一部分。选中媒体只发布或撤销 `ObjectBlockToolbarOverlayRequest`，不得向媒体块内部插入工具栏、`SizedBox` 间距、负偏移占位或其它会改变测量结果的节点。
+
+- 承载：编辑器 shell 安装 `ObjectBlockToolbarOverlayHost`，媒体 renderer 通过 `ObjectBlockToolbarOverlayController` 发布请求；自定义媒体 renderer 若要保持同一行为，也必须走这条路径。
+- 锚点：`ObjectBlockToolbarOverlayAnchor` 放在媒体 frame 顶部，锚点宽度等于实际 frame 宽度（图片尊重 `showWidth/showHeight` 推导宽度，视频尊重内容宽与安全宽高比）。
+- 水平定位：工具栏右边缘与 frame end 对齐，并夹在 overlay 可见宽度内；不要用整行宽度替代 frame 宽度。
+- 垂直定位：工具栏位于 frame 上方，间距为 `_kBlockFloatingToolbarInset`；当媒体靠近 viewport 顶部时，`top` 取 `visibleTop` 夹紧后的值，避免工具栏滚出可见区域。
+- 命中测试：Overlay 只让实际工具栏区域参与命中拦截；不得铺设全屏透明 blocker，媒体预览、选区拖拽、正文点击不应被工具栏以外的区域吞掉。
+- 选中视觉：选中描边继续由 `_MediaSelectionStroke` 绘制在 frame 自身矩形上；通用 full-block overlay 对图片 / 视频保持禁用，caption 和块外边距不被描边覆盖。
+- 兼容边界：该契约不修改 `VideoBlockNode` 模型 / schema、不修改 `MediaResolver` 注入方式、不修改图片 / 视频预览 API，也不改变 rich JSON / HTML / Markdown / plain-text 的序列化、导入或导出协议。file / divider / embed 等非媒体对象块仍沿用既有块级浮动工具栏路径，除非对应 renderer 显式迁移到对象工具栏 Overlay。
+
 ### Motion（动效）
 
 - 悬停 / 按下 / 描边反馈统一 `120ms ease`（与 `slash_popup_electron_design.html` 口径一致），仅作轻量反馈，不改变 overlay 定位、尺寸与几何注册。现状：媒体块无显式过渡时长，可在 P003/P004 按需补 `AnimatedContainer` / `AnimatedSwitcher` 实现，不强制引入。
@@ -98,11 +113,12 @@
 
 ## 现有样式入口
 
-P003 / P004 落地时，仅更新下列入口的显示层（chrome token、caption、占位 / 失败态），不改其 schema / 序列化 / 插入删除 / 手势 / 选区 / 双击预览 / `MediaResolver` 接口：
+媒体显示与工具栏承载仅更新下列入口的显示层（chrome token、caption、占位 / 失败态、对象工具栏 Overlay），不改 `VideoBlockNode` / `ImageBlockNode` schema、`MediaResolver` 注入接口、预览 API、序列化 / 导入导出协议、插入删除命令与既有手势 / 选区 / 双击预览：
 
 - 图片块：`_ImageBlockContent`（补 caption figcaption + `altText` 的 `Semantics`）、`_ImageBlockPlaceholder`（重做为整宽 chrome 空态 + 加载中 / 加载失败两态）。
 - 视频块：`_VideoBlockContent`、`_VideoBlockPlaceholder`（补加载失败回退态，圆角 / 阴影 token 与图片块共享）。
 - 选中描边：`_MediaSelectionStroke`（核对 `primary` 2px + `_kMediaCornerRadius` 圆角，行为不变）。
+- 工具栏 Overlay：`_MediaBlockChrome`、`ObjectBlockToolbarOverlayAnchor`、`ObjectBlockToolbarOverlayRequest`、`ObjectBlockToolbarOverlayHost`（图片 / 视频选中工具栏浮在 frame 上方，不作为媒体布局子节点）。
 - 共享 token 常量：`_kMediaCornerRadius`、`_kMediaBlockMarginVertical`、`_kSurfaceBoxShadow`；视频专属 `_kVideoFrameFallbackWidth`、`_kVideoPlayButtonSize`、`_kVideoPlayIconSize`、`_kVideoMinAspectRatio` / `_kVideoMaxAspectRatio`、`_kVideoMinFrameHeight` / `_kVideoMaxFrameHeight`。
 - 视频几何：`_videoPlayButtonSizeFor`（按帧宽缩放播放按钮）、`_safeVideoAspectRatio`（宽高比夹紧）、`_videoFrameHeight`（帧高夹紧）。
 - 无障碍 / 预览：`_imageAccessibleLabel` / `_videoAccessibleLabel`（朗读）、`_showImagePreview` / `_showVideoPreview`（双击预览，行为不变）。

@@ -111,8 +111,11 @@ class ToolbarState {
     required this.canToggleQuote,
     required this.isQuoteBlock,
     required this.canTableStruct,
+    required this.canSetAlignment,
     this.tableCellIsHeader,
     this.tableCellBackgroundColor,
+    this.alignment,
+    required this.alignmentMixed,
     required this.bold,
     required this.italic,
     required this.underline,
@@ -168,8 +171,19 @@ class ToolbarState {
   /// Whether table structure commands (add/remove row/column, merge, split)
   /// make sense — the caret must sit inside a table cell.
   final bool canTableStruct;
+
+  /// Whether selection-level alignment can apply. For ordinary blocks this
+  /// maps to block alignment; for table-cell selections it maps to cell-level
+  /// alignment.
+  final bool canSetAlignment;
   final bool? tableCellIsHeader;
   final int? tableCellBackgroundColor;
+
+  /// The explicit alignment shared by the current selection. `null` with
+  /// [alignmentMixed] false means no explicit alignment; `null` with
+  /// [alignmentMixed] true means the selected blocks/cells mix alignments.
+  final String? alignment;
+  final bool alignmentMixed;
 
   /// `true` when **every** text run in the selection has the mark set. A
   /// mixed range (some on, some off) reports `false` (indeterminate) so the
@@ -229,6 +243,8 @@ class ToolbarState {
   bool isHeading(int level) =>
       uniformBlockType == BlockType.heading && uniformHeadingLevel == level;
 
+  bool isAlignment(String? value) => !alignmentMixed && alignment == value;
+
   bool get isParagraph => uniformBlockType == BlockType.paragraph;
   bool get isTodo =>
       uniformBlockType == BlockType.listItem && uniformListType == 'task';
@@ -250,6 +266,9 @@ class ToolbarState {
     canToggleQuote: false,
     isQuoteBlock: false,
     canTableStruct: false,
+    canSetAlignment: false,
+    alignment: null,
+    alignmentMixed: false,
     bold: false,
     italic: false,
     underline: false,
@@ -279,8 +298,11 @@ class ToolbarState {
     bool? canToggleQuote,
     bool? isQuoteBlock,
     bool? canTableStruct,
+    bool? canSetAlignment,
     Object? tableCellIsHeader = _sentinel,
     Object? tableCellBackgroundColor = _sentinel,
+    Object? alignment = _sentinel,
+    bool? alignmentMixed,
     bool? bold,
     bool? italic,
     bool? underline,
@@ -309,12 +331,17 @@ class ToolbarState {
       canToggleQuote: canToggleQuote ?? this.canToggleQuote,
       isQuoteBlock: isQuoteBlock ?? this.isQuoteBlock,
       canTableStruct: canTableStruct ?? this.canTableStruct,
+      canSetAlignment: canSetAlignment ?? this.canSetAlignment,
       tableCellIsHeader: identical(tableCellIsHeader, _sentinel)
           ? this.tableCellIsHeader
           : tableCellIsHeader as bool?,
       tableCellBackgroundColor: identical(tableCellBackgroundColor, _sentinel)
           ? this.tableCellBackgroundColor
           : tableCellBackgroundColor as int?,
+      alignment: identical(alignment, _sentinel)
+          ? this.alignment
+          : alignment as String?,
+      alignmentMixed: alignmentMixed ?? this.alignmentMixed,
       bold: bold ?? this.bold,
       italic: italic ?? this.italic,
       underline: underline ?? this.underline,
@@ -355,8 +382,11 @@ class ToolbarState {
         other.canToggleQuote == canToggleQuote &&
         other.isQuoteBlock == isQuoteBlock &&
         other.canTableStruct == canTableStruct &&
+        other.canSetAlignment == canSetAlignment &&
         other.tableCellIsHeader == tableCellIsHeader &&
         other.tableCellBackgroundColor == tableCellBackgroundColor &&
+        other.alignment == alignment &&
+        other.alignmentMixed == alignmentMixed &&
         other.bold == bold &&
         other.italic == italic &&
         other.underline == underline &&
@@ -389,8 +419,11 @@ class ToolbarState {
         canToggleQuote,
         isQuoteBlock,
         canTableStruct,
+        canSetAlignment,
         tableCellIsHeader,
         tableCellBackgroundColor,
+        alignment,
+        alignmentMixed,
       ),
       Object.hash(
         bold,
@@ -449,10 +482,14 @@ class ToolbarController extends ChangeNotifier {
   bool get canToggleTodo => _state.canToggleTodo;
   bool get canToggleQuote => _state.canToggleQuote;
   bool get canTableStruct => _state.canTableStruct;
+  bool get canSetAlignment => _state.canSetAlignment;
   bool get canInsertImage => _host.canEdit;
   bool get canInsertVideo => _host.canEdit;
   bool? get tableCellIsHeader => _state.tableCellIsHeader;
   int? get tableCellBackgroundColor => _state.tableCellBackgroundColor;
+  String? get alignment => _state.alignment;
+  bool get alignmentMixed => _state.alignmentMixed;
+  bool isAlignment(String? value) => _state.isAlignment(value);
 
   bool get bold => _state.bold;
   bool get italic => _state.italic;
@@ -528,6 +565,15 @@ class ToolbarController extends ChangeNotifier {
     }
     _host.clearStyle();
   }
+
+  void setAlignment(String? alignment) {
+    if (!_state.canSetAlignment) {
+      return;
+    }
+    _host.setAlignment(alignment);
+  }
+
+  void clearAlignment() => setAlignment(null);
 
   void setHeading(int level) => _setBlockType(BlockType.heading, level: level);
   void setParagraph() => _setBlockType(BlockType.paragraph);
@@ -745,9 +791,17 @@ class ToolbarController extends ChangeNotifier {
     // Block type uniformity across the selection.
     final blockSummary = _collectBlockType(document, start, end);
 
+    final tableCellRange = selection.tableCellRange;
     final inTable = extent.path.isTableCellText;
-    final cellStyle =
-        _collectTableCellStyle(document, selection.tableCellRange);
+    final cellStyle = _collectTableCellStyle(document, tableCellRange);
+    final blockAlignment = tableCellRange == null
+        ? _collectBlockAlignment(document, start, end)
+        : _AlignmentSummary.empty;
+    final alignment = cellStyle != null
+        ? cellStyle.alignment
+        : blockAlignment.alignment;
+    final alignmentMixed =
+        cellStyle?.alignmentMixed ?? blockAlignment.alignmentMixed;
     final canEdit = _host.canEdit;
 
     _state = ToolbarState(
@@ -770,8 +824,14 @@ class ToolbarController extends ChangeNotifier {
       canToggleQuote: canEdit && blockSummary.hasTextBlock,
       isQuoteBlock: blockSummary.allTextBlocksQuoted,
       canTableStruct: canEdit && inTable,
+      canSetAlignment: canEdit &&
+          (cellStyle != null ||
+              (blockAlignment.hasAlignableBlock &&
+                  !blockAlignment.hasTableBlock)),
       tableCellIsHeader: cellStyle?.isHeader,
       tableCellBackgroundColor: cellStyle?.backgroundColor,
+      alignment: alignment,
+      alignmentMixed: alignmentMixed,
       bold: inlineSummary.bold,
       italic: inlineSummary.italic,
       underline: inlineSummary.underline,
@@ -920,6 +980,43 @@ class ToolbarController extends ChangeNotifier {
     );
   }
 
+  _AlignmentSummary _collectBlockAlignment(
+    RichTextDocument document,
+    DocumentPosition start,
+    DocumentPosition end,
+  ) {
+    var hasAlignableBlock = false;
+    var hasTableBlock = false;
+    var alignmentMixed = false;
+    String? uniformAlignment;
+
+    for (var i = start.blockIndex; i <= end.blockIndex; i++) {
+      final block = _blockAt(document, i);
+      if (block == null) {
+        continue;
+      }
+      if (block is TableBlockNode) {
+        hasTableBlock = true;
+        continue;
+      }
+      if (!hasAlignableBlock) {
+        hasAlignableBlock = true;
+        uniformAlignment = block.attributes.alignment;
+        continue;
+      }
+      if (uniformAlignment != block.attributes.alignment) {
+        alignmentMixed = true;
+      }
+    }
+
+    return _AlignmentSummary(
+      alignment: alignmentMixed ? null : uniformAlignment,
+      alignmentMixed: alignmentMixed,
+      hasAlignableBlock: hasAlignableBlock,
+      hasTableBlock: hasTableBlock,
+    );
+  }
+
   _TableCellStyleSummary? _collectTableCellStyle(
     RichTextDocument document,
     TableCellRange? range,
@@ -935,8 +1032,10 @@ class ToolbarController extends ChangeNotifier {
     var hasCell = false;
     var headerMixed = false;
     var backgroundMixed = false;
+    var alignmentMixed = false;
     bool? uniformHeader;
     int? uniformBackground;
+    String? uniformAlignment;
 
     for (var row = range.startRow; row <= range.endRow; row++) {
       for (var column = range.startColumn;
@@ -950,6 +1049,7 @@ class ToolbarController extends ChangeNotifier {
           hasCell = true;
           uniformHeader = cell.isHeader;
           uniformBackground = cell.backgroundColor;
+          uniformAlignment = cell.alignment;
           continue;
         }
         if (uniformHeader != cell.isHeader) {
@@ -957,6 +1057,9 @@ class ToolbarController extends ChangeNotifier {
         }
         if (uniformBackground != cell.backgroundColor) {
           backgroundMixed = true;
+        }
+        if (uniformAlignment != cell.alignment) {
+          alignmentMixed = true;
         }
       }
     }
@@ -967,6 +1070,8 @@ class ToolbarController extends ChangeNotifier {
     return _TableCellStyleSummary(
       isHeader: headerMixed ? null : uniformHeader,
       backgroundColor: backgroundMixed ? null : uniformBackground,
+      alignment: alignmentMixed ? null : uniformAlignment,
+      alignmentMixed: alignmentMixed,
     );
   }
 
@@ -1200,10 +1305,35 @@ class _TableCellStyleSummary {
   const _TableCellStyleSummary({
     required this.isHeader,
     required this.backgroundColor,
+    required this.alignment,
+    required this.alignmentMixed,
   });
 
   final bool? isHeader;
   final int? backgroundColor;
+  final String? alignment;
+  final bool alignmentMixed;
+}
+
+class _AlignmentSummary {
+  const _AlignmentSummary({
+    required this.alignment,
+    required this.alignmentMixed,
+    required this.hasAlignableBlock,
+    required this.hasTableBlock,
+  });
+
+  static const _AlignmentSummary empty = _AlignmentSummary(
+    alignment: null,
+    alignmentMixed: false,
+    hasAlignableBlock: false,
+    hasTableBlock: false,
+  );
+
+  final String? alignment;
+  final bool alignmentMixed;
+  final bool hasAlignableBlock;
+  final bool hasTableBlock;
 }
 
 /// Running tallies produced by [ToolbarController._scanAttributes] while

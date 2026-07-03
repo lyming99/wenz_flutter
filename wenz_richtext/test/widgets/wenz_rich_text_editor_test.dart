@@ -2053,6 +2053,213 @@ void main() {
     }
   });
 
+  testWidgets('wrapped line right-side blank taps place caret on that line', (
+    tester,
+  ) async {
+    const text =
+        'one two extraordinarily three four magnificent five six seven eight';
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'wrapped',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: text)],
+          ),
+        ],
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 150,
+            height: 180,
+            child: WenzRichTextEditor(
+              controller: controller,
+              padding: EdgeInsets.zero,
+              enableIme: false,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final finder = _richText(text);
+    final lineMetrics = _richTextLineMetrics(tester, finder);
+    expect(lineMetrics.length, greaterThanOrEqualTo(3));
+
+    final firstTarget = _richTextRightBlankTarget(
+      tester,
+      finder,
+      lineIndex: 0,
+    );
+    final secondTarget = _richTextRightBlankTarget(
+      tester,
+      finder,
+      lineIndex: 1,
+    );
+    expect(
+      firstTarget.lineRange.end,
+      lessThanOrEqualTo(secondTarget.lineRange.start),
+    );
+    expect(secondTarget.lineRange.end, lessThan(text.length));
+
+    await _tapSingle(tester, firstTarget.globalPoint);
+    _expectBlockTextSelection(
+      controller.selection,
+      blockId: 'wrapped',
+      blockIndex: 0,
+      baseOffset: firstTarget.lineRange.end,
+      extentOffset: firstTarget.lineRange.end,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('wenz-richtext-caret')),
+      findsOneWidget,
+    );
+    expect(controller.hasFocus, isTrue);
+
+    await _tapSingle(tester, secondTarget.globalPoint);
+    _expectBlockTextSelection(
+      controller.selection,
+      blockId: 'wrapped',
+      blockIndex: 0,
+      baseOffset: secondTarget.lineRange.end,
+      extentOffset: secondTarget.lineRange.end,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('wenz-richtext-caret')),
+      findsOneWidget,
+    );
+    expect(controller.hasFocus, isTrue);
+  });
+
+  testWidgets('short paragraph right-side blank taps place caret at line end', (
+    tester,
+  ) async {
+    const text = 'Tiny';
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'before',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'Before paragraph')],
+          ),
+          TextBlockNode(
+            id: 'short',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: text)],
+          ),
+          TextBlockNode(
+            id: 'after',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'After paragraph')],
+          ),
+        ],
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 360,
+            height: 180,
+            child: WenzRichTextEditor(
+              controller: controller,
+              padding: EdgeInsets.zero,
+              enableIme: false,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final target = _richTextRightBlankTarget(
+      tester,
+      _richText(text),
+      lineIndex: 0,
+    );
+    expect(target.lineRange.end, text.length);
+
+    await _tapSingle(tester, target.globalPoint);
+    _expectBlockTextSelection(
+      controller.selection,
+      blockId: 'short',
+      blockIndex: 1,
+      baseOffset: text.length,
+      extentOffset: text.length,
+    );
+    expect(controller.hasFocus, isTrue);
+  });
+
+  testWidgets('explicit newline right-side blank taps use each line end', (
+    tester,
+  ) async {
+    const text = 'alpha\nbeta\ngamma';
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'multiline',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: text)],
+          ),
+        ],
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 360,
+            height: 180,
+            child: WenzRichTextEditor(
+              controller: controller,
+              padding: EdgeInsets.zero,
+              enableIme: false,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final finder = _richText(text);
+    final lines = _richTextLineMetrics(tester, finder);
+    expect(lines, hasLength(3));
+    final targets = <_RichTextLineBlankTarget>[
+      for (var i = 0; i < lines.length; i++)
+        _richTextRightBlankTarget(tester, finder, lineIndex: i),
+    ];
+    expect(
+      targets[0].lineRange.end,
+      lessThanOrEqualTo(targets[1].lineRange.start),
+    );
+    expect(
+      targets[1].lineRange.end,
+      lessThanOrEqualTo(targets[2].lineRange.start),
+    );
+    expect(targets[2].lineRange.end, text.length);
+
+    for (final target in targets) {
+      await _tapSingle(tester, target.globalPoint);
+      _expectBlockTextSelection(
+        controller.selection,
+        blockId: 'multiline',
+        blockIndex: 0,
+        baseOffset: target.lineRange.end,
+        extentOffset: target.lineRange.end,
+      );
+      expect(controller.hasFocus, isTrue);
+    }
+  });
+
   testWidgets('empty text-bearing block variants accept line taps', (
     tester,
   ) async {
@@ -2141,6 +2348,11 @@ void main() {
 
     final collapseFinder = find.byKey(
       const ValueKey<String>('wenz-richtext-heading-collapse-empty-heading'),
+    );
+    expect(
+      tester.getRect(_emptyRichText(3)).center.dy -
+          tester.getRect(collapseFinder).center.dy,
+      moreOrLessEquals(0, epsilon: 2),
     );
     expect(_richText('Heading child'), findsOneWidget);
     await tester.tap(collapseFinder);
@@ -2273,7 +2485,7 @@ void main() {
     );
 
     expect(sectionButton, findsOneWidget);
-    expect(leafButton, findsOneWidget);
+    expect(leafButton, findsNothing);
     expect(
       find.descendant(
         of: sectionButton,
@@ -2286,11 +2498,6 @@ void main() {
       '折叠标题内容（3 个块）',
     );
     expect(tester.widget<IconButton>(sectionButton).onPressed, isNotNull);
-    expect(
-      tester.widget<IconButton>(leafButton).tooltip,
-      '无可折叠内容',
-    );
-    expect(tester.widget<IconButton>(leafButton).onPressed, isNull);
     expect(_richText('Body one'), findsOneWidget);
     expect(_richText('Body three'), findsOneWidget);
     expect(controller.selection, isNull);
@@ -2307,7 +2514,7 @@ void main() {
       findsOneWidget,
     );
     expect(find.byTooltip('展开标题内容（3 个块已隐藏）'), findsOneWidget);
-    expect(find.text('3'), findsOneWidget);
+    expect(find.text('3'), findsNothing);
     expect(_richText('Body one'), findsNothing);
     expect(_richText('Nested title'), findsNothing);
     expect(_richText('Body three'), findsNothing);
@@ -2394,6 +2601,24 @@ void main() {
     expect(_richText('Section title'), findsOneWidget);
     expect(_richText('Section body'), findsOneWidget);
     expect(_richText('Next title'), findsOneWidget);
+
+    final sectionHandleRect =
+        tester.getRect(_blockDragHandleFinder('section'));
+    final bodyHandleRect = tester.getRect(_blockDragHandleFinder('body'));
+    final nextHandleRect = tester.getRect(_blockDragHandleFinder('next'));
+    expect(
+      tester.getTopLeft(_richText('Section title')).dx -
+          sectionHandleRect.right,
+      moreOrLessEquals(BlockDragHandleSpec.gapToContent, epsilon: 0.5),
+    );
+    expect(
+      tester.getTopLeft(_richText('Section body')).dx - bodyHandleRect.right,
+      moreOrLessEquals(BlockDragHandleSpec.gapToContent, epsilon: 0.5),
+    );
+    expect(
+      tester.getTopLeft(_richText('Next title')).dx - nextHandleRect.right,
+      moreOrLessEquals(BlockDragHandleSpec.gapToContent, epsilon: 0.5),
+    );
   });
 
   testWidgets('read-only mode toggles heading collapse without editing', (
@@ -2615,6 +2840,11 @@ void main() {
             type: BlockType.paragraph,
             content: <InlineNode>[TextRun(text: 'Aligned body')],
           ),
+          CodeBlockNode(
+            id: 'code',
+            code: 'final aligned = true;',
+            language: 'dart',
+          ),
           TextBlockNode(
             id: 'next',
             type: BlockType.heading,
@@ -2632,7 +2862,7 @@ void main() {
         home: Scaffold(
           body: SizedBox(
             width: 520,
-            height: 260,
+            height: 360,
             child: WenzRichTextEditor(
               controller: controller,
               outlineController: outline,
@@ -2647,16 +2877,43 @@ void main() {
 
     final headingTextLeft = tester.getTopLeft(_richText('Aligned title')).dx;
     final bodyTextLeft = tester.getTopLeft(_richText('Aligned body')).dx;
-    final dragLeft = tester.getTopLeft(_blockDragHandleFinder('title')).dx;
-    final collapseLeft = tester
-        .getTopLeft(find.byKey(
-          const ValueKey<String>('wenz-richtext-heading-collapse-title'),
-        ))
-        .dx;
+    final headingRect = tester.getRect(_richText('Aligned title'));
+    final bodyRect = tester.getRect(_richText('Aligned body'));
+    final titleDragRect = tester.getRect(_blockDragHandleFinder('title'));
+    final bodyDragRect = tester.getRect(_blockDragHandleFinder('body'));
+    final codeDragRect = tester.getRect(_blockDragHandleFinder('code'));
+    final collapseRect = tester.getRect(
+      find.byKey(
+        const ValueKey<String>('wenz-richtext-heading-collapse-title'),
+      ),
+    );
 
     expect(headingTextLeft, moreOrLessEquals(bodyTextLeft, epsilon: 0.5));
-    expect(dragLeft, lessThan(collapseLeft));
-    expect(collapseLeft, lessThan(headingTextLeft));
+    expect(titleDragRect.left, lessThan(collapseRect.left));
+    expect(
+      collapseRect.left - titleDragRect.right,
+      moreOrLessEquals(BlockDragHandleSpec.chromeGap, epsilon: 0.5),
+    );
+    expect(
+      headingTextLeft - collapseRect.right,
+      moreOrLessEquals(BlockDragHandleSpec.gapToContent, epsilon: 0.5),
+    );
+    expect(
+      headingRect.center.dy - collapseRect.center.dy,
+      moreOrLessEquals(0, epsilon: 2),
+    );
+    expect(
+      bodyDragRect.right,
+      moreOrLessEquals(collapseRect.right, epsilon: 0.5),
+    );
+    expect(
+      codeDragRect.right,
+      moreOrLessEquals(collapseRect.right, epsilon: 0.5),
+    );
+    expect(
+      bodyRect.center.dy - bodyDragRect.center.dy,
+      moreOrLessEquals(0, epsilon: 2),
+    );
   });
 
   testWidgets('Delete at collapsed heading boundary expands before editing', (
@@ -4355,10 +4612,20 @@ void main() {
     );
     await tester.pump();
 
-    final imageRect = tester.getRect(_imageBlockFinder('image1'));
+    final imageRect = tester.getRect(find.byKey(
+      const ValueKey<String>('wenz-richtext-image-frame-image1'),
+    ));
     final moreButtonRect = tester.getRect(find.byTooltip('更多块操作'));
-    expect(moreButtonRect.top, lessThanOrEqualTo(imageRect.top + 40));
-    expect(moreButtonRect.right, lessThanOrEqualTo(imageRect.right));
+    final toolbarRect = _toolbarButtonsRect(
+      tester,
+      const <String>['预览媒体', '更多块操作'],
+    );
+    _expectToolbarAboveBody(toolbarRect, imageRect);
+    _expectToolbarAlignedToFrameEnd(toolbarRect, imageRect);
+    expect(
+      moreButtonRect.right,
+      moreOrLessEquals(imageRect.right, epsilon: 0.75),
+    );
 
     await tester.tap(find.byTooltip('更多块操作'));
     await tester.pumpAndSettle();
@@ -4381,7 +4648,7 @@ void main() {
     expect(image.showHeight, 120);
   });
 
-  testWidgets('object block toolbar copies duplicates moves and deletes', (
+  testWidgets('non-media object toolbar copies duplicates moves and deletes', (
     tester,
   ) async {
     String? clipboardText;
@@ -4409,7 +4676,7 @@ void main() {
             type: BlockType.paragraph,
             content: <InlineNode>[TextRun(text: 'before')],
           ),
-          ImageBlockNode(id: 'image1', assetId: 'hero', file: 'hero.png'),
+          DividerBlockNode(id: 'divider1'),
           TextBlockNode(
             id: 'p1',
             type: BlockType.paragraph,
@@ -4417,7 +4684,7 @@ void main() {
           ),
         ],
       ),
-      selection: objectBlockSelection('image1', 1),
+      selection: objectBlockSelection('divider1', 1),
     );
 
     await tester.pumpWidget(
@@ -4432,23 +4699,24 @@ void main() {
     );
     await tester.pump();
 
-    expect(find.byTooltip('预览媒体'), findsOneWidget);
     expect(find.byTooltip('复制块引用'), findsOneWidget);
-    _expectToolbarButtonSize(tester, '预览媒体');
     _expectToolbarButtonSize(tester, '复制块引用');
     _expectToolbarButtonSize(tester, '更多块操作');
-    _expectMinimalToolbarSurface(tester, find.byTooltip('预览媒体'));
+    _expectMinimalToolbarSurface(tester, find.byTooltip('复制块引用'));
     expect(find.byTooltip('创建块副本'), findsNothing);
     expect(find.byTooltip('删除块'), findsNothing);
-    final imageRect = tester.getRect(_imageBlockFinder('image1'));
-    final previewButtonRect = tester.getRect(find.byTooltip('预览媒体'));
-    expect(previewButtonRect.top, greaterThanOrEqualTo(imageRect.top));
-    expect(previewButtonRect.top, lessThan(imageRect.top + 40));
-    expect(previewButtonRect.right, lessThanOrEqualTo(imageRect.right));
+    final dividerLineRect = tester.getRect(find.byKey(
+      const ValueKey<String>('wenz-richtext-divider-line-divider1'),
+    ));
+    final toolbarRect = _toolbarButtonsRect(
+      tester,
+      const <String>['复制块引用', '更多块操作'],
+    );
+    _expectToolbarAboveBody(toolbarRect, dividerLineRect);
 
     await tester.tap(find.byTooltip('复制块引用'));
     await tester.pumpAndSettle();
-    expect(clipboardText, 'hero.png');
+    expect(clipboardText, 'divider');
 
     await tester.tap(find.byTooltip('更多块操作'));
     await tester.pumpAndSettle();
@@ -4456,9 +4724,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(controller.document.blocks, hasLength(4));
-    final duplicate = controller.document.blocks[2] as ImageBlockNode;
-    expect(duplicate.id, isNot('image1'));
-    expect(duplicate.file, 'hero.png');
+    final duplicate = controller.document.blocks[2] as DividerBlockNode;
+    expect(duplicate.id, isNot('divider1'));
     expect(controller.selection?.extent.blockId, duplicate.id);
     expect(controller.selection?.extent.blockIndex, 2);
 
@@ -4468,7 +4735,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(controller.document.blocks[1].id, duplicate.id);
-    expect(controller.document.blocks[2].id, 'image1');
+    expect(controller.document.blocks[2].id, 'divider1');
     expect(controller.selection?.extent.blockIndex, 1);
 
     await tester.tap(find.byTooltip('更多块操作'));
@@ -4477,12 +4744,107 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(controller.document.blocks, hasLength(3));
-    expect(controller.document.blocks[1].id, 'image1');
+    expect(controller.document.blocks[1].id, 'divider1');
     expect(
       controller.document.blocks.map((block) => block.id),
       isNot(contains(duplicate.id)),
     );
   });
+
+  testWidgets(
+    'media object toolbars hide copy reference and ignore old action paths',
+    (tester) async {
+      String? clipboardText;
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (MethodCall call) async {
+          if (call.method == 'Clipboard.setData') {
+            final args = call.arguments as Map<Object?, Object?>;
+            clipboardText = args['text'] as String?;
+          }
+          return null;
+        },
+      );
+      addTearDown(() {
+        tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          null,
+        );
+      });
+
+      Future<void> pumpSelectedMedia(String blockId, int blockIndex) async {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: WenzRichTextEditor(
+                controller: WenzRichTextController(
+                  document: const RichTextDocument(
+                    blocks: <BlockNode>[
+                      ImageBlockNode(
+                        id: 'image1',
+                        assetId: 'hero',
+                        file: 'hero.png',
+                        width: 640,
+                        height: 320,
+                        showWidth: 180,
+                        showHeight: 90,
+                      ),
+                      VideoBlockNode(id: 'video1', assetId: 'clip'),
+                    ],
+                  ),
+                  selection: objectBlockSelection(blockId, blockIndex),
+                ),
+                enableIme: false,
+              ),
+            ),
+          ),
+        );
+        await tester.pump();
+      }
+
+      await pumpSelectedMedia('image1', 0);
+      expect(find.byTooltip('预览媒体'), findsOneWidget);
+      expect(find.byTooltip('更多块操作'), findsOneWidget);
+      expect(find.byTooltip('复制块引用'), findsNothing);
+      _expectToolbarButtonSize(tester, '预览媒体');
+      _expectToolbarButtonSize(tester, '更多块操作');
+      final imageFrameRect = tester.getRect(find.byKey(
+        const ValueKey<String>('wenz-richtext-image-frame-image1'),
+      ));
+      final imageToolbarRect = _toolbarButtonsRect(
+        tester,
+        const <String>['预览媒体', '更多块操作'],
+      );
+      _expectToolbarAboveBody(imageToolbarRect, imageFrameRect);
+      _expectToolbarAlignedToFrameEnd(imageToolbarRect, imageFrameRect);
+
+      await tester.tap(_blockDragHandleFinder('image1'));
+      await tester.pumpAndSettle();
+      await tester.tap(_popupMenuItemFinder('复制块引用'));
+      await tester.pumpAndSettle();
+      expect(clipboardText, isNull);
+
+      await pumpSelectedMedia('video1', 1);
+      expect(find.byTooltip('预览媒体'), findsOneWidget);
+      expect(find.byTooltip('更多块操作'), findsOneWidget);
+      expect(find.byTooltip('复制块引用'), findsNothing);
+      final videoFrameRect = tester.getRect(find.byKey(
+        const ValueKey<String>('wenz-richtext-video-frame-video1'),
+      ));
+      final videoToolbarRect = _toolbarButtonsRect(
+        tester,
+        const <String>['预览媒体', '更多块操作'],
+      );
+      _expectToolbarAboveBody(videoToolbarRect, videoFrameRect);
+      _expectToolbarAlignedToFrameEnd(videoToolbarRect, videoFrameRect);
+
+      await tester.tap(_blockDragHandleFinder('video1'));
+      await tester.pumpAndSettle();
+      await tester.tap(_popupMenuItemFinder('复制块引用'));
+      await tester.pumpAndSettle();
+      expect(clipboardText, isNull);
+    },
+  );
 
   testWidgets('read-only object toolbar keeps mutation actions hidden',
       (tester) async {
@@ -4511,7 +4873,7 @@ void main() {
     await tester.pump();
 
     expect(find.byTooltip('预览媒体'), findsOneWidget);
-    expect(find.byTooltip('复制块引用'), findsOneWidget);
+    expect(find.byTooltip('复制块引用'), findsNothing);
     expect(find.byTooltip('更多块操作'), findsNothing);
     expect(find.byTooltip('创建块副本'), findsNothing);
     expect(find.byTooltip('删除块'), findsNothing);
@@ -4644,6 +5006,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(controller.selection, isNull);
+    _expectPopupMenuChrome(tester, '复制块内容');
     for (final label in <String>[
       '复制块内容',
       '复制块引用',
@@ -4669,6 +5032,11 @@ void main() {
 
     expect(menuItem('上移块').enabled, isFalse);
     expect(menuItem('下移块').enabled, isTrue);
+    _expectPopupMenuItemSelected(
+      tester,
+      '下移块',
+      selected: false,
+    );
 
     await tester.tap(_popupMenuItemFinder('下移块'));
     await tester.pumpAndSettle();
@@ -4679,6 +5047,173 @@ void main() {
     );
     expect(controller.selection?.extent.blockId, 'p0');
     expect(controller.selection?.extent.blockIndex, 1);
+  });
+
+  testWidgets('block drag handle popup applies dark chrome and item states', (
+    tester,
+  ) async {
+    final theme = ThemeData(
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: Colors.indigo,
+        brightness: Brightness.dark,
+      ),
+      useMaterial3: true,
+    );
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p0',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'First block')],
+          ),
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'Second block')],
+          ),
+        ],
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: theme,
+        home: Scaffold(
+          body: WenzRichTextEditor(
+            controller: controller,
+            enableIme: false,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await tester.tap(_blockDragHandleFinder('p0'));
+    await tester.pumpAndSettle();
+
+    _expectPopupMenuChrome(tester, '复制块内容');
+    _expectPopupMenuItemTextColor(
+      tester,
+      '删除块',
+      theme.colorScheme.error,
+    );
+
+    await tester.tap(_popupMenuItemFinder('更多块操作'));
+    await tester.pumpAndSettle();
+
+    expect(_popupMenuItem(tester, '上移块').enabled, isFalse);
+    expect(_popupMenuItem(tester, '下移块').enabled, isTrue);
+    _expectPopupMenuItemTextColor(
+      tester,
+      '上移块',
+      theme.colorScheme.onSurfaceVariant.withAlpha(110),
+    );
+    _expectPopupMenuItemSelected(
+      tester,
+      '下移块',
+      selected: false,
+    );
+    _expectPopupMenuItemSelected(tester, '普通文本');
+  });
+
+  testWidgets('popup menu dividers use weak chrome token in light and dark', (
+    tester,
+  ) async {
+    final themes = <ThemeData>[
+      ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
+        useMaterial3: true,
+      ),
+      ThemeData(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.indigo,
+          brightness: Brightness.dark,
+        ),
+        useMaterial3: true,
+      ),
+    ];
+
+    Future<void> pumpEditor(
+      ThemeData theme,
+      WenzRichTextController controller,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: theme,
+          home: Scaffold(
+            body: SizedBox(
+              width: 960,
+              height: 420,
+              child: WenzRichTextEditor(
+                controller: controller,
+                enableIme: false,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+    }
+
+    for (final theme in themes) {
+      await pumpEditor(
+        theme,
+        WenzRichTextController(
+          document: _toolbarTableDocument(),
+          selection: _tableCellSelection(),
+        ),
+      );
+      await _pumpTableToolbarOverlay(tester);
+      await tester.tap(find.byTooltip('更多表格操作'));
+      await tester.pumpAndSettle();
+      _expectWeakPopupMenuDividers(tester, '删除列', count: 4);
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pumpAndSettle();
+
+      await pumpEditor(
+        theme,
+        WenzRichTextController(
+          document: const RichTextDocument(
+            blocks: <BlockNode>[
+              TextBlockNode(
+                id: 'p0',
+                type: BlockType.paragraph,
+                content: <InlineNode>[TextRun(text: 'Before')],
+              ),
+              DividerBlockNode(id: 'divider1'),
+              TextBlockNode(
+                id: 'p1',
+                type: BlockType.paragraph,
+                content: <InlineNode>[TextRun(text: 'After')],
+              ),
+            ],
+          ),
+          selection: objectBlockSelection('divider1', 1),
+        ),
+      );
+      await tester.tap(find.byTooltip('更多块操作'));
+      await tester.pumpAndSettle();
+      _expectWeakPopupMenuDividers(tester, '上移块', count: 2);
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pumpAndSettle();
+
+      await pumpEditor(
+        theme,
+        WenzRichTextController(
+          document: const RichTextDocument(
+            blocks: <BlockNode>[
+              FileBlockNode(id: 'file1', assetId: 'file-1', name: 'brief.pdf'),
+            ],
+          ),
+          selection: objectBlockSelection('file1', 0),
+        ),
+      );
+      await _openFileActionMenu(tester);
+      _expectWeakPopupMenuDividers(tester, '标记为已上传', count: 4);
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pumpAndSettle();
+    }
   });
 
   testWidgets('block drag handle menu switches row formats', (tester) async {
@@ -4715,24 +5250,7 @@ void main() {
     expect(_popupMenuItem(tester, '普通文本').enabled, isFalse);
     expect(_popupMenuItem(tester, '标题').enabled, isTrue);
     expect(_popupMenuItem(tester, '代码块').enabled, isTrue);
-    final selectedFormatContext = tester.element(find.text('普通文本'));
-    final selectedFormatColor =
-        Theme.of(selectedFormatContext).colorScheme.primaryContainer.withAlpha(36);
-    final selectedFormatDecorations = tester
-        .widgetList<DecoratedBox>(
-          find.ancestor(
-            of: find.text('普通文本'),
-            matching: find.byType(DecoratedBox),
-          ),
-        )
-        .map((widget) => widget.decoration)
-        .whereType<BoxDecoration>();
-    expect(
-      selectedFormatDecorations.any(
-        (decoration) => decoration.color == selectedFormatColor,
-      ),
-      isTrue,
-    );
+    _expectPopupMenuItemSelected(tester, '普通文本');
 
     await tester.tap(find.text('标题'));
     await tester.pumpAndSettle();
@@ -4791,7 +5309,7 @@ void main() {
             type: BlockType.paragraph,
             content: <InlineNode>[TextRun(text: 'before')],
           ),
-          ImageBlockNode(id: 'image1', assetId: 'hero', file: 'hero.png'),
+          DividerBlockNode(id: 'divider1'),
           TextBlockNode(
             id: 'p1',
             type: BlockType.paragraph,
@@ -4813,7 +5331,7 @@ void main() {
     );
     await tester.pump();
 
-    await tester.tap(_blockDragHandleFinder('image1'));
+    await tester.tap(_blockDragHandleFinder('divider1'));
     await tester.pumpAndSettle();
     expect(find.text('更多块操作'), findsOneWidget);
     expect(find.text('上移块'), findsNothing);
@@ -4821,9 +5339,9 @@ void main() {
 
     await tester.tap(_popupMenuItemFinder('复制块引用'));
     await tester.pumpAndSettle();
-    expect(clipboardText, 'hero.png');
+    expect(clipboardText, 'divider');
 
-    await tester.tap(_blockDragHandleFinder('image1'));
+    await tester.tap(_blockDragHandleFinder('divider1'));
     await tester.pumpAndSettle();
     await tester.tap(_popupMenuItemFinder('更多块操作'));
     await tester.pumpAndSettle();
@@ -4838,12 +5356,12 @@ void main() {
 
     expect(
       controller.document.blocks.map((block) => block.id),
-      <String>['p0', 'p1', 'image1'],
+      <String>['p0', 'p1', 'divider1'],
     );
-    expect(controller.selection?.extent.blockId, 'image1');
+    expect(controller.selection?.extent.blockId, 'divider1');
     expect(controller.selection?.extent.blockIndex, 2);
 
-    await tester.tap(_blockDragHandleFinder('image1'));
+    await tester.tap(_blockDragHandleFinder('divider1'));
     await tester.pumpAndSettle();
     await tester.tap(_popupMenuItemFinder('更多块操作'));
     await tester.pumpAndSettle();
@@ -5015,6 +5533,279 @@ void main() {
     );
     expect(controller.selection?.extent.blockId, 'p2');
     expect(controller.selection?.extent.blockIndex, 0);
+  });
+
+  testWidgets('block drag handles move expanded heading ranges together', (
+    tester,
+  ) async {
+    final controller = _headingRangeDragController();
+    await _pumpOutlinedBlockDragEditor(tester, controller);
+
+    final indicator = _blockReorderDropIndicatorFinder();
+    final drag = await tester.startGesture(
+      tester.getCenter(_blockDragHandleFinder('parent')),
+      kind: PointerDeviceKind.touch,
+    );
+    await drag.moveTo(
+      tester.getBottomLeft(_richText('Sibling body')) + const Offset(12, -1),
+    );
+    await tester.pump();
+
+    expect(indicator, findsOneWidget);
+
+    await drag.up();
+    await tester.pumpAndSettle();
+
+    expect(indicator, findsNothing);
+    expect(
+      controller.document.blocks.map((block) => block.id),
+      <String>[
+        'sibling',
+        'sibling-body',
+        'parent',
+        'parent-body',
+        'child-heading',
+        'child-body',
+        'after',
+        'after-body',
+      ],
+    );
+    expect(controller.selection?.extent.blockId, 'parent');
+    expect(controller.selection?.extent.blockIndex, 2);
+
+    final dragBack = await tester.startGesture(
+      tester.getCenter(_blockDragHandleFinder('parent')),
+      kind: PointerDeviceKind.touch,
+    );
+    await dragBack.moveTo(
+      tester.getTopLeft(_richText('Sibling title')) + const Offset(12, 1),
+    );
+    await tester.pump();
+
+    expect(indicator, findsOneWidget);
+
+    await dragBack.up();
+    await tester.pumpAndSettle();
+
+    expect(
+      controller.document.blocks.map((block) => block.id),
+      <String>[
+        'parent',
+        'parent-body',
+        'child-heading',
+        'child-body',
+        'sibling',
+        'sibling-body',
+        'after',
+        'after-body',
+      ],
+    );
+    expect(controller.selection?.extent.blockId, 'parent');
+    expect(controller.selection?.extent.blockIndex, 0);
+  });
+
+  testWidgets('block drag handles ignore heading range internal targets', (
+    tester,
+  ) async {
+    final controller = _headingRangeDragController();
+    await _pumpOutlinedBlockDragEditor(tester, controller);
+    final beforeOrder =
+        controller.document.blocks.map((block) => block.id).toList();
+
+    final drag = await tester.startGesture(
+      tester.getCenter(_blockDragHandleFinder('parent')),
+      kind: PointerDeviceKind.touch,
+    );
+    await drag.moveTo(
+      tester.getBottomLeft(_richText('Parent body')) + const Offset(12, -1),
+    );
+    await tester.pump();
+
+    expect(_blockReorderDropIndicatorFinder(), findsNothing);
+
+    await drag.up();
+    await tester.pumpAndSettle();
+
+    expect(
+      controller.document.blocks.map((block) => block.id),
+      beforeOrder,
+    );
+    expect(controller.canUndo, isFalse);
+  });
+
+  testWidgets('block drag handles move collapsed heading hidden content', (
+    tester,
+  ) async {
+    final controller = _headingRangeDragController();
+    final outline = WenzOutlineController(editor: controller);
+    addTearDown(outline.dispose);
+    expect(outline.collapseByBlockId('parent'), isTrue);
+    await _pumpOutlinedBlockDragEditor(
+      tester,
+      controller,
+      outlineController: outline,
+    );
+
+    expect(_richText('Parent title'), findsOneWidget);
+    expect(_richText('Parent body'), findsNothing);
+    expect(_richText('Child title'), findsNothing);
+    expect(_richText('Sibling body'), findsOneWidget);
+
+    final indicator = _blockReorderDropIndicatorFinder();
+    final drag = await tester.startGesture(
+      tester.getCenter(_blockDragHandleFinder('parent')),
+      kind: PointerDeviceKind.touch,
+    );
+    await drag.moveTo(
+      tester.getBottomLeft(_richText('Sibling body')) + const Offset(12, -1),
+    );
+    await tester.pump();
+
+    expect(indicator, findsOneWidget);
+
+    await drag.up();
+    await tester.pumpAndSettle();
+
+    expect(indicator, findsNothing);
+    expect(
+      controller.document.blocks.map((block) => block.id),
+      <String>[
+        'sibling',
+        'sibling-body',
+        'parent',
+        'parent-body',
+        'child-heading',
+        'child-body',
+        'after',
+        'after-body',
+      ],
+    );
+    expect(outline.isCollapsed('parent'), isTrue);
+    expect(_richText('Parent body'), findsNothing);
+    expect(_richText('Child title'), findsNothing);
+
+    final collapseButton = find.byKey(
+      const ValueKey<String>('wenz-richtext-heading-collapse-parent'),
+    );
+    expect(collapseButton, findsOneWidget);
+    expect(
+      tester.widget<IconButton>(collapseButton).tooltip,
+      '展开标题内容（3 个块已隐藏）',
+    );
+    expect(
+      tester.getTopLeft(_richText('Sibling body')).dy,
+      lessThan(tester.getTopLeft(_richText('Parent title')).dy),
+    );
+    expect(
+      tester.getTopLeft(_richText('Parent title')).dy,
+      lessThan(tester.getTopLeft(_richText('After title')).dy),
+    );
+
+    await tester.tap(collapseButton);
+    await tester.pumpAndSettle();
+
+    expect(outline.isCollapsed('parent'), isFalse);
+    expect(_richText('Parent body'), findsOneWidget);
+    expect(_richText('Child title'), findsOneWidget);
+    expect(_richText('Child body'), findsOneWidget);
+    expect(
+      tester.getTopLeft(_richText('Parent title')).dy,
+      lessThan(tester.getTopLeft(_richText('Parent body')).dy),
+    );
+    expect(
+      tester.getTopLeft(_richText('Child body')).dy,
+      lessThan(tester.getTopLeft(_richText('After title')).dy),
+    );
+  });
+
+  testWidgets('block drag handle menu moves heading range but not normal block', (
+    tester,
+  ) async {
+    final headingController = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'before',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'Before block')],
+          ),
+          TextBlockNode(
+            id: 'heading',
+            type: BlockType.heading,
+            attributes: BlockAttributes(level: 1),
+            content: <InlineNode>[TextRun(text: 'Heading block')],
+          ),
+          TextBlockNode(
+            id: 'heading-body',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'Heading body')],
+          ),
+          TextBlockNode(
+            id: 'next-heading',
+            type: BlockType.heading,
+            attributes: BlockAttributes(level: 1),
+            content: <InlineNode>[TextRun(text: 'Next heading')],
+          ),
+        ],
+      ),
+    );
+    await _pumpOutlinedBlockDragEditor(tester, headingController);
+
+    await _openBlockMoreMenu(tester, 'heading');
+    await tester.tap(_popupMenuItemFinder('下移块'));
+    await tester.pumpAndSettle();
+
+    expect(
+      headingController.document.blocks.map((block) => block.id),
+      <String>['before', 'next-heading', 'heading', 'heading-body'],
+    );
+    expect(headingController.selection?.extent.blockId, 'heading');
+    expect(headingController.selection?.extent.blockIndex, 2);
+
+    await _openBlockMoreMenu(tester, 'heading');
+    await tester.tap(_popupMenuItemFinder('上移块'));
+    await tester.pumpAndSettle();
+
+    expect(
+      headingController.document.blocks.map((block) => block.id),
+      <String>['before', 'heading', 'heading-body', 'next-heading'],
+    );
+    expect(headingController.selection?.extent.blockId, 'heading');
+    expect(headingController.selection?.extent.blockIndex, 1);
+
+    final normalController = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p0',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'First normal')],
+          ),
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'Second normal')],
+          ),
+          TextBlockNode(
+            id: 'p2',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'Third normal')],
+          ),
+        ],
+      ),
+    );
+    await _pumpOutlinedBlockDragEditor(tester, normalController);
+
+    await _openBlockMoreMenu(tester, 'p0');
+    await tester.tap(_popupMenuItemFinder('下移块'));
+    await tester.pumpAndSettle();
+
+    expect(
+      normalController.document.blocks.map((block) => block.id),
+      <String>['p1', 'p0', 'p2'],
+    );
+    expect(normalController.selection?.extent.blockId, 'p0');
+    expect(normalController.selection?.extent.blockIndex, 1);
   });
 
   testWidgets('block drag handles do not record same-position drops', (
@@ -5337,13 +6128,23 @@ void main() {
     expect(find.byTooltip('重置图片尺寸'), findsNothing);
     expect(find.byTooltip('预览媒体'), findsOneWidget);
     expect(find.byTooltip('更多块操作'), findsOneWidget);
-    final imageRect = tester.getRect(_imageBlockFinder('image1'));
+    expect(find.byTooltip('复制块引用'), findsNothing);
+    final imageRect = tester.getRect(find.byKey(
+      const ValueKey<String>('wenz-richtext-image-frame-image1'),
+    ));
     final moreButtonRect = tester.getRect(find.byTooltip('更多块操作'));
     expect(
       moreButtonRect.top,
       lessThanOrEqualTo(imageRect.top + 40),
     );
     expect(moreButtonRect.right, lessThanOrEqualTo(imageRect.right));
+    _expectToolbarAboveBody(
+      _toolbarButtonsRect(
+        tester,
+        const <String>['预览媒体', '更多块操作'],
+      ),
+      imageRect,
+    );
 
     await tester.tap(find.byTooltip('更多块操作'));
     await tester.pumpAndSettle();
@@ -5404,6 +6205,15 @@ void main() {
     expect(find.text('brief.pdf'), findsOneWidget);
     expect(find.byTooltip('附件操作'), findsOneWidget);
     _expectToolbarButtonSize(tester, '附件操作');
+    final fileToolbarRect = tester.getRect(find.byTooltip('附件操作'));
+    final fileCardRect = tester.getRect(
+      find.byKey(const ValueKey<String>('wenz-richtext-file-card-file1')),
+    );
+    _expectToolbarAboveBody(
+      fileToolbarRect,
+      tester.getRect(find.text('brief.pdf')),
+    );
+    _expectToolbarAlignedToFrameEnd(fileToolbarRect, fileCardRect);
     expect(find.text('4 KB'), findsOneWidget);
     expect(find.text('application/pdf'), findsOneWidget);
     expect(find.text('Uploading'), findsOneWidget);
@@ -5439,6 +6249,61 @@ void main() {
     file = controller.document.blocks.single as FileBlockNode;
     expect(file.uploadStatus, FileUploadStatus.failed);
     expect(file.uploadError, 'Upload failed');
+  });
+
+  testWidgets('embed object toolbar stays above body content', (tester) async {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          BlockEmbedNode(
+            id: 'embed1',
+            embedType: 'chart',
+            fallbackText: 'Revenue chart',
+            data: <String, Object?>{'source': 'Q4 report'},
+          ),
+        ],
+      ),
+      selection: objectBlockSelection('embed1', 0),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 220,
+            height: 240,
+            child: WenzRichTextEditor(
+              controller: controller,
+              padding: const EdgeInsets.all(8),
+              enableIme: false,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(tester.takeException(), isNull);
+    expect(find.byTooltip('复制块引用'), findsOneWidget);
+    expect(find.byTooltip('更多块操作'), findsOneWidget);
+    _expectToolbarButtonSize(tester, '复制块引用');
+    _expectToolbarButtonSize(tester, '更多块操作');
+    final toolbarRect = _toolbarButtonsRect(
+      tester,
+      const <String>['复制块引用', '更多块操作'],
+    );
+    _expectToolbarAboveBody(
+      toolbarRect,
+      tester.getRect(find.byKey(
+        const ValueKey<String>('wenz-richtext-embed-fallback-embed1'),
+      )),
+    );
+    _expectToolbarAlignedToFrameEnd(
+      toolbarRect,
+      tester.getRect(find.byKey(
+        const ValueKey<String>('wenz-richtext-embed-card-embed1'),
+      )),
+    );
   });
 
   testWidgets('feedback 3 primary operation tooltips stay localized',
@@ -5506,7 +6371,6 @@ void main() {
     );
     for (final tooltip in <String>[
       '预览媒体',
-      '复制块引用',
       '更多块操作',
     ]) {
       _expectLocalizedTooltip(tooltip);
@@ -5580,10 +6444,10 @@ void main() {
       '切换表头单元格',
       '设置单元格背景',
       '清除单元格背景',
-      '列左对齐',
-      '列居中对齐',
-      '列右对齐',
-      '清除列对齐',
+      '单元格左对齐',
+      '单元格居中对齐',
+      '单元格右对齐',
+      '清除单元格对齐',
       '合并所选单元格',
       '拆分单元格',
       '重置列宽',
@@ -5863,6 +6727,22 @@ void main() {
     expect(dot.color, theme.colorScheme.primary);
     expect(dot.shape, BoxShape.circle);
     expect(find.byTooltip('复制块引用'), findsOneWidget);
+    final toolbarRect = _toolbarButtonsRect(
+      tester,
+      const <String>['复制块引用', '更多块操作'],
+    );
+    _expectToolbarAboveBody(
+      toolbarRect,
+      tester.getRect(find.byKey(
+        const ValueKey<String>('wenz-richtext-divider-line-divider'),
+      )),
+    );
+    _expectToolbarAlignedToFrameEnd(
+      toolbarRect,
+      tester.getRect(find.byKey(
+        const ValueKey<String>('wenz-richtext-divider-shell-divider'),
+      )),
+    );
   });
 
   testWidgets('built-in block renderers derive readable dark theme colors', (
@@ -6463,7 +7343,7 @@ void main() {
     table = controller.document.blocks.single as TableBlockNode;
     expect(table.table.cellAt(0, 0)!.backgroundColor, 0xFFFFF3CD);
 
-    await pressTableMoreItem('列居中对齐');
+    await pressTableMoreItem('单元格居中对齐');
     table = controller.document.blocks.single as TableBlockNode;
     expect(table.table.cellAt(0, 0)!.alignment, 'center');
     // Alignment is cell-level now: it must not leak into the column map.
@@ -6473,7 +7353,7 @@ void main() {
     table = controller.document.blocks.single as TableBlockNode;
     expect(table.table.cellAt(0, 0)!.backgroundColor, isNull);
 
-    await pressTableMoreItem('清除列对齐');
+    await pressTableMoreItem('清除单元格对齐');
     table = controller.document.blocks.single as TableBlockNode;
     expect(table.table.cellAt(0, 0)!.alignment, isNull);
     expect(table.table.columnAlignments.containsKey(0), isFalse);
@@ -6671,6 +7551,224 @@ void main() {
     expect(alignOf('CellDefault'), TextAlign.start);
   });
 
+  testWidgets('table renders left and justify cell alignment', (
+    tester,
+  ) async {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TableBlockNode(
+            id: 'table1',
+            table: TableModel(
+              rows: <List<TableCellNode>>[
+                <TableCellNode>[
+                  TableCellNode(
+                    id: 'c0',
+                    alignment: 'left',
+                    blocks: <BlockNode>[
+                      TextBlockNode(
+                        id: 'c0p',
+                        type: BlockType.paragraph,
+                        content: <InlineNode>[TextRun(text: 'CellLeft')],
+                      ),
+                    ],
+                  ),
+                  TableCellNode(
+                    id: 'c1',
+                    alignment: 'justify',
+                    blocks: <BlockNode>[
+                      TextBlockNode(
+                        id: 'c1p',
+                        type: BlockType.paragraph,
+                        content: <InlineNode>[
+                          TextRun(text: 'CellJustify'),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 600,
+            height: 240,
+            child: WenzRichTextEditor(
+              controller: controller,
+              enableIme: false,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    TextAlign alignOf(String text) =>
+        tester.widget<RichText>(_richText(text)).textAlign;
+
+    // 'left' alignment maps to TextAlign.start (LTR default left alignment).
+    expect(alignOf('CellLeft'), TextAlign.start);
+    // 'justify' alignment maps to TextAlign.justify.
+    expect(alignOf('CellJustify'), TextAlign.justify);
+  });
+
+  testWidgets('table renders 2x2 grid with all four cell alignments and headers', (
+    tester,
+  ) async {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TableBlockNode(
+            id: 'table1',
+            table: TableModel(
+              rows: <List<TableCellNode>>[
+                // Header row.
+                <TableCellNode>[
+                  TableCellNode(
+                    id: 'h0',
+                    isHeader: true,
+                    alignment: 'center',
+                    blocks: <BlockNode>[
+                      TextBlockNode(
+                        id: 'h0p',
+                        type: BlockType.paragraph,
+                        content: <InlineNode>[TextRun(text: 'HdrCenter')],
+                      ),
+                    ],
+                  ),
+                  TableCellNode(
+                    id: 'h1',
+                    isHeader: true,
+                    alignment: 'right',
+                    blocks: <BlockNode>[
+                      TextBlockNode(
+                        id: 'h1p',
+                        type: BlockType.paragraph,
+                        content: <InlineNode>[TextRun(text: 'HdrRight')],
+                      ),
+                    ],
+                  ),
+                ],
+                // Data row.
+                <TableCellNode>[
+                  TableCellNode(
+                    id: 'd0',
+                    alignment: 'left',
+                    blocks: <BlockNode>[
+                      TextBlockNode(
+                        id: 'd0p',
+                        type: BlockType.paragraph,
+                        content: <InlineNode>[TextRun(text: 'DataLeft')],
+                      ),
+                    ],
+                  ),
+                  TableCellNode(
+                    id: 'd1',
+                    alignment: 'justify',
+                    blocks: <BlockNode>[
+                      TextBlockNode(
+                        id: 'd1p',
+                        type: BlockType.paragraph,
+                        content: <InlineNode>[
+                          TextRun(text: 'DataJustify'),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 600,
+            height: 240,
+            child: WenzRichTextEditor(
+              controller: controller,
+              enableIme: false,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    TextAlign alignOf(String text) =>
+        tester.widget<RichText>(_richText(text)).textAlign;
+
+    // Header cells: alignment works same as regular cells.
+    expect(alignOf('HdrCenter'), TextAlign.center);
+    expect(alignOf('HdrRight'), TextAlign.right);
+    // Data cells: covers left and justify in the same table.
+    expect(alignOf('DataLeft'), TextAlign.start);
+    expect(alignOf('DataJustify'), TextAlign.justify);
+  });
+
+  testWidgets('table default alignment resolves to TextAlign.start', (
+    tester,
+  ) async {
+    // A table with no cell-level alignment and no column-level alignment
+    // should render all cells with TextAlign.start.
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TableBlockNode(
+            id: 'table1',
+            table: TableModel(
+              rows: <List<TableCellNode>>[
+                <TableCellNode>[
+                  TableCellNode(
+                    id: 'c0',
+                    blocks: <BlockNode>[
+                      TextBlockNode(
+                        id: 'c0p',
+                        type: BlockType.paragraph,
+                        content: <InlineNode>[TextRun(text: 'DefaultCell')],
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 600,
+            height: 240,
+            child: WenzRichTextEditor(
+              controller: controller,
+              enableIme: false,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final textAlign =
+        tester.widget<RichText>(_richText('DefaultCell')).textAlign;
+    expect(textAlign, TextAlign.start);
+  });
+
   testWidgets('table toolbar alignment targets selected cells not columns', (
     tester,
   ) async {
@@ -6702,13 +7800,19 @@ void main() {
       await _pumpTableToolbarOverlay(tester);
     }
 
+    TextAlign alignOf(String text) =>
+        tester.widget<RichText>(_richText(text)).textAlign;
+
     // Single-cell selection aligns only that cell.
-    await pressTableMoreItem('列居中对齐');
+    await pressTableMoreItem('单元格居中对齐');
     var table = controller.document.blocks.single as TableBlockNode;
+    expect(table.attributes.alignment, isNull);
     expect(table.table.cellAt(0, 0)!.alignment, 'center');
     expect(table.table.cellAt(0, 1)!.alignment, isNull);
     expect(table.table.cellAt(1, 0)!.alignment, isNull);
     expect(table.table.columnAlignments, isEmpty);
+    expect(alignOf('A1'), TextAlign.center);
+    expect(alignOf('B1'), TextAlign.start);
 
     // Multi-cell rectangular selection aligns every visible cell in range.
     controller.setSelection(
@@ -6730,14 +7834,80 @@ void main() {
       ),
     );
     await _pumpTableToolbarOverlay(tester);
-    await pressTableMoreItem('列右对齐');
+    await pressTableMoreItem('单元格右对齐');
     table = controller.document.blocks.single as TableBlockNode;
     expect(table.table.cellAt(0, 0)!.alignment, 'right');
     expect(table.table.cellAt(0, 1)!.alignment, 'right');
     expect(table.table.cellAt(1, 0)!.alignment, 'right');
     expect(table.table.cellAt(1, 1)!.alignment, 'right');
     // Column alignment is never mutated by cell alignment actions.
+    expect(table.attributes.alignment, isNull);
     expect(table.table.columnAlignments, isEmpty);
+    expect(alignOf('A1'), TextAlign.right);
+    expect(alignOf('B1'), TextAlign.right);
+    expect(alignOf('A2'), TextAlign.right);
+    expect(alignOf('B2'), TextAlign.right);
+  });
+
+  testWidgets('table toolbar clear alignment restores fallback rendering', (
+    tester,
+  ) async {
+    final controller = WenzRichTextController(
+      document: _toolbarAlignedTableDocument(),
+      selection: _tableCellSelection(),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 960,
+            height: 360,
+            child: WenzRichTextEditor(
+              controller: controller,
+              enableIme: false,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    Future<void> pressTableMoreItem(String label) async {
+      await tester.tap(find.byTooltip('更多表格操作'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(label));
+      await _pumpTableToolbarOverlay(tester);
+    }
+
+    TextAlign alignOf(String text) =>
+        tester.widget<RichText>(_richText(text)).textAlign;
+
+    expect(alignOf('A1'), TextAlign.center);
+    expect(alignOf('B1'), TextAlign.right);
+
+    await pressTableMoreItem('清除单元格对齐');
+    var table = controller.document.blocks.single as TableBlockNode;
+    expect(table.table.cellAt(0, 0)!.alignment, isNull);
+    expect(table.table.columnAlignments[0], 'right');
+    expect(alignOf('A1'), TextAlign.right);
+
+    controller.setSelection(
+      _collapsedTableCellTextSelection(
+        tableBlockId: 'table1',
+        blockIndex: 0,
+        tableRowIndex: 0,
+        tableColumnIndex: 1,
+        offset: 0,
+      ),
+    );
+    await _pumpTableToolbarOverlay(tester);
+    await pressTableMoreItem('清除单元格对齐');
+
+    table = controller.document.blocks.single as TableBlockNode;
+    expect(table.table.cellAt(0, 1)!.alignment, isNull);
+    expect(table.table.columnAlignments.containsKey(1), isFalse);
+    expect(alignOf('B1'), TextAlign.start);
   });
 
   testWidgets('table floating toolbar follows active table lifecycle', (
@@ -7398,11 +8568,28 @@ void main() {
         find.byKey(const ValueKey<String>('table-floating-toolbar'));
     expect(toolbarFinder, findsOneWidget);
     final toolbarRect = tester.getRect(toolbarFinder);
+    final theme = Theme.of(tester.element(toolbarFinder));
+    final expectedDividerColor =
+        theme.colorScheme.outlineVariant.withAlpha(84);
     final dividerFinder = find.descendant(
       of: toolbarFinder,
-      matching: find.byType(VerticalDivider),
+      matching: find.byWidgetPredicate(
+        (widget) =>
+            widget is ColoredBox && widget.color == expectedDividerColor,
+      ),
     );
-    expect(dividerFinder, findsWidgets);
+    expect(dividerFinder, findsOneWidget);
+    expect(tester.getSize(dividerFinder), const Size(1, 18));
+    expect(
+      find.ancestor(
+        of: dividerFinder,
+        matching: find.byWidgetPredicate(
+          (widget) =>
+              widget is SizedBox && widget.width == 9 && widget.height == 32,
+        ),
+      ),
+      findsOneWidget,
+    );
 
     final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
     addTearDown(gesture.removePointer);
@@ -7410,7 +8597,7 @@ void main() {
       location: tester.getRect(find.byTooltip('在下方插入行')).center,
     );
     await tester.pump();
-    await gesture.moveTo(tester.getRect(dividerFinder.first).center);
+    await gesture.moveTo(tester.getRect(dividerFinder).center);
     await tester.pump();
     await gesture.moveTo(toolbarRect.topLeft + const Offset(2, 2));
     await tester.pump();
@@ -8047,6 +9234,7 @@ void main() {
     expect(inlineSelection.extent.path.isBlockText, isTrue);
     expect(inlineSelection.extent.offset, inInclusiveRange(7, 8));
     expect(find.byKey(_formulaEditorPopupKey), findsOneWidget);
+    _expectChromeSurfaceMaterial(tester, find.byKey(_formulaEditorPopupKey));
 
     await tester.tap(find.byKey(_formulaEditorCancelKey));
     await tester.pump();
@@ -8852,6 +10040,8 @@ void main() {
     const singleLineText = 'Ship core';
     const wrappedText =
         'Ship a wrapped todo item with enough words to span two lines';
+    const expectedCheckboxSize = Size(20, 28);
+    const expectedTextGap = 6.0;
     final controller = WenzRichTextController(
       document: const RichTextDocument(
         blocks: <BlockNode>[
@@ -8895,6 +10085,8 @@ void main() {
     ));
     final singleTextFinder = _richText(singleLineText);
     final wrappedTextFinder = _richText(wrappedText);
+    final singleTextRect = tester.getRect(singleTextFinder);
+    final wrappedTextRect = tester.getRect(wrappedTextFinder);
     final singleFirstLineCenter =
         _richTextFirstLineCenterY(tester, singleTextFinder);
     final wrappedFirstLineCenter =
@@ -8905,8 +10097,16 @@ void main() {
         wrappedCheckboxRect.center.dy - wrappedFirstLineCenter;
     final wrappedLineMetrics = _richTextLineMetrics(tester, wrappedTextFinder);
 
-    expect(singleCheckboxRect.size, const Size(24, 28));
-    expect(wrappedCheckboxRect.size, const Size(24, 28));
+    expect(singleCheckboxRect.size, expectedCheckboxSize);
+    expect(wrappedCheckboxRect.size, expectedCheckboxSize);
+    expect(
+      singleTextRect.left - singleCheckboxRect.right,
+      moreOrLessEquals(expectedTextGap, epsilon: 0.1),
+    );
+    expect(
+      wrappedTextRect.left - wrappedCheckboxRect.right,
+      moreOrLessEquals(expectedTextGap, epsilon: 0.1),
+    );
     expect(
       _richTextFirstLineHeight(tester, singleTextFinder),
       moreOrLessEquals(singleCheckboxRect.height, epsilon: 0.75),
@@ -8939,6 +10139,7 @@ void main() {
       const wrappedTodoText =
           'Ship a wrapped todo item with enough words to span at least two '
           'lines while keeping every continuation aligned under the text';
+      const expectedTodoTextGap = 6.0;
       const tableBlockIndex = 4;
       final tablePosition = DocumentPosition.tableCell(
         tableBlockId: 'table1',
@@ -9077,6 +10278,8 @@ void main() {
       ));
       final singleTextFinder = _richText(singleTodoText);
       final wrappedTextFinder = _richText(wrappedTodoText);
+      final singleTextRect = tester.getRect(singleTextFinder);
+      final wrappedTextRect = tester.getRect(wrappedTextFinder);
       final singleFirstLineCenter =
           _richTextFirstLineCenterY(tester, singleTextFinder);
       final wrappedFirstLineCenter =
@@ -9099,8 +10302,12 @@ void main() {
         moreOrLessEquals(0, epsilon: 0.75),
       );
       expect(
-        tester.getRect(wrappedTextFinder).left,
-        greaterThanOrEqualTo(wrappedCheckboxRect.right),
+        singleTextRect.left - singleCheckboxRect.right,
+        moreOrLessEquals(expectedTodoTextGap, epsilon: 0.1),
+      );
+      expect(
+        wrappedTextRect.left - wrappedCheckboxRect.right,
+        moreOrLessEquals(expectedTodoTextGap, epsilon: 0.1),
       );
 
       final selectedCellRect = tester.getRect(
@@ -10325,6 +11532,224 @@ void main() {
     expect(find.text('preview:video1'), findsNWidgets(2));
   });
 
+  testWidgets(
+      'selected video toolbar renders in overlay without shifting video layout',
+      (tester) async {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'before',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'Before video paragraph')],
+          ),
+          VideoBlockNode(
+            id: 'video1',
+            assetId: 'clip',
+            aspectRatio: 16 / 9,
+          ),
+          TextBlockNode(
+            id: 'after',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'After video paragraph')],
+          ),
+        ],
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 260,
+            height: 360,
+            child: WenzRichTextEditor(
+              controller: controller,
+              padding: const EdgeInsets.all(8),
+              enableIme: false,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final videoBlockFinder = _videoBlockFinder('video1');
+    final videoFrameFinder = find.byKey(
+      const ValueKey<String>('wenz-richtext-video-frame-video1'),
+    );
+    final afterTextFinder = _richText('After video paragraph');
+    final initialBlockRect = tester.getRect(videoBlockFinder);
+    final initialFrameRect = tester.getRect(videoFrameFinder);
+    final initialAfterRect = tester.getRect(afterTextFinder);
+    expect(find.byTooltip('预览媒体'), findsNothing);
+
+    controller.setSelection(objectBlockSelection('video1', 1));
+    await tester.pump();
+    await tester.pump();
+
+    _expectRectClose(tester.getRect(videoBlockFinder), initialBlockRect);
+    _expectRectClose(tester.getRect(videoFrameFinder), initialFrameRect);
+    _expectRectClose(tester.getRect(afterTextFinder), initialAfterRect);
+
+    final previewFinder = find.byTooltip('预览媒体');
+    final moreFinder = find.byTooltip('更多块操作');
+    expect(previewFinder, findsOneWidget);
+    expect(moreFinder, findsOneWidget);
+    expect(
+      find.descendant(of: videoBlockFinder, matching: previewFinder),
+      findsNothing,
+      reason: 'The selected video toolbar must not be a video block child.',
+    );
+    expect(
+      find.ancestor(of: previewFinder, matching: find.byType(Overlay)),
+      findsWidgets,
+    );
+    expect(
+      find.ancestor(of: previewFinder, matching: find.byType(OverlayPortal)),
+      findsOneWidget,
+    );
+
+    final toolbarRect = _toolbarButtonsRect(
+      tester,
+      const <String>['预览媒体', '更多块操作'],
+    );
+    _expectToolbarAboveBody(toolbarRect, initialFrameRect);
+    _expectToolbarAlignedToFrameEnd(toolbarRect, initialFrameRect);
+    final editorRect = tester.getRect(find.byType(WenzRichTextEditor));
+    expect(toolbarRect.left, greaterThanOrEqualTo(editorRect.left));
+    expect(toolbarRect.right, lessThanOrEqualTo(editorRect.right));
+
+    final blockerRect = tester.getRect(
+      find.byKey(
+        const ValueKey<String>('object-block-toolbar-hit-test-blocker'),
+      ),
+    );
+    expect(blockerRect.left, lessThanOrEqualTo(toolbarRect.left));
+    expect(blockerRect.top, lessThanOrEqualTo(toolbarRect.top));
+    expect(blockerRect.right, greaterThanOrEqualTo(toolbarRect.right));
+    expect(blockerRect.bottom, greaterThanOrEqualTo(toolbarRect.bottom));
+    expect(blockerRect.width, lessThan(initialFrameRect.width));
+    expect(blockerRect.height, lessThan(64));
+  });
+
+  testWidgets(
+      'video overlay toolbar actions work without changing object selection',
+      (tester) async {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          VideoBlockNode(id: 'video1', assetId: 'clip'),
+        ],
+      ),
+      selection: objectBlockSelection('video1', 0),
+    );
+    var selectionChanges = 0;
+    controller.onSelectionChanged = (_) {
+      selectionChanges++;
+    };
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WenzRichTextEditor(
+            controller: controller,
+            mediaResolver: _TestMediaResolver(),
+            enableIme: false,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    await tester.tap(find.byTooltip('预览媒体'));
+    await tester.pumpAndSettle();
+    expect(find.text('preview:video1'), findsNWidgets(2));
+    expect(selectionChanges, 0);
+    expect(controller.selection?.start.blockId, 'video1');
+    expect(controller.selection?.start.path.isBlockObject, isTrue);
+
+    Navigator.of(tester.element(find.byType(Dialog))).pop();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('更多块操作'));
+    await tester.pumpAndSettle();
+    expect(_popupMenuItemFinder('创建块副本'), findsOneWidget);
+    expect(_popupMenuItemFinder('删除块'), findsOneWidget);
+    expect(selectionChanges, 0);
+    expect(controller.selection?.start.blockId, 'video1');
+    expect(controller.selection?.start.path.isBlockObject, isTrue);
+  });
+
+  testWidgets(
+      'video overlay toolbar disappears when selection changes or block is deleted',
+      (tester) async {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'before',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'Before')],
+          ),
+          VideoBlockNode(id: 'video1', assetId: 'clip'),
+          TextBlockNode(
+            id: 'after',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'After')],
+          ),
+        ],
+      ),
+      selection: objectBlockSelection('video1', 1),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WenzRichTextEditor(
+            controller: controller,
+            enableIme: false,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.byTooltip('预览媒体'), findsOneWidget);
+    expect(find.byTooltip('更多块操作'), findsOneWidget);
+
+    controller.setSelection(null);
+    await tester.pump();
+    await tester.pump();
+    expect(find.byTooltip('预览媒体'), findsNothing);
+    expect(find.byTooltip('更多块操作'), findsNothing);
+
+    controller.setSelection(objectBlockSelection('video1', 1));
+    await tester.pump();
+    await tester.pump();
+    expect(find.byTooltip('预览媒体'), findsOneWidget);
+
+    controller.setSelection(collapsedTextSelection('after', 2, 0));
+    await tester.pump();
+    await tester.pump();
+    expect(find.byTooltip('预览媒体'), findsNothing);
+    expect(find.byTooltip('更多块操作'), findsNothing);
+
+    controller.setSelection(objectBlockSelection('video1', 1));
+    await tester.pump();
+    await tester.pump();
+    expect(find.byTooltip('预览媒体'), findsOneWidget);
+
+    controller.deleteVideoBlock(blockIndex: 1);
+    await tester.pump();
+    await tester.pump();
+    expect(_videoBlockFinder('video1'), findsNothing);
+    expect(find.byTooltip('预览媒体'), findsNothing);
+    expect(find.byTooltip('更多块操作'), findsNothing);
+  });
+
   testWidgets('video block keeps placeholder chrome inside a narrow card',
       (tester) async {
     const source =
@@ -10737,6 +12162,130 @@ void main() {
     expect(controller.document.blocks.last, isA<TextBlockNode>());
     expect(controller.selection?.extent.blockIndex, 1);
     expect(controller.selection?.extent.path.isBlockText, isTrue);
+  });
+
+  testWidgets('tap below a trailing code block appends a paragraph', (
+    tester,
+  ) async {
+    const code = 'final value = 42;';
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          CodeBlockNode(id: 'code1', code: code, language: 'dart'),
+        ],
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            height: 360,
+            child: WenzRichTextEditor(
+              controller: controller,
+              enableIme: false,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final editorRect = tester.getRect(find.byType(WenzRichTextEditor));
+    await tester.tapAt(Offset(editorRect.left + 24, editorRect.bottom - 24));
+    await tester.pump();
+
+    expect(controller.document.blocks, hasLength(2));
+    final codeBlock = controller.document.blocks.first as CodeBlockNode;
+    expect(codeBlock.id, 'code1');
+    expect(codeBlock.code, code);
+    expect(codeBlock.language, 'dart');
+
+    final appended = controller.document.blocks.last as TextBlockNode;
+    expect(appended.type, BlockType.paragraph);
+    expect(appended.content, isEmpty);
+    expect(controller.selection?.isCollapsed, isTrue);
+    expect(controller.selection?.extent.blockId, appended.id);
+    expect(controller.selection?.extent.blockIndex, 1);
+    expect(controller.selection?.extent.offset, 0);
+    expect(controller.selection?.extent.path.isBlockText, isTrue);
+  });
+
+  testWidgets('tap below read-only code or trailing text does not append', (
+    tester,
+  ) async {
+    const code = 'final readonly = true;';
+    final readOnlyController = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          CodeBlockNode(id: 'code1', code: code, language: 'dart'),
+        ],
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            height: 360,
+            child: WenzRichTextEditor(
+              controller: readOnlyController,
+              readOnly: true,
+              enableIme: false,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    var editorRect = tester.getRect(find.byType(WenzRichTextEditor));
+    await tester.tapAt(Offset(editorRect.left + 24, editorRect.bottom - 24));
+    await tester.pump();
+
+    expect(readOnlyController.document.blocks, hasLength(1));
+    final readOnlyCode =
+        readOnlyController.document.blocks.single as CodeBlockNode;
+    expect(readOnlyCode.id, 'code1');
+    expect(readOnlyCode.code, code);
+    expect(readOnlyCode.language, 'dart');
+
+    final textController = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'plain text')],
+          ),
+        ],
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            height: 320,
+            child: WenzRichTextEditor(
+              controller: textController,
+              enableIme: false,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    editorRect = tester.getRect(find.byType(WenzRichTextEditor));
+    await tester.tapAt(Offset(editorRect.left + 24, editorRect.bottom - 24));
+    await tester.pump();
+
+    expect(textController.document.blocks, hasLength(1));
+    final textBlock = textController.document.blocks.single as TextBlockNode;
+    expect(textBlock.id, 'p1');
+    expect(textBlock.type, BlockType.paragraph);
+    expect(textBlock.plainText, 'plain text');
   });
 
   testWidgets('ArrowDown from a trailing image appends a paragraph', (
@@ -11790,6 +13339,142 @@ void main() {
       find.byKey(const ValueKey<String>('wenz-richtext-selection-highlight')),
       findsAtLeastNWidgets(4),
     );
+  });
+
+  testWidgets(
+      'within-table reverse drag normalizes table cell range rectangle', (
+    tester,
+  ) async {
+    // Drag from (row=2, col=3) to (row=0, col=1): the bounding box must
+    // span rows 0-2 and columns 1-3 regardless of base/extent order.
+    final base = DocumentPosition.tableCell(
+      tableBlockId: 't1',
+      blockIndex: 0,
+      tableRowIndex: 2,
+      tableColumnIndex: 3,
+      offset: 0,
+    );
+    final extent = DocumentPosition.tableCell(
+      tableBlockId: 't1',
+      blockIndex: 0,
+      tableRowIndex: 0,
+      tableColumnIndex: 1,
+      offset: 0,
+    );
+    final selection = DocumentSelection(base: base, extent: extent);
+    final range = selection.tableCellRange;
+    expect(range, isNotNull);
+    expect(range!.startRow, 0);
+    expect(range.endRow, 2);
+    expect(range.startColumn, 1);
+    expect(range.endColumn, 3);
+    // Cells inside the bounding box.
+    expect(range.containsCell(0, 1), isTrue);
+    expect(range.containsCell(0, 2), isTrue);
+    expect(range.containsCell(0, 3), isTrue);
+    expect(range.containsCell(1, 1), isTrue);
+    expect(range.containsCell(2, 1), isTrue);
+    expect(range.containsCell(2, 3), isTrue);
+    // Cells outside.
+    expect(range.containsCell(0, 0), isFalse);
+    expect(range.containsCell(0, 4), isFalse);
+    expect(range.containsCell(3, 1), isFalse);
+    expect(range.isSingleCell, isFalse);
+
+    // Render a 3×4 table with this selection and verify highlights appear.
+    final controller = WenzRichTextController(
+      document: RichTextDocument(
+        blocks: <BlockNode>[
+          TableBlockNode(
+            id: 't1',
+            table: TableModel(
+              rows: List<List<TableCellNode>>.generate(
+                3,
+                (r) => List<TableCellNode>.generate(
+                  4,
+                  (c) => TableCellNode(
+                    id: 't1-r$r-c$c',
+                    blocks: <BlockNode>[
+                      TextBlockNode(
+                        id: 't1-r$r-c$c-text',
+                        type: BlockType.paragraph,
+                        content: <InlineNode>[
+                          TextRun(text: '$r,$c'),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+      selection: selection,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WenzRichTextEditor(
+            controller: controller,
+            enableIme: false,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    // Drag selection highlights should appear for cells inside the range.
+    expect(
+      find.byKey(
+        const ValueKey<String>('wenz-richtext-selection-highlight'),
+      ),
+      findsAtLeastNWidgets(3),
+    );
+    // tableCellRange from the active selection retains the normalized bounds.
+    final activeRange = controller.selection?.tableCellRange;
+    expect(activeRange, isNotNull);
+    expect(activeRange!.startRow, 0);
+    expect(activeRange.endRow, 2);
+    expect(activeRange.startColumn, 1);
+    expect(activeRange.endColumn, 3);
+  });
+
+  test('forward and reverse table cell drags produce identical ranges', () {
+    const tableBlockId = 't1';
+    const blockIndex = 0;
+    // Forward: (0,0) -> (2,3)
+    final fwdBase = DocumentPosition.tableCell(
+      tableBlockId: tableBlockId,
+      blockIndex: blockIndex,
+      tableRowIndex: 0,
+      tableColumnIndex: 0,
+      offset: 0,
+    );
+    final fwdExtent = DocumentPosition.tableCell(
+      tableBlockId: tableBlockId,
+      blockIndex: blockIndex,
+      tableRowIndex: 2,
+      tableColumnIndex: 3,
+      offset: 0,
+    );
+    final forward = DocumentSelection(base: fwdBase, extent: fwdExtent);
+    final forwardRange = forward.tableCellRange;
+
+    // Reverse: (2,3) -> (0,0)
+    final reverse = DocumentSelection(base: fwdExtent, extent: fwdBase);
+    final reverseRange = reverse.tableCellRange;
+
+    expect(forwardRange, isNotNull);
+    expect(reverseRange, isNotNull);
+    // Both must produce the same normalized bounding box.
+    expect(reverseRange!.startRow, forwardRange!.startRow);
+    expect(reverseRange.endRow, forwardRange.endRow);
+    expect(reverseRange.startColumn, forwardRange.startColumn);
+    expect(reverseRange.endColumn, forwardRange.endColumn);
+    expect(reverseRange.containsCell(1, 1), isTrue);
+    expect(forwardRange.containsCell(1, 1), isTrue);
   });
 
   testWidgets('read-only mode still allows placing a selection',
@@ -14258,6 +15943,168 @@ void main() {
       expect(opens, <String>['https://table.example']);
     });
   });
+
+  group('block toolbar button transparent background', () {
+    void expectTransparentToolbarButtonBackground(
+      WidgetTester tester,
+      String tooltip,
+    ) {
+      final buttonStyle = _toolbarButtonStyleForTooltip(tester, tooltip);
+      expect(buttonStyle, isNotNull);
+      for (final states in <Set<WidgetState>>[
+        <WidgetState>{},
+        <WidgetState>{WidgetState.disabled},
+        <WidgetState>{WidgetState.hovered},
+        <WidgetState>{WidgetState.pressed},
+      ]) {
+        final background = buttonStyle!.backgroundColor?.resolve(states);
+        expect(
+          background,
+          Colors.transparent,
+          reason: '$tooltip should not draw an independent capsule background.',
+        );
+      }
+    }
+
+    void expectToolbarButtonHoverOverlay(
+      WidgetTester tester,
+      String tooltip,
+    ) {
+      final buttonStyle = _toolbarButtonStyleForTooltip(tester, tooltip);
+      expect(buttonStyle, isNotNull);
+      for (final states in <Set<WidgetState>>[
+        <WidgetState>{WidgetState.hovered},
+        <WidgetState>{WidgetState.pressed},
+      ]) {
+        final overlay = buttonStyle!.overlayColor?.resolve(states);
+        expect(overlay, isNotNull);
+        expect(
+          overlay,
+          isNot(Colors.transparent),
+          reason: '$tooltip should keep hover/pressed feedback visible.',
+        );
+      }
+    }
+
+    testWidgets('media object toolbar buttons transparent background', (
+      tester,
+    ) async {
+      final controller = WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            ImageBlockNode(
+              id: 'img1',
+              assetId: 'hero',
+              file: 'hero.png',
+              width: 640,
+              height: 320,
+              showWidth: 180,
+              showHeight: 90,
+            ),
+          ],
+        ),
+        selection: objectBlockSelection('img1', 0),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: WenzRichTextEditor(
+              controller: controller,
+              enableIme: false,
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.byTooltip('预览媒体'), findsOneWidget);
+      expect(find.byTooltip('更多块操作'), findsOneWidget);
+      expectTransparentToolbarButtonBackground(tester, '预览媒体');
+      expectTransparentToolbarButtonBackground(tester, '更多块操作');
+      expectToolbarButtonHoverOverlay(tester, '预览媒体');
+      expectToolbarButtonHoverOverlay(tester, '更多块操作');
+      // Shared surface provides the conjoined capsule background.
+      _expectMinimalToolbarSurface(tester, find.byTooltip('预览媒体'));
+    });
+
+    testWidgets('table floating toolbar buttons transparent background', (
+      tester,
+    ) async {
+      final controller = WenzRichTextController(
+        document: _toolbarTableDocument(),
+        selection: _tableCellSelection(),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 960,
+              height: 360,
+              child: WenzRichTextEditor(
+                controller: controller,
+                enableIme: false,
+              ),
+            ),
+          ),
+        ),
+      );
+      await _pumpTableToolbarOverlay(tester);
+
+      expect(find.byTooltip('在下方插入行'), findsOneWidget);
+      expect(find.byTooltip('在右侧插入列'), findsOneWidget);
+      expect(find.byTooltip('更多表格操作'), findsOneWidget);
+      expectTransparentToolbarButtonBackground(tester, '在下方插入行');
+      expectTransparentToolbarButtonBackground(tester, '在右侧插入列');
+      expectTransparentToolbarButtonBackground(tester, '更多表格操作');
+      expectToolbarButtonHoverOverlay(tester, '在下方插入行');
+      expectToolbarButtonHoverOverlay(tester, '更多表格操作');
+      // Shared surface provides the conjoined capsule background.
+      final toolbarFinder = find.byKey(
+        const ValueKey<String>('table-floating-toolbar'),
+      );
+      _expectMinimalToolbarSurface(tester, toolbarFinder);
+    });
+
+    testWidgets('file block action menu button transparent background', (
+      tester,
+    ) async {
+      final controller = WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            FileBlockNode(
+              id: 'file1',
+              assetId: 'file-1',
+              name: 'brief.pdf',
+              size: 4096,
+              mimeType: 'application/pdf',
+              uploadStatus: FileUploadStatus.uploading,
+            ),
+          ],
+        ),
+        selection: objectBlockSelection('file1', 0),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: WenzRichTextEditor(
+              controller: controller,
+              enableIme: false,
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.byTooltip('附件操作'), findsOneWidget);
+      expectTransparentToolbarButtonBackground(tester, '附件操作');
+      expectToolbarButtonHoverOverlay(tester, '附件操作');
+      // Shared surface provides the conjoined capsule background.
+      _expectMinimalToolbarSurface(tester, find.byTooltip('附件操作'));
+    });
+  });
 }
 
 Future<void> _performPlatformSelectors(
@@ -14561,6 +16408,55 @@ List<LineMetrics> _richTextLineMetrics(WidgetTester tester, Finder finder) {
   return _richTextPainter(tester, finder, richText).computeLineMetrics();
 }
 
+_RichTextLineBlankTarget _richTextRightBlankTarget(
+  WidgetTester tester,
+  Finder finder, {
+  required int lineIndex,
+}) {
+  final richText = tester.widget<RichText>(finder);
+  final painter = _richTextPainter(tester, finder, richText);
+  final lines = painter.computeLineMetrics();
+  expect(lines.length, greaterThan(lineIndex));
+  final line = lines[lineIndex];
+  final lineRange = _visualLineRange(painter, line);
+  final rect = tester.getRect(finder);
+  final lineRight = line.left + line.width;
+  final blankWidth = rect.width - lineRight;
+  expect(
+    blankWidth,
+    greaterThan(8),
+    reason: 'test fixture must leave tappable blank space on the target line',
+  );
+  return _RichTextLineBlankTarget(
+    globalPoint:
+        rect.topLeft + Offset(lineRight + blankWidth / 2, _lineY(line)),
+    lineRange: lineRange,
+  );
+}
+
+TextRange _visualLineRange(TextPainter painter, LineMetrics line) {
+  final y = _lineY(line);
+  final start = painter.getPositionForOffset(Offset(-100000, y)).offset;
+  final end = painter.getPositionForOffset(Offset(100000, y)).offset;
+  return TextRange(start: start, end: end);
+}
+
+double _lineY(LineMetrics line) {
+  final top = line.baseline - line.ascent;
+  final bottom = line.baseline + line.descent;
+  return top + (bottom - top) / 2;
+}
+
+class _RichTextLineBlankTarget {
+  const _RichTextLineBlankTarget({
+    required this.globalPoint,
+    required this.lineRange,
+  });
+
+  final Offset globalPoint;
+  final TextRange lineRange;
+}
+
 TextPainter _richTextPainter(
   WidgetTester tester,
   Finder finder,
@@ -14692,6 +16588,96 @@ Finder _blockDragHandleFinder(String blockId) {
   );
 }
 
+Finder _blockReorderDropIndicatorFinder() {
+  return find.byKey(
+    const ValueKey<String>('wenz-richtext-block-reorder-drop-indicator'),
+  );
+}
+
+WenzRichTextController _headingRangeDragController() {
+  return WenzRichTextController(
+    document: const RichTextDocument(
+      blocks: <BlockNode>[
+        TextBlockNode(
+          id: 'parent',
+          type: BlockType.heading,
+          attributes: BlockAttributes(level: 1),
+          content: <InlineNode>[TextRun(text: 'Parent title')],
+        ),
+        TextBlockNode(
+          id: 'parent-body',
+          type: BlockType.paragraph,
+          content: <InlineNode>[TextRun(text: 'Parent body')],
+        ),
+        TextBlockNode(
+          id: 'child-heading',
+          type: BlockType.heading,
+          attributes: BlockAttributes(level: 2),
+          content: <InlineNode>[TextRun(text: 'Child title')],
+        ),
+        TextBlockNode(
+          id: 'child-body',
+          type: BlockType.paragraph,
+          content: <InlineNode>[TextRun(text: 'Child body')],
+        ),
+        TextBlockNode(
+          id: 'sibling',
+          type: BlockType.heading,
+          attributes: BlockAttributes(level: 1),
+          content: <InlineNode>[TextRun(text: 'Sibling title')],
+        ),
+        TextBlockNode(
+          id: 'sibling-body',
+          type: BlockType.paragraph,
+          content: <InlineNode>[TextRun(text: 'Sibling body')],
+        ),
+        TextBlockNode(
+          id: 'after',
+          type: BlockType.heading,
+          attributes: BlockAttributes(level: 1),
+          content: <InlineNode>[TextRun(text: 'After title')],
+        ),
+        TextBlockNode(
+          id: 'after-body',
+          type: BlockType.paragraph,
+          content: <InlineNode>[TextRun(text: 'After body')],
+        ),
+      ],
+    ),
+  );
+}
+
+Future<WenzOutlineController> _pumpOutlinedBlockDragEditor(
+  WidgetTester tester,
+  WenzRichTextController controller, {
+  WenzOutlineController? outlineController,
+  Size size = const Size(560, 440),
+}) async {
+  final outline =
+      outlineController ?? WenzOutlineController(editor: controller);
+  if (outlineController == null) {
+    addTearDown(outline.dispose);
+  }
+  await tester.pumpWidget(
+    MaterialApp(
+      home: Scaffold(
+        body: SizedBox(
+          width: size.width,
+          height: size.height,
+          child: WenzRichTextEditor(
+            controller: controller,
+            outlineController: outline,
+            padding: EdgeInsets.zero,
+            enableIme: false,
+          ),
+        ),
+      ),
+    ),
+  );
+  await tester.pumpAndSettle();
+  return outline;
+}
+
 Future<void> _openBlockMoreMenu(WidgetTester tester, String blockId) async {
   await _waitPastMultiClickWindow(tester);
   await tester.tap(_blockDragHandleFinder(blockId));
@@ -14813,6 +16799,40 @@ void _expectLocalizedTooltip(String tooltip) {
   expect(find.byTooltip(tooltip), findsOneWidget);
 }
 
+Rect _toolbarButtonsRect(WidgetTester tester, List<String> tooltips) {
+  final rects = <Rect>[
+    for (final tooltip in tooltips) tester.getRect(find.byTooltip(tooltip)),
+  ];
+  return rects.skip(1).fold<Rect>(
+        rects.first,
+        (current, rect) => current.expandToInclude(rect),
+      );
+}
+
+void _expectToolbarAboveBody(Rect toolbarRect, Rect bodyRect) {
+  expect(
+    toolbarRect.bottom,
+    lessThanOrEqualTo(bodyRect.top),
+    reason: 'Object toolbar should not overlap the block body.',
+  );
+}
+
+void _expectToolbarAlignedToFrameEnd(Rect toolbarRect, Rect frameRect) {
+  expect(toolbarRect.left, greaterThanOrEqualTo(frameRect.left));
+  expect(
+    toolbarRect.right,
+    moreOrLessEquals(frameRect.right, epsilon: 0.75),
+    reason: 'Object toolbar should align to the block frame end edge.',
+  );
+}
+
+void _expectRectClose(Rect actual, Rect expected, {double epsilon = 0.001}) {
+  expect(actual.left, moreOrLessEquals(expected.left, epsilon: epsilon));
+  expect(actual.top, moreOrLessEquals(expected.top, epsilon: epsilon));
+  expect(actual.right, moreOrLessEquals(expected.right, epsilon: epsilon));
+  expect(actual.bottom, moreOrLessEquals(expected.bottom, epsilon: epsilon));
+}
+
 void _expectToolbarButtonSize(WidgetTester tester, String tooltip) {
   expect(find.byTooltip(tooltip), findsOneWidget);
   expect(
@@ -14820,6 +16840,44 @@ void _expectToolbarButtonSize(WidgetTester tester, String tooltip) {
     const Size.square(32),
     reason: '$tooltip should use the shared block toolbar button hit area.',
   );
+  final buttonStyle = _toolbarButtonStyleForTooltip(tester, tooltip);
+  expect(buttonStyle, isNotNull);
+  for (final states in <Set<WidgetState>>[
+    <WidgetState>{},
+    <WidgetState>{WidgetState.disabled},
+    <WidgetState>{WidgetState.hovered},
+    <WidgetState>{WidgetState.pressed},
+  ]) {
+    expect(
+      buttonStyle!.fixedSize?.resolve(states),
+      const Size.square(32),
+      reason: '$tooltip should keep the shared fixed toolbar size.',
+    );
+    final background = buttonStyle.backgroundColor?.resolve(states);
+    expect(background, Colors.transparent,
+      reason: '$tooltip should use transparent background — no independent '
+          'capsule. The shared surface provides the visual container.',);
+    final shape = buttonStyle.shape?.resolve(states);
+    expect(shape, isA<RoundedRectangleBorder>());
+    final roundedShape = shape! as RoundedRectangleBorder;
+    expect(
+      roundedShape.borderRadius,
+      BorderRadius.circular(16),
+      reason: '$tooltip should render as a 32px capsule button.',
+    );
+  }
+  for (final states in <Set<WidgetState>>[
+    <WidgetState>{WidgetState.hovered},
+    <WidgetState>{WidgetState.pressed},
+  ]) {
+    final overlay = buttonStyle!.overlayColor?.resolve(states);
+    expect(overlay, isNotNull);
+    expect(
+      overlay,
+      isNot(Colors.transparent),
+      reason: '$tooltip should keep hover and pressed feedback visible.',
+    );
+  }
 }
 
 void _expectMinimalToolbarSurface(WidgetTester tester, Finder descendant) {
@@ -14836,14 +16894,167 @@ void _expectMinimalToolbarSurface(WidgetTester tester, Finder descendant) {
       matching: surfacePredicate,
     );
   }
+  _expectChromeSurfaceMaterial(tester, materialFinder);
+}
+
+ButtonStyle? _toolbarButtonStyleForTooltip(
+  WidgetTester tester,
+  String tooltip,
+) {
+  final tooltipFinder = find.byTooltip(tooltip);
+  final matchedWidget = tooltipFinder.evaluate().single.widget;
+  if (matchedWidget is IconButton) {
+    return matchedWidget.style;
+  }
+  if (matchedWidget is PopupMenuButton<dynamic>) {
+    return matchedWidget.style;
+  }
+  final iconButtonFinder = find.ancestor(
+    of: tooltipFinder,
+    matching: find.byType(IconButton),
+  );
+  if (tester.widgetList(iconButtonFinder).isNotEmpty) {
+    return tester.widget<IconButton>(iconButtonFinder).style;
+  }
+  final popupButtonFinder = find.ancestor(
+    of: tooltipFinder,
+    matching: find.byWidgetPredicate(
+      (widget) => widget is PopupMenuButton<dynamic>,
+    ),
+  );
+  if (tester.widgetList(popupButtonFinder).isNotEmpty) {
+    return tester.widget<PopupMenuButton<dynamic>>(popupButtonFinder).style;
+  }
+  return null;
+}
+
+void _expectPopupMenuChrome(WidgetTester tester, String itemLabel) {
+  _expectChromeSurfaceMaterial(tester, _popupMenuMaterialFinder(itemLabel));
+}
+
+void _expectWeakPopupMenuDividers(
+  WidgetTester tester,
+  String itemLabel, {
+  required int count,
+}) {
+  final materialFinder = _popupMenuMaterialFinder(itemLabel);
+  final dividers = tester
+      .widgetList<Divider>(
+        find.descendant(of: materialFinder, matching: find.byType(Divider)),
+      )
+      .toList();
+  expect(dividers, hasLength(count));
+
+  final theme = Theme.of(tester.element(materialFinder));
+  final surfaceColor = _expectedChromeSurfaceColor(theme);
+  final borderColor = _expectedChromeBorderColor(theme);
+  final dividerColor = _expectedChromeDividerColor(theme);
+  expect(_alphaOf(dividerColor), greaterThan(0));
+  expect(
+    _luminanceDistance(dividerColor, surfaceColor),
+    lessThan(_luminanceDistance(borderColor, surfaceColor)),
+  );
+
+  for (final divider in dividers) {
+    expect(divider.height, 8);
+    expect(divider.thickness, 1);
+    expect(divider.color, dividerColor);
+    expect(divider.color, isNot(theme.colorScheme.outlineVariant));
+  }
+}
+
+Finder _popupMenuMaterialFinder(String itemLabel) {
+  return find.ancestor(
+    of: _popupMenuItemFinder(itemLabel),
+    matching: find.byWidgetPredicate(
+      (widget) => widget is Material && widget.elevation == 3,
+    ),
+  );
+}
+
+void _expectChromeSurfaceMaterial(WidgetTester tester, Finder materialFinder) {
   expect(materialFinder, findsOneWidget);
   final material = tester.widget<Material>(materialFinder);
   final theme = Theme.of(tester.element(materialFinder));
-  expect(material.color, theme.colorScheme.surfaceContainerLow);
+  expect(material.color, _expectedChromeSurfaceColor(theme));
+  expect(material.elevation, 3);
+  expect(material.shadowColor, theme.colorScheme.shadow.withAlpha(30));
+  expect(material.surfaceTintColor, Colors.transparent);
   expect(material.clipBehavior, Clip.antiAlias);
   final shape = material.shape as RoundedRectangleBorder;
-  expect(shape.borderRadius, BorderRadius.circular(12));
-  expect(shape.side.color, theme.colorScheme.outlineVariant.withAlpha(180));
+  expect(shape.borderRadius, BorderRadius.circular(10));
+  expect(shape.side.color, _expectedChromeBorderColor(theme));
+}
+
+void _expectPopupMenuItemSelected(
+  WidgetTester tester,
+  String label, {
+  bool selected = true,
+}) {
+  final decorations = tester
+      .widgetList<DecoratedBox>(
+        find.descendant(
+          of: _popupMenuItemFinder(label),
+          matching: find.byType(DecoratedBox),
+        ),
+      )
+      .map((box) => box.decoration)
+      .whereType<BoxDecoration>();
+  final itemDecoration = decorations.firstWhere(
+    (decoration) => decoration.borderRadius == BorderRadius.circular(8),
+  );
+  final theme = Theme.of(tester.element(find.text(label)));
+  if (selected) {
+    expect(itemDecoration.color, _expectedChromeSelectedColor(theme));
+    expect(
+      itemDecoration.color,
+      isNot(theme.colorScheme.primary.withAlpha(34)),
+    );
+  } else {
+    expect(itemDecoration.color, Colors.transparent);
+  }
+}
+
+Color _expectedChromeSurfaceColor(ThemeData theme) {
+  return theme.brightness == Brightness.dark
+      ? const Color(0xFF292A2D)
+      : const Color(0xFFF8F9FA);
+}
+
+Color _expectedChromeBorderColor(ThemeData theme) {
+  return theme.brightness == Brightness.dark
+      ? const Color(0xFF4A4C50)
+      : const Color(0xFFDADCE0);
+}
+
+Color _expectedChromeDividerColor(ThemeData theme) {
+  return theme.brightness == Brightness.dark
+      ? const Color(0xFF383A3E)
+      : const Color(0xFFE9ECEF);
+}
+
+Color _expectedChromeSelectedColor(ThemeData theme) {
+  return theme.brightness == Brightness.dark
+      ? const Color(0xFF3C4043)
+      : const Color(0xFFE8EAED);
+}
+
+double _luminanceDistance(Color a, Color b) {
+  return (a.computeLuminance() - b.computeLuminance()).abs();
+}
+
+void _expectPopupMenuItemTextColor(
+  WidgetTester tester,
+  String label,
+  Color expectedColor,
+) {
+  final text = tester.widget<Text>(
+    find.descendant(
+      of: _popupMenuItemFinder(label),
+      matching: find.text(label),
+    ),
+  );
+  expect(text.style?.color, expectedColor);
 }
 
 Future<void> _pumpTableToolbarOverlay(WidgetTester tester) async {
@@ -14918,6 +17129,45 @@ RichTextDocument _toolbarTableDocument() {
                     id: 'cell-b2-text',
                     type: BlockType.paragraph,
                     content: <InlineNode>[TextRun(text: 'B2')],
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+    ],
+  );
+}
+
+RichTextDocument _toolbarAlignedTableDocument() {
+  return const RichTextDocument(
+    blocks: <BlockNode>[
+      TableBlockNode(
+        id: 'table1',
+        table: TableModel(
+          columnAlignments: <int, String>{0: 'right'},
+          rows: <List<TableCellNode>>[
+            <TableCellNode>[
+              TableCellNode(
+                id: 'cell-a1',
+                alignment: 'center',
+                blocks: <BlockNode>[
+                  TextBlockNode(
+                    id: 'cell-a1-text',
+                    type: BlockType.paragraph,
+                    content: <InlineNode>[TextRun(text: 'A1')],
+                  ),
+                ],
+              ),
+              TableCellNode(
+                id: 'cell-b1',
+                alignment: 'right',
+                blocks: <BlockNode>[
+                  TextBlockNode(
+                    id: 'cell-b1-text',
+                    type: BlockType.paragraph,
+                    content: <InlineNode>[TextRun(text: 'B1')],
                   ),
                 ],
               ),

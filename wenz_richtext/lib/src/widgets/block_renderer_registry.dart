@@ -7,7 +7,16 @@ import '../input/composition_state.dart';
 import 'block_geometry_registry.dart';
 import 'inline_embed_renderer.dart';
 import 'media_resolver.dart';
+import 'object_block_toolbar_overlay.dart';
 import 'table_floating_toolbar_overlay.dart';
+
+export 'object_block_toolbar_overlay.dart'
+    show
+        ObjectBlockToolbarOverlayAnchor,
+        ObjectBlockToolbarOverlayController,
+        ObjectBlockToolbarOverlayHost,
+        ObjectBlockToolbarOverlayRequest,
+        ObjectBlockToolbarOverlayRequestBuilder;
 
 export 'table_floating_toolbar_overlay.dart'
     show
@@ -98,8 +107,10 @@ class ObjectBlockActionIntent {
   final int blockIndex;
 
   /// Optional action payload. Built-in renderers use a `double` value for
-  /// [ObjectBlockAction.setImageDisplayWidth], and the block handle uses an
-  /// `int` final block index for move actions.
+  /// [ObjectBlockAction.setImageDisplayWidth]. Move actions may carry an
+  /// `int` final block index from custom renderers; the editor-owned block
+  /// handle may use an internal payload so grouped heading moves can preserve
+  /// the original drop insertion boundary.
   final Object? value;
 }
 
@@ -117,16 +128,18 @@ typedef ObjectBlockActionHandler = void Function(
 abstract final class BlockDragHandleSpec {
   /// Reserved leading gutter for row chrome, outside the renderer's content box.
   ///
-  /// The rail is wide enough for the drag handle plus the optional heading
-  /// collapse affordance so neither control consumes renderer content width.
-  static const double railWidth = 66.0;
+  /// The rail is wide enough for the drag handle plus the optional compact
+  /// heading collapse affordance so neither control consumes renderer content
+  /// width. It intentionally no longer reserves extra width for the legacy
+  /// collapsed-count badge.
+  static const double railWidth = 68.0;
 
   /// Gap between adjacent row-chrome hit targets.
-  static const double chromeGap = 4.0;
+  static const double chromeGap = 8.0;
 
   /// Minimum gap between the renderer content edge and the nearest row-chrome
   /// hit target.
-  static const double gapToContent = 4.0;
+  static const double gapToContent = 8.0;
 
   /// Minimum pointer/focus hit target for mouse, touch, and keyboard traversal.
   static const Size hitSize = Size.square(28.0);
@@ -136,7 +149,7 @@ abstract final class BlockDragHandleSpec {
 
   /// Top inset from the block row to the handle hit target. Renderers with tall
   /// content still anchor the handle near the first visual line/control row.
-  static const double topInset = 2.0;
+  static const double topInset = 1.0;
 
   /// Pointer movement that turns a handle press into a reorder drag. Releasing
   /// before this distance is treated as a menu click/tap.
@@ -269,6 +282,7 @@ class BlockRenderContext {
     this.onCalloutVariantChanged,
     this.onTableToolbarAction,
     this.tableToolbarOverlayController,
+    this.objectBlockToolbarOverlayController,
     this.onTableColumnResize,
     this.onTodoCheckedChanged,
     this.onObjectBlockAction,
@@ -354,6 +368,12 @@ class BlockRenderContext {
   /// Editor-owned overlay controller used by table renderers to publish toolbar
   /// requests without owning [OverlayEntry] / [OverlayPortal] lifecycle.
   final TableFloatingToolbarOverlayController? tableToolbarOverlayController;
+
+  /// Editor-owned overlay controller used by object-block renderers to publish
+  /// floating toolbar requests without owning [OverlayEntry] / [OverlayPortal]
+  /// lifecycle. `null` for hand-built/custom contexts that do not opt in.
+  final ObjectBlockToolbarOverlayController?
+      objectBlockToolbarOverlayController;
 
   /// Optional callback used by table renderers to persist drag-resized column
   /// widths through the host controller.

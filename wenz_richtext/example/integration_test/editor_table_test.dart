@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
@@ -100,6 +101,482 @@ void main() {
       expect(cellText(controller, 0, 0), 'AAX');
       expect(controller.selection?.extent.path.isTableCellText, isTrue);
       expect(controller.selection?.extent.path.tableColumnIndex, 0);
+    });
+
+    testWidgets('toolbar alignment entry sets selected table cell alignment', (
+      tester,
+    ) async {
+      final controller = WenzRichTextController(
+        document: tableDocument,
+        selection: cellCaret(0, 0, 0),
+      );
+      final toolbar = ToolbarController(controller);
+      addTearDown(toolbar.dispose);
+      addTearDown(controller.dispose);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Column(
+              children: <Widget>[
+                IconButton(
+                  tooltip: '单元格居中对齐',
+                  onPressed: toolbar.canSetAlignment
+                      ? () => toolbar.setAlignment('center')
+                      : null,
+                  icon: const Icon(Icons.format_align_center),
+                ),
+                Expanded(
+                  child: WenzRichTextEditor(
+                    controller: controller,
+                    enableIme: false,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      await tester.tap(find.byTooltip('单元格居中对齐'));
+      await tester.pump();
+
+      final table = controller.document.blocks.single as TableBlockNode;
+      expect(table.attributes.alignment, isNull);
+      expect(table.table.columnAlignments, isEmpty);
+      expect(table.table.cellAt(0, 0)!.alignment, 'center');
+      expect(table.table.cellAt(0, 1)!.alignment, isNull);
+      expect(toolbar.alignment, 'center');
+      expect(toolbar.alignmentMixed, isFalse);
+      expect(controller.selection?.extent.path.isTableCellText, isTrue);
+      expect(_richTextAlign(tester, 'AA'), TextAlign.center);
+    });
+
+    testWidgets('toolbar alignment cycles through left center right justify', (
+      tester,
+    ) async {
+      final controller = WenzRichTextController(
+        document: tableDocument,
+        selection: cellCaret(0, 0, 0),
+      );
+      final toolbar = ToolbarController(controller);
+      addTearDown(toolbar.dispose);
+      addTearDown(controller.dispose);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Column(
+              children: <Widget>[
+                Row(
+                  children: <Widget>[
+                    IconButton(
+                      tooltip: '左对齐',
+                      onPressed: toolbar.canSetAlignment
+                          ? () => toolbar.setAlignment('left')
+                          : null,
+                      icon: const Icon(Icons.format_align_left),
+                    ),
+                    IconButton(
+                      tooltip: '居中对齐',
+                      onPressed: toolbar.canSetAlignment
+                          ? () => toolbar.setAlignment('center')
+                          : null,
+                      icon: const Icon(Icons.format_align_center),
+                    ),
+                    IconButton(
+                      tooltip: '右对齐',
+                      onPressed: toolbar.canSetAlignment
+                          ? () => toolbar.setAlignment('right')
+                          : null,
+                      icon: const Icon(Icons.format_align_right),
+                    ),
+                    IconButton(
+                      tooltip: '两端对齐',
+                      onPressed: toolbar.canSetAlignment
+                          ? () => toolbar.setAlignment('justify')
+                          : null,
+                      icon: const Icon(Icons.format_align_justify),
+                    ),
+                    IconButton(
+                      tooltip: '清除对齐',
+                      onPressed: toolbar.canSetAlignment
+                          ? () => toolbar.clearAlignment()
+                          : null,
+                      icon: const Icon(Icons.format_clear),
+                    ),
+                  ],
+                ),
+                Expanded(
+                  child: WenzRichTextEditor(
+                    controller: controller,
+                    enableIme: false,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      TableBlockNode table() =>
+          controller.document.blocks.single as TableBlockNode;
+
+      // 'left' alignment: cell alignment stored; rendering follows.
+      await tester.tap(find.byTooltip('左对齐'));
+      await tester.pump();
+      expect(table().table.cellAt(0, 0)!.alignment, 'left');
+      expect(_richTextAlign(tester, 'AA'), TextAlign.start);
+      expect(toolbar.alignment, 'left');
+
+      // 'center' alignment.
+      await tester.tap(find.byTooltip('居中对齐'));
+      await tester.pump();
+      expect(table().table.cellAt(0, 0)!.alignment, 'center');
+      expect(_richTextAlign(tester, 'AA'), TextAlign.center);
+      expect(toolbar.alignment, 'center');
+
+      // 'right' alignment.
+      await tester.tap(find.byTooltip('右对齐'));
+      await tester.pump();
+      expect(table().table.cellAt(0, 0)!.alignment, 'right');
+      expect(_richTextAlign(tester, 'AA'), TextAlign.right);
+      expect(toolbar.alignment, 'right');
+
+      // 'justify' alignment.
+      await tester.tap(find.byTooltip('两端对齐'));
+      await tester.pump();
+      expect(table().table.cellAt(0, 0)!.alignment, 'justify');
+      expect(_richTextAlign(tester, 'AA'), TextAlign.justify);
+      expect(toolbar.alignment, 'justify');
+    });
+
+    testWidgets('toolbar clears cell alignment restoring column fallback', (
+      tester,
+    ) async {
+      // Document where column 0 has a column-level alignment of 'right'.
+      const columnAlignedDoc = RichTextDocument(
+        blocks: <BlockNode>[
+          TableBlockNode(
+            id: 'table1',
+            table: TableModel(
+              columnAlignments: <int, String>{0: 'right'},
+              rows: <List<TableCellNode>>[
+                <TableCellNode>[
+                  TableCellNode(
+                    id: 'cell-a',
+                    alignment: 'center', // Cell-level overrides column.
+                    blocks: <BlockNode>[
+                      TextBlockNode(
+                        id: 'cell-a-p',
+                        type: BlockType.paragraph,
+                        content: <InlineNode>[TextRun(text: 'CellA')],
+                      ),
+                    ],
+                  ),
+                  TableCellNode(
+                    id: 'cell-b',
+                    // No cell alignment — falls back to column.
+                    blocks: <BlockNode>[
+                      TextBlockNode(
+                        id: 'cell-b-p',
+                        type: BlockType.paragraph,
+                        content: <InlineNode>[TextRun(text: 'CellB')],
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      );
+
+      final controller = WenzRichTextController(
+        document: columnAlignedDoc,
+        selection: DocumentSelection(
+          base: DocumentPosition.tableCell(
+            tableBlockId: 'table1',
+            blockIndex: 0,
+            tableRowIndex: 0,
+            tableColumnIndex: 0,
+            offset: 0,
+          ),
+          extent: DocumentPosition.tableCell(
+            tableBlockId: 'table1',
+            blockIndex: 0,
+            tableRowIndex: 0,
+            tableColumnIndex: 0,
+            offset: 0,
+          ),
+        ),
+      );
+      final toolbar = ToolbarController(controller);
+      addTearDown(toolbar.dispose);
+      addTearDown(controller.dispose);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Column(
+              children: <Widget>[
+                IconButton(
+                  tooltip: '清除对齐',
+                  onPressed: toolbar.canSetAlignment
+                      ? () => toolbar.clearAlignment()
+                      : null,
+                  icon: const Icon(Icons.format_clear),
+                ),
+                Expanded(
+                  child: WenzRichTextEditor(
+                    controller: controller,
+                    enableIme: false,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      TableBlockNode table() =>
+          controller.document.blocks.single as TableBlockNode;
+
+      // Cell (0,0) has explicit 'center' overriding column 'right'.
+      expect(_richTextAlign(tester, 'CellA'), TextAlign.center);
+      // Cell (0,1) has no explicit alignment, falls back to column 'right'.
+      expect(_richTextAlign(tester, 'CellB'), TextAlign.right);
+
+      // Clear alignment on cell (0,0).
+      await tester.tap(find.byTooltip('清除对齐'));
+      await tester.pump();
+
+      expect(table().table.cellAt(0, 0)!.alignment, isNull);
+      // After clearing, falls back to column alignment 'right'.
+      expect(_richTextAlign(tester, 'CellA'), TextAlign.right);
+      expect(toolbar.alignment, isNull);
+    });
+
+    testWidgets('toolbar alignment applies to multi-cell rectangular selection', (
+      tester,
+    ) async {
+      final controller = WenzRichTextController(
+        document: tableDocument,
+        selection: DocumentSelection(
+          base: DocumentPosition.tableCell(
+            tableBlockId: 'table1',
+            blockIndex: 0,
+            tableRowIndex: 0,
+            tableColumnIndex: 0,
+            offset: 0,
+          ),
+          extent: DocumentPosition.tableCell(
+            tableBlockId: 'table1',
+            blockIndex: 0,
+            tableRowIndex: 1,
+            tableColumnIndex: 1,
+            offset: 0,
+          ),
+        ),
+      );
+      final toolbar = ToolbarController(controller);
+      addTearDown(toolbar.dispose);
+      addTearDown(controller.dispose);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Column(
+              children: <Widget>[
+                IconButton(
+                  tooltip: '单元格右对齐',
+                  onPressed: toolbar.canSetAlignment
+                      ? () => toolbar.setAlignment('right')
+                      : null,
+                  icon: const Icon(Icons.format_align_right),
+                ),
+                Expanded(
+                  child: WenzRichTextEditor(
+                    controller: controller,
+                    enableIme: false,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      await tester.tap(find.byTooltip('单元格右对齐'));
+      await tester.pump();
+
+      final table = controller.document.blocks.single as TableBlockNode;
+      // Every cell in the 2×2 rectangle should now be right-aligned.
+      expect(table.table.cellAt(0, 0)!.alignment, 'right');
+      expect(table.table.cellAt(0, 1)!.alignment, 'right');
+      expect(table.table.cellAt(1, 0)!.alignment, 'right');
+      expect(table.table.cellAt(1, 1)!.alignment, 'right');
+      // Column alignment is never mutated by cell alignment actions.
+      expect(table.attributes.alignment, isNull);
+      expect(table.table.columnAlignments, isEmpty);
+      // Visual rendering: each cell's RichText uses TextAlign.right.
+      expect(_richTextAlign(tester, 'AA'), TextAlign.right);
+      expect(_richTextAlign(tester, 'BB'), TextAlign.right);
+      expect(_richTextAlign(tester, 'CC'), TextAlign.right);
+      expect(_richTextAlign(tester, 'DD'), TextAlign.right);
+    });
+
+    testWidgets('cell alignment persists across Tab navigation and back', (
+      tester,
+    ) async {
+      final controller = WenzRichTextController(
+        document: tableDocument,
+        selection: cellCaret(0, 0, 0),
+      );
+      final toolbar = ToolbarController(controller);
+      addTearDown(toolbar.dispose);
+      addTearDown(controller.dispose);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Column(
+              children: <Widget>[
+                IconButton(
+                  tooltip: '单元格居中对齐',
+                  onPressed: toolbar.canSetAlignment
+                      ? () => toolbar.setAlignment('center')
+                      : null,
+                  icon: const Icon(Icons.format_align_center),
+                ),
+                Expanded(
+                  child: WenzRichTextEditor(
+                    controller: controller,
+                    enableIme: false,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      // Set alignment on cell (0,0) to 'center'.
+      await tester.tap(find.byTooltip('单元格居中对齐'));
+      await tester.pump();
+      expect(_richTextAlign(tester, 'AA'), TextAlign.center);
+
+      // Tab to (0,1). The alignment on the new cell is whatever it already was
+      // (no explicit alignment for 'BB'), so it renders with start/default.
+      await sendKey(tester, LogicalKeyboardKey.tab);
+      expect(controller.selection?.extent.path.tableRowIndex, 0);
+      expect(controller.selection?.extent.path.tableColumnIndex, 1);
+      expect(_richTextAlign(tester, 'BB'), TextAlign.start);
+
+      // Tab to (1,0).
+      await sendKey(tester, LogicalKeyboardKey.tab);
+      expect(controller.selection?.extent.path.tableRowIndex, 1);
+      expect(controller.selection?.extent.path.tableColumnIndex, 0);
+
+      // Tab to (1,1), then wrap back to (0,0) (last cell Tab inserts a row,
+      // so use Shift+Tab from (1,0) back up to (0,1) then to (0,0)).
+      await sendKey(tester, LogicalKeyboardKey.tab);
+      expect(controller.selection?.extent.path.tableRowIndex, 1);
+      expect(controller.selection?.extent.path.tableColumnIndex, 1);
+
+      // Shift+Tab twice to get back to (0,0).
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+      await tester.pump();
+      expect(controller.selection?.extent.path.tableRowIndex, 1);
+      expect(controller.selection?.extent.path.tableColumnIndex, 0);
+
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+      await tester.pump();
+      expect(controller.selection?.extent.path.tableRowIndex, 0);
+      expect(controller.selection?.extent.path.tableColumnIndex, 1);
+
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+      await tester.pump();
+      expect(controller.selection?.extent.path.tableRowIndex, 0);
+      expect(controller.selection?.extent.path.tableColumnIndex, 0);
+
+      // After navigating back, the 'center' alignment on cell (0,0) is preserved.
+      final table = controller.document.blocks.single as TableBlockNode;
+      expect(table.table.cellAt(0, 0)!.alignment, 'center');
+      expect(_richTextAlign(tester, 'AA'), TextAlign.center);
+    });
+
+    testWidgets('undo redo restores cell alignment state', (tester) async {
+      final controller = WenzRichTextController(
+        document: tableDocument,
+        selection: cellCaret(0, 0, 0),
+      );
+      final toolbar = ToolbarController(controller);
+      addTearDown(toolbar.dispose);
+      addTearDown(controller.dispose);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Column(
+              children: <Widget>[
+                IconButton(
+                  tooltip: '单元格右对齐',
+                  onPressed: toolbar.canSetAlignment
+                      ? () => toolbar.setAlignment('right')
+                      : null,
+                  icon: const Icon(Icons.format_align_right),
+                ),
+                Expanded(
+                  child: WenzRichTextEditor(
+                    controller: controller,
+                    enableIme: false,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      TableBlockNode table() =>
+          controller.document.blocks.single as TableBlockNode;
+
+      // Initially, cell (0,0) has no alignment.
+      expect(table().table.cellAt(0, 0)!.alignment, isNull);
+      expect(_richTextAlign(tester, 'AA'), TextAlign.start);
+
+      // Set alignment to 'right'.
+      await tester.tap(find.byTooltip('单元格右对齐'));
+      await tester.pump();
+      expect(table().table.cellAt(0, 0)!.alignment, 'right');
+      expect(_richTextAlign(tester, 'AA'), TextAlign.right);
+
+      // Undo: alignment should revert to null.
+      expect(controller.canUndo, isTrue);
+      controller.undo();
+      await tester.pump();
+      expect(table().table.cellAt(0, 0)!.alignment, isNull);
+      expect(_richTextAlign(tester, 'AA'), TextAlign.start);
+
+      // Redo: alignment should be restored to 'right'.
+      expect(controller.canRedo, isTrue);
+      controller.redo();
+      await tester.pump();
+      expect(table().table.cellAt(0, 0)!.alignment, 'right');
+      expect(_richTextAlign(tester, 'AA'), TextAlign.right);
     });
 
     testWidgets('backspace deletes a character inside the cell', (tester) async {
@@ -357,6 +834,156 @@ void main() {
       expect(controller.selection?.extent.path.tableColumnIndex, 1,
           reason: 'second click must move into column 1');
     });
+
+    testWidgets('cross-cell drag produces normalized table cell range', (
+      tester,
+    ) async {
+      // 3×3 table: drag from (row=2, col=2) to (row=0, col=0).
+      // The bounding-box rectangle must span rows 0-2, cols 0-2.
+      const crossCellDoc = RichTextDocument(
+        blocks: <BlockNode>[
+          TableBlockNode(
+            id: 'table1',
+            table: TableModel(
+              rows: <List<TableCellNode>>[
+                <TableCellNode>[
+                  TableCellNode(
+                    id: 'r0c0',
+                    blocks: <BlockNode>[
+                      TextBlockNode(
+                        id: 'r0c0-p',
+                        type: BlockType.paragraph,
+                        content: <InlineNode>[TextRun(text: 'AA')],
+                      ),
+                    ],
+                  ),
+                  TableCellNode(
+                    id: 'r0c1',
+                    blocks: <BlockNode>[
+                      TextBlockNode(
+                        id: 'r0c1-p',
+                        type: BlockType.paragraph,
+                        content: <InlineNode>[TextRun(text: 'BB')],
+                      ),
+                    ],
+                  ),
+                  TableCellNode(
+                    id: 'r0c2',
+                    blocks: <BlockNode>[
+                      TextBlockNode(
+                        id: 'r0c2-p',
+                        type: BlockType.paragraph,
+                        content: <InlineNode>[TextRun(text: 'CC')],
+                      ),
+                    ],
+                  ),
+                ],
+                <TableCellNode>[
+                  TableCellNode(
+                    id: 'r1c0',
+                    blocks: <BlockNode>[
+                      TextBlockNode(
+                        id: 'r1c0-p',
+                        type: BlockType.paragraph,
+                        content: <InlineNode>[TextRun(text: 'DD')],
+                      ),
+                    ],
+                  ),
+                  TableCellNode(
+                    id: 'r1c1',
+                    blocks: <BlockNode>[
+                      TextBlockNode(
+                        id: 'r1c1-p',
+                        type: BlockType.paragraph,
+                        content: <InlineNode>[TextRun(text: 'EE')],
+                      ),
+                    ],
+                  ),
+                  TableCellNode(
+                    id: 'r1c2',
+                    blocks: <BlockNode>[
+                      TextBlockNode(
+                        id: 'r1c2-p',
+                        type: BlockType.paragraph,
+                        content: <InlineNode>[TextRun(text: 'FF')],
+                      ),
+                    ],
+                  ),
+                ],
+                <TableCellNode>[
+                  TableCellNode(
+                    id: 'r2c0',
+                    blocks: <BlockNode>[
+                      TextBlockNode(
+                        id: 'r2c0-p',
+                        type: BlockType.paragraph,
+                        content: <InlineNode>[TextRun(text: 'GG')],
+                      ),
+                    ],
+                  ),
+                  TableCellNode(
+                    id: 'r2c1',
+                    blocks: <BlockNode>[
+                      TextBlockNode(
+                        id: 'r2c1-p',
+                        type: BlockType.paragraph,
+                        content: <InlineNode>[TextRun(text: 'HH')],
+                      ),
+                    ],
+                  ),
+                  TableCellNode(
+                    id: 'r2c2',
+                    blocks: <BlockNode>[
+                      TextBlockNode(
+                        id: 'r2c2-p',
+                        type: BlockType.paragraph,
+                        content: <InlineNode>[TextRun(text: 'II')],
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      );
+      await pumpWorkbench(tester, document: crossCellDoc);
+
+      // Drag from bottom-right cell (II, row=2,col=2) to top-left (AA, row=0,col=0).
+      final start = globalOffsetAt(tester, 'II', 1); // row=2, col=2
+      final end = globalOffsetAt(tester, 'AA', 1); // row=0, col=0
+
+      // Perform drag from II to AA.
+      final gesture = await tester.startGesture(start);
+      await tester.pump();
+      await gesture.moveTo(end);
+      await tester.pump();
+      await gesture.up();
+      await tester.pump();
+
+      final selection = workbenchControllerOf(tester).selection;
+      expect(selection, isNotNull);
+
+      final range = selection!.tableCellRange;
+      expect(range, isNotNull,
+          reason: 'cross-cell drag must produce a non-null tableCellRange');
+      expect(range!.tableBlockId, 'table1');
+      // Normalized: startRow=0, endRow=2, startColumn=0, endColumn=2.
+      expect(range.startRow, 0);
+      expect(range.endRow, 2);
+      expect(range.startColumn, 0);
+      expect(range.endColumn, 2);
+      // All 9 cells should be in range.
+      for (var r = 0; r <= 2; r++) {
+        for (var c = 0; c <= 2; c++) {
+          expect(range.containsCell(r, c), isTrue,
+              reason: 'cell ($r,$c) must be inside rectangle (0,0)-(2,2)');
+        }
+      }
+      expect(range.isSingleCell, isFalse);
+      // Highlights must be present (text selection within cells).
+      expect(isSelectionHighlightVisible(tester), isTrue);
+    });
   });
 }
 
@@ -366,4 +993,12 @@ WenzRichTextController workbenchControllerOf(WidgetTester tester) {
     find.byType(WenzRichTextEditor),
   );
   return widget.controller;
+}
+
+TextAlign _richTextAlign(WidgetTester tester, String text) {
+  final finder = find.byWidgetPredicate(
+    (widget) => widget is RichText && widget.text.toPlainText() == text,
+    description: 'RichText with plain text "$text"',
+  );
+  return tester.widget<RichText>(finder).textAlign;
 }

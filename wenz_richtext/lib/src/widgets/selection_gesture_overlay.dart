@@ -98,6 +98,13 @@ class _SelectionGestureOverlayState extends State<SelectionGestureOverlay> {
   int _tapCount = 0;
 
   // Drag tracking.
+  //
+  // _dragBase holds the pointer-down position (resolved via
+  // BlockGeometryRegistry.positionFromGlobalOffset) and is preserved for the
+  // entire drag. For table cells it includes a PositionPath.tableCellText
+  // path with correct tableRowIndex/tableColumnIndex, so a drag from one cell
+  // to another produces a DocumentSelection whose tableCellRange getter
+  // computes the proper bounding-box rectangle.
   DocumentPosition? _dragBase;
   bool _isDragging = false;
   Offset? _dragOrigin;
@@ -443,6 +450,16 @@ class _SelectionGestureOverlayState extends State<SelectionGestureOverlay> {
     _linkOpenPending = null;
   }
 
+  /// Extends the selection from [_dragBase] to the position resolved at
+  /// [global].
+  ///
+  /// Both base and extent are obtained from [BlockGeometryRegistry]
+  /// .positionFromGlobalOffset, which preserves [PositionPath] type
+  /// information — when the pointer is inside a table cell, the resolved
+  /// [DocumentPosition] carries a [PositionPath.tableCellText] path with
+  /// correct [PositionPath.tableRowIndex]/[PositionPath.tableColumnIndex].
+  /// The editor then uses [DocumentSelection.tableCellRange] (which applies
+  /// min/max normalization) to determine the highlight rectangle.
   void _extendSelection(Offset global) {
     final base = _dragBase;
     if (base == null) {

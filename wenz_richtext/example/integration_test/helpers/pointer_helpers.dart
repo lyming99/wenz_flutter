@@ -41,6 +41,62 @@ Offset globalOffsetAt(WidgetTester tester, String text, int offset) {
       Offset(1, painter.preferredLineHeight / 2);
 }
 
+/// Computes a tap target in the right-side blank area of a wrapped visual line.
+///
+/// The returned [lineRange] is resolved with the same [TextPainter] line y, so
+/// callers can assert the editor caret stayed on that visual line after the
+/// pointer-down path runs through the overlay and geometry registry.
+VisualLineBlankTarget rightBlankOnVisualLine(
+  WidgetTester tester,
+  String text, {
+  required int lineIndex,
+}) {
+  final finder = richTextWith(text);
+  final richText = tester.widget<RichText>(finder);
+  final size = tester.getSize(finder);
+  final painter = TextPainter(
+    text: richText.text,
+    textAlign: richText.textAlign,
+    textDirection: TextDirection.ltr,
+  )..layout(maxWidth: size.width);
+  final lines = painter.computeLineMetrics();
+  expect(lines.length, greaterThan(lineIndex));
+  final line = lines[lineIndex];
+  final lineY = _lineCenterY(line);
+  final lineRange = TextRange(
+    start: painter.getPositionForOffset(Offset(-100000, lineY)).offset,
+    end: painter.getPositionForOffset(Offset(100000, lineY)).offset,
+  );
+  final lineRight = line.left + line.width;
+  final blankWidth = size.width - lineRight;
+  expect(
+    blankWidth,
+    greaterThan(8),
+    reason: 'test text must leave a tappable blank area on the target line',
+  );
+  return VisualLineBlankTarget(
+    globalPoint:
+        tester.getTopLeft(finder) + Offset(lineRight + blankWidth / 2, lineY),
+    lineRange: lineRange,
+  );
+}
+
+double _lineCenterY(LineMetrics line) {
+  final top = line.baseline - line.ascent;
+  final bottom = line.baseline + line.descent;
+  return top + (bottom - top) / 2;
+}
+
+class VisualLineBlankTarget {
+  const VisualLineBlankTarget({
+    required this.globalPoint,
+    required this.lineRange,
+  });
+
+  final Offset globalPoint;
+  final TextRange lineRange;
+}
+
 /// Taps at the given character [offset] inside the [RichText] for [text].
 Future<void> tapAtTextOffset(
   WidgetTester tester,

@@ -341,6 +341,7 @@ class SetTableCellHeaderCommand extends EditorCommand {
         isHeader: isHeader,
         backgroundColor: cell.backgroundColor,
         covered: cell.covered,
+        alignment: cell.alignment,
       ),
     );
   }
@@ -377,6 +378,7 @@ class SetTableCellBackgroundCommand extends EditorCommand {
         isHeader: cell.isHeader,
         backgroundColor: backgroundColor,
         covered: cell.covered,
+        alignment: cell.alignment,
       ),
     );
   }
@@ -407,16 +409,69 @@ class SetTableCellAlignmentCommand extends EditorCommand {
       blockIndex,
       rowIndex,
       columnIndex,
-      (cell) => TableCellNode(
-        id: cell.id,
-        blocks: cell.blocks.map((block) => block.copy()).toList(),
-        rowSpan: cell.rowSpan,
-        columnSpan: cell.columnSpan,
-        isHeader: cell.isHeader,
-        backgroundColor: cell.backgroundColor,
-        covered: cell.covered,
-        alignment: alignment,
-      ),
+      (cell) => _copyCellWithAlignment(cell, alignment),
+    );
+  }
+}
+
+class SetTableCellRangeAlignmentCommand extends EditorCommand {
+  const SetTableCellRangeAlignmentCommand({
+    required this.alignment,
+    this.selection,
+  });
+
+  // 'left'/'center'/'right'/'justify'; `null` clears only the cell-level
+  // alignment so cells fall back to their column alignment.
+  final String? alignment;
+  final DocumentSelection? selection;
+
+  @override
+  String get description => 'setTableCellRangeAlignment';
+
+  @override
+  CommandResult execute(DocumentSession session) {
+    final target = selection ?? session.selection;
+    final range = target?.tableCellRange;
+    if (target == null || range == null) {
+      return const CommandResult(recordHistory: false);
+    }
+
+    final tableBlock = tableAt(session, range.blockIndex);
+    if (tableBlock == null || tableBlock.id != range.tableBlockId) {
+      return const CommandResult(recordHistory: false);
+    }
+
+    final rows = tableBlock.table.rows.map(copyRow).toList();
+    var changed = false;
+    for (var rowIndex = range.startRow; rowIndex <= range.endRow; rowIndex++) {
+      if (rowIndex < 0 || rowIndex >= rows.length) {
+        continue;
+      }
+      final row = rows[rowIndex];
+      for (var columnIndex = range.startColumn;
+          columnIndex <= range.endColumn;
+          columnIndex++) {
+        if (columnIndex < 0 || columnIndex >= row.length) {
+          continue;
+        }
+        final cell = row[columnIndex];
+        if (cell.covered || cell.alignment == alignment) {
+          continue;
+        }
+        row[columnIndex] = _copyCellWithAlignment(cell, alignment);
+        changed = true;
+      }
+    }
+
+    if (!changed) {
+      return const CommandResult(recordHistory: false);
+    }
+    return _replaceTableWithSelection(
+      session,
+      range.blockIndex,
+      tableBlock,
+      rows,
+      selection: target,
     );
   }
 }
@@ -479,6 +534,7 @@ class MergeTableCellsCommand extends EditorCommand {
           isHeader: cell.isHeader,
           backgroundColor: cell.backgroundColor,
           covered: !(row == top && column == left),
+          alignment: cell.alignment,
         );
       }
     }
@@ -492,6 +548,22 @@ class MergeTableCellsCommand extends EditorCommand {
       columnWidths: tableBlock.table.columnWidths,
     );
   }
+}
+
+TableCellNode _copyCellWithAlignment(
+  TableCellNode cell,
+  String? alignment,
+) {
+  return TableCellNode(
+    id: cell.id,
+    blocks: cell.blocks.map((block) => block.copy()).toList(),
+    rowSpan: cell.rowSpan,
+    columnSpan: cell.columnSpan,
+    isHeader: cell.isHeader,
+    backgroundColor: cell.backgroundColor,
+    covered: cell.covered,
+    alignment: alignment,
+  );
 }
 
 class SplitTableCellCommand extends EditorCommand {
@@ -533,6 +605,7 @@ class SplitTableCellCommand extends EditorCommand {
           blocks: cell.blocks.map((block) => block.copy()).toList(),
           isHeader: cell.isHeader,
           backgroundColor: cell.backgroundColor,
+          alignment: cell.alignment,
         );
       }
     }

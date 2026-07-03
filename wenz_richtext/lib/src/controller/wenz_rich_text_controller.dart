@@ -559,6 +559,53 @@ class WenzRichTextController extends ChangeNotifier {
     }
   }
 
+  /// Auto-detects the JSON format of [source] and loads it.
+  ///
+  /// This is the lazy-migration entry point for hosts (like wenzflow) that
+  /// store documents from an older editor alongside documents written by this
+  /// editor. It inspects the parsed JSON root:
+  ///
+  ///   - top-level array  → legacy `wenz_editor` format (decoded via
+  ///     [LegacyWenJsonCodec]).
+  ///   - top-level object → current Rich JSON (decoded via
+  ///     [RichTextJsonCodec]).
+  ///
+  /// On success the document is replaced (history cleared, [onChanged] fired)
+  /// and the result carries the detected [JsonLoadFormat] so the host can
+  /// decide whether to re-persist the document in the new format. On failure
+  /// the current document, selection, history, and change callbacks are left
+  /// untouched, exactly like [tryLoadJson].
+  ///
+  /// Hosts implementing lazy migration should:
+  ///   1. load with this method,
+  ///   2. keep the editor bound to `toJson()` for saves (always emits the new
+  ///      Rich JSON format), so the note is upgraded the first time it is
+  ///      edited and re-saved.
+  TryLoadJsonAutoResult tryLoadJsonAuto(
+    String source, {
+    DocumentSelection? selection,
+  }) {
+    Object? decoded;
+    try {
+      decoded = jsonDecode(source);
+    } on Object catch (error) {
+      return TryLoadJsonAutoResult.failed(error);
+    }
+    final isLegacy = decoded is List;
+    try {
+      final nextDocument = isLegacy
+          ? _legacyWenJsonCodec.decode(source)
+          : _richTextJsonCodec.decode(source);
+      replaceDocument(nextDocument, selection: selection);
+      return TryLoadJsonAutoResult.ok(
+        nextDocument,
+        format: isLegacy ? JsonLoadFormat.legacy : JsonLoadFormat.current,
+      );
+    } on Object catch (error) {
+      return TryLoadJsonAutoResult.failed(error);
+    }
+  }
+
   ChangeSet execute(EditorCommand command) {
     if (!canExecute(command)) {
       return _permissionDeniedChange(command);
@@ -1539,6 +1586,25 @@ class WenzRichTextController extends ChangeNotifier {
     );
   }
 
+  /// Moves [count] continuous top-level blocks starting at [fromIndex].
+  ///
+  /// [toIndex] is an insertion boundary in the original document before the
+  /// range is removed. The command normalizes it to the final start index after
+  /// removal, allowing callers to pass document-level drop boundaries directly.
+  ChangeSet moveBlockRange({
+    required int fromIndex,
+    required int count,
+    required int toIndex,
+  }) {
+    return execute(
+      MoveBlockRangeCommand(
+        fromIndex: fromIndex,
+        count: count,
+        toIndex: toIndex,
+      ),
+    );
+  }
+
   ChangeSet updateImageBlock({
     required int blockIndex,
     String? assetId,
@@ -1829,6 +1895,15 @@ class WenzRichTextController extends ChangeNotifier {
   }
 
   ChangeSet setAlignment(String? alignment, {DocumentSelection? selection}) {
+    final target = selection ?? session.selection;
+    if (target?.tableCellRange != null) {
+      return execute(
+        SetTableCellRangeAlignmentCommand(
+          alignment: alignment,
+          selection: target,
+        ),
+      );
+    }
     return execute(
       SetAlignmentCommand(alignment: alignment, selection: selection),
     );
@@ -2241,6 +2316,54 @@ class TryLoadResult {
 
   /// The decoded document. Non-null when [ok] is `true`.
   final RichTextDocument? document;
+
+  /// The originating error. Non-null when [ok] is `false`.
+  final Object? error;
+}
+
+/// Which JSON family [WenzRichTextController.tryLoadJsonAuto] decoded.
+///
+/// Hosts use this to implement lazy migration: a note loaded as [legacy] is a
+/// candidate for upgrade on its next save, while [current] notes are already in
+/// the new format and need no special handling.
+enum JsonLoadFormat {
+  /// Current Rich JSON — a top-level object with `version` and `blocks`.
+  current,
+
+  /// Legacy `wenz_editor` JSON — a top-level bare array of blocks.
+  legacy,
+}
+
+/// Outcome of [WenzRichTextController.tryLoadJsonAuto]. Like [TryLoadResult]
+/// but additionally carries the [format] detected before decoding, so hosts
+/// can track which notes still need upgrading. On failure [format] is `null`.
+class TryLoadJsonAutoResult {
+  const TryLoadJsonAutoResult._({
+    required this.ok,
+    this.document,
+    this.format,
+    this.error,
+  });
+
+  factory TryLoadJsonAutoResult.ok(
+    RichTextDocument document, {
+    required JsonLoadFormat format,
+  }) =>
+      TryLoadJsonAutoResult._(ok: true, document: document, format: format);
+
+  factory TryLoadJsonAutoResult.failed(Object error) =>
+      TryLoadJsonAutoResult._(ok: false, error: error);
+
+  /// Whether decoding succeeded.
+  final bool ok;
+
+  /// The decoded document. Non-null when [ok] is `true`.
+  final RichTextDocument? document;
+
+  /// The detected source format. Non-null when [ok] is `true`; `null` on
+  /// failure (the format could not be determined or the payload was not valid
+  /// JSON).
+  final JsonLoadFormat? format;
 
   /// The originating error. Non-null when [ok] is `false`.
   final Object? error;

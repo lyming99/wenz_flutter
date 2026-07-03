@@ -233,6 +233,92 @@ void main() {
       expect(session.selection?.base.offset, 0);
       expect(session.selection?.extent.offset, 4);
     });
+
+    test(
+        'non-collapsed selection collapses to start then jumps backward by word',
+        () {
+      final session = DocumentSession(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'p1',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'hello world')],
+            ),
+          ],
+        ),
+        selection: textSelection('p1', 0, 1, 4), // "ell" selected
+      );
+      final executor = CommandExecutor(session);
+
+      executor.execute(
+        const MoveCaretByWordCommand(CaretMovementDirection.backward),
+      );
+
+      // Collapsed to selection.start (1), then jumped backward to word
+      // boundary (0).
+      expect(session.selection?.isCollapsed, isTrue);
+      expect(session.selection?.extent.offset, 0);
+      expect(session.canUndo, isFalse);
+    });
+
+    test(
+        'non-collapsed selection collapses to end then jumps forward by word',
+        () {
+      final session = DocumentSession(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'p1',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'hello world')],
+            ),
+          ],
+        ),
+        selection: textSelection('p1', 0, 1, 4), // "ell" selected
+      );
+      final executor = CommandExecutor(session);
+
+      executor.execute(
+        const MoveCaretByWordCommand(CaretMovementDirection.forward),
+      );
+
+      // Collapsed to selection.end (4), then jumped forward to next word
+      // boundary. From offset 4 ('o'), forward skips "o" then the space,
+      // landing at 'w' (6).
+      expect(session.selection?.isCollapsed, isTrue);
+      expect(session.selection?.extent.offset, 6);
+      expect(session.canUndo, isFalse);
+    });
+
+    test('non-collapsed word with expandSelection=true extends from base', () {
+      final session = DocumentSession(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'p1',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'hello world')],
+            ),
+          ],
+        ),
+        selection: textSelection('p1', 0, 1, 4), // base=1, extent=4
+      );
+      final executor = CommandExecutor(session);
+
+      executor.execute(
+        const MoveCaretByWordCommand(
+          CaretMovementDirection.forward,
+          expandSelection: true,
+        ),
+      );
+
+      // Extends from base (1) to next word boundary from extent (4→6).
+      expect(session.selection?.isCollapsed, isFalse);
+      expect(session.selection?.base.offset, 1);
+      expect(session.selection?.extent.offset, 6);
+      expect(session.canUndo, isFalse);
+    });
   });
 
   group('move caret to boundary', () {
@@ -303,6 +389,163 @@ void main() {
       );
       expect(session.selection?.extent.blockId, 'p1');
       expect(session.selection?.extent.offset, 0);
+    });
+
+    test('non-collapsed selection collapses to start on Home', () {
+      final session = DocumentSession(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'p1',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'abcdef')],
+            ),
+          ],
+        ),
+        selection: textSelection('p1', 0, 2, 5), // "cde" selected
+      );
+      final executor = CommandExecutor(session);
+
+      executor.execute(
+        const MoveCaretToBlockBoundaryCommand(CaretMovementDirection.backward),
+      );
+
+      expect(session.selection?.isCollapsed, isTrue);
+      expect(session.selection?.extent.offset, 0);
+      expect(session.canUndo, isFalse);
+    });
+
+    test('non-collapsed selection collapses to end on End', () {
+      final session = DocumentSession(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'p1',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'abcdef')],
+            ),
+          ],
+        ),
+        selection: textSelection('p1', 0, 2, 5), // "cde" selected
+      );
+      final executor = CommandExecutor(session);
+
+      executor.execute(
+        const MoveCaretToBlockBoundaryCommand(CaretMovementDirection.forward),
+      );
+
+      expect(session.selection?.isCollapsed, isTrue);
+      expect(session.selection?.extent.offset, 6); // end of "abcdef"
+      expect(session.canUndo, isFalse);
+    });
+
+    test('non-collapsed Home with expandSelection=true extends to boundary', () {
+      final session = DocumentSession(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'p1',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'abcdef')],
+            ),
+          ],
+        ),
+        selection: textSelection('p1', 0, 2, 5), // base=2, extent=5
+      );
+      final executor = CommandExecutor(session);
+
+      executor.execute(
+        const MoveCaretToBlockBoundaryCommand(
+          CaretMovementDirection.backward,
+          expandSelection: true,
+        ),
+      );
+
+      expect(session.selection?.isCollapsed, isFalse);
+      expect(session.selection?.base.offset, 2); // base stays
+      expect(session.selection?.extent.offset, 0); // extent moves to start
+      expect(session.canUndo, isFalse);
+    });
+
+    test(
+        'document boundary from non-collapsed selection collapses correctly',
+        () {
+      final session = DocumentSession(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'p1',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'abc')],
+            ),
+            TextBlockNode(
+              id: 'p2',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'def')],
+            ),
+          ],
+        ),
+        selection: textSelection('p1', 0, 1, 3), // "bc" selected
+      );
+      final executor = CommandExecutor(session);
+
+      executor.execute(
+        const MoveCaretToDocumentBoundaryCommand(
+          CaretMovementDirection.forward,
+        ),
+      );
+      // Should collapse and jump to document end.
+      expect(session.selection?.isCollapsed, isTrue);
+      expect(session.selection?.extent.blockId, 'p2');
+      expect(session.selection?.extent.offset, 3);
+
+      executor.execute(
+        const MoveCaretToDocumentBoundaryCommand(
+          CaretMovementDirection.backward,
+        ),
+      );
+      // Should jump to document start.
+      expect(session.selection?.isCollapsed, isTrue);
+      expect(session.selection?.extent.blockId, 'p1');
+      expect(session.selection?.extent.offset, 0);
+      expect(session.canUndo, isFalse);
+    });
+
+    test(
+        'document boundary from non-collapsed with expandSelection extends',
+        () {
+      final session = DocumentSession(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'p1',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'abc')],
+            ),
+            TextBlockNode(
+              id: 'p2',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'def')],
+            ),
+          ],
+        ),
+        selection: textSelection('p2', 1, 0, 2), // "de" selected in p2
+      );
+      final executor = CommandExecutor(session);
+
+      executor.execute(
+        const MoveCaretToDocumentBoundaryCommand(
+          CaretMovementDirection.backward,
+          expandSelection: true,
+        ),
+      );
+      // Extends from base to document start.
+      expect(session.selection?.isCollapsed, isFalse);
+      expect(session.selection?.base.blockId, 'p2');
+      expect(session.selection?.base.offset, 0);
+      expect(session.selection?.extent.blockId, 'p1');
+      expect(session.selection?.extent.offset, 0);
+      expect(session.canUndo, isFalse);
     });
   });
 

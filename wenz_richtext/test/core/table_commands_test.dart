@@ -124,6 +124,87 @@ void main() {
     expect(table.table.columnAlignments.containsKey(1), isFalse);
   });
 
+  test('controller setAlignment routes table cell selection to cell alignment',
+      () {
+    final selection = DocumentSelection(
+      base: DocumentPosition.tableCell(
+        tableBlockId: 't1',
+        blockIndex: 0,
+        tableRowIndex: 0,
+        tableColumnIndex: 0,
+        offset: 0,
+      ),
+      extent: DocumentPosition.tableCell(
+        tableBlockId: 't1',
+        blockIndex: 0,
+        tableRowIndex: 1,
+        tableColumnIndex: 1,
+        offset: 0,
+      ),
+    );
+    final controller = WenzRichTextController(
+      document: _tableDocument(),
+      selection: selection,
+    );
+    addTearDown(controller.dispose);
+
+    controller.setAlignment('center');
+
+    var table = controller.document.blocks.single as TableBlockNode;
+    expect(table.attributes.alignment, isNull);
+    expect(table.table.columnAlignments, isEmpty);
+    for (var row = 0; row < table.table.rowCount; row++) {
+      for (var column = 0; column < table.table.columnCount; column++) {
+        expect(table.table.cellAt(row, column)?.alignment, 'center');
+      }
+    }
+    expect(controller.selection, selection);
+
+    controller.setAlignment(null);
+    table = controller.document.blocks.single as TableBlockNode;
+    for (var row = 0; row < table.table.rowCount; row++) {
+      for (var column = 0; column < table.table.columnCount; column++) {
+        expect(table.table.cellAt(row, column)?.alignment, isNull);
+      }
+    }
+    expect(table.table.columnAlignments, isEmpty);
+  });
+
+  test('controller setAlignment keeps ordinary text block alignment behavior',
+      () {
+    final selection = DocumentSelection(
+      base: DocumentPosition.text(
+        blockId: 'p1',
+        blockIndex: 0,
+        offset: 0,
+      ),
+      extent: DocumentPosition.text(
+        blockId: 'p1',
+        blockIndex: 0,
+        offset: 5,
+      ),
+    );
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'Hello')],
+          ),
+        ],
+      ),
+      selection: selection,
+    );
+    addTearDown(controller.dispose);
+
+    controller.setAlignment('right');
+
+    final block = controller.document.blocks.single as TextBlockNode;
+    expect(block.attributes.alignment, 'right');
+    expect(controller.selection, selection);
+  });
+
   test('inserting a column before an aligned column shifts its alignment', () {
     final session = DocumentSession(document: _tableDocument());
     final executor = CommandExecutor(session);
@@ -653,6 +734,87 @@ void main() {
     final table = session.document.blocks.single as TableBlockNode;
     expect(table.table.cellAt(0, 0)?.rowSpan, 2);
     expect(table.table.cellAt(1, 1)?.covered, isTrue);
+  });
+
+  test('table cell alignment survives style merge and split commands', () {
+    final session = DocumentSession(document: _tableDocument());
+    final executor = CommandExecutor(session);
+
+    executor.execute(
+      const SetTableCellAlignmentCommand(
+        blockIndex: 0,
+        rowIndex: 0,
+        columnIndex: 0,
+        alignment: 'center',
+      ),
+    );
+    executor.execute(
+      const SetTableCellAlignmentCommand(
+        blockIndex: 0,
+        rowIndex: 1,
+        columnIndex: 1,
+        alignment: 'right',
+      ),
+    );
+    executor.execute(
+      const SetTableCellHeaderCommand(
+        blockIndex: 0,
+        rowIndex: 0,
+        columnIndex: 0,
+        isHeader: true,
+      ),
+    );
+    executor.execute(
+      const SetTableCellBackgroundCommand(
+        blockIndex: 0,
+        rowIndex: 0,
+        columnIndex: 0,
+        backgroundColor: 0xFFFFEEAA,
+      ),
+    );
+    var table = session.document.blocks.single as TableBlockNode;
+    expect(table.table.cellAt(0, 0)?.alignment, 'center');
+    expect(table.table.cellAt(0, 0)?.isHeader, isTrue);
+    expect(table.table.cellAt(0, 0)?.backgroundColor, 0xFFFFEEAA);
+
+    executor.execute(
+      const SetTableCellBackgroundCommand(
+        blockIndex: 0,
+        rowIndex: 0,
+        columnIndex: 0,
+        backgroundColor: null,
+      ),
+    );
+    table = session.document.blocks.single as TableBlockNode;
+    expect(table.table.cellAt(0, 0)?.alignment, 'center');
+    expect(table.table.cellAt(0, 0)?.backgroundColor, isNull);
+
+    executor.execute(
+      const MergeTableCellsCommand(
+        blockIndex: 0,
+        startRow: 0,
+        startColumn: 0,
+        endRow: 1,
+        endColumn: 1,
+      ),
+    );
+    table = session.document.blocks.single as TableBlockNode;
+    expect(table.table.cellAt(0, 0)?.alignment, 'center');
+    expect(table.table.cellAt(0, 0)?.rowSpan, 2);
+    expect(table.table.cellAt(0, 0)?.columnSpan, 2);
+    expect(table.table.cellAt(1, 1)?.alignment, 'right');
+    expect(table.table.cellAt(1, 1)?.covered, isTrue);
+
+    executor.execute(
+      const SplitTableCellCommand(blockIndex: 0, rowIndex: 0, columnIndex: 0),
+    );
+    table = session.document.blocks.single as TableBlockNode;
+    expect(table.table.cellAt(0, 0)?.alignment, 'center');
+    expect(table.table.cellAt(0, 0)?.rowSpan, 1);
+    expect(table.table.cellAt(0, 0)?.columnSpan, 1);
+    expect(table.table.cellAt(1, 1)?.alignment, 'right');
+    expect(table.table.cellAt(1, 1)?.covered, isFalse);
+    expect(table.table.columnAlignments, isEmpty);
   });
 
   test('set table cell alignment updates and clears per-cell alignment', () {

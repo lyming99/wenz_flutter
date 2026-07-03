@@ -497,14 +497,13 @@ class _OutlineItemRow extends StatelessWidget {
           ),
           child: Row(
             children: <Widget>[
-              if (showToggle)
+              if (showToggle) ...[
                 _CollapseToggle(
                   item: item,
                   onTap: () => onToggleCollapse!(item),
-                )
-              else
-                const SizedBox(width: 24, height: 24),
-              const SizedBox(width: 4),
+                ),
+                const SizedBox(width: 4),
+              ],
               badge,
               const SizedBox(width: 6),
               Expanded(

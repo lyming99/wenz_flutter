@@ -34,20 +34,17 @@ class MoveBlockCommand extends EditorCommand {
       return const CommandResult(recordHistory: false);
     }
 
-    final blocks = document.blocks.map((block) => block.copy()).toList();
-    final moved = blocks.removeAt(fromIndex);
-    blocks.insert(toIndex, moved);
-    final blockIndexes = <String, int>{
-      for (var index = 0; index < blocks.length; index++)
-        blocks[index].id: index,
-    };
-
-    session.document = RichTextDocument(
-      version: document.version,
-      blocks: blocks,
-      comments: _retargetCommentThreads(document.comments, blockIndexes),
-      revisions: _retargetRevisionChanges(document.revisions, blockIndexes),
+    final move = _moveBlocksToFinalStart(
+      document,
+      fromIndex: fromIndex,
+      count: 1,
+      finalStartIndex: toIndex,
     );
+    if (move == null) {
+      return const CommandResult(recordHistory: false);
+    }
+    session.document = move.document;
+    final moved = move.movedBlocks.first;
     return CommandResult(
       selection: _selectionForMovedBlock(moved, toIndex),
       metadata: <String, Object?>{
@@ -57,6 +54,150 @@ class MoveBlockCommand extends EditorCommand {
       },
     );
   }
+}
+
+/// Moves a continuous top-level block range to an external insertion boundary.
+///
+/// [toIndex] is expressed in the original document as an insertion boundary in
+/// the range `0..blockCount`, before the moving range is removed. The command
+/// normalizes it to the moved range's final start index after removal. Targets
+/// inside the moving range, empty ranges, out-of-bounds values, and same-place
+/// moves are no-op and do not record history.
+class MoveBlockRangeCommand extends EditorCommand {
+  const MoveBlockRangeCommand({
+    required this.fromIndex,
+    required this.count,
+    required this.toIndex,
+  });
+
+  final int fromIndex;
+  final int count;
+  final int toIndex;
+
+  @override
+  String get description => 'moveBlockRange';
+
+  @override
+  CommandResult execute(DocumentSession session) {
+    final document = session.document;
+    final normalized = _normalizeExternalInsertionBoundary(
+      blockCount: document.blocks.length,
+      fromIndex: fromIndex,
+      count: count,
+      toIndex: toIndex,
+    );
+    if (normalized == null) {
+      return const CommandResult(recordHistory: false);
+    }
+
+    final move = _moveBlocksToFinalStart(
+      document,
+      fromIndex: fromIndex,
+      count: count,
+      finalStartIndex: normalized.finalStartIndex,
+    );
+    if (move == null) {
+      return const CommandResult(recordHistory: false);
+    }
+    session.document = move.document;
+    return CommandResult(
+      selection: _selectionForMovedBlock(
+        move.movedBlocks.first,
+        normalized.finalStartIndex,
+      ),
+      metadata: <String, Object?>{
+        'fromIndex': fromIndex,
+        'count': count,
+        'toIndex': toIndex,
+        'finalStartIndex': normalized.finalStartIndex,
+        'blockIds': List<String>.unmodifiable(
+          move.movedBlocks.map((block) => block.id),
+        ),
+      },
+    );
+  }
+}
+
+_NormalizedBlockRangeMove? _normalizeExternalInsertionBoundary({
+  required int blockCount,
+  required int fromIndex,
+  required int count,
+  required int toIndex,
+}) {
+  if (count <= 0 ||
+      fromIndex < 0 ||
+      fromIndex >= blockCount ||
+      toIndex < 0 ||
+      toIndex > blockCount) {
+    return null;
+  }
+  final endIndexExclusive = fromIndex + count;
+  if (endIndexExclusive > blockCount) {
+    return null;
+  }
+  if (toIndex >= fromIndex && toIndex <= endIndexExclusive) {
+    return null;
+  }
+  final finalStartIndex = toIndex < fromIndex ? toIndex : toIndex - count;
+  return _NormalizedBlockRangeMove(finalStartIndex: finalStartIndex);
+}
+
+_MovedBlockRange? _moveBlocksToFinalStart(
+  RichTextDocument document, {
+  required int fromIndex,
+  required int count,
+  required int finalStartIndex,
+}) {
+  final blockCount = document.blocks.length;
+  if (count <= 0 || fromIndex < 0 || fromIndex >= blockCount) {
+    return null;
+  }
+  final endIndexExclusive = fromIndex + count;
+  if (endIndexExclusive > blockCount) {
+    return null;
+  }
+  final remainingCount = blockCount - count;
+  if (finalStartIndex < 0 || finalStartIndex > remainingCount) {
+    return null;
+  }
+  if (finalStartIndex == fromIndex) {
+    return null;
+  }
+
+  final blocks = document.blocks.map((block) => block.copy()).toList();
+  final movedBlocks = blocks.sublist(fromIndex, endIndexExclusive);
+  blocks.removeRange(fromIndex, endIndexExclusive);
+  blocks.insertAll(finalStartIndex, movedBlocks);
+  final blockIndexes = <String, int>{
+    for (var index = 0; index < blocks.length; index++)
+      blocks[index].id: index,
+  };
+
+  return _MovedBlockRange(
+    document: RichTextDocument(
+      version: document.version,
+      blocks: blocks,
+      comments: _retargetCommentThreads(document.comments, blockIndexes),
+      revisions: _retargetRevisionChanges(document.revisions, blockIndexes),
+    ),
+    movedBlocks: List<BlockNode>.unmodifiable(movedBlocks),
+  );
+}
+
+class _NormalizedBlockRangeMove {
+  const _NormalizedBlockRangeMove({required this.finalStartIndex});
+
+  final int finalStartIndex;
+}
+
+class _MovedBlockRange {
+  const _MovedBlockRange({
+    required this.document,
+    required this.movedBlocks,
+  });
+
+  final RichTextDocument document;
+  final List<BlockNode> movedBlocks;
 }
 
 List<CommentThread> _retargetCommentThreads(

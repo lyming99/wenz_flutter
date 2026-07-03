@@ -14,7 +14,9 @@ Rules:
 - Text block attributes are made consistent with their block type.
 - List item `listType` values are canonicalised to `ordered`, `task`, or `null`
   for unordered bullets.
-- Table cells always contain at least one paragraph block.
+- Table cells always contain at least one paragraph block. A cell may carry
+  `TableCellNode.alignment`; when it is `null`, renderers inherit
+  `TableModel.columnAlignments[column]` and then fall back to start alignment.
 - Indent values are clamped to the configured schema range.
 - `BlockEmbedNode.embedType` is normalized to `custom` when blank, and
   `fallbackText` is trimmed; app-owned `data` is preserved as JSON-compatible
@@ -202,9 +204,34 @@ so history, schema normalization, and middleware all run consistently.
   and lets renderers fall back to the variant default.
 - `ToggleQuoteCommand` switches paragraph/quote state and uses indent for quote
   depth during this stage.
+- `SetAlignmentCommand(alignment)` writes or clears `BlockAttributes.alignment`
+  on ordinary text-block selections. Table-cell selections are intentionally
+  ignored at this command level; `WenzRichTextController.setAlignment` routes
+  them to the table cell alignment command described below.
 - `SetBlockAnchorCommand(blockIndex, anchor)` writes or clears a block-level
   anchor through the normal command pipeline; controller code usually calls
   `WenzRichTextController.setBlockAnchor`.
+- `MoveBlockCommand(fromIndex, toIndex)` moves one top-level block to its final
+  block index and remains the command behind
+  `WenzRichTextController.moveBlock`.
+- `MoveBlockRangeCommand(fromIndex, count, toIndex)` moves a continuous
+  top-level block range. `toIndex` is an insertion boundary in the original
+  document (`0..blockCount`) before the range is removed; the command normalizes
+  it to the final start index after removal. Empty ranges, out-of-bounds values,
+  same-place moves, and targets inside the moving range are no-op changes that
+  do not enter history. Successful moves keep block payloads intact, retarget
+  comment/revision block indexes by block id, and place selection on the first
+  moved block. `WenzRichTextController.moveBlockRange` is the typed controller
+  entry point for this command.
+- Heading drag handles and block-menu move actions use the same range command
+  when an attached `WenzOutlineController` resolves a heading range. The moved
+  range is the heading block plus every following top-level child block until
+  the next same-level or higher-level heading, using the same H1-H6 boundary as
+  outline collapse. Collapsed headings still move their hidden children because
+  the range is resolved from the source document, not from the visible
+  projection. Non-heading blocks keep the existing single-block move behavior.
+  This grouping is an editor/controller command behavior only; it does not add
+  fields to rich JSON, Markdown, HTML, or the document schema.
 - `CalloutBlockNode`, `FileBlockNode`, and `BlockEmbedNode` are serializable
   blocks that can be inserted through controller helpers. Callout JSON/HTML
   preserve structured `variant`/`title`/`icon`; Markdown export deliberately
@@ -215,6 +242,30 @@ so history, schema normalization, and middleware all run consistently.
   business `embedType/data/fallbackText`, is inserted via
   `WenzRichTextController.insertBlockEmbed`, round-trips through rich JSON and
   HTML `data-*` attributes, and degrades to readable Markdown/plain text.
+
+## Table commands
+
+Table commands keep row/column/cell editing behind the same command pipeline as
+text and block edits. `SetTableColumnAlignmentCommand` writes
+`TableModel.columnAlignments` and should be used for column-default tooling,
+including Markdown table alignment rows. `SetTableCellRangeAlignmentCommand`
+writes `TableCellNode.alignment` for a rectangular table-cell selection, skips
+covered cells created by merged-cell placeholders, and preserves the current
+selection. Passing `null` clears the explicit cell alignment so the cell falls
+back to its column alignment.
+
+The controller-facing API is `WenzRichTextController.setAlignment(value)`.
+Ordinary selections become `SetAlignmentCommand`; table-cell selections become
+`SetTableCellRangeAlignmentCommand`. This is the same split used by
+`ToolbarController.setAlignment` / `clearAlignment`, so built-in and host
+toolbars can expose one set of left/center/right/justify/clear buttons without
+mutating table column defaults by accident.
+
+Rich JSON persists both `TableModel.columnAlignments` and
+`TableCellNode.alignment`. HTML import/export maps per-cell alignment through
+`style="text-align: ..."` or legacy `align`; Markdown import/export can only
+represent column alignment, so cell-level alignment is a rich JSON / HTML
+feature.
 
 ## Command pipeline
 

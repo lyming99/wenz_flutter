@@ -591,6 +591,154 @@ void main() {
     });
   });
 
+  group('TextLayoutService line hit testing (P003)', () {
+    test('short single line right-side blank uses text end', () {
+      final fixture = _lineHitFixture('short', maxWidth: 240);
+      expect(fixture.lines, hasLength(1));
+      final line = fixture.lines.single;
+      final range = _lineRangeAt(fixture.painter, line);
+      final y = _lineCenterY(line);
+
+      final leftOffset = fixture.service.offsetAt(
+        fixture.painter,
+        Offset(_leftBlankX(line), y),
+        fixture.text.length,
+      );
+      final rightOffset = fixture.service.offsetAt(
+        fixture.painter,
+        Offset(_rightBlankX(line, fixture.maxWidth), y),
+        fixture.text.length,
+      );
+
+      expect(range.start, 0);
+      expect(range.end, fixture.text.length);
+      expect(leftOffset, 0);
+      expect(rightOffset, fixture.text.length);
+    });
+
+    test('right-side blank on first wrapped visual line uses that line end', () {
+      final fixture = _wrappedLineHitFixture();
+      final firstLine = fixture.lines[0];
+      final firstRange = _lineRangeAt(fixture.painter, firstLine);
+      final secondRange = _lineRangeAt(fixture.painter, fixture.lines[1]);
+
+      final offset = fixture.service.offsetAt(
+        fixture.painter,
+        Offset(
+          _rightBlankX(firstLine, fixture.maxWidth),
+          _lineCenterY(firstLine),
+        ),
+        fixture.text.length,
+      );
+
+      expect(offset, firstRange.end);
+      expect(offset, lessThan(fixture.text.length));
+      expect(offset, lessThanOrEqualTo(secondRange.start));
+    });
+
+    test('right-side blank on second wrapped visual line uses that line end', () {
+      final fixture = _wrappedLineHitFixture();
+      expect(fixture.lines.length, greaterThanOrEqualTo(3));
+      final secondLine = fixture.lines[1];
+      final secondRange = _lineRangeAt(fixture.painter, secondLine);
+
+      final offset = fixture.service.offsetAt(
+        fixture.painter,
+        Offset(
+          _rightBlankX(secondLine, fixture.maxWidth),
+          _lineCenterY(secondLine),
+        ),
+        fixture.text.length,
+      );
+
+      expect(offset, secondRange.end);
+      expect(offset, lessThan(fixture.text.length));
+    });
+
+    test('right-side blank on last wrapped visual line uses text end', () {
+      final fixture = _wrappedLineHitFixture();
+      final lastLine = fixture.lines.last;
+      final lastRange = _lineRangeAt(fixture.painter, lastLine);
+
+      final offset = fixture.service.offsetAt(
+        fixture.painter,
+        Offset(
+          _rightBlankX(lastLine, fixture.maxWidth),
+          _lineCenterY(lastLine),
+        ),
+        fixture.text.length,
+      );
+
+      expect(lastRange.end, fixture.text.length);
+      expect(offset, fixture.text.length);
+    });
+
+    test('x outside target wrapped line clamps to that line edges', () {
+      final fixture = _wrappedLineHitFixture();
+      final targetLine = fixture.lines[1];
+      final targetRange = _lineRangeAt(fixture.painter, targetLine);
+      final y = _lineCenterY(targetLine);
+
+      final leftOffset = fixture.service.offsetAt(
+        fixture.painter,
+        Offset(_leftBlankX(targetLine), y),
+        fixture.text.length,
+      );
+      final rightOffset = fixture.service.offsetAt(
+        fixture.painter,
+        Offset(_rightBlankX(targetLine, fixture.maxWidth), y),
+        fixture.text.length,
+      );
+
+      expect(leftOffset, targetRange.start);
+      expect(rightOffset, targetRange.end);
+    });
+
+    test('explicit newlines keep right-side blank hits on the current line', () {
+      final fixture = _lineHitFixture(
+        'alpha beta\ngamma delta\nomega',
+        maxWidth: 320,
+      );
+      expect(fixture.lines.length, 3);
+      final firstRange = _lineRangeAt(fixture.painter, fixture.lines[0]);
+      final secondRange = _lineRangeAt(fixture.painter, fixture.lines[1]);
+      final thirdRange = _lineRangeAt(fixture.painter, fixture.lines[2]);
+
+      final firstOffset = fixture.service.offsetAt(
+        fixture.painter,
+        Offset(
+          _rightBlankX(fixture.lines[0], fixture.maxWidth),
+          _lineCenterY(fixture.lines[0]),
+        ),
+        fixture.text.length,
+      );
+      final secondOffset = fixture.service.offsetAt(
+        fixture.painter,
+        Offset(
+          _rightBlankX(fixture.lines[1], fixture.maxWidth),
+          _lineCenterY(fixture.lines[1]),
+        ),
+        fixture.text.length,
+      );
+      final thirdOffset = fixture.service.offsetAt(
+        fixture.painter,
+        Offset(
+          _rightBlankX(fixture.lines[2], fixture.maxWidth),
+          _lineCenterY(fixture.lines[2]),
+        ),
+        fixture.text.length,
+      );
+
+      expect(firstOffset, firstRange.end);
+      expect(firstOffset, lessThanOrEqualTo(secondRange.start));
+      expect(secondOffset, secondRange.end);
+      expect(secondOffset, greaterThanOrEqualTo(secondRange.start));
+      expect(secondOffset, lessThanOrEqualTo(thirdRange.start));
+      expect(thirdOffset, thirdRange.end);
+      expect(thirdOffset, fixture.text.length);
+    });
+  });
+
   // B1: word/paragraph boundary coverage. The implementation already worked
   // (double/triple-tap widget tests existed); these unit tests pin the edge
   // cases the gesture overlay relies on so a regression in TextLayoutService
@@ -699,6 +847,83 @@ void main() {
       expect(word.end, 0);
     });
   });
+}
+
+_LineHitFixture _wrappedLineHitFixture() {
+  final fixture = _lineHitFixture(
+    'alpha beta gamma delta epsilon zeta eta theta iota kappa lambda',
+    maxWidth: 118,
+  );
+  expect(fixture.lines.length, greaterThanOrEqualTo(3));
+  return fixture;
+}
+
+_LineHitFixture _lineHitFixture(String text, {required double maxWidth}) {
+  final service = TextLayoutService();
+  final painter = service.layout(
+    span: TextSpan(
+      text: text,
+      style: const TextStyle(
+        fontFamily: 'Ahem',
+        fontSize: 10,
+        height: 1.4,
+      ),
+    ),
+    textAlign: TextAlign.start,
+    textDirection: TextDirection.ltr,
+    maxWidth: maxWidth,
+  );
+  final lines = painter.computeLineMetrics();
+  expect(lines, isNotEmpty);
+  return _LineHitFixture(
+    service: service,
+    painter: painter,
+    text: text,
+    maxWidth: maxWidth,
+    lines: lines,
+  );
+}
+
+TextRange _lineRangeAt(TextPainter painter, LineMetrics line) {
+  final y = _lineCenterY(line);
+  final start = painter.getPositionForOffset(Offset(-100000, y)).offset;
+  final end = painter.getPositionForOffset(Offset(100000, y)).offset;
+  return TextRange(start: start, end: end);
+}
+
+double _lineCenterY(LineMetrics line) {
+  final top = line.baseline - line.ascent;
+  final bottom = line.baseline + line.descent;
+  return top + (bottom - top) / 2;
+}
+
+double _leftBlankX(LineMetrics line) {
+  return line.left - 24;
+}
+
+double _rightBlankX(LineMetrics line, double maxWidth) {
+  final right = line.left + line.width;
+  final gap = maxWidth - right;
+  if (gap > 2) {
+    return right + gap / 2;
+  }
+  return right + 24;
+}
+
+class _LineHitFixture {
+  const _LineHitFixture({
+    required this.service,
+    required this.painter,
+    required this.text,
+    required this.maxWidth,
+    required this.lines,
+  });
+
+  final TextLayoutService service;
+  final TextPainter painter;
+  final String text;
+  final double maxWidth;
+  final List<LineMetrics> lines;
 }
 
 Offset _globalTextOffset(WidgetTester tester, String text, int offset) {

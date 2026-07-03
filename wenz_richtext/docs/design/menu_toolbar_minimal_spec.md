@@ -27,24 +27,25 @@
 
 ## 视觉 Token
 
-- 圆角：菜单容器 12px；菜单项与工具栏按钮 8px；对象卡片或媒体块继续使用其现有块级圆角，不因工具栏样式重置。
-- 间距：菜单容器内边距 4–6px；菜单项水平内边距 10–12px；图标与文字间距 10px；工具栏按钮固定 32px，图标 18px，slash 菜单图标 20px。
-- 阴影：浮层使用轻量阴影，当前实现等价于 elevation 6、shadow alpha 48；hover/focus 只在需要区分层级时复用 `_kSurfaceBoxShadow`。
-- 边框：浮层统一使用 `outlineVariant` 低透明度描边；分割线只表达分组，不承担装饰性强调。
+- 圆角：popup 菜单容器 10px，菜单项与工具栏按钮 8px；对象卡片或媒体块继续使用其现有块级圆角，不因工具栏样式重置。
+- 间距：popup 菜单容器内边距 4px；`PopupMenuItem.padding` 归零，菜单项内容统一由 `_kMinimalMenuItemContentPadding` 提供 10px 水平内边距；图标与文字间距 10px；工具栏按钮固定 32px，图标 18px，slash 菜单图标 20px。
+- 阴影：popup 浮层使用轻量桌面阴影，当前实现等价于 elevation 3、shadow alpha 30；hover/focus 只在需要区分层级时复用 `_kSurfaceBoxShadow`。
+- 边框：popup 浮层统一使用 `outlineVariant` 低透明度描边，浅色 alpha 112、深色 alpha 96；分割线只表达分组，不承担装饰性强调。
 - 背景：浮层背景使用 `colorScheme.surfaceContainerLow`；内容选中或高亮使用 `primaryContainer`/`primary` 的低透明度变体；避免新增硬编码亮色背景。
 - 文字层级：主标题使用 `bodyMedium` 中等字重；说明、快捷键和辅助文案使用 `labelSmall`/`onSurfaceVariant`；禁用态沿用 Flutter `PopupMenuItem.enabled=false` 与按钮 disabled 前景色。
-- 高亮色：主色只用于当前项图标、pressed 叠加和少量选中态，不用于大面积工具栏底色；危险动作只在图标/文本层表达，不改变菜单容器风格。
+- 工具栏按钮背景：图标按钮默认背景透明（`Colors.transparent`），不各自绘制独立胶囊背景。连体胶囊的共享容器背景由 `_MinimalFloatingToolbarSurface` 的 `Material.color`（`_floatingToolbarSurfaceColor`）统一承载，按钮透明地坐于其上。仅 hover/focus/pressed 状态下单个按钮才显示半透明叠加高亮（`hoverColor`/`focusColor`/`highlightColor`），提供瞬时视觉反馈；禁用态按钮同样不显示独立背景，仅前景色降透明度表达禁用语义。
+- 高亮色：主色只用于当前项图标、pressed 叠加和少量选中态，不用于大面积工具栏底色；popup 选中项使用整行 primary 低透明铺底（浅色 alpha 22、深色 alpha 34）和 primary 图标/文字；危险动作只在图标/文本层表达，不改变菜单容器风格。
 
-## Electron 风格斜杆 popup 规范
+## 统一 Chrome 风格 popup 规范
 
-本小节针对 `WenzSlashMenuOverlay`（`lib/src/widgets/slash_menu_overlay.dart`），视觉来源为 `ui/slash_popup_electron_design.html`。它是对上方「视觉 Token」中 chrome/阴影/圆角部分在**斜杆 popup 这一个组件**上的**收敛建议**，落地时以本小节为准；其它菜单/工具栏仍沿用「视觉 Token」原值，互不干扰。目标是 VSCode / Cursor / Notion 桌面版命令面板观感：扁平克制、清晰层级、紧凑节奏，且只动外观与文案，不动定位/触发/键盘路由等行为。
+本小节针对 `WenzSlashMenuOverlay`、mention 搜索、link hover、link edit dialog、公式编辑 popup、代码语言菜单和表格 floating toolbar 的统一 chrome。视觉来源仍参考 `ui/slash_popup_electron_design.html` 的桌面应用观感，但 chrome/阴影/圆角/描边需与上方「视觉 Token」保持一致：扁平克制、清晰层级、紧凑节奏，且只动外观与文案，不动定位/触发/键盘路由等行为。
 
 - Chrome（容器）：
   - 圆角：`10px`（由既有 12 收敛，更桌面克制）。对应 `_kSlashMenuSurfaceRadius`。
   - 内边距：`6px`，紧凑节奏。对应 `_kSlashMenuPadding`。
-  - 描边：`outlineVariant` 约 `14%`（alpha ≈ 36）。对应 `_kSlashMenuSurfaceBorderAlpha`。
+  - 描边：`outlineVariant` 低透明描边，浅色 alpha `112`、深色 alpha `96`。对应各浮层 `*BorderAlphaLight/Dark`。
   - 背景：`colorScheme.surfaceContainerLow`，不引入硬编码亮色背景。
-  - 阴影：弱化高程至 elevation ≈ `3`（原 6），shadow alpha 收敛至约 `24`（原 48），两层、更贴近桌面：主层 `0 6px 18px`、次层 `0 1px 4px`。对应 `_kSlashMenuSurfaceElevation` / `_kSlashMenuSurfaceShadowAlpha`。
+  - 阴影：弱化高程至 elevation ≈ `3`（原 6），shadow alpha 收敛至 `30`。对应各浮层 `*SurfaceElevation` / `*ShadowAlpha`。
 - Spacing（条目）：
   - 圆角：`8px`。对应 `_kSlashMenuItemRadius`。
   - 高度：`34–38px`（建议 36px），垂直内边距收紧至约 `7px`、水平 `10px`。对应 `_kSlashMenuItemPadding`。
@@ -55,7 +56,7 @@
   - 描述：`11.5px`、字重 400，色用 `onSurfaceVariant`，与标题形成清晰主次。
   - 分组标题（可选增强）：`onSurfaceVariant`、小号大写字样；分隔线只表达分组，不承担强调。
 - Selection（选中/键盘高亮）：
-  - 背景使用 `primary` 低透明度：浅色 `12%`、暗色 `16%`，不整块强色填充。对应 `_kSlashMenuSelectedAlphaLight` / `_kSlashMenuSelectedAlphaDark`。
+  - 背景使用 `primary` 低透明度：浅色 alpha `22`、暗色 alpha `34`，不整块强色填充。对应 `_kSlashMenuSelectedAlphaLight/Dark`、mention 选中态和 popup menu selected token。
   - 选中项的图标与标题回退 `primary`，描述保持 `onSurfaceVariant`。
   - 悬停（与键盘 focus 同强度）使用 `onSurface` 约 `5%` 的中性反馈。对应 `_kSlashMenuHoverAlpha`。
   - 按下使用 `primary` 约 `18%` 叠加 + 向下位移 1px，不改变尺寸/圆角。对应 `_kSlashMenuSplashAlpha`。
@@ -65,13 +66,14 @@
 - 文案与无障碍（与本计划中文化口径一致）：
   - 菜单项 `title` / `description`、空状态主副提示均为简体中文；`id` / `keywords` 不变。
   - 空状态 `Semantics` label 同步中文化（如「未找到斜杆命令」），保证读屏朗读为中文。
-- 对齐说明：`slash_menu_overlay.dart` 文件顶部「Keep slash menu chrome aligned with …」注释指向本小节；落地时仅更新 chrome/spacing/typography/selection 相关常量与渲染，不改菜单项动作（`action`）与交互行为。
+- 对齐说明：各浮层文件顶部或局部 token 指向本文件；落地时仅更新 chrome/spacing/typography/selection 相关常量与渲染，不改菜单项动作（`action`）、overlay 定位、输入焦点或键盘路由。
 
 ## 现有样式入口
 
 - Slash 菜单：`lib/src/widgets/slash_menu_overlay.dart` 内的 `Material`、`_SlashMenuTile`、`selectedColor`、`InkWell` 反馈色和 icon/title/description 样式是后续落地入口。
-- Popup 菜单：`lib/src/widgets/wenz_rich_text_editor.dart` 内 `_kPopupMenuRadius`、`_kPopupMenuElevation`、`_kPopupMenuPadding`、`_kPopupMenuItemPadding`、`_popupMenuColor`、`_popupMenuShadowColor`、`_popupMenuShape` 是公共入口。
-- 工具栏按钮：`_kBlockToolbarButtonSize`、`_kBlockToolbarIconSize`、`_kBlockToolbarButtonRadius`、`_blockToolbarIconButtonStyle` 控制对象块与表格工具栏的按钮尺度和状态色。
+- Popup 菜单：`lib/src/widgets/wenz_rich_text_editor.dart` 内 `_kPopupMenuRadius`、`_kPopupMenuElevation`、`_kPopupMenuPadding`、`_kPopupMenuItemPadding`、`_kMinimalMenuItemContentPadding`、`_kPopupMenuItemContentMinWidth`、`_kPopupMenuItemContentMaxWidth`、`_popupMenuColor`、`_popupMenuShadowColor`、`_popupMenuShape`、`_PopupMenuItemContent` 是公共入口。
+- 其它编辑器浮层：`mention_search_overlay.dart`、`link_hover_overlay.dart`、`link_edit_dialog.dart` 中的 surface radius/elevation/shadow/border alpha 与 selected/hover token 应与 popup/slash chrome 同步；`_FormulaEditPopup`、代码语言菜单和表格更多菜单复用 `wenz_rich_text_editor.dart` 的 `_kPopupMenu*` helper。
+- 工具栏按钮：`_kBlockToolbarButtonSize`、`_kBlockToolbarIconSize`、`_kBlockToolbarButtonRadius`、`_blockToolbarIconButtonStyle` 控制对象块与表格工具栏的按钮尺度和状态色。按钮默认背景透明，不绘制独立胶囊；`_MinimalFloatingToolbarSurface` 的 surface 颜色作为连体胶囊统一背景承载所有按钮；hover/focus/pressed 时单个按钮通过 `hoverColor`/`focusColor`/`highlightColor` 显示半透明高亮叠加。
 - 悬浮工具栏承载：`_BlockFloatingToolbarSurface` 控制对象块工具栏 chrome；`TableFloatingToolbarOverlayRequest` 的 `minWidth`、`gap`、`fallbackHeight` 与 `_TableFloatingToolbarOverlayEntry` 的 clamp 定位控制表格浮层布局。
 - 编辑器定位：`_kSlashMenuGap`、`_kPopupViewportInset`、`_kPopupMenuMaxWidth`、`_kPopupMenuMaxHeight` 控制 slash/popup 菜单在桌面与移动端视口中的可见区域。
 

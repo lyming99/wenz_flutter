@@ -4,15 +4,17 @@ import 'package:flutter/material.dart';
 
 import '../controller/slash_menu_controller.dart';
 
-// Keep slash menu chrome aligned with the "Electron 风格斜杆 popup 规范" section in
-// docs/design/menu_toolbar_minimal_spec.md (visual source:
-// ui/slash_popup_electron_design.html). Flat/restrained shadow, clear hierarchy,
-// compact rhythm; all colors below stay within colorScheme (no hardcoded theme
-// colors), and behavior (sizing/anchoring/keyboard routing) is unchanged.
+// Keep slash menu chrome aligned with docs/design/menu_toolbar_minimal_spec.md:
+// flat/restrained shadow, clear hierarchy, compact rhythm; chrome colors use
+// fixed neutral light/dark tokens, and behavior (sizing/anchoring/keyboard
+// routing) is unchanged.
 const double _kSlashMenuSurfaceRadius = 10.0;
 const double _kSlashMenuSurfaceElevation = 3.0;
-const int _kSlashMenuSurfaceShadowAlpha = 24;
-const int _kSlashMenuSurfaceBorderAlpha = 36;
+const int _kSlashMenuSurfaceShadowAlpha = 30;
+const Color _kSlashMenuSurfaceColorLight = Color(0xFFF8F9FA);
+const Color _kSlashMenuSurfaceColorDark = Color(0xFF292A2D);
+const Color _kSlashMenuSurfaceBorderColorLight = Color(0xFFDADCE0);
+const Color _kSlashMenuSurfaceBorderColorDark = Color(0xFF4A4C50);
 const EdgeInsets _kSlashMenuPadding = EdgeInsets.all(6);
 const double _kSlashMenuItemRadius = 8.0;
 const EdgeInsets _kSlashMenuItemOuterPadding = EdgeInsets.symmetric(vertical: 1);
@@ -27,24 +29,58 @@ const EdgeInsets _kSlashMenuEmptyPadding = EdgeInsets.symmetric(
 const double _kSlashMenuEmptyMinHeight = 132.0;
 const double _kSlashMenuIconSize = 20.0;
 const double _kSlashMenuIconTextGap = 10.0;
-const int _kSlashMenuHoverAlpha = 13;
-const int _kSlashMenuHighlightAlpha = 46;
-const int _kSlashMenuSplashAlpha = 32;
-const int _kSlashMenuSelectedAlphaLight = 31;
-const int _kSlashMenuSelectedAlphaDark = 41;
+const Color _kSlashMenuHoverColorLight = Color(0xFFF1F3F4);
+const Color _kSlashMenuHoverColorDark = Color(0xFF34363A);
+const Color _kSlashMenuSelectedColorLight = Color(0xFFE8EAED);
+const Color _kSlashMenuSelectedColorDark = Color(0xFF3C4043);
+const Color _kSlashMenuHighlightColorLight = Color(0x1A000000);
+const Color _kSlashMenuHighlightColorDark = Color(0x21FFFFFF);
+const Color _kSlashMenuSplashColorLight = Color(0x26000000);
+const Color _kSlashMenuSplashColorDark = Color(0x2EFFFFFF);
 
-Color _slashMenuSurfaceColor(ThemeData theme) =>
-    theme.colorScheme.surfaceContainerLow;
+Color _slashMenuSurfaceColor(ThemeData theme) {
+  return theme.brightness == Brightness.dark
+      ? _kSlashMenuSurfaceColorDark
+      : _kSlashMenuSurfaceColorLight;
+}
 
 Color _slashMenuShadowColor(ThemeData theme) =>
     theme.colorScheme.shadow.withAlpha(_kSlashMenuSurfaceShadowAlpha);
 
+Color _slashMenuBorderColor(ThemeData theme) {
+  return theme.brightness == Brightness.dark
+      ? _kSlashMenuSurfaceBorderColorDark
+      : _kSlashMenuSurfaceBorderColorLight;
+}
+
+Color _slashMenuHoverColor(ThemeData theme) {
+  return theme.brightness == Brightness.dark
+      ? _kSlashMenuHoverColorDark
+      : _kSlashMenuHoverColorLight;
+}
+
+Color _slashMenuSelectedColor(ThemeData theme) {
+  return theme.brightness == Brightness.dark
+      ? _kSlashMenuSelectedColorDark
+      : _kSlashMenuSelectedColorLight;
+}
+
+Color _slashMenuHighlightColor(ThemeData theme) {
+  return theme.brightness == Brightness.dark
+      ? _kSlashMenuHighlightColorDark
+      : _kSlashMenuHighlightColorLight;
+}
+
+Color _slashMenuSplashColor(ThemeData theme) {
+  return theme.brightness == Brightness.dark
+      ? _kSlashMenuSplashColorDark
+      : _kSlashMenuSplashColorLight;
+}
+
 ShapeBorder _slashMenuShape(ThemeData theme) {
   return RoundedRectangleBorder(
     side: BorderSide(
-      color: theme.colorScheme.outlineVariant.withAlpha(
-        _kSlashMenuSurfaceBorderAlpha,
-      ),
+      color: _slashMenuBorderColor(theme),
     ),
     borderRadius: BorderRadius.circular(_kSlashMenuSurfaceRadius),
   );
@@ -74,7 +110,6 @@ class WenzSlashMenuOverlay extends StatelessWidget {
         }
         final items = controller.items;
         final theme = Theme.of(context);
-        final colorScheme = theme.colorScheme;
         final effectiveMaxWidth = math.max(0.0, maxWidth);
         final effectiveMinWidth = math.min(
           math.max(0.0, minWidth),
@@ -88,7 +123,7 @@ class WenzSlashMenuOverlay extends StatelessWidget {
             color: _slashMenuSurfaceColor(theme),
             elevation: _kSlashMenuSurfaceElevation,
             shadowColor: _slashMenuShadowColor(theme),
-            surfaceTintColor: colorScheme.surfaceTint.withAlpha(0),
+            surfaceTintColor: Colors.transparent,
             shape: _slashMenuShape(theme),
             clipBehavior: Clip.antiAlias,
             child: ConstrainedBox(
@@ -144,17 +179,12 @@ class _SlashMenuTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final selectedColor = colorScheme.primary.withAlpha(
-      theme.brightness == Brightness.dark
-          ? _kSlashMenuSelectedAlphaDark
-          : _kSlashMenuSelectedAlphaLight,
-    );
     final iconColor =
-        selected ? colorScheme.primary : colorScheme.onSurfaceVariant;
+        selected ? colorScheme.onSurface : colorScheme.onSurfaceVariant;
     final titleStyle = theme.textTheme.bodyMedium?.copyWith(
       fontSize: 13,
       fontWeight: FontWeight.w600,
-      color: selected ? colorScheme.primary : colorScheme.onSurface,
+      color: colorScheme.onSurface,
     );
     return Semantics(
       selected: selected,
@@ -166,15 +196,15 @@ class _SlashMenuTile extends StatelessWidget {
         padding: _kSlashMenuItemOuterPadding,
         child: InkWell(
           borderRadius: BorderRadius.circular(_kSlashMenuItemRadius),
-          hoverColor: colorScheme.onSurface.withAlpha(_kSlashMenuHoverAlpha),
-          highlightColor: colorScheme.primary.withAlpha(
-            _kSlashMenuHighlightAlpha,
-          ),
-          splashColor: colorScheme.primary.withAlpha(_kSlashMenuSplashAlpha),
+          hoverColor: _slashMenuHoverColor(theme),
+          highlightColor: _slashMenuHighlightColor(theme),
+          splashColor: _slashMenuSplashColor(theme),
           onTap: onTap,
           child: DecoratedBox(
             decoration: BoxDecoration(
-              color: selected ? selectedColor : colorScheme.surface.withAlpha(0),
+              color: selected
+                  ? _slashMenuSelectedColor(theme)
+                  : Colors.transparent,
               borderRadius: BorderRadius.circular(_kSlashMenuItemRadius),
             ),
             child: Padding(
@@ -278,4 +308,3 @@ IconData _iconFor(String icon) {
     _ => Icons.auto_awesome,
   };
 }
-

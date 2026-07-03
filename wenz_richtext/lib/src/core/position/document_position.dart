@@ -264,6 +264,16 @@ class DocumentSelection {
 
   DocumentPosition get end => base.compareTo(extent) <= 0 ? extent : base;
 
+  /// Returns the bounding-box rectangle of table cells spanned by this
+  /// selection, or `null` if the selection is not entirely within a single
+  /// table.
+  ///
+  /// The returned [TableCellRange] always satisfies
+  /// `startRow <= endRow` and `startColumn <= endColumn`, regardless of the
+  /// relative order of [base] and [extent]. The rectangle is computed purely
+  /// from row/column indices; it does **not** account for merged/covered
+  /// cells — a cell that is covered by a span may still fall inside the
+  /// rectangle.
   TableCellRange? get tableCellRange {
     final baseRow = base.path.tableRowIndex;
     final baseColumn = base.path.tableColumnIndex;
@@ -300,6 +310,17 @@ class DocumentSelection {
   int get hashCode => Object.hash(base, extent);
 }
 
+/// A rectangular region of table cells identified by row and column indices.
+///
+/// **Covered cell semantics**: This range is defined purely by row/column
+/// index boundaries. It does not inspect the table's actual cell-spans or
+/// merged-cell structure. Cells that are "covered" (hidden) by a spanning
+/// cell may still satisfy [containsCell] if their indices fall within the
+/// rectangle. Callers that need span-aware ranges should further filter
+/// against the table's cell-span metadata.
+///
+/// **Invariants**: `startRow <= endRow` and `startColumn <= endColumn`.
+/// All row/column indices must be non-negative.
 class TableCellRange {
   const TableCellRange({
     required this.tableBlockId,
@@ -308,7 +329,13 @@ class TableCellRange {
     required this.endRow,
     required this.startColumn,
     required this.endColumn,
-  });
+  }) : assert(startRow <= endRow,
+            'startRow ($startRow) must be <= endRow ($endRow)'),
+        assert(startColumn <= endColumn,
+            'startColumn ($startColumn) must be <= endColumn ($endColumn)'),
+        assert(startRow >= 0, 'startRow must be non-negative, got $startRow'),
+        assert(startColumn >= 0,
+            'startColumn must be non-negative, got $startColumn');
 
   final String tableBlockId;
   final int blockIndex;

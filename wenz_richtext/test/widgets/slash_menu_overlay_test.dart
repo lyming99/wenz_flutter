@@ -5,6 +5,18 @@ import 'package:wenz_richtext/wenz_richtext.dart';
 
 import '../helpers/selection_test_helpers.dart';
 
+const _slashMenuOverlayKey = ValueKey<String>('wenz-slash-menu-overlay');
+const _slashItemHeadingKey = ValueKey<String>('wenz-slash-item-heading');
+const _slashMenuSurfaceColorLight = Color(0xFFF8F9FA);
+const _slashMenuSurfaceColorDark = Color(0xFF292A2D);
+const _slashMenuBorderColorLight = Color(0xFFDADCE0);
+const _slashMenuBorderColorDark = Color(0xFF4A4C50);
+const _slashMenuSelectedColorLight = Color(0xFFE8EAED);
+const _slashMenuSelectedColorDark = Color(0xFF3C4043);
+const _slashMenuMinReadableHeight = 132.0;
+const _slashMenuViewportInset = 8.0;
+const _slashMenuGap = 6.0;
+
 void main() {
   testWidgets('overlay renders slash items and activates tapped item',
       (tester) async {
@@ -24,16 +36,16 @@ void main() {
     );
 
     expect(
-      find.byKey(const ValueKey<String>('wenz-slash-menu-overlay')),
+      find.byKey(_slashMenuOverlayKey),
       findsOneWidget,
     );
     expect(
-      find.byKey(const ValueKey<String>('wenz-slash-item-heading')),
+      find.byKey(_slashItemHeadingKey),
       findsOneWidget,
     );
 
     await tester.tap(
-      find.byKey(const ValueKey<String>('wenz-slash-item-heading')),
+      find.byKey(_slashItemHeadingKey),
     );
     await tester.pump();
 
@@ -72,20 +84,21 @@ void main() {
       ),
     );
 
-    final overlayFinder =
-        find.byKey(const ValueKey<String>('wenz-slash-menu-overlay'));
+    final overlayFinder = find.byKey(_slashMenuOverlayKey);
     expect(overlayFinder, findsOneWidget);
     expect(tester.getSize(overlayFinder).width, lessThanOrEqualTo(220));
+    _expectNoSlashMenuDividers(overlayFinder);
 
     final material = tester.widget<Material>(overlayFinder);
     final colorScheme = theme.colorScheme;
-    expect(material.color, colorScheme.surfaceContainerLow);
+    expect(material.color, _slashMenuSurfaceColorDark);
     expect(material.elevation, 3);
-    expect(material.surfaceTintColor, colorScheme.surfaceTint.withAlpha(0));
+    expect(material.shadowColor, colorScheme.shadow.withAlpha(30));
+    expect(material.surfaceTintColor, Colors.transparent);
     expect(material.clipBehavior, Clip.antiAlias);
     final shape = material.shape as RoundedRectangleBorder;
     expect(shape.borderRadius, BorderRadius.circular(10));
-    expect(shape.side.color, colorScheme.outlineVariant.withAlpha(36));
+    expect(shape.side.color, _slashMenuBorderColorDark);
 
     final constraints = tester.widget<ConstrainedBox>(
       find.descendant(of: overlayFinder, matching: find.byType(ConstrainedBox)),
@@ -99,14 +112,80 @@ void main() {
     );
     expect(listView.padding, const EdgeInsets.all(6));
 
-    final headingTile =
-        find.byKey(const ValueKey<String>('wenz-slash-item-heading'));
-    final selectedDecoration = tester.widget<DecoratedBox>(
-      find.descendant(of: headingTile, matching: find.byType(DecoratedBox)),
-    );
-    final selectedBox = selectedDecoration.decoration as BoxDecoration;
-    expect(selectedBox.color, colorScheme.primary.withAlpha(41));
+    final headingTile = find.byKey(_slashItemHeadingKey);
+    final selectedBox = _slashTileDecoration(tester, headingTile);
+    expect(selectedBox.color, _slashMenuSelectedColorDark);
+    expect(selectedBox.color, isNot(colorScheme.primary.withAlpha(34)));
     expect(selectedBox.borderRadius, BorderRadius.circular(8));
+    final selectedIcon = tester.widget<Icon>(
+      find.descendant(of: headingTile, matching: find.byIcon(Icons.title)),
+    );
+    expect(selectedIcon.color, colorScheme.onSurface);
+    final selectedTitle = tester.widget<Text>(
+      find.descendant(of: headingTile, matching: find.text('标题')),
+    );
+    expect(selectedTitle.style?.color, colorScheme.onSurface);
+    final selectedDescription = tester.widget<Text>(
+      find.descendant(of: headingTile, matching: find.text('大号章节标题')),
+    );
+    expect(selectedDescription.style?.color, colorScheme.onSurfaceVariant);
+  });
+
+  testWidgets('overlay uses light neutral chrome independent of seed color',
+      (tester) async {
+    final editor = WenzRichTextController(
+      document: _document('/heading'),
+      selection: collapsedTextSelection('p1', 0, 8),
+    );
+    final slash = SlashMenuController(editor: editor);
+    addTearDown(slash.dispose);
+
+    final theme = ThemeData(
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: Colors.deepOrange,
+        brightness: Brightness.light,
+      ),
+      useMaterial3: true,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: theme,
+        home: Scaffold(
+          body: WenzSlashMenuOverlay(
+            controller: slash,
+            minWidth: 260,
+            maxWidth: 220,
+            maxHeight: 180,
+          ),
+        ),
+      ),
+    );
+
+    final overlayFinder = find.byKey(_slashMenuOverlayKey);
+    expect(overlayFinder, findsOneWidget);
+    _expectNoSlashMenuDividers(overlayFinder);
+    final material = tester.widget<Material>(overlayFinder);
+    final colorScheme = theme.colorScheme;
+    expect(material.color, _slashMenuSurfaceColorLight);
+    expect(material.shadowColor, colorScheme.shadow.withAlpha(30));
+    expect(material.surfaceTintColor, Colors.transparent);
+    final shape = material.shape as RoundedRectangleBorder;
+    expect(shape.side.color, _slashMenuBorderColorLight);
+
+    final constraints = tester.widget<ConstrainedBox>(
+      find.descendant(of: overlayFinder, matching: find.byType(ConstrainedBox)),
+    );
+    expect(constraints.constraints.minWidth, 220);
+    expect(constraints.constraints.maxWidth, 220);
+    expect(constraints.constraints.maxHeight, 180);
+
+    final selectedBox = _slashTileDecoration(
+      tester,
+      find.byKey(_slashItemHeadingKey),
+    );
+    expect(selectedBox.color, _slashMenuSelectedColorLight);
+    expect(selectedBox.color, isNot(colorScheme.primary.withAlpha(34)));
   });
 
   testWidgets('overlay shows minimal empty state when no command matches',
@@ -185,7 +264,7 @@ void main() {
     await tester.pump();
 
     expect(
-      find.byKey(const ValueKey<String>('wenz-slash-menu-overlay')),
+      find.byKey(_slashMenuOverlayKey),
       findsOneWidget,
     );
 
@@ -243,52 +322,87 @@ void main() {
     expect(slash.highlightedIndex, 0);
   });
 
+  testWidgets('editor opens slash menu above near keyboard-clipped bottom',
+      (tester) async {
+    await _pumpPositionedSlashEditor(
+      tester,
+      surfaceSize: const Size(360, 260),
+      viewInsets: const EdgeInsets.only(bottom: 80),
+      alignment: Alignment.bottomLeft,
+      editorHeight: 96,
+    );
+
+    final overlayRect = _slashOverlayRect(tester);
+    final editorRect = tester.getRect(find.byType(WenzRichTextEditor));
+    const keyboardTop = 260.0 - 80.0;
+    expect(overlayRect.top, greaterThanOrEqualTo(0));
+    expect(overlayRect.left, greaterThanOrEqualTo(0));
+    expect(overlayRect.bottom, lessThan(editorRect.center.dy));
+    expect(overlayRect.bottom, lessThanOrEqualTo(keyboardTop));
+    expect(
+      overlayRect.height,
+      greaterThanOrEqualTo(_slashMenuMinReadableHeight),
+    );
+  });
+
+  testWidgets('editor opens slash menu below when top space is insufficient',
+      (tester) async {
+    await _pumpPositionedSlashEditor(
+      tester,
+      surfaceSize: const Size(360, 260),
+      alignment: Alignment.topLeft,
+      editorHeight: 96,
+    );
+
+    final overlayRect = _slashOverlayRect(tester);
+    final textRect = tester.getRect(_richText('/'));
+    expect(overlayRect.top, greaterThanOrEqualTo(textRect.bottom));
+    expect(overlayRect.left, greaterThanOrEqualTo(0));
+    expect(overlayRect.bottom, lessThanOrEqualTo(260));
+    expect(
+      overlayRect.height,
+      greaterThanOrEqualTo(_slashMenuMinReadableHeight),
+    );
+  });
+
+  testWidgets('editor chooses larger constrained side and keeps list scrollable',
+      (tester) async {
+    await _pumpPositionedSlashEditor(
+      tester,
+      surfaceSize: const Size(360, 170),
+      alignment: Alignment.topLeft,
+      bodyPadding: const EdgeInsets.only(top: 32),
+      editorHeight: 72,
+    );
+
+    final overlayRect = _slashOverlayRect(tester);
+    final textRect = tester.getRect(_richText('/'));
+    final availableAbove =
+        textRect.top - _slashMenuGap - _slashMenuViewportInset;
+    final availableBelow =
+        170.0 - textRect.bottom - _slashMenuGap - _slashMenuViewportInset;
+    expect(availableAbove, lessThan(_slashMenuMinReadableHeight));
+    expect(availableBelow, lessThan(_slashMenuMinReadableHeight));
+    expect(availableBelow, greaterThan(availableAbove));
+    expect(overlayRect.top, greaterThanOrEqualTo(textRect.bottom));
+    expect(overlayRect.left, greaterThanOrEqualTo(0));
+    expect(overlayRect.height, lessThan(_slashMenuMinReadableHeight));
+    expect(overlayRect.height, greaterThan(48));
+    expect(find.byType(Scrollbar), findsOneWidget);
+  });
+
   testWidgets('editor keeps slash menu inside viewport near bottom',
       (tester) async {
-    final editor = WenzRichTextController(
-      document: _document('/'),
-      selection: collapsedTextSelection('p1', 0, 1),
+    await _pumpPositionedSlashEditor(
+      tester,
+      surfaceSize: const Size(360, 260),
+      viewInsets: const EdgeInsets.only(bottom: 80),
+      alignment: Alignment.bottomLeft,
+      editorHeight: 96,
     );
-    final slash = SlashMenuController(editor: editor);
-    addTearDown(slash.dispose);
 
-    await tester.pumpWidget(
-      MaterialApp(
-        home: MediaQuery(
-          data: const MediaQueryData(
-            size: Size(360, 220),
-            viewInsets: EdgeInsets.only(bottom: 80),
-          ),
-          child: Scaffold(
-            body: Align(
-              alignment: Alignment.bottomLeft,
-              child: SizedBox(
-                width: 360,
-                height: 96,
-                child: WenzRichTextEditor(
-                  controller: editor,
-                  slashMenuController: slash,
-                  enableIme: false,
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-    await tester.pump();
-    await tester.pumpAndSettle();
-
-    final overlay =
-        find.byKey(const ValueKey<String>('wenz-slash-menu-overlay'));
-    expect(overlay, findsOneWidget);
-    final overlayRect = tester.getRect(overlay);
+    final overlayRect = _slashOverlayRect(tester);
     expect(overlayRect.top, greaterThanOrEqualTo(0));
-    // The fallback anchor (used when the caret rect is not yet available)
-    // positions the overlay at the editor's padding top-left in overlay
-    // coordinates. When the editor is at the bottom of a 220-dp viewport the
-    // menu unavoidably extends beyond 220; the important thing is that it is
-    // both rendered and has a non-negative top.
     expect(overlayRect.left, greaterThanOrEqualTo(0));
   });
 
@@ -312,8 +426,7 @@ void main() {
       ),
     );
 
-    final overlayFinder =
-        find.byKey(const ValueKey<String>('wenz-slash-menu-overlay'));
+    final overlayFinder = find.byKey(_slashMenuOverlayKey);
     expect(overlayFinder, findsOneWidget);
     expect(tester.getSize(overlayFinder).height, lessThanOrEqualTo(96));
     expect(find.byType(Scrollbar), findsOneWidget);
@@ -351,7 +464,7 @@ void main() {
 
     expect(slash.isOpen, isFalse);
     expect(
-      find.byKey(const ValueKey<String>('wenz-slash-menu-overlay')),
+      find.byKey(_slashMenuOverlayKey),
       findsNothing,
     );
 
@@ -363,7 +476,7 @@ void main() {
 
     expect(slash.isOpen, isFalse);
     expect(
-      find.byKey(const ValueKey<String>('wenz-slash-menu-overlay')),
+      find.byKey(_slashMenuOverlayKey),
       findsNothing,
     );
   });
@@ -502,7 +615,7 @@ void main() {
     await tester.pump();
 
     await tester.tap(
-      find.byKey(const ValueKey<String>('wenz-slash-item-heading')),
+      find.byKey(_slashItemHeadingKey),
     );
     await tester.pump();
 
@@ -533,7 +646,7 @@ void main() {
       ),
     );
     expect(
-      find.byKey(const ValueKey<String>('wenz-slash-menu-overlay')),
+      find.byKey(_slashMenuOverlayKey),
       findsNothing,
     );
 
@@ -544,7 +657,7 @@ void main() {
     );
     await tester.pump();
     expect(
-      find.byKey(const ValueKey<String>('wenz-slash-menu-overlay')),
+      find.byKey(_slashMenuOverlayKey),
       findsOneWidget,
     );
 
@@ -552,10 +665,97 @@ void main() {
     slash.close();
     await tester.pump();
     expect(
-      find.byKey(const ValueKey<String>('wenz-slash-menu-overlay')),
+      find.byKey(_slashMenuOverlayKey),
       findsNothing,
     );
   });
+}
+
+Future<void> _pumpPositionedSlashEditor(
+  WidgetTester tester, {
+  required Size surfaceSize,
+  required AlignmentGeometry alignment,
+  required double editorHeight,
+  EdgeInsets viewInsets = EdgeInsets.zero,
+  EdgeInsets bodyPadding = EdgeInsets.zero,
+}) async {
+  final editor = WenzRichTextController(
+    document: _document('/'),
+    selection: collapsedTextSelection('p1', 0, 1),
+  );
+  final slash = SlashMenuController(editor: editor);
+  final focusNode = FocusNode();
+  addTearDown(slash.dispose);
+  addTearDown(focusNode.dispose);
+  await tester.binding.setSurfaceSize(surfaceSize);
+  addTearDown(() => tester.binding.setSurfaceSize(null));
+
+  await tester.pumpWidget(
+    MaterialApp(
+      home: MediaQuery(
+        data: MediaQueryData(size: surfaceSize, viewInsets: viewInsets),
+        child: Scaffold(
+          resizeToAvoidBottomInset: false,
+          body: Padding(
+            padding: bodyPadding,
+            child: Align(
+              alignment: alignment,
+              child: SizedBox(
+                width: surfaceSize.width,
+                height: editorHeight,
+                child: WenzRichTextEditor(
+                  controller: editor,
+                  slashMenuController: slash,
+                  focusNode: focusNode,
+                  padding: EdgeInsets.zero,
+                  enableIme: false,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+  focusNode.requestFocus();
+  await tester.pump();
+  await tester.pump();
+  slash.refresh();
+  await tester.pump();
+}
+
+Rect _slashOverlayRect(WidgetTester tester) {
+  final overlay = find.byKey(_slashMenuOverlayKey);
+  expect(overlay, findsOneWidget);
+  return tester.getRect(overlay);
+}
+
+BoxDecoration _slashTileDecoration(WidgetTester tester, Finder itemFinder) {
+  final selectedDecoration = tester.widget<DecoratedBox>(
+    find.descendant(of: itemFinder, matching: find.byType(DecoratedBox)),
+  );
+  return selectedDecoration.decoration as BoxDecoration;
+}
+
+void _expectNoSlashMenuDividers(Finder overlayFinder) {
+  expect(
+    find.descendant(of: overlayFinder, matching: find.byType(Divider)),
+    findsNothing,
+  );
+  expect(
+    find.descendant(of: overlayFinder, matching: find.byType(VerticalDivider)),
+    findsNothing,
+  );
+  expect(
+    find.descendant(of: overlayFinder, matching: find.byType(PopupMenuDivider)),
+    findsNothing,
+  );
+}
+
+Finder _richText(String text) {
+  return find.byWidgetPredicate(
+    (widget) => widget is RichText && widget.text.toPlainText() == text,
+  );
 }
 
 RichTextDocument _document(String text) {
