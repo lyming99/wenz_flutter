@@ -46,6 +46,8 @@ enum EditorShortcutIntent {
   deleteForward,
   enter,
   insertCharacter,
+  indent,
+  outdent,
 }
 
 enum EditorShortcutModifier {
@@ -354,8 +356,8 @@ class EditorShortcutManager {
     if (key == LogicalKeyboardKey.tab) {
       return _applyDisabledIntent(EditorShortcutResolution.handled(
         shiftPressed
-            ? EditorShortcutIntent.moveTableCellBackward
-            : EditorShortcutIntent.moveTableCellForward,
+            ? EditorShortcutIntent.outdent
+            : EditorShortcutIntent.indent,
       ));
     }
     if (key == LogicalKeyboardKey.arrowLeft) {
@@ -758,4 +760,6 @@ const Set<EditorShortcutIntent> _writeIntents = <EditorShortcutIntent>{
   EditorShortcutIntent.deleteForward,
   EditorShortcutIntent.enter,
   EditorShortcutIntent.insertCharacter,
+  EditorShortcutIntent.indent,
+  EditorShortcutIntent.outdent,
 };

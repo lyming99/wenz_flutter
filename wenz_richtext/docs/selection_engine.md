@@ -42,6 +42,24 @@ controller.setSelection(DocumentSelection)  ──▶ 各 _TextSelectionSurface 
 
 手势回归：空白行单击、从空白行开始拖拽、双击、三击都必须保持同一 block/path 的 offset `0` 语义；拖拽 extent 可继续跨到后续文本块。折叠后的隐藏空白行不再保留可命中 surface，点击其折叠前位置不得重新命中隐藏子块。
 
+### 表格 cell 选区语义边界
+
+表格 cell 有三类相互独立的选中状态，selection engine 只负责产出稳定的 `DocumentSelection`，渲染层再按状态分别绘制：
+
+| 状态 | 来源 | 语义 |
+| --- | --- | --- |
+| cell 矩形选区 | `DocumentSelection.tableCellRange` 且覆盖多个 cell | 表示这些 cell 属于表格范围选择；`_selectionRangeForPath` 不为这些 cell 生成文本范围，避免未实际选中的文本被 `_TextSelectionSurface` 高亮。 |
+| cell 内文本选区 | 单个 cell 的 `PositionPath.tableCellText(...)` 起止 offset | 表示只选择该 cell 内的真实文本；只允许该 cell 的文本 selection 高亮，不能触发整格 cell 高亮。 |
+| 语义 selected | `_TableCellSurface` 根据 cell range、跨 block selection 或本 cell 文本范围单独计算 | 供无障碍和状态表达使用；它可以表达 cell 属于表格选区，但不能反向驱动文本高亮。 |
+
+矩形表格选区的视觉边界按 cell 网格矩形计算：可见 cell 与 caret 约束出的选择矩形相交才属于整格高亮；`covered == true` 的覆盖 cell 不渲染、不注册 hit-test，也不产生整格或文本 selection 高亮。跨 block selection 覆盖整张表时，表格中可见 cell 可以表达为语义 selected / 整格高亮，但内部纯文本 selection 仍只出现在真正有文本范围的 cell 上。
+
+### 表格 cell 命中与对齐坐标
+
+表格文本位置使用 `PositionPath.tableCellText(tableBlockId, rowIndex, columnIndex)`。命中测试以 cell 外框作为可命中区域：点击 cell padding、居中/右对齐短文本两侧空白、或短文本因行高被垂直居中后产生的上下留白，都必须解析到当前 cell，而不是落入相邻 cell、相邻行或 `_clampToNearest`。
+
+坐标换算从 cell 外框映射回 cell padding 内的 `_TextSelectionSurface` 本地坐标，并扣除 `TableCellVerticalAlignment.middle` 造成的垂直居中偏移。`TextAlign.center` / `TextAlign.right` 不参与额外平移；文本 surface 使用完整可用宽度，caret、selection endpoint、selection boxes 都交给 `TextPainter` 在同一 text layout 坐标系内解析。因此左侧 padding 命中映射为 offset `0`，右侧 padding 命中映射为 `textLength`，空 cell 命中固定为 offset `0`。
+
 ## SelectionGestureOverlay
 
 `lib/src/widgets/selection_gesture_overlay.dart`。包裹 `SingleChildScrollView`，用 `Listener`（`PointerDown/Move/Up/Cancel`）统一接管指针事件。

@@ -18,9 +18,9 @@ class MeasuredWidgetSpan extends WidgetSpan {
 /// Single-block text layout cache.
 ///
 /// Wraps a [TextPainter] and caches the laid-out instance keyed by
-/// `(span, textAlign, direction, maxWidth)`. Consumers within a single
-/// `_TextSelectionSurface` call [layout] repeatedly (caret placement, hit
-/// testing, selection boxes, painting) for the same content each frame;
+/// `(span, textAlign, direction, minWidth, maxWidth)`. Consumers within a
+/// single `_TextSelectionSurface` call [layout] repeatedly (caret placement,
+/// hit testing, selection boxes, painting) for the same content each frame;
 /// caching avoids re-creating and re-laying-out the painter on every call.
 ///
 /// Scope (stage 0): single block only. Cross-block selection layout is a
@@ -32,10 +32,16 @@ class TextLayoutService {
 
   /// Returns a laid-out [TextPainter] for the given inputs, reusing a cached
   /// instance when all inputs match.
+  ///
+  /// Pass the render box's tight width as both [minWidth] and [maxWidth] when
+  /// the corresponding [RichText] is stretched to its parent. This keeps
+  /// center/right aligned selection boxes in the same coordinate space as the
+  /// painted text.
   TextPainter layout({
     required InlineSpan span,
     required TextAlign textAlign,
     required TextDirection textDirection,
+    double minWidth = 0.0,
     required double maxWidth,
   }) {
     final cache = _cache;
@@ -43,6 +49,7 @@ class TextLayoutService {
         cache.span == span &&
         cache.textAlign == textAlign &&
         cache.textDirection == textDirection &&
+        cache.minWidth == minWidth &&
         cache.maxWidth == maxWidth) {
       return cache.painter;
     }
@@ -55,11 +62,12 @@ class TextLayoutService {
     if (placeholderDimensions != null) {
       painter.setPlaceholderDimensions(placeholderDimensions);
     }
-    painter.layout(maxWidth: maxWidth);
+    painter.layout(minWidth: minWidth, maxWidth: maxWidth);
     _cache = TextLayoutData(
       span: span,
       textAlign: textAlign,
       textDirection: textDirection,
+      minWidth: minWidth,
       maxWidth: maxWidth,
       painter: painter,
     );
@@ -92,17 +100,17 @@ class TextLayoutService {
       return position.offset.clamp(0, textLength).toInt();
     }
     final line = _lineForY(metrics, localPosition.dy);
-    final lineRange = _lineRangeFor(painter, line, textLength);
-    if (localPosition.dx <= _lineLeft(line)) {
-      return lineRange.start;
-    }
-    if (localPosition.dx >= _lineRight(line)) {
-      return lineRange.end;
-    }
+    // Preserve the nearest visual line by y, but let TextPainter resolve x.
+    // Its layout already includes TextAlign shifts for centered/right text.
     final position = painter.getPositionForOffset(
       Offset(localPosition.dx, _lineCenterY(line)),
     );
-    return position.offset.clamp(lineRange.start, lineRange.end).toInt();
+    final boundary = painter.getLineBoundary(position);
+    final start = boundary.start.clamp(0, textLength).toInt();
+    final end = boundary.end.clamp(0, textLength).toInt();
+    final lineStart = start <= end ? start : end;
+    final lineEnd = start <= end ? end : start;
+    return position.offset.clamp(lineStart, lineEnd).toInt();
   }
 
   /// Selection highlight boxes for [start, end).
@@ -184,7 +192,7 @@ class TextLayoutService {
     }
     final targetLine = metrics[targetIndex];
     final pos = painter.getPositionForOffset(
-      Offset(prefer, targetLine.baseline - targetLine.height / 2),
+      Offset(prefer, _lineCenterY(targetLine)),
     );
     final next = pos.offset.clamp(0, textLength).toInt();
     if (next == clamped) {
@@ -228,32 +236,6 @@ LineMetrics _lineForY(List<LineMetrics> metrics, double y) {
   return nearest;
 }
 
-TextRange _lineRangeFor(
-  TextPainter painter,
-  LineMetrics line,
-  int textLength,
-) {
-  final sample = painter.getPositionForOffset(
-    Offset(_lineSampleX(line), _lineCenterY(line)),
-  );
-  final boundary = painter.getLineBoundary(sample);
-  final start = boundary.start.clamp(0, textLength).toInt();
-  final end = boundary.end.clamp(0, textLength).toInt();
-  if (start <= end) {
-    return TextRange(start: start, end: end);
-  }
-  return TextRange(start: end, end: start);
-}
-
-double _lineSampleX(LineMetrics line) {
-  final width = _lineWidth(line);
-  final left = _lineLeft(line);
-  if (width <= 0) {
-    return left;
-  }
-  return left + width / 2;
-}
-
 double _distanceToLine(LineMetrics line, double y) {
   final top = _lineTop(line);
   final bottom = _lineBottom(line);
@@ -281,18 +263,6 @@ double _lineTop(LineMetrics line) {
 
 double _lineBottom(LineMetrics line) {
   return line.baseline + line.descent;
-}
-
-double _lineLeft(LineMetrics line) {
-  return line.left.isFinite ? line.left : 0.0;
-}
-
-double _lineRight(LineMetrics line) {
-  return _lineLeft(line) + _lineWidth(line);
-}
-
-double _lineWidth(LineMetrics line) {
-  return line.width.isFinite && line.width > 0 ? line.width : 0.0;
 }
 
 List<PlaceholderDimensions>? _placeholderDimensionsFor(InlineSpan span) {
@@ -341,6 +311,7 @@ class TextLayoutData {
     required this.span,
     required this.textAlign,
     required this.textDirection,
+    required this.minWidth,
     required this.maxWidth,
     required this.painter,
   });
@@ -348,6 +319,7 @@ class TextLayoutData {
   final InlineSpan span;
   final TextAlign textAlign;
   final TextDirection textDirection;
+  final double minWidth;
   final double maxWidth;
   final TextPainter painter;
 }

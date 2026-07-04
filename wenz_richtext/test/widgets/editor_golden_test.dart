@@ -7,6 +7,9 @@ import 'package:wenz_richtext/wenz_richtext.dart';
 import '../helpers/selection_test_helpers.dart';
 
 const _goldenKey = ValueKey<String>('editor-golden-surface');
+const _selectionHighlightKey = ValueKey<String>(
+  'wenz-richtext-selection-highlight',
+);
 
 void main() {
   test('design baseline maps default renderer coverage and tokens', () {
@@ -73,6 +76,7 @@ void main() {
       <String, double>{'top': 0.6, 'bottom': 0.35},
     );
     expect(BlockDragHandleSpec.railWidth, 68.0);
+    expect(BlockDragHandleSpec.collapseChromeOverflow, 32.0);
     expect(BlockDragHandleSpec.chromeGap, 8.0);
     expect(BlockDragHandleSpec.gapToContent, 8.0);
     expect(BlockDragHandleSpec.hitSize, const Size.square(28.0));
@@ -200,8 +204,10 @@ void main() {
 
     const editorPadding = 16.0;
     const indentedQuoteStart = 24.0;
-    final rowStart =
-        editorRect.left + editorPadding + BlockDragHandleSpec.railWidth;
+    final rowStart = editorRect.left +
+        editorPadding +
+        BlockDragHandleSpec.hitSize.width +
+        BlockDragHandleSpec.gapToContent;
     final rowEnd = editorRect.right - editorPadding;
     final shortQuoteRect = tester.getRect(backgroundFinder.at(0));
     final emptyQuoteRect = tester.getRect(backgroundFinder.at(1));
@@ -494,14 +500,27 @@ void main() {
     );
     expect(expandedButton, findsOneWidget);
     expect(collapsedButton, findsOneWidget);
-    expect(leafButton, findsNothing);
+    // P001: Leaf heading without children now renders a disabled collapse
+    // button (canCollapse == false). The golden screenshot captures the
+    // disabled-state button with its reduced-opacity icon.
+    expect(leafButton, findsOneWidget);
+    expect(tester.widget<IconButton>(leafButton).onPressed, isNull);
     expect(find.text('Hidden detail'), findsNothing);
+    // Collapse button sits in the left gutter at full size, with the same
+    // explicit editable rail geometry as the widget regression tests.
+    final expandedButtonRect = tester.getRect(expandedButton);
+    final dragHandleRect = tester.getRect(
+        _blockDragHandleFinder('expanded-section'));
+    expect(expandedButtonRect.width, greaterThan(0));
+    expect(expandedButtonRect.height, greaterThan(0));
     expect(
-      tester.getRect(_blockDragHandleFinder('expanded-section')).right,
-      moreOrLessEquals(
-        tester.getRect(expandedButton).left - BlockDragHandleSpec.chromeGap,
-        epsilon: 0.5,
-      ),
+      expandedButtonRect.left - dragHandleRect.right,
+      moreOrLessEquals(BlockDragHandleSpec.chromeGap, epsilon: 0.5),
+    );
+    expect(
+      tester.getTopLeft(_richText('Expanded blocks')).dx -
+          expandedButtonRect.right,
+      moreOrLessEquals(BlockDragHandleSpec.gapToContent, epsilon: 0.5),
     );
 
     await tester.tap(expandedButton);
@@ -1014,6 +1033,104 @@ void main() {
     );
   });
 
+  testWidgets('golden: centered table cell selection highlight', (
+    tester,
+  ) async {
+    const selectedText = 'Centered selection';
+    const neighbourText = 'Neighbour cell';
+    await _pumpGoldenEditor(
+      tester,
+      WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TableBlockNode(
+              id: 'center-selection-table',
+              table: TableModel(
+                columnWidths: <int, double>{0: 240, 1: 240},
+                rows: <List<TableCellNode>>[
+                  <TableCellNode>[
+                    TableCellNode(
+                      id: 'selected-cell',
+                      alignment: 'center',
+                      blocks: <BlockNode>[
+                        TextBlockNode(
+                          id: 'selected-cell-text',
+                          type: BlockType.paragraph,
+                          content: <InlineNode>[TextRun(text: selectedText)],
+                        ),
+                      ],
+                    ),
+                    TableCellNode(
+                      id: 'neighbour-cell',
+                      alignment: 'center',
+                      blocks: <BlockNode>[
+                        TextBlockNode(
+                          id: 'neighbour-cell-text',
+                          type: BlockType.paragraph,
+                          content: <InlineNode>[TextRun(text: neighbourText)],
+                        ),
+                      ],
+                    ),
+                  ],
+                  <TableCellNode>[
+                    TableCellNode(
+                      id: 'left-reference-cell',
+                      alignment: 'left',
+                      blocks: <BlockNode>[
+                        TextBlockNode(
+                          id: 'left-reference-cell-text',
+                          type: BlockType.paragraph,
+                          content: <InlineNode>[TextRun(text: 'Left ref')],
+                        ),
+                      ],
+                    ),
+                    TableCellNode(
+                      id: 'right-reference-cell',
+                      alignment: 'right',
+                      blocks: <BlockNode>[
+                        TextBlockNode(
+                          id: 'right-reference-cell-text',
+                          type: BlockType.paragraph,
+                          content: <InlineNode>[TextRun(text: 'Right ref')],
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+        selection: DocumentSelection(
+          base: DocumentPosition.tableCell(
+            tableBlockId: 'center-selection-table',
+            blockIndex: 0,
+            tableRowIndex: 0,
+            tableColumnIndex: 0,
+            offset: 0,
+          ),
+          extent: DocumentPosition.tableCell(
+            tableBlockId: 'center-selection-table',
+            blockIndex: 0,
+            tableRowIndex: 0,
+            tableColumnIndex: 0,
+            offset: 8,
+          ),
+        ),
+      ),
+      size: const Size(560, 240),
+    );
+
+    expect(_richText(selectedText), findsOneWidget);
+    expect(_richText(neighbourText), findsOneWidget);
+    expect(find.byKey(_selectionHighlightKey), findsOneWidget);
+
+    await expectLater(
+      find.byKey(_goldenKey),
+      matchesGoldenFile('goldens/editor_table_selection_centered.png'),
+    );
+  });
+
   testWidgets('golden: selection highlight', (tester) async {
     await _pumpGoldenEditor(
       tester,
@@ -1035,7 +1152,7 @@ void main() {
 
     expect(_richText('Selected words stay highlighted.'), findsOneWidget);
     expect(
-      find.byKey(const ValueKey<String>('wenz-richtext-selection-highlight')),
+      find.byKey(_selectionHighlightKey),
       findsOneWidget,
     );
 
@@ -1166,6 +1283,214 @@ void main() {
     await expectLater(
       find.byKey(_goldenKey),
       matchesGoldenFile('goldens/editor_advanced_blocks.png'),
+    );
+  });
+
+  testWidgets(
+      'golden: read-only heading collapse buttons without drag handles',
+      (tester) async {
+    // Read-only mode: collapse buttons are visible but drag handles are not.
+    // The buttons keep the compact no-drag gutter without reserving the
+    // editable drag-handle rail.
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'ro-h1',
+            type: BlockType.heading,
+            attributes: BlockAttributes(level: 2),
+            content: <InlineNode>[
+              TextRun(text: 'Read-only collapsed'),
+            ],
+          ),
+          TextBlockNode(
+            id: 'ro-hidden',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'Hidden paragraph')],
+          ),
+          TextBlockNode(
+            id: 'ro-h2',
+            type: BlockType.heading,
+            attributes: BlockAttributes(level: 2),
+            content: <InlineNode>[
+              TextRun(text: 'Read-only expanded'),
+            ],
+          ),
+          TextBlockNode(
+            id: 'ro-para',
+            type: BlockType.paragraph,
+            content: <InlineNode>[
+              TextRun(text: 'Visible paragraph for reference'),
+            ],
+          ),
+        ],
+      ),
+    );
+    final outlineController = WenzOutlineController(editor: controller);
+    addTearDown(outlineController.dispose);
+    expect(outlineController.collapseByBlockId('ro-h1'), isTrue);
+
+    const size = Size(520, 360);
+    await tester.binding.setSurfaceSize(size);
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
+          useMaterial3: true,
+        ),
+        home: Scaffold(
+          body: RepaintBoundary(
+            key: _goldenKey,
+            child: SizedBox(
+              width: size.width,
+              height: size.height,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: WenzRichTextEditor(
+                  controller: controller,
+                  outlineController: outlineController,
+                  readOnly: true,
+                  enableIme: false,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    // Collapse buttons are present.
+    final collapsedBtn = find.byKey(
+      const ValueKey<String>('wenz-richtext-heading-collapse-ro-h1'),
+    );
+    final expandedBtn = find.byKey(
+      const ValueKey<String>('wenz-richtext-heading-collapse-ro-h2'),
+    );
+    expect(collapsedBtn, findsOneWidget);
+    expect(expandedBtn, findsOneWidget);
+    // No drag handles in read-only mode.
+    expect(
+      find.byKey(
+          const ValueKey<String>('wenz-richtext-block-drag-handle-ro-h1')),
+      findsNothing,
+    );
+    // Hidden content is collapsed.
+    expect(find.text('Hidden paragraph'), findsNothing);
+
+    // Verify collapse buttons are visible (not zero-sized, not off-screen).
+    final collapsedRect = tester.getRect(collapsedBtn);
+    final expandedRect = tester.getRect(expandedBtn);
+    expect(collapsedRect.width, greaterThan(0));
+    expect(collapsedRect.height, greaterThan(0));
+    expect(expandedRect.width, greaterThan(0));
+    expect(expandedRect.height, greaterThan(0));
+    expect(
+      tester.getTopLeft(_richText('Read-only collapsed')).dx -
+          collapsedRect.right,
+      moreOrLessEquals(0, epsilon: 0.5),
+    );
+    expect(
+      tester.getTopLeft(_richText('Read-only expanded')).dx,
+      moreOrLessEquals(
+        tester.getTopLeft(_richText('Visible paragraph for reference')).dx,
+        epsilon: 0.5,
+      ),
+    );
+
+    await expectLater(
+      find.byKey(_goldenKey),
+      matchesGoldenFile('goldens/editor_readonly_heading_collapse.png'),
+    );
+  });
+
+  testWidgets(
+      'golden: heading collapse buttons with drag handles in editable mode',
+      (tester) async {
+    // Editable mode: every heading shows both a drag handle and a collapse
+    // button in the left gutter. The snapshot pins their co-positioning so a
+    // regression that removes, clips, overlaps, or mispositions the collapse
+    // button fails here.
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'ed-h1',
+            type: BlockType.heading,
+            attributes: BlockAttributes(level: 2),
+            content: <InlineNode>[TextRun(text: 'Editable section')],
+          ),
+          TextBlockNode(
+            id: 'ed-body',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'Editable body text')],
+          ),
+          TextBlockNode(
+            id: 'ed-leaf',
+            type: BlockType.heading,
+            attributes: BlockAttributes(level: 2),
+            content: <InlineNode>[TextRun(text: 'Editable leaf heading')],
+          ),
+        ],
+      ),
+    );
+    final outlineController = WenzOutlineController(editor: controller);
+    addTearDown(outlineController.dispose);
+
+    await _pumpGoldenEditor(
+      tester,
+      controller,
+      outlineController: outlineController,
+      size: const Size(520, 320),
+    );
+
+    final sectionButton = find.byKey(
+      const ValueKey<String>('wenz-richtext-heading-collapse-ed-h1'),
+    );
+    final leafButton = find.byKey(
+      const ValueKey<String>('wenz-richtext-heading-collapse-ed-leaf'),
+    );
+    expect(sectionButton, findsOneWidget);
+    expect(leafButton, findsOneWidget);
+    // Drag handles render alongside the collapse buttons in editable mode.
+    expect(
+      find.byKey(
+          const ValueKey<String>('wenz-richtext-block-drag-handle-ed-h1')),
+      findsOneWidget,
+    );
+
+    // Collapse buttons are full-size and inside the gutter: drag handle,
+    // chromeGap, collapse button, then gapToContent before content.
+    final sectionRect = tester.getRect(sectionButton);
+    final sectionHandleRect = tester.getRect(
+      _blockDragHandleFinder('ed-h1'),
+    );
+    final sectionTextLeft = tester.getTopLeft(_richText('Editable section')).dx;
+    expect(sectionRect.width, greaterThan(0));
+    expect(sectionRect.height, greaterThan(0));
+    expect(sectionRect.left, greaterThanOrEqualTo(0));
+    expect(
+      sectionRect.left - sectionHandleRect.right,
+      moreOrLessEquals(BlockDragHandleSpec.chromeGap, epsilon: 0.5),
+    );
+    expect(
+      sectionTextLeft - sectionRect.right,
+      moreOrLessEquals(BlockDragHandleSpec.gapToContent, epsilon: 0.5),
+    );
+    expect(
+      sectionTextLeft - sectionHandleRect.left,
+      moreOrLessEquals(BlockDragHandleSpec.railWidth, epsilon: 0.5),
+    );
+    expect(
+      tester.getTopLeft(_richText('Editable body text')).dx,
+      moreOrLessEquals(sectionTextLeft, epsilon: 0.5),
+    );
+
+    await expectLater(
+      find.byKey(_goldenKey),
+      matchesGoldenFile('goldens/editor_heading_collapse_editable.png'),
     );
   });
 

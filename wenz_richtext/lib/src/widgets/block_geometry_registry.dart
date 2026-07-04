@@ -315,10 +315,7 @@ class BlockGeometryRegistry {
         continue;
       }
       final local = box.globalToLocal(global);
-      if (local.dx >= 0 &&
-          local.dx <= box.size.width &&
-          local.dy >= 0 &&
-          local.dy <= box.size.height) {
+      if (_containsLocal(box, local)) {
         final rect = box.localToGlobal(Offset.zero) & box.size;
         final delta = (global - rect.center).distanceSquared;
         if (delta < nearestHitDelta) {
@@ -428,10 +425,7 @@ class BlockGeometryRegistry {
         continue;
       }
       final local = box.globalToLocal(global);
-      if (local.dx >= 0 &&
-          local.dx <= box.size.width &&
-          local.dy >= 0 &&
-          local.dy <= box.size.height) {
+      if (_containsLocal(box, local)) {
         final origin = box.localToGlobal(Offset.zero);
         return origin & box.size;
       }
@@ -562,6 +556,13 @@ class BlockGeometryRegistry {
       return null;
     }
     return _byKey[_key(blockId, path)];
+  }
+
+  static bool _containsLocal(RenderBox box, Offset local) {
+    return local.dx >= 0 &&
+        local.dx < box.size.width &&
+        local.dy >= 0 &&
+        local.dy < box.size.height;
   }
 }
 

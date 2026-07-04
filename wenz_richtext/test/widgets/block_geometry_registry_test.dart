@@ -345,6 +345,82 @@ void main() {
           reason: 'padding tap must stay in the right cell');
     });
 
+    testWidgets('center-aligned cell side padding resolves to text edges', (
+      tester,
+    ) async {
+      const text = 'Tiny';
+      final controller = WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TableBlockNode(
+              id: 'table-center',
+              table: TableModel(
+                columnWidths: <int, double>{0: 320},
+                rows: <List<TableCellNode>>[
+                  <TableCellNode>[
+                    TableCellNode(
+                      id: 'center-cell',
+                      alignment: 'center',
+                      blocks: <BlockNode>[
+                        TextBlockNode(
+                          id: 'center-cell-text',
+                          type: BlockType.paragraph,
+                          content: <InlineNode>[TextRun(text: text)],
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 360,
+              height: 160,
+              child: WenzRichTextEditor(
+                controller: controller,
+                padding: EdgeInsets.zero,
+                enableIme: false,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final cellRect = tester.getRect(
+        find.byKey(
+          const ValueKey<String>('table-cell-border-table-center-0-0'),
+        ),
+      );
+      final textRect = tester.getRect(
+        find.byWidgetPredicate(
+          (widget) => widget is RichText && widget.text.toPlainText() == text,
+        ),
+      );
+
+      await tester.tapAt(Offset(cellRect.left + 6, textRect.center.dy));
+      await tester.pump();
+      var extent = controller.selection?.extent;
+      expect(extent, isNotNull);
+      expect(extent!.path, PositionPath.tableCellText('table-center', 0, 0));
+      expect(extent.offset, 0);
+
+      await tester.pump(const Duration(milliseconds: 350));
+      await tester.tapAt(Offset(cellRect.right - 6, textRect.center.dy));
+      await tester.pump();
+      extent = controller.selection?.extent;
+      expect(extent, isNotNull);
+      expect(extent!.path, PositionPath.tableCellText('table-center', 0, 0));
+      expect(extent.offset, text.length);
+    });
+
     testWidgets('tap in empty table cell resolves to that cell text path', (
       tester,
     ) async {
@@ -483,17 +559,39 @@ void main() {
         (widget) => widget is RichText && widget.text.toPlainText() == 'short',
       );
       final rect = tester.getRect(shortCell);
-      // Tap well below the centred text but still inside the stretched row 1
-      // cell frame. Before the fix this clamped into row 0 / row 2.
-      await tester.tapAt(Offset(rect.center.dx, rect.bottom + 14));
-      await tester.pump();
+      final cellRect = tester.getRect(
+        find.byKey(const ValueKey<String>('table-cell-border-table1-1-0')),
+      );
+      expect(rect.top, greaterThan(cellRect.top));
+      expect(rect.bottom, lessThan(cellRect.bottom));
+      final aboveText = Offset(rect.center.dx, (cellRect.top + rect.top) / 2);
+      final belowText = Offset(
+        rect.center.dx,
+        (rect.bottom + cellRect.bottom) / 2,
+      );
+      expect(cellRect.contains(aboveText), isTrue);
+      expect(cellRect.contains(belowText), isTrue);
 
-      final extent = controller.selection?.extent;
-      expect(extent, isNotNull);
-      expect(extent!.blockId, 'table1');
-      expect(extent.path.tableRowIndex, 1,
-          reason: 'gutter tap in the short cell must stay in its row');
-      expect(extent.path.tableColumnIndex, 0);
+      Future<void> expectGutterTapStaysInShortCell(Offset position) async {
+        await tester.tapAt(position);
+        await tester.pump();
+
+        final extent = controller.selection?.extent;
+        expect(extent, isNotNull);
+        expect(extent!.blockId, 'table1');
+        expect(
+          extent.path.tableRowIndex,
+          1,
+          reason: 'gutter tap in the short cell must stay in its row',
+        );
+        expect(extent.path.tableColumnIndex, 0);
+      }
+
+      // Tap above and below the centred text but still inside the stretched
+      // row 1 cell frame. Before the fix this clamped into a neighbouring row.
+      await expectGutterTapStaysInShortCell(aboveText);
+      await tester.pump(const Duration(milliseconds: 350));
+      await expectGutterTapStaysInShortCell(belowText);
     });
 
     // A tap in the vertical gap between two paragraph blocks used to clamp to

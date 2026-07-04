@@ -128,17 +128,27 @@ typedef ObjectBlockActionHandler = void Function(
 abstract final class BlockDragHandleSpec {
   /// Reserved leading gutter for row chrome, outside the renderer's content box.
   ///
-  /// The rail is wide enough for the drag handle plus the optional compact
-  /// heading collapse affordance so neither control consumes renderer content
-  /// width. It intentionally no longer reserves extra width for the legacy
-  /// collapsed-count badge.
+  /// Editable rows that reserve the heading-collapse slot use this full rail:
+  /// [hitSize].width (28 dp) + [chromeGap] (8 dp) + the compact heading
+  /// collapse hit target (24 dp) + [gapToContent] (8 dp). Non-heading rows
+  /// reserve the same width while outline chrome is attached so renderer
+  /// content stays aligned across headings, paragraphs, code blocks, and other
+  /// top-level blocks.
   static const double railWidth = 68.0;
 
-  /// Gap between adjacent row-chrome hit targets.
+  /// Legacy reference for a collapse-only affordance plus the standard content
+  /// gap: compact heading collapse hit target (24 dp) + [gapToContent] (8 dp).
+  /// The editor positions collapse chrome explicitly; read-only rows do not
+  /// use this value to reserve a non-existent drag handle slot.
+  static const double collapseChromeOverflow = 32.0;
+
+  /// Gap between adjacent row-chrome hit targets, currently the drag handle and
+  /// heading collapse button in editable outline rows.
   static const double chromeGap = 8.0;
 
-  /// Minimum gap between the renderer content edge and the nearest row-chrome
-  /// hit target.
+  /// Standard gap between editable row chrome and the renderer content edge.
+  /// Compact read-only heading collapse rows keep their no-drag slot instead
+  /// of reserving the editable rail.
   static const double gapToContent = 8.0;
 
   /// Minimum pointer/focus hit target for mouse, touch, and keyboard traversal.

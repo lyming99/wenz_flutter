@@ -259,6 +259,44 @@ That expansion is intentionally local to the text slot. List markers, todo check
 
 Caret rendering also treats empty text as a normal text target: hit-testing returns offset `0`, and caret height falls back through measured height, preferred line height, and style-derived line height so the caret remains visible instead of painting with zero height.
 
+## Table selection rendering contract
+
+Table-cell selection is rendered as three separate states. Keep them separate in
+default renderers and in custom table renderers that mirror the built-in table
+behaviour:
+
+| State | Renderer owner | Contract |
+| --- | --- | --- |
+| Whole-cell highlight | `_TableCellSurface.highlightWholeCell` | Paints a full-cell background inside the visible cell frame. It is for multi-cell rectangular selections and cross-block selections that visually cover table cells. A single-cell text selection must not enable it. |
+| Text selection highlight | `_TextSelectionSurface.paintSelectionHighlight` inside the cell | Paints only `TextPainter.getBoxesForSelection` rectangles for text that is actually selected. Multi-cell table ranges suppress this path, so cells that are selected as grid cells do not show fake text selection. |
+| Semantic selected | `_TableCellSurface` semantics | Marks a cell as selected for accessibility/state when the cell belongs to a table range, a cross-block table coverage range, or has a local text selection. This flag is not a paint instruction. |
+
+The expected visual difference is:
+
+- A **multi-cell rectangular table selection** paints whole-cell highlights on
+  visible cells whose grid rectangles overlap the table selection rectangle.
+  Covered cells (`covered == true`) are skipped entirely: they are not rendered,
+  not hit-tested, and cannot paint either whole-cell or text selection
+  highlights.
+- A **single-cell text selection** paints selection boxes only over that cell's
+  selected text range. It may mark the cell as semantically selected, but the
+  cell background stays in its normal non-selected state.
+- A **cross-block selection spanning a table** may paint whole-cell highlights
+  for the table cells covered by the block range, while table-cell text
+  selection remains limited to endpoint cells that have real text offsets.
+
+Cell text geometry is always resolved in the padding-inner text-layout
+coordinate space. The cell frame can be the hit-test box, but coordinates are
+converted back to the `_TextSelectionSurface` before asking `TextLayoutService`
+for offsets, carets, or selection boxes. Center and right alignment are handled
+by the shared `TextPainter` inputs (`textAlign`, `textDirection`, `maxWidth`);
+callers must not add a second manual alignment shift. As a result, the collapsed
+caret, drag endpoints, and selection boxes for centered/right-aligned cells sit
+at the visual text position inside the cell padding rather than at the cell's
+left edge. Taps in left/right padding clamp to offset `0`/`textLength`, taps in
+vertical centering gutters stay in the same cell, and empty cells resolve to
+offset `0`.
+
 ## Inline embed renderer
 
 `InlineEmbedRenderer` (`lib/src/widgets/inline_embed_renderer.dart`) is the

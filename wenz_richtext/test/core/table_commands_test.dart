@@ -915,6 +915,259 @@ void main() {
     table = session.document.blocks.single as TableBlockNode;
     expect(table.table.cellAt(0, 0)?.alignment, 'center');
   });
+
+  group('TableCellRange', () {
+    test('computes rectangular bounds from start to end', () {
+      final selection = DocumentSelection(
+        base: DocumentPosition.tableCell(
+          tableBlockId: 't1',
+          blockIndex: 0,
+          tableRowIndex: 0,
+          tableColumnIndex: 2,
+          offset: 0,
+        ),
+        extent: DocumentPosition.tableCell(
+          tableBlockId: 't1',
+          blockIndex: 0,
+          tableRowIndex: 2,
+          tableColumnIndex: 0,
+          offset: 5,
+        ),
+      );
+      final range = selection.tableCellRange!;
+      expect(range.startRow, 0);
+      expect(range.endRow, 2);
+      expect(range.startColumn, 0);
+      expect(range.endColumn, 2);
+    });
+
+    test('swaps base/extent so start <= end invariants hold', () {
+      // base row > extent row
+      final selection = DocumentSelection(
+        base: DocumentPosition.tableCell(
+          tableBlockId: 't1',
+          blockIndex: 0,
+          tableRowIndex: 2,
+          tableColumnIndex: 1,
+          offset: 0,
+        ),
+        extent: DocumentPosition.tableCell(
+          tableBlockId: 't1',
+          blockIndex: 0,
+          tableRowIndex: 0,
+          tableColumnIndex: 3,
+          offset: 0,
+        ),
+      );
+      final range = selection.tableCellRange!;
+      expect(range.startRow, 0);
+      expect(range.endRow, 2);
+      expect(range.startColumn, 1);
+      expect(range.endColumn, 3);
+    });
+
+    test('returns null for cross-block selection (table to paragraph)', () {
+      final selection = DocumentSelection(
+        base: DocumentPosition.text(blockId: 'p1', blockIndex: 0, offset: 0),
+        extent: DocumentPosition.tableCell(
+          tableBlockId: 't1',
+          blockIndex: 0,
+          tableRowIndex: 0,
+          tableColumnIndex: 0,
+          offset: 0,
+        ),
+      );
+      expect(selection.tableCellRange, isNull);
+    });
+
+    test('returns null for cross-table selection (different blockId)', () {
+      final selection = DocumentSelection(
+        base: DocumentPosition.tableCell(
+          tableBlockId: 't1',
+          blockIndex: 0,
+          tableRowIndex: 0,
+          tableColumnIndex: 0,
+          offset: 0,
+        ),
+        extent: DocumentPosition.tableCell(
+          tableBlockId: 't2',
+          blockIndex: 1,
+          tableRowIndex: 1,
+          tableColumnIndex: 1,
+          offset: 0,
+        ),
+      );
+      expect(selection.tableCellRange, isNull);
+    });
+
+    test('returns null for collapsed selection', () {
+      final pos = DocumentPosition.tableCell(
+        tableBlockId: 't1',
+        blockIndex: 0,
+        tableRowIndex: 1,
+        tableColumnIndex: 1,
+        offset: 3,
+      );
+      final selection = DocumentSelection(base: pos, extent: pos);
+      expect(selection.isCollapsed, isTrue);
+      expect(selection.tableCellRange, isNull);
+    });
+
+    test('isSingleCell returns true only for same row and column', () {
+      const range = TableCellRange(
+        tableBlockId: 't1',
+        blockIndex: 0,
+        startRow: 0,
+        endRow: 0,
+        startColumn: 0,
+        endColumn: 0,
+      );
+      expect(range.isSingleCell, isTrue);
+
+      const multiRow = TableCellRange(
+        tableBlockId: 't1',
+        blockIndex: 0,
+        startRow: 0,
+        endRow: 1,
+        startColumn: 0,
+        endColumn: 0,
+      );
+      expect(multiRow.isSingleCell, isFalse);
+
+      const multiCol = TableCellRange(
+        tableBlockId: 't1',
+        blockIndex: 0,
+        startRow: 0,
+        endRow: 0,
+        startColumn: 0,
+        endColumn: 1,
+      );
+      expect(multiCol.isSingleCell, isFalse);
+    });
+
+    test('containsCell respects rectangular bounds', () {
+      const range = TableCellRange(
+        tableBlockId: 't1',
+        blockIndex: 0,
+        startRow: 1,
+        endRow: 2,
+        startColumn: 1,
+        endColumn: 3,
+      );
+      // Inside
+      expect(range.containsCell(1, 1), isTrue);
+      expect(range.containsCell(2, 3), isTrue);
+      expect(range.containsCell(1, 2), isTrue);
+      // Outside
+      expect(range.containsCell(0, 1), isFalse); // row too low
+      expect(range.containsCell(3, 3), isFalse); // row too high
+      expect(range.containsCell(1, 0), isFalse); // col too low
+      expect(range.containsCell(2, 4), isFalse); // col too high
+    });
+  });
+
+  group('TableCellRange alignment selection', () {
+    test('setAlignment on cell range applies cell-level alignment', () {
+      final selection = DocumentSelection(
+        base: DocumentPosition.tableCell(
+          tableBlockId: 't1',
+          blockIndex: 0,
+          tableRowIndex: 0,
+          tableColumnIndex: 0,
+          offset: 0,
+        ),
+        extent: DocumentPosition.tableCell(
+          tableBlockId: 't1',
+          blockIndex: 0,
+          tableRowIndex: 1,
+          tableColumnIndex: 1,
+          offset: 0,
+        ),
+      );
+      final controller = WenzRichTextController(
+        document: _tableDocument(),
+        selection: selection,
+      );
+      addTearDown(controller.dispose);
+
+      // Apply center alignment via cell range selection
+      controller.setAlignment('center');
+
+      final table = controller.document.blocks.single as TableBlockNode;
+      // All cells in the 2×2 range should have cell-level 'center' alignment.
+      expect(table.table.cellAt(0, 0)?.alignment, 'center');
+      expect(table.table.cellAt(0, 1)?.alignment, 'center');
+      expect(table.table.cellAt(1, 0)?.alignment, 'center');
+      expect(table.table.cellAt(1, 1)?.alignment, 'center');
+      // Column alignment should NOT be set — cell-level only.
+      expect(table.table.columnAlignments, isEmpty);
+    });
+
+    test('setAlignment on cell range preserves row-major range', () {
+      final selection = DocumentSelection(
+        base: DocumentPosition.tableCell(
+          tableBlockId: 't1',
+          blockIndex: 0,
+          tableRowIndex: 1,
+          tableColumnIndex: 1,
+          offset: 0,
+        ),
+        extent: DocumentPosition.tableCell(
+          tableBlockId: 't1',
+          blockIndex: 0,
+          tableRowIndex: 0,
+          tableColumnIndex: 0,
+          offset: 0,
+        ),
+      );
+      final controller = WenzRichTextController(
+        document: _tableDocument(),
+        selection: selection,
+      );
+      addTearDown(controller.dispose);
+
+      controller.setAlignment('right');
+
+      final table = controller.document.blocks.single as TableBlockNode;
+      // All cells in the range should be right-aligned regardless of
+      // base/extent order.
+      expect(table.table.cellAt(0, 0)?.alignment, 'right');
+      expect(table.table.cellAt(1, 1)?.alignment, 'right');
+    });
+
+    test('setAlignment with single-cell range applies to that cell only', () {
+      final selection = DocumentSelection(
+        base: DocumentPosition.tableCell(
+          tableBlockId: 't1',
+          blockIndex: 0,
+          tableRowIndex: 0,
+          tableColumnIndex: 0,
+          offset: 2,
+        ),
+        extent: DocumentPosition.tableCell(
+          tableBlockId: 't1',
+          blockIndex: 0,
+          tableRowIndex: 0,
+          tableColumnIndex: 0,
+          offset: 5,
+        ),
+      );
+      final controller = WenzRichTextController(
+        document: _tableDocument(),
+        selection: selection,
+      );
+      addTearDown(controller.dispose);
+
+      controller.setAlignment('center');
+
+      final table = controller.document.blocks.single as TableBlockNode;
+      expect(table.table.cellAt(0, 0)?.alignment, 'center');
+      // Sibling cells are untouched.
+      expect(table.table.cellAt(0, 1)?.alignment, isNull);
+      expect(table.table.cellAt(1, 0)?.alignment, isNull);
+      expect(table.table.cellAt(1, 1)?.alignment, isNull);
+    });
+  });
 }
 
 RichTextDocument _tableDocument() {

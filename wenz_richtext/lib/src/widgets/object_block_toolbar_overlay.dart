@@ -238,18 +238,14 @@ class _ObjectBlockToolbarOverlayHostState
     if (!mounted) {
       return;
     }
+    if (SchedulerBinding.instance.schedulerPhase ==
+        SchedulerPhase.persistentCallbacks) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _handleControllerChanged());
+      return;
+    }
     setState(() {
       _request = widget.controller.request;
     });
-    _syncPortalSafely();
-  }
-
-  void _syncPortalSafely() {
-    if (SchedulerBinding.instance.schedulerPhase ==
-        SchedulerPhase.persistentCallbacks) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _syncPortal());
-      return;
-    }
     _syncPortal();
   }
 
@@ -339,10 +335,15 @@ class _ObjectBlockToolbarOverlayAnchorState
 
   @override
   Widget build(BuildContext context) {
-    _scheduleSync();
-    return CompositedTransformTarget(
-      link: _anchorLink,
-      child: widget.child,
+    return NotificationListener<ScrollNotification>(
+      onNotification: (notification) {
+        _scheduleSync();
+        return false;
+      },
+      child: CompositedTransformTarget(
+        link: _anchorLink,
+        child: widget.child,
+      ),
     );
   }
 

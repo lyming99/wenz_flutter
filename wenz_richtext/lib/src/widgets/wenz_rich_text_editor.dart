@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -1379,6 +1380,21 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
   int _scrollRealignDepth = 0;
   static const int _maxScrollRealignFrames = 4;
 
+  /// Records the most recent timestamp of a user-initiated scroll gesture
+  /// (drag, mouse wheel, trackpad). Set by the
+  /// [NotificationListener<ScrollUpdateNotification>] that wraps the virtual
+  /// block list. [ScrollUpdateNotification] is only dispatched for user-driven
+  /// scrolls — programmatic calls like [ScrollController.jumpTo]/
+  /// [ScrollController.animateTo] are ignored — so this timestamp naturally
+  /// distinguishes user scrolling from code-driven scrolling.
+  DateTime? _lastUserScrollTime;
+
+  /// Cooldown period after a user scroll gesture during which automatic
+  /// scroll-to-caret is suppressed. Prevents the feedback loop where the
+  /// caret-into-view logic jumps the viewport back to the caret while the
+  /// user is actively scrolling away from it.
+  static const Duration _kUserScrollCooldown = Duration(milliseconds: 300);
+
   /// The caret position (block index + offset) at the last scroll-into-view
   /// check. IME composition updates call `notifyListeners` without moving the
   /// caret; remembering the last-checked position lets us skip the (layout +
@@ -1692,7 +1708,13 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     setState(() {});
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        _scrollCaretIntoView();
+        // P004: Suppress caret scroll during user scroll cooldown to avoid
+        // jumping back to the caret while the user is actively scrolling.
+        if (_lastUserScrollTime == null ||
+            DateTime.now().difference(_lastUserScrollTime!) >=
+                _kUserScrollCooldown) {
+          _scrollCaretIntoView();
+        }
       }
     });
   }
@@ -1760,7 +1782,14 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
           if (caretKey != _lastScrollCheckedCaret) {
             _lastScrollCheckedCaret = caretKey;
             if (!skipCaretScroll) {
-              _scrollCaretIntoView();
+              // P004: Suppress caret scroll during user scroll cooldown to
+              // avoid jumping back to the caret while the user is actively
+              // scrolling.
+              if (_lastUserScrollTime == null ||
+                  DateTime.now().difference(_lastUserScrollTime!) >=
+                      _kUserScrollCooldown) {
+                _scrollCaretIntoView();
+              }
             }
           }
         } else {
@@ -1965,14 +1994,15 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     if (outline == null || !identical(outline.editor, widget.controller)) {
       return null;
     }
-    // Only collapsible top-level heading text blocks expose the left-side
-    // collapse affordance. Leaf headings and non-heading blocks must not
-    // reserve the affordance or respond to heading-collapse gestures.
+    // All heading text blocks expose the left-side collapse affordance.
+    // Headings that cover other blocks are interactive (canCollapse == true);
+    // leaf headings without children render a disabled affordance
+    // (canCollapse == false). Non-heading blocks never receive a state.
     if (block is! TextBlockNode || block.type != BlockType.heading) {
       return null;
     }
     final state = outline.collapseStateForBlockId(block.id);
-    if (state == null || !state.canCollapse) {
+    if (state == null) {
       return null;
     }
     return HeadingCollapseState(
@@ -2105,7 +2135,12 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
 
     _extentCache.retainBlocks(sourceBlocks);
 
-    final editor = _MeasuredVirtualBlockList(
+    final editor = NotificationListener<ScrollUpdateNotification>(
+      onNotification: (notification) {
+        _lastUserScrollTime = DateTime.now();
+        return false;
+      },
+      child: _MeasuredVirtualBlockList(
       controller: _scrollController,
       padding: widget.padding,
       physics: widget.physics,
@@ -2115,6 +2150,9 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
       extentCache: _extentCache,
       keepAliveIds: keepAliveIds,
       onExtentUpdated: _scrollCaretIntoViewIfNeeded,
+      shouldSuppressExtentUpdate: () =>
+          _lastUserScrollTime != null &&
+          DateTime.now().difference(_lastUserScrollTime!) < _kUserScrollCooldown,
       itemBuilder: (context, blockIndex) {
         final block = sourceBlocks[blockIndex];
         final blockMoveRange = _blockMoveRangeFor(blockIndex) ??
@@ -2176,6 +2214,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
           currentFindMatch: currentFindMatch,
         );
       },
+    ),
     );
     final editorStack = Stack(
       key: _editorOverlayKey,
@@ -4378,6 +4417,9 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     if (_handleCodeBlockTabKeyEvent(event)) {
       return KeyEventResult.handled;
     }
+    if (_handleTableTabKeyEvent(event)) {
+      return KeyEventResult.handled;
+    }
     final keyboard = HardwareKeyboard.instance;
     final resolution = _shortcutManager.resolve(
       event,
@@ -4430,6 +4472,25 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     }
     widget.controller.indentCodeBlock(
       outdent: HardwareKeyboard.instance.isShiftPressed,
+    );
+    return true;
+  }
+
+  bool _handleTableTabKeyEvent(KeyEvent event) {
+    if (widget.readOnly ||
+        (event is! KeyDownEvent && event is! KeyRepeatEvent) ||
+        event.logicalKey != LogicalKeyboardKey.tab) {
+      return false;
+    }
+    final selection = widget.controller.selection;
+    if (selection == null ||
+        selection.start.blockIndex != selection.end.blockIndex ||
+        selection.start.path != selection.end.path ||
+        !selection.start.path.isTableCellText) {
+      return false;
+    }
+    widget.controller.moveTableCell(
+      forward: !HardwareKeyboard.instance.isShiftPressed,
     );
     return true;
   }
@@ -4830,6 +4891,14 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
           controller.insertText(character);
         }
         return;
+      case EditorShortcutIntent.indent:
+        _revealCurrentSelectionIfHidden();
+        controller.indent();
+        return;
+      case EditorShortcutIntent.outdent:
+        _revealCurrentSelectionIfHidden();
+        controller.outdent();
+        return;
       case null:
         return;
     }
@@ -5037,7 +5106,27 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     if (selection?.isCollapsed != true) {
       return;
     }
-    _lastScrollCheckedCaret = null;
+
+    // P002: If the user recently scrolled manually (drag, wheel, trackpad),
+    // suppress auto-scroll-to-caret to avoid the feedback loop where the
+    // viewport jumps back while the user is actively scrolling away.
+    if (_lastUserScrollTime != null &&
+        DateTime.now().difference(_lastUserScrollTime!) < _kUserScrollCooldown) {
+      return;
+    }
+
+    // P002: Skip if the caret position hasn't changed since the last check.
+    // This avoids redundant rescroll on extent-update callbacks during IME
+    // composition (which fires notifyListeners without moving the caret).
+    final caretKey = _CaretKey(
+      selection!.extent.blockIndex,
+      selection.extent.offset,
+    );
+    if (caretKey == _lastScrollCheckedCaret) {
+      return;
+    }
+    _lastScrollCheckedCaret = caretKey;
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         _scrollCaretIntoView();
@@ -5891,6 +5980,7 @@ class _MeasuredVirtualBlockList extends StatefulWidget {
     this.padding = EdgeInsets.zero,
     this.physics,
     this.onExtentUpdated,
+    this.shouldSuppressExtentUpdate,
   });
 
   final ScrollController controller;
@@ -5915,6 +6005,12 @@ class _MeasuredVirtualBlockList extends StatefulWidget {
   /// a frame after the content mutation (the mutation frame still carried the
   /// pre-edit height).
   final void Function()? onExtentUpdated;
+
+  /// P003: When this returns `true`, [_handleExtentChanged] skips calling
+  /// [onExtentUpdated] even though the extent cache was updated. The editor
+  /// sets this to its user-scroll cooldown check so that block re-measurement
+  /// during an active user scroll does not kick off caret-into-view logic.
+  final bool Function()? shouldSuppressExtentUpdate;
 
   @override
   State<_MeasuredVirtualBlockList> createState() =>
@@ -5952,6 +6048,14 @@ class _MeasuredVirtualBlockListState extends State<_MeasuredVirtualBlockList> {
   void _handleExtentChanged(String blockId, int measureToken, double extent) {
     if (widget.extentCache.record(blockId, measureToken, extent) && mounted) {
       setState(() {});
+      // P003: If the user is actively scrolling, suppress the extent-updated
+      // callback to avoid triggering caret-into-view logic during a user
+      // gesture. P002's cooldown check in _scrollCaretIntoViewIfNeeded handles
+      // most cases; this gate is a defense-in-depth supplement that avoids
+      // even scheduling the post-frame callback during user scroll.
+      if (widget.shouldSuppressExtentUpdate?.call() == true) {
+        return;
+      }
       // A real height change may unlock a caret-into-view that the content
       // mutation frame could not perform (it ran with the pre-edit height).
       // Notify the editor so it can retry the scroll against the now-accurate
@@ -6473,7 +6577,6 @@ class _BlockRenderer extends StatelessWidget {
       blockIndex: blockIndex,
       blockCount: blockCount,
       blockMoveRange: blockMoveRange,
-      leadingIndent: leadingIndent,
       chromeLineExtent: chromeLineExtent,
       reserveHeadingCollapseRail: reserveHeadingCollapseRail,
       headingCollapseState: headingCollapseState,
@@ -6496,7 +6599,6 @@ class _BlockDragHandleOverlay extends StatefulWidget {
     required this.blockIndex,
     required this.blockCount,
     required this.blockMoveRange,
-    required this.leadingIndent,
     required this.chromeLineExtent,
     required this.reserveHeadingCollapseRail,
     this.headingCollapseState,
@@ -6515,7 +6617,6 @@ class _BlockDragHandleOverlay extends StatefulWidget {
   final int blockIndex;
   final int blockCount;
   final _BlockMoveRange blockMoveRange;
-  final double leadingIndent;
   final double chromeLineExtent;
   final bool reserveHeadingCollapseRail;
   final HeadingCollapseState? headingCollapseState;
@@ -6532,6 +6633,9 @@ class _BlockDragHandleOverlay extends StatefulWidget {
 }
 
 class _BlockDragHandleOverlayState extends State<_BlockDragHandleOverlay> {
+  final GlobalKey _blockRowKey = GlobalKey();
+  bool _contentDimmed = false;
+
   @override
   Widget build(BuildContext context) {
     final showDragHandle = BlockDragHandleSpec.canShow(
@@ -6540,28 +6644,22 @@ class _BlockDragHandleOverlayState extends State<_BlockDragHandleOverlay> {
       blockCount: widget.blockCount,
     );
     final showHeadingCollapse = widget.headingCollapseState != null;
-    final reserveChromeRail =
-        showDragHandle || widget.reserveHeadingCollapseRail;
-    if (!reserveChromeRail && !showHeadingCollapse) {
+    final reserveHeadingCollapseSlot =
+        widget.reserveHeadingCollapseRail || showHeadingCollapse;
+    // Only early-exit when there is no chrome and no collapse rail to reserve.
+    // When an outline is attached we keep reserving the gutter even on blocks
+    // without a collapse button so heading and body rows stay left-aligned.
+    if (!showDragHandle && !reserveHeadingCollapseSlot) {
       return widget.child;
     }
-    final contentStart =
-        (reserveChromeRail ? BlockDragHandleSpec.railWidth : 0.0) +
-            widget.leadingIndent;
-    final contentSideChromeEnd =
-        contentStart - BlockDragHandleSpec.gapToContent;
-    final headingCollapseStart = math.max(
-      0.0,
-      contentSideChromeEnd - _kHeadingCollapseSlotWidth,
+    final activeChromeWidth = _activeChromeWidth(
+      showDragHandle: showDragHandle,
+      reserveHeadingCollapseSlot: reserveHeadingCollapseSlot,
     );
-    final handleStart = math.max(
-      0.0,
-      showHeadingCollapse
-          ? headingCollapseStart -
-              BlockDragHandleSpec.chromeGap -
-              BlockDragHandleSpec.hitSize.width
-          : contentSideChromeEnd - BlockDragHandleSpec.hitSize.width,
+    final headingCollapseStart = _headingCollapseStartFor(
+      showDragHandle: showDragHandle,
     );
+    const handleStart = 0.0;
     final handleTop = _rowChromeTopFor(
       lineExtent: widget.chromeLineExtent,
       controlHeight: BlockDragHandleSpec.hitSize.height,
@@ -6571,19 +6669,23 @@ class _BlockDragHandleOverlayState extends State<_BlockDragHandleOverlay> {
       controlHeight: _kHeadingCollapseButtonSize,
     );
     final content = Padding(
-      padding: EdgeInsetsDirectional.only(
-        start: reserveChromeRail ? BlockDragHandleSpec.railWidth : 0.0,
-      ),
+      padding: EdgeInsetsDirectional.only(start: activeChromeWidth),
       child: widget.child,
     );
     return _BlockReorderRowGeometry(
       blockId: widget.blockId,
       blockIndex: widget.blockIndex,
       registry: widget.registry,
+      blockRowKey: _blockRowKey,
       child: Stack(
         clipBehavior: Clip.none,
         children: <Widget>[
-          content,
+          AnimatedOpacity(
+            duration: const Duration(milliseconds: 150),
+            curve: Curves.easeOut,
+            opacity: _contentDimmed ? _kContentDimmedOpacity : 1.0,
+            child: content,
+          ),
           if (showDragHandle)
             PositionedDirectional(
               start: handleStart,
@@ -6598,6 +6700,8 @@ class _BlockDragHandleOverlayState extends State<_BlockDragHandleOverlay> {
                 blockMoveRange: widget.blockMoveRange,
                 canEdit: widget.canEdit,
                 registry: widget.registry,
+                dragSnapshotKey: _blockRowKey,
+                onDragChanged: _handleDragChanged,
                 onAction: widget.onAction,
                 onFormatChanged: widget.onFormatChanged,
               ),
@@ -6617,6 +6721,46 @@ class _BlockDragHandleOverlayState extends State<_BlockDragHandleOverlay> {
       ),
     );
   }
+
+  void _handleDragChanged(bool dragging) {
+    if (!mounted || _contentDimmed == dragging) {
+      return;
+    }
+    setState(() => _contentDimmed = dragging);
+  }
+
+  static double _activeChromeWidth({
+    required bool showDragHandle,
+    required bool reserveHeadingCollapseSlot,
+  }) {
+    if (showDragHandle) {
+      if (reserveHeadingCollapseSlot) {
+        final fullRailWidth = BlockDragHandleSpec.hitSize.width +
+            BlockDragHandleSpec.chromeGap +
+            _kHeadingCollapseButtonSize +
+            BlockDragHandleSpec.gapToContent;
+        assert(
+          fullRailWidth == BlockDragHandleSpec.railWidth,
+          'BlockDragHandleSpec.railWidth must match editable heading chrome.',
+        );
+        return fullRailWidth;
+      }
+      return BlockDragHandleSpec.hitSize.width +
+          BlockDragHandleSpec.gapToContent;
+    }
+    return reserveHeadingCollapseSlot ? _kHeadingCollapseButtonSize : 0.0;
+  }
+
+  static double _headingCollapseStartFor({
+    required bool showDragHandle,
+  }) {
+    if (!showDragHandle) {
+      return 0.0;
+    }
+    return BlockDragHandleSpec.hitSize.width + BlockDragHandleSpec.chromeGap;
+  }
+
+  static const double _kContentDimmedOpacity = 0.3;
 }
 
 class _BlockReorderRowGeometry extends StatefulWidget {
@@ -6624,12 +6768,14 @@ class _BlockReorderRowGeometry extends StatefulWidget {
     required this.blockId,
     required this.blockIndex,
     required this.registry,
+    required this.blockRowKey,
     required this.child,
   });
 
   final String blockId;
   final int blockIndex;
   final BlockGeometryRegistry registry;
+  final GlobalKey blockRowKey;
   final Widget child;
 
   @override
@@ -6638,8 +6784,6 @@ class _BlockReorderRowGeometry extends StatefulWidget {
 }
 
 class _BlockReorderRowGeometryState extends State<_BlockReorderRowGeometry> {
-  final GlobalKey _rowKey = GlobalKey();
-
   @override
   void initState() {
     super.initState();
@@ -6651,7 +6795,8 @@ class _BlockReorderRowGeometryState extends State<_BlockReorderRowGeometry> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.registry != widget.registry ||
         oldWidget.blockId != widget.blockId) {
-      oldWidget.registry.unregisterBlockRow(oldWidget.blockId, _rowKey);
+      oldWidget.registry
+          .unregisterBlockRow(oldWidget.blockId, widget.blockRowKey);
     }
     if (oldWidget.registry != widget.registry ||
         oldWidget.blockId != widget.blockId ||
@@ -6662,7 +6807,8 @@ class _BlockReorderRowGeometryState extends State<_BlockReorderRowGeometry> {
 
   @override
   void dispose() {
-    widget.registry.unregisterBlockRow(widget.blockId, _rowKey);
+    widget.registry
+        .unregisterBlockRow(widget.blockId, widget.blockRowKey);
     super.dispose();
   }
 
@@ -6671,7 +6817,7 @@ class _BlockReorderRowGeometryState extends State<_BlockReorderRowGeometry> {
       BlockRowGeometryEntry(
         blockId: widget.blockId,
         blockIndex: widget.blockIndex,
-        key: _rowKey,
+        key: widget.blockRowKey,
       ),
     );
   }
@@ -6679,7 +6825,7 @@ class _BlockReorderRowGeometryState extends State<_BlockReorderRowGeometry> {
   @override
   Widget build(BuildContext context) {
     return RepaintBoundary(
-      key: _rowKey,
+      key: widget.blockRowKey,
       child: widget.child,
     );
   }
@@ -6696,6 +6842,8 @@ class _BlockDragHandleButton extends StatefulWidget {
     required this.blockMoveRange,
     required this.canEdit,
     required this.registry,
+    this.dragSnapshotKey,
+    this.onDragChanged,
     this.onAction,
     this.onFormatChanged,
   });
@@ -6709,6 +6857,8 @@ class _BlockDragHandleButton extends StatefulWidget {
   final _BlockMoveRange blockMoveRange;
   final bool canEdit;
   final BlockGeometryRegistry registry;
+  final GlobalKey? dragSnapshotKey;
+  final ValueChanged<bool>? onDragChanged;
   final ObjectBlockActionHandler? onAction;
   final _RowBlockFormatChangeHandler? onFormatChanged;
 
@@ -6727,6 +6877,11 @@ class _BlockDragHandleButtonState extends State<_BlockDragHandleButton> {
   bool _suppressMenuForPointer = false;
   OverlayEntry? _dropIndicatorEntry;
   BlockReorderDropTarget? _dropTarget;
+
+  // Drag-preview snapshot fields
+  ui.Image? _dragSnapshot;
+  OverlayEntry? _dragPreviewEntry;
+  Offset _dragPointerPosition = Offset.zero;
 
   @override
   void initState() {
@@ -6751,6 +6906,7 @@ class _BlockDragHandleButtonState extends State<_BlockDragHandleButton> {
   @override
   void dispose() {
     _removeDropIndicator();
+    _removeDragPreview();
     widget.registry.unregisterSelectionExclusion(_hitTestKey);
     super.dispose();
   }
@@ -6867,10 +7023,10 @@ class _BlockDragHandleButtonState extends State<_BlockDragHandleButton> {
     _activePointer = event.pointer;
     _pressOrigin = event.position;
     _suppressMenuForPointer = false;
-    if (_dragging && mounted) {
-      setState(() => _dragging = false);
-    } else {
-      _dragging = false;
+    if (_dragging) {
+      _setDragging(false);
+      _removeDropIndicator();
+      _removeDragPreview();
     }
   }
 
@@ -6887,8 +7043,13 @@ class _BlockDragHandleButtonState extends State<_BlockDragHandleButton> {
     if (!_canDragSort) {
       return;
     }
-    if (!_dragging && mounted) {
-      setState(() => _dragging = true);
+    if (!_dragging) {
+      _setDragging(true);
+      _captureDragSnapshot();
+    }
+    if (_dragging) {
+      _dragPointerPosition = event.position;
+      _dragPreviewEntry?.markNeedsBuild();
     }
     _updateDropTarget(event.position);
   }
@@ -6924,17 +7085,139 @@ class _BlockDragHandleButtonState extends State<_BlockDragHandleButton> {
         (event.buttons & kPrimaryMouseButton) == kPrimaryMouseButton;
   }
 
+  /// Captures a snapshot of the block row's [RenderRepaintBoundary] as a
+  /// [ui.Image] for the drag-preview overlay.  Silently degrades when the
+  /// snapshot key is unavailable, the render object isn't a repaint boundary,
+  /// or the captured image has zero size — the core drag-sort flow is never
+  /// interrupted.
+  Future<void> _captureDragSnapshot() async {
+    final key = widget.dragSnapshotKey;
+    if (key == null) {
+      return;
+    }
+    final currentContext = key.currentContext;
+    if (currentContext == null) {
+      return;
+    }
+    final renderObject = currentContext.findRenderObject();
+    if (renderObject is! RenderRepaintBoundary) {
+      return;
+    }
+    try {
+      final image = await renderObject.toImage(
+        pixelRatio: _kDragPreviewDevicePixelRatio,
+      );
+      if (image.width == 0 || image.height == 0) {
+        image.dispose();
+        return;
+      }
+      if (!mounted || !_dragging) {
+        image.dispose();
+        return;
+      }
+      _dragSnapshot = image;
+      _insertDragPreview();
+    } catch (_) {
+      // Silently degrade — snapshot failure should not break drag sorting.
+    }
+  }
+
+  void _insertDragPreview() {
+    if (_dragPreviewEntry != null) {
+      return;
+    }
+    final overlay = Overlay.of(context);
+    _dragPreviewEntry = OverlayEntry(
+      builder: _buildDragPreview,
+    );
+    overlay.insert(_dragPreviewEntry!);
+  }
+
+  Widget _buildDragPreview(BuildContext overlayContext) {
+    final image = _dragSnapshot;
+    if (image == null) {
+      return const SizedBox.shrink();
+    }
+    final overlayBox = Overlay.of(context).context.findRenderObject();
+    if (overlayBox is! RenderBox || !overlayBox.hasSize) {
+      return const SizedBox.shrink();
+    }
+    final localPos = overlayBox.globalToLocal(_dragPointerPosition);
+    final imageWidth = image.width.toDouble() / _kDragPreviewDevicePixelRatio;
+    final imageHeight =
+        image.height.toDouble() / _kDragPreviewDevicePixelRatio;
+    final viewportHeight = MediaQuery.of(context).size.height;
+    final maxPreviewHeight = viewportHeight * _kDragPreviewMaxHeightRatio;
+    final previewHeight = imageHeight.clamp(0.0, maxPreviewHeight);
+    final previewWidth = previewHeight < imageHeight
+        ? (imageWidth * (previewHeight / imageHeight)).clamp(0.0, imageWidth)
+        : imageWidth;
+    return Positioned(
+      left: localPos.dx + _kDragPreviewOffsetDx,
+      top: localPos.dy + _kDragPreviewOffsetDy,
+      width: previewWidth,
+      height: previewHeight,
+      child: IgnorePointer(
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: _kDragPreviewOpacity),
+            borderRadius:
+                BorderRadius.circular(_kDragPreviewBorderRadius),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.15),
+                blurRadius: 8,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius:
+                BorderRadius.circular(_kDragPreviewBorderRadius),
+            clipBehavior: Clip.antiAlias,
+            child: Opacity(
+              opacity: _kDragPreviewOpacity,
+              child: RawImage(
+                image: image,
+                fit: BoxFit.contain,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  static const double _kDragPreviewDevicePixelRatio = 1.0;
+  static const double _kDragPreviewOpacity = 0.85;
+  static const double _kDragPreviewOffsetDx = -16.0;
+  static const double _kDragPreviewOffsetDy = -12.0;
+  static const double _kDragPreviewBorderRadius = 8.0;
+  static const double _kDragPreviewMaxHeightRatio = 0.4;
+
   void _resetPointerGesture() {
     final wasDragging = _dragging;
     _activePointer = null;
     _pressOrigin = null;
     _suppressMenuForPointer = false;
-    _dragging = false;
     _dropTarget = null;
     _removeDropIndicator();
-    if (wasDragging && mounted) {
-      setState(() {});
+    _removeDragPreview();
+    if (wasDragging) {
+      _setDragging(false);
     }
+  }
+
+  void _setDragging(bool dragging) {
+    if (_dragging == dragging) {
+      return;
+    }
+    if (mounted) {
+      setState(() => _dragging = dragging);
+    } else {
+      _dragging = dragging;
+    }
+    widget.onDragChanged?.call(dragging);
   }
 
   void _updateDropTarget(Offset globalPosition) {
@@ -7037,6 +7320,13 @@ class _BlockDragHandleButtonState extends State<_BlockDragHandleButton> {
   void _removeDropIndicator() {
     _dropIndicatorEntry?.remove();
     _dropIndicatorEntry = null;
+  }
+
+  void _removeDragPreview() {
+    _dragPreviewEntry?.remove();
+    _dragPreviewEntry = null;
+    _dragSnapshot?.dispose();
+    _dragSnapshot = null;
   }
 
   void _submitBlockReorder(BlockReorderDropTarget? target) {
@@ -9220,17 +9510,36 @@ class _TableBlockRenderer extends StatelessWidget {
     final tableTextStyle =
         effectiveStyle.copyWith(fontSize: _kTableCellFontSize);
     final tableBorderColor = _tableBorderColor(theme);
+    final currentSelection = selection;
     return _withBlockSemantics(
       block,
       LayoutBuilder(
         builder: (context, constraints) {
+          final direction = Directionality.of(context);
           final metrics = _TableGridMetrics.compute(
             table: table,
             maxWidth: _tableMaxWidth(constraints, columnCount),
             textStyle: tableTextStyle,
-            textDirection: Directionality.of(context),
+            textDirection: direction,
           );
-          final activeRange = _activeTableRange(selection, block, blockIndex);
+          final tableSelectionRect = currentSelection == null
+              ? null
+              : _selectionRectForTableCells(
+                  context: context,
+                  gridMetrics: metrics,
+                  table: table,
+                  tableBlockId: block.id,
+                  blockIndex: blockIndex,
+                  selection: currentSelection,
+                  textStyle: tableTextStyle,
+                  textDirection: direction,
+                  inlineEmbedRenderer: inlineEmbedRenderer,
+                );
+          final activeRange = _activeTableRange(
+            currentSelection,
+            block,
+            blockIndex,
+          );
           final stackWidth = metrics.width;
           final resizeHeight = metrics.height;
           final tableSurface = SizedBox(
@@ -9286,16 +9595,18 @@ class _TableBlockRenderer extends StatelessWidget {
                                   cell.cell.alignment ??
                                       table.columnAlignments[cell.columnIndex],
                                 ),
-                                selection: selection,
+                                selection: currentSelection,
                                 compositionState: compositionState,
                                 registry: registry,
                                 showCaret: showCaret,
                                 highlightWholeCell: _shouldHighlightTableCell(
-                                  selection,
+                                  currentSelection,
                                   block.id,
                                   blockIndex,
                                   cell.rowIndex,
                                   cell.columnIndex,
+                                  gridMetrics: metrics,
+                                  tableSelectionRect: tableSelectionRect,
                                 ),
                                 showDebugOverlay: showDebugOverlay,
                                 inlineEmbedRenderer: inlineEmbedRenderer,
@@ -10046,16 +10357,90 @@ double _measureTableCellHeight(
       : textStyle;
   final text = _tableCellDisplayText(cell);
   final displayText = text.isEmpty ? ' ' : text;
-  final innerWidth = cellWidth - _kTableCellPadding.horizontal;
+  final innerWidth = _tableCellInnerWidth(cellWidth);
   final painter = TextPainter(
     text: TextSpan(text: displayText, style: effectiveTextStyle),
     textAlign: TextAlign.start,
     textDirection: textDirection,
-  )..layout(maxWidth: innerWidth > 0 ? innerWidth : 0);
+  )..layout(maxWidth: innerWidth);
   final height = painter.height + _kTableCellPadding.vertical;
   painter.dispose();
   final minimum = _minimumTableCellHeight(textStyle);
   return height > minimum ? height : minimum;
+}
+
+double _tableCellInnerWidth(double cellWidth) {
+  final innerWidth = cellWidth - _kTableCellPadding.horizontal;
+  if (!innerWidth.isFinite || innerWidth <= 0) {
+    return 0;
+  }
+  return innerWidth;
+}
+
+TextStyle _effectiveTableCellTextStyle(
+  TableCellNode? cell,
+  TextStyle textStyle,
+  ThemeData theme,
+) {
+  if (cell?.isHeader ?? false) {
+    return textStyle.copyWith(
+      fontWeight: FontWeight.w700,
+      color: theme.colorScheme.onSurfaceVariant,
+    );
+  }
+  return textStyle;
+}
+
+class _TableCellTextLayout {
+  const _TableCellTextLayout({
+    required this.textLength,
+    required this.textSpan,
+    required this.offsetMapper,
+  });
+
+  final int textLength;
+  final InlineSpan textSpan;
+  final _InlineOffsetMapper offsetMapper;
+}
+
+_TableCellTextLayout _tableCellTextLayoutFor({
+  required BuildContext context,
+  required TableCellNode? cell,
+  required TextStyle textStyle,
+  required ThemeData theme,
+  required String blockId,
+  required int blockIndex,
+  required PositionPath path,
+  required _LocalSelectionRange? compositionRange,
+  InlineEmbedRenderer? inlineEmbedRenderer,
+}) {
+  final effectiveTextStyle = _effectiveTableCellTextStyle(
+    cell,
+    textStyle,
+    theme,
+  );
+  final inlineContent = _tableCellInlineContent(cell);
+  final textLength = inlineNodesLength(inlineContent);
+  final inlineTextLayout = _inlineTextLayoutFor(
+    context,
+    inlineContent,
+    effectiveTextStyle,
+    compositionRange,
+    inlineEmbedRenderer,
+    blockId: blockId,
+    blockIndex: blockIndex,
+    path: path,
+  );
+  return _TableCellTextLayout(
+    textLength: textLength,
+    textSpan: TextSpan(
+      style: effectiveTextStyle,
+      children: textLength == 0
+          ? const <InlineSpan>[TextSpan(text: ' ')]
+          : inlineTextLayout.spans,
+    ),
+    offsetMapper: inlineTextLayout.offsetMapper,
+  );
 }
 
 List<InlineNode> _tableCellInlineContent(TableCellNode? cell) {
@@ -10132,52 +10517,325 @@ double _sumTableRange(List<double> values, int start, int count) {
   return result;
 }
 
+/// Computes the visual bounding rectangle that spans from the caret at
+/// [selection.start] to the caret at [selection.end] using the layout
+/// information in [gridMetrics].
+///
+/// Each endpoint is resolved with the same text layout inputs used by the cell
+/// renderer, so aligned text, empty cells, and multi-line cells contribute the
+/// caret's actual pixel coordinates rather than the endpoint cell's full
+/// rectangle. The returned [Rect] is normalized as
+/// `min(left), min(top), max(right), max(bottom)`.
+///
+/// Returns `null` when:
+/// - The selection is collapsed (no visual area to span).
+/// - The selection does not intersect this table block.
+/// - The relevant endpoint's row/column or text layout cannot be resolved.
+Rect? _selectionRectForTableCells({
+  required BuildContext context,
+  required _TableGridMetrics gridMetrics,
+  required TableModel table,
+  required String tableBlockId,
+  required int blockIndex,
+  required DocumentSelection selection,
+  required TextStyle textStyle,
+  required TextDirection textDirection,
+  InlineEmbedRenderer? inlineEmbedRenderer,
+}) {
+  if (selection.isCollapsed) {
+    return null;
+  }
+
+  final start = selection.start;
+  final end = selection.end;
+  final tableRect = _tableRectForGridMetrics(gridMetrics);
+  final startInTable = _isTableCellPositionInBlock(
+    start,
+    tableBlockId,
+    blockIndex,
+  );
+  final endInTable = _isTableCellPositionInBlock(
+    end,
+    tableBlockId,
+    blockIndex,
+  );
+
+  if (start.blockIndex < blockIndex && end.blockIndex > blockIndex) {
+    return tableRect;
+  }
+
+  if (!startInTable && !endInTable) {
+    return null;
+  }
+
+  if (startInTable && endInTable) {
+    final startRect = _caretRectForTableSelectionEndpoint(
+      context: context,
+      gridMetrics: gridMetrics,
+      table: table,
+      position: start,
+      textStyle: textStyle,
+      textDirection: textDirection,
+      inlineEmbedRenderer: inlineEmbedRenderer,
+    );
+    final endRect = _caretRectForTableSelectionEndpoint(
+      context: context,
+      gridMetrics: gridMetrics,
+      table: table,
+      position: end,
+      textStyle: textStyle,
+      textDirection: textDirection,
+      inlineEmbedRenderer: inlineEmbedRenderer,
+    );
+    if (startRect == null || endRect == null) {
+      return null;
+    }
+    return _normalizedRectBetween(startRect, endRect);
+  }
+
+  if (startInTable && end.blockIndex > blockIndex) {
+    final startRect = _caretRectForTableSelectionEndpoint(
+      context: context,
+      gridMetrics: gridMetrics,
+      table: table,
+      position: start,
+      textStyle: textStyle,
+      textDirection: textDirection,
+      inlineEmbedRenderer: inlineEmbedRenderer,
+    );
+    if (startRect == null) {
+      return null;
+    }
+    return _normalizedRectBetween(
+      startRect,
+      Rect.fromLTWH(tableRect.right, tableRect.bottom, 0, 0),
+    );
+  }
+
+  if (endInTable && start.blockIndex < blockIndex) {
+    final endRect = _caretRectForTableSelectionEndpoint(
+      context: context,
+      gridMetrics: gridMetrics,
+      table: table,
+      position: end,
+      textStyle: textStyle,
+      textDirection: textDirection,
+      inlineEmbedRenderer: inlineEmbedRenderer,
+    );
+    if (endRect == null) {
+      return null;
+    }
+    return _normalizedRectBetween(
+      Rect.fromLTWH(tableRect.left, tableRect.top, 0, 0),
+      endRect,
+    );
+  }
+
+  return null;
+}
+
+Rect _normalizedRectBetween(Rect startRect, Rect endRect) {
+  return Rect.fromLTRB(
+    math.min(startRect.left, endRect.left),
+    math.min(startRect.top, endRect.top),
+    math.max(startRect.right, endRect.right),
+    math.max(startRect.bottom, endRect.bottom),
+  );
+}
+
+Rect _tableRectForGridMetrics(_TableGridMetrics gridMetrics) {
+  return Rect.fromLTWH(
+    0,
+    0,
+    gridMetrics.width,
+    gridMetrics.height,
+  );
+}
+
+bool _isTableCellPositionInBlock(
+  DocumentPosition position,
+  String tableBlockId,
+  int blockIndex,
+) {
+  return position.blockId == tableBlockId &&
+      position.blockIndex == blockIndex &&
+      position.path.isTableCellText;
+}
+
+Rect? _caretRectForTableSelectionEndpoint({
+  required BuildContext context,
+  required _TableGridMetrics gridMetrics,
+  required TableModel table,
+  required DocumentPosition position,
+  required TextStyle textStyle,
+  required TextDirection textDirection,
+  InlineEmbedRenderer? inlineEmbedRenderer,
+}) {
+  final row = position.path.tableRowIndex;
+  final column = position.path.tableColumnIndex;
+  if (row == null || column == null) {
+    return null;
+  }
+  final gridCell = _tableGridCellAt(gridMetrics, row, column);
+  if (gridCell == null) {
+    return null;
+  }
+
+  final theme = Theme.of(context);
+  final cell = gridCell.cell;
+  final textLayout = _tableCellTextLayoutFor(
+    context: context,
+    cell: cell,
+    textStyle: textStyle,
+    theme: theme,
+    blockId: position.blockId,
+    blockIndex: position.blockIndex,
+    path: position.path,
+    compositionRange: null,
+    inlineEmbedRenderer: inlineEmbedRenderer,
+  );
+  final innerWidth = _tableCellInnerWidth(gridCell.width);
+  final layoutService = TextLayoutService();
+  final painter = layoutService.layout(
+    span: textLayout.textSpan,
+    textAlign: _textAlign(cell.alignment ?? table.columnAlignments[column]),
+    textDirection: textDirection,
+    minWidth: innerWidth,
+    maxWidth: innerWidth,
+  );
+  final logicalOffset = position.offset.clamp(0, textLayout.textLength).toInt();
+  final renderOffset = textLayout.offsetMapper
+      .renderOffsetForLogicalOffset(logicalOffset);
+  final localTopLeft = layoutService.caretOffset(painter, renderOffset);
+  final height = _caretHeightFor(
+    painter,
+    layoutService.caretHeight(painter, renderOffset),
+  );
+  layoutService.forget();
+  if (!localTopLeft.dx.isFinite ||
+      !localTopLeft.dy.isFinite ||
+      !height.isFinite ||
+      height <= 0) {
+    return null;
+  }
+  return Rect.fromLTWH(
+    gridCell.left + _kTableCellPadding.left + localTopLeft.dx,
+    gridCell.top + _kTableCellPadding.top + localTopLeft.dy,
+    _kCaretStrokeWidth,
+    height,
+  );
+}
+
+_TableGridCell? _tableGridCellAt(
+  _TableGridMetrics gridMetrics,
+  int rowIndex,
+  int columnIndex,
+) {
+  for (final cell in gridMetrics.cells) {
+    if (cell.rowIndex == rowIndex && cell.columnIndex == columnIndex) {
+      return cell;
+    }
+  }
+  return null;
+}
+
+Rect? _tableGridCellRectAt(
+  _TableGridMetrics? gridMetrics,
+  int rowIndex,
+  int columnIndex,
+) {
+  if (gridMetrics == null) {
+    return null;
+  }
+  final cell = _tableGridCellAt(gridMetrics, rowIndex, columnIndex);
+  if (cell == null) {
+    return null;
+  }
+  return Rect.fromLTWH(
+    cell.left,
+    cell.top,
+    cell.width,
+    cell.height,
+  );
+}
+
 bool _shouldHighlightTableCell(
   DocumentSelection? selection,
   String tableBlockId,
   int blockIndex,
   int rowIndex,
-  int columnIndex,
-) {
+  int columnIndex, {
+  _TableGridMetrics? gridMetrics,
+  Rect? tableSelectionRect,
+}) {
   if (selection == null || selection.isCollapsed) {
     return false;
   }
-  // Intra-table cell range (drag within the table): highlight cells inside the
-  // range via the structured TableCellRange.
+
+  // Intra-table cell range (drag within the table): the whole-cell visual
+  // highlight is driven only by the caret-constrained selection rectangle
+  // intersecting the current visible cell rectangle.
   final range = selection.tableCellRange;
   if (range != null) {
     if (range.isSingleCell) {
       return false;
     }
-    return range.tableBlockId == tableBlockId &&
-        range.blockIndex == blockIndex &&
-        range.containsCell(rowIndex, columnIndex);
+    if (range.tableBlockId != tableBlockId || range.blockIndex != blockIndex) {
+      return false;
+    }
+    final selRect = tableSelectionRect;
+    final cellRect = _tableGridCellRectAt(gridMetrics, rowIndex, columnIndex);
+    if (selRect == null || cellRect == null) {
+      return range.containsCell(rowIndex, columnIndex);
+    }
+    return cellRect.overlaps(selRect);
   }
+
   // Cross-block selection that spans this table block (e.g. select-all across
   // a paragraph + table): when the table block sits strictly between the
-  // selection endpoints, every cell is part of the selection and highlights.
+  // selection endpoints, every visible cell is part of the selection.
   final start = selection.start;
   final end = selection.end;
   final tableCovered =
       start.blockIndex < blockIndex && end.blockIndex > blockIndex;
   if (tableCovered) {
-    return true;
+    return _tableGridCellRectAt(gridMetrics, rowIndex, columnIndex) != null;
   }
-  // Selection partially covers this table block from one endpoint.
-  // Use explicit row/column comparison (2D bounding-box logic, consistent
-  // with TableCellRange.containsCell) rather than PositionPath.compare,
-  // so that the highlight decision does not depend on the internal path
-  // segment ordering.
+  final selRect = tableSelectionRect;
+  final currentCellRect = _tableGridCellRectAt(
+    gridMetrics,
+    rowIndex,
+    columnIndex,
+  );
+  if (selRect != null && currentCellRect != null) {
+    return currentCellRect.overlaps(selRect);
+  }
+  // Selection partially covers this table block from one endpoint. Keep the
+  // visual decision tied to resolved grid rectangles; if an endpoint or current
+  // cell is not visible in the grid, do not paint a whole-cell highlight.
   if (start.blockIndex == blockIndex &&
       start.path.isTableCellText &&
       end.blockIndex > blockIndex) {
     if (start.blockId != tableBlockId) {
       return false;
     }
-    final sr = start.path.tableRowIndex!;
-    final sc = start.path.tableColumnIndex!;
-    // Cells strictly after the start cell in row-major order.
-    return rowIndex > sr || (rowIndex == sr && columnIndex > sc);
+    if (gridMetrics == null) {
+      return false;
+    }
+    // Use visual constraint: the start cell determines the visual boundary
+    // within this table. Layout-missing cells are not highlighted.
+    final startRow = start.path.tableRowIndex;
+    final startCol = start.path.tableColumnIndex;
+    if (startRow == null || startCol == null) {
+      return false;
+    }
+    final startRect = _tableGridCellRectAt(gridMetrics, startRow, startCol);
+    final cellRect = _tableGridCellRectAt(gridMetrics, rowIndex, columnIndex);
+    if (startRect == null || cellRect == null) {
+      return false;
+    }
+    return rowIndex > startRow ||
+        (rowIndex == startRow && columnIndex >= startCol);
   }
   if (end.blockIndex == blockIndex &&
       end.path.isTableCellText &&
@@ -10185,10 +10843,122 @@ bool _shouldHighlightTableCell(
     if (end.blockId != tableBlockId) {
       return false;
     }
-    final er = end.path.tableRowIndex!;
-    final ec = end.path.tableColumnIndex!;
-    // Cells strictly before the end cell in row-major order.
-    return rowIndex < er || (rowIndex == er && columnIndex < ec);
+    if (gridMetrics == null) {
+      return false;
+    }
+    // Use visual constraint: the end cell determines the visual boundary
+    // within this table. Layout-missing cells are not highlighted.
+    final endRow = end.path.tableRowIndex;
+    final endCol = end.path.tableColumnIndex;
+    if (endRow == null || endCol == null) {
+      return false;
+    }
+    final endRect = _tableGridCellRectAt(gridMetrics, endRow, endCol);
+    final cellRect = _tableGridCellRectAt(gridMetrics, rowIndex, columnIndex);
+    if (endRect == null || cellRect == null) {
+      return false;
+    }
+    return rowIndex < endRow || (rowIndex == endRow && columnIndex <= endCol);
+  }
+  return false;
+}
+
+bool _shouldPaintTableCellTextSelection(
+  DocumentSelection? selection,
+  int blockIndex,
+  PositionPath path,
+) {
+  if (selection == null || selection.isCollapsed || !path.isTableCellText) {
+    return false;
+  }
+  final range = selection.tableCellRange;
+  if (range != null) {
+    return range.isSingleCell &&
+        range.tableBlockId == path.blockId &&
+        range.blockIndex == blockIndex &&
+        _tableCellRangeContainsPath(range, path);
+  }
+  return _isSameTableCellTextSelection(selection, blockIndex, path);
+}
+
+bool _isSameTableCellTextSelection(
+  DocumentSelection selection,
+  int blockIndex,
+  PositionPath path,
+) {
+  if (!path.isTableCellText) {
+    return false;
+  }
+  final start = selection.start;
+  final end = selection.end;
+  return start.blockIndex == blockIndex &&
+      end.blockIndex == blockIndex &&
+      start.blockId == path.blockId &&
+      end.blockId == path.blockId &&
+      start.path == path &&
+      end.path == path;
+}
+
+bool _tableCellRangeContainsPath(TableCellRange range, PositionPath path) {
+  if (!path.isTableCellText) {
+    return false;
+  }
+  final row = path.tableRowIndex;
+  final column = path.tableColumnIndex;
+  if (row == null || column == null) {
+    return false;
+  }
+  return range.containsCell(row, column);
+}
+
+bool _isTableCellSemanticallySelected({
+  required DocumentSelection? selection,
+  required String tableBlockId,
+  required int blockIndex,
+  required int rowIndex,
+  required int columnIndex,
+  required bool hasTextSelection,
+}) {
+  if (hasTextSelection) {
+    return true;
+  }
+  if (selection == null || selection.isCollapsed) {
+    return false;
+  }
+  final range = selection.tableCellRange;
+  if (range != null) {
+    return range.tableBlockId == tableBlockId &&
+        range.blockIndex == blockIndex &&
+        range.containsCell(rowIndex, columnIndex);
+  }
+  final start = selection.start;
+  final end = selection.end;
+  if (start.blockIndex < blockIndex && end.blockIndex > blockIndex) {
+    return true;
+  }
+  if (start.blockIndex == blockIndex &&
+      start.blockId == tableBlockId &&
+      start.path.isTableCellText &&
+      end.blockIndex > blockIndex) {
+    final startRow = start.path.tableRowIndex;
+    final startColumn = start.path.tableColumnIndex;
+    if (startRow == null || startColumn == null) {
+      return false;
+    }
+    return rowIndex > startRow ||
+        (rowIndex == startRow && columnIndex >= startColumn);
+  }
+  if (end.blockIndex == blockIndex &&
+      end.blockId == tableBlockId &&
+      end.path.isTableCellText &&
+      start.blockIndex < blockIndex) {
+    final endRow = end.path.tableRowIndex;
+    final endColumn = end.path.tableColumnIndex;
+    if (endRow == null || endColumn == null) {
+      return false;
+    }
+    return rowIndex < endRow ||
+        (rowIndex == endRow && columnIndex <= endColumn);
   }
   return false;
 }
@@ -10260,55 +11030,56 @@ class _TableCellSurfaceState extends State<_TableCellSurface> {
       blockIndex,
       path,
     );
-    final inlineContent = _tableCellInlineContent(cell);
-    final textLength = inlineNodesLength(inlineContent);
     final theme = Theme.of(context);
     final highlightColor = theme.colorScheme.primary.withAlpha(54);
-    final effectiveTextStyle = (cell?.isHeader ?? false)
-        ? widget.textStyle.copyWith(
-            fontWeight: FontWeight.w700,
-            color: theme.colorScheme.onSurfaceVariant,
-          )
-        : widget.textStyle;
-    final inlineTextLayout = _inlineTextLayoutFor(
-      context,
-      inlineContent,
-      effectiveTextStyle,
-      compositionRange,
-      widget.inlineEmbedRenderer,
+    final textLayout = _tableCellTextLayoutFor(
+      context: context,
+      cell: cell,
+      textStyle: widget.textStyle,
+      theme: theme,
       blockId: tableBlock.id,
       blockIndex: blockIndex,
       path: path,
+      compositionRange: compositionRange,
+      inlineEmbedRenderer: widget.inlineEmbedRenderer,
     );
     final backgroundColor = _tableCellBackgroundColor(
       theme: theme,
       cell: cell,
       rowIndex: widget.rowIndex,
     );
+    final textSelectionRange = _selectionRangeForPath(
+      widget.selection,
+      blockIndex,
+      path,
+      textLayout.textLength,
+    );
+    final paintTextSelectionHighlight = textSelectionRange != null &&
+        _shouldPaintTableCellTextSelection(
+          widget.selection,
+          blockIndex,
+          path,
+        );
     final surface = _TextSelectionSurface(
       blockId: tableBlock.id,
       blockIndex: blockIndex,
       path: path,
-      textLength: textLength,
-      textSpan: TextSpan(
-        style: effectiveTextStyle,
-        children: textLength == 0
-            ? const <InlineSpan>[TextSpan(text: ' ')]
-            : inlineTextLayout.spans,
-      ),
-      offsetMapper: inlineTextLayout.offsetMapper,
+      textLength: textLayout.textLength,
+      textSpan: textLayout.textSpan,
+      offsetMapper: textLayout.offsetMapper,
       textAlign: widget.textAlign,
       minHeight: (widget.textStyle.fontSize ?? 14) * _kBlockMinHeightFactor,
       selection: widget.selection,
       showCaret: widget.showCaret,
       registry: widget.registry,
       showDebugOverlay: widget.showDebugOverlay,
+      paintSelectionHighlight: paintTextSelectionHighlight,
       findRanges: _findRangesForPath(
         widget.findMatches,
         widget.currentFindMatch,
         blockIndex,
         path,
-        textLength,
+        textLayout.textLength,
       ),
       // The cell frame — not the centred text surface — is the hit-test box.
       // The surface resolves the cell→text-local offset itself (it owns the
@@ -10317,14 +11088,14 @@ class _TableCellSurfaceState extends State<_TableCellSurface> {
       // introduces for short cells.
       hitTestKey: _cellFrameKey,
     );
-    final selected = widget.highlightWholeCell ||
-        _selectionRangeForPath(
-              widget.selection,
-              blockIndex,
-              path,
-              textLength,
-            ) !=
-            null;
+    final selected = _isTableCellSemanticallySelected(
+      selection: widget.selection,
+      tableBlockId: tableBlock.id,
+      blockIndex: blockIndex,
+      rowIndex: widget.rowIndex,
+      columnIndex: widget.columnIndex,
+      hasTextSelection: paintTextSelectionHighlight,
+    );
     return Semantics(
       container: true,
       explicitChildNodes: true,
@@ -10637,6 +11408,7 @@ class _TextSelectionSurface extends StatefulWidget {
     required this.showDebugOverlay,
     this.findRanges = const <_FindHighlightRange>[],
     this.selectionHighlightColor,
+    this.paintSelectionHighlight = true,
     this.hitTestKey,
     this.clampHitTestToVisibleBounds = false,
   });
@@ -10655,6 +11427,7 @@ class _TextSelectionSurface extends StatefulWidget {
   final bool showDebugOverlay;
   final List<_FindHighlightRange> findRanges;
   final Color? selectionHighlightColor;
+  final bool paintSelectionHighlight;
   final bool clampHitTestToVisibleBounds;
 
   /// Optional GlobalKey on a wider hit-test frame (e.g. a table cell's whole
@@ -10671,6 +11444,7 @@ class _TextSelectionSurface extends StatefulWidget {
 class _TextSelectionSurfaceState extends State<_TextSelectionSurface> {
   TextLayoutService? _ownedLayoutService;
   final GlobalKey _surfaceKey = GlobalKey();
+  double _lastMinWidth = 0;
   double _lastMaxWidth = 0;
 
   /// Drives the caret blink. Period ~530ms, toggling [value] between 0 and 1.
@@ -10823,6 +11597,23 @@ class _TextSelectionSurfaceState extends State<_TextSelectionSurface> {
   /// horizontally scrolled code block); otherwise the registry treats the text
   /// surface itself as the hit-test box and this is never called.
   ///
+  /// ## Coordinate transform
+  ///
+  /// Both boxes share global space, so the offset between their origins is
+  /// simply the global delta. For a table cell the outer frame (DecoratedBox
+  /// with [_cellFrameKey]) wraps a Padding that contains this text surface;
+  /// therefore `cellOrigin - textOrigin` is `-cellPadding.topLeft` — the hit
+  /// is shifted leftward/upward by the padding amount, placing it in the
+  /// text-surface's local space.
+  ///
+  /// **Text alignment ([TextAlign.center] / [TextAlign.right]) does NOT affect
+  /// this transform.** Alignment is handled internally by [TextPainter] during
+  /// `getPositionForOffset` and `getBoxesForSelection` — the text-surface's
+  /// render box fills the full available width when the parent is finite
+  /// (`minWidth == maxWidth` in [build]), so the coordinate space of the
+  /// hit-test box and the layout canvas are identical regardless of how the
+  /// text is positioned within it.
+  ///
   /// Resolves both render boxes at hit-test time and adds the global delta
   /// between them — robust to padding and to the vertical centring gap that
   /// `TableCellVerticalAlignment.middle` introduces for short cells.
@@ -10834,9 +11625,13 @@ class _TextSelectionSurfaceState extends State<_TextSelectionSurface> {
     final cellBox = hitKey.currentContext?.findRenderObject();
     final textBox = _surfaceKey.currentContext?.findRenderObject();
     if (cellBox is! RenderBox || textBox is! RenderBox) {
+      // Fallback: approximate the padding offset. Use the table-cell padding
+      // as a reasonable default since that covers the majority of callers.
+      // The `-Offset(8, 8)` historic fallback remains as a coarse guess when
+      // clampToVisibleBounds is not set (object-card body, code viewport).
       return widget.clampHitTestToVisibleBounds
           ? Offset.zero
-          : hitLocal - const Offset(8, 8);
+          : hitLocal - Offset(_kTableCellPadding.left, _kTableCellPadding.top);
     }
     final cellOrigin = cellBox.localToGlobal(Offset.zero);
     final textOrigin = textBox.localToGlobal(Offset.zero);
@@ -10880,6 +11675,7 @@ class _TextSelectionSurfaceState extends State<_TextSelectionSurface> {
       span: widget.textSpan,
       textAlign: widget.textAlign,
       textDirection: Directionality.of(context),
+      minWidth: _lastMinWidth,
       maxWidth: _lastMaxWidth,
     );
     final renderLength = widget.textSpan.toPlainText().length;
@@ -10900,6 +11696,7 @@ class _TextSelectionSurfaceState extends State<_TextSelectionSurface> {
       span: widget.textSpan,
       textAlign: widget.textAlign,
       textDirection: Directionality.of(context),
+      minWidth: _lastMinWidth,
       maxWidth: _lastMaxWidth,
     );
     final renderOffset =
@@ -10936,6 +11733,7 @@ class _TextSelectionSurfaceState extends State<_TextSelectionSurface> {
       span: widget.textSpan,
       textAlign: widget.textAlign,
       textDirection: Directionality.of(context),
+      minWidth: _lastMinWidth,
       maxWidth: _lastMaxWidth,
     );
     final clamped = offset.clamp(0, widget.textLength).toInt();
@@ -10962,6 +11760,7 @@ class _TextSelectionSurfaceState extends State<_TextSelectionSurface> {
       span: widget.textSpan,
       textAlign: widget.textAlign,
       textDirection: Directionality.of(context),
+      minWidth: _lastMinWidth,
       maxWidth: _lastMaxWidth,
     );
     final safeStart = start.clamp(0, widget.textLength).toInt();
@@ -10994,6 +11793,7 @@ class _TextSelectionSurfaceState extends State<_TextSelectionSurface> {
       span: widget.textSpan,
       textAlign: widget.textAlign,
       textDirection: Directionality.of(context),
+      minWidth: _lastMinWidth,
       maxWidth: _lastMaxWidth,
     );
     final renderOffset =
@@ -11015,12 +11815,14 @@ class _TextSelectionSurfaceState extends State<_TextSelectionSurface> {
   @override
   Widget build(BuildContext context) {
     final direction = Directionality.of(context);
-    final selectionRange = _selectionRangeForPath(
-      widget.selection,
-      widget.blockIndex,
-      widget.path,
-      widget.textLength,
-    );
+    final selectionRange = widget.paintSelectionHighlight
+        ? _selectionRangeForPath(
+            widget.selection,
+            widget.blockIndex,
+            widget.path,
+            widget.textLength,
+          )
+        : null;
     final caretOffset = _caretOffsetForPath(
       widget.selection,
       widget.showCaret,
@@ -11042,6 +11844,8 @@ class _TextSelectionSurfaceState extends State<_TextSelectionSurface> {
         final maxWidth = constraints.maxWidth.isFinite
             ? constraints.maxWidth
             : MediaQuery.sizeOf(context).width;
+        final minWidth = constraints.maxWidth.isFinite ? maxWidth : 0.0;
+        _lastMinWidth = minWidth;
         _lastMaxWidth = maxWidth;
         // Warm the layout cache so painters and hit-testing reuse the same
         // laid-out TextPainter this frame.
@@ -11049,6 +11853,7 @@ class _TextSelectionSurfaceState extends State<_TextSelectionSurface> {
           span: widget.textSpan,
           textAlign: widget.textAlign,
           textDirection: direction,
+          minWidth: minWidth,
           maxWidth: maxWidth,
         );
         // The caret's opacity is driven by the blink timer; while blinking it
@@ -11065,6 +11870,7 @@ class _TextSelectionSurfaceState extends State<_TextSelectionSurface> {
           offsetMapper: widget.offsetMapper,
           textAlign: widget.textAlign,
           textDirection: direction,
+          minWidth: minWidth,
           maxWidth: maxWidth,
           caretOffset: caretOffset,
           color: caretColor,
@@ -11076,7 +11882,7 @@ class _TextSelectionSurfaceState extends State<_TextSelectionSurface> {
         // when a separate hitTestKey is set (table cells, object-card body), the
         // text box must fill the available width — the registry already handles
         // hit-local-to-text-local offset mapping via the hitTestKey mechanism.
-        final textHitBoxMinWidth = constraints.maxWidth.isFinite ? maxWidth : 0.0;
+        final textHitBoxMinWidth = minWidth;
         final text = CustomPaint(
           painter: _SelectionHighlightPainter(
             layoutService: _layoutService,
@@ -11084,6 +11890,7 @@ class _TextSelectionSurfaceState extends State<_TextSelectionSurface> {
             offsetMapper: widget.offsetMapper,
             textAlign: widget.textAlign,
             textDirection: direction,
+            minWidth: minWidth,
             maxWidth: maxWidth,
             range: selectionRange,
             color: selectionHighlightColor,
@@ -11094,6 +11901,7 @@ class _TextSelectionSurfaceState extends State<_TextSelectionSurface> {
               textSpan: widget.textSpan,
               textAlign: widget.textAlign,
               textDirection: direction,
+              minWidth: minWidth,
               maxWidth: maxWidth,
               ranges: widget.findRanges,
               color: findHighlightColor,
@@ -11405,6 +12213,7 @@ class _FindHighlightPainter extends CustomPainter {
     required this.textSpan,
     required this.textAlign,
     required this.textDirection,
+    required this.minWidth,
     required this.maxWidth,
     required this.ranges,
     required this.color,
@@ -11415,6 +12224,7 @@ class _FindHighlightPainter extends CustomPainter {
   final InlineSpan textSpan;
   final TextAlign textAlign;
   final TextDirection textDirection;
+  final double minWidth;
   final double maxWidth;
   final List<_FindHighlightRange> ranges;
   final Color color;
@@ -11429,6 +12239,7 @@ class _FindHighlightPainter extends CustomPainter {
       span: textSpan,
       textAlign: textAlign,
       textDirection: textDirection,
+      minWidth: minWidth,
       maxWidth: maxWidth,
     );
     for (final range in ranges) {
@@ -11452,6 +12263,7 @@ class _FindHighlightPainter extends CustomPainter {
     return oldDelegate.textSpan != textSpan ||
         oldDelegate.textAlign != textAlign ||
         oldDelegate.textDirection != textDirection ||
+        oldDelegate.minWidth != minWidth ||
         oldDelegate.maxWidth != maxWidth ||
         oldDelegate.ranges != ranges ||
         oldDelegate.color != color ||
@@ -11466,6 +12278,7 @@ class _SelectionHighlightPainter extends CustomPainter {
     required this.offsetMapper,
     required this.textAlign,
     required this.textDirection,
+    required this.minWidth,
     required this.maxWidth,
     required this.range,
     required this.color,
@@ -11474,8 +12287,15 @@ class _SelectionHighlightPainter extends CustomPainter {
   final TextLayoutService layoutService;
   final InlineSpan textSpan;
   final _InlineOffsetMapper offsetMapper;
+
+  /// Text alignment passed through to [TextPainter] during layout. The painter
+  /// handles positioning internally (e.g. shifting text rightward for center /
+  /// right alignment), so [selectionBoxes] returns boxes already in the correct
+  /// canvas-local space as long as [minWidth] / [maxWidth] match [RichText].
   final TextAlign textAlign;
+
   final TextDirection textDirection;
+  final double minWidth;
   final double maxWidth;
   final _LocalSelectionRange? range;
   final Color color;
@@ -11490,6 +12310,7 @@ class _SelectionHighlightPainter extends CustomPainter {
       span: textSpan,
       textAlign: textAlign,
       textDirection: textDirection,
+      minWidth: minWidth,
       maxWidth: maxWidth,
     );
     final renderStart = offsetMapper.renderOffsetForLogicalOffset(range.start);
@@ -11507,6 +12328,7 @@ class _SelectionHighlightPainter extends CustomPainter {
         oldDelegate.offsetMapper != offsetMapper ||
         oldDelegate.textAlign != textAlign ||
         oldDelegate.textDirection != textDirection ||
+        oldDelegate.minWidth != minWidth ||
         oldDelegate.maxWidth != maxWidth ||
         oldDelegate.range?.start != range?.start ||
         oldDelegate.range?.end != range?.end ||
@@ -11521,6 +12343,7 @@ class _CaretPainter extends CustomPainter {
     required this.offsetMapper,
     required this.textAlign,
     required this.textDirection,
+    required this.minWidth,
     required this.maxWidth,
     required this.caretOffset,
     required this.color,
@@ -11533,6 +12356,7 @@ class _CaretPainter extends CustomPainter {
   final _InlineOffsetMapper offsetMapper;
   final TextAlign textAlign;
   final TextDirection textDirection;
+  final double minWidth;
   final double maxWidth;
   final int? caretOffset;
   final Color color;
@@ -11552,6 +12376,7 @@ class _CaretPainter extends CustomPainter {
       span: textSpan,
       textAlign: textAlign,
       textDirection: textDirection,
+      minWidth: minWidth,
       maxWidth: maxWidth,
     );
     final safeOffset = caretOffset.clamp(0, textLength).toInt();
@@ -11575,6 +12400,7 @@ class _CaretPainter extends CustomPainter {
         oldDelegate.offsetMapper != offsetMapper ||
         oldDelegate.textAlign != textAlign ||
         oldDelegate.textDirection != textDirection ||
+        oldDelegate.minWidth != minWidth ||
         oldDelegate.maxWidth != maxWidth ||
         oldDelegate.caretOffset != caretOffset ||
         oldDelegate.color != color ||
@@ -14839,6 +15665,9 @@ _LocalSelectionRange? _selectionRangeForPath(
   if (selection == null || selection.isCollapsed) {
     return null;
   }
+  if (_isMultiCellTableRangePath(selection, blockIndex, path)) {
+    return null;
+  }
   final start = selection.start;
   final end = selection.end;
   int? localStart;
@@ -14878,6 +15707,19 @@ _LocalSelectionRange? _selectionRangeForPath(
     start: safeStart < safeEnd ? safeStart : safeEnd,
     end: safeStart < safeEnd ? safeEnd : safeStart,
   );
+}
+
+bool _isMultiCellTableRangePath(
+  DocumentSelection selection,
+  int blockIndex,
+  PositionPath path,
+) {
+  final range = selection.tableCellRange;
+  return range != null &&
+      !range.isSingleCell &&
+      path.isTableCellText &&
+      range.blockIndex == blockIndex &&
+      range.tableBlockId == path.blockId;
 }
 
 TextStyle _textStyleForAttributes(
