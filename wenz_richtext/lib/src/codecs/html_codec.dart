@@ -303,10 +303,13 @@ class HtmlCodec {
       sizeAttrs.write(' data-height="${image.height}"');
     }
     final img = '<img src="$src" alt="$alt"$sizeAttrs>';
+    final alignment = _imageBlockAlignment(image.attributes.alignment);
+    final figureAttrs =
+        alignment == null ? '' : ' style="text-align: $alignment"';
     if (image.caption.isEmpty) {
-      return img;
+      return alignment == null ? img : '<figure$figureAttrs>$img</figure>';
     }
-    return '<figure>$img<figcaption>${_escapeHtml(image.caption)}</figcaption></figure>';
+    return '<figure$figureAttrs>$img<figcaption>${_escapeHtml(image.caption)}</figcaption></figure>';
   }
 
   String _encodeFileBlock(FileBlockNode file) {
@@ -556,11 +559,14 @@ class HtmlCodec {
         case 'figure':
           final img = node.querySelector('img');
           if (img != null) {
+            final alignment = _imageAlignmentForElement(node) ??
+                _imageAlignmentForElement(img);
             _decodeImageElement(
               img,
               blocks,
               newId,
               caption: node.querySelector('figcaption')?.text.trim() ?? '',
+              alignment: alignment,
             );
             return;
           }
@@ -587,6 +593,18 @@ class HtmlCodec {
         case 'br':
           return;
         default:
+          final alignment = _imageAlignmentForElement(node);
+          final wrappedImage =
+              alignment == null ? null : _singleWrappedImage(node);
+          if (wrappedImage != null) {
+            _decodeImageElement(
+              wrappedImage,
+              blocks,
+              newId,
+              alignment: alignment,
+            );
+            return;
+          }
           // Unknown container (div/span/section/…): recurse into children so a
           // `<div><p>…</p></div>` still yields its paragraph.
           if (node.nodes.isNotEmpty) {
@@ -619,6 +637,7 @@ class HtmlCodec {
     List<BlockNode> blocks,
     String Function(String) newId, {
     String caption = '',
+    String? alignment,
   }) {
     final src = node.attributes['src'] ?? '';
     if (src.isEmpty) {
@@ -631,6 +650,7 @@ class HtmlCodec {
             .trim();
     final naturalWidth = _parseIntAttribute(node.attributes['data-width']);
     final naturalHeight = _parseIntAttribute(node.attributes['data-height']);
+    final resolvedAlignment = alignment ?? _imageAlignmentForElement(node);
     blocks.add(ImageBlockNode(
       id: newId('image'),
       assetId: src,
@@ -641,6 +661,9 @@ class HtmlCodec {
       showHeight: _parseDoubleAttribute(node.attributes['height']),
       caption: resolvedCaption,
       altText: alt,
+      attributes: resolvedAlignment == null
+          ? const BlockAttributes()
+          : BlockAttributes(alignment: resolvedAlignment),
     ));
   }
 
@@ -1076,6 +1099,42 @@ class HtmlCodec {
       default:
         return null;
     }
+  }
+
+  String? _imageAlignmentForElement(dom.Element element) {
+    final fromStyle = _styleProperty(element.attributes['style'], 'text-align');
+    return _imageBlockAlignment(fromStyle ?? element.attributes['align']);
+  }
+
+  String? _imageBlockAlignment(String? value) {
+    switch (value?.trim().toLowerCase()) {
+      case 'left':
+      case 'center':
+      case 'right':
+        return value!.trim().toLowerCase();
+      default:
+        return null;
+    }
+  }
+
+  dom.Element? _singleWrappedImage(dom.Element element) {
+    dom.Element? image;
+    for (final child in element.nodes) {
+      if (child is dom.Text) {
+        if (child.text.trim().isNotEmpty) {
+          return null;
+        }
+        continue;
+      }
+      if (child is! dom.Element) {
+        return null;
+      }
+      if (child.localName?.toLowerCase() != 'img' || image != null) {
+        return null;
+      }
+      image = child;
+    }
+    return image;
   }
 
   /// Parses the inline content of [node] into a list of [InlineNode]s,

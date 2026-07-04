@@ -105,7 +105,7 @@ Markdown/plain text intentionally degrade to readable fallback text.
 | --- | --- | --- |
 | paragraph / heading / quote / listItem | `_TextBlockRenderer` | Inline-aware; formula/mention fallback + optional `InlineEmbedRenderer`; selection/caret/composition via `_TextSelectionSurface`. Quote is now an attribute-level decoration (`BlockAttributes.quoted`) that can wrap paragraph, heading, list, or todo semantics; legacy `BlockType.quote` is still accepted as compatible input. |
 | code | `_CodeBlockRenderer` | Monospace body with syntax highlighting (`CodeSyntaxHighlighter`, see [Code block syntax highlighting](#code-block-syntax-highlighting)) and composition underline span; code blocks reserve a display-only left gutter for 1-based line numbers; toolbar includes language dropdown and copy-code button. Language changes call `SetCodeLanguageCommand`; Tab/Shift+Tab in the editor call `IndentCodeBlockCommand`. |
-| image / video / file | asks `MediaResolver`, then built-in fallback | Built-in media renderers consult the injected [MediaResolver] first; when it returns `null` (or no resolver is set) images/videos fall back to built-in placeholders, while files fall back to a metadata card. Image blocks can carry remote identifiers in `assetId` and local paths/URIs in `file`; the renderer wraps the resolved widget with `showWidth`/`showHeight` sizing and optional caption text. Image/video selection actions are rendered by the editor-level object-toolbar overlay, not as children in the media block layout, so selecting media does not move the frame or caption. Video blocks place both the fallback chrome and resolver child inside a finite rounded frame that is clipped to the editor content width and safe aspect-ratio height; file cards show display name, size, MIME type, upload status, and failure text. See [Media resolver](#media-resolver). |
+| image / video / file | asks `MediaResolver`, then built-in fallback | Built-in media renderers consult the injected [MediaResolver] first; when it returns `null` (or no resolver is set) images/videos fall back to built-in placeholders, while files fall back to a metadata card. Image blocks can carry remote identifiers in `assetId` and local paths/URIs in `file`; the renderer wraps the resolved widget with `showWidth`/`showHeight` sizing and optional caption text. Image `BlockAttributes.alignment` moves the whole figure frame (`null`/`center` centered, `left` at start, `right` at end); the caption, selection stroke, and object toolbar follow that frame. Image/video selection actions are rendered by the editor-level object-toolbar overlay, not as children in the media block layout, so selecting media does not move the frame or caption. Video blocks place both the fallback chrome and resolver child inside a finite rounded frame that is clipped to the editor content width and safe aspect-ratio height; file cards show display name, size, MIME type, upload status, and failure text. See [Media resolver](#media-resolver). |
 | embed | `_BlockEmbedContent` or business renderer | Generic block embed placeholder displays `embedType` + `fallbackText`/data label. Register per business type with `BlockRendererRegistry.registerEmbed`; wrap large custom widgets in `WenzObjectBlockSurface` for object-block selection semantics. |
 | table | `_TableBlockRenderer` | Custom Stack grid layout; visible cells are positioned by `rowSpan`/`columnSpan`, covered cells are not rendered or hit-tested; table-cell text uses the same inline embed fallback/renderer path. When a table cell/range is selected, the default renderer shows a floating toolbar for row/column insert/delete, header/background/alignment, merge/split, width reset, plus drag handles that persist explicit column widths via `SetTableColumnWidthCommand`. |
 | divider | Flutter `Divider`. | |
@@ -516,7 +516,16 @@ Semantics:
   (`width`/`height`), display size (`showWidth`/`showHeight`), source,
   `caption`, and `altText`. The default image renderer shows the caption below
   either the resolver widget or fallback placeholder; semantics prefer
-  `altText`, then caption, then the asset/file label.
+  `altText`, then caption, then the asset/file label. It also reads
+  `ImageBlockNode.attributes.alignment`: `null` keeps the historical centered
+  figure, `left` / `center` / `right` align the same frame within the editable
+  content width, and `justify` does not stretch the image.
+- The image alignment frame is shared by every built-in image subpart. The
+  resolver widget or placeholder, caption, selected media stroke, resize handles,
+  and object-toolbar anchor all use the same aligned frame rectangle. A custom
+  image renderer registered through `BlockRendererRegistry` replaces this
+  default chrome, so it can choose whether to reuse
+  `block.attributes.alignment` or implement a different business layout.
 - Video metadata stays on `VideoBlockNode`: use the slash menu keyword
   `video`/`视频`, `ToolbarController.insertVideo`, or
   `WenzRichTextController.insertVideo` to create a block; update playback URL,
@@ -548,6 +557,8 @@ move the frame, or move the image caption.
 Positioning contract:
 
 - the anchor is the media frame top edge, not the whole block row;
+- for images, that frame is the post-alignment figure frame, so left/default
+  center/right image blocks move the toolbar with the visible image;
 - the toolbar is aligned to the frame end edge and clamped inside the overlay
   width;
 - the vertical gap from the frame is `_kBlockFloatingToolbarInset`;
@@ -561,9 +572,10 @@ rectangle and uses the media corner radius. Image and video blocks disable the
 generic full-block object selection overlay so the stroke does not cover block
 margins or captions.
 
-This is a rendering-only change. It does not change `VideoBlockNode`,
-`ImageBlockNode`, `MediaResolver` injection, preview callbacks, or rich
-JSON/HTML/Markdown/plain-text serialization and import/export protocols.
+The overlay positioning itself is rendering-only. Image alignment persistence is
+part of the document/codec contract: rich JSON and HTML preserve explicit image
+alignment, while Markdown and plain text degrade to readable image content
+without alignment.
 Non-media object blocks such as file cards, dividers, and business embeds keep
 their existing block floating toolbar path unless their renderer explicitly
 migrates to `ObjectBlockToolbarOverlayController`.

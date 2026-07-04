@@ -66,6 +66,135 @@ void main() {
     });
   });
 
+  group('default desktop toolbar factory', () {
+    test('buildDefaultDesktopToolbar reuses assembled controller and registry',
+        () {
+      final pluginOnly = WenzToolbarItem(
+        id: 'plugin-only',
+        title: 'Plugin only',
+        priority: 2,
+        action: (_, __) {},
+      );
+      final pluginShared = WenzToolbarItem(
+        id: 'shared',
+        title: 'Plugin shared',
+        priority: 1,
+        action: (_, __) {},
+      );
+      final hostShared = WenzToolbarItem(
+        id: 'shared',
+        title: 'Host shared',
+        priority: 0,
+        action: (_, __) {},
+      );
+      final explicit = WenzToolbarItem(
+        id: 'explicit',
+        title: 'Explicit',
+        priority: -1,
+        action: (_, __) {},
+      );
+      const style = WenzDefaultDesktopToolbarStyle(showBottomBorder: false);
+      const actions = WenzDefaultDesktopToolbarActions(
+        imageUnavailablePolicy:
+            WenzDefaultDesktopToolbarUnavailablePolicy.disable,
+      );
+
+      final bootstrap = WenzEditorBootstrap.create(
+        WenzEditorConfiguration(
+          plugins: <WenzRichTextPlugin>[
+            WenzPluginBundle(
+              id: 'toolbar.plugin',
+              toolbarItems: <WenzToolbarItem>[pluginOnly, pluginShared],
+            ),
+          ],
+          toolbarItems: <WenzToolbarItem>[hostShared],
+        ),
+      );
+      addTearDown(bootstrap.dispose);
+
+      expect(bootstrap.toolbarItemRegistry['shared'], same(hostShared));
+      expect(bootstrap.toolbarItemRegistry['plugin-only'], same(pluginOnly));
+
+      final toolbar = bootstrap.buildDefaultDesktopToolbar(
+        actions: actions,
+        style: style,
+        toolbarItems: <WenzToolbarItem>[explicit],
+      );
+
+      expect(toolbar.controller, same(bootstrap.controller));
+      expect(toolbar.toolbar, same(bootstrap.toolbarController));
+      expect(toolbar.toolbarItemRegistry, same(bootstrap.toolbarItemRegistry));
+      expect(toolbar.actions, same(actions));
+      expect(toolbar.style, same(style));
+      expect(
+        toolbar.effectiveToolbarItems.map((item) => item.id),
+        <String>['explicit', 'shared', 'plugin-only'],
+      );
+      expect(toolbar.effectiveToolbarItems[1].title, 'Host shared');
+    });
+
+    test('buildDefaultDesktopToolbar throws when toolbar is disabled', () {
+      final bootstrap = WenzEditorBootstrap.create(
+        const WenzEditorConfiguration(enableToolbar: false),
+      );
+      addTearDown(bootstrap.dispose);
+
+      expect(bootstrap.toolbarController, isNull);
+      expect(
+        bootstrap.buildDefaultDesktopToolbar,
+        throwsA(
+          isA<StateError>().having(
+            (error) => error.message,
+            'message',
+            contains('enableToolbar=true'),
+          ),
+        ),
+      );
+    });
+
+    testWidgets('configuration and plugin toolbar items render in helper', (
+      tester,
+    ) async {
+      final bootstrap = WenzEditorBootstrap.create(
+        WenzEditorConfiguration(
+          plugins: <WenzRichTextPlugin>[
+            WenzPluginBundle(
+              id: 'toolbar.plugin.render',
+              toolbarItems: <WenzToolbarItem>[
+                WenzToolbarItem(
+                  id: 'plugin-action',
+                  title: 'Plugin action',
+                  tooltip: 'Plugin action',
+                  action: (_, __) {},
+                ),
+              ],
+            ),
+          ],
+          toolbarItems: <WenzToolbarItem>[
+            WenzToolbarItem(
+              id: 'host-action',
+              title: 'Host action',
+              tooltip: 'Host action',
+              action: (_, __) {},
+            ),
+          ],
+        ),
+      );
+      addTearDown(bootstrap.dispose);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(body: bootstrap.buildDefaultDesktopToolbar()),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.byType(WenzDefaultDesktopToolbar), findsOneWidget);
+      expect(find.byTooltip('Plugin action'), findsOneWidget);
+      expect(find.byTooltip('Host action'), findsOneWidget);
+    });
+  });
+
   group('widget and data integration', () {
     testWidgets('buildEditor renders, edits, and round-trips rich JSON',
         (tester) async {
@@ -260,6 +389,55 @@ void main() {
       );
       await tester.pump();
       expect(_richText('View only'), findsOneWidget);
+    });
+
+    test('context menu configuration is copied and passed to buildEditor', () {
+      const appendMenu = WenzEditorContextMenuConfiguration(
+        items: <WenzEditorContextMenuEntry>[
+          WenzEditorContextMenuItem(
+            id: 'host.comment',
+            title: 'Comment',
+            icon: Icons.comment_outlined,
+          ),
+        ],
+      );
+      const replacementMenu = WenzEditorContextMenuConfiguration(
+        defaultItemsPolicy: WenzEditorContextMenuDefaultItemsPolicy.customOnly,
+        items: <WenzEditorContextMenuEntry>[
+          WenzEditorContextMenuItem(
+            id: 'host.rewrite',
+            title: 'Rewrite',
+            icon: Icons.auto_fix_high,
+          ),
+        ],
+      );
+      const configuration = WenzEditorConfiguration(
+        contextMenuConfiguration: appendMenu,
+      );
+
+      expect(configuration.contextMenuConfiguration, same(appendMenu));
+      expect(
+        configuration.copyWith().contextMenuConfiguration,
+        same(appendMenu),
+      );
+      expect(
+        configuration
+            .copyWith(contextMenuConfiguration: replacementMenu)
+            .contextMenuConfiguration,
+        same(replacementMenu),
+      );
+      expect(
+        configuration
+            .copyWith(contextMenuConfiguration: null)
+            .contextMenuConfiguration,
+        isNull,
+      );
+
+      final bootstrap = WenzEditorBootstrap.create(configuration);
+      addTearDown(bootstrap.dispose);
+
+      final editor = bootstrap.buildEditor(enableIme: false);
+      expect(editor.contextMenuConfiguration, same(appendMenu));
     });
 
     testWidgets(

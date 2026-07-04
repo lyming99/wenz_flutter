@@ -515,6 +515,49 @@ void main() {
       controller.dispose();
     });
 
+    test('records image display resize as one undoable update', () {
+      final controller = WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            ImageBlockNode(
+              id: 'img1',
+              assetId: 'hero',
+              file: 'hero.png',
+              width: 640,
+              height: 320,
+              showWidth: 180,
+              showHeight: 90,
+            ),
+          ],
+        ),
+      );
+
+      final change = controller.updateImageBlock(
+        blockIndex: 0,
+        showWidth: 240,
+        showHeight: 120,
+      );
+
+      expect(change.description, 'updateImageBlock');
+      final resized = controller.document.blocks.single as ImageBlockNode;
+      expect(resized.showWidth, 240);
+      expect(resized.showHeight, 120);
+      expect(controller.canUndo, isTrue);
+
+      expect(controller.undo(), isTrue);
+      final undone = controller.document.blocks.single as ImageBlockNode;
+      expect(undone.showWidth, 180);
+      expect(undone.showHeight, 90);
+      expect(controller.canUndo, isFalse);
+
+      expect(controller.redo(), isTrue);
+      final redone = controller.document.blocks.single as ImageBlockNode;
+      expect(redone.showWidth, 240);
+      expect(redone.showHeight, 120);
+
+      controller.dispose();
+    });
+
     test('returns a no-op for non-image targets', () {
       final controller = WenzRichTextController(
         document: const RichTextDocument(

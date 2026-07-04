@@ -7,6 +7,20 @@ import '../core/position/document_position.dart';
 import 'block_geometry_registry.dart';
 import 'link_hover_overlay.dart';
 
+typedef SelectionContextMenuRequestHandler = void Function(
+  SelectionContextMenuRequest request,
+);
+
+class SelectionContextMenuRequest {
+  const SelectionContextMenuRequest({
+    required this.globalPosition,
+    required this.hitPosition,
+  });
+
+  final Offset globalPosition;
+  final DocumentPosition? hitPosition;
+}
+
 /// Document-level gesture surface that owns mouse/touch selection across all
 /// editable blocks.
 ///
@@ -41,6 +55,7 @@ class SelectionGestureOverlay extends StatefulWidget {
     required this.readOnly,
     required this.onSelectionChanged,
     this.onTapBeyondContent,
+    this.onContextMenuRequested,
     this.linkProbe,
     this.onLinkHover,
     this.onLinkOpen,
@@ -53,6 +68,7 @@ class SelectionGestureOverlay extends StatefulWidget {
   final bool readOnly;
   final ValueChanged<DocumentSelection> onSelectionChanged;
   final bool Function(Offset globalPosition)? onTapBeyondContent;
+  final SelectionContextMenuRequestHandler? onContextMenuRequested;
 
   /// Resolves a global pointer position to the hovered inline link run, or
   /// `null` when the position is not over a link. Supplied by the editor (which
@@ -268,6 +284,23 @@ class _SelectionGestureOverlayState extends State<SelectionGestureOverlay> {
       _isDragging = false;
       return;
     }
+    if (_isContextMenuButton(event)) {
+      _selectionExcludedPointer = event.pointer;
+      _stopAutoScroll();
+      _dragBase = null;
+      _dragOrigin = null;
+      _lastDragPosition = null;
+      _tapAnchor = null;
+      _linkOpenPending = null;
+      _isDragging = false;
+      widget.onContextMenuRequested?.call(
+        SelectionContextMenuRequest(
+          globalPosition: event.position,
+          hitPosition: widget.registry.positionFromGlobalOffset(event.position),
+        ),
+      );
+      return;
+    }
     // Ctrl/Cmd+click (mouse/stylus) on an inline link opens it instead of
     // placing the caret. Resolve it before the tap/multi-click/drag setup so
     // none of that state is recorded — pointer-up just opens and returns,
@@ -307,6 +340,11 @@ class _SelectionGestureOverlayState extends State<SelectionGestureOverlay> {
     }
     _isDragging = false;
     _lastDragPosition = null;
+  }
+
+  bool _isContextMenuButton(PointerDownEvent event) {
+    return event.kind == PointerDeviceKind.mouse &&
+        (event.buttons & kSecondaryMouseButton) != 0;
   }
 
   /// Resolves whether a mouse/stylus pointer-down at [event] should open the

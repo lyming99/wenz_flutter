@@ -117,6 +117,8 @@ builder 收到 `BlockRenderContext`，其中与自定义组件最相关的字段
 
 **核心约束：业务 widget 必须用 `WenzObjectBlockSurface` 包裹**（`lib/src/widgets/wenz_rich_text_editor.dart`），这样它才能拿到与内置 image / video / file 一致的选区命中、光标、几何与块把手；不包裹则选区、行把手、排序 chrome 都不会正确生效。
 
+默认图片块已经内置可编辑态交互：选中图片后，frame 左右边缘会出现 resize 手柄，拖拽按图片有效宽高比同步调整 `showWidth/showHeight`，并在拖拽结束时通过 controller/command pipeline 调用 `updateImageBlock` 提交一次更新。拖拽过程只做临时预览，不创建新图片块、不改变 block id，也不需要业务层用“创建块副本”来模拟尺寸变化；图片块的内置对象菜单也不会暴露副本入口。`readOnly` 或非编辑权限下手柄隐藏且不会提交尺寸更新。
+
 如果业务块还需要悬浮对象工具栏，不要把工具栏塞进业务 widget 的 `Column` / `Stack`，也不要靠负偏移或额外占位制造悬浮效果。正确做法是在业务对象框顶部布置 `ObjectBlockToolbarOverlayAnchor`，通过 `objectBlockToolbarOverlayController` 发布请求，由编辑器级 `ObjectBlockToolbarOverlayHost` 承载工具栏；这样选中 / 取消选中不会改变业务块高度、frame 位置或周边正文布局。未显式迁移的非媒体对象块仍沿用既有块级浮动工具栏路径。
 
 ```dart
@@ -159,7 +161,7 @@ ChangeSet insertBlockEmbed({
 final flowSlashItem = SlashMenuItem(
   id: 'flowchart',
   title: '流程图',
-  icon: '🧭',
+  icon: 'account_tree',
   keywords: const <String>['flowchart', '图', 'liuchengtu'],
   action: (editor, context) {
     editor.insertBlockEmbed(
@@ -176,7 +178,7 @@ final flowSlashItem = SlashMenuItem(
 final flowToolbarItem = WenzToolbarItem(
   id: 'flowchart',
   title: '流程图',
-  icon: '🧭',
+  icon: 'account_tree',
   isEnabled: (state) => state.canSetBlockType,
   action: (editor, state) => editor.insertBlockEmbed(
     blockId: newBlockId('flowchart'),
@@ -188,6 +190,14 @@ final flowToolbarItem = WenzToolbarItem(
 ```
 
 `blockId` 由业务生成（`SlashMenuContext.generatedId(prefix)` 或自有 id 工厂），需保证文档内唯一。
+`WenzToolbarItem` 会进入 `WenzToolbarItemRegistry`；使用
+`WenzEditorBootstrap.buildDefaultDesktopToolbar()` 时，默认桌面工具栏会自动渲染
+registry 中的插件/宿主按钮。工具栏用 `ToolbarState` 计算
+`isEnabled` / `isActive`，点击后把 `WenzRichTextController` 与当前
+`ToolbarState` 传给 `action`。`icon` 是字符串 token：默认工具栏会把
+`account_tree` / `extension` / `image` / `video` / `file` / `link` /
+`formula` / `emoji` 等常见 token 映射到 Material icon，未知 token 稳定回退到
+extension 图标；完全自定义工具栏可以按自己的规则解释同一个 descriptor。
 
 ### 3.4 更新层：updateBlockEmbed
 
@@ -276,6 +286,13 @@ bootstrap 装配顺序固定为「**默认能力 → 插件贡献 → 宿主配�
 
 因此同 `embedType` / 同 slash id / 同 toolbar id 冲突时：**宿主覆盖插件，插件覆盖默认值，默认值仅作 fallback**。这一规则与 README「扩展点」、`integration_guide.md` §5 完全一致。粘贴转换是顺序 pipeline（返回 `null` 才交给下一级）。设计插件时**不要假设自己的 renderer / item 一定能赢**——宿主有权覆盖。
 
+`WenzToolbarItemRegistry.items` 和默认桌面工具栏的显式 `toolbarItems` 都按
+`priority` 升序、再按 `id` 字典序渲染；同一个 `id` 只保留最后注册/显式传入的
+item。bootstrap 的安装顺序是「默认能力 → 插件贡献 → 宿主配置」，因此配置里的
+host toolbar item 会覆盖插件同 id item。若调用
+`buildDefaultDesktopToolbar(toolbarItems: [...])` 再额外传入显式 items，这些显式
+items 会覆盖 registry 中同 id 项，适合页面局部替换或临时按钮。
+
 若想「必胜」，宿主侧直接用配置注入即可（路径 1）；插件侧应接受被覆盖。
 
 ## 6. 权限闸门
@@ -315,7 +332,7 @@ bootstrap 装配顺序固定为「**默认能力 → 插件贡献 → 宿主配�
 ## 9. 参考实现索引
 
 - **CRM 卡片（既有、可运行的块级 embed 范例）**：`example/lib/main.dart` —— 通过 `blockEmbedRenderers['crm-card']` 注册，`WenzObjectBlockSurface` 包裹，`insertBlockEmbed` 插入，与本指南流程图的「配置注入路径」写法一致。
-- **mention 搜索与详情模拟（行内 embed 内置链路范例）**：`example/lib/main.dart` —— 通过 `mentionSearch` 返回模拟成员，工具栏入口调用 `insertMention`，`onMentionTap` 打开详情弹窗。
+- **mention 搜索与详情模拟（行内 embed 内置链路范例）**：`example/lib/main.dart` —— 通过 `mentionSearch` 返回模拟成员，编辑区 `@` 浮层插入 mention，`onMentionTap` 打开详情弹窗。
 - **流程图样本（具体实现方案落地处）**：`example/lib/flowchart/` —— 数据契约 helper、`FlowchartView` widget、`FlowchartPlugin`，example 同时演示配置注入与插件两条路径。
 - **README 扩展点**：[README 扩展点与派生控制器接口](../README.md#扩展点与派生控制器接口) —— `BlockRendererRegistry` / `InlineEmbedRenderer` / `MediaResolver` / `WenzRichTextPlugin` 的总览与合并顺序。
 - **标准接入契约**：[`integration_guide.md`](integration_guide.md) §5（扩展注入）、§10（配置字段 → 扩展点映射）、§6/§7（权限与三态）。

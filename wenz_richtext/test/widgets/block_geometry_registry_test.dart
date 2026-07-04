@@ -41,6 +41,70 @@ void main() {
       expect(registry.wordRangeAt('p3', 0), const TextRange(start: 0, end: 2));
     });
 
+    testWidgets('finds the last mounted row in a block index range', (
+      tester,
+    ) async {
+      final registry = BlockGeometryRegistry();
+      final firstKey = GlobalKey();
+      final middleKey = GlobalKey();
+      final lastKey = GlobalKey();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Stack(
+              children: <Widget>[
+                Positioned(
+                  left: 12,
+                  top: 20,
+                  child: SizedBox(key: firstKey, width: 120, height: 18),
+                ),
+                Positioned(
+                  left: 12,
+                  top: 48,
+                  child: SizedBox(key: middleKey, width: 140, height: 22),
+                ),
+                Positioned(
+                  left: 12,
+                  top: 80,
+                  child: SizedBox(key: lastKey, width: 160, height: 24),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      registry.registerBlockRow(
+        BlockRowGeometryEntry(blockId: 'h', blockIndex: 0, key: firstKey),
+      );
+      registry.registerBlockRow(
+        BlockRowGeometryEntry(blockId: 'child', blockIndex: 1, key: middleKey),
+      );
+      registry.registerBlockRow(
+        BlockRowGeometryEntry(blockId: 'tail', blockIndex: 2, key: lastKey),
+      );
+
+      final target = registry.blockReorderDropTargetAfterLastMountedRowInRange(
+        startBlockIndex: 1,
+        endBlockIndexExclusive: 3,
+      );
+
+      expect(target, isNotNull);
+      expect(target!.blockId, 'tail');
+      expect(target.blockIndex, 2);
+      expect(target.placement, BlockReorderDropPlacement.after);
+      expect(target.insertionIndex, 3);
+      expect(target.blockRect, tester.getRect(find.byKey(lastKey)));
+      expect(
+        registry.blockReorderDropTargetAfterLastMountedRowInRange(
+          startBlockIndex: 3,
+          endBlockIndexExclusive: 3,
+        ),
+        isNull,
+      );
+    });
+
     testWidgets('selection exclusions follow registered render boxes', (
       tester,
     ) async {

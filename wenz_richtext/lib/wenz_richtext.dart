@@ -25,7 +25,10 @@
 ///   [ExternalImageInput], and [EditorTextInputClient]. These are the intended
 ///   integration points and change only with a documented reason.
 /// - **Stabilising (tier 2)**: [WenzRichTextEditor] widget,
-///   [WenzLinkInteractionCallback], [WenzRichTextEditorAccessibility], [DocumentSchema],
+///   [WenzLinkInteractionCallback], [WenzRichTextEditorAccessibility],
+///   editor context-menu descriptors ([WenzEditorContextMenuConfiguration],
+///   [WenzEditorContextMenuContext], [WenzEditorContextMenuItem]),
+///   [DocumentSchema],
 ///   the rich/legacy JSON codecs, the plain-text codec ([PlainTextCodec]),
 ///   the Markdown codec ([MarkdownCodec]), the HTML codec ([HtmlCodec]),
 ///   the schema migration framework ([DocumentMigration],
@@ -55,7 +58,8 @@
 ///   [WenzMentionTapDetails]), video insertion via slash menu / toolbar
 ///   helpers without a bundled player dependency, the
 ///   toolbar binding ([ToolbarController], [ToolbarState],
-///   [WenzToolbarItemRegistry]), the controller change
+///   [WenzToolbarItemRegistry]) and optional default desktop toolbar
+///   ([WenzDefaultDesktopToolbar]), the controller change
 ///   callbacks ([WenzRichTextController.onChanged],
 ///   [WenzRichTextController.onSelectionChanged],
 ///   [WenzRichTextController.onCommandExecuted]), find/replace state and UI
@@ -174,6 +178,8 @@ export 'src/integration/wenz_editor_bootstrap.dart';
 export 'src/integration/wenz_editor_configuration.dart';
 export 'src/widgets/block_renderer_registry.dart';
 export 'src/widgets/comment_sidebar.dart';
+export 'src/widgets/default_desktop_toolbar.dart';
+export 'src/widgets/editor_context_menu.dart';
 export 'src/widgets/find_replace_panel.dart';
 export 'src/widgets/inline_embed_renderer.dart';
 export 'src/widgets/link_edit_dialog.dart';

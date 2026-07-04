@@ -17,6 +17,8 @@ import '../input/shortcut_manager.dart';
 import '../plugins/editor_plugin.dart';
 import '../plugins/mermaid_diagram_plugin.dart';
 import '../widgets/block_renderer_registry.dart';
+import '../widgets/default_desktop_toolbar.dart';
+import '../widgets/editor_context_menu.dart';
 import '../widgets/inline_embed_renderer.dart';
 import '../widgets/wenz_rich_text_editor.dart';
 
@@ -365,6 +367,50 @@ class WenzEditorBootstrap {
 
   // ---- Lifecycle: build + dispose -------------------------------------------
 
+  /// Builds the optional default desktop toolbar from this bootstrap's
+  /// assembled editor controller, toolbar controller, and toolbar registry.
+  ///
+  /// The returned [WenzDefaultDesktopToolbar] is a plain widget. It does not
+  /// create or dispose any controller; lifecycle remains owned by this
+  /// bootstrap and [dispose]. Host-owned resource actions such as image/video
+  /// picking are passed through [actions], and additional host toolbar
+  /// descriptors can be appended through [toolbarItems]. [style] controls the
+  /// optional toolbar chrome without changing command behaviour.
+  ///
+  /// Throws a [StateError] when this bootstrap was created with
+  /// [WenzEditorConfiguration.enableToolbar] set to `false`, because no
+  /// [ToolbarController] exists for the toolbar to observe.
+  WenzDefaultDesktopToolbar buildDefaultDesktopToolbar({
+    Key? key,
+    WenzDefaultDesktopToolbarActions actions =
+        const WenzDefaultDesktopToolbarActions(),
+    WenzDefaultDesktopToolbarStyle style =
+        const WenzDefaultDesktopToolbarStyle(),
+    WenzToolbarItemRegistry? toolbarItemRegistry,
+    Iterable<WenzToolbarItem> toolbarItems = const <WenzToolbarItem>[],
+    bool includeRegistryItems = true,
+  }) {
+    final toolbar = toolbarController;
+    if (toolbar == null) {
+      throw StateError(
+        'WenzEditorBootstrap.buildDefaultDesktopToolbar requires '
+        'WenzEditorConfiguration.enableToolbar=true. This bootstrap was '
+        'created with enableToolbar=false, so no ToolbarController is '
+        'available.',
+      );
+    }
+    return WenzDefaultDesktopToolbar(
+      key: key,
+      controller: controller,
+      toolbar: toolbar,
+      toolbarItemRegistry: toolbarItemRegistry ?? this.toolbarItemRegistry,
+      toolbarItems: toolbarItems,
+      includeRegistryItems: includeRegistryItems,
+      actions: actions,
+      style: style,
+    );
+  }
+
   /// Builds and returns the [WenzRichTextEditor] wired to this bootstrap's
   /// assembled controller, registries, and derived controllers.
   ///
@@ -374,8 +420,8 @@ class WenzEditorBootstrap {
   /// [blockRendererRegistry], [inlineEmbedRendererRegistry],
   /// [slashMenuController], [findReplaceController], [outlineController],
   /// the host [WenzEditorConfiguration.onMentionTap], the merged shortcut
-  /// configuration, external image-input settings, and
-  /// [WenzEditorConfiguration.accessibility] — is injected automatically. The
+  /// configuration, context-menu configuration, external image-input settings,
+  /// and [WenzEditorConfiguration.accessibility] — is injected automatically. The
   /// named parameters are appearance overrides a host may pass through; each
   /// forwards verbatim to the [WenzRichTextEditor]
   /// constructor.
@@ -428,6 +474,8 @@ class WenzEditorBootstrap {
       showDebugOverlay: showDebugOverlay,
       enableIme: enableIme,
       shortcutConfiguration: shortcutConfiguration,
+      contextMenuConfiguration: configuration.contextMenuConfiguration ??
+          const WenzEditorContextMenuConfiguration(),
       blockRenderers: blockRendererRegistry,
       mediaResolver: configuration.mediaResolver,
       inlineEmbedRenderer: inlineEmbedRendererRegistry,

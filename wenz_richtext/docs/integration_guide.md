@@ -36,14 +36,14 @@ The standard external interface is **a facade plus a configuration object**:
 
 | Type | Role | Stability tier |
 | --- | --- | --- |
-| `WenzEditorConfiguration` | A `@immutable`, side-effect-free description of *intent*: initial document/selection, permission, media resolver, codec/migrations, accessibility, mention search/tap hooks, plugins, shortcuts, paste transformers, external image input, controller callbacks, and on/off switches for the built-in derived controllers. Describes what you want; never creates anything. | tier 1 (recommended entry) |
-| `WenzEditorBootstrap` | The facade. `WenzEditorBootstrap.create(configuration)` assembles the `WenzRichTextController` + every registry + the derived controllers + plugins in one call, exposes unified data I/O and getters, builds the `WenzRichTextEditor` via `buildEditor({...})`, and releases everything in dependency-reverse order via `dispose()`. | tier 1 (recommended entry) |
+| `WenzEditorConfiguration` | A `@immutable`, side-effect-free description of *intent*: initial document/selection, permission, media resolver, codec/migrations, accessibility, mention search/tap hooks, plugins, shortcuts, desktop context menu, paste transformers, external image input, controller callbacks, and on/off switches for the built-in derived controllers. Describes what you want; never creates anything. | tier 1 (recommended entry) |
+| `WenzEditorBootstrap` | The facade. `WenzEditorBootstrap.create(configuration)` assembles the `WenzRichTextController` + every registry + the derived controllers + plugins in one call, exposes unified data I/O and getters, builds the `WenzRichTextEditor` via `buildEditor({...})`, optionally builds the default desktop toolbar via `buildDefaultDesktopToolbar({...})`, and releases everything in dependency-reverse order via `dispose()`. | tier 1 (recommended entry) |
 
 ### Why facade + configuration, not a replacement typed API
 
 The existing public surface (`WenzRichTextController`,
 `WenzRichTextEditor`, the registries, the plugins) is **not** being replaced. It
-stays exactly where it is for advanced use. The facade only does three things
+stays exactly where it is for advanced use. The facade only does four things
 the manual path forces every host to reinvent:
 
 1. **Converge the default assembly** — a single `create()` call wires the
@@ -57,7 +57,11 @@ the manual path forces every host to reinvent:
 2. **Unify the data contract** — read/export, write/import, version snapshots,
    and selection/focus all go through one set of facade delegates whose
    signatures match `WenzRichTextController` verbatim (no invented semantics).
-3. **Own the lifecycle** — `dispose()` releases the derived controllers and
+3. **Offer a default desktop toolbar factory** —
+   `buildDefaultDesktopToolbar({...})` reuses the assembled controller,
+   `ToolbarController`, and `WenzToolbarItemRegistry` when a Material desktop
+   toolbar is enough, while leaving custom headless toolbar UIs available.
+4. **Own the lifecycle** — `dispose()` releases the derived controllers and
    registries in dependency-reverse order, with idempotent protection, so the
    `SlashMenuController` is unbound *before* the editor it listens to is torn
    down.
@@ -114,6 +118,10 @@ gets fully stable behaviour — the facade never bypasses them.
   `mergeWenzShortcutConfigurations`.
 - **Shortcuts:** `EditorShortcutConfiguration`
   (`EditorShortcutBinding` / `EditorShortcutIntent`).
+- **Desktop context menu:** `WenzEditorContextMenuConfiguration`,
+  `WenzEditorContextMenuContext`, `WenzEditorContextMenuItem`,
+  `WenzEditorContextMenuDivider`, and
+  `WenzEditorContextMenuDefaultItemsPolicy`.
 - **Toolbar / slash / find / outline / stats / autosave state:**
   `ToolbarController`, `WenzToolbarItemRegistry`, `SlashMenuController`,
   `SlashMenuRegistry`, `SlashMenuItem`, `WenzFindReplaceController`,
@@ -142,17 +150,18 @@ Table alignment has two integration levels. `TableModel.columnAlignments`
 remains a column default used by Markdown-style tables and column tooling.
 Selection-level alignment from a toolbar should call
 `ToolbarController.setAlignment(value)` or
-`WenzRichTextController.setAlignment(value)`: ordinary text selections update
-`BlockAttributes.alignment`, while table-cell selections update
+`WenzRichTextController.setAlignment(value)`: ordinary block selections update
+`BlockAttributes.alignment` on text blocks and image object blocks, while table-cell selections update
 `TableCellNode.alignment` for the selected visible cells. Clearing with `null`
-removes the explicit cell value and reveals the column fallback again. Host
+removes the explicit block/image value or cell value; images return to the
+default centered frame, and cells reveal the column fallback again. Host
 toolbars should not mutate `columnAlignments` for a cell-selection action.
 
 ---
 
 ## 3. Minimal access (zero configuration)
 
-A usable, fully-wired editor in three calls. Every configuration field is
+A usable, fully-wired editor in a few calls. Every configuration field is
 optional with a sane default, so `WenzEditorConfiguration()` is a legal,
 runnable configuration.
 
@@ -165,6 +174,9 @@ final bootstrap = WenzEditorBootstrap.create(
 print(bootstrap.controller.document.blocks.length); // 0+
 print(bootstrap.controller.permission);             // WenzEditorPermission.edit
 
+// Optional: build a stock Material desktop toolbar from the same assembly.
+final toolbar = bootstrap.buildDefaultDesktopToolbar();
+
 // buildEditor() returns a stock WenzRichTextEditor with the assembly injected:
 final editor = bootstrap.buildEditor(autofocus: true);
 
@@ -176,11 +188,20 @@ bootstrap.dispose(); // idempotent; safe to call once
 `WenzRichTextEditor` and injects `controller`, `blockRenderers`, `mediaResolver`,
 `inlineEmbedRenderer`, `slashMenuController`, `findController` /
 `onFindRequested` / `onReplaceRequested`, `outlineController`, `mentionSearch`,
-`onMentionTap`, external image-input settings, `shortcutConfiguration`, and
-`accessibility`.
+`onMentionTap`, external image-input settings, `shortcutConfiguration`,
+`contextMenuConfiguration`, and `accessibility`.
 Behaviour is identical to
 constructing `WenzRichTextEditor` yourself; the facade only saves you the
 assembly.
+
+`buildDefaultDesktopToolbar()` returns a `WenzDefaultDesktopToolbar`. It reuses
+the same `controller`, `toolbarController`, and `toolbarItemRegistry` assembled
+by `create()`, renders registry `WenzToolbarItem`s by default, and does not wrap
+or position the editor; put it wherever your layout needs it. Resource buttons
+for image/video/file/business embeds are host policy, so pass
+`WenzDefaultDesktopToolbarActions` when you want those buttons visible. If the
+configuration sets `enableToolbar: false`, this helper throws `StateError`
+because no `ToolbarController` exists for live button state.
 
 ---
 
@@ -240,6 +261,10 @@ can round-trip quoted headings, quoted ordered/todo list items, and ordinary
 quoted paragraphs through rich JSON (`attrs.quoted`), Markdown (`>` prefixes),
 and HTML (`<blockquote>` wrapping the original block tag). Legacy rich JSON with
 `type: "quote"` is still accepted and normalizes to a quoted paragraph.
+Image alignment follows the same format split as the codecs: rich JSON preserves
+`ImageBlockNode.attrs.alignment`, HTML preserves explicit `left` / `center` /
+`right` alignment on the image wrapper, and Markdown/plain text keep only the
+readable image content.
 
 ---
 
@@ -291,18 +316,33 @@ final config = WenzEditorConfiguration(
     bindings: <EditorShortcutBinding>[ myBinding ],
   ),
 
-  // 7) Paste transformers.
+  // 7) Desktop right-click menu actions.
+  contextMenuConfiguration: WenzEditorContextMenuConfiguration(
+    items: <WenzEditorContextMenuEntry>[
+      WenzEditorContextMenuItem(
+        id: 'acme.comment',
+        title: 'Add comment',
+        icon: Icons.comment_outlined,
+        action: (context) => openCommentComposer(
+          context.selection,
+          context.hitPosition,
+        ),
+      ),
+    ],
+  ),
+
+  // 8) Paste transformers.
   pasteTransformers: <ClipboardPasteTransformer>[ myTransformer ],
 
-  // 8) Media resolution (images/videos) — the editor still needs the handle too.
+  // 9) Media resolution (images/videos) — the editor still needs the handle too.
   mediaResolver: myMediaResolver,
 
-  // 9) External image input policy.
+  // 10) External image input policy.
   enableExternalImageInput: true,
   externalImageClipboardReader: myClipboardImageReader, // optional
   externalImageStore: myImageStore,                     // optional
 
-  // 10) Whole plugins / bundles — commands, middleware, renderers, menu/toolbar
+  // 11) Whole plugins / bundles — commands, middleware, renderers, menu/toolbar
   //    items, shortcuts, paste transformers in one declarative package.
   plugins: <WenzRichTextPlugin>[
     WenzPluginBundle(id: 'acme.mentions', slashMenuItems: <SlashMenuItem>[...]),
@@ -320,6 +360,14 @@ indistinguishable to the editor. Shortcut fragments contributed by plugins are
 merged before the host's `shortcutConfiguration` (see
 `mergeWenzShortcutConfigurations`), so host bindings always win.
 
+Toolbar descriptors follow the same registry path. `configuration.toolbarItems`
+and plugin `registerToolbarItem(...)` contributions enter the shared
+`WenzToolbarItemRegistry`; `buildDefaultDesktopToolbar()` renders that registry
+when `includeRegistryItems` is left at its default `true`. A host can still pass
+one-off `toolbarItems` directly to the toolbar factory; those explicit items
+override registry entries with the same id and are sorted by `priority`, then
+`id`.
+
 Mention search is an editor-level hook, not an inline renderer. Use
 `mentionSearch` to feed the built-in `@` suggestions, insert selected candidates
 as `mention` inline embeds, and use `onMentionTap` for profile/detail UI. A
@@ -335,6 +383,82 @@ or fully custom tap handling.
 
 See [§10](#10-configuration-field--extension-point-map) for the full
 field → extension-point mapping.
+
+### Desktop context menu
+
+The editor owns the desktop right-click trigger, selection hit testing, menu
+positioning, and default action dispatch. Hosts own business actions. Use
+`WenzEditorContextMenuConfiguration` either directly on `WenzRichTextEditor` or
+through `WenzEditorConfiguration` when using the facade.
+
+Direct construction:
+
+```dart
+WenzRichTextEditor(
+  controller: controller,
+  contextMenuConfiguration: WenzEditorContextMenuConfiguration(
+    items: <WenzEditorContextMenuEntry>[
+      WenzEditorContextMenuItem(
+        id: 'acme.comment',
+        title: 'Add comment',
+        icon: Icons.comment_outlined,
+        isEnabled: (context) => context.hasExpandedSelection,
+        action: (context) => openCommentComposer(context.selection),
+      ),
+    ],
+  ),
+);
+```
+
+Facade construction:
+
+```dart
+final bootstrap = WenzEditorBootstrap.create(
+  WenzEditorConfiguration(
+    contextMenuConfiguration: WenzEditorContextMenuConfiguration(
+      items: <WenzEditorContextMenuEntry>[
+        WenzEditorContextMenuItem(
+          id: 'acme.rewrite',
+          title: 'Rewrite selection',
+          icon: Icons.auto_fix_high,
+          isEnabled: (context) => context.canEdit && context.hasExpandedSelection,
+          action: (context) => rewriteSelection(context.controller),
+        ),
+      ],
+    ),
+  ),
+);
+```
+
+By default, custom `items` are appended after the editor defaults. To replace
+the default menu entirely, set `defaultItemsPolicy:
+WenzEditorContextMenuDefaultItemsPolicy.customOnly`:
+
+```dart
+const customOnlyMenu = WenzEditorContextMenuConfiguration(
+  defaultItemsPolicy: WenzEditorContextMenuDefaultItemsPolicy.customOnly,
+  items: <WenzEditorContextMenuEntry>[
+    WenzEditorContextMenuItem(
+      id: 'acme.open-inspector',
+      title: 'Open inspector',
+      icon: Icons.manage_search,
+    ),
+  ],
+);
+```
+
+For ordered insertion around built-ins, use `builder(context, defaultEntries)`
+and return the final list. The default entries include copy, cut, paste,
+delete, select all, and insert actions for paragraph, heading, quote, code
+block, divider, table, image, video, file, formula, and callout. Copy/cut/paste
+and select all display platform shortcut labels. Read-only editors leave
+non-mutating actions such as copy/select-all available when valid and disable
+write actions; every mutating action still goes through controller commands or
+editor helpers, so the permission gate remains the source of truth.
+`WenzEditorConfiguration.copyWith()` preserves the current menu configuration
+when the argument is omitted, replaces it when a new
+`WenzEditorContextMenuConfiguration` is supplied, and clears the host override
+with `copyWith(contextMenuConfiguration: null)`.
 
 ### External image input
 
@@ -429,8 +553,8 @@ final view = ro.buildEditor(readOnly: true);
 
 ## 8. Lifecycle & dispose order
 
-The full lifecycle is `create()` → `buildEditor()` (call repeatedly to rebuild)
-→ `dispose()` (once).
+The full lifecycle is `create()` → optional `buildDefaultDesktopToolbar()` /
+`buildEditor()` (call repeatedly to rebuild widgets) → `dispose()` (once).
 
 `dispose()` releases resources in **dependency-reverse order**, mirroring the
 bundled `example`'s manual dispose: the derived controllers and registries that
@@ -463,6 +587,10 @@ The facade is additive and conservative. Explicitly:
   construct `WenzRichTextController` + `WenzRichTextEditor` + registries by hand
   and call `installWenzRichTextPlugins` themselves. The facade is the
   *recommended* path, not the *only* path.
+- **It does not force a toolbar or layout.** The default desktop toolbar is an
+  optional tier 2 widget factory. Hosts that need Cupertino, compact mobile, or
+  business-specific chrome can keep rendering `ToolbarController.state` and
+  `WenzToolbarItemRegistry.items` themselves.
 - **It introduces no new runtime dependency.** PDF/DOCX/player/etc. still enter
   through the existing injection boundaries (`WenzDocumentExporter`,
   `MediaResolver`). Importing the facade adds nothing to the dependency tree.
@@ -495,6 +623,7 @@ This is the contract `WenzEditorConfiguration` (P002) implements and
 | `accessibility` | `WenzRichTextEditorAccessibility` | `buildEditor` | tier 2 |
 | `plugins` | `List<WenzRichTextPlugin>` | `installWenzRichTextPlugins` | tier 2 |
 | `shortcutConfiguration` | `EditorShortcutConfiguration` | merged last, wins | tier 2 |
+| `contextMenuConfiguration` | `WenzEditorContextMenuConfiguration?` | `buildEditor` | tier 2 |
 | `pasteTransformers` | `List<ClipboardPasteTransformer>` | `ClipboardService` | tier 2 |
 | `enableExternalImageInput` | `bool` (default `true`) | `buildEditor` | tier 1 |
 | `externalImageClipboardReader` | `ExternalImageClipboardReader?` | `buildEditor` | tier 1 |
@@ -504,20 +633,22 @@ This is the contract `WenzEditorConfiguration` (P002) implements and
 | `inlineEmbedRenderers` | `Map<String, InlineEmbedSpanBuilder>` | registry | tier 2 |
 | `mentionSearch` | `WenzMentionSearchCallback?` | `buildEditor` | tier 1 |
 | `slashMenuItems` | `List<SlashMenuItem>` | `SlashMenuRegistry` | tier 2 |
-| `toolbarItems` | `List<WenzToolbarItem>` | `WenzToolbarItemRegistry` | tier 2 |
+| `toolbarItems` | `List<WenzToolbarItem>` | `WenzToolbarItemRegistry`; rendered by the default desktop toolbar when used | tier 2 |
 | `onMentionTap` | `WenzMentionTapCallback?` | `buildEditor` | tier 1 |
 | `onChanged` | doc-changed callback | controller | tier 1 |
 | `onSelectionChanged` | selection callback | controller | tier 1 |
 | `onCommandExecuted` | command callback | controller | tier 1 |
-| built-in derived-controller switches | `bool` (slash menu / find & replace / outline / autosave / stats / toolbar) | facade only creates the ones enabled | tier 2 |
+| built-in derived-controller switches | `bool` (slash menu / find & replace / outline / autosave / stats / toolbar) | facade only creates the ones enabled; `buildDefaultDesktopToolbar()` requires `enableToolbar=true` | tier 2 |
 
 Toolbar integrations should read alignment state from `ToolbarController`:
 `canSetAlignment` gates the buttons, `alignment` is the uniform explicit value,
 and `alignmentMixed` marks a mixed selected range. Use `isAlignment('center')`
 for active button styling and call
 `setAlignment('left'|'center'|'right'|'justify')` or `clearAlignment()`. The
-controller keeps paragraph and table-cell semantics consistent, including
-permission checks and undo/redo.
+controller keeps paragraph, selected-image, and table-cell semantics consistent,
+including permission checks and undo/redo. For image-only controls, expose
+left/center/right/clear; `justify` is a text/table alignment value and does not
+stretch the default image renderer.
 
 > **Custom components.** `blockEmbedRenderers` / `inlineEmbedRenderers` /
 > `blockRenderers` are the three injection seats for business embeds. The
@@ -536,6 +667,8 @@ verbatim to `WenzRichTextEditor`): `padding`, `blockSpacing`, `textStyle`,
 `showDebugOverlay`, `enableIme`. The facade does not reinterpret any of them.
 
 `WenzEditorBootstrap.create(configuration)` — constructor + assembly.
+`buildDefaultDesktopToolbar({...})` — optional desktop toolbar factory, may be
+called multiple times.
 `buildEditor({...})` — widget factory, may be called multiple times.
 `dispose()` — idempotent, dependency-reverse release.
 
@@ -547,8 +680,9 @@ When integrating, confirm each of these against your host:
 
 1. Single import: `import 'package:wenz_richtext/wenz_richtext.dart';` — no
    `src/` paths.
-2. One `WenzEditorBootstrap.create(...)` owns the assembly; one
-   `buildEditor(...)` returns the widget.
+2. One `WenzEditorBootstrap.create(...)` owns the assembly; optional
+   `buildDefaultDesktopToolbar(...)` and `buildEditor(...)` return widgets for
+   the host layout.
 3. Data goes in/out through the facade I/O delegates ([§4](#4-data-read--write));
    no direct codec construction for default shapes.
 4. Extensions are configuration fields ([§5](#5-extension-injection)), not

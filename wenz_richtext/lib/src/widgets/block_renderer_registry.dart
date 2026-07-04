@@ -77,6 +77,12 @@ typedef TableColumnResizeHandler = void Function({
   required double width,
 });
 
+typedef ImageBlockResizeHandler = void Function({
+  required int blockIndex,
+  required double width,
+  required double height,
+});
+
 typedef TodoCheckedChangeHandler = void Function({
   required int blockIndex,
   required bool checked,
@@ -129,12 +135,13 @@ abstract final class BlockDragHandleSpec {
   /// Reserved leading gutter for row chrome, outside the renderer's content box.
   ///
   /// Editable rows that reserve the heading-collapse slot use this full rail:
-  /// [hitSize].width (28 dp) + [chromeGap] (8 dp) + the compact heading
+  /// [hitSize].width (28 dp) + [chromeGap] (4 dp) + the compact heading
   /// collapse hit target (24 dp) + [gapToContent] (8 dp). Non-heading rows
   /// reserve the same width while outline chrome is attached so renderer
   /// content stays aligned across headings, paragraphs, code blocks, and other
-  /// top-level blocks.
-  static const double railWidth = 68.0;
+  /// top-level blocks; when such a row has no actual collapse affordance, the
+  /// editor reuses the collapse slot for its drag handle.
+  static const double railWidth = 64.0;
 
   /// Legacy reference for a collapse-only affordance plus the standard content
   /// gap: compact heading collapse hit target (24 dp) + [gapToContent] (8 dp).
@@ -144,7 +151,7 @@ abstract final class BlockDragHandleSpec {
 
   /// Gap between adjacent row-chrome hit targets, currently the drag handle and
   /// heading collapse button in editable outline rows.
-  static const double chromeGap = 8.0;
+  static const double chromeGap = 4.0;
 
   /// Standard gap between editable row chrome and the renderer content edge.
   /// Compact read-only heading collapse rows keep their no-drag slot instead
@@ -294,6 +301,7 @@ class BlockRenderContext {
     this.tableToolbarOverlayController,
     this.objectBlockToolbarOverlayController,
     this.onTableColumnResize,
+    this.onImageBlockResize,
     this.onTodoCheckedChanged,
     this.onObjectBlockAction,
     this.headingCollapseState,
@@ -388,6 +396,10 @@ class BlockRenderContext {
   /// Optional callback used by table renderers to persist drag-resized column
   /// widths through the host controller.
   final TableColumnResizeHandler? onTableColumnResize;
+
+  /// Optional callback used by image renderers to persist drag-resized display
+  /// dimensions through the host controller.
+  final ImageBlockResizeHandler? onImageBlockResize;
 
   /// Optional callback used by task-list renderers to persist checkbox changes.
   final TodoCheckedChangeHandler? onTodoCheckedChanged;

@@ -4,13 +4,14 @@
 
 ## 总览
 
-输入由五条路径汇入 `WenzRichTextController`：
+输入由六条路径汇入 `WenzRichTextController`：
 
 1. **IME / TextInputClient**（字符输入、组合输入）— `EditorTextInputClient`。
 2. **键盘快捷键**（非字符键、Ctrl 组合）— `EditorShortcutManager` 解析 keymap，`WenzRichTextEditor` 执行动作。
 3. **剪贴板**（复制/剪切/粘贴）— `ClipboardService` + 控制器方法。
-4. **外部图片输入**（图片剪贴板 flavor、外部文件拖拽）— `ExternalImageInput` + `ExternalImageStore`。
-5. **命令合并**（undo 粒度）— `CommandExecutor` + `HistoryManager.merge`。
+4. **右键菜单**（桌面 secondary-click UI 入口）— `SelectionGestureOverlay` 触发，`WenzRichTextEditor` 定位并分发菜单动作。
+5. **外部图片输入**（图片剪贴板 flavor、外部文件拖拽）— `ExternalImageInput` + `ExternalImageStore`。
+6. **命令合并**（undo 粒度）— `CommandExecutor` + `HistoryManager.merge`。
 
 所有改动最终经 `EditorCommand` → `CommandExecutor.execute` → `DocumentSession`，保持单一变更入口。
 
@@ -125,6 +126,54 @@ WenzEditorConfiguration(
 `ClipboardService.parseMarkdown` / `parseHtml` 是对应的便捷入口；
 `pasteHtml` 保留为 `parseHtml` 的别名。旧的 `pasteMarkdown` 保留 inline-only
 兼容行为，完整块结构粘贴请使用 `parseMarkdown` 或 `parse(..., format: markdown)`。
+
+## 右键菜单
+
+右键菜单是桌面端的 UI 入口，不是新的数据通道。`SelectionGestureOverlay`
+在鼠标 secondary button 按下时构造 `SelectionContextMenuRequest`，包含全局
+坐标和命中的 `DocumentPosition?`；`WenzRichTextEditor` 再根据当前 selection、
+命中位置、`readOnly` 和 controller 权限生成 `WenzEditorContextMenuContext`。
+
+### selection 与定位
+
+- 如果右键落在已有非折叠 selection 内，菜单保留原 selection，复制、剪切、
+  删除等动作继续作用于那段选区。
+- 如果右键落在 selection 外且能解析到文档位置，编辑器会先把 selection 更新为
+  该命中位置对应的 collapsed/对象选区，再打开菜单；菜单 action 收到的是更新后的
+  context。
+- 菜单锚点使用请求时的全局坐标，并按当前视口约束计算可见区域内的位置；代码块、
+  表格单元格、对象块、空段落和滚动中的虚拟挂载块都走同一套 geometry/hit-test
+  contract。
+
+### 默认动作与权限
+
+默认项包含复制、剪切、粘贴、删除、全选，以及插入段落、标题、引用、代码块、
+分割线、表格、图片块、视频块、文件块、公式和提示块。复制/剪切/粘贴/全选显示
+平台快捷键提示（Windows/Linux/Web/Android 为 Ctrl，macOS/iOS 为 Cmd），但这些
+提示只是菜单 chrome；实际执行仍复用快捷键路径里的 `_handleCopy`、`_handleCut`、
+`_handlePaste`、`selectAll` 和已有 controller/helper。
+
+只读或无编辑权限时，复制、全选等非写动作在满足选区条件时仍可用；剪切、粘贴、
+删除和插入类写动作会禁用。即使自定义菜单误触发写逻辑，真正的文档变更也必须走
+`WenzRichTextController` 的命令/helper，因此 `WenzEditorPermission` gate、
+history、schema normalisation、undo/redo 和回调仍是唯一可信边界。
+
+### 与 IME、剪贴板和 overlay 的关系
+
+- 复制/剪切/粘贴菜单项复用 `ClipboardService` 与平台 `Clipboard` 桥接，粘贴优先级
+  仍是 Wenz rich JSON → 外部图片输入 → HTML/Markdown/plain text。
+- 右键菜单打开前会同步输入缓冲；菜单本身不修改 IME composing 区间，也不会绕过
+  `EditorTextInputClient`。
+- 右键菜单使用 `showMenu` route，而不是 slash menu、mention search 或公式编辑器
+  overlay。打开菜单前会关闭这些同级浮层，避免多个输入浮层同时抢键盘/焦点。
+- 点击外部、滚动、selection 变化、controller 替换、`readOnly` 切换或 editor
+  dispose 时会 dismiss 菜单 route；关闭后如果编辑器原本有焦点，会恢复焦点并同步
+  buffer。
+
+宿主可通过 `WenzEditorContextMenuConfiguration` 追加或替换菜单项。自定义 action
+收到 `WenzEditorContextMenuContext`，可读取 `selection`、`hitPosition`、
+`hitInsideSelection`、`canEdit` 和 `controller`，但应继续调用 controller 命令或业务
+UI，不应直接改 document model。
 
 ## 快捷键
 

@@ -40,6 +40,7 @@ void main() {
           showHeight: 90,
           caption: 'Hero caption',
           altText: 'Hero alt',
+          attributes: BlockAttributes(alignment: 'right'),
         ),
         VideoBlockNode(
           id: 'video',
@@ -88,8 +89,12 @@ void main() {
     );
 
     final encoded = codec.encode(document);
+    final encodedJson = jsonDecode(encoded) as Map<String, Object?>;
+    final encodedBlocks = encodedJson['blocks'] as List<Object?>;
+    final encodedImage = encodedBlocks[1] as Map<String, Object?>;
     final decoded = codec.decode(encoded);
 
+    expect(encodedImage['attrs'], <String, Object?>{'alignment': 'right'});
     expect(decoded.version, 1);
     expect(decoded.blocks, hasLength(5));
     expect(decoded.blocks.first, isA<TextBlockNode>());
@@ -108,6 +113,8 @@ void main() {
     expect(emoji.embedType, 'emoji');
     expect(emoji.data['emoji'], '😀');
     expect(emoji.data['shortName'], 'grinning');
+    final image = decoded.blocks[1] as ImageBlockNode;
+    expect(image.attributes.alignment, 'right');
     final video = decoded.blocks[2] as VideoBlockNode;
     expect(video.assetId, 'video-1');
     expect(video.playbackUrl, 'https://cdn.example.com/video.mp4');

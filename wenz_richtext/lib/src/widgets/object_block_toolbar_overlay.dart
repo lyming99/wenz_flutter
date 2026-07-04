@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
 
 const double _kObjectBlockToolbarDefaultMinWidth = 0.0;
@@ -43,6 +44,7 @@ class ObjectBlockToolbarOverlayRequest {
     this.minWidth = _kObjectBlockToolbarDefaultMinWidth,
     this.gap = _kObjectBlockToolbarDefaultGap,
     this.fallbackHeight = _kObjectBlockToolbarDefaultFallbackHeight,
+    this.visibleBottom = double.infinity,
   });
 
   /// Opaque identity of the renderer anchor that published this request.
@@ -56,6 +58,9 @@ class ObjectBlockToolbarOverlayRequest {
 
   /// Top edge of the visible editor viewport in target overlay coordinates.
   final double visibleTop;
+
+  /// Bottom edge of the visible editor viewport in target overlay coordinates.
+  final double visibleBottom;
 
   /// Active object block identity used to reject stale requests.
   final String blockId;
@@ -88,6 +93,7 @@ class ObjectBlockToolbarAnchorSnapshot {
     required this.anchorLink,
     required this.anchorRect,
     required this.visibleTop,
+    required this.visibleBottom,
     required this.blockId,
     required this.blockIndex,
   });
@@ -96,6 +102,7 @@ class ObjectBlockToolbarAnchorSnapshot {
   final LayerLink anchorLink;
   final Rect anchorRect;
   final double visibleTop;
+  final double visibleBottom;
   final String blockId;
   final int blockIndex;
 }
@@ -342,7 +349,10 @@ class _ObjectBlockToolbarOverlayAnchorState
       },
       child: CompositedTransformTarget(
         link: _anchorLink,
-        child: widget.child,
+        child: _ObjectBlockToolbarAnchorMeasure(
+          onSizeChanged: (_) => _scheduleSync(),
+          child: widget.child,
+        ),
       ),
     );
   }
@@ -388,28 +398,38 @@ class _ObjectBlockToolbarOverlayAnchorState
       ancestor: overlayBox,
     );
     final anchorRect = anchorTopLeft & renderObject.size;
-    final visibleTop = _visibleTopFor(context, overlayBox);
+    final visibleBounds = _visibleBoundsFor(context, overlayBox);
     controller.updateAnchor(
       ObjectBlockToolbarAnchorSnapshot(
         owner: _owner,
         anchorLink: _anchorLink,
         anchorRect: anchorRect,
-        visibleTop: visibleTop,
+        visibleTop: visibleBounds.top,
+        visibleBottom: visibleBounds.bottom,
         blockId: widget.blockId,
         blockIndex: widget.blockIndex,
       ),
     );
+    if (!_anchorIntersectsVisibleBounds(anchorRect, visibleBounds)) {
+      controller.hide(owner: _owner);
+      return;
+    }
     final requestBuilder = widget.requestBuilder;
     if (requestBuilder == null) {
       controller.hide(owner: _owner);
       return;
     }
+    final request = requestBuilder(
+      owner: _owner,
+      anchorLink: _anchorLink,
+      anchorRect: anchorRect,
+      visibleTop: visibleBounds.top,
+    );
     controller.show(
-      requestBuilder(
-        owner: _owner,
-        anchorLink: _anchorLink,
+      _withVisibleBounds(
+        request,
         anchorRect: anchorRect,
-        visibleTop: visibleTop,
+        visibleBounds: visibleBounds,
       ),
       replaceDifferentRequest: false,
     );
@@ -425,19 +445,114 @@ class _ObjectBlockToolbarOverlayAnchorState
     return null;
   }
 
-  double _visibleTopFor(BuildContext context, RenderBox? overlayBox) {
+  ({double top, double bottom}) _visibleBoundsFor(
+    BuildContext context,
+    RenderBox? overlayBox,
+  ) {
     final scrollable = Scrollable.maybeOf(context);
     final viewportObject = scrollable?.context.findRenderObject();
     if (viewportObject is RenderBox &&
         viewportObject.attached &&
         viewportObject.hasSize) {
-      return viewportObject.localToGlobal(Offset.zero, ancestor: overlayBox).dy;
+      final viewportTopLeft = viewportObject.localToGlobal(
+        Offset.zero,
+        ancestor: overlayBox,
+      );
+      return (
+        top: viewportTopLeft.dy,
+        bottom: viewportTopLeft.dy + viewportObject.size.height,
+      );
     }
     final paddingTop = MediaQuery.maybeOf(context)?.padding.top ?? 0;
     if (overlayBox == null) {
-      return paddingTop;
+      return (top: paddingTop, bottom: double.infinity);
     }
-    return overlayBox.globalToLocal(Offset(0, paddingTop)).dy;
+    final visibleTop = overlayBox.globalToLocal(Offset(0, paddingTop)).dy;
+    return (top: visibleTop, bottom: overlayBox.size.height);
+  }
+
+  bool _anchorIntersectsVisibleBounds(
+    Rect anchorRect,
+    ({double top, double bottom}) visibleBounds,
+  ) {
+    if (visibleBounds.bottom < visibleBounds.top) {
+      return true;
+    }
+    return anchorRect.bottom >= visibleBounds.top &&
+        anchorRect.top <= visibleBounds.bottom;
+  }
+
+  ObjectBlockToolbarOverlayRequest _withVisibleBounds(
+    ObjectBlockToolbarOverlayRequest request, {
+    required Rect anchorRect,
+    required ({double top, double bottom}) visibleBounds,
+  }) {
+    return ObjectBlockToolbarOverlayRequest(
+      owner: request.owner,
+      anchorLink: request.anchorLink,
+      anchorRect: anchorRect,
+      visibleTop: visibleBounds.top,
+      visibleBottom: visibleBounds.bottom,
+      blockId: request.blockId,
+      blockIndex: request.blockIndex,
+      toolbarBuilder: request.toolbarBuilder,
+      enabled: request.enabled,
+      minWidth: request.minWidth,
+      gap: request.gap,
+      fallbackHeight: request.fallbackHeight,
+    );
+  }
+}
+
+class _ObjectBlockToolbarAnchorMeasure
+    extends SingleChildRenderObjectWidget {
+  const _ObjectBlockToolbarAnchorMeasure({
+    required this.onSizeChanged,
+    required super.child,
+  });
+
+  final ValueChanged<Size> onSizeChanged;
+
+  @override
+  RenderObject createRenderObject(BuildContext context) {
+    return _RenderObjectBlockToolbarAnchorMeasure(
+      onSizeChanged: onSizeChanged,
+    );
+  }
+
+  @override
+  void updateRenderObject(
+    BuildContext context,
+    covariant _RenderObjectBlockToolbarAnchorMeasure renderObject,
+  ) {
+    renderObject.onSizeChanged = onSizeChanged;
+  }
+}
+
+class _RenderObjectBlockToolbarAnchorMeasure extends RenderProxyBox {
+  _RenderObjectBlockToolbarAnchorMeasure({
+    required ValueChanged<Size> onSizeChanged,
+  }) : _onSizeChanged = onSizeChanged;
+
+  ValueChanged<Size> _onSizeChanged;
+  Size? _lastSize;
+
+  set onSizeChanged(ValueChanged<Size> value) {
+    _onSizeChanged = value;
+  }
+
+  @override
+  void performLayout() {
+    super.performLayout();
+    final nextSize = size;
+    final previous = _lastSize;
+    if (previous != null &&
+        (previous.width - nextSize.width).abs() < 0.5 &&
+        (previous.height - nextSize.height).abs() < 0.5) {
+      return;
+    }
+    _lastSize = nextSize;
+    _onSizeChanged(nextSize);
   }
 }
 
@@ -463,8 +578,11 @@ class _ObjectBlockToolbarOverlayEntryState
 
   @override
   Widget build(BuildContext context) {
-    _scheduleMeasure();
     final request = widget.request;
+    if (!_requestAnchorIntersectsVisibleViewport(request)) {
+      return const SizedBox.shrink();
+    }
+    _scheduleMeasure();
     final toolbarHeight = _toolbarSize?.height ?? request.fallbackHeight;
     final overlayWidth = math.max(0.0, widget.overlaySize.width);
     final maxWidth = overlayWidth;
@@ -531,5 +649,15 @@ class _ObjectBlockToolbarOverlayEntryState
     setState(() {
       _toolbarSize = nextSize;
     });
+  }
+
+  bool _requestAnchorIntersectsVisibleViewport(
+    ObjectBlockToolbarOverlayRequest request,
+  ) {
+    if (request.visibleBottom < request.visibleTop) {
+      return true;
+    }
+    return request.anchorRect.bottom >= request.visibleTop &&
+        request.anchorRect.top <= request.visibleBottom;
   }
 }

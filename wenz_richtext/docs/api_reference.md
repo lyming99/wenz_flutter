@@ -23,7 +23,7 @@ stays tier 1/2 and is not deprecated.
 | Type | Role |
 | --- | --- |
 | `WenzEditorConfiguration` | `@immutable`, side-effect-free description of *intent*. Every field is optional with a sane default, so `WenzEditorConfiguration()` is a runnable zero-config setup. Derive per-scenario variants with `copyWith`. Creates nothing and holds no `BuildContext`. |
-| `WenzEditorBootstrap` | The facade. `WenzEditorBootstrap.create(configuration)` assembles the controller + every registry + derived controllers + plugins in one call, exposes unified data I/O and getters, builds the editor widget via `buildEditor({...})`, and releases everything via `dispose()` (idempotent, dependency-reverse order). |
+| `WenzEditorBootstrap` | The facade. `WenzEditorBootstrap.create(configuration)` assembles the controller + every registry + derived controllers + plugins in one call, exposes unified data I/O and getters, builds the editor widget via `buildEditor({...})`, optionally builds the default desktop toolbar via `buildDefaultDesktopToolbar({...})`, and releases everything via `dispose()` (idempotent, dependency-reverse order). |
 
 End-to-end skeleton — `create()` → `buildEditor()` → read/write data →
 `dispose()`:
@@ -47,6 +47,17 @@ final bootstrap = WenzEditorBootstrap.create(
 //    (controller, blockRenderers, mediaResolver, slashMenuController,
 //    findController, shortcutConfiguration, accessibility, …).
 final editor = bootstrap.buildEditor(autofocus: true);
+
+// Optional desktop Material toolbar. It is not wrapped around the editor; place
+// it wherever the host layout wants it.
+final toolbar = bootstrap.buildDefaultDesktopToolbar(
+  actions: WenzDefaultDesktopToolbarActions(
+    onInsertImage: (context) => pickAndInsertImage(context),
+    onInsertVideo: (context) => pickAndInsertVideo(context),
+    onInsertFile: (context) => pickAndInsertFile(context),
+    onInsertBlockEmbed: (context) => insertBusinessEmbed(context),
+  ),
+);
 
 // 3) Read / write data through the facade I/O surface (delegates verbatim to
 //    WenzRichTextController; no new serialization format is introduced).
@@ -74,6 +85,16 @@ and `selection` convenience aliases. Each derived controller is `null` when its
 `enable*` flag is `false` (or, for autosave, when no `onAutosave` sink was
 given).
 
+The optional default desktop toolbar is a tier 2 Material widget, not an editor
+wrapper. `WenzEditorBootstrap.buildDefaultDesktopToolbar({...})` builds
+`WenzDefaultDesktopToolbar` with the already assembled `controller`,
+`toolbarController`, and `toolbarItemRegistry`. Hosts can pass
+`WenzDefaultDesktopToolbarActions` for image/video/file/business-embed resource
+callbacks, `WenzDefaultDesktopToolbarStyle` for visual chrome, and extra
+`toolbarItems` when one-off host buttons should override registry items with the
+same id. If `enableToolbar` is `false`, the bootstrap helper throws a
+`StateError` because there is no `ToolbarController` to observe.
+
 ### Configuration field → advanced extension point
 
 Every extension is a `WenzEditorConfiguration` field; the facade feeds it into
@@ -89,13 +110,14 @@ facade is built *on top* of these and never bypasses them):
 | `accessibility` | `buildEditor` | `WenzRichTextEditorAccessibility` |
 | `plugins` | `installWenzRichTextPlugins` | `WenzRichTextPlugin` / `WenzPluginBundle` |
 | `shortcutConfiguration` | merged last (host wins) | `EditorShortcutConfiguration` |
+| `contextMenuConfiguration` | `buildEditor` | `WenzEditorContextMenuConfiguration` |
 | `pasteTransformers` | `ClipboardService` | `ClipboardPasteTransformer` |
 | `blockRenderers` / `blockEmbedRenderers` | `BlockRendererRegistry` | `BlockRendererBuilder` |
 | `inlineEmbedRenderers` | `InlineEmbedRendererRegistry` | `InlineEmbedSpanBuilder` |
 | `mentionSearch` | `buildEditor` | built-in mention search overlay (tier 1) |
 | `onMentionTap` | `buildEditor` | mention activation callback (tier 1) |
 | `slashMenuItems` | `SlashMenuRegistry` | `SlashMenuItem` |
-| `toolbarItems` | `WenzToolbarItemRegistry` | `WenzToolbarItem` |
+| `toolbarItems` | `WenzToolbarItemRegistry`; rendered by `buildDefaultDesktopToolbar()` when used | `WenzToolbarItem` |
 | `enableSlashMenu` / `enableFindReplace` / `enableOutline` / `enableStats` / `enableToolbar` / `enableAutosave` | facade only | derived controllers (tier 2) |
 
 The tiering is kept in sync with the library doc comment at the top of
@@ -123,8 +145,15 @@ access, three modes, dispose order, the `src/*` internal boundary).
 | `DocumentPosition` / `DocumentSelection` / `PositionPath` | Selection contract — three position shapes (block text, block code, table cell) plus structured sort. |
 
 `ImageBlockNode` carries `assetId`/`file`, natural `width`/`height`, display
-`showWidth`/`showHeight`, plus `caption` and `altText`. JSON writes
-`altText` and also reads a legacy/external `alt` key for compatibility.
+`showWidth`/`showHeight`, plus `caption` and `altText`. `showWidth` and
+`showHeight` are the canonical persisted display size: the default renderer,
+fixed-width image menu actions, and selected-image edge resize all read and
+write these fields. Image blocks also reuse `BlockAttributes.alignment` for
+figure placement: `null` is the default centered layout, explicit `left`,
+`center`, and `right` align the image frame, and `justify` is preserved as block
+metadata without stretching the image. Rich JSON and HTML round-trip the display
+size and explicit image alignment, and JSON writes `altText` while also reading
+a legacy/external `alt` key for compatibility.
 `file` is the persisted local path/URI slot only: the core package does not
 open system file pickers, validate local files, upload media, or decode images.
 Hosts should perform those steps in their own UI and render real previews via
@@ -164,9 +193,10 @@ All mutations are `EditorCommand` objects routed through `CommandExecutor`.
   start unchecked.
 - **Style (tier 1):** `FormatTextCommand`, `ClearStyleCommand`,
   `SetBlockTypeCommand`, `SetAlignmentCommand`. `SetAlignmentCommand` is the
-  block-alignment command; table-cell selections are handled by the table cell
-  alignment command so cell formatting does not accidentally rewrite the table
-  block or column defaults.
+  block-alignment command for ordinary alignable blocks, including text blocks
+  and selected image object blocks; table-cell selections are handled by the
+  table cell alignment command so cell formatting does not accidentally rewrite
+  the table block or column defaults.
 - **Inline (tier 2):** `SetLinkCommand`, `AutoLinkUrlsCommand`,
   `ToggleMarkCommand`, `InsertInlineEmbedCommand`, plus controller helpers for
   formula, mention, emoji, and inline image embeds.
@@ -251,10 +281,11 @@ Typed command surface (sample): `insertText`, `deleteBackward`, `deleteForward`,
 tokens, and can opt out per call with `applyAutoLinkUrls: false`.
 When revision mode is enabled, typed insert/delete/format helpers route through
 revision commands and create inline `revisionIds` plus top-level `revisions`.
-`setAlignment(value)` is selection-aware: ordinary text-block selections write
-`BlockAttributes.alignment`, while table-cell selections write cell-level
-`TableCellNode.alignment` for the selected rectangular range. Passing `null`
-clears the explicit alignment at the same level, revealing the cell's fallback
+`setAlignment(value)` is selection-aware: ordinary alignable selections write
+`BlockAttributes.alignment` on text blocks and image object blocks, while
+table-cell selections write cell-level `TableCellNode.alignment` for the
+selected rectangular range. Passing `null` clears the explicit alignment at the
+same level, revealing the image default center layout or the cell's fallback
 column alignment when one exists.
 `WenzLinkEditDialog` / `showWenzLinkEditDialog` provide the reusable Material
 link-edit popup used by the example toolbar; an empty result clears the link.
@@ -313,9 +344,17 @@ controller.insertImage(
 controller.updateImageBlock(
   blockIndex: 1,
   showWidth: 320,
-  clearShowHeight: true,
+  showHeight: 180,
   caption: 'Figure 1',
   altText: 'Diagram of the flow',
+);
+
+// Built-in image edge resize commits one proportional display-size update at
+// drag end through the same command pipeline.
+controller.updateImageBlock(
+  blockIndex: 1,
+  showWidth: 240,
+  showHeight: 135,
 );
 
 controller.insertFile(
@@ -391,10 +430,12 @@ alignment state, command enable flags) off the host controller; see the root
 the docs [toolbar sample](./README.md#工具栏与业务集成-api) for a direct controller
 example. Alignment helpers expose `canSetAlignment`, `alignment`,
 `alignmentMixed`, `isAlignment(value)`, `setAlignment(value)`, and
-`clearAlignment()`. The same helper should back paragraph and table-cell
-toolbar buttons: paragraph selections update block alignment, while table-cell
-selections update cell alignment and leave `TableModel.columnAlignments`
-unchanged. Media helpers include `canInsertImage` / `insertImage` and
+`clearAlignment()`. The same helper should back paragraph, image object-block,
+and table-cell toolbar buttons: ordinary block selections update
+`BlockAttributes.alignment`, while table-cell selections update cell alignment
+and leave `TableModel.columnAlignments` unchanged. For image-only toolbar UI,
+hosts may omit a justify button; a stored `justify` value does not stretch the
+default image renderer. Media helpers include `canInsertImage` / `insertImage` and
 `canInsertVideo` / `insertVideo`; they use the current block insertion rule and
 still delegate permission checks to the host controller. For desktop image
 selection, host toolbars should guard the picker with their own pending state:
@@ -573,11 +614,11 @@ CRDT, OT, WebSocket, or a server implementation; adapters own that translation.
 
 | Type | Purpose |
 | --- | --- |
-| `RichTextJsonCodec({migrations})` | Encode/decode the canonical versioned rich JSON. Optional `DocumentMigrationRegistry` lifts older versions. |
+| `RichTextJsonCodec({migrations})` | Encode/decode the canonical versioned rich JSON, including image block `attrs.alignment`. Optional `DocumentMigrationRegistry` lifts older versions. |
 | `LegacyWenJsonCodec()` | Decode the old `wenz_editor` block-list format. |
-| `PlainTextCodec({omitEmptyBlocks})` | Export to plain text (paragraphs blank-line separated, media sentinels; image sentinel prefers caption, then alt text). List exports preserve unordered / ordered markers and todo checkboxes, including ordered todo as `1. [ ] text` / `1. [x] text`. |
-| `MarkdownCodec()` | GFM Markdown import/export. `encode` → Markdown; `decode` → document (line-oriented state machine; unrecognised lines fall back to paragraphs). Image caption uses Markdown image title: `![alt](src "caption")`; video blocks export/import through the Wenz `![video](src)` placeholder; file and block embed content degrade to readable text/links on import. Lists preserve the combined `ordered + checked` model with legacy `task` kept as unordered todo. |
-| `HtmlCodec()` | HTML fragment import/export via `package:html`. `encode` → HTML; `decode` → document (DOM walk; malformed HTML falls back to paragraphs). Image block captions use `<figure><img ...><figcaption>...`; inline image embeds preserve `altText`/`caption`/`width`/`height` through `<img>` attributes; Wenz file links, video tags, and `BlockEmbedNode` preserve metadata through `data-*` attributes; table `rowspan`/`colspan` maps to `TableCellNode` spans. Ordered todo uses `<ol><li><input type="checkbox" ...>` so numbering and checked state both round-trip. |
+| `PlainTextCodec({omitEmptyBlocks})` | Export to plain text (paragraphs blank-line separated, media sentinels; image sentinel prefers caption, then alt text). Image alignment is not represented. List exports preserve unordered / ordered markers and todo checkboxes, including ordered todo as `1. [ ] text` / `1. [x] text`. |
+| `MarkdownCodec()` | GFM Markdown import/export. `encode` → Markdown; `decode` → document (line-oriented state machine; unrecognised lines fall back to paragraphs). Image caption uses Markdown image title: `![alt](src "caption")`; image alignment intentionally degrades because standard Markdown has no portable figure alignment; video blocks export/import through the Wenz `![video](src)` placeholder; file and block embed content degrade to readable text/links on import. Lists preserve the combined `ordered + checked` model with legacy `task` kept as unordered todo. |
+| `HtmlCodec()` | HTML fragment import/export via `package:html`. `encode` → HTML; `decode` → document (DOM walk; malformed HTML falls back to paragraphs). Image block captions use `<figure><img ...><figcaption>...`; explicit image `left` / `center` / `right` alignment is preserved on the image wrapper via `style="text-align: ..."` and imported from compatible wrapper `style`/`align`; inline image embeds preserve `altText`/`caption`/`width`/`height` through `<img>` attributes; Wenz file links, video tags, and `BlockEmbedNode` preserve metadata through `data-*` attributes; table `rowspan`/`colspan` maps to `TableCellNode` spans. Ordered todo uses `<ol><li><input type="checkbox" ...>` so numbering and checked state both round-trip. |
 | `DocumentVersionSnapshotJsonCodec()` | Encode/decode one `DocumentVersionSnapshot` or a snapshot list for app-owned version history persistence. |
 | `DocumentMigration` / `DocumentMigrationRegistry` | JSON-level schema migration framework; ships `V1ToV2DocumentMigration`. |
 | `decodeWithMigrations(source, registry)` | Helper: JSON decode + migrate in one step. |
@@ -715,9 +756,12 @@ normalisation, and `onCommandExecuted` stay consistent.
 
 ## Widget layer (tier 2)
 
-- `WenzRichTextEditor({controller, shortcutConfiguration, blockRenderers, mediaResolver, inlineEmbedRenderer, mentionSearch, onMentionTap, findController, slashMenuController, accessibility, …})` — the editor widget.
+- `WenzRichTextEditor({controller, shortcutConfiguration, contextMenuConfiguration, blockRenderers, mediaResolver, inlineEmbedRenderer, mentionSearch, onMentionTap, findController, slashMenuController, accessibility, ...})` — the editor widget.
   Pass `shortcutConfiguration` to append/override the built-in keymap, disable
   intents, or return `passThrough` for host-level shortcuts such as save.
+  Pass `contextMenuConfiguration` to append host right-click actions, replace
+  the editor defaults, or build a fully ordered menu from the current
+  `WenzEditorContextMenuContext`.
   Passing `findController` paints all search matches; `onFindRequested` and
   `onReplaceRequested` let the host open its own panel for Ctrl/Cmd+F/H.
   Passing `slashMenuController` shows the built-in slash overlay and routes
@@ -744,6 +788,31 @@ normalisation, and `onCommandExecuted` stay consistent.
   `blockId`, `blockIndex`, `path`, `offset`, and optional `selection` identify
   where the mention lives. Host data should provide at least `id` and `label`;
   additional business fields are preserved in `data`.
+- `WenzEditorContextMenuConfiguration` — desktop right-click menu
+  configuration. `items` contributes host entries, `defaultItemsPolicy:
+  include` appends them after editor defaults, `customOnly` replaces the
+  defaults, and `builder(context, defaultEntries)` can return any final order.
+  `copyWith(clearBuilder: true)` removes a builder while preserving other
+  fields.
+- `WenzEditorContextMenuContext` — immutable snapshot passed to menu builders
+  and actions: `controller`, `selection`, `hitPosition`, `globalPosition`,
+  `readOnly`, `canEdit`, `hitInsideSelection`, and optional `buildContext`.
+  Mutating host actions should call controller commands/helpers so permission,
+  history, schema normalization, and callbacks stay centralized.
+- `WenzEditorContextMenuItem` / `WenzEditorContextMenuDivider` — public menu
+  descriptors. Items have stable `id`, visible `title`, optional `icon`,
+  `shortcut`, `defaultAction`, `action`, static or dynamic enabled/visible
+  predicates, `destructive` styling, explicit `key`, and `semanticLabel`.
+  When `key` is omitted, the built-in renderer derives a stable fallback key
+  from the item id for widget tests.
+- `WenzEditorContextMenuDefaultAction` — identifiers for editor-owned actions:
+  copy, cut, paste, delete, select all, and insert paragraph/heading/quote/code
+  block/divider/table/image/video/file/formula/callout. The stock menu labels
+  the common clipboard commands with platform shortcuts (`Ctrl+C/X/V/A` or
+  `Cmd+C/X/V/A`). Copy and select-all remain available in read-only mode when
+  their normal preconditions are met; write actions are disabled by
+  `readOnly` or a non-editable controller permission and still re-check the
+  command gate when invoked.
 - `WenzRichTextEditorAccessibility` — screen-reader label/hint configuration
   for editable and read-only editors, plus high-contrast focus-outline color
   and width. The default editor semantics is a focusable multiline text field;
@@ -767,8 +836,13 @@ normalisation, and `onCommandExecuted` stay consistent.
   built-in media renderers consult the injected resolver before falling back to
   the placeholder; returning `null` declines, throwing is tolerated (falls back
   to placeholder). The default image renderer wraps the resolved widget with
-  `showWidth`/`showHeight` sizing and caption text; the default file renderer
-  shows display name, size, MIME type, upload status, and failure text. See
+  `showWidth`/`showHeight` sizing and caption text. When an image block is
+  selected and editable, left/right frame handles resize it proportionally and
+  persist the new display size through `updateImageBlock`; read-only editors or
+  non-edit permissions hide those handles. Image object menus intentionally do
+  not expose `duplicate`, while non-image object blocks keep their existing
+  duplicate behaviour. The default file renderer shows display name, size, MIME
+  type, upload status, and failure text. See
   `rendering.md` §Media resolver. System file selection is host/example UI
   responsibility; core APIs persist the selected image source on
   `ImageBlockNode.file` and leave real preview widgets to `MediaResolver` or a
@@ -787,9 +861,10 @@ normalisation, and `onCommandExecuted` stay consistent.
   position)` from custom code that already has a `DocumentPosition` for that
   mention.
 - `WenzToolbarItem` / `WenzToolbarItemRegistry` — headless toolbar descriptor
-  registry for plugin-contributed buttons or menu entries. The package does not
-  impose a toolbar widget; host UI renders descriptors and calls their actions
-  with `WenzRichTextController` plus current `ToolbarState`.
+  registry for plugin-contributed buttons or menu entries. The package now also
+  ships the optional `WenzDefaultDesktopToolbar` for desktop Material hosts;
+  fully custom UIs can still render these descriptors themselves and call their
+  actions with `WenzRichTextController` plus current `ToolbarState`.
 - `WenzRichTextController` also re-exports `HistoryManager` (tier 1) and
   `ChangeSet` (tier 1).
 

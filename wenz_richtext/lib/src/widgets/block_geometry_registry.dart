@@ -168,6 +168,14 @@ class BlockGeometryRegistry {
   List<BlockRowGeometryEntry> get rowEntries =>
       List<BlockRowGeometryEntry>.unmodifiable(_rowEntries);
 
+  BlockRowGeometryEntry? blockRowEntry(String blockId, int blockIndex) {
+    final entry = _rowByBlockId[blockId];
+    if (entry == null || entry.blockIndex != blockIndex) {
+      return null;
+    }
+    return entry;
+  }
+
   /// Resolves a global pointer offset to the legal row insertion boundary used
   /// by top-level block drag sorting. Misses are clamped to the first/last
   /// mounted row so dragging slightly outside the viewport still lands on a
@@ -240,6 +248,48 @@ class BlockGeometryRegistry {
       blockIndex: last.entry.blockIndex,
       placement: BlockReorderDropPlacement.after,
       blockRect: last.rect,
+    );
+  }
+
+  /// Returns an `after` drop target for the last mounted row within the given
+  /// top-level block-index range.
+  ///
+  /// The editor uses this to keep a normalized insertion boundary (which may
+  /// point past hidden or unmounted blocks) while still drawing the drop
+  /// indicator after the deepest visible row currently available.
+  BlockReorderDropTarget? blockReorderDropTargetAfterLastMountedRowInRange({
+    required int startBlockIndex,
+    required int endBlockIndexExclusive,
+  }) {
+    if (startBlockIndex >= endBlockIndexExclusive) {
+      return null;
+    }
+    BlockRowGeometryEntry? bestEntry;
+    Rect? bestRect;
+    for (final entry in _rowEntries) {
+      if (entry.blockIndex < startBlockIndex ||
+          entry.blockIndex >= endBlockIndexExclusive) {
+        continue;
+      }
+      final box = entry.renderBox;
+      if (box == null || !box.hasSize) {
+        continue;
+      }
+      if (bestEntry == null || entry.blockIndex > bestEntry.blockIndex) {
+        bestEntry = entry;
+        bestRect = box.localToGlobal(Offset.zero) & box.size;
+      }
+    }
+    final entry = bestEntry;
+    final rect = bestRect;
+    if (entry == null || rect == null) {
+      return null;
+    }
+    return BlockReorderDropTarget(
+      blockId: entry.blockId,
+      blockIndex: entry.blockIndex,
+      placement: BlockReorderDropPlacement.after,
+      blockRect: rect,
     );
   }
 

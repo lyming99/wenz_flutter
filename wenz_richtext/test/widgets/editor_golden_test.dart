@@ -75,9 +75,9 @@ void main() {
       WenzRichTextDesignBaseline.layoutTokens['headingMarginEm'],
       <String, double>{'top': 0.6, 'bottom': 0.35},
     );
-    expect(BlockDragHandleSpec.railWidth, 68.0);
+    expect(BlockDragHandleSpec.railWidth, 64.0);
     expect(BlockDragHandleSpec.collapseChromeOverflow, 32.0);
-    expect(BlockDragHandleSpec.chromeGap, 8.0);
+    expect(BlockDragHandleSpec.chromeGap, 4.0);
     expect(BlockDragHandleSpec.gapToContent, 8.0);
     expect(BlockDragHandleSpec.hitSize, const Size.square(28.0));
     expect(BlockDragHandleSpec.visualSize, const Size.square(18.0));
@@ -500,11 +500,8 @@ void main() {
     );
     expect(expandedButton, findsOneWidget);
     expect(collapsedButton, findsOneWidget);
-    // P001: Leaf heading without children now renders a disabled collapse
-    // button (canCollapse == false). The golden screenshot captures the
-    // disabled-state button with its reduced-opacity icon.
-    expect(leafButton, findsOneWidget);
-    expect(tester.widget<IconButton>(leafButton).onPressed, isNull);
+    // Leaf headings without children do not mount disabled collapse chrome.
+    expect(leafButton, findsNothing);
     expect(find.text('Hidden detail'), findsNothing);
     // Collapse button sits in the left gutter at full size, with the same
     // explicit editable rail geometry as the widget regression tests.
@@ -1409,10 +1406,9 @@ void main() {
   testWidgets(
       'golden: heading collapse buttons with drag handles in editable mode',
       (tester) async {
-    // Editable mode: every heading shows both a drag handle and a collapse
-    // button in the left gutter. The snapshot pins their co-positioning so a
-    // regression that removes, clips, overlaps, or mispositions the collapse
-    // button fails here.
+    // Editable mode: collapsible headings show both a drag handle and a
+    // collapse button in the left gutter. Leaf headings keep their text aligned
+    // by the reserved rail without mounting disabled collapse chrome.
     final controller = WenzRichTextController(
       document: const RichTextDocument(
         blocks: <BlockNode>[
@@ -1453,13 +1449,14 @@ void main() {
       const ValueKey<String>('wenz-richtext-heading-collapse-ed-leaf'),
     );
     expect(sectionButton, findsOneWidget);
-    expect(leafButton, findsOneWidget);
+    expect(leafButton, findsNothing);
     // Drag handles render alongside the collapse buttons in editable mode.
     expect(
       find.byKey(
           const ValueKey<String>('wenz-richtext-block-drag-handle-ed-h1')),
       findsOneWidget,
     );
+    expect(_blockDragHandleFinder('ed-leaf'), findsOneWidget);
 
     // Collapse buttons are full-size and inside the gutter: drag handle,
     // chromeGap, collapse button, then gapToContent before content.

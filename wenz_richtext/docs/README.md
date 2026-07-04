@@ -23,6 +23,44 @@
 
 ## 工具栏与业务集成 API
 
+最小桌面端接入可以直接使用库内默认 Material 工具栏：
+
+```dart
+late final WenzEditorBootstrap bootstrap;
+
+@override
+void initState() {
+  super.initState();
+  bootstrap = WenzEditorBootstrap.create(
+    WenzEditorConfiguration(
+      toolbarItems: <WenzToolbarItem>[myBusinessItem],
+    ),
+  );
+}
+
+@override
+Widget build(BuildContext context) {
+  return Column(
+    children: <Widget>[
+      bootstrap.buildDefaultDesktopToolbar(
+        actions: WenzDefaultDesktopToolbarActions(
+          onInsertImage: (context) => pickAndInsertImage(context),
+          onInsertVideo: (context) => pickAndInsertVideo(context),
+          onInsertFile: (context) => pickAndInsertFile(context),
+          onInsertBlockEmbed: (context) => insertBusinessEmbed(context),
+        ),
+      ),
+      Expanded(child: bootstrap.buildEditor()),
+    ],
+  );
+}
+```
+
+`buildDefaultDesktopToolbar()` 复用 bootstrap 已创建的 `controller`、
+`toolbarController` 和 `toolbarItemRegistry`；默认不会包裹编辑器，宿主仍决定
+工具栏放在页面的哪个位置。图片、视频、文件和业务 embed 仍由宿主 callback
+处理资源选择 / 上传策略；未传 callback 时默认不显示对应按钮，不会插入空媒体块。
+
 工具栏状态（active 样式 / 当前块类型 / 命令 enable 状态）通过 `ToolbarController`
 派生自 `WenzRichTextController`：
 
@@ -44,4 +82,5 @@ toolbar.setHeading(2);         // SetBlockTypeCommand(type: heading, level: 2)
 `ToolbarState` 是不可变快照（实现了 `==` / `hashCode`），可作为 widget 的 value
 直接比对，避免每次 host 通知都重建。enable 状态严格镜像各命令 execute 开头的
 noop 判定，UI 不会出现"按钮可点但点了没反应"。详见 `lib/src/controller/toolbar_controller.dart`
-和 `example/lib/main.dart` 的 `_Toolbar`。
+和 `lib/src/widgets/default_desktop_toolbar.dart`。需要完全自定义外观时，仍可直接读取
+`ToolbarController.state` 自建 Material / Cupertino / 业务工具栏。

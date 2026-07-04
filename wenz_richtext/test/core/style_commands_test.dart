@@ -725,6 +725,99 @@ void main() {
 
     expect(session.document.blocks.single.attributes.alignment, 'center');
   });
+
+  test('set alignment clears image block alignment and skips identical values',
+      () {
+    final selection = DocumentSelection(
+      base: DocumentPosition.object(blockId: 'img', blockIndex: 0, offset: 1),
+      extent: DocumentPosition.object(blockId: 'img', blockIndex: 0, offset: 1),
+    );
+    final session = DocumentSession(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          ImageBlockNode(
+            id: 'img',
+            assetId: 'asset',
+            width: 10,
+            height: 10,
+            attributes: BlockAttributes(alignment: 'center'),
+          ),
+        ],
+      ),
+      selection: selection,
+    );
+    final executor = CommandExecutor(session);
+
+    final unchanged =
+        executor.execute(const SetAlignmentCommand(alignment: 'center'));
+
+    expect(unchanged.isNoop, isTrue);
+    expect(session.canUndo, isFalse);
+    expect(session.selection, selection);
+
+    final cleared = executor.execute(const SetAlignmentCommand(alignment: null));
+
+    expect(cleared.isNoop, isFalse);
+    expect(session.document.blocks.single.attributes.alignment, isNull);
+    expect(session.selection, selection);
+    expect(session.canUndo, isTrue);
+  });
+
+  test('set alignment ignores table cell selections', () {
+    final session = DocumentSession(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TableBlockNode(
+            id: 'table',
+            table: TableModel(
+              rows: <List<TableCellNode>>[
+                <TableCellNode>[
+                  TableCellNode(
+                    id: 'cell',
+                    blocks: <BlockNode>[
+                      TextBlockNode(
+                        id: 'cell-text',
+                        type: BlockType.paragraph,
+                        content: <InlineNode>[TextRun(text: 'cell')],
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+      selection: DocumentSelection(
+        base: DocumentPosition.tableCell(
+          tableBlockId: 'table',
+          blockIndex: 0,
+          tableRowIndex: 0,
+          tableColumnIndex: 0,
+          offset: 0,
+        ),
+        extent: DocumentPosition.tableCell(
+          tableBlockId: 'table',
+          blockIndex: 0,
+          tableRowIndex: 0,
+          tableColumnIndex: 0,
+          offset: 4,
+        ),
+      ),
+    );
+    final executor = CommandExecutor(session);
+
+    final change = executor.execute(
+      const SetAlignmentCommand(alignment: 'right'),
+    );
+
+    final table = session.document.blocks.single as TableBlockNode;
+    expect(change.isNoop, isTrue);
+    expect(table.attributes.alignment, isNull);
+    expect(table.table.cellAt(0, 0)?.alignment, isNull);
+    expect(table.table.columnAlignments, isEmpty);
+    expect(session.canUndo, isFalse);
+  });
 }
 
 TextBlockNode _singleCellTextBlock(DocumentSession session) {

@@ -372,6 +372,46 @@ void main() {
     expect(slashMenu.filter('custom').map((item) => item.id), <String>['a']);
   });
 
+  test('plugin context exposes toolbar item registry helper', () {
+    final controller = WenzRichTextController();
+    addTearDown(controller.dispose);
+    final toolbarItems = WenzToolbarItemRegistry();
+    final context = WenzPluginContext(
+      controller: controller,
+      toolbarItems: toolbarItems,
+    );
+
+    context.registerToolbarItem(
+      WenzToolbarItem(
+        id: 'b',
+        title: 'B item',
+        priority: 10,
+        action: (_, __) {},
+      ),
+    );
+    context.registerToolbarItem(
+      WenzToolbarItem(
+        id: 'a',
+        title: 'A item',
+        priority: 10,
+        action: (_, __) {},
+      ),
+    );
+    context.registerToolbarItem(
+      WenzToolbarItem(
+        id: 'b',
+        title: 'Host override',
+        priority: -1,
+        action: (_, __) {},
+      ),
+    );
+
+    expect(toolbarItems.has('a'), isTrue);
+    expect(toolbarItems.has('b'), isTrue);
+    expect(toolbarItems['b']?.title, 'Host override');
+    expect(toolbarItems.items.map((item) => item.id), <String>['b', 'a']);
+  });
+
   test('plugin context rejects slash extensions without registry', () {
     final context = WenzPluginContext(controller: WenzRichTextController());
 
@@ -381,6 +421,23 @@ void main() {
     );
     expect(
       () => context.setSlashMenuSorter(null),
+      throwsStateError,
+    );
+  });
+
+  test('plugin context rejects toolbar item registration without registry', () {
+    final controller = WenzRichTextController();
+    addTearDown(controller.dispose);
+    final context = WenzPluginContext(controller: controller);
+
+    expect(
+      () => context.registerToolbarItem(
+        WenzToolbarItem(
+          id: 'missing.registry',
+          title: 'Missing registry',
+          action: (_, __) {},
+        ),
+      ),
       throwsStateError,
     );
   });

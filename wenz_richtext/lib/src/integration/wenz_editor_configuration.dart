@@ -15,6 +15,7 @@ import '../input/shortcut_manager.dart';
 import '../plugins/editor_plugin.dart';
 import '../plugins/mermaid_diagram_plugin.dart';
 import '../widgets/block_renderer_registry.dart';
+import '../widgets/editor_context_menu.dart';
 import '../widgets/inline_embed_renderer.dart';
 import '../widgets/media_resolver.dart';
 import '../widgets/wenz_rich_text_editor.dart';
@@ -55,6 +56,7 @@ class WenzEditorConfiguration {
     this.mediaResolver,
     this.accessibility = const WenzRichTextEditorAccessibility(),
     this.shortcutConfiguration = const EditorShortcutConfiguration(),
+    this.contextMenuConfiguration,
     this.pasteTransformers = const <ClipboardPasteTransformer>[],
     this.blockRenderers = const <BlockType, BlockRendererBuilder>{},
     this.blockEmbedRenderers = const <String, BlockRendererBuilder>{},
@@ -120,6 +122,15 @@ class WenzEditorConfiguration {
   /// Merged **last** by the bootstrap (after plugin-contributed fragments), so
   /// host bindings always win over plugin bindings.
   final EditorShortcutConfiguration shortcutConfiguration;
+
+  /// Optional desktop context-menu configuration forwarded to
+  /// [WenzRichTextEditor].
+  ///
+  /// `null` keeps the editor's default menu. Pass
+  /// [WenzEditorContextMenuConfiguration] to append custom items, replace the
+  /// defaults, or use a builder to insert host actions at a specific position.
+  /// `copyWith(contextMenuConfiguration: null)` clears a host configuration.
+  final WenzEditorContextMenuConfiguration? contextMenuConfiguration;
 
   /// Host-supplied paste transformers, added to the editor's clipboard service
   /// alongside any transformers contributed by [plugins].
@@ -264,6 +275,7 @@ class WenzEditorConfiguration {
     Object? mediaResolver = _unset,
     WenzRichTextEditorAccessibility? accessibility,
     EditorShortcutConfiguration? shortcutConfiguration,
+    Object? contextMenuConfiguration = _unset,
     List<ClipboardPasteTransformer>? pasteTransformers,
     Map<BlockType, BlockRendererBuilder>? blockRenderers,
     Map<String, BlockRendererBuilder>? blockEmbedRenderers,
@@ -306,6 +318,9 @@ class WenzEditorConfiguration {
           : mediaResolver as MediaResolver?,
       accessibility: accessibility ?? this.accessibility,
       shortcutConfiguration: shortcutConfiguration ?? this.shortcutConfiguration,
+      contextMenuConfiguration: identical(contextMenuConfiguration, _unset)
+          ? this.contextMenuConfiguration
+          : contextMenuConfiguration as WenzEditorContextMenuConfiguration?,
       pasteTransformers: pasteTransformers ?? this.pasteTransformers,
       blockRenderers: blockRenderers ?? this.blockRenderers,
       blockEmbedRenderers: blockEmbedRenderers ?? this.blockEmbedRenderers,

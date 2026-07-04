@@ -90,6 +90,21 @@ class WenzToolbarItemRegistry {
   WenzToolbarItem? operator [](String id) => _items[id];
 }
 
+/// Table cell coordinates currently targeted by toolbar table actions.
+class WenzToolbarTableContext {
+  const WenzToolbarTableContext({
+    required this.blockIndex,
+    required this.rowIndex,
+    required this.columnIndex,
+    required this.range,
+  });
+
+  final int blockIndex;
+  final int rowIndex;
+  final int columnIndex;
+  final TableCellRange range;
+}
+
 /// A read-only snapshot of the toolbar-relevant state derived from a
 /// [WenzRichTextController]'s current document + selection.
 ///
@@ -466,6 +481,7 @@ class ToolbarController extends ChangeNotifier {
   }
 
   final WenzRichTextController _host;
+  int _generatedBlockId = 0;
 
   ToolbarState _state = ToolbarState.empty;
   ToolbarState get state => _state;
@@ -483,6 +499,7 @@ class ToolbarController extends ChangeNotifier {
   bool get canToggleQuote => _state.canToggleQuote;
   bool get canTableStruct => _state.canTableStruct;
   bool get canSetAlignment => _state.canSetAlignment;
+  bool get canInsertBlock => _host.canEdit;
   bool get canInsertImage => _host.canEdit;
   bool get canInsertVideo => _host.canEdit;
   bool? get tableCellIsHeader => _state.tableCellIsHeader;
@@ -630,6 +647,150 @@ class ToolbarController extends ChangeNotifier {
     }
   }
 
+  int currentBlockInsertionIndex() {
+    final selection = _host.selection;
+    final blockCount = _host.document.blocks.length;
+    if (selection == null) {
+      return blockCount;
+    }
+    final position = selection.extent;
+    final index = position.blockIndex.clamp(0, blockCount).toInt();
+    if (position.path.isTableCellText) {
+      return (index + 1).clamp(0, blockCount).toInt();
+    }
+    if (position.path.isBlockObject && position.offset > 0) {
+      return (index + 1).clamp(0, blockCount).toInt();
+    }
+    return index;
+  }
+
+  WenzToolbarTableContext? get tableContext {
+    final selection = _host.selection;
+    final path = selection?.extent.path;
+    final range = selection?.tableCellRange;
+    if (selection == null ||
+        path == null ||
+        range == null ||
+        !path.isTableCellText) {
+      return null;
+    }
+    final blockIndex = selection.extent.blockIndex;
+    final block = _blockAt(_host.document, blockIndex);
+    if (block is! TableBlockNode) {
+      return null;
+    }
+    final rowIndex = path.tableRowIndex;
+    final columnIndex = path.tableColumnIndex;
+    if (rowIndex == null ||
+        columnIndex == null ||
+        block.table.cellAt(rowIndex, columnIndex) == null) {
+      return null;
+    }
+    return WenzToolbarTableContext(
+      blockIndex: blockIndex,
+      rowIndex: rowIndex,
+      columnIndex: columnIndex,
+      range: range,
+    );
+  }
+
+  void insertCodeBlock({
+    int? index,
+    String? blockId,
+    String language = '',
+    String code = '',
+    DocumentSelection? selection,
+  }) {
+    if (!canInsertBlock) {
+      return;
+    }
+    final insertionIndex = index ?? currentBlockInsertionIndex();
+    final id = blockId ?? _nextBlockId('code');
+    _host.insertBlocks(
+      index: insertionIndex,
+      blocks: <BlockNode>[
+        CodeBlockNode(id: id, language: language, code: code),
+      ],
+      selection: selection ??
+          DocumentSelection(
+            base: DocumentPosition(
+              blockId: id,
+              blockIndex: insertionIndex,
+              path: PositionPath.blockCode(id),
+              offset: 0,
+            ),
+            extent: DocumentPosition(
+              blockId: id,
+              blockIndex: insertionIndex,
+              path: PositionPath.blockCode(id),
+              offset: 0,
+            ),
+          ),
+    );
+  }
+
+  void insertCallout({
+    int? index,
+    String? blockId,
+    String variant = CalloutBlockNode.infoVariant,
+    String title = 'Tip',
+    String icon = '',
+    List<InlineNode> content = const <InlineNode>[],
+    DocumentSelection? selection,
+  }) {
+    if (!canInsertBlock) {
+      return;
+    }
+    final insertionIndex = index ?? currentBlockInsertionIndex();
+    final id = blockId ?? _nextBlockId('callout');
+    _host.insertBlocks(
+      index: insertionIndex,
+      blocks: <BlockNode>[
+        CalloutBlockNode(
+          id: id,
+          variant: variant,
+          title: title,
+          icon: icon,
+          content: content,
+        ),
+      ],
+      selection: selection ??
+          DocumentSelection(
+            base: DocumentPosition(
+              blockId: id,
+              blockIndex: insertionIndex,
+              path: PositionPath.blockText(id),
+              offset: 0,
+            ),
+            extent: DocumentPosition(
+              blockId: id,
+              blockIndex: insertionIndex,
+              path: PositionPath.blockText(id),
+              offset: 0,
+            ),
+          ),
+    );
+  }
+
+  void insertTable({
+    int? index,
+    String? tableId,
+    int rowCount = 3,
+    int columnCount = 3,
+    DocumentSelection? selection,
+  }) {
+    if (!canInsertBlock) {
+      return;
+    }
+    _host.insertTable(
+      index: index ?? currentBlockInsertionIndex(),
+      tableId: tableId ?? _nextBlockId('table'),
+      rowCount: rowCount,
+      columnCount: columnCount,
+      selection: selection,
+    );
+  }
+
   void insertImage({
     int? index,
     required String blockId,
@@ -647,7 +808,7 @@ class ToolbarController extends ChangeNotifier {
       return;
     }
     _host.insertImage(
-      index: index ?? _currentBlockInsertionIndex(),
+      index: index ?? currentBlockInsertionIndex(),
       blockId: blockId,
       assetId: assetId,
       file: file,
@@ -679,7 +840,7 @@ class ToolbarController extends ChangeNotifier {
       return;
     }
     _host.insertVideo(
-      index: index ?? _currentBlockInsertionIndex(),
+      index: index ?? currentBlockInsertionIndex(),
       blockId: blockId,
       assetId: assetId,
       playbackUrl: playbackUrl,
@@ -697,21 +858,112 @@ class ToolbarController extends ChangeNotifier {
   void undo() => _host.undo();
   void redo() => _host.redo();
 
-  int _currentBlockInsertionIndex() {
-    final selection = _host.selection;
-    final blockCount = _host.document.blocks.length;
-    if (selection == null) {
-      return blockCount;
+  void insertTableRow() {
+    final context = tableContext;
+    if (context == null || !_state.canTableStruct) {
+      return;
     }
-    final position = selection.extent;
-    final index = position.blockIndex.clamp(0, blockCount).toInt();
-    if (position.path.isTableCellText) {
-      return (index + 1).clamp(0, blockCount).toInt();
+    _host.insertTableRow(
+      blockIndex: context.blockIndex,
+      rowIndex: context.rowIndex + 1,
+    );
+  }
+
+  void insertTableColumn() {
+    final context = tableContext;
+    if (context == null || !_state.canTableStruct) {
+      return;
     }
-    if (position.path.isBlockObject && position.offset > 0) {
-      return (index + 1).clamp(0, blockCount).toInt();
+    _host.insertTableColumn(
+      blockIndex: context.blockIndex,
+      columnIndex: context.columnIndex + 1,
+    );
+  }
+
+  void deleteTableRow() {
+    final context = tableContext;
+    if (context == null || !_state.canTableStruct) {
+      return;
     }
-    return index;
+    _host.deleteTableRow(
+      blockIndex: context.blockIndex,
+      rowIndex: context.rowIndex,
+    );
+  }
+
+  void deleteTableColumn() {
+    final context = tableContext;
+    if (context == null || !_state.canTableStruct) {
+      return;
+    }
+    _host.deleteTableColumn(
+      blockIndex: context.blockIndex,
+      columnIndex: context.columnIndex,
+    );
+  }
+
+  void mergeTableCells() {
+    final context = tableContext;
+    if (context == null || !_state.canTableStruct) {
+      return;
+    }
+    final range = context.range;
+    if (!range.isSingleCell) {
+      _host.mergeTableCells(
+        blockIndex: range.blockIndex,
+        startRow: range.startRow,
+        startColumn: range.startColumn,
+        endRow: range.endRow,
+        endColumn: range.endColumn,
+      );
+      return;
+    }
+    _host.mergeTableCells(
+      blockIndex: context.blockIndex,
+      startRow: context.rowIndex,
+      startColumn: context.columnIndex,
+      endRow: context.rowIndex + 1,
+      endColumn: context.columnIndex + 1,
+    );
+  }
+
+  void splitTableCell() {
+    final context = tableContext;
+    if (context == null || !_state.canTableStruct) {
+      return;
+    }
+    _host.splitTableCell(
+      blockIndex: context.blockIndex,
+      rowIndex: context.rowIndex,
+      columnIndex: context.columnIndex,
+    );
+  }
+
+  String _nextBlockId(String prefix) {
+    String id;
+    do {
+      _generatedBlockId += 1;
+      id = '$prefix-$_generatedBlockId';
+    } while (_containsBlockId(_host.document.blocks, id));
+    return id;
+  }
+
+  bool _containsBlockId(List<BlockNode> blocks, String id) {
+    for (final block in blocks) {
+      if (block.id == id) {
+        return true;
+      }
+      if (block is TableBlockNode) {
+        for (final row in block.table.rows) {
+          for (final cell in row) {
+            if (_containsBlockId(cell.blocks, id)) {
+              return true;
+            }
+          }
+        }
+      }
+    }
+    return false;
   }
 
   // ---- Lifecycle ------------------------------------------------------------

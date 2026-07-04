@@ -786,6 +786,70 @@ void main() {
         toolbar.dispose();
         host.dispose();
       });
+
+      test('table structure helpers insert row and column at current cell', () {
+        final host = WenzRichTextController(
+          document: _twoByTwoTableDoc(),
+          selection: _tableSelection(0, 0, 0, 0),
+        );
+        final toolbar = ToolbarController(host);
+
+        toolbar.insertTableRow();
+        var table = host.document.blocks.single as TableBlockNode;
+        expect(table.table.rowCount, 3);
+        expect(table.table.columnCount, 2);
+        expect(host.canUndo, isTrue);
+
+        toolbar.insertTableColumn();
+        table = host.document.blocks.single as TableBlockNode;
+        expect(table.table.rowCount, 3);
+        expect(table.table.columnCount, 3);
+
+        toolbar.dispose();
+        host.dispose();
+      });
+
+      test('table structure helpers delete row and column at current cell', () {
+        final host = WenzRichTextController(
+          document: _twoByTwoTableDoc(),
+          selection: _tableSelection(0, 0, 0, 0),
+        );
+        final toolbar = ToolbarController(host);
+
+        toolbar.deleteTableRow();
+        var table = host.document.blocks.single as TableBlockNode;
+        expect(table.table.rowCount, 1);
+        expect(table.table.columnCount, 2);
+
+        toolbar.deleteTableColumn();
+        table = host.document.blocks.single as TableBlockNode;
+        expect(table.table.rowCount, 1);
+        expect(table.table.columnCount, 1);
+
+        toolbar.dispose();
+        host.dispose();
+      });
+
+      test('merge and split helpers use the selected table cell range', () {
+        final host = WenzRichTextController(
+          document: _twoByTwoTableDoc(),
+          selection: _tableSelection(0, 0, 0, 1),
+        );
+        final toolbar = ToolbarController(host);
+
+        toolbar.mergeTableCells();
+        var table = host.document.blocks.single as TableBlockNode;
+        expect(table.table.cellAt(0, 0)?.columnSpan, 2);
+        expect(table.table.cellAt(0, 1)?.covered, isTrue);
+
+        toolbar.splitTableCell();
+        table = host.document.blocks.single as TableBlockNode;
+        expect(table.table.cellAt(0, 0)?.columnSpan, 1);
+        expect(table.table.cellAt(0, 1)?.covered, isFalse);
+
+        toolbar.dispose();
+        host.dispose();
+      });
     });
 
     test('permission state disables edit actions', () {
@@ -821,6 +885,104 @@ void main() {
 
       toolbar.dispose();
       host.dispose();
+    });
+
+    test('image object selection exposes alignment and preserves undo state', () {
+      final selection = _objectSelection('img', 0, 1);
+      final host = WenzRichTextController(
+        document: _imageAlignmentDoc(imageAlignment: 'right'),
+        selection: selection,
+      );
+      final toolbar = ToolbarController(host);
+
+      expect(toolbar.canSetAlignment, isTrue);
+      expect(toolbar.alignment, 'right');
+      expect(toolbar.alignmentMixed, isFalse);
+      expect(toolbar.isAlignment('right'), isTrue);
+      expect(toolbar.canFormatInline, isFalse);
+
+      toolbar.setAlignment('left');
+
+      var image = host.document.blocks.first as ImageBlockNode;
+      expect(image.attributes.alignment, 'left');
+      expect(host.selection, selection);
+      expect(toolbar.alignment, 'left');
+      expect(host.canUndo, isTrue);
+
+      expect(host.undo(), isTrue);
+      image = host.document.blocks.first as ImageBlockNode;
+      expect(image.attributes.alignment, 'right');
+      expect(host.selection, selection);
+
+      expect(host.redo(), isTrue);
+      image = host.document.blocks.first as ImageBlockNode;
+      expect(image.attributes.alignment, 'left');
+      expect(toolbar.alignment, 'left');
+
+      toolbar.clearAlignment();
+
+      image = host.document.blocks.first as ImageBlockNode;
+      expect(image.attributes.alignment, isNull);
+      expect(toolbar.alignment, isNull);
+      expect(toolbar.alignmentMixed, isFalse);
+      expect(host.selection, selection);
+
+      toolbar.dispose();
+      host.dispose();
+    });
+
+    test('image alignment reports mixed across object and text blocks', () {
+      final host = WenzRichTextController(
+        document: _imageAlignmentDoc(
+          imageAlignment: 'center',
+          paragraphAlignment: 'right',
+        ),
+        selection: DocumentSelection(
+          base: DocumentPosition.object(blockId: 'img', blockIndex: 0),
+          extent: DocumentPosition.text(
+            blockId: 'caption-after',
+            blockIndex: 1,
+            offset: 0,
+          ),
+        ),
+      );
+      final toolbar = ToolbarController(host);
+
+      expect(toolbar.canSetAlignment, isTrue);
+      expect(toolbar.alignment, isNull);
+      expect(toolbar.alignmentMixed, isTrue);
+      expect(toolbar.isAlignment('center'), isFalse);
+
+      toolbar.dispose();
+      host.dispose();
+    });
+
+    test('image alignment actions are no-op without edit permission', () {
+      for (final permission in <WenzEditorPermission>[
+        WenzEditorPermission.read,
+        WenzEditorPermission.comment,
+      ]) {
+        final host = WenzRichTextController(
+          document: _imageAlignmentDoc(imageAlignment: 'center'),
+          selection: _objectSelection('img', 0, 1),
+          permission: permission,
+        );
+        final toolbar = ToolbarController(host);
+
+        expect(toolbar.canSetAlignment, isFalse);
+        expect(toolbar.alignment, 'center');
+        expect(toolbar.alignmentMixed, isFalse);
+
+        toolbar.setAlignment('left');
+        toolbar.clearAlignment();
+
+        final image = host.document.blocks.first as ImageBlockNode;
+        expect(image.attributes.alignment, 'center');
+        expect(host.canUndo, isFalse);
+
+        toolbar.dispose();
+        host.dispose();
+      }
     });
 
     test('insertImage uses the current text block insertion index', () {
@@ -897,6 +1059,96 @@ void main() {
       expect(host.document.blocks[0], isA<TableBlockNode>());
       expect(host.document.blocks[1], isA<ImageBlockNode>());
       expect(host.document.blocks[1].id, 'img3');
+
+      toolbar.dispose();
+      host.dispose();
+    });
+
+    test('default block insert helpers use current insertion semantics', () {
+      final codeHost = WenzRichTextController(
+        document: _doc(),
+        selection: collapsedTextSelection('para', 4, 0),
+      );
+      final codeToolbar = ToolbarController(codeHost);
+
+      codeToolbar.insertCodeBlock(blockId: 'code-new', code: 'print(1);');
+      expect(codeHost.document.blocks[4], isA<CodeBlockNode>());
+      expect(codeHost.document.blocks[4].id, 'code-new');
+      expect((codeHost.document.blocks[4] as CodeBlockNode).code, 'print(1);');
+      expect(codeHost.document.blocks[5].id, 'para');
+
+      codeToolbar.dispose();
+      codeHost.dispose();
+
+      final calloutHost = WenzRichTextController(
+        document: _doc(),
+        selection: collapsedTextSelection('para', 4, 0),
+      );
+      final calloutToolbar = ToolbarController(calloutHost);
+
+      calloutToolbar.insertCallout(blockId: 'callout-new', title: 'Note');
+      expect(calloutHost.document.blocks[4], isA<CalloutBlockNode>());
+      expect(calloutHost.document.blocks[4].id, 'callout-new');
+      expect(
+        (calloutHost.document.blocks[4] as CalloutBlockNode).title,
+        'Note',
+      );
+
+      calloutToolbar.dispose();
+      calloutHost.dispose();
+
+      final tableHost = WenzRichTextController(
+        document: _doc(),
+        selection: collapsedTextSelection('para', 4, 0),
+      );
+      final tableToolbar = ToolbarController(tableHost);
+
+      tableToolbar.insertTable(
+        tableId: 'table-new',
+        rowCount: 2,
+        columnCount: 4,
+      );
+      expect(tableHost.document.blocks[4], isA<TableBlockNode>());
+      final table = tableHost.document.blocks[4] as TableBlockNode;
+      expect(table.id, 'table-new');
+      expect(table.table.rowCount, 2);
+      expect(table.table.columnCount, 4);
+
+      tableToolbar.dispose();
+      tableHost.dispose();
+    });
+
+    test('insertVideo uses the current object-block insertion index', () {
+      final host = WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            ImageBlockNode(id: 'existing', assetId: 'asset-1'),
+            TextBlockNode(
+              id: 'after',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'after')],
+            ),
+          ],
+        ),
+        selection: _objectSelection('existing', 0, 1),
+      );
+      final toolbar = ToolbarController(host);
+
+      toolbar.insertVideo(
+        blockId: 'video-new',
+        assetId: 'asset-video',
+        file: '/tmp/video.mp4',
+        title: 'Video',
+      );
+
+      expect(host.document.blocks[0].id, 'existing');
+      expect(host.document.blocks[1], isA<VideoBlockNode>());
+      final video = host.document.blocks[1] as VideoBlockNode;
+      expect(video.id, 'video-new');
+      expect(video.assetId, 'asset-video');
+      expect(video.file, '/tmp/video.mp4');
+      expect(video.title, 'Video');
+      expect(host.document.blocks[2].id, 'after');
 
       toolbar.dispose();
       host.dispose();
@@ -1073,6 +1325,64 @@ RichTextDocument _tableDoc() {
   );
 }
 
+RichTextDocument _twoByTwoTableDoc() {
+  return const RichTextDocument(
+    blocks: <BlockNode>[
+      TableBlockNode(
+        id: 'table',
+        table: TableModel(
+          rows: <List<TableCellNode>>[
+            <TableCellNode>[
+              TableCellNode(
+                id: 'c00',
+                blocks: <BlockNode>[
+                  TextBlockNode(
+                    id: 'c00p',
+                    type: BlockType.paragraph,
+                    content: <InlineNode>[TextRun(text: 'A')],
+                  ),
+                ],
+              ),
+              TableCellNode(
+                id: 'c01',
+                blocks: <BlockNode>[
+                  TextBlockNode(
+                    id: 'c01p',
+                    type: BlockType.paragraph,
+                    content: <InlineNode>[TextRun(text: 'B')],
+                  ),
+                ],
+              ),
+            ],
+            <TableCellNode>[
+              TableCellNode(
+                id: 'c10',
+                blocks: <BlockNode>[
+                  TextBlockNode(
+                    id: 'c10p',
+                    type: BlockType.paragraph,
+                    content: <InlineNode>[TextRun(text: 'C')],
+                  ),
+                ],
+              ),
+              TableCellNode(
+                id: 'c11',
+                blocks: <BlockNode>[
+                  TextBlockNode(
+                    id: 'c11p',
+                    type: BlockType.paragraph,
+                    content: <InlineNode>[TextRun(text: 'D')],
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+    ],
+  );
+}
+
 DocumentSelection _tableSelection(
   int startRow,
   int startColumn,
@@ -1135,6 +1445,29 @@ RichTextDocument _tableAlignmentDoc({
             ],
           ],
         ),
+      ),
+    ],
+  );
+}
+
+RichTextDocument _imageAlignmentDoc({
+  String? imageAlignment,
+  String? paragraphAlignment,
+}) {
+  return RichTextDocument(
+    blocks: <BlockNode>[
+      ImageBlockNode(
+        id: 'img',
+        assetId: 'asset',
+        width: 320,
+        height: 180,
+        attributes: BlockAttributes(alignment: imageAlignment),
+      ),
+      TextBlockNode(
+        id: 'caption-after',
+        type: BlockType.paragraph,
+        attributes: BlockAttributes(alignment: paragraphAlignment),
+        content: const <InlineNode>[TextRun(text: 'after image')],
       ),
     ],
   );

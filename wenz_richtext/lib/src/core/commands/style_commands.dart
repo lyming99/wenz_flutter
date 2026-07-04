@@ -338,19 +338,28 @@ class SetAlignmentCommand extends EditorCommand {
     final blocks =
         session.document.blocks.map((block) => block.copy()).toList();
     var changed = false;
+    var hasTargetBlock = false;
     for (var i = target.start.blockIndex; i <= target.end.blockIndex; i++) {
       if (i < 0 || i >= blocks.length) {
         continue;
       }
+      hasTargetBlock = true;
+      final nextAttributes = _setAlignment(blocks[i].attributes, alignment);
+      if (nextAttributes == blocks[i].attributes) {
+        continue;
+      }
       blocks[i] = _copyBlockWithAttributes(
         blocks[i],
-        _setAlignment(blocks[i].attributes, alignment),
+        nextAttributes,
       );
       changed = true;
     }
 
     if (!changed) {
-      return const CommandResult(recordHistory: false);
+      return CommandResult(
+        selection: hasTargetBlock ? target : null,
+        recordHistory: false,
+      );
     }
     session.document = RichTextDocument(
       version: session.document.version,

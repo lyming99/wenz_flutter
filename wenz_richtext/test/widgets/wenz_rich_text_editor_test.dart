@@ -145,6 +145,225 @@ void main() {
     expect(find.text('[video: clip]'), findsOneWidget);
   });
 
+  group('editor context menu', () {
+    testWidgets('right-click opens default menu with shortcuts and disabled '
+        'collapsed-selection actions', (tester) async {
+      final controller = _contextMenuController(
+        text: 'Alpha Beta',
+        selection: collapsedTextSelection('p1', 0, 0),
+      );
+
+      await _pumpContextMenuEditor(tester, controller);
+      final anchor = _globalTextRangePoint(tester, 'Alpha Beta', 0, 5, 0.5);
+      await _openContextMenuAt(tester, anchor);
+
+      expect(_contextMenuItemFinder('wenz.default.copy'), findsOneWidget);
+      expect(_contextMenuItemFinder('wenz.default.cut'), findsOneWidget);
+      expect(_contextMenuItemFinder('wenz.default.paste'), findsOneWidget);
+      expect(_contextMenuItemFinder('wenz.default.select-all'), findsOneWidget);
+      expect(_contextMenuShortcutFinder('C'), findsOneWidget);
+      expect(_contextMenuShortcutFinder('X'), findsOneWidget);
+      expect(_contextMenuShortcutFinder('V'), findsOneWidget);
+
+      expect(_contextMenuItem(tester, 'wenz.default.copy').enabled, isFalse);
+      expect(_contextMenuItem(tester, 'wenz.default.cut').enabled, isFalse);
+      expect(_contextMenuItem(tester, 'wenz.default.delete').enabled, isFalse);
+      expect(_contextMenuItem(tester, 'wenz.default.paste').enabled, isTrue);
+      expect(
+        _contextMenuItem(tester, 'wenz.default.select-all').enabled,
+        isTrue,
+      );
+
+      final menuRect = tester.getRect(_contextMenuItemFinder(
+        'wenz.default.copy',
+      ));
+      expect(menuRect.left, greaterThanOrEqualTo(0));
+      expect(menuRect.top, greaterThanOrEqualTo(0));
+      final logicalViewSize =
+          tester.view.physicalSize / tester.view.devicePixelRatio;
+      expect(menuRect.right, lessThanOrEqualTo(logicalViewSize.width));
+      expect(menuRect.bottom, lessThanOrEqualTo(logicalViewSize.height));
+    });
+
+    testWidgets('default menu actions copy, cut, paste, select all, and delete',
+        (tester) async {
+      await Clipboard.setData(const ClipboardData(text: ''));
+      addTearDown(() => Clipboard.setData(const ClipboardData(text: '')));
+      final controller = _contextMenuController(
+        text: 'Alpha Beta',
+        selection: textSelection('p1', 0, 0, 5),
+      );
+
+      await _pumpContextMenuEditor(tester, controller);
+
+      await _openContextMenuAt(
+        tester,
+        _globalTextRangePoint(tester, 'Alpha Beta', 1, 4, 0.5),
+      );
+      await _tapContextMenuItem(tester, 'wenz.default.copy');
+      final copied = await Clipboard.getData(Clipboard.kTextPlain);
+      expect(copied?.text, startsWith(wenzClipboardPrefix));
+      expect(controller.selection, textSelection('p1', 0, 0, 5));
+
+      await _openContextMenuAt(
+        tester,
+        _globalTextRangePoint(tester, 'Alpha Beta', 1, 4, 0.5),
+      );
+      await _tapContextMenuItem(tester, 'wenz.default.cut');
+      expect(controller.document.plainText, ' Beta');
+
+      await Clipboard.setData(const ClipboardData(text: 'Z'));
+      await tester.pump();
+      await _openContextMenuAt(
+        tester,
+        _globalTextOffset(tester, ' Beta', 0),
+      );
+      await _tapContextMenuItem(tester, 'wenz.default.paste');
+      final pastedText = controller.document.plainText;
+      expect(pastedText, contains('Z'));
+
+      await _openContextMenuAt(
+        tester,
+        _globalTextRangePoint(tester, pastedText, 0, pastedText.length, 0.5),
+      );
+      await _tapContextMenuItem(tester, 'wenz.default.select-all');
+      final allSelection = controller.selection;
+      expect(allSelection, isNotNull);
+      expect(allSelection!.isCollapsed, isFalse);
+      expect(allSelection.start.offset, 0);
+      expect(allSelection.end.offset, pastedText.length);
+
+      await _openContextMenuAt(
+        tester,
+        _globalTextRangePoint(tester, pastedText, 0, pastedText.length, 0.5),
+      );
+      await _tapContextMenuItem(tester, 'wenz.default.delete');
+      expect(controller.document.plainText, isEmpty);
+    });
+
+    testWidgets('right-click inside selection preserves it and outside updates '
+        'the action context', (tester) async {
+      final captured = <WenzEditorContextMenuContext>[];
+      final controller = _contextMenuController(
+        text: 'Alpha Beta',
+        selection: textSelection('p1', 0, 0, 5),
+      );
+      final configuration = WenzEditorContextMenuConfiguration(
+        defaultItemsPolicy: WenzEditorContextMenuDefaultItemsPolicy.customOnly,
+        items: <WenzEditorContextMenuEntry>[
+          WenzEditorContextMenuItem(
+            id: 'host.capture',
+            title: 'Capture context',
+            action: captured.add,
+          ),
+        ],
+      );
+
+      await _pumpContextMenuEditor(
+        tester,
+        controller,
+        contextMenuConfiguration: configuration,
+      );
+
+      await _openContextMenuAt(
+        tester,
+        _globalTextRangePoint(tester, 'Alpha Beta', 1, 4, 0.5),
+      );
+      await _tapContextMenuItem(tester, 'host.capture');
+      expect(captured.single.hitInsideSelection, isTrue);
+      expect(captured.single.selection, textSelection('p1', 0, 0, 5));
+
+      captured.clear();
+      await _openContextMenuAt(
+        tester,
+        _globalTextRangePoint(tester, 'Alpha Beta', 7, 10, 0.5),
+      );
+      await _tapContextMenuItem(tester, 'host.capture');
+      expect(captured.single.hitInsideSelection, isFalse);
+      expect(captured.single.selection?.isCollapsed, isTrue);
+      expect(captured.single.selection, controller.selection);
+      expect(captured.single.hitPosition?.blockId, 'p1');
+      expect(captured.single.controller, same(controller));
+    });
+
+    testWidgets('read-only context menu disables write actions and leaves the '
+        'document unchanged', (tester) async {
+      final controller = _contextMenuController(
+        text: 'Read only',
+        selection: textSelection('p1', 0, 0, 4),
+      );
+
+      await _pumpContextMenuEditor(tester, controller, readOnly: true);
+      await _openContextMenuAt(
+        tester,
+        _globalTextRangePoint(tester, 'Read only', 1, 3, 0.5),
+      );
+
+      expect(_contextMenuItem(tester, 'wenz.default.copy').enabled, isTrue);
+      expect(
+        _contextMenuItem(tester, 'wenz.default.select-all').enabled,
+        isTrue,
+      );
+      expect(_contextMenuItem(tester, 'wenz.default.cut').enabled, isFalse);
+      expect(_contextMenuItem(tester, 'wenz.default.paste').enabled, isFalse);
+      expect(_contextMenuItem(tester, 'wenz.default.delete').enabled, isFalse);
+      expect(
+        _contextMenuItem(tester, 'wenz.default.insert-paragraph').enabled,
+        isFalse,
+      );
+      expect(controller.document.plainText, 'Read only');
+    });
+
+    testWidgets('custom context menu items can append to or replace defaults',
+        (tester) async {
+      final calls = <WenzEditorContextMenuContext>[];
+      final controller = _contextMenuController(
+        text: 'Host action',
+        selection: collapsedTextSelection('p1', 0, 0),
+      );
+      final customItem = WenzEditorContextMenuItem(
+        id: 'host.comment',
+        title: 'Add comment',
+        icon: Icons.comment_outlined,
+        action: calls.add,
+      );
+
+      await _pumpContextMenuEditor(
+        tester,
+        controller,
+        contextMenuConfiguration: WenzEditorContextMenuConfiguration(
+          items: <WenzEditorContextMenuEntry>[customItem],
+        ),
+      );
+      await _openContextMenuAt(
+        tester,
+        _globalTextRangePoint(tester, 'Host action', 0, 4, 0.5),
+      );
+      expect(_contextMenuItemFinder('wenz.default.select-all'), findsOneWidget);
+      expect(_contextMenuItemFinder('host.comment'), findsOneWidget);
+      await _tapContextMenuItem(tester, 'host.comment');
+      expect(calls.single.controller, same(controller));
+      expect(calls.single.hitPosition, isNotNull);
+      expect(calls.single.globalPosition, isNot(Offset.zero));
+
+      await _pumpContextMenuEditor(
+        tester,
+        controller,
+        contextMenuConfiguration: WenzEditorContextMenuConfiguration(
+          defaultItemsPolicy:
+              WenzEditorContextMenuDefaultItemsPolicy.customOnly,
+          items: <WenzEditorContextMenuEntry>[customItem],
+        ),
+      );
+      await _openContextMenuAt(
+        tester,
+        _globalTextRangePoint(tester, 'Host action', 0, 4, 0.5),
+      );
+      expect(_contextMenuItemFinder('wenz.default.select-all'), findsNothing);
+      expect(_contextMenuItemFinder('host.comment'), findsOneWidget);
+    });
+  });
+
   testWidgets('paste keeps Wenz rich JSON ahead of image flavors',
       (tester) async {
     const service = ClipboardService();
@@ -2488,18 +2707,8 @@ void main() {
     );
 
     expect(sectionButton, findsOneWidget);
-    // After P001: leaf heading without children still renders the collapse
-    // button — but in a disabled state (canCollapse == false, tooltip shows
-    // "无可折叠内容").
-    expect(leafButton, findsOneWidget);
-    expect(
-      tester.widget<IconButton>(leafButton).onPressed,
-      isNull,
-    );
-    expect(
-      tester.widget<IconButton>(leafButton).tooltip,
-      '无可折叠内容',
-    );
+    expect(leafButton, findsNothing);
+    expect(find.byTooltip('无可折叠内容'), findsNothing);
     expect(
       find.descendant(
         of: sectionButton,
@@ -2688,6 +2897,12 @@ void main() {
       const ValueKey<String>('wenz-richtext-heading-collapse-section'),
     );
     expect(button, findsOneWidget);
+    expect(
+      find.byKey(
+        const ValueKey<String>('wenz-richtext-heading-collapse-next'),
+      ),
+      findsNothing,
+    );
     expect(tester.widget<IconButton>(button).onPressed, isNotNull);
     expect(_richText('Read-only hidden body'), findsOneWidget);
 
@@ -2712,10 +2927,10 @@ void main() {
       'rows', (tester) async {
     // Regression guard for the OverflowBox(maxWidth: 0) bug that shrank the
     // collapse affordance to zero width and made it disappear. In editable
-    // mode every heading block renders a full-size, hit-testable collapse
+    // mode collapsible headings render a full-size, hit-testable collapse
     // button in the row chrome rail. The block drag handle, chrome gap,
     // collapse button, and content gap must remain distinct rectangles. Leaf
-    // headings render a disabled affordance (canCollapse == false).
+    // headings do not mount disabled collapse chrome.
     final controller = WenzRichTextController(
       document: const RichTextDocument(
         blocks: <BlockNode>[
@@ -2760,8 +2975,6 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // With an outline attached every heading renders its affordance,
-    // including the leaf heading (disabled state).
     final sectionButton = find.byKey(
       const ValueKey<String>('wenz-richtext-heading-collapse-section'),
     );
@@ -2769,19 +2982,16 @@ void main() {
       const ValueKey<String>('wenz-richtext-heading-collapse-leaf'),
     );
     expect(sectionButton, findsOneWidget);
-    expect(leafButton, findsOneWidget);
+    expect(leafButton, findsNothing);
     expect(tester.widget<IconButton>(sectionButton).onPressed, isNotNull);
-    expect(tester.widget<IconButton>(leafButton).onPressed, isNull);
-    expect(tester.widget<IconButton>(leafButton).tooltip, '无可折叠内容');
+    expect(find.byTooltip('无可折叠内容'), findsNothing);
 
-    for (final buttonFinder in <Finder>[sectionButton, leafButton]) {
-      final rect = tester.getRect(buttonFinder);
-      // Full-size and visible — not shrunk to zero by a layout wrapper.
-      expect(rect.width, greaterThan(0));
-      expect(rect.height, greaterThan(0));
-      // On-screen: left edge must not run off the viewport's left side.
-      expect(rect.left, greaterThanOrEqualTo(0));
-    }
+    final visibleSectionRect = tester.getRect(sectionButton);
+    // Full-size and visible — not shrunk to zero by a layout wrapper.
+    expect(visibleSectionRect.width, greaterThan(0));
+    expect(visibleSectionRect.height, greaterThan(0));
+    // On-screen: left edge must not run off the viewport's left side.
+    expect(visibleSectionRect.left, greaterThanOrEqualTo(0));
 
     // The collapsible section button must stay inside the gutter: it starts
     // after the drag-handle hit target plus chromeGap, and it leaves the
@@ -3002,14 +3212,22 @@ void main() {
         const ValueKey<String>('wenz-richtext-heading-collapse-title'),
       ),
     );
-
-    // Heading and body drag handles share the same left edge.
     expect(
-      titleDragRect.left,
-      moreOrLessEquals(bodyDragRect.left, epsilon: 0.5),
+      find.byKey(
+        const ValueKey<String>('wenz-richtext-heading-collapse-body'),
+      ),
+      findsNothing,
     );
-    // Editable outline rows reserve the full row chrome rail: drag handle,
-    // chromeGap, collapse hit target, then gapToContent before content.
+    expect(
+      find.byKey(
+        const ValueKey<String>('wenz-richtext-heading-collapse-code'),
+      ),
+      findsNothing,
+    );
+
+    // The collapsible heading keeps the full editable row chrome sequence:
+    // drag handle, chromeGap, collapse hit target, then gapToContent before
+    // content.
     expect(
       collapseRect.left - titleDragRect.right,
       moreOrLessEquals(BlockDragHandleSpec.chromeGap, epsilon: 0.5),
@@ -3030,19 +3248,20 @@ void main() {
     // Heading and non-heading body text left edges align because every row
     // reserves the same rail while outline chrome is attached.
     expect(headingTextLeft, moreOrLessEquals(bodyTextLeft, epsilon: 0.5));
-    // All drag handles share the same column.
+    // Rows without an actual collapse button reuse the collapse chrome slot for
+    // their drag handle instead of remaining in the leftmost operation column.
     expect(
       bodyDragRect.left,
-      moreOrLessEquals(titleDragRect.left, epsilon: 0.5),
+      moreOrLessEquals(collapseRect.left, epsilon: 0.5),
     );
     expect(
       codeDragRect.left,
-      moreOrLessEquals(titleDragRect.left, epsilon: 0.5),
+      moreOrLessEquals(collapseRect.left, epsilon: 0.5),
     );
     // Non-heading rows still reserve the full editable outline rail, so they
     // do not shift left when a neighbouring heading shows the collapse button.
     expect(
-      bodyTextLeft - bodyDragRect.left,
+      bodyTextLeft - titleDragRect.left,
       moreOrLessEquals(BlockDragHandleSpec.railWidth, epsilon: 0.5),
     );
     expect(
@@ -3051,7 +3270,7 @@ void main() {
               const ValueKey<String>('wenz-richtext-code-block-code'),
             ),
           ).left -
-          codeDragRect.left,
+          titleDragRect.left,
       moreOrLessEquals(BlockDragHandleSpec.railWidth, epsilon: 0.5),
     );
     expect(
@@ -3121,21 +3340,12 @@ void main() {
     );
     expect(collapseBtn, findsOneWidget);
 
-    // Non-collapsible heading now renders a disabled collapse button
-    // (canCollapse == false) per P001 fix. The button is visible but its
-    // onPressed is null and tooltip reads "无可折叠内容".
+    // Non-collapsible heading does not mount a disabled collapse button.
     final h2CollapseBtn = find.byKey(
       const ValueKey<String>('wenz-richtext-heading-collapse-h2'),
     );
-    expect(h2CollapseBtn, findsOneWidget);
-    expect(
-      tester.widget<IconButton>(h2CollapseBtn).onPressed,
-      isNull,
-    );
-    expect(
-      tester.widget<IconButton>(h2CollapseBtn).tooltip,
-      '无可折叠内容',
-    );
+    expect(h2CollapseBtn, findsNothing);
+    expect(find.byTooltip('无可折叠内容'), findsNothing);
 
     // All text left edges align — the collapse button does not push content.
     final h1TextLeft = tester.getTopLeft(_richText('Collapsible heading')).dx;
@@ -4953,7 +5163,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(_popupMenuItemFinder('图片宽度：小'), findsOneWidget);
-    expect(_popupMenuItemFinder('创建块副本'), findsOneWidget);
+    expect(_popupMenuItemFinder('创建块副本'), findsNothing);
     final menuRect = tester.getRect(_popupMenuItemFinder('图片宽度：小'));
     final viewportRect = tester.getRect(
       find.byKey(const ValueKey<String>('compact-object-menu-viewport')),
@@ -5071,6 +5281,127 @@ void main() {
       controller.document.blocks.map((block) => block.id),
       isNot(contains(duplicate.id)),
     );
+  });
+
+  testWidgets('image block drag handle menu omits only duplicate action', (
+    tester,
+  ) async {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p0',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'Paragraph')],
+          ),
+          ImageBlockNode(id: 'image1', assetId: 'hero', file: 'hero.png'),
+          DividerBlockNode(id: 'divider1'),
+          FileBlockNode(id: 'file1', assetId: 'file-1', name: 'brief.pdf'),
+          VideoBlockNode(id: 'video1', assetId: 'clip'),
+          BlockEmbedNode(
+            id: 'embed1',
+            embedType: 'bookmark',
+            data: <String, Object?>{'title': 'Bookmark'},
+          ),
+        ],
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WenzRichTextEditor(
+            controller: controller,
+            enableIme: false,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    Future<void> expectDuplicateEntry(String blockId, Matcher matcher) async {
+      await tester.tap(_blockDragHandleFinder(blockId));
+      await tester.pumpAndSettle();
+      expect(_popupMenuItemFinder('复制块引用'), findsOneWidget);
+      expect(_popupMenuItemFinder('创建块副本'), matcher);
+      Navigator.of(tester.element(find.byType(WenzRichTextEditor))).pop();
+      await tester.pumpAndSettle();
+    }
+
+    await expectDuplicateEntry('image1', findsNothing);
+    for (final blockId in <String>[
+      'p0',
+      'divider1',
+      'file1',
+      'video1',
+      'embed1',
+    ]) {
+      await expectDuplicateEntry(blockId, findsOneWidget);
+    }
+  });
+
+  testWidgets('image duplicate action dispatch is ignored defensively', (
+    tester,
+  ) async {
+    late ObjectBlockActionHandler dispatchObjectAction;
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          ImageBlockNode(id: 'image1', assetId: 'hero', file: 'hero.png'),
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'after')],
+          ),
+        ],
+      ),
+      selection: objectBlockSelection('image1', 0),
+    );
+    var selectionChanges = 0;
+    controller.onSelectionChanged = (_) {
+      selectionChanges++;
+    };
+    final registry = BlockRendererRegistry();
+    WenzRichTextEditor.installDefaultRenderers(registry);
+    registry.register(BlockType.image, (context, rc) {
+      dispatchObjectAction = rc.onObjectBlockAction!;
+      return SizedBox(
+        key: ValueKey<String>('custom-image-action-${rc.block.id}'),
+        height: 80,
+        child: const Text('custom image'),
+      );
+    });
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WenzRichTextEditor(
+            controller: controller,
+            blockRenderers: registry,
+            enableIme: false,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(controller.canUndo, isFalse);
+
+    dispatchObjectAction(
+      const ObjectBlockActionIntent(
+        action: ObjectBlockAction.duplicate,
+        blockIndex: 0,
+      ),
+    );
+    await tester.pump();
+
+    expect(
+      controller.document.blocks.map((block) => block.id),
+      <String>['image1', 'p1'],
+    );
+    expect(controller.selection, objectBlockSelection('image1', 0));
+    expect(selectionChanges, 0);
+    expect(controller.canUndo, isFalse);
   });
 
   testWidgets(
@@ -5318,11 +5649,13 @@ void main() {
     await mouse.addPointer(
         location: tester.getCenter(_richText('First block')));
     await tester.pump();
-    expect(handleOpacity().opacity, BlockDragHandleSpec.idleOpacity);
+    expect(handleOpacity().opacity, BlockDragHandleSpec.hoverOpacity);
     await mouse.moveTo(tester.getCenter(handle));
     await tester.pump();
     expect(handleOpacity().opacity, BlockDragHandleSpec.hoverOpacity);
     await mouse.removePointer();
+    await tester.pump();
+    expect(handleOpacity().opacity, BlockDragHandleSpec.idleOpacity);
 
     await tester.tap(handle);
     await tester.pumpAndSettle();
@@ -5924,6 +6257,43 @@ void main() {
     );
     expect(controller.selection?.extent.blockId, 'parent');
     expect(controller.selection?.extent.blockIndex, 0);
+  });
+
+  testWidgets('block drag handles drop after heading at target range tail', (
+    tester,
+  ) async {
+    final controller = _headingRangeDragController();
+    await _pumpOutlinedBlockDragEditor(tester, controller);
+
+    final drag = await tester.startGesture(
+      tester.getCenter(_blockDragHandleFinder('parent')),
+      kind: PointerDeviceKind.touch,
+    );
+    await drag.moveTo(
+      tester.getBottomLeft(_richText('Sibling title')) + const Offset(12, -1),
+    );
+    await tester.pump();
+
+    expect(_blockReorderDropIndicatorFinder(), findsOneWidget);
+
+    await drag.up();
+    await tester.pumpAndSettle();
+
+    expect(
+      controller.document.blocks.map((block) => block.id),
+      <String>[
+        'sibling',
+        'sibling-body',
+        'parent',
+        'parent-body',
+        'child-heading',
+        'child-body',
+        'after',
+        'after-body',
+      ],
+    );
+    expect(controller.selection?.extent.blockId, 'parent');
+    expect(controller.selection?.extent.blockIndex, 2);
   });
 
   testWidgets('block drag handles ignore heading range internal targets', (
@@ -6705,7 +7075,6 @@ void main() {
     await tester.tap(find.byTooltip('更多块操作'));
     await tester.pumpAndSettle();
     for (final label in <String>[
-      '创建块副本',
       '上移块',
       '下移块',
       '图片宽度：小',
@@ -6716,6 +7085,7 @@ void main() {
     ]) {
       expect(find.text(label), findsOneWidget);
     }
+    expect(find.text('创建块副本'), findsNothing);
 
     await pumpEditor(
       WenzRichTextController(
@@ -10630,6 +11000,70 @@ void main() {
     expect(wrappedCheckboxOffset, moreOrLessEquals(0, epsilon: 0.75));
   });
 
+  testWidgets('todo checkbox hover overlay is transparent and click toggles',
+      (tester) async {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'todo-hover',
+            type: BlockType.listItem,
+            attributes: BlockAttributes(listType: 'task', checked: false),
+            content: <InlineNode>[TextRun(text: 'Hover transparent todo')],
+          ),
+        ],
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WenzRichTextEditor(
+            controller: controller,
+            enableIme: false,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final checkboxFinder = find.byKey(
+      const ValueKey<String>('wenz-richtext-todo-checkbox-todo-hover'),
+    );
+    expect(checkboxFinder, findsOneWidget);
+
+    final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    await gesture.addPointer();
+    await gesture.moveTo(tester.getCenter(checkboxFinder));
+    await tester.pump();
+
+    final hoveredCheckbox = tester.widget<Checkbox>(checkboxFinder);
+    expect(hoveredCheckbox.value, isFalse);
+    expect(
+      hoveredCheckbox.overlayColor?.resolve(<WidgetState>{
+        WidgetState.hovered,
+      }),
+      Colors.transparent,
+    );
+    expect(
+      hoveredCheckbox.overlayColor?.resolve(<WidgetState>{
+        WidgetState.hovered,
+        WidgetState.focused,
+      }),
+      Colors.transparent,
+    );
+
+    await gesture.removePointer();
+    await tester.tap(checkboxFinder);
+    await tester.pump();
+
+    expect(
+      (controller.document.blocks.single as TextBlockNode).attributes.checked,
+      isTrue,
+    );
+    expect(tester.widget<Checkbox>(checkboxFinder).value, isTrue);
+  });
+
   testWidgets(
     'feedback #4 visual regressions keep formula todo and toolbar metrics',
     (tester) async {
@@ -11510,6 +11944,59 @@ void main() {
     expect(controller.selection, textSelection('p1', 0, 0, 2));
   });
 
+  testWidgets('selectAll shortcut configuration selects current code block', (
+    tester,
+  ) async {
+    const code = 'one\ntwo';
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          CodeBlockNode(id: 'code1', code: code),
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'Paragraph')],
+          ),
+        ],
+      ),
+      selection: collapsedCodeSelection('code1', 0, 1),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WenzRichTextEditor(
+            controller: controller,
+            autofocus: true,
+            enableIme: false,
+            shortcutConfiguration: const EditorShortcutConfiguration(
+              bindings: <EditorShortcutBinding>[
+                EditorShortcutBinding.handled(
+                  shortcut: EditorShortcutKey(
+                    LogicalKeyboardKey.keyL,
+                    modifiers: <EditorShortcutModifier>{
+                      EditorShortcutModifier.control,
+                    },
+                  ),
+                  intent: EditorShortcutIntent.selectAll,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await _sendCtrlShortcut(tester, LogicalKeyboardKey.keyL);
+    await tester.pump();
+
+    expect(controller.selection?.start.blockId, 'code1');
+    expect(controller.selection?.start.offset, 0);
+    expect(controller.selection?.end.blockId, 'code1');
+    expect(controller.selection?.end.offset, code.length);
+  });
+
   testWidgets('updated shortcut configuration is used without controller swap', (
     tester,
   ) async {
@@ -11998,6 +12485,57 @@ void main() {
     expect(find.byTooltip('更多块操作'), findsOneWidget);
   });
 
+  testWidgets('media block drag handle aligns with image and video frame top',
+      (tester) async {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          ImageBlockNode(id: 'image1', assetId: 'hero', file: 'hero.png'),
+          VideoBlockNode(id: 'video1', assetId: 'clip'),
+        ],
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 640,
+            height: 900,
+            child: WenzRichTextEditor(
+              controller: controller,
+              padding: EdgeInsets.zero,
+              enableIme: false,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final imageFrameRect = tester.getRect(
+      find.byKey(
+        const ValueKey<String>('wenz-richtext-image-frame-image1'),
+      ),
+    );
+    final imageHandleRect = tester.getRect(_blockDragHandleFinder('image1'));
+    expect(
+      imageHandleRect.top,
+      moreOrLessEquals(imageFrameRect.top, epsilon: 0.75),
+    );
+
+    final videoFrameRect = tester.getRect(
+      find.byKey(
+        const ValueKey<String>('wenz-richtext-video-frame-video1'),
+      ),
+    );
+    final videoHandleRect = tester.getRect(_blockDragHandleFinder('video1'));
+    expect(
+      videoHandleRect.top,
+      moreOrLessEquals(videoFrameRect.top, epsilon: 0.75),
+    );
+  });
+
   testWidgets('media toolbar preview opens image and video preview',
       (tester) async {
     final controller = WenzRichTextController(
@@ -12418,7 +12956,7 @@ void main() {
   });
 
   testWidgets(
-      'object block toolbar stays above block when block is partially scrolled',
+      'object block toolbar follows partial scroll and hides outside viewport',
       (tester) async {
     final controller = WenzRichTextController(
       document: RichTextDocument(
@@ -12493,6 +13031,21 @@ void main() {
     // Toolbar must not render above the overlay coordinate origin.
     expect(toolbarRect.top, greaterThanOrEqualTo(-0.1));
     expect(tester.takeException(), isNull);
+
+    scrollable.position.jumpTo(maxExtent);
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.byTooltip('预览媒体'), findsNothing);
+    expect(find.byTooltip('更多块操作'), findsNothing);
+
+    scrollable.position.jumpTo(0);
+    await tester.pump();
+    await tester.pump();
+
+    expect(imageFrame, findsOneWidget);
+    expect(find.byTooltip('预览媒体'), findsOneWidget);
+    expect(find.byTooltip('更多块操作'), findsOneWidget);
   });
 
   testWidgets('video block keeps placeholder chrome inside a narrow card',
@@ -12779,6 +13332,164 @@ void main() {
       final plainRect = tester.getRect(_imageBlockFinder('plain'));
       final captionedRect = tester.getRect(_imageBlockFinder('captioned'));
       expect(captionedRect.height, greaterThan(plainRect.height));
+    });
+
+    testWidgets(
+        'image alignment positions placeholder frames and captions in fixed width',
+        (tester) async {
+      final controller = WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            ImageBlockNode(
+              id: 'default',
+              assetId: 'default',
+              file: 'default.png',
+              showWidth: 160,
+              showHeight: 80,
+            ),
+            ImageBlockNode(
+              id: 'left',
+              assetId: 'left',
+              file: 'left.png',
+              caption: 'Left caption',
+              showWidth: 160,
+              showHeight: 80,
+              attributes: BlockAttributes(alignment: 'left'),
+            ),
+            ImageBlockNode(
+              id: 'center',
+              assetId: 'center',
+              file: 'center.png',
+              showWidth: 160,
+              showHeight: 80,
+              attributes: BlockAttributes(alignment: 'center'),
+            ),
+            ImageBlockNode(
+              id: 'right',
+              assetId: 'right',
+              file: 'right.png',
+              showWidth: 160,
+              showHeight: 80,
+              attributes: BlockAttributes(alignment: 'right'),
+            ),
+          ],
+        ),
+      );
+
+      await _pumpFixedWidthImageEditor(tester, controller);
+
+      _expectImageFrameHorizontalAlignment(tester, 'default', null);
+      _expectImageFrameHorizontalAlignment(tester, 'left', 'left');
+      _expectImageFrameHorizontalAlignment(tester, 'center', 'center');
+      _expectImageFrameHorizontalAlignment(tester, 'right', 'right');
+      _expectCaptionFollowsImageFrame(tester, 'left', 'Left caption');
+      expect(find.text('preview:left'), findsNothing);
+    });
+
+    testWidgets(
+        'selected aligned image keeps height and moves toolbar with frame changes',
+        (tester) async {
+      const strokeKey = ValueKey<String>('wenz-richtext-media-selection-stroke');
+      final controller = WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            ImageBlockNode(
+              id: 'image1',
+              assetId: 'hero',
+              file: 'hero.png',
+              caption: 'Resolver caption',
+              showWidth: 160,
+              showHeight: 80,
+              attributes: BlockAttributes(alignment: 'right'),
+            ),
+          ],
+        ),
+      );
+
+      await _pumpFixedWidthImageEditor(
+        tester,
+        controller,
+        mediaResolver: _TestMediaResolver(),
+      );
+
+      expect(find.text('preview:image1'), findsOneWidget);
+      _expectImageFrameHorizontalAlignment(tester, 'image1', 'right');
+      _expectCaptionFollowsImageFrame(
+        tester,
+        'image1',
+        'Resolver caption',
+      );
+      final unselectedBlockRect = tester.getRect(_imageBlockFinder('image1'));
+      final unselectedFrameRect = _imageFrameRect(tester, 'image1');
+
+      controller.setSelection(objectBlockSelection('image1', 0));
+      await tester.pump();
+      await tester.pump();
+
+      final selectedBlockRect = tester.getRect(_imageBlockFinder('image1'));
+      expect(
+        selectedBlockRect.height,
+        moreOrLessEquals(unselectedBlockRect.height, epsilon: 0.75),
+      );
+      final selectedFrameRect = _imageFrameRect(tester, 'image1');
+      _expectRectClose(selectedFrameRect, unselectedFrameRect, epsilon: 0.75);
+      expect(tester.getRect(find.byKey(strokeKey)), selectedFrameRect);
+      final selectedToolbarRect = _toolbarButtonsRect(
+        tester,
+        const <String>['预览媒体', '更多块操作'],
+      );
+      _expectToolbarAboveBody(selectedToolbarRect, selectedFrameRect);
+      _expectToolbarAlignedToFrameEnd(selectedToolbarRect, selectedFrameRect);
+
+      final toolbar = ToolbarController(controller);
+      addTearDown(toolbar.dispose);
+      expect(toolbar.canSetAlignment, isTrue);
+
+      toolbar.setAlignment('left');
+      await tester.pump();
+      await tester.pump();
+
+      expect(
+        (controller.document.blocks.single as ImageBlockNode)
+            .attributes
+            .alignment,
+        'left',
+      );
+      _expectImageFrameHorizontalAlignment(tester, 'image1', 'left');
+      final leftFrameRect = _imageFrameRect(tester, 'image1');
+      final leftToolbarRect = _toolbarButtonsRect(
+        tester,
+        const <String>['预览媒体', '更多块操作'],
+      );
+      _expectToolbarAboveBody(leftToolbarRect, leftFrameRect);
+      _expectToolbarAlignedToFrameEnd(leftToolbarRect, leftFrameRect);
+      expect(
+        tester.getRect(_imageBlockFinder('image1')).height,
+        moreOrLessEquals(unselectedBlockRect.height, epsilon: 0.75),
+      );
+
+      toolbar.clearAlignment();
+      await tester.pump();
+      await tester.pump();
+
+      expect(
+        (controller.document.blocks.single as ImageBlockNode)
+            .attributes
+            .alignment,
+        isNull,
+      );
+      _expectImageFrameHorizontalAlignment(tester, 'image1', null);
+      final defaultFrameRect = _imageFrameRect(tester, 'image1');
+      final defaultToolbarRect = _toolbarButtonsRect(
+        tester,
+        const <String>['预览媒体', '更多块操作'],
+      );
+      _expectToolbarAboveBody(defaultToolbarRect, defaultFrameRect);
+      _expectToolbarAlignedToFrameEnd(defaultToolbarRect, defaultFrameRect);
+      expect(
+        tester.getRect(_imageBlockFinder('image1')).height,
+        moreOrLessEquals(unselectedBlockRect.height, epsilon: 0.75),
+      );
     });
 
     testWidgets(
@@ -14652,6 +15363,75 @@ void main() {
     expect(controller.selection?.end.offset, 6);
   });
 
+  testWidgets('Ctrl+A inside code block selects only that code', (tester) async {
+    const code = 'aa\nbb\ncc';
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'before',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'Before')],
+          ),
+          CodeBlockNode(id: 'code1', code: code),
+          TextBlockNode(
+            id: 'after',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'After')],
+          ),
+        ],
+      ),
+      selection: collapsedCodeSelection('code1', 1, 3),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WenzRichTextEditor(
+            controller: controller,
+            autofocus: true,
+            enableIme: false,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await _sendCtrlShortcut(tester, LogicalKeyboardKey.keyA);
+    await tester.pump();
+
+    expect(controller.selection?.start.blockId, 'code1');
+    expect(controller.selection?.start.path, PositionPath.blockCode('code1'));
+    expect(controller.selection?.start.offset, 0);
+    expect(controller.selection?.end.blockId, 'code1');
+    expect(controller.selection?.end.path, PositionPath.blockCode('code1'));
+    expect(controller.selection?.end.offset, code.length);
+
+    controller.setSelection(
+      DocumentSelection(
+        base: DocumentPosition.code(
+          blockId: 'code1',
+          blockIndex: 1,
+          offset: 2,
+        ),
+        extent: DocumentPosition.code(
+          blockId: 'code1',
+          blockIndex: 1,
+          offset: 5,
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await _sendCtrlShortcut(tester, LogicalKeyboardKey.keyA);
+    await tester.pump();
+
+    expect(controller.selection?.start.blockId, 'code1');
+    expect(controller.selection?.start.offset, 0);
+    expect(controller.selection?.end.blockId, 'code1');
+    expect(controller.selection?.end.offset, code.length);
+  });
+
   testWidgets('Ctrl+A selects a lone image block', (tester) async {
     final controller = WenzRichTextController(
       document: const RichTextDocument(
@@ -14812,6 +15592,169 @@ void main() {
         final blockRect = tester.getRect(_imageBlockFinder('image1'));
         expect(strokeRect.top, greaterThan(blockRect.top));
         expect(strokeRect.bottom, lessThan(blockRect.bottom));
+      },
+    );
+
+    testWidgets(
+      'dragging selected image edge resizes frame stroke and toolbar proportionally',
+      (tester) async {
+        final controller = WenzRichTextController(
+          document: const RichTextDocument(
+            blocks: <BlockNode>[
+              ImageBlockNode(
+                id: 'image1',
+                assetId: 'hero',
+                file: 'hero.png',
+                width: 640,
+                height: 320,
+                showWidth: 180,
+                showHeight: 90,
+                caption: 'Caption',
+              ),
+            ],
+          ),
+          selection: objectBlockSelection('image1', 0),
+        );
+        await pumpMediaEditor(tester, controller);
+        await tester.pump();
+
+        const rightHandleKey =
+            ValueKey<String>('wenz-richtext-image-resize-right-image1');
+        final rightHandle = find.byKey(rightHandleKey);
+        final frameFinder = find.byKey(imageFrameKey);
+        expect(rightHandle, findsOneWidget);
+        expect(frameFinder, findsOneWidget);
+        expect(find.byTooltip('预览媒体'), findsOneWidget);
+        expect(find.byTooltip('更多块操作'), findsOneWidget);
+
+        final frameBefore = tester.getRect(frameFinder);
+        final toolbarBefore = _toolbarButtonsRect(
+          tester,
+          const <String>['预览媒体', '更多块操作'],
+        );
+        _expectToolbarAlignedToFrameEnd(toolbarBefore, frameBefore);
+
+        final handleRect = tester.getRect(rightHandle);
+        final gesture = await tester.startGesture(
+          handleRect.centerLeft + const Offset(1, 0),
+        );
+        await tester.pump();
+        await gesture.moveBy(const Offset(60, 0));
+        await tester.pump();
+
+        final frameDuringDrag = tester.getRect(frameFinder);
+        expect(frameDuringDrag.width, moreOrLessEquals(240, epsilon: 0.75));
+        expect(frameDuringDrag.height, moreOrLessEquals(120, epsilon: 0.75));
+        expect(tester.getRect(find.byKey(strokeKey)), frameDuringDrag);
+        expect(
+          tester.getRect(find.text('Caption')).top,
+          greaterThanOrEqualTo(frameDuringDrag.bottom),
+        );
+
+        await gesture.up();
+        await tester.pump();
+        await tester.pump();
+
+        final image = controller.document.blocks.single as ImageBlockNode;
+        expect(image.showWidth, moreOrLessEquals(240, epsilon: 0.75));
+        expect(image.showHeight, moreOrLessEquals(120, epsilon: 0.75));
+
+        final frameAfter = tester.getRect(frameFinder);
+        final strokeAfter = tester.getRect(find.byKey(strokeKey));
+        final toolbarAfter = _toolbarButtonsRect(
+          tester,
+          const <String>['预览媒体', '更多块操作'],
+        );
+        expect(frameAfter.width, moreOrLessEquals(240, epsilon: 0.75));
+        expect(frameAfter.height, moreOrLessEquals(120, epsilon: 0.75));
+        expect(strokeAfter, frameAfter);
+        _expectToolbarAboveBody(toolbarAfter, frameAfter);
+        _expectToolbarAlignedToFrameEnd(toolbarAfter, frameAfter);
+        expect(toolbarAfter.right, greaterThan(toolbarBefore.right));
+      },
+    );
+
+    testWidgets(
+      'read-only and read permission hide image resize handles without changing dimensions',
+      (tester) async {
+        Future<WenzRichTextController> pumpImageEditor({
+          required String blockId,
+          required bool readOnly,
+          WenzEditorPermission permission = WenzEditorPermission.edit,
+        }) async {
+          final controller = WenzRichTextController(
+            document: RichTextDocument(
+              blocks: <BlockNode>[
+                ImageBlockNode(
+                  id: blockId,
+                  assetId: 'hero',
+                  file: 'hero.png',
+                  width: 640,
+                  height: 320,
+                  showWidth: 180,
+                  showHeight: 90,
+                ),
+              ],
+            ),
+            permission: permission,
+            selection: objectBlockSelection(blockId, 0),
+          );
+          await tester.pumpWidget(
+            MaterialApp(
+              home: Scaffold(
+                body: WenzRichTextEditor(
+                  key: ValueKey<String>('resize-gated-editor-$blockId'),
+                  controller: controller,
+                  readOnly: readOnly,
+                  enableIme: false,
+                ),
+              ),
+            ),
+          );
+          await tester.pump();
+          return controller;
+        }
+
+        void expectNoResizeHandles(
+          WenzRichTextController controller,
+          String blockId,
+        ) {
+          expect(
+            find.byKey(
+              ValueKey<String>('wenz-richtext-image-resize-left-$blockId'),
+            ),
+            findsNothing,
+          );
+          expect(
+            find.byKey(
+              ValueKey<String>('wenz-richtext-image-resize-right-$blockId'),
+            ),
+            findsNothing,
+          );
+          expect(find.byTooltip('拖拽左边缘调整图片宽度'), findsNothing);
+          expect(find.byTooltip('拖拽右边缘调整图片宽度'), findsNothing);
+
+          final image = controller.document.blocks.single as ImageBlockNode;
+          expect(image.showWidth, 180);
+          expect(image.showHeight, 90);
+          expect(controller.canUndo, isFalse);
+        }
+
+        final readOnlyController = await pumpImageEditor(
+          blockId: 'readonly-image',
+          readOnly: true,
+        );
+        expectNoResizeHandles(readOnlyController, 'readonly-image');
+
+        final readPermissionController = await pumpImageEditor(
+          blockId: 'read-permission-image',
+          readOnly: false,
+          permission: WenzEditorPermission.read,
+        );
+        expectNoResizeHandles(
+          readPermissionController,
+          'read-permission-image',
+        );
       },
     );
 
@@ -18187,11 +19130,10 @@ void main() {
     });
 
     testWidgets(
-      'leaf heading renders disabled collapse button when canCollapse is false',
+      'leaf heading hides collapse button when canCollapse is false',
       (tester) async {
-        // P001/P003: A heading block with no child content (leaf heading)
-        // must still show the collapse button, but in a disabled state
-        // (onPressed == null, tooltip == '无可折叠内容').
+        // A heading block with no child content must not mount a disabled
+        // collapse button, tooltip, or semantics button.
         final controller = WenzRichTextController(
           document: const RichTextDocument(
             blocks: <BlockNode>[
@@ -18230,16 +19172,11 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // The leaf heading's collapse button must exist but be disabled.
         final leafBtn = find.byKey(
           const ValueKey<String>('wenz-richtext-heading-collapse-leaf-h'),
         );
-        expect(leafBtn, findsOneWidget);
-        expect(tester.widget<IconButton>(leafBtn).onPressed, isNull);
-        expect(
-          tester.widget<IconButton>(leafBtn).tooltip,
-          '无可折叠内容',
-        );
+        expect(leafBtn, findsNothing);
+        expect(find.byTooltip('无可折叠内容'), findsNothing);
 
         // Heading text is still rendered.
         expect(_richText('Leaf heading'), findsOneWidget);
@@ -18351,6 +19288,99 @@ Future<void> _sendCtrlShortcut(
     await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
   }
   await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+}
+
+WenzRichTextController _contextMenuController({
+  required String text,
+  DocumentSelection? selection,
+}) {
+  return WenzRichTextController(
+    document: RichTextDocument(
+      blocks: <BlockNode>[
+        TextBlockNode(
+          id: 'p1',
+          type: BlockType.paragraph,
+          content: <InlineNode>[TextRun(text: text)],
+        ),
+      ],
+    ),
+    selection: selection,
+  );
+}
+
+Future<void> _pumpContextMenuEditor(
+  WidgetTester tester,
+  WenzRichTextController controller, {
+  bool readOnly = false,
+  WenzEditorContextMenuConfiguration contextMenuConfiguration =
+      const WenzEditorContextMenuConfiguration(),
+}) async {
+  await tester.pumpWidget(
+    MaterialApp(
+      home: Scaffold(
+        body: SizedBox(
+          width: 520,
+          height: 320,
+          child: WenzRichTextEditor(
+            controller: controller,
+            readOnly: readOnly,
+            padding: const EdgeInsets.all(24),
+            enableIme: false,
+            contextMenuConfiguration: contextMenuConfiguration,
+          ),
+        ),
+      ),
+    ),
+  );
+  await tester.pump();
+}
+
+Future<void> _openContextMenuAt(WidgetTester tester, Offset point) async {
+  final gesture = await tester.createGesture(
+    kind: PointerDeviceKind.mouse,
+    buttons: kSecondaryMouseButton,
+  );
+  try {
+    await gesture.addPointer(location: point);
+    await tester.pump();
+    await gesture.down(point);
+    await tester.pump();
+    await gesture.up();
+    await tester.pump(const Duration(milliseconds: 300));
+  } finally {
+    await gesture.removePointer();
+  }
+}
+
+Finder _contextMenuItemFinder(String id, {int occurrence = 1}) {
+  final suffix = occurrence <= 1 ? '' : '#$occurrence';
+  return find.byKey(
+    ValueKey<String>('wenz-richtext-context-menu-item:$id$suffix'),
+  );
+}
+
+Finder _contextMenuShortcutFinder(String key) {
+  return find.byWidgetPredicate(
+    (widget) =>
+        widget is Text &&
+        RegExp('^(Ctrl|Cmd)\\+$key\$').hasMatch(widget.data ?? ''),
+    description: 'context menu shortcut for $key',
+  );
+}
+
+PopupMenuItem<WenzEditorContextMenuItem> _contextMenuItem(
+  WidgetTester tester,
+  String id, {
+  int occurrence = 1,
+}) {
+  return tester.widget<PopupMenuItem<WenzEditorContextMenuItem>>(
+    _contextMenuItemFinder(id, occurrence: occurrence),
+  );
+}
+
+Future<void> _tapContextMenuItem(WidgetTester tester, String id) async {
+  await tester.tap(_contextMenuItemFinder(id));
+  await tester.pump(const Duration(milliseconds: 300));
 }
 
 Future<void> _pumpPasteEditor(
@@ -18777,8 +19807,89 @@ Finder _imageBlockFinder(String blockId) {
   return find.byKey(ValueKey<String>('wenz-richtext-image-block-$blockId'));
 }
 
+Finder _imageFrameFinder(String blockId) {
+  return find.byKey(ValueKey<String>('wenz-richtext-image-frame-$blockId'));
+}
+
+Rect _imageFrameRect(WidgetTester tester, String blockId) {
+  return tester.getRect(_imageFrameFinder(blockId));
+}
+
 Finder _videoBlockFinder(String blockId) {
   return find.byKey(ValueKey<String>('wenz-richtext-video-block-$blockId'));
+}
+
+Future<void> _pumpFixedWidthImageEditor(
+  WidgetTester tester,
+  WenzRichTextController controller, {
+  MediaResolver? mediaResolver,
+}) async {
+  await tester.pumpWidget(
+    MaterialApp(
+      home: Scaffold(
+        body: Align(
+          alignment: Alignment.topLeft,
+          child: SizedBox(
+            width: 420,
+            height: 580,
+            child: WenzRichTextEditor(
+              controller: controller,
+              mediaResolver: mediaResolver,
+              padding: EdgeInsets.zero,
+              enableIme: false,
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+  await tester.pump();
+}
+
+void _expectImageFrameHorizontalAlignment(
+  WidgetTester tester,
+  String blockId,
+  String? alignment,
+) {
+  final blockRect = tester.getRect(_imageBlockFinder(blockId));
+  final frameRect = _imageFrameRect(tester, blockId);
+  expect(frameRect.width, moreOrLessEquals(160, epsilon: 0.75));
+  expect(frameRect.height, moreOrLessEquals(80, epsilon: 0.75));
+  switch (alignment) {
+    case 'left':
+      expect(frameRect.left, moreOrLessEquals(blockRect.left, epsilon: 0.75));
+      expect(frameRect.right, lessThan(blockRect.right));
+      return;
+    case 'right':
+      expect(frameRect.right, moreOrLessEquals(blockRect.right, epsilon: 0.75));
+      expect(frameRect.left, greaterThan(blockRect.left));
+      return;
+    case 'center':
+    case null:
+      expect(
+        frameRect.center.dx,
+        moreOrLessEquals(blockRect.center.dx, epsilon: 0.75),
+      );
+      expect(frameRect.left, greaterThan(blockRect.left));
+      expect(frameRect.right, lessThan(blockRect.right));
+      return;
+    default:
+      fail('Unsupported expected image alignment: $alignment');
+  }
+}
+
+void _expectCaptionFollowsImageFrame(
+  WidgetTester tester,
+  String blockId,
+  String caption,
+) {
+  final frameRect = _imageFrameRect(tester, blockId);
+  final captionRect = tester.getRect(find.text(caption));
+  expect(captionRect.top, greaterThanOrEqualTo(frameRect.bottom));
+  expect(
+    captionRect.center.dx,
+    moreOrLessEquals(frameRect.center.dx, epsilon: 0.75),
+  );
 }
 
 /// Resolves the mouse cursor at [location] the same way Flutter's

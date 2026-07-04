@@ -56,6 +56,11 @@ image sources:
 - `width`/`height` store natural pixel dimensions when known, while
   `showWidth`/`showHeight` store optional display sizing.
 - `caption` is visible figure text; `altText` is the preferred accessible label.
+- `attributes.alignment` reuses the shared block alignment slot for the image
+  figure. `null` is the historical/default visual center; explicit `left`,
+  `center`, and `right` move the image frame. `justify` is not an image layout
+  mode and must not stretch the frame; if present, the default renderer treats
+  it like the centered default.
 
 Use `WenzRichTextController.insertImage(...)` or
 `ToolbarController.insertImage(...)` to create a block image through the same
@@ -64,6 +69,12 @@ menu `image` item still inserts a placeholder `ImageBlockNode` synchronously;
 file selection flows should run in host UI first and then call the typed helper.
 Use `WenzRichTextController.updateImageBlock(...)` to patch source, size,
 caption, or alt text after upload/metadata extraction.
+
+Rich JSON stores image alignment as the existing `attrs.alignment` field, so no
+schema migration is required. HTML preserves explicit image alignment on the
+image wrapper (`<figure style="text-align: ...">` or compatible `align` on
+import). Markdown and plain text exports keep the readable image content but do
+not encode image alignment.
 
 Rendering remains separate from schema: the default image renderer asks
 `MediaResolver` first and otherwise shows the built-in placeholder. Apps that
@@ -205,9 +216,10 @@ so history, schema normalization, and middleware all run consistently.
 - `ToggleQuoteCommand` switches paragraph/quote state and uses indent for quote
   depth during this stage.
 - `SetAlignmentCommand(alignment)` writes or clears `BlockAttributes.alignment`
-  on ordinary text-block selections. Table-cell selections are intentionally
-  ignored at this command level; `WenzRichTextController.setAlignment` routes
-  them to the table cell alignment command described below.
+  on ordinary alignable block selections, including text blocks and image object
+  blocks. Table-cell selections are intentionally ignored at this command level;
+  `WenzRichTextController.setAlignment` routes them to the table cell alignment
+  command described below.
 - `SetBlockAnchorCommand(blockIndex, anchor)` writes or clears a block-level
   anchor through the normal command pipeline; controller code usually calls
   `WenzRichTextController.setBlockAnchor`.
@@ -255,11 +267,13 @@ selection. Passing `null` clears the explicit cell alignment so the cell falls
 back to its column alignment.
 
 The controller-facing API is `WenzRichTextController.setAlignment(value)`.
-Ordinary selections become `SetAlignmentCommand`; table-cell selections become
+Ordinary selections, including selected image object blocks, become
+`SetAlignmentCommand`; table-cell selections become
 `SetTableCellRangeAlignmentCommand`. This is the same split used by
 `ToolbarController.setAlignment` / `clearAlignment`, so built-in and host
-toolbars can expose one set of left/center/right/justify/clear buttons without
-mutating table column defaults by accident.
+toolbars can expose one alignment control without mutating table column defaults
+by accident. Image rendering recognizes `left` / `center` / `right`; a stored
+`justify` value is preserved as block metadata but does not stretch the image.
 
 Rich JSON persists both `TableModel.columnAlignments` and
 `TableCellNode.alignment`. HTML import/export maps per-cell alignment through

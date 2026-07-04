@@ -347,6 +347,44 @@ void main() {
       );
     });
 
+    test('aligned image without caption exports as figure', () {
+      const document = RichTextDocument(
+        blocks: <BlockNode>[
+          ImageBlockNode(
+            id: 'im1',
+            assetId: 'https://x.dev/a.png',
+            file: 'alt',
+            attributes: BlockAttributes(alignment: 'right'),
+          ),
+        ],
+      );
+
+      expect(
+        codec.encode(document),
+        '<figure style="text-align: right"><img src="https://x.dev/a.png" alt="alt"></figure>',
+      );
+    });
+
+    test('aligned image with caption exports figure alignment', () {
+      const document = RichTextDocument(
+        blocks: <BlockNode>[
+          ImageBlockNode(
+            id: 'im1',
+            assetId: 'https://x.dev/a.png',
+            file: 'fallback-name',
+            caption: 'Hero caption',
+            altText: 'Hero alt',
+            attributes: BlockAttributes(alignment: 'center'),
+          ),
+        ],
+      );
+
+      expect(
+        codec.encode(document),
+        '<figure style="text-align: center"><img src="https://x.dev/a.png" alt="Hero alt"><figcaption>Hero caption</figcaption></figure>',
+      );
+    });
+
     test('file exports download metadata', () {
       const document = RichTextDocument(
         blocks: <BlockNode>[
@@ -801,6 +839,34 @@ void main() {
       expect(image.height, 360);
       expect(image.showWidth, 320);
       expect(image.showHeight, 180);
+    });
+
+    test('figure restores supported image alignment', () {
+      final styled = codec.decode(
+        '<figure style="text-align: right"><img src="https://x.dev/a.png" '
+        'alt="Hero alt"><figcaption>Hero caption</figcaption></figure>',
+      );
+      final styledImage = styled.blocks.single as ImageBlockNode;
+
+      expect(styledImage.caption, 'Hero caption');
+      expect(styledImage.attributes.alignment, 'right');
+
+      final aligned = codec.decode(
+        '<figure align="center"><img src="https://x.dev/b.png" alt="alt"></figure>',
+      );
+      final alignedImage = aligned.blocks.single as ImageBlockNode;
+
+      expect(alignedImage.attributes.alignment, 'center');
+    });
+
+    test('unsupported image alignment is ignored on import', () {
+      final doc = codec.decode(
+        '<figure style="text-align: justify"><img src="https://x.dev/a.png" '
+        'alt="alt"></figure>',
+      );
+      final image = doc.blocks.single as ImageBlockNode;
+
+      expect(image.attributes.alignment, isNull);
     });
 
     test('wenz file link becomes a file block', () {
