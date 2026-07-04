@@ -105,10 +105,10 @@ Markdown/plain text intentionally degrade to readable fallback text.
 | --- | --- | --- |
 | paragraph / heading / quote / listItem | `_TextBlockRenderer` | Inline-aware; formula/mention fallback + optional `InlineEmbedRenderer`; selection/caret/composition via `_TextSelectionSurface`. Quote is now an attribute-level decoration (`BlockAttributes.quoted`) that can wrap paragraph, heading, list, or todo semantics; legacy `BlockType.quote` is still accepted as compatible input. |
 | code | `_CodeBlockRenderer` | Monospace body with syntax highlighting (`CodeSyntaxHighlighter`, see [Code block syntax highlighting](#code-block-syntax-highlighting)) and composition underline span; code blocks reserve a display-only left gutter for 1-based line numbers; toolbar includes language dropdown and copy-code button. Language changes call `SetCodeLanguageCommand`; Tab/Shift+Tab in the editor call `IndentCodeBlockCommand`. |
-| image / video / file | asks `MediaResolver`, then built-in fallback | Built-in media renderers consult the injected [MediaResolver] first; when it returns `null` (or no resolver is set) images/videos fall back to built-in placeholders, while files fall back to a metadata card. Image blocks can carry remote identifiers in `assetId` and local paths/URIs in `file`; the renderer wraps the resolved widget with `showWidth`/`showHeight` sizing and optional caption text. Image `BlockAttributes.alignment` moves the whole figure frame (`null`/`center` centered, `left` at start, `right` at end); the caption, selection stroke, and object toolbar follow that frame. Image/video selection actions are rendered by the editor-level object-toolbar overlay, not as children in the media block layout, so selecting media does not move the frame or caption. Video blocks place both the fallback chrome and resolver child inside a finite rounded frame that is clipped to the editor content width and safe aspect-ratio height; file cards show display name, size, MIME type, upload status, and failure text. See [Media resolver](#media-resolver). |
+| image / video / file | asks `MediaResolver`, then built-in fallback | Built-in media renderers consult the injected [MediaResolver] first; when it returns `null` (or no resolver is set) images/videos fall back to built-in placeholders, while files fall back to a metadata card. Image blocks can carry remote identifiers in `assetId` and local paths/URIs in `file`; the renderer wraps the resolved widget or fallback placeholder in a finite figure frame derived from `showWidth`/`showHeight`, natural size, or the editor content width. Image `BlockAttributes.alignment` moves the whole figure frame (`null`/`center` centered, `left` at start, `right` at end); the caption, single frame-hugging selection stroke, resize hit zones, and object toolbar follow that frame. The selected image object menu exposes left / center / right / clear alignment entries in the same toolbar as image sizing. Image/video selection actions are rendered by the editor-level object-toolbar overlay, not as children in the media block layout, so selecting media does not move the frame or caption. Video blocks place both the fallback chrome and resolver child inside a finite rounded frame that is clipped to the editor content width and safe aspect-ratio height; file cards show display name, size, MIME type, upload status, and failure text. See [Media resolver](#media-resolver). |
 | embed | `_BlockEmbedContent` or business renderer | Generic block embed placeholder displays `embedType` + `fallbackText`/data label. Register per business type with `BlockRendererRegistry.registerEmbed`; wrap large custom widgets in `WenzObjectBlockSurface` for object-block selection semantics. |
 | table | `_TableBlockRenderer` | Custom Stack grid layout; visible cells are positioned by `rowSpan`/`columnSpan`, covered cells are not rendered or hit-tested; table-cell text uses the same inline embed fallback/renderer path. When a table cell/range is selected, the default renderer shows a floating toolbar for row/column insert/delete, header/background/alignment, merge/split, width reset, plus drag handles that persist explicit column widths via `SetTableColumnWidthCommand`. |
-| divider | Flutter `Divider`. | |
+| divider | `_DividerBlockContent` | Content-width horizontal rule with a centered primary dot. The line fills the available editor content width; the dot is decoration only and must not determine the block width. Selected dividers keep a shell border and disable the generic object selection overlay. |
 | callout | `_CalloutRenderer` | Variant-tinted surface with icon, title, body, and an editable type dropdown for `info`/`success`/`warning`/`danger`; uses the same inline embed fallback/renderer path. |
 
 ## Todo list layout
@@ -250,6 +250,21 @@ This is a presentation fix. The following stay untouched:
 | Quote with `indent` attribute | Indent does not affect grouping; the block still joins its adjacent quoted neighbours by quote state. |
 | Custom `blockSpacing` | Preserved at quote-group boundaries, but ignored inside the group so quoted → quoted remains seamless. |
 | Adjacent non-quoted todo / list item | Not part of a quote group; todo/list spacing (`_kListItemSpacing` / `_kNestedListItemSpacing`) is unchanged outside quoted runs. |
+
+## Divider block layout
+
+The default divider renderer paints a full-width horizontal rule plus a centered
+primary dot. The divider shell participates in object-block selection and row
+geometry, but the visible line is laid out against the finite editor content
+width rather than the dot's intrinsic size. In a narrow editor, the line clamps
+to the available content width and never asks children for an infinite or
+negative width.
+
+Selection is intentionally minimal: a selected divider shows only the shell
+border. It disables the generic object selection overlay so the line and dot are
+not covered by an extra highlight rectangle. The line colour continues to come
+from `_dividerLineColor(theme)`, and the centered dot remains an ornament; it is
+not part of width negotiation.
 
 ## Empty text row hit targets
 
@@ -479,6 +494,13 @@ Semantics:
   package never needs to depend on `video_player`/`image`/etc.
 - Returning `null` declines the block → the editor falls back to the built-in
   placeholder. Use this to handle only some media types or some sources.
+- Image resolver widgets are placed inside an editor-owned finite figure frame.
+  The default image renderer computes that frame from explicit
+  `showWidth`/`showHeight`, natural `width`/`height`, or the available editor
+  content width. The same frame wraps resolver widgets, empty placeholders,
+  failure placeholders, captions, the selected media stroke, resize hit zones,
+  and the object-toolbar anchor. Resolver widgets should size to the incoming
+  constraints and should not rely on unbounded height.
 - File picking is not part of the core package. Host UI (or the example app)
   opens the platform picker, then stores the chosen local path/URI in
   `ImageBlockNode.file` through `ToolbarController.insertImage` or
@@ -520,9 +542,19 @@ Semantics:
   `ImageBlockNode.attributes.alignment`: `null` keeps the historical centered
   figure, `left` / `center` / `right` align the same frame within the editable
   content width, and `justify` does not stretch the image.
+- The built-in slash-menu `image` / `图片` item creates a placeholder
+  `ImageBlockNode` with an asset id but no natural size and no
+  `showWidth`/`showHeight`. This is intentional: upload, replacement, source
+  assignment, and size updates happen later through the existing image update
+  APIs. The default renderer still gives that placeholder a finite content-width
+  frame using `_kImagePlaceholderAspectRatio` (2:1), so inserting it from the
+  slash menu does not require changing slash-menu semantics or the persisted
+  image schema.
 - The image alignment frame is shared by every built-in image subpart. The
-  resolver widget or placeholder, caption, selected media stroke, resize handles,
-  and object-toolbar anchor all use the same aligned frame rectangle. A custom
+  resolver widget or placeholder, caption, selected media stroke, invisible
+  resize hit zones, and object-toolbar anchor all use the same aligned frame
+  rectangle. Resize hit zones provide edge dragging without adding persistent
+  left/right visual lines. A custom
   image renderer registered through `BlockRendererRegistry` replaces this
   default chrome, so it can choose whether to reuse
   `block.attributes.alignment` or implement a different business layout.
@@ -571,6 +603,20 @@ Selection remains owned by `_MediaSelectionStroke`, which hugs the media frame
 rectangle and uses the media corner radius. Image and video blocks disable the
 generic full-block object selection overlay so the stroke does not cover block
 margins or captions.
+
+For editable selected images, the default object "more" menu exposes image
+left / center / right / clear alignment entries. The current explicit alignment
+entry is shown as selected and disabled; when no explicit alignment is stored,
+the clear entry is disabled. These actions only change
+`ImageBlockNode.attributes.alignment`; the visible frame, caption, selected media
+stroke, resize hit zones, and toolbar anchor already share the same aligned
+frame and therefore move together.
+
+For editable selected images, resize remains available through invisible left
+and right edge hit zones that register as selection exclusions and use the
+horizontal resize cursor. Those hit zones do not paint persistent vertical
+lines; drag feedback comes from the changing frame size, the frame-hugging
+stroke, caption layout, and object-toolbar anchor following the preview size.
 
 The overlay positioning itself is rendering-only. Image alignment persistence is
 part of the document/codec contract: rich JSON and HTML preserve explicit image

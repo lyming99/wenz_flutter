@@ -536,7 +536,7 @@ void main() {
   });
 
   testWidgets(
-      'selected image toolbar floats without shifting media layout or losing actions',
+      'selected image toolbar floats without resize lines or layout shift',
       (tester) async {
     final controller = WenzRichTextController(
       document: const RichTextDocument(
@@ -588,6 +588,41 @@ void main() {
     _expectRectClose(tester.getRect(imageBlockFinder), initialBlockRect);
     _expectRectClose(tester.getRect(imageFrameFinder), initialFrameRect);
     _expectRectClose(tester.getRect(trailingTextFinder), initialTrailingRect);
+
+    final strokeFinder = find.byKey(
+      const ValueKey<String>('wenz-richtext-media-selection-stroke'),
+    );
+    expect(strokeFinder, findsOneWidget);
+    _expectRectClose(tester.getRect(strokeFinder), initialFrameRect);
+    expect(
+      find.byKey(
+        const ValueKey<String>('wenz-richtext-image-resize-left-image1'),
+      ),
+      findsNothing,
+    );
+    expect(
+      find.byKey(
+        const ValueKey<String>('wenz-richtext-image-resize-right-image1'),
+      ),
+      findsNothing,
+    );
+    expect(
+      find.byKey(
+        const ValueKey<String>(
+          'wenz-richtext-image-resize-hit-zone-left-image1',
+        ),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
+        const ValueKey<String>(
+          'wenz-richtext-image-resize-hit-zone-right-image1',
+        ),
+      ),
+      findsOneWidget,
+    );
+    expect(find.byKey(_selectionHighlightKey), findsNothing);
 
     expect(find.byTooltip('预览媒体'), findsOneWidget);
     expect(find.byTooltip('更多块操作'), findsOneWidget);

@@ -38,6 +38,7 @@ final bootstrap = WenzEditorBootstrap.create(
     permission: WenzEditorPermission.edit, // read / comment / edit (gate, never bypassed)
     plugins: [myPlugin],                   // optional extension injection
     onChanged: (doc) => log('blocks=${doc.blocks.length}'),
+    onOpenLink: (url, position) => openUrl(url), // host-owned launcher policy
   ),
 );
 // bootstrap.controller.document is a valid empty doc; permission == .edit
@@ -116,6 +117,7 @@ facade is built *on top* of these and never bypasses them):
 | `inlineEmbedRenderers` | `InlineEmbedRendererRegistry` | `InlineEmbedSpanBuilder` |
 | `mentionSearch` | `buildEditor` | built-in mention search overlay (tier 1) |
 | `onMentionTap` | `buildEditor` | mention activation callback (tier 1) |
+| `onOpenLink` | `buildEditor`; direct widget parameter may override it | link activation callback (tier 2) |
 | `slashMenuItems` | `SlashMenuRegistry` | `SlashMenuItem` |
 | `toolbarItems` | `WenzToolbarItemRegistry`; rendered by `buildDefaultDesktopToolbar()` when used | `WenzToolbarItem` |
 | `enableSlashMenu` / `enableFindReplace` / `enableOutline` / `enableStats` / `enableToolbar` / `enableAutosave` | facade only | derived controllers (tier 2) |
@@ -125,7 +127,8 @@ The tiering is kept in sync with the library doc comment at the top of
 the registries/plugins the facade wires internally remain tier 2, and anything
 under `src/*` that is not re-exported stays internal. No existing public type
 is renamed or removed, no runtime dependency is added, and no serialization
-format changes. See [`integration_guide.md`](./integration_guide.md) for the full contract (minimal
+format changes. URL opening stays a host concern through `onOpenLink`; the core
+package does not depend on `url_launcher` or a platform browser API. See [`integration_guide.md`](./integration_guide.md) for the full contract (minimal
 access, three modes, dispose order, the `src/*` internal boundary).
 
 ## Model layer (tier 1)
@@ -147,13 +150,17 @@ access, three modes, dispose order, the `src/*` internal boundary).
 `ImageBlockNode` carries `assetId`/`file`, natural `width`/`height`, display
 `showWidth`/`showHeight`, plus `caption` and `altText`. `showWidth` and
 `showHeight` are the canonical persisted display size: the default renderer,
-fixed-width image menu actions, and selected-image edge resize all read and
-write these fields. Image blocks also reuse `BlockAttributes.alignment` for
+fixed-width image menu actions, and selected-image edge hit-zone resize all read
+and write these fields. The edge hit zones are interaction targets only; the
+selected image visual remains the single frame-hugging media stroke. Image
+blocks also reuse `BlockAttributes.alignment` for
 figure placement: `null` is the default centered layout, explicit `left`,
 `center`, and `right` align the image frame, and `justify` is preserved as block
 metadata without stretching the image. Rich JSON and HTML round-trip the display
 size and explicit image alignment, and JSON writes `altText` while also reading
 a legacy/external `alt` key for compatibility.
+The built-in selected image object menu sets or clears this same alignment slot;
+Markdown and plain text still do not represent image alignment.
 `file` is the persisted local path/URI slot only: the core package does not
 open system file pickers, validate local files, upload media, or decode images.
 Hosts should perform those steps in their own UI and render real previews via
@@ -349,8 +356,8 @@ controller.updateImageBlock(
   altText: 'Diagram of the flow',
 );
 
-// Built-in image edge resize commits one proportional display-size update at
-// drag end through the same command pipeline.
+// Built-in image edge hit-zone resize commits one proportional display-size
+// update at drag end through the same command pipeline.
 controller.updateImageBlock(
   blockIndex: 1,
   showWidth: 240,
@@ -756,7 +763,7 @@ normalisation, and `onCommandExecuted` stay consistent.
 
 ## Widget layer (tier 2)
 
-- `WenzRichTextEditor({controller, shortcutConfiguration, contextMenuConfiguration, blockRenderers, mediaResolver, inlineEmbedRenderer, mentionSearch, onMentionTap, findController, slashMenuController, accessibility, ...})` — the editor widget.
+- `WenzRichTextEditor({controller, shortcutConfiguration, contextMenuConfiguration, blockRenderers, mediaResolver, inlineEmbedRenderer, mentionSearch, onMentionTap, onOpenLink, findController, slashMenuController, accessibility, ...})` — the editor widget.
   Pass `shortcutConfiguration` to append/override the built-in keymap, disable
   intents, or return `passThrough` for host-level shortcuts such as save.
   Pass `contextMenuConfiguration` to append host right-click actions, replace
@@ -772,6 +779,18 @@ normalisation, and `onCommandExecuted` stay consistent.
   Passing `onMentionTap` lets the host open a user profile, member card, or
   another business surface when a default `mention` inline embed is activated.
   The package only emits the event; it does not own navigation or profile UI.
+  Passing `onOpenLink` lets the host open inline links from Ctrl/Cmd+click or
+  the hover popup's Open action. When `onOpenLink` is `null`, links keep their
+  styling and edit behavior, but Open is disabled and modifier-click falls back
+  to ordinary caret/selection handling.
+- `WenzLinkInteractionCallback` — link activation API:
+  `void Function(String url, DocumentPosition position)`. The URL is the
+  inline run's `TextAttributes.url`; `position` identifies the start of the
+  contiguous same-URL run, including table-cell paths. Host apps own URL
+  validation, allow-listing, external browser / in-app navigation, and any
+  `url_launcher` dependency. `WenzEditorConfiguration.onOpenLink` is forwarded
+  by `WenzEditorBootstrap.buildEditor`; passing `buildEditor(onOpenLink: ...)`
+  overrides the configuration callback for that widget instance.
 - `WenzMentionSearchCallback` / `WenzMentionSearchRequest` /
   `WenzMentionCandidate` — mention lookup API. The callback may return
   `List<WenzMentionCandidate>` synchronously or asynchronously. `request.query`
@@ -831,17 +850,28 @@ normalisation, and `onCommandExecuted` stay consistent.
   renderers reuse the host controller/clipboard hooks; table renderers can reuse
   `TableToolbarActionIntent`, `onTableToolbarAction`, and
   `onTableColumnResize` to delegate floating-toolbar and column-resize actions
-  back to the host editor. Wrap custom atomic widgets in `WenzObjectBlockSurface(renderContext: rc, child: widget)` when they should keep built-in object-block selection, geometry, caret anchoring, and debug-overlay behaviour.
+  back to the host editor. Object block renderers can dispatch
+  `ObjectBlockActionIntent` through `BlockRenderContext.onObjectBlockAction`.
+  For image alignment, use
+  `ObjectBlockAction.setImageBlockAlignment` with `value` set to `'left'`,
+  `'center'`, `'right'`, or `null` to clear explicit alignment; handlers ignore
+  unknown values. Custom image renderers may dispatch the same action instead of
+  depending on the default image menu, and it still routes to the host editor's
+  `setAlignment` path. Wrap custom atomic widgets in `WenzObjectBlockSurface(renderContext: rc, child: widget)` when they should keep built-in object-block selection, geometry, caret anchoring, and debug-overlay behaviour.
 - `MediaResolver` — quick path for real image/video/file rendering. The
   built-in media renderers consult the injected resolver before falling back to
   the placeholder; returning `null` declines, throwing is tolerated (falls back
   to placeholder). The default image renderer wraps the resolved widget with
   `showWidth`/`showHeight` sizing and caption text. When an image block is
-  selected and editable, left/right frame handles resize it proportionally and
-  persist the new display size through `updateImageBlock`; read-only editors or
-  non-edit permissions hide those handles. Image object menus intentionally do
-  not expose `duplicate`, while non-image object blocks keep their existing
-  duplicate behaviour. The default file renderer shows display name, size, MIME
+  selected and editable, invisible left/right frame edge hit zones resize it
+  proportionally and persist the new display size through `updateImageBlock`;
+  read-only editors or non-edit permissions do not create those hit zones. The
+  visible selected image state remains the single frame-hugging media stroke.
+  Image object menus expose left / center / right / clear image alignment plus
+  their fixed-width and reset-size actions, but intentionally do not expose
+  `duplicate`, while non-image object blocks keep their existing duplicate
+  behaviour. The default file
+  renderer shows display name, size, MIME
   type, upload status, and failure text. See
   `rendering.md` §Media resolver. System file selection is host/example UI
   responsibility; core APIs persist the selected image source on

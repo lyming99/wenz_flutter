@@ -5,7 +5,9 @@
 ## 前置要求
 
 - Flutter SDK `>=3.22.0`，Dart SDK `>=3.3.4`（见根 `pubspec.yaml`）。
-- 运行时依赖很少：除 Flutter SDK 外，当前仅引入纯 Dart 的 `package:html` 用于 HTML import/export。
+- 核心 package 不内置平台 URL launcher、文件选择器或播放器依赖；example 端额外引入
+  `url_launcher`（链接打开）、`file_selector`（本地文件选择）和 `media_kit`
+  系列（视频播放），用于演示宿主侧集成策略。
 
 ## 运行 example
 
@@ -47,6 +49,9 @@ flutter build web
 - **选择**：点击定位 caret、跨块拖拽选择、双击选词、三击选段、拖到视口边缘自动滚动（鼠标/触控笔持续滚动）、整行/整列/整表选择、选区高亮 + caret 绘制。
 - **剪贴板**：复制/剪切/粘贴纯文本 + 同块富 JSON + 跨块富文本（`type:blocks` payload 还原多 block 结构）+ HTML / Markdown 粘贴（`ClipboardService.parse(..., format: html/markdown)` 把 fragment 还原多 block）。
 - **编辑**：加粗/斜体/下划线/删除线/批注/清除样式、link、H1–H3/段落/quote/todo/有序/无序列表、indent/outdent、代码块语言、表格结构（行列增删/列宽/对齐/表头/背景/合并/拆分）、callout、分割线。
+- **链接打开**：example 通过 `WenzEditorConfiguration.onOpenLink` 接入宿主侧
+  `url_launcher`。正文链接 hover 弹层的 Open 和 Ctrl/Cmd+点击都会调用同一宿主
+  打开策略；若宿主不提供 `onOpenLink`，Open 会禁用，普通点击/选区不被吞掉。
 - **undo/redo**：连续输入/删除合一 undo step，方向键/格式切换打断合并，光标移动不入历史。
 - **工具栏**：`ToolbarController` 驱动 active 样式 + 命令 enable 态；example 工具栏接 bold/italic/underline/strikethrough/remark/link/clear style/H1-H3/paragraph/quote/todo/ordered/unordered/indent/outdent + 插入 code/callout/table/image/video/file/CRM embed + 表格结构按钮；Callout 默认渲染器内置类型下拉。
 - **性能**：1k blocks 虚拟化（`ListView.separated` + keep-alive）、增量 rebuild（`lastChangedBlockIds`）、跨 remount 的 `SharedTextLayoutCache`。

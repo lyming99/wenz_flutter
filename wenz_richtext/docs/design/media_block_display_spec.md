@@ -5,7 +5,7 @@
 - 文件：`ui/media_block_display_design.html`，纯 HTML/CSS、无外部依赖、可直接在浏览器打开预览。由需求 #63 P001 产出，是图片/视频块「显示」的**唯一视觉来源**。
 - 风格同源：与 `ui/slash_popup_electron_design.html` 一致（Electron 桌面克制：弱化高程、两层阴影、清晰层级、紧凑节奏），复用 colorScheme token，不引入硬编码亮色；全部文案为简体中文。
 - 覆盖（与 P003/P004 落地点逐项对应）：
-  - 图片块 figure chrome（圆角 / 阴影 / 最大宽度 / `caption` / `altText`）、显示尺寸 `showWidth/showHeight`、选中后左右边缘 resize 手柄、状态全集（空占位 / 加载上传中 / 已加载 / 加载失败，各含 默认 / 悬停 / 选中描边 / 只读裁剪）。
+  - 图片块 figure chrome（圆角 / 阴影 / 最大宽度 / `caption` / `altText`）、显示尺寸 `showWidth/showHeight`、单一 frame 选中描边、左右边缘 resize 命中区、状态全集（空占位 / 加载上传中 / 已加载 / 加载失败，各含 默认 / 悬停 / 选中描边 / 只读裁剪）。
   - 视频块封面预览 + 播放覆盖层（默认 / 悬停 / 按下）、播放中 / 缓冲中 / 加载失败 / 占位态、宽高比处理（`aspectRatio`）、选中描边、只读裁剪。
   - 图片 / 视频对象工具栏 Overlay：选中态工具栏由编辑器级 `ObjectBlockToolbarOverlayHost` 承载，锚定媒体 frame 顶部，不作为块布局子节点；覆盖定位、viewport 夹紧、命中范围与选中描边关系。
   - 明色 + 暗色双 token 版本（圆角 / 阴影层数 / 描边线宽 / caption 布局在两色下一致，仅颜色随主题切换）。
@@ -15,7 +15,7 @@
 
 ## 覆盖范围
 
-- 图片块已加载内容：`_ImageBlockContent`（`lib/src/widgets/wenz_rich_text_editor.dart`），承载 `MediaResolver` 解析成功后的图片 widget；外层 figure chrome 由其包装（surface 底 + `_kMediaCornerRadius` 圆角 + `_kSurfaceBoxShadow` 阴影 + `ClipRRect`），并经 `SizedBox` 落实 `showWidth/showHeight`、经 `_MediaSelectionStroke` 落实选中描边、经 `_ImageResizeHandle` 落实可编辑选中态的左右边缘拖拽。
+- 图片块已加载内容：`_ImageBlockContent`（`lib/src/widgets/wenz_rich_text_editor.dart`），承载 `MediaResolver` 解析成功后的图片 widget；外层 figure chrome 由其包装（surface 底 + `_kMediaCornerRadius` 圆角 + `_kSurfaceBoxShadow` 阴影 + `ClipRRect`），并经 `SizedBox` 落实 `showWidth/showHeight`、经 `_MediaSelectionStroke` 落实单一 frame 选中描边、经 `_ImageResizeHandle` 落实可编辑选中态的隐形左右边缘拖拽命中区。
 - 图片块占位：`_ImageBlockPlaceholder`，承载无 resolver / resolver 抛错 / 资源未就绪时的回退显示（需由「固定 112×72 小图标盒」重做为撑满内容宽度的 chrome 空态，并补加载中 / 加载失败两态）。
 - 视频块已加载 / 占位：`_VideoBlockContent`、`_VideoBlockPlaceholder`，承载封面背景 `_VideoCoverBackdrop`、渐变蒙层、封面 chip `_VideoCoverChip`、播放按钮（`_videoPlayButtonSizeFor` / `_kVideoPlayIconSize`），并经 `_safeVideoAspectRatio` / `_videoFrameHeight` 做宽高比归一与帧高夹紧；视频占位需补一个加载失败回退态。
 - 选中态：`_MediaSelectionStroke` 在媒体框自身矩形绘制 `primary` 2px 描边（非通用 `_BlockObjectSelectionSurface`），图片 / 视频块统一口径。
@@ -31,8 +31,8 @@
 - 悬停 / 按下：悬停 `onSurface` 约 5% 中性反馈，按下 `primary` 约 18% 叠加；只作轻量反馈，**不改变尺寸 / 圆角 / 图标布局**。
 - 选中描边：`_MediaSelectionStroke` 在框自身矩形（非整块 overlay）绘 `primary` 2px，圆角对齐 `_kMediaCornerRadius`；媒体块禁用通用 overlay，命中测试 / 几何注册 / 双击预览不受影响。
 - 选中工具栏：选中图片 / 视频时工具栏浮在媒体 frame 上方，由编辑器级 Overlay 承载；不插入布局占位，不改变 frame / caption / 后续正文的位置，也不扩大媒体块自身命中区域。
-- 图片 resize：仅在图片块选中且可编辑时显示左右边缘手柄；拖拽改变显示宽度，并按有效宽高比派生高度，预览期间 frame、选中描边和 caption 布局实时跟随，拖拽结束只通过 `updateImageBlock(showWidth/showHeight)` 提交一次。
-- 只读裁剪：`readOnly` 或 `canEdit=false` 下，圆角 / 阴影 / 裁剪与可编辑态一致，仅保留预览等安全动作，无破坏性 mutation 入口；图片 resize 手柄隐藏且不响应尺寸提交，图片 / 视频块口径统一。
+- 图片 resize：仅在图片块选中且可编辑时启用左右边缘命中区；命中区不绘制常驻手柄或竖线。拖拽改变显示宽度，并按有效宽高比派生高度，预览期间 frame、选中描边、caption 布局和对象工具栏 anchor 实时跟随，拖拽结束只通过 `updateImageBlock(showWidth/showHeight)` 提交一次。
+- 只读裁剪：`readOnly` 或 `canEdit=false` 下，圆角 / 阴影 / 裁剪与可编辑态一致，仅保留预览等安全动作，无破坏性 mutation 入口；图片 resize 命中区不启用且不响应尺寸提交，图片 / 视频块口径统一。
 - 明暗主题：圆角 / 阴影层数 / 描边线宽 / caption 布局在明暗两色下保持一致，仅 colorScheme 颜色随主题切换；视频 frame 在明暗两色下均为黑色（`Colors.black`）。
 
 ## 视觉 Token
@@ -49,7 +49,7 @@
 | 最大宽度 | 受编辑器内容宽约束（建议正文 ≤ 720px） | （内联 `ConstrainedBox(maxWidth: 内容宽)`） | 图片 / 视频块以 `ConstrainedBox(maxWidth: 内容宽)` 居中，无额外硬编码上限 | 保留内容宽约束，不引入硬编码 720 |
 | 图片占位 chrome | 整宽 chrome，圆角 / 阴影对齐 figure token | `_ImageBlockPlaceholder` | 固定 `112×72`、`borderRadius: 6`、`surfaceContainerHighest.withAlpha(90)`、`outlineVariant` 边、无阴影，**不撑满内容宽** | 需重做（P003）：圆角改 `_kMediaCornerRadius`、补 `_kSurfaceBoxShadow`、撑满内容宽 |
 | 图片 resize 尺寸边界 | 最小 96px，最大为当前内容宽；无内容宽时回退 520px | `_kMinImageDisplayWidth` / `_kFallbackImageDisplayMaxWidth` | 已用于 `_ImageDisplayMetrics`、固定宽度菜单和边缘拖拽 | 保持统一 clamp，不引入第二套尺寸算法 |
-| 图片 resize 手柄 | 命中宽 18px，视觉宽 3px | `_kImageResizeHandleHitWidth` / `_kImageResizeHandleVisualWidth` | 左右边缘各一个 `_ImageResizeHandle` | 可编辑选中态显示，只读 / 非编辑态隐藏 |
+| 图片 resize 命中区 | 命中宽 18px，无常驻视觉线 | `_kImageResizeHandleHitWidth` | 左右边缘各一个 `_ImageResizeHandle`，只提供透明 hit zone / cursor / 语义 / selection exclusion | 可编辑选中态启用，只读 / 非编辑态不创建 |
 
 ### Spacing（视频块专属）
 
@@ -83,20 +83,20 @@
 - 锚点：`ObjectBlockToolbarOverlayAnchor` 放在媒体 frame 顶部，锚点宽度等于实际 frame 宽度（图片尊重 `showWidth/showHeight` 推导宽度，视频尊重内容宽与安全宽高比）。
 - 水平定位：工具栏右边缘与 frame end 对齐，并夹在 overlay 可见宽度内；不要用整行宽度替代 frame 宽度。
 - 垂直定位：工具栏位于 frame 上方，间距为 `_kBlockFloatingToolbarInset`；当媒体靠近 viewport 顶部时，`top` 取 `visibleTop` 夹紧后的值，避免工具栏滚出可见区域。
-- 图片 resize 同步：拖拽提交后，图片 toolbar anchor 以新的 frame 宽度重新测量，更多菜单 / 预览按钮仍右对齐 frame end；工具栏不得停留在旧尺寸位置，也不得覆盖 caption。
+- 图片 resize 同步：拖拽预览期间和提交后，图片 toolbar anchor 都以当前 frame 宽度重新测量，更多菜单 / 预览按钮仍右对齐 frame end；工具栏不得停留在旧尺寸位置，也不得覆盖 caption。
 - 命中测试：Overlay 只让实际工具栏区域参与命中拦截；不得铺设全屏透明 blocker，媒体预览、选区拖拽、正文点击不应被工具栏以外的区域吞掉。
 - 选中视觉：选中描边继续由 `_MediaSelectionStroke` 绘制在 frame 自身矩形上；通用 full-block overlay 对图片 / 视频保持禁用，caption 和块外边距不被描边覆盖。
 - 兼容边界：该契约不修改 `VideoBlockNode` 模型 / schema、不修改 `MediaResolver` 注入方式、不修改图片 / 视频预览 API，也不改变 rich JSON / HTML / Markdown / plain-text 的序列化、导入或导出协议。file / divider / embed 等非媒体对象块仍沿用既有块级浮动工具栏路径，除非对应 renderer 显式迁移到对象工具栏 Overlay。
 
 ## 图片 resize 交互契约
 
-- 入口：只有图片块处于 object selection 且 `canEdit=true`、`onImageBlockResize` 存在时，显示左右两个边缘手柄；手柄语义分别为「拖拽左边缘调整图片宽度」和「拖拽右边缘调整图片宽度」，鼠标 cursor 使用水平 resize。
+- 入口：只有图片块处于 object selection 且 `canEdit=true`、`onImageBlockResize` 存在时，启用左右两个边缘命中区；命中区语义分别为「拖拽左边缘调整图片宽度」和「拖拽右边缘调整图片宽度」，鼠标 cursor 使用水平 resize，并注册为 selection exclusion。命中区不绘制常驻手柄或竖线，选中视觉仅由 `_MediaSelectionStroke` 表达。
 - 尺寸边界：显示宽度下限为 `_kMinImageDisplayWidth`（96px），上限为当前图片 block 可用内容宽；当没有可用内容宽时，回退 `_kFallbackImageDisplayMaxWidth`（520px）。最小宽度不能大于最大宽度，宽度输入需过滤 NaN / Infinity / 负值。
 - 比例：宽高比优先使用 `ImageBlockNode.width/height`；原始尺寸缺失或非法时使用当前 frame 实测尺寸；仍不可用时使用安全默认比例，并夹在 `_kMinImageAspectRatio` 到 `_kMaxImageAspectRatio`。拖拽和固定宽度菜单都必须用同一套比例与 clamp 逻辑。
 - 拖拽预览：左边缘向内拖窄、向外拖宽；右边缘向外拖宽、向内拖窄。拖拽过程中只更新临时预览尺寸，不写文档 history，图片 frame、`_MediaSelectionStroke`、caption 位置和块测量必须跟随预览尺寸，图片块 id 与文档位置不变。
 - 提交：drag end 时如尺寸变化超过 `_kImageResizeChangeEpsilon`（0.5px），通过 controller/command pipeline 调用 `updateImageBlock(showWidth/showHeight)` 写入一次历史；取消或未产生有效变化时不提交。提交后虚拟列表测量、对象 toolbar anchor、选中描边和滚动几何都以新 frame 尺寸为准。
-- 权限与动作边界：`readOnly` 或非编辑权限下不显示手柄、不响应尺寸提交。图片对象菜单和左侧块操作菜单不提供「创建块副本」，外部旧入口派发图片 duplicate 也应被防御性忽略；段落、分割线、文件、视频、embed 等非图片对象块按既有规则保留副本能力。
-- 遮挡约束：手柄不得触发图片预览、对象选择、文本选区拖拽、块拖拽排序或外层滚动误操作；caption 位于 frame 下方，toolbar 位于 frame 上方，两者均不得被 resize 手柄或 overlay 遮挡。
+- 权限与动作边界：`readOnly` 或非编辑权限下不创建 resize 命中区、不响应尺寸提交。图片对象菜单继续提供尺寸设置 / 重置能力，图片对象菜单和左侧块操作菜单不提供「创建块副本」，外部旧入口派发图片 duplicate 也应被防御性忽略；段落、分割线、文件、视频、embed 等非图片对象块按既有规则保留副本能力。
+- 遮挡约束：resize 命中区不得触发图片预览、对象选择、文本选区拖拽、块拖拽排序或外层滚动误操作；caption 位于 frame 下方，toolbar 位于 frame 上方，两者均不得被 resize 命中区或 overlay 遮挡。
 
 ### Motion（动效）
 
@@ -129,10 +129,10 @@
 
 媒体显示、图片 resize 与工具栏承载仅更新下列入口的显示 / 交互层（chrome token、caption、占位 / 失败态、对象工具栏 Overlay、图片边缘拖拽），不改 `VideoBlockNode` / `ImageBlockNode` schema、`MediaResolver` 注入接口、预览 API、序列化 / 导入导出协议、插入删除命令与既有选区 / 双击预览：
 
-- 图片块：`_ImageBlockContent`（caption figcaption + `altText` 的 `Semantics` + resize 预览状态）、`_ImageResizeHandle`（左右边缘拖拽手柄）、`_ImageBlockPlaceholder`（重做为整宽 chrome 空态 + 加载中 / 加载失败两态）。
+- 图片块：`_ImageBlockContent`（caption figcaption + `altText` 的 `Semantics` + resize 预览状态）、`_ImageResizeHandle`（隐形左右边缘拖拽命中区）、`_ImageBlockPlaceholder`（重做为整宽 chrome 空态 + 加载中 / 加载失败两态）。
 - 视频块：`_VideoBlockContent`、`_VideoBlockPlaceholder`（补加载失败回退态，圆角 / 阴影 token 与图片块共享）。
 - 选中描边：`_MediaSelectionStroke`（核对 `primary` 2px + `_kMediaCornerRadius` 圆角，行为不变）。
-- 工具栏 Overlay：`_MediaBlockChrome`、`ObjectBlockToolbarOverlayAnchor`、`ObjectBlockToolbarOverlayRequest`、`ObjectBlockToolbarOverlayHost`（图片 / 视频选中工具栏浮在 frame 上方，不作为媒体布局子节点；图片 resize 提交后 anchor 使用新 frame 尺寸）。
+- 工具栏 Overlay：`_MediaBlockChrome`、`ObjectBlockToolbarOverlayAnchor`、`ObjectBlockToolbarOverlayRequest`、`ObjectBlockToolbarOverlayHost`（图片 / 视频选中工具栏浮在 frame 上方，不作为媒体布局子节点；图片 resize 预览和提交后 anchor 使用当前 frame 尺寸）。
 - 共享 token 常量：`_kMediaCornerRadius`、`_kMediaBlockMarginVertical`、`_kSurfaceBoxShadow`；视频专属 `_kVideoFrameFallbackWidth`、`_kVideoPlayButtonSize`、`_kVideoPlayIconSize`、`_kVideoMinAspectRatio` / `_kVideoMaxAspectRatio`、`_kVideoMinFrameHeight` / `_kVideoMaxFrameHeight`。
 - 图片尺寸与 resize：`_ImageDisplayMetrics`（当前显示尺寸、比例、min/max clamp、比例高度）、`_preferredImageFrameWidth`（toolbar anchor 宽度）、`_handleImageBlockResize`（提交 `showWidth/showHeight`）、`_kImageResizeChangeEpsilon`（无效变更过滤）。
 - 视频几何：`_videoPlayButtonSizeFor`（按帧宽缩放播放按钮）、`_safeVideoAspectRatio`（宽高比夹紧）、`_videoFrameHeight`（帧高夹紧）。

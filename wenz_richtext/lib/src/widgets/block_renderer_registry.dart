@@ -97,6 +97,13 @@ enum ObjectBlockAction {
   delete,
   resetImageSize,
   setImageDisplayWidth,
+
+  /// Sets or clears an image block's alignment.
+  ///
+  /// The [ObjectBlockActionIntent.value] payload must be `'left'`, `'center'`,
+  /// `'right'`, or `null` to clear explicit alignment. Handlers should ignore
+  /// unknown values.
+  setImageBlockAlignment,
   markFileUploading,
   markFileUploaded,
   markFileFailed,
@@ -112,11 +119,14 @@ class ObjectBlockActionIntent {
   final ObjectBlockAction action;
   final int blockIndex;
 
-  /// Optional action payload. Built-in renderers use a `double` value for
-  /// [ObjectBlockAction.setImageDisplayWidth]. Move actions may carry an
-  /// `int` final block index from custom renderers; the editor-owned block
-  /// handle may use an internal payload so grouped heading moves can preserve
-  /// the original drop insertion boundary.
+  /// Optional action payload. [ObjectBlockAction.setImageDisplayWidth] uses a
+  /// `double` image width. [ObjectBlockAction.setImageBlockAlignment] uses a
+  /// nullable `String` image block alignment payload: `'left'`, `'center'`,
+  /// or `'right'` sets explicit alignment, and `null` clears it. Handlers
+  /// should ignore unknown alignment values. Move actions may carry an `int`
+  /// final block index from custom renderers; the editor-owned block handle may
+  /// use an internal payload so grouped heading moves can preserve the original
+  /// drop insertion boundary.
   final Object? value;
 }
 

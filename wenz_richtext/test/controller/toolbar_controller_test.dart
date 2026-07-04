@@ -1154,6 +1154,77 @@ void main() {
       host.dispose();
     });
 
+    test('insertVideo uses the current text block insertion index', () {
+      final host = WenzRichTextController(
+        document: _doc(),
+        selection: collapsedTextSelection('para', 4, 4),
+      );
+      final toolbar = ToolbarController(host);
+
+      toolbar.insertVideo(
+        blockId: 'video-text',
+        assetId: 'asset-video-text',
+        playbackUrl: 'https://cdn.example.com/video.mp4',
+        file: '/tmp/video-text.mp4',
+        coverUrl: 'https://cdn.example.com/cover.jpg',
+        title: 'Inserted video',
+        description: 'Video inserted from a text caret',
+        aspectRatio: 4 / 3,
+        uploadStatus: FileUploadStatus.uploaded,
+      );
+
+      expect(host.document.blocks[4], isA<TextBlockNode>());
+      expect((host.document.blocks[4] as TextBlockNode).plainText, 'A pa');
+      expect(host.document.blocks[5], isA<VideoBlockNode>());
+      final video = host.document.blocks[5] as VideoBlockNode;
+      expect(video.id, 'video-text');
+      expect(video.assetId, 'asset-video-text');
+      expect(video.playbackUrl, 'https://cdn.example.com/video.mp4');
+      expect(video.file, '/tmp/video-text.mp4');
+      expect(video.coverUrl, 'https://cdn.example.com/cover.jpg');
+      expect(video.title, 'Inserted video');
+      expect(video.description, 'Video inserted from a text caret');
+      expect(video.aspectRatio, 4 / 3);
+      expect(video.uploadStatus, FileUploadStatus.uploaded);
+      expect((host.document.blocks[6] as TextBlockNode).plainText,
+          'ragraph.');
+
+      toolbar.dispose();
+      host.dispose();
+    });
+
+    test('insertVideo from a table cell inserts after the table block', () {
+      final cellPosition = DocumentPosition.tableCell(
+        tableBlockId: 'table',
+        blockIndex: 0,
+        tableRowIndex: 0,
+        tableColumnIndex: 0,
+        offset: 2,
+      );
+      final host = WenzRichTextController(
+        document: _tableDoc(),
+        selection: DocumentSelection(base: cellPosition, extent: cellPosition),
+      );
+      final toolbar = ToolbarController(host);
+
+      toolbar.insertVideo(
+        blockId: 'video-cell',
+        file: '/tmp/from-cell.mp4',
+        title: 'From cell',
+      );
+
+      expect(host.document.blocks, hasLength(2));
+      expect(host.document.blocks[0], isA<TableBlockNode>());
+      expect(host.document.blocks[1], isA<VideoBlockNode>());
+      final video = host.document.blocks[1] as VideoBlockNode;
+      expect(video.id, 'video-cell');
+      expect(video.file, '/tmp/from-cell.mp4');
+      expect(video.title, 'From cell');
+
+      toolbar.dispose();
+      host.dispose();
+    });
+
     test('set and clear text color preserve other inline attributes', () {
       final host = WenzRichTextController(
         document: _doc(),

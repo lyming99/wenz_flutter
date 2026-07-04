@@ -189,6 +189,30 @@ void main() {
     expect(find.text('selected.png'), findsWidgets);
   });
 
+  testWidgets('video toolbar button inserts a playable video block',
+      (tester) async {
+    await _pumpWorkbench(tester);
+    final controller = _editorController(tester);
+    final videoCountBefore =
+        controller.document.blocks.whereType<VideoBlockNode>().length;
+
+    await tester.tap(find.byTooltip('插入视频'));
+    await tester.pump();
+    await tester.pump();
+
+    final videos =
+        controller.document.blocks.whereType<VideoBlockNode>().toList();
+    expect(videos, hasLength(videoCountBefore + 1));
+    final inserted = videos.last;
+    expect(inserted.file, 'assets/videos/sample.mp4');
+    expect(inserted.title, 'Inserted product tour');
+    expect(inserted.description,
+        'Played by the example MediaResolver + media_kit player.');
+    expect(inserted.coverUrl, isNotEmpty);
+    expect(inserted.aspectRatio, VideoBlockNode.defaultAspectRatio);
+    expect(inserted.uploadStatus, FileUploadStatus.uploaded);
+  });
+
   testWidgets('local resolver renders pasted and dropped local image captions',
       (tester) async {
     final tempDir = await Directory.systemTemp.createTemp(

@@ -382,6 +382,9 @@ class _EditorWorkbenchState extends State<EditorWorkbench> {
         mediaResolver: _mediaResolver,
         mentionSearch: _searchExampleMentions,
         onMentionTap: _showMentionDetails,
+        // Link opening is host policy. The core package reports the link URL
+        // and document position; the example uses url_launcher on the app side.
+        onOpenLink: (url, _) => _openLink(url),
         // Keep external image input enabled in the example so local image files
         // inserted from the toolbar, platform image paste adapters, or file
         // drops all flow into ImageBlockNode.file and the resolver below.
@@ -659,7 +662,7 @@ class _EditorWorkbenchState extends State<EditorWorkbench> {
       inlineEmbedRenderer: _bootstrap.inlineEmbedRendererRegistry,
       mentionSearch: _bootstrap.mentionSearch,
       onMentionTap: _bootstrap.configuration.onMentionTap,
-      onOpenLink: (url, position) => _openLink(url),
+      onOpenLink: _bootstrap.configuration.onOpenLink,
       findController: _bootstrap.findReplaceController,
       slashMenuController: _bootstrap.slashMenuController,
       outlineController: _outline,
@@ -808,6 +811,9 @@ class _EditorWorkbenchState extends State<EditorWorkbench> {
   }
 
   void _insertVideo() {
+    if (!_toolbar.canInsertVideo) {
+      return;
+    }
     final id = _newId('video');
     _toolbar.insertVideo(
       blockId: id,
@@ -1298,7 +1304,12 @@ RichTextDocument _sampleDocument() {
             text: 'Select text with Shift+arrows',
             attributes: TextAttributes(bold: true, color: 0xFF0F766E),
           ),
-          TextRun(text: ', then try the toolbar.'),
+          TextRun(text: ', try the toolbar, or '),
+          TextRun(
+            text: 'open the project page',
+            attributes: TextAttributes(url: 'https://github.com/'),
+          ),
+          TextRun(text: '.'),
         ],
       ),
       TextBlockNode(

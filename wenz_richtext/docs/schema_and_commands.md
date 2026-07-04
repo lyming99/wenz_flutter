@@ -70,6 +70,12 @@ file selection flows should run in host UI first and then call the typed helper.
 Use `WenzRichTextController.updateImageBlock(...)` to patch source, size,
 caption, or alt text after upload/metadata extraction.
 
+When an image block is selected in the default editor, its object "more" menu can
+set left / center / right image alignment or clear explicit alignment. This does
+not add image-specific schema fields and does not route through
+`UpdateImageBlockCommand`; the action reuses `BlockAttributes.alignment` via
+`WenzRichTextController.setAlignment(...)` on the selected image object block.
+
 Rich JSON stores image alignment as the existing `attrs.alignment` field, so no
 schema migration is required. HTML preserves explicit image alignment on the
 image wrapper (`<figure style="text-align: ...">` or compatible `align` on
@@ -202,10 +208,21 @@ so history, schema normalization, and middleware all run consistently.
   `outdent()`.
 - `ToggleTodoCommand` converts a block to a task list item when needed, then
   toggles checked state.
-- `EnterCommand` has list-aware behavior: non-empty unordered/ordered/task list
+- `EnterCommand` owns block-splitting semantics for both keyboard Enter and
+  direct `WenzRichTextController.enter()` calls. At the logical end of a heading
+  block, Enter keeps the original heading and its level/anchor intact, then
+  inserts an empty paragraph after it with the caret at offset 0; the paragraph
+  does not inherit heading-only metadata such as `level` or the heading anchor.
+  Pressing Enter in the middle of a heading still uses the normal text split
+  behavior and continues as a heading. Non-empty unordered/ordered/task list
   items split into a following list item with the same indent/type; task
   continuations start unchecked. Pressing Enter on an empty list item converts
   it back to a paragraph, preserving block-level metadata such as anchor.
+  Non-empty quote blocks continue quote styling, empty quotes exit quote
+  styling, code blocks receive an inline newline, and table-cell text selections
+  insert a newline inside the cell text instead of creating top-level blocks.
+  These are command-layer editing rules only; they do not add schema fields or
+  require a document migration.
 - `SetCodeLanguageCommand(language)` updates a code block language.
 - `SetCalloutVariantCommand(variant)` updates a callout block type. Supported
   values are `info`, `success`, `warning`, and `danger`; unknown values
@@ -272,8 +289,10 @@ Ordinary selections, including selected image object blocks, become
 `SetTableCellRangeAlignmentCommand`. This is the same split used by
 `ToolbarController.setAlignment` / `clearAlignment`, so built-in and host
 toolbars can expose one alignment control without mutating table column defaults
-by accident. Image rendering recognizes `left` / `center` / `right`; a stored
-`justify` value is preserved as block metadata but does not stretch the image.
+by accident. The selected image object menu uses the ordinary block path for
+left / center / right / clear image alignment. Image rendering recognizes
+`left` / `center` / `right`; a stored `justify` value is preserved as block
+metadata but does not stretch the image.
 
 Rich JSON persists both `TableModel.columnAlignments` and
 `TableCellNode.alignment`. HTML import/export maps per-cell alignment through

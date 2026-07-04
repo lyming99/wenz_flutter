@@ -653,7 +653,7 @@ class ToolbarController extends ChangeNotifier {
     if (selection == null) {
       return blockCount;
     }
-    final position = selection.extent;
+    final position = _blockInsertionPosition(selection);
     final index = position.blockIndex.clamp(0, blockCount).toInt();
     if (position.path.isTableCellText) {
       return (index + 1).clamp(0, blockCount).toInt();
@@ -662,6 +662,13 @@ class ToolbarController extends ChangeNotifier {
       return (index + 1).clamp(0, blockCount).toInt();
     }
     return index;
+  }
+
+  DocumentPosition _blockInsertionPosition(DocumentSelection selection) {
+    if (selection.start.path.isBlockObject || selection.end.path.isBlockObject) {
+      return selection.end;
+    }
+    return selection.extent;
   }
 
   WenzToolbarTableContext? get tableContext {
@@ -793,7 +800,7 @@ class ToolbarController extends ChangeNotifier {
 
   void insertImage({
     int? index,
-    required String blockId,
+    String? blockId,
     String assetId = '',
     String file = '',
     int width = 0,
@@ -807,9 +814,10 @@ class ToolbarController extends ChangeNotifier {
     if (!canInsertImage) {
       return;
     }
+    final id = blockId ?? _nextBlockId('image');
     _host.insertImage(
       index: index ?? currentBlockInsertionIndex(),
-      blockId: blockId,
+      blockId: id,
       assetId: assetId,
       file: file,
       width: width,
@@ -824,7 +832,7 @@ class ToolbarController extends ChangeNotifier {
 
   void insertVideo({
     int? index,
-    required String blockId,
+    String? blockId,
     String assetId = '',
     String playbackUrl = '',
     String file = '',
@@ -839,9 +847,10 @@ class ToolbarController extends ChangeNotifier {
     if (!canInsertVideo) {
       return;
     }
+    final id = blockId ?? _nextBlockId('video');
     _host.insertVideo(
       index: index ?? currentBlockInsertionIndex(),
-      blockId: blockId,
+      blockId: id,
       assetId: assetId,
       playbackUrl: playbackUrl,
       file: file,

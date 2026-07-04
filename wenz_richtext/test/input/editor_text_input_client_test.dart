@@ -698,6 +698,95 @@ void main() {
       expect(controller.canUndo, isFalse);
     });
 
+    test('syncBuffer reflects callout body text and caret only', () {
+      controller = WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            CalloutBlockNode(
+              id: 'callout1',
+              variant: CalloutBlockNode.warningVariant,
+              title: 'Heads up',
+              icon: '!',
+              content: <InlineNode>[TextRun(text: 'body')],
+            ),
+          ],
+        ),
+        selection: collapsedCalloutSelection('callout1', 0, 2),
+      );
+      client = EditorTextInputClient(controller);
+
+      client.syncBufferForTest();
+
+      expect(client.currentBuffer.text, 'body');
+      expect(client.currentBuffer.selection.baseOffset, 2);
+      expect(client.currentBuffer.selection.extentOffset, 2);
+      expect(client.currentBuffer.text, isNot(contains('Heads up')));
+      expect(client.currentBuffer.text, isNot(contains('Warning')));
+    });
+
+    test('deltas edit callout body while preserving metadata', () {
+      controller = WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            CalloutBlockNode(
+              id: 'callout1',
+              variant: CalloutBlockNode.warningVariant,
+              title: 'Heads up',
+              icon: '!',
+              attributes: BlockAttributes(anchor: 'note-anchor'),
+              content: <InlineNode>[TextRun(text: 'abcXYZ')],
+            ),
+          ],
+        ),
+        selection: collapsedCalloutSelection('callout1', 0, 3),
+      );
+      client = EditorTextInputClient(controller);
+      client.syncBufferForTest();
+
+      client.injectDelta(
+        const TextEditingDeltaInsertion(
+          oldText: 'abcXYZ',
+          insertionOffset: 3,
+          textInserted: 'n',
+          selection: TextSelection.collapsed(offset: 4),
+          composing: TextRange(start: 3, end: 4),
+        ),
+      );
+      client.injectDelta(
+        const TextEditingDeltaReplacement(
+          oldText: 'abcnXYZ',
+          replacementText: 'ni',
+          replacedRange: TextRange(start: 3, end: 4),
+          selection: TextSelection.collapsed(offset: 5),
+          composing: TextRange(start: 3, end: 5),
+        ),
+      );
+      client.injectDelta(
+        const TextEditingDeltaReplacement(
+          oldText: 'abcniXYZ',
+          replacementText: 'X',
+          replacedRange: TextRange(start: 3, end: 5),
+          selection: TextSelection.collapsed(offset: 4),
+          composing: TextRange.empty,
+        ),
+      );
+
+      final block = controller.document.blocks.single as CalloutBlockNode;
+      expect(block.content.map((node) => node.plainText).join(), 'abcXXYZ');
+      expect(block.variant, CalloutBlockNode.warningVariant);
+      expect(block.title, 'Heads up');
+      expect(block.icon, '!');
+      expect(block.attributes, const BlockAttributes(anchor: 'note-anchor'));
+      expect(
+        controller.selection?.extent.path,
+        PositionPath.blockText('callout1'),
+      );
+      expect(controller.selection?.extent.offset, 4);
+      expect(controller.compositionState, isNull);
+      expect(client.currentBuffer.text, 'abcXXYZ');
+      expect(client.currentBuffer.selection.baseOffset, 4);
+    });
+
     test('syncBuffer reflects table cell text and caret', () {
       controller = WenzRichTextController(
         document: _tableCellDocument('Hello'),

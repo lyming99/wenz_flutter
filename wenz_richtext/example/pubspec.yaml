@@ -13,8 +13,9 @@ dependencies:
     path: ..
   # 图片文件选择（仅 example 端；核心包不内置平台文件选择依赖）。
   file_selector: ^1.1.0
-  # 链接打开：Ctrl/Cmd+点击正文链接 / hover「打开」时拉起系统浏览器。
-  # 仅 example 端引入；核心包 wenz_richtext 通过 onOpenLink 回调将打开方式交由宿主决定。
+  # 链接打开：Ctrl/Cmd+点击正文链接 / hover Open 时拉起系统浏览器。
+  # 仅 example 端引入；核心包 wenz_richtext 通过 WenzEditorConfiguration.onOpenLink
+  # / WenzRichTextEditor.onOpenLink 回调将打开方式交由宿主决定。
   url_launcher: ^6.3.1
   # 真实视频播放依赖（仅 example 端，核心包 wenz_richtext 不引入播放依赖）。
   # 选型：media_kit（基于 libmpv）—— Windows 桌面/Web 均原生可播 mp4/webm，

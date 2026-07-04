@@ -71,9 +71,12 @@
 
 - `inline`：以多个 `InsertTextCommand`（逐 run，保留属性）插入当前 caret。
 - `blocks`：走 `PasteBlocksCommand`——删除当前选区后，在 caret 处分裂当前 block，首块 inline 合并进前半段，末块 inline 合并进后半段，中间 block 按原 type/attributes 作为新 block 插入。
-- 纯文本多行：首行插入当前块，后续每行触发 `EnterCommand` 分段。
+- 普通块纯文本多行：首行插入当前块，后续每行触发 `EnterCommand` 分段，保持段落粘贴拆分为多个 block 的既有语义。
+- 代码块内纯文本：当 `pasteText(raw)` 解析为 plain text，且当前 selection 完全位于同一个 `CodeBlockNode` 的 `PositionPath.blockCode` 内时，不再按换行拆分；控制器通过一次 `InsertTextCommand` 把原始文本插入同一个 `CodeBlockNode.code`，保留 `\n`、空行、缩进、尾随换行和普通代码字符。
 
-纯文本输入/粘贴默认会识别 `http(s)://` 和 `www.` URL，并通过命令层写入 `TextAttributes.url`；业务侧可在直接调用 `insertText` 时传 `applyAutoLinkUrls: false` 关闭本次自动识别。
+代码块纯文本快路径仍然走 `WenzRichTextController.execute`，所以 permission gate、selection 替换、schema normalisation、history、`lastChangedBlockIds` 和回调顺序都与普通命令一致。一次代码块多行粘贴表现为单个命令、单个 undo step、一次 `onChanged`、一次 `onCommandExecuted` 和一次 listener 通知；插入后 caret 落在粘贴文本末尾，代码块 `id`、`language` 和 `attributes` 保持不变。该快路径只作用于 plain text；Wenz rich JSON、HTML、Markdown、外部图片和表格单元格粘贴仍按各自路径处理。
+
+普通纯文本输入/粘贴默认会识别 `http(s)://` 和 `www.` URL，并通过命令层写入 `TextAttributes.url`；代码块纯文本快路径会显式关闭 Markdown shortcut 与 AutoLink，避免 `# `、三个反引号或 URL 等代码内容产生格式化/链接副作用。业务侧可在直接调用 `insertText` 时传 `applyAutoLinkUrls: false` 关闭本次自动识别。
 
 控制器方法：`copySelection()` / `cutSelection()` / `pasteText(raw)` /
 `pasteMarkdown(markdown)` / `pasteHtml(html)`。widget 的 Ctrl+C/X/V 调用纯文本
@@ -207,6 +210,14 @@ UI，不应直接改 document model。
 `WenzRichTextEditor` 只有在传入 `findController`、`onFindRequested` 或
 `onReplaceRequested` 时才会处理 Ctrl/Cmd+F/H；否则这些组合键继续冒泡给
 浏览器或宿主应用。
+
+Enter 的键盘路径只负责把 intent 分发到 `controller.enter()`，实际文档语义由
+`EnterCommand` 决定，和业务直接调用 `WenzRichTextController.enter()` 共用同一条
+命令、history、schema normalisation、selection 和回调路径。标题块末尾按 Enter 会
+在标题后创建空正文段落，caret 落在新段落开头；标题中部仍按当前文本分裂为两个标题。
+普通段落、列表续行/空列表退出、引用续行/空引用退出、代码块内换行和表格单元格内换行
+继续走各自既有命令分支。这个行为只影响命令生成的新块类型和属性，不改变持久化 schema，
+不需要 schema migration，也不应在 widget 层另加一次性特殊分支。
 
 ### 快捷键配置契约
 

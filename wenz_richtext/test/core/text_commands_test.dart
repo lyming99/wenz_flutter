@@ -47,6 +47,50 @@ void main() {
     expect(session.selection?.extent.offset, 2);
   });
 
+  test('insert text updates callout body and preserves metadata', () {
+    final session = DocumentSession(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          CalloutBlockNode(
+            id: 'callout1',
+            variant: CalloutBlockNode.warningVariant,
+            title: 'Heads up',
+            icon: '!',
+            attributes: BlockAttributes(anchor: 'note-anchor'),
+            content: <InlineNode>[
+              TextRun(text: 'Hello '),
+              TextRun(
+                text: 'body',
+                attributes: TextAttributes(bold: true),
+              ),
+            ],
+          ),
+        ],
+      ),
+      selection: collapsedCalloutSelection('callout1', 0, 6),
+    );
+    final executor = CommandExecutor(session);
+
+    executor.execute(const InsertTextCommand('callout '));
+
+    final block = session.document.blocks.single as CalloutBlockNode;
+    expect(
+      block.content.map((node) => node.plainText).join(),
+      'Hello callout body',
+    );
+    expect(block.variant, CalloutBlockNode.warningVariant);
+    expect(block.title, 'Heads up');
+    expect(block.icon, '!');
+    expect(block.attributes, const BlockAttributes(anchor: 'note-anchor'));
+    expect(session.selection?.extent.blockId, 'callout1');
+    expect(
+      session.selection?.extent.path,
+      PositionPath.blockText('callout1'),
+    );
+    expect(session.selection?.extent.offset, 14);
+    expect(session.canUndo, isTrue);
+  });
+
   test('delete selection removes same-block text range', () {
     final session = DocumentSession(
       document: const RichTextDocument(

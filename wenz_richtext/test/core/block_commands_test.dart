@@ -40,6 +40,52 @@ void main() {
     expect(session.canUndo, isTrue);
   });
 
+  test('insert callout block focuses editable body by default', () {
+    final session = DocumentSession(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'one')],
+          ),
+          TextBlockNode(
+            id: 'p2',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'two')],
+          ),
+        ],
+      ),
+    );
+    final executor = CommandExecutor(session);
+
+    executor.execute(
+      const InsertBlocksCommand(
+        index: 1,
+        blocks: <BlockNode>[
+          CalloutBlockNode(
+            id: 'callout1',
+            variant: CalloutBlockNode.warningVariant,
+            title: 'Heads up',
+            icon: '!',
+            content: <InlineNode>[],
+          ),
+        ],
+      ),
+    );
+
+    expect(session.document.blocks, hasLength(3));
+    expect(session.document.blocks[1], isA<CalloutBlockNode>());
+    expect(session.selection?.isCollapsed, isTrue);
+    expect(session.selection?.extent.blockId, 'callout1');
+    expect(session.selection?.extent.blockIndex, 1);
+    expect(
+      session.selection?.extent.path,
+      PositionPath.blockText('callout1'),
+    );
+    expect(session.selection?.extent.offset, 0);
+  });
+
   test('insert object block after current empty paragraph replaces it', () {
     final session = DocumentSession(
       document: const RichTextDocument(
@@ -271,6 +317,91 @@ void main() {
     expect(session.document.blocks, hasLength(2));
     expect(session.document.plainText, 'Hello\nWorld');
     expect(session.selection?.extent.blockId, 'p2');
+    expect(session.selection?.extent.offset, 0);
+  });
+
+  test('enter at heading end starts an empty paragraph', () {
+    for (final level in <int>[1, 2]) {
+      final headingId = 'h$level';
+      final paragraphId = 'p$level';
+      final title = 'Title $level';
+      final session = DocumentSession(
+        document: RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: headingId,
+              type: BlockType.heading,
+              attributes: BlockAttributes(
+                level: level,
+                indent: 1,
+                alignment: 'center',
+                quoted: true,
+                childNote: 'note-$level',
+                anchor: 'title-$level',
+              ),
+              content: <InlineNode>[TextRun(text: title)],
+            ),
+          ],
+        ),
+        selection: collapsedTextSelection(headingId, 0, title.length),
+      );
+      final executor = CommandExecutor(session);
+
+      executor.execute(EnterCommand(newBlockId: paragraphId));
+
+      expect(session.document.blocks, hasLength(2), reason: 'H$level');
+      final heading = session.document.blocks[0] as TextBlockNode;
+      final paragraph = session.document.blocks[1] as TextBlockNode;
+      expect(heading.id, headingId);
+      expect(heading.type, BlockType.heading);
+      expect(heading.plainText, title);
+      expect(heading.attributes.level, level);
+      expect(heading.attributes.anchor, 'title-$level');
+      expect(paragraph.id, paragraphId);
+      expect(paragraph.type, BlockType.paragraph);
+      expect(paragraph.plainText, isEmpty);
+      expect(paragraph.attributes.level, isNull);
+      expect(paragraph.attributes.anchor, isNull);
+      expect(paragraph.attributes.indent, 1);
+      expect(paragraph.attributes.alignment, 'center');
+      expect(paragraph.attributes.quoted, isTrue);
+      expect(paragraph.attributes.childNote, 'note-$level');
+      expect(session.selection?.extent.blockId, paragraphId);
+      expect(session.selection?.extent.blockIndex, 1);
+      expect(session.selection?.extent.offset, 0);
+    }
+  });
+
+  test('enter in the middle of a heading keeps heading split semantics', () {
+    final session = DocumentSession(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'h1',
+            type: BlockType.heading,
+            attributes: BlockAttributes(level: 2, anchor: 'intro'),
+            content: <InlineNode>[TextRun(text: 'HelloWorld')],
+          ),
+        ],
+      ),
+      selection: collapsedTextSelection('h1', 0, 5),
+    );
+    final executor = CommandExecutor(session);
+
+    executor.execute(const EnterCommand(newBlockId: 'h2'));
+
+    expect(session.document.blocks, hasLength(2));
+    final first = session.document.blocks[0] as TextBlockNode;
+    final second = session.document.blocks[1] as TextBlockNode;
+    expect(first.type, BlockType.heading);
+    expect(first.plainText, 'Hello');
+    expect(first.attributes.level, 2);
+    expect(first.attributes.anchor, 'intro');
+    expect(second.type, BlockType.heading);
+    expect(second.plainText, 'World');
+    expect(second.attributes.level, 2);
+    expect(second.attributes.anchor, 'intro');
+    expect(session.selection?.extent.blockId, 'h2');
     expect(session.selection?.extent.offset, 0);
   });
 

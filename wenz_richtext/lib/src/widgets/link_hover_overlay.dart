@@ -162,6 +162,20 @@ class _WenzLinkHoverOverlayState extends State<WenzLinkHoverOverlay> {
     ColorScheme colorScheme,
   ) {
     final showUrl = widget.url.isNotEmpty;
+    final actions = <Widget>[
+      if (!widget.readOnly)
+        _LinkHoverAction(
+          label: 'Edit',
+          onTap: widget.onEdit,
+          foreground: colorScheme.onSurface,
+        ),
+      _LinkHoverAction(
+        label: 'Open',
+        onTap: widget.onOpen,
+        foreground: colorScheme.primary,
+        disabledForeground: colorScheme.onSurfaceVariant,
+      ),
+    ];
     return Material(
       key: _surfaceKey,
       color: colorScheme.surfaceContainerLow,
@@ -196,21 +210,11 @@ class _WenzLinkHoverOverlayState extends State<WenzLinkHoverOverlay> {
                   ),
                 ),
               ),
-            if (showUrl && !widget.readOnly) const SizedBox(width: 6),
-            if (!widget.readOnly)
-              _LinkHoverAction(
-                label: 'Edit',
-                onTap: widget.onEdit,
-                foreground: colorScheme.onSurface,
-              ),
-            if (!widget.readOnly && widget.onOpen != null)
-              const SizedBox(width: 4),
-            _LinkHoverAction(
-              label: 'Open',
-              onTap: widget.onOpen,
-              foreground: colorScheme.primary,
-              disabledForeground: colorScheme.onSurfaceVariant,
-            ),
+            if (showUrl) const SizedBox(width: 6),
+            for (var index = 0; index < actions.length; index++) ...[
+              if (index > 0) const SizedBox(width: 4),
+              actions[index],
+            ],
           ],
         ),
       ),

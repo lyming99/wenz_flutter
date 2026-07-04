@@ -68,7 +68,7 @@ class InsertTextCommand extends EditorCommand {
       return const CommandResult(recordHistory: false);
     }
 
-    final nextOffset = position.offset + text.length;
+    var nextOffset = position.offset + text.length;
     if (block is TextBlockNode) {
       final nextBlock = TextBlockNode(
         id: block.id,
@@ -84,6 +84,16 @@ class InsertTextCommand extends EditorCommand {
         code: block.code.replaceRange(offset, offset, text),
         language: block.language,
         attributes: block.attributes,
+      );
+      _replaceBlock(session, position.blockIndex, nextBlock);
+    } else if (block is CalloutBlockNode && position.path.isBlockText) {
+      final offset = position.offset.clamp(
+        0,
+        inlineNodesLength(block.content),
+      ).toInt();
+      nextOffset = offset + text.length;
+      final nextBlock = block.copyWith(
+        content: insertInline(block.content, offset, text, attributes),
       );
       _replaceBlock(session, position.blockIndex, nextBlock);
     } else {
@@ -165,10 +175,7 @@ class DeleteSelectionCommand extends EditorCommand {
       );
       _replaceBlock(session, start.blockIndex, nextBlock);
     } else if (block is CalloutBlockNode && start.path.isBlockText) {
-      final nextBlock = block.copyWith(
-        content: deleteInline(block.content, start.offset, end.offset),
-      );
-      _replaceBlock(session, start.blockIndex, nextBlock);
+      return _deleteCalloutRange(session, start, start.offset, end.offset);
     } else if (start.path.isBlockObject) {
       // Callout bodies are editable inline content addressed by blockText. A
       // body selection must only trim CalloutBlockNode.content and preserve

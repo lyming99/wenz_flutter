@@ -304,7 +304,6 @@ const double _kFallbackImageDisplayMaxWidth = 520.0;
 const double _kMinImageAspectRatio = 0.1;
 const double _kMaxImageAspectRatio = 10.0;
 const double _kImageResizeHandleHitWidth = 18.0;
-const double _kImageResizeHandleVisualWidth = 3.0;
 const double _kImageResizeChangeEpsilon = 0.5;
 
 // Video blocks have a single overflow boundary: the rounded video frame.
@@ -4940,6 +4939,25 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
           showHeight: metrics.heightForWidth(showWidth),
         );
         return;
+      case ObjectBlockAction.setImageBlockAlignment:
+        if (widget.readOnly || block is! ImageBlockNode) {
+          return;
+        }
+        final value = intent.value;
+        final String? alignment;
+        if (value == null) {
+          alignment = null;
+        } else if (value is String &&
+            (value == 'left' || value == 'center' || value == 'right')) {
+          alignment = value;
+        } else {
+          return;
+        }
+        widget.controller.setAlignment(
+          alignment,
+          selection: _selectionForBlock(block, intent.blockIndex),
+        );
+        return;
       case ObjectBlockAction.markFileUploading:
         if (widget.readOnly || block is! FileBlockNode) {
           return;
@@ -5105,6 +5123,12 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
           blockId: block.id,
           blockIndex: blockIndex,
           offset: block.code.length,
+        ),
+      CalloutBlockNode() => DocumentPosition(
+          blockId: block.id,
+          blockIndex: blockIndex,
+          path: PositionPath.blockText(block.id),
+          offset: 0,
         ),
       TableBlockNode() => _firstTableCellPosition(block, blockIndex) ??
           DocumentPosition(
@@ -8977,18 +9001,10 @@ Widget _defaultImageBlockRenderer(
               ? _ImageBlockPlaceholderStatus.failed
               : _ImageBlockPlaceholderStatus.empty,
         );
-  return _withSelectableImageBlock(
-    image,
-    rc,
-    _ImageBlockContent(
-      block: image,
-      blockIndex: rc.blockIndex,
-      selected: _objectBlockSelected(image, rc),
-      canResize: rc.canEdit && rc.onImageBlockResize != null,
-      registry: rc.registry,
-      onResize: rc.onImageBlockResize,
-      child: media,
-    ),
+  return _SelectableImageBlock(
+    block: image,
+    renderContext: rc,
+    media: media,
     onPreview: () => _showImagePreview(context, image, rc),
   );
 }
@@ -9025,12 +9041,9 @@ Widget _defaultDividerBlockRenderer(
     rc,
     _DividerBlockContent(
       blockId: block.id,
-      blockIndex: rc.blockIndex,
-      blockCount: rc.blockCount,
       selected: _objectBlockSelected(block, rc),
-      canEdit: rc.canEdit,
-      onAction: rc.onObjectBlockAction,
     ),
+    showSelectionOverlay: false,
   );
 }
 
@@ -9302,6 +9315,7 @@ Widget _withSelectableImageBlock(
   BlockRenderContext rc,
   Widget child, {
   VoidCallback? onPreview,
+  double? toolbarFrameWidth,
 }) {
   final path = PositionPath.blockObject(block.id);
   final selected = _selectionTouchesPath(
@@ -9320,7 +9334,8 @@ Widget _withSelectableImageBlock(
       selected: selected,
       canEdit: rc.canEdit,
       imageActions: true,
-      toolbarFrameWidth: _preferredImageFrameWidth(block),
+      imageAlignment: block.attributes.alignment,
+      toolbarFrameWidth: toolbarFrameWidth ?? _preferredImageFrameWidth(block),
       toolbarFrameAlignment: _imageBlockFigureAlignment(
         block.attributes.alignment,
       ),
@@ -9341,6 +9356,86 @@ Widget _withSelectableImageBlock(
     ),
     selected: selected,
   );
+}
+
+class _SelectableImageBlock extends StatefulWidget {
+  const _SelectableImageBlock({
+    required this.block,
+    required this.renderContext,
+    required this.media,
+    this.onPreview,
+  });
+
+  final ImageBlockNode block;
+  final BlockRenderContext renderContext;
+  final Widget media;
+  final VoidCallback? onPreview;
+
+  @override
+  State<_SelectableImageBlock> createState() => _SelectableImageBlockState();
+}
+
+class _SelectableImageBlockState extends State<_SelectableImageBlock> {
+  double? _previewToolbarFrameWidth;
+
+  @override
+  void didUpdateWidget(covariant _SelectableImageBlock oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.block.id != widget.block.id ||
+        oldWidget.block.showWidth != widget.block.showWidth ||
+        oldWidget.block.showHeight != widget.block.showHeight ||
+        !_objectBlockSelected(widget.block, widget.renderContext) ||
+        !_canResizeImageBlock(widget.renderContext)) {
+      _previewToolbarFrameWidth = null;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final block = widget.block;
+    final rc = widget.renderContext;
+    final selected = _objectBlockSelected(block, rc);
+    final canResize = _canResizeImageBlock(rc);
+    return _withSelectableImageBlock(
+      block,
+      rc,
+      _ImageBlockContent(
+        block: block,
+        blockIndex: rc.blockIndex,
+        selected: selected,
+        canResize: canResize,
+        registry: rc.registry,
+        onResize: rc.onImageBlockResize,
+        onPreviewSizeChanged: _handlePreviewSizeChanged,
+        child: widget.media,
+      ),
+      onPreview: widget.onPreview,
+      toolbarFrameWidth:
+          _previewToolbarFrameWidth ?? _preferredImageFrameWidth(block),
+    );
+  }
+
+  void _handlePreviewSizeChanged(Size? size) {
+    final width = _positiveFiniteDimension(size?.width);
+    final current = _previewToolbarFrameWidth;
+    if ((current == null && width == null) ||
+        (current != null &&
+            width != null &&
+            (current - width).abs() < _kImageResizeChangeEpsilon)) {
+      return;
+    }
+    if (!mounted) {
+      _previewToolbarFrameWidth = width;
+      return;
+    }
+    setState(() {
+      _previewToolbarFrameWidth = width;
+    });
+  }
+}
+
+bool _canResizeImageBlock(BlockRenderContext rc) {
+  return rc.canEdit && rc.onImageBlockResize != null;
 }
 
 Widget _withSelectableVideoBlock(
@@ -12294,9 +12389,9 @@ class _BlockObjectSelectionSurface extends StatefulWidget {
   final Widget child;
   final VoidCallback? onDoubleTap;
 
-  /// Whether to paint the generic full-size selection overlay. Media blocks
-  /// (image/video/resolved-as-media file) draw their own frame-hugging stroke
-  /// and disable this to avoid a loose, double rectangle over the block margins.
+  /// Whether to paint the generic full-size selection overlay. Blocks that draw
+  /// their own tighter selection stroke disable this to avoid a loose, double
+  /// rectangle over the block margins.
   final bool showSelectionOverlay;
 
   @override
@@ -14264,89 +14359,79 @@ class _VideoFrameChildBoundary extends StatelessWidget {
 class _DividerBlockContent extends StatelessWidget {
   const _DividerBlockContent({
     required this.blockId,
-    required this.blockIndex,
-    required this.blockCount,
     required this.selected,
-    required this.canEdit,
-    this.onAction,
   });
 
   final String blockId;
-  final int blockIndex;
-  final int blockCount;
   final bool selected;
-  final bool canEdit;
-  final ObjectBlockActionHandler? onAction;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final shellDecoration = selected
         ? BoxDecoration(
-            color: theme.colorScheme.surfaceContainerHighest.withAlpha(48),
             border: Border.all(color: theme.colorScheme.primary, width: 1.5),
             borderRadius: BorderRadius.circular(8),
           )
         : const BoxDecoration();
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: _kDividerMarginVertical),
-      child: DecoratedBox(
-        key: ValueKey<String>('wenz-richtext-divider-shell-$blockId'),
-        decoration: shellDecoration,
-        child: Padding(
-          padding: EdgeInsets.symmetric(
-            horizontal: selected ? 8 : 0,
-            vertical: selected ? 8 : 0,
-          ),
-          child: _BlockFloatingToolbarSurface(
-            toolbar: selected
-                ? _FloatingObjectBlockToolbar(
-                    blockIndex: blockIndex,
-                    blockCount: blockCount,
-                    canEdit: canEdit,
-                    imageActions: false,
-                    fileActions: false,
-                    onAction: onAction,
-                  )
-                : null,
-            child: SizedBox(
-              height: _kDividerDotSize,
-              child: Stack(
-                alignment: Alignment.center,
-                children: <Widget>[
-                  PositionedDirectional(
-                    start: 0,
-                    end: 0,
-                    top: (_kDividerDotSize - 1) / 2,
-                    child: SizedBox(
-                      height: 1,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final width = constraints.maxWidth.isFinite
+              ? constraints.maxWidth.clamp(0.0, double.infinity).toDouble()
+              : null;
+          final divider = DecoratedBox(
+            key: ValueKey<String>('wenz-richtext-divider-shell-$blockId'),
+            decoration: shellDecoration,
+            child: Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: selected ? 8 : 0,
+                vertical: selected ? 8 : 0,
+              ),
+              child: SizedBox(
+                height: _kDividerDotSize,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: <Widget>[
+                    PositionedDirectional(
+                      start: 0,
+                      end: 0,
+                      top: (_kDividerDotSize - 1) / 2,
+                      child: SizedBox(
+                        height: 1,
+                        child: DecoratedBox(
+                          key: ValueKey<String>(
+                            'wenz-richtext-divider-line-$blockId',
+                          ),
+                          decoration: BoxDecoration(
+                            color: _dividerLineColor(theme),
+                          ),
+                        ),
+                      ),
+                    ),
+                    SizedBox.square(
+                      dimension: _kDividerDotSize,
                       child: DecoratedBox(
                         key: ValueKey<String>(
-                          'wenz-richtext-divider-line-$blockId',
+                          'wenz-richtext-divider-dot-$blockId',
                         ),
                         decoration: BoxDecoration(
-                          color: _dividerLineColor(theme),
+                          color: theme.colorScheme.primary,
+                          shape: BoxShape.circle,
                         ),
                       ),
                     ),
-                  ),
-                  SizedBox.square(
-                    dimension: _kDividerDotSize,
-                    child: DecoratedBox(
-                      key: ValueKey<String>(
-                        'wenz-richtext-divider-dot-$blockId',
-                      ),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.primary,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
-        ),
+          );
+          if (width == null) {
+            return divider;
+          }
+          return SizedBox(width: width, child: divider);
+        },
       ),
     );
   }
@@ -14548,6 +14633,7 @@ class _ObjectBlockToolbar extends StatelessWidget {
     required this.canEdit,
     required this.imageActions,
     required this.fileActions,
+    this.imageAlignment,
     this.mediaActions = false,
     this.onAction,
     this.onPreview,
@@ -14558,6 +14644,7 @@ class _ObjectBlockToolbar extends StatelessWidget {
   final bool canEdit;
   final bool imageActions;
   final bool fileActions;
+  final String? imageAlignment;
   final bool mediaActions;
   final ObjectBlockActionHandler? onAction;
   final VoidCallback? onPreview;
@@ -14584,6 +14671,7 @@ class _ObjectBlockToolbar extends StatelessWidget {
               blockCount: blockCount,
               canRunMutation: canRunMutation,
               imageActions: imageActions,
+              imageAlignment: imageAlignment,
               fileActions: fileActions,
               onSelected: _dispatchSelection,
             ),
@@ -14608,6 +14696,7 @@ class _ObjectBlockToolbar extends StatelessWidget {
             blockCount: blockCount,
             canRunMutation: canRunMutation,
             imageActions: imageActions,
+            imageAlignment: imageAlignment,
             fileActions: fileActions,
             onSelected: _dispatchSelection,
           ),
@@ -14660,6 +14749,7 @@ PopupMenuItem<_ObjectMenuSelection> _objectActionMenuItem({
   Object? value,
   bool enabled = true,
   String? shortcut,
+  bool selected = false,
   bool destructive = false,
 }) {
   return PopupMenuItem<_ObjectMenuSelection>(
@@ -14672,6 +14762,7 @@ PopupMenuItem<_ObjectMenuSelection> _objectActionMenuItem({
       label: label,
       shortcut: shortcut,
       enabled: enabled,
+      selected: selected,
       destructive: destructive,
     ),
   );
@@ -14685,6 +14776,7 @@ class _ObjectMoreMenu extends StatefulWidget {
     required this.imageActions,
     required this.fileActions,
     required this.onSelected,
+    this.imageAlignment,
   });
 
   final int blockIndex;
@@ -14693,6 +14785,7 @@ class _ObjectMoreMenu extends StatefulWidget {
   final bool imageActions;
   final bool fileActions;
   final ValueChanged<_ObjectMenuSelection> onSelected;
+  final String? imageAlignment;
 
   @override
   State<_ObjectMoreMenu> createState() => _ObjectMoreMenuState();
@@ -14811,7 +14904,39 @@ class _ObjectMoreMenuState extends State<_ObjectMoreMenu> {
       if (entries.isNotEmpty) {
         entries.add(_popupMenuDivider<_ObjectMenuSelection>());
       }
+      final imageAlignment = widget.imageAlignment;
       entries.addAll(<PopupMenuEntry<_ObjectMenuSelection>>[
+        _objectActionMenuItem(
+          action: ObjectBlockAction.setImageBlockAlignment,
+          icon: Icons.format_align_left,
+          label: '图片左对齐',
+          value: 'left',
+          enabled: imageAlignment != 'left',
+          selected: imageAlignment == 'left',
+        ),
+        _objectActionMenuItem(
+          action: ObjectBlockAction.setImageBlockAlignment,
+          icon: Icons.format_align_center,
+          label: '图片居中',
+          value: 'center',
+          enabled: imageAlignment != 'center',
+          selected: imageAlignment == 'center',
+        ),
+        _objectActionMenuItem(
+          action: ObjectBlockAction.setImageBlockAlignment,
+          icon: Icons.format_align_right,
+          label: '图片右对齐',
+          value: 'right',
+          enabled: imageAlignment != 'right',
+          selected: imageAlignment == 'right',
+        ),
+        _objectActionMenuItem(
+          action: ObjectBlockAction.setImageBlockAlignment,
+          icon: Icons.format_clear,
+          label: '清除图片对齐',
+          enabled: imageAlignment != null,
+        ),
+        _popupMenuDivider<_ObjectMenuSelection>(),
         _objectActionMenuItem(
           action: ObjectBlockAction.setImageDisplayWidth,
           icon: Icons.photo_size_select_small_outlined,
@@ -14884,6 +15009,7 @@ class _FloatingObjectBlockToolbar extends StatelessWidget {
     required this.canEdit,
     required this.imageActions,
     required this.fileActions,
+    this.imageAlignment,
     this.mediaActions = false,
     this.onAction,
     this.onPreview,
@@ -14894,6 +15020,7 @@ class _FloatingObjectBlockToolbar extends StatelessWidget {
   final bool canEdit;
   final bool imageActions;
   final bool fileActions;
+  final String? imageAlignment;
   final bool mediaActions;
   final ObjectBlockActionHandler? onAction;
   final VoidCallback? onPreview;
@@ -14907,6 +15034,7 @@ class _FloatingObjectBlockToolbar extends StatelessWidget {
         canEdit: canEdit,
         imageActions: imageActions,
         fileActions: fileActions,
+        imageAlignment: imageAlignment,
         mediaActions: mediaActions,
         onAction: onAction,
         onPreview: onPreview,
@@ -15266,13 +15394,16 @@ class _ImageDisplayMetrics {
     final showWidth = _positiveFiniteDimension(block.showWidth);
     final showHeight = _positiveFiniteDimension(block.showHeight);
     final explicitWidth = showWidth ?? _widthForHeight(showHeight, aspectRatio);
+    final naturalWidth = _positiveFiniteDimension(block.width) ??
+        _widthForHeight(_positiveFiniteDimension(block.height), aspectRatio);
     final rawMaxWidth = _nonNegativeFiniteDimension(availableWidth) ??
         _nonNegativeFiniteDimension(measuredFrameSize?.width) ??
         explicitWidth ??
         _kFallbackImageDisplayMaxWidth;
     final maxWidth = math.max(0.0, rawMaxWidth);
     final minWidth = math.min(_kMinImageDisplayWidth, maxWidth);
-    final displayWidth = explicitWidth?.clamp(minWidth, maxWidth).toDouble();
+    final preferredWidth = explicitWidth ?? naturalWidth ?? maxWidth;
+    final displayWidth = preferredWidth.clamp(minWidth, maxWidth).toDouble();
     return _ImageDisplayMetrics._(
       aspectRatio: aspectRatio,
       minWidth: minWidth,
@@ -15387,6 +15518,7 @@ class _ImageBlockContent extends StatefulWidget {
     required this.canResize,
     required this.registry,
     this.onResize,
+    this.onPreviewSizeChanged,
   });
 
   final ImageBlockNode block;
@@ -15396,6 +15528,7 @@ class _ImageBlockContent extends StatefulWidget {
   final bool canResize;
   final BlockGeometryRegistry registry;
   final ImageBlockResizeHandler? onResize;
+  final ValueChanged<Size?>? onPreviewSizeChanged;
 
   @override
   State<_ImageBlockContent> createState() => _ImageBlockContentState();
@@ -15437,20 +15570,23 @@ class _ImageBlockContentState extends State<_ImageBlockContent> {
               block,
               availableWidth: constraints.maxWidth,
             );
-            final displaySize = _previewSize ?? metrics.displaySize;
-            Widget media = widget.child;
-            if (displaySize != null) {
-              media = SizedBox(
-                key: ValueKey<String>('wenz-richtext-image-size-${block.id}'),
-                width: displaySize.width,
-                height: displaySize.height,
-                child: widget.child,
-              );
-            }
+            final displaySize = _previewSize ??
+                metrics.displaySize ??
+                Size(
+                  metrics.maxWidth,
+                  metrics.heightForWidth(metrics.maxWidth),
+                );
+            final media = SizedBox(
+              key: ValueKey<String>('wenz-richtext-image-size-${block.id}'),
+              width: displaySize.width,
+              height: displaySize.height,
+              child: widget.child,
+            );
             final frame = _buildFrame(
               context: context,
               theme: theme,
               block: block,
+              frameSize: displaySize,
               media: media,
               metrics: metrics,
             );
@@ -15502,14 +15638,17 @@ class _ImageBlockContentState extends State<_ImageBlockContent> {
     required BuildContext context,
     required ThemeData theme,
     required ImageBlockNode block,
+    required Size frameSize,
     required Widget media,
     required _ImageDisplayMetrics metrics,
   }) {
-    final showHandles = widget.selected && widget.canResize;
+    final showResizeHitZones = widget.selected && widget.canResize;
     return SizedBox(
       key: _frameMeasureKey,
+      width: frameSize.width,
+      height: frameSize.height,
       child: Stack(
-        fit: StackFit.passthrough,
+        fit: StackFit.expand,
         clipBehavior: Clip.none,
         children: <Widget>[
           DecoratedBox(
@@ -15524,16 +15663,16 @@ class _ImageBlockContentState extends State<_ImageBlockContent> {
               child: media,
             ),
           ),
-          if (showHandles) ...<Widget>[
-            _buildResizeHandle(_ImageResizeEdge.left, metrics),
-            _buildResizeHandle(_ImageResizeEdge.right, metrics),
+          if (showResizeHitZones) ...<Widget>[
+            _buildResizeHitZone(_ImageResizeEdge.left, metrics),
+            _buildResizeHitZone(_ImageResizeEdge.right, metrics),
           ],
         ],
       ),
     );
   }
 
-  Widget _buildResizeHandle(
+  Widget _buildResizeHitZone(
     _ImageResizeEdge edge,
     _ImageDisplayMetrics metrics,
   ) {
@@ -15548,7 +15687,6 @@ class _ImageBlockContentState extends State<_ImageBlockContent> {
         blockId: widget.block.id,
         edge: edge,
         registry: widget.registry,
-        active: _activeResizeEdge == edge,
         onDragStart: () => _startResize(edge, metrics),
         onDragUpdate: _updateResize,
         onDragEnd: _finishResize,
@@ -15570,13 +15708,15 @@ class _ImageBlockContentState extends State<_ImageBlockContent> {
     final safeWidth = dragMetrics.clampWidth(startWidth);
     final startHeight = _positiveFiniteDimension(measuredSize?.height) ??
         dragMetrics.heightForWidth(safeWidth);
+    final previewSize = Size(safeWidth, startHeight);
     setState(() {
       _dragMetrics = dragMetrics;
       _activeResizeEdge = edge;
       _resizeStartWidth = safeWidth;
       _resizeDragDelta = 0.0;
-      _previewSize = Size(safeWidth, startHeight);
+      _previewSize = previewSize;
     });
+    widget.onPreviewSizeChanged?.call(previewSize);
   }
 
   void _updateResize(DragUpdateDetails details) {
@@ -15597,9 +15737,11 @@ class _ImageBlockContentState extends State<_ImageBlockContent> {
         (current.height - height).abs() < _kImageResizeChangeEpsilon) {
       return;
     }
+    final previewSize = Size(width, height);
     setState(() {
-      _previewSize = Size(width, height);
+      _previewSize = previewSize;
     });
+    widget.onPreviewSizeChanged?.call(previewSize);
   }
 
   void _finishResize() {
@@ -15637,6 +15779,9 @@ class _ImageBlockContentState extends State<_ImageBlockContent> {
   }
 
   void _clearResizeStateWithRebuild() {
+    if (_previewSize != null) {
+      widget.onPreviewSizeChanged?.call(null);
+    }
     if (!mounted) {
       _clearResizeState();
       return;
@@ -15658,7 +15803,6 @@ class _ImageResizeHandle extends StatefulWidget {
     required this.blockId,
     required this.edge,
     required this.registry,
-    required this.active,
     required this.onDragStart,
     required this.onDragUpdate,
     required this.onDragEnd,
@@ -15668,7 +15812,6 @@ class _ImageResizeHandle extends StatefulWidget {
   final String blockId;
   final _ImageResizeEdge edge;
   final BlockGeometryRegistry registry;
-  final bool active;
   final VoidCallback onDragStart;
   final ValueChanged<DragUpdateDetails> onDragUpdate;
   final VoidCallback onDragEnd;
@@ -15704,12 +15847,10 @@ class _ImageResizeHandleState extends State<_ImageResizeHandle> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final color = theme.colorScheme.primary;
-    final edgeName =
-        widget.edge == _ImageResizeEdge.left ? 'left' : 'right';
-    final semanticLabel =
-        widget.edge == _ImageResizeEdge.left ? '拖拽左边缘调整图片宽度' : '拖拽右边缘调整图片宽度';
+    final edgeName = widget.edge == _ImageResizeEdge.left ? 'left' : 'right';
+    final semanticLabel = widget.edge == _ImageResizeEdge.left
+        ? '拖拽左边缘调整图片宽度'
+        : '拖拽右边缘调整图片宽度';
     return Semantics(
       button: true,
       label: semanticLabel,
@@ -15726,35 +15867,10 @@ class _ImageResizeHandleState extends State<_ImageResizeHandle> {
           onHorizontalDragCancel: widget.onDragCancel,
           child: Tooltip(
             message: semanticLabel,
-            child: Center(
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final height = constraints.maxHeight.isFinite
-                      ? constraints.maxHeight
-                      : 0.0;
-                  return SizedBox(
-                    key: ValueKey<String>(
-                      'wenz-richtext-image-resize-$edgeName-${widget.blockId}',
-                    ),
-                    width: _kImageResizeHandleVisualWidth,
-                    height: height,
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        color: widget.active ? color : color.withAlpha(168),
-                        borderRadius: BorderRadius.circular(
-                          _kImageResizeHandleVisualWidth,
-                        ),
-                        boxShadow: <BoxShadow>[
-                          BoxShadow(
-                            color: color.withAlpha(widget.active ? 96 : 48),
-                            blurRadius: widget.active ? 5 : 3,
-                            spreadRadius: widget.active ? 1 : 0,
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
+            child: SizedBox.expand(
+              key: ValueKey<String>(
+                'wenz-richtext-image-resize-hit-zone-$edgeName-'
+                '${widget.blockId}',
               ),
             ),
           ),
@@ -15762,7 +15878,6 @@ class _ImageResizeHandleState extends State<_ImageResizeHandle> {
       ),
     );
   }
-
 }
 
 AlignmentDirectional _imageBlockFigureAlignment(String? alignment) {
@@ -15815,6 +15930,14 @@ class _MediaSelectionStroke extends StatelessWidget {
 }
 
 double? _preferredImageFrameWidth(ImageBlockNode block) {
+  final hasPersistedSize =
+      _positiveFiniteDimension(block.showWidth) != null ||
+          _positiveFiniteDimension(block.showHeight) != null ||
+          _positiveFiniteDimension(block.width) != null ||
+          _positiveFiniteDimension(block.height) != null;
+  if (!hasPersistedSize) {
+    return null;
+  }
   return _ImageDisplayMetrics.resolve(block).displayWidth;
 }
 
@@ -15827,6 +15950,7 @@ class _MediaBlockChrome extends StatelessWidget {
     required this.imageActions,
     required this.child,
     this.blockId,
+    this.imageAlignment,
     this.toolbarFrameWidth,
     this.toolbarFrameAlignment,
     this.toolbarOverlayController,
@@ -15842,6 +15966,7 @@ class _MediaBlockChrome extends StatelessWidget {
   final bool imageActions;
   final Widget child;
   final double? toolbarFrameWidth;
+  final String? imageAlignment;
   final AlignmentDirectional? toolbarFrameAlignment;
   final ObjectBlockToolbarOverlayController? toolbarOverlayController;
   final ObjectBlockActionHandler? onAction;
@@ -15891,6 +16016,7 @@ class _MediaBlockChrome extends StatelessWidget {
       blockCount: blockCount,
       canEdit: canEdit,
       imageActions: imageActions,
+      imageAlignment: imageAlignment,
       fileActions: false,
       mediaActions: true,
       onAction: onAction,

@@ -1128,8 +1128,15 @@ class WenzRichTextController extends ChangeNotifier {
     List<InlineNode> content = const <InlineNode>[],
     DocumentSelection? selection,
   }) {
+    final insertionIndex = document.blocks.length;
+    final defaultPosition = DocumentPosition(
+      blockId: blockId,
+      blockIndex: insertionIndex,
+      path: PositionPath.blockText(blockId),
+      offset: 0,
+    );
     return insertBlocks(
-      index: document.blocks.length,
+      index: insertionIndex,
       blocks: <BlockNode>[
         CalloutBlockNode(
           id: blockId,
@@ -1139,7 +1146,11 @@ class WenzRichTextController extends ChangeNotifier {
           icon: icon,
         ),
       ],
-      selection: selection,
+      selection: selection ??
+          DocumentSelection(
+            base: defaultPosition,
+            extent: defaultPosition,
+          ),
     );
   }
 
@@ -1156,22 +1167,20 @@ class WenzRichTextController extends ChangeNotifier {
     String altText = '',
     DocumentSelection? selection,
   }) {
-    return insertBlocks(
-      index: index ?? document.blocks.length,
-      blocks: <BlockNode>[
-        ImageBlockNode(
-          id: blockId,
-          assetId: assetId,
-          file: file,
-          width: width,
-          height: height,
-          showWidth: showWidth,
-          showHeight: showHeight,
-          caption: caption,
-          altText: altText,
-        ),
-      ],
-      selection: selection,
+    return execute(
+      _InsertImageBlockCommand(
+        index: index ?? _currentBlockInsertionIndex(),
+        blockId: blockId,
+        assetId: assetId,
+        file: file,
+        width: width,
+        height: height,
+        showWidth: showWidth,
+        showHeight: showHeight,
+        caption: caption,
+        altText: altText,
+        selection: selection,
+      ),
     );
   }
 
@@ -1191,7 +1200,7 @@ class WenzRichTextController extends ChangeNotifier {
   }) {
     return execute(
       InsertVideoBlockCommand(
-        index: index ?? document.blocks.length,
+        index: index ?? _currentBlockInsertionIndex(),
         blockId: blockId,
         assetId: assetId,
         playbackUrl: playbackUrl,
@@ -1364,14 +1373,18 @@ class WenzRichTextController extends ChangeNotifier {
 
   /// Pastes a clipboard payload at the current selection. Rich inline payloads
   /// preserve attributes; rich blocks payloads (cross-block copy) restore the
-  /// block structure; plain text is split on newlines — the first line inserts
-  /// into the current block, each subsequent line creates a new block via
-  /// [EnterCommand].
+  /// block structure; plain text normally splits on newlines — the first line
+  /// inserts into the current block, each subsequent line creates a new block
+  /// via [EnterCommand]. Plain text pasted into a code block is inserted as one
+  /// command so newlines remain inside the same [CodeBlockNode].
   void pasteText(String raw) {
     if (raw.isEmpty) {
       return;
     }
-    _pasteClipboard(clipboardService.parse(raw));
+    _pasteClipboard(
+      clipboardService.parse(raw),
+      allowCodeBlockPlainTextFastPath: true,
+    );
   }
 
   /// Pastes a known Markdown clipboard fragment through the same pipeline as
@@ -1385,6 +1398,7 @@ class WenzRichTextController extends ChangeNotifier {
         markdown,
         format: ClipboardPasteFormat.markdown,
       ),
+      allowCodeBlockPlainTextFastPath: false,
     );
   }
 
@@ -1399,6 +1413,7 @@ class WenzRichTextController extends ChangeNotifier {
         html,
         format: ClipboardPasteFormat.html,
       ),
+      allowCodeBlockPlainTextFastPath: false,
     );
   }
 
@@ -1451,7 +1466,10 @@ class WenzRichTextController extends ChangeNotifier {
     );
   }
 
-  void _pasteClipboard(ClipboardPaste paste) {
+  void _pasteClipboard(
+    ClipboardPaste paste, {
+    required bool allowCodeBlockPlainTextFastPath,
+  }) {
     if (paste.isBlocks) {
       execute(PasteBlocksCommand(paste.blocks,
           newBlockId: 'paste-${_pasteBlockCounter()}'));
@@ -1464,6 +1482,9 @@ class WenzRichTextController extends ChangeNotifier {
     }
     final text = paste.text;
     if (text.isEmpty) {
+      return;
+    }
+    if (allowCodeBlockPlainTextFastPath && _pastePlainIntoCodeBlock(text)) {
       return;
     }
     _pastePlain(text);
@@ -1512,6 +1533,39 @@ class WenzRichTextController extends ChangeNotifier {
     }
   }
 
+  bool _pastePlainIntoCodeBlock(String text) {
+    if (!_isSelectionWithinCodeBlock(selection)) {
+      return false;
+    }
+    insertText(
+      text,
+      applyMarkdownShortcuts: false,
+      applyAutoLinkUrls: false,
+    );
+    return true;
+  }
+
+  bool _isSelectionWithinCodeBlock(DocumentSelection? selection) {
+    if (selection == null) {
+      return false;
+    }
+    final start = selection.start;
+    final end = selection.end;
+    if (start.blockIndex != end.blockIndex ||
+        start.blockId != end.blockId ||
+        start.path != end.path ||
+        !start.path.isBlockCode ||
+        start.path.blockId != start.blockId) {
+      return false;
+    }
+    final blockIndex = start.blockIndex;
+    if (blockIndex < 0 || blockIndex >= document.blocks.length) {
+      return false;
+    }
+    final block = document.blocks[blockIndex];
+    return block is CodeBlockNode && block.id == start.blockId;
+  }
+
   int _pasteSequence = 0;
   String _pasteBlockCounter() {
     _pasteSequence += 1;
@@ -1524,7 +1578,7 @@ class WenzRichTextController extends ChangeNotifier {
     if (selection == null) {
       return blockCount;
     }
-    final position = selection.extent;
+    final position = _blockInsertionPosition(selection);
     final index = position.blockIndex.clamp(0, blockCount).toInt();
     if (position.path.isTableCellText) {
       return (index + 1).clamp(0, blockCount).toInt();
@@ -1533,6 +1587,13 @@ class WenzRichTextController extends ChangeNotifier {
       return (index + 1).clamp(0, blockCount).toInt();
     }
     return index;
+  }
+
+  DocumentPosition _blockInsertionPosition(DocumentSelection selection) {
+    if (selection.start.path.isBlockObject || selection.end.path.isBlockObject) {
+      return selection.end;
+    }
+    return selection.extent;
   }
 
   DocumentSelection _selectionForExternalImageBlock(
@@ -2290,6 +2351,70 @@ class WenzRichTextController extends ChangeNotifier {
     // for incremental rebuild, leaving stale spans rendered.
     return jsonEncode(block.toJson());
   }
+}
+
+class _InsertImageBlockCommand extends InsertBlocksCommand {
+  _InsertImageBlockCommand({
+    required super.index,
+    required this.blockId,
+    String assetId = '',
+    String file = '',
+    int width = 0,
+    int height = 0,
+    double? showWidth,
+    double? showHeight,
+    String caption = '',
+    String altText = '',
+    super.selection,
+  }) : super(
+          blocks: <BlockNode>[
+            ImageBlockNode(
+              id: blockId,
+              assetId: assetId,
+              file: file,
+              width: width,
+              height: height,
+              showWidth: showWidth,
+              showHeight: showHeight,
+              caption: caption,
+              altText: altText,
+            ),
+          ],
+        );
+
+  final String blockId;
+
+  @override
+  CommandResult execute(DocumentSession session) {
+    final result = super.execute(session);
+    if (selection != null ||
+        result.selection != null ||
+        !result.recordHistory) {
+      return result;
+    }
+    final insertedIndex = session.document.blocks.indexWhere(
+      (block) => block.id == blockId,
+    );
+    if (insertedIndex == -1) {
+      return result;
+    }
+    return CommandResult(
+      selection: _objectSelectionForInsertedBlock(blockId, insertedIndex),
+      recordHistory: result.recordHistory,
+      metadata: result.metadata,
+    );
+  }
+}
+
+DocumentSelection _objectSelectionForInsertedBlock(
+  String blockId,
+  int blockIndex,
+) {
+  final start = DocumentPosition.object(
+    blockId: blockId,
+    blockIndex: blockIndex,
+  );
+  return DocumentSelection(base: start, extent: start.copyWith(offset: 1));
 }
 
 /// Outcome of [WenzRichTextController.tryLoadJson]. Immutable; read [ok] to

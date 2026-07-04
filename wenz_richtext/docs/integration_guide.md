@@ -36,7 +36,7 @@ The standard external interface is **a facade plus a configuration object**:
 
 | Type | Role | Stability tier |
 | --- | --- | --- |
-| `WenzEditorConfiguration` | A `@immutable`, side-effect-free description of *intent*: initial document/selection, permission, media resolver, codec/migrations, accessibility, mention search/tap hooks, plugins, shortcuts, desktop context menu, paste transformers, external image input, controller callbacks, and on/off switches for the built-in derived controllers. Describes what you want; never creates anything. | tier 1 (recommended entry) |
+| `WenzEditorConfiguration` | A `@immutable`, side-effect-free description of *intent*: initial document/selection, permission, media resolver, codec/migrations, accessibility, mention search/tap hooks, link-open hook, plugins, shortcuts, desktop context menu, paste transformers, external image input, controller callbacks, and on/off switches for the built-in derived controllers. Describes what you want; never creates anything. | tier 1 (recommended entry) |
 | `WenzEditorBootstrap` | The facade. `WenzEditorBootstrap.create(configuration)` assembles the `WenzRichTextController` + every registry + the derived controllers + plugins in one call, exposes unified data I/O and getters, builds the `WenzRichTextEditor` via `buildEditor({...})`, optionally builds the default desktop toolbar via `buildDefaultDesktopToolbar({...})`, and releases everything in dependency-reverse order via `dispose()`. | tier 1 (recommended entry) |
 
 ### Why facade + configuration, not a replacement typed API
@@ -188,7 +188,7 @@ bootstrap.dispose(); // idempotent; safe to call once
 `WenzRichTextEditor` and injects `controller`, `blockRenderers`, `mediaResolver`,
 `inlineEmbedRenderer`, `slashMenuController`, `findController` /
 `onFindRequested` / `onReplaceRequested`, `outlineController`, `mentionSearch`,
-`onMentionTap`, external image-input settings, `shortcutConfiguration`,
+`onMentionTap`, `onOpenLink`, external image-input settings, `shortcutConfiguration`,
 `contextMenuConfiguration`, and `accessibility`.
 Behaviour is identical to
 constructing `WenzRichTextEditor` yourself; the facade only saves you the
@@ -305,18 +305,22 @@ final config = WenzEditorConfiguration(
       .toList(),
   onMentionTap: (details) => openProfile(details.id, details.data),
 
-  // 4) Slash-menu items / filters.
+  // 4) Link activation. The core package never launches a URL; the host owns
+  //    browser / in-app / allow-list policy.
+  onOpenLink: (url, position) => launchUrl(Uri.parse(url)),
+
+  // 5) Slash-menu items / filters.
   slashMenuItems: <SlashMenuItem>[ mySlashItem ],
 
-  // 5) Toolbar items.
+  // 6) Toolbar items.
   toolbarItems: <WenzToolbarItem>[ myToolbarItem ],
 
-  // 6) Host-level shortcut overrides (applied last, so they win over plugins).
+  // 7) Host-level shortcut overrides (applied last, so they win over plugins).
   shortcutConfiguration: EditorShortcutConfiguration(
     bindings: <EditorShortcutBinding>[ myBinding ],
   ),
 
-  // 7) Desktop right-click menu actions.
+  // 8) Desktop right-click menu actions.
   contextMenuConfiguration: WenzEditorContextMenuConfiguration(
     items: <WenzEditorContextMenuEntry>[
       WenzEditorContextMenuItem(
@@ -331,18 +335,18 @@ final config = WenzEditorConfiguration(
     ],
   ),
 
-  // 8) Paste transformers.
+  // 9) Paste transformers.
   pasteTransformers: <ClipboardPasteTransformer>[ myTransformer ],
 
-  // 9) Media resolution (images/videos) — the editor still needs the handle too.
+  // 10) Media resolution (images/videos) — the editor still needs the handle too.
   mediaResolver: myMediaResolver,
 
-  // 10) External image input policy.
+  // 11) External image input policy.
   enableExternalImageInput: true,
   externalImageClipboardReader: myClipboardImageReader, // optional
   externalImageStore: myImageStore,                     // optional
 
-  // 11) Whole plugins / bundles — commands, middleware, renderers, menu/toolbar
+  // 12) Whole plugins / bundles — commands, middleware, renderers, menu/toolbar
   //    items, shortcuts, paste transformers in one declarative package.
   plugins: <WenzRichTextPlugin>[
     WenzPluginBundle(id: 'acme.mentions', slashMenuItems: <SlashMenuItem>[...]),
@@ -373,6 +377,17 @@ Mention search is an editor-level hook, not an inline renderer. Use
 as `mention` inline embeds, and use `onMentionTap` for profile/detail UI. A
 custom `inlineEmbedRenderers['mention']` should be reserved for visual changes
 or fully custom tap handling.
+
+Link opening is also an editor-level hook. Use
+`WenzEditorConfiguration.onOpenLink` on the facade path, or
+`WenzRichTextEditor.onOpenLink` when constructing the widget directly. Hovering
+an inline link shows the link popup; Ctrl/Cmd+click and the popup's Open action
+both call the same handler with the URL and the run's `DocumentPosition`. When
+no handler is supplied, link text still renders and edits normally, but Open is
+disabled and modifier-click falls through to ordinary caret/selection behavior.
+The package deliberately does not depend on `url_launcher` or any platform
+launcher; host apps own allow-listing, browser choice, in-app routing, and error
+UI.
 
 > Authoring a self-contained business block (e.g. a flowchart, CRM card, or
 > approval form)? The
@@ -495,8 +510,9 @@ or clean application-owned media.
 The three controller callbacks are exposed as configuration fields and wired
 onto the controller during `create()`. They fire synchronously *before*
 `notifyListeners`, so reading controller state inside them is safe. The
-editor-level `onMentionTap` callback is also exposed through configuration and
-receives normalized mention payload plus document position.
+editor-level `onMentionTap` and `onOpenLink` callbacks are also exposed through
+configuration: mentions receive normalized mention payload plus document
+position, while links receive the URL plus the run's document position.
 
 ```dart
 final config = WenzEditorConfiguration(
@@ -504,8 +520,14 @@ final config = WenzEditorConfiguration(
   onSelectionChanged: (selection) => log('sel=$selection'),
   onCommandExecuted: (command, change) => log('cmd=${command.description}'),
   onMentionTap: (mention) => openProfile(mention.id, mention.data),
+  onOpenLink: (url, position) => openUrl(url),
 );
 ```
+
+`buildEditor(onOpenLink: ...)` may still be used as a per-widget override; when
+omitted it uses `configuration.onOpenLink`. Direct `WenzRichTextEditor`
+construction has the same nullable `onOpenLink` parameter. Leaving it `null`
+keeps links editable and styled but disables the Open action.
 
 ### Permissions
 
@@ -591,9 +613,10 @@ The facade is additive and conservative. Explicitly:
   optional tier 2 widget factory. Hosts that need Cupertino, compact mobile, or
   business-specific chrome can keep rendering `ToolbarController.state` and
   `WenzToolbarItemRegistry.items` themselves.
-- **It introduces no new runtime dependency.** PDF/DOCX/player/etc. still enter
+- **It introduces no new runtime dependency.** URL launchers, PDF/DOCX/player/etc. still enter
   through the existing injection boundaries (`WenzDocumentExporter`,
-  `MediaResolver`). Importing the facade adds nothing to the dependency tree.
+  `MediaResolver`, `onOpenLink`). Importing the facade adds nothing to the
+  dependency tree.
 - **It adds no facade-specific serialization format.** JSON/Markdown/HTML/plain-
   text codec shapes come from the controller codecs. The facade delegates; it
   does not re-encode or maintain a second import/export model.
@@ -635,6 +658,7 @@ This is the contract `WenzEditorConfiguration` (P002) implements and
 | `slashMenuItems` | `List<SlashMenuItem>` | `SlashMenuRegistry` | tier 2 |
 | `toolbarItems` | `List<WenzToolbarItem>` | `WenzToolbarItemRegistry`; rendered by the default desktop toolbar when used | tier 2 |
 | `onMentionTap` | `WenzMentionTapCallback?` | `buildEditor` | tier 1 |
+| `onOpenLink` | `WenzLinkInteractionCallback?` | `buildEditor`; direct widget override may replace it | tier 2 |
 | `onChanged` | doc-changed callback | controller | tier 1 |
 | `onSelectionChanged` | selection callback | controller | tier 1 |
 | `onCommandExecuted` | command callback | controller | tier 1 |
@@ -665,6 +689,8 @@ stretch the default image renderer.
 verbatim to `WenzRichTextEditor`): `padding`, `blockSpacing`, `textStyle`,
 `defaultTextColor`, `physics`, `focusNode`, `autofocus`, `readOnly`,
 `showDebugOverlay`, `enableIme`. The facade does not reinterpret any of them.
+`onOpenLink` is also accepted as a per-widget callback override; omit it to use
+`configuration.onOpenLink`.
 
 `WenzEditorBootstrap.create(configuration)` — constructor + assembly.
 `buildDefaultDesktopToolbar({...})` — optional desktop toolbar factory, may be
@@ -690,7 +716,8 @@ When integrating, confirm each of these against your host:
 5. Mode is `permission` (command gate) optionally combined with `readOnly`
    ([§7](#7-three-modes--read-only--comment--edit)); the gate is never bypassed.
 6. If your app supports mentions, wire `mentionSearch` for `@` suggestions and
-   `onMentionTap` for profile/detail activation.
+   `onMentionTap` for profile/detail activation. If users should open links,
+   wire `onOpenLink`; otherwise the popup Open action is intentionally disabled.
 7. `dispose()` is called exactly once in your widget's `dispose()`
    ([§8](#8-lifecycle--dispose-order)).
 8. If the facade cannot express what you need, drop to tier 2

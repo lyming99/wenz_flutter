@@ -246,6 +246,44 @@ void main() {
 
       controller.dispose();
     });
+
+    test('code block plain paste emits one command and listener notification',
+        () {
+      final pastedCode = '${List<String>.generate(
+        520,
+        (index) => 'final value$index = $index;',
+      ).join('\n')}\n';
+      final controller = WenzRichTextController(
+        document: _codeDoc('void main() {}'),
+        selection: collapsedCodeSelection('code1', 0, 5),
+      );
+      var docChanges = 0;
+      var selectionChanges = 0;
+      var commandRuns = 0;
+      var listenerNotifications = 0;
+      EditorCommand? commandSeen;
+
+      controller.onChanged = (_) => docChanges++;
+      controller.onSelectionChanged = (_) => selectionChanges++;
+      controller.onCommandExecuted = (command, _) {
+        commandRuns++;
+        commandSeen = command;
+      };
+      controller.addListener(() => listenerNotifications++);
+
+      controller.pasteText(pastedCode);
+
+      final block = controller.document.blocks.single as CodeBlockNode;
+      expect(block.code, 'void ${pastedCode}main() {}');
+      expect(controller.selection?.extent.offset, 5 + pastedCode.length);
+      expect(docChanges, 1);
+      expect(selectionChanges, 1);
+      expect(commandRuns, 1);
+      expect(listenerNotifications, 1);
+      expect(commandSeen, isA<InsertTextCommand>());
+
+      controller.dispose();
+    });
   });
 }
 
@@ -256,5 +294,11 @@ RichTextDocument _doc() => const RichTextDocument(
           type: BlockType.paragraph,
           content: <InlineNode>[TextRun(text: 'Hello')],
         ),
+      ],
+    );
+
+RichTextDocument _codeDoc(String code) => RichTextDocument(
+      blocks: <BlockNode>[
+        CodeBlockNode(id: 'code1', code: code, language: 'dart'),
       ],
     );

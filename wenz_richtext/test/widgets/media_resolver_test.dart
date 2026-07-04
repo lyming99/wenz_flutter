@@ -306,6 +306,56 @@ void main() {
       expect(sizedBox.height, 160);
     });
 
+    testWidgets(
+        'image resolver custom empty and failed paths share finite frame',
+        (tester) async {
+      final controller = WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            ImageBlockNode(id: 'resolved', assetId: 'resolved-asset'),
+            ImageBlockNode(id: 'empty', assetId: 'empty-asset'),
+            ImageBlockNode(id: 'failed', assetId: 'failed-asset'),
+          ],
+        ),
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Align(
+              alignment: Alignment.topLeft,
+              child: SizedBox(
+                width: 420,
+                height: 900,
+                child: WenzRichTextEditor(
+                  controller: controller,
+                  mediaResolver: const _MixedImageFrameResolver(),
+                  padding: EdgeInsets.zero,
+                  enableIme: false,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('resolver image'), findsOneWidget);
+      expect(find.text('图片占位'), findsOneWidget);
+      expect(find.text('图片加载失败'), findsOneWidget);
+      expect(find.text('无法显示该图片，请重新上传'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey<String>('resolver-image-widget')),
+        findsOneWidget,
+      );
+
+      _expectFiniteImageFrame(tester, 'resolved');
+      _expectFiniteImageFrame(tester, 'empty');
+      _expectFiniteImageFrame(tester, 'failed');
+
+      final exception = tester.takeException();
+      expect(exception, isA<StateError>());
+      expect(exception.toString(), contains('resolver blew up'));
+    });
+
     testWidgets('default video renderer shows title source cover and aspect',
         (tester) async {
       final controller = WenzRichTextController(
@@ -694,6 +744,30 @@ void main() {
   });
 }
 
+void _expectFiniteImageFrame(WidgetTester tester, String blockId) {
+  final frameFinder = find.byKey(
+    ValueKey<String>('wenz-richtext-image-frame-$blockId'),
+  );
+  final imageSizeFinder = find.byKey(
+    ValueKey<String>('wenz-richtext-image-size-$blockId'),
+  );
+  expect(frameFinder, findsOneWidget);
+  expect(imageSizeFinder, findsOneWidget);
+
+  final frameSize = tester.getSize(frameFinder);
+  final imageSize = tester.getSize(imageSizeFinder);
+  expect(frameSize.width.isFinite, isTrue);
+  expect(frameSize.height.isFinite, isTrue);
+  expect(frameSize.width, greaterThan(0));
+  expect(frameSize.height, greaterThan(0));
+  expect(imageSize.width, moreOrLessEquals(frameSize.width, epsilon: 0.75));
+  expect(imageSize.height, moreOrLessEquals(frameSize.height, epsilon: 0.75));
+  expect(
+    frameSize.height,
+    moreOrLessEquals(frameSize.width / 2, epsilon: 1),
+  );
+}
+
 /// Records the blocks it was asked to resolve and returns a deterministic
 /// `Text('resolved:<assetId>')` for image/video/file blocks; declines
 /// anything else.
@@ -740,6 +814,26 @@ class _SourceAwareImageResolver implements MediaResolver {
 class _NullResolver implements MediaResolver {
   @override
   Widget? resolve(BuildContext context, BlockNode block) => null;
+}
+
+class _MixedImageFrameResolver implements MediaResolver {
+  const _MixedImageFrameResolver();
+
+  @override
+  Widget? resolve(BuildContext context, BlockNode block) {
+    if (block is! ImageBlockNode) {
+      return null;
+    }
+    return switch (block.id) {
+      'resolved' => const ColoredBox(
+          key: ValueKey<String>('resolver-image-widget'),
+          color: Colors.amber,
+          child: Center(child: Text('resolver image')),
+        ),
+      'failed' => throw StateError('resolver blew up'),
+      _ => null,
+    };
+  }
 }
 
 class _ThrowingResolver implements MediaResolver {

@@ -1,3 +1,5 @@
+import 'dart:ui' show PointerDeviceKind;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wenz_richtext/wenz_richtext.dart';
@@ -192,6 +194,56 @@ void main() {
       expect(find.byType(WenzDefaultDesktopToolbar), findsOneWidget);
       expect(find.byTooltip('Plugin action'), findsOneWidget);
       expect(find.byTooltip('Host action'), findsOneWidget);
+    });
+
+    testWidgets('media actions injected into helper are invoked', (
+      tester,
+    ) async {
+      final imageContexts = <WenzDefaultDesktopToolbarActionContext>[];
+      final videoContexts = <WenzDefaultDesktopToolbarActionContext>[];
+      final bootstrap = WenzEditorBootstrap.create(
+        WenzEditorConfiguration(
+          document: const RichTextDocument(
+            blocks: <BlockNode>[
+              TextBlockNode(
+                id: 'p1',
+                type: BlockType.paragraph,
+                content: <InlineNode>[TextRun(text: 'Hello')],
+              ),
+            ],
+          ),
+          selection: collapsedTextSelection('p1', 0, 5),
+        ),
+      );
+      addTearDown(bootstrap.dispose);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: bootstrap.buildDefaultDesktopToolbar(
+              actions: WenzDefaultDesktopToolbarActions(
+                onInsertImage: imageContexts.add,
+                onInsertVideo: videoContexts.add,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      await tester.tap(find.byTooltip('插入图片'));
+      await tester.pump();
+      await tester.tap(find.byTooltip('插入视频'));
+      await tester.pump();
+
+      expect(imageContexts, hasLength(1));
+      expect(videoContexts, hasLength(1));
+      expect(imageContexts.single.controller, same(bootstrap.controller));
+      expect(imageContexts.single.toolbar, same(bootstrap.toolbarController));
+      expect(videoContexts.single.controller, same(bootstrap.controller));
+      expect(videoContexts.single.toolbar, same(bootstrap.toolbarController));
+      expect(imageContexts.single.state.hasSelection, isTrue);
+      expect(videoContexts.single.state.hasSelection, isTrue);
     });
   });
 
@@ -440,6 +492,112 @@ void main() {
       expect(editor.contextMenuConfiguration, same(appendMenu));
     });
 
+    test('link open callback is copied and passed to buildEditor', () {
+      void configuredOpenLink(String url, DocumentPosition position) {}
+
+      void replacementOpenLink(String url, DocumentPosition position) {}
+
+      void explicitOpenLink(String url, DocumentPosition position) {}
+
+      final configuration = WenzEditorConfiguration(
+        onOpenLink: configuredOpenLink,
+      );
+
+      expect(configuration.onOpenLink, same(configuredOpenLink));
+      expect(configuration.copyWith().onOpenLink, same(configuredOpenLink));
+      expect(
+        configuration.copyWith(onOpenLink: replacementOpenLink).onOpenLink,
+        same(replacementOpenLink),
+      );
+      expect(configuration.copyWith(onOpenLink: null).onOpenLink, isNull);
+
+      final bootstrap = WenzEditorBootstrap.create(configuration);
+      addTearDown(bootstrap.dispose);
+
+      expect(
+        bootstrap.buildEditor(enableIme: false).onOpenLink,
+        same(configuredOpenLink),
+      );
+      expect(
+        bootstrap
+            .buildEditor(
+              enableIme: false,
+              onOpenLink: explicitOpenLink,
+            )
+            .onOpenLink,
+        same(explicitOpenLink),
+      );
+
+      final zeroConfig =
+          WenzEditorBootstrap.create(const WenzEditorConfiguration());
+      addTearDown(zeroConfig.dispose);
+      expect(zeroConfig.buildEditor(enableIme: false).onOpenLink, isNull);
+    });
+
+    testWidgets(
+        'configuration onOpenLink enables hover Open in standard bootstrap path',
+        (tester) async {
+      final urls = <String>[];
+      final positions = <DocumentPosition>[];
+      final bootstrap = WenzEditorBootstrap.create(
+        WenzEditorConfiguration(
+          document: _bootstrapLinkDocument,
+          onOpenLink: (url, position) {
+            urls.add(url);
+            positions.add(position);
+          },
+        ),
+      );
+      addTearDown(bootstrap.dispose);
+
+      await _pumpBootstrapLinkEditor(tester, bootstrap);
+      await _hoverMouseAt(tester, _bootstrapLinkPoint(tester));
+
+      expect(find.text('Open'), findsOneWidget);
+      final openAction = find.ancestor(
+        of: find.text('Open'),
+        matching: find.byType(InkWell),
+      );
+      expect(tester.widget<InkWell>(openAction).onTap, isNotNull);
+
+      await tester.tap(find.text('Open'));
+      await tester.pumpAndSettle();
+
+      expect(urls, <String>[_bootstrapLinkUrl]);
+      expect(positions.single.blockId, 'p-bootstrap-link');
+      expect(positions.single.blockIndex, 0);
+      expect(
+        positions.single.path,
+        PositionPath.blockText('p-bootstrap-link'),
+      );
+      expect(positions.single.offset, _bootstrapLinkStart);
+    });
+
+    testWidgets('buildEditor onOpenLink overrides configuration callback',
+        (tester) async {
+      final configuredUrls = <String>[];
+      final explicitUrls = <String>[];
+      final bootstrap = WenzEditorBootstrap.create(
+        WenzEditorConfiguration(
+          document: _bootstrapLinkDocument,
+          onOpenLink: (url, position) => configuredUrls.add(url),
+        ),
+      );
+      addTearDown(bootstrap.dispose);
+
+      await _pumpBootstrapLinkEditor(
+        tester,
+        bootstrap,
+        onOpenLink: (url, position) => explicitUrls.add(url),
+      );
+      await _hoverMouseAt(tester, _bootstrapLinkPoint(tester));
+      await tester.tap(find.text('Open'));
+      await tester.pumpAndSettle();
+
+      expect(configuredUrls, isEmpty);
+      expect(explicitUrls, <String>[_bootstrapLinkUrl]);
+    });
+
     testWidgets(
         'host block embed renderer and slash item injected via configuration '
         'take effect', (tester) async {
@@ -640,4 +798,69 @@ Offset _globalTextRangePoint(
         rangeRect.left + rangeRect.width * fraction,
         rangeRect.center.dy,
       );
+}
+
+const String _bootstrapLinkText = 'Read docs today';
+const int _bootstrapLinkStart = 5;
+const int _bootstrapLinkEnd = 9;
+const String _bootstrapLinkUrl = 'https://bootstrap.example';
+
+const RichTextDocument _bootstrapLinkDocument = RichTextDocument(
+  blocks: <BlockNode>[
+    TextBlockNode(
+      id: 'p-bootstrap-link',
+      type: BlockType.paragraph,
+      content: <InlineNode>[
+        TextRun(text: 'Read '),
+        TextRun(
+          text: 'docs',
+          attributes: TextAttributes(url: _bootstrapLinkUrl),
+        ),
+        TextRun(text: ' today'),
+      ],
+    ),
+  ],
+);
+
+Future<void> _pumpBootstrapLinkEditor(
+  WidgetTester tester,
+  WenzEditorBootstrap bootstrap, {
+  WenzLinkInteractionCallback? onOpenLink,
+}) async {
+  await tester.pumpWidget(
+    MaterialApp(
+      home: Scaffold(
+        body: bootstrap.buildEditor(
+          enableIme: false,
+          padding: const EdgeInsets.only(
+            top: 96,
+            left: 16,
+            right: 16,
+            bottom: 16,
+          ),
+          onOpenLink: onOpenLink,
+        ),
+      ),
+    ),
+  );
+  await tester.pumpAndSettle();
+}
+
+Offset _bootstrapLinkPoint(WidgetTester tester) {
+  return _globalTextRangePoint(
+    tester,
+    _bootstrapLinkText,
+    _bootstrapLinkStart,
+    _bootstrapLinkEnd,
+    0.5,
+  );
+}
+
+Future<void> _hoverMouseAt(WidgetTester tester, Offset point) async {
+  final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
+  addTearDown(gesture.removePointer);
+  await gesture.addPointer(location: const Offset(-200, -200));
+  await tester.pump();
+  await gesture.moveTo(point);
+  await tester.pumpAndSettle();
 }

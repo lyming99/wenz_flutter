@@ -160,8 +160,10 @@ class WenzDefaultDesktopToolbarActions {
   bool get shouldShowBlockEmbedButton =>
       _shouldShow(onInsertBlockEmbed, blockEmbedUnavailablePolicy);
 
+  bool get isImagePending => onInsertImage != null && isPickingImage;
+
   bool canInsertImage(ToolbarController toolbar) {
-    return onInsertImage != null && !isPickingImage && toolbar.canInsertImage;
+    return onInsertImage != null && !isImagePending && toolbar.canInsertImage;
   }
 
   bool canInsertVideo(ToolbarController toolbar) {
@@ -321,48 +323,48 @@ class WenzDefaultDesktopToolbar extends StatelessWidget {
               crossAxisAlignment: WrapCrossAlignment.center,
               children: <Widget>[
                 _ToolbarIconButton(
-                  tooltip: 'Undo',
+                  tooltip: '撤销',
                   icon: Icons.undo,
                   enabled: state.canUndo,
                   onPressed: toolbar.undo,
                 ),
                 _ToolbarIconButton(
-                  tooltip: 'Redo',
+                  tooltip: '重做',
                   icon: Icons.redo,
                   enabled: state.canRedo,
                   onPressed: toolbar.redo,
                 ),
                 _ToolbarDivider(visible: style.showGroupDividers),
                 _MarkButton(
-                  tooltip: 'Bold',
+                  tooltip: '加粗',
                   icon: Icons.format_bold,
                   mark: TextMark.bold,
                   toolbar: toolbar,
                   state: state,
                 ),
                 _MarkButton(
-                  tooltip: 'Italic',
+                  tooltip: '斜体',
                   icon: Icons.format_italic,
                   mark: TextMark.italic,
                   toolbar: toolbar,
                   state: state,
                 ),
                 _MarkButton(
-                  tooltip: 'Underline',
+                  tooltip: '下划线',
                   icon: Icons.format_underline,
                   mark: TextMark.underline,
                   toolbar: toolbar,
                   state: state,
                 ),
                 _MarkButton(
-                  tooltip: 'Strikethrough',
+                  tooltip: '删除线',
                   icon: Icons.format_strikethrough,
                   mark: TextMark.lineThrough,
                   toolbar: toolbar,
                   state: state,
                 ),
                 _MarkButton(
-                  tooltip: 'Remark',
+                  tooltip: '批注',
                   icon: Icons.comment_outlined,
                   mark: TextMark.remark,
                   toolbar: toolbar,
@@ -382,26 +384,26 @@ class WenzDefaultDesktopToolbar extends StatelessWidget {
                   onPressed: toolbar.clearTextColor,
                 ),
                 _ToolbarIconButton(
-                  tooltip: 'Clear style',
+                  tooltip: '清除样式',
                   icon: Icons.format_clear,
                   enabled: state.canFormatInline,
                   onPressed: toolbar.clearStyle,
                 ),
                 _ToolbarIconButton(
-                  tooltip: state.linkUrl == null ? 'Add link' : 'Edit link',
+                  tooltip: state.linkUrl == null ? '添加链接' : '编辑链接',
                   icon: Icons.link,
                   selected: state.linkUrl != null,
                   enabled: state.canSetLink,
                   onPressed: () => _showLinkDialog(context, state),
                 ),
                 _ToolbarIconButton(
-                  tooltip: 'Formula',
+                  tooltip: '公式',
                   icon: Icons.functions,
                   enabled: state.canFormatInline,
                   onPressed: () => controller.insertFormula(''),
                 ),
                 _ToolbarIconButton(
-                  tooltip: 'Emoji',
+                  tooltip: '表情',
                   icon: Icons.emoji_emotions_outlined,
                   enabled: state.canFormatInline,
                   onPressed: () => controller.insertEmoji(
@@ -411,56 +413,56 @@ class WenzDefaultDesktopToolbar extends StatelessWidget {
                 ),
                 _ToolbarDivider(visible: style.showGroupDividers),
                 _BlockTypeButton(
-                  tooltip: 'Heading 1',
+                  tooltip: '一级标题',
                   icon: Icons.looks_one,
                   selected: state.isHeading(1),
                   enabled: state.canSetBlockType,
                   onPressed: () => toolbar.setHeading(1),
                 ),
                 _BlockTypeButton(
-                  tooltip: 'Heading 2',
+                  tooltip: '二级标题',
                   icon: Icons.looks_two,
                   selected: state.isHeading(2),
                   enabled: state.canSetBlockType,
                   onPressed: () => toolbar.setHeading(2),
                 ),
                 _BlockTypeButton(
-                  tooltip: 'Heading 3',
+                  tooltip: '三级标题',
                   icon: Icons.looks_3,
                   selected: state.isHeading(3),
                   enabled: state.canSetBlockType,
                   onPressed: () => toolbar.setHeading(3),
                 ),
                 _BlockTypeButton(
-                  tooltip: 'Paragraph',
+                  tooltip: '段落',
                   icon: Icons.notes,
                   selected: state.isParagraph,
                   enabled: state.canSetBlockType,
                   onPressed: toolbar.setParagraph,
                 ),
                 _BlockTypeButton(
-                  tooltip: 'Quote',
+                  tooltip: '引用',
                   icon: Icons.format_quote,
                   selected: state.isQuoteBlock,
                   enabled: state.canToggleQuote,
                   onPressed: toolbar.toggleQuoteBlock,
                 ),
                 _BlockTypeButton(
-                  tooltip: 'Task list',
+                  tooltip: '任务列表',
                   icon: Icons.checklist,
                   selected: state.isTodo,
                   enabled: state.canSetBlockType,
                   onPressed: toolbar.setTodo,
                 ),
                 _BlockTypeButton(
-                  tooltip: 'Ordered list',
+                  tooltip: '有序列表',
                   icon: Icons.format_list_numbered,
                   selected: state.isOrderedList,
                   enabled: state.canSetBlockType,
                   onPressed: toolbar.setOrderedList,
                 ),
                 _BlockTypeButton(
-                  tooltip: 'Unordered list',
+                  tooltip: '无序列表',
                   icon: Icons.format_list_bulleted,
                   selected: state.isUnorderedList,
                   enabled: state.canSetBlockType,
@@ -468,35 +470,35 @@ class WenzDefaultDesktopToolbar extends StatelessWidget {
                 ),
                 _ToolbarDivider(visible: style.showGroupDividers),
                 _AlignmentButton(
-                  tooltip: 'Align left',
+                  tooltip: '左对齐',
                   icon: Icons.format_align_left,
                   alignment: 'left',
                   toolbar: toolbar,
                   state: state,
                 ),
                 _AlignmentButton(
-                  tooltip: 'Align center',
+                  tooltip: '居中对齐',
                   icon: Icons.format_align_center,
                   alignment: 'center',
                   toolbar: toolbar,
                   state: state,
                 ),
                 _AlignmentButton(
-                  tooltip: 'Align right',
+                  tooltip: '右对齐',
                   icon: Icons.format_align_right,
                   alignment: 'right',
                   toolbar: toolbar,
                   state: state,
                 ),
                 _AlignmentButton(
-                  tooltip: 'Justify',
+                  tooltip: '两端对齐',
                   icon: Icons.format_align_justify,
                   alignment: 'justify',
                   toolbar: toolbar,
                   state: state,
                 ),
                 _AlignmentButton(
-                  tooltip: 'Clear alignment',
+                  tooltip: '清除对齐',
                   icon: Icons.format_clear,
                   alignment: null,
                   toolbar: toolbar,
@@ -504,32 +506,32 @@ class WenzDefaultDesktopToolbar extends StatelessWidget {
                 ),
                 _ToolbarDivider(visible: style.showGroupDividers),
                 _ToolbarIconButton(
-                  tooltip: 'Increase indent',
+                  tooltip: '增加缩进',
                   icon: Icons.format_indent_increase,
                   enabled: state.canIndent,
                   onPressed: toolbar.indent,
                 ),
                 _ToolbarIconButton(
-                  tooltip: 'Decrease indent',
+                  tooltip: '减少缩进',
                   icon: Icons.format_indent_decrease,
                   enabled: state.canOutdent,
                   onPressed: toolbar.outdent,
                 ),
                 _ToolbarDivider(visible: style.showGroupDividers),
                 _ToolbarIconButton(
-                  tooltip: 'Insert code block',
+                  tooltip: '插入代码块',
                   icon: Icons.code,
                   enabled: toolbar.canInsertBlock,
                   onPressed: () => toolbar.insertCodeBlock(),
                 ),
                 _ToolbarIconButton(
-                  tooltip: 'Insert callout',
+                  tooltip: '插入标注',
                   icon: Icons.tips_and_updates_outlined,
                   enabled: toolbar.canInsertBlock,
                   onPressed: () => toolbar.insertCallout(),
                 ),
                 _ToolbarIconButton(
-                  tooltip: 'Insert table',
+                  tooltip: '插入表格',
                   icon: Icons.table_chart_outlined,
                   enabled: toolbar.canInsertBlock,
                   onPressed: () => toolbar.insertTable(),
@@ -537,41 +539,41 @@ class WenzDefaultDesktopToolbar extends StatelessWidget {
                 if (showResourceActions) ...<Widget>[
                   _ToolbarDivider(visible: style.showGroupDividers),
                   if (actions.shouldShowImageButton)
-                    _ToolbarIconButton(
-                      tooltip: actions.isPickingImage
-                          ? 'Picking image'
+                    _ResourceActionButton(
+                      tooltip: actions.isImagePending
+                          ? '正在选择图片'
                           : _resourceTooltip(
-                              'Insert image',
+                              '插入图片',
                               actions.onInsertImage,
                             ),
                       icon: Icons.image_outlined,
-                      iconWidget: actions.isPickingImage
+                      iconWidget: actions.isImagePending
                           ? const SizedBox.square(
                               dimension: 18,
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
                           : null,
                       enabled: actions.canInsertImage(toolbar),
-                      onPressed: () => _runToolbarAction(
-                        actions.insertImage(actionContext(context)),
+                      action: (buttonContext) => actions.insertImage(
+                        actionContext(buttonContext),
                       ),
                     ),
                   if (actions.shouldShowVideoButton)
-                    _ToolbarIconButton(
+                    _ResourceActionButton(
                       tooltip: _resourceTooltip(
-                        'Insert video',
+                        '插入视频',
                         actions.onInsertVideo,
                       ),
                       icon: Icons.smart_display_outlined,
                       enabled: actions.canInsertVideo(toolbar),
-                      onPressed: () => _runToolbarAction(
-                        actions.insertVideo(actionContext(context)),
+                      action: (buttonContext) => actions.insertVideo(
+                        actionContext(buttonContext),
                       ),
                     ),
                   if (actions.shouldShowFileButton)
                     _ToolbarIconButton(
                       tooltip: _resourceTooltip(
-                        'Insert file',
+                        '插入文件',
                         actions.onInsertFile,
                       ),
                       icon: Icons.attach_file,
@@ -583,7 +585,7 @@ class WenzDefaultDesktopToolbar extends StatelessWidget {
                   if (actions.shouldShowBlockEmbedButton)
                     _ToolbarIconButton(
                       tooltip: _resourceTooltip(
-                        'Insert embed',
+                        '插入业务嵌入',
                         actions.onInsertBlockEmbed,
                       ),
                       icon: Icons.badge_outlined,
@@ -596,37 +598,37 @@ class WenzDefaultDesktopToolbar extends StatelessWidget {
                 if (state.canTableStruct) ...<Widget>[
                   _ToolbarDivider(visible: style.showGroupDividers),
                   _ToolbarIconButton(
-                    tooltip: 'Insert row below',
+                    tooltip: '下方插入行',
                     icon: Icons.table_rows_outlined,
                     enabled: state.canTableStruct,
                     onPressed: toolbar.insertTableRow,
                   ),
                   _ToolbarIconButton(
-                    tooltip: 'Insert column right',
+                    tooltip: '右侧插入列',
                     icon: Icons.view_column_outlined,
                     enabled: state.canTableStruct,
                     onPressed: toolbar.insertTableColumn,
                   ),
                   _ToolbarIconButton(
-                    tooltip: 'Delete row',
+                    tooltip: '删除行',
                     icon: Icons.remove_circle_outline,
                     enabled: state.canTableStruct,
                     onPressed: toolbar.deleteTableRow,
                   ),
                   _ToolbarIconButton(
-                    tooltip: 'Delete column',
+                    tooltip: '删除列',
                     icon: Icons.highlight_remove_outlined,
                     enabled: state.canTableStruct,
                     onPressed: toolbar.deleteTableColumn,
                   ),
                   _ToolbarIconButton(
-                    tooltip: 'Merge cells',
+                    tooltip: '合并单元格',
                     icon: Icons.call_merge,
                     enabled: state.canTableStruct,
                     onPressed: toolbar.mergeTableCells,
                   ),
                   _ToolbarIconButton(
-                    tooltip: 'Split cell',
+                    tooltip: '拆分单元格',
                     icon: Icons.call_split,
                     enabled: state.canTableStruct,
                     onPressed: toolbar.splitTableCell,
@@ -706,6 +708,33 @@ class _ToolbarIconButton extends StatelessWidget {
   }
 }
 
+class _ResourceActionButton extends StatelessWidget {
+  const _ResourceActionButton({
+    required this.tooltip,
+    required this.icon,
+    required this.enabled,
+    required this.action,
+    this.iconWidget,
+  });
+
+  final String tooltip;
+  final IconData icon;
+  final bool enabled;
+  final FutureOr<void> Function(BuildContext context) action;
+  final Widget? iconWidget;
+
+  @override
+  Widget build(BuildContext context) {
+    return _ToolbarIconButton(
+      tooltip: tooltip,
+      icon: icon,
+      enabled: enabled,
+      iconWidget: iconWidget,
+      onPressed: () => _runToolbarAction(action(context)),
+    );
+  }
+}
+
 class _MarkButton extends StatelessWidget {
   const _MarkButton({
     required this.tooltip,
@@ -778,7 +807,7 @@ class _AlignmentButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _ToolbarIconButton(
-      tooltip: state.alignmentMixed ? '$tooltip (mixed)' : tooltip,
+      tooltip: state.alignmentMixed ? '$tooltip（混合对齐）' : tooltip,
       icon: icon,
       selected: state.canSetAlignment && state.isAlignment(alignment),
       enabled: state.canSetAlignment,
@@ -972,22 +1001,22 @@ ButtonStyle _toolbarButtonStyle(ThemeData theme) {
 
 String _textColorTooltip(ToolbarState state) {
   if (state.textColorMixed) {
-    return 'Text color (mixed)';
+    return '文字颜色（混合）';
   }
   if (state.textColor == null) {
-    return 'Text color';
+    return '文字颜色';
   }
-  return 'Text color #${_hexColor(state.textColor!)}';
+  return '文字颜色 #${_hexColor(state.textColor!)}';
 }
 
 String _clearTextColorTooltip(ToolbarState state) {
   if (state.textColorMixed) {
-    return 'Clear mixed text color';
+    return '清除混合文字颜色';
   }
   if (state.textColor == null) {
-    return 'No text color';
+    return '无文字颜色';
   }
-  return 'Clear text color #${_hexColor(state.textColor!)}';
+  return '清除文字颜色 #${_hexColor(state.textColor!)}';
 }
 
 String _hexColor(int value) {
@@ -998,7 +1027,7 @@ String _resourceTooltip(
   String label,
   WenzDefaultDesktopToolbarActionCallback? action,
 ) {
-  return action == null ? '$label unavailable' : label;
+  return action == null ? '$label不可用' : label;
 }
 
 void _runToolbarAction(FutureOr<void> result) {

@@ -15,40 +15,52 @@ void main() {
       );
 
       for (final tooltip in const <String>[
-        'Undo',
-        'Redo',
-        'Bold',
-        'Italic',
-        'Underline',
-        'Strikethrough',
-        'Remark',
-        'Text color',
-        'Clear style',
-        'Add link',
-        'Formula',
-        'Emoji',
-        'Heading 1',
-        'Paragraph',
-        'Ordered list',
-        'Align center',
-        'Insert code block',
-        'Insert callout',
-        'Insert table',
+        '撤销',
+        '重做',
+        '加粗',
+        '斜体',
+        '下划线',
+        '删除线',
+        '批注',
+        '文字颜色',
+        '无文字颜色',
+        '清除样式',
+        '添加链接',
+        '公式',
+        '表情',
+        '一级标题',
+        '二级标题',
+        '三级标题',
+        '段落',
+        '引用',
+        '任务列表',
+        '有序列表',
+        '无序列表',
+        '左对齐',
+        '居中对齐',
+        '右对齐',
+        '两端对齐',
+        '清除对齐',
+        '增加缩进',
+        '减少缩进',
+        '插入代码块',
+        '插入标注',
+        '插入表格',
       ]) {
         expect(find.byTooltip(tooltip), findsOneWidget);
       }
 
-      expect(_iconButton(tester, 'Undo').onPressed, isNull);
-      expect(_iconButton(tester, 'Redo').onPressed, isNull);
-      expect(_iconButton(tester, 'Bold').onPressed, isNotNull);
+      expect(_iconButton(tester, '撤销').onPressed, isNull);
+      expect(_iconButton(tester, '重做').onPressed, isNull);
+      expect(_iconButton(tester, '加粗').onPressed, isNotNull);
 
       harness.controller.permission = WenzEditorPermission.read;
       await tester.pump();
 
-      expect(_iconButton(tester, 'Bold').onPressed, isNull);
-      expect(_iconButton(tester, 'Add link').onPressed, isNull);
-      expect(_iconButton(tester, 'Heading 1').onPressed, isNull);
-      expect(_iconButton(tester, 'Insert code block').onPressed, isNull);
+      expect(_iconButton(tester, '加粗').onPressed, isNull);
+      expect(_iconButton(tester, '添加链接').onPressed, isNull);
+      expect(_iconButton(tester, '一级标题').onPressed, isNull);
+      expect(_iconButton(tester, '插入代码块').onPressed, isNull);
     });
 
     testWidgets('wraps inside a narrow width without framework overflow', (
@@ -68,17 +80,32 @@ void main() {
       tester,
     ) async {
       await _pumpToolbar(tester);
-      expect(find.byTooltip('Insert image'), findsNothing);
+      expect(find.byTooltip('插入图片'), findsNothing);
+      expect(find.byTooltip('插入视频'), findsNothing);
+      expect(find.byTooltip('插入文件'), findsNothing);
+      expect(find.byTooltip('插入业务嵌入'), findsNothing);
 
       final disabledHarness = await _pumpToolbar(
         tester,
         actions: const WenzDefaultDesktopToolbarActions(
           imageUnavailablePolicy:
               WenzDefaultDesktopToolbarUnavailablePolicy.disable,
+          videoUnavailablePolicy:
+              WenzDefaultDesktopToolbarUnavailablePolicy.disable,
+          fileUnavailablePolicy:
+              WenzDefaultDesktopToolbarUnavailablePolicy.disable,
+          blockEmbedUnavailablePolicy:
+              WenzDefaultDesktopToolbarUnavailablePolicy.disable,
         ),
       );
-      expect(find.byTooltip('Insert image unavailable'), findsOneWidget);
-      expect(_iconButton(tester, 'Insert image unavailable').onPressed, isNull);
+      expect(find.byTooltip('插入图片不可用'), findsOneWidget);
+      expect(find.byTooltip('插入视频不可用'), findsOneWidget);
+      expect(find.byTooltip('插入文件不可用'), findsOneWidget);
+      expect(find.byTooltip('插入业务嵌入不可用'), findsOneWidget);
+      expect(_iconButton(tester, '插入图片不可用').onPressed, isNull);
+      expect(_iconButton(tester, '插入视频不可用').onPressed, isNull);
+      expect(_iconButton(tester, '插入文件不可用').onPressed, isNull);
+      expect(_iconButton(tester, '插入业务嵌入不可用').onPressed, isNull);
 
       final contexts = <WenzDefaultDesktopToolbarActionContext>[];
       await _pumpToolbar(
@@ -94,10 +121,10 @@ void main() {
       );
 
       for (final tooltip in const <String>[
-        'Insert image',
-        'Insert video',
-        'Insert file',
-        'Insert embed',
+        '插入图片',
+        '插入视频',
+        '插入文件',
+        '插入业务嵌入',
       ]) {
         await _tapToolbarButton(tester, tooltip);
       }
@@ -105,6 +132,9 @@ void main() {
       expect(contexts.first.controller, same(disabledHarness.controller));
       expect(contexts.first.toolbar, same(disabledHarness.toolbar));
       expect(contexts.first.state.hasSelection, isTrue);
+      expect(contexts[1].controller, same(disabledHarness.controller));
+      expect(contexts[1].toolbar, same(disabledHarness.toolbar));
+      expect(contexts[1].state.hasSelection, isTrue);
 
       await _pumpToolbar(
         tester,
@@ -113,8 +143,29 @@ void main() {
           isPickingImage: true,
         ),
       );
-      expect(find.byTooltip('Picking image'), findsOneWidget);
-      expect(_iconButton(tester, 'Picking image').onPressed, isNull);
+      expect(find.byTooltip('正在选择图片'), findsOneWidget);
+      expect(_iconButton(tester, '正在选择图片').onPressed, isNull);
+
+      for (final permission in <WenzEditorPermission>[
+        WenzEditorPermission.read,
+        WenzEditorPermission.comment,
+      ]) {
+        var mediaCalls = 0;
+        await _pumpToolbar(
+          tester,
+          permission: permission,
+          actions: WenzDefaultDesktopToolbarActions(
+            onInsertImage: (_) => mediaCalls++,
+            onInsertVideo: (_) => mediaCalls++,
+          ),
+        );
+        expect(_iconButton(tester, '插入图片').onPressed, isNull);
+        expect(_iconButton(tester, '插入视频').onPressed, isNull);
+        await tester.tap(find.byTooltip('插入图片'), warnIfMissed: false);
+        await tester.tap(find.byTooltip('插入视频'), warnIfMissed: false);
+        await tester.pump();
+        expect(mediaCalls, 0);
+      }
     });
   });
 
@@ -130,19 +181,19 @@ void main() {
       expect(_hasRun(harness.controller, (run) => run.attributes.bold == true),
           isFalse);
 
-      await _tapToolbarButton(tester, 'Bold');
-      expect(_iconButton(tester, 'Bold').isSelected, isTrue);
+      await _tapToolbarButton(tester, '加粗');
+      expect(_iconButton(tester, '加粗').isSelected, isTrue);
       expect(_hasRun(harness.controller, (run) => run.attributes.bold == true),
           isTrue);
-      expect(_iconButton(tester, 'Undo').onPressed, isNotNull);
+      expect(_iconButton(tester, '撤销').onPressed, isNotNull);
 
-      await _tapToolbarButton(tester, 'Italic');
+      await _tapToolbarButton(tester, '斜体');
       expect(
         _hasRun(harness.controller, (run) => run.attributes.italic == true),
         isTrue,
       );
 
-      await _tapToolbarButton(tester, 'Clear style');
+      await _tapToolbarButton(tester, '清除样式');
       expect(_hasRun(harness.controller, (run) => run.attributes.bold == true),
           isFalse);
       expect(
@@ -150,10 +201,10 @@ void main() {
         isFalse,
       );
 
-      await _tapToolbarButton(tester, 'Undo');
-      expect(_iconButton(tester, 'Redo').onPressed, isNotNull);
-      await _tapToolbarButton(tester, 'Redo');
-      expect(_iconButton(tester, 'Undo').onPressed, isNotNull);
+      await _tapToolbarButton(tester, '撤销');
+      expect(_iconButton(tester, '重做').onPressed, isNotNull);
+      await _tapToolbarButton(tester, '重做');
+      expect(_iconButton(tester, '撤销').onPressed, isNotNull);
     });
 
     testWidgets('sets block type, list, alignment, and indentation', (
@@ -164,38 +215,76 @@ void main() {
         selection: collapsedTextSelection('p1', 0, 0),
       );
 
-      await _tapToolbarButton(tester, 'Heading 1');
+      await _tapToolbarButton(tester, '一级标题');
       var block = _textBlock(harness.controller, 'p1');
       expect(block.type, BlockType.heading);
       expect(block.attributes.level, 1);
-      expect(_iconButton(tester, 'Heading 1').isSelected, isTrue);
+      expect(_iconButton(tester, '一级标题').isSelected, isTrue);
 
-      await _tapToolbarButton(tester, 'Paragraph');
+      await _tapToolbarButton(tester, '段落');
       block = _textBlock(harness.controller, 'p1');
       expect(block.type, BlockType.paragraph);
 
-      await _tapToolbarButton(tester, 'Ordered list');
+      await _tapToolbarButton(tester, '有序列表');
       block = _textBlock(harness.controller, 'p1');
       expect(block.type, BlockType.listItem);
       expect(block.attributes.listType, 'ordered');
 
-      await _tapToolbarButton(tester, 'Unordered list');
+      await _tapToolbarButton(tester, '无序列表');
       block = _textBlock(harness.controller, 'p1');
       expect(block.type, BlockType.listItem);
       expect(block.attributes.listType, isNull);
 
-      await _tapToolbarButton(tester, 'Align center');
+      await _tapToolbarButton(tester, '居中对齐');
       block = _textBlock(harness.controller, 'p1');
       expect(block.attributes.alignment, 'center');
-      expect(_iconButton(tester, 'Align center').isSelected, isTrue);
+      expect(_iconButton(tester, '居中对齐').isSelected, isTrue);
 
-      await _tapToolbarButton(tester, 'Increase indent');
+      await _tapToolbarButton(tester, '增加缩进');
       block = _textBlock(harness.controller, 'p1');
       expect(block.attributes.indent, 1);
 
-      await _tapToolbarButton(tester, 'Decrease indent');
+      await _tapToolbarButton(tester, '减少缩进');
       block = _textBlock(harness.controller, 'p1');
       expect(block.attributes.indent, 0);
+    });
+
+    testWidgets('uses localized dynamic color and mixed alignment tooltips', (
+      tester,
+    ) async {
+      final harness = await _pumpToolbar(
+        tester,
+        selection: textSelection('p1', 0, 0, 5),
+      );
+
+      expect(find.byTooltip('文字颜色'), findsOneWidget);
+      expect(find.byTooltip('无文字颜色'), findsOneWidget);
+
+      harness.toolbar.setTextColorValue(0xFFFF0000);
+      await tester.pump();
+      expect(find.byTooltip('文字颜色 #FFFF0000'), findsOneWidget);
+      expect(find.byTooltip('清除文字颜色 #FFFF0000'), findsOneWidget);
+
+      harness.toolbar.clearTextColor();
+      await tester.pump();
+      expect(find.byTooltip('文字颜色'), findsOneWidget);
+      expect(find.byTooltip('无文字颜色'), findsOneWidget);
+
+      await _pumpToolbar(
+        tester,
+        document: _mixedTextColorDocument(),
+        selection: textSelection('p1', 0, 0, 10),
+      );
+      expect(find.byTooltip('文字颜色（混合）'), findsOneWidget);
+      expect(find.byTooltip('清除混合文字颜色'), findsOneWidget);
+
+      await _pumpToolbar(
+        tester,
+        document: _mixedAlignmentDocument(),
+        selection: _mixedAlignmentSelection(),
+      );
+      expect(find.byTooltip('左对齐（混合对齐）'), findsOneWidget);
+      expect(find.byTooltip('清除对齐（混合对齐）'), findsOneWidget);
     });
 
     testWidgets('inserts default structure blocks from toolbar buttons', (
@@ -206,16 +295,39 @@ void main() {
         selection: collapsedTextSelection('p1', 0, 0),
       );
 
-      await _tapToolbarButton(tester, 'Insert code block');
+      await _tapToolbarButton(tester, '插入代码块');
       expect(harness.controller.document.blocks.first, isA<CodeBlockNode>());
 
-      await _tapToolbarButton(tester, 'Insert callout');
+      await _tapToolbarButton(tester, '插入标注');
       expect(
         harness.controller.document.blocks.whereType<CalloutBlockNode>(),
         isNotEmpty,
       );
 
-      await _tapToolbarButton(tester, 'Insert table');
+      await _tapToolbarButton(tester, '插入表格');
+      expect(
+        harness.controller.document.blocks.whereType<TableBlockNode>(),
+        isNotEmpty,
+      );
+    });
+
+    testWidgets('media buttons do not affect core toolbar commands', (
+      tester,
+    ) async {
+      final harness = await _pumpToolbar(
+        tester,
+        selection: textSelection('p1', 0, 0, 5),
+        actions: WenzDefaultDesktopToolbarActions(
+          onInsertImage: (_) {},
+          onInsertVideo: (_) {},
+        ),
+      );
+
+      await _tapToolbarButton(tester, '加粗');
+      expect(_hasRun(harness.controller, (run) => run.attributes.bold == true),
+          isTrue);
+
+      await _tapToolbarButton(tester, '插入表格');
       expect(
         harness.controller.document.blocks.whereType<TableBlockNode>(),
         isNotEmpty,
@@ -230,7 +342,7 @@ void main() {
         selection: textSelection('p1', 0, 0, 5),
       );
 
-      await _tapToolbarButton(tester, 'Add link');
+      await _tapToolbarButton(tester, '添加链接');
       await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextField), 'https://wenz.dev');
       await tester.tap(find.text('Apply'));
@@ -243,7 +355,7 @@ void main() {
         ),
         isTrue,
       );
-      expect(_iconButton(tester, 'Edit link').isSelected, isTrue);
+      expect(_iconButton(tester, '编辑链接').isSelected, isTrue);
     });
 
     testWidgets('cancel leaves the document unchanged', (tester) async {
@@ -252,7 +364,7 @@ void main() {
         selection: textSelection('p1', 0, 0, 5),
       );
 
-      await _tapToolbarButton(tester, 'Add link');
+      await _tapToolbarButton(tester, '添加链接');
       await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextField), 'https://ignored.test');
       await tester.tap(find.text('Cancel'));
@@ -262,7 +374,7 @@ void main() {
         _hasRun(harness.controller, (run) => run.attributes.url != null),
         isFalse,
       );
-      expect(find.byTooltip('Add link'), findsOneWidget);
+      expect(find.byTooltip('添加链接'), findsOneWidget);
     });
 
     testWidgets('removes an existing link', (tester) async {
@@ -272,9 +384,9 @@ void main() {
         selection: textSelection('p1', 0, 0, 5),
       );
 
-      expect(_iconButton(tester, 'Edit link').isSelected, isTrue);
+      expect(_iconButton(tester, '编辑链接').isSelected, isTrue);
 
-      await _tapToolbarButton(tester, 'Edit link');
+      await _tapToolbarButton(tester, '编辑链接');
       await tester.pumpAndSettle();
       await tester.tap(find.text('Remove'));
       await tester.pumpAndSettle();
@@ -283,7 +395,7 @@ void main() {
         _hasRun(harness.controller, (run) => run.attributes.url != null),
         isFalse,
       );
-      expect(find.byTooltip('Add link'), findsOneWidget);
+      expect(find.byTooltip('添加链接'), findsOneWidget);
     });
   });
 
@@ -292,7 +404,7 @@ void main() {
       tester,
     ) async {
       await _pumpToolbar(tester);
-      expect(find.byTooltip('Insert row below'), findsNothing);
+      expect(find.byTooltip('下方插入行'), findsNothing);
 
       final harness = await _pumpToolbar(
         tester,
@@ -301,21 +413,21 @@ void main() {
       );
 
       for (final tooltip in const <String>[
-        'Insert row below',
-        'Insert column right',
-        'Delete row',
-        'Delete column',
-        'Merge cells',
-        'Split cell',
+        '下方插入行',
+        '右侧插入列',
+        '删除行',
+        '删除列',
+        '合并单元格',
+        '拆分单元格',
       ]) {
         expect(find.byTooltip(tooltip), findsOneWidget);
         expect(_iconButton(tester, tooltip).onPressed, isNotNull);
       }
 
-      await _tapToolbarButton(tester, 'Insert row below');
+      await _tapToolbarButton(tester, '下方插入行');
       expect(_table(harness.controller).table.rowCount, 3);
 
-      await _tapToolbarButton(tester, 'Insert column right');
+      await _tapToolbarButton(tester, '右侧插入列');
       expect(_table(harness.controller).table.columnCount, 3);
     });
 
@@ -328,12 +440,12 @@ void main() {
         selection: _tableSelection(0, 0, 0, 1),
       );
 
-      await _tapToolbarButton(tester, 'Merge cells');
+      await _tapToolbarButton(tester, '合并单元格');
       var table = _table(harness.controller).table;
       expect(table.cellAt(0, 0)?.columnSpan, 2);
       expect(table.cellAt(0, 1)?.covered, isTrue);
 
-      await _tapToolbarButton(tester, 'Split cell');
+      await _tapToolbarButton(tester, '拆分单元格');
       table = _table(harness.controller).table;
       expect(table.cellAt(0, 0)?.columnSpan, 1);
       expect(table.cellAt(0, 1)?.covered, isFalse);
@@ -525,6 +637,63 @@ RichTextDocument _textDocument({String? link}) {
         ],
       ),
     ],
+  );
+}
+
+RichTextDocument _mixedTextColorDocument() {
+  return const RichTextDocument(
+    blocks: <BlockNode>[
+      TextBlockNode(
+        id: 'p1',
+        type: BlockType.paragraph,
+        content: <InlineNode>[
+          TextRun(
+            text: 'Hello',
+            attributes: TextAttributes(color: 0xFFFF0000),
+          ),
+          TextRun(
+            text: 'World',
+            attributes: TextAttributes(color: 0xFF00FF00),
+          ),
+        ],
+      ),
+    ],
+  );
+}
+
+RichTextDocument _mixedAlignmentDocument() {
+  return const RichTextDocument(
+    blocks: <BlockNode>[
+      TextBlockNode(
+        id: 'p1',
+        type: BlockType.paragraph,
+        attributes: BlockAttributes(alignment: 'left'),
+        content: <InlineNode>[TextRun(text: 'One')],
+      ),
+      TextBlockNode(
+        id: 'p2',
+        type: BlockType.paragraph,
+        attributes: BlockAttributes(alignment: 'center'),
+        content: <InlineNode>[TextRun(text: 'Two')],
+      ),
+    ],
+  );
+}
+
+DocumentSelection _mixedAlignmentSelection() {
+  return DocumentSelection(
+    base: DocumentPosition(
+      blockId: 'p1',
+      blockIndex: 0,
+      path: PositionPath.blockText('p1'),
+      offset: 0,
+    ),
+    extent: DocumentPosition(
+      blockId: 'p2',
+      blockIndex: 1,
+      path: PositionPath.blockText('p2'),
+      offset: 3,
+    ),
   );
 }
 

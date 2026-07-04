@@ -69,6 +69,7 @@ class WenzEditorConfiguration {
     this.externalImageStore,
     this.mentionSearch,
     this.onMentionTap,
+    this.onOpenLink,
     this.onChanged,
     this.onSelectionChanged,
     this.onCommandExecuted,
@@ -194,6 +195,10 @@ class WenzEditorConfiguration {
   /// [WenzRichTextEditor] as the editor-level mention handler.
   final WenzMentionTapCallback? onMentionTap;
 
+  /// Callback invoked when a link is opened from the editor surface. Forwarded
+  /// to [WenzRichTextEditor] as the editor-level link opener.
+  final WenzLinkInteractionCallback? onOpenLink;
+
   /// Invoked before the controller notifies listeners whenever the document
   /// content changes. Mirrors [WenzRichTextController.onChanged].
   final ValueChanged<RichTextDocument>? onChanged;
@@ -288,6 +293,7 @@ class WenzEditorConfiguration {
     Object? externalImageStore = _unset,
     Object? mentionSearch = _unset,
     Object? onMentionTap = _unset,
+    Object? onOpenLink = _unset,
     Object? onChanged = _unset,
     Object? onSelectionChanged = _unset,
     Object? onCommandExecuted = _unset,
@@ -343,6 +349,9 @@ class WenzEditorConfiguration {
       onMentionTap: identical(onMentionTap, _unset)
           ? this.onMentionTap
           : onMentionTap as WenzMentionTapCallback?,
+      onOpenLink: identical(onOpenLink, _unset)
+          ? this.onOpenLink
+          : onOpenLink as WenzLinkInteractionCallback?,
       onChanged: identical(onChanged, _unset)
           ? this.onChanged
           : onChanged as ValueChanged<RichTextDocument>?,

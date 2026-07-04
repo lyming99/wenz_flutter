@@ -91,7 +91,12 @@ class InsertBlocksCommand extends EditorCommand {
       version: session.document.version,
       blocks: nextBlocks,
     );
-    return CommandResult(selection: selection);
+    final defaultSelection = blocks.first is CalloutBlockNode
+        ? _defaultSelectionForInsertedBlock(insertIndex, blocks.first)
+        : null;
+    return CommandResult(
+      selection: selection ?? defaultSelection,
+    );
   }
 }
 
@@ -315,6 +320,12 @@ DocumentSelection? _defaultSelectionForInsertedBlock(
     CodeBlockNode() => DocumentPosition.code(
         blockId: block.id,
         blockIndex: blockIndex,
+        offset: 0,
+      ),
+    CalloutBlockNode() => DocumentPosition(
+        blockId: block.id,
+        blockIndex: blockIndex,
+        path: PositionPath.blockText(block.id),
         offset: 0,
       ),
     TableBlockNode() => _firstTableCellPosition(block, blockIndex),
@@ -546,6 +557,14 @@ class PasteBlocksCommand extends EditorCommand {
     BlockNode last,
   ) {
     if (last is TextBlockNode) {
+      final pos = DocumentPosition.text(
+        blockId: last.id,
+        blockIndex: blockIndexDelta,
+        offset: inlineNodesLength(last.content),
+      );
+      return DocumentSelection(base: pos, extent: pos);
+    }
+    if (last is CalloutBlockNode) {
       final pos = DocumentPosition.text(
         blockId: last.id,
         blockIndex: blockIndexDelta,
@@ -1184,7 +1203,9 @@ DocumentSelection _selectionAfterDeletingBlock({
 }) {
   for (var i = deletedIndex - 1; i >= 0; i--) {
     final block = beforeBlocks[i];
-    if (block is TextBlockNode || block is CodeBlockNode) {
+    if (block is TextBlockNode ||
+        block is CodeBlockNode ||
+        block is CalloutBlockNode) {
       return _selectionAtEditableBlockEnd(block, i);
     }
   }
@@ -1198,6 +1219,14 @@ DocumentSelection _selectionAfterDeletingBlock({
 DocumentSelection _selectionAtEditableBlockEnd(
     BlockNode block, int blockIndex) {
   if (block is TextBlockNode) {
+    final position = DocumentPosition.text(
+      blockId: block.id,
+      blockIndex: blockIndex,
+      offset: inlineNodesLength(block.content),
+    );
+    return DocumentSelection(base: position, extent: position);
+  }
+  if (block is CalloutBlockNode) {
     final position = DocumentPosition.text(
       blockId: block.id,
       blockIndex: blockIndex,
@@ -1232,6 +1261,14 @@ DocumentSelection _selectionAtBlockStartOrObject(
     );
     return DocumentSelection(base: position, extent: position);
   }
+  if (block is CalloutBlockNode) {
+    final position = DocumentPosition.text(
+      blockId: block.id,
+      blockIndex: blockIndex,
+      offset: 0,
+    );
+    return DocumentSelection(base: position, extent: position);
+  }
   if (block is TableBlockNode) {
     final position = _firstTableCellPosition(block, blockIndex);
     if (position != null) {
@@ -1243,7 +1280,9 @@ DocumentSelection _selectionAtBlockStartOrObject(
 
 DocumentSelection _selectionAtBlockEndOrObject(
     BlockNode block, int blockIndex) {
-  if (block is TextBlockNode || block is CodeBlockNode) {
+  if (block is TextBlockNode ||
+      block is CodeBlockNode ||
+      block is CalloutBlockNode) {
     return _selectionAtEditableBlockEnd(block, blockIndex);
   }
   if (block is TableBlockNode) {
@@ -1472,6 +1511,8 @@ class EnterCommand extends EditorCommand {
 
     final split = splitInline(block.content, position.offset);
     final nextBlockId = newBlockId ?? '${block.id}-next';
+    final continueHeadingAsParagraph = block.type == BlockType.heading &&
+        position.offset >= inlineNodesLength(block.content);
     final before = TextBlockNode(
       id: block.id,
       type: block.type,
@@ -1480,8 +1521,10 @@ class EnterCommand extends EditorCommand {
     );
     final after = TextBlockNode(
       id: nextBlockId,
-      type: block.type,
-      attributes: _continuedTextBlockAttributes(block),
+      type: continueHeadingAsParagraph ? BlockType.paragraph : block.type,
+      attributes: continueHeadingAsParagraph
+          ? _paragraphAttributesAfterHeading(block.attributes)
+          : _continuedTextBlockAttributes(block),
       content: split.after,
     );
     final nextSelectionPosition = DocumentPosition.text(
@@ -1584,6 +1627,15 @@ class EnterCommand extends EditorCommand {
       quoted: current.quoted,
       childNote: current.childNote,
       anchor: current.anchor,
+    );
+  }
+
+  BlockAttributes _paragraphAttributesAfterHeading(BlockAttributes current) {
+    return BlockAttributes(
+      indent: current.indent,
+      alignment: current.alignment,
+      quoted: current.quoted,
+      childNote: current.childNote,
     );
   }
 

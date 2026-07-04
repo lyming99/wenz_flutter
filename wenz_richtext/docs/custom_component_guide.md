@@ -117,7 +117,11 @@ builder 收到 `BlockRenderContext`，其中与自定义组件最相关的字段
 
 **核心约束：业务 widget 必须用 `WenzObjectBlockSurface` 包裹**（`lib/src/widgets/wenz_rich_text_editor.dart`），这样它才能拿到与内置 image / video / file 一致的选区命中、光标、几何与块把手；不包裹则选区、行把手、排序 chrome 都不会正确生效。
 
-默认图片块已经内置可编辑态交互：选中图片后，frame 左右边缘会出现 resize 手柄，拖拽按图片有效宽高比同步调整 `showWidth/showHeight`，并在拖拽结束时通过 controller/command pipeline 调用 `updateImageBlock` 提交一次更新。拖拽过程只做临时预览，不创建新图片块、不改变 block id，也不需要业务层用“创建块副本”来模拟尺寸变化；图片块的内置对象菜单也不会暴露副本入口。`readOnly` 或非编辑权限下手柄隐藏且不会提交尺寸更新。
+默认图片块已经内置可编辑态交互：选中图片后，视觉上只保留贴合 frame 的 `_MediaSelectionStroke` 描边；左右边缘启用隐形 resize 命中区，不绘制常驻手柄或竖线。拖拽按图片有效宽高比同步调整 `showWidth/showHeight`，并在拖拽结束时通过 controller/command pipeline 调用 `updateImageBlock` 提交一次更新。拖拽过程只做临时预览，不创建新图片块、不改变 block id，也不需要业务层用“创建块副本”来模拟尺寸变化；图片块的内置对象菜单仍提供尺寸设置 / 重置入口且不会暴露副本入口。`readOnly` 或非编辑权限下 resize 命中区不启用且不会提交尺寸更新。
+
+通过 `MediaResolver` 改写内置图片外观时，业务 widget 会被默认图片 renderer 放进编辑器提供的有限 frame 内。这个 frame 优先尊重 `showWidth/showHeight`，其次使用图片自然 `width/height`，缺失尺寸时退回编辑区内容宽度和默认 2:1 占位比例。resolver 返回 widget、返回 `null` 后的空占位、resolver 抛错后的失败占位、caption、选中描边、resize 命中区和对象工具栏锚点都共享这个 frame。业务 widget 应按传入约束自适应，不要依赖无限高度；需要真实比例或固定展示尺寸时，通过 `updateImageBlock` 写入自然尺寸或 `showWidth/showHeight`。
+
+内置 slash 菜单的 `image` / `图片` 项只插入一个图片占位块：它有生成的 `assetId`，但没有自然宽高，也没有 `showWidth/showHeight`。后续上传、替换资源、补充 alt/caption 或写入尺寸仍走既有 `insertImage` / `updateImageBlock` 数据模型，不需要为 slash 图片新增 schema 或迁移字段。
 
 如果业务块还需要悬浮对象工具栏，不要把工具栏塞进业务 widget 的 `Column` / `Stack`，也不要靠负偏移或额外占位制造悬浮效果。正确做法是在业务对象框顶部布置 `ObjectBlockToolbarOverlayAnchor`，通过 `objectBlockToolbarOverlayController` 发布请求，由编辑器级 `ObjectBlockToolbarOverlayHost` 承载工具栏；这样选中 / 取消选中不会改变业务块高度、frame 位置或周边正文布局。未显式迁移的非媒体对象块仍沿用既有块级浮动工具栏路径。
 

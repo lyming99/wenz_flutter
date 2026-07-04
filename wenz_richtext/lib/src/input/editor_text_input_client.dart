@@ -2,7 +2,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 import '../controller/wenz_rich_text_controller.dart';
+import '../core/commands/inline_editing.dart';
 import '../core/commands/table_cell_editing.dart';
+import '../core/model/attributes.dart';
 import '../core/model/block_node.dart';
 import '../core/position/document_position.dart';
 import 'composition_state.dart';
@@ -261,6 +263,9 @@ class EditorTextInputClient with DeltaTextInputClient {
           '';
     }
     final block = _blockAt(position.blockIndex);
+    if (position.path.isBlockText && block is CalloutBlockNode) {
+      return block.content.map((node) => node.plainText).join();
+    }
     return block?.plainText ?? '';
   }
 
@@ -312,14 +317,14 @@ class EditorTextInputClient with DeltaTextInputClient {
     if (activeSelection != null && !activeSelection.isCollapsed) {
       final shift =
           activeSelection.start.offset - _safeOffset(delta.insertionOffset);
-      _controller.insertText(text);
+      _insertTextFromPlatform(text);
       _syncSelection(_shiftSelection(delta.selection, shift));
       _syncComposition(_shiftRange(delta.composing, shift));
       return;
     }
     final offset = _effectiveInsertionOffset(delta.insertionOffset);
     _placeCaretAt(offset);
-    _controller.insertText(text);
+    _insertTextFromPlatform(text);
     final shift = offset - delta.insertionOffset;
     _syncSelection(_shiftSelection(delta.selection, shift));
     _syncComposition(_shiftRange(delta.composing, shift));
@@ -356,7 +361,7 @@ class EditorTextInputClient with DeltaTextInputClient {
       if (delta.replacementText.isEmpty) {
         _controller.deleteSelection(activeSelection);
       } else {
-        _controller.insertText(delta.replacementText);
+        _insertTextFromPlatform(delta.replacementText);
       }
       _syncSelection(_shiftSelection(delta.selection, shift));
       _syncComposition(_shiftRange(delta.composing, shift));
@@ -370,7 +375,7 @@ class EditorTextInputClient with DeltaTextInputClient {
     }
     _placeCaretAt(actualReplaced.start);
     if (delta.replacementText.isNotEmpty) {
-      _controller.insertText(delta.replacementText);
+      _insertTextFromPlatform(delta.replacementText);
     }
     _syncSelection(_shiftSelection(delta.selection, shift));
     _syncComposition(_shiftRange(delta.composing, shift));
@@ -397,6 +402,71 @@ class EditorTextInputClient with DeltaTextInputClient {
         extent: position.copyWith(offset: end),
       ),
     );
+  }
+
+  void _insertTextFromPlatform(String text) {
+    if (text.isEmpty) {
+      return;
+    }
+    final selection = _controller.selection;
+    if (_selectionTargetsCalloutBody(selection)) {
+      if (!selection!.isCollapsed) {
+        _controller.deleteSelection(selection);
+      }
+      if (_insertTextIntoCalloutBody(text)) {
+        return;
+      }
+    }
+    _controller.insertText(text);
+  }
+
+  bool _selectionTargetsCalloutBody(DocumentSelection? selection) {
+    if (selection == null || !_isSingleTextInputTarget(selection)) {
+      return false;
+    }
+    final position = selection.extent;
+    final block = _blockAt(position.blockIndex);
+    return block is CalloutBlockNode &&
+        position.blockId == block.id &&
+        position.path.isBlockText &&
+        position.path.blockId == block.id;
+  }
+
+  bool _insertTextIntoCalloutBody(String text) {
+    final selection = _controller.selection;
+    if (selection == null || !selection.isCollapsed) {
+      return false;
+    }
+    final position = selection.extent;
+    final block = _blockAt(position.blockIndex);
+    if (block is! CalloutBlockNode ||
+        position.blockId != block.id ||
+        !position.path.isBlockText ||
+        position.path.blockId != block.id) {
+      return false;
+    }
+
+    final contentLength = inlineNodesLength(block.content);
+    final offset = position.offset.clamp(0, contentLength).toInt();
+    final nextBlock = block.copyWith(
+      content: insertInline(
+        block.content,
+        offset,
+        text,
+        const TextAttributes(),
+      ),
+    );
+    final nextPosition = position.copyWith(offset: offset + text.length);
+    _controller.replaceBlocks(
+      index: position.blockIndex,
+      deleteCount: 1,
+      blocks: <BlockNode>[nextBlock],
+      selection: DocumentSelection(
+        base: nextPosition,
+        extent: nextPosition,
+      ),
+    );
+    return true;
   }
 
   int _effectiveInsertionOffset(int platformOffset) {
@@ -545,7 +615,7 @@ class EditorTextInputClient with DeltaTextInputClient {
         }
         _placeCaretAt(diff.oldStart);
         if (diff.replacement.isNotEmpty) {
-          _controller.insertText(diff.replacement);
+          _insertTextFromPlatform(diff.replacement);
         }
       }
       _syncSelection(value.selection);
@@ -570,7 +640,7 @@ class EditorTextInputClient with DeltaTextInputClient {
     if (value.text.isEmpty) {
       _controller.deleteSelection(selection);
     } else {
-      _controller.insertText(value.text);
+      _insertTextFromPlatform(value.text);
     }
     _syncSelection(_shiftSelection(value.selection, shift));
     _syncComposition(_shiftRange(value.composing, shift));
@@ -607,7 +677,7 @@ class EditorTextInputClient with DeltaTextInputClient {
     }
     _placeCaretAt(start);
     if (value.text.isNotEmpty) {
-      _controller.insertText(value.text);
+      _insertTextFromPlatform(value.text);
     }
     final shift = start - _rangeStartOr(value.composing, fallback: 0);
     _syncSelection(_shiftSelection(value.selection, shift));

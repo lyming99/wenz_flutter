@@ -614,6 +614,60 @@ void main() {
 
       expect(controller.document.blocks, hasLength(3));
       expect(controller.document.plainText, 'aX\nYY\nZb');
+      expect(
+        controller.document.blocks.map((block) => block.runtimeType),
+        <Type>[TextBlockNode, TextBlockNode, TextBlockNode],
+      );
+    });
+
+    test('paste plain multi-line into code block preserves raw code', () {
+      const pasted = '# title\n\n  final url = "http://example.test";\n```\n';
+      final controller = WenzRichTextController(
+        document: _codeDoc(
+          'ab',
+          language: 'dart',
+          attributes: const BlockAttributes(anchor: 'code-anchor'),
+        ),
+        selection: collapsedCodeSelection('code1', 0, 1),
+      );
+
+      controller.pasteText(pasted);
+
+      expect(controller.document.blocks, hasLength(1));
+      final block = controller.document.blocks.single as CodeBlockNode;
+      expect(block.id, 'code1');
+      expect(block.language, 'dart');
+      expect(block.attributes.anchor, 'code-anchor');
+      expect(block.code, 'a${pasted}b');
+      expect(controller.selection?.extent.path, PositionPath.blockCode('code1'));
+      expect(controller.selection?.extent.offset, 1 + pasted.length);
+    });
+
+    test('paste plain multi-line replaces code selection in one undo step', () {
+      const original = '0123456789';
+      const pasted = 'A\nB\n';
+      final controller = WenzRichTextController(
+        document: _codeDoc(
+          original,
+          language: 'dart',
+          attributes: const BlockAttributes(anchor: 'code-anchor'),
+        ),
+        selection: _codeSelection('code1', 0, 2, 7),
+      );
+
+      controller.pasteText(pasted);
+
+      var block = controller.document.blocks.single as CodeBlockNode;
+      expect(block.code, '01${pasted}789');
+      expect(block.language, 'dart');
+      expect(block.attributes.anchor, 'code-anchor');
+      expect(controller.selection?.extent.offset, 2 + pasted.length);
+
+      expect(controller.undo(), isTrue);
+      block = controller.document.blocks.single as CodeBlockNode;
+      expect(block.code, original);
+      expect(block.language, 'dart');
+      expect(block.attributes.anchor, 'code-anchor');
     });
 
     test('paste plain text does not trigger Markdown shortcuts', () {
@@ -1103,6 +1157,45 @@ RichTextDocument _emptyDoc() {
       ),
     ],
   );
+}
+
+RichTextDocument _codeDoc(
+  String code, {
+  String language = '',
+  BlockAttributes attributes = const BlockAttributes(),
+}) {
+  return RichTextDocument(
+    blocks: <BlockNode>[
+      CodeBlockNode(
+        id: 'code1',
+        code: code,
+        language: language,
+        attributes: attributes,
+      ),
+    ],
+  );
+}
+
+DocumentSelection _codeSelection(
+  String blockId,
+  int blockIndex,
+  int startOffset,
+  int endOffset,
+) {
+  final path = PositionPath.blockCode(blockId);
+  final start = DocumentPosition(
+    blockId: blockId,
+    blockIndex: blockIndex,
+    path: path,
+    offset: startOffset,
+  );
+  final end = DocumentPosition(
+    blockId: blockId,
+    blockIndex: blockIndex,
+    path: path,
+    offset: endOffset,
+  );
+  return DocumentSelection(base: start, extent: end);
 }
 
 RichTextDocument _tableDoc([String plainTail = 'llo']) {

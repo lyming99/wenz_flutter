@@ -419,9 +419,10 @@ class WenzEditorBootstrap {
   /// editor should be live. Every assembly-time concern — [controller],
   /// [blockRendererRegistry], [inlineEmbedRendererRegistry],
   /// [slashMenuController], [findReplaceController], [outlineController],
-  /// the host [WenzEditorConfiguration.onMentionTap], the merged shortcut
-  /// configuration, context-menu configuration, external image-input settings,
-  /// and [WenzEditorConfiguration.accessibility] — is injected automatically. The
+  /// the host [WenzEditorConfiguration.onMentionTap],
+  /// [WenzEditorConfiguration.onOpenLink], the merged shortcut configuration,
+  /// context-menu configuration, external image-input settings, and
+  /// [WenzEditorConfiguration.accessibility] — is injected automatically. The
   /// named parameters are appearance overrides a host may pass through; each
   /// forwards verbatim to the [WenzRichTextEditor]
   /// constructor.
@@ -480,7 +481,7 @@ class WenzEditorBootstrap {
       mediaResolver: configuration.mediaResolver,
       inlineEmbedRenderer: inlineEmbedRendererRegistry,
       onMentionTap: configuration.onMentionTap,
-      onOpenLink: onOpenLink,
+      onOpenLink: onOpenLink ?? configuration.onOpenLink,
       findController: findReplaceController,
       onFindRequested: onFindRequested,
       onReplaceRequested: onReplaceRequested,
