@@ -1,0 +1,91 @@
+{
+  "title": "精简默认编辑器工具栏并折叠插入功能",
+  "summary": "根据反馈 #78，默认桌面工具栏需要从当前铺开的全量按钮改为更简约的编辑入口：移除撤销/重做、表情、批注、缩进/缩退等可见按钮，将链接、公式和插入类操作收纳到单个“+”popup；标题/正文和对齐方式改为下拉选择；文字颜色在现有预设基础上支持用户选择具体颜色。代码影响主要集中在默认桌面工具栏实现和对应 widget 测试。",
+  "tasks": [
+    {
+      "title": "精简默认工具栏可见按钮",
+      "scope": [
+        "lib/src/widgets/default_desktop_toolbar.dart",
+        "test/widgets/default_desktop_toolbar_test.dart"
+      ],
+      "acceptance": [
+        "默认工具栏不再直接展示撤销、重做、批注、表情、增加缩进、减少缩进按钮及其 tooltip。",
+        "加粗、斜体、下划线、删除线、文字颜色、清除文字颜色、清除样式等核心文字编辑能力仍保留在主工具栏并维持选中态和禁用态。",
+        "只读或评论权限下，保留的主工具栏按钮仍按 ToolbarState 正确禁用。"
+      ]
+    },
+    {
+      "title": "新增“+”插入元素 popup",
+      "scope": [
+        "lib/src/widgets/default_desktop_toolbar.dart",
+        "test/widgets/default_desktop_toolbar_test.dart"
+      ],
+      "acceptance": [
+        "主工具栏展示单个“+”popup 按钮承载插入和扩展动作。",
+        "popup 中包含添加/编辑链接、插入公式、插入代码块、插入标注、插入表格，以及已配置的图片、视频、文件、业务嵌入资源动作。",
+        "popup 中不包含插入表情入口。",
+        "链接入口继续复用现有链接编辑弹窗；公式入口继续调用现有公式插入能力；资源动作的隐藏、禁用、pending 和回调上下文语义保持不变。"
+      ]
+    },
+    {
+      "title": "将标题和正文切换改为下拉选择",
+      "scope": [
+        "lib/src/widgets/default_desktop_toolbar.dart",
+        "test/widgets/default_desktop_toolbar_test.dart"
+      ],
+      "acceptance": [
+        "工具栏使用一个块样式下拉控件替代当前 H1/H2/H3/段落展开按钮。",
+        "下拉选项包含 H1、H2、H3、H4、H5、H6、正文。",
+        "选择 H1-H6 会设置对应 heading level，选择正文会切回 paragraph。",
+        "控件能反映当前选区的正文、具体标题级别或混合状态，并在无法设置块类型时禁用。"
+      ]
+    },
+    {
+      "title": "将对齐方式改为下拉选择",
+      "scope": [
+        "lib/src/widgets/default_desktop_toolbar.dart",
+        "test/widgets/default_desktop_toolbar_test.dart"
+      ],
+      "acceptance": [
+        "工具栏使用一个对齐方式下拉控件替代左对齐、居中、右对齐、两端对齐、清除对齐五个独立按钮。",
+        "下拉选项覆盖左对齐、居中对齐、右对齐、两端对齐、清除对齐。",
+        "当前对齐方式和混合对齐状态在控件上有明确反馈。",
+        "选择任一对齐项会更新块属性，选择清除对齐会将 alignment 清空。"
+      ]
+    },
+    {
+      "title": "扩展文字颜色为可自选具体颜色",
+      "scope": [
+        "lib/src/widgets/default_desktop_toolbar.dart",
+        "test/widgets/default_desktop_toolbar_test.dart"
+      ],
+      "acceptance": [
+        "文字颜色菜单在现有预设色之外提供自定义颜色入口。",
+        "用户可以选择或输入具体颜色值，并通过现有 toolbar.setTextColorValue 流程应用到选区文字。",
+        "应用自定义颜色后，按钮图标、色块或 tooltip 能体现当前颜色的十六进制值。",
+        "清除文字颜色和混合颜色提示逻辑仍保持可用。"
+      ]
+    },
+    {
+      "title": "更新默认工具栏 widget 覆盖",
+      "scope": [
+        "test/widgets/default_desktop_toolbar_test.dart"
+      ],
+      "acceptance": [
+        "测试期望覆盖被移除按钮不再出现在默认工具栏。",
+        "测试覆盖“+”popup 展开后的链接、公式、结构块和资源动作入口。",
+        "测试覆盖标题/正文下拉的 H1-H6 与正文切换场景。",
+        "测试覆盖对齐方式下拉的设置与清除场景。",
+        "测试覆盖自定义文字颜色的选择或输入以及清除颜色场景。"
+      ]
+    }
+  ],
+  "finalValidation": {
+    "command": "flutter analyze",
+    "criteria": [
+      "命令退出码为 0，Flutter analyzer 不报告 error、warning 或 info 级别问题。",
+      "静态分析覆盖 lib/src/widgets/default_desktop_toolbar.dart 及受影响的默认工具栏 widget 测试代码。",
+      "实现后默认工具栏精简、插入 popup、标题/正文下拉、对齐下拉和自定义颜色相关代码均能通过项目现有 analyzer 规则。"
+    ]
+  }
+}

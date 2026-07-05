@@ -9458,7 +9458,7 @@ void main() {
   });
 
   testWidgets(
-      'table floating toolbar hides when target cell scrolls far out of viewport',
+      'table floating toolbar hides offscreen and restores on reentry',
       (tester) async {
     final controller = WenzRichTextController(
       document: _scrollingToolbarTableDocument(),
@@ -9492,27 +9492,46 @@ void main() {
 
     final toolbarFinder =
         find.byKey(const ValueKey<String>('table-floating-toolbar'));
+    final cellFinder =
+        find.byKey(const ValueKey<String>('table-cell-border-table1-0-0'));
+    expect(toolbarFinder, findsOneWidget);
+    expect(cellFinder, findsOneWidget);
+
+    final scrollableFinder = find.descendant(
+      of: find.byType(WenzRichTextEditor),
+      matching: find.byType(Scrollable),
+    );
+    final scrollable = tester.state<ScrollableState>(scrollableFinder);
+    final initialOffset = scrollable.position.pixels;
+    final viewportRect = tester.getRect(scrollableFinder);
+    final initialCellRect = tester.getRect(cellFinder);
+
+    final partialOffset =
+        (initialOffset + initialCellRect.bottom - viewportRect.top - 8)
+            .clamp(0.0, scrollable.position.maxScrollExtent)
+            .toDouble();
+    expect(partialOffset, greaterThan(initialOffset));
+
+    scrollable.position.jumpTo(partialOffset);
+    await _pumpTableToolbarOverlay(tester);
+
+    final partialCellRect = tester.getRect(cellFinder);
+    expect(partialCellRect.top, lessThan(viewportRect.top));
+    expect(partialCellRect.bottom, greaterThan(viewportRect.top));
     expect(toolbarFinder, findsOneWidget);
 
-    final scrollable = tester.state<ScrollableState>(
-      find.descendant(
-        of: find.byType(WenzRichTextEditor),
-        matching: find.byType(Scrollable),
-      ),
-    );
+    scrollable.position.jumpTo(scrollable.position.maxScrollExtent);
+    await _pumpTableToolbarOverlay(tester);
 
-    // Scroll far enough that the target cell is well below the viewport bottom.
-    scrollable.position.jumpTo(
-      scrollable.position.maxScrollExtent,
-    );
-    await tester.pump();
-    await tester.pump();
+    expect(toolbarFinder, findsNothing);
 
-    // Toolbar must still exist (anchor is still mounted); position may be
-    // clamped to visibleTop or may be below the viewport depending on
-    // implementation — the key invariant is that no exception is thrown and the
-    // toolbar widget still exists.
+    scrollable.position.jumpTo(initialOffset);
+    await _pumpTableToolbarOverlay(tester);
+
     expect(toolbarFinder, findsOneWidget);
+    final restoredCellRect = tester.getRect(cellFinder);
+    final restoredToolbarRect = tester.getRect(toolbarFinder);
+    expect(restoredToolbarRect.bottom, lessThanOrEqualTo(restoredCellRect.top));
     expect(tester.takeException(), isNull);
   });
 

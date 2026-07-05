@@ -23,6 +23,7 @@ typedef TableFloatingToolbarOverlayRequestBuilder
   required LayerLink anchorLink,
   required Rect anchorRect,
   required double visibleTop,
+  required double visibleBottom,
 });
 
 /// Immutable payload sent from a table renderer to the editor-owned overlay host.
@@ -47,6 +48,7 @@ class TableFloatingToolbarOverlayRequest {
     this.minWidth = _kTableFloatingToolbarDefaultMinWidth,
     this.gap = _kTableFloatingToolbarDefaultGap,
     this.fallbackHeight = _kTableFloatingToolbarDefaultFallbackHeight,
+    this.visibleBottom = double.infinity,
   });
 
   /// Opaque identity of the renderer anchor that published this request.
@@ -60,6 +62,9 @@ class TableFloatingToolbarOverlayRequest {
 
   /// Top edge of the visible editor viewport in target overlay coordinates.
   final double visibleTop;
+
+  /// Bottom edge of the visible editor viewport in target overlay coordinates.
+  final double visibleBottom;
 
   /// Active table identity used by hosts/tests to reason about request staleness.
   final String tableBlockId;
@@ -95,6 +100,7 @@ class TableFloatingToolbarAnchorSnapshot {
     required this.anchorLink,
     required this.anchorRect,
     required this.visibleTop,
+    required this.visibleBottom,
     required this.tableBlockId,
     required this.blockIndex,
   });
@@ -103,6 +109,7 @@ class TableFloatingToolbarAnchorSnapshot {
   final LayerLink anchorLink;
   final Rect anchorRect;
   final double visibleTop;
+  final double visibleBottom;
   final String tableBlockId;
   final int blockIndex;
 }
@@ -394,28 +401,39 @@ class _TableFloatingToolbarOverlayAnchorState
       ancestor: overlayBox,
     );
     final anchorRect = anchorTopLeft & renderObject.size;
-    final visibleTop = _visibleTopFor(context, overlayBox);
+    final visibleBounds = _visibleBoundsFor(context, overlayBox);
     controller.updateAnchor(
       TableFloatingToolbarAnchorSnapshot(
         owner: _owner,
         anchorLink: _anchorLink,
         anchorRect: anchorRect,
-        visibleTop: visibleTop,
+        visibleTop: visibleBounds.top,
+        visibleBottom: visibleBounds.bottom,
         tableBlockId: widget.tableBlockId,
         blockIndex: widget.blockIndex,
       ),
     );
+    if (!_anchorIntersectsVisibleBounds(anchorRect, visibleBounds)) {
+      controller.hide(owner: _owner);
+      return;
+    }
     final requestBuilder = widget.requestBuilder;
     if (requestBuilder == null) {
       controller.hide(owner: _owner);
       return;
     }
+    final request = requestBuilder(
+      owner: _owner,
+      anchorLink: _anchorLink,
+      anchorRect: anchorRect,
+      visibleTop: visibleBounds.top,
+      visibleBottom: visibleBounds.bottom,
+    );
     controller.show(
-      requestBuilder(
-        owner: _owner,
-        anchorLink: _anchorLink,
+      _withVisibleBounds(
+        request,
         anchorRect: anchorRect,
-        visibleTop: visibleTop,
+        visibleBounds: visibleBounds,
       ),
       replaceDifferentRequest: false,
     );
@@ -431,19 +449,63 @@ class _TableFloatingToolbarOverlayAnchorState
     return null;
   }
 
-  double _visibleTopFor(BuildContext context, RenderBox? overlayBox) {
+  ({double top, double bottom}) _visibleBoundsFor(
+    BuildContext context,
+    RenderBox? overlayBox,
+  ) {
     final scrollable = Scrollable.maybeOf(context);
     final viewportObject = scrollable?.context.findRenderObject();
     if (viewportObject is RenderBox &&
         viewportObject.attached &&
         viewportObject.hasSize) {
-      return viewportObject.localToGlobal(Offset.zero, ancestor: overlayBox).dy;
+      final viewportTopLeft = viewportObject.localToGlobal(
+        Offset.zero,
+        ancestor: overlayBox,
+      );
+      return (
+        top: viewportTopLeft.dy,
+        bottom: viewportTopLeft.dy + viewportObject.size.height,
+      );
     }
     final paddingTop = MediaQuery.maybeOf(context)?.padding.top ?? 0;
     if (overlayBox == null) {
-      return paddingTop;
+      return (top: paddingTop, bottom: double.infinity);
     }
-    return overlayBox.globalToLocal(Offset(0, paddingTop)).dy;
+    final visibleTop = overlayBox.globalToLocal(Offset(0, paddingTop)).dy;
+    return (top: visibleTop, bottom: overlayBox.size.height);
+  }
+
+  bool _anchorIntersectsVisibleBounds(
+    Rect anchorRect,
+    ({double top, double bottom}) visibleBounds,
+  ) {
+    if (visibleBounds.bottom < visibleBounds.top) {
+      return true;
+    }
+    return anchorRect.bottom >= visibleBounds.top &&
+        anchorRect.top <= visibleBounds.bottom;
+  }
+
+  TableFloatingToolbarOverlayRequest _withVisibleBounds(
+    TableFloatingToolbarOverlayRequest request, {
+    required Rect anchorRect,
+    required ({double top, double bottom}) visibleBounds,
+  }) {
+    return TableFloatingToolbarOverlayRequest(
+      owner: request.owner,
+      anchorLink: request.anchorLink,
+      anchorRect: anchorRect,
+      visibleTop: visibleBounds.top,
+      visibleBottom: visibleBounds.bottom,
+      tableBlockId: request.tableBlockId,
+      blockIndex: request.blockIndex,
+      selectionRange: request.selectionRange,
+      toolbarBuilder: request.toolbarBuilder,
+      enabled: request.enabled,
+      minWidth: request.minWidth,
+      gap: request.gap,
+      fallbackHeight: request.fallbackHeight,
+    );
   }
 }
 
@@ -469,8 +531,11 @@ class _TableFloatingToolbarOverlayEntryState
 
   @override
   Widget build(BuildContext context) {
-    _scheduleMeasure();
     final request = widget.request;
+    if (!_requestAnchorIntersectsVisibleViewport(request)) {
+      return const SizedBox.shrink();
+    }
+    _scheduleMeasure();
     final toolbarHeight = _toolbarSize?.height ?? request.fallbackHeight;
     final overlayWidth = math.max(0.0, widget.overlaySize.width);
     final maxWidth = overlayWidth;
@@ -537,5 +602,15 @@ class _TableFloatingToolbarOverlayEntryState
     setState(() {
       _toolbarSize = nextSize;
     });
+  }
+
+  bool _requestAnchorIntersectsVisibleViewport(
+    TableFloatingToolbarOverlayRequest request,
+  ) {
+    if (request.visibleBottom < request.visibleTop) {
+      return true;
+    }
+    return request.anchorRect.bottom >= request.visibleTop &&
+        request.anchorRect.top <= request.visibleBottom;
   }
 }

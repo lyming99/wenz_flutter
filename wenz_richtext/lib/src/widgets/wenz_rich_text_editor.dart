@@ -1939,6 +1939,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
       anchorLink: anchor.anchorLink,
       anchorRect: anchor.anchorRect,
       visibleTop: anchor.visibleTop,
+      visibleBottom: anchor.visibleBottom,
       tableBlockId: tableBlock.id,
       blockIndex: tableRange.blockIndex,
       selectionRange: normalizedRange,
@@ -10911,12 +10912,14 @@ class _TableBlockRenderer extends StatelessWidget {
                       required LayerLink anchorLink,
                       required Rect anchorRect,
                       required double visibleTop,
+                      required double visibleBottom,
                     }) =>
                       TableFloatingToolbarOverlayRequest(
                         owner: owner,
                         anchorLink: anchorLink,
                         anchorRect: anchorRect,
                         visibleTop: visibleTop,
+                        visibleBottom: visibleBottom,
                         tableBlockId: block.id,
                         blockIndex: blockIndex,
                         selectionRange: activeRange,

@@ -87,6 +87,37 @@ void main() {
     return table.table.cellAt(row, column)!.plainText;
   }
 
+  RichTextDocument scrollingTableDocument() {
+    return RichTextDocument(
+      blocks: <BlockNode>[
+        for (var i = 0; i < 4; i++)
+          TextBlockNode(
+            id: 'before-table-$i',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'Before table $i')],
+          ),
+        tableDocument.blocks.single,
+        for (var i = 0; i < 16; i++)
+          TextBlockNode(
+            id: 'after-table-$i',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'After table $i')],
+          ),
+      ],
+    );
+  }
+
+  DocumentSelection scrollingTableCellCaret() {
+    final pos = DocumentPosition.tableCell(
+      tableBlockId: 'table1',
+      blockIndex: 4,
+      tableRowIndex: 0,
+      tableColumnIndex: 0,
+      offset: 0,
+    );
+    return DocumentSelection(base: pos, extent: pos);
+  }
+
   group('table editing', () {
     testWidgets('typing inserts text inside the focused cell', (tester) async {
       final workbench = await pumpWorkbench(
@@ -666,6 +697,40 @@ void main() {
       expect(cellText(controller, 0, 0), 'A\nA');
     });
 
+    testWidgets(
+        'table floating toolbar hides offscreen and returns on scroll back',
+        (tester) async {
+      final workbench = await pumpWorkbench(
+        tester,
+        document: scrollingTableDocument(),
+        selection: scrollingTableCellCaret(),
+      );
+
+      await _pumpTableToolbarOverlay(tester);
+
+      final toolbarFinder =
+          find.byKey(const ValueKey<String>('table-floating-toolbar'));
+      expect(toolbarFinder, findsOneWidget);
+      expect(workbench.controller.selection?.tableCellRange, isNotNull);
+
+      final scrollableFinder = find.descendant(
+        of: find.byType(WenzRichTextEditor),
+        matching: find.byType(Scrollable),
+      );
+      final scrollable = tester.state<ScrollableState>(scrollableFinder);
+      final initialOffset = scrollable.position.pixels;
+      expect(scrollable.position.maxScrollExtent, greaterThan(initialOffset));
+
+      scrollable.position.jumpTo(scrollable.position.maxScrollExtent);
+      await _pumpTableToolbarOverlay(tester);
+      expect(toolbarFinder, findsNothing);
+
+      scrollable.position.jumpTo(initialOffset);
+      await _pumpTableToolbarOverlay(tester);
+      expect(toolbarFinder, findsOneWidget);
+      expect(workbench.controller.selection?.tableCellRange, isNotNull);
+    });
+
     testWidgets('select-all covers table cell content for copy', (tester) async {
       // A document mixing a paragraph and a table. selectAll should select a
       // range whose copy payload includes the table cell text, so the whole
@@ -1001,4 +1066,9 @@ TextAlign _richTextAlign(WidgetTester tester, String text) {
     description: 'RichText with plain text "$text"',
   );
   return tester.widget<RichText>(finder).textAlign;
+}
+
+Future<void> _pumpTableToolbarOverlay(WidgetTester tester) async {
+  await tester.pump();
+  await tester.pump();
 }

@@ -14,6 +14,26 @@ const double _kToolbarRunSpacing = 6.0;
 const double _kToolbarButtonExtent = 34.0;
 const double _kToolbarIconSize = 19.0;
 const double _kToolbarRadius = 6.0;
+const double _kBlockStyleButtonWidth = 92.0;
+const double _kAlignmentButtonWidth = 112.0;
+
+const List<_BlockStyleOption> _kBlockStyleOptions = <_BlockStyleOption>[
+  _BlockStyleOption.heading('H1', 1),
+  _BlockStyleOption.heading('H2', 2),
+  _BlockStyleOption.heading('H3', 3),
+  _BlockStyleOption.heading('H4', 4),
+  _BlockStyleOption.heading('H5', 5),
+  _BlockStyleOption.heading('H6', 6),
+  _BlockStyleOption.paragraph('正文'),
+];
+
+const List<_AlignmentOption> _kAlignmentOptions = <_AlignmentOption>[
+  _AlignmentOption('左对齐', Icons.format_align_left, 'left'),
+  _AlignmentOption('居中对齐', Icons.format_align_center, 'center'),
+  _AlignmentOption('右对齐', Icons.format_align_right, 'right'),
+  _AlignmentOption('两端对齐', Icons.format_align_justify, 'justify'),
+  _AlignmentOption('清除对齐', Icons.format_clear, null),
+];
 
 const List<_ToolbarColorOption> _kTextColorOptions = <_ToolbarColorOption>[
   _ToolbarColorOption('Default green', 0xFF0F766E),
@@ -302,10 +322,6 @@ class WenzDefaultDesktopToolbar extends StatelessWidget {
         final colorScheme = theme.colorScheme;
         final state = toolbar.state;
         final extraItems = effectiveToolbarItems;
-        final showResourceActions = actions.shouldShowImageButton ||
-            actions.shouldShowVideoButton ||
-            actions.shouldShowFileButton ||
-            actions.shouldShowBlockEmbedButton;
         return DecoratedBox(
           decoration: BoxDecoration(
             color: style.showBackground ? colorScheme.surface : null,
@@ -322,19 +338,6 @@ class WenzDefaultDesktopToolbar extends StatelessWidget {
               runSpacing: _kToolbarRunSpacing,
               crossAxisAlignment: WrapCrossAlignment.center,
               children: <Widget>[
-                _ToolbarIconButton(
-                  tooltip: '撤销',
-                  icon: Icons.undo,
-                  enabled: state.canUndo,
-                  onPressed: toolbar.undo,
-                ),
-                _ToolbarIconButton(
-                  tooltip: '重做',
-                  icon: Icons.redo,
-                  enabled: state.canRedo,
-                  onPressed: toolbar.redo,
-                ),
-                _ToolbarDivider(visible: style.showGroupDividers),
                 _MarkButton(
                   tooltip: '加粗',
                   icon: Icons.format_bold,
@@ -363,13 +366,6 @@ class WenzDefaultDesktopToolbar extends StatelessWidget {
                   toolbar: toolbar,
                   state: state,
                 ),
-                _MarkButton(
-                  tooltip: '批注',
-                  icon: Icons.comment_outlined,
-                  mark: TextMark.remark,
-                  toolbar: toolbar,
-                  state: state,
-                ),
                 _TextColorMenuButton(
                   toolbar: toolbar,
                   state: state,
@@ -389,56 +385,10 @@ class WenzDefaultDesktopToolbar extends StatelessWidget {
                   enabled: state.canFormatInline,
                   onPressed: toolbar.clearStyle,
                 ),
-                _ToolbarIconButton(
-                  tooltip: state.linkUrl == null ? '添加链接' : '编辑链接',
-                  icon: Icons.link,
-                  selected: state.linkUrl != null,
-                  enabled: state.canSetLink,
-                  onPressed: () => _showLinkDialog(context, state),
-                ),
-                _ToolbarIconButton(
-                  tooltip: '公式',
-                  icon: Icons.functions,
-                  enabled: state.canFormatInline,
-                  onPressed: () => controller.insertFormula(''),
-                ),
-                _ToolbarIconButton(
-                  tooltip: '表情',
-                  icon: Icons.emoji_emotions_outlined,
-                  enabled: state.canFormatInline,
-                  onPressed: () => controller.insertEmoji(
-                    '😀',
-                    shortName: 'grinning',
-                  ),
-                ),
                 _ToolbarDivider(visible: style.showGroupDividers),
-                _BlockTypeButton(
-                  tooltip: '一级标题',
-                  icon: Icons.looks_one,
-                  selected: state.isHeading(1),
-                  enabled: state.canSetBlockType,
-                  onPressed: () => toolbar.setHeading(1),
-                ),
-                _BlockTypeButton(
-                  tooltip: '二级标题',
-                  icon: Icons.looks_two,
-                  selected: state.isHeading(2),
-                  enabled: state.canSetBlockType,
-                  onPressed: () => toolbar.setHeading(2),
-                ),
-                _BlockTypeButton(
-                  tooltip: '三级标题',
-                  icon: Icons.looks_3,
-                  selected: state.isHeading(3),
-                  enabled: state.canSetBlockType,
-                  onPressed: () => toolbar.setHeading(3),
-                ),
-                _BlockTypeButton(
-                  tooltip: '段落',
-                  icon: Icons.notes,
-                  selected: state.isParagraph,
-                  enabled: state.canSetBlockType,
-                  onPressed: toolbar.setParagraph,
+                _BlockStyleMenuButton(
+                  toolbar: toolbar,
+                  state: state,
                 ),
                 _BlockTypeButton(
                   tooltip: '引用',
@@ -469,132 +419,10 @@ class WenzDefaultDesktopToolbar extends StatelessWidget {
                   onPressed: toolbar.setUnorderedList,
                 ),
                 _ToolbarDivider(visible: style.showGroupDividers),
-                _AlignmentButton(
-                  tooltip: '左对齐',
-                  icon: Icons.format_align_left,
-                  alignment: 'left',
+                _AlignmentMenuButton(
                   toolbar: toolbar,
                   state: state,
                 ),
-                _AlignmentButton(
-                  tooltip: '居中对齐',
-                  icon: Icons.format_align_center,
-                  alignment: 'center',
-                  toolbar: toolbar,
-                  state: state,
-                ),
-                _AlignmentButton(
-                  tooltip: '右对齐',
-                  icon: Icons.format_align_right,
-                  alignment: 'right',
-                  toolbar: toolbar,
-                  state: state,
-                ),
-                _AlignmentButton(
-                  tooltip: '两端对齐',
-                  icon: Icons.format_align_justify,
-                  alignment: 'justify',
-                  toolbar: toolbar,
-                  state: state,
-                ),
-                _AlignmentButton(
-                  tooltip: '清除对齐',
-                  icon: Icons.format_clear,
-                  alignment: null,
-                  toolbar: toolbar,
-                  state: state,
-                ),
-                _ToolbarDivider(visible: style.showGroupDividers),
-                _ToolbarIconButton(
-                  tooltip: '增加缩进',
-                  icon: Icons.format_indent_increase,
-                  enabled: state.canIndent,
-                  onPressed: toolbar.indent,
-                ),
-                _ToolbarIconButton(
-                  tooltip: '减少缩进',
-                  icon: Icons.format_indent_decrease,
-                  enabled: state.canOutdent,
-                  onPressed: toolbar.outdent,
-                ),
-                _ToolbarDivider(visible: style.showGroupDividers),
-                _ToolbarIconButton(
-                  tooltip: '插入代码块',
-                  icon: Icons.code,
-                  enabled: toolbar.canInsertBlock,
-                  onPressed: () => toolbar.insertCodeBlock(),
-                ),
-                _ToolbarIconButton(
-                  tooltip: '插入标注',
-                  icon: Icons.tips_and_updates_outlined,
-                  enabled: toolbar.canInsertBlock,
-                  onPressed: () => toolbar.insertCallout(),
-                ),
-                _ToolbarIconButton(
-                  tooltip: '插入表格',
-                  icon: Icons.table_chart_outlined,
-                  enabled: toolbar.canInsertBlock,
-                  onPressed: () => toolbar.insertTable(),
-                ),
-                if (showResourceActions) ...<Widget>[
-                  _ToolbarDivider(visible: style.showGroupDividers),
-                  if (actions.shouldShowImageButton)
-                    _ResourceActionButton(
-                      tooltip: actions.isImagePending
-                          ? '正在选择图片'
-                          : _resourceTooltip(
-                              '插入图片',
-                              actions.onInsertImage,
-                            ),
-                      icon: Icons.image_outlined,
-                      iconWidget: actions.isImagePending
-                          ? const SizedBox.square(
-                              dimension: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : null,
-                      enabled: actions.canInsertImage(toolbar),
-                      action: (buttonContext) => actions.insertImage(
-                        actionContext(buttonContext),
-                      ),
-                    ),
-                  if (actions.shouldShowVideoButton)
-                    _ResourceActionButton(
-                      tooltip: _resourceTooltip(
-                        '插入视频',
-                        actions.onInsertVideo,
-                      ),
-                      icon: Icons.smart_display_outlined,
-                      enabled: actions.canInsertVideo(toolbar),
-                      action: (buttonContext) => actions.insertVideo(
-                        actionContext(buttonContext),
-                      ),
-                    ),
-                  if (actions.shouldShowFileButton)
-                    _ToolbarIconButton(
-                      tooltip: _resourceTooltip(
-                        '插入文件',
-                        actions.onInsertFile,
-                      ),
-                      icon: Icons.attach_file,
-                      enabled: actions.canInsertFile(controller),
-                      onPressed: () => _runToolbarAction(
-                        actions.insertFile(actionContext(context)),
-                      ),
-                    ),
-                  if (actions.shouldShowBlockEmbedButton)
-                    _ToolbarIconButton(
-                      tooltip: _resourceTooltip(
-                        '插入业务嵌入',
-                        actions.onInsertBlockEmbed,
-                      ),
-                      icon: Icons.badge_outlined,
-                      enabled: actions.canInsertBlockEmbed(controller),
-                      onPressed: () => _runToolbarAction(
-                        actions.insertBlockEmbed(actionContext(context)),
-                      ),
-                    ),
-                ],
                 if (state.canTableStruct) ...<Widget>[
                   _ToolbarDivider(visible: style.showGroupDividers),
                   _ToolbarIconButton(
@@ -643,6 +471,15 @@ class WenzDefaultDesktopToolbar extends StatelessWidget {
                       state: state,
                     ),
                 ],
+                _ToolbarDivider(visible: style.showGroupDividers),
+                _InsertMenuButton(
+                  controller: controller,
+                  toolbar: toolbar,
+                  actions: actions,
+                  state: state,
+                  actionContext: actionContext,
+                  onShowLinkDialog: () => _showLinkDialog(context, state),
+                ),
               ],
             ),
           ),
@@ -683,7 +520,6 @@ class _ToolbarIconButton extends StatelessWidget {
     required this.onPressed,
     this.selected = false,
     this.iconColor,
-    this.iconWidget,
   });
 
   final String tooltip;
@@ -691,7 +527,6 @@ class _ToolbarIconButton extends StatelessWidget {
   final bool enabled;
   final bool selected;
   final Color? iconColor;
-  final Widget? iconWidget;
   final VoidCallback onPressed;
 
   @override
@@ -703,34 +538,7 @@ class _ToolbarIconButton extends StatelessWidget {
       isSelected: selected,
       style: _toolbarButtonStyle(theme),
       onPressed: enabled ? onPressed : null,
-      icon: iconWidget ?? Icon(icon, color: enabled ? iconColor : null),
-    );
-  }
-}
-
-class _ResourceActionButton extends StatelessWidget {
-  const _ResourceActionButton({
-    required this.tooltip,
-    required this.icon,
-    required this.enabled,
-    required this.action,
-    this.iconWidget,
-  });
-
-  final String tooltip;
-  final IconData icon;
-  final bool enabled;
-  final FutureOr<void> Function(BuildContext context) action;
-  final Widget? iconWidget;
-
-  @override
-  Widget build(BuildContext context) {
-    return _ToolbarIconButton(
-      tooltip: tooltip,
-      icon: icon,
-      enabled: enabled,
-      iconWidget: iconWidget,
-      onPressed: () => _runToolbarAction(action(context)),
+      icon: Icon(icon, color: enabled ? iconColor : null),
     );
   }
 }
@@ -762,6 +570,76 @@ class _MarkButton extends StatelessWidget {
   }
 }
 
+class _BlockStyleMenuButton extends StatelessWidget {
+  const _BlockStyleMenuButton({
+    required this.toolbar,
+    required this.state,
+  });
+
+  final ToolbarController toolbar;
+  final ToolbarState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final label = _blockStyleLabel(state);
+    final tooltip = _blockStyleTooltip(state);
+    final isExplicitStyle = _isExplicitBlockStyle(state);
+    return MenuAnchor(
+      menuChildren: _kBlockStyleOptions.map((option) {
+        final active = option.isActive(state);
+        return MenuItemButton(
+          closeOnActivate: true,
+          onPressed: state.canSetBlockType ? () => option.apply(toolbar) : null,
+          child: SizedBox(
+            width: 120,
+            child: Row(
+              children: <Widget>[
+                Expanded(child: Text(option.label)),
+                if (active) const Icon(Icons.check, size: 18),
+              ],
+            ),
+          ),
+        );
+      }).toList(growable: false),
+      builder: (context, menuController, _) {
+        return Tooltip(
+          message: tooltip,
+          child: TextButton(
+            style: _blockStyleButtonStyle(
+              theme,
+              muted: !isExplicitStyle,
+            ),
+            onPressed: state.canSetBlockType
+                ? () {
+                    if (menuController.isOpen) {
+                      menuController.close();
+                    } else {
+                      menuController.open();
+                    }
+                  }
+                : null,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                Flexible(
+                  child: Text(
+                    label,
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
+                ),
+                const SizedBox(width: 2),
+                const Icon(Icons.arrow_drop_down, size: 18),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
 class _BlockTypeButton extends StatelessWidget {
   const _BlockTypeButton({
     required this.tooltip,
@@ -789,29 +667,252 @@ class _BlockTypeButton extends StatelessWidget {
   }
 }
 
-class _AlignmentButton extends StatelessWidget {
-  const _AlignmentButton({
-    required this.tooltip,
-    required this.icon,
-    required this.alignment,
+class _AlignmentMenuButton extends StatelessWidget {
+  const _AlignmentMenuButton({
     required this.toolbar,
     required this.state,
   });
 
-  final String tooltip;
-  final IconData icon;
-  final String? alignment;
   final ToolbarController toolbar;
   final ToolbarState state;
 
   @override
   Widget build(BuildContext context) {
-    return _ToolbarIconButton(
-      tooltip: state.alignmentMixed ? '$tooltip（混合对齐）' : tooltip,
-      icon: icon,
-      selected: state.canSetAlignment && state.isAlignment(alignment),
-      enabled: state.canSetAlignment,
-      onPressed: () => toolbar.setAlignment(alignment),
+    final theme = Theme.of(context);
+    final activeOption = _activeAlignmentOption(state);
+    final label = _alignmentLabel(state);
+    final tooltip = _alignmentTooltip(state);
+    final icon = state.alignmentMixed
+        ? Icons.format_align_left
+        : activeOption.icon;
+    return MenuAnchor(
+      menuChildren: _kAlignmentOptions.map((option) {
+        final active = !state.alignmentMixed && option.alignment == state.alignment;
+        return MenuItemButton(
+          closeOnActivate: true,
+          onPressed:
+              state.canSetAlignment ? () => option.apply(toolbar) : null,
+          child: SizedBox(
+            width: 144,
+            child: Row(
+              children: <Widget>[
+                Icon(option.icon, size: _kToolbarIconSize),
+                const SizedBox(width: 10),
+                Expanded(child: Text(option.label)),
+                if (active) const Icon(Icons.check, size: 18),
+              ],
+            ),
+          ),
+        );
+      }).toList(growable: false),
+      builder: (context, menuController, _) {
+        return Tooltip(
+          message: tooltip,
+          child: TextButton(
+            style: _toolbarTextButtonStyle(
+              theme,
+              width: _kAlignmentButtonWidth,
+            ),
+            onPressed: state.canSetAlignment
+                ? () {
+                    if (menuController.isOpen) {
+                      menuController.close();
+                    } else {
+                      menuController.open();
+                    }
+                  }
+                : null,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                Icon(icon, size: _kToolbarIconSize),
+                const SizedBox(width: 4),
+                Flexible(
+                  child: Text(
+                    label,
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
+                ),
+                const SizedBox(width: 2),
+                const Icon(Icons.arrow_drop_down, size: 18),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _InsertMenuButton extends StatelessWidget {
+  const _InsertMenuButton({
+    required this.controller,
+    required this.toolbar,
+    required this.actions,
+    required this.state,
+    required this.actionContext,
+    required this.onShowLinkDialog,
+  });
+
+  final WenzRichTextController controller;
+  final ToolbarController toolbar;
+  final WenzDefaultDesktopToolbarActions actions;
+  final ToolbarState state;
+  final WenzDefaultDesktopToolbarActionContext Function(BuildContext)
+      actionContext;
+  final Future<void> Function() onShowLinkDialog;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasResourceActions = actions.shouldShowImageButton ||
+        actions.shouldShowVideoButton ||
+        actions.shouldShowFileButton ||
+        actions.shouldShowBlockEmbedButton;
+    final menuChildren = <Widget>[
+      _InsertMenuItem(
+        label: state.linkUrl == null ? '添加链接' : '编辑链接',
+        icon: Icons.link,
+        selected: state.linkUrl != null,
+        enabled: state.canSetLink,
+        action: onShowLinkDialog,
+      ),
+      _InsertMenuItem(
+        label: '公式',
+        icon: Icons.functions,
+        enabled: state.canFormatInline,
+        action: () {
+          controller.insertFormula('');
+        },
+      ),
+      const Divider(height: 1),
+      _InsertMenuItem(
+        label: '插入代码块',
+        icon: Icons.code,
+        enabled: toolbar.canInsertBlock,
+        action: () => toolbar.insertCodeBlock(),
+      ),
+      _InsertMenuItem(
+        label: '插入标注',
+        icon: Icons.tips_and_updates_outlined,
+        enabled: toolbar.canInsertBlock,
+        action: () => toolbar.insertCallout(),
+      ),
+      _InsertMenuItem(
+        label: '插入表格',
+        icon: Icons.table_chart_outlined,
+        enabled: toolbar.canInsertBlock,
+        action: () => toolbar.insertTable(),
+      ),
+      if (hasResourceActions) const Divider(height: 1),
+      if (actions.shouldShowImageButton)
+        _InsertMenuItem(
+          label: actions.isImagePending
+              ? '正在选择图片'
+              : _resourceTooltip('插入图片', actions.onInsertImage),
+          icon: Icons.image_outlined,
+          iconWidget: actions.isImagePending
+              ? const SizedBox.square(
+                  dimension: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : null,
+          enabled: actions.canInsertImage(toolbar),
+          action: () => actions.insertImage(actionContext(context)),
+        ),
+      if (actions.shouldShowVideoButton)
+        _InsertMenuItem(
+          label: _resourceTooltip('插入视频', actions.onInsertVideo),
+          icon: Icons.smart_display_outlined,
+          enabled: actions.canInsertVideo(toolbar),
+          action: () => actions.insertVideo(actionContext(context)),
+        ),
+      if (actions.shouldShowFileButton)
+        _InsertMenuItem(
+          label: _resourceTooltip('插入文件', actions.onInsertFile),
+          icon: Icons.attach_file,
+          enabled: actions.canInsertFile(controller),
+          action: () => actions.insertFile(actionContext(context)),
+        ),
+      if (actions.shouldShowBlockEmbedButton)
+        _InsertMenuItem(
+          label: _resourceTooltip('插入业务嵌入', actions.onInsertBlockEmbed),
+          icon: Icons.badge_outlined,
+          enabled: actions.canInsertBlockEmbed(controller),
+          action: () => actions.insertBlockEmbed(actionContext(context)),
+        ),
+    ];
+
+    return MenuAnchor(
+      menuChildren: menuChildren,
+      builder: (context, menuController, _) {
+        return _ToolbarIconButton(
+          tooltip: '插入元素',
+          icon: Icons.add,
+          selected: menuController.isOpen,
+          enabled: true,
+          onPressed: () {
+            if (menuController.isOpen) {
+              menuController.close();
+            } else {
+              menuController.open();
+            }
+          },
+        );
+      },
+    );
+  }
+}
+
+class _InsertMenuItem extends StatelessWidget {
+  const _InsertMenuItem({
+    required this.label,
+    required this.icon,
+    required this.enabled,
+    required this.action,
+    this.selected = false,
+    this.iconWidget,
+  });
+
+  final String label;
+  final IconData icon;
+  final bool enabled;
+  final bool selected;
+  final Widget? iconWidget;
+  final FutureOr<void> Function() action;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final iconColor = enabled
+        ? colorScheme.onSurfaceVariant
+        : colorScheme.onSurface.withAlpha(96);
+    return MenuItemButton(
+      closeOnActivate: true,
+      onPressed: enabled ? () => _runToolbarAction(action()) : null,
+      child: SizedBox(
+        width: 184,
+        child: Row(
+          children: <Widget>[
+            SizedBox.square(
+              dimension: 20,
+              child: Center(
+                child: IconTheme.merge(
+                  data: IconThemeData(
+                    color: iconColor,
+                    size: _kToolbarIconSize,
+                  ),
+                  child: iconWidget ?? Icon(icon),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(child: Text(label)),
+            if (selected) const Icon(Icons.check, size: 18),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -830,28 +931,61 @@ class _TextColorMenuButton extends StatelessWidget {
     final theme = Theme.of(context);
     final currentColor = state.textColor;
     final selected = currentColor != null || state.textColorMixed;
+    final customColorActive = currentColor != null &&
+        !state.textColorMixed &&
+        !_kTextColorOptions.any((option) => option.colorValue == currentColor);
     return MenuAnchor(
-      menuChildren: _kTextColorOptions.map((option) {
-        final active =
-            currentColor == option.colorValue && !state.textColorMixed;
-        return MenuItemButton(
+      menuChildren: <Widget>[
+        for (final option in _kTextColorOptions)
+          MenuItemButton(
+            closeOnActivate: true,
+            onPressed: state.canFormatInline
+                ? () => toolbar.setTextColorValue(option.colorValue)
+                : null,
+            child: SizedBox(
+              width: 176,
+              child: Row(
+                children: <Widget>[
+                  _ColorSwatch(color: option.color),
+                  const SizedBox(width: 10),
+                  Expanded(child: Text(option.label)),
+                  if (currentColor == option.colorValue &&
+                      !state.textColorMixed)
+                    const Icon(Icons.check, size: 18),
+                ],
+              ),
+            ),
+          ),
+        const Divider(height: 1),
+        MenuItemButton(
           closeOnActivate: true,
           onPressed: state.canFormatInline
-              ? () => toolbar.setTextColorValue(option.colorValue)
+              ? () => _runToolbarAction(
+                    _showCustomTextColorDialog(context, currentColor).then(
+                      (colorValue) {
+                        if (colorValue != null) {
+                          toolbar.setTextColorValue(colorValue);
+                        }
+                      },
+                    ),
+                  )
               : null,
           child: SizedBox(
-            width: 160,
+            width: 176,
             child: Row(
               children: <Widget>[
-                _ColorSwatch(color: option.color),
+                if (currentColor == null || state.textColorMixed)
+                  const Icon(Icons.palette_outlined, size: _kToolbarIconSize)
+                else
+                  _ColorSwatch(color: Color(currentColor)),
                 const SizedBox(width: 10),
-                Expanded(child: Text(option.label)),
-                if (active) const Icon(Icons.check, size: 18),
+                Expanded(child: Text(_customTextColorLabel(currentColor))),
+                if (customColorActive) const Icon(Icons.check, size: 18),
               ],
             ),
           ),
-        );
-      }).toList(growable: false),
+        ),
+      ],
       builder: (context, menuController, _) {
         return IconButton(
           tooltip: _textColorTooltip(state),
@@ -951,6 +1085,177 @@ class _ToolbarColorOption {
   Color get color => Color(colorValue);
 }
 
+class _BlockStyleOption {
+  const _BlockStyleOption.heading(this.label, this.headingLevel);
+
+  const _BlockStyleOption.paragraph(this.label) : headingLevel = null;
+
+  final String label;
+  final int? headingLevel;
+
+  bool isActive(ToolbarState state) {
+    final level = headingLevel;
+    return level == null ? state.isParagraph : state.isHeading(level);
+  }
+
+  void apply(ToolbarController toolbar) {
+    final level = headingLevel;
+    if (level == null) {
+      toolbar.setParagraph();
+    } else {
+      toolbar.setHeading(level);
+    }
+  }
+}
+
+class _AlignmentOption {
+  const _AlignmentOption(this.label, this.icon, this.alignment);
+
+  final String label;
+  final IconData icon;
+  final String? alignment;
+
+  void apply(ToolbarController toolbar) {
+    toolbar.setAlignment(alignment);
+  }
+}
+
+String _blockStyleLabel(ToolbarState state) {
+  for (final option in _kBlockStyleOptions) {
+    if (option.isActive(state)) {
+      return option.label;
+    }
+  }
+  return '正文';
+}
+
+String _blockStyleTooltip(ToolbarState state) {
+  return _blockStyleLabel(state);
+}
+
+bool _isExplicitBlockStyle(ToolbarState state) {
+  for (final option in _kBlockStyleOptions) {
+    if (option.isActive(state)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+ButtonStyle _blockStyleButtonStyle(
+  ThemeData theme, {
+  required bool muted,
+}) {
+  final baseStyle = _toolbarTextButtonStyle(theme);
+  if (!muted) {
+    return baseStyle;
+  }
+  final colorScheme = theme.colorScheme;
+  return baseStyle.copyWith(
+    foregroundColor: WidgetStatePropertyAll<Color>(
+      colorScheme.onSurface.withAlpha(96),
+    ),
+  );
+}
+
+_AlignmentOption _activeAlignmentOption(ToolbarState state) {
+  return _kAlignmentOptions.firstWhere(
+    (option) => option.alignment == state.alignment,
+    orElse: () => _kAlignmentOptions.last,
+  );
+}
+
+String _alignmentLabel(ToolbarState state) {
+  if (state.alignmentMixed) {
+    return '混合对齐';
+  }
+  final option = _activeAlignmentOption(state);
+  return option.alignment == null ? '无对齐' : option.label;
+}
+
+String _alignmentTooltip(ToolbarState state) {
+  return '对齐方式：${_alignmentLabel(state)}';
+}
+
+String _customTextColorLabel(int? currentColor) {
+  if (currentColor == null) {
+    return '自定义颜色';
+  }
+  return '自定义颜色 #${_hexColor(currentColor)}';
+}
+
+Future<int?> _showCustomTextColorDialog(
+  BuildContext context,
+  int? currentColor,
+) async {
+  final controller = TextEditingController(
+    text: currentColor == null ? '' : '#${_hexColor(currentColor)}',
+  );
+  String? errorText;
+  final result = await showDialog<int>(
+    context: context,
+    builder: (dialogContext) {
+      return StatefulBuilder(
+        builder: (context, setState) {
+          void submit() {
+            final colorValue = _parseHexColor(controller.text);
+            if (colorValue == null) {
+              setState(() {
+                errorText = '请输入 #RRGGBB 或 #AARRGGBB';
+              });
+              return;
+            }
+            Navigator.of(dialogContext).pop(colorValue);
+          }
+
+          return AlertDialog(
+            title: const Text('自定义文字颜色'),
+            content: TextField(
+              autofocus: true,
+              controller: controller,
+              decoration: InputDecoration(
+                labelText: '十六进制颜色',
+                hintText: '#336699',
+                errorText: errorText,
+              ),
+              textCapitalization: TextCapitalization.characters,
+              onSubmitted: (_) => submit(),
+            ),
+            actions: <Widget>[
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: submit,
+                child: const Text('Apply'),
+              ),
+            ],
+          );
+        },
+      );
+    },
+  );
+  controller.dispose();
+  return result;
+}
+
+int? _parseHexColor(String input) {
+  var value = input.trim();
+  if (value.startsWith('#')) {
+    value = value.substring(1);
+  } else if (value.toLowerCase().startsWith('0x')) {
+    value = value.substring(2);
+  }
+  if (value.length == 6) {
+    value = 'FF$value';
+  }
+  if (value.length != 8 || !RegExp(r'^[0-9a-fA-F]{8}$').hasMatch(value)) {
+    return null;
+  }
+  return int.tryParse(value, radix: 16);
+}
+
 ButtonStyle _toolbarButtonStyle(ThemeData theme) {
   final colorScheme = theme.colorScheme;
   return IconButton.styleFrom(
@@ -961,6 +1266,55 @@ ButtonStyle _toolbarButtonStyle(ThemeData theme) {
     visualDensity: VisualDensity.compact,
     foregroundColor: colorScheme.onSurfaceVariant,
     disabledForegroundColor: colorScheme.onSurface.withAlpha(96),
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(_kToolbarRadius),
+    ),
+  ).copyWith(
+    foregroundColor: WidgetStateProperty.resolveWith<Color?>((states) {
+      if (states.contains(WidgetState.disabled)) {
+        return colorScheme.onSurface.withAlpha(96);
+      }
+      if (states.contains(WidgetState.selected)) {
+        return colorScheme.onPrimaryContainer;
+      }
+      return colorScheme.onSurfaceVariant;
+    }),
+    backgroundColor: WidgetStateProperty.resolveWith<Color?>((states) {
+      if (states.contains(WidgetState.disabled)) {
+        return Colors.transparent;
+      }
+      if (states.contains(WidgetState.selected)) {
+        return colorScheme.primaryContainer;
+      }
+      if (states.contains(WidgetState.pressed)) {
+        return colorScheme.surfaceContainerHighest;
+      }
+      if (states.contains(WidgetState.hovered) ||
+          states.contains(WidgetState.focused)) {
+        return colorScheme.surfaceContainerHigh;
+      }
+      return Colors.transparent;
+    }),
+    overlayColor: WidgetStateProperty.resolveWith<Color?>((states) {
+      if (states.contains(WidgetState.disabled)) {
+        return Colors.transparent;
+      }
+      return colorScheme.primary.withAlpha(20);
+    }),
+  );
+}
+
+ButtonStyle _toolbarTextButtonStyle(
+  ThemeData theme, {
+  double width = _kBlockStyleButtonWidth,
+}) {
+  final colorScheme = theme.colorScheme;
+  return TextButton.styleFrom(
+    minimumSize: Size(width, _kToolbarButtonExtent),
+    fixedSize: Size(width, _kToolbarButtonExtent),
+    padding: const EdgeInsets.symmetric(horizontal: 8),
+    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    visualDensity: VisualDensity.compact,
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(_kToolbarRadius),
     ),
