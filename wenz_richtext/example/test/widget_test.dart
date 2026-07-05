@@ -6,6 +6,7 @@ import 'package:file_selector_platform_interface/file_selector_platform_interfac
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wenz_richtext/wenz_richtext.dart';
+import 'package:wenz_richtext_example/example_video_player.dart';
 import 'package:wenz_richtext_example/main.dart';
 
 const _expectedExampleFontFamily = '微软雅黑';
@@ -211,6 +212,68 @@ void main() {
     expect(inserted.coverUrl, isNotEmpty);
     expect(inserted.aspectRatio, VideoBlockNode.defaultAspectRatio);
     expect(inserted.uploadStatus, FileUploadStatus.uploaded);
+  });
+
+  test('example video player exposes embedded and fullscreen corner modes', () {
+    const source = ExampleVideoSource.asset('assets/videos/sample.mp4');
+
+    const embedded = ExampleVideoPlayer(source: source);
+    expect(embedded.borderRadius, ExampleVideoPlayer.defaultBorderRadius);
+
+    const fullscreen = ExampleVideoPlayer.fullscreen(source: source);
+    expect(fullscreen.borderRadius, BorderRadius.zero);
+    expect(fullscreen.source, source);
+    expect(fullscreen.aspectRatio, ExampleVideoPlayer.defaultAspectRatio);
+  });
+
+  testWidgets(
+      'example video resolver keeps source dispatch and returns square player',
+      (tester) async {
+    await _pumpWorkbench(tester);
+    final editorFinder = find.byType(WenzRichTextEditor);
+    final editor = tester.widget<WenzRichTextEditor>(editorFinder);
+    final resolver = editor.mediaResolver;
+    expect(resolver, isNotNull);
+    final context = tester.element(editorFinder);
+
+    ExampleVideoPlayer resolve(VideoBlockNode block) {
+      final resolved = resolver!.resolve(context, block);
+      expect(resolved, isA<ExampleVideoPlayer>());
+      return resolved! as ExampleVideoPlayer;
+    }
+
+    final assetPlayer = resolve(
+      const VideoBlockNode(
+        id: 'asset-video',
+        assetId: 'asset-video-id',
+        file: 'assets/videos/sample.mp4',
+      ),
+    );
+    expect(assetPlayer.source.kind, ExampleVideoSourceKind.asset);
+    expect(assetPlayer.source.uri, 'assets/videos/sample.mp4');
+    expect(assetPlayer.borderRadius, BorderRadius.zero);
+
+    final networkPlayer = resolve(
+      const VideoBlockNode(
+        id: 'network-video',
+        assetId: 'network-video-id',
+        playbackUrl: 'https://cdn.example.test/demo.mp4',
+      ),
+    );
+    expect(networkPlayer.source.kind, ExampleVideoSourceKind.network);
+    expect(networkPlayer.source.uri, 'https://cdn.example.test/demo.mp4');
+    expect(networkPlayer.borderRadius, BorderRadius.zero);
+
+    final filePlayer = resolve(
+      const VideoBlockNode(
+        id: 'file-video',
+        assetId: 'file-video-id',
+        file: r'C:\media\demo.mp4',
+      ),
+    );
+    expect(filePlayer.source.kind, ExampleVideoSourceKind.file);
+    expect(filePlayer.source.uri, r'C:\media\demo.mp4');
+    expect(filePlayer.borderRadius, BorderRadius.zero);
   });
 
   testWidgets('local resolver renders pasted and dropped local image captions',

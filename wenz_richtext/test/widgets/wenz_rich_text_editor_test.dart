@@ -9914,24 +9914,10 @@ void main() {
       selection: _tableCellSelection(),
     );
 
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: SizedBox(
-            width: 960,
-            height: 360,
-            child: WenzRichTextEditor(
-              controller: controller,
-              enableIme: false,
-            ),
-          ),
-        ),
-      ),
-    );
-    await tester.pump();
+    await _pumpTableResizeEditor(tester, controller);
 
     await tester.drag(
-      find.byKey(const ValueKey<String>('table-resize-table1-0')),
+      _tableColumnResizeHandleFinder(0),
       const Offset(40, 0),
     );
     await tester.pump();
@@ -9940,6 +9926,190 @@ void main() {
     expect(table.table.columnWidths[0], isNotNull);
     expect(table.table.columnWidths[0]!, greaterThan(48));
   });
+
+  testWidgets(
+    'merged table cell internal column boundary has no resize handle',
+    (tester) async {
+      final controller = WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TableBlockNode(
+              id: 'table-merged',
+              table: TableModel(
+                columnWidths: <int, double>{0: 120, 1: 120, 2: 120},
+                rows: <List<TableCellNode>>[
+                  <TableCellNode>[
+                    TableCellNode(
+                      id: 'merged-a',
+                      columnSpan: 2,
+                      blocks: <BlockNode>[
+                        TextBlockNode(
+                          id: 'merged-a-text',
+                          type: BlockType.paragraph,
+                          content: <InlineNode>[TextRun(text: 'Merged A')],
+                        ),
+                      ],
+                    ),
+                    TableCellNode(id: 'covered-b', covered: true),
+                    TableCellNode(
+                      id: 'cell-c',
+                      blocks: <BlockNode>[
+                        TextBlockNode(
+                          id: 'cell-c-text',
+                          type: BlockType.paragraph,
+                          content: <InlineNode>[TextRun(text: 'C')],
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+        selection: _collapsedTableCellTextSelection(
+          tableBlockId: 'table-merged',
+          blockIndex: 0,
+          tableRowIndex: 0,
+          tableColumnIndex: 0,
+          offset: 0,
+        ),
+      );
+
+      await _pumpTableResizeEditor(tester, controller);
+
+      expect(_tableColumnResizeHandleFinder(0), findsNothing);
+      expect(_tableColumnResizeHandleFinder(1), findsOneWidget);
+
+      final mergedRect = tester.getRect(
+        _tableCellFinder('table-merged', 0, 0),
+      );
+      final hiddenBoundary = Offset(
+        mergedRect.left + 120,
+        mergedRect.center.dy,
+      );
+      await tester.dragFrom(hiddenBoundary, const Offset(40, 0));
+      await tester.pump();
+
+      final table = controller.document.blocks.single as TableBlockNode;
+      expect(
+        table.table.columnWidths,
+        <int, double>{0: 120, 1: 120, 2: 120},
+      );
+    },
+  );
+
+  testWidgets(
+    'merged rows hide internal boundary while visible row boundary resizes',
+    (tester) async {
+      final controller = WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TableBlockNode(
+              id: 'table-mixed',
+              table: TableModel(
+                columnWidths: <int, double>{0: 120, 1: 120, 2: 120},
+                rows: <List<TableCellNode>>[
+                  <TableCellNode>[
+                    TableCellNode(
+                      id: 'merged-a',
+                      columnSpan: 2,
+                      blocks: <BlockNode>[
+                        TextBlockNode(
+                          id: 'merged-a-text',
+                          type: BlockType.paragraph,
+                          content: <InlineNode>[TextRun(text: 'Merged A')],
+                        ),
+                      ],
+                    ),
+                    TableCellNode(id: 'covered-b', covered: true),
+                    TableCellNode(
+                      id: 'cell-c',
+                      blocks: <BlockNode>[
+                        TextBlockNode(
+                          id: 'cell-c-text',
+                          type: BlockType.paragraph,
+                          content: <InlineNode>[TextRun(text: 'C')],
+                        ),
+                      ],
+                    ),
+                  ],
+                  <TableCellNode>[
+                    TableCellNode(
+                      id: 'cell-a2',
+                      blocks: <BlockNode>[
+                        TextBlockNode(
+                          id: 'cell-a2-text',
+                          type: BlockType.paragraph,
+                          content: <InlineNode>[TextRun(text: 'A2')],
+                        ),
+                      ],
+                    ),
+                    TableCellNode(
+                      id: 'cell-b2',
+                      blocks: <BlockNode>[
+                        TextBlockNode(
+                          id: 'cell-b2-text',
+                          type: BlockType.paragraph,
+                          content: <InlineNode>[TextRun(text: 'B2')],
+                        ),
+                      ],
+                    ),
+                    TableCellNode(
+                      id: 'cell-c2',
+                      blocks: <BlockNode>[
+                        TextBlockNode(
+                          id: 'cell-c2-text',
+                          type: BlockType.paragraph,
+                          content: <InlineNode>[TextRun(text: 'C2')],
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+        selection: _collapsedTableCellTextSelection(
+          tableBlockId: 'table-mixed',
+          blockIndex: 0,
+          tableRowIndex: 0,
+          tableColumnIndex: 0,
+          offset: 0,
+        ),
+      );
+
+      await _pumpTableResizeEditor(tester, controller);
+
+      final mergedRect = tester.getRect(
+        _tableCellFinder('table-mixed', 0, 0),
+      );
+      final hiddenBoundary = Offset(
+        mergedRect.left + 120,
+        mergedRect.center.dy,
+      );
+      await tester.dragFrom(hiddenBoundary, const Offset(40, 0));
+      await tester.pump();
+      var table = controller.document.blocks.single as TableBlockNode;
+      expect(
+        table.table.columnWidths,
+        <int, double>{0: 120, 1: 120, 2: 120},
+      );
+
+      expect(_tableColumnResizeHandleFinder(0), findsOneWidget);
+      final visibleBoundary = tester.getRect(
+        _tableCellFinder('table-mixed', 1, 0),
+      ).centerRight;
+      await tester.dragFrom(visibleBoundary, const Offset(40, 0));
+      await tester.pump();
+
+      table = controller.document.blocks.single as TableBlockNode;
+      expect(table.table.columnWidths[0], greaterThan(120));
+      expect(table.table.columnWidths[1], 120);
+      expect(table.table.columnWidths[2], 120);
+    },
+  );
 
   testWidgets(
     'renders formula, mention, and emoji inline embeds',
@@ -16290,6 +16460,18 @@ void main() {
         );
         await pumpMediaEditor(tester, controller);
 
+        final frameDecoration =
+            tester.widget<DecoratedBox>(find.byKey(videoFrameKey)).decoration
+                as BoxDecoration;
+        expect(frameDecoration.color, Colors.black);
+        expect(
+          frameDecoration.borderRadius,
+          BorderRadius.circular(mediaCornerRadius),
+        );
+        expect(frameDecoration.boxShadow, isNotNull);
+        expect(frameDecoration.boxShadow, isNotEmpty);
+        expect(frameDecoration.border, isNull);
+
         final decoration =
             tester.widget<DecoratedBox>(find.byKey(strokeKey)).decoration
                 as BoxDecoration;
@@ -17721,6 +17903,122 @@ void main() {
       final offsetAfter = scrollable().position.pixels;
       // Scrolled forward to bring the caret into view.
       expect(offsetAfter, greaterThan(offsetBefore));
+    });
+
+    testWidgets(
+      'expanded heading does not pull user scroll back to unchanged caret',
+      (tester) async {
+      const preludeCount = 28;
+      const hiddenCount = 14;
+      const targetIndex = preludeCount + 1 + hiddenCount + 1;
+      const tailIndex = targetIndex + 30;
+      final controller = WenzRichTextController(
+        document: RichTextDocument(
+          blocks: <BlockNode>[
+            for (var i = 0; i < preludeCount; i++)
+              TextBlockNode(
+                id: 'prelude-$i',
+                type: BlockType.paragraph,
+                content: <InlineNode>[TextRun(text: 'Prelude $i')],
+              ),
+            const TextBlockNode(
+              id: 'section',
+              type: BlockType.heading,
+              attributes: BlockAttributes(level: 1),
+              content: <InlineNode>[TextRun(text: 'Expandable section')],
+            ),
+            for (var i = 0; i < hiddenCount; i++)
+              TextBlockNode(
+                id: 'hidden-$i',
+                type: BlockType.paragraph,
+                content: <InlineNode>[TextRun(text: 'Expanded child $i')],
+              ),
+            const TextBlockNode(
+              id: 'after-section',
+              type: BlockType.heading,
+              attributes: BlockAttributes(level: 1),
+              content: <InlineNode>[TextRun(text: 'After section')],
+            ),
+            const TextBlockNode(
+              id: 'target',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'Caret target')],
+            ),
+            for (var i = 0; i < 34; i++)
+              TextBlockNode(
+                id: 'tail-$i',
+                type: BlockType.paragraph,
+                content: <InlineNode>[TextRun(text: 'Tail block $i')],
+              ),
+          ],
+        ),
+        selection: collapsedTextSelection('target', targetIndex, 0),
+      );
+      final outline = WenzOutlineController(editor: controller);
+      addTearDown(outline.dispose);
+      expect(outline.collapseByBlockId('section'), isTrue);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              height: 300,
+              child: WenzRichTextEditor(
+                controller: controller,
+                outlineController: outline,
+                padding: EdgeInsets.zero,
+                blockSpacing: 0,
+                enableIme: false,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final collapseButton = find.byKey(
+        const ValueKey<String>('wenz-richtext-heading-collapse-section'),
+      );
+      expect(collapseButton, findsOneWidget);
+      expect(_scrollOffset(tester), greaterThan(0));
+
+      await tester.tap(collapseButton);
+      await tester.pump();
+      expect(outline.isCollapsed('section'), isFalse);
+
+      var previousOffset = _scrollOffset(tester);
+      for (var i = 0; i < 3; i++) {
+        await tester.drag(
+          find.byType(WenzRichTextEditor),
+          const Offset(0, 70),
+        );
+        await tester.pump(const Duration(milliseconds: 50));
+        final currentOffset = _scrollOffset(tester);
+        expect(currentOffset, lessThan(previousOffset));
+        previousOffset = currentOffset;
+      }
+
+      final userScrolledOffset = previousOffset;
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pump();
+
+      expect(
+        _scrollOffset(tester),
+        moreOrLessEquals(userScrolledOffset, epsilon: 1),
+      );
+      expect(
+        controller.selection,
+        collapsedTextSelection('target', targetIndex, 0),
+      );
+
+      controller.setSelection(collapsedTextSelection('tail-29', tailIndex, 0));
+      await tester.pumpAndSettle();
+
+      expect(_scrollOffset(tester), greaterThan(userScrolledOffset));
+      expect(
+        controller.selection,
+        collapsedTextSelection('tail-29', tailIndex, 0),
+      );
     });
 
     testWidgets('updates scroll metrics from measured block extent cache', (
@@ -21003,6 +21301,32 @@ void _expectPopupMenuItemTextColor(
 Future<void> _pumpTableToolbarOverlay(WidgetTester tester) async {
   await tester.pump();
   await tester.pump();
+}
+
+Future<void> _pumpTableResizeEditor(
+  WidgetTester tester,
+  WenzRichTextController controller,
+) async {
+  await tester.pumpWidget(
+    MaterialApp(
+      home: Scaffold(
+        body: SizedBox(
+          width: 420,
+          height: 240,
+          child: WenzRichTextEditor(
+            controller: controller,
+            padding: EdgeInsets.zero,
+            enableIme: false,
+          ),
+        ),
+      ),
+    ),
+  );
+  await tester.pump();
+}
+
+Finder _tableColumnResizeHandleFinder(int columnIndex) {
+  return find.bySemanticsLabel('Resize table column ${columnIndex + 1}');
 }
 
 Future<void> pressIconButtonByTooltip(

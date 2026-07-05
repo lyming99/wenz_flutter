@@ -278,6 +278,15 @@ class OutlineCollapseState {
       );
 }
 
+/// Source of the last body-collapse projection change observed by listeners.
+enum OutlineCollapseChangeReason {
+  document,
+  direct,
+  bodyToggle,
+  reveal,
+  revealSelection,
+}
+
 /// View-only projection of [RichTextDocument.blocks] after applying collapsed
 /// outline ranges.
 ///
@@ -445,6 +454,14 @@ class WenzOutlineController extends ChangeNotifier {
   Set<String> get collapsedBlockIds =>
       Set<String>.unmodifiable(_collapsedBlockIds);
 
+  OutlineCollapseChangeReason? _lastCollapseChangeReason;
+  OutlineCollapseChangeReason? get lastCollapseChangeReason =>
+      _lastCollapseChangeReason;
+
+  bool _lastCollapseChangeMovedSelection = false;
+  bool get lastCollapseChangeMovedSelection =>
+      _lastCollapseChangeMovedSelection;
+
   OutlineBlockProjection visibleBlockProjection() {
     return OutlineBlockProjection.fromCollapsedItems(
       blocks: _host.document.blocks,
@@ -474,7 +491,7 @@ class WenzOutlineController extends ChangeNotifier {
       next.remove(item.blockId);
     }
     _collapsedBlockIds = Set<String>.unmodifiable(next);
-    _recompute();
+    _recompute(changeReason: OutlineCollapseChangeReason.reveal);
     return true;
   }
 
@@ -487,6 +504,18 @@ class WenzOutlineController extends ChangeNotifier {
   }
 
   bool expandToRevealBlockRange(int startBlockIndex, int endBlockIndex) {
+    return _expandToRevealBlockRange(
+      startBlockIndex,
+      endBlockIndex,
+      reason: OutlineCollapseChangeReason.reveal,
+    );
+  }
+
+  bool _expandToRevealBlockRange(
+    int startBlockIndex,
+    int endBlockIndex, {
+    required OutlineCollapseChangeReason reason,
+  }) {
     if (_collapsedBlockIds.isEmpty) {
       return false;
     }
@@ -518,7 +547,7 @@ class WenzOutlineController extends ChangeNotifier {
       return false;
     }
     _collapsedBlockIds = Set<String>.unmodifiable(next);
-    _recompute();
+    _recompute(changeReason: reason);
     return true;
   }
 
@@ -526,9 +555,10 @@ class WenzOutlineController extends ChangeNotifier {
     if (selection == null) {
       return false;
     }
-    return expandToRevealBlockRange(
+    return _expandToRevealBlockRange(
       selection.start.blockIndex,
       selection.end.blockIndex,
+      reason: OutlineCollapseChangeReason.revealSelection,
     );
   }
 
@@ -619,7 +649,11 @@ class WenzOutlineController extends ChangeNotifier {
   bool collapse(OutlineItem item) => collapseByBlockId(item.blockId);
 
   bool collapseByBlockId(String blockId) {
-    return _setCollapsed(blockId: blockId, collapsed: true);
+    return _setCollapsed(
+      blockId: blockId,
+      collapsed: true,
+      reason: OutlineCollapseChangeReason.direct,
+    );
   }
 
   /// Collapses a heading in the editor body projection.
@@ -627,7 +661,11 @@ class WenzOutlineController extends ChangeNotifier {
   /// This is the explicit semantic entry point used by body heading affordances.
   /// Outline-panel/tree folding should keep its own display state instead.
   bool collapseBodyHeadingByBlockId(String blockId) {
-    return collapseByBlockId(blockId);
+    return _setCollapsed(
+      blockId: blockId,
+      collapsed: true,
+      reason: OutlineCollapseChangeReason.bodyToggle,
+    );
   }
 
   bool collapseByAnchor(String anchor) {
@@ -638,7 +676,11 @@ class WenzOutlineController extends ChangeNotifier {
   bool expand(OutlineItem item) => expandByBlockId(item.blockId);
 
   bool expandByBlockId(String blockId) {
-    return _setCollapsed(blockId: blockId, collapsed: false);
+    return _setCollapsed(
+      blockId: blockId,
+      collapsed: false,
+      reason: OutlineCollapseChangeReason.direct,
+    );
   }
 
   /// Expands a heading in the editor body projection.
@@ -646,7 +688,11 @@ class WenzOutlineController extends ChangeNotifier {
   /// Reveal flows such as selection and find may also expand body headings so
   /// hidden content can become visible without involving outline-tree state.
   bool expandBodyHeadingByBlockId(String blockId) {
-    return expandByBlockId(blockId);
+    return _setCollapsed(
+      blockId: blockId,
+      collapsed: false,
+      reason: OutlineCollapseChangeReason.bodyToggle,
+    );
   }
 
   bool expandByAnchor(String anchor) {
@@ -664,6 +710,7 @@ class WenzOutlineController extends ChangeNotifier {
     return _setCollapsed(
       blockId: blockId,
       collapsed: !_collapsedBlockIds.contains(blockId),
+      reason: OutlineCollapseChangeReason.direct,
     );
   }
 
@@ -673,7 +720,15 @@ class WenzOutlineController extends ChangeNotifier {
   /// making it explicit that the caller is changing body visibility, not the
   /// outline tree's local expansion state.
   bool toggleBodyHeadingByBlockId(String blockId) {
-    return toggleByBlockId(blockId);
+    final item = itemForBlockId(blockId);
+    if (item == null || !item.canCollapse) {
+      return false;
+    }
+    return _setCollapsed(
+      blockId: blockId,
+      collapsed: !_collapsedBlockIds.contains(blockId),
+      reason: OutlineCollapseChangeReason.bodyToggle,
+    );
   }
 
   bool toggleByAnchor(String anchor) {
@@ -686,7 +741,7 @@ class WenzOutlineController extends ChangeNotifier {
       return false;
     }
     _collapsedBlockIds = const <String>{};
-    _recompute();
+    _recompute(changeReason: OutlineCollapseChangeReason.direct);
     return true;
   }
 
@@ -742,11 +797,14 @@ class WenzOutlineController extends ChangeNotifier {
   }
 
   void _handleHostChanged() {
-    _recompute();
+    _recompute(changeReason: OutlineCollapseChangeReason.document);
     expandToRevealSelection(_host.selection);
   }
 
-  void _recompute() {
+  void _recompute({
+    OutlineCollapseChangeReason? changeReason,
+    bool selectionMoved = false,
+  }) {
     final drafts = <_OutlineItemDraft>[];
     final collapsibleIds = <String>{};
     final blocks = _host.document.blocks;
@@ -801,12 +859,15 @@ class WenzOutlineController extends ChangeNotifier {
     }
     _items = next;
     _collapsedBlockIds = nextCollapsedBlockIds;
+    _lastCollapseChangeReason = changeReason;
+    _lastCollapseChangeMovedSelection = selectionMoved;
     notifyListeners();
   }
 
   bool _setCollapsed({
     required String blockId,
     required bool collapsed,
+    required OutlineCollapseChangeReason reason,
   }) {
     final item = itemForBlockId(blockId);
     if (item == null || !item.canCollapse) {
@@ -817,25 +878,24 @@ class WenzOutlineController extends ChangeNotifier {
     if (!changed) {
       return false;
     }
-    if (collapsed) {
-      _moveSelectionToHeadingIfCovered(item);
-    }
+    final selectionMoved =
+        collapsed ? _moveSelectionToHeadingIfCovered(item) : false;
     _collapsedBlockIds = Set<String>.unmodifiable(next);
-    _recompute();
+    _recompute(changeReason: reason, selectionMoved: selectionMoved);
     return true;
   }
 
-  void _moveSelectionToHeadingIfCovered(OutlineItem item) {
+  bool _moveSelectionToHeadingIfCovered(OutlineItem item) {
     final selection = _host.selection;
     if (selection == null || !item.canCollapse) {
-      return;
+      return false;
     }
     final selectionStart = selection.start.blockIndex;
     final selectionEnd = selection.end.blockIndex;
     final rangeStart = item.collapseStartBlockIndex;
     final rangeEnd = item.collapseEndBlockIndexExclusive - 1;
     if (rangeStart > selectionEnd || rangeEnd < selectionStart) {
-      return;
+      return false;
     }
     final position = DocumentPosition.text(
       blockId: item.blockId,
@@ -843,6 +903,7 @@ class WenzOutlineController extends ChangeNotifier {
       offset: 0,
     );
     _host.setSelection(DocumentSelection(base: position, extent: position));
+    return true;
   }
 
   List<OutlineItem> _collapsedItemsCoveringBlockId(String blockId) {

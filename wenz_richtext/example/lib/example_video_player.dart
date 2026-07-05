@@ -54,12 +54,13 @@ class ExampleVideoSource {
 ///
 /// It supports asset / network / local-file sources (see [ExampleVideoSource]),
 /// renders inside its parent's finite frame — the media block's overflow
-/// boundary — and clips to [aspectRatio], never assuming unbounded width or
-/// height (see the `MediaResolver` layout contract). Initialization failures
-/// and unreachable sources are swallowed and shown as a fallback UI, so a bad
-/// source degrades gracefully instead of crashing the editor or hanging
-/// `pumpAndSettle` in integration tests (per the resolver's "throw tolerated"
-/// convention).
+/// boundary — clips to [aspectRatio], and optionally clips to [borderRadius].
+/// Use [ExampleVideoPlayer.fullscreen] or pass [BorderRadius.zero] when the
+/// player is rendered in a preview/fullscreen surface that must not inherit the
+/// embedded editor frame's rounded corners. Initialization failures and
+/// unreachable sources are swallowed and shown as a fallback UI, so a bad source
+/// degrades gracefully instead of crashing the editor or hanging `pumpAndSettle`
+/// in integration tests (per the resolver's "throw tolerated" convention).
 ///
 /// The package core (`wenz_richtext`) stays free of any playback dependency;
 /// this widget is the host-side implementation that the example `MediaResolver`
@@ -70,10 +71,23 @@ class ExampleVideoPlayer extends StatefulWidget {
     required this.source,
     this.aspectRatio = defaultAspectRatio,
     this.coverUrl,
+    this.borderRadius = defaultBorderRadius,
   });
+
+  /// Creates a square-corner player for preview/fullscreen surfaces.
+  const ExampleVideoPlayer.fullscreen({
+    super.key,
+    required this.source,
+    this.aspectRatio = defaultAspectRatio,
+    this.coverUrl,
+  }) : borderRadius = BorderRadius.zero;
 
   /// Default [aspectRatio] used when the caller omits it (16:9).
   static const double defaultAspectRatio = 16.0 / 9.0;
+
+  /// Default corner radius for embedded editor players.
+  static const BorderRadius defaultBorderRadius =
+      BorderRadius.all(Radius.circular(8));
 
   /// What to play. Changing this reopens the existing player onto the new
   /// source; pass a fresh [ExampleVideoPlayer] instance for a full rebuild.
@@ -84,6 +98,10 @@ class ExampleVideoPlayer extends StatefulWidget {
 
   /// Optional poster URL shown until the first real frame is displayed.
   final String? coverUrl;
+
+  /// Corner clipping applied by this player. Pass [BorderRadius.zero] for
+  /// preview/fullscreen presentation.
+  final BorderRadius borderRadius;
 
   @override
   State<ExampleVideoPlayer> createState() => _ExampleVideoPlayerState();
@@ -423,61 +441,64 @@ class _ExampleVideoPlayerState extends State<ExampleVideoPlayer> {
     final showLoading = (_initializing || _buffering) && !_hasError;
     final showTapLayer = _mediaReady && !_initializing;
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(8),
-      child: AspectRatio(
-        aspectRatio: aspectRatio,
-        child: ColoredBox(
-          color: Colors.black,
-          child: Stack(
-            fit: StackFit.expand,
-            children: <Widget>[
-              // 1. Real video texture (bottom layer).
-              if (showVideo)
-                Video(
-                  controller: _controller!,
-                  fill: Colors.black,
-                  fit: BoxFit.contain,
-                  // Disable built-in controls; this widget renders its own.
-                  controls: (_) => const SizedBox.shrink(),
+    final playerSurface = AspectRatio(
+      aspectRatio: aspectRatio,
+      child: ColoredBox(
+        color: Colors.black,
+        child: Stack(
+          fit: StackFit.expand,
+          children: <Widget>[
+            // 1. Real video texture (bottom layer).
+            if (showVideo)
+              Video(
+                controller: _controller!,
+                fill: Colors.black,
+                fit: BoxFit.contain,
+                // Disable built-in controls; this widget renders its own.
+                controls: (_) => const SizedBox.shrink(),
+              ),
+            // 2. Poster / placeholder until a real frame has been shown, or
+            //    when the source has no usable URL.
+            if (!_everStarted && !_hasError) _CoverImage(url: widget.coverUrl),
+            // 3. Error fallback (covers everything below).
+            if (_hasError) const _ErrorFallback(),
+            // 4. Loading / buffering spinner.
+            if (showLoading)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(8),
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.5,
+                    color: Colors.white,
+                  ),
                 ),
-              // 2. Poster / placeholder until a real frame has been shown, or
-              //    when the source has no usable URL.
-              if (!_everStarted && !_hasError)
-                _CoverImage(url: widget.coverUrl),
-              // 3. Error fallback (covers everything below).
-              if (_hasError) const _ErrorFallback(),
-              // 4. Loading / buffering spinner.
-              if (showLoading)
-                const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(8),
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2.5,
-                      color: Colors.white,
+              ),
+            // 5. Tap-to-toggle play layer + center badge (below the controls
+            //    bar so the slider keeps its own gestures).
+            if (showTapLayer)
+              Positioned.fill(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: _togglePlay,
+                  child: Center(
+                    child: _PlayBadge(
+                      visible: !_isPlaying && !_buffering,
                     ),
                   ),
                 ),
-              // 5. Tap-to-toggle play layer + center badge (below the controls
-              //    bar so the slider keeps its own gestures).
-              if (showTapLayer)
-                Positioned.fill(
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: _togglePlay,
-                    child: Center(
-                      child: _PlayBadge(
-                        visible: !_isPlaying && !_buffering,
-                      ),
-                    ),
-                  ),
-                ),
-              // 6. Bottom controls bar (top layer).
-              if (showTapLayer) _buildControlsBar(),
-            ],
-          ),
+              ),
+            // 6. Bottom controls bar (top layer).
+            if (showTapLayer) _buildControlsBar(),
+          ],
         ),
       ),
+    );
+    if (widget.borderRadius == BorderRadius.zero) {
+      return ClipRect(child: playerSurface);
+    }
+    return ClipRRect(
+      borderRadius: widget.borderRadius,
+      child: playerSurface,
     );
   }
 

@@ -416,6 +416,74 @@ void main() {
       expect(playIcon.size!, lessThanOrEqualTo(24));
     });
 
+    testWidgets(
+        'video preview uses square clipping while keeping resolver content finite',
+        (tester) async {
+      const previewKey = ValueKey<String>('resolver-preview-video-player');
+      final controller = WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            VideoBlockNode(
+              id: 'v-preview',
+              assetId: 'clip-preview',
+              playbackUrl: 'https://cdn.example.test/preview.mp4',
+              aspectRatio: 16 / 9,
+            ),
+          ],
+        ),
+        selection: _objectBlockSelection('v-preview', 0),
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: WenzRichTextEditor(
+              controller: controller,
+              mediaResolver: const _PreviewVideoResolver(previewKey),
+              enableIme: false,
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      await tester.tap(find.byTooltip('预览媒体'));
+      await tester.pumpAndSettle();
+
+      final dialogFinder = find.byType(Dialog);
+      expect(dialogFinder, findsOneWidget);
+      final dialog = tester.widget<Dialog>(dialogFinder);
+      expect(dialog.backgroundColor, Colors.black);
+      expect(dialog.clipBehavior, Clip.hardEdge);
+      final shape = dialog.shape;
+      expect(shape, isA<RoundedRectangleBorder>());
+      final roundedShape = shape! as RoundedRectangleBorder;
+      expect(roundedShape.borderRadius, BorderRadius.zero);
+      expect(
+        find.descendant(
+          of: dialogFinder,
+          matching: find.byType(ClipRRect),
+        ),
+        findsNothing,
+      );
+
+      final previewFinder = find.descendant(
+        of: dialogFinder,
+        matching: find.byKey(previewKey),
+      );
+      expect(previewFinder, findsOneWidget);
+      final previewSize = tester.getSize(previewFinder);
+      expect(previewSize.width.isFinite, isTrue);
+      expect(previewSize.height.isFinite, isTrue);
+      expect(previewSize.width, greaterThan(0));
+      expect(previewSize.height, greaterThan(0));
+      expect(previewSize.width, lessThanOrEqualTo(720));
+      expect(previewSize.height, lessThanOrEqualTo(560));
+      expect(
+        previewSize.width / previewSize.height,
+        moreOrLessEquals(16 / 9, epsilon: 0.05),
+      );
+    });
+
     testWidgets('resolver also drives video and file blocks', (tester) async {
       final resolver = _RecordingResolver();
       final controller = WenzRichTextController(
@@ -744,6 +812,22 @@ void main() {
   });
 }
 
+DocumentSelection _objectBlockSelection(String blockId, int blockIndex) {
+  final base = DocumentPosition(
+    blockId: blockId,
+    blockIndex: blockIndex,
+    path: PositionPath.blockObject(blockId),
+    offset: 0,
+  );
+  final extent = DocumentPosition(
+    blockId: blockId,
+    blockIndex: blockIndex,
+    path: PositionPath.blockObject(blockId),
+    offset: 1,
+  );
+  return DocumentSelection(base: base, extent: extent);
+}
+
 void _expectFiniteImageFrame(WidgetTester tester, String blockId) {
   final frameFinder = find.byKey(
     ValueKey<String>('wenz-richtext-image-frame-$blockId'),
@@ -814,6 +898,23 @@ class _SourceAwareImageResolver implements MediaResolver {
 class _NullResolver implements MediaResolver {
   @override
   Widget? resolve(BuildContext context, BlockNode block) => null;
+}
+
+class _PreviewVideoResolver implements MediaResolver {
+  const _PreviewVideoResolver(this.key);
+
+  final Key key;
+
+  @override
+  Widget? resolve(BuildContext context, BlockNode block) {
+    if (block is! VideoBlockNode) {
+      return null;
+    }
+    return ColoredBox(
+      key: key,
+      color: Colors.blue,
+    );
+  }
 }
 
 class _MixedImageFrameResolver implements MediaResolver {

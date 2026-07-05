@@ -20,11 +20,11 @@ import '../core/model/block_node.dart';
 /// concern.
 ///
 /// Resolver widgets are laid out inside the media block's finite frame. For
-/// video blocks, that frame is the overflow boundary: in the editor it is no
-/// wider than the content width, in preview dialogs it is capped by the dialog,
-/// and both paths use a safe clamped aspect ratio/height and clip the child.
-/// Custom players should render within the incoming constraints instead of
-/// assuming unbounded width or height.
+/// video blocks, the editor uses the rounded media frame as the overflow
+/// boundary; preview/fullscreen surfaces use the same safe finite sizing with a
+/// rectangular clip so custom players can fill the surface without inheriting
+/// editor-frame corner radius. Custom players should render within the incoming
+/// constraints instead of assuming unbounded width or height.
 ///
 /// ```dart
 /// class NetworkImageResolver implements MediaResolver {

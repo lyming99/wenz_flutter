@@ -306,11 +306,11 @@ const double _kMaxImageAspectRatio = 10.0;
 const double _kImageResizeHandleHitWidth = 18.0;
 const double _kImageResizeChangeEpsilon = 0.5;
 
-// Video blocks have a single overflow boundary: the rounded video frame.
-// The frame width is capped by the editor content width, its aspect ratio is
-// clamped to avoid unusable extremes, and its computed height is clamped below.
-// Everything inside the frame (built-in chrome or MediaResolver output) must be
-// laid out by these finite constraints and clipped by the frame.
+// Video embeds and previews use distinct crop strategies. The editor block keeps
+// the rounded media frame, while preview/fullscreen surfaces use a rectangular
+// frame so video content can fill its container without inherited corner clips.
+// Both paths still normalize width/aspect ratio into finite constraints before
+// laying out built-in chrome or MediaResolver output.
 const double _kVideoPlayButtonSize = 64.0;
 const double _kVideoPlayIconSize = 24.0;
 const double _kVideoMinAspectRatio = 1 / 3;
@@ -1233,8 +1233,9 @@ class WenzRichTextEditor extends StatefulWidget {
   /// Optional [MediaResolver] that takes over rendering for image/video/file
   /// blocks. The built-in media renderers ask the resolver first and fall back
   /// to the placeholder when it returns `null` (or when no resolver is set).
-  /// Video resolver output is placed inside the same finite, clipped video
-  /// frame as the built-in placeholder, both in-editor and in preview dialogs.
+  /// Video resolver output is always placed inside a finite, clipped frame:
+  /// in-editor video blocks use the rounded media frame, while preview dialogs
+  /// use a rectangular frame so players can fill the preview/fullscreen surface.
   /// This is the quick path for real media rendering; for finer control
   /// (e.g. swapping the whole block widget) use [blockRenderers] instead.
   /// Throwing from the resolver is tolerated — the editor falls back to the
@@ -1429,19 +1430,19 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
   int _scrollRealignDepth = 0;
   static const int _maxScrollRealignFrames = 4;
 
-  /// Records the most recent timestamp of a user-initiated scroll gesture
-  /// (drag, mouse wheel, trackpad). Set by the
-  /// [NotificationListener<ScrollUpdateNotification>] that wraps the virtual
-  /// block list. [ScrollUpdateNotification] is only dispatched for user-driven
-  /// scrolls — programmatic calls like [ScrollController.jumpTo]/
-  /// [ScrollController.animateTo] are ignored — so this timestamp naturally
-  /// distinguishes user scrolling from code-driven scrolling.
+  /// Records the most recent timestamp of a user-initiated scroll gesture.
+  /// Used to suppress extent-update scroll-to-caret retries while the user is
+  /// actively moving the viewport away from the caret.
   DateTime? _lastUserScrollTime;
 
-  /// Cooldown period after a user scroll gesture during which automatic
-  /// scroll-to-caret is suppressed. Prevents the feedback loop where the
-  /// caret-into-view logic jumps the viewport back to the caret while the
-  /// user is actively scrolling away from it.
+  /// Counts editor-owned scroll jumps so their notifications are not treated as
+  /// user input by the scroll notification listener.
+  int _programmaticScrollDepth = 0;
+
+  /// Cooldown period after a user scroll gesture during which extent-driven
+  /// scroll-to-caret retries are suppressed. Prevents the feedback loop where
+  /// layout remeasurement jumps the viewport back to the caret while the user
+  /// is actively scrolling away from it.
   static const Duration _kUserScrollCooldown = Duration(milliseconds: 300);
 
   /// The caret position (block index + offset) at the last scroll-into-view
@@ -1700,6 +1701,40 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     }
   }
 
+  void _markUserScrollInteraction() {
+    _lastUserScrollTime = DateTime.now();
+  }
+
+  bool _isInUserScrollCooldown() {
+    final lastUserScrollTime = _lastUserScrollTime;
+    return lastUserScrollTime != null &&
+        DateTime.now().difference(lastUserScrollTime) < _kUserScrollCooldown;
+  }
+
+  void _handlePointerSignal(PointerSignalEvent event) {
+    if (event is PointerScrollEvent && event.scrollDelta.dy != 0) {
+      _markUserScrollInteraction();
+    }
+  }
+
+  bool _handleScrollNotification(ScrollNotification notification) {
+    if (_programmaticScrollDepth > 0 || notification.depth != 0) {
+      return false;
+    }
+    if (notification is ScrollStartNotification &&
+        notification.dragDetails != null) {
+      _markUserScrollInteraction();
+    } else if (notification is ScrollUpdateNotification) {
+      _markUserScrollInteraction();
+    } else if (notification is OverscrollNotification) {
+      _markUserScrollInteraction();
+    } else if (notification is UserScrollNotification &&
+        notification.direction != ScrollDirection.idle) {
+      _markUserScrollInteraction();
+    }
+    return false;
+  }
+
   void _scheduleSlashMenuOverlaySync() {
     if (!mounted || _slashMenuOverlaySyncScheduled) {
       return;
@@ -1758,17 +1793,28 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     if (!mounted) {
       return;
     }
-    _revealCurrentSelectionIfHidden();
-    _lastScrollCheckedCaret = null;
+    final outline = widget.outlineController;
+    final bodyToggleWithoutSelectionMove = outline != null &&
+        identical(outline.editor, widget.controller) &&
+        outline.lastCollapseChangeReason ==
+            OutlineCollapseChangeReason.bodyToggle &&
+        !outline.lastCollapseChangeMovedSelection;
+    final revealedSelection = _revealCurrentSelectionIfHidden();
+    final shouldScrollCaret =
+        revealedSelection || !bodyToggleWithoutSelectionMove;
+    if (shouldScrollCaret) {
+      _lastScrollCheckedCaret = null;
+    } else {
+      _lastScrollCheckedCaret = _currentCollapsedCaretKey();
+    }
     _scrollRealignDepth = 0;
     setState(() {});
+    if (!shouldScrollCaret) {
+      return;
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        // P004: Suppress caret scroll during user scroll cooldown to avoid
-        // jumping back to the caret while the user is actively scrolling.
-        if (_lastUserScrollTime == null ||
-            DateTime.now().difference(_lastUserScrollTime!) >=
-                _kUserScrollCooldown) {
+        if (revealedSelection || !_isInUserScrollCooldown()) {
           _scrollCaretIntoView();
         }
       }
@@ -1841,14 +1887,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
           if (caretKey != _lastScrollCheckedCaret) {
             _lastScrollCheckedCaret = caretKey;
             if (!skipCaretScroll) {
-              // P004: Suppress caret scroll during user scroll cooldown to
-              // avoid jumping back to the caret while the user is actively
-              // scrolling.
-              if (_lastUserScrollTime == null ||
-                  DateTime.now().difference(_lastUserScrollTime!) >=
-                      _kUserScrollCooldown) {
-                _scrollCaretIntoView();
-              }
+              _scrollCaretIntoView();
             }
           }
         } else {
@@ -1996,6 +2035,17 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
       return false;
     }
     return outline.expandToRevealSelection(selection);
+  }
+
+  _CaretKey? _currentCollapsedCaretKey() {
+    final selection = widget.controller.selection;
+    if (selection?.isCollapsed != true) {
+      return null;
+    }
+    return _CaretKey(
+      selection!.extent.blockIndex,
+      selection.extent.offset,
+    );
   }
 
   bool _expandHiddenContentAdjacentToSelection({required bool forward}) {
@@ -2236,90 +2286,90 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
 
     _extentCache.retainBlocks(sourceBlocks);
 
-    final editor = NotificationListener<ScrollUpdateNotification>(
-      onNotification: (notification) {
-        _lastUserScrollTime = DateTime.now();
-        return false;
-      },
-      child: _MeasuredVirtualBlockList(
-      controller: _scrollController,
-      padding: widget.padding,
-      physics: widget.physics,
-      blocks: blocks,
-      blockIndexes: blockIndexes,
-      blockSpacing: widget.blockSpacing,
-      extentCache: _extentCache,
-      keepAliveIds: keepAliveIds,
-      onExtentUpdated: _scrollCaretIntoViewIfNeeded,
-      shouldSuppressExtentUpdate: () =>
-          _lastUserScrollTime != null &&
-          DateTime.now().difference(_lastUserScrollTime!) < _kUserScrollCooldown,
-      itemBuilder: (context, blockIndex) {
-        final block = sourceBlocks[blockIndex];
-        final blockMoveRange = _blockMoveRangeFor(blockIndex) ??
-            _BlockMoveRange.single(blockIndex);
-        return _KeepAliveBlock(
-          key: ValueKey<String>(block.id),
-          block: block,
-          blockIndex: blockIndex,
-          blockCount: sourceBlocks.length,
-          blockMoveRange: blockMoveRange,
-          listMarker: listMarkers[blockIndex],
-          quoteGroupPosition: _quoteGroupPositionFor(sourceBlocks, blockIndex),
-          keepAlive: keepAliveIds.contains(block.id),
-          blockChanged: dirtyIds == null || dirtyIds.contains(block.id),
-          selection: widget.controller.selection,
-          compositionState: widget.controller.compositionState,
-          registry: _registry,
-          blockRenderers: _blockRenderers,
-          showCaret: showCaret,
-          textStyle: effectiveTextStyle,
-          showDebugOverlay: widget.showDebugOverlay,
-          canEdit: !widget.readOnly,
-          mediaResolver: widget.mediaResolver,
-          inlineEmbedRenderer: widget.inlineEmbedRenderer,
-          onMentionTap: widget.onMentionTap,
-          reserveHeadingCollapseRail: _hasHeadingCollapseChrome,
-          headingCollapseState: _headingCollapseStateFor(block),
-          onHeadingCollapseToggled: _handleHeadingCollapseToggled,
-          resolveBlockReorderDropTarget: _resolveBlockReorderDropTarget,
-          onCodeLanguageChanged: widget.readOnly
-              ? null
-              : (language) {
-                  widget.controller.setCodeLanguage(
-                    language,
-                    blockIndex: blockIndex,
-                  );
-                },
-          onCodeCopied: _copyTextToClipboard,
-          onCalloutVariantChanged: widget.readOnly
-              ? null
-              : (variant) {
-                  widget.controller.setCalloutVariant(
-                    variant,
-                    blockIndex: blockIndex,
-                  );
-                },
-          onTableToolbarAction:
-              widget.readOnly ? null : _handleTableToolbarAction,
-          tableToolbarOverlayController: _tableToolbarOverlayController,
-          objectBlockToolbarOverlayController:
-              _objectBlockToolbarOverlayController,
-          onTableColumnResize:
-              widget.readOnly ? null : _handleTableColumnResize,
-          onImageBlockResize: widget.readOnly || !widget.controller.canEdit
-              ? null
-              : _handleImageBlockResize,
-          onTodoCheckedChanged:
-              widget.readOnly ? null : _handleTodoCheckedChanged,
-          onObjectBlockAction: _handleObjectBlockAction,
-          onRowBlockFormatChanged:
-              widget.readOnly ? null : _handleRowBlockFormatChanged,
-          findMatches: findMatches,
-          currentFindMatch: currentFindMatch,
-        );
-      },
-    ),
+    final editor = Listener(
+      behavior: HitTestBehavior.translucent,
+      onPointerSignal: _handlePointerSignal,
+      child: NotificationListener<ScrollNotification>(
+        onNotification: _handleScrollNotification,
+        child: _MeasuredVirtualBlockList(
+          controller: _scrollController,
+          padding: widget.padding,
+          physics: widget.physics,
+          blocks: blocks,
+          blockIndexes: blockIndexes,
+          blockSpacing: widget.blockSpacing,
+          extentCache: _extentCache,
+          keepAliveIds: keepAliveIds,
+          onExtentUpdated: _scrollCaretIntoViewIfNeeded,
+          shouldSuppressExtentUpdate: _isInUserScrollCooldown,
+          itemBuilder: (context, blockIndex) {
+            final block = sourceBlocks[blockIndex];
+            final blockMoveRange = _blockMoveRangeFor(blockIndex) ??
+                _BlockMoveRange.single(blockIndex);
+            return _KeepAliveBlock(
+              key: ValueKey<String>(block.id),
+              block: block,
+              blockIndex: blockIndex,
+              blockCount: sourceBlocks.length,
+              blockMoveRange: blockMoveRange,
+              listMarker: listMarkers[blockIndex],
+              quoteGroupPosition:
+                  _quoteGroupPositionFor(sourceBlocks, blockIndex),
+              keepAlive: keepAliveIds.contains(block.id),
+              blockChanged: dirtyIds == null || dirtyIds.contains(block.id),
+              selection: widget.controller.selection,
+              compositionState: widget.controller.compositionState,
+              registry: _registry,
+              blockRenderers: _blockRenderers,
+              showCaret: showCaret,
+              textStyle: effectiveTextStyle,
+              showDebugOverlay: widget.showDebugOverlay,
+              canEdit: !widget.readOnly,
+              mediaResolver: widget.mediaResolver,
+              inlineEmbedRenderer: widget.inlineEmbedRenderer,
+              onMentionTap: widget.onMentionTap,
+              reserveHeadingCollapseRail: _hasHeadingCollapseChrome,
+              headingCollapseState: _headingCollapseStateFor(block),
+              onHeadingCollapseToggled: _handleHeadingCollapseToggled,
+              resolveBlockReorderDropTarget: _resolveBlockReorderDropTarget,
+              onCodeLanguageChanged: widget.readOnly
+                  ? null
+                  : (language) {
+                      widget.controller.setCodeLanguage(
+                        language,
+                        blockIndex: blockIndex,
+                      );
+                    },
+              onCodeCopied: _copyTextToClipboard,
+              onCalloutVariantChanged: widget.readOnly
+                  ? null
+                  : (variant) {
+                      widget.controller.setCalloutVariant(
+                        variant,
+                        blockIndex: blockIndex,
+                      );
+                    },
+              onTableToolbarAction:
+                  widget.readOnly ? null : _handleTableToolbarAction,
+              tableToolbarOverlayController: _tableToolbarOverlayController,
+              objectBlockToolbarOverlayController:
+                  _objectBlockToolbarOverlayController,
+              onTableColumnResize:
+                  widget.readOnly ? null : _handleTableColumnResize,
+              onImageBlockResize: widget.readOnly || !widget.controller.canEdit
+                  ? null
+                  : _handleImageBlockResize,
+              onTodoCheckedChanged:
+                  widget.readOnly ? null : _handleTodoCheckedChanged,
+              onObjectBlockAction: _handleObjectBlockAction,
+              onRowBlockFormatChanged:
+                  widget.readOnly ? null : _handleRowBlockFormatChanged,
+              findMatches: findMatches,
+              currentFindMatch: currentFindMatch,
+            );
+          },
+        ),
+      ),
     );
     final editorStack = Stack(
       key: _editorOverlayKey,
@@ -6100,11 +6150,9 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
       return;
     }
 
-    // P002: If the user recently scrolled manually (drag, wheel, trackpad),
-    // suppress auto-scroll-to-caret to avoid the feedback loop where the
-    // viewport jumps back while the user is actively scrolling away.
-    if (_lastUserScrollTime != null &&
-        DateTime.now().difference(_lastUserScrollTime!) < _kUserScrollCooldown) {
+    // If the user recently scrolled manually, suppress extent-driven retries
+    // so layout remeasurement cannot jump the viewport back to the caret.
+    if (_isInUserScrollCooldown()) {
       return;
     }
 
@@ -6545,7 +6593,12 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     if ((next - position.pixels).abs() <= 0.5) {
       return false;
     }
-    position.jumpTo(next);
+    _programmaticScrollDepth += 1;
+    try {
+      position.jumpTo(next);
+    } finally {
+      _programmaticScrollDepth -= 1;
+    }
     _scheduleInputGeometrySync();
     return true;
   }
@@ -9262,7 +9315,9 @@ void _showVideoPreview(
       context: context,
       builder: (context) {
         return Dialog(
-          clipBehavior: Clip.antiAlias,
+          backgroundColor: Colors.black,
+          clipBehavior: Clip.hardEdge,
+          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 720, maxHeight: 560),
             child: Semantics(
@@ -10820,26 +10875,22 @@ class _TableBlockRenderer extends StatelessWidget {
                 if (activeRange != null &&
                     onColumnResize != null &&
                     resizeHeight > 0)
-                  for (var column = 0;
-                      column < metrics.columnWidths.length;
-                      column++)
+                  for (final resizeSegment in metrics.columnResizeSegments)
                     Positioned(
-                      left: metrics.columnLefts[column] +
-                          metrics.columnWidths[column] -
-                          (_kTableResizeHandleWidth / 2),
-                      top: 0,
+                      left: resizeSegment.left - (_kTableResizeHandleWidth / 2),
+                      top: resizeSegment.top,
                       width: _kTableResizeHandleWidth,
-                      height: resizeHeight,
+                      height: resizeSegment.height,
                       child: _TableColumnResizeHandle(
                         key: ValueKey<String>(
-                          'table-resize-${block.id}-$column',
+                          resizeSegment.keyFor(block.id),
                         ),
-                        columnIndex: column,
-                        width: metrics.columnWidths[column],
+                        columnIndex: resizeSegment.columnIndex,
+                        width: metrics.columnWidths[resizeSegment.columnIndex],
                         onResize: (width) {
                           onColumnResize!(
                             blockIndex: blockIndex,
-                            columnIndex: column,
+                            columnIndex: resizeSegment.columnIndex,
                             width: width,
                           );
                         },
@@ -11399,14 +11450,14 @@ class _TableGridMetrics {
     required this.width,
     required this.height,
     required this.columnWidths,
-    required this.columnLefts,
+    required this.columnResizeSegments,
     required this.cells,
   });
 
   final double width;
   final double height;
   final List<double> columnWidths;
-  final List<double> columnLefts;
+  final List<_TableColumnResizeSegment> columnResizeSegments;
   final List<_TableGridCell> cells;
 
   static _TableGridMetrics compute({
@@ -11487,7 +11538,10 @@ class _TableGridMetrics {
       width: _sumTableRange(columnWidths, 0, columnWidths.length),
       height: _sumTableRange(rowHeights, 0, rowHeights.length),
       columnWidths: columnWidths,
-      columnLefts: lefts,
+      columnResizeSegments: _tableColumnResizeSegments(
+        cells: cells,
+        columnCount: columnCount,
+      ),
       cells: cells,
     );
   }
@@ -11515,6 +11569,92 @@ class _TableGridCell {
   final double top;
   final double width;
   final double height;
+}
+
+class _TableColumnResizeSegment {
+  const _TableColumnResizeSegment({
+    required this.columnIndex,
+    required this.left,
+    required this.top,
+    required this.height,
+  });
+
+  final int columnIndex;
+  final double left;
+  final double top;
+  final double height;
+
+  double get bottom => top + height;
+
+  String keyFor(String tableBlockId) {
+    return 'table-resize-$tableBlockId-$columnIndex-$top-$height';
+  }
+}
+
+List<_TableColumnResizeSegment> _tableColumnResizeSegments({
+  required List<_TableGridCell> cells,
+  required int columnCount,
+}) {
+  final rawSegments = <_TableColumnResizeSegment>[];
+  for (final cell in cells) {
+    if (cell.height <= 0) {
+      continue;
+    }
+    if (cell.columnIndex > 0) {
+      rawSegments.add(
+        _TableColumnResizeSegment(
+          columnIndex: cell.columnIndex - 1,
+          left: cell.left,
+          top: cell.top,
+          height: cell.height,
+        ),
+      );
+    }
+    if (cell.columnIndex + cell.columnSpan >= columnCount) {
+      rawSegments.add(
+        _TableColumnResizeSegment(
+          columnIndex: columnCount - 1,
+          left: cell.left + cell.width,
+          top: cell.top,
+          height: cell.height,
+        ),
+      );
+    }
+  }
+  rawSegments.sort((a, b) {
+    final columnComparison = a.columnIndex.compareTo(b.columnIndex);
+    if (columnComparison != 0) {
+      return columnComparison;
+    }
+    final leftComparison = a.left.compareTo(b.left);
+    if (leftComparison != 0) {
+      return leftComparison;
+    }
+    return a.top.compareTo(b.top);
+  });
+
+  const geometryEpsilon = 0.5;
+  final merged = <_TableColumnResizeSegment>[];
+  for (final segment in rawSegments) {
+    if (merged.isEmpty) {
+      merged.add(segment);
+      continue;
+    }
+    final previous = merged.last;
+    final sameBoundary = previous.columnIndex == segment.columnIndex &&
+        (previous.left - segment.left).abs() <= geometryEpsilon;
+    if (sameBoundary && segment.top <= previous.bottom + geometryEpsilon) {
+      merged[merged.length - 1] = _TableColumnResizeSegment(
+        columnIndex: previous.columnIndex,
+        left: previous.left,
+        top: previous.top,
+        height: math.max(previous.bottom, segment.bottom) - previous.top,
+      );
+      continue;
+    }
+    merged.add(segment);
+  }
+  return merged;
 }
 
 List<double> _resolveTableColumnWidths(TableModel table, double maxWidth) {
@@ -14344,6 +14484,8 @@ class _VideoFrameChildBoundary extends StatelessWidget {
         if (!width.isFinite || !height.isFinite || width <= 0 || height <= 0) {
           return const SizedBox.shrink();
         }
+        // Keep resolver output bounded without adding a corner radius here.
+        // Embedded radius is owned by _VideoBlockContent; previews stay square.
         return SizedBox(
           width: width,
           height: height,

@@ -22,6 +22,7 @@ const _exampleSeedColor = Color(0xFF0F766E);
 const _exampleFontFamily = '微软雅黑';
 const _themeToggleKey = ValueKey<String>('wenz-example-theme-toggle');
 const _editorSurfaceKey = ValueKey<String>('wenz-example-editor-surface');
+const _resolverVideoPlayerBorderRadius = BorderRadius.zero;
 const _imageFileTypeGroup = XTypeGroup(
   label: 'Images',
   extensions: <String>['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'],
@@ -189,10 +190,14 @@ class _ExampleMediaResolver implements MediaResolver {
     } else {
       videoSource = ExampleVideoSource.file(source);
     }
+    // The editor frame owns embedded rounded clipping. Keep the resolved player
+    // square so the same widget can move into the rectangular preview/fullscreen
+    // surface without carrying an inner ClipRRect(8).
     return ExampleVideoPlayer(
       source: videoSource,
       aspectRatio: block.effectiveAspectRatio,
       coverUrl: block.coverUrl,
+      borderRadius: _resolverVideoPlayerBorderRadius,
     );
   }
 }
