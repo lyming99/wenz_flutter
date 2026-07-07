@@ -1012,6 +1012,59 @@ class _FormulaEditRequestScope extends InheritedWidget {
       controller != oldWidget.controller;
 }
 
+class _ImageDescriptionEditRequestController {
+  const _ImageDescriptionEditRequestController({required this.onRequested});
+
+  final ValueChanged<_ImageDescriptionEditTarget> onRequested;
+
+  void request(_ImageDescriptionEditTarget target) => onRequested(target);
+}
+
+class _ImageDescriptionEditRequestScope extends InheritedWidget {
+  const _ImageDescriptionEditRequestScope({
+    required this.controller,
+    required super.child,
+  });
+
+  final _ImageDescriptionEditRequestController controller;
+
+  static _ImageDescriptionEditRequestController? maybeOf(
+    BuildContext context,
+  ) {
+    final scope = context
+        .dependOnInheritedWidgetOfExactType<_ImageDescriptionEditRequestScope>();
+    return scope?.controller;
+  }
+
+  @override
+  bool updateShouldNotify(_ImageDescriptionEditRequestScope oldWidget) =>
+      controller != oldWidget.controller;
+}
+
+class _ImageDescriptionEditTarget {
+  const _ImageDescriptionEditTarget({
+    required this.blockIndex,
+    required this.blockId,
+    required this.caption,
+    required this.altText,
+  });
+
+  final int blockIndex;
+  final String blockId;
+  final String caption;
+  final String altText;
+}
+
+class _ImageDescriptionEditResult {
+  const _ImageDescriptionEditResult({
+    required this.caption,
+    required this.altText,
+  });
+
+  final String caption;
+  final String altText;
+}
+
 class _FormulaEditTarget {
   const _FormulaEditTarget.inline({
     required this.position,
@@ -2437,7 +2490,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
               showCaret: showCaret,
               textStyle: effectiveTextStyle,
               showDebugOverlay: widget.showDebugOverlay,
-              canEdit: !widget.readOnly,
+              canEdit: !widget.readOnly && widget.controller.canEdit,
               mediaResolver: widget.mediaResolver,
               inlineEmbedRenderer: widget.inlineEmbedRenderer,
               onMentionTap: widget.onMentionTap,
@@ -2535,7 +2588,15 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
             child: editorStack,
           )
         : editorStack;
-    final scopedEditorStack = _wrapMentionTapHandler(touchAwareStack);
+    var scopedEditorStack = _wrapMentionTapHandler(touchAwareStack);
+    if (!widget.readOnly && widget.controller.canEdit) {
+      scopedEditorStack = _ImageDescriptionEditRequestScope(
+        controller: _ImageDescriptionEditRequestController(
+          onRequested: _openImageDescriptionEditor,
+        ),
+        child: scopedEditorStack,
+      );
+    }
     return _buildEditorShell(
       context,
       focusNode,
@@ -4841,6 +4902,44 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
       blockIndex: blockIndex,
       showWidth: showWidth,
       showHeight: showHeight,
+    );
+  }
+
+  Future<void> _openImageDescriptionEditor(
+    _ImageDescriptionEditTarget target,
+  ) async {
+    if (widget.readOnly || !widget.controller.canEdit) {
+      return;
+    }
+    final block = _blockAt(target.blockIndex);
+    if (block is! ImageBlockNode || block.id != target.blockId) {
+      return;
+    }
+    final result = await showDialog<_ImageDescriptionEditResult>(
+      context: context,
+      builder: (context) => _ImageDescriptionEditDialog(
+        caption: block.caption,
+        altText: block.altText,
+      ),
+    );
+    if (!mounted ||
+        result == null ||
+        widget.readOnly ||
+        !widget.controller.canEdit) {
+      return;
+    }
+    final currentBlock = _blockAt(target.blockIndex);
+    if (currentBlock is! ImageBlockNode || currentBlock.id != target.blockId) {
+      return;
+    }
+    if (currentBlock.caption == result.caption &&
+        currentBlock.altText == result.altText) {
+      return;
+    }
+    widget.controller.updateImageBlock(
+      blockIndex: target.blockIndex,
+      caption: result.caption,
+      altText: result.altText,
     );
   }
 
@@ -9284,25 +9383,12 @@ Widget _defaultVideoBlockRenderer(
   BlockRenderContext rc,
 ) {
   final video = rc.block as VideoBlockNode;
-  assert(() {
-    _debugLogVideoMediaResolveEntry(
-      'inline-video',
-      video,
-      rc,
-      StackTrace.current,
-    );
-    return true;
-  }());
-  final result = _resolveVideoMediaWithStatus(
-    context,
-    rc,
-    _VideoMediaRenderPosition.inline,
+  final media = _StableResolvedVideoMedia(
+    key: ValueKey<String>('wenz-richtext-video-resolved-${video.id}-inline'),
+    block: video,
+    renderContext: rc,
+    position: _VideoMediaRenderPosition.inline,
   );
-  // A resolver-provided widget always wins over any placeholder; only the
-  // fallback distinguishes the cover placeholder (no / declining resolver)
-  // from the load-failure slot (threw), so the catch-and-fallback path
-  // surfaces a visually distinct failure state.
-  final media = result.widget ?? _videoFallbackForResolve(video, result);
   return _withSelectableVideoBlock(
     video,
     rc,
@@ -9425,10 +9511,55 @@ class _MediaResolveResult {
 
 enum _VideoMediaRenderPosition { inline, dialog }
 
+enum WenzRichTextVideoMediaResolveEntry { inline, dialog }
+
+class WenzRichTextMediaResolveScope extends InheritedWidget {
+  const WenzRichTextMediaResolveScope({
+    super.key,
+    required this.videoEntry,
+    required super.child,
+  });
+
+  final WenzRichTextVideoMediaResolveEntry? videoEntry;
+
+  static WenzRichTextVideoMediaResolveEntry? maybeVideoEntryOf(
+    BuildContext context,
+  ) {
+    return context
+        .dependOnInheritedWidgetOfExactType<WenzRichTextMediaResolveScope>()
+        ?.videoEntry;
+  }
+
+  @override
+  bool updateShouldNotify(covariant WenzRichTextMediaResolveScope oldWidget) {
+    return oldWidget.videoEntry != videoEntry;
+  }
+}
+
 String _videoMediaRenderPositionLabel(_VideoMediaRenderPosition position) {
   return switch (position) {
     _VideoMediaRenderPosition.inline => 'inline',
     _VideoMediaRenderPosition.dialog => 'dialog',
+  };
+}
+
+String _videoMediaResolveEntryLabel(
+  WenzRichTextVideoMediaResolveEntry entry,
+) {
+  return switch (entry) {
+    WenzRichTextVideoMediaResolveEntry.inline => 'inline-video',
+    WenzRichTextVideoMediaResolveEntry.dialog => 'preview-dialog',
+  };
+}
+
+WenzRichTextVideoMediaResolveEntry _videoMediaResolveEntry(
+  _VideoMediaRenderPosition position,
+) {
+  return switch (position) {
+    _VideoMediaRenderPosition.inline =>
+      WenzRichTextVideoMediaResolveEntry.inline,
+    _VideoMediaRenderPosition.dialog =>
+      WenzRichTextVideoMediaResolveEntry.dialog,
   };
 }
 
@@ -9676,13 +9807,168 @@ class _VideoPreviewMedia extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final result = _resolveVideoMediaWithStatus(
-      context,
-      renderContext,
-      _VideoMediaRenderPosition.dialog,
+    return _VideoFrameChildBoundary(
+      child: _StableResolvedVideoMedia(
+        key: ValueKey<String>(
+          'wenz-richtext-video-resolved-${block.id}-dialog',
+        ),
+        block: block,
+        renderContext: renderContext,
+        position: _VideoMediaRenderPosition.dialog,
+      ),
     );
-    final media = result.widget ?? _videoFallbackForResolve(block, result);
-    return _VideoFrameChildBoundary(child: media);
+  }
+}
+
+class _StableResolvedVideoMedia extends StatefulWidget {
+  const _StableResolvedVideoMedia({
+    super.key,
+    required this.block,
+    required this.renderContext,
+    required this.position,
+  });
+
+  final VideoBlockNode block;
+  final BlockRenderContext renderContext;
+  final _VideoMediaRenderPosition position;
+
+  @override
+  State<_StableResolvedVideoMedia> createState() =>
+      _StableResolvedVideoMediaState();
+}
+
+class _StableResolvedVideoMediaState extends State<_StableResolvedVideoMedia> {
+  Widget? _cachedMedia;
+  late _VideoMediaResolverCacheKey _cacheKey;
+
+  @override
+  void initState() {
+    super.initState();
+    _cacheKey = _currentCacheKey();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _cachedMedia = null;
+  }
+
+  @override
+  void didUpdateWidget(covariant _StableResolvedVideoMedia oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final nextKey = _currentCacheKey();
+    if (_cacheKey != nextKey) {
+      _cacheKey = nextKey;
+      _cachedMedia = null;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _cachedMedia ??= _buildResolvedMedia(context);
+  }
+
+  Widget _buildResolvedMedia(BuildContext context) {
+    final entry = _videoMediaResolveEntry(widget.position);
+    assert(() {
+      _debugLogVideoMediaResolveEntry(
+        _videoMediaResolveEntryLabel(entry),
+        widget.block,
+        widget.renderContext,
+        StackTrace.current,
+      );
+      return true;
+    }());
+    return WenzRichTextMediaResolveScope(
+      videoEntry: entry,
+      child: Builder(
+        builder: (context) {
+          final result = _resolveVideoMediaWithStatus(
+            context,
+            widget.renderContext,
+            widget.position,
+          );
+          return result.widget ?? _videoFallbackForResolve(
+            widget.block,
+            result,
+          );
+        },
+      ),
+    );
+  }
+
+  _VideoMediaResolverCacheKey _currentCacheKey() {
+    return _VideoMediaResolverCacheKey(
+      resolver: widget.renderContext.mediaResolver,
+      position: widget.position,
+      block: widget.block,
+    );
+  }
+}
+
+class _VideoMediaResolverCacheKey {
+  _VideoMediaResolverCacheKey({
+    required this.resolver,
+    required this.position,
+    required VideoBlockNode block,
+  })  : blockId = block.id,
+        assetId = block.assetId,
+        playbackUrl = block.playbackUrl,
+        file = block.file,
+        coverUrl = block.coverUrl,
+        title = block.title,
+        description = block.description,
+        aspectRatio = block.aspectRatio,
+        uploadStatus = block.uploadStatus,
+        uploadError = block.uploadError;
+
+  final MediaResolver? resolver;
+  final _VideoMediaRenderPosition position;
+  final String blockId;
+  final String assetId;
+  final String playbackUrl;
+  final String file;
+  final String coverUrl;
+  final String title;
+  final String description;
+  final double? aspectRatio;
+  final FileUploadStatus uploadStatus;
+  final String uploadError;
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        other is _VideoMediaResolverCacheKey &&
+            identical(other.resolver, resolver) &&
+            other.position == position &&
+            other.blockId == blockId &&
+            other.assetId == assetId &&
+            other.playbackUrl == playbackUrl &&
+            other.file == file &&
+            other.coverUrl == coverUrl &&
+            other.title == title &&
+            other.description == description &&
+            other.aspectRatio == aspectRatio &&
+            other.uploadStatus == uploadStatus &&
+            other.uploadError == uploadError;
+  }
+
+  @override
+  int get hashCode {
+    return Object.hash(
+      identityHashCode(resolver),
+      position,
+      blockId,
+      assetId,
+      playbackUrl,
+      file,
+      coverUrl,
+      title,
+      description,
+      aspectRatio,
+      uploadStatus,
+      uploadError,
+    );
   }
 }
 
@@ -9717,6 +10003,7 @@ Widget _withSelectableObjectBlock(
 }
 
 Widget _withSelectableImageBlock(
+  BuildContext context,
   ImageBlockNode block,
   BlockRenderContext rc,
   Widget child, {
@@ -9731,6 +10018,8 @@ Widget _withSelectableImageBlock(
     path,
     _kAtomicBlockSelectionLength,
   );
+  final imageDescriptionEditController =
+      _ImageDescriptionEditRequestScope.maybeOf(context);
   return _withBlockSemantics(
     block,
     _MediaBlockChrome(
@@ -9747,6 +10036,18 @@ Widget _withSelectableImageBlock(
       ),
       toolbarOverlayController: rc.objectBlockToolbarOverlayController,
       onAction: rc.onObjectBlockAction,
+      onEditImageDescription: imageDescriptionEditController == null
+          ? null
+          : () {
+              imageDescriptionEditController.request(
+                _ImageDescriptionEditTarget(
+                  blockIndex: rc.blockIndex,
+                  blockId: block.id,
+                  caption: block.caption,
+                  altText: block.altText,
+                ),
+              );
+            },
       onPreview: onPreview,
       child: _BlockObjectSelectionSurface(
         blockId: block.id,
@@ -9803,6 +10104,7 @@ class _SelectableImageBlockState extends State<_SelectableImageBlock> {
     final selected = _objectBlockSelected(block, rc);
     final canResize = _canResizeImageBlock(rc);
     return _withSelectableImageBlock(
+      context,
       block,
       rc,
       _ImageBlockContent(
@@ -15159,6 +15461,7 @@ class _ObjectBlockToolbar extends StatelessWidget {
     this.imageAlignment,
     this.mediaActions = false,
     this.onAction,
+    this.onEditImageDescription,
     this.onPreview,
   });
 
@@ -15170,6 +15473,7 @@ class _ObjectBlockToolbar extends StatelessWidget {
   final String? imageAlignment;
   final bool mediaActions;
   final ObjectBlockActionHandler? onAction;
+  final VoidCallback? onEditImageDescription;
   final VoidCallback? onPreview;
 
   @override
@@ -15196,6 +15500,7 @@ class _ObjectBlockToolbar extends StatelessWidget {
               imageActions: imageActions,
               imageAlignment: imageAlignment,
               fileActions: fileActions,
+              onEditImageDescription: onEditImageDescription,
               onSelected: _dispatchSelection,
             ),
         ],
@@ -15221,6 +15526,7 @@ class _ObjectBlockToolbar extends StatelessWidget {
             imageActions: imageActions,
             imageAlignment: imageAlignment,
             fileActions: fileActions,
+            onEditImageDescription: onEditImageDescription,
             onSelected: _dispatchSelection,
           ),
       ],
@@ -15231,6 +15537,10 @@ class _ObjectBlockToolbar extends StatelessWidget {
     final action = selection.action;
     if (action != null) {
       _dispatch(action, selection.value);
+      return;
+    }
+    if (selection.editImageDescription) {
+      onEditImageDescription?.call();
     }
   }
 
@@ -15248,20 +15558,30 @@ class _ObjectBlockToolbar extends StatelessWidget {
 class _ObjectMenuSelection {
   const _ObjectMenuSelection.action(this.action, [this.value])
       : format = null,
+        editImageDescription = false,
         more = false;
   const _ObjectMenuSelection.format(this.format)
       : action = null,
+        editImageDescription = false,
         value = null,
+        more = false;
+  const _ObjectMenuSelection.editImageDescription()
+      : action = null,
+        format = null,
+        value = null,
+        editImageDescription = true,
         more = false;
   const _ObjectMenuSelection.more()
       : action = null,
         format = null,
         value = null,
+        editImageDescription = false,
         more = true;
 
   final ObjectBlockAction? action;
   final _RowBlockFormat? format;
   final Object? value;
+  final bool editImageDescription;
   final bool more;
 }
 
@@ -15300,6 +15620,7 @@ class _ObjectMoreMenu extends StatefulWidget {
     required this.fileActions,
     required this.onSelected,
     this.imageAlignment,
+    this.onEditImageDescription,
   });
 
   final int blockIndex;
@@ -15309,6 +15630,7 @@ class _ObjectMoreMenu extends StatefulWidget {
   final bool fileActions;
   final ValueChanged<_ObjectMenuSelection> onSelected;
   final String? imageAlignment;
+  final VoidCallback? onEditImageDescription;
 
   @override
   State<_ObjectMoreMenu> createState() => _ObjectMoreMenuState();
@@ -15430,6 +15752,19 @@ class _ObjectMoreMenuState extends State<_ObjectMoreMenu> {
       }
       final imageAlignment = widget.imageAlignment;
       entries.addAll(<PopupMenuEntry<_ObjectMenuSelection>>[
+        if (widget.onEditImageDescription != null) ...[
+          const PopupMenuItem<_ObjectMenuSelection>(
+            value: _ObjectMenuSelection.editImageDescription(),
+            height: _kPopupMenuItemHeight,
+            padding: _kPopupMenuItemPadding,
+            child: _PopupMenuItemContent(
+              icon: Icons.closed_caption_outlined,
+              label: '修改图片描述',
+              enabled: true,
+            ),
+          ),
+          _popupMenuDivider<_ObjectMenuSelection>(),
+        ],
         _objectActionMenuItem(
           action: ObjectBlockAction.setImageBlockAlignment,
           icon: Icons.format_align_left,
@@ -15526,6 +15861,93 @@ class _ObjectMoreMenuState extends State<_ObjectMoreMenu> {
   }
 }
 
+class _ImageDescriptionEditDialog extends StatefulWidget {
+  const _ImageDescriptionEditDialog({
+    required this.caption,
+    required this.altText,
+  });
+
+  final String caption;
+  final String altText;
+
+  @override
+  State<_ImageDescriptionEditDialog> createState() =>
+      _ImageDescriptionEditDialogState();
+}
+
+class _ImageDescriptionEditDialogState
+    extends State<_ImageDescriptionEditDialog> {
+  late final TextEditingController _captionController;
+  late final TextEditingController _altTextController;
+
+  @override
+  void initState() {
+    super.initState();
+    _captionController = TextEditingController(text: widget.caption);
+    _altTextController = TextEditingController(text: widget.altText);
+  }
+
+  @override
+  void dispose() {
+    _captionController.dispose();
+    _altTextController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('修改图片描述'),
+      content: SizedBox(
+        width: 420,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            TextField(
+              controller: _captionController,
+              autofocus: true,
+              maxLines: 2,
+              minLines: 1,
+              textInputAction: TextInputAction.next,
+              decoration: const InputDecoration(
+                labelText: '可见图注',
+                hintText: '显示在图片下方',
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _altTextController,
+              maxLines: 2,
+              minLines: 1,
+              decoration: const InputDecoration(
+                labelText: '替代文本',
+                hintText: '供屏幕阅读器使用',
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: <Widget>[
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('取消'),
+        ),
+        FilledButton(
+          onPressed: () {
+            Navigator.of(context).pop(
+              _ImageDescriptionEditResult(
+                caption: _captionController.text,
+                altText: _altTextController.text,
+              ),
+            );
+          },
+          child: const Text('保存'),
+        ),
+      ],
+    );
+  }
+}
+
 class _FloatingObjectBlockToolbar extends StatelessWidget {
   const _FloatingObjectBlockToolbar({
     required this.blockIndex,
@@ -15536,6 +15958,7 @@ class _FloatingObjectBlockToolbar extends StatelessWidget {
     this.imageAlignment,
     this.mediaActions = false,
     this.onAction,
+    this.onEditImageDescription,
     this.onPreview,
   });
 
@@ -15547,6 +15970,7 @@ class _FloatingObjectBlockToolbar extends StatelessWidget {
   final String? imageAlignment;
   final bool mediaActions;
   final ObjectBlockActionHandler? onAction;
+  final VoidCallback? onEditImageDescription;
   final VoidCallback? onPreview;
 
   @override
@@ -15561,6 +15985,7 @@ class _FloatingObjectBlockToolbar extends StatelessWidget {
         imageAlignment: imageAlignment,
         mediaActions: mediaActions,
         onAction: onAction,
+        onEditImageDescription: onEditImageDescription,
         onPreview: onPreview,
       ),
     );
@@ -16484,6 +16909,7 @@ class _MediaBlockChrome extends StatelessWidget {
     this.toolbarFrameAlignment,
     this.toolbarOverlayController,
     this.onAction,
+    this.onEditImageDescription,
     this.onPreview,
   });
 
@@ -16499,6 +16925,7 @@ class _MediaBlockChrome extends StatelessWidget {
   final AlignmentDirectional? toolbarFrameAlignment;
   final ObjectBlockToolbarOverlayController? toolbarOverlayController;
   final ObjectBlockActionHandler? onAction;
+  final VoidCallback? onEditImageDescription;
   final VoidCallback? onPreview;
 
   @override
@@ -16549,6 +16976,7 @@ class _MediaBlockChrome extends StatelessWidget {
       fileActions: false,
       mediaActions: true,
       onAction: onAction,
+      onEditImageDescription: onEditImageDescription,
       onPreview: onPreview,
     );
   }
