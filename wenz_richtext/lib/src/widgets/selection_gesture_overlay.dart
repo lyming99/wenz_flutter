@@ -37,11 +37,14 @@ class SelectionContextMenuRequest {
 /// - drag → extend selection (cross-block), with auto-scroll near viewport edges
 /// - auto-scroll → every drag (touch or mouse) synchronously scrolls one step
 ///   when the pointer enters the viewport edge band, so the list follows the
-///   drag. For mouse/pen, a per-frame [Ticker] *additionally* keeps scrolling
-///   while the pointer is held still near an edge, letting the user scroll
-///   past the visible area. (Touch selection past the viewport uses dedicated
-///   handles, tracked separately as C9.)
+///   drag. A per-frame [Ticker] *additionally* keeps scrolling (for every
+///   pointer kind) while the pointer is held still near an edge, letting the
+///   user scroll past the visible area — touch drags no longer stall at the
+///   viewport edge.
 /// - double-tap → select word
+/// - long-press (touch only) → select word (mobile counterpart of double-tap),
+///   reusing the same word-selection path and seeding a drag from the word so
+///   the selection can be extended immediately
 /// - triple-tap → select block (paragraph)
 /// Selection exclusions and the scrollbar gutter are checked before resolving a
 /// text anchor, so block chrome (handles, checkboxes, collapse buttons, menus)
@@ -130,6 +133,16 @@ class _SelectionGestureOverlayState extends State<SelectionGestureOverlay> {
   // multi-click selection regardless of whether a drag starts.
   DocumentPosition? _tapAnchor;
 
+  // Set when a touch long-press selected a word (the mobile counterpart of the
+  // desktop double-click word select). Pointer-up consults it to skip caret
+  // placement so the word selection survives a long-press-and-release.
+  bool _longPressWordSelected = false;
+
+  // Touch long-press recognizer (word select). Built once in initState; mouse
+  // and pen are excluded via [LongPressGestureRecognizer.supportedDevices] so
+  // the desktop double-click path is untouched.
+  late final Map<Type, GestureRecognizerFactory> _gestureRecognizers;
+
   // When non-null, the in-progress pointer-down is a Ctrl/Cmd+click
   // (mouse/stylus) on an inline link: the caret/selection setup was suppressed
   // on down, and pointer-up opens the link instead of placing the caret.
@@ -165,6 +178,25 @@ class _SelectionGestureOverlayState extends State<SelectionGestureOverlay> {
   bool _overScrollbar = false;
 
   @override
+  void initState() {
+    super.initState();
+    _gestureRecognizers = <Type, GestureRecognizerFactory>{
+      LongPressGestureRecognizer:
+          GestureRecognizerFactoryWithHandlers<LongPressGestureRecognizer>(
+        () => LongPressGestureRecognizer(
+          // Touch-only: mouse/pen keep their double-click word select.
+          supportedDevices: const <PointerDeviceKind>{
+            PointerDeviceKind.touch,
+          },
+        ),
+        (LongPressGestureRecognizer instance) {
+          instance.onLongPressStart = _onLongPressStart;
+        },
+      ),
+    };
+  }
+
+  @override
   void dispose() {
     _stopAutoScroll();
     _autoScrollTicker?.dispose();
@@ -177,13 +209,21 @@ class _SelectionGestureOverlayState extends State<SelectionGestureOverlay> {
       cursor: _resolvedCursor(),
       onHover: _onPointerHover,
       onExit: _onPointerExit,
-      child: Listener(
+      child: RawGestureDetector(
+        // Touch long-press → word select. The recognizers live in the gesture
+        // arena; the raw [Listener] below still drives tap/drag selection, and
+        // the long-press recognizer cancels on movement so it never competes
+        // with a drag.
         behavior: HitTestBehavior.translucent,
-        onPointerDown: _onPointerDown,
-        onPointerMove: _onPointerMove,
-        onPointerUp: _onPointerUp,
-        onPointerCancel: _onPointerCancel,
-        child: widget.child,
+        gestures: _gestureRecognizers,
+        child: Listener(
+          behavior: HitTestBehavior.translucent,
+          onPointerDown: _onPointerDown,
+          onPointerMove: _onPointerMove,
+          onPointerUp: _onPointerUp,
+          onPointerCancel: _onPointerCancel,
+          child: widget.child,
+        ),
       ),
     );
   }
@@ -263,6 +303,10 @@ class _SelectionGestureOverlayState extends State<SelectionGestureOverlay> {
   }
 
   void _onPointerDown(PointerDownEvent event) {
+    // A new pointer down starts a fresh gesture; clear any long-press word
+    // selection flag left by a previous (interrupted) sequence so it cannot
+    // suppress this press's caret placement.
+    _longPressWordSelected = false;
     if (widget.registry.isSelectionExcluded(event.position)) {
       _selectionExcludedPointer = event.pointer;
       _stopAutoScroll();
@@ -394,7 +438,7 @@ class _SelectionGestureOverlayState extends State<SelectionGestureOverlay> {
     _lastDragPosition = position;
     _extendSelection(position);
     _syncScrollToEdge(position);
-    _maybeStartAutoScroll(event.kind, position);
+    _maybeStartAutoScroll(position);
   }
 
   void _onPointerUp(PointerUpEvent event) {
@@ -406,7 +450,9 @@ class _SelectionGestureOverlayState extends State<SelectionGestureOverlay> {
     final position = event.position;
     final wasDragging = _isDragging;
     final tapCount = _tapCount;
+    final longPressSelected = _longPressWordSelected;
     _isDragging = false;
+    _longPressWordSelected = false;
     _dragOrigin = null;
     _lastDragPosition = null;
 
@@ -432,6 +478,15 @@ class _SelectionGestureOverlayState extends State<SelectionGestureOverlay> {
           DocumentSelection(base: base, extent: extent),
         );
       }
+      return;
+    }
+
+    // A touch long-press already selected a word (and any drag extension was
+    // handled by the branch above). Keep that selection instead of placing the
+    // caret, which would collapse it back to a single position.
+    if (longPressSelected) {
+      _dragBase = null;
+      _tapAnchor = null;
       return;
     }
 
@@ -481,6 +536,7 @@ class _SelectionGestureOverlayState extends State<SelectionGestureOverlay> {
     }
     _stopAutoScroll();
     _isDragging = false;
+    _longPressWordSelected = false;
     _dragBase = null;
     _dragOrigin = null;
     _lastDragPosition = null;
@@ -542,11 +598,49 @@ class _SelectionGestureOverlayState extends State<SelectionGestureOverlay> {
     widget.onSelectionChanged(DocumentSelection(base: start, extent: end));
   }
 
+  /// Touch long-press handler: selects the word at the press point — the mobile
+  /// counterpart of the desktop double-click word select, reusing [_selectWord].
+  ///
+  /// It then seeds a drag from the word's start (overriding the collapsed caret
+  /// anchor set on pointer-down) so the user can immediately drag to extend the
+  /// selection. [_isDragging] stays `false` until a subsequent move crosses slop
+  /// in [_onPointerMove], and [_longPressWordSelected] tells [_onPointerUp] to
+  /// keep the word selection when the press is released without a drag.
+  ///
+  /// The recognizer is touch-only (see [_gestureRecognizers]); mouse/pen never
+  /// reach this path and keep their double-click word select.
+  void _onLongPressStart(LongPressStartDetails details) {
+    final global = details.globalPosition;
+    // Mirror the tap/drag surface: never claim block chrome (handles,
+    // checkboxes, collapse buttons) as a word selection.
+    if (widget.registry.isSelectionExcluded(global)) {
+      return;
+    }
+    final anchor = widget.registry.positionFromGlobalOffset(global);
+    if (anchor == null) {
+      return;
+    }
+    _longPressWordSelected = true;
+    widget.focusNode.requestFocus();
+    _selectWord(anchor, global);
+    final range = widget.registry.wordRangeAt(
+      anchor.blockId,
+      anchor.offset,
+      path: anchor.path,
+    );
+    final baseOffset =
+        range != null && !range.isCollapsed ? range.start : anchor.offset;
+    _dragBase = anchor.copyWith(offset: baseOffset);
+    _dragOrigin = global;
+    _lastDragPosition = global;
+  }
+
   /// Synchronously advances the scroll offset by one step when [global] is in
   /// the viewport edge band. This runs on every pointer-move for *every* device
   /// — it is the primary driver that keeps the list scrolling under a drag
   /// (the scrollable's own pan recognizer does not win the gesture arena here).
-  /// Mouse/pen get additional continuous scrolling via [_maybeStartAutoScroll].
+  /// All pointer kinds additionally get continuous scrolling via
+  /// [_maybeStartAutoScroll] so a drag held still at the edge keeps going.
   void _syncScrollToEdge(Offset global) {
     final scrollable = widget.scrollController;
     if (!scrollable.hasClients) {
@@ -575,16 +669,15 @@ class _SelectionGestureOverlayState extends State<SelectionGestureOverlay> {
     scrollable.position.jumpTo(next);
   }
 
-  /// For mouse/pen drags, starts (or stops) a continuous auto-scroll ticker so
-  /// that holding the pointer still near an edge keeps scrolling and extending
-  /// the selection. Touch is left out: a touch drag's continuous motion already
-  /// drives [_syncScrollToEdge] per move, and touch selection past the viewport
-  /// uses dedicated handles (C9).
-  void _maybeStartAutoScroll(PointerDeviceKind kind, Offset global) {
-    if (kind != PointerDeviceKind.mouse && kind != PointerDeviceKind.stylus) {
-      _stopAutoScroll();
-      return;
-    }
+  /// For drags of any pointer kind (mouse/pen/touch), starts (or stops) a
+  /// continuous auto-scroll ticker so that holding the pointer still near an
+  /// edge keeps scrolling and extending the selection past the visible area.
+  ///
+  /// The per-move [_syncScrollToEdge] only fires while the pointer is actually
+  /// moving, so without this ticker a touch drag held still at the viewport edge
+  /// would stop scrolling (the former C9 gap). The ticker closes that gap; touch
+  /// and mouse now behave the same.
+  void _maybeStartAutoScroll(Offset global) {
     final scrollable = widget.scrollController;
     if (!scrollable.hasClients) {
       return;

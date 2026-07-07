@@ -44,7 +44,10 @@ class VectorGraphicsDiagramSurface extends DiagramSvgSurface {
         width: constrainedWidth,
         fit: BoxFit.contain,
         alignment: Alignment.center,
-        errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+        errorBuilder: (_, error, __) => _VectorGraphicsSvgFallback(
+          maxWidth: constrainedWidth,
+          error: error,
+        ),
       );
       if (constrainedWidth == null) {
         return Align(
@@ -60,10 +63,70 @@ class VectorGraphicsDiagramSurface extends DiagramSvgSurface {
         ),
       );
     } catch (_) {
-      // Malformed or unsupported SVG — return an empty box so the error UI
-      // in the mermaid widget can take over.
-      return const SizedBox.shrink();
+      // Malformed or unsupported SVG should stay visible in preview mode.
+      return _VectorGraphicsSvgFallback(maxWidth: constrainedWidth);
     }
+  }
+}
+
+class _VectorGraphicsSvgFallback extends StatelessWidget {
+  const _VectorGraphicsSvgFallback({
+    this.maxWidth,
+    this.error,
+  });
+
+  final double? maxWidth;
+  final Object? error;
+
+  @override
+  Widget build(BuildContext context) {
+    final baseStyle = DefaultTextStyle.of(context).style;
+    final fallbackWidth = maxWidth == null
+        ? 520.0
+        : maxWidth!.clamp(240.0, 720.0).toDouble();
+    final detail = error == null
+        ? '当前 Mermaid SVG 未能在默认 surface 中绘制，可切回源码查看 DSL。'
+        : '默认 SVG surface 无法解析此 Mermaid 输出，可切回源码查看 DSL。';
+    return Center(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: fallbackWidth),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: const Color(0xFF2A2A3F),
+            borderRadius: BorderRadius.circular(8.0),
+            border: Border.all(color: const Color(0x99A7A7FF)),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Text(
+                  'SVG 预览暂不可用',
+                  textAlign: TextAlign.center,
+                  style: baseStyle.copyWith(
+                    color: const Color(0xFFF4F4FA),
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13.0,
+                    height: 1.35,
+                  ),
+                ),
+                const SizedBox(height: 6.0),
+                Text(
+                  detail,
+                  textAlign: TextAlign.center,
+                  style: baseStyle.copyWith(
+                    color: const Color(0xFFD6D6E8),
+                    fontSize: 12.0,
+                    height: 1.35,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 
@@ -130,7 +193,7 @@ class NativeMermaidRenderer implements MermaidRenderer {
 // ---------------------------------------------------------------------------
 
 /// Wraps the built-in [BlockType.code] renderer so that [CodeBlockNode]s with
-/// `language == 'mermaid'` render as interactive diagram widgets instead of
+/// a Mermaid language marker render as interactive diagram widgets instead of
 /// plain syntax-highlighted code.
 ///
 /// Non-mermaid code blocks are delegated to the original renderer unchanged.
@@ -170,7 +233,7 @@ class MermaidDiagramPlugin extends WenzRichTextPlugin {
     // Register a wrapper that intercepts mermaid code blocks.
     registry.register(BlockType.code, (buildContext, renderContext) {
       final block = renderContext.block;
-      if (block is CodeBlockNode && block.language == 'mermaid') {
+      if (block is CodeBlockNode && _isMermaidCodeLanguage(block.language)) {
         return MermaidCodeBlockWidget(
           block: block,
           config: config,
@@ -181,4 +244,23 @@ class MermaidDiagramPlugin extends WenzRichTextPlugin {
       return originalBuilder(buildContext, renderContext);
     });
   }
+}
+
+const String _mermaidLanguage = 'mermaid';
+
+bool _isMermaidCodeLanguage(String language) {
+  final firstToken = _firstLanguageToken(language);
+  return firstToken.toLowerCase() == _mermaidLanguage;
+}
+
+String _firstLanguageToken(String language) {
+  final trimmed = language.trim();
+  if (trimmed.isEmpty) {
+    return '';
+  }
+  final whitespace = RegExp(r'\s+').firstMatch(trimmed);
+  if (whitespace == null) {
+    return trimmed;
+  }
+  return trimmed.substring(0, whitespace.start);
 }

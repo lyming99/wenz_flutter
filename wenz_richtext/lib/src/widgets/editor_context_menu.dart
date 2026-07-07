@@ -1,9 +1,13 @@
 import 'dart:async';
 
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../controller/wenz_rich_text_controller.dart';
+import '../core/commands/inline_commands.dart';
+import '../core/commands/inline_editing.dart';
 import '../core/position/document_position.dart';
+import 'editor_tokens.dart';
 
 /// Action callback for an editor context-menu item.
 ///
@@ -264,6 +268,205 @@ class WenzEditorContextMenuConfiguration {
       items: items ?? this.items,
       builder: clearBuilder ? null : builder ?? this.builder,
       defaultItemsPolicy: defaultItemsPolicy ?? this.defaultItemsPolicy,
+    );
+  }
+}
+
+// Compact floating-toolbar chrome for the mobile selection toolbar. These
+// mirror the editor's private `_kMinimalFloatingToolbar*` tokens
+// (wenz_rich_text_editor.dart); duplicated here because the selection toolbar
+// lives outside that file. Keep the values in sync.
+const double _kSelectionToolbarRadius = 10.0;
+const double _kSelectionToolbarElevation = 3.0;
+const EdgeInsets _kSelectionToolbarPadding = EdgeInsets.symmetric(
+  horizontal: 4,
+  vertical: 2,
+);
+const double _kSelectionToolbarButtonGap = 2.0;
+
+/// Compact touch selection toolbar shown above a non-collapsed selection on
+/// mobile surfaces.
+///
+/// The action set (复制 / 剪切 / 全选 / 加粗 / 斜体) reuses the editor's
+/// [WenzEditorContextMenuDefaultAction] action system and the controller's
+/// existing clipboard / selection / command paths — no command logic is
+/// re-implemented. Copy / cut read the payload through
+/// [WenzRichTextController.copySelection] / [WenzRichTextController.cutSelection]
+/// and write it to the clipboard; 全选 calls [WenzRichTextController.selectAll];
+/// the format toggles dispatch [ToggleMarkCommand] via
+/// [WenzRichTextController.execute]. Button / icon sizes come from
+/// [EditorTokens.mobile]; the surface chrome uses the `_kSelectionToolbar*`
+/// tokens above (mirrors of the editor's `_kMinimalFloatingToolbar*` family).
+class WenzMobileSelectionToolbar extends StatelessWidget {
+  const WenzMobileSelectionToolbar({
+    super.key,
+    required this.controller,
+  });
+
+  final WenzRichTextController controller;
+
+  bool get _canEdit => controller.canEdit;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final canEdit = _canEdit;
+    return Material(
+      color: theme.colorScheme.surfaceContainerLow,
+      elevation: _kSelectionToolbarElevation,
+      shadowColor: theme.colorScheme.shadow.withAlpha(30),
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(
+        side: BorderSide(color: theme.colorScheme.outlineVariant),
+        borderRadius: BorderRadius.circular(_kSelectionToolbarRadius),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Padding(
+        padding: _kSelectionToolbarPadding,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            _SelectionToolbarButton(
+              icon: Icons.copy_all_outlined,
+              tooltip: '复制',
+              onTap: _copy,
+            ),
+            _SelectionToolbarButton(
+              icon: Icons.content_cut,
+              tooltip: '剪切',
+              enabled: canEdit,
+              onTap: _cut,
+            ),
+            _SelectionToolbarButton(
+              icon: Icons.select_all_outlined,
+              tooltip: '全选',
+              onTap: _selectAll,
+            ),
+            const _SelectionToolbarDivider(),
+            _SelectionToolbarButton(
+              icon: Icons.format_bold,
+              tooltip: '加粗',
+              enabled: canEdit,
+              onTap: _toggleBold,
+            ),
+            _SelectionToolbarButton(
+              icon: Icons.format_italic,
+              tooltip: '斜体',
+              enabled: canEdit,
+              onTap: _toggleItalic,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Action dispatch — reuses [WenzEditorContextMenuDefaultAction] identifiers
+  // and the controller's existing clipboard/selection logic.
+
+  void _copy() => _runDefault(WenzEditorContextMenuDefaultAction.copy);
+
+  void _cut() => _runDefault(WenzEditorContextMenuDefaultAction.cut);
+
+  void _selectAll() =>
+      _runDefault(WenzEditorContextMenuDefaultAction.selectAll);
+
+  void _runDefault(WenzEditorContextMenuDefaultAction action) {
+    switch (action) {
+      case WenzEditorContextMenuDefaultAction.copy:
+        {
+          final payload = controller.copySelection();
+          if (payload != null) {
+            unawaited(Clipboard.setData(ClipboardData(text: payload)));
+          }
+          break;
+        }
+      case WenzEditorContextMenuDefaultAction.cut:
+        if (_canEdit) {
+          final payload = controller.cutSelection();
+          if (payload != null) {
+            unawaited(Clipboard.setData(ClipboardData(text: payload)));
+          }
+        }
+        break;
+      case WenzEditorContextMenuDefaultAction.selectAll:
+        controller.selectAll();
+        break;
+      default:
+        // The selection toolbar only surfaces clipboard/selection actions;
+        // insert* actions are not reachable here.
+        break;
+    }
+  }
+
+  void _toggleBold() {
+    if (_canEdit) {
+      controller.execute(const ToggleMarkCommand(TextMark.bold));
+    }
+  }
+
+  void _toggleItalic() {
+    if (_canEdit) {
+      controller.execute(const ToggleMarkCommand(TextMark.italic));
+    }
+  }
+}
+
+class _SelectionToolbarButton extends StatelessWidget {
+  const _SelectionToolbarButton({
+    required this.icon,
+    required this.tooltip,
+    required this.onTap,
+    this.enabled = true,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final size = EditorTokens.mobile.minimalToolbarButtonSize;
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: _kSelectionToolbarButtonGap / 2,
+      ),
+      child: IconButton(
+        tooltip: tooltip,
+        iconSize: EditorTokens.mobile.minimalToolbarIconSize,
+        visualDensity: VisualDensity.compact,
+        padding: EdgeInsets.zero,
+        constraints: BoxConstraints.tightFor(width: size, height: size),
+        onPressed: enabled ? onTap : null,
+        icon: Icon(
+          icon,
+          color: enabled
+              ? theme.colorScheme.onSurface
+              : theme.colorScheme.onSurface.withAlpha(96),
+        ),
+      ),
+    );
+  }
+}
+
+class _SelectionToolbarDivider extends StatelessWidget {
+  const _SelectionToolbarDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: _kSelectionToolbarButtonGap,
+      ),
+      child: SizedBox(
+        height: EditorTokens.mobile.minimalToolbarButtonSize * 0.6,
+        child: VerticalDivider(
+          width: 1,
+          color: Theme.of(context).colorScheme.outlineVariant,
+        ),
+      ),
     );
   }
 }

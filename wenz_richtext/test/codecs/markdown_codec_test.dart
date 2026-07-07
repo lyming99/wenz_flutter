@@ -527,6 +527,28 @@ void main() {
       expect(code.code, '# not a heading\nvar x = 1;');
     });
 
+    test('mermaid code fences normalize language variants', () {
+      const cases = <String>[
+        '```mermaid\n# not a heading\nflowchart TD\n  A --> B\n```',
+        '``` Mermaid \n# not a heading\nflowchart TD\n  A --> B\n```',
+        '```MERMAID\n# not a heading\nflowchart TD\n  A --> B\n```',
+        '~~~mermaid\n# not a heading\nflowchart TD\n  A --> B\n~~~',
+        '```   mermaid   \n# not a heading\nflowchart TD\n  A --> B\n```',
+      ];
+
+      for (final source in cases) {
+        final doc = codec.decode(source);
+        expect(doc.blocks, hasLength(1), reason: source);
+        final code = doc.blocks.single as CodeBlockNode;
+        expect(code.language, 'mermaid', reason: source);
+        expect(
+          code.code,
+          '# not a heading\nflowchart TD\n  A --> B',
+          reason: source,
+        );
+      }
+    });
+
     test('blockquote aggregates consecutive > lines', () {
       const source = '> line one\n> line two';
       final doc = codec.decode(source);
@@ -732,6 +754,26 @@ void main() {
       expect(video.description, 'Product launch overview');
       expect(video.aspectRatio, 16 / 9);
       expect(video.uploadStatus, FileUploadStatus.uploaded);
+    });
+
+    test('mermaid language stays canonical after export and import', () {
+      const document = RichTextDocument(
+        blocks: <BlockNode>[
+          CodeBlockNode(
+            id: 'mermaid',
+            language: ' MERMAID ',
+            code: 'flowchart TD\n  A --> B',
+          ),
+        ],
+      );
+
+      final exported = codec.encode(document);
+      final reimported = codec.decode(exported);
+
+      expect(exported, '```mermaid\nflowchart TD\n  A --> B\n```');
+      final code = reimported.blocks.single as CodeBlockNode;
+      expect(code.language, 'mermaid');
+      expect(code.code, 'flowchart TD\n  A --> B');
     });
   });
 

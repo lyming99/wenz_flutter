@@ -179,6 +179,7 @@ export 'src/integration/wenz_editor_configuration.dart';
 export 'src/widgets/block_renderer_registry.dart';
 export 'src/widgets/comment_sidebar.dart';
 export 'src/widgets/default_desktop_toolbar.dart';
+export 'src/widgets/default_mobile_toolbar.dart';
 export 'src/widgets/editor_context_menu.dart';
 export 'src/widgets/find_replace_panel.dart';
 export 'src/widgets/inline_embed_renderer.dart';

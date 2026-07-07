@@ -6,16 +6,26 @@ import '../controller/toolbar_controller.dart';
 import '../controller/wenz_rich_text_controller.dart';
 import '../core/commands/inline_editing.dart';
 import 'link_edit_dialog.dart';
+import 'lucide_toolbar_icons.dart';
 
 const double _kToolbarHorizontalPadding = 12.0;
 const double _kToolbarVerticalPadding = 8.0;
 const double _kToolbarSpacing = 6.0;
-const double _kToolbarRunSpacing = 6.0;
 const double _kToolbarButtonExtent = 34.0;
 const double _kToolbarIconSize = 19.0;
 const double _kToolbarRadius = 6.0;
+const double _kToolbarDividerWidth = 8.0;
+const double _kToolbarDividerHeight = 18.0;
 const double _kBlockStyleButtonWidth = 92.0;
 const double _kAlignmentButtonWidth = 112.0;
+const double _kToolbarMenuPanelPadding = 6.0;
+const double _kToolbarMenuItemHeight = 36.0;
+const double _kToolbarMenuPanelRadius = 10.0;
+const double _kToolbarMenuItemRadius = 8.0;
+const double _kBlockStyleMenuWidth = 152.0;
+const double _kAlignmentMenuWidth = 176.0;
+const double _kTextColorMenuWidth = 208.0;
+const double _kInsertMenuWidth = 216.0;
 
 const List<_BlockStyleOption> _kBlockStyleOptions = <_BlockStyleOption>[
   _BlockStyleOption.heading('H1', 1),
@@ -28,11 +38,11 @@ const List<_BlockStyleOption> _kBlockStyleOptions = <_BlockStyleOption>[
 ];
 
 const List<_AlignmentOption> _kAlignmentOptions = <_AlignmentOption>[
-  _AlignmentOption('左对齐', Icons.format_align_left, 'left'),
-  _AlignmentOption('居中对齐', Icons.format_align_center, 'center'),
-  _AlignmentOption('右对齐', Icons.format_align_right, 'right'),
-  _AlignmentOption('两端对齐', Icons.format_align_justify, 'justify'),
-  _AlignmentOption('清除对齐', Icons.format_clear, null),
+  _AlignmentOption('左对齐', WenzLucideToolbarIcons.alignLeft, 'left'),
+  _AlignmentOption('居中对齐', WenzLucideToolbarIcons.alignCenter, 'center'),
+  _AlignmentOption('右对齐', WenzLucideToolbarIcons.alignRight, 'right'),
+  _AlignmentOption('两端对齐', WenzLucideToolbarIcons.alignJustify, 'justify'),
+  _AlignmentOption('清除对齐', WenzLucideToolbarIcons.removeFormat, null),
 ];
 
 const List<_ToolbarColorOption> _kTextColorOptions = <_ToolbarColorOption>[
@@ -313,15 +323,173 @@ class WenzDefaultDesktopToolbar extends StatelessWidget {
     );
   }
 
+  Listenable get _rebuildListenable {
+    final registry = toolbarItemRegistry;
+    if (!includeRegistryItems || registry == null) {
+      return toolbar;
+    }
+    return Listenable.merge(<Listenable>[toolbar, registry]);
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: toolbar,
+      listenable: _rebuildListenable,
       builder: (context, _) {
         final theme = Theme.of(context);
         final colorScheme = theme.colorScheme;
         final state = toolbar.state;
         final extraItems = effectiveToolbarItems;
+        final toolbarChildren = <Widget>[
+          _MarkButton(
+            tooltip: '加粗',
+            icon: WenzLucideToolbarIcons.bold,
+            mark: TextMark.bold,
+            toolbar: toolbar,
+            state: state,
+          ),
+          _MarkButton(
+            tooltip: '斜体',
+            icon: WenzLucideToolbarIcons.italic,
+            mark: TextMark.italic,
+            toolbar: toolbar,
+            state: state,
+          ),
+          _MarkButton(
+            tooltip: '下划线',
+            icon: WenzLucideToolbarIcons.underline,
+            mark: TextMark.underline,
+            toolbar: toolbar,
+            state: state,
+          ),
+          _MarkButton(
+            tooltip: '删除线',
+            icon: WenzLucideToolbarIcons.strikethrough,
+            mark: TextMark.lineThrough,
+            toolbar: toolbar,
+            state: state,
+          ),
+          _TextColorMenuButton(
+            toolbar: toolbar,
+            state: state,
+          ),
+          _ToolbarIconButton(
+            tooltip: _clearTextColorTooltip(state),
+            icon: WenzLucideToolbarIcons.clearTextColor,
+            enabled: state.canFormatInline,
+            iconColor: state.textColor == null
+                ? null
+                : Color(state.textColor!),
+            onPressed: toolbar.clearTextColor,
+          ),
+          _ToolbarIconButton(
+            tooltip: '清除样式',
+            icon: WenzLucideToolbarIcons.removeFormat,
+            enabled: state.canFormatInline,
+            onPressed: toolbar.clearStyle,
+          ),
+          _ToolbarDivider(visible: style.showGroupDividers),
+          _BlockStyleMenuButton(
+            toolbar: toolbar,
+            state: state,
+          ),
+          _BlockTypeButton(
+            tooltip: '引用',
+            icon: WenzLucideToolbarIcons.quote,
+            selected: state.isQuoteBlock,
+            enabled: state.canToggleQuote,
+            onPressed: toolbar.toggleQuoteBlock,
+          ),
+          _BlockTypeButton(
+            tooltip: '任务列表',
+            icon: WenzLucideToolbarIcons.taskList,
+            selected: state.isTodo,
+            enabled: state.canSetBlockType,
+            onPressed: toolbar.setTodo,
+          ),
+          _BlockTypeButton(
+            tooltip: '有序列表',
+            icon: WenzLucideToolbarIcons.orderedList,
+            selected: state.isOrderedList,
+            enabled: state.canSetBlockType,
+            onPressed: toolbar.setOrderedList,
+          ),
+          if (state.canTableStruct) ...<Widget>[
+            _ToolbarDivider(visible: style.showGroupDividers),
+            _ToolbarIconButton(
+              tooltip: '下方插入行',
+              icon: WenzLucideToolbarIcons.tableRowInsert,
+              enabled: state.canTableStruct,
+              onPressed: toolbar.insertTableRow,
+            ),
+            _ToolbarIconButton(
+              tooltip: '右侧插入列',
+              icon: WenzLucideToolbarIcons.tableColumnInsert,
+              enabled: state.canTableStruct,
+              onPressed: toolbar.insertTableColumn,
+            ),
+            _ToolbarIconButton(
+              tooltip: '删除行',
+              icon: WenzLucideToolbarIcons.tableDelete,
+              enabled: state.canTableStruct,
+              onPressed: toolbar.deleteTableRow,
+            ),
+            _ToolbarIconButton(
+              tooltip: '删除列',
+              icon: WenzLucideToolbarIcons.tableDelete,
+              enabled: state.canTableStruct,
+              onPressed: toolbar.deleteTableColumn,
+            ),
+            _ToolbarIconButton(
+              tooltip: '合并单元格',
+              icon: WenzLucideToolbarIcons.tableMerge,
+              enabled: state.canTableStruct,
+              onPressed: toolbar.mergeTableCells,
+            ),
+            _ToolbarIconButton(
+              tooltip: '拆分单元格',
+              icon: WenzLucideToolbarIcons.tableSplit,
+              enabled: state.canTableStruct,
+              onPressed: toolbar.splitTableCell,
+            ),
+          ],
+          if (extraItems.isNotEmpty) ...<Widget>[
+            _ToolbarDivider(visible: style.showGroupDividers),
+            for (final item in extraItems)
+              _RegistryToolbarItemButton(
+                item: item,
+                controller: controller,
+                state: state,
+              ),
+          ],
+          _BlockTypeButton(
+            tooltip: '无序列表',
+            icon: WenzLucideToolbarIcons.unorderedList,
+            selected: state.isUnorderedList,
+            enabled: state.canSetBlockType,
+            onPressed: toolbar.setUnorderedList,
+          ),
+          _ToolbarDivider(
+            visible: style.showGroupDividers,
+            preserveWidth: true,
+          ),
+          _AlignmentMenuButton(
+            toolbar: toolbar,
+            state: state,
+          ),
+          _ToolbarDivider(
+            visible: style.showGroupDividers,
+            preserveWidth: true,
+          ),
+          _InsertMenuButton(
+            controller: controller,
+            toolbar: toolbar,
+            actions: actions,
+            state: state,
+            actionContext: actionContext,
+            onShowLinkDialog: () => _showLinkDialog(context, state),
+          ),
+        ];
         return DecoratedBox(
           decoration: BoxDecoration(
             color: style.showBackground ? colorScheme.surface : null,
@@ -333,154 +501,8 @@ class WenzDefaultDesktopToolbar extends StatelessWidget {
           ),
           child: Padding(
             padding: style.padding,
-            child: Wrap(
-              spacing: _kToolbarSpacing,
-              runSpacing: _kToolbarRunSpacing,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: <Widget>[
-                _MarkButton(
-                  tooltip: '加粗',
-                  icon: Icons.format_bold,
-                  mark: TextMark.bold,
-                  toolbar: toolbar,
-                  state: state,
-                ),
-                _MarkButton(
-                  tooltip: '斜体',
-                  icon: Icons.format_italic,
-                  mark: TextMark.italic,
-                  toolbar: toolbar,
-                  state: state,
-                ),
-                _MarkButton(
-                  tooltip: '下划线',
-                  icon: Icons.format_underline,
-                  mark: TextMark.underline,
-                  toolbar: toolbar,
-                  state: state,
-                ),
-                _MarkButton(
-                  tooltip: '删除线',
-                  icon: Icons.format_strikethrough,
-                  mark: TextMark.lineThrough,
-                  toolbar: toolbar,
-                  state: state,
-                ),
-                _TextColorMenuButton(
-                  toolbar: toolbar,
-                  state: state,
-                ),
-                _ToolbarIconButton(
-                  tooltip: _clearTextColorTooltip(state),
-                  icon: Icons.format_color_reset,
-                  enabled: state.canFormatInline,
-                  iconColor: state.textColor == null
-                      ? null
-                      : Color(state.textColor!),
-                  onPressed: toolbar.clearTextColor,
-                ),
-                _ToolbarIconButton(
-                  tooltip: '清除样式',
-                  icon: Icons.format_clear,
-                  enabled: state.canFormatInline,
-                  onPressed: toolbar.clearStyle,
-                ),
-                _ToolbarDivider(visible: style.showGroupDividers),
-                _BlockStyleMenuButton(
-                  toolbar: toolbar,
-                  state: state,
-                ),
-                _BlockTypeButton(
-                  tooltip: '引用',
-                  icon: Icons.format_quote,
-                  selected: state.isQuoteBlock,
-                  enabled: state.canToggleQuote,
-                  onPressed: toolbar.toggleQuoteBlock,
-                ),
-                _BlockTypeButton(
-                  tooltip: '任务列表',
-                  icon: Icons.checklist,
-                  selected: state.isTodo,
-                  enabled: state.canSetBlockType,
-                  onPressed: toolbar.setTodo,
-                ),
-                _BlockTypeButton(
-                  tooltip: '有序列表',
-                  icon: Icons.format_list_numbered,
-                  selected: state.isOrderedList,
-                  enabled: state.canSetBlockType,
-                  onPressed: toolbar.setOrderedList,
-                ),
-                _BlockTypeButton(
-                  tooltip: '无序列表',
-                  icon: Icons.format_list_bulleted,
-                  selected: state.isUnorderedList,
-                  enabled: state.canSetBlockType,
-                  onPressed: toolbar.setUnorderedList,
-                ),
-                _ToolbarDivider(visible: style.showGroupDividers),
-                _AlignmentMenuButton(
-                  toolbar: toolbar,
-                  state: state,
-                ),
-                if (state.canTableStruct) ...<Widget>[
-                  _ToolbarDivider(visible: style.showGroupDividers),
-                  _ToolbarIconButton(
-                    tooltip: '下方插入行',
-                    icon: Icons.table_rows_outlined,
-                    enabled: state.canTableStruct,
-                    onPressed: toolbar.insertTableRow,
-                  ),
-                  _ToolbarIconButton(
-                    tooltip: '右侧插入列',
-                    icon: Icons.view_column_outlined,
-                    enabled: state.canTableStruct,
-                    onPressed: toolbar.insertTableColumn,
-                  ),
-                  _ToolbarIconButton(
-                    tooltip: '删除行',
-                    icon: Icons.remove_circle_outline,
-                    enabled: state.canTableStruct,
-                    onPressed: toolbar.deleteTableRow,
-                  ),
-                  _ToolbarIconButton(
-                    tooltip: '删除列',
-                    icon: Icons.highlight_remove_outlined,
-                    enabled: state.canTableStruct,
-                    onPressed: toolbar.deleteTableColumn,
-                  ),
-                  _ToolbarIconButton(
-                    tooltip: '合并单元格',
-                    icon: Icons.call_merge,
-                    enabled: state.canTableStruct,
-                    onPressed: toolbar.mergeTableCells,
-                  ),
-                  _ToolbarIconButton(
-                    tooltip: '拆分单元格',
-                    icon: Icons.call_split,
-                    enabled: state.canTableStruct,
-                    onPressed: toolbar.splitTableCell,
-                  ),
-                ],
-                if (extraItems.isNotEmpty) ...<Widget>[
-                  _ToolbarDivider(visible: style.showGroupDividers),
-                  for (final item in extraItems)
-                    _RegistryToolbarItemButton(
-                      item: item,
-                      controller: controller,
-                      state: state,
-                    ),
-                ],
-                _ToolbarDivider(visible: style.showGroupDividers),
-                _InsertMenuButton(
-                  controller: controller,
-                  toolbar: toolbar,
-                  actions: actions,
-                  state: state,
-                  actionContext: actionContext,
-                  onShowLinkDialog: () => _showLinkDialog(context, state),
-                ),
-              ],
+            child: _DefaultDesktopToolbarLayout(
+              children: toolbarChildren,
             ),
           ),
         );
@@ -512,6 +534,31 @@ class WenzDefaultDesktopToolbar extends StatelessWidget {
   }
 }
 
+class _DefaultDesktopToolbarLayout extends StatelessWidget {
+  const _DefaultDesktopToolbarLayout({
+    required this.children,
+  });
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: <Widget>[
+          for (var index = 0; index < children.length; index++) ...<Widget>[
+            if (index > 0) const SizedBox(width: _kToolbarSpacing),
+            children[index],
+          ],
+        ],
+      ),
+    );
+  }
+}
+
 class _ToolbarIconButton extends StatelessWidget {
   const _ToolbarIconButton({
     required this.tooltip,
@@ -523,7 +570,7 @@ class _ToolbarIconButton extends StatelessWidget {
   });
 
   final String tooltip;
-  final IconData icon;
+  final String icon;
   final bool enabled;
   final bool selected;
   final Color? iconColor;
@@ -538,7 +585,11 @@ class _ToolbarIconButton extends StatelessWidget {
       isSelected: selected,
       style: _toolbarButtonStyle(theme),
       onPressed: enabled ? onPressed : null,
-      icon: Icon(icon, color: enabled ? iconColor : null),
+      icon: WenzLucideToolbarIcon(
+        icon,
+        color: enabled ? iconColor : null,
+        enabled: enabled,
+      ),
     );
   }
 }
@@ -553,7 +604,7 @@ class _MarkButton extends StatelessWidget {
   });
 
   final String tooltip;
-  final IconData icon;
+  final String icon;
   final TextMark mark;
   final ToolbarController toolbar;
   final ToolbarState state;
@@ -586,17 +637,29 @@ class _BlockStyleMenuButton extends StatelessWidget {
     final tooltip = _blockStyleTooltip(state);
     final isExplicitStyle = _isExplicitBlockStyle(state);
     return MenuAnchor(
+      style: _toolbarMenuPanelStyle(
+        context,
+        width: _kBlockStyleMenuWidth,
+      ),
       menuChildren: _kBlockStyleOptions.map((option) {
         final active = option.isActive(state);
         return MenuItemButton(
           closeOnActivate: true,
+          style: _toolbarMenuItemStyle(
+            context,
+            width: _kBlockStyleMenuWidth,
+          ),
           onPressed: state.canSetBlockType ? () => option.apply(toolbar) : null,
           child: SizedBox(
-            width: 120,
+            width: _toolbarMenuContentWidth(_kBlockStyleMenuWidth),
             child: Row(
               children: <Widget>[
                 Expanded(child: Text(option.label)),
-                if (active) const Icon(Icons.check, size: 18),
+                if (active)
+                  const WenzLucideToolbarIcon(
+                    WenzLucideToolbarIcons.check,
+                    size: 18,
+                  ),
               ],
             ),
           ),
@@ -630,7 +693,10 @@ class _BlockStyleMenuButton extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 2),
-                const Icon(Icons.arrow_drop_down, size: 18),
+                const WenzLucideToolbarIcon(
+                  WenzLucideToolbarIcons.chevronDown,
+                  size: 18,
+                ),
               ],
             ),
           ),
@@ -650,7 +716,7 @@ class _BlockTypeButton extends StatelessWidget {
   });
 
   final String tooltip;
-  final IconData icon;
+  final String icon;
   final bool selected;
   final bool enabled;
   final VoidCallback onPressed;
@@ -683,23 +749,36 @@ class _AlignmentMenuButton extends StatelessWidget {
     final label = _alignmentLabel(state);
     final tooltip = _alignmentTooltip(state);
     final icon = state.alignmentMixed
-        ? Icons.format_align_left
+        ? WenzLucideToolbarIcons.alignLeft
         : activeOption.icon;
     return MenuAnchor(
+      style: _toolbarMenuPanelStyle(
+        context,
+        width: _kAlignmentMenuWidth,
+      ),
       menuChildren: _kAlignmentOptions.map((option) {
-        final active = !state.alignmentMixed && option.alignment == state.alignment;
+        final active =
+            !state.alignmentMixed && option.alignment == state.alignment;
         return MenuItemButton(
           closeOnActivate: true,
+          style: _toolbarMenuItemStyle(
+            context,
+            width: _kAlignmentMenuWidth,
+          ),
           onPressed:
               state.canSetAlignment ? () => option.apply(toolbar) : null,
           child: SizedBox(
-            width: 144,
+            width: _toolbarMenuContentWidth(_kAlignmentMenuWidth),
             child: Row(
               children: <Widget>[
-                Icon(option.icon, size: _kToolbarIconSize),
+                WenzLucideToolbarIcon(option.icon, size: _kToolbarIconSize),
                 const SizedBox(width: 10),
                 Expanded(child: Text(option.label)),
-                if (active) const Icon(Icons.check, size: 18),
+                if (active)
+                  const WenzLucideToolbarIcon(
+                    WenzLucideToolbarIcons.check,
+                    size: 18,
+                  ),
               ],
             ),
           ),
@@ -725,7 +804,7 @@ class _AlignmentMenuButton extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
-                Icon(icon, size: _kToolbarIconSize),
+                WenzLucideToolbarIcon(icon, size: _kToolbarIconSize),
                 const SizedBox(width: 4),
                 Flexible(
                   child: Text(
@@ -735,7 +814,10 @@ class _AlignmentMenuButton extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 2),
-                const Icon(Icons.arrow_drop_down, size: 18),
+                const WenzLucideToolbarIcon(
+                  WenzLucideToolbarIcons.chevronDown,
+                  size: 18,
+                ),
               ],
             ),
           ),
@@ -772,14 +854,14 @@ class _InsertMenuButton extends StatelessWidget {
     final menuChildren = <Widget>[
       _InsertMenuItem(
         label: state.linkUrl == null ? '添加链接' : '编辑链接',
-        icon: Icons.link,
+        icon: WenzLucideToolbarIcons.link,
         selected: state.linkUrl != null,
         enabled: state.canSetLink,
         action: onShowLinkDialog,
       ),
       _InsertMenuItem(
         label: '公式',
-        icon: Icons.functions,
+        icon: WenzLucideToolbarIcons.formula,
         enabled: state.canFormatInline,
         action: () {
           controller.insertFormula('');
@@ -788,19 +870,19 @@ class _InsertMenuButton extends StatelessWidget {
       const Divider(height: 1),
       _InsertMenuItem(
         label: '插入代码块',
-        icon: Icons.code,
+        icon: WenzLucideToolbarIcons.code,
         enabled: toolbar.canInsertBlock,
         action: () => toolbar.insertCodeBlock(),
       ),
       _InsertMenuItem(
         label: '插入标注',
-        icon: Icons.tips_and_updates_outlined,
+        icon: WenzLucideToolbarIcons.callout,
         enabled: toolbar.canInsertBlock,
         action: () => toolbar.insertCallout(),
       ),
       _InsertMenuItem(
         label: '插入表格',
-        icon: Icons.table_chart_outlined,
+        icon: WenzLucideToolbarIcons.table,
         enabled: toolbar.canInsertBlock,
         action: () => toolbar.insertTable(),
       ),
@@ -810,7 +892,7 @@ class _InsertMenuButton extends StatelessWidget {
           label: actions.isImagePending
               ? '正在选择图片'
               : _resourceTooltip('插入图片', actions.onInsertImage),
-          icon: Icons.image_outlined,
+          icon: WenzLucideToolbarIcons.image,
           iconWidget: actions.isImagePending
               ? const SizedBox.square(
                   dimension: 18,
@@ -823,32 +905,33 @@ class _InsertMenuButton extends StatelessWidget {
       if (actions.shouldShowVideoButton)
         _InsertMenuItem(
           label: _resourceTooltip('插入视频', actions.onInsertVideo),
-          icon: Icons.smart_display_outlined,
+          icon: WenzLucideToolbarIcons.video,
           enabled: actions.canInsertVideo(toolbar),
           action: () => actions.insertVideo(actionContext(context)),
         ),
       if (actions.shouldShowFileButton)
         _InsertMenuItem(
           label: _resourceTooltip('插入文件', actions.onInsertFile),
-          icon: Icons.attach_file,
+          icon: WenzLucideToolbarIcons.file,
           enabled: actions.canInsertFile(controller),
           action: () => actions.insertFile(actionContext(context)),
         ),
       if (actions.shouldShowBlockEmbedButton)
         _InsertMenuItem(
           label: _resourceTooltip('插入业务嵌入', actions.onInsertBlockEmbed),
-          icon: Icons.badge_outlined,
+          icon: WenzLucideToolbarIcons.badge,
           enabled: actions.canInsertBlockEmbed(controller),
           action: () => actions.insertBlockEmbed(actionContext(context)),
         ),
     ];
 
     return MenuAnchor(
+      style: _toolbarMenuPanelStyle(context, width: _kInsertMenuWidth),
       menuChildren: menuChildren,
       builder: (context, menuController, _) {
         return _ToolbarIconButton(
           tooltip: '插入元素',
-          icon: Icons.add,
+          icon: WenzLucideToolbarIcons.insert,
           selected: menuController.isOpen,
           enabled: true,
           onPressed: () {
@@ -875,7 +958,7 @@ class _InsertMenuItem extends StatelessWidget {
   });
 
   final String label;
-  final IconData icon;
+  final String icon;
   final bool enabled;
   final bool selected;
   final Widget? iconWidget;
@@ -884,15 +967,15 @@ class _InsertMenuItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
     final iconColor = enabled
-        ? colorScheme.onSurfaceVariant
-        : colorScheme.onSurface.withAlpha(96);
+        ? _toolbarMenuMutedColor(theme)
+        : _toolbarMenuFaintColor(theme).withAlpha(148);
     return MenuItemButton(
       closeOnActivate: true,
+      style: _toolbarMenuItemStyle(context, width: _kInsertMenuWidth),
       onPressed: enabled ? () => _runToolbarAction(action()) : null,
       child: SizedBox(
-        width: 184,
+        width: _toolbarMenuContentWidth(_kInsertMenuWidth),
         child: Row(
           children: <Widget>[
             SizedBox.square(
@@ -903,13 +986,17 @@ class _InsertMenuItem extends StatelessWidget {
                     color: iconColor,
                     size: _kToolbarIconSize,
                   ),
-                  child: iconWidget ?? Icon(icon),
+                  child: iconWidget ?? WenzLucideToolbarIcon(icon),
                 ),
               ),
             ),
             const SizedBox(width: 12),
             Expanded(child: Text(label)),
-            if (selected) const Icon(Icons.check, size: 18),
+            if (selected)
+              const WenzLucideToolbarIcon(
+                WenzLucideToolbarIcons.check,
+                size: 18,
+              ),
           ],
         ),
       ),
@@ -935,15 +1022,20 @@ class _TextColorMenuButton extends StatelessWidget {
         !state.textColorMixed &&
         !_kTextColorOptions.any((option) => option.colorValue == currentColor);
     return MenuAnchor(
+      style: _toolbarMenuPanelStyle(context, width: _kTextColorMenuWidth),
       menuChildren: <Widget>[
         for (final option in _kTextColorOptions)
           MenuItemButton(
             closeOnActivate: true,
+            style: _toolbarMenuItemStyle(
+              context,
+              width: _kTextColorMenuWidth,
+            ),
             onPressed: state.canFormatInline
                 ? () => toolbar.setTextColorValue(option.colorValue)
                 : null,
             child: SizedBox(
-              width: 176,
+              width: _toolbarMenuContentWidth(_kTextColorMenuWidth),
               child: Row(
                 children: <Widget>[
                   _ColorSwatch(color: option.color),
@@ -951,7 +1043,10 @@ class _TextColorMenuButton extends StatelessWidget {
                   Expanded(child: Text(option.label)),
                   if (currentColor == option.colorValue &&
                       !state.textColorMixed)
-                    const Icon(Icons.check, size: 18),
+                    const WenzLucideToolbarIcon(
+                      WenzLucideToolbarIcons.check,
+                      size: 18,
+                    ),
                 ],
               ),
             ),
@@ -959,6 +1054,10 @@ class _TextColorMenuButton extends StatelessWidget {
         const Divider(height: 1),
         MenuItemButton(
           closeOnActivate: true,
+          style: _toolbarMenuItemStyle(
+            context,
+            width: _kTextColorMenuWidth,
+          ),
           onPressed: state.canFormatInline
               ? () => _runToolbarAction(
                     _showCustomTextColorDialog(context, currentColor).then(
@@ -971,16 +1070,23 @@ class _TextColorMenuButton extends StatelessWidget {
                   )
               : null,
           child: SizedBox(
-            width: 176,
+            width: _toolbarMenuContentWidth(_kTextColorMenuWidth),
             child: Row(
               children: <Widget>[
                 if (currentColor == null || state.textColorMixed)
-                  const Icon(Icons.palette_outlined, size: _kToolbarIconSize)
+                  const WenzLucideToolbarIcon(
+                    WenzLucideToolbarIcons.palette,
+                    size: _kToolbarIconSize,
+                  )
                 else
                   _ColorSwatch(color: Color(currentColor)),
                 const SizedBox(width: 10),
                 Expanded(child: Text(_customTextColorLabel(currentColor))),
-                if (customColorActive) const Icon(Icons.check, size: 18),
+                if (customColorActive)
+                  const WenzLucideToolbarIcon(
+                    WenzLucideToolbarIcons.check,
+                    size: 18,
+                  ),
               ],
             ),
           ),
@@ -1001,11 +1107,12 @@ class _TextColorMenuButton extends StatelessWidget {
                   }
                 }
               : null,
-          icon: Icon(
-            Icons.format_color_text,
+          icon: WenzLucideToolbarIcon(
+            WenzLucideToolbarIcons.textColor,
             color: state.canFormatInline && currentColor != null
                 ? Color(currentColor)
                 : null,
+            enabled: state.canFormatInline,
           ),
         );
       },
@@ -1056,21 +1163,37 @@ class _ColorSwatch extends StatelessWidget {
 }
 
 class _ToolbarDivider extends StatelessWidget {
-  const _ToolbarDivider({required this.visible});
+  const _ToolbarDivider({
+    required this.visible,
+    this.preserveWidth = false,
+  });
 
   final bool visible;
+  final bool preserveWidth;
 
   @override
   Widget build(BuildContext context) {
     if (!visible) {
+      if (preserveWidth) {
+        return const SizedBox(
+          width: _kToolbarDividerWidth,
+          height: _kToolbarButtonExtent,
+        );
+      }
       return const SizedBox.shrink();
     }
     return SizedBox(
       height: _kToolbarButtonExtent,
-      child: VerticalDivider(
-        width: 8,
-        thickness: 1,
-        color: Theme.of(context).colorScheme.outlineVariant,
+      width: _kToolbarDividerWidth,
+      child: Center(
+        child: SizedBox(
+          height: _kToolbarDividerHeight,
+          child: VerticalDivider(
+            width: _kToolbarDividerWidth,
+            thickness: 1,
+            color: Theme.of(context).colorScheme.outlineVariant,
+          ),
+        ),
       ),
     );
   }
@@ -1112,7 +1235,7 @@ class _AlignmentOption {
   const _AlignmentOption(this.label, this.icon, this.alignment);
 
   final String label;
-  final IconData icon;
+  final String icon;
   final String? alignment;
 
   void apply(ToolbarController toolbar) {
@@ -1256,6 +1379,146 @@ int? _parseHexColor(String input) {
   return int.tryParse(value, radix: 16);
 }
 
+MenuStyle _toolbarMenuPanelStyle(
+  BuildContext context, {
+  required double width,
+}) {
+  final theme = Theme.of(context);
+  return MenuStyle(
+    minimumSize: WidgetStatePropertyAll(Size(width, 0)),
+    fixedSize: WidgetStatePropertyAll(Size.fromWidth(width)),
+    padding: const WidgetStatePropertyAll(
+      EdgeInsets.all(_kToolbarMenuPanelPadding),
+    ),
+    backgroundColor: WidgetStatePropertyAll(_toolbarMenuPanelColor(theme)),
+    surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
+    elevation: const WidgetStatePropertyAll(8),
+    shadowColor: WidgetStatePropertyAll(_toolbarMenuShadowColor(theme)),
+    shape: WidgetStatePropertyAll(
+      RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(_kToolbarMenuPanelRadius),
+        side: BorderSide(color: _toolbarMenuLineColor(theme)),
+      ),
+    ),
+  );
+}
+
+ButtonStyle _toolbarMenuItemStyle(
+  BuildContext context, {
+  required double width,
+  bool danger = false,
+}) {
+  final theme = Theme.of(context);
+  final colorScheme = theme.colorScheme;
+  final itemWidth = width - _kToolbarMenuPanelPadding * 2;
+  return ButtonStyle(
+    minimumSize: WidgetStatePropertyAll(
+      Size(itemWidth, _kToolbarMenuItemHeight),
+    ),
+    fixedSize: WidgetStatePropertyAll(
+      Size(itemWidth, _kToolbarMenuItemHeight),
+    ),
+    padding: const WidgetStatePropertyAll(
+      EdgeInsets.symmetric(horizontal: 10),
+    ),
+    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    visualDensity: VisualDensity.compact,
+    alignment: AlignmentDirectional.centerStart,
+    shape: WidgetStatePropertyAll(
+      RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(_kToolbarMenuItemRadius),
+      ),
+    ),
+    backgroundColor: WidgetStateProperty.resolveWith<Color?>((states) {
+      if (states.contains(WidgetState.disabled)) {
+        return Colors.transparent;
+      }
+      if (states.contains(WidgetState.pressed)) {
+        return danger
+            ? colorScheme.error.withAlpha(31)
+            : _toolbarMenuPressedColor(theme);
+      }
+      if (states.contains(WidgetState.hovered) ||
+          states.contains(WidgetState.focused)) {
+        return danger
+            ? colorScheme.error.withAlpha(26)
+            : _toolbarMenuHoverColor(theme);
+      }
+      return Colors.transparent;
+    }),
+    foregroundColor: WidgetStateProperty.resolveWith<Color?>((states) {
+      if (states.contains(WidgetState.disabled)) {
+        return _toolbarMenuFaintColor(theme).withAlpha(148);
+      }
+      if (danger) {
+        return colorScheme.error;
+      }
+      return _toolbarMenuTextColor(theme);
+    }),
+    iconColor: WidgetStateProperty.resolveWith<Color?>((states) {
+      if (states.contains(WidgetState.disabled)) {
+        return _toolbarMenuFaintColor(theme).withAlpha(148);
+      }
+      if (danger) {
+        return colorScheme.error;
+      }
+      return _toolbarMenuMutedColor(theme);
+    }),
+    overlayColor: const WidgetStatePropertyAll(Colors.transparent),
+  );
+}
+
+double _toolbarMenuContentWidth(double menuWidth) {
+  return menuWidth - _kToolbarMenuPanelPadding * 2 - 20;
+}
+
+Color _toolbarMenuPanelColor(ThemeData theme) {
+  return theme.brightness == Brightness.dark
+      ? const Color(0xFF101010)
+      : const Color(0xFFF7F7F8);
+}
+
+Color _toolbarMenuHoverColor(ThemeData theme) {
+  return theme.brightness == Brightness.dark
+      ? const Color(0xFF2A2A2A)
+      : const Color(0xFFEFF1F3);
+}
+
+Color _toolbarMenuPressedColor(ThemeData theme) {
+  return theme.brightness == Brightness.dark
+      ? const Color(0xFF303030)
+      : const Color(0xFFE5E7EA);
+}
+
+Color _toolbarMenuTextColor(ThemeData theme) {
+  return theme.brightness == Brightness.dark
+      ? const Color(0xFFF2F2F2)
+      : const Color(0xFF191919);
+}
+
+Color _toolbarMenuMutedColor(ThemeData theme) {
+  return theme.brightness == Brightness.dark
+      ? const Color(0xFFB8B8B8)
+      : const Color(0xFF5F6368);
+}
+
+Color _toolbarMenuFaintColor(ThemeData theme) {
+  return theme.brightness == Brightness.dark
+      ? const Color(0xFF7A7A7A)
+      : const Color(0xFF9AA0A6);
+}
+
+Color _toolbarMenuShadowColor(ThemeData theme) {
+  return theme.brightness == Brightness.dark
+      ? const Color(0x8A000000)
+      : const Color(0x24182639);
+}
+
+Color _toolbarMenuLineColor(ThemeData theme) {
+  return (theme.brightness == Brightness.dark ? Colors.white : Colors.black)
+      .withAlpha(20);
+}
+
 ButtonStyle _toolbarButtonStyle(ThemeData theme) {
   final colorScheme = theme.colorScheme;
   return IconButton.styleFrom(
@@ -1390,42 +1653,4 @@ void _runToolbarAction(FutureOr<void> result) {
   }
 }
 
-IconData _toolbarItemIcon(String? icon) {
-  switch (icon?.trim().toLowerCase()) {
-    case 'account_tree':
-    case 'account_tree_outlined':
-    case 'flowchart':
-      return Icons.account_tree_outlined;
-    case 'extension':
-    case 'extension_outlined':
-      return Icons.extension_outlined;
-    case 'badge':
-    case 'badge_outlined':
-      return Icons.badge_outlined;
-    case 'code':
-      return Icons.code;
-    case 'table':
-    case 'table_chart':
-      return Icons.table_chart_outlined;
-    case 'image':
-      return Icons.image_outlined;
-    case 'video':
-    case 'smart_display':
-      return Icons.smart_display_outlined;
-    case 'file':
-    case 'attach_file':
-      return Icons.attach_file;
-    case 'link':
-      return Icons.link;
-    case 'formula':
-    case 'functions':
-      return Icons.functions;
-    case 'emoji':
-      return Icons.emoji_emotions_outlined;
-    case 'callout':
-    case 'tips':
-      return Icons.tips_and_updates_outlined;
-    default:
-      return Icons.extension_outlined;
-  }
-}
+String _toolbarItemIcon(String? icon) => wenzLucideToolbarIconName(icon);

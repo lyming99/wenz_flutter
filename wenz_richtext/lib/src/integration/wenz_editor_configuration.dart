@@ -83,6 +83,10 @@ class WenzEditorConfiguration {
     this.autosaveDebounce = const Duration(seconds: 2),
     this.enableMermaidDiagrams = false,
     this.diagramSvgSurface,
+    this.layout = WenzEditorLayout.auto,
+    this.enableMobileSelectionHandles = true,
+    this.enableExternalDragDrop = true,
+    this.mobileToolbarStyle,
   });
 
   /// Initial document, or `null` for an empty document.
@@ -254,7 +258,8 @@ class WenzEditorConfiguration {
   final Duration autosaveDebounce;
 
   /// Whether the bootstrap should install the [MermaidDiagramPlugin] so that
-  /// [CodeBlockNode]s with `language == 'mermaid'` render as live diagrams.
+  /// [CodeBlockNode]s with a normalized Mermaid language marker render as live
+  /// diagrams.
   ///
   /// Defaults to `false` — mermaid support is opt-in because it requires the
   /// `merman` native library at runtime.
@@ -266,6 +271,38 @@ class WenzEditorConfiguration {
   /// Host apps that need pixel-perfect rendering can inject a WebView-based
   /// surface instead.
   final DiagramSvgSurface? diagramSvgSurface;
+
+  /// Which form-factor UI the host wants assembled.
+  ///
+  /// Defaults to [WenzEditorLayout.auto], which picks mobile below 600px
+  /// shortestSide and desktop otherwise (matching [EditorTokens]' breakpoint).
+  /// Set [WenzEditorLayout.desktop] / [WenzEditorLayout.mobile] to force one
+  /// regardless of screen size. The bootstrap exposes the resolved value via
+  /// `WenzEditorBootstrap.resolveEditorLayout`.
+  final WenzEditorLayout layout;
+
+  /// Whether touch selection handles may mount on mobile surfaces.
+  ///
+  /// Defaults to `true`; the handles are only actually mounted on mobile form
+  /// factors (see `MobileSelectionHandlesOverlay`). Desktop is never affected.
+  /// Forwarded for the editor overlay to consume in a later stage.
+  final bool enableMobileSelectionHandles;
+
+  /// Whether the external drag-and-drop surface (the `super_drag` `DropRegion`)
+  /// is mounted on mouse-driven surfaces.
+  ///
+  /// Defaults to `true`. Touch form factors always skip the `DropRegion`
+  /// (handled in [WenzRichTextEditor]), so this only takes effect on desktop;
+  /// hosts that never want drag-and-drop can disable it here. Forwarded to
+  /// [WenzRichTextEditor.enableExternalDragDrop] by the bootstrap.
+  final bool enableExternalDragDrop;
+
+  /// Optional chrome for the default mobile toolbar ([WenzDefaultMobileToolbar]).
+  ///
+  /// When `null` the toolbar uses its built-in defaults. Hosts can pre-configure
+  /// it (for example the keyboard-collaboration strategy) through the
+  /// configuration so assembly does not need to pass it at build time.
+  final WenzMobileToolbarStyle? mobileToolbarStyle;
 
   /// Returns a copy of this configuration with the given fields replaced.
   ///
@@ -307,6 +344,10 @@ class WenzEditorConfiguration {
     Duration? autosaveDebounce,
     bool? enableMermaidDiagrams,
     Object? diagramSvgSurface = _unset,
+    WenzEditorLayout? layout,
+    bool? enableMobileSelectionHandles,
+    bool? enableExternalDragDrop,
+    Object? mobileToolbarStyle = _unset,
   }) {
     return WenzEditorConfiguration(
       document: identical(document, _unset)
@@ -377,6 +418,14 @@ class WenzEditorConfiguration {
       diagramSvgSurface: identical(diagramSvgSurface, _unset)
           ? this.diagramSvgSurface
           : diagramSvgSurface as DiagramSvgSurface?,
+      layout: layout ?? this.layout,
+      enableMobileSelectionHandles:
+          enableMobileSelectionHandles ?? this.enableMobileSelectionHandles,
+      enableExternalDragDrop:
+          enableExternalDragDrop ?? this.enableExternalDragDrop,
+      mobileToolbarStyle: identical(mobileToolbarStyle, _unset)
+          ? this.mobileToolbarStyle
+          : mobileToolbarStyle as WenzMobileToolbarStyle?,
     );
   }
 }
@@ -384,3 +433,37 @@ class WenzEditorConfiguration {
 /// Sentinel used by [WenzEditorConfiguration.copyWith] to distinguish an
 /// omitted nullable argument (leave unchanged) from an explicit `null` (clear).
 const Object _unset = Object();
+
+/// Selects which form-factor UI the host wants the bootstrap to assemble.
+///
+/// The editor widget itself adapts to its surface via [EditorTokens]
+/// (shortestSide < 600 ⇒ mobile). This field is the host-level override that
+/// drives tooling decisions the editor does not own — chiefly which default
+/// toolbar ([WenzDefaultDesktopToolbar] vs [WenzDefaultMobileToolbar]) the host
+/// renders. [WenzEditorBootstrap.resolveEditorLayout] folds this preference
+/// together with the running [MediaQuery] shortestSide into a concrete choice.
+enum WenzEditorLayout {
+  /// Auto-detect: mobile below 600px shortestSide, desktop otherwise.
+  auto,
+
+  /// Force the desktop UI regardless of screen size.
+  desktop,
+
+  /// Force the mobile UI regardless of screen size.
+  mobile,
+}
+
+/// Chrome for the default mobile toolbar ([WenzDefaultMobileToolbar]).
+///
+/// Sizes (button/icon, radii) are read from [EditorTokens] at build time, so
+/// this style only carries behaviour the tokens do not encode — currently the
+/// keyboard-collaboration strategy. Kept here so hosts can pre-configure it via
+/// [WenzEditorConfiguration.mobileToolbarStyle] before assembly.
+@immutable
+class WenzMobileToolbarStyle {
+  const WenzMobileToolbarStyle({this.aboveKeyboard = true});
+
+  /// Whether the toolbar floats above the soft keyboard (`true`, the default)
+  /// or pins just below the editor content (`false`) when the IME is open.
+  final bool aboveKeyboard;
+}

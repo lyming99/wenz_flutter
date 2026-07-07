@@ -18,7 +18,9 @@ import '../plugins/editor_plugin.dart';
 import '../plugins/mermaid_diagram_plugin.dart';
 import '../widgets/block_renderer_registry.dart';
 import '../widgets/default_desktop_toolbar.dart';
+import '../widgets/default_mobile_toolbar.dart';
 import '../widgets/editor_context_menu.dart';
+import '../widgets/editor_tokens.dart';
 import '../widgets/inline_embed_renderer.dart';
 import '../widgets/wenz_rich_text_editor.dart';
 
@@ -120,6 +122,9 @@ class WenzEditorBootstrap {
       shortcutConfigurations: pluginShortcutConfigurations,
       pasteTransformers: pasteTransformers,
     );
+    // Mermaid remains opt-in: disabled hosts keep ordinary code block
+    // rendering, while enabled hosts can provide the SVG surface forwarded
+    // into MermaidDiagramConfig.
     final plugins = <WenzRichTextPlugin>[
       ...configuration.plugins,
       if (configuration.enableMermaidDiagrams)
@@ -411,6 +416,76 @@ class WenzEditorBootstrap {
     );
   }
 
+  /// Builds the optional default mobile toolbar from this bootstrap's assembled
+  /// editor controller, toolbar controller, and toolbar registry.
+  ///
+  /// Mirrors [buildDefaultDesktopToolbar]: the signature is aligned field for
+  /// field, it reuses the same [ToolbarController] and [WenzToolbarItemRegistry]
+  /// (no parallel item system), and it throws a [StateError] when this bootstrap
+  /// was created with [WenzEditorConfiguration.enableToolbar] set to `false`.
+  /// Host-owned resource actions pass through [actions]; the chrome comes from
+  /// [style] (falling back to [WenzEditorConfiguration.mobileToolbarStyle], then
+  /// the toolbar's built-in defaults). The mobile toolbar reads its touch
+  /// sizing tokens from [EditorTokens] at build time.
+  WenzDefaultMobileToolbar buildDefaultMobileToolbar({
+    Key? key,
+    WenzDefaultMobileToolbarActions actions =
+        const WenzDefaultMobileToolbarActions(),
+    WenzMobileToolbarStyle? style,
+    WenzToolbarItemRegistry? toolbarItemRegistry,
+    Iterable<WenzToolbarItem> toolbarItems = const <WenzToolbarItem>[],
+    bool includeRegistryItems = true,
+  }) {
+    final toolbar = toolbarController;
+    if (toolbar == null) {
+      throw StateError(
+        'WenzEditorBootstrap.buildDefaultMobileToolbar requires '
+        'WenzEditorConfiguration.enableToolbar=true. This bootstrap was '
+        'created with enableToolbar=false, so no ToolbarController is '
+        'available.',
+      );
+    }
+    return WenzDefaultMobileToolbar(
+      key: key,
+      controller: controller,
+      toolbar: toolbar,
+      toolbarItemRegistry: toolbarItemRegistry ?? this.toolbarItemRegistry,
+      toolbarItems: toolbarItems,
+      includeRegistryItems: includeRegistryItems,
+      actions: actions,
+      style: style ??
+          configuration.mobileToolbarStyle ??
+          const WenzMobileToolbarStyle(),
+    );
+  }
+
+  /// Resolves the effective layout for [context] by folding
+  /// [WenzEditorConfiguration.layout] together with the running [MediaQuery]
+  /// shortestSide.
+  ///
+  /// [WenzEditorLayout.auto] (the default) returns mobile below the 600px
+  /// shortestSide breakpoint and desktop otherwise — the same split
+  /// [EditorTokens] uses internally. The explicit [WenzEditorLayout.desktop] /
+  /// [WenzEditorLayout.mobile] values force one regardless of screen size, so a
+  /// host can override the auto decision. Use this to pick which toolbar to
+  /// render (e.g. [buildDefaultMobileToolbar] vs [buildDefaultDesktopToolbar]).
+  WenzEditorLayout resolveEditorLayout(BuildContext context) {
+    switch (configuration.layout) {
+      case WenzEditorLayout.desktop:
+        return WenzEditorLayout.desktop;
+      case WenzEditorLayout.mobile:
+        return WenzEditorLayout.mobile;
+      case WenzEditorLayout.auto:
+        return EditorTokens.resolve(context).isMobile
+            ? WenzEditorLayout.mobile
+            : WenzEditorLayout.desktop;
+    }
+  }
+
+  /// Convenience for [resolveEditorLayout] == [WenzEditorLayout.mobile].
+  bool shouldUseMobileLayout(BuildContext context) =>
+      resolveEditorLayout(context) == WenzEditorLayout.mobile;
+
   /// Builds and returns the [WenzRichTextEditor] wired to this bootstrap's
   /// assembled controller, registries, and derived controllers.
   ///
@@ -488,6 +563,9 @@ class WenzEditorBootstrap {
       slashMenuController: slashMenuController,
       outlineController: outlineController,
       enableExternalImageInput: configuration.enableExternalImageInput,
+      enableExternalDragDrop: configuration.enableExternalDragDrop,
+      enableMobileSelectionHandles:
+          configuration.enableMobileSelectionHandles,
       externalImageClipboardReader: configuration.externalImageClipboardReader,
       externalImageStore: configuration.externalImageStore,
       accessibility: configuration.accessibility,

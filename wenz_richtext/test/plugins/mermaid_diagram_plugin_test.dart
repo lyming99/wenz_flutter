@@ -116,6 +116,52 @@ void main() {
   );
 
   testWidgets(
+    'MermaidDiagramPlugin recognizes trimmed and case-insensitive mermaid tags',
+    (tester) async {
+      final fakeRenderer = _FakeMermaidRenderer();
+      final registry = _installMermaidPlugin(renderer: fakeRenderer);
+      const blocks = <CodeBlockNode>[
+        CodeBlockNode(
+          id: 'm-trim',
+          language: ' Mermaid ',
+          code: 'flowchart TD\n  A --> B',
+        ),
+        CodeBlockNode(
+          id: 'm-upper',
+          language: 'MERMAID',
+          code: 'flowchart TD\n  B --> C',
+        ),
+        CodeBlockNode(
+          id: 'm-info',
+          language: 'mermaid theme=dark',
+          code: 'flowchart TD\n  C --> D',
+        ),
+      ];
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Column(
+            children: <Widget>[
+              for (final block in blocks)
+                Builder(
+                  builder: (context) {
+                    final builder = registry.resolveForBlock(
+                      block,
+                      fallback: (_, __) => const SizedBox.shrink(),
+                    );
+                    return builder(context, _codeRenderContext(block));
+                  },
+                ),
+            ],
+          ),
+        ),
+      );
+
+      expect(find.byType(MermaidCodeBlockWidget), findsNWidgets(blocks.length));
+    },
+  );
+
+  testWidgets(
     'MermaidDiagramPlugin delegates non-mermaid code to original renderer',
     (tester) async {
       final fakeRenderer = _FakeMermaidRenderer();
@@ -144,6 +190,41 @@ void main() {
       );
 
       // Non-mermaid code blocks must NOT produce a MermaidCodeBlockWidget.
+      expect(find.byType(MermaidCodeBlockWidget), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'MermaidDiagramPlugin keeps ordinary code languages on the original renderer',
+    (tester) async {
+      final fakeRenderer = _FakeMermaidRenderer();
+      final registry = _installMermaidPlugin(renderer: fakeRenderer);
+      const blocks = <CodeBlockNode>[
+        CodeBlockNode(id: 'dart', language: 'dart', code: 'void main() {}'),
+        CodeBlockNode(id: 'python', language: 'python', code: 'print("hi")'),
+        CodeBlockNode(id: 'markdown', language: 'markdown', code: '# Title'),
+        CodeBlockNode(id: 'plain', code: 'plain text'),
+      ];
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Column(
+            children: <Widget>[
+              for (final block in blocks)
+                Builder(
+                  builder: (context) {
+                    final builder = registry.resolveForBlock(
+                      block,
+                      fallback: (_, __) => const SizedBox.shrink(),
+                    );
+                    return builder(context, _codeRenderContext(block));
+                  },
+                ),
+            ],
+          ),
+        ),
+      );
+
       expect(find.byType(MermaidCodeBlockWidget), findsNothing);
     },
   );
@@ -276,7 +357,7 @@ void main() {
   );
 
   testWidgets(
-    'VectorGraphicsDiagramSurface returns empty box for malformed SVG',
+    'VectorGraphicsDiagramSurface shows a visible fallback for malformed SVG',
     (tester) async {
       const surface = VectorGraphicsDiagramSurface();
 
@@ -290,9 +371,11 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       // Best-effort: malformed input should not crash.
       expect(tester.takeException(), isNull);
+      expect(find.text('SVG 预览暂不可用'), findsOneWidget);
     },
   );
 

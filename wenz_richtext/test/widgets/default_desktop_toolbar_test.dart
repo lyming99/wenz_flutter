@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wenz_richtext/wenz_richtext.dart';
+import 'package:wenz_richtext/src/widgets/lucide_toolbar_icons.dart';
 
 import '../helpers/selection_test_helpers.dart';
+
+const double _kDefaultToolbarHorizontalPadding = 12.0;
+const double _kGeometryTolerance = 0.1;
 
 void main() {
   group('WenzDefaultDesktopToolbar rendering', () {
@@ -33,7 +37,7 @@ void main() {
         expect(find.byTooltip(tooltip), findsOneWidget);
       }
 
-      _expectInsertMenuAtToolbarEnd(tester);
+      _expectDefaultToolbarSequence(tester);
 
       for (final tooltip in const <String>[
         '撤销',
@@ -176,18 +180,91 @@ void main() {
       _expectMutedTextButton(tester, '正文');
     });
 
-    testWidgets('wraps inside a narrow width without framework overflow', (
+    testWidgets('lays out default actions as one left-aligned sequence', (
       tester,
     ) async {
       await _pumpToolbar(
         tester,
         selection: textSelection('p1', 0, 0, 5),
-        width: 176,
       );
 
-      expect(find.byType(Wrap), findsOneWidget);
-      _expectInsertMenuAtToolbarEnd(tester);
+      expect(find.byType(SingleChildScrollView), findsOneWidget);
+      expect(find.byType(Wrap), findsNothing);
+      _expectDefaultToolbarSequence(tester);
+      _expectToolbarStartsAtPadding(tester);
+      expect(_iconButton(tester, '无序列表').onPressed, isNotNull);
+      expect(_textButton(tester, '对齐方式：无对齐').onPressed, isNotNull);
       expect(_iconButton(tester, '插入元素').onPressed, isNotNull);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('scrolls horizontally at narrow width without wrapping', (
+      tester,
+    ) async {
+      await _pumpToolbar(
+        tester,
+        selection: textSelection('p1', 0, 0, 5),
+        width: 320,
+      );
+
+      expect(find.byType(SingleChildScrollView), findsOneWidget);
+      expect(find.byType(Wrap), findsNothing);
+      _expectDefaultToolbarSequence(tester);
+      _expectToolbarStartsAtPadding(tester);
+      expect(find.byTooltip('插入元素').hitTestable(), findsNothing);
+
+      await _scrollToolbarUntilVisible(tester, '无序列表');
+      expect(find.byTooltip('无序列表').hitTestable(), findsOneWidget);
+      await _scrollToolbarUntilVisible(tester, '对齐方式：无对齐');
+      expect(find.byTooltip('对齐方式：无对齐').hitTestable(), findsOneWidget);
+      await _scrollToolbarUntilVisible(tester, '插入元素');
+      expect(find.byTooltip('插入元素').hitTestable(), findsOneWidget);
+      expect(_iconButton(tester, '无序列表').onPressed, isNotNull);
+      expect(_textButton(tester, '对齐方式：无对齐').onPressed, isNotNull);
+      expect(_iconButton(tester, '插入元素').onPressed, isNotNull);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('scrolls narrow overflow to extension and end actions', (
+      tester,
+    ) async {
+      final calls = <String>[];
+      final registry = WenzToolbarItemRegistry(<WenzToolbarItem>[
+        WenzToolbarItem(
+          id: 'extension-action',
+          title: 'Extension action',
+          tooltip: 'Extension action',
+          priority: 0,
+          action: (_, __) => calls.add('extension'),
+        ),
+      ]);
+      await _pumpToolbar(
+        tester,
+        selection: textSelection('p1', 0, 0, 5),
+        toolbarItemRegistry: registry,
+        width: 320,
+      );
+
+      expect(find.byType(SingleChildScrollView), findsOneWidget);
+      expect(find.byType(Wrap), findsNothing);
+      _expectToolbarSequence(tester, const <String>[
+        '有序列表',
+        'Extension action',
+        '无序列表',
+        '对齐方式：无对齐',
+        '插入元素',
+      ]);
+      expect(find.byTooltip('Extension action').hitTestable(), findsNothing);
+
+      await _scrollToolbarUntilVisible(tester, 'Extension action');
+      expect(find.byTooltip('Extension action').hitTestable(), findsOneWidget);
+      await _tapToolbarButton(tester, 'Extension action');
+      expect(calls, <String>['extension']);
+
+      await _scrollToolbarUntilVisible(tester, '插入元素');
+      expect(find.byTooltip('插入元素').hitTestable(), findsOneWidget);
+      await _openInsertMenu(tester);
+      expect(find.text('插入表格'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
 
@@ -195,7 +272,7 @@ void main() {
       tester,
     ) async {
       await _pumpToolbar(tester);
-      _expectInsertMenuAtToolbarEnd(tester);
+      _expectDefaultToolbarSequence(tester);
       await _openInsertMenu(tester);
       expect(find.text('插入图片'), findsNothing);
       expect(find.text('插入视频'), findsNothing);
@@ -215,7 +292,7 @@ void main() {
               WenzDefaultDesktopToolbarUnavailablePolicy.disable,
         ),
       );
-      _expectInsertMenuAtToolbarEnd(tester);
+      _expectDefaultToolbarSequence(tester);
       await _openInsertMenu(tester);
       expect(find.text('插入图片不可用'), findsOneWidget);
       expect(find.text('插入视频不可用'), findsOneWidget);
@@ -238,7 +315,7 @@ void main() {
           onInsertBlockEmbed: contexts.add,
         ),
       );
-      _expectInsertMenuAtToolbarEnd(tester);
+      _expectDefaultToolbarSequence(tester);
 
       await _openInsertMenu(tester);
       for (final label in const <String>[
@@ -281,6 +358,7 @@ void main() {
           isPickingImage: true,
         ),
       );
+      _expectDefaultToolbarSequence(tester);
       await _openInsertMenu(tester);
       expect(find.text('正在选择图片'), findsOneWidget);
       expect(_menuItemButton(tester, '正在选择图片').onPressed, isNull);
@@ -298,6 +376,7 @@ void main() {
             onInsertVideo: (_) => mediaCalls++,
           ),
         );
+        _expectDefaultToolbarSequence(tester);
         await _openInsertMenu(tester);
         expect(_menuItemButton(tester, '插入图片').onPressed, isNull);
         expect(_menuItemButton(tester, '插入视频').onPressed, isNull);
@@ -307,6 +386,7 @@ void main() {
         expect(mediaCalls, 0);
       }
     });
+
   });
 
   group('WenzDefaultDesktopToolbar commands', () {
@@ -630,6 +710,7 @@ void main() {
       tester,
     ) async {
       await _pumpToolbar(tester);
+      _expectDefaultToolbarSequence(tester);
       expect(find.byTooltip('下方插入行'), findsNothing);
 
       final harness = await _pumpToolbar(
@@ -637,6 +718,18 @@ void main() {
         document: _tableDocument(),
         selection: _tableSelection(0, 0, 0, 0),
       );
+      _expectToolbarSequence(tester, const <String>[
+        '有序列表',
+        '下方插入行',
+        '右侧插入列',
+        '删除行',
+        '删除列',
+        '合并单元格',
+        '拆分单元格',
+        '无序列表',
+        '对齐方式：无对齐',
+        '插入元素',
+      ]);
 
       for (final tooltip in const <String>[
         '下方插入行',
@@ -706,6 +799,7 @@ void main() {
           title: 'Disabled item',
           tooltip: 'Disabled item',
           priority: 6,
+          icon: 'table_chart',
           isEnabled: (_) => false,
           action: (_, __) => calls.add('disabled'),
         ),
@@ -723,6 +817,7 @@ void main() {
           title: 'First item',
           tooltip: 'First item',
           priority: -1,
+          icon: 'callout',
           action: (_, __) => calls.add('first'),
         ),
         WenzToolbarItem(
@@ -739,6 +834,7 @@ void main() {
         tester,
         toolbarItemRegistry: registry,
         toolbarItems: explicit,
+        width: 520,
       );
       final toolbarWidget = tester.widget<WenzDefaultDesktopToolbar>(
         find.byType(WenzDefaultDesktopToolbar),
@@ -752,23 +848,79 @@ void main() {
       expect(find.byTooltip('Host override'), findsOneWidget);
       expect(find.byTooltip('Active item'), findsOneWidget);
       expect(find.byTooltip('Disabled item'), findsOneWidget);
-      expect(
-        find.descendant(
-          of: find.byTooltip('Active item'),
-          matching: find.byIcon(Icons.account_tree_outlined),
-        ),
-        findsOneWidget,
+      _expectLucideIcon(
+        tester,
+        'Active item',
+        WenzLucideToolbarIcons.workflow,
       );
-      expect(
-        find.descendant(
-          of: find.byTooltip('Host override'),
-          matching: find.byIcon(Icons.extension_outlined),
-        ),
-        findsOneWidget,
+      _expectLucideIcon(
+        tester,
+        'Host override',
+        WenzLucideToolbarIcons.fallback,
       );
-      _expectInsertMenuAtToolbarEnd(tester);
+      _expectLucideIcon(
+        tester,
+        'First item',
+        WenzLucideToolbarIcons.callout,
+      );
+      _expectLucideIcon(
+        tester,
+        'Disabled item',
+        WenzLucideToolbarIcons.table,
+      );
+      _expectLucideIcon(
+        tester,
+        'Later item',
+        WenzLucideToolbarIcons.extension,
+      );
+      expect(find.byTooltip('First item'), findsOneWidget);
+      expect(find.byTooltip('Later item'), findsOneWidget);
+      _expectToolbarSequence(tester, const <String>[
+        '有序列表',
+        'First item',
+        'Host override',
+        'Active item',
+        'Disabled item',
+        'Later item',
+        '无序列表',
+        '对齐方式：无对齐',
+        '插入元素',
+      ]);
       expect(_iconButton(tester, 'Active item').isSelected, isTrue);
       expect(_iconButton(tester, 'Disabled item').onPressed, isNull);
+
+      for (var index = 0; index < 8; index++) {
+        registry.register(
+          WenzToolbarItem(
+            id: 'dynamic-$index',
+            title: 'Dynamic item $index',
+            tooltip: 'Dynamic item $index',
+            priority: 30 + index,
+            action: (_, __) => calls.add('dynamic-$index'),
+          ),
+        );
+      }
+      await tester.pump();
+      expect(find.byTooltip('Dynamic item 7'), findsOneWidget);
+      _expectToolbarSequence(tester, const <String>[
+        'Later item',
+        'Dynamic item 0',
+        'Dynamic item 7',
+        '无序列表',
+        '对齐方式：无对齐',
+        '插入元素',
+      ]);
+      expect(tester.takeException(), isNull);
+
+      registry.unregister('dynamic-7');
+      await tester.pump();
+      expect(find.byTooltip('Dynamic item 7'), findsNothing);
+      _expectToolbarSequence(tester, const <String>[
+        'Later item',
+        '无序列表',
+        '对齐方式：无对齐',
+        '插入元素',
+      ]);
 
       await _tapToolbarButton(tester, 'Host override');
       await _tapToolbarButton(tester, 'Active item');
@@ -830,6 +982,7 @@ Future<_ToolbarHarness> _pumpToolbar(
 }
 
 Future<void> _tapToolbarButton(WidgetTester tester, String tooltip) async {
+  await _scrollToolbarUntilVisible(tester, tooltip);
   expect(_iconButton(tester, tooltip).onPressed, isNotNull);
   await tester.tap(find.byTooltip(tooltip));
   await tester.pump();
@@ -839,27 +992,77 @@ Future<void> _openTextColorMenu(
   WidgetTester tester,
   String tooltip,
 ) async {
+  await _scrollToolbarUntilVisible(tester, tooltip);
   expect(_iconButton(tester, tooltip).onPressed, isNotNull);
   await tester.tap(find.byTooltip(tooltip));
   await tester.pump();
 }
 
 Future<void> _openInsertMenu(WidgetTester tester) async {
+  await _scrollToolbarUntilVisible(tester, '插入元素');
   expect(_iconButton(tester, '插入元素').onPressed, isNotNull);
   await tester.tap(find.byTooltip('插入元素'));
   await tester.pump();
 }
 
-void _expectInsertMenuAtToolbarEnd(WidgetTester tester) {
-  final wrap = tester.widget<Wrap>(find.byType(Wrap));
-  final lastToolbarChild = find.byWidget(wrap.children.last);
+void _expectDefaultToolbarSequence(WidgetTester tester) {
+  _expectToolbarSequence(tester, const <String>[
+    '加粗',
+    '斜体',
+    '下划线',
+    '删除线',
+    '文字颜色',
+    '无文字颜色',
+    '清除样式',
+    '正文',
+    '引用',
+    '任务列表',
+    '有序列表',
+    '无序列表',
+    '对齐方式：无对齐',
+    '插入元素',
+  ]);
+}
+
+void _expectToolbarSequence(WidgetTester tester, List<String> tooltips) {
+  Rect? previousRect;
+  Rect? firstRect;
+  for (final tooltip in tooltips) {
+    final rect = _tooltipRect(tester, tooltip);
+    final first = firstRect;
+    if (first == null) {
+      firstRect = rect;
+    } else {
+      expect(rect.left, greaterThan(previousRect!.right));
+      expect(rect.center.dy, closeTo(first.center.dy, _kGeometryTolerance));
+    }
+    previousRect = rect;
+  }
+}
+
+void _expectToolbarStartsAtPadding(WidgetTester tester) {
+  final toolbarRect = tester.getRect(find.byType(WenzDefaultDesktopToolbar));
+  final firstRect = _tooltipRect(tester, '加粗');
   expect(
-    find.descendant(
-      of: lastToolbarChild,
-      matching: find.byTooltip('插入元素'),
-    ),
-    findsOneWidget,
+    firstRect.left - toolbarRect.left,
+    closeTo(_kDefaultToolbarHorizontalPadding, _kGeometryTolerance),
   );
+}
+
+Rect _tooltipRect(WidgetTester tester, String tooltip) {
+  final tooltipFinder = find.byTooltip(tooltip);
+  expect(tooltipFinder, findsOneWidget);
+  return tester.getRect(tooltipFinder);
+}
+
+Future<void> _scrollToolbarUntilVisible(
+  WidgetTester tester,
+  String tooltip,
+) async {
+  expect(find.byType(SingleChildScrollView), findsOneWidget);
+  expect(find.byTooltip(tooltip), findsOneWidget);
+  await tester.ensureVisible(find.byTooltip(tooltip));
+  await tester.pump();
 }
 
 Future<void> _tapInsertMenuItem(WidgetTester tester, String label) async {
@@ -873,6 +1076,7 @@ Future<void> _openBlockStyleMenu(
   WidgetTester tester,
   String tooltip,
 ) async {
+  await _scrollToolbarUntilVisible(tester, tooltip);
   expect(_textButton(tester, tooltip).onPressed, isNotNull);
   await tester.tap(_textButtonFinder(tooltip));
   await tester.pump();
@@ -893,6 +1097,7 @@ Future<void> _openAlignmentMenu(
   WidgetTester tester,
   String tooltip,
 ) async {
+  await _scrollToolbarUntilVisible(tester, tooltip);
   expect(_textButton(tester, tooltip).onPressed, isNotNull);
   await tester.tap(_textButtonFinder(tooltip));
   await tester.pump();
@@ -963,6 +1168,22 @@ MenuItemButton _menuItemButton(WidgetTester tester, String label) {
   final menuItemFinder = _menuItemButtonFinder(label);
   expect(menuItemFinder, findsOneWidget);
   return tester.widget<MenuItemButton>(menuItemFinder);
+}
+
+void _expectLucideIcon(
+  WidgetTester tester,
+  String tooltip,
+  String icon,
+) {
+  expect(
+    find.descendant(
+      of: find.byTooltip(tooltip),
+      matching: find.byWidgetPredicate(
+        (widget) => widget is WenzLucideToolbarIcon && widget.icon == icon,
+      ),
+    ),
+    findsOneWidget,
+  );
 }
 
 RichTextDocument _textDocument({String? link}) {

@@ -33,11 +33,13 @@ import 'block_geometry_registry.dart';
 import 'block_renderer_registry.dart';
 import 'code_syntax_highlighter.dart';
 import 'editor_context_menu.dart';
+import 'editor_tokens.dart';
 import 'inline_embed_renderer.dart';
 import 'link_edit_dialog.dart';
 import 'link_hover_overlay.dart';
 import 'media_resolver.dart';
 import 'mention_search_overlay.dart';
+import 'mobile_selection_handles_overlay.dart';
 import 'selection_gesture_overlay.dart';
 import 'shared_text_layout_cache.dart';
 import 'slash_menu_overlay.dart';
@@ -107,6 +109,87 @@ class _ExternalImageDropFileFormat {
   final String fallbackFileName;
 }
 
+/// Passive long-press detector for inline links on touch surfaces.
+///
+/// Wraps the editor content and, on a touch pointer that holds still over a
+/// link for the long-press deadline, fires [onLongPressLink] with the global
+/// position. It uses a raw [Listener] (no gesture-arena participation) so the
+/// editor's tap/drag/selection recognizers keep working exactly as before —
+/// only a deliberate hold over a link surfaces the touch context menu.
+class _TouchLinkLongPressHandler extends StatefulWidget {
+  const _TouchLinkLongPressHandler({
+    required this.child,
+    required this.onLongPressLink,
+  });
+
+  final Widget child;
+  final ValueChanged<Offset> onLongPressLink;
+
+  @override
+  State<_TouchLinkLongPressHandler> createState() =>
+      _TouchLinkLongPressHandlerState();
+}
+
+class _TouchLinkLongPressHandlerState extends State<_TouchLinkLongPressHandler> {
+  Timer? _timer;
+  Offset? _downPosition;
+
+  @override
+  void dispose() {
+    _cancelTimer();
+    super.dispose();
+  }
+
+  void _onPointerDown(PointerDownEvent event) {
+    // Only touch pointers long-press; mouse/pen follow the desktop hover path.
+    if (event.kind != PointerDeviceKind.touch) {
+      return;
+    }
+    _downPosition = event.position;
+    _timer?.cancel();
+    _timer = Timer(kLongPressTimeout, () {
+      final position = _downPosition;
+      if (!mounted || position == null) {
+        return;
+      }
+      widget.onLongPressLink(position);
+    });
+  }
+
+  void _onPointerMove(PointerMoveEvent event) {
+    final down = _downPosition;
+    if (down == null) {
+      return;
+    }
+    // A drag past the touch slop is a selection drag, not a long-press.
+    if ((event.position - down).distance > kTouchSlop) {
+      _cancelTimer();
+    }
+  }
+
+  void _onPointerUp(PointerUpEvent event) => _cancelTimer();
+
+  void _onPointerCancel(PointerCancelEvent event) => _cancelTimer();
+
+  void _cancelTimer() {
+    _timer?.cancel();
+    _timer = null;
+    _downPosition = null;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Listener(
+      behavior: HitTestBehavior.translucent,
+      onPointerDown: _onPointerDown,
+      onPointerMove: _onPointerMove,
+      onPointerUp: _onPointerUp,
+      onPointerCancel: _onPointerCancel,
+      child: widget.child,
+    );
+  }
+}
+
 enum _RowBlockFormat { paragraph, heading, code }
 
 typedef _RowBlockFormatChangeHandler = void Function(
@@ -140,8 +223,12 @@ IconData _iconForRowFormat(_RowBlockFormat format) {
 /// rect reported to the IME, and any future theming all share the same source.
 const double _kCaretStrokeWidth = 1.5;
 const Duration _kBlinkHalfPeriod = Duration(milliseconds: 530);
-const double _kRichTextBodyFontSize = 16.0;
-const double _kRichTextBodyLineHeight = 1.75;
+// Layout/density constants below are the desktop source of truth. They mirror
+// `EditorTokens.desktop` (kept in sync by hand — Dart's constant evaluator on
+// this SDK rejects `EditorTokens.desktop.x` in const expressions, so the
+// literals are duplicated here). Mobile resolves a different set via
+// `EditorTokens.resolve(context)` at runtime.
+const double _kRichTextBodyFontSize = 16.0; // == EditorTokens.desktop.richTextBodyFontSize
 const double _kParagraphMarginEm = 0.55;
 const double _kHeadingMarginTopEm = 0.6;
 const double _kHeadingMarginBottomEm = 0.35;
@@ -162,11 +249,7 @@ const double _kTableFloatingToolbarEstimatedHeight = 36.0;
 const double _kTableFloatingToolbarEstimatedWidth = 160.0;
 const int _kTableToolbarBackgroundColor = 0xFFFFF3CD;
 const double _kTableSurfaceRadius = 8.0;
-const double _kTableCellFontSize = 15.0;
-const EdgeInsets _kTableCellPadding = EdgeInsets.symmetric(
-  horizontal: 14,
-  vertical: 10,
-);
+const double _kTableCellFontSize = 15.0; // == EditorTokens.desktop.tableCellFontSize
 const Color _kTableBorderColor = Color(0xFFECE9F5);
 const Color _kTableEvenRowBackgroundColor = Color(0xFFFAFAFF);
 
@@ -174,9 +257,6 @@ const Color _kTableEvenRowBackgroundColor = Color(0xFFFAFAFF);
 /// a tap target even for empty paragraphs. A single constant so the text,
 /// code, and table-cell renderers stay in sync.
 const double _kBlockMinHeightFactor = 1.35;
-const double _kTodoCheckboxWidth = 20.0;
-const double _kTodoCheckboxHeight =
-    _kRichTextBodyFontSize * _kRichTextBodyLineHeight;
 const double _kTodoTextGap = 6.0;
 const double _kTaskListPaddingLeft = 4.0;
 const double _kListTextInset = 26.0;
@@ -193,10 +273,9 @@ const double _kAdjacentQuoteSpacing = 0.0;
 const double _kHeadingCollapseSlotWidth = 24.0;
 const double _kHeadingCollapseButtonSize = 24.0;
 const double _kHeadingCollapseIconSize = 18.0;
-const double _kCodeBlockFontSize = 13.5;
+const double _kCodeBlockFontSize = 13.5; // == EditorTokens.desktop.codeBlockFontSize
 const double _kCodeBlockLineHeight = 1.6;
 const double _kCodeBlockPaddingVertical = 18.0;
-const double _kCodeBlockPaddingHorizontal = 20.0;
 const double _kCodeBlockHeaderGap = 14.0;
 const double _kCodeBlockHeaderHeight = 36.0;
 const double _kCodeBlockHeaderPaddingHorizontal = 10.0;
@@ -233,8 +312,7 @@ const EdgeInsets _kMinimalMenuSurfacePadding =
 const EdgeInsets _kMinimalMenuItemPadding = EdgeInsets.zero;
 const EdgeInsets _kMinimalMenuItemContentPadding =
     EdgeInsets.symmetric(horizontal: 10);
-const double _kMinimalToolbarButtonSize = 32.0;
-const double _kMinimalToolbarIconSize = 18.0;
+const double _kMinimalToolbarButtonSize = 32.0; // == EditorTokens.desktop.minimalToolbarButtonSize
 const double _kMinimalFloatingToolbarSurfaceRadius =
     _kMinimalMenuSurfaceRadius;
 const double _kMinimalFloatingToolbarSurfaceElevation = 3.0;
@@ -262,15 +340,7 @@ const Color _kMinimalToolbarPressedOverlayLight = Color(0x26000000);
 const Color _kMinimalToolbarPressedOverlayDark = Color(0x2EFFFFFF);
 const double _kBlockFloatingToolbarInset = 6.0;
 const double _kBlockToolbarButtonSize = _kMinimalToolbarButtonSize;
-const double _kBlockToolbarIconSize = _kMinimalToolbarIconSize;
 const double _kMediaToolbarEstimatedHeight = 36.0;
-const double _kBlockToolbarButtonRadius = _kBlockToolbarButtonSize / 2;
-const Size _kBlockToolbarButtonFixedSize =
-    Size.square(_kBlockToolbarButtonSize);
-const BoxConstraints _kBlockToolbarButtonConstraints = BoxConstraints.tightFor(
-  width: _kBlockToolbarButtonSize,
-  height: _kBlockToolbarButtonSize,
-);
 const int _kCodeKeywordColor = 0xFFC792EA;
 const int _kCodeStringColor = 0xFFC3E88D;
 const int _kCodeTypeColor = 0xFF82AAFF;
@@ -487,13 +557,16 @@ PopupMenuEntry<T> _popupMenuDivider<T>() {
 
 ButtonStyle _blockToolbarIconButtonStyle(
   ThemeData theme, {
+  EditorTokens tokens = EditorTokens.desktop,
   Color? foregroundColor,
   Color? disabledForegroundColor,
 }) {
+  final buttonSize = tokens.minimalToolbarButtonSize;
+  final fixedSize = Size.square(buttonSize);
   return IconButton.styleFrom(
-    fixedSize: _kBlockToolbarButtonFixedSize,
-    minimumSize: _kBlockToolbarButtonFixedSize,
-    maximumSize: _kBlockToolbarButtonFixedSize,
+    fixedSize: fixedSize,
+    minimumSize: fixedSize,
+    maximumSize: fixedSize,
     padding: EdgeInsets.zero,
     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
     visualDensity: VisualDensity.standard,
@@ -506,7 +579,7 @@ ButtonStyle _blockToolbarIconButtonStyle(
     focusColor: _minimalToolbarFocusOverlayColor(theme),
     highlightColor: _blockToolbarPressedOverlayColor(theme),
     shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(_kBlockToolbarButtonRadius),
+      borderRadius: BorderRadius.circular(buttonSize / 2),
     ),
   );
 }
@@ -1174,6 +1247,8 @@ class WenzRichTextEditor extends StatefulWidget {
     this.slashMenuController,
     this.outlineController,
     this.enableExternalImageInput = true,
+    this.enableExternalDragDrop = true,
+    this.enableMobileSelectionHandles = true,
     this.externalImageClipboardReader,
     this.externalImageStore,
     this.accessibility = const WenzRichTextEditorAccessibility(),
@@ -1308,6 +1383,23 @@ class WenzRichTextEditor extends StatefulWidget {
   /// [externalImageClipboardReader], [externalImageStore], and external image
   /// drop targets.
   final bool enableExternalImageInput;
+
+  /// Whether the external drag-and-drop surface (the `super_drag` `DropRegion`)
+  /// is mounted at all.
+  ///
+  /// Defaults to `true`. Touch form factors additionally skip the `DropRegion`
+  /// (they have no external drag source and its pointer routing interferes with
+  /// touch selection gestures), so this flag only takes effect on mouse-driven
+  /// surfaces. Hosts that never want drag-and-drop can disable it here.
+  final bool enableExternalDragDrop;
+
+  /// Whether the mobile selection-handles overlay may mount on touch surfaces.
+  ///
+  /// Defaults to `true`; the overlay is additionally gated on the mobile form
+  /// factor (shortestSide < 600), so handles never appear on desktop. Mirrors
+  /// [WenzEditorConfiguration.enableMobileSelectionHandles], which the bootstrap
+  /// forwards here.
+  final bool enableMobileSelectionHandles;
 
   /// Optional reader for image-capable clipboard flavors.
   ///
@@ -1638,6 +1730,14 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
 
   @override
   void dispose() {
+    assert(() {
+      _debugLogEditorVideoLifecycle(
+        'editor dispose',
+        widget.controller.document.blocks,
+        StackTrace.current,
+      );
+      return true;
+    }());
     _EditorPopupMenuDismissal.dismiss();
     widget.controller.removeListener(_handleControllerChanged);
     _scrollController.removeListener(_handleScrollChanged);
@@ -2372,6 +2472,10 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
         ),
       ),
     );
+    // Mobile-only selection handles; desktop never mounts the overlay.
+    final showMobileSelectionHandles =
+        widget.enableMobileSelectionHandles &&
+            EditorTokens.resolve(context).isMobile;
     final editorStack = Stack(
       key: _editorOverlayKey,
       fit: StackFit.expand,
@@ -2400,9 +2504,26 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
         if (_formulaEditTarget != null) _buildFormulaEditorOverlay(),
         if (_linkHover != null) _buildLinkHoverOverlay(),
         if (_mentionSearchTrigger != null) _buildMentionSearchOverlay(),
+        if (showMobileSelectionHandles)
+          MobileSelectionHandlesOverlay(
+            registry: _registry,
+            controller: widget.controller,
+            scrollController: _scrollController,
+            containerKey: _editorOverlayKey,
+          ),
       ],
     );
-    final scopedEditorStack = _wrapMentionTapHandler(editorStack);
+    // Touch surfaces have no mouse-hover link popup; a long-press on an inline
+    // link surfaces 打开/复制 actions instead. The handler is mounted only on
+    // mobile (shortestSide < 600) so the desktop widget tree — and its
+    // mouse-hover link popup — stays byte-for-byte unchanged.
+    final touchAwareStack = EditorTokens.resolve(context).isMobile
+        ? _TouchLinkLongPressHandler(
+            onLongPressLink: _handleLinkLongPress,
+            child: editorStack,
+          )
+        : editorStack;
+    final scopedEditorStack = _wrapMentionTapHandler(touchAwareStack);
     return _buildEditorShell(
       context,
       focusNode,
@@ -2590,11 +2711,19 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
 
   bool get _canAcceptExternalImageDrop =>
       widget.enableExternalImageInput &&
+      widget.enableExternalDragDrop &&
       !widget.readOnly &&
       widget.controller.canEdit;
 
   Widget _buildExternalImageDropTarget(Widget child) {
     if (!_canAcceptExternalImageDrop) {
+      return child;
+    }
+    // Touch form factors have no external drag source, and the DropRegion's raw
+    // pointer routing interferes with touch selection gestures. Skip mounting it
+    // on mobile (shortestSide < 600) so touch input is never treated as a
+    // desktop drag-and-drop surface; desktop keeps the full DropRegion.
+    if (EditorTokens.resolve(context).isMobile) {
       return child;
     }
     return DragTarget<List<ExternalImageInput>>(
@@ -4127,6 +4256,39 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
   void _openHoveredLink(WenzLinkHoverInfo info) {
     widget.onOpenLink?.call(info.url, info.position);
     _dismissLinkHover();
+  }
+
+  /// Touch entry point for an inline link: a long-press over a link surfaces
+  /// 打开链接 / 复制链接 instead of the desktop mouse-hover popup. No-op when the
+  /// long-press did not land on a link.
+  void _handleLinkLongPress(Offset globalPosition) {
+    if (!mounted) {
+      return;
+    }
+    final info = _probeLinkAtGlobal(globalPosition);
+    if (info == null) {
+      return;
+    }
+    unawaited(_showLinkTouchMenu(info));
+  }
+
+  Future<void> _showLinkTouchMenu(WenzLinkHoverInfo info) async {
+    if (!mounted) {
+      return;
+    }
+    final chosen = await showWenzLinkTouchContextMenu(
+      context,
+      globalPosition: info.globalRect.center,
+      url: info.url,
+    );
+    if (!mounted) {
+      return;
+    }
+    if (chosen == WenzLinkTouchMenuAction.open) {
+      widget.onOpenLink?.call(info.url, info.position);
+    }
+    // WenzLinkTouchMenuAction.copy already wrote the URL to the clipboard
+    // inside showWenzLinkTouchContextMenu.
   }
 
   void _dismissLinkHover() {
@@ -8783,12 +8945,13 @@ double _rowChromeLineExtentFor(
 ) {
   if (block is TextBlockNode) {
     final style = _blockTextStyle(context, block, textStyle);
-    final lineHeight = _lineHeightFor(style);
+    final tokens = EditorTokens.resolve(context);
+    final lineHeight = _lineHeightFor(style, tokens);
     final isTodoListItem = block.type == BlockType.listItem &&
         (block.attributes.listType == 'task' ||
             block.attributes.checked != null);
     return isTodoListItem
-        ? math.max(lineHeight, _kTodoCheckboxHeight)
+        ? math.max(lineHeight, tokens.todoCheckboxHeight)
         : lineHeight;
   }
   if (block is CodeBlockNode) {
@@ -9106,19 +9269,25 @@ Widget _defaultVideoBlockRenderer(
   BlockRenderContext rc,
 ) {
   final video = rc.block as VideoBlockNode;
-  final result = _resolveMediaWithStatus(context, rc);
+  assert(() {
+    _debugLogVideoMediaResolveEntry(
+      'inline-video',
+      video,
+      rc,
+      StackTrace.current,
+    );
+    return true;
+  }());
+  final result = _resolveVideoMediaWithStatus(
+    context,
+    rc,
+    _VideoMediaRenderPosition.inline,
+  );
   // A resolver-provided widget always wins over any placeholder; only the
   // fallback distinguishes the cover placeholder (no / declining resolver)
   // from the load-failure slot (threw), so the catch-and-fallback path
   // surfaces a visually distinct failure state.
-  final media = result.hasWidget
-      ? result.widget!
-      : _VideoBlockPlaceholder(
-          block: video,
-          status: result.threw
-              ? _VideoBlockPlaceholderStatus.failed
-              : _VideoBlockPlaceholderStatus.cover,
-        );
+  final media = result.widget ?? _videoFallbackForResolve(video, result);
   return _withSelectableVideoBlock(
     video,
     rc,
@@ -9239,6 +9408,127 @@ class _MediaResolveResult {
   bool get hasWidget => widget != null;
 }
 
+enum _VideoMediaRenderPosition { inline, dialog }
+
+String _videoMediaRenderPositionLabel(_VideoMediaRenderPosition position) {
+  return switch (position) {
+    _VideoMediaRenderPosition.inline => 'inline',
+    _VideoMediaRenderPosition.dialog => 'dialog',
+  };
+}
+
+class _VideoMediaPositionBoundary extends StatelessWidget {
+  const _VideoMediaPositionBoundary({
+    required this.blockId,
+    required this.position,
+    required this.child,
+  });
+
+  final String blockId;
+  final _VideoMediaRenderPosition position;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return KeyedSubtree(
+      key: ValueKey<String>(
+        'wenz-richtext-video-media-$blockId-'
+        '${_videoMediaRenderPositionLabel(position)}',
+      ),
+      child: child,
+    );
+  }
+}
+
+_MediaResolveResult _resolveVideoMediaWithStatus(
+  BuildContext context,
+  BlockRenderContext rc,
+  _VideoMediaRenderPosition position,
+) {
+  final block = rc.block as VideoBlockNode;
+  final result = _resolveMediaWithStatus(
+    context,
+    rc,
+    renderPosition: _videoMediaRenderPositionLabel(position),
+  );
+  final media = result.widget;
+  if (media == null) {
+    return result;
+  }
+  return _MediaResolveResult(
+    widget: _VideoMediaPositionBoundary(
+      blockId: block.id,
+      position: position,
+      child: media,
+    ),
+    threw: result.threw,
+  );
+}
+
+Widget _videoFallbackForResolve(
+  VideoBlockNode block,
+  _MediaResolveResult result,
+) {
+  return _VideoBlockPlaceholder(
+    block: block,
+    status: result.threw
+        ? _VideoBlockPlaceholderStatus.failed
+        : _VideoBlockPlaceholderStatus.cover,
+  );
+}
+
+void _debugLogVideoMediaResolveEntry(
+  String entry,
+  VideoBlockNode block,
+  BlockRenderContext rc,
+  StackTrace stackTrace,
+) {
+  debugPrint(
+    '[wenz_richtext.video] resolve entry=$entry; '
+    'block=${block.id}; '
+    'index=${rc.blockIndex}/${rc.blockCount}; '
+    'source=${_videoSourceLabel(block)}; '
+    'firstProjectFrame=${_debugFirstProjectStackFrame(stackTrace) ?? "-"}',
+  );
+}
+
+void _debugLogEditorVideoLifecycle(
+  String event,
+  List<BlockNode> blocks,
+  StackTrace stackTrace,
+) {
+  final videos = blocks.whereType<VideoBlockNode>().toList(growable: false);
+  if (videos.isEmpty) {
+    return;
+  }
+  debugPrint(
+    '[wenz_richtext.video] $event; '
+    'videoCount=${videos.length}; '
+    'blocks=${videos.map((video) => video.id).join(",")}; '
+    'firstProjectFrame=${_debugFirstProjectStackFrame(stackTrace) ?? "-"}',
+  );
+}
+
+String? _debugFirstProjectStackFrame(StackTrace? stackTrace) {
+  if (stackTrace == null) {
+    return null;
+  }
+  for (final rawLine in stackTrace.toString().split('\n')) {
+    final line = rawLine.trim();
+    if (line.isEmpty) {
+      continue;
+    }
+    final normalized = line.replaceAll('\\', '/').toLowerCase();
+    if (normalized.contains('/wenzflow_flutter/lib/') ||
+        normalized.contains('package:wenzflow/') ||
+        normalized.contains('/wenz_flutter/wenz_richtext/lib/') ||
+        normalized.contains('package:wenz_richtext/')) {
+      return line;
+    }
+  }
+  return null;
+}
+
 /// Asks the injected [MediaResolver] (if any) to render [rc.block]. Returns
 /// `null` when no resolver is injected, the resolver declines (`null`), or the
 /// resolver throws — in all those cases the caller falls back to the built-in
@@ -9249,24 +9539,38 @@ Widget? _resolveMedia(BuildContext context, BlockRenderContext rc) {
 }
 
 /// Same as [_resolveMedia] but also reports whether the resolver threw, so
-/// callers that distinguish the failure fallback (image blocks) can pick the
-/// right placeholder status.
+/// callers that distinguish the failure fallback (image/video blocks) can pick
+/// the right placeholder status.
 _MediaResolveResult _resolveMediaWithStatus(
   BuildContext context,
-  BlockRenderContext rc,
-) {
+  BlockRenderContext rc, {
+  String? renderPosition,
+}) {
   final resolver = rc.mediaResolver;
   if (resolver == null) {
     return const _MediaResolveResult();
   }
   try {
     return _MediaResolveResult(widget: resolver.resolve(context, rc.block));
-  } on Object catch (error) {
+  } on Object catch (error, stackTrace) {
     FlutterError.reportError(FlutterErrorDetails(
       exception: error,
+      stack: stackTrace,
       library: 'wenz_richtext',
       context: ErrorDescription('MediaResolver.resolve threw for block '
-          '${rc.block.id} (${rc.block.type}); falling back to placeholder.'),
+          '${rc.block.id} (${rc.block.type})'
+          '${renderPosition == null ? '' : ' at $renderPosition'}; '
+          'falling back to placeholder.'),
+      informationCollector: () => <DiagnosticsNode>[
+        if (renderPosition != null)
+          DiagnosticsProperty<String>('render position', renderPosition),
+        DiagnosticsProperty<String>(
+          'first project frame',
+          _debugFirstProjectStackFrame(stackTrace) ?? '-',
+        ),
+        DiagnosticsProperty<String>('block id', rc.block.id),
+        DiagnosticsProperty<String>('block type', rc.block.type.toString()),
+      ],
     ));
     return const _MediaResolveResult(threw: true);
   }
@@ -9308,8 +9612,15 @@ void _showVideoPreview(
   VideoBlockNode block,
   BlockRenderContext rc,
 ) {
-  final media =
-      _resolveMedia(context, rc) ?? _VideoBlockPlaceholder(block: block);
+  assert(() {
+    _debugLogVideoMediaResolveEntry(
+      'preview-dialog',
+      block,
+      rc,
+      StackTrace.current,
+    );
+    return true;
+  }());
   final aspectRatio = _safeVideoAspectRatio(block.effectiveAspectRatio);
   unawaited(
     showDialog<void>(
@@ -9326,7 +9637,10 @@ void _showVideoPreview(
               image: true,
               child: AspectRatio(
                 aspectRatio: aspectRatio,
-                child: _VideoFrameChildBoundary(child: media),
+                child: _VideoPreviewMedia(
+                  block: block,
+                  renderContext: rc,
+                ),
               ),
             ),
           ),
@@ -9334,6 +9648,27 @@ void _showVideoPreview(
       },
     ),
   );
+}
+
+class _VideoPreviewMedia extends StatelessWidget {
+  const _VideoPreviewMedia({
+    required this.block,
+    required this.renderContext,
+  });
+
+  final VideoBlockNode block;
+  final BlockRenderContext renderContext;
+
+  @override
+  Widget build(BuildContext context) {
+    final result = _resolveVideoMediaWithStatus(
+      context,
+      renderContext,
+      _VideoMediaRenderPosition.dialog,
+    );
+    final media = result.widget ?? _videoFallbackForResolve(block, result);
+    return _VideoFrameChildBoundary(child: media);
+  }
 }
 
 Widget _withSelectableObjectBlock(
@@ -9595,7 +9930,9 @@ class _TextBlockRenderer extends StatelessWidget {
         isTodoListItem && block.attributes.listType == 'ordered';
     final isTaskChecked = block.attributes.checked == true;
     final baseStyle = _blockTextStyle(context, block, textStyle);
-    final todoStyle = isTodoListItem ? _todoTextStyle(baseStyle) : baseStyle;
+    final tokens = EditorTokens.resolve(context);
+    final todoStyle =
+        isTodoListItem ? _todoTextStyle(baseStyle, tokens) : baseStyle;
     final effectiveStyle = isTodoListItem && isTaskChecked
         ? _completedTodoTextStyle(context, todoStyle)
         : todoStyle;
@@ -9636,7 +9973,7 @@ class _TextBlockRenderer extends StatelessWidget {
       offsetMapper: inlineTextLayout.offsetMapper,
       textAlign: _textAlign(block.attributes.alignment),
       minHeight: isTodoListItem
-          ? _lineHeightFor(effectiveStyle)
+          ? _lineHeightFor(effectiveStyle, tokens)
           : (effectiveStyle.fontSize ?? 14) * _kBlockMinHeightFactor,
       selection: selection,
       showCaret: showCaret,
@@ -9934,14 +10271,15 @@ class _TodoCheckboxState extends State<_TodoCheckbox> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final tokens = EditorTokens.resolve(context);
     return MouseRegion(
       cursor: widget.onChanged == null
           ? SystemMouseCursors.basic
           : SystemMouseCursors.click,
       child: SizedBox(
         key: _hitTestKey,
-        width: _kTodoCheckboxWidth,
-        height: _kTodoCheckboxHeight,
+        width: tokens.todoCheckboxWidth,
+        height: tokens.todoCheckboxHeight,
         child: Align(
           alignment: AlignmentDirectional.topCenter,
           child: Checkbox(
@@ -10206,6 +10544,7 @@ class _CodeBlockRenderer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final tokens = EditorTokens.resolve(context);
     final codeBlockBackground = _codeBlockBackgroundColor(theme);
     final codeBlockText = _codeBlockTextColor(theme);
     final codeStyle = theme.textTheme.bodyMedium?.copyWith(
@@ -10216,7 +10555,7 @@ class _CodeBlockRenderer extends StatelessWidget {
             'Consolas',
             'monospace',
           ],
-          fontSize: _kCodeBlockFontSize,
+          fontSize: tokens.codeBlockFontSize,
           height: _kCodeBlockLineHeight,
         ) ??
         TextStyle(
@@ -10227,7 +10566,7 @@ class _CodeBlockRenderer extends StatelessWidget {
             'Consolas',
             'monospace',
           ],
-          fontSize: _kCodeBlockFontSize,
+          fontSize: tokens.codeBlockFontSize,
           height: _kCodeBlockLineHeight,
         );
     final compositionRange = _localCompositionRange(
@@ -10270,8 +10609,8 @@ class _CodeBlockRenderer extends StatelessWidget {
           borderRadius: BorderRadius.circular(_kCodeBlockRadius),
         ),
         child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: _kCodeBlockPaddingHorizontal,
+          padding: EdgeInsets.symmetric(
+            horizontal: tokens.codeBlockPaddingHorizontal,
             vertical: _kCodeBlockPaddingVertical,
           ),
           child: Column(
@@ -10323,7 +10662,7 @@ class _CodeBlockRenderer extends StatelessWidget {
                     _measureInlineSpanWidth(codeSpan, textDirection) + 1,
                   );
                   final minHeight =
-                      (codeStyle.fontSize ?? _kCodeBlockFontSize) *
+                      (codeStyle.fontSize ?? tokens.codeBlockFontSize) *
                           _kBlockMinHeightFactor;
                   return Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -10589,6 +10928,7 @@ class _CodeBlockToolbar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final tokens = EditorTokens.resolve(context);
     final accentColor = _codeBlockAccentColor(theme);
     final languages = _codeLanguageOptions(language);
     final current = languages.contains(language) ? language : '';
@@ -10661,10 +11001,14 @@ class _CodeBlockToolbar extends StatelessWidget {
                 key: ValueKey<String>('wenz-richtext-code-copy-$blockId'),
                 tooltip: '复制代码内容',
                 padding: EdgeInsets.zero,
-                constraints: _kBlockToolbarButtonConstraints,
-                iconSize: _kBlockToolbarIconSize,
+                constraints: BoxConstraints.tightFor(
+                  width: tokens.minimalToolbarButtonSize,
+                  height: tokens.minimalToolbarButtonSize,
+                ),
+                iconSize: tokens.minimalToolbarIconSize,
                 style: _blockToolbarIconButtonStyle(
                   theme,
+                  tokens: tokens,
                   foregroundColor: accentColor,
                   disabledForegroundColor: accentColor.withAlpha(
                     _kMinimalToolbarDisabledAlpha,
@@ -10760,6 +11104,7 @@ class _TableBlockRenderer extends StatelessWidget {
       return const SizedBox.shrink();
     }
     final theme = Theme.of(context);
+    final tokens = EditorTokens.resolve(context);
     final effectiveStyle = textStyle ?? DefaultTextStyle.of(context).style;
     final tableTextStyle =
         effectiveStyle.copyWith(fontSize: _kTableCellFontSize);
@@ -10775,6 +11120,7 @@ class _TableBlockRenderer extends StatelessWidget {
             maxWidth: _tableMaxWidth(constraints, columnCount),
             textStyle: tableTextStyle,
             textDirection: direction,
+            tableCellPadding: tokens.tableCellPadding,
           );
           final tableSelectionRect = currentSelection == null
               ? null
@@ -10987,6 +11333,7 @@ class _TableFloatingToolbar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final tokens = EditorTokens.resolve(context);
     final cell = block.table.cellAt(range.startRow, range.startColumn);
     final canDeleteRow = block.table.rowCount > 1;
     final canDeleteColumn = block.table.columnCount > 1;
@@ -11002,20 +11349,23 @@ class _TableFloatingToolbar extends StatelessWidget {
         children: <Widget>[
           _button(
             theme: theme,
+            tokens: tokens,
             icon: Icons.keyboard_arrow_down,
             tooltip: '在下方插入行',
             action: TableToolbarAction.insertRowBelow,
           ),
           _button(
             theme: theme,
+            tokens: tokens,
             icon: Icons.keyboard_arrow_right,
             tooltip: '在右侧插入列',
             action: TableToolbarAction.insertColumnAfter,
           ),
-          _divider(theme),
+          _divider(theme, tokens),
           if (canSplit)
             _button(
               theme: theme,
+              tokens: tokens,
               icon: Icons.call_split,
               tooltip: '拆分单元格',
               action: TableToolbarAction.splitCell,
@@ -11023,6 +11373,7 @@ class _TableFloatingToolbar extends StatelessWidget {
           else
             _button(
               theme: theme,
+              tokens: tokens,
               icon: Icons.call_merge,
               tooltip: '合并所选单元格',
               action: TableToolbarAction.mergeCells,
@@ -11048,13 +11399,14 @@ class _TableFloatingToolbar extends StatelessWidget {
     required bool canSplit,
   }) {
     final theme = Theme.of(context);
+    final tokens = EditorTokens.resolve(context);
     return PopupMenuButton<_TableToolbarSelection>(
       tooltip: '更多表格操作',
       icon: const Icon(Icons.more_horiz),
-      iconSize: _kBlockToolbarIconSize,
+      iconSize: tokens.minimalToolbarIconSize,
       padding: EdgeInsets.zero,
       constraints: _kPopupMenuConstraints,
-      style: _blockToolbarIconButtonStyle(theme),
+      style: _blockToolbarIconButtonStyle(theme, tokens: tokens),
       color: _popupMenuColor(theme),
       elevation: _kPopupMenuElevation,
       shadowColor: _popupMenuShadowColor(theme),
@@ -11247,6 +11599,7 @@ class _TableFloatingToolbar extends StatelessWidget {
 
   Widget _button({
     required ThemeData theme,
+    required EditorTokens tokens,
     required IconData icon,
     required String tooltip,
     required TableToolbarAction action,
@@ -11255,11 +11608,14 @@ class _TableFloatingToolbar extends StatelessWidget {
   }) {
     return IconButton(
       icon: Icon(icon),
-      iconSize: _kBlockToolbarIconSize,
+      iconSize: tokens.minimalToolbarIconSize,
       tooltip: tooltip,
       padding: EdgeInsets.zero,
-      constraints: _kBlockToolbarButtonConstraints,
-      style: _blockToolbarIconButtonStyle(theme),
+      constraints: BoxConstraints.tightFor(
+        width: tokens.minimalToolbarButtonSize,
+        height: tokens.minimalToolbarButtonSize,
+      ),
+      style: _blockToolbarIconButtonStyle(theme, tokens: tokens),
       onPressed: enabled
           ? () => _dispatch(action, backgroundColor: backgroundColor)
           : null,
@@ -11284,10 +11640,10 @@ class _TableFloatingToolbar extends StatelessWidget {
     );
   }
 
-  Widget _divider(ThemeData theme) {
+  Widget _divider(ThemeData theme, EditorTokens tokens) {
     return SizedBox(
       width: _kMinimalFloatingToolbarDividerWidth,
-      height: _kBlockToolbarButtonSize,
+      height: tokens.minimalToolbarButtonSize,
       child: Center(
         child: SizedBox(
           width: 1,
@@ -11468,13 +11824,14 @@ class _TableGridMetrics {
     required double maxWidth,
     required TextStyle textStyle,
     required TextDirection textDirection,
+    required EdgeInsets tableCellPadding,
   }) {
     final columnCount = table.columnCount;
     final rowCount = table.rowCount;
     final columnWidths = _resolveTableColumnWidths(table, maxWidth);
     final rowHeights = List<double>.filled(
       rowCount,
-      _minimumTableCellHeight(textStyle),
+      _minimumTableCellHeight(textStyle, tableCellPadding),
     );
 
     for (var row = 0; row < rowCount; row++) {
@@ -11495,6 +11852,7 @@ class _TableGridMetrics {
           textStyle,
           textDirection,
           cellWidth,
+          tableCellPadding,
         );
         final currentHeight = _sumTableRange(rowHeights, row, rowSpan);
         if (desiredHeight > currentHeight) {
@@ -11692,26 +12050,27 @@ double _measureTableCellHeight(
   TextStyle textStyle,
   TextDirection textDirection,
   double cellWidth,
+  EdgeInsets tableCellPadding,
 ) {
   final effectiveTextStyle = cell.isHeader
       ? textStyle.copyWith(fontWeight: FontWeight.w700)
       : textStyle;
   final text = _tableCellDisplayText(cell);
   final displayText = text.isEmpty ? ' ' : text;
-  final innerWidth = _tableCellInnerWidth(cellWidth);
+  final innerWidth = _tableCellInnerWidth(cellWidth, tableCellPadding);
   final painter = TextPainter(
     text: TextSpan(text: displayText, style: effectiveTextStyle),
     textAlign: TextAlign.start,
     textDirection: textDirection,
   )..layout(maxWidth: innerWidth);
-  final height = painter.height + _kTableCellPadding.vertical;
+  final height = painter.height + tableCellPadding.vertical;
   painter.dispose();
-  final minimum = _minimumTableCellHeight(textStyle);
+  final minimum = _minimumTableCellHeight(textStyle, tableCellPadding);
   return height > minimum ? height : minimum;
 }
 
-double _tableCellInnerWidth(double cellWidth) {
-  final innerWidth = cellWidth - _kTableCellPadding.horizontal;
+double _tableCellInnerWidth(double cellWidth, EdgeInsets tableCellPadding) {
+  final innerWidth = cellWidth - tableCellPadding.horizontal;
   if (!innerWidth.isFinite || innerWidth <= 0) {
     return 0;
   }
@@ -11804,10 +12163,10 @@ String _tableCellDisplayText(TableCellNode cell) {
   return inline.map(_inlineDisplayText).join();
 }
 
-double _minimumTableCellHeight(TextStyle textStyle) {
+double _minimumTableCellHeight(TextStyle textStyle, EdgeInsets tableCellPadding) {
   return ((textStyle.fontSize ?? _kTableCellFontSize) *
           _kBlockMinHeightFactor) +
-      _kTableCellPadding.vertical;
+      tableCellPadding.vertical;
 }
 
 Color? _tableCellBackgroundColor({
@@ -12023,6 +12382,7 @@ Rect? _caretRectForTableSelectionEndpoint({
   }
 
   final theme = Theme.of(context);
+  final tokens = EditorTokens.resolve(context);
   final cell = gridCell.cell;
   final textLayout = _tableCellTextLayoutFor(
     context: context,
@@ -12035,7 +12395,8 @@ Rect? _caretRectForTableSelectionEndpoint({
     compositionRange: null,
     inlineEmbedRenderer: inlineEmbedRenderer,
   );
-  final innerWidth = _tableCellInnerWidth(gridCell.width);
+  final innerWidth =
+      _tableCellInnerWidth(gridCell.width, tokens.tableCellPadding);
   final layoutService = TextLayoutService();
   final painter = layoutService.layout(
     span: textLayout.textSpan,
@@ -12060,8 +12421,8 @@ Rect? _caretRectForTableSelectionEndpoint({
     return null;
   }
   return Rect.fromLTWH(
-    gridCell.left + _kTableCellPadding.left + localTopLeft.dx,
-    gridCell.top + _kTableCellPadding.top + localTopLeft.dy,
+    gridCell.left + tokens.tableCellPadding.left + localTopLeft.dx,
+    gridCell.top + tokens.tableCellPadding.top + localTopLeft.dy,
     _kCaretStrokeWidth,
     height,
   );
@@ -12372,6 +12733,7 @@ class _TableCellSurfaceState extends State<_TableCellSurface> {
       path,
     );
     final theme = Theme.of(context);
+    final tokens = EditorTokens.resolve(context);
     final highlightColor = theme.colorScheme.primary.withAlpha(54);
     final textLayout = _tableCellTextLayoutFor(
       context: context,
@@ -12454,7 +12816,7 @@ class _TableCellSurfaceState extends State<_TableCellSurface> {
           color: backgroundColor,
         ),
         child: Padding(
-          padding: _kTableCellPadding,
+          padding: tokens.tableCellPadding,
           child: Stack(
             children: <Widget>[
               if (widget.highlightWholeCell)
@@ -12970,9 +13332,10 @@ class _TextSelectionSurfaceState extends State<_TextSelectionSurface> {
       // as a reasonable default since that covers the majority of callers.
       // The `-Offset(8, 8)` historic fallback remains as a coarse guess when
       // clampToVisibleBounds is not set (object-card body, code viewport).
+      final fallbackPadding = EditorTokens.resolve(context).tableCellPadding;
       return widget.clampHitTestToVisibleBounds
           ? Offset.zero
-          : hitLocal - Offset(_kTableCellPadding.left, _kTableCellPadding.top);
+          : hitLocal - Offset(fallbackPadding.left, fallbackPadding.top);
     }
     final cellOrigin = cellBox.localToGlobal(Offset.zero);
     final textOrigin = textBox.localToGlobal(Offset.zero);
@@ -14974,13 +15337,14 @@ class _ObjectMoreMenuState extends State<_ObjectMoreMenu> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final tokens = EditorTokens.resolve(context);
     return PopupMenuButton<_ObjectMenuSelection>(
       tooltip: '更多块操作',
       icon: const Icon(Icons.more_horiz),
-      iconSize: _kBlockToolbarIconSize,
+      iconSize: tokens.minimalToolbarIconSize,
       padding: EdgeInsets.zero,
       constraints: _kPopupMenuConstraints,
-      style: _blockToolbarIconButtonStyle(theme),
+      style: _blockToolbarIconButtonStyle(theme, tokens: tokens),
       color: _popupMenuColor(theme),
       elevation: _kPopupMenuElevation,
       shadowColor: _popupMenuShadowColor(theme),
@@ -15202,12 +15566,16 @@ class _ObjectActionButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final tokens = EditorTokens.resolve(context);
     return IconButton(
       tooltip: tooltip,
       padding: EdgeInsets.zero,
-      constraints: _kBlockToolbarButtonConstraints,
-      iconSize: _kBlockToolbarIconSize,
-      style: _blockToolbarIconButtonStyle(theme),
+      constraints: BoxConstraints.tightFor(
+        width: tokens.minimalToolbarButtonSize,
+        height: tokens.minimalToolbarButtonSize,
+      ),
+      iconSize: tokens.minimalToolbarIconSize,
+      style: _blockToolbarIconButtonStyle(theme, tokens: tokens),
       onPressed: onPressed,
       icon: Icon(icon),
     );
@@ -15415,13 +15783,14 @@ class _FileBlockActionMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final tokens = EditorTokens.resolve(context);
     return PopupMenuButton<_ObjectMenuSelection>(
       tooltip: '附件操作',
       icon: const Icon(Icons.more_horiz),
-      iconSize: _kBlockToolbarIconSize,
+      iconSize: tokens.minimalToolbarIconSize,
       padding: EdgeInsets.zero,
       constraints: _kPopupMenuConstraints,
-      style: _blockToolbarIconButtonStyle(theme),
+      style: _blockToolbarIconButtonStyle(theme, tokens: tokens),
       color: _popupMenuColor(theme),
       elevation: _kPopupMenuElevation,
       shadowColor: _popupMenuShadowColor(theme),
@@ -16337,7 +16706,8 @@ class _CalloutRendererState extends State<_CalloutRenderer> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final base = _richTextBodyStyle(theme, widget.textStyle);
+    final tokens = EditorTokens.resolve(context);
+    final base = _richTextBodyStyle(theme, widget.textStyle, tokens);
     final variant = widget.block.normalizedVariant;
     final tint = _calloutTint(theme, variant);
     final foreground = _calloutForeground(theme, variant);
@@ -16705,7 +17075,8 @@ TextStyle _blockTextStyle(
   TextStyle? textStyle,
 ) {
   final theme = Theme.of(context);
-  final baseStyle = _richTextBodyStyle(theme, textStyle);
+  final tokens = EditorTokens.resolve(context);
+  final baseStyle = _richTextBodyStyle(theme, textStyle, tokens);
   return switch (block.type) {
     BlockType.heading => baseStyle.merge(
         _headingTextStyle(theme, baseStyle, block.attributes.level),
@@ -16714,11 +17085,15 @@ TextStyle _blockTextStyle(
   };
 }
 
-TextStyle _richTextBodyStyle(ThemeData theme, TextStyle? overrideStyle) {
+TextStyle _richTextBodyStyle(
+  ThemeData theme,
+  TextStyle? overrideStyle,
+  EditorTokens tokens,
+) {
   final baseline = (theme.textTheme.bodyMedium ?? const TextStyle()).copyWith(
     color: theme.colorScheme.onSurface,
-    fontSize: _kRichTextBodyFontSize,
-    height: _kRichTextBodyLineHeight,
+    fontSize: tokens.richTextBodyFontSize,
+    height: tokens.richTextBodyLineHeight,
   );
   return overrideStyle == null ? baseline : baseline.merge(overrideStyle);
 }
@@ -16755,22 +17130,22 @@ TextStyle _headingTextStyle(
   );
 }
 
-TextStyle _todoTextStyle(TextStyle baseStyle) {
+TextStyle _todoTextStyle(TextStyle baseStyle, EditorTokens tokens) {
   final fontSize = baseStyle.fontSize ?? 14;
   if (fontSize <= 0) {
     return baseStyle;
   }
   final lineHeight = math.max(
-    _lineHeightFor(baseStyle),
-    _kTodoCheckboxHeight,
+    _lineHeightFor(baseStyle, tokens),
+    tokens.todoCheckboxHeight,
   );
   return baseStyle.copyWith(height: lineHeight / fontSize);
 }
 
-double _lineHeightFor(TextStyle style) {
+double _lineHeightFor(TextStyle style, EditorTokens tokens) {
   final fontSize = style.fontSize ?? 14;
   if (fontSize <= 0) {
-    return _kTodoCheckboxHeight;
+    return tokens.todoCheckboxHeight;
   }
   return fontSize * (style.height ?? _kBlockMinHeightFactor);
 }

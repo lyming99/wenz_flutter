@@ -22,6 +22,10 @@ const _exampleSeedColor = Color(0xFF0F766E);
 const _exampleFontFamily = '微软雅黑';
 const _themeToggleKey = ValueKey<String>('wenz-example-theme-toggle');
 const _editorSurfaceKey = ValueKey<String>('wenz-example-editor-surface');
+const double _topBarActionExtent = 48.0;
+const double _topBarActionTrailingPadding = 8.0;
+const double _topBarActionsWidth =
+    _topBarActionExtent * 6 + _topBarActionTrailingPadding;
 const _resolverVideoPlayerBorderRadius = BorderRadius.zero;
 const _imageFileTypeGroup = XTypeGroup(
   label: 'Images',
@@ -372,6 +376,12 @@ class _EditorWorkbenchState extends State<EditorWorkbench> {
   var _showDebugOverlay = false;
   var _isPickingImage = false;
 
+  // Side-panel toggles. Find/replace docks above the editor; comments dock as
+  // a sidebar (desktop) or a bottom sheet (mobile).
+  var _showFindReplace = false;
+  var _showComments = false;
+  late final List<CommentThread> _commentThreads;
+
   /// Most recent controller callback event, shown in the inspector's Events
   /// section as a live demonstration of onChanged / onSelectionChanged /
   /// onCommandExecuted (acceptance task B5).
@@ -434,9 +444,10 @@ class _EditorWorkbenchState extends State<EditorWorkbench> {
         // surface without touching its own configuration maps — the path to
         // choose when the same component is shared across multiple hosts.
         plugins: <WenzRichTextPlugin>[const FlowchartPlugin()],
-        // Mermaid diagrams: opt-in via the configuration flag. Uses the
-        // vector-graphics SVG surface so no additional native dependency
-        // is required for the example.
+        // Mermaid diagrams: opt-in via the configuration flag and independent
+        // from the custom Flowchart embed above. Uses the vector-graphics SVG
+        // surface so no additional native dependency is required for the
+        // example.
         enableMermaidDiagrams: true,
         diagramSvgSurface: const VectorGraphicsDiagramSurface(),
         // Autosave is opt-in: it needs a host-supplied sink. The example
@@ -447,7 +458,7 @@ class _EditorWorkbenchState extends State<EditorWorkbench> {
         // The example drives the toolbar / stats / slash-menu and renders an
         // outline tree on the right, so the outline controller is enabled; the
         // find&replace surface stays off. The editor is wired exactly as before.
-        enableFindReplace: false,
+        enableFindReplace: true,
         enableOutline: true,
         // The three business-integration callbacks fire synchronously before
         // notifyListeners, so reading controller state here is safe.
@@ -489,6 +500,105 @@ class _EditorWorkbenchState extends State<EditorWorkbench> {
     _aiConversationManager = ConversationManager();
     unawaited(_aiConfigManager.initialize());
     unawaited(_aiConversationManager.initialize(_aiConfigManager));
+
+    // Sample comment threads anchored to the seed document, so the comment
+    // sidebar / mobile bottom sheet has content to render.
+    _commentThreads = _sampleCommentThreads();
+  }
+
+  /// Find/replace toggle — docks the panel above the editor on every form
+  /// factor (it is a bar, not a sidebar).
+  void _toggleFindReplace() {
+    setState(() {
+      _showFindReplace = !_showFindReplace;
+    });
+  }
+
+  /// Comments toggle — on phone-sized surfaces the sidebar opens as a
+  /// full-width bottom sheet; on wide surfaces it docks as a fixed-width
+  /// sidebar overlay on the right.
+  void _toggleComments(BuildContext context) {
+    final isMobile = MediaQuery.sizeOf(context).shortestSide < 600;
+    if (isMobile) {
+      unawaited(
+        showModalBottomSheet<void>(
+          context: context,
+          isScrollControlled: true,
+          useSafeArea: true,
+          builder: (sheetContext) => SizedBox(
+            // The sidebar's inner list uses Expanded, so it needs a bounded
+            // height; cap the sheet at 60% of the viewport.
+            height: MediaQuery.sizeOf(sheetContext).height * 0.6,
+            child: Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.viewInsetsOf(sheetContext).bottom,
+              ),
+              child: _buildCommentSidebar(),
+            ),
+          ),
+        ),
+      );
+      return;
+    }
+    setState(() {
+      _showComments = !_showComments;
+    });
+  }
+
+  Widget _buildCommentSidebar() {
+    return WenzCommentSidebar(
+      threads: _commentThreads,
+      onSelectThread: (thread) {
+        _lastEvent = 'Comment · ${thread.id}';
+        setState(() {});
+      },
+    );
+  }
+
+  List<CommentThread> _sampleCommentThreads() {
+    final created = DateTime(2026, 7, 1, 10, 0);
+    return <CommentThread>[
+      CommentThread(
+        id: 'comment-intro',
+        anchor: CommentAnchor(
+          blockId: 'intro',
+          blockIndex: 1,
+          path: PositionPath.blockText('intro'),
+          startOffset: 0,
+          endOffset: 40,
+        ),
+        messages: <CommentEntry>[
+          CommentEntry(
+            id: 'm1',
+            authorName: 'Ada',
+            text: 'Sharpen the intro — lead with the value prop.',
+            createdAt: created,
+          ),
+        ],
+        createdAt: created,
+      ),
+      CommentThread(
+        id: 'comment-task',
+        anchor: CommentAnchor(
+          blockId: 'task',
+          blockIndex: 2,
+          path: PositionPath.blockText('task'),
+          startOffset: 0,
+          endOffset: 10,
+        ),
+        messages: <CommentEntry>[
+          CommentEntry(
+            id: 'm2',
+            authorName: 'Grace',
+            text: 'Should this be checked off already?',
+            createdAt: created,
+          ),
+        ],
+        createdAt: created,
+        status: CommentThreadStatus.resolved,
+        resolvedAt: created,
+      ),
+    ];
   }
 
   @override
@@ -513,132 +623,217 @@ class _EditorWorkbenchState extends State<EditorWorkbench> {
     }
   }
 
+  void _openAiConversations(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ConversationListPage(
+          conversationManager: _aiConversationManager,
+          configManager: _aiConfigManager,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    // Phone-sized surfaces (shortestSide < 600) collapse the side panels into a
+    // Drawer so the editor gets the full width; wider surfaces keep the original
+    // three-column body. The breakpoint matches EditorTokens' mobile split.
+    final isCompact = MediaQuery.sizeOf(context).shortestSide < 600;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Wenz RichText'),
+        title: const Text(
+          'Wenz RichText',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
         actions: <Widget>[
-          IconButton(
-            tooltip: '撤销',
-            onPressed: _controller.canUndo ? _controller.undo : null,
-            icon: const Icon(Icons.undo),
+          _ExampleTopBarActions(
+            canUndo: _controller.canUndo,
+            canRedo: _controller.canRedo,
+            onUndo: _controller.undo,
+            onRedo: _controller.redo,
+            onOpenAiConversations: () => _openAiConversations(context),
+            onToggleFindReplace: _toggleFindReplace,
+            showFindReplace: _showFindReplace,
+            onToggleComments: () => _toggleComments(context),
+            showComments: _showComments,
+            themeMode: widget.themeMode,
+            onToggleThemeMode: widget.onToggleThemeMode,
           ),
-          IconButton(
-            tooltip: '重做',
-            onPressed: _controller.canRedo ? _controller.redo : null,
-            icon: const Icon(Icons.redo),
-          ),
-          IconButton(
-            tooltip: 'AI 对话',
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => ConversationListPage(
-                    conversationManager: _aiConversationManager,
-                    configManager: _aiConfigManager,
-                  ),
-                ),
-              );
-            },
-            icon: const Icon(Icons.auto_awesome),
-          ),
-          IconButton(
-            key: _themeToggleKey,
-            tooltip: widget.themeMode == ThemeMode.dark
-                ? '切换浅色主题'
-                : '切换深色主题',
-            onPressed: widget.onToggleThemeMode,
-            icon: Icon(
-              widget.themeMode == ThemeMode.dark
-                  ? Icons.light_mode_outlined
-                  : Icons.dark_mode_outlined,
-            ),
-          ),
-          const SizedBox(width: 8),
         ],
       ),
+      // On phone-sized screens the inspector + outline move into a Drawer. The
+      // AppBar auto-shows the menu toggle whenever a drawer is attached, so no
+      // custom leading button is needed; on wide screens there is no drawer
+      // and the leading slot stays empty as before.
+      drawer: isCompact ? _buildSidePanelsDrawer(theme) : null,
       body: WenzEditorTestHost(
         controller: _controller,
-        child: Row(
-          children: <Widget>[
-            SizedBox(
-              width: 280,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainerHighest,
-                  border: Border(
-                    right: BorderSide(color: theme.colorScheme.outlineVariant),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            if (isCompact) {
+              return _buildEditorColumn(theme, context);
+            }
+            return Row(
+              children: <Widget>[
+                SizedBox(width: 280, child: _buildInspectorPanel(theme)),
+                Expanded(
+                  // Comment sidebar docks over the editor's right edge on wide
+                  // surfaces (fixed 320 width); on phones it is a bottom sheet.
+                  child: Stack(
+                    children: <Widget>[
+                      _buildEditorColumn(theme, context),
+                      if (_showComments)
+                        Positioned(
+                          right: 0,
+                          top: 0,
+                          bottom: 0,
+                          child: _buildCommentSidebar(),
+                        ),
+                    ],
                   ),
                 ),
-                child: _InspectorPanel(
-                  controller: _controller,
-                  stats: _stats.stats,
-                  autosave: _autosave.state,
-                  draftBytes: _draftAdapter.latestJson?.length ?? 0,
-                  showDebugOverlay: _showDebugOverlay,
-                  lastEvent: _lastEvent,
-                  onSaveNow: () {
-                    unawaited(_autosave.saveNow());
-                  },
-                  onExportMarkdown: () {
-                    _showImportExportPreview(
-                      format: 'Markdown',
-                      source: _controller.toMarkdown(),
-                    );
-                  },
-                  onExportHtml: () {
-                    _showImportExportPreview(
-                      format: 'HTML',
-                      source: _controller.toHtml(),
-                    );
-                  },
-                  onLoadMarkdownDemo: _loadMarkdownImportExportDemo,
-                  onLoadHtmlDemo: _loadHtmlImportExportDemo,
-                  onToggleDebugOverlay: (value) {
-                    setState(() => _showDebugOverlay = value);
-                  },
-                ),
-              ),
+                _buildOutlineRail(theme),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  /// The desktop-toolbar + editor column shared by both layouts. The editor
+  /// surface is wrapped in a [SafeArea] (top disabled — the AppBar already
+  /// clears the status bar) so the content never sits under the navigation
+  /// gesture bar or landscape notches on mobile. Desktop insets are zero, so
+  /// this is a no-op there and rendering is unchanged.
+  Widget _buildEditorColumn(ThemeData theme, BuildContext context) {
+    final findController = _bootstrap.findReplaceController;
+    return Column(
+      children: <Widget>[
+        // Find/replace docks above the toolbar as a compact bar (mobile
+        // dropdown-bar layout / desktop wrap).
+        if (_showFindReplace && findController != null)
+          WenzFindReplacePanel(
+            controller: findController,
+            onClose: () => setState(() => _showFindReplace = false),
+          ),
+        _bootstrap.buildDefaultDesktopToolbar(
+          actions: WenzDefaultDesktopToolbarActions(
+            onInsertImage: (_) => _insertImage(),
+            onInsertVideo: (_) => _insertVideo(),
+            onInsertFile: (_) => _insertFile(),
+            onInsertBlockEmbed: (_) => _insertBlockEmbed(),
+            isPickingImage: _isPickingImage,
+          ),
+        ),
+        Expanded(
+          child: ColoredBox(
+            key: _editorSurfaceKey,
+            color: _exampleEditorBackground(context),
+            child: SafeArea(
+              top: false,
+              child: _buildEditor(theme),
             ),
-            Expanded(
-              child: Column(
-                children: <Widget>[
-                  _bootstrap.buildDefaultDesktopToolbar(
-                    actions: WenzDefaultDesktopToolbarActions(
-                      onInsertImage: (_) => _insertImage(),
-                      onInsertVideo: (_) => _insertVideo(),
-                      onInsertFile: (_) => _insertFile(),
-                      onInsertBlockEmbed: (_) => _insertBlockEmbed(),
-                      isPickingImage: _isPickingImage,
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Left inspector sidebar for the wide layout — 280px wide with the original
+  /// surface fill and trailing border.
+  Widget _buildInspectorPanel(ThemeData theme) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest,
+        border: Border(
+          right: BorderSide(color: theme.colorScheme.outlineVariant),
+        ),
+      ),
+      child: _buildInspectorContent(),
+    );
+  }
+
+  /// Right-side outline tree for the wide layout, with the original separating
+  /// left border.
+  Widget _buildOutlineRail(ThemeData theme) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        border: Border(
+          left: BorderSide(color: theme.colorScheme.outlineVariant),
+        ),
+      ),
+      child: ExampleOutlinePanel(
+        outlineController: _outline,
+      ),
+    );
+  }
+
+  /// The inspector panel widget itself, factored out so the wide sidebar and
+  /// the compact Drawer share one construction site.
+  Widget _buildInspectorContent() {
+    return _InspectorPanel(
+      controller: _controller,
+      stats: _stats.stats,
+      autosave: _autosave.state,
+      draftBytes: _draftAdapter.latestJson?.length ?? 0,
+      showDebugOverlay: _showDebugOverlay,
+      lastEvent: _lastEvent,
+      onSaveNow: () {
+        unawaited(_autosave.saveNow());
+      },
+      onExportMarkdown: () {
+        _showImportExportPreview(
+          format: 'Markdown',
+          source: _controller.toMarkdown(),
+        );
+      },
+      onExportHtml: () {
+        _showImportExportPreview(
+          format: 'HTML',
+          source: _controller.toHtml(),
+        );
+      },
+      onLoadMarkdownDemo: _loadMarkdownImportExportDemo,
+      onLoadHtmlDemo: _loadHtmlImportExportDemo,
+      onToggleDebugOverlay: (value) {
+        setState(() => _showDebugOverlay = value);
+      },
+    );
+  }
+
+  /// Phone-sized Drawer holding the outline tree (top) and inspector (bottom),
+  /// replacing the side columns that move off-screen on narrow layouts.
+  Widget _buildSidePanelsDrawer(ThemeData theme) {
+    return Drawer(
+      child: SafeArea(
+        child: ColoredBox(
+          color: theme.colorScheme.surfaceContainerHighest,
+          child: Column(
+            children: <Widget>[
+              Expanded(
+                flex: 2,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    border: Border(
+                      bottom:
+                          BorderSide(color: theme.colorScheme.outlineVariant),
                     ),
                   ),
-                  Expanded(
-                    child: ColoredBox(
-                      key: _editorSurfaceKey,
-                      color: _exampleEditorBackground(context),
-                      child: _buildEditor(theme),
-                    ),
+                  child: ExampleOutlinePanel(
+                    outlineController: _outline,
                   ),
-                ],
-              ),
-            ),
-            // Right-side outline tree: the heading list driven by the outline
-            // controller, with a separating left border and an active highlight
-            // that follows the caret. Tapping a row moves the selection to that
-            // heading, and the mounted editor scrolls it into view.
-            DecoratedBox(
-              decoration: BoxDecoration(
-                border: Border(
-                  left: BorderSide(color: theme.colorScheme.outlineVariant),
                 ),
               ),
-              child: ExampleOutlinePanel(
-                outlineController: _outline,
+              Expanded(
+                flex: 3,
+                child: _buildInspectorContent(),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -870,17 +1065,141 @@ class _EditorWorkbenchState extends State<EditorWorkbench> {
   }
 
   /// Opens a link when the host activates one (Ctrl/Cmd+click on link text, or
-  /// the link hover overlay's "open" action). Empty or unparseable URLs are
-  /// skipped so a malformed link never throws.
+  /// the link hover overlay's "open" action). Only browser URLs are handed to
+  /// url_launcher; malformed values or unsupported schemes are ignored so link
+  /// activation never mutates the editor or throws into gesture handling.
   Future<void> _openLink(String url) async {
-    if (url.trim().isEmpty) {
+    final uri = Uri.tryParse(url.trim());
+    if (uri == null || !_isBrowserLink(uri)) {
       return;
     }
-    final uri = Uri.tryParse(url);
-    if (uri == null || !uri.hasScheme) {
-      return;
+
+    try {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (_) {
+      // Opening a link is best-effort host policy; unsupported platforms or
+      // launcher failures must not affect the editor document/selection.
     }
-    await launchUrl(uri);
+  }
+
+  bool _isBrowserLink(Uri uri) {
+    final scheme = uri.scheme.toLowerCase();
+    return (scheme == 'http' || scheme == 'https') &&
+        uri.hasAuthority &&
+        uri.host.trim().isNotEmpty;
+  }
+}
+
+class _ExampleTopBarActions extends StatelessWidget {
+  const _ExampleTopBarActions({
+    required this.canUndo,
+    required this.canRedo,
+    required this.onUndo,
+    required this.onRedo,
+    required this.onOpenAiConversations,
+    required this.onToggleFindReplace,
+    required this.showFindReplace,
+    required this.onToggleComments,
+    required this.showComments,
+    required this.themeMode,
+    required this.onToggleThemeMode,
+  });
+
+  final bool canUndo;
+  final bool canRedo;
+  final VoidCallback onUndo;
+  final VoidCallback onRedo;
+  final VoidCallback onOpenAiConversations;
+  final VoidCallback onToggleFindReplace;
+  final bool showFindReplace;
+  final VoidCallback onToggleComments;
+  final bool showComments;
+  final ThemeMode themeMode;
+  final VoidCallback onToggleThemeMode;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = themeMode == ThemeMode.dark;
+    return SizedBox(
+      width: _topBarActionsWidth,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: <Widget>[
+          _TopBarActionButton(
+            tooltip: '查找替换',
+            onPressed: onToggleFindReplace,
+            icon: Icons.search,
+            selected: showFindReplace,
+          ),
+          _TopBarActionButton(
+            tooltip: '批注',
+            onPressed: onToggleComments,
+            icon: Icons.mode_comment_outlined,
+            selected: showComments,
+          ),
+          _TopBarActionButton(
+            tooltip: '撤销',
+            onPressed: canUndo ? onUndo : null,
+            icon: Icons.undo,
+          ),
+          _TopBarActionButton(
+            tooltip: '重做',
+            onPressed: canRedo ? onRedo : null,
+            icon: Icons.redo,
+          ),
+          _TopBarActionButton(
+            tooltip: 'AI 对话',
+            onPressed: onOpenAiConversations,
+            icon: Icons.auto_awesome,
+          ),
+          _TopBarActionButton(
+            key: _themeToggleKey,
+            tooltip: isDark ? '切换浅色主题' : '切换深色主题',
+            onPressed: onToggleThemeMode,
+            icon: isDark
+                ? Icons.light_mode_outlined
+                : Icons.dark_mode_outlined,
+          ),
+          const SizedBox(width: _topBarActionTrailingPadding),
+        ],
+      ),
+    );
+  }
+}
+
+class _TopBarActionButton extends StatelessWidget {
+  const _TopBarActionButton({
+    super.key,
+    required this.tooltip,
+    required this.onPressed,
+    required this.icon,
+    this.selected = false,
+  });
+
+  final String tooltip;
+  final VoidCallback? onPressed;
+  final IconData icon;
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return SizedBox.square(
+      dimension: _topBarActionExtent,
+      child: IconButton(
+        tooltip: tooltip,
+        onPressed: onPressed,
+        isSelected: selected,
+        selectedIcon: Icon(icon),
+        icon: Icon(icon),
+        style: selected
+            ? IconButton.styleFrom(
+                backgroundColor: colorScheme.primaryContainer,
+                foregroundColor: colorScheme.onPrimaryContainer,
+              )
+            : null,
+      ),
+    );
   }
 }
 

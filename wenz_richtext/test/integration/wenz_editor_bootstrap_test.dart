@@ -248,6 +248,68 @@ void main() {
   });
 
   group('widget and data integration', () {
+    testWidgets(
+        'enableMermaidDiagrams routes mermaid code blocks through plugin path',
+        (tester) async {
+      const surface = VectorGraphicsDiagramSurface();
+      final bootstrap = WenzEditorBootstrap.create(
+        const WenzEditorConfiguration(
+          document: RichTextDocument(
+            blocks: <BlockNode>[
+              CodeBlockNode(
+                id: 'mermaid',
+                language: ' MERMAID ',
+                code: 'flowchart TD\n  A --> B',
+              ),
+            ],
+          ),
+          enableMermaidDiagrams: true,
+          diagramSvgSurface: surface,
+        ),
+      );
+      addTearDown(bootstrap.dispose);
+
+      expect(bootstrap.configuration.diagramSvgSurface, same(surface));
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(body: bootstrap.buildEditor(enableIme: false)),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.byType(MermaidCodeBlockWidget), findsOneWidget);
+      expect(find.textContaining('flowchart TD'), findsOneWidget);
+    });
+
+    testWidgets(
+        'mermaid code remains an ordinary code block when the flag is disabled',
+        (tester) async {
+      final bootstrap = WenzEditorBootstrap.create(
+        const WenzEditorConfiguration(
+          document: RichTextDocument(
+            blocks: <BlockNode>[
+              CodeBlockNode(
+                id: 'mermaid-disabled',
+                language: 'mermaid',
+                code: 'flowchart TD\n  A --> B',
+              ),
+            ],
+          ),
+        ),
+      );
+      addTearDown(bootstrap.dispose);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(body: bootstrap.buildEditor(enableIme: false)),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.byType(MermaidCodeBlockWidget), findsNothing);
+    });
+
     testWidgets('buildEditor renders, edits, and round-trips rich JSON',
         (tester) async {
       final bootstrap = WenzEditorBootstrap.create(

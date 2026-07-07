@@ -18163,11 +18163,11 @@ void main() {
       ).top;
       await _hoverMouseAt(tester, _linkPoint(tester));
 
-      expect(find.text('Edit'), findsOneWidget);
-      expect(find.text('Open'), findsOneWidget);
+      expect(find.text('编辑'), findsOneWidget);
+      expect(find.text('打开'), findsOneWidget);
       // The popup anchors above the link run, so its bottom edge sits at or
       // above the link's top edge.
-      final popupBottom = tester.getRect(find.text('Open')).bottom;
+      final popupBottom = tester.getRect(find.text('打开')).bottom;
       expect(popupBottom, lessThanOrEqualTo(linkTop + 1.0));
     });
 
@@ -18175,13 +18175,13 @@ void main() {
         (tester) async {
       await _pumpLinkEditor(tester, onOpenLink: (url, position) {});
       final gesture = await _hoverMouseAt(tester, _linkPoint(tester));
-      expect(find.text('Open'), findsOneWidget);
+      expect(find.text('打开'), findsOneWidget);
 
       // Move onto plain (non-link) text and advance past the hide delay.
       await gesture.moveTo(_plainTextPoint(tester));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 350));
-      expect(find.text('Open'), findsNothing);
+      expect(find.text('打开'), findsNothing);
     });
 
     testWidgets(
@@ -18189,20 +18189,20 @@ void main() {
         (tester) async {
       await _pumpLinkEditor(tester, onOpenLink: (url, position) {});
       final gesture = await _hoverMouseAt(tester, _linkPoint(tester));
-      expect(find.text('Open'), findsOneWidget);
+      expect(find.text('打开'), findsOneWidget);
 
       // Travelling onto the popup must keep it alive past the hide delay so the
       // user can reach the actions.
-      await gesture.moveTo(tester.getCenter(find.text('Open')));
+      await gesture.moveTo(tester.getCenter(find.text('打开')));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 350));
-      expect(find.text('Open'), findsOneWidget);
+      expect(find.text('打开'), findsOneWidget);
 
       // Leaving both the link text and the popup dismisses it.
       await gesture.moveTo(_plainTextPoint(tester));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 350));
-      expect(find.text('Open'), findsNothing);
+      expect(find.text('打开'), findsNothing);
     });
 
     testWidgets('Ctrl+click opens the link without moving the caret',
@@ -18237,8 +18237,10 @@ void main() {
     testWidgets('Cmd+click (macOS variant) also opens the link',
         (tester) async {
       final opens = <String>[];
+      final positions = <DocumentPosition>[];
       await _pumpLinkEditor(tester, onOpenLink: (url, position) {
         opens.add(url);
+        positions.add(position);
       });
 
       await tester.sendKeyDownEvent(LogicalKeyboardKey.metaLeft);
@@ -18246,6 +18248,10 @@ void main() {
       await tester.sendKeyUpEvent(LogicalKeyboardKey.metaLeft);
 
       expect(opens, <String>[_kLinkUrl]);
+      expect(positions.single.blockId, 'p-link');
+      expect(positions.single.blockIndex, 0);
+      expect(positions.single.path, PositionPath.blockText('p-link'));
+      expect(positions.single.offset, _kLinkStart);
     });
 
     testWidgets('a plain click on a link places the caret without opening it',
@@ -18277,9 +18283,9 @@ void main() {
         positions.add(position);
       });
       await _hoverMouseAt(tester, _linkPoint(tester));
-      expect(find.text('Open'), findsOneWidget);
+      expect(find.text('打开'), findsOneWidget);
 
-      await tester.tap(find.text('Open'));
+      await tester.tap(find.text('打开'));
       await tester.pumpAndSettle();
 
       expect(opens, <String>[_kLinkUrl]);
@@ -18287,7 +18293,7 @@ void main() {
       expect(positions.single.blockIndex, 0);
       expect(positions.single.path, PositionPath.blockText('p-link'));
       expect(positions.single.offset, _kLinkStart);
-      expect(find.text('Open'), findsNothing);
+      expect(find.text('打开'), findsNothing);
     });
 
     testWidgets('overlay Edit applies a new URL to the link run',
@@ -18295,9 +18301,9 @@ void main() {
       final controller = await _pumpLinkEditor(tester);
       await _hoverMouseAt(tester, _linkPoint(tester));
 
-      await tester.tap(find.text('Edit'));
+      await tester.tap(find.text('编辑'));
       await tester.pumpAndSettle();
-      expect(find.text('Link URL'), findsOneWidget);
+      expect(find.text('链接地址'), findsWidgets);
 
       await tester.enterText(
         find.descendant(
@@ -18306,7 +18312,7 @@ void main() {
         ),
         'https://new.example',
       );
-      await tester.tap(find.text('Apply'));
+      await tester.tap(find.text('应用'));
       await tester.pumpAndSettle();
 
       expect(_linkUrlInBlock(controller), 'https://new.example');
@@ -18316,10 +18322,10 @@ void main() {
       final controller = await _pumpLinkEditor(tester);
       await _hoverMouseAt(tester, _linkPoint(tester));
 
-      await tester.tap(find.text('Edit'));
+      await tester.tap(find.text('编辑'));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Remove'));
+      await tester.tap(find.text('移除'));
       await tester.pumpAndSettle();
 
       expect(_linkUrlInBlock(controller), isNull);
@@ -18329,12 +18335,12 @@ void main() {
       await _pumpLinkEditor(tester, onOpenLink: (url, position) {});
 
       await _hoverMouseAt(tester, _plainTextPoint(tester));
-      expect(find.text('Edit'), findsNothing);
-      expect(find.text('Open'), findsNothing);
+      expect(find.text('编辑'), findsNothing);
+      expect(find.text('打开'), findsNothing);
 
       // Hovering the link afterwards still reveals the overlay.
       await _hoverMouseAt(tester, _linkPoint(tester));
-      expect(find.text('Open'), findsOneWidget);
+      expect(find.text('打开'), findsOneWidget);
     });
 
     testWidgets('read-only overlay hides Edit and keeps Open', (tester) async {
@@ -18350,10 +18356,10 @@ void main() {
       );
       await _hoverMouseAt(tester, _linkPoint(tester));
 
-      expect(find.text('Edit'), findsNothing);
-      expect(find.text('Open'), findsOneWidget);
+      expect(find.text('编辑'), findsNothing);
+      expect(find.text('打开'), findsOneWidget);
 
-      await tester.tap(find.text('Open'));
+      await tester.tap(find.text('打开'));
       await tester.pumpAndSettle();
 
       expect(opens, <String>[_kLinkUrl]);
@@ -18365,10 +18371,10 @@ void main() {
       final controller = await _pumpLinkEditor(tester);
       await _hoverMouseAt(tester, _linkPoint(tester));
 
-      expect(find.text('Edit'), findsOneWidget);
-      expect(find.text('Open'), findsOneWidget);
+      expect(find.text('编辑'), findsOneWidget);
+      expect(find.text('打开'), findsOneWidget);
       final openAction = find.ancestor(
-        of: find.text('Open'),
+        of: find.text('打开'),
         matching: find.byType(InkWell),
       );
       expect(tester.widget<InkWell>(openAction).onTap, isNull);
@@ -18376,9 +18382,7 @@ void main() {
       controller.setSelection(collapsedTextSelection('p-link', 0, 0));
       await tester.pumpAndSettle();
 
-      await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
-      await _mouseClickAt(tester, _linkPoint(tester));
-      await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+      await _tapSingle(tester, _linkPoint(tester));
 
       final selection = controller.selection;
       expect(selection, isNotNull);
@@ -18443,9 +18447,9 @@ void main() {
         tester,
         mergedLinkPoint,
       );
-      expect(find.text('Open'), findsOneWidget);
+      expect(find.text('打开'), findsOneWidget);
 
-      await tester.tap(find.text('Open'));
+      await tester.tap(find.text('打开'));
       await tester.pumpAndSettle();
 
       expect(opens, <String>['https://merge.example']);
@@ -18453,18 +18457,18 @@ void main() {
       expect(positions.single.offset, 1);
 
       await _hoverMouseAt(tester, mergedLinkPoint);
-      expect(find.text('Edit'), findsOneWidget);
+      expect(find.text('编辑'), findsOneWidget);
 
       // Edit selects the full merged run [1, 5), proving the two same-url runs
       // collapsed into a single range.
-      await tester.tap(find.text('Edit'));
+      await tester.tap(find.text('编辑'));
       await tester.pumpAndSettle();
       final selection = controller.selection;
       expect(selection, isNotNull);
       expect(selection!.start.offset, 1);
       expect(selection.end.offset, 5);
 
-      await tester.tap(find.text('Cancel'));
+      await tester.tap(find.text('取消'));
       await tester.pumpAndSettle();
 
       await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
@@ -18539,7 +18543,7 @@ void main() {
 
       final cellLinkPoint = _globalTextRangePoint(tester, cellText, 3, 7, 0.5);
       await _hoverMouseAt(tester, cellLinkPoint);
-      expect(find.text('Open'), findsOneWidget);
+      expect(find.text('打开'), findsOneWidget);
 
       await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
       await _mouseClickAt(tester, cellLinkPoint);

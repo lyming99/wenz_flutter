@@ -12,16 +12,16 @@ void main() {
             onPressed: () async {
               result = await showWenzLinkEditDialog(context: context);
             },
-            child: const Text('Open'),
+            child: const Text('打开弹窗'),
           ),
         ),
       ),
     );
 
-    await tester.tap(find.text('Open'));
+    await tester.tap(find.text('打开弹窗'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), ' https://wenz.dev ');
-    await tester.tap(find.text('Apply'));
+    await tester.tap(find.text('应用'));
     await tester.pumpAndSettle();
 
     expect(result, 'https://wenz.dev');
@@ -50,6 +50,11 @@ void main() {
     );
 
     final colorScheme = theme.colorScheme;
+    expect(find.text('链接地址'), findsWidgets);
+    expect(find.text('移除'), findsOneWidget);
+    expect(find.text('取消'), findsOneWidget);
+    expect(find.text('应用'), findsOneWidget);
+
     final dialog = tester.widget<AlertDialog>(
       find.byKey(const ValueKey<String>('wenz-link-edit-dialog')),
     );
@@ -63,12 +68,13 @@ void main() {
 
     final textField = tester.widget<TextField>(find.byType(TextField));
     final decoration = textField.decoration!;
+    expect(decoration.labelText, '链接地址');
     final enabledBorder = decoration.enabledBorder! as OutlineInputBorder;
     expect(enabledBorder.borderSide.color,
         colorScheme.outlineVariant.withAlpha(96));
 
     final removeButton = tester.widget<TextButton>(
-      find.widgetWithText(TextButton, 'Remove'),
+      find.widgetWithText(TextButton, '移除'),
     );
     expect(
       removeButton.style?.foregroundColor?.resolve(<WidgetState>{}),

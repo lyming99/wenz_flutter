@@ -54,12 +54,12 @@ class WenzToolbarItem {
 }
 
 /// Registry for toolbar descriptors contributed by plugins.
-class WenzToolbarItemRegistry {
+class WenzToolbarItemRegistry extends ChangeNotifier {
   WenzToolbarItemRegistry([
     Iterable<WenzToolbarItem> items = const <WenzToolbarItem>[],
   ]) {
     for (final item in items) {
-      register(item);
+      _items[item.id] = item;
     }
   }
 
@@ -78,11 +78,17 @@ class WenzToolbarItemRegistry {
   }
 
   void register(WenzToolbarItem item) {
+    if (identical(_items[item.id], item)) {
+      return;
+    }
     _items[item.id] = item;
+    notifyListeners();
   }
 
   void unregister(String id) {
-    _items.remove(id);
+    if (_items.remove(id) != null) {
+      notifyListeners();
+    }
   }
 
   bool has(String id) => _items.containsKey(id);

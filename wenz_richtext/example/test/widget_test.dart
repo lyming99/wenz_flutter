@@ -91,6 +91,21 @@ void main() {
     expect(find.byIcon(Icons.table_chart), findsOneWidget);
   });
 
+  testWidgets('example mermaid sample enters the diagram preview path',
+      (tester) async {
+    await _pumpWorkbench(tester);
+
+    final controller = _editorController(tester);
+    final mermaid = controller.document.blocks
+        .whereType<CodeBlockNode>()
+        .singleWhere((block) => block.id == 'mermaid-sample');
+
+    expect(mermaid.language, 'mermaid');
+    expect(mermaid.code, startsWith('flowchart TD'));
+    expect(mermaid.code, contains('Revise --> Quote'));
+    expect(find.byType(MermaidCodeBlockWidget), findsOneWidget);
+  });
+
   testWidgets('uses Microsoft YaHei as the default example font',
       (tester) async {
     await _pumpWorkbench(tester);
@@ -103,6 +118,16 @@ void main() {
     expect(theme.textTheme.bodyLarge?.fontFamily, _expectedExampleFontFamily);
     expect(editor.textStyle?.fontFamily, _expectedExampleFontFamily);
     expect(editor.enableExternalImageInput, isTrue);
+  });
+
+  testWidgets('workbench wires link opening callback into the editor',
+      (tester) async {
+    await _pumpWorkbench(tester);
+
+    final editor = tester.widget<WenzRichTextEditor>(
+      find.byType(WenzRichTextEditor),
+    );
+    expect(editor.onOpenLink, isNotNull);
   });
 
   testWidgets('mention search insert and details dialog are wired',

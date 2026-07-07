@@ -467,7 +467,13 @@ class _TableFloatingToolbarOverlayAnchorState
         bottom: viewportTopLeft.dy + viewportObject.size.height,
       );
     }
-    final paddingTop = MediaQuery.maybeOf(context)?.padding.top ?? 0;
+    final mediaQuery = MediaQuery.maybeOf(context);
+    // Stack the soft-keyboard inset on top of the status-bar padding so the
+    // floating toolbar clears the IME on mobile. Desktop has no IME, so
+    // viewInsets.bottom is 0 and the result matches the legacy top-only
+    // padding exactly.
+    final paddingTop =
+        (mediaQuery?.padding.top ?? 0) + (mediaQuery?.viewInsets.bottom ?? 0);
     if (overlayBox == null) {
       return (top: paddingTop, bottom: double.infinity);
     }

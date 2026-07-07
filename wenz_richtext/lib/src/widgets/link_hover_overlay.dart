@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../core/position/document_position.dart';
 
 /// Resolved description of the inline link run a pointer is hovering, shared
 /// between the document gesture surface (which probes for links) and the
-/// [WenzLinkHoverOverlay] (which presents Edit / Open actions for that run).
+/// [WenzLinkHoverOverlay] (which presents 编辑 / 打开 actions for that run).
 ///
 /// `globalRect` is the bounding [Rect] of the contiguous same-`url` run in
 /// **global** coordinates; the overlay host converts it to its own coordinate
@@ -49,7 +50,7 @@ int _linkHoverBorderAlpha(ThemeData theme) {
       : _kLinkHoverBorderAlphaLight;
 }
 
-/// Mouse/pen popup shown above a hovered inline link with "Edit" and "Open"
+/// Mouse/pen popup shown above a hovered inline link with "编辑" and "打开"
 /// actions.
 ///
 /// The editor mounts this overlay inside the editor [Stack] only while a pointer
@@ -61,8 +62,8 @@ int _linkHoverBorderAlpha(ThemeData theme) {
 /// measures itself after layout (via a post-frame callback) and repositions so
 /// its horizontal centring and vertical flip are exact.
 ///
-/// Read-only surfaces hide the "Edit" action. When [onOpen] is `null` (the host
-/// supplied no [WenzRichTextEditor.onOpenLink]) the "Open" action renders
+/// Read-only surfaces hide the "编辑" action. When [onOpen] is `null` (the host
+/// supplied no [WenzRichTextEditor.onOpenLink]) the "打开" action renders
 /// disabled. [onHoverEnter] / [onHoverExit] let the host keep the popup alive
 /// while the pointer travels from the link text onto the popup itself.
 class WenzLinkHoverOverlay extends StatefulWidget {
@@ -91,16 +92,16 @@ class WenzLinkHoverOverlay extends StatefulWidget {
   /// [onOpen].
   final String url;
 
-  /// When `true` the "Edit" action is hidden — read-only surfaces cannot mutate
+  /// When `true` the "编辑" action is hidden — read-only surfaces cannot mutate
   /// the document.
   final bool readOnly;
 
-  /// Invoked when the user picks "Edit". The host selects the link run and
+  /// Invoked when the user picks "编辑". The host selects the link run and
   /// opens the library link-edit dialog. Only reachable when [readOnly] is
   /// false.
   final VoidCallback onEdit;
 
-  /// Invoked when the user picks "Open". When `null`, "Open" renders disabled.
+  /// Invoked when the user picks "打开". When `null`, "打开" renders disabled.
   final VoidCallback? onOpen;
 
   /// Invoked when the pointer enters the popup. The host cancels its pending
@@ -165,12 +166,12 @@ class _WenzLinkHoverOverlayState extends State<WenzLinkHoverOverlay> {
     final actions = <Widget>[
       if (!widget.readOnly)
         _LinkHoverAction(
-          label: 'Edit',
+          label: '编辑',
           onTap: widget.onEdit,
           foreground: colorScheme.onSurface,
         ),
       _LinkHoverAction(
-        label: 'Open',
+        label: '打开',
         onTap: widget.onOpen,
         foreground: colorScheme.primary,
         disabledForeground: colorScheme.onSurfaceVariant,
@@ -290,4 +291,59 @@ class _LinkHoverAction extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Action chosen from the touch (long-press) link context menu, surfaced via
+/// [showWenzLinkTouchContextMenu].
+enum WenzLinkTouchMenuAction { open, copy }
+
+/// Presents the touch (long-press) link actions "打开链接" / "复制链接" as a
+/// positioned context menu, awaiting the user's choice.
+///
+/// Touch surfaces have no mouse hover, so the desktop [WenzLinkHoverOverlay]
+/// popup is never mounted there; a long-press on an inline link surfaces these
+/// actions instead. The menu anchors at [globalPosition] (the long-press
+/// location, in global coordinates).
+///
+/// "复制链接" writes [url] to the clipboard directly. "打开链接" is reported
+/// back so the host can forward it through [WenzRichTextEditor.onOpenLink].
+/// Returns the chosen action, or `null` if the menu was dismissed.
+Future<WenzLinkTouchMenuAction?> showWenzLinkTouchContextMenu(
+  BuildContext context, {
+  required Offset globalPosition,
+  required String url,
+}) async {
+  final overlay = Overlay.maybeOf(context, rootOverlay: true);
+  if (overlay == null) {
+    return null;
+  }
+  final overlayBox = overlay.context.findRenderObject();
+  if (overlayBox is! RenderBox || !overlayBox.hasSize) {
+    return null;
+  }
+  final local = overlayBox.globalToLocal(globalPosition);
+  final size = overlayBox.size;
+  final chosen = await showMenu<WenzLinkTouchMenuAction>(
+    context: context,
+    position: RelativeRect.fromLTRB(
+      local.dx,
+      local.dy,
+      size.width - local.dx,
+      size.height - local.dy,
+    ),
+    items: <PopupMenuEntry<WenzLinkTouchMenuAction>>[
+      const PopupMenuItem<WenzLinkTouchMenuAction>(
+        value: WenzLinkTouchMenuAction.open,
+        child: Text('打开链接'),
+      ),
+      const PopupMenuItem<WenzLinkTouchMenuAction>(
+        value: WenzLinkTouchMenuAction.copy,
+        child: Text('复制链接'),
+      ),
+    ],
+  );
+  if (chosen == WenzLinkTouchMenuAction.copy) {
+    await Clipboard.setData(ClipboardData(text: url));
+  }
+  return chosen;
 }

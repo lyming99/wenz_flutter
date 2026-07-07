@@ -26,6 +26,13 @@ import '../core/model/block_node.dart';
 /// editor-frame corner radius. Custom players should render within the incoming
 /// constraints instead of assuming unbounded width or height.
 ///
+/// The same video block may be resolved separately for its inline editor
+/// surface and for the preview dialog. Return a freshly built widget tree for
+/// each [resolve] call, and do not share `GlobalKey`s between those positions.
+/// The editor adds a position-specific keyed boundary around video resolver
+/// output, while keys inside the returned child remain the resolver's
+/// responsibility.
+///
 /// ```dart
 /// class NetworkImageResolver implements MediaResolver {
 ///   @override

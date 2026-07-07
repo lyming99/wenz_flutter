@@ -1,0 +1,79 @@
+{
+  "title": "修复 Mermaid 流程图无法预览",
+  "summary": "根据反馈 #85，当前项目已有 MermaidDiagramPlugin、MermaidCodeBlockWidget、MarkdownCodec 和示例中的 Mermaid 流程图样例。风险点集中在 Mermaid 代码块语言识别过于严格、Markdown fence info string 未归一化、预览切换与异步渲染状态可能让用户停留在源码或空白预览、默认 SVG surface 失败时缺少可见兜底，以及示例/集成路径需要保证启用后能直接预览流程图。计划围绕“Markdown/代码块识别 -> 插件接管 -> SVG 渲染 -> 可见预览/错误兜底 -> 回归覆盖”闭环修复。",
+  "tasks": [
+    {
+      "title": "规范 Mermaid 代码块语言识别",
+      "scope": [
+        "lib/src/codecs/markdown_codec.dart",
+        "lib/src/plugins/mermaid_diagram_plugin.dart",
+        "lib/src/core/commands/block_structure_commands.dart"
+      ],
+      "acceptance": [
+        "Markdown 导入 fenced code block 时，```mermaid、``` Mermaid、```MERMAID、~~~mermaid 以及带额外空白的 info string 都能被归一化为 Mermaid 代码块，代码内容保持原样不被二次解析。",
+        "MermaidDiagramPlugin 拦截 CodeBlockNode 时不再依赖完全等于 language == 'mermaid' 的大小写敏感比较，能识别 trim 后的 Mermaid 语言标记。",
+        "非 Mermaid 代码块仍委托给原始代码块 renderer，dart、python、markdown、空语言等既有行为不改变。"
+      ]
+    },
+    {
+      "title": "修复 Mermaid 预览切换与异步渲染状态",
+      "scope": [
+        "lib/src/widgets/mermaid/mermaid_code_block_widget.dart"
+      ],
+      "acceptance": [
+        "用户点击“预览图表”后，如果 SVG 仍在渲染中，界面保持在明确的预览请求状态并显示加载反馈，渲染成功后自动显示流程图预览。",
+        "已渲染成功的 Mermaid 流程图在源码/预览之间切换时，源码文本与 InteractiveViewer 预览按状态稳定互斥显示，不出现点击后仍停留源码且无解释的情况。",
+        "空源码、渲染失败、重新编辑后再次渲染等状态都有明确可见反馈，并保留返回源码查看的入口。"
+      ]
+    },
+    {
+      "title": "增强 SVG 预览渲染失败兜底",
+      "scope": [
+        "lib/src/plugins/mermaid_diagram_plugin.dart",
+        "lib/src/widgets/mermaid/mermaid_code_block_widget.dart"
+      ],
+      "acceptance": [
+        "默认 VectorGraphicsDiagramSurface 无法解析或绘制 Mermaid SVG 时，不再只返回不可感知的空白区域，用户能看到可理解的错误或降级提示并能切回源码。",
+        "常见 flowchart TD/LR 输出的 SVG 能在有 viewBox、width/height 或缺省尺寸时进入有界预览容器，初始缩放适配视口，不触发无限尺寸布局异常。",
+        "Mermaid 渲染选项继续使用安全 SVG pipeline 和项目内的可读主题变量，预览背景、节点文字、连线在浅色/深色宿主中保持可辨识。"
+      ]
+    },
+    {
+      "title": "校正示例与集成启用路径",
+      "scope": [
+        "example/lib/main.dart",
+        "lib/src/integration/wenz_editor_configuration.dart",
+        "lib/src/integration/wenz_editor_bootstrap.dart"
+      ],
+      "acceptance": [
+        "示例文档中的 mermaid-sample 流程图 DSL 是有效 Mermaid flowchart，打开示例后通过预览按钮能看到流程图而不是普通代码块或空白区域。",
+        "WenzEditorConfiguration.enableMermaidDiagrams 为 true 时，bootstrap 确实安装 MermaidDiagramPlugin，并把 diagramSvgSurface 传入 MermaidDiagramConfig。",
+        "宿主未启用 enableMermaidDiagrams 时仍保持普通代码块展示；启用后 Mermaid 代码块接管不影响 FlowchartPlugin 自定义 flowchart embed 的渲染路径。"
+      ]
+    },
+    {
+      "title": "补充 Mermaid 流程图预览回归覆盖",
+      "scope": [
+        "test/codecs/markdown_codec_test.dart",
+        "test/plugins/mermaid_diagram_plugin_test.dart",
+        "test/widgets/mermaid_code_block_test.dart",
+        "test/integration/wenz_editor_bootstrap_test.dart",
+        "example/test/widget_test.dart"
+      ],
+      "acceptance": [
+        "Markdown codec 覆盖 Mermaid fence info string 的大小写、空白和波浪线 fence 场景，并验证导入后的 CodeBlockNode 可被插件识别。",
+        "MermaidDiagramPlugin 测试覆盖大小写不一致或带空白的 Mermaid language 会渲染 MermaidCodeBlockWidget，非 Mermaid 语言仍走原 renderer。",
+        "MermaidCodeBlockWidget 测试覆盖点击预览早于渲染完成、SVG surface 渲染失败、渲染成功后切换源码/预览，以及宽高不同 SVG 初始适配视口的场景。",
+        "集成或示例测试覆盖 enableMermaidDiagrams 打开后的完整路径，确保示例中的 Mermaid 流程图块能进入预览组件。"
+      ]
+    }
+  ],
+  "finalValidation": {
+    "command": "flutter analyze",
+    "criteria": [
+      "命令退出码为 0，Flutter analyzer 不报告新增 error、warning 或 info 级别问题。",
+      "静态分析覆盖 Mermaid 插件、Mermaid 预览 widget、Markdown codec、bootstrap/configuration、示例和新增/更新的测试文件，不存在类型不匹配、未使用成员或不可达代码。",
+      "最终实现满足反馈 #85：Mermaid 流程图代码块能被识别并进入预览流程，预览按钮可显示流程图或明确错误兜底，不再出现无法预览且无反馈的空白/源码卡住状态，同时非 Mermaid 代码块行为不回退。"
+    ]
+  }
+}

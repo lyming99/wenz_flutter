@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../core/model/comment_model.dart';
 import '../core/position/document_position.dart';
+import 'editor_tokens.dart';
 
 typedef CommentThreadCallback = void Function(CommentThread thread);
 typedef CommentAnchorSelectionCallback = void Function(
@@ -39,8 +40,11 @@ class WenzCommentSidebar extends StatelessWidget {
     final visibleThreads = showResolved
         ? threads
         : threads.where((thread) => thread.isOpen).toList();
+    // On mobile the sidebar is presented as a full-width bottom sheet, so it
+    // fills the available width; desktop keeps the fixed sidebar width.
+    final isMobile = EditorTokens.resolve(context).isMobile;
     return SizedBox(
-      width: width,
+      width: isMobile ? null : width,
       child: Material(
         key: const ValueKey<String>('wenz-comment-sidebar-surface'),
         color: theme.colorScheme.surface,

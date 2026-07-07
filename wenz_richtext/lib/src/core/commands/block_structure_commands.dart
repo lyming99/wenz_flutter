@@ -472,7 +472,7 @@ class SetCodeLanguageCommand extends EditorCommand {
 
   @override
   CommandResult execute(DocumentSession session) {
-    final nextLanguage = language.trim();
+    final nextLanguage = _normalizeCodeLanguage(language);
     final index = blockIndex ?? session.selection?.extent.blockIndex ?? -1;
     if (index < 0 || index >= session.document.blocks.length) {
       return const CommandResult(recordHistory: false);
@@ -494,6 +494,29 @@ class SetCodeLanguageCommand extends EditorCommand {
     );
     return const CommandResult();
   }
+}
+
+const String _mermaidLanguage = 'mermaid';
+
+String _normalizeCodeLanguage(String language) {
+  final trimmed = language.trim();
+  return _isMermaidCodeLanguage(trimmed) ? _mermaidLanguage : trimmed;
+}
+
+bool _isMermaidCodeLanguage(String language) {
+  final firstToken = _firstCodeLanguageToken(language);
+  return firstToken.toLowerCase() == _mermaidLanguage;
+}
+
+String _firstCodeLanguageToken(String language) {
+  if (language.isEmpty) {
+    return '';
+  }
+  final whitespace = RegExp(r'\s+').firstMatch(language);
+  if (whitespace == null) {
+    return language;
+  }
+  return language.substring(0, whitespace.start);
 }
 
 /// Sets the [CalloutBlockNode.variant] of the callout block at the caret.

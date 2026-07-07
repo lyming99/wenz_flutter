@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:wenz_draw/wenz_draw.dart';
 import 'package:wenz_draw/wenz_draw_mindmap.dart';
 
+import '../theme/editor_theme.dart';
 import '../theme/ui_colors.dart';
 import '../widgets/floating_pill.dart';
 
@@ -16,14 +17,20 @@ class CanvasStage extends StatelessWidget {
   final InfiniteCanvasController viewController;
 
   /// Optional override for the canvas config. When null, a sensible default
-  /// (line grid, light theme) is used. Pass an [InfiniteCanvasConfig] to tune
-  /// gesture flags (pinch/wheel/keyboard/double-tap/fling) or grid styling.
+  /// (low-contrast dot grid, themed background) is used. Pass an
+  /// [InfiniteCanvasConfig] to tune gesture flags
+  /// (pinch/wheel/keyboard/double-tap/fling) or grid styling.
   final InfiniteCanvasConfig? canvasConfig;
 
   @override
   Widget build(BuildContext context) {
+    final theme = EditorThemeScope.of(context);
+    final config = canvasConfig ??
+        InfiniteCanvasConfig(
+          backgroundColor: theme.canvasBackground,
+        );
     return ColoredBox(
-      color: UiColors.canvasBackground,
+      color: config.backgroundColor,
       child: MindmapDragOverlay(
         canvasController: canvasController,
         viewController: viewController,
@@ -31,14 +38,7 @@ class CanvasStage extends StatelessWidget {
           children: [
             InfiniteCanvasWidget(
               controller: viewController,
-              config: canvasConfig ??
-                  const InfiniteCanvasConfig(
-                    gridType: GridType.lines,
-                    backgroundColor: UiColors.canvasBackground,
-                    gridColor: Color(0x1F5F748B),
-                    majorGridColor: Color(0x2B5F748B),
-                    gridBaseSize: 20,
-                  ),
+              config: config,
               elementOverlayAnchorPredicate: _isMindmapRoot,
               elementOverlayBuilder: (context, element) {
                 if (!_isMindmapRoot(element)) return null;

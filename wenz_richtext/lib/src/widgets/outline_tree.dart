@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../controller/outline_controller.dart';
+import 'editor_tokens.dart';
 
 // ---------------------------------------------------------------------------
 // WenzOutlinePanel — smart wrapper that holds the controller subscription
@@ -297,9 +298,12 @@ class _WenzOutlineTreeState extends State<WenzOutlineTree> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final visibleItems = _visibleItems;
+    // On mobile the outline lives in a Drawer / bottom sheet, so it fills the
+    // available width rather than holding the desktop sidebar width.
+    final isMobile = EditorTokens.resolve(context).isMobile;
     final tree = SizedBox(
       key: const ValueKey<String>('wenz-outline-tree'),
-      width: widget.width,
+      width: isMobile ? null : widget.width,
       child: Material(
         color: theme.colorScheme.surface,
         elevation: 1,
@@ -389,9 +393,12 @@ class _OutlineHeader extends StatelessWidget {
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              'Outline',
+              '大纲',
               style: theme.textTheme.titleSmall?.copyWith(
                 color: theme.colorScheme.onSurface,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                height: 1.2,
               ),
             ),
           ),

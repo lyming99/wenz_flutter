@@ -154,14 +154,18 @@ class MermaidCodeBlockWidget extends StatefulWidget {
 class _MermaidCodeBlockWidgetState extends State<MermaidCodeBlockWidget> {
   bool _showSource = true;
   String? _svg;
+  String? _svgSource;
+  String? _svgTheme;
   String? _error;
   bool _rendering = false;
+  bool _renderQueued = false;
+  int _renderRequestId = 0;
   Timer? _debounceTimer;
 
   @override
   void initState() {
     super.initState();
-    _scheduleRender();
+    _scheduleRender(notify: false);
   }
 
   @override
@@ -184,20 +188,56 @@ class _MermaidCodeBlockWidgetState extends State<MermaidCodeBlockWidget> {
   // -----------------------------------------------------------------------
 
   /// Schedules (or re-schedules) a debounced render of the current source.
-  void _scheduleRender() {
+  void _scheduleRender({bool notify = true}) {
     _debounceTimer?.cancel();
+    _renderRequestId++;
+    final source = widget.block.code;
+
+    void updateQueuedState() {
+      if (_isBlankSource(source)) {
+        _svg = null;
+        _svgSource = null;
+        _svgTheme = null;
+        _error = null;
+        _renderQueued = false;
+        return;
+      }
+      _error = null;
+      _renderQueued = true;
+    }
+
+    if (notify && mounted) {
+      setState(updateQueuedState);
+    } else {
+      updateQueuedState();
+    }
+
+    if (_isBlankSource(source)) {
+      return;
+    }
     _debounceTimer = Timer(widget.config.debounce, _render);
   }
 
   /// Entry point: tries the background isolate first, then the main-isolate
   /// renderer as a fallback.
   Future<void> _render() async {
-    if (_rendering || !mounted) return;
+    if (!mounted) return;
+    if (_rendering) {
+      if (!_renderQueued) {
+        setState(() => _renderQueued = true);
+      }
+      return;
+    }
+    final requestId = _renderRequestId;
     final source = widget.block.code;
-    if (source.isEmpty) {
+    final theme = widget.config.defaultTheme;
+    if (_isBlankSource(source)) {
       setState(() {
         _svg = null;
+        _svgSource = null;
+        _svgTheme = null;
         _error = null;
+        _renderQueued = false;
         _rendering = false;
       });
       return;
@@ -205,46 +245,108 @@ class _MermaidCodeBlockWidgetState extends State<MermaidCodeBlockWidget> {
 
     setState(() {
       _rendering = true;
+      _renderQueued = false;
       _error = null;
     });
 
-    final optionsJson = _buildMermaidRenderOptionsJson(
-      widget.config.defaultTheme,
-    );
+    final optionsJson = _buildMermaidRenderOptionsJson(theme);
 
     try {
-      final svg = await Isolate.run(
-        () => _isolateRenderSvg(source, optionsJson),
+      final svg = _validateRenderedSvg(
+        await Isolate.run(
+          () => _isolateRenderSvg(source, optionsJson),
+        ),
       );
       if (!mounted) return;
+      if (!_isCurrentRenderRequest(requestId, source, theme)) {
+        _finishStaleRender();
+        return;
+      }
       setState(() {
         _svg = svg;
+        _svgSource = source;
+        _svgTheme = theme;
         _rendering = false;
+        _renderQueued = false;
         _error = null;
       });
     } catch (_) {
       // Isolate path failed (e.g. FFI not available on this platform) —
       // fall back to the injected renderer running on the main isolate.
       try {
-        final svg = await widget.renderer.renderSvg(
-          source,
-          optionsJson: optionsJson,
+        final svg = _validateRenderedSvg(
+          await widget.renderer.renderSvg(
+            source,
+            optionsJson: optionsJson,
+          ),
         );
         if (!mounted) return;
+        if (!_isCurrentRenderRequest(requestId, source, theme)) {
+          _finishStaleRender();
+          return;
+        }
         setState(() {
           _svg = svg;
+          _svgSource = source;
+          _svgTheme = theme;
           _rendering = false;
+          _renderQueued = false;
           _error = null;
         });
       } catch (e) {
         if (!mounted) return;
+        if (!_isCurrentRenderRequest(requestId, source, theme)) {
+          _finishStaleRender();
+          return;
+        }
         setState(() {
           _svg = null;
+          _svgSource = null;
+          _svgTheme = null;
           _rendering = false;
+          _renderQueued = false;
           _error = e.toString();
         });
       }
     }
+  }
+
+  bool get _hasCurrentSvg =>
+      _svg != null &&
+      _svgSource == widget.block.code &&
+      _svgTheme == widget.config.defaultTheme;
+
+  bool get _isPreviewPending =>
+      !_isBlankSource(widget.block.code) && (_renderQueued || _rendering);
+
+  bool _isCurrentRenderRequest(int requestId, String source, String theme) {
+    return requestId == _renderRequestId &&
+        source == widget.block.code &&
+        theme == widget.config.defaultTheme;
+  }
+
+  void _finishStaleRender() {
+    setState(() {
+      _rendering = false;
+    });
+    _scheduleRender();
+  }
+
+  static bool _isBlankSource(String source) => source.trim().isEmpty;
+
+  static String _validateRenderedSvg(String svg) {
+    final trimmed = svg.trim();
+    if (trimmed.isEmpty) {
+      throw const _MermaidSvgRenderException(
+        'Mermaid 渲染完成，但没有生成 SVG 内容。',
+      );
+    }
+    if (!RegExp(r'<svg\b', caseSensitive: false).hasMatch(trimmed)) {
+      throw const _MermaidSvgRenderException(
+        'Mermaid 渲染结果不是有效的 SVG 内容。',
+      );
+    }
+    return svg;
   }
 
   /// Runs inside a background isolate: initialises the merman FFI engine and
@@ -311,7 +413,7 @@ class _MermaidCodeBlockWidgetState extends State<MermaidCodeBlockWidget> {
             _MermaidToolbar(
               showSource: _showSource,
               accentColor: accentColor,
-              onToggle: () => setState(() => _showSource = !_showSource),
+              onToggle: _toggleContentMode,
             ),
             const SizedBox(height: _kMermaidHeaderGap),
             _buildContent(codeStyle),
@@ -321,38 +423,53 @@ class _MermaidCodeBlockWidgetState extends State<MermaidCodeBlockWidget> {
     );
   }
 
+  void _toggleContentMode() {
+    final nextShowSource = !_showSource;
+    setState(() => _showSource = nextShowSource);
+    if (!nextShowSource &&
+        !_hasCurrentSvg &&
+        !_isPreviewPending &&
+        _error == null &&
+        !_isBlankSource(widget.block.code)) {
+      _scheduleRender();
+    }
+  }
+
   Widget _buildContent(TextStyle codeStyle) {
-    // Loading indicator while the isolate is working.
-    if (_rendering) {
-      return const Center(
-        child: Padding(
-          padding: EdgeInsets.symmetric(vertical: 24.0),
-          child: SizedBox(
-            width: 24.0,
-            height: 24.0,
-            child: CircularProgressIndicator(strokeWidth: 2.5),
-          ),
-        ),
+    if (_showSource) {
+      return _MermaidSourceView(
+        source: widget.block.code,
+        style: codeStyle,
+      );
+    }
+
+    if (_isBlankSource(widget.block.code)) {
+      return _MermaidStatusView(
+        icon: Icons.account_tree_outlined,
+        title: 'Mermaid 源码为空',
+        message: '添加 Mermaid DSL 后即可生成预览。',
+        codeStyle: codeStyle,
+        onViewSource: () => setState(() => _showSource = true),
+      );
+    }
+
+    if (_isPreviewPending || !_hasCurrentSvg && _error == null) {
+      return _MermaidStatusView.loading(
+        title: _rendering ? '正在渲染 Mermaid 图表' : '正在准备 Mermaid 预览',
+        message: '渲染完成后会自动切换到图表预览。',
+        codeStyle: codeStyle,
+        onViewSource: () => setState(() => _showSource = true),
       );
     }
 
     // Error state: show the error message with a "View Source" recovery.
-    if (_error != null && !_showSource) {
+    if (_error != null) {
       return _MermaidErrorView(
         error: _error!,
         codeStyle: codeStyle,
         onViewSource: () => setState(() {
           _showSource = true;
-          _error = null;
         }),
-      );
-    }
-
-    // Source mode: plain text with line numbers.
-    if (_showSource || _svg == null) {
-      return _MermaidSourceView(
-        source: widget.block.code,
-        style: codeStyle,
       );
     }
 
@@ -605,19 +722,22 @@ class _MermaidPreviewViewState extends State<_MermaidPreviewView> {
                 child: SizedBox(
                   width: availableWidth,
                   height: height,
-                  child: InteractiveViewer(
-                    transformationController: _transformationController,
-                    boundaryMargin: const EdgeInsets.all(double.infinity),
-                    maxScale: _kMermaidPreviewMaxScale,
-                    minScale: minScale,
-                    constrained: false,
-                    child: SizedBox(
-                      width: contentSize.width,
-                      height: contentSize.height,
-                      child: surface.render(
-                        context,
-                        widget.svg,
-                        maxWidth: contentSize.width,
+                  child: ColoredBox(
+                    color: const Color(_kMermaidBlockBackground),
+                    child: InteractiveViewer(
+                      transformationController: _transformationController,
+                      boundaryMargin: const EdgeInsets.all(double.infinity),
+                      maxScale: _kMermaidPreviewMaxScale,
+                      minScale: minScale,
+                      constrained: false,
+                      child: SizedBox(
+                        width: contentSize.width,
+                        height: contentSize.height,
+                        child: surface.render(
+                          context,
+                          widget.svg,
+                          maxWidth: contentSize.width,
+                        ),
                       ),
                     ),
                   ),
@@ -816,6 +936,15 @@ class _MermaidPreviewViewState extends State<_MermaidPreviewView> {
   }
 }
 
+class _MermaidSvgRenderException implements Exception {
+  const _MermaidSvgRenderException(this.message);
+
+  final String message;
+
+  @override
+  String toString() => message;
+}
+
 class _MermaidPreviewFitKey {
   const _MermaidPreviewFitKey({
     required this.svg,
@@ -887,6 +1016,88 @@ String _buildMermaidRenderOptionsJson(String defaultTheme) {
       'root_background_color': _kMermaidCanvasColor,
     },
   });
+}
+
+/// Preview status fallback for loading and empty-source states.
+class _MermaidStatusView extends StatelessWidget {
+  const _MermaidStatusView({
+    required this.icon,
+    required this.title,
+    required this.message,
+    required this.codeStyle,
+    required this.onViewSource,
+  }) : loading = false;
+
+  const _MermaidStatusView.loading({
+    required this.title,
+    required this.message,
+    required this.codeStyle,
+    required this.onViewSource,
+  })  : icon = null,
+        loading = true;
+
+  final IconData? icon;
+  final bool loading;
+  final String title;
+  final String message;
+  final TextStyle codeStyle;
+  final VoidCallback onViewSource;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final accentColor = theme.colorScheme.primary;
+    final foregroundColor = codeStyle.color ?? theme.colorScheme.onSurface;
+
+    return Container(
+      padding: const EdgeInsets.all(16.0),
+      decoration: BoxDecoration(
+        color: Colors.white.withAlpha(10),
+        borderRadius: BorderRadius.circular(8.0),
+        border: Border.all(color: Colors.white.withAlpha(24)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          if (loading)
+            SizedBox(
+              width: 24.0,
+              height: 24.0,
+              child: CircularProgressIndicator(
+                strokeWidth: 2.5,
+                color: accentColor,
+              ),
+            )
+          else
+            Icon(icon, color: accentColor, size: 24.0),
+          const SizedBox(height: 12.0),
+          Text(
+            title,
+            style: codeStyle.copyWith(
+              color: foregroundColor,
+              fontWeight: FontWeight.w600,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 6.0),
+          Text(
+            message,
+            style: codeStyle.copyWith(
+              color: foregroundColor.withAlpha(170),
+              fontSize: 12.0,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 12.0),
+          TextButton.icon(
+            onPressed: onViewSource,
+            icon: const Icon(Icons.code, size: 16.0),
+            label: const Text('查看源码'),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 /// Error fallback: displays the error message and a button to switch back

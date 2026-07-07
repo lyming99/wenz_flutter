@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 
 import '../controller/slash_menu_controller.dart';
+import 'editor_tokens.dart';
 
 // Keep slash menu chrome aligned with docs/design/menu_toolbar_minimal_spec.md:
 // flat/restrained shadow, clear hierarchy, compact rhythm; chrome colors use
@@ -179,6 +180,16 @@ class _SlashMenuTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    // Touch surfaces get larger tap targets and a slightly bigger icon so the
+    // caret-anchored compact popup is comfortably finger-tappable on phones.
+    // Desktop keeps the denser original sizing (acceptance: desktop unchanged).
+    final isMobile = EditorTokens.resolve(context).isMobile;
+    final tilePadding = isMobile
+        ? const EdgeInsets.symmetric(horizontal: 12, vertical: 13)
+        : _kSlashMenuItemPadding;
+    final iconSize = isMobile
+        ? EditorTokens.mobile.minimalToolbarIconSize
+        : _kSlashMenuIconSize;
     final iconColor =
         selected ? colorScheme.onSurface : colorScheme.onSurfaceVariant;
     final titleStyle = theme.textTheme.bodyMedium?.copyWith(
@@ -208,12 +219,12 @@ class _SlashMenuTile extends StatelessWidget {
               borderRadius: BorderRadius.circular(_kSlashMenuItemRadius),
             ),
             child: Padding(
-              padding: _kSlashMenuItemPadding,
+              padding: tilePadding,
               child: Row(
                 children: <Widget>[
                   Icon(
                     _iconFor(item.icon),
-                    size: _kSlashMenuIconSize,
+                    size: iconSize,
                     color: iconColor,
                   ),
                   const SizedBox(width: _kSlashMenuIconTextGap),

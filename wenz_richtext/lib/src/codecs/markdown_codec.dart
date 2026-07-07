@@ -72,7 +72,8 @@ class MarkdownCodec {
         return _quoteMarkdownIfNeeded(text, _encodeListItem(text));
       case BlockType.code:
         final code = block as CodeBlockNode;
-        final fence = '```${code.language}';
+        final language = _normalizeMermaidCodeLanguage(code.language);
+        final fence = '```$language';
         return '$fence\n${code.code}\n```';
       case BlockType.table:
         return _encodeTable(block as TableBlockNode);
@@ -388,7 +389,8 @@ class MarkdownCodec {
       // Fenced code block.
       final fenceMatch = _fenceRegex.firstMatch(line.trimLeft());
       if (fenceMatch != null) {
-        final language = fenceMatch.group(2) ?? '';
+        final language =
+            _normalizeMermaidCodeLanguage(fenceMatch.group(2) ?? '');
         final codeLines = <String>[];
         i++;
         while (i < lines.length) {
@@ -1094,6 +1096,29 @@ class MarkdownCodec {
 // each construct is matched exactly where the cursor sits.
 
 final RegExp _fenceRegex = RegExp(r'^(`{3,}|~{3,})(.*)$');
+const String _mermaidLanguage = 'mermaid';
+
+String _normalizeMermaidCodeLanguage(String language) {
+  return _isMermaidCodeLanguage(language) ? _mermaidLanguage : language;
+}
+
+bool _isMermaidCodeLanguage(String language) {
+  final firstToken = _firstInfoStringToken(language);
+  return firstToken.toLowerCase() == _mermaidLanguage;
+}
+
+String _firstInfoStringToken(String infoString) {
+  final trimmed = infoString.trim();
+  if (trimmed.isEmpty) {
+    return '';
+  }
+  final whitespace = RegExp(r'\s+').firstMatch(trimmed);
+  if (whitespace == null) {
+    return trimmed;
+  }
+  return trimmed.substring(0, whitespace.start);
+}
+
 final RegExp _headingRegex = RegExp(r'^(#{1,6})\s+(.*)$');
 final RegExp _thematicBreakRegex =
     RegExp(r'^(-\s?){3,}$|^(\*\s?){3,}$|^(_\s?){3,}$');

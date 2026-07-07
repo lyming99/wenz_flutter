@@ -54,6 +54,18 @@ const String _kTallSvg =
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 2000">'
     '<rect width="500" height="2000" fill="white"/></svg>';
 
+const String _kSizeOnlySvg =
+    '<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360">'
+    '<rect width="640" height="360" fill="white"/></svg>';
+
+const String _kNoSizeSvg =
+    '<svg xmlns="http://www.w3.org/2000/svg">'
+    '<rect width="100" height="100" fill="white"/></svg>';
+
+const String _kMalformedSvg =
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">'
+    '<path d="M 0 0"><g></svg>';
+
 // ---------------------------------------------------------------------------
 // Widget under test harness
 // ---------------------------------------------------------------------------
@@ -355,7 +367,7 @@ void main() {
   // 5. Loading indicator
   // -----------------------------------------------------------------------
 
-  testWidgets('shows loading indicator while rendering is in progress', (
+  testWidgets('preview request shows loading before rendering completes', (
     tester,
   ) async {
     const block = CodeBlockNode(
@@ -364,8 +376,7 @@ void main() {
       code: 'flowchart TD',
     );
 
-    // A renderer that never completes — we only need to capture the loading
-    // state before the async work resolves.
+    // Capture the preview-request state before the debounce fires.
     final renderer = _FakeMermaidRenderer();
 
     await tester.pumpWidget(
@@ -379,11 +390,13 @@ void main() {
       ),
     );
 
-    // Advance time just enough to fire the debounce timer but not process
-    // all async operations — the CircularProgressIndicator should appear.
-    await tester.pump(const Duration(milliseconds: 300));
+    await tester.tap(
+      find.byKey(const ValueKey<String>('wenz-richtext-mermaid-toggle')),
+    );
+    await tester.pump();
 
-    // A progress indicator should be visible during rendering.
+    expect(find.textContaining('flowchart TD'), findsNothing);
+    expect(find.text('正在准备 Mermaid 预览'), findsOneWidget);
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
   });
 
@@ -413,6 +426,41 @@ void main() {
     await tester.pumpAndSettle();
 
     // Empty source should not trigger rendering.
+    expect(renderer.renderCount, 0);
+  });
+
+  testWidgets('empty source preview shows feedback and source recovery', (
+    tester,
+  ) async {
+    final renderer = _FakeMermaidRenderer();
+
+    await tester.pumpWidget(
+      _wrapWidget(
+        MermaidCodeBlockWidget(
+          block: const CodeBlockNode(
+            id: 'm-empty-preview',
+            language: 'mermaid',
+            code: '',
+          ),
+          config: const MermaidDiagramConfig(),
+          renderer: renderer,
+          blockIndex: 0,
+        ),
+      ),
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('wenz-richtext-mermaid-toggle')),
+    );
+    await tester.pump();
+
+    expect(find.text('Mermaid 源码为空'), findsOneWidget);
+    expect(find.text('查看源码'), findsOneWidget);
+
+    await tester.tap(find.text('查看源码'));
+    await tester.pump();
+
+    expect(find.byIcon(Icons.visibility_outlined), findsOneWidget);
     expect(renderer.renderCount, 0);
   });
 
@@ -491,6 +539,56 @@ void main() {
       expect(tallViewportSize.width, closeTo(wideViewportSize.width, 0.5));
       expect(tallViewportSize.height, closeTo(wideViewportSize.height, 0.5));
       expect(find.byKey(const ValueKey<String>('fake-svg-surface')), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'preview accepts width-height and missing-size SVG roots without crashing',
+    (tester) async {
+      await _pumpPreview(tester, svg: _kSizeOnlySvg, blockId: 'size-only');
+
+      expect(find.byType(InteractiveViewer), findsOneWidget);
+      expect(find.byKey(const ValueKey<String>('fake-svg-surface')), findsOneWidget);
+      expect(tester.takeException(), isNull);
+
+      await _pumpPreview(tester, svg: _kNoSizeSvg, blockId: 'no-size');
+
+      expect(find.byType(InteractiveViewer), findsOneWidget);
+      expect(find.byKey(const ValueKey<String>('fake-svg-surface')), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'default SVG surface failure shows a visible fallback in preview',
+    (tester) async {
+      final renderer = _FakeMermaidRenderer(resultSvg: _kMalformedSvg);
+
+      await tester.pumpWidget(
+        _wrapWidget(
+          MermaidCodeBlockWidget(
+            block: const CodeBlockNode(
+              id: 'surface-failure',
+              language: 'mermaid',
+              code: 'flowchart TD\n  A --> B',
+            ),
+            config: const MermaidDiagramConfig(debounce: Duration.zero),
+            renderer: renderer,
+            blockIndex: 0,
+          ),
+        ),
+      );
+
+      await tester.pump();
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey<String>('wenz-richtext-mermaid-toggle')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('SVG 预览暂不可用'), findsOneWidget);
+      expect(find.text('查看源码'), findsNothing);
       expect(tester.takeException(), isNull);
     },
   );
