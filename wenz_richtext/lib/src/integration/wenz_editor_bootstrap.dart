@@ -124,10 +124,14 @@ class WenzEditorBootstrap {
     );
     // Mermaid remains opt-in: disabled hosts keep ordinary code block
     // rendering, while enabled hosts can provide the SVG surface forwarded
-    // into MermaidDiagramConfig.
+    // into MermaidDiagramConfig. If the host supplied its own Mermaid plugin
+    // instance, keep that explicit configuration and avoid a duplicate id.
+    final hasConfiguredMermaidPlugin = configuration.plugins.any(
+      (plugin) => plugin.id == MermaidDiagramPlugin.pluginId,
+    );
     final plugins = <WenzRichTextPlugin>[
       ...configuration.plugins,
-      if (configuration.enableMermaidDiagrams)
+      if (configuration.enableMermaidDiagrams && !hasConfiguredMermaidPlugin)
         MermaidDiagramPlugin(
           config: MermaidDiagramConfig(
             svgSurface: configuration.diagramSvgSurface,

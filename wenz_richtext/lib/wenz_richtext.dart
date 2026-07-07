@@ -163,6 +163,7 @@ export 'src/history/history_manager.dart';
 export 'src/input/clipboard_service.dart';
 export 'src/input/composition_state.dart';
 export 'src/input/editor_text_input_client.dart';
+export 'src/input/external_image_clipboard_reader.dart';
 export 'src/input/external_image_input.dart';
 export 'src/input/shortcut_manager.dart';
 export 'src/plugins/editor_plugin.dart';

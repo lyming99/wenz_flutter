@@ -533,22 +533,34 @@ double _blockRowChromeWidth({
 }) {
   if (showDragHandle) {
     if (reserveHeadingCollapseSlot) {
-      final fullRailWidth = BlockDragHandleSpec.hitSize.width +
+      final fullRailWidth = BlockDragHandleSpec.startMargin +
+          BlockDragHandleSpec.hitSize.width +
           BlockDragHandleSpec.chromeGap +
           _kHeadingCollapseButtonSize +
           BlockDragHandleSpec.gapToContent;
       assert(
         fullRailWidth == BlockDragHandleSpec.railWidth,
         'BlockDragHandleSpec.railWidth must match row chrome: '
-        'operation button 28dp + gap 4dp + collapse button 24dp + '
-        'content gap 8dp.',
+        'start margin 8dp + operation button 28dp + gap 2dp + '
+        'collapse button 24dp + content gap 8dp.',
       );
       return fullRailWidth;
     }
-    return BlockDragHandleSpec.hitSize.width +
+    return BlockDragHandleSpec.startMargin +
+        BlockDragHandleSpec.hitSize.width +
         BlockDragHandleSpec.gapToContent;
   }
-  return reserveHeadingCollapseSlot ? _kHeadingCollapseButtonSize : 0.0;
+  if (reserveHeadingCollapseSlot) {
+    final collapseOnlyWidth =
+        _kHeadingCollapseButtonSize + BlockDragHandleSpec.gapToContent;
+    assert(
+      collapseOnlyWidth == BlockDragHandleSpec.collapseChromeOverflow,
+      'BlockDragHandleSpec.collapseChromeOverflow must match row chrome: '
+      'collapse button 24dp + content gap 8dp.',
+    );
+    return collapseOnlyWidth;
+  }
+  return 0.0;
 }
 
 PopupMenuEntry<T> _popupMenuDivider<T>() {
@@ -8042,7 +8054,9 @@ class _BlockDragHandleOverlayState extends State<_BlockDragHandleOverlay> {
     if (!showDragHandle) {
       return 0.0;
     }
-    return BlockDragHandleSpec.hitSize.width + BlockDragHandleSpec.chromeGap;
+    return BlockDragHandleSpec.startMargin +
+        BlockDragHandleSpec.hitSize.width +
+        BlockDragHandleSpec.chromeGap;
   }
 
   static double _blockDragHandleStartFor({
@@ -8050,10 +8064,11 @@ class _BlockDragHandleOverlayState extends State<_BlockDragHandleOverlay> {
     required bool reserveHeadingCollapseSlot,
     required bool showHeadingCollapse,
   }) {
-    if (!showDragHandle ||
-        !reserveHeadingCollapseSlot ||
-        showHeadingCollapse) {
+    if (!showDragHandle) {
       return 0.0;
+    }
+    if (!reserveHeadingCollapseSlot || showHeadingCollapse) {
+      return BlockDragHandleSpec.startMargin;
     }
     return _headingCollapseStartFor(showDragHandle: true);
   }

@@ -145,23 +145,25 @@ abstract final class BlockDragHandleSpec {
   /// Reserved leading gutter for row chrome, outside the renderer's content box.
   ///
   /// Editable rows that reserve the heading-collapse slot use this full rail:
-  /// [hitSize].width (28 dp) + [chromeGap] (4 dp) + the compact heading
-  /// collapse hit target (24 dp) + [gapToContent] (8 dp). Non-heading rows
-  /// reserve the same width while outline chrome is attached so renderer
-  /// content stays aligned across headings, paragraphs, code blocks, and other
-  /// top-level blocks; when such a row has no actual collapse affordance, the
-  /// editor reuses the collapse slot for its drag handle.
-  static const double railWidth = 64.0;
+  /// [startMargin] (8 dp) + [hitSize].width (28 dp) + [chromeGap] (2 dp) +
+  /// the compact heading collapse hit target (24 dp) + [gapToContent] (8 dp).
+  /// Non-heading rows reserve the same width while outline chrome is attached
+  /// so renderer content stays aligned across headings, paragraphs, code
+  /// blocks, and other top-level blocks; when such a row has no actual collapse
+  /// affordance, the editor reuses the collapse slot for its drag handle.
+  static const double railWidth = 70.0;
 
-  /// Legacy reference for a collapse-only affordance plus the standard content
-  /// gap: compact heading collapse hit target (24 dp) + [gapToContent] (8 dp).
-  /// The editor positions collapse chrome explicitly; read-only rows do not
-  /// use this value to reserve a non-existent drag handle slot.
+  /// Collapse-only affordance plus the standard content gap: compact heading
+  /// collapse hit target (24 dp) + [gapToContent] (8 dp). This intentionally
+  /// omits [startMargin] and the drag handle slot for read-only rows.
   static const double collapseChromeOverflow = 32.0;
+
+  /// Leading inset before the editable row operation hit target.
+  static const double startMargin = 8.0;
 
   /// Gap between adjacent row-chrome hit targets, currently the drag handle and
   /// heading collapse button in editable outline rows.
-  static const double chromeGap = 4.0;
+  static const double chromeGap = 2.0;
 
   /// Standard gap between editable row chrome and the renderer content edge.
   /// Compact read-only heading collapse rows keep their no-drag slot instead

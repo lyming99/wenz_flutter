@@ -414,45 +414,6 @@ class WenzDefaultDesktopToolbar extends StatelessWidget {
             enabled: state.canSetBlockType,
             onPressed: toolbar.setOrderedList,
           ),
-          if (state.canTableStruct) ...<Widget>[
-            _ToolbarDivider(visible: style.showGroupDividers),
-            _ToolbarIconButton(
-              tooltip: '下方插入行',
-              icon: WenzLucideToolbarIcons.tableRowInsert,
-              enabled: state.canTableStruct,
-              onPressed: toolbar.insertTableRow,
-            ),
-            _ToolbarIconButton(
-              tooltip: '右侧插入列',
-              icon: WenzLucideToolbarIcons.tableColumnInsert,
-              enabled: state.canTableStruct,
-              onPressed: toolbar.insertTableColumn,
-            ),
-            _ToolbarIconButton(
-              tooltip: '删除行',
-              icon: WenzLucideToolbarIcons.tableDelete,
-              enabled: state.canTableStruct,
-              onPressed: toolbar.deleteTableRow,
-            ),
-            _ToolbarIconButton(
-              tooltip: '删除列',
-              icon: WenzLucideToolbarIcons.tableDelete,
-              enabled: state.canTableStruct,
-              onPressed: toolbar.deleteTableColumn,
-            ),
-            _ToolbarIconButton(
-              tooltip: '合并单元格',
-              icon: WenzLucideToolbarIcons.tableMerge,
-              enabled: state.canTableStruct,
-              onPressed: toolbar.mergeTableCells,
-            ),
-            _ToolbarIconButton(
-              tooltip: '拆分单元格',
-              icon: WenzLucideToolbarIcons.tableSplit,
-              enabled: state.canTableStruct,
-              onPressed: toolbar.splitTableCell,
-            ),
-          ],
           if (extraItems.isNotEmpty) ...<Widget>[
             _ToolbarDivider(visible: style.showGroupDividers),
             for (final item in extraItems)
@@ -867,7 +828,7 @@ class _InsertMenuButton extends StatelessWidget {
           controller.insertFormula('');
         },
       ),
-      const Divider(height: 1),
+      const _InsertMenuDivider(),
       _InsertMenuItem(
         label: '插入代码块',
         icon: WenzLucideToolbarIcons.code,
@@ -886,7 +847,7 @@ class _InsertMenuButton extends StatelessWidget {
         enabled: toolbar.canInsertBlock,
         action: () => toolbar.insertTable(),
       ),
-      if (hasResourceActions) const Divider(height: 1),
+      if (hasResourceActions) const _InsertMenuDivider(),
       if (actions.shouldShowImageButton)
         _InsertMenuItem(
           label: actions.isImagePending
@@ -943,6 +904,19 @@ class _InsertMenuButton extends StatelessWidget {
           },
         );
       },
+    );
+  }
+}
+
+class _InsertMenuDivider extends StatelessWidget {
+  const _InsertMenuDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return Divider(
+      height: 1,
+      thickness: 1,
+      color: _toolbarInsertMenuDividerColor(Theme.of(context)),
     );
   }
 }
@@ -1517,6 +1491,11 @@ Color _toolbarMenuShadowColor(ThemeData theme) {
 Color _toolbarMenuLineColor(ThemeData theme) {
   return (theme.brightness == Brightness.dark ? Colors.white : Colors.black)
       .withAlpha(20);
+}
+
+Color _toolbarInsertMenuDividerColor(ThemeData theme) {
+  return (theme.brightness == Brightness.dark ? Colors.white : Colors.black)
+      .withAlpha(theme.brightness == Brightness.dark ? 18 : 14);
 }
 
 ButtonStyle _toolbarButtonStyle(ThemeData theme) {

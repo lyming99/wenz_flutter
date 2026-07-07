@@ -208,9 +208,13 @@ class MermaidDiagramPlugin extends WenzRichTextPlugin {
     this.renderer = const NativeMermaidRenderer(),
   });
 
+  /// Stable plugin identifier used by bootstrap code to avoid duplicate
+  /// auto-installation when a host supplies its own Mermaid plugin instance.
+  static const String pluginId = 'wenz.richtext.mermaid';
+
   /// Plugin identifier.
   @override
-  String get id => 'wenz.richtext.mermaid';
+  String get id => pluginId;
 
   /// Configuration for diagram rendering behaviour.
   final MermaidDiagramConfig config;
@@ -249,12 +253,12 @@ class MermaidDiagramPlugin extends WenzRichTextPlugin {
 const String _mermaidLanguage = 'mermaid';
 
 bool _isMermaidCodeLanguage(String language) {
-  final firstToken = _firstLanguageToken(language);
-  return firstToken.toLowerCase() == _mermaidLanguage;
+  final firstToken = _normalizeInfoStringToken(_firstInfoStringToken(language));
+  return firstToken == _mermaidLanguage;
 }
 
-String _firstLanguageToken(String language) {
-  final trimmed = language.trim();
+String _firstInfoStringToken(String infoString) {
+  final trimmed = infoString.trim();
   if (trimmed.isEmpty) {
     return '';
   }
@@ -263,4 +267,19 @@ String _firstLanguageToken(String language) {
     return trimmed;
   }
   return trimmed.substring(0, whitespace.start);
+}
+
+String _normalizeInfoStringToken(String token) {
+  var normalized = token.trim().toLowerCase();
+  if (normalized.isEmpty) {
+    return '';
+  }
+  normalized = normalized.replaceFirst(RegExp(r'^\{+'), '');
+  normalized = normalized.replaceFirst(RegExp(r'\}+$'), '');
+  normalized = normalized.replaceFirst(RegExp(r'^\.+'), '');
+  const languageClassPrefix = 'language-';
+  if (normalized.startsWith(languageClassPrefix)) {
+    normalized = normalized.substring(languageClassPrefix.length);
+  }
+  return normalized;
 }
