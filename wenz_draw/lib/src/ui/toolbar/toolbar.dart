@@ -13,6 +13,8 @@ import 'tool_button.dart';
 import 'toolbar_divider.dart';
 
 class Toolbar extends StatelessWidget {
+  static const _indicatorArrowShapeKey = 'arrows.arrowRight';
+
   const Toolbar({
     required this.canvasController,
     required this.viewController,
@@ -49,10 +51,15 @@ class Toolbar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final indicatorArrowToolId = ShapeTool.idFor(_indicatorArrowShapeKey);
+
     return AnimatedBuilder(
       animation: Listenable.merge([canvasController, viewController]),
       builder: (context, _) {
         final activeTool = canvasController.currentTool?.id;
+        final indicatorArrowSelected = activeTool == indicatorArrowToolId;
+        final shapeToolSelected =
+            activeTool?.startsWith(ShapeTool.idPrefix) ?? false;
 
         return Container(
           height: 44,
@@ -124,12 +131,19 @@ class Toolbar extends StatelessWidget {
                   ),
                   const ToolbarDivider(),
                   ToolButton(
+                    label: '标识箭头',
+                    icon: Icons.forward,
+                    selected: indicatorArrowSelected,
+                    onPressed: () =>
+                        canvasController.setTool(indicatorArrowToolId),
+                  ),
+                  ToolButton(
                     label: '图形',
                     icon: Icons.category_outlined,
                     selected:
                         activeTool == RectTool.idValue ||
                         activeTool == EllipseTool.idValue ||
-                        (activeTool?.startsWith(ShapeTool.idPrefix) ?? false),
+                        (shapeToolSelected && !indicatorArrowSelected),
                     onPressed: () => canvasController.setTool(RectTool.idValue),
                   ),
                   ToolButton(
@@ -338,7 +352,17 @@ class Toolbar extends StatelessWidget {
       items: const [
         PopupMenuItem(value: 'note', child: Text('便签')),
         PopupMenuItem(value: 'counter', child: Text('计数器')),
-        PopupMenuItem(value: 'mindmap', child: Text('思维导图')),
+        PopupMenuItem(
+          value: 'mindmap',
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.account_tree_outlined, size: 18),
+              SizedBox(width: 8),
+              Text('思维导图'),
+            ],
+          ),
+        ),
       ],
     ).then((value) {
       if (value == 'counter') {

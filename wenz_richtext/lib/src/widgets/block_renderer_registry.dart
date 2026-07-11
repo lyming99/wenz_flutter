@@ -43,6 +43,10 @@ enum TableToolbarAction {
   mergeCells,
   splitCell,
   resetColumnWidth,
+  selectRow,
+  selectColumn,
+  selectTable,
+  deleteTable,
 }
 
 class TableToolbarActionIntent {
@@ -51,6 +55,7 @@ class TableToolbarActionIntent {
     required this.blockIndex,
     required this.rowIndex,
     required this.columnIndex,
+    this.tableBlockId,
     this.endRowIndex,
     this.endColumnIndex,
     this.backgroundColor,
@@ -60,6 +65,7 @@ class TableToolbarActionIntent {
   final int blockIndex;
   final int rowIndex;
   final int columnIndex;
+  final String? tableBlockId;
   final int? endRowIndex;
   final int? endColumnIndex;
   final int? backgroundColor;
@@ -144,28 +150,33 @@ typedef ObjectBlockActionHandler = void Function(
 abstract final class BlockDragHandleSpec {
   /// Reserved leading gutter for row chrome, outside the renderer's content box.
   ///
-  /// Editable rows that reserve the heading-collapse slot use this full rail:
-  /// [startMargin] (8 dp) + [hitSize].width (28 dp) + [chromeGap] (2 dp) +
+  /// Desktop editable rows that reserve the heading-collapse slot use this
+  /// full rail:
+  /// [startMargin] (4 dp) + [hitSize].width (28 dp) + [chromeGap] (4 dp) +
   /// the compact heading collapse hit target (24 dp) + [gapToContent] (8 dp).
-  /// Non-heading rows reserve the same width while outline chrome is attached
-  /// so renderer content stays aligned across headings, paragraphs, code
-  /// blocks, and other top-level blocks; when such a row has no actual collapse
-  /// affordance, the editor reuses the collapse slot for its drag handle.
-  static const double railWidth = 70.0;
+  /// Desktop non-heading rows reserve the same width while outline chrome is
+  /// attached so renderer content stays aligned across headings, paragraphs,
+  /// code blocks, and other top-level blocks. The operation hit target remains
+  /// at [startMargin]; compact phones omit the unused collapse slot.
+  /// Compact phone rails are resolved from `EditorTokens.mobile`; this remains
+  /// the desktop/public compatibility value.
+  static const double railWidth = 68.0;
 
-  /// Collapse-only affordance plus the standard content gap: compact heading
-  /// collapse hit target (24 dp) + [gapToContent] (8 dp). This intentionally
-  /// omits [startMargin] and the drag handle slot for read-only rows.
+  /// Desktop collapse-only affordance plus the standard content gap: compact
+  /// heading collapse hit target (24 dp) + [gapToContent] (8 dp). This
+  /// intentionally omits [startMargin] and the drag handle slot for read-only
+  /// rows.
   static const double collapseChromeOverflow = 32.0;
 
-  /// Leading inset before the editable row operation hit target.
-  static const double startMargin = 8.0;
+  /// Desktop leading inset before the editable row operation hit target.
+  /// This keeps a 4dp breathing room ahead of the full-size hit target.
+  static const double startMargin = 4.0;
 
-  /// Gap between adjacent row-chrome hit targets, currently the drag handle and
-  /// heading collapse button in editable outline rows.
-  static const double chromeGap = 2.0;
+  /// Desktop gap between adjacent row-chrome hit targets, currently the drag
+  /// handle and heading collapse button in editable outline rows.
+  static const double chromeGap = 4.0;
 
-  /// Standard gap between editable row chrome and the renderer content edge.
+  /// Desktop gap between editable row chrome and the renderer content edge.
   /// Compact read-only heading collapse rows keep their no-drag slot instead
   /// of reserving the editable rail.
   static const double gapToContent = 8.0;

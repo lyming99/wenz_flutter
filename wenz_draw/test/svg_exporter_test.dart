@@ -77,6 +77,96 @@ void main() {
     expect(svg, contains('L 120.0 40.0'));
   });
 
+  test('svg exporter emits polyline arrowhead polygon when enabled', () {
+    const element = PolylineElement(
+      id: 'poly-arrow',
+      points: [Offset(0, 0), Offset(60, 0), Offset(60, 40)],
+      style: PaintStyle(color: Color(0xFF336699), strokeWidth: 3),
+      endArrow: true,
+      headSize: 20,
+      label: 'Route',
+    );
+
+    final svg = SvgExporter.exportElements(
+      elements: const [element],
+      bounds: const Rect.fromLTWH(-10, -10, 100, 80),
+    );
+
+    expect(() => XmlDocument.parse(svg), returnsNormally);
+    expect(
+      svg,
+      contains('<polyline points="0.0,0.0 60.0,0.0 60.0,40.0"'),
+    );
+    expect(
+      svg,
+      contains(
+        '<polygon points="60.0,40.0 52.0,20.0 68.0,20.0" fill="#336699"',
+      ),
+    );
+    expect(svg, contains('Route'));
+  });
+
+  test('svg exporter omits polyline arrowhead polygon when disabled', () {
+    const element = PolylineElement(
+      id: 'poly-no-arrow',
+      points: [Offset(0, 0), Offset(60, 0), Offset(60, 40)],
+      style: PaintStyle(color: Color(0xFF336699), strokeWidth: 3),
+      endArrow: false,
+      headSize: 20,
+    );
+
+    final svg = SvgExporter.exportElements(
+      elements: const [element],
+      bounds: const Rect.fromLTWH(-10, -10, 100, 80),
+    );
+
+    expect(() => XmlDocument.parse(svg), returnsNormally);
+    expect(svg, contains('<polyline'));
+    expect(svg, isNot(contains('<polygon')));
+  });
+
+  test('svg exporter emits curve arrowhead polygon when enabled', () {
+    const element = CurveElement(
+      id: 'curve-arrow',
+      start: Offset(0, 0),
+      control: Offset(50, 0),
+      end: Offset(100, 0),
+      style: PaintStyle(color: Color(0xFF8844CC), strokeWidth: 3),
+      endArrow: true,
+      headSize: 20,
+    );
+
+    final svg = SvgExporter.exportElements(
+      elements: const [element],
+      bounds: const Rect.fromLTWH(-10, -20, 140, 60),
+    );
+
+    expect(() => XmlDocument.parse(svg), returnsNormally);
+    expect(svg, contains('<path d="M 0.0 0.0 Q 50.0 0.0 100.0 0.0"'));
+    expect(svg, contains('<polygon points="100.0,0.0 '));
+    expect(svg, contains('fill="#8844cc"'));
+  });
+
+  test('svg exporter omits curve arrowhead polygon when disabled', () {
+    const element = CurveElement(
+      id: 'curve-no-arrow',
+      start: Offset(0, 0),
+      control: Offset(50, 0),
+      end: Offset(100, 0),
+      style: PaintStyle(color: Color(0xFF8844CC), strokeWidth: 3),
+      endArrow: false,
+      headSize: 20,
+    );
+
+    final svg = SvgExporter.exportElements(
+      elements: const [element],
+      bounds: const Rect.fromLTWH(-10, -20, 140, 60),
+    );
+
+    expect(() => XmlDocument.parse(svg), returnsNormally);
+    expect(svg, contains('<path d="M 0.0 0.0 Q 50.0 0.0 100.0 0.0"'));
+    expect(svg, isNot(contains('<polygon')));
+  });
   test('svg exporter preserves drawio flip transform and label positions', () {
     const element = DrawioShapeElement(
       id: 'stage4-1',

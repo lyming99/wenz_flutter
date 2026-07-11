@@ -1,3 +1,5 @@
+import 'dart:ui' show PointerDeviceKind;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wenz_richtext/wenz_richtext.dart';
@@ -24,7 +26,6 @@ void main() {
         '下划线',
         '删除线',
         '文字颜色',
-        '无文字颜色',
         '清除样式',
         '插入元素',
         '正文',
@@ -46,6 +47,7 @@ void main() {
         '表情',
         '增加缩进',
         '减少缩进',
+        '无文字颜色',
         '添加链接',
         '编辑链接',
         '公式',
@@ -128,12 +130,11 @@ void main() {
           '斜体',
           '下划线',
           '删除线',
-          '文字颜色',
-          '无文字颜色',
           '清除样式',
         ]) {
           expect(_iconButton(tester, tooltip).onPressed, isNull);
         }
+        expect(_iconButton(tester, '文字颜色不可用').onPressed, isNotNull);
         expect(_iconButton(tester, '插入元素').onPressed, isNotNull);
         expect(_textButton(tester, '正文').onPressed, isNull);
         expect(_textButton(tester, '对齐方式：无对齐').onPressed, isNull);
@@ -519,7 +520,7 @@ void main() {
       expect(_textButton(tester, '对齐方式：无对齐').onPressed, isNotNull);
     });
 
-    testWidgets('uses custom text color and mixed alignment tooltips', (
+    testWidgets('uses text color palette, custom color, and mixed tooltips', (
       tester,
     ) async {
       final harness = await _pumpToolbar(
@@ -528,20 +529,63 @@ void main() {
       );
 
       expect(find.byTooltip('文字颜色'), findsOneWidget);
-      expect(find.byTooltip('无文字颜色'), findsOneWidget);
+      expect(find.byTooltip('无文字颜色'), findsNothing);
 
       await _openTextColorMenu(tester, '文字颜色');
-      expect(find.text('Red'), findsOneWidget);
+      expect(find.byType(GridView), findsOneWidget);
+      expect(find.byType(Wrap), findsNothing);
+      for (final tooltip in const <String>[
+        '黑色 #FF111827',
+        '深灰 #FF374151',
+        '岩灰 #FF455A64',
+        '红色 #FFD32F2F',
+        '橙色 #FFF57C00',
+        '黄色 #FFFBC02D',
+        '绿色 #FF388E3C',
+        '墨绿 #FF0F766E',
+        '青色 #FF0097A7',
+        '蓝色 #FF1976D2',
+        '紫色 #FF7B1FA2',
+        '粉色 #FFC2185B',
+      ]) {
+        expect(find.byTooltip(tooltip), findsOneWidget);
+        expect(_menuItemButtonByTooltip(tester, tooltip).onPressed, isNotNull);
+        _expectTextColorSwatchSelected(tester, tooltip, selected: false);
+      }
+      expect(find.text('红色'), findsNothing);
       expect(find.text('自定义颜色'), findsOneWidget);
-      expect(_menuItemButton(tester, '自定义颜色').onPressed, isNotNull);
+      expect(find.byTooltip('自定义文字颜色'), findsOneWidget);
+      expect(_menuItemButton(tester, '无文字颜色').onPressed, isNotNull);
 
+      await _tapTextColorSwatch(tester, '红色 #FFD32F2F');
+      expect(find.byTooltip('文字颜色 #FFD32F2F'), findsOneWidget);
+      expect(
+        _hasRun(
+          harness.controller,
+          (run) => run.attributes.color == 0xFFD32F2F,
+        ),
+        isTrue,
+      );
+
+      await _openTextColorMenu(tester, '文字颜色 #FFD32F2F');
+      _expectTextColorSwatchSelected(
+        tester,
+        '红色 #FFD32F2F',
+        selected: true,
+      );
+      _expectTextColorSwatchSelected(
+        tester,
+        '蓝色 #FF1976D2',
+        selected: false,
+      );
+      expect(find.text('自定义颜色'), findsOneWidget);
+      expect(find.byTooltip('自定义文字颜色'), findsOneWidget);
       await tester.tap(_menuItemButtonFinder('自定义颜色'));
       await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextField), '#336699');
       await tester.tap(find.text('Apply'));
       await tester.pumpAndSettle();
       expect(find.byTooltip('文字颜色 #FF336699'), findsOneWidget);
-      expect(find.byTooltip('清除文字颜色 #FF336699'), findsOneWidget);
       expect(
         _hasRun(
           harness.controller,
@@ -552,10 +596,22 @@ void main() {
 
       await _openTextColorMenu(tester, '文字颜色 #FF336699');
       expect(find.text('自定义颜色 #FF336699'), findsOneWidget);
-      await tester.tap(find.byTooltip('文字颜色 #FF336699'));
-      await tester.pump();
-
-      await _tapToolbarButton(tester, '清除文字颜色 #FF336699');
+      expect(find.byTooltip('自定义文字颜色 #FF336699'), findsOneWidget);
+      _expectTextColorSwatchSelected(
+        tester,
+        '红色 #FFD32F2F',
+        selected: false,
+      );
+      _expectTextColorSwatchSelected(
+        tester,
+        '蓝色 #FF1976D2',
+        selected: false,
+      );
+      expect(
+        _menuItemButton(tester, '清除文字颜色 #FF336699').onPressed,
+        isNotNull,
+      );
+      await _tapTextColorMenuItem(tester, '清除文字颜色 #FF336699');
       expect(
         _hasRun(
           harness.controller,
@@ -564,15 +620,48 @@ void main() {
         isFalse,
       );
       expect(find.byTooltip('文字颜色'), findsOneWidget);
-      expect(find.byTooltip('无文字颜色'), findsOneWidget);
+      expect(find.byTooltip('无文字颜色'), findsNothing);
 
-      await _pumpToolbar(
+      await _openTextColorMenu(tester, '文字颜色');
+      expect(find.text('无文字颜色'), findsOneWidget);
+      _expectTextColorSwatchSelected(
+        tester,
+        '红色 #FFD32F2F',
+        selected: false,
+      );
+      await tester.tap(find.byTooltip('文字颜色'));
+      await _pumpTextColorMenuOpen(tester);
+
+      final mixedHarness = await _pumpToolbar(
         tester,
         document: _mixedTextColorDocument(),
         selection: textSelection('p1', 0, 0, 10),
       );
       expect(find.byTooltip('文字颜色（混合）'), findsOneWidget);
-      expect(find.byTooltip('清除混合文字颜色'), findsOneWidget);
+      expect(find.byTooltip('清除混合文字颜色'), findsNothing);
+
+      await _openTextColorMenu(tester, '文字颜色（混合）');
+      expect(find.text('清除混合文字颜色'), findsOneWidget);
+      expect(find.text('自定义颜色（混合）'), findsOneWidget);
+      expect(find.byTooltip('自定义文字颜色（混合）'), findsOneWidget);
+      _expectTextColorSwatchSelected(
+        tester,
+        '红色 #FFD32F2F',
+        selected: false,
+      );
+      _expectTextColorSwatchSelected(
+        tester,
+        '墨绿 #FF0F766E',
+        selected: false,
+      );
+      await _tapTextColorMenuItem(tester, '清除混合文字颜色');
+      expect(
+        _hasRun(
+          mixedHarness.controller,
+          (run) => run.attributes.color != null,
+        ),
+        isFalse,
+      );
 
       await _pumpToolbar(
         tester,
@@ -581,6 +670,200 @@ void main() {
       );
       expect(find.byTooltip('对齐方式：混合对齐'), findsOneWidget);
       expect(_textButton(tester, '对齐方式：混合对齐').onPressed, isNotNull);
+    });
+
+    testWidgets('selects text color from popup while mouse hovers a swatch', (
+      tester,
+    ) async {
+      final harness = await _pumpToolbar(
+        tester,
+        selection: textSelection('p1', 0, 0, 5),
+      );
+      await _scrollToolbarUntilVisible(tester, '文字颜色');
+      final mouse = await _addMousePointer(tester, find.byTooltip('文字颜色'));
+      addTearDown(() async {
+        await mouse.removePointer();
+      });
+
+      expect(tester.takeException(), isNull);
+      await tester.tap(find.byTooltip('文字颜色'), kind: PointerDeviceKind.mouse);
+      await _pumpTextColorMenuOpen(tester);
+      expect(find.byTooltip('红色 #FFD32F2F'), findsOneWidget);
+
+      await _moveMouseTo(tester, mouse, find.byTooltip('红色 #FFD32F2F'));
+      expect(tester.takeException(), isNull);
+      await tester.tap(
+        find.byTooltip('红色 #FFD32F2F'),
+        kind: PointerDeviceKind.mouse,
+      );
+      await _pumpTextColorMenuAction(tester);
+
+      expect(find.byTooltip('文字颜色 #FFD32F2F'), findsOneWidget);
+      expect(
+        _hasRun(
+          harness.controller,
+          (run) => run.attributes.color == 0xFFD32F2F,
+        ),
+        isTrue,
+      );
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('reopens text color popup after toolbar close', (
+      tester,
+    ) async {
+      final harness = await _pumpToolbar(
+        tester,
+        selection: textSelection('p1', 0, 0, 5),
+      );
+
+      await _openTextColorMenu(
+        tester,
+        '文字颜色',
+        kind: PointerDeviceKind.mouse,
+      );
+      expect(find.byTooltip('蓝色 #FF1976D2'), findsOneWidget);
+
+      await tester.tap(find.byTooltip('文字颜色'), kind: PointerDeviceKind.mouse);
+      await _pumpTextColorMenuOpen(tester);
+      expect(find.byTooltip('蓝色 #FF1976D2'), findsNothing);
+      expect(tester.takeException(), isNull);
+
+      await _openTextColorMenu(
+        tester,
+        '文字颜色',
+        kind: PointerDeviceKind.mouse,
+      );
+      await _tapTextColorSwatch(
+        tester,
+        '蓝色 #FF1976D2',
+        kind: PointerDeviceKind.mouse,
+      );
+
+      expect(find.byTooltip('文字颜色 #FF1976D2'), findsOneWidget);
+      expect(
+        _hasRun(
+          harness.controller,
+          (run) => run.attributes.color == 0xFF1976D2,
+        ),
+        isTrue,
+      );
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('clears and applies custom text color after delayed close', (
+      tester,
+    ) async {
+      final harness = await _pumpToolbar(
+        tester,
+        document: _styledTextColorDocument(),
+        selection: textSelection('p1', 0, 0, 5),
+      );
+
+      await _openTextColorMenu(
+        tester,
+        '文字颜色 #FFD32F2F',
+        kind: PointerDeviceKind.mouse,
+      );
+      await _tapTextColorMenuItem(
+        tester,
+        '清除文字颜色 #FFD32F2F',
+        kind: PointerDeviceKind.mouse,
+      );
+
+      var run = _textBlock(harness.controller, 'p1').content.single as TextRun;
+      expect(run.attributes.color, isNull);
+      expect(run.attributes.background, 0xFFFFF59D);
+      expect(run.attributes.bold, isTrue);
+      expect(run.attributes.url, 'https://example.test');
+      expect(tester.takeException(), isNull);
+
+      await _openTextColorMenu(
+        tester,
+        '文字颜色',
+        kind: PointerDeviceKind.mouse,
+      );
+      expect(_menuItemButton(tester, '自定义颜色').onPressed, isNotNull);
+      await tester.tap(
+        _menuItemButtonFinder('自定义颜色'),
+        kind: PointerDeviceKind.mouse,
+      );
+      await tester.pumpAndSettle();
+      expect(find.byType(AlertDialog), findsOneWidget);
+      await tester.enterText(find.byType(TextField), '#336699');
+      await tester.tap(find.text('Apply'), kind: PointerDeviceKind.mouse);
+      await tester.pumpAndSettle();
+
+      run = _textBlock(harness.controller, 'p1').content.single as TextRun;
+      expect(run.attributes.color, 0xFF336699);
+      expect(run.attributes.background, 0xFFFFF59D);
+      expect(run.attributes.bold, isTrue);
+      expect(run.attributes.url, 'https://example.test');
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('keeps disabled text color popup items inert', (
+      tester,
+    ) async {
+      final harness = await _pumpToolbar(
+        tester,
+        permission: WenzEditorPermission.read,
+        selection: textSelection('p1', 0, 0, 5),
+      );
+      await _scrollToolbarUntilVisible(tester, '文字颜色不可用');
+      final mouse = await _addMousePointer(
+        tester,
+        find.byTooltip('文字颜色不可用'),
+      );
+      addTearDown(() async {
+        await mouse.removePointer();
+      });
+
+      await _openTextColorMenu(
+        tester,
+        '文字颜色不可用',
+        kind: PointerDeviceKind.mouse,
+      );
+      expect(
+        _menuItemButtonByTooltip(tester, '红色 #FFD32F2F').onPressed,
+        isNull,
+      );
+      expect(_menuItemButton(tester, '清除文字颜色不可用').onPressed, isNull);
+      expect(_menuItemButton(tester, '自定义颜色').onPressed, isNull);
+      expect(find.byTooltip('自定义文字颜色不可用'), findsOneWidget);
+
+      await _moveMouseTo(tester, mouse, find.byTooltip('红色 #FFD32F2F'));
+      await tester.tap(
+        find.byTooltip('红色 #FFD32F2F'),
+        kind: PointerDeviceKind.mouse,
+        warnIfMissed: false,
+      );
+      await _pumpTextColorMenuAction(tester);
+      await tester.tap(
+        _menuItemButtonFinder('清除文字颜色不可用'),
+        kind: PointerDeviceKind.mouse,
+        warnIfMissed: false,
+      );
+      await _pumpTextColorMenuAction(tester);
+      await tester.tap(
+        _menuItemButtonFinder('自定义颜色'),
+        kind: PointerDeviceKind.mouse,
+        warnIfMissed: false,
+      );
+      await _pumpTextColorMenuAction(tester);
+
+      expect(find.byType(AlertDialog), findsNothing);
+      expect(
+        _hasRun(harness.controller, (run) => run.attributes.color != null),
+        isFalse,
+      );
+      await tester.tap(
+        find.byTooltip('文字颜色不可用'),
+        kind: PointerDeviceKind.mouse,
+      );
+      await _pumpTextColorMenuOpen(tester);
+      expect(find.byTooltip('红色 #FFD32F2F'), findsNothing);
+      expect(tester.takeException(), isNull);
     });
 
     testWidgets('inserts default structure blocks from insert popup', (
@@ -804,6 +1087,24 @@ void main() {
           action: (_, __) => calls.add('disabled'),
         ),
         WenzToolbarItem(
+          id: 'select-row',
+          title: 'Select row alias',
+          tooltip: 'Select row alias',
+          priority: 7,
+          icon: 'select-row',
+          isActive: (_) => true,
+          action: (_, __) => calls.add('select-row'),
+        ),
+        WenzToolbarItem(
+          id: 'delete-table',
+          title: 'Delete table alias',
+          tooltip: 'Delete table alias',
+          priority: 8,
+          icon: 'delete-table',
+          isEnabled: (_) => false,
+          action: (_, __) => calls.add('delete-table'),
+        ),
+        WenzToolbarItem(
           id: 'override',
           title: 'Registry override',
           tooltip: 'Registry override',
@@ -842,7 +1143,15 @@ void main() {
 
       expect(
         toolbarWidget.effectiveToolbarItems.map((item) => item.id),
-        <String>['first', 'override', 'active', 'disabled', 'later'],
+        <String>[
+          'first',
+          'override',
+          'active',
+          'disabled',
+          'select-row',
+          'delete-table',
+          'later',
+        ],
       );
       expect(find.byTooltip('Registry override'), findsNothing);
       expect(find.byTooltip('Host override'), findsOneWidget);
@@ -870,6 +1179,16 @@ void main() {
       );
       _expectLucideIcon(
         tester,
+        'Select row alias',
+        WenzLucideToolbarIcons.tableSelectRow,
+      );
+      _expectLucideIcon(
+        tester,
+        'Delete table alias',
+        WenzLucideToolbarIcons.tableDelete,
+      );
+      _expectLucideIcon(
+        tester,
         'Later item',
         WenzLucideToolbarIcons.extension,
       );
@@ -881,13 +1200,17 @@ void main() {
         'Host override',
         'Active item',
         'Disabled item',
+        'Select row alias',
+        'Delete table alias',
         'Later item',
         '无序列表',
         '对齐方式：无对齐',
         '插入元素',
       ]);
       expect(_iconButton(tester, 'Active item').isSelected, isTrue);
+      expect(_iconButton(tester, 'Select row alias').isSelected, isTrue);
       expect(_iconButton(tester, 'Disabled item').onPressed, isNull);
+      expect(_iconButton(tester, 'Delete table alias').onPressed, isNull);
 
       for (var index = 0; index < 8; index++) {
         registry.register(
@@ -990,11 +1313,62 @@ Future<void> _tapToolbarButton(WidgetTester tester, String tooltip) async {
 
 Future<void> _openTextColorMenu(
   WidgetTester tester,
-  String tooltip,
-) async {
+  String tooltip, {
+  PointerDeviceKind kind = PointerDeviceKind.touch,
+}) async {
   await _scrollToolbarUntilVisible(tester, tooltip);
   expect(_iconButton(tester, tooltip).onPressed, isNotNull);
-  await tester.tap(find.byTooltip(tooltip));
+  await tester.tap(find.byTooltip(tooltip), kind: kind);
+  await _pumpTextColorMenuOpen(tester);
+}
+
+Future<void> _tapTextColorSwatch(
+  WidgetTester tester,
+  String tooltip, {
+  PointerDeviceKind kind = PointerDeviceKind.touch,
+}) async {
+  expect(_menuItemButtonByTooltip(tester, tooltip).onPressed, isNotNull);
+  await tester.tap(find.byTooltip(tooltip), kind: kind);
+  await _pumpTextColorMenuAction(tester);
+}
+
+Future<void> _tapTextColorMenuItem(
+  WidgetTester tester,
+  String label, {
+  PointerDeviceKind kind = PointerDeviceKind.touch,
+}) async {
+  expect(_menuItemButton(tester, label).onPressed, isNotNull);
+  await tester.tap(_menuItemButtonFinder(label), kind: kind);
+  await _pumpTextColorMenuAction(tester);
+}
+
+Future<void> _pumpTextColorMenuOpen(WidgetTester tester) async {
+  await tester.pump();
+  await tester.pump();
+}
+
+Future<void> _pumpTextColorMenuAction(WidgetTester tester) async {
+  await tester.pump();
+  await tester.pump();
+  await tester.pump();
+}
+
+Future<TestGesture> _addMousePointer(
+  WidgetTester tester,
+  Finder finder,
+) async {
+  final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+  await mouse.addPointer(location: tester.getCenter(finder));
+  await tester.pump();
+  return mouse;
+}
+
+Future<void> _moveMouseTo(
+  WidgetTester tester,
+  TestGesture mouse,
+  Finder finder,
+) async {
+  await mouse.moveTo(tester.getCenter(finder));
   await tester.pump();
 }
 
@@ -1012,7 +1386,6 @@ void _expectDefaultToolbarSequence(WidgetTester tester) {
     '下划线',
     '删除线',
     '文字颜色',
-    '无文字颜色',
     '清除样式',
     '正文',
     '引用',
@@ -1170,6 +1543,42 @@ MenuItemButton _menuItemButton(WidgetTester tester, String label) {
   return tester.widget<MenuItemButton>(menuItemFinder);
 }
 
+Finder _menuItemButtonByTooltipFinder(String tooltip) {
+  return find.ancestor(
+    of: find.byTooltip(tooltip),
+    matching: find.byType(MenuItemButton),
+  );
+}
+
+MenuItemButton _menuItemButtonByTooltip(
+  WidgetTester tester,
+  String tooltip,
+) {
+  final menuItemFinder = _menuItemButtonByTooltipFinder(tooltip);
+  expect(menuItemFinder, findsOneWidget);
+  return tester.widget<MenuItemButton>(menuItemFinder);
+}
+
+void _expectTextColorSwatchSelected(
+  WidgetTester tester,
+  String tooltip, {
+  required bool selected,
+}) {
+  final menuItemFinder = _menuItemButtonByTooltipFinder(tooltip);
+  expect(menuItemFinder, findsOneWidget);
+  final context = tester.element(menuItemFinder);
+  final expectedColor = selected
+      ? Theme.of(context).colorScheme.primaryContainer
+      : Colors.transparent;
+  final backgroundColor = tester
+      .widget<MenuItemButton>(menuItemFinder)
+      .style
+      ?.backgroundColor
+      ?.resolve(<WidgetState>{});
+
+  expect(backgroundColor, expectedColor);
+}
+
 void _expectLucideIcon(
   WidgetTester tester,
   String tooltip,
@@ -1196,6 +1605,28 @@ RichTextDocument _textDocument({String? link}) {
           TextRun(
             text: 'Hello world',
             attributes: TextAttributes(url: link),
+          ),
+        ],
+      ),
+    ],
+  );
+}
+
+RichTextDocument _styledTextColorDocument() {
+  return const RichTextDocument(
+    blocks: <BlockNode>[
+      TextBlockNode(
+        id: 'p1',
+        type: BlockType.paragraph,
+        content: <InlineNode>[
+          TextRun(
+            text: 'Hello world',
+            attributes: TextAttributes(
+              bold: true,
+              color: 0xFFD32F2F,
+              background: 0xFFFFF59D,
+              url: 'https://example.test',
+            ),
           ),
         ],
       ),
@@ -1413,3 +1844,7 @@ class _ToolbarHarness {
   final WenzRichTextController controller;
   final ToolbarController toolbar;
 }
+
+
+
+

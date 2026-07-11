@@ -10,6 +10,11 @@ import 'table_cell_editing.dart';
 import 'text_commands.dart';
 import '../model/attributes.dart';
 
+enum TextBlockInsertionDirection {
+  above,
+  below,
+}
+
 class InsertBlocksCommand extends EditorCommand {
   const InsertBlocksCommand({
     required this.index,
@@ -98,6 +103,104 @@ class InsertBlocksCommand extends EditorCommand {
       selection: selection ?? defaultSelection,
     );
   }
+}
+
+class InsertTextBlockAtSelectionCommand extends EditorCommand {
+  const InsertTextBlockAtSelectionCommand({
+    required this.blockId,
+    required this.direction,
+    this.selection,
+  });
+
+  final String blockId;
+  final TextBlockInsertionDirection direction;
+  final DocumentSelection? selection;
+
+  @override
+  String get description => switch (direction) {
+        TextBlockInsertionDirection.above => 'insertTextBlockAbove',
+        TextBlockInsertionDirection.below => 'insertTextBlockBelow',
+      };
+
+  @override
+  CommandResult execute(DocumentSession session) {
+    final target = selection ?? session.selection;
+    if (blockId.isEmpty ||
+        target == null ||
+        session.document.blocks.isEmpty) {
+      return const CommandResult(recordHistory: false);
+    }
+    final boundary = direction == TextBlockInsertionDirection.above
+        ? target.start
+        : target.end;
+    if (!_isValidTopLevelSelectionPosition(session.document, boundary)) {
+      return const CommandResult(recordHistory: false);
+    }
+    final insertIndex = direction == TextBlockInsertionDirection.above
+        ? boundary.blockIndex
+        : boundary.blockIndex + 1;
+    final position = DocumentPosition.text(
+      blockId: blockId,
+      blockIndex: insertIndex,
+      offset: 0,
+    );
+    return InsertBlocksCommand(
+      index: insertIndex,
+      blocks: <BlockNode>[
+        TextBlockNode(
+          id: blockId,
+          type: BlockType.paragraph,
+        ),
+      ],
+      selection: DocumentSelection(base: position, extent: position),
+    ).execute(session);
+  }
+}
+
+bool _isValidTopLevelSelectionPosition(
+  RichTextDocument document,
+  DocumentPosition position,
+) {
+  if (position.blockIndex < 0 || position.blockIndex >= document.blocks.length) {
+    return false;
+  }
+  final isKnownPath = position.path.isBlockText ||
+      position.path.isBlockCode ||
+      position.path.isBlockObject ||
+      position.path.isTableCellText;
+  if (!isKnownPath) {
+    return false;
+  }
+  final block = document.blocks[position.blockIndex];
+  if (position.blockId != block.id || position.path.blockId != block.id) {
+    return false;
+  }
+  if (position.path.isBlockText) {
+    return block is TextBlockNode || block is CalloutBlockNode;
+  }
+  if (position.path.isBlockCode) {
+    return block is CodeBlockNode;
+  }
+  if (position.path.isTableCellText) {
+    final rowIndex = position.path.tableRowIndex;
+    final columnIndex = position.path.tableColumnIndex;
+    return block is TableBlockNode &&
+        rowIndex != null &&
+        columnIndex != null &&
+        rowIndex >= 0 &&
+        columnIndex >= 0 &&
+        rowIndex < block.table.rowCount &&
+        columnIndex < block.table.columnCount;
+  }
+  return _isObjectBlock(block);
+}
+
+bool _isObjectBlock(BlockNode block) {
+  return block is ImageBlockNode ||
+      block is DividerBlockNode ||
+      block is VideoBlockNode ||
+      block is BlockEmbedNode ||
+      block is FileBlockNode;
 }
 
 int? _emptyParagraphReplacementIndex(
@@ -853,6 +956,8 @@ class InsertVideoBlockCommand extends EditorCommand {
     this.title = '',
     String description = '',
     this.aspectRatio,
+    this.showWidth,
+    this.showHeight,
     this.uploadStatus = FileUploadStatus.none,
     this.uploadError = '',
     this.selection,
@@ -867,6 +972,8 @@ class InsertVideoBlockCommand extends EditorCommand {
   final String title;
   final String videoDescription;
   final double? aspectRatio;
+  final double? showWidth;
+  final double? showHeight;
   final FileUploadStatus uploadStatus;
   final String uploadError;
   final DocumentSelection? selection;
@@ -885,6 +992,8 @@ class InsertVideoBlockCommand extends EditorCommand {
       title: title,
       description: videoDescription,
       aspectRatio: aspectRatio,
+      showWidth: showWidth,
+      showHeight: showHeight,
       uploadStatus: uploadStatus,
       uploadError: uploadError,
     );
@@ -1072,6 +1181,10 @@ class UpdateVideoBlockCommand extends EditorCommand {
     String? description,
     this.aspectRatio,
     this.clearAspectRatio = false,
+    this.showWidth,
+    this.showHeight,
+    this.clearShowWidth = false,
+    this.clearShowHeight = false,
     this.uploadStatus,
     this.uploadError,
   }) : videoDescription = description;
@@ -1085,6 +1198,10 @@ class UpdateVideoBlockCommand extends EditorCommand {
   final String? videoDescription;
   final double? aspectRatio;
   final bool clearAspectRatio;
+  final double? showWidth;
+  final double? showHeight;
+  final bool clearShowWidth;
+  final bool clearShowHeight;
   final FileUploadStatus? uploadStatus;
   final String? uploadError;
 
@@ -1107,6 +1224,10 @@ class UpdateVideoBlockCommand extends EditorCommand {
       description: videoDescription,
       aspectRatio: aspectRatio,
       clearAspectRatio: clearAspectRatio,
+      showWidth: showWidth,
+      showHeight: showHeight,
+      clearShowWidth: clearShowWidth,
+      clearShowHeight: clearShowHeight,
       uploadStatus: uploadStatus,
       uploadError: uploadError,
     );
@@ -1191,6 +1312,8 @@ bool _sameVideoBlock(VideoBlockNode a, VideoBlockNode b) {
       a.title == b.title &&
       a.description == b.description &&
       a.aspectRatio == b.aspectRatio &&
+      a.showWidth == b.showWidth &&
+      a.showHeight == b.showHeight &&
       a.uploadStatus == b.uploadStatus &&
       a.uploadError == b.uploadError &&
       a.attributes == b.attributes;

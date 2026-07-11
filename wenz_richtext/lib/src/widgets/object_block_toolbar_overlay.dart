@@ -107,11 +107,57 @@ class ObjectBlockToolbarAnchorSnapshot {
   final int blockIndex;
 }
 
+/// A single route handoff owned by [ObjectBlockToolbarOverlayController].
+///
+/// Starting a handoff removes the current toolbar and suppresses later anchor
+/// publications until [complete] is called. This keeps the source
+/// [OverlayPortal] detached for the full lifetime of a route transition.
+class ObjectBlockToolbarOverlayHandoff {
+  ObjectBlockToolbarOverlayHandoff._({
+    required ObjectBlockToolbarOverlayController? controller,
+    required Object token,
+  })  : _controller = controller,
+        _token = token;
+
+  final ObjectBlockToolbarOverlayController? _controller;
+  final Object _token;
+  bool _completed = false;
+
+  /// Whether the source controller and anchor still own this handoff.
+  bool get isActive =>
+      !_completed && (_controller?._isHandoffActive(_token) ?? false);
+
+  /// Waits until both the portal hide request and its following rebuild frame
+  /// have completed before a new route is allowed to mount.
+  Future<void> waitUntilHidden() async {
+    await WidgetsBinding.instance.endOfFrame;
+    await WidgetsBinding.instance.endOfFrame;
+  }
+
+  /// Releases route suppression and restores the toolbar only when the source
+  /// anchor is still current. Calling this more than once is a no-op.
+  void complete({bool restore = true}) {
+    if (_completed) {
+      return;
+    }
+    _completed = true;
+    _controller?._completeHandoff(_token, restore: restore);
+  }
+}
+
 /// Editor-owned controller for the active object-block toolbar overlay request.
 class ObjectBlockToolbarOverlayController extends ChangeNotifier {
   ObjectBlockToolbarOverlayRequest? _request;
   final Map<String, ObjectBlockToolbarAnchorSnapshot> _anchors =
       <String, ObjectBlockToolbarAnchorSnapshot>{};
+  Object? _activeHandoffToken;
+  String? _handoffBlockId;
+  int? _handoffBlockIndex;
+  Object? _handoffOwner;
+  ObjectBlockToolbarOverlayRequest? _handoffRequest;
+  bool _handoffSourceActive = false;
+  bool _handoffCanRestore = false;
+  bool _disposed = false;
 
   ObjectBlockToolbarOverlayRequest? get request => _request;
 
@@ -119,6 +165,9 @@ class ObjectBlockToolbarOverlayController extends ChangeNotifier {
     String blockId, {
     int? blockIndex,
   }) {
+    if (_disposed) {
+      return null;
+    }
     final anchor = _anchors[blockId];
     if (anchor == null ||
         (blockIndex != null && anchor.blockIndex != blockIndex)) {
@@ -128,11 +177,20 @@ class ObjectBlockToolbarOverlayController extends ChangeNotifier {
   }
 
   void updateAnchor(ObjectBlockToolbarAnchorSnapshot anchor) {
+    if (_disposed) {
+      return;
+    }
     _anchors[anchor.blockId] = anchor;
   }
 
   void unregisterAnchor({required Object owner}) {
+    if (_disposed) {
+      return;
+    }
     _anchors.removeWhere((_, anchor) => identical(anchor.owner, owner));
+    if (_activeHandoffToken != null && identical(_handoffOwner, owner)) {
+      _invalidateHandoffRestore(sourceInactive: true);
+    }
     hide(owner: owner);
   }
 
@@ -140,6 +198,14 @@ class ObjectBlockToolbarOverlayController extends ChangeNotifier {
     ObjectBlockToolbarOverlayRequest request, {
     bool replaceDifferentRequest = true,
   }) {
+    if (_disposed) {
+      return;
+    }
+    if (_activeHandoffToken != null) {
+      _handoffRequest = request;
+      _handoffCanRestore = true;
+      return;
+    }
     final current = _request;
     if (!replaceDifferentRequest &&
         current != null &&
@@ -160,6 +226,17 @@ class ObjectBlockToolbarOverlayController extends ChangeNotifier {
   }
 
   void hide({Object? owner}) {
+    if (_disposed) {
+      return;
+    }
+    if (_activeHandoffToken != null) {
+      if (owner == null) {
+        _invalidateHandoffRestore(sourceInactive: true);
+      } else if (identical(owner, _handoffRequest?.owner)) {
+        _invalidateHandoffRestore();
+      }
+      return;
+    }
     final current = _request;
     if (current == null) {
       return;
@@ -169,6 +246,138 @@ class ObjectBlockToolbarOverlayController extends ChangeNotifier {
     }
     _request = null;
     notifyListeners();
+  }
+
+  /// Hides the active toolbar and prevents anchors from publishing another
+  /// toolbar while a route is entering, active, or leaving.
+  ///
+  /// The returned handoff is inactive when the requested block has no current
+  /// anchor or another handoff already owns this controller.
+  ObjectBlockToolbarOverlayHandoff beginRouteHandoff({
+    required String blockId,
+    required int blockIndex,
+  }) {
+    final token = Object();
+    if (_disposed || _activeHandoffToken != null) {
+      return ObjectBlockToolbarOverlayHandoff._(
+        controller: null,
+        token: token,
+      );
+    }
+    final anchor = anchorFor(blockId, blockIndex: blockIndex);
+    final current = _request;
+    final currentTargetsSource = current != null &&
+        current.blockId == blockId &&
+        current.blockIndex == blockIndex;
+    final sourceOwner = currentTargetsSource ? current.owner : anchor?.owner;
+    if (sourceOwner == null) {
+      return ObjectBlockToolbarOverlayHandoff._(
+        controller: null,
+        token: token,
+      );
+    }
+
+    _activeHandoffToken = token;
+    _handoffBlockId = blockId;
+    _handoffBlockIndex = blockIndex;
+    _handoffOwner = sourceOwner;
+    _handoffRequest = current;
+    _handoffSourceActive = true;
+    _handoffCanRestore = current != null;
+    if (_request != null) {
+      _request = null;
+      notifyListeners();
+    }
+    return ObjectBlockToolbarOverlayHandoff._(
+      controller: this,
+      token: token,
+    );
+  }
+
+  void _invalidateHandoffRestore({bool sourceInactive = false}) {
+    _handoffCanRestore = false;
+    _handoffRequest = null;
+    if (sourceInactive) {
+      _handoffSourceActive = false;
+    }
+  }
+
+  bool _isHandoffActive(Object token) {
+    if (_disposed || !identical(_activeHandoffToken, token)) {
+      return false;
+    }
+    final blockId = _handoffBlockId;
+    final blockIndex = _handoffBlockIndex;
+    final owner = _handoffOwner;
+    if (!_handoffSourceActive ||
+        blockId == null ||
+        blockIndex == null ||
+        owner == null) {
+      return false;
+    }
+    final anchor = anchorFor(blockId, blockIndex: blockIndex);
+    return anchor != null && identical(anchor.owner, owner);
+  }
+
+  void _completeHandoff(Object token, {required bool restore}) {
+    if (_disposed || !identical(_activeHandoffToken, token)) {
+      return;
+    }
+    final canRestore =
+        restore && _handoffCanRestore && _isHandoffActive(token);
+    final candidate = _handoffRequest;
+
+    _activeHandoffToken = null;
+    _handoffBlockId = null;
+    _handoffBlockIndex = null;
+    _handoffOwner = null;
+    _handoffRequest = null;
+    _handoffSourceActive = false;
+    _handoffCanRestore = false;
+
+    if (!canRestore || candidate == null) {
+      return;
+    }
+    final anchor = anchorFor(
+      candidate.blockId,
+      blockIndex: candidate.blockIndex,
+    );
+    if (anchor == null || !identical(anchor.owner, candidate.owner)) {
+      return;
+    }
+    _request = ObjectBlockToolbarOverlayRequest(
+      owner: anchor.owner,
+      anchorLink: anchor.anchorLink,
+      anchorRect: anchor.anchorRect,
+      visibleTop: anchor.visibleTop,
+      visibleBottom: anchor.visibleBottom,
+      blockId: candidate.blockId,
+      blockIndex: candidate.blockIndex,
+      toolbarBuilder: candidate.toolbarBuilder,
+      enabled: candidate.enabled,
+      minWidth: candidate.minWidth,
+      gap: candidate.gap,
+      fallbackHeight: candidate.fallbackHeight,
+    );
+    notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    if (_disposed) {
+      return;
+    }
+    _disposed = true;
+    _request = null;
+    _anchors.clear();
+    _activeHandoffToken = null;
+    _handoffBlockId = null;
+    _handoffBlockIndex = null;
+    _handoffRequest = null;
+    _handoffOwner = null;
+    _handoffSourceActive = false;
+    _handoffCanRestore = false;
+    super.dispose();
   }
 }
 

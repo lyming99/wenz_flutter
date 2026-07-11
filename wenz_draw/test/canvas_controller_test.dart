@@ -479,4 +479,48 @@ void main() {
     expect(element.rect, const Rect.fromLTWH(0, 0, 200, 100));
     expect(element.labelStyle.fontSize, 32);
   });
+
+  test('updateCurveArrow updates only arrow settings and records history', () {
+    final controller = CanvasController();
+    const curve = CurveElement(
+      id: 'curve-1',
+      start: Offset.zero,
+      control: Offset(50, 80),
+      end: Offset(100, 0),
+      style: PaintStyle(color: Color(0xFF8844CC), strokeWidth: 3),
+      headSize: 18,
+      zIndex: 5,
+    );
+    controller.addElement(curve, record: false);
+
+    controller.updateCurveArrow('curve-1', endArrow: true, headSize: 24);
+    final enabled = controller.elementById('curve-1') as CurveElement;
+    expect(enabled.endArrow, isTrue);
+    expect(enabled.headSize, 24);
+    expect(enabled.start, curve.start);
+    expect(enabled.control, curve.control);
+    expect(enabled.end, curve.end);
+    expect(enabled.style, curve.style);
+    expect(enabled.zIndex, curve.zIndex);
+
+    controller.updateCurveArrow('curve-1', endArrow: false);
+    final disabled = controller.elementById('curve-1') as CurveElement;
+    expect(disabled.endArrow, isFalse);
+    expect(disabled.headSize, 24);
+
+    controller.updateCurveArrow('curve-1', endArrow: true);
+    final reenabled = controller.elementById('curve-1') as CurveElement;
+    expect(reenabled.endArrow, isTrue);
+    expect(reenabled.headSize, 24);
+
+    controller.undo();
+    final undone = controller.elementById('curve-1') as CurveElement;
+    expect(undone.endArrow, isFalse);
+    expect(undone.headSize, 24);
+
+    controller.redo();
+    final redone = controller.elementById('curve-1') as CurveElement;
+    expect(redone.endArrow, isTrue);
+    expect(redone.headSize, 24);
+  });
 }

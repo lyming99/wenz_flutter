@@ -9,9 +9,21 @@ import '../utils/uuid_generator.dart';
 import 'canvas_tool.dart';
 
 class PolylineTool extends CanvasTool {
-  PolylineTool();
+  PolylineTool({
+    this.endArrow = false,
+    String? id,
+    String? name,
+    IconData? icon,
+  }) : _id = id ?? idValue,
+       _name = name ?? 'Polyline',
+       _icon = icon ?? Icons.account_tree_outlined;
 
   static const idValue = 'polyline';
+
+  final bool endArrow;
+  final String _id;
+  final String _name;
+  final IconData _icon;
 
   Offset? _start;
   Offset? _current;
@@ -19,13 +31,15 @@ class PolylineTool extends CanvasTool {
   SnapResult? _currentSnap;
 
   @override
-  String get id => idValue;
+  String get id => _id;
 
   @override
-  String get name => 'Polyline';
+  String get name => _name;
 
   @override
-  IconData get icon => Icons.account_tree_outlined;
+  IconData get icon => _icon;
+
+  String get _previewId => '__preview_${id}__';
 
   @override
   void cancel(CanvasController controller) {
@@ -90,6 +104,7 @@ class PolylineTool extends CanvasTool {
             style: controller.brushSettings.strokeStyle,
             startBinding: startBinding,
             endBinding: endBinding,
+            endArrow: endArrow,
           ),
         );
       default:
@@ -101,7 +116,7 @@ class PolylineTool extends CanvasTool {
     final start = _start ?? Offset.zero;
     final end = _current ?? start;
     return PolylineElement(
-      id: '__preview_polyline__',
+      id: _previewId,
       points: _route(
         controller,
         start,
@@ -111,6 +126,9 @@ class PolylineTool extends CanvasTool {
         quality: controller.connectorRoutingOptions.finalQuality,
       ),
       style: controller.brushSettings.strokeStyle.copyWith(opacity: 0.72),
+      startBinding: _startSnap?.binding,
+      endBinding: _currentSnap?.binding,
+      endArrow: endArrow,
     );
   }
 
@@ -127,7 +145,7 @@ class PolylineTool extends CanvasTool {
       end: end,
       startBinding: startBinding,
       endBinding: endBinding,
-      connectorId: '__preview_polyline__',
+      connectorId: _previewId,
       quality: quality,
     );
   }

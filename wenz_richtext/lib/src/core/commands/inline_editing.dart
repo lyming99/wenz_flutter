@@ -270,6 +270,77 @@ TextAttributes _withoutTextColor(TextAttributes attrs) {
   );
 }
 
+List<InlineNode> clearInlineTextBackground(
+  List<InlineNode> nodes,
+  int start,
+  int end,
+) {
+  if (end <= start) {
+    return nodes.map((node) => node.copy()).toList();
+  }
+
+  final result = <InlineNode>[];
+  var cursor = 0;
+  for (final node in nodes) {
+    final nodeStart = cursor;
+    final nodeEnd = cursor + inlineLength(node);
+    cursor = nodeEnd;
+
+    if (nodeEnd <= start || nodeStart >= end) {
+      result.add(node.copy());
+      continue;
+    }
+
+    if (node is TextRun) {
+      final localStart = start > nodeStart ? start - nodeStart : 0;
+      final localEnd = end < nodeEnd ? end - nodeStart : node.text.length;
+      final before = node.text.substring(0, localStart);
+      final middle = node.text.substring(localStart, localEnd);
+      final after = node.text.substring(localEnd);
+      if (before.isNotEmpty) {
+        result.add(TextRun(text: before, attributes: node.attributes));
+      }
+      if (middle.isNotEmpty) {
+        result.add(
+          TextRun(
+            text: middle,
+            attributes: _withoutTextBackground(node.attributes),
+          ),
+        );
+      }
+      if (after.isNotEmpty) {
+        result.add(TextRun(text: after, attributes: node.attributes));
+      }
+    } else if (node is InlineEmbed) {
+      result.add(
+        InlineEmbed(
+          embedType: node.embedType,
+          data: node.data,
+          attributes: _withoutTextBackground(node.attributes),
+        ),
+      );
+    }
+  }
+
+  return mergeTextRuns(result);
+}
+
+TextAttributes _withoutTextBackground(TextAttributes attrs) {
+  return TextAttributes(
+    color: attrs.color,
+    bold: attrs.bold,
+    italic: attrs.italic,
+    fontSize: attrs.fontSize,
+    fontFamily: attrs.fontFamily,
+    underline: attrs.underline,
+    lineThrough: attrs.lineThrough,
+    remark: attrs.remark,
+    url: attrs.url,
+    commentIds: attrs.commentIds,
+    revisionIds: attrs.revisionIds,
+  );
+}
+
 InlineSplit splitInline(List<InlineNode> nodes, int offset) {
   final before = <InlineNode>[];
   final after = <InlineNode>[];

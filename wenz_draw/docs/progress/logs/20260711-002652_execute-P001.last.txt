@@ -1,0 +1,13 @@
+已完成 P001，仅修改指定 scope：
+
+- [curve_element.dart](D:/project/GitHub/wenz_flutter/wenz_draw/lib/src/elements/curve_element.dart:14)
+  - 新增可空 `startBinding`、`endBinding`
+  - 构造及 `copyWith` 支持保留、替换和显式解绑
+  - 平移、缩放时保留绑定
+  - JSON 仅在绑定存在时写入字段
+
+- [canvas_serializer.dart](D:/project/GitHub/wenz_flutter/wenz_draw/lib/src/serialization/canvas_serializer.dart:348)
+  - 曲线反序列化恢复端点绑定
+  - 缺少绑定字段的旧文档继续按未绑定曲线载入
+
+未修改 plan 文件，未执行测试、构建、lint 或 analyze。

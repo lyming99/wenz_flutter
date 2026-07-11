@@ -1,0 +1,2824 @@
+OpenAI Codex v0.144.1
+--------
+workdir: D:\project\GitHub\wenz_flutter\wenz_draw
+model: gpt-5.6-sol
+provider: openai
+approval: never
+sandbox: workspace-write [workdir, /tmp, $TMPDIR]
+reasoning effort: xhigh
+reasoning summaries: none
+session id: 019f4cf0-f91f-7832-a1bf-3eb05051faaf
+--------
+user
+你是开发执行者，在无人值守模式下工作：禁止反问用户、禁止请求确认或补充信息、禁止输出“请告诉我…/是否需要…”之类等待回复的话；遇到不确定一律自行从代码推断，按最合理的工程方案直接推进，不要停下来等待输入。
+请只执行指定任务 P002，不要提前执行其它任务，也不要顺手处理其它 checkbox。
+
+plan 文件（只读）：D:\project\GitHub\wenz_flutter\wenz_draw\docs\plan\plan_requirement_3_20260711-003151.md
+指定任务：- [ ] P002: 补充顶部工具栏标识箭头入口的交互回归覆盖 <!-- scope: test/toolbar_test.dart -->
+任务 scope：test/toolbar_test.dart
+
+完成后必须：
+- 当前任务已恢复同一 plan 前序任务的 Codex 会话，请沿用已有分析结论和修改背景，避免重新从零梳理
+- 这是无人值守执行：不要提问、不要请求确认、不要等待用户输入，所有不确定项自行基于代码推断并直接落地修改
+- plan 文件是只读上下文：不要修改 plan 文件，不要勾选 checkbox，不要更新 plan 进度区
+- AutoPlan 会在任务成功后统一写回数据库、checkbox 和进度区
+- 只修改当前任务 scope 直接相关的业务文件
+- 当前阶段只做开发修改，不运行测试、回归、验收、构建、lint/analyze、coverage、e2e 或 benchmark 命令；AutoPlan 会在所有任务完成后统一执行最终验收命令
+- 即使任务验收要点提到测试，也只补充或调整必要代码/测试文件，不在当前任务内启动测试进程；除非当前任务或 plan 总体说明明确写着“本任务必须执行某命令”
+- 若识别到 Flutter/Dart 项目，可遵循其代码组织、格式和测试文件约定，但当前任务内不要运行 flutter test、dart test、flutter analyze 或 dart analyze
+- 如果工具链命令因 PathAccessException、Permission denied、拒绝访问或超时失败，停止重试并说明环境阻塞，把验证留给最终验收阶段
+- 不输出完整 diff、源码全文或长文件列表
+- 中文文件读写使用 UTF-8
+2026-07-10T16:53:38.771924Z ERROR codex_models_manager::manager: failed to refresh available models: timeout waiting for child process to exit
+codex
+我会沿用 P001 的实现背景，仅在 `test/toolbar_test.dart` 补齐入口定位、精确工具切换、拖拽成形与样式继承、互斥高亮和窄视口滚动回归；本阶段不启动任何测试或分析命令。
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "Write-Output '---TARGET---'; Get-Content -LiteralPath 'test\\toolbar_test.dart' -Encoding UTF8; Write-Output '---TARGET STATUS---'; git status --short -- test/toolbar_test.dart lib/src/ui/toolbar/toolbar.dart docs/plan/plan_requirement_3_20260711-003151.md; Write-Output '---TARGET DIFF---'; git diff -- test/toolbar_test.dart; Write-Output '---CANVAS TEST PATTERNS---'; rg -n \"CanvasPointerDownEvent|ToolResultElement|handleEvent\\(|dispatch\\(|brushSettings|updateBrushSettings|DrawioShapeElement|dragFrom|InfiniteCanvas\" test -g '*.dart' | Select-Object -First 260" in D:\project\GitHub\wenz_flutter\wenz_draw
+2026-07-10T16:54:02.060244Z ERROR codex_core::tools::router: error=Exit code: 1
+Wall time: 1.9 seconds
+Output:
+---TARGET---
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:wenz_draw/src/ui/toolbar/toolbar.dart';
+import 'package:wenz_draw/wenz_draw.dart';
+
+void main() {
+  group('Toolbar component insert menu', () {
+    testWidgets('shows mindmap with an icon distinct from curve', (
+      tester,
+    ) async {
+      await _pumpToolbar(tester);
+
+      expect(find.byIcon(Icons.timeline), findsOneWidget);
+
+      await tester.tap(find.byTooltip('特殊组件创建'));
+      await tester.pumpAndSettle();
+
+      final mindmapText = find.text('思维导图');
+      expect(mindmapText, findsOneWidget);
+
+      final mindmapItem = find.ancestor(
+        of: mindmapText,
+        matching: find.byWidgetPredicate(
+          (widget) => widget is PopupMenuItem<String>,
+        ),
+      );
+      expect(mindmapItem, findsOneWidget);
+      expect(
+        find.descendant(
+          of: mindmapItem,
+          matching: find.byIcon(Icons.account_tree_outlined),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: mindmapItem,
+          matching: find.byIcon(Icons.timeline),
+        ),
+        findsNothing,
+      );
+      expect(find.byIcon(Icons.timeline), findsOneWidget);
+    });
+
+    testWidgets('selecting mindmap calls only the mindmap callback', (
+      tester,
+    ) async {
+      final harness = await _pumpToolbar(tester);
+
+      await tester.tap(find.byTooltip('曲线'));
+      await tester.pump();
+
+      expect(harness.canvasController.currentTool?.id, CurveTool.idValue);
+      expect(find.byIcon(Icons.timeline), findsOneWidget);
+
+      await tester.tap(find.byTooltip('特殊组件创建'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('思维导图'));
+      await tester.pumpAndSettle();
+
+      expect(harness.mindmapAdds, 1);
+      expect(harness.stickyNoteAdds, 0);
+      expect(harness.counterAdds, 0);
+      expect(harness.canvasController.currentTool?.id, CurveTool.idValue);
+    });
+  });
+}
+
+Future<_ToolbarHarness> _pumpToolbar(WidgetTester tester) async {
+  final harness = _ToolbarHarness();
+  addTearDown(harness.dispose);
+
+  await tester.pumpWidget(
+    MaterialApp(
+      home: Scaffold(
+        body: Align(
+          alignment: Alignment.topCenter,
+          child: Toolbar(
+            canvasController: harness.canvasController,
+            viewController: harness.viewController,
+            onAddStickyNote: () => harness.stickyNoteAdds++,
+            onAddCounter: () => harness.counterAdds++,
+            onAddMindmap: () => harness.mindmapAdds++,
+            onInsertImage: () => harness.imageInserts++,
+          ),
+        ),
+      ),
+    ),
+  );
+
+  return harness;
+}
+
+class _ToolbarHarness {
+  _ToolbarHarness() {
+    viewController = InfiniteCanvasController(
+      canvasController: canvasController,
+    );
+  }
+
+  final CanvasController canvasController = CanvasController();
+  late final InfiniteCanvasController viewController;
+  int stickyNoteAdds = 0;
+  int counterAdds = 0;
+  int mindmapAdds = 0;
+  int imageInserts = 0;
+
+  void dispose() {
+    viewController.dispose();
+    canvasController.dispose();
+  }
+}
+---TARGET STATUS---
+ M lib/src/ui/toolbar/toolbar.dart
+?? docs/plan/plan_requirement_3_20260711-003151.md
+?? test/toolbar_test.dart
+---TARGET DIFF---
+---CANVAS TEST PATTERNS---
+rg : 无法将“rg”项识别为 cmdlet、函数、脚本文件或可运行程序的名称。请检查名称的拼写，如果包括路径，请确保路径正确，然后再试一次。
+所在位置 行:2 字符: 371
++ ... lbar_test.dart; Write-Output '---CANVAS TEST PATTERNS---'; rg -n "Can ...
++                                                                ~~
+    + CategoryInfo          : ObjectNotFound: (rg:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+ 
+
+ exited 1 in 1882ms:
+---TARGET---
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:wenz_draw/src/ui/toolbar/toolbar.dart';
+import 'package:wenz_draw/wenz_draw.dart';
+
+void main() {
+  group('Toolbar component insert menu', () {
+    testWidgets('shows mindmap with an icon distinct from curve', (
+      tester,
+    ) async {
+      await _pumpToolbar(tester);
+
+      expect(find.byIcon(Icons.timeline), findsOneWidget);
+
+      await tester.tap(find.byTooltip('特殊组件创建'));
+      await tester.pumpAndSettle();
+
+      final mindmapText = find.text('思维导图');
+      expect(mindmapText, findsOneWidget);
+
+      final mindmapItem = find.ancestor(
+        of: mindmapText,
+        matching: find.byWidgetPredicate(
+          (widget) => widget is PopupMenuItem<String>,
+        ),
+      );
+      expect(mindmapItem, findsOneWidget);
+      expect(
+        find.descendant(
+          of: mindmapItem,
+          matching: find.byIcon(Icons.account_tree_outlined),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: mindmapItem,
+          matching: find.byIcon(Icons.timeline),
+        ),
+        findsNothing,
+      );
+      expect(find.byIcon(Icons.timeline), findsOneWidget);
+    });
+
+    testWidgets('selecting mindmap calls only the mindmap callback', (
+      tester,
+    ) async {
+      final harness = await _pumpToolbar(tester);
+
+      await tester.tap(find.byTooltip('曲线'));
+      await tester.pump();
+
+      expect(harness.canvasController.currentTool?.id, CurveTool.idValue);
+      expect(find.byIcon(Icons.timeline), findsOneWidget);
+
+      await tester.tap(find.byTooltip('特殊组件创建'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('思维导图'));
+      await tester.pumpAndSettle();
+
+      expect(harness.mindmapAdds, 1);
+      expect(harness.stickyNoteAdds, 0);
+      expect(harness.counterAdds, 0);
+      expect(harness.canvasController.currentTool?.id, CurveTool.idValue);
+    });
+  });
+}
+
+Future<_ToolbarHarness> _pumpToolbar(WidgetTester tester) async {
+  final harness = _ToolbarHarness();
+  addTearDown(harness.dispose);
+
+  await tester.pumpWidget(
+    MaterialApp(
+      home: Scaffold(
+        body: Align(
+          alignment: Alignment.topCenter,
+          child: Toolbar(
+            canvasController: harness.canvasController,
+            viewController: harness.viewController,
+            onAddStickyNote: () => harness.stickyNoteAdds++,
+            onAddCounter: () => harness.counterAdds++,
+            onAddMindmap: () => harness.mindmapAdds++,
+            onInsertImage: () => harness.imageInserts++,
+          ),
+        ),
+      ),
+    ),
+  );
+
+  return harness;
+}
+
+class _ToolbarHarness {
+  _ToolbarHarness() {
+    viewController = InfiniteCanvasController(
+      canvasController: canvasController,
+    );
+  }
+
+  final CanvasController canvasController = CanvasController();
+  late final InfiniteCanvasController viewController;
+  int stickyNoteAdds = 0;
+  int counterAdds = 0;
+  int mindmapAdds = 0;
+  int imageInserts = 0;
+
+  void dispose() {
+    viewController.dispose();
+    canvasController.dispose();
+  }
+}
+---TARGET STATUS---
+ M lib/src/ui/toolbar/toolbar.dart
+?? docs/plan/plan_requirement_3_20260711-003151.md
+?? test/toolbar_test.dart
+---TARGET DIFF---
+---CANVAS TEST PATTERNS---
+rg : 无法将“rg”项识别为 cmdlet、函数、脚本文件或可运行程序的名称。请检查名称的拼写，如果包括路径，请确保路径正确，然后再试一次。
+所在位置 行:2 字符: 371
++ ... lbar_test.dart; Write-Output '---CANVAS TEST PATTERNS---'; rg -n "Can ...
++                                                                ~~
+    + CategoryInfo          : ObjectNotFound: (rg:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+ 
+
+codex
+`test/toolbar_test.dart` 当前是已有的未跟踪文件，内容包含前序“思维导图”回归；我会完整保留并在其上增补 P002。当前环境没有 `rg`，因此改用 PowerShell 只读检索相关测试范式，不会重试该命令。
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command '$files = Get-ChildItem -LiteralPath '"'test' -Recurse -Filter '*.dart' -File; "'$patterns = '"'CanvasPointerDownEvent|ToolResultElement|handleEvent\\(|dispatch\\(|brushSettings|updateBrushSettings|DrawioShapeElement|dragFrom|InfiniteCanvas'; "'$files | Select-String -Pattern $patterns -Encoding UTF8 | Select-Object -First 320 | ForEach-Object { '"'{0}:{1}:{2}' -f "'$_.Path,$_.LineNumber,$_.Line.Trim() }' in D:\project\GitHub\wenz_flutter\wenz_draw
+ succeeded in 808ms:
+D:\project\GitHub\wenz_flutter\wenz_draw\test\canvas_config_test.dart:10:/// - InfiniteCanvasConfig defaults (all gestures enabled, fling on)
+D:\project\GitHub\wenz_flutter\wenz_draw\test\canvas_config_test.dart:13:group('InfiniteCanvasController scale bounds', () {
+D:\project\GitHub\wenz_flutter\wenz_draw\test\canvas_config_test.dart:15:final controller = InfiniteCanvasController(
+D:\project\GitHub\wenz_flutter\wenz_draw\test\canvas_config_test.dart:27:final controller = InfiniteCanvasController(
+D:\project\GitHub\wenz_flutter\wenz_draw\test\canvas_config_test.dart:39:final controller = InfiniteCanvasController(
+D:\project\GitHub\wenz_flutter\wenz_draw\test\canvas_config_test.dart:48:group('InfiniteCanvasConfig defaults', () {
+D:\project\GitHub\wenz_flutter\wenz_draw\test\canvas_config_test.dart:50:const config = InfiniteCanvasConfig();
+D:\project\GitHub\wenz_flutter\wenz_draw\test\canvas_config_test.dart:59:const config = InfiniteCanvasConfig();
+D:\project\GitHub\wenz_flutter\wenz_draw\test\canvas_config_test.dart:64:const config = InfiniteCanvasConfig();
+D:\project\GitHub\wenz_flutter\wenz_draw\test\canvas_config_test.dart:70:const config = InfiniteCanvasConfig(
+D:\project\GitHub\wenz_flutter\wenz_draw\test\canvas_controller_test.dart:11:..updateBrushSettings(
+D:\project\GitHub\wenz_flutter\wenz_draw\test\canvas_controller_test.dart:12:const BrushSettings(
+D:\project\GitHub\wenz_flutter\wenz_draw\test\canvas_controller_test.dart:21:const CanvasPointerDownEvent(
+D:\project\GitHub\wenz_flutter\wenz_draw\test\canvas_controller_test.dart:30:expect(controller.previewElement, isA<DrawioShapeElement>());
+D:\project\GitHub\wenz_flutter\wenz_draw\test\canvas_controller_test.dart:32:(controller.previewElement! as DrawioShapeElement).shapeKey,
+D:\project\GitHub\wenz_flutter\wenz_draw\test\canvas_controller_test.dart:55:final element = controller.elements.single as DrawioShapeElement;
+D:\project\GitHub\wenz_flutter\wenz_draw\test\canvas_controller_test.dart:407:const CanvasPointerDownEvent(
+D:\project\GitHub\wenz_flutter\wenz_draw\test\canvas_controller_test.dart:456:const CanvasPointerDownEvent(
+D:\project\GitHub\wenz_flutter\wenz_draw\test\clipboard_test.dart:514:const CanvasPointerDownEvent(
+D:\project\GitHub\wenz_flutter\wenz_draw\test\drawio_importer_test.dart:82:as DrawioShapeElement;
+D:\project\GitHub\wenz_flutter\wenz_draw\test\drawio_shape_element_test.dart:9:const element = DrawioShapeElement(
+D:\project\GitHub\wenz_flutter\wenz_draw\test\drawio_shape_element_test.dart:25:as DrawioShapeElement;
+D:\project\GitHub\wenz_flutter\wenz_draw\test\drawio_shape_element_test.dart:80:const filled = DrawioShapeElement(
+D:\project\GitHub\wenz_flutter\wenz_draw\test\drawio_shape_element_test.dart:89:const strokeOnly = DrawioShapeElement(
+D:\project\GitHub\wenz_flutter\wenz_draw\test\drawio_shape_element_test.dart:99:const element = DrawioShapeElement(
+D:\project\GitHub\wenz_flutter\wenz_draw\test\drawio_shape_element_test.dart:115:const element = DrawioShapeElement(
+D:\project\GitHub\wenz_flutter\wenz_draw\test\drawio_shape_element_test.dart:152:DrawioShapeElement(
+D:\project\GitHub\wenz_flutter\wenz_draw\test\drawio_shape_element_test.dart:210:DrawioShapeElement(
+D:\project\GitHub\wenz_flutter\wenz_draw\test\drawio_shape_element_test.dart:285:DrawioShapeElement(
+D:\project\GitHub\wenz_flutter\wenz_draw\test\drawio_style_parser_test.dart:71:as DrawioShapeElement;
+D:\project\GitHub\wenz_flutter\wenz_draw\test\infinite_canvas_text_editing_test.dart:11:group('InfiniteCanvasWidget text editing toolbar', () {
+D:\project\GitHub\wenz_flutter\wenz_draw\test\infinite_canvas_text_editing_test.dart:271:body: InfiniteCanvasWidget(
+D:\project\GitHub\wenz_flutter\wenz_draw\test\infinite_canvas_text_editing_test.dart:273:config: const InfiniteCanvasConfig(gridType: GridType.none),
+D:\project\GitHub\wenz_flutter\wenz_draw\test\infinite_canvas_text_editing_test.dart:325:viewController = InfiniteCanvasController(
+D:\project\GitHub\wenz_flutter\wenz_draw\test\infinite_canvas_text_editing_test.dart:332:late final InfiniteCanvasController viewController;
+D:\project\GitHub\wenz_flutter\wenz_draw\test\performance_widget_test.dart:127:DrawioShapeElement(
+D:\project\GitHub\wenz_flutter\wenz_draw\test\performance_widget_test.dart:268:expect(controller.elements.whereType<DrawioShapeElement>().length, 125);
+D:\project\GitHub\wenz_flutter\wenz_draw\test\performance_widget_test.dart:273:expect(visible.any((e) => e is DrawioShapeElement), isTrue);
+D:\project\GitHub\wenz_flutter\wenz_draw\test\performance_widget_test.dart:284:expect(doc.elements.whereType<DrawioShapeElement>().length, 125);
+D:\project\GitHub\wenz_flutter\wenz_draw\test\performance_widget_test.dart:291:final viewController = InfiniteCanvasController(
+D:\project\GitHub\wenz_flutter\wenz_draw\test\performance_widget_test.dart:302:.whereType<DrawioShapeElement>()
+D:\project\GitHub\wenz_flutter\wenz_draw\test\performance_widget_test.dart:312:canvasController.elementById(firstShape.id) as DrawioShapeElement;
+D:\project\GitHub\wenz_flutter\wenz_draw\test\performance_widget_test.dart:332:visible.whereType<DrawioShapeElement>().length,
+D:\project\GitHub\wenz_flutter\wenz_draw\test\performance_widget_test.dart:397:final viewController = InfiniteCanvasController(
+D:\project\GitHub\wenz_flutter\wenz_draw\test\performance_widget_test.dart:409:body: InfiniteCanvasWidget(
+D:\project\GitHub\wenz_flutter\wenz_draw\test\performance_widget_test.dart:411:config: const InfiniteCanvasConfig(gridType: GridType.none),
+D:\project\GitHub\wenz_flutter\wenz_draw\test\performance_widget_test.dart:428:final viewController = InfiniteCanvasController(
+D:\project\GitHub\wenz_flutter\wenz_draw\test\performance_widget_test.dart:443:body: InfiniteCanvasWidget(
+D:\project\GitHub\wenz_flutter\wenz_draw\test\performance_widget_test.dart:445:config: const InfiniteCanvasConfig(
+D:\project\GitHub\wenz_flutter\wenz_draw\test\performance_widget_test.dart:473:final viewController = InfiniteCanvasController(
+D:\project\GitHub\wenz_flutter\wenz_draw\test\performance_widget_test.dart:484:body: InfiniteCanvasWidget(
+D:\project\GitHub\wenz_flutter\wenz_draw\test\performance_widget_test.dart:486:config: const InfiniteCanvasConfig(
+D:\project\GitHub\wenz_flutter\wenz_draw\test\performance_widget_test.dart:518:final viewController = InfiniteCanvasController(
+D:\project\GitHub\wenz_flutter\wenz_draw\test\performance_widget_test.dart:529:body: InfiniteCanvasWidget(
+D:\project\GitHub\wenz_flutter\wenz_draw\test\performance_widget_test.dart:531:config: const InfiniteCanvasConfig(
+D:\project\GitHub\wenz_flutter\wenz_draw\test\performance_widget_test.dart:567:final viewController = InfiniteCanvasController(
+D:\project\GitHub\wenz_flutter\wenz_draw\test\performance_widget_test.dart:578:body: InfiniteCanvasWidget(
+D:\project\GitHub\wenz_flutter\wenz_draw\test\performance_widget_test.dart:580:config: const InfiniteCanvasConfig(
+D:\project\GitHub\wenz_flutter\wenz_draw\test\polyline_element_test.dart:193:const CanvasPointerDownEvent(
+D:\project\GitHub\wenz_flutter\wenz_draw\test\polyline_element_test.dart:228:const CanvasPointerDownEvent(
+D:\project\GitHub\wenz_flutter\wenz_draw\test\polyline_element_test.dart:437:const CanvasPointerDownEvent(
+D:\project\GitHub\wenz_flutter\wenz_draw\test\polyline_element_test.dart:487:const CanvasPointerDownEvent(
+D:\project\GitHub\wenz_flutter\wenz_draw\test\polyline_element_test.dart:525:const CanvasPointerDownEvent(
+D:\project\GitHub\wenz_flutter\wenz_draw\test\polyline_element_test.dart:575:const CanvasPointerDownEvent(
+D:\project\GitHub\wenz_flutter\wenz_draw\test\polyline_element_test.dart:626:const CanvasPointerDownEvent(
+D:\project\GitHub\wenz_flutter\wenz_draw\test\roundtrip_closure_test.dart:59:final view1 = InfiniteCanvasController(canvasController: canvas1);
+D:\project\GitHub\wenz_flutter\wenz_draw\test\roundtrip_closure_test.dart:78:final view2 = InfiniteCanvasController(canvasController: canvas2);
+D:\project\GitHub\wenz_flutter\wenz_draw\test\roundtrip_closure_test.dart:181:final view1 = InfiniteCanvasController(canvasController: canvas1);
+D:\project\GitHub\wenz_flutter\wenz_draw\test\roundtrip_closure_test.dart:188:final view2 = InfiniteCanvasController(canvasController: canvas2);
+D:\project\GitHub\wenz_flutter\wenz_draw\test\snap_resolver_test.dart:11:const DrawioShapeElement(
+D:\project\GitHub\wenz_flutter\wenz_draw\test\snap_resolver_test.dart:41:const DrawioShapeElement(
+D:\project\GitHub\wenz_flutter\wenz_draw\test\snap_resolver_test.dart:73:const DrawioShapeElement(
+D:\project\GitHub\wenz_flutter\wenz_draw\test\snap_resolver_test.dart:87:const CanvasPointerDownEvent(
+D:\project\GitHub\wenz_flutter\wenz_draw\test\snap_resolver_test.dart:156:const CanvasPointerDownEvent(
+D:\project\GitHub\wenz_flutter\wenz_draw\test\snap_resolver_test.dart:200:const CanvasPointerDownEvent(
+D:\project\GitHub\wenz_flutter\wenz_draw\test\snap_resolver_test.dart:283:const CanvasPointerDownEvent(
+D:\project\GitHub\wenz_flutter\wenz_draw\test\snap_resolver_test.dart:350:const CanvasPointerDownEvent(
+D:\project\GitHub\wenz_flutter\wenz_draw\test\snap_resolver_test.dart:400:const CanvasPointerDownEvent(
+D:\project\GitHub\wenz_flutter\wenz_draw\test\snap_resolver_test.dart:450:const CanvasPointerDownEvent(
+D:\project\GitHub\wenz_flutter\wenz_draw\test\snap_resolver_test.dart:502:const CanvasPointerDownEvent(
+D:\project\GitHub\wenz_flutter\wenz_draw\test\snap_resolver_test.dart:539:const CanvasPointerDownEvent(
+D:\project\GitHub\wenz_flutter\wenz_draw\test\snap_resolver_test.dart:574:const CanvasPointerDownEvent(
+D:\project\GitHub\wenz_flutter\wenz_draw\test\snap_resolver_test.dart:594:const CanvasPointerDownEvent(
+D:\project\GitHub\wenz_flutter\wenz_draw\test\snap_resolver_test.dart:653:const CanvasPointerDownEvent(
+D:\project\GitHub\wenz_flutter\wenz_draw\test\snap_resolver_test.dart:730:const CanvasPointerDownEvent(
+D:\project\GitHub\wenz_flutter\wenz_draw\test\stencil_parser_test.dart:100:const element = DrawioShapeElement(
+D:\project\GitHub\wenz_flutter\wenz_draw\test\svg_exporter_test.dart:14:const DrawioShapeElement(
+D:\project\GitHub\wenz_flutter\wenz_draw\test\svg_exporter_test.dart:26:final element = document.elements.single as DrawioShapeElement;
+D:\project\GitHub\wenz_flutter\wenz_draw\test\svg_exporter_test.dart:35:const element = DrawioShapeElement(
+D:\project\GitHub\wenz_flutter\wenz_draw\test\svg_exporter_test.dart:62:const element = DrawioShapeElement(
+D:\project\GitHub\wenz_flutter\wenz_draw\test\svg_exporter_test.dart:171:const element = DrawioShapeElement(
+D:\project\GitHub\wenz_flutter\wenz_draw\test\text_element_test.dart:171:const CanvasPointerDownEvent(
+D:\project\GitHub\wenz_flutter\wenz_draw\test\text_element_test.dart:225:const CanvasPointerDownEvent(
+D:\project\GitHub\wenz_flutter\wenz_draw\test\toolbar_test.dart:96:viewController = InfiniteCanvasController(
+D:\project\GitHub\wenz_flutter\wenz_draw\test\toolbar_test.dart:102:late final InfiniteCanvasController viewController;
+D:\project\GitHub\wenz_flutter\wenz_draw\test\widget_element_test.dart:354:final viewController = InfiniteCanvasController(
+D:\project\GitHub\wenz_flutter\wenz_draw\test\routing\routing_test.dart:558:const diamond = DrawioShapeElement(
+D:\project\GitHub\wenz_flutter\wenz_draw\test\routing\routing_test.dart:563:const target = DrawioShapeElement(
+
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "Write-Output '---CANVAS CONTROLLER TEST START---'; "'$lines = Get-Content -LiteralPath '"'test\\canvas_controller_test.dart' -Encoding UTF8; "'$lines[0..90]; Write-Output '"'---CONTROLLER EVENT API---'; "'$src = Get-Content -LiteralPath '"'lib\\src\\canvas\\canvas_controller.dart' -Encoding UTF8; "'$matches = Select-String -InputObject $src -Pattern '"'void handle|ToolResult|dispatch|pointer' -Encoding UTF8; "'$matches | Select-Object -First 80 | ForEach-Object { $_.LineNumber }; Get-ChildItem -LiteralPath '"'lib\\src\\canvas' -Filter '*.dart' -File | Select-String -Pattern 'handleEvent|dispatch\\(' -Encoding UTF8 | ForEach-Object { '{0}:{1}:{2}' -f "'$_.Path,$_.LineNumber,$_.Line.Trim() }; Write-Output '"'---EVENT DEFINITIONS---'; Get-Content -LiteralPath 'lib\\src\\infinite_canvas\\canvas_event.dart' -Encoding UTF8" in D:\project\GitHub\wenz_flutter\wenz_draw
+ succeeded in 868ms:
+---CANVAS CONTROLLER TEST START---
+import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter/widgets.dart';
+import 'package:wenz_draw/wenz_draw.dart';
+
+void main() {
+  test(
+    'built-in shape tools create drawio shape elements from drag gestures',
+    () {
+      final controller = CanvasController();
+      controller
+        ..updateBrushSettings(
+          const BrushSettings(
+            color: Color(0xFF1D4ED8),
+            strokeWidth: 3,
+            fillColor: Color(0xFFE0F2FE),
+          ),
+        )
+        ..setTool(ShapeTool.idFor('rhombus'));
+
+      controller.dispatchCanvasEvent(
+        const CanvasPointerDownEvent(
+          pointer: 1,
+          screenPoint: Offset(20, 30),
+          worldPoint: Offset(20, 30),
+          transform: CanvasTransform.identity,
+          buttons: 1,
+        ),
+      );
+
+      expect(controller.previewElement, isA<DrawioShapeElement>());
+      expect(
+        (controller.previewElement! as DrawioShapeElement).shapeKey,
+        'rhombus',
+      );
+
+      controller.dispatchCanvasEvent(
+        const CanvasPointerMoveEvent(
+          pointer: 1,
+          screenPoint: Offset(120, 90),
+          worldPoint: Offset(120, 90),
+          transform: CanvasTransform.identity,
+          delta: Offset(100, 60),
+          buttons: 1,
+        ),
+      );
+      controller.dispatchCanvasEvent(
+        const CanvasPointerUpEvent(
+          pointer: 1,
+          screenPoint: Offset(120, 90),
+          worldPoint: Offset(120, 90),
+          transform: CanvasTransform.identity,
+        ),
+      );
+
+      final element = controller.elements.single as DrawioShapeElement;
+      expect(element.shapeKey, 'rhombus');
+      expect(element.rect, const Rect.fromLTWH(20, 30, 100, 60));
+      expect(element.strokeStyle.color, const Color(0xFF1D4ED8));
+      expect(element.strokeStyle.strokeWidth, 3);
+      expect(element.fillStyle!.color, const Color(0xFFE0F2FE));
+      expect(controller.previewElement, isNull);
+    },
+  );
+
+  test('adds, selects, and removes elements', () {
+    final controller = CanvasController();
+    const element = LineElement(
+      id: 'line-1',
+      start: Offset.zero,
+      end: Offset(100, 0),
+    );
+
+    controller.addElement(element);
+    expect(controller.elements.single.id, 'line-1');
+
+    controller.select('line-1');
+    expect(controller.selectedIds, {'line-1'});
+
+    controller.removeElement('line-1');
+    expect(controller.elements, isEmpty);
+    expect(controller.selectedIds, isEmpty);
+  });
+
+  test('hitTest returns topmost visible element', () {
+    final controller = CanvasController()
+      ..addElement(
+        const LineElement(
+          id: 'bottom',
+          start: Offset.zero,
+          end: Offset(100, 0),
+          zIndex: 0,
+---CONTROLLER EVENT API---
+1
+D:\project\GitHub\wenz_flutter\wenz_draw\lib\src\canvas\canvas_controller.dart:612:final result = toolManager.dispatch(event, this);
+---EVENT DEFINITIONS---
+import 'package:flutter/gestures.dart';
+import 'package:flutter/services.dart';
+
+import 'canvas_transform.dart';
+
+sealed class CanvasEvent {
+  const CanvasEvent({
+    required this.screenPoint,
+    required this.worldPoint,
+    required this.transform,
+    this.pointerCount = 1,
+  });
+
+  final Offset screenPoint;
+  final Offset worldPoint;
+  final CanvasTransform transform;
+  final int pointerCount;
+}
+
+class CanvasPointerDownEvent extends CanvasEvent {
+  const CanvasPointerDownEvent({
+    required super.screenPoint,
+    required super.worldPoint,
+    required super.transform,
+    super.pointerCount,
+    this.pointer,
+    this.kind,
+    this.buttons = 0,
+    this.pressure = 0.5,
+  });
+
+  final int? pointer;
+  final PointerDeviceKind? kind;
+  final int buttons;
+  final double pressure;
+}
+
+class CanvasPointerMoveEvent extends CanvasEvent {
+  const CanvasPointerMoveEvent({
+    required super.screenPoint,
+    required super.worldPoint,
+    required super.transform,
+    required this.delta,
+    super.pointerCount,
+    this.pointer,
+    this.kind,
+    this.buttons = 0,
+    this.pressure = 0.5,
+  });
+
+  final Offset delta;
+  final int? pointer;
+  final PointerDeviceKind? kind;
+  final int buttons;
+  final double pressure;
+}
+
+class CanvasPointerUpEvent extends CanvasEvent {
+  const CanvasPointerUpEvent({
+    required super.screenPoint,
+    required super.worldPoint,
+    required super.transform,
+    super.pointerCount,
+    this.pointer,
+    this.kind,
+  });
+
+  final int? pointer;
+  final PointerDeviceKind? kind;
+}
+
+class CanvasDoubleTapEvent extends CanvasEvent {
+  const CanvasDoubleTapEvent({
+    required super.screenPoint,
+    required super.worldPoint,
+    required super.transform,
+    super.pointerCount,
+  });
+}
+
+class CanvasLongPressEvent extends CanvasEvent {
+  const CanvasLongPressEvent({
+    required super.screenPoint,
+    required super.worldPoint,
+    required super.transform,
+    super.pointerCount,
+  });
+}
+
+class CanvasScrollEvent extends CanvasEvent {
+  const CanvasScrollEvent({
+    required super.screenPoint,
+    required super.worldPoint,
+    required super.transform,
+    required this.scrollDelta,
+    super.pointerCount,
+  });
+
+  final Offset scrollDelta;
+}
+
+class CanvasKeyEvent extends CanvasEvent {
+  const CanvasKeyEvent({
+    required super.screenPoint,
+    required super.worldPoint,
+    required super.transform,
+    required this.key,
+    required this.isKeyDown,
+    super.pointerCount,
+  });
+
+  final LogicalKeyboardKey key;
+  final bool isKeyDown;
+}
+
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command '$files = Get-ChildItem -LiteralPath '"'test' -Recurse -Filter '*.dart' -File; "'$files | Select-String -Pattern '"'accentSoft|ToolButton|selected.*Tooltip|ancestor\\(|Material\\)' -Encoding UTF8 | Select-Object -First 240 | ForEach-Object { '{0}:{1}:{2}' -f "'$_.Path,$_.LineNumber,$_.Line.Trim() }; Write-Output '"'---TOOL BUTTON---'; Get-Content -LiteralPath 'lib\\src\\ui\\toolbar\\tool_button.dart' -Encoding UTF8; Write-Output '---UI COLORS---'; Get-Content -LiteralPath 'lib\\src\\ui\\theme\\ui_colors.dart' -Encoding UTF8; Write-Output '---CONTROLLER DISPATCH---'; "'$src = Get-Content -LiteralPath '"'lib\\src\\canvas\\canvas_controller.dart' -Encoding UTF8; "'$src[590..650]' in D:\project\GitHub\wenz_flutter\wenz_draw
+ succeeded in 847ms:
+D:\project\GitHub\wenz_flutter\wenz_draw\test\infinite_canvas_text_editing_test.dart:303:.ancestor(of: dot, matching: find.byType(InkResponse))
+D:\project\GitHub\wenz_flutter\wenz_draw\test\toolbar_test.dart:21:final mindmapItem = find.ancestor(
+---TOOL BUTTON---
+import 'package:flutter/material.dart';
+
+import '../theme/ui_colors.dart';
+
+class ToolButton extends StatelessWidget {
+  const ToolButton({
+    required this.label,
+    required this.selected,
+    required this.onPressed,
+    this.icon,
+    this.iconWidget,
+    this.enabled = true,
+  });
+
+  final String label;
+  final IconData? icon;
+  final Widget? iconWidget;
+  final bool selected;
+  final bool enabled;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final foreground = !enabled
+        ? const Color(0xFFB8C2CC)
+        : selected
+            ? UiColors.accent
+            : UiColors.muted;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 2),
+      child: Tooltip(
+        message: label,
+        child: Material(
+          color: selected ? UiColors.accentSoft : Colors.transparent,
+          shape: RoundedRectangleBorder(
+            side: BorderSide(
+              color: selected ? const Color(0xFFC7DDF2) : Colors.transparent,
+            ),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(6),
+            onTap: enabled ? onPressed : null,
+            child: SizedBox(
+              width: 30,
+              height: 30,
+              child: Center(
+                child: IconTheme(
+                  data: IconThemeData(size: 16, color: foreground),
+                  child: iconWidget ?? Icon(icon),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+---UI COLORS---
+import 'package:flutter/material.dart';
+
+class UiColors {
+  const UiColors._();
+
+  static const appBackground = Color(0xFFF3F6F8);
+  static const canvasBackground = Color(0xFFEEF3F7);
+  static const panel = Color(0xFFFFFFFF);
+  static const panelSoft = Color(0xFFF7F9FB);
+  static const line = Color(0xFFD9E1E8);
+  static const text = Color(0xFF18232E);
+  static const muted = Color(0xFF61707F);
+  static const accent = Color(0xFF2476C7);
+  static const accentSoft = Color(0xFFE6F1FB);
+}
+---CONTROLLER DISPATCH---
+      historyManager.execute(
+        BatchCommand(commands: commands, description: 'Clear canvas'),
+        this,
+      );
+    } else {
+      replaceElements(const <CanvasElement>[]);
+    }
+  }
+
+  void setTool(String toolId) {
+    clearPreview();
+    toolManager.setActiveTool(toolId, this);
+    notifyListeners();
+  }
+
+  void updateBrushSettings(BrushSettings settings) {
+    toolManager.updateBrushSettings(settings);
+    notifyListeners();
+  }
+
+  void dispatchCanvasEvent(CanvasEvent event) {
+    final result = toolManager.dispatch(event, this);
+    _handleToolResult(result);
+  }
+
+  void undo() {
+    cancelCurrentInteraction();
+    historyManager.undo(this);
+  }
+
+  void redo() {
+    cancelCurrentInteraction();
+    historyManager.redo(this);
+  }
+
+  void recordCommand(CanvasCommand command) {
+    historyManager.record(command);
+  }
+
+  void addLayer({String? name}) {
+    final layer = CanvasLayer(
+      id: UuidGenerator.create(),
+      name: name ?? 'Layer ${layers.length + 1}',
+    );
+    historyManager.execute(
+      AddLayerCommand(layer: layer, previousActiveLayerId: activeLayerId),
+      this,
+    );
+  }
+
+  void removeLayer(String id) {
+    if (layers.length == 1) {
+      return;
+    }
+    final layer = layerManager.layerById(id);
+    if (layer == null) {
+      return;
+    }
+    final layerIndex = layerManager.layerIndexOf(id);
+    final wasActive = activeLayerId == id;
+    final layerElements = elements
+
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command '$files = Get-ChildItem -LiteralPath '"'test' -Recurse -Filter '*.dart' -File; "'$files | Select-String -Pattern '"'setSurfaceSize|physicalSizeTestValue|view\\.physicalSize|resetPhysicalSize|takeException|RenderFlex|ensureVisible|drag\\(find\\.byType\\(SingleChildScrollView' -Encoding UTF8 | Select-Object -First 260 | ForEach-Object { '{0}:{1}:{2}' -f "'$_.Path,$_.LineNumber,$_.Line.Trim() }; Write-Output '"'---PUBSPEC---'; Get-Content -LiteralPath 'pubspec.yaml' -Encoding UTF8 | Select-Object -First 40; Write-Output '---TEST SDK LOCK---'; Select-String -LiteralPath 'pubspec.lock' -Pattern '"'^  flutter_test:|''^sdks:|dart:|flutter:'"' -Context 0,2 -Encoding UTF8" in D:\project\GitHub\wenz_flutter\wenz_draw
+ succeeded in 817ms:
+D:\project\GitHub\wenz_flutter\wenz_draw\test\infinite_canvas_text_editing_test.dart:43:expect(tester.takeException(), isNull);
+D:\project\GitHub\wenz_flutter\wenz_draw\test\infinite_canvas_text_editing_test.dart:140:expect(tester.takeException(), isNull);
+D:\project\GitHub\wenz_flutter\wenz_draw\test\infinite_canvas_text_editing_test.dart:184:expect(tester.takeException(), isNull);
+D:\project\GitHub\wenz_flutter\wenz_draw\test\infinite_canvas_text_editing_test.dart:236:expect(tester.takeException(), isNull);
+D:\project\GitHub\wenz_flutter\wenz_draw\test\infinite_canvas_text_editing_test.dart:248:expect(tester.takeException(), isNull);
+D:\project\GitHub\wenz_flutter\wenz_draw\test\performance_widget_test.dart:418:expect(tester.takeException(), isNull);
+D:\project\GitHub\wenz_flutter\wenz_draw\test\performance_widget_test.dart:461:expect(tester.takeException(), isNull);
+D:\project\GitHub\wenz_flutter\wenz_draw\test\performance_widget_test.dart:509:expect(tester.takeException(), isNull);
+D:\project\GitHub\wenz_flutter\wenz_draw\test\performance_widget_test.dart:556:expect(tester.takeException(), isNull);
+D:\project\GitHub\wenz_flutter\wenz_draw\test\performance_widget_test.dart:609:expect(tester.takeException(), isNull);
+---PUBSPEC---
+name: wenz_draw
+description: A high-performance Flutter infinite canvas drawing SDK.
+version: 0.1.0
+homepage:
+publish_to: none
+
+environment:
+  sdk: ^3.8.0
+  flutter: ">=3.3.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  uuid: ^4.5.1
+  xml: ^6.5.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  test: ^1.29.0
+
+flutter:
+---TEST SDK LOCK---
+
+> pubspec.lock:124:  flutter:
+  pubspec.lock:125:    dependency: "direct main"
+  pubspec.lock:126:    description: flutter
+> pubspec.lock:129:  flutter_test:
+  pubspec.lock:130:    dependency: "direct dev"
+  pubspec.lock:131:    description: flutter
+> pubspec.lock:491:sdks:
+> pubspec.lock:492:  dart: ">=3.9.0 <4.0.0"
+> pubspec.lock:493:  flutter: ">=3.18.0-18.0.pre.54"
+
+
+
+codex
+回归设计已经收敛为四组：稳定提示文本与实心图标、点击后的精确工具 ID/互斥高亮、通过控制器画布事件完成拖拽并断言 DrawioShapeElement 与画笔样式、窄视口横向滚动到后续操作且无布局异常。现在将这些用例追加到现有测试文件。
+apply patch
+patch: completed
+D:\project\GitHub\wenz_flutter\wenz_draw\test\toolbar_test.dart
+diff --git a/test/toolbar_test.dart b/test/toolbar_test.dart
+index 816cccbc00da11b53a51dcce853c6c84d46e3d4e..714818026aea1f1234b361498a75cb2996ca018f
+--- a/test/toolbar_test.dart
++++ b/test/toolbar_test.dart
+@@ -1,10 +1,178 @@
+-import 'package:flutter/material.dart';
+-import 'package:flutter_test/flutter_test.dart';
+-import 'package:wenz_draw/src/ui/toolbar/toolbar.dart';
+-import 'package:wenz_draw/wenz_draw.dart';
+-
+-void main() {
+-  group('Toolbar component insert menu', () {
++import 'package:flutter/material.dart';
++import 'package:flutter_test/flutter_test.dart';
++import 'package:wenz_draw/src/ui/toolbar/tool_button.dart';
++import 'package:wenz_draw/src/ui/toolbar/toolbar.dart';
++import 'package:wenz_draw/wenz_draw.dart';
++
++void main() {
++  group('Toolbar indicator arrow tool', () {
++    testWidgets('shows a distinct solid indicator arrow entry', (tester) async {
++      final harness = await _pumpToolbar(tester);
++      final indicatorArrow = find.byTooltip('标识箭头');
++
++      expect(indicatorArrow, findsOneWidget);
++      expect(
++        find.descendant(
++          of: indicatorArrow,
++          matching: find.byIcon(Icons.forward),
++        ),
++        findsOneWidget,
++      );
++
++      await tester.tap(indicatorArrow);
++      await tester.pump();
++
++      expect(
++        harness.canvasController.currentTool?.id,
++        ShapeTool.idFor('arrows.arrowRight'),
++      );
++      expect(_toolbarButton(tester, '标识箭头').selected, isTrue);
++      expect(_toolbarButton(tester, '图形').selected, isFalse);
++    });
++
++    testWidgets('creates the arrow shape with current stroke and fill', (
++      tester,
++    ) async {
++      final harness = await _pumpToolbar(tester);
++      harness.canvasController.updateBrushSettings(
++        const BrushSettings(
++          color: Color(0xFF1D4ED8),
++          strokeWidth: 3,
++          fillColor: Color(0xFFE0F2FE),
++        ),
++      );
++
++      await tester.tap(find.byTooltip('标识箭头'));
++      await tester.pump();
++
++      harness.canvasController.dispatchCanvasEvent(
++        const CanvasPointerDownEvent(
++          pointer: 1,
++          screenPoint: Offset(20, 30),
++          worldPoint: Offset(20, 30),
++          transform: CanvasTransform.identity,
++          buttons: 1,
++        ),
++      );
++
++      expect(harness.canvasController.previewElement, isA<DrawioShapeElement>());
++      expect(
++        (harness.canvasController.previewElement! as DrawioShapeElement)
++            .shapeKey,
++        'arrows.arrowRight',
++      );
++
++      harness.canvasController
++        ..dispatchCanvasEvent(
++          const CanvasPointerMoveEvent(
++            pointer: 1,
++            screenPoint: Offset(140, 90),
++            worldPoint: Offset(140, 90),
++            transform: CanvasTransform.identity,
++            delta: Offset(120, 60),
++            buttons: 1,
++          ),
++        )
++        ..dispatchCanvasEvent(
++          const CanvasPointerUpEvent(
++            pointer: 1,
++            screenPoint: Offset(140, 90),
++            worldPoint: Offset(140, 90),
++            transform: CanvasTransform.identity,
++          ),
++        );
++
++      final element = harness.canvasController.elements.single;
++      expect(element, isA<DrawioShapeElement>());
++      expect(element, isNot(isA<ArrowElement>()));
++      final arrowShape = element as DrawioShapeElement;
++      expect(arrowShape.shapeKey, 'arrows.arrowRight');
++      expect(arrowShape.rect, const Rect.fromLTWH(20, 30, 120, 60));
++      expect(arrowShape.strokeStyle.color, const Color(0xFF1D4ED8));
++      expect(arrowShape.strokeStyle.strokeWidth, 3);
++      expect(arrowShape.fillStyle!.color, const Color(0xFFE0F2FE));
++      expect(harness.canvasController.previewElement, isNull);
++    });
++
++    testWidgets('keeps selection feedback exclusive across tool switches', (
++      tester,
++    ) async {
++      final harness = await _pumpToolbar(tester);
++
++      await tester.tap(find.byTooltip('标识箭头'));
++      await tester.pump();
++      await tester.tap(find.byTooltip('选择'));
++      await tester.pump();
++
++      expect(harness.canvasController.currentTool?.id, SelectTool.idValue);
++      expect(_toolbarButton(tester, '选择').selected, isTrue);
++      expect(_toolbarButton(tester, '标识箭头').selected, isFalse);
++      expect(_toolbarButton(tester, '图形').selected, isFalse);
++
++      await tester.tap(find.byTooltip('标识箭头'));
++      await tester.pump();
++      await tester.tap(find.byTooltip('直线'));
++      await tester.pump();
++
++      expect(harness.canvasController.currentTool?.id, LineTool.idValue);
++      expect(_toolbarButton(tester, '直线').selected, isTrue);
++      expect(_toolbarButton(tester, '标识箭头').selected, isFalse);
++      expect(_toolbarButton(tester, '图形').selected, isFalse);
++
++      harness.canvasController.setTool(ShapeTool.idFor('rhombus'));
++      await tester.pump();
++
++      expect(_toolbarButton(tester, '图形').selected, isTrue);
++      expect(_toolbarButton(tester, '标识箭头').selected, isFalse);
++
++      harness.canvasController.setTool(EllipseTool.idValue);
++      await tester.pump();
++
++      expect(_toolbarButton(tester, '图形').selected, isTrue);
++      expect(_toolbarButton(tester, '标识箭头').selected, isFalse);
++    });
++
++    testWidgets('remains horizontally accessible in a narrow viewport', (
++      tester,
++    ) async {
++      tester.view
++        ..physicalSize = const Size(320, 600)
++        ..devicePixelRatio = 1;
++      addTearDown(tester.view.resetPhysicalSize);
++      addTearDown(tester.view.resetDevicePixelRatio);
++
++      await _pumpToolbar(tester);
++
++      final scrollView = find.byType(SingleChildScrollView);
++      expect(scrollView, findsOneWidget);
++      expect(
++        tester.widget<SingleChildScrollView>(scrollView).scrollDirection,
++        Axis.horizontal,
++      );
++
++      final scrollable = find.descendant(
++        of: scrollView,
++        matching: find.byType(Scrollable),
++      );
++      final position = tester.state<ScrollableState>(scrollable).position;
++      expect(position.maxScrollExtent, greaterThan(0));
++
++      final indicatorArrow = find.byTooltip('标识箭头');
++      await tester.ensureVisible(indicatorArrow);
++      await tester.pump();
++      _expectHorizontallyVisible(tester, indicatorArrow, viewportWidth: 320);
++
++      final layers = find.byTooltip('图层');
++      await tester.ensureVisible(layers);
++      await tester.pump();
++      _expectHorizontallyVisible(tester, layers, viewportWidth: 320);
++
++      expect(position.pixels, greaterThan(0));
++      expect(tester.takeException(), isNull);
++    });
++  });
++
++  group('Toolbar component insert menu', () {
+     testWidgets('shows mindmap with an icon distinct from curve', (
+       tester,
+     ) async {
+@@ -63,10 +231,28 @@
+       expect(harness.counterAdds, 0);
+       expect(harness.canvasController.currentTool?.id, CurveTool.idValue);
+     });
+-  });
+-}
+-
+-Future<_ToolbarHarness> _pumpToolbar(WidgetTester tester) async {
++  });
++}
++
++ToolButton _toolbarButton(WidgetTester tester, String label) {
++  final finder = find.byWidgetPredicate(
++    (widget) => widget is ToolButton && widget.label == label,
++  );
++  expect(finder, findsOneWidget);
++  return tester.widget<ToolButton>(finder);
++}
++
++void _expectHorizontallyVisible(
++  WidgetTester tester,
++  Finder finder, {
++  required double viewportWidth,
++}) {
++  final rect = tester.getRect(finder);
++  expect(rect.left, greaterThanOrEqualTo(0));
++  expect(rect.right, lessThanOrEqualTo(viewportWidth));
++}
++
++Future<_ToolbarHarness> _pumpToolbar(WidgetTester tester) async {
+   final harness = _ToolbarHarness();
+   addTearDown(harness.dispose);
+ 
+@@ -109,4 +295,4 @@
+     viewController.dispose();
+     canvasController.dispose();
+   }
+-}
+\ No newline at end of file
++}
+
+diff --git a/test/toolbar_test.dart b/test/toolbar_test.dart
+index 816cccbc00da11b53a51dcce853c6c84d46e3d4e..714818026aea1f1234b361498a75cb2996ca018f
+--- a/test/toolbar_test.dart
++++ b/test/toolbar_test.dart
+@@ -1,10 +1,178 @@
+-import 'package:flutter/material.dart';
+-import 'package:flutter_test/flutter_test.dart';
+-import 'package:wenz_draw/src/ui/toolbar/toolbar.dart';
+-import 'package:wenz_draw/wenz_draw.dart';
+-
+-void main() {
+-  group('Toolbar component insert menu', () {
++import 'package:flutter/material.dart';
++import 'package:flutter_test/flutter_test.dart';
++import 'package:wenz_draw/src/ui/toolbar/tool_button.dart';
++import 'package:wenz_draw/src/ui/toolbar/toolbar.dart';
++import 'package:wenz_draw/wenz_draw.dart';
++
++void main() {
++  group('Toolbar indicator arrow tool', () {
++    testWidgets('shows a distinct solid indicator arrow entry', (tester) async {
++      final harness = await _pumpToolbar(tester);
++      final indicatorArrow = find.byTooltip('标识箭头');
++
++      expect(indicatorArrow, findsOneWidget);
++      expect(
++        find.descendant(
++          of: indicatorArrow,
++          matching: find.byIcon(Icons.forward),
++        ),
++        findsOneWidget,
++      );
++
++      await tester.tap(indicatorArrow);
++      await tester.pump();
++
++      expect(
++        harness.canvasController.currentTool?.id,
++        ShapeTool.idFor('arrows.arrowRight'),
++      );
++      expect(_toolbarButton(tester, '标识箭头').selected, isTrue);
++      expect(_toolbarButton(tester, '图形').selected, isFalse);
++    });
++
++    testWidgets('creates the arrow shape with current stroke and fill', (
++      tester,
++    ) async {
++      final harness = await _pumpToolbar(tester);
++      harness.canvasController.updateBrushSettings(
++        const BrushSettings(
++          color: Color(0xFF1D4ED8),
++          strokeWidth: 3,
++          fillColor: Color(0xFFE0F2FE),
++        ),
++      );
++
++      await tester.tap(find.byTooltip('标识箭头'));
++      await tester.pump();
++
++      harness.canvasController.dispatchCanvasEvent(
++        const CanvasPointerDownEvent(
++          pointer: 1,
++          screenPoint: Offset(20, 30),
++          worldPoint: Offset(20, 30),
++          transform: CanvasTransform.identity,
++          buttons: 1,
++        ),
++      );
++
++      expect(harness.canvasController.previewElement, isA<DrawioShapeElement>());
++      expect(
++        (harness.canvasController.previewElement! as DrawioShapeElement)
++            .shapeKey,
++        'arrows.arrowRight',
++      );
++
++      harness.canvasController
++        ..dispatchCanvasEvent(
++          const CanvasPointerMoveEvent(
++            pointer: 1,
++            screenPoint: Offset(140, 90),
++            worldPoint: Offset(140, 90),
++            transform: CanvasTransform.identity,
++            delta: Offset(120, 60),
++            buttons: 1,
++          ),
++        )
++        ..dispatchCanvasEvent(
++          const CanvasPointerUpEvent(
++            pointer: 1,
++            screenPoint: Offset(140, 90),
++            worldPoint: Offset(140, 90),
++            transform: CanvasTransform.identity,
++          ),
++        );
++
++      final element = harness.canvasController.elements.single;
++      expect(element, isA<DrawioShapeElement>());
++      expect(element, isNot(isA<ArrowElement>()));
++      final arrowShape = element as DrawioShapeElement;
++      expect(arrowShape.shapeKey, 'arrows.arrowRight');
++      expect(arrowShape.rect, const Rect.fromLTWH(20, 30, 120, 60));
++      expect(arrowShape.strokeStyle.color, const Color(0xFF1D4ED8));
++      expect(arrowShape.strokeStyle.strokeWidth, 3);
++      expect(arrowShape.fillStyle!.color, const Color(0xFFE0F2FE));
++      expect(harness.canvasController.previewElement, isNull);
++    });
++
++    testWidgets('keeps selection feedback exclusive across tool switches', (
++      tester,
++    ) async {
++      final harness = await _pumpToolbar(tester);
++
++      await tester.tap(find.byTooltip('标识箭头'));
++      await tester.pump();
++      await tester.tap(find.byTooltip('选择'));
++      await tester.pump();
++
++      expect(harness.canvasController.currentTool?.id, SelectTool.idValue);
++      expect(_toolbarButton(tester, '选择').selected, isTrue);
++      expect(_toolbarButton(tester, '标识箭头').selected, isFalse);
++      expect(_toolbarButton(tester, '图形').selected, isFalse);
++
++      await tester.tap(find.byTooltip('标识箭头'));
++      await tester.pump();
++      await tester.tap(find.byTooltip('直线'));
++      await tester.pump();
++
++      expect(harness.canvasController.currentTool?.id, LineTool.idValue);
++      expect(_toolbarButton(tester, '直线').selected, isTrue);
++      expect(_toolbarButton(tester, '标识箭头').selected, isFalse);
++      expect(_toolbarButton(tester, '图形').selected, isFalse);
++
++      harness.canvasController.setTool(ShapeTool.idFor('rhombus'));
++      await tester.pump();
++
++      expect(_toolbarButton(tester, '图形').selected, isTrue);
++      expect(_toolbarButton(tester, '标识箭头').selected, isFalse);
++
++      harness.canvasController.setTool(EllipseTool.idValue);
++      await tester.pump();
++
++      expect(_toolbarButton(tester, '图形').selected, isTrue);
++      expect(_toolbarButton(tester, '标识箭头').selected, isFalse);
++    });
++
++    testWidgets('remains horizontally accessible in a narrow viewport', (
++      tester,
++    ) async {
++      tester.view
++        ..physicalSize = const Size(320, 600)
++        ..devicePixelRatio = 1;
++      addTearDown(tester.view.resetPhysicalSize);
++      addTearDown(tester.view.resetDevicePixelRatio);
++
++      await _pumpToolbar(tester);
++
++      final scrollView = find.byType(SingleChildScrollView);
++      expect(scrollView, findsOneWidget);
++      expect(
++        tester.widget<SingleChildScrollView>(scrollView).scrollDirection,
++        Axis.horizontal,
++      );
++
++      final scrollable = find.descendant(
++        of: scrollView,
++        matching: find.byType(Scrollable),
++      );
++      final position = tester.state<ScrollableState>(scrollable).position;
++      expect(position.maxScrollExtent, greaterThan(0));
++
++      final indicatorArrow = find.byTooltip('标识箭头');
++      await tester.ensureVisible(indicatorArrow);
++      await tester.pump();
++      _expectHorizontallyVisible(tester, indicatorArrow, viewportWidth: 320);
++
++      final layers = find.byTooltip('图层');
++      await tester.ensureVisible(layers);
++      await tester.pump();
++      _expectHorizontallyVisible(tester, layers, viewportWidth: 320);
++
++      expect(position.pixels, greaterThan(0));
++      expect(tester.takeException(), isNull);
++    });
++  });
++
++  group('Toolbar component insert menu', () {
+     testWidgets('shows mindmap with an icon distinct from curve', (
+       tester,
+     ) async {
+@@ -63,10 +231,28 @@
+       expect(harness.counterAdds, 0);
+       expect(harness.canvasController.currentTool?.id, CurveTool.idValue);
+     });
+-  });
+-}
+-
+-Future<_ToolbarHarness> _pumpToolbar(WidgetTester tester) async {
++  });
++}
++
++ToolButton _toolbarButton(WidgetTester tester, String label) {
++  final finder = find.byWidgetPredicate(
++    (widget) => widget is ToolButton && widget.label == label,
++  );
++  expect(finder, findsOneWidget);
++  return tester.widget<ToolButton>(finder);
++}
++
++void _expectHorizontallyVisible(
++  WidgetTester tester,
++  Finder finder, {
++  required double viewportWidth,
++}) {
++  final rect = tester.getRect(finder);
++  expect(rect.left, greaterThanOrEqualTo(0));
++  expect(rect.right, lessThanOrEqualTo(viewportWidth));
++}
++
++Future<_ToolbarHarness> _pumpToolbar(WidgetTester tester) async {
+   final harness = _ToolbarHarness();
+   addTearDown(harness.dispose);
+ 
+@@ -109,4 +295,4 @@
+     viewController.dispose();
+     canvasController.dispose();
+   }
+-}
+\ No newline at end of file
++}
+
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "Write-Output '---UPDATED TEST---'; Get-Content -LiteralPath 'test\\toolbar_test.dart' -Encoding UTF8; Write-Output '---SCOPED STATUS---'; git status --short -- test/toolbar_test.dart lib/src/ui/toolbar/toolbar.dart docs/plan/plan_requirement_3_20260711-003151.md" in D:\project\GitHub\wenz_flutter\wenz_draw
+ succeeded in 843ms:
+---UPDATED TEST---
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:wenz_draw/src/ui/toolbar/tool_button.dart';
+import 'package:wenz_draw/src/ui/toolbar/toolbar.dart';
+import 'package:wenz_draw/wenz_draw.dart';
+
+void main() {
+  group('Toolbar indicator arrow tool', () {
+    testWidgets('shows a distinct solid indicator arrow entry', (tester) async {
+      final harness = await _pumpToolbar(tester);
+      final indicatorArrow = find.byTooltip('标识箭头');
+
+      expect(indicatorArrow, findsOneWidget);
+      expect(
+        find.descendant(
+          of: indicatorArrow,
+          matching: find.byIcon(Icons.forward),
+        ),
+        findsOneWidget,
+      );
+
+      await tester.tap(indicatorArrow);
+      await tester.pump();
+
+      expect(
+        harness.canvasController.currentTool?.id,
+        ShapeTool.idFor('arrows.arrowRight'),
+      );
+      expect(_toolbarButton(tester, '标识箭头').selected, isTrue);
+      expect(_toolbarButton(tester, '图形').selected, isFalse);
+    });
+
+    testWidgets('creates the arrow shape with current stroke and fill', (
+      tester,
+    ) async {
+      final harness = await _pumpToolbar(tester);
+      harness.canvasController.updateBrushSettings(
+        const BrushSettings(
+          color: Color(0xFF1D4ED8),
+          strokeWidth: 3,
+          fillColor: Color(0xFFE0F2FE),
+        ),
+      );
+
+      await tester.tap(find.byTooltip('标识箭头'));
+      await tester.pump();
+
+      harness.canvasController.dispatchCanvasEvent(
+        const CanvasPointerDownEvent(
+          pointer: 1,
+          screenPoint: Offset(20, 30),
+          worldPoint: Offset(20, 30),
+          transform: CanvasTransform.identity,
+          buttons: 1,
+        ),
+      );
+
+      expect(harness.canvasController.previewElement, isA<DrawioShapeElement>());
+      expect(
+        (harness.canvasController.previewElement! as DrawioShapeElement)
+            .shapeKey,
+        'arrows.arrowRight',
+      );
+
+      harness.canvasController
+        ..dispatchCanvasEvent(
+          const CanvasPointerMoveEvent(
+            pointer: 1,
+            screenPoint: Offset(140, 90),
+            worldPoint: Offset(140, 90),
+            transform: CanvasTransform.identity,
+            delta: Offset(120, 60),
+            buttons: 1,
+          ),
+        )
+        ..dispatchCanvasEvent(
+          const CanvasPointerUpEvent(
+            pointer: 1,
+            screenPoint: Offset(140, 90),
+            worldPoint: Offset(140, 90),
+            transform: CanvasTransform.identity,
+          ),
+        );
+
+      final element = harness.canvasController.elements.single;
+      expect(element, isA<DrawioShapeElement>());
+      expect(element, isNot(isA<ArrowElement>()));
+      final arrowShape = element as DrawioShapeElement;
+      expect(arrowShape.shapeKey, 'arrows.arrowRight');
+      expect(arrowShape.rect, const Rect.fromLTWH(20, 30, 120, 60));
+      expect(arrowShape.strokeStyle.color, const Color(0xFF1D4ED8));
+      expect(arrowShape.strokeStyle.strokeWidth, 3);
+      expect(arrowShape.fillStyle!.color, const Color(0xFFE0F2FE));
+      expect(harness.canvasController.previewElement, isNull);
+    });
+
+    testWidgets('keeps selection feedback exclusive across tool switches', (
+      tester,
+    ) async {
+      final harness = await _pumpToolbar(tester);
+
+      await tester.tap(find.byTooltip('标识箭头'));
+      await tester.pump();
+      await tester.tap(find.byTooltip('选择'));
+      await tester.pump();
+
+      expect(harness.canvasController.currentTool?.id, SelectTool.idValue);
+      expect(_toolbarButton(tester, '选择').selected, isTrue);
+      expect(_toolbarButton(tester, '标识箭头').selected, isFalse);
+      expect(_toolbarButton(tester, '图形').selected, isFalse);
+
+      await tester.tap(find.byTooltip('标识箭头'));
+      await tester.pump();
+      await tester.tap(find.byTooltip('直线'));
+      await tester.pump();
+
+      expect(harness.canvasController.currentTool?.id, LineTool.idValue);
+      expect(_toolbarButton(tester, '直线').selected, isTrue);
+      expect(_toolbarButton(tester, '标识箭头').selected, isFalse);
+      expect(_toolbarButton(tester, '图形').selected, isFalse);
+
+      harness.canvasController.setTool(ShapeTool.idFor('rhombus'));
+      await tester.pump();
+
+      expect(_toolbarButton(tester, '图形').selected, isTrue);
+      expect(_toolbarButton(tester, '标识箭头').selected, isFalse);
+
+      harness.canvasController.setTool(EllipseTool.idValue);
+      await tester.pump();
+
+      expect(_toolbarButton(tester, '图形').selected, isTrue);
+      expect(_toolbarButton(tester, '标识箭头').selected, isFalse);
+    });
+
+    testWidgets('remains horizontally accessible in a narrow viewport', (
+      tester,
+    ) async {
+      tester.view
+        ..physicalSize = const Size(320, 600)
+        ..devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await _pumpToolbar(tester);
+
+      final scrollView = find.byType(SingleChildScrollView);
+      expect(scrollView, findsOneWidget);
+      expect(
+        tester.widget<SingleChildScrollView>(scrollView).scrollDirection,
+        Axis.horizontal,
+      );
+
+      final scrollable = find.descendant(
+        of: scrollView,
+        matching: find.byType(Scrollable),
+      );
+      final position = tester.state<ScrollableState>(scrollable).position;
+      expect(position.maxScrollExtent, greaterThan(0));
+
+      final indicatorArrow = find.byTooltip('标识箭头');
+      await tester.ensureVisible(indicatorArrow);
+      await tester.pump();
+      _expectHorizontallyVisible(tester, indicatorArrow, viewportWidth: 320);
+
+      final layers = find.byTooltip('图层');
+      await tester.ensureVisible(layers);
+      await tester.pump();
+      _expectHorizontallyVisible(tester, layers, viewportWidth: 320);
+
+      expect(position.pixels, greaterThan(0));
+      expect(tester.takeException(), isNull);
+    });
+  });
+
+  group('Toolbar component insert menu', () {
+    testWidgets('shows mindmap with an icon distinct from curve', (
+      tester,
+    ) async {
+      await _pumpToolbar(tester);
+
+      expect(find.byIcon(Icons.timeline), findsOneWidget);
+
+      await tester.tap(find.byTooltip('特殊组件创建'));
+      await tester.pumpAndSettle();
+
+      final mindmapText = find.text('思维导图');
+      expect(mindmapText, findsOneWidget);
+
+      final mindmapItem = find.ancestor(
+        of: mindmapText,
+        matching: find.byWidgetPredicate(
+          (widget) => widget is PopupMenuItem<String>,
+        ),
+      );
+      expect(mindmapItem, findsOneWidget);
+      expect(
+        find.descendant(
+          of: mindmapItem,
+          matching: find.byIcon(Icons.account_tree_outlined),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: mindmapItem,
+          matching: find.byIcon(Icons.timeline),
+        ),
+        findsNothing,
+      );
+      expect(find.byIcon(Icons.timeline), findsOneWidget);
+    });
+
+    testWidgets('selecting mindmap calls only the mindmap callback', (
+      tester,
+    ) async {
+      final harness = await _pumpToolbar(tester);
+
+      await tester.tap(find.byTooltip('曲线'));
+      await tester.pump();
+
+      expect(harness.canvasController.currentTool?.id, CurveTool.idValue);
+      expect(find.byIcon(Icons.timeline), findsOneWidget);
+
+      await tester.tap(find.byTooltip('特殊组件创建'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('思维导图'));
+      await tester.pumpAndSettle();
+
+      expect(harness.mindmapAdds, 1);
+      expect(harness.stickyNoteAdds, 0);
+      expect(harness.counterAdds, 0);
+      expect(harness.canvasController.currentTool?.id, CurveTool.idValue);
+    });
+  });
+}
+
+ToolButton _toolbarButton(WidgetTester tester, String label) {
+  final finder = find.byWidgetPredicate(
+    (widget) => widget is ToolButton && widget.label == label,
+  );
+  expect(finder, findsOneWidget);
+  return tester.widget<ToolButton>(finder);
+}
+
+void _expectHorizontallyVisible(
+  WidgetTester tester,
+  Finder finder, {
+  required double viewportWidth,
+}) {
+  final rect = tester.getRect(finder);
+  expect(rect.left, greaterThanOrEqualTo(0));
+  expect(rect.right, lessThanOrEqualTo(viewportWidth));
+}
+
+Future<_ToolbarHarness> _pumpToolbar(WidgetTester tester) async {
+  final harness = _ToolbarHarness();
+  addTearDown(harness.dispose);
+
+  await tester.pumpWidget(
+    MaterialApp(
+      home: Scaffold(
+        body: Align(
+          alignment: Alignment.topCenter,
+          child: Toolbar(
+            canvasController: harness.canvasController,
+            viewController: harness.viewController,
+            onAddStickyNote: () => harness.stickyNoteAdds++,
+            onAddCounter: () => harness.counterAdds++,
+            onAddMindmap: () => harness.mindmapAdds++,
+            onInsertImage: () => harness.imageInserts++,
+          ),
+        ),
+      ),
+    ),
+  );
+
+  return harness;
+}
+
+class _ToolbarHarness {
+  _ToolbarHarness() {
+    viewController = InfiniteCanvasController(
+      canvasController: canvasController,
+    );
+  }
+
+  final CanvasController canvasController = CanvasController();
+  late final InfiniteCanvasController viewController;
+  int stickyNoteAdds = 0;
+  int counterAdds = 0;
+  int mindmapAdds = 0;
+  int imageInserts = 0;
+
+  void dispose() {
+    viewController.dispose();
+    canvasController.dispose();
+  }
+}
+---SCOPED STATUS---
+ M lib/src/ui/toolbar/toolbar.dart
+?? docs/plan/plan_requirement_3_20260711-003151.md
+?? test/toolbar_test.dart
+
+diff --git a/test/toolbar_test.dart b/test/toolbar_test.dart
+index 816cccbc00da11b53a51dcce853c6c84d46e3d4e..714818026aea1f1234b361498a75cb2996ca018f
+--- a/test/toolbar_test.dart
++++ b/test/toolbar_test.dart
+@@ -1,10 +1,178 @@
+-import 'package:flutter/material.dart';
+-import 'package:flutter_test/flutter_test.dart';
+-import 'package:wenz_draw/src/ui/toolbar/toolbar.dart';
+-import 'package:wenz_draw/wenz_draw.dart';
+-
+-void main() {
+-  group('Toolbar component insert menu', () {
++import 'package:flutter/material.dart';
++import 'package:flutter_test/flutter_test.dart';
++import 'package:wenz_draw/src/ui/toolbar/tool_button.dart';
++import 'package:wenz_draw/src/ui/toolbar/toolbar.dart';
++import 'package:wenz_draw/wenz_draw.dart';
++
++void main() {
++  group('Toolbar indicator arrow tool', () {
++    testWidgets('shows a distinct solid indicator arrow entry', (tester) async {
++      final harness = await _pumpToolbar(tester);
++      final indicatorArrow = find.byTooltip('标识箭头');
++
++      expect(indicatorArrow, findsOneWidget);
++      expect(
++        find.descendant(
++          of: indicatorArrow,
++          matching: find.byIcon(Icons.forward),
++        ),
++        findsOneWidget,
++      );
++
++      await tester.tap(indicatorArrow);
++      await tester.pump();
++
++      expect(
++        harness.canvasController.currentTool?.id,
++        ShapeTool.idFor('arrows.arrowRight'),
++      );
++      expect(_toolbarButton(tester, '标识箭头').selected, isTrue);
++      expect(_toolbarButton(tester, '图形').selected, isFalse);
++    });
++
++    testWidgets('creates the arrow shape with current stroke and fill', (
++      tester,
++    ) async {
++      final harness = await _pumpToolbar(tester);
++      harness.canvasController.updateBrushSettings(
++        const BrushSettings(
++          color: Color(0xFF1D4ED8),
++          strokeWidth: 3,
++          fillColor: Color(0xFFE0F2FE),
++        ),
++      );
++
++      await tester.tap(find.byTooltip('标识箭头'));
++      await tester.pump();
++
++      harness.canvasController.dispatchCanvasEvent(
++        const CanvasPointerDownEvent(
++          pointer: 1,
++          screenPoint: Offset(20, 30),
++          worldPoint: Offset(20, 30),
++          transform: CanvasTransform.identity,
++          buttons: 1,
++        ),
++      );
++
++      expect(harness.canvasController.previewElement, isA<DrawioShapeElement>());
++      expect(
++        (harness.canvasController.previewElement! as DrawioShapeElement)
++            .shapeKey,
++        'arrows.arrowRight',
++      );
++
++      harness.canvasController
++        ..dispatchCanvasEvent(
++          const CanvasPointerMoveEvent(
++            pointer: 1,
++            screenPoint: Offset(140, 90),
++            worldPoint: Offset(140, 90),
++            transform: CanvasTransform.identity,
++            delta: Offset(120, 60),
++            buttons: 1,
++          ),
++        )
++        ..dispatchCanvasEvent(
++          const CanvasPointerUpEvent(
++            pointer: 1,
++            screenPoint: Offset(140, 90),
++            worldPoint: Offset(140, 90),
++            transform: CanvasTransform.identity,
++          ),
++        );
++
++      final element = harness.canvasController.elements.single;
++      expect(element, isA<DrawioShapeElement>());
++      expect(element, isNot(isA<ArrowElement>()));
++      final arrowShape = element as DrawioShapeElement;
++      expect(arrowShape.shapeKey, 'arrows.arrowRight');
++      expect(arrowShape.rect, const Rect.fromLTWH(20, 30, 120, 60));
++      expect(arrowShape.strokeStyle.color, const Color(0xFF1D4ED8));
++      expect(arrowShape.strokeStyle.strokeWidth, 3);
++      expect(arrowShape.fillStyle!.color, const Color(0xFFE0F2FE));
++      expect(harness.canvasController.previewElement, isNull);
++    });
++
++    testWidgets('keeps selection feedback exclusive across tool switches', (
++      tester,
++    ) async {
++      final harness = await _pumpToolbar(tester);
++
++      await tester.tap(find.byTooltip('标识箭头'));
++      await tester.pump();
++      await tester.tap(find.byTooltip('选择'));
++      await tester.pump();
++
++      expect(harness.canvasController.currentTool?.id, SelectTool.idValue);
++      expect(_toolbarButton(tester, '选择').selected, isTrue);
++      expect(_toolbarButton(tester, '标识箭头').selected, isFalse);
++      expect(_toolbarButton(tester, '图形').selected, isFalse);
++
++      await tester.tap(find.byTooltip('标识箭头'));
++      await tester.pump();
++      await tester.tap(find.byTooltip('直线'));
++      await tester.pump();
++
++      expect(harness.canvasController.currentTool?.id, LineTool.idValue);
++      expect(_toolbarButton(tester, '直线').selected, isTrue);
++      expect(_toolbarButton(tester, '标识箭头').selected, isFalse);
++      expect(_toolbarButton(tester, '图形').selected, isFalse);
++
++      harness.canvasController.setTool(ShapeTool.idFor('rhombus'));
++      await tester.pump();
++
++      expect(_toolbarButton(tester, '图形').selected, isTrue);
++      expect(_toolbarButton(tester, '标识箭头').selected, isFalse);
++
++      harness.canvasController.setTool(EllipseTool.idValue);
++      await tester.pump();
++
++      expect(_toolbarButton(tester, '图形').selected, isTrue);
++      expect(_toolbarButton(tester, '标识箭头').selected, isFalse);
++    });
++
++    testWidgets('remains horizontally accessible in a narrow viewport', (
++      tester,
++    ) async {
++      tester.view
++        ..physicalSize = const Size(320, 600)
++        ..devicePixelRatio = 1;
++      addTearDown(tester.view.resetPhysicalSize);
++      addTearDown(tester.view.resetDevicePixelRatio);
++
++      await _pumpToolbar(tester);
++
++      final scrollView = find.byType(SingleChildScrollView);
++      expect(scrollView, findsOneWidget);
++      expect(
++        tester.widget<SingleChildScrollView>(scrollView).scrollDirection,
++        Axis.horizontal,
++      );
++
++      final scrollable = find.descendant(
++        of: scrollView,
++        matching: find.byType(Scrollable),
++      );
++      final position = tester.state<ScrollableState>(scrollable).position;
++      expect(position.maxScrollExtent, greaterThan(0));
++
++      final indicatorArrow = find.byTooltip('标识箭头');
++      await tester.ensureVisible(indicatorArrow);
++      await tester.pump();
++      _expectHorizontallyVisible(tester, indicatorArrow, viewportWidth: 320);
++
++      final layers = find.byTooltip('图层');
++      await tester.ensureVisible(layers);
++      await tester.pump();
++      _expectHorizontallyVisible(tester, layers, viewportWidth: 320);
++
++      expect(position.pixels, greaterThan(0));
++      expect(tester.takeException(), isNull);
++    });
++  });
++
++  group('Toolbar component insert menu', () {
+     testWidgets('shows mindmap with an icon distinct from curve', (
+       tester,
+     ) async {
+@@ -63,10 +231,28 @@
+       expect(harness.counterAdds, 0);
+       expect(harness.canvasController.currentTool?.id, CurveTool.idValue);
+     });
+-  });
+-}
+-
+-Future<_ToolbarHarness> _pumpToolbar(WidgetTester tester) async {
++  });
++}
++
++ToolButton _toolbarButton(WidgetTester tester, String label) {
++  final finder = find.byWidgetPredicate(
++    (widget) => widget is ToolButton && widget.label == label,
++  );
++  expect(finder, findsOneWidget);
++  return tester.widget<ToolButton>(finder);
++}
++
++void _expectHorizontallyVisible(
++  WidgetTester tester,
++  Finder finder, {
++  required double viewportWidth,
++}) {
++  final rect = tester.getRect(finder);
++  expect(rect.left, greaterThanOrEqualTo(0));
++  expect(rect.right, lessThanOrEqualTo(viewportWidth));
++}
++
++Future<_ToolbarHarness> _pumpToolbar(WidgetTester tester) async {
+   final harness = _ToolbarHarness();
+   addTearDown(harness.dispose);
+ 
+@@ -109,4 +295,4 @@
+     viewController.dispose();
+     canvasController.dispose();
+   }
+-}
+\ No newline at end of file
++}
+
+codex
+新增用例已覆盖核心链路并保留原有思维导图测试。复核后再补一处通用“图形”按钮的实际点击断言，以锁定其仍切换到 RectTool，随后继续覆盖其他 ShapeTool 与 EllipseTool 的原有高亮。
+apply patch
+patch: completed
+D:\project\GitHub\wenz_flutter\wenz_draw\test\toolbar_test.dart
+diff --git a/test/toolbar_test.dart b/test/toolbar_test.dart
+index 816cccbc00da11b53a51dcce853c6c84d46e3d4e..ddcc0927e60eb686415780f581808435ad1ac36d
+--- a/test/toolbar_test.dart
++++ b/test/toolbar_test.dart
+@@ -1,10 +1,187 @@
+-import 'package:flutter/material.dart';
+-import 'package:flutter_test/flutter_test.dart';
+-import 'package:wenz_draw/src/ui/toolbar/toolbar.dart';
+-import 'package:wenz_draw/wenz_draw.dart';
+-
+-void main() {
+-  group('Toolbar component insert menu', () {
++import 'package:flutter/material.dart';
++import 'package:flutter_test/flutter_test.dart';
++import 'package:wenz_draw/src/ui/toolbar/tool_button.dart';
++import 'package:wenz_draw/src/ui/toolbar/toolbar.dart';
++import 'package:wenz_draw/wenz_draw.dart';
++
++void main() {
++  group('Toolbar indicator arrow tool', () {
++    testWidgets('shows a distinct solid indicator arrow entry', (tester) async {
++      final harness = await _pumpToolbar(tester);
++      final indicatorArrow = find.byTooltip('标识箭头');
++
++      expect(indicatorArrow, findsOneWidget);
++      expect(
++        find.descendant(
++          of: indicatorArrow,
++          matching: find.byIcon(Icons.forward),
++        ),
++        findsOneWidget,
++      );
++
++      await tester.tap(indicatorArrow);
++      await tester.pump();
++
++      expect(
++        harness.canvasController.currentTool?.id,
++        ShapeTool.idFor('arrows.arrowRight'),
++      );
++      expect(_toolbarButton(tester, '标识箭头').selected, isTrue);
++      expect(_toolbarButton(tester, '图形').selected, isFalse);
++    });
++
++    testWidgets('creates the arrow shape with current stroke and fill', (
++      tester,
++    ) async {
++      final harness = await _pumpToolbar(tester);
++      harness.canvasController.updateBrushSettings(
++        const BrushSettings(
++          color: Color(0xFF1D4ED8),
++          strokeWidth: 3,
++          fillColor: Color(0xFFE0F2FE),
++        ),
++      );
++
++      await tester.tap(find.byTooltip('标识箭头'));
++      await tester.pump();
++
++      harness.canvasController.dispatchCanvasEvent(
++        const CanvasPointerDownEvent(
++          pointer: 1,
++          screenPoint: Offset(20, 30),
++          worldPoint: Offset(20, 30),
++          transform: CanvasTransform.identity,
++          buttons: 1,
++        ),
++      );
++
++      expect(harness.canvasController.previewElement, isA<DrawioShapeElement>());
++      expect(
++        (harness.canvasController.previewElement! as DrawioShapeElement)
++            .shapeKey,
++        'arrows.arrowRight',
++      );
++
++      harness.canvasController
++        ..dispatchCanvasEvent(
++          const CanvasPointerMoveEvent(
++            pointer: 1,
++            screenPoint: Offset(140, 90),
++            worldPoint: Offset(140, 90),
++            transform: CanvasTransform.identity,
++            delta: Offset(120, 60),
++            buttons: 1,
++          ),
++        )
++        ..dispatchCanvasEvent(
++          const CanvasPointerUpEvent(
++            pointer: 1,
++            screenPoint: Offset(140, 90),
++            worldPoint: Offset(140, 90),
++            transform: CanvasTransform.identity,
++          ),
++        );
++
++      final element = harness.canvasController.elements.single;
++      expect(element, isA<DrawioShapeElement>());
++      expect(element, isNot(isA<ArrowElement>()));
++      final arrowShape = element as DrawioShapeElement;
++      expect(arrowShape.shapeKey, 'arrows.arrowRight');
++      expect(arrowShape.rect, const Rect.fromLTWH(20, 30, 120, 60));
++      expect(arrowShape.strokeStyle.color, const Color(0xFF1D4ED8));
++      expect(arrowShape.strokeStyle.strokeWidth, 3);
++      expect(arrowShape.fillStyle!.color, const Color(0xFFE0F2FE));
++      expect(harness.canvasController.previewElement, isNull);
++    });
++
++    testWidgets('keeps selection feedback exclusive across tool switches', (
++      tester,
++    ) async {
++      final harness = await _pumpToolbar(tester);
++
++      await tester.tap(find.byTooltip('标识箭头'));
++      await tester.pump();
++      await tester.tap(find.byTooltip('选择'));
++      await tester.pump();
++
++      expect(harness.canvasController.currentTool?.id, SelectTool.idValue);
++      expect(_toolbarButton(tester, '选择').selected, isTrue);
++      expect(_toolbarButton(tester, '标识箭头').selected, isFalse);
++      expect(_toolbarButton(tester, '图形').selected, isFalse);
++
++      await tester.tap(find.byTooltip('标识箭头'));
++      await tester.pump();
++      await tester.tap(find.byTooltip('直线'));
++      await tester.pump();
++
++      expect(harness.canvasController.currentTool?.id, LineTool.idValue);
++      expect(_toolbarButton(tester, '直线').selected, isTrue);
++      expect(_toolbarButton(tester, '标识箭头').selected, isFalse);
++      expect(_toolbarButton(tester, '图形').selected, isFalse);
++
++      await tester.tap(find.byTooltip('标识箭头'));
++      await tester.pump();
++      await tester.tap(find.byTooltip('图形'));
++      await tester.pump();
++
++      expect(harness.canvasController.currentTool?.id, RectTool.idValue);
++      expect(_toolbarButton(tester, '图形').selected, isTrue);
++      expect(_toolbarButton(tester, '标识箭头').selected, isFalse);
++
++      harness.canvasController.setTool(ShapeTool.idFor('rhombus'));
++      await tester.pump();
++
++      expect(_toolbarButton(tester, '图形').selected, isTrue);
++      expect(_toolbarButton(tester, '标识箭头').selected, isFalse);
++
++      harness.canvasController.setTool(EllipseTool.idValue);
++      await tester.pump();
++
++      expect(_toolbarButton(tester, '图形').selected, isTrue);
++      expect(_toolbarButton(tester, '标识箭头').selected, isFalse);
++    });
++
++    testWidgets('remains horizontally accessible in a narrow viewport', (
++      tester,
++    ) async {
++      tester.view
++        ..physicalSize = const Size(320, 600)
++        ..devicePixelRatio = 1;
++      addTearDown(tester.view.resetPhysicalSize);
++      addTearDown(tester.view.resetDevicePixelRatio);
++
++      await _pumpToolbar(tester);
++
++      final scrollView = find.byType(SingleChildScrollView);
++      expect(scrollView, findsOneWidget);
++      expect(
++        tester.widget<SingleChildScrollView>(scrollView).scrollDirection,
++        Axis.horizontal,
++      );
++
++      final scrollable = find.descendant(
++        of: scrollView,
++        matching: find.byType(Scrollable),
++      );
++      final position = tester.state<ScrollableState>(scrollable).position;
++      expect(position.maxScrollExtent, greaterThan(0));
++
++      final indicatorArrow = find.byTooltip('标识箭头');
++      await tester.ensureVisible(indicatorArrow);
++      await tester.pump();
++      _expectHorizontallyVisible(tester, indicatorArrow, viewportWidth: 320);
++
++      final layers = find.byTooltip('图层');
++      await tester.ensureVisible(layers);
++      await tester.pump();
++      _expectHorizontallyVisible(tester, layers, viewportWidth: 320);
++
++      expect(position.pixels, greaterThan(0));
++      expect(tester.takeException(), isNull);
++    });
++  });
++
++  group('Toolbar component insert menu', () {
+     testWidgets('shows mindmap with an icon distinct from curve', (
+       tester,
+     ) async {
+@@ -63,10 +240,28 @@
+       expect(harness.counterAdds, 0);
+       expect(harness.canvasController.currentTool?.id, CurveTool.idValue);
+     });
+-  });
+-}
+-
+-Future<_ToolbarHarness> _pumpToolbar(WidgetTester tester) async {
++  });
++}
++
++ToolButton _toolbarButton(WidgetTester tester, String label) {
++  final finder = find.byWidgetPredicate(
++    (widget) => widget is ToolButton && widget.label == label,
++  );
++  expect(finder, findsOneWidget);
++  return tester.widget<ToolButton>(finder);
++}
++
++void _expectHorizontallyVisible(
++  WidgetTester tester,
++  Finder finder, {
++  required double viewportWidth,
++}) {
++  final rect = tester.getRect(finder);
++  expect(rect.left, greaterThanOrEqualTo(0));
++  expect(rect.right, lessThanOrEqualTo(viewportWidth));
++}
++
++Future<_ToolbarHarness> _pumpToolbar(WidgetTester tester) async {
+   final harness = _ToolbarHarness();
+   addTearDown(harness.dispose);
+ 
+@@ -109,4 +304,4 @@
+     viewController.dispose();
+     canvasController.dispose();
+   }
+-}
+\ No newline at end of file
++}
+
+diff --git a/test/toolbar_test.dart b/test/toolbar_test.dart
+index 816cccbc00da11b53a51dcce853c6c84d46e3d4e..ddcc0927e60eb686415780f581808435ad1ac36d
+--- a/test/toolbar_test.dart
++++ b/test/toolbar_test.dart
+@@ -1,10 +1,187 @@
+-import 'package:flutter/material.dart';
+-import 'package:flutter_test/flutter_test.dart';
+-import 'package:wenz_draw/src/ui/toolbar/toolbar.dart';
+-import 'package:wenz_draw/wenz_draw.dart';
+-
+-void main() {
+-  group('Toolbar component insert menu', () {
++import 'package:flutter/material.dart';
++import 'package:flutter_test/flutter_test.dart';
++import 'package:wenz_draw/src/ui/toolbar/tool_button.dart';
++import 'package:wenz_draw/src/ui/toolbar/toolbar.dart';
++import 'package:wenz_draw/wenz_draw.dart';
++
++void main() {
++  group('Toolbar indicator arrow tool', () {
++    testWidgets('shows a distinct solid indicator arrow entry', (tester) async {
++      final harness = await _pumpToolbar(tester);
++      final indicatorArrow = find.byTooltip('标识箭头');
++
++      expect(indicatorArrow, findsOneWidget);
++      expect(
++        find.descendant(
++          of: indicatorArrow,
++          matching: find.byIcon(Icons.forward),
++        ),
++        findsOneWidget,
++      );
++
++      await tester.tap(indicatorArrow);
++      await tester.pump();
++
++      expect(
++        harness.canvasController.currentTool?.id,
++        ShapeTool.idFor('arrows.arrowRight'),
++      );
++      expect(_toolbarButton(tester, '标识箭头').selected, isTrue);
++      expect(_toolbarButton(tester, '图形').selected, isFalse);
++    });
++
++    testWidgets('creates the arrow shape with current stroke and fill', (
++      tester,
++    ) async {
++      final harness = await _pumpToolbar(tester);
++      harness.canvasController.updateBrushSettings(
++        const BrushSettings(
++          color: Color(0xFF1D4ED8),
++          strokeWidth: 3,
++          fillColor: Color(0xFFE0F2FE),
++        ),
++      );
++
++      await tester.tap(find.byTooltip('标识箭头'));
++      await tester.pump();
++
++      harness.canvasController.dispatchCanvasEvent(
++        const CanvasPointerDownEvent(
++          pointer: 1,
++          screenPoint: Offset(20, 30),
++          worldPoint: Offset(20, 30),
++          transform: CanvasTransform.identity,
++          buttons: 1,
++        ),
++      );
++
++      expect(harness.canvasController.previewElement, isA<DrawioShapeElement>());
++      expect(
++        (harness.canvasController.previewElement! as DrawioShapeElement)
++            .shapeKey,
++        'arrows.arrowRight',
++      );
++
++      harness.canvasController
++        ..dispatchCanvasEvent(
++          const CanvasPointerMoveEvent(
++            pointer: 1,
++            screenPoint: Offset(140, 90),
++            worldPoint: Offset(140, 90),
++            transform: CanvasTransform.identity,
++            delta: Offset(120, 60),
++            buttons: 1,
++          ),
++        )
++        ..dispatchCanvasEvent(
++          const CanvasPointerUpEvent(
++            pointer: 1,
++            screenPoint: Offset(140, 90),
++            worldPoint: Offset(140, 90),
++            transform: CanvasTransform.identity,
++          ),
++        );
++
++      final element = harness.canvasController.elements.single;
++      expect(element, isA<DrawioShapeElement>());
++      expect(element, isNot(isA<ArrowElement>()));
++      final arrowShape = element as DrawioShapeElement;
++      expect(arrowShape.shapeKey, 'arrows.arrowRight');
++      expect(arrowShape.rect, const Rect.fromLTWH(20, 30, 120, 60));
++      expect(arrowShape.strokeStyle.color, const Color(0xFF1D4ED8));
++      expect(arrowShape.strokeStyle.strokeWidth, 3);
++      expect(arrowShape.fillStyle!.color, const Color(0xFFE0F2FE));
++      expect(harness.canvasController.previewElement, isNull);
++    });
++
++    testWidgets('keeps selection feedback exclusive across tool switches', (
++      tester,
++    ) async {
++      final harness = await _pumpToolbar(tester);
++
++      await tester.tap(find.byTooltip('标识箭头'));
++      await tester.pump();
++      await tester.tap(find.byTooltip('选择'));
++      await tester.pump();
++
++      expect(harness.canvasController.currentTool?.id, SelectTool.idValue);
++      expect(_toolbarButton(tester, '选择').selected, isTrue);
++      expect(_toolbarButton(tester, '标识箭头').selected, isFalse);
++      expect(_toolbarButton(tester, '图形').selected, isFalse);
++
++      await tester.tap(find.byTooltip('标识箭头'));
++      await tester.pump();
++      await tester.tap(find.byTooltip('直线'));
++      await tester.pump();
++
++      expect(harness.canvasController.currentTool?.id, LineTool.idValue);
++      expect(_toolbarButton(tester, '直线').selected, isTrue);
++      expect(_toolbarButton(tester, '标识箭头').selected, isFalse);
++      expect(_toolbarButton(tester, '图形').selected, isFalse);
++
++      await tester.tap(find.byTooltip('标识箭头'));
++      await tester.pump();
++      await tester.tap(find.byTooltip('图形'));
++      await tester.pump();
++
++      expect(harness.canvasController.currentTool?.id, RectTool.idValue);
++      expect(_toolbarButton(tester, '图形').selected, isTrue);
++      expect(_toolbarButton(tester, '标识箭头').selected, isFalse);
++
++      harness.canvasController.setTool(ShapeTool.idFor('rhombus'));
++      await tester.pump();
++
++      expect(_toolbarButton(tester, '图形').selected, isTrue);
++      expect(_toolbarButton(tester, '标识箭头').selected, isFalse);
++
++      harness.canvasController.setTool(EllipseTool.idValue);
++      await tester.pump();
++
++      expect(_toolbarButton(tester, '图形').selected, isTrue);
++      expect(_toolbarButton(tester, '标识箭头').selected, isFalse);
++    });
++
++    testWidgets('remains horizontally accessible in a narrow viewport', (
++      tester,
++    ) async {
++      tester.view
++        ..physicalSize = const Size(320, 600)
++        ..devicePixelRatio = 1;
++      addTearDown(tester.view.resetPhysicalSize);
++      addTearDown(tester.view.resetDevicePixelRatio);
++
++      await _pumpToolbar(tester);
++
++      final scrollView = find.byType(SingleChildScrollView);
++      expect(scrollView, findsOneWidget);
++      expect(
++        tester.widget<SingleChildScrollView>(scrollView).scrollDirection,
++        Axis.horizontal,
++      );
++
++      final scrollable = find.descendant(
++        of: scrollView,
++        matching: find.byType(Scrollable),
++      );
++      final position = tester.state<ScrollableState>(scrollable).position;
++      expect(position.maxScrollExtent, greaterThan(0));
++
++      final indicatorArrow = find.byTooltip('标识箭头');
++      await tester.ensureVisible(indicatorArrow);
++      await tester.pump();
++      _expectHorizontallyVisible(tester, indicatorArrow, viewportWidth: 320);
++
++      final layers = find.byTooltip('图层');
++      await tester.ensureVisible(layers);
++      await tester.pump();
++      _expectHorizontallyVisible(tester, layers, viewportWidth: 320);
++
++      expect(position.pixels, greaterThan(0));
++      expect(tester.takeException(), isNull);
++    });
++  });
++
++  group('Toolbar component insert menu', () {
+     testWidgets('shows mindmap with an icon distinct from curve', (
+       tester,
+     ) async {
+@@ -63,10 +240,28 @@
+       expect(harness.counterAdds, 0);
+       expect(harness.canvasController.currentTool?.id, CurveTool.idValue);
+     });
+-  });
+-}
+-
+-Future<_ToolbarHarness> _pumpToolbar(WidgetTester tester) async {
++  });
++}
++
++ToolButton _toolbarButton(WidgetTester tester, String label) {
++  final finder = find.byWidgetPredicate(
++    (widget) => widget is ToolButton && widget.label == label,
++  );
++  expect(finder, findsOneWidget);
++  return tester.widget<ToolButton>(finder);
++}
++
++void _expectHorizontallyVisible(
++  WidgetTester tester,
++  Finder finder, {
++  required double viewportWidth,
++}) {
++  final rect = tester.getRect(finder);
++  expect(rect.left, greaterThanOrEqualTo(0));
++  expect(rect.right, lessThanOrEqualTo(viewportWidth));
++}
++
++Future<_ToolbarHarness> _pumpToolbar(WidgetTester tester) async {
+   final harness = _ToolbarHarness();
+   addTearDown(harness.dispose);
+ 
+@@ -109,4 +304,4 @@
+     viewController.dispose();
+     canvasController.dispose();
+   }
+-}
+\ No newline at end of file
++}
+
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "Write-Output '---P002 COVERAGE POINTS---'; Select-String -LiteralPath 'test\\toolbar_test.dart' -Pattern \"distinct solid|arrows\\.arrowRight|DrawioShapeElement|ArrowElement|RectTool|rhombus|EllipseTool|narrow viewport|maxScrollExtent|takeException|Toolbar component\" -Encoding UTF8 | ForEach-Object { '{0}:{1}' -f "'$_.LineNumber,$_.Line.Trim() }; Write-Output '"'---SCOPED STATUS---'; git status --short -- test/toolbar_test.dart lib/src/ui/toolbar/toolbar.dart docs/plan/plan_requirement_3_20260711-003151.md" in D:\project\GitHub\wenz_flutter\wenz_draw
+ succeeded in 926ms:
+---P002 COVERAGE POINTS---
+9:testWidgets('shows a distinct solid indicator arrow entry', (tester) async {
+27:ShapeTool.idFor('arrows.arrowRight'),
+58:expect(harness.canvasController.previewElement, isA<DrawioShapeElement>());
+60:(harness.canvasController.previewElement! as DrawioShapeElement)
+62:'arrows.arrowRight',
+86:expect(element, isA<DrawioShapeElement>());
+87:expect(element, isNot(isA<ArrowElement>()));
+88:final arrowShape = element as DrawioShapeElement;
+89:expect(arrowShape.shapeKey, 'arrows.arrowRight');
+127:expect(harness.canvasController.currentTool?.id, RectTool.idValue);
+131:harness.canvasController.setTool(ShapeTool.idFor('rhombus'));
+137:harness.canvasController.setTool(EllipseTool.idValue);
+144:testWidgets('remains horizontally accessible in a narrow viewport', (
+167:expect(position.maxScrollExtent, greaterThan(0));
+180:expect(tester.takeException(), isNull);
+184:group('Toolbar component insert menu', () {
+---SCOPED STATUS---
+ M lib/src/ui/toolbar/toolbar.dart
+?? docs/plan/plan_requirement_3_20260711-003151.md
+?? test/toolbar_test.dart
+
+diff --git a/test/toolbar_test.dart b/test/toolbar_test.dart
+index 816cccbc00da11b53a51dcce853c6c84d46e3d4e..ddcc0927e60eb686415780f581808435ad1ac36d
+--- a/test/toolbar_test.dart
++++ b/test/toolbar_test.dart
+@@ -1,10 +1,187 @@
+-import 'package:flutter/material.dart';
+-import 'package:flutter_test/flutter_test.dart';
+-import 'package:wenz_draw/src/ui/toolbar/toolbar.dart';
+-import 'package:wenz_draw/wenz_draw.dart';
+-
+-void main() {
+-  group('Toolbar component insert menu', () {
++import 'package:flutter/material.dart';
++import 'package:flutter_test/flutter_test.dart';
++import 'package:wenz_draw/src/ui/toolbar/tool_button.dart';
++import 'package:wenz_draw/src/ui/toolbar/toolbar.dart';
++import 'package:wenz_draw/wenz_draw.dart';
++
++void main() {
++  group('Toolbar indicator arrow tool', () {
++    testWidgets('shows a distinct solid indicator arrow entry', (tester) async {
++      final harness = await _pumpToolbar(tester);
++      final indicatorArrow = find.byTooltip('标识箭头');
++
++      expect(indicatorArrow, findsOneWidget);
++      expect(
++        find.descendant(
++          of: indicatorArrow,
++          matching: find.byIcon(Icons.forward),
++        ),
++        findsOneWidget,
++      );
++
++      await tester.tap(indicatorArrow);
++      await tester.pump();
++
++      expect(
++        harness.canvasController.currentTool?.id,
++        ShapeTool.idFor('arrows.arrowRight'),
++      );
++      expect(_toolbarButton(tester, '标识箭头').selected, isTrue);
++      expect(_toolbarButton(tester, '图形').selected, isFalse);
++    });
++
++    testWidgets('creates the arrow shape with current stroke and fill', (
++      tester,
++    ) async {
++      final harness = await _pumpToolbar(tester);
++      harness.canvasController.updateBrushSettings(
++        const BrushSettings(
++          color: Color(0xFF1D4ED8),
++          strokeWidth: 3,
++          fillColor: Color(0xFFE0F2FE),
++        ),
++      );
++
++      await tester.tap(find.byTooltip('标识箭头'));
++      await tester.pump();
++
++      harness.canvasController.dispatchCanvasEvent(
++        const CanvasPointerDownEvent(
++          pointer: 1,
++          screenPoint: Offset(20, 30),
++          worldPoint: Offset(20, 30),
++          transform: CanvasTransform.identity,
++          buttons: 1,
++        ),
++      );
++
++      expect(harness.canvasController.previewElement, isA<DrawioShapeElement>());
++      expect(
++        (harness.canvasController.previewElement! as DrawioShapeElement)
++            .shapeKey,
++        'arrows.arrowRight',
++      );
++
++      harness.canvasController
++        ..dispatchCanvasEvent(
++          const CanvasPointerMoveEvent(
++            pointer: 1,
++            screenPoint: Offset(140, 90),
++            worldPoint: Offset(140, 90),
++            transform: CanvasTransform.identity,
++            delta: Offset(120, 60),
++            buttons: 1,
++          ),
++        )
++        ..dispatchCanvasEvent(
++          const CanvasPointerUpEvent(
++            pointer: 1,
++            screenPoint: Offset(140, 90),
++            worldPoint: Offset(140, 90),
++            transform: CanvasTransform.identity,
++          ),
++        );
++
++      final element = harness.canvasController.elements.single;
++      expect(element, isA<DrawioShapeElement>());
++      expect(element, isNot(isA<ArrowElement>()));
++      final arrowShape = element as DrawioShapeElement;
++      expect(arrowShape.shapeKey, 'arrows.arrowRight');
++      expect(arrowShape.rect, const Rect.fromLTWH(20, 30, 120, 60));
++      expect(arrowShape.strokeStyle.color, const Color(0xFF1D4ED8));
++      expect(arrowShape.strokeStyle.strokeWidth, 3);
++      expect(arrowShape.fillStyle!.color, const Color(0xFFE0F2FE));
++      expect(harness.canvasController.previewElement, isNull);
++    });
++
++    testWidgets('keeps selection feedback exclusive across tool switches', (
++      tester,
++    ) async {
++      final harness = await _pumpToolbar(tester);
++
++      await tester.tap(find.byTooltip('标识箭头'));
++      await tester.pump();
++      await tester.tap(find.byTooltip('选择'));
++      await tester.pump();
++
++      expect(harness.canvasController.currentTool?.id, SelectTool.idValue);
++      expect(_toolbarButton(tester, '选择').selected, isTrue);
++      expect(_toolbarButton(tester, '标识箭头').selected, isFalse);
++      expect(_toolbarButton(tester, '图形').selected, isFalse);
++
++      await tester.tap(find.byTooltip('标识箭头'));
++      await tester.pump();
++      await tester.tap(find.byTooltip('直线'));
++      await tester.pump();
++
++      expect(harness.canvasController.currentTool?.id, LineTool.idValue);
++      expect(_toolbarButton(tester, '直线').selected, isTrue);
++      expect(_toolbarButton(tester, '标识箭头').selected, isFalse);
++      expect(_toolbarButton(tester, '图形').selected, isFalse);
++
++      await tester.tap(find.byTooltip('标识箭头'));
++      await tester.pump();
++      await tester.tap(find.byTooltip('图形'));
++      await tester.pump();
++
++      expect(harness.canvasController.currentTool?.id, RectTool.idValue);
++      expect(_toolbarButton(tester, '图形').selected, isTrue);
++      expect(_toolbarButton(tester, '标识箭头').selected, isFalse);
++
++      harness.canvasController.setTool(ShapeTool.idFor('rhombus'));
++      await tester.pump();
++
++      expect(_toolbarButton(tester, '图形').selected, isTrue);
++      expect(_toolbarButton(tester, '标识箭头').selected, isFalse);
++
++      harness.canvasController.setTool(EllipseTool.idValue);
++      await tester.pump();
++
++      expect(_toolbarButton(tester, '图形').selected, isTrue);
++      expect(_toolbarButton(tester, '标识箭头').selected, isFalse);
++    });
++
++    testWidgets('remains horizontally accessible in a narrow viewport', (
++      tester,
++    ) async {
++      tester.view
++        ..physicalSize = const Size(320, 600)
++        ..devicePixelRatio = 1;
++      addTearDown(tester.view.resetPhysicalSize);
++      addTearDown(tester.view.resetDevicePixelRatio);
++
++      await _pumpToolbar(tester);
++
++      final scrollView = find.byType(SingleChildScrollView);
++      expect(scrollView, findsOneWidget);
++      expect(
++        tester.widget<SingleChildScrollView>(scrollView).scrollDirection,
++        Axis.horizontal,
++      );
++
++      final scrollable = find.descendant(
++        of: scrollView,
++        matching: find.byType(Scrollable),
++      );
++      final position = tester.state<ScrollableState>(scrollable).position;
++      expect(position.maxScrollExtent, greaterThan(0));
++
++      final indicatorArrow = find.byTooltip('标识箭头');
++      await tester.ensureVisible(indicatorArrow);
++      await tester.pump();
++      _expectHorizontallyVisible(tester, indicatorArrow, viewportWidth: 320);
++
++      final layers = find.byTooltip('图层');
++      await tester.ensureVisible(layers);
++      await tester.pump();
++      _expectHorizontallyVisible(tester, layers, viewportWidth: 320);
++
++      expect(position.pixels, greaterThan(0));
++      expect(tester.takeException(), isNull);
++    });
++  });
++
++  group('Toolbar component insert menu', () {
+     testWidgets('shows mindmap with an icon distinct from curve', (
+       tester,
+     ) async {
+@@ -63,10 +240,28 @@
+       expect(harness.counterAdds, 0);
+       expect(harness.canvasController.currentTool?.id, CurveTool.idValue);
+     });
+-  });
+-}
+-
+-Future<_ToolbarHarness> _pumpToolbar(WidgetTester tester) async {
++  });
++}
++
++ToolButton _toolbarButton(WidgetTester tester, String label) {
++  final finder = find.byWidgetPredicate(
++    (widget) => widget is ToolButton && widget.label == label,
++  );
++  expect(finder, findsOneWidget);
++  return tester.widget<ToolButton>(finder);
++}
++
++void _expectHorizontallyVisible(
++  WidgetTester tester,
++  Finder finder, {
++  required double viewportWidth,
++}) {
++  final rect = tester.getRect(finder);
++  expect(rect.left, greaterThanOrEqualTo(0));
++  expect(rect.right, lessThanOrEqualTo(viewportWidth));
++}
++
++Future<_ToolbarHarness> _pumpToolbar(WidgetTester tester) async {
+   final harness = _ToolbarHarness();
+   addTearDown(harness.dispose);
+ 
+@@ -109,4 +304,4 @@
+     viewController.dispose();
+     canvasController.dispose();
+   }
+-}
+\ No newline at end of file
++}
+
+codex
+P002 已完成，仅更新 [toolbar_test.dart](D:/project/GitHub/wenz_flutter/wenz_draw/test/toolbar_test.dart:8)，新增覆盖：
+
+- 独立“标识箭头”入口、实心图标及精确工具 ID。
+- 与通用“图形”按钮的互斥高亮。
+- 拖拽预览及创建 `arrows.arrowRight` 的 `DrawioShapeElement`。
+- 当前描边、填充样式继承，并排除 `ArrowElement`。
+- 选择、直线、RectTool、EllipseTool 和其他 ShapeTool 的切换反馈。
+- 窄视口横向滚动访问及无布局异常。
+
+保留了原有思维导图回归，未修改 plan 文件，按要求未运行测试、构建、lint 或 analyze。
+diff --git a/test/toolbar_test.dart b/test/toolbar_test.dart
+index 816cccbc00da11b53a51dcce853c6c84d46e3d4e..ddcc0927e60eb686415780f581808435ad1ac36d
+--- a/test/toolbar_test.dart
++++ b/test/toolbar_test.dart
+@@ -1,10 +1,187 @@
+-import 'package:flutter/material.dart';
+-import 'package:flutter_test/flutter_test.dart';
+-import 'package:wenz_draw/src/ui/toolbar/toolbar.dart';
+-import 'package:wenz_draw/wenz_draw.dart';
+-
+-void main() {
+-  group('Toolbar component insert menu', () {
++import 'package:flutter/material.dart';
++import 'package:flutter_test/flutter_test.dart';
++import 'package:wenz_draw/src/ui/toolbar/tool_button.dart';
++import 'package:wenz_draw/src/ui/toolbar/toolbar.dart';
++import 'package:wenz_draw/wenz_draw.dart';
++
++void main() {
++  group('Toolbar indicator arrow tool', () {
++    testWidgets('shows a distinct solid indicator arrow entry', (tester) async {
++      final harness = await _pumpToolbar(tester);
++      final indicatorArrow = find.byTooltip('标识箭头');
++
++      expect(indicatorArrow, findsOneWidget);
++      expect(
++        find.descendant(
++          of: indicatorArrow,
++          matching: find.byIcon(Icons.forward),
++        ),
++        findsOneWidget,
++      );
++
++      await tester.tap(indicatorArrow);
++      await tester.pump();
++
++      expect(
++        harness.canvasController.currentTool?.id,
++        ShapeTool.idFor('arrows.arrowRight'),
++      );
++      expect(_toolbarButton(tester, '标识箭头').selected, isTrue);
++      expect(_toolbarButton(tester, '图形').selected, isFalse);
++    });
++
++    testWidgets('creates the arrow shape with current stroke and fill', (
++      tester,
++    ) async {
++      final harness = await _pumpToolbar(tester);
++      harness.canvasController.updateBrushSettings(
++        const BrushSettings(
++          color: Color(0xFF1D4ED8),
++          strokeWidth: 3,
++          fillColor: Color(0xFFE0F2FE),
++        ),
++      );
++
++      await tester.tap(find.byTooltip('标识箭头'));
++      await tester.pump();
++
++      harness.canvasController.dispatchCanvasEvent(
++        const CanvasPointerDownEvent(
++          pointer: 1,
++          screenPoint: Offset(20, 30),
++          worldPoint: Offset(20, 30),
++          transform: CanvasTransform.identity,
++          buttons: 1,
++        ),
++      );
++
++      expect(harness.canvasController.previewElement, isA<DrawioShapeElement>());
++      expect(
++        (harness.canvasController.previewElement! as DrawioShapeElement)
++            .shapeKey,
++        'arrows.arrowRight',
++      );
++
++      harness.canvasController
++        ..dispatchCanvasEvent(
++          const CanvasPointerMoveEvent(
++            pointer: 1,
++            screenPoint: Offset(140, 90),
++            worldPoint: Offset(140, 90),
++            transform: CanvasTransform.identity,
++            delta: Offset(120, 60),
++            buttons: 1,
++          ),
++        )
++        ..dispatchCanvasEvent(
++          const CanvasPointerUpEvent(
++            pointer: 1,
++            screenPoint: Offset(140, 90),
++            worldPoint: Offset(140, 90),
++            transform: CanvasTransform.identity,
++          ),
++        );
++
++      final element = harness.canvasController.elements.single;
++      expect(element, isA<DrawioShapeElement>());
++      expect(element, isNot(isA<ArrowElement>()));
++      final arrowShape = element as DrawioShapeElement;
++      expect(arrowShape.shapeKey, 'arrows.arrowRight');
++      expect(arrowShape.rect, const Rect.fromLTWH(20, 30, 120, 60));
++      expect(arrowShape.strokeStyle.color, const Color(0xFF1D4ED8));
++      expect(arrowShape.strokeStyle.strokeWidth, 3);
++      expect(arrowShape.fillStyle!.color, const Color(0xFFE0F2FE));
++      expect(harness.canvasController.previewElement, isNull);
++    });
++
++    testWidgets('keeps selection feedback exclusive across tool switches', (
++      tester,
++    ) async {
++      final harness = await _pumpToolbar(tester);
++
++      await tester.tap(find.byTooltip('标识箭头'));
++      await tester.pump();
++      await tester.tap(find.byTooltip('选择'));
++      await tester.pump();
++
++      expect(harness.canvasController.currentTool?.id, SelectTool.idValue);
++      expect(_toolbarButton(tester, '选择').selected, isTrue);
++      expect(_toolbarButton(tester, '标识箭头').selected, isFalse);
++      expect(_toolbarButton(tester, '图形').selected, isFalse);
++
++      await tester.tap(find.byTooltip('标识箭头'));
++      await tester.pump();
++      await tester.tap(find.byTooltip('直线'));
++      await tester.pump();
++
++      expect(harness.canvasController.currentTool?.id, LineTool.idValue);
++      expect(_toolbarButton(tester, '直线').selected, isTrue);
++      expect(_toolbarButton(tester, '标识箭头').selected, isFalse);
++      expect(_toolbarButton(tester, '图形').selected, isFalse);
++
++      await tester.tap(find.byTooltip('标识箭头'));
++      await tester.pump();
++      await tester.tap(find.byTooltip('图形'));
++      await tester.pump();
++
++      expect(harness.canvasController.currentTool?.id, RectTool.idValue);
++      expect(_toolbarButton(tester, '图形').selected, isTrue);
++      expect(_toolbarButton(tester, '标识箭头').selected, isFalse);
++
++      harness.canvasController.setTool(ShapeTool.idFor('rhombus'));
++      await tester.pump();
++
++      expect(_toolbarButton(tester, '图形').selected, isTrue);
++      expect(_toolbarButton(tester, '标识箭头').selected, isFalse);
++
++      harness.canvasController.setTool(EllipseTool.idValue);
++      await tester.pump();
++
++      expect(_toolbarButton(tester, '图形').selected, isTrue);
++      expect(_toolbarButton(tester, '标识箭头').selected, isFalse);
++    });
++
++    testWidgets('remains horizontally accessible in a narrow viewport', (
++      tester,
++    ) async {
++      tester.view
++        ..physicalSize = const Size(320, 600)
++        ..devicePixelRatio = 1;
++      addTearDown(tester.view.resetPhysicalSize);
++      addTearDown(tester.view.resetDevicePixelRatio);
++
++      await _pumpToolbar(tester);
++
++      final scrollView = find.byType(SingleChildScrollView);
++      expect(scrollView, findsOneWidget);
++      expect(
++        tester.widget<SingleChildScrollView>(scrollView).scrollDirection,
++        Axis.horizontal,
++      );
++
++      final scrollable = find.descendant(
++        of: scrollView,
++        matching: find.byType(Scrollable),
++      );
++      final position = tester.state<ScrollableState>(scrollable).position;
++      expect(position.maxScrollExtent, greaterThan(0));
++
++      final indicatorArrow = find.byTooltip('标识箭头');
++      await tester.ensureVisible(indicatorArrow);
++      await tester.pump();
++      _expectHorizontallyVisible(tester, indicatorArrow, viewportWidth: 320);
++
++      final layers = find.byTooltip('图层');
++      await tester.ensureVisible(layers);
++      await tester.pump();
++      _expectHorizontallyVisible(tester, layers, viewportWidth: 320);
++
++      expect(position.pixels, greaterThan(0));
++      expect(tester.takeException(), isNull);
++    });
++  });
++
++  group('Toolbar component insert menu', () {
+     testWidgets('shows mindmap with an icon distinct from curve', (
+       tester,
+     ) async {
+@@ -63,10 +240,28 @@
+       expect(harness.counterAdds, 0);
+       expect(harness.canvasController.currentTool?.id, CurveTool.idValue);
+     });
+-  });
+-}
+-
+-Future<_ToolbarHarness> _pumpToolbar(WidgetTester tester) async {
++  });
++}
++
++ToolButton _toolbarButton(WidgetTester tester, String label) {
++  final finder = find.byWidgetPredicate(
++    (widget) => widget is ToolButton && widget.label == label,
++  );
++  expect(finder, findsOneWidget);
++  return tester.widget<ToolButton>(finder);
++}
++
++void _expectHorizontallyVisible(
++  WidgetTester tester,
++  Finder finder, {
++  required double viewportWidth,
++}) {
++  final rect = tester.getRect(finder);
++  expect(rect.left, greaterThanOrEqualTo(0));
++  expect(rect.right, lessThanOrEqualTo(viewportWidth));
++}
++
++Future<_ToolbarHarness> _pumpToolbar(WidgetTester tester) async {
+   final harness = _ToolbarHarness();
+   addTearDown(harness.dispose);
+ 
+@@ -109,4 +304,4 @@
+     viewController.dispose();
+     canvasController.dispose();
+   }
+-}
+\ No newline at end of file
++}
+
+tokens used
+66,058
+P002 已完成，仅更新 [toolbar_test.dart](D:/project/GitHub/wenz_flutter/wenz_draw/test/toolbar_test.dart:8)，新增覆盖：
+
+- 独立“标识箭头”入口、实心图标及精确工具 ID。
+- 与通用“图形”按钮的互斥高亮。
+- 拖拽预览及创建 `arrows.arrowRight` 的 `DrawioShapeElement`。
+- 当前描边、填充样式继承，并排除 `ArrowElement`。
+- 选择、直线、RectTool、EllipseTool 和其他 ShapeTool 的切换反馈。
+- 窄视口横向滚动访问及无布局异常。
+
+保留了原有思维导图回归，未修改 plan 文件，按要求未运行测试、构建、lint 或 analyze。

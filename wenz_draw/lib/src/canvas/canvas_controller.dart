@@ -4,11 +4,13 @@ import '../canvas/image_loader.dart';
 import '../canvas/paint_style.dart';
 import '../elements/arrow_element.dart';
 import '../elements/canvas_element.dart';
+import '../elements/curve_element.dart';
 import '../elements/drawio_shape_element.dart';
 import '../elements/element_registry.dart';
 import '../elements/ellipse_element.dart';
 import '../elements/image_element.dart';
 import '../elements/line_element.dart';
+import '../elements/line_arrow_style.dart';
 import '../elements/polyline_element.dart';
 import '../elements/rect_element.dart';
 import '../elements/text_element.dart';
@@ -40,6 +42,7 @@ import '../tools/line_tool.dart';
 import '../tools/curve_tool.dart';
 import '../tools/pan_tool.dart';
 import '../tools/pen_tool.dart';
+import '../tools/polyline_arrow_tool.dart';
 import '../tools/polyline_tool.dart';
 import '../tools/rect_tool.dart';
 import '../tools/select_tool.dart';
@@ -94,6 +97,7 @@ class CanvasController extends ChangeNotifier {
   CanvasState _state;
   String? _editingTextElementId;
   TextElement? _editingTextOriginal;
+  bool _editingTextUsesContentBounds = false;
   String? _editingShapeLabelElementId;
   CanvasElement? _editingShapeLabelOriginal;
 
@@ -238,6 +242,21 @@ class CanvasController extends ChangeNotifier {
         end: end ?? element.end,
       );
     }
+    if (element is CurveElement) {
+      final start = element.startBinding?.elementId == changedElementId
+          ? _resolveSnapBindingFrom(elementsById, element.startBinding)
+          : null;
+      final end = element.endBinding?.elementId == changedElementId
+          ? _resolveSnapBindingFrom(elementsById, element.endBinding)
+          : null;
+      if (start == null && end == null) {
+        return element;
+      }
+      return element.copyWith(
+        start: start ?? element.start,
+        end: end ?? element.end,
+      );
+    }
     if (element is PolylineElement) {
       final start = element.startBinding?.elementId == changedElementId
           ? _resolveSnapBindingFrom(elementsById, element.startBinding)
@@ -336,6 +355,7 @@ class CanvasController extends ChangeNotifier {
   }) {
     _editingTextElementId = null;
     _editingTextOriginal = null;
+    _editingTextUsesContentBounds = false;
     _editingShapeLabelElementId = null;
     _editingShapeLabelOriginal = null;
     _snapPreview = null;
@@ -392,8 +412,16 @@ class CanvasController extends ChangeNotifier {
   }
 
   void cancelCurrentInteraction() {
+    commitCurrentInteraction();
     toolManager.cancelActiveTool(this);
     clearPreview();
+  }
+
+  /// Commits history for effects an active tool has already applied. This is
+  /// intentionally separate from cancellation so callers that interrupt an
+  /// interaction cannot leave the canvas ahead of its history stacks.
+  void commitCurrentInteraction() {
+    currentTool?.commitPendingChanges(this);
   }
 
   List<CanvasElement> orderedElements({bool visibleOnly = false}) {
@@ -580,6 +608,7 @@ class CanvasController extends ChangeNotifier {
   }
 
   void setTool(String toolId) {
+    commitCurrentInteraction();
     clearPreview();
     toolManager.setActiveTool(toolId, this);
     notifyListeners();
@@ -1159,16 +1188,22 @@ class CanvasController extends ChangeNotifier {
       height: lineHeight ?? element.style.height,
       fontFamily: nextFontFamily,
     );
-    updateElement(
-      id,
-      element.copyWith(
-        style: nextStyle,
-        textAlign: textAlign,
-        maxWidth: maxWidth ?? element.maxWidth,
-        boxSize: boxSize ?? element.boxSize,
-      ),
-      record: record,
+    var updated = element.copyWith(
+      style: nextStyle,
+      textAlign: textAlign,
+      maxWidth: maxWidth ?? element.maxWidth,
+      boxSize: boxSize ?? element.boxSize,
     );
+    final isEditing = id == _editingTextElementId;
+    if (boxSize != null && isEditing) {
+      _editingTextUsesContentBounds = false;
+    }
+    if (boxSize == null &&
+        (element.hasContentSizedBox ||
+            (isEditing && _editingTextUsesContentBounds))) {
+      updated = updated.fitToRenderedText();
+    }
+    updateElement(id, updated, record: record);
   }
 
   void updateShapePaint(
@@ -1237,6 +1272,101 @@ class CanvasController extends ChangeNotifier {
           record: record,
         );
     }
+  }
+
+  /// Updates arrowheads on straight, polyline and curve elements.
+  void updateLineArrowStyle(
+    String id, {
+    LineArrowStyle? arrowStyle,
+    LineArrowMode? mode,
+    LineArrowType? startArrowStyle,
+    LineArrowType? endArrowStyle,
+    bool? endArrow,
+    double? headSize,
+    bool record = true,
+  }) {
+    final element = elementById(id);
+    final current = switch (element) {
+      final LineElement e => e.arrowStyle,
+      final PolylineElement e => e.arrowStyle,
+      final CurveElement e => e.arrowStyle,
+      _ => null,
+    };
+    if (current == null) {
+      return;
+    }
+    var next = arrowStyle ?? current;
+    if (mode != null) {
+      next = next.withMode(mode);
+    }
+    next = next.copyWith(
+      startArrowStyle: startArrowStyle,
+      endArrowStyle:
+          endArrowStyle ??
+          (endArrow == null
+              ? null
+              : endArrow
+              ? LineArrowType.normal
+              : LineArrowType.none),
+      headSize: headSize,
+    );
+    if (next == current) {
+      return;
+    }
+    final updated = switch (element) {
+      final LineElement e => e.copyWith(arrowStyle: next),
+      final PolylineElement e => e.copyWith(arrowStyle: next),
+      final CurveElement e => e.copyWith(arrowStyle: next),
+      _ => null,
+    };
+    if (updated == null) {
+      return;
+    }
+    updateElement(id, updated, record: record);
+  }
+
+  void updateLineArrowMode(
+    String id,
+    LineArrowMode mode, {
+    bool record = true,
+  }) {
+    updateLineArrowStyle(id, mode: mode, record: record);
+  }
+
+  /// Backward-compatible API for existing polyline integrations.
+  void updatePolylineArrow(
+    String id, {
+    bool? endArrow,
+    double? headSize,
+    bool record = true,
+  }) {
+    if (elementById(id) is! PolylineElement) {
+      return;
+    }
+    updateLineArrowStyle(
+      id,
+      endArrow: endArrow,
+      headSize: headSize,
+      record: record,
+    );
+  }
+
+  /// Backward-compatible API for the earlier curve end-arrow implementation.
+  void updateCurveArrow(
+    String id, {
+    bool? endArrow,
+    double? headSize,
+    bool record = true,
+  }) {
+    if (elementById(id) is! CurveElement) {
+      return;
+    }
+    updateLineArrowStyle(
+      id,
+      endArrow: endArrow,
+      headSize: headSize,
+      record: record,
+    );
   }
 
   void updateShapeLabelStyle(
@@ -1329,6 +1459,9 @@ class CanvasController extends ChangeNotifier {
       boxSize.width < minWidth ? minWidth : boxSize.width,
       boxSize.height < minHeight ? minHeight : boxSize.height,
     );
+    if (_editingTextElementId == id) {
+      _editingTextUsesContentBounds = false;
+    }
     updateElement(
       id,
       element.copyWith(maxWidth: constrained.width, boxSize: constrained),
@@ -1358,7 +1491,11 @@ class CanvasController extends ChangeNotifier {
       if (element.text == text) {
         return;
       }
-      updateElement(id, element.copyWith(text: text), record: record);
+      var updated = element.copyWith(text: text);
+      if (element.hasContentSizedBox) {
+        updated = updated.fitToRenderedText();
+      }
+      updateElement(id, updated, record: record);
       return;
     }
     if (element == null) {
@@ -1374,7 +1511,7 @@ class CanvasController extends ChangeNotifier {
     }
   }
 
-  void beginTextEditing(String id) {
+  void beginTextEditing(String id, {bool fitToContent = false}) {
     final element = elementById(id);
     if (element is! TextElement) {
       return;
@@ -1385,8 +1522,16 @@ class CanvasController extends ChangeNotifier {
     if (_editingTextElementId == id) {
       return;
     }
-    _editingTextElementId = id;
     _editingTextOriginal = element;
+    _editingTextUsesContentBounds =
+        fitToContent || element.hasContentSizedBox;
+    _editingTextElementId = id;
+    if (_editingTextUsesContentBounds) {
+      final fitted = element.fitToRenderedText();
+      if (!_sameTextElement(element, fitted)) {
+        _applyElementUpdated(id, fitted, notify: false);
+      }
+    }
     select(id);
   }
 
@@ -1399,10 +1544,23 @@ class CanvasController extends ChangeNotifier {
     if (element is! TextElement || element.text == text) {
       return;
     }
-    // Silent update: the TextField overlay already shows the text being
-    // typed, so there is no need to rebuild the entire canvas on every
-    // keystroke.  A single notifyListeners() will fire in endTextEditing().
-    _applyElementUpdated(id, element.copyWith(text: text), notify: false);
+    var updated = element.copyWith(text: text);
+    if (_editingTextUsesContentBounds) {
+      updated = updated.fitToRenderedText();
+    }
+    // Notify on every change so the editor field, selection border and resize
+    // handles all consume the same rendered text boundary.
+    _applyElementUpdated(id, updated);
+  }
+
+  /// Applies a user-resized text box during the current edit session.
+  /// Geometry changes remain part of that session's single undo entry.
+  void updateEditingTextBounds(TextElement element) {
+    if (_editingTextElementId != element.id) {
+      return;
+    }
+    _editingTextUsesContentBounds = false;
+    _applyElementUpdated(element.id, element);
   }
 
   void endTextEditing({String? text, bool removeIfEmpty = true}) {
@@ -1414,11 +1572,20 @@ class CanvasController extends ChangeNotifier {
       updateEditingText(text);
     }
 
+    final fitToContent = _editingTextUsesContentBounds;
     _editingTextElementId = null;
     final original = _editingTextOriginal;
     _editingTextOriginal = null;
-    final element = elementById(id);
+    _editingTextUsesContentBounds = false;
+    var element = elementById(id);
     if (element is TextElement) {
+      if (fitToContent) {
+        final fitted = element.fitToRenderedText();
+        if (!_sameTextElement(element, fitted)) {
+          _applyElementUpdated(id, fitted, notify: false);
+          element = fitted;
+        }
+      }
       if (removeIfEmpty && element.text.trim().isEmpty) {
         removeElement(id);
         return;
@@ -1442,6 +1609,7 @@ class CanvasController extends ChangeNotifier {
     }
     _editingTextElementId = null;
     _editingTextOriginal = null;
+    _editingTextUsesContentBounds = false;
     notifyListeners();
   }
 
@@ -1563,11 +1731,14 @@ class CanvasController extends ChangeNotifier {
       case ToolResultPreview(:final preview):
         setPreviewElement(preview);
       case ToolResultElement(:final element, :final selectAfter):
-        addElement(element, bringToFront: true);
-        if (element is TextElement) {
-          beginTextEditing(element.id);
+        final insertedElement = element is TextElement
+            ? element.fitToRenderedText()
+            : element;
+        addElement(insertedElement, bringToFront: true);
+        if (insertedElement is TextElement) {
+          beginTextEditing(insertedElement.id);
         } else if (selectAfter) {
-          setSelection({element.id});
+          setSelection({insertedElement.id});
           setTool(SelectTool.idValue);
         }
       case ToolResultSelect(:final selectedIds):
@@ -1587,6 +1758,7 @@ class CanvasController extends ChangeNotifier {
       ..registerTool(LineTool())
       ..registerTool(CurveTool())
       ..registerTool(PolylineTool())
+      ..registerTool(PolylineArrowTool())
       ..registerTool(RectTool())
       ..registerTool(EllipseTool())
       ..registerTool(ShapeTool(shapeKey: 'rhombus', name: 'Rhombus'))
@@ -1643,6 +1815,7 @@ class CanvasController extends ChangeNotifier {
 
   @override
   void dispose() {
+    commitCurrentInteraction();
     historyManager.removeListener(notifyListeners);
     layerManager.removeListener(notifyListeners);
     super.dispose();

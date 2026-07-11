@@ -85,8 +85,11 @@ void main() {
       title: 'Launch demo',
       description: 'Two minute walkthrough',
       aspectRatio: 16 / 9,
+      showWidth: 480,
+      showHeight: 270,
       uploadStatus: FileUploadStatus.failed,
       uploadError: 'network timeout',
+      attributes: BlockAttributes(alignment: 'center'),
     );
 
     final decoded = BlockNode.fromJson(video.toJson()) as VideoBlockNode;
@@ -99,6 +102,10 @@ void main() {
     expect(decoded.description, 'Two minute walkthrough');
     expect(decoded.aspectRatio, closeTo(16 / 9, 0.0001));
     expect(decoded.effectiveAspectRatio, closeTo(16 / 9, 0.0001));
+    expect(decoded.showWidth, 480);
+    expect(decoded.showHeight, 270);
+    expect(decoded.attributes.alignment, 'center');
+    expect(decoded.toJson()['attrs'], <String, Object?>{'alignment': 'center'});
     expect(decoded.uploadStatus, FileUploadStatus.failed);
     expect(decoded.uploadError, 'network timeout');
     expect(decoded.hasSource, isTrue);
@@ -145,8 +152,50 @@ void main() {
     expect(missing.aspectRatio, isNull);
     expect(missing.effectiveAspectRatio,
         closeTo(VideoBlockNode.defaultAspectRatio, 0.0001));
+    expect(missing.showWidth, isNull);
+    expect(missing.showHeight, isNull);
     expect(missing.uploadStatus, FileUploadStatus.none);
     expect(missing.uploadError, isEmpty);
+  });
+
+  test('video block copyWith updates and clears display size', () {
+    const video = VideoBlockNode(
+      id: 'video4',
+      assetId: 'asset-4',
+      playbackUrl: 'https://cdn.example.com/video4.mp4',
+      coverUrl: 'https://cdn.example.com/video4.jpg',
+      title: 'Resizable clip',
+      description: 'Keep metadata',
+      aspectRatio: 16 / 9,
+      showWidth: 640,
+      showHeight: 360,
+      uploadStatus: FileUploadStatus.uploaded,
+      attributes: BlockAttributes(alignment: 'right'),
+    );
+
+    final resized = video.copyWith(showWidth: 320, showHeight: 180);
+
+    expect(resized.assetId, 'asset-4');
+    expect(resized.playbackUrl, 'https://cdn.example.com/video4.mp4');
+    expect(resized.coverUrl, 'https://cdn.example.com/video4.jpg');
+    expect(resized.title, 'Resizable clip');
+    expect(resized.description, 'Keep metadata');
+    expect(resized.aspectRatio, 16 / 9);
+    expect(resized.showWidth, 320);
+    expect(resized.showHeight, 180);
+    expect(resized.uploadStatus, FileUploadStatus.uploaded);
+    expect(resized.attributes.alignment, 'right');
+
+    final cleared = resized.copyWith(
+      clearShowWidth: true,
+      clearShowHeight: true,
+    );
+
+    expect(cleared.showWidth, isNull);
+    expect(cleared.showHeight, isNull);
+    expect(cleared.title, 'Resizable clip');
+    expect(cleared.attributes.alignment, 'right');
+    expect(cleared.uploadStatus, FileUploadStatus.uploaded);
   });
 
   test('block embed round trips data and fallback text', () {

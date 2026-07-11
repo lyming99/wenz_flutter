@@ -1,0 +1,7 @@
+P001 已完成，仅修改 [toolbar.dart](D:/project/GitHub/wenz_flutter/wenz_draw/lib/src/ui/toolbar/toolbar.dart:15)：
+
+- 新增“标识箭头”工具栏按钮，使用实心箭头图标。
+- 点击后激活 `ShapeTool.idFor('arrows.arrowRight')`。
+- 标识箭头与通用“图形”按钮选中态互斥。
+- 保留现有横向滚动布局及原有未提交改动。
+- 未修改 plan 文件，未运行测试、构建、lint 或 analyze。

@@ -24,7 +24,12 @@ const double _kToolbarMenuPanelRadius = 10.0;
 const double _kToolbarMenuItemRadius = 8.0;
 const double _kBlockStyleMenuWidth = 152.0;
 const double _kAlignmentMenuWidth = 176.0;
-const double _kTextColorMenuWidth = 208.0;
+const double _kTextColorMenuWidth = 240.0;
+const double _kTextColorSwatchButtonExtent = _kToolbarButtonExtent;
+const double _kTextColorSwatchExtent = 20.0;
+const double _kTextColorPaletteSpacing = 8.0;
+const double _kTextColorPalettePadding = 4.0;
+const int _kTextColorPaletteColumns = 4;
 const double _kInsertMenuWidth = 216.0;
 
 const List<_BlockStyleOption> _kBlockStyleOptions = <_BlockStyleOption>[
@@ -45,13 +50,25 @@ const List<_AlignmentOption> _kAlignmentOptions = <_AlignmentOption>[
   _AlignmentOption('清除对齐', WenzLucideToolbarIcons.removeFormat, null),
 ];
 
-const List<_ToolbarColorOption> _kTextColorOptions = <_ToolbarColorOption>[
-  _ToolbarColorOption('Default green', 0xFF0F766E),
-  _ToolbarColorOption('Red', 0xFFD32F2F),
-  _ToolbarColorOption('Orange', 0xFFF57C00),
-  _ToolbarColorOption('Blue', 0xFF1976D2),
-  _ToolbarColorOption('Purple', 0xFF7B1FA2),
-  _ToolbarColorOption('Slate', 0xFF455A64),
+const List<WenzDefaultToolbarTextColorOption> _kTextColorOptions =
+    wenzDefaultToolbarTextColorOptions;
+
+/// Shared default text color candidates used by desktop and mobile toolbars.
+const List<WenzDefaultToolbarTextColorOption>
+    wenzDefaultToolbarTextColorOptions =
+    <WenzDefaultToolbarTextColorOption>[
+  WenzDefaultToolbarTextColorOption('黑色', 0xFF111827),
+  WenzDefaultToolbarTextColorOption('深灰', 0xFF374151),
+  WenzDefaultToolbarTextColorOption('岩灰', 0xFF455A64),
+  WenzDefaultToolbarTextColorOption('红色', 0xFFD32F2F),
+  WenzDefaultToolbarTextColorOption('橙色', 0xFFF57C00),
+  WenzDefaultToolbarTextColorOption('黄色', 0xFFFBC02D),
+  WenzDefaultToolbarTextColorOption('绿色', 0xFF388E3C),
+  WenzDefaultToolbarTextColorOption('墨绿', 0xFF0F766E),
+  WenzDefaultToolbarTextColorOption('青色', 0xFF0097A7),
+  WenzDefaultToolbarTextColorOption('蓝色', 0xFF1976D2),
+  WenzDefaultToolbarTextColorOption('紫色', 0xFF7B1FA2),
+  WenzDefaultToolbarTextColorOption('粉色', 0xFFC2185B),
 ];
 
 /// Visual switches for [WenzDefaultDesktopToolbar].
@@ -372,15 +389,6 @@ class WenzDefaultDesktopToolbar extends StatelessWidget {
           _TextColorMenuButton(
             toolbar: toolbar,
             state: state,
-          ),
-          _ToolbarIconButton(
-            tooltip: _clearTextColorTooltip(state),
-            icon: WenzLucideToolbarIcons.clearTextColor,
-            enabled: state.canFormatInline,
-            iconColor: state.textColor == null
-                ? null
-                : Color(state.textColor!),
-            onPressed: toolbar.clearTextColor,
           ),
           _ToolbarIconButton(
             tooltip: '清除样式',
@@ -978,7 +986,7 @@ class _InsertMenuItem extends StatelessWidget {
   }
 }
 
-class _TextColorMenuButton extends StatelessWidget {
+class _TextColorMenuButton extends StatefulWidget {
   const _TextColorMenuButton({
     required this.toolbar,
     required this.state,
@@ -988,35 +996,123 @@ class _TextColorMenuButton extends StatelessWidget {
   final ToolbarState state;
 
   @override
+  State<_TextColorMenuButton> createState() => _TextColorMenuButtonState();
+}
+
+class _TextColorMenuButtonState extends State<_TextColorMenuButton> {
+  final MenuController _menuController = MenuController();
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final toolbar = widget.toolbar;
+    final state = widget.state;
     final currentColor = state.textColor;
     final selected = currentColor != null || state.textColorMixed;
-    final customColorActive = currentColor != null &&
-        !state.textColorMixed &&
-        !_kTextColorOptions.any((option) => option.colorValue == currentColor);
+    final customColorActive = _isCustomTextColorActive(state);
+    final customColor = customColorActive ? Color(currentColor!) : null;
     return MenuAnchor(
+      controller: _menuController,
       style: _toolbarMenuPanelStyle(context, width: _kTextColorMenuWidth),
       menuChildren: <Widget>[
-        for (final option in _kTextColorOptions)
-          MenuItemButton(
-            closeOnActivate: true,
+        Padding(
+          padding: const EdgeInsets.all(_kTextColorPalettePadding),
+          child: SizedBox(
+            width: _toolbarMenuContentWidth(_kTextColorMenuWidth),
+            child: GridView.count(
+              crossAxisCount: _kTextColorPaletteColumns,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisSpacing: _kTextColorPaletteSpacing,
+              mainAxisSpacing: _kTextColorPaletteSpacing,
+              children: <Widget>[
+                for (final option in _kTextColorOptions)
+                  _TextColorSwatchButton(
+                    option: option,
+                    selected: currentColor == option.colorValue &&
+                        !state.textColorMixed,
+                    enabled: state.canFormatInline,
+                    onPressed: () => _closeTextColorMenuAndRun(
+                      () => toolbar.setTextColorValue(option.colorValue),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+        const Divider(height: 1),
+        Tooltip(
+          message: _clearTextColorTooltip(state),
+          child: MenuItemButton(
+            closeOnActivate: false,
             style: _toolbarMenuItemStyle(
               context,
               width: _kTextColorMenuWidth,
             ),
             onPressed: state.canFormatInline
-                ? () => toolbar.setTextColorValue(option.colorValue)
+                ? () => _closeTextColorMenuAndRun(() {
+                      toolbar.clearTextColor();
+                    })
                 : null,
             child: SizedBox(
               width: _toolbarMenuContentWidth(_kTextColorMenuWidth),
               child: Row(
                 children: <Widget>[
-                  _ColorSwatch(color: option.color),
+                  WenzLucideToolbarIcon(
+                    WenzLucideToolbarIcons.clearTextColor,
+                    size: _kToolbarIconSize,
+                    color: currentColor == null || state.textColorMixed
+                        ? null
+                        : Color(currentColor),
+                    enabled: state.canFormatInline,
+                  ),
                   const SizedBox(width: 10),
-                  Expanded(child: Text(option.label)),
-                  if (currentColor == option.colorValue &&
-                      !state.textColorMixed)
+                  Expanded(child: Text(_clearTextColorTooltip(state))),
+                ],
+              ),
+            ),
+          ),
+        ),
+        const Divider(height: 1),
+        Tooltip(
+          message: _customTextColorTooltip(state),
+          child: MenuItemButton(
+            closeOnActivate: false,
+            style: _toolbarMenuItemStyle(
+              context,
+              width: _kTextColorMenuWidth,
+              selected: customColorActive,
+            ),
+            onPressed: state.canFormatInline
+                ? () => _closeTextColorMenuAndRun(
+                      () => _showCustomTextColorDialog(
+                        context,
+                        currentColor,
+                      ).then((colorValue) {
+                        if (!context.mounted || colorValue == null) {
+                          return;
+                        }
+                        toolbar.setTextColorValue(colorValue);
+                      }),
+                    )
+                : null,
+            child: SizedBox(
+              width: _toolbarMenuContentWidth(_kTextColorMenuWidth),
+              child: Row(
+                children: <Widget>[
+                  if (customColor == null)
+                    const WenzLucideToolbarIcon(
+                      WenzLucideToolbarIcons.palette,
+                      size: _kToolbarIconSize,
+                    )
+                  else
+                    _ColorSwatch(
+                      color: customColor,
+                      enabled: state.canFormatInline,
+                    ),
+                  const SizedBox(width: 10),
+                  Expanded(child: Text(_customTextColorLabel(state))),
+                  if (customColorActive)
                     const WenzLucideToolbarIcon(
                       WenzLucideToolbarIcons.check,
                       size: 18,
@@ -1025,65 +1121,20 @@ class _TextColorMenuButton extends StatelessWidget {
               ),
             ),
           ),
-        const Divider(height: 1),
-        MenuItemButton(
-          closeOnActivate: true,
-          style: _toolbarMenuItemStyle(
-            context,
-            width: _kTextColorMenuWidth,
-          ),
-          onPressed: state.canFormatInline
-              ? () => _runToolbarAction(
-                    _showCustomTextColorDialog(context, currentColor).then(
-                      (colorValue) {
-                        if (colorValue != null) {
-                          toolbar.setTextColorValue(colorValue);
-                        }
-                      },
-                    ),
-                  )
-              : null,
-          child: SizedBox(
-            width: _toolbarMenuContentWidth(_kTextColorMenuWidth),
-            child: Row(
-              children: <Widget>[
-                if (currentColor == null || state.textColorMixed)
-                  const WenzLucideToolbarIcon(
-                    WenzLucideToolbarIcons.palette,
-                    size: _kToolbarIconSize,
-                  )
-                else
-                  _ColorSwatch(color: Color(currentColor)),
-                const SizedBox(width: 10),
-                Expanded(child: Text(_customTextColorLabel(currentColor))),
-                if (customColorActive)
-                  const WenzLucideToolbarIcon(
-                    WenzLucideToolbarIcons.check,
-                    size: 18,
-                  ),
-              ],
-            ),
-          ),
         ),
       ],
-      builder: (context, menuController, _) {
+      builder: (context, controller, child) {
         return IconButton(
           tooltip: _textColorTooltip(state),
           iconSize: _kToolbarIconSize,
           isSelected: selected,
           style: _toolbarButtonStyle(theme),
-          onPressed: state.canFormatInline
-              ? () {
-                  if (menuController.isOpen) {
-                    menuController.close();
-                  } else {
-                    menuController.open();
-                  }
-                }
-              : null,
+          onPressed: _toggleTextColorMenu,
           icon: WenzLucideToolbarIcon(
             WenzLucideToolbarIcons.textColor,
-            color: state.canFormatInline && currentColor != null
+            color: state.canFormatInline &&
+                    currentColor != null &&
+                    !state.textColorMixed
                 ? Color(currentColor)
                 : null,
             enabled: state.canFormatInline,
@@ -1091,6 +1142,39 @@ class _TextColorMenuButton extends StatelessWidget {
         );
       },
     );
+  }
+
+  void _toggleTextColorMenu() {
+    _runAfterTextColorPointerEvent(() {
+      if (_menuController.isOpen) {
+        _menuController.close();
+      } else {
+        _menuController.open();
+      }
+    });
+  }
+
+  void _closeTextColorMenuAndRun(FutureOr<void> Function() action) {
+    // Avoid rebuilding the menu overlay or toolbar while MouseTracker is
+    // processing the pointer event that activated the color menu item.
+    _runAfterTextColorPointerEvent(() {
+      if (_menuController.isOpen) {
+        _menuController.close();
+      }
+      _runAfterTextColorPointerEvent(() {
+        _runToolbarAction(action());
+      });
+    });
+  }
+
+  void _runAfterTextColorPointerEvent(VoidCallback callback) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      callback();
+    });
+    WidgetsBinding.instance.ensureVisualUpdate();
   }
 }
 
@@ -1117,21 +1201,107 @@ class _RegistryToolbarItemButton extends StatelessWidget {
   }
 }
 
-class _ColorSwatch extends StatelessWidget {
-  const _ColorSwatch({required this.color});
+class _TextColorSwatchButton extends StatelessWidget {
+  const _TextColorSwatchButton({
+    required this.option,
+    required this.selected,
+    required this.enabled,
+    required this.onPressed,
+  });
+
+  final WenzDefaultToolbarTextColorOption option;
+  final bool selected;
+  final bool enabled;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: _textColorOptionTooltip(option),
+      child: MenuItemButton(
+        closeOnActivate: false,
+        style: _toolbarColorSwatchButtonStyle(
+          Theme.of(context),
+          selected: selected,
+        ),
+        onPressed: enabled ? onPressed : null,
+        child: _TextColorSwatchIcon(
+          color: option.color,
+          selected: selected,
+          enabled: enabled,
+        ),
+      ),
+    );
+  }
+}
+
+class _TextColorSwatchIcon extends StatelessWidget {
+  const _TextColorSwatchIcon({
+    required this.color,
+    required this.selected,
+    required this.enabled,
+  });
 
   final Color color;
+  final bool selected;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: color,
-        border: Border.all(color: theme.colorScheme.outlineVariant),
-        borderRadius: BorderRadius.circular(4),
+    return Opacity(
+      opacity: enabled ? 1 : 0.44,
+      child: SizedBox.square(
+        dimension: _kTextColorSwatchExtent,
+        child: Stack(
+          fit: StackFit.expand,
+          children: <Widget>[
+            DecoratedBox(
+              decoration: BoxDecoration(
+                color: color,
+                border: Border.all(
+                  color: selected
+                      ? theme.colorScheme.primary
+                      : theme.colorScheme.outlineVariant,
+                  width: selected ? 2 : 1,
+                ),
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+            if (selected)
+              Center(
+                child: WenzLucideToolbarIcon(
+                  WenzLucideToolbarIcons.check,
+                  size: 14,
+                  color: _textColorCheckColor(color),
+                ),
+              ),
+          ],
+        ),
       ),
-      child: const SizedBox.square(dimension: 18),
+    );
+  }
+}
+
+class _ColorSwatch extends StatelessWidget {
+  const _ColorSwatch({required this.color, this.enabled = true});
+
+  final Color color;
+  final bool enabled;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Opacity(
+      opacity: enabled ? 1 : 0.44,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: color,
+          border: Border.all(color: theme.colorScheme.outlineVariant),
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: const SizedBox.square(dimension: 18),
+      ),
     );
   }
 }
@@ -1173,12 +1343,17 @@ class _ToolbarDivider extends StatelessWidget {
   }
 }
 
-class _ToolbarColorOption {
-  const _ToolbarColorOption(this.label, this.colorValue);
+@immutable
+class WenzDefaultToolbarTextColorOption {
+  const WenzDefaultToolbarTextColorOption(this.label, this.colorValue);
 
+  /// Stable color name used in tooltips and accessibility labels.
   final String label;
+
+  /// ARGB color value written by [ToolbarController.setTextColorValue].
   final int colorValue;
 
+  /// Material color used to paint toolbar swatches.
   Color get color => Color(colorValue);
 }
 
@@ -1274,11 +1449,52 @@ String _alignmentTooltip(ToolbarState state) {
   return '对齐方式：${_alignmentLabel(state)}';
 }
 
-String _customTextColorLabel(int? currentColor) {
-  if (currentColor == null) {
+String _textColorOptionTooltip(WenzDefaultToolbarTextColorOption option) {
+  return '${option.label} #${_hexColor(option.colorValue)}';
+}
+
+Color _textColorCheckColor(Color color) {
+  return color.computeLuminance() > 0.55 ? Colors.black : Colors.white;
+}
+
+bool _isPresetTextColor(int? colorValue) {
+  if (colorValue == null) {
+    return false;
+  }
+  return _kTextColorOptions.any((option) => option.colorValue == colorValue);
+}
+
+bool _isCustomTextColorActive(ToolbarState state) {
+  final currentColor = state.textColor;
+  return currentColor != null &&
+      !state.textColorMixed &&
+      !_isPresetTextColor(currentColor);
+}
+
+String _customTextColorLabel(ToolbarState state) {
+  if (state.textColorMixed) {
+    return '自定义颜色（混合）';
+  }
+  final currentColor = state.textColor;
+  if (currentColor == null || _isPresetTextColor(currentColor)) {
     return '自定义颜色';
   }
   return '自定义颜色 #${_hexColor(currentColor)}';
+}
+
+String _customTextColorTooltip(ToolbarState state) {
+  final unavailable = state.canFormatInline ? '' : '不可用';
+  if (state.textColorMixed) {
+    return unavailable.isEmpty
+        ? '自定义文字颜色（混合）'
+        : '自定义文字颜色（混合，$unavailable）';
+  }
+  final currentColor = state.textColor;
+  if (currentColor == null || _isPresetTextColor(currentColor)) {
+    return unavailable.isEmpty ? '自定义文字颜色' : '自定义文字颜色$unavailable';
+  }
+  final tooltip = '自定义文字颜色 #${_hexColor(currentColor)}';
+  return unavailable.isEmpty ? tooltip : '$tooltip（$unavailable）';
 }
 
 Future<int?> _showCustomTextColorDialog(
@@ -1381,6 +1597,7 @@ ButtonStyle _toolbarMenuItemStyle(
   BuildContext context, {
   required double width,
   bool danger = false,
+  bool selected = false,
 }) {
   final theme = Theme.of(context);
   final colorScheme = theme.colorScheme;
@@ -1407,6 +1624,9 @@ ButtonStyle _toolbarMenuItemStyle(
       if (states.contains(WidgetState.disabled)) {
         return Colors.transparent;
       }
+      if (selected) {
+        return colorScheme.primaryContainer;
+      }
       if (states.contains(WidgetState.pressed)) {
         return danger
             ? colorScheme.error.withAlpha(31)
@@ -1427,6 +1647,9 @@ ButtonStyle _toolbarMenuItemStyle(
       if (danger) {
         return colorScheme.error;
       }
+      if (selected) {
+        return colorScheme.onPrimaryContainer;
+      }
       return _toolbarMenuTextColor(theme);
     }),
     iconColor: WidgetStateProperty.resolveWith<Color?>((states) {
@@ -1436,9 +1659,62 @@ ButtonStyle _toolbarMenuItemStyle(
       if (danger) {
         return colorScheme.error;
       }
+      if (selected) {
+        return colorScheme.onPrimaryContainer;
+      }
       return _toolbarMenuMutedColor(theme);
     }),
     overlayColor: const WidgetStatePropertyAll(Colors.transparent),
+  );
+}
+
+ButtonStyle _toolbarColorSwatchButtonStyle(
+  ThemeData theme, {
+  required bool selected,
+}) {
+  final colorScheme = theme.colorScheme;
+  return ButtonStyle(
+    minimumSize: const WidgetStatePropertyAll(
+      Size.square(_kTextColorSwatchButtonExtent),
+    ),
+    fixedSize: const WidgetStatePropertyAll(
+      Size.square(_kTextColorSwatchButtonExtent),
+    ),
+    padding: const WidgetStatePropertyAll(EdgeInsets.zero),
+    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    visualDensity: VisualDensity.compact,
+    alignment: Alignment.center,
+    shape: WidgetStatePropertyAll(
+      RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(_kToolbarRadius),
+      ),
+    ),
+    backgroundColor: WidgetStateProperty.resolveWith<Color?>((states) {
+      if (states.contains(WidgetState.disabled)) {
+        return Colors.transparent;
+      }
+      if (selected) {
+        return colorScheme.primaryContainer;
+      }
+      if (states.contains(WidgetState.pressed)) {
+        return selected
+            ? colorScheme.primaryContainer
+            : _toolbarMenuPressedColor(theme);
+      }
+      if (states.contains(WidgetState.hovered) ||
+          states.contains(WidgetState.focused)) {
+        return selected
+            ? colorScheme.primaryContainer
+            : _toolbarMenuHoverColor(theme);
+      }
+      return selected ? colorScheme.primaryContainer : Colors.transparent;
+    }),
+    overlayColor: WidgetStateProperty.resolveWith<Color?>((states) {
+      if (states.contains(WidgetState.disabled)) {
+        return Colors.transparent;
+      }
+      return colorScheme.primary.withAlpha(20);
+    }),
   );
 }
 
@@ -1596,23 +1872,30 @@ ButtonStyle _toolbarTextButtonStyle(
 }
 
 String _textColorTooltip(ToolbarState state) {
+  final unavailable = state.canFormatInline ? '' : '不可用';
   if (state.textColorMixed) {
-    return '文字颜色（混合）';
+    return unavailable.isEmpty
+        ? '文字颜色（混合）'
+        : '文字颜色（混合，$unavailable）';
   }
   if (state.textColor == null) {
-    return '文字颜色';
+    return unavailable.isEmpty ? '文字颜色' : '文字颜色$unavailable';
   }
-  return '文字颜色 #${_hexColor(state.textColor!)}';
+  final tooltip = '文字颜色 #${_hexColor(state.textColor!)}';
+  return unavailable.isEmpty ? tooltip : '$tooltip（$unavailable）';
 }
 
 String _clearTextColorTooltip(ToolbarState state) {
+  final unavailable = state.canFormatInline ? '' : '不可用';
   if (state.textColorMixed) {
-    return '清除混合文字颜色';
+    final tooltip = '清除混合文字颜色';
+    return unavailable.isEmpty ? tooltip : '$tooltip$unavailable';
   }
   if (state.textColor == null) {
-    return '无文字颜色';
+    return unavailable.isEmpty ? '无文字颜色' : '清除文字颜色$unavailable';
   }
-  return '清除文字颜色 #${_hexColor(state.textColor!)}';
+  final tooltip = '清除文字颜色 #${_hexColor(state.textColor!)}';
+  return unavailable.isEmpty ? tooltip : '$tooltip（$unavailable）';
 }
 
 String _hexColor(int value) {

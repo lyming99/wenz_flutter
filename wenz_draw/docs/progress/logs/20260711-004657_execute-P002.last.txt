@@ -1,0 +1,12 @@
+P002 已完成，仅新增 [infinite_canvas_text_editing_test.dart](D:/project/GitHub/wenz_flutter/wenz_draw/test/infinite_canvas_text_editing_test.dart:1)。
+
+覆盖内容：
+
+- 窄文字在 1.0x、1.75x 缩放下的工具栏边缘交互。
+- 预设颜色、字号、字体族及 Sans 恢复。
+- 字号菜单取消、自定义颜色取消与应用后的焦点恢复。
+- `TextElement` 与图形标签共享编辑覆盖层。
+- 外部点击仅提交一次历史记录，撤销恢复文字和全部样式。
+- 覆盖焦点恢复回调与 `FocusNode` 释放交错场景。
+
+plan 文件和 P001 业务文件均未改动。按要求未运行测试、构建、格式化或静态分析命令。

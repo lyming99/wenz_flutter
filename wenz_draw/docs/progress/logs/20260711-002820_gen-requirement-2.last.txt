@@ -1,0 +1,5 @@
+已生成并验证合法 JSON：
+
+[plan_spec_requirement_2_20260711-002820.json](D:/project/GitHub/wenz_flutter/wenz_draw/docs/plan/plan_spec_requirement_2_20260711-002820.json)
+
+未写 Markdown，未修改业务代码。

@@ -14,9 +14,10 @@ void main() {
       WenzOutlinePanel(controller: controller),
     ));
 
+    expect(find.text('大纲'), findsOneWidget);
     expect(find.text('Hello'), findsOneWidget);
     expect(find.text('World'), findsOneWidget);
-    expect(find.text('2 headings'), findsOneWidget);
+    expect(find.text('2 headings'), findsNothing);
   });
 
   testWidgets('WenzOutlinePanel shows empty state when no headings',

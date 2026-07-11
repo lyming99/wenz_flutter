@@ -1,0 +1,66 @@
+{
+  "title": "文字颜色选择支持多色宫格 Popup",
+  "summary": "反馈 #32 要求文字颜色选择支持多种颜色，并通过宫格视图 popup 完成选择。当前项目的文字颜色底层能力已存在：ToolbarController 和 WenzRichTextController 已支持 setTextColorValue 与 clearTextColor，桌面工具栏已有 MenuAnchor 色块入口，移动端在“更多-颜色”面板内使用色块行。计划聚焦于统一并完善默认工具栏的颜色选择体验：扩展可选颜色集合，桌面使用明确的宫格 popup，移动端保持触控友好的同类宫格选择入口，同时保留当前颜色、混合状态、清除颜色、只读禁用和自定义颜色能力。",
+  "tasks": [
+    {
+      "title": "统一文字颜色候选色配置",
+      "scope": [
+        "lib/src/widgets/default_desktop_toolbar.dart",
+        "lib/src/widgets/default_mobile_toolbar.dart"
+      ],
+      "acceptance": [
+        "桌面和移动端默认工具栏使用一致的文字颜色候选集合，候选色数量覆盖常用文本颜色，不再只依赖少量单点颜色入口。",
+        "每个候选色都有稳定的 label、0xAARRGGBB 色值和可访问 tooltip，tooltip 能体现颜色名称与十六进制色值，便于测试和辅助技术识别。",
+        "候选色配置不改变文档模型的颜色存储格式，仍通过现有 setTextColorValue 写入 ARGB int，通过 clearTextColor 清除文字颜色。",
+        "保留当前颜色不在候选集合中时的自定义颜色状态展示，避免已有文档中的非预设颜色丢失或显示异常。"
+      ]
+    },
+    {
+      "title": "完善桌面文字颜色宫格 Popup",
+      "scope": [
+        "lib/src/widgets/default_desktop_toolbar.dart"
+      ],
+      "acceptance": [
+        "点击桌面工具栏“文字颜色”按钮后打开 popup，popup 主区域以固定宫格展示多种颜色色块，而不是普通纵向文字菜单。",
+        "宫格色块在选中状态显示明确勾选或边框反馈，当前 selection 为混合文字颜色时不误选任一候选色。",
+        "点击任一色块会关闭 popup，并对当前选区应用对应文字颜色；readOnly 或不可格式化状态下按钮和色块保持禁用且不修改文档。",
+        "popup 内继续提供清除文字颜色入口，并保留自定义颜色入口；无颜色、已有颜色、混合颜色三种状态的 tooltip 和文案保持明确。",
+        "popup 尺寸、间距和色块命中区域在常规桌面宽度下不溢出，颜色图标继续用当前颜色反馈工具栏按钮状态。"
+      ]
+    },
+    {
+      "title": "调整移动端文字颜色宫格选择体验",
+      "scope": [
+        "lib/src/widgets/default_mobile_toolbar.dart"
+      ],
+      "acceptance": [
+        "移动端默认工具栏的颜色选择也呈现为触控友好的多色宫格，和桌面使用同一候选色语义，避免桌面与移动端颜色集合不一致。",
+        "在 320dp 等窄屏宽度下，颜色宫格能够换行或受约束滚动，不产生 Flutter overflow，也不挤压“更多”面板中的其他分组。",
+        "选中、混合、无颜色、只读禁用和清除文字颜色状态均有明确 tooltip 与视觉反馈。",
+        "点击色块后通过现有 toolbar.setTextColorValue 更新当前选区；点击清除入口只清除文字颜色，不影响加粗、链接、背景色等其他 inline 属性。"
+      ]
+    },
+    {
+      "title": "补充默认工具栏颜色选择测试覆盖",
+      "scope": [
+        "test/widgets/default_desktop_toolbar_test.dart",
+        "test/widgets/default_mobile_toolbar_test.dart"
+      ],
+      "acceptance": [
+        "桌面测试覆盖打开文字颜色 popup 后能看到多色宫格、各候选色 tooltip、选中态、清除入口和自定义颜色入口。",
+        "桌面测试覆盖选择预设色、选择自定义色、清除颜色、混合颜色状态下清除颜色，以及不可格式化状态下按钮禁用。",
+        "移动端测试覆盖窄屏下多色宫格展示、点击色块应用颜色、当前色选中态、清除颜色、混合颜色和只读禁用状态。",
+        "测试断言颜色选择只影响 TextAttributes.color，不回归已有 toolbar controller 的文字颜色状态汇总和清除行为。"
+      ]
+    }
+  ],
+  "finalValidation": {
+    "command": "flutter analyze; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; flutter test --no-pub test/widgets/default_desktop_toolbar_test.dart test/widgets/default_mobile_toolbar_test.dart test/controller/toolbar_controller_test.dart",
+    "criteria": [
+      "静态分析通过，默认桌面工具栏、默认移动工具栏和相关测试没有新增 analyzer error 或 warning。",
+      "桌面文字颜色按钮以 popup 宫格方式展示多种候选色，支持选择、当前色反馈、混合状态、清除颜色、自定义颜色和禁用状态。",
+      "移动端文字颜色选择在窄屏下可用且无 overflow，多色宫格、清除入口、选中态、混合态和只读禁用行为符合预期。",
+      "文字颜色应用仍复用现有 controller/command 管线，最终文档只更新 inline color，其他 inline 属性和既有工具栏状态汇总不回归。"
+    ]
+  }
+}

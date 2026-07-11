@@ -97,25 +97,35 @@ Flutter 标准 `Clipboard` 不暴露图片 bytes、文件 URI 或微信/QQ 等 I
 2. 其次处理外部图片输入；成功准备出的图片按现有块级粘贴语义插入 `ImageBlockNode`。
 3. 无可用图片时继续回退 HTML / Markdown / plain text。
 
-外部文件拖拽由 `WenzRichTextEditor` 的 drop target 接收，只在 `enableExternalImageInput == true`、非只读且 controller 可编辑时启用。拖入图片文件后，输入同样交给 `ExternalImageStore.prepare`，再通过 `WenzRichTextController.pasteExternalImages` 进入 `PasteBlocksCommand` / `InsertBlocksCommand`，因此撤销/重做、selection 和权限门禁与普通块粘贴一致。
+外部图片拖拽由 `WenzRichTextEditor` 的外部 drop target 接收，并与图片剪贴板共用同一条 `ExternalImageInput` -> `ExternalImageStore.prepare` -> `WenzRichTextController.pasteExternalImages` 管线。平台提供的本地路径、`file://` URI 或图片 bytes 会转换成 `ExternalImageInputSource.drop` 的 `filePath` / `fileUri` / `memory` 候选；通过扩展名、MIME、URI scheme 或字节签名校验的候选按平台顺序交给 store，随后进入 `PasteBlocksCommand` / `InsertBlocksCommand`，因此撤销/重做、selection 和权限门禁与普通块粘贴一致。外部 drop 入口只在 `enableExternalImageInput == true`、`enableExternalDragDrop == true`、非只读、controller 可编辑且当前平台不是移动端选择 UI 平台时挂载；Android/iOS 等触摸移动端不挂载外部 `DropRegion`，避免干扰文字选择手势。
 
 默认 IO store 的边界：
 
-- 文件 path / file URI：插入前校验路径存在、非目录、非空文件，并按扩展名/MIME/文件签名确认是支持的图片。
-- 内存 bytes：写入系统临时目录，文件名带 `wenz-external-image` 前缀，扩展名优先来自 MIME，其次来自 bytes 签名。
-- Web 或不支持平台：返回可诊断失败，不向 UI 抛异常。
+- 文件 path / file URI：插入前校验路径存在、非目录、非空文件，并按扩展名/MIME/文件签名确认是支持的图片；校验通过后会尽量读取本地文件 bytes，从 PNG/JPEG/GIF/WebP/BMP 字节头提取原始像素 `width`/`height`，并写入 `ExternalImageBlockDescription`。
+- 内存 bytes：写入系统临时目录，文件名带 `wenz-external-image` 前缀，扩展名优先来自 MIME，其次来自 bytes 签名；写入前同样尽量读取原始像素 `width`/`height`，并写入 `ExternalImageBlockDescription`。
+- 尺寸读取失败时字段留空，插入流程继续使用已有 fallback；Web 或不支持平台返回可诊断失败，不向 UI 抛异常。
+
+`ExternalImageBlockDescription.width` / `height` 表示原图固有像素尺寸；
+`ClipboardService.parseExternalImages` 会把它们透传到 `ImageBlockNode.width`
+/ `height`，供默认图片块按真实比例约束首次显示框；未知尺寸进入
+`ImageBlockNode` 时为 `0`。`showWidth` / `showHeight` 只表示用户调整后的显示尺寸，
+首次粘贴不会用原始像素尺寸填充这两个字段。默认图片显示框按
+`showWidth`/`showHeight`、固有 `width`/`height`、兼容占位比例的顺序确定几何尺寸；
+因此已知真实像素的外部图片首次显示会保持原始宽高比，选中框和 resize 命中区与同一框对齐。
+自定义 `ExternalImageStore` 在 materialize 图片时应尽量提供真实尺寸；无法获得时可留空，编辑器会回退到兼容占位比例。
 
 宿主可通过 `WenzEditorConfiguration` 或直接构造 `WenzRichTextEditor` 接管策略：
 
 ```dart
 WenzEditorConfiguration(
   enableExternalImageInput: true,
+  enableExternalDragDrop: true,
   externalImageClipboardReader: myPlatformReader,
   externalImageStore: myStore,
 );
 ```
 
-`enableExternalImageInput: false` 只关闭图片 flavor 和外部图片拖拽；普通文本、Wenz rich JSON、HTML、Markdown 粘贴不受影响。核心包只生成图片块描述和临时/本地文件引用，不负责上传、长期持久化、清理临时文件或把本地路径映射为业务 asset，这些策略应由宿主通过 `ExternalImageStore` 或 `MediaResolver` 接管。
+`enableExternalImageInput: false` 会关闭图片剪贴板 flavor 和所有外部图片拖拽输入；普通文本、Wenz rich JSON、HTML、Markdown 粘贴不受影响。`enableExternalDragDrop: false` 只卸载桌面外部图片拖拽入口，图片剪贴板仍按 `enableExternalImageInput` 处理。核心包只生成图片块描述、可用时的原图尺寸和临时/本地文件引用，不负责上传、长期持久化、清理临时文件或把本地路径映射为业务 asset，这些策略应由宿主通过 `ExternalImageStore` 或 `MediaResolver` 接管。
 
 ### HTML/Markdown 粘贴
 
@@ -195,6 +205,8 @@ UI，不应直接改 document model。
 | PageUp/Down | 按视口高度翻页（Shift 扩选），跳完后自动滚动到 caret | 否 |
 | Backspace/Delete | 删除 | 否 |
 | Enter | 分段 | 否 |
+| Ctrl+Enter / Ctrl+NumpadEnter | 在当前选择下方插入空正文段落 | 否 |
+| Ctrl+Shift+Enter / Ctrl+Shift+NumpadEnter | 在当前选择上方插入空正文段落 | 否 |
 | Ctrl/Cmd+A | 全选 | 是 |
 | Ctrl/Cmd+C | 复制 | 是 |
 | Ctrl/Cmd+X | 剪切 | 否 |
@@ -218,6 +230,14 @@ Enter 的键盘路径只负责把 intent 分发到 `controller.enter()`，实际
 普通段落、列表续行/空列表退出、引用续行/空引用退出、代码块内换行和表格单元格内换行
 继续走各自既有命令分支。这个行为只影响命令生成的新块类型和属性，不改变持久化 schema，
 不需要 schema migration，也不应在 widget 层另加一次性特殊分支。
+
+Ctrl+Enter 和 Ctrl+NumpadEnter 不分裂当前内容，而是通过
+`controller.insertTextBlockBelow()` 在当前选择结束块下方插入空 paragraph；
+Ctrl+Shift+Enter 和 Ctrl+Shift+NumpadEnter 对应
+`controller.insertTextBlockAbove()`，使用选择起点块上方作为插入位置。新块始终是
+普通空正文段落，caret 落在新块开头，并沿用同一条 command、history、permission、
+selection 同步路径；对象块、代码块和表格单元格选择只决定 top-level 插入边界，
+不复制原块类型。
 
 ### 快捷键配置契约
 

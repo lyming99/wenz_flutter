@@ -19,6 +19,8 @@ void main() {
       expect(toolbar.canSetLink, isFalse);
       expect(toolbar.canSetBlockType, isFalse);
       expect(toolbar.bold, isFalse);
+      expect(toolbar.textBackgroundColor, isNull);
+      expect(toolbar.textBackgroundColorMixed, isFalse);
       expect(toolbar.uniformBlockType, isNull);
 
       toolbar.dispose();
@@ -173,6 +175,44 @@ void main() {
       emptyHost.dispose();
     });
 
+    test('text background reports uniform, mixed, and empty states', () {
+      final uniformHost = WenzRichTextController(
+        document: _doc(),
+        selection: textSelection('highlighted', 11, 0, 4),
+      );
+      final uniformToolbar = ToolbarController(uniformHost);
+
+      expect(uniformToolbar.textBackgroundColor, 0xFFFFF59D);
+      expect(uniformToolbar.textBackgroundColorMixed, isFalse);
+      expect(uniformToolbar.textHighlightColor, 0xFFFFF59D);
+      expect(uniformToolbar.textHighlightMixed, isFalse);
+
+      final mixedHost = WenzRichTextController(
+        document: _doc(),
+        selection: textSelection('highlighted', 11, 0, 9),
+      );
+      final mixedToolbar = ToolbarController(mixedHost);
+
+      expect(mixedToolbar.textBackgroundColor, isNull);
+      expect(mixedToolbar.textBackgroundColorMixed, isTrue);
+
+      final emptyHost = WenzRichTextController(
+        document: _doc(),
+        selection: textSelection('para', 4, 0, 3),
+      );
+      final emptyToolbar = ToolbarController(emptyHost);
+
+      expect(emptyToolbar.textBackgroundColor, isNull);
+      expect(emptyToolbar.textBackgroundColorMixed, isFalse);
+
+      uniformToolbar.dispose();
+      uniformHost.dispose();
+      mixedToolbar.dispose();
+      mixedHost.dispose();
+      emptyToolbar.dispose();
+      emptyHost.dispose();
+    });
+
     test('collapsed caret reports left run text color', () {
       final host = WenzRichTextController(
         document: _doc(),
@@ -182,6 +222,20 @@ void main() {
 
       expect(toolbar.textColor, 0xFF336699);
       expect(toolbar.textColorMixed, isFalse);
+
+      toolbar.dispose();
+      host.dispose();
+    });
+
+    test('collapsed caret reports left run text background', () {
+      final host = WenzRichTextController(
+        document: _doc(),
+        selection: collapsedTextSelection('highlighted', 11, 2),
+      );
+      final toolbar = ToolbarController(host);
+
+      expect(toolbar.textBackgroundColor, 0xFFFFF59D);
+      expect(toolbar.textBackgroundColorMixed, isFalse);
 
       toolbar.dispose();
       host.dispose();
@@ -753,6 +807,57 @@ void main() {
         host.dispose();
       });
 
+      test('range inside a table cell sets and clears text background', () {
+        final start = DocumentPosition.tableCell(
+          tableBlockId: 'table',
+          blockIndex: 0,
+          tableRowIndex: 0,
+          tableColumnIndex: 0,
+          offset: 0,
+        );
+        final end = DocumentPosition.tableCell(
+          tableBlockId: 'table',
+          blockIndex: 0,
+          tableRowIndex: 0,
+          tableColumnIndex: 0,
+          offset: 4,
+        );
+        final selection = DocumentSelection(base: start, extent: end);
+        final host = WenzRichTextController(
+          document: _tableDoc(),
+          selection: selection,
+        );
+        final toolbar = ToolbarController(host);
+
+        toolbar.setTextBackgroundValue(0xFFFFF59D);
+
+        expect(host.selection, selection);
+        expect(toolbar.textBackgroundColor, 0xFFFFF59D);
+        expect(toolbar.textBackgroundColorMixed, isFalse);
+        var table = host.document.blocks.single as TableBlockNode;
+        var textBlock =
+            table.table.cellAt(0, 0)!.blocks.single as TextBlockNode;
+        expect(
+          (textBlock.content.single as TextRun).attributes.background,
+          0xFFFFF59D,
+        );
+
+        toolbar.clearTextBackground();
+
+        expect(host.selection, selection);
+        expect(toolbar.textBackgroundColor, isNull);
+        expect(toolbar.textBackgroundColorMixed, isFalse);
+        table = host.document.blocks.single as TableBlockNode;
+        textBlock = table.table.cellAt(0, 0)!.blocks.single as TextBlockNode;
+        expect(
+          (textBlock.content.single as TextRun).attributes.background,
+          isNull,
+        );
+
+        toolbar.dispose();
+        host.dispose();
+      });
+
       test('toggleBold preserves a table cell range selection', () {
         final start = DocumentPosition.tableCell(
           tableBlockId: 'table',
@@ -865,12 +970,27 @@ void main() {
       expect(toolbar.canSetLink, isFalse);
       expect(toolbar.canSetBlockType, isFalse);
       expect(toolbar.canSetAlignment, isFalse);
+      expect(toolbar.canInsertBlock, isFalse);
       expect(toolbar.canInsertImage, isFalse);
 
       toolbar.setAlignment('center');
+      toolbar.setTextBackgroundValue(0xFFFFF59D);
+      toolbar.clearTextBackground();
+      toolbar.insertDivider(blockId: 'blocked-divider');
       expect(
         (host.document.blocks.first as TextBlockNode).attributes.alignment,
         isNull,
+      );
+      expect(
+        ((host.document.blocks.first as TextBlockNode).content.first
+                as TextRun)
+            .attributes
+            .background,
+        isNull,
+      );
+      expect(
+        host.document.blocks.any((block) => block.id == 'blocked-divider'),
+        isFalse,
       );
       expect(host.canUndo, isFalse);
 
@@ -881,6 +1001,7 @@ void main() {
       expect(toolbar.canSetLink, isTrue);
       expect(toolbar.canSetBlockType, isTrue);
       expect(toolbar.canSetAlignment, isTrue);
+      expect(toolbar.canInsertBlock, isTrue);
       expect(toolbar.canInsertImage, isTrue);
 
       toolbar.dispose();
@@ -978,6 +1099,116 @@ void main() {
 
         final image = host.document.blocks.first as ImageBlockNode;
         expect(image.attributes.alignment, 'center');
+        expect(host.canUndo, isFalse);
+
+        toolbar.dispose();
+        host.dispose();
+      }
+    });
+
+    test('video object selection exposes alignment and preserves metadata', () {
+      final selection = _objectSelection('video', 0, 1);
+      final host = WenzRichTextController(
+        document: _videoAlignmentDoc(videoAlignment: 'right'),
+        selection: selection,
+      );
+      final toolbar = ToolbarController(host);
+
+      expect(toolbar.canSetAlignment, isTrue);
+      expect(toolbar.alignment, 'right');
+      expect(toolbar.alignmentMixed, isFalse);
+      expect(toolbar.isAlignment('right'), isTrue);
+      expect(toolbar.canFormatInline, isFalse);
+
+      toolbar.setAlignment('left');
+
+      var video = host.document.blocks.first as VideoBlockNode;
+      expect(video.attributes.alignment, 'left');
+      expect(video.showWidth, 480);
+      expect(video.showHeight, 270);
+      expect(video.title, 'Clip');
+      expect(video.uploadStatus, FileUploadStatus.uploaded);
+      expect(host.selection, selection);
+      expect(toolbar.alignment, 'left');
+      expect(host.canUndo, isTrue);
+
+      expect(host.undo(), isTrue);
+      video = host.document.blocks.first as VideoBlockNode;
+      expect(video.attributes.alignment, 'right');
+      expect(video.showWidth, 480);
+      expect(video.showHeight, 270);
+      expect(host.selection, selection);
+
+      expect(host.redo(), isTrue);
+      video = host.document.blocks.first as VideoBlockNode;
+      expect(video.attributes.alignment, 'left');
+      expect(toolbar.alignment, 'left');
+
+      toolbar.clearAlignment();
+
+      video = host.document.blocks.first as VideoBlockNode;
+      expect(video.attributes.alignment, isNull);
+      expect(video.showWidth, 480);
+      expect(video.showHeight, 270);
+      expect(video.title, 'Clip');
+      expect(toolbar.alignment, isNull);
+      expect(toolbar.alignmentMixed, isFalse);
+      expect(toolbar.isAlignment(null), isTrue);
+      expect(host.selection, selection);
+
+      toolbar.dispose();
+      host.dispose();
+    });
+
+    test('video alignment reports mixed across object and text blocks', () {
+      final host = WenzRichTextController(
+        document: _videoAlignmentDoc(
+          videoAlignment: 'center',
+          paragraphAlignment: 'right',
+        ),
+        selection: DocumentSelection(
+          base: DocumentPosition.object(blockId: 'video', blockIndex: 0),
+          extent: DocumentPosition.text(
+            blockId: 'caption-after',
+            blockIndex: 1,
+            offset: 0,
+          ),
+        ),
+      );
+      final toolbar = ToolbarController(host);
+
+      expect(toolbar.canSetAlignment, isTrue);
+      expect(toolbar.alignment, isNull);
+      expect(toolbar.alignmentMixed, isTrue);
+      expect(toolbar.isAlignment('center'), isFalse);
+
+      toolbar.dispose();
+      host.dispose();
+    });
+
+    test('video alignment actions are no-op without edit permission', () {
+      for (final permission in <WenzEditorPermission>[
+        WenzEditorPermission.read,
+        WenzEditorPermission.comment,
+      ]) {
+        final host = WenzRichTextController(
+          document: _videoAlignmentDoc(videoAlignment: 'center'),
+          selection: _objectSelection('video', 0, 1),
+          permission: permission,
+        );
+        final toolbar = ToolbarController(host);
+
+        expect(toolbar.canSetAlignment, isFalse);
+        expect(toolbar.alignment, 'center');
+        expect(toolbar.alignmentMixed, isFalse);
+
+        toolbar.setAlignment('left');
+        toolbar.clearAlignment();
+
+        final video = host.document.blocks.first as VideoBlockNode;
+        expect(video.attributes.alignment, 'center');
+        expect(video.showWidth, 480);
+        expect(video.showHeight, 270);
         expect(host.canUndo, isFalse);
 
         toolbar.dispose();
@@ -1116,6 +1347,54 @@ void main() {
 
       tableToolbar.dispose();
       tableHost.dispose();
+
+      final dividerHost = WenzRichTextController(
+        document: _doc(),
+        selection: collapsedTextSelection('para', 4, 4),
+      );
+      final dividerToolbar = ToolbarController(dividerHost);
+
+      dividerToolbar.insertDivider(blockId: 'divider-new');
+      expect(dividerHost.document.blocks[4], isA<TextBlockNode>());
+      expect(
+        (dividerHost.document.blocks[4] as TextBlockNode).plainText,
+        'A pa',
+      );
+      expect(dividerHost.document.blocks[5], isA<DividerBlockNode>());
+      expect(dividerHost.document.blocks[5].id, 'divider-new');
+      expect(
+        (dividerHost.document.blocks[6] as TextBlockNode).plainText,
+        'ragraph.',
+      );
+      expect(dividerHost.canUndo, isTrue);
+
+      dividerToolbar.dispose();
+      dividerHost.dispose();
+    });
+
+    test('insertDivider is a no-op without edit permission', () {
+      for (final permission in <WenzEditorPermission>[
+        WenzEditorPermission.read,
+        WenzEditorPermission.comment,
+      ]) {
+        final host = WenzRichTextController(
+          document: _doc(),
+          selection: collapsedTextSelection('para', 4, 0),
+          permission: permission,
+        );
+        final toolbar = ToolbarController(host);
+
+        toolbar.insertDivider(blockId: 'blocked-divider');
+
+        expect(
+          host.document.blocks.any((block) => block.id == 'blocked-divider'),
+          isFalse,
+        );
+        expect(host.canUndo, isFalse);
+
+        toolbar.dispose();
+        host.dispose();
+      }
     });
 
     test('insertVideo uses the current object-block insertion index', () {
@@ -1139,6 +1418,8 @@ void main() {
         assetId: 'asset-video',
         file: '/tmp/video.mp4',
         title: 'Video',
+        showWidth: 480,
+        showHeight: 270,
       );
 
       expect(host.document.blocks[0].id, 'existing');
@@ -1148,6 +1429,8 @@ void main() {
       expect(video.assetId, 'asset-video');
       expect(video.file, '/tmp/video.mp4');
       expect(video.title, 'Video');
+      expect(video.showWidth, 480);
+      expect(video.showHeight, 270);
       expect(host.document.blocks[2].id, 'after');
 
       toolbar.dispose();
@@ -1170,6 +1453,8 @@ void main() {
         title: 'Inserted video',
         description: 'Video inserted from a text caret',
         aspectRatio: 4 / 3,
+        showWidth: 320,
+        showHeight: 240,
         uploadStatus: FileUploadStatus.uploaded,
       );
 
@@ -1185,6 +1470,8 @@ void main() {
       expect(video.title, 'Inserted video');
       expect(video.description, 'Video inserted from a text caret');
       expect(video.aspectRatio, 4 / 3);
+      expect(video.showWidth, 320);
+      expect(video.showHeight, 240);
       expect(video.uploadStatus, FileUploadStatus.uploaded);
       expect((host.document.blocks[6] as TextBlockNode).plainText,
           'ragraph.');
@@ -1251,6 +1538,64 @@ void main() {
       expect(run.attributes.bold, isTrue);
       expect(toolbar.textColor, isNull);
       expect(toolbar.textColorMixed, isFalse);
+
+      toolbar.dispose();
+      host.dispose();
+    });
+
+    test('set and clear text background preserve other inline attributes', () {
+      final host = WenzRichTextController(
+        document: _doc(),
+        selection: textSelection('highlighted', 11, 1, 8),
+      );
+      final toolbar = ToolbarController(host);
+
+      toolbar.setTextBackgroundValue(0xFFFFCC80);
+
+      var block = host.document.blocks[11] as TextBlockNode;
+      expect(block.content, hasLength(3));
+      expect((block.content[1] as TextRun).text, 'ighligh');
+      expect(
+        (block.content[1] as TextRun).attributes.background,
+        0xFFFFCC80,
+      );
+      expect((block.content[1] as TextRun).attributes.color, 0xFF336699);
+      expect((block.content[1] as TextRun).attributes.bold, isTrue);
+      expect(toolbar.textBackgroundColor, 0xFFFFCC80);
+      expect(toolbar.textBackgroundColorMixed, isFalse);
+
+      toolbar.clearTextHighlight();
+
+      block = host.document.blocks[11] as TextBlockNode;
+      final selectedRun = block.content[1] as TextRun;
+      expect(selectedRun.text, 'ighlight');
+      expect(selectedRun.attributes.background, isNull);
+      expect(selectedRun.attributes.color, 0xFF336699);
+      expect(selectedRun.attributes.bold, isTrue);
+      expect(toolbar.textBackgroundColor, isNull);
+      expect(toolbar.textBackgroundColorMixed, isFalse);
+
+      toolbar.dispose();
+      host.dispose();
+    });
+
+    test('text background actions are no-op when formatting is disabled', () {
+      final host = WenzRichTextController(
+        document: _doc(),
+        selection: textSelection('highlighted', 11, 0, 4),
+        permission: WenzEditorPermission.read,
+      );
+      final toolbar = ToolbarController(host);
+
+      toolbar.setTextHighlightValue(0xFFFFCC80);
+      toolbar.clearTextHighlight();
+
+      final block = host.document.blocks[11] as TextBlockNode;
+      expect(
+        (block.content.first as TextRun).attributes.background,
+        0xFFFFF59D,
+      );
+      expect(host.canUndo, isFalse);
 
       toolbar.dispose();
       host.dispose();
@@ -1364,6 +1709,25 @@ RichTextDocument _doc() {
             attributes: TextAttributes(color: 0xFF336699, bold: true),
           ),
           TextRun(text: 'ored'),
+        ],
+      ),
+      // 11 — highlighted: first run highlighted, both runs share color+bold.
+      TextBlockNode(
+        id: 'highlighted',
+        type: BlockType.paragraph,
+        content: <InlineNode>[
+          TextRun(
+            text: 'High',
+            attributes: TextAttributes(
+              color: 0xFF336699,
+              background: 0xFFFFF59D,
+              bold: true,
+            ),
+          ),
+          TextRun(
+            text: 'light',
+            attributes: TextAttributes(color: 0xFF336699, bold: true),
+          ),
         ],
       ),
     ],
@@ -1516,6 +1880,35 @@ RichTextDocument _tableAlignmentDoc({
             ],
           ],
         ),
+      ),
+    ],
+  );
+}
+
+RichTextDocument _videoAlignmentDoc({
+  String? videoAlignment,
+  String? paragraphAlignment,
+}) {
+  return RichTextDocument(
+    blocks: <BlockNode>[
+      VideoBlockNode(
+        id: 'video',
+        assetId: 'video-asset',
+        playbackUrl: 'https://cdn.example.com/video.mp4',
+        coverUrl: 'https://cdn.example.com/video.jpg',
+        title: 'Clip',
+        description: 'Keep video metadata',
+        aspectRatio: 16 / 9,
+        showWidth: 480,
+        showHeight: 270,
+        uploadStatus: FileUploadStatus.uploaded,
+        attributes: BlockAttributes(alignment: videoAlignment),
+      ),
+      TextBlockNode(
+        id: 'caption-after',
+        type: BlockType.paragraph,
+        attributes: BlockAttributes(alignment: paragraphAlignment),
+        content: const <InlineNode>[TextRun(text: 'after video')],
       ),
     ],
   );

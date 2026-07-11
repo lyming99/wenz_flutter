@@ -14,7 +14,7 @@ class EraserTool extends CanvasTool {
 
   /// Elements collected during the current drag session. Each is removed
   /// immediately from the canvas (without individual history entries) and then
-  /// flushed as a single [BatchCommand] when the pointer lifts.
+  /// committed as a single [BatchCommand] when the session finishes.
   final List<CanvasElement> _sessionDeleted = [];
 
   @override
@@ -29,7 +29,9 @@ class EraserTool extends CanvasTool {
   @override
   ToolResult handleEvent(CanvasEvent event, CanvasController controller) {
     if (event is CanvasPointerDownEvent) {
-      _sessionDeleted.clear();
+      // A replacement pointer-down can arrive without a corresponding up
+      // event. Preserve any deletion already applied by committing it first.
+      commitPendingChanges(controller);
       _eraseAt(event.worldPoint, controller);
       return const ToolResultConsumed();
     }
@@ -38,7 +40,7 @@ class EraserTool extends CanvasTool {
       return const ToolResultConsumed();
     }
     if (event is CanvasPointerUpEvent) {
-      _flushSession(controller);
+      commitPendingChanges(controller);
       return const ToolResultConsumed();
     }
     return const ToolResultNone();
@@ -53,7 +55,8 @@ class EraserTool extends CanvasTool {
     controller.removeElement(element.id, record: false);
   }
 
-  void _flushSession(CanvasController controller) {
+  @override
+  void commitPendingChanges(CanvasController controller) {
     if (_sessionDeleted.isEmpty) {
       return;
     }
@@ -72,7 +75,14 @@ class EraserTool extends CanvasTool {
   }
 
   @override
+  void onDeactivate(CanvasController controller) {
+    commitPendingChanges(controller);
+  }
+
+  @override
   void cancel(CanvasController controller) {
-    _sessionDeleted.clear();
+    // Erasing is applied immediately, so cancellation must retain a
+    // reversible command instead of discarding the session.
+    commitPendingChanges(controller);
   }
 }

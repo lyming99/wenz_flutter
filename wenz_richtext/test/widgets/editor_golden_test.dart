@@ -7,6 +7,7 @@ import 'package:wenz_richtext/wenz_richtext.dart';
 import '../helpers/selection_test_helpers.dart';
 
 const _goldenKey = ValueKey<String>('editor-golden-surface');
+const _inlineFormulaKey = ValueKey<String>('wenz-richtext-inline-formula');
 const _selectionHighlightKey = ValueKey<String>(
   'wenz-richtext-selection-highlight',
 );
@@ -486,6 +487,34 @@ void main() {
       controller,
       outlineController: outlineController,
       size: const Size(520, 420),
+    );
+
+    final imageBlockFinder = find.byKey(
+      const ValueKey<String>('wenz-richtext-image-block-image'),
+    );
+    final imageSizeFinder = find.byKey(
+      const ValueKey<String>('wenz-richtext-image-size-image'),
+    );
+    final imageFrameFinder = find.byKey(
+      const ValueKey<String>('wenz-richtext-image-frame-image'),
+    );
+    expect(imageBlockFinder, findsOneWidget);
+    expect(imageSizeFinder, findsOneWidget);
+    expect(imageFrameFinder, findsOneWidget);
+    final imageBlockRect = tester.getRect(imageBlockFinder);
+    final imageSizeRect = tester.getRect(imageSizeFinder);
+    final imageFrameRect = tester.getRect(imageFrameFinder);
+    _expectRectClose(imageFrameRect, imageSizeRect);
+    expect(imageFrameRect.left, greaterThanOrEqualTo(imageBlockRect.left));
+    expect(imageFrameRect.top, greaterThanOrEqualTo(imageBlockRect.top));
+    expect(imageFrameRect.right, lessThanOrEqualTo(imageBlockRect.right));
+    expect(imageFrameRect.bottom, lessThanOrEqualTo(imageBlockRect.bottom));
+    expect(
+      find.descendant(
+        of: imageFrameFinder,
+        matching: find.byIcon(Icons.image_outlined),
+      ),
+      findsOneWidget,
     );
 
     final expandedButton = find.byKey(
@@ -1309,6 +1338,9 @@ void main() {
       const Size.square(32),
     );
     _expectGoldenToolbarButtonCapsule(tester, '复制代码内容');
+    final inlineFormula = find.byKey(_inlineFormulaKey);
+    expect(inlineFormula, findsOneWidget);
+    _expectGoldenInlineFormulaHasNoDefaultBackground(tester, inlineFormula);
     expect(find.text('release-spec.pdf'), findsOneWidget);
     expect(find.text('Retry required'), findsOneWidget);
 
@@ -1631,18 +1663,24 @@ Future<void> _pumpThemeSurfaceGoldenEditor(
   required Brightness brightness,
 }) async {
   const size = Size(520, 320);
-  final background =
-      brightness == Brightness.dark ? Colors.black : Colors.white;
+  // The dark editor canvas resolves to the theme's surfaceContainer instead of
+  // pure black (see WenzRichTextEditor's default dark background), so the
+  // golden scaffold follows the same soft neutral. Light stays white to keep
+  // the existing baseline.
+  final colorScheme = ColorScheme.fromSeed(
+    seedColor: Colors.blue,
+    brightness: brightness,
+  );
+  final background = brightness == Brightness.dark
+      ? colorScheme.surfaceContainer
+      : Colors.white;
   await tester.binding.setSurfaceSize(size);
   addTearDown(() => tester.binding.setSurfaceSize(null));
 
   await tester.pumpWidget(
     MaterialApp(
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.blue,
-          brightness: brightness,
-        ),
+        colorScheme: colorScheme,
         scaffoldBackgroundColor: background,
         useMaterial3: true,
       ),
@@ -1791,6 +1829,18 @@ void _expectGoldenToolbarButtonCapsule(
     final overlay = style!.overlayColor?.resolve(states);
     expect(overlay, isNotNull);
     expect(overlay, isNot(Colors.transparent));
+  }
+}
+
+void _expectGoldenInlineFormulaHasNoDefaultBackground(
+  WidgetTester tester,
+  Finder formulaFinder,
+) {
+  final formulaSlot = tester.widget<SizedBox>(formulaFinder);
+  final child = formulaSlot.child;
+  if (child is DecoratedBox) {
+    final decoration = child.decoration as BoxDecoration;
+    expect(decoration.color, isNull);
   }
 }
 

@@ -512,6 +512,8 @@ void main() {
             file: 'C:/tmp/paste.png',
             caption: 'paste',
             altText: 'pasted image',
+            width: 640,
+            height: 360,
           ),
         ],
         newBlockId: () => 'img-${++id}',
@@ -523,8 +525,34 @@ void main() {
       final image = paste.blocks.single as ImageBlockNode;
       expect(image.id, 'img-1');
       expect(image.file, 'C:/tmp/paste.png');
+      expect(image.width, 640);
+      expect(image.height, 360);
+      expect(image.showWidth, isNull);
+      expect(image.showHeight, isNull);
       expect(image.caption, 'paste');
       expect(image.altText, 'pasted image');
+    });
+
+    test('external image descriptions without dimensions remain insertable',
+        () {
+      final paste = service.parseExternalImages(
+        const <ExternalImageBlockDescription>[
+          ExternalImageBlockDescription(
+            file: 'C:/tmp/unsized.png',
+            caption: 'unsized',
+            altText: 'unsized alt',
+          ),
+        ],
+        newBlockId: () => 'img-unsized',
+      );
+
+      expect(paste, isNotNull);
+      final image = paste!.blocks.single as ImageBlockNode;
+      expect(image.file, 'C:/tmp/unsized.png');
+      expect(image.width, 0);
+      expect(image.height, 0);
+      expect(image.showWidth, isNull);
+      expect(image.showHeight, isNull);
     });
 
     test('external image descriptions preserve multi-image order', () {

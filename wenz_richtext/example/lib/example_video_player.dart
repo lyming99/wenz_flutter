@@ -50,13 +50,110 @@ class ExampleVideoSource {
   int get hashCode => Object.hash(uri, kind);
 }
 
+/// Creates the playback backend used by [ExampleVideoPlayer].
+///
+/// The example app leaves this unset and uses the media_kit implementation.
+/// Tests can inject a deterministic backend without loading native decoders or
+/// opening a real network source.
+typedef ExampleVideoPlaybackFactory = ExampleVideoPlayback Function();
+
+/// Minimal playback contract consumed by [ExampleVideoPlayer].
+///
+/// Keeping commands explicit (`play` and `pause`, rather than a backend toggle)
+/// lets the widget serialize rapid user intent without racing an asynchronous
+/// `playing` stream update.
+abstract interface class ExampleVideoPlayback {
+  Stream<Duration> get positionStream;
+  Stream<Duration> get durationStream;
+  Stream<bool> get playingStream;
+  Stream<bool> get completedStream;
+  Stream<bool> get bufferingStream;
+  Stream<String> get errorStream;
+
+  Future<void> open(ExampleVideoSource source);
+  Future<void> play();
+  Future<void> pause();
+  Future<void> seek(Duration position);
+  Future<void> setVolume(double volume);
+  Widget buildVideoSurface();
+  Future<void> dispose();
+}
+
+class _MediaKitExampleVideoPlayback implements ExampleVideoPlayback {
+  _MediaKitExampleVideoPlayback() : _player = Player();
+
+  final Player _player;
+  late final VideoController _controller = VideoController(_player);
+
+  @override
+  Stream<Duration> get positionStream => _player.stream.position;
+
+  @override
+  Stream<Duration> get durationStream => _player.stream.duration;
+
+  @override
+  Stream<bool> get playingStream => _player.stream.playing;
+
+  @override
+  Stream<bool> get completedStream => _player.stream.completed;
+
+  @override
+  Stream<bool> get bufferingStream => _player.stream.buffering;
+
+  @override
+  Stream<String> get errorStream => _player.stream.error;
+
+  @override
+  Future<void> open(ExampleVideoSource source) {
+    return _player.open(_mediaFor(source), play: false);
+  }
+
+  @override
+  Future<void> play() => _player.play();
+
+  @override
+  Future<void> pause() => _player.pause();
+
+  @override
+  Future<void> seek(Duration position) => _player.seek(position);
+
+  @override
+  Future<void> setVolume(double volume) => _player.setVolume(volume);
+
+  @override
+  Widget buildVideoSurface() {
+    return Video(
+      controller: _controller,
+      fill: Colors.black,
+      fit: BoxFit.contain,
+      controls: (_) => const SizedBox.shrink(),
+    );
+  }
+
+  @override
+  Future<void> dispose() => _player.dispose();
+
+  Media _mediaFor(ExampleVideoSource source) {
+    return switch (source.kind) {
+      ExampleVideoSourceKind.asset => Media('asset:///${source.uri}'),
+      ExampleVideoSourceKind.network || ExampleVideoSourceKind.file =>
+        Media(source.uri),
+    };
+  }
+}
+
+ExampleVideoPlayback _createMediaKitPlayback() {
+  MediaKit.ensureInitialized();
+  return _MediaKitExampleVideoPlayback();
+}
+
 /// A reusable, real video player for the example app, backed by `media_kit`.
 ///
 /// It supports asset / network / local-file sources (see [ExampleVideoSource]),
 /// renders inside its parent's finite frame — the media block's overflow
 /// boundary — clips to [aspectRatio], and optionally clips to [borderRadius].
 /// Use [ExampleVideoPlayer.fullscreen] or pass [BorderRadius.zero] when the
-/// player is rendered in a preview/fullscreen surface that must not inherit the
+/// player is rendered on a fullscreen preview route that must not inherit the
 /// embedded editor frame's rounded corners. Initialization failures and
 /// unreachable sources are swallowed and shown as a fallback UI, so a bad source
 /// degrades gracefully instead of crashing the editor or hanging `pumpAndSettle`
@@ -72,14 +169,16 @@ class ExampleVideoPlayer extends StatefulWidget {
     this.aspectRatio = defaultAspectRatio,
     this.coverUrl,
     this.borderRadius = defaultBorderRadius,
+    this.playbackFactory,
   });
 
-  /// Creates a square-corner player for preview/fullscreen surfaces.
+  /// Creates a square-corner player for a fullscreen preview surface.
   const ExampleVideoPlayer.fullscreen({
     super.key,
     required this.source,
     this.aspectRatio = defaultAspectRatio,
     this.coverUrl,
+    this.playbackFactory,
   }) : borderRadius = BorderRadius.zero;
 
   /// Default [aspectRatio] used when the caller omits it (16:9).
@@ -100,16 +199,19 @@ class ExampleVideoPlayer extends StatefulWidget {
   final String? coverUrl;
 
   /// Corner clipping applied by this player. Pass [BorderRadius.zero] for
-  /// preview/fullscreen presentation.
+  /// fullscreen preview presentation.
   final BorderRadius borderRadius;
+
+  /// Optional playback backend factory. The example app uses media_kit when
+  /// omitted; deterministic widget tests inject a fake implementation.
+  final ExampleVideoPlaybackFactory? playbackFactory;
 
   @override
   State<ExampleVideoPlayer> createState() => _ExampleVideoPlayerState();
 }
 
 class _ExampleVideoPlayerState extends State<ExampleVideoPlayer> {
-  Player? _player;
-  VideoController? _controller;
+  ExampleVideoPlayback? _playback;
 
   StreamSubscription<Duration>? _positionSub;
   StreamSubscription<Duration>? _durationSub;
@@ -136,190 +238,325 @@ class _ExampleVideoPlayerState extends State<ExampleVideoPlayer> {
   bool _initializing = true;
   bool _hasError = false;
 
+  int _sourceGeneration = 0;
+  Future<void> _sourceOpenQueue = Future<void>.value();
+
+  bool _playbackTarget = false;
+  bool _restartBeforePlay = false;
+  bool _userControlsPlayback = false;
+  int _playbackRevision = 0;
+  int _lastAppliedPlaybackRevision = 0;
+  Future<void>? _playbackSyncFuture;
+
   @override
   void initState() {
     super.initState();
-    // MediaKit.ensureInitialized is idempotent; calling it here keeps this
-    // component self-contained (it is also safe if the host already called it
-    // in main()).
-    unawaited(_initialize(widget.source));
+    _startOpening(widget.source, notify: false);
   }
 
   @override
   void didUpdateWidget(covariant ExampleVideoPlayer oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.source != oldWidget.source) {
-      unawaited(_reopen(widget.source));
+    final replacePlayback =
+        !identical(widget.playbackFactory, oldWidget.playbackFactory);
+    if (widget.source != oldWidget.source || replacePlayback) {
+      _startOpening(widget.source, replacePlayback: replacePlayback);
     }
   }
 
-  Future<void> _initialize(ExampleVideoSource source) async {
+  void _startOpening(
+    ExampleVideoSource source, {
+    bool replacePlayback = false,
+    bool notify = true,
+  }) {
+    final generation = ++_sourceGeneration;
+    _playbackRevision++;
+    _lastAppliedPlaybackRevision = _playbackRevision;
+    _playbackTarget = false;
+    _restartBeforePlay = false;
+    _userControlsPlayback = false;
+
+    void resetState() {
+      _initializing = true;
+      _hasError = false;
+      _position = Duration.zero;
+      _duration = Duration.zero;
+      _isPlaying = false;
+      _buffering = false;
+      _completed = false;
+      _everStarted = false;
+      _seeking = false;
+      _dragFraction = null;
+    }
+
+    if (notify && mounted) {
+      setState(resetState);
+    } else {
+      resetState();
+    }
+
+    final previous = _sourceOpenQueue;
+    final next = _openSourceAfter(
+      previous,
+      source,
+      generation,
+      replacePlayback: replacePlayback,
+    );
+    _sourceOpenQueue = next;
+    unawaited(next);
+  }
+
+  Future<void> _openSourceAfter(
+    Future<void> previous,
+    ExampleVideoSource source,
+    int generation, {
+    required bool replacePlayback,
+  }) async {
+    try {
+      await previous;
+    } catch (_) {
+      // Every source operation is guarded, but keep the queue recoverable if a
+      // future backend implementation unexpectedly leaks an error.
+    }
+    await _openSource(
+      source,
+      generation,
+      replacePlayback: replacePlayback,
+    );
+  }
+
+  Future<void> _openSource(
+    ExampleVideoSource source,
+    int generation, {
+    required bool replacePlayback,
+  }) async {
+    final pendingPlayback = _playbackSyncFuture;
+    if (pendingPlayback != null) {
+      await pendingPlayback;
+    }
+    if (!_isCurrentSource(generation)) {
+      return;
+    }
     if (source.uri.trim().isEmpty) {
-      // Nothing to play: fall straight to the error/placeholder state.
-      if (mounted) {
-        setState(() {
-          _initializing = false;
-          _hasError = true;
-        });
-      }
+      final previous = _playback;
+      _playback = null;
+      await _cancelSubscriptions();
+      await _disposePlayback(previous);
+      _showSourceError(generation);
       return;
     }
+
+    if (replacePlayback) {
+      final previous = _playback;
+      _playback = null;
+      await _cancelSubscriptions();
+      await _disposePlayback(previous);
+      if (!_isCurrentSource(generation)) {
+        return;
+      }
+    }
+
+    var playback = _playback;
+    if (playback == null) {
+      try {
+        playback = (widget.playbackFactory ?? _createMediaKitPlayback)();
+      } catch (_) {
+        _showSourceError(generation);
+        return;
+      }
+      if (!_isCurrentSource(generation)) {
+        await _disposePlayback(playback);
+        return;
+      }
+      _playback = playback;
+      try {
+        _listenToPlayback(playback);
+      } catch (_) {
+        _playback = null;
+        await _cancelSubscriptions();
+        await _disposePlayback(playback);
+        _showSourceError(generation);
+        return;
+      }
+    }
+
     try {
-      // Synchronous in media_kit 1.2.x (returns void); loads/verifies the
-      // libmpv native library. Idempotent, and safe if the host already called
-      // it in main().
-      MediaKit.ensureInitialized();
-      final player = Player();
-      final controller = VideoController(player);
-      _player = player;
-      _controller = controller;
-
-      _positionSub = player.stream.position.listen((position) {
-        if (_seeking || !mounted) {
-          return;
-        }
-        final started = _isPlaying || position > Duration.zero;
-        setState(() {
-          _position = position;
-          if (started) {
-            _everStarted = true;
-          }
-        });
-      });
-      _durationSub = player.stream.duration.listen((duration) {
-        if (!mounted) {
-          return;
-        }
-        setState(() => _duration = duration);
-      });
-      _playingSub = player.stream.playing.listen((playing) {
-        if (!mounted) {
-          return;
-        }
-        setState(() {
-          _isPlaying = playing;
-          if (playing) {
-            _everStarted = true;
-            _completed = false;
-          }
-        });
-      });
-      _completedSub = player.stream.completed.listen((completed) {
-        if (!mounted) {
-          return;
-        }
-        setState(() => _completed = completed);
-      });
-      _bufferingSub = player.stream.buffering.listen((buffering) {
-        if (!mounted) {
-          return;
-        }
-        setState(() => _buffering = buffering);
-      });
-      _errorSub = player.stream.error.listen((_) {
-        // A missing/unsupported source surfaces here, not as a thrown
-        // exception; flip to the fallback UI so the editor keeps rendering.
-        if (!mounted) {
-          return;
-        }
-        setState(() {
-          _hasError = true;
-          _initializing = false;
-        });
-      });
-
-      // open() with play:false shows the poster/placeholder until the user taps
-      // play, instead of every sample block autoplaying on editor load.
-      await player.open(_mediaFor(source), play: false);
-
-      if (mounted) {
+      await playback.open(source);
+      if (_isCurrentSource(generation)) {
         setState(() => _initializing = false);
       }
     } catch (_) {
-      // Native init / open failures (e.g. no decoder in a headless test): never
-      // propagate — degrade to the fallback UI.
-      if (mounted) {
-        setState(() {
-          _initializing = false;
-          _hasError = true;
-        });
-      }
+      _showSourceError(generation);
     }
   }
 
-  Future<void> _reopen(ExampleVideoSource source) async {
-    final player = _player;
-    if (player == null) {
-      // Initialization never completed (or failed); start fresh for the new
-      // source rather than spinning up against a half-built controller.
-      _cancelSubscriptions();
-      await _player?.dispose();
-      _player = null;
-      _controller = null;
-      if (mounted) {
-        setState(() {
-          _initializing = true;
-          _hasError = false;
-          _position = Duration.zero;
-          _duration = Duration.zero;
-          _isPlaying = false;
-          _buffering = false;
-          _completed = false;
-          _everStarted = false;
-        });
+  bool _isCurrentSource(int generation) {
+    return mounted && generation == _sourceGeneration;
+  }
+
+  void _listenToPlayback(ExampleVideoPlayback playback) {
+    void onStreamError(Object _, StackTrace __) {
+      if (identical(_playback, playback)) {
+        _showSourceError(_sourceGeneration);
       }
-      await _initialize(source);
-      return;
     }
-    if (mounted) {
+
+    _positionSub = playback.positionStream.listen((position) {
+      if (_seeking || !mounted) {
+        return;
+      }
       setState(() {
-        _initializing = true;
-        _hasError = false;
-        _position = Duration.zero;
-        _duration = Duration.zero;
-        _isPlaying = false;
-        _buffering = false;
-        _completed = false;
-        _everStarted = false;
+        _position = position;
+        if (_isPlaying || position > Duration.zero) {
+          _everStarted = true;
+        }
       });
-    }
-    try {
-      await player.open(_mediaFor(source), play: false);
+    }, onError: onStreamError);
+    _durationSub = playback.durationStream.listen((duration) {
       if (mounted) {
-        setState(() => _initializing = false);
+        setState(() => _duration = duration);
       }
-    } catch (_) {
+    }, onError: onStreamError);
+    _playingSub = playback.playingStream.listen((playing) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        if (playing) {
+          _everStarted = true;
+          _completed = false;
+        }
+        if (!_userControlsPlayback || playing == _playbackTarget) {
+          _isPlaying = playing;
+          _playbackTarget = playing;
+        }
+      });
+    }, onError: onStreamError);
+    _completedSub = playback.completedStream.listen((completed) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _completed = completed;
+        if (completed) {
+          _isPlaying = false;
+          _playbackTarget = false;
+          _playbackRevision++;
+          if (_playbackSyncFuture == null) {
+            _lastAppliedPlaybackRevision = _playbackRevision;
+          }
+        }
+      });
+    }, onError: onStreamError);
+    _bufferingSub = playback.bufferingStream.listen((buffering) {
       if (mounted) {
-        setState(() {
-          _initializing = false;
-          _hasError = true;
-        });
+        setState(() => _buffering = buffering);
       }
-    }
+    }, onError: onStreamError);
+    _errorSub = playback.errorStream.listen((_) {
+      if (identical(_playback, playback)) {
+        _showSourceError(_sourceGeneration);
+      }
+    }, onError: onStreamError);
   }
 
-  Media _mediaFor(ExampleVideoSource source) {
-    switch (source.kind) {
-      case ExampleVideoSourceKind.asset:
-        // media_kit loads registered Flutter assets via the asset:/// scheme;
-        // the path after it is the pubspec asset key.
-        return Media('asset:///${source.uri}');
-      case ExampleVideoSourceKind.network:
-      case ExampleVideoSourceKind.file:
-        // mpv accepts http(s):// URLs and raw local paths directly.
-        return Media(source.uri);
+  void _showSourceError(int generation) {
+    if (!_isCurrentSource(generation)) {
+      return;
     }
+    setState(() {
+      _initializing = false;
+      _hasError = true;
+      _isPlaying = false;
+      _playbackTarget = false;
+    });
   }
 
   void _togglePlay() {
-    final player = _player;
-    if (player == null || _hasError || _initializing) {
+    if (_playback == null || _hasError || _initializing) {
       return;
     }
-    if (_completed) {
-      unawaited(player.seek(Duration.zero));
+    final target = !_playbackTarget;
+    _playbackTarget = target;
+    _userControlsPlayback = true;
+    if (target && _completed) {
+      _restartBeforePlay = true;
+      _completed = false;
     }
-    unawaited(player.playOrPause());
+    _playbackRevision++;
+    setState(() {
+      _isPlaying = target;
+      if (target) {
+        _everStarted = true;
+      }
+    });
+    _schedulePlaybackSync();
+  }
+
+  void _schedulePlaybackSync() {
+    if (_playbackSyncFuture != null) {
+      return;
+    }
+    late final Future<void> sync;
+    sync = _synchronizePlayback(_sourceGeneration);
+    _playbackSyncFuture = sync;
+    unawaited(sync.whenComplete(() {
+      if (identical(_playbackSyncFuture, sync)) {
+        _playbackSyncFuture = null;
+      }
+      if (mounted &&
+          !_initializing &&
+          !_hasError &&
+          _lastAppliedPlaybackRevision != _playbackRevision) {
+        _schedulePlaybackSync();
+      }
+    }));
+  }
+
+  Future<void> _synchronizePlayback(int generation) async {
+    while (_isCurrentSource(generation) && !_initializing && !_hasError) {
+      final playback = _playback;
+      if (playback == null) {
+        return;
+      }
+      final revision = _playbackRevision;
+      final target = _playbackTarget;
+      try {
+        if (target && _restartBeforePlay) {
+          await playback.seek(Duration.zero);
+          if (!_isCurrentSource(generation)) {
+            return;
+          }
+          _restartBeforePlay = false;
+          if (mounted) {
+            setState(() => _position = Duration.zero);
+          }
+          if (revision != _playbackRevision) {
+            continue;
+          }
+        }
+        if (target) {
+          await playback.play();
+        } else {
+          await playback.pause();
+        }
+      } catch (_) {
+        _lastAppliedPlaybackRevision = _playbackRevision;
+        _showSourceError(generation);
+        return;
+      }
+      if (!_isCurrentSource(generation)) {
+        return;
+      }
+      _lastAppliedPlaybackRevision = revision;
+      if (target == _playbackTarget) {
+        // Several rapid taps may return to the state this command just applied
+        // (play → pause intent → play intent). Treat the latest revision as
+        // satisfied instead of issuing a duplicate play/pause command.
+        _lastAppliedPlaybackRevision = _playbackRevision;
+        return;
+      }
+    }
   }
 
   void _onSeekStart() {
@@ -341,10 +578,10 @@ class _ExampleVideoPlayerState extends State<ExampleVideoPlayer> {
   }
 
   void _onSeekEnd(double fraction) {
-    final player = _player;
+    final playback = _playback;
     _seeking = false;
     _dragFraction = null;
-    if (player == null || _duration == Duration.zero) {
+    if (playback == null || _duration == Duration.zero) {
       if (mounted) {
         setState(() {});
       }
@@ -353,12 +590,13 @@ class _ExampleVideoPlayerState extends State<ExampleVideoPlayer> {
     final target = Duration(
       milliseconds: (_duration.inMilliseconds * fraction).round(),
     );
-    unawaited(player.seek(target));
+    _completed = false;
+    _restartBeforePlay = false;
+    _runPlaybackSideEffect(() => playback.seek(target));
   }
 
   void _toggleMute() {
-    final player = _player;
-    if (player == null) {
+    if (_playback == null) {
       return;
     }
     if (_volume > 0) {
@@ -371,43 +609,74 @@ class _ExampleVideoPlayerState extends State<ExampleVideoPlayer> {
 
   void _setVolume(double value) {
     final clamped = value.clamp(0.0, 100.0);
-    final player = _player;
+    final playback = _playback;
     if (mounted) {
       setState(() => _volume = clamped);
     }
     if (clamped > 0) {
       _preMuteVolume = clamped;
     }
-    if (player != null) {
-      unawaited(player.setVolume(clamped));
+    if (playback != null) {
+      _runPlaybackSideEffect(() => playback.setVolume(clamped));
     }
   }
 
-  void _cancelSubscriptions() {
-    _positionSub?.cancel();
-    _durationSub?.cancel();
-    _playingSub?.cancel();
-    _completedSub?.cancel();
-    _bufferingSub?.cancel();
-    _errorSub?.cancel();
+  void _runPlaybackSideEffect(Future<void> Function() command) {
+    unawaited(() async {
+      try {
+        await command();
+      } catch (_) {
+        // Slider and volume commands are best-effort controls. Playback errors
+        // still arrive through errorStream; never leak a detached future error.
+      }
+    }());
+  }
+
+  Future<void> _cancelSubscriptions() async {
+    final subscriptions = <StreamSubscription<dynamic>>[
+      if (_positionSub != null) _positionSub!,
+      if (_durationSub != null) _durationSub!,
+      if (_playingSub != null) _playingSub!,
+      if (_completedSub != null) _completedSub!,
+      if (_bufferingSub != null) _bufferingSub!,
+      if (_errorSub != null) _errorSub!,
+    ];
     _positionSub = null;
     _durationSub = null;
     _playingSub = null;
     _completedSub = null;
     _bufferingSub = null;
     _errorSub = null;
+    for (final subscription in subscriptions) {
+      try {
+        await subscription.cancel();
+      } catch (_) {
+        // A failing stream teardown must not escape widget disposal/reopen.
+      }
+    }
+  }
+
+  Future<void> _disposePlayback(ExampleVideoPlayback? playback) async {
+    if (playback == null) {
+      return;
+    }
+    try {
+      await playback.dispose();
+    } catch (_) {
+      // Native teardown is best effort and may race process/app shutdown.
+    }
   }
 
   @override
   void dispose() {
-    _cancelSubscriptions();
-    // Dispose the player; media_kit tears its native handles down off-thread,
-    // so the returned future is intentionally not awaited here. This avoids
-    // leaking controllers when the block scrolls off-screen or the editor is
-    // rebuilt.
-    unawaited(_player?.dispose());
-    _player = null;
-    _controller = null;
+    _sourceGeneration++;
+    _playbackRevision++;
+    final playback = _playback;
+    _playback = null;
+    unawaited(() async {
+      await _cancelSubscriptions();
+      await _disposePlayback(playback);
+    }());
     super.dispose();
   }
 
@@ -430,7 +699,7 @@ class _ExampleVideoPlayerState extends State<ExampleVideoPlayer> {
                   (_duration.inMilliseconds * _dragFraction!).round(),
             );
 
-  bool get _mediaReady => _controller != null && !_hasError;
+  bool get _mediaReady => _playback != null && !_hasError;
 
   @override
   Widget build(BuildContext context) {
@@ -449,14 +718,7 @@ class _ExampleVideoPlayerState extends State<ExampleVideoPlayer> {
           fit: StackFit.expand,
           children: <Widget>[
             // 1. Real video texture (bottom layer).
-            if (showVideo)
-              Video(
-                controller: _controller!,
-                fill: Colors.black,
-                fit: BoxFit.contain,
-                // Disable built-in controls; this widget renders its own.
-                controls: (_) => const SizedBox.shrink(),
-              ),
+            if (showVideo) _playback!.buildVideoSurface(),
             // 2. Poster / placeholder until a real frame has been shown, or
             //    when the source has no usable URL.
             if (!_everStarted && !_hasError) _CoverImage(url: widget.coverUrl),
@@ -477,12 +739,19 @@ class _ExampleVideoPlayerState extends State<ExampleVideoPlayer> {
             //    bar so the slider keeps its own gestures).
             if (showTapLayer)
               Positioned.fill(
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: _togglePlay,
-                  child: Center(
-                    child: _PlayBadge(
-                      visible: !_isPlaying && !_buffering,
+                child: Semantics(
+                  button: true,
+                  label: _isPlaying ? '暂停视频' : '播放视频',
+                  child: GestureDetector(
+                    key: const ValueKey<String>(
+                      'example-video-player-tap-layer',
+                    ),
+                    behavior: HitTestBehavior.opaque,
+                    onTap: _togglePlay,
+                    child: Center(
+                      child: _PlayBadge(
+                        visible: !_isPlaying && !_buffering,
+                      ),
                     ),
                   ),
                 ),
@@ -494,9 +763,13 @@ class _ExampleVideoPlayerState extends State<ExampleVideoPlayer> {
       ),
     );
     if (widget.borderRadius == BorderRadius.zero) {
-      return ClipRect(child: playerSurface);
+      return ClipRect(
+        key: const ValueKey<String>('example-video-player-square-clip'),
+        child: playerSurface,
+      );
     }
     return ClipRRect(
+      key: const ValueKey<String>('example-video-player-rounded-clip'),
       borderRadius: widget.borderRadius,
       child: playerSurface,
     );
@@ -507,75 +780,93 @@ class _ExampleVideoPlayerState extends State<ExampleVideoPlayer> {
       left: 0,
       right: 0,
       bottom: 0,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: <Color>[
-              Colors.transparent,
-              Colors.black.withAlpha(140),
-            ],
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(8, 18, 8, 4),
-          child: Theme(
-            data: Theme.of(context).copyWith(
-              sliderTheme: _videoSliderTheme(Theme.of(context).sliderTheme),
-            ),
-            child: Row(
-              children: <Widget>[
-                Text(
-                  _formatDuration(_displayPosition),
-                  style: _timeTextStyle(),
-                ),
-                Expanded(
-                  child: Slider(
-                    value: _positionFraction,
-                    onChanged: _onSeekChanged,
-                    onChangeStart: (_) => _onSeekStart(),
-                    onChangeEnd: _onSeekEnd,
-                  ),
-                ),
-                Text(
-                  _formatDuration(_duration),
-                  style: _timeTextStyle(),
-                ),
-                IconButton(
-                  tooltip: _isPlaying ? '暂停' : '播放',
-                  iconSize: 20,
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(
-                    minWidth: 32,
-                    minHeight: 32,
-                  ),
-                  color: Colors.white,
-                  onPressed: _togglePlay,
-                  icon: Icon(_isPlaying ? Icons.pause : Icons.play_arrow),
-                ),
-                IconButton(
-                  tooltip: _volume > 0 ? '静音' : '取消静音',
-                  iconSize: 20,
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(
-                    minWidth: 32,
-                    minHeight: 32,
-                  ),
-                  color: Colors.white,
-                  onPressed: _toggleMute,
-                  icon: Icon(
-                    _volume > 0 ? Icons.volume_up : Icons.volume_off,
-                  ),
-                ),
-                SizedBox(
-                  width: 56,
-                  child: Slider(
-                    value: (_volume / 100).clamp(0.0, 1.0),
-                    onChanged: (value) => _setVolume(value * 100),
-                  ),
-                ),
+      child: Listener(
+        key: const ValueKey<String>('example-video-player-controls'),
+        // Claim the whole controls strip so slider/button gestures and gaps
+        // never fall through to the video tap layer underneath.
+        behavior: HitTestBehavior.opaque,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: <Color>[
+                Colors.transparent,
+                Colors.black.withAlpha(140),
               ],
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(8, 18, 8, 4),
+            child: Theme(
+              data: Theme.of(context).copyWith(
+                sliderTheme: _videoSliderTheme(Theme.of(context).sliderTheme),
+              ),
+              child: Row(
+                children: <Widget>[
+                  Text(
+                    _formatDuration(_displayPosition),
+                    style: _timeTextStyle(),
+                  ),
+                  Expanded(
+                    child: Slider(
+                      key: const ValueKey<String>(
+                        'example-video-player-progress',
+                      ),
+                      value: _positionFraction,
+                      onChanged: _onSeekChanged,
+                      onChangeStart: (_) => _onSeekStart(),
+                      onChangeEnd: _onSeekEnd,
+                    ),
+                  ),
+                  Text(
+                    _formatDuration(_duration),
+                    style: _timeTextStyle(),
+                  ),
+                  IconButton(
+                    key: const ValueKey<String>(
+                      'example-video-player-play-button',
+                    ),
+                    tooltip: _isPlaying ? '暂停' : '播放',
+                    iconSize: 20,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(
+                      minWidth: 32,
+                      minHeight: 32,
+                    ),
+                    color: Colors.white,
+                    onPressed: _togglePlay,
+                    icon: Icon(_isPlaying ? Icons.pause : Icons.play_arrow),
+                  ),
+                  IconButton(
+                    key: const ValueKey<String>(
+                      'example-video-player-mute-button',
+                    ),
+                    tooltip: _volume > 0 ? '静音' : '取消静音',
+                    iconSize: 20,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(
+                      minWidth: 32,
+                      minHeight: 32,
+                    ),
+                    color: Colors.white,
+                    onPressed: _toggleMute,
+                    icon: Icon(
+                      _volume > 0 ? Icons.volume_up : Icons.volume_off,
+                    ),
+                  ),
+                  SizedBox(
+                    width: 56,
+                    child: Slider(
+                      key: const ValueKey<String>(
+                        'example-video-player-volume',
+                      ),
+                      value: (_volume / 100).clamp(0.0, 1.0),
+                      onChanged: (value) => _setVolume(value * 100),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

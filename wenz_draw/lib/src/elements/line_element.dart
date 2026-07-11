@@ -7,6 +7,7 @@ import '../snap/snap_resolver.dart';
 import '../utils/math_utils.dart';
 import 'canvas_element.dart';
 import 'element_renderer.dart';
+import 'line_arrow_style.dart';
 import 'line_label_painter.dart';
 
 @immutable
@@ -16,6 +17,10 @@ class LineElement extends CanvasElement {
     required this.start,
     required this.end,
     this.style = const PaintStyle(),
+    LineArrowType startArrowStyle = LineArrowType.none,
+    LineArrowType? endArrowStyle,
+    bool endArrow = false,
+    this.headSize = LineArrowStyle.defaultHeadSize,
     this.startBinding,
     this.endBinding,
     this.label,
@@ -28,7 +33,10 @@ class LineElement extends CanvasElement {
     this.opacity = 1,
     this.zIndex = 0,
     this.groupId,
-  });
+  }) : startArrowStyle = startArrowStyle,
+       endArrowStyle =
+           endArrowStyle ??
+           (endArrow ? LineArrowType.normal : LineArrowType.none);
 
   static const elementType = 'line';
 
@@ -38,6 +46,9 @@ class LineElement extends CanvasElement {
   final Offset start;
   final Offset end;
   final PaintStyle style;
+  final LineArrowType startArrowStyle;
+  final LineArrowType endArrowStyle;
+  final double headSize;
   final SnapBinding? startBinding;
   final SnapBinding? endBinding;
   final String? label;
@@ -64,12 +75,21 @@ class LineElement extends CanvasElement {
   @override
   String get type => elementType;
 
+  LineArrowStyle get arrowStyle => LineArrowStyle(
+    startArrowStyle: startArrowStyle,
+    endArrowStyle: endArrowStyle,
+    headSize: headSize,
+  );
+
+  bool get endArrow => endArrowStyle.isEnabled;
+
   @override
   Rect get bounds {
-    final lineBounds = boundsForPoints([
-      start,
-      end,
-    ]).inflate(style.strokeWidth / 2);
+    final lineBounds = LineArrowGeometryUtils.expandBounds(
+      bounds: boundsForPoints([start, end]),
+      style: arrowStyle,
+      strokeWidth: style.strokeWidth,
+    );
     final labelBounds = LineLabelPainter.labelBounds(
       points: [start, end],
       label: label,
@@ -85,8 +105,16 @@ class LineElement extends CanvasElement {
 
   @override
   bool hitTest(Offset worldPoint, {double tolerance = 5.0}) {
-    return distanceToSegment(worldPoint, start, end) <=
-        tolerance + style.strokeWidth / 2;
+    final threshold = tolerance + style.strokeWidth / 2;
+    if (distanceToSegment(worldPoint, start, end) <= threshold) {
+      return true;
+    }
+    return LineArrowGeometryUtils.hitTestAnyArrowForPoints(
+      worldPoint: worldPoint,
+      points: [start, end],
+      style: arrowStyle,
+      tolerance: threshold,
+    );
   }
 
   @override
@@ -95,6 +123,11 @@ class LineElement extends CanvasElement {
     Offset? start,
     Offset? end,
     PaintStyle? style,
+    LineArrowStyle? arrowStyle,
+    LineArrowType? startArrowStyle,
+    LineArrowType? endArrowStyle,
+    bool? endArrow,
+    double? headSize,
     Object? startBinding = _unset,
     Object? endBinding = _unset,
     Object? label = _unset,
@@ -108,11 +141,26 @@ class LineElement extends CanvasElement {
     int? zIndex,
     Object? groupId = _unset,
   }) {
+    final currentArrowStyle = arrowStyle ?? this.arrowStyle;
+    final nextArrowStyle = currentArrowStyle.copyWith(
+      startArrowStyle: startArrowStyle,
+      endArrowStyle:
+          endArrowStyle ??
+          (endArrow == null
+              ? null
+              : endArrow
+              ? LineArrowType.normal
+              : LineArrowType.none),
+      headSize: headSize,
+    );
     return LineElement(
       id: id ?? this.id,
       start: start ?? this.start,
       end: end ?? this.end,
       style: style ?? this.style,
+      startArrowStyle: nextArrowStyle.startArrowStyle,
+      endArrowStyle: nextArrowStyle.endArrowStyle,
+      headSize: nextArrowStyle.effectiveHeadSize,
       startBinding: identical(startBinding, _unset)
           ? this.startBinding
           : startBinding as SnapBinding?,
@@ -130,9 +178,7 @@ class LineElement extends CanvasElement {
       visible: visible ?? this.visible,
       opacity: opacity ?? this.opacity,
       zIndex: zIndex ?? this.zIndex,
-      groupId: identical(groupId, _unset)
-          ? this.groupId
-          : groupId as String?,
+      groupId: identical(groupId, _unset) ? this.groupId : groupId as String?,
     );
   }
 
@@ -148,6 +194,7 @@ class LineElement extends CanvasElement {
       start: scalePoint(start, factor, origin),
       end: scalePoint(end, factor, origin),
       style: style.copyWith(strokeWidth: style.strokeWidth * factor.abs()),
+      arrowStyle: arrowStyle.scale(factor),
       labelStyle: labelStyle.copyWith(
         fontSize: (labelStyle.fontSize ?? 14) * factor.abs(),
       ),
@@ -168,6 +215,7 @@ class LineElement extends CanvasElement {
       'start': {'x': start.dx, 'y': start.dy},
       'end': {'x': end.dx, 'y': end.dy},
       'style': style.toJson(),
+      'arrowStyle': arrowStyle.toJson(),
       if (startBinding != null) 'startBinding': startBinding!.toJson(),
       if (endBinding != null) 'endBinding': endBinding!.toJson(),
       if (label != null) 'label': label,
@@ -209,6 +257,12 @@ class LineElementRenderer extends ElementRenderer<LineElement> {
       canvas.drawLine(element.start, element.end, paint);
       canvas.restore();
     }
+    LineArrowGeometryUtils.drawArrowsForPoints(
+      canvas,
+      paint,
+      points: [element.start, element.end],
+      style: element.arrowStyle,
+    );
     LineLabelPainter.paint(
       canvas,
       points: [element.start, element.end],

@@ -1,0 +1,67 @@
+{
+  "title": "优化文字颜色工具栏入口与宫格色板选择",
+  "summary": "根据反馈 #22，默认工具栏需要把独立的“无文字颜色/清除文字颜色”按钮收敛到“文字颜色”下拉 popup 内，减少工具栏横向溢出；同时将桌面端文字颜色 popup 从纵向列表改为宫格色板，并通过 tooltip 展示颜色名称、当前颜色和清除颜色等状态。项目现有文字颜色状态与命令已集中在 ToolbarController 和 WenzRichTextController，预计不需要改动核心命令，只需调整 lib/src/widgets/default_desktop_toolbar.dart 的桌面工具栏 UI，并补齐默认桌面/移动工具栏相关 widget 测试；移动端当前已是 Wrap 色板，但 tooltip 仍为泛化“文字颜色”，应同步补齐颜色级 tooltip 一致性。",
+  "tasks": [
+    {
+      "title": "将桌面端清除文字颜色按钮合并进文字颜色 popup",
+      "scope": [
+        "lib/src/widgets/default_desktop_toolbar.dart"
+      ],
+      "acceptance": [
+        "桌面默认工具栏主按钮序列中不再渲染独立的“无文字颜色/清除文字颜色”图标按钮，文字颜色相关入口只保留“文字颜色”下拉按钮。",
+        "文字颜色 popup 内提供清除文字颜色入口，沿用 toolbar.clearTextColor 行为，并在无颜色、已有颜色、混合颜色和不可编辑状态下保持正确启用、禁用与提示语。",
+        "合并后清除文字颜色仍只清除 inline font color，不影响加粗、斜体、链接、块样式、对齐等其他格式。",
+        "工具栏窄宽度横向布局减少一个按钮宽度，现有滚动溢出机制、按钮间距和分组分隔保持稳定。"
+      ]
+    },
+    {
+      "title": "将桌面端文字颜色 popup 改为宫格色板",
+      "scope": [
+        "lib/src/widgets/default_desktop_toolbar.dart"
+      ],
+      "acceptance": [
+        "内置文字颜色选项不再以 MenuItemButton 纵向文字列表展示，而是以宫格色块展示，色块使用现有 _kTextColorOptions 的颜色值和标签。",
+        "每个色块提供 tooltip，能展示对应颜色名称和十六进制颜色值，用户无需依赖列表文字识别颜色。",
+        "当前选中的内置颜色在宫格中有清晰选中态；混合颜色、自定义颜色和无颜色状态不会误标某个内置色块为选中。",
+        "色板在 popup 宽度内按固定尺寸和间距换行，不因 tooltip、选中图标或 disabled 状态导致布局抖动、重叠或溢出。",
+        "popup 继续保留自定义颜色入口，且自定义颜色输入、当前自定义颜色展示和选择后工具栏图标染色行为保持可用。"
+      ]
+    },
+    {
+      "title": "统一移动端颜色色板 tooltip 表达",
+      "scope": [
+        "lib/src/widgets/default_mobile_toolbar.dart"
+      ],
+      "acceptance": [
+        "移动端颜色面板继续使用现有宫格式 Wrap 色块，不退化为列表选择。",
+        "移动端每个颜色色块 tooltip 从泛化“文字颜色”调整为包含具体颜色名称和颜色值的提示，便于区分不同色块。",
+        "移动端清除文字颜色按钮 tooltip 能表达清除当前颜色、清除混合颜色或无文字颜色状态，并与桌面端语义保持一致。",
+        "移动端已选颜色、混合颜色、无颜色和只读/不可编辑状态下，色块选中态、禁用态和触发命令行为保持正确。"
+      ]
+    },
+    {
+      "title": "补齐默认工具栏颜色 UI 回归测试",
+      "scope": [
+        "test/widgets/default_desktop_toolbar_test.dart",
+        "test/widgets/default_mobile_toolbar_test.dart"
+      ],
+      "acceptance": [
+        "桌面工具栏测试更新默认按钮顺序，确认“无文字颜色/清除文字颜色”不再作为顶层工具栏按钮出现，且“文字颜色”按钮仍在原文字格式分组中。",
+        "桌面颜色 popup 测试覆盖宫格色块、颜色 tooltip、选中态、自定义颜色入口和 popup 内清除文字颜色入口。",
+        "桌面颜色命令测试覆盖从宫格选择内置颜色、输入自定义颜色、从 popup 内清除颜色，以及混合颜色状态下的 tooltip 与清除行为。",
+        "移动端测试覆盖颜色色块 tooltip 具体化、清除颜色 tooltip 状态，以及窄宽度下面板 Wrap 不产生 framework overflow。",
+        "测试断言不依赖纵向列表文字项来选择内置颜色，避免实现回退为列表后仍然误通过。"
+      ]
+    }
+  ],
+  "finalValidation": {
+    "command": "flutter analyze; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; flutter test",
+    "criteria": [
+      "静态分析通过，没有新增 analyzer error 或 warning。",
+      "全量 Flutter 测试通过，没有新增失败、超时或 golden 断言失败。",
+      "桌面默认工具栏只保留一个文字颜色顶层入口，清除文字颜色入口位于文字颜色 popup 内，窄宽度下不因旧的独立清除按钮造成额外横向溢出。",
+      "桌面文字颜色 popup 以宫格色板呈现内置颜色，每个色块有可识别 tooltip，选中态、自定义颜色和清除颜色行为均可用。",
+      "移动端颜色面板保持宫格色板交互，并具备具体颜色 tooltip；只读、无颜色、已有颜色和混合颜色状态下行为与桌面端语义一致。"
+    ]
+  }
+}

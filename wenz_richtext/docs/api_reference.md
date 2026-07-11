@@ -1,4 +1,4 @@
-﻿# API reference
+# API reference
 
 The public surface is everything exported from `lib/wenz_richtext.dart`. APIs
 are tagged in three stability tiers (see the library doc comment for the full
@@ -113,6 +113,10 @@ facade is built *on top* of these and never bypasses them):
 | `shortcutConfiguration` | merged last (host wins) | `EditorShortcutConfiguration` |
 | `contextMenuConfiguration` | `buildEditor` | `WenzEditorContextMenuConfiguration` |
 | `pasteTransformers` | `ClipboardService` | `ClipboardPasteTransformer` |
+| `enableExternalImageInput` | `buildEditor` | external image clipboard/drop gate |
+| `enableExternalDragDrop` | `buildEditor` | desktop external image drop-target gate |
+| `externalImageClipboardReader` | `buildEditor` | `ExternalImageClipboardReader` |
+| `externalImageStore` | `buildEditor` | `ExternalImageStore` |
 | `blockRenderers` / `blockEmbedRenderers` | `BlockRendererRegistry` | `BlockRendererBuilder` |
 | `inlineEmbedRenderers` | `InlineEmbedRendererRegistry` | `InlineEmbedSpanBuilder` |
 | `mentionSearch` | `buildEditor` | built-in mention search overlay (tier 1) |
@@ -147,12 +151,22 @@ access, three modes, dispose order, the `src/*` internal boundary).
 | `DocumentSchema` | Canonical document normaliser; invariants enforced on every command and load. |
 | `DocumentPosition` / `DocumentSelection` / `PositionPath` | Selection contract — three position shapes (block text, block code, table cell) plus structured sort. |
 
-`ImageBlockNode` carries `assetId`/`file`, natural `width`/`height`, display
-`showWidth`/`showHeight`, plus `caption` and `altText`. `showWidth` and
-`showHeight` are the canonical persisted display size: the default renderer,
-fixed-width image menu actions, and selected-image edge hit-zone resize all read
-and write these fields. The edge hit zones are interaction targets only; the
-selected image visual remains the single frame-hugging media stroke. Image
+`ImageBlockNode` carries `assetId`/`file`, intrinsic original-pixel `width`/
+`height`, display `showWidth`/`showHeight`, plus `caption` and `altText`.
+`caption` and `altText` remain image metadata: the default editor renderer does
+not show `caption` as visible body text, but accessibility labels and codecs
+continue to read it. `width` / `height` describe the source image size; `0` means unknown. External
+image input copies `ExternalImageBlockDescription.width` / `height` into these
+fields when the store provides them; the default IO store probes memory-backed
+clipboard/drop bytes, local file paths, and `file://` URIs for PNG/JPEG/GIF/WebP/BMP
+headers when possible. `showWidth` and `showHeight` are the canonical persisted
+display size: the default renderer, fixed-width image menu actions, and
+selected-image edge hit-zone resize all read and write these fields. The
+default image frame uses `showWidth` / `showHeight` when set; otherwise it uses
+intrinsic `width` / `height` to keep the initial aspect ratio, then falls back
+to the placeholder ratio when dimensions are missing. The edge hit zones are
+interaction targets only; the selected image visual remains the single
+frame-hugging media stroke. Image
 blocks also reuse `BlockAttributes.alignment` for
 figure placement: `null` is the default centered layout, explicit `left`,
 `center`, and `right` align the image frame, and `justify` is preserved as block
@@ -211,7 +225,8 @@ All mutations are `EditorCommand` objects routed through `CommandExecutor`.
   `MarkDeletionRevisionCommand`, `MarkFormatRevisionCommand`,
   `AcceptRevisionCommand`, `RejectRevisionCommand` for same-block tracked text
   changes.
-- **Block structure (tier 2):** `IndentCommand`, `ToggleTodoCommand`,
+- **Block structure (tier 2):** `InsertTextBlockAtSelectionCommand`,
+  `IndentCommand`, `ToggleTodoCommand`,
   `SetCodeLanguageCommand`, `IndentCodeBlockCommand`,
   `SetCalloutVariantCommand`, `UpdateCalloutBlockCommand`,
   `ToggleQuoteCommand`.
@@ -276,6 +291,7 @@ Typed command surface (sample): `insertText`, `deleteBackward`, `deleteForward`,
 `formatText`, `clearStyle`, `setLink`, `autoLinkUrls`, `toggleRemark`, `setBlockType`,
 `setAlignment`, `indent`, `outdent`, `toggleTodo`, `toggleQuote`,
 `setCodeLanguage`, `indentCodeBlock`, `insertBlocks`, `replaceBlocks`,
+`insertTextBlockAbove`, `insertTextBlockBelow`,
 `setCalloutVariant`, `updateCalloutBlock`, `insertImage`, `updateImageBlock`,
 `insertFile`, `updateFileBlock`, `insertBlockEmbed`, `updateBlockEmbed`,
 `setBlockAnchor`, `setRevisionMode`, `insertRevisionText`,
@@ -294,6 +310,13 @@ table-cell selections write cell-level `TableCellNode.alignment` for the
 selected rectangular range. Passing `null` clears the explicit alignment at the
 same level, revealing the image default center layout or the cell's fallback
 column alignment when one exists.
+
+`insertTextBlockAbove/Below` insert a fresh empty paragraph before or after
+the top-level block at the current selection boundary. They are the
+controller surface behind the editor's exact Ctrl+Shift+Enter / Ctrl+Enter
+shortcuts and use normal edit permission, history, selection callbacks, and
+generated block ids when `blockId` is omitted.
+
 `WenzLinkEditDialog` / `showWenzLinkEditDialog` provide the reusable Material
 link-edit popup used by the example toolbar; an empty result clears the link.
 
@@ -623,9 +646,9 @@ CRDT, OT, WebSocket, or a server implementation; adapters own that translation.
 | --- | --- |
 | `RichTextJsonCodec({migrations})` | Encode/decode the canonical versioned rich JSON, including image block `attrs.alignment`. Optional `DocumentMigrationRegistry` lifts older versions. |
 | `LegacyWenJsonCodec()` | Decode the old `wenz_editor` block-list format. |
-| `PlainTextCodec({omitEmptyBlocks})` | Export to plain text (paragraphs blank-line separated, media sentinels; image sentinel prefers caption, then alt text). Image alignment is not represented. List exports preserve unordered / ordered markers and todo checkboxes, including ordered todo as `1. [ ] text` / `1. [x] text`. |
-| `MarkdownCodec()` | GFM Markdown import/export. `encode` → Markdown; `decode` → document (line-oriented state machine; unrecognised lines fall back to paragraphs). Image caption uses Markdown image title: `![alt](src "caption")`; image alignment intentionally degrades because standard Markdown has no portable figure alignment; video blocks export/import through the Wenz `![video](src)` placeholder; file and block embed content degrade to readable text/links on import. Lists preserve the combined `ordered + checked` model with legacy `task` kept as unordered todo. |
-| `HtmlCodec()` | HTML fragment import/export via `package:html`. `encode` → HTML; `decode` → document (DOM walk; malformed HTML falls back to paragraphs). Image block captions use `<figure><img ...><figcaption>...`; explicit image `left` / `center` / `right` alignment is preserved on the image wrapper via `style="text-align: ..."` and imported from compatible wrapper `style`/`align`; inline image embeds preserve `altText`/`caption`/`width`/`height` through `<img>` attributes; Wenz file links, video tags, and `BlockEmbedNode` preserve metadata through `data-*` attributes; table `rowspan`/`colspan` maps to `TableCellNode` spans. Ordered todo uses `<ol><li><input type="checkbox" ...>` so numbering and checked state both round-trip. |
+| `PlainTextCodec({omitEmptyBlocks})` | Export to plain text (paragraphs blank-line separated, media sentinels; image sentinel prefers caption, then alt text). The sentinel is a data/export fallback and does not mean captions are visible in the editor. Image alignment is not represented. List exports preserve unordered / ordered markers and todo checkboxes, including ordered todo as `1. [ ] text` / `1. [x] text`. |
+| `MarkdownCodec()` | GFM Markdown import/export. `encode` → Markdown; `decode` → document (line-oriented state machine; unrecognised lines fall back to paragraphs). Image caption uses Markdown image title: `![alt](src "caption")` for import/export metadata; the default editor still hides visible captions. Image alignment intentionally degrades because standard Markdown has no portable figure alignment; video blocks export/import through the Wenz `![video](src)` placeholder; file and block embed content degrade to readable text/links on import. Lists preserve the combined `ordered + checked` model with legacy `task` kept as unordered todo. |
+| `HtmlCodec()` | HTML fragment import/export via `package:html`. `encode` → HTML; `decode` → document (DOM walk; malformed HTML falls back to paragraphs). Image block captions use `<figure><img ...><figcaption>...</figcaption></figure>` as the HTML data protocol; the default editor does not render visible figcaptions. Explicit image `left` / `center` / `right` alignment is preserved on the image wrapper via `style="text-align: ..."` and imported from compatible wrapper `style`/`align`; inline image embeds preserve `altText`/`caption`/`width`/`height` through `<img>` attributes; Wenz file links, video tags, and `BlockEmbedNode` preserve metadata through `data-*` attributes; table `rowspan`/`colspan` maps to `TableCellNode` spans. Ordered todo uses `<ol><li><input type="checkbox" ...>` so numbering and checked state both round-trip. |
 | `DocumentVersionSnapshotJsonCodec()` | Encode/decode one `DocumentVersionSnapshot` or a snapshot list for app-owned version history persistence. |
 | `DocumentMigration` / `DocumentMigrationRegistry` | JSON-level schema migration framework; ships `V1ToV2DocumentMigration`. |
 | `decodeWithMigrations(source, registry)` | Helper: JSON decode + migrate in one step. |
@@ -740,9 +763,26 @@ normalisation, and `onCommandExecuted` stay consistent.
   and `parseHtml` return structured `ClipboardPaste.blocks` payloads.
 - `ClipboardPasteFormat` — selects the paste parser when the caller knows the
   platform clipboard flavour (`auto`, `plainText`, `markdown`, `html`).
+- `ExternalImageInput` / `ExternalImageClipboardData` /
+  `ExternalImageClipboardReader` - stable clipboard/drop image contract for
+  memory bytes, file paths, and `file://` URIs before they cross into editor
+  logic. Clipboard readers produce `ExternalImageInputSource.clipboard`; the
+  editor drop adapter produces `ExternalImageInputSource.drop`; both sources feed
+  the same store and block-paste pipeline.
+- `ExternalImageStore` / `ExternalImageBlockDescription` - host handoff for
+  validating, storing, uploading, or mapping external images from clipboard or
+  drop inputs. The description
+  carries `file`, `caption`, `altText`, and optional intrinsic pixel
+  `width` / `height`. The default IO store fills those dimensions best-effort
+  for memory bytes, file paths, and `file://` URIs; custom stores should do the
+  same when they already know the source image size.
+  `ClipboardService.parseExternalImages` writes those dimensions to
+  `ImageBlockNode.width` / `height` and leaves `showWidth` / `showHeight` unset.
 - `CompositionState` — the IME composing region rendered as an underline span.
 - `EditorShortcutManager` — pure keymap resolver used by the widget layer;
-  includes opt-in Ctrl/Cmd+F and Ctrl/Cmd+H intents for find/replace.
+  includes exact Ctrl+Enter/Ctrl+NumpadEnter and
+  Ctrl+Shift+Enter/Ctrl+Shift+NumpadEnter intents for inserting empty text
+  blocks, plus opt-in Ctrl/Cmd+F and Ctrl/Cmd+H intents for find/replace.
 - `EditorShortcutConfiguration` — shortcut keymap fragment with `bindings` and
   `disabledIntents`. Use `EditorShortcutConfiguration.merge` for low-level
   composition or `mergeWenzShortcutConfigurations` when combining plugin and
@@ -764,8 +804,16 @@ normalisation, and `onCommandExecuted` stay consistent.
 ## Widget layer (tier 2)
 
 - `WenzRichTextEditor({controller, shortcutConfiguration, contextMenuConfiguration, blockRenderers, mediaResolver, inlineEmbedRenderer, mentionSearch, onMentionTap, onOpenLink, findController, slashMenuController, accessibility, ...})` — the editor widget.
+  `enableExternalImageInput` gates both image clipboard flavors and external
+  image drops; `enableExternalDragDrop` only gates the desktop external drop
+  target. Read-only editors, controllers without edit permission, and mobile
+  selection-ui platforms do not mount the external `DropRegion` or call the
+  external image store for drops.
   Pass `shortcutConfiguration` to append/override the built-in keymap, disable
   intents, or return `passThrough` for host-level shortcuts such as save.
+  The built-in keymap dispatches exact Ctrl+Enter/Ctrl+NumpadEnter to
+  `controller.insertTextBlockBelow()` and Ctrl+Shift+Enter/
+  Ctrl+Shift+NumpadEnter to `controller.insertTextBlockAbove()`.
   Pass `contextMenuConfiguration` to append host right-click actions, replace
   the editor defaults, or build a fully ordered menu from the current
   `WenzEditorContextMenuContext`.
@@ -861,8 +909,12 @@ normalisation, and `onCommandExecuted` stay consistent.
 - `MediaResolver` — quick path for real image/video/file rendering. The
   built-in media renderers consult the injected resolver before falling back to
   the placeholder; returning `null` declines, throwing is tolerated (falls back
-  to placeholder). The default image renderer wraps the resolved widget with
-  `showWidth`/`showHeight` sizing and caption text. When an image block is
+  to placeholder). The default image renderer wraps the resolved widget in the
+  finite image frame: `showWidth` / `showHeight` win when set; otherwise
+  intrinsic `width` / `height` drive the default ratio, with the placeholder
+  ratio as the missing-dimension fallback. Captions remain metadata and are not rendered as visible text in the default editor.
+  Custom resolvers should render within the incoming constraints instead of
+  calculating a separate display or selection box. When an image block is
   selected and editable, invisible left/right frame edge hit zones resize it
   proportionally and persist the new display size through `updateImageBlock`;
   read-only editors or non-edit permissions do not create those hit zones. The
@@ -883,8 +935,12 @@ normalisation, and `onCommandExecuted` stay consistent.
 - `InlineEmbedRendererRegistry` / `InlineEmbedRenderer` /
   `InlineEmbedRendererCallback` — quick path for formula / mention / emoji /
   custom inline embed text-span rendering. The built-in text, callout, and
-  table-cell renderers consult it before falling back to compact formula /
-  mention / emoji labels. When a custom renderer returns a non-null span for
+  table-cell renderers consult it before falling back to the built-in inline
+  behavior: formula renders math/fallback text with no default chip or pill
+  background, mention keeps its `@label` pill, emoji displays unicode, and
+  unknown custom types use `[type]`. When a custom renderer returns a non-null
+  span for `formula`, it owns the full visual treatment and may decide whether
+  to draw a background. When a custom renderer returns a non-null span for
   `mention`, it owns any tap recognizer or business action; return `null` to
   keep the default `@label` rendering and editor-level `onMentionTap` event, or
   call `WenzMentionTapHandler.maybeOf(context)?.notifyMentionTap(embed,
@@ -913,12 +969,12 @@ The built-in widget layer resolves editor colors from these sources:
 | Area | Direct `ColorScheme` use | Private editor token needed |
 | --- | --- | --- |
 | Editor surface | Body text from `onSurface`; focus outline, caret, selection, active object/table state, task checkbox, heading-collapse control, quote accent, resize handles, and toolbar selection from `primary`; subdued text from `onSurfaceVariant` / `outline`; find highlights from `tertiary` / `tertiaryContainer`. | The editor's own default carrying background must be derived in the widget layer: light theme uses `Colors.white`, dark theme uses `Colors.black`. This is visual chrome only and must not be serialized. |
-| Text blocks and inline styles | Paragraphs/headings/quotes/lists inherit the editor body style; checked task text, heading level 5/6, inline formula/mention fallbacks, composition underline, revision background, and table-cell text use `ColorScheme` plus caller-supplied `TextStyle` / explicit inline attributes. | Link / remark colors are private semantic tokens derived for readability. Explicit `TextAttributes.color` / `background` remain document-authored data and are not theme tokens. |
+| Text blocks and inline styles | Paragraphs/headings/quotes/lists inherit the editor body style; checked task text, heading level 5/6, inline formula foreground/fallback text, mention fallback background, composition underline, revision background, and table-cell text use `ColorScheme` plus caller-supplied `TextStyle` / explicit inline attributes. | Link / remark colors are private semantic tokens derived for readability. Explicit `TextAttributes.color` / `background` remain document-authored data and are not theme tokens. |
 | Selection, caret, and search | `_TextSelectionSurface` derives selection highlight, caret, and find-match colors from `primary`, `tertiaryContainer`, and `tertiary`. | Alpha levels for selection/search/caret contrast are private editor tokens so they can be tuned for both black and white editor backgrounds without changing public API. |
-| Block surfaces | Quote, image placeholder, video fallback gradient, file-card surface/type badge/status, floating object toolbar, debug tag, selected block borders, table header cells, and formula preview use `ColorScheme` counterparts. | Surface shadows, hover fills, and selected object shells stay private visual tokens because they are implementation details of the default renderer. |
+| Block surfaces | Quote, image placeholder, video fallback gradient, file-card surface/type badge/status, floating object toolbar, debug tag, selected block borders, and table header cells use `ColorScheme` counterparts. Formula blocks keep source/math foreground readable through `onSurface` / `onSurfaceVariant` but do not draw a default card or preview background. | Surface shadows, hover fills, and selected object shells stay private visual tokens because they are implementation details of the default renderer. |
 | Tables | Cell text/header text, selected-cell overlay, column resize handles, table card surface, toolbar state, table border, zebra row, and toolbar sample background are derived for light/dark themes. | Persisted `TableCellNode.backgroundColor` stays authored cell data and is not treated as a theme token. |
-| Code, divider, callout, file, embed/formula | Selected borders, labels, code block background/text palette, divider line, callout variant tint/foreground/border, file-card idle border, embed card background/border, and formula card foreground/background are derived for light/dark themes. | Code syntax colors remain a private syntax palette; renderer token names are not public API. |
-| Media placeholders and previews | Image placeholders, video cover fallback gradients, and metadata text can use `ColorScheme`. | Hard black/white overlay controls inside video previews are media-preview private tokens; they are not editor-background tokens and may stay fixed only where contrast is guaranteed by the preview gradient. |
+| Code, divider, callout, file, embed/formula | Selected borders, labels, code block background/text palette, divider line, callout variant tint/foreground/border, file-card idle border, and generic embed card background/border are derived for light/dark themes. Formula defaults only derive foreground and selection/edit affordances; there is no schema/API token for a formula background. | Code syntax colors remain a private syntax palette; renderer token names are not public API. |
+| Media placeholders and previews | Image placeholder backgrounds/icons/progress, video cover fallback gradients, and video metadata text can use `ColorScheme`; image caption metadata is not visible editor text. | Hard black/white overlay controls inside video previews are media-preview private tokens; they are not editor-background tokens and may stay fixed only where contrast is guaranteed by the preview gradient. |
 
 The black/white background requirement lands in the widget/example layer only:
 the default editor carrying surface is white for `Brightness.light` and black

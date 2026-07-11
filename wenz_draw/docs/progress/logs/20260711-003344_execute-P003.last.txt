@@ -1,0 +1,15 @@
+已完成 P003，仅修改指定 scope：
+
+- [select_tool.dart](D:/project/GitHub/wenz_flutter/wenz_draw/lib/src/tools/select_tool.dart:67)
+  - 曲线端点拖动接入吸附预览。
+  - 命中连接点时保存对应绑定。
+  - 拖离连接点时清除被拖动端绑定，另一端绑定不受影响。
+  - 完成或取消交互时清理 `SnapPreview`。
+  - 继续使用现有单次 `UpdateElementCommand` 提交撤销历史。
+  - 控制点编辑及直线、折线、箭头端点逻辑保持不变。
+
+- [canvas_controller.dart](D:/project/GitHub/wenz_flutter/wenz_draw/lib/src/canvas/canvas_controller.dart:244)
+  - 绑定目标更新或移动后，自动解析并同步曲线对应端点。
+  - 未受影响端点、控制点、绑定及样式保持不变。
+
+未修改 plan 文件，未执行测试、构建、lint 或 analyze。

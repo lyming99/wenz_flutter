@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:ui' as ui;
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
@@ -24,6 +25,40 @@ typedef CanvasElementOverlayBuilder =
 typedef CanvasElementOverlayAnchorPredicate =
     bool Function(CanvasElement element);
 
+/// Coordinates the gesture-arena participant used by interactive widget
+/// elements with the canvas-level selection gesture.
+class CanvasWidgetGestureController {
+  static const double dragSlop = kTouchSlop;
+
+  final Map<int, _CanvasWidgetDragGestureRecognizer> _recognizers = {};
+
+  void suppressPointer(int pointer) {
+    _recognizers[pointer]?._acceptPointer(pointer);
+  }
+
+  void suppressAll() {
+    for (final pointer in _recognizers.keys.toList(growable: false)) {
+      suppressPointer(pointer);
+    }
+  }
+
+  void _register(
+    int pointer,
+    _CanvasWidgetDragGestureRecognizer recognizer,
+  ) {
+    _recognizers[pointer] = recognizer;
+  }
+
+  void _unregister(
+    int pointer,
+    _CanvasWidgetDragGestureRecognizer recognizer,
+  ) {
+    if (identical(_recognizers[pointer], recognizer)) {
+      _recognizers.remove(pointer);
+    }
+  }
+}
+
 class CanvasWidgetLayer extends StatefulWidget {
   const CanvasWidgetLayer({
     super.key,
@@ -31,12 +66,14 @@ class CanvasWidgetLayer extends StatefulWidget {
     this.config = const InfiniteCanvasConfig(),
     this.elementOverlayBuilder,
     this.elementOverlayAnchorPredicate,
+    this.gestureController,
   });
 
   final InfiniteCanvasController controller;
   final InfiniteCanvasConfig config;
   final CanvasElementOverlayBuilder? elementOverlayBuilder;
   final CanvasElementOverlayAnchorPredicate? elementOverlayAnchorPredicate;
+  final CanvasWidgetGestureController? gestureController;
 
   @override
   State<CanvasWidgetLayer> createState() => _CanvasWidgetLayerState();
@@ -124,6 +161,7 @@ class _CanvasWidgetLayerState extends State<CanvasWidgetLayer> {
             snapshots: _snapshots,
             liveOverlayIds: liveOverlayIds,
             elementOverlayBuilder: widget.elementOverlayBuilder,
+            gestureController: widget.gestureController,
           ),
         ),
       );
@@ -140,6 +178,7 @@ class _CanvasWidgetLayerState extends State<CanvasWidgetLayer> {
             snapshots: _snapshots,
             liveOverlayIds: liveOverlayIds,
             elementOverlayBuilder: widget.elementOverlayBuilder,
+            gestureController: widget.gestureController,
           ),
         ),
       );
@@ -311,6 +350,7 @@ class _LayerMixedStack extends StatelessWidget {
     required this.snapshots,
     required this.liveOverlayIds,
     required this.elementOverlayBuilder,
+    required this.gestureController,
   });
 
   final InfiniteCanvasController controller;
@@ -320,6 +360,7 @@ class _LayerMixedStack extends StatelessWidget {
   final Map<String, ui.Image> snapshots;
   final Set<String> liveOverlayIds;
   final CanvasElementOverlayBuilder? elementOverlayBuilder;
+  final CanvasWidgetGestureController? gestureController;
 
   @override
   Widget build(BuildContext context) {
@@ -332,6 +373,7 @@ class _LayerMixedStack extends StatelessWidget {
       snapshots: snapshots,
       liveOverlayIds: liveOverlayIds,
       elementOverlayBuilder: elementOverlayBuilder,
+      gestureController: gestureController,
     );
 
     return Opacity(opacity: opacity, child: child);
@@ -347,6 +389,7 @@ class _MixedElementStack extends StatelessWidget {
     required this.snapshots,
     required this.liveOverlayIds,
     required this.elementOverlayBuilder,
+    required this.gestureController,
   });
 
   final InfiniteCanvasController controller;
@@ -356,6 +399,7 @@ class _MixedElementStack extends StatelessWidget {
   final Map<String, ui.Image> snapshots;
   final Set<String> liveOverlayIds;
   final CanvasElementOverlayBuilder? elementOverlayBuilder;
+  final CanvasWidgetGestureController? gestureController;
 
   @override
   Widget build(BuildContext context) {
@@ -413,6 +457,7 @@ class _MixedElementStack extends StatelessWidget {
             applyLayerOpacity: layer == null,
             forcePaintScale:
                 element.renderMode == CanvasWidgetRenderMode.snapshot,
+            gestureController: gestureController,
           ),
         );
         continue;
@@ -592,31 +637,40 @@ class WidgetSnapshotRenderer {
           child: SizedBox(
             width: size.width,
             height: size.height,
-            child: ClipRect(
+            child: Overlay(
               clipBehavior: element.clipBehavior,
-              child: renderDetail == CanvasWidgetRenderDetail.full
-                  ? builder.build(
-                      context,
-                      element,
-                      canvas: CanvasWidgetBuildContext(
-                        canvasController: controller.canvasController,
-                        viewController: controller,
-                        selected: false,
-                        scale: 1,
-                        renderDetail: CanvasWidgetRenderDetail.full,
-                      ),
-                    )
-                  : builder.buildPreview(
-                      context,
-                      element,
-                      canvas: CanvasWidgetBuildContext(
-                        canvasController: controller.canvasController,
-                        viewController: controller,
-                        selected: false,
-                        scale: 1,
-                        renderDetail: renderDetail,
-                      ),
+              initialEntries: [
+                OverlayEntry(
+                  builder: (_) => SizedBox.expand(
+                    child: ClipRect(
+                      clipBehavior: element.clipBehavior,
+                      child: renderDetail == CanvasWidgetRenderDetail.full
+                          ? builder.build(
+                              context,
+                              element,
+                              canvas: CanvasWidgetBuildContext(
+                                canvasController: controller.canvasController,
+                                viewController: controller,
+                                selected: false,
+                                scale: 1,
+                                renderDetail: CanvasWidgetRenderDetail.full,
+                              ),
+                            )
+                          : builder.buildPreview(
+                              context,
+                              element,
+                              canvas: CanvasWidgetBuildContext(
+                                canvasController: controller.canvasController,
+                                viewController: controller,
+                                selected: false,
+                                scale: 1,
+                                renderDetail: renderDetail,
+                              ),
+                            ),
                     ),
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -920,6 +974,7 @@ class _CanvasWidgetHost extends StatelessWidget {
     required this.transform,
     this.applyLayerOpacity = true,
     this.forcePaintScale = false,
+    this.gestureController,
   });
 
   final CanvasWidgetElement element;
@@ -927,6 +982,7 @@ class _CanvasWidgetHost extends StatelessWidget {
   final CanvasTransform transform;
   final bool applyLayerOpacity;
   final bool forcePaintScale;
+  final CanvasWidgetGestureController? gestureController;
 
   @override
   Widget build(BuildContext context) {
@@ -1023,23 +1079,26 @@ class _CanvasWidgetHost extends StatelessWidget {
       height: layout.screenRect.height,
       child: IgnorePointer(
         ignoring: !canInteract,
-        child: ClipRect(
-          clipBehavior: element.clipBehavior,
-          child: OverflowBox(
-            alignment: Alignment.topLeft,
-            minWidth: layout.layoutSize.width,
-            maxWidth: layout.layoutSize.width,
-            minHeight: layout.layoutSize.height,
-            maxHeight: layout.layoutSize.height,
-            child: Transform.scale(
-              scale: layout.paintScale,
+        child: _gestureGate(
+          canInteract,
+          ClipRect(
+            clipBehavior: element.clipBehavior,
+            child: OverflowBox(
               alignment: Alignment.topLeft,
-              child: SizedBox(
-                width: layout.layoutSize.width,
-                height: layout.layoutSize.height,
-                child: _selectedFrame(
-                  builder.useDefaultSelectionFrame && isSelected,
-                  _buildForDetail(context, builder, canvas, layout),
+              minWidth: layout.layoutSize.width,
+              maxWidth: layout.layoutSize.width,
+              minHeight: layout.layoutSize.height,
+              maxHeight: layout.layoutSize.height,
+              child: Transform.scale(
+                scale: layout.paintScale,
+                alignment: Alignment.topLeft,
+                child: SizedBox(
+                  width: layout.layoutSize.width,
+                  height: layout.layoutSize.height,
+                  child: _selectedFrame(
+                    builder.useDefaultSelectionFrame && isSelected,
+                    _buildForDetail(context, builder, canvas, layout),
+                  ),
                 ),
               ),
             ),
@@ -1064,18 +1123,32 @@ class _CanvasWidgetHost extends StatelessWidget {
       height: layout.screenRect.height,
       child: IgnorePointer(
         ignoring: !canInteract,
-        child: _selectedFrame(
-          builder.useDefaultSelectionFrame && isSelected,
-          ClipRect(
-            clipBehavior: element.clipBehavior,
-            child: SizedBox(
-              width: layout.layoutSize.width,
-              height: layout.layoutSize.height,
-              child: _buildForDetail(context, builder, canvas, layout),
+        child: _gestureGate(
+          canInteract,
+          _selectedFrame(
+            builder.useDefaultSelectionFrame && isSelected,
+            ClipRect(
+              clipBehavior: element.clipBehavior,
+              child: SizedBox(
+                width: layout.layoutSize.width,
+                height: layout.layoutSize.height,
+                child: _buildForDetail(context, builder, canvas, layout),
+              ),
             ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _gestureGate(bool canInteract, Widget child) {
+    final controller = gestureController;
+    if (!canInteract || controller == null) {
+      return child;
+    }
+    return _CanvasWidgetGestureGate(
+      controller: controller,
+      child: child,
     );
   }
 
@@ -1159,5 +1232,172 @@ class _CanvasWidgetHost extends StatelessWidget {
         child: child,
       ),
     );
+  }
+}
+
+class _CanvasWidgetGestureGate extends StatefulWidget {
+  const _CanvasWidgetGestureGate({
+    required this.controller,
+    required this.child,
+  });
+
+  final CanvasWidgetGestureController controller;
+  final Widget child;
+
+  @override
+  State<_CanvasWidgetGestureGate> createState() =>
+      _CanvasWidgetGestureGateState();
+}
+
+class _CanvasWidgetGestureGateState extends State<_CanvasWidgetGestureGate> {
+  late _CanvasWidgetDragGestureRecognizer _recognizer;
+
+  @override
+  void initState() {
+    super.initState();
+    _recognizer = _CanvasWidgetDragGestureRecognizer(widget.controller);
+  }
+
+  @override
+  void didUpdateWidget(covariant _CanvasWidgetGestureGate oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (identical(oldWidget.controller, widget.controller)) {
+      return;
+    }
+    _recognizer.dispose();
+    _recognizer = _CanvasWidgetDragGestureRecognizer(widget.controller);
+  }
+
+  @override
+  void dispose() {
+    _recognizer.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _PreemptivePointerListener(
+      onPointerDown: _recognizer.addPointer,
+      child: widget.child,
+    );
+  }
+}
+
+class _PreemptivePointerListener extends SingleChildRenderObjectWidget {
+  const _PreemptivePointerListener({
+    required this.onPointerDown,
+    required super.child,
+  });
+
+  final PointerDownEventListener onPointerDown;
+
+  @override
+  RenderObject createRenderObject(BuildContext context) {
+    return _RenderPreemptivePointerListener(onPointerDown);
+  }
+
+  @override
+  void updateRenderObject(
+    BuildContext context,
+    _RenderPreemptivePointerListener renderObject,
+  ) {
+    renderObject.onPointerDown = onPointerDown;
+  }
+}
+
+class _RenderPreemptivePointerListener extends RenderProxyBox {
+  _RenderPreemptivePointerListener(this.onPointerDown);
+
+  PointerDownEventListener onPointerDown;
+
+  @override
+  bool hitTest(BoxHitTestResult result, {required Offset position}) {
+    if (!size.contains(position)) {
+      return false;
+    }
+    result.add(BoxHitTestEntry(this, position));
+    hitTestChildren(result, position: position);
+    return true;
+  }
+
+  @override
+  void handleEvent(PointerEvent event, BoxHitTestEntry entry) {
+    if (event is PointerDownEvent) {
+      onPointerDown(event);
+    }
+  }
+}
+
+class _CanvasWidgetDragGestureRecognizer extends OneSequenceGestureRecognizer {
+  _CanvasWidgetDragGestureRecognizer(this.controller);
+
+  CanvasWidgetGestureController controller;
+  final Map<int, Offset> _initialPositions = {};
+  final Set<int> _acceptedPointers = {};
+
+  @override
+  void addAllowedPointer(PointerDownEvent event) {
+    startTrackingPointer(event.pointer);
+    _initialPositions[event.pointer] = event.position;
+    controller._register(event.pointer, this);
+  }
+
+  @override
+  void handleEvent(PointerEvent event) {
+    final initialPosition = _initialPositions[event.pointer];
+    if (event is PointerMoveEvent &&
+        initialPosition != null &&
+        (event.position - initialPosition).distance >=
+            CanvasWidgetGestureController.dragSlop) {
+      _acceptPointer(event.pointer);
+      return;
+    }
+
+    if (event is PointerUpEvent || event is PointerCancelEvent) {
+      if (!_acceptedPointers.contains(event.pointer)) {
+        resolvePointer(event.pointer, GestureDisposition.rejected);
+      }
+      _stopTracking(event.pointer);
+    }
+  }
+
+  void _acceptPointer(int pointer) {
+    if (!_initialPositions.containsKey(pointer) ||
+        !_acceptedPointers.add(pointer)) {
+      return;
+    }
+    resolvePointer(pointer, GestureDisposition.accepted);
+    _stopTracking(pointer);
+  }
+
+  void _stopTracking(int pointer) {
+    if (_initialPositions.remove(pointer) == null) {
+      return;
+    }
+    controller._unregister(pointer, this);
+    _acceptedPointers.remove(pointer);
+    stopTrackingPointer(pointer);
+  }
+
+  @override
+  void rejectGesture(int pointer) {
+    _stopTracking(pointer);
+    super.rejectGesture(pointer);
+  }
+
+  @override
+  void didStopTrackingLastPointer(int pointer) {}
+
+  @override
+  String get debugDescription => 'canvas widget drag';
+
+  @override
+  void dispose() {
+    for (final pointer in _initialPositions.keys.toList(growable: false)) {
+      controller._unregister(pointer, this);
+    }
+    _initialPositions.clear();
+    _acceptedPointers.clear();
+    super.dispose();
   }
 }

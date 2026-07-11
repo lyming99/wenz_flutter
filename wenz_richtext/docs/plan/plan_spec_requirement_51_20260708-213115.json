@@ -1,0 +1,73 @@
+{
+  "title": "增强表格工具栏能力并统一使用 Lucide SVG 图标",
+  "summary": "当前 wenz_richtext 是 Flutter/Dart 包，项目已引入 flutter_svg、assets/lucide/ 和 WenzLucideToolbarIcon，默认桌面/移动工具栏已基本使用 Lucide SVG；但表格浮动工具栏仍在 lib/src/widgets/wenz_rich_text_editor.dart 中直接使用 Material Icons，动作入口也主要集中在少量快捷按钮和一个更多菜单。需求要求“表格工具栏功能多支持一些，图标都用 lucide svg 图标”，因此计划围绕现有 TableToolbarAction、TableFloatingToolbarOverlay 和表格命令族扩展表格浮动工具栏的动作模型、可见入口、菜单分组、可用态与测试覆盖，并将表格工具栏按钮和菜单图标统一迁移到本地 Lucide SVG 资产。",
+  "tasks": [
+    {
+      "title": "扩展表格工具栏动作模型与目标范围",
+      "scope": [
+        "lib/src/widgets/block_renderer_registry.dart",
+        "lib/src/widgets/wenz_rich_text_editor.dart"
+      ],
+      "acceptance": [
+        "表格工具栏动作模型继续兼容现有插入行、插入列、删除行、删除列、表头、背景色、对齐、合并、拆分、重置列宽等动作",
+        "新增的表格工具栏能力围绕当前 cell 或 tableCellRange 工作，至少覆盖整行选择、整列选择、整表选择，以及整表删除或等价的整表移除入口",
+        "所有表格动作都使用 toolbar intent 捕获的 blockIndex、起止行列作为权威目标，菜单打开或焦点变化不会把动作错误应用到其他表格或其他单元格",
+        "删除行列、合并、拆分、整表移除等破坏性或结构性操作在单行、单列、单 cell、covered cell、只读或无编辑权限场景下保持安全降级，不产生无效文档状态",
+        "新增选择类动作更新 DocumentSelection 的 tableCellRange，并让浮动工具栏、单元格高亮和后续菜单动作继续跟随新的目标范围"
+      ]
+    },
+    {
+      "title": "重组表格浮动工具栏入口与菜单分组",
+      "scope": [
+        "lib/src/widgets/wenz_rich_text_editor.dart"
+      ],
+      "acceptance": [
+        "表格浮动工具栏保留常用快捷入口，例如下方插入行、右侧插入列、合并或拆分单元格，并增加更容易发现的行、列、单元格、整表分组入口",
+        "更多菜单按行操作、列操作、单元格样式、选择范围、整表操作分组展示，覆盖上方插入行、下方插入行、左侧插入列、右侧插入列、删除行、删除列、表头切换、背景设置和清除、左中右对齐和清除、合并拆分、重置列宽、新增选择范围与整表操作",
+        "菜单项的 enabled、selected、destructive 状态准确反映当前表格结构和选区，例如单行表不能删除行、单列表不能删除列、单 cell 不能合并、未合并 cell 不能拆分",
+        "浮动工具栏在窄宽度、靠近视口顶部、滚动中、跨单元格选区和合并单元格选区场景下保持现有 overlay 定位、换行和命中测试行为",
+        "只读模式或 controller 无编辑权限时不显示可变更表格结构的浮动工具栏入口，已有表格渲染和文本选择不受影响"
+      ]
+    },
+    {
+      "title": "将表格工具栏图标迁移为 Lucide SVG",
+      "scope": [
+        "lib/src/widgets/wenz_rich_text_editor.dart",
+        "lib/src/widgets/lucide_toolbar_icons.dart",
+        "assets/lucide/"
+      ],
+      "acceptance": [
+        "表格浮动工具栏主按钮、更多按钮以及表格菜单项不再直接依赖 Material Icons 渲染图标，而是通过 WenzLucideToolbarIcon 或同等封装加载本地 Lucide SVG",
+        "Lucide 图标映射覆盖表格行列插入、行列删除、表头、背景填充、背景清除、左中右对齐、清除对齐、合并单元格、拆分单元格、重置列宽、选择行列整表、删除整表和更多菜单",
+        "已有 assets/lucide/ 中可复用的 table、table-rows-split、table-columns-split、table-cells-merge、table-cells-split、rows-3、columns-3、trash-2、paint-bucket、eraser、text-align-*、refresh-cw、arrow-*、ellipsis 等资产优先复用，缺失时只补充必要的 Lucide SVG 文件",
+        "图标颜色继续跟随当前主题、禁用态和破坏性菜单项颜色，图标尺寸、按钮触控区域、tooltip、语义标签和最小工具栏视觉风格保持一致",
+        "如果共享菜单项组件需要支持 Lucide 图标，应保持现有上下文菜单、对象块工具栏、代码块菜单和文件菜单的 IconData 调用兼容，避免引入非表格菜单的行为回归"
+      ]
+    },
+    {
+      "title": "补充表格工具栏交互与图标回归测试",
+      "scope": [
+        "test/widgets/wenz_rich_text_editor_test.dart",
+        "test/widgets/default_desktop_toolbar_test.dart",
+        "test/widgets/default_mobile_toolbar_test.dart"
+      ],
+      "acceptance": [
+        "表格浮动工具栏测试覆盖新增行、列、单元格、选择范围和整表操作入口，验证动作会修改正确的 TableBlockNode 或 DocumentSelection",
+        "禁用态测试覆盖单行删除行、单列删除列、单 cell 合并、未合并 cell 拆分、只读编辑器和无编辑权限控制器，确认按钮或菜单项不可用且文档不变",
+        "Lucide 图标测试覆盖表格浮动工具栏主按钮、更多按钮和表格菜单项，断言使用 WenzLucideToolbarIcon 或本地 Lucide asset 名称，而不是依赖 find.byIcon(Icons.*)",
+        "布局测试覆盖窄宽度浮动工具栏换行或滚动、overlay 仍贴近表格并不遮挡单元格文本、hover/pressed 状态仍由共享 minimal toolbar surface 承担",
+        "相关默认桌面和移动工具栏测试在共享 Lucide 图标封装或菜单组件调整后仍覆盖原有 toolbar item token 映射、fallback 图标和 enabled/selected 状态"
+      ]
+    }
+  ],
+  "finalValidation": {
+    "command": "dart format --set-exit-if-changed lib/src/widgets/block_renderer_registry.dart lib/src/widgets/wenz_rich_text_editor.dart lib/src/widgets/lucide_toolbar_icons.dart test/widgets/wenz_rich_text_editor_test.dart test/widgets/default_desktop_toolbar_test.dart test/widgets/default_mobile_toolbar_test.dart; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; flutter test test/widgets/wenz_rich_text_editor_test.dart test/widgets/default_desktop_toolbar_test.dart test/widgets/default_mobile_toolbar_test.dart; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; flutter analyze",
+    "criteria": [
+      "受影响 Dart 文件通过 dart format --set-exit-if-changed 检查，没有未格式化代码",
+      "表格浮动工具栏相关 widget 测试通过，覆盖新增动作、既有动作、禁用态、选区范围、overlay 定位和只读场景",
+      "默认桌面和移动工具栏 widget 测试通过，确认共享 Lucide 图标封装或菜单组件调整没有破坏原有工具栏行为",
+      "运行时所有表格工具栏图标均来自本地 assets/lucide/ SVG 资产或 WenzLucideToolbarIcon 映射，不依赖网络加载或 Material Icons 作为表格工具栏图标",
+      "flutter analyze 成功退出，没有新增 analyzer error、warning 或 lint 问题"
+    ]
+  }
+}

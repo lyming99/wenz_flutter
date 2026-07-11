@@ -453,6 +453,147 @@ void main() {
     expect(attached.disposition, EditorShortcutDisposition.ignored);
   });
 
+  test('maps ctrl enter shortcuts to insert text block intents', () {
+    final below = resolveWith(
+      manager,
+      _down(LogicalKeyboardKey.enter),
+      primary: true,
+      control: true,
+    );
+    final numpadBelow = resolveWith(
+      manager,
+      _down(LogicalKeyboardKey.numpadEnter),
+      primary: true,
+      control: true,
+    );
+    final above = resolveWith(
+      manager,
+      _down(LogicalKeyboardKey.enter),
+      shift: true,
+      primary: true,
+      control: true,
+    );
+    final numpadAbove = resolveWith(
+      manager,
+      _down(LogicalKeyboardKey.numpadEnter),
+      shift: true,
+      primary: true,
+      control: true,
+    );
+    final plainEnter = resolve(_down(LogicalKeyboardKey.enter));
+
+    expect(below.intent, EditorShortcutIntent.insertTextBlockBelow);
+    expect(numpadBelow.intent, EditorShortcutIntent.insertTextBlockBelow);
+    expect(above.intent, EditorShortcutIntent.insertTextBlockAbove);
+    expect(numpadAbove.intent, EditorShortcutIntent.insertTextBlockAbove);
+    expect(plainEnter.intent, EditorShortcutIntent.enter);
+  });
+
+  test('guards insert text block shortcuts in read-only and disabled intents', () {
+    const disabled = EditorShortcutManager(
+      configuration: EditorShortcutConfiguration(
+        disabledIntents: <EditorShortcutIntent>{
+          EditorShortcutIntent.insertTextBlockAbove,
+          EditorShortcutIntent.insertTextBlockBelow,
+        },
+      ),
+    );
+
+    final readOnlyBelow = resolveWith(
+      manager,
+      _down(LogicalKeyboardKey.enter),
+      primary: true,
+      control: true,
+      readOnly: true,
+    );
+    final readOnlyAbove = resolveWith(
+      manager,
+      _down(LogicalKeyboardKey.enter),
+      shift: true,
+      primary: true,
+      control: true,
+      readOnly: true,
+    );
+    final disabledBelow = resolveWith(
+      disabled,
+      _down(LogicalKeyboardKey.enter),
+      primary: true,
+      control: true,
+    );
+    final disabledAbove = resolveWith(
+      disabled,
+      _down(LogicalKeyboardKey.enter),
+      shift: true,
+      primary: true,
+      control: true,
+    );
+
+    expect(readOnlyBelow.disposition, EditorShortcutDisposition.ignored);
+    expect(readOnlyAbove.disposition, EditorShortcutDisposition.ignored);
+    expect(disabledBelow.disposition, EditorShortcutDisposition.ignored);
+    expect(disabledAbove.disposition, EditorShortcutDisposition.ignored);
+  });
+
+  test('configuration can override ignore or pass through insert text block shortcuts', () {
+    const configured = EditorShortcutManager(
+      configuration: EditorShortcutConfiguration(
+        bindings: <EditorShortcutBinding>[
+          EditorShortcutBinding.handled(
+            shortcut: EditorShortcutKey(
+              LogicalKeyboardKey.enter,
+              modifiers: <EditorShortcutModifier>{
+                EditorShortcutModifier.control,
+              },
+            ),
+            intent: EditorShortcutIntent.copy,
+          ),
+          EditorShortcutBinding.ignored(
+            shortcut: EditorShortcutKey(
+              LogicalKeyboardKey.enter,
+              modifiers: <EditorShortcutModifier>{
+                EditorShortcutModifier.control,
+                EditorShortcutModifier.shift,
+              },
+            ),
+          ),
+          EditorShortcutBinding.passThrough(
+            shortcut: EditorShortcutKey(
+              LogicalKeyboardKey.numpadEnter,
+              modifiers: <EditorShortcutModifier>{
+                EditorShortcutModifier.control,
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+
+    final overridden = resolveWith(
+      configured,
+      _down(LogicalKeyboardKey.enter),
+      primary: true,
+      control: true,
+    );
+    final ignored = resolveWith(
+      configured,
+      _down(LogicalKeyboardKey.enter),
+      shift: true,
+      primary: true,
+      control: true,
+    );
+    final passThrough = resolveWith(
+      configured,
+      _down(LogicalKeyboardKey.numpadEnter),
+      primary: true,
+      control: true,
+    );
+
+    expect(overridden.disposition, EditorShortcutDisposition.handled);
+    expect(overridden.intent, EditorShortcutIntent.copy);
+    expect(ignored.disposition, EditorShortcutDisposition.ignored);
+    expect(passThrough.disposition, EditorShortcutDisposition.passThrough);
+  });
+
   test('ignores control characters', () {
     final result = resolve(
       _down(LogicalKeyboardKey.enter, character: '\n'),

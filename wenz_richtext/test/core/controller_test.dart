@@ -319,6 +319,161 @@ void main() {
     expect(range.endColumn, 2);
   });
 
+  group('insert text block at selection', () {
+    test('inserts above a cross-block selection and supports undo redo', () {
+      final controller = WenzRichTextController(
+        document: _textBlockInsertionDocument(),
+        selection: DocumentSelection(
+          base: DocumentPosition.text(
+            blockId: 'p1',
+            blockIndex: 0,
+            offset: 1,
+          ),
+          extent: DocumentPosition.text(
+            blockId: 'p3',
+            blockIndex: 2,
+            offset: 5,
+          ),
+        ),
+      );
+
+      final change = controller.insertTextBlockAbove(blockId: 'new-above');
+
+      expect(change.isNoop, isFalse);
+      expect(_blockIds(controller.document), <String>[
+        'new-above',
+        'p1',
+        'p2',
+        'p3',
+      ]);
+      final inserted = controller.document.blocks.first as TextBlockNode;
+      expect(inserted.type, BlockType.paragraph);
+      expect(inserted.plainText, isEmpty);
+      expect(controller.selection, collapsedTextSelection('new-above', 0, 0));
+      expect(controller.canUndo, isTrue);
+
+      expect(controller.undo(), isTrue);
+      expect(_blockIds(controller.document), <String>['p1', 'p2', 'p3']);
+
+      expect(controller.redo(), isTrue);
+      expect(_blockIds(controller.document), <String>[
+        'new-above',
+        'p1',
+        'p2',
+        'p3',
+      ]);
+      expect(controller.selection, collapsedTextSelection('new-above', 0, 0));
+    });
+
+    test('inserts below a cross-block selection end', () {
+      final controller = WenzRichTextController(
+        document: _textBlockInsertionDocument(),
+        selection: DocumentSelection(
+          base: DocumentPosition.text(
+            blockId: 'p1',
+            blockIndex: 0,
+            offset: 0,
+          ),
+          extent: DocumentPosition.text(
+            blockId: 'p3',
+            blockIndex: 2,
+            offset: 5,
+          ),
+        ),
+      );
+
+      controller.insertTextBlockBelow(blockId: 'new-below');
+
+      expect(_blockIds(controller.document), <String>[
+        'p1',
+        'p2',
+        'p3',
+        'new-below',
+      ]);
+      expect(controller.selection, collapsedTextSelection('new-below', 3, 0));
+    });
+
+    test('inserts below an object block selection', () {
+      final controller = WenzRichTextController(
+        document: _mixedInsertionDocument(),
+        selection: _objectSelection('img1', 1),
+      );
+
+      controller.insertTextBlockBelow(blockId: 'after-image');
+
+      expect(_blockIds(controller.document), <String>[
+        'p1',
+        'img1',
+        'after-image',
+        'code1',
+        'table1',
+        'p2',
+      ]);
+      final inserted = controller.document.blocks[2] as TextBlockNode;
+      expect(inserted.type, BlockType.paragraph);
+      expect(controller.selection, collapsedTextSelection('after-image', 2, 0));
+    });
+
+    test('inserts below a code block selection without copying code type', () {
+      final controller = WenzRichTextController(
+        document: _mixedInsertionDocument(),
+        selection: collapsedCodeSelection('code1', 2, 2),
+      );
+
+      controller.insertTextBlockBelow(blockId: 'after-code');
+
+      expect(_blockIds(controller.document), <String>[
+        'p1',
+        'img1',
+        'code1',
+        'after-code',
+        'table1',
+        'p2',
+      ]);
+      final inserted = controller.document.blocks[3] as TextBlockNode;
+      expect(inserted.type, BlockType.paragraph);
+      expect(inserted.plainText, isEmpty);
+      expect(controller.selection, collapsedTextSelection('after-code', 3, 0));
+    });
+
+    test('inserts below a table cell selection at the top-level table boundary', () {
+      final controller = WenzRichTextController(
+        document: _mixedInsertionDocument(),
+        selection: _tableCellSelection(blockIndex: 3, offset: 2),
+      );
+
+      controller.insertTextBlockBelow(blockId: 'after-table');
+
+      expect(_blockIds(controller.document), <String>[
+        'p1',
+        'img1',
+        'code1',
+        'table1',
+        'after-table',
+        'p2',
+      ]);
+      final inserted = controller.document.blocks[4] as TextBlockNode;
+      expect(inserted.type, BlockType.paragraph);
+      expect(controller.selection, collapsedTextSelection('after-table', 4, 0));
+    });
+
+    test('respects edit permission', () {
+      final controller = WenzRichTextController(
+        document: _textBlockInsertionDocument(),
+        selection: collapsedTextSelection('p1', 0, 0),
+        permission: WenzEditorPermission.read,
+      );
+
+      final change = controller.insertTextBlockBelow(blockId: 'blocked');
+
+      expect(change.isNoop, isTrue);
+      expect(change.metadata, containsPair('reason', 'permissionDenied'));
+      expect(change.metadata, containsPair('command', 'insertTextBlockBelow'));
+      expect(_blockIds(controller.document), <String>['p1', 'p2', 'p3']);
+      expect(controller.canUndo, isFalse);
+    });
+  });
+
   group('lastChangedBlockIds', () {
     RichTextDocument multiBlockDoc() => const RichTextDocument(
           blocks: <BlockNode>[
@@ -539,6 +694,92 @@ void main() {
     expect((block.content.single as TextRun).attributes.color, isNull);
     expect(controller.canUndo, isFalse);
   });
+}
+
+RichTextDocument _textBlockInsertionDocument() {
+  return const RichTextDocument(
+    blocks: <BlockNode>[
+      TextBlockNode(
+        id: 'p1',
+        type: BlockType.paragraph,
+        content: <InlineNode>[TextRun(text: 'one')],
+      ),
+      TextBlockNode(
+        id: 'p2',
+        type: BlockType.paragraph,
+        content: <InlineNode>[TextRun(text: 'two')],
+      ),
+      TextBlockNode(
+        id: 'p3',
+        type: BlockType.paragraph,
+        content: <InlineNode>[TextRun(text: 'three')],
+      ),
+    ],
+  );
+}
+
+RichTextDocument _mixedInsertionDocument() {
+  return const RichTextDocument(
+    blocks: <BlockNode>[
+      TextBlockNode(
+        id: 'p1',
+        type: BlockType.paragraph,
+        content: <InlineNode>[TextRun(text: 'one')],
+      ),
+      ImageBlockNode(id: 'img1', assetId: 'asset1'),
+      CodeBlockNode(id: 'code1', code: 'code'),
+      TableBlockNode(
+        id: 'table1',
+        table: TableModel(
+          rows: <List<TableCellNode>>[
+            <TableCellNode>[
+              TableCellNode(
+                id: 'cell-00',
+                blocks: <BlockNode>[
+                  TextBlockNode(
+                    id: 'cell-00-p',
+                    type: BlockType.paragraph,
+                    content: <InlineNode>[TextRun(text: 'cell')],
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+      TextBlockNode(
+        id: 'p2',
+        type: BlockType.paragraph,
+        content: <InlineNode>[TextRun(text: 'two')],
+      ),
+    ],
+  );
+}
+
+DocumentSelection _objectSelection(String blockId, int blockIndex) {
+  final start = DocumentPosition.object(
+    blockId: blockId,
+    blockIndex: blockIndex,
+  );
+  return DocumentSelection(base: start, extent: start.copyWith(offset: 1));
+}
+
+DocumentSelection _tableCellSelection({
+  required int blockIndex,
+  int offset = 0,
+}) {
+  final position = DocumentPosition.tableCell(
+    tableBlockId: 'table1',
+    blockIndex: blockIndex,
+    tableRowIndex: 0,
+    tableColumnIndex: 0,
+    offset: offset,
+  );
+  return DocumentSelection(base: position, extent: position);
+}
+
+List<String> _blockIds(RichTextDocument document) {
+  return document.blocks.map((block) => block.id).toList();
 }
 
 RichTextDocument _tableDocument() {

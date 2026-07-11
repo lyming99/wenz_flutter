@@ -21,17 +21,31 @@ import '../core/model/block_node.dart';
 ///
 /// Resolver widgets are laid out inside the media block's finite frame. For
 /// video blocks, the editor uses the rounded media frame as the overflow
-/// boundary; preview/fullscreen surfaces use the same safe finite sizing with a
-/// rectangular clip so custom players can fill the surface without inheriting
-/// editor-frame corner radius. Custom players should render within the incoming
-/// constraints instead of assuming unbounded width or height.
+/// boundary. The fullscreen preview uses a viewport-sized black surface and a
+/// finite, tightly constrained frame that covers the complete viewport without
+/// inheriting the inline frame's corner radius or shadow. The player owns any
+/// aspect-fit and letterbox/pillarbox policy inside that frame. Custom players
+/// should render within the incoming constraints instead of assuming unbounded
+/// width or height. A `null` result or thrown resolver uses the same
+/// viewport-sized, square-corner fullscreen frame for the built-in fallback.
+/// Image resolver output receives the same finite frame: persisted
+/// `showWidth`/`showHeight` wins, otherwise intrinsic `width`/`height`
+/// drives the frame before the placeholder ratio fallback.
 ///
 /// The same video block may be resolved separately for its inline editor
-/// surface and for the preview dialog. Return a freshly built widget tree for
-/// each [resolve] call, and do not share `GlobalKey`s between those positions.
+/// surface and for the fullscreen preview route. Return a freshly built widget
+/// tree for each [resolve] call, and do not share `GlobalKey`s between those
+/// positions.
 /// The editor adds a position-specific keyed boundary around video resolver
 /// output, while keys inside the returned child remain the resolver's
 /// responsibility.
+///
+/// Inline video output is retained while selection strokes and object toolbars
+/// rebuild around it, so selecting an unselected video does not reset a
+/// stateful player or discard the playback change caused by that same tap. A
+/// new inline subtree is resolved when the resolver instance or the video
+/// block's media data changes. The fullscreen preview subtree is always a
+/// separate entry.
 ///
 /// ```dart
 /// class NetworkImageResolver implements MediaResolver {

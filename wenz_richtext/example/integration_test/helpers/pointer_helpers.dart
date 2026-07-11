@@ -1,4 +1,6 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Finds the [RichText] widget whose plain text matches [text] exactly.
@@ -101,9 +103,15 @@ class VisualLineBlankTarget {
 Future<void> tapAtTextOffset(
   WidgetTester tester,
   String text,
-  int offset,
-) async {
-  await tester.tapAt(globalOffsetAt(tester, text, offset));
+  int offset, {
+  bool shift = false,
+}) async {
+  final target = globalOffsetAt(tester, text, offset);
+  if (shift) {
+    await _mouseClickAt(tester, target, shift: true);
+  } else {
+    await tester.tapAt(target);
+  }
   await tester.pump();
 }
 
@@ -114,10 +122,15 @@ Future<void> dragInsideText(
   String text, {
   required int fromOffset,
   required int toOffset,
+  bool shift = false,
 }) async {
   final start = globalOffsetAt(tester, text, fromOffset);
   final end = globalOffsetAt(tester, text, toOffset);
-  await tester.dragFrom(start, end - start);
+  if (shift) {
+    await _mouseDragFromTo(tester, start, end, shift: true);
+  } else {
+    await tester.dragFrom(start, end - start);
+  }
   await tester.pump();
 }
 
@@ -129,11 +142,77 @@ Future<void> dragBetweenText(
   required int fromOffset,
   required String toText,
   required int toOffset,
+  bool shift = false,
 }) async {
   final start = globalOffsetAt(tester, fromText, fromOffset);
   final end = globalOffsetAt(tester, toText, toOffset);
-  await tester.dragFrom(start, end - start);
+  if (shift) {
+    await _mouseDragFromTo(tester, start, end, shift: true);
+  } else {
+    await tester.dragFrom(start, end - start);
+  }
   await tester.pump();
+}
+
+Future<void> _mouseClickAt(
+  WidgetTester tester,
+  Offset point, {
+  bool shift = false,
+}) async {
+  await _withOptionalShift(tester, shift, () async {
+    final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    try {
+      await gesture.addPointer(location: point);
+      await tester.pump();
+      await gesture.down(point);
+      await tester.pump();
+      await gesture.up();
+      await tester.pump();
+    } finally {
+      await gesture.removePointer();
+    }
+  });
+}
+
+Future<void> _mouseDragFromTo(
+  WidgetTester tester,
+  Offset start,
+  Offset end, {
+  bool shift = false,
+}) async {
+  await _withOptionalShift(tester, shift, () async {
+    final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    try {
+      await gesture.addPointer(location: start);
+      await tester.pump();
+      await gesture.down(start);
+      await tester.pump();
+      await gesture.moveTo(end);
+      await tester.pump();
+      await gesture.up();
+      await tester.pump();
+    } finally {
+      await gesture.removePointer();
+    }
+  });
+}
+
+Future<void> _withOptionalShift(
+  WidgetTester tester,
+  bool shift,
+  Future<void> Function() action,
+) async {
+  if (!shift) {
+    await action();
+    return;
+  }
+  await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+  try {
+    await action();
+  } finally {
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+    await tester.pump();
+  }
 }
 
 /// Performs a multi-tap (double or triple) at the same location for word /

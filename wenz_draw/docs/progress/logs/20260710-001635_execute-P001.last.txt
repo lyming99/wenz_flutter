@@ -1,0 +1,10 @@
+已完成 P001，只修改了 [canvas_controller.dart](D:/project/GitHub/wenz_flutter/wenz_draw/lib/src/canvas/canvas_controller.dart:1240)。
+
+新增 `updatePolylineArrow` 控制器入口：
+- 仅作用于 `PolylineElement`
+- 只更新 `endArrow` / `headSize`
+- 保留 `points`、绑定、图层、标签等其它数据
+- 复用 `updateElement`，因此会进入现有撤销/重做历史
+- 无变化时直接返回，避免写入无效历史
+
+按要求未运行测试、构建、analyze 或其它验收命令。

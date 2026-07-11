@@ -3,6 +3,105 @@ import 'package:wenz_draw/wenz_draw.dart';
 
 import '../theme/ui_colors.dart';
 
+class LineArrowModeControl extends StatelessWidget {
+  const LineArrowModeControl({
+    super.key,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final LineArrowMode value;
+  final ValueChanged<LineArrowMode>? onChanged;
+
+  static const _options = <(LineArrowMode, IconData, String)>[
+    (LineArrowMode.none, Icons.horizontal_rule, '\u65e0\u7bad\u5934'),
+    (LineArrowMode.single, Icons.arrow_right_alt, '\u5355\u5411\u7bad\u5934'),
+    (LineArrowMode.both, Icons.compare_arrows, '\u53cc\u5411\u7bad\u5934'),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 58,
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: UiColors.panelSoft,
+        border: Border.all(color: UiColors.line),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          for (final option in _options)
+            Expanded(
+              child: _LineArrowModeOption(
+                mode: option.$1,
+                icon: option.$2,
+                label: option.$3,
+                selected: value == option.$1,
+                onTap: onChanged == null ? null : () => onChanged!(option.$1),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LineArrowModeOption extends StatelessWidget {
+  const _LineArrowModeOption({
+    required this.mode,
+    required this.icon,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final LineArrowMode mode;
+  final IconData icon;
+  final String label;
+  final bool selected;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: label,
+      child: Material(
+        key: ValueKey('line-arrow-mode-${mode.name}'),
+        color: selected ? Colors.white : Colors.transparent,
+        borderRadius: BorderRadius.circular(5),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(5),
+          onTap: onTap,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                size: 18,
+                color: selected ? UiColors.accent : UiColors.muted,
+              ),
+              const SizedBox(height: 2),
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: selected ? UiColors.accent : UiColors.muted,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class FieldGrid extends StatelessWidget {
   const FieldGrid({required this.children});
 
@@ -365,7 +464,11 @@ class AlignmentControl extends StatelessWidget {
 }
 
 class AlignSegment extends StatelessWidget {
-  const AlignSegment({required this.label, required this.active, required this.onTap});
+  const AlignSegment({
+    required this.label,
+    required this.active,
+    required this.onTap,
+  });
 
   final String label;
   final bool active;
@@ -448,8 +551,7 @@ class FontWeightDropdown extends StatelessWidget {
           onChanged: selected == null
               ? null
               : (label) {
-                  final weight =
-                      _weights.firstWhere((w) => w.$2 == label).$1;
+                  final weight = _weights.firstWhere((w) => w.$2 == label).$1;
                   onChanged(weight);
                 },
         ),

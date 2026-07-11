@@ -53,6 +53,13 @@ class HtmlCodec {
     return buffer.toString();
   }
 
+  /// Encodes a block slice as an HTML fragment using the same mapping as
+  /// [encode]. Clipboard copy uses this for selection-only temporary
+  /// documents.
+  String encodeBlocks(List<BlockNode> blocks) {
+    return encode(RichTextDocument(blocks: blocks));
+  }
+
   String? _encodeBlock(BlockNode block) {
     switch (block.type) {
       case BlockType.heading:

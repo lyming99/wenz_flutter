@@ -5,7 +5,7 @@ import 'package:wenz_richtext/wenz_richtext.dart';
 
 void main() {
   testWidgets(
-      'renders multi-level headings indented by level with a header count',
+      'renders multi-level headings indented by level without a header count',
       (tester) async {
     final items = <OutlineItem>[
       _item(blockId: 'h1', blockIndex: 0, level: 1, title: 'Alpha'),
@@ -17,11 +17,21 @@ void main() {
 
     expect(find.byKey(const ValueKey<String>('wenz-outline-tree')),
         findsOneWidget);
-    expect(find.text('Outline'), findsOneWidget);
-    expect(find.text('3 headings'), findsOneWidget);
+    expect(find.text('大纲'), findsOneWidget);
+    expect(find.text('3 headings'), findsNothing);
     expect(find.text('Alpha'), findsOneWidget);
     expect(find.text('Beta'), findsOneWidget);
     expect(find.text('Gamma'), findsOneWidget);
+
+    final alphaPadding = _rowContentPaddingForTitle(tester, 'Alpha');
+    final betaPadding = _rowContentPaddingForTitle(tester, 'Beta');
+    final gammaPadding = _rowContentPaddingForTitle(tester, 'Gamma');
+    expect(alphaPadding.start, 8);
+    expect(alphaPadding.end, 8);
+    expect(betaPadding.end, 8);
+    expect(gammaPadding.end, 8);
+    expect(betaPadding.start, greaterThan(alphaPadding.start));
+    expect(gammaPadding.start, greaterThan(betaPadding.start));
 
     // Deeper levels render further to the right (per-level indentation).
     expect(
@@ -100,7 +110,8 @@ void main() {
     );
 
     expect(find.text('No headings'), findsOneWidget);
-    expect(find.text('0 headings'), findsOneWidget);
+    expect(find.text('大纲'), findsOneWidget);
+    expect(find.text('0 headings'), findsNothing);
     expect(find.byType(ListView), findsNothing);
   });
 
@@ -155,10 +166,16 @@ void main() {
         blockIds: <String>['c1'],
       ),
     );
+    final child = _item(
+      blockId: 'h2',
+      blockIndex: 1,
+      level: 2,
+      title: 'Beta',
+    );
     OutlineItem? toggled;
 
     await tester.pumpWidget(_wrap(WenzOutlineTree(
-      items: <OutlineItem>[collapsible],
+      items: <OutlineItem>[collapsible, child],
       onToggleCollapse: (item) => toggled = item,
     )));
 
@@ -170,43 +187,42 @@ void main() {
 
     expect(toggled, isNotNull);
     expect(toggled!.blockId, 'h1');
+    expect(find.text('Beta'), findsNothing);
   });
 
-  testWidgets('does not reserve collapse toggle space for leaf headings',
+  testWidgets('leaf headings do not show or reserve collapse toggle space',
       (tester) async {
-    final collapsible = _item(
-      blockId: 'parent',
+    final leaf = _item(
+      blockId: 'leaf',
       blockIndex: 0,
       level: 1,
-      title: 'Parent',
+      title: 'Leaf',
       collapseRange: const OutlineCollapseRange(
         startBlockIndex: 1,
         endBlockIndexExclusive: 2,
+        blockIds: <String>['body'],
       ),
     );
-    final leaf = _item(
-      blockId: 'leaf',
-      blockIndex: 2,
-      level: 2,
-      title: 'Leaf',
-    );
     OutlineItem? selected;
+    OutlineItem? toggled;
 
     await tester.pumpWidget(_wrap(WenzOutlineTree(
-      items: <OutlineItem>[collapsible, leaf],
+      items: <OutlineItem>[leaf],
       onSelect: (item) => selected = item,
+      onToggleCollapse: (item) => toggled = item,
     )));
 
-    expect(find.byIcon(Icons.expand_more), findsOneWidget);
+    expect(find.byIcon(Icons.expand_more), findsNothing);
     expect(find.byIcon(Icons.chevron_right), findsNothing);
 
-    final parentBadgeLeft = tester.getTopLeft(find.text('H1')).dx;
-    final leafBadgeLeft = tester.getTopLeft(find.text('H2')).dx;
-    expect(leafBadgeLeft, lessThan(parentBadgeLeft));
+    final leafPadding = _rowContentPaddingForTitle(tester, 'Leaf');
+    expect(leafPadding.start, 8);
+    expect(leafPadding.end, 8);
 
     await tester.tap(find.text('Leaf'));
     await tester.pump();
     expect(selected?.blockId, 'leaf');
+    expect(toggled, isNull);
   });
 
   testWidgets('tree collapse hides only descendant outline rows',
@@ -276,6 +292,7 @@ void main() {
       (tester) async {
     final collapsible = _item(
       blockId: 'h1',
+      blockIndex: 0,
       level: 1,
       title: 'Alpha',
       collapseRange: const OutlineCollapseRange(
@@ -283,7 +300,13 @@ void main() {
         endBlockIndexExclusive: 2,
       ),
     );
-    final items = <OutlineItem>[collapsible];
+    final child = _item(
+      blockId: 'h2',
+      blockIndex: 1,
+      level: 2,
+      title: 'Beta',
+    );
+    final items = <OutlineItem>[collapsible, child];
 
     await tester.pumpWidget(_wrap(WenzOutlineTree(
       items: items,
@@ -298,7 +321,16 @@ void main() {
   testWidgets('hides expand/collapse all buttons when no collapsible items',
       (tester) async {
     final items = <OutlineItem>[
-      _item(blockId: 'h1', level: 1, title: 'Alpha'),
+      _item(
+        blockId: 'h1',
+        level: 1,
+        title: 'Alpha',
+        collapseRange: const OutlineCollapseRange(
+          startBlockIndex: 1,
+          endBlockIndexExclusive: 2,
+          blockIds: <String>['body'],
+        ),
+      ),
     ];
 
     await tester.pumpWidget(_wrap(WenzOutlineTree(
@@ -315,6 +347,7 @@ void main() {
       (tester) async {
     final collapsible = _item(
       blockId: 'h1',
+      blockIndex: 0,
       level: 1,
       title: 'Alpha',
       collapseRange: const OutlineCollapseRange(
@@ -322,11 +355,17 @@ void main() {
         endBlockIndexExclusive: 2,
       ),
     );
+    final child = _item(
+      blockId: 'h2',
+      blockIndex: 1,
+      level: 2,
+      title: 'Beta',
+    );
     var expandFired = false;
     var collapseFired = false;
 
     await tester.pumpWidget(_wrap(WenzOutlineTree(
-      items: <OutlineItem>[collapsible],
+      items: <OutlineItem>[collapsible, child],
       onExpandAll: () => expandFired = true,
       onCollapseAll: () => collapseFired = true,
     )));
@@ -334,10 +373,12 @@ void main() {
     await tester.tap(find.byIcon(Icons.unfold_less));
     await tester.pump();
     expect(collapseFired, isTrue);
+    expect(find.text('Beta'), findsNothing);
 
     await tester.tap(find.byIcon(Icons.unfold_more));
     await tester.pump();
     expect(expandFired, isTrue);
+    expect(find.text('Beta'), findsOneWidget);
   });
 
   // --- P005: keyboard navigation ---
@@ -403,6 +444,20 @@ Widget _wrap(Widget child, {ThemeData? theme}) {
     theme: theme ?? ThemeData.light(useMaterial3: true),
     home: Scaffold(body: child),
   );
+}
+
+EdgeInsetsDirectional _rowContentPaddingForTitle(
+  WidgetTester tester,
+  String title,
+) {
+  final rowPaddingFinder = find.ancestor(
+    of: find.text(title),
+    matching: find.byWidgetPredicate(
+      (widget) => widget is Padding && widget.padding is EdgeInsetsDirectional,
+    ),
+  );
+  final padding = tester.widgetList<Padding>(rowPaddingFinder).single;
+  return padding.padding as EdgeInsetsDirectional;
 }
 
 OutlineItem _item({

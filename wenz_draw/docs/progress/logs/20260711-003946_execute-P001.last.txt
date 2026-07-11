@@ -1,0 +1,8 @@
+P001 已完成，仅修改 [infinite_canvas_widget.dart](D:/project/GitHub/wenz_flutter/wenz_draw/lib/src/infinite_canvas/infinite_canvas_widget.dart:29)。
+
+- 工具栏 320px 固定命中区域与缩放、位置保持一致，并优先于缩放手柄命中。
+- 工具栏临时失焦不再提交编辑；弹出菜单和颜色对话框关闭后安全恢复输入焦点。
+- 颜色、字号、字体族即时更新文字或图形标签，支持恢复 Sans。
+- 编辑会话结束时仅生成一次撤销记录。
+- plan 文件未修改。
+- 按要求未运行测试、构建、格式化或静态分析；源码空白检查通过。

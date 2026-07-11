@@ -1,0 +1,3184 @@
+OpenAI Codex v0.142.5
+--------
+workdir: D:\project\GitHub\wenz_flutter\wenz_draw
+model: gpt-5.5
+provider: openai
+approval: never
+sandbox: danger-full-access
+reasoning effort: xhigh
+reasoning summaries: none
+session id: 019f47ad-d6e8-7ed1-91b6-8d6ae9fc3415
+--------
+user
+你是开发执行者，在无人值守模式下工作：禁止反问用户、禁止请求确认或补充信息、禁止输出“请告诉我…/是否需要…”之类等待回复的话；遇到不确定一律自行从代码推断，按最合理的工程方案直接推进，不要停下来等待输入。
+请只执行指定任务 P001，不要提前执行其它任务，也不要顺手处理其它 checkbox。
+
+plan 文件（只读）：D:\project\GitHub\wenz_flutter\wenz_draw\docs\plan\plan_feedback_50_20260710-001811.md
+指定任务：- [ ] P001: 扩展曲线元素的箭头数据与画布渲染 <!-- scope: lib/src/elements/curve_element.dart -->
+任务 scope：lib/src/elements/curve_element.dart
+
+完成后必须：
+- 这是无人值守执行：不要提问、不要请求确认、不要等待用户输入，所有不确定项自行基于代码推断并直接落地修改
+- plan 文件是只读上下文：不要修改 plan 文件，不要勾选 checkbox，不要更新 plan 进度区
+- AutoPlan 会在任务成功后统一写回数据库、checkbox 和进度区
+- 只修改当前任务 scope 直接相关的业务文件
+- 当前阶段只做开发修改，不运行测试、回归、验收、构建、lint/analyze、coverage、e2e 或 benchmark 命令；AutoPlan 会在所有任务完成后统一执行最终验收命令
+- 即使任务验收要点提到测试，也只补充或调整必要代码/测试文件，不在当前任务内启动测试进程；除非当前任务或 plan 总体说明明确写着“本任务必须执行某命令”
+- 若识别到 Flutter/Dart 项目，可遵循其代码组织、格式和测试文件约定，但当前任务内不要运行 flutter test、dart test、flutter analyze 或 dart analyze
+- 如果工具链命令因 PathAccessException、Permission denied、拒绝访问或超时失败，停止重试并说明环境阻塞，把验证留给最终验收阶段
+- 不输出完整 diff、源码全文或长文件列表
+- 中文文件读写使用 UTF-8
+codex
+我会先只读取任务计划和 `curve_element.dart`，确认 P001 的验收含义和现有曲线实现，然后在限定 scope 内落地修改；不会改 plan，也不会运行测试或分析命令。
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'rg -n "arrow|Arrow|曲线|CurveElement|curve" lib test docs -g "*.dart" -g "*.md"' in D:\project\GitHub\wenz_flutter\wenz_draw
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "Get-Content -LiteralPath 'D:\\project\\GitHub\\wenz_flutter\\wenz_draw\\docs\\plan\\plan_feedback_50_20260710-001811.md' -Raw -Encoding UTF8" in D:\project\GitHub\wenz_flutter\wenz_draw
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "Get-Content -LiteralPath 'D:\\project\\GitHub\\wenz_flutter\\wenz_draw\\lib\\src\\elements\\curve_element.dart' -Raw -Encoding UTF8" in D:\project\GitHub\wenz_flutter\wenz_draw
+ succeeded in 264ms:
+# 曲线箭头配置支持
+
+## 需求概要
+
+为现有 CurveElement 补齐与 PolylineElement 相近的末端箭头开关和箭头尺寸能力，覆盖画布渲染、属性面板、序列化、SVG 导出和回归测试，确保曲线可设置箭头且保存加载后不丢失。
+
+## 任务拆解
+
+- [ ] P001: 扩展曲线元素的箭头数据与画布渲染 <!-- scope: lib/src/elements/curve_element.dart -->
+  - 验收要点：CurveElement 增加 endArrow 和 headSize，并在 copyWith、translate、scaleElement、bounds、hitTest、toJson 中保持语义一致。
+  - 验收要点：启用箭头时曲线末端按二次贝塞尔终点切线方向绘制箭头，控制点与终点重合等退化曲线不产生异常或错误方向。
+  - 验收要点：未启用箭头的既有曲线渲染、命中测试和缩放行为保持兼容。
+- [ ] P002: 补齐曲线箭头的控制器和检查器入口 <!-- scope: lib/src/canvas/canvas_controller.dart,lib/src/ui/panels/right_inspector_panel.dart,lib/src/ui/panels/inspector_utils.dart,lib/src/ui/panels/inspector_fields.dart -->
+  - 验收要点：选中 CurveElement 时右侧检查器显示箭头开关，并正确回显当前 endArrow 状态。
+  - 验收要点：启用箭头后可调整 headSize，关闭箭头后不会破坏已保存尺寸值，重新启用仍可使用上次尺寸。
+  - 验收要点：通过控制器更新曲线箭头时只修改 endArrow 和 headSize，并纳入现有历史撤销/重做链路。
+- [ ] P003: 接入曲线箭头的序列化、Schema 与 SVG 导出 <!-- scope: lib/src/serialization/canvas_serializer.dart,lib/src/serialization/exporters/svg_exporter.dart,docs/canvas_document.schema.json -->
+  - 验收要点：CurveElement JSON round-trip 保留 endArrow 和 headSize，旧文档缺少字段时默认加载为无箭头且使用默认箭头尺寸。
+  - 验收要点：SVG 导出对带箭头曲线输出曲线路径和末端箭头图形，箭头方向沿曲线终点切线。
+  - 验收要点：无箭头曲线的 JSON 和 SVG 输出保持向后兼容，文档 schema 不收紧未知字段兼容策略。
+- [ ] P004: 补充曲线箭头回归覆盖 <!-- scope: test/serialization_test.dart,test/svg_exporter_test.dart,test/curve_element_test.dart,test/canvas_controller_test.dart -->
+  - 验收要点：覆盖曲线启用和关闭箭头、headSize 缩放、边界和命中测试包含箭头影响的模型行为。
+  - 验收要点：覆盖 CanvasSerializer 对 curve endArrow 和 headSize 的 round-trip，以及旧 JSON 默认值加载场景。
+  - 验收要点：覆盖 SvgExporter 输出带箭头曲线且 SVG 可解析，并验证未启用箭头的曲线不会新增箭头图形。
+- [ ] P005: 完整验收 <!-- scope: validation -->
+  - 验收要点：最终验收命令为 flutter test
+  - 验收要点：所有 Flutter 测试通过，覆盖曲线箭头模型、检查器更新入口、序列化恢复和 SVG 导出。
+  - 验收要点：在编辑器中选中曲线可开启或关闭末端箭头并调整箭头大小，撤销和重做后状态一致。
+  - 验收要点：旧版不含箭头字段的曲线文档仍可加载为无箭头，现有折线、直线和 ArrowElement 行为不回退。
+
+## 总体验收标准
+
+- 最终验收命令：flutter test
+- 验收范围：lib/src/elements/curve_element.dart、lib/src/canvas/canvas_controller.dart、lib/src/ui/panels/right_inspector_panel.dart、lib/src/ui/panels/inspector_utils.dart、lib/src/ui/panels/inspector_fields.dart、lib/src/serialization/canvas_serializer.dart、lib/src/serialization/exporters/svg_exporter.dart、docs/canvas_document.schema.json、test/serialization_test.dart、test/svg_exporter_test.dart、test/curve_element_test.dart、test/canvas_controller_test.dart、validation
+- 通过标准：所有总体验收标准均满足。
+- 所有 Flutter 测试通过，覆盖曲线箭头模型、检查器更新入口、序列化恢复和 SVG 导出。
+- 在编辑器中选中曲线可开启或关闭末端箭头并调整箭头大小，撤销和重做后状态一致。
+- 旧版不含箭头字段的曲线文档仍可加载为无箭头，现有折线、直线和 ArrowElement 行为不回退。
+
+## 进度区
+
+| 任务 | 状态 | 备注 |
+| --- | --- | --- |
+| P001 | 未开始 | 扩展曲线元素的箭头数据与画布渲染 |
+| P002 | 未开始 | 补齐曲线箭头的控制器和检查器入口 |
+| P003 | 未开始 | 接入曲线箭头的序列化、Schema 与 SVG 导出 |
+| P004 | 未开始 | 补充曲线箭头回归覆盖 |
+| P005 | 未开始 | 完整验收 |
+
+
+ succeeded in 265ms:
+import 'package:flutter/widgets.dart';
+
+import '../canvas/paint_style.dart';
+import '../utils/math_utils.dart';
+import 'canvas_element.dart';
+import 'element_renderer.dart';
+
+/// A quadratic Bézier curve defined by a start point, an end point and a
+/// single control point.
+@immutable
+class CurveElement extends CanvasElement {
+  const CurveElement({
+    required this.id,
+    required this.start,
+    required this.end,
+    required this.control,
+    this.style = const PaintStyle(),
+    this.layerId = 'default',
+    this.visible = true,
+    this.opacity = 1,
+    this.zIndex = 0,
+    this.groupId,
+  });
+
+  static const elementType = 'curve';
+
+  @override
+  final String id;
+
+  final Offset start;
+  final Offset end;
+  final Offset control;
+  final PaintStyle style;
+
+  @override
+  final String layerId;
+
+  @override
+  final bool visible;
+
+  @override
+  final double opacity;
+
+  @override
+  final int zIndex;
+
+  @override
+  final String? groupId;
+
+  @override
+  String get type => elementType;
+
+  /// Sample the quadratic Bézier at parameter [t] (0 → start, 1 → end).
+  Offset pointAt(double t) {
+    final u = 1 - t;
+    return Offset(
+      u * u * start.dx + 2 * u * t * control.dx + t * t * end.dx,
+      u * u * start.dy + 2 * u * t * control.dy + t * t * end.dy,
+    );
+  }
+
+  /// Approximate bounds by sampling the curve plus the control point.
+  @override
+  Rect get bounds {
+    // The convex hull of start, control, end contains the curve.
+    final allPoints = [start, control, end];
+    return boundsForPoints(allPoints).inflate(style.strokeWidth / 2);
+  }
+
+  @override
+  bool hitTest(Offset worldPoint, {double tolerance = 5.0}) {
+    final threshold = tolerance + style.strokeWidth / 2;
+    // Sample the curve densely for hit testing.
+    const steps = 32;
+    Offset? prev;
+    for (var i = 0; i <= steps; i++) {
+      final p = pointAt(i / steps);
+      if (prev != null && distanceToSegment(worldPoint, prev, p) <= threshold) {
+        return true;
+      }
+      prev = p;
+    }
+    return false;
+  }
+
+  @override
+  CurveElement copyWith({
+    String? id,
+    Offset? start,
+    Offset? end,
+    Offset? control,
+    PaintStyle? style,
+    String? layerId,
+    bool? visible,
+    double? opacity,
+    int? zIndex,
+    Object? groupId = _unset,
+  }) {
+    return CurveElement(
+      id: id ?? this.id,
+      start: start ?? this.start,
+      end: end ?? this.end,
+      control: control ?? this.control,
+      style: style ?? this.style,
+      layerId: layerId ?? this.layerId,
+      visible: visible ?? this.visible,
+      opacity: opacity ?? this.opacity,
+      zIndex: zIndex ?? this.zIndex,
+      groupId: identical(groupId, _unset)
+          ? this.groupId
+          : groupId as String?,
+    );
+  }
+
+  @override
+  CurveElement translate(Offset delta) {
+    return copyWith(
+      start: start + delta,
+      end: end + delta,
+      control: control + delta,
+    );
+  }
+
+  @override
+  CurveElement scaleElement(double factor, {Offset? pivot}) {
+    final origin = pivot ?? bounds.center;
+    return copyWith(
+      start: scalePoint(start, factor, origin),
+      end: scalePoint(end, factor, origin),
+      control: scalePoint(control, factor, origin),
+      style: style.copyWith(strokeWidth: style.strokeWidth * factor.abs()),
+    );
+  }
+
+  @override
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'type': type,
+      'layerId': layerId,
+      'visible': visible,
+      'opacity': opacity,
+      'zIndex': zIndex,
+      'groupId': groupId,
+      'start': {'x': start.dx, 'y': start.dy},
+      'end': {'x': end.dx, 'y': end.dy},
+      'control': {'x': control.dx, 'y': control.dy},
+      'style': style.toJson(),
+    };
+  }
+
+  static const _unset = Object();
+}
+
+class CurveElementRenderer extends ElementRenderer<CurveElement> {
+  const CurveElementRenderer();
+
+  @override
+  void render(Canvas canvas, CurveElement element) {
+    if (!element.visible) return;
+    final paint = element.style
+        .copyWith(opacity: element.style.opacity * element.opacity)
+        .toPaint();
+    final path = Path()
+      ..moveTo(element.start.dx, element.start.dy)
+      ..quadraticBezierTo(
+        element.control.dx,
+        element.control.dy,
+        element.end.dx,
+        element.end.dy,
+      );
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool hitTest(CurveElement element, Offset worldPoint, double tolerance) {
+    return element.hitTest(worldPoint, tolerance: tolerance);
+  }
+}
+
+
+ succeeded in 274ms:
+docs\development_plan.md:15:- **内核**：无限画布、元素体系（rect/ellipse/line/path/text/image/polyline/curve/arrow/drawio_shape/widget/unknown）、工具（pen/line/rect/ellipse/select/arrow/text/eraser/highlighter/curve/polyline/shape/pan）、图层、历史、四叉树、序列化、PNG/SVG 导出、minimap。
+docs\development_plan.md:16:- **stencil 体系**：已有 `basic / arrow / flowchart / bpmn` 四套图元库，通过 `ShapeDefinitionRegistry` 注册；drawio 形状（rhombus/hexagon/cylinder/actor/swimlane/note/cube…）通过 `DrawioShapeAdapter.fromStyleString` 接入。
+docs\development_plan.md:165:| D5-3 | UML 箭头端点 marker（`ArrowElement` 的 `endMarker` 扩展空心三角/菱形） | `lib/src/elements/arrow_element.dart` |
+docs\development_plan.md:171:| D6-2 | 关系连线：1:1 / 1:N / N:M 鸦爪标记（crow's foot），扩展 `ArrowElement` 的端点 marker | `lib/src/elements/arrow_element.dart`、`lib/src/stencils/libraries/er_stencils.dart` |
+docs\development_plan.md:333:- `lib/src/elements/arrow_element.dart`（端点 marker 扩展）
+lib\wenz_draw.dart:15:export 'src/elements/arrow_element.dart';
+lib\wenz_draw.dart:17:export 'src/elements/curve_element.dart';
+lib\wenz_draw.dart:72:export 'src/stencils/libraries/arrow_stencils.dart';
+lib\wenz_draw.dart:80:export 'src/tools/arrow_tool.dart';
+lib\wenz_draw.dart:83:export 'src/tools/curve_tool.dart';
+lib\wenz_draw.dart:90:export 'src/tools/polyline_arrow_tool.dart';
+docs\drawio_shapes.md:61:Official Arrows stencil library (`arrows.*`, with `mxgraph.arrows.*` aliases) contains draw.io block-arrow shapes. These are fillable vertex shapes, separate from ArrowElement connector arrows:
+docs\drawio_shapes.md:63:- Arrow Down, Arrow Left, Arrow Right, Arrow Up
+docs\drawio_shapes.md:64:- Bent Left Arrow, Bent Right Arrow, Bent Up Arrow
+docs\drawio_shapes.md:65:- Callout Double Arrow, Callout Quad Arrow, Callout Up Arrow
+docs\drawio_shapes.md:66:- Chevron Arrow, Circular Arrow
+docs\drawio_shapes.md:67:- Jump-in Arrow 1, Jump-in Arrow 2
+docs\drawio_shapes.md:68:- Left and Up Arrow, Left Sharp Edged Head Arrow
+docs\drawio_shapes.md:69:- Notched Signal-in Arrow, Right Notched Arrow, Signal-in Arrow
+docs\drawio_shapes.md:70:- Quad Arrow, Sharp Edged Arrow
+docs\drawio_shapes.md:71:- Slender Left Arrow, Slender Two Way Arrow, Slender Wide Tailed Arrow
+docs\drawio_shapes.md:72:- Striped Arrow, Stylised Notched Arrow, Triad Arrow
+docs\drawio_shapes.md:73:- Two Way Arrow Horizontal, Two Way Arrow Vertical
+docs\drawio_shapes.md:74:- U Turn Arrow, U Turn Down Arrow, U Turn Left Arrow, U Turn Right Arrow, U Turn Up Arrow
+docs\drawio_shapes.md:88:Draw.io aliases currently include rect, process, rounded, circle, diamond, manualInput, cylinder3, isoRectangle, `mxgraph.flowchart.*`, `mxgraph.basic.*`, and `mxgraph.arrows.*` (camelCase, snake_case, and kebab-case variants where applicable).
+docs\drawio_shapes.md:98:The example app includes a left palette with Basic, Basic Symbols, Flowchart, Arrows, and Container groups. Selecting an entry activates ShapeTool for that shape; dragging on the canvas creates the matching DrawioShapeElement with the current brush fill and stroke.
+docs\drawio_shapes.md:108:- Arrows stencil library: all 34 `ArrowStencils.keys` entries, including horizontal/vertical, U Turn, Circular, callout, and slender arrow variants.
+docs\drawio_migration_plan.md:28:| `arrows.xml` | `mxgraph.arrows` | 34 | 块箭头、U 型箭头、双向箭头等 |
+docs\drawio_migration_plan.md:39:3. `arrows.xml`
+docs\drawio_migration_plan.md:273:## 5. 本地 drawio Arrows 库清单与缺口
+docs\drawio_migration_plan.md:275:本地 `arrows.xml` 共 34 个：
+docs\drawio_migration_plan.md:278:Arrow Down
+docs\drawio_migration_plan.md:279:Arrow Left
+docs\drawio_migration_plan.md:280:Arrow Right
+docs\drawio_migration_plan.md:281:Arrow Up
+docs\drawio_migration_plan.md:282:Bent Left Arrow
+docs\drawio_migration_plan.md:283:Bent Right Arrow
+docs\drawio_migration_plan.md:284:Bent Up Arrow
+docs\drawio_migration_plan.md:285:Callout Double Arrow
+docs\drawio_migration_plan.md:286:Callout Quad Arrow
+docs\drawio_migration_plan.md:287:Callout Up Arrow
+docs\drawio_migration_plan.md:288:Chevron Arrow
+docs\drawio_migration_plan.md:289:Circular Arrow
+docs\drawio_migration_plan.md:290:Jump-in Arrow 1
+docs\drawio_migration_plan.md:291:Jump-in Arrow 2
+docs\drawio_migration_plan.md:292:Left and Up Arrow
+docs\drawio_migration_plan.md:293:Left Sharp Edged Head Arrow
+docs\drawio_migration_plan.md:294:Notched Signal-in Arrow
+docs\drawio_migration_plan.md:295:Quad Arrow
+docs\drawio_migration_plan.md:296:Right Notched Arrow
+docs\drawio_migration_plan.md:297:Sharp Edged Arrow
+docs\drawio_migration_plan.md:298:Signal-in Arrow
+docs\drawio_migration_plan.md:299:Slender Left Arrow
+docs\drawio_migration_plan.md:300:Slender Two Way Arrow
+docs\drawio_migration_plan.md:301:Slender Wide Tailed Arrow
+docs\drawio_migration_plan.md:302:Striped Arrow
+docs\drawio_migration_plan.md:303:Stylised Notched Arrow
+docs\drawio_migration_plan.md:304:Triad Arrow
+docs\drawio_migration_plan.md:305:Two Way Arrow Horizontal
+docs\drawio_migration_plan.md:306:Two Way Arrow Vertical
+docs\drawio_migration_plan.md:307:U Turn Arrow
+docs\drawio_migration_plan.md:308:U Turn Down Arrow
+docs\drawio_migration_plan.md:309:U Turn Left Arrow
+docs\drawio_migration_plan.md:310:U Turn Right Arrow
+docs\drawio_migration_plan.md:311:U Turn Up Arrow
+docs\drawio_migration_plan.md:314:当前 `wenz_draw` 有 `ArrowElement` 和连接线/箭头工具，但没有 draw.io 块箭头 stencil 库。因此这些属于新库迁移。
+docs\drawio_migration_plan.md:319:2. 需要明确 UI 上放在 `Arrows` palette，而不是连接线工具里。
+docs\drawio_migration_plan.md:334:curve
+docs\drawio_migration_plan.md:345:对本地 `basic.xml` / `flowchart.xml` / `arrows.xml` 的标签扫描发现，官方 stencil 还会使用：
+docs\drawio_migration_plan.md:398:lib/src/stencils/libraries/arrow_stencils.dart
+docs\drawio_migration_plan.md:411:arrows.arrowRight
+docs\drawio_migration_plan.md:412:arrows.uTurnArrow
+docs\drawio_migration_plan.md:420:mxgraph.arrows.arrowRight -> arrows.arrowRight
+docs\drawio_migration_plan.md:491:### 阶段三：补 Arrows 块箭头库
+docs\drawio_migration_plan.md:493:目标：支持 draw.io 的 `Arrows` stencil palette。
+docs\drawio_migration_plan.md:497:1. 从本地 `arrows.xml` 抽取并注册 34 个块箭头。
+docs\drawio_migration_plan.md:498:2. 新增 example `Arrows` 分组。
+docs\drawio_migration_plan.md:531:5. 不影响现有 `RectElement`、`EllipseElement`、`ArrowElement`、`DrawioShapeElement` 测试。
+docs\drawio_migration_plan.md:604:1. `BPMN` 仅 39 个 shape，体量接近 `flowchart/basic/arrows`，可以进入正式迁移。
+docs\extension_api.md:160:| `enableKeyboard` | `true` | Undo/redo, select-all, arrow nudge, delete, clipboard |
+test\drawio_shape_element_test.dart:268:  test('all arrows stencils are registered and export non-empty SVG', () {
+test\drawio_shape_element_test.dart:272:    expect(ArrowStencils.keys, hasLength(34));
+test\drawio_shape_element_test.dart:273:    for (final key in ArrowStencils.keys) {
+test\drawio_shape_element_test.dart:298:  test('arrows aliases and drawio adapter map block arrows', () {
+test\drawio_shape_element_test.dart:302:      ShapeDefinitionRegistry.contains('mxgraph.arrows.arrowRight'),
+test\drawio_shape_element_test.dart:306:      ShapeDefinitionRegistry.contains('mxgraph.arrows.arrow_right'),
+test\drawio_shape_element_test.dart:310:      ShapeDefinitionRegistry.contains('mxgraph.arrows.arrow-right'),
+test\drawio_shape_element_test.dart:317:      style: 'shape=mxgraph.arrows.arrowRight;',
+test\drawio_shape_element_test.dart:319:    expect(camel.shapeKey, 'arrows.arrowRight');
+test\drawio_shape_element_test.dart:324:      style: 'shape=mxgraph.arrows.u_turn_left_arrow;',
+test\drawio_shape_element_test.dart:326:    expect(snake.shapeKey, 'arrows.uTurnLeftArrow');
+test\line_label_test.dart:79:  test('arrow label serializes and svg exporter emits line labels', () {
+test\line_label_test.dart:80:    const arrow = ArrowElement(
+test\line_label_test.dart:81:      id: 'arrow-1',
+test\line_label_test.dart:90:        CanvasSerializer.elementFromJson(arrow.toJson()) as ArrowElement;
+test\line_label_test.dart:109:        arrow,
+test\line_label_test.dart:163:  test('double tapping line and arrow begins label editing', () {
+test\line_label_test.dart:175:        const ArrowElement(
+test\line_label_test.dart:176:          id: 'arrow-1',
+test\line_label_test.dart:202:    expect(controller.editingShapeLabelElementId, 'arrow-1');
+test\line_label_test.dart:203:    controller.endShapeLabelEditing(text: 'Arrow');
+test\line_label_test.dart:204:    expect((controller.elementById('arrow-1') as ArrowElement).label, 'Arrow');
+test\drawio_style_parser_test.dart:114:  test('adapter maps mxgraph basic and arrows snake/kebab aliases', () {
+test\drawio_style_parser_test.dart:120:    final arrow = DrawioShapeAdapter.fromStyleString(
+test\drawio_style_parser_test.dart:121:      id: 'arrow-1',
+test\drawio_style_parser_test.dart:123:      style: 'shape=mxgraph.arrows.u_turn_left_arrow;',
+test\drawio_style_parser_test.dart:127:    expect(arrow.shapeKey, 'arrows.uTurnLeftArrow');
+test\drawio_style_parser_test.dart:144:      'mxgraph.arrows.two-way-arrow-vertical': 'arrows.twoWayArrowVertical',
+test\drawio_importer_test.dart:20:          {'id': 'edge-1', 'edge': '1', 'style': 'endArrow=block;'},
+test\drawio_importer_test.dart:99:        'id': 'arrow-block',
+test\drawio_importer_test.dart:101:        'style': 'shape=mxgraph.arrows.u-turn-up-arrow;',
+test\drawio_importer_test.dart:120:    expect(elements.last.shapeKey, 'arrows.uTurnUpArrow');
+test\serialization_test.dart:11:import 'package:wenz_draw/src/elements/curve_element.dart';
+test\serialization_test.dart:193:    test('PolylineElement round-trip preserves points, arrows, bindings', () {
+test\serialization_test.dart:200:        endArrow: true,
+test\serialization_test.dart:223:      expect(restored.endArrow, isTrue);
+test\serialization_test.dart:230:    // ─── CurveElement ─────────────────────────────────────────────
+test\serialization_test.dart:231:    test('CurveElement round-trip preserves start, end, control, style', () {
+test\serialization_test.dart:232:      const element = CurveElement(
+test\serialization_test.dart:233:        id: 'curve-1',
+test\serialization_test.dart:239:        groupId: 'group-curve',
+test\serialization_test.dart:243:      final restored = CanvasSerializer.elementFromJson(json) as CurveElement;
+test\serialization_test.dart:245:      expect(restored, isA<CurveElement>());
+test\serialization_test.dart:246:      expect(restored.id, 'curve-1');
+test\serialization_test.dart:247:      expect(restored.type, CurveElement.elementType);
+test\serialization_test.dart:254:      expect(restored.groupId, 'group-curve');
+test\routing\routing_test.dart:528:      // 椭圆和矩形的交点应该不同（因为曲线 vs 直线）
+test\stencil_parser_test.dart:17:      <curve x1="30" y1="70" x2="0" y2="50" x3="0" y3="0"/>
+test\stencil_parser_test.dart:118:      expect(ArrowStencils.xmlDefinitions, hasLength(34));
+test\stencil_parser_test.dart:132:      expect(ShapeDefinitionRegistry.contains('arrows.arrowRight'), isTrue);
+test\stencil_parser_test.dart:134:        ShapeDefinitionRegistry.contains('mxgraph.arrows.arrow_right'),
+test\snap_resolver_test.dart:188:  test('arrow tool respects disabled snapping', () {
+test\snap_resolver_test.dart:197:      ..setTool(ArrowTool.idValue);
+test\snap_resolver_test.dart:214:    final arrow = controller.elements.whereType<ArrowElement>().single;
+test\snap_resolver_test.dart:215:    expect(arrow.start, const Offset(52, 41));
+test\snap_resolver_test.dart:216:    expect(arrow.end, const Offset(130, 41));
+test\snap_resolver_test.dart:385:  test('select tool drags arrow start endpoint freely', () {
+test\snap_resolver_test.dart:388:        const ArrowElement(
+test\snap_resolver_test.dart:389:          id: 'arrow-1',
+test\snap_resolver_test.dart:397:      ..setSelection({'arrow-1'});
+test\snap_resolver_test.dart:422:    final arrow = controller.elementById('arrow-1') as ArrowElement;
+test\snap_resolver_test.dart:423:    expect(arrow.start, const Offset(-20, 30));
+test\snap_resolver_test.dart:424:    expect(arrow.end, const Offset(100, 0));
+test\snap_resolver_test.dart:425:    expect(arrow.startBinding, isNull);
+docs\plan\plan_feedback_50_20260710-001811.md:1:# 曲线箭头配置支持
+docs\plan\plan_feedback_50_20260710-001811.md:5:为现有 CurveElement 补齐与 PolylineElement 相近的末端箭头开关和箭头尺寸能力，覆盖画布渲染、属性面板、序列化、SVG 导出和回归测试，确保曲线可设置箭头且保存加载后不丢失。
+docs\plan\plan_feedback_50_20260710-001811.md:9:- [ ] P001: 扩展曲线元素的箭头数据与画布渲染 <!-- scope: lib/src/elements/curve_element.dart -->
+docs\plan\plan_feedback_50_20260710-001811.md:10:  - 验收要点：CurveElement 增加 endArrow 和 headSize，并在 copyWith、translate、scaleElement、bounds、hitTest、toJson 中保持语义一致。
+docs\plan\plan_feedback_50_20260710-001811.md:11:  - 验收要点：启用箭头时曲线末端按二次贝塞尔终点切线方向绘制箭头，控制点与终点重合等退化曲线不产生异常或错误方向。
+docs\plan\plan_feedback_50_20260710-001811.md:12:  - 验收要点：未启用箭头的既有曲线渲染、命中测试和缩放行为保持兼容。
+docs\plan\plan_feedback_50_20260710-001811.md:13:- [ ] P002: 补齐曲线箭头的控制器和检查器入口 <!-- scope: lib/src/canvas/canvas_controller.dart,lib/src/ui/panels/right_inspector_panel.dart,lib/src/ui/panels/inspector_utils.dart,lib/src/ui/panels/inspector_fields.dart -->
+docs\plan\plan_feedback_50_20260710-001811.md:14:  - 验收要点：选中 CurveElement 时右侧检查器显示箭头开关，并正确回显当前 endArrow 状态。
+docs\plan\plan_feedback_50_20260710-001811.md:16:  - 验收要点：通过控制器更新曲线箭头时只修改 endArrow 和 headSize，并纳入现有历史撤销/重做链路。
+docs\plan\plan_feedback_50_20260710-001811.md:17:- [ ] P003: 接入曲线箭头的序列化、Schema 与 SVG 导出 <!-- scope: lib/src/serialization/canvas_serializer.dart,lib/src/serialization/exporters/svg_exporter.dart,docs/canvas_document.schema.json -->
+docs\plan\plan_feedback_50_20260710-001811.md:18:  - 验收要点：CurveElement JSON round-trip 保留 endArrow 和 headSize，旧文档缺少字段时默认加载为无箭头且使用默认箭头尺寸。
+docs\plan\plan_feedback_50_20260710-001811.md:19:  - 验收要点：SVG 导出对带箭头曲线输出曲线路径和末端箭头图形，箭头方向沿曲线终点切线。
+docs\plan\plan_feedback_50_20260710-001811.md:20:  - 验收要点：无箭头曲线的 JSON 和 SVG 输出保持向后兼容，文档 schema 不收紧未知字段兼容策略。
+docs\plan\plan_feedback_50_20260710-001811.md:21:- [ ] P004: 补充曲线箭头回归覆盖 <!-- scope: test/serialization_test.dart,test/svg_exporter_test.dart,test/curve_element_test.dart,test/canvas_controller_test.dart -->
+docs\plan\plan_feedback_50_20260710-001811.md:22:  - 验收要点：覆盖曲线启用和关闭箭头、headSize 缩放、边界和命中测试包含箭头影响的模型行为。
+docs\plan\plan_feedback_50_20260710-001811.md:23:  - 验收要点：覆盖 CanvasSerializer 对 curve endArrow 和 headSize 的 round-trip，以及旧 JSON 默认值加载场景。
+docs\plan\plan_feedback_50_20260710-001811.md:24:  - 验收要点：覆盖 SvgExporter 输出带箭头曲线且 SVG 可解析，并验证未启用箭头的曲线不会新增箭头图形。
+docs\plan\plan_feedback_50_20260710-001811.md:27:  - 验收要点：所有 Flutter 测试通过，覆盖曲线箭头模型、检查器更新入口、序列化恢复和 SVG 导出。
+docs\plan\plan_feedback_50_20260710-001811.md:28:  - 验收要点：在编辑器中选中曲线可开启或关闭末端箭头并调整箭头大小，撤销和重做后状态一致。
+docs\plan\plan_feedback_50_20260710-001811.md:29:  - 验收要点：旧版不含箭头字段的曲线文档仍可加载为无箭头，现有折线、直线和 ArrowElement 行为不回退。
+docs\plan\plan_feedback_50_20260710-001811.md:34:- 验收范围：lib/src/elements/curve_element.dart、lib/src/canvas/canvas_controller.dart、lib/src/ui/panels/right_inspector_panel.dart、lib/src/ui/panels/inspector_utils.dart、lib/src/ui/panels/inspector_fields.dart、lib/src/serialization/canvas_serializer.dart、lib/src/serialization/exporters/svg_exporter.dart、docs/canvas_document.schema.json、test/serialization_test.dart、test/svg_exporter_test.dart、test/curve_element_test.dart、test/canvas_controller_test.dart、validation
+docs\plan\plan_feedback_50_20260710-001811.md:36:- 所有 Flutter 测试通过，覆盖曲线箭头模型、检查器更新入口、序列化恢复和 SVG 导出。
+docs\plan\plan_feedback_50_20260710-001811.md:37:- 在编辑器中选中曲线可开启或关闭末端箭头并调整箭头大小，撤销和重做后状态一致。
+docs\plan\plan_feedback_50_20260710-001811.md:38:- 旧版不含箭头字段的曲线文档仍可加载为无箭头，现有折线、直线和 ArrowElement 行为不回退。
+docs\plan\plan_feedback_50_20260710-001811.md:44:| P001 | 未开始 | 扩展曲线元素的箭头数据与画布渲染 |
+docs\plan\plan_feedback_50_20260710-001811.md:45:| P002 | 未开始 | 补齐曲线箭头的控制器和检查器入口 |
+docs\plan\plan_feedback_50_20260710-001811.md:46:| P003 | 未开始 | 接入曲线箭头的序列化、Schema 与 SVG 导出 |
+docs\plan\plan_feedback_50_20260710-001811.md:47:| P004 | 未开始 | 补充曲线箭头回归覆盖 |
+docs\plan\plan_feedback_49_20260710-001100.md:5:基于现有 PolylineElement 的 endArrow 与 headSize 能力，补齐编辑器中普通折线的箭头设置入口，并保证状态更新、保存加载与导出链路保持一致。
+docs\plan\plan_feedback_49_20260710-001100.md:16:  - 验收要点：非折线元素的现有检查器行为保持不变，直线和现有 ArrowElement 的编辑入口不回退。
+docs\plan\plan_feedback_49_20260710-001100.md:18:  - 验收要点：带箭头的折线在 JSON round-trip 后保留 endArrow、headSize 以及既有标签和绑定信息。
+lib\src\serialization\exporters\svg_exporter.dart:5:import '../../elements/arrow_element.dart';
+lib\src\serialization\exporters\svg_exporter.dart:7:import '../../elements/curve_element.dart';
+lib\src\serialization\exporters\svg_exporter.dart:51:      final CurveElement e => _curve(e),
+lib\src\serialization\exporters\svg_exporter.dart:57:      final ArrowElement e =>
+lib\src\serialization\exporters\svg_exporter.dart:58:        '${_lineWithLabel(e, [e.start, e.end])}${_arrowHead(e)}',
+lib\src\serialization\exporters\svg_exporter.dart:76:  static String _curve(CurveElement e) {
+lib\src\serialization\exporters\svg_exporter.dart:100:    // Arrowhead marker
+lib\src\serialization\exporters\svg_exporter.dart:101:    String arrow = '';
+lib\src\serialization\exporters\svg_exporter.dart:102:    if (e.endArrow && e.points.length >= 2) {
+lib\src\serialization\exporters\svg_exporter.dart:112:        // Arrowhead as a filled triangle
+lib\src\serialization\exporters\svg_exporter.dart:118:        arrow = '<polygon points="${p1.dx},${p1.dy} ${left.dx},${left.dy} ${right.dx},${right.dy}" fill="${_color(style.color)}" opacity="${e.opacity * style.opacity}"/>';
+lib\src\serialization\exporters\svg_exporter.dart:122:    return '$shape$arrow${_lineLabel(e, e.points)}';
+lib\src\serialization\exporters\svg_exporter.dart:186:  static String _arrowHead(ArrowElement e) {
+lib\src\drawio\drawio_shape_adapter.dart:229:    if (raw.startsWith('mxgraph.arrows.')) {
+lib\src\drawio\drawio_shape_adapter.dart:230:      return 'arrows.${_toLowerCamelShapeSuffix(raw.substring('mxgraph.arrows.'.length))}';
+lib\src\snap\snap_resolver.dart:6:import '../elements/arrow_element.dart';
+lib\src\snap\snap_resolver.dart:203:    if (element is ArrowElement) {
+lib\src\elements\curve_element.dart:8:/// A quadratic Bézier curve defined by a start point, an end point and a
+lib\src\elements\curve_element.dart:11:class CurveElement extends CanvasElement {
+lib\src\elements\curve_element.dart:12:  const CurveElement({
+lib\src\elements\curve_element.dart:25:  static const elementType = 'curve';
+lib\src\elements\curve_element.dart:62:  /// Approximate bounds by sampling the curve plus the control point.
+lib\src\elements\curve_element.dart:65:    // The convex hull of start, control, end contains the curve.
+lib\src\elements\curve_element.dart:73:    // Sample the curve densely for hit testing.
+lib\src\elements\curve_element.dart:87:  CurveElement copyWith({
+lib\src\elements\curve_element.dart:99:    return CurveElement(
+lib\src\elements\curve_element.dart:116:  CurveElement translate(Offset delta) {
+lib\src\elements\curve_element.dart:125:  CurveElement scaleElement(double factor, {Offset? pivot}) {
+lib\src\elements\curve_element.dart:155:class CurveElementRenderer extends ElementRenderer<CurveElement> {
+lib\src\elements\curve_element.dart:156:  const CurveElementRenderer();
+lib\src\elements\curve_element.dart:159:  void render(Canvas canvas, CurveElement element) {
+lib\src\elements\curve_element.dart:176:  bool hitTest(CurveElement element, Offset worldPoint, double tolerance) {
+lib\src\elements\element_registry.dart:3:import 'arrow_element.dart';
+lib\src\elements\element_registry.dart:5:import 'curve_element.dart';
+lib\src\elements\element_registry.dart:55:    register(CurveElement.elementType, const CurveElementRenderer());
+lib\src\elements\element_registry.dart:64:    register(ArrowElement.elementType, const ArrowElementRenderer());
+lib\src\stencils\stencil_parser.dart:136:        case 'curve':
+lib\src\elements\polyline_element.dart:21:    this.endArrow = false,
+lib\src\elements\polyline_element.dart:43:  final bool endArrow;
+lib\src\elements\polyline_element.dart:75:      math.max(style.strokeWidth / 2, endArrow ? headSize : 0.0),
+lib\src\elements\polyline_element.dart:102:    if (endArrow) {
+lib\src\elements\polyline_element.dart:127:    bool? endArrow,
+lib\src\elements\polyline_element.dart:150:      endArrow: endArrow ?? this.endArrow,
+lib\src\elements\polyline_element.dart:202:      'endArrow': endArrow,
+lib\src\elements\polyline_element.dart:251:    // Draw arrowhead at the end if enabled.
+lib\src\elements\polyline_element.dart:252:    if (element.endArrow) {
+lib\src\elements\polyline_element.dart:253:      _drawArrowHead(canvas, element, paint);
+lib\src\elements\polyline_element.dart:268:  void _drawArrowHead(
+lib\src\elements\polyline_element.dart:278:    // Use the final non-zero segment's direction for the arrowhead angle.
+lib\src\elements\polyline_element.dart:288:    final arrowPath = Path()
+lib\src\elements\polyline_element.dart:293:    canvas.drawPath(arrowPath, paint);
+lib\src\stencils\libraries\bpmn_stencils.dart:525:<curve x1="9" y1="24" x2="19" y2="24" x3="19" y3="30" />
+lib\src\ui\toolbar\toolbar.dart:119:                    label: '曲线',
+lib\src\layers\auto_layering.dart:1:import '../elements/arrow_element.dart';
+lib\src\layers\auto_layering.dart:95:    if (element is LineElement || element is ArrowElement) {
+lib\src\canvas\canvas_controller.dart:5:import '../elements/arrow_element.dart';
+lib\src\canvas\canvas_controller.dart:40:import '../tools/curve_tool.dart';
+lib\src\canvas\canvas_controller.dart:43:import '../tools/polyline_arrow_tool.dart';
+lib\src\canvas\canvas_controller.dart:49:import '../tools/arrow_tool.dart';
+lib\src\canvas\canvas_controller.dart:267:    if (element is ArrowElement) {
+lib\src\canvas\canvas_controller.dart:1243:  void updatePolylineArrow(
+lib\src\canvas\canvas_controller.dart:1245:    bool? endArrow,
+lib\src\canvas\canvas_controller.dart:1253:    final nextEndArrow = endArrow ?? element.endArrow;
+lib\src\canvas\canvas_controller.dart:1255:    if (nextEndArrow == element.endArrow &&
+lib\src\canvas\canvas_controller.dart:1261:      element.copyWith(endArrow: nextEndArrow, headSize: nextHeadSize),
+lib\src\canvas\canvas_controller.dart:1281:        element is! ArrowElement &&
+lib\src\canvas\canvas_controller.dart:1290:      final ArrowElement e => e.labelStyle,
+lib\src\canvas\canvas_controller.dart:1334:      case final ArrowElement e:
+lib\src\canvas\canvas_controller.dart:1478:        element is! ArrowElement &&
+lib\src\canvas\canvas_controller.dart:1560:    if (element is ArrowElement) {
+lib\src\canvas\canvas_controller.dart:1614:      ..registerTool(PolylineArrowTool())
+lib\src\canvas\canvas_controller.dart:1638:      ..registerTool(ArrowTool())
+lib\src\elements\arrow_element.dart:14:class ArrowElement extends CanvasElement {
+lib\src\elements\arrow_element.dart:15:  const ArrowElement({
+lib\src\elements\arrow_element.dart:35:  static const elementType = 'arrow';
+lib\src\elements\arrow_element.dart:68:    final arrowBounds = boundsForPoints([start, end]).inflate(headSize);
+lib\src\elements\arrow_element.dart:78:        ? arrowBounds
+lib\src\elements\arrow_element.dart:79:        : arrowBounds.expandToInclude(labelBounds);
+lib\src\elements\arrow_element.dart:89:  ArrowElement copyWith({
+lib\src\elements\arrow_element.dart:108:    return ArrowElement(
+lib\src\elements\arrow_element.dart:138:  ArrowElement translate(Offset delta) {
+lib\src\elements\arrow_element.dart:143:  ArrowElement scaleElement(double factor, {Offset? pivot}) {
+lib\src\elements\arrow_element.dart:185:class ArrowElementRenderer extends ElementRenderer<ArrowElement> {
+lib\src\elements\arrow_element.dart:186:  const ArrowElementRenderer();
+lib\src\elements\arrow_element.dart:189:  void render(Canvas canvas, ArrowElement element) {
+lib\src\elements\arrow_element.dart:247:  bool hitTest(ArrowElement element, Offset worldPoint, double tolerance) {
+lib\src\stencils\libraries\basic_stencils.dart:211:            <curve x1="3.79" x2="0" x3="0" y1="0" y2="3.79" y3="8.46" />
+lib\src\stencils\libraries\basic_stencils.dart:212:            <curve x1="0" x2="1.17" x3="3.16" y1="11.02" y2="13.44" y3="15.05" />
+lib\src\stencils\libraries\basic_stencils.dart:213:            <curve x1="1.16" x2="0" x3="0" y1="16.65" y2="19.08" y3="21.64" />
+lib\src\stencils\libraries\basic_stencils.dart:214:            <curve x1="0" x2="1.17" x3="3.16" y1="24.2" y2="26.62" y3="28.22" />
+lib\src\stencils\libraries\basic_stencils.dart:215:            <curve x1="1.16" x2="0" x3="0" y1="29.83" y2="32.25" y3="34.81" />
+lib\src\stencils\libraries\basic_stencils.dart:216:            <curve x1="0" x2="1.17" x3="3.16" y1="37.38" y2="39.8" y3="41.4" />
+lib\src\stencils\libraries\basic_stencils.dart:217:            <curve x1="1.16" x2="0" x3="0" y1="43.01" y2="45.43" y3="47.99" />
+lib\src\stencils\libraries\basic_stencils.dart:218:            <curve x1="0" x2="1.17" x3="3.16" y1="50.55" y2="52.98" y3="54.58" />
+lib\src\stencils\libraries\basic_stencils.dart:219:            <curve x1="1.16" x2="0" x3="0" y1="56.18" y2="58.61" y3="61.17" />
+lib\src\stencils\libraries\basic_stencils.dart:220:            <curve x1="0" x2="1.17" x3="3.16" y1="63.73" y2="66.15" y3="67.76" />
+lib\src\stencils\libraries\basic_stencils.dart:221:            <curve x1="1.16" x2="0" x3="0" y1="69.36" y2="71.79" y3="74.35" />
+lib\src\stencils\libraries\basic_stencils.dart:222:            <curve x1="0" x2="1.17" x3="3.16" y1="76.91" y2="79.33" y3="80.93" />
+lib\src\stencils\libraries\basic_stencils.dart:223:            <curve x1="1.16" x2="0" x3="0" y1="82.54" y2="84.96" y3="87.53" />
+lib\src\stencils\libraries\basic_stencils.dart:224:            <curve x1="0" x2="1.17" x3="3.16" y1="90.09" y2="92.51" y3="94.11" />
+lib\src\stencils\libraries\basic_stencils.dart:225:            <curve x1="1.16" x2="0" x3="0" y1="95.71" y2="98.14" y3="100.7" />
+lib\src\stencils\libraries\basic_stencils.dart:226:            <curve x1="0" x2="1.17" x3="3.16" y1="103.26" y2="105.68" y3="107.29" />
+lib\src\stencils\libraries\basic_stencils.dart:227:            <curve x1="1.16" x2="0" x3="0" y1="108.89" y2="111.32" y3="113.88" />
+lib\src\stencils\libraries\basic_stencils.dart:228:            <curve x1="0" x2="1.17" x3="3.16" y1="116.44" y2="118.86" y3="120.47" />
+lib\src\stencils\libraries\basic_stencils.dart:229:            <curve x1="1.16" x2="0" x3="0" y1="122.07" y2="124.49" y3="127.06" />
+lib\src\stencils\libraries\basic_stencils.dart:230:            <curve x1="0" x2="1.17" x3="3.16" y1="129.62" y2="132.04" y3="133.64" />
+lib\src\stencils\libraries\basic_stencils.dart:231:            <curve x1="1.16" x2="0" x3="0" y1="135.25" y2="137.67" y3="140.23" />
+lib\src\stencils\libraries\basic_stencils.dart:232:            <curve x1="0" x2="1.17" x3="3.16" y1="142.79" y2="145.22" y3="146.82" />
+lib\src\stencils\libraries\basic_stencils.dart:233:            <curve x1="1.16" x2="0" x3="0" y1="148.42" y2="150.85" y3="153.41" />
+lib\src\stencils\libraries\basic_stencils.dart:234:            <curve x1="0" x2="1.17" x3="3.16" y1="155.97" y2="158.39" y3="160" />
+lib\src\stencils\libraries\basic_stencils.dart:235:            <curve x1="1.16" x2="0" x3="0" y1="161.6" y2="164.03" y3="166.59" />
+lib\src\stencils\libraries\basic_stencils.dart:236:            <curve x1="0" x2="3.79" x3="8.46" y1="171.26" y2="175.05" y3="175.05" />
+lib\src\stencils\libraries\basic_stencils.dart:237:            <curve x1="11.29" x2="13.94" x3="15.5" y1="175.05" y2="173.63" y3="171.27" />
+lib\src\stencils\libraries\basic_stencils.dart:238:            <curve x1="17.07" x2="19.71" x3="22.55" y1="173.63" y2="175.05" y3="175.05" />
+lib\src\stencils\libraries\basic_stencils.dart:239:            <curve x1="25.34" x2="27.95" x3="29.53" y1="175.05" y2="173.67" y3="171.37" />
+lib\src\stencils\libraries\basic_stencils.dart:240:            <curve x1="31.1" x2="33.71" x3="36.5" y1="173.67" y2="175.05" y3="175.05" />
+lib\src\stencils\libraries\basic_stencils.dart:241:            <curve x1="39.29" x2="41.9" x3="43.48" y1="175.05" y2="173.67" y3="171.37" />
+lib\src\stencils\libraries\basic_stencils.dart:242:            <curve x1="45.05" x2="47.66" x3="50.45" y1="173.67" y2="175.05" y3="175.05" />
+lib\src\stencils\libraries\basic_stencils.dart:243:            <curve x1="53.24" x2="55.85" x3="57.43" y1="175.05" y2="173.67" y3="171.37" />
+lib\src\stencils\libraries\basic_stencils.dart:244:            <curve x1="59" x2="61.61" x3="64.4" y1="173.67" y2="175.05" y3="175.05" />
+lib\src\stencils\libraries\basic_stencils.dart:245:            <curve x1="67.19" x2="69.8" x3="71.38" y1="175.05" y2="173.67" y3="171.37" />
+lib\src\stencils\libraries\basic_stencils.dart:246:            <curve x1="72.95" x2="75.56" x3="78.35" y1="173.67" y2="175.05" y3="175.05" />
+lib\src\stencils\libraries\basic_stencils.dart:247:            <curve x1="81.14" x2="83.75" x3="85.33" y1="175.05" y2="173.67" y3="171.37" />
+lib\src\stencils\libraries\basic_stencils.dart:248:            <curve x1="86.91" x2="89.51" x3="92.3" y1="173.67" y2="175.05" y3="175.05" />
+lib\src\stencils\libraries\basic_stencils.dart:249:            <curve x1="95.09" x2="97.7" x3="99.28" y1="175.05" y2="173.67" y3="171.37" />
+lib\src\stencils\libraries\basic_stencils.dart:250:            <curve x1="100.86" x2="103.46" x3="106.25" y1="173.67" y2="175.05" y3="175.05" />
+lib\src\stencils\libraries\basic_stencils.dart:251:            <curve x1="109.04" x2="111.65" x3="113.23" y1="175.05" y2="173.67" y3="171.37" />
+lib\src\stencils\libraries\basic_stencils.dart:252:            <curve x1="114.81" x2="117.41" x3="120.2" y1="173.67" y2="175.05" y3="175.05" />
+lib\src\stencils\libraries\basic_stencils.dart:253:            <curve x1="122.99" x2="125.61" x3="127.18" y1="175.05" y2="173.67" y3="171.37" />
+lib\src\stencils\libraries\basic_stencils.dart:254:            <curve x1="128.76" x2="131.36" x3="134.15" y1="173.67" y2="175.05" y3="175.05" />
+lib\src\stencils\libraries\basic_stencils.dart:255:            <curve x1="136.94" x2="139.56" x3="141.13" y1="175.05" y2="173.67" y3="171.37" />
+lib\src\stencils\libraries\basic_stencils.dart:256:            <curve x1="142.71" x2="145.32" x3="148.1" y1="173.67" y2="175.05" y3="175.05" />
+lib\src\stencils\libraries\basic_stencils.dart:257:            <curve x1="150.9" x2="153.51" x3="155.08" y1="175.05" y2="173.67" y3="171.37" />
+lib\src\stencils\libraries\basic_stencils.dart:258:            <curve x1="156.66" x2="159.27" x3="162.06" y1="173.67" y2="175.05" y3="175.05" />
+lib\src\stencils\libraries\basic_stencils.dart:259:            <curve x1="164.85" x2="167.46" x3="169.03" y1="175.05" y2="173.67" y3="171.37" />
+lib\src\stencils\libraries\basic_stencils.dart:260:            <curve x1="170.61" x2="173.22" x3="176" y1="173.67" y2="175.05" y3="175.05" />
+lib\src\stencils\libraries\basic_stencils.dart:261:            <curve x1="178.8" x2="181.41" x3="182.98" y1="175.05" y2="173.67" y3="171.37" />
+lib\src\stencils\libraries\basic_stencils.dart:262:            <curve x1="184.56" x2="187.17" x3="189.96" y1="173.67" y2="175.05" y3="175.05" />
+lib\src\stencils\libraries\basic_stencils.dart:263:            <curve x1="192.8" x2="195.45" x3="197.02" y1="175.05" y2="173.61" y3="171.24" />
+lib\src\stencils\libraries\basic_stencils.dart:264:            <curve x1="198.58" x2="201.23" x3="204.08" y1="173.62" y2="175.05" y3="175.05" />
+lib\src\stencils\libraries\basic_stencils.dart:265:            <curve x1="208.75" x2="212.54" x3="212.54" y1="175.05" y2="171.26" y3="166.59" />
+lib\src\stencils\libraries\basic_stencils.dart:266:            <curve x1="212.54" x2="211.38" x3="209.38" y1="164.03" y2="161.61" y3="160" />
+lib\src\stencils\libraries\basic_stencils.dart:267:            <curve x1="211.38" x2="212.54" x3="212.54" y1="158.4" y2="155.97" y3="153.41" />
+lib\src\stencils\libraries\basic_stencils.dart:268:            <curve x1="212.54" x2="211.38" x3="209.38" y1="150.85" y2="148.43" y3="146.83" />
+lib\src\stencils\libraries\basic_stencils.dart:269:            <curve x1="211.38" x2="212.54" x3="212.54" y1="145.22" y2="142.8" y3="140.23" />
+lib\src\stencils\libraries\basic_stencils.dart:270:            <curve x1="212.54" x2="211.38" x3="209.38" y1="137.67" y2="135.25" y3="133.65" />
+lib\src\stencils\libraries\basic_stencils.dart:271:            <curve x1="211.38" x2="212.54" x3="212.54" y1="132.04" y2="129.62" y3="127.06" />
+lib\src\stencils\libraries\basic_stencils.dart:272:            <curve x1="212.54" x2="211.38" x3="209.38" y1="124.5" y2="122.08" y3="120.47" />
+lib\src\stencils\libraries\basic_stencils.dart:273:            <curve x1="211.38" x2="212.54" x3="212.54" y1="118.87" y2="116.44" y3="113.88" />
+lib\src\stencils\libraries\basic_stencils.dart:274:            <curve x1="212.54" x2="211.38" x3="209.38" y1="111.32" y2="108.9" y3="107.29" />
+lib\src\stencils\libraries\basic_stencils.dart:275:            <curve x1="211.38" x2="212.54" x3="212.54" y1="105.69" y2="103.26" y3="100.7" />
+lib\src\stencils\libraries\basic_stencils.dart:276:            <curve x1="212.54" x2="211.38" x3="209.38" y1="98.14" y2="95.72" y3="94.12" />
+lib\src\stencils\libraries\basic_stencils.dart:277:            <curve x1="211.38" x2="212.54" x3="212.54" y1="92.51" y2="90.09" y3="87.53" />
+lib\src\stencils\libraries\basic_stencils.dart:278:            <curve x1="212.54" x2="211.38" x3="209.38" y1="84.97" y2="82.54" y3="80.94" />
+lib\src\stencils\libraries\basic_stencils.dart:279:            <curve x1="211.38" x2="212.54" x3="212.54" y1="79.33" y2="76.91" y3="74.35" />
+lib\src\stencils\libraries\basic_stencils.dart:280:            <curve x1="212.54" x2="211.38" x3="209.38" y1="71.79" y2="69.37" y3="67.76" />
+lib\src\stencils\libraries\basic_stencils.dart:281:            <curve x1="211.38" x2="212.54" x3="212.54" y1="66.16" y2="63.73" y3="61.17" />
+lib\src\stencils\libraries\basic_stencils.dart:282:            <curve x1="212.54" x2="211.38" x3="209.38" y1="58.61" y2="56.19" y3="54.58" />
+lib\src\stencils\libraries\basic_stencils.dart:283:            <curve x1="211.38" x2="212.54" x3="212.54" y1="52.98" y2="50.56" y3="47.99" />
+lib\src\stencils\libraries\basic_stencils.dart:284:            <curve x1="212.54" x2="211.38" x3="209.38" y1="45.43" y2="43.01" y3="41.41" />
+lib\src\stencils\libraries\basic_stencils.dart:285:            <curve x1="211.38" x2="212.54" x3="212.54" y1="39.8" y2="37.38" y3="34.81" />
+lib\src\stencils\libraries\basic_stencils.dart:286:            <curve x1="212.54" x2="211.38" x3="209.38" y1="32.25" y2="29.83" y3="28.23" />
+lib\src\stencils\libraries\basic_stencils.dart:287:            <curve x1="211.38" x2="212.54" x3="212.54" y1="26.62" y2="24.2" y3="21.64" />
+lib\src\stencils\libraries\basic_stencils.dart:288:            <curve x1="212.54" x2="211.38" x3="209.38" y1="19.08" y2="16.66" y3="15.05" />
+lib\src\stencils\libraries\basic_stencils.dart:289:            <curve x1="211.38" x2="212.54" x3="212.54" y1="13.45" y2="11.02" y3="8.46" />
+lib\src\stencils\libraries\basic_stencils.dart:290:            <curve x1="212.54" x2="208.75" x3="204.08" y1="3.79" y2="0" y3="0" />
+lib\src\stencils\libraries\basic_stencils.dart:291:            <curve x1="201.24" x2="198.58" x3="197.02" y1="0" y2="1.44" y3="3.81" />
+lib\src\stencils\libraries\basic_stencils.dart:292:            <curve x1="195.46" x2="192.8" x3="189.96" y1="1.43" y2="0" y3="0" />
+lib\src\stencils\libraries\basic_stencils.dart:293:            <curve x1="187.16" x2="184.55" x3="182.98" y1="0" y2="1.38" y3="3.68" />
+lib\src\stencils\libraries\basic_stencils.dart:294:            <curve x1="181.4" x2="178.79" x3="176" y1="1.38" y2="0" y3="0" />
+lib\src\stencils\libraries\basic_stencils.dart:295:            <curve x1="173.21" x2="170.6" x3="169.02" y1="0" y2="1.38" y3="3.68" />
+lib\src\stencils\libraries\basic_stencils.dart:296:            <curve x1="167.45" x2="164.84" x3="162.06" y1="1.38" y2="0" y3="0" />
+lib\src\stencils\libraries\basic_stencils.dart:297:            <curve x1="159.26" x2="156.65" x3="155.07" y1="0" y2="1.38" y3="3.68" />
+lib\src\stencils\libraries\basic_stencils.dart:298:            <curve x1="153.5" x2="150.89" x3="148.1" y1="1.38" y2="0" y3="0" />
+lib\src\stencils\libraries\basic_stencils.dart:299:            <curve x1="145.31" x2="142.7" x3="141.12" y1="0" y2="1.38" y3="3.68" />
+lib\src\stencils\libraries\basic_stencils.dart:300:            <curve x1="139.55" x2="136.94" x3="134.15" y1="1.38" y2="0" y3="0" />
+lib\src\stencils\libraries\basic_stencils.dart:301:            <curve x1="131.36" x2="128.75" x3="127.17" y1="0" y2="1.38" y3="3.68" />
+lib\src\stencils\libraries\basic_stencils.dart:302:            <curve x1="125.6" x2="122.99" x3="120.2" y1="1.38" y2="0" y3="0" />
+lib\src\stencils\libraries\basic_stencils.dart:303:            <curve x1="117.41" x2="114.8" x3="113.22" y1="0" y2="1.38" y3="3.68" />
+lib\src\stencils\libraries\basic_stencils.dart:304:            <curve x1="111.65" x2="109.04" x3="106.25" y1="1.38" y2="0" y3="0" />
+lib\src\stencils\libraries\basic_stencils.dart:305:            <curve x1="103.46" x2="100.85" x3="99.27" y1="0" y2="1.38" y3="3.68" />
+lib\src\stencils\libraries\basic_stencils.dart:306:            <curve x1="97.7" x2="95.09" x3="92.3" y1="1.38" y2="0" y3="0" />
+lib\src\stencils\libraries\basic_stencils.dart:307:            <curve x1="89.51" x2="86.9" x3="85.32" y1="0" y2="1.38" y3="3.68" />
+lib\src\stencils\libraries\basic_stencils.dart:308:            <curve x1="83.75" x2="81.14" x3="78.35" y1="1.38" y2="0" y3="0" />
+lib\src\stencils\libraries\basic_stencils.dart:309:            <curve x1="75.56" x2="72.95" x3="71.37" y1="0" y2="1.38" y3="3.68" />
+lib\src\stencils\libraries\basic_stencils.dart:310:            <curve x1="69.79" x2="67.19" x3="64.4" y1="1.38" y2="0" y3="0" />
+lib\src\stencils\libraries\basic_stencils.dart:311:            <curve x1="61.61" x2="59" x3="57.42" y1="0" y2="1.38" y3="3.68" />
+lib\src\stencils\libraries\basic_stencils.dart:312:            <curve x1="55.84" x2="53.24" x3="50.45" y1="1.38" y2="0" y3="0" />
+lib\src\stencils\libraries\basic_stencils.dart:313:            <curve x1="47.66" x2="45.05" x3="43.47" y1="0" y2="1.38" y3="3.68" />
+lib\src\stencils\libraries\basic_stencils.dart:314:            <curve x1="41.89" x2="39.29" x3="36.5" y1="1.38" y2="0" y3="0" />
+lib\src\stencils\libraries\basic_stencils.dart:315:            <curve x1="33.71" x2="31.09" x3="29.52" y1="0" y2="1.38" y3="3.68" />
+lib\src\stencils\libraries\basic_stencils.dart:316:            <curve x1="27.94" x2="25.34" x3="22.55" y1="1.38" y2="0" y3="0" />
+lib\src\stencils\libraries\basic_stencils.dart:317:            <curve x1="19.71" x2="17.07" x3="15.5" y1="0" y2="1.42" y3="3.78" />
+lib\src\stencils\libraries\basic_stencils.dart:318:            <curve x1="13.94" x2="11.29" x3="8.46" y1="1.42" y2="0" y3="0" />
+lib\src\stencils\libraries\basic_stencils.dart:479:            <curve x1="55.79" x2="77.8" x3="91.56" y1="90.78" y2="68.16" y3="54.03" />
+lib\src\stencils\libraries\basic_stencils.dart:480:            <curve x1="103.89" x2="103.62" x3="92.42" y1="41.37" y2="22.91" y3="11.46" />
+lib\src\stencils\libraries\basic_stencils.dart:481:            <curve x1="81.21" x2="63.09" x3="51.94" y1="0" y2="0.05" y3="11.56" />
+lib\src\stencils\libraries\basic_stencils.dart:482:            <curve x1="40.79" x2="22.67" x3="11.47" y1="0.05" y2="0" y3="11.45" />
+lib\src\stencils\libraries\basic_stencils.dart:483:            <curve x1="0.26" x2="0" x3="12.32" y1="22.9" y2="41.36" y3="54.03" />
+lib\src\stencils\libraries\basic_stencils.dart:484:            <curve x1="26.08" x2="48.09" x3="51.94" y1="68.16" y2="90.78" y3="94.74" />
+lib\src\rendering\selection_renderer.dart:4:import '../elements/arrow_element.dart';
+lib\src\rendering\selection_renderer.dart:5:import '../elements/curve_element.dart';
+lib\src\rendering\selection_renderer.dart:92:        final CurveElement e => [e.start, e.end, e.control],
+lib\src\rendering\selection_renderer.dart:94:        final ArrowElement e => [e.start, e.end],
+lib\src\stencils\libraries\arrow_stencils.dart:1:// Generated from drawio/src/main/webapp/stencils/arrows.xml.
+lib\src\stencils\libraries\arrow_stencils.dart:4:class ArrowStencils {
+lib\src\stencils\libraries\arrow_stencils.dart:5:  const ArrowStencils._();
+lib\src\stencils\libraries\arrow_stencils.dart:8:    // Arrow Down
+lib\src\stencils\libraries\arrow_stencils.dart:11:<shape aspect="variable" h="97.5" name="arrows.arrowDown" strokewidth="inherit" w="70">
+lib\src\stencils\libraries\arrow_stencils.dart:34:    // Arrow Left
+lib\src\stencils\libraries\arrow_stencils.dart:37:<shape aspect="variable" h="70" name="arrows.arrowLeft" strokewidth="inherit" w="97.5">
+lib\src\stencils\libraries\arrow_stencils.dart:60:    // Arrow Right
+lib\src\stencils\libraries\arrow_stencils.dart:63:<shape aspect="variable" h="70" name="arrows.arrowRight" strokewidth="inherit" w="97.5">
+lib\src\stencils\libraries\arrow_stencils.dart:86:    // Arrow Up
+lib\src\stencils\libraries\arrow_stencils.dart:89:<shape aspect="variable" h="97.5" name="arrows.arrowUp" strokewidth="inherit" w="70">
+lib\src\stencils\libraries\arrow_stencils.dart:112:    // Bent Left Arrow
+lib\src\stencils\libraries\arrow_stencils.dart:115:<shape aspect="variable" h="97" name="arrows.bentLeftArrow" strokewidth="inherit" w="97.01">
+lib\src\stencils\libraries\arrow_stencils.dart:142:    // Bent Right Arrow
+lib\src\stencils\libraries\arrow_stencils.dart:145:<shape aspect="variable" h="97" name="arrows.bentRightArrow" strokewidth="inherit" w="97.01">
+lib\src\stencils\libraries\arrow_stencils.dart:172:    // Bent Up Arrow
+lib\src\stencils\libraries\arrow_stencils.dart:175:<shape aspect="variable" h="83.5" name="arrows.bentUpArrow" strokewidth="inherit" w="97">
+lib\src\stencils\libraries\arrow_stencils.dart:200:    // Callout Double Arrow
+lib\src\stencils\libraries\arrow_stencils.dart:203:<shape aspect="variable" h="97.5" name="arrows.calloutDoubleArrow" strokewidth="inherit" w="50">
+lib\src\stencils\libraries\arrow_stencils.dart:237:    // Callout Quad Arrow
+lib\src\stencils\libraries\arrow_stencils.dart:240:<shape aspect="variable" h="97" name="arrows.calloutQuadArrow" strokewidth="inherit" w="97">
+lib\src\stencils\libraries\arrow_stencils.dart:290:    // Callout Up Arrow
+lib\src\stencils\libraries\arrow_stencils.dart:293:<shape aspect="variable" h="98" name="arrows.calloutUpArrow" strokewidth="inherit" w="60">
+lib\src\stencils\libraries\arrow_stencils.dart:319:    // Chevron Arrow
+lib\src\stencils\libraries\arrow_stencils.dart:322:<shape aspect="variable" h="60" name="arrows.chevronArrow" strokewidth="inherit" w="96">
+lib\src\stencils\libraries\arrow_stencils.dart:344:    // Circular Arrow
+lib\src\stencils\libraries\arrow_stencils.dart:347:<shape aspect="variable" h="69.5" name="arrows.circularArrow" strokewidth="inherit" w="97">
+lib\src\stencils\libraries\arrow_stencils.dart:370:    // Jump-in Arrow 1
+lib\src\stencils\libraries\arrow_stencils.dart:373:<shape aspect="variable" h="99.41" name="arrows.jumpInArrow1" strokewidth="inherit" w="96">
+lib\src\stencils\libraries\arrow_stencils.dart:396:    // Jump-in Arrow 2
+lib\src\stencils\libraries\arrow_stencils.dart:399:<shape aspect="variable" h="99.41" name="arrows.jumpInArrow2" strokewidth="inherit" w="96">
+lib\src\stencils\libraries\arrow_stencils.dart:422:    // Left and Up Arrow
+lib\src\stencils\libraries\arrow_stencils.dart:425:<shape aspect="variable" h="96.5" name="arrows.leftAndUpArrow" strokewidth="inherit" w="96.5">
+lib\src\stencils\libraries\arrow_stencils.dart:453:    // Left Sharp Edged Head Arrow
+lib\src\stencils\libraries\arrow_stencils.dart:456:<shape aspect="variable" h="60" name="arrows.leftSharpEdgedHeadArrow" strokewidth="inherit" w="97.5">
+lib\src\stencils\libraries\arrow_stencils.dart:481:    // Notched Signal-in Arrow
+lib\src\stencils\libraries\arrow_stencils.dart:484:<shape aspect="variable" h="30" name="arrows.notchedSignalInArrow" strokewidth="inherit" w="96.5">
+lib\src\stencils\libraries\arrow_stencils.dart:506:    // Quad Arrow
+lib\src\stencils\libraries\arrow_stencils.dart:509:<shape aspect="variable" h="97.5" name="arrows.quadArrow" strokewidth="inherit" w="97.5">
+lib\src\stencils\libraries\arrow_stencils.dart:551:    // Right Notched Arrow
+lib\src\stencils\libraries\arrow_stencils.dart:554:<shape aspect="variable" h="70" name="arrows.rightNotchedArrow" strokewidth="inherit" w="96.5">
+lib\src\stencils\libraries\arrow_stencils.dart:578:    // Sharp Edged Arrow
+lib\src\stencils\libraries\arrow_stencils.dart:581:<shape aspect="variable" h="60" name="arrows.sharpEdgedArrow" strokewidth="inherit" w="97.5">
+lib\src\stencils\libraries\arrow_stencils.dart:606:    // Signal-in Arrow
+lib\src\stencils\libraries\arrow_stencils.dart:609:<shape aspect="variable" h="30" name="arrows.signalInArrow" strokewidth="inherit" w="97.5">
+lib\src\stencils\libraries\arrow_stencils.dart:630:    // Slender Left Arrow
+lib\src\stencils\libraries\arrow_stencils.dart:633:<shape aspect="variable" h="60" name="arrows.slenderLeftArrow" strokewidth="inherit" w="97.5">
+lib\src\stencils\libraries\arrow_stencils.dart:656:    // Slender Two Way Arrow
+lib\src\stencils\libraries\arrow_stencils.dart:659:<shape aspect="variable" h="60" name="arrows.slenderTwoWayArrow" strokewidth="inherit" w="97.5">
+lib\src\stencils\libraries\arrow_stencils.dart:685:    // Slender Wide Tailed Arrow
+lib\src\stencils\libraries\arrow_stencils.dart:688:<shape aspect="variable" h="60" name="arrows.slenderWideTailedArrow" strokewidth="inherit" w="96.5">
+lib\src\stencils\libraries\arrow_stencils.dart:716:    // Striped Arrow
+lib\src\stencils\libraries\arrow_stencils.dart:719:<shape aspect="variable" h="70" name="arrows.stripedArrow" strokewidth="inherit" w="97.5">
+lib\src\stencils\libraries\arrow_stencils.dart:746:    // Stylised Notched Arrow
+lib\src\stencils\libraries\arrow_stencils.dart:749:<shape aspect="variable" h="60" name="arrows.stylisedNotchedArrow" strokewidth="inherit" w="96.5">
+lib\src\stencils\libraries\arrow_stencils.dart:774:    // Triad Arrow
+lib\src\stencils\libraries\arrow_stencils.dart:777:<shape aspect="variable" h="68" name="arrows.triadArrow" strokewidth="inherit" w="97.5">
+lib\src\stencils\libraries\arrow_stencils.dart:812:    // Two Way Arrow Horizontal
+lib\src\stencils\libraries\arrow_stencils.dart:815:<shape aspect="variable" h="60" name="arrows.twoWayArrowHorizontal" strokewidth="inherit" w="96">
+lib\src\stencils\libraries\arrow_stencils.dart:841:    // Two Way Arrow Vertical
+lib\src\stencils\libraries\arrow_stencils.dart:844:<shape aspect="variable" h="96" name="arrows.twoWayArrowVertical" strokewidth="inherit" w="60">
+lib\src\stencils\libraries\arrow_stencils.dart:870:    // U Turn Arrow
+lib\src\stencils\libraries\arrow_stencils.dart:873:<shape aspect="variable" h="98" name="arrows.uTurnArrow" strokewidth="inherit" w="97">
+lib\src\stencils\libraries\arrow_stencils.dart:898:    // U Turn Down Arrow
+lib\src\stencils\libraries\arrow_stencils.dart:901:<shape aspect="variable" h="62" name="arrows.uTurnDownArrow" strokewidth="inherit" w="97">
+lib\src\stencils\libraries\arrow_stencils.dart:929:    // U Turn Left Arrow
+lib\src\stencils\libraries\arrow_stencils.dart:932:<shape aspect="variable" h="97" name="arrows.uTurnLeftArrow" strokewidth="inherit" w="62">
+lib\src\stencils\libraries\arrow_stencils.dart:960:    // U Turn Right Arrow
+lib\src\stencils\libraries\arrow_stencils.dart:963:<shape aspect="variable" h="97" name="arrows.uTurnRightArrow" strokewidth="inherit" w="62">
+lib\src\stencils\libraries\arrow_stencils.dart:991:    // U Turn Up Arrow
+lib\src\stencils\libraries\arrow_stencils.dart:994:<shape aspect="variable" h="62" name="arrows.uTurnUpArrow" strokewidth="inherit" w="97">
+lib\src\stencils\libraries\arrow_stencils.dart:1025:    'arrows.arrowDown': <String>[
+lib\src\stencils\libraries\arrow_stencils.dart:1026:      'mxgraph.arrows.arrowDown',
+lib\src\stencils\libraries\arrow_stencils.dart:1027:      'mxgraph.arrows.arrow_down',
+lib\src\stencils\libraries\arrow_stencils.dart:1028:      'mxgraph.arrows.arrow-down',
+lib\src\stencils\libraries\arrow_stencils.dart:1029:      'mxgraph.arrows.Arrow Down',
+lib\src\stencils\libraries\arrow_stencils.dart:1031:    'arrows.arrowLeft': <String>[
+lib\src\stencils\libraries\arrow_stencils.dart:1032:      'mxgraph.arrows.arrowLeft',
+lib\src\stencils\libraries\arrow_stencils.dart:1033:      'mxgraph.arrows.arrow_left',
+lib\src\stencils\libraries\arrow_stencils.dart:1034:      'mxgraph.arrows.arrow-left',
+lib\src\stencils\libraries\arrow_stencils.dart:1035:      'mxgraph.arrows.Arrow Left',
+lib\src\stencils\libraries\arrow_stencils.dart:1037:    'arrows.arrowRight': <String>[
+lib\src\stencils\libraries\arrow_stencils.dart:1038:      'mxgraph.arrows.arrowRight',
+lib\src\stencils\libraries\arrow_stencils.dart:1039:      'mxgraph.arrows.arrow_right',
+lib\src\stencils\libraries\arrow_stencils.dart:1040:      'mxgraph.arrows.arrow-right',
+lib\src\stencils\libraries\arrow_stencils.dart:1041:      'mxgraph.arrows.Arrow Right',
+lib\src\stencils\libraries\arrow_stencils.dart:1043:    'arrows.arrowUp': <String>[
+lib\src\stencils\libraries\arrow_stencils.dart:1044:      'mxgraph.arrows.arrowUp',
+lib\src\stencils\libraries\arrow_stencils.dart:1045:      'mxgraph.arrows.arrow_up',
+lib\src\stencils\libraries\arrow_stencils.dart:1046:      'mxgraph.arrows.arrow-up',
+lib\src\stencils\libraries\arrow_stencils.dart:1047:      'mxgraph.arrows.Arrow Up',
+lib\src\stencils\libraries\arrow_stencils.dart:1049:    'arrows.bentLeftArrow': <String>[
+lib\src\stencils\libraries\arrow_stencils.dart:1050:      'mxgraph.arrows.bentLeftArrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1051:      'mxgraph.arrows.bent_left_arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1052:      'mxgraph.arrows.bent-left-arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1053:      'mxgraph.arrows.Bent Left Arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1055:    'arrows.bentRightArrow': <String>[
+lib\src\stencils\libraries\arrow_stencils.dart:1056:      'mxgraph.arrows.bentRightArrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1057:      'mxgraph.arrows.bent_right_arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1058:      'mxgraph.arrows.bent-right-arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1059:      'mxgraph.arrows.Bent Right Arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1061:    'arrows.bentUpArrow': <String>[
+lib\src\stencils\libraries\arrow_stencils.dart:1062:      'mxgraph.arrows.bentUpArrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1063:      'mxgraph.arrows.bent_up_arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1064:      'mxgraph.arrows.bent-up-arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1065:      'mxgraph.arrows.Bent Up Arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1067:    'arrows.calloutDoubleArrow': <String>[
+lib\src\stencils\libraries\arrow_stencils.dart:1068:      'mxgraph.arrows.calloutDoubleArrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1069:      'mxgraph.arrows.callout_double_arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1070:      'mxgraph.arrows.callout-double-arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1071:      'mxgraph.arrows.Callout Double Arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1073:    'arrows.calloutQuadArrow': <String>[
+lib\src\stencils\libraries\arrow_stencils.dart:1074:      'mxgraph.arrows.calloutQuadArrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1075:      'mxgraph.arrows.callout_quad_arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1076:      'mxgraph.arrows.callout-quad-arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1077:      'mxgraph.arrows.Callout Quad Arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1079:    'arrows.calloutUpArrow': <String>[
+lib\src\stencils\libraries\arrow_stencils.dart:1080:      'mxgraph.arrows.calloutUpArrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1081:      'mxgraph.arrows.callout_up_arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1082:      'mxgraph.arrows.callout-up-arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1083:      'mxgraph.arrows.Callout Up Arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1085:    'arrows.chevronArrow': <String>[
+lib\src\stencils\libraries\arrow_stencils.dart:1086:      'mxgraph.arrows.chevronArrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1087:      'mxgraph.arrows.chevron_arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1088:      'mxgraph.arrows.chevron-arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1089:      'mxgraph.arrows.Chevron Arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1091:    'arrows.circularArrow': <String>[
+lib\src\stencils\libraries\arrow_stencils.dart:1092:      'mxgraph.arrows.circularArrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1093:      'mxgraph.arrows.circular_arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1094:      'mxgraph.arrows.circular-arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1095:      'mxgraph.arrows.Circular Arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1097:    'arrows.jumpInArrow1': <String>[
+lib\src\stencils\libraries\arrow_stencils.dart:1098:      'mxgraph.arrows.jumpInArrow1',
+lib\src\stencils\libraries\arrow_stencils.dart:1099:      'mxgraph.arrows.jump_in_arrow_1',
+lib\src\stencils\libraries\arrow_stencils.dart:1100:      'mxgraph.arrows.jump-in-arrow-1',
+lib\src\stencils\libraries\arrow_stencils.dart:1101:      'mxgraph.arrows.Jump-in Arrow 1',
+lib\src\stencils\libraries\arrow_stencils.dart:1103:    'arrows.jumpInArrow2': <String>[
+lib\src\stencils\libraries\arrow_stencils.dart:1104:      'mxgraph.arrows.jumpInArrow2',
+lib\src\stencils\libraries\arrow_stencils.dart:1105:      'mxgraph.arrows.jump_in_arrow_2',
+lib\src\stencils\libraries\arrow_stencils.dart:1106:      'mxgraph.arrows.jump-in-arrow-2',
+lib\src\stencils\libraries\arrow_stencils.dart:1107:      'mxgraph.arrows.Jump-in Arrow 2',
+lib\src\stencils\libraries\arrow_stencils.dart:1109:    'arrows.leftAndUpArrow': <String>[
+lib\src\stencils\libraries\arrow_stencils.dart:1110:      'mxgraph.arrows.leftAndUpArrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1111:      'mxgraph.arrows.left_and_up_arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1112:      'mxgraph.arrows.left-and-up-arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1113:      'mxgraph.arrows.Left and Up Arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1115:    'arrows.leftSharpEdgedHeadArrow': <String>[
+lib\src\stencils\libraries\arrow_stencils.dart:1116:      'mxgraph.arrows.leftSharpEdgedHeadArrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1117:      'mxgraph.arrows.left_sharp_edged_head_arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1118:      'mxgraph.arrows.left-sharp-edged-head-arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1119:      'mxgraph.arrows.Left Sharp Edged Head Arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1121:    'arrows.notchedSignalInArrow': <String>[
+lib\src\stencils\libraries\arrow_stencils.dart:1122:      'mxgraph.arrows.notchedSignalInArrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1123:      'mxgraph.arrows.notched_signal_in_arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1124:      'mxgraph.arrows.notched-signal-in-arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1125:      'mxgraph.arrows.Notched Signal-in Arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1127:    'arrows.quadArrow': <String>[
+lib\src\stencils\libraries\arrow_stencils.dart:1128:      'mxgraph.arrows.quadArrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1129:      'mxgraph.arrows.quad_arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1130:      'mxgraph.arrows.quad-arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1131:      'mxgraph.arrows.Quad Arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1133:    'arrows.rightNotchedArrow': <String>[
+lib\src\stencils\libraries\arrow_stencils.dart:1134:      'mxgraph.arrows.rightNotchedArrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1135:      'mxgraph.arrows.right_notched_arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1136:      'mxgraph.arrows.right-notched-arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1137:      'mxgraph.arrows.Right Notched Arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1139:    'arrows.sharpEdgedArrow': <String>[
+lib\src\stencils\libraries\arrow_stencils.dart:1140:      'mxgraph.arrows.sharpEdgedArrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1141:      'mxgraph.arrows.sharp_edged_arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1142:      'mxgraph.arrows.sharp-edged-arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1143:      'mxgraph.arrows.Sharp Edged Arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1145:    'arrows.signalInArrow': <String>[
+lib\src\stencils\libraries\arrow_stencils.dart:1146:      'mxgraph.arrows.signalInArrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1147:      'mxgraph.arrows.signal_in_arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1148:      'mxgraph.arrows.signal-in-arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1149:      'mxgraph.arrows.Signal-in Arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1151:    'arrows.slenderLeftArrow': <String>[
+lib\src\stencils\libraries\arrow_stencils.dart:1152:      'mxgraph.arrows.slenderLeftArrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1153:      'mxgraph.arrows.slender_left_arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1154:      'mxgraph.arrows.slender-left-arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1155:      'mxgraph.arrows.Slender Left Arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1157:    'arrows.slenderTwoWayArrow': <String>[
+lib\src\stencils\libraries\arrow_stencils.dart:1158:      'mxgraph.arrows.slenderTwoWayArrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1159:      'mxgraph.arrows.slender_two_way_arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1160:      'mxgraph.arrows.slender-two-way-arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1161:      'mxgraph.arrows.Slender Two Way Arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1163:    'arrows.slenderWideTailedArrow': <String>[
+lib\src\stencils\libraries\arrow_stencils.dart:1164:      'mxgraph.arrows.slenderWideTailedArrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1165:      'mxgraph.arrows.slender_wide_tailed_arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1166:      'mxgraph.arrows.slender-wide-tailed-arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1167:      'mxgraph.arrows.Slender Wide Tailed Arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1169:    'arrows.stripedArrow': <String>[
+lib\src\stencils\libraries\arrow_stencils.dart:1170:      'mxgraph.arrows.stripedArrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1171:      'mxgraph.arrows.striped_arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1172:      'mxgraph.arrows.striped-arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1173:      'mxgraph.arrows.Striped Arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1175:    'arrows.stylisedNotchedArrow': <String>[
+lib\src\stencils\libraries\arrow_stencils.dart:1176:      'mxgraph.arrows.stylisedNotchedArrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1177:      'mxgraph.arrows.stylised_notched_arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1178:      'mxgraph.arrows.stylised-notched-arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1179:      'mxgraph.arrows.Stylised Notched Arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1181:    'arrows.triadArrow': <String>[
+lib\src\stencils\libraries\arrow_stencils.dart:1182:      'mxgraph.arrows.triadArrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1183:      'mxgraph.arrows.triad_arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1184:      'mxgraph.arrows.triad-arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1185:      'mxgraph.arrows.Triad Arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1187:    'arrows.twoWayArrowHorizontal': <String>[
+lib\src\stencils\libraries\arrow_stencils.dart:1188:      'mxgraph.arrows.twoWayArrowHorizontal',
+lib\src\stencils\libraries\arrow_stencils.dart:1189:      'mxgraph.arrows.two_way_arrow_horizontal',
+lib\src\stencils\libraries\arrow_stencils.dart:1190:      'mxgraph.arrows.two-way-arrow-horizontal',
+lib\src\stencils\libraries\arrow_stencils.dart:1191:      'mxgraph.arrows.Two Way Arrow Horizontal',
+lib\src\stencils\libraries\arrow_stencils.dart:1193:    'arrows.twoWayArrowVertical': <String>[
+lib\src\stencils\libraries\arrow_stencils.dart:1194:      'mxgraph.arrows.twoWayArrowVertical',
+lib\src\stencils\libraries\arrow_stencils.dart:1195:      'mxgraph.arrows.two_way_arrow_vertical',
+lib\src\stencils\libraries\arrow_stencils.dart:1196:      'mxgraph.arrows.two-way-arrow-vertical',
+lib\src\stencils\libraries\arrow_stencils.dart:1197:      'mxgraph.arrows.Two Way Arrow Vertical',
+lib\src\stencils\libraries\arrow_stencils.dart:1199:    'arrows.uTurnArrow': <String>[
+lib\src\stencils\libraries\arrow_stencils.dart:1200:      'mxgraph.arrows.uTurnArrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1201:      'mxgraph.arrows.u_turn_arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1202:      'mxgraph.arrows.u-turn-arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1203:      'mxgraph.arrows.U Turn Arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1205:    'arrows.uTurnDownArrow': <String>[
+lib\src\stencils\libraries\arrow_stencils.dart:1206:      'mxgraph.arrows.uTurnDownArrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1207:      'mxgraph.arrows.u_turn_down_arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1208:      'mxgraph.arrows.u-turn-down-arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1209:      'mxgraph.arrows.U Turn Down Arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1211:    'arrows.uTurnLeftArrow': <String>[
+lib\src\stencils\libraries\arrow_stencils.dart:1212:      'mxgraph.arrows.uTurnLeftArrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1213:      'mxgraph.arrows.u_turn_left_arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1214:      'mxgraph.arrows.u-turn-left-arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1215:      'mxgraph.arrows.U Turn Left Arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1217:    'arrows.uTurnRightArrow': <String>[
+lib\src\stencils\libraries\arrow_stencils.dart:1218:      'mxgraph.arrows.uTurnRightArrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1219:      'mxgraph.arrows.u_turn_right_arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1220:      'mxgraph.arrows.u-turn-right-arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1221:      'mxgraph.arrows.U Turn Right Arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1223:    'arrows.uTurnUpArrow': <String>[
+lib\src\stencils\libraries\arrow_stencils.dart:1224:      'mxgraph.arrows.uTurnUpArrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1225:      'mxgraph.arrows.u_turn_up_arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1226:      'mxgraph.arrows.u-turn-up-arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1227:      'mxgraph.arrows.U Turn Up Arrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1232:    'arrows.arrowDown',
+lib\src\stencils\libraries\arrow_stencils.dart:1233:    'arrows.arrowLeft',
+lib\src\stencils\libraries\arrow_stencils.dart:1234:    'arrows.arrowRight',
+lib\src\stencils\libraries\arrow_stencils.dart:1235:    'arrows.arrowUp',
+lib\src\stencils\libraries\arrow_stencils.dart:1236:    'arrows.bentLeftArrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1237:    'arrows.bentRightArrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1238:    'arrows.bentUpArrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1239:    'arrows.calloutDoubleArrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1240:    'arrows.calloutQuadArrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1241:    'arrows.calloutUpArrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1242:    'arrows.chevronArrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1243:    'arrows.circularArrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1244:    'arrows.jumpInArrow1',
+lib\src\stencils\libraries\arrow_stencils.dart:1245:    'arrows.jumpInArrow2',
+lib\src\stencils\libraries\arrow_stencils.dart:1246:    'arrows.leftAndUpArrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1247:    'arrows.leftSharpEdgedHeadArrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1248:    'arrows.notchedSignalInArrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1249:    'arrows.quadArrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1250:    'arrows.rightNotchedArrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1251:    'arrows.sharpEdgedArrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1252:    'arrows.signalInArrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1253:    'arrows.slenderLeftArrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1254:    'arrows.slenderTwoWayArrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1255:    'arrows.slenderWideTailedArrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1256:    'arrows.stripedArrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1257:    'arrows.stylisedNotchedArrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1258:    'arrows.triadArrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1259:    'arrows.twoWayArrowHorizontal',
+lib\src\stencils\libraries\arrow_stencils.dart:1260:    'arrows.twoWayArrowVertical',
+lib\src\stencils\libraries\arrow_stencils.dart:1261:    'arrows.uTurnArrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1262:    'arrows.uTurnDownArrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1263:    'arrows.uTurnLeftArrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1264:    'arrows.uTurnRightArrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1265:    'arrows.uTurnUpArrow',
+lib\src\stencils\libraries\arrow_stencils.dart:1269:    'arrows.arrowDown': '向下箭头',
+lib\src\stencils\libraries\arrow_stencils.dart:1270:    'arrows.arrowLeft': '向左箭头',
+lib\src\stencils\libraries\arrow_stencils.dart:1271:    'arrows.arrowRight': '向右箭头',
+lib\src\stencils\libraries\arrow_stencils.dart:1272:    'arrows.arrowUp': '向上箭头',
+lib\src\stencils\libraries\arrow_stencils.dart:1273:    'arrows.bentLeftArrow': '折弯左箭头',
+lib\src\stencils\libraries\arrow_stencils.dart:1274:    'arrows.bentRightArrow': '折弯右箭头',
+lib\src\stencils\libraries\arrow_stencils.dart:1275:    'arrows.bentUpArrow': '折弯上箭头',
+lib\src\stencils\libraries\arrow_stencils.dart:1276:    'arrows.calloutDoubleArrow': '标注双向箭头',
+lib\src\stencils\libraries\arrow_stencils.dart:1277:    'arrows.calloutQuadArrow': '标注四向箭头',
+lib\src\stencils\libraries\arrow_stencils.dart:1278:    'arrows.calloutUpArrow': '标注上箭头',
+lib\src\stencils\libraries\arrow_stencils.dart:1279:    'arrows.chevronArrow': 'V形箭头',
+lib\src\stencils\libraries\arrow_stencils.dart:1280:    'arrows.circularArrow': '环形箭头',
+lib\src\stencils\libraries\arrow_stencils.dart:1281:    'arrows.jumpInArrow1': '跳入箭头1',
+lib\src\stencils\libraries\arrow_stencils.dart:1282:    'arrows.jumpInArrow2': '跳入箭头2',
+lib\src\stencils\libraries\arrow_stencils.dart:1283:    'arrows.leftAndUpArrow': '左上箭头',
+lib\src\stencils\libraries\arrow_stencils.dart:1284:    'arrows.leftSharpEdgedHeadArrow': '左尖头箭头',
+lib\src\stencils\libraries\arrow_stencils.dart:1285:    'arrows.notchedSignalInArrow': '缺口信号箭头',
+lib\src\stencils\libraries\arrow_stencils.dart:1286:    'arrows.quadArrow': '四向箭头',
+lib\src\stencils\libraries\arrow_stencils.dart:1287:    'arrows.rightNotchedArrow': '右缺口箭头',
+lib\src\stencils\libraries\arrow_stencils.dart:1288:    'arrows.sharpEdgedArrow': '尖边箭头',
+lib\src\stencils\libraries\arrow_stencils.dart:1289:    'arrows.signalInArrow': '信号箭头',
+lib\src\stencils\libraries\arrow_stencils.dart:1290:    'arrows.slenderLeftArrow': '细长左箭头',
+lib\src\stencils\libraries\arrow_stencils.dart:1291:    'arrows.slenderTwoWayArrow': '细长双向箭头',
+lib\src\stencils\libraries\arrow_stencils.dart:1292:    'arrows.slenderWideTailedArrow': '细长宽尾箭头',
+lib\src\stencils\libraries\arrow_stencils.dart:1293:    'arrows.stripedArrow': '条纹箭头',
+lib\src\stencils\libraries\arrow_stencils.dart:1294:    'arrows.stylisedNotchedArrow': '风格化缺口箭头',
+lib\src\stencils\libraries\arrow_stencils.dart:1295:    'arrows.triadArrow': '三向箭头',
+lib\src\stencils\libraries\arrow_stencils.dart:1296:    'arrows.twoWayArrowHorizontal': '水平双向箭头',
+lib\src\stencils\libraries\arrow_stencils.dart:1297:    'arrows.twoWayArrowVertical': '垂直双向箭头',
+lib\src\stencils\libraries\arrow_stencils.dart:1298:    'arrows.uTurnArrow': 'U形转弯箭头',
+lib\src\stencils\libraries\arrow_stencils.dart:1299:    'arrows.uTurnDownArrow': 'U形向下箭头',
+lib\src\stencils\libraries\arrow_stencils.dart:1300:    'arrows.uTurnLeftArrow': 'U形向左箭头',
+lib\src\stencils\libraries\arrow_stencils.dart:1301:    'arrows.uTurnRightArrow': 'U形向右箭头',
+lib\src\stencils\libraries\arrow_stencils.dart:1302:    'arrows.uTurnUpArrow': 'U形向上箭头',
+lib\src\stencils\builtin_stencils.dart:2:import 'libraries/arrow_stencils.dart';
+lib\src\stencils\builtin_stencils.dart:39:      ArrowStencils.xmlDefinitions,
+lib\src\stencils\builtin_stencils.dart:40:      aliases: ArrowStencils.aliases,
+lib\src\stencils\builtin_stencils.dart:147:    <path><move x="0" y="15"/><curve x1="0" y1="-5" x2="120" y2="-5" x3="120" y3="15"/><line x="120" y="75"/><curve x1="120" y1="95" x2="0" y2="95" x3="0" y3="75"/><close/></path>
+lib\src\stencils\builtin_stencils.dart:149:  <foreground><path><move x="0" y="15"/><curve x1="0" y1="35" x2="120" y2="35" x3="120" y3="15"/></path></foreground>
+lib\src\stencils\builtin_stencils.dart:160:  <background><path><move x="30" y="66"/><curve x1="-6" y1="62" x2="5" y2="30" x3="34" y3="34"/><curve x1="34" y1="6" x2="82" y2="2" x3="86" y3="30"/><curve x1="126" y1="30" x2="122" y2="70" x3="78" y3="67"/><close/></path></background>
+lib\src\serialization\canvas_serializer.dart:5:import '../elements/arrow_element.dart';
+lib\src\serialization\canvas_serializer.dart:7:import '../elements/curve_element.dart';
+lib\src\serialization\canvas_serializer.dart:333:      case CurveElement.elementType:
+lib\src\serialization\canvas_serializer.dart:334:        return CurveElement(
+lib\src\serialization\canvas_serializer.dart:382:          endArrow: json['endArrow'] as bool? ?? false,
+lib\src\serialization\canvas_serializer.dart:451:      case ArrowElement.elementType:
+lib\src\serialization\canvas_serializer.dart:452:        return ArrowElement(
+lib\src\infinite_canvas\infinite_canvas_config.dart:45:  /// Whether canvas-level keyboard shortcuts (undo/redo, select-all, arrow
+lib\src\routing\connector_routing.dart:3:import '../elements/arrow_element.dart';
+lib\src\routing\connector_routing.dart:533:          element is ArrowElement ||
+lib\src\routing\orth_connector.dart:109:  /// - [arrowSize]：箭头大小（用于自动 jetty size，<=0 表示无箭头）
+lib\src\routing\orth_connector.dart:118:    double arrowSize = 0,
+lib\src\routing\orth_connector.dart:132:    final sourceBuffer = _jettySize(margin, arrowSize);
+lib\src\routing\orth_connector.dart:133:    var targetBuffer = _jettySize(margin, arrowSize);
+lib\src\routing\orth_connector.dart:171:  static double _jettySize(double buffer, double arrowSize) {
+lib\src\routing\orth_connector.dart:172:    if (arrowSize > 0) {
+lib\src\routing\orth_connector.dart:174:          math.max(2, ((arrowSize + buffer) / buffer).ceil()) * buffer;
+lib\src\tools\arrow_tool.dart:4:import '../elements/arrow_element.dart';
+lib\src\tools\arrow_tool.dart:10:/// Arrow 工具——画带箭头的直线连接。
+lib\src\tools\arrow_tool.dart:11:class ArrowTool extends CanvasTool {
+lib\src\tools\arrow_tool.dart:12:  ArrowTool();
+lib\src\tools\arrow_tool.dart:14:  static const idValue = 'arrow';
+lib\src\tools\arrow_tool.dart:25:  String get name => 'Arrow';
+lib\src\tools\arrow_tool.dart:28:  IconData get icon => Icons.arrow_outward;
+lib\src\tools\arrow_tool.dart:79:          ArrowElement(
+lib\src\tools\arrow_tool.dart:93:  ArrowElement _buildPreview(CanvasController controller) {
+lib\src\tools\arrow_tool.dart:96:    return ArrowElement(
+lib\src\tools\arrow_tool.dart:97:      id: '__preview_arrow__',
+lib\src\ui\panels\inspector_utils.dart:102:    final ArrowElement e => e.labelStyle.color,
+lib\src\ui\panels\inspector_fields.dart:304:      final ArrowElement e => e.label ?? '',
+lib\src\ui\panels\inspector_fields.dart:421:      final ArrowElement e => e.labelStyle,
+lib\src\mindmap\mindmap_connection_painter_v2.dart:68:    // pushed in the direction from→to so the curve works on both sides.
+lib\src\tools\polyline_arrow_tool.dart:5:class PolylineArrowTool extends PolylineTool {
+lib\src\tools\polyline_arrow_tool.dart:6:  PolylineArrowTool()
+lib\src\tools\polyline_arrow_tool.dart:9:          name: 'Polyline Arrow',
+lib\src\tools\polyline_arrow_tool.dart:11:          endArrow: true,
+lib\src\tools\polyline_arrow_tool.dart:14:  static const idValue = 'polyline_arrow';
+lib\src\tools\tool_manager.dart:24:    // This supports stencil-library shapes (flowchart, basic, arrows, etc.)
+lib\src\tools\select_tool.dart:11:import '../elements/curve_element.dart';
+lib\src\tools\select_tool.dart:15:import '../elements/arrow_element.dart';
+lib\src\tools\select_tool.dart:100:        final curveControlTarget = _curveControlTargetAt(controller, event);
+lib\src\tools\select_tool.dart:103:            polylinePointTarget == null && curveControlTarget == null
+lib\src\tools\select_tool.dart:109:                curveControlTarget == null
+lib\src\tools\select_tool.dart:116:                curveControlTarget == null
+lib\src\tools\select_tool.dart:124:                curveControlTarget == null
+lib\src\tools\select_tool.dart:129:        if (curveControlTarget != null) {
+lib\src\tools\select_tool.dart:130:          controller.setSelection({curveControlTarget.element.id});
+lib\src\tools\select_tool.dart:138:          _lineEndpointBefore = curveControlTarget.element;
+lib\src\tools\select_tool.dart:383:                ArrowElement(:final id) ||
+lib\src\tools\select_tool.dart:427:  _CurveControlTarget? _curveControlTargetAt(
+lib\src\tools\select_tool.dart:433:      if (element is CurveElement) {
+lib\src\tools\select_tool.dart:444:    if (before is! CurveElement) {
+lib\src\tools\select_tool.dart:448:    if (current is! CurveElement) {
+lib\src\tools\select_tool.dart:512:      } else if (element is CurveElement) {
+lib\src\tools\select_tool.dart:527:      } else if (element is ArrowElement) {
+lib\src\tools\select_tool.dart:529:          if ((event.worldPoint - endpoint.pointForArrow(element)).distance <=
+lib\src\tools\select_tool.dart:936:    if (before is CurveElement) {
+lib\src\tools\select_tool.dart:938:      if (current is! CurveElement) {
+lib\src\tools\select_tool.dart:960:    if (before is ArrowElement) {
+lib\src\tools\select_tool.dart:962:      if (current is! ArrowElement) {
+lib\src\tools\select_tool.dart:967:        endpoint.applyToArrow(current, nextPoint, binding),
+lib\src\tools\select_tool.dart:1333:  Offset pointForArrow(ArrowElement element) {
+lib\src\tools\select_tool.dart:1340:  Offset pointForCurve(CurveElement element) {
+lib\src\tools\select_tool.dart:1347:  CurveElement applyToCurve(CurveElement element, Offset point) {
+lib\src\tools\select_tool.dart:1479:  ArrowElement applyToArrow(
+lib\src\tools\select_tool.dart:1480:    ArrowElement element,
+lib\src\tools\select_tool.dart:1518:  final CurveElement element;
+lib\src\tools\polyline_tool.dart:13:    this.endArrow = false,
+lib\src\tools\polyline_tool.dart:23:  final bool endArrow;
+lib\src\tools\polyline_tool.dart:107:            endArrow: endArrow,
+lib\src\tools\polyline_tool.dart:131:      endArrow: endArrow,
+lib\src\infinite_canvas\infinite_canvas_widget.dart:9:import '../elements/arrow_element.dart';
+lib\src\infinite_canvas\infinite_canvas_widget.dart:295:        element is! ArrowElement &&
+lib\src\infinite_canvas\infinite_canvas_widget.dart:336:      final ArrowElement e => LineLabelPainter.labelBounds(
+lib\src\infinite_canvas\infinite_canvas_widget.dart:363:      final ArrowElement e => LineLabelPainter.labelCenter(
+lib\src\infinite_canvas\infinite_canvas_widget.dart:538:              ArrowElement() ||
+lib\src\infinite_canvas\infinite_canvas_widget.dart:794:    // Arrow key nudging
+lib\src\infinite_canvas\infinite_canvas_widget.dart:796:    if (key == LogicalKeyboardKey.arrowLeft) {
+lib\src\infinite_canvas\infinite_canvas_widget.dart:800:    if (key == LogicalKeyboardKey.arrowRight) {
+lib\src\infinite_canvas\infinite_canvas_widget.dart:804:    if (key == LogicalKeyboardKey.arrowUp) {
+lib\src\infinite_canvas\infinite_canvas_widget.dart:808:    if (key == LogicalKeyboardKey.arrowDown) {
+lib\src\infinite_canvas\infinite_canvas_widget.dart:1172:        element is ArrowElement ||
+lib\src\infinite_canvas\infinite_canvas_widget.dart:1182:    final ArrowElement e => e.id,
+lib\src\infinite_canvas\infinite_canvas_widget.dart:1193:    final ArrowElement e => e.label ?? '',
+lib\src\infinite_canvas\infinite_canvas_widget.dart:1211:    final ArrowElement e => _lineLabelBounds(
+lib\src\infinite_canvas\infinite_canvas_widget.dart:1263:    final ArrowElement e => e.labelStyle,
+lib\src\ui\panels\left_shape_panel.dart:36:      ...arrowShapePalette,
+lib\src\ui\panels\left_shape_panel.dart:111:                      icon: Icons.arrow_forward,
+lib\src\ui\panels\left_shape_panel.dart:112:                      selected: activeTool == ArrowTool.idValue,
+lib\src\ui\panels\left_shape_panel.dart:114:                          widget.canvasController.setTool(ArrowTool.idValue),
+lib\src\ui\panels\left_shape_panel.dart:155:                entries: arrowShapePalette,
+lib\src\tools\curve_tool.dart:4:import '../elements/curve_element.dart';
+lib\src\tools\curve_tool.dart:9:/// Curve 工具——绘制二次贝塞尔曲线。
+lib\src\tools\curve_tool.dart:14:/// 3. 松手完成绘制，自动选中所创建的曲线。
+lib\src\tools\curve_tool.dart:21:  static const idValue = 'curve';
+lib\src\tools\curve_tool.dart:61:          CurveElement(
+lib\src\tools\curve_tool.dart:89:  CurveElement _buildPreview(CanvasController controller) {
+lib\src\tools\curve_tool.dart:93:    return CurveElement(
+lib\src\tools\curve_tool.dart:94:      id: '__preview_curve__',
+lib\src\ui\panels\shape_palette_data.dart:35:final arrowShapePalette = [
+lib\src\ui\panels\shape_palette_data.dart:36:  for (final key in ArrowStencils.keys)
+lib\src\ui\panels\shape_palette_data.dart:38:      label: ArrowStencils.labels[key] ?? key,
+lib\src\ui\panels\shape_palette_data.dart:40:      group: 'arrows',
+
+codex
+已有实现里 `CurveElement` 只有路径本体；P001 需要借鉴 `PolylineElement` 的 `endArrow/headSize` 语义，但修改会限定在曲线元素文件内。接下来我读取折线和箭头的现有实现，确保箭头几何、缩放和命中行为一致。
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "Get-Content -LiteralPath 'D:\\project\\GitHub\\wenz_flutter\\wenz_draw\\lib\\src\\elements\\arrow_element.dart' -Raw -Encoding UTF8" in D:\project\GitHub\wenz_flutter\wenz_draw
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "Get-Content -LiteralPath 'D:\\project\\GitHub\\wenz_flutter\\wenz_draw\\lib\\src\\utils\\math_utils.dart' -Raw -Encoding UTF8" in D:\project\GitHub\wenz_flutter\wenz_draw
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "Get-Content -LiteralPath 'D:\\project\\GitHub\\wenz_flutter\\wenz_draw\\lib\\src\\elements\\polyline_element.dart' -Raw -Encoding UTF8" in D:\project\GitHub\wenz_flutter\wenz_draw
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "Get-Content -LiteralPath 'D:\\project\\GitHub\\wenz_flutter\\wenz_draw\\lib\\src\\elements\\line_element.dart' -Raw -Encoding UTF8" in D:\project\GitHub\wenz_flutter\wenz_draw
+ succeeded in 292ms:
+import 'dart:math' as math;
+
+import 'package:flutter/widgets.dart';
+
+double distanceBetween(Offset a, Offset b) {
+  return (a - b).distance;
+}
+
+double distanceToSegment(Offset point, Offset start, Offset end) {
+  final segment = end - start;
+  final lengthSquared = segment.distanceSquared;
+  if (lengthSquared == 0) {
+    return (point - start).distance;
+  }
+
+  final t =
+      (((point.dx - start.dx) * segment.dx) +
+          ((point.dy - start.dy) * segment.dy)) /
+      lengthSquared;
+  final clamped = t.clamp(0.0, 1.0).toDouble();
+  final projection = Offset(
+    start.dx + segment.dx * clamped,
+    start.dy + segment.dy * clamped,
+  );
+  return (point - projection).distance;
+}
+
+Rect boundsForPoints(Iterable<Offset> points) {
+  final iterator = points.iterator;
+  if (!iterator.moveNext()) {
+    return Rect.zero;
+  }
+
+  var minX = iterator.current.dx;
+  var minY = iterator.current.dy;
+  var maxX = iterator.current.dx;
+  var maxY = iterator.current.dy;
+
+  while (iterator.moveNext()) {
+    final point = iterator.current;
+    minX = math.min(minX, point.dx);
+    minY = math.min(minY, point.dy);
+    maxX = math.max(maxX, point.dx);
+    maxY = math.max(maxY, point.dy);
+  }
+
+  return Rect.fromLTRB(minX, minY, maxX, maxY);
+}
+
+Offset scalePoint(Offset point, double factor, Offset pivot) {
+  return pivot + (point - pivot) * factor;
+}
+
+Offset rotatePoint(Offset point, double radians, Offset pivot) {
+  final translated = point - pivot;
+  final cosTheta = math.cos(radians);
+  final sinTheta = math.sin(radians);
+  return Offset(
+    pivot.dx + translated.dx * cosTheta - translated.dy * sinTheta,
+    pivot.dy + translated.dx * sinTheta + translated.dy * cosTheta,
+  );
+}
+
+Rect rotatedRectBounds(Rect rect, double radians) {
+  if (radians == 0) {
+    return rect;
+  }
+  final center = rect.center;
+  return boundsForPoints([
+    rotatePoint(rect.topLeft, radians, center),
+    rotatePoint(rect.topRight, radians, center),
+    rotatePoint(rect.bottomRight, radians, center),
+    rotatePoint(rect.bottomLeft, radians, center),
+  ]);
+}
+
+Offset inverseRotatePoint(Offset point, double radians, Offset pivot) {
+  return rotatePoint(point, -radians, pivot);
+}
+
+Rect normalizedRectFromPoints(Offset a, Offset b) {
+  return Rect.fromLTRB(
+    math.min(a.dx, b.dx),
+    math.min(a.dy, b.dy),
+    math.max(a.dx, b.dx),
+    math.max(a.dy, b.dy),
+  );
+}
+
+
+ succeeded in 295ms:
+import 'dart:math' as math;
+import 'dart:ui' show ClipOp;
+
+import 'package:flutter/widgets.dart';
+
+import '../canvas/paint_style.dart';
+import '../snap/snap_resolver.dart';
+import '../utils/math_utils.dart';
+import 'canvas_element.dart';
+import 'element_renderer.dart';
+import 'line_label_painter.dart';
+
+@immutable
+class ArrowElement extends CanvasElement {
+  const ArrowElement({
+    required this.id,
+    required this.start,
+    required this.end,
+    this.style = const PaintStyle(),
+    this.headSize = 14,
+    this.startBinding,
+    this.endBinding,
+    this.label,
+    this.labelStyle = LineLabelPainter.defaultStyle,
+    this.labelPosition = LineLabelPainter.defaultPosition,
+    this.labelOffset = LineLabelPainter.defaultOffset,
+    this.labelBackground,
+    this.layerId = 'default',
+    this.visible = true,
+    this.opacity = 1,
+    this.zIndex = 0,
+    this.groupId,
+  });
+
+  static const elementType = 'arrow';
+
+  @override
+  final String id;
+  final Offset start;
+  final Offset end;
+  final PaintStyle style;
+  final double headSize;
+  final SnapBinding? startBinding;
+  final SnapBinding? endBinding;
+  final String? label;
+  final TextStyle labelStyle;
+  final double labelPosition;
+  final Offset labelOffset;
+  final Color? labelBackground;
+
+  @override
+  final String layerId;
+  @override
+  final bool visible;
+  @override
+  final double opacity;
+  @override
+  final int zIndex;
+
+  @override
+  final String? groupId;
+
+  @override
+  String get type => elementType;
+
+  @override
+  Rect get bounds {
+    final arrowBounds = boundsForPoints([start, end]).inflate(headSize);
+    final labelBounds = LineLabelPainter.labelBounds(
+      points: [start, end],
+      label: label,
+      style: labelStyle,
+      labelPosition: labelPosition,
+      labelOffset: labelOffset,
+      labelBackground: labelBackground,
+    );
+    return labelBounds.isEmpty
+        ? arrowBounds
+        : arrowBounds.expandToInclude(labelBounds);
+  }
+
+  @override
+  bool hitTest(Offset worldPoint, {double tolerance = 5.0}) {
+    return distanceToSegment(worldPoint, start, end) <=
+        tolerance + style.strokeWidth / 2;
+  }
+
+  @override
+  ArrowElement copyWith({
+    String? id,
+    Offset? start,
+    Offset? end,
+    PaintStyle? style,
+    double? headSize,
+    Object? startBinding = _unset,
+    Object? endBinding = _unset,
+    Object? label = _unset,
+    TextStyle? labelStyle,
+    double? labelPosition,
+    Offset? labelOffset,
+    Object? labelBackground = _unset,
+    String? layerId,
+    bool? visible,
+    double? opacity,
+    int? zIndex,
+    Object? groupId = _unset,
+  }) {
+    return ArrowElement(
+      id: id ?? this.id,
+      start: start ?? this.start,
+      end: end ?? this.end,
+      style: style ?? this.style,
+      headSize: headSize ?? this.headSize,
+      startBinding: identical(startBinding, _unset)
+          ? this.startBinding
+          : startBinding as SnapBinding?,
+      endBinding: identical(endBinding, _unset)
+          ? this.endBinding
+          : endBinding as SnapBinding?,
+      label: identical(label, _unset) ? this.label : label as String?,
+      labelStyle: labelStyle ?? this.labelStyle,
+      labelPosition: labelPosition ?? this.labelPosition,
+      labelOffset: labelOffset ?? this.labelOffset,
+      labelBackground: identical(labelBackground, _unset)
+          ? this.labelBackground
+          : labelBackground as Color?,
+      layerId: layerId ?? this.layerId,
+      visible: visible ?? this.visible,
+      opacity: opacity ?? this.opacity,
+      zIndex: zIndex ?? this.zIndex,
+      groupId: identical(groupId, _unset)
+          ? this.groupId
+          : groupId as String?,
+    );
+  }
+
+  @override
+  ArrowElement translate(Offset delta) {
+    return copyWith(start: start + delta, end: end + delta);
+  }
+
+  @override
+  ArrowElement scaleElement(double factor, {Offset? pivot}) {
+    final origin = pivot ?? bounds.center;
+    return copyWith(
+      start: scalePoint(start, factor, origin),
+      end: scalePoint(end, factor, origin),
+      headSize: headSize * factor.abs(),
+      style: style.copyWith(strokeWidth: style.strokeWidth * factor.abs()),
+      labelStyle: labelStyle.copyWith(
+        fontSize: (labelStyle.fontSize ?? 14) * factor.abs(),
+      ),
+      labelOffset: labelOffset * factor.abs(),
+    );
+  }
+
+  @override
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'type': type,
+      'layerId': layerId,
+      'visible': visible,
+      'opacity': opacity,
+      'zIndex': zIndex,
+      'groupId': groupId,
+      'start': {'x': start.dx, 'y': start.dy},
+      'end': {'x': end.dx, 'y': end.dy},
+      'headSize': headSize,
+      'style': style.toJson(),
+      if (startBinding != null) 'startBinding': startBinding!.toJson(),
+      if (endBinding != null) 'endBinding': endBinding!.toJson(),
+      if (label != null) 'label': label,
+      'labelStyle': LineLabelPainter.styleToJson(labelStyle),
+      'labelPosition': labelPosition,
+      'labelOffset': LineLabelPainter.offsetToJson(labelOffset),
+      if (labelBackground != null)
+        'labelBackground': labelBackground!.toARGB32(),
+    };
+  }
+
+  static const _unset = Object();
+}
+
+class ArrowElementRenderer extends ElementRenderer<ArrowElement> {
+  const ArrowElementRenderer();
+
+  @override
+  void render(Canvas canvas, ArrowElement element) {
+    if (!element.visible) {
+      return;
+    }
+
+    final paint = element.style
+        .copyWith(opacity: element.style.opacity * element.opacity)
+        .toPaint();
+    final labelBounds = LineLabelPainter.labelBounds(
+      points: [element.start, element.end],
+      label: element.label,
+      style: element.labelStyle,
+      labelPosition: element.labelPosition,
+      labelOffset: element.labelOffset,
+      labelBackground: element.labelBackground,
+    );
+    if (labelBounds.isEmpty) {
+      canvas.drawLine(element.start, element.end, paint);
+    } else {
+      canvas.save();
+      canvas.clipRect(labelBounds.inflate(2), clipOp: ClipOp.difference);
+      canvas.drawLine(element.start, element.end, paint);
+      canvas.restore();
+    }
+    LineLabelPainter.paint(
+      canvas,
+      points: [element.start, element.end],
+      label: element.label,
+      style: element.labelStyle,
+      labelPosition: element.labelPosition,
+      labelOffset: element.labelOffset,
+      labelBackground: element.labelBackground,
+      opacity: element.opacity,
+    );
+
+    final direction = element.end - element.start;
+    if (direction.distance < 0.1) {
+      return;
+    }
+    final angle = math.atan2(direction.dy, direction.dx);
+    final wingA = angle + math.pi * 0.82;
+    final wingB = angle - math.pi * 0.82;
+    final p1 =
+        element.end +
+        Offset(math.cos(wingA), math.sin(wingA)) * element.headSize;
+    final p2 =
+        element.end +
+        Offset(math.cos(wingB), math.sin(wingB)) * element.headSize;
+
+    final path = Path()
+      ..moveTo(element.end.dx, element.end.dy)
+      ..lineTo(p1.dx, p1.dy)
+      ..moveTo(element.end.dx, element.end.dy)
+      ..lineTo(p2.dx, p2.dy);
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool hitTest(ArrowElement element, Offset worldPoint, double tolerance) {
+    return element.hitTest(worldPoint, tolerance: tolerance);
+  }
+}
+
+
+ succeeded in 283ms:
+import 'dart:math' as math;
+import 'dart:ui' show ClipOp;
+
+import 'package:flutter/widgets.dart';
+
+import '../canvas/paint_style.dart';
+import '../snap/snap_resolver.dart';
+import '../utils/math_utils.dart';
+import 'canvas_element.dart';
+import 'element_renderer.dart';
+import 'line_label_painter.dart';
+
+@immutable
+class PolylineElement extends CanvasElement {
+  const PolylineElement({
+    required this.id,
+    required this.points,
+    this.style = const PaintStyle(),
+    this.startBinding,
+    this.endBinding,
+    this.endArrow = false,
+    this.headSize = 14,
+    this.label,
+    this.labelStyle = LineLabelPainter.defaultStyle,
+    this.labelPosition = LineLabelPainter.defaultPosition,
+    this.labelOffset = LineLabelPainter.defaultOffset,
+    this.labelBackground,
+    this.layerId = 'default',
+    this.visible = true,
+    this.opacity = 1,
+    this.zIndex = 0,
+    this.groupId,
+  });
+
+  static const elementType = 'polyline';
+
+  @override
+  final String id;
+  final List<Offset> points;
+  final PaintStyle style;
+  final SnapBinding? startBinding;
+  final SnapBinding? endBinding;
+  final bool endArrow;
+  final double headSize;
+  final String? label;
+  final TextStyle labelStyle;
+  final double labelPosition;
+  final Offset labelOffset;
+  final Color? labelBackground;
+
+  @override
+  final String layerId;
+  @override
+  final bool visible;
+  @override
+  final double opacity;
+  @override
+  final int zIndex;
+
+  @override
+  final String? groupId;
+
+  Offset get start => points.isEmpty ? Offset.zero : points.first;
+  Offset get end => points.isEmpty ? Offset.zero : points.last;
+
+  @override
+  String get type => elementType;
+
+  @override
+  Rect get bounds {
+    if (points.isEmpty) {
+      return Rect.zero;
+    }
+    final lineBounds = boundsForPoints(points).inflate(
+      math.max(style.strokeWidth / 2, endArrow ? headSize : 0.0),
+    );
+    final labelBounds = LineLabelPainter.labelBounds(
+      points: points,
+      label: label,
+      style: labelStyle,
+      labelPosition: labelPosition,
+      labelOffset: labelOffset,
+      labelBackground: labelBackground,
+    );
+    return labelBounds.isEmpty
+        ? lineBounds
+        : lineBounds.expandToInclude(labelBounds);
+  }
+
+  @override
+  bool hitTest(Offset worldPoint, {double tolerance = 5.0}) {
+    if (points.length < 2) {
+      return false;
+    }
+    final hitTolerance = tolerance + style.strokeWidth / 2;
+    for (var i = 0; i < points.length - 1; i++) {
+      if (distanceToSegment(worldPoint, points[i], points[i + 1]) <=
+          hitTolerance) {
+        return true;
+      }
+    }
+    if (endArrow) {
+      final p1 = points.last;
+      final p0 = _lastNonZeroPointBeforeEnd(points);
+      if (p0 == null) {
+        return false;
+      }
+      final direction = p1 - p0;
+      final angle = math.atan2(direction.dy, direction.dx);
+      final wingA = angle + math.pi * 0.82;
+      final wingB = angle - math.pi * 0.82;
+      final tip1 = p1 + Offset(math.cos(wingA), math.sin(wingA)) * headSize;
+      final tip2 = p1 + Offset(math.cos(wingB), math.sin(wingB)) * headSize;
+      return distanceToSegment(worldPoint, p1, tip1) <= hitTolerance ||
+          distanceToSegment(worldPoint, p1, tip2) <= hitTolerance;
+    }
+    return false;
+  }
+
+  @override
+  PolylineElement copyWith({
+    String? id,
+    List<Offset>? points,
+    PaintStyle? style,
+    Object? startBinding = _unset,
+    Object? endBinding = _unset,
+    bool? endArrow,
+    double? headSize,
+    Object? label = _unset,
+    TextStyle? labelStyle,
+    double? labelPosition,
+    Offset? labelOffset,
+    Object? labelBackground = _unset,
+    String? layerId,
+    bool? visible,
+    double? opacity,
+    int? zIndex,
+    Object? groupId = _unset,
+  }) {
+    return PolylineElement(
+      id: id ?? this.id,
+      points: List<Offset>.unmodifiable(points ?? this.points),
+      style: style ?? this.style,
+      startBinding: identical(startBinding, _unset)
+          ? this.startBinding
+          : startBinding as SnapBinding?,
+      endBinding: identical(endBinding, _unset)
+          ? this.endBinding
+          : endBinding as SnapBinding?,
+      endArrow: endArrow ?? this.endArrow,
+      headSize: headSize ?? this.headSize,
+      label: identical(label, _unset) ? this.label : label as String?,
+      labelStyle: labelStyle ?? this.labelStyle,
+      labelPosition: labelPosition ?? this.labelPosition,
+      labelOffset: labelOffset ?? this.labelOffset,
+      labelBackground: identical(labelBackground, _unset)
+          ? this.labelBackground
+          : labelBackground as Color?,
+      layerId: layerId ?? this.layerId,
+      visible: visible ?? this.visible,
+      opacity: opacity ?? this.opacity,
+      zIndex: zIndex ?? this.zIndex,
+      groupId: identical(groupId, _unset)
+          ? this.groupId
+          : groupId as String?,
+    );
+  }
+
+  @override
+  PolylineElement translate(Offset delta) {
+    return copyWith(points: [for (final point in points) point + delta]);
+  }
+
+  @override
+  PolylineElement scaleElement(double factor, {Offset? pivot}) {
+    final origin = pivot ?? bounds.center;
+    return copyWith(
+      points: [for (final point in points) scalePoint(point, factor, origin)],
+      style: style.copyWith(strokeWidth: style.strokeWidth * factor.abs()),
+      headSize: headSize * factor.abs(),
+      labelStyle: labelStyle.copyWith(
+        fontSize: (labelStyle.fontSize ?? 14) * factor.abs(),
+      ),
+      labelOffset: labelOffset * factor.abs(),
+    );
+  }
+
+  @override
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'type': type,
+      'layerId': layerId,
+      'visible': visible,
+      'opacity': opacity,
+      'zIndex': zIndex,
+      'groupId': groupId,
+      'points': [
+        for (final point in points) {'x': point.dx, 'y': point.dy},
+      ],
+      'style': style.toJson(),
+      'endArrow': endArrow,
+      'headSize': headSize,
+      if (startBinding != null) 'startBinding': startBinding!.toJson(),
+      if (endBinding != null) 'endBinding': endBinding!.toJson(),
+      if (label != null) 'label': label,
+      'labelStyle': LineLabelPainter.styleToJson(labelStyle),
+      'labelPosition': labelPosition,
+      'labelOffset': LineLabelPainter.offsetToJson(labelOffset),
+      if (labelBackground != null)
+        'labelBackground': labelBackground!.toARGB32(),
+    };
+  }
+
+  static const _unset = Object();
+}
+
+class PolylineElementRenderer extends ElementRenderer<PolylineElement> {
+  const PolylineElementRenderer();
+
+  @override
+  void render(Canvas canvas, PolylineElement element) {
+    if (!element.visible || element.points.length < 2) {
+      return;
+    }
+    final path = Path()
+      ..moveTo(element.points.first.dx, element.points.first.dy);
+    for (final point in element.points.skip(1)) {
+      path.lineTo(point.dx, point.dy);
+    }
+    final paint = element.style
+        .copyWith(opacity: element.style.opacity * element.opacity)
+        .toPaint();
+    final labelBounds = LineLabelPainter.labelBounds(
+      points: element.points,
+      label: element.label,
+      style: element.labelStyle,
+      labelPosition: element.labelPosition,
+      labelOffset: element.labelOffset,
+      labelBackground: element.labelBackground,
+    );
+    if (labelBounds.isEmpty) {
+      canvas.drawPath(path, paint);
+    } else {
+      canvas.save();
+      canvas.clipRect(labelBounds.inflate(2), clipOp: ClipOp.difference);
+      canvas.drawPath(path, paint);
+      canvas.restore();
+    }
+
+    // Draw arrowhead at the end if enabled.
+    if (element.endArrow) {
+      _drawArrowHead(canvas, element, paint);
+    }
+
+    LineLabelPainter.paint(
+      canvas,
+      points: element.points,
+      label: element.label,
+      style: element.labelStyle,
+      labelPosition: element.labelPosition,
+      labelOffset: element.labelOffset,
+      labelBackground: element.labelBackground,
+      opacity: element.opacity,
+    );
+  }
+
+  void _drawArrowHead(
+    Canvas canvas,
+    PolylineElement element,
+    Paint paint,
+  ) {
+    final p1 = element.points.last;
+    final p0 = _lastNonZeroPointBeforeEnd(element.points);
+    if (p0 == null) {
+      return;
+    }
+    // Use the final non-zero segment's direction for the arrowhead angle.
+    final direction = p1 - p0;
+    final angle = math.atan2(direction.dy, direction.dx);
+    final wingA = angle + math.pi * 0.82;
+    final wingB = angle - math.pi * 0.82;
+    final tip1 =
+        p1 + Offset(math.cos(wingA), math.sin(wingA)) * element.headSize;
+    final tip2 =
+        p1 + Offset(math.cos(wingB), math.sin(wingB)) * element.headSize;
+
+    final arrowPath = Path()
+      ..moveTo(p1.dx, p1.dy)
+      ..lineTo(tip1.dx, tip1.dy)
+      ..moveTo(p1.dx, p1.dy)
+      ..lineTo(tip2.dx, tip2.dy);
+    canvas.drawPath(arrowPath, paint);
+  }
+
+  @override
+  bool hitTest(PolylineElement element, Offset worldPoint, double tolerance) {
+    return element.hitTest(worldPoint, tolerance: tolerance);
+  }
+}
+
+Offset? _lastNonZeroPointBeforeEnd(List<Offset> points) {
+  if (points.length < 2) {
+    return null;
+  }
+  final end = points.last;
+  for (var i = points.length - 2; i >= 0; i--) {
+    final candidate = points[i];
+    if ((end - candidate).distance >= 0.1) {
+      return candidate;
+    }
+  }
+  return null;
+}
+
+
+ succeeded in 299ms:
+import 'dart:ui' show ClipOp;
+
+import 'package:flutter/widgets.dart';
+
+import '../canvas/paint_style.dart';
+import '../snap/snap_resolver.dart';
+import '../utils/math_utils.dart';
+import 'canvas_element.dart';
+import 'element_renderer.dart';
+import 'line_label_painter.dart';
+
+@immutable
+class LineElement extends CanvasElement {
+  const LineElement({
+    required this.id,
+    required this.start,
+    required this.end,
+    this.style = const PaintStyle(),
+    this.startBinding,
+    this.endBinding,
+    this.label,
+    this.labelStyle = LineLabelPainter.defaultStyle,
+    this.labelPosition = LineLabelPainter.defaultPosition,
+    this.labelOffset = LineLabelPainter.defaultOffset,
+    this.labelBackground,
+    this.layerId = 'default',
+    this.visible = true,
+    this.opacity = 1,
+    this.zIndex = 0,
+    this.groupId,
+  });
+
+  static const elementType = 'line';
+
+  @override
+  final String id;
+
+  final Offset start;
+  final Offset end;
+  final PaintStyle style;
+  final SnapBinding? startBinding;
+  final SnapBinding? endBinding;
+  final String? label;
+  final TextStyle labelStyle;
+  final double labelPosition;
+  final Offset labelOffset;
+  final Color? labelBackground;
+
+  @override
+  final String layerId;
+
+  @override
+  final bool visible;
+
+  @override
+  final double opacity;
+
+  @override
+  final int zIndex;
+
+  @override
+  final String? groupId;
+
+  @override
+  String get type => elementType;
+
+  @override
+  Rect get bounds {
+    final lineBounds = boundsForPoints([
+      start,
+      end,
+    ]).inflate(style.strokeWidth / 2);
+    final labelBounds = LineLabelPainter.labelBounds(
+      points: [start, end],
+      label: label,
+      style: labelStyle,
+      labelPosition: labelPosition,
+      labelOffset: labelOffset,
+      labelBackground: labelBackground,
+    );
+    return labelBounds.isEmpty
+        ? lineBounds
+        : lineBounds.expandToInclude(labelBounds);
+  }
+
+  @override
+  bool hitTest(Offset worldPoint, {double tolerance = 5.0}) {
+    return distanceToSegment(worldPoint, start, end) <=
+        tolerance + style.strokeWidth / 2;
+  }
+
+  @override
+  LineElement copyWith({
+    String? id,
+    Offset? start,
+    Offset? end,
+    PaintStyle? style,
+    Object? startBinding = _unset,
+    Object? endBinding = _unset,
+    Object? label = _unset,
+    TextStyle? labelStyle,
+    double? labelPosition,
+    Offset? labelOffset,
+    Object? labelBackground = _unset,
+    String? layerId,
+    bool? visible,
+    double? opacity,
+    int? zIndex,
+    Object? groupId = _unset,
+  }) {
+    return LineElement(
+      id: id ?? this.id,
+      start: start ?? this.start,
+      end: end ?? this.end,
+      style: style ?? this.style,
+      startBinding: identical(startBinding, _unset)
+          ? this.startBinding
+          : startBinding as SnapBinding?,
+      endBinding: identical(endBinding, _unset)
+          ? this.endBinding
+          : endBinding as SnapBinding?,
+      label: identical(label, _unset) ? this.label : label as String?,
+      labelStyle: labelStyle ?? this.labelStyle,
+      labelPosition: labelPosition ?? this.labelPosition,
+      labelOffset: labelOffset ?? this.labelOffset,
+      labelBackground: identical(labelBackground, _unset)
+          ? this.labelBackground
+          : labelBackground as Color?,
+      layerId: layerId ?? this.layerId,
+      visible: visible ?? this.visible,
+      opacity: opacity ?? this.opacity,
+      zIndex: zIndex ?? this.zIndex,
+      groupId: identical(groupId, _unset)
+          ? this.groupId
+          : groupId as String?,
+    );
+  }
+
+  @override
+  LineElement translate(Offset delta) {
+    return copyWith(start: start + delta, end: end + delta);
+  }
+
+  @override
+  LineElement scaleElement(double factor, {Offset? pivot}) {
+    final origin = pivot ?? bounds.center;
+    return copyWith(
+      start: scalePoint(start, factor, origin),
+      end: scalePoint(end, factor, origin),
+      style: style.copyWith(strokeWidth: style.strokeWidth * factor.abs()),
+      labelStyle: labelStyle.copyWith(
+        fontSize: (labelStyle.fontSize ?? 14) * factor.abs(),
+      ),
+      labelOffset: labelOffset * factor.abs(),
+    );
+  }
+
+  @override
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'type': type,
+      'layerId': layerId,
+      'visible': visible,
+      'opacity': opacity,
+      'zIndex': zIndex,
+      'groupId': groupId,
+      'start': {'x': start.dx, 'y': start.dy},
+      'end': {'x': end.dx, 'y': end.dy},
+      'style': style.toJson(),
+      if (startBinding != null) 'startBinding': startBinding!.toJson(),
+      if (endBinding != null) 'endBinding': endBinding!.toJson(),
+      if (label != null) 'label': label,
+      'labelStyle': LineLabelPainter.styleToJson(labelStyle),
+      'labelPosition': labelPosition,
+      'labelOffset': LineLabelPainter.offsetToJson(labelOffset),
+      if (labelBackground != null)
+        'labelBackground': labelBackground!.toARGB32(),
+    };
+  }
+
+  static const _unset = Object();
+}
+
+class LineElementRenderer extends ElementRenderer<LineElement> {
+  const LineElementRenderer();
+
+  @override
+  void render(Canvas canvas, LineElement element) {
+    if (!element.visible) {
+      return;
+    }
+    final paint = element.style
+        .copyWith(opacity: element.style.opacity * element.opacity)
+        .toPaint();
+    final labelBounds = LineLabelPainter.labelBounds(
+      points: [element.start, element.end],
+      label: element.label,
+      style: element.labelStyle,
+      labelPosition: element.labelPosition,
+      labelOffset: element.labelOffset,
+      labelBackground: element.labelBackground,
+    );
+    if (labelBounds.isEmpty) {
+      canvas.drawLine(element.start, element.end, paint);
+    } else {
+      canvas.save();
+      canvas.clipRect(labelBounds.inflate(2), clipOp: ClipOp.difference);
+      canvas.drawLine(element.start, element.end, paint);
+      canvas.restore();
+    }
+    LineLabelPainter.paint(
+      canvas,
+      points: [element.start, element.end],
+      label: element.label,
+      style: element.labelStyle,
+      labelPosition: element.labelPosition,
+      labelOffset: element.labelOffset,
+      labelBackground: element.labelBackground,
+      opacity: element.opacity,
+    );
+  }
+
+  @override
+  bool hitTest(LineElement element, Offset worldPoint, double tolerance) {
+    return element.hitTest(worldPoint, tolerance: tolerance);
+  }
+}
+
+
+codex
+我确认了折线箭头当前是两条翼线而不是实心三角，命中测试也只覆盖箭头翼线。曲线会沿用这个交互语义，同时用二次贝塞尔末端切线，末端切线退化时回退到靠近终点的曲线方向。
+codex
+现在开始修改 `lib/src/elements/curve_element.dart`：增加箭头字段、缩放/序列化传递、边界与命中扩展，以及渲染阶段的末端箭头绘制。
+apply patch
+patch: completed
+D:\project\GitHub\wenz_flutter\wenz_draw\lib\src\elements\curve_element.dart
+diff --git a/wenz_draw/lib/src/elements/curve_element.dart b/wenz_draw/lib/src/elements/curve_element.dart
+index de47d9b193bff131549d553e5720def6d76d8d67..56a138e9db4f286f12a8af8d3f442ed2836e6dcd
+--- a/wenz_draw/lib/src/elements/curve_element.dart
++++ b/wenz_draw/lib/src/elements/curve_element.dart
+@@ -1,3 +1,5 @@
++import 'dart:math' as math;
++
+ import 'package:flutter/widgets.dart';
+ 
+ import '../canvas/paint_style.dart';
+@@ -15,6 +17,8 @@
+     required this.end,
+     required this.control,
+     this.style = const PaintStyle(),
++    this.endArrow = false,
++    this.headSize = 14,
+     this.layerId = 'default',
+     this.visible = true,
+     this.opacity = 1,
+@@ -31,6 +35,8 @@
+   final Offset end;
+   final Offset control;
+   final PaintStyle style;
++  final bool endArrow;
++  final double headSize;
+ 
+   @override
+   final String layerId;
+@@ -64,7 +70,9 @@
+   Rect get bounds {
+     // The convex hull of start, control, end contains the curve.
+     final allPoints = [start, control, end];
+-    return boundsForPoints(allPoints).inflate(style.strokeWidth / 2);
++    return boundsForPoints(allPoints).inflate(
++      math.max(style.strokeWidth / 2, endArrow ? headSize : 0.0),
++    );
+   }
+ 
+   @override
+@@ -80,9 +88,38 @@
+       }
+       prev = p;
+     }
++    if (endArrow) {
++      final direction = endTangentDirection;
++      if (direction == null) {
++        return false;
++      }
++      final angle = math.atan2(direction.dy, direction.dx);
++      final wingA = angle + math.pi * 0.82;
++      final wingB = angle - math.pi * 0.82;
++      final tip1 = end + Offset(math.cos(wingA), math.sin(wingA)) * headSize;
++      final tip2 = end + Offset(math.cos(wingB), math.sin(wingB)) * headSize;
++      return distanceToSegment(worldPoint, end, tip1) <= threshold ||
++          distanceToSegment(worldPoint, end, tip2) <= threshold;
++    }
+     return false;
+   }
+ 
++  Offset? get endTangentDirection {
++    final direct = end - control;
++    if (direct.distance >= 0.1) {
++      return direct;
++    }
++    const steps = 32;
++    for (var i = steps - 1; i >= 0; i--) {
++      final candidate = pointAt(i / steps);
++      final direction = end - candidate;
++      if (direction.distance >= 0.1) {
++        return direction;
++      }
++    }
++    return null;
++  }
++
+   @override
+   CurveElement copyWith({
+     String? id,
+@@ -90,6 +127,8 @@
+     Offset? end,
+     Offset? control,
+     PaintStyle? style,
++    bool? endArrow,
++    double? headSize,
+     String? layerId,
+     bool? visible,
+     double? opacity,
+@@ -102,6 +141,8 @@
+       end: end ?? this.end,
+       control: control ?? this.control,
+       style: style ?? this.style,
++      endArrow: endArrow ?? this.endArrow,
++      headSize: headSize ?? this.headSize,
+       layerId: layerId ?? this.layerId,
+       visible: visible ?? this.visible,
+       opacity: opacity ?? this.opacity,
+@@ -129,6 +170,7 @@
+       end: scalePoint(end, factor, origin),
+       control: scalePoint(control, factor, origin),
+       style: style.copyWith(strokeWidth: style.strokeWidth * factor.abs()),
++      headSize: headSize * factor.abs(),
+     );
+   }
+ 
+@@ -146,6 +188,8 @@
+       'end': {'x': end.dx, 'y': end.dy},
+       'control': {'x': control.dx, 'y': control.dy},
+       'style': style.toJson(),
++      'endArrow': endArrow,
++      'headSize': headSize,
+     };
+   }
+ 
+@@ -170,6 +214,36 @@
+         element.end.dy,
+       );
+     canvas.drawPath(path, paint);
++    if (element.endArrow) {
++      _drawArrowHead(canvas, element, paint);
++    }
++  }
++
++  void _drawArrowHead(
++    Canvas canvas,
++    CurveElement element,
++    Paint paint,
++  ) {
++    final direction = element.endTangentDirection;
++    if (direction == null) {
++      return;
++    }
++    final angle = math.atan2(direction.dy, direction.dx);
++    final wingA = angle + math.pi * 0.82;
++    final wingB = angle - math.pi * 0.82;
++    final tip1 =
++        element.end +
++        Offset(math.cos(wingA), math.sin(wingA)) * element.headSize;
++    final tip2 =
++        element.end +
++        Offset(math.cos(wingB), math.sin(wingB)) * element.headSize;
++
++    final arrowPath = Path()
++      ..moveTo(element.end.dx, element.end.dy)
++      ..lineTo(tip1.dx, tip1.dy)
++      ..moveTo(element.end.dx, element.end.dy)
++      ..lineTo(tip2.dx, tip2.dy);
++    canvas.drawPath(arrowPath, paint);
+   }
+ 
+   @override
+
+diff --git a/wenz_draw/lib/src/elements/curve_element.dart b/wenz_draw/lib/src/elements/curve_element.dart
+index de47d9b193bff131549d553e5720def6d76d8d67..56a138e9db4f286f12a8af8d3f442ed2836e6dcd
+--- a/wenz_draw/lib/src/elements/curve_element.dart
++++ b/wenz_draw/lib/src/elements/curve_element.dart
+@@ -1,3 +1,5 @@
++import 'dart:math' as math;
++
+ import 'package:flutter/widgets.dart';
+ 
+ import '../canvas/paint_style.dart';
+@@ -15,6 +17,8 @@
+     required this.end,
+     required this.control,
+     this.style = const PaintStyle(),
++    this.endArrow = false,
++    this.headSize = 14,
+     this.layerId = 'default',
+     this.visible = true,
+     this.opacity = 1,
+@@ -31,6 +35,8 @@
+   final Offset end;
+   final Offset control;
+   final PaintStyle style;
++  final bool endArrow;
++  final double headSize;
+ 
+   @override
+   final String layerId;
+@@ -64,7 +70,9 @@
+   Rect get bounds {
+     // The convex hull of start, control, end contains the curve.
+     final allPoints = [start, control, end];
+-    return boundsForPoints(allPoints).inflate(style.strokeWidth / 2);
++    return boundsForPoints(allPoints).inflate(
++      math.max(style.strokeWidth / 2, endArrow ? headSize : 0.0),
++    );
+   }
+ 
+   @override
+@@ -80,9 +88,38 @@
+       }
+       prev = p;
+     }
++    if (endArrow) {
++      final direction = endTangentDirection;
++      if (direction == null) {
++        return false;
++      }
++      final angle = math.atan2(direction.dy, direction.dx);
++      final wingA = angle + math.pi * 0.82;
++      final wingB = angle - math.pi * 0.82;
++      final tip1 = end + Offset(math.cos(wingA), math.sin(wingA)) * headSize;
++      final tip2 = end + Offset(math.cos(wingB), math.sin(wingB)) * headSize;
++      return distanceToSegment(worldPoint, end, tip1) <= threshold ||
++          distanceToSegment(worldPoint, end, tip2) <= threshold;
++    }
+     return false;
+   }
+ 
++  Offset? get endTangentDirection {
++    final direct = end - control;
++    if (direct.distance >= 0.1) {
++      return direct;
++    }
++    const steps = 32;
++    for (var i = steps - 1; i >= 0; i--) {
++      final candidate = pointAt(i / steps);
++      final direction = end - candidate;
++      if (direction.distance >= 0.1) {
++        return direction;
++      }
++    }
++    return null;
++  }
++
+   @override
+   CurveElement copyWith({
+     String? id,
+@@ -90,6 +127,8 @@
+     Offset? end,
+     Offset? control,
+     PaintStyle? style,
++    bool? endArrow,
++    double? headSize,
+     String? layerId,
+     bool? visible,
+     double? opacity,
+@@ -102,6 +141,8 @@
+       end: end ?? this.end,
+       control: control ?? this.control,
+       style: style ?? this.style,
++      endArrow: endArrow ?? this.endArrow,
++      headSize: headSize ?? this.headSize,
+       layerId: layerId ?? this.layerId,
+       visible: visible ?? this.visible,
+       opacity: opacity ?? this.opacity,
+@@ -129,6 +170,7 @@
+       end: scalePoint(end, factor, origin),
+       control: scalePoint(control, factor, origin),
+       style: style.copyWith(strokeWidth: style.strokeWidth * factor.abs()),
++      headSize: headSize * factor.abs(),
+     );
+   }
+ 
+@@ -146,6 +188,8 @@
+       'end': {'x': end.dx, 'y': end.dy},
+       'control': {'x': control.dx, 'y': control.dy},
+       'style': style.toJson(),
++      'endArrow': endArrow,
++      'headSize': headSize,
+     };
+   }
+ 
+@@ -170,6 +214,36 @@
+         element.end.dy,
+       );
+     canvas.drawPath(path, paint);
++    if (element.endArrow) {
++      _drawArrowHead(canvas, element, paint);
++    }
++  }
++
++  void _drawArrowHead(
++    Canvas canvas,
++    CurveElement element,
++    Paint paint,
++  ) {
++    final direction = element.endTangentDirection;
++    if (direction == null) {
++      return;
++    }
++    final angle = math.atan2(direction.dy, direction.dx);
++    final wingA = angle + math.pi * 0.82;
++    final wingB = angle - math.pi * 0.82;
++    final tip1 =
++        element.end +
++        Offset(math.cos(wingA), math.sin(wingA)) * element.headSize;
++    final tip2 =
++        element.end +
++        Offset(math.cos(wingB), math.sin(wingB)) * element.headSize;
++
++    final arrowPath = Path()
++      ..moveTo(element.end.dx, element.end.dy)
++      ..lineTo(tip1.dx, tip1.dy)
++      ..moveTo(element.end.dx, element.end.dy)
++      ..lineTo(tip2.dx, tip2.dy);
++    canvas.drawPath(arrowPath, paint);
+   }
+ 
+   @override
+
+codex
+曲线文件已经完成第一轮改动。接下来我只做静态复核：检查字段顺序、构造参数、退化切线辅助函数、JSON 输出位置和渲染路径是否有明显语义或语法问题；不启动测试或分析进程。
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'git diff -- lib/src/elements/curve_element.dart' in D:\project\GitHub\wenz_flutter\wenz_draw
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "Get-Content -LiteralPath 'D:\\project\\GitHub\\wenz_flutter\\wenz_draw\\lib\\src\\elements\\curve_element.dart' -Raw -Encoding UTF8" in D:\project\GitHub\wenz_flutter\wenz_draw
+ succeeded in 234ms:
+import 'dart:math' as math;
+
+import 'package:flutter/widgets.dart';
+
+import '../canvas/paint_style.dart';
+import '../utils/math_utils.dart';
+import 'canvas_element.dart';
+import 'element_renderer.dart';
+
+/// A quadratic Bézier curve defined by a start point, an end point and a
+/// single control point.
+@immutable
+class CurveElement extends CanvasElement {
+  const CurveElement({
+    required this.id,
+    required this.start,
+    required this.end,
+    required this.control,
+    this.style = const PaintStyle(),
+    this.endArrow = false,
+    this.headSize = 14,
+    this.layerId = 'default',
+    this.visible = true,
+    this.opacity = 1,
+    this.zIndex = 0,
+    this.groupId,
+  });
+
+  static const elementType = 'curve';
+
+  @override
+  final String id;
+
+  final Offset start;
+  final Offset end;
+  final Offset control;
+  final PaintStyle style;
+  final bool endArrow;
+  final double headSize;
+
+  @override
+  final String layerId;
+
+  @override
+  final bool visible;
+
+  @override
+  final double opacity;
+
+  @override
+  final int zIndex;
+
+  @override
+  final String? groupId;
+
+  @override
+  String get type => elementType;
+
+  /// Sample the quadratic Bézier at parameter [t] (0 → start, 1 → end).
+  Offset pointAt(double t) {
+    final u = 1 - t;
+    return Offset(
+      u * u * start.dx + 2 * u * t * control.dx + t * t * end.dx,
+      u * u * start.dy + 2 * u * t * control.dy + t * t * end.dy,
+    );
+  }
+
+  /// Approximate bounds by sampling the curve plus the control point.
+  @override
+  Rect get bounds {
+    // The convex hull of start, control, end contains the curve.
+    final allPoints = [start, control, end];
+    return boundsForPoints(allPoints).inflate(
+      math.max(style.strokeWidth / 2, endArrow ? headSize : 0.0),
+    );
+  }
+
+  @override
+  bool hitTest(Offset worldPoint, {double tolerance = 5.0}) {
+    final threshold = tolerance + style.strokeWidth / 2;
+    // Sample the curve densely for hit testing.
+    const steps = 32;
+    Offset? prev;
+    for (var i = 0; i <= steps; i++) {
+      final p = pointAt(i / steps);
+      if (prev != null && distanceToSegment(worldPoint, prev, p) <= threshold) {
+        return true;
+      }
+      prev = p;
+    }
+    if (endArrow) {
+      final direction = endTangentDirection;
+      if (direction == null) {
+        return false;
+      }
+      final angle = math.atan2(direction.dy, direction.dx);
+      final wingA = angle + math.pi * 0.82;
+      final wingB = angle - math.pi * 0.82;
+      final tip1 = end + Offset(math.cos(wingA), math.sin(wingA)) * headSize;
+      final tip2 = end + Offset(math.cos(wingB), math.sin(wingB)) * headSize;
+      return distanceToSegment(worldPoint, end, tip1) <= threshold ||
+          distanceToSegment(worldPoint, end, tip2) <= threshold;
+    }
+    return false;
+  }
+
+  Offset? get endTangentDirection {
+    final direct = end - control;
+    if (direct.distance >= 0.1) {
+      return direct;
+    }
+    const steps = 32;
+    for (var i = steps - 1; i >= 0; i--) {
+      final candidate = pointAt(i / steps);
+      final direction = end - candidate;
+      if (direction.distance >= 0.1) {
+        return direction;
+      }
+    }
+    return null;
+  }
+
+  @override
+  CurveElement copyWith({
+    String? id,
+    Offset? start,
+    Offset? end,
+    Offset? control,
+    PaintStyle? style,
+    bool? endArrow,
+    double? headSize,
+    String? layerId,
+    bool? visible,
+    double? opacity,
+    int? zIndex,
+    Object? groupId = _unset,
+  }) {
+    return CurveElement(
+      id: id ?? this.id,
+      start: start ?? this.start,
+      end: end ?? this.end,
+      control: control ?? this.control,
+      style: style ?? this.style,
+      endArrow: endArrow ?? this.endArrow,
+      headSize: headSize ?? this.headSize,
+      layerId: layerId ?? this.layerId,
+      visible: visible ?? this.visible,
+      opacity: opacity ?? this.opacity,
+      zIndex: zIndex ?? this.zIndex,
+      groupId: identical(groupId, _unset)
+          ? this.groupId
+          : groupId as String?,
+    );
+  }
+
+  @override
+  CurveElement translate(Offset delta) {
+    return copyWith(
+      start: start + delta,
+      end: end + delta,
+      control: control + delta,
+    );
+  }
+
+  @override
+  CurveElement scaleElement(double factor, {Offset? pivot}) {
+    final origin = pivot ?? bounds.center;
+    return copyWith(
+      start: scalePoint(start, factor, origin),
+      end: scalePoint(end, factor, origin),
+      control: scalePoint(control, factor, origin),
+      style: style.copyWith(strokeWidth: style.strokeWidth * factor.abs()),
+      headSize: headSize * factor.abs(),
+    );
+  }
+
+  @override
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'type': type,
+      'layerId': layerId,
+      'visible': visible,
+      'opacity': opacity,
+      'zIndex': zIndex,
+      'groupId': groupId,
+      'start': {'x': start.dx, 'y': start.dy},
+      'end': {'x': end.dx, 'y': end.dy},
+      'control': {'x': control.dx, 'y': control.dy},
+      'style': style.toJson(),
+      'endArrow': endArrow,
+      'headSize': headSize,
+    };
+  }
+
+  static const _unset = Object();
+}
+
+class CurveElementRenderer extends ElementRenderer<CurveElement> {
+  const CurveElementRenderer();
+
+  @override
+  void render(Canvas canvas, CurveElement element) {
+    if (!element.visible) return;
+    final paint = element.style
+        .copyWith(opacity: element.style.opacity * element.opacity)
+        .toPaint();
+    final path = Path()
+      ..moveTo(element.start.dx, element.start.dy)
+      ..quadraticBezierTo(
+        element.control.dx,
+        element.control.dy,
+        element.end.dx,
+        element.end.dy,
+      );
+    canvas.drawPath(path, paint);
+    if (element.endArrow) {
+      _drawArrowHead(canvas, element, paint);
+    }
+  }
+
+  void _drawArrowHead(
+    Canvas canvas,
+    CurveElement element,
+    Paint paint,
+  ) {
+    final direction = element.endTangentDirection;
+    if (direction == null) {
+      return;
+    }
+    final angle = math.atan2(direction.dy, direction.dx);
+    final wingA = angle + math.pi * 0.82;
+    final wingB = angle - math.pi * 0.82;
+    final tip1 =
+        element.end +
+        Offset(math.cos(wingA), math.sin(wingA)) * element.headSize;
+    final tip2 =
+        element.end +
+        Offset(math.cos(wingB), math.sin(wingB)) * element.headSize;
+
+    final arrowPath = Path()
+      ..moveTo(element.end.dx, element.end.dy)
+      ..lineTo(tip1.dx, tip1.dy)
+      ..moveTo(element.end.dx, element.end.dy)
+      ..lineTo(tip2.dx, tip2.dy);
+    canvas.drawPath(arrowPath, paint);
+  }
+
+  @override
+  bool hitTest(CurveElement element, Offset worldPoint, double tolerance) {
+    return element.hitTest(worldPoint, tolerance: tolerance);
+  }
+}
+
+
+ succeeded in 252ms:
+diff --git a/wenz_draw/lib/src/elements/curve_element.dart b/wenz_draw/lib/src/elements/curve_element.dart
+index de47d9b..56a138e 100644
+--- a/wenz_draw/lib/src/elements/curve_element.dart
++++ b/wenz_draw/lib/src/elements/curve_element.dart
+@@ -1,3 +1,5 @@
++import 'dart:math' as math;
++
+ import 'package:flutter/widgets.dart';
+ 
+ import '../canvas/paint_style.dart';
+@@ -15,6 +17,8 @@ class CurveElement extends CanvasElement {
+     required this.end,
+     required this.control,
+     this.style = const PaintStyle(),
++    this.endArrow = false,
++    this.headSize = 14,
+     this.layerId = 'default',
+     this.visible = true,
+     this.opacity = 1,
+@@ -31,6 +35,8 @@ class CurveElement extends CanvasElement {
+   final Offset end;
+   final Offset control;
+   final PaintStyle style;
++  final bool endArrow;
++  final double headSize;
+ 
+   @override
+   final String layerId;
+@@ -64,7 +70,9 @@ class CurveElement extends CanvasElement {
+   Rect get bounds {
+     // The convex hull of start, control, end contains the curve.
+     final allPoints = [start, control, end];
+-    return boundsForPoints(allPoints).inflate(style.strokeWidth / 2);
++    return boundsForPoints(allPoints).inflate(
++      math.max(style.strokeWidth / 2, endArrow ? headSize : 0.0),
++    );
+   }
+ 
+   @override
+@@ -80,9 +88,38 @@ class CurveElement extends CanvasElement {
+       }
+       prev = p;
+     }
++    if (endArrow) {
++      final direction = endTangentDirection;
++      if (direction == null) {
++        return false;
++      }
++      final angle = math.atan2(direction.dy, direction.dx);
++      final wingA = angle + math.pi * 0.82;
++      final wingB = angle - math.pi * 0.82;
++      final tip1 = end + Offset(math.cos(wingA), math.sin(wingA)) * headSize;
++      final tip2 = end + Offset(math.cos(wingB), math.sin(wingB)) * headSize;
++      return distanceToSegment(worldPoint, end, tip1) <= threshold ||
++          distanceToSegment(worldPoint, end, tip2) <= threshold;
++    }
+     return false;
+   }
+ 
++  Offset? get endTangentDirection {
++    final direct = end - control;
++    if (direct.distance >= 0.1) {
++      return direct;
++    }
++    const steps = 32;
++    for (var i = steps - 1; i >= 0; i--) {
++      final candidate = pointAt(i / steps);
++      final direction = end - candidate;
++      if (direction.distance >= 0.1) {
++        return direction;
++      }
++    }
++    return null;
++  }
++
+   @override
+   CurveElement copyWith({
+     String? id,
+@@ -90,6 +127,8 @@ class CurveElement extends CanvasElement {
+     Offset? end,
+     Offset? control,
+     PaintStyle? style,
++    bool? endArrow,
++    double? headSize,
+     String? layerId,
+     bool? visible,
+     double? opacity,
+@@ -102,6 +141,8 @@ class CurveElement extends CanvasElement {
+       end: end ?? this.end,
+       control: control ?? this.control,
+       style: style ?? this.style,
++      endArrow: endArrow ?? this.endArrow,
++      headSize: headSize ?? this.headSize,
+       layerId: layerId ?? this.layerId,
+       visible: visible ?? this.visible,
+       opacity: opacity ?? this.opacity,
+@@ -129,6 +170,7 @@ class CurveElement extends CanvasElement {
+       end: scalePoint(end, factor, origin),
+       control: scalePoint(control, factor, origin),
+       style: style.copyWith(strokeWidth: style.strokeWidth * factor.abs()),
++      headSize: headSize * factor.abs(),
+     );
+   }
+ 
+@@ -146,6 +188,8 @@ class CurveElement extends CanvasElement {
+       'end': {'x': end.dx, 'y': end.dy},
+       'control': {'x': control.dx, 'y': control.dy},
+       'style': style.toJson(),
++      'endArrow': endArrow,
++      'headSize': headSize,
+     };
+   }
+ 
+@@ -170,6 +214,36 @@ class CurveElementRenderer extends ElementRenderer<CurveElement> {
+         element.end.dy,
+       );
+     canvas.drawPath(path, paint);
++    if (element.endArrow) {
++      _drawArrowHead(canvas, element, paint);
++    }
++  }
++
++  void _drawArrowHead(
++    Canvas canvas,
++    CurveElement element,
++    Paint paint,
++  ) {
++    final direction = element.endTangentDirection;
++    if (direction == null) {
++      return;
++    }
++    final angle = math.atan2(direction.dy, direction.dx);
++    final wingA = angle + math.pi * 0.82;
++    final wingB = angle - math.pi * 0.82;
++    final tip1 =
++        element.end +
++        Offset(math.cos(wingA), math.sin(wingA)) * element.headSize;
++    final tip2 =
++        element.end +
++        Offset(math.cos(wingB), math.sin(wingB)) * element.headSize;
++
++    final arrowPath = Path()
++      ..moveTo(element.end.dx, element.end.dy)
++      ..lineTo(tip1.dx, tip1.dy)
++      ..moveTo(element.end.dx, element.end.dy)
++      ..lineTo(tip2.dx, tip2.dy);
++    canvas.drawPath(arrowPath, paint);
+   }
+ 
+   @override
+warning: in the working copy of 'wenz_draw/lib/src/elements/curve_element.dart', LF will be replaced by CRLF the next time Git touches it
+
+diff --git a/wenz_draw/lib/src/elements/curve_element.dart b/wenz_draw/lib/src/elements/curve_element.dart
+index de47d9b193bff131549d553e5720def6d76d8d67..56a138e9db4f286f12a8af8d3f442ed2836e6dcd
+--- a/wenz_draw/lib/src/elements/curve_element.dart
++++ b/wenz_draw/lib/src/elements/curve_element.dart
+@@ -1,3 +1,5 @@
++import 'dart:math' as math;
++
+ import 'package:flutter/widgets.dart';
+ 
+ import '../canvas/paint_style.dart';
+@@ -15,6 +17,8 @@
+     required this.end,
+     required this.control,
+     this.style = const PaintStyle(),
++    this.endArrow = false,
++    this.headSize = 14,
+     this.layerId = 'default',
+     this.visible = true,
+     this.opacity = 1,
+@@ -31,6 +35,8 @@
+   final Offset end;
+   final Offset control;
+   final PaintStyle style;
++  final bool endArrow;
++  final double headSize;
+ 
+   @override
+   final String layerId;
+@@ -64,7 +70,9 @@
+   Rect get bounds {
+     // The convex hull of start, control, end contains the curve.
+     final allPoints = [start, control, end];
+-    return boundsForPoints(allPoints).inflate(style.strokeWidth / 2);
++    return boundsForPoints(allPoints).inflate(
++      math.max(style.strokeWidth / 2, endArrow ? headSize : 0.0),
++    );
+   }
+ 
+   @override
+@@ -80,9 +88,38 @@
+       }
+       prev = p;
+     }
++    if (endArrow) {
++      final direction = endTangentDirection;
++      if (direction == null) {
++        return false;
++      }
++      final angle = math.atan2(direction.dy, direction.dx);
++      final wingA = angle + math.pi * 0.82;
++      final wingB = angle - math.pi * 0.82;
++      final tip1 = end + Offset(math.cos(wingA), math.sin(wingA)) * headSize;
++      final tip2 = end + Offset(math.cos(wingB), math.sin(wingB)) * headSize;
++      return distanceToSegment(worldPoint, end, tip1) <= threshold ||
++          distanceToSegment(worldPoint, end, tip2) <= threshold;
++    }
+     return false;
+   }
+ 
++  Offset? get endTangentDirection {
++    final direct = end - control;
++    if (direct.distance >= 0.1) {
++      return direct;
++    }
++    const steps = 32;
++    for (var i = steps - 1; i >= 0; i--) {
++      final candidate = pointAt(i / steps);
++      final direction = end - candidate;
++      if (direction.distance >= 0.1) {
++        return direction;
++      }
++    }
++    return null;
++  }
++
+   @override
+   CurveElement copyWith({
+     String? id,
+@@ -90,6 +127,8 @@
+     Offset? end,
+     Offset? control,
+     PaintStyle? style,
++    bool? endArrow,
++    double? headSize,
+     String? layerId,
+     bool? visible,
+     double? opacity,
+@@ -102,6 +141,8 @@
+       end: end ?? this.end,
+       control: control ?? this.control,
+       style: style ?? this.style,
++      endArrow: endArrow ?? this.endArrow,
++      headSize: headSize ?? this.headSize,
+       layerId: layerId ?? this.layerId,
+       visible: visible ?? this.visible,
+       opacity: opacity ?? this.opacity,
+@@ -129,6 +170,7 @@
+       end: scalePoint(end, factor, origin),
+       control: scalePoint(control, factor, origin),
+       style: style.copyWith(strokeWidth: style.strokeWidth * factor.abs()),
++      headSize: headSize * factor.abs(),
+     );
+   }
+ 
+@@ -146,6 +188,8 @@
+       'end': {'x': end.dx, 'y': end.dy},
+       'control': {'x': control.dx, 'y': control.dy},
+       'style': style.toJson(),
++      'endArrow': endArrow,
++      'headSize': headSize,
+     };
+   }
+ 
+@@ -170,6 +214,36 @@
+         element.end.dy,
+       );
+     canvas.drawPath(path, paint);
++    if (element.endArrow) {
++      _drawArrowHead(canvas, element, paint);
++    }
++  }
++
++  void _drawArrowHead(
++    Canvas canvas,
++    CurveElement element,
++    Paint paint,
++  ) {
++    final direction = element.endTangentDirection;
++    if (direction == null) {
++      return;
++    }
++    final angle = math.atan2(direction.dy, direction.dx);
++    final wingA = angle + math.pi * 0.82;
++    final wingB = angle - math.pi * 0.82;
++    final tip1 =
++        element.end +
++        Offset(math.cos(wingA), math.sin(wingA)) * element.headSize;
++    final tip2 =
++        element.end +
++        Offset(math.cos(wingB), math.sin(wingB)) * element.headSize;
++
++    final arrowPath = Path()
++      ..moveTo(element.end.dx, element.end.dy)
++      ..lineTo(tip1.dx, tip1.dy)
++      ..moveTo(element.end.dx, element.end.dy)
++      ..lineTo(tip2.dx, tip2.dy);
++    canvas.drawPath(arrowPath, paint);
+   }
+ 
+   @override
+
+codex
+静态复核结果没有发现需要跨 scope 修改的依赖点：新增构造参数都有默认值，现有调用方不会被强制改动；序列化只增加输出字段，读取链路留给后续 P003。最后我确认本轮只触碰了指定业务文件。
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'git status --short -- lib/src/elements/curve_element.dart docs/plan/plan_feedback_50_20260710-001811.md' in D:\project\GitHub\wenz_flutter\wenz_draw
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'git diff --name-only -- lib/src/elements/curve_element.dart docs/plan/plan_feedback_50_20260710-001811.md' in D:\project\GitHub\wenz_flutter\wenz_draw
+ succeeded in 250ms:
+wenz_draw/lib/src/elements/curve_element.dart
+warning: in the working copy of 'wenz_draw/lib/src/elements/curve_element.dart', LF will be replaced by CRLF the next time Git touches it
+
+ succeeded in 254ms:
+ M lib/src/elements/curve_element.dart
+?? docs/plan/plan_feedback_50_20260710-001811.md
+
+diff --git a/wenz_draw/lib/src/elements/curve_element.dart b/wenz_draw/lib/src/elements/curve_element.dart
+index de47d9b193bff131549d553e5720def6d76d8d67..56a138e9db4f286f12a8af8d3f442ed2836e6dcd
+--- a/wenz_draw/lib/src/elements/curve_element.dart
++++ b/wenz_draw/lib/src/elements/curve_element.dart
+@@ -1,3 +1,5 @@
++import 'dart:math' as math;
++
+ import 'package:flutter/widgets.dart';
+ 
+ import '../canvas/paint_style.dart';
+@@ -15,6 +17,8 @@
+     required this.end,
+     required this.control,
+     this.style = const PaintStyle(),
++    this.endArrow = false,
++    this.headSize = 14,
+     this.layerId = 'default',
+     this.visible = true,
+     this.opacity = 1,
+@@ -31,6 +35,8 @@
+   final Offset end;
+   final Offset control;
+   final PaintStyle style;
++  final bool endArrow;
++  final double headSize;
+ 
+   @override
+   final String layerId;
+@@ -64,7 +70,9 @@
+   Rect get bounds {
+     // The convex hull of start, control, end contains the curve.
+     final allPoints = [start, control, end];
+-    return boundsForPoints(allPoints).inflate(style.strokeWidth / 2);
++    return boundsForPoints(allPoints).inflate(
++      math.max(style.strokeWidth / 2, endArrow ? headSize : 0.0),
++    );
+   }
+ 
+   @override
+@@ -80,9 +88,38 @@
+       }
+       prev = p;
+     }
++    if (endArrow) {
++      final direction = endTangentDirection;
++      if (direction == null) {
++        return false;
++      }
++      final angle = math.atan2(direction.dy, direction.dx);
++      final wingA = angle + math.pi * 0.82;
++      final wingB = angle - math.pi * 0.82;
++      final tip1 = end + Offset(math.cos(wingA), math.sin(wingA)) * headSize;
++      final tip2 = end + Offset(math.cos(wingB), math.sin(wingB)) * headSize;
++      return distanceToSegment(worldPoint, end, tip1) <= threshold ||
++          distanceToSegment(worldPoint, end, tip2) <= threshold;
++    }
+     return false;
+   }
+ 
++  Offset? get endTangentDirection {
++    final direct = end - control;
++    if (direct.distance >= 0.1) {
++      return direct;
++    }
++    const steps = 32;
++    for (var i = steps - 1; i >= 0; i--) {
++      final candidate = pointAt(i / steps);
++      final direction = end - candidate;
++      if (direction.distance >= 0.1) {
++        return direction;
++      }
++    }
++    return null;
++  }
++
+   @override
+   CurveElement copyWith({
+     String? id,
+@@ -90,6 +127,8 @@
+     Offset? end,
+     Offset? control,
+     PaintStyle? style,
++    bool? endArrow,
++    double? headSize,
+     String? layerId,
+     bool? visible,
+     double? opacity,
+@@ -102,6 +141,8 @@
+       end: end ?? this.end,
+       control: control ?? this.control,
+       style: style ?? this.style,
++      endArrow: endArrow ?? this.endArrow,
++      headSize: headSize ?? this.headSize,
+       layerId: layerId ?? this.layerId,
+       visible: visible ?? this.visible,
+       opacity: opacity ?? this.opacity,
+@@ -129,6 +170,7 @@
+       end: scalePoint(end, factor, origin),
+       control: scalePoint(control, factor, origin),
+       style: style.copyWith(strokeWidth: style.strokeWidth * factor.abs()),
++      headSize: headSize * factor.abs(),
+     );
+   }
+ 
+@@ -146,6 +188,8 @@
+       'end': {'x': end.dx, 'y': end.dy},
+       'control': {'x': control.dx, 'y': control.dy},
+       'style': style.toJson(),
++      'endArrow': endArrow,
++      'headSize': headSize,
+     };
+   }
+ 
+@@ -170,6 +214,36 @@
+         element.end.dy,
+       );
+     canvas.drawPath(path, paint);
++    if (element.endArrow) {
++      _drawArrowHead(canvas, element, paint);
++    }
++  }
++
++  void _drawArrowHead(
++    Canvas canvas,
++    CurveElement element,
++    Paint paint,
++  ) {
++    final direction = element.endTangentDirection;
++    if (direction == null) {
++      return;
++    }
++    final angle = math.atan2(direction.dy, direction.dx);
++    final wingA = angle + math.pi * 0.82;
++    final wingB = angle - math.pi * 0.82;
++    final tip1 =
++        element.end +
++        Offset(math.cos(wingA), math.sin(wingA)) * element.headSize;
++    final tip2 =
++        element.end +
++        Offset(math.cos(wingB), math.sin(wingB)) * element.headSize;
++
++    final arrowPath = Path()
++      ..moveTo(element.end.dx, element.end.dy)
++      ..lineTo(tip1.dx, tip1.dy)
++      ..moveTo(element.end.dx, element.end.dy)
++      ..lineTo(tip2.dx, tip2.dy);
++    canvas.drawPath(arrowPath, paint);
+   }
+ 
+   @override
+
+codex
+已完成 P001，只修改了 `lib/src/elements/curve_element.dart`。
+
+变更内容：
+- `CurveElement` 增加 `endArrow` 和 `headSize`，并接入 `copyWith`、`scaleElement`、`bounds`、`hitTest`、`toJson`。
+- 画布渲染会在 `endArrow=true` 时按二次贝塞尔终点切线绘制末端箭头。
+- 控制点与终点重合时会回退到靠近终点的曲线方向；完全退化时不绘制箭头，避免异常或错误方向。
+- 未启用箭头时，原有曲线渲染、命中测试和缩放行为保持兼容。
+
+按要求未修改 plan 文件，也未运行测试、构建、lint 或 analyze。
+diff --git a/wenz_draw/lib/src/elements/curve_element.dart b/wenz_draw/lib/src/elements/curve_element.dart
+index de47d9b193bff131549d553e5720def6d76d8d67..56a138e9db4f286f12a8af8d3f442ed2836e6dcd
+--- a/wenz_draw/lib/src/elements/curve_element.dart
++++ b/wenz_draw/lib/src/elements/curve_element.dart
+@@ -1,3 +1,5 @@
++import 'dart:math' as math;
++
+ import 'package:flutter/widgets.dart';
+ 
+ import '../canvas/paint_style.dart';
+@@ -15,6 +17,8 @@
+     required this.end,
+     required this.control,
+     this.style = const PaintStyle(),
++    this.endArrow = false,
++    this.headSize = 14,
+     this.layerId = 'default',
+     this.visible = true,
+     this.opacity = 1,
+@@ -31,6 +35,8 @@
+   final Offset end;
+   final Offset control;
+   final PaintStyle style;
++  final bool endArrow;
++  final double headSize;
+ 
+   @override
+   final String layerId;
+@@ -64,7 +70,9 @@
+   Rect get bounds {
+     // The convex hull of start, control, end contains the curve.
+     final allPoints = [start, control, end];
+-    return boundsForPoints(allPoints).inflate(style.strokeWidth / 2);
++    return boundsForPoints(allPoints).inflate(
++      math.max(style.strokeWidth / 2, endArrow ? headSize : 0.0),
++    );
+   }
+ 
+   @override
+@@ -80,9 +88,38 @@
+       }
+       prev = p;
+     }
++    if (endArrow) {
++      final direction = endTangentDirection;
++      if (direction == null) {
++        return false;
++      }
++      final angle = math.atan2(direction.dy, direction.dx);
++      final wingA = angle + math.pi * 0.82;
++      final wingB = angle - math.pi * 0.82;
++      final tip1 = end + Offset(math.cos(wingA), math.sin(wingA)) * headSize;
++      final tip2 = end + Offset(math.cos(wingB), math.sin(wingB)) * headSize;
++      return distanceToSegment(worldPoint, end, tip1) <= threshold ||
++          distanceToSegment(worldPoint, end, tip2) <= threshold;
++    }
+     return false;
+   }
+ 
++  Offset? get endTangentDirection {
++    final direct = end - control;
++    if (direct.distance >= 0.1) {
++      return direct;
++    }
++    const steps = 32;
++    for (var i = steps - 1; i >= 0; i--) {
++      final candidate = pointAt(i / steps);
++      final direction = end - candidate;
++      if (direction.distance >= 0.1) {
++        return direction;
++      }
++    }
++    return null;
++  }
++
+   @override
+   CurveElement copyWith({
+     String? id,
+@@ -90,6 +127,8 @@
+     Offset? end,
+     Offset? control,
+     PaintStyle? style,
++    bool? endArrow,
++    double? headSize,
+     String? layerId,
+     bool? visible,
+     double? opacity,
+@@ -102,6 +141,8 @@
+       end: end ?? this.end,
+       control: control ?? this.control,
+       style: style ?? this.style,
++      endArrow: endArrow ?? this.endArrow,
++      headSize: headSize ?? this.headSize,
+       layerId: layerId ?? this.layerId,
+       visible: visible ?? this.visible,
+       opacity: opacity ?? this.opacity,
+@@ -129,6 +170,7 @@
+       end: scalePoint(end, factor, origin),
+       control: scalePoint(control, factor, origin),
+       style: style.copyWith(strokeWidth: style.strokeWidth * factor.abs()),
++      headSize: headSize * factor.abs(),
+     );
+   }
+ 
+@@ -146,6 +188,8 @@
+       'end': {'x': end.dx, 'y': end.dy},
+       'control': {'x': control.dx, 'y': control.dy},
+       'style': style.toJson(),
++      'endArrow': endArrow,
++      'headSize': headSize,
+     };
+   }
+ 
+@@ -170,6 +214,36 @@
+         element.end.dy,
+       );
+     canvas.drawPath(path, paint);
++    if (element.endArrow) {
++      _drawArrowHead(canvas, element, paint);
++    }
++  }
++
++  void _drawArrowHead(
++    Canvas canvas,
++    CurveElement element,
++    Paint paint,
++  ) {
++    final direction = element.endTangentDirection;
++    if (direction == null) {
++      return;
++    }
++    final angle = math.atan2(direction.dy, direction.dx);
++    final wingA = angle + math.pi * 0.82;
++    final wingB = angle - math.pi * 0.82;
++    final tip1 =
++        element.end +
++        Offset(math.cos(wingA), math.sin(wingA)) * element.headSize;
++    final tip2 =
++        element.end +
++        Offset(math.cos(wingB), math.sin(wingB)) * element.headSize;
++
++    final arrowPath = Path()
++      ..moveTo(element.end.dx, element.end.dy)
++      ..lineTo(tip1.dx, tip1.dy)
++      ..moveTo(element.end.dx, element.end.dy)
++      ..lineTo(tip2.dx, tip2.dy);
++    canvas.drawPath(arrowPath, paint);
+   }
+ 
+   @override
+
+tokens used
+37,887
+已完成 P001，只修改了 `lib/src/elements/curve_element.dart`。
+
+变更内容：
+- `CurveElement` 增加 `endArrow` 和 `headSize`，并接入 `copyWith`、`scaleElement`、`bounds`、`hitTest`、`toJson`。
+- 画布渲染会在 `endArrow=true` 时按二次贝塞尔终点切线绘制末端箭头。
+- 控制点与终点重合时会回退到靠近终点的曲线方向；完全退化时不绘制箭头，避免异常或错误方向。
+- 未启用箭头时，原有曲线渲染、命中测试和缩放行为保持兼容。
+
+按要求未修改 plan 文件，也未运行测试、构建、lint 或 analyze。

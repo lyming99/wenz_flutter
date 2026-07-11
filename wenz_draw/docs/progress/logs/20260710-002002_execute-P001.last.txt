@@ -1,0 +1,9 @@
+已完成 P001，只修改了 `lib/src/elements/curve_element.dart`。
+
+变更内容：
+- `CurveElement` 增加 `endArrow` 和 `headSize`，并接入 `copyWith`、`scaleElement`、`bounds`、`hitTest`、`toJson`。
+- 画布渲染会在 `endArrow=true` 时按二次贝塞尔终点切线绘制末端箭头。
+- 控制点与终点重合时会回退到靠近终点的曲线方向；完全退化时不绘制箭头，避免异常或错误方向。
+- 未启用箭头时，原有曲线渲染、命中测试和缩放行为保持兼容。
+
+按要求未修改 plan 文件，也未运行测试、构建、lint 或 analyze。

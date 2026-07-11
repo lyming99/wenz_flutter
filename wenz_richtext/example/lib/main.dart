@@ -99,12 +99,14 @@ Future<List<WenzMentionCandidate>> _searchExampleMentions(
 }
 
 ThemeData _exampleTheme(Brightness brightness) {
-  final background =
-      brightness == Brightness.dark ? Colors.black : Colors.white;
-  final scheme = ColorScheme.fromSeed(
+  final baseScheme = ColorScheme.fromSeed(
     seedColor: _exampleSeedColor,
     brightness: brightness,
-  ).copyWith(surface: background);
+  );
+  final background = brightness == Brightness.dark
+      ? baseScheme.surfaceContainer
+      : Colors.white;
+  final scheme = baseScheme.copyWith(surface: background);
   return ThemeData(
     colorScheme: scheme,
     fontFamily: _exampleFontFamily,
@@ -114,8 +116,9 @@ ThemeData _exampleTheme(Brightness brightness) {
 }
 
 Color _exampleEditorBackground(BuildContext context) {
-  return Theme.of(context).brightness == Brightness.dark
-      ? Colors.black
+  final theme = Theme.of(context);
+  return theme.brightness == Brightness.dark
+      ? theme.colorScheme.surfaceContainer
       : Colors.white;
 }
 
@@ -126,6 +129,10 @@ Color _exampleEditorBackground(BuildContext context) {
 /// built-in placeholder remains visible; local file failures render helper
 /// fallbacks.
 class _ExampleMediaResolver implements MediaResolver {
+  const _ExampleMediaResolver({this.videoPlaybackFactory});
+
+  final ExampleVideoPlaybackFactory? videoPlaybackFactory;
+
   @override
   Widget? resolve(BuildContext context, BlockNode block) {
     if (block is ImageBlockNode) {
@@ -194,14 +201,25 @@ class _ExampleMediaResolver implements MediaResolver {
     } else {
       videoSource = ExampleVideoSource.file(source);
     }
-    // The editor frame owns embedded rounded clipping. Keep the resolved player
-    // square so the same widget can move into the rectangular preview/fullscreen
-    // surface without carrying an inner ClipRRect(8).
+    final entry = WenzRichTextMediaResolveScope.maybeVideoEntryOf(context);
+    if (entry == WenzRichTextVideoMediaResolveEntry.dialog) {
+      // `dialog` is the resolver-entry compatibility name; the editor now
+      // hosts this player on a viewport-sized, square-corner fullscreen route.
+      return ExampleVideoPlayer.fullscreen(
+        source: videoSource,
+        aspectRatio: block.effectiveAspectRatio,
+        coverUrl: block.coverUrl,
+        playbackFactory: videoPlaybackFactory,
+      );
+    }
+    // The editor frame owns embedded rounded clipping. Keep the inline resolved
+    // player square so it does not carry an inner ClipRRect(8) inside the block.
     return ExampleVideoPlayer(
       source: videoSource,
       aspectRatio: block.effectiveAspectRatio,
       coverUrl: block.coverUrl,
       borderRadius: _resolverVideoPlayerBorderRadius,
+      playbackFactory: videoPlaybackFactory,
     );
   }
 }
@@ -307,7 +325,12 @@ const _htmlImportExportDemo = '''
 ''';
 
 class WenzRichTextExampleApp extends StatefulWidget {
-  const WenzRichTextExampleApp({super.key});
+  const WenzRichTextExampleApp({
+    super.key,
+    this.videoPlaybackFactory,
+  });
+
+  final ExampleVideoPlaybackFactory? videoPlaybackFactory;
 
   @override
   State<WenzRichTextExampleApp> createState() => _WenzRichTextExampleAppState();
@@ -334,6 +357,7 @@ class _WenzRichTextExampleAppState extends State<WenzRichTextExampleApp> {
       home: EditorWorkbench(
         themeMode: _themeMode,
         onToggleThemeMode: _toggleThemeMode,
+        videoPlaybackFactory: widget.videoPlaybackFactory,
       ),
     );
   }
@@ -344,10 +368,12 @@ class EditorWorkbench extends StatefulWidget {
     super.key,
     required this.themeMode,
     required this.onToggleThemeMode,
+    this.videoPlaybackFactory,
   });
 
   final ThemeMode themeMode;
   final VoidCallback onToggleThemeMode;
+  final ExampleVideoPlaybackFactory? videoPlaybackFactory;
 
   @override
   State<EditorWorkbench> createState() => _EditorWorkbenchState();
@@ -365,7 +391,7 @@ class _EditorWorkbenchState extends State<EditorWorkbench> {
   late final WenzDocumentStatsController _stats;
   late final WenzAutoSaveController _autosave;
   late final WenzOutlineController _outline;
-  final MediaResolver _mediaResolver = _ExampleMediaResolver();
+  late final MediaResolver _mediaResolver;
   final _draftAdapter = _InMemoryDraftAdapter();
 
   // AI conversation module — initialized once at startup.
@@ -390,6 +416,9 @@ class _EditorWorkbenchState extends State<EditorWorkbench> {
   @override
   void initState() {
     super.initState();
+    _mediaResolver = _ExampleMediaResolver(
+      videoPlaybackFactory: widget.videoPlaybackFactory,
+    );
     _bootstrap = WenzEditorBootstrap.create(
       WenzEditorConfiguration(
         document: _sampleDocument(),
@@ -445,11 +474,10 @@ class _EditorWorkbenchState extends State<EditorWorkbench> {
         // choose when the same component is shared across multiple hosts.
         plugins: <WenzRichTextPlugin>[const FlowchartPlugin()],
         // Mermaid diagrams: opt-in via the configuration flag and independent
-        // from the custom Flowchart embed above. Uses the vector-graphics SVG
-        // surface so no additional native dependency is required for the
-        // example.
+        // from the custom Flowchart embed above. The preview uses the package's
+        // pure Flutter painter, so the example needs no WebView, native
+        // bridge, network service, or external process.
         enableMermaidDiagrams: true,
-        diagramSvgSurface: const VectorGraphicsDiagramSurface(),
         // Autosave is opt-in: it needs a host-supplied sink. The example
         // persists snapshots in memory and reports state in the inspector.
         enableAutosave: true,
@@ -641,6 +669,7 @@ class _EditorWorkbenchState extends State<EditorWorkbench> {
     // Drawer so the editor gets the full width; wider surfaces keep the original
     // three-column body. The breakpoint matches EditorTokens' mobile split.
     final isCompact = MediaQuery.sizeOf(context).shortestSide < 600;
+    final useMobileToolbar = _bootstrap.shouldUseMobileLayout(context);
     return Scaffold(
       appBar: AppBar(
         title: const Text(
@@ -674,7 +703,11 @@ class _EditorWorkbenchState extends State<EditorWorkbench> {
         child: LayoutBuilder(
           builder: (context, constraints) {
             if (isCompact) {
-              return _buildEditorColumn(theme, context);
+              return _buildEditorColumn(
+                theme,
+                context,
+                useMobileToolbar: useMobileToolbar,
+              );
             }
             return Row(
               children: <Widget>[
@@ -684,7 +717,11 @@ class _EditorWorkbenchState extends State<EditorWorkbench> {
                   // surfaces (fixed 320 width); on phones it is a bottom sheet.
                   child: Stack(
                     children: <Widget>[
-                      _buildEditorColumn(theme, context),
+                      _buildEditorColumn(
+                        theme,
+                        context,
+                        useMobileToolbar: useMobileToolbar,
+                      ),
                       if (_showComments)
                         Positioned(
                           right: 0,
@@ -704,41 +741,63 @@ class _EditorWorkbenchState extends State<EditorWorkbench> {
     );
   }
 
-  /// The desktop-toolbar + editor column shared by both layouts. The editor
-  /// surface is wrapped in a [SafeArea] (top disabled — the AppBar already
-  /// clears the status bar) so the content never sits under the navigation
-  /// gesture bar or landscape notches on mobile. Desktop insets are zero, so
-  /// this is a no-op there and rendering is unchanged.
-  Widget _buildEditorColumn(ThemeData theme, BuildContext context) {
+  WenzDefaultDesktopToolbarActions _desktopToolbarActions() {
+    return WenzDefaultDesktopToolbarActions(
+      onInsertImage: (_) => _insertImage(),
+      onInsertVideo: (_) => _insertVideo(),
+      onInsertFile: (_) => _insertFile(),
+      onInsertBlockEmbed: (_) => _insertBlockEmbed(),
+      isPickingImage: _isPickingImage,
+    );
+  }
+
+  WenzDefaultMobileToolbarActions _mobileToolbarActions() {
+    return WenzDefaultMobileToolbarActions(
+      onInsertImage: (_) => _insertImage(),
+      onInsertVideo: (_) => _insertVideo(),
+      onInsertFile: (_) => _insertFile(),
+      onInsertBlockEmbed: (_) => _insertBlockEmbed(),
+      isPickingImage: _isPickingImage,
+    );
+  }
+
+  /// Editor column shared by compact and wide layouts.
+  ///
+  /// Desktop layout keeps the toolbar above the editor. Mobile layout puts the
+  /// toolbar at the bottom so the fixed main bar and expanded mobile panels take
+  /// layout space instead of covering find/replace or editor content.
+  Widget _buildEditorColumn(
+    ThemeData theme,
+    BuildContext context, {
+    required bool useMobileToolbar,
+  }) {
     final findController = _bootstrap.findReplaceController;
     return Column(
       children: <Widget>[
-        // Find/replace docks above the toolbar as a compact bar (mobile
-        // dropdown-bar layout / desktop wrap).
         if (_showFindReplace && findController != null)
           WenzFindReplacePanel(
             controller: findController,
             onClose: () => setState(() => _showFindReplace = false),
           ),
-        _bootstrap.buildDefaultDesktopToolbar(
-          actions: WenzDefaultDesktopToolbarActions(
-            onInsertImage: (_) => _insertImage(),
-            onInsertVideo: (_) => _insertVideo(),
-            onInsertFile: (_) => _insertFile(),
-            onInsertBlockEmbed: (_) => _insertBlockEmbed(),
-            isPickingImage: _isPickingImage,
+        if (!useMobileToolbar)
+          _bootstrap.buildDefaultDesktopToolbar(
+            actions: _desktopToolbarActions(),
           ),
-        ),
         Expanded(
           child: ColoredBox(
             key: _editorSurfaceKey,
             color: _exampleEditorBackground(context),
             child: SafeArea(
               top: false,
+              bottom: !useMobileToolbar,
               child: _buildEditor(theme),
             ),
           ),
         ),
+        if (useMobileToolbar)
+          _bootstrap.buildDefaultMobileToolbar(
+            actions: _mobileToolbarActions(),
+          ),
       ],
     );
   }
@@ -840,38 +899,13 @@ class _EditorWorkbenchState extends State<EditorWorkbench> {
   }
 
   WenzRichTextEditor _buildEditor(ThemeData theme) {
-    final shortcutConfiguration = EditorShortcutConfiguration.merge(
-      <EditorShortcutConfiguration>[
-        ..._bootstrap.pluginShortcutConfigurations,
-        _bootstrap.configuration.shortcutConfiguration,
-      ],
-    );
-    return WenzRichTextEditor(
-      controller: _controller,
+    return _bootstrap.buildEditor(
       padding: const EdgeInsets.fromLTRB(32, 28, 32, 48),
       blockSpacing: 14,
       textStyle: theme.textTheme.bodyLarge,
       defaultTextColor: theme.colorScheme.onSurface,
       autofocus: true,
-      readOnly:
-          _bootstrap.configuration.permission == WenzEditorPermission.read,
       showDebugOverlay: _showDebugOverlay,
-      shortcutConfiguration: shortcutConfiguration,
-      blockRenderers: _bootstrap.blockRendererRegistry,
-      mediaResolver: _bootstrap.configuration.mediaResolver,
-      inlineEmbedRenderer: _bootstrap.inlineEmbedRendererRegistry,
-      mentionSearch: _bootstrap.mentionSearch,
-      onMentionTap: _bootstrap.configuration.onMentionTap,
-      onOpenLink: _bootstrap.configuration.onOpenLink,
-      findController: _bootstrap.findReplaceController,
-      slashMenuController: _bootstrap.slashMenuController,
-      outlineController: _outline,
-      enableExternalImageInput:
-          _bootstrap.configuration.enableExternalImageInput,
-      externalImageClipboardReader:
-          _bootstrap.configuration.externalImageClipboardReader,
-      externalImageStore: _bootstrap.configuration.externalImageStore,
-      accessibility: _bootstrap.configuration.accessibility,
     );
   }
 

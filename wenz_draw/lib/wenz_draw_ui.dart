@@ -19,6 +19,9 @@ library wenz_draw_ui;
 export 'src/ui/theme/editor_theme.dart';
 export 'src/ui/theme/ui_colors.dart';
 
+// Shared line models
+export 'src/elements/line_arrow_style.dart';
+
 // Editor shell
 export 'src/ui/editor/canvas_stage.dart';
 export 'src/ui/editor/editor_actions.dart';

@@ -21,9 +21,12 @@
 ///   selection commands ([MoveCaretCommand], [MoveCaretByWordCommand],
 ///   [MoveCaretToBlockBoundaryCommand], [MoveCaretToDocumentBoundaryCommand],
 ///   [SelectAllCommand], [MoveTableCellCommand],
-///   [MoveTableCellVerticalCommand]), [ClipboardService], and
-///   [ExternalImageInput], and [EditorTextInputClient]. These are the intended
-///   integration points and change only with a documented reason.
+///   [MoveTableCellVerticalCommand]), [ClipboardService],
+///   [RichClipboardAdapter], external image input contracts
+///   ([ExternalImageInput], [ExternalImageClipboardData],
+///   [ExternalImageClipboardReader], [ExternalImageStore],
+///   [ExternalImageBlockDescription]), and [EditorTextInputClient]. These are
+///   the intended integration points and change only with a documented reason.
 /// - **Stabilising (tier 2)**: [WenzRichTextEditor] widget,
 ///   [WenzLinkInteractionCallback], [WenzRichTextEditorAccessibility],
 ///   editor context-menu descriptors ([WenzEditorContextMenuConfiguration],
@@ -113,7 +116,7 @@
 /// `docs/schema_and_commands.md` for schema/command extension points,
 /// `docs/selection_model.md` for the selection contract,
 /// `docs/selection_engine.md` for the cross-block selection/layout design,
-/// `docs/input_system.md` for the IME/clipboard/shortcut/command-merge design,
+/// `docs/input_system.md` for the IME/clipboard/external-image input/shortcut design,
 /// and `docs/migration_guide.md` for adopting the package from legacy data.
 library wenz_richtext;
 
@@ -165,16 +168,69 @@ export 'src/input/composition_state.dart';
 export 'src/input/editor_text_input_client.dart';
 export 'src/input/external_image_clipboard_reader.dart';
 export 'src/input/external_image_input.dart';
+export 'src/input/rich_clipboard_adapter.dart';
 export 'src/input/shortcut_manager.dart';
 export 'src/plugins/editor_plugin.dart';
 export 'src/plugins/mermaid_diagram_plugin.dart'
     show
-        DiagramSvgSurface,
         MermaidDiagramConfig,
         MermaidDiagramPlugin,
         MermaidRenderer,
-        NativeMermaidRenderer,
-        VectorGraphicsDiagramSurface;
+        NativeMermaidRenderer;
+export 'src/mermaid/mermaid.dart'
+    show
+        ArrowType,
+        DeviceType,
+        DiagramDirection,
+        DiagramType,
+        EdgeStyle,
+        GanttChartData,
+        GanttSection,
+        GanttTask,
+        GanttTaskStatus,
+        InteractiveMermaidDiagram,
+        KanbanChartData,
+        KanbanColumn,
+        KanbanPriority,
+        KanbanTask,
+        LineType,
+        MermaidColors,
+        MermaidDeviceConfig,
+        MermaidDiagram,
+        MermaidDiagramData,
+        MermaidEdge,
+        MermaidNode,
+        MermaidParseResult,
+        MermaidParser,
+        MermaidResponsiveConfig,
+        MermaidStyle,
+        MermaidThemeMode,
+        MermaidThemes,
+        MindmapConnection,
+        MindmapData,
+        MindmapNode,
+        MindmapNodeShape,
+        MessageType,
+        NodeShape,
+        NodeStyle,
+        ParticipantType,
+        PieChartData,
+        PieSlice,
+        RadarAxis,
+        RadarChartData,
+        RadarCurve,
+        RadarGraticule,
+        SequenceMessage,
+        SequenceParticipant,
+        Subgraph,
+        SubgraphStyle,
+        TimelineChartData,
+        TimelineEvent,
+        TimelineSection,
+        XYChartData,
+        XYChartOrientation,
+        XYChartSeries,
+        XYSeriesType;
 export 'src/integration/wenz_editor_bootstrap.dart';
 export 'src/integration/wenz_editor_configuration.dart';
 export 'src/widgets/block_renderer_registry.dart';

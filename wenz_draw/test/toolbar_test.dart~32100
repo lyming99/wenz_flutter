@@ -1,0 +1,112 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:wenz_draw/src/ui/toolbar/toolbar.dart';
+import 'package:wenz_draw/wenz_draw.dart';
+
+void main() {
+  group('Toolbar component insert menu', () {
+    testWidgets('shows mindmap with an icon distinct from curve', (
+      tester,
+    ) async {
+      await _pumpToolbar(tester);
+
+      expect(find.byIcon(Icons.timeline), findsOneWidget);
+
+      await tester.tap(find.byTooltip('特殊组件创建'));
+      await tester.pumpAndSettle();
+
+      final mindmapText = find.text('思维导图');
+      expect(mindmapText, findsOneWidget);
+
+      final mindmapItem = find.ancestor(
+        of: mindmapText,
+        matching: find.byWidgetPredicate(
+          (widget) => widget is PopupMenuItem<String>,
+        ),
+      );
+      expect(mindmapItem, findsOneWidget);
+      expect(
+        find.descendant(
+          of: mindmapItem,
+          matching: find.byIcon(Icons.account_tree_outlined),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: mindmapItem,
+          matching: find.byIcon(Icons.timeline),
+        ),
+        findsNothing,
+      );
+      expect(find.byIcon(Icons.timeline), findsOneWidget);
+    });
+
+    testWidgets('selecting mindmap calls only the mindmap callback', (
+      tester,
+    ) async {
+      final harness = await _pumpToolbar(tester);
+
+      await tester.tap(find.byTooltip('曲线'));
+      await tester.pump();
+
+      expect(harness.canvasController.currentTool?.id, CurveTool.idValue);
+      expect(find.byIcon(Icons.timeline), findsOneWidget);
+
+      await tester.tap(find.byTooltip('特殊组件创建'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('思维导图'));
+      await tester.pumpAndSettle();
+
+      expect(harness.mindmapAdds, 1);
+      expect(harness.stickyNoteAdds, 0);
+      expect(harness.counterAdds, 0);
+      expect(harness.canvasController.currentTool?.id, CurveTool.idValue);
+    });
+  });
+}
+
+Future<_ToolbarHarness> _pumpToolbar(WidgetTester tester) async {
+  final harness = _ToolbarHarness();
+  addTearDown(harness.dispose);
+
+  await tester.pumpWidget(
+    MaterialApp(
+      home: Scaffold(
+        body: Align(
+          alignment: Alignment.topCenter,
+          child: Toolbar(
+            canvasController: harness.canvasController,
+            viewController: harness.viewController,
+            onAddStickyNote: () => harness.stickyNoteAdds++,
+            onAddCounter: () => harness.counterAdds++,
+            onAddMindmap: () => harness.mindmapAdds++,
+            onInsertImage: () => harness.imageInserts++,
+          ),
+        ),
+      ),
+    ),
+  );
+
+  return harness;
+}
+
+class _ToolbarHarness {
+  _ToolbarHarness() {
+    viewController = InfiniteCanvasController(
+      canvasController: canvasController,
+    );
+  }
+
+  final CanvasController canvasController = CanvasController();
+  late final InfiniteCanvasController viewController;
+  int stickyNoteAdds = 0;
+  int counterAdds = 0;
+  int mindmapAdds = 0;
+  int imageInserts = 0;
+
+  void dispose() {
+    viewController.dispose();
+    canvasController.dispose();
+  }
+}

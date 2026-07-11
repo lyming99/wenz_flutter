@@ -1,14 +1,13 @@
 import 'dart:async';
-import 'dart:convert';
-import 'dart:isolate';
 import 'dart:math' as math;
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:merman/merman.dart';
 
 import '../../core/model/block_node.dart';
+import '../../mermaid/mermaid.dart';
 import '../../plugins/mermaid_diagram_plugin.dart';
+import '../editor_tokens.dart';
 
 // ---------------------------------------------------------------------------
 // Visual constants — kept identical to _CodeBlockRenderer in the editor
@@ -17,16 +16,12 @@ import '../../plugins/mermaid_diagram_plugin.dart';
 const double _kMermaidBlockRadius = 12.0;
 const int _kMermaidBlockBackground = 0xFF1E1E2E;
 const int _kMermaidBlockTextColor = 0xFFE6E6F0;
-const double _kMermaidBlockFontSize = 13.5;
 const double _kMermaidBlockLineHeight = 1.6;
 const double _kMermaidBlockPaddingV = 18.0;
-const double _kMermaidBlockPaddingH = 20.0;
 const double _kMermaidHeaderGap = 14.0;
 const double _kMermaidHeaderHeight = 36.0;
 const double _kMermaidHeaderPaddingH = 10.0;
 const double _kMermaidHeaderEndPadding = 4.0;
-const double _kMermaidToolbarButtonSize = 32.0;
-const double _kMermaidToolbarIconSize = 18.0;
 const int _kMermaidAccentColor = 0xB38A8AFF;
 const double _kMermaidPreviewAspectRatio = 16.0 / 9.0;
 const double _kMermaidPreviewMinHeight = 180.0;
@@ -37,75 +32,6 @@ const double _kMermaidPreviewMaxScale = 5.0;
 const double _kMermaidPreviewWheelZoomIntensity = 0.0014;
 const double _kMermaidPreviewFallbackWidth = 960.0;
 const double _kMermaidPreviewFallbackHeight = 540.0;
-const String _kMermaidSvgNumberPattern =
-    r'[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?';
-const String _kMermaidSvgPipeline = 'resvg-safe';
-const String _kMermaidCanvasColor = '#1E1E2E';
-const String _kMermaidSurfaceColor = '#2A2A3F';
-const String _kMermaidSurfaceAltColor = '#31314A';
-const String _kMermaidTextColor = '#F4F4FA';
-const String _kMermaidSubtleTextColor = '#D6D6E8';
-const String _kMermaidBorderColor = '#A7A7FF';
-const String _kMermaidLineColor = '#D8D8FF';
-
-const Map<String, String> _kMermaidThemeVariables = <String, String>{
-  'background': _kMermaidCanvasColor,
-  'mainBkg': _kMermaidSurfaceColor,
-  'secondBkg': _kMermaidSurfaceAltColor,
-  'primaryColor': _kMermaidSurfaceColor,
-  'primaryTextColor': _kMermaidTextColor,
-  'primaryBorderColor': _kMermaidBorderColor,
-  'secondaryColor': '#233A3A',
-  'secondaryTextColor': _kMermaidTextColor,
-  'secondaryBorderColor': '#65D9D0',
-  'tertiaryColor': '#3A3148',
-  'tertiaryTextColor': _kMermaidTextColor,
-  'tertiaryBorderColor': '#D8B4FE',
-  'lineColor': _kMermaidLineColor,
-  'textColor': _kMermaidTextColor,
-  'nodeTextColor': _kMermaidTextColor,
-  'edgeLabelBackground': _kMermaidCanvasColor,
-  'clusterBkg': '#252538',
-  'clusterBorder': '#7777AA',
-  'titleColor': _kMermaidTextColor,
-  'fontFamily': 'Inter, system-ui, sans-serif',
-};
-
-const String _kMermaidReadableSvgCss = '''
-.node rect,
-.node circle,
-.node ellipse,
-.node polygon,
-.node path {
-  fill: $_kMermaidSurfaceColor;
-  stroke: $_kMermaidBorderColor;
-}
-
-.edgePaths path,
-.flowchart-link,
-.edgePath .path,
-.marker path,
-marker path,
-marker polygon {
-  stroke: $_kMermaidLineColor;
-  fill: $_kMermaidLineColor;
-}
-
-.nodeLabel,
-.edgeLabel,
-.label,
-.label text,
-.merman-foreignobject-fallback-text {
-  color: $_kMermaidTextColor;
-  fill: $_kMermaidTextColor;
-}
-
-.edgeLabel .labelBkg,
-.cluster rect {
-  fill: $_kMermaidCanvasColor;
-  stroke: #7777AA;
-}
-''';
 
 // ---------------------------------------------------------------------------
 // MermaidCodeBlockWidget
@@ -114,18 +40,14 @@ marker polygon {
 /// Renders a [CodeBlockNode] with `language == 'mermaid'` as a live diagram.
 ///
 /// The widget offers two modes toggled by the header toolbar:
-/// - **Source mode** (default): read-only monospace source with line numbers.
-/// - **Preview mode**: SVG rendered through [DiagramSvgSurface] inside an
-///   [InteractiveViewer] that supports pan and zoom.
+/// - **Source mode** (default): editor-provided code block source surface.
+/// - **Preview mode**: pure Flutter Mermaid layout and CustomPaint output
+///   inside an [InteractiveViewer] that supports pan and zoom.
 ///
-/// Rendering is debounced (default 300 ms) and performed on a background
-/// isolate via [Isolate.run] so that the UI thread stays responsive. When
-/// the isolate or FFI is unavailable the widget falls back to the injected
-/// [MermaidRenderer] on the main isolate; if that also fails the error
-/// message is displayed with a "View Source" recovery button.
-///
-/// Editing capability for the diagram source is deferred to a future
-/// iteration — the source view is currently read-only.
+/// Rendering is debounced (default 300 ms) and parsed on the UI isolate using
+/// the internal pure Dart Mermaid parser/layout/painter stack. Unsupported or
+/// invalid diagrams are shown as explicit error states with a source recovery
+/// button.
 class MermaidCodeBlockWidget extends StatefulWidget {
   const MermaidCodeBlockWidget({
     super.key,
@@ -133,30 +55,63 @@ class MermaidCodeBlockWidget extends StatefulWidget {
     required this.config,
     required this.renderer,
     required this.blockIndex,
+    this.sourceBuilder,
   });
 
   /// The mermaid code block node from the document model.
   final CodeBlockNode block;
 
-  /// Plugin-level configuration (SVG surface, debounce, theme).
+  /// Plugin-level configuration (debounce and theme are used by this widget).
   final MermaidDiagramConfig config;
 
-  /// Mermaid engine bridge, replaceable for testing.
+  /// Retained for plugin API compatibility; the pure Flutter preview path does
+  /// not call the SVG renderer.
   final MermaidRenderer renderer;
 
   /// Index of this block in the editor's top-level block list.
   final int blockIndex;
 
+  /// Editable source surface supplied by the code block renderer that the
+  /// Mermaid plugin wrapped.
+  ///
+  /// When omitted, the widget keeps its standalone read-only source fallback so
+  /// direct usages outside [MermaidDiagramPlugin] remain source-compatible.
+  final WidgetBuilder? sourceBuilder;
+
   @override
   State<MermaidCodeBlockWidget> createState() => _MermaidCodeBlockWidgetState();
 }
 
+/// Source-mode controls exposed by [MermaidCodeBlockWidget] to the ordinary
+/// code block toolbar while it renders the editable Mermaid source surface.
+class MermaidCodeBlockSourceControls extends InheritedWidget {
+  const MermaidCodeBlockSourceControls({
+    super.key,
+    required this.onPreview,
+    required super.child,
+  });
+
+  final VoidCallback onPreview;
+
+  static MermaidCodeBlockSourceControls? maybeOf(BuildContext context) {
+    return context
+        .dependOnInheritedWidgetOfExactType<MermaidCodeBlockSourceControls>();
+  }
+
+  @override
+  bool updateShouldNotify(covariant MermaidCodeBlockSourceControls oldWidget) {
+    return oldWidget.onPreview != onPreview;
+  }
+}
+
 class _MermaidCodeBlockWidgetState extends State<MermaidCodeBlockWidget> {
   bool _showSource = true;
-  String? _svg;
-  String? _svgSource;
-  String? _svgTheme;
+  _MermaidPreviewData? _preview;
+  String? _previewSource;
+  String? _previewTheme;
   String? _error;
+  String? _errorSource;
+  String? _errorTheme;
   bool _rendering = false;
   bool _renderQueued = false;
   int _renderRequestId = 0;
@@ -187,7 +142,7 @@ class _MermaidCodeBlockWidgetState extends State<MermaidCodeBlockWidget> {
   // Rendering pipeline
   // -----------------------------------------------------------------------
 
-  /// Schedules (or re-schedules) a debounced render of the current source.
+  /// Schedules (or re-schedules) a debounced parse/layout of the source.
   void _scheduleRender({bool notify = true}) {
     _debounceTimer?.cancel();
     _renderRequestId++;
@@ -195,14 +150,22 @@ class _MermaidCodeBlockWidgetState extends State<MermaidCodeBlockWidget> {
 
     void updateQueuedState() {
       if (_isBlankSource(source)) {
-        _svg = null;
-        _svgSource = null;
-        _svgTheme = null;
+        _preview = null;
+        _previewSource = null;
+        _previewTheme = null;
         _error = null;
+        _errorSource = null;
+        _errorTheme = null;
         _renderQueued = false;
+        _rendering = false;
         return;
       }
+      _preview = null;
+      _previewSource = null;
+      _previewTheme = null;
       _error = null;
+      _errorSource = null;
+      _errorTheme = null;
       _renderQueued = true;
     }
 
@@ -218,9 +181,8 @@ class _MermaidCodeBlockWidgetState extends State<MermaidCodeBlockWidget> {
     _debounceTimer = Timer(widget.config.debounce, _render);
   }
 
-  /// Entry point: tries the background isolate first, then the main-isolate
-  /// renderer as a fallback.
-  Future<void> _render() async {
+  /// Parses and lays out the current source using the pure Dart Mermaid core.
+  void _render() {
     if (!mounted) return;
     if (_rendering) {
       if (!_renderQueued) {
@@ -228,15 +190,18 @@ class _MermaidCodeBlockWidgetState extends State<MermaidCodeBlockWidget> {
       }
       return;
     }
+
     final requestId = _renderRequestId;
     final source = widget.block.code;
     final theme = widget.config.defaultTheme;
     if (_isBlankSource(source)) {
       setState(() {
-        _svg = null;
-        _svgSource = null;
-        _svgTheme = null;
+        _preview = null;
+        _previewSource = null;
+        _previewTheme = null;
         _error = null;
+        _errorSource = null;
+        _errorTheme = null;
         _renderQueued = false;
         _rendering = false;
       });
@@ -249,72 +214,51 @@ class _MermaidCodeBlockWidgetState extends State<MermaidCodeBlockWidget> {
       _error = null;
     });
 
-    final optionsJson = _buildMermaidRenderOptionsJson(theme);
-
     try {
-      final svg = _validateRenderedSvg(
-        await Isolate.run(
-          () => _isolateRenderSvg(source, optionsJson),
-        ),
-      );
+      final preview = _buildPreviewData(source, theme);
       if (!mounted) return;
       if (!_isCurrentRenderRequest(requestId, source, theme)) {
         _finishStaleRender();
         return;
       }
       setState(() {
-        _svg = svg;
-        _svgSource = source;
-        _svgTheme = theme;
+        _preview = preview;
+        _previewSource = source;
+        _previewTheme = theme;
         _rendering = false;
         _renderQueued = false;
         _error = null;
+        _errorSource = null;
+        _errorTheme = null;
       });
-    } catch (_) {
-      // Isolate path failed (e.g. FFI not available on this platform) —
-      // fall back to the injected renderer running on the main isolate.
-      try {
-        final svg = _validateRenderedSvg(
-          await widget.renderer.renderSvg(
-            source,
-            optionsJson: optionsJson,
-          ),
-        );
-        if (!mounted) return;
-        if (!_isCurrentRenderRequest(requestId, source, theme)) {
-          _finishStaleRender();
-          return;
-        }
-        setState(() {
-          _svg = svg;
-          _svgSource = source;
-          _svgTheme = theme;
-          _rendering = false;
-          _renderQueued = false;
-          _error = null;
-        });
-      } catch (e) {
-        if (!mounted) return;
-        if (!_isCurrentRenderRequest(requestId, source, theme)) {
-          _finishStaleRender();
-          return;
-        }
-        setState(() {
-          _svg = null;
-          _svgSource = null;
-          _svgTheme = null;
-          _rendering = false;
-          _renderQueued = false;
-          _error = e.toString();
-        });
+    } catch (e) {
+      if (!mounted) return;
+      if (!_isCurrentRenderRequest(requestId, source, theme)) {
+        _finishStaleRender();
+        return;
       }
+      setState(() {
+        _preview = null;
+        _previewSource = null;
+        _previewTheme = null;
+        _rendering = false;
+        _renderQueued = false;
+        _error = _stringifyRenderError(e);
+        _errorSource = source;
+        _errorTheme = theme;
+      });
     }
   }
 
-  bool get _hasCurrentSvg =>
-      _svg != null &&
-      _svgSource == widget.block.code &&
-      _svgTheme == widget.config.defaultTheme;
+  bool get _hasCurrentPreview =>
+      _preview != null &&
+      _previewSource == widget.block.code &&
+      _previewTheme == widget.config.defaultTheme;
+
+  bool get _hasCurrentError =>
+      _error != null &&
+      _errorSource == widget.block.code &&
+      _errorTheme == widget.config.defaultTheme;
 
   bool get _isPreviewPending =>
       !_isBlankSource(widget.block.code) && (_renderQueued || _rendering);
@@ -334,31 +278,105 @@ class _MermaidCodeBlockWidgetState extends State<MermaidCodeBlockWidget> {
 
   static bool _isBlankSource(String source) => source.trim().isEmpty;
 
-  static String _validateRenderedSvg(String svg) {
-    final trimmed = svg.trim();
-    if (trimmed.isEmpty) {
-      throw const _MermaidSvgRenderException(
-        'Mermaid 渲染完成，但没有生成 SVG 内容。',
-      );
+  static _MermaidPreviewData _buildPreviewData(String source, String theme) {
+    const parser = MermaidParser();
+    final result = parser.parseWithData(source);
+    if (result == null) {
+      throw FormatException(parser.describeParseFailure(source));
     }
-    if (!RegExp(r'<svg\b', caseSensitive: false).hasMatch(trimmed)) {
-      throw const _MermaidSvgRenderException(
-        'Mermaid 渲染结果不是有效的 SVG 内容。',
-      );
+
+    final style = _styleForTheme(theme);
+    final contentSize = _computeContentSize(
+      result,
+      style,
+      const Size(
+        _kMermaidPreviewFallbackWidth,
+        _kMermaidPreviewFallbackHeight,
+      ),
+    );
+    if (contentSize.width <= 0 ||
+        contentSize.height <= 0 ||
+        !contentSize.width.isFinite ||
+        !contentSize.height.isFinite) {
+      throw const FormatException('Mermaid 图表布局结果无效，无法生成预览。');
     }
-    return svg;
+
+    return _MermaidPreviewData(
+      source: source,
+      theme: theme,
+      style: style,
+      contentSize: contentSize,
+    );
   }
 
-  /// Runs inside a background isolate: initialises the merman FFI engine and
-  /// renders [source] to SVG.
-  ///
-  /// This must be a **static** method so [Isolate.run] can send it across
-  /// isolate boundaries without capturing `this`.
-  static String _isolateRenderSvg(String source, String optionsJson) {
-    return Merman.open().renderSvg(
-      source,
-      optionsJson: optionsJson,
-    );
+  static Size _computeContentSize(
+    MermaidParseResult result,
+    MermaidStyle style,
+    Size availableSize,
+  ) {
+    final diagram = result.diagram;
+    switch (diagram.type) {
+      case DiagramType.pieChart:
+        final data = result.pieChartData;
+        if (data == null) break;
+        return PieChartLayout().computeLayout(data, style, availableSize);
+      case DiagramType.ganttChart:
+        final data = result.ganttChartData;
+        if (data == null) break;
+        return GanttChartLayout().computeLayout(data, style, availableSize);
+      case DiagramType.timeline:
+        final data = result.timelineChartData;
+        if (data == null) break;
+        return TimelineChartLayout().computeLayout(data, style, availableSize);
+      case DiagramType.kanban:
+        final data = result.kanbanChartData;
+        if (data == null) break;
+        return KanbanChartLayout().computeLayout(data, style, availableSize);
+      case DiagramType.radar:
+        final data = result.radarChartData;
+        if (data == null) break;
+        return RadarChartLayout().computeLayout(data, style, availableSize);
+      case DiagramType.xyChart:
+        final data = result.xyChartData;
+        if (data == null) break;
+        return XYChartLayout().computeLayout(data, style, availableSize);
+      case DiagramType.flowchart:
+        return DagreLayout().computeLayout(diagram, style, availableSize);
+      case DiagramType.sequence:
+        return SequenceLayout().computeLayout(diagram, style, availableSize);
+      case DiagramType.mindmap:
+        return MindmapLayout().computeLayout(diagram, style, availableSize);
+      case DiagramType.classDiagram:
+      case DiagramType.stateDiagram:
+      case DiagramType.unknown:
+        break;
+    }
+    throw const FormatException('Mermaid 图表数据不完整，无法生成预览。');
+  }
+
+  static MermaidStyle _styleForTheme(String defaultTheme) {
+    switch (defaultTheme.trim().toLowerCase()) {
+      case 'forest':
+        return MermaidStyle.forest();
+      case 'neutral':
+        return MermaidStyle.neutral();
+      case 'light':
+        return const MermaidStyle();
+      case 'dark':
+      case 'base':
+      case 'default':
+      case '':
+      default:
+        return MermaidStyle.dark();
+    }
+  }
+
+  static String _stringifyRenderError(Object error) {
+    if (error is FormatException) {
+      return error.message;
+    }
+    final message = error.toString().trim();
+    return message.isEmpty ? 'Mermaid 预览生成失败。' : message;
   }
 
   // -----------------------------------------------------------------------
@@ -367,7 +385,16 @@ class _MermaidCodeBlockWidgetState extends State<MermaidCodeBlockWidget> {
 
   @override
   Widget build(BuildContext context) {
+    final sourceBuilder = widget.sourceBuilder;
+    if (_showSource && sourceBuilder != null) {
+      return MermaidCodeBlockSourceControls(
+        onPreview: _showPreview,
+        child: Builder(builder: sourceBuilder),
+      );
+    }
+
     final theme = Theme.of(context);
+    final tokens = EditorTokens.resolve(context);
     final isDark = theme.brightness == Brightness.dark;
     final backgroundColor = isDark
         ? theme.colorScheme.surfaceContainerHighest
@@ -387,7 +414,7 @@ class _MermaidCodeBlockWidgetState extends State<MermaidCodeBlockWidget> {
         'Consolas',
         'monospace',
       ],
-      fontSize: _kMermaidBlockFontSize,
+      fontSize: tokens.codeBlockFontSize,
       height: _kMermaidBlockLineHeight,
     );
 
@@ -403,8 +430,8 @@ class _MermaidCodeBlockWidgetState extends State<MermaidCodeBlockWidget> {
         ),
       ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: _kMermaidBlockPaddingH,
+        padding: EdgeInsets.symmetric(
+          horizontal: tokens.codeBlockPaddingHorizontal,
           vertical: _kMermaidBlockPaddingV,
         ),
         child: Column(
@@ -416,7 +443,7 @@ class _MermaidCodeBlockWidgetState extends State<MermaidCodeBlockWidget> {
               onToggle: _toggleContentMode,
             ),
             const SizedBox(height: _kMermaidHeaderGap),
-            _buildContent(codeStyle),
+            _buildContent(context, codeStyle),
           ],
         ),
       ),
@@ -424,23 +451,36 @@ class _MermaidCodeBlockWidgetState extends State<MermaidCodeBlockWidget> {
   }
 
   void _toggleContentMode() {
-    final nextShowSource = !_showSource;
-    setState(() => _showSource = nextShowSource);
-    if (!nextShowSource &&
-        !_hasCurrentSvg &&
+    if (_showSource) {
+      _showPreview();
+    } else {
+      _showSourceMode();
+    }
+  }
+
+  void _showPreview() {
+    if (!_showSource) {
+      return;
+    }
+    setState(() => _showSource = false);
+    if (!_hasCurrentPreview &&
         !_isPreviewPending &&
-        _error == null &&
+        !_hasCurrentError &&
         !_isBlankSource(widget.block.code)) {
       _scheduleRender();
     }
   }
 
-  Widget _buildContent(TextStyle codeStyle) {
+  void _showSourceMode() {
     if (_showSource) {
-      return _MermaidSourceView(
-        source: widget.block.code,
-        style: codeStyle,
-      );
+      return;
+    }
+    setState(() => _showSource = true);
+  }
+
+  Widget _buildContent(BuildContext context, TextStyle codeStyle) {
+    if (_showSource) {
+      return _MermaidSourceView(source: widget.block.code, style: codeStyle);
     }
 
     if (_isBlankSource(widget.block.code)) {
@@ -453,17 +493,16 @@ class _MermaidCodeBlockWidgetState extends State<MermaidCodeBlockWidget> {
       );
     }
 
-    if (_isPreviewPending || !_hasCurrentSvg && _error == null) {
+    if (_isPreviewPending || (!_hasCurrentPreview && !_hasCurrentError)) {
       return _MermaidStatusView.loading(
-        title: _rendering ? '正在渲染 Mermaid 图表' : '正在准备 Mermaid 预览',
-        message: '渲染完成后会自动切换到图表预览。',
+        title: _rendering ? '正在解析 Mermaid 图表' : '正在准备 Mermaid 预览',
+        message: '解析完成后会自动切换到图表预览。',
         codeStyle: codeStyle,
         onViewSource: () => setState(() => _showSource = true),
       );
     }
 
-    // Error state: show the error message with a "View Source" recovery.
-    if (_error != null) {
+    if (_hasCurrentError) {
       return _MermaidErrorView(
         error: _error!,
         codeStyle: codeStyle,
@@ -473,12 +512,22 @@ class _MermaidCodeBlockWidgetState extends State<MermaidCodeBlockWidget> {
       );
     }
 
-    // Preview mode: SVG inside an InteractiveViewer.
-    return _MermaidPreviewView(
-      svg: _svg!,
-      config: widget.config,
-    );
+    return _MermaidPreviewView(preview: _preview!);
   }
+}
+
+class _MermaidPreviewData {
+  const _MermaidPreviewData({
+    required this.source,
+    required this.theme,
+    required this.style,
+    required this.contentSize,
+  });
+
+  final String source;
+  final String theme;
+  final MermaidStyle style;
+  final Size contentSize;
 }
 
 // ---------------------------------------------------------------------------
@@ -503,6 +552,7 @@ class _MermaidToolbar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final tokens = EditorTokens.resolve(context);
     final labelStyle = theme.textTheme.labelMedium?.copyWith(
           color: accentColor,
           fontWeight: FontWeight.w600,
@@ -514,7 +564,6 @@ class _MermaidToolbar extends StatelessWidget {
           fontWeight: FontWeight.w600,
           letterSpacing: 0.2,
         );
-
     return Material(
       color: Colors.transparent,
       child: SizedBox(
@@ -527,7 +576,6 @@ class _MermaidToolbar extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.max,
             children: <Widget>[
-              // Language tag (non-interactive — no language switching needed)
               DecoratedBox(
                 decoration: BoxDecoration(
                   color: accentColor.withAlpha(22),
@@ -548,18 +596,17 @@ class _MermaidToolbar extends StatelessWidget {
                 ),
               ),
               const Spacer(),
-              // Toggle button: source ↔ preview
               IconButton(
                 key: const ValueKey<String>(
                   'wenz-richtext-mermaid-toggle',
                 ),
                 tooltip: showSource ? '预览图表' : '查看源码',
                 padding: EdgeInsets.zero,
-                constraints: const BoxConstraints.tightFor(
-                  width: _kMermaidToolbarButtonSize,
-                  height: _kMermaidToolbarButtonSize,
+                constraints: BoxConstraints.tightFor(
+                  width: tokens.minimalToolbarButtonSize,
+                  height: tokens.minimalToolbarButtonSize,
                 ),
-                iconSize: _kMermaidToolbarIconSize,
+                iconSize: tokens.minimalToolbarIconSize,
                 style: IconButton.styleFrom(
                   foregroundColor: accentColor,
                   disabledForegroundColor: accentColor.withAlpha(100),
@@ -569,9 +616,7 @@ class _MermaidToolbar extends StatelessWidget {
                 ),
                 onPressed: onToggle,
                 icon: Icon(
-                  showSource
-                      ? Icons.visibility_outlined
-                      : Icons.code,
+                  showSource ? Icons.visibility_outlined : Icons.code,
                   semanticLabel: showSource ? '预览图表' : '查看源码',
                 ),
               ),
@@ -601,7 +646,6 @@ class _MermaidSourceView extends StatelessWidget {
       color: style.color?.withAlpha(120),
     );
 
-    // Build spans with line number prefix styled distinctly.
     final styledSpans = <InlineSpan>[];
     for (var i = 0; i < lines.length; i++) {
       final num = '${i + 1}'.padLeft(lineDigits);
@@ -628,23 +672,16 @@ class _MermaidSourceView extends StatelessWidget {
   }
 }
 
-/// Preview pane: SVG rendered through [DiagramSvgSurface] in a stable viewport.
+/// Preview pane: pure Flutter Mermaid CustomPaint in a stable viewport.
 ///
 /// The viewer is wrapped in a [LayoutBuilder] + bounded [SizedBox] because the
-/// mermaid block lives inside the editor's loose-fit [Stack], which supplies
-/// unbounded height. With `constrained: false` the [InteractiveViewer] builds
-/// an internal [OverflowBox] that takes its size from the parent constraint —
-/// an infinite height there trips the "given an infinite size" layout
-/// assertion. The viewport itself stays at a fixed 16:9 ratio while the SVG
+/// mermaid block lives inside the editor's loose-fit [Stack], which can supply
+/// unbounded height. The viewport stays at a fixed 16:9 ratio while the diagram
 /// content is initially transformed to fit inside it.
 class _MermaidPreviewView extends StatefulWidget {
-  const _MermaidPreviewView({
-    required this.svg,
-    required this.config,
-  });
+  const _MermaidPreviewView({required this.preview});
 
-  final String svg;
-  final MermaidDiagramConfig config;
+  final _MermaidPreviewData preview;
 
   @override
   State<_MermaidPreviewView> createState() => _MermaidPreviewViewState();
@@ -667,6 +704,17 @@ class _MermaidPreviewViewState extends State<_MermaidPreviewView> {
   }
 
   @override
+  void didUpdateWidget(covariant _MermaidPreviewView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.preview.source != widget.preview.source ||
+        oldWidget.preview.theme != widget.preview.theme ||
+        oldWidget.preview.contentSize != widget.preview.contentSize) {
+      _lastAppliedFitKey = null;
+      _pendingFitKey = null;
+    }
+  }
+
+  @override
   void dispose() {
     _focusNode.dispose();
     _transformationController.dispose();
@@ -675,9 +723,7 @@ class _MermaidPreviewViewState extends State<_MermaidPreviewView> {
 
   @override
   Widget build(BuildContext context) {
-    final surface =
-        widget.config.svgSurface ?? const VectorGraphicsDiagramSurface();
-    final contentSize = _parseSvgContentSize(widget.svg);
+    final contentSize = widget.preview.contentSize;
 
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
@@ -688,7 +734,8 @@ class _MermaidPreviewViewState extends State<_MermaidPreviewView> {
         final height = _resolveViewportHeight(availableWidth, constraints);
         final viewportSize = Size(availableWidth, height);
         final fitKey = _MermaidPreviewFitKey(
-          svg: widget.svg,
+          source: widget.preview.source,
+          theme: widget.preview.theme,
           viewportWidth: viewportSize.width,
           viewportHeight: viewportSize.height,
           contentWidth: contentSize.width,
@@ -723,7 +770,7 @@ class _MermaidPreviewViewState extends State<_MermaidPreviewView> {
                   width: availableWidth,
                   height: height,
                   child: ColoredBox(
-                    color: const Color(_kMermaidBlockBackground),
+                    color: Color(widget.preview.style.backgroundColor),
                     child: InteractiveViewer(
                       transformationController: _transformationController,
                       boundaryMargin: const EdgeInsets.all(double.infinity),
@@ -733,10 +780,13 @@ class _MermaidPreviewViewState extends State<_MermaidPreviewView> {
                       child: SizedBox(
                         width: contentSize.width,
                         height: contentSize.height,
-                        child: surface.render(
-                          context,
-                          widget.svg,
-                          maxWidth: contentSize.width,
+                        child: MermaidDiagram(
+                          code: widget.preview.source,
+                          style: widget.preview.style,
+                          width: contentSize.width,
+                          height: contentSize.height,
+                          enableResponsive: false,
+                          errorBuilder: _buildInlineError,
                         ),
                       ),
                     ),
@@ -747,6 +797,22 @@ class _MermaidPreviewViewState extends State<_MermaidPreviewView> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildInlineError(BuildContext context, String error) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Text(
+          error,
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.error,
+                  ) ??
+              TextStyle(color: Theme.of(context).colorScheme.error),
+        ),
+      ),
     );
   }
 
@@ -799,9 +865,9 @@ class _MermaidPreviewViewState extends State<_MermaidPreviewView> {
     }
 
     final nextMatrix = Matrix4.identity()
-      ..translateByDouble(focalPoint.dx, focalPoint.dy, 0.0, 1.0)
-      ..scaleByDouble(effectiveScale, effectiveScale, 1.0, 1.0)
-      ..translateByDouble(-focalPoint.dx, -focalPoint.dy, 0.0, 1.0)
+      ..translate(focalPoint.dx, focalPoint.dy)
+      ..scale(effectiveScale, effectiveScale)
+      ..translate(-focalPoint.dx, -focalPoint.dy)
       ..multiply(currentMatrix);
     _transformationController.value = nextMatrix;
   }
@@ -857,8 +923,8 @@ class _MermaidPreviewViewState extends State<_MermaidPreviewView> {
     final dx = (viewportSize.width - contentSize.width * scale) / 2;
     final dy = (viewportSize.height - contentSize.height * scale) / 2;
     return Matrix4.identity()
-      ..translateByDouble(dx, dy, 0.0, 1.0)
-      ..scaleByDouble(scale, scale, 1.0, 1.0);
+      ..translate(dx, dy)
+      ..scale(scale, scale);
   }
 
   static double _fitScaleFor({
@@ -881,80 +947,20 @@ class _MermaidPreviewViewState extends State<_MermaidPreviewView> {
         ? math.min(rawScale, _kMermaidPreviewMaxScale).toDouble()
         : 1.0;
   }
-
-  /// Extracts a stable logical content size from the SVG's `viewBox` or root
-  /// `width`/`height` attributes.
-  static Size _parseSvgContentSize(String svg) {
-    final rootSvgTag =
-        RegExp(r'<svg\b[^>]*>', caseSensitive: false).firstMatch(svg)?.group(0);
-    final svgHeader = rootSvgTag ?? svg;
-    final viewBoxMatch = RegExp(
-      '\\bviewBox\\s*=\\s*["\']\\s*$_kMermaidSvgNumberPattern[\\s,]+'
-      '$_kMermaidSvgNumberPattern[\\s,]+($_kMermaidSvgNumberPattern)[\\s,]+'
-      '($_kMermaidSvgNumberPattern)',
-      caseSensitive: false,
-    ).firstMatch(svgHeader);
-    if (viewBoxMatch != null) {
-      final w = double.tryParse(viewBoxMatch.group(1)!);
-      final h = double.tryParse(viewBoxMatch.group(2)!);
-      if (w != null &&
-          h != null &&
-          w.isFinite &&
-          h.isFinite &&
-          w > 0 &&
-          h > 0) {
-        return Size(w, h);
-      }
-    }
-
-    final width = _parseSvgLengthAttribute(svgHeader, 'width');
-    final height = _parseSvgLengthAttribute(svgHeader, 'height');
-    if (width != null && height != null) {
-      return Size(width, height);
-    }
-    return const Size(
-      _kMermaidPreviewFallbackWidth,
-      _kMermaidPreviewFallbackHeight,
-    );
-  }
-
-  static double? _parseSvgLengthAttribute(String svgHeader, String name) {
-    final match = RegExp(
-      '\\b$name\\s*=\\s*["\']([^"\']+)["\']',
-      caseSensitive: false,
-    ).firstMatch(svgHeader);
-    if (match == null) return null;
-    final value = match.group(1)?.trim();
-    if (value == null || value.isEmpty || value.contains('%')) return null;
-    final numberMatch = RegExp(
-      '^\\s*($_kMermaidSvgNumberPattern)',
-      caseSensitive: false,
-    ).firstMatch(value);
-    final parsed = double.tryParse(numberMatch?.group(1) ?? '');
-    if (parsed == null || !parsed.isFinite || parsed <= 0) return null;
-    return parsed;
-  }
-}
-
-class _MermaidSvgRenderException implements Exception {
-  const _MermaidSvgRenderException(this.message);
-
-  final String message;
-
-  @override
-  String toString() => message;
 }
 
 class _MermaidPreviewFitKey {
   const _MermaidPreviewFitKey({
-    required this.svg,
+    required this.source,
+    required this.theme,
     required this.viewportWidth,
     required this.viewportHeight,
     required this.contentWidth,
     required this.contentHeight,
   });
 
-  final String svg;
+  final String source;
+  final String theme;
   final double viewportWidth;
   final double viewportHeight;
   final double contentWidth;
@@ -963,7 +969,8 @@ class _MermaidPreviewFitKey {
   @override
   bool operator ==(Object other) {
     return other is _MermaidPreviewFitKey &&
-        other.svg == svg &&
+        other.source == source &&
+        other.theme == theme &&
         other.viewportWidth == viewportWidth &&
         other.viewportHeight == viewportHeight &&
         other.contentWidth == contentWidth &&
@@ -972,50 +979,13 @@ class _MermaidPreviewFitKey {
 
   @override
   int get hashCode => Object.hash(
-        svg,
+        source,
+        theme,
         viewportWidth,
         viewportHeight,
         contentWidth,
         contentHeight,
       );
-}
-
-String _buildMermaidRenderOptionsJson(String defaultTheme) {
-  final theme = defaultTheme.trim().isEmpty ? 'default' : defaultTheme.trim();
-  return jsonEncode(<String, Object?>{
-    'version': 1,
-    'host_theme': <String, Object?>{
-      'preset': 'one-dark',
-      'appearance': 'dark',
-      'font_family': 'Inter, system-ui, sans-serif',
-      'roles': <String, Object?>{
-        'canvas': _kMermaidCanvasColor,
-        'surface': _kMermaidSurfaceColor,
-        'surface_alt': _kMermaidSurfaceAltColor,
-        'text': _kMermaidTextColor,
-        'subtle_text': _kMermaidSubtleTextColor,
-        'border': _kMermaidBorderColor,
-        'line': _kMermaidLineColor,
-        'success': '#34D399',
-      },
-      'themeVariables': _kMermaidThemeVariables,
-      'output': <String, Object?>{
-        'pipeline': _kMermaidSvgPipeline,
-        'root_background': 'canvas',
-        'css_override_policy': 'strip-existing-important',
-      },
-    },
-    'site_config': <String, Object?>{
-      'theme': theme,
-      'themeVariables': _kMermaidThemeVariables,
-    },
-    'svg': <String, Object?>{
-      'pipeline': _kMermaidSvgPipeline,
-      'scoped_css': _kMermaidReadableSvgCss,
-      'css_override_policy': 'strip-existing-important',
-      'root_background_color': _kMermaidCanvasColor,
-    },
-  });
 }
 
 /// Preview status fallback for loading and empty-source states.

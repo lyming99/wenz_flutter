@@ -1,4 +1,4 @@
-﻿# Rendering Architecture
+# Rendering Architecture
 
 Stage 5 splits block rendering behind an extension point so consumers can replace
 how a block type paints without forking the editor widget. This document covers
@@ -103,10 +103,10 @@ Markdown/plain text intentionally degrade to readable fallback text.
 
 | BlockType | Renderer | Notes |
 | --- | --- | --- |
-| paragraph / heading / quote / listItem | `_TextBlockRenderer` | Inline-aware; formula/mention fallback + optional `InlineEmbedRenderer`; selection/caret/composition via `_TextSelectionSurface`. Quote is now an attribute-level decoration (`BlockAttributes.quoted`) that can wrap paragraph, heading, list, or todo semantics; legacy `BlockType.quote` is still accepted as compatible input. |
+| paragraph / heading / quote / listItem | `_TextBlockRenderer` | Inline-aware; inline formula renders math/fallback text without a default background, mention keeps its fallback pill, and both can be replaced through `InlineEmbedRenderer`; selection/caret/composition still run through `_TextSelectionSurface`. Quote is now an attribute-level decoration (`BlockAttributes.quoted`) that can wrap paragraph, heading, list, or todo semantics; legacy `BlockType.quote` is still accepted as compatible input. |
 | code | `_CodeBlockRenderer` | Monospace body with syntax highlighting (`CodeSyntaxHighlighter`, see [Code block syntax highlighting](#code-block-syntax-highlighting)) and composition underline span; code blocks reserve a display-only left gutter for 1-based line numbers; toolbar includes language dropdown and copy-code button. Language changes call `SetCodeLanguageCommand`; Tab/Shift+Tab in the editor call `IndentCodeBlockCommand`. |
-| image / video / file | asks `MediaResolver`, then built-in fallback | Built-in media renderers consult the injected [MediaResolver] first; when it returns `null` (or no resolver is set) images/videos fall back to built-in placeholders, while files fall back to a metadata card. Image blocks can carry remote identifiers in `assetId` and local paths/URIs in `file`; the renderer wraps the resolved widget or fallback placeholder in a finite figure frame derived from `showWidth`/`showHeight`, natural size, or the editor content width. Image `BlockAttributes.alignment` moves the whole figure frame (`null`/`center` centered, `left` at start, `right` at end); the caption, single frame-hugging selection stroke, resize hit zones, and object toolbar follow that frame. The selected image object menu exposes left / center / right / clear alignment entries in the same toolbar as image sizing. Image/video selection actions are rendered by the editor-level object-toolbar overlay, not as children in the media block layout, so selecting media does not move the frame or caption. Video blocks place both the fallback chrome and resolver child inside a finite rounded frame that is clipped to the editor content width and safe aspect-ratio height; file cards show display name, size, MIME type, upload status, and failure text. See [Media resolver](#media-resolver). |
-| embed | `_BlockEmbedContent` or business renderer | Generic block embed placeholder displays `embedType` + `fallbackText`/data label. Register per business type with `BlockRendererRegistry.registerEmbed`; wrap large custom widgets in `WenzObjectBlockSurface` for object-block selection semantics. |
+| image / video / file | asks `MediaResolver`, then built-in fallback | Built-in media renderers consult the injected [MediaResolver] first; when it returns `null` (or no resolver is set) images/videos fall back to built-in placeholders, while files fall back to a metadata card. Image blocks can carry remote identifiers in `assetId` and local paths/URIs in `file`; the renderer wraps the resolved widget or fallback placeholder in a finite figure frame derived from `showWidth`/`showHeight`, natural size, or the editor content width. Image `BlockAttributes.alignment` moves the whole figure frame (`null`/`center` centered, `left` at start, `right` at end); the single frame-hugging selection stroke, resize hit zones, and object toolbar follow that frame; caption stays metadata and does not add visible height. The selected image object menu exposes left / center / right / clear alignment entries in the same toolbar as image sizing. Image/video selection actions are rendered by the editor-level object-toolbar overlay, not as children in the media block layout, so selecting media does not move the frame. Video blocks place both the fallback chrome and resolver child inside a finite rounded frame that is clipped to the editor content width and safe aspect-ratio height; file cards show display name, size, MIME type, upload status, and failure text. See [Media resolver](#media-resolver). |
+| embed | `_BlockEmbedContent`, `_FormulaBlockContent`, or business renderer | Generic block embed placeholder displays `embedType` + `fallbackText`/data label. Formula block embeds render source text plus display math with readable foreground and no default formula card or preview background. Register per business type with `BlockRendererRegistry.registerEmbed`; wrap large custom widgets in `WenzObjectBlockSurface` for object-block selection semantics. |
 | table | `_TableBlockRenderer` | Custom Stack grid layout; visible cells are positioned by `rowSpan`/`columnSpan`, covered cells are not rendered or hit-tested; table-cell text uses the same inline embed fallback/renderer path. When a table cell/range is selected, the default renderer shows a floating toolbar for row/column insert/delete, header/background/alignment, merge/split, width reset, plus drag handles that persist explicit column widths via `SetTableColumnWidthCommand`. |
 | divider | `_DividerBlockContent` | Content-width horizontal rule with a centered primary dot. The line fills the available editor content width; the dot is decoration only and must not determine the block width. Selected dividers keep a shell border and disable the generic object selection overlay. |
 | callout | `_CalloutRenderer` | Variant-tinted surface with icon, title, body, and an editable type dropdown for `info`/`success`/`warning`/`danger`; uses the same inline embed fallback/renderer path. |
@@ -335,8 +335,12 @@ WenzRichTextEditor(
 The editor still treats every `InlineEmbed` as one logical character for caret
 movement and selection. Prefer compact `TextSpan`s here; use
 `BlockRendererRegistry` when a feature needs a large interactive widget.
-Built-in fallbacks display formula text, mention `@label`, emoji unicode, inline
-images as `[img]`, and unknown custom types as `[type]`.
+Built-in fallbacks render formula math/fallback text with no default background,
+mention `@label` with its mention styling, emoji unicode, inline images as
+`[img]`, and unknown custom types as `[type]`. This is only a default visual
+change: formula data fields, JSON / Markdown / HTML codecs, controller APIs, and
+undo/redo commands are unchanged. Business `InlineEmbedRenderer` code may still
+paint any background it needs.
 
 ## Code block line numbers
 
@@ -498,7 +502,7 @@ Semantics:
   The default image renderer computes that frame from explicit
   `showWidth`/`showHeight`, natural `width`/`height`, or the available editor
   content width. The same frame wraps resolver widgets, empty placeholders,
-  failure placeholders, captions, the selected media stroke, resize hit zones,
+  failure placeholders, the selected media stroke, resize hit zones,
   and the object-toolbar anchor. Resolver widgets should size to the incoming
   constraints and should not rely on unbounded height.
 - File picking is not part of the core package. Host UI (or the example app)
@@ -536,9 +540,10 @@ Semantics:
   `WenzRichTextController.insertImage` to create block-level figures and
   `WenzRichTextController.updateImageBlock` to update natural size
   (`width`/`height`), display size (`showWidth`/`showHeight`), source,
-  `caption`, and `altText`. The default image renderer shows the caption below
-  either the resolver widget or fallback placeholder; semantics prefer
-  `altText`, then caption, then the asset/file label. It also reads
+  `caption`, and `altText`. The default image renderer does not show caption
+  as visible editor text; semantics prefer `altText`, then caption, then the
+  asset/file label. Codecs and clipboard paths keep the metadata intact. It
+  also reads
   `ImageBlockNode.attributes.alignment`: `null` keeps the historical centered
   figure, `left` / `center` / `right` align the same frame within the editable
   content width, and `justify` does not stretch the image.
@@ -551,7 +556,7 @@ Semantics:
   slash menu does not require changing slash-menu semantics or the persisted
   image schema.
 - The image alignment frame is shared by every built-in image subpart. The
-  resolver widget or placeholder, caption, selected media stroke, invisible
+  resolver widget or placeholder, selected media stroke, invisible
   resize hit zones, and object-toolbar anchor all use the same aligned frame
   rectangle. Resize hit zones provide edge dragging without adding persistent
   left/right visual lines. A custom
@@ -565,12 +570,26 @@ Semantics:
   `WenzRichTextController.updateVideoBlock`. The built-in renderer is a
   placeholder only; real playback belongs in the business `MediaResolver`, so
   this package does not depend on `video_player`.
-- Video layout is bounded by the rounded video frame. The frame width never
-  exceeds the editor content width, the aspect ratio/height are clamped to safe
-  values, and the fallback cover, play button, cover chip, title/source text,
-  upload state, and `MediaResolver` child are constrained and clipped inside
-  that frame. Custom players should size to the incoming constraints instead of
-  relying on unbounded width or height.
+- Inline video layout is bounded by the editor's rounded video frame. The frame
+  width never exceeds the editor content width, the aspect ratio/height are
+  clamped to safe values, and the fallback cover, play button, cover chip,
+  title/source text, upload state, and `MediaResolver` child are constrained
+  and clipped inside that frame. Custom players should size to the incoming
+  constraints instead of relying on unbounded width or height.
+- Video preview uses a dedicated fullscreen route: its black surface covers the
+  complete viewport without `Dialog` insets, the former 720×560 cap, or rounded
+  corners. Its viewport and zero-radius playback frame use the same complete
+  finite rectangle, so fullscreen resolver output receives tight width and
+  height constraints for the whole viewport. The player, rather than the outer
+  frame, owns aspect fitting and any letterbox/pillarbox space. The fullscreen
+  path does not reuse the inline frame's media corner radius, rounded shape,
+  shadow, or `ClipRRect`; `null` and thrown resolver results use the same
+  viewport-sized square boundary. The close control remains in the safe area,
+  and Escape plus normal route-back navigation close the preview. For API
+  compatibility the resolver entry is still named
+  `WenzRichTextVideoMediaResolveEntry.dialog`, but it represents this fullscreen
+  surface. Inline and fullscreen resolver calls receive independent widget
+  subtrees/player instances.
 - Golden status: the current `editor_blocks.png` and
   `editor_advanced_blocks.png` baselines do not render a video block, so this
   overflow fix is covered by widget tests instead of updating those images.
@@ -584,7 +603,7 @@ through the editor-owned `ObjectBlockToolbarOverlayHost`. The renderer owns an
 `BlockRenderContext.objectBlockToolbarOverlayController`; the host owns the
 `OverlayPortal` lifecycle. The toolbar is therefore not part of the block's
 measured layout, and selecting an image or video must not add vertical space,
-move the frame, or move the image caption.
+move the frame.
 
 Positioning contract:
 
@@ -602,13 +621,13 @@ Positioning contract:
 Selection remains owned by `_MediaSelectionStroke`, which hugs the media frame
 rectangle and uses the media corner radius. Image and video blocks disable the
 generic full-block object selection overlay so the stroke does not cover block
-margins or captions.
+margins.
 
 For editable selected images, the default object "more" menu exposes image
 left / center / right / clear alignment entries. The current explicit alignment
 entry is shown as selected and disabled; when no explicit alignment is stored,
 the clear entry is disabled. These actions only change
-`ImageBlockNode.attributes.alignment`; the visible frame, caption, selected media
+`ImageBlockNode.attributes.alignment`; the visible frame, selected media
 stroke, resize hit zones, and toolbar anchor already share the same aligned
 frame and therefore move together.
 
@@ -616,7 +635,7 @@ For editable selected images, resize remains available through invisible left
 and right edge hit zones that register as selection exclusions and use the
 horizontal resize cursor. Those hit zones do not paint persistent vertical
 lines; drag feedback comes from the changing frame size, the frame-hugging
-stroke, caption layout, and object-toolbar anchor following the preview size.
+stroke and object-toolbar anchor following the preview size.
 
 The overlay positioning itself is rendering-only. Image alignment persistence is
 part of the document/codec contract: rich JSON and HTML preserve explicit image

@@ -191,7 +191,7 @@
 |--------|------|------|
 | 默认 renderer 覆盖仍等于现有 `BlockType.values` | [ ] | `paragraph/heading/quote/listItem/code/image/table/divider/video/embed/callout/file` |
 | `BlockRendererRegistry` 外部覆盖能力不变 | [ ] | `register/registerEmbed/resolveForBlock` 仍是业务接入点 |
-| `InlineEmbedRenderer` 外部接管能力不变 | [ ] | mention/formula/image 等默认样式后续只做 fallback 优化 |
+| `InlineEmbedRenderer` 外部接管能力不变 | [ ] | mention/formula/image 等仍可由业务接管；公式默认视觉无背景，业务 renderer 可自行决定是否绘制背景 |
 | 文档模型与导入导出协议不变 | [ ] | 本需求只优化默认视觉，不改 schema/codec/command 数据结构 |
 | golden 覆盖缺口已标记 | [x] | 综合排版 golden 已在 P008 更新，见 `editor_advanced_blocks.png` |
 
@@ -200,14 +200,14 @@
 - 圆角/阴影：主圆角 `12px`，小圆角 `8px`，chip `6px`；卡片阴影为 `0 1px 3px rgba(20,20,40,.08)` + `0 1px 2px rgba(20,20,40,.06)`。
 - 字号/行高：正文 `16px / 1.75`；H1-H4 为 `24/21/18/16px`；代码块 `13.5px / 1.6`；表格 `15px`；caption/元信息 `13px`；语言标签 `11px`。
 - 间距：段落 `.55em`；常规块 `1em`；媒体块 `1.2em`；分割线 `1.6em`；列表左缩进 `26px`；todo 左 padding `4px`、checkbox 到正文 `6px`；引用 `8x18px`；代码 `18x20px`；表格 cell `10x14px`。
-- 状态：todo 完成态弱化 + 删除线，默认 checkbox 槽位 `20x28px`；文件 hover/focus 使用主色边框 + 阴影；callout 覆盖 info/success/warning/danger；embed/formula/mention 使用 chip 或 pill fallback。
+- 状态：todo 完成态弱化 + 删除线，默认 checkbox 槽位 `20x28px`；文件 hover/focus 使用主色边框 + 阴影；callout 覆盖 info/success/warning/danger；mention 保留 pill fallback，通用 embed 保留占位卡片，默认公式不绘制 chip、pill、卡片或预览背景。
 
 当前默认渲染差异基线：
 
 | 元素 | 当前覆盖 | 后续处理分类 |
 |------|----------|--------------|
 | 正文/行内属性 | 文本属性、链接色、颜色/高亮/字号/字体已走 `TextStyle` | P002 调样式；高亮 padding/圆角和 remark dotted 下划线需 Flutter 等价方案 |
-| 行内嵌入 | mention/formula 有默认 `TextSpan` fallback，业务可接管 | P002/P006 补 pill 视觉与 inline image 占位 golden |
+| 行内嵌入 | mention 有默认 `TextSpan` fallback，formula 默认渲染数学内容但不绘制背景，业务可接管 | 公式仅改变默认视觉，不涉及 schema、codec、控制器 API 或公式数据字段；业务 renderer 可自行绘制背景 |
 | 标题 | H1-H4 尺寸已接近设计稿，H5/H6 弱化缺失 | P003 调权重/颜色/上下间距 |
 | 对齐/缩进 | alignment 与 indent 已存在，缩进当前为 `24px` | P003 只调视觉基线，不改选择/滚动逻辑 |
 | 引用/列表/todo | 引用、列表 marker、checkbox 和完成态已渲染 | P004 改左边框引用、列表节奏、task 首行对齐 |

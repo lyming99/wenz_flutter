@@ -1,0 +1,11 @@
+已完成 P002，仅修改 [curve_tool.dart](D:/project/GitHub/wenz_flutter/wenz_draw/lib/src/tools/curve_tool.dart:24)：
+
+- 按下、移动、抬起均按当前画布缩放解析吸附点。
+- 曲线预览和最终元素使用吸附后的端点坐标。
+- 保存起点、终点对应的 `SnapBinding`。
+- 实时同步 `SnapPreview`。
+- 完成、取消及无效短距离绘制时清空吸附状态和预览。
+- 未命中或关闭吸附时保持原始自由绘制行为。
+- 保留原有控制点计算、画笔样式及创建后选中行为。
+
+未修改 plan 文件，未执行测试、构建、lint 或 analyze。

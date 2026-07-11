@@ -1,0 +1,3755 @@
+2026-07-09T16:16:40.427390Z ERROR codex_models_manager::manager: failed to refresh available models: timeout waiting for child process to exit
+OpenAI Codex v0.142.5
+--------
+workdir: D:\project\GitHub\wenz_flutter\wenz_draw
+model: gpt-5.5
+provider: openai
+approval: never
+sandbox: danger-full-access
+reasoning effort: xhigh
+reasoning summaries: none
+session id: 019f47aa-bfec-72e3-99c1-7df15bee1943
+--------
+user
+你是开发执行者，在无人值守模式下工作：禁止反问用户、禁止请求确认或补充信息、禁止输出“请告诉我…/是否需要…”之类等待回复的话；遇到不确定一律自行从代码推断，按最合理的工程方案直接推进，不要停下来等待输入。
+请只执行指定任务 P001，不要提前执行其它任务，也不要顺手处理其它 checkbox。
+
+plan 文件（只读）：D:\project\GitHub\wenz_flutter\wenz_draw\docs\plan\plan_feedback_49_20260710-001100.md
+指定任务：- [ ] P001: 补齐折线箭头属性的控制器更新入口 <!-- scope: lib/src/canvas/canvas_controller.dart -->
+任务 scope：lib/src/canvas/canvas_controller.dart
+
+完成后必须：
+- 这是无人值守执行：不要提问、不要请求确认、不要等待用户输入，所有不确定项自行基于代码推断并直接落地修改
+- plan 文件是只读上下文：不要修改 plan 文件，不要勾选 checkbox，不要更新 plan 进度区
+- AutoPlan 会在任务成功后统一写回数据库、checkbox 和进度区
+- 只修改当前任务 scope 直接相关的业务文件
+- 当前阶段只做开发修改，不运行测试、回归、验收、构建、lint/analyze、coverage、e2e 或 benchmark 命令；AutoPlan 会在所有任务完成后统一执行最终验收命令
+- 即使任务验收要点提到测试，也只补充或调整必要代码/测试文件，不在当前任务内启动测试进程；除非当前任务或 plan 总体说明明确写着“本任务必须执行某命令”
+- 若识别到 Flutter/Dart 项目，可遵循其代码组织、格式和测试文件约定，但当前任务内不要运行 flutter test、dart test、flutter analyze 或 dart analyze
+- 如果工具链命令因 PathAccessException、Permission denied、拒绝访问或超时失败，停止重试并说明环境阻塞，把验证留给最终验收阶段
+- 不输出完整 diff、源码全文或长文件列表
+- 中文文件读写使用 UTF-8
+codex
+我先读取只读 plan 和指定 scope 文件，确认 P001 的验收点与现有控制器模式，然后只在该 scope 内落地必要修改。
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "Get-Content -LiteralPath 'D:\\project\\GitHub\\wenz_flutter\\wenz_draw\\docs\\plan\\plan_feedback_49_20260710-001100.md' -Encoding UTF8" in D:\project\GitHub\wenz_flutter\wenz_draw
+ succeeded in 200ms:
+# 折线箭头配置支持
+
+## 需求概要
+
+基于现有 PolylineElement 的 endArrow 与 headSize 能力，补齐编辑器中普通折线的箭头设置入口，并保证状态更新、保存加载与导出链路保持一致。
+
+## 任务拆解
+
+- [ ] P001: 补齐折线箭头属性的控制器更新入口 <!-- scope: lib/src/canvas/canvas_controller.dart -->
+  - 验收要点：选中已有 PolylineElement 时，可以在不替换元素类型的前提下切换末端箭头开关。
+  - 验收要点：调整箭头尺寸时只改变折线末端箭头表现，不破坏 points、startBinding、endBinding、图层和标签等现有数据。
+  - 验收要点：折线箭头属性变更会进入现有历史记录，撤销和重做后状态一致。
+- [ ] P002: 在右侧检查器暴露折线箭头设置 <!-- scope: lib/src/ui/panels/right_inspector_panel.dart,lib/src/ui/panels/inspector_utils.dart,lib/src/ui/panels/inspector_fields.dart -->
+  - 验收要点：选中普通折线时，右侧检查器能够显示箭头开关，并正确回显已有折线的箭头状态。
+  - 验收要点：启用箭头后可以调节箭头尺寸，禁用箭头时尺寸控件不会误导用户继续编辑无效值。
+  - 验收要点：非折线元素的现有检查器行为保持不变，直线和现有 ArrowElement 的编辑入口不回退。
+- [ ] P003: 补充折线箭头的序列化与导出回归覆盖 <!-- scope: test/polyline_element_test.dart,test/serialization_test.dart,test/svg_exporter_test.dart -->
+  - 验收要点：带箭头的折线在 JSON round-trip 后保留 endArrow、headSize 以及既有标签和绑定信息。
+  - 验收要点：SVG 导出能够正确输出带箭头折线的末端箭头图形，无箭头折线导出结果保持兼容。
+  - 验收要点：折线启用箭头后，正交路由、端点拖拽和命中选择等现有连接线交互场景仍然成立。
+- [ ] P004: 完整验收 <!-- scope: validation -->
+  - 验收要点：最终验收命令为 flutter test
+  - 验收要点：Flutter 测试命令通过，覆盖折线箭头属性切换、序列化恢复和 SVG 导出场景。
+  - 验收要点：普通折线在编辑器中可开启或关闭箭头，并可在启用后调整箭头尺寸且撤销重做一致。
+  - 验收要点：带箭头折线保存后重新加载仍保留箭头状态，连接绑定、正交路由和标签能力不回退。
+
+## 总体验收标准
+
+- 最终验收命令：flutter test
+- 验收范围：lib/src/canvas/canvas_controller.dart、lib/src/ui/panels/right_inspector_panel.dart、lib/src/ui/panels/inspector_utils.dart、lib/src/ui/panels/inspector_fields.dart、test/polyline_element_test.dart、test/serialization_test.dart、test/svg_exporter_test.dart、validation
+- 通过标准：所有总体验收标准均满足。
+- Flutter 测试命令通过，覆盖折线箭头属性切换、序列化恢复和 SVG 导出场景。
+- 普通折线在编辑器中可开启或关闭箭头，并可在启用后调整箭头尺寸且撤销重做一致。
+- 带箭头折线保存后重新加载仍保留箭头状态，连接绑定、正交路由和标签能力不回退。
+
+## 进度区
+
+| 任务 | 状态 | 备注 |
+| --- | --- | --- |
+| P001 | 未开始 | 补齐折线箭头属性的控制器更新入口 |
+| P002 | 未开始 | 在右侧检查器暴露折线箭头设置 |
+| P003 | 未开始 | 补充折线箭头的序列化与导出回归覆盖 |
+| P004 | 未开始 | 完整验收 |
+
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'git status --short' in D:\project\GitHub\wenz_flutter\wenz_draw
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "Get-Content -LiteralPath 'D:\\project\\GitHub\\wenz_flutter\\wenz_draw\\lib\\src\\canvas\\canvas_controller.dart' -Encoding UTF8" in D:\project\GitHub\wenz_flutter\wenz_draw
+ succeeded in 201ms:
+ M lib/src/canvas/canvas_controller.dart
+ M lib/src/elements/polyline_element.dart
+ M lib/src/tools/polyline_tool.dart
+ M lib/wenz_draw.dart
+ M ../wenz_richtext/docs/acceptance_manual_checklist.md
+ M ../wenz_richtext/docs/api_reference.md
+ M ../wenz_richtext/docs/design/media_block_display_spec.md
+ M ../wenz_richtext/docs/input_system.md
+ M ../wenz_richtext/docs/integration_guide.md
+ M ../wenz_richtext/docs/rendering.md
+ M ../wenz_richtext/example/integration_test/editor_mouse_test.dart
+ M ../wenz_richtext/example/integration_test/helpers/pointer_helpers.dart
+ M ../wenz_richtext/example/integration_test/helpers/test_app.dart
+ M ../wenz_richtext/example/lib/example_video_player.dart
+ M ../wenz_richtext/example/lib/main.dart
+ M ../wenz_richtext/example/test/widget_test.dart
+ M ../wenz_richtext/lib/src/codecs/markdown_codec.dart
+ M ../wenz_richtext/lib/src/controller/toolbar_controller.dart
+ M ../wenz_richtext/lib/src/controller/wenz_rich_text_controller.dart
+ M ../wenz_richtext/lib/src/core/commands/block_commands.dart
+ M ../wenz_richtext/lib/src/core/commands/inline_commands.dart
+ M ../wenz_richtext/lib/src/core/commands/inline_editing.dart
+ M ../wenz_richtext/lib/src/core/commands/style_commands.dart
+ M ../wenz_richtext/lib/src/core/model/block_node.dart
+ M ../wenz_richtext/lib/src/input/clipboard_service.dart
+ M ../wenz_richtext/lib/src/input/external_image_clipboard_reader.dart
+ M ../wenz_richtext/lib/src/input/external_image_input.dart
+ M ../wenz_richtext/lib/src/input/external_image_store_io.dart
+ M ../wenz_richtext/lib/src/input/shortcut_manager.dart
+ M ../wenz_richtext/lib/src/integration/wenz_editor_bootstrap.dart
+ M ../wenz_richtext/lib/src/integration/wenz_editor_configuration.dart
+ M ../wenz_richtext/lib/src/plugins/mermaid_diagram_plugin.dart
+ M ../wenz_richtext/lib/src/widgets/block_renderer_registry.dart
+ M ../wenz_richtext/lib/src/widgets/default_desktop_toolbar.dart
+ M ../wenz_richtext/lib/src/widgets/default_mobile_toolbar.dart
+ M ../wenz_richtext/lib/src/widgets/editor_tokens.dart
+ M ../wenz_richtext/lib/src/widgets/lucide_toolbar_icons.dart
+ M ../wenz_richtext/lib/src/widgets/media_resolver.dart
+ M ../wenz_richtext/lib/src/widgets/mermaid/mermaid_code_block_widget.dart
+ M ../wenz_richtext/lib/src/widgets/outline_tree.dart
+ M ../wenz_richtext/lib/src/widgets/selection_gesture_overlay.dart
+ M ../wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+ M ../wenz_richtext/lib/wenz_richtext.dart
+ M ../wenz_richtext/pubspec.lock
+ M ../wenz_richtext/pubspec.yaml
+ M ../wenz_richtext/test/codecs/markdown_codec_test.dart
+ M ../wenz_richtext/test/codecs/rich_text_json_codec_test.dart
+ M ../wenz_richtext/test/controller/image_block_controller_test.dart
+ M ../wenz_richtext/test/controller/toolbar_controller_test.dart
+ M ../wenz_richtext/test/controller/video_block_controller_test.dart
+ M ../wenz_richtext/test/core/block_commands_test.dart
+ M ../wenz_richtext/test/core/controller_test.dart
+ M ../wenz_richtext/test/core/inline_commands_test.dart
+ M ../wenz_richtext/test/core/model_test.dart
+ M ../wenz_richtext/test/core/style_commands_test.dart
+ M ../wenz_richtext/test/core/table_commands_test.dart
+ M ../wenz_richtext/test/input/clipboard_service_test.dart
+ M ../wenz_richtext/test/input/shortcut_manager_test.dart
+ M ../wenz_richtext/test/integration/wenz_editor_bootstrap_test.dart
+ M ../wenz_richtext/test/widgets/default_desktop_toolbar_test.dart
+ M ../wenz_richtext/test/widgets/default_mobile_toolbar_test.dart
+ M ../wenz_richtext/test/widgets/editor_golden_test.dart
+ M ../wenz_richtext/test/widgets/goldens/editor_advanced_blocks.png
+ M ../wenz_richtext/test/widgets/media_resolver_test.dart
+ M ../wenz_richtext/test/widgets/mermaid_code_block_test.dart
+ M ../wenz_richtext/test/widgets/outline_panel_test.dart
+ M ../wenz_richtext/test/widgets/outline_tree_test.dart
+ M ../wenz_richtext/test/widgets/wenz_rich_text_editor_test.dart
+ M ../wenz_richtext/ui/media_block_display_design.html
+?? docs/plan/
+?? docs/progress/
+?? lib/src/tools/polyline_arrow_tool.dart
+?? ../wenz_richtext/assets/lucide/indent-decrease.svg
+?? ../wenz_richtext/assets/lucide/indent-increase.svg
+?? ../wenz_richtext/assets/lucide/minus.svg
+?? ../wenz_richtext/docs/plan/plan_feedback_17_20260708-124059.md
+?? ../wenz_richtext/docs/plan/plan_feedback_18_20260708-124554.md
+?? ../wenz_richtext/docs/plan/plan_feedback_19_20260708-125625.md
+?? ../wenz_richtext/docs/plan/plan_feedback_20_20260708-130256.md
+?? ../wenz_richtext/docs/plan/plan_feedback_21_20260708-130912.md
+?? ../wenz_richtext/docs/plan/plan_feedback_22_20260708-131342.md
+?? ../wenz_richtext/docs/plan/plan_feedback_23_20260708-131853.md
+?? ../wenz_richtext/docs/plan/plan_feedback_24_20260708-132343.md
+?? ../wenz_richtext/docs/plan/plan_feedback_25_20260708-133209.md
+?? ../wenz_richtext/docs/plan/plan_feedback_26_20260708-204015.md
+?? ../wenz_richtext/docs/plan/plan_feedback_27_20260708-204606.md
+?? ../wenz_richtext/docs/plan/plan_feedback_28_20260708-223102.md
+?? ../wenz_richtext/docs/plan/plan_feedback_31_20260708-223823.md
+?? ../wenz_richtext/docs/plan/plan_feedback_32_20260708-224534.md
+?? ../wenz_richtext/docs/plan/plan_feedback_45_20260709-015213.md
+?? ../wenz_richtext/docs/plan/plan_feedback_46_20260709-015910.md
+?? ../wenz_richtext/docs/plan/plan_requirement_51_20260708-213115.md
+?? ../wenz_richtext/docs/plan/plan_requirement_54_20260708-214517.md
+?? ../wenz_richtext/docs/plan/plan_requirement_56_20260708-215523.md
+?? ../wenz_richtext/docs/plan/plan_requirement_57_20260708-220239.md
+?? ../wenz_richtext/docs/plan/plan_requirement_58_20260708-220724.md
+?? ../wenz_richtext/docs/plan/plan_requirement_59_20260708-221415.md
+?? ../wenz_richtext/docs/plan/plan_spec_feedback_17_20260708-124059.json
+?? ../wenz_richtext/docs/plan/plan_spec_feedback_18_20260708-124554.json
+?? ../wenz_richtext/docs/plan/plan_spec_feedback_19_20260708-125625.json
+?? ../wenz_richtext/docs/plan/plan_spec_feedback_20_20260708-130256.json
+?? ../wenz_richtext/docs/plan/plan_spec_feedback_21_20260708-130912.json
+?? ../wenz_richtext/docs/plan/plan_spec_feedback_22_20260708-131342.json
+?? ../wenz_richtext/docs/plan/plan_spec_feedback_23_20260708-131853.json
+?? ../wenz_richtext/docs/plan/plan_spec_feedback_24_20260708-132343.json
+?? ../wenz_richtext/docs/plan/plan_spec_feedback_25_20260708-133209.json
+?? ../wenz_richtext/docs/plan/plan_spec_feedback_26_20260708-204015.json
+?? ../wenz_richtext/docs/plan/plan_spec_feedback_27_20260708-204606.json
+?? ../wenz_richtext/docs/plan/plan_spec_feedback_28_20260708-223102.json
+?? ../wenz_richtext/docs/plan/plan_spec_feedback_31_20260708-223823.json
+?? ../wenz_richtext/docs/plan/plan_spec_feedback_32_20260708-224534.json
+?? ../wenz_richtext/docs/plan/plan_spec_feedback_45_20260709-015213.json
+?? ../wenz_richtext/docs/plan/plan_spec_feedback_46_20260709-015910.json
+?? ../wenz_richtext/docs/plan/plan_spec_requirement_51_20260708-213115.json
+?? ../wenz_richtext/docs/plan/plan_spec_requirement_54_20260708-214517.json
+?? ../wenz_richtext/docs/plan/plan_spec_requirement_56_20260708-215523.json
+?? ../wenz_richtext/docs/plan/plan_spec_requirement_57_20260708-220239.json
+?? ../wenz_richtext/docs/plan/plan_spec_requirement_58_20260708-220724.json
+?? ../wenz_richtext/docs/plan/plan_spec_requirement_59_20260708-221415.json
+?? ../wenz_richtext/example/integration_test/theme_toggle_test.dart.codex_tmp
+?? ../wenz_richtext/lib/src/mermaid/
+?? ../wenz_richtext/lib/src/widgets/mermaid/mermaid_diagram.dart
+?? ../wenz_richtext/test/.codex_probe.tmp
+?? ../wenz_richtext/test/input/.codex_p004_write_probe.tmp
+?? ../wenz_richtext/test/input/.codex_write_probe.tmp
+?? ../wenz_richtext/test/mermaid/
+?? ../wenz_richtext/test/mermaid_probe.tmp
+
+ succeeded in 331ms:
+import 'package:flutter/widgets.dart';
+
+import '../canvas/image_loader.dart';
+import '../canvas/paint_style.dart';
+import '../elements/arrow_element.dart';
+import '../elements/canvas_element.dart';
+import '../elements/drawio_shape_element.dart';
+import '../elements/element_registry.dart';
+import '../elements/ellipse_element.dart';
+import '../elements/image_element.dart';
+import '../elements/line_element.dart';
+import '../elements/polyline_element.dart';
+import '../elements/rect_element.dart';
+import '../elements/text_element.dart';
+import '../elements/widget_element.dart';
+import '../history/commands/add_element_command.dart';
+import '../history/commands/add_layer_command.dart';
+import '../history/commands/batch_command.dart';
+import '../history/commands/remove_element_command.dart';
+import '../history/commands/remove_layer_command.dart';
+import '../history/commands/reorder_layer_command.dart';
+import '../history/commands/update_element_command.dart';
+import '../history/commands/update_layer_command.dart';
+import '../history/canvas_command.dart';
+import '../history/history_manager.dart';
+import '../infinite_canvas/canvas_event.dart';
+import '../layers/auto_layering.dart';
+import '../layers/canvas_layer.dart';
+import '../layers/layer_manager.dart';
+import '../routing/connector_routing.dart';
+import '../serialization/canvas_serializer.dart';
+import '../snap/snap_resolver.dart';
+import '../tools/brush_settings.dart';
+import '../tools/alignment_tools.dart';
+import '../tools/canvas_tool.dart';
+import '../tools/ellipse_tool.dart';
+import '../tools/eraser_tool.dart';
+import '../tools/highlighter_tool.dart';
+import '../tools/line_tool.dart';
+import '../tools/curve_tool.dart';
+import '../tools/pan_tool.dart';
+import '../tools/pen_tool.dart';
+import '../tools/polyline_arrow_tool.dart';
+import '../tools/polyline_tool.dart';
+import '../tools/rect_tool.dart';
+import '../tools/select_tool.dart';
+import '../tools/shape_tool.dart';
+import '../tools/text_tool.dart';
+import '../tools/arrow_tool.dart';
+import '../tools/tool_manager.dart';
+import '../utils/uuid_generator.dart';
+import 'canvas_state.dart';
+import 'element_manager.dart';
+import 'spatial_index.dart';
+
+class CanvasController extends ChangeNotifier {
+  CanvasController({
+    CanvasState initialState = const CanvasState(),
+    ToolManager? toolManager,
+    HistoryManager? historyManager,
+    LayerManager? layerManager,
+    this.autoLayeringPolicy = const AutoLayeringPolicy.activeLayer(),
+    SnapSettings snapSettings = const SnapSettings(),
+    this.connectorRoutingOptions = const ConnectorRoutingOptions(),
+  }) : _state = initialState,
+       toolManager = toolManager ?? ToolManager(),
+       historyManager = historyManager ?? HistoryManager(),
+       layerManager = layerManager ?? LayerManager(),
+       snapResolver = SnapResolver(settings: snapSettings) {
+    ElementRendererRegistry.ensureBuiltInsRegistered();
+    _registerBuiltInTools();
+    this.historyManager.addListener(notifyListeners);
+    this.layerManager.addListener(notifyListeners);
+    setTool(PenTool.idValue);
+  }
+
+  final ElementManager _elementManager = const ElementManager();
+  final SpatialIndex _spatialIndex = SpatialIndex();
+  final AutoLayeringResolver _autoLayeringResolver =
+      const AutoLayeringResolver();
+  final ToolManager toolManager;
+  final HistoryManager historyManager;
+  final LayerManager layerManager;
+  final AutoLayeringPolicy autoLayeringPolicy;
+  final ConnectorRoutingOptions connectorRoutingOptions;
+  SnapResolver snapResolver;
+
+  /// Registry consulted when an [ImageElement] needs its raster decoded from a
+  /// serialized source (base64 / URL / file path). Hosts register custom
+  /// loaders here (e.g. an OSS-backed fetcher). Defaults to the shared
+  /// [ImageLoaderRegistry.instance], which ships base64, raw-bytes and network
+  /// loaders.
+  ImageLoaderRegistry imageLoaders = ImageLoaderRegistry.instance;
+
+  CanvasState _state;
+  String? _editingTextElementId;
+  TextElement? _editingTextOriginal;
+  String? _editingShapeLabelElementId;
+  CanvasElement? _editingShapeLabelOriginal;
+
+  SnapResult? _snapPreview;
+
+  CanvasState get state => _state;
+  String? get editingTextElementId => _editingTextElementId;
+  String? get editingShapeLabelElementId => _editingShapeLabelElementId;
+  SnapResult? get snapPreview => _snapPreview;
+  List<CanvasElement> get elements => _state.elements;
+  CanvasElement? get previewElement => _state.previewElement;
+  Set<String> get selectedIds => _state.selectedIds;
+  Rect? get selectionRect => _state.selectionRect;
+  BrushSettings get brushSettings => toolManager.brushSettings;
+  CanvasTool? get currentTool => toolManager.activeTool;
+  bool get canUndo => historyManager.canUndo;
+  bool get canRedo => historyManager.canRedo;
+  List<CanvasLayer> get layers => layerManager.layers;
+  String get activeLayerId => layerManager.activeLayerId;
+
+  void addElement(
+    CanvasElement element, {
+    bool record = true,
+    bool bringToFront = false,
+  }) {
+    final prepared = _prepareElementForInsert(
+      element,
+      bringToFront: bringToFront,
+    );
+    if (record) {
+      historyManager.execute(AddElementCommand(prepared), this);
+      return;
+    }
+    applyElementAdded(prepared);
+  }
+
+  void applyElementAdded(CanvasElement element) {
+    _state = _state.copyWith(
+      elements: _elementManager.add(_state.elements, element),
+      previewElement: null,
+    );
+    _spatialIndex.invalidate();
+    notifyListeners();
+  }
+
+  void removeElement(String id, {bool record = true}) {
+    final element = elementById(id);
+    if (element == null) {
+      return;
+    }
+    if (record) {
+      historyManager.execute(RemoveElementCommand(element), this);
+      return;
+    }
+    applyElementRemoved(id);
+  }
+
+  void applyElementRemoved(String id) {
+    _state = _state.copyWith(
+      elements: _elementManager.remove(_state.elements, id),
+      selectedIds: {..._state.selectedIds}..remove(id),
+      previewElement: null,
+    );
+    if (_snapPreview?.point.elementId == id) {
+      _snapPreview = null;
+    }
+    _spatialIndex.invalidate();
+    notifyListeners();
+  }
+
+  void updateElement(String id, CanvasElement element, {bool record = true}) {
+    final before = elementById(id);
+    if (before == null) {
+      return;
+    }
+    if (record) {
+      historyManager.execute(
+        UpdateElementCommand(before: before, after: element),
+        this,
+      );
+      return;
+    }
+    applyElementUpdated(id, element);
+  }
+
+  void applyElementUpdated(String id, CanvasElement element) {
+    _applyElementUpdated(id, element, notify: true);
+  }
+
+  /// Update an element's state without adding to the undo stack.
+  /// Set [notify] to false to skip [notifyListeners] (useful during text
+  /// editing to avoid rebuilding the entire canvas on every keystroke).
+  void _applyElementUpdated(
+    String id,
+    CanvasElement element, {
+    bool notify = true,
+  }) {
+    _state = _state.copyWith(
+      elements: _syncSnapBoundElements(
+        _elementManager.update(_state.elements, id, element),
+        changedElementId: id,
+      ),
+    );
+    _spatialIndex.invalidate();
+    if (notify) {
+      notifyListeners();
+    }
+  }
+
+  List<CanvasElement> _syncSnapBoundElements(
+    List<CanvasElement> elements, {
+    required String changedElementId,
+  }) {
+    final byId = {for (final element in elements) element.id: element};
+    final resolved = <CanvasElement>[];
+    var changed = false;
+    for (final element in elements) {
+      final next = _resolveSnapBoundElement(element, changedElementId, byId);
+      resolved.add(next);
+      changed = changed || !identical(next, element);
+    }
+    return changed ? List<CanvasElement>.unmodifiable(resolved) : elements;
+  }
+
+  CanvasElement _resolveSnapBoundElement(
+    CanvasElement element,
+    String changedElementId,
+    Map<String, CanvasElement> elementsById,
+  ) {
+    if (element is LineElement) {
+      final start = element.startBinding?.elementId == changedElementId
+          ? _resolveSnapBindingFrom(elementsById, element.startBinding)
+          : null;
+      final end = element.endBinding?.elementId == changedElementId
+          ? _resolveSnapBindingFrom(elementsById, element.endBinding)
+          : null;
+      if (start == null && end == null) {
+        return element;
+      }
+      return element.copyWith(
+        start: start ?? element.start,
+        end: end ?? element.end,
+      );
+    }
+    if (element is PolylineElement) {
+      final start = element.startBinding?.elementId == changedElementId
+          ? _resolveSnapBindingFrom(elementsById, element.startBinding)
+          : null;
+      final end = element.endBinding?.elementId == changedElementId
+          ? _resolveSnapBindingFrom(elementsById, element.endBinding)
+          : null;
+      if (start == null && end == null || element.points.isEmpty) {
+        return element;
+      }
+      final nextStart = start ?? element.start;
+      final nextEnd = end ?? element.end;
+      return element.copyWith(
+        points: routeConnector(
+          start: nextStart,
+          end: nextEnd,
+          startBinding: element.startBinding,
+          endBinding: element.endBinding,
+          connectorId: element.id,
+          previousRoute: element.points,
+          quality: connectorRoutingOptions.finalQuality,
+          elementsOverride: elements,
+        ),
+      );
+    }
+    if (element is ArrowElement) {
+      final start = element.startBinding?.elementId == changedElementId
+          ? _resolveSnapBindingFrom(elementsById, element.startBinding)
+          : null;
+      final end = element.endBinding?.elementId == changedElementId
+          ? _resolveSnapBindingFrom(elementsById, element.endBinding)
+          : null;
+      if (start == null && end == null) {
+        return element;
+      }
+      return element.copyWith(
+        start: start ?? element.start,
+        end: end ?? element.end,
+      );
+    }
+    return element;
+  }
+
+  Offset? _resolveSnapBindingFrom(
+    Map<String, CanvasElement> elementsById,
+    SnapBinding? binding,
+  ) {
+    if (binding == null) {
+      return null;
+    }
+    final target = elementsById[binding.elementId];
+    if (target == null ||
+        !target.visible ||
+        !isLayerVisible(target.layerId) ||
+        isLayerLocked(target.layerId)) {
+      return null;
+    }
+    for (final point in snapResolver.pointsForElement(target)) {
+      if (point.anchorId == binding.anchorId) {
+        return point.position;
+      }
+    }
+    return null;
+  }
+
+  List<Offset> routeConnector({
+    required Offset start,
+    required Offset end,
+    SnapBinding? startBinding,
+    SnapBinding? endBinding,
+    String? connectorId,
+    List<Offset>? previousRoute,
+    ConnectorRouteQuality quality = ConnectorRouteQuality.high,
+    Iterable<CanvasElement>? elementsOverride,
+  }) {
+    final service = ConnectorRoutingService(options: connectorRoutingOptions);
+    return service
+        .route(
+          start: start,
+          end: end,
+          elements: elementsOverride ?? _state.elements,
+          isLayerVisible: isLayerVisible,
+          isLayerLocked: isLayerLocked,
+          startBinding: startBinding,
+          endBinding: endBinding,
+          connectorId: connectorId,
+          previousRoute: previousRoute,
+          quality: quality,
+        )
+        .points;
+  }
+
+  void replaceElements(
+    List<CanvasElement> elements, {
+    bool clearHistory = true,
+  }) {
+    _editingTextElementId = null;
+    _editingTextOriginal = null;
+    _editingShapeLabelElementId = null;
+    _editingShapeLabelOriginal = null;
+    _snapPreview = null;
+    _state = _state.copyWith(
+      elements: List<CanvasElement>.unmodifiable(elements),
+      previewElement: null,
+      selectedIds: const <String>{},
+      selectionRect: null,
+    );
+    _spatialIndex.invalidate();
+    if (clearHistory) {
+      historyManager.clear();
+    }
+    notifyListeners();
+  }
+
+  /// Loads [layers] and [elements] into the controller, replacing all existing
+  /// data. History is cleared and the active layer is set to the first layer.
+  void loadDocument(List<CanvasLayer> layers, List<CanvasElement> elements) {
+    if (layers.isNotEmpty) {
+      layerManager.replaceLayers(layers, activeLayerId: layers.first.id);
+    }
+    replaceElements(elements);
+  }
+
+  void setPreviewElement(CanvasElement? element) {
+    _state = _state.copyWith(previewElement: element);
+    notifyListeners();
+  }
+
+  void clearPreview() {
+    if (_state.previewElement == null) {
+      return;
+    }
+    _state = _state.copyWith(previewElement: null);
+    _snapPreview = null;
+    notifyListeners();
+  }
+
+  void setSnapPreview(SnapResult? result) {
+    _snapPreview = result;
+    notifyListeners();
+  }
+
+  void updateSnapSettings(SnapSettings settings) {
+    snapResolver = SnapResolver(settings: settings);
+    _snapPreview = null;
+    notifyListeners();
+  }
+
+  void setSelectionRect(Rect? rect) {
+    _state = _state.copyWith(selectionRect: rect);
+    notifyListeners();
+  }
+
+  void cancelCurrentInteraction() {
+    toolManager.cancelActiveTool(this);
+    clearPreview();
+  }
+
+  List<CanvasElement> orderedElements({bool visibleOnly = false}) {
+    final ordered =
+        [
+          for (var i = 0; i < _state.elements.length; i++)
+            if (!visibleOnly ||
+                (_state.elements[i].visible &&
+                    isLayerVisible(_state.elements[i].layerId)))
+              MapEntry(i, _state.elements[i]),
+        ]..sort((a, b) {
+          final layerOrder = layerIndexOf(
+            a.value.layerId,
+          ).compareTo(layerIndexOf(b.value.layerId));
+          if (layerOrder != 0) {
+            return layerOrder;
+          }
+
+          final zOrder = a.value.zIndex.compareTo(b.value.zIndex);
+          if (zOrder != 0) {
+            return zOrder;
+          }
+          return a.key.compareTo(b.key);
+        });
+
+    return [for (final entry in ordered) entry.value];
+  }
+
+  Iterable<CanvasElement> elementsInViewport(Rect worldRect) {
+    final visible =
+        _spatialIndex
+            .query(_state.elements, worldRect)
+            .where(
+              (element) => element.visible && isLayerVisible(element.layerId),
+            )
+            .toList()
+          ..sort((a, b) {
+            final layerOrder = layerIndexOf(
+              a.layerId,
+            ).compareTo(layerIndexOf(b.layerId));
+            if (layerOrder != 0) {
+              return layerOrder;
+            }
+            final zOrder = a.zIndex.compareTo(b.zIndex);
+            if (zOrder != 0) {
+              return zOrder;
+            }
+            return _state.elements
+                .indexOf(a)
+                .compareTo(_state.elements.indexOf(b));
+          });
+    return visible;
+  }
+
+  CanvasElement? hitTest(Offset worldPoint, {double tolerance = 5}) {
+    return _elementManager.hitTest(
+      _spatialIndex
+          .queryPoint(_state.elements, worldPoint, tolerance: tolerance)
+          .where((element) => isLayerVisible(element.layerId)),
+      worldPoint,
+      tolerance: tolerance,
+      layerRank: (element) => layerManager.layerIndexOf(element.layerId),
+    );
+  }
+
+  Iterable<CanvasElement> elementsNear(Rect worldRect) {
+    return _spatialIndex
+        .query(_state.elements, worldRect)
+        .where(
+          (element) =>
+              element.visible &&
+              isLayerVisible(element.layerId) &&
+              !isLayerLocked(element.layerId),
+        );
+  }
+
+  CanvasElement? elementById(String id) {
+    for (final element in _state.elements) {
+      if (element.id == id) {
+        return element;
+      }
+    }
+    return null;
+  }
+
+  void select(String? id, {bool addToSelection = false}) {
+    final next = <String>{
+      if (addToSelection) ..._state.selectedIds,
+      if (id != null) id,
+    };
+    _state = _state.copyWith(selectedIds: next);
+    notifyListeners();
+  }
+
+  void setSelection(Set<String> ids) {
+    _state = _state.copyWith(selectedIds: Set<String>.unmodifiable(ids));
+    notifyListeners();
+  }
+
+  void selectInRect(Rect worldRect) {
+    setSelection({
+      for (final element in elements)
+        if (element.visible &&
+            isLayerVisible(element.layerId) &&
+            element.bounds.overlaps(worldRect))
+          element.id,
+    });
+  }
+
+  void deselectAll() {
+    if (_state.selectedIds.isEmpty) {
+      return;
+    }
+    _state = _state.copyWith(selectedIds: const <String>{});
+    notifyListeners();
+  }
+
+  List<CanvasElement> get selectedElements {
+    return [
+      for (final element in elements)
+        if (_state.selectedIds.contains(element.id)) element,
+    ];
+  }
+
+  void moveSelected(Offset delta, {bool record = true}) {
+    if (delta == Offset.zero || selectedIds.isEmpty) {
+      return;
+    }
+
+    final commands = [
+      for (final element in selectedElements)
+        UpdateElementCommand(
+          before: element,
+          after: element.translate(delta),
+          description: 'Move ${element.type}',
+        ),
+    ];
+
+    if (commands.isEmpty) {
+      return;
+    }
+
+    if (record) {
+      historyManager.execute(
+        BatchCommand(commands: commands, description: 'Move selection'),
+        this,
+      );
+      return;
+    }
+
+    for (final command in commands) {
+      command.execute(this);
+    }
+  }
+
+  void removeSelected() {
+    final commands = [
+      for (final element in selectedElements) RemoveElementCommand(element),
+    ];
+    if (commands.isEmpty) {
+      return;
+    }
+    historyManager.execute(
+      BatchCommand(commands: commands, description: 'Remove selection'),
+      this,
+    );
+  }
+
+  void clear({bool record = true}) {
+    final commands = [
+      for (final element in elements) RemoveElementCommand(element),
+    ];
+    if (commands.isEmpty) {
+      return;
+    }
+    if (record) {
+      historyManager.execute(
+        BatchCommand(commands: commands, description: 'Clear canvas'),
+        this,
+      );
+    } else {
+      replaceElements(const <CanvasElement>[]);
+    }
+  }
+
+  void setTool(String toolId) {
+    clearPreview();
+    toolManager.setActiveTool(toolId, this);
+    notifyListeners();
+  }
+
+  void updateBrushSettings(BrushSettings settings) {
+    toolManager.updateBrushSettings(settings);
+    notifyListeners();
+  }
+
+  void dispatchCanvasEvent(CanvasEvent event) {
+    final result = toolManager.dispatch(event, this);
+    _handleToolResult(result);
+  }
+
+  void undo() {
+    cancelCurrentInteraction();
+    historyManager.undo(this);
+  }
+
+  void redo() {
+    cancelCurrentInteraction();
+    historyManager.redo(this);
+  }
+
+  void recordCommand(CanvasCommand command) {
+    historyManager.record(command);
+  }
+
+  void addLayer({String? name}) {
+    final layer = CanvasLayer(
+      id: UuidGenerator.create(),
+      name: name ?? 'Layer ${layers.length + 1}',
+    );
+    historyManager.execute(
+      AddLayerCommand(layer: layer, previousActiveLayerId: activeLayerId),
+      this,
+    );
+  }
+
+  void removeLayer(String id) {
+    if (layers.length == 1) {
+      return;
+    }
+    final layer = layerManager.layerById(id);
+    if (layer == null) {
+      return;
+    }
+    final layerIndex = layerManager.layerIndexOf(id);
+    final wasActive = activeLayerId == id;
+    final layerElements = elements
+        .where((element) => element.layerId == id)
+        .toList();
+
+    historyManager.execute(
+      RemoveLayerCommand(
+        layer: layer,
+        layerIndex: layerIndex,
+        wasActiveLayer: wasActive,
+        elements: layerElements,
+      ),
+      this,
+    );
+  }
+
+  void setActiveLayer(String id) => layerManager.setActiveLayer(id);
+
+  void toggleLayerVisibility(String id) {
+    final layer = layerManager.layerById(id);
+    if (layer == null) {
+      return;
+    }
+    historyManager.execute(
+      UpdateLayerCommand(
+        before: layer,
+        after: layer.copyWith(isVisible: !layer.isVisible),
+        descriptionText: layer.isVisible ? 'Hide layer' : 'Show layer',
+      ),
+      this,
+    );
+  }
+
+  void toggleLayerLock(String id) {
+    final layer = layerManager.layerById(id);
+    if (layer == null) {
+      return;
+    }
+    historyManager.execute(
+      UpdateLayerCommand(
+        before: layer,
+        after: layer.copyWith(isLocked: !layer.isLocked),
+        descriptionText: layer.isLocked ? 'Unlock layer' : 'Lock layer',
+      ),
+      this,
+    );
+  }
+
+  void setLayerOpacity(String id, double opacity) {
+    final layer = layerManager.layerById(id);
+    if (layer == null) {
+      return;
+    }
+    historyManager.execute(
+      UpdateLayerCommand(
+        before: layer,
+        after: layer.copyWith(opacity: opacity.clamp(0.0, 1.0)),
+        descriptionText: 'Set layer opacity',
+      ),
+      this,
+    );
+  }
+
+  void reorderLayer(int oldIndex, int newIndex) {
+    historyManager.execute(
+      ReorderLayerCommand(oldIndex: oldIndex, newIndex: newIndex),
+      this,
+    );
+  }
+
+  int layerIndexOf(String id) => layerManager.layerIndexOf(id);
+
+  bool isLayerVisible(String id) => layerManager.isLayerVisible(id);
+
+  bool isLayerLocked(String id) => layerManager.isLayerLocked(id);
+
+  static const _unsetTextStyleValue = Object();
+  static const unsetTextStyleValue = _unsetTextStyleValue;
+
+  // ─── Clipboard ────────────────────────────────────────────────
+  List<Map<String, dynamic>> _clipboard = const [];
+  Set<String> _clipboardSourceSelection = const {};
+
+  /// Copies selected elements to the internal clipboard.
+  void copySelected() {
+    if (selectedIds.isEmpty) {
+      return;
+    }
+    _clipboard = [
+      for (final element in _selectedElementsWithWidgetDescendants())
+        element.toJson(),
+    ];
+    _clipboardSourceSelection = Set<String>.unmodifiable(selectedIds);
+  }
+
+  /// Cuts selected elements: copies them then removes them.
+  void cutSelected() {
+    if (selectedIds.isEmpty) {
+      return;
+    }
+    copySelected();
+    removeSelected();
+  }
+
+  /// Pastes clipboard elements with a small offset and selects the new ones.
+  void paste() {
+    if (_clipboard.isEmpty) {
+      return;
+    }
+    final offset = const Offset(20, 20);
+    final commands = <AddElementCommand>[];
+    final newIds = <String>{};
+    final clones = _cloneSerializedElements(
+      _clipboard,
+      pasteParent: _singleSelectedWidgetPasteParent(),
+    );
+    for (final element in clones) {
+      final translated = element.translate(offset);
+      final prepared = _prepareElementForInsert(translated);
+      commands.add(AddElementCommand(prepared));
+      newIds.add(prepared.id);
+    }
+    if (commands.isEmpty) {
+      return;
+    }
+    historyManager.execute(
+      BatchCommand(commands: commands, description: 'Paste'),
+      this,
+    );
+    setSelection(newIds);
+  }
+
+  // ─── Duplicate ───────────────────────────────────────────────
+
+  /// Duplicates selected elements with a small offset and selects the copies.
+  void duplicateSelected() {
+    if (selectedIds.isEmpty) {
+      return;
+    }
+    final offset = const Offset(20, 20);
+    final commands = <AddElementCommand>[];
+    final newIds = <String>{};
+    final serialized = [
+      for (final element in _selectedElementsWithWidgetDescendants())
+        element.toJson(),
+    ];
+    final clones = _cloneSerializedElements(serialized);
+    for (final element in clones) {
+      final translated = element.translate(offset);
+      final prepared = _prepareElementForInsert(translated);
+      commands.add(AddElementCommand(prepared));
+      newIds.add(prepared.id);
+    }
+    if (commands.isEmpty) {
+      return;
+    }
+    historyManager.execute(
+      BatchCommand(commands: commands, description: 'Duplicate selection'),
+      this,
+    );
+    setSelection(newIds);
+  }
+
+  List<CanvasElement> _selectedElementsWithWidgetDescendants() {
+    final selected = selectedElements;
+    if (selected.isEmpty) return const [];
+
+    final childrenByParentDataId = <String, List<CanvasElement>>{};
+    for (final element in elements) {
+      if (element is! CanvasWidgetElement) continue;
+      final parentId = element.widgetData['parentId'];
+      if (parentId is! String || parentId.isEmpty) continue;
+      (childrenByParentDataId[parentId] ??= <CanvasElement>[]).add(element);
+    }
+
+    final result = <CanvasElement>[];
+    final visited = <String>{};
+
+    void addWithDescendants(CanvasElement element) {
+      if (!visited.add(element.id)) return;
+      result.add(element);
+      if (element is! CanvasWidgetElement) return;
+      final dataId = _widgetDataId(element) ?? element.id;
+      for (final child
+          in childrenByParentDataId[dataId] ?? const <CanvasElement>[]) {
+        addWithDescendants(child);
+      }
+    }
+
+    for (final element in selected) {
+      addWithDescendants(element);
+    }
+    return result;
+  }
+
+  List<CanvasElement> _cloneSerializedElements(
+    List<Map<String, dynamic>> serialized, {
+    _WidgetPasteParent? pasteParent,
+  }) {
+    final idMap = <String, String>{};
+    for (final json in serialized) {
+      final newId = UuidGenerator.create();
+      final oldElementId = json['id'];
+      if (oldElementId is String) {
+        idMap[oldElementId] = newId;
+      }
+      final dataId = _widgetDataIdFromJson(json);
+      if (dataId != null) {
+        idMap[dataId] = newId;
+      }
+    }
+
+    return [
+      for (final json in serialized)
+        CanvasSerializer.elementFromJson(
+          _remapClonedElementJson(json, idMap, pasteParent: pasteParent),
+        ),
+    ];
+  }
+
+  Map<String, dynamic> _remapClonedElementJson(
+    Map<String, dynamic> json,
+    Map<String, String> idMap, {
+    _WidgetPasteParent? pasteParent,
+  }) {
+    final patched = Map<String, dynamic>.from(json);
+    final oldElementId = json['id'];
+    final newElementId = oldElementId is String
+        ? idMap[oldElementId] ?? UuidGenerator.create()
+        : UuidGenerator.create();
+    patched['id'] = newElementId;
+
+    final widgetData = json['widgetData'];
+    if (widgetData is Map) {
+      final data = Map<String, dynamic>.from(widgetData);
+      if (data['id'] is String) {
+        data['id'] = newElementId;
+      }
+      final parentId = data['parentId'];
+      if (parentId is String && idMap.containsKey(parentId)) {
+        data['parentId'] = idMap[parentId];
+      } else if (_isWidgetHierarchyData(data)) {
+        if (pasteParent == null) {
+          data
+            ..remove('parentId')
+            ..['isRoot'] = true
+            ..['side'] = 'center';
+        } else {
+          data
+            ..['parentId'] = pasteParent.dataId
+            ..['isRoot'] = false
+            ..['side'] = pasteParent.childSide
+            ..remove('themeId')
+            ..remove('collapsedRight')
+            ..remove('collapsedLeft');
+        }
+      }
+      patched['widgetData'] = data;
+    }
+    return patched;
+  }
+
+  _WidgetPasteParent? _singleSelectedWidgetPasteParent() {
+    if (selectedIds.length != 1) return null;
+    if (_setEquals(selectedIds, _clipboardSourceSelection)) return null;
+    final element = elementById(selectedIds.single);
+    if (element is! CanvasWidgetElement) return null;
+    final dataId = _widgetDataId(element) ?? element.id;
+    final side = element.widgetData['side'];
+    return _WidgetPasteParent(
+      dataId: dataId,
+      childSide: side == 'left' ? 'left' : 'right',
+    );
+  }
+
+  bool _isWidgetHierarchyData(Map<String, dynamic> data) {
+    return data['id'] is String &&
+        (data.containsKey('parentId') ||
+            data.containsKey('isRoot') ||
+            data.containsKey('side'));
+  }
+
+  String? _widgetDataId(CanvasWidgetElement element) {
+    final value = element.widgetData['id'];
+    return value is String && value.isNotEmpty ? value : null;
+  }
+
+  String? _widgetDataIdFromJson(Map<String, dynamic> json) {
+    final widgetData = json['widgetData'];
+    if (widgetData is! Map) return null;
+    final value = widgetData['id'];
+    return value is String && value.isNotEmpty ? value : null;
+  }
+
+  bool _setEquals(Set<String> a, Set<String> b) {
+    return a.length == b.length && a.every(b.contains);
+  }
+
+  // ─── Z-Order ─────────────────────────────────────────────────
+
+  /// Brings selected elements to the front (highest z-order) within their
+  /// layers.
+  void bringSelectedToFront() {
+    if (selectedIds.isEmpty) {
+      return;
+    }
+    // Group by layer and compute the max zIndex per layer among
+    // non-selected elements.
+    final maxZByLayer = <String, int>{};
+    for (final element in elements) {
+      if (selectedIds.contains(element.id)) {
+        continue;
+      }
+      final current = maxZByLayer[element.layerId] ?? 0;
+      if (element.zIndex > current) {
+        maxZByLayer[element.layerId] = element.zIndex;
+      }
+    }
+    final commands = <UpdateElementCommand>[];
+    final selectedByLayer = <String, List<CanvasElement>>{};
+    for (final element in selectedElements) {
+      selectedByLayer.putIfAbsent(element.layerId, () => []).add(element);
+    }
+    for (final entry in selectedByLayer.entries) {
+      var nextZ = maxZByLayer[entry.key] ?? 0;
+      for (final element in entry.value) {
+        nextZ++;
+        if (element.zIndex != nextZ) {
+          commands.add(
+            UpdateElementCommand(
+              before: element,
+              after: element.copyWith(zIndex: nextZ),
+              description: 'Bring to front',
+            ),
+          );
+        }
+      }
+    }
+    if (commands.isEmpty) {
+      return;
+    }
+    historyManager.execute(
+      BatchCommand(commands: commands, description: 'Bring to front'),
+      this,
+    );
+  }
+
+  /// Sends selected elements to the back (lowest z-order) within their
+  /// layers.
+  void sendSelectedToBack() {
+    if (selectedIds.isEmpty) {
+      return;
+    }
+    final minZByLayer = <String, int>{};
+    for (final element in elements) {
+      if (selectedIds.contains(element.id)) {
+        continue;
+      }
+      final current = minZByLayer[element.layerId];
+      if (current == null || element.zIndex < current) {
+        minZByLayer[element.layerId] = element.zIndex;
+      }
+    }
+    final commands = <UpdateElementCommand>[];
+    final selectedByLayer = <String, List<CanvasElement>>{};
+    for (final element in selectedElements) {
+      selectedByLayer.putIfAbsent(element.layerId, () => []).add(element);
+    }
+    for (final entry in selectedByLayer.entries) {
+      var nextZ = (minZByLayer[entry.key] ?? 1) - entry.value.length;
+      for (final element in entry.value) {
+        if (element.zIndex != nextZ) {
+          commands.add(
+            UpdateElementCommand(
+              before: element,
+              after: element.copyWith(zIndex: nextZ),
+              description: 'Send to back',
+            ),
+          );
+        }
+        nextZ++;
+      }
+    }
+    if (commands.isEmpty) {
+      return;
+    }
+    historyManager.execute(
+      BatchCommand(commands: commands, description: 'Send to back'),
+      this,
+    );
+  }
+
+  // ─── Group / Ungroup ────────────────────────────────────────
+
+  /// Groups selected elements by assigning them a shared groupId.
+  /// Selects all grouped elements afterward.
+  void groupSelected() {
+    if (selectedIds.length < 2) {
+      return;
+    }
+    final groupId = UuidGenerator.create();
+    final commands = <UpdateElementCommand>[];
+    for (final element in selectedElements) {
+      if (element.groupId != groupId) {
+        commands.add(
+          UpdateElementCommand(
+            before: element,
+            after: element.copyWith(groupId: groupId),
+            description: 'Group',
+          ),
+        );
+      }
+    }
+    if (commands.isEmpty) {
+      return;
+    }
+    historyManager.execute(
+      BatchCommand(commands: commands, description: 'Group elements'),
+      this,
+    );
+  }
+
+  /// Removes the groupId from selected elements.
+  /// If only one element is selected and it has a groupId, also selects all
+  /// other elements that shared that group before ungrouping.
+  void ungroupSelected() {
+    if (selectedIds.isEmpty) {
+      return;
+    }
+    // Collect all groupIds from selected elements
+    final groupIds = <String>{};
+    for (final element in selectedElements) {
+      final gid = element.groupId;
+      if (gid != null) {
+        groupIds.add(gid);
+      }
+    }
+    if (groupIds.isEmpty) {
+      return;
+    }
+    // Collect all elements that belong to these groups (including unselected)
+    final toUngroup = <CanvasElement>[];
+    for (final element in elements) {
+      if (element.groupId != null && groupIds.contains(element.groupId)) {
+        toUngroup.add(element);
+      }
+    }
+    final commands = <UpdateElementCommand>[];
+    for (final element in toUngroup) {
+      commands.add(
+        UpdateElementCommand(
+          before: element,
+          after: element.copyWith(groupId: null),
+          description: 'Ungroup',
+        ),
+      );
+    }
+    if (commands.isEmpty) {
+      return;
+    }
+    historyManager.execute(
+      BatchCommand(commands: commands, description: 'Ungroup elements'),
+      this,
+    );
+    // Select all ungrouped elements
+    setSelection({for (final element in toUngroup) element.id});
+  }
+
+  /// Returns all elements that share a groupId with any selected element.
+  List<CanvasElement> get elementsInSelectedGroups {
+    if (selectedIds.isEmpty) {
+      return const [];
+    }
+    final groupIds = <String>{};
+    for (final element in selectedElements) {
+      final gid = element.groupId;
+      if (gid != null) {
+        groupIds.add(gid);
+      }
+    }
+    if (groupIds.isEmpty) {
+      return selectedElements;
+    }
+    return [
+      for (final element in elements)
+        if (element.groupId != null && groupIds.contains(element.groupId))
+          element,
+    ];
+  }
+
+  // ─── Alignment & Distribution ────────────────────────────────
+
+  /// Aligns selected elements to the specified edge/center.
+  /// Requires at least 2 selected elements.
+  void alignSelected(AlignMode mode) {
+    AlignmentTools.align(this, mode);
+  }
+
+  /// Distributes selected elements with equal spacing.
+  /// Requires at least 3 selected elements.
+  void distributeSelected(AlignAxis axis) {
+    AlignmentTools.distribute(this, axis);
+  }
+
+  void updateTextElementStyle(
+    String id, {
+    Color? color,
+    double? fontSize,
+    FontWeight? fontWeight,
+    TextAlign? textAlign,
+    double? lineHeight,
+    Object? fontFamily = _unsetTextStyleValue,
+    double? maxWidth,
+    Size? boxSize,
+    bool record = true,
+  }) {
+    final element = elementById(id);
+    if (element is! TextElement) {
+      return;
+    }
+    final nextFontFamily = identical(fontFamily, _unsetTextStyleValue)
+        ? element.style.fontFamily
+        : fontFamily as String?;
+    final nextStyle = TextStyle(
+      color: color ?? element.style.color,
+      fontSize: fontSize ?? element.style.fontSize,
+      fontWeight: fontWeight ?? element.style.fontWeight,
+      height: lineHeight ?? element.style.height,
+      fontFamily: nextFontFamily,
+    );
+    updateElement(
+      id,
+      element.copyWith(
+        style: nextStyle,
+        textAlign: textAlign,
+        maxWidth: maxWidth ?? element.maxWidth,
+        boxSize: boxSize ?? element.boxSize,
+      ),
+      record: record,
+    );
+  }
+
+  void updateShapePaint(
+    String id, {
+    Color? fillColor,
+    bool clearFill = false,
+    Color? strokeColor,
+    double? strokeWidth,
+    double? opacity,
+    bool record = true,
+  }) {
+    final element = elementById(id);
+    PaintStyle? nextFill(PaintStyle? current) {
+      if (clearFill) {
+        return null;
+      }
+      if (fillColor == null && opacity == null) {
+        return current;
+      }
+      return (current ?? const PaintStyle()).copyWith(
+        color: fillColor,
+        opacity: opacity,
+        paintingStyle: PaintingStyle.fill,
+        strokeWidth: 0,
+      );
+    }
+
+    switch (element) {
+      case final DrawioShapeElement e:
+        updateElement(
+          id,
+          e.copyWith(
+            fillStyle: nextFill(e.fillStyle),
+            strokeStyle: e.strokeStyle.copyWith(
+              color: strokeColor,
+              opacity: opacity,
+              strokeWidth: strokeWidth,
+            ),
+          ),
+          record: record,
+        );
+      case final RectElement e:
+        updateElement(
+          id,
+          e.copyWith(
+            fillStyle: nextFill(e.fillStyle),
+            strokeStyle: e.strokeStyle.copyWith(
+              color: strokeColor,
+              opacity: opacity,
+              strokeWidth: strokeWidth,
+            ),
+          ),
+          record: record,
+        );
+      case final EllipseElement e:
+        updateElement(
+          id,
+          e.copyWith(
+            fillStyle: nextFill(e.fillStyle),
+            strokeStyle: e.strokeStyle.copyWith(
+              color: strokeColor,
+              opacity: opacity,
+              strokeWidth: strokeWidth,
+            ),
+          ),
+          record: record,
+        );
+    }
+  }
+
+  void updateShapeLabelStyle(
+    String id, {
+    Color? color,
+    double? fontSize,
+    FontWeight? fontWeight,
+    TextAlign? textAlign,
+    double? lineHeight,
+    Object? fontFamily = _unsetTextStyleValue,
+    bool record = true,
+  }) {
+    final element = elementById(id);
+    if (element is! DrawioShapeElement &&
+        element is! RectElement &&
+        element is! EllipseElement &&
+        element is! LineElement &&
+        element is! ArrowElement &&
+        element is! PolylineElement) {
+      return;
+    }
+    final style = switch (element) {
+      final DrawioShapeElement e => e.labelStyle,
+      final RectElement e => e.labelStyle,
+      final EllipseElement e => e.labelStyle,
+      final LineElement e => e.labelStyle,
+      final ArrowElement e => e.labelStyle,
+      final PolylineElement e => e.labelStyle,
+      _ => const TextStyle(),
+    };
+    final nextFontFamily = identical(fontFamily, _unsetTextStyleValue)
+        ? style.fontFamily
+        : fontFamily as String?;
+    final nextStyle = TextStyle(
+      color: color ?? style.color,
+      fontSize: fontSize ?? style.fontSize,
+      fontWeight: fontWeight ?? style.fontWeight,
+      height: lineHeight ?? style.height,
+      fontFamily: nextFontFamily,
+    );
+    switch (element) {
+      case final DrawioShapeElement e:
+        updateElement(
+          id,
+          e.copyWith(
+            labelStyle: nextStyle,
+            labelAlign: textAlign ?? e.labelAlign,
+          ),
+          record: record,
+        );
+      case final RectElement e:
+        updateElement(
+          id,
+          e.copyWith(
+            labelStyle: nextStyle,
+            labelAlign: textAlign ?? e.labelAlign,
+          ),
+          record: record,
+        );
+      case final EllipseElement e:
+        updateElement(
+          id,
+          e.copyWith(
+            labelStyle: nextStyle,
+            labelAlign: textAlign ?? e.labelAlign,
+          ),
+          record: record,
+        );
+      case final LineElement e:
+        updateElement(id, e.copyWith(labelStyle: nextStyle), record: record);
+      case final ArrowElement e:
+        updateElement(id, e.copyWith(labelStyle: nextStyle), record: record);
+      case final PolylineElement e:
+        updateElement(id, e.copyWith(labelStyle: nextStyle), record: record);
+    }
+  }
+
+  void resizeTextElement(
+    String id,
+    Size boxSize, {
+    bool record = true,
+    double minWidth = 24,
+    double minHeight = 24,
+  }) {
+    final element = elementById(id);
+    if (element is! TextElement) {
+      return;
+    }
+    final constrained = Size(
+      boxSize.width < minWidth ? minWidth : boxSize.width,
+      boxSize.height < minHeight ? minHeight : boxSize.height,
+    );
+    updateElement(
+      id,
+      element.copyWith(maxWidth: constrained.width, boxSize: constrained),
+      record: record,
+    );
+  }
+
+  void updateElementRotation(String id, double radians, {bool record = true}) {
+    final element = elementById(id);
+    if (element is DrawioShapeElement) {
+      updateElement(id, element.copyWith(rotation: radians), record: record);
+    } else if (element is RectElement) {
+      updateElement(id, element.copyWith(rotation: radians), record: record);
+    } else if (element is EllipseElement) {
+      updateElement(id, element.copyWith(rotation: radians), record: record);
+    } else if (element is TextElement) {
+      updateElement(id, element.copyWith(rotation: radians), record: record);
+    } else if (element is ImageElement) {
+      updateElement(id, element.copyWith(rotation: radians), record: record);
+    }
+  }
+
+  void updateTextContent(String id, String text, {bool record = true}) {
+    final element = elementById(id);
+    if (element is TextElement) {
+      // Skip if text is unchanged.
+      if (element.text == text) {
+        return;
+      }
+      updateElement(id, element.copyWith(text: text), record: record);
+      return;
+    }
+    if (element == null) {
+      return;
+    }
+    final next = _copyWithShapeLabel(
+      element,
+      text.trim().isEmpty ? null : text,
+    );
+    if (next != null &&
+        next.toJson().toString() != element.toJson().toString()) {
+      updateElement(id, next, record: record);
+    }
+  }
+
+  void beginTextEditing(String id) {
+    final element = elementById(id);
+    if (element is! TextElement) {
+      return;
+    }
+    if (_editingShapeLabelElementId != null) {
+      endShapeLabelEditing();
+    }
+    if (_editingTextElementId == id) {
+      return;
+    }
+    _editingTextElementId = id;
+    _editingTextOriginal = element;
+    select(id);
+  }
+
+  void updateEditingText(String text) {
+    final id = _editingTextElementId;
+    if (id == null) {
+      return;
+    }
+    final element = elementById(id);
+    if (element is! TextElement || element.text == text) {
+      return;
+    }
+    // Silent update: the TextField overlay already shows the text being
+    // typed, so there is no need to rebuild the entire canvas on every
+    // keystroke.  A single notifyListeners() will fire in endTextEditing().
+    _applyElementUpdated(id, element.copyWith(text: text), notify: false);
+  }
+
+  void endTextEditing({String? text, bool removeIfEmpty = true}) {
+    final id = _editingTextElementId;
+    if (id == null) {
+      return;
+    }
+    if (text != null) {
+      updateEditingText(text);
+    }
+
+    _editingTextElementId = null;
+    final original = _editingTextOriginal;
+    _editingTextOriginal = null;
+    final element = elementById(id);
+    if (element is TextElement) {
+      if (removeIfEmpty && element.text.trim().isEmpty) {
+        removeElement(id);
+        return;
+      }
+      if (original != null && !_sameTextElement(original, element)) {
+        historyManager.record(
+          UpdateElementCommand(
+            before: original,
+            after: element,
+            description: 'Edit text',
+          ),
+        );
+      }
+    }
+    notifyListeners();
+  }
+
+  void cancelTextEditing() {
+    if (_editingTextElementId == null) {
+      return;
+    }
+    _editingTextElementId = null;
+    _editingTextOriginal = null;
+    notifyListeners();
+  }
+
+  void beginShapeLabelEditing(String id) {
+    final element = elementById(id);
+    if (element is! DrawioShapeElement &&
+        element is! RectElement &&
+        element is! EllipseElement &&
+        element is! LineElement &&
+        element is! ArrowElement &&
+        element is! PolylineElement) {
+      return;
+    }
+    if (_editingTextElementId != null) {
+      endTextEditing();
+    }
+    if (_editingShapeLabelElementId == id) {
+      return;
+    }
+    _editingShapeLabelElementId = id;
+    _editingShapeLabelOriginal = element;
+    select(id);
+  }
+
+  void updateEditingShapeLabel(String text, {bool clearWhenEmpty = true}) {
+    final id = _editingShapeLabelElementId;
+    if (id == null) {
+      return;
+    }
+    final element = elementById(id);
+    if (element == null) {
+      return;
+    }
+    final label = text.trim().isEmpty && clearWhenEmpty ? null : text;
+    final next = _copyWithShapeLabel(element, label);
+    if (next == null ||
+        next.toJson().toString() == element.toJson().toString()) {
+      return;
+    }
+    // Silent update during editing to avoid canvas rebuild on every keystroke.
+    _applyElementUpdated(id, next, notify: false);
+  }
+
+  void endShapeLabelEditing({String? text}) {
+    final id = _editingShapeLabelElementId;
+    if (id == null) {
+      return;
+    }
+    if (text != null) {
+      updateEditingShapeLabel(text, clearWhenEmpty: false);
+    }
+    _editingShapeLabelElementId = null;
+    final original = _editingShapeLabelOriginal;
+    _editingShapeLabelOriginal = null;
+    final element = elementById(id);
+    if (original != null &&
+        element != null &&
+        original.toJson().toString() != element.toJson().toString()) {
+      historyManager.record(
+        UpdateElementCommand(
+          before: original,
+          after: element,
+          description: 'Edit shape label',
+        ),
+      );
+    }
+    notifyListeners();
+  }
+
+  void cancelShapeLabelEditing() {
+    if (_editingShapeLabelElementId == null) {
+      return;
+    }
+    _editingShapeLabelElementId = null;
+    _editingShapeLabelOriginal = null;
+    notifyListeners();
+  }
+
+  CanvasElement? _copyWithShapeLabel(CanvasElement element, String? label) {
+    if (element is DrawioShapeElement) {
+      return element.copyWith(label: label);
+    }
+    if (element is RectElement) {
+      return element.copyWith(label: label);
+    }
+    if (element is EllipseElement) {
+      return element.copyWith(label: label);
+    }
+    if (element is LineElement) {
+      return element.copyWith(label: label);
+    }
+    if (element is ArrowElement) {
+      return element.copyWith(label: label);
+    }
+    if (element is PolylineElement) {
+      return element.copyWith(label: label);
+    }
+    return null;
+  }
+
+  bool _sameTextElement(TextElement a, TextElement b) {
+    return a.toJson().toString() == b.toJson().toString();
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'version': '0.1.0',
+      'layers': [for (final layer in layers) layer.toJson()],
+      'elements': [for (final element in elements) element.toJson()],
+    };
+  }
+
+  void _handleToolResult(ToolResult result) {
+    switch (result) {
+      case ToolResultNone():
+        break;
+      case ToolResultConsumed():
+        break;
+      case ToolResultPreview(:final preview):
+        setPreviewElement(preview);
+      case ToolResultElement(:final element, :final selectAfter):
+        addElement(element, bringToFront: true);
+        if (element is TextElement) {
+          beginTextEditing(element.id);
+        } else if (selectAfter) {
+          setSelection({element.id});
+          setTool(SelectTool.idValue);
+        }
+      case ToolResultSelect(:final selectedIds):
+        setSelection(selectedIds);
+    }
+  }
+
+  void _registerBuiltInTools() {
+    if (toolManager.tools.isNotEmpty) {
+      return;
+    }
+
+    toolManager
+      ..registerTool(SelectTool())
+      ..registerTool(PenTool())
+      ..registerTool(HighlighterTool())
+      ..registerTool(LineTool())
+      ..registerTool(CurveTool())
+      ..registerTool(PolylineTool())
+      ..registerTool(PolylineArrowTool())
+      ..registerTool(RectTool())
+      ..registerTool(EllipseTool())
+      ..registerTool(ShapeTool(shapeKey: 'rhombus', name: 'Rhombus'))
+      ..registerTool(ShapeTool(shapeKey: 'triangle', name: 'Triangle'))
+      ..registerTool(ShapeTool(shapeKey: 'hexagon', name: 'Hexagon'))
+      ..registerTool(
+        ShapeTool(shapeKey: 'parallelogram', name: 'Parallelogram'),
+      )
+      ..registerTool(ShapeTool(shapeKey: 'trapezoid', name: 'Trapezoid'))
+      ..registerTool(ShapeTool(shapeKey: 'cylinder', name: 'Cylinder'))
+      ..registerTool(
+        ShapeTool(shapeKey: 'doubleEllipse', name: 'Double Ellipse'),
+      )
+      ..registerTool(ShapeTool(shapeKey: 'actor', name: 'Actor'))
+      ..registerTool(ShapeTool(shapeKey: 'cloud', name: 'Cloud'))
+      ..registerTool(ShapeTool(shapeKey: 'swimlane', name: 'Swimlane'))
+      ..registerTool(ShapeTool(shapeKey: 'document', name: 'Document'))
+      ..registerTool(ShapeTool(shapeKey: 'note', name: 'Note'))
+      ..registerTool(ShapeTool(shapeKey: 'callout', name: 'Callout'))
+      ..registerTool(ShapeTool(shapeKey: 'plus', name: 'Plus'))
+      ..registerTool(ShapeTool(shapeKey: 'cross', name: 'Cross'))
+      ..registerTool(ShapeTool(shapeKey: 'step', name: 'Step'))
+      ..registerTool(ShapeTool(shapeKey: 'cube', name: 'Cube'))
+      ..registerTool(ArrowTool())
+      ..registerTool(const TextTool())
+      ..registerTool(EraserTool())
+      ..registerTool(const PanTool());
+  }
+
+  CanvasElement _prepareElementForInsert(
+    CanvasElement element, {
+    bool bringToFront = false,
+  }) {
+    final prepared = _autoLayeringResolver.resolve(
+      element: element,
+      existingElements: elements,
+      activeLayerId: activeLayerId,
+      layerExists: (layerId) => layerManager.layerById(layerId) != null,
+      policy: autoLayeringPolicy,
+      bringToFront: bringToFront,
+    );
+    return prepared;
+  }
+
+  int nextZIndex(String layerId) {
+    var maxZ = 0;
+    for (final element in elements) {
+      if (element.layerId == layerId && element.zIndex > maxZ) {
+        maxZ = element.zIndex;
+      }
+    }
+    return maxZ + 1;
+  }
+
+  @override
+  void dispose() {
+    historyManager.removeListener(notifyListeners);
+    layerManager.removeListener(notifyListeners);
+    super.dispose();
+  }
+}
+
+class _WidgetPasteParent {
+  const _WidgetPasteParent({required this.dataId, required this.childSide});
+
+  final String dataId;
+  final String childSide;
+}
+
+codex
+plan 明确 P001 只补控制器入口，不动 UI 和测试；当前工作区已有未提交修改，我会只叠加到 `canvas_controller.dart`，不回滚其它改动。
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'rg -n "update.*Arrow|headSize|endArrow|PolylineElement|LineElement|strokeWidth|update.*Line|update.*Paint" lib/src/canvas/canvas_controller.dart' in D:\project\GitHub\wenz_flutter\wenz_draw
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "Get-Content -LiteralPath 'D:\\project\\GitHub\\wenz_flutter\\wenz_draw\\lib\\src\\elements\\polyline_element.dart' -Encoding UTF8" in D:\project\GitHub\wenz_flutter\wenz_draw
+ succeeded in 198ms:
+227:    if (element is LineElement) {
+242:    if (element is PolylineElement) {
+1175:  void updateShapePaint(
+1180:    double? strokeWidth,
+1196:        strokeWidth: 0,
+1209:              strokeWidth: strokeWidth,
+1222:              strokeWidth: strokeWidth,
+1235:              strokeWidth: strokeWidth,
+1257:        element is! LineElement &&
+1259:        element is! PolylineElement) {
+1266:      final LineElement e => e.labelStyle,
+1268:      final PolylineElement e => e.labelStyle,
+1309:      case final LineElement e:
+1313:      case final PolylineElement e:
+1454:        element is! LineElement &&
+1456:        element is! PolylineElement) {
+1534:    if (element is LineElement) {
+1540:    if (element is PolylineElement) {
+
+ succeeded in 255ms:
+import 'dart:math' as math;
+import 'dart:ui' show ClipOp;
+
+import 'package:flutter/widgets.dart';
+
+import '../canvas/paint_style.dart';
+import '../snap/snap_resolver.dart';
+import '../utils/math_utils.dart';
+import 'canvas_element.dart';
+import 'element_renderer.dart';
+import 'line_label_painter.dart';
+
+@immutable
+class PolylineElement extends CanvasElement {
+  const PolylineElement({
+    required this.id,
+    required this.points,
+    this.style = const PaintStyle(),
+    this.startBinding,
+    this.endBinding,
+    this.endArrow = false,
+    this.headSize = 14,
+    this.label,
+    this.labelStyle = LineLabelPainter.defaultStyle,
+    this.labelPosition = LineLabelPainter.defaultPosition,
+    this.labelOffset = LineLabelPainter.defaultOffset,
+    this.labelBackground,
+    this.layerId = 'default',
+    this.visible = true,
+    this.opacity = 1,
+    this.zIndex = 0,
+    this.groupId,
+  });
+
+  static const elementType = 'polyline';
+
+  @override
+  final String id;
+  final List<Offset> points;
+  final PaintStyle style;
+  final SnapBinding? startBinding;
+  final SnapBinding? endBinding;
+  final bool endArrow;
+  final double headSize;
+  final String? label;
+  final TextStyle labelStyle;
+  final double labelPosition;
+  final Offset labelOffset;
+  final Color? labelBackground;
+
+  @override
+  final String layerId;
+  @override
+  final bool visible;
+  @override
+  final double opacity;
+  @override
+  final int zIndex;
+
+  @override
+  final String? groupId;
+
+  Offset get start => points.isEmpty ? Offset.zero : points.first;
+  Offset get end => points.isEmpty ? Offset.zero : points.last;
+
+  @override
+  String get type => elementType;
+
+  @override
+  Rect get bounds {
+    if (points.isEmpty) {
+      return Rect.zero;
+    }
+    final lineBounds = boundsForPoints(points).inflate(
+      math.max(style.strokeWidth / 2, endArrow ? headSize : 0.0),
+    );
+    final labelBounds = LineLabelPainter.labelBounds(
+      points: points,
+      label: label,
+      style: labelStyle,
+      labelPosition: labelPosition,
+      labelOffset: labelOffset,
+      labelBackground: labelBackground,
+    );
+    return labelBounds.isEmpty
+        ? lineBounds
+        : lineBounds.expandToInclude(labelBounds);
+  }
+
+  @override
+  bool hitTest(Offset worldPoint, {double tolerance = 5.0}) {
+    if (points.length < 2) {
+      return false;
+    }
+    final hitTolerance = tolerance + style.strokeWidth / 2;
+    for (var i = 0; i < points.length - 1; i++) {
+      if (distanceToSegment(worldPoint, points[i], points[i + 1]) <=
+          hitTolerance) {
+        return true;
+      }
+    }
+    if (endArrow) {
+      final p1 = points.last;
+      final p0 = _lastNonZeroPointBeforeEnd(points);
+      if (p0 == null) {
+        return false;
+      }
+      final direction = p1 - p0;
+      final angle = math.atan2(direction.dy, direction.dx);
+      final wingA = angle + math.pi * 0.82;
+      final wingB = angle - math.pi * 0.82;
+      final tip1 = p1 + Offset(math.cos(wingA), math.sin(wingA)) * headSize;
+      final tip2 = p1 + Offset(math.cos(wingB), math.sin(wingB)) * headSize;
+      return distanceToSegment(worldPoint, p1, tip1) <= hitTolerance ||
+          distanceToSegment(worldPoint, p1, tip2) <= hitTolerance;
+    }
+    return false;
+  }
+
+  @override
+  PolylineElement copyWith({
+    String? id,
+    List<Offset>? points,
+    PaintStyle? style,
+    Object? startBinding = _unset,
+    Object? endBinding = _unset,
+    bool? endArrow,
+    double? headSize,
+    Object? label = _unset,
+    TextStyle? labelStyle,
+    double? labelPosition,
+    Offset? labelOffset,
+    Object? labelBackground = _unset,
+    String? layerId,
+    bool? visible,
+    double? opacity,
+    int? zIndex,
+    Object? groupId = _unset,
+  }) {
+    return PolylineElement(
+      id: id ?? this.id,
+      points: List<Offset>.unmodifiable(points ?? this.points),
+      style: style ?? this.style,
+      startBinding: identical(startBinding, _unset)
+          ? this.startBinding
+          : startBinding as SnapBinding?,
+      endBinding: identical(endBinding, _unset)
+          ? this.endBinding
+          : endBinding as SnapBinding?,
+      endArrow: endArrow ?? this.endArrow,
+      headSize: headSize ?? this.headSize,
+      label: identical(label, _unset) ? this.label : label as String?,
+      labelStyle: labelStyle ?? this.labelStyle,
+      labelPosition: labelPosition ?? this.labelPosition,
+      labelOffset: labelOffset ?? this.labelOffset,
+      labelBackground: identical(labelBackground, _unset)
+          ? this.labelBackground
+          : labelBackground as Color?,
+      layerId: layerId ?? this.layerId,
+      visible: visible ?? this.visible,
+      opacity: opacity ?? this.opacity,
+      zIndex: zIndex ?? this.zIndex,
+      groupId: identical(groupId, _unset)
+          ? this.groupId
+          : groupId as String?,
+    );
+  }
+
+  @override
+  PolylineElement translate(Offset delta) {
+    return copyWith(points: [for (final point in points) point + delta]);
+  }
+
+  @override
+  PolylineElement scaleElement(double factor, {Offset? pivot}) {
+    final origin = pivot ?? bounds.center;
+    return copyWith(
+      points: [for (final point in points) scalePoint(point, factor, origin)],
+      style: style.copyWith(strokeWidth: style.strokeWidth * factor.abs()),
+      headSize: headSize * factor.abs(),
+      labelStyle: labelStyle.copyWith(
+        fontSize: (labelStyle.fontSize ?? 14) * factor.abs(),
+      ),
+      labelOffset: labelOffset * factor.abs(),
+    );
+  }
+
+  @override
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'type': type,
+      'layerId': layerId,
+      'visible': visible,
+      'opacity': opacity,
+      'zIndex': zIndex,
+      'groupId': groupId,
+      'points': [
+        for (final point in points) {'x': point.dx, 'y': point.dy},
+      ],
+      'style': style.toJson(),
+      'endArrow': endArrow,
+      'headSize': headSize,
+      if (startBinding != null) 'startBinding': startBinding!.toJson(),
+      if (endBinding != null) 'endBinding': endBinding!.toJson(),
+      if (label != null) 'label': label,
+      'labelStyle': LineLabelPainter.styleToJson(labelStyle),
+      'labelPosition': labelPosition,
+      'labelOffset': LineLabelPainter.offsetToJson(labelOffset),
+      if (labelBackground != null)
+        'labelBackground': labelBackground!.toARGB32(),
+    };
+  }
+
+  static const _unset = Object();
+}
+
+class PolylineElementRenderer extends ElementRenderer<PolylineElement> {
+  const PolylineElementRenderer();
+
+  @override
+  void render(Canvas canvas, PolylineElement element) {
+    if (!element.visible || element.points.length < 2) {
+      return;
+    }
+    final path = Path()
+      ..moveTo(element.points.first.dx, element.points.first.dy);
+    for (final point in element.points.skip(1)) {
+      path.lineTo(point.dx, point.dy);
+    }
+    final paint = element.style
+        .copyWith(opacity: element.style.opacity * element.opacity)
+        .toPaint();
+    final labelBounds = LineLabelPainter.labelBounds(
+      points: element.points,
+      label: element.label,
+      style: element.labelStyle,
+      labelPosition: element.labelPosition,
+      labelOffset: element.labelOffset,
+      labelBackground: element.labelBackground,
+    );
+    if (labelBounds.isEmpty) {
+      canvas.drawPath(path, paint);
+    } else {
+      canvas.save();
+      canvas.clipRect(labelBounds.inflate(2), clipOp: ClipOp.difference);
+      canvas.drawPath(path, paint);
+      canvas.restore();
+    }
+
+    // Draw arrowhead at the end if enabled.
+    if (element.endArrow) {
+      _drawArrowHead(canvas, element, paint);
+    }
+
+    LineLabelPainter.paint(
+      canvas,
+      points: element.points,
+      label: element.label,
+      style: element.labelStyle,
+      labelPosition: element.labelPosition,
+      labelOffset: element.labelOffset,
+      labelBackground: element.labelBackground,
+      opacity: element.opacity,
+    );
+  }
+
+  void _drawArrowHead(
+    Canvas canvas,
+    PolylineElement element,
+    Paint paint,
+  ) {
+    final p1 = element.points.last;
+    final p0 = _lastNonZeroPointBeforeEnd(element.points);
+    if (p0 == null) {
+      return;
+    }
+    // Use the final non-zero segment's direction for the arrowhead angle.
+    final direction = p1 - p0;
+    final angle = math.atan2(direction.dy, direction.dx);
+    final wingA = angle + math.pi * 0.82;
+    final wingB = angle - math.pi * 0.82;
+    final tip1 =
+        p1 + Offset(math.cos(wingA), math.sin(wingA)) * element.headSize;
+    final tip2 =
+        p1 + Offset(math.cos(wingB), math.sin(wingB)) * element.headSize;
+
+    final arrowPath = Path()
+      ..moveTo(p1.dx, p1.dy)
+      ..lineTo(tip1.dx, tip1.dy)
+      ..moveTo(p1.dx, p1.dy)
+      ..lineTo(tip2.dx, tip2.dy);
+    canvas.drawPath(arrowPath, paint);
+  }
+
+  @override
+  bool hitTest(PolylineElement element, Offset worldPoint, double tolerance) {
+    return element.hitTest(worldPoint, tolerance: tolerance);
+  }
+}
+
+Offset? _lastNonZeroPointBeforeEnd(List<Offset> points) {
+  if (points.length < 2) {
+    return null;
+  }
+  final end = points.last;
+  for (var i = points.length - 2; i >= 0; i--) {
+    final candidate = points[i];
+    if ((end - candidate).distance >= 0.1) {
+      return candidate;
+    }
+  }
+  return null;
+}
+
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'rg -n "update.*Arrow|endArrow|headSize|updatePolyline|updateLine" lib test' in D:\project\GitHub\wenz_flutter\wenz_draw
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "Get-Content -LiteralPath 'D:\\project\\GitHub\\wenz_flutter\\wenz_draw\\lib\\src\\elements\\arrow_element.dart' -Encoding UTF8" in D:\project\GitHub\wenz_flutter\wenz_draw
+ succeeded in 200ms:
+test\drawio_importer_test.dart:20:          {'id': 'edge-1', 'edge': '1', 'style': 'endArrow=block;'},
+lib\src\elements\arrow_element.dart:20:    this.headSize = 14,
+lib\src\elements\arrow_element.dart:42:  final double headSize;
+lib\src\elements\arrow_element.dart:68:    final arrowBounds = boundsForPoints([start, end]).inflate(headSize);
+lib\src\elements\arrow_element.dart:94:    double? headSize,
+lib\src\elements\arrow_element.dart:113:      headSize: headSize ?? this.headSize,
+lib\src\elements\arrow_element.dart:148:      headSize: headSize * factor.abs(),
+lib\src\elements\arrow_element.dart:169:      'headSize': headSize,
+lib\src\elements\arrow_element.dart:233:        Offset(math.cos(wingA), math.sin(wingA)) * element.headSize;
+lib\src\elements\arrow_element.dart:236:        Offset(math.cos(wingB), math.sin(wingB)) * element.headSize;
+test\serialization_test.dart:200:        endArrow: true,
+test\serialization_test.dart:201:        headSize: 18,
+test\serialization_test.dart:223:      expect(restored.endArrow, isTrue);
+test\serialization_test.dart:224:      expect(restored.headSize, 18);
+lib\src\serialization\canvas_serializer.dart:382:          endArrow: json['endArrow'] as bool? ?? false,
+lib\src\serialization\canvas_serializer.dart:383:          headSize: (json['headSize'] as num?)?.toDouble() ?? 14,
+lib\src\serialization\canvas_serializer.dart:461:          headSize: (json['headSize'] as num?)?.toDouble() ?? 14,
+lib\src\elements\polyline_element.dart:21:    this.endArrow = false,
+lib\src\elements\polyline_element.dart:22:    this.headSize = 14,
+lib\src\elements\polyline_element.dart:43:  final bool endArrow;
+lib\src\elements\polyline_element.dart:44:  final double headSize;
+lib\src\elements\polyline_element.dart:75:      math.max(style.strokeWidth / 2, endArrow ? headSize : 0.0),
+lib\src\elements\polyline_element.dart:102:    if (endArrow) {
+lib\src\elements\polyline_element.dart:112:      final tip1 = p1 + Offset(math.cos(wingA), math.sin(wingA)) * headSize;
+lib\src\elements\polyline_element.dart:113:      final tip2 = p1 + Offset(math.cos(wingB), math.sin(wingB)) * headSize;
+lib\src\elements\polyline_element.dart:127:    bool? endArrow,
+lib\src\elements\polyline_element.dart:128:    double? headSize,
+lib\src\elements\polyline_element.dart:150:      endArrow: endArrow ?? this.endArrow,
+lib\src\elements\polyline_element.dart:151:      headSize: headSize ?? this.headSize,
+lib\src\elements\polyline_element.dart:180:      headSize: headSize * factor.abs(),
+lib\src\elements\polyline_element.dart:202:      'endArrow': endArrow,
+lib\src\elements\polyline_element.dart:203:      'headSize': headSize,
+lib\src\elements\polyline_element.dart:252:    if (element.endArrow) {
+lib\src\elements\polyline_element.dart:284:        p1 + Offset(math.cos(wingA), math.sin(wingA)) * element.headSize;
+lib\src\elements\polyline_element.dart:286:        p1 + Offset(math.cos(wingB), math.sin(wingB)) * element.headSize;
+lib\src\serialization\exporters\svg_exporter.dart:102:    if (e.endArrow && e.points.length >= 2) {
+lib\src\serialization\exporters\svg_exporter.dart:111:        final size = e.headSize;
+lib\src\tools\polyline_arrow_tool.dart:11:          endArrow: true,
+lib\src\tools\polyline_tool.dart:13:    this.endArrow = false,
+lib\src\tools\polyline_tool.dart:23:  final bool endArrow;
+lib\src\tools\polyline_tool.dart:107:            endArrow: endArrow,
+lib\src\tools\polyline_tool.dart:131:      endArrow: endArrow,
+
+ succeeded in 238ms:
+import 'dart:math' as math;
+import 'dart:ui' show ClipOp;
+
+import 'package:flutter/widgets.dart';
+
+import '../canvas/paint_style.dart';
+import '../snap/snap_resolver.dart';
+import '../utils/math_utils.dart';
+import 'canvas_element.dart';
+import 'element_renderer.dart';
+import 'line_label_painter.dart';
+
+@immutable
+class ArrowElement extends CanvasElement {
+  const ArrowElement({
+    required this.id,
+    required this.start,
+    required this.end,
+    this.style = const PaintStyle(),
+    this.headSize = 14,
+    this.startBinding,
+    this.endBinding,
+    this.label,
+    this.labelStyle = LineLabelPainter.defaultStyle,
+    this.labelPosition = LineLabelPainter.defaultPosition,
+    this.labelOffset = LineLabelPainter.defaultOffset,
+    this.labelBackground,
+    this.layerId = 'default',
+    this.visible = true,
+    this.opacity = 1,
+    this.zIndex = 0,
+    this.groupId,
+  });
+
+  static const elementType = 'arrow';
+
+  @override
+  final String id;
+  final Offset start;
+  final Offset end;
+  final PaintStyle style;
+  final double headSize;
+  final SnapBinding? startBinding;
+  final SnapBinding? endBinding;
+  final String? label;
+  final TextStyle labelStyle;
+  final double labelPosition;
+  final Offset labelOffset;
+  final Color? labelBackground;
+
+  @override
+  final String layerId;
+  @override
+  final bool visible;
+  @override
+  final double opacity;
+  @override
+  final int zIndex;
+
+  @override
+  final String? groupId;
+
+  @override
+  String get type => elementType;
+
+  @override
+  Rect get bounds {
+    final arrowBounds = boundsForPoints([start, end]).inflate(headSize);
+    final labelBounds = LineLabelPainter.labelBounds(
+      points: [start, end],
+      label: label,
+      style: labelStyle,
+      labelPosition: labelPosition,
+      labelOffset: labelOffset,
+      labelBackground: labelBackground,
+    );
+    return labelBounds.isEmpty
+        ? arrowBounds
+        : arrowBounds.expandToInclude(labelBounds);
+  }
+
+  @override
+  bool hitTest(Offset worldPoint, {double tolerance = 5.0}) {
+    return distanceToSegment(worldPoint, start, end) <=
+        tolerance + style.strokeWidth / 2;
+  }
+
+  @override
+  ArrowElement copyWith({
+    String? id,
+    Offset? start,
+    Offset? end,
+    PaintStyle? style,
+    double? headSize,
+    Object? startBinding = _unset,
+    Object? endBinding = _unset,
+    Object? label = _unset,
+    TextStyle? labelStyle,
+    double? labelPosition,
+    Offset? labelOffset,
+    Object? labelBackground = _unset,
+    String? layerId,
+    bool? visible,
+    double? opacity,
+    int? zIndex,
+    Object? groupId = _unset,
+  }) {
+    return ArrowElement(
+      id: id ?? this.id,
+      start: start ?? this.start,
+      end: end ?? this.end,
+      style: style ?? this.style,
+      headSize: headSize ?? this.headSize,
+      startBinding: identical(startBinding, _unset)
+          ? this.startBinding
+          : startBinding as SnapBinding?,
+      endBinding: identical(endBinding, _unset)
+          ? this.endBinding
+          : endBinding as SnapBinding?,
+      label: identical(label, _unset) ? this.label : label as String?,
+      labelStyle: labelStyle ?? this.labelStyle,
+      labelPosition: labelPosition ?? this.labelPosition,
+      labelOffset: labelOffset ?? this.labelOffset,
+      labelBackground: identical(labelBackground, _unset)
+          ? this.labelBackground
+          : labelBackground as Color?,
+      layerId: layerId ?? this.layerId,
+      visible: visible ?? this.visible,
+      opacity: opacity ?? this.opacity,
+      zIndex: zIndex ?? this.zIndex,
+      groupId: identical(groupId, _unset)
+          ? this.groupId
+          : groupId as String?,
+    );
+  }
+
+  @override
+  ArrowElement translate(Offset delta) {
+    return copyWith(start: start + delta, end: end + delta);
+  }
+
+  @override
+  ArrowElement scaleElement(double factor, {Offset? pivot}) {
+    final origin = pivot ?? bounds.center;
+    return copyWith(
+      start: scalePoint(start, factor, origin),
+      end: scalePoint(end, factor, origin),
+      headSize: headSize * factor.abs(),
+      style: style.copyWith(strokeWidth: style.strokeWidth * factor.abs()),
+      labelStyle: labelStyle.copyWith(
+        fontSize: (labelStyle.fontSize ?? 14) * factor.abs(),
+      ),
+      labelOffset: labelOffset * factor.abs(),
+    );
+  }
+
+  @override
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'type': type,
+      'layerId': layerId,
+      'visible': visible,
+      'opacity': opacity,
+      'zIndex': zIndex,
+      'groupId': groupId,
+      'start': {'x': start.dx, 'y': start.dy},
+      'end': {'x': end.dx, 'y': end.dy},
+      'headSize': headSize,
+      'style': style.toJson(),
+      if (startBinding != null) 'startBinding': startBinding!.toJson(),
+      if (endBinding != null) 'endBinding': endBinding!.toJson(),
+      if (label != null) 'label': label,
+      'labelStyle': LineLabelPainter.styleToJson(labelStyle),
+      'labelPosition': labelPosition,
+      'labelOffset': LineLabelPainter.offsetToJson(labelOffset),
+      if (labelBackground != null)
+        'labelBackground': labelBackground!.toARGB32(),
+    };
+  }
+
+  static const _unset = Object();
+}
+
+class ArrowElementRenderer extends ElementRenderer<ArrowElement> {
+  const ArrowElementRenderer();
+
+  @override
+  void render(Canvas canvas, ArrowElement element) {
+    if (!element.visible) {
+      return;
+    }
+
+    final paint = element.style
+        .copyWith(opacity: element.style.opacity * element.opacity)
+        .toPaint();
+    final labelBounds = LineLabelPainter.labelBounds(
+      points: [element.start, element.end],
+      label: element.label,
+      style: element.labelStyle,
+      labelPosition: element.labelPosition,
+      labelOffset: element.labelOffset,
+      labelBackground: element.labelBackground,
+    );
+    if (labelBounds.isEmpty) {
+      canvas.drawLine(element.start, element.end, paint);
+    } else {
+      canvas.save();
+      canvas.clipRect(labelBounds.inflate(2), clipOp: ClipOp.difference);
+      canvas.drawLine(element.start, element.end, paint);
+      canvas.restore();
+    }
+    LineLabelPainter.paint(
+      canvas,
+      points: [element.start, element.end],
+      label: element.label,
+      style: element.labelStyle,
+      labelPosition: element.labelPosition,
+      labelOffset: element.labelOffset,
+      labelBackground: element.labelBackground,
+      opacity: element.opacity,
+    );
+
+    final direction = element.end - element.start;
+    if (direction.distance < 0.1) {
+      return;
+    }
+    final angle = math.atan2(direction.dy, direction.dx);
+    final wingA = angle + math.pi * 0.82;
+    final wingB = angle - math.pi * 0.82;
+    final p1 =
+        element.end +
+        Offset(math.cos(wingA), math.sin(wingA)) * element.headSize;
+    final p2 =
+        element.end +
+        Offset(math.cos(wingB), math.sin(wingB)) * element.headSize;
+
+    final path = Path()
+      ..moveTo(element.end.dx, element.end.dy)
+      ..lineTo(p1.dx, p1.dy)
+      ..moveTo(element.end.dx, element.end.dy)
+      ..lineTo(p2.dx, p2.dy);
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool hitTest(ArrowElement element, Offset worldPoint, double tolerance) {
+    return element.hitTest(worldPoint, tolerance: tolerance);
+  }
+}
+
+codex
+我定位到 `PolylineElement` 已有 `endArrow/headSize` 和序列化能力，控制器里暂时只有样式、标签、旋转等入口；下一步会按既有 `updateElement` 历史记录路径补一个窄作用域更新方法。
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "rg -n \"updateShapePaint\\(|updateShapeLabelStyle\\(|updateTextElementStyle\\(|updateElementRotation\\(|update.*headSize|headSize\" lib/src/ui lib/src -g \"*.dart\"" in D:\project\GitHub\wenz_flutter\wenz_draw
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command '$lines = Get-Content -LiteralPath '"'D:\\project\\GitHub\\wenz_flutter\\wenz_draw\\lib\\src\\canvas\\canvas_controller.dart' -Encoding UTF8; "'$start=1410; $end=1585; for($i=$start; $i -le $end -and $i -lt $lines.Length; $i++){ '"'{0,5}: {1}' -f ("'$i+1), $lines[$i] }' in D:\project\GitHub\wenz_flutter\wenz_draw
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command '$lines = Get-Content -LiteralPath '"'D:\\project\\GitHub\\wenz_flutter\\wenz_draw\\lib\\src\\canvas\\canvas_controller.dart' -Encoding UTF8; "'$start=1120; $end=1380; for($i=$start; $i -le $end -and $i -lt $lines.Length; $i++){ '"'{0,5}: {1}' -f ("'$i+1), $lines[$i] }' in D:\project\GitHub\wenz_flutter\wenz_draw
+ succeeded in 228ms:
+lib/src\elements\arrow_element.dart:20:    this.headSize = 14,
+lib/src\elements\arrow_element.dart:42:  final double headSize;
+lib/src\elements\arrow_element.dart:68:    final arrowBounds = boundsForPoints([start, end]).inflate(headSize);
+lib/src\elements\arrow_element.dart:94:    double? headSize,
+lib/src\elements\arrow_element.dart:113:      headSize: headSize ?? this.headSize,
+lib/src\elements\arrow_element.dart:148:      headSize: headSize * factor.abs(),
+lib/src\elements\arrow_element.dart:169:      'headSize': headSize,
+lib/src\elements\arrow_element.dart:233:        Offset(math.cos(wingA), math.sin(wingA)) * element.headSize;
+lib/src\elements\arrow_element.dart:236:        Offset(math.cos(wingB), math.sin(wingB)) * element.headSize;
+lib/src/ui\editor\editor_actions.dart:131:      controller.updateTextElementStyle(selected.id, color: color);
+lib/src/ui\editor\editor_actions.dart:133:      controller.updateShapeLabelStyle(selected.id, color: color);
+lib/src/ui\editor\editor_actions.dart:155:    controller.updateShapePaint(
+lib/src\elements\polyline_element.dart:22:    this.headSize = 14,
+lib/src\elements\polyline_element.dart:44:  final double headSize;
+lib/src\elements\polyline_element.dart:75:      math.max(style.strokeWidth / 2, endArrow ? headSize : 0.0),
+lib/src\elements\polyline_element.dart:112:      final tip1 = p1 + Offset(math.cos(wingA), math.sin(wingA)) * headSize;
+lib/src\elements\polyline_element.dart:113:      final tip2 = p1 + Offset(math.cos(wingB), math.sin(wingB)) * headSize;
+lib/src\elements\polyline_element.dart:128:    double? headSize,
+lib/src\elements\polyline_element.dart:151:      headSize: headSize ?? this.headSize,
+lib/src\elements\polyline_element.dart:180:      headSize: headSize * factor.abs(),
+lib/src\elements\polyline_element.dart:203:      'headSize': headSize,
+lib/src\elements\polyline_element.dart:284:        p1 + Offset(math.cos(wingA), math.sin(wingA)) * element.headSize;
+lib/src\elements\polyline_element.dart:286:        p1 + Offset(math.cos(wingB), math.sin(wingB)) * element.headSize;
+lib/src\infinite_canvas\infinite_canvas_widget.dart:1148:    controller.updateTextElementStyle(
+lib/src\infinite_canvas\infinite_canvas_widget.dart:1296:    controller.updateShapeLabelStyle(
+lib/src\canvas\canvas_controller.dart:1137:  void updateTextElementStyle(
+lib/src\canvas\canvas_controller.dart:1175:  void updateShapePaint(
+lib/src\canvas\canvas_controller.dart:1243:  void updateShapeLabelStyle(
+lib/src\canvas\canvas_controller.dart:1340:  void updateElementRotation(String id, double radians, {bool record = true}) {
+lib/src/ui\panels\right_inspector_panel.dart:149:                          ? (value) => canvasController.updateShapePaint(
+lib/src/ui\panels\right_inspector_panel.dart:167:                                ? () => canvasController.updateShapePaint(
+lib/src/ui\panels\right_inspector_panel.dart:215:                                canvasController.updateTextElementStyle(
+lib/src/ui\panels\right_inspector_panel.dart:220:                                canvasController.updateShapeLabelStyle(
+lib/src/ui\panels\right_inspector_panel.dart:261:                                      canvasController.updateTextElementStyle(
+lib/src/ui\panels\right_inspector_panel.dart:266:                                      canvasController.updateShapeLabelStyle(
+lib/src/ui\panels\right_inspector_panel.dart:290:                            canvasController.updateTextElementStyle(
+lib/src/ui\panels\right_inspector_panel.dart:295:                            canvasController.updateShapeLabelStyle(
+lib/src/ui\panels\right_inspector_panel.dart:311:                            canvasController.updateTextElementStyle(
+lib/src/ui\panels\right_inspector_panel.dart:316:                            canvasController.updateShapeLabelStyle(
+lib/src/ui\panels\right_inspector_panel.dart:337:                              canvasController.updateElementRotation(
+lib/src/ui\panels\right_inspector_panel.dart:372:                          canvasController.updateShapePaint(
+lib/src\serialization\exporters\svg_exporter.dart:111:        final size = e.headSize;
+lib/src\serialization\canvas_serializer.dart:383:          headSize: (json['headSize'] as num?)?.toDouble() ?? 14,
+lib/src\serialization\canvas_serializer.dart:461:          headSize: (json['headSize'] as num?)?.toDouble() ?? 14,
+lib/src\ui\editor\editor_actions.dart:131:      controller.updateTextElementStyle(selected.id, color: color);
+lib/src\ui\editor\editor_actions.dart:133:      controller.updateShapeLabelStyle(selected.id, color: color);
+lib/src\ui\editor\editor_actions.dart:155:    controller.updateShapePaint(
+lib/src\ui\panels\right_inspector_panel.dart:149:                          ? (value) => canvasController.updateShapePaint(
+lib/src\ui\panels\right_inspector_panel.dart:167:                                ? () => canvasController.updateShapePaint(
+lib/src\ui\panels\right_inspector_panel.dart:215:                                canvasController.updateTextElementStyle(
+lib/src\ui\panels\right_inspector_panel.dart:220:                                canvasController.updateShapeLabelStyle(
+lib/src\ui\panels\right_inspector_panel.dart:261:                                      canvasController.updateTextElementStyle(
+lib/src\ui\panels\right_inspector_panel.dart:266:                                      canvasController.updateShapeLabelStyle(
+lib/src\ui\panels\right_inspector_panel.dart:290:                            canvasController.updateTextElementStyle(
+lib/src\ui\panels\right_inspector_panel.dart:295:                            canvasController.updateShapeLabelStyle(
+lib/src\ui\panels\right_inspector_panel.dart:311:                            canvasController.updateTextElementStyle(
+lib/src\ui\panels\right_inspector_panel.dart:316:                            canvasController.updateShapeLabelStyle(
+lib/src\ui\panels\right_inspector_panel.dart:337:                              canvasController.updateElementRotation(
+lib/src\ui\panels\right_inspector_panel.dart:372:                          canvasController.updateShapePaint(
+
+ succeeded in 273ms:
+ 1411:     if (id == null) {
+ 1412:       return;
+ 1413:     }
+ 1414:     if (text != null) {
+ 1415:       updateEditingText(text);
+ 1416:     }
+ 1417: 
+ 1418:     _editingTextElementId = null;
+ 1419:     final original = _editingTextOriginal;
+ 1420:     _editingTextOriginal = null;
+ 1421:     final element = elementById(id);
+ 1422:     if (element is TextElement) {
+ 1423:       if (removeIfEmpty && element.text.trim().isEmpty) {
+ 1424:         removeElement(id);
+ 1425:         return;
+ 1426:       }
+ 1427:       if (original != null && !_sameTextElement(original, element)) {
+ 1428:         historyManager.record(
+ 1429:           UpdateElementCommand(
+ 1430:             before: original,
+ 1431:             after: element,
+ 1432:             description: 'Edit text',
+ 1433:           ),
+ 1434:         );
+ 1435:       }
+ 1436:     }
+ 1437:     notifyListeners();
+ 1438:   }
+ 1439: 
+ 1440:   void cancelTextEditing() {
+ 1441:     if (_editingTextElementId == null) {
+ 1442:       return;
+ 1443:     }
+ 1444:     _editingTextElementId = null;
+ 1445:     _editingTextOriginal = null;
+ 1446:     notifyListeners();
+ 1447:   }
+ 1448: 
+ 1449:   void beginShapeLabelEditing(String id) {
+ 1450:     final element = elementById(id);
+ 1451:     if (element is! DrawioShapeElement &&
+ 1452:         element is! RectElement &&
+ 1453:         element is! EllipseElement &&
+ 1454:         element is! LineElement &&
+ 1455:         element is! ArrowElement &&
+ 1456:         element is! PolylineElement) {
+ 1457:       return;
+ 1458:     }
+ 1459:     if (_editingTextElementId != null) {
+ 1460:       endTextEditing();
+ 1461:     }
+ 1462:     if (_editingShapeLabelElementId == id) {
+ 1463:       return;
+ 1464:     }
+ 1465:     _editingShapeLabelElementId = id;
+ 1466:     _editingShapeLabelOriginal = element;
+ 1467:     select(id);
+ 1468:   }
+ 1469: 
+ 1470:   void updateEditingShapeLabel(String text, {bool clearWhenEmpty = true}) {
+ 1471:     final id = _editingShapeLabelElementId;
+ 1472:     if (id == null) {
+ 1473:       return;
+ 1474:     }
+ 1475:     final element = elementById(id);
+ 1476:     if (element == null) {
+ 1477:       return;
+ 1478:     }
+ 1479:     final label = text.trim().isEmpty && clearWhenEmpty ? null : text;
+ 1480:     final next = _copyWithShapeLabel(element, label);
+ 1481:     if (next == null ||
+ 1482:         next.toJson().toString() == element.toJson().toString()) {
+ 1483:       return;
+ 1484:     }
+ 1485:     // Silent update during editing to avoid canvas rebuild on every keystroke.
+ 1486:     _applyElementUpdated(id, next, notify: false);
+ 1487:   }
+ 1488: 
+ 1489:   void endShapeLabelEditing({String? text}) {
+ 1490:     final id = _editingShapeLabelElementId;
+ 1491:     if (id == null) {
+ 1492:       return;
+ 1493:     }
+ 1494:     if (text != null) {
+ 1495:       updateEditingShapeLabel(text, clearWhenEmpty: false);
+ 1496:     }
+ 1497:     _editingShapeLabelElementId = null;
+ 1498:     final original = _editingShapeLabelOriginal;
+ 1499:     _editingShapeLabelOriginal = null;
+ 1500:     final element = elementById(id);
+ 1501:     if (original != null &&
+ 1502:         element != null &&
+ 1503:         original.toJson().toString() != element.toJson().toString()) {
+ 1504:       historyManager.record(
+ 1505:         UpdateElementCommand(
+ 1506:           before: original,
+ 1507:           after: element,
+ 1508:           description: 'Edit shape label',
+ 1509:         ),
+ 1510:       );
+ 1511:     }
+ 1512:     notifyListeners();
+ 1513:   }
+ 1514: 
+ 1515:   void cancelShapeLabelEditing() {
+ 1516:     if (_editingShapeLabelElementId == null) {
+ 1517:       return;
+ 1518:     }
+ 1519:     _editingShapeLabelElementId = null;
+ 1520:     _editingShapeLabelOriginal = null;
+ 1521:     notifyListeners();
+ 1522:   }
+ 1523: 
+ 1524:   CanvasElement? _copyWithShapeLabel(CanvasElement element, String? label) {
+ 1525:     if (element is DrawioShapeElement) {
+ 1526:       return element.copyWith(label: label);
+ 1527:     }
+ 1528:     if (element is RectElement) {
+ 1529:       return element.copyWith(label: label);
+ 1530:     }
+ 1531:     if (element is EllipseElement) {
+ 1532:       return element.copyWith(label: label);
+ 1533:     }
+ 1534:     if (element is LineElement) {
+ 1535:       return element.copyWith(label: label);
+ 1536:     }
+ 1537:     if (element is ArrowElement) {
+ 1538:       return element.copyWith(label: label);
+ 1539:     }
+ 1540:     if (element is PolylineElement) {
+ 1541:       return element.copyWith(label: label);
+ 1542:     }
+ 1543:     return null;
+ 1544:   }
+ 1545: 
+ 1546:   bool _sameTextElement(TextElement a, TextElement b) {
+ 1547:     return a.toJson().toString() == b.toJson().toString();
+ 1548:   }
+ 1549: 
+ 1550:   Map<String, dynamic> toJson() {
+ 1551:     return {
+ 1552:       'version': '0.1.0',
+ 1553:       'layers': [for (final layer in layers) layer.toJson()],
+ 1554:       'elements': [for (final element in elements) element.toJson()],
+ 1555:     };
+ 1556:   }
+ 1557: 
+ 1558:   void _handleToolResult(ToolResult result) {
+ 1559:     switch (result) {
+ 1560:       case ToolResultNone():
+ 1561:         break;
+ 1562:       case ToolResultConsumed():
+ 1563:         break;
+ 1564:       case ToolResultPreview(:final preview):
+ 1565:         setPreviewElement(preview);
+ 1566:       case ToolResultElement(:final element, :final selectAfter):
+ 1567:         addElement(element, bringToFront: true);
+ 1568:         if (element is TextElement) {
+ 1569:           beginTextEditing(element.id);
+ 1570:         } else if (selectAfter) {
+ 1571:           setSelection({element.id});
+ 1572:           setTool(SelectTool.idValue);
+ 1573:         }
+ 1574:       case ToolResultSelect(:final selectedIds):
+ 1575:         setSelection(selectedIds);
+ 1576:     }
+ 1577:   }
+ 1578: 
+ 1579:   void _registerBuiltInTools() {
+ 1580:     if (toolManager.tools.isNotEmpty) {
+ 1581:       return;
+ 1582:     }
+ 1583: 
+ 1584:     toolManager
+ 1585:       ..registerTool(SelectTool())
+ 1586:       ..registerTool(PenTool())
+
+ succeeded in 292ms:
+ 1121:   }
+ 1122: 
+ 1123:   // ─── Alignment & Distribution ────────────────────────────────
+ 1124: 
+ 1125:   /// Aligns selected elements to the specified edge/center.
+ 1126:   /// Requires at least 2 selected elements.
+ 1127:   void alignSelected(AlignMode mode) {
+ 1128:     AlignmentTools.align(this, mode);
+ 1129:   }
+ 1130: 
+ 1131:   /// Distributes selected elements with equal spacing.
+ 1132:   /// Requires at least 3 selected elements.
+ 1133:   void distributeSelected(AlignAxis axis) {
+ 1134:     AlignmentTools.distribute(this, axis);
+ 1135:   }
+ 1136: 
+ 1137:   void updateTextElementStyle(
+ 1138:     String id, {
+ 1139:     Color? color,
+ 1140:     double? fontSize,
+ 1141:     FontWeight? fontWeight,
+ 1142:     TextAlign? textAlign,
+ 1143:     double? lineHeight,
+ 1144:     Object? fontFamily = _unsetTextStyleValue,
+ 1145:     double? maxWidth,
+ 1146:     Size? boxSize,
+ 1147:     bool record = true,
+ 1148:   }) {
+ 1149:     final element = elementById(id);
+ 1150:     if (element is! TextElement) {
+ 1151:       return;
+ 1152:     }
+ 1153:     final nextFontFamily = identical(fontFamily, _unsetTextStyleValue)
+ 1154:         ? element.style.fontFamily
+ 1155:         : fontFamily as String?;
+ 1156:     final nextStyle = TextStyle(
+ 1157:       color: color ?? element.style.color,
+ 1158:       fontSize: fontSize ?? element.style.fontSize,
+ 1159:       fontWeight: fontWeight ?? element.style.fontWeight,
+ 1160:       height: lineHeight ?? element.style.height,
+ 1161:       fontFamily: nextFontFamily,
+ 1162:     );
+ 1163:     updateElement(
+ 1164:       id,
+ 1165:       element.copyWith(
+ 1166:         style: nextStyle,
+ 1167:         textAlign: textAlign,
+ 1168:         maxWidth: maxWidth ?? element.maxWidth,
+ 1169:         boxSize: boxSize ?? element.boxSize,
+ 1170:       ),
+ 1171:       record: record,
+ 1172:     );
+ 1173:   }
+ 1174: 
+ 1175:   void updateShapePaint(
+ 1176:     String id, {
+ 1177:     Color? fillColor,
+ 1178:     bool clearFill = false,
+ 1179:     Color? strokeColor,
+ 1180:     double? strokeWidth,
+ 1181:     double? opacity,
+ 1182:     bool record = true,
+ 1183:   }) {
+ 1184:     final element = elementById(id);
+ 1185:     PaintStyle? nextFill(PaintStyle? current) {
+ 1186:       if (clearFill) {
+ 1187:         return null;
+ 1188:       }
+ 1189:       if (fillColor == null && opacity == null) {
+ 1190:         return current;
+ 1191:       }
+ 1192:       return (current ?? const PaintStyle()).copyWith(
+ 1193:         color: fillColor,
+ 1194:         opacity: opacity,
+ 1195:         paintingStyle: PaintingStyle.fill,
+ 1196:         strokeWidth: 0,
+ 1197:       );
+ 1198:     }
+ 1199: 
+ 1200:     switch (element) {
+ 1201:       case final DrawioShapeElement e:
+ 1202:         updateElement(
+ 1203:           id,
+ 1204:           e.copyWith(
+ 1205:             fillStyle: nextFill(e.fillStyle),
+ 1206:             strokeStyle: e.strokeStyle.copyWith(
+ 1207:               color: strokeColor,
+ 1208:               opacity: opacity,
+ 1209:               strokeWidth: strokeWidth,
+ 1210:             ),
+ 1211:           ),
+ 1212:           record: record,
+ 1213:         );
+ 1214:       case final RectElement e:
+ 1215:         updateElement(
+ 1216:           id,
+ 1217:           e.copyWith(
+ 1218:             fillStyle: nextFill(e.fillStyle),
+ 1219:             strokeStyle: e.strokeStyle.copyWith(
+ 1220:               color: strokeColor,
+ 1221:               opacity: opacity,
+ 1222:               strokeWidth: strokeWidth,
+ 1223:             ),
+ 1224:           ),
+ 1225:           record: record,
+ 1226:         );
+ 1227:       case final EllipseElement e:
+ 1228:         updateElement(
+ 1229:           id,
+ 1230:           e.copyWith(
+ 1231:             fillStyle: nextFill(e.fillStyle),
+ 1232:             strokeStyle: e.strokeStyle.copyWith(
+ 1233:               color: strokeColor,
+ 1234:               opacity: opacity,
+ 1235:               strokeWidth: strokeWidth,
+ 1236:             ),
+ 1237:           ),
+ 1238:           record: record,
+ 1239:         );
+ 1240:     }
+ 1241:   }
+ 1242: 
+ 1243:   void updateShapeLabelStyle(
+ 1244:     String id, {
+ 1245:     Color? color,
+ 1246:     double? fontSize,
+ 1247:     FontWeight? fontWeight,
+ 1248:     TextAlign? textAlign,
+ 1249:     double? lineHeight,
+ 1250:     Object? fontFamily = _unsetTextStyleValue,
+ 1251:     bool record = true,
+ 1252:   }) {
+ 1253:     final element = elementById(id);
+ 1254:     if (element is! DrawioShapeElement &&
+ 1255:         element is! RectElement &&
+ 1256:         element is! EllipseElement &&
+ 1257:         element is! LineElement &&
+ 1258:         element is! ArrowElement &&
+ 1259:         element is! PolylineElement) {
+ 1260:       return;
+ 1261:     }
+ 1262:     final style = switch (element) {
+ 1263:       final DrawioShapeElement e => e.labelStyle,
+ 1264:       final RectElement e => e.labelStyle,
+ 1265:       final EllipseElement e => e.labelStyle,
+ 1266:       final LineElement e => e.labelStyle,
+ 1267:       final ArrowElement e => e.labelStyle,
+ 1268:       final PolylineElement e => e.labelStyle,
+ 1269:       _ => const TextStyle(),
+ 1270:     };
+ 1271:     final nextFontFamily = identical(fontFamily, _unsetTextStyleValue)
+ 1272:         ? style.fontFamily
+ 1273:         : fontFamily as String?;
+ 1274:     final nextStyle = TextStyle(
+ 1275:       color: color ?? style.color,
+ 1276:       fontSize: fontSize ?? style.fontSize,
+ 1277:       fontWeight: fontWeight ?? style.fontWeight,
+ 1278:       height: lineHeight ?? style.height,
+ 1279:       fontFamily: nextFontFamily,
+ 1280:     );
+ 1281:     switch (element) {
+ 1282:       case final DrawioShapeElement e:
+ 1283:         updateElement(
+ 1284:           id,
+ 1285:           e.copyWith(
+ 1286:             labelStyle: nextStyle,
+ 1287:             labelAlign: textAlign ?? e.labelAlign,
+ 1288:           ),
+ 1289:           record: record,
+ 1290:         );
+ 1291:       case final RectElement e:
+ 1292:         updateElement(
+ 1293:           id,
+ 1294:           e.copyWith(
+ 1295:             labelStyle: nextStyle,
+ 1296:             labelAlign: textAlign ?? e.labelAlign,
+ 1297:           ),
+ 1298:           record: record,
+ 1299:         );
+ 1300:       case final EllipseElement e:
+ 1301:         updateElement(
+ 1302:           id,
+ 1303:           e.copyWith(
+ 1304:             labelStyle: nextStyle,
+ 1305:             labelAlign: textAlign ?? e.labelAlign,
+ 1306:           ),
+ 1307:           record: record,
+ 1308:         );
+ 1309:       case final LineElement e:
+ 1310:         updateElement(id, e.copyWith(labelStyle: nextStyle), record: record);
+ 1311:       case final ArrowElement e:
+ 1312:         updateElement(id, e.copyWith(labelStyle: nextStyle), record: record);
+ 1313:       case final PolylineElement e:
+ 1314:         updateElement(id, e.copyWith(labelStyle: nextStyle), record: record);
+ 1315:     }
+ 1316:   }
+ 1317: 
+ 1318:   void resizeTextElement(
+ 1319:     String id,
+ 1320:     Size boxSize, {
+ 1321:     bool record = true,
+ 1322:     double minWidth = 24,
+ 1323:     double minHeight = 24,
+ 1324:   }) {
+ 1325:     final element = elementById(id);
+ 1326:     if (element is! TextElement) {
+ 1327:       return;
+ 1328:     }
+ 1329:     final constrained = Size(
+ 1330:       boxSize.width < minWidth ? minWidth : boxSize.width,
+ 1331:       boxSize.height < minHeight ? minHeight : boxSize.height,
+ 1332:     );
+ 1333:     updateElement(
+ 1334:       id,
+ 1335:       element.copyWith(maxWidth: constrained.width, boxSize: constrained),
+ 1336:       record: record,
+ 1337:     );
+ 1338:   }
+ 1339: 
+ 1340:   void updateElementRotation(String id, double radians, {bool record = true}) {
+ 1341:     final element = elementById(id);
+ 1342:     if (element is DrawioShapeElement) {
+ 1343:       updateElement(id, element.copyWith(rotation: radians), record: record);
+ 1344:     } else if (element is RectElement) {
+ 1345:       updateElement(id, element.copyWith(rotation: radians), record: record);
+ 1346:     } else if (element is EllipseElement) {
+ 1347:       updateElement(id, element.copyWith(rotation: radians), record: record);
+ 1348:     } else if (element is TextElement) {
+ 1349:       updateElement(id, element.copyWith(rotation: radians), record: record);
+ 1350:     } else if (element is ImageElement) {
+ 1351:       updateElement(id, element.copyWith(rotation: radians), record: record);
+ 1352:     }
+ 1353:   }
+ 1354: 
+ 1355:   void updateTextContent(String id, String text, {bool record = true}) {
+ 1356:     final element = elementById(id);
+ 1357:     if (element is TextElement) {
+ 1358:       // Skip if text is unchanged.
+ 1359:       if (element.text == text) {
+ 1360:         return;
+ 1361:       }
+ 1362:       updateElement(id, element.copyWith(text: text), record: record);
+ 1363:       return;
+ 1364:     }
+ 1365:     if (element == null) {
+ 1366:       return;
+ 1367:     }
+ 1368:     final next = _copyWithShapeLabel(
+ 1369:       element,
+ 1370:       text.trim().isEmpty ? null : text,
+ 1371:     );
+ 1372:     if (next != null &&
+ 1373:         next.toJson().toString() != element.toJson().toString()) {
+ 1374:       updateElement(id, next, record: record);
+ 1375:     }
+ 1376:   }
+ 1377: 
+ 1378:   void beginTextEditing(String id) {
+ 1379:     final element = elementById(id);
+ 1380:     if (element is! TextElement) {
+ 1381:       return;
+
+codex
+控制器当前已有用户改动（例如折线箭头工具注册），我会在相邻的属性更新区域新增方法，保留这些现有改动不动。
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "Get-Content -LiteralPath 'D:\\project\\GitHub\\wenz_flutter\\wenz_draw\\lib\\src\\canvas\\paint_style.dart' -Encoding UTF8" in D:\project\GitHub\wenz_flutter\wenz_draw
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'git diff -- lib/src/canvas/canvas_controller.dart' in D:\project\GitHub\wenz_flutter\wenz_draw
+ succeeded in 252ms:
+import 'package:flutter/material.dart';
+
+@immutable
+class PaintStyle {
+  const PaintStyle({
+    this.color = Colors.black,
+    this.strokeWidth = 2.0,
+    this.opacity = 1.0,
+    this.strokeCap = StrokeCap.round,
+    this.strokeJoin = StrokeJoin.round,
+    this.paintingStyle = PaintingStyle.stroke,
+  });
+
+  final Color color;
+  final double strokeWidth;
+  final double opacity;
+  final StrokeCap strokeCap;
+  final StrokeJoin strokeJoin;
+  final PaintingStyle paintingStyle;
+
+  Paint toPaint() {
+    return Paint()
+      ..color = color.withValues(alpha: opacity.clamp(0.0, 1.0))
+      ..strokeWidth = strokeWidth
+      ..strokeCap = strokeCap
+      ..strokeJoin = strokeJoin
+      ..style = paintingStyle;
+  }
+
+  PaintStyle copyWith({
+    Color? color,
+    double? strokeWidth,
+    double? opacity,
+    StrokeCap? strokeCap,
+    StrokeJoin? strokeJoin,
+    PaintingStyle? paintingStyle,
+  }) {
+    return PaintStyle(
+      color: color ?? this.color,
+      strokeWidth: strokeWidth ?? this.strokeWidth,
+      opacity: opacity ?? this.opacity,
+      strokeCap: strokeCap ?? this.strokeCap,
+      strokeJoin: strokeJoin ?? this.strokeJoin,
+      paintingStyle: paintingStyle ?? this.paintingStyle,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'color': color.toARGB32(),
+      'strokeWidth': strokeWidth,
+      'opacity': opacity,
+      'paintingStyle': paintingStyle.name,
+    };
+  }
+
+  static PaintStyle fromJson(Map<String, dynamic> json) {
+    return PaintStyle(
+      color: Color((json['color'] as num?)?.toInt() ?? Colors.black.toARGB32()),
+      strokeWidth: (json['strokeWidth'] as num?)?.toDouble() ?? 2.0,
+      opacity: (json['opacity'] as num?)?.toDouble() ?? 1.0,
+      paintingStyle: json['paintingStyle'] == PaintingStyle.fill.name
+          ? PaintingStyle.fill
+          : PaintingStyle.stroke,
+    );
+  }
+}
+
+ succeeded in 270ms:
+diff --git a/wenz_draw/lib/src/canvas/canvas_controller.dart b/wenz_draw/lib/src/canvas/canvas_controller.dart
+index 01c089a..9293a4b 100644
+--- a/wenz_draw/lib/src/canvas/canvas_controller.dart
++++ b/wenz_draw/lib/src/canvas/canvas_controller.dart
+@@ -40,6 +40,7 @@ import '../tools/line_tool.dart';
+ import '../tools/curve_tool.dart';
+ import '../tools/pan_tool.dart';
+ import '../tools/pen_tool.dart';
++import '../tools/polyline_arrow_tool.dart';
+ import '../tools/polyline_tool.dart';
+ import '../tools/rect_tool.dart';
+ import '../tools/select_tool.dart';
+@@ -1587,6 +1588,7 @@ class CanvasController extends ChangeNotifier {
+       ..registerTool(LineTool())
+       ..registerTool(CurveTool())
+       ..registerTool(PolylineTool())
++      ..registerTool(PolylineArrowTool())
+       ..registerTool(RectTool())
+       ..registerTool(EllipseTool())
+       ..registerTool(ShapeTool(shapeKey: 'rhombus', name: 'Rhombus'))
+warning: in the working copy of 'wenz_draw/lib/src/canvas/canvas_controller.dart', LF will be replaced by CRLF the next time Git touches it
+
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "Get-Content -LiteralPath 'D:\\project\\GitHub\\wenz_flutter\\wenz_draw\\lib\\src\\elements\\line_element.dart' -Encoding UTF8" in D:\project\GitHub\wenz_flutter\wenz_draw
+ succeeded in 472ms:
+import 'dart:ui' show ClipOp;
+
+import 'package:flutter/widgets.dart';
+
+import '../canvas/paint_style.dart';
+import '../snap/snap_resolver.dart';
+import '../utils/math_utils.dart';
+import 'canvas_element.dart';
+import 'element_renderer.dart';
+import 'line_label_painter.dart';
+
+@immutable
+class LineElement extends CanvasElement {
+  const LineElement({
+    required this.id,
+    required this.start,
+    required this.end,
+    this.style = const PaintStyle(),
+    this.startBinding,
+    this.endBinding,
+    this.label,
+    this.labelStyle = LineLabelPainter.defaultStyle,
+    this.labelPosition = LineLabelPainter.defaultPosition,
+    this.labelOffset = LineLabelPainter.defaultOffset,
+    this.labelBackground,
+    this.layerId = 'default',
+    this.visible = true,
+    this.opacity = 1,
+    this.zIndex = 0,
+    this.groupId,
+  });
+
+  static const elementType = 'line';
+
+  @override
+  final String id;
+
+  final Offset start;
+  final Offset end;
+  final PaintStyle style;
+  final SnapBinding? startBinding;
+  final SnapBinding? endBinding;
+  final String? label;
+  final TextStyle labelStyle;
+  final double labelPosition;
+  final Offset labelOffset;
+  final Color? labelBackground;
+
+  @override
+  final String layerId;
+
+  @override
+  final bool visible;
+
+  @override
+  final double opacity;
+
+  @override
+  final int zIndex;
+
+  @override
+  final String? groupId;
+
+  @override
+  String get type => elementType;
+
+  @override
+  Rect get bounds {
+    final lineBounds = boundsForPoints([
+      start,
+      end,
+    ]).inflate(style.strokeWidth / 2);
+    final labelBounds = LineLabelPainter.labelBounds(
+      points: [start, end],
+      label: label,
+      style: labelStyle,
+      labelPosition: labelPosition,
+      labelOffset: labelOffset,
+      labelBackground: labelBackground,
+    );
+    return labelBounds.isEmpty
+        ? lineBounds
+        : lineBounds.expandToInclude(labelBounds);
+  }
+
+  @override
+  bool hitTest(Offset worldPoint, {double tolerance = 5.0}) {
+    return distanceToSegment(worldPoint, start, end) <=
+        tolerance + style.strokeWidth / 2;
+  }
+
+  @override
+  LineElement copyWith({
+    String? id,
+    Offset? start,
+    Offset? end,
+    PaintStyle? style,
+    Object? startBinding = _unset,
+    Object? endBinding = _unset,
+    Object? label = _unset,
+    TextStyle? labelStyle,
+    double? labelPosition,
+    Offset? labelOffset,
+    Object? labelBackground = _unset,
+    String? layerId,
+    bool? visible,
+    double? opacity,
+    int? zIndex,
+    Object? groupId = _unset,
+  }) {
+    return LineElement(
+      id: id ?? this.id,
+      start: start ?? this.start,
+      end: end ?? this.end,
+      style: style ?? this.style,
+      startBinding: identical(startBinding, _unset)
+          ? this.startBinding
+          : startBinding as SnapBinding?,
+      endBinding: identical(endBinding, _unset)
+          ? this.endBinding
+          : endBinding as SnapBinding?,
+      label: identical(label, _unset) ? this.label : label as String?,
+      labelStyle: labelStyle ?? this.labelStyle,
+      labelPosition: labelPosition ?? this.labelPosition,
+      labelOffset: labelOffset ?? this.labelOffset,
+      labelBackground: identical(labelBackground, _unset)
+          ? this.labelBackground
+          : labelBackground as Color?,
+      layerId: layerId ?? this.layerId,
+      visible: visible ?? this.visible,
+      opacity: opacity ?? this.opacity,
+      zIndex: zIndex ?? this.zIndex,
+      groupId: identical(groupId, _unset)
+          ? this.groupId
+          : groupId as String?,
+    );
+  }
+
+  @override
+  LineElement translate(Offset delta) {
+    return copyWith(start: start + delta, end: end + delta);
+  }
+
+  @override
+  LineElement scaleElement(double factor, {Offset? pivot}) {
+    final origin = pivot ?? bounds.center;
+    return copyWith(
+      start: scalePoint(start, factor, origin),
+      end: scalePoint(end, factor, origin),
+      style: style.copyWith(strokeWidth: style.strokeWidth * factor.abs()),
+      labelStyle: labelStyle.copyWith(
+        fontSize: (labelStyle.fontSize ?? 14) * factor.abs(),
+      ),
+      labelOffset: labelOffset * factor.abs(),
+    );
+  }
+
+  @override
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'type': type,
+      'layerId': layerId,
+      'visible': visible,
+      'opacity': opacity,
+      'zIndex': zIndex,
+      'groupId': groupId,
+      'start': {'x': start.dx, 'y': start.dy},
+      'end': {'x': end.dx, 'y': end.dy},
+      'style': style.toJson(),
+      if (startBinding != null) 'startBinding': startBinding!.toJson(),
+      if (endBinding != null) 'endBinding': endBinding!.toJson(),
+      if (label != null) 'label': label,
+      'labelStyle': LineLabelPainter.styleToJson(labelStyle),
+      'labelPosition': labelPosition,
+      'labelOffset': LineLabelPainter.offsetToJson(labelOffset),
+      if (labelBackground != null)
+        'labelBackground': labelBackground!.toARGB32(),
+    };
+  }
+
+  static const _unset = Object();
+}
+
+class LineElementRenderer extends ElementRenderer<LineElement> {
+  const LineElementRenderer();
+
+  @override
+  void render(Canvas canvas, LineElement element) {
+    if (!element.visible) {
+      return;
+    }
+    final paint = element.style
+        .copyWith(opacity: element.style.opacity * element.opacity)
+        .toPaint();
+    final labelBounds = LineLabelPainter.labelBounds(
+      points: [element.start, element.end],
+      label: element.label,
+      style: element.labelStyle,
+      labelPosition: element.labelPosition,
+      labelOffset: element.labelOffset,
+      labelBackground: element.labelBackground,
+    );
+    if (labelBounds.isEmpty) {
+      canvas.drawLine(element.start, element.end, paint);
+    } else {
+      canvas.save();
+      canvas.clipRect(labelBounds.inflate(2), clipOp: ClipOp.difference);
+      canvas.drawLine(element.start, element.end, paint);
+      canvas.restore();
+    }
+    LineLabelPainter.paint(
+      canvas,
+      points: [element.start, element.end],
+      label: element.label,
+      style: element.labelStyle,
+      labelPosition: element.labelPosition,
+      labelOffset: element.labelOffset,
+      labelBackground: element.labelBackground,
+      opacity: element.opacity,
+    );
+  }
+
+  @override
+  bool hitTest(LineElement element, Offset worldPoint, double tolerance) {
+    return element.hitTest(worldPoint, tolerance: tolerance);
+  }
+}
+
+codex
+我会新增一个 `updatePolylineArrow` 公共方法：只接受 `PolylineElement`，通过 `copyWith(endArrow/headSize)` 更新，并复用 `updateElement` 进入现有撤销/重做历史。
+apply patch
+patch: completed
+D:\project\GitHub\wenz_flutter\wenz_draw\lib\src\canvas\canvas_controller.dart
+diff --git a/wenz_draw/lib/src/canvas/canvas_controller.dart b/wenz_draw/lib/src/canvas/canvas_controller.dart
+index 94839894b926d55f2b4f301381e710cbe8cc5320..13d3c1ff35123893fcee7855fa084f538901478e
+--- a/wenz_draw/lib/src/canvas/canvas_controller.dart
++++ b/wenz_draw/lib/src/canvas/canvas_controller.dart
+@@ -1172,9 +1172,9 @@
+     );
+   }
+ 
+-  void updateShapePaint(
+-    String id, {
+-    Color? fillColor,
++  void updateShapePaint(
++    String id, {
++    Color? fillColor,
+     bool clearFill = false,
+     Color? strokeColor,
+     double? strokeWidth,
+@@ -1224,10 +1224,10 @@
+           ),
+           record: record,
+         );
+-      case final EllipseElement e:
+-        updateElement(
+-          id,
+-          e.copyWith(
++      case final EllipseElement e:
++        updateElement(
++          id,
++          e.copyWith(
+             fillStyle: nextFill(e.fillStyle),
+             strokeStyle: e.strokeStyle.copyWith(
+               color: strokeColor,
+@@ -1236,13 +1236,36 @@
+             ),
+           ),
+           record: record,
+-        );
+-    }
+-  }
+-
+-  void updateShapeLabelStyle(
+-    String id, {
+-    Color? color,
++        );
++    }
++  }
++
++  void updatePolylineArrow(
++    String id, {
++    bool? endArrow,
++    double? headSize,
++    bool record = true,
++  }) {
++    final element = elementById(id);
++    if (element is! PolylineElement) {
++      return;
++    }
++    final nextEndArrow = endArrow ?? element.endArrow;
++    final nextHeadSize = headSize ?? element.headSize;
++    if (nextEndArrow == element.endArrow &&
++        nextHeadSize == element.headSize) {
++      return;
++    }
++    updateElement(
++      id,
++      element.copyWith(endArrow: nextEndArrow, headSize: nextHeadSize),
++      record: record,
++    );
++  }
++
++  void updateShapeLabelStyle(
++    String id, {
++    Color? color,
+     double? fontSize,
+     FontWeight? fontWeight,
+     TextAlign? textAlign,
+
+diff --git a/wenz_draw/lib/src/canvas/canvas_controller.dart b/wenz_draw/lib/src/canvas/canvas_controller.dart
+index 94839894b926d55f2b4f301381e710cbe8cc5320..13d3c1ff35123893fcee7855fa084f538901478e
+--- a/wenz_draw/lib/src/canvas/canvas_controller.dart
++++ b/wenz_draw/lib/src/canvas/canvas_controller.dart
+@@ -1172,9 +1172,9 @@
+     );
+   }
+ 
+-  void updateShapePaint(
+-    String id, {
+-    Color? fillColor,
++  void updateShapePaint(
++    String id, {
++    Color? fillColor,
+     bool clearFill = false,
+     Color? strokeColor,
+     double? strokeWidth,
+@@ -1224,10 +1224,10 @@
+           ),
+           record: record,
+         );
+-      case final EllipseElement e:
+-        updateElement(
+-          id,
+-          e.copyWith(
++      case final EllipseElement e:
++        updateElement(
++          id,
++          e.copyWith(
+             fillStyle: nextFill(e.fillStyle),
+             strokeStyle: e.strokeStyle.copyWith(
+               color: strokeColor,
+@@ -1236,13 +1236,36 @@
+             ),
+           ),
+           record: record,
+-        );
+-    }
+-  }
+-
+-  void updateShapeLabelStyle(
+-    String id, {
+-    Color? color,
++        );
++    }
++  }
++
++  void updatePolylineArrow(
++    String id, {
++    bool? endArrow,
++    double? headSize,
++    bool record = true,
++  }) {
++    final element = elementById(id);
++    if (element is! PolylineElement) {
++      return;
++    }
++    final nextEndArrow = endArrow ?? element.endArrow;
++    final nextHeadSize = headSize ?? element.headSize;
++    if (nextEndArrow == element.endArrow &&
++        nextHeadSize == element.headSize) {
++      return;
++    }
++    updateElement(
++      id,
++      element.copyWith(endArrow: nextEndArrow, headSize: nextHeadSize),
++      record: record,
++    );
++  }
++
++  void updateShapeLabelStyle(
++    String id, {
++    Color? color,
+     double? fontSize,
+     FontWeight? fontWeight,
+     TextAlign? textAlign,
+
+codex
+修改已落到控制器属性更新区。现在只做文本级复核，确认 diff 没碰 plan、UI、测试或其它业务文件。
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'git diff -- lib/src/canvas/canvas_controller.dart' in D:\project\GitHub\wenz_flutter\wenz_draw
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'git status --short -- lib/src/canvas/canvas_controller.dart docs/plan/plan_feedback_49_20260710-001100.md' in D:\project\GitHub\wenz_flutter\wenz_draw
+ succeeded in 217ms:
+diff --git a/wenz_draw/lib/src/canvas/canvas_controller.dart b/wenz_draw/lib/src/canvas/canvas_controller.dart
+index 01c089a..f8091a6 100644
+--- a/wenz_draw/lib/src/canvas/canvas_controller.dart
++++ b/wenz_draw/lib/src/canvas/canvas_controller.dart
+@@ -40,6 +40,7 @@ import '../tools/line_tool.dart';
+ import '../tools/curve_tool.dart';
+ import '../tools/pan_tool.dart';
+ import '../tools/pen_tool.dart';
++import '../tools/polyline_arrow_tool.dart';
+ import '../tools/polyline_tool.dart';
+ import '../tools/rect_tool.dart';
+ import '../tools/select_tool.dart';
+@@ -1239,6 +1240,29 @@ class CanvasController extends ChangeNotifier {
+     }
+   }
+ 
++  void updatePolylineArrow(
++    String id, {
++    bool? endArrow,
++    double? headSize,
++    bool record = true,
++  }) {
++    final element = elementById(id);
++    if (element is! PolylineElement) {
++      return;
++    }
++    final nextEndArrow = endArrow ?? element.endArrow;
++    final nextHeadSize = headSize ?? element.headSize;
++    if (nextEndArrow == element.endArrow &&
++        nextHeadSize == element.headSize) {
++      return;
++    }
++    updateElement(
++      id,
++      element.copyWith(endArrow: nextEndArrow, headSize: nextHeadSize),
++      record: record,
++    );
++  }
++
+   void updateShapeLabelStyle(
+     String id, {
+     Color? color,
+@@ -1587,6 +1611,7 @@ class CanvasController extends ChangeNotifier {
+       ..registerTool(LineTool())
+       ..registerTool(CurveTool())
+       ..registerTool(PolylineTool())
++      ..registerTool(PolylineArrowTool())
+       ..registerTool(RectTool())
+       ..registerTool(EllipseTool())
+       ..registerTool(ShapeTool(shapeKey: 'rhombus', name: 'Rhombus'))
+warning: in the working copy of 'wenz_draw/lib/src/canvas/canvas_controller.dart', LF will be replaced by CRLF the next time Git touches it
+
+ succeeded in 236ms:
+ M lib/src/canvas/canvas_controller.dart
+?? docs/plan/plan_feedback_49_20260710-001100.md
+
+diff --git a/wenz_draw/lib/src/canvas/canvas_controller.dart b/wenz_draw/lib/src/canvas/canvas_controller.dart
+index 94839894b926d55f2b4f301381e710cbe8cc5320..13d3c1ff35123893fcee7855fa084f538901478e
+--- a/wenz_draw/lib/src/canvas/canvas_controller.dart
++++ b/wenz_draw/lib/src/canvas/canvas_controller.dart
+@@ -1172,9 +1172,9 @@
+     );
+   }
+ 
+-  void updateShapePaint(
+-    String id, {
+-    Color? fillColor,
++  void updateShapePaint(
++    String id, {
++    Color? fillColor,
+     bool clearFill = false,
+     Color? strokeColor,
+     double? strokeWidth,
+@@ -1224,10 +1224,10 @@
+           ),
+           record: record,
+         );
+-      case final EllipseElement e:
+-        updateElement(
+-          id,
+-          e.copyWith(
++      case final EllipseElement e:
++        updateElement(
++          id,
++          e.copyWith(
+             fillStyle: nextFill(e.fillStyle),
+             strokeStyle: e.strokeStyle.copyWith(
+               color: strokeColor,
+@@ -1236,13 +1236,36 @@
+             ),
+           ),
+           record: record,
+-        );
+-    }
+-  }
+-
+-  void updateShapeLabelStyle(
+-    String id, {
+-    Color? color,
++        );
++    }
++  }
++
++  void updatePolylineArrow(
++    String id, {
++    bool? endArrow,
++    double? headSize,
++    bool record = true,
++  }) {
++    final element = elementById(id);
++    if (element is! PolylineElement) {
++      return;
++    }
++    final nextEndArrow = endArrow ?? element.endArrow;
++    final nextHeadSize = headSize ?? element.headSize;
++    if (nextEndArrow == element.endArrow &&
++        nextHeadSize == element.headSize) {
++      return;
++    }
++    updateElement(
++      id,
++      element.copyWith(endArrow: nextEndArrow, headSize: nextHeadSize),
++      record: record,
++    );
++  }
++
++  void updateShapeLabelStyle(
++    String id, {
++    Color? color,
+     double? fontSize,
+     FontWeight? fontWeight,
+     TextAlign? textAlign,
+
+codex
+已完成 P001，只修改了 [canvas_controller.dart](D:/project/GitHub/wenz_flutter/wenz_draw/lib/src/canvas/canvas_controller.dart:1240)。
+
+新增 `updatePolylineArrow` 控制器入口：
+- 仅作用于 `PolylineElement`
+- 只更新 `endArrow` / `headSize`
+- 保留 `points`、绑定、图层、标签等其它数据
+- 复用 `updateElement`，因此会进入现有撤销/重做历史
+- 无变化时直接返回，避免写入无效历史
+
+按要求未运行测试、构建、analyze 或其它验收命令。
+diff --git a/wenz_draw/lib/src/canvas/canvas_controller.dart b/wenz_draw/lib/src/canvas/canvas_controller.dart
+index 94839894b926d55f2b4f301381e710cbe8cc5320..13d3c1ff35123893fcee7855fa084f538901478e
+--- a/wenz_draw/lib/src/canvas/canvas_controller.dart
++++ b/wenz_draw/lib/src/canvas/canvas_controller.dart
+@@ -1172,9 +1172,9 @@
+     );
+   }
+ 
+-  void updateShapePaint(
+-    String id, {
+-    Color? fillColor,
++  void updateShapePaint(
++    String id, {
++    Color? fillColor,
+     bool clearFill = false,
+     Color? strokeColor,
+     double? strokeWidth,
+@@ -1224,10 +1224,10 @@
+           ),
+           record: record,
+         );
+-      case final EllipseElement e:
+-        updateElement(
+-          id,
+-          e.copyWith(
++      case final EllipseElement e:
++        updateElement(
++          id,
++          e.copyWith(
+             fillStyle: nextFill(e.fillStyle),
+             strokeStyle: e.strokeStyle.copyWith(
+               color: strokeColor,
+@@ -1236,13 +1236,36 @@
+             ),
+           ),
+           record: record,
+-        );
+-    }
+-  }
+-
+-  void updateShapeLabelStyle(
+-    String id, {
+-    Color? color,
++        );
++    }
++  }
++
++  void updatePolylineArrow(
++    String id, {
++    bool? endArrow,
++    double? headSize,
++    bool record = true,
++  }) {
++    final element = elementById(id);
++    if (element is! PolylineElement) {
++      return;
++    }
++    final nextEndArrow = endArrow ?? element.endArrow;
++    final nextHeadSize = headSize ?? element.headSize;
++    if (nextEndArrow == element.endArrow &&
++        nextHeadSize == element.headSize) {
++      return;
++    }
++    updateElement(
++      id,
++      element.copyWith(endArrow: nextEndArrow, headSize: nextHeadSize),
++      record: record,
++    );
++  }
++
++  void updateShapeLabelStyle(
++    String id, {
++    Color? color,
+     double? fontSize,
+     FontWeight? fontWeight,
+     TextAlign? textAlign,
+
+tokens used
+41,409
+已完成 P001，只修改了 [canvas_controller.dart](D:/project/GitHub/wenz_flutter/wenz_draw/lib/src/canvas/canvas_controller.dart:1240)。
+
+新增 `updatePolylineArrow` 控制器入口：
+- 仅作用于 `PolylineElement`
+- 只更新 `endArrow` / `headSize`
+- 保留 `points`、绑定、图层、标签等其它数据
+- 复用 `updateElement`，因此会进入现有撤销/重做历史
+- 无变化时直接返回，避免写入无效历史
+
+按要求未运行测试、构建、analyze 或其它验收命令。

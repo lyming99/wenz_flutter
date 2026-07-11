@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:super_clipboard/super_clipboard.dart' as super_clipboard;
@@ -8,6 +9,33 @@ import 'external_image_input.dart';
 /// Shared default clipboard reader for platform image inputs.
 const ExternalImageClipboardReader defaultExternalImageClipboardReader =
     DefaultExternalImageClipboardReader();
+
+final super_clipboard.ValueFormat<String> _markdownTextClipboardFormat =
+    super_clipboard.SimpleValueFormat<String>(
+  ios: super_clipboard.SimplePlatformCodec<String>(
+    formats: const <String>[
+      'net.daringfireball.markdown',
+      'text/markdown',
+      'text/x-markdown',
+    ],
+    onDecode: _decodeClipboardString,
+  ),
+  macos: super_clipboard.SimplePlatformCodec<String>(
+    formats: const <String>[
+      'net.daringfireball.markdown',
+      'text/markdown',
+      'text/x-markdown',
+    ],
+    onDecode: _decodeClipboardString,
+  ),
+  fallback: super_clipboard.SimplePlatformCodec<String>(
+    formats: const <String>[
+      'text/markdown',
+      'text/x-markdown',
+    ],
+    onDecode: _decodeClipboardString,
+  ),
+);
 
 /// Default [ExternalImageClipboardReader] backed by `super_clipboard`.
 ///
@@ -34,6 +62,7 @@ class DefaultExternalImageClipboardReader
 
     final plainText = await _readValue(reader, super_clipboard.Formats.plainText);
     final html = await _readValue(reader, super_clipboard.Formats.htmlText);
+    final markdown = await _readValue(reader, _markdownTextClipboardFormat);
     final images = <ExternalImageInput>[];
     final seen = <String>{};
 
@@ -50,6 +79,10 @@ class DefaultExternalImageClipboardReader
       final fileInput = await _readFileUriInput(item);
       if (fileInput != null && fileInput.isAccepted) {
         addImage(fileInput);
+        final memoryInput = await _readMemoryImageInput(item);
+        if (memoryInput != null && memoryInput.isAccepted) {
+          addImage(_memoryFallbackForFileInput(memoryInput, fileInput));
+        }
         continue;
       }
 
@@ -75,6 +108,7 @@ class DefaultExternalImageClipboardReader
     return ExternalImageClipboardData(
       plainText: plainText,
       html: html,
+      markdown: markdown,
       images: images,
     );
   }
@@ -304,6 +338,25 @@ class DefaultExternalImageClipboardReader
       ExternalImageInputKind.fileUri => 'uri:${input.fileUri}',
     };
   }
+
+  ExternalImageInput _memoryFallbackForFileInput(
+    ExternalImageInput memoryInput,
+    ExternalImageInput fileInput,
+  ) {
+    final bytes = memoryInput.bytes;
+    final fileName = _normalizeString(fileInput.fileName);
+    if (bytes == null ||
+        fileName == null ||
+        fileName == _normalizeString(memoryInput.fileName)) {
+      return memoryInput;
+    }
+    return ExternalImageInput.memory(
+      bytes: bytes,
+      source: memoryInput.source,
+      mimeType: memoryInput.mimeType,
+      fileName: fileName,
+    );
+  }
 }
 
 const List<_ClipboardImageFormat> _imageFormats = <_ClipboardImageFormat>[
@@ -319,4 +372,33 @@ class _ClipboardImageFormat {
 
   final super_clipboard.FileFormat format;
   final String mimeType;
+}
+
+Future<String?> _decodeClipboardString(
+  super_clipboard.PlatformDataProvider dataProvider,
+  super_clipboard.PlatformFormat format,
+) async {
+  final value = await dataProvider.getData(format);
+  if (value == null) {
+    return null;
+  }
+  if (value is String) {
+    return value;
+  }
+  if (value is Uint8List) {
+    return utf8.decode(value, allowMalformed: true);
+  }
+  if (value is TypedData) {
+    return utf8.decode(
+      value.buffer.asUint8List(value.offsetInBytes, value.lengthInBytes),
+      allowMalformed: true,
+    );
+  }
+  if (value is List<int>) {
+    return utf8.decode(value, allowMalformed: true);
+  }
+  if (value is Map && value.isEmpty) {
+    return '';
+  }
+  return null;
 }

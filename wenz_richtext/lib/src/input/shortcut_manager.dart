@@ -28,6 +28,8 @@ enum EditorShortcutIntent {
   cycleList,
   insertTable,
   insertLink,
+  insertTextBlockAbove,
+  insertTextBlockBelow,
   moveTableCellBackward,
   moveTableCellForward,
   moveCaretBackward,
@@ -733,6 +735,34 @@ const List<EditorShortcutBinding> _defaultRichTextShortcutBindings =
     ),
     intent: EditorShortcutIntent.insertLink,
   ),
+  EditorShortcutBinding.handled(
+    shortcut: EditorShortcutKey(
+      LogicalKeyboardKey.enter,
+      modifiers: _controlShortcutModifiers,
+    ),
+    intent: EditorShortcutIntent.insertTextBlockBelow,
+  ),
+  EditorShortcutBinding.handled(
+    shortcut: EditorShortcutKey(
+      LogicalKeyboardKey.numpadEnter,
+      modifiers: _controlShortcutModifiers,
+    ),
+    intent: EditorShortcutIntent.insertTextBlockBelow,
+  ),
+  EditorShortcutBinding.handled(
+    shortcut: EditorShortcutKey(
+      LogicalKeyboardKey.enter,
+      modifiers: _controlShiftShortcutModifiers,
+    ),
+    intent: EditorShortcutIntent.insertTextBlockAbove,
+  ),
+  EditorShortcutBinding.handled(
+    shortcut: EditorShortcutKey(
+      LogicalKeyboardKey.numpadEnter,
+      modifiers: _controlShiftShortcutModifiers,
+    ),
+    intent: EditorShortcutIntent.insertTextBlockAbove,
+  ),
 ];
 
 const Set<EditorShortcutIntent> _writeIntents = <EditorShortcutIntent>{
@@ -754,6 +784,8 @@ const Set<EditorShortcutIntent> _writeIntents = <EditorShortcutIntent>{
   EditorShortcutIntent.cycleList,
   EditorShortcutIntent.insertTable,
   EditorShortcutIntent.insertLink,
+  EditorShortcutIntent.insertTextBlockAbove,
+  EditorShortcutIntent.insertTextBlockBelow,
   EditorShortcutIntent.moveTableCellBackward,
   EditorShortcutIntent.moveTableCellForward,
   EditorShortcutIntent.deleteBackward,

@@ -313,6 +313,29 @@ void main() {
       expect(codec.encode(document), '```dart\nvar x = 1;\nprint(x);\n```');
     });
 
+    test('mermaid language variants export as canonical mermaid fence', () {
+      const document = RichTextDocument(
+        blocks: <BlockNode>[
+          CodeBlockNode(
+            id: 'm1',
+            language: 'language-mermaid theme=dark',
+            code: 'flowchart TD\n  A --> B',
+          ),
+          CodeBlockNode(
+            id: 'm2',
+            language: '{.mermaid}',
+            code: 'sequenceDiagram\n  A->>B: hi',
+          ),
+        ],
+      );
+
+      expect(
+        codec.encode(document),
+        '```mermaid\nflowchart TD\n  A --> B\n```\n\n'
+        '```mermaid\nsequenceDiagram\n  A->>B: hi\n```',
+      );
+    });
+
     test('table with alignment', () {
       const document = RichTextDocument(
         blocks: <BlockNode>[
@@ -532,6 +555,11 @@ void main() {
         '```mermaid\n# not a heading\nflowchart TD\n  A --> B\n```',
         '``` Mermaid \n# not a heading\nflowchart TD\n  A --> B\n```',
         '```MERMAID\n# not a heading\nflowchart TD\n  A --> B\n```',
+        '```mermaid theme=dark\n# not a heading\nflowchart TD\n  A --> B\n```',
+        '```language-mermaid\n# not a heading\nflowchart TD\n  A --> B\n```',
+        '```{.mermaid}\n# not a heading\nflowchart TD\n  A --> B\n```',
+        '```.language-mermaid\n# not a heading\nflowchart TD\n  A --> B\n```',
+        '```{.language-mermaid}\n# not a heading\nflowchart TD\n  A --> B\n```',
         '~~~mermaid\n# not a heading\nflowchart TD\n  A --> B\n~~~',
         '```   mermaid   \n# not a heading\nflowchart TD\n  A --> B\n```',
       ];

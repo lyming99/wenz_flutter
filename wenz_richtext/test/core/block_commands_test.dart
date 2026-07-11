@@ -218,6 +218,88 @@ void main() {
     expect(session.selection?.extent.offset, 0);
   });
 
+  test('insert text block at selection inserts empty paragraphs above and below', () {
+    final belowSession = DocumentSession(
+      document: _twoParagraphDocument(),
+      selection: collapsedTextSelection('p1', 0, 3),
+    );
+    final belowExecutor = CommandExecutor(belowSession);
+
+    belowExecutor.execute(
+      const InsertTextBlockAtSelectionCommand(
+        blockId: 'new-below',
+        direction: TextBlockInsertionDirection.below,
+      ),
+    );
+
+    expect(_blockIds(belowSession.document), <String>['p1', 'new-below', 'p2']);
+    final belowBlock = belowSession.document.blocks[1] as TextBlockNode;
+    expect(belowBlock.type, BlockType.paragraph);
+    expect(belowBlock.plainText, isEmpty);
+    expect(belowSession.selection, collapsedTextSelection('new-below', 1, 0));
+    expect(belowSession.canUndo, isTrue);
+
+    expect(belowSession.undo(), isTrue);
+    expect(_blockIds(belowSession.document), <String>['p1', 'p2']);
+    expect(belowSession.selection, collapsedTextSelection('p1', 0, 3));
+
+    expect(belowSession.redo(), isTrue);
+    expect(_blockIds(belowSession.document), <String>['p1', 'new-below', 'p2']);
+    expect(belowSession.selection, collapsedTextSelection('new-below', 1, 0));
+
+    final aboveSession = DocumentSession(
+      document: _twoParagraphDocument(),
+      selection: collapsedTextSelection('p2', 1, 1),
+    );
+    final aboveExecutor = CommandExecutor(aboveSession);
+
+    aboveExecutor.execute(
+      const InsertTextBlockAtSelectionCommand(
+        blockId: 'new-above',
+        direction: TextBlockInsertionDirection.above,
+      ),
+    );
+
+    expect(_blockIds(aboveSession.document), <String>['p1', 'new-above', 'p2']);
+    final aboveBlock = aboveSession.document.blocks[1] as TextBlockNode;
+    expect(aboveBlock.type, BlockType.paragraph);
+    expect(aboveBlock.plainText, isEmpty);
+    expect(aboveSession.selection, collapsedTextSelection('new-above', 1, 0));
+  });
+
+  test('insert text block at selection no-ops without a valid top-level selection', () {
+    final missingSelection = DocumentSession(document: _twoParagraphDocument());
+    final missingExecutor = CommandExecutor(missingSelection);
+
+    final missingChange = missingExecutor.execute(
+      const InsertTextBlockAtSelectionCommand(
+        blockId: 'new-block',
+        direction: TextBlockInsertionDirection.below,
+      ),
+    );
+
+    expect(missingChange.isNoop, isTrue);
+    expect(_blockIds(missingSelection.document), <String>['p1', 'p2']);
+    expect(missingSelection.canUndo, isFalse);
+
+    final invalidSelection = DocumentSession(
+      document: _twoParagraphDocument(),
+      selection: collapsedTextSelection('p1', 99, 0),
+    );
+    final invalidExecutor = CommandExecutor(invalidSelection);
+
+    final invalidChange = invalidExecutor.execute(
+      const InsertTextBlockAtSelectionCommand(
+        blockId: 'new-block',
+        direction: TextBlockInsertionDirection.above,
+      ),
+    );
+
+    expect(invalidChange.isNoop, isTrue);
+    expect(_blockIds(invalidSelection.document), <String>['p1', 'p2']);
+    expect(invalidSelection.canUndo, isFalse);
+  });
+
   test('replace blocks command replaces requested range', () {
     final session = DocumentSession(
       document: const RichTextDocument(
@@ -651,6 +733,27 @@ void main() {
     expect(session.selection?.extent.path.isTableCellText, isTrue);
     expect(session.selection?.extent.offset, 6);
   });
+}
+
+RichTextDocument _twoParagraphDocument() {
+  return const RichTextDocument(
+    blocks: <BlockNode>[
+      TextBlockNode(
+        id: 'p1',
+        type: BlockType.paragraph,
+        content: <InlineNode>[TextRun(text: 'one')],
+      ),
+      TextBlockNode(
+        id: 'p2',
+        type: BlockType.paragraph,
+        content: <InlineNode>[TextRun(text: 'two')],
+      ),
+    ],
+  );
+}
+
+List<String> _blockIds(RichTextDocument document) {
+  return document.blocks.map((block) => block.id).toList();
 }
 
 RichTextDocument _tableCellDocument(String text) {

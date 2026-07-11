@@ -51,7 +51,10 @@ void main() {
           title: 'Launch clip',
           description: 'Product launch overview',
           aspectRatio: 16 / 9,
+          showWidth: 480,
+          showHeight: 270,
           uploadStatus: FileUploadStatus.uploaded,
+          attributes: BlockAttributes(alignment: 'center'),
         ),
         BlockEmbedNode(
           id: 'embed',
@@ -92,9 +95,13 @@ void main() {
     final encodedJson = jsonDecode(encoded) as Map<String, Object?>;
     final encodedBlocks = encodedJson['blocks'] as List<Object?>;
     final encodedImage = encodedBlocks[1] as Map<String, Object?>;
+    final encodedVideo = encodedBlocks[2] as Map<String, Object?>;
     final decoded = codec.decode(encoded);
 
     expect(encodedImage['attrs'], <String, Object?>{'alignment': 'right'});
+    expect(encodedVideo['showWidth'], 480);
+    expect(encodedVideo['showHeight'], 270);
+    expect(encodedVideo['attrs'], <String, Object?>{'alignment': 'center'});
     expect(decoded.version, 1);
     expect(decoded.blocks, hasLength(5));
     expect(decoded.blocks.first, isA<TextBlockNode>());
@@ -123,6 +130,9 @@ void main() {
     expect(video.title, 'Launch clip');
     expect(video.description, 'Product launch overview');
     expect(video.aspectRatio, 16 / 9);
+    expect(video.showWidth, 480);
+    expect(video.showHeight, 270);
+    expect(video.attributes.alignment, 'center');
     expect(video.uploadStatus, FileUploadStatus.uploaded);
     expect(decoded.toJson(), document.toJson());
   });

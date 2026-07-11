@@ -222,6 +222,124 @@ class ClearTextColorCommand extends EditorCommand {
   }
 }
 
+class ClearTextBackgroundCommand extends EditorCommand {
+  const ClearTextBackgroundCommand({this.selection});
+
+  final DocumentSelection? selection;
+
+  @override
+  String get description => 'clearTextBackground';
+
+  @override
+  CommandResult execute(DocumentSession session) {
+    final target = selection ?? session.selection;
+    if (target == null || target.isCollapsed) {
+      return const CommandResult(recordHistory: false);
+    }
+
+    final start = target.start;
+    final end = target.end;
+    if (start.path.isTableCellText &&
+        start.blockIndex == end.blockIndex &&
+        start.path == end.path) {
+      final rowIndex = start.path.tableRowIndex;
+      final columnIndex = start.path.tableColumnIndex;
+      if (rowIndex == null || columnIndex == null) {
+        return const CommandResult(recordHistory: false);
+      }
+      return _clearTableCellInlineTextBackground(
+        session,
+        start.blockIndex,
+        rowIndex,
+        columnIndex,
+        start.offset,
+        end.offset,
+      );
+    }
+
+    final blocks =
+        session.document.blocks.map((block) => block.copy()).toList();
+    var changed = false;
+    for (var i = start.blockIndex; i <= end.blockIndex; i++) {
+      if (i < 0 || i >= blocks.length) {
+        continue;
+      }
+      final block = blocks[i];
+      if (block is! TextBlockNode) {
+        continue;
+      }
+      final rangeStart = i == start.blockIndex ? start.offset : 0;
+      final rangeEnd =
+          i == end.blockIndex ? end.offset : inlineNodesLength(block.content);
+      blocks[i] = TextBlockNode(
+        id: block.id,
+        type: block.type,
+        attributes: block.attributes,
+        content: clearInlineTextBackground(block.content, rangeStart, rangeEnd),
+      );
+      changed = true;
+    }
+
+    if (!changed) {
+      return const CommandResult(recordHistory: false);
+    }
+    session.document = RichTextDocument(
+      version: session.document.version,
+      blocks: blocks,
+    );
+    return CommandResult(selection: target);
+  }
+}
+
+CommandResult _clearTableCellInlineTextBackground(
+  DocumentSession session,
+  int blockIndex,
+  int rowIndex,
+  int columnIndex,
+  int startOffset,
+  int endOffset,
+) {
+  if (endOffset <= startOffset) {
+    return const CommandResult(recordHistory: false);
+  }
+  final target = tableCellTarget(session, blockIndex, rowIndex, columnIndex);
+  if (target == null) {
+    return const CommandResult(recordHistory: false);
+  }
+  final safeStart = startOffset.clamp(0, target.textLength).toInt();
+  final safeEnd = endOffset.clamp(safeStart, target.textLength).toInt();
+  if (safeStart == safeEnd) {
+    return const CommandResult(recordHistory: false);
+  }
+  final nextTextBlock = TextBlockNode(
+    id: target.textBlock.id,
+    type: target.textBlock.type,
+    attributes: target.textBlock.attributes,
+    content: clearInlineTextBackground(
+      target.textBlock.content,
+      safeStart,
+      safeEnd,
+    ),
+  );
+  return replaceCellTextBlock(
+    session,
+    blockIndex,
+    target.tableBlock,
+    rowIndex,
+    columnIndex,
+    target.cell,
+    nextTextBlock,
+    cellRangeSelection(
+      target.tableBlock.id,
+      blockIndex,
+      rowIndex,
+      columnIndex,
+      safeStart,
+      safeEnd,
+    ),
+  );
+}
+
 class SetBlockTypeCommand extends EditorCommand {
   const SetBlockTypeCommand({
     required this.type,

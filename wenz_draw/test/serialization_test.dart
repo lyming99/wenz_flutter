@@ -200,6 +200,14 @@ void main() {
         endArrow: true,
         headSize: 18,
         label: 'Connector',
+        labelStyle: TextStyle(
+          fontSize: 16,
+          color: Color(0xFF112244),
+          fontWeight: FontWeight.w700,
+        ),
+        labelPosition: 0.65,
+        labelOffset: Offset(8, -4),
+        labelBackground: Color(0xFFFFEECC),
         zIndex: 4,
         groupId: 'group-poly',
       );
@@ -219,41 +227,99 @@ void main() {
       expect(restored.style.color, const Color(0xFFCC0000));
       expect(restored.style.strokeWidth, 2.5);
       expect(restored.startBinding!.elementId, 'node-a');
+      expect(restored.startBinding!.anchorId, 'right');
       expect(restored.endBinding!.elementId, 'node-b');
+      expect(restored.endBinding!.anchorId, 'left');
       expect(restored.endArrow, isTrue);
       expect(restored.headSize, 18);
       expect(restored.label, 'Connector');
+      expect(restored.labelStyle.fontSize, 16);
+      expect(restored.labelStyle.color, const Color(0xFF112244));
+      expect(restored.labelStyle.fontWeight, FontWeight.w700);
+      expect(restored.labelPosition, 0.65);
+      expect(restored.labelOffset, const Offset(8, -4));
+      expect(restored.labelBackground, const Color(0xFFFFEECC));
       expect(restored.zIndex, 4);
       expect(restored.groupId, 'group-poly');
     });
 
     // ─── CurveElement ─────────────────────────────────────────────
-    test('CurveElement round-trip preserves start, end, control, style', () {
-      const element = CurveElement(
-        id: 'curve-1',
-        start: Offset(0, 0),
-        end: Offset(100, 0),
-        control: Offset(50, 80),
-        style: PaintStyle(color: Color(0xFF880088), strokeWidth: 3),
-        zIndex: 6,
-        groupId: 'group-curve',
-      );
+    test(
+      'CurveElement round-trip preserves geometry, style, arrows, bindings',
+      () {
+        const element = CurveElement(
+          id: 'curve-1',
+          start: Offset(0, 0),
+          end: Offset(100, 0),
+          control: Offset(50, 80),
+          style: PaintStyle(color: Color(0xFF880088), strokeWidth: 3),
+          endArrow: true,
+          headSize: 22,
+          startBinding: SnapBinding(
+            elementId: 'shape-a',
+            anchorId: 'right',
+          ),
+          endBinding: SnapBinding(
+            elementId: 'shape-b',
+            anchorId: 'left',
+          ),
+          zIndex: 6,
+          groupId: 'group-curve',
+        );
 
-      final json = element.toJson();
+        final json = element.toJson();
+        final restored = CanvasSerializer.elementFromJson(json) as CurveElement;
+
+        expect(json['startBinding'], {
+          'elementId': 'shape-a',
+          'anchorId': 'right',
+        });
+        expect(json['endBinding'], {
+          'elementId': 'shape-b',
+          'anchorId': 'left',
+        });
+        expect(restored, isA<CurveElement>());
+        expect(restored.id, 'curve-1');
+        expect(restored.type, CurveElement.elementType);
+        expect(restored.start, Offset.zero);
+        expect(restored.end, const Offset(100, 0));
+        expect(restored.control, const Offset(50, 80));
+        expect(restored.style.color, const Color(0xFF880088));
+        expect(restored.style.strokeWidth, 3);
+        expect(restored.endArrow, isTrue);
+        expect(restored.headSize, 22);
+        expect(restored.startBinding?.elementId, 'shape-a');
+        expect(restored.startBinding?.anchorId, 'right');
+        expect(restored.endBinding?.elementId, 'shape-b');
+        expect(restored.endBinding?.anchorId, 'left');
+        expect(restored.zIndex, 6);
+        expect(restored.groupId, 'group-curve');
+      },
+    );
+
+    test('CurveElement defaults missing arrow fields for legacy JSON', () {
+      final json =
+          const CurveElement(
+              id: 'legacy-curve',
+              start: Offset(0, 0),
+              end: Offset(100, 0),
+              control: Offset(50, 80),
+              endArrow: true,
+              headSize: 22,
+            ).toJson()
+            ..remove('arrowStyle')
+            ..remove('endArrow')
+            ..remove('headSize');
+
       final restored = CanvasSerializer.elementFromJson(json) as CurveElement;
 
-      expect(restored, isA<CurveElement>());
-      expect(restored.id, 'curve-1');
-      expect(restored.type, CurveElement.elementType);
-      expect(restored.start, Offset.zero);
-      expect(restored.end, const Offset(100, 0));
-      expect(restored.control, const Offset(50, 80));
-      expect(restored.style.color, const Color(0xFF880088));
-      expect(restored.style.strokeWidth, 3);
-      expect(restored.zIndex, 6);
-      expect(restored.groupId, 'group-curve');
+      expect(json.containsKey('startBinding'), isFalse);
+      expect(json.containsKey('endBinding'), isFalse);
+      expect(restored.endArrow, isFalse);
+      expect(restored.headSize, 14);
+      expect(restored.startBinding, isNull);
+      expect(restored.endBinding, isNull);
     });
-
     // ─── Canvas layer round-trip ──────────────────────────────────
     test('CanvasDocument.toJson() and fromJson() round-trip with layers', () {
       final document = CanvasDocument(
@@ -433,7 +499,11 @@ void main() {
           appId: 'my-app',
           createdAt: 1700000000000,
         ),
-        viewport: const DocumentViewport(scale: 1.5, centerX: 100, centerY: 200),
+        viewport: const DocumentViewport(
+          scale: 1.5,
+          centerX: 100,
+          centerY: 200,
+        ),
         assets: const [
           DocumentAsset(
             id: 'asset-1',
@@ -486,9 +556,7 @@ void main() {
 
       expect(doc.extras['futureSection'], isA<Map>());
       // Round-trip writes the unknown section back out.
-      final rewritten = CanvasSerializer.toJson(
-        CanvasController(),
-      );
+      final rewritten = CanvasSerializer.toJson(CanvasController());
       final reparsed = CanvasSerializer.fromJson({
         ...json,
         'layers': rewritten['layers'],

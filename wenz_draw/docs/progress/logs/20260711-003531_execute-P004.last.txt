@@ -1,0 +1,18 @@
+已完成 P004，仅修改指定测试文件：
+
+- [curve_element_test.dart](D:/project/GitHub/wenz_flutter/wenz_draw/test/curve_element_test.dart:68)
+  - 覆盖复制、平移、缩放保留双端绑定。
+  - 覆盖单端显式解绑且不影响另一端。
+
+- [snap_resolver_test.dart](D:/project/GitHub/wenz_flutter/wenz_draw/test/snap_resolver_test.dart:428)
+  - 覆盖曲线创建时双端吸附、绑定记录和预览清理。
+  - 覆盖关闭吸附、缩放阈值外自由绘制。
+  - 覆盖无效短曲线及主动取消后的状态清理。
+  - 覆盖端点改绑、拖离解绑及撤销恢复。
+  - 覆盖绑定目标移动联动，并验证另一端、控制点、箭头和样式保持稳定。
+
+- [serialization_test.dart](D:/project/GitHub/wenz_flutter/wenz_draw/test/serialization_test.dart:247)
+  - 覆盖曲线绑定 JSON 往返还原。
+  - 覆盖无绑定字段旧文档兼容及条件字段写入。
+
+未修改 plan 文件，未运行测试、构建、lint 或 analyze。

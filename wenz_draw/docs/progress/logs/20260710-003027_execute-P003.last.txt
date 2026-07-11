@@ -1,0 +1,8 @@
+P003 已完成，修改仅限三个测试 scope 文件：
+
+- [polyline_element_test.dart](D:/project/GitHub/wenz_flutter/wenz_draw/test/polyline_element_test.dart:160)：补充折线箭头 bounds / hitTest 覆盖，并让端点拖拽用例验证 `endArrow/headSize` 保持不丢失。
+- [serialization_test.dart](D:/project/GitHub/wenz_flutter/wenz_draw/test/serialization_test.dart:200)：强化 Polyline JSON round-trip，覆盖箭头、尺寸、绑定 anchor、标签样式/位置/偏移/背景。
+- [svg_exporter_test.dart](D:/project/GitHub/wenz_flutter/wenz_draw/test/svg_exporter_test.dart:80)：新增 SVG 导出有箭头 polygon 与无箭头不输出 polygon 的回归覆盖。
+
+按要求未运行 `flutter test`、analyze、构建或其它验收命令。  
+另：工作区仍有前序遗留的 `.codex_node_write_probe.tmp`，删除被系统拒绝：`EPERM`；内容是短文本 `probe`，不是 P003 业务改动。

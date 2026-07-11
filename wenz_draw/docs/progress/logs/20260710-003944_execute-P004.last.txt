@@ -1,0 +1,8 @@
+P004 已完成，新增/调整的回归覆盖都限定在测试 scope 内：
+
+- `test/curve_element_test.dart`：新增曲线箭头模型测试，覆盖 `copyWith`、缩放、边界、命中测试、退化切线回退。
+- `test/serialization_test.dart`：补充 CurveElement `endArrow/headSize` round-trip，以及旧 JSON 缺字段默认值。
+- `test/svg_exporter_test.dart`：补充带箭头曲线 SVG polygon 输出、无箭头曲线不输出 polygon。
+- `test/canvas_controller_test.dart`：补充 `updateCurveArrow` 更新、保留 `headSize`、撤销/重做链路覆盖。
+
+按要求未修改 plan 文件，未运行 `flutter test`、analyze、lint 或构建命令。

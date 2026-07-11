@@ -30,7 +30,6 @@ class SelectTool extends CanvasTool {
   Offset? _lastPoint;
   Rect? _selectionRect;
   bool _movingSelection = false;
-  bool _resizingText = false;
   bool _scalingElement = false;
   bool _stretchingElement = false;
   bool _rotatingSelection = false;
@@ -42,13 +41,13 @@ class SelectTool extends CanvasTool {
   _LineEndpoint? _lineEndpoint;
   int? _polylinePointIndex;
   int? _polylineSegmentIndex;
-  TextElement? _resizeBefore;
   CanvasElement? _scaleBefore;
   CanvasElement? _stretchBefore;
   CanvasElement? _lineEndpointBefore;
   Offset? _resizeAnchor;
   static const double _minTextBoxWidth = 24;
   static const double _minTextBoxHeight = 24;
+  static const double _minTextFontSize = 1;
   Map<String, CanvasElement> _moveBefore = const {};
   Map<String, CanvasElement> _rotateBefore = const {};
   Offset? _rotationCenter;
@@ -69,7 +68,6 @@ class SelectTool extends CanvasTool {
     _lastPoint = null;
     _selectionRect = null;
     _movingSelection = false;
-    _resizingText = false;
     _scalingElement = false;
     _stretchingElement = false;
     _rotatingSelection = false;
@@ -81,7 +79,6 @@ class SelectTool extends CanvasTool {
     _lineEndpoint = null;
     _polylinePointIndex = null;
     _polylineSegmentIndex = null;
-    _resizeBefore = null;
     _scaleBefore = null;
     _stretchBefore = null;
     _lineEndpointBefore = null;
@@ -91,6 +88,9 @@ class SelectTool extends CanvasTool {
     _rotationCenter = null;
     _rotationStartAngle = null;
     controller.setSelectionRect(null);
+    if (controller.snapPreview != null) {
+      controller.setSnapPreview(null);
+    }
   }
 
   @override
@@ -129,7 +129,6 @@ class SelectTool extends CanvasTool {
         if (curveControlTarget != null) {
           controller.setSelection({curveControlTarget.element.id});
           _movingSelection = false;
-          _resizingText = false;
           _scalingElement = false;
           _draggingLineEndpoint = false;
           _draggingPolylinePoint = false;
@@ -141,7 +140,6 @@ class SelectTool extends CanvasTool {
         if (polylinePointTarget != null) {
           controller.setSelection({polylinePointTarget.element.id});
           _movingSelection = false;
-          _resizingText = false;
           _scalingElement = false;
           _draggingLineEndpoint = false;
           _draggingPolylinePoint = true;
@@ -154,7 +152,6 @@ class SelectTool extends CanvasTool {
         if (lineEndpointTarget != null) {
           controller.setSelection({lineEndpointTarget.element.id});
           _movingSelection = false;
-          _resizingText = false;
           _scalingElement = false;
           _draggingLineEndpoint = true;
           _draggingPolylinePoint = false;
@@ -167,7 +164,6 @@ class SelectTool extends CanvasTool {
         if (polylineSegmentTarget != null) {
           controller.setSelection({polylineSegmentTarget.element.id});
           _movingSelection = false;
-          _resizingText = false;
           _scalingElement = false;
           _draggingLineEndpoint = false;
           _draggingPolylinePoint = false;
@@ -179,7 +175,6 @@ class SelectTool extends CanvasTool {
         }
         if (rotateTarget != null) {
           _movingSelection = false;
-          _resizingText = false;
           _scalingElement = false;
           _rotatingSelection = true;
           _draggingLineEndpoint = false;
@@ -204,24 +199,12 @@ class SelectTool extends CanvasTool {
           );
           if (resizeTarget.handle.isEdge && _canStretch(resizeTarget.element)) {
             _stretchingElement = true;
-            _resizingText = false;
             _scalingElement = false;
             _stretchBefore = resizeTarget.element;
-            _resizeBefore = null;
             _scaleBefore = null;
-          } else if (resizeTarget.element is TextElement &&
-              (resizeTarget.element as TextElement).boxSize != null) {
-            _resizingText = true;
-            _scalingElement = false;
-            _stretchingElement = false;
-            _resizeBefore = resizeTarget.element as TextElement;
-            _scaleBefore = null;
-            _stretchBefore = null;
           } else {
-            _resizingText = false;
             _scalingElement = true;
             _stretchingElement = false;
-            _resizeBefore = null;
             _scaleBefore = resizeTarget.element;
             _stretchBefore = null;
           }
@@ -264,11 +247,6 @@ class SelectTool extends CanvasTool {
         }
         if (_rotatingSelection) {
           _rotateSelection(controller, event.worldPoint);
-          _lastPoint = event.worldPoint;
-          return const ToolResultConsumed();
-        }
-        if (_resizingText) {
-          _resizeText(controller, event.worldPoint);
           _lastPoint = event.worldPoint;
           return const ToolResultConsumed();
         }
@@ -318,11 +296,6 @@ class SelectTool extends CanvasTool {
       case CanvasPointerUpEvent():
         if (_rotatingSelection) {
           _recordRotation(controller);
-          cancel(controller);
-          return const ToolResultConsumed();
-        }
-        if (_resizingText) {
-          _recordResize(controller);
           cancel(controller);
           return const ToolResultConsumed();
         }
@@ -667,47 +640,6 @@ class SelectTool extends CanvasTool {
     return math.atan2(vector.dy, vector.dx);
   }
 
-  void _resizeText(CanvasController controller, Offset worldPoint) {
-    final before = _resizeBefore;
-    final handle = _resizeHandle;
-    final anchor = _resizeAnchor;
-    if (before == null || handle == null || anchor == null) {
-      return;
-    }
-
-    final rawRect = Rect.fromPoints(anchor, worldPoint);
-    var left = rawRect.left;
-    var top = rawRect.top;
-    var right = rawRect.right;
-    var bottom = rawRect.bottom;
-
-    if (rawRect.width < _minTextBoxWidth) {
-      if (handle.isLeft) {
-        left = right - _minTextBoxWidth;
-      } else {
-        right = left + _minTextBoxWidth;
-      }
-    }
-    if (rawRect.height < _minTextBoxHeight) {
-      if (handle.isTop) {
-        top = bottom - _minTextBoxHeight;
-      } else {
-        bottom = top + _minTextBoxHeight;
-      }
-    }
-
-    final rect = Rect.fromLTRB(left, top, right, bottom);
-    controller.updateElement(
-      before.id,
-      before.copyWith(
-        position: rect.topLeft,
-        maxWidth: rect.width,
-        boxSize: rect.size,
-      ),
-      record: false,
-    );
-  }
-
   /// Get the rotation angle for an element (0 for non-rotatable types).
   double _rotationOf(CanvasElement element) {
     if (element is DrawioShapeElement ||
@@ -775,7 +707,51 @@ class SelectTool extends CanvasTool {
   void _scaleElement(CanvasController controller, Offset worldPoint) {
     final before = _scaleBefore;
     final anchor = _resizeAnchor;
-    if (before == null || anchor == null) {
+    final handle = _resizeHandle;
+    if (before == null || anchor == null || handle == null) {
+      return;
+    }
+
+    if (before is TextElement) {
+      final localRect = before.localBounds;
+      final draggedCorner = handle.pointFor(localRect);
+      final worldAnchor = _textLocalPointToWorld(before, anchor);
+      final worldCorner = _textLocalPointToWorld(before, draggedCorner);
+      final baseVector = worldCorner - worldAnchor;
+      if (baseVector.distanceSquared <= 0.0001) {
+        return;
+      }
+      final effectiveWorldPoint =
+          worldCorner + (worldPoint - (_dragStart ?? worldCorner));
+      final pointerVector = effectiveWorldPoint - worldAnchor;
+      final rawFactor =
+          (pointerVector.dx * baseVector.dx +
+              pointerVector.dy * baseVector.dy) /
+          baseVector.distanceSquared;
+      if (!rawFactor.isFinite) {
+        return;
+      }
+      final minimumFactor = math.min(
+        100.0,
+        math.max(
+          0.05,
+          math.max(
+            _minTextBoxWidth / localRect.width,
+            math.max(
+              _minTextBoxHeight / localRect.height,
+              _minTextFontSize /
+                  math.max((before.style.fontSize ?? 24).abs(), 0.0001),
+            ),
+          ),
+        ),
+      );
+      final factor = rawFactor.clamp(minimumFactor, 100.0).toDouble();
+      final scaled = before.scaleElement(factor, pivot: anchor);
+      controller.updateElement(
+        before.id,
+        _pinTextAnchor(before, scaled, handle),
+        record: false,
+      );
       return;
     }
 
@@ -788,7 +764,7 @@ class SelectTool extends CanvasTool {
         : worldPoint;
 
     final localRect = _localRectPadded(before, 0);
-    final draggedCorner = _resizeHandle!.pointFor(localRect);
+    final draggedCorner = handle.pointFor(localRect);
     final beforeDistance = (draggedCorner - anchor).distance;
     if (beforeDistance <= 0.0001) {
       return;
@@ -825,9 +801,24 @@ class SelectTool extends CanvasTool {
     final center = _centerOf(before);
 
     // Work in local (un-rotated) space.
-    final localMouse = rotAngle != 0
-        ? inverseRotatePoint(worldPoint, rotAngle, center)
-        : worldPoint;
+    final Offset localMouse;
+    if (before is TextElement) {
+      final worldAnchor = _textLocalPointToWorld(before, anchor);
+      final worldHandle = _textLocalPointToWorld(
+        before,
+        handle.pointFor(before.localBounds),
+      );
+      final effectiveWorldPoint =
+          worldHandle + (worldPoint - (_dragStart ?? worldHandle));
+      final alignedWorldPoint = rotAngle == 0
+          ? effectiveWorldPoint
+          : inverseRotatePoint(effectiveWorldPoint, rotAngle, worldAnchor);
+      localMouse = anchor + (alignedWorldPoint - worldAnchor);
+    } else {
+      localMouse = rotAngle != 0
+          ? inverseRotatePoint(worldPoint, rotAngle, center)
+          : worldPoint;
+    }
 
     final localRect = _localRectPadded(before, 0);
 
@@ -836,17 +827,27 @@ class SelectTool extends CanvasTool {
     double newRight = localRect.right;
     double newBottom = localRect.bottom;
 
+    final minWidth = before is TextElement ? _minTextBoxWidth : 1.0;
+    final minHeight = before is TextElement ? _minTextBoxHeight : 1.0;
     if (handle.isLeft) {
-      newLeft = localMouse.dx.clamp(newRight - 10000, newRight - 1);
+      newLeft = localMouse.dx
+          .clamp(newRight - 10000, newRight - minWidth)
+          .toDouble();
     }
     if (handle.isRight) {
-      newRight = localMouse.dx.clamp(newLeft + 1, newLeft + 10000);
+      newRight = localMouse.dx
+          .clamp(newLeft + minWidth, newLeft + 10000)
+          .toDouble();
     }
     if (handle.isTop) {
-      newTop = localMouse.dy.clamp(newBottom - 10000, newBottom - 1);
+      newTop = localMouse.dy
+          .clamp(newBottom - 10000, newBottom - minHeight)
+          .toDouble();
     }
     if (handle.isBottom) {
-      newBottom = localMouse.dy.clamp(newTop + 1, newTop + 10000);
+      newBottom = localMouse.dy
+          .clamp(newTop + minHeight, newTop + 10000)
+          .toDouble();
     }
 
     final newRect = Rect.fromLTRB(newLeft, newTop, newRight, newBottom);
@@ -854,8 +855,33 @@ class SelectTool extends CanvasTool {
       return;
     }
 
-    final stretched = _applyNewRect(before, newRect);
+    var stretched = _applyNewRect(before, newRect);
+    if (before is TextElement && stretched is TextElement) {
+      stretched = _pinTextAnchor(before, stretched, handle);
+    }
     controller.updateElement(before.id, stretched, record: false);
+  }
+
+  Offset _textLocalPointToWorld(TextElement element, Offset point) {
+    return element.rotation == 0
+        ? point
+        : rotatePoint(point, element.rotation, element.localBounds.center);
+  }
+
+  TextElement _pinTextAnchor(
+    TextElement before,
+    TextElement after,
+    _SelectionResizeHandle handle,
+  ) {
+    final fixedAnchor = _textLocalPointToWorld(
+      before,
+      handle.anchorFor(before.localBounds),
+    );
+    final currentAnchor = _textLocalPointToWorld(
+      after,
+      handle.anchorFor(after.localBounds),
+    );
+    return after.translate(fixedAnchor - currentAnchor);
   }
 
   /// Apply a new unrotated rect to an element (non-uniform resize).
@@ -940,7 +966,7 @@ class SelectTool extends CanvasTool {
       }
       controller.updateElement(
         before.id,
-        endpoint.applyToCurve(current, nextPoint),
+        endpoint.applyToCurve(current, nextPoint, binding),
         record: false,
       );
       return;
@@ -1144,7 +1170,6 @@ class SelectTool extends CanvasTool {
   }
 
   void _recordLineEndpointDrag(CanvasController controller) {
-    controller.setSnapPreview(null);
     final before = _lineEndpointBefore;
     if (before == null) {
       return;
@@ -1216,26 +1241,6 @@ class SelectTool extends CanvasTool {
         before: before,
         after: after,
         description: 'Scale ${after.type}',
-      ),
-    );
-  }
-
-  void _recordResize(CanvasController controller) {
-    final before = _resizeBefore;
-    if (before == null) {
-      return;
-    }
-    final after = controller.elementById(before.id);
-    if (after is! TextElement ||
-        (after.position == before.position &&
-            after.boxSize == before.boxSize)) {
-      return;
-    }
-    controller.recordCommand(
-      UpdateElementCommand(
-        before: before,
-        after: after,
-        description: 'Resize text',
       ),
     );
   }
@@ -1344,10 +1349,17 @@ extension on _LineEndpoint {
     };
   }
 
-  CurveElement applyToCurve(CurveElement element, Offset point) {
+  CurveElement applyToCurve(
+    CurveElement element,
+    Offset point,
+    SnapBinding? binding,
+  ) {
     return switch (this) {
-      _LineEndpoint.start => element.copyWith(start: point),
-      _LineEndpoint.end => element.copyWith(end: point),
+      _LineEndpoint.start => element.copyWith(
+        start: point,
+        startBinding: binding,
+      ),
+      _LineEndpoint.end => element.copyWith(end: point, endBinding: binding),
     };
   }
 

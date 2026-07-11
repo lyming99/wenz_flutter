@@ -1,0 +1,10 @@
+P003 已落地，新增 [toolbar_test.dart](D:/project/GitHub/wenz_flutter/wenz_draw/test/toolbar_test.dart:1)。
+
+覆盖内容：
+- 打开“特殊组件创建”菜单后能找到“思维导图”项和 `Icons.account_tree_outlined` 图标。
+- 断言思维导图菜单项内没有复用 `Icons.timeline`，同时曲线工具栏按钮仍保留 `Icons.timeline`。
+- 点击曲线按钮后 `currentTool` 为 `CurveTool.idValue`；再选择思维导图菜单项只触发 `onAddMindmap`，不触发便签/计数器回调，曲线工具状态保持不变。
+
+按要求未运行测试、构建、analyze 或 lint，未修改 plan 文件。
+
+注意：`git apply` 失败过程中遗留了 `test/toolbar_test.dart~32100`，我尝试清理时系统返回 `Access to the path ... is denied`，按约束已停止重试。

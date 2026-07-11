@@ -410,6 +410,8 @@ class VideoBlockNode extends BlockNode {
     this.title = '',
     this.description = '',
     this.aspectRatio,
+    this.showWidth,
+    this.showHeight,
     this.uploadStatus = FileUploadStatus.none,
     this.uploadError = '',
     super.attributes,
@@ -422,6 +424,8 @@ class VideoBlockNode extends BlockNode {
   final String title;
   final String description;
   final double? aspectRatio;
+  final double? showWidth;
+  final double? showHeight;
   final FileUploadStatus uploadStatus;
   final String uploadError;
 
@@ -471,6 +475,8 @@ class VideoBlockNode extends BlockNode {
       title: title,
       description: description,
       aspectRatio: aspectRatio,
+      showWidth: showWidth,
+      showHeight: showHeight,
       uploadStatus: uploadStatus,
       uploadError: uploadError,
       attributes: attributes,
@@ -487,6 +493,10 @@ class VideoBlockNode extends BlockNode {
     String? description,
     double? aspectRatio,
     bool clearAspectRatio = false,
+    double? showWidth,
+    double? showHeight,
+    bool clearShowWidth = false,
+    bool clearShowHeight = false,
     FileUploadStatus? uploadStatus,
     String? uploadError,
     BlockAttributes? attributes,
@@ -500,6 +510,8 @@ class VideoBlockNode extends BlockNode {
       title: title ?? this.title,
       description: description ?? this.description,
       aspectRatio: clearAspectRatio ? null : aspectRatio ?? this.aspectRatio,
+      showWidth: clearShowWidth ? null : showWidth ?? this.showWidth,
+      showHeight: clearShowHeight ? null : showHeight ?? this.showHeight,
       uploadStatus: uploadStatus ?? this.uploadStatus,
       uploadError: uploadError ?? this.uploadError,
       attributes: attributes ?? this.attributes,
@@ -518,6 +530,8 @@ class VideoBlockNode extends BlockNode {
         if (title.isNotEmpty) 'title': title,
         if (description.isNotEmpty) 'description': description,
         if (ratio != null) 'aspectRatio': ratio,
+        if (showWidth != null) 'showWidth': showWidth,
+        if (showHeight != null) 'showHeight': showHeight,
         if (uploadStatus != FileUploadStatus.none)
           'uploadStatus': uploadStatus.name,
         if (uploadError.isNotEmpty) 'uploadError': uploadError,
@@ -538,6 +552,8 @@ class VideoBlockNode extends BlockNode {
       title: _firstString(json, const <String>['title', 'caption']),
       description: _firstString(json, const <String>['description', 'desc']),
       aspectRatio: _videoAspectRatioFromJson(json),
+      showWidth: _asDouble(json['showWidth']),
+      showHeight: _asDouble(json['showHeight']),
       uploadStatus: FileUploadStatus.parse(json['uploadStatus']),
       uploadError: _asString(json['uploadError']),
       attributes: BlockNode.attrsFromJson(json),

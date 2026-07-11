@@ -9,12 +9,14 @@ const _testSeedColor = Color(0xFF0F766E);
 const _testWorkbenchFontFamily = '微软雅黑';
 
 ThemeData _testWorkbenchTheme(Brightness brightness) {
-  final background =
-      brightness == Brightness.dark ? Colors.black : Colors.white;
-  final scheme = ColorScheme.fromSeed(
+  final baseScheme = ColorScheme.fromSeed(
     seedColor: _testSeedColor,
     brightness: brightness,
-  ).copyWith(surface: background);
+  );
+  final background = brightness == Brightness.dark
+      ? baseScheme.surfaceContainer
+      : Colors.white;
+  final scheme = baseScheme.copyWith(surface: background);
   return ThemeData(
     colorScheme: scheme,
     fontFamily: _testWorkbenchFontFamily,
@@ -24,8 +26,9 @@ ThemeData _testWorkbenchTheme(Brightness brightness) {
 }
 
 Color _testEditorBackground(BuildContext context) {
-  return Theme.of(context).brightness == Brightness.dark
-      ? Colors.black
+  final theme = Theme.of(context);
+  return theme.brightness == Brightness.dark
+      ? theme.colorScheme.surfaceContainer
       : Colors.white;
 }
 

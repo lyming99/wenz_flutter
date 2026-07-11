@@ -82,7 +82,6 @@ class WenzEditorConfiguration {
     this.onAutosave,
     this.autosaveDebounce = const Duration(seconds: 2),
     this.enableMermaidDiagrams = false,
-    this.diagramSvgSurface,
     this.layout = WenzEditorLayout.auto,
     this.enableMobileSelectionHandles = true,
     this.enableExternalDragDrop = true,
@@ -261,31 +260,28 @@ class WenzEditorConfiguration {
   /// [CodeBlockNode]s with a normalized Mermaid language marker render as live
   /// diagrams.
   ///
-  /// Defaults to `false` — mermaid support is opt-in because it requires the
-  /// `merman` native library at runtime.
+  /// Defaults to `false` — Mermaid support is opt-in so hosts decide when
+  /// code blocks should use the pure Flutter diagram preview.
   final bool enableMermaidDiagrams;
-
-  /// The SVG surface used by [MermaidDiagramPlugin] to paint diagram output.
-  ///
-  /// When `null` (default) the plugin uses [VectorGraphicsDiagramSurface].
-  /// Host apps that need pixel-perfect rendering can inject a WebView-based
-  /// surface instead.
-  final DiagramSvgSurface? diagramSvgSurface;
 
   /// Which form-factor UI the host wants assembled.
   ///
-  /// Defaults to [WenzEditorLayout.auto], which picks mobile below 600px
-  /// shortestSide and desktop otherwise (matching [EditorTokens]' breakpoint).
-  /// Set [WenzEditorLayout.desktop] / [WenzEditorLayout.mobile] to force one
-  /// regardless of screen size. The bootstrap exposes the resolved value via
+  /// Defaults to [WenzEditorLayout.auto], whose resolved value is intended to
+  /// follow the platform-aware mobile UI decision exposed by
+  /// [EditorTokens.shouldUseMobileSelectionUi]: desktop platforms remain on
+  /// desktop UI in narrow windows, while compact Android/iOS-style surfaces can
+  /// use mobile UI. Set [WenzEditorLayout.desktop] /
+  /// [WenzEditorLayout.mobile] to force one regardless of screen size or
+  /// platform. The bootstrap exposes the resolved value via
   /// `WenzEditorBootstrap.resolveEditorLayout`.
   final WenzEditorLayout layout;
 
   /// Whether touch selection handles may mount on mobile surfaces.
   ///
-  /// Defaults to `true`; the handles are only actually mounted on mobile form
-  /// factors (see `MobileSelectionHandlesOverlay`). Desktop is never affected.
-  /// Forwarded for the editor overlay to consume in a later stage.
+  /// Defaults to `true`; this is the final switch after the editor checks
+  /// [EditorTokens.shouldUseMobileSelectionUi]. Desktop platforms are not
+  /// eligible for phone-style selection handles merely because the window is
+  /// narrow. Forwarded for the editor overlay to consume.
   final bool enableMobileSelectionHandles;
 
   /// Whether the external drag-and-drop surface (the `super_drag` `DropRegion`)
@@ -343,7 +339,6 @@ class WenzEditorConfiguration {
     Object? onAutosave = _unset,
     Duration? autosaveDebounce,
     bool? enableMermaidDiagrams,
-    Object? diagramSvgSurface = _unset,
     WenzEditorLayout? layout,
     bool? enableMobileSelectionHandles,
     bool? enableExternalDragDrop,
@@ -415,9 +410,6 @@ class WenzEditorConfiguration {
       autosaveDebounce: autosaveDebounce ?? this.autosaveDebounce,
       enableMermaidDiagrams:
           enableMermaidDiagrams ?? this.enableMermaidDiagrams,
-      diagramSvgSurface: identical(diagramSvgSurface, _unset)
-          ? this.diagramSvgSurface
-          : diagramSvgSurface as DiagramSvgSurface?,
       layout: layout ?? this.layout,
       enableMobileSelectionHandles:
           enableMobileSelectionHandles ?? this.enableMobileSelectionHandles,
@@ -436,34 +428,80 @@ const Object _unset = Object();
 
 /// Selects which form-factor UI the host wants the bootstrap to assemble.
 ///
-/// The editor widget itself adapts to its surface via [EditorTokens]
-/// (shortestSide < 600 ⇒ mobile). This field is the host-level override that
-/// drives tooling decisions the editor does not own — chiefly which default
-/// toolbar ([WenzDefaultDesktopToolbar] vs [WenzDefaultMobileToolbar]) the host
-/// renders. [WenzEditorBootstrap.resolveEditorLayout] folds this preference
-/// together with the running [MediaQuery] shortestSide into a concrete choice.
+/// The editor widget itself adapts density via [EditorTokens.resolve], while
+/// phone-specific interaction chrome uses
+/// [EditorTokens.shouldUseMobileSelectionUi]. This field is the host-level
+/// override that drives tooling decisions the editor does not own — chiefly
+/// which default toolbar ([WenzDefaultDesktopToolbar] vs
+/// [WenzDefaultMobileToolbar]) the host renders.
+/// [WenzEditorBootstrap.resolveEditorLayout] folds this preference together
+/// with the platform-aware mobile UI decision into a concrete choice.
 enum WenzEditorLayout {
-  /// Auto-detect: mobile below 600px shortestSide, desktop otherwise.
+  /// Auto-detect: compact mobile platforms use mobile UI; desktop platforms
+  /// keep desktop UI even in narrow windows.
   auto,
 
-  /// Force the desktop UI regardless of screen size.
+  /// Force the desktop UI regardless of screen size or platform.
   desktop,
 
-  /// Force the mobile UI regardless of screen size.
+  /// Force the mobile UI regardless of screen size or platform.
   mobile,
 }
 
 /// Chrome for the default mobile toolbar ([WenzDefaultMobileToolbar]).
 ///
-/// Sizes (button/icon, radii) are read from [EditorTokens] at build time, so
-/// this style only carries behaviour the tokens do not encode — currently the
-/// keyboard-collaboration strategy. Kept here so hosts can pre-configure it via
+/// Button/icon/radius sizing follows the mobile toolbar tokens, while this
+/// style carries bottom-toolbar behaviour and host-tunable frame dimensions.
+/// Kept here so hosts can pre-configure it via
 /// [WenzEditorConfiguration.mobileToolbarStyle] before assembly.
 @immutable
 class WenzMobileToolbarStyle {
-  const WenzMobileToolbarStyle({this.aboveKeyboard = true});
+  const WenzMobileToolbarStyle({
+    this.aboveKeyboard = true,
+    this.mainBarHeight = 52.0,
+    this.panelHeight = 260.0,
+    this.dismissKeyboardOnPanelOpen = true,
+    this.restoreFocusOnPanelClose = true,
+    this.animationDuration = const Duration(milliseconds: 180),
+    this.elevation = 0.0,
+  })  : assert(mainBarHeight >= 44.0),
+        assert(panelHeight >= 120.0),
+        assert(elevation >= 0.0);
 
-  /// Whether the toolbar floats above the soft keyboard (`true`, the default)
-  /// or pins just below the editor content (`false`) when the IME is open.
+  /// Whether the toolbar follows the soft keyboard's top edge (`true`, the
+  /// default) or stays at the host-provided layout position (`false`).
+  ///
+  /// When a panel replaces a dismissed keyboard, its stable cached occupancy
+  /// is used instead of applying the keyboard inset a second time.
   final bool aboveKeyboard;
+
+  /// Fixed height for the always-visible bottom command bar.
+  final double mainBarHeight;
+
+  /// Fallback height for an insert/format panel when no recent non-zero soft
+  /// keyboard height is available.
+  ///
+  /// A panel replacing the keyboard uses the most recently observed keyboard
+  /// height. Both values are clamped to the viewport space remaining after the
+  /// main bar, and panel contents remain scrollable on compact viewports.
+  final double panelHeight;
+
+  /// Whether opening an insert/format panel replaces the platform input method.
+  ///
+  /// The panel is committed before the keyboard is dismissed, so its cached
+  /// occupancy takes over atomically. When `false`, the keyboard inset remains
+  /// applied and the panel uses its fallback height instead of replacing it.
+  final bool dismissKeyboardOnPanelOpen;
+
+  /// Whether closing an active panel should restore editor focus and the input
+  /// method. The panel occupancy is retained until the keyboard has reclaimed
+  /// it (or the bounded focus-recovery fallback expires).
+  final bool restoreFocusOnPanelClose;
+
+  /// Duration used for fallback panel-size transitions when there is no cached
+  /// keyboard occupancy. Keyboard-to-panel replacement itself is atomic.
+  final Duration animationDuration;
+
+  /// Material elevation for the toolbar surface.
+  final double elevation;
 }

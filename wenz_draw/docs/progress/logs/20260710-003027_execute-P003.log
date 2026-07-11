@@ -1,0 +1,2747 @@
+OpenAI Codex v0.142.5
+--------
+workdir: D:\project\GitHub\wenz_flutter\wenz_draw
+model: gpt-5.5
+provider: openai
+approval: never
+sandbox: workspace-write [workdir, /tmp, $TMPDIR]
+reasoning effort: xhigh
+reasoning summaries: none
+session id: 019f47aa-bfec-72e3-99c1-7df15bee1943
+--------
+user
+你是开发执行者，在无人值守模式下工作：禁止反问用户、禁止请求确认或补充信息、禁止输出“请告诉我…/是否需要…”之类等待回复的话；遇到不确定一律自行从代码推断，按最合理的工程方案直接推进，不要停下来等待输入。
+请只执行指定任务 P003，不要提前执行其它任务，也不要顺手处理其它 checkbox。
+
+plan 文件（只读）：D:\project\GitHub\wenz_flutter\wenz_draw\docs\plan\plan_feedback_49_20260710-001100.md
+指定任务：- [ ] P003: 补充折线箭头的序列化与导出回归覆盖 <!-- scope: test/polyline_element_test.dart,test/serialization_test.dart,test/svg_exporter_test.dart -->
+任务 scope：test/polyline_element_test.dart, test/serialization_test.dart, test/svg_exporter_test.dart
+
+完成后必须：
+- 当前任务已恢复同一 plan 前序任务的 Codex 会话，请沿用已有分析结论和修改背景，避免重新从零梳理
+- 这是无人值守执行：不要提问、不要请求确认、不要等待用户输入，所有不确定项自行基于代码推断并直接落地修改
+- plan 文件是只读上下文：不要修改 plan 文件，不要勾选 checkbox，不要更新 plan 进度区
+- AutoPlan 会在任务成功后统一写回数据库、checkbox 和进度区
+- 只修改当前任务 scope 直接相关的业务文件
+- 当前阶段只做开发修改，不运行测试、回归、验收、构建、lint/analyze、coverage、e2e 或 benchmark 命令；AutoPlan 会在所有任务完成后统一执行最终验收命令
+- 即使任务验收要点提到测试，也只补充或调整必要代码/测试文件，不在当前任务内启动测试进程；除非当前任务或 plan 总体说明明确写着“本任务必须执行某命令”
+- 若识别到 Flutter/Dart 项目，可遵循其代码组织、格式和测试文件约定，但当前任务内不要运行 flutter test、dart test、flutter analyze 或 dart analyze
+- 如果工具链命令因 PathAccessException、Permission denied、拒绝访问或超时失败，停止重试并说明环境阻塞，把验证留给最终验收阶段
+- 不输出完整 diff、源码全文或长文件列表
+- 中文文件读写使用 UTF-8
+2026-07-09T16:30:33.040819Z ERROR codex_models_manager::manager: failed to refresh available models: timeout waiting for child process to exit
+codex
+我沿用前序背景：折线模型已有 `endArrow/headSize`，P003 只补测试覆盖，不执行测试命令。先读取三个 scope 测试文件和只读 plan，确认插入点。
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "Get-Content -LiteralPath 'D:\\project\\GitHub\\wenz_flutter\\wenz_draw\\test\\svg_exporter_test.dart' -Encoding UTF8" in D:\project\GitHub\wenz_flutter\wenz_draw
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "Get-Content -LiteralPath 'D:\\project\\GitHub\\wenz_flutter\\wenz_draw\\test\\serialization_test.dart' -Encoding UTF8" in D:\project\GitHub\wenz_flutter\wenz_draw
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "Get-Content -LiteralPath 'D:\\project\\GitHub\\wenz_flutter\\wenz_draw\\docs\\plan\\plan_feedback_49_20260710-001100.md' -Encoding UTF8" in D:\project\GitHub\wenz_flutter\wenz_draw
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "Get-Content -LiteralPath 'D:\\project\\GitHub\\wenz_flutter\\wenz_draw\\test\\polyline_element_test.dart' -Encoding UTF8" in D:\project\GitHub\wenz_flutter\wenz_draw
+ succeeded in 378ms:
+# 折线箭头配置支持
+
+## 需求概要
+
+基于现有 PolylineElement 的 endArrow 与 headSize 能力，补齐编辑器中普通折线的箭头设置入口，并保证状态更新、保存加载与导出链路保持一致。
+
+## 任务拆解
+
+- [x] P001: 补齐折线箭头属性的控制器更新入口 <!-- scope: lib/src/canvas/canvas_controller.dart -->
+  - 验收要点：选中已有 PolylineElement 时，可以在不替换元素类型的前提下切换末端箭头开关。
+  - 验收要点：调整箭头尺寸时只改变折线末端箭头表现，不破坏 points、startBinding、endBinding、图层和标签等现有数据。
+  - 验收要点：折线箭头属性变更会进入现有历史记录，撤销和重做后状态一致。
+- [x] P002: 在右侧检查器暴露折线箭头设置 <!-- scope: lib/src/ui/panels/right_inspector_panel.dart,lib/src/ui/panels/inspector_utils.dart,lib/src/ui/panels/inspector_fields.dart -->
+  - 验收要点：选中普通折线时，右侧检查器能够显示箭头开关，并正确回显已有折线的箭头状态。
+  - 验收要点：启用箭头后可以调节箭头尺寸，禁用箭头时尺寸控件不会误导用户继续编辑无效值。
+  - 验收要点：非折线元素的现有检查器行为保持不变，直线和现有 ArrowElement 的编辑入口不回退。
+- [ ] P003: 补充折线箭头的序列化与导出回归覆盖 <!-- scope: test/polyline_element_test.dart,test/serialization_test.dart,test/svg_exporter_test.dart -->
+  - 验收要点：带箭头的折线在 JSON round-trip 后保留 endArrow、headSize 以及既有标签和绑定信息。
+  - 验收要点：SVG 导出能够正确输出带箭头折线的末端箭头图形，无箭头折线导出结果保持兼容。
+  - 验收要点：折线启用箭头后，正交路由、端点拖拽和命中选择等现有连接线交互场景仍然成立。
+- [ ] P004: 完整验收 <!-- scope: validation -->
+  - 验收要点：最终验收命令为 flutter test
+  - 验收要点：Flutter 测试命令通过，覆盖折线箭头属性切换、序列化恢复和 SVG 导出场景。
+  - 验收要点：普通折线在编辑器中可开启或关闭箭头，并可在启用后调整箭头尺寸且撤销重做一致。
+  - 验收要点：带箭头折线保存后重新加载仍保留箭头状态，连接绑定、正交路由和标签能力不回退。
+
+## 总体验收标准
+
+- 最终验收命令：flutter test
+- 验收范围：lib/src/canvas/canvas_controller.dart、lib/src/ui/panels/right_inspector_panel.dart、lib/src/ui/panels/inspector_utils.dart、lib/src/ui/panels/inspector_fields.dart、test/polyline_element_test.dart、test/serialization_test.dart、test/svg_exporter_test.dart、validation
+- 通过标准：所有总体验收标准均满足。
+- Flutter 测试命令通过，覆盖折线箭头属性切换、序列化恢复和 SVG 导出场景。
+- 普通折线在编辑器中可开启或关闭箭头，并可在启用后调整箭头尺寸且撤销重做一致。
+- 带箭头折线保存后重新加载仍保留箭头状态，连接绑定、正交路由和标签能力不回退。
+
+## 进度区
+
+| 任务 | 状态 | 备注 |
+| --- | --- | --- |
+| P001 | 未开始 | 补齐折线箭头属性的控制器更新入口 |
+| P002 | 未开始 | 在右侧检查器暴露折线箭头设置 |
+| P003 | 未开始 | 补充折线箭头的序列化与导出回归覆盖 |
+| P004 | 未开始 | 完整验收 |
+- P001 AutoPlan 完成：2026-07-09T16:18:07.222Z；日志：docs/progress/logs/20260710-001635_execute-P001.log
+- P002 AutoPlan 完成：2026-07-09T16:30:25.602Z；日志：docs/progress/logs/20260710-002412_execute-P002.log
+
+ succeeded in 390ms:
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:wenz_draw/wenz_draw.dart';
+import 'package:xml/xml.dart';
+
+void main() {
+  setUp(ensureDrawioShapeDefinitionsRegistered);
+
+  test(
+    'canvas document writes current version and keeps imported unknown shape',
+    () {
+      final controller = CanvasController()
+        ..addElement(
+          const DrawioShapeElement(
+            id: 'future-1',
+            shapeKey: 'mxgraph.future.shape',
+            rect: Rect.fromLTWH(0, 0, 100, 60),
+            fillStyle: PaintStyle(color: Colors.white),
+          ),
+        );
+
+      final json = CanvasSerializer.toJson(controller);
+      expect(json['schemaVersion'], DocumentSchema.current);
+
+      final document = CanvasSerializer.fromJson(json);
+      final element = document.elements.single as DrawioShapeElement;
+      expect(element.shapeKey, 'mxgraph.future.shape');
+      expect(element.hitTest(const Offset(50, 30)), isTrue);
+    },
+  );
+
+  test(
+    'svg exporter emits parseable drawio shape SVG with label and opacity',
+    () {
+      const element = DrawioShapeElement(
+        id: 'note-1',
+        shapeKey: 'note',
+        rect: Rect.fromLTWH(10, 20, 120, 80),
+        strokeStyle: PaintStyle(color: Color(0xFFB85450), strokeWidth: 2),
+        fillStyle: PaintStyle(color: Color(0xFFF8CECC), opacity: 0.4),
+        label: 'Note & <todo>',
+        opacity: 0.75,
+      );
+
+      final svg = SvgExporter.exportElements(
+        elements: const [element],
+        bounds: const Rect.fromLTWH(0, 0, 160, 140),
+      );
+
+      expect(() => XmlDocument.parse(svg), returnsNormally);
+      expect(svg, contains('<path'));
+      expect(svg, contains('fill="#f8cecc"'));
+      expect(svg, contains('fill-opacity="0.4"'));
+      expect(svg, contains('stroke="#b85450"'));
+      expect(svg, contains('stroke-width="2.0"'));
+      expect(svg, contains('opacity="0.75"'));
+      expect(svg, contains('Note &amp; &lt;todo&gt;'));
+    },
+  );
+
+  test('svg exporter emits stencil shapes as paths', () {
+    const element = DrawioShapeElement(
+      id: 'stencil-1',
+      shapeKey: 'stencil.decision',
+      rect: Rect.fromLTWH(0, 0, 120, 80),
+      strokeStyle: PaintStyle(color: Color(0xFF1F2937), strokeWidth: 1.5),
+      fillStyle: PaintStyle(color: Color(0xFFFFFFFF)),
+    );
+
+    final svg = SvgExporter.exportElements(
+      elements: const [element],
+      bounds: const Rect.fromLTWH(0, 0, 140, 100),
+    );
+
+    expect(() => XmlDocument.parse(svg), returnsNormally);
+    expect(svg, contains('<path d="M 60.0 0.0'));
+    expect(svg, contains('L 120.0 40.0'));
+  });
+
+  test('svg exporter preserves drawio flip transform and label positions', () {
+    const element = DrawioShapeElement(
+      id: 'stage4-1',
+      shapeKey: 'flowchart.process',
+      rect: Rect.fromLTWH(10, 20, 120, 80),
+      strokeStyle: PaintStyle(color: Color(0xFF1F2937), strokeWidth: 1.5),
+      fillStyle: PaintStyle(color: Color(0xFFFFFFFF)),
+      label: 'Bottom Right',
+      labelAlign: TextAlign.left,
+      labelPadding: EdgeInsets.zero,
+      properties: {
+        'flipH': true,
+        'flipV': true,
+        'labelPosition': 'right',
+        'verticalAlign': 'bottom',
+      },
+    );
+
+    final svg = SvgExporter.exportElements(
+      elements: const [element],
+      bounds: const Rect.fromLTWH(0, 0, 160, 130),
+    );
+
+    expect(() => XmlDocument.parse(svg), returnsNormally);
+    expect(
+      svg,
+      contains('<g transform="translate(70.0 60.0) scale(-1.0 -1.0)'),
+    );
+    expect(svg, contains('text-anchor="end"'));
+    expect(svg, contains('x="130.0"'));
+    expect(svg, contains('Bottom Right'));
+  });
+}
+
+ succeeded in 461ms:
+import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter/widgets.dart';
+import 'package:wenz_draw/wenz_draw.dart';
+
+void main() {
+  test('connector routing service creates right-angle polyline', () {
+    final points = _route(start: Offset.zero, end: const Offset(100, 60));
+
+    expect(points.first, Offset.zero);
+    expect(points.last, const Offset(100, 60));
+    expect(points.length, greaterThanOrEqualTo(3));
+    _expectOrthogonal(points);
+  });
+
+  test('connector routing service avoids intermediate obstacles', () {
+    const obstacle = Rect.fromLTWH(40, -20, 40, 40);
+    final points = _route(
+      start: Offset.zero,
+      end: const Offset(120, 0),
+      elements: const [RectElement(id: 'obstacle', rect: obstacle)],
+      options: const ConnectorRoutingOptions(margin: 8),
+    );
+
+    expect(points.first, Offset.zero);
+    expect(points.last, const Offset(120, 0));
+    expect(points.length, greaterThanOrEqualTo(4));
+    _expectOrthogonal(points);
+    _expectAvoids(points, obstacle);
+  });
+
+  test('connector routing service exits bound elements before routing', () {
+    const source = Rect.fromLTWH(0, 0, 100, 80);
+    const target = Rect.fromLTWH(200, 0, 100, 80);
+    final points = _route(
+      start: source.center,
+      end: target.center,
+      elements: const [
+        RectElement(id: 'source', rect: source),
+        RectElement(id: 'target', rect: target),
+      ],
+      startBinding: const SnapBinding(elementId: 'source', anchorId: 'center'),
+      endBinding: const SnapBinding(elementId: 'target', anchorId: 'center'),
+      options: const ConnectorRoutingOptions(margin: 8),
+    );
+
+    expect(points.first, source.center);
+    expect(points.last, target.center);
+    expect(points.length, greaterThanOrEqualTo(4));
+    _expectOrthogonal(points);
+    for (var i = 1; i < points.length - 1; i++) {
+      if (i > 1) {
+        expect(
+          _segmentIntersectsRectInterior(
+            points[i - 1],
+            points[i],
+            source.inflate(8),
+          ),
+          isFalse,
+        );
+      }
+      if (i < points.length - 2) {
+        expect(
+          _segmentIntersectsRectInterior(
+            points[i],
+            points[i + 1],
+            target.inflate(8),
+          ),
+          isFalse,
+        );
+      }
+    }
+  });
+
+  test(
+    'connector routing service avoids nearby element blocking components',
+    () {
+      const source = Rect.fromLTWH(0, 0, 100, 80);
+      const target = Rect.fromLTWH(220, 0, 100, 80);
+      const obstacle = Rect.fromLTWH(130, 20, 60, 60);
+      final points = _route(
+        start: source.center,
+        end: target.center,
+        elements: const [
+          RectElement(id: 'source', rect: source),
+          RectElement(id: 'target', rect: target),
+          RectElement(id: 'obstacle', rect: obstacle),
+        ],
+        startBinding: const SnapBinding(
+          elementId: 'source',
+          anchorId: 'center',
+        ),
+        endBinding: const SnapBinding(elementId: 'target', anchorId: 'center'),
+        options: const ConnectorRoutingOptions(margin: 8),
+      );
+
+      _expectOrthogonal(points);
+      _expectAvoids(points, obstacle.inflate(8));
+      for (var i = 1; i < points.length - 1; i++) {
+        if (i > 1) {
+          expect(
+            _segmentIntersectsRectInterior(
+              points[i - 1],
+              points[i],
+              source.inflate(8),
+            ),
+            isFalse,
+          );
+        }
+        if (i < points.length - 2) {
+          expect(
+            _segmentIntersectsRectInterior(
+              points[i],
+              points[i + 1],
+              target.inflate(8),
+            ),
+            isFalse,
+          );
+        }
+      }
+    },
+  );
+
+  test(
+    'connector routing service chooses the shortest valid avoiding route',
+    () {
+      const obstacle = Rect.fromLTWH(40, -10, 40, 20);
+      final points = _route(
+        start: Offset.zero,
+        end: const Offset(120, 0),
+        elements: const [RectElement(id: 'obstacle', rect: obstacle)],
+        options: const ConnectorRoutingOptions(margin: 10),
+      );
+
+      expect(_pathLength(points), closeTo(160, 2));
+      _expectAvoids(points, obstacle.inflate(10));
+    },
+  );
+
+  test('polyline element bounds hitTest translate and scale', () {
+    const element = PolylineElement(
+      id: 'poly-1',
+      points: [Offset(0, 0), Offset(50, 0), Offset(50, 40)],
+      style: PaintStyle(strokeWidth: 2),
+    );
+
+    expect(element.bounds, const Rect.fromLTRB(-1, -1, 51, 41));
+    expect(element.hitTest(const Offset(25, 1), tolerance: 2), isTrue);
+    expect(element.hitTest(const Offset(25, 20), tolerance: 2), isFalse);
+
+    final moved = element.translate(const Offset(10, 5));
+    expect(moved.start, const Offset(10, 5));
+    expect(moved.end, const Offset(60, 45));
+
+    final scaled = element.scaleElement(2, pivot: Offset.zero);
+    expect(scaled.points.last, const Offset(100, 80));
+    expect(scaled.style.strokeWidth, 4);
+  });
+
+  test('polyline tool creates orthogonal route with snap bindings', () {
+    final controller = CanvasController(
+      snapSettings: const SnapSettings(thresholdScreenPx: 12),
+    );
+    controller
+      ..addElement(
+        const RectElement(id: 'source', rect: Rect.fromLTWH(0, 0, 100, 80)),
+        record: false,
+      )
+      ..addElement(
+        const RectElement(id: 'target', rect: Rect.fromLTWH(200, 0, 100, 80)),
+        record: false,
+      )
+      ..setTool(PolylineTool.idValue);
+
+    controller.dispatchCanvasEvent(
+      const CanvasPointerDownEvent(
+        screenPoint: Offset(52, 41),
+        worldPoint: Offset(52, 41),
+        transform: CanvasTransform.identity,
+      ),
+    );
+    controller.dispatchCanvasEvent(
+      const CanvasPointerUpEvent(
+        screenPoint: Offset(248, 38),
+        worldPoint: Offset(248, 38),
+        transform: CanvasTransform.identity,
+      ),
+    );
+
+    final polyline = controller.elements.whereType<PolylineElement>().single;
+    expect(polyline.start, const Offset(50, 40));
+    expect(polyline.end, const Offset(250, 40));
+    expect(polyline.startBinding?.elementId, 'source');
+    expect(polyline.endBinding?.elementId, 'target');
+    for (var i = 0; i < polyline.points.length - 1; i++) {
+      expect(
+        polyline.points[i].dx == polyline.points[i + 1].dx ||
+            polyline.points[i].dy == polyline.points[i + 1].dy,
+        isTrue,
+      );
+    }
+  });
+
+  test('polyline tool routes around existing canvas elements', () {
+    final obstacle = const Rect.fromLTWH(90, 20, 60, 60);
+    final controller = CanvasController()
+      ..addElement(RectElement(id: 'obstacle', rect: obstacle), record: false)
+      ..setTool(PolylineTool.idValue);
+
+    controller.dispatchCanvasEvent(
+      const CanvasPointerDownEvent(
+        screenPoint: Offset(0, 50),
+        worldPoint: Offset(0, 50),
+        transform: CanvasTransform.identity,
+      ),
+    );
+    controller.dispatchCanvasEvent(
+      const CanvasPointerUpEvent(
+        screenPoint: Offset(220, 50),
+        worldPoint: Offset(220, 50),
+        transform: CanvasTransform.identity,
+      ),
+    );
+
+    final polyline = controller.elements.whereType<PolylineElement>().single;
+    expect(polyline.points.length, greaterThanOrEqualTo(4));
+    for (var i = 0; i < polyline.points.length - 1; i++) {
+      expect(
+        _segmentIntersectsRectInterior(
+          polyline.points[i],
+          polyline.points[i + 1],
+          obstacle,
+        ),
+        isFalse,
+      );
+    }
+  });
+
+  test('connector routing service respects locked edge port direction', () {
+    const source = RectElement(
+      id: 'source',
+      rect: Rect.fromLTWH(0, 0, 100, 80),
+    );
+    const target = RectElement(
+      id: 'target',
+      rect: Rect.fromLTWH(220, 0, 100, 80),
+    );
+    const obstacle = RectElement(
+      id: 'obstacle',
+      rect: Rect.fromLTWH(130, -20, 60, 80),
+    );
+    const service = ConnectorRoutingService();
+
+    final result = service.route(
+      start: const Offset(100, 40),
+      end: const Offset(220, 40),
+      elements: const [source, target, obstacle],
+      isLayerVisible: (_) => true,
+      startBinding: const SnapBinding(elementId: 'source', anchorId: 'right'),
+      endBinding: const SnapBinding(elementId: 'target', anchorId: 'left'),
+    );
+
+    expect(result.points.first.dx, greaterThanOrEqualTo(100));
+    expect(result.points.first.dy, closeTo(40, 1));
+    expect(result.points.last.dx, lessThanOrEqualTo(220));
+    expect(result.points.last.dy, closeTo(40, 1));
+    expect(
+      result.points.any((point) => point.dx > result.points.first.dx),
+      isTrue,
+    );
+    for (var i = 0; i < result.points.length - 1; i++) {
+      expect(
+        _segmentIntersectsRectInterior(
+          result.points[i],
+          result.points[i + 1],
+          obstacle.rect.inflate(16),
+        ),
+        isFalse,
+      );
+    }
+  });
+
+  test('same side ports share an outside trunk before returning', () {
+    const source = RectElement(
+      id: 'source',
+      rect: Rect.fromLTWH(0, 0, 80, 120),
+    );
+    const target = RectElement(
+      id: 'target',
+      rect: Rect.fromLTWH(160, 0, 80, 120),
+    );
+    const service = ConnectorRoutingService();
+
+    final route = service.route(
+      start: const Offset(80, 30),
+      end: const Offset(240, 90),
+      elements: const [source, target],
+      isLayerVisible: (_) => true,
+      startBinding: const SnapBinding(elementId: 'source', anchorId: 'right'),
+      endBinding: const SnapBinding(elementId: 'target', anchorId: 'right'),
+    );
+
+    final outsideX = route.points
+        .map((point) => point.dx)
+        .reduce((a, b) => a > b ? a : b);
+    // Route should extend outside the bounding area of both shapes
+    expect(outsideX, greaterThan(140.0));
+    expect(
+      _hasOrthogonalSegment(route.points, outsideX) ||
+          _hasOrthogonalSegment(route.points, target.rect.right + 16),
+      isTrue,
+    );
+  });
+
+  test('mind map sibling branches may overlap existing connector trunk', () {
+    final controller = CanvasController()
+      ..addElement(
+        const RectElement(id: 'root', rect: Rect.fromLTWH(0, 0, 80, 120)),
+        record: false,
+      )
+      ..addElement(
+        const RectElement(id: 'top', rect: Rect.fromLTWH(180, 0, 80, 40)),
+        record: false,
+      )
+      ..addElement(
+        const RectElement(id: 'bottom', rect: Rect.fromLTWH(180, 80, 80, 40)),
+        record: false,
+      );
+
+    final topPoints = controller.routeConnector(
+      start: const Offset(80, 60),
+      end: const Offset(180, 20),
+      startBinding: const SnapBinding(elementId: 'root', anchorId: 'right'),
+      endBinding: const SnapBinding(elementId: 'top', anchorId: 'left'),
+    );
+    controller.addElement(
+      PolylineElement(
+        id: 'top-connector',
+        points: topPoints,
+        startBinding: const SnapBinding(elementId: 'root', anchorId: 'right'),
+        endBinding: const SnapBinding(elementId: 'top', anchorId: 'left'),
+      ),
+      record: false,
+    );
+
+    final bottomPoints = controller.routeConnector(
+      start: const Offset(80, 60),
+      end: const Offset(180, 100),
+      startBinding: const SnapBinding(elementId: 'root', anchorId: 'right'),
+      endBinding: const SnapBinding(elementId: 'bottom', anchorId: 'left'),
+    );
+
+    // Both routes should be valid orthogonal paths; they may or may not overlap
+    _expectOrthogonal(topPoints);
+    _expectOrthogonal(bottomPoints);
+    expect(topPoints.length, greaterThanOrEqualTo(2));
+    expect(bottomPoints.length, greaterThanOrEqualTo(2));
+  });
+
+  test('canvas controller routeConnector uses nearby obstacles', () {
+    final controller = CanvasController()
+      ..addElement(
+        const RectElement(id: 'obstacle', rect: Rect.fromLTWH(90, 20, 60, 60)),
+        record: false,
+      );
+
+    final points = controller.routeConnector(
+      start: const Offset(0, 50),
+      end: const Offset(220, 50),
+    );
+
+    expect(points.length, greaterThanOrEqualTo(4));
+    for (var i = 0; i < points.length - 1; i++) {
+      expect(
+        _segmentIntersectsRectInterior(
+          points[i],
+          points[i + 1],
+          const Rect.fromLTWH(90, 20, 60, 60).inflate(16),
+        ),
+        isFalse,
+      );
+    }
+  });
+
+  test('polyline serializes and exports to svg', () {
+    const element = PolylineElement(
+      id: 'poly-1',
+      points: [Offset(0, 0), Offset(50, 0), Offset(50, 40)],
+      startBinding: SnapBinding(elementId: 'a', anchorId: 'center'),
+      endBinding: SnapBinding(elementId: 'b', anchorId: 'center'),
+    );
+
+    final restored =
+        CanvasSerializer.elementFromJson(element.toJson()) as PolylineElement;
+    expect(restored.points, element.points);
+    expect(restored.startBinding?.elementId, 'a');
+    expect(restored.endBinding?.elementId, 'b');
+
+    final svg = SvgExporter.exportElements(
+      elements: const [element],
+      bounds: const Rect.fromLTWH(0, 0, 100, 80),
+    );
+    expect(svg, contains('<polyline'));
+    expect(svg, contains('0.0,0.0 50.0,0.0 50.0,40.0'));
+  });
+
+  test('polyline middle point drag adjusts adjacent orthogonal segments', () {
+    final controller = CanvasController()
+      ..addElement(
+        const PolylineElement(
+          id: 'poly-1',
+          points: [Offset(0, 0), Offset(50, 0), Offset(50, 40)],
+        ),
+        record: false,
+      )
+      ..setTool(SelectTool.idValue)
+      ..setSelection({'poly-1'});
+
+    controller.dispatchCanvasEvent(
+      const CanvasPointerDownEvent(
+        screenPoint: Offset(50, 0),
+        worldPoint: Offset(50, 0),
+        transform: CanvasTransform.identity,
+      ),
+    );
+    controller.dispatchCanvasEvent(
+      const CanvasPointerMoveEvent(
+        screenPoint: Offset(80, 15),
+        worldPoint: Offset(80, 15),
+        transform: CanvasTransform.identity,
+        delta: Offset(30, 15),
+      ),
+    );
+    controller.dispatchCanvasEvent(
+      const CanvasPointerUpEvent(
+        screenPoint: Offset(80, 15),
+        worldPoint: Offset(80, 15),
+        transform: CanvasTransform.identity,
+      ),
+    );
+
+    final polyline = controller.elementById('poly-1') as PolylineElement;
+    expect(polyline.points, const [
+      Offset(0, 0),
+      Offset(80, 0),
+      Offset(80, 40),
+      Offset(50, 40),
+    ]);
+    expect(controller.historyManager.canUndo, isTrue);
+  });
+
+  test('dragging polyline middle point keeps endpoints fixed', () {
+    final controller = CanvasController()
+      ..addElement(
+        const PolylineElement(
+          id: 'poly-1',
+          points: [
+            Offset(0, 0),
+            Offset(50, 0),
+            Offset(50, 40),
+            Offset(100, 40),
+          ],
+        ),
+        record: false,
+      )
+      ..setTool(SelectTool.idValue)
+      ..setSelection({'poly-1'});
+
+    controller.dispatchCanvasEvent(
+      const CanvasPointerDownEvent(
+        screenPoint: Offset(50, 0),
+        worldPoint: Offset(50, 0),
+        transform: CanvasTransform.identity,
+      ),
+    );
+    controller.dispatchCanvasEvent(
+      const CanvasPointerMoveEvent(
+        screenPoint: Offset(80, -30),
+        worldPoint: Offset(80, -30),
+        transform: CanvasTransform.identity,
+        delta: Offset(30, -30),
+      ),
+    );
+
+    final polyline = controller.elementById('poly-1') as PolylineElement;
+    expect(polyline.points.first, Offset.zero);
+    expect(polyline.points.last, const Offset(100, 40));
+  });
+
+  test('dragging polyline vertical segment moves it horizontally', () {
+    final controller = CanvasController()
+      ..addElement(
+        const PolylineElement(
+          id: 'poly-1',
+          points: [
+            Offset(0, 0),
+            Offset(50, 0),
+            Offset(50, 40),
+            Offset(100, 40),
+          ],
+        ),
+        record: false,
+      )
+      ..setTool(SelectTool.idValue)
+      ..setSelection({'poly-1'});
+
+    controller.dispatchCanvasEvent(
+      const CanvasPointerDownEvent(
+        screenPoint: Offset(50, 20),
+        worldPoint: Offset(50, 20),
+        transform: CanvasTransform.identity,
+      ),
+    );
+    controller.dispatchCanvasEvent(
+      const CanvasPointerMoveEvent(
+        screenPoint: Offset(80, 25),
+        worldPoint: Offset(80, 25),
+        transform: CanvasTransform.identity,
+        delta: Offset(30, 5),
+      ),
+    );
+    controller.dispatchCanvasEvent(
+      const CanvasPointerUpEvent(
+        screenPoint: Offset(80, 25),
+        worldPoint: Offset(80, 25),
+        transform: CanvasTransform.identity,
+      ),
+    );
+
+    final polyline = controller.elementById('poly-1') as PolylineElement;
+    expect(polyline.points, const [
+      Offset(0, 0),
+      Offset(80, 0),
+      Offset(80, 40),
+      Offset(100, 40),
+    ]);
+    expect(controller.historyManager.canUndo, isTrue);
+  });
+
+  test('dragging polyline horizontal segment moves it vertically', () {
+    final controller = CanvasController()
+      ..addElement(
+        const PolylineElement(
+          id: 'poly-1',
+          points: [
+            Offset(0, 0),
+            Offset(50, 0),
+            Offset(50, 40),
+            Offset(100, 40),
+          ],
+        ),
+        record: false,
+      )
+      ..setTool(SelectTool.idValue)
+      ..setSelection({'poly-1'});
+
+    controller.dispatchCanvasEvent(
+      const CanvasPointerDownEvent(
+        screenPoint: Offset(75, 40),
+        worldPoint: Offset(75, 40),
+        transform: CanvasTransform.identity,
+      ),
+    );
+    controller.dispatchCanvasEvent(
+      const CanvasPointerMoveEvent(
+        screenPoint: Offset(76, 70),
+        worldPoint: Offset(76, 70),
+        transform: CanvasTransform.identity,
+        delta: Offset(1, 30),
+      ),
+    );
+    controller.dispatchCanvasEvent(
+      const CanvasPointerUpEvent(
+        screenPoint: Offset(76, 70),
+        worldPoint: Offset(76, 70),
+        transform: CanvasTransform.identity,
+      ),
+    );
+
+    final polyline = controller.elementById('poly-1') as PolylineElement;
+    expect(polyline.points, const [
+      Offset(0, 0),
+      Offset(50, 0),
+      Offset(50, 70),
+      Offset(100, 70),
+      Offset(100, 40),
+    ]);
+  });
+
+  test(
+    'polyline endpoint drag keeps orthogonal route and nearby avoidance',
+    () {
+      final obstacle = const Rect.fromLTWH(50, 20, 40, 40);
+      final controller = CanvasController()
+        ..addElement(RectElement(id: 'obstacle', rect: obstacle), record: false)
+        ..addElement(
+          const PolylineElement(
+            id: 'poly-1',
+            points: [Offset(0, 0), Offset(50, 0), Offset(50, 40)],
+          ),
+          record: false,
+        )
+        ..setTool(SelectTool.idValue)
+        ..setSelection({'poly-1'});
+
+      controller.dispatchCanvasEvent(
+        const CanvasPointerDownEvent(
+          screenPoint: Offset(50, 40),
+          worldPoint: Offset(50, 40),
+          transform: CanvasTransform.identity,
+        ),
+      );
+      controller.dispatchCanvasEvent(
+        const CanvasPointerMoveEvent(
+          screenPoint: Offset(120, 40),
+          worldPoint: Offset(120, 40),
+          transform: CanvasTransform.identity,
+          delta: Offset(70, 0),
+        ),
+      );
+      controller.dispatchCanvasEvent(
+        const CanvasPointerUpEvent(
+          screenPoint: Offset(120, 40),
+          worldPoint: Offset(120, 40),
+          transform: CanvasTransform.identity,
+        ),
+      );
+
+      final polyline = controller.elementById('poly-1') as PolylineElement;
+      expect(polyline.start, Offset.zero);
+      expect(polyline.end, const Offset(120, 40));
+      for (var i = 0; i < polyline.points.length - 1; i++) {
+        expect(
+          polyline.points[i].dx == polyline.points[i + 1].dx ||
+              polyline.points[i].dy == polyline.points[i + 1].dy,
+          isTrue,
+        );
+        expect(
+          _segmentIntersectsRectInterior(
+            polyline.points[i],
+            polyline.points[i + 1],
+            obstacle.inflate(16),
+          ),
+          isFalse,
+        );
+      }
+    },
+  );
+}
+
+double _pathLength(List<Offset> points) {
+  var total = 0.0;
+  for (var i = 0; i < points.length - 1; i++) {
+    total += (points[i + 1] - points[i]).distance;
+  }
+  return total;
+}
+
+/// 两条正交线段的共线重叠长度（水平或垂直）。
+void _expectOrthogonal(List<Offset> points) {
+  for (var i = 0; i < points.length - 1; i++) {
+    expect(
+      points[i].dx == points[i + 1].dx || points[i].dy == points[i + 1].dy,
+      isTrue,
+    );
+  }
+}
+
+void _expectAvoids(List<Offset> points, Rect obstacle) {
+  for (var i = 0; i < points.length - 1; i++) {
+    expect(
+      _segmentIntersectsRectInterior(points[i], points[i + 1], obstacle),
+      isFalse,
+    );
+  }
+}
+
+bool _hasOrthogonalSegment(List<Offset> points, double x) {
+  for (var i = 0; i < points.length - 1; i++) {
+    if ((points[i].dx - x).abs() < 0.0001 &&
+        (points[i + 1].dx - x).abs() < 0.0001 &&
+        (points[i].dy - points[i + 1].dy).abs() > 0.0001) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool _segmentIntersectsRectInterior(Offset a, Offset b, Rect rect) {
+  final inner = rect.deflate(0.001);
+  if (inner.isEmpty) {
+    return false;
+  }
+  if ((a.dx - b.dx).abs() < 0.0001) {
+    final x = a.dx;
+    if (x <= inner.left || x >= inner.right) {
+      return false;
+    }
+    final top = a.dy < b.dy ? a.dy : b.dy;
+    final bottom = a.dy > b.dy ? a.dy : b.dy;
+    return bottom > inner.top && top < inner.bottom;
+  }
+  if ((a.dy - b.dy).abs() < 0.0001) {
+    final y = a.dy;
+    if (y <= inner.top || y >= inner.bottom) {
+      return false;
+    }
+    final left = a.dx < b.dx ? a.dx : b.dx;
+    final right = a.dx > b.dx ? a.dx : b.dx;
+    return right > inner.left && left < inner.right;
+  }
+  return false;
+}
+
+List<Offset> _route({
+  required Offset start,
+  required Offset end,
+  Iterable<CanvasElement> elements = const <CanvasElement>[],
+  SnapBinding? startBinding,
+  SnapBinding? endBinding,
+  ConnectorRoutingOptions options = const ConnectorRoutingOptions(),
+}) {
+  return ConnectorRoutingService(options: options)
+      .route(
+        start: start,
+        end: end,
+        elements: elements,
+        isLayerVisible: (_) => true,
+        startBinding: startBinding,
+        endBinding: endBinding,
+      )
+      .points;
+}
+
+ succeeded in 464ms:
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:wenz_draw/src/serialization/canvas_serializer.dart';
+import 'package:wenz_draw/src/serialization/canvas_document.dart';
+import 'package:wenz_draw/src/elements/line_element.dart';
+import 'package:wenz_draw/src/elements/rect_element.dart';
+import 'package:wenz_draw/src/elements/ellipse_element.dart';
+import 'package:wenz_draw/src/elements/text_element.dart';
+import 'package:wenz_draw/src/elements/image_element.dart';
+import 'package:wenz_draw/src/elements/polyline_element.dart';
+import 'package:wenz_draw/src/elements/curve_element.dart';
+import 'package:wenz_draw/src/elements/unknown_element.dart';
+import 'package:wenz_draw/src/canvas/canvas_controller.dart';
+import 'package:wenz_draw/src/canvas/paint_style.dart';
+import 'package:wenz_draw/src/layers/canvas_layer.dart';
+import 'package:wenz_draw/src/layers/auto_layering.dart';
+import 'package:wenz_draw/src/snap/snap_resolver.dart';
+
+void main() {
+  group('Serialization round-trip', () {
+    // ─── LineElement ──────────────────────────────────────────────
+    test('LineElement round-trip preserves all fields', () {
+      const element = LineElement(
+        id: 'line-1',
+        start: Offset(10, 20),
+        end: Offset(200, 300),
+        style: PaintStyle(color: Color(0xFF112233), strokeWidth: 4),
+        startBinding: SnapBinding(elementId: 'shape-a', anchorId: 'right'),
+        endBinding: SnapBinding(elementId: 'shape-b', anchorId: 'left'),
+        label: 'Connection',
+        labelStyle: TextStyle(fontSize: 18, color: Color(0xFFAABBCC)),
+        zIndex: 5,
+        groupId: 'group-1',
+      );
+
+      final json = element.toJson();
+      final restored = CanvasSerializer.elementFromJson(json) as LineElement;
+
+      expect(restored, isA<LineElement>());
+      expect(restored.id, 'line-1');
+      expect(restored.type, LineElement.elementType);
+      expect(restored.start, const Offset(10, 20));
+      expect(restored.end, const Offset(200, 300));
+      expect(restored.style.color, const Color(0xFF112233));
+      expect(restored.style.strokeWidth, 4);
+      expect(restored.startBinding!.elementId, 'shape-a');
+      expect(restored.startBinding!.anchorId, 'right');
+      expect(restored.endBinding!.elementId, 'shape-b');
+      expect(restored.endBinding!.anchorId, 'left');
+      expect(restored.label, 'Connection');
+      expect(restored.labelStyle.fontSize, 18);
+      expect(restored.labelStyle.color, const Color(0xFFAABBCC));
+      expect(restored.zIndex, 5);
+      expect(restored.groupId, 'group-1');
+    });
+
+    // ─── RectElement ──────────────────────────────────────────────
+    test('RectElement round-trip preserves all fields', () {
+      const element = RectElement(
+        id: 'rect-1',
+        rect: Rect.fromLTRB(10, 20, 200, 150),
+        strokeStyle: PaintStyle(color: Color(0xFFFF0000), strokeWidth: 3),
+        fillStyle: PaintStyle(color: Color(0xFF00FF00)),
+        label: 'Box',
+        rotation: 0.5,
+        zIndex: 3,
+        groupId: 'group-rect',
+      );
+
+      final json = element.toJson();
+      final restored = CanvasSerializer.elementFromJson(json) as RectElement;
+
+      expect(restored, isA<RectElement>());
+      expect(restored.id, 'rect-1');
+      expect(restored.type, RectElement.elementType);
+      expect(restored.rect, const Rect.fromLTRB(10, 20, 200, 150));
+      expect(restored.strokeStyle.color, const Color(0xFFFF0000));
+      expect(restored.strokeStyle.strokeWidth, 3);
+      expect(restored.fillStyle!.color, const Color(0xFF00FF00));
+      expect(restored.label, 'Box');
+      expect(restored.rotation, 0.5);
+      expect(restored.zIndex, 3);
+      expect(restored.groupId, 'group-rect');
+    });
+
+    // ─── EllipseElement ───────────────────────────────────────────
+    test('EllipseElement round-trip preserves all fields', () {
+      const element = EllipseElement(
+        id: 'ellipse-1',
+        rect: Rect.fromLTRB(0, 0, 100, 80),
+        strokeStyle: PaintStyle(color: Color(0xFF0000FF), strokeWidth: 2),
+        fillStyle: PaintStyle(color: Color(0xFFFFFF00)),
+        label: 'Circle',
+        rotation: 1.2,
+        zIndex: 7,
+        groupId: 'group-ellipse',
+      );
+
+      final json = element.toJson();
+      final restored = CanvasSerializer.elementFromJson(json) as EllipseElement;
+
+      expect(restored, isA<EllipseElement>());
+      expect(restored.id, 'ellipse-1');
+      expect(restored.type, EllipseElement.elementType);
+      expect(restored.rect, const Rect.fromLTRB(0, 0, 100, 80));
+      expect(restored.strokeStyle.color, const Color(0xFF0000FF));
+      expect(restored.strokeStyle.strokeWidth, 2);
+      expect(restored.fillStyle!.color, const Color(0xFFFFFF00));
+      expect(restored.label, 'Circle');
+      expect(restored.rotation, 1.2);
+      expect(restored.zIndex, 7);
+      expect(restored.groupId, 'group-ellipse');
+    });
+
+    // ─── TextElement ──────────────────────────────────────────────
+    test('TextElement round-trip preserves custom style and layout', () {
+      final element = TextElement(
+        id: 'text-1',
+        position: const Offset(50, 60),
+        text: 'Hello World',
+        style: const TextStyle(
+          color: Color(0xFF445566),
+          fontSize: 32,
+          fontWeight: FontWeight.bold,
+          height: 1.5,
+        ),
+        textAlign: TextAlign.center,
+        maxWidth: 200,
+        boxSize: const Size(180, 40),
+        zIndex: 2,
+        groupId: 'group-text',
+      );
+
+      final json = element.toJson();
+      final restored = CanvasSerializer.elementFromJson(json) as TextElement;
+
+      expect(restored, isA<TextElement>());
+      expect(restored.id, 'text-1');
+      expect(restored.type, TextElement.elementType);
+      expect(restored.position, const Offset(50, 60));
+      expect(restored.text, 'Hello World');
+      expect(restored.style.color, const Color(0xFF445566));
+      expect(restored.style.fontSize, 32);
+      expect(restored.style.fontWeight, FontWeight.bold);
+      expect(restored.style.height, 1.5);
+      expect(restored.textAlign, TextAlign.center);
+      expect(restored.maxWidth, 200);
+      expect(restored.boxSize, const Size(180, 40));
+      expect(restored.zIndex, 2);
+      expect(restored.groupId, 'group-text');
+    });
+
+    // ─── ImageElement (Bug B2: BoxFit preservation) ──────────────
+    test('ImageElement round-trip preserves BoxFit.cover (Bug B2)', () {
+      const element = ImageElement(
+        id: 'img-1',
+        rect: Rect.fromLTRB(0, 0, 400, 300),
+        fit: BoxFit.cover,
+        zIndex: 10,
+        groupId: 'group-img',
+      );
+
+      final json = element.toJson();
+      final restored = CanvasSerializer.elementFromJson(json) as ImageElement;
+
+      expect(restored, isA<ImageElement>());
+      expect(restored.id, 'img-1');
+      expect(restored.type, ImageElement.elementType);
+      expect(restored.rect, const Rect.fromLTRB(0, 0, 400, 300));
+      expect(
+        restored.fit,
+        BoxFit.cover,
+        reason: 'BoxFit.cover must survive serialization (Bug B2)',
+      );
+      expect(restored.zIndex, 10);
+      expect(restored.groupId, 'group-img');
+    });
+
+    test('ImageElement round-trip preserves BoxFit.fitWidth', () {
+      const element = ImageElement(
+        id: 'img-2',
+        rect: Rect.fromLTRB(0, 0, 200, 200),
+        fit: BoxFit.fitWidth,
+      );
+
+      final json = element.toJson();
+      final restored = CanvasSerializer.elementFromJson(json) as ImageElement;
+
+      expect(restored.fit, BoxFit.fitWidth);
+    });
+
+    // ─── PolylineElement ──────────────────────────────────────────
+    test('PolylineElement round-trip preserves points, arrows, bindings', () {
+      const element = PolylineElement(
+        id: 'poly-1',
+        points: [Offset(0, 0), Offset(50, 30), Offset(100, 0), Offset(150, 30)],
+        style: PaintStyle(color: Color(0xFFCC0000), strokeWidth: 2.5),
+        startBinding: SnapBinding(elementId: 'node-a', anchorId: 'right'),
+        endBinding: SnapBinding(elementId: 'node-b', anchorId: 'left'),
+        endArrow: true,
+        headSize: 18,
+        label: 'Connector',
+        zIndex: 4,
+        groupId: 'group-poly',
+      );
+
+      final json = element.toJson();
+      final restored =
+          CanvasSerializer.elementFromJson(json) as PolylineElement;
+
+      expect(restored, isA<PolylineElement>());
+      expect(restored.id, 'poly-1');
+      expect(restored.type, PolylineElement.elementType);
+      expect(restored.points.length, 4);
+      expect(restored.points[0], Offset.zero);
+      expect(restored.points[1], const Offset(50, 30));
+      expect(restored.points[2], const Offset(100, 0));
+      expect(restored.points[3], const Offset(150, 30));
+      expect(restored.style.color, const Color(0xFFCC0000));
+      expect(restored.style.strokeWidth, 2.5);
+      expect(restored.startBinding!.elementId, 'node-a');
+      expect(restored.endBinding!.elementId, 'node-b');
+      expect(restored.endArrow, isTrue);
+      expect(restored.headSize, 18);
+      expect(restored.label, 'Connector');
+      expect(restored.zIndex, 4);
+      expect(restored.groupId, 'group-poly');
+    });
+
+    // ─── CurveElement ─────────────────────────────────────────────
+    test('CurveElement round-trip preserves start, end, control, style', () {
+      const element = CurveElement(
+        id: 'curve-1',
+        start: Offset(0, 0),
+        end: Offset(100, 0),
+        control: Offset(50, 80),
+        style: PaintStyle(color: Color(0xFF880088), strokeWidth: 3),
+        zIndex: 6,
+        groupId: 'group-curve',
+      );
+
+      final json = element.toJson();
+      final restored = CanvasSerializer.elementFromJson(json) as CurveElement;
+
+      expect(restored, isA<CurveElement>());
+      expect(restored.id, 'curve-1');
+      expect(restored.type, CurveElement.elementType);
+      expect(restored.start, Offset.zero);
+      expect(restored.end, const Offset(100, 0));
+      expect(restored.control, const Offset(50, 80));
+      expect(restored.style.color, const Color(0xFF880088));
+      expect(restored.style.strokeWidth, 3);
+      expect(restored.zIndex, 6);
+      expect(restored.groupId, 'group-curve');
+    });
+
+    // ─── Canvas layer round-trip ──────────────────────────────────
+    test('CanvasDocument.toJson() and fromJson() round-trip with layers', () {
+      final document = CanvasDocument(
+        schemaVersion: '1.1',
+        layers: const [
+          CanvasLayer(id: 'background', name: 'Background', isVisible: false),
+          CanvasLayer(
+            id: 'foreground',
+            name: 'Foreground',
+            isVisible: true,
+            isLocked: true,
+            opacity: 0.8,
+          ),
+        ],
+        elements: [
+          const RectElement(
+            id: 'rect-bg',
+            rect: Rect.fromLTWH(0, 0, 50, 50),
+            layerId: 'background',
+          ),
+          TextElement(id: 'text-fg', position: Offset.zero, text: 'Hi'),
+        ],
+      );
+
+      final json = document.toJson();
+      final restored = CanvasSerializer.fromJson(json);
+
+      // Verify layers
+      expect(restored.layers.length, 2);
+      expect(restored.layers[0].id, 'background');
+      expect(restored.layers[0].name, 'Background');
+      expect(restored.layers[0].isVisible, isFalse);
+      expect(restored.layers[1].id, 'foreground');
+      expect(restored.layers[1].name, 'Foreground');
+      expect(restored.layers[1].isVisible, isTrue);
+      expect(restored.layers[1].isLocked, isTrue);
+      expect(restored.layers[1].opacity, 0.8);
+
+      // Verify elements
+      expect(restored.elements.length, 2);
+      expect(restored.elements[0].id, 'rect-bg');
+      expect(restored.elements[0], isA<RectElement>());
+      expect((restored.elements[0] as RectElement).layerId, 'background');
+      expect(restored.elements[1].id, 'text-fg');
+      expect(restored.elements[1], isA<TextElement>());
+    });
+
+    // ─── Sprint 5: TextElement rotation ─────────────────────────
+    test('TextElement rotation round-trip preserves rotation', () {
+      final element = TextElement(
+        id: 'text-rot',
+        position: const Offset(50, 60),
+        text: 'Rotated',
+        rotation: 0.5,
+      );
+
+      final json = element.toJson();
+      final restored = CanvasSerializer.elementFromJson(json) as TextElement;
+
+      expect(restored, isA<TextElement>());
+      expect(restored.rotation, 0.5);
+    });
+
+    // ─── Sprint 5: ImageElement rotation ─────────────────────────
+    test('ImageElement rotation round-trip preserves rotation', () {
+      const element = ImageElement(
+        id: 'img-rot',
+        rect: Rect.fromLTRB(0, 0, 200, 150),
+        rotation: 1.2,
+      );
+
+      final json = element.toJson();
+      final restored = CanvasSerializer.elementFromJson(json) as ImageElement;
+
+      expect(restored, isA<ImageElement>());
+      expect(restored.rotation, 1.2);
+    });
+
+    // ─── Sprint 5: ImageElement base64 imageData ─────────────────
+    test('ImageElement base64 imageData round-trip preserves data', () {
+      const element = ImageElement(
+        id: 'img-b64',
+        rect: Rect.fromLTRB(0, 0, 100, 100),
+        imageData:
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+      );
+
+      final json = element.toJson();
+      final restored = CanvasSerializer.elementFromJson(json) as ImageElement;
+
+      expect(restored, isA<ImageElement>());
+      expect(restored.imageData, isNotNull);
+      expect(
+        restored.imageData,
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+      );
+    });
+
+    // ─── Layer preservation in load() (Bug B1) ───────────────────
+    test('Layer preservation in load() preserves custom layers (Bug B1)', () {
+      // Create a controller with custom layers and elements
+      final controller = CanvasController(
+        autoLayeringPolicy: const AutoLayeringPolicy.manual(),
+      );
+      controller.addLayer(name: 'Custom Layer');
+      final customLayerId = controller.activeLayerId;
+      controller.addElement(
+        RectElement(
+          id: 'el-1',
+          rect: const Rect.fromLTWH(10, 10, 100, 100),
+          layerId: customLayerId,
+          zIndex: 0,
+        ),
+        record: false,
+      );
+      controller.addElement(
+        TextElement(
+          id: 'el-2',
+          position: const Offset(200, 200),
+          text: 'Label',
+          layerId: customLayerId,
+        ),
+        record: false,
+      );
+
+      // Serialize
+      final json = CanvasSerializer.toJson(controller);
+
+      // Load into a new controller
+      final newController = CanvasController(
+        autoLayeringPolicy: const AutoLayeringPolicy.manual(),
+      );
+      CanvasSerializer.load(newController, json);
+
+      // Verify layers are preserved (Bug B1: layers were being lost)
+      expect(
+        newController.layers.length,
+        2,
+        reason: 'Custom layers must be preserved after load',
+      );
+      expect(newController.layers.any((l) => l.id == customLayerId), isTrue);
+      expect(newController.layers.any((l) => l.name == 'Custom Layer'), isTrue);
+
+      // Verify elements are preserved with their layer assignments
+      expect(newController.elements.length, 2);
+      final rect = newController.elementById('el-1')!;
+      expect(
+        rect.layerId,
+        customLayerId,
+        reason: 'Element layer assignment must survive load',
+      );
+      final text = newController.elementById('el-2')!;
+      expect(text.layerId, customLayerId);
+    });
+  });
+
+  group('Document format (schema 2.0)', () {
+    test('toJson writes schemaVersion and empty metadata section', () {
+      final controller = CanvasController();
+      final json = CanvasSerializer.toJson(controller);
+
+      expect(json['schemaVersion'], DocumentSchema.current);
+      expect(json['metadata'], isA<Map>());
+      // layers/elements are always present; viewport/assets omitted when empty.
+      expect(json.containsKey('layers'), isTrue);
+      expect(json.containsKey('elements'), isTrue);
+      expect(json.containsKey('viewport'), isFalse);
+      expect(json.containsKey('assets'), isFalse);
+    });
+
+    test('toJson embeds metadata, viewport and assets when supplied', () {
+      final controller = CanvasController();
+      final json = CanvasSerializer.toJson(
+        controller,
+        metadata: const DocumentMetadata(
+          title: 'My Board',
+          appId: 'my-app',
+          createdAt: 1700000000000,
+        ),
+        viewport: const DocumentViewport(scale: 1.5, centerX: 100, centerY: 200),
+        assets: const [
+          DocumentAsset(
+            id: 'asset-1',
+            type: 'image',
+            source: 'url',
+            ref: 'https://cdn.example.com/x.png',
+            width: 800,
+            height: 600,
+          ),
+        ],
+      );
+
+      expect(json['metadata']['title'], 'My Board');
+      expect(json['metadata']['appId'], 'my-app');
+      expect(json['viewport']['scale'], 1.5);
+      expect(json['assets'].first['id'], 'asset-1');
+    });
+
+    test('migrates a legacy 1.1 document to schema 2.0', () {
+      final legacy = <String, dynamic>{
+        'version': '1.1',
+        'layers': <dynamic>[
+          {'id': 'L1', 'name': 'Layer 1'},
+        ],
+        'elements': <dynamic>[
+          {
+            'id': 'r1',
+            'type': 'rect',
+            'rect': {'left': 0, 'top': 0, 'right': 10, 'bottom': 10},
+          },
+        ],
+      };
+
+      final doc = CanvasSerializer.fromJson(legacy);
+
+      expect(doc.schemaVersion, '2.0');
+      expect(doc.layers.single.id, 'L1');
+      expect(doc.elements.single, isA<RectElement>());
+    });
+
+    test('preserves unknown top-level keys in extras', () {
+      final json = <String, dynamic>{
+        'schemaVersion': '2.0',
+        'futureSection': {'flags': 7},
+        'layers': <dynamic>[],
+        'elements': <dynamic>[],
+      };
+
+      final doc = CanvasSerializer.fromJson(json);
+
+      expect(doc.extras['futureSection'], isA<Map>());
+      // Round-trip writes the unknown section back out.
+      final rewritten = CanvasSerializer.toJson(
+        CanvasController(),
+      );
+      final reparsed = CanvasSerializer.fromJson({
+        ...json,
+        'layers': rewritten['layers'],
+        'elements': rewritten['elements'],
+      });
+      expect(reparsed.extras['futureSection'], isA<Map>());
+    });
+
+    test('unknown element type survives a full document round-trip', () {
+      final json = <String, dynamic>{
+        'schemaVersion': '2.0',
+        'layers': <dynamic>[
+          {'id': 'default', 'name': 'Default'},
+        ],
+        'elements': <dynamic>[
+          {
+            'id': 'future-el',
+            'type': 'some_future_shape',
+            'layerId': 'default',
+            'visible': true,
+            'opacity': 1.0,
+            'zIndex': 0,
+            'customPayload': {'x': 9},
+            'rect': {'left': 0, 'top': 0, 'right': 20, 'bottom': 20},
+          },
+        ],
+      };
+
+      final doc = CanvasSerializer.fromJson(json);
+      final unknown = doc.elements.single as UnknownElement;
+      expect(unknown.type, 'some_future_shape');
+      expect(unknown.rawJson['customPayload'], {'x': 9});
+
+      // Serialize back through the document and reload — data must persist.
+      final rewritten = CanvasDocument(
+        schemaVersion: DocumentSchema.current,
+        layers: doc.layers,
+        elements: doc.elements,
+      ).toJson();
+      final reparsed = CanvasSerializer.fromJson(rewritten);
+      final again = reparsed.elements.single as UnknownElement;
+      expect(again.type, 'some_future_shape');
+      expect(again.rawJson['customPayload'], {'x': 9});
+    });
+  });
+}
+
+codex
+现有测试里 serialization 已有基础折线 round-trip，但需要加强标签/绑定/箭头尺寸；SVG 测试还没有折线箭头断言。接下来读取 exporter 具体输出格式来写稳定断言。
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "Get-Content -LiteralPath 'D:\\project\\GitHub\\wenz_flutter\\wenz_draw\\lib\\src\\serialization\\exporters\\svg_exporter.dart' -Encoding UTF8" in D:\project\GitHub\wenz_flutter\wenz_draw
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'rg -n "PolylineElement|endArrow|headSize|SvgExporter|CanvasSerializer|SnapBinding|polyline" test lib/src/serialization -g "*.dart"' in D:\project\GitHub\wenz_flutter\wenz_draw
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'git status --short -- test/polyline_element_test.dart test/serialization_test.dart test/svg_exporter_test.dart .codex_node_write_probe.tmp' in D:\project\GitHub\wenz_flutter\wenz_draw
+ succeeded in 365ms:
+test\drawio_importer_test.dart:20:          {'id': 'edge-1', 'edge': '1', 'style': 'endArrow=block;'},
+test\drawio_importer_test.dart:81:          CanvasSerializer.elementFromJson(element.toJson())
+test\document_robustness_test.dart:26:      final result = CanvasSerializer.fromJsonWithWarnings(json);
+test\document_robustness_test.dart:62:      final result = CanvasSerializer.fromJsonWithWarnings(
+test\document_robustness_test.dart:88:      final result = CanvasSerializer.fromJsonWithWarnings(json);
+test\document_robustness_test.dart:102:        () => CanvasSerializer.fromJson(json),
+test\document_robustness_test.dart:109:        () => CanvasSerializer.fromJson(<String, dynamic>{}),
+test\document_robustness_test.dart:127:      expect(CanvasSerializer.validateForSave(json), isEmpty);
+test\document_robustness_test.dart:139:      final warnings = CanvasSerializer.validateForSave(json);
+test\document_robustness_test.dart:154:      final warnings = CanvasSerializer.validateForSave(json);
+test\document_robustness_test.dart:163:      final warnings = CanvasSerializer.validateForSave(json);
+test\document_robustness_test.dart:168:      expect(CanvasSerializer.validateForSave(<String, dynamic>{}), isEmpty);
+test\document_robustness_test.dart:169:      expect(CanvasSerializer.validateForSave({'foo': 'bar'}), isEmpty);
+test\document_robustness_test.dart:241:      final json = CanvasSerializer.fromJson({
+test\document_robustness_test.dart:293:      expect(CanvasSerializer.validateForSave(original), isEmpty);
+test\document_robustness_test.dart:296:      final loaded = CanvasSerializer.fromJson(original);
+test\document_robustness_test.dart:306:      final reloaded = CanvasSerializer.fromJson(reserialized);
+test\document_robustness_test.dart:325:      var doc = CanvasSerializer.fromJson(original);
+test\document_robustness_test.dart:327:        doc = CanvasSerializer.fromJson(doc.toJson());
+test\performance_widget_test.dart:281:      final json = CanvasSerializer.toJson(controller);
+test\performance_widget_test.dart:282:      final doc = CanvasSerializer.fromJson(json);
+test\performance_widget_test.dart:349:      final json = CanvasSerializer.toJson(controller);
+test\performance_widget_test.dart:350:      final doc = CanvasSerializer.fromJson(json);
+test\image_loader_test.dart:163:      final restored = CanvasSerializer.elementFromJson(json) as ImageElement;
+test\image_loader_test.dart:187:      final restored = CanvasSerializer.elementFromJson(json) as ImageElement;
+test\drawio_shape_element_test.dart:24:        CanvasSerializer.elementFromJson(element.toJson())
+test\drawio_shape_element_test.dart:107:    final svg = SvgExporter.exportElements(
+test\drawio_shape_element_test.dart:124:    final svg = SvgExporter.exportElements(
+test\drawio_shape_element_test.dart:150:      final svg = SvgExporter.exportElements(
+test\drawio_shape_element_test.dart:208:      final svg = SvgExporter.exportElements(
+test\drawio_shape_element_test.dart:283:      final svg = SvgExporter.exportElements(
+test\line_label_test.dart:32:        CanvasSerializer.elementFromJson(element.toJson()) as LineElement;
+test\line_label_test.dart:56:  test('polyline label uses middle of total path length', () {
+test\line_label_test.dart:57:    const element = PolylineElement(
+test\line_label_test.dart:73:        CanvasSerializer.elementFromJson(element.toJson()) as PolylineElement;
+test\line_label_test.dart:90:        CanvasSerializer.elementFromJson(arrow.toJson()) as ArrowElement;
+test\line_label_test.dart:95:    final svg = SvgExporter.exportElements(
+test\line_label_test.dart:103:        PolylineElement(
+test\line_label_test.dart:123:        CanvasSerializer.elementFromJson({
+test\line_label_test.dart:138:  test('double tapping polyline begins line label editing', () {
+test\line_label_test.dart:142:        const PolylineElement(
+test\line_label_test.dart:160:    expect((controller.elementById('poly-1') as PolylineElement).label, 'Flow');
+lib/src/serialization\canvas_serializer.dart:14:import '../elements/polyline_element.dart';
+lib/src/serialization\canvas_serializer.dart:27:class CanvasSerializer {
+lib/src/serialization\canvas_serializer.dart:28:  const CanvasSerializer._();
+lib/src/serialization\canvas_serializer.dart:236:  /// final warnings = CanvasSerializer.validateForSave(json);
+lib/src/serialization\canvas_serializer.dart:357:          startBinding: SnapBinding.fromJson(json['startBinding']),
+lib/src/serialization\canvas_serializer.dart:358:          endBinding: SnapBinding.fromJson(json['endBinding']),
+lib/src/serialization\canvas_serializer.dart:367:      case PolylineElement.elementType:
+lib/src/serialization\canvas_serializer.dart:368:        return PolylineElement(
+lib/src/serialization\canvas_serializer.dart:380:          startBinding: SnapBinding.fromJson(json['startBinding']),
+lib/src/serialization\canvas_serializer.dart:381:          endBinding: SnapBinding.fromJson(json['endBinding']),
+lib/src/serialization\canvas_serializer.dart:382:          endArrow: json['endArrow'] as bool? ?? false,
+lib/src/serialization\canvas_serializer.dart:383:          headSize: (json['headSize'] as num?)?.toDouble() ?? 14,
+lib/src/serialization\canvas_serializer.dart:461:          headSize: (json['headSize'] as num?)?.toDouble() ?? 14,
+lib/src/serialization\canvas_serializer.dart:463:          startBinding: SnapBinding.fromJson(json['startBinding']),
+lib/src/serialization\canvas_serializer.dart:464:          endBinding: SnapBinding.fromJson(json['endBinding']),
+lib/src/serialization\canvas_serializer.dart:706:/// Result of [CanvasSerializer.fromJsonWithWarnings]: the parsed document plus
+lib/src/serialization\document_format_exception.dart:59:/// Hosts pass a callback to `CanvasSerializer.fromJson` (or `loadDocument`) to
+test\canvas_controller_test.dart:148:    final json = CanvasSerializer.toJson(controller);
+test\canvas_controller_test.dart:149:    final document = CanvasSerializer.fromJson(json);
+test\polyline_element_test.dart:6:  test('connector routing service creates right-angle polyline', () {
+test\polyline_element_test.dart:41:      startBinding: const SnapBinding(elementId: 'source', anchorId: 'center'),
+test\polyline_element_test.dart:42:      endBinding: const SnapBinding(elementId: 'target', anchorId: 'center'),
+test\polyline_element_test.dart:88:        startBinding: const SnapBinding(
+test\polyline_element_test.dart:92:        endBinding: const SnapBinding(elementId: 'target', anchorId: 'center'),
+test\polyline_element_test.dart:139:  test('polyline element bounds hitTest translate and scale', () {
+test\polyline_element_test.dart:140:    const element = PolylineElement(
+test\polyline_element_test.dart:159:  test('polyline tool creates orthogonal route with snap bindings', () {
+test\polyline_element_test.dart:189:    final polyline = controller.elements.whereType<PolylineElement>().single;
+test\polyline_element_test.dart:190:    expect(polyline.start, const Offset(50, 40));
+test\polyline_element_test.dart:191:    expect(polyline.end, const Offset(250, 40));
+test\polyline_element_test.dart:192:    expect(polyline.startBinding?.elementId, 'source');
+test\polyline_element_test.dart:193:    expect(polyline.endBinding?.elementId, 'target');
+test\polyline_element_test.dart:194:    for (var i = 0; i < polyline.points.length - 1; i++) {
+test\polyline_element_test.dart:196:        polyline.points[i].dx == polyline.points[i + 1].dx ||
+test\polyline_element_test.dart:197:            polyline.points[i].dy == polyline.points[i + 1].dy,
+test\polyline_element_test.dart:203:  test('polyline tool routes around existing canvas elements', () {
+test\polyline_element_test.dart:224:    final polyline = controller.elements.whereType<PolylineElement>().single;
+test\polyline_element_test.dart:225:    expect(polyline.points.length, greaterThanOrEqualTo(4));
+test\polyline_element_test.dart:226:    for (var i = 0; i < polyline.points.length - 1; i++) {
+test\polyline_element_test.dart:229:          polyline.points[i],
+test\polyline_element_test.dart:230:          polyline.points[i + 1],
+test\polyline_element_test.dart:258:      startBinding: const SnapBinding(elementId: 'source', anchorId: 'right'),
+test\polyline_element_test.dart:259:      endBinding: const SnapBinding(elementId: 'target', anchorId: 'left'),
+test\polyline_element_test.dart:298:      startBinding: const SnapBinding(elementId: 'source', anchorId: 'right'),
+test\polyline_element_test.dart:299:      endBinding: const SnapBinding(elementId: 'target', anchorId: 'right'),
+test\polyline_element_test.dart:332:      startBinding: const SnapBinding(elementId: 'root', anchorId: 'right'),
+test\polyline_element_test.dart:333:      endBinding: const SnapBinding(elementId: 'top', anchorId: 'left'),
+test\polyline_element_test.dart:336:      PolylineElement(
+test\polyline_element_test.dart:339:        startBinding: const SnapBinding(elementId: 'root', anchorId: 'right'),
+test\polyline_element_test.dart:340:        endBinding: const SnapBinding(elementId: 'top', anchorId: 'left'),
+test\polyline_element_test.dart:348:      startBinding: const SnapBinding(elementId: 'root', anchorId: 'right'),
+test\polyline_element_test.dart:349:      endBinding: const SnapBinding(elementId: 'bottom', anchorId: 'left'),
+test\polyline_element_test.dart:384:  test('polyline serializes and exports to svg', () {
+test\polyline_element_test.dart:385:    const element = PolylineElement(
+test\polyline_element_test.dart:388:      startBinding: SnapBinding(elementId: 'a', anchorId: 'center'),
+test\polyline_element_test.dart:389:      endBinding: SnapBinding(elementId: 'b', anchorId: 'center'),
+test\polyline_element_test.dart:393:        CanvasSerializer.elementFromJson(element.toJson()) as PolylineElement;
+test\polyline_element_test.dart:398:    final svg = SvgExporter.exportElements(
+test\polyline_element_test.dart:402:    expect(svg, contains('<polyline'));
+test\polyline_element_test.dart:406:  test('polyline middle point drag adjusts adjacent orthogonal segments', () {
+test\polyline_element_test.dart:409:        const PolylineElement(
+test\polyline_element_test.dart:441:    final polyline = controller.elementById('poly-1') as PolylineElement;
+test\polyline_element_test.dart:442:    expect(polyline.points, const [
+test\polyline_element_test.dart:451:  test('dragging polyline middle point keeps endpoints fixed', () {
+test\polyline_element_test.dart:454:        const PolylineElement(
+test\polyline_element_test.dart:484:    final polyline = controller.elementById('poly-1') as PolylineElement;
+test\polyline_element_test.dart:485:    expect(polyline.points.first, Offset.zero);
+test\polyline_element_test.dart:486:    expect(polyline.points.last, const Offset(100, 40));
+test\polyline_element_test.dart:489:  test('dragging polyline vertical segment moves it horizontally', () {
+test\polyline_element_test.dart:492:        const PolylineElement(
+test\polyline_element_test.dart:529:    final polyline = controller.elementById('poly-1') as PolylineElement;
+test\polyline_element_test.dart:530:    expect(polyline.points, const [
+test\polyline_element_test.dart:539:  test('dragging polyline horizontal segment moves it vertically', () {
+test\polyline_element_test.dart:542:        const PolylineElement(
+test\polyline_element_test.dart:579:    final polyline = controller.elementById('poly-1') as PolylineElement;
+test\polyline_element_test.dart:580:    expect(polyline.points, const [
+test\polyline_element_test.dart:590:    'polyline endpoint drag keeps orthogonal route and nearby avoidance',
+test\polyline_element_test.dart:596:          const PolylineElement(
+test\polyline_element_test.dart:628:      final polyline = controller.elementById('poly-1') as PolylineElement;
+test\polyline_element_test.dart:629:      expect(polyline.start, Offset.zero);
+test\polyline_element_test.dart:630:      expect(polyline.end, const Offset(120, 40));
+test\polyline_element_test.dart:631:      for (var i = 0; i < polyline.points.length - 1; i++) {
+test\polyline_element_test.dart:633:          polyline.points[i].dx == polyline.points[i + 1].dx ||
+test\polyline_element_test.dart:634:              polyline.points[i].dy == polyline.points[i + 1].dy,
+test\polyline_element_test.dart:639:            polyline.points[i],
+test\polyline_element_test.dart:640:            polyline.points[i + 1],
+test\polyline_element_test.dart:718:  SnapBinding? startBinding,
+test\polyline_element_test.dart:719:  SnapBinding? endBinding,
+test\routing\routing_test.dart:575:        startBinding: const SnapBinding(
+test\routing\routing_test.dart:579:        endBinding: const SnapBinding(
+test\roundtrip_closure_test.dart:66:      final json = CanvasSerializer.toJsonWithView(
+test\roundtrip_closure_test.dart:83:      final document = CanvasSerializer.loadDocument(view2, loaded!);
+test\roundtrip_closure_test.dart:163:      CanvasSerializer.load(canvas, legacy);
+test\roundtrip_closure_test.dart:182:      await store.save(CanvasSerializer.toJsonWithView(view1));
+test\roundtrip_closure_test.dart:189:      CanvasSerializer.loadDocument(view2, (await store.load())!);
+test\roundtrip_closure_test.dart:195:      await store.save(CanvasSerializer.toJsonWithView(view2));
+test\roundtrip_closure_test.dart:201:      CanvasSerializer.load(canvas3, (await store.load())!);
+test\serialization_test.dart:10:import 'package:wenz_draw/src/elements/polyline_element.dart';
+test\serialization_test.dart:28:        startBinding: SnapBinding(elementId: 'shape-a', anchorId: 'right'),
+test\serialization_test.dart:29:        endBinding: SnapBinding(elementId: 'shape-b', anchorId: 'left'),
+test\serialization_test.dart:37:      final restored = CanvasSerializer.elementFromJson(json) as LineElement;
+test\serialization_test.dart:71:      final restored = CanvasSerializer.elementFromJson(json) as RectElement;
+test\serialization_test.dart:100:      final restored = CanvasSerializer.elementFromJson(json) as EllipseElement;
+test\serialization_test.dart:135:      final restored = CanvasSerializer.elementFromJson(json) as TextElement;
+test\serialization_test.dart:164:      final restored = CanvasSerializer.elementFromJson(json) as ImageElement;
+test\serialization_test.dart:187:      final restored = CanvasSerializer.elementFromJson(json) as ImageElement;
+test\serialization_test.dart:192:    // ─── PolylineElement ──────────────────────────────────────────
+test\serialization_test.dart:193:    test('PolylineElement round-trip preserves points, arrows, bindings', () {
+test\serialization_test.dart:194:      const element = PolylineElement(
+test\serialization_test.dart:198:        startBinding: SnapBinding(elementId: 'node-a', anchorId: 'right'),
+test\serialization_test.dart:199:        endBinding: SnapBinding(elementId: 'node-b', anchorId: 'left'),
+test\serialization_test.dart:200:        endArrow: true,
+test\serialization_test.dart:201:        headSize: 18,
+test\serialization_test.dart:209:          CanvasSerializer.elementFromJson(json) as PolylineElement;
+test\serialization_test.dart:211:      expect(restored, isA<PolylineElement>());
+test\serialization_test.dart:213:      expect(restored.type, PolylineElement.elementType);
+test\serialization_test.dart:223:      expect(restored.endArrow, isTrue);
+test\serialization_test.dart:224:      expect(restored.headSize, 18);
+test\serialization_test.dart:243:      final restored = CanvasSerializer.elementFromJson(json) as CurveElement;
+test\serialization_test.dart:282:      final restored = CanvasSerializer.fromJson(json);
+test\serialization_test.dart:314:      final restored = CanvasSerializer.elementFromJson(json) as TextElement;
+test\serialization_test.dart:329:      final restored = CanvasSerializer.elementFromJson(json) as ImageElement;
+test\serialization_test.dart:345:      final restored = CanvasSerializer.elementFromJson(json) as ImageElement;
+test\serialization_test.dart:383:      final json = CanvasSerializer.toJson(controller);
+test\serialization_test.dart:389:      CanvasSerializer.load(newController, json);
+test\serialization_test.dart:416:      final json = CanvasSerializer.toJson(controller);
+test\serialization_test.dart:429:      final json = CanvasSerializer.toJson(
+test\serialization_test.dart:470:      final doc = CanvasSerializer.fromJson(legacy);
+test\serialization_test.dart:485:      final doc = CanvasSerializer.fromJson(json);
+test\serialization_test.dart:489:      final rewritten = CanvasSerializer.toJson(
+test\serialization_test.dart:492:      final reparsed = CanvasSerializer.fromJson({
+test\serialization_test.dart:520:      final doc = CanvasSerializer.fromJson(json);
+test\serialization_test.dart:531:      final reparsed = CanvasSerializer.fromJson(rewritten);
+test\drawio_style_parser_test.dart:70:        CanvasSerializer.elementFromJson(element.toJson())
+test\snap_resolver_test.dart:317:      startBinding: SnapBinding(elementId: 'widget-1', anchorId: 'center'),
+test\snap_resolver_test.dart:318:      endBinding: SnapBinding(elementId: 'rect-1', anchorId: 'center'),
+test\snap_resolver_test.dart:322:        CanvasSerializer.elementFromJson(line.toJson()) as LineElement;
+test\snap_resolver_test.dart:392:          startBinding: SnapBinding(elementId: 'old', anchorId: 'center'),
+lib/src/serialization\exporters\svg_exporter.dart:14:import '../../elements/polyline_element.dart';
+lib/src/serialization\exporters\svg_exporter.dart:21:class SvgExporter {
+lib/src/serialization\exporters\svg_exporter.dart:22:  const SvgExporter._();
+lib/src/serialization\exporters\svg_exporter.dart:52:      final PolylineElement e => _polyline(e),
+lib/src/serialization\exporters\svg_exporter.dart:91:  static String _polyline(PolylineElement e) {
+lib/src/serialization\exporters\svg_exporter.dart:98:        '<polyline points="$points" fill="none" stroke="${_color(style.color)}" stroke-width="${style.strokeWidth}" opacity="${e.opacity * style.opacity}" stroke-linecap="round" stroke-linejoin="round"/>';
+lib/src/serialization\exporters\svg_exporter.dart:102:    if (e.endArrow && e.points.length >= 2) {
+lib/src/serialization\exporters\svg_exporter.dart:111:        final size = e.headSize;
+test\svg_exporter_test.dart:22:      final json = CanvasSerializer.toJson(controller);
+test\svg_exporter_test.dart:25:      final document = CanvasSerializer.fromJson(json);
+test\svg_exporter_test.dart:45:      final svg = SvgExporter.exportElements(
+test\svg_exporter_test.dart:70:    final svg = SvgExporter.exportElements(
+test\svg_exporter_test.dart:98:    final svg = SvgExporter.exportElements(
+test\widget_element_test.dart:214:    test('fromJson deserializes correctly via CanvasSerializer', () {
+test\widget_element_test.dart:232:      final element = CanvasSerializer.elementFromJson(json);
+test\widget_element_test.dart:255:      final element = CanvasSerializer.elementFromJson(json);
+test\widget_element_test.dart:272:      final element = CanvasSerializer.elementFromJson(json);
+test\text_element_test.dart:60:          CanvasSerializer.elementFromJson(element.toJson()) as TextElement;
+test\text_element_test.dart:71:          CanvasSerializer.elementFromJson({
+
+ succeeded in 397ms:
+?? .codex_node_write_probe.tmp
+
+ succeeded in 507ms:
+import 'dart:math' as math;
+
+import 'package:flutter/material.dart';
+
+import '../../elements/arrow_element.dart';
+import '../../elements/canvas_element.dart';
+import '../../elements/curve_element.dart';
+import '../../elements/drawio_shape_element.dart';
+import '../../elements/ellipse_element.dart';
+import '../../elements/image_element.dart';
+import '../../elements/line_element.dart';
+import '../../elements/line_label_painter.dart';
+import '../../elements/path_element.dart';
+import '../../elements/polyline_element.dart';
+import '../../elements/rect_element.dart';
+import '../../elements/shape_definition_registry.dart';
+import '../../elements/shape_label_painter.dart';
+import '../../elements/text_element.dart';
+import '../../elements/widget_element.dart';
+
+class SvgExporter {
+  const SvgExporter._();
+
+  static String exportElements({
+    required Iterable<CanvasElement> elements,
+    Rect? bounds,
+    Color backgroundColor = Colors.white,
+  }) {
+    final elementList = elements.toList(growable: false)
+      ..sort((a, b) => a.zIndex.compareTo(b.zIndex));
+    final exportBounds = bounds ?? _contentBounds(elementList).inflate(24);
+    final buffer = StringBuffer()
+      ..writeln(
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="${exportBounds.left} ${exportBounds.top} ${exportBounds.width} ${exportBounds.height}">',
+      )
+      ..writeln(
+        '<rect x="${exportBounds.left}" y="${exportBounds.top}" width="${exportBounds.width}" height="${exportBounds.height}" fill="${_color(backgroundColor)}"/>',
+      );
+
+    for (final element in elementList) {
+      buffer.writeln(_elementSvg(element));
+    }
+
+    buffer.writeln('</svg>');
+    return buffer.toString();
+  }
+
+  static String _elementSvg(CanvasElement element) {
+    return switch (element) {
+      final PathElement e => _path(e),
+      final CurveElement e => _curve(e),
+      final PolylineElement e => _polyline(e),
+      final LineElement e => _lineWithLabel(e, [e.start, e.end]),
+      final DrawioShapeElement e => _drawioShape(e),
+      final RectElement e => _rect(e),
+      final EllipseElement e => _ellipse(e),
+      final ArrowElement e =>
+        '${_lineWithLabel(e, [e.start, e.end])}${_arrowHead(e)}',
+      final TextElement e => _text(e),
+      final ImageElement e => _imagePlaceholder(e),
+      final CanvasWidgetElement e => _widgetPlaceholder(e),
+      _ => '',
+    };
+  }
+
+  static String _path(PathElement e) {
+    if (e.points.isEmpty) return '';
+    final d = StringBuffer()
+      ..write('M ${e.points.first.position.dx} ${e.points.first.position.dy}');
+    for (final point in e.points.skip(1)) {
+      d.write(' L ${point.position.dx} ${point.position.dy}');
+    }
+    return '<path d="$d" fill="none" stroke="${_color(e.style.color)}" stroke-width="${e.style.strokeWidth}" opacity="${e.opacity * e.style.opacity}" stroke-linecap="round" stroke-linejoin="round"/>';
+  }
+
+  static String _curve(CurveElement e) {
+    final d =
+        'M ${e.start.dx} ${e.start.dy} Q ${e.control.dx} ${e.control.dy} ${e.end.dx} ${e.end.dy}';
+    return '<path d="$d" fill="none" stroke="${_color(e.style.color)}" stroke-width="${e.style.strokeWidth}" opacity="${e.opacity * e.style.opacity}" stroke-linecap="round"/>';
+  }
+
+  static String _line(dynamic e) {
+    final style = e.style;
+    return '<line x1="${e.start.dx}" y1="${e.start.dy}" x2="${e.end.dx}" y2="${e.end.dy}" stroke="${_color(style.color)}" stroke-width="${style.strokeWidth}" opacity="${e.opacity * style.opacity}" stroke-linecap="round"/>';
+  }
+
+  static String _lineWithLabel(dynamic e, List<Offset> points) {
+    return '${_line(e)}${_lineLabel(e, points)}';
+  }
+
+  static String _polyline(PolylineElement e) {
+    if (e.points.length < 2) {
+      return '';
+    }
+    final style = e.style;
+    final points = e.points.map((point) => '${point.dx},${point.dy}').join(' ');
+    final shape =
+        '<polyline points="$points" fill="none" stroke="${_color(style.color)}" stroke-width="${style.strokeWidth}" opacity="${e.opacity * style.opacity}" stroke-linecap="round" stroke-linejoin="round"/>';
+
+    // Arrowhead marker
+    String arrow = '';
+    if (e.endArrow && e.points.length >= 2) {
+      final p0 = e.points[e.points.length - 2];
+      final p1 = e.points.last;
+      final dx = p1.dx - p0.dx;
+      final dy = p1.dy - p0.dy;
+      final len = math.sqrt(dx * dx + dy * dy);
+      if (len > 0.1) {
+        final ux = dx / len;
+        final uy = dy / len;
+        final size = e.headSize;
+        // Arrowhead as a filled triangle
+        final base = Offset(p1.dx - ux * size, p1.dy - uy * size);
+        final perpX = -uy;
+        final perpY = ux;
+        final left = Offset(base.dx + perpX * size * 0.4, base.dy + perpY * size * 0.4);
+        final right = Offset(base.dx - perpX * size * 0.4, base.dy - perpY * size * 0.4);
+        arrow = '<polygon points="${p1.dx},${p1.dy} ${left.dx},${left.dy} ${right.dx},${right.dy}" fill="${_color(style.color)}" opacity="${e.opacity * style.opacity}"/>';
+      }
+    }
+
+    return '$shape$arrow${_lineLabel(e, e.points)}';
+  }
+
+  static String _drawioShape(DrawioShapeElement e) {
+    ensureDrawioShapeDefinitionsRegistered();
+    final definition = ShapeDefinitionRegistry.definitionFor(e.shapeKey);
+    final fill = e.fillStyle == null ? 'none' : _color(e.fillStyle!.color);
+    final fillOpacity = e.fillStyle?.opacity ?? 0;
+    final stroke = e.strokeStyle.strokeWidth <= 0 || e.strokeStyle.opacity <= 0
+        ? 'none'
+        : _color(e.strokeStyle.color);
+    final shape =
+        '<path d="${definition.svgPathFor(e.rect, e.properties)}" fill="$fill" stroke="$stroke" stroke-width="${e.strokeStyle.strokeWidth}" opacity="${e.opacity}" fill-opacity="$fillOpacity" stroke-opacity="${e.strokeStyle.opacity}" stroke-linejoin="round"/>';
+    final foreground = [
+      for (final path in definition.foregroundSvgPathsFor(e.rect, e.properties))
+        '<path d="$path" fill="none" stroke="$stroke" stroke-width="${e.strokeStyle.strokeWidth}" opacity="${e.opacity}" stroke-opacity="${e.strokeStyle.opacity}" stroke-linejoin="round"/>',
+    ].join();
+    final shapeWithTransform = _flipGroup(e, '$shape$foreground');
+    return '$shapeWithTransform${_shapeLabel(definition.labelRectFor(e.rect, e.properties), e.label, e.labelStyle, e.labelAlign, e.labelPadding, e.opacity, verticalAlign: e.properties['verticalAlign'] as String?, labelPosition: e.properties['labelPosition'] as String?, verticalLabelPosition: e.properties['verticalLabelPosition'] as String?)}';
+  }
+
+  static String _rotateGroup(Offset center, double rotation, String svg) {
+    if (rotation == 0) {
+      return svg;
+    }
+    final degrees = rotation * 180 / math.pi;
+    return '<g transform="rotate($degrees ${center.dx} ${center.dy})">$svg</g>';
+  }
+
+  static String _flipGroup(DrawioShapeElement e, String svg) {
+    final flipH = _boolProperty(e.properties['flipH']);
+    final flipV = _boolProperty(e.properties['flipV']);
+    if (!flipH && !flipV) {
+      return svg;
+    }
+    final sx = flipH ? -1.0 : 1.0;
+    final sy = flipV ? -1.0 : 1.0;
+    return '<g transform="translate(${e.rect.center.dx} ${e.rect.center.dy}) scale($sx $sy) translate(${-e.rect.center.dx} ${-e.rect.center.dy})">$svg</g>';
+  }
+
+  static String _rect(RectElement e) {
+    final fill = e.fillStyle == null ? 'none' : _color(e.fillStyle!.color);
+    final fillOpacity = e.fillStyle?.opacity ?? 0;
+    final stroke = e.strokeStyle.strokeWidth <= 0 || e.strokeStyle.opacity <= 0
+        ? 'none'
+        : _color(e.strokeStyle.color);
+    final shape =
+        '<rect x="${e.rect.left}" y="${e.rect.top}" width="${e.rect.width}" height="${e.rect.height}" rx="${e.borderRadius}" fill="$fill" stroke="$stroke" stroke-width="${e.strokeStyle.strokeWidth}" opacity="${e.opacity}" fill-opacity="$fillOpacity" stroke-opacity="${e.strokeStyle.opacity}"/>';
+    final inner = '$shape${_shapeLabel(e.rect, e.label, e.labelStyle, e.labelAlign, e.labelPadding, e.opacity)}';
+    return _rotateGroup(e.rect.center, e.rotation, inner);
+  }
+
+  static String _ellipse(EllipseElement e) {
+    final fill = e.fillStyle == null ? 'none' : _color(e.fillStyle!.color);
+    final fillOpacity = e.fillStyle?.opacity ?? 0;
+    final stroke = e.strokeStyle.strokeWidth <= 0 || e.strokeStyle.opacity <= 0
+        ? 'none'
+        : _color(e.strokeStyle.color);
+    final shape =
+        '<ellipse cx="${e.rect.center.dx}" cy="${e.rect.center.dy}" rx="${e.rect.width / 2}" ry="${e.rect.height / 2}" fill="$fill" stroke="$stroke" stroke-width="${e.strokeStyle.strokeWidth}" opacity="${e.opacity}" fill-opacity="$fillOpacity" stroke-opacity="${e.strokeStyle.opacity}"/>';
+    final inner = '$shape${_shapeLabel(e.rect, e.label, e.labelStyle, e.labelAlign, e.labelPadding, e.opacity)}';
+    return _rotateGroup(e.rect.center, e.rotation, inner);
+  }
+
+  static String _arrowHead(ArrowElement e) {
+    return '<circle cx="${e.end.dx}" cy="${e.end.dy}" r="${e.style.strokeWidth * 1.25}" fill="${_color(e.style.color)}" opacity="${e.opacity * e.style.opacity}"/>';
+  }
+
+  static String _lineLabel(dynamic e, List<Offset> points) {
+    final label = e.label as String?;
+    if (label == null || label.isEmpty || points.isEmpty) {
+      return '';
+    }
+    final style = e.labelStyle as TextStyle;
+    final position = e.labelPosition as double;
+    final offset = e.labelOffset as Offset;
+    final background = e.labelBackground as Color?;
+    final center = LineLabelPainter.labelCenter(
+      points,
+      labelPosition: position,
+      labelOffset: offset,
+    );
+    final color = style.color ?? Colors.black;
+    final size = style.fontSize ?? LineLabelPainter.defaultStyle.fontSize ?? 14;
+    final weight = style.fontWeight?.value ?? FontWeight.normal.value;
+    final lineHeight = size * (style.height ?? 1.2);
+    final lines = label.split('\n');
+    final escapedLines = [
+      for (var i = 0; i < lines.length; i++)
+        '<tspan x="${center.dx}" dy="${i == 0 ? 0 : lineHeight}">${_escape(lines[i])}</tspan>',
+    ].join();
+    final estimatedWidth = lines.fold<double>(
+      0,
+      (max, line) => math.max(max, line.length * size * 0.6),
+    );
+    final totalHeight = size + (lines.length - 1) * lineHeight;
+    final backgroundSvg = background == null
+        ? ''
+        : '<rect x="${center.dx - estimatedWidth / 2 - 4}" y="${center.dy - totalHeight / 2 - 2}" width="${estimatedWidth + 8}" height="${totalHeight + 4}" fill="${_color(background)}" opacity="${e.opacity}" rx="3"/>';
+    return '$backgroundSvg<text x="${center.dx}" y="${center.dy - totalHeight / 2 + size}" fill="${_color(color)}" font-size="$size" font-weight="$weight" opacity="${e.opacity}" text-anchor="middle">$escapedLines</text>';
+  }
+
+  static String _shapeLabel(
+    Rect rect,
+    String? label,
+    TextStyle style,
+    TextAlign align,
+    EdgeInsets padding,
+    double opacity, {
+    String? verticalAlign,
+    String? labelPosition,
+    String? verticalLabelPosition,
+  }) {
+    if (label == null || label.isEmpty) {
+      return '';
+    }
+    final contentRect = padding.deflateRect(rect);
+    if (contentRect.width <= 0 || contentRect.height <= 0) {
+      return '';
+    }
+    final color = style.color ?? Colors.black;
+    final size =
+        style.fontSize ?? ShapeLabelPainter.defaultStyle.fontSize ?? 16;
+    final weight = style.fontWeight?.value ?? FontWeight.normal.value;
+    final horizontal = labelPosition ?? align.name;
+    final anchor = switch (horizontal) {
+      'center' || 'middle' => 'middle',
+      'right' => 'end',
+      'left' => 'start',
+      _ => switch (align) {
+        TextAlign.center => 'middle',
+        TextAlign.right || TextAlign.end => 'end',
+        _ => 'start',
+      },
+    };
+    final x = switch (horizontal) {
+      'center' || 'middle' => contentRect.center.dx,
+      'right' => contentRect.right,
+      'left' => contentRect.left,
+      _ => switch (align) {
+        TextAlign.center => contentRect.center.dx,
+        TextAlign.right || TextAlign.end => contentRect.right,
+        _ => contentRect.left,
+      },
+    };
+    final lines = label.split('\n');
+    final lineHeight = size * (style.height ?? 1.2);
+    final totalHeight = size + (lines.length - 1) * lineHeight;
+    final vertical = verticalAlign ?? verticalLabelPosition;
+    final firstBaseline = switch (vertical) {
+      'top' => contentRect.top + size,
+      'bottom' => contentRect.bottom - totalHeight + size,
+      _ => contentRect.center.dy - totalHeight / 2 + size,
+    };
+    return [
+      '<text x="$x" y="$firstBaseline" fill="${_color(color)}" font-size="$size" font-weight="$weight" opacity="$opacity" text-anchor="$anchor">',
+      for (var i = 0; i < lines.length; i++)
+        '<tspan x="$x" dy="${i == 0 ? 0 : lineHeight}">${_escape(lines[i])}</tspan>',
+      '</text>',
+    ].join();
+  }
+
+  static String _text(TextElement e) {
+    final color = e.style.color ?? Colors.black;
+    final size = e.style.fontSize ?? 24;
+    final weight = e.style.fontWeight?.value ?? FontWeight.normal.value;
+    final anchor = switch (e.textAlign) {
+      TextAlign.center => 'middle',
+      TextAlign.right || TextAlign.end => 'end',
+      _ => 'start',
+    };
+    final x = switch (e.textAlign) {
+      TextAlign.center => e.bounds.center.dx,
+      TextAlign.right || TextAlign.end => e.bounds.right,
+      _ => e.position.dx,
+    };
+    final lines = e.text.split('\n');
+    final lineHeight = size * (e.style.height ?? 1.2);
+    return [
+      '<text x="$x" y="${e.position.dy + size}" fill="${_color(color)}" font-size="$size" font-weight="$weight" opacity="${e.opacity}" text-anchor="$anchor">',
+      for (var i = 0; i < lines.length; i++)
+        '<tspan x="$x" dy="${i == 0 ? 0 : lineHeight}">${_escape(lines[i])}</tspan>',
+      '</text>',
+    ].join();
+  }
+
+  static String _imagePlaceholder(ImageElement e) {
+    return '<rect x="${e.rect.left}" y="${e.rect.top}" width="${e.rect.width}" height="${e.rect.height}" fill="#e5e7eb" stroke="#64748b"/>';
+  }
+
+  static String _widgetPlaceholder(CanvasWidgetElement e) {
+    return '<rect x="${e.worldRect.left}" y="${e.worldRect.top}" width="${e.worldRect.width}" height="${e.worldRect.height}" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1.5" rx="4"/>'
+        '<text x="${e.worldRect.center.dx}" y="${e.worldRect.center.dy}" fill="#6b7280" font-size="14" text-anchor="middle" dominant-baseline="central">${_escape(e.widgetType)}</text>';
+  }
+
+  static Rect _contentBounds(List<CanvasElement> elements) {
+    if (elements.isEmpty) {
+      return const Rect.fromLTWH(0, 0, 1, 1);
+    }
+    var bounds = elements.first.bounds;
+    for (final element in elements.skip(1)) {
+      bounds = bounds.expandToInclude(element.bounds);
+    }
+    return bounds;
+  }
+
+  static String _color(Color color) {
+    final value = color.toARGB32();
+    return '#${(value & 0xFFFFFF).toRadixString(16).padLeft(6, '0')}';
+  }
+
+  static bool _boolProperty(Object? value) {
+    if (value is bool) {
+      return value;
+    }
+    if (value == null) {
+      return false;
+    }
+    final text = value.toString().toLowerCase();
+    return text == '1' || text == 'true';
+  }
+
+  static String _escape(String value) {
+    return value
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;');
+  }
+}
+
+codex
+三个目标测试文件目前没有 diff；我先用打开写入句柄的方式探测 scope 测试文件是否可修改，避免像 P002 那样在中途留下部分结果。
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+codex
+Node REPL 的持久绑定不可依赖，我改为每次块内动态导入 `fs/path` 后继续探测。
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+测试文件可打开写入；我会用 UTF-8 精确替换补三类覆盖：模型命中/拖拽保持箭头、JSON round-trip 保留标签与绑定、SVG 有/无箭头输出差异。
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+codex
+第一次替换未找到插入点，尚未写入任何文件；我改为按文件实际换行符生成补丁片段，并核对要修改的测试片段位置。
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command '$lines = Get-Content -LiteralPath '"'D:\\project\\GitHub\\wenz_flutter\\wenz_draw\\test\\polyline_element_test.dart' -Encoding UTF8; "'$start=585; $end=610; for($i=$start; $i -le $end -and $i -lt $lines.Length; $i++){ '"'{0,5}: {1}' -f ("'$i+1), $lines[$i] }' in D:\project\GitHub\wenz_flutter\wenz_draw
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'git diff -- test/polyline_element_test.dart test/serialization_test.dart test/svg_exporter_test.dart' in D:\project\GitHub\wenz_flutter\wenz_draw
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command '$text = [System.IO.File]::ReadAllText((Join-Path (Get-Location) '"'test/polyline_element_test.dart'), [System.Text.Encoding]::UTF8); @{HasCRLF="'$text.Contains("`r`n"); HasLF=$text.Contains("`n"); IndexTool=$text.IndexOf("test('"'polyline tool creates orthogonal route with snap bindings'\"); IndexEndpoint="'$text.IndexOf("'"'polyline endpoint drag keeps orthogonal route and nearby avoidance'\") } | ConvertTo-Json" in D:\project\GitHub\wenz_flutter\wenz_draw
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command '$lines = Get-Content -LiteralPath '"'D:\\project\\GitHub\\wenz_flutter\\wenz_draw\\test\\polyline_element_test.dart' -Encoding UTF8; "'$start=130; $end=175; for($i=$start; $i -le $end -and $i -lt $lines.Length; $i++){ '"'{0,5}: {1}' -f ("'$i+1), $lines[$i] }' in D:\project\GitHub\wenz_flutter\wenz_draw
+ succeeded in 401ms:
+ succeeded in 461ms:
+  131:         options: const ConnectorRoutingOptions(margin: 10),
+  132:       );
+  133: 
+  134:       expect(_pathLength(points), closeTo(160, 2));
+  135:       _expectAvoids(points, obstacle.inflate(10));
+  136:     },
+  137:   );
+  138: 
+  139:   test('polyline element bounds hitTest translate and scale', () {
+  140:     const element = PolylineElement(
+  141:       id: 'poly-1',
+  142:       points: [Offset(0, 0), Offset(50, 0), Offset(50, 40)],
+  143:       style: PaintStyle(strokeWidth: 2),
+  144:     );
+  145: 
+  146:     expect(element.bounds, const Rect.fromLTRB(-1, -1, 51, 41));
+  147:     expect(element.hitTest(const Offset(25, 1), tolerance: 2), isTrue);
+  148:     expect(element.hitTest(const Offset(25, 20), tolerance: 2), isFalse);
+  149: 
+  150:     final moved = element.translate(const Offset(10, 5));
+  151:     expect(moved.start, const Offset(10, 5));
+  152:     expect(moved.end, const Offset(60, 45));
+  153: 
+  154:     final scaled = element.scaleElement(2, pivot: Offset.zero);
+  155:     expect(scaled.points.last, const Offset(100, 80));
+  156:     expect(scaled.style.strokeWidth, 4);
+  157:   });
+  158: 
+  159:   test('polyline tool creates orthogonal route with snap bindings', () {
+  160:     final controller = CanvasController(
+  161:       snapSettings: const SnapSettings(thresholdScreenPx: 12),
+  162:     );
+  163:     controller
+  164:       ..addElement(
+  165:         const RectElement(id: 'source', rect: Rect.fromLTWH(0, 0, 100, 80)),
+  166:         record: false,
+  167:       )
+  168:       ..addElement(
+  169:         const RectElement(id: 'target', rect: Rect.fromLTWH(200, 0, 100, 80)),
+  170:         record: false,
+  171:       )
+  172:       ..setTool(PolylineTool.idValue);
+  173: 
+  174:     controller.dispatchCanvasEvent(
+  175:       const CanvasPointerDownEvent(
+  176:         screenPoint: Offset(52, 41),
+
+ succeeded in 477ms:
+  586:     ]);
+  587:   });
+  588: 
+  589:   test(
+  590:     'polyline endpoint drag keeps orthogonal route and nearby avoidance',
+  591:     () {
+  592:       final obstacle = const Rect.fromLTWH(50, 20, 40, 40);
+  593:       final controller = CanvasController()
+  594:         ..addElement(RectElement(id: 'obstacle', rect: obstacle), record: false)
+  595:         ..addElement(
+  596:           const PolylineElement(
+  597:             id: 'poly-1',
+  598:             points: [Offset(0, 0), Offset(50, 0), Offset(50, 40)],
+  599:           ),
+  600:           record: false,
+  601:         )
+  602:         ..setTool(SelectTool.idValue)
+  603:         ..setSelection({'poly-1'});
+  604: 
+  605:       controller.dispatchCanvasEvent(
+  606:         const CanvasPointerDownEvent(
+  607:           screenPoint: Offset(50, 40),
+  608:           worldPoint: Offset(50, 40),
+  609:           transform: CanvasTransform.identity,
+  610:         ),
+  611:       );
+
+ succeeded in 551ms:
+{
+    "IndexEndpoint":  18678,
+    "HasLF":  true,
+    "IndexTool":  5142,
+    "HasCRLF":  true
+}
+
+codex
+定位到测试文件使用 CRLF，且端点拖拽用例里的折线片段不是唯一片段；我会用带上下文的替换，避免改到其它用例。
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+三处测试文件已写入。现在只做文本级复核 diff 和关键片段，不启动任何测试或分析命令。
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'git diff --stat -- test/polyline_element_test.dart test/serialization_test.dart test/svg_exporter_test.dart' in D:\project\GitHub\wenz_flutter\wenz_draw
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command '$lines = Get-Content -LiteralPath '"'D:\\project\\GitHub\\wenz_flutter\\wenz_draw\\test\\polyline_element_test.dart' -Encoding UTF8; "'$ranges = @(150, 605); foreach($start in $ranges){ $end=$start+45; for($i=$start; $i -le $end -and $i -lt $lines.Length; $i++){ '"'{0,5}: {1}' -f ("'$i+1), $lines[$i] }; '"'---' }" in D:\project\GitHub\wenz_flutter\wenz_draw
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'git diff -- test/polyline_element_test.dart test/serialization_test.dart test/svg_exporter_test.dart' in D:\project\GitHub\wenz_flutter\wenz_draw
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command '$lines = Get-Content -LiteralPath '"'D:\\project\\GitHub\\wenz_flutter\\wenz_draw\\test\\svg_exporter_test.dart' -Encoding UTF8; "'$start=65; $end=135; for($i=$start; $i -le $end -and $i -lt $lines.Length; $i++){ '"'{0,5}: {1}' -f ("'$i+1), $lines[$i] }' in D:\project\GitHub\wenz_flutter\wenz_draw
+ succeeded in 402ms:
+ wenz_draw/test/polyline_element_test.dart | 22 ++++++++++++++
+ wenz_draw/test/serialization_test.dart    | 16 +++++++++++
+ wenz_draw/test/svg_exporter_test.dart     | 48 +++++++++++++++++++++++++++++++
+ 3 files changed, 86 insertions(+)
+warning: in the working copy of 'wenz_draw/test/serialization_test.dart', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'wenz_draw/test/svg_exporter_test.dart', LF will be replaced by CRLF the next time Git touches it
+
+ succeeded in 424ms:
+diff --git a/wenz_draw/test/polyline_element_test.dart b/wenz_draw/test/polyline_element_test.dart
+index c08784c..277f2ed 100644
+--- a/wenz_draw/test/polyline_element_test.dart
++++ b/wenz_draw/test/polyline_element_test.dart
+@@ -156,6 +156,24 @@ void main() {
+     expect(scaled.style.strokeWidth, 4);
+   });
+ 
++
++  test('polyline arrowhead expands bounds and participates in hit testing', () {
++    const element = PolylineElement(
++      id: 'poly-arrow',
++      points: [Offset(0, 0), Offset(40, 0), Offset(40, 30)],
++      style: PaintStyle(strokeWidth: 2),
++      endArrow: true,
++      headSize: 20,
++    );
++
++    expect(element.bounds, const Rect.fromLTRB(-20, -20, 60, 50));
++    expect(element.hitTest(const Offset(45, 22), tolerance: 2), isTrue);
++    expect(element.hitTest(const Offset(70, 30), tolerance: 2), isFalse);
++
++    final scaled = element.scaleElement(0.5, pivot: Offset.zero);
++    expect(scaled.endArrow, isTrue);
++    expect(scaled.headSize, 10);
++  });
+   test('polyline tool creates orthogonal route with snap bindings', () {
+     final controller = CanvasController(
+       snapSettings: const SnapSettings(thresholdScreenPx: 12),
+@@ -596,6 +614,8 @@ void main() {
+           const PolylineElement(
+             id: 'poly-1',
+             points: [Offset(0, 0), Offset(50, 0), Offset(50, 40)],
++            endArrow: true,
++            headSize: 18,
+           ),
+           record: false,
+         )
+@@ -628,6 +648,8 @@ void main() {
+       final polyline = controller.elementById('poly-1') as PolylineElement;
+       expect(polyline.start, Offset.zero);
+       expect(polyline.end, const Offset(120, 40));
++      expect(polyline.endArrow, isTrue);
++      expect(polyline.headSize, 18);
+       for (var i = 0; i < polyline.points.length - 1; i++) {
+         expect(
+           polyline.points[i].dx == polyline.points[i + 1].dx ||
+diff --git a/wenz_draw/test/serialization_test.dart b/wenz_draw/test/serialization_test.dart
+index 1543d91..ca82512 100644
+--- a/wenz_draw/test/serialization_test.dart
++++ b/wenz_draw/test/serialization_test.dart
+@@ -200,6 +200,14 @@ void main() {
+         endArrow: true,
+         headSize: 18,
+         label: 'Connector',
++        labelStyle: TextStyle(
++          fontSize: 16,
++          color: Color(0xFF112244),
++          fontWeight: FontWeight.w700,
++        ),
++        labelPosition: 0.65,
++        labelOffset: Offset(8, -4),
++        labelBackground: Color(0xFFFFEECC),
+         zIndex: 4,
+         groupId: 'group-poly',
+       );
+@@ -219,10 +227,18 @@ void main() {
+       expect(restored.style.color, const Color(0xFFCC0000));
+       expect(restored.style.strokeWidth, 2.5);
+       expect(restored.startBinding!.elementId, 'node-a');
++      expect(restored.startBinding!.anchorId, 'right');
+       expect(restored.endBinding!.elementId, 'node-b');
++      expect(restored.endBinding!.anchorId, 'left');
+       expect(restored.endArrow, isTrue);
+       expect(restored.headSize, 18);
+       expect(restored.label, 'Connector');
++      expect(restored.labelStyle.fontSize, 16);
++      expect(restored.labelStyle.color, const Color(0xFF112244));
++      expect(restored.labelStyle.fontWeight, FontWeight.w700);
++      expect(restored.labelPosition, 0.65);
++      expect(restored.labelOffset, const Offset(8, -4));
++      expect(restored.labelBackground, const Color(0xFFFFEECC));
+       expect(restored.zIndex, 4);
+       expect(restored.groupId, 'group-poly');
+     });
+diff --git a/wenz_draw/test/svg_exporter_test.dart b/wenz_draw/test/svg_exporter_test.dart
+index 319c1af..48262d2 100644
+--- a/wenz_draw/test/svg_exporter_test.dart
++++ b/wenz_draw/test/svg_exporter_test.dart
+@@ -77,6 +77,54 @@ void main() {
+     expect(svg, contains('L 120.0 40.0'));
+   });
+ 
++
++  test('svg exporter emits polyline arrowhead polygon when enabled', () {
++    const element = PolylineElement(
++      id: 'poly-arrow',
++      points: [Offset(0, 0), Offset(60, 0), Offset(60, 40)],
++      style: PaintStyle(color: Color(0xFF336699), strokeWidth: 3),
++      endArrow: true,
++      headSize: 20,
++      label: 'Route',
++    );
++
++    final svg = SvgExporter.exportElements(
++      elements: const [element],
++      bounds: const Rect.fromLTWH(-10, -10, 100, 80),
++    );
++
++    expect(() => XmlDocument.parse(svg), returnsNormally);
++    expect(
++      svg,
++      contains('<polyline points="0.0,0.0 60.0,0.0 60.0,40.0"'),
++    );
++    expect(
++      svg,
++      contains(
++        '<polygon points="60.0,40.0 52.0,20.0 68.0,20.0" fill="#336699"',
++      ),
++    );
++    expect(svg, contains('Route'));
++  });
++
++  test('svg exporter omits polyline arrowhead polygon when disabled', () {
++    const element = PolylineElement(
++      id: 'poly-no-arrow',
++      points: [Offset(0, 0), Offset(60, 0), Offset(60, 40)],
++      style: PaintStyle(color: Color(0xFF336699), strokeWidth: 3),
++      endArrow: false,
++      headSize: 20,
++    );
++
++    final svg = SvgExporter.exportElements(
++      elements: const [element],
++      bounds: const Rect.fromLTWH(-10, -10, 100, 80),
++    );
++
++    expect(() => XmlDocument.parse(svg), returnsNormally);
++    expect(svg, contains('<polyline'));
++    expect(svg, isNot(contains('<polygon')));
++  });
+   test('svg exporter preserves drawio flip transform and label positions', () {
+     const element = DrawioShapeElement(
+       id: 'stage4-1',
+warning: in the working copy of 'wenz_draw/test/serialization_test.dart', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'wenz_draw/test/svg_exporter_test.dart', LF will be replaced by CRLF the next time Git touches it
+
+ succeeded in 448ms:
+   66:       strokeStyle: PaintStyle(color: Color(0xFF1F2937), strokeWidth: 1.5),
+   67:       fillStyle: PaintStyle(color: Color(0xFFFFFFFF)),
+   68:     );
+   69: 
+   70:     final svg = SvgExporter.exportElements(
+   71:       elements: const [element],
+   72:       bounds: const Rect.fromLTWH(0, 0, 140, 100),
+   73:     );
+   74: 
+   75:     expect(() => XmlDocument.parse(svg), returnsNormally);
+   76:     expect(svg, contains('<path d="M 60.0 0.0'));
+   77:     expect(svg, contains('L 120.0 40.0'));
+   78:   });
+   79: 
+   80: 
+   81:   test('svg exporter emits polyline arrowhead polygon when enabled', () {
+   82:     const element = PolylineElement(
+   83:       id: 'poly-arrow',
+   84:       points: [Offset(0, 0), Offset(60, 0), Offset(60, 40)],
+   85:       style: PaintStyle(color: Color(0xFF336699), strokeWidth: 3),
+   86:       endArrow: true,
+   87:       headSize: 20,
+   88:       label: 'Route',
+   89:     );
+   90: 
+   91:     final svg = SvgExporter.exportElements(
+   92:       elements: const [element],
+   93:       bounds: const Rect.fromLTWH(-10, -10, 100, 80),
+   94:     );
+   95: 
+   96:     expect(() => XmlDocument.parse(svg), returnsNormally);
+   97:     expect(
+   98:       svg,
+   99:       contains('<polyline points="0.0,0.0 60.0,0.0 60.0,40.0"'),
+  100:     );
+  101:     expect(
+  102:       svg,
+  103:       contains(
+  104:         '<polygon points="60.0,40.0 52.0,20.0 68.0,20.0" fill="#336699"',
+  105:       ),
+  106:     );
+  107:     expect(svg, contains('Route'));
+  108:   });
+  109: 
+  110:   test('svg exporter omits polyline arrowhead polygon when disabled', () {
+  111:     const element = PolylineElement(
+  112:       id: 'poly-no-arrow',
+  113:       points: [Offset(0, 0), Offset(60, 0), Offset(60, 40)],
+  114:       style: PaintStyle(color: Color(0xFF336699), strokeWidth: 3),
+  115:       endArrow: false,
+  116:       headSize: 20,
+  117:     );
+  118: 
+  119:     final svg = SvgExporter.exportElements(
+  120:       elements: const [element],
+  121:       bounds: const Rect.fromLTWH(-10, -10, 100, 80),
+  122:     );
+  123: 
+  124:     expect(() => XmlDocument.parse(svg), returnsNormally);
+  125:     expect(svg, contains('<polyline'));
+  126:     expect(svg, isNot(contains('<polygon')));
+  127:   });
+  128:   test('svg exporter preserves drawio flip transform and label positions', () {
+  129:     const element = DrawioShapeElement(
+  130:       id: 'stage4-1',
+  131:       shapeKey: 'flowchart.process',
+  132:       rect: Rect.fromLTWH(10, 20, 120, 80),
+  133:       strokeStyle: PaintStyle(color: Color(0xFF1F2937), strokeWidth: 1.5),
+  134:       fillStyle: PaintStyle(color: Color(0xFFFFFFFF)),
+  135:       label: 'Bottom Right',
+  136:       labelAlign: TextAlign.left,
+
+ succeeded in 448ms:
+  151:     expect(moved.start, const Offset(10, 5));
+  152:     expect(moved.end, const Offset(60, 45));
+  153: 
+  154:     final scaled = element.scaleElement(2, pivot: Offset.zero);
+  155:     expect(scaled.points.last, const Offset(100, 80));
+  156:     expect(scaled.style.strokeWidth, 4);
+  157:   });
+  158: 
+  159: 
+  160:   test('polyline arrowhead expands bounds and participates in hit testing', () {
+  161:     const element = PolylineElement(
+  162:       id: 'poly-arrow',
+  163:       points: [Offset(0, 0), Offset(40, 0), Offset(40, 30)],
+  164:       style: PaintStyle(strokeWidth: 2),
+  165:       endArrow: true,
+  166:       headSize: 20,
+  167:     );
+  168: 
+  169:     expect(element.bounds, const Rect.fromLTRB(-20, -20, 60, 50));
+  170:     expect(element.hitTest(const Offset(45, 22), tolerance: 2), isTrue);
+  171:     expect(element.hitTest(const Offset(70, 30), tolerance: 2), isFalse);
+  172: 
+  173:     final scaled = element.scaleElement(0.5, pivot: Offset.zero);
+  174:     expect(scaled.endArrow, isTrue);
+  175:     expect(scaled.headSize, 10);
+  176:   });
+  177:   test('polyline tool creates orthogonal route with snap bindings', () {
+  178:     final controller = CanvasController(
+  179:       snapSettings: const SnapSettings(thresholdScreenPx: 12),
+  180:     );
+  181:     controller
+  182:       ..addElement(
+  183:         const RectElement(id: 'source', rect: Rect.fromLTWH(0, 0, 100, 80)),
+  184:         record: false,
+  185:       )
+  186:       ..addElement(
+  187:         const RectElement(id: 'target', rect: Rect.fromLTWH(200, 0, 100, 80)),
+  188:         record: false,
+  189:       )
+  190:       ..setTool(PolylineTool.idValue);
+  191: 
+  192:     controller.dispatchCanvasEvent(
+  193:       const CanvasPointerDownEvent(
+  194:         screenPoint: Offset(52, 41),
+  195:         worldPoint: Offset(52, 41),
+  196:         transform: CanvasTransform.identity,
+---
+  606: 
+  607:   test(
+  608:     'polyline endpoint drag keeps orthogonal route and nearby avoidance',
+  609:     () {
+  610:       final obstacle = const Rect.fromLTWH(50, 20, 40, 40);
+  611:       final controller = CanvasController()
+  612:         ..addElement(RectElement(id: 'obstacle', rect: obstacle), record: false)
+  613:         ..addElement(
+  614:           const PolylineElement(
+  615:             id: 'poly-1',
+  616:             points: [Offset(0, 0), Offset(50, 0), Offset(50, 40)],
+  617:             endArrow: true,
+  618:             headSize: 18,
+  619:           ),
+  620:           record: false,
+  621:         )
+  622:         ..setTool(SelectTool.idValue)
+  623:         ..setSelection({'poly-1'});
+  624: 
+  625:       controller.dispatchCanvasEvent(
+  626:         const CanvasPointerDownEvent(
+  627:           screenPoint: Offset(50, 40),
+  628:           worldPoint: Offset(50, 40),
+  629:           transform: CanvasTransform.identity,
+  630:         ),
+  631:       );
+  632:       controller.dispatchCanvasEvent(
+  633:         const CanvasPointerMoveEvent(
+  634:           screenPoint: Offset(120, 40),
+  635:           worldPoint: Offset(120, 40),
+  636:           transform: CanvasTransform.identity,
+  637:           delta: Offset(70, 0),
+  638:         ),
+  639:       );
+  640:       controller.dispatchCanvasEvent(
+  641:         const CanvasPointerUpEvent(
+  642:           screenPoint: Offset(120, 40),
+  643:           worldPoint: Offset(120, 40),
+  644:           transform: CanvasTransform.identity,
+  645:         ),
+  646:       );
+  647: 
+  648:       final polyline = controller.elementById('poly-1') as PolylineElement;
+  649:       expect(polyline.start, Offset.zero);
+  650:       expect(polyline.end, const Offset(120, 40));
+  651:       expect(polyline.endArrow, isTrue);
+---
+
+codex
+文本复核发现只是插入处空行不够干净；我会做小的格式整理，不运行 formatter。
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+空行整理完成。做最后一次 scope diff 和状态检查；仍不启动测试、analyze 或构建。
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'git diff --stat -- test/polyline_element_test.dart test/serialization_test.dart test/svg_exporter_test.dart' in D:\project\GitHub\wenz_flutter\wenz_draw
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'git diff -- test/polyline_element_test.dart test/serialization_test.dart test/svg_exporter_test.dart' in D:\project\GitHub\wenz_flutter\wenz_draw
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'git status --short -- test/polyline_element_test.dart test/serialization_test.dart test/svg_exporter_test.dart docs/plan/plan_feedback_49_20260710-001100.md .codex_node_write_probe.tmp' in D:\project\GitHub\wenz_flutter\wenz_draw
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command '$lines = Get-Content -LiteralPath '"'D:\\project\\GitHub\\wenz_flutter\\wenz_draw\\test\\svg_exporter_test.dart' -Encoding UTF8; "'$start=75; $end=132; for($i=$start; $i -le $end -and $i -lt $lines.Length; $i++){ '"'{0,5}: {1}' -f ("'$i+1), $lines[$i] }' in D:\project\GitHub\wenz_flutter\wenz_draw
+ succeeded in 407ms:
+diff --git a/wenz_draw/test/polyline_element_test.dart b/wenz_draw/test/polyline_element_test.dart
+index c08784c..a5966c2 100644
+--- a/wenz_draw/test/polyline_element_test.dart
++++ b/wenz_draw/test/polyline_element_test.dart
+@@ -156,6 +156,24 @@ void main() {
+     expect(scaled.style.strokeWidth, 4);
+   });
+ 
++  test('polyline arrowhead expands bounds and participates in hit testing', () {
++    const element = PolylineElement(
++      id: 'poly-arrow',
++      points: [Offset(0, 0), Offset(40, 0), Offset(40, 30)],
++      style: PaintStyle(strokeWidth: 2),
++      endArrow: true,
++      headSize: 20,
++    );
++
++    expect(element.bounds, const Rect.fromLTRB(-20, -20, 60, 50));
++    expect(element.hitTest(const Offset(45, 22), tolerance: 2), isTrue);
++    expect(element.hitTest(const Offset(70, 30), tolerance: 2), isFalse);
++
++    final scaled = element.scaleElement(0.5, pivot: Offset.zero);
++    expect(scaled.endArrow, isTrue);
++    expect(scaled.headSize, 10);
++  });
++
+   test('polyline tool creates orthogonal route with snap bindings', () {
+     final controller = CanvasController(
+       snapSettings: const SnapSettings(thresholdScreenPx: 12),
+@@ -596,6 +614,8 @@ void main() {
+           const PolylineElement(
+             id: 'poly-1',
+             points: [Offset(0, 0), Offset(50, 0), Offset(50, 40)],
++            endArrow: true,
++            headSize: 18,
+           ),
+           record: false,
+         )
+@@ -628,6 +648,8 @@ void main() {
+       final polyline = controller.elementById('poly-1') as PolylineElement;
+       expect(polyline.start, Offset.zero);
+       expect(polyline.end, const Offset(120, 40));
++      expect(polyline.endArrow, isTrue);
++      expect(polyline.headSize, 18);
+       for (var i = 0; i < polyline.points.length - 1; i++) {
+         expect(
+           polyline.points[i].dx == polyline.points[i + 1].dx ||
+diff --git a/wenz_draw/test/serialization_test.dart b/wenz_draw/test/serialization_test.dart
+index 1543d91..ca82512 100644
+--- a/wenz_draw/test/serialization_test.dart
++++ b/wenz_draw/test/serialization_test.dart
+@@ -200,6 +200,14 @@ void main() {
+         endArrow: true,
+         headSize: 18,
+         label: 'Connector',
++        labelStyle: TextStyle(
++          fontSize: 16,
++          color: Color(0xFF112244),
++          fontWeight: FontWeight.w700,
++        ),
++        labelPosition: 0.65,
++        labelOffset: Offset(8, -4),
++        labelBackground: Color(0xFFFFEECC),
+         zIndex: 4,
+         groupId: 'group-poly',
+       );
+@@ -219,10 +227,18 @@ void main() {
+       expect(restored.style.color, const Color(0xFFCC0000));
+       expect(restored.style.strokeWidth, 2.5);
+       expect(restored.startBinding!.elementId, 'node-a');
++      expect(restored.startBinding!.anchorId, 'right');
+       expect(restored.endBinding!.elementId, 'node-b');
++      expect(restored.endBinding!.anchorId, 'left');
+       expect(restored.endArrow, isTrue);
+       expect(restored.headSize, 18);
+       expect(restored.label, 'Connector');
++      expect(restored.labelStyle.fontSize, 16);
++      expect(restored.labelStyle.color, const Color(0xFF112244));
++      expect(restored.labelStyle.fontWeight, FontWeight.w700);
++      expect(restored.labelPosition, 0.65);
++      expect(restored.labelOffset, const Offset(8, -4));
++      expect(restored.labelBackground, const Color(0xFFFFEECC));
+       expect(restored.zIndex, 4);
+       expect(restored.groupId, 'group-poly');
+     });
+diff --git a/wenz_draw/test/svg_exporter_test.dart b/wenz_draw/test/svg_exporter_test.dart
+index 319c1af..3225f62 100644
+--- a/wenz_draw/test/svg_exporter_test.dart
++++ b/wenz_draw/test/svg_exporter_test.dart
+@@ -77,6 +77,54 @@ void main() {
+     expect(svg, contains('L 120.0 40.0'));
+   });
+ 
++  test('svg exporter emits polyline arrowhead polygon when enabled', () {
++    const element = PolylineElement(
++      id: 'poly-arrow',
++      points: [Offset(0, 0), Offset(60, 0), Offset(60, 40)],
++      style: PaintStyle(color: Color(0xFF336699), strokeWidth: 3),
++      endArrow: true,
++      headSize: 20,
++      label: 'Route',
++    );
++
++    final svg = SvgExporter.exportElements(
++      elements: const [element],
++      bounds: const Rect.fromLTWH(-10, -10, 100, 80),
++    );
++
++    expect(() => XmlDocument.parse(svg), returnsNormally);
++    expect(
++      svg,
++      contains('<polyline points="0.0,0.0 60.0,0.0 60.0,40.0"'),
++    );
++    expect(
++      svg,
++      contains(
++        '<polygon points="60.0,40.0 52.0,20.0 68.0,20.0" fill="#336699"',
++      ),
++    );
++    expect(svg, contains('Route'));
++  });
++
++  test('svg exporter omits polyline arrowhead polygon when disabled', () {
++    const element = PolylineElement(
++      id: 'poly-no-arrow',
++      points: [Offset(0, 0), Offset(60, 0), Offset(60, 40)],
++      style: PaintStyle(color: Color(0xFF336699), strokeWidth: 3),
++      endArrow: false,
++      headSize: 20,
++    );
++
++    final svg = SvgExporter.exportElements(
++      elements: const [element],
++      bounds: const Rect.fromLTWH(-10, -10, 100, 80),
++    );
++
++    expect(() => XmlDocument.parse(svg), returnsNormally);
++    expect(svg, contains('<polyline'));
++    expect(svg, isNot(contains('<polygon')));
++  });
++
+   test('svg exporter preserves drawio flip transform and label positions', () {
+     const element = DrawioShapeElement(
+       id: 'stage4-1',
+warning: in the working copy of 'wenz_draw/test/serialization_test.dart', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'wenz_draw/test/svg_exporter_test.dart', LF will be replaced by CRLF the next time Git touches it
+
+ succeeded in 403ms:
+ M test/polyline_element_test.dart
+ M test/serialization_test.dart
+ M test/svg_exporter_test.dart
+?? .codex_node_write_probe.tmp
+?? docs/plan/plan_feedback_49_20260710-001100.md
+
+ succeeded in 412ms:
+ wenz_draw/test/polyline_element_test.dart | 22 ++++++++++++++
+ wenz_draw/test/serialization_test.dart    | 16 +++++++++++
+ wenz_draw/test/svg_exporter_test.dart     | 48 +++++++++++++++++++++++++++++++
+ 3 files changed, 86 insertions(+)
+warning: in the working copy of 'wenz_draw/test/serialization_test.dart', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'wenz_draw/test/svg_exporter_test.dart', LF will be replaced by CRLF the next time Git touches it
+
+ succeeded in 425ms:
+   76:     expect(svg, contains('<path d="M 60.0 0.0'));
+   77:     expect(svg, contains('L 120.0 40.0'));
+   78:   });
+   79: 
+   80:   test('svg exporter emits polyline arrowhead polygon when enabled', () {
+   81:     const element = PolylineElement(
+   82:       id: 'poly-arrow',
+   83:       points: [Offset(0, 0), Offset(60, 0), Offset(60, 40)],
+   84:       style: PaintStyle(color: Color(0xFF336699), strokeWidth: 3),
+   85:       endArrow: true,
+   86:       headSize: 20,
+   87:       label: 'Route',
+   88:     );
+   89: 
+   90:     final svg = SvgExporter.exportElements(
+   91:       elements: const [element],
+   92:       bounds: const Rect.fromLTWH(-10, -10, 100, 80),
+   93:     );
+   94: 
+   95:     expect(() => XmlDocument.parse(svg), returnsNormally);
+   96:     expect(
+   97:       svg,
+   98:       contains('<polyline points="0.0,0.0 60.0,0.0 60.0,40.0"'),
+   99:     );
+  100:     expect(
+  101:       svg,
+  102:       contains(
+  103:         '<polygon points="60.0,40.0 52.0,20.0 68.0,20.0" fill="#336699"',
+  104:       ),
+  105:     );
+  106:     expect(svg, contains('Route'));
+  107:   });
+  108: 
+  109:   test('svg exporter omits polyline arrowhead polygon when disabled', () {
+  110:     const element = PolylineElement(
+  111:       id: 'poly-no-arrow',
+  112:       points: [Offset(0, 0), Offset(60, 0), Offset(60, 40)],
+  113:       style: PaintStyle(color: Color(0xFF336699), strokeWidth: 3),
+  114:       endArrow: false,
+  115:       headSize: 20,
+  116:     );
+  117: 
+  118:     final svg = SvgExporter.exportElements(
+  119:       elements: const [element],
+  120:       bounds: const Rect.fromLTWH(-10, -10, 100, 80),
+  121:     );
+  122: 
+  123:     expect(() => XmlDocument.parse(svg), returnsNormally);
+  124:     expect(svg, contains('<polyline'));
+  125:     expect(svg, isNot(contains('<polygon')));
+  126:   });
+  127: 
+  128:   test('svg exporter preserves drawio flip transform and label positions', () {
+  129:     const element = DrawioShapeElement(
+  130:       id: 'stage4-1',
+  131:       shapeKey: 'flowchart.process',
+  132:       rect: Rect.fromLTWH(10, 20, 120, 80),
+  133:       strokeStyle: PaintStyle(color: Color(0xFF1F2937), strokeWidth: 1.5),
+
+codex
+scope diff 正常，且 plan 只读未改。工作区里仍有前序权限探针残留，我再尝试清理一次；如果仍被拒绝，会在结果里说明它不是 P003 修改。
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+P003 已完成，修改仅限三个测试 scope 文件：
+
+- [polyline_element_test.dart](D:/project/GitHub/wenz_flutter/wenz_draw/test/polyline_element_test.dart:160)：补充折线箭头 bounds / hitTest 覆盖，并让端点拖拽用例验证 `endArrow/headSize` 保持不丢失。
+- [serialization_test.dart](D:/project/GitHub/wenz_flutter/wenz_draw/test/serialization_test.dart:200)：强化 Polyline JSON round-trip，覆盖箭头、尺寸、绑定 anchor、标签样式/位置/偏移/背景。
+- [svg_exporter_test.dart](D:/project/GitHub/wenz_flutter/wenz_draw/test/svg_exporter_test.dart:80)：新增 SVG 导出有箭头 polygon 与无箭头不输出 polygon 的回归覆盖。
+
+按要求未运行 `flutter test`、analyze、构建或其它验收命令。  
+另：工作区仍有前序遗留的 `.codex_node_write_probe.tmp`，删除被系统拒绝：`EPERM`；内容是短文本 `probe`，不是 P003 业务改动。
+tokens used
+204,007
+P003 已完成，修改仅限三个测试 scope 文件：
+
+- [polyline_element_test.dart](D:/project/GitHub/wenz_flutter/wenz_draw/test/polyline_element_test.dart:160)：补充折线箭头 bounds / hitTest 覆盖，并让端点拖拽用例验证 `endArrow/headSize` 保持不丢失。
+- [serialization_test.dart](D:/project/GitHub/wenz_flutter/wenz_draw/test/serialization_test.dart:200)：强化 Polyline JSON round-trip，覆盖箭头、尺寸、绑定 anchor、标签样式/位置/偏移/背景。
+- [svg_exporter_test.dart](D:/project/GitHub/wenz_flutter/wenz_draw/test/svg_exporter_test.dart:80)：新增 SVG 导出有箭头 polygon 与无箭头不输出 polygon 的回归覆盖。
+
+按要求未运行 `flutter test`、analyze、构建或其它验收命令。  
+另：工作区仍有前序遗留的 `.codex_node_write_probe.tmp`，删除被系统拒绝：`EPERM`；内容是短文本 `probe`，不是 P003 业务改动。

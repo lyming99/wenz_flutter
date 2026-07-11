@@ -1,0 +1,62 @@
+{
+  "title": "Fix Shift plus mouse selection in the rich text editor",
+  "summary": "Feedback #19 reports that Shift plus mouse selection is broken. In the current implementation, `SelectionGestureOverlay` owns document-level pointer selection, but it treats a primary click as caret placement and a drag as a new selection from the pointer-down position. Keyboard Shift expansion is already handled through shortcut commands, yet the pointer path has no access to the current controller selection and does not preserve an existing anchor when Shift is held. The fix should add Shift-aware click and drag semantics to the gesture overlay, thread the current selection from `WenzRichTextEditor`, and cover text, cross-block, table/code/object-adjacent behavior without regressing normal click, drag, multi-click, link modifier-click, context menu, scrollbar gutter, or read-only selection.",
+  "tasks": [
+    {
+      "title": "Add Shift-aware anchor handling to document pointer selection",
+      "scope": [
+        "lib/src/widgets/selection_gesture_overlay.dart"
+      ],
+      "acceptance": [
+        "When Shift is held during a mouse primary click and the editor already has a selection, the overlay emits a range from the existing selection anchor to the clicked document position instead of collapsing the caret.",
+        "When the existing selection is collapsed, Shift-click uses the collapsed caret as the base and the clicked position as the extent.",
+        "When the existing selection is expanded, Shift-click preserves the existing base and only moves the extent, including reverse extension when the clicked point is before the base.",
+        "Shift plus mouse drag starts from the existing selection anchor and continuously updates the extent through `BlockGeometryRegistry`, including cross-block drag and drag into gaps that clamp to nearest text positions.",
+        "If there is no current selection or the pointer cannot resolve a document position, behavior falls back to the current normal click and drag semantics.",
+        "Non-Shift single click, normal drag, double-click word selection, triple-click block selection, touch long-press selection, context-menu pointer handling, scrollbar gutter exclusion, and selection exclusion zones remain unchanged.",
+        "Ctrl/Cmd plus link click continues to open links with the existing precedence and does not accidentally create a Shift selection when the link-open path handles the pointer."
+      ]
+    },
+    {
+      "title": "Thread current selection into the gesture overlay and preserve editor side effects",
+      "scope": [
+        "lib/src/widgets/wenz_rich_text_editor.dart",
+        "lib/src/widgets/selection_gesture_overlay.dart"
+      ],
+      "acceptance": [
+        "`WenzRichTextEditor` passes the controller's current `DocumentSelection` into `SelectionGestureOverlay` so pointer gestures can reuse the same anchor semantics as keyboard Shift expansion.",
+        "Selection changes produced by Shift-click and Shift-drag still flow through `_handleSelectionChanged`, so caret scroll suppression, mention tap dispatch, controller callbacks, and IME buffer sync continue to run.",
+        "Read-only editors still allow Shift-based text selection while edit-only commands remain guarded by existing read-only logic.",
+        "Table cell text paths, code block paths, normal paragraph paths, and block object positions continue to use the existing `DocumentPosition` and `PositionPath` semantics.",
+        "Programmatic selection changes immediately affect the next Shift mouse action; stale pointer state from previous taps, drags, multi-clicks, or canceled gestures is cleared before starting a new Shift gesture.",
+        "Mobile selection handles and touch long-press selection keep their current behavior and are not required to use the mouse Shift path."
+      ]
+    },
+    {
+      "title": "Add regression coverage for Shift plus mouse selection",
+      "scope": [
+        "test/widgets/wenz_rich_text_editor_test.dart",
+        "example/integration_test/editor_mouse_test.dart",
+        "example/integration_test/helpers/pointer_helpers.dart"
+      ],
+      "acceptance": [
+        "Widget coverage includes Shift-click from a collapsed caret to a later text offset and verifies the resulting non-collapsed range and visible selection highlight.",
+        "Widget coverage includes Shift-click from an expanded selection to a new earlier or later point and verifies that the original base is preserved while the extent moves.",
+        "Widget coverage includes Shift plus mouse drag across two text blocks and verifies that the range spans the original anchor and the final block.",
+        "Coverage includes at least one non-paragraph registered surface, such as a code block or table cell text path, to verify `PositionPath` is preserved.",
+        "Regression tests assert that ordinary click still collapses the caret, ordinary drag still starts from the pointer-down position, and double/triple click selection behavior is not changed by the new Shift path.",
+        "Integration helpers can synthesize mouse clicks and drags while holding Shift without leaking the modifier key into following tests."
+      ]
+    }
+  ],
+  "finalValidation": {
+    "command": "flutter analyze; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; flutter test test/widgets/wenz_rich_text_editor_test.dart; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; Push-Location example; flutter test integration_test/editor_mouse_test.dart; $code = $LASTEXITCODE; Pop-Location; exit $code",
+    "criteria": [
+      "Static analysis exits with code 0 and reports no new analyzer errors or warnings.",
+      "The widget editor regression suite passes, including the new Shift-click and Shift-drag selection cases.",
+      "The example mouse integration tests pass, including modifier-assisted pointer helpers if added.",
+      "Feedback #19 is covered: holding Shift while clicking or dragging with the mouse extends the existing editor selection instead of collapsing or starting from the clicked point.",
+      "Existing mouse selection behavior remains intact for normal click, normal drag, multi-click, link modifier-click, context menu, scrollbar gutter, read-only mode, code blocks, and table cell text paths."
+    ]
+  }
+}

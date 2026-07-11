@@ -11,6 +11,21 @@ typedef SelectionContextMenuRequestHandler = void Function(
   SelectionContextMenuRequest request,
 );
 
+typedef TapSelectionDeferPredicate = bool Function(
+  DocumentPosition anchor,
+  Offset globalPosition,
+);
+
+typedef TapSelectionCommitPredicate = bool Function(
+  DocumentPosition anchor,
+  Offset globalPosition,
+);
+
+typedef TapSelectionFocusPredicate = bool Function(
+  DocumentPosition anchor,
+  Offset globalPosition,
+);
+
 class SelectionContextMenuRequest {
   const SelectionContextMenuRequest({
     required this.globalPosition,
@@ -34,7 +49,11 @@ class SelectionContextMenuRequest {
 /// - tap → place collapsed caret. Empty text surfaces follow the same tap
 ///   semantics: when their visible line area resolves to a text anchor, focus is
 ///   requested and the selection collapses to that block/path at offset 0.
-/// - drag → extend selection (cross-block), with auto-scroll near viewport edges
+/// - mouse/stylus drag → extend selection (cross-block), with auto-scroll
+///   near viewport edges
+/// - touch drag → leave selection unchanged so the descendant scrollable
+///   exclusively owns ordinary finger scrolling; selection extension starts
+///   only after a touch long-press has selected a word
 /// - auto-scroll → every drag (touch or mouse) synchronously scrolls one step
 ///   when the pointer enters the viewport edge band, so the list follows the
 ///   drag. A per-frame [Ticker] *additionally* keeps scrolling (for every
@@ -57,6 +76,11 @@ class SelectionGestureOverlay extends StatefulWidget {
     required this.focusNode,
     required this.readOnly,
     required this.onSelectionChanged,
+    this.useMobileTouchGestures = false,
+    this.currentSelection,
+    this.shouldDeferTapSelection,
+    this.shouldCommitDeferredTapSelection,
+    this.shouldRequestFocusForTapSelection,
     this.onTapBeyondContent,
     this.onContextMenuRequested,
     this.linkProbe,
@@ -70,6 +94,28 @@ class SelectionGestureOverlay extends StatefulWidget {
   final FocusNode focusNode;
   final bool readOnly;
   final ValueChanged<DocumentSelection> onSelectionChanged;
+
+  /// Whether ordinary touch drags should be reserved for scrolling and text
+  /// range selection should start only after long-press. Desktop touchscreens
+  /// leave this disabled to preserve their mouse-like drag-selection model.
+  final bool useMobileTouchGestures;
+
+  /// Current editor selection used as the fixed base for Shift+mouse
+  /// extension gestures. When absent, pointer selection keeps the normal
+  /// click/drag semantics.
+  final DocumentSelection? currentSelection;
+
+  /// Allows a block renderer with its own tap recognizers to delay the editor's
+  /// tap selection update until after the current pointer sequence finishes.
+  final TapSelectionDeferPredicate? shouldDeferTapSelection;
+
+  /// Decides whether a deferred tap still belongs to editor selection after
+  /// descendant gesture recognizers have resolved the pointer sequence.
+  final TapSelectionCommitPredicate? shouldCommitDeferredTapSelection;
+
+  /// Controls whether a tap selection should also request text-input focus.
+  final TapSelectionFocusPredicate? shouldRequestFocusForTapSelection;
+
   final bool Function(Offset globalPosition)? onTapBeyondContent;
   final SelectionContextMenuRequestHandler? onContextMenuRequested;
 
@@ -129,6 +175,8 @@ class _SelectionGestureOverlayState extends State<SelectionGestureOverlay> {
   Offset? _dragOrigin;
   Offset? _lastDragPosition;
   int? _selectionExcludedPointer;
+  int? _touchScrollPointer;
+  bool _isShiftSelecting = false;
   // Anchor position from the most recent pointer down, used for tap /
   // multi-click selection regardless of whether a drag starts.
   DocumentPosition? _tapAnchor;
@@ -149,10 +197,10 @@ class _SelectionGestureOverlayState extends State<SelectionGestureOverlay> {
   // Cleared on up, cancel, and exit.
   WenzLinkHoverInfo? _linkOpenPending;
 
-  // Continuous auto-scroll (mouse/pen only). While the pointer is held near a
-  // viewport edge, a ticker advances the scroll offset every frame, so a mouse
-  // drag can scroll past the visible area without moving the pointer. Touch
-  // relies on the per-move synchronous edge scroll plus its own pan recognizer.
+  // Continuous auto-scroll for active selection drags. While the pointer is
+  // held near a viewport edge, a ticker advances the scroll offset every frame.
+  // Ordinary touch scrolling never enters this path; touch selection does so
+  // only after long-press has selected a word.
   Ticker? _autoScrollTicker;
   bool _autoScrollActive = false;
   bool _autoScrollExtendPending = false;
@@ -307,6 +355,8 @@ class _SelectionGestureOverlayState extends State<SelectionGestureOverlay> {
     // selection flag left by a previous (interrupted) sequence so it cannot
     // suppress this press's caret placement.
     _longPressWordSelected = false;
+    _isShiftSelecting = false;
+    _touchScrollPointer = null;
     if (widget.registry.isSelectionExcluded(event.position)) {
       _selectionExcludedPointer = event.pointer;
       _stopAutoScroll();
@@ -361,26 +411,35 @@ class _SelectionGestureOverlayState extends State<SelectionGestureOverlay> {
     }
     final now = DateTime.now();
     final position = event.position;
-    final isMultiClick = _lastTapTime != null &&
-        _lastTapPosition != null &&
-        now.difference(_lastTapTime!) < _multiClickWindow &&
-        (position - _lastTapPosition!).distance <= _dragSlop;
-
-    if (isMultiClick) {
-      _tapCount += 1;
-    } else {
-      _tapCount = 1;
-    }
-    _lastTapTime = now;
-    _lastTapPosition = position;
-
     _tapAnchor = widget.registry.positionFromGlobalOffset(position);
+    final shiftBase = _tapAnchor == null ? null : _shiftBaseFor(event);
+
+    if (shiftBase != null) {
+      _tapCount = 1;
+      _lastTapTime = null;
+      _lastTapPosition = null;
+    } else {
+      final isMultiClick = _lastTapTime != null &&
+          _lastTapPosition != null &&
+          now.difference(_lastTapTime!) < _multiClickWindow &&
+          (position - _lastTapPosition!).distance <= _dragSlop;
+
+      if (isMultiClick) {
+        _tapCount += 1;
+      } else {
+        _tapCount = 1;
+      }
+      _lastTapTime = now;
+      _lastTapPosition = position;
+    }
     if (_tapCount < 2) {
       _dragOrigin = position;
-      _dragBase = _tapAnchor;
+      _dragBase = shiftBase ?? _tapAnchor;
+      _isShiftSelecting = shiftBase != null;
     } else {
       _dragOrigin = null;
       _dragBase = null;
+      _isShiftSelecting = false;
     }
     _isDragging = false;
     _lastDragPosition = null;
@@ -389,6 +448,15 @@ class _SelectionGestureOverlayState extends State<SelectionGestureOverlay> {
   bool _isContextMenuButton(PointerDownEvent event) {
     return event.kind == PointerDeviceKind.mouse &&
         (event.buttons & kSecondaryMouseButton) != 0;
+  }
+
+  DocumentPosition? _shiftBaseFor(PointerDownEvent event) {
+    if (event.kind != PointerDeviceKind.mouse ||
+        (event.buttons & kPrimaryMouseButton) == 0 ||
+        !HardwareKeyboard.instance.isShiftPressed) {
+      return null;
+    }
+    return widget.currentSelection?.base;
   }
 
   /// Resolves whether a mouse/stylus pointer-down at [event] should open the
@@ -421,6 +489,9 @@ class _SelectionGestureOverlayState extends State<SelectionGestureOverlay> {
   }
 
   void _onPointerMove(PointerMoveEvent event) {
+    if (_touchScrollPointer == event.pointer) {
+      return;
+    }
     if (_selectionExcludedPointer == event.pointer) {
       return;
     }
@@ -431,6 +502,24 @@ class _SelectionGestureOverlayState extends State<SelectionGestureOverlay> {
     if (!_isDragging) {
       final moved = (position - _dragOrigin!).distance;
       if (moved < _dragSlop) {
+        return;
+      }
+      // A normal finger drag belongs to the editor's Scrollable. Do not turn
+      // it into a selection drag or request focus on pointer-up; touch range
+      // selection is intentionally entered only through long-press.
+      if (widget.useMobileTouchGestures &&
+          event.kind == PointerDeviceKind.touch &&
+          !_longPressWordSelected) {
+        _touchScrollPointer = event.pointer;
+        _stopAutoScroll();
+        _dragBase = null;
+        _dragOrigin = null;
+        _lastDragPosition = null;
+        _tapAnchor = null;
+        _tapCount = 0;
+        _lastTapTime = null;
+        _lastTapPosition = null;
+        _isDragging = false;
         return;
       }
       _isDragging = true;
@@ -444,6 +533,19 @@ class _SelectionGestureOverlayState extends State<SelectionGestureOverlay> {
   void _onPointerUp(PointerUpEvent event) {
     if (_selectionExcludedPointer == event.pointer) {
       _selectionExcludedPointer = null;
+      _isShiftSelecting = false;
+      return;
+    }
+    if (_touchScrollPointer == event.pointer) {
+      _touchScrollPointer = null;
+      _stopAutoScroll();
+      _isDragging = false;
+      _isShiftSelecting = false;
+      _longPressWordSelected = false;
+      _dragBase = null;
+      _dragOrigin = null;
+      _lastDragPosition = null;
+      _tapAnchor = null;
       return;
     }
     _stopAutoScroll();
@@ -451,6 +553,8 @@ class _SelectionGestureOverlayState extends State<SelectionGestureOverlay> {
     final wasDragging = _isDragging;
     final tapCount = _tapCount;
     final longPressSelected = _longPressWordSelected;
+    final isShiftSelecting = _isShiftSelecting;
+    final shiftBase = _dragBase;
     _isDragging = false;
     _longPressWordSelected = false;
     _dragOrigin = null;
@@ -464,6 +568,7 @@ class _SelectionGestureOverlayState extends State<SelectionGestureOverlay> {
       _linkOpenPending = null;
       _dragBase = null;
       _tapAnchor = null;
+      _isShiftSelecting = false;
       widget.onLinkOpen?.call(pendingLink);
       return;
     }
@@ -472,6 +577,7 @@ class _SelectionGestureOverlayState extends State<SelectionGestureOverlay> {
       final extent = widget.registry.positionFromGlobalOffset(position);
       final base = _dragBase;
       _dragBase = null;
+      _isShiftSelecting = false;
       if (base != null && extent != null) {
         widget.focusNode.requestFocus();
         widget.onSelectionChanged(
@@ -487,6 +593,7 @@ class _SelectionGestureOverlayState extends State<SelectionGestureOverlay> {
     if (longPressSelected) {
       _dragBase = null;
       _tapAnchor = null;
+      _isShiftSelecting = false;
       return;
     }
 
@@ -495,26 +602,82 @@ class _SelectionGestureOverlayState extends State<SelectionGestureOverlay> {
     if (handledBeyondContent) {
       _dragBase = null;
       _tapAnchor = null;
+      _isShiftSelecting = false;
       return;
     }
 
     final anchor = _tapAnchor;
     if (anchor != null) {
-      widget.focusNode.requestFocus();
-      if (tapCount >= 3) {
-        _selectBlock(anchor);
-      } else if (tapCount == 2) {
-        _selectWord(anchor, position);
-      } else if (anchor.path.isBlockObject) {
-        _selectBlock(anchor);
+      if (!isShiftSelecting &&
+          anchor.path.isBlockObject &&
+          _shouldDeferTapSelection(anchor, position)) {
+        _deferTapSelection(anchor, position);
       } else {
-        widget.onSelectionChanged(
-          DocumentSelection(base: anchor, extent: anchor),
-        );
+        _requestFocusForTapSelection(anchor, position);
+        if (tapCount >= 3) {
+          _selectBlock(anchor);
+        } else if (tapCount == 2) {
+          _selectWord(anchor, position);
+        } else if (isShiftSelecting && shiftBase != null) {
+          widget.onSelectionChanged(
+            DocumentSelection(base: shiftBase, extent: anchor),
+          );
+        } else if (anchor.path.isBlockObject) {
+          _selectBlock(anchor);
+        } else {
+          widget.onSelectionChanged(
+            DocumentSelection(base: anchor, extent: anchor),
+          );
+        }
       }
     }
     _dragBase = null;
     _tapAnchor = null;
+    _isShiftSelecting = false;
+  }
+
+  bool _shouldDeferTapSelection(
+    DocumentPosition anchor,
+    Offset globalPosition,
+  ) {
+    final predicate = widget.shouldDeferTapSelection;
+    return predicate != null && predicate(anchor, globalPosition);
+  }
+
+  void _deferTapSelection(DocumentPosition anchor, Offset globalPosition) {
+    final scheduler = SchedulerBinding.instance;
+    scheduler.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      final current = widget.registry.positionFromGlobalOffset(globalPosition);
+      if (current == null ||
+          current.blockId != anchor.blockId ||
+          current.blockIndex != anchor.blockIndex ||
+          current.path != anchor.path) {
+        return;
+      }
+      final shouldCommit = widget.shouldCommitDeferredTapSelection;
+      if (shouldCommit != null && !shouldCommit(anchor, globalPosition)) {
+        return;
+      }
+      _requestFocusForTapSelection(anchor, globalPosition);
+      _selectBlock(anchor);
+    });
+    // A resolver control normally schedules a frame when it changes playback
+    // state, but a tap on a non-interactive part of the same video frame does
+    // not. Ensure the deferred object selection is delivered in both cases.
+    scheduler.scheduleFrame();
+  }
+
+  void _requestFocusForTapSelection(
+    DocumentPosition anchor,
+    Offset globalPosition,
+  ) {
+    final predicate = widget.shouldRequestFocusForTapSelection;
+    if (predicate == null || predicate(anchor, globalPosition)) {
+      widget.focusNode.requestFocus();
+    }
   }
 
   bool _handleTapBeyondContent(Offset globalPosition) {
@@ -534,8 +697,12 @@ class _SelectionGestureOverlayState extends State<SelectionGestureOverlay> {
     if (_selectionExcludedPointer == event.pointer) {
       _selectionExcludedPointer = null;
     }
+    if (_touchScrollPointer == event.pointer) {
+      _touchScrollPointer = null;
+    }
     _stopAutoScroll();
     _isDragging = false;
+    _isShiftSelecting = false;
     _longPressWordSelected = false;
     _dragBase = null;
     _dragOrigin = null;

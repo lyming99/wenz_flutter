@@ -1,0 +1,2665 @@
+OpenAI Codex v0.144.1
+--------
+workdir: D:\project\GitHub\wenz_flutter\wenz_draw
+model: gpt-5.6-sol
+provider: openai
+approval: never
+sandbox: danger-full-access
+reasoning effort: xhigh
+reasoning summaries: none
+session id: 019f4cda-7412-7800-89f7-6ba0702e92c7
+--------
+user
+你是开发执行者，在无人值守模式下工作：禁止反问用户、禁止请求确认或补充信息、禁止输出“请告诉我…/是否需要…”之类等待回复的话；遇到不确定一律自行从代码推断，按最合理的工程方案直接推进，不要停下来等待输入。
+请只执行指定任务 P001，不要提前执行其它任务，也不要顺手处理其它 checkbox。
+
+plan 文件（只读）：D:\project\GitHub\wenz_flutter\wenz_draw\docs\plan\plan_requirement_1_20260711-002515.md
+指定任务：- [ ] P001: 扩展曲线元素的端点绑定模型与文档持久化 <!-- scope: lib/src/elements/curve_element.dart,lib/src/serialization/canvas_serializer.dart -->
+任务 scope：lib/src/elements/curve_element.dart, lib/src/serialization/canvas_serializer.dart
+
+完成后必须：
+- 这是无人值守执行：不要提问、不要请求确认、不要等待用户输入，所有不确定项自行基于代码推断并直接落地修改
+- plan 文件是只读上下文：不要修改 plan 文件，不要勾选 checkbox，不要更新 plan 进度区
+- AutoPlan 会在任务成功后统一写回数据库、checkbox 和进度区
+- 只修改当前任务 scope 直接相关的业务文件
+- 当前阶段只做开发修改，不运行测试、回归、验收、构建、lint/analyze、coverage、e2e 或 benchmark 命令；AutoPlan 会在所有任务完成后统一执行最终验收命令
+- 即使任务验收要点提到测试，也只补充或调整必要代码/测试文件，不在当前任务内启动测试进程；除非当前任务或 plan 总体说明明确写着“本任务必须执行某命令”
+- 若识别到 Flutter/Dart 项目，可遵循其代码组织、格式和测试文件约定，但当前任务内不要运行 flutter test、dart test、flutter analyze 或 dart analyze
+- 如果工具链命令因 PathAccessException、Permission denied、拒绝访问或超时失败，停止重试并说明环境阻塞，把验证留给最终验收阶段
+- 不输出完整 diff、源码全文或长文件列表
+- 中文文件读写使用 UTF-8
+2026-07-10T16:26:57.815527Z ERROR codex_models_manager::manager: failed to refresh available models: timeout waiting for child process to exit
+2026-07-10T16:27:00.868851Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: IO error: tls handshake eof, url: wss://chatgpt.com/backend-api/codex/responses
+codex
+我将只读取计划上下文和指定的两个业务文件，推断端点绑定的数据结构及序列化兼容方案；仅修改 scope 内文件，不执行任何测试、构建或分析命令。
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command '$files = @('"'docs\\plan\\plan_requirement_1_20260711-002515.md','lib\\src\\elements\\curve_element.dart','lib\\src\\serialization\\canvas_serializer.dart'); foreach ("'$f in $files) { Write-Output "FILE: $f"; Get-Content -LiteralPath $f -Raw -Encoding UTF8 }' in D:\project\GitHub\wenz_flutter\wenz_draw
+ succeeded in 223ms:
+FILE: docs\plan\plan_requirement_1_20260711-002515.md
+# 为曲线补齐折线同等的端点吸附能力
+
+## 需求概要
+
+绘图白板中的 PolylineTool、PolylineElement 和 SelectTool 已形成端点吸附、绑定持久化、拖动重绑及目标移动联动的完整链路，而 CurveTool 当前直接使用指针坐标，CurveElement 也没有保存 SnapBinding，导致曲线创建和编辑时虽可命中端点交互，却无法像折线一样稳定吸附到图形连接点。需要为曲线补齐起点与终点的吸附预览、绑定数据、序列化、编辑解绑/重绑和被连接图形移动后的同步能力，同时保持现有贝塞尔控制点、箭头样式及旧文档兼容性。
+
+## 任务拆解
+
+- [ ] P001: 扩展曲线元素的端点绑定模型与文档持久化 <!-- scope: lib/src/elements/curve_element.dart,lib/src/serialization/canvas_serializer.dart -->
+  - 验收要点：CurveElement 可分别保存可空的 startBinding 和 endBinding，并在构造、copyWith、平移、缩放等现有元素变换过程中正确保留绑定信息。
+  - 验收要点：曲线 JSON 仅在绑定存在时写入对应字段，反序列化后可还原 elementId 与 anchorId。
+  - 验收要点：不含绑定字段的既有曲线文档仍能按未绑定曲线载入，现有控制点、画笔样式、箭头样式、图层和分组字段保持兼容。
+- [ ] P002: 在曲线绘制流程中接入起终点吸附与预览 <!-- scope: lib/src/tools/curve_tool.dart -->
+  - 验收要点：按下、移动和抬起指针时均使用当前画布缩放比例解析附近连接点，曲线起点与终点落在吸附位置并保存各自绑定。
+  - 验收要点：绘制预览使用已吸附的端点坐标并同步显示 SnapPreview，完成、取消或无效短距离绘制后清除临时吸附状态和预览。
+  - 验收要点：关闭吸附或超出屏幕阈值时曲线继续使用原始世界坐标，行为与现有自由绘制一致。
+  - 验收要点：吸附只改变曲线端点来源，现有二次贝塞尔控制点计算、画笔样式和创建后选中行为保持不变。
+- [ ] P003: 补齐曲线端点编辑、解绑重绑与目标移动联动 <!-- scope: lib/src/tools/select_tool.dart,lib/src/canvas/canvas_controller.dart -->
+  - 验收要点：选中曲线后拖动任一端点可显示吸附预览，并将该端点更新到命中的连接点及保存对应绑定，另一端点绑定不受影响。
+  - 验收要点：把已绑定端点拖离所有连接点时使用自由坐标并清除该端绑定，端点编辑仍作为单次可撤销操作提交。
+  - 验收要点：被绑定的图形连接点因移动或更新而改变位置时，曲线对应端点自动跟随，未受影响的端点、控制点和曲线样式保持不变。
+  - 验收要点：端点拖动完成或交互取消后清除 SnapPreview，曲线控制点编辑和折线、直线、箭头的既有端点编辑行为不回退。
+- [ ] P004: 补充曲线端点吸附与绑定生命周期的自动化覆盖 <!-- scope: test/curve_element_test.dart,test/snap_resolver_test.dart,test/serialization_test.dart -->
+  - 验收要点：覆盖曲线工具在起点和终点附近绘制时的坐标吸附、绑定记录、预览清理，以及禁用吸附或超出阈值时保持自由坐标的场景。
+  - 验收要点：覆盖选中曲线拖动起点或终点进行吸附、改绑和拖离解绑，并验证撤销可恢复编辑前状态。
+  - 验收要点：覆盖绑定目标移动后曲线端点跟随，且另一端点、控制点、箭头及样式数据保持稳定的场景。
+  - 验收要点：覆盖曲线绑定 JSON 往返还原和缺少绑定字段的旧数据兼容场景。
+- [ ] P005: 完整验收 <!-- scope: validation -->
+  - 验收要点：最终验收命令为 flutter analyze && flutter test
+  - 验收要点：Flutter 静态分析无新增错误或警告，完整测试套件全部通过。
+  - 验收要点：曲线新建时的起点和终点均可按当前缩放与吸附阈值吸附到可用图形连接点，并提供与折线一致的预览清理体验。
+  - 验收要点：曲线端点可在选择工具中自由拖动、吸附、改绑和解绑，操作可撤销，且不影响控制点编辑及其他连接线类型。
+  - 验收要点：曲线绑定在保存并重新载入后保持有效；被连接图形移动时绑定端点正确跟随，旧版无绑定曲线文档仍可正常载入。
+  - 验收要点：关闭吸附、超出吸附阈值、取消交互和无效短距离绘制等边界场景均不会残留 SnapPreview、错误绑定或多余曲线元素。
+
+## 总体验收标准
+
+- 最终验收命令：flutter analyze && flutter test
+- 验收范围：lib/src/elements/curve_element.dart、lib/src/serialization/canvas_serializer.dart、lib/src/tools/curve_tool.dart、lib/src/tools/select_tool.dart、lib/src/canvas/canvas_controller.dart、test/curve_element_test.dart、test/snap_resolver_test.dart、test/serialization_test.dart、validation
+- 通过标准：所有总体验收标准均满足。
+- Flutter 静态分析无新增错误或警告，完整测试套件全部通过。
+- 曲线新建时的起点和终点均可按当前缩放与吸附阈值吸附到可用图形连接点，并提供与折线一致的预览清理体验。
+- 曲线端点可在选择工具中自由拖动、吸附、改绑和解绑，操作可撤销，且不影响控制点编辑及其他连接线类型。
+- 曲线绑定在保存并重新载入后保持有效；被连接图形移动时绑定端点正确跟随，旧版无绑定曲线文档仍可正常载入。
+- 关闭吸附、超出吸附阈值、取消交互和无效短距离绘制等边界场景均不会残留 SnapPreview、错误绑定或多余曲线元素。
+
+## 进度区
+
+FILE: lib\src\elements\curve_element.dart
+import 'package:flutter/widgets.dart';
+
+import '../canvas/paint_style.dart';
+import '../utils/math_utils.dart';
+import 'canvas_element.dart';
+import 'element_renderer.dart';
+import 'line_arrow_style.dart';
+
+/// A quadratic Bézier curve defined by a start point, an end point and a
+/// single control point.
+@immutable
+class CurveElement extends CanvasElement {
+  const CurveElement({
+    required this.id,
+    required this.start,
+    required this.end,
+    required this.control,
+    this.style = const PaintStyle(),
+    LineArrowType startArrowStyle = LineArrowType.none,
+    LineArrowType? endArrowStyle,
+    bool endArrow = false,
+    this.headSize = LineArrowStyle.defaultHeadSize,
+    this.layerId = 'default',
+    this.visible = true,
+    this.opacity = 1,
+    this.zIndex = 0,
+    this.groupId,
+  }) : startArrowStyle = startArrowStyle,
+       endArrowStyle =
+           endArrowStyle ??
+           (endArrow ? LineArrowType.normal : LineArrowType.none);
+
+  static const elementType = 'curve';
+
+  @override
+  final String id;
+
+  final Offset start;
+  final Offset end;
+  final Offset control;
+  final PaintStyle style;
+  final LineArrowType startArrowStyle;
+  final LineArrowType endArrowStyle;
+  final double headSize;
+
+  @override
+  final String layerId;
+
+  @override
+  final bool visible;
+
+  @override
+  final double opacity;
+
+  @override
+  final int zIndex;
+
+  @override
+  final String? groupId;
+
+  @override
+  String get type => elementType;
+
+  LineArrowStyle get arrowStyle => LineArrowStyle(
+    startArrowStyle: startArrowStyle,
+    endArrowStyle: endArrowStyle,
+    headSize: headSize,
+  );
+
+  bool get endArrow => endArrowStyle.isEnabled;
+
+  /// Sample the quadratic Bézier at parameter [t] (0 → start, 1 → end).
+  Offset pointAt(double t) {
+    final u = 1 - t;
+    return Offset(
+      u * u * start.dx + 2 * u * t * control.dx + t * t * end.dx,
+      u * u * start.dy + 2 * u * t * control.dy + t * t * end.dy,
+    );
+  }
+
+  /// Approximate bounds by sampling the curve plus the control point.
+  @override
+  Rect get bounds {
+    // The convex hull of start, control, end contains the curve.
+    final allPoints = [start, control, end];
+    return LineArrowGeometryUtils.expandBounds(
+      bounds: boundsForPoints(allPoints),
+      style: arrowStyle,
+      strokeWidth: style.strokeWidth,
+    );
+  }
+
+  @override
+  bool hitTest(Offset worldPoint, {double tolerance = 5.0}) {
+    final threshold = tolerance + style.strokeWidth / 2;
+    // Sample the curve densely for hit testing.
+    const steps = 32;
+    Offset? prev;
+    for (var i = 0; i <= steps; i++) {
+      final p = pointAt(i / steps);
+      if (prev != null && distanceToSegment(worldPoint, prev, p) <= threshold) {
+        return true;
+      }
+      prev = p;
+    }
+    return LineArrowEndpoint.values.any(
+      (endpoint) => LineArrowGeometryUtils.hitTestArrow(
+        worldPoint: worldPoint,
+        type: arrowStyle.typeFor(endpoint),
+        tip: endpoint == LineArrowEndpoint.start ? start : end,
+        direction: tangentDirection(endpoint),
+        headSize: arrowStyle.effectiveHeadSize,
+        tolerance: threshold,
+      ),
+    );
+  }
+
+  Offset? tangentDirection(LineArrowEndpoint endpoint) {
+    final tip = endpoint == LineArrowEndpoint.start ? start : end;
+    final direct = tip - control;
+    if (direct.distance >= 0.1) {
+      return direct;
+    }
+    const steps = 32;
+    final indices = endpoint == LineArrowEndpoint.start
+        ? Iterable<int>.generate(steps, (i) => i + 1)
+        : Iterable<int>.generate(steps, (i) => steps - 1 - i);
+    for (final i in indices) {
+      final candidate = pointAt(i / steps);
+      final direction = tip - candidate;
+      if (direction.distance >= 0.1) {
+        return direction;
+      }
+    }
+    return null;
+  }
+
+  Offset? get endTangentDirection => tangentDirection(LineArrowEndpoint.end);
+
+  @override
+  CurveElement copyWith({
+    String? id,
+    Offset? start,
+    Offset? end,
+    Offset? control,
+    PaintStyle? style,
+    LineArrowStyle? arrowStyle,
+    LineArrowType? startArrowStyle,
+    LineArrowType? endArrowStyle,
+    bool? endArrow,
+    double? headSize,
+    String? layerId,
+    bool? visible,
+    double? opacity,
+    int? zIndex,
+    Object? groupId = _unset,
+  }) {
+    final currentArrowStyle = arrowStyle ?? this.arrowStyle;
+    final nextArrowStyle = currentArrowStyle.copyWith(
+      startArrowStyle: startArrowStyle,
+      endArrowStyle:
+          endArrowStyle ??
+          (endArrow == null
+              ? null
+              : endArrow
+              ? LineArrowType.normal
+              : LineArrowType.none),
+      headSize: headSize,
+    );
+    return CurveElement(
+      id: id ?? this.id,
+      start: start ?? this.start,
+      end: end ?? this.end,
+      control: control ?? this.control,
+      style: style ?? this.style,
+      startArrowStyle: nextArrowStyle.startArrowStyle,
+      endArrowStyle: nextArrowStyle.endArrowStyle,
+      headSize: nextArrowStyle.effectiveHeadSize,
+      layerId: layerId ?? this.layerId,
+      visible: visible ?? this.visible,
+      opacity: opacity ?? this.opacity,
+      zIndex: zIndex ?? this.zIndex,
+      groupId: identical(groupId, _unset) ? this.groupId : groupId as String?,
+    );
+  }
+
+  @override
+  CurveElement translate(Offset delta) {
+    return copyWith(
+      start: start + delta,
+      end: end + delta,
+      control: control + delta,
+    );
+  }
+
+  @override
+  CurveElement scaleElement(double factor, {Offset? pivot}) {
+    final origin = pivot ?? bounds.center;
+    return copyWith(
+      start: scalePoint(start, factor, origin),
+      end: scalePoint(end, factor, origin),
+      control: scalePoint(control, factor, origin),
+      style: style.copyWith(strokeWidth: style.strokeWidth * factor.abs()),
+      arrowStyle: arrowStyle.scale(factor),
+    );
+  }
+
+  @override
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'type': type,
+      'layerId': layerId,
+      'visible': visible,
+      'opacity': opacity,
+      'zIndex': zIndex,
+      'groupId': groupId,
+      'start': {'x': start.dx, 'y': start.dy},
+      'end': {'x': end.dx, 'y': end.dy},
+      'control': {'x': control.dx, 'y': control.dy},
+      'style': style.toJson(),
+      'arrowStyle': arrowStyle.toJson(),
+      'endArrow': endArrow,
+      'headSize': headSize,
+    };
+  }
+
+  static const _unset = Object();
+}
+
+class CurveElementRenderer extends ElementRenderer<CurveElement> {
+  const CurveElementRenderer();
+
+  @override
+  void render(Canvas canvas, CurveElement element) {
+    if (!element.visible) return;
+    final paint = element.style
+        .copyWith(opacity: element.style.opacity * element.opacity)
+        .toPaint();
+    final path = Path()
+      ..moveTo(element.start.dx, element.start.dy)
+      ..quadraticBezierTo(
+        element.control.dx,
+        element.control.dy,
+        element.end.dx,
+        element.end.dy,
+      );
+    canvas.drawPath(path, paint);
+    for (final endpoint in LineArrowEndpoint.values) {
+      LineArrowGeometryUtils.drawArrow(
+        canvas,
+        paint,
+        type: element.arrowStyle.typeFor(endpoint),
+        tip: endpoint == LineArrowEndpoint.start ? element.start : element.end,
+        direction: element.tangentDirection(endpoint),
+        headSize: element.arrowStyle.effectiveHeadSize,
+      );
+    }
+  }
+
+  @override
+  bool hitTest(CurveElement element, Offset worldPoint, double tolerance) {
+    return element.hitTest(worldPoint, tolerance: tolerance);
+  }
+}
+
+FILE: lib\src\serialization\canvas_serializer.dart
+import 'package:flutter/material.dart';
+
+import '../canvas/canvas_controller.dart';
+import '../canvas/paint_style.dart';
+import '../elements/arrow_element.dart';
+import '../elements/canvas_element.dart';
+import '../elements/curve_element.dart';
+import '../elements/drawio_shape_element.dart';
+import '../elements/ellipse_element.dart';
+import '../elements/image_element.dart';
+import '../elements/line_element.dart';
+import '../elements/line_arrow_style.dart';
+import '../elements/line_label_painter.dart';
+import '../elements/path_element.dart';
+import '../elements/polyline_element.dart';
+import '../elements/rect_element.dart';
+import '../elements/shape_label_painter.dart';
+import '../elements/text_element.dart';
+import '../elements/unknown_element.dart';
+import '../elements/widget_element.dart';
+import '../infinite_canvas/infinite_canvas_controller.dart';
+import '../layers/canvas_layer.dart';
+import '../snap/snap_resolver.dart';
+import 'canvas_document.dart';
+import 'document_format_exception.dart';
+import 'document_migrator.dart';
+
+class CanvasSerializer {
+  const CanvasSerializer._();
+
+  /// Serializes the controller's state to a schema-2.0 document JSON. The
+  /// optional [metadata], [viewport] and [assets] are merged in when supplied.
+  static Map<String, dynamic> toJson(
+    CanvasController controller, {
+    DocumentMetadata? metadata,
+    DocumentViewport? viewport,
+    List<DocumentAsset>? assets,
+  }) {
+    return CanvasDocument(
+      schemaVersion: DocumentSchema.current,
+      metadata: metadata ?? const DocumentMetadata(),
+      viewport: viewport ?? const DocumentViewport(),
+      assets: assets ?? const <DocumentAsset>[],
+      layers: controller.layers,
+      elements: controller.elements,
+    ).toJson();
+  }
+
+  /// Convenience overload that also captures the current view transform of an
+  /// [InfiniteCanvasController], so a round-trip restores the exact pan/zoom
+  /// the user left off at. Pass an explicit [viewport] to override.
+  static Map<String, dynamic> toJsonWithView(
+    InfiniteCanvasController view, {
+    DocumentMetadata? metadata,
+    DocumentViewport? viewport,
+    List<DocumentAsset>? assets,
+  }) {
+    return toJson(
+      view.canvasController,
+      metadata: metadata,
+      viewport: viewport ?? view.currentViewport,
+      assets: assets,
+    );
+  }
+
+  static CanvasDocument fromJson(Map<String, dynamic> json) =>
+      fromJsonWithWarnings(json).document;
+
+  /// Like [fromJson], but also returns the recoverable problems encountered
+  /// while parsing. Each bad element is downgraded to an [UnknownElement] (its
+  /// raw JSON preserved) instead of aborting the whole document; [warnings]
+  /// lists what was skipped or downgraded so the host can log/surface it.
+  static DocumentParseResult fromJsonWithWarnings(
+    Map<String, dynamic> json, {
+    void Function(DocumentFormatWarning warning)? onWarning,
+  }) {
+    final warnings = <DocumentFormatWarning>[];
+    void warn(DocumentFormatWarning w) {
+      warnings.add(w);
+      onWarning?.call(w);
+    }
+
+    // Top-level structural checks — these are fatal.
+    if (json.isEmpty) {
+      throw const DocumentFormatException(
+        'Document JSON is empty',
+        field: '<root>',
+      );
+    }
+    final migrated = DocumentMigrator.migrate(Map<String, dynamic>.from(json));
+
+    final layersRaw = migrated['layers'];
+    final elementsRaw = migrated['elements'];
+    if (layersRaw != null && layersRaw is! List) {
+      throw const DocumentFormatException(
+        "'layers' must be an array",
+        severity: DocumentFormatSeverity.fatal,
+        field: 'layers',
+      );
+    }
+    if (elementsRaw != null && elementsRaw is! List) {
+      throw const DocumentFormatException(
+        "'elements' must be an array",
+        severity: DocumentFormatSeverity.fatal,
+        field: 'elements',
+      );
+    }
+
+    final layerJson = layersRaw as List<dynamic>? ?? const [];
+    final elementJson = elementsRaw as List<dynamic>? ?? const [];
+    final assetJson = migrated['assets'] as List<dynamic>? ?? const [];
+
+    // Preserve any top-level keys this loader does not recognize, so a newer
+    // app's document survives a round-trip through this one.
+    final knownKeys = const {
+      'schemaVersion',
+      'metadata',
+      'viewport',
+      'assets',
+      'layers',
+      'elements',
+      // legacy, already consumed by the migrator but listed for completeness
+      'version',
+    };
+    // Compute extras from a *copy* so we do not mutate [migrated] in place —
+    // the loader still needs metadata/viewport/assets/layers/elements below.
+    final extras = Map<String, dynamic>.from(
+      Map<String, dynamic>.from(migrated)
+        ..removeWhere((key, _) => knownKeys.contains(key)),
+    );
+
+    // Elements: parse defensively. A single malformed element is downgraded to
+    // an UnknownElement (raw JSON preserved) and reported, never crashing the
+    // whole document.
+    final elements = <CanvasElement>[];
+    for (final entry in elementJson) {
+      if (entry is! Map<String, dynamic>) {
+        warn(
+          const DocumentFormatWarning(
+            "Element is not an object; skipped",
+            field: 'elements',
+          ),
+        );
+        continue;
+      }
+      final element = _safeElementFromJson(entry, warn);
+      if (element != null) {
+        elements.add(element);
+      }
+    }
+
+    return DocumentParseResult(
+      document: CanvasDocument(
+        schemaVersion:
+            (migrated['schemaVersion'] as String?) ?? DocumentSchema.current,
+        metadata: _metadataFromJson(migrated['metadata']),
+        viewport: _viewportFromJson(migrated['viewport']),
+        assets: [
+          for (final asset in assetJson)
+            if (asset is Map<String, dynamic>) DocumentAsset.fromJson(asset),
+        ],
+        layers: [
+          for (final layer in layerJson)
+            if (layer is Map<String, dynamic>) _layerFromJson(layer),
+        ],
+        elements: elements,
+        extras: extras,
+      ),
+      warnings: warnings,
+    );
+  }
+
+  /// Parses one element, downgrading any failure to an [UnknownElement] so the
+  /// surrounding document still loads. Returns null only when the entry has no
+  /// usable identity at all.
+  static CanvasElement? _safeElementFromJson(
+    Map<String, dynamic> json,
+    void Function(DocumentFormatWarning) warn,
+  ) {
+    final type = json['type']?.toString();
+    try {
+      final element = elementFromJson(json);
+      // Validate the result's geometry where applicable: a rect with negative
+      // width/height is recoverable (downgrade) rather than fatal.
+      if (_hasInvalidRect(element)) {
+        warn(
+          DocumentFormatWarning(
+            'Element rect has negative width or height; kept as-is',
+            elementType: type,
+            elementId: json['id']?.toString(),
+            field: 'rect',
+            rawJson: json,
+          ),
+        );
+      }
+      return element;
+    } catch (error) {
+      // Downgrade: keep the original JSON verbatim inside an UnknownElement so
+      // a round-trip never loses data written by a newer app.
+      warn(
+        DocumentFormatWarning(
+          'Element could not be parsed ($error); preserved as UnknownElement',
+          elementType: type,
+          elementId: json['id']?.toString(),
+          rawJson: json,
+        ),
+      );
+      return UnknownElement(
+        id: (json['id'] as String?) ?? '',
+        rawJson: Map<String, dynamic>.from(json),
+        layerId: (json['layerId'] as String?) ?? CanvasLayer.defaultLayerId,
+        visible: (json['visible'] as bool?) ?? true,
+        opacity: (json['opacity'] as num?)?.toDouble() ?? 1,
+        zIndex: (json['zIndex'] as num?)?.toInt() ?? 0,
+        groupId: json['groupId'] as String?,
+      );
+    }
+  }
+
+  /// True when an element carries a rect with negative width or height.
+  static bool _hasInvalidRect(CanvasElement element) {
+    final rect = switch (element) {
+      final RectElement e => e.rect,
+      final EllipseElement e => e.rect,
+      final DrawioShapeElement e => e.rect,
+      final ImageElement e => e.rect,
+      _ => null,
+    };
+    if (rect == null) return false;
+    return rect.width < 0 || rect.height < 0;
+  }
+
+  static void load(CanvasController controller, Map<String, dynamic> json) {
+    final document = fromJson(json);
+    controller.loadDocument(document.layers, document.elements);
+  }
+
+  /// Validates a document map before it is persisted, returning recoverable
+  /// warnings (empty when clean). Intended as a pre-save health check — call
+  /// it on the JSON you are about to write and report/log any warnings:
+  ///
+  /// ```dart
+  /// final warnings = CanvasSerializer.validateForSave(json);
+  /// if (warnings.isNotEmpty) myLogger.warn(warnings);
+  /// await store.save(json);
+  /// ```
+  ///
+  /// This never throws; hosts that want hard enforcement can convert each
+  /// [DocumentFormatWarning] via [DocumentFormatWarning.toException].
+  static List<DocumentFormatWarning> validateForSave(
+    Map<String, dynamic> json,
+  ) {
+    final warnings = <DocumentFormatWarning>[];
+    if (json.isEmpty) {
+      return const [];
+    }
+    final elements = json['elements'];
+    if (elements is! List) {
+      return const [];
+    }
+    for (final entry in elements) {
+      if (entry is! Map<String, dynamic>) {
+        warnings.add(
+          const DocumentFormatWarning(
+            'Element is not an object',
+            field: 'elements',
+          ),
+        );
+        continue;
+      }
+      final id = entry['id'];
+      if (id is! String || id.isEmpty) {
+        warnings.add(
+          DocumentFormatWarning(
+            'Element is missing a non-empty id',
+            elementType: entry['type']?.toString(),
+            field: 'id',
+            rawJson: entry,
+          ),
+        );
+      }
+      final rect = entry['rect'];
+      if (rect is Map) {
+        final left = (rect['left'] as num?)?.toDouble() ?? 0;
+        final top = (rect['top'] as num?)?.toDouble() ?? 0;
+        final right = (rect['right'] as num?)?.toDouble() ?? 0;
+        final bottom = (rect['bottom'] as num?)?.toDouble() ?? 0;
+        if (right < left || bottom < top) {
+          warnings.add(
+            DocumentFormatWarning(
+              'Element rect has negative width or height',
+              elementType: entry['type']?.toString(),
+              elementId: id is String ? id : null,
+              field: 'rect',
+              rawJson: entry,
+            ),
+          );
+        }
+      }
+    }
+    return warnings;
+  }
+
+  /// Loads a full document — layers, elements, and the stored view — into the
+  /// controllers, replacing all existing data. History is cleared.
+  ///
+  /// The viewport is applied to [view] via [InfiniteCanvasController.applyViewport],
+  /// which is a no-op until the widget has been laid out (viewport size known).
+  /// Call this from a post-frame callback if the canvas has just been mounted.
+  static CanvasDocument loadDocument(
+    InfiniteCanvasController view,
+    Map<String, dynamic> json,
+  ) {
+    final document = fromJson(json);
+    view.canvasController.loadDocument(document.layers, document.elements);
+    view.applyViewport(document.viewport);
+    return document;
+  }
+
+  static CanvasElement elementFromJson(Map<String, dynamic> json) {
+    final id = json['id'] as String? ?? '';
+    final layerId = json['layerId'] as String? ?? CanvasLayer.defaultLayerId;
+    final visible = json['visible'] as bool? ?? true;
+    final opacity = (json['opacity'] as num?)?.toDouble() ?? 1;
+    final zIndex = (json['zIndex'] as num?)?.toInt() ?? 0;
+    final type = json['type'] as String? ?? '';
+
+    switch (type) {
+      case PathElement.elementType:
+        return PathElement(
+          id: id,
+          layerId: layerId,
+          visible: visible,
+          opacity: opacity,
+          zIndex: zIndex,
+          groupId: json['groupId'] as String?,
+          points: [
+            for (final point in json['points'] as List<dynamic>? ?? const [])
+              if (point is Map<String, dynamic>)
+                PathPoint(
+                  position: _point(point),
+                  pressure: (point['pressure'] as num?)?.toDouble() ?? 0.5,
+                  timestamp: (point['timestamp'] as num?)?.toDouble() ?? 0,
+                ),
+          ],
+          style: _style(json['style']),
+        );
+      case CurveElement.elementType:
+        {
+          final arrowStyle = LineArrowStyle.fromJson(
+            json['arrowStyle'] ?? json,
+          );
+          return CurveElement(
+            id: id,
+            layerId: layerId,
+            visible: visible,
+            opacity: opacity,
+            zIndex: zIndex,
+            groupId: json['groupId'] as String?,
+            start: _point(json['start']),
+            end: _point(json['end']),
+            control: _point(json['control']),
+            style: _style(json['style']),
+            startArrowStyle: arrowStyle.startArrowStyle,
+            endArrowStyle: arrowStyle.endArrowStyle,
+            headSize: arrowStyle.effectiveHeadSize,
+          );
+        }
+      case LineElement.elementType:
+        {
+          final arrowStyle = LineArrowStyle.fromJson(
+            json['arrowStyle'] ?? json,
+          );
+          return LineElement(
+            id: id,
+            layerId: layerId,
+            visible: visible,
+            opacity: opacity,
+            zIndex: zIndex,
+            groupId: json['groupId'] as String?,
+            start: _point(json['start']),
+            end: _point(json['end']),
+            style: _style(json['style']),
+            startArrowStyle: arrowStyle.startArrowStyle,
+            endArrowStyle: arrowStyle.endArrowStyle,
+            headSize: arrowStyle.effectiveHeadSize,
+            startBinding: SnapBinding.fromJson(json['startBinding']),
+            endBinding: SnapBinding.fromJson(json['endBinding']),
+            label: json['label'] as String?,
+            labelStyle: LineLabelPainter.styleFromJson(json['labelStyle']),
+            labelPosition:
+                (json['labelPosition'] as num?)?.toDouble() ??
+                LineLabelPainter.defaultPosition,
+            labelOffset: LineLabelPainter.offsetFromJson(json['labelOffset']),
+            labelBackground: _colorFromJson(json['labelBackground']),
+          );
+        }
+      case PolylineElement.elementType:
+        {
+          final arrowStyle = LineArrowStyle.fromJson(
+            json['arrowStyle'] ?? json,
+          );
+          return PolylineElement(
+            id: id,
+            layerId: layerId,
+            visible: visible,
+            opacity: opacity,
+            zIndex: zIndex,
+            groupId: json['groupId'] as String?,
+            points: [
+              for (final point in json['points'] as List<dynamic>? ?? const [])
+                _point(point),
+            ],
+            style: _style(json['style']),
+            startBinding: SnapBinding.fromJson(json['startBinding']),
+            endBinding: SnapBinding.fromJson(json['endBinding']),
+            startArrowStyle: arrowStyle.startArrowStyle,
+            endArrowStyle: arrowStyle.endArrowStyle,
+            headSize: arrowStyle.effectiveHeadSize,
+            label: json['label'] as String?,
+            labelStyle: LineLabelPainter.styleFromJson(json['labelStyle']),
+            labelPosition:
+                (json['labelPosition'] as num?)?.toDouble() ??
+                LineLabelPainter.defaultPosition,
+            labelOffset: LineLabelPainter.offsetFromJson(json['labelOffset']),
+            labelBackground: _colorFromJson(json['labelBackground']),
+          );
+        }
+      case DrawioShapeElement.elementType:
+        return DrawioShapeElement(
+          id: id,
+          layerId: layerId,
+          visible: visible,
+          opacity: opacity,
+          zIndex: zIndex,
+          groupId: json['groupId'] as String?,
+          shapeKey: _shapeKey(json['shapeKey']),
+          rect: _rect(json['rect']),
+          strokeStyle: _style(json['strokeStyle']),
+          fillStyle: _nullableStyle(json['fillStyle']),
+          properties: _stringMap(json['properties']),
+          label: json['label'] as String?,
+          labelStyle: ShapeLabelPainter.styleFromJson(json['labelStyle']),
+          labelAlign: ShapeLabelPainter.textAlignFromString(
+            json['labelAlign'] as String?,
+          ),
+          labelPadding: ShapeLabelPainter.paddingFromJson(json['labelPadding']),
+          rotation: (json['rotation'] as num?)?.toDouble() ?? 0,
+        );
+      case RectElement.elementType:
+        return RectElement(
+          id: id,
+          layerId: layerId,
+          visible: visible,
+          opacity: opacity,
+          zIndex: zIndex,
+          groupId: json['groupId'] as String?,
+          rect: _rect(json['rect']),
+          strokeStyle: _style(json['strokeStyle']),
+          fillStyle: _nullableStyle(json['fillStyle']),
+          label: json['label'] as String?,
+          labelStyle: ShapeLabelPainter.styleFromJson(json['labelStyle']),
+          labelAlign: ShapeLabelPainter.textAlignFromString(
+            json['labelAlign'] as String?,
+          ),
+          labelPadding: ShapeLabelPainter.paddingFromJson(json['labelPadding']),
+          rotation: (json['rotation'] as num?)?.toDouble() ?? 0,
+        );
+      case EllipseElement.elementType:
+        return EllipseElement(
+          id: id,
+          layerId: layerId,
+          visible: visible,
+          opacity: opacity,
+          zIndex: zIndex,
+          groupId: json['groupId'] as String?,
+          rect: _rect(json['rect']),
+          strokeStyle: _style(json['strokeStyle']),
+          fillStyle: _nullableStyle(json['fillStyle']),
+          label: json['label'] as String?,
+          labelStyle: ShapeLabelPainter.styleFromJson(json['labelStyle']),
+          labelAlign: ShapeLabelPainter.textAlignFromString(
+            json['labelAlign'] as String?,
+          ),
+          labelPadding: ShapeLabelPainter.paddingFromJson(json['labelPadding']),
+          rotation: (json['rotation'] as num?)?.toDouble() ?? 0,
+        );
+      case ArrowElement.elementType:
+        return ArrowElement(
+          id: id,
+          layerId: layerId,
+          visible: visible,
+          opacity: opacity,
+          zIndex: zIndex,
+          groupId: json['groupId'] as String?,
+          start: _point(json['start']),
+          end: _point(json['end']),
+          headSize: (json['headSize'] as num?)?.toDouble() ?? 14,
+          style: _style(json['style']),
+          startBinding: SnapBinding.fromJson(json['startBinding']),
+          endBinding: SnapBinding.fromJson(json['endBinding']),
+          label: json['label'] as String?,
+          labelStyle: LineLabelPainter.styleFromJson(json['labelStyle']),
+          labelPosition:
+              (json['labelPosition'] as num?)?.toDouble() ??
+              LineLabelPainter.defaultPosition,
+          labelOffset: LineLabelPainter.offsetFromJson(json['labelOffset']),
+          labelBackground: _colorFromJson(json['labelBackground']),
+        );
+      case TextElement.elementType:
+        final styleJson = json['style'];
+        final style = styleJson is Map<String, dynamic>
+            ? TextStyle(
+                color: Color(
+                  (styleJson['color'] as num?)?.toInt() ??
+                      Colors.black.toARGB32(),
+                ),
+                fontSize: (styleJson['fontSize'] as num?)?.toDouble() ?? 24,
+                fontWeight: _fontWeight(styleJson['fontWeight']),
+                height: (styleJson['height'] as num?)?.toDouble() ?? 1.2,
+                fontFamily: styleJson['fontFamily'] as String?,
+              )
+            : const TextStyle(color: Colors.black, fontSize: 24, height: 1.2);
+        return TextElement(
+          id: id,
+          layerId: layerId,
+          visible: visible,
+          opacity: opacity,
+          zIndex: zIndex,
+          groupId: json['groupId'] as String?,
+          position: _point(json['position']),
+          text: json['text'] as String? ?? '',
+          style: style,
+          maxWidth: (json['maxWidth'] as num?)?.toDouble(),
+          boxSize: _size(json['boxSize']),
+          textAlign: _textAlign(json['textAlign'] as String?),
+          rotation: (json['rotation'] as num?)?.toDouble() ?? 0,
+        );
+      case ImageElement.elementType:
+        return ImageElement(
+          id: id,
+          layerId: layerId,
+          visible: visible,
+          opacity: opacity,
+          zIndex: zIndex,
+          groupId: json['groupId'] as String?,
+          rect: _rect(json['rect']),
+          fit: _boxFitFromString(json['fit'] as String?),
+          rotation: (json['rotation'] as num?)?.toDouble() ?? 0,
+          imageData: json['imageData'] as String?,
+          url: json['url'] as String?,
+          filePath: json['filePath'] as String?,
+        );
+      case CanvasWidgetElement.elementType:
+        return CanvasWidgetElement(
+          id: id,
+          worldRect: _rect(json['worldRect']),
+          widgetType: json['widgetType'] as String? ?? '',
+          widgetData: _stringMap(json['widgetData']),
+          layerId: layerId,
+          visible: visible,
+          opacity: opacity,
+          zIndex: zIndex,
+          groupId: json['groupId'] as String?,
+          isLocked: json['isLocked'] as bool? ?? false,
+          interactive: json['interactive'] as bool? ?? true,
+          scaleMode: _scaleModeFromString(json['scaleMode'] as String?),
+          renderMode: _renderModeFromString(json['renderMode'] as String?),
+          minScreenSize: _size(json['minScreenSize']),
+          maxScreenSize: _size(json['maxScreenSize']),
+          clipBehavior: _clipFromString(json['clipBehavior'] as String?),
+        );
+      default:
+        // Unknown element type: preserve the original JSON so a round-trip
+        // through this app does not lose data written by a newer one. The
+        // common fields are extracted so selection/layering still works.
+        return UnknownElement(
+          id: id,
+          rawJson: Map<String, dynamic>.from(json),
+          layerId: layerId,
+          visible: visible,
+          opacity: opacity,
+          zIndex: zIndex,
+          groupId: json['groupId'] as String?,
+        );
+    }
+  }
+
+  static DocumentMetadata _metadataFromJson(Object? value) {
+    if (value is Map<String, dynamic>) return DocumentMetadata.fromJson(value);
+    if (value is Map) {
+      return DocumentMetadata.fromJson(Map<String, dynamic>.from(value));
+    }
+    return const DocumentMetadata();
+  }
+
+  static DocumentViewport _viewportFromJson(Object? value) {
+    if (value is Map<String, dynamic>) return DocumentViewport.fromJson(value);
+    if (value is Map) {
+      return DocumentViewport.fromJson(Map<String, dynamic>.from(value));
+    }
+    return const DocumentViewport();
+  }
+
+  static String _shapeKey(Object? value) {
+    final text = value?.toString().trim();
+    return text == null || text.isEmpty ? 'rectangle' : text;
+  }
+
+  static CanvasLayer _layerFromJson(Map<String, dynamic> json) {
+    return CanvasLayer(
+      id: json['id'] as String? ?? CanvasLayer.defaultLayerId,
+      name: json['name'] as String? ?? 'Layer',
+      isVisible: json['visible'] as bool? ?? true,
+      isLocked: json['locked'] as bool? ?? false,
+      opacity: (json['opacity'] as num?)?.toDouble() ?? 1,
+    );
+  }
+
+  static CanvasWidgetScaleMode _scaleModeFromString(String? value) {
+    switch (value) {
+      case 'paintScale':
+        return CanvasWidgetScaleMode.paintScale;
+      case 'fixedScreenSize':
+        return CanvasWidgetScaleMode.fixedScreenSize;
+      case 'layoutScale':
+      default:
+        return CanvasWidgetScaleMode.layoutScale;
+    }
+  }
+
+  static CanvasWidgetRenderMode _renderModeFromString(String? value) {
+    switch (value) {
+      case 'live':
+        return CanvasWidgetRenderMode.live;
+      case 'snapshot':
+      default:
+        return CanvasWidgetRenderMode.snapshot;
+    }
+  }
+
+  static Offset _point(Object? json) {
+    if (json is Map<String, dynamic>) {
+      return Offset(
+        (json['x'] as num?)?.toDouble() ?? 0,
+        (json['y'] as num?)?.toDouble() ?? 0,
+      );
+    }
+    return Offset.zero;
+  }
+
+  static Rect _rect(Object? json) {
+    if (json is Map<String, dynamic>) {
+      return Rect.fromLTRB(
+        (json['left'] as num?)?.toDouble() ?? 0,
+        (json['top'] as num?)?.toDouble() ?? 0,
+        (json['right'] as num?)?.toDouble() ?? 0,
+        (json['bottom'] as num?)?.toDouble() ?? 0,
+      );
+    }
+    return Rect.zero;
+  }
+
+  static Size? _size(Object? json) {
+    if (json is Map<String, dynamic>) {
+      final width = (json['width'] as num?)?.toDouble();
+      final height = (json['height'] as num?)?.toDouble();
+      if (width == null || height == null) {
+        return null;
+      }
+      return Size(width, height);
+    }
+    return null;
+  }
+
+  static PaintStyle _style(Object? json) {
+    return json is Map<String, dynamic>
+        ? PaintStyle.fromJson(json)
+        : const PaintStyle();
+  }
+
+  static PaintStyle? _nullableStyle(Object? json) {
+    return json is Map<String, dynamic> ? PaintStyle.fromJson(json) : null;
+  }
+
+  static Color? _colorFromJson(Object? value) {
+    return value is num ? Color(value.toInt()) : null;
+  }
+
+  static Map<String, dynamic> _stringMap(Object? json) {
+    if (json is Map<String, dynamic>) {
+      return Map<String, dynamic>.unmodifiable(json);
+    }
+    if (json is Map) {
+      return Map<String, dynamic>.unmodifiable(
+        json.map((key, value) => MapEntry(key.toString(), value)),
+      );
+    }
+    return const <String, dynamic>{};
+  }
+
+  static Clip _clipFromString(String? value) {
+    for (final clip in Clip.values) {
+      if (clip.name == value) {
+        return clip;
+      }
+    }
+    return Clip.hardEdge;
+  }
+
+  static TextAlign _textAlign(String? value) {
+    for (final align in TextAlign.values) {
+      if (align.name == value) {
+        return align;
+      }
+    }
+    return TextAlign.left;
+  }
+
+  static BoxFit _boxFitFromString(String? value) {
+    for (final fit in BoxFit.values) {
+      if (fit.name == value) {
+        return fit;
+      }
+    }
+    return BoxFit.contain;
+  }
+
+  static FontWeight _fontWeight(Object? value) {
+    final weight = value is num ? value.toInt() : FontWeight.normal.value;
+    return FontWeight.values.reduce((previous, current) {
+      return (current.value - weight).abs() < (previous.value - weight).abs()
+          ? current
+          : previous;
+    });
+  }
+}
+
+/// Result of [CanvasSerializer.fromJsonWithWarnings]: the parsed document plus
+/// any recoverable problems (each bad element downgraded, not dropped).
+class DocumentParseResult {
+  const DocumentParseResult({
+    required this.document,
+    this.warnings = const <DocumentFormatWarning>[],
+  });
+
+  final CanvasDocument document;
+
+  /// Recoverable problems collected while parsing, in encounter order. Empty
+  /// when the document was clean.
+  final List<DocumentFormatWarning> warnings;
+
+  /// Whether any recoverable problem was reported.
+  bool get hasWarnings => warnings.isNotEmpty;
+}
+
+
+codex
+计划要求与现有直线/折线绑定链路一致。我正在对照它们的构造、`copyWith` 可空字段语义及 JSON 条件写入方式，确保曲线既能保留绑定，也能显式解绑。
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "rg -n -C 8 \"startBinding|endBinding|class SnapBinding|SnapBinding.fromJson\" lib\\src\\elements\\line_element.dart lib\\src\\elements\\polyline_element.dart lib\\src\\elements\\arrow_element.dart lib\\src\\snap\\snap_resolver.dart lib\\src\\serialization\\canvas_serializer.dart" in D:\project\GitHub\wenz_flutter\wenz_draw
+ succeeded in 170ms:
+lib\src\serialization\canvas_serializer.dart-379-            zIndex: zIndex,
+lib\src\serialization\canvas_serializer.dart-380-            groupId: json['groupId'] as String?,
+lib\src\serialization\canvas_serializer.dart-381-            start: _point(json['start']),
+lib\src\serialization\canvas_serializer.dart-382-            end: _point(json['end']),
+lib\src\serialization\canvas_serializer.dart-383-            style: _style(json['style']),
+lib\src\serialization\canvas_serializer.dart-384-            startArrowStyle: arrowStyle.startArrowStyle,
+lib\src\serialization\canvas_serializer.dart-385-            endArrowStyle: arrowStyle.endArrowStyle,
+lib\src\serialization\canvas_serializer.dart-386-            headSize: arrowStyle.effectiveHeadSize,
+lib\src\serialization\canvas_serializer.dart:387:            startBinding: SnapBinding.fromJson(json['startBinding']),
+lib\src\serialization\canvas_serializer.dart:388:            endBinding: SnapBinding.fromJson(json['endBinding']),
+lib\src\serialization\canvas_serializer.dart-389-            label: json['label'] as String?,
+lib\src\serialization\canvas_serializer.dart-390-            labelStyle: LineLabelPainter.styleFromJson(json['labelStyle']),
+lib\src\serialization\canvas_serializer.dart-391-            labelPosition:
+lib\src\serialization\canvas_serializer.dart-392-                (json['labelPosition'] as num?)?.toDouble() ??
+lib\src\serialization\canvas_serializer.dart-393-                LineLabelPainter.defaultPosition,
+lib\src\serialization\canvas_serializer.dart-394-            labelOffset: LineLabelPainter.offsetFromJson(json['labelOffset']),
+lib\src\serialization\canvas_serializer.dart-395-            labelBackground: _colorFromJson(json['labelBackground']),
+lib\src\serialization\canvas_serializer.dart-396-          );
+--
+lib\src\serialization\canvas_serializer.dart-407-            opacity: opacity,
+lib\src\serialization\canvas_serializer.dart-408-            zIndex: zIndex,
+lib\src\serialization\canvas_serializer.dart-409-            groupId: json['groupId'] as String?,
+lib\src\serialization\canvas_serializer.dart-410-            points: [
+lib\src\serialization\canvas_serializer.dart-411-              for (final point in json['points'] as List<dynamic>? ?? const [])
+lib\src\serialization\canvas_serializer.dart-412-                _point(point),
+lib\src\serialization\canvas_serializer.dart-413-            ],
+lib\src\serialization\canvas_serializer.dart-414-            style: _style(json['style']),
+lib\src\serialization\canvas_serializer.dart:415:            startBinding: SnapBinding.fromJson(json['startBinding']),
+lib\src\serialization\canvas_serializer.dart:416:            endBinding: SnapBinding.fromJson(json['endBinding']),
+lib\src\serialization\canvas_serializer.dart-417-            startArrowStyle: arrowStyle.startArrowStyle,
+lib\src\serialization\canvas_serializer.dart-418-            endArrowStyle: arrowStyle.endArrowStyle,
+lib\src\serialization\canvas_serializer.dart-419-            headSize: arrowStyle.effectiveHeadSize,
+lib\src\serialization\canvas_serializer.dart-420-            label: json['label'] as String?,
+lib\src\serialization\canvas_serializer.dart-421-            labelStyle: LineLabelPainter.styleFromJson(json['labelStyle']),
+lib\src\serialization\canvas_serializer.dart-422-            labelPosition:
+lib\src\serialization\canvas_serializer.dart-423-                (json['labelPosition'] as num?)?.toDouble() ??
+lib\src\serialization\canvas_serializer.dart-424-                LineLabelPainter.defaultPosition,
+--
+lib\src\serialization\canvas_serializer.dart-492-          visible: visible,
+lib\src\serialization\canvas_serializer.dart-493-          opacity: opacity,
+lib\src\serialization\canvas_serializer.dart-494-          zIndex: zIndex,
+lib\src\serialization\canvas_serializer.dart-495-          groupId: json['groupId'] as String?,
+lib\src\serialization\canvas_serializer.dart-496-          start: _point(json['start']),
+lib\src\serialization\canvas_serializer.dart-497-          end: _point(json['end']),
+lib\src\serialization\canvas_serializer.dart-498-          headSize: (json['headSize'] as num?)?.toDouble() ?? 14,
+lib\src\serialization\canvas_serializer.dart-499-          style: _style(json['style']),
+lib\src\serialization\canvas_serializer.dart:500:          startBinding: SnapBinding.fromJson(json['startBinding']),
+lib\src\serialization\canvas_serializer.dart:501:          endBinding: SnapBinding.fromJson(json['endBinding']),
+lib\src\serialization\canvas_serializer.dart-502-          label: json['label'] as String?,
+lib\src\serialization\canvas_serializer.dart-503-          labelStyle: LineLabelPainter.styleFromJson(json['labelStyle']),
+lib\src\serialization\canvas_serializer.dart-504-          labelPosition:
+lib\src\serialization\canvas_serializer.dart-505-              (json['labelPosition'] as num?)?.toDouble() ??
+lib\src\serialization\canvas_serializer.dart-506-              LineLabelPainter.defaultPosition,
+lib\src\serialization\canvas_serializer.dart-507-          labelOffset: LineLabelPainter.offsetFromJson(json['labelOffset']),
+lib\src\serialization\canvas_serializer.dart-508-          labelBackground: _colorFromJson(json['labelBackground']),
+lib\src\serialization\canvas_serializer.dart-509-        );
+--
+lib\src\snap\snap_resolver.dart-30-
+lib\src\snap\snap_resolver.dart-31-  double worldThreshold(double scale) {
+lib\src\snap\snap_resolver.dart-32-    return thresholdScreenPx / math.max(scale.abs(), 0.0001);
+lib\src\snap\snap_resolver.dart-33-  }
+lib\src\snap\snap_resolver.dart-34-}
+lib\src\snap\snap_resolver.dart-35-
+lib\src\snap\snap_resolver.dart-36-enum SnapPointKind { center, edge, corner, endpoint, midpoint }
+lib\src\snap\snap_resolver.dart-37-
+lib\src\snap\snap_resolver.dart:38:class SnapBinding {
+lib\src\snap\snap_resolver.dart-39-  const SnapBinding({required this.elementId, required this.anchorId});
+lib\src\snap\snap_resolver.dart-40-
+lib\src\snap\snap_resolver.dart-41-  final String elementId;
+lib\src\snap\snap_resolver.dart-42-  final String anchorId;
+lib\src\snap\snap_resolver.dart-43-
+lib\src\snap\snap_resolver.dart-44-  Map<String, dynamic> toJson() {
+lib\src\snap\snap_resolver.dart-45-    return {'elementId': elementId, 'anchorId': anchorId};
+lib\src\snap\snap_resolver.dart-46-  }
+--
+lib\src\elements\arrow_element.dart-13-@immutable
+lib\src\elements\arrow_element.dart-14-class ArrowElement extends CanvasElement {
+lib\src\elements\arrow_element.dart-15-  const ArrowElement({
+lib\src\elements\arrow_element.dart-16-    required this.id,
+lib\src\elements\arrow_element.dart-17-    required this.start,
+lib\src\elements\arrow_element.dart-18-    required this.end,
+lib\src\elements\arrow_element.dart-19-    this.style = const PaintStyle(),
+lib\src\elements\arrow_element.dart-20-    this.headSize = 14,
+lib\src\elements\arrow_element.dart:21:    this.startBinding,
+lib\src\elements\arrow_element.dart:22:    this.endBinding,
+lib\src\elements\arrow_element.dart-23-    this.label,
+lib\src\elements\arrow_element.dart-24-    this.labelStyle = LineLabelPainter.defaultStyle,
+lib\src\elements\arrow_element.dart-25-    this.labelPosition = LineLabelPainter.defaultPosition,
+lib\src\elements\arrow_element.dart-26-    this.labelOffset = LineLabelPainter.defaultOffset,
+lib\src\elements\arrow_element.dart-27-    this.labelBackground,
+lib\src\elements\arrow_element.dart-28-    this.layerId = 'default',
+lib\src\elements\arrow_element.dart-29-    this.visible = true,
+lib\src\elements\arrow_element.dart-30-    this.opacity = 1,
+--
+lib\src\elements\arrow_element.dart-35-  static const elementType = 'arrow';
+lib\src\elements\arrow_element.dart-36-
+lib\src\elements\arrow_element.dart-37-  @override
+lib\src\elements\arrow_element.dart-38-  final String id;
+lib\src\elements\arrow_element.dart-39-  final Offset start;
+lib\src\elements\arrow_element.dart-40-  final Offset end;
+lib\src\elements\arrow_element.dart-41-  final PaintStyle style;
+lib\src\elements\arrow_element.dart-42-  final double headSize;
+lib\src\elements\arrow_element.dart:43:  final SnapBinding? startBinding;
+lib\src\elements\arrow_element.dart:44:  final SnapBinding? endBinding;
+lib\src\elements\arrow_element.dart-45-  final String? label;
+lib\src\elements\arrow_element.dart-46-  final TextStyle labelStyle;
+lib\src\elements\arrow_element.dart-47-  final double labelPosition;
+lib\src\elements\arrow_element.dart-48-  final Offset labelOffset;
+lib\src\elements\arrow_element.dart-49-  final Color? labelBackground;
+lib\src\elements\arrow_element.dart-50-
+lib\src\elements\arrow_element.dart-51-  @override
+lib\src\elements\arrow_element.dart-52-  final String layerId;
+--
+lib\src\elements\arrow_element.dart-87-
+lib\src\elements\arrow_element.dart-88-  @override
+lib\src\elements\arrow_element.dart-89-  ArrowElement copyWith({
+lib\src\elements\arrow_element.dart-90-    String? id,
+lib\src\elements\arrow_element.dart-91-    Offset? start,
+lib\src\elements\arrow_element.dart-92-    Offset? end,
+lib\src\elements\arrow_element.dart-93-    PaintStyle? style,
+lib\src\elements\arrow_element.dart-94-    double? headSize,
+lib\src\elements\arrow_element.dart:95:    Object? startBinding = _unset,
+lib\src\elements\arrow_element.dart:96:    Object? endBinding = _unset,
+lib\src\elements\arrow_element.dart-97-    Object? label = _unset,
+lib\src\elements\arrow_element.dart-98-    TextStyle? labelStyle,
+lib\src\elements\arrow_element.dart-99-    double? labelPosition,
+lib\src\elements\arrow_element.dart-100-    Offset? labelOffset,
+lib\src\elements\arrow_element.dart-101-    Object? labelBackground = _unset,
+lib\src\elements\arrow_element.dart-102-    String? layerId,
+lib\src\elements\arrow_element.dart-103-    bool? visible,
+lib\src\elements\arrow_element.dart-104-    double? opacity,
+--
+lib\src\elements\arrow_element.dart-106-    Object? groupId = _unset,
+lib\src\elements\arrow_element.dart-107-  }) {
+lib\src\elements\arrow_element.dart-108-    return ArrowElement(
+lib\src\elements\arrow_element.dart-109-      id: id ?? this.id,
+lib\src\elements\arrow_element.dart-110-      start: start ?? this.start,
+lib\src\elements\arrow_element.dart-111-      end: end ?? this.end,
+lib\src\elements\arrow_element.dart-112-      style: style ?? this.style,
+lib\src\elements\arrow_element.dart-113-      headSize: headSize ?? this.headSize,
+lib\src\elements\arrow_element.dart:114:      startBinding: identical(startBinding, _unset)
+lib\src\elements\arrow_element.dart:115:          ? this.startBinding
+lib\src\elements\arrow_element.dart:116:          : startBinding as SnapBinding?,
+lib\src\elements\arrow_element.dart:117:      endBinding: identical(endBinding, _unset)
+lib\src\elements\arrow_element.dart:118:          ? this.endBinding
+lib\src\elements\arrow_element.dart:119:          : endBinding as SnapBinding?,
+lib\src\elements\arrow_element.dart-120-      label: identical(label, _unset) ? this.label : label as String?,
+lib\src\elements\arrow_element.dart-121-      labelStyle: labelStyle ?? this.labelStyle,
+lib\src\elements\arrow_element.dart-122-      labelPosition: labelPosition ?? this.labelPosition,
+lib\src\elements\arrow_element.dart-123-      labelOffset: labelOffset ?? this.labelOffset,
+lib\src\elements\arrow_element.dart-124-      labelBackground: identical(labelBackground, _unset)
+lib\src\elements\arrow_element.dart-125-          ? this.labelBackground
+lib\src\elements\arrow_element.dart-126-          : labelBackground as Color?,
+lib\src\elements\arrow_element.dart-127-      layerId: layerId ?? this.layerId,
+--
+lib\src\elements\arrow_element.dart-163-      'visible': visible,
+lib\src\elements\arrow_element.dart-164-      'opacity': opacity,
+lib\src\elements\arrow_element.dart-165-      'zIndex': zIndex,
+lib\src\elements\arrow_element.dart-166-      'groupId': groupId,
+lib\src\elements\arrow_element.dart-167-      'start': {'x': start.dx, 'y': start.dy},
+lib\src\elements\arrow_element.dart-168-      'end': {'x': end.dx, 'y': end.dy},
+lib\src\elements\arrow_element.dart-169-      'headSize': headSize,
+lib\src\elements\arrow_element.dart-170-      'style': style.toJson(),
+lib\src\elements\arrow_element.dart:171:      if (startBinding != null) 'startBinding': startBinding!.toJson(),
+lib\src\elements\arrow_element.dart:172:      if (endBinding != null) 'endBinding': endBinding!.toJson(),
+lib\src\elements\arrow_element.dart-173-      if (label != null) 'label': label,
+lib\src\elements\arrow_element.dart-174-      'labelStyle': LineLabelPainter.styleToJson(labelStyle),
+lib\src\elements\arrow_element.dart-175-      'labelPosition': labelPosition,
+lib\src\elements\arrow_element.dart-176-      'labelOffset': LineLabelPainter.offsetToJson(labelOffset),
+lib\src\elements\arrow_element.dart-177-      if (labelBackground != null)
+lib\src\elements\arrow_element.dart-178-        'labelBackground': labelBackground!.toARGB32(),
+lib\src\elements\arrow_element.dart-179-    };
+lib\src\elements\arrow_element.dart-180-  }
+--
+lib\src\elements\polyline_element.dart-11-import 'line_label_painter.dart';
+lib\src\elements\polyline_element.dart-12-
+lib\src\elements\polyline_element.dart-13-@immutable
+lib\src\elements\polyline_element.dart-14-class PolylineElement extends CanvasElement {
+lib\src\elements\polyline_element.dart-15-  const PolylineElement({
+lib\src\elements\polyline_element.dart-16-    required this.id,
+lib\src\elements\polyline_element.dart-17-    required this.points,
+lib\src\elements\polyline_element.dart-18-    this.style = const PaintStyle(),
+lib\src\elements\polyline_element.dart:19:    this.startBinding,
+lib\src\elements\polyline_element.dart:20:    this.endBinding,
+lib\src\elements\polyline_element.dart-21-    LineArrowType startArrowStyle = LineArrowType.none,
+lib\src\elements\polyline_element.dart-22-    LineArrowType? endArrowStyle,
+lib\src\elements\polyline_element.dart-23-    bool endArrow = false,
+lib\src\elements\polyline_element.dart-24-    this.headSize = LineArrowStyle.defaultHeadSize,
+lib\src\elements\polyline_element.dart-25-    this.label,
+lib\src\elements\polyline_element.dart-26-    this.labelStyle = LineLabelPainter.defaultStyle,
+lib\src\elements\polyline_element.dart-27-    this.labelPosition = LineLabelPainter.defaultPosition,
+lib\src\elements\polyline_element.dart-28-    this.labelOffset = LineLabelPainter.defaultOffset,
+--
+lib\src\elements\polyline_element.dart-38-           (endArrow ? LineArrowType.normal : LineArrowType.none);
+lib\src\elements\polyline_element.dart-39-
+lib\src\elements\polyline_element.dart-40-  static const elementType = 'polyline';
+lib\src\elements\polyline_element.dart-41-
+lib\src\elements\polyline_element.dart-42-  @override
+lib\src\elements\polyline_element.dart-43-  final String id;
+lib\src\elements\polyline_element.dart-44-  final List<Offset> points;
+lib\src\elements\polyline_element.dart-45-  final PaintStyle style;
+lib\src\elements\polyline_element.dart:46:  final SnapBinding? startBinding;
+lib\src\elements\polyline_element.dart:47:  final SnapBinding? endBinding;
+lib\src\elements\polyline_element.dart-48-  final LineArrowType startArrowStyle;
+lib\src\elements\polyline_element.dart-49-  final LineArrowType endArrowStyle;
+lib\src\elements\polyline_element.dart-50-  final double headSize;
+lib\src\elements\polyline_element.dart-51-  final String? label;
+lib\src\elements\polyline_element.dart-52-  final TextStyle labelStyle;
+lib\src\elements\polyline_element.dart-53-  final double labelPosition;
+lib\src\elements\polyline_element.dart-54-  final Offset labelOffset;
+lib\src\elements\polyline_element.dart-55-  final Color? labelBackground;
+--
+lib\src\elements\polyline_element.dart-123-    );
+lib\src\elements\polyline_element.dart-124-  }
+lib\src\elements\polyline_element.dart-125-
+lib\src\elements\polyline_element.dart-126-  @override
+lib\src\elements\polyline_element.dart-127-  PolylineElement copyWith({
+lib\src\elements\polyline_element.dart-128-    String? id,
+lib\src\elements\polyline_element.dart-129-    List<Offset>? points,
+lib\src\elements\polyline_element.dart-130-    PaintStyle? style,
+lib\src\elements\polyline_element.dart:131:    Object? startBinding = _unset,
+lib\src\elements\polyline_element.dart:132:    Object? endBinding = _unset,
+lib\src\elements\polyline_element.dart-133-    LineArrowStyle? arrowStyle,
+lib\src\elements\polyline_element.dart-134-    LineArrowType? startArrowStyle,
+lib\src\elements\polyline_element.dart-135-    LineArrowType? endArrowStyle,
+lib\src\elements\polyline_element.dart-136-    bool? endArrow,
+lib\src\elements\polyline_element.dart-137-    double? headSize,
+lib\src\elements\polyline_element.dart-138-    Object? label = _unset,
+lib\src\elements\polyline_element.dart-139-    TextStyle? labelStyle,
+lib\src\elements\polyline_element.dart-140-    double? labelPosition,
+--
+lib\src\elements\polyline_element.dart-157-              ? LineArrowType.normal
+lib\src\elements\polyline_element.dart-158-              : LineArrowType.none),
+lib\src\elements\polyline_element.dart-159-      headSize: headSize,
+lib\src\elements\polyline_element.dart-160-    );
+lib\src\elements\polyline_element.dart-161-    return PolylineElement(
+lib\src\elements\polyline_element.dart-162-      id: id ?? this.id,
+lib\src\elements\polyline_element.dart-163-      points: List<Offset>.unmodifiable(points ?? this.points),
+lib\src\elements\polyline_element.dart-164-      style: style ?? this.style,
+lib\src\elements\polyline_element.dart:165:      startBinding: identical(startBinding, _unset)
+lib\src\elements\polyline_element.dart:166:          ? this.startBinding
+lib\src\elements\polyline_element.dart:167:          : startBinding as SnapBinding?,
+lib\src\elements\polyline_element.dart:168:      endBinding: identical(endBinding, _unset)
+lib\src\elements\polyline_element.dart:169:          ? this.endBinding
+lib\src\elements\polyline_element.dart:170:          : endBinding as SnapBinding?,
+lib\src\elements\polyline_element.dart-171-      startArrowStyle: nextArrowStyle.startArrowStyle,
+lib\src\elements\polyline_element.dart-172-      endArrowStyle: nextArrowStyle.endArrowStyle,
+lib\src\elements\polyline_element.dart-173-      headSize: nextArrowStyle.effectiveHeadSize,
+lib\src\elements\polyline_element.dart-174-      label: identical(label, _unset) ? this.label : label as String?,
+lib\src\elements\polyline_element.dart-175-      labelStyle: labelStyle ?? this.labelStyle,
+lib\src\elements\polyline_element.dart-176-      labelPosition: labelPosition ?? this.labelPosition,
+lib\src\elements\polyline_element.dart-177-      labelOffset: labelOffset ?? this.labelOffset,
+lib\src\elements\polyline_element.dart-178-      labelBackground: identical(labelBackground, _unset)
+--
+lib\src\elements\polyline_element.dart-217-      'groupId': groupId,
+lib\src\elements\polyline_element.dart-218-      'points': [
+lib\src\elements\polyline_element.dart-219-        for (final point in points) {'x': point.dx, 'y': point.dy},
+lib\src\elements\polyline_element.dart-220-      ],
+lib\src\elements\polyline_element.dart-221-      'style': style.toJson(),
+lib\src\elements\polyline_element.dart-222-      'arrowStyle': arrowStyle.toJson(),
+lib\src\elements\polyline_element.dart-223-      'endArrow': endArrow,
+lib\src\elements\polyline_element.dart-224-      'headSize': headSize,
+lib\src\elements\polyline_element.dart:225:      if (startBinding != null) 'startBinding': startBinding!.toJson(),
+lib\src\elements\polyline_element.dart:226:      if (endBinding != null) 'endBinding': endBinding!.toJson(),
+lib\src\elements\polyline_element.dart-227-      if (label != null) 'label': label,
+lib\src\elements\polyline_element.dart-228-      'labelStyle': LineLabelPainter.styleToJson(labelStyle),
+lib\src\elements\polyline_element.dart-229-      'labelPosition': labelPosition,
+lib\src\elements\polyline_element.dart-230-      'labelOffset': LineLabelPainter.offsetToJson(labelOffset),
+lib\src\elements\polyline_element.dart-231-      if (labelBackground != null)
+lib\src\elements\polyline_element.dart-232-        'labelBackground': labelBackground!.toARGB32(),
+lib\src\elements\polyline_element.dart-233-    };
+lib\src\elements\polyline_element.dart-234-  }
+--
+lib\src\elements\line_element.dart-16-    required this.id,
+lib\src\elements\line_element.dart-17-    required this.start,
+lib\src\elements\line_element.dart-18-    required this.end,
+lib\src\elements\line_element.dart-19-    this.style = const PaintStyle(),
+lib\src\elements\line_element.dart-20-    LineArrowType startArrowStyle = LineArrowType.none,
+lib\src\elements\line_element.dart-21-    LineArrowType? endArrowStyle,
+lib\src\elements\line_element.dart-22-    bool endArrow = false,
+lib\src\elements\line_element.dart-23-    this.headSize = LineArrowStyle.defaultHeadSize,
+lib\src\elements\line_element.dart:24:    this.startBinding,
+lib\src\elements\line_element.dart:25:    this.endBinding,
+lib\src\elements\line_element.dart-26-    this.label,
+lib\src\elements\line_element.dart-27-    this.labelStyle = LineLabelPainter.defaultStyle,
+lib\src\elements\line_element.dart-28-    this.labelPosition = LineLabelPainter.defaultPosition,
+lib\src\elements\line_element.dart-29-    this.labelOffset = LineLabelPainter.defaultOffset,
+lib\src\elements\line_element.dart-30-    this.labelBackground,
+lib\src\elements\line_element.dart-31-    this.layerId = 'default',
+lib\src\elements\line_element.dart-32-    this.visible = true,
+lib\src\elements\line_element.dart-33-    this.opacity = 1,
+--
+lib\src\elements\line_element.dart-44-  final String id;
+lib\src\elements\line_element.dart-45-
+lib\src\elements\line_element.dart-46-  final Offset start;
+lib\src\elements\line_element.dart-47-  final Offset end;
+lib\src\elements\line_element.dart-48-  final PaintStyle style;
+lib\src\elements\line_element.dart-49-  final LineArrowType startArrowStyle;
+lib\src\elements\line_element.dart-50-  final LineArrowType endArrowStyle;
+lib\src\elements\line_element.dart-51-  final double headSize;
+lib\src\elements\line_element.dart:52:  final SnapBinding? startBinding;
+lib\src\elements\line_element.dart:53:  final SnapBinding? endBinding;
+lib\src\elements\line_element.dart-54-  final String? label;
+lib\src\elements\line_element.dart-55-  final TextStyle labelStyle;
+lib\src\elements\line_element.dart-56-  final double labelPosition;
+lib\src\elements\line_element.dart-57-  final Offset labelOffset;
+lib\src\elements\line_element.dart-58-  final Color? labelBackground;
+lib\src\elements\line_element.dart-59-
+lib\src\elements\line_element.dart-60-  @override
+lib\src\elements\line_element.dart-61-  final String layerId;
+--
+lib\src\elements\line_element.dart-123-    Offset? start,
+lib\src\elements\line_element.dart-124-    Offset? end,
+lib\src\elements\line_element.dart-125-    PaintStyle? style,
+lib\src\elements\line_element.dart-126-    LineArrowStyle? arrowStyle,
+lib\src\elements\line_element.dart-127-    LineArrowType? startArrowStyle,
+lib\src\elements\line_element.dart-128-    LineArrowType? endArrowStyle,
+lib\src\elements\line_element.dart-129-    bool? endArrow,
+lib\src\elements\line_element.dart-130-    double? headSize,
+lib\src\elements\line_element.dart:131:    Object? startBinding = _unset,
+lib\src\elements\line_element.dart:132:    Object? endBinding = _unset,
+lib\src\elements\line_element.dart-133-    Object? label = _unset,
+lib\src\elements\line_element.dart-134-    TextStyle? labelStyle,
+lib\src\elements\line_element.dart-135-    double? labelPosition,
+lib\src\elements\line_element.dart-136-    Offset? labelOffset,
+lib\src\elements\line_element.dart-137-    Object? labelBackground = _unset,
+lib\src\elements\line_element.dart-138-    String? layerId,
+lib\src\elements\line_element.dart-139-    bool? visible,
+lib\src\elements\line_element.dart-140-    double? opacity,
+--
+lib\src\elements\line_element.dart-156-    return LineElement(
+lib\src\elements\line_element.dart-157-      id: id ?? this.id,
+lib\src\elements\line_element.dart-158-      start: start ?? this.start,
+lib\src\elements\line_element.dart-159-      end: end ?? this.end,
+lib\src\elements\line_element.dart-160-      style: style ?? this.style,
+lib\src\elements\line_element.dart-161-      startArrowStyle: nextArrowStyle.startArrowStyle,
+lib\src\elements\line_element.dart-162-      endArrowStyle: nextArrowStyle.endArrowStyle,
+lib\src\elements\line_element.dart-163-      headSize: nextArrowStyle.effectiveHeadSize,
+lib\src\elements\line_element.dart:164:      startBinding: identical(startBinding, _unset)
+lib\src\elements\line_element.dart:165:          ? this.startBinding
+lib\src\elements\line_element.dart:166:          : startBinding as SnapBinding?,
+lib\src\elements\line_element.dart:167:      endBinding: identical(endBinding, _unset)
+lib\src\elements\line_element.dart:168:          ? this.endBinding
+lib\src\elements\line_element.dart:169:          : endBinding as SnapBinding?,
+lib\src\elements\line_element.dart-170-      label: identical(label, _unset) ? this.label : label as String?,
+lib\src\elements\line_element.dart-171-      labelStyle: labelStyle ?? this.labelStyle,
+lib\src\elements\line_element.dart-172-      labelPosition: labelPosition ?? this.labelPosition,
+lib\src\elements\line_element.dart-173-      labelOffset: labelOffset ?? this.labelOffset,
+lib\src\elements\line_element.dart-174-      labelBackground: identical(labelBackground, _unset)
+lib\src\elements\line_element.dart-175-          ? this.labelBackground
+lib\src\elements\line_element.dart-176-          : labelBackground as Color?,
+lib\src\elements\line_element.dart-177-      layerId: layerId ?? this.layerId,
+--
+lib\src\elements\line_element.dart-211-      'visible': visible,
+lib\src\elements\line_element.dart-212-      'opacity': opacity,
+lib\src\elements\line_element.dart-213-      'zIndex': zIndex,
+lib\src\elements\line_element.dart-214-      'groupId': groupId,
+lib\src\elements\line_element.dart-215-      'start': {'x': start.dx, 'y': start.dy},
+lib\src\elements\line_element.dart-216-      'end': {'x': end.dx, 'y': end.dy},
+lib\src\elements\line_element.dart-217-      'style': style.toJson(),
+lib\src\elements\line_element.dart-218-      'arrowStyle': arrowStyle.toJson(),
+lib\src\elements\line_element.dart:219:      if (startBinding != null) 'startBinding': startBinding!.toJson(),
+lib\src\elements\line_element.dart:220:      if (endBinding != null) 'endBinding': endBinding!.toJson(),
+lib\src\elements\line_element.dart-221-      if (label != null) 'label': label,
+lib\src\elements\line_element.dart-222-      'labelStyle': LineLabelPainter.styleToJson(labelStyle),
+lib\src\elements\line_element.dart-223-      'labelPosition': labelPosition,
+lib\src\elements\line_element.dart-224-      'labelOffset': LineLabelPainter.offsetToJson(labelOffset),
+lib\src\elements\line_element.dart-225-      if (labelBackground != null)
+lib\src\elements\line_element.dart-226-        'labelBackground': labelBackground!.toARGB32(),
+lib\src\elements\line_element.dart-227-    };
+lib\src\elements\line_element.dart-228-  }
+
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "Get-Content -LiteralPath 'lib\\src\\elements\\line_element.dart' -Encoding UTF8 -TotalCount 35; Get-Content -LiteralPath 'lib\\src\\snap\\snap_resolver.dart' -Encoding UTF8 -TotalCount 70; git status --short -- 'lib/src/elements/curve_element.dart' 'lib/src/serialization/canvas_serializer.dart' 'docs/plan/plan_requirement_1_20260711-002515.md'" in D:\project\GitHub\wenz_flutter\wenz_draw
+ succeeded in 208ms:
+import 'dart:ui' show ClipOp;
+
+import 'package:flutter/widgets.dart';
+
+import '../canvas/paint_style.dart';
+import '../snap/snap_resolver.dart';
+import '../utils/math_utils.dart';
+import 'canvas_element.dart';
+import 'element_renderer.dart';
+import 'line_arrow_style.dart';
+import 'line_label_painter.dart';
+
+@immutable
+class LineElement extends CanvasElement {
+  const LineElement({
+    required this.id,
+    required this.start,
+    required this.end,
+    this.style = const PaintStyle(),
+    LineArrowType startArrowStyle = LineArrowType.none,
+    LineArrowType? endArrowStyle,
+    bool endArrow = false,
+    this.headSize = LineArrowStyle.defaultHeadSize,
+    this.startBinding,
+    this.endBinding,
+    this.label,
+    this.labelStyle = LineLabelPainter.defaultStyle,
+    this.labelPosition = LineLabelPainter.defaultPosition,
+    this.labelOffset = LineLabelPainter.defaultOffset,
+    this.labelBackground,
+    this.layerId = 'default',
+    this.visible = true,
+    this.opacity = 1,
+    this.zIndex = 0,
+    this.groupId,
+import 'dart:math' as math;
+
+import 'package:flutter/widgets.dart';
+
+import '../canvas/canvas_controller.dart';
+import '../elements/arrow_element.dart';
+import '../elements/canvas_element.dart';
+import '../elements/drawio_shape_element.dart';
+import '../elements/line_element.dart';
+import '../elements/polyline_element.dart';
+import '../elements/shape_definition.dart';
+import '../elements/shape_definition_registry.dart';
+
+class SnapSettings {
+  const SnapSettings({
+    this.enabled = true,
+    this.thresholdScreenPx = 12,
+    this.includeCenters = true,
+    this.includeEdges = true,
+    this.includeCorners = true,
+    this.includeLinePoints = true,
+  });
+
+  final bool enabled;
+  final double thresholdScreenPx;
+  final bool includeCenters;
+  final bool includeEdges;
+  final bool includeCorners;
+  final bool includeLinePoints;
+
+  double worldThreshold(double scale) {
+    return thresholdScreenPx / math.max(scale.abs(), 0.0001);
+  }
+}
+
+enum SnapPointKind { center, edge, corner, endpoint, midpoint }
+
+class SnapBinding {
+  const SnapBinding({required this.elementId, required this.anchorId});
+
+  final String elementId;
+  final String anchorId;
+
+  Map<String, dynamic> toJson() {
+    return {'elementId': elementId, 'anchorId': anchorId};
+  }
+
+  static SnapBinding? fromJson(Object? json) {
+    if (json is! Map<String, dynamic>) {
+      return null;
+    }
+    final elementId = json['elementId'] as String?;
+    final anchorId = json['anchorId'] as String?;
+    if (elementId == null || anchorId == null) {
+      return null;
+    }
+    return SnapBinding(elementId: elementId, anchorId: anchorId);
+  }
+}
+
+class SnapPoint {
+  const SnapPoint({
+    required this.elementId,
+    required this.anchorId,
+    required this.position,
+    required this.kind,
+  });
+
+  final String elementId;
+  final String anchorId;
+ M lib/src/elements/curve_element.dart
+ M lib/src/serialization/canvas_serializer.dart
+?? docs/plan/plan_requirement_1_20260711-002515.md
+
+codex
+指定文件在开始修改前已有未提交差异。我会先辨认现有改动并在其基础上做最小补丁，避免覆盖工作区中已有内容；计划文件仍保持只读。
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'git diff -- lib/src/elements/curve_element.dart lib/src/serialization/canvas_serializer.dart' in D:\project\GitHub\wenz_flutter\wenz_draw
+ succeeded in 188ms:
+diff --git a/wenz_draw/lib/src/elements/curve_element.dart b/wenz_draw/lib/src/elements/curve_element.dart
+index de47d9b..6c60e06 100644
+--- a/wenz_draw/lib/src/elements/curve_element.dart
++++ b/wenz_draw/lib/src/elements/curve_element.dart
+@@ -4,6 +4,7 @@ import '../canvas/paint_style.dart';
+ import '../utils/math_utils.dart';
+ import 'canvas_element.dart';
+ import 'element_renderer.dart';
++import 'line_arrow_style.dart';
+ 
+ /// A quadratic Bézier curve defined by a start point, an end point and a
+ /// single control point.
+@@ -15,12 +16,19 @@ class CurveElement extends CanvasElement {
+     required this.end,
+     required this.control,
+     this.style = const PaintStyle(),
++    LineArrowType startArrowStyle = LineArrowType.none,
++    LineArrowType? endArrowStyle,
++    bool endArrow = false,
++    this.headSize = LineArrowStyle.defaultHeadSize,
+     this.layerId = 'default',
+     this.visible = true,
+     this.opacity = 1,
+     this.zIndex = 0,
+     this.groupId,
+-  });
++  }) : startArrowStyle = startArrowStyle,
++       endArrowStyle =
++           endArrowStyle ??
++           (endArrow ? LineArrowType.normal : LineArrowType.none);
+ 
+   static const elementType = 'curve';
+ 
+@@ -31,6 +39,9 @@ class CurveElement extends CanvasElement {
+   final Offset end;
+   final Offset control;
+   final PaintStyle style;
++  final LineArrowType startArrowStyle;
++  final LineArrowType endArrowStyle;
++  final double headSize;
+ 
+   @override
+   final String layerId;
+@@ -50,6 +61,14 @@ class CurveElement extends CanvasElement {
+   @override
+   String get type => elementType;
+ 
++  LineArrowStyle get arrowStyle => LineArrowStyle(
++    startArrowStyle: startArrowStyle,
++    endArrowStyle: endArrowStyle,
++    headSize: headSize,
++  );
++
++  bool get endArrow => endArrowStyle.isEnabled;
++
+   /// Sample the quadratic Bézier at parameter [t] (0 → start, 1 → end).
+   Offset pointAt(double t) {
+     final u = 1 - t;
+@@ -64,7 +83,11 @@ class CurveElement extends CanvasElement {
+   Rect get bounds {
+     // The convex hull of start, control, end contains the curve.
+     final allPoints = [start, control, end];
+-    return boundsForPoints(allPoints).inflate(style.strokeWidth / 2);
++    return LineArrowGeometryUtils.expandBounds(
++      bounds: boundsForPoints(allPoints),
++      style: arrowStyle,
++      strokeWidth: style.strokeWidth,
++    );
+   }
+ 
+   @override
+@@ -80,9 +103,40 @@ class CurveElement extends CanvasElement {
+       }
+       prev = p;
+     }
+-    return false;
++    return LineArrowEndpoint.values.any(
++      (endpoint) => LineArrowGeometryUtils.hitTestArrow(
++        worldPoint: worldPoint,
++        type: arrowStyle.typeFor(endpoint),
++        tip: endpoint == LineArrowEndpoint.start ? start : end,
++        direction: tangentDirection(endpoint),
++        headSize: arrowStyle.effectiveHeadSize,
++        tolerance: threshold,
++      ),
++    );
++  }
++
++  Offset? tangentDirection(LineArrowEndpoint endpoint) {
++    final tip = endpoint == LineArrowEndpoint.start ? start : end;
++    final direct = tip - control;
++    if (direct.distance >= 0.1) {
++      return direct;
++    }
++    const steps = 32;
++    final indices = endpoint == LineArrowEndpoint.start
++        ? Iterable<int>.generate(steps, (i) => i + 1)
++        : Iterable<int>.generate(steps, (i) => steps - 1 - i);
++    for (final i in indices) {
++      final candidate = pointAt(i / steps);
++      final direction = tip - candidate;
++      if (direction.distance >= 0.1) {
++        return direction;
++      }
++    }
++    return null;
+   }
+ 
++  Offset? get endTangentDirection => tangentDirection(LineArrowEndpoint.end);
++
+   @override
+   CurveElement copyWith({
+     String? id,
+@@ -90,25 +144,43 @@ class CurveElement extends CanvasElement {
+     Offset? end,
+     Offset? control,
+     PaintStyle? style,
++    LineArrowStyle? arrowStyle,
++    LineArrowType? startArrowStyle,
++    LineArrowType? endArrowStyle,
++    bool? endArrow,
++    double? headSize,
+     String? layerId,
+     bool? visible,
+     double? opacity,
+     int? zIndex,
+     Object? groupId = _unset,
+   }) {
++    final currentArrowStyle = arrowStyle ?? this.arrowStyle;
++    final nextArrowStyle = currentArrowStyle.copyWith(
++      startArrowStyle: startArrowStyle,
++      endArrowStyle:
++          endArrowStyle ??
++          (endArrow == null
++              ? null
++              : endArrow
++              ? LineArrowType.normal
++              : LineArrowType.none),
++      headSize: headSize,
++    );
+     return CurveElement(
+       id: id ?? this.id,
+       start: start ?? this.start,
+       end: end ?? this.end,
+       control: control ?? this.control,
+       style: style ?? this.style,
++      startArrowStyle: nextArrowStyle.startArrowStyle,
++      endArrowStyle: nextArrowStyle.endArrowStyle,
++      headSize: nextArrowStyle.effectiveHeadSize,
+       layerId: layerId ?? this.layerId,
+       visible: visible ?? this.visible,
+       opacity: opacity ?? this.opacity,
+       zIndex: zIndex ?? this.zIndex,
+-      groupId: identical(groupId, _unset)
+-          ? this.groupId
+-          : groupId as String?,
++      groupId: identical(groupId, _unset) ? this.groupId : groupId as String?,
+     );
+   }
+ 
+@@ -129,6 +201,7 @@ class CurveElement extends CanvasElement {
+       end: scalePoint(end, factor, origin),
+       control: scalePoint(control, factor, origin),
+       style: style.copyWith(strokeWidth: style.strokeWidth * factor.abs()),
++      arrowStyle: arrowStyle.scale(factor),
+     );
+   }
+ 
+@@ -146,6 +219,9 @@ class CurveElement extends CanvasElement {
+       'end': {'x': end.dx, 'y': end.dy},
+       'control': {'x': control.dx, 'y': control.dy},
+       'style': style.toJson(),
++      'arrowStyle': arrowStyle.toJson(),
++      'endArrow': endArrow,
++      'headSize': headSize,
+     };
+   }
+ 
+@@ -170,6 +246,16 @@ class CurveElementRenderer extends ElementRenderer<CurveElement> {
+         element.end.dy,
+       );
+     canvas.drawPath(path, paint);
++    for (final endpoint in LineArrowEndpoint.values) {
++      LineArrowGeometryUtils.drawArrow(
++        canvas,
++        paint,
++        type: element.arrowStyle.typeFor(endpoint),
++        tip: endpoint == LineArrowEndpoint.start ? element.start : element.end,
++        direction: element.tangentDirection(endpoint),
++        headSize: element.arrowStyle.effectiveHeadSize,
++      );
++    }
+   }
+ 
+   @override
+diff --git a/wenz_draw/lib/src/serialization/canvas_serializer.dart b/wenz_draw/lib/src/serialization/canvas_serializer.dart
+index 0fba534..f7db76e 100644
+--- a/wenz_draw/lib/src/serialization/canvas_serializer.dart
++++ b/wenz_draw/lib/src/serialization/canvas_serializer.dart
+@@ -9,6 +9,7 @@ import '../elements/drawio_shape_element.dart';
+ import '../elements/ellipse_element.dart';
+ import '../elements/image_element.dart';
+ import '../elements/line_element.dart';
++import '../elements/line_arrow_style.dart';
+ import '../elements/line_label_painter.dart';
+ import '../elements/path_element.dart';
+ import '../elements/polyline_element.dart';
+@@ -134,10 +135,12 @@ class CanvasSerializer {
+     final elements = <CanvasElement>[];
+     for (final entry in elementJson) {
+       if (entry is! Map<String, dynamic>) {
+-        warn(const DocumentFormatWarning(
+-          "Element is not an object; skipped",
+-          field: 'elements',
+-        ));
++        warn(
++          const DocumentFormatWarning(
++            "Element is not an object; skipped",
++            field: 'elements',
++          ),
++        );
+         continue;
+       }
+       final element = _safeElementFromJson(entry, warn);
+@@ -148,8 +151,8 @@ class CanvasSerializer {
+ 
+     return DocumentParseResult(
+       document: CanvasDocument(
+-        schemaVersion: (migrated['schemaVersion'] as String?) ??
+-            DocumentSchema.current,
++        schemaVersion:
++            (migrated['schemaVersion'] as String?) ?? DocumentSchema.current,
+         metadata: _metadataFromJson(migrated['metadata']),
+         viewport: _viewportFromJson(migrated['viewport']),
+         assets: [
+@@ -180,24 +183,28 @@ class CanvasSerializer {
+       // Validate the result's geometry where applicable: a rect with negative
+       // width/height is recoverable (downgrade) rather than fatal.
+       if (_hasInvalidRect(element)) {
+-        warn(DocumentFormatWarning(
+-          'Element rect has negative width or height; kept as-is',
+-          elementType: type,
+-          elementId: json['id']?.toString(),
+-          field: 'rect',
+-          rawJson: json,
+-        ));
++        warn(
++          DocumentFormatWarning(
++            'Element rect has negative width or height; kept as-is',
++            elementType: type,
++            elementId: json['id']?.toString(),
++            field: 'rect',
++            rawJson: json,
++          ),
++        );
+       }
+       return element;
+     } catch (error) {
+       // Downgrade: keep the original JSON verbatim inside an UnknownElement so
+       // a round-trip never loses data written by a newer app.
+-      warn(DocumentFormatWarning(
+-        'Element could not be parsed ($error); preserved as UnknownElement',
+-        elementType: type,
+-        elementId: json['id']?.toString(),
+-        rawJson: json,
+-      ));
++      warn(
++        DocumentFormatWarning(
++          'Element could not be parsed ($error); preserved as UnknownElement',
++          elementType: type,
++          elementId: json['id']?.toString(),
++          rawJson: json,
++        ),
++      );
+       return UnknownElement(
+         id: (json['id'] as String?) ?? '',
+         rawJson: Map<String, dynamic>.from(json),
+@@ -240,7 +247,9 @@ class CanvasSerializer {
+   ///
+   /// This never throws; hosts that want hard enforcement can convert each
+   /// [DocumentFormatWarning] via [DocumentFormatWarning.toException].
+-  static List<DocumentFormatWarning> validateForSave(Map<String, dynamic> json) {
++  static List<DocumentFormatWarning> validateForSave(
++    Map<String, dynamic> json,
++  ) {
+     final warnings = <DocumentFormatWarning>[];
+     if (json.isEmpty) {
+       return const [];
+@@ -251,20 +260,24 @@ class CanvasSerializer {
+     }
+     for (final entry in elements) {
+       if (entry is! Map<String, dynamic>) {
+-        warnings.add(const DocumentFormatWarning(
+-          'Element is not an object',
+-          field: 'elements',
+-        ));
++        warnings.add(
++          const DocumentFormatWarning(
++            'Element is not an object',
++            field: 'elements',
++          ),
++        );
+         continue;
+       }
+       final id = entry['id'];
+       if (id is! String || id.isEmpty) {
+-        warnings.add(DocumentFormatWarning(
+-          'Element is missing a non-empty id',
+-          elementType: entry['type']?.toString(),
+-          field: 'id',
+-          rawJson: entry,
+-        ));
++        warnings.add(
++          DocumentFormatWarning(
++            'Element is missing a non-empty id',
++            elementType: entry['type']?.toString(),
++            field: 'id',
++            rawJson: entry,
++          ),
++        );
+       }
+       final rect = entry['rect'];
+       if (rect is Map) {
+@@ -273,13 +286,15 @@ class CanvasSerializer {
+         final right = (rect['right'] as num?)?.toDouble() ?? 0;
+         final bottom = (rect['bottom'] as num?)?.toDouble() ?? 0;
+         if (right < left || bottom < top) {
+-          warnings.add(DocumentFormatWarning(
+-            'Element rect has negative width or height',
+-            elementType: entry['type']?.toString(),
+-            elementId: id is String ? id : null,
+-            field: 'rect',
+-            rawJson: entry,
+-          ));
++          warnings.add(
++            DocumentFormatWarning(
++              'Element rect has negative width or height',
++              elementType: entry['type']?.toString(),
++              elementId: id is String ? id : null,
++              field: 'rect',
++              rawJson: entry,
++            ),
++          );
+         }
+       }
+     }
+@@ -331,64 +346,86 @@ class CanvasSerializer {
+           style: _style(json['style']),
+         );
+       case CurveElement.elementType:
+-        return CurveElement(
+-          id: id,
+-          layerId: layerId,
+-          visible: visible,
+-          opacity: opacity,
+-          zIndex: zIndex,
+-          groupId: json['groupId'] as String?,
+-          start: _point(json['start']),
+-          end: _point(json['end']),
+-          control: _point(json['control']),
+-          style: _style(json['style']),
+-        );
++        {
++          final arrowStyle = LineArrowStyle.fromJson(
++            json['arrowStyle'] ?? json,
++          );
++          return CurveElement(
++            id: id,
++            layerId: layerId,
++            visible: visible,
++            opacity: opacity,
++            zIndex: zIndex,
++            groupId: json['groupId'] as String?,
++            start: _point(json['start']),
++            end: _point(json['end']),
++            control: _point(json['control']),
++            style: _style(json['style']),
++            startArrowStyle: arrowStyle.startArrowStyle,
++            endArrowStyle: arrowStyle.endArrowStyle,
++            headSize: arrowStyle.effectiveHeadSize,
++          );
++        }
+       case LineElement.elementType:
+-        return LineElement(
+-          id: id,
+-          layerId: layerId,
+-          visible: visible,
+-          opacity: opacity,
+-          zIndex: zIndex,
+-          groupId: json['groupId'] as String?,
+-          start: _point(json['start']),
+-          end: _point(json['end']),
+-          style: _style(json['style']),
+-          startBinding: SnapBinding.fromJson(json['startBinding']),
+-          endBinding: SnapBinding.fromJson(json['endBinding']),
+-          label: json['label'] as String?,
+-          labelStyle: LineLabelPainter.styleFromJson(json['labelStyle']),
+-          labelPosition:
+-              (json['labelPosition'] as num?)?.toDouble() ??
+-              LineLabelPainter.defaultPosition,
+-          labelOffset: LineLabelPainter.offsetFromJson(json['labelOffset']),
+-          labelBackground: _colorFromJson(json['labelBackground']),
+-        );
++        {
++          final arrowStyle = LineArrowStyle.fromJson(
++            json['arrowStyle'] ?? json,
++          );
++          return LineElement(
++            id: id,
++            layerId: layerId,
++            visible: visible,
++            opacity: opacity,
++            zIndex: zIndex,
++            groupId: json['groupId'] as String?,
++            start: _point(json['start']),
++            end: _point(json['end']),
++            style: _style(json['style']),
++            startArrowStyle: arrowStyle.startArrowStyle,
++            endArrowStyle: arrowStyle.endArrowStyle,
++            headSize: arrowStyle.effectiveHeadSize,
++            startBinding: SnapBinding.fromJson(json['startBinding']),
++            endBinding: SnapBinding.fromJson(json['endBinding']),
++            label: json['label'] as String?,
++            labelStyle: LineLabelPainter.styleFromJson(json['labelStyle']),
++            labelPosition:
++                (json['labelPosition'] as num?)?.toDouble() ??
++                LineLabelPainter.defaultPosition,
++            labelOffset: LineLabelPainter.offsetFromJson(json['labelOffset']),
++            labelBackground: _colorFromJson(json['labelBackground']),
++          );
++        }
+       case PolylineElement.elementType:
+-        return PolylineElement(
+-          id: id,
+-          layerId: layerId,
+-          visible: visible,
+-          opacity: opacity,
+-          zIndex: zIndex,
+-          groupId: json['groupId'] as String?,
+-          points: [
+-            for (final point in json['points'] as List<dynamic>? ?? const [])
+-              _point(point),
+-          ],
+-          style: _style(json['style']),
+-          startBinding: SnapBinding.fromJson(json['startBinding']),
+-          endBinding: SnapBinding.fromJson(json['endBinding']),
+-          endArrow: json['endArrow'] as bool? ?? false,
+-          headSize: (json['headSize'] as num?)?.toDouble() ?? 14,
+-          label: json['label'] as String?,
+-          labelStyle: LineLabelPainter.styleFromJson(json['labelStyle']),
+-          labelPosition:
+-              (json['labelPosition'] as num?)?.toDouble() ??
+-              LineLabelPainter.defaultPosition,
+-          labelOffset: LineLabelPainter.offsetFromJson(json['labelOffset']),
+-          labelBackground: _colorFromJson(json['labelBackground']),
+-        );
++        {
++          final arrowStyle = LineArrowStyle.fromJson(
++            json['arrowStyle'] ?? json,
++          );
++          return PolylineElement(
++            id: id,
++            layerId: layerId,
++            visible: visible,
++            opacity: opacity,
++            zIndex: zIndex,
++            groupId: json['groupId'] as String?,
++            points: [
++              for (final point in json['points'] as List<dynamic>? ?? const [])
++                _point(point),
++            ],
++            style: _style(json['style']),
++            startBinding: SnapBinding.fromJson(json['startBinding']),
++            endBinding: SnapBinding.fromJson(json['endBinding']),
++            startArrowStyle: arrowStyle.startArrowStyle,
++            endArrowStyle: arrowStyle.endArrowStyle,
++            headSize: arrowStyle.effectiveHeadSize,
++            label: json['label'] as String?,
++            labelStyle: LineLabelPainter.styleFromJson(json['labelStyle']),
++            labelPosition:
++                (json['labelPosition'] as num?)?.toDouble() ??
++                LineLabelPainter.defaultPosition,
++            labelOffset: LineLabelPainter.offsetFromJson(json['labelOffset']),
++            labelBackground: _colorFromJson(json['labelBackground']),
++          );
++        }
+       case DrawioShapeElement.elementType:
+         return DrawioShapeElement(
+           id: id,
+@@ -552,9 +589,7 @@ class CanvasSerializer {
+   static DocumentMetadata _metadataFromJson(Object? value) {
+     if (value is Map<String, dynamic>) return DocumentMetadata.fromJson(value);
+     if (value is Map) {
+-      return DocumentMetadata.fromJson(
+-        Map<String, dynamic>.from(value),
+-      );
++      return DocumentMetadata.fromJson(Map<String, dynamic>.from(value));
+     }
+     return const DocumentMetadata();
+   }
+@@ -562,9 +597,7 @@ class CanvasSerializer {
+   static DocumentViewport _viewportFromJson(Object? value) {
+     if (value is Map<String, dynamic>) return DocumentViewport.fromJson(value);
+     if (value is Map) {
+-      return DocumentViewport.fromJson(
+-        Map<String, dynamic>.from(value),
+-      );
++      return DocumentViewport.fromJson(Map<String, dynamic>.from(value));
+     }
+     return const DocumentViewport();
+   }
+warning: in the working copy of 'wenz_draw/lib/src/elements/curve_element.dart', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'wenz_draw/lib/src/serialization/canvas_serializer.dart', LF will be replaced by CRLF the next time Git touches it
+
+apply patch
+patch: completed
+D:\project\GitHub\wenz_flutter\wenz_draw\lib\src\elements\curve_element.dart
+D:\project\GitHub\wenz_flutter\wenz_draw\lib\src\serialization\canvas_serializer.dart
+diff --git a/wenz_draw/lib/src/elements/curve_element.dart b/wenz_draw/lib/src/elements/curve_element.dart
+index 6c60e06c795521e6bd39d12baabdb6cf968ff29b..f32cb6b0edea1a044dc550c781db8ab478b1064a
+--- a/wenz_draw/lib/src/elements/curve_element.dart
++++ b/wenz_draw/lib/src/elements/curve_element.dart
+@@ -1,6 +1,7 @@
+ import 'package:flutter/widgets.dart';
+ 
+ import '../canvas/paint_style.dart';
++import '../snap/snap_resolver.dart';
+ import '../utils/math_utils.dart';
+ import 'canvas_element.dart';
+ import 'element_renderer.dart';
+@@ -20,6 +21,8 @@
+     LineArrowType? endArrowStyle,
+     bool endArrow = false,
+     this.headSize = LineArrowStyle.defaultHeadSize,
++    this.startBinding,
++    this.endBinding,
+     this.layerId = 'default',
+     this.visible = true,
+     this.opacity = 1,
+@@ -42,6 +45,8 @@
+   final LineArrowType startArrowStyle;
+   final LineArrowType endArrowStyle;
+   final double headSize;
++  final SnapBinding? startBinding;
++  final SnapBinding? endBinding;
+ 
+   @override
+   final String layerId;
+@@ -149,6 +154,8 @@
+     LineArrowType? endArrowStyle,
+     bool? endArrow,
+     double? headSize,
++    Object? startBinding = _unset,
++    Object? endBinding = _unset,
+     String? layerId,
+     bool? visible,
+     double? opacity,
+@@ -176,6 +183,12 @@
+       startArrowStyle: nextArrowStyle.startArrowStyle,
+       endArrowStyle: nextArrowStyle.endArrowStyle,
+       headSize: nextArrowStyle.effectiveHeadSize,
++      startBinding: identical(startBinding, _unset)
++          ? this.startBinding
++          : startBinding as SnapBinding?,
++      endBinding: identical(endBinding, _unset)
++          ? this.endBinding
++          : endBinding as SnapBinding?,
+       layerId: layerId ?? this.layerId,
+       visible: visible ?? this.visible,
+       opacity: opacity ?? this.opacity,
+@@ -222,6 +235,8 @@
+       'arrowStyle': arrowStyle.toJson(),
+       'endArrow': endArrow,
+       'headSize': headSize,
++      if (startBinding != null) 'startBinding': startBinding!.toJson(),
++      if (endBinding != null) 'endBinding': endBinding!.toJson(),
+     };
+   }
+ 
+diff --git a/wenz_draw/lib/src/serialization/canvas_serializer.dart b/wenz_draw/lib/src/serialization/canvas_serializer.dart
+index f7db76e159288c95980648cd1e983af886419236..ce1f0c89353b8865c34e95d763453f12128fcfe5
+--- a/wenz_draw/lib/src/serialization/canvas_serializer.dart
++++ b/wenz_draw/lib/src/serialization/canvas_serializer.dart
+@@ -364,6 +364,8 @@
+             startArrowStyle: arrowStyle.startArrowStyle,
+             endArrowStyle: arrowStyle.endArrowStyle,
+             headSize: arrowStyle.effectiveHeadSize,
++            startBinding: SnapBinding.fromJson(json['startBinding']),
++            endBinding: SnapBinding.fromJson(json['endBinding']),
+           );
+         }
+       case LineElement.elementType:
+
+diff --git a/wenz_draw/lib/src/elements/curve_element.dart b/wenz_draw/lib/src/elements/curve_element.dart
+index 6c60e06c795521e6bd39d12baabdb6cf968ff29b..f32cb6b0edea1a044dc550c781db8ab478b1064a
+--- a/wenz_draw/lib/src/elements/curve_element.dart
++++ b/wenz_draw/lib/src/elements/curve_element.dart
+@@ -1,6 +1,7 @@
+ import 'package:flutter/widgets.dart';
+ 
+ import '../canvas/paint_style.dart';
++import '../snap/snap_resolver.dart';
+ import '../utils/math_utils.dart';
+ import 'canvas_element.dart';
+ import 'element_renderer.dart';
+@@ -20,6 +21,8 @@
+     LineArrowType? endArrowStyle,
+     bool endArrow = false,
+     this.headSize = LineArrowStyle.defaultHeadSize,
++    this.startBinding,
++    this.endBinding,
+     this.layerId = 'default',
+     this.visible = true,
+     this.opacity = 1,
+@@ -42,6 +45,8 @@
+   final LineArrowType startArrowStyle;
+   final LineArrowType endArrowStyle;
+   final double headSize;
++  final SnapBinding? startBinding;
++  final SnapBinding? endBinding;
+ 
+   @override
+   final String layerId;
+@@ -149,6 +154,8 @@
+     LineArrowType? endArrowStyle,
+     bool? endArrow,
+     double? headSize,
++    Object? startBinding = _unset,
++    Object? endBinding = _unset,
+     String? layerId,
+     bool? visible,
+     double? opacity,
+@@ -176,6 +183,12 @@
+       startArrowStyle: nextArrowStyle.startArrowStyle,
+       endArrowStyle: nextArrowStyle.endArrowStyle,
+       headSize: nextArrowStyle.effectiveHeadSize,
++      startBinding: identical(startBinding, _unset)
++          ? this.startBinding
++          : startBinding as SnapBinding?,
++      endBinding: identical(endBinding, _unset)
++          ? this.endBinding
++          : endBinding as SnapBinding?,
+       layerId: layerId ?? this.layerId,
+       visible: visible ?? this.visible,
+       opacity: opacity ?? this.opacity,
+@@ -222,6 +235,8 @@
+       'arrowStyle': arrowStyle.toJson(),
+       'endArrow': endArrow,
+       'headSize': headSize,
++      if (startBinding != null) 'startBinding': startBinding!.toJson(),
++      if (endBinding != null) 'endBinding': endBinding!.toJson(),
+     };
+   }
+ 
+diff --git a/wenz_draw/lib/src/serialization/canvas_serializer.dart b/wenz_draw/lib/src/serialization/canvas_serializer.dart
+index f7db76e159288c95980648cd1e983af886419236..ce1f0c89353b8865c34e95d763453f12128fcfe5
+--- a/wenz_draw/lib/src/serialization/canvas_serializer.dart
++++ b/wenz_draw/lib/src/serialization/canvas_serializer.dart
+@@ -364,6 +364,8 @@
+             startArrowStyle: arrowStyle.startArrowStyle,
+             endArrowStyle: arrowStyle.endArrowStyle,
+             headSize: arrowStyle.effectiveHeadSize,
++            startBinding: SnapBinding.fromJson(json['startBinding']),
++            endBinding: SnapBinding.fromJson(json['endBinding']),
+           );
+         }
+       case LineElement.elementType:
+
+codex
+核心修改已落地：曲线新增可空双端绑定，`copyWith` 同时支持“默认保留”和显式传 `null` 解绑；平移、缩放通过现有 `copyWith` 路径自然保留绑定；JSON 仅在存在时输出绑定。接下来只做静态差异核对，不启动任何验收命令。
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command '$file = '"'lib\\src\\elements\\curve_element.dart'; "'$lines = Get-Content -LiteralPath $file -Encoding UTF8; foreach ($range in @(@(1,60),@(135,205),@(215,245))) { $start=$range[0]; $end=$range[1]; for ($i=$start; $i -le [Math]::Min($end,$lines.Count); $i++) { '"'{0,4}: {1}' -f "'$i,$lines[$i-1] } }; $serializer = '"'lib\\src\\serialization\\canvas_serializer.dart'; "'$s = Get-Content -LiteralPath $serializer -Encoding UTF8; for ($i=345; $i -le 385; $i++) { '"'{0,4}: {1}' -f "'$i,$s[$i-1] }; Write-Output '"'STATUS:'; git status --short -- 'lib/src/elements/curve_element.dart' 'lib/src/serialization/canvas_serializer.dart' 'docs/plan/plan_requirement_1_20260711-002515.md'" in D:\project\GitHub\wenz_flutter\wenz_draw
+ succeeded in 279ms:
+   1: import 'package:flutter/widgets.dart';
+   2: 
+   3: import '../canvas/paint_style.dart';
+   4: import '../snap/snap_resolver.dart';
+   5: import '../utils/math_utils.dart';
+   6: import 'canvas_element.dart';
+   7: import 'element_renderer.dart';
+   8: import 'line_arrow_style.dart';
+   9: 
+  10: /// A quadratic Bézier curve defined by a start point, an end point and a
+  11: /// single control point.
+  12: @immutable
+  13: class CurveElement extends CanvasElement {
+  14:   const CurveElement({
+  15:     required this.id,
+  16:     required this.start,
+  17:     required this.end,
+  18:     required this.control,
+  19:     this.style = const PaintStyle(),
+  20:     LineArrowType startArrowStyle = LineArrowType.none,
+  21:     LineArrowType? endArrowStyle,
+  22:     bool endArrow = false,
+  23:     this.headSize = LineArrowStyle.defaultHeadSize,
+  24:     this.startBinding,
+  25:     this.endBinding,
+  26:     this.layerId = 'default',
+  27:     this.visible = true,
+  28:     this.opacity = 1,
+  29:     this.zIndex = 0,
+  30:     this.groupId,
+  31:   }) : startArrowStyle = startArrowStyle,
+  32:        endArrowStyle =
+  33:            endArrowStyle ??
+  34:            (endArrow ? LineArrowType.normal : LineArrowType.none);
+  35: 
+  36:   static const elementType = 'curve';
+  37: 
+  38:   @override
+  39:   final String id;
+  40: 
+  41:   final Offset start;
+  42:   final Offset end;
+  43:   final Offset control;
+  44:   final PaintStyle style;
+  45:   final LineArrowType startArrowStyle;
+  46:   final LineArrowType endArrowStyle;
+  47:   final double headSize;
+  48:   final SnapBinding? startBinding;
+  49:   final SnapBinding? endBinding;
+  50: 
+  51:   @override
+  52:   final String layerId;
+  53: 
+  54:   @override
+  55:   final bool visible;
+  56: 
+  57:   @override
+  58:   final double opacity;
+  59: 
+  60:   @override
+ 135:       final direction = tip - candidate;
+ 136:       if (direction.distance >= 0.1) {
+ 137:         return direction;
+ 138:       }
+ 139:     }
+ 140:     return null;
+ 141:   }
+ 142: 
+ 143:   Offset? get endTangentDirection => tangentDirection(LineArrowEndpoint.end);
+ 144: 
+ 145:   @override
+ 146:   CurveElement copyWith({
+ 147:     String? id,
+ 148:     Offset? start,
+ 149:     Offset? end,
+ 150:     Offset? control,
+ 151:     PaintStyle? style,
+ 152:     LineArrowStyle? arrowStyle,
+ 153:     LineArrowType? startArrowStyle,
+ 154:     LineArrowType? endArrowStyle,
+ 155:     bool? endArrow,
+ 156:     double? headSize,
+ 157:     Object? startBinding = _unset,
+ 158:     Object? endBinding = _unset,
+ 159:     String? layerId,
+ 160:     bool? visible,
+ 161:     double? opacity,
+ 162:     int? zIndex,
+ 163:     Object? groupId = _unset,
+ 164:   }) {
+ 165:     final currentArrowStyle = arrowStyle ?? this.arrowStyle;
+ 166:     final nextArrowStyle = currentArrowStyle.copyWith(
+ 167:       startArrowStyle: startArrowStyle,
+ 168:       endArrowStyle:
+ 169:           endArrowStyle ??
+ 170:           (endArrow == null
+ 171:               ? null
+ 172:               : endArrow
+ 173:               ? LineArrowType.normal
+ 174:               : LineArrowType.none),
+ 175:       headSize: headSize,
+ 176:     );
+ 177:     return CurveElement(
+ 178:       id: id ?? this.id,
+ 179:       start: start ?? this.start,
+ 180:       end: end ?? this.end,
+ 181:       control: control ?? this.control,
+ 182:       style: style ?? this.style,
+ 183:       startArrowStyle: nextArrowStyle.startArrowStyle,
+ 184:       endArrowStyle: nextArrowStyle.endArrowStyle,
+ 185:       headSize: nextArrowStyle.effectiveHeadSize,
+ 186:       startBinding: identical(startBinding, _unset)
+ 187:           ? this.startBinding
+ 188:           : startBinding as SnapBinding?,
+ 189:       endBinding: identical(endBinding, _unset)
+ 190:           ? this.endBinding
+ 191:           : endBinding as SnapBinding?,
+ 192:       layerId: layerId ?? this.layerId,
+ 193:       visible: visible ?? this.visible,
+ 194:       opacity: opacity ?? this.opacity,
+ 195:       zIndex: zIndex ?? this.zIndex,
+ 196:       groupId: identical(groupId, _unset) ? this.groupId : groupId as String?,
+ 197:     );
+ 198:   }
+ 199: 
+ 200:   @override
+ 201:   CurveElement translate(Offset delta) {
+ 202:     return copyWith(
+ 203:       start: start + delta,
+ 204:       end: end + delta,
+ 205:       control: control + delta,
+ 215:       control: scalePoint(control, factor, origin),
+ 216:       style: style.copyWith(strokeWidth: style.strokeWidth * factor.abs()),
+ 217:       arrowStyle: arrowStyle.scale(factor),
+ 218:     );
+ 219:   }
+ 220: 
+ 221:   @override
+ 222:   Map<String, dynamic> toJson() {
+ 223:     return {
+ 224:       'id': id,
+ 225:       'type': type,
+ 226:       'layerId': layerId,
+ 227:       'visible': visible,
+ 228:       'opacity': opacity,
+ 229:       'zIndex': zIndex,
+ 230:       'groupId': groupId,
+ 231:       'start': {'x': start.dx, 'y': start.dy},
+ 232:       'end': {'x': end.dx, 'y': end.dy},
+ 233:       'control': {'x': control.dx, 'y': control.dy},
+ 234:       'style': style.toJson(),
+ 235:       'arrowStyle': arrowStyle.toJson(),
+ 236:       'endArrow': endArrow,
+ 237:       'headSize': headSize,
+ 238:       if (startBinding != null) 'startBinding': startBinding!.toJson(),
+ 239:       if (endBinding != null) 'endBinding': endBinding!.toJson(),
+ 240:     };
+ 241:   }
+ 242: 
+ 243:   static const _unset = Object();
+ 244: }
+ 245: 
+ 345:           ],
+ 346:           style: _style(json['style']),
+ 347:         );
+ 348:       case CurveElement.elementType:
+ 349:         {
+ 350:           final arrowStyle = LineArrowStyle.fromJson(
+ 351:             json['arrowStyle'] ?? json,
+ 352:           );
+ 353:           return CurveElement(
+ 354:             id: id,
+ 355:             layerId: layerId,
+ 356:             visible: visible,
+ 357:             opacity: opacity,
+ 358:             zIndex: zIndex,
+ 359:             groupId: json['groupId'] as String?,
+ 360:             start: _point(json['start']),
+ 361:             end: _point(json['end']),
+ 362:             control: _point(json['control']),
+ 363:             style: _style(json['style']),
+ 364:             startArrowStyle: arrowStyle.startArrowStyle,
+ 365:             endArrowStyle: arrowStyle.endArrowStyle,
+ 366:             headSize: arrowStyle.effectiveHeadSize,
+ 367:             startBinding: SnapBinding.fromJson(json['startBinding']),
+ 368:             endBinding: SnapBinding.fromJson(json['endBinding']),
+ 369:           );
+ 370:         }
+ 371:       case LineElement.elementType:
+ 372:         {
+ 373:           final arrowStyle = LineArrowStyle.fromJson(
+ 374:             json['arrowStyle'] ?? json,
+ 375:           );
+ 376:           return LineElement(
+ 377:             id: id,
+ 378:             layerId: layerId,
+ 379:             visible: visible,
+ 380:             opacity: opacity,
+ 381:             zIndex: zIndex,
+ 382:             groupId: json['groupId'] as String?,
+ 383:             start: _point(json['start']),
+ 384:             end: _point(json['end']),
+ 385:             style: _style(json['style']),
+STATUS:
+ M lib/src/elements/curve_element.dart
+ M lib/src/serialization/canvas_serializer.dart
+?? docs/plan/plan_requirement_1_20260711-002515.md
+
+diff --git a/wenz_draw/lib/src/elements/curve_element.dart b/wenz_draw/lib/src/elements/curve_element.dart
+index 6c60e06c795521e6bd39d12baabdb6cf968ff29b..f32cb6b0edea1a044dc550c781db8ab478b1064a
+--- a/wenz_draw/lib/src/elements/curve_element.dart
++++ b/wenz_draw/lib/src/elements/curve_element.dart
+@@ -1,6 +1,7 @@
+ import 'package:flutter/widgets.dart';
+ 
+ import '../canvas/paint_style.dart';
++import '../snap/snap_resolver.dart';
+ import '../utils/math_utils.dart';
+ import 'canvas_element.dart';
+ import 'element_renderer.dart';
+@@ -20,6 +21,8 @@
+     LineArrowType? endArrowStyle,
+     bool endArrow = false,
+     this.headSize = LineArrowStyle.defaultHeadSize,
++    this.startBinding,
++    this.endBinding,
+     this.layerId = 'default',
+     this.visible = true,
+     this.opacity = 1,
+@@ -42,6 +45,8 @@
+   final LineArrowType startArrowStyle;
+   final LineArrowType endArrowStyle;
+   final double headSize;
++  final SnapBinding? startBinding;
++  final SnapBinding? endBinding;
+ 
+   @override
+   final String layerId;
+@@ -149,6 +154,8 @@
+     LineArrowType? endArrowStyle,
+     bool? endArrow,
+     double? headSize,
++    Object? startBinding = _unset,
++    Object? endBinding = _unset,
+     String? layerId,
+     bool? visible,
+     double? opacity,
+@@ -176,6 +183,12 @@
+       startArrowStyle: nextArrowStyle.startArrowStyle,
+       endArrowStyle: nextArrowStyle.endArrowStyle,
+       headSize: nextArrowStyle.effectiveHeadSize,
++      startBinding: identical(startBinding, _unset)
++          ? this.startBinding
++          : startBinding as SnapBinding?,
++      endBinding: identical(endBinding, _unset)
++          ? this.endBinding
++          : endBinding as SnapBinding?,
+       layerId: layerId ?? this.layerId,
+       visible: visible ?? this.visible,
+       opacity: opacity ?? this.opacity,
+@@ -222,6 +235,8 @@
+       'arrowStyle': arrowStyle.toJson(),
+       'endArrow': endArrow,
+       'headSize': headSize,
++      if (startBinding != null) 'startBinding': startBinding!.toJson(),
++      if (endBinding != null) 'endBinding': endBinding!.toJson(),
+     };
+   }
+ 
+diff --git a/wenz_draw/lib/src/serialization/canvas_serializer.dart b/wenz_draw/lib/src/serialization/canvas_serializer.dart
+index f7db76e159288c95980648cd1e983af886419236..ce1f0c89353b8865c34e95d763453f12128fcfe5
+--- a/wenz_draw/lib/src/serialization/canvas_serializer.dart
++++ b/wenz_draw/lib/src/serialization/canvas_serializer.dart
+@@ -364,6 +364,8 @@
+             startArrowStyle: arrowStyle.startArrowStyle,
+             endArrowStyle: arrowStyle.endArrowStyle,
+             headSize: arrowStyle.effectiveHeadSize,
++            startBinding: SnapBinding.fromJson(json['startBinding']),
++            endBinding: SnapBinding.fromJson(json['endBinding']),
+           );
+         }
+       case LineElement.elementType:
+
+codex
+已完成 P001，仅修改指定 scope：
+
+- [curve_element.dart](D:/project/GitHub/wenz_flutter/wenz_draw/lib/src/elements/curve_element.dart:14)
+  - 新增可空 `startBinding`、`endBinding`
+  - 构造及 `copyWith` 支持保留、替换和显式解绑
+  - 平移、缩放时保留绑定
+  - JSON 仅在绑定存在时写入字段
+
+- [canvas_serializer.dart](D:/project/GitHub/wenz_flutter/wenz_draw/lib/src/serialization/canvas_serializer.dart:348)
+  - 曲线反序列化恢复端点绑定
+  - 缺少绑定字段的旧文档继续按未绑定曲线载入
+
+未修改 plan 文件，未执行测试、构建、lint 或 analyze。
+diff --git a/wenz_draw/lib/src/elements/curve_element.dart b/wenz_draw/lib/src/elements/curve_element.dart
+index 6c60e06c795521e6bd39d12baabdb6cf968ff29b..f32cb6b0edea1a044dc550c781db8ab478b1064a
+--- a/wenz_draw/lib/src/elements/curve_element.dart
++++ b/wenz_draw/lib/src/elements/curve_element.dart
+@@ -1,6 +1,7 @@
+ import 'package:flutter/widgets.dart';
+ 
+ import '../canvas/paint_style.dart';
++import '../snap/snap_resolver.dart';
+ import '../utils/math_utils.dart';
+ import 'canvas_element.dart';
+ import 'element_renderer.dart';
+@@ -20,6 +21,8 @@
+     LineArrowType? endArrowStyle,
+     bool endArrow = false,
+     this.headSize = LineArrowStyle.defaultHeadSize,
++    this.startBinding,
++    this.endBinding,
+     this.layerId = 'default',
+     this.visible = true,
+     this.opacity = 1,
+@@ -42,6 +45,8 @@
+   final LineArrowType startArrowStyle;
+   final LineArrowType endArrowStyle;
+   final double headSize;
++  final SnapBinding? startBinding;
++  final SnapBinding? endBinding;
+ 
+   @override
+   final String layerId;
+@@ -149,6 +154,8 @@
+     LineArrowType? endArrowStyle,
+     bool? endArrow,
+     double? headSize,
++    Object? startBinding = _unset,
++    Object? endBinding = _unset,
+     String? layerId,
+     bool? visible,
+     double? opacity,
+@@ -176,6 +183,12 @@
+       startArrowStyle: nextArrowStyle.startArrowStyle,
+       endArrowStyle: nextArrowStyle.endArrowStyle,
+       headSize: nextArrowStyle.effectiveHeadSize,
++      startBinding: identical(startBinding, _unset)
++          ? this.startBinding
++          : startBinding as SnapBinding?,
++      endBinding: identical(endBinding, _unset)
++          ? this.endBinding
++          : endBinding as SnapBinding?,
+       layerId: layerId ?? this.layerId,
+       visible: visible ?? this.visible,
+       opacity: opacity ?? this.opacity,
+@@ -222,6 +235,8 @@
+       'arrowStyle': arrowStyle.toJson(),
+       'endArrow': endArrow,
+       'headSize': headSize,
++      if (startBinding != null) 'startBinding': startBinding!.toJson(),
++      if (endBinding != null) 'endBinding': endBinding!.toJson(),
+     };
+   }
+ 
+diff --git a/wenz_draw/lib/src/serialization/canvas_serializer.dart b/wenz_draw/lib/src/serialization/canvas_serializer.dart
+index f7db76e159288c95980648cd1e983af886419236..ce1f0c89353b8865c34e95d763453f12128fcfe5
+--- a/wenz_draw/lib/src/serialization/canvas_serializer.dart
++++ b/wenz_draw/lib/src/serialization/canvas_serializer.dart
+@@ -364,6 +364,8 @@
+             startArrowStyle: arrowStyle.startArrowStyle,
+             endArrowStyle: arrowStyle.endArrowStyle,
+             headSize: arrowStyle.effectiveHeadSize,
++            startBinding: SnapBinding.fromJson(json['startBinding']),
++            endBinding: SnapBinding.fromJson(json['endBinding']),
+           );
+         }
+       case LineElement.elementType:
+
+tokens used
+35,042
+已完成 P001，仅修改指定 scope：
+
+- [curve_element.dart](D:/project/GitHub/wenz_flutter/wenz_draw/lib/src/elements/curve_element.dart:14)
+  - 新增可空 `startBinding`、`endBinding`
+  - 构造及 `copyWith` 支持保留、替换和显式解绑
+  - 平移、缩放时保留绑定
+  - JSON 仅在绑定存在时写入字段
+
+- [canvas_serializer.dart](D:/project/GitHub/wenz_flutter/wenz_draw/lib/src/serialization/canvas_serializer.dart:348)
+  - 曲线反序列化恢复端点绑定
+  - 缺少绑定字段的旧文档继续按未绑定曲线载入
+
+未修改 plan 文件，未执行测试、构建、lint 或 analyze。

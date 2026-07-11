@@ -33,6 +33,8 @@ void main() {
         title: 'Intro',
         description: 'Opening clip',
         aspectRatio: 4 / 3,
+        showWidth: 320,
+        showHeight: 240,
         uploadStatus: FileUploadStatus.uploading,
       );
 
@@ -49,6 +51,8 @@ void main() {
       expect(video.title, 'Intro');
       expect(video.description, 'Opening clip');
       expect(video.aspectRatio, 4 / 3);
+      expect(video.showWidth, 320);
+      expect(video.showHeight, 240);
       expect(video.uploadStatus, FileUploadStatus.uploading);
       expect(controller.selection?.start.blockId, 'video1');
       expect(controller.selection?.start.path.isBlockObject, isTrue);
@@ -79,6 +83,8 @@ void main() {
               title: 'Draft',
               description: 'Old description',
               aspectRatio: 16 / 9,
+              showWidth: 640,
+              showHeight: 360,
               uploadStatus: FileUploadStatus.uploading,
               uploadError: 'waiting',
             ),
@@ -95,6 +101,8 @@ void main() {
         title: 'Final',
         description: 'Published clip',
         clearAspectRatio: true,
+        showWidth: 320,
+        showHeight: 180,
         uploadStatus: FileUploadStatus.uploaded,
         uploadError: '',
       );
@@ -108,6 +116,8 @@ void main() {
       expect(updated.title, 'Final');
       expect(updated.description, 'Published clip');
       expect(updated.aspectRatio, isNull);
+      expect(updated.showWidth, 320);
+      expect(updated.showHeight, 180);
       expect(updated.uploadStatus, FileUploadStatus.uploaded);
       expect(updated.uploadError, isEmpty);
 
@@ -115,13 +125,43 @@ void main() {
       final undone = controller.document.blocks.single as VideoBlockNode;
       expect(undone.assetId, 'draft');
       expect(undone.aspectRatio, 16 / 9);
+      expect(undone.showWidth, 640);
+      expect(undone.showHeight, 360);
       expect(undone.uploadStatus, FileUploadStatus.uploading);
       expect(undone.uploadError, 'waiting');
 
       expect(controller.redo(), isTrue);
       final redone = controller.document.blocks.single as VideoBlockNode;
       expect(redone.assetId, 'final');
+      expect(redone.showWidth, 320);
+      expect(redone.showHeight, 180);
       expect(redone.uploadStatus, FileUploadStatus.uploaded);
+
+      final reset = controller.updateVideoBlock(
+        blockIndex: 0,
+        clearShowWidth: true,
+        clearShowHeight: true,
+      );
+
+      expect(reset.description, 'updateVideoBlock');
+      final cleared = controller.document.blocks.single as VideoBlockNode;
+      expect(cleared.assetId, 'final');
+      expect(cleared.coverUrl, 'final.jpg');
+      expect(cleared.title, 'Final');
+      expect(cleared.description, 'Published clip');
+      expect(cleared.showWidth, isNull);
+      expect(cleared.showHeight, isNull);
+      expect(cleared.uploadStatus, FileUploadStatus.uploaded);
+
+      expect(controller.undo(), isTrue);
+      final restoredSize = controller.document.blocks.single as VideoBlockNode;
+      expect(restoredSize.showWidth, 320);
+      expect(restoredSize.showHeight, 180);
+
+      expect(controller.redo(), isTrue);
+      final redoneReset = controller.document.blocks.single as VideoBlockNode;
+      expect(redoneReset.showWidth, isNull);
+      expect(redoneReset.showHeight, isNull);
 
       controller.dispose();
     });
@@ -138,7 +178,10 @@ void main() {
               title: 'Source',
               description: 'Copied clip',
               aspectRatio: 21 / 9,
+              showWidth: 420,
+              showHeight: 180,
               uploadStatus: FileUploadStatus.uploaded,
+              attributes: BlockAttributes(alignment: 'right'),
             ),
           ],
         ),
@@ -169,7 +212,10 @@ void main() {
       expect(pasted.title, 'Source');
       expect(pasted.description, 'Copied clip');
       expect(pasted.aspectRatio, 21 / 9);
+      expect(pasted.showWidth, 420);
+      expect(pasted.showHeight, 180);
       expect(pasted.uploadStatus, FileUploadStatus.uploaded);
+      expect(pasted.attributes.alignment, 'right');
 
       source.dispose();
       target.dispose();

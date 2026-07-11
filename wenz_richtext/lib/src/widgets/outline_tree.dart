@@ -172,7 +172,7 @@ class _WenzOutlineTreeState extends State<WenzOutlineTree> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.items != widget.items) {
       final collapsibleIds = widget.items
-          .where((item) => item.canCollapse)
+          .where(_isTreeCollapsible)
           .map((item) => item.blockId)
           .toSet();
       _collapsedBlockIds = Set<String>.unmodifiable(
@@ -232,7 +232,7 @@ class _WenzOutlineTreeState extends State<WenzOutlineTree> {
       var hiddenByCollapsedAncestor = false;
       for (final visibleItem in visibleItems) {
         if (!_collapsedBlockIds.contains(visibleItem.blockId) ||
-            !visibleItem.canCollapse) {
+            !_isTreeCollapsible(visibleItem)) {
           continue;
         }
         if (visibleItem.collapseRange.containsBlockIndex(item.blockIndex)) {
@@ -259,8 +259,20 @@ class _WenzOutlineTreeState extends State<WenzOutlineTree> {
     );
   }
 
+  /// Tree folding only matters when a heading can hide descendant outline rows.
+  /// [OutlineItem.canCollapse] may also cover editor body blocks that are not
+  /// rendered as tree rows.
+  bool _isTreeCollapsible(OutlineItem item) {
+    if (!item.canCollapse) return false;
+    return widget.items.any(
+      (candidate) =>
+          candidate.blockId != item.blockId &&
+          item.collapseRange.containsBlockIndex(candidate.blockIndex),
+    );
+  }
+
   void _toggleTreeCollapse(OutlineItem item) {
-    if (!item.canCollapse) return;
+    if (!_isTreeCollapsible(item)) return;
     setState(() {
       final next = Set<String>.of(_collapsedBlockIds);
       if (!next.add(item.blockId)) {
@@ -286,7 +298,7 @@ class _WenzOutlineTreeState extends State<WenzOutlineTree> {
     setState(() {
       _collapsedBlockIds = Set<String>.unmodifiable(
         widget.items
-            .where((item) => item.canCollapse)
+            .where(_isTreeCollapsible)
             .map((item) => item.blockId),
       );
       _focusedIndex = _clampFocusedIndex(_visibleItems.length);
@@ -313,9 +325,7 @@ class _WenzOutlineTreeState extends State<WenzOutlineTree> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
             _OutlineHeader(
-              totalCount: widget.items.length,
-              hasCollapsibleItems:
-                  widget.items.any((item) => item.canCollapse),
+              hasCollapsibleItems: widget.items.any(_isTreeCollapsible),
               onExpandAll: _expandAllTreeItems,
               onCollapseAll: _collapseAllTreeItems,
             ),
@@ -338,6 +348,7 @@ class _WenzOutlineTreeState extends State<WenzOutlineTree> {
                       isFocused:
                           widget.enableKeyboardNavigation &&
                           index == _focusedIndex,
+                      canToggleCollapse: _isTreeCollapsible(item),
                       onSelect: widget.onSelect,
                       onToggleCollapse: _toggleTreeCollapse,
                     );
@@ -367,13 +378,11 @@ class _WenzOutlineTreeState extends State<WenzOutlineTree> {
 
 class _OutlineHeader extends StatelessWidget {
   const _OutlineHeader({
-    required this.totalCount,
     this.hasCollapsibleItems = false,
     this.onExpandAll,
     this.onCollapseAll,
   });
 
-  final int totalCount;
   final bool hasCollapsibleItems;
   final VoidCallback? onExpandAll;
   final VoidCallback? onCollapseAll;
@@ -402,14 +411,7 @@ class _OutlineHeader extends StatelessWidget {
               ),
             ),
           ),
-          Text(
-            '$totalCount heading${totalCount == 1 ? '' : 's'}',
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
           if (hasCollapsibleItems) ...[
-            const SizedBox(width: 4),
             IconButton(
               padding: EdgeInsets.zero,
               iconSize: 18,
@@ -441,6 +443,7 @@ class _OutlineItemRow extends StatelessWidget {
   const _OutlineItemRow({
     required this.item,
     required this.isActive,
+    required this.canToggleCollapse,
     this.isFocused = false,
     this.onSelect,
     this.onToggleCollapse,
@@ -448,6 +451,7 @@ class _OutlineItemRow extends StatelessWidget {
 
   final OutlineItem item;
   final bool isActive;
+  final bool canToggleCollapse;
   final bool isFocused;
   final ValueChanged<OutlineItem>? onSelect;
   final ValueChanged<OutlineItem>? onToggleCollapse;
@@ -458,7 +462,7 @@ class _OutlineItemRow extends StatelessWidget {
     final colorScheme = theme.colorScheme;
     const indentStep = 14.0;
     final levelIndent = (item.level - 1).clamp(0, 5) * indentStep;
-    final showToggle = item.canCollapse && onToggleCollapse != null;
+    final showToggle = canToggleCollapse && onToggleCollapse != null;
 
     // Heading-level badge
     final levelAlpha = (32 - (item.level - 1) * 4).clamp(8, 32);

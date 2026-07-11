@@ -123,19 +123,17 @@ class WenzEditorBootstrap {
       pasteTransformers: pasteTransformers,
     );
     // Mermaid remains opt-in: disabled hosts keep ordinary code block
-    // rendering, while enabled hosts can provide the SVG surface forwarded
-    // into MermaidDiagramConfig. If the host supplied its own Mermaid plugin
-    // instance, keep that explicit configuration and avoid a duplicate id.
+    // rendering, while enabled hosts get the pure Flutter painter preview.
+    // If the host supplied its own Mermaid plugin instance, keep that explicit
+    // configuration and avoid a duplicate id.
     final hasConfiguredMermaidPlugin = configuration.plugins.any(
       (plugin) => plugin.id == MermaidDiagramPlugin.pluginId,
     );
     final plugins = <WenzRichTextPlugin>[
       ...configuration.plugins,
       if (configuration.enableMermaidDiagrams && !hasConfiguredMermaidPlugin)
-        MermaidDiagramPlugin(
-          config: MermaidDiagramConfig(
-            svgSurface: configuration.diagramSvgSurface,
-          ),
+        const MermaidDiagramPlugin(
+          config: MermaidDiagramConfig(),
         ),
     ];
     installWenzRichTextPlugins(
@@ -429,8 +427,8 @@ class WenzEditorBootstrap {
   /// was created with [WenzEditorConfiguration.enableToolbar] set to `false`.
   /// Host-owned resource actions pass through [actions]; the chrome comes from
   /// [style] (falling back to [WenzEditorConfiguration.mobileToolbarStyle], then
-  /// the toolbar's built-in defaults). The mobile toolbar reads its touch
-  /// sizing tokens from [EditorTokens] at build time.
+  /// the toolbar's built-in defaults). The resolved [WenzMobileToolbarStyle]
+  /// carries bottom-bar dimensions and keyboard-collaboration behaviour.
   WenzDefaultMobileToolbar buildDefaultMobileToolbar({
     Key? key,
     WenzDefaultMobileToolbarActions actions =
@@ -464,15 +462,17 @@ class WenzEditorBootstrap {
   }
 
   /// Resolves the effective layout for [context] by folding
-  /// [WenzEditorConfiguration.layout] together with the running [MediaQuery]
-  /// shortestSide.
+  /// [WenzEditorConfiguration.layout] together with the platform-aware mobile
+  /// UI decision exposed by [EditorTokens.shouldUseMobileSelectionUi].
   ///
-  /// [WenzEditorLayout.auto] (the default) returns mobile below the 600px
-  /// shortestSide breakpoint and desktop otherwise — the same split
-  /// [EditorTokens] uses internally. The explicit [WenzEditorLayout.desktop] /
-  /// [WenzEditorLayout.mobile] values force one regardless of screen size, so a
-  /// host can override the auto decision. Use this to pick which toolbar to
-  /// render (e.g. [buildDefaultMobileToolbar] vs [buildDefaultDesktopToolbar]).
+  /// [WenzEditorLayout.auto] (the default) is intended for compact mobile
+  /// target platforms: Windows, macOS, Linux, and desktop Web stay on desktop
+  /// UI even when the window is narrow, while Android/iOS compact surfaces can
+  /// select mobile UI. The explicit [WenzEditorLayout.desktop] /
+  /// [WenzEditorLayout.mobile] values force one regardless of screen size or
+  /// platform, so a host can override the auto decision. Use this to pick which
+  /// toolbar to render (e.g. [buildDefaultMobileToolbar] vs
+  /// [buildDefaultDesktopToolbar]).
   WenzEditorLayout resolveEditorLayout(BuildContext context) {
     switch (configuration.layout) {
       case WenzEditorLayout.desktop:
@@ -480,7 +480,7 @@ class WenzEditorBootstrap {
       case WenzEditorLayout.mobile:
         return WenzEditorLayout.mobile;
       case WenzEditorLayout.auto:
-        return EditorTokens.resolve(context).isMobile
+        return EditorTokens.shouldUseMobileSelectionUi(context)
             ? WenzEditorLayout.mobile
             : WenzEditorLayout.desktop;
     }
@@ -498,6 +498,7 @@ class WenzEditorBootstrap {
   /// editor should be live. Every assembly-time concern — [controller],
   /// [blockRendererRegistry], [inlineEmbedRendererRegistry],
   /// [slashMenuController], [findReplaceController], [outlineController],
+  /// the host [WenzEditorConfiguration.mentionSearch],
   /// the host [WenzEditorConfiguration.onMentionTap],
   /// [WenzEditorConfiguration.onOpenLink], the merged shortcut configuration,
   /// context-menu configuration, external image-input settings, and
@@ -559,6 +560,7 @@ class WenzEditorBootstrap {
       blockRenderers: blockRendererRegistry,
       mediaResolver: configuration.mediaResolver,
       inlineEmbedRenderer: inlineEmbedRendererRegistry,
+      mentionSearch: configuration.mentionSearch,
       onMentionTap: configuration.onMentionTap,
       onOpenLink: onOpenLink ?? configuration.onOpenLink,
       findController: findReplaceController,

@@ -16,15 +16,22 @@ import '../elements/rect_element.dart';
 import '../elements/shape_label_painter.dart';
 import '../elements/text_element.dart';
 import '../elements/widget_element.dart';
-import '../history/commands/update_element_command.dart';
 import '../tools/pan_tool.dart';
 import '../tools/select_tool.dart';
 import '../tools/text_tool.dart';
+import '../utils/math_utils.dart';
 import '../widgets/canvas_image_resolver.dart';
 import '../widgets/canvas_widget_layer.dart';
 import 'canvas_event.dart';
 import 'infinite_canvas_config.dart';
 import 'infinite_canvas_controller.dart';
+
+const double _textEditingToolbarWidth = 320;
+const double _textEditingToolbarHeight = 40;
+const double _textEditingToolbarTopOffset = 48;
+const double _minEditingTextBoxWidth = 24;
+const double _minEditingTextBoxHeight = 24;
+const double _minEditingTextFontSize = 1;
 
 class InfiniteCanvasWidget extends StatefulWidget {
   const InfiniteCanvasWidget({
@@ -52,8 +59,11 @@ class _InfiniteCanvasWidgetState extends State<InfiniteCanvasWidget>
   final Set<int> _panPointers = {};
   final Set<int> _widgetGesturePointers = {};
   final Map<int, _DeferredWidgetGesture> _deferredWidgetGestures = {};
+  final CanvasWidgetGestureController _widgetGestureController =
+      CanvasWidgetGestureController();
   late final FocusNode _focusNode;
   late final CanvasImageResolver _imageResolver;
+  String? _observedToolId;
 
   Offset? _lastTapPosition;
   DateTime? _lastTapTime;
@@ -65,6 +75,7 @@ class _InfiniteCanvasWidgetState extends State<InfiniteCanvasWidget>
   TextElement? _editingResizeBefore;
   _EditingTextResizeHandle? _editingResizeHandle;
   Offset? _editingResizeAnchor;
+  Offset? _editingResizeStartPoint;
 
   // ── Fling inertia ───────────────────────────────────────────────
   // Tracks the velocity of the most recent pan so a released drag continues
@@ -79,10 +90,37 @@ class _InfiniteCanvasWidgetState extends State<InfiniteCanvasWidget>
     super.initState();
     _focusNode = FocusNode(debugLabel: 'InfiniteCanvasWidget');
     _imageResolver = CanvasImageResolver(widget.controller.canvasController);
+    final canvasController = widget.controller.canvasController;
+    _observedToolId = canvasController.currentTool?.id;
+    canvasController.addListener(_handleCanvasControllerChanged);
+  }
+
+  @override
+  void didUpdateWidget(covariant InfiniteCanvasWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final oldCanvasController = oldWidget.controller.canvasController;
+    final canvasController = widget.controller.canvasController;
+    if (identical(oldCanvasController, canvasController)) {
+      return;
+    }
+    oldCanvasController.removeListener(_handleCanvasControllerChanged);
+    oldCanvasController.cancelCurrentInteraction();
+    _suppressAndClearWidgetGestures();
+    _pointers.clear();
+    _panPointers.clear();
+    _toolSuppressedUntilClear = false;
+    _observedToolId = canvasController.currentTool?.id;
+    canvasController.addListener(_handleCanvasControllerChanged);
   }
 
   @override
   void dispose() {
+    widget.controller.canvasController.removeListener(
+      _handleCanvasControllerChanged,
+    );
+    _suppressAndClearWidgetGestures();
+    _pointers.clear();
+    _panPointers.clear();
     _flingTicker?.dispose();
     _imageResolver.dispose();
     _focusNode.dispose();
@@ -134,6 +172,7 @@ class _InfiniteCanvasWidgetState extends State<InfiniteCanvasWidget>
                           elementOverlayBuilder: widget.elementOverlayBuilder,
                           elementOverlayAnchorPredicate:
                               widget.elementOverlayAnchorPredicate,
+                          gestureController: _widgetGestureController,
                         ),
                         _TextEditingOverlay(
                           key: ValueKey(
@@ -157,8 +196,8 @@ class _InfiniteCanvasWidgetState extends State<InfiniteCanvasWidget>
     // A new pointer cancels any in-flight inertial fling.
     _stopFling();
     _panVelocity = Offset.zero;
-    // If we are currently editing text, do not steal focus from the
-    // TextField overlay — that would prematurely commit the edit.
+    // If we are currently editing text, keep keyboard input in the TextField
+    // while pointer handling decides whether the interaction is internal.
     final canvasController = widget.controller.canvasController;
     final isEditing =
         canvasController.editingTextElementId != null ||
@@ -177,6 +216,10 @@ class _InfiniteCanvasWidgetState extends State<InfiniteCanvasWidget>
     if (_handleEditingPointerDown(event)) {
       return;
     }
+    if (_hasTrackedPointer) {
+      _beginMultiPointerGesture(event);
+      return;
+    }
     if (_dispatchDoubleTapIfNeeded(event)) {
       return;
     }
@@ -184,6 +227,7 @@ class _InfiniteCanvasWidgetState extends State<InfiniteCanvasWidget>
       _widgetGesturePointers.add(event.pointer);
       _deferredWidgetGestures[event.pointer] = _DeferredWidgetGesture(
         screenPoint: event.localPosition,
+        globalPosition: event.position,
         kind: event.kind,
         buttons: event.buttons,
         pressure: event.pressure,
@@ -245,27 +289,28 @@ class _InfiniteCanvasWidgetState extends State<InfiniteCanvasWidget>
       return true;
     }
 
+    if (_textEditingToolbarRect(element.bounds).contains(event.localPosition)) {
+      return true;
+    }
+
     final worldPoint = widget.controller.screenToWorld(event.localPosition);
     final handle = _editingResizeHandleAt(element, worldPoint);
     if (handle != null) {
       _editingResizePointer = event.pointer;
       _editingResizeBefore = element;
       _editingResizeHandle = handle;
-      _editingResizeAnchor = handle.anchorFor(element.bounds);
+      _editingResizeStartPoint = worldPoint;
+      _editingResizeAnchor = _editingTextHandleWorldPoint(
+        element,
+        handle,
+        anchor: true,
+      );
       return true;
     }
 
-    final toolbarRect = Rect.fromLTWH(
-      element.bounds.left - 8 / widget.controller.transform.scale,
-      element.bounds.top - 48 / widget.controller.transform.scale,
-      element.bounds.width + 16 / widget.controller.transform.scale,
-      40 / widget.controller.transform.scale,
-    );
-
-    if (toolbarRect.contains(worldPoint) ||
-        element.bounds
-            .inflate(14 / widget.controller.transform.scale)
-            .contains(worldPoint)) {
+    if (element.bounds
+        .inflate(14 / widget.controller.transform.scale)
+        .contains(worldPoint)) {
       return true;
     }
 
@@ -298,19 +343,15 @@ class _InfiniteCanvasWidgetState extends State<InfiniteCanvasWidget>
       return true;
     }
 
-    final worldPoint = widget.controller.screenToWorld(event.localPosition);
     final bounds = _shapeLabelEditingBounds(element);
-    final toolbarRect = Rect.fromLTWH(
-      bounds.left - 8 / widget.controller.transform.scale,
-      bounds.top - 48 / widget.controller.transform.scale,
-      bounds.width + 16 / widget.controller.transform.scale,
-      40 / widget.controller.transform.scale,
-    );
+    if (_textEditingToolbarRect(bounds).contains(event.localPosition)) {
+      return true;
+    }
 
-    if (toolbarRect.contains(worldPoint) ||
-        bounds
-            .inflate(14 / widget.controller.transform.scale)
-            .contains(worldPoint)) {
+    final worldPoint = widget.controller.screenToWorld(event.localPosition);
+    if (bounds
+        .inflate(14 / widget.controller.transform.scale)
+        .contains(worldPoint)) {
       return true;
     }
 
@@ -318,6 +359,20 @@ class _InfiniteCanvasWidgetState extends State<InfiniteCanvasWidget>
     // so that the active tool does not create/interact with a new element.
     canvasController.endShapeLabelEditing();
     return true;
+  }
+
+  Rect _textEditingToolbarRect(Rect worldBounds) {
+    final transform = widget.controller.transform;
+    final screenBounds = Rect.fromPoints(
+      transform.worldToScreen(worldBounds.topLeft),
+      transform.worldToScreen(worldBounds.bottomRight),
+    );
+    return Rect.fromLTWH(
+      screenBounds.center.dx - _textEditingToolbarWidth / 2,
+      screenBounds.top - _textEditingToolbarTopOffset,
+      _textEditingToolbarWidth,
+      _textEditingToolbarHeight,
+    );
   }
 
   Rect _shapeLabelEditingBounds(Object? element) {
@@ -381,8 +436,8 @@ class _InfiniteCanvasWidgetState extends State<InfiniteCanvasWidget>
   ) {
     final tolerance = 10 / widget.controller.transform.scale;
     for (final handle in _EditingTextResizeHandle.values) {
-      if ((worldPoint - handle.pointFor(element.bounds)).distance <=
-          tolerance) {
+      final handlePoint = _editingTextHandleWorldPoint(element, handle);
+      if ((worldPoint - handlePoint).distance <= tolerance) {
         return handle;
       }
     }
@@ -401,19 +456,13 @@ class _InfiniteCanvasWidgetState extends State<InfiniteCanvasWidget>
     }
 
     final worldPoint = widget.controller.screenToWorld(event.localPosition);
-    final rect = _constrainedResizeRect(anchor, worldPoint, handle);
-    final element = widget.controller.canvasController.elementById(before.id);
-    if (element is TextElement) {
-      widget.controller.canvasController.updateElement(
-        before.id,
-        element.copyWith(
-          position: rect.topLeft,
-          maxWidth: rect.width,
-          boxSize: rect.size,
-        ),
-        record: false,
-      );
-    }
+    final handlePoint = _editingTextHandleWorldPoint(before, handle);
+    final effectiveWorldPoint = handlePoint +
+        (worldPoint - (_editingResizeStartPoint ?? handlePoint));
+    final next = handle.isCorner
+        ? _scaleEditingText(before, handle, anchor, effectiveWorldPoint)
+        : _resizeEditingTextBox(before, handle, anchor, effectiveWorldPoint);
+    widget.controller.canvasController.updateEditingTextBounds(next);
     return true;
   }
 
@@ -421,57 +470,121 @@ class _InfiniteCanvasWidgetState extends State<InfiniteCanvasWidget>
     if (_editingResizePointer != event.pointer) {
       return false;
     }
-    final before = _editingResizeBefore;
-    final after = before == null
-        ? null
-        : widget.controller.canvasController.elementById(before.id);
-    if (before != null &&
-        after is TextElement &&
-        (before.position != after.position ||
-            before.boxSize != after.boxSize)) {
-      widget.controller.canvasController.recordCommand(
-        UpdateElementCommand(
-          before: before,
-          after: after,
-          description: 'Resize text',
-        ),
-      );
-    }
+    // The editing controller already owns the session snapshot. Leave geometry
+    // changes unrecorded here so endTextEditing can commit text, style, and
+    // resize changes as one undoable command.
     _editingResizePointer = null;
     _editingResizeBefore = null;
     _editingResizeHandle = null;
     _editingResizeAnchor = null;
+    _editingResizeStartPoint = null;
     return true;
   }
 
-  Rect _constrainedResizeRect(
-    Offset anchor,
-    Offset worldPoint,
+  TextElement _scaleEditingText(
+    TextElement before,
     _EditingTextResizeHandle handle,
+    Offset worldAnchor,
+    Offset worldPoint,
   ) {
-    final rawRect = Rect.fromPoints(anchor, worldPoint);
-    var left = rawRect.left;
-    var top = rawRect.top;
-    var right = rawRect.right;
-    var bottom = rawRect.bottom;
-    const minWidth = 24.0;
-    const minHeight = 24.0;
+    final localRect = before.localBounds;
+    final draggedCorner = _editingTextHandleWorldPoint(before, handle);
+    final baseVector = draggedCorner - worldAnchor;
+    if (baseVector.distanceSquared <= 0.0001) {
+      return before;
+    }
+    final pointerVector = worldPoint - worldAnchor;
+    final rawFactor =
+        (pointerVector.dx * baseVector.dx +
+            pointerVector.dy * baseVector.dy) /
+        baseVector.distanceSquared;
+    if (!rawFactor.isFinite) {
+      return before;
+    }
+    final minimumFactor = math.min(
+      100.0,
+      math.max(
+        0.05,
+        math.max(
+          _minEditingTextBoxWidth / localRect.width,
+          math.max(
+            _minEditingTextBoxHeight / localRect.height,
+            _minEditingTextFontSize /
+                math.max((before.style.fontSize ?? 24).abs(), 0.0001),
+          ),
+        ),
+      ),
+    );
+    final factor = rawFactor.clamp(minimumFactor, 100.0).toDouble();
+    final scaled = before.scaleElement(
+      factor,
+      pivot: handle.anchorFor(localRect),
+    );
+    return _pinEditingTextAnchor(scaled, handle, worldAnchor);
+  }
 
-    if (rawRect.width < minWidth) {
-      if (handle.isLeft) {
-        left = right - minWidth;
-      } else {
-        right = left + minWidth;
-      }
+  TextElement _resizeEditingTextBox(
+    TextElement before,
+    _EditingTextResizeHandle handle,
+    Offset worldAnchor,
+    Offset worldPoint,
+  ) {
+    final localRect = before.localBounds;
+    final localAnchor = handle.anchorFor(localRect);
+    final unrotatedWorldPoint = before.rotation == 0
+        ? worldPoint
+        : inverseRotatePoint(worldPoint, before.rotation, worldAnchor);
+    final localPoint = localAnchor + (unrotatedWorldPoint - worldAnchor);
+    var left = localRect.left;
+    var top = localRect.top;
+    var right = localRect.right;
+    var bottom = localRect.bottom;
+
+    if (handle.isLeft) {
+      left = localPoint.dx.clamp(
+        right - 10000,
+        right - _minEditingTextBoxWidth,
+      ).toDouble();
     }
-    if (rawRect.height < minHeight) {
-      if (handle.isTop) {
-        top = bottom - minHeight;
-      } else {
-        bottom = top + minHeight;
-      }
+    if (handle.isRight) {
+      right = localPoint.dx.clamp(
+        left + _minEditingTextBoxWidth,
+        left + 10000,
+      ).toDouble();
     }
-    return Rect.fromLTRB(left, top, right, bottom);
+    if (handle.isTop) {
+      top = localPoint.dy.clamp(
+        bottom - 10000,
+        bottom - _minEditingTextBoxHeight,
+      ).toDouble();
+    }
+    if (handle.isBottom) {
+      bottom = localPoint.dy.clamp(
+        top + _minEditingTextBoxHeight,
+        top + 10000,
+      ).toDouble();
+    }
+
+    final rect = Rect.fromLTRB(left, top, right, bottom);
+    final resized = before.copyWith(
+      position: rect.topLeft,
+      maxWidth: rect.width,
+      boxSize: rect.size,
+    );
+    return _pinEditingTextAnchor(resized, handle, worldAnchor);
+  }
+
+  TextElement _pinEditingTextAnchor(
+    TextElement element,
+    _EditingTextResizeHandle handle,
+    Offset worldAnchor,
+  ) {
+    final currentAnchor = _editingTextHandleWorldPoint(
+      element,
+      handle,
+      anchor: true,
+    );
+    return element.translate(worldAnchor - currentAnchor);
   }
 
   bool _dispatchDoubleTapIfNeeded(PointerDownEvent event) {
@@ -556,6 +669,24 @@ class _InfiniteCanvasWidgetState extends State<InfiniteCanvasWidget>
         !hit.isLocked &&
         hit.interactive &&
         hit.hitTest(worldPoint);
+  }
+
+  bool get _hasTrackedPointer =>
+      _pointers.isNotEmpty || _widgetGesturePointers.isNotEmpty;
+
+  void _beginMultiPointerGesture(PointerDownEvent event) {
+    _widgetGestureController.suppressAll();
+    for (final entry in _deferredWidgetGestures.entries) {
+      _pointers[entry.key] = entry.value.screenPoint;
+    }
+    _deferredWidgetGestures.clear();
+    _widgetGesturePointers.clear();
+    _pointers[event.pointer] = event.localPosition;
+    _toolSuppressedUntilClear = true;
+    widget.controller.canvasController.cancelCurrentInteraction();
+    if (widget.config.enablePinch) {
+      _updatePinchBaseline();
+    }
   }
 
   void _handlePointerMove(PointerMoveEvent event) {
@@ -822,10 +953,12 @@ class _InfiniteCanvasWidgetState extends State<InfiniteCanvasWidget>
       return true;
     }
 
-    if ((event.localPosition - deferred.screenPoint).distance < 4) {
+    if ((event.position - deferred.globalPosition).distance <
+        CanvasWidgetGestureController.dragSlop) {
       return false;
     }
 
+    _widgetGestureController.suppressPointer(event.pointer);
     _deferredWidgetGestures.remove(event.pointer);
     _widgetGesturePointers.remove(event.pointer);
     _pointers[event.pointer] = deferred.screenPoint;
@@ -844,6 +977,31 @@ class _InfiniteCanvasWidgetState extends State<InfiniteCanvasWidget>
       ),
     );
     return true;
+  }
+
+  void _handleCanvasControllerChanged() {
+    final canvasController = widget.controller.canvasController;
+    final toolId = canvasController.currentTool?.id;
+    if (toolId == _observedToolId) {
+      return;
+    }
+    _observedToolId = toolId;
+    if (!_hasTrackedPointer) {
+      return;
+    }
+
+    for (final entry in _deferredWidgetGestures.entries) {
+      _pointers[entry.key] = entry.value.screenPoint;
+    }
+    _suppressAndClearWidgetGestures();
+    _toolSuppressedUntilClear = _pointers.isNotEmpty;
+    canvasController.cancelCurrentInteraction();
+  }
+
+  void _suppressAndClearWidgetGestures() {
+    _widgetGestureController.suppressAll();
+    _deferredWidgetGestures.clear();
+    _widgetGesturePointers.clear();
   }
 
   void _handlePinchPanZoom() {
@@ -925,29 +1083,20 @@ class _TextEditingOverlayState extends State<_TextEditingOverlay> {
   late final TextEditingController _textController;
   late final FocusNode _focusNode;
   String? _editingId;
+  bool _focusRestoreScheduled = false;
 
   @override
   void initState() {
     super.initState();
     _textController = TextEditingController();
     _focusNode = FocusNode(debugLabel: 'TextEditingOverlay');
-    _focusNode.addListener(_onFocusChange);
   }
 
   @override
   void dispose() {
-    _focusNode.removeListener(_onFocusChange);
     _textController.dispose();
     _focusNode.dispose();
     super.dispose();
-  }
-
-  void _onFocusChange() {
-    // When the TextField loses focus, commit the current text.
-    // This ensures the change is recorded in the undo stack exactly once.
-    if (!_focusNode.hasFocus) {
-      _commit();
-    }
   }
 
   @override
@@ -970,6 +1119,7 @@ class _TextEditingOverlayState extends State<_TextEditingOverlay> {
     final target = element is TextElement
         ? TextEditingTarget(canvasController, element)
         : ShapeLabelEditingTarget(canvasController, shapeLabelElement!);
+    final editingTextElement = element is TextElement ? element : null;
 
     if (_editingId != target.id) {
       _editingId = target.id;
@@ -978,83 +1128,101 @@ class _TextEditingOverlayState extends State<_TextEditingOverlay> {
         baseOffset: 0,
         extentOffset: _textController.text.length,
       );
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          _focusNode.requestFocus();
-        }
-      });
+      _restoreTextFocus();
     }
 
     final transform = widget.controller.transform;
-    final textRect = Rect.fromPoints(
+    final textBoundsRect = Rect.fromPoints(
       transform.worldToScreen(target.bounds.topLeft),
       transform.worldToScreen(target.bounds.bottomRight),
     );
-    const toolbarWidth = 320.0;
-    final toolbarLeft = (textRect.width - toolbarWidth) / 2;
+    final fieldBounds = editingTextElement?.localBounds ?? target.bounds;
+    final fieldRect = Rect.fromPoints(
+      transform.worldToScreen(fieldBounds.topLeft),
+      transform.worldToScreen(fieldBounds.bottomRight),
+    );
+    final overlayWidth = editingTextElement == null
+        ? _textEditingToolbarWidth
+        : math.max(
+            _textEditingToolbarWidth,
+            textBoundsRect.width,
+          ).toDouble();
     final rect = Rect.fromLTWH(
-      textRect.left + toolbarLeft,
-      textRect.top - 48,
-      toolbarWidth,
-      textRect.height + 48,
+      textBoundsRect.center.dx - overlayWidth / 2,
+      textBoundsRect.top - _textEditingToolbarTopOffset,
+      overlayWidth,
+      textBoundsRect.height + _textEditingToolbarTopOffset,
     );
     final fontSize = target.fontSize * transform.scale;
     final lineHeight = target.lineHeight;
-    final contentPadding = 4.0 * transform.scale;
     const handleSize = 7.0;
-    final textLeft = -toolbarLeft;
-    const textTop = 48.0;
-    final handleCenters = [
-      Offset(textLeft, textTop),
-      Offset(textLeft + textRect.width, textTop),
-      Offset(textLeft, textTop + textRect.height),
-      Offset(textLeft + textRect.width, textTop + textRect.height),
-    ];
+    final textLeft = fieldRect.left - rect.left;
+    final textTop = fieldRect.top - rect.top;
+    final handleCenters = editingTextElement != null
+        ? [
+            for (final handle in _EditingTextResizeHandle.values)
+              transform.worldToScreen(
+                    _editingTextHandleWorldPoint(editingTextElement, handle),
+                  ) -
+                  rect.topLeft,
+          ]
+        : [
+            Offset(textLeft, textTop),
+            Offset(textLeft + fieldRect.width, textTop),
+            Offset(textLeft, textTop + fieldRect.height),
+            Offset(
+              textLeft + fieldRect.width,
+              textTop + fieldRect.height,
+            ),
+          ];
     return Positioned.fromRect(
       rect: rect,
       child: Stack(
         clipBehavior: Clip.none,
         children: [
           Positioned(
-            left: 0,
+            left: (overlayWidth - _textEditingToolbarWidth) / 2,
             top: 0,
-            width: toolbarWidth,
-            height: 40,
+            width: _textEditingToolbarWidth,
+            height: _textEditingToolbarHeight,
             child: _TextEditToolbar(
               controller: widget.controller,
               element: target,
-              onInteraction: () => _focusNode.requestFocus(),
+              onInteraction: _restoreTextFocus,
             ),
           ),
           Positioned(
             left: textLeft,
             top: textTop,
-            width: textRect.width,
-            height: textRect.height,
-            child: Material(
-              color: Colors.transparent,
-              child: TextField(
-                controller: _textController,
-                focusNode: _focusNode,
-                autofocus: true,
-                keyboardType: TextInputType.multiline,
-                maxLines: null,
-                minLines: null,
-                expands: true,
-                textAlign: target.textAlign,
-                style: target.style.copyWith(
-                  fontSize: fontSize,
-                  height: lineHeight,
+            width: fieldRect.width,
+            height: fieldRect.height,
+            child: Transform.rotate(
+              angle: editingTextElement?.rotation ?? 0.0,
+              child: Material(
+                color: Colors.transparent,
+                child: TextField(
+                  controller: _textController,
+                  focusNode: _focusNode,
+                  autofocus: true,
+                  keyboardType: TextInputType.multiline,
+                  maxLines: null,
+                  minLines: null,
+                  expands: true,
+                  textAlign: target.textAlign,
+                  style: target.style.copyWith(
+                    fontSize: fontSize,
+                    height: lineHeight,
+                  ),
+                  decoration: InputDecoration(
+                    isDense: true,
+                    filled: true,
+                    fillColor: Colors.white.withValues(alpha: 0.82),
+                    contentPadding: EdgeInsets.zero,
+                    border: const OutlineInputBorder(),
+                  ),
+                  onSubmitted: (_) => _commit(),
+                  onChanged: target.updateText,
                 ),
-                decoration: InputDecoration(
-                  isDense: true,
-                  filled: true,
-                  fillColor: Colors.white.withValues(alpha: 0.82),
-                  contentPadding: EdgeInsets.all(contentPadding),
-                  border: const OutlineInputBorder(),
-                ),
-                onSubmitted: (_) => _commit(),
-                onChanged: target.updateText,
               ),
             ),
           ),
@@ -1076,6 +1244,34 @@ class _TextEditingOverlayState extends State<_TextEditingOverlay> {
         ],
       ),
     );
+  }
+
+  void _restoreTextFocus() {
+    final editingId = _editingId;
+    if (!mounted || editingId == null || _focusRestoreScheduled) {
+      return;
+    }
+    _focusRestoreScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _editingId != editingId) {
+        _focusRestoreScheduled = false;
+        return;
+      }
+      final route = ModalRoute.of(context);
+      if (route != null && !route.isCurrent) {
+        _focusRestoreScheduled = false;
+        _restoreTextFocus();
+        return;
+      }
+      _focusRestoreScheduled = false;
+      final canvasController = widget.controller.canvasController;
+      final activeEditingId =
+          canvasController.editingTextElementId ??
+          canvasController.editingShapeLabelElementId;
+      if (activeEditingId == editingId && _focusNode.canRequestFocus) {
+        _focusNode.requestFocus();
+      }
+    });
   }
 
   void _commit() {
@@ -1106,7 +1302,7 @@ abstract class _TextEditingTarget {
     FontWeight? fontWeight,
     TextAlign? textAlign,
     double? lineHeight,
-    Object? fontFamily,
+    Object? fontFamily = CanvasController.unsetTextStyleValue,
   });
 }
 
@@ -1143,7 +1339,7 @@ class TextEditingTarget implements _TextEditingTarget {
     FontWeight? fontWeight,
     TextAlign? textAlign,
     double? lineHeight,
-    Object? fontFamily,
+    Object? fontFamily = CanvasController.unsetTextStyleValue,
   }) {
     controller.updateTextElementStyle(
       id,
@@ -1152,7 +1348,7 @@ class TextEditingTarget implements _TextEditingTarget {
       fontWeight: fontWeight,
       textAlign: textAlign,
       lineHeight: lineHeight,
-      fontFamily: fontFamily ?? CanvasController.unsetTextStyleValue,
+      fontFamily: fontFamily,
       record: false,
     );
   }
@@ -1291,7 +1487,7 @@ class ShapeLabelEditingTarget implements _TextEditingTarget {
     FontWeight? fontWeight,
     TextAlign? textAlign,
     double? lineHeight,
-    Object? fontFamily,
+    Object? fontFamily = CanvasController.unsetTextStyleValue,
   }) {
     controller.updateShapeLabelStyle(
       id,
@@ -1300,7 +1496,7 @@ class ShapeLabelEditingTarget implements _TextEditingTarget {
       fontWeight: fontWeight,
       textAlign: textAlign,
       lineHeight: lineHeight,
-      fontFamily: fontFamily ?? CanvasController.unsetTextStyleValue,
+      fontFamily: fontFamily,
       record: false,
     );
   }
@@ -1349,6 +1545,11 @@ class _TextEditToolbar extends StatelessWidget {
   ];
 
   static const _fontSizes = <double>[14, 18, 24, 32, 48];
+  static const _fontFamilies = <String, String>{
+    'sans': 'Sans',
+    'serif': 'Serif',
+    'mono': 'Mono',
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -1379,41 +1580,66 @@ class _TextEditToolbar extends StatelessWidget {
               IconButton(
                 tooltip: 'Custom color',
                 padding: EdgeInsets.zero,
+                constraints: const BoxConstraints.tightFor(
+                  width: 32,
+                  height: 32,
+                ),
                 icon: const Icon(Icons.palette_outlined, size: 20),
                 onPressed: () => _showColorPicker(context),
               ),
               const VerticalDivider(width: 10),
-              DropdownButton<double>(
-                value: _nearestFontSize(element.style.fontSize ?? 24),
-                underline: const SizedBox.shrink(),
-                items: [
+              PopupMenuButton<double>(
+                tooltip: 'Font size',
+                padding: EdgeInsets.zero,
+                initialValue: _nearestFontSize(
+                  element.style.fontSize ?? 24,
+                ),
+                itemBuilder: (context) => [
                   for (final size in _fontSizes)
-                    DropdownMenuItem(
+                    CheckedPopupMenuItem(
                       value: size,
+                      checked:
+                          size ==
+                          _nearestFontSize(element.style.fontSize ?? 24),
                       child: Text(size.round().toString()),
                     ),
                 ],
-                onChanged: (value) {
-                  if (value != null) {
-                    _update(fontSize: value);
-                  }
-                },
+                onSelected: (value) => _update(fontSize: value),
+                onCanceled: onInteraction,
+                child: _ToolbarMenuLabel(
+                  label: _nearestFontSize(
+                    element.style.fontSize ?? 24,
+                  ).round().toString(),
+                ),
               ),
               const SizedBox(width: 8),
-              DropdownButton<String>(
-                value: _fontFamilyValue(element.style.fontFamily),
-                underline: const SizedBox.shrink(),
-                items: const [
-                  DropdownMenuItem(value: 'sans', child: Text('Sans')),
-                  DropdownMenuItem(value: 'serif', child: Text('Serif')),
-                  DropdownMenuItem(value: 'mono', child: Text('Mono')),
+              PopupMenuButton<String>(
+                tooltip: 'Font family',
+                padding: EdgeInsets.zero,
+                initialValue: _fontFamilyValue(element.style.fontFamily),
+                itemBuilder: (context) => [
+                  for (final entry in _fontFamilies.entries)
+                    CheckedPopupMenuItem(
+                      value: entry.key,
+                      checked:
+                          entry.key ==
+                          _fontFamilyValue(element.style.fontFamily),
+                      child: Text(entry.value),
+                    ),
                 ],
-                onChanged: (value) => _update(
+                onSelected: (value) => _update(
                   fontFamily: switch (value) {
                     'serif' => 'Times New Roman',
                     'mono' => 'Consolas',
                     _ => null,
                   },
+                ),
+                onCanceled: onInteraction,
+                child: _ToolbarMenuLabel(
+                  label:
+                      _fontFamilies[
+                        _fontFamilyValue(element.style.fontFamily)
+                      ]!,
                 ),
               ),
             ],
@@ -1439,6 +1665,9 @@ class _TextEditToolbar extends StatelessWidget {
         swatches: _colors,
       ),
     );
+    if (!context.mounted) {
+      return;
+    }
     if (color != null) {
       _update(color: color);
     } else {
@@ -1454,13 +1683,45 @@ class _TextEditToolbar extends StatelessWidget {
     });
   }
 
-  void _update({Color? color, double? fontSize, String? fontFamily}) {
+  void _update({
+    Color? color,
+    double? fontSize,
+    Object? fontFamily = CanvasController.unsetTextStyleValue,
+  }) {
+    final canvasController = controller.canvasController;
+    if (element.id != canvasController.editingTextElementId &&
+        element.id != canvasController.editingShapeLabelElementId) {
+      return;
+    }
     element.updateStyle(
       color: color,
       fontSize: fontSize,
       fontFamily: fontFamily,
     );
     onInteraction();
+  }
+}
+
+class _ToolbarMenuLabel extends StatelessWidget {
+  const _ToolbarMenuLabel({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 32,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(label),
+            const Icon(Icons.arrow_drop_down, size: 18),
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -1835,10 +2096,22 @@ enum _EditingTextResizeHandle {
   topLeft,
   topRight,
   bottomLeft,
-  bottomRight;
+  bottomRight,
+  top,
+  bottom,
+  left,
+  right;
 
-  bool get isLeft => this == topLeft || this == bottomLeft;
-  bool get isTop => this == topLeft || this == topRight;
+  bool get isCorner =>
+      this == topLeft ||
+      this == topRight ||
+      this == bottomLeft ||
+      this == bottomRight;
+  bool get isLeft => this == topLeft || this == bottomLeft || this == left;
+  bool get isRight => this == topRight || this == bottomRight || this == right;
+  bool get isTop => this == topLeft || this == topRight || this == top;
+  bool get isBottom =>
+      this == bottomLeft || this == bottomRight || this == bottom;
 
   Offset pointFor(Rect rect) {
     return switch (this) {
@@ -1846,6 +2119,10 @@ enum _EditingTextResizeHandle {
       topRight => rect.topRight,
       bottomLeft => rect.bottomLeft,
       bottomRight => rect.bottomRight,
+      top => rect.topCenter,
+      bottom => rect.bottomCenter,
+      left => rect.centerLeft,
+      right => rect.centerRight,
     };
   }
 
@@ -1855,19 +2132,39 @@ enum _EditingTextResizeHandle {
       topRight => rect.bottomLeft,
       bottomLeft => rect.topRight,
       bottomRight => rect.topLeft,
+      top => rect.bottomCenter,
+      bottom => rect.topCenter,
+      left => rect.centerRight,
+      right => rect.centerLeft,
     };
   }
+}
+
+Offset _editingTextHandleWorldPoint(
+  TextElement element,
+  _EditingTextResizeHandle handle, {
+  bool anchor = false,
+}) {
+  final localBounds = element.localBounds;
+  final point = anchor
+      ? handle.anchorFor(localBounds)
+      : handle.pointFor(localBounds);
+  return element.rotation == 0
+      ? point
+      : rotatePoint(point, element.rotation, localBounds.center);
 }
 
 class _DeferredWidgetGesture {
   const _DeferredWidgetGesture({
     required this.screenPoint,
+    required this.globalPosition,
     required this.kind,
     required this.buttons,
     required this.pressure,
   });
 
   final Offset screenPoint;
+  final Offset globalPosition;
   final PointerDeviceKind kind;
   final int buttons;
   final double pressure;

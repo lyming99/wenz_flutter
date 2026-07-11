@@ -1,0 +1,1392 @@
+OpenAI Codex v0.144.1
+--------
+workdir: D:\project\GitHub\wenz_flutter\wenz_draw
+model: gpt-5.6-sol
+provider: openai
+approval: never
+sandbox: workspace-write [workdir, /tmp, $TMPDIR]
+reasoning effort: xhigh
+reasoning summaries: none
+session id: 019f4cda-7412-7800-89f7-6ba0702e92c7
+--------
+user
+你是开发执行者，在无人值守模式下工作：禁止反问用户、禁止请求确认或补充信息、禁止输出“请告诉我…/是否需要…”之类等待回复的话；遇到不确定一律自行从代码推断，按最合理的工程方案直接推进，不要停下来等待输入。
+请只执行指定任务 P002，不要提前执行其它任务，也不要顺手处理其它 checkbox。
+
+plan 文件（只读）：D:\project\GitHub\wenz_flutter\wenz_draw\docs\plan\plan_requirement_1_20260711-002515.md
+指定任务：- [ ] P002: 在曲线绘制流程中接入起终点吸附与预览 <!-- scope: lib/src/tools/curve_tool.dart -->
+任务 scope：lib/src/tools/curve_tool.dart
+
+完成后必须：
+- 当前任务已恢复同一 plan 前序任务的 Codex 会话，请沿用已有分析结论和修改背景，避免重新从零梳理
+- 这是无人值守执行：不要提问、不要请求确认、不要等待用户输入，所有不确定项自行基于代码推断并直接落地修改
+- plan 文件是只读上下文：不要修改 plan 文件，不要勾选 checkbox，不要更新 plan 进度区
+- AutoPlan 会在任务成功后统一写回数据库、checkbox 和进度区
+- 只修改当前任务 scope 直接相关的业务文件
+- 当前阶段只做开发修改，不运行测试、回归、验收、构建、lint/analyze、coverage、e2e 或 benchmark 命令；AutoPlan 会在所有任务完成后统一执行最终验收命令
+- 即使任务验收要点提到测试，也只补充或调整必要代码/测试文件，不在当前任务内启动测试进程；除非当前任务或 plan 总体说明明确写着“本任务必须执行某命令”
+- 若识别到 Flutter/Dart 项目，可遵循其代码组织、格式和测试文件约定，但当前任务内不要运行 flutter test、dart test、flutter analyze 或 dart analyze
+- 如果工具链命令因 PathAccessException、Permission denied、拒绝访问或超时失败，停止重试并说明环境阻塞，把验证留给最终验收阶段
+- 不输出完整 diff、源码全文或长文件列表
+- 中文文件读写使用 UTF-8
+2026-07-10T16:30:34.620938Z ERROR codex_models_manager::manager: failed to refresh available models: timeout waiting for child process to exit
+codex
+我会沿用 P001 的双端绑定模型，只对 `curve_tool.dart` 接入与折线一致的吸附解析、预览生命周期和绑定写入；不会修改计划或其它文件，也不执行测试与分析命令。
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command '$files = @('"'lib\\src\\tools\\curve_tool.dart','lib\\src\\tools\\polyline_tool.dart'); foreach ("'$f in $files) { Write-Output "FILE: $f"; Get-Content -LiteralPath $f -Raw -Encoding UTF8 }; Write-Output '"'STATUS:'; git status --short -- 'lib/src/tools/curve_tool.dart' 'lib/src/tools/polyline_tool.dart' 'docs/plan/plan_requirement_1_20260711-002515.md'" in D:\project\GitHub\wenz_flutter\wenz_draw
+ succeeded in 792ms:
+FILE: lib\src\tools\curve_tool.dart
+import 'package:flutter/material.dart';
+
+import '../canvas/canvas_controller.dart';
+import '../elements/curve_element.dart';
+import '../infinite_canvas/canvas_event.dart';
+import '../utils/uuid_generator.dart';
+import 'canvas_tool.dart';
+
+/// Curve 工具——绘制二次贝塞尔曲线。
+///
+/// 交互方式：
+/// 1. 按下确定起点。
+/// 2. 拖动实时预览终点，控制点自动计算（垂直于起终连线偏移）。
+/// 3. 松手完成绘制，自动选中所创建的曲线。
+///
+/// 如果在拖动过程中检测到明显的垂直偏移（用户做出了弧线手势），
+/// 则使用用户拖拽路径的中点作为控制点，形成弧线。
+class CurveTool extends CanvasTool {
+  CurveTool();
+
+  static const idValue = 'curve';
+
+  Offset? _start;
+  Offset? _current;
+
+  @override
+  String get id => idValue;
+
+  @override
+  String get name => 'Curve';
+
+  @override
+  IconData get icon => Icons.timeline;
+
+  @override
+  void cancel(CanvasController controller) {
+    _start = null;
+    _current = null;
+  }
+
+  @override
+  ToolResult handleEvent(CanvasEvent event, CanvasController controller) {
+    switch (event) {
+      case CanvasPointerDownEvent():
+        _start = event.worldPoint;
+        _current = event.worldPoint;
+        return ToolResultPreview(_buildPreview(controller));
+      case CanvasPointerMoveEvent():
+        if (_start == null) return const ToolResultNone();
+        _current = event.worldPoint;
+        return ToolResultPreview(_buildPreview(controller));
+      case CanvasPointerUpEvent():
+        final start = _start;
+        final end = event.worldPoint;
+        cancel(controller);
+        if (start == null || (start - end).distance < 1) {
+          return const ToolResultNone();
+        }
+        final control = _computeControlPoint(start, end);
+        return ToolResultElement(
+          CurveElement(
+            id: UuidGenerator.create(),
+            start: start,
+            end: end,
+            control: control,
+            style: controller.brushSettings.strokeStyle,
+          ),
+          selectAfter: true,
+        );
+      default:
+        return const ToolResultNone();
+    }
+  }
+
+  /// Compute a control point that creates a pleasing arc.
+  ///
+  /// The control point is placed at the midpoint of start-end, offset
+  /// perpendicular to the line by 30% of the segment length.
+  Offset _computeControlPoint(Offset start, Offset end) {
+    final mid = (start + end) / 2;
+    final delta = end - start;
+    final length = delta.distance;
+    if (length < 0.001) return mid;
+    // Perpendicular unit vector (rotate 90° counter-clockwise).
+    final perp = Offset(-delta.dy, delta.dx) / length;
+    return mid + perp * (length * 0.3);
+  }
+
+  CurveElement _buildPreview(CanvasController controller) {
+    final start = _start ?? Offset.zero;
+    final end = _current ?? start;
+    final control = _computeControlPoint(start, end);
+    return CurveElement(
+      id: '__preview_curve__',
+      start: start,
+      end: end,
+      control: control,
+      style: controller.brushSettings.strokeStyle.copyWith(opacity: 0.72),
+    );
+  }
+}
+
+FILE: lib\src\tools\polyline_tool.dart
+import 'package:flutter/material.dart';
+
+import '../canvas/canvas_controller.dart';
+import '../elements/polyline_element.dart';
+import '../infinite_canvas/canvas_event.dart';
+import '../snap/snap_resolver.dart';
+import '../routing/connector_routing.dart';
+import '../utils/uuid_generator.dart';
+import 'canvas_tool.dart';
+
+class PolylineTool extends CanvasTool {
+  PolylineTool({
+    this.endArrow = false,
+    String? id,
+    String? name,
+    IconData? icon,
+  }) : _id = id ?? idValue,
+       _name = name ?? 'Polyline',
+       _icon = icon ?? Icons.account_tree_outlined;
+
+  static const idValue = 'polyline';
+
+  final bool endArrow;
+  final String _id;
+  final String _name;
+  final IconData _icon;
+
+  Offset? _start;
+  Offset? _current;
+  SnapResult? _startSnap;
+  SnapResult? _currentSnap;
+
+  @override
+  String get id => _id;
+
+  @override
+  String get name => _name;
+
+  @override
+  IconData get icon => _icon;
+
+  String get _previewId => '__preview_${id}__';
+
+  @override
+  void cancel(CanvasController controller) {
+    _start = null;
+    _current = null;
+    _startSnap = null;
+    _currentSnap = null;
+    controller.setSnapPreview(null);
+  }
+
+  @override
+  ToolResult handleEvent(CanvasEvent event, CanvasController controller) {
+    switch (event) {
+      case CanvasPointerDownEvent():
+        _startSnap = _resolveSnap(
+          controller,
+          event.worldPoint,
+          event.transform.scale,
+        );
+        _start = _startSnap?.position ?? event.worldPoint;
+        _currentSnap = _startSnap;
+        _current = _start;
+        controller.setSnapPreview(_currentSnap);
+        return ToolResultPreview(_buildPreview(controller));
+      case CanvasPointerMoveEvent():
+        if (_start == null) {
+          return const ToolResultNone();
+        }
+        _currentSnap = _resolveSnap(
+          controller,
+          event.worldPoint,
+          event.transform.scale,
+        );
+        _current = _currentSnap?.position ?? event.worldPoint;
+        controller.setSnapPreview(_currentSnap);
+        return ToolResultPreview(_buildPreview(controller));
+      case CanvasPointerUpEvent():
+        final start = _start;
+        final endSnap = _resolveSnap(
+          controller,
+          event.worldPoint,
+          event.transform.scale,
+        );
+        final end = endSnap?.position ?? event.worldPoint;
+        final startBinding = _startSnap?.binding;
+        final endBinding = endSnap?.binding;
+        cancel(controller);
+        if (start == null || (start - end).distance < 1) {
+          return const ToolResultNone();
+        }
+        return ToolResultElement(
+          PolylineElement(
+            id: UuidGenerator.create(),
+            points: _route(
+              controller,
+              start,
+              end,
+              startBinding,
+              endBinding,
+              quality: controller.connectorRoutingOptions.finalQuality,
+            ),
+            style: controller.brushSettings.strokeStyle,
+            startBinding: startBinding,
+            endBinding: endBinding,
+            endArrow: endArrow,
+          ),
+        );
+      default:
+        return const ToolResultNone();
+    }
+  }
+
+  PolylineElement _buildPreview(CanvasController controller) {
+    final start = _start ?? Offset.zero;
+    final end = _current ?? start;
+    return PolylineElement(
+      id: _previewId,
+      points: _route(
+        controller,
+        start,
+        end,
+        _startSnap?.binding,
+        _currentSnap?.binding,
+        quality: controller.connectorRoutingOptions.finalQuality,
+      ),
+      style: controller.brushSettings.strokeStyle.copyWith(opacity: 0.72),
+      startBinding: _startSnap?.binding,
+      endBinding: _currentSnap?.binding,
+      endArrow: endArrow,
+    );
+  }
+
+  List<Offset> _route(
+    CanvasController controller,
+    Offset start,
+    Offset end,
+    SnapBinding? startBinding,
+    SnapBinding? endBinding, {
+    ConnectorRouteQuality quality = ConnectorRouteQuality.high,
+  }) {
+    return controller.routeConnector(
+      start: start,
+      end: end,
+      startBinding: startBinding,
+      endBinding: endBinding,
+      connectorId: _previewId,
+      quality: quality,
+    );
+  }
+
+  SnapResult? _resolveSnap(
+    CanvasController controller,
+    Offset worldPoint,
+    double scale,
+  ) {
+    return controller.snapResolver.resolve(
+      controller,
+      worldPoint,
+      scale: scale,
+    );
+  }
+}
+
+STATUS:
+ M lib/src/tools/polyline_tool.dart
+?? docs/plan/plan_requirement_1_20260711-002515.md
+
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command '$files = @('"'lib\\src\\tools\\line_tool.dart','lib\\src\\tools\\arrow_tool.dart'); foreach ("'$f in $files) { if (Test-Path -LiteralPath $f) { Write-Output "FILE: $f"; Get-Content -LiteralPath $f -Raw -Encoding UTF8 } }; rg -n "class CanvasPointer|sealed class CanvasEvent|setSnapPreview" lib'"\\src\\infinite_canvas\\canvas_event.dart lib\\src\\tools -g '*.dart'" in D:\project\GitHub\wenz_flutter\wenz_draw
+2026-07-10T16:31:07.238082Z ERROR codex_core::tools::router: error=Exit code: 1
+Wall time: 1.7 seconds
+Output:
+FILE: lib\src\tools\line_tool.dart
+import 'package:flutter/material.dart';
+
+import '../canvas/canvas_controller.dart';
+import '../elements/line_element.dart';
+import '../infinite_canvas/canvas_event.dart';
+import '../snap/snap_resolver.dart';
+import '../utils/uuid_generator.dart';
+import 'canvas_tool.dart';
+
+/// Line 工具——绘制两点直线。
+///
+/// 拖拽时实时显示直线预览，松手后创建 LineElement。
+class LineTool extends CanvasTool {
+  LineTool();
+
+  static const idValue = 'line';
+
+  Offset? _start;
+  Offset? _current;
+  SnapResult? _startSnap;
+  SnapResult? _currentSnap;
+
+  @override
+  String get id => idValue;
+
+  @override
+  String get name => 'Line';
+
+  @override
+  IconData get icon => Icons.show_chart;
+
+  @override
+  void cancel(CanvasController controller) {
+    _start = null;
+    _current = null;
+    _startSnap = null;
+    _currentSnap = null;
+    controller.setSnapPreview(null);
+  }
+
+  @override
+  ToolResult handleEvent(CanvasEvent event, CanvasController controller) {
+    switch (event) {
+      case CanvasPointerDownEvent():
+        _startSnap = _resolveSnap(
+          controller,
+          event.worldPoint,
+          event.transform.scale,
+        );
+        _start = _startSnap?.position ?? event.worldPoint;
+        _currentSnap = _startSnap;
+        _current = _start;
+        controller.setSnapPreview(_currentSnap);
+        return ToolResultPreview(_buildPreview(controller));
+      case CanvasPointerMoveEvent():
+        if (_start == null) return const ToolResultNone();
+        _currentSnap = _resolveSnap(
+          controller,
+          event.worldPoint,
+          event.transform.scale,
+        );
+        _current = _currentSnap?.position ?? event.worldPoint;
+        controller.setSnapPreview(_currentSnap);
+        return ToolResultPreview(_buildPreview(controller));
+      case CanvasPointerUpEvent():
+        final start = _start;
+        final endSnap = _resolveSnap(
+          controller,
+          event.worldPoint,
+          event.transform.scale,
+        );
+        final end = endSnap?.position ?? event.worldPoint;
+        final startBinding = _startSnap?.binding;
+        final endBinding = endSnap?.binding;
+        cancel(controller);
+        if (start == null || (start - end).distance < 1)
+          return const ToolResultNone();
+
+        return ToolResultElement(
+          LineElement(
+            id: UuidGenerator.create(),
+            start: start,
+            end: end,
+            style: controller.brushSettings.strokeStyle,
+            startBinding: startBinding,
+            endBinding: endBinding,
+          ),
+          selectAfter: true,
+        );
+      default:
+        return const ToolResultNone();
+    }
+  }
+
+  LineElement _buildPreview(CanvasController controller) {
+    final start = _start ?? Offset.zero;
+    final end = _current ?? start;
+
+    return LineElement(
+      id: '__preview_line__',
+      start: start,
+      end: end,
+      style: controller.brushSettings.strokeStyle.copyWith(opacity: 0.72),
+      startBinding: _startSnap?.binding,
+      endBinding: _currentSnap?.binding,
+    );
+  }
+
+  SnapResult? _resolveSnap(
+    CanvasController controller,
+    Offset worldPoint,
+    double scale,
+  ) {
+    return controller.snapResolver.resolve(
+      controller,
+      worldPoint,
+      scale: scale,
+    );
+  }
+}
+
+FILE: lib\src\tools\arrow_tool.dart
+import 'package:flutter/material.dart';
+
+import '../canvas/canvas_controller.dart';
+import '../elements/arrow_element.dart';
+import '../infinite_canvas/canvas_event.dart';
+import '../snap/snap_resolver.dart';
+import '../utils/uuid_generator.dart';
+import 'canvas_tool.dart';
+
+/// Arrow 工具——画带箭头的直线连接。
+class ArrowTool extends CanvasTool {
+  ArrowTool();
+
+  static const idValue = 'arrow';
+
+  Offset? _start;
+  Offset? _current;
+  SnapResult? _startSnap;
+  SnapResult? _currentSnap;
+
+  @override
+  String get id => idValue;
+
+  @override
+  String get name => 'Arrow';
+
+  @override
+  IconData get icon => Icons.arrow_outward;
+
+  @override
+  void cancel(CanvasController controller) {
+    _start = null;
+    _current = null;
+    _startSnap = null;
+    _currentSnap = null;
+    controller.setSnapPreview(null);
+  }
+
+  @override
+  ToolResult handleEvent(CanvasEvent event, CanvasController controller) {
+    switch (event) {
+      case CanvasPointerDownEvent():
+        _startSnap = _resolveSnap(
+          controller,
+          event.worldPoint,
+          event.transform.scale,
+        );
+        _start = _startSnap?.position ?? event.worldPoint;
+        _currentSnap = _startSnap;
+        _current = _start;
+        controller.setSnapPreview(_currentSnap);
+        return ToolResultPreview(_buildPreview(controller));
+      case CanvasPointerMoveEvent():
+        if (_start == null) return const ToolResultNone();
+        _currentSnap = _resolveSnap(
+          controller,
+          event.worldPoint,
+          event.transform.scale,
+        );
+        _current = _currentSnap?.position ?? event.worldPoint;
+        controller.setSnapPreview(_currentSnap);
+        return ToolResultPreview(_buildPreview(controller));
+      case CanvasPointerUpEvent():
+        final start = _start;
+        final endSnap = _resolveSnap(
+          controller,
+          event.worldPoint,
+          event.transform.scale,
+        );
+        final end = endSnap?.position ?? event.worldPoint;
+        final startBinding = _startSnap?.binding;
+        final endBinding = endSnap?.binding;
+        cancel(controller);
+        if (start == null || (start - end).distance < 1) {
+          return const ToolResultNone();
+        }
+
+        return ToolResultElement(
+          ArrowElement(
+            id: UuidGenerator.create(),
+            start: start,
+            end: end,
+            style: controller.brushSettings.strokeStyle,
+            startBinding: startBinding,
+            endBinding: endBinding,
+          ),
+        );
+      default:
+        return const ToolResultNone();
+    }
+  }
+
+  ArrowElement _buildPreview(CanvasController controller) {
+    final start = _start ?? Offset.zero;
+    final end = _current ?? start;
+    return ArrowElement(
+      id: '__preview_arrow__',
+      start: start,
+      end: end,
+      style: controller.brushSettings.strokeStyle.copyWith(opacity: 0.72),
+    );
+  }
+
+  SnapResult? _resolveSnap(
+    CanvasController controller,
+    Offset worldPoint,
+    double scale,
+  ) {
+    return controller.snapResolver.resolve(controller, worldPoint, scale: scale);
+  }
+}
+
+rg : 无法将“rg”项识别为 cmdlet、函数、脚本文件或可运行程序的名称。请检查名称的拼写，如果包括路径，请确保路径正确，然后再试一次。
+所在位置 行:2 字符: 213
++ ...  $f"; Get-Content -LiteralPath $f -Raw -Encoding UTF8 } }; rg -n "cla ...
++                                                                ~~
+    + CategoryInfo          : ObjectNotFound: (rg:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+ 
+
+ exited 1 in 1735ms:
+FILE: lib\src\tools\line_tool.dart
+import 'package:flutter/material.dart';
+
+import '../canvas/canvas_controller.dart';
+import '../elements/line_element.dart';
+import '../infinite_canvas/canvas_event.dart';
+import '../snap/snap_resolver.dart';
+import '../utils/uuid_generator.dart';
+import 'canvas_tool.dart';
+
+/// Line 工具——绘制两点直线。
+///
+/// 拖拽时实时显示直线预览，松手后创建 LineElement。
+class LineTool extends CanvasTool {
+  LineTool();
+
+  static const idValue = 'line';
+
+  Offset? _start;
+  Offset? _current;
+  SnapResult? _startSnap;
+  SnapResult? _currentSnap;
+
+  @override
+  String get id => idValue;
+
+  @override
+  String get name => 'Line';
+
+  @override
+  IconData get icon => Icons.show_chart;
+
+  @override
+  void cancel(CanvasController controller) {
+    _start = null;
+    _current = null;
+    _startSnap = null;
+    _currentSnap = null;
+    controller.setSnapPreview(null);
+  }
+
+  @override
+  ToolResult handleEvent(CanvasEvent event, CanvasController controller) {
+    switch (event) {
+      case CanvasPointerDownEvent():
+        _startSnap = _resolveSnap(
+          controller,
+          event.worldPoint,
+          event.transform.scale,
+        );
+        _start = _startSnap?.position ?? event.worldPoint;
+        _currentSnap = _startSnap;
+        _current = _start;
+        controller.setSnapPreview(_currentSnap);
+        return ToolResultPreview(_buildPreview(controller));
+      case CanvasPointerMoveEvent():
+        if (_start == null) return const ToolResultNone();
+        _currentSnap = _resolveSnap(
+          controller,
+          event.worldPoint,
+          event.transform.scale,
+        );
+        _current = _currentSnap?.position ?? event.worldPoint;
+        controller.setSnapPreview(_currentSnap);
+        return ToolResultPreview(_buildPreview(controller));
+      case CanvasPointerUpEvent():
+        final start = _start;
+        final endSnap = _resolveSnap(
+          controller,
+          event.worldPoint,
+          event.transform.scale,
+        );
+        final end = endSnap?.position ?? event.worldPoint;
+        final startBinding = _startSnap?.binding;
+        final endBinding = endSnap?.binding;
+        cancel(controller);
+        if (start == null || (start - end).distance < 1)
+          return const ToolResultNone();
+
+        return ToolResultElement(
+          LineElement(
+            id: UuidGenerator.create(),
+            start: start,
+            end: end,
+            style: controller.brushSettings.strokeStyle,
+            startBinding: startBinding,
+            endBinding: endBinding,
+          ),
+          selectAfter: true,
+        );
+      default:
+        return const ToolResultNone();
+    }
+  }
+
+  LineElement _buildPreview(CanvasController controller) {
+    final start = _start ?? Offset.zero;
+    final end = _current ?? start;
+
+    return LineElement(
+      id: '__preview_line__',
+      start: start,
+      end: end,
+      style: controller.brushSettings.strokeStyle.copyWith(opacity: 0.72),
+      startBinding: _startSnap?.binding,
+      endBinding: _currentSnap?.binding,
+    );
+  }
+
+  SnapResult? _resolveSnap(
+    CanvasController controller,
+    Offset worldPoint,
+    double scale,
+  ) {
+    return controller.snapResolver.resolve(
+      controller,
+      worldPoint,
+      scale: scale,
+    );
+  }
+}
+
+FILE: lib\src\tools\arrow_tool.dart
+import 'package:flutter/material.dart';
+
+import '../canvas/canvas_controller.dart';
+import '../elements/arrow_element.dart';
+import '../infinite_canvas/canvas_event.dart';
+import '../snap/snap_resolver.dart';
+import '../utils/uuid_generator.dart';
+import 'canvas_tool.dart';
+
+/// Arrow 工具——画带箭头的直线连接。
+class ArrowTool extends CanvasTool {
+  ArrowTool();
+
+  static const idValue = 'arrow';
+
+  Offset? _start;
+  Offset? _current;
+  SnapResult? _startSnap;
+  SnapResult? _currentSnap;
+
+  @override
+  String get id => idValue;
+
+  @override
+  String get name => 'Arrow';
+
+  @override
+  IconData get icon => Icons.arrow_outward;
+
+  @override
+  void cancel(CanvasController controller) {
+    _start = null;
+    _current = null;
+    _startSnap = null;
+    _currentSnap = null;
+    controller.setSnapPreview(null);
+  }
+
+  @override
+  ToolResult handleEvent(CanvasEvent event, CanvasController controller) {
+    switch (event) {
+      case CanvasPointerDownEvent():
+        _startSnap = _resolveSnap(
+          controller,
+          event.worldPoint,
+          event.transform.scale,
+        );
+        _start = _startSnap?.position ?? event.worldPoint;
+        _currentSnap = _startSnap;
+        _current = _start;
+        controller.setSnapPreview(_currentSnap);
+        return ToolResultPreview(_buildPreview(controller));
+      case CanvasPointerMoveEvent():
+        if (_start == null) return const ToolResultNone();
+        _currentSnap = _resolveSnap(
+          controller,
+          event.worldPoint,
+          event.transform.scale,
+        );
+        _current = _currentSnap?.position ?? event.worldPoint;
+        controller.setSnapPreview(_currentSnap);
+        return ToolResultPreview(_buildPreview(controller));
+      case CanvasPointerUpEvent():
+        final start = _start;
+        final endSnap = _resolveSnap(
+          controller,
+          event.worldPoint,
+          event.transform.scale,
+        );
+        final end = endSnap?.position ?? event.worldPoint;
+        final startBinding = _startSnap?.binding;
+        final endBinding = endSnap?.binding;
+        cancel(controller);
+        if (start == null || (start - end).distance < 1) {
+          return const ToolResultNone();
+        }
+
+        return ToolResultElement(
+          ArrowElement(
+            id: UuidGenerator.create(),
+            start: start,
+            end: end,
+            style: controller.brushSettings.strokeStyle,
+            startBinding: startBinding,
+            endBinding: endBinding,
+          ),
+        );
+      default:
+        return const ToolResultNone();
+    }
+  }
+
+  ArrowElement _buildPreview(CanvasController controller) {
+    final start = _start ?? Offset.zero;
+    final end = _current ?? start;
+    return ArrowElement(
+      id: '__preview_arrow__',
+      start: start,
+      end: end,
+      style: controller.brushSettings.strokeStyle.copyWith(opacity: 0.72),
+    );
+  }
+
+  SnapResult? _resolveSnap(
+    CanvasController controller,
+    Offset worldPoint,
+    double scale,
+  ) {
+    return controller.snapResolver.resolve(controller, worldPoint, scale: scale);
+  }
+}
+
+rg : 无法将“rg”项识别为 cmdlet、函数、脚本文件或可运行程序的名称。请检查名称的拼写，如果包括路径，请确保路径正确，然后再试一次。
+所在位置 行:2 字符: 213
++ ...  $f"; Get-Content -LiteralPath $f -Raw -Encoding UTF8 } }; rg -n "cla ...
++                                                                ~~
+    + CategoryInfo          : ObjectNotFound: (rg:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+ 
+
+codex
+对照现有直线/折线实现后，曲线可直接复用同一 `SnapResolver` 约定：按下记录起点命中，移动/抬起重新按当前缩放解析终点；预览和最终元素分别携带对应绑定。现在应用这一最小改动。
+apply patch
+patch: completed
+D:\project\GitHub\wenz_flutter\wenz_draw\lib\src\tools\curve_tool.dart
+diff --git a/wenz_draw/lib/src/tools/curve_tool.dart b/wenz_draw/lib/src/tools/curve_tool.dart
+index 640c65c308397c2563d961cf1dc0f30fc04bd040..611e2d6b977315f54d19cf655a77e97543ea2a2b
+--- a/wenz_draw/lib/src/tools/curve_tool.dart
++++ b/wenz_draw/lib/src/tools/curve_tool.dart
+@@ -3,6 +3,7 @@
+ import '../canvas/canvas_controller.dart';
+ import '../elements/curve_element.dart';
+ import '../infinite_canvas/canvas_event.dart';
++import '../snap/snap_resolver.dart';
+ import '../utils/uuid_generator.dart';
+ import 'canvas_tool.dart';
+ 
+@@ -22,6 +23,8 @@
+ 
+   Offset? _start;
+   Offset? _current;
++  SnapResult? _startSnap;
++  SnapResult? _currentSnap;
+ 
+   @override
+   String get id => idValue;
+@@ -36,22 +39,45 @@
+   void cancel(CanvasController controller) {
+     _start = null;
+     _current = null;
++    _startSnap = null;
++    _currentSnap = null;
++    controller.setSnapPreview(null);
+   }
+ 
+   @override
+   ToolResult handleEvent(CanvasEvent event, CanvasController controller) {
+     switch (event) {
+       case CanvasPointerDownEvent():
+-        _start = event.worldPoint;
+-        _current = event.worldPoint;
++        _startSnap = _resolveSnap(
++          controller,
++          event.worldPoint,
++          event.transform.scale,
++        );
++        _start = _startSnap?.position ?? event.worldPoint;
++        _currentSnap = _startSnap;
++        _current = _start;
++        controller.setSnapPreview(_currentSnap);
+         return ToolResultPreview(_buildPreview(controller));
+       case CanvasPointerMoveEvent():
+         if (_start == null) return const ToolResultNone();
+-        _current = event.worldPoint;
++        _currentSnap = _resolveSnap(
++          controller,
++          event.worldPoint,
++          event.transform.scale,
++        );
++        _current = _currentSnap?.position ?? event.worldPoint;
++        controller.setSnapPreview(_currentSnap);
+         return ToolResultPreview(_buildPreview(controller));
+       case CanvasPointerUpEvent():
+         final start = _start;
+-        final end = event.worldPoint;
++        final endSnap = _resolveSnap(
++          controller,
++          event.worldPoint,
++          event.transform.scale,
++        );
++        final end = endSnap?.position ?? event.worldPoint;
++        final startBinding = _startSnap?.binding;
++        final endBinding = endSnap?.binding;
+         cancel(controller);
+         if (start == null || (start - end).distance < 1) {
+           return const ToolResultNone();
+@@ -64,6 +90,8 @@
+             end: end,
+             control: control,
+             style: controller.brushSettings.strokeStyle,
++            startBinding: startBinding,
++            endBinding: endBinding,
+           ),
+           selectAfter: true,
+         );
+@@ -96,6 +124,20 @@
+       end: end,
+       control: control,
+       style: controller.brushSettings.strokeStyle.copyWith(opacity: 0.72),
++      startBinding: _startSnap?.binding,
++      endBinding: _currentSnap?.binding,
++    );
++  }
++
++  SnapResult? _resolveSnap(
++    CanvasController controller,
++    Offset worldPoint,
++    double scale,
++  ) {
++    return controller.snapResolver.resolve(
++      controller,
++      worldPoint,
++      scale: scale,
+     );
+   }
+ }
+
+diff --git a/wenz_draw/lib/src/tools/curve_tool.dart b/wenz_draw/lib/src/tools/curve_tool.dart
+index 640c65c308397c2563d961cf1dc0f30fc04bd040..611e2d6b977315f54d19cf655a77e97543ea2a2b
+--- a/wenz_draw/lib/src/tools/curve_tool.dart
++++ b/wenz_draw/lib/src/tools/curve_tool.dart
+@@ -3,6 +3,7 @@
+ import '../canvas/canvas_controller.dart';
+ import '../elements/curve_element.dart';
+ import '../infinite_canvas/canvas_event.dart';
++import '../snap/snap_resolver.dart';
+ import '../utils/uuid_generator.dart';
+ import 'canvas_tool.dart';
+ 
+@@ -22,6 +23,8 @@
+ 
+   Offset? _start;
+   Offset? _current;
++  SnapResult? _startSnap;
++  SnapResult? _currentSnap;
+ 
+   @override
+   String get id => idValue;
+@@ -36,22 +39,45 @@
+   void cancel(CanvasController controller) {
+     _start = null;
+     _current = null;
++    _startSnap = null;
++    _currentSnap = null;
++    controller.setSnapPreview(null);
+   }
+ 
+   @override
+   ToolResult handleEvent(CanvasEvent event, CanvasController controller) {
+     switch (event) {
+       case CanvasPointerDownEvent():
+-        _start = event.worldPoint;
+-        _current = event.worldPoint;
++        _startSnap = _resolveSnap(
++          controller,
++          event.worldPoint,
++          event.transform.scale,
++        );
++        _start = _startSnap?.position ?? event.worldPoint;
++        _currentSnap = _startSnap;
++        _current = _start;
++        controller.setSnapPreview(_currentSnap);
+         return ToolResultPreview(_buildPreview(controller));
+       case CanvasPointerMoveEvent():
+         if (_start == null) return const ToolResultNone();
+-        _current = event.worldPoint;
++        _currentSnap = _resolveSnap(
++          controller,
++          event.worldPoint,
++          event.transform.scale,
++        );
++        _current = _currentSnap?.position ?? event.worldPoint;
++        controller.setSnapPreview(_currentSnap);
+         return ToolResultPreview(_buildPreview(controller));
+       case CanvasPointerUpEvent():
+         final start = _start;
+-        final end = event.worldPoint;
++        final endSnap = _resolveSnap(
++          controller,
++          event.worldPoint,
++          event.transform.scale,
++        );
++        final end = endSnap?.position ?? event.worldPoint;
++        final startBinding = _startSnap?.binding;
++        final endBinding = endSnap?.binding;
+         cancel(controller);
+         if (start == null || (start - end).distance < 1) {
+           return const ToolResultNone();
+@@ -64,6 +90,8 @@
+             end: end,
+             control: control,
+             style: controller.brushSettings.strokeStyle,
++            startBinding: startBinding,
++            endBinding: endBinding,
+           ),
+           selectAfter: true,
+         );
+@@ -96,6 +124,20 @@
+       end: end,
+       control: control,
+       style: controller.brushSettings.strokeStyle.copyWith(opacity: 0.72),
++      startBinding: _startSnap?.binding,
++      endBinding: _currentSnap?.binding,
++    );
++  }
++
++  SnapResult? _resolveSnap(
++    CanvasController controller,
++    Offset worldPoint,
++    double scale,
++  ) {
++    return controller.snapResolver.resolve(
++      controller,
++      worldPoint,
++      scale: scale,
+     );
+   }
+ }
+
+codex
+改动已完成，吸附关闭或未命中时仍回退到原始世界坐标；无效短曲线也会先经过 `cancel` 清空状态与 `SnapPreview`。我只核对该文件的最终结构和工作区范围，不运行任何工具链验收。
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command '$file = '"'lib\\src\\tools\\curve_tool.dart'; "'$lines = Get-Content -LiteralPath $file -Encoding UTF8; for ($i = 1; $i -le $lines.Count; $i++) { '"'{0,4}: {1}' -f "'$i, $lines[$i - 1] }; Write-Output '"'STATUS:'; git status --short -- 'lib/src/tools/curve_tool.dart' 'docs/plan/plan_requirement_1_20260711-002515.md'" in D:\project\GitHub\wenz_flutter\wenz_draw
+ succeeded in 665ms:
+   1: import 'package:flutter/material.dart';
+   2: 
+   3: import '../canvas/canvas_controller.dart';
+   4: import '../elements/curve_element.dart';
+   5: import '../infinite_canvas/canvas_event.dart';
+   6: import '../snap/snap_resolver.dart';
+   7: import '../utils/uuid_generator.dart';
+   8: import 'canvas_tool.dart';
+   9: 
+  10: /// Curve 工具——绘制二次贝塞尔曲线。
+  11: ///
+  12: /// 交互方式：
+  13: /// 1. 按下确定起点。
+  14: /// 2. 拖动实时预览终点，控制点自动计算（垂直于起终连线偏移）。
+  15: /// 3. 松手完成绘制，自动选中所创建的曲线。
+  16: ///
+  17: /// 如果在拖动过程中检测到明显的垂直偏移（用户做出了弧线手势），
+  18: /// 则使用用户拖拽路径的中点作为控制点，形成弧线。
+  19: class CurveTool extends CanvasTool {
+  20:   CurveTool();
+  21: 
+  22:   static const idValue = 'curve';
+  23: 
+  24:   Offset? _start;
+  25:   Offset? _current;
+  26:   SnapResult? _startSnap;
+  27:   SnapResult? _currentSnap;
+  28: 
+  29:   @override
+  30:   String get id => idValue;
+  31: 
+  32:   @override
+  33:   String get name => 'Curve';
+  34: 
+  35:   @override
+  36:   IconData get icon => Icons.timeline;
+  37: 
+  38:   @override
+  39:   void cancel(CanvasController controller) {
+  40:     _start = null;
+  41:     _current = null;
+  42:     _startSnap = null;
+  43:     _currentSnap = null;
+  44:     controller.setSnapPreview(null);
+  45:   }
+  46: 
+  47:   @override
+  48:   ToolResult handleEvent(CanvasEvent event, CanvasController controller) {
+  49:     switch (event) {
+  50:       case CanvasPointerDownEvent():
+  51:         _startSnap = _resolveSnap(
+  52:           controller,
+  53:           event.worldPoint,
+  54:           event.transform.scale,
+  55:         );
+  56:         _start = _startSnap?.position ?? event.worldPoint;
+  57:         _currentSnap = _startSnap;
+  58:         _current = _start;
+  59:         controller.setSnapPreview(_currentSnap);
+  60:         return ToolResultPreview(_buildPreview(controller));
+  61:       case CanvasPointerMoveEvent():
+  62:         if (_start == null) return const ToolResultNone();
+  63:         _currentSnap = _resolveSnap(
+  64:           controller,
+  65:           event.worldPoint,
+  66:           event.transform.scale,
+  67:         );
+  68:         _current = _currentSnap?.position ?? event.worldPoint;
+  69:         controller.setSnapPreview(_currentSnap);
+  70:         return ToolResultPreview(_buildPreview(controller));
+  71:       case CanvasPointerUpEvent():
+  72:         final start = _start;
+  73:         final endSnap = _resolveSnap(
+  74:           controller,
+  75:           event.worldPoint,
+  76:           event.transform.scale,
+  77:         );
+  78:         final end = endSnap?.position ?? event.worldPoint;
+  79:         final startBinding = _startSnap?.binding;
+  80:         final endBinding = endSnap?.binding;
+  81:         cancel(controller);
+  82:         if (start == null || (start - end).distance < 1) {
+  83:           return const ToolResultNone();
+  84:         }
+  85:         final control = _computeControlPoint(start, end);
+  86:         return ToolResultElement(
+  87:           CurveElement(
+  88:             id: UuidGenerator.create(),
+  89:             start: start,
+  90:             end: end,
+  91:             control: control,
+  92:             style: controller.brushSettings.strokeStyle,
+  93:             startBinding: startBinding,
+  94:             endBinding: endBinding,
+  95:           ),
+  96:           selectAfter: true,
+  97:         );
+  98:       default:
+  99:         return const ToolResultNone();
+ 100:     }
+ 101:   }
+ 102: 
+ 103:   /// Compute a control point that creates a pleasing arc.
+ 104:   ///
+ 105:   /// The control point is placed at the midpoint of start-end, offset
+ 106:   /// perpendicular to the line by 30% of the segment length.
+ 107:   Offset _computeControlPoint(Offset start, Offset end) {
+ 108:     final mid = (start + end) / 2;
+ 109:     final delta = end - start;
+ 110:     final length = delta.distance;
+ 111:     if (length < 0.001) return mid;
+ 112:     // Perpendicular unit vector (rotate 90° counter-clockwise).
+ 113:     final perp = Offset(-delta.dy, delta.dx) / length;
+ 114:     return mid + perp * (length * 0.3);
+ 115:   }
+ 116: 
+ 117:   CurveElement _buildPreview(CanvasController controller) {
+ 118:     final start = _start ?? Offset.zero;
+ 119:     final end = _current ?? start;
+ 120:     final control = _computeControlPoint(start, end);
+ 121:     return CurveElement(
+ 122:       id: '__preview_curve__',
+ 123:       start: start,
+ 124:       end: end,
+ 125:       control: control,
+ 126:       style: controller.brushSettings.strokeStyle.copyWith(opacity: 0.72),
+ 127:       startBinding: _startSnap?.binding,
+ 128:       endBinding: _currentSnap?.binding,
+ 129:     );
+ 130:   }
+ 131: 
+ 132:   SnapResult? _resolveSnap(
+ 133:     CanvasController controller,
+ 134:     Offset worldPoint,
+ 135:     double scale,
+ 136:   ) {
+ 137:     return controller.snapResolver.resolve(
+ 138:       controller,
+ 139:       worldPoint,
+ 140:       scale: scale,
+ 141:     );
+ 142:   }
+ 143: }
+STATUS:
+ M lib/src/tools/curve_tool.dart
+?? docs/plan/plan_requirement_1_20260711-002515.md
+
+diff --git a/wenz_draw/lib/src/tools/curve_tool.dart b/wenz_draw/lib/src/tools/curve_tool.dart
+index 640c65c308397c2563d961cf1dc0f30fc04bd040..611e2d6b977315f54d19cf655a77e97543ea2a2b
+--- a/wenz_draw/lib/src/tools/curve_tool.dart
++++ b/wenz_draw/lib/src/tools/curve_tool.dart
+@@ -3,6 +3,7 @@
+ import '../canvas/canvas_controller.dart';
+ import '../elements/curve_element.dart';
+ import '../infinite_canvas/canvas_event.dart';
++import '../snap/snap_resolver.dart';
+ import '../utils/uuid_generator.dart';
+ import 'canvas_tool.dart';
+ 
+@@ -22,6 +23,8 @@
+ 
+   Offset? _start;
+   Offset? _current;
++  SnapResult? _startSnap;
++  SnapResult? _currentSnap;
+ 
+   @override
+   String get id => idValue;
+@@ -36,22 +39,45 @@
+   void cancel(CanvasController controller) {
+     _start = null;
+     _current = null;
++    _startSnap = null;
++    _currentSnap = null;
++    controller.setSnapPreview(null);
+   }
+ 
+   @override
+   ToolResult handleEvent(CanvasEvent event, CanvasController controller) {
+     switch (event) {
+       case CanvasPointerDownEvent():
+-        _start = event.worldPoint;
+-        _current = event.worldPoint;
++        _startSnap = _resolveSnap(
++          controller,
++          event.worldPoint,
++          event.transform.scale,
++        );
++        _start = _startSnap?.position ?? event.worldPoint;
++        _currentSnap = _startSnap;
++        _current = _start;
++        controller.setSnapPreview(_currentSnap);
+         return ToolResultPreview(_buildPreview(controller));
+       case CanvasPointerMoveEvent():
+         if (_start == null) return const ToolResultNone();
+-        _current = event.worldPoint;
++        _currentSnap = _resolveSnap(
++          controller,
++          event.worldPoint,
++          event.transform.scale,
++        );
++        _current = _currentSnap?.position ?? event.worldPoint;
++        controller.setSnapPreview(_currentSnap);
+         return ToolResultPreview(_buildPreview(controller));
+       case CanvasPointerUpEvent():
+         final start = _start;
+-        final end = event.worldPoint;
++        final endSnap = _resolveSnap(
++          controller,
++          event.worldPoint,
++          event.transform.scale,
++        );
++        final end = endSnap?.position ?? event.worldPoint;
++        final startBinding = _startSnap?.binding;
++        final endBinding = endSnap?.binding;
+         cancel(controller);
+         if (start == null || (start - end).distance < 1) {
+           return const ToolResultNone();
+@@ -64,6 +90,8 @@
+             end: end,
+             control: control,
+             style: controller.brushSettings.strokeStyle,
++            startBinding: startBinding,
++            endBinding: endBinding,
+           ),
+           selectAfter: true,
+         );
+@@ -96,6 +124,20 @@
+       end: end,
+       control: control,
+       style: controller.brushSettings.strokeStyle.copyWith(opacity: 0.72),
++      startBinding: _startSnap?.binding,
++      endBinding: _currentSnap?.binding,
++    );
++  }
++
++  SnapResult? _resolveSnap(
++    CanvasController controller,
++    Offset worldPoint,
++    double scale,
++  ) {
++    return controller.snapResolver.resolve(
++      controller,
++      worldPoint,
++      scale: scale,
+     );
+   }
+ }
+
+codex
+已完成 P002，仅修改 [curve_tool.dart](D:/project/GitHub/wenz_flutter/wenz_draw/lib/src/tools/curve_tool.dart:24)：
+
+- 按下、移动、抬起均按当前画布缩放解析吸附点。
+- 曲线预览和最终元素使用吸附后的端点坐标。
+- 保存起点、终点对应的 `SnapBinding`。
+- 实时同步 `SnapPreview`。
+- 完成、取消及无效短距离绘制时清空吸附状态和预览。
+- 未命中或关闭吸附时保持原始自由绘制行为。
+- 保留原有控制点计算、画笔样式及创建后选中行为。
+
+未修改 plan 文件，未执行测试、构建、lint 或 analyze。
+diff --git a/wenz_draw/lib/src/tools/curve_tool.dart b/wenz_draw/lib/src/tools/curve_tool.dart
+index 640c65c308397c2563d961cf1dc0f30fc04bd040..611e2d6b977315f54d19cf655a77e97543ea2a2b
+--- a/wenz_draw/lib/src/tools/curve_tool.dart
++++ b/wenz_draw/lib/src/tools/curve_tool.dart
+@@ -3,6 +3,7 @@
+ import '../canvas/canvas_controller.dart';
+ import '../elements/curve_element.dart';
+ import '../infinite_canvas/canvas_event.dart';
++import '../snap/snap_resolver.dart';
+ import '../utils/uuid_generator.dart';
+ import 'canvas_tool.dart';
+ 
+@@ -22,6 +23,8 @@
+ 
+   Offset? _start;
+   Offset? _current;
++  SnapResult? _startSnap;
++  SnapResult? _currentSnap;
+ 
+   @override
+   String get id => idValue;
+@@ -36,22 +39,45 @@
+   void cancel(CanvasController controller) {
+     _start = null;
+     _current = null;
++    _startSnap = null;
++    _currentSnap = null;
++    controller.setSnapPreview(null);
+   }
+ 
+   @override
+   ToolResult handleEvent(CanvasEvent event, CanvasController controller) {
+     switch (event) {
+       case CanvasPointerDownEvent():
+-        _start = event.worldPoint;
+-        _current = event.worldPoint;
++        _startSnap = _resolveSnap(
++          controller,
++          event.worldPoint,
++          event.transform.scale,
++        );
++        _start = _startSnap?.position ?? event.worldPoint;
++        _currentSnap = _startSnap;
++        _current = _start;
++        controller.setSnapPreview(_currentSnap);
+         return ToolResultPreview(_buildPreview(controller));
+       case CanvasPointerMoveEvent():
+         if (_start == null) return const ToolResultNone();
+-        _current = event.worldPoint;
++        _currentSnap = _resolveSnap(
++          controller,
++          event.worldPoint,
++          event.transform.scale,
++        );
++        _current = _currentSnap?.position ?? event.worldPoint;
++        controller.setSnapPreview(_currentSnap);
+         return ToolResultPreview(_buildPreview(controller));
+       case CanvasPointerUpEvent():
+         final start = _start;
+-        final end = event.worldPoint;
++        final endSnap = _resolveSnap(
++          controller,
++          event.worldPoint,
++          event.transform.scale,
++        );
++        final end = endSnap?.position ?? event.worldPoint;
++        final startBinding = _startSnap?.binding;
++        final endBinding = endSnap?.binding;
+         cancel(controller);
+         if (start == null || (start - end).distance < 1) {
+           return const ToolResultNone();
+@@ -64,6 +90,8 @@
+             end: end,
+             control: control,
+             style: controller.brushSettings.strokeStyle,
++            startBinding: startBinding,
++            endBinding: endBinding,
+           ),
+           selectAfter: true,
+         );
+@@ -96,6 +124,20 @@
+       end: end,
+       control: control,
+       style: controller.brushSettings.strokeStyle.copyWith(opacity: 0.72),
++      startBinding: _startSnap?.binding,
++      endBinding: _currentSnap?.binding,
++    );
++  }
++
++  SnapResult? _resolveSnap(
++    CanvasController controller,
++    Offset worldPoint,
++    double scale,
++  ) {
++    return controller.snapResolver.resolve(
++      controller,
++      worldPoint,
++      scale: scale,
+     );
+   }
+ }
+
+tokens used
+90,807
+已完成 P002，仅修改 [curve_tool.dart](D:/project/GitHub/wenz_flutter/wenz_draw/lib/src/tools/curve_tool.dart:24)：
+
+- 按下、移动、抬起均按当前画布缩放解析吸附点。
+- 曲线预览和最终元素使用吸附后的端点坐标。
+- 保存起点、终点对应的 `SnapBinding`。
+- 实时同步 `SnapPreview`。
+- 完成、取消及无效短距离绘制时清空吸附状态和预览。
+- 未命中或关闭吸附时保持原始自由绘制行为。
+- 保留原有控制点计算、画笔样式及创建后选中行为。
+
+未修改 plan 文件，未执行测试、构建、lint 或 analyze。

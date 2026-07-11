@@ -16,6 +16,11 @@ abstract class CanvasTool {
 
   void onDeactivate(CanvasController controller) {}
 
+  /// Commits changes that the tool has already applied to the canvas but has
+  /// not yet recorded in history. Implementations must be safe to call more
+  /// than once for the same interaction.
+  void commitPendingChanges(CanvasController controller) {}
+
   void cancel(CanvasController controller) {}
 
   ToolResult handleEvent(CanvasEvent event, CanvasController controller);

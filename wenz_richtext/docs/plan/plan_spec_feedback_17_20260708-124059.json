@@ -1,0 +1,58 @@
+{
+  "title": "Fix adjacent inline formula edit targeting",
+  "summary": "Feedback #17 reports that after inserting two formulas on the same line, editing the second formula has no effect. In the current code, inline formulas are atomic one-character inline nodes. `_InlineFormulaView` carries a `DocumentPosition`, and `_confirmFormulaEditor` calls `WenzRichTextController.updateInlineFormula`, which resolves the target in `UpdateInlineFormulaCommand._updateInlineFormulaContent`. That resolver currently treats a formula node range as including its end boundary. When two formula embeds are adjacent, the first formula end offset equals the second formula start offset, so the second formula's start offset can be claimed by the first formula before the loop reaches the intended node. The implementation should clarify the inline formula range boundary semantics, keep paragraph and table-cell behavior aligned, and add regression coverage for consecutive formulas on one visual line.",
+  "tasks": [
+    {
+      "title": "Correct inline formula command target resolution at adjacent boundaries",
+      "scope": [
+        "lib/src/core/commands/inline_commands.dart"
+      ],
+      "acceptance": [
+        "Inline formula updates resolve the target by the formula node's one-character placeholder slot without allowing the previous formula end boundary to claim the next formula start.",
+        "When two formula embeds are adjacent in one paragraph, updating with the second formula start offset changes only the second formula data.",
+        "The same target resolution behavior applies to normal text blocks and table-cell text paths.",
+        "Whitespace-only update text remains a no-op and does not record history.",
+        "The existing formula data synchronization across text, latex, value, and formula fields remains unchanged.",
+        "Undo and redo behavior for formula updates remains unchanged."
+      ]
+    },
+    {
+      "title": "Stabilize editor click target and popup confirmation for inline formulas",
+      "scope": [
+        "lib/src/widgets/wenz_rich_text_editor.dart"
+      ],
+      "acceptance": [
+        "Tapping the second of two adjacent inline formulas opens the formula editor with the second formula's current content.",
+        "Confirming the popup updates only the tapped formula and leaves the neighboring formula rendered and stored unchanged.",
+        "Editing the first formula and then the second formula in sequence refreshes the popup target, anchor, and input value for the current tap.",
+        "Cancel, close, outside-tap dismissal, and read-only behavior for the formula popup remain unchanged.",
+        "Multiple formulas separated by normal text, block formula editing, and other inline embeds such as mention and emoji remain unaffected."
+      ]
+    },
+    {
+      "title": "Add regression coverage for adjacent inline formula editing",
+      "scope": [
+        "test/core/inline_commands_test.dart",
+        "test/core/table_commands_test.dart",
+        "test/widgets/wenz_rich_text_editor_test.dart"
+      ],
+      "acceptance": [
+        "Core command tests cover two adjacent formulas in one paragraph and assert that updating the second formula leaves the first formula unchanged.",
+        "Core command tests explicitly cover the boundary where the offset equals the previous formula end and the next formula start.",
+        "Table-related tests cover updating the second of two adjacent formulas inside a table cell.",
+        "Widget tests cover tapping the second of two consecutive inline formulas on the same line, seeing the second formula content in the popup, and confirming new rendered content.",
+        "Widget tests assert both formula render nodes keep non-zero size and the first formula remains visible and editable after the second formula is edited."
+      ]
+    }
+  ],
+  "finalValidation": {
+    "command": "flutter test test/core/inline_commands_test.dart test/core/table_commands_test.dart test/widgets/wenz_rich_text_editor_test.dart",
+    "criteria": [
+      "The command exits with code 0 and all related core and widget tests pass.",
+      "Two adjacent inline formulas on the same line can each open the formula editor independently.",
+      "Editing the second adjacent formula updates the second formula instead of the first formula.",
+      "Paragraph and table-cell adjacent formula boundary handling are consistent.",
+      "Existing formula insertion, formula data synchronization, whitespace no-op, popup dismissal, read-only mode, undo/redo, and multi-formula rendering behavior do not regress."
+    ]
+  }
+}

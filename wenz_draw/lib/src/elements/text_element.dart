@@ -58,7 +58,31 @@ class TextElement extends CanvasElement {
   @override
   String get type => elementType;
 
-  double? get layoutMaxWidth => boxSize?.width ?? maxWidth;
+  /// The width used to lay out and wrap the text.
+  ///
+  /// [boxSize] is the rendered boundary and can shrink to fit short content;
+  /// [maxWidth] remains the wrapping limit so subsequent input can grow until
+  /// it reaches the user-selected width.
+  double? get layoutMaxWidth => maxWidth ?? boxSize?.width;
+
+  /// The dimensions reported by the same [TextPainter] used for rendering.
+  Size get renderedSize => _laidOutSize;
+
+  /// Whether this element's persisted box is already content-sized.
+  ///
+  /// A manually resized text box intentionally remains fixed even if its
+  /// content changes. A small tolerance keeps this stable after JSON
+  /// round-trips and platform text-layout rounding.
+  bool get hasContentSizedBox {
+    final size = boxSize;
+    return size != null &&
+        (size.width - _laidOutSize.width).abs() <= 0.01 &&
+        (size.height - _laidOutSize.height).abs() <= 0.01;
+  }
+
+  /// Returns an element whose persisted boundary matches its rendered text.
+  /// The wrapping limit is deliberately preserved in [maxWidth].
+  TextElement fitToRenderedText() => copyWith(boxSize: renderedSize);
 
   /// The unrotated local rect of this text element.
   Rect get localBounds {

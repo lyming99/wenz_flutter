@@ -16,7 +16,6 @@ dependencies:
   highlight: ^0.7.0
   html: ^0.15.6
   http: ^1.0.0
-  merman: ^0.8.0-alpha.2
   path_provider: ^2.1.0
   super_clipboard: ^0.9.1
   super_drag_and_drop: ^0.9.1

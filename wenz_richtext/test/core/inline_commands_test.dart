@@ -502,4 +502,65 @@ void main() {
 
     controller.dispose();
   });
+
+  test('controller updates second adjacent inline formula at shared boundary', () {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[
+              TextRun(text: 'Pair '),
+              InlineEmbed(
+                embedType: 'formula',
+                data: <String, Object?>{'latex': 'a+b'},
+              ),
+              InlineEmbed(
+                embedType: 'formula',
+                data: <String, Object?>{'latex': 'c+d'},
+              ),
+              TextRun(text: ' done'),
+            ],
+          ),
+        ],
+      ),
+      selection: collapsedTextSelection('p1', 0, 0),
+    );
+
+    // 'Pair ' occupies 0..5, the first formula occupies [5, 6), and
+    // the second formula starts exactly at the first formula's end boundary.
+    controller.updateInlineFormula(
+      position: DocumentPosition.text(
+        blockId: 'p1',
+        blockIndex: 0,
+        offset: 6,
+      ),
+      text: 'z^2',
+    );
+
+    var block = controller.document.blocks.single as TextBlockNode;
+    var first = block.content[1] as InlineEmbed;
+    var second = block.content[2] as InlineEmbed;
+    expect(first.data['latex'], 'a+b');
+    expect(first.data['text'], isNull);
+    expect(second.data['text'], 'z^2');
+    expect(second.data['latex'], 'z^2');
+    expect(second.data['value'], 'z^2');
+    expect(second.data['formula'], 'z^2');
+
+    expect(controller.undo(), isTrue);
+    block = controller.document.blocks.single as TextBlockNode;
+    first = block.content[1] as InlineEmbed;
+    second = block.content[2] as InlineEmbed;
+    expect(first.data['latex'], 'a+b');
+    expect(second.data['latex'], 'c+d');
+
+    expect(controller.redo(), isTrue);
+    block = controller.document.blocks.single as TextBlockNode;
+    expect((block.content[1] as InlineEmbed).data['latex'], 'a+b');
+    expect((block.content[2] as InlineEmbed).data['latex'], 'z^2');
+
+    controller.dispose();
+  });
 }

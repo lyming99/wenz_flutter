@@ -1103,8 +1103,23 @@ String _normalizeMermaidCodeLanguage(String language) {
 }
 
 bool _isMermaidCodeLanguage(String language) {
-  final firstToken = _firstInfoStringToken(language);
-  return firstToken.toLowerCase() == _mermaidLanguage;
+  final firstToken = _normalizeInfoStringToken(_firstInfoStringToken(language));
+  return firstToken == _mermaidLanguage;
+}
+
+String _normalizeInfoStringToken(String token) {
+  var normalized = token.trim().toLowerCase();
+  if (normalized.isEmpty) {
+    return '';
+  }
+  normalized = normalized.replaceFirst(RegExp(r'^\{+'), '');
+  normalized = normalized.replaceFirst(RegExp(r'\}+$'), '');
+  normalized = normalized.replaceFirst(RegExp(r'^\.+'), '');
+  const languageClassPrefix = 'language-';
+  if (normalized.startsWith(languageClassPrefix)) {
+    normalized = normalized.substring(languageClassPrefix.length);
+  }
+  return normalized;
 }
 
 String _firstInfoStringToken(String infoString) {

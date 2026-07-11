@@ -1,0 +1,3015 @@
+OpenAI Codex v0.144.1
+--------
+workdir: D:\project\GitHub\wenz_flutter\wenz_draw
+model: gpt-5.6-sol
+provider: openai
+approval: never
+sandbox: danger-full-access
+reasoning effort: xhigh
+reasoning summaries: none
+session id: 019f4cdb-cc24-7111-8e11-6fba7206001b
+--------
+user
+你是需求整理与开发计划生成者。
+请根据以下需求，生成结构化 PlanSpec JSON。
+
+PlanSpec JSON 输出文件：D:\project\GitHub\wenz_flutter\wenz_draw\docs\plan\plan_spec_requirement_2_20260711-002820.json
+最终 Markdown plan 文件将由 AutoPlan 渲染为：D:\project\GitHub\wenz_flutter\wenz_draw\docs\plan\plan_requirement_2_20260711-002820.md
+你必须使用文件写入工具把完整 PlanSpec JSON 写入上面的 JSON 输出文件；不要只把 JSON 打印在回复里。
+只写 PlanSpec JSON 文件，不要写最终 Markdown plan 文件，不要改业务代码。
+
+PlanSpec 契约：
+- 输出必须是合法 JSON 对象，不要使用 Markdown 代码块。
+- title、summary、tasks、finalValidation 必填且非空。
+- tasks 是开发任务数组；每个任务只写 title、scope、acceptance，不要写 P001/P002 等任务编号，AutoPlan 会自动编号。
+- scope 必须是字符串数组，写预计修改的文件或模块；无法判断时使用 ["unknown"]。
+- acceptance 必须是字符串数组，只描述该任务应覆盖的场景，不要求在该任务内运行测试。
+- 不要把运行测试/回归/验收/构建拆成普通开发任务；最终验收写入 finalValidation。
+用户指定 skill 传递约束：
+- 如果需求/反馈正文明确指定某个 skill、`$SkillName`、工具/技能调用或类似执行要求，禁止把“使用某 skill/调用某工具”拆成独立任务项。
+- 必须把该 skill/工具要求写入真正需要执行的具体开发任务标题、验收要点或任务说明中，确保后续执行该任务时能识别并使用指定 skill。
+- 该约束只影响任务拆解语义，不得改变 PlanSpec 契约、Markdown 任务格式、scope、完整验收任务、只写指定输出文件等 AutoPlan 硬性要求。
+- finalValidation.command 必须是最终验收命令字符串；如果项目中无法明确判断，请根据技术栈推断合理命令。
+- finalValidation.criteria 必须列出最终验收范围和通过标准。
+
+最终 Markdown 渲染约束（最终 Markdown 由 AutoPlan 根据 PlanSpec 生成，你必须通过 PlanSpec 字段保证这些信息完整）：
+- AutoPlan 渲染出的最终 Markdown 必须包含精确二级标题 `## 任务拆解`。
+- 最终 Markdown 中所有开发任务必须是 `## 任务拆解` 章节下的顶层 checkbox 行，任务行必须独占一行。
+- 最终 Markdown 任务行必须由 AutoPlan 连续编号为 `- [ ] P001: ... <!-- scope: ... -->`、`- [ ] P002: ... <!-- scope: ... -->`，不能跳号或重复。
+- 最终 Markdown 不得用普通段落、代码块、表格、引用块或嵌套 checkbox 表达任务；任务 acceptance 由 AutoPlan 渲染为缩进普通 bullet。
+- 每个任务都必须提供 scope；无法判断时在 PlanSpec scope 写 ["unknown"]，由 AutoPlan 渲染为 scope 注释。
+- 最后一个任务必须是完整验收任务，scope 必须包含 validation；不要把运行测试/构建/验收拆成普通开发任务。
+- 最终 Markdown 必须包含 `## 进度区`，初始进度区不得预置任务状态表格；只保留执行过程追加 `- P001 AutoPlan 完成...；日志：docs/progress/logs/...` bullet 的位置。
+
+JSON Schema：
+{
+  "type": "object",
+  "required": [
+    "title",
+    "summary",
+    "tasks",
+    "finalValidation"
+  ],
+  "properties": {
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1
+    },
+    "tasks": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "title"
+        ],
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "scope": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "acceptance": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "finalValidation": {
+      "type": "object",
+      "required": [
+        "command",
+        "criteria"
+      ],
+      "properties": {
+        "command": {
+          "type": "string",
+          "minLength": 1
+        },
+        "criteria": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  }
+}
+
+必须基于需求/反馈正文和项目实际代码生成 PlanSpec；需求不明确时自行从代码推断影响范围，不要反问或请求补充信息。
+
+需求 #2 内容：
+文字输入框，设置字体，悬浮工具栏聚焦存在问题，没办法设置字体颜色、大小等
+
+AutoPlan 任务拆解格式硬性要求（必须遵守）
+- 必须包含二级标题 `## 任务拆解`，所有开发任务只能放在这个章节里。
+- 每个任务行必须独占一行，并严格使用 `- [ ] P001: 任务标题 <!-- scope: src/file.js,src/other.ts -->`。
+- 禁止把任务拆解写成普通段落、代码块、表格、引用块或嵌套 checkbox；验收要点可以缩进，但不能写成 checkbox 任务。
+- 缺少明确影响范围时写 `<!-- scope: unknown -->`；最后一个完整验收任务也使用连续编号，例如 `- [ ] P007: 完整验收 <!-- scope: validation -->`。
+- 任务编号按 P001、P002 递增；不要跳号、复用编号或把多个任务写在同一行。
+2026-07-10T16:28:25.894195Z ERROR codex_models_manager::manager: failed to refresh available models: timeout waiting for child process to exit
+codex
+我会先定位文字输入框、字体设置与悬浮工具栏的实现和现有测试，再据此生成 PlanSpec；只写指定 JSON 文件，不改业务代码或 Markdown。
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'rg --files -g "!build/**" -g "!.dart_tool/**" | Select-Object -First 400' in D:\project\GitHub\wenz_flutter\wenz_draw
+ succeeded in 494ms:
+ui\draw.html
+README.md
+LICENSE
+pubspec.yaml
+CHANGELOG.md
+analysis_options.yaml
+replay_pid28368.log
+TODO.md
+tool\drawio_stencil_extract.dart
+tool\drawio_stencil_manifest.dart
+lib\wenz_draw.dart
+lib\wenz_draw_ui.dart
+lib\wenz_draw_mindmap.dart
+style\index.html
+spec\advanced_orthogonal_connector_routing.md
+docs\development_plan.md
+docs\canvas_document.schema.json
+docs\drawio_migration_plan.md
+docs\drawio_shapes.md
+docs\sdk_packaging_plan.md
+spec\wenz_draw_infinite_canvas.md
+spec\phased_task_plan.md
+spec\drawio_shape_migration_plan.md
+spec\custom_widget_support.md
+tool\generated_stencils\cisco19_manifest.json
+tool\generated_stencils\README.md
+tool\generated_stencils\bpmn_stencils.dart
+tool\generated_stencils\networks2_manifest.json
+tool\generated_stencils\bpmn_manifest.json
+tool\generated_stencils\gcp2_manifest.json
+tool\generated_stencils\aws4_manifest.json
+tool\generated_stencils\alibaba_cloud_manifest.json
+docs\extension_api.md
+tool\generated_stencils\webicons_manifest.json
+tool\generated_stencils\weblogos_manifest.json
+lib\src\widgets\widget_element_registry.dart
+lib\src\widgets\widget_element_builder.dart
+lib\src\widgets\inspector_section_registry.dart
+lib\src\widgets\canvas_widget_layer.dart
+lib\src\widgets\canvas_image_resolver.dart
+lib\src\rendering\viewport_culling.dart
+lib\src\rendering\selection_renderer.dart
+lib\src\rendering\grid_renderer.dart
+lib\src\utils\uuid_generator.dart
+lib\src\utils\quad_tree.dart
+lib\src\utils\path_simplifier.dart
+lib\src\utils\orthogonal_router.dart
+lib\src\utils\math_utils.dart
+docs\plan\plan_spec_requirement_1_20260711-002515.json
+docs\plan\plan_spec_feedback_51_20260710-002141.json
+docs\plan\plan_spec_feedback_50_20260710-001811.json
+docs\plan\plan_spec_feedback_49_20260710-001100.json
+docs\plan\plan_requirement_1_20260711-002515.md
+docs\plan\plan_feedback_51_20260710-002141.md
+docs\plan\plan_feedback_50_20260710-001811.md
+docs\plan\plan_feedback_49_20260710-001100.md
+lib\src\drawio\drawio_style_parser.dart
+lib\src\drawio\drawio_style.dart
+lib\src\drawio\drawio_shape_adapter.dart
+lib\src\drawio\drawio_importer.dart
+lib\src\drawio\drawio_color.dart
+lib\src\mindmap\mindmap_tree.dart
+lib\src\mindmap\mindmap_theme.dart
+lib\src\mindmap\mindmap_textfield.dart
+lib\src\mindmap\mindmap_sync_controller.dart
+lib\src\mindmap\mindmap_node_widget.dart
+lib\src\mindmap\mindmap_node_metrics.dart
+lib\src\mindmap\mindmap_node_data.dart
+lib\src\mindmap\mindmap_node_builder.dart
+lib\src\mindmap\mindmap_node.dart
+lib\src\mindmap\mindmap_module.dart
+lib\src\mindmap\mindmap_link_opener.dart
+lib\src\mindmap\mindmap_layout_engine.dart
+lib\src\mindmap\mindmap_drag_session.dart
+lib\src\mindmap\mindmap_connection_painter_v2.dart
+lib\src\mindmap\mindmap_connection_layer.dart
+lib\src\mindmap\mindmap_actions.dart
+lib\src\canvas\spatial_index.dart
+lib\src\canvas\selection_manager.dart
+lib\src\canvas\paint_style.dart
+lib\src\canvas\image_loader.dart
+lib\src\canvas\element_manager.dart
+lib\src\canvas\canvas_state.dart
+lib\src\canvas\canvas_controller.dart
+lib\src\elements\canvas_element.dart
+lib\src\elements\arrow_element.dart
+lib\src\elements\curve_element.dart
+lib\src\elements\drawio_shape_definitions.dart
+docs\progress\logs\20260711-002820_gen-requirement-2.log
+docs\progress\logs\20260711-002652_execute-P001.log
+docs\progress\logs\20260711-002652_execute-P001.last.txt
+docs\progress\logs\20260711-002515_gen-requirement-1.log
+docs\progress\logs\20260711-002515_gen-requirement-1.last.txt
+docs\progress\logs\20260710-004704_execute-P003.log
+docs\progress\logs\20260710-004704_execute-P003.last.txt
+docs\progress\logs\20260710-004304_execute-P002.log
+docs\progress\logs\20260710-004304_execute-P002.last.txt
+docs\progress\logs\20260710-003944_execute-P004.log
+docs\progress\logs\20260710-003944_execute-P004.last.txt
+docs\progress\logs\20260710-003849_execute-P003.log
+docs\progress\logs\20260710-003849_execute-P003.last.txt
+docs\progress\logs\20260710-003408_execute-P002.log
+docs\progress\logs\20260710-003408_execute-P002.last.txt
+docs\progress\logs\20260710-003027_execute-P003.log
+docs\progress\logs\20260710-003027_execute-P003.last.txt
+docs\progress\logs\20260710-002412_execute-P002.log
+docs\progress\logs\20260710-002412_execute-P002.last.txt
+docs\progress\logs\20260710-002303_execute-P001.log
+docs\progress\logs\20260710-002303_execute-P001.last.txt
+docs\progress\logs\20260710-002141_gen-feedback-51.log
+docs\progress\logs\20260710-002141_gen-feedback-51.last.txt
+docs\progress\logs\20260710-002002_execute-P001.log
+docs\progress\logs\20260710-002002_execute-P001.last.txt
+docs\progress\logs\20260710-001811_gen-feedback-50.log
+docs\progress\logs\20260710-001811_gen-feedback-50.last.txt
+docs\progress\logs\20260710-001635_execute-P001.log
+docs\progress\logs\20260710-001635_execute-P001.last.txt
+docs\progress\logs\20260710-001100_gen-feedback-49.log
+docs\progress\logs\20260710-001100_gen-feedback-49.last.txt
+lib\src\ui\widgets\spectrum_icon.dart
+lib\src\ui\widgets\shape_tile.dart
+lib\src\ui\widgets\shape_preview_icon.dart
+test\canvas_controller_test.dart
+lib\src\ui\widgets\search_box.dart
+lib\src\ui\widgets\rgb_spectrum_picker.dart
+test\canvas_config_test.dart
+lib\src\ui\widgets\floating_pill.dart
+lib\src\ui\widgets\color_picker_painters.dart
+test\canvas_transform_test.dart
+lib\src\ui\widgets\color_picker_dialog.dart
+lib\src\elements\widget_element.dart
+lib\src\elements\unknown_element.dart
+lib\src\elements\text_element.dart
+lib\src\elements\shape_label_painter.dart
+lib\src\elements\shape_definition_registry.dart
+lib\src\elements\shape_definition.dart
+lib\src\elements\shape_connection_points.dart
+lib\src\elements\rect_element.dart
+lib\src\elements\polyline_element.dart
+lib\src\elements\path_element.dart
+lib\src\elements\line_label_painter.dart
+lib\src\elements\line_element.dart
+lib\src\elements\line_arrow_style.dart
+lib\src\elements\image_element.dart
+lib\src\elements\ellipse_element.dart
+lib\src\elements\element_renderer.dart
+lib\src\elements\element_registry.dart
+lib\src\elements\drawio_shape_element.dart
+lib\src\layers\canvas_layer.dart
+lib\src\layers\auto_layering.dart
+lib\src\layers\layer_manager.dart
+lib\src\ui\toolbar\tool_button.dart
+lib\src\ui\toolbar\toolbar_divider.dart
+lib\src\ui\toolbar\toolbar.dart
+lib\src\ui\toolbar\line_tool_icon.dart
+lib\src\snap\snap_resolver.dart
+lib\src\ui\theme\ui_colors.dart
+lib\src\ui\theme\editor_theme.dart
+lib\src\infinite_canvas\infinite_canvas_controller.dart
+lib\src\infinite_canvas\infinite_canvas_config.dart
+lib\src\infinite_canvas\canvas_transform.dart
+lib\src\infinite_canvas\canvas_event.dart
+lib\src\infinite_canvas\infinite_canvas_widget.dart
+lib\src\infinite_canvas\infinite_canvas_painter.dart
+lib\src\infinite_canvas\minimap_widget.dart
+lib\src\infinite_canvas\zoom_controls.dart
+lib\src\serialization\canvas_serializer.dart
+lib\src\serialization\canvas_document.dart
+lib\src\serialization\document_migrator.dart
+lib\src\serialization\document_format_exception.dart
+lib\src\serialization\document_store.dart
+lib\src\tools\alignment_tools.dart
+lib\src\tools\arrow_tool.dart
+lib\src\serialization\exporters\svg_exporter.dart
+lib\src\serialization\exporters\png_exporter.dart
+lib\src\stencils\stencil_command.dart
+lib\src\stencils\stencil_definition.dart
+lib\src\tools\line_tool.dart
+lib\src\tools\highlighter_tool.dart
+lib\src\tools\eraser_tool.dart
+lib\src\tools\ellipse_tool.dart
+lib\src\tools\curve_tool.dart
+lib\src\tools\canvas_tool.dart
+lib\src\tools\brush_settings.dart
+lib\src\tools\rect_tool.dart
+lib\src\tools\polyline_tool.dart
+lib\src\tools\polyline_arrow_tool.dart
+lib\src\tools\pen_tool.dart
+lib\src\tools\pan_tool.dart
+lib\src\tools\shape_tool.dart
+lib\src\tools\select_tool.dart
+lib\src\tools\text_tool.dart
+lib\src\tools\tool_manager.dart
+lib\src\ui\panels\left_shape_panel.dart
+lib\src\ui\panels\layer_row.dart
+lib\src\ui\panels\inspector_utils.dart
+lib\src\ui\panels\inspector_fields.dart
+lib\src\ui\panels\panel_section.dart
+lib\src\ui\panels\palette_subhead.dart
+lib\src\ui\panels\right_inspector_panel.dart
+test\line_arrow_style_test.dart
+test\line_arrow_mode_control_test.dart
+test\image_loader_test.dart
+test\drawio_style_parser_test.dart
+test\drawio_shape_element_test.dart
+test\drawio_importer_test.dart
+test\document_robustness_test.dart
+test\curve_element_test.dart
+test\clipboard_test.dart
+test\performance_widget_test.dart
+test\minimap_widget_test.dart
+test\mindmap_module_test.dart
+test\line_label_test.dart
+test\roundtrip_closure_test.dart
+test\polyline_element_test.dart
+test\serialization_test.dart
+lib\src\routing\connector_routing.dart
+lib\src\routing\elbow_router.dart
+lib\src\stencils\builtin_stencils.dart
+lib\src\ui\editor\canvas_stage.dart
+lib\src\history\canvas_command.dart
+lib\src\ui\editor\wenz_draw_editor.dart
+lib\src\ui\editor\editor_config.dart
+lib\src\ui\editor\editor_actions.dart
+test\snap_resolver_test.dart
+test\shape_label_test.dart
+test\stencil_parser_advanced_test.dart
+test\stencil_parser_test.dart
+lib\src\history\history_manager.dart
+test\widget_element_test.dart
+test\toolbar_test.dart~32100
+test\toolbar_test.dart
+test\text_element_test.dart
+test\svg_exporter_test.dart
+lib\src\routing\perimeter.dart
+lib\src\routing\orth_connector.dart
+lib\src\routing\segment_connector.dart
+lib\src\stencils\stencil_parser.dart
+lib\src\stencils\libraries\basic_stencils.dart
+lib\src\stencils\libraries\arrow_stencils.dart
+lib\src\stencils\libraries\bpmn_stencils.dart
+lib\src\stencils\libraries\stencil_library_registry.dart
+lib\src\stencils\libraries\flowchart_stencils.dart
+lib\src\stencils\stencil_renderer.dart
+test\routing\routing_test.dart
+lib\src\ui\panels\shape_palette_data.dart
+lib\src\ui\panels\shape_palette_group.dart
+lib\src\history\commands\update_layer_command.dart
+lib\src\history\commands\update_element_command.dart
+lib\src\history\commands\reorder_layer_command.dart
+lib\src\history\commands\remove_layer_command.dart
+lib\src\history\commands\remove_element_command.dart
+lib\src\history\commands\move_element_command.dart
+lib\src\history\commands\batch_command.dart
+lib\src\history\commands\add_layer_command.dart
+lib\src\history\commands\add_element_command.dart
+example\analysis_options.yaml
+example\windows\runner\win32_window.h
+example\windows\runner\win32_window.cpp
+example\windows\runner\utils.h
+example\windows\runner\utils.cpp
+example\windows\runner\Runner.rc
+example\windows\runner\runner.exe.manifest
+example\windows\runner\resources\app_icon.ico
+example\windows\runner\resource.h
+example\windows\runner\main.cpp
+example\windows\runner\flutter_window.h
+example\windows\runner\flutter_window.cpp
+example\windows\runner\CMakeLists.txt
+example\README.md
+example\DEVELOPMENT_PLAN.md
+example\pubspec.yaml
+example\windows\flutter\CMakeLists.txt
+example\windows\CMakeLists.txt
+example\windows\flutter\generated_plugin_registrant.cc
+example\windows\flutter\generated_plugins.cmake
+example\windows\flutter\generated_plugin_registrant.h
+example\test\widget_test.dart
+example\web\manifest.json
+example\web\index.html
+example\web\favicon.png
+example\web\icons\Icon-maskable-512.png
+example\web\icons\Icon-maskable-192.png
+example\web\icons\Icon-512.png
+example\web\icons\Icon-192.png
+example\lib\main.dart
+example\lib\utils\url_launcher_link_opener.dart
+example\lib\utils\image_importer.dart
+example\lib\builders\sticky_note_builder.dart
+example\lib\builders\counter_button_builder.dart
+example\lib\app.dart
+example\lib\pages\minimal_canvas_page.dart
+example\lib\pages\canvas_demo_page.dart
+
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'rg -n -i "font|text.*field|TextField|focus|floating|悬浮|颜色|字号|toolbar" lib test example/lib -g "*.dart"' in D:\project\GitHub\wenz_flutter\wenz_draw
+ succeeded in 465ms:
+lib\src\elements\text_element.dart:17:      fontSize: 24,
+lib\src\elements\text_element.dart:66:    final fallbackHeight = style.fontSize ?? 24;
+lib\src\elements\text_element.dart:82:    final fallbackHeight = style.fontSize ?? 24;
+lib\src\elements\text_element.dart:155:      style: style.copyWith(fontSize: (style.fontSize ?? 24) * factor.abs()),
+lib\src\elements\text_element.dart:191:        'fontSize': style.fontSize ?? 24,
+lib\src\elements\text_element.dart:192:        'fontWeight': _fontWeightToJson(style.fontWeight),
+lib\src\elements\text_element.dart:194:        if (style.fontFamily != null) 'fontFamily': style.fontFamily,
+lib\src\elements\text_element.dart:201:      final height = style.fontSize ?? 24;
+lib\src\elements\text_element.dart:213:  static int _fontWeightToJson(FontWeight? fontWeight) {
+lib\src\elements\text_element.dart:214:    return fontWeight?.value ?? FontWeight.normal.value;
+lib\src\elements\shape_label_painter.dart:8:    fontSize: 16,
+lib\src\elements\shape_label_painter.dart:76:      'fontSize': style.fontSize ?? 16,
+lib\src\elements\shape_label_painter.dart:77:      'fontWeight': style.fontWeight?.value ?? FontWeight.normal.value,
+lib\src\elements\shape_label_painter.dart:79:      if (style.fontFamily != null) 'fontFamily': style.fontFamily,
+lib\src\elements\shape_label_painter.dart:89:      fontSize: (json['fontSize'] as num?)?.toDouble() ?? 16,
+lib\src\elements\shape_label_painter.dart:90:      fontWeight: _fontWeight(json['fontWeight']),
+lib\src\elements\shape_label_painter.dart:92:      fontFamily: json['fontFamily'] as String?,
+lib\src\elements\shape_label_painter.dart:126:  static FontWeight _fontWeight(Object? value) {
+lib\src\elements\shape_label_painter.dart:127:    final weight = value is num ? value.toInt() : FontWeight.normal.value;
+lib\src\elements\shape_label_painter.dart:128:    return FontWeight.values.reduce((previous, current) {
+lib\src\elements\rect_element.dart:139:        fontSize: (labelStyle.fontSize ?? 16) * factor.abs(),
+lib\src\elements\polyline_element.dart:202:        fontSize: (labelStyle.fontSize ?? 14) * factor.abs(),
+lib\src\elements\line_label_painter.dart:10:    fontSize: 14,
+lib\src\elements\line_label_painter.dart:144:      'fontSize': style.fontSize ?? 14,
+lib\src\elements\line_label_painter.dart:145:      'fontWeight': style.fontWeight?.value ?? FontWeight.normal.value,
+lib\src\elements\line_label_painter.dart:147:      if (style.fontFamily != null) 'fontFamily': style.fontFamily,
+lib\src\elements\line_label_painter.dart:157:      fontSize: (json['fontSize'] as num?)?.toDouble() ?? 14,
+lib\src\elements\line_label_painter.dart:158:      fontWeight: _fontWeight(json['fontWeight']),
+lib\src\elements\line_label_painter.dart:160:      fontFamily: json['fontFamily'] as String?,
+lib\src\elements\line_label_painter.dart:178:  static FontWeight _fontWeight(Object? value) {
+lib\src\elements\line_label_painter.dart:179:    final weight = value is num ? value.toInt() : FontWeight.normal.value;
+lib\src\elements\line_label_painter.dart:180:    return FontWeight.values.reduce((previous, current) {
+lib\src\elements\line_element.dart:199:        fontSize: (labelStyle.fontSize ?? 14) * factor.abs(),
+lib\src\elements\ellipse_element.dart:149:        fontSize: (labelStyle.fontSize ?? 16) * factor.abs(),
+lib\src\elements\drawio_shape_element.dart:161:        fontSize: (labelStyle.fontSize ?? 16) * factor.abs(),
+lib\src\elements\arrow_element.dart:151:        fontSize: (labelStyle.fontSize ?? 14) * factor.abs(),
+lib\wenz_draw_ui.dart:4:/// its building blocks (toolbar, panels, color picker, canvas stage). Hosts
+lib\wenz_draw_ui.dart:31:// Toolbar
+lib\wenz_draw_ui.dart:32:export 'src/ui/toolbar/line_tool_icon.dart';
+lib\wenz_draw_ui.dart:33:export 'src/ui/toolbar/tool_button.dart';
+lib\wenz_draw_ui.dart:34:export 'src/ui/toolbar/toolbar.dart';
+lib\wenz_draw_ui.dart:35:export 'src/ui/toolbar/toolbar_divider.dart';
+lib\wenz_draw_ui.dart:47:// Widgets (color picker, search, shape tiles, floating pill, ...)
+lib\wenz_draw_ui.dart:50:export 'src/ui/widgets/floating_pill.dart';
+lib\src\widgets\widget_element_builder.dart:98:                  fontSize:
+lib\src\widgets\widget_element_builder.dart:102:                  fontWeight: FontWeight.w600,
+lib\src\widgets\canvas_widget_layer.dart:627:    final buildOwner = BuildOwner(focusManager: FocusManager());
+lib\src\widgets\canvas_widget_layer.dart:1134:              style: const TextStyle(color: Color(0xFF6B7280), fontSize: 12),
+lib\src\canvas\canvas_controller.dart:1142:    double? fontSize,
+lib\src\canvas\canvas_controller.dart:1143:    FontWeight? fontWeight,
+lib\src\canvas\canvas_controller.dart:1146:    Object? fontFamily = _unsetTextStyleValue,
+lib\src\canvas\canvas_controller.dart:1155:    final nextFontFamily = identical(fontFamily, _unsetTextStyleValue)
+lib\src\canvas\canvas_controller.dart:1156:        ? element.style.fontFamily
+lib\src\canvas\canvas_controller.dart:1157:        : fontFamily as String?;
+lib\src\canvas\canvas_controller.dart:1160:      fontSize: fontSize ?? element.style.fontSize,
+lib\src\canvas\canvas_controller.dart:1161:      fontWeight: fontWeight ?? element.style.fontWeight,
+lib\src\canvas\canvas_controller.dart:1163:      fontFamily: nextFontFamily,
+lib\src\canvas\canvas_controller.dart:1343:    double? fontSize,
+lib\src\canvas\canvas_controller.dart:1344:    FontWeight? fontWeight,
+lib\src\canvas\canvas_controller.dart:1347:    Object? fontFamily = _unsetTextStyleValue,
+lib\src\canvas\canvas_controller.dart:1368:    final nextFontFamily = identical(fontFamily, _unsetTextStyleValue)
+lib\src\canvas\canvas_controller.dart:1369:        ? style.fontFamily
+lib\src\canvas\canvas_controller.dart:1370:        : fontFamily as String?;
+lib\src\canvas\canvas_controller.dart:1373:      fontSize: fontSize ?? style.fontSize,
+lib\src\canvas\canvas_controller.dart:1374:      fontWeight: fontWeight ?? style.fontWeight,
+lib\src\canvas\canvas_controller.dart:1376:      fontFamily: nextFontFamily,
+lib\src\canvas\canvas_controller.dart:1500:    // Silent update: the TextField overlay already shows the text being
+lib\src\infinite_canvas\infinite_canvas_config.dart:47:  /// host wants to own keyboard input, e.g. inside a text field.
+lib\src\drawio\drawio_shape_adapter.dart:314:    final color = DrawioColor.parse(style['fontColor']) ?? Colors.black;
+lib\src\drawio\drawio_shape_adapter.dart:316:        style.doubleValue('fontSize') ??
+lib\src\drawio\drawio_shape_adapter.dart:317:        ShapeLabelPainter.defaultStyle.fontSize ??
+lib\src\drawio\drawio_shape_adapter.dart:319:    final fontStyle = style.intValue('fontStyle') ?? 0;
+lib\src\drawio\drawio_shape_adapter.dart:322:      fontSize: size,
+lib\src\drawio\drawio_shape_adapter.dart:324:      fontWeight: (fontStyle & 1) != 0 ? FontWeight.bold : FontWeight.normal,
+lib\src\drawio\drawio_shape_adapter.dart:325:      fontStyle: (fontStyle & 2) != 0 ? FontStyle.italic : FontStyle.normal,
+lib\src\drawio\drawio_shape_adapter.dart:326:      decoration: (fontStyle & 4) != 0 ? TextDecoration.underline : null,
+lib\src\drawio\drawio_shape_adapter.dart:327:      fontFamily: style['fontFamily'],
+lib\src\infinite_canvas\infinite_canvas_controller.dart:50:    final focus = focalPoint ?? _viewportCenter;
+lib\src\infinite_canvas\infinite_canvas_controller.dart:54:        focus,
+lib\src\infinite_canvas\infinite_canvas_controller.dart:62:    final focus = focalPoint ?? _viewportCenter;
+lib\src\infinite_canvas\infinite_canvas_controller.dart:66:        focus,
+example/lib\pages\minimal_canvas_page.dart:7:/// host can use `InfiniteCanvasWidget` directly — toolbar, panels and the
+example/lib\pages\canvas_demo_page.dart:79:          toolbarActions: const [
+example/lib\pages\canvas_demo_page.dart:80:            EditorToolbarAction(
+example/lib\pages\canvas_demo_page.dart:88:      // Floating entry to the minimal kernel-only demo.
+example/lib\pages\canvas_demo_page.dart:89:      floatingActionButton: widget.onShowMinimal == null
+example/lib\pages\canvas_demo_page.dart:91:          : FloatingActionButton.extended(
+example/lib\pages\canvas_demo_page.dart:121:            fontSize: 18,
+example/lib\pages\canvas_demo_page.dart:122:            fontWeight: FontWeight.w600,
+example/lib\pages\canvas_demo_page.dart:139:            fontSize: 17,
+example/lib\pages\canvas_demo_page.dart:140:            fontWeight: FontWeight.w600,
+example/lib\pages\canvas_demo_page.dart:156:            fontSize: 17,
+example/lib\pages\canvas_demo_page.dart:157:            fontWeight: FontWeight.w600,
+example/lib\pages\canvas_demo_page.dart:209:            fontSize: 24,
+example/lib\pages\canvas_demo_page.dart:210:            fontWeight: FontWeight.w700,
+lib\src\ui\widgets\color_picker_dialog.dart:68:      title: const Text('颜色选择器'),
+lib\src\ui\widgets\color_picker_dialog.dart:99:                  child: TextField(
+example/lib\builders\counter_button_builder.dart:55:                    fontSize: 28,
+example/lib\builders\counter_button_builder.dart:56:                    fontWeight: FontWeight.bold,
+example/lib\builders\counter_button_builder.dart:64:                    fontSize: 12,
+example/lib\builders\counter_button_builder.dart:92:              fontSize: 12,
+example/lib\builders\counter_button_builder.dart:93:              fontWeight: FontWeight.w800,
+example/lib\builders\counter_button_builder.dart:113:                fontSize: 18,
+example/lib\builders\counter_button_builder.dart:114:                fontWeight: FontWeight.w800,
+example/lib\builders\counter_button_builder.dart:122:              style: const TextStyle(fontSize: 9, color: Color(0xFFBFDBFE)),
+lib\src\drawio\drawio_style.dart:51:      'fontColor',
+lib\src\drawio\drawio_style.dart:52:      'fontSize',
+lib\src\drawio\drawio_style.dart:53:      'fontStyle',
+test\canvas_controller_test.dart:447:        labelStyle: TextStyle(fontSize: 16),
+test\canvas_controller_test.dart:480:    expect(element.labelStyle.fontSize, 32);
+test\drawio_style_parser_test.dart:36:          'shape=rhombus;fillColor=#fff2cc;strokeColor=#d6b656;strokeWidth=3;direction=north;fontColor=#1f2937;fontSize=18;fontStyle=1;align=right;spacing=12;foo=bar;',
+test\drawio_style_parser_test.dart:48:    expect(element.labelStyle.fontSize, 18);
+test\drawio_style_parser_test.dart:49:    expect(element.labelStyle.fontWeight, FontWeight.bold);
+test\drawio_style_parser_test.dart:92:          'shape=mxgraph.flowchart.manual-operation;direction=south;flipH=1;flipV=0;size=18;arcSize=12;absoluteArcSize=1;boundedLbl=1;backgroundOutline=0;verticalLabelPosition=bottom;verticalAlign=top;labelPosition=left;fontFamily=Courier New;fontStyle=7;customKeep=yes;',
+test\drawio_style_parser_test.dart:108:    expect(element.labelStyle.fontFamily, 'Courier New');
+test\drawio_style_parser_test.dart:109:    expect(element.labelStyle.fontWeight, FontWeight.bold);
+test\drawio_style_parser_test.dart:110:    expect(element.labelStyle.fontStyle, FontStyle.italic);
+test\drawio_shape_element_test.dart:17:      labelStyle: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+test\drawio_shape_element_test.dart:33:    expect(restored.labelStyle.fontSize, 18);
+test\drawio_shape_element_test.dart:44:    expect(scaled.labelStyle.fontSize, 36);
+test\drawio_importer_test.dart:17:                'shape=rhombus;fillColor=#fff2cc;strokeColor=#d6b656;strokeWidth=2;fontColor=#1f2937;',
+lib\src\mindmap\mindmap_actions.dart:42:  final Map<String, VoidCallback> _nodeFocusRequesters =
+lib\src\mindmap\mindmap_actions.dart:69:      _requestNodeFocusAfterFrame(nodeId);
+lib\src\mindmap\mindmap_actions.dart:73:  void registerNodeFocusRequester(String nodeId, VoidCallback requestFocus) {
+lib\src\mindmap\mindmap_actions.dart:74:    _nodeFocusRequesters[nodeId] = requestFocus;
+lib\src\mindmap\mindmap_actions.dart:77:  void unregisterNodeFocusRequester(String nodeId, VoidCallback requestFocus) {
+lib\src\mindmap\mindmap_actions.dart:78:    if (identical(_nodeFocusRequesters[nodeId], requestFocus)) {
+lib\src\mindmap\mindmap_actions.dart:79:      _nodeFocusRequesters.remove(nodeId);
+lib\src\mindmap\mindmap_actions.dart:83:  void _requestNodeFocusAfterFrame(String nodeId) {
+lib\src\mindmap\mindmap_actions.dart:85:      _nodeFocusRequesters[nodeId]?.call();
+lib\src\mindmap\mindmap_actions.dart:107:    actions?._nodeFocusRequesters.clear();
+lib\src\mindmap\mindmap_actions.dart:313:    Object? fontColor = _styleUnset,
+lib\src\mindmap\mindmap_actions.dart:319:    final fontProvided = !identical(fontColor, _styleUnset);
+lib\src\mindmap\mindmap_actions.dart:321:    final nextFont = fontProvided ? fontColor as int? : data.fontColor;
+lib\src\mindmap\mindmap_actions.dart:323:    final defaultFont = data.isRoot ? _rootTextColor : _childTextColor;
+lib\src\mindmap\mindmap_actions.dart:328:        textColor: fontProvided ? nextFont ?? defaultFont : data.textColor,
+lib\src\mindmap\mindmap_actions.dart:335:        fontColor: identical(fontColor, _styleUnset)
+lib\src\mindmap\mindmap_actions.dart:336:            ? data.fontColor
+lib\src\mindmap\mindmap_actions.dart:337:            : fontColor,
+lib\src\mindmap\mindmap_actions.dart:1705:      fontColor: null,
+lib\src\mindmap\mindmap_actions.dart:1730:      fontColor: roleChanged ? null : data.fontColor,
+lib\src\mindmap\mindmap_actions.dart:1748:      fontColor: roleChanged ? null : data.fontColor,
+lib\src\mindmap\mindmap_actions.dart:1766:        a.fontColor == b.fontColor &&
+lib\src\mindmap\mindmap_actions.dart:1949:/// Used by the "add mind map" toolbar action. Rects are placeholders — the
+lib\src\serialization\exporters\svg_exporter.dart:235:    final size = style.fontSize ?? LineLabelPainter.defaultStyle.fontSize ?? 14;
+lib\src\serialization\exporters\svg_exporter.dart:236:    final weight = style.fontWeight?.value ?? FontWeight.normal.value;
+lib\src\serialization\exporters\svg_exporter.dart:251:    return '$backgroundSvg<text x="${center.dx}" y="${center.dy - totalHeight / 2 + size}" fill="${_color(color)}" font-size="$size" font-weight="$weight" opacity="${e.opacity}" text-anchor="middle">$escapedLines</text>';
+lib\src\serialization\exporters\svg_exporter.dart:274:        style.fontSize ?? ShapeLabelPainter.defaultStyle.fontSize ?? 16;
+lib\src\serialization\exporters\svg_exporter.dart:275:    final weight = style.fontWeight?.value ?? FontWeight.normal.value;
+lib\src\serialization\exporters\svg_exporter.dart:307:      '<text x="$x" y="$firstBaseline" fill="${_color(color)}" font-size="$size" font-weight="$weight" opacity="$opacity" text-anchor="$anchor">',
+lib\src\serialization\exporters\svg_exporter.dart:316:    final size = e.style.fontSize ?? 24;
+lib\src\serialization\exporters\svg_exporter.dart:317:    final weight = e.style.fontWeight?.value ?? FontWeight.normal.value;
+lib\src\serialization\exporters\svg_exporter.dart:331:      '<text x="$x" y="${e.position.dy + size}" fill="${_color(color)}" font-size="$size" font-weight="$weight" opacity="${e.opacity}" text-anchor="$anchor">',
+lib\src\serialization\exporters\svg_exporter.dart:344:        '<text x="${e.worldRect.center.dx}" y="${e.worldRect.center.dy}" fill="#6b7280" font-size="14" text-anchor="middle" dominant-baseline="central">${_escape(e.widgetType)}</text>';
+lib\src\serialization\exporters\png_exporter.dart:75:          fontSize: 14,
+lib\src\serialization\exporters\png_exporter.dart:76:          fontWeight: FontWeight.w500,
+lib\src\serialization\document_store.dart:8:/// toolbar's save/load actions route to the right place.
+lib\src\serialization\canvas_serializer.dart:520:                fontSize: (styleJson['fontSize'] as num?)?.toDouble() ?? 24,
+lib\src\serialization\canvas_serializer.dart:521:                fontWeight: _fontWeight(styleJson['fontWeight']),
+lib\src\serialization\canvas_serializer.dart:523:                fontFamily: styleJson['fontFamily'] as String?,
+lib\src\serialization\canvas_serializer.dart:525:            : const TextStyle(color: Colors.black, fontSize: 24, height: 1.2);
+lib\src\serialization\canvas_serializer.dart:731:  static FontWeight _fontWeight(Object? value) {
+lib\src\serialization\canvas_serializer.dart:732:    final weight = value is num ? value.toInt() : FontWeight.normal.value;
+lib\src\serialization\canvas_serializer.dart:733:    return FontWeight.values.reduce((previous, current) {
+lib\src\tools\text_tool.dart:23:  IconData get icon => Icons.text_fields;
+lib\src\tools\text_tool.dart:39:          fontSize: controller.brushSettings.strokeWidth * 8,
+example/lib\builders\sticky_note_builder.dart:47:            fontSize: 14,
+example/lib\builders\sticky_note_builder.dart:72:              fontSize: 10,
+example/lib\builders\sticky_note_builder.dart:73:              fontWeight: FontWeight.w700,
+example/lib\builders\sticky_note_builder.dart:94:                fontSize: 11,
+example/lib\builders\sticky_note_builder.dart:118:        content: TextField(
+lib\src\infinite_canvas\infinite_canvas_widget.dart:55:  late final FocusNode _focusNode;
+lib\src\infinite_canvas\infinite_canvas_widget.dart:80:    _focusNode = FocusNode(debugLabel: 'InfiniteCanvasWidget');
+lib\src\infinite_canvas\infinite_canvas_widget.dart:88:    _focusNode.dispose();
+lib\src\infinite_canvas\infinite_canvas_widget.dart:111:            focusNode: _focusNode,
+lib\src\infinite_canvas\infinite_canvas_widget.dart:112:            autofocus: true,
+lib\src\infinite_canvas\infinite_canvas_widget.dart:160:    // If we are currently editing text, do not steal focus from the
+lib\src\infinite_canvas\infinite_canvas_widget.dart:161:    // TextField overlay — that would prematurely commit the edit.
+lib\src\infinite_canvas\infinite_canvas_widget.dart:167:      _focusNode.requestFocus();
+lib\src\infinite_canvas\infinite_canvas_widget.dart:258:    final toolbarRect = Rect.fromLTWH(
+lib\src\infinite_canvas\infinite_canvas_widget.dart:265:    if (toolbarRect.contains(worldPoint) ||
+lib\src\infinite_canvas\infinite_canvas_widget.dart:303:    final toolbarRect = Rect.fromLTWH(
+lib\src\infinite_canvas\infinite_canvas_widget.dart:310:    if (toolbarRect.contains(worldPoint) ||
+lib\src\infinite_canvas\infinite_canvas_widget.dart:926:  late final FocusNode _focusNode;
+lib\src\infinite_canvas\infinite_canvas_widget.dart:933:    _focusNode = FocusNode(debugLabel: 'TextEditingOverlay');
+lib\src\infinite_canvas\infinite_canvas_widget.dart:934:    _focusNode.addListener(_onFocusChange);
+lib\src\infinite_canvas\infinite_canvas_widget.dart:939:    _focusNode.removeListener(_onFocusChange);
+lib\src\infinite_canvas\infinite_canvas_widget.dart:941:    _focusNode.dispose();
+lib\src\infinite_canvas\infinite_canvas_widget.dart:945:  void _onFocusChange() {
+lib\src\infinite_canvas\infinite_canvas_widget.dart:946:    // When the TextField loses focus, commit the current text.
+lib\src\infinite_canvas\infinite_canvas_widget.dart:948:    if (!_focusNode.hasFocus) {
+lib\src\infinite_canvas\infinite_canvas_widget.dart:983:          _focusNode.requestFocus();
+lib\src\infinite_canvas\infinite_canvas_widget.dart:993:    const toolbarWidth = 320.0;
+lib\src\infinite_canvas\infinite_canvas_widget.dart:994:    final toolbarLeft = (textRect.width - toolbarWidth) / 2;
+lib\src\infinite_canvas\infinite_canvas_widget.dart:996:      textRect.left + toolbarLeft,
+lib\src\infinite_canvas\infinite_canvas_widget.dart:998:      toolbarWidth,
+lib\src\infinite_canvas\infinite_canvas_widget.dart:1001:    final fontSize = target.fontSize * transform.scale;
+lib\src\infinite_canvas\infinite_canvas_widget.dart:1005:    final textLeft = -toolbarLeft;
+lib\src\infinite_canvas\infinite_canvas_widget.dart:1021:            width: toolbarWidth,
+lib\src\infinite_canvas\infinite_canvas_widget.dart:1023:            child: _TextEditToolbar(
+lib\src\infinite_canvas\infinite_canvas_widget.dart:1026:              onInteraction: () => _focusNode.requestFocus(),
+lib\src\infinite_canvas\infinite_canvas_widget.dart:1036:              child: TextField(
+lib\src\infinite_canvas\infinite_canvas_widget.dart:1038:                focusNode: _focusNode,
+lib\src\infinite_canvas\infinite_canvas_widget.dart:1039:                autofocus: true,
+lib\src\infinite_canvas\infinite_canvas_widget.dart:1046:                  fontSize: fontSize,
+lib\src\infinite_canvas\infinite_canvas_widget.dart:1100:  double get fontSize;
+lib\src\infinite_canvas\infinite_canvas_widget.dart:1105:    double? fontSize,
+lib\src\infinite_canvas\infinite_canvas_widget.dart:1106:    FontWeight? fontWeight,
+lib\src\infinite_canvas\infinite_canvas_widget.dart:1109:    Object? fontFamily,
+lib\src\infinite_canvas\infinite_canvas_widget.dart:1130:  double get fontSize => element.style.fontSize ?? 24;
+lib\src\infinite_canvas\infinite_canvas_widget.dart:1142:    double? fontSize,
+lib\src\infinite_canvas\infinite_canvas_widget.dart:1143:    FontWeight? fontWeight,
+lib\src\infinite_canvas\infinite_canvas_widget.dart:1146:    Object? fontFamily,
+lib\src\infinite_canvas\infinite_canvas_widget.dart:1151:      fontSize: fontSize,
+lib\src\infinite_canvas\infinite_canvas_widget.dart:1152:      fontWeight: fontWeight,
+lib\src\infinite_canvas\infinite_canvas_widget.dart:1155:      fontFamily: fontFamily ?? CanvasController.unsetTextStyleValue,
+lib\src\infinite_canvas\infinite_canvas_widget.dart:1277:  double get fontSize => style.fontSize ?? 14;
+lib\src\infinite_canvas\infinite_canvas_widget.dart:1290:    double? fontSize,
+lib\src\infinite_canvas\infinite_canvas_widget.dart:1291:    FontWeight? fontWeight,
+lib\src\infinite_canvas\infinite_canvas_widget.dart:1294:    Object? fontFamily,
+lib\src\infinite_canvas\infinite_canvas_widget.dart:1299:      fontSize: fontSize,
+lib\src\infinite_canvas\infinite_canvas_widget.dart:1300:      fontWeight: fontWeight,
+lib\src\infinite_canvas\infinite_canvas_widget.dart:1303:      fontFamily: fontFamily ?? CanvasController.unsetTextStyleValue,
+lib\src\infinite_canvas\infinite_canvas_widget.dart:1309:class _TextEditToolbar extends StatelessWidget {
+lib\src\infinite_canvas\infinite_canvas_widget.dart:1310:  const _TextEditToolbar({
+lib\src\infinite_canvas\infinite_canvas_widget.dart:1351:  static const _fontSizes = <double>[14, 18, 24, 32, 48];
+lib\src\infinite_canvas\infinite_canvas_widget.dart:1387:                value: _nearestFontSize(element.style.fontSize ?? 24),
+lib\src\infinite_canvas\infinite_canvas_widget.dart:1390:                  for (final size in _fontSizes)
+lib\src\infinite_canvas\infinite_canvas_widget.dart:1398:                    _update(fontSize: value);
+lib\src\infinite_canvas\infinite_canvas_widget.dart:1404:                value: _fontFamilyValue(element.style.fontFamily),
+lib\src\infinite_canvas\infinite_canvas_widget.dart:1412:                  fontFamily: switch (value) {
+lib\src\infinite_canvas\infinite_canvas_widget.dart:1426:  String _fontFamilyValue(String? fontFamily) {
+lib\src\infinite_canvas\infinite_canvas_widget.dart:1427:    return switch (fontFamily) {
+lib\src\infinite_canvas\infinite_canvas_widget.dart:1449:  double _nearestFontSize(double size) {
+lib\src\infinite_canvas\infinite_canvas_widget.dart:1450:    return _fontSizes.reduce((previous, current) {
+lib\src\infinite_canvas\infinite_canvas_widget.dart:1457:  void _update({Color? color, double? fontSize, String? fontFamily}) {
+lib\src\infinite_canvas\infinite_canvas_widget.dart:1460:      fontSize: fontSize,
+lib\src\infinite_canvas\infinite_canvas_widget.dart:1461:      fontFamily: fontFamily,
+lib\src\infinite_canvas\infinite_canvas_widget.dart:1560:                  child: TextField(
+lib\src\ui\widgets\floating_pill.dart:16:        return FloatingPill(
+lib\src\ui\widgets\floating_pill.dart:31:                    fontSize: 12,
+lib\src\ui\widgets\floating_pill.dart:32:                    fontWeight: FontWeight.w800,
+lib\src\ui\widgets\floating_pill.dart:63:class FloatingPill extends StatelessWidget {
+lib\src\ui\widgets\floating_pill.dart:64:  const FloatingPill({required this.child});
+lib\src\ui\widgets\search_box.dart:14:      child: TextField(
+lib\src\ui\widgets\search_box.dart:16:        style: const TextStyle(fontSize: 14, color: UiColors.text),
+lib\src\ui\widgets\search_box.dart:38:          focusedBorder: OutlineInputBorder(
+lib\src\ui\widgets\shape_tile.dart:46:                fontSize: 12,
+lib\src\ui\widgets\shape_tile.dart:47:                fontWeight: FontWeight.w700,
+lib\src\ui\editor\canvas_stage.dart:7:import '../widgets/floating_pill.dart';
+lib\src\ui\editor\canvas_stage.dart:67:                  return FloatingPill(
+lib\src\ui\editor\canvas_stage.dart:74:                        fontSize: 12,
+lib\src\ui\editor\canvas_stage.dart:75:                        fontWeight: FontWeight.w700,
+lib\src\ui\toolbar\toolbar.dart:13:import 'toolbar_divider.dart';
+lib\src\ui\toolbar\toolbar.dart:15:class Toolbar extends StatelessWidget {
+lib\src\ui\toolbar\toolbar.dart:16:  const Toolbar({
+lib\src\ui\toolbar\toolbar.dart:47:  /// Host-contributed actions rendered in the toolbar's trailing cluster.
+lib\src\ui\toolbar\toolbar.dart:48:  final List<EditorToolbarAction> actions;
+lib\src\ui\toolbar\toolbar.dart:77:                  const ToolbarDivider(),
+lib\src\ui\toolbar\toolbar.dart:91:                  const ToolbarDivider(),
+lib\src\ui\toolbar\toolbar.dart:125:                  const ToolbarDivider(),
+lib\src\ui\toolbar\toolbar.dart:137:                    icon: Icons.text_fields,
+lib\src\ui\toolbar\toolbar.dart:149:                    label: '颜色选择器',
+lib\src\ui\toolbar\toolbar.dart:154:                  const ToolbarDivider(),
+lib\src\ui\toolbar\toolbar.dart:169:                  const ToolbarDivider(),
+lib\src\ui\toolbar\toolbar.dart:182:                  if (actions.isNotEmpty) const ToolbarDivider(),
+lib\src\ui\theme\editor_theme.dart:3:/// Color tokens consumed by the editor UI shell (toolbar, panels, inspectors).
+lib\src\ui\panels\inspector_fields.dart:93:                  fontSize: 11,
+lib\src\ui\panels\inspector_fields.dart:94:                  fontWeight: FontWeight.w700,
+lib\src\ui\panels\inspector_fields.dart:162:              style: const TextStyle(fontSize: 14, color: UiColors.text),
+lib\src\ui\panels\inspector_fields.dart:306:  late final FocusNode _focusNode;
+lib\src\ui\panels\inspector_fields.dart:314:    _focusNode = FocusNode(debugLabel: 'TextReadout');
+lib\src\ui\panels\inspector_fields.dart:315:    _focusNode.addListener(_onFocusChange);
+lib\src\ui\panels\inspector_fields.dart:318:  void _onFocusChange() {
+lib\src\ui\panels\inspector_fields.dart:319:    if (!_focusNode.hasFocus) {
+lib\src\ui\panels\inspector_fields.dart:330:    if (_focusNode.hasFocus && nextId == _editingElementId) {
+lib\src\ui\panels\inspector_fields.dart:344:    _focusNode.removeListener(_onFocusChange);
+lib\src\ui\panels\inspector_fields.dart:345:    _focusNode.dispose();
+lib\src\ui\panels\inspector_fields.dart:357:        TextField(
+lib\src\ui\panels\inspector_fields.dart:359:          focusNode: _focusNode,
+lib\src\ui\panels\inspector_fields.dart:363:          style: const TextStyle(fontSize: 14, color: UiColors.text),
+lib\src\ui\panels\inspector_fields.dart:381:            focusedBorder: OutlineInputBorder(
+lib\src\ui\panels\inspector_fields.dart:388:            _focusNode.requestFocus();
+lib\src\ui\panels\inspector_fields.dart:491:              fontSize: 12,
+lib\src\ui\panels\inspector_fields.dart:492:              fontWeight: FontWeight.w800,
+lib\src\ui\panels\inspector_fields.dart:501:class FontWeightDropdown extends StatelessWidget {
+lib\src\ui\panels\inspector_fields.dart:502:  const FontWeightDropdown({required this.selected, required this.onChanged});
+lib\src\ui\panels\inspector_fields.dart:505:  final ValueChanged<FontWeight> onChanged;
+lib\src\ui\panels\inspector_fields.dart:508:    (FontWeight.w100, '细'),
+lib\src\ui\panels\inspector_fields.dart:509:    (FontWeight.w300, '轻'),
+lib\src\ui\panels\inspector_fields.dart:510:    (FontWeight.w400, '常规'),
+lib\src\ui\panels\inspector_fields.dart:511:    (FontWeight.w500, '中等'),
+lib\src\ui\panels\inspector_fields.dart:512:    (FontWeight.w600, '半粗'),
+lib\src\ui\panels\inspector_fields.dart:513:    (FontWeight.w700, '粗体'),
+lib\src\ui\panels\inspector_fields.dart:514:    (FontWeight.w900, '特粗'),
+lib\src\ui\panels\inspector_fields.dart:517:  FontWeight get _currentWeight {
+lib\src\ui\panels\inspector_fields.dart:528:    return style?.fontWeight ?? FontWeight.w600;
+lib\src\ui\panels\inspector_fields.dart:546:          style: const TextStyle(fontSize: 14, color: UiColors.text),
+lib\src\ui\panels\inspector_fields.dart:618:                style: const TextStyle(fontSize: 12, color: UiColors.text),
+lib\src\ui\panels\inspector_fields.dart:639:        fontSize: 12,
+lib\src\ui\panels\inspector_fields.dart:640:        fontWeight: FontWeight.w700,
+lib\src\mindmap\mindmap_connection_layer.dart:15:import 'mindmap_textfield.dart';
+lib\src\mindmap\mindmap_connection_layer.dart:658:  static const _baseFontSize = 11.0;
+lib\src\mindmap\mindmap_connection_layer.dart:709:                        fontSize: _baseFontSize * scale,
+lib\src\mindmap\mindmap_connection_layer.dart:710:                        fontWeight: FontWeight.w700,
+lib\src\mindmap\mindmap_connection_layer.dart:791:  late final FocusNode _focusNode;
+lib\src\mindmap\mindmap_connection_layer.dart:798:    _focusNode = FocusNode(debugLabel: 'MindmapEditor:${widget.nodeId}');
+lib\src\mindmap\mindmap_connection_layer.dart:801:      if (mounted) _focusNode.requestFocus();
+lib\src\mindmap\mindmap_connection_layer.dart:813:        if (mounted) _focusNode.requestFocus();
+lib\src\mindmap\mindmap_connection_layer.dart:821:    _focusNode.dispose();
+lib\src\mindmap\mindmap_connection_layer.dart:852:  KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
+lib\src\mindmap\mindmap_connection_layer.dart:902:            final baseFontSize =
+lib\src\mindmap\mindmap_connection_layer.dart:903:                widget.style.textStyle.fontSize ?? (isRoot ? 16 : 14);
+lib\src\mindmap\mindmap_connection_layer.dart:904:            final fontSize = baseFontSize * layoutScale;
+lib\src\mindmap\mindmap_connection_layer.dart:905:            final cursorHeight = fontSize * 1.15;
+lib\src\mindmap\mindmap_connection_layer.dart:906:            final lineHeight = cursorHeight / fontSize;
+lib\src\mindmap\mindmap_connection_layer.dart:908:              fontSize: fontSize,
+lib\src\mindmap\mindmap_connection_layer.dart:934:                        child: Focus(
+lib\src\mindmap\mindmap_connection_layer.dart:936:                          child: MindMapTextField(
+lib\src\mindmap\mindmap_connection_layer.dart:938:                            focusNode: _focusNode,
+test\line_label_test.dart:14:        fontSize: 16,
+test\line_label_test.dart:15:        fontWeight: FontWeight.w700,
+test\line_label_test.dart:35:    expect(restored.labelStyle.fontSize, 16);
+test\line_label_test.dart:36:    expect(restored.labelStyle.fontWeight, FontWeight.w700);
+test\line_label_test.dart:52:    expect(scaled.labelStyle.fontSize, 32);
+test\line_label_test.dart:132:    expect(restored.labelStyle.fontSize, 14);
+lib\src\ui\editor\editor_actions.dart:16:          child: TextField(
+lib\src\ui\editor\editor_actions.dart:47:          child: TextField(
+lib\src\ui\editor\editor_actions.dart:126:      swatches: toolbarColorSwatches,
+lib\src\ui\editor\editor_actions.dart:151:      swatches: toolbarColorSwatches,
+lib\src\ui\editor\editor_actions.dart:171:      swatches: toolbarColorSwatches,
+lib\src\ui\panels\inspector_utils.dart:91:double? fontSizeOf(CanvasElement? element) {
+lib\src\ui\panels\inspector_utils.dart:93:    return element.style.fontSize;
+lib\src\ui\panels\inspector_utils.dart:96:    return element.labelStyle.fontSize;
+lib\src\ui\panels\inspector_utils.dart:99:    return element.labelStyle.fontSize;
+lib\src\ui\panels\inspector_utils.dart:117:const toolbarColorSwatches = <Color>[
+lib\src\ui\toolbar\toolbar_divider.dart:5:class ToolbarDivider extends StatelessWidget {
+lib\src\ui\toolbar\toolbar_divider.dart:6:  const ToolbarDivider();
+lib\src\ui\panels\layer_row.dart:67:                      fontSize: 12,
+lib\src\ui\panels\layer_row.dart:68:                      fontWeight: FontWeight.w700,
+lib\src\infinite_canvas\zoom_controls.dart:34:            icon: const Icon(Icons.center_focus_strong),
+lib\src\ui\editor\editor_config.dart:9:/// A toolbar action contributed by the host. Wired into the default editor
+lib\src\ui\editor\editor_config.dart:10:/// toolbar's trailing cluster when provided via [EditorConfig.toolbarActions].
+lib\src\ui\editor\editor_config.dart:11:class EditorToolbarAction {
+lib\src\ui\editor\editor_config.dart:12:  const EditorToolbarAction({
+lib\src\ui\editor\editor_config.dart:25:/// corresponding toolbar/panel entry is hidden.
+lib\src\ui\editor\editor_config.dart:71:    this.toolbarActions = const [],
+lib\src\ui\editor\editor_config.dart:75:    this.toolbarBuilder,
+lib\src\ui\editor\editor_config.dart:83:  final List<EditorToolbarAction> toolbarActions;
+lib\src\ui\editor\editor_config.dart:107:  )? toolbarBuilder;
+lib\src\ui\panels\left_shape_panel.dart:124:                      icon: Icons.text_fields,
+lib\src\ui\panels\left_shape_panel.dart:175:                      style: TextStyle(color: UiColors.muted, fontSize: 13),
+lib\src\ui\editor\wenz_draw_editor.dart:7:import '../toolbar/toolbar.dart';
+lib\src\ui\editor\wenz_draw_editor.dart:11:/// A ready-to-use infinite-canvas editor: toolbar on top, shape palette on the
+lib\src\ui\editor\wenz_draw_editor.dart:15:/// instead compose the individual pieces ([Toolbar], [LeftShapePanel],
+lib\src\ui\editor\wenz_draw_editor.dart:56:  Widget _buildToolbar(BuildContext context) {
+lib\src\ui\editor\wenz_draw_editor.dart:57:    final builder = config.toolbarBuilder;
+lib\src\ui\editor\wenz_draw_editor.dart:61:    return Toolbar(
+lib\src\ui\editor\wenz_draw_editor.dart:71:      actions: config.toolbarActions,
+lib\src\ui\editor\wenz_draw_editor.dart:150:        editor._buildToolbar(context),
+lib\src\ui\panels\palette_subhead.dart:36:                fontSize: 11,
+lib\src\ui\panels\palette_subhead.dart:37:                fontWeight: FontWeight.w800,
+test\performance_widget_test.dart:42:        style: const TextStyle(fontSize: 8, color: Color(0xFF374151)),
+lib\src\ui\panels\panel_section.dart:35:                  fontSize: 12,
+lib\src\ui\panels\panel_section.dart:36:                  fontWeight: FontWeight.w800,
+lib\src\ui\panels\panel_section.dart:48:                      fontSize: 12,
+lib\src\ui\panels\panel_section.dart:49:                      fontWeight: FontWeight.w700,
+test\serialization_test.dart:31:        labelStyle: TextStyle(fontSize: 18, color: Color(0xFFAABBCC)),
+test\serialization_test.dart:51:      expect(restored.labelStyle.fontSize, 18);
+test\serialization_test.dart:123:          fontSize: 32,
+test\serialization_test.dart:124:          fontWeight: FontWeight.bold,
+test\serialization_test.dart:143:      expect(restored.style.fontSize, 32);
+test\serialization_test.dart:144:      expect(restored.style.fontWeight, FontWeight.bold);
+test\serialization_test.dart:204:          fontSize: 16,
+test\serialization_test.dart:206:          fontWeight: FontWeight.w700,
+test\serialization_test.dart:236:      expect(restored.labelStyle.fontSize, 16);
+test\serialization_test.dart:238:      expect(restored.labelStyle.fontWeight, FontWeight.w700);
+lib\src\ui\panels\right_inspector_panel.dart:168:                    const FieldLabel('常用颜色'),
+lib\src\ui\panels\right_inspector_panel.dart:217:                      label: '字号',
+lib\src\ui\panels\right_inspector_panel.dart:218:                      value: fontSizeOf(selected) ?? 14,
+lib\src\ui\panels\right_inspector_panel.dart:226:                                  fontSize: value,
+lib\src\ui\panels\right_inspector_panel.dart:231:                                  fontSize: value,
+lib\src\ui\panels\right_inspector_panel.dart:240:                        const FieldLabel('颜色'),
+lib\src\ui\panels\right_inspector_panel.dart:257:                    const FieldLabel('常用颜色'),
+lib\src\ui\panels\right_inspector_panel.dart:294:                    FontWeightDropdown(
+lib\src\ui\panels\right_inspector_panel.dart:301:                              fontWeight: weight,
+lib\src\ui\panels\right_inspector_panel.dart:306:                              fontWeight: weight,
+lib\src\ui\panels\right_inspector_panel.dart:489:          overridden: data.fontColor != null,
+lib\src\ui\panels\right_inspector_panel.dart:494:              actions?.setNodeStyle(nodeId, fontColor: color.toARGB32());
+lib\src\ui\panels\right_inspector_panel.dart:497:          onReset: () => actions?.setNodeStyle(nodeId, fontColor: null),
+lib\src\ui\panels\right_inspector_panel.dart:553:                    style: TextStyle(fontSize: 13, color: UiColors.text),
+lib\src\ui\panels\right_inspector_panel.dart:613:                style: const TextStyle(fontSize: 12, color: UiColors.muted),
+lib\src\ui\panels\right_inspector_panel.dart:644:          content: TextField(
+lib\src\ui\panels\right_inspector_panel.dart:646:            autofocus: true,
+lib\src\ui\panels\right_inspector_panel.dart:777:      swatches: toolbarColorSwatches,
+lib\src\ui\panels\right_inspector_panel.dart:820:              style: const TextStyle(fontSize: 14, color: UiColors.text),
+lib\src\mindmap\mindmap_node.dart:40:    this.fontColor,
+lib\src\mindmap\mindmap_node.dart:71:  /// Optional per-node font override (ARGB32).
+lib\src\mindmap\mindmap_node.dart:72:  int? fontColor;
+lib\src\mindmap\mindmap_node.dart:91:      fontColor: fontColor,
+lib\src\mindmap\mindmap_node.dart:108:      if (fontColor != null) 'fontColor': fontColor,
+lib\src\mindmap\mindmap_node.dart:125:      fontColor: _parseOptionalIntColor(json['fontColor']),
+lib\src\mindmap\mindmap_node_builder.dart:78:  late FocusNode _nodeFocusNode;
+lib\src\mindmap\mindmap_node_builder.dart:92:    _nodeFocusNode = FocusNode(debugLabel: 'MindmapNode:${widget.element.id}');
+lib\src\mindmap\mindmap_node_builder.dart:96:    _listenedActions?.registerNodeFocusRequester(
+lib\src\mindmap\mindmap_node_builder.dart:98:      _requestNodeFocus,
+lib\src\mindmap\mindmap_node_builder.dart:108:      _listenedActions?.unregisterNodeFocusRequester(
+lib\src\mindmap\mindmap_node_builder.dart:110:        _requestNodeFocus,
+lib\src\mindmap\mindmap_node_builder.dart:112:      _listenedActions?.registerNodeFocusRequester(
+lib\src\mindmap\mindmap_node_builder.dart:114:        _requestNodeFocus,
+lib\src\mindmap\mindmap_node_builder.dart:128:    _listenedActions?.unregisterNodeFocusRequester(
+lib\src\mindmap\mindmap_node_builder.dart:130:      _requestNodeFocus,
+lib\src\mindmap\mindmap_node_builder.dart:132:    _nodeFocusNode.dispose();
+lib\src\mindmap\mindmap_node_builder.dart:136:  void _requestNodeFocus() {
+lib\src\mindmap\mindmap_node_builder.dart:138:      _nodeFocusNode.requestFocus();
+lib\src\mindmap\mindmap_node_builder.dart:207:    _nodeFocusNode.requestFocus();
+lib\src\mindmap\mindmap_node_builder.dart:216:  KeyEventResult _onNodeKeyEvent(FocusNode node, KeyEvent event) {
+lib\src\mindmap\mindmap_node_builder.dart:342:          content: TextField(
+lib\src\mindmap\mindmap_node_builder.dart:344:            autofocus: true,
+lib\src\mindmap\mindmap_node_builder.dart:472:                  selectedColor: widget.data.fontColor,
+lib\src\mindmap\mindmap_node_builder.dart:476:                    )?.setNodeStyle(widget.element.id, fontColor: null);
+lib\src\mindmap\mindmap_node_builder.dart:482:                    )?.setNodeStyle(widget.element.id, fontColor: color);
+lib\src\mindmap\mindmap_node_builder.dart:539:      child: Focus(
+lib\src\mindmap\mindmap_node_builder.dart:540:        focusNode: _nodeFocusNode,
+lib\src\mindmap\mindmap_node_builder.dart:623:    // Force the SAME strut height used by the editing TextField so the text
+lib\src\mindmap\mindmap_node_builder.dart:627:      fontSize: style.fontSize,
+lib\src\mindmap\mindmap_node_builder.dart:629:      fontWeight: style.fontWeight,
+lib\src\mindmap\mindmap_node_builder.dart:767:        Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
+lib\src\mindmap\mindmap_node_data.dart:41:    this.fontColor,
+lib\src\mindmap\mindmap_node_data.dart:88:  /// Optional per-node font override (ARGB32 int).
+lib\src\mindmap\mindmap_node_data.dart:89:  final int? fontColor;
+lib\src\mindmap\mindmap_node_data.dart:133:      fontColor: _parseOptionalIntColor(data['fontColor']),
+lib\src\mindmap\mindmap_node_data.dart:157:      if (fontColor != null) 'fontColor': fontColor,
+lib\src\mindmap\mindmap_node_data.dart:179:    Object? fontColor = _unset,
+lib\src\mindmap\mindmap_node_data.dart:205:      fontColor: identical(fontColor, _unset)
+lib\src\mindmap\mindmap_node_data.dart:206:          ? this.fontColor
+lib\src\mindmap\mindmap_node_data.dart:207:          : fontColor as int?,
+test\text_element_test.dart:14:        style: const TextStyle(fontSize: 16, height: 1.2),
+test\text_element_test.dart:31:      style: const TextStyle(fontSize: 20, height: 1.4),
+test\text_element_test.dart:38:    expect(scaled.style.fontSize, 40);
+test\text_element_test.dart:53:          fontSize: 18,
+test\text_element_test.dart:54:          fontWeight: FontWeight.w700,
+test\text_element_test.dart:66:      expect(restored.style.fontSize, 18);
+test\text_element_test.dart:67:      expect(restored.style.fontWeight, FontWeight.w700);
+test\text_element_test.dart:76:                'style': {'color': Colors.black.toARGB32(), 'fontSize': 24},
+test\text_element_test.dart:134:        style: const TextStyle(fontSize: 18, height: 1.2),
+test\text_element_test.dart:194:        style: const TextStyle(fontSize: 16, height: 1.2),
+test\text_element_test.dart:259:  test('controller updates text style fields', () {
+test\text_element_test.dart:269:      fontSize: 32,
+test\text_element_test.dart:270:      fontWeight: FontWeight.bold,
+test\text_element_test.dart:280:    expect(element.style.fontSize, 32);
+test\text_element_test.dart:281:    expect(element.style.fontWeight, FontWeight.bold);
+test\text_element_test.dart:288:      fontFamily: 'Consolas',
+test\text_element_test.dart:292:      (controller.elementById('text-1') as TextElement).style.fontFamily,
+test\text_element_test.dart:297:      fontFamily: null,
+test\text_element_test.dart:301:      (controller.elementById('text-1') as TextElement).style.fontFamily,
+test\toolbar_test.dart:3:import 'package:wenz_draw/src/ui/toolbar/toolbar.dart';
+test\toolbar_test.dart:7:  group('Toolbar component insert menu', () {
+test\toolbar_test.dart:11:      await _pumpToolbar(tester);
+test\toolbar_test.dart:48:      final harness = await _pumpToolbar(tester);
+test\toolbar_test.dart:69:Future<_ToolbarHarness> _pumpToolbar(WidgetTester tester) async {
+test\toolbar_test.dart:70:  final harness = _ToolbarHarness();
+test\toolbar_test.dart:78:          child: Toolbar(
+test\toolbar_test.dart:94:class _ToolbarHarness {
+test\toolbar_test.dart:95:  _ToolbarHarness() {
+lib\src\mindmap\mindmap_node_metrics.dart:26:          fontSize: isRoot ? 16 : 14,
+lib\src\mindmap\mindmap_node_metrics.dart:27:          fontWeight: isRoot ? FontWeight.w700 : FontWeight.w500,
+lib\src\mindmap\mindmap_node_widget.dart:6:import 'mindmap_textfield.dart';
+lib\src\mindmap\mindmap_node_widget.dart:55:  late FocusNode _editFocusNode;
+lib\src\mindmap\mindmap_node_widget.dart:66:    _editFocusNode = FocusNode();
+lib\src\mindmap\mindmap_node_widget.dart:79:        _editFocusNode.requestFocus();
+lib\src\mindmap\mindmap_node_widget.dart:87:    _editFocusNode.dispose();
+lib\src\mindmap\mindmap_node_widget.dart:138:        const PopupMenuItem(value: 'color', child: Text('修改颜色')),
+lib\src\mindmap\mindmap_node_widget.dart:171:          title: const Text('选择颜色'),
+lib\src\mindmap\mindmap_node_widget.dart:235:                      // Same forced strut height as the editing TextField so
+lib\src\mindmap\mindmap_node_widget.dart:239:                        fontSize: widget.style.textStyle.fontSize,
+lib\src\mindmap\mindmap_node_widget.dart:241:                        fontWeight: widget.style.textStyle.fontWeight,
+lib\src\mindmap\mindmap_node_widget.dart:271:        final fontSize = style.textStyle.fontSize ?? (widget.isRoot ? 16 : 14);
+lib\src\mindmap\mindmap_node_widget.dart:272:        final cursorHeight = fontSize * 1.15;
+lib\src\mindmap\mindmap_node_widget.dart:273:        final lineHeight = cursorHeight / fontSize;
+lib\src\mindmap\mindmap_node_widget.dart:275:          fontSize: fontSize,
+lib\src\mindmap\mindmap_node_widget.dart:311:                    child: Focus(
+lib\src\mindmap\mindmap_node_widget.dart:329:                        child: MindMapTextField(
+lib\src\mindmap\mindmap_node_widget.dart:331:                          focusNode: _editFocusNode,
+lib\src\mindmap\mindmap_textfield.dart:10:class MindMapTextField extends StatefulWidget {
+lib\src\mindmap\mindmap_textfield.dart:11:  const MindMapTextField({
+lib\src\mindmap\mindmap_textfield.dart:14:    this.focusNode,
+lib\src\mindmap\mindmap_textfield.dart:24:    this.autofocus = false,
+lib\src\mindmap\mindmap_textfield.dart:34:  final FocusNode? focusNode;
+lib\src\mindmap\mindmap_textfield.dart:44:  final bool autofocus;
+lib\src\mindmap\mindmap_textfield.dart:53:  State<MindMapTextField> createState() => _MindMapTextFieldState();
+lib\src\mindmap\mindmap_textfield.dart:56:class _MindMapTextFieldState extends State<MindMapTextField>
+lib\src\mindmap\mindmap_textfield.dart:104:    final focusNode = widget.focusNode;
+lib\src\mindmap\mindmap_textfield.dart:114:    final autofocus = widget.autofocus;
+lib\src\mindmap\mindmap_textfield.dart:123:    final editingFocusNode = focusNode;
+lib\src\mindmap\mindmap_textfield.dart:124:    if (editingController == null || editingFocusNode == null) {
+lib\src\mindmap\mindmap_textfield.dart:215:                              focusNode: editingFocusNode,
+lib\src\mindmap\mindmap_textfield.dart:230:                              autofocus: autofocus,
+lib\src\mindmap\mindmap_theme.dart:31:    this.fontColor,
+lib\src\mindmap\mindmap_theme.dart:56:      fontColor: data.fontColor,
+lib\src\mindmap\mindmap_theme.dart:82:      fontColor: node.fontColor,
+lib\src\mindmap\mindmap_theme.dart:99:  final int? fontColor;
+lib\src\mindmap\mindmap_theme.dart:118:  /// editing [TextField] must use exactly this value (with
+lib\src\mindmap\mindmap_theme.dart:224:    final font = context.fontColor ?? _legacyFontOverride(context);
+lib\src\mindmap\mindmap_theme.dart:228:      textStyle: font == null
+lib\src\mindmap\mindmap_theme.dart:230:          : base.textStyle.copyWith(color: Color(font)),
+lib\src\mindmap\mindmap_theme.dart:242:  int? _legacyFontOverride(MindmapThemeNodeContext context) {
+lib\src\mindmap\mindmap_theme.dart:503:        fontSize: isRoot ? 16 : 14,
+lib\src\mindmap\mindmap_theme.dart:504:        fontWeight: isRoot ? FontWeight.w700 : FontWeight.w500,
+
+codex
+已定位到独立文本编辑覆盖层：问题集中在 `InfiniteCanvasWidget` 内的 `_TextEditingOverlay` / `_TextEditToolbar`，并与 `CanvasController.updateTextStyle`、文本元素测试相关。接下来核对交互细节和现有计划规范，确定合理任务边界。
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "Get-Content -Raw docs\\plan\\plan_spec_requirement_1_20260711-002515.json; git status --short" in D:\project\GitHub\wenz_flutter\wenz_draw
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command '$p='"'lib\\src\\infinite_canvas\\infinite_canvas_widget.dart'; "'$c=Get-Content $p; $c[900..1160]' in D:\project\GitHub\wenz_flutter\wenz_draw
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "rg -n \"TextEditingOverlay|TextEditToolbar|editingTarget|updateTextStyle|文本|字体\" test lib\\src\\infinite_canvas\\infinite_canvas_widget.dart" in D:\project\GitHub\wenz_flutter\wenz_draw
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command '$p='"'lib\\src\\canvas\\canvas_controller.dart'; "'$c=Get-Content $p; $c[1120..1190]; $c[1470..1525]' in D:\project\GitHub\wenz_flutter\wenz_draw
+ succeeded in 239ms:
+lib\src\infinite_canvas\infinite_canvas_widget.dart:138:                        _TextEditingOverlay(
+lib\src\infinite_canvas\infinite_canvas_widget.dart:915:class _TextEditingOverlay extends StatefulWidget {
+lib\src\infinite_canvas\infinite_canvas_widget.dart:916:  const _TextEditingOverlay({super.key, required this.controller});
+lib\src\infinite_canvas\infinite_canvas_widget.dart:921:  State<_TextEditingOverlay> createState() => _TextEditingOverlayState();
+lib\src\infinite_canvas\infinite_canvas_widget.dart:924:class _TextEditingOverlayState extends State<_TextEditingOverlay> {
+lib\src\infinite_canvas\infinite_canvas_widget.dart:933:    _focusNode = FocusNode(debugLabel: 'TextEditingOverlay');
+lib\src\infinite_canvas\infinite_canvas_widget.dart:1023:            child: _TextEditToolbar(
+lib\src\infinite_canvas\infinite_canvas_widget.dart:1309:class _TextEditToolbar extends StatelessWidget {
+lib\src\infinite_canvas\infinite_canvas_widget.dart:1310:  const _TextEditToolbar({
+
+ succeeded in 304ms:
+{
+  "title": "涓烘洸绾胯ˉ榻愭姌绾垮悓绛夌殑绔偣鍚搁檮鑳藉姏",
+  "summary": "缁樺浘鐧芥澘涓殑 PolylineTool銆丳olylineElement 鍜?SelectTool 宸插舰鎴愮鐐瑰惛闄勩€佺粦瀹氭寔涔呭寲銆佹嫋鍔ㄩ噸缁戝強鐩爣绉诲姩鑱斿姩鐨勫畬鏁撮摼璺紝鑰?CurveTool 褰撳墠鐩存帴浣跨敤鎸囬拡鍧愭爣锛孋urveElement 涔熸病鏈変繚瀛?SnapBinding锛屽鑷存洸绾垮垱寤哄拰缂栬緫鏃惰櫧鍙懡涓鐐逛氦浜掞紝鍗存棤娉曞儚鎶樼嚎涓€鏍风ǔ瀹氬惛闄勫埌鍥惧舰杩炴帴鐐广€傞渶瑕佷负鏇茬嚎琛ラ綈璧风偣涓庣粓鐐圭殑鍚搁檮棰勮銆佺粦瀹氭暟鎹€佸簭鍒楀寲銆佺紪杈戣В缁?閲嶇粦鍜岃杩炴帴鍥惧舰绉诲姩鍚庣殑鍚屾鑳藉姏锛屽悓鏃朵繚鎸佺幇鏈夎礉濉炲皵鎺у埗鐐广€佺澶存牱寮忓強鏃ф枃妗ｅ吋瀹规€с€?,
+  "tasks": [
+    {
+      "title": "鎵╁睍鏇茬嚎鍏冪礌鐨勭鐐圭粦瀹氭ā鍨嬩笌鏂囨。鎸佷箙鍖?,
+      "scope": [
+        "lib/src/elements/curve_element.dart",
+        "lib/src/serialization/canvas_serializer.dart"
+      ],
+      "acceptance": [
+        "CurveElement 鍙垎鍒繚瀛樺彲绌虹殑 startBinding 鍜?endBinding锛屽苟鍦ㄦ瀯閫犮€乧opyWith銆佸钩绉汇€佺缉鏀剧瓑鐜版湁鍏冪礌鍙樻崲杩囩▼涓纭繚鐣欑粦瀹氫俊鎭€?,
+        "鏇茬嚎 JSON 浠呭湪缁戝畾瀛樺湪鏃跺啓鍏ュ搴斿瓧娈碉紝鍙嶅簭鍒楀寲鍚庡彲杩樺師 elementId 涓?anchorId銆?,
+        "涓嶅惈缁戝畾瀛楁鐨勬棦鏈夋洸绾挎枃妗ｄ粛鑳芥寜鏈粦瀹氭洸绾胯浇鍏ワ紝鐜版湁鎺у埗鐐广€佺敾绗旀牱寮忋€佺澶存牱寮忋€佸浘灞傚拰鍒嗙粍瀛楁淇濇寔鍏煎銆?
+      ]
+    },
+    {
+      "title": "鍦ㄦ洸绾跨粯鍒舵祦绋嬩腑鎺ュ叆璧风粓鐐瑰惛闄勪笌棰勮",
+      "scope": [
+        "lib/src/tools/curve_tool.dart"
+      ],
+      "acceptance": [
+        "鎸変笅銆佺Щ鍔ㄥ拰鎶捣鎸囬拡鏃跺潎浣跨敤褰撳墠鐢诲竷缂╂斁姣斾緥瑙ｆ瀽闄勮繎杩炴帴鐐癸紝鏇茬嚎璧风偣涓庣粓鐐硅惤鍦ㄥ惛闄勪綅缃苟淇濆瓨鍚勮嚜缁戝畾銆?,
+        "缁樺埗棰勮浣跨敤宸插惛闄勭殑绔偣鍧愭爣骞跺悓姝ユ樉绀?SnapPreview锛屽畬鎴愩€佸彇娑堟垨鏃犳晥鐭窛绂荤粯鍒跺悗娓呴櫎涓存椂鍚搁檮鐘舵€佸拰棰勮銆?,
+        "鍏抽棴鍚搁檮鎴栬秴鍑哄睆骞曢槇鍊兼椂鏇茬嚎缁х画浣跨敤鍘熷涓栫晫鍧愭爣锛岃涓轰笌鐜版湁鑷敱缁樺埗涓€鑷淬€?,
+        "鍚搁檮鍙敼鍙樻洸绾跨鐐规潵婧愶紝鐜版湁浜屾璐濆灏旀帶鍒剁偣璁＄畻銆佺敾绗旀牱寮忓拰鍒涘缓鍚庨€変腑琛屼负淇濇寔涓嶅彉銆?
+      ]
+    },
+    {
+      "title": "琛ラ綈鏇茬嚎绔偣缂栬緫銆佽В缁戦噸缁戜笌鐩爣绉诲姩鑱斿姩",
+      "scope": [
+        "lib/src/tools/select_tool.dart",
+        "lib/src/canvas/canvas_controller.dart"
+      ],
+      "acceptance": [
+        "閫変腑鏇茬嚎鍚庢嫋鍔ㄤ换涓€绔偣鍙樉绀哄惛闄勯瑙堬紝骞跺皢璇ョ鐐规洿鏂板埌鍛戒腑鐨勮繛鎺ョ偣鍙婁繚瀛樺搴旂粦瀹氾紝鍙︿竴绔偣缁戝畾涓嶅彈褰卞搷銆?,
+        "鎶婂凡缁戝畾绔偣鎷栫鎵€鏈夎繛鎺ョ偣鏃朵娇鐢ㄨ嚜鐢卞潗鏍囧苟娓呴櫎璇ョ缁戝畾锛岀鐐圭紪杈戜粛浣滀负鍗曟鍙挙閿€鎿嶄綔鎻愪氦銆?,
+        "琚粦瀹氱殑鍥惧舰杩炴帴鐐瑰洜绉诲姩鎴栨洿鏂拌€屾敼鍙樹綅缃椂锛屾洸绾垮搴旂鐐硅嚜鍔ㄨ窡闅忥紝鏈彈褰卞搷鐨勭鐐广€佹帶鍒剁偣鍜屾洸绾挎牱寮忎繚鎸佷笉鍙樸€?,
+        "绔偣鎷栧姩瀹屾垚鎴栦氦浜掑彇娑堝悗娓呴櫎 SnapPreview锛屾洸绾挎帶鍒剁偣缂栬緫鍜屾姌绾裤€佺洿绾裤€佺澶寸殑鏃㈡湁绔偣缂栬緫琛屼负涓嶅洖閫€銆?
+      ]
+    },
+    {
+      "title": "琛ュ厖鏇茬嚎绔偣鍚搁檮涓庣粦瀹氱敓鍛藉懆鏈熺殑鑷姩鍖栬鐩?,
+      "scope": [
+        "test/curve_element_test.dart",
+        "test/snap_resolver_test.dart",
+        "test/serialization_test.dart"
+      ],
+      "acceptance": [
+        "瑕嗙洊鏇茬嚎宸ュ叿鍦ㄨ捣鐐瑰拰缁堢偣闄勮繎缁樺埗鏃剁殑鍧愭爣鍚搁檮銆佺粦瀹氳褰曘€侀瑙堟竻鐞嗭紝浠ュ強绂佺敤鍚搁檮鎴栬秴鍑洪槇鍊兼椂淇濇寔鑷敱鍧愭爣鐨勫満鏅€?,
+        "瑕嗙洊閫変腑鏇茬嚎鎷栧姩璧风偣鎴栫粓鐐硅繘琛屽惛闄勩€佹敼缁戝拰鎷栫瑙ｇ粦锛屽苟楠岃瘉鎾ら攢鍙仮澶嶇紪杈戝墠鐘舵€併€?,
+        "瑕嗙洊缁戝畾鐩爣绉诲姩鍚庢洸绾跨鐐硅窡闅忥紝涓斿彟涓€绔偣銆佹帶鍒剁偣銆佺澶村強鏍峰紡鏁版嵁淇濇寔绋冲畾鐨勫満鏅€?,
+        "瑕嗙洊鏇茬嚎缁戝畾 JSON 寰€杩旇繕鍘熷拰缂哄皯缁戝畾瀛楁鐨勬棫鏁版嵁鍏煎鍦烘櫙銆?
+      ]
+    }
+  ],
+  "finalValidation": {
+    "command": "flutter analyze && flutter test",
+    "criteria": [
+      "Flutter 闈欐€佸垎鏋愭棤鏂板閿欒鎴栬鍛婏紝瀹屾暣娴嬭瘯濂椾欢鍏ㄩ儴閫氳繃銆?,
+      "鏇茬嚎鏂板缓鏃剁殑璧风偣鍜岀粓鐐瑰潎鍙寜褰撳墠缂╂斁涓庡惛闄勯槇鍊煎惛闄勫埌鍙敤鍥惧舰杩炴帴鐐癸紝骞舵彁渚涗笌鎶樼嚎涓€鑷寸殑棰勮娓呯悊浣撻獙銆?,
+      "鏇茬嚎绔偣鍙湪閫夋嫨宸ュ叿涓嚜鐢辨嫋鍔ㄣ€佸惛闄勩€佹敼缁戝拰瑙ｇ粦锛屾搷浣滃彲鎾ら攢锛屼笖涓嶅奖鍝嶆帶鍒剁偣缂栬緫鍙婂叾浠栬繛鎺ョ嚎绫诲瀷銆?,
+      "鏇茬嚎缁戝畾鍦ㄤ繚瀛樺苟閲嶆柊杞藉叆鍚庝繚鎸佹湁鏁堬紱琚繛鎺ュ浘褰㈢Щ鍔ㄦ椂缁戝畾绔偣姝ｇ‘璺熼殢锛屾棫鐗堟棤缁戝畾鏇茬嚎鏂囨。浠嶅彲姝ｅ父杞藉叆銆?,
+      "鍏抽棴鍚搁檮銆佽秴鍑哄惛闄勯槇鍊笺€佸彇娑堜氦浜掑拰鏃犳晥鐭窛绂荤粯鍒剁瓑杈圭晫鍦烘櫙鍧囦笉浼氭畫鐣?SnapPreview銆侀敊璇粦瀹氭垨澶氫綑鏇茬嚎鍏冪礌銆?
+    ]
+  }
+}
+
+ M lib/src/canvas/canvas_controller.dart
+ M lib/src/elements/curve_element.dart
+ M lib/src/elements/line_element.dart
+ M lib/src/elements/polyline_element.dart
+ M lib/src/serialization/canvas_serializer.dart
+ M lib/src/serialization/exporters/svg_exporter.dart
+ M lib/src/tools/polyline_tool.dart
+ M lib/src/ui/panels/inspector_fields.dart
+ M lib/src/ui/panels/inspector_utils.dart
+ M lib/src/ui/panels/right_inspector_panel.dart
+ M lib/src/ui/toolbar/toolbar.dart
+ M lib/wenz_draw.dart
+ M lib/wenz_draw_ui.dart
+ M test/canvas_controller_test.dart
+ M test/polyline_element_test.dart
+ M test/serialization_test.dart
+ M test/svg_exporter_test.dart
+ M ../wenz_richtext/docs/acceptance_manual_checklist.md
+ M ../wenz_richtext/docs/api_reference.md
+ M ../wenz_richtext/docs/design/media_block_display_spec.md
+ M ../wenz_richtext/docs/input_system.md
+ M ../wenz_richtext/docs/integration_guide.md
+ M ../wenz_richtext/docs/rendering.md
+ M ../wenz_richtext/example/integration_test/editor_mouse_test.dart
+ M ../wenz_richtext/example/integration_test/helpers/pointer_helpers.dart
+ M ../wenz_richtext/example/integration_test/helpers/test_app.dart
+ M ../wenz_richtext/example/lib/example_video_player.dart
+ M ../wenz_richtext/example/lib/main.dart
+ M ../wenz_richtext/example/pubspec.lock
+ M ../wenz_richtext/example/test/widget_test.dart
+ M ../wenz_richtext/lib/src/codecs/html_codec.dart
+ M ../wenz_richtext/lib/src/codecs/markdown_codec.dart
+ M ../wenz_richtext/lib/src/controller/toolbar_controller.dart
+ M ../wenz_richtext/lib/src/controller/wenz_rich_text_controller.dart
+ M ../wenz_richtext/lib/src/core/commands/block_commands.dart
+ M ../wenz_richtext/lib/src/core/commands/inline_commands.dart
+ M ../wenz_richtext/lib/src/core/commands/inline_editing.dart
+ M ../wenz_richtext/lib/src/core/commands/style_commands.dart
+ M ../wenz_richtext/lib/src/core/model/block_node.dart
+ M ../wenz_richtext/lib/src/input/clipboard_service.dart
+ M ../wenz_richtext/lib/src/input/external_image_clipboard_reader.dart
+ M ../wenz_richtext/lib/src/input/external_image_input.dart
+ M ../wenz_richtext/lib/src/input/external_image_store_io.dart
+ M ../wenz_richtext/lib/src/input/shortcut_manager.dart
+ M ../wenz_richtext/lib/src/integration/wenz_editor_bootstrap.dart
+ M ../wenz_richtext/lib/src/integration/wenz_editor_configuration.dart
+ M ../wenz_richtext/lib/src/plugins/mermaid_diagram_plugin.dart
+ M ../wenz_richtext/lib/src/widgets/block_renderer_registry.dart
+ M ../wenz_richtext/lib/src/widgets/default_desktop_toolbar.dart
+ M ../wenz_richtext/lib/src/widgets/default_mobile_toolbar.dart
+ M ../wenz_richtext/lib/src/widgets/editor_tokens.dart
+ M ../wenz_richtext/lib/src/widgets/lucide_toolbar_icons.dart
+ M ../wenz_richtext/lib/src/widgets/media_resolver.dart
+ M ../wenz_richtext/lib/src/widgets/mermaid/mermaid_code_block_widget.dart
+ M ../wenz_richtext/lib/src/widgets/outline_tree.dart
+ M ../wenz_richtext/lib/src/widgets/selection_gesture_overlay.dart
+ M ../wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+ M ../wenz_richtext/lib/wenz_richtext.dart
+ M ../wenz_richtext/pubspec.lock
+ M ../wenz_richtext/pubspec.yaml
+ M ../wenz_richtext/test/codecs/markdown_codec_test.dart
+ M ../wenz_richtext/test/codecs/rich_text_json_codec_test.dart
+ M ../wenz_richtext/test/controller/image_block_controller_test.dart
+ M ../wenz_richtext/test/controller/toolbar_controller_test.dart
+ M ../wenz_richtext/test/controller/video_block_controller_test.dart
+ M ../wenz_richtext/test/core/block_commands_test.dart
+ M ../wenz_richtext/test/core/controller_test.dart
+ M ../wenz_richtext/test/core/inline_commands_test.dart
+ M ../wenz_richtext/test/core/model_test.dart
+ M ../wenz_richtext/test/core/style_commands_test.dart
+ M ../wenz_richtext/test/core/table_commands_test.dart
+ M ../wenz_richtext/test/input/clipboard_service_test.dart
+ M ../wenz_richtext/test/input/shortcut_manager_test.dart
+ M ../wenz_richtext/test/integration/wenz_editor_bootstrap_test.dart
+ M ../wenz_richtext/test/widgets/default_desktop_toolbar_test.dart
+ M ../wenz_richtext/test/widgets/default_mobile_toolbar_test.dart
+ M ../wenz_richtext/test/widgets/editor_golden_test.dart
+ M ../wenz_richtext/test/widgets/goldens/editor_advanced_blocks.png
+ M ../wenz_richtext/test/widgets/media_resolver_test.dart
+ M ../wenz_richtext/test/widgets/mermaid_code_block_test.dart
+ M ../wenz_richtext/test/widgets/outline_panel_test.dart
+ M ../wenz_richtext/test/widgets/outline_tree_test.dart
+ M ../wenz_richtext/test/widgets/wenz_rich_text_editor_test.dart
+ M ../wenz_richtext/ui/media_block_display_design.html
+?? .codex_node_write_probe.tmp
+?? .codex_write_probe.tmp
+?? docs/plan/
+?? docs/progress/
+?? lib/src/elements/line_arrow_style.dart
+?? lib/src/tools/polyline_arrow_tool.dart
+?? test/curve_element_test.dart
+?? test/line_arrow_mode_control_test.dart
+?? test/line_arrow_style_test.dart
+?? test/toolbar_test.dart
+?? test/toolbar_test.dart~32100
+?? ../wenz_richtext/assets/lucide/indent-decrease.svg
+?? ../wenz_richtext/assets/lucide/indent-increase.svg
+?? ../wenz_richtext/assets/lucide/minus.svg
+?? ../wenz_richtext/docs/plan/plan_feedback_17_20260708-124059.md
+?? ../wenz_richtext/docs/plan/plan_feedback_18_20260708-124554.md
+?? ../wenz_richtext/docs/plan/plan_feedback_19_20260708-125625.md
+?? ../wenz_richtext/docs/plan/plan_feedback_1_20260711-002101.md
+?? ../wenz_richtext/docs/plan/plan_feedback_20_20260708-130256.md
+?? ../wenz_richtext/docs/plan/plan_feedback_21_20260708-130912.md
+?? ../wenz_richtext/docs/plan/plan_feedback_22_20260708-131342.md
+?? ../wenz_richtext/docs/plan/plan_feedback_23_20260708-131853.md
+?? ../wenz_richtext/docs/plan/plan_feedback_24_20260708-132343.md
+?? ../wenz_richtext/docs/plan/plan_feedback_25_20260708-133209.md
+?? ../wenz_richtext/docs/plan/plan_feedback_26_20260708-204015.md
+?? ../wenz_richtext/docs/plan/plan_feedback_27_20260708-204606.md
+?? ../wenz_richtext/docs/plan/plan_feedback_28_20260708-223102.md
+?? ../wenz_richtext/docs/plan/plan_feedback_31_20260708-223823.md
+?? ../wenz_richtext/docs/plan/plan_feedback_32_20260708-224534.md
+?? ../wenz_richtext/docs/plan/plan_feedback_45_20260709-015213.md
+?? ../wenz_richtext/docs/plan/plan_feedback_46_20260709-015910.md
+?? ../wenz_richtext/docs/plan/plan_feedback_56_20260710-021236.md
+?? ../wenz_richtext/docs/plan/plan_requirement_51_20260708-213115.md
+?? ../wenz_richtext/docs/plan/plan_requirement_54_20260708-214517.md
+?? ../wenz_richtext/docs/plan/plan_requirement_56_20260708-215523.md
+?? ../wenz_richtext/docs/plan/plan_requirement_57_20260708-220239.md
+?? ../wenz_richtext/docs/plan/plan_requirement_58_20260708-220724.md
+?? ../wenz_richtext/docs/plan/plan_requirement_59_20260708-221415.md
+?? ../wenz_richtext/docs/plan/plan_spec_feedback_17_20260708-124059.json
+?? ../wenz_richtext/docs/plan/plan_spec_feedback_18_20260708-124554.json
+?? ../wenz_richtext/docs/plan/plan_spec_feedback_19_20260708-125625.json
+?? ../wenz_richtext/docs/plan/plan_spec_feedback_1_20260711-002101.json
+?? ../wenz_richtext/docs/plan/plan_spec_feedback_20_20260708-130256.json
+?? ../wenz_richtext/docs/plan/plan_spec_feedback_21_20260708-130912.json
+?? ../wenz_richtext/docs/plan/plan_spec_feedback_22_20260708-131342.json
+?? ../wenz_richtext/docs/plan/plan_spec_feedback_23_20260708-131853.json
+?? ../wenz_richtext/docs/plan/plan_spec_feedback_24_20260708-132343.json
+?? ../wenz_richtext/docs/plan/plan_spec_feedback_25_20260708-133209.json
+?? ../wenz_richtext/docs/plan/plan_spec_feedback_26_20260708-204015.json
+?? ../wenz_richtext/docs/plan/plan_spec_feedback_27_20260708-204606.json
+?? ../wenz_richtext/docs/plan/plan_spec_feedback_28_20260708-223102.json
+?? ../wenz_richtext/docs/plan/plan_spec_feedback_31_20260708-223823.json
+?? ../wenz_richtext/docs/plan/plan_spec_feedback_32_20260708-224534.json
+?? ../wenz_richtext/docs/plan/plan_spec_feedback_45_20260709-015213.json
+?? ../wenz_richtext/docs/plan/plan_spec_feedback_46_20260709-015910.json
+?? ../wenz_richtext/docs/plan/plan_spec_feedback_56_20260710-021236.json
+?? ../wenz_richtext/docs/plan/plan_spec_requirement_51_20260708-213115.json
+?? ../wenz_richtext/docs/plan/plan_spec_requirement_54_20260708-214517.json
+?? ../wenz_richtext/docs/plan/plan_spec_requirement_56_20260708-215523.json
+?? ../wenz_richtext/docs/plan/plan_spec_requirement_57_20260708-220239.json
+?? ../wenz_richtext/docs/plan/plan_spec_requirement_58_20260708-220724.json
+?? ../wenz_richtext/docs/plan/plan_spec_requirement_59_20260708-221415.json
+?? ../wenz_richtext/example/integration_test/theme_toggle_test.dart.codex_tmp
+?? ../wenz_richtext/lib/src/input/rich_clipboard_adapter.dart
+?? ../wenz_richtext/lib/src/mermaid/
+?? ../wenz_richtext/lib/src/widgets/mermaid/mermaid_diagram.dart
+?? ../wenz_richtext/test/.codex_probe.tmp
+?? ../wenz_richtext/test/input/.codex_p004_write_probe.tmp
+?? ../wenz_richtext/test/input/.codex_write_probe.tmp
+?? ../wenz_richtext/test/mermaid/
+?? ../wenz_richtext/test/mermaid_probe.tmp
+
+ succeeded in 285ms:
+          element,
+    ];
+  }
+
+  // 鈹€鈹€鈹€ Alignment & Distribution 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+
+  /// Aligns selected elements to the specified edge/center.
+  /// Requires at least 2 selected elements.
+  void alignSelected(AlignMode mode) {
+    AlignmentTools.align(this, mode);
+  }
+
+  /// Distributes selected elements with equal spacing.
+  /// Requires at least 3 selected elements.
+  void distributeSelected(AlignAxis axis) {
+    AlignmentTools.distribute(this, axis);
+  }
+
+  void updateTextElementStyle(
+    String id, {
+    Color? color,
+    double? fontSize,
+    FontWeight? fontWeight,
+    TextAlign? textAlign,
+    double? lineHeight,
+    Object? fontFamily = _unsetTextStyleValue,
+    double? maxWidth,
+    Size? boxSize,
+    bool record = true,
+  }) {
+    final element = elementById(id);
+    if (element is! TextElement) {
+      return;
+    }
+    final nextFontFamily = identical(fontFamily, _unsetTextStyleValue)
+        ? element.style.fontFamily
+        : fontFamily as String?;
+    final nextStyle = TextStyle(
+      color: color ?? element.style.color,
+      fontSize: fontSize ?? element.style.fontSize,
+      fontWeight: fontWeight ?? element.style.fontWeight,
+      height: lineHeight ?? element.style.height,
+      fontFamily: nextFontFamily,
+    );
+    updateElement(
+      id,
+      element.copyWith(
+        style: nextStyle,
+        textAlign: textAlign,
+        maxWidth: maxWidth ?? element.maxWidth,
+        boxSize: boxSize ?? element.boxSize,
+      ),
+      record: record,
+    );
+  }
+
+  void updateShapePaint(
+    String id, {
+    Color? fillColor,
+    bool clearFill = false,
+    Color? strokeColor,
+    double? strokeWidth,
+    double? opacity,
+    bool record = true,
+  }) {
+    final element = elementById(id);
+    PaintStyle? nextFill(PaintStyle? current) {
+      if (clearFill) {
+        return null;
+      }
+      if (fillColor == null && opacity == null) {
+      updateElement(id, next, record: record);
+    }
+  }
+
+  void beginTextEditing(String id) {
+    final element = elementById(id);
+    if (element is! TextElement) {
+      return;
+    }
+    if (_editingShapeLabelElementId != null) {
+      endShapeLabelEditing();
+    }
+    if (_editingTextElementId == id) {
+      return;
+    }
+    _editingTextElementId = id;
+    _editingTextOriginal = element;
+    select(id);
+  }
+
+  void updateEditingText(String text) {
+    final id = _editingTextElementId;
+    if (id == null) {
+      return;
+    }
+    final element = elementById(id);
+    if (element is! TextElement || element.text == text) {
+      return;
+    }
+    // Silent update: the TextField overlay already shows the text being
+    // typed, so there is no need to rebuild the entire canvas on every
+    // keystroke.  A single notifyListeners() will fire in endTextEditing().
+    _applyElementUpdated(id, element.copyWith(text: text), notify: false);
+  }
+
+  void endTextEditing({String? text, bool removeIfEmpty = true}) {
+    final id = _editingTextElementId;
+    if (id == null) {
+      return;
+    }
+    if (text != null) {
+      updateEditingText(text);
+    }
+
+    _editingTextElementId = null;
+    final original = _editingTextOriginal;
+    _editingTextOriginal = null;
+    final element = elementById(id);
+    if (element is TextElement) {
+      if (removeIfEmpty && element.text.trim().isEmpty) {
+        removeElement(id);
+        return;
+      }
+      if (original != null && !_sameTextElement(original, element)) {
+        historyManager.record(
+          UpdateElementCommand(
+
+ succeeded in 287ms:
+      return 0;
+    }
+    final distance = _pointers.values.fold<double>(
+      0,
+      (previous, value) => previous + (value - point).distance,
+    );
+    return distance / _pointers.length;
+  }
+
+  void _dispatch(CanvasEvent event) {
+    widget.controller.canvasController.dispatchCanvasEvent(event);
+  }
+}
+
+class _TextEditingOverlay extends StatefulWidget {
+  const _TextEditingOverlay({super.key, required this.controller});
+
+  final InfiniteCanvasController controller;
+
+  @override
+  State<_TextEditingOverlay> createState() => _TextEditingOverlayState();
+}
+
+class _TextEditingOverlayState extends State<_TextEditingOverlay> {
+  late final TextEditingController _textController;
+  late final FocusNode _focusNode;
+  String? _editingId;
+
+  @override
+  void initState() {
+    super.initState();
+    _textController = TextEditingController();
+    _focusNode = FocusNode(debugLabel: 'TextEditingOverlay');
+    _focusNode.addListener(_onFocusChange);
+  }
+
+  @override
+  void dispose() {
+    _focusNode.removeListener(_onFocusChange);
+    _textController.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  void _onFocusChange() {
+    // When the TextField loses focus, commit the current text.
+    // This ensures the change is recorded in the undo stack exactly once.
+    if (!_focusNode.hasFocus) {
+      _commit();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final canvasController = widget.controller.canvasController;
+    final editingId = canvasController.editingTextElementId;
+    final editingShapeId = canvasController.editingShapeLabelElementId;
+    final element = editingId == null
+        ? null
+        : canvasController.elementById(editingId);
+    final shapeLabelElement = editingShapeId == null
+        ? null
+        : canvasController.elementById(editingShapeId);
+    if (element is! TextElement &&
+        !ShapeLabelEditingTarget.canEdit(shapeLabelElement)) {
+      _editingId = null;
+      return const SizedBox.shrink();
+    }
+
+    final target = element is TextElement
+        ? TextEditingTarget(canvasController, element)
+        : ShapeLabelEditingTarget(canvasController, shapeLabelElement!);
+
+    if (_editingId != target.id) {
+      _editingId = target.id;
+      _textController.text = target.text;
+      _textController.selection = TextSelection(
+        baseOffset: 0,
+        extentOffset: _textController.text.length,
+      );
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _focusNode.requestFocus();
+        }
+      });
+    }
+
+    final transform = widget.controller.transform;
+    final textRect = Rect.fromPoints(
+      transform.worldToScreen(target.bounds.topLeft),
+      transform.worldToScreen(target.bounds.bottomRight),
+    );
+    const toolbarWidth = 320.0;
+    final toolbarLeft = (textRect.width - toolbarWidth) / 2;
+    final rect = Rect.fromLTWH(
+      textRect.left + toolbarLeft,
+      textRect.top - 48,
+      toolbarWidth,
+      textRect.height + 48,
+    );
+    final fontSize = target.fontSize * transform.scale;
+    final lineHeight = target.lineHeight;
+    final contentPadding = 4.0 * transform.scale;
+    const handleSize = 7.0;
+    final textLeft = -toolbarLeft;
+    const textTop = 48.0;
+    final handleCenters = [
+      Offset(textLeft, textTop),
+      Offset(textLeft + textRect.width, textTop),
+      Offset(textLeft, textTop + textRect.height),
+      Offset(textLeft + textRect.width, textTop + textRect.height),
+    ];
+    return Positioned.fromRect(
+      rect: rect,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Positioned(
+            left: 0,
+            top: 0,
+            width: toolbarWidth,
+            height: 40,
+            child: _TextEditToolbar(
+              controller: widget.controller,
+              element: target,
+              onInteraction: () => _focusNode.requestFocus(),
+            ),
+          ),
+          Positioned(
+            left: textLeft,
+            top: textTop,
+            width: textRect.width,
+            height: textRect.height,
+            child: Material(
+              color: Colors.transparent,
+              child: TextField(
+                controller: _textController,
+                focusNode: _focusNode,
+                autofocus: true,
+                keyboardType: TextInputType.multiline,
+                maxLines: null,
+                minLines: null,
+                expands: true,
+                textAlign: target.textAlign,
+                style: target.style.copyWith(
+                  fontSize: fontSize,
+                  height: lineHeight,
+                ),
+                decoration: InputDecoration(
+                  isDense: true,
+                  filled: true,
+                  fillColor: Colors.white.withValues(alpha: 0.82),
+                  contentPadding: EdgeInsets.all(contentPadding),
+                  border: const OutlineInputBorder(),
+                ),
+                onSubmitted: (_) => _commit(),
+                onChanged: target.updateText,
+              ),
+            ),
+          ),
+          for (final center in handleCenters)
+            Positioned(
+              left: center.dx - handleSize / 2,
+              top: center.dy - handleSize / 2,
+              width: handleSize,
+              height: handleSize,
+              child: IgnorePointer(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    border: Border.all(color: const Color(0xFF2563EB)),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  void _commit() {
+    final canvasController = widget.controller.canvasController;
+    if (canvasController.editingTextElementId != null) {
+      canvasController.endTextEditing(
+        text: _textController.text,
+        removeIfEmpty: false,
+      );
+    } else if (canvasController.editingShapeLabelElementId != null) {
+      canvasController.endShapeLabelEditing(text: _textController.text);
+    }
+  }
+}
+
+abstract class _TextEditingTarget {
+  String get id;
+  String get text;
+  Rect get bounds;
+  TextStyle get style;
+  TextAlign get textAlign;
+  double get fontSize;
+  double get lineHeight;
+  void updateText(String text);
+  void updateStyle({
+    Color? color,
+    double? fontSize,
+    FontWeight? fontWeight,
+    TextAlign? textAlign,
+    double? lineHeight,
+    Object? fontFamily,
+  });
+}
+
+class TextEditingTarget implements _TextEditingTarget {
+  TextEditingTarget(this.controller, this.element);
+
+  final CanvasController controller;
+  final TextElement element;
+
+  @override
+  String get id => element.id;
+  @override
+  String get text => element.text;
+  @override
+  Rect get bounds => element.bounds;
+  @override
+  TextStyle get style => element.style;
+  @override
+  TextAlign get textAlign => element.textAlign;
+  @override
+  double get fontSize => element.style.fontSize ?? 24;
+  @override
+  double get lineHeight => element.style.height ?? 1.2;
+
+  @override
+  void updateText(String text) {
+    controller.updateEditingText(text);
+  }
+
+  @override
+  void updateStyle({
+    Color? color,
+    double? fontSize,
+    FontWeight? fontWeight,
+    TextAlign? textAlign,
+    double? lineHeight,
+    Object? fontFamily,
+  }) {
+    controller.updateTextElementStyle(
+      id,
+      color: color,
+      fontSize: fontSize,
+      fontWeight: fontWeight,
+      textAlign: textAlign,
+      lineHeight: lineHeight,
+      fontFamily: fontFamily ?? CanvasController.unsetTextStyleValue,
+      record: false,
+    );
+  }
+}
+
+class ShapeLabelEditingTarget implements _TextEditingTarget {
+
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command '$p='"'lib\\src\\infinite_canvas\\infinite_canvas_widget.dart'; "'$c=Get-Content $p; $c[1140..1490]' in D:\project\GitHub\wenz_flutter\wenz_draw
+ succeeded in 220ms:
+    Color? color,
+    double? fontSize,
+    FontWeight? fontWeight,
+    TextAlign? textAlign,
+    double? lineHeight,
+    Object? fontFamily,
+  }) {
+    controller.updateTextElementStyle(
+      id,
+      color: color,
+      fontSize: fontSize,
+      fontWeight: fontWeight,
+      textAlign: textAlign,
+      lineHeight: lineHeight,
+      fontFamily: fontFamily ?? CanvasController.unsetTextStyleValue,
+      record: false,
+    );
+  }
+}
+
+class ShapeLabelEditingTarget implements _TextEditingTarget {
+  ShapeLabelEditingTarget(this.controller, this.element);
+
+  final CanvasController controller;
+  final Object element;
+
+  static bool canEdit(Object? element) {
+    return element is DrawioShapeElement ||
+        element is RectElement ||
+        element is EllipseElement ||
+        element is LineElement ||
+        element is ArrowElement ||
+        element is PolylineElement;
+  }
+
+  @override
+  String get id => switch (element) {
+    final DrawioShapeElement e => e.id,
+    final RectElement e => e.id,
+    final EllipseElement e => e.id,
+    final LineElement e => e.id,
+    final ArrowElement e => e.id,
+    final PolylineElement e => e.id,
+    _ => '',
+  };
+
+  @override
+  String get text => switch (element) {
+    final DrawioShapeElement e => e.label ?? '',
+    final RectElement e => e.label ?? '',
+    final EllipseElement e => e.label ?? '',
+    final LineElement e => e.label ?? '',
+    final ArrowElement e => e.label ?? '',
+    final PolylineElement e => e.label ?? '',
+    _ => '',
+  };
+
+  @override
+  Rect get bounds => switch (element) {
+    final DrawioShapeElement e => e.rect,
+    final RectElement e => e.labelPadding.deflateRect(e.rect),
+    final EllipseElement e => e.labelPadding.deflateRect(e.rect),
+    final LineElement e => _lineLabelBounds(
+      [e.start, e.end],
+      e.label,
+      e.labelStyle,
+      e.labelPosition,
+      e.labelOffset,
+      e.labelBackground,
+    ),
+    final ArrowElement e => _lineLabelBounds(
+      [e.start, e.end],
+      e.label,
+      e.labelStyle,
+      e.labelPosition,
+      e.labelOffset,
+      e.labelBackground,
+    ),
+    final PolylineElement e => _lineLabelBounds(
+      e.points,
+      e.label,
+      e.labelStyle,
+      e.labelPosition,
+      e.labelOffset,
+      e.labelBackground,
+    ),
+    _ => Rect.zero,
+  };
+
+  Rect _lineLabelBounds(
+    List<Offset> points,
+    String? label,
+    TextStyle style,
+    double labelPosition,
+    Offset labelOffset,
+    Color? labelBackground,
+  ) {
+    final bounds = LineLabelPainter.labelBounds(
+      points: points,
+      label: label?.isEmpty ?? true ? ' ' : label,
+      style: style,
+      labelPosition: labelPosition,
+      labelOffset: labelOffset,
+      labelBackground: labelBackground,
+    );
+    if (!bounds.isEmpty) {
+      return bounds;
+    }
+    final center = LineLabelPainter.labelCenter(
+      points,
+      labelPosition: labelPosition,
+      labelOffset: labelOffset,
+    );
+    return Rect.fromCenter(center: center, width: 80, height: 24);
+  }
+
+  @override
+  TextStyle get style => switch (element) {
+    final DrawioShapeElement e => e.labelStyle,
+    final RectElement e => e.labelStyle,
+    final EllipseElement e => e.labelStyle,
+    final LineElement e => e.labelStyle,
+    final ArrowElement e => e.labelStyle,
+    final PolylineElement e => e.labelStyle,
+    _ => ShapeLabelPainter.defaultStyle,
+  };
+
+  @override
+  TextAlign get textAlign => switch (element) {
+    final DrawioShapeElement e => e.labelAlign,
+    final RectElement e => e.labelAlign,
+    final EllipseElement e => e.labelAlign,
+    _ => TextAlign.center,
+  };
+
+  @override
+  double get fontSize => style.fontSize ?? 14;
+
+  @override
+  double get lineHeight => style.height ?? 1.2;
+
+  @override
+  void updateText(String text) {
+    controller.updateEditingShapeLabel(text);
+  }
+
+  @override
+  void updateStyle({
+    Color? color,
+    double? fontSize,
+    FontWeight? fontWeight,
+    TextAlign? textAlign,
+    double? lineHeight,
+    Object? fontFamily,
+  }) {
+    controller.updateShapeLabelStyle(
+      id,
+      color: color,
+      fontSize: fontSize,
+      fontWeight: fontWeight,
+      textAlign: textAlign,
+      lineHeight: lineHeight,
+      fontFamily: fontFamily ?? CanvasController.unsetTextStyleValue,
+      record: false,
+    );
+  }
+}
+
+class _TextEditToolbar extends StatelessWidget {
+  const _TextEditToolbar({
+    required this.controller,
+    required this.element,
+    required this.onInteraction,
+  });
+
+  final InfiniteCanvasController controller;
+  final _TextEditingTarget element;
+  final VoidCallback onInteraction;
+
+  static const _defaultColors = <Color>[
+    Colors.black,
+    Colors.white,
+    Color(0xFFEF4444),
+    Color(0xFF3B82F6),
+    Color(0xFF22C55E),
+  ];
+
+  static const _colors = <Color>[
+    Colors.black,
+    Colors.white,
+    Color(0xFF6B7280),
+    Color(0xFFEF4444),
+    Color(0xFFF97316),
+    Color(0xFFF59E0B),
+    Color(0xFFEAB308),
+    Color(0xFF84CC16),
+    Color(0xFF22C55E),
+    Color(0xFF10B981),
+    Color(0xFF14B8A6),
+    Color(0xFF06B6D4),
+    Color(0xFF0EA5E9),
+    Color(0xFF3B82F6),
+    Color(0xFF6366F1),
+    Color(0xFF8B5CF6),
+    Color(0xFFA855F7),
+    Color(0xFFD946EF),
+    Color(0xFFEC4899),
+    Color(0xFFF43F5E),
+  ];
+
+  static const _fontSizes = <double>[14, 18, 24, 32, 48];
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      elevation: 2,
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(6),
+      clipBehavior: Clip.hardEdge,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final color in _defaultColors)
+                Padding(
+                  padding: const EdgeInsets.only(right: 4),
+                  child: InkResponse(
+                    radius: 13,
+                    onTap: () => _update(color: color),
+                    child: _ColorDot(
+                      color: color,
+                      selected: (element.style.color ?? Colors.black) == color,
+                    ),
+                  ),
+                ),
+              IconButton(
+                tooltip: 'Custom color',
+                padding: EdgeInsets.zero,
+                icon: const Icon(Icons.palette_outlined, size: 20),
+                onPressed: () => _showColorPicker(context),
+              ),
+              const VerticalDivider(width: 10),
+              DropdownButton<double>(
+                value: _nearestFontSize(element.style.fontSize ?? 24),
+                underline: const SizedBox.shrink(),
+                items: [
+                  for (final size in _fontSizes)
+                    DropdownMenuItem(
+                      value: size,
+                      child: Text(size.round().toString()),
+                    ),
+                ],
+                onChanged: (value) {
+                  if (value != null) {
+                    _update(fontSize: value);
+                  }
+                },
+              ),
+              const SizedBox(width: 8),
+              DropdownButton<String>(
+                value: _fontFamilyValue(element.style.fontFamily),
+                underline: const SizedBox.shrink(),
+                items: const [
+                  DropdownMenuItem(value: 'sans', child: Text('Sans')),
+                  DropdownMenuItem(value: 'serif', child: Text('Serif')),
+                  DropdownMenuItem(value: 'mono', child: Text('Mono')),
+                ],
+                onChanged: (value) => _update(
+                  fontFamily: switch (value) {
+                    'serif' => 'Times New Roman',
+                    'mono' => 'Consolas',
+                    _ => null,
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _fontFamilyValue(String? fontFamily) {
+    return switch (fontFamily) {
+      'Times New Roman' => 'serif',
+      'Consolas' => 'mono',
+      _ => 'sans',
+    };
+  }
+
+  Future<void> _showColorPicker(BuildContext context) async {
+    final color = await showDialog<Color>(
+      context: context,
+      builder: (context) => _ColorPickerDialog(
+        initialColor: element.style.color ?? Colors.black,
+        swatches: _colors,
+      ),
+    );
+    if (color != null) {
+      _update(color: color);
+    } else {
+      onInteraction();
+    }
+  }
+
+  double _nearestFontSize(double size) {
+    return _fontSizes.reduce((previous, current) {
+      return (current - size).abs() < (previous - size).abs()
+          ? current
+          : previous;
+    });
+  }
+
+  void _update({Color? color, double? fontSize, String? fontFamily}) {
+    element.updateStyle(
+      color: color,
+      fontSize: fontSize,
+      fontFamily: fontFamily,
+    );
+    onInteraction();
+  }
+}
+
+class _ColorDot extends StatelessWidget {
+  const _ColorDot({required this.color, required this.selected});
+
+  final Color color;
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: color,
+        border: Border.all(
+          color: selected ? const Color(0xFF111827) : const Color(0xFFE5E7EB),
+          width: selected ? 2.5 : 1.5,
+        ),
+      ),
+      child: const SizedBox.square(dimension: 22),
+    );
+  }
+}
+
+class _ColorPickerDialog extends StatefulWidget {
+  const _ColorPickerDialog({
+    required this.initialColor,
+
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'Get-Content -Raw pubspec.yaml; rg -n "testWidgets|InfiniteCanvasWidget" test -g "*.dart"' in D:\project\GitHub\wenz_flutter\wenz_draw
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command '$p='"'lib\\src\\infinite_canvas\\infinite_canvas_widget.dart'; "'$c=Get-Content $p; $c[35..185]; $c[230..330]' in D:\project\GitHub\wenz_flutter\wenz_draw
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "rg -n \"endShapeLabelEditing|updateEditingShapeLabel|_sameTextElement|_same.*Label|updateElement\\(\" lib\\src\\canvas\\canvas_controller.dart" in D:\project\GitHub\wenz_flutter\wenz_draw
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command '$p='"'test\\text_element_test.dart'; "'$c=Get-Content $p; $c[240..325]; Get-Content -TotalCount 140 test'"\\performance_widget_test.dart; Get-Content -TotalCount 140 test\\minimap_widget_test.dart" in D:\project\GitHub\wenz_flutter\wenz_draw
+ succeeded in 220ms:
+170:  void updateElement(String id, CanvasElement element, {bool record = true}) {
+1165:    updateElement(
+1204:        updateElement(
+1217:        updateElement(
+1230:        updateElement(
+1293:    updateElement(id, updated, record: record);
+1380:        updateElement(
+1389:        updateElement(
+1398:        updateElement(
+1407:        updateElement(id, e.copyWith(labelStyle: nextStyle), record: record);
+1409:        updateElement(id, e.copyWith(labelStyle: nextStyle), record: record);
+1411:        updateElement(id, e.copyWith(labelStyle: nextStyle), record: record);
+1430:    updateElement(
+1440:      updateElement(id, element.copyWith(rotation: radians), record: record);
+1442:      updateElement(id, element.copyWith(rotation: radians), record: record);
+1444:      updateElement(id, element.copyWith(rotation: radians), record: record);
+1446:      updateElement(id, element.copyWith(rotation: radians), record: record);
+1448:      updateElement(id, element.copyWith(rotation: radians), record: record);
+1459:      updateElement(id, element.copyWith(text: text), record: record);
+1471:      updateElement(id, next, record: record);
+1481:      endShapeLabelEditing();
+1524:      if (original != null && !_sameTextElement(original, element)) {
+1567:  void updateEditingShapeLabel(String text, {bool clearWhenEmpty = true}) {
+1586:  void endShapeLabelEditing({String? text}) {
+1592:      updateEditingShapeLabel(text, clearWhenEmpty: false);
+1643:  bool _sameTextElement(TextElement a, TextElement b) {
+
+ succeeded in 245ms:
+name: wenz_draw
+description: A high-performance Flutter infinite canvas drawing SDK.
+version: 0.1.0
+homepage:
+publish_to: none
+
+environment:
+  sdk: ^3.8.0
+  flutter: ">=3.3.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  uuid: ^4.5.1
+  xml: ^6.5.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  test: ^1.29.0
+
+flutter:
+
+test\performance_widget_test.dart:393:    testWidgets(
+test\performance_widget_test.dart:409:              body: InfiniteCanvasWidget(
+test\performance_widget_test.dart:424:    testWidgets('initial layout with 500 widgets does not crash', (
+test\performance_widget_test.dart:443:            body: InfiniteCanvasWidget(
+test\performance_widget_test.dart:471:    testWidgets('scroll/pan performance with 500 widgets', (tester) async {
+test\performance_widget_test.dart:484:            body: InfiniteCanvasWidget(
+test\performance_widget_test.dart:516:    testWidgets('zoom performance with 500 widgets', (tester) async {
+test\performance_widget_test.dart:529:            body: InfiniteCanvasWidget(
+test\performance_widget_test.dart:563:    testWidgets(
+test\performance_widget_test.dart:578:              body: InfiniteCanvasWidget(
+test\line_arrow_mode_control_test.dart:7:  testWidgets('line arrow control exposes all three modes', (tester) async {
+test\line_arrow_mode_control_test.dart:31:  testWidgets('inspector updates a selected line to double arrows', (
+test\toolbar_test.dart:8:    testWidgets('shows mindmap with an icon distinct from curve', (
+test\toolbar_test.dart:45:    testWidgets('selecting mindmap calls only the mindmap callback', (
+test\shape_label_test.dart:8:  testWidgets('shape label painter supports drawio label positions', (
+
+ succeeded in 272ms:
+    this.elementOverlayAnchorPredicate,
+  });
+
+  final InfiniteCanvasController controller;
+  final InfiniteCanvasConfig config;
+  final Clip clipBehavior;
+  final CanvasElementOverlayBuilder? elementOverlayBuilder;
+  final CanvasElementOverlayAnchorPredicate? elementOverlayAnchorPredicate;
+
+  @override
+  State<InfiniteCanvasWidget> createState() => _InfiniteCanvasWidgetState();
+}
+
+class _InfiniteCanvasWidgetState extends State<InfiniteCanvasWidget>
+    with SingleTickerProviderStateMixin {
+  final Map<int, Offset> _pointers = {};
+  final Set<int> _panPointers = {};
+  final Set<int> _widgetGesturePointers = {};
+  final Map<int, _DeferredWidgetGesture> _deferredWidgetGestures = {};
+  late final FocusNode _focusNode;
+  late final CanvasImageResolver _imageResolver;
+
+  Offset? _lastTapPosition;
+  DateTime? _lastTapTime;
+
+  Offset? _lastPinchCentroid;
+  double? _lastPinchDistance;
+  bool _toolSuppressedUntilClear = false;
+  int? _editingResizePointer;
+  TextElement? _editingResizeBefore;
+  _EditingTextResizeHandle? _editingResizeHandle;
+  Offset? _editingResizeAnchor;
+
+  // 鈹€鈹€ Fling inertia 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+  // Tracks the velocity of the most recent pan so a released drag continues
+  // with inertial scrolling (mobile feel). Only consulted when
+  // InfiniteCanvasConfig.flingEnabled is true.
+  Offset _panVelocity = Offset.zero;
+  Ticker? _flingTicker;
+  Offset _flingVelocity = Offset.zero;
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode = FocusNode(debugLabel: 'InfiniteCanvasWidget');
+    _imageResolver = CanvasImageResolver(widget.controller.canvasController);
+  }
+
+  @override
+  void dispose() {
+    _flingTicker?.dispose();
+    _imageResolver.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final size = Size(
+          constraints.maxWidth.isFinite ? constraints.maxWidth : 0,
+          constraints.maxHeight.isFinite ? constraints.maxHeight : 0,
+        );
+        if (size != widget.controller.viewportSize) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              widget.controller.setViewportSize(size);
+            }
+          });
+        }
+
+        return ClipRect(
+          clipBehavior: widget.clipBehavior,
+          child: KeyboardListener(
+            focusNode: _focusNode,
+            autofocus: true,
+            onKeyEvent: _handleKeyEvent,
+            child: Listener(
+              behavior: HitTestBehavior.opaque,
+              onPointerDown: _handlePointerDown,
+              onPointerMove: _handlePointerMove,
+              onPointerUp: _handlePointerUp,
+              onPointerCancel: _handlePointerCancel,
+              onPointerSignal: _handlePointerSignal,
+              child: AnimatedBuilder(
+                animation: Listenable.merge([
+                  widget.controller,
+                  widget.controller.canvasController,
+                ]),
+                builder: (context, _) {
+                  return SizedBox.expand(
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        CanvasWidgetLayer(
+                          controller: widget.controller,
+                          config: widget.config,
+                          elementOverlayBuilder: widget.elementOverlayBuilder,
+                          elementOverlayAnchorPredicate:
+                              widget.elementOverlayAnchorPredicate,
+                        ),
+                        _TextEditingOverlay(
+                          key: ValueKey(
+                            '${widget.controller.canvasController.editingTextElementId ?? ''}:${widget.controller.canvasController.editingShapeLabelElementId ?? ''}',
+                          ),
+                          controller: widget.controller,
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _handlePointerDown(PointerDownEvent event) {
+    // A new pointer cancels any in-flight inertial fling.
+    _stopFling();
+    _panVelocity = Offset.zero;
+    // If we are currently editing text, do not steal focus from the
+    // TextField overlay 鈥?that would prematurely commit the edit.
+    final canvasController = widget.controller.canvasController;
+    final isEditing =
+        canvasController.editingTextElementId != null ||
+        canvasController.editingShapeLabelElementId != null;
+    if (!isEditing) {
+      _focusNode.requestFocus();
+    }
+    // Right-click and middle-click are reserved for panning 鈥?never dispatch
+    // to the active drawing tool.
+    if (event.buttons == kSecondaryMouseButton ||
+        event.buttons == kMiddleMouseButton) {
+      _pointers[event.pointer] = event.localPosition;
+      _panPointers.add(event.pointer);
+      return;
+    }
+    if (_handleEditingPointerDown(event)) {
+      return;
+    }
+    if (_dispatchDoubleTapIfNeeded(event)) {
+      return;
+    }
+    if (_shouldDeferToWidget(event.localPosition)) {
+      _widgetGesturePointers.add(event.pointer);
+      _deferredWidgetGestures[event.pointer] = _DeferredWidgetGesture(
+        screenPoint: event.localPosition,
+    final canvasController = widget.controller.canvasController;
+    final editingId = canvasController.editingTextElementId;
+    final editingShapeId = canvasController.editingShapeLabelElementId;
+    if (editingId == null && editingShapeId == null) {
+      return false;
+    }
+
+    if (editingShapeId != null) {
+      return _handleShapeLabelEditingPointerDown(event, editingShapeId);
+    }
+
+    final element = canvasController.elementById(editingId!);
+    if (element is! TextElement) {
+      canvasController.endTextEditing();
+      return true;
+    }
+
+    final worldPoint = widget.controller.screenToWorld(event.localPosition);
+    final handle = _editingResizeHandleAt(element, worldPoint);
+    if (handle != null) {
+      _editingResizePointer = event.pointer;
+      _editingResizeBefore = element;
+      _editingResizeHandle = handle;
+      _editingResizeAnchor = handle.anchorFor(element.bounds);
+      return true;
+    }
+
+    final toolbarRect = Rect.fromLTWH(
+      element.bounds.left - 8 / widget.controller.transform.scale,
+      element.bounds.top - 48 / widget.controller.transform.scale,
+      element.bounds.width + 16 / widget.controller.transform.scale,
+      40 / widget.controller.transform.scale,
+    );
+
+    if (toolbarRect.contains(worldPoint) ||
+        element.bounds
+            .inflate(14 / widget.controller.transform.scale)
+            .contains(worldPoint)) {
+      return true;
+    }
+
+    final hit = canvasController.hitTest(worldPoint);
+    if (hit is TextElement) {
+      canvasController.endTextEditing(removeIfEmpty: false);
+      canvasController.beginTextEditing(hit.id);
+      return true;
+    }
+
+    // Clicked outside the editing element 鈥?end editing and consume the event
+    // so that the active tool (e.g. TextTool) does not create a new element.
+    canvasController.endTextEditing();
+    return true;
+  }
+
+  bool _handleShapeLabelEditingPointerDown(
+    PointerDownEvent event,
+    String editingShapeId,
+  ) {
+    final canvasController = widget.controller.canvasController;
+    final element = canvasController.elementById(editingShapeId);
+    if (element is! DrawioShapeElement &&
+        element is! RectElement &&
+        element is! EllipseElement &&
+        element is! LineElement &&
+        element is! ArrowElement &&
+        element is! PolylineElement) {
+      canvasController.endShapeLabelEditing();
+      return true;
+    }
+
+    final worldPoint = widget.controller.screenToWorld(event.localPosition);
+    final bounds = _shapeLabelEditingBounds(element);
+    final toolbarRect = Rect.fromLTWH(
+      bounds.left - 8 / widget.controller.transform.scale,
+      bounds.top - 48 / widget.controller.transform.scale,
+      bounds.width + 16 / widget.controller.transform.scale,
+      40 / widget.controller.transform.scale,
+    );
+
+    if (toolbarRect.contains(worldPoint) ||
+        bounds
+            .inflate(14 / widget.controller.transform.scale)
+            .contains(worldPoint)) {
+      return true;
+    }
+
+    // Clicked outside the editing shape 鈥?end editing and consume the event
+    // so that the active tool does not create/interact with a new element.
+    canvasController.endShapeLabelEditing();
+    return true;
+  }
+
+  Rect _shapeLabelEditingBounds(Object? element) {
+    final bounds = switch (element) {
+      final DrawioShapeElement e => e.rect,
+      final RectElement e => e.labelPadding.deflateRect(e.rect),
+      final EllipseElement e => e.labelPadding.deflateRect(e.rect),
+      final LineElement e => LineLabelPainter.labelBounds(
+        points: [e.start, e.end],
+        label: e.label?.isEmpty ?? true ? ' ' : e.label,
+        style: e.labelStyle,
+
+ succeeded in 288ms:
+        screenPoint: Offset(200, 90),
+        worldPoint: Offset(200, 90),
+        transform: CanvasTransform.identity,
+      ),
+    );
+
+    final element = controller.elementById('text-1') as TextElement;
+    expect(element.position, Offset.zero);
+    expect(element.boxSize, const Size(200, 90));
+    expect(element.maxWidth, 200);
+    expect(controller.canUndo, isTrue);
+    controller.undo();
+    expect(
+      (controller.elementById('text-1') as TextElement).boxSize,
+      const Size(120, 60),
+    );
+  });
+
+  test('controller updates text style fields', () {
+    final controller = CanvasController();
+    controller.addElement(
+      TextElement(id: 'text-1', position: Offset.zero, text: 'Styled'),
+      record: false,
+    );
+
+    controller.updateTextElementStyle(
+      'text-1',
+      color: Colors.red,
+      fontSize: 32,
+      fontWeight: FontWeight.bold,
+      textAlign: TextAlign.center,
+      lineHeight: 1.6,
+      maxWidth: 220,
+      boxSize: const Size(220, 90),
+      record: false,
+    );
+
+    final element = controller.elementById('text-1') as TextElement;
+    expect(element.style.color, Colors.red);
+    expect(element.style.fontSize, 32);
+    expect(element.style.fontWeight, FontWeight.bold);
+    expect(element.style.height, 1.6);
+    expect(element.textAlign, TextAlign.center);
+    expect(element.maxWidth, 220);
+    expect(element.boxSize, const Size(220, 90));
+    controller.updateTextElementStyle(
+      'text-1',
+      fontFamily: 'Consolas',
+      record: false,
+    );
+    expect(
+      (controller.elementById('text-1') as TextElement).style.fontFamily,
+      'Consolas',
+    );
+    controller.updateTextElementStyle(
+      'text-1',
+      fontFamily: null,
+      record: false,
+    );
+    expect(
+      (controller.elementById('text-1') as TextElement).style.fontFamily,
+      isNull,
+    );
+  });
+}
+// ignore_for_file: avoid_print
+
+import 'dart:math' as math;
+
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:wenz_draw/wenz_draw.dart';
+
+/// A minimal widget builder used for stress testing.  Each instance renders a
+/// thin colored border + a small label so we can visually verify placement.
+class PerfBoxBuilder extends WidgetElementBuilder {
+  const PerfBoxBuilder();
+
+  static int buildCount = 0;
+  static int previewCount = 0;
+
+  static void reset() {
+    buildCount = 0;
+    previewCount = 0;
+  }
+
+  @override
+  Widget build(
+    BuildContext context,
+    CanvasWidgetElement element, {
+    required CanvasWidgetBuildContext canvas,
+  }) {
+    buildCount++;
+    final colorValue =
+        int.tryParse(element.widgetData['color'] as String? ?? '0xFFE5E7EB') ??
+        0xFFE5E7EB;
+    final label = element.widgetData['label'] as String? ?? '';
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Color(colorValue),
+        border: Border.all(color: const Color(0x33000000)),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        label,
+        style: const TextStyle(fontSize: 8, color: Color(0xFF374151)),
+        overflow: TextOverflow.ellipsis,
+        maxLines: 1,
+      ),
+    );
+  }
+
+  @override
+  Widget buildPreview(
+    BuildContext context,
+    CanvasWidgetElement element, {
+    required CanvasWidgetBuildContext canvas,
+  }) {
+    previewCount++;
+    return super.buildPreview(context, element, canvas: canvas);
+  }
+}
+
+void main() {
+  // -----------------------------------------------------------------
+  // Helper: create 500 elements arranged in a grid.
+  // -----------------------------------------------------------------
+  List<CanvasWidgetElement> _make500Elements({
+    double cellWidth = 80,
+    double cellHeight = 48,
+    int columns = 25,
+    int rows = 20,
+  }) {
+    final elements = <CanvasWidgetElement>[];
+    final rng = math.Random(42); // deterministic
+    for (int row = 0; row < rows; row++) {
+      for (int col = 0; col < columns; col++) {
+        final id = 'perf-${row * columns + col}';
+        final x = col * (cellWidth + 4);
+        final y = row * (cellHeight + 4);
+        // Pick a random light pastel hue for visual variety.
+        final hue = rng.nextInt(360);
+        final color = HSLColor.fromAHSL(
+          0.9,
+          hue.toDouble(),
+          0.5,
+          0.85,
+        ).toColor().toARGB32();
+
+        elements.add(
+          CanvasWidgetElement(
+            id: id,
+            worldRect: Rect.fromLTWH(x, y, cellWidth, cellHeight),
+            widgetType: 'perf_box',
+            widgetData: {
+              'color':
+                  '0x${color.toRadixString(16).padLeft(8, '0').toUpperCase()}',
+              'label': '$col,$row',
+            },
+            zIndex: row * columns + col,
+            scaleMode: CanvasWidgetScaleMode.layoutScale,
+          ),
+        );
+      }
+    }
+    return elements;
+  }
+
+  List<CanvasElement> _makeMixed500Elements({
+    double cellWidth = 80,
+    double cellHeight = 48,
+    int columns = 25,
+    int rows = 20,
+  }) {
+    final elements = <CanvasElement>[];
+    const shapeKeys = <String>[
+      'rhombus',
+      'triangle',
+      'hexagon',
+      'cylinder',
+      'cloud',
+    ];
+    for (int row = 0; row < rows; row++) {
+      for (int col = 0; col < columns; col++) {
+        final index = row * columns + col;
+        final x = col * (cellWidth + 4);
+        final y = row * (cellHeight + 4);
+        switch (index % 4) {
+          case 0:
+            elements.add(
+              DrawioShapeElement(
+                id: 'shape-$index',
+                shapeKey: shapeKeys[index % shapeKeys.length],
+                rect: Rect.fromLTWH(x, y, cellWidth, cellHeight),
+                strokeStyle: const PaintStyle(
+                  color: Color(0xFF1F2937),
+                  strokeWidth: 1.5,
+                ),
+                fillStyle: const PaintStyle(color: Color(0xFFE0F2FE)),
+                label: 'S$index',
+                zIndex: index,
+              ),
+            );
+          case 1:
+import 'package:flutter/widgets.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:wenz_draw/wenz_draw.dart';
+
+void main() {
+  group('MinimapLayout', () {
+    test(
+      'keeps viewport inside minimap when visible rect is outside content',
+      () {
+        final layout = MinimapLayout.resolve(
+          contentBounds: const Rect.fromLTWH(0, 0, 100, 100),
+          visibleWorldRect: const Rect.fromLTWH(1000, 1000, 500, 300),
+          minimapSize: const Size(180, 120),
+        );
+
+        expect(layout.viewportRect.left, greaterThanOrEqualTo(0));
+        expect(layout.viewportRect.top, greaterThanOrEqualTo(0));
+        expect(layout.viewportRect.right, lessThanOrEqualTo(180));
+        expect(layout.viewportRect.bottom, lessThanOrEqualTo(120));
+      },
+    );
+
+    test('maps viewport as relative position in combined world bounds', () {
+      final layout = MinimapLayout.resolve(
+        contentBounds: const Rect.fromLTWH(0, 0, 1000, 500),
+        visibleWorldRect: const Rect.fromLTWH(250, 100, 250, 200),
+        minimapSize: const Size(180, 120),
+        worldPadding: 0,
+      );
+
+      expect(layout.worldBounds, const Rect.fromLTWH(0, 0, 1000, 500));
+      expect(layout.scale, 0.18);
+      expect(layout.viewportRect, const Rect.fromLTWH(45, 33, 45, 36));
+    });
+
+    test('converts minimap position back to world position', () {
+      final layout = MinimapLayout.resolve(
+        contentBounds: const Rect.fromLTWH(0, 0, 1000, 500),
+        visibleWorldRect: const Rect.fromLTWH(250, 100, 250, 200),
+        minimapSize: const Size(180, 120),
+        worldPadding: 0,
+      );
+
+      expect(
+        layout.screenToWorld(const Offset(90, 60)),
+        const Offset(500, 250),
+      );
+    });
+  });
+}
+
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command '$p='"'lib\\src\\canvas\\canvas_controller.dart'; "'$c=Get-Content $p; $c[145..195]; $c[1470..1665]' in D:\project\GitHub\wenz_flutter\wenz_draw
+ succeeded in 185ms:
+    final element = elementById(id);
+    if (element == null) {
+      return;
+    }
+    if (record) {
+      historyManager.execute(RemoveElementCommand(element), this);
+      return;
+    }
+    applyElementRemoved(id);
+  }
+
+  void applyElementRemoved(String id) {
+    _state = _state.copyWith(
+      elements: _elementManager.remove(_state.elements, id),
+      selectedIds: {..._state.selectedIds}..remove(id),
+      previewElement: null,
+    );
+    if (_snapPreview?.point.elementId == id) {
+      _snapPreview = null;
+    }
+    _spatialIndex.invalidate();
+    notifyListeners();
+  }
+
+  void updateElement(String id, CanvasElement element, {bool record = true}) {
+    final before = elementById(id);
+    if (before == null) {
+      return;
+    }
+    if (record) {
+      historyManager.execute(
+        UpdateElementCommand(before: before, after: element),
+        this,
+      );
+      return;
+    }
+    applyElementUpdated(id, element);
+  }
+
+  void applyElementUpdated(String id, CanvasElement element) {
+    _applyElementUpdated(id, element, notify: true);
+  }
+
+  /// Update an element's state without adding to the undo stack.
+  /// Set [notify] to false to skip [notifyListeners] (useful during text
+  /// editing to avoid rebuilding the entire canvas on every keystroke).
+  void _applyElementUpdated(
+    String id,
+    CanvasElement element, {
+    bool notify = true,
+  }) {
+      updateElement(id, next, record: record);
+    }
+  }
+
+  void beginTextEditing(String id) {
+    final element = elementById(id);
+    if (element is! TextElement) {
+      return;
+    }
+    if (_editingShapeLabelElementId != null) {
+      endShapeLabelEditing();
+    }
+    if (_editingTextElementId == id) {
+      return;
+    }
+    _editingTextElementId = id;
+    _editingTextOriginal = element;
+    select(id);
+  }
+
+  void updateEditingText(String text) {
+    final id = _editingTextElementId;
+    if (id == null) {
+      return;
+    }
+    final element = elementById(id);
+    if (element is! TextElement || element.text == text) {
+      return;
+    }
+    // Silent update: the TextField overlay already shows the text being
+    // typed, so there is no need to rebuild the entire canvas on every
+    // keystroke.  A single notifyListeners() will fire in endTextEditing().
+    _applyElementUpdated(id, element.copyWith(text: text), notify: false);
+  }
+
+  void endTextEditing({String? text, bool removeIfEmpty = true}) {
+    final id = _editingTextElementId;
+    if (id == null) {
+      return;
+    }
+    if (text != null) {
+      updateEditingText(text);
+    }
+
+    _editingTextElementId = null;
+    final original = _editingTextOriginal;
+    _editingTextOriginal = null;
+    final element = elementById(id);
+    if (element is TextElement) {
+      if (removeIfEmpty && element.text.trim().isEmpty) {
+        removeElement(id);
+        return;
+      }
+      if (original != null && !_sameTextElement(original, element)) {
+        historyManager.record(
+          UpdateElementCommand(
+            before: original,
+            after: element,
+            description: 'Edit text',
+          ),
+        );
+      }
+    }
+    notifyListeners();
+  }
+
+  void cancelTextEditing() {
+    if (_editingTextElementId == null) {
+      return;
+    }
+    _editingTextElementId = null;
+    _editingTextOriginal = null;
+    notifyListeners();
+  }
+
+  void beginShapeLabelEditing(String id) {
+    final element = elementById(id);
+    if (element is! DrawioShapeElement &&
+        element is! RectElement &&
+        element is! EllipseElement &&
+        element is! LineElement &&
+        element is! ArrowElement &&
+        element is! PolylineElement) {
+      return;
+    }
+    if (_editingTextElementId != null) {
+      endTextEditing();
+    }
+    if (_editingShapeLabelElementId == id) {
+      return;
+    }
+    _editingShapeLabelElementId = id;
+    _editingShapeLabelOriginal = element;
+    select(id);
+  }
+
+  void updateEditingShapeLabel(String text, {bool clearWhenEmpty = true}) {
+    final id = _editingShapeLabelElementId;
+    if (id == null) {
+      return;
+    }
+    final element = elementById(id);
+    if (element == null) {
+      return;
+    }
+    final label = text.trim().isEmpty && clearWhenEmpty ? null : text;
+    final next = _copyWithShapeLabel(element, label);
+    if (next == null ||
+        next.toJson().toString() == element.toJson().toString()) {
+      return;
+    }
+    // Silent update during editing to avoid canvas rebuild on every keystroke.
+    _applyElementUpdated(id, next, notify: false);
+  }
+
+  void endShapeLabelEditing({String? text}) {
+    final id = _editingShapeLabelElementId;
+    if (id == null) {
+      return;
+    }
+    if (text != null) {
+      updateEditingShapeLabel(text, clearWhenEmpty: false);
+    }
+    _editingShapeLabelElementId = null;
+    final original = _editingShapeLabelOriginal;
+    _editingShapeLabelOriginal = null;
+    final element = elementById(id);
+    if (original != null &&
+        element != null &&
+        original.toJson().toString() != element.toJson().toString()) {
+      historyManager.record(
+        UpdateElementCommand(
+          before: original,
+          after: element,
+          description: 'Edit shape label',
+        ),
+      );
+    }
+    notifyListeners();
+  }
+
+  void cancelShapeLabelEditing() {
+    if (_editingShapeLabelElementId == null) {
+      return;
+    }
+    _editingShapeLabelElementId = null;
+    _editingShapeLabelOriginal = null;
+    notifyListeners();
+  }
+
+  CanvasElement? _copyWithShapeLabel(CanvasElement element, String? label) {
+    if (element is DrawioShapeElement) {
+      return element.copyWith(label: label);
+    }
+    if (element is RectElement) {
+      return element.copyWith(label: label);
+    }
+    if (element is EllipseElement) {
+      return element.copyWith(label: label);
+    }
+    if (element is LineElement) {
+      return element.copyWith(label: label);
+    }
+    if (element is ArrowElement) {
+      return element.copyWith(label: label);
+    }
+    if (element is PolylineElement) {
+      return element.copyWith(label: label);
+    }
+    return null;
+  }
+
+  bool _sameTextElement(TextElement a, TextElement b) {
+    return a.toJson().toString() == b.toJson().toString();
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'version': '0.1.0',
+      'layers': [for (final layer in layers) layer.toJson()],
+      'elements': [for (final element in elements) element.toJson()],
+    };
+  }
+
+  void _handleToolResult(ToolResult result) {
+    switch (result) {
+      case ToolResultNone():
+        break;
+      case ToolResultConsumed():
+        break;
+      case ToolResultPreview(:final preview):
+        setPreviewElement(preview);
+      case ToolResultElement(:final element, :final selectAfter):
+        addElement(element, bringToFront: true);
+        if (element is TextElement) {
+          beginTextEditing(element.id);
+
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "Get-Content -Raw docs\\plan\\plan_requirement_1_20260711-002515.md" in D:\project\GitHub\wenz_flutter\wenz_draw
+ succeeded in 156ms:
+# 涓烘洸绾胯ˉ榻愭姌绾垮悓绛夌殑绔偣鍚搁檮鑳藉姏
+
+## 闇€姹傛瑕?
+缁樺浘鐧芥澘涓殑 PolylineTool銆丳olylineElement 鍜?SelectTool 宸插舰鎴愮鐐瑰惛闄勩€佺粦瀹氭寔涔呭寲銆佹嫋鍔ㄩ噸缁戝強鐩爣绉诲姩鑱斿姩鐨勫畬鏁撮摼璺紝鑰?CurveTool 褰撳墠鐩存帴浣跨敤鎸囬拡鍧愭爣锛孋urveElement 涔熸病鏈変繚瀛?SnapBinding锛屽鑷存洸绾垮垱寤哄拰缂栬緫鏃惰櫧鍙懡涓鐐逛氦浜掞紝鍗存棤娉曞儚鎶樼嚎涓€鏍风ǔ瀹氬惛闄勫埌鍥惧舰杩炴帴鐐广€傞渶瑕佷负鏇茬嚎琛ラ綈璧风偣涓庣粓鐐圭殑鍚搁檮棰勮銆佺粦瀹氭暟鎹€佸簭鍒楀寲銆佺紪杈戣В缁?閲嶇粦鍜岃杩炴帴鍥惧舰绉诲姩鍚庣殑鍚屾鑳藉姏锛屽悓鏃朵繚鎸佺幇鏈夎礉濉炲皵鎺у埗鐐广€佺澶存牱寮忓強鏃ф枃妗ｅ吋瀹规€с€?
+## 浠诲姟鎷嗚В
+
+- [x] P001: 鎵╁睍鏇茬嚎鍏冪礌鐨勭鐐圭粦瀹氭ā鍨嬩笌鏂囨。鎸佷箙鍖?<!-- scope: lib/src/elements/curve_element.dart,lib/src/serialization/canvas_serializer.dart -->
+  - 楠屾敹瑕佺偣锛欳urveElement 鍙垎鍒繚瀛樺彲绌虹殑 startBinding 鍜?endBinding锛屽苟鍦ㄦ瀯閫犮€乧opyWith銆佸钩绉汇€佺缉鏀剧瓑鐜版湁鍏冪礌鍙樻崲杩囩▼涓纭繚鐣欑粦瀹氫俊鎭€?  - 楠屾敹瑕佺偣锛氭洸绾?JSON 浠呭湪缁戝畾瀛樺湪鏃跺啓鍏ュ搴斿瓧娈碉紝鍙嶅簭鍒楀寲鍚庡彲杩樺師 elementId 涓?anchorId銆?  - 楠屾敹瑕佺偣锛氫笉鍚粦瀹氬瓧娈电殑鏃㈡湁鏇茬嚎鏂囨。浠嶈兘鎸夋湭缁戝畾鏇茬嚎杞藉叆锛岀幇鏈夋帶鍒剁偣銆佺敾绗旀牱寮忋€佺澶存牱寮忋€佸浘灞傚拰鍒嗙粍瀛楁淇濇寔鍏煎銆?- [ ] P002: 鍦ㄦ洸绾跨粯鍒舵祦绋嬩腑鎺ュ叆璧风粓鐐瑰惛闄勪笌棰勮 <!-- scope: lib/src/tools/curve_tool.dart -->
+  - 楠屾敹瑕佺偣锛氭寜涓嬨€佺Щ鍔ㄥ拰鎶捣鎸囬拡鏃跺潎浣跨敤褰撳墠鐢诲竷缂╂斁姣斾緥瑙ｆ瀽闄勮繎杩炴帴鐐癸紝鏇茬嚎璧风偣涓庣粓鐐硅惤鍦ㄥ惛闄勪綅缃苟淇濆瓨鍚勮嚜缁戝畾銆?  - 楠屾敹瑕佺偣锛氱粯鍒堕瑙堜娇鐢ㄥ凡鍚搁檮鐨勭鐐瑰潗鏍囧苟鍚屾鏄剧ず SnapPreview锛屽畬鎴愩€佸彇娑堟垨鏃犳晥鐭窛绂荤粯鍒跺悗娓呴櫎涓存椂鍚搁檮鐘舵€佸拰棰勮銆?  - 楠屾敹瑕佺偣锛氬叧闂惛闄勬垨瓒呭嚭灞忓箷闃堝€兼椂鏇茬嚎缁х画浣跨敤鍘熷涓栫晫鍧愭爣锛岃涓轰笌鐜版湁鑷敱缁樺埗涓€鑷淬€?  - 楠屾敹瑕佺偣锛氬惛闄勫彧鏀瑰彉鏇茬嚎绔偣鏉ユ簮锛岀幇鏈変簩娆¤礉濉炲皵鎺у埗鐐硅绠椼€佺敾绗旀牱寮忓拰鍒涘缓鍚庨€変腑琛屼负淇濇寔涓嶅彉銆?- [ ] P003: 琛ラ綈鏇茬嚎绔偣缂栬緫銆佽В缁戦噸缁戜笌鐩爣绉诲姩鑱斿姩 <!-- scope: lib/src/tools/select_tool.dart,lib/src/canvas/canvas_controller.dart -->
+  - 楠屾敹瑕佺偣锛氶€変腑鏇茬嚎鍚庢嫋鍔ㄤ换涓€绔偣鍙樉绀哄惛闄勯瑙堬紝骞跺皢璇ョ鐐规洿鏂板埌鍛戒腑鐨勮繛鎺ョ偣鍙婁繚瀛樺搴旂粦瀹氾紝鍙︿竴绔偣缁戝畾涓嶅彈褰卞搷銆?  - 楠屾敹瑕佺偣锛氭妸宸茬粦瀹氱鐐规嫋绂绘墍鏈夎繛鎺ョ偣鏃朵娇鐢ㄨ嚜鐢卞潗鏍囧苟娓呴櫎璇ョ缁戝畾锛岀鐐圭紪杈戜粛浣滀负鍗曟鍙挙閿€鎿嶄綔鎻愪氦銆?  - 楠屾敹瑕佺偣锛氳缁戝畾鐨勫浘褰㈣繛鎺ョ偣鍥犵Щ鍔ㄦ垨鏇存柊鑰屾敼鍙樹綅缃椂锛屾洸绾垮搴旂鐐硅嚜鍔ㄨ窡闅忥紝鏈彈褰卞搷鐨勭鐐广€佹帶鍒剁偣鍜屾洸绾挎牱寮忎繚鎸佷笉鍙樸€?  - 楠屾敹瑕佺偣锛氱鐐规嫋鍔ㄥ畬鎴愭垨浜や簰鍙栨秷鍚庢竻闄?SnapPreview锛屾洸绾挎帶鍒剁偣缂栬緫鍜屾姌绾裤€佺洿绾裤€佺澶寸殑鏃㈡湁绔偣缂栬緫琛屼负涓嶅洖閫€銆?- [ ] P004: 琛ュ厖鏇茬嚎绔偣鍚搁檮涓庣粦瀹氱敓鍛藉懆鏈熺殑鑷姩鍖栬鐩?<!-- scope: test/curve_element_test.dart,test/snap_resolver_test.dart,test/serialization_test.dart -->
+  - 楠屾敹瑕佺偣锛氳鐩栨洸绾垮伐鍏峰湪璧风偣鍜岀粓鐐归檮杩戠粯鍒舵椂鐨勫潗鏍囧惛闄勩€佺粦瀹氳褰曘€侀瑙堟竻鐞嗭紝浠ュ強绂佺敤鍚搁檮鎴栬秴鍑洪槇鍊兼椂淇濇寔鑷敱鍧愭爣鐨勫満鏅€?  - 楠屾敹瑕佺偣锛氳鐩栭€変腑鏇茬嚎鎷栧姩璧风偣鎴栫粓鐐硅繘琛屽惛闄勩€佹敼缁戝拰鎷栫瑙ｇ粦锛屽苟楠岃瘉鎾ら攢鍙仮澶嶇紪杈戝墠鐘舵€併€?  - 楠屾敹瑕佺偣锛氳鐩栫粦瀹氱洰鏍囩Щ鍔ㄥ悗鏇茬嚎绔偣璺熼殢锛屼笖鍙︿竴绔偣銆佹帶鍒剁偣銆佺澶村強鏍峰紡鏁版嵁淇濇寔绋冲畾鐨勫満鏅€?  - 楠屾敹瑕佺偣锛氳鐩栨洸绾跨粦瀹?JSON 寰€杩旇繕鍘熷拰缂哄皯缁戝畾瀛楁鐨勬棫鏁版嵁鍏煎鍦烘櫙銆?- [ ] P005: 瀹屾暣楠屾敹 <!-- scope: validation -->
+  - 楠屾敹瑕佺偣锛氭渶缁堥獙鏀跺懡浠や负 flutter analyze && flutter test
+  - 楠屾敹瑕佺偣锛欶lutter 闈欐€佸垎鏋愭棤鏂板閿欒鎴栬鍛婏紝瀹屾暣娴嬭瘯濂椾欢鍏ㄩ儴閫氳繃銆?  - 楠屾敹瑕佺偣锛氭洸绾挎柊寤烘椂鐨勮捣鐐瑰拰缁堢偣鍧囧彲鎸夊綋鍓嶇缉鏀句笌鍚搁檮闃堝€煎惛闄勫埌鍙敤鍥惧舰杩炴帴鐐癸紝骞舵彁渚涗笌鎶樼嚎涓€鑷寸殑棰勮娓呯悊浣撻獙銆?  - 楠屾敹瑕佺偣锛氭洸绾跨鐐瑰彲鍦ㄩ€夋嫨宸ュ叿涓嚜鐢辨嫋鍔ㄣ€佸惛闄勩€佹敼缁戝拰瑙ｇ粦锛屾搷浣滃彲鎾ら攢锛屼笖涓嶅奖鍝嶆帶鍒剁偣缂栬緫鍙婂叾浠栬繛鎺ョ嚎绫诲瀷銆?  - 楠屾敹瑕佺偣锛氭洸绾跨粦瀹氬湪淇濆瓨骞堕噸鏂拌浇鍏ュ悗淇濇寔鏈夋晥锛涜杩炴帴鍥惧舰绉诲姩鏃剁粦瀹氱鐐规纭窡闅忥紝鏃х増鏃犵粦瀹氭洸绾挎枃妗ｄ粛鍙甯歌浇鍏ャ€?  - 楠屾敹瑕佺偣锛氬叧闂惛闄勩€佽秴鍑哄惛闄勯槇鍊笺€佸彇娑堜氦浜掑拰鏃犳晥鐭窛绂荤粯鍒剁瓑杈圭晫鍦烘櫙鍧囦笉浼氭畫鐣?SnapPreview銆侀敊璇粦瀹氭垨澶氫綑鏇茬嚎鍏冪礌銆?
+## 鎬讳綋楠屾敹鏍囧噯
+
+- 鏈€缁堥獙鏀跺懡浠わ細flutter analyze && flutter test
+- 楠屾敹鑼冨洿锛歭ib/src/elements/curve_element.dart銆乴ib/src/serialization/canvas_serializer.dart銆乴ib/src/tools/curve_tool.dart銆乴ib/src/tools/select_tool.dart銆乴ib/src/canvas/canvas_controller.dart銆乼est/curve_element_test.dart銆乼est/snap_resolver_test.dart銆乼est/serialization_test.dart銆乿alidation
+- 閫氳繃鏍囧噯锛氭墍鏈夋€讳綋楠屾敹鏍囧噯鍧囨弧瓒炽€?- Flutter 闈欐€佸垎鏋愭棤鏂板閿欒鎴栬鍛婏紝瀹屾暣娴嬭瘯濂椾欢鍏ㄩ儴閫氳繃銆?- 鏇茬嚎鏂板缓鏃剁殑璧风偣鍜岀粓鐐瑰潎鍙寜褰撳墠缂╂斁涓庡惛闄勯槇鍊煎惛闄勫埌鍙敤鍥惧舰杩炴帴鐐癸紝骞舵彁渚涗笌鎶樼嚎涓€鑷寸殑棰勮娓呯悊浣撻獙銆?- 鏇茬嚎绔偣鍙湪閫夋嫨宸ュ叿涓嚜鐢辨嫋鍔ㄣ€佸惛闄勩€佹敼缁戝拰瑙ｇ粦锛屾搷浣滃彲鎾ら攢锛屼笖涓嶅奖鍝嶆帶鍒剁偣缂栬緫鍙婂叾浠栬繛鎺ョ嚎绫诲瀷銆?- 鏇茬嚎缁戝畾鍦ㄤ繚瀛樺苟閲嶆柊杞藉叆鍚庝繚鎸佹湁鏁堬紱琚繛鎺ュ浘褰㈢Щ鍔ㄦ椂缁戝畾绔偣姝ｇ‘璺熼殢锛屾棫鐗堟棤缁戝畾鏇茬嚎鏂囨。浠嶅彲姝ｅ父杞藉叆銆?- 鍏抽棴鍚搁檮銆佽秴鍑哄惛闄勯槇鍊笺€佸彇娑堜氦浜掑拰鏃犳晥鐭窛绂荤粯鍒剁瓑杈圭晫鍦烘櫙鍧囦笉浼氭畫鐣?SnapPreview銆侀敊璇粦瀹氭垨澶氫綑鏇茬嚎鍏冪礌銆?
+## 杩涘害鍖?
+- P001 AutoPlan 瀹屾垚锛?026-07-10 16:28:16锛涙棩蹇楋細docs/progress/logs/20260711-002652_execute-P001.log
+
+
+codex
+代码根因已明确：悬浮栏实际固定为 320px，但画布侧仍按文字元素宽度计算工具栏命中区；窄文本时点击栏两侧会被判为“点到编辑区外”。同时 `TextField` 一失焦就立即提交，打开字号/字体下拉或颜色对话框也会提前结束编辑。PlanSpec 将围绕这两条交互链路及回归覆盖拆解。
+apply patch
+patch: completed
+D:\project\GitHub\wenz_flutter\wenz_draw\docs\plan\plan_spec_requirement_2_20260711-002820.json
+diff --git a/wenz_draw/docs/plan/plan_spec_requirement_2_20260711-002820.json b/wenz_draw/docs/plan/plan_spec_requirement_2_20260711-002820.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..3b1072a3b1fda2b4d41105ba50e94bb55b0351be
+--- /dev/null
++++ b/wenz_draw/docs/plan/plan_spec_requirement_2_20260711-002820.json
+@@ -0,0 +1,40 @@
++{
++  "title": "修复文字编辑悬浮工具栏的焦点与字体样式设置",
++  "summary": "当前文字编辑覆盖层已经提供预设颜色、自定义颜色、字号和字体族控件，但悬浮工具栏以固定 320 像素宽度渲染，画布指针处理却按文字元素自身宽度估算工具栏命中区，窄文本或不同缩放下点击工具栏两侧会被误判为点击编辑区外；同时 TextField 失焦会立即提交编辑，打开下拉菜单或颜色对话框时也可能提前结束编辑，导致颜色、字号等样式无法可靠设置。需要统一悬浮栏的布局与命中边界，区分工具栏内部的临时焦点转移和真正离开编辑区，并保证 TextElement 与可编辑图形标签的样式更新、焦点恢复、提交和撤销形成一致链路。",
++  "tasks": [
++    {
++      "title": "修复文字编辑悬浮工具栏的命中边界与焦点生命周期",
++      "scope": [
++        "lib/src/infinite_canvas/infinite_canvas_widget.dart"
++      ],
++      "acceptance": [
++        "悬浮工具栏的可交互命中区域与实际固定宽度、位置和当前画布缩放保持一致；即使文字框很窄，点击预设颜色、调色板、字号或字体族控件的任意可见区域也不会被画布误判为外部点击并结束编辑。",
++        "TextField 自动聚焦后，打开字号或字体族下拉菜单、打开或关闭自定义颜色对话框等工具栏内部焦点转移不会提前提交编辑；完成选择或取消弹层后输入焦点能够安全返回编辑框，编辑标识和当前文本保持有效。",
++        "预设颜色、自定义颜色、字号和字体族选择会立即刷新当前 TextElement 或可编辑图形标签的显示与模型样式，连续修改多个样式时悬浮工具栏持续可用并正确反映当前值。",
++        "只有提交输入或点击文字编辑区域与悬浮工具栏之外的位置才结束编辑；一次编辑会话中的文字与字体样式变更作为一次可撤销修改提交，不会因弹层焦点变化重复提交、遗漏历史记录或访问已释放的 FocusNode。"
++      ]
++    },
++    {
++      "title": "补充文字编辑悬浮工具栏交互的 Widget 回归覆盖",
++      "scope": [
++        "test/infinite_canvas_text_editing_test.dart"
++      ],
++      "acceptance": [
++        "覆盖窄文字元素在常规缩放和非 1.0 缩放下进入编辑后点击悬浮栏边缘控件的场景，验证编辑状态不会被画布指针处理提前终止。",
++        "覆盖预设颜色、字号、字体族以及自定义颜色弹层的选择或取消流程，验证样式写入当前元素、工具栏状态同步且输入焦点能够恢复。",
++        "覆盖共享编辑覆盖层处理独立文字元素和可编辑图形标签的场景，验证两类目标均可在不退出编辑的情况下修改字体样式。",
++        "覆盖真正点击编辑区外后只提交一次以及撤销恢复编辑前文字和样式的场景，并验证工具栏弹层关闭、组件重建和焦点节点释放过程中没有异常。"
++      ]
++    }
++  ],
++  "finalValidation": {
++    "command": "flutter analyze && flutter test",
++    "criteria": [
++      "Flutter 静态分析无新增错误或警告，完整测试套件全部通过。",
++      "文字输入框进入编辑后，悬浮工具栏所有可见区域在窄文本、不同字号和不同画布缩放下均可正常交互，不会触发误提交或画布工具操作。",
++      "预设颜色、自定义颜色、字号和字体族均可连续设置并即时显示，关闭下拉菜单或颜色对话框后仍可继续输入文字。",
++      "独立 TextElement 与支持标签编辑的图形均保持一致的字体设置体验，样式结果在结束编辑后保留。",
++      "点击真正的编辑区外或显式提交会结束编辑且仅产生一次可撤销历史记录，撤销可恢复会话开始前的文字与样式，焦点切换和组件销毁期间无异常。"
++    ]
++  }
++}
+
+diff --git a/wenz_draw/docs/plan/plan_spec_requirement_2_20260711-002820.json b/wenz_draw/docs/plan/plan_spec_requirement_2_20260711-002820.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..3b1072a3b1fda2b4d41105ba50e94bb55b0351be
+--- /dev/null
++++ b/wenz_draw/docs/plan/plan_spec_requirement_2_20260711-002820.json
+@@ -0,0 +1,40 @@
++{
++  "title": "修复文字编辑悬浮工具栏的焦点与字体样式设置",
++  "summary": "当前文字编辑覆盖层已经提供预设颜色、自定义颜色、字号和字体族控件，但悬浮工具栏以固定 320 像素宽度渲染，画布指针处理却按文字元素自身宽度估算工具栏命中区，窄文本或不同缩放下点击工具栏两侧会被误判为点击编辑区外；同时 TextField 失焦会立即提交编辑，打开下拉菜单或颜色对话框时也可能提前结束编辑，导致颜色、字号等样式无法可靠设置。需要统一悬浮栏的布局与命中边界，区分工具栏内部的临时焦点转移和真正离开编辑区，并保证 TextElement 与可编辑图形标签的样式更新、焦点恢复、提交和撤销形成一致链路。",
++  "tasks": [
++    {
++      "title": "修复文字编辑悬浮工具栏的命中边界与焦点生命周期",
++      "scope": [
++        "lib/src/infinite_canvas/infinite_canvas_widget.dart"
++      ],
++      "acceptance": [
++        "悬浮工具栏的可交互命中区域与实际固定宽度、位置和当前画布缩放保持一致；即使文字框很窄，点击预设颜色、调色板、字号或字体族控件的任意可见区域也不会被画布误判为外部点击并结束编辑。",
++        "TextField 自动聚焦后，打开字号或字体族下拉菜单、打开或关闭自定义颜色对话框等工具栏内部焦点转移不会提前提交编辑；完成选择或取消弹层后输入焦点能够安全返回编辑框，编辑标识和当前文本保持有效。",
++        "预设颜色、自定义颜色、字号和字体族选择会立即刷新当前 TextElement 或可编辑图形标签的显示与模型样式，连续修改多个样式时悬浮工具栏持续可用并正确反映当前值。",
++        "只有提交输入或点击文字编辑区域与悬浮工具栏之外的位置才结束编辑；一次编辑会话中的文字与字体样式变更作为一次可撤销修改提交，不会因弹层焦点变化重复提交、遗漏历史记录或访问已释放的 FocusNode。"
++      ]
++    },
++    {
++      "title": "补充文字编辑悬浮工具栏交互的 Widget 回归覆盖",
++      "scope": [
++        "test/infinite_canvas_text_editing_test.dart"
++      ],
++      "acceptance": [
++        "覆盖窄文字元素在常规缩放和非 1.0 缩放下进入编辑后点击悬浮栏边缘控件的场景，验证编辑状态不会被画布指针处理提前终止。",
++        "覆盖预设颜色、字号、字体族以及自定义颜色弹层的选择或取消流程，验证样式写入当前元素、工具栏状态同步且输入焦点能够恢复。",
++        "覆盖共享编辑覆盖层处理独立文字元素和可编辑图形标签的场景，验证两类目标均可在不退出编辑的情况下修改字体样式。",
++        "覆盖真正点击编辑区外后只提交一次以及撤销恢复编辑前文字和样式的场景，并验证工具栏弹层关闭、组件重建和焦点节点释放过程中没有异常。"
++      ]
++    }
++  ],
++  "finalValidation": {
++    "command": "flutter analyze && flutter test",
++    "criteria": [
++      "Flutter 静态分析无新增错误或警告，完整测试套件全部通过。",
++      "文字输入框进入编辑后，悬浮工具栏所有可见区域在窄文本、不同字号和不同画布缩放下均可正常交互，不会触发误提交或画布工具操作。",
++      "预设颜色、自定义颜色、字号和字体族均可连续设置并即时显示，关闭下拉菜单或颜色对话框后仍可继续输入文字。",
++      "独立 TextElement 与支持标签编辑的图形均保持一致的字体设置体验，样式结果在结束编辑后保留。",
++      "点击真正的编辑区外或显式提交会结束编辑且仅产生一次可撤销历史记录，撤销可恢复会话开始前的文字与样式，焦点切换和组件销毁期间无异常。"
++    ]
++  }
++}
+
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command '$path='"'docs\\plan\\plan_spec_requirement_2_20260711-002820.json'; "'$spec=Get-Content -Raw -Encoding UTF8 $path | ConvertFrom-Json; [pscustomobject]@{Exists=(Test-Path $path); Title=$spec.title; TaskCount=$spec.tasks.Count; TaskKeys=(($spec.tasks | ForEach-Object { ($_.PSObject.Properties.Name -join '"',') }) -join ';'); ValidationCommand="'$spec.finalValidation.command; JsonBytes=(Get-Item $path).Length} | Format-List; git status --short -- $path docs'"\\plan\\plan_requirement_2_20260711-002820.md" in D:\project\GitHub\wenz_flutter\wenz_draw
+ succeeded in 313ms:
+
+
+Exists            : True
+Title             : 修复文字编辑悬浮工具栏的焦点与字体样式设置
+TaskCount         : 2
+TaskKeys          : title,scope,acceptance;title,scope,acceptance
+ValidationCommand : flutter analyze && flutter test
+JsonBytes         : 3973
+
+
+
+?? docs/plan/plan_spec_requirement_2_20260711-002820.json
+
+diff --git a/wenz_draw/docs/plan/plan_spec_requirement_2_20260711-002820.json b/wenz_draw/docs/plan/plan_spec_requirement_2_20260711-002820.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..3b1072a3b1fda2b4d41105ba50e94bb55b0351be
+--- /dev/null
++++ b/wenz_draw/docs/plan/plan_spec_requirement_2_20260711-002820.json
+@@ -0,0 +1,40 @@
++{
++  "title": "修复文字编辑悬浮工具栏的焦点与字体样式设置",
++  "summary": "当前文字编辑覆盖层已经提供预设颜色、自定义颜色、字号和字体族控件，但悬浮工具栏以固定 320 像素宽度渲染，画布指针处理却按文字元素自身宽度估算工具栏命中区，窄文本或不同缩放下点击工具栏两侧会被误判为点击编辑区外；同时 TextField 失焦会立即提交编辑，打开下拉菜单或颜色对话框时也可能提前结束编辑，导致颜色、字号等样式无法可靠设置。需要统一悬浮栏的布局与命中边界，区分工具栏内部的临时焦点转移和真正离开编辑区，并保证 TextElement 与可编辑图形标签的样式更新、焦点恢复、提交和撤销形成一致链路。",
++  "tasks": [
++    {
++      "title": "修复文字编辑悬浮工具栏的命中边界与焦点生命周期",
++      "scope": [
++        "lib/src/infinite_canvas/infinite_canvas_widget.dart"
++      ],
++      "acceptance": [
++        "悬浮工具栏的可交互命中区域与实际固定宽度、位置和当前画布缩放保持一致；即使文字框很窄，点击预设颜色、调色板、字号或字体族控件的任意可见区域也不会被画布误判为外部点击并结束编辑。",
++        "TextField 自动聚焦后，打开字号或字体族下拉菜单、打开或关闭自定义颜色对话框等工具栏内部焦点转移不会提前提交编辑；完成选择或取消弹层后输入焦点能够安全返回编辑框，编辑标识和当前文本保持有效。",
++        "预设颜色、自定义颜色、字号和字体族选择会立即刷新当前 TextElement 或可编辑图形标签的显示与模型样式，连续修改多个样式时悬浮工具栏持续可用并正确反映当前值。",
++        "只有提交输入或点击文字编辑区域与悬浮工具栏之外的位置才结束编辑；一次编辑会话中的文字与字体样式变更作为一次可撤销修改提交，不会因弹层焦点变化重复提交、遗漏历史记录或访问已释放的 FocusNode。"
++      ]
++    },
++    {
++      "title": "补充文字编辑悬浮工具栏交互的 Widget 回归覆盖",
++      "scope": [
++        "test/infinite_canvas_text_editing_test.dart"
++      ],
++      "acceptance": [
++        "覆盖窄文字元素在常规缩放和非 1.0 缩放下进入编辑后点击悬浮栏边缘控件的场景，验证编辑状态不会被画布指针处理提前终止。",
++        "覆盖预设颜色、字号、字体族以及自定义颜色弹层的选择或取消流程，验证样式写入当前元素、工具栏状态同步且输入焦点能够恢复。",
++        "覆盖共享编辑覆盖层处理独立文字元素和可编辑图形标签的场景，验证两类目标均可在不退出编辑的情况下修改字体样式。",
++        "覆盖真正点击编辑区外后只提交一次以及撤销恢复编辑前文字和样式的场景，并验证工具栏弹层关闭、组件重建和焦点节点释放过程中没有异常。"
++      ]
++    }
++  ],
++  "finalValidation": {
++    "command": "flutter analyze && flutter test",
++    "criteria": [
++      "Flutter 静态分析无新增错误或警告，完整测试套件全部通过。",
++      "文字输入框进入编辑后，悬浮工具栏所有可见区域在窄文本、不同字号和不同画布缩放下均可正常交互，不会触发误提交或画布工具操作。",
++      "预设颜色、自定义颜色、字号和字体族均可连续设置并即时显示，关闭下拉菜单或颜色对话框后仍可继续输入文字。",
++      "独立 TextElement 与支持标签编辑的图形均保持一致的字体设置体验，样式结果在结束编辑后保留。",
++      "点击真正的编辑区外或显式提交会结束编辑且仅产生一次可撤销历史记录，撤销可恢复会话开始前的文字与样式，焦点切换和组件销毁期间无异常。"
++    ]
++  }
++}
+
+codex
+已生成并验证合法 JSON：
+
+[plan_spec_requirement_2_20260711-002820.json](D:/project/GitHub/wenz_flutter/wenz_draw/docs/plan/plan_spec_requirement_2_20260711-002820.json)
+
+未写 Markdown，未修改业务代码。
+diff --git a/wenz_draw/docs/plan/plan_spec_requirement_2_20260711-002820.json b/wenz_draw/docs/plan/plan_spec_requirement_2_20260711-002820.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..3b1072a3b1fda2b4d41105ba50e94bb55b0351be
+--- /dev/null
++++ b/wenz_draw/docs/plan/plan_spec_requirement_2_20260711-002820.json
+@@ -0,0 +1,40 @@
++{
++  "title": "修复文字编辑悬浮工具栏的焦点与字体样式设置",
++  "summary": "当前文字编辑覆盖层已经提供预设颜色、自定义颜色、字号和字体族控件，但悬浮工具栏以固定 320 像素宽度渲染，画布指针处理却按文字元素自身宽度估算工具栏命中区，窄文本或不同缩放下点击工具栏两侧会被误判为点击编辑区外；同时 TextField 失焦会立即提交编辑，打开下拉菜单或颜色对话框时也可能提前结束编辑，导致颜色、字号等样式无法可靠设置。需要统一悬浮栏的布局与命中边界，区分工具栏内部的临时焦点转移和真正离开编辑区，并保证 TextElement 与可编辑图形标签的样式更新、焦点恢复、提交和撤销形成一致链路。",
++  "tasks": [
++    {
++      "title": "修复文字编辑悬浮工具栏的命中边界与焦点生命周期",
++      "scope": [
++        "lib/src/infinite_canvas/infinite_canvas_widget.dart"
++      ],
++      "acceptance": [
++        "悬浮工具栏的可交互命中区域与实际固定宽度、位置和当前画布缩放保持一致；即使文字框很窄，点击预设颜色、调色板、字号或字体族控件的任意可见区域也不会被画布误判为外部点击并结束编辑。",
++        "TextField 自动聚焦后，打开字号或字体族下拉菜单、打开或关闭自定义颜色对话框等工具栏内部焦点转移不会提前提交编辑；完成选择或取消弹层后输入焦点能够安全返回编辑框，编辑标识和当前文本保持有效。",
++        "预设颜色、自定义颜色、字号和字体族选择会立即刷新当前 TextElement 或可编辑图形标签的显示与模型样式，连续修改多个样式时悬浮工具栏持续可用并正确反映当前值。",
++        "只有提交输入或点击文字编辑区域与悬浮工具栏之外的位置才结束编辑；一次编辑会话中的文字与字体样式变更作为一次可撤销修改提交，不会因弹层焦点变化重复提交、遗漏历史记录或访问已释放的 FocusNode。"
++      ]
++    },
++    {
++      "title": "补充文字编辑悬浮工具栏交互的 Widget 回归覆盖",
++      "scope": [
++        "test/infinite_canvas_text_editing_test.dart"
++      ],
++      "acceptance": [
++        "覆盖窄文字元素在常规缩放和非 1.0 缩放下进入编辑后点击悬浮栏边缘控件的场景，验证编辑状态不会被画布指针处理提前终止。",
++        "覆盖预设颜色、字号、字体族以及自定义颜色弹层的选择或取消流程，验证样式写入当前元素、工具栏状态同步且输入焦点能够恢复。",
++        "覆盖共享编辑覆盖层处理独立文字元素和可编辑图形标签的场景，验证两类目标均可在不退出编辑的情况下修改字体样式。",
++        "覆盖真正点击编辑区外后只提交一次以及撤销恢复编辑前文字和样式的场景，并验证工具栏弹层关闭、组件重建和焦点节点释放过程中没有异常。"
++      ]
++    }
++  ],
++  "finalValidation": {
++    "command": "flutter analyze && flutter test",
++    "criteria": [
++      "Flutter 静态分析无新增错误或警告，完整测试套件全部通过。",
++      "文字输入框进入编辑后，悬浮工具栏所有可见区域在窄文本、不同字号和不同画布缩放下均可正常交互，不会触发误提交或画布工具操作。",
++      "预设颜色、自定义颜色、字号和字体族均可连续设置并即时显示，关闭下拉菜单或颜色对话框后仍可继续输入文字。",
++      "独立 TextElement 与支持标签编辑的图形均保持一致的字体设置体验，样式结果在结束编辑后保留。",
++      "点击真正的编辑区外或显式提交会结束编辑且仅产生一次可撤销历史记录，撤销可恢复会话开始前的文字与样式，焦点切换和组件销毁期间无异常。"
++    ]
++  }
++}
+
+tokens used
+59,322
+已生成并验证合法 JSON：
+
+[plan_spec_requirement_2_20260711-002820.json](D:/project/GitHub/wenz_flutter/wenz_draw/docs/plan/plan_spec_requirement_2_20260711-002820.json)
+
+未写 Markdown，未修改业务代码。

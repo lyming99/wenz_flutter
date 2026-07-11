@@ -1,0 +1,63 @@
+{
+  "title": "优化桌面端深色主题编辑器背景色",
+  "summary": "当前 WenzRichTextEditor 的深色主题编辑器背景在核心组件、example 工作台和集成测试 helper 中均直接使用 Colors.black，桌面端黑色主题下视觉过深。实施时应将深色编辑器画布调整为更柔和的深色中性背景，同时保持浅色主题白色背景、正文颜色、选区/光标/块渲染和现有主题切换行为不回归。重点范围包括 lib/src/widgets/wenz_rich_text_editor.dart 的默认背景解析、example/lib/main.dart 的桌面编辑器外层背景、example/integration_test/helpers/test_app.dart 的测试工作台背景，以及现有深色主题 golden/集成断言同步。",
+  "tasks": [
+    {
+      "title": "调整编辑器默认深色背景 token",
+      "scope": [
+        "lib/src/widgets/wenz_rich_text_editor.dart"
+      ],
+      "acceptance": [
+        "WenzRichTextEditor 在 Brightness.dark 下不再把根编辑器背景解析为 Colors.black 或纯黑 #000000，而是使用更柔和的深色中性背景",
+        "Brightness.light 下编辑器默认背景仍保持白色，不改变浅色主题既有视觉基准",
+        "背景色调整仅影响编辑器根画布，不改写文档模型、正文默认颜色、光标、选区、代码块、表格、媒体块或浮层色彩语义",
+        "实现保留 ThemeData/ColorScheme 派生边界，不新增业务侧必填配置，也不破坏现有 WenzRichTextEditor 构造参数兼容性"
+      ]
+    },
+    {
+      "title": "同步 example 桌面工作台深色编辑器外层背景",
+      "scope": [
+        "example/lib/main.dart"
+      ],
+      "acceptance": [
+        "example 的 _exampleTheme 与 _exampleEditorBackground 在深色主题下与核心编辑器深色背景策略一致，不再使用纯黑作为编辑器区域背景",
+        "主题切换后工具栏、侧栏、正文 onSurface 文本颜色和编辑器外层 ColoredBox 仍从 ThemeData/ColorScheme 派生，视觉层级清晰",
+        "浅色主题 example 背景仍保持白色，不改变现有浅色桌面工作台布局和交互"
+      ]
+    },
+    {
+      "title": "同步集成测试工作台主题背景",
+      "scope": [
+        "example/integration_test/helpers/test_app.dart",
+        "example/integration_test/theme_toggle_test.dart"
+      ],
+      "acceptance": [
+        "测试工作台的 _testWorkbenchTheme 与 _testEditorBackground 使用与 example 一致的深色编辑器背景，不再断言深色编辑器表面为 Colors.black",
+        "theme_toggle 集成测试继续覆盖浅色到深色、深色到浅色切换时文档内容不丢失",
+        "theme_toggle 集成测试明确断言深色编辑器表面为新的柔和深色背景，浅色表面仍为 Colors.white"
+      ]
+    },
+    {
+      "title": "更新深色主题 golden 覆盖",
+      "scope": [
+        "test/widgets/editor_golden_test.dart",
+        "test/widgets/goldens/editor_theme_dark.png"
+      ],
+      "acceptance": [
+        "editor dark theme surface golden 使用新的深色编辑器背景生成基准图，避免继续锁定纯黑背景",
+        "editor light theme surface golden 保持现有白色背景基准，不因本次调整产生无关变化",
+        "golden 用例仍覆盖空文档编辑器根画布，能够捕获未来深色背景误回退为纯黑的回归"
+      ]
+    }
+  ],
+  "finalValidation": {
+    "command": "dart format --set-exit-if-changed lib/src/widgets/wenz_rich_text_editor.dart example/lib/main.dart example/integration_test/helpers/test_app.dart example/integration_test/theme_toggle_test.dart test/widgets/editor_golden_test.dart; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; flutter analyze; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; flutter test test/widgets/editor_golden_test.dart example/integration_test/theme_toggle_test.dart",
+    "criteria": [
+      "受影响 Dart 文件通过 dart format --set-exit-if-changed 检查，没有未格式化代码",
+      "flutter analyze 全量通过，没有新增 analyzer error、warning 或 lint 问题",
+      "editor_golden_test 通过，深色主题编辑器背景 golden 已更新为非纯黑的柔和深色背景，浅色 golden 不发生无关变化",
+      "theme_toggle 集成测试通过，浅色/深色切换后文档内容保持存在，深色编辑器外层背景不再是 Colors.black，浅色仍为 Colors.white",
+      "本次调整仅改变桌面端深色主题编辑器画布背景观感，不回归正文渲染、选择/光标、工具栏、侧栏、浮层、文档序列化和编辑命令行为"
+    ]
+  }
+}

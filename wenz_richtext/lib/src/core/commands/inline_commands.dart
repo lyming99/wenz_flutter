@@ -652,7 +652,10 @@ _InlineFormulaUpdateResult _updateInlineFormulaContent(
     if (node is! InlineEmbed || !node.isFormula) {
       continue;
     }
-    if (offset < nodeStart || offset > nodeEnd) {
+    // Inline embeds occupy one logical placeholder slot: [nodeStart, nodeEnd).
+    // Keeping the end boundary exclusive prevents a preceding formula from
+    // claiming the start offset of an adjacent formula.
+    if (offset < nodeStart || offset >= nodeEnd) {
       continue;
     }
     final nextNode = node.copyWithFormulaText(text);

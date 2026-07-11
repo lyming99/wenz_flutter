@@ -1,0 +1,89 @@
+{
+  "title": "修复复制粘贴图片比例识别与选中框留白",
+  "summary": "反馈 #26 指出复制粘贴图片仍无法正确识别尺寸比例，导致图片选中框内出现留白。结合当前代码，内存图片字节已具备 PNG/JPEG/WebP/GIF/BMP 像素尺寸解析并能透传到 ImageBlockNode，但文件路径和 file:// URI 图片在 ExternalImageIoStore._prepareFile 中只做文件校验和 canonical path 处理，未从图片文件字节补齐 width/height；而 DefaultExternalImageClipboardReader 会优先使用 accepted fileUri 候选并跳过 memory flavor，平台剪贴板优先暴露文件/URI 时仍会生成无尺寸图片块。显示层 _ImageDisplayMetrics 会在无原始尺寸时回退到 2:1 占位比例，MediaResolver 的 Image.file/Image.network 通常用 BoxFit.contain 填入该 frame，最终表现为选择描边包住错误比例 frame，图片内容周围留白。计划应补齐文件/URI 图片尺寸读取，校准剪贴板候选降级策略，并用选中态 frame、selection stroke、resize hit zone 与 toolbar 锚点的回归覆盖确保选择框贴合真实图片比例。",
+  "tasks": [
+    {
+      "title": "为文件路径和 file URI 外部图片补齐真实像素尺寸",
+      "scope": [
+        "lib/src/input/external_image_store_io.dart",
+        "lib/src/input/external_image_input.dart"
+      ],
+      "acceptance": [
+        "ExternalImageIoStore._prepareFile 在文件存在、非目录、非空且类型支持后，从可信文件字节读取 PNG、JPEG、WebP、GIF、BMP 的原始 width 和 height，并通过 ExternalImageBlockDescription 写入后续 ImageBlockNode。",
+        "文件路径和 file:// URI 复制粘贴图片与内存图片一样能携带真实像素尺寸，不再因 width/height 为 0 而回退到 2:1 占位比例。",
+        "尺寸读取失败、损坏图片头、无法解码或不支持的边界情况不应让已通过现有文件校验的图片插入流程崩溃；无法获取尺寸时继续按无尺寸兼容路径生成描述。",
+        "canonical path、caption、altText、文件扩展名校验、缺失文件、目录、空文件和非图片文件的原有拒绝原因保持不变。",
+        "内存图片 prepare 现有尺寸解析、临时文件写入、失败清理和字节内容保持不回归。"
+      ]
+    },
+    {
+      "title": "优化剪贴板图片候选优先级与尺寸兜底",
+      "scope": [
+        "lib/src/input/external_image_clipboard_reader.dart",
+        "lib/src/widgets/wenz_rich_text_editor.dart"
+      ],
+      "acceptance": [
+        "同一剪贴板 item 同时提供 fileUri/file path 与 memory image flavor 时，accepted fileUri 不应无条件导致 memory flavor 永久丢失；当文件候选无法产出可用图片或无法补齐尺寸时，应有可控的 memory 候选兜底路径。",
+        "正常可访问的 fileUri/file path 图片不会因为同时存在 memory flavor 而重复插入；多张图片的原始顺序和去重语义保持稳定。",
+        "当 fileUri 可以访问并成功读取尺寸时，粘贴结果优先保留 canonical file 路径和真实 width/height；当 fileUri 后续 prepare 失败时，仍有机会使用同项 memory 图片插入，避免回退到纯文本或生成无尺寸图片。",
+        "plain text、HTML、Markdown、Wenz rich JSON 的现有粘贴优先级不被改变；外部图片成功插入时仍优先于文本 fallback。",
+        "禁用 enableExternalImageInput、只读编辑器、空剪贴板、unsupported URI 和普通文件路径文本识别的现有行为保持兼容。"
+      ]
+    },
+    {
+      "title": "统一图片显示框与选中态几何尺寸",
+      "scope": [
+        "lib/src/widgets/wenz_rich_text_editor.dart",
+        "lib/src/widgets/media_resolver.dart"
+      ],
+      "acceptance": [
+        "ImageBlockNode 存在原始 width/height 时，_ImageDisplayMetrics 和 _imageAspectRatio 必须优先使用真实宽高比计算 frame，选择描边、图片内容 SizedBox、resize hit zones 和对象工具栏锚点都基于同一个 frame。",
+        "复制粘贴生成的横图、竖图、接近方图、超宽图和超高图在选中后，_MediaSelectionStroke 与 wenz-richtext-image-frame-* 的矩形一致，不因占位比例或 resolver 子树尺寸产生可见留白。",
+        "MediaResolver 返回 Image.file、Image.network、Image.memory 或自定义图片 widget 时，外层有限 frame 与模型比例一致；resolver 使用 BoxFit.contain 时不再因为外层比例错误导致选择框内空白。",
+        "没有真实尺寸的旧数据、空图片占位、加载失败占位继续使用兼容占位比例，不引入无限高度、负尺寸或布局抖动。",
+        "showWidth/showHeight 仍表示用户调整后的展示尺寸并优先于原始 width/height；拖拽 resize、重置尺寸、撤销/重做和 caption 布局保持现有行为。"
+      ]
+    },
+    {
+      "title": "补充复制粘贴图片比例与选中框回归覆盖",
+      "scope": [
+        "test/input/external_image_input_test.dart",
+        "test/input/clipboard_service_test.dart",
+        "test/widgets/wenz_rich_text_editor_test.dart",
+        "test/widgets/media_resolver_test.dart"
+      ],
+      "acceptance": [
+        "输入层新增文件路径和 file:// URI 图片 prepare 后产出真实 width/height 的场景，覆盖至少一种非 2:1 图片比例，并验证 caption、altText、canonical path 和原始文件内容不变。",
+        "剪贴板服务或编辑器粘贴场景覆盖外部图片描述中的 width/height 进入 ImageBlockNode，且 showWidth/showHeight 仍为空，保证首次粘贴不把原始像素尺寸误写成用户展示尺寸。",
+        "widget 层新增选中复制粘贴图片的几何断言：image frame、image size box、selection stroke 三者矩形一致，frame 高度符合真实宽高比而不是 2:1 占位比例。",
+        "MediaResolver 回归覆盖本地文件/网络/自定义图片 resolver 在真实尺寸 frame 中渲染时不会产生选择框留白，并保留无尺寸旧数据的占位 fallback。",
+        "现有图片 resize、对象工具栏、caption、外部图片优先级、失败后文本 fallback、禁用外部图片输入和多图顺序相关用例继续覆盖且预期不变。"
+      ]
+    },
+    {
+      "title": "同步外部图片尺寸契约文档",
+      "scope": [
+        "docs/input_system.md",
+        "docs/integration_guide.md",
+        "docs/api_reference.md"
+      ],
+      "acceptance": [
+        "文档明确外部图片输入会尽量从内存字节、文件路径和 file:// URI 中提取原始像素 width/height，并将其写入 ImageBlockNode 的 width/height。",
+        "文档继续区分 width/height 与 showWidth/showHeight：前者是原图固有尺寸，后者是用户 resize 后的展示尺寸，首次粘贴不应混用。",
+        "宿主自定义 ExternalImageStore 和 MediaResolver 的说明补充：若业务层自行 materialize 或解析图片，应在可获得时提供真实尺寸；无法获得时编辑器会使用兼容占位比例。",
+        "文档不要求业务方通过手动 resize 或自定义 resolver 来规避选择框留白；默认外部图片链路应自行给出正确比例。",
+        "现有关于启用开关、剪贴板优先级、文件校验、失败 fallback 和旧数据无尺寸兼容的说明保持一致。"
+      ]
+    }
+  ],
+  "finalValidation": {
+    "command": "flutter analyze; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; flutter test --no-pub test/input/external_image_input_test.dart test/input/clipboard_service_test.dart test/widgets/wenz_rich_text_editor_test.dart test/widgets/media_resolver_test.dart",
+    "criteria": [
+      "静态分析通过，无新增 Dart analyzer error 或 warning。",
+      "文件路径、file:// URI 和内存复制粘贴图片都能在可解析时写入 ImageBlockNode.width/height，首次粘贴不写入 showWidth/showHeight。",
+      "选中复制粘贴图片时，图片 frame、selection stroke、resize hit zones 和对象工具栏锚点贴合真实宽高比，不再出现由错误 2:1 frame 导致的选择框内留白。",
+      "无尺寸旧数据、空占位、加载失败、HTML/Markdown/Wenz rich JSON 粘贴、禁用外部图片输入、失败文本 fallback、多图顺序、resize、重置尺寸和撤销/重做保持兼容。",
+      "相关输入层、剪贴板层、widget 层和 MediaResolver 回归用例全部通过。"
+    ]
+  }
+}

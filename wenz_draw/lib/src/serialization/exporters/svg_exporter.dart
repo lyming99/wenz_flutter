@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../../canvas/paint_style.dart';
 import '../../elements/arrow_element.dart';
 import '../../elements/canvas_element.dart';
 import '../../elements/curve_element.dart';
@@ -9,6 +10,7 @@ import '../../elements/drawio_shape_element.dart';
 import '../../elements/ellipse_element.dart';
 import '../../elements/image_element.dart';
 import '../../elements/line_element.dart';
+import '../../elements/line_arrow_style.dart';
 import '../../elements/line_label_painter.dart';
 import '../../elements/path_element.dart';
 import '../../elements/polyline_element.dart';
@@ -50,7 +52,7 @@ class SvgExporter {
       final PathElement e => _path(e),
       final CurveElement e => _curve(e),
       final PolylineElement e => _polyline(e),
-      final LineElement e => _lineWithLabel(e, [e.start, e.end]),
+      final LineElement e => _straightLine(e),
       final DrawioShapeElement e => _drawioShape(e),
       final RectElement e => _rect(e),
       final EllipseElement e => _ellipse(e),
@@ -76,7 +78,9 @@ class SvgExporter {
   static String _curve(CurveElement e) {
     final d =
         'M ${e.start.dx} ${e.start.dy} Q ${e.control.dx} ${e.control.dy} ${e.end.dx} ${e.end.dy}';
-    return '<path d="$d" fill="none" stroke="${_color(e.style.color)}" stroke-width="${e.style.strokeWidth}" opacity="${e.opacity * e.style.opacity}" stroke-linecap="round"/>';
+    final shape =
+        '<path d="$d" fill="none" stroke="${_color(e.style.color)}" stroke-width="${e.style.strokeWidth}" opacity="${e.opacity * e.style.opacity}" stroke-linecap="round"/>';
+    return '$shape${_lineArrows(e.arrowStyle, [e.start, e.control, e.end], e.style, e.opacity)}';
   }
 
   static String _line(dynamic e) {
@@ -88,6 +92,11 @@ class SvgExporter {
     return '${_line(e)}${_lineLabel(e, points)}';
   }
 
+  static String _straightLine(LineElement e) {
+    final points = [e.start, e.end];
+    return '${_line(e)}${_lineArrows(e.arrowStyle, points, e.style, e.opacity)}${_lineLabel(e, points)}';
+  }
+
   static String _polyline(PolylineElement e) {
     if (e.points.length < 2) {
       return '';
@@ -97,29 +106,48 @@ class SvgExporter {
     final shape =
         '<polyline points="$points" fill="none" stroke="${_color(style.color)}" stroke-width="${style.strokeWidth}" opacity="${e.opacity * style.opacity}" stroke-linecap="round" stroke-linejoin="round"/>';
 
-    // Arrowhead marker
-    String arrow = '';
-    if (e.endArrow && e.points.length >= 2) {
-      final p0 = e.points[e.points.length - 2];
-      final p1 = e.points.last;
-      final dx = p1.dx - p0.dx;
-      final dy = p1.dy - p0.dy;
-      final len = math.sqrt(dx * dx + dy * dy);
-      if (len > 0.1) {
-        final ux = dx / len;
-        final uy = dy / len;
-        final size = e.headSize;
-        // Arrowhead as a filled triangle
-        final base = Offset(p1.dx - ux * size, p1.dy - uy * size);
-        final perpX = -uy;
-        final perpY = ux;
-        final left = Offset(base.dx + perpX * size * 0.4, base.dy + perpY * size * 0.4);
-        final right = Offset(base.dx - perpX * size * 0.4, base.dy - perpY * size * 0.4);
-        arrow = '<polygon points="${p1.dx},${p1.dy} ${left.dx},${left.dy} ${right.dx},${right.dy}" fill="${_color(style.color)}" opacity="${e.opacity * style.opacity}"/>';
-      }
-    }
+    return '$shape${_lineArrows(e.arrowStyle, e.points, style, e.opacity)}${_lineLabel(e, e.points)}';
+  }
 
-    return '$shape$arrow${_lineLabel(e, e.points)}';
+  static String _lineArrows(
+    LineArrowStyle arrowStyle,
+    List<Offset> points,
+    PaintStyle paintStyle,
+    double opacity,
+  ) {
+    if (!arrowStyle.hasAnyArrow || points.length < 2) {
+      return '';
+    }
+    final buffer = StringBuffer();
+    for (final endpoint in LineArrowEndpoint.values) {
+      final type = arrowStyle.typeFor(endpoint);
+      final direction = LineArrowGeometryUtils.terminalDirection(
+        points,
+        endpoint: endpoint,
+      );
+      if (!type.isEnabled ||
+          direction == null ||
+          direction.distance < LineArrowGeometryUtils.minSegmentLength) {
+        continue;
+      }
+      final tip = endpoint == LineArrowEndpoint.start
+          ? points.first
+          : points.last;
+      final unit = direction / direction.distance;
+      final size = arrowStyle.effectiveHeadSize;
+      final base = tip - unit * size;
+      final perpendicular = Offset(-unit.dy, unit.dx);
+      final firstWing = base + perpendicular * size * 0.4;
+      final secondWing = base - perpendicular * size * 0.4;
+      buffer.write(
+        '<polygon points="${tip.dx},${tip.dy} '
+        '${firstWing.dx},${firstWing.dy} '
+        '${secondWing.dx},${secondWing.dy}" '
+        'fill="${_color(paintStyle.color)}" '
+        'opacity="${opacity * paintStyle.opacity}"/>',
+      );
+    }
+    return buffer.toString();
   }
 
   static String _drawioShape(DrawioShapeElement e) {
@@ -167,7 +195,8 @@ class SvgExporter {
         : _color(e.strokeStyle.color);
     final shape =
         '<rect x="${e.rect.left}" y="${e.rect.top}" width="${e.rect.width}" height="${e.rect.height}" rx="${e.borderRadius}" fill="$fill" stroke="$stroke" stroke-width="${e.strokeStyle.strokeWidth}" opacity="${e.opacity}" fill-opacity="$fillOpacity" stroke-opacity="${e.strokeStyle.opacity}"/>';
-    final inner = '$shape${_shapeLabel(e.rect, e.label, e.labelStyle, e.labelAlign, e.labelPadding, e.opacity)}';
+    final inner =
+        '$shape${_shapeLabel(e.rect, e.label, e.labelStyle, e.labelAlign, e.labelPadding, e.opacity)}';
     return _rotateGroup(e.rect.center, e.rotation, inner);
   }
 
@@ -179,7 +208,8 @@ class SvgExporter {
         : _color(e.strokeStyle.color);
     final shape =
         '<ellipse cx="${e.rect.center.dx}" cy="${e.rect.center.dy}" rx="${e.rect.width / 2}" ry="${e.rect.height / 2}" fill="$fill" stroke="$stroke" stroke-width="${e.strokeStyle.strokeWidth}" opacity="${e.opacity}" fill-opacity="$fillOpacity" stroke-opacity="${e.strokeStyle.opacity}"/>';
-    final inner = '$shape${_shapeLabel(e.rect, e.label, e.labelStyle, e.labelAlign, e.labelPadding, e.opacity)}';
+    final inner =
+        '$shape${_shapeLabel(e.rect, e.label, e.labelStyle, e.labelAlign, e.labelPadding, e.opacity)}';
     return _rotateGroup(e.rect.center, e.rotation, inner);
   }
 

@@ -109,16 +109,23 @@ class _MobileSelectionHandlesOverlayState
   }
 
   void _onHandlePanStart(bool isStart) {
-    final selection = widget.controller.selection;
-    if (selection == null) {
-      _fixedEdge = null;
+    if (!mounted) {
       return;
     }
-    // Keep the opposite visual edge fixed while this handle moves.
-    _fixedEdge = isStart ? selection.end : selection.start;
+    final selection = widget.controller.selection;
+    if (selection == null || selection.isCollapsed) {
+      return;
+    }
+    setState(() {
+      // Keep the opposite visual edge fixed while this handle moves.
+      _fixedEdge = isStart ? selection.end : selection.start;
+    });
   }
 
   void _onHandlePanUpdate(bool isStart, Offset global) {
+    if (!mounted) {
+      return;
+    }
     final fixedEdge = _fixedEdge;
     if (fixedEdge == null) {
       return;
@@ -136,7 +143,12 @@ class _MobileSelectionHandlesOverlayState
   }
 
   void _onHandlePanEnd() {
-    _fixedEdge = null;
+    if (!mounted || _fixedEdge == null) {
+      return;
+    }
+    setState(() {
+      _fixedEdge = null;
+    });
   }
 
   @override

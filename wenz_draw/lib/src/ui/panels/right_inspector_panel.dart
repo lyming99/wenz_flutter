@@ -29,6 +29,7 @@ class RightInspectorPanel extends StatelessWidget {
         final selectedStroke = strokeColorOf(selected) ?? brush.color;
         final selectedStrokeWidth =
             strokeWidthOf(selected) ?? brush.strokeWidth;
+        final selectedArrowStyle = lineArrowStyleOf(selected);
         final selectedMindmapNode = _mindmapNodeData(selected);
         final selectedMindmapRoot = selectedMindmapNode?.isRoot == true
             ? selectedMindmapNode
@@ -65,8 +66,8 @@ class RightInspectorPanel extends StatelessWidget {
                           canDelete: canvasController.layers.length > 1,
                           onSelect: () =>
                               canvasController.setActiveLayer(layer.id),
-                          onToggleVisible: () => canvasController
-                              .toggleLayerVisibility(layer.id),
+                          onToggleVisible: () =>
+                              canvasController.toggleLayerVisibility(layer.id),
                           onDelete: () =>
                               canvasController.removeLayer(layer.id),
                         );
@@ -90,6 +91,17 @@ class RightInspectorPanel extends StatelessWidget {
                         canvasController: canvasController,
                         nodeId: selected!.id,
                         data: selectedMindmapNode,
+                      ),
+                    ],
+                  ),
+                if (selectedArrowStyle != null)
+                  PanelSection(
+                    title: '\u7bad\u5934',
+                    children: [
+                      LineArrowModeControl(
+                        value: selectedArrowStyle.mode,
+                        onChanged: (mode) => canvasController
+                            .updateLineArrowMode(selected!.id, mode),
                       ),
                     ],
                   ),
@@ -196,10 +208,7 @@ class RightInspectorPanel extends StatelessWidget {
                       },
                       onCommitted: (text) {
                         if (selected != null) {
-                          canvasController.updateTextContent(
-                            selected.id,
-                            text,
-                          );
+                          canvasController.updateTextContent(selected.id, text);
                         }
                       },
                     ),
@@ -331,8 +340,7 @@ class RightInspectorPanel extends StatelessWidget {
                       value: rotationDegreesOf(selected),
                       min: -180,
                       max: 180,
-                      onChanged:
-                          canRotateElement(selected) && selected != null
+                      onChanged: canRotateElement(selected) && selected != null
                           ? (value) {
                               canvasController.updateElementRotation(
                                 selected.id,

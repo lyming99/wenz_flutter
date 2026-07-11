@@ -25,11 +25,14 @@ abstract final class WenzLucideToolbarIcons {
   static const String chevronUp = 'chevron-up';
   static const String clearTextColor = 'eraser';
   static const String code = 'code';
+  static const String divider = 'minus';
   static const String columns = 'columns-3';
   static const String extension = 'puzzle';
   static const String file = 'paperclip';
   static const String formula = 'square-function';
   static const String heading = 'heading';
+  static const String indentDecrease = 'indent-decrease';
+  static const String indentIncrease = 'indent-increase';
   static const String image = 'image';
   static const String insert = 'plus';
   static const String italic = 'italic';
@@ -51,6 +54,7 @@ abstract final class WenzLucideToolbarIcons {
   static const String tableCellAlignClear = removeFormat;
   static const String tableCellAlignLeft = alignLeft;
   static const String tableCellAlignRight = alignRight;
+  static const String tableCellStyle = table;
   static const String tableColumnInsert = 'table-columns-split';
   static const String tableColumnInsertAfter = arrowRight;
   static const String tableColumnInsertBefore = arrowLeft;
@@ -60,6 +64,9 @@ abstract final class WenzLucideToolbarIcons {
   static const String tableHeaderToggle = heading;
   static const String tableMerge = 'table-cells-merge';
   static const String tableMore = more;
+  static const String tableSelect = table;
+  static const String tableSelectColumn = columns;
+  static const String tableSelectRow = rows;
   static const String tableRowInsert = 'table-rows-split';
   static const String tableRowInsertAbove = arrowUp;
   static const String tableRowInsertBelow = arrowDown;
@@ -67,6 +74,7 @@ abstract final class WenzLucideToolbarIcons {
   static const String tableSplit = 'table-cells-split';
   static const String taskList = 'list-checks';
   static const String textColor = 'type';
+  static const String textBlock = textColor;
   static const String underline = 'underline';
   static const String undo = 'undo-2';
   static const String unorderedList = 'list';
@@ -99,11 +107,14 @@ const Set<String> _kKnownIconNames = <String>{
   WenzLucideToolbarIcons.chevronUp,
   WenzLucideToolbarIcons.clearTextColor,
   WenzLucideToolbarIcons.code,
+  WenzLucideToolbarIcons.divider,
   WenzLucideToolbarIcons.columns,
   WenzLucideToolbarIcons.extension,
   WenzLucideToolbarIcons.file,
   WenzLucideToolbarIcons.formula,
   WenzLucideToolbarIcons.heading,
+  WenzLucideToolbarIcons.indentDecrease,
+  WenzLucideToolbarIcons.indentIncrease,
   WenzLucideToolbarIcons.image,
   WenzLucideToolbarIcons.insert,
   WenzLucideToolbarIcons.italic,
@@ -160,8 +171,10 @@ const Map<String, String> _kIconAliases = <String, String>{
   'clear-alignment': WenzLucideToolbarIcons.tableCellAlignClear,
   'emoji': WenzLucideToolbarIcons.emoji,
   'emoji-emotions-outlined': WenzLucideToolbarIcons.emoji,
+  'divider': WenzLucideToolbarIcons.divider,
   'delete-column': WenzLucideToolbarIcons.tableColumnDelete,
   'delete-row': WenzLucideToolbarIcons.tableRowDelete,
+  'delete-table': WenzLucideToolbarIcons.tableDelete,
   'expand-less': WenzLucideToolbarIcons.chevronUp,
   'expand-more': WenzLucideToolbarIcons.chevronDown,
   'extension': WenzLucideToolbarIcons.extension,
@@ -179,6 +192,8 @@ const Map<String, String> _kIconAliases = <String, String>{
   'format-color-reset': WenzLucideToolbarIcons.clearTextColor,
   'format-color-reset-outlined': WenzLucideToolbarIcons.tableBackgroundClear,
   'format-color-text': WenzLucideToolbarIcons.textColor,
+  'format-indent-decrease': WenzLucideToolbarIcons.indentDecrease,
+  'format-indent-increase': WenzLucideToolbarIcons.indentIncrease,
   'format-italic': WenzLucideToolbarIcons.italic,
   'format-list-bulleted': WenzLucideToolbarIcons.unorderedList,
   'format-list-numbered': WenzLucideToolbarIcons.orderedList,
@@ -188,6 +203,7 @@ const Map<String, String> _kIconAliases = <String, String>{
   'formula': WenzLucideToolbarIcons.formula,
   'functions': WenzLucideToolbarIcons.formula,
   'highlight-remove-outlined': WenzLucideToolbarIcons.tableDelete,
+  'horizontal-rule': WenzLucideToolbarIcons.divider,
   'image-outlined': WenzLucideToolbarIcons.image,
   'insert-column-after': WenzLucideToolbarIcons.tableColumnInsertAfter,
   'insert-column-before': WenzLucideToolbarIcons.tableColumnInsertBefore,
@@ -207,11 +223,15 @@ const Map<String, String> _kIconAliases = <String, String>{
   'more-vert': WenzLucideToolbarIcons.tableMore,
   'more-vertical': WenzLucideToolbarIcons.tableMore,
   'palette-outlined': WenzLucideToolbarIcons.palette,
+  'paragraph': WenzLucideToolbarIcons.textBlock,
   'remove-circle-outline': WenzLucideToolbarIcons.tableDelete,
   'redo': WenzLucideToolbarIcons.redo,
   'reset-column-width': WenzLucideToolbarIcons.tableColumnWidthReset,
   'smart-display': WenzLucideToolbarIcons.video,
   'smart-display-outlined': WenzLucideToolbarIcons.video,
+  'select-column': WenzLucideToolbarIcons.tableSelectColumn,
+  'select-row': WenzLucideToolbarIcons.tableSelectRow,
+  'select-table': WenzLucideToolbarIcons.tableSelect,
   'split-cell': WenzLucideToolbarIcons.tableSplit,
   'set-background-color': WenzLucideToolbarIcons.tableBackgroundFill,
   'clear-background-color': WenzLucideToolbarIcons.tableBackgroundClear,
@@ -220,6 +240,7 @@ const Map<String, String> _kIconAliases = <String, String>{
   'table-cell-align-left': WenzLucideToolbarIcons.tableCellAlignLeft,
   'table-cell-align-right': WenzLucideToolbarIcons.tableCellAlignRight,
   'table-chart': WenzLucideToolbarIcons.table,
+  'text-block': WenzLucideToolbarIcons.textBlock,
   'table-chart-outlined': WenzLucideToolbarIcons.table,
   'table-column': WenzLucideToolbarIcons.tableColumnDelete,
   'table-column-delete': WenzLucideToolbarIcons.tableColumnDelete,
@@ -239,6 +260,9 @@ const Map<String, String> _kIconAliases = <String, String>{
   'table-row-insert-above': WenzLucideToolbarIcons.tableRowInsertAbove,
   'table-row-insert-below': WenzLucideToolbarIcons.tableRowInsertBelow,
   'table-rows-outlined': WenzLucideToolbarIcons.tableRowDelete,
+  'table-select': WenzLucideToolbarIcons.tableSelect,
+  'table-select-column': WenzLucideToolbarIcons.tableSelectColumn,
+  'table-select-row': WenzLucideToolbarIcons.tableSelectRow,
   'table-split-cell': WenzLucideToolbarIcons.tableSplit,
   'toggle-header': WenzLucideToolbarIcons.tableHeaderToggle,
   'toggle-table-header': WenzLucideToolbarIcons.tableHeaderToggle,

@@ -1,0 +1,1338 @@
+OpenAI Codex v0.142.5
+--------
+workdir: D:\project\GitHub\wenz_flutter\wenz_draw
+model: gpt-5.5
+provider: openai
+approval: never
+sandbox: workspace-write [workdir, /tmp, $TMPDIR]
+reasoning effort: xhigh
+reasoning summaries: none
+session id: 019f47ad-d6e8-7ed1-91b6-8d6ae9fc3415
+--------
+user
+你是开发执行者，在无人值守模式下工作：禁止反问用户、禁止请求确认或补充信息、禁止输出“请告诉我…/是否需要…”之类等待回复的话；遇到不确定一律自行从代码推断，按最合理的工程方案直接推进，不要停下来等待输入。
+请只执行指定任务 P003，不要提前执行其它任务，也不要顺手处理其它 checkbox。
+
+plan 文件（只读）：D:\project\GitHub\wenz_flutter\wenz_draw\docs\plan\plan_feedback_50_20260710-001811.md
+指定任务：- [ ] P003: 接入曲线箭头的序列化、Schema 与 SVG 导出 <!-- scope: lib/src/serialization/canvas_serializer.dart,lib/src/serialization/exporters/svg_exporter.dart,docs/canvas_document.schema.json -->
+任务 scope：lib/src/serialization/canvas_serializer.dart, lib/src/serialization/exporters/svg_exporter.dart, docs/canvas_document.schema.json
+
+完成后必须：
+- 当前任务已恢复同一 plan 前序任务的 Codex 会话，请沿用已有分析结论和修改背景，避免重新从零梳理
+- 这是无人值守执行：不要提问、不要请求确认、不要等待用户输入，所有不确定项自行基于代码推断并直接落地修改
+- plan 文件是只读上下文：不要修改 plan 文件，不要勾选 checkbox，不要更新 plan 进度区
+- AutoPlan 会在任务成功后统一写回数据库、checkbox 和进度区
+- 只修改当前任务 scope 直接相关的业务文件
+- 当前阶段只做开发修改，不运行测试、回归、验收、构建、lint/analyze、coverage、e2e 或 benchmark 命令；AutoPlan 会在所有任务完成后统一执行最终验收命令
+- 即使任务验收要点提到测试，也只补充或调整必要代码/测试文件，不在当前任务内启动测试进程；除非当前任务或 plan 总体说明明确写着“本任务必须执行某命令”
+- 若识别到 Flutter/Dart 项目，可遵循其代码组织、格式和测试文件约定，但当前任务内不要运行 flutter test、dart test、flutter analyze 或 dart analyze
+- 如果工具链命令因 PathAccessException、Permission denied、拒绝访问或超时失败，停止重试并说明环境阻塞，把验证留给最终验收阶段
+- 不输出完整 diff、源码全文或长文件列表
+- 中文文件读写使用 UTF-8
+codex
+我会只处理 P003 scope，沿用 P001 已给 `CurveElement` 增加 `endArrow/headSize` 的前提：读取序列化、SVG 导出和 schema 的现有实现后，直接补曲线箭头字段读取与导出；不会运行测试或修改 plan。
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "Get-Content -LiteralPath 'D:\\project\\GitHub\\wenz_flutter\\wenz_draw\\lib\\src\\serialization\\canvas_serializer.dart' -Raw -Encoding UTF8" in D:\project\GitHub\wenz_flutter\wenz_draw
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "Get-Content -LiteralPath 'D:\\project\\GitHub\\wenz_flutter\\wenz_draw\\docs\\plan\\plan_feedback_50_20260710-001811.md' -Raw -Encoding UTF8" in D:\project\GitHub\wenz_flutter\wenz_draw
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "Get-Content -LiteralPath 'D:\\project\\GitHub\\wenz_flutter\\wenz_draw\\lib\\src\\serialization\\exporters\\svg_exporter.dart' -Raw -Encoding UTF8" in D:\project\GitHub\wenz_flutter\wenz_draw
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "Get-Content -LiteralPath 'D:\\project\\GitHub\\wenz_flutter\\wenz_draw\\docs\\canvas_document.schema.json' -Raw -Encoding UTF8" in D:\project\GitHub\wenz_flutter\wenz_draw
+ succeeded in 1052ms:
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wenz_draw/canvas_document.schema.json",
+  "title": "Canvas Document (schema 2.0)",
+  "description": "Serialized wenz_draw infinite-canvas document. Forward- and backward-compatible: unknown top-level keys are preserved in CanvasDocument.extras, and elements whose type is unrecognized are preserved as UnknownElement (raw JSON verbatim).",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["schemaVersion", "layers", "elements"],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "description": "Document schema version. Current is '2.0'. Older documents (1.0/1.1 via a legacy 'version' key) are migrated on load.",
+      "default": "2.0"
+    },
+    "version": {
+      "type": "string",
+      "description": "Legacy version key (1.x). Consumed by DocumentMigrator and renamed to schemaVersion; not emitted by current writers.",
+      "deprecated": true
+    },
+    "metadata": {
+      "$ref": "#/$defs/metadata"
+    },
+    "viewport": {
+      "$ref": "#/$defs/viewport"
+    },
+    "assets": {
+      "type": "array",
+      "description": "Binary assets referenced out-of-line from elements (images, ...). Keeps documents small when the raster lives on a CDN/filesystem.",
+      "items": { "$ref": "#/$defs/asset" }
+    },
+    "layers": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/layer" }
+    },
+    "elements": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/element" }
+    }
+  },
+  "$defs": {
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "createdAt": { "type": "integer", "description": "Milliseconds since epoch" },
+        "updatedAt": { "type": "integer", "description": "Milliseconds since epoch" },
+        "appId": { "type": "string" },
+        "appVersion": { "type": "string" },
+        "custom": {
+          "type": "object",
+          "description": "Free-form extension bag for application-specific metadata.",
+          "additionalProperties": true
+        }
+      }
+    },
+    "viewport": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Last-known view so a reopened board lands where the user left it.",
+      "properties": {
+        "scale": { "type": "number", "minimum": 0, "exclusiveMinimum": 0 },
+        "centerX": { "type": "number" },
+        "centerY": { "type": "number" }
+      }
+    },
+    "asset": {
+      "type": "object",
+      "required": ["id", "type", "source"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "type": { "type": "string", "default": "image" },
+        "source": {
+          "type": "string",
+          "description": "How 'ref' is resolved: 'base64', 'url', 'file', or a custom kind matched by a host ImageLoader.",
+          "default": "base64"
+        },
+        "ref": { "type": "string" },
+        "width": { "type": "number", "minimum": 0 },
+        "height": { "type": "number", "minimum": 0 },
+        "custom": { "type": "object", "additionalProperties": true }
+      }
+    },
+    "layer": {
+      "type": "object",
+      "required": ["id"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "name": { "type": "string", "default": "Layer" },
+        "visible": { "type": "boolean", "default": true },
+        "locked": { "type": "boolean", "default": false },
+        "opacity": { "type": "number", "minimum": 0, "maximum": 1, "default": 1 }
+      }
+    },
+    "element": {
+      "type": "object",
+      "description": "A canvas element. The discriminator is 'type'. Elements with an unrecognized type are preserved verbatim as UnknownElement, so this schema is intentionally permissive (additionalProperties: true).",
+      "required": ["type"],
+      "additionalProperties": true,
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Element discriminator. Known types: path, curve, line, polyline, rect, ellipse, drawioShape, arrow, text, image, widget, unknown."
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Stable element id. Should be non-empty; a missing id is flagged by validateForSave."
+        },
+        "layerId": { "type": "string" },
+        "visible": { "type": "boolean", "default": true },
+        "opacity": { "type": "number", "minimum": 0, "maximum": 1, "default": 1 },
+        "zIndex": { "type": "integer", "default": 0 },
+        "groupId": { "type": "string" },
+        "rect": {
+          "type": "object",
+          "description": "World-space bounding rect (left/top/right/bottom). A rect with right<left or bottom<top is flagged as a warning.",
+          "properties": {
+            "left": { "type": "number" },
+            "top": { "type": "number" },
+            "right": { "type": "number" },
+            "bottom": { "type": "number" }
+          }
+        }
+      }
+    }
+  }
+}
+
+
+ succeeded in 1066ms:
+# 曲线箭头配置支持
+
+## 需求概要
+
+为现有 CurveElement 补齐与 PolylineElement 相近的末端箭头开关和箭头尺寸能力，覆盖画布渲染、属性面板、序列化、SVG 导出和回归测试，确保曲线可设置箭头且保存加载后不丢失。
+
+## 任务拆解
+
+- [x] P001: 扩展曲线元素的箭头数据与画布渲染 <!-- scope: lib/src/elements/curve_element.dart -->
+  - 验收要点：CurveElement 增加 endArrow 和 headSize，并在 copyWith、translate、scaleElement、bounds、hitTest、toJson 中保持语义一致。
+  - 验收要点：启用箭头时曲线末端按二次贝塞尔终点切线方向绘制箭头，控制点与终点重合等退化曲线不产生异常或错误方向。
+  - 验收要点：未启用箭头的既有曲线渲染、命中测试和缩放行为保持兼容。
+- [x] P002: 补齐曲线箭头的控制器和检查器入口 <!-- scope: lib/src/canvas/canvas_controller.dart,lib/src/ui/panels/right_inspector_panel.dart,lib/src/ui/panels/inspector_utils.dart,lib/src/ui/panels/inspector_fields.dart -->
+  - 验收要点：选中 CurveElement 时右侧检查器显示箭头开关，并正确回显当前 endArrow 状态。
+  - 验收要点：启用箭头后可调整 headSize，关闭箭头后不会破坏已保存尺寸值，重新启用仍可使用上次尺寸。
+  - 验收要点：通过控制器更新曲线箭头时只修改 endArrow 和 headSize，并纳入现有历史撤销/重做链路。
+- [ ] P003: 接入曲线箭头的序列化、Schema 与 SVG 导出 <!-- scope: lib/src/serialization/canvas_serializer.dart,lib/src/serialization/exporters/svg_exporter.dart,docs/canvas_document.schema.json -->
+  - 验收要点：CurveElement JSON round-trip 保留 endArrow 和 headSize，旧文档缺少字段时默认加载为无箭头且使用默认箭头尺寸。
+  - 验收要点：SVG 导出对带箭头曲线输出曲线路径和末端箭头图形，箭头方向沿曲线终点切线。
+  - 验收要点：无箭头曲线的 JSON 和 SVG 输出保持向后兼容，文档 schema 不收紧未知字段兼容策略。
+- [ ] P004: 补充曲线箭头回归覆盖 <!-- scope: test/serialization_test.dart,test/svg_exporter_test.dart,test/curve_element_test.dart,test/canvas_controller_test.dart -->
+  - 验收要点：覆盖曲线启用和关闭箭头、headSize 缩放、边界和命中测试包含箭头影响的模型行为。
+  - 验收要点：覆盖 CanvasSerializer 对 curve endArrow 和 headSize 的 round-trip，以及旧 JSON 默认值加载场景。
+  - 验收要点：覆盖 SvgExporter 输出带箭头曲线且 SVG 可解析，并验证未启用箭头的曲线不会新增箭头图形。
+- [ ] P005: 完整验收 <!-- scope: validation -->
+  - 验收要点：最终验收命令为 flutter test
+  - 验收要点：所有 Flutter 测试通过，覆盖曲线箭头模型、检查器更新入口、序列化恢复和 SVG 导出。
+  - 验收要点：在编辑器中选中曲线可开启或关闭末端箭头并调整箭头大小，撤销和重做后状态一致。
+  - 验收要点：旧版不含箭头字段的曲线文档仍可加载为无箭头，现有折线、直线和 ArrowElement 行为不回退。
+
+## 总体验收标准
+
+- 最终验收命令：flutter test
+- 验收范围：lib/src/elements/curve_element.dart、lib/src/canvas/canvas_controller.dart、lib/src/ui/panels/right_inspector_panel.dart、lib/src/ui/panels/inspector_utils.dart、lib/src/ui/panels/inspector_fields.dart、lib/src/serialization/canvas_serializer.dart、lib/src/serialization/exporters/svg_exporter.dart、docs/canvas_document.schema.json、test/serialization_test.dart、test/svg_exporter_test.dart、test/curve_element_test.dart、test/canvas_controller_test.dart、validation
+- 通过标准：所有总体验收标准均满足。
+- 所有 Flutter 测试通过，覆盖曲线箭头模型、检查器更新入口、序列化恢复和 SVG 导出。
+- 在编辑器中选中曲线可开启或关闭末端箭头并调整箭头大小，撤销和重做后状态一致。
+- 旧版不含箭头字段的曲线文档仍可加载为无箭头，现有折线、直线和 ArrowElement 行为不回退。
+
+## 进度区
+
+| 任务 | 状态 | 备注 |
+| --- | --- | --- |
+| P001 | 未开始 | 扩展曲线元素的箭头数据与画布渲染 |
+| P002 | 未开始 | 补齐曲线箭头的控制器和检查器入口 |
+| P003 | 未开始 | 接入曲线箭头的序列化、Schema 与 SVG 导出 |
+| P004 | 未开始 | 补充曲线箭头回归覆盖 |
+| P005 | 未开始 | 完整验收 |
+- P001 AutoPlan 完成：2026-07-09T16:21:37.257Z；日志：docs/progress/logs/20260710-002002_execute-P001.log
+- P002 AutoPlan 完成：2026-07-09T16:38:46.623Z；日志：docs/progress/logs/20260710-003408_execute-P002.log
+
+
+ succeeded in 1271ms:
+import 'dart:math' as math;
+
+import 'package:flutter/material.dart';
+
+import '../../elements/arrow_element.dart';
+import '../../elements/canvas_element.dart';
+import '../../elements/curve_element.dart';
+import '../../elements/drawio_shape_element.dart';
+import '../../elements/ellipse_element.dart';
+import '../../elements/image_element.dart';
+import '../../elements/line_element.dart';
+import '../../elements/line_label_painter.dart';
+import '../../elements/path_element.dart';
+import '../../elements/polyline_element.dart';
+import '../../elements/rect_element.dart';
+import '../../elements/shape_definition_registry.dart';
+import '../../elements/shape_label_painter.dart';
+import '../../elements/text_element.dart';
+import '../../elements/widget_element.dart';
+
+class SvgExporter {
+  const SvgExporter._();
+
+  static String exportElements({
+    required Iterable<CanvasElement> elements,
+    Rect? bounds,
+    Color backgroundColor = Colors.white,
+  }) {
+    final elementList = elements.toList(growable: false)
+      ..sort((a, b) => a.zIndex.compareTo(b.zIndex));
+    final exportBounds = bounds ?? _contentBounds(elementList).inflate(24);
+    final buffer = StringBuffer()
+      ..writeln(
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="${exportBounds.left} ${exportBounds.top} ${exportBounds.width} ${exportBounds.height}">',
+      )
+      ..writeln(
+        '<rect x="${exportBounds.left}" y="${exportBounds.top}" width="${exportBounds.width}" height="${exportBounds.height}" fill="${_color(backgroundColor)}"/>',
+      );
+
+    for (final element in elementList) {
+      buffer.writeln(_elementSvg(element));
+    }
+
+    buffer.writeln('</svg>');
+    return buffer.toString();
+  }
+
+  static String _elementSvg(CanvasElement element) {
+    return switch (element) {
+      final PathElement e => _path(e),
+      final CurveElement e => _curve(e),
+      final PolylineElement e => _polyline(e),
+      final LineElement e => _lineWithLabel(e, [e.start, e.end]),
+      final DrawioShapeElement e => _drawioShape(e),
+      final RectElement e => _rect(e),
+      final EllipseElement e => _ellipse(e),
+      final ArrowElement e =>
+        '${_lineWithLabel(e, [e.start, e.end])}${_arrowHead(e)}',
+      final TextElement e => _text(e),
+      final ImageElement e => _imagePlaceholder(e),
+      final CanvasWidgetElement e => _widgetPlaceholder(e),
+      _ => '',
+    };
+  }
+
+  static String _path(PathElement e) {
+    if (e.points.isEmpty) return '';
+    final d = StringBuffer()
+      ..write('M ${e.points.first.position.dx} ${e.points.first.position.dy}');
+    for (final point in e.points.skip(1)) {
+      d.write(' L ${point.position.dx} ${point.position.dy}');
+    }
+    return '<path d="$d" fill="none" stroke="${_color(e.style.color)}" stroke-width="${e.style.strokeWidth}" opacity="${e.opacity * e.style.opacity}" stroke-linecap="round" stroke-linejoin="round"/>';
+  }
+
+  static String _curve(CurveElement e) {
+    final d =
+        'M ${e.start.dx} ${e.start.dy} Q ${e.control.dx} ${e.control.dy} ${e.end.dx} ${e.end.dy}';
+    return '<path d="$d" fill="none" stroke="${_color(e.style.color)}" stroke-width="${e.style.strokeWidth}" opacity="${e.opacity * e.style.opacity}" stroke-linecap="round"/>';
+  }
+
+  static String _line(dynamic e) {
+    final style = e.style;
+    return '<line x1="${e.start.dx}" y1="${e.start.dy}" x2="${e.end.dx}" y2="${e.end.dy}" stroke="${_color(style.color)}" stroke-width="${style.strokeWidth}" opacity="${e.opacity * style.opacity}" stroke-linecap="round"/>';
+  }
+
+  static String _lineWithLabel(dynamic e, List<Offset> points) {
+    return '${_line(e)}${_lineLabel(e, points)}';
+  }
+
+  static String _polyline(PolylineElement e) {
+    if (e.points.length < 2) {
+      return '';
+    }
+    final style = e.style;
+    final points = e.points.map((point) => '${point.dx},${point.dy}').join(' ');
+    final shape =
+        '<polyline points="$points" fill="none" stroke="${_color(style.color)}" stroke-width="${style.strokeWidth}" opacity="${e.opacity * style.opacity}" stroke-linecap="round" stroke-linejoin="round"/>';
+
+    // Arrowhead marker
+    String arrow = '';
+    if (e.endArrow && e.points.length >= 2) {
+      final p0 = e.points[e.points.length - 2];
+      final p1 = e.points.last;
+      final dx = p1.dx - p0.dx;
+      final dy = p1.dy - p0.dy;
+      final len = math.sqrt(dx * dx + dy * dy);
+      if (len > 0.1) {
+        final ux = dx / len;
+        final uy = dy / len;
+        final size = e.headSize;
+        // Arrowhead as a filled triangle
+        final base = Offset(p1.dx - ux * size, p1.dy - uy * size);
+        final perpX = -uy;
+        final perpY = ux;
+        final left = Offset(base.dx + perpX * size * 0.4, base.dy + perpY * size * 0.4);
+        final right = Offset(base.dx - perpX * size * 0.4, base.dy - perpY * size * 0.4);
+        arrow = '<polygon points="${p1.dx},${p1.dy} ${left.dx},${left.dy} ${right.dx},${right.dy}" fill="${_color(style.color)}" opacity="${e.opacity * style.opacity}"/>';
+      }
+    }
+
+    return '$shape$arrow${_lineLabel(e, e.points)}';
+  }
+
+  static String _drawioShape(DrawioShapeElement e) {
+    ensureDrawioShapeDefinitionsRegistered();
+    final definition = ShapeDefinitionRegistry.definitionFor(e.shapeKey);
+    final fill = e.fillStyle == null ? 'none' : _color(e.fillStyle!.color);
+    final fillOpacity = e.fillStyle?.opacity ?? 0;
+    final stroke = e.strokeStyle.strokeWidth <= 0 || e.strokeStyle.opacity <= 0
+        ? 'none'
+        : _color(e.strokeStyle.color);
+    final shape =
+        '<path d="${definition.svgPathFor(e.rect, e.properties)}" fill="$fill" stroke="$stroke" stroke-width="${e.strokeStyle.strokeWidth}" opacity="${e.opacity}" fill-opacity="$fillOpacity" stroke-opacity="${e.strokeStyle.opacity}" stroke-linejoin="round"/>';
+    final foreground = [
+      for (final path in definition.foregroundSvgPathsFor(e.rect, e.properties))
+        '<path d="$path" fill="none" stroke="$stroke" stroke-width="${e.strokeStyle.strokeWidth}" opacity="${e.opacity}" stroke-opacity="${e.strokeStyle.opacity}" stroke-linejoin="round"/>',
+    ].join();
+    final shapeWithTransform = _flipGroup(e, '$shape$foreground');
+    return '$shapeWithTransform${_shapeLabel(definition.labelRectFor(e.rect, e.properties), e.label, e.labelStyle, e.labelAlign, e.labelPadding, e.opacity, verticalAlign: e.properties['verticalAlign'] as String?, labelPosition: e.properties['labelPosition'] as String?, verticalLabelPosition: e.properties['verticalLabelPosition'] as String?)}';
+  }
+
+  static String _rotateGroup(Offset center, double rotation, String svg) {
+    if (rotation == 0) {
+      return svg;
+    }
+    final degrees = rotation * 180 / math.pi;
+    return '<g transform="rotate($degrees ${center.dx} ${center.dy})">$svg</g>';
+  }
+
+  static String _flipGroup(DrawioShapeElement e, String svg) {
+    final flipH = _boolProperty(e.properties['flipH']);
+    final flipV = _boolProperty(e.properties['flipV']);
+    if (!flipH && !flipV) {
+      return svg;
+    }
+    final sx = flipH ? -1.0 : 1.0;
+    final sy = flipV ? -1.0 : 1.0;
+    return '<g transform="translate(${e.rect.center.dx} ${e.rect.center.dy}) scale($sx $sy) translate(${-e.rect.center.dx} ${-e.rect.center.dy})">$svg</g>';
+  }
+
+  static String _rect(RectElement e) {
+    final fill = e.fillStyle == null ? 'none' : _color(e.fillStyle!.color);
+    final fillOpacity = e.fillStyle?.opacity ?? 0;
+    final stroke = e.strokeStyle.strokeWidth <= 0 || e.strokeStyle.opacity <= 0
+        ? 'none'
+        : _color(e.strokeStyle.color);
+    final shape =
+        '<rect x="${e.rect.left}" y="${e.rect.top}" width="${e.rect.width}" height="${e.rect.height}" rx="${e.borderRadius}" fill="$fill" stroke="$stroke" stroke-width="${e.strokeStyle.strokeWidth}" opacity="${e.opacity}" fill-opacity="$fillOpacity" stroke-opacity="${e.strokeStyle.opacity}"/>';
+    final inner = '$shape${_shapeLabel(e.rect, e.label, e.labelStyle, e.labelAlign, e.labelPadding, e.opacity)}';
+    return _rotateGroup(e.rect.center, e.rotation, inner);
+  }
+
+  static String _ellipse(EllipseElement e) {
+    final fill = e.fillStyle == null ? 'none' : _color(e.fillStyle!.color);
+    final fillOpacity = e.fillStyle?.opacity ?? 0;
+    final stroke = e.strokeStyle.strokeWidth <= 0 || e.strokeStyle.opacity <= 0
+        ? 'none'
+        : _color(e.strokeStyle.color);
+    final shape =
+        '<ellipse cx="${e.rect.center.dx}" cy="${e.rect.center.dy}" rx="${e.rect.width / 2}" ry="${e.rect.height / 2}" fill="$fill" stroke="$stroke" stroke-width="${e.strokeStyle.strokeWidth}" opacity="${e.opacity}" fill-opacity="$fillOpacity" stroke-opacity="${e.strokeStyle.opacity}"/>';
+    final inner = '$shape${_shapeLabel(e.rect, e.label, e.labelStyle, e.labelAlign, e.labelPadding, e.opacity)}';
+    return _rotateGroup(e.rect.center, e.rotation, inner);
+  }
+
+  static String _arrowHead(ArrowElement e) {
+    return '<circle cx="${e.end.dx}" cy="${e.end.dy}" r="${e.style.strokeWidth * 1.25}" fill="${_color(e.style.color)}" opacity="${e.opacity * e.style.opacity}"/>';
+  }
+
+  static String _lineLabel(dynamic e, List<Offset> points) {
+    final label = e.label as String?;
+    if (label == null || label.isEmpty || points.isEmpty) {
+      return '';
+    }
+    final style = e.labelStyle as TextStyle;
+    final position = e.labelPosition as double;
+    final offset = e.labelOffset as Offset;
+    final background = e.labelBackground as Color?;
+    final center = LineLabelPainter.labelCenter(
+      points,
+      labelPosition: position,
+      labelOffset: offset,
+    );
+    final color = style.color ?? Colors.black;
+    final size = style.fontSize ?? LineLabelPainter.defaultStyle.fontSize ?? 14;
+    final weight = style.fontWeight?.value ?? FontWeight.normal.value;
+    final lineHeight = size * (style.height ?? 1.2);
+    final lines = label.split('\n');
+    final escapedLines = [
+      for (var i = 0; i < lines.length; i++)
+        '<tspan x="${center.dx}" dy="${i == 0 ? 0 : lineHeight}">${_escape(lines[i])}</tspan>',
+    ].join();
+    final estimatedWidth = lines.fold<double>(
+      0,
+      (max, line) => math.max(max, line.length * size * 0.6),
+    );
+    final totalHeight = size + (lines.length - 1) * lineHeight;
+    final backgroundSvg = background == null
+        ? ''
+        : '<rect x="${center.dx - estimatedWidth / 2 - 4}" y="${center.dy - totalHeight / 2 - 2}" width="${estimatedWidth + 8}" height="${totalHeight + 4}" fill="${_color(background)}" opacity="${e.opacity}" rx="3"/>';
+    return '$backgroundSvg<text x="${center.dx}" y="${center.dy - totalHeight / 2 + size}" fill="${_color(color)}" font-size="$size" font-weight="$weight" opacity="${e.opacity}" text-anchor="middle">$escapedLines</text>';
+  }
+
+  static String _shapeLabel(
+    Rect rect,
+    String? label,
+    TextStyle style,
+    TextAlign align,
+    EdgeInsets padding,
+    double opacity, {
+    String? verticalAlign,
+    String? labelPosition,
+    String? verticalLabelPosition,
+  }) {
+    if (label == null || label.isEmpty) {
+      return '';
+    }
+    final contentRect = padding.deflateRect(rect);
+    if (contentRect.width <= 0 || contentRect.height <= 0) {
+      return '';
+    }
+    final color = style.color ?? Colors.black;
+    final size =
+        style.fontSize ?? ShapeLabelPainter.defaultStyle.fontSize ?? 16;
+    final weight = style.fontWeight?.value ?? FontWeight.normal.value;
+    final horizontal = labelPosition ?? align.name;
+    final anchor = switch (horizontal) {
+      'center' || 'middle' => 'middle',
+      'right' => 'end',
+      'left' => 'start',
+      _ => switch (align) {
+        TextAlign.center => 'middle',
+        TextAlign.right || TextAlign.end => 'end',
+        _ => 'start',
+      },
+    };
+    final x = switch (horizontal) {
+      'center' || 'middle' => contentRect.center.dx,
+      'right' => contentRect.right,
+      'left' => contentRect.left,
+      _ => switch (align) {
+        TextAlign.center => contentRect.center.dx,
+        TextAlign.right || TextAlign.end => contentRect.right,
+        _ => contentRect.left,
+      },
+    };
+    final lines = label.split('\n');
+    final lineHeight = size * (style.height ?? 1.2);
+    final totalHeight = size + (lines.length - 1) * lineHeight;
+    final vertical = verticalAlign ?? verticalLabelPosition;
+    final firstBaseline = switch (vertical) {
+      'top' => contentRect.top + size,
+      'bottom' => contentRect.bottom - totalHeight + size,
+      _ => contentRect.center.dy - totalHeight / 2 + size,
+    };
+    return [
+      '<text x="$x" y="$firstBaseline" fill="${_color(color)}" font-size="$size" font-weight="$weight" opacity="$opacity" text-anchor="$anchor">',
+      for (var i = 0; i < lines.length; i++)
+        '<tspan x="$x" dy="${i == 0 ? 0 : lineHeight}">${_escape(lines[i])}</tspan>',
+      '</text>',
+    ].join();
+  }
+
+  static String _text(TextElement e) {
+    final color = e.style.color ?? Colors.black;
+    final size = e.style.fontSize ?? 24;
+    final weight = e.style.fontWeight?.value ?? FontWeight.normal.value;
+    final anchor = switch (e.textAlign) {
+      TextAlign.center => 'middle',
+      TextAlign.right || TextAlign.end => 'end',
+      _ => 'start',
+    };
+    final x = switch (e.textAlign) {
+      TextAlign.center => e.bounds.center.dx,
+      TextAlign.right || TextAlign.end => e.bounds.right,
+      _ => e.position.dx,
+    };
+    final lines = e.text.split('\n');
+    final lineHeight = size * (e.style.height ?? 1.2);
+    return [
+      '<text x="$x" y="${e.position.dy + size}" fill="${_color(color)}" font-size="$size" font-weight="$weight" opacity="${e.opacity}" text-anchor="$anchor">',
+      for (var i = 0; i < lines.length; i++)
+        '<tspan x="$x" dy="${i == 0 ? 0 : lineHeight}">${_escape(lines[i])}</tspan>',
+      '</text>',
+    ].join();
+  }
+
+  static String _imagePlaceholder(ImageElement e) {
+    return '<rect x="${e.rect.left}" y="${e.rect.top}" width="${e.rect.width}" height="${e.rect.height}" fill="#e5e7eb" stroke="#64748b"/>';
+  }
+
+  static String _widgetPlaceholder(CanvasWidgetElement e) {
+    return '<rect x="${e.worldRect.left}" y="${e.worldRect.top}" width="${e.worldRect.width}" height="${e.worldRect.height}" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1.5" rx="4"/>'
+        '<text x="${e.worldRect.center.dx}" y="${e.worldRect.center.dy}" fill="#6b7280" font-size="14" text-anchor="middle" dominant-baseline="central">${_escape(e.widgetType)}</text>';
+  }
+
+  static Rect _contentBounds(List<CanvasElement> elements) {
+    if (elements.isEmpty) {
+      return const Rect.fromLTWH(0, 0, 1, 1);
+    }
+    var bounds = elements.first.bounds;
+    for (final element in elements.skip(1)) {
+      bounds = bounds.expandToInclude(element.bounds);
+    }
+    return bounds;
+  }
+
+  static String _color(Color color) {
+    final value = color.toARGB32();
+    return '#${(value & 0xFFFFFF).toRadixString(16).padLeft(6, '0')}';
+  }
+
+  static bool _boolProperty(Object? value) {
+    if (value is bool) {
+      return value;
+    }
+    if (value == null) {
+      return false;
+    }
+    final text = value.toString().toLowerCase();
+    return text == '1' || text == 'true';
+  }
+
+  static String _escape(String value) {
+    return value
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;');
+  }
+}
+
+
+ succeeded in 1289ms:
+import 'package:flutter/material.dart';
+
+import '../canvas/canvas_controller.dart';
+import '../canvas/paint_style.dart';
+import '../elements/arrow_element.dart';
+import '../elements/canvas_element.dart';
+import '../elements/curve_element.dart';
+import '../elements/drawio_shape_element.dart';
+import '../elements/ellipse_element.dart';
+import '../elements/image_element.dart';
+import '../elements/line_element.dart';
+import '../elements/line_label_painter.dart';
+import '../elements/path_element.dart';
+import '../elements/polyline_element.dart';
+import '../elements/rect_element.dart';
+import '../elements/shape_label_painter.dart';
+import '../elements/text_element.dart';
+import '../elements/unknown_element.dart';
+import '../elements/widget_element.dart';
+import '../infinite_canvas/infinite_canvas_controller.dart';
+import '../layers/canvas_layer.dart';
+import '../snap/snap_resolver.dart';
+import 'canvas_document.dart';
+import 'document_format_exception.dart';
+import 'document_migrator.dart';
+
+class CanvasSerializer {
+  const CanvasSerializer._();
+
+  /// Serializes the controller's state to a schema-2.0 document JSON. The
+  /// optional [metadata], [viewport] and [assets] are merged in when supplied.
+  static Map<String, dynamic> toJson(
+    CanvasController controller, {
+    DocumentMetadata? metadata,
+    DocumentViewport? viewport,
+    List<DocumentAsset>? assets,
+  }) {
+    return CanvasDocument(
+      schemaVersion: DocumentSchema.current,
+      metadata: metadata ?? const DocumentMetadata(),
+      viewport: viewport ?? const DocumentViewport(),
+      assets: assets ?? const <DocumentAsset>[],
+      layers: controller.layers,
+      elements: controller.elements,
+    ).toJson();
+  }
+
+  /// Convenience overload that also captures the current view transform of an
+  /// [InfiniteCanvasController], so a round-trip restores the exact pan/zoom
+  /// the user left off at. Pass an explicit [viewport] to override.
+  static Map<String, dynamic> toJsonWithView(
+    InfiniteCanvasController view, {
+    DocumentMetadata? metadata,
+    DocumentViewport? viewport,
+    List<DocumentAsset>? assets,
+  }) {
+    return toJson(
+      view.canvasController,
+      metadata: metadata,
+      viewport: viewport ?? view.currentViewport,
+      assets: assets,
+    );
+  }
+
+  static CanvasDocument fromJson(Map<String, dynamic> json) =>
+      fromJsonWithWarnings(json).document;
+
+  /// Like [fromJson], but also returns the recoverable problems encountered
+  /// while parsing. Each bad element is downgraded to an [UnknownElement] (its
+  /// raw JSON preserved) instead of aborting the whole document; [warnings]
+  /// lists what was skipped or downgraded so the host can log/surface it.
+  static DocumentParseResult fromJsonWithWarnings(
+    Map<String, dynamic> json, {
+    void Function(DocumentFormatWarning warning)? onWarning,
+  }) {
+    final warnings = <DocumentFormatWarning>[];
+    void warn(DocumentFormatWarning w) {
+      warnings.add(w);
+      onWarning?.call(w);
+    }
+
+    // Top-level structural checks — these are fatal.
+    if (json.isEmpty) {
+      throw const DocumentFormatException(
+        'Document JSON is empty',
+        field: '<root>',
+      );
+    }
+    final migrated = DocumentMigrator.migrate(Map<String, dynamic>.from(json));
+
+    final layersRaw = migrated['layers'];
+    final elementsRaw = migrated['elements'];
+    if (layersRaw != null && layersRaw is! List) {
+      throw const DocumentFormatException(
+        "'layers' must be an array",
+        severity: DocumentFormatSeverity.fatal,
+        field: 'layers',
+      );
+    }
+    if (elementsRaw != null && elementsRaw is! List) {
+      throw const DocumentFormatException(
+        "'elements' must be an array",
+        severity: DocumentFormatSeverity.fatal,
+        field: 'elements',
+      );
+    }
+
+    final layerJson = layersRaw as List<dynamic>? ?? const [];
+    final elementJson = elementsRaw as List<dynamic>? ?? const [];
+    final assetJson = migrated['assets'] as List<dynamic>? ?? const [];
+
+    // Preserve any top-level keys this loader does not recognize, so a newer
+    // app's document survives a round-trip through this one.
+    final knownKeys = const {
+      'schemaVersion',
+      'metadata',
+      'viewport',
+      'assets',
+      'layers',
+      'elements',
+      // legacy, already consumed by the migrator but listed for completeness
+      'version',
+    };
+    // Compute extras from a *copy* so we do not mutate [migrated] in place —
+    // the loader still needs metadata/viewport/assets/layers/elements below.
+    final extras = Map<String, dynamic>.from(
+      Map<String, dynamic>.from(migrated)
+        ..removeWhere((key, _) => knownKeys.contains(key)),
+    );
+
+    // Elements: parse defensively. A single malformed element is downgraded to
+    // an UnknownElement (raw JSON preserved) and reported, never crashing the
+    // whole document.
+    final elements = <CanvasElement>[];
+    for (final entry in elementJson) {
+      if (entry is! Map<String, dynamic>) {
+        warn(const DocumentFormatWarning(
+          "Element is not an object; skipped",
+          field: 'elements',
+        ));
+        continue;
+      }
+      final element = _safeElementFromJson(entry, warn);
+      if (element != null) {
+        elements.add(element);
+      }
+    }
+
+    return DocumentParseResult(
+      document: CanvasDocument(
+        schemaVersion: (migrated['schemaVersion'] as String?) ??
+            DocumentSchema.current,
+        metadata: _metadataFromJson(migrated['metadata']),
+        viewport: _viewportFromJson(migrated['viewport']),
+        assets: [
+          for (final asset in assetJson)
+            if (asset is Map<String, dynamic>) DocumentAsset.fromJson(asset),
+        ],
+        layers: [
+          for (final layer in layerJson)
+            if (layer is Map<String, dynamic>) _layerFromJson(layer),
+        ],
+        elements: elements,
+        extras: extras,
+      ),
+      warnings: warnings,
+    );
+  }
+
+  /// Parses one element, downgrading any failure to an [UnknownElement] so the
+  /// surrounding document still loads. Returns null only when the entry has no
+  /// usable identity at all.
+  static CanvasElement? _safeElementFromJson(
+    Map<String, dynamic> json,
+    void Function(DocumentFormatWarning) warn,
+  ) {
+    final type = json['type']?.toString();
+    try {
+      final element = elementFromJson(json);
+      // Validate the result's geometry where applicable: a rect with negative
+      // width/height is recoverable (downgrade) rather than fatal.
+      if (_hasInvalidRect(element)) {
+        warn(DocumentFormatWarning(
+          'Element rect has negative width or height; kept as-is',
+          elementType: type,
+          elementId: json['id']?.toString(),
+          field: 'rect',
+          rawJson: json,
+        ));
+      }
+      return element;
+    } catch (error) {
+      // Downgrade: keep the original JSON verbatim inside an UnknownElement so
+      // a round-trip never loses data written by a newer app.
+      warn(DocumentFormatWarning(
+        'Element could not be parsed ($error); preserved as UnknownElement',
+        elementType: type,
+        elementId: json['id']?.toString(),
+        rawJson: json,
+      ));
+      return UnknownElement(
+        id: (json['id'] as String?) ?? '',
+        rawJson: Map<String, dynamic>.from(json),
+        layerId: (json['layerId'] as String?) ?? CanvasLayer.defaultLayerId,
+        visible: (json['visible'] as bool?) ?? true,
+        opacity: (json['opacity'] as num?)?.toDouble() ?? 1,
+        zIndex: (json['zIndex'] as num?)?.toInt() ?? 0,
+        groupId: json['groupId'] as String?,
+      );
+    }
+  }
+
+  /// True when an element carries a rect with negative width or height.
+  static bool _hasInvalidRect(CanvasElement element) {
+    final rect = switch (element) {
+      final RectElement e => e.rect,
+      final EllipseElement e => e.rect,
+      final DrawioShapeElement e => e.rect,
+      final ImageElement e => e.rect,
+      _ => null,
+    };
+    if (rect == null) return false;
+    return rect.width < 0 || rect.height < 0;
+  }
+
+  static void load(CanvasController controller, Map<String, dynamic> json) {
+    final document = fromJson(json);
+    controller.loadDocument(document.layers, document.elements);
+  }
+
+  /// Validates a document map before it is persisted, returning recoverable
+  /// warnings (empty when clean). Intended as a pre-save health check — call
+  /// it on the JSON you are about to write and report/log any warnings:
+  ///
+  /// ```dart
+  /// final warnings = CanvasSerializer.validateForSave(json);
+  /// if (warnings.isNotEmpty) myLogger.warn(warnings);
+  /// await store.save(json);
+  /// ```
+  ///
+  /// This never throws; hosts that want hard enforcement can convert each
+  /// [DocumentFormatWarning] via [DocumentFormatWarning.toException].
+  static List<DocumentFormatWarning> validateForSave(Map<String, dynamic> json) {
+    final warnings = <DocumentFormatWarning>[];
+    if (json.isEmpty) {
+      return const [];
+    }
+    final elements = json['elements'];
+    if (elements is! List) {
+      return const [];
+    }
+    for (final entry in elements) {
+      if (entry is! Map<String, dynamic>) {
+        warnings.add(const DocumentFormatWarning(
+          'Element is not an object',
+          field: 'elements',
+        ));
+        continue;
+      }
+      final id = entry['id'];
+      if (id is! String || id.isEmpty) {
+        warnings.add(DocumentFormatWarning(
+          'Element is missing a non-empty id',
+          elementType: entry['type']?.toString(),
+          field: 'id',
+          rawJson: entry,
+        ));
+      }
+      final rect = entry['rect'];
+      if (rect is Map) {
+        final left = (rect['left'] as num?)?.toDouble() ?? 0;
+        final top = (rect['top'] as num?)?.toDouble() ?? 0;
+        final right = (rect['right'] as num?)?.toDouble() ?? 0;
+        final bottom = (rect['bottom'] as num?)?.toDouble() ?? 0;
+        if (right < left || bottom < top) {
+          warnings.add(DocumentFormatWarning(
+            'Element rect has negative width or height',
+            elementType: entry['type']?.toString(),
+            elementId: id is String ? id : null,
+            field: 'rect',
+            rawJson: entry,
+          ));
+        }
+      }
+    }
+    return warnings;
+  }
+
+  /// Loads a full document — layers, elements, and the stored view — into the
+  /// controllers, replacing all existing data. History is cleared.
+  ///
+  /// The viewport is applied to [view] via [InfiniteCanvasController.applyViewport],
+  /// which is a no-op until the widget has been laid out (viewport size known).
+  /// Call this from a post-frame callback if the canvas has just been mounted.
+  static CanvasDocument loadDocument(
+    InfiniteCanvasController view,
+    Map<String, dynamic> json,
+  ) {
+    final document = fromJson(json);
+    view.canvasController.loadDocument(document.layers, document.elements);
+    view.applyViewport(document.viewport);
+    return document;
+  }
+
+  static CanvasElement elementFromJson(Map<String, dynamic> json) {
+    final id = json['id'] as String? ?? '';
+    final layerId = json['layerId'] as String? ?? CanvasLayer.defaultLayerId;
+    final visible = json['visible'] as bool? ?? true;
+    final opacity = (json['opacity'] as num?)?.toDouble() ?? 1;
+    final zIndex = (json['zIndex'] as num?)?.toInt() ?? 0;
+    final type = json['type'] as String? ?? '';
+
+    switch (type) {
+      case PathElement.elementType:
+        return PathElement(
+          id: id,
+          layerId: layerId,
+          visible: visible,
+          opacity: opacity,
+          zIndex: zIndex,
+          groupId: json['groupId'] as String?,
+          points: [
+            for (final point in json['points'] as List<dynamic>? ?? const [])
+              if (point is Map<String, dynamic>)
+                PathPoint(
+                  position: _point(point),
+                  pressure: (point['pressure'] as num?)?.toDouble() ?? 0.5,
+                  timestamp: (point['timestamp'] as num?)?.toDouble() ?? 0,
+                ),
+          ],
+          style: _style(json['style']),
+        );
+      case CurveElement.elementType:
+        return CurveElement(
+          id: id,
+          layerId: layerId,
+          visible: visible,
+          opacity: opacity,
+          zIndex: zIndex,
+          groupId: json['groupId'] as String?,
+          start: _point(json['start']),
+          end: _point(json['end']),
+          control: _point(json['control']),
+          style: _style(json['style']),
+        );
+      case LineElement.elementType:
+        return LineElement(
+          id: id,
+          layerId: layerId,
+          visible: visible,
+          opacity: opacity,
+          zIndex: zIndex,
+          groupId: json['groupId'] as String?,
+          start: _point(json['start']),
+          end: _point(json['end']),
+          style: _style(json['style']),
+          startBinding: SnapBinding.fromJson(json['startBinding']),
+          endBinding: SnapBinding.fromJson(json['endBinding']),
+          label: json['label'] as String?,
+          labelStyle: LineLabelPainter.styleFromJson(json['labelStyle']),
+          labelPosition:
+              (json['labelPosition'] as num?)?.toDouble() ??
+              LineLabelPainter.defaultPosition,
+          labelOffset: LineLabelPainter.offsetFromJson(json['labelOffset']),
+          labelBackground: _colorFromJson(json['labelBackground']),
+        );
+      case PolylineElement.elementType:
+        return PolylineElement(
+          id: id,
+          layerId: layerId,
+          visible: visible,
+          opacity: opacity,
+          zIndex: zIndex,
+          groupId: json['groupId'] as String?,
+          points: [
+            for (final point in json['points'] as List<dynamic>? ?? const [])
+              _point(point),
+          ],
+          style: _style(json['style']),
+          startBinding: SnapBinding.fromJson(json['startBinding']),
+          endBinding: SnapBinding.fromJson(json['endBinding']),
+          endArrow: json['endArrow'] as bool? ?? false,
+          headSize: (json['headSize'] as num?)?.toDouble() ?? 14,
+          label: json['label'] as String?,
+          labelStyle: LineLabelPainter.styleFromJson(json['labelStyle']),
+          labelPosition:
+              (json['labelPosition'] as num?)?.toDouble() ??
+              LineLabelPainter.defaultPosition,
+          labelOffset: LineLabelPainter.offsetFromJson(json['labelOffset']),
+          labelBackground: _colorFromJson(json['labelBackground']),
+        );
+      case DrawioShapeElement.elementType:
+        return DrawioShapeElement(
+          id: id,
+          layerId: layerId,
+          visible: visible,
+          opacity: opacity,
+          zIndex: zIndex,
+          groupId: json['groupId'] as String?,
+          shapeKey: _shapeKey(json['shapeKey']),
+          rect: _rect(json['rect']),
+          strokeStyle: _style(json['strokeStyle']),
+          fillStyle: _nullableStyle(json['fillStyle']),
+          properties: _stringMap(json['properties']),
+          label: json['label'] as String?,
+          labelStyle: ShapeLabelPainter.styleFromJson(json['labelStyle']),
+          labelAlign: ShapeLabelPainter.textAlignFromString(
+            json['labelAlign'] as String?,
+          ),
+          labelPadding: ShapeLabelPainter.paddingFromJson(json['labelPadding']),
+          rotation: (json['rotation'] as num?)?.toDouble() ?? 0,
+        );
+      case RectElement.elementType:
+        return RectElement(
+          id: id,
+          layerId: layerId,
+          visible: visible,
+          opacity: opacity,
+          zIndex: zIndex,
+          groupId: json['groupId'] as String?,
+          rect: _rect(json['rect']),
+          strokeStyle: _style(json['strokeStyle']),
+          fillStyle: _nullableStyle(json['fillStyle']),
+          label: json['label'] as String?,
+          labelStyle: ShapeLabelPainter.styleFromJson(json['labelStyle']),
+          labelAlign: ShapeLabelPainter.textAlignFromString(
+            json['labelAlign'] as String?,
+          ),
+          labelPadding: ShapeLabelPainter.paddingFromJson(json['labelPadding']),
+          rotation: (json['rotation'] as num?)?.toDouble() ?? 0,
+        );
+      case EllipseElement.elementType:
+        return EllipseElement(
+          id: id,
+          layerId: layerId,
+          visible: visible,
+          opacity: opacity,
+          zIndex: zIndex,
+          groupId: json['groupId'] as String?,
+          rect: _rect(json['rect']),
+          strokeStyle: _style(json['strokeStyle']),
+          fillStyle: _nullableStyle(json['fillStyle']),
+          label: json['label'] as String?,
+          labelStyle: ShapeLabelPainter.styleFromJson(json['labelStyle']),
+          labelAlign: ShapeLabelPainter.textAlignFromString(
+            json['labelAlign'] as String?,
+          ),
+          labelPadding: ShapeLabelPainter.paddingFromJson(json['labelPadding']),
+          rotation: (json['rotation'] as num?)?.toDouble() ?? 0,
+        );
+      case ArrowElement.elementType:
+        return ArrowElement(
+          id: id,
+          layerId: layerId,
+          visible: visible,
+          opacity: opacity,
+          zIndex: zIndex,
+          groupId: json['groupId'] as String?,
+          start: _point(json['start']),
+          end: _point(json['end']),
+          headSize: (json['headSize'] as num?)?.toDouble() ?? 14,
+          style: _style(json['style']),
+          startBinding: SnapBinding.fromJson(json['startBinding']),
+          endBinding: SnapBinding.fromJson(json['endBinding']),
+          label: json['label'] as String?,
+          labelStyle: LineLabelPainter.styleFromJson(json['labelStyle']),
+          labelPosition:
+              (json['labelPosition'] as num?)?.toDouble() ??
+              LineLabelPainter.defaultPosition,
+          labelOffset: LineLabelPainter.offsetFromJson(json['labelOffset']),
+          labelBackground: _colorFromJson(json['labelBackground']),
+        );
+      case TextElement.elementType:
+        final styleJson = json['style'];
+        final style = styleJson is Map<String, dynamic>
+            ? TextStyle(
+                color: Color(
+                  (styleJson['color'] as num?)?.toInt() ??
+                      Colors.black.toARGB32(),
+                ),
+                fontSize: (styleJson['fontSize'] as num?)?.toDouble() ?? 24,
+                fontWeight: _fontWeight(styleJson['fontWeight']),
+                height: (styleJson['height'] as num?)?.toDouble() ?? 1.2,
+                fontFamily: styleJson['fontFamily'] as String?,
+              )
+            : const TextStyle(color: Colors.black, fontSize: 24, height: 1.2);
+        return TextElement(
+          id: id,
+          layerId: layerId,
+          visible: visible,
+          opacity: opacity,
+          zIndex: zIndex,
+          groupId: json['groupId'] as String?,
+          position: _point(json['position']),
+          text: json['text'] as String? ?? '',
+          style: style,
+          maxWidth: (json['maxWidth'] as num?)?.toDouble(),
+          boxSize: _size(json['boxSize']),
+          textAlign: _textAlign(json['textAlign'] as String?),
+          rotation: (json['rotation'] as num?)?.toDouble() ?? 0,
+        );
+      case ImageElement.elementType:
+        return ImageElement(
+          id: id,
+          layerId: layerId,
+          visible: visible,
+          opacity: opacity,
+          zIndex: zIndex,
+          groupId: json['groupId'] as String?,
+          rect: _rect(json['rect']),
+          fit: _boxFitFromString(json['fit'] as String?),
+          rotation: (json['rotation'] as num?)?.toDouble() ?? 0,
+          imageData: json['imageData'] as String?,
+          url: json['url'] as String?,
+          filePath: json['filePath'] as String?,
+        );
+      case CanvasWidgetElement.elementType:
+        return CanvasWidgetElement(
+          id: id,
+          worldRect: _rect(json['worldRect']),
+          widgetType: json['widgetType'] as String? ?? '',
+          widgetData: _stringMap(json['widgetData']),
+          layerId: layerId,
+          visible: visible,
+          opacity: opacity,
+          zIndex: zIndex,
+          groupId: json['groupId'] as String?,
+          isLocked: json['isLocked'] as bool? ?? false,
+          interactive: json['interactive'] as bool? ?? true,
+          scaleMode: _scaleModeFromString(json['scaleMode'] as String?),
+          renderMode: _renderModeFromString(json['renderMode'] as String?),
+          minScreenSize: _size(json['minScreenSize']),
+          maxScreenSize: _size(json['maxScreenSize']),
+          clipBehavior: _clipFromString(json['clipBehavior'] as String?),
+        );
+      default:
+        // Unknown element type: preserve the original JSON so a round-trip
+        // through this app does not lose data written by a newer one. The
+        // common fields are extracted so selection/layering still works.
+        return UnknownElement(
+          id: id,
+          rawJson: Map<String, dynamic>.from(json),
+          layerId: layerId,
+          visible: visible,
+          opacity: opacity,
+          zIndex: zIndex,
+          groupId: json['groupId'] as String?,
+        );
+    }
+  }
+
+  static DocumentMetadata _metadataFromJson(Object? value) {
+    if (value is Map<String, dynamic>) return DocumentMetadata.fromJson(value);
+    if (value is Map) {
+      return DocumentMetadata.fromJson(
+        Map<String, dynamic>.from(value),
+      );
+    }
+    return const DocumentMetadata();
+  }
+
+  static DocumentViewport _viewportFromJson(Object? value) {
+    if (value is Map<String, dynamic>) return DocumentViewport.fromJson(value);
+    if (value is Map) {
+      return DocumentViewport.fromJson(
+        Map<String, dynamic>.from(value),
+      );
+    }
+    return const DocumentViewport();
+  }
+
+  static String _shapeKey(Object? value) {
+    final text = value?.toString().trim();
+    return text == null || text.isEmpty ? 'rectangle' : text;
+  }
+
+  static CanvasLayer _layerFromJson(Map<String, dynamic> json) {
+    return CanvasLayer(
+      id: json['id'] as String? ?? CanvasLayer.defaultLayerId,
+      name: json['name'] as String? ?? 'Layer',
+      isVisible: json['visible'] as bool? ?? true,
+      isLocked: json['locked'] as bool? ?? false,
+      opacity: (json['opacity'] as num?)?.toDouble() ?? 1,
+    );
+  }
+
+  static CanvasWidgetScaleMode _scaleModeFromString(String? value) {
+    switch (value) {
+      case 'paintScale':
+        return CanvasWidgetScaleMode.paintScale;
+      case 'fixedScreenSize':
+        return CanvasWidgetScaleMode.fixedScreenSize;
+      case 'layoutScale':
+      default:
+        return CanvasWidgetScaleMode.layoutScale;
+    }
+  }
+
+  static CanvasWidgetRenderMode _renderModeFromString(String? value) {
+    switch (value) {
+      case 'live':
+        return CanvasWidgetRenderMode.live;
+      case 'snapshot':
+      default:
+        return CanvasWidgetRenderMode.snapshot;
+    }
+  }
+
+  static Offset _point(Object? json) {
+    if (json is Map<String, dynamic>) {
+      return Offset(
+        (json['x'] as num?)?.toDouble() ?? 0,
+        (json['y'] as num?)?.toDouble() ?? 0,
+      );
+    }
+    return Offset.zero;
+  }
+
+  static Rect _rect(Object? json) {
+    if (json is Map<String, dynamic>) {
+      return Rect.fromLTRB(
+        (json['left'] as num?)?.toDouble() ?? 0,
+        (json['top'] as num?)?.toDouble() ?? 0,
+        (json['right'] as num?)?.toDouble() ?? 0,
+        (json['bottom'] as num?)?.toDouble() ?? 0,
+      );
+    }
+    return Rect.zero;
+  }
+
+  static Size? _size(Object? json) {
+    if (json is Map<String, dynamic>) {
+      final width = (json['width'] as num?)?.toDouble();
+      final height = (json['height'] as num?)?.toDouble();
+      if (width == null || height == null) {
+        return null;
+      }
+      return Size(width, height);
+    }
+    return null;
+  }
+
+  static PaintStyle _style(Object? json) {
+    return json is Map<String, dynamic>
+        ? PaintStyle.fromJson(json)
+        : const PaintStyle();
+  }
+
+  static PaintStyle? _nullableStyle(Object? json) {
+    return json is Map<String, dynamic> ? PaintStyle.fromJson(json) : null;
+  }
+
+  static Color? _colorFromJson(Object? value) {
+    return value is num ? Color(value.toInt()) : null;
+  }
+
+  static Map<String, dynamic> _stringMap(Object? json) {
+    if (json is Map<String, dynamic>) {
+      return Map<String, dynamic>.unmodifiable(json);
+    }
+    if (json is Map) {
+      return Map<String, dynamic>.unmodifiable(
+        json.map((key, value) => MapEntry(key.toString(), value)),
+      );
+    }
+    return const <String, dynamic>{};
+  }
+
+  static Clip _clipFromString(String? value) {
+    for (final clip in Clip.values) {
+      if (clip.name == value) {
+        return clip;
+      }
+    }
+    return Clip.hardEdge;
+  }
+
+  static TextAlign _textAlign(String? value) {
+    for (final align in TextAlign.values) {
+      if (align.name == value) {
+        return align;
+      }
+    }
+    return TextAlign.left;
+  }
+
+  static BoxFit _boxFitFromString(String? value) {
+    for (final fit in BoxFit.values) {
+      if (fit.name == value) {
+        return fit;
+      }
+    }
+    return BoxFit.contain;
+  }
+
+  static FontWeight _fontWeight(Object? value) {
+    final weight = value is num ? value.toInt() : FontWeight.normal.value;
+    return FontWeight.values.reduce((previous, current) {
+      return (current.value - weight).abs() < (previous.value - weight).abs()
+          ? current
+          : previous;
+    });
+  }
+}
+
+/// Result of [CanvasSerializer.fromJsonWithWarnings]: the parsed document plus
+/// any recoverable problems (each bad element downgraded, not dropped).
+class DocumentParseResult {
+  const DocumentParseResult({
+    required this.document,
+    this.warnings = const <DocumentFormatWarning>[],
+  });
+
+  final CanvasDocument document;
+
+  /// Recoverable problems collected while parsing, in encounter order. Empty
+  /// when the document was clean.
+  final List<DocumentFormatWarning> warnings;
+
+  /// Whether any recoverable problem was reported.
+  bool get hasWarnings => warnings.isNotEmpty;
+}
+
+
+codex
+P003 需要三处最小改动：Serializer 读取 curve 的 `endArrow/headSize`，SVG curve 追加末端箭头 polygon，schema 给 permissive element 属性补充这两个字段说明。先确认这三个 scope 文件当前是否可写，避免像 P002 一样半途受权限阻塞。
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'foreach ($path in @('"'D:\\project\\GitHub\\wenz_flutter\\wenz_draw\\lib\\src\\serialization\\canvas_serializer.dart','D:\\project\\GitHub\\wenz_flutter\\wenz_draw\\lib\\src\\serialization\\exporters\\svg_exporter.dart','D:\\project\\GitHub\\wenz_flutter\\wenz_draw\\docs\\canvas_document.schema.json')) { try { "'$fs=[System.IO.File]::Open($path,[System.IO.FileMode]::Open,[System.IO.FileAccess]::ReadWrite,[System.IO.FileShare]::ReadWrite); $fs.Dispose(); "OK $path" } catch { "DENIED $path :: $($_.Exception.Message)" } }' in D:\project\GitHub\wenz_flutter\wenz_draw
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'git status --short -- lib/src/serialization/canvas_serializer.dart lib/src/serialization/exporters/svg_exporter.dart docs/canvas_document.schema.json' in D:\project\GitHub\wenz_flutter\wenz_draw
+ succeeded in 288ms:
+DENIED D:\project\GitHub\wenz_flutter\wenz_draw\lib\src\serialization\canvas_serializer.dart :: Exception calling "Open" with "4" argument(s): "Access to the path 'D:\project\GitHub\wenz_flutter\wenz_draw\lib\src\serialization\canvas_serializer.dart' is denied."
+DENIED D:\project\GitHub\wenz_flutter\wenz_draw\lib\src\serialization\exporters\svg_exporter.dart :: Exception calling "Open" with "4" argument(s): "Access to the path 'D:\project\GitHub\wenz_flutter\wenz_draw\lib\src\serialization\exporters\svg_exporter.dart' is denied."
+OK D:\project\GitHub\wenz_flutter\wenz_draw\docs\canvas_document.schema.json
+
+ succeeded in 321ms:
+codex
+P003 未能落地，当前环境仍存在写入权限阻塞。
+
+我已确认 P003 需要改三处，但其中两个核心业务文件拒绝写入打开：
+- `lib/src/serialization/canvas_serializer.dart`: `Access to the path ... is denied`
+- `lib/src/serialization/exporters/svg_exporter.dart`: `Access to the path ... is denied`
+- `docs/canvas_document.schema.json` 可写，但为避免只改 schema 造成半成品，本轮未做部分写入。
+
+未修改 plan 文件，未运行测试、构建、lint/analyze。P003 仍需在文件写权限恢复后继续。
+tokens used
+120,210
+P003 未能落地，当前环境仍存在写入权限阻塞。
+
+我已确认 P003 需要改三处，但其中两个核心业务文件拒绝写入打开：
+- `lib/src/serialization/canvas_serializer.dart`: `Access to the path ... is denied`
+- `lib/src/serialization/exporters/svg_exporter.dart`: `Access to the path ... is denied`
+- `docs/canvas_document.schema.json` 可写，但为避免只改 schema 造成半成品，本轮未做部分写入。
+
+未修改 plan 文件，未运行测试、构建、lint/analyze。P003 仍需在文件写权限恢复后继续。

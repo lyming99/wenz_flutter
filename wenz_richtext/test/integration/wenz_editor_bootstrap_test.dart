@@ -1,5 +1,6 @@
 import 'dart:ui' show PointerDeviceKind;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wenz_richtext/wenz_richtext.dart';
@@ -231,6 +232,221 @@ void main() {
       );
       await tester.pump();
 
+      await _tapDesktopInsertMenuItem(tester, '插入图片');
+      await _tapDesktopInsertMenuItem(tester, '插入视频');
+
+      expect(imageContexts, hasLength(1));
+      expect(videoContexts, hasLength(1));
+      expect(imageContexts.single.controller, same(bootstrap.controller));
+      expect(imageContexts.single.toolbar, same(bootstrap.toolbarController));
+      expect(videoContexts.single.controller, same(bootstrap.controller));
+      expect(videoContexts.single.toolbar, same(bootstrap.toolbarController));
+      expect(imageContexts.single.state.hasSelection, isTrue);
+      expect(videoContexts.single.state.hasSelection, isTrue);
+    });
+  });
+
+  group('default mobile toolbar factory', () {
+    test('buildDefaultMobileToolbar reuses assembled controller and registry',
+        () {
+      final pluginOnly = WenzToolbarItem(
+        id: 'plugin-only',
+        title: 'Plugin only',
+        priority: 2,
+        action: (_, __) {},
+      );
+      final pluginShared = WenzToolbarItem(
+        id: 'shared',
+        title: 'Plugin shared',
+        priority: 1,
+        action: (_, __) {},
+      );
+      final hostShared = WenzToolbarItem(
+        id: 'shared',
+        title: 'Host shared',
+        priority: 0,
+        action: (_, __) {},
+      );
+      final explicit = WenzToolbarItem(
+        id: 'explicit',
+        title: 'Explicit',
+        priority: -1,
+        action: (_, __) {},
+      );
+      const style = WenzMobileToolbarStyle(
+        mainBarHeight: 56,
+        panelHeight: 288,
+        dismissKeyboardOnPanelOpen: false,
+        restoreFocusOnPanelClose: false,
+        animationDuration: Duration.zero,
+        elevation: 3,
+      );
+      const actions = WenzDefaultMobileToolbarActions(isPickingImage: true);
+
+      final bootstrap = WenzEditorBootstrap.create(
+        WenzEditorConfiguration(
+          plugins: <WenzRichTextPlugin>[
+            WenzPluginBundle(
+              id: 'mobile.toolbar.plugin',
+              toolbarItems: <WenzToolbarItem>[pluginOnly, pluginShared],
+            ),
+          ],
+          toolbarItems: <WenzToolbarItem>[hostShared],
+        ),
+      );
+      addTearDown(bootstrap.dispose);
+
+      expect(bootstrap.toolbarItemRegistry['shared'], same(hostShared));
+      expect(bootstrap.toolbarItemRegistry['plugin-only'], same(pluginOnly));
+
+      final toolbar = bootstrap.buildDefaultMobileToolbar(
+        actions: actions,
+        style: style,
+        toolbarItems: <WenzToolbarItem>[explicit],
+      );
+
+      expect(toolbar.controller, same(bootstrap.controller));
+      expect(toolbar.toolbar, same(bootstrap.toolbarController));
+      expect(toolbar.toolbarItemRegistry, same(bootstrap.toolbarItemRegistry));
+      expect(toolbar.actions, same(actions));
+      expect(toolbar.style, same(style));
+      expect(
+        toolbar.effectiveToolbarItems.map((item) => item.id),
+        <String>['explicit', 'shared', 'plugin-only'],
+      );
+      expect(toolbar.effectiveToolbarItems[1].title, 'Host shared');
+    });
+
+    test('buildDefaultMobileToolbar uses configured style by default', () {
+      const configuredStyle = WenzMobileToolbarStyle(
+        mainBarHeight: 58,
+        panelHeight: 320,
+        animationDuration: Duration.zero,
+      );
+      final bootstrap = WenzEditorBootstrap.create(
+        const WenzEditorConfiguration(mobileToolbarStyle: configuredStyle),
+      );
+      addTearDown(bootstrap.dispose);
+
+      final toolbar = bootstrap.buildDefaultMobileToolbar();
+
+      expect(toolbar.style, same(configuredStyle));
+    });
+
+    test('buildDefaultMobileToolbar throws when toolbar is disabled', () {
+      final bootstrap = WenzEditorBootstrap.create(
+        const WenzEditorConfiguration(enableToolbar: false),
+      );
+      addTearDown(bootstrap.dispose);
+
+      expect(bootstrap.toolbarController, isNull);
+      expect(
+        bootstrap.buildDefaultMobileToolbar,
+        throwsA(
+          isA<StateError>().having(
+            (error) => error.message,
+            'message',
+            contains('enableToolbar=true'),
+          ),
+        ),
+      );
+    });
+
+    testWidgets('configuration and plugin toolbar items render in mobile helper',
+        (tester) async {
+      final bootstrap = WenzEditorBootstrap.create(
+        WenzEditorConfiguration(
+          plugins: <WenzRichTextPlugin>[
+            WenzPluginBundle(
+              id: 'mobile.toolbar.plugin.render',
+              toolbarItems: <WenzToolbarItem>[
+                WenzToolbarItem(
+                  id: 'plugin-mobile-action',
+                  title: 'Plugin mobile action',
+                  tooltip: 'Plugin mobile action',
+                  action: (_, __) {},
+                ),
+              ],
+            ),
+          ],
+          toolbarItems: <WenzToolbarItem>[
+            WenzToolbarItem(
+              id: 'host-mobile-action',
+              title: 'Host mobile action',
+              tooltip: 'Host mobile action',
+              action: (_, __) {},
+            ),
+          ],
+        ),
+      );
+      addTearDown(bootstrap.dispose);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Align(
+              alignment: Alignment.bottomCenter,
+              child: bootstrap.buildDefaultMobileToolbar(
+                style: const WenzMobileToolbarStyle(
+                  animationDuration: Duration.zero,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      await tester.tap(find.byTooltip('打开插入面板'));
+      await tester.pump();
+
+      expect(find.byType(WenzDefaultMobileToolbar), findsOneWidget);
+      expect(find.byTooltip('Plugin mobile action'), findsOneWidget);
+      expect(find.byTooltip('Host mobile action'), findsOneWidget);
+    });
+
+    testWidgets('media actions injected into mobile helper are invoked',
+        (tester) async {
+      final imageContexts = <WenzDefaultDesktopToolbarActionContext>[];
+      final videoContexts = <WenzDefaultDesktopToolbarActionContext>[];
+      final bootstrap = WenzEditorBootstrap.create(
+        WenzEditorConfiguration(
+          document: const RichTextDocument(
+            blocks: <BlockNode>[
+              TextBlockNode(
+                id: 'p1',
+                type: BlockType.paragraph,
+                content: <InlineNode>[TextRun(text: 'Hello')],
+              ),
+            ],
+          ),
+          selection: collapsedTextSelection('p1', 0, 5),
+        ),
+      );
+      addTearDown(bootstrap.dispose);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Align(
+              alignment: Alignment.bottomCenter,
+              child: bootstrap.buildDefaultMobileToolbar(
+                actions: WenzDefaultMobileToolbarActions(
+                  onInsertImage: imageContexts.add,
+                  onInsertVideo: videoContexts.add,
+                ),
+                style: const WenzMobileToolbarStyle(
+                  animationDuration: Duration.zero,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      await tester.tap(find.byTooltip('打开插入面板'));
+      await tester.pump();
       await tester.tap(find.byTooltip('插入图片'));
       await tester.pump();
       await tester.tap(find.byTooltip('插入视频'));
@@ -251,7 +467,6 @@ void main() {
     testWidgets(
         'enableMermaidDiagrams routes mermaid code blocks through plugin path',
         (tester) async {
-      const surface = VectorGraphicsDiagramSurface();
       final bootstrap = WenzEditorBootstrap.create(
         const WenzEditorConfiguration(
           document: RichTextDocument(
@@ -264,12 +479,9 @@ void main() {
             ],
           ),
           enableMermaidDiagrams: true,
-          diagramSvgSurface: surface,
         ),
       );
       addTearDown(bootstrap.dispose);
-
-      expect(bootstrap.configuration.diagramSvgSurface, same(surface));
 
       await tester.pumpWidget(
         MaterialApp(
@@ -282,6 +494,77 @@ void main() {
       expect(find.textContaining('flowchart TD'), findsOneWidget);
     });
 
+    testWidgets(
+      'enableMermaidDiagrams previews edited mermaid source',
+      (tester) async {
+        const initial = 'flowchart TD\n  A --> B';
+        const edited = 'flowchart TD\n  A --> B\n  B --> C';
+        const continued = 'flowchart TD\n  A --> B\n  B --> C\n  C --> D';
+        final bootstrap = WenzEditorBootstrap.create(
+          WenzEditorConfiguration(
+            document: const RichTextDocument(
+              blocks: <BlockNode>[
+                CodeBlockNode(
+                  id: 'mermaid-preview-edit',
+                  language: 'mermaid',
+                  code: initial,
+                ),
+              ],
+            ),
+            selection: collapsedCodeSelection(
+              'mermaid-preview-edit',
+              0,
+              initial.length,
+            ),
+            enableMermaidDiagrams: true,
+          ),
+        );
+        addTearDown(bootstrap.dispose);
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(body: bootstrap.buildEditor(enableIme: false)),
+          ),
+        );
+        await tester.pump();
+
+        bootstrap.controller.insertText('\n  B --> C');
+        await tester.pump();
+        expect((bootstrap.document.blocks.single as CodeBlockNode).code, edited);
+
+        await tester.tap(
+          find.byKey(const ValueKey<String>('wenz-richtext-mermaid-toggle')),
+        );
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 300));
+        await tester.pump();
+
+        expect(find.byType(MermaidDiagram), findsOneWidget);
+        expect(
+          tester.widget<MermaidDiagram>(find.byType(MermaidDiagram)).code,
+          edited,
+        );
+        expect(_richText(edited), findsNothing);
+
+        await tester.tap(
+          find.byKey(const ValueKey<String>('wenz-richtext-mermaid-toggle')),
+        );
+        await tester.pump();
+        expect(_richText(edited), findsOneWidget);
+
+        bootstrap.controller.setSelection(
+          collapsedCodeSelection('mermaid-preview-edit', 0, edited.length),
+        );
+        bootstrap.controller.insertText('\n  C --> D');
+        await tester.pump();
+
+        expect(
+          (bootstrap.document.blocks.single as CodeBlockNode).code,
+          continued,
+        );
+        expect(_richText(continued), findsOneWidget);
+      },
+    );
     testWidgets(
         'mermaid code remains an ordinary code block when the flag is disabled',
         (tester) async {
@@ -743,6 +1026,129 @@ void main() {
     });
   });
 
+  group('layout resolution', () {
+    Future<BuildContext> pumpLayoutContext(
+      WidgetTester tester,
+      Size size,
+    ) async {
+      await tester.binding.setSurfaceSize(size);
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      late BuildContext capturedContext;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) {
+              capturedContext = context;
+              return const SizedBox.shrink();
+            },
+          ),
+        ),
+      );
+      await tester.pump();
+      return capturedContext;
+    }
+
+    void setPlatform(TargetPlatform platform) {
+      debugDefaultTargetPlatformOverride = platform;
+      addTearDown(() {
+        debugDefaultTargetPlatformOverride = null;
+      });
+    }
+
+    void expectResolvedLayout(
+      BuildContext context,
+      WenzEditorLayout expected, {
+      WenzEditorLayout configured = WenzEditorLayout.auto,
+      String? reason,
+    }) {
+      final bootstrap = WenzEditorBootstrap.create(
+        WenzEditorConfiguration(layout: configured),
+      );
+      addTearDown(bootstrap.dispose);
+
+      expect(
+        bootstrap.resolveEditorLayout(context),
+        expected,
+        reason: reason,
+      );
+      expect(
+        bootstrap.shouldUseMobileLayout(context),
+        expected == WenzEditorLayout.mobile,
+        reason: reason,
+      );
+    }
+
+    testWidgets(
+      'auto resolves desktop for desktop target platforms at narrow size',
+      (tester) async {
+        final context = await pumpLayoutContext(
+          tester,
+          const Size(320, 560),
+        );
+
+        for (final platform in const <TargetPlatform>[
+          TargetPlatform.windows,
+          TargetPlatform.macOS,
+          TargetPlatform.linux,
+        ]) {
+          setPlatform(platform);
+          expectResolvedLayout(
+            context,
+            WenzEditorLayout.desktop,
+            reason: 'platform=$platform',
+          );
+        }
+      },
+    );
+
+    testWidgets(
+      'auto resolves mobile for compact Android and iOS surfaces',
+      (tester) async {
+        final context = await pumpLayoutContext(
+          tester,
+          const Size(360, 640),
+        );
+
+        for (final platform in const <TargetPlatform>[
+          TargetPlatform.android,
+          TargetPlatform.iOS,
+        ]) {
+          setPlatform(platform);
+          expectResolvedLayout(
+            context,
+            WenzEditorLayout.mobile,
+            reason: 'platform=$platform',
+          );
+        }
+      },
+    );
+
+    testWidgets('explicit layout overrides platform-aware auto detection', (
+      tester,
+    ) async {
+      final context = await pumpLayoutContext(
+        tester,
+        const Size(320, 560),
+      );
+
+      setPlatform(TargetPlatform.windows);
+      expectResolvedLayout(
+        context,
+        WenzEditorLayout.mobile,
+        configured: WenzEditorLayout.mobile,
+        reason: 'forced mobile on desktop target platform',
+      );
+
+      setPlatform(TargetPlatform.iOS);
+      expectResolvedLayout(
+        context,
+        WenzEditorLayout.desktop,
+        configured: WenzEditorLayout.desktop,
+        reason: 'forced desktop on compact mobile target platform',
+      );
+    });
+  });
+
   group('lifecycle', () {
     test('dispose releases the editor controller and derived controllers', () {
       final bootstrap =
@@ -823,6 +1229,17 @@ Finder _richText(String text) {
   );
 }
 
+Future<void> _tapDesktopInsertMenuItem(
+  WidgetTester tester,
+  String label,
+) async {
+  await tester.tap(find.byTooltip('插入元素'));
+  await tester.pump();
+  final item = find.text(label).last;
+  expect(item, findsOneWidget);
+  await tester.tap(item);
+  await tester.pump();
+}
 Offset _globalTextRangePoint(
   WidgetTester tester,
   String text,

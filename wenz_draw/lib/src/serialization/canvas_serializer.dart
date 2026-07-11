@@ -9,6 +9,7 @@ import '../elements/drawio_shape_element.dart';
 import '../elements/ellipse_element.dart';
 import '../elements/image_element.dart';
 import '../elements/line_element.dart';
+import '../elements/line_arrow_style.dart';
 import '../elements/line_label_painter.dart';
 import '../elements/path_element.dart';
 import '../elements/polyline_element.dart';
@@ -134,10 +135,12 @@ class CanvasSerializer {
     final elements = <CanvasElement>[];
     for (final entry in elementJson) {
       if (entry is! Map<String, dynamic>) {
-        warn(const DocumentFormatWarning(
-          "Element is not an object; skipped",
-          field: 'elements',
-        ));
+        warn(
+          const DocumentFormatWarning(
+            "Element is not an object; skipped",
+            field: 'elements',
+          ),
+        );
         continue;
       }
       final element = _safeElementFromJson(entry, warn);
@@ -148,8 +151,8 @@ class CanvasSerializer {
 
     return DocumentParseResult(
       document: CanvasDocument(
-        schemaVersion: (migrated['schemaVersion'] as String?) ??
-            DocumentSchema.current,
+        schemaVersion:
+            (migrated['schemaVersion'] as String?) ?? DocumentSchema.current,
         metadata: _metadataFromJson(migrated['metadata']),
         viewport: _viewportFromJson(migrated['viewport']),
         assets: [
@@ -180,24 +183,28 @@ class CanvasSerializer {
       // Validate the result's geometry where applicable: a rect with negative
       // width/height is recoverable (downgrade) rather than fatal.
       if (_hasInvalidRect(element)) {
-        warn(DocumentFormatWarning(
-          'Element rect has negative width or height; kept as-is',
-          elementType: type,
-          elementId: json['id']?.toString(),
-          field: 'rect',
-          rawJson: json,
-        ));
+        warn(
+          DocumentFormatWarning(
+            'Element rect has negative width or height; kept as-is',
+            elementType: type,
+            elementId: json['id']?.toString(),
+            field: 'rect',
+            rawJson: json,
+          ),
+        );
       }
       return element;
     } catch (error) {
       // Downgrade: keep the original JSON verbatim inside an UnknownElement so
       // a round-trip never loses data written by a newer app.
-      warn(DocumentFormatWarning(
-        'Element could not be parsed ($error); preserved as UnknownElement',
-        elementType: type,
-        elementId: json['id']?.toString(),
-        rawJson: json,
-      ));
+      warn(
+        DocumentFormatWarning(
+          'Element could not be parsed ($error); preserved as UnknownElement',
+          elementType: type,
+          elementId: json['id']?.toString(),
+          rawJson: json,
+        ),
+      );
       return UnknownElement(
         id: (json['id'] as String?) ?? '',
         rawJson: Map<String, dynamic>.from(json),
@@ -240,7 +247,9 @@ class CanvasSerializer {
   ///
   /// This never throws; hosts that want hard enforcement can convert each
   /// [DocumentFormatWarning] via [DocumentFormatWarning.toException].
-  static List<DocumentFormatWarning> validateForSave(Map<String, dynamic> json) {
+  static List<DocumentFormatWarning> validateForSave(
+    Map<String, dynamic> json,
+  ) {
     final warnings = <DocumentFormatWarning>[];
     if (json.isEmpty) {
       return const [];
@@ -251,20 +260,24 @@ class CanvasSerializer {
     }
     for (final entry in elements) {
       if (entry is! Map<String, dynamic>) {
-        warnings.add(const DocumentFormatWarning(
-          'Element is not an object',
-          field: 'elements',
-        ));
+        warnings.add(
+          const DocumentFormatWarning(
+            'Element is not an object',
+            field: 'elements',
+          ),
+        );
         continue;
       }
       final id = entry['id'];
       if (id is! String || id.isEmpty) {
-        warnings.add(DocumentFormatWarning(
-          'Element is missing a non-empty id',
-          elementType: entry['type']?.toString(),
-          field: 'id',
-          rawJson: entry,
-        ));
+        warnings.add(
+          DocumentFormatWarning(
+            'Element is missing a non-empty id',
+            elementType: entry['type']?.toString(),
+            field: 'id',
+            rawJson: entry,
+          ),
+        );
       }
       final rect = entry['rect'];
       if (rect is Map) {
@@ -273,13 +286,15 @@ class CanvasSerializer {
         final right = (rect['right'] as num?)?.toDouble() ?? 0;
         final bottom = (rect['bottom'] as num?)?.toDouble() ?? 0;
         if (right < left || bottom < top) {
-          warnings.add(DocumentFormatWarning(
-            'Element rect has negative width or height',
-            elementType: entry['type']?.toString(),
-            elementId: id is String ? id : null,
-            field: 'rect',
-            rawJson: entry,
-          ));
+          warnings.add(
+            DocumentFormatWarning(
+              'Element rect has negative width or height',
+              elementType: entry['type']?.toString(),
+              elementId: id is String ? id : null,
+              field: 'rect',
+              rawJson: entry,
+            ),
+          );
         }
       }
     }
@@ -331,64 +346,88 @@ class CanvasSerializer {
           style: _style(json['style']),
         );
       case CurveElement.elementType:
-        return CurveElement(
-          id: id,
-          layerId: layerId,
-          visible: visible,
-          opacity: opacity,
-          zIndex: zIndex,
-          groupId: json['groupId'] as String?,
-          start: _point(json['start']),
-          end: _point(json['end']),
-          control: _point(json['control']),
-          style: _style(json['style']),
-        );
+        {
+          final arrowStyle = LineArrowStyle.fromJson(
+            json['arrowStyle'] ?? json,
+          );
+          return CurveElement(
+            id: id,
+            layerId: layerId,
+            visible: visible,
+            opacity: opacity,
+            zIndex: zIndex,
+            groupId: json['groupId'] as String?,
+            start: _point(json['start']),
+            end: _point(json['end']),
+            control: _point(json['control']),
+            style: _style(json['style']),
+            startArrowStyle: arrowStyle.startArrowStyle,
+            endArrowStyle: arrowStyle.endArrowStyle,
+            headSize: arrowStyle.effectiveHeadSize,
+            startBinding: SnapBinding.fromJson(json['startBinding']),
+            endBinding: SnapBinding.fromJson(json['endBinding']),
+          );
+        }
       case LineElement.elementType:
-        return LineElement(
-          id: id,
-          layerId: layerId,
-          visible: visible,
-          opacity: opacity,
-          zIndex: zIndex,
-          groupId: json['groupId'] as String?,
-          start: _point(json['start']),
-          end: _point(json['end']),
-          style: _style(json['style']),
-          startBinding: SnapBinding.fromJson(json['startBinding']),
-          endBinding: SnapBinding.fromJson(json['endBinding']),
-          label: json['label'] as String?,
-          labelStyle: LineLabelPainter.styleFromJson(json['labelStyle']),
-          labelPosition:
-              (json['labelPosition'] as num?)?.toDouble() ??
-              LineLabelPainter.defaultPosition,
-          labelOffset: LineLabelPainter.offsetFromJson(json['labelOffset']),
-          labelBackground: _colorFromJson(json['labelBackground']),
-        );
+        {
+          final arrowStyle = LineArrowStyle.fromJson(
+            json['arrowStyle'] ?? json,
+          );
+          return LineElement(
+            id: id,
+            layerId: layerId,
+            visible: visible,
+            opacity: opacity,
+            zIndex: zIndex,
+            groupId: json['groupId'] as String?,
+            start: _point(json['start']),
+            end: _point(json['end']),
+            style: _style(json['style']),
+            startArrowStyle: arrowStyle.startArrowStyle,
+            endArrowStyle: arrowStyle.endArrowStyle,
+            headSize: arrowStyle.effectiveHeadSize,
+            startBinding: SnapBinding.fromJson(json['startBinding']),
+            endBinding: SnapBinding.fromJson(json['endBinding']),
+            label: json['label'] as String?,
+            labelStyle: LineLabelPainter.styleFromJson(json['labelStyle']),
+            labelPosition:
+                (json['labelPosition'] as num?)?.toDouble() ??
+                LineLabelPainter.defaultPosition,
+            labelOffset: LineLabelPainter.offsetFromJson(json['labelOffset']),
+            labelBackground: _colorFromJson(json['labelBackground']),
+          );
+        }
       case PolylineElement.elementType:
-        return PolylineElement(
-          id: id,
-          layerId: layerId,
-          visible: visible,
-          opacity: opacity,
-          zIndex: zIndex,
-          groupId: json['groupId'] as String?,
-          points: [
-            for (final point in json['points'] as List<dynamic>? ?? const [])
-              _point(point),
-          ],
-          style: _style(json['style']),
-          startBinding: SnapBinding.fromJson(json['startBinding']),
-          endBinding: SnapBinding.fromJson(json['endBinding']),
-          endArrow: json['endArrow'] as bool? ?? false,
-          headSize: (json['headSize'] as num?)?.toDouble() ?? 14,
-          label: json['label'] as String?,
-          labelStyle: LineLabelPainter.styleFromJson(json['labelStyle']),
-          labelPosition:
-              (json['labelPosition'] as num?)?.toDouble() ??
-              LineLabelPainter.defaultPosition,
-          labelOffset: LineLabelPainter.offsetFromJson(json['labelOffset']),
-          labelBackground: _colorFromJson(json['labelBackground']),
-        );
+        {
+          final arrowStyle = LineArrowStyle.fromJson(
+            json['arrowStyle'] ?? json,
+          );
+          return PolylineElement(
+            id: id,
+            layerId: layerId,
+            visible: visible,
+            opacity: opacity,
+            zIndex: zIndex,
+            groupId: json['groupId'] as String?,
+            points: [
+              for (final point in json['points'] as List<dynamic>? ?? const [])
+                _point(point),
+            ],
+            style: _style(json['style']),
+            startBinding: SnapBinding.fromJson(json['startBinding']),
+            endBinding: SnapBinding.fromJson(json['endBinding']),
+            startArrowStyle: arrowStyle.startArrowStyle,
+            endArrowStyle: arrowStyle.endArrowStyle,
+            headSize: arrowStyle.effectiveHeadSize,
+            label: json['label'] as String?,
+            labelStyle: LineLabelPainter.styleFromJson(json['labelStyle']),
+            labelPosition:
+                (json['labelPosition'] as num?)?.toDouble() ??
+                LineLabelPainter.defaultPosition,
+            labelOffset: LineLabelPainter.offsetFromJson(json['labelOffset']),
+            labelBackground: _colorFromJson(json['labelBackground']),
+          );
+        }
       case DrawioShapeElement.elementType:
         return DrawioShapeElement(
           id: id,
@@ -552,9 +591,7 @@ class CanvasSerializer {
   static DocumentMetadata _metadataFromJson(Object? value) {
     if (value is Map<String, dynamic>) return DocumentMetadata.fromJson(value);
     if (value is Map) {
-      return DocumentMetadata.fromJson(
-        Map<String, dynamic>.from(value),
-      );
+      return DocumentMetadata.fromJson(Map<String, dynamic>.from(value));
     }
     return const DocumentMetadata();
   }
@@ -562,9 +599,7 @@ class CanvasSerializer {
   static DocumentViewport _viewportFromJson(Object? value) {
     if (value is Map<String, dynamic>) return DocumentViewport.fromJson(value);
     if (value is Map) {
-      return DocumentViewport.fromJson(
-        Map<String, dynamic>.from(value),
-      );
+      return DocumentViewport.fromJson(Map<String, dynamic>.from(value));
     }
     return const DocumentViewport();
   }

@@ -144,6 +144,8 @@ class ToolbarState {
     required this.remark,
     required this.textColor,
     required this.textColorMixed,
+    required this.textBackgroundColor,
+    required this.textBackgroundColorMixed,
     required this.linkUrl,
     required this.uniformBlockType,
     required this.uniformListType,
@@ -221,6 +223,13 @@ class ToolbarState {
   final int? textColor;
   final bool textColorMixed;
 
+  /// The single inline background/highlight color shared by the selection as
+  /// `0xAARRGGBB`. `null` with [textBackgroundColorMixed] false means no
+  /// inline background; `null` with [textBackgroundColorMixed] true means the
+  /// range mixes multiple background states.
+  final int? textBackgroundColor;
+  final bool textBackgroundColorMixed;
+
   /// The link URL shared by every run in the selection, or `null` when the
   /// selection has no link or mixes different URLs. For a collapsed caret,
   /// this is the URL of the run immediately left of the caret.
@@ -297,6 +306,8 @@ class ToolbarState {
     remark: false,
     textColor: null,
     textColorMixed: false,
+    textBackgroundColor: null,
+    textBackgroundColorMixed: false,
     linkUrl: null,
     uniformBlockType: null,
     uniformListType: null,
@@ -331,6 +342,8 @@ class ToolbarState {
     bool? remark,
     Object? textColor = _sentinel,
     bool? textColorMixed,
+    Object? textBackgroundColor = _sentinel,
+    bool? textBackgroundColorMixed,
     Object? linkUrl = _sentinel,
     BlockType? uniformBlockType,
     Object? uniformListType = _sentinel,
@@ -371,6 +384,11 @@ class ToolbarState {
       textColor:
           identical(textColor, _sentinel) ? this.textColor : textColor as int?,
       textColorMixed: textColorMixed ?? this.textColorMixed,
+      textBackgroundColor: identical(textBackgroundColor, _sentinel)
+          ? this.textBackgroundColor
+          : textBackgroundColor as int?,
+      textBackgroundColorMixed:
+          textBackgroundColorMixed ?? this.textBackgroundColorMixed,
       linkUrl:
           identical(linkUrl, _sentinel) ? this.linkUrl : linkUrl as String?,
       uniformBlockType: uniformBlockType ?? this.uniformBlockType,
@@ -415,6 +433,8 @@ class ToolbarState {
         other.remark == remark &&
         other.textColor == textColor &&
         other.textColorMixed == textColorMixed &&
+        other.textBackgroundColor == textBackgroundColor &&
+        other.textBackgroundColorMixed == textBackgroundColorMixed &&
         other.linkUrl == linkUrl &&
         other.uniformBlockType == uniformBlockType &&
         other.uniformListType == uniformListType &&
@@ -454,6 +474,8 @@ class ToolbarState {
         remark,
         textColor,
         textColorMixed,
+        textBackgroundColor,
+        textBackgroundColorMixed,
         linkUrl,
         uniformBlockType,
         uniformListType,
@@ -521,6 +543,10 @@ class ToolbarController extends ChangeNotifier {
   bool get remark => _state.remark;
   int? get textColor => _state.textColor;
   bool get textColorMixed => _state.textColorMixed;
+  int? get textBackgroundColor => _state.textBackgroundColor;
+  bool get textBackgroundColorMixed => _state.textBackgroundColorMixed;
+  int? get textHighlightColor => _state.textBackgroundColor;
+  bool get textHighlightMixed => _state.textBackgroundColorMixed;
   bool isMarkActive(TextMark mark) => _state.isMarkActive(mark);
 
   String? get linkUrl => _state.linkUrl;
@@ -580,6 +606,36 @@ class ToolbarController extends ChangeNotifier {
       return;
     }
     _host.clearTextColor();
+  }
+
+  void setTextBackground(Color color) {
+    setTextBackgroundValue(color.toARGB32());
+  }
+
+  void setTextBackgroundValue(int color) {
+    if (!_state.canFormatInline) {
+      return;
+    }
+    _host.setTextBackgroundValue(color);
+  }
+
+  void setTextHighlight(Color color) {
+    setTextBackground(color);
+  }
+
+  void setTextHighlightValue(int color) {
+    setTextBackgroundValue(color);
+  }
+
+  void clearTextBackground() {
+    if (!_state.canFormatInline) {
+      return;
+    }
+    _host.clearTextBackground();
+  }
+
+  void clearTextHighlight() {
+    clearTextBackground();
   }
 
   void clearStyle() {
@@ -804,6 +860,23 @@ class ToolbarController extends ChangeNotifier {
     );
   }
 
+  void insertDivider({
+    int? index,
+    String? blockId,
+    DocumentSelection? selection,
+  }) {
+    if (!canInsertBlock) {
+      return;
+    }
+    _host.insertBlocks(
+      index: index ?? currentBlockInsertionIndex(),
+      blocks: <BlockNode>[
+        DividerBlockNode(id: blockId ?? _nextBlockId('hr')),
+      ],
+      selection: selection,
+    );
+  }
+
   void insertImage({
     int? index,
     String? blockId,
@@ -846,6 +919,8 @@ class ToolbarController extends ChangeNotifier {
     String title = '',
     String description = '',
     double? aspectRatio,
+    double? showWidth,
+    double? showHeight,
     FileUploadStatus uploadStatus = FileUploadStatus.none,
     String uploadError = '',
     DocumentSelection? selection,
@@ -864,6 +939,8 @@ class ToolbarController extends ChangeNotifier {
       title: title,
       description: description,
       aspectRatio: aspectRatio,
+      showWidth: showWidth,
+      showHeight: showHeight,
       uploadStatus: uploadStatus,
       uploadError: uploadError,
       selection: selection,
@@ -1106,6 +1183,8 @@ class ToolbarController extends ChangeNotifier {
       remark: inlineSummary.remark,
       textColor: inlineSummary.color,
       textColorMixed: inlineSummary.colorMixed,
+      textBackgroundColor: inlineSummary.background,
+      textBackgroundColorMixed: inlineSummary.backgroundMixed,
       linkUrl: inlineSummary.url,
       uniformBlockType: blockSummary.uniformType,
       uniformListType: blockSummary.uniformListType,
@@ -1151,6 +1230,9 @@ class ToolbarController extends ChangeNotifier {
     int? color;
     var colorSet = false;
     var colorMixed = false;
+    int? background;
+    var backgroundSet = false;
+    var backgroundMixed = false;
     var sawAny = false;
 
     for (var i = start.blockIndex; i <= end.blockIndex; i++) {
@@ -1178,6 +1260,9 @@ class ToolbarController extends ChangeNotifier {
         color: color,
         colorSet: colorSet,
         colorMixed: colorMixed,
+        background: background,
+        backgroundSet: backgroundSet,
+        backgroundMixed: backgroundMixed,
         sawAny: sawAny,
       );
       bold = partial.bold;
@@ -1190,6 +1275,9 @@ class ToolbarController extends ChangeNotifier {
       color = partial.color;
       colorSet = partial.colorSet;
       colorMixed = partial.colorMixed;
+      background = partial.background;
+      backgroundSet = partial.backgroundSet;
+      backgroundMixed = partial.backgroundMixed;
       sawAny = partial.sawAny;
     }
 
@@ -1205,6 +1293,8 @@ class ToolbarController extends ChangeNotifier {
       url: url,
       color: colorMixed ? null : color,
       colorMixed: colorMixed,
+      background: backgroundMixed ? null : background,
+      backgroundMixed: backgroundMixed,
     );
   }
 
@@ -1230,6 +1320,9 @@ class ToolbarController extends ChangeNotifier {
       color: null,
       colorSet: false,
       colorMixed: false,
+      background: null,
+      backgroundSet: false,
+      backgroundMixed: false,
       sawAny: false,
     );
     if (!partial.sawAny) {
@@ -1244,6 +1337,8 @@ class ToolbarController extends ChangeNotifier {
       url: partial.url,
       color: partial.colorMixed ? null : partial.color,
       colorMixed: partial.colorMixed,
+      background: partial.backgroundMixed ? null : partial.background,
+      backgroundMixed: partial.backgroundMixed,
     );
   }
 
@@ -1359,6 +1454,9 @@ class ToolbarController extends ChangeNotifier {
     required int? color,
     required bool colorSet,
     required bool colorMixed,
+    required int? background,
+    required bool backgroundSet,
+    required bool backgroundMixed,
     required bool sawAny,
   }) {
     var cursor = 0;
@@ -1402,6 +1500,13 @@ class ToolbarController extends ChangeNotifier {
         color = null;
         colorMixed = true;
       }
+      if (!backgroundSet) {
+        background = node.attributes.background;
+        backgroundSet = true;
+      } else if (node.attributes.background != background) {
+        background = null;
+        backgroundMixed = true;
+      }
     }
     return _AttributeScan(
       bold: bold,
@@ -1414,6 +1519,9 @@ class ToolbarController extends ChangeNotifier {
       color: color,
       colorSet: colorSet,
       colorMixed: colorMixed,
+      background: background,
+      backgroundSet: backgroundSet,
+      backgroundMixed: backgroundMixed,
       sawAny: sawAny,
     );
   }
@@ -1521,7 +1629,8 @@ class ToolbarController extends ChangeNotifier {
 /// Aggregated inline attributes across a selection. Each bool is `true` only
 /// when every covered run has the mark set; the URL/color is `null` when the
 /// range has none. Color additionally exposes [colorMixed] to distinguish no
-/// inline color from mixed color states.
+/// inline color from mixed color states; background mirrors that contract for
+/// inline highlights.
 class InlineAttributeSummary {
   const InlineAttributeSummary({
     required this.bold,
@@ -1532,6 +1641,8 @@ class InlineAttributeSummary {
     required this.url,
     required this.color,
     required this.colorMixed,
+    required this.background,
+    required this.backgroundMixed,
   });
 
   factory InlineAttributeSummary.single(TextAttributes attrs) {
@@ -1544,6 +1655,8 @@ class InlineAttributeSummary {
       url: attrs.url,
       color: attrs.color,
       colorMixed: false,
+      background: attrs.background,
+      backgroundMixed: false,
     );
   }
 
@@ -1556,6 +1669,8 @@ class InlineAttributeSummary {
     url: null,
     color: null,
     colorMixed: false,
+    background: null,
+    backgroundMixed: false,
   );
 
   final bool bold;
@@ -1566,6 +1681,8 @@ class InlineAttributeSummary {
   final String? url;
   final int? color;
   final bool colorMixed;
+  final int? background;
+  final bool backgroundMixed;
 }
 
 class _TableCellStyleSummary {
@@ -1617,6 +1734,9 @@ class _AttributeScan {
     required this.color,
     required this.colorSet,
     required this.colorMixed,
+    required this.background,
+    required this.backgroundSet,
+    required this.backgroundMixed,
     required this.sawAny,
   });
 
@@ -1630,6 +1750,9 @@ class _AttributeScan {
   final int? color;
   final bool colorSet;
   final bool colorMixed;
+  final int? background;
+  final bool backgroundSet;
+  final bool backgroundMixed;
   final bool sawAny;
 }
 

@@ -156,6 +156,24 @@ void main() {
     expect(scaled.style.strokeWidth, 4);
   });
 
+  test('polyline arrowhead expands bounds and participates in hit testing', () {
+    const element = PolylineElement(
+      id: 'poly-arrow',
+      points: [Offset(0, 0), Offset(40, 0), Offset(40, 30)],
+      style: PaintStyle(strokeWidth: 2),
+      endArrow: true,
+      headSize: 20,
+    );
+
+    expect(element.bounds, const Rect.fromLTRB(-20, -20, 60, 50));
+    expect(element.hitTest(const Offset(45, 22), tolerance: 2), isTrue);
+    expect(element.hitTest(const Offset(70, 30), tolerance: 2), isFalse);
+
+    final scaled = element.scaleElement(0.5, pivot: Offset.zero);
+    expect(scaled.endArrow, isTrue);
+    expect(scaled.headSize, 10);
+  });
+
   test('polyline tool creates orthogonal route with snap bindings', () {
     final controller = CanvasController(
       snapSettings: const SnapSettings(thresholdScreenPx: 12),
@@ -596,6 +614,8 @@ void main() {
           const PolylineElement(
             id: 'poly-1',
             points: [Offset(0, 0), Offset(50, 0), Offset(50, 40)],
+            endArrow: true,
+            headSize: 18,
           ),
           record: false,
         )
@@ -628,6 +648,8 @@ void main() {
       final polyline = controller.elementById('poly-1') as PolylineElement;
       expect(polyline.start, Offset.zero);
       expect(polyline.end, const Offset(120, 40));
+      expect(polyline.endArrow, isTrue);
+      expect(polyline.headSize, 18);
       for (var i = 0; i < polyline.points.length - 1; i++) {
         expect(
           polyline.points[i].dx == polyline.points[i + 1].dx ||

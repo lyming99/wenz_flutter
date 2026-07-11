@@ -7,6 +7,7 @@ import '../core/commands/table_cell_editing.dart';
 import '../core/model/block_node.dart';
 import '../core/model/inline_node.dart';
 import '../core/model/rich_text_document.dart';
+import '../core/model/table_model.dart';
 import '../core/position/document_position.dart';
 import 'external_image_input.dart';
 
@@ -15,11 +16,55 @@ import 'external_image_input.dart';
 /// rich payloads are encoded as `<prefix><json>` and detected on paste.
 const String wenzClipboardPrefix = 'wenz-richtext-json:v1\n';
 
+/// Private clipboard format carrying Wenz rich-text JSON.
+const String wenzRichTextClipboardFormat = 'application/x-wenz-richtext';
+
+/// Standard HTML clipboard format for external rich paste targets.
+const String htmlClipboardFormat = 'text/html';
+
+/// Standard Markdown clipboard format for external structured paste sources.
+const String markdownClipboardFormat = 'text/markdown';
+
+/// Standard plain-text clipboard format used as the readable fallback.
+const String plainTextClipboardFormat = 'text/plain';
+
 enum ClipboardPasteFormat {
   auto,
   plainText,
   markdown,
   html,
+}
+
+/// Structured copy result with all clipboard flavours prepared from the same
+/// selection slice.
+class ClipboardCopyPayload {
+  const ClipboardCopyPayload({
+    required this.wenzRichText,
+    required this.html,
+    required this.plainText,
+    String? legacyText,
+  }) : legacyText = legacyText ?? wenzRichText;
+
+  /// Internal Wenz payload. This keeps the historical magic prefix so it can
+  /// still be pasted through [parse] when only plain text is available.
+  final String wenzRichText;
+
+  /// HTML fragment for external rich paste targets.
+  final String html;
+
+  /// Readable plain-text fallback. This must never expose raw Wenz JSON.
+  final String plainText;
+
+  /// Backwards-compatible string returned by [ClipboardService.copy]. Some
+  /// legacy paths intentionally returned plain text for code/table selections.
+  final String legacyText;
+
+  /// Payloads keyed by clipboard MIME/format identifiers.
+  Map<String, String> get formats => <String, String>{
+        wenzRichTextClipboardFormat: wenzRichText,
+        htmlClipboardFormat: html,
+        plainTextClipboardFormat: plainText,
+      };
 }
 
 /// Context passed to a plugin paste transformer.
@@ -91,24 +136,36 @@ class ClipboardService {
   /// construction.
   final List<ClipboardPasteTransformer> pasteTransformers;
 
-  /// Serialises [selection] from [document] into a clipboard string.
+  /// Serialises [selection] from [document] into the legacy clipboard string.
   ///
   /// Returns `null` when the selection is collapsed or points at nothing
   /// copyable.
   String? copy(RichTextDocument document, DocumentSelection? selection) {
+    return copyPayload(document, selection)?.legacyText;
+  }
+
+  /// Serialises [selection] from [document] into internal rich text, HTML, and
+  /// readable plain-text clipboard flavours.
+  ///
+  /// Returns `null` when the selection is collapsed or points at nothing
+  /// copyable.
+  ClipboardCopyPayload? copyPayload(
+    RichTextDocument document,
+    DocumentSelection? selection,
+  ) {
     if (selection == null || selection.isCollapsed) {
       return null;
     }
     final range = selection.tableCellRange;
     if (range != null && !range.isSingleCell) {
-      return _copyTableCellRangePlain(document, range);
+      return _copyTableCellRangePayload(document, range);
     }
     final start = selection.start;
     final end = selection.end;
     if (start.blockIndex == end.blockIndex && start.path == end.path) {
-      return _copySameBlock(document, start, end);
+      return _copySameBlockPayload(document, start, end);
     }
-    return _copyCrossBlockRich(document, start, end);
+    return _copyCrossBlockPayload(document, start, end);
   }
 
   /// Parses a clipboard string into structured paste data.
@@ -140,35 +197,99 @@ class ClipboardService {
         break;
     }
     if (raw.startsWith(wenzClipboardPrefix)) {
-      final json = raw.substring(wenzClipboardPrefix.length);
-      final decoded = jsonDecode(json);
-      if (decoded is Map) {
-        if (decoded['type'] == 'inline') {
-          final runs = (decoded['runs'] as List)
-              .whereType<Map>()
-              .map((node) =>
-                  InlineNode.fromJson(Map<String, Object?>.from(node)))
-              .toList();
-          return ClipboardPaste.inline(runs);
-        }
-        if (decoded['type'] == 'blocks') {
-          final blocksJson = decoded['blocks'];
-          if (blocksJson is List) {
-            final blocks = blocksJson
-                .whereType<Map>()
-                .map((node) =>
-                    BlockNode.fromJson(Map<String, Object?>.from(node)))
-                .toList();
-            if (blocks.isNotEmpty) {
-              return ClipboardPaste.blocks(blocks);
-            }
-          }
-        }
-      }
+      return _parseWenzRichTextPayload(raw);
     }
     // Plain text. Split into lines: first line stays inline, the rest become
     // new blocks via Enter-on-paste.
     return ClipboardPaste.plain(raw);
+  }
+
+  /// Parses already separated clipboard flavours using editor paste priority.
+  ///
+  /// Private Wenz data wins, followed by legacy prefixed plain text, HTML,
+  /// Markdown, and finally readable plain text. Image handling stays outside
+  /// this pure parser because platform images must first be materialised by an
+  /// [ExternalImageStore].
+  ClipboardPaste? parseFormats({
+    String? wenzRichText,
+    String? html,
+    String? markdown,
+    String? plainText,
+  }) {
+    final rich = _nonEmptyClipboardString(wenzRichText);
+    if (rich != null) {
+      return parse(_ensureWenzClipboardPrefix(rich));
+    }
+    final plain = _nonEmptyClipboardString(plainText);
+    if (plain != null && plain.startsWith(wenzClipboardPrefix)) {
+      return parse(plain);
+    }
+    final htmlText = _nonEmptyClipboardString(html);
+    if (htmlText != null) {
+      return parse(htmlText, format: ClipboardPasteFormat.html);
+    }
+    final markdownText = _nonEmptyClipboardString(markdown);
+    if (markdownText != null) {
+      return parse(markdownText, format: ClipboardPasteFormat.markdown);
+    }
+    if (plain != null) {
+      return parse(plain, format: ClipboardPasteFormat.plainText);
+    }
+    return null;
+  }
+
+  ClipboardPaste _parseWenzRichTextPayload(String raw) {
+    final decoded = _decodeWenzRichTextPayload(raw);
+    if (decoded == null) {
+      return const ClipboardPaste.plain('');
+    }
+    final plain = _plainFromDecodedWenzPayload(decoded);
+    try {
+      if (decoded['type'] == 'inline') {
+        final runsJson = decoded['runs'];
+        if (runsJson is List) {
+          final runs = runsJson
+              .whereType<Map>()
+              .map((node) =>
+                  InlineNode.fromJson(Map<String, Object?>.from(node)))
+              .toList();
+          return runs.isEmpty && plain != null
+              ? ClipboardPaste.plain(plain)
+              : ClipboardPaste.inline(runs);
+        }
+      }
+      if (decoded['type'] == 'blocks') {
+        final blocksJson = decoded['blocks'];
+        if (blocksJson is List) {
+          final blocks = blocksJson
+              .whereType<Map>()
+              .map((node) =>
+                  BlockNode.fromJson(Map<String, Object?>.from(node)))
+              .toList();
+          if (blocks.isNotEmpty) {
+            return ClipboardPaste.blocks(blocks);
+          }
+        }
+      }
+    } on Object {
+      return ClipboardPaste.plain(plain ?? '');
+    }
+    return ClipboardPaste.plain(plain ?? '');
+  }
+
+  Map<Object?, Object?>? _decodeWenzRichTextPayload(String raw) {
+    try {
+      final json = raw.substring(wenzClipboardPrefix.length);
+      final decoded = jsonDecode(json);
+      return decoded is Map ? decoded : null;
+    } on Object {
+      return null;
+    }
+  }
+
+  String? _plainFromDecodedWenzPayload(Map<Object?, Object?> decoded) {
+    final plain = decoded['plain'];
+    return plain is String ? plain : null;
   }
 
   String _copyTableCellRangePlain(
@@ -192,37 +313,64 @@ class ClipboardService {
     return lines.join('\n');
   }
 
-  String? _copySameBlock(
+  ClipboardCopyPayload? _copyTableCellRangePayload(
+    RichTextDocument document,
+    TableCellRange range,
+  ) {
+    final block = _blockAt(document, range.blockIndex);
+    if (block is! TableBlockNode) {
+      return null;
+    }
+    final plain = _copyTableCellRangePlain(document, range);
+    final table = _sliceTableBlock(block, range);
+    return _copyBlocksPayload(
+      <BlockNode>[table],
+      plain: plain,
+      legacyText: plain,
+    );
+  }
+
+  ClipboardCopyPayload? _copySameBlockPayload(
     RichTextDocument document,
     DocumentPosition start,
     DocumentPosition end,
   ) {
     if (start.path.isTableCellText) {
-      return _copySameTableCell(document, start, end);
+      return _copySameTableCellPayload(document, start, end);
     }
     final block = _blockAt(document, start.blockIndex);
     if (start.path.isBlockObject) {
       if (block == null) {
         return null;
       }
-      return _encodeBlockSlice(<BlockNode>[block.copy()]);
+      return _copyBlocksPayload(
+        <BlockNode>[block.copy()],
+        plain: _plainTextForBlock(block),
+      );
     }
     final content = block == null ? null : _blockTextContent(block);
     if (content != null && start.path.isBlockText) {
-      return _encodeInlineSlice(content, start.offset, end.offset);
-    }
-    if (block is! TextBlockNode) {
-      // Code block or non-text: fall back to a plain text slice.
-      final text = block?.plainText ?? '';
-      return text.substring(
-        start.offset.clamp(0, text.length),
-        end.offset.clamp(0, text.length),
+      return _copyInlineSlicePayload(
+        content,
+        start.offset,
+        end.offset,
+        htmlContextBlock: block,
       );
     }
-    return _encodeInlineSlice(block.content, start.offset, end.offset);
+    if (block is CodeBlockNode && start.path.isBlockCode) {
+      return _copyCodeBlockSlicePayload(block, start.offset, end.offset);
+    }
+    final text = block?.plainText ?? '';
+    final startOffset = _clampOffset(start.offset, text.length);
+    final endOffset = _clampOffset(end.offset, text.length);
+    final plain = text.substring(startOffset, endOffset);
+    return _copyPlainTextPayload(
+      plain,
+      legacyText: plain,
+    );
   }
 
-  String _copySameTableCell(
+  ClipboardCopyPayload _copySameTableCellPayload(
     RichTextDocument document,
     DocumentPosition start,
     DocumentPosition end,
@@ -231,31 +379,109 @@ class ClipboardService {
     final rowIndex = start.path.tableRowIndex;
     final columnIndex = start.path.tableColumnIndex;
     if (block is! TableBlockNode || rowIndex == null || columnIndex == null) {
-      return '';
+      return _copyPlainTextPayload('', legacyText: '');
     }
     final cell = block.table.cellAt(rowIndex, columnIndex);
     if (cell == null) {
-      return '';
+      return _copyPlainTextPayload('', legacyText: '');
     }
-    return _encodeInlineSlice(
+    return _copyInlineSlicePayload(
       cellTextBlock(cell).content,
       start.offset,
       end.offset,
     );
   }
 
-  String _encodeInlineSlice(List<InlineNode> nodes, int start, int end) {
+  ClipboardCopyPayload _copyInlineSlicePayload(
+    List<InlineNode> nodes,
+    int start,
+    int end, {
+    BlockNode? htmlContextBlock,
+    String? legacyText,
+  }) {
     final range = _sliceInline(nodes, start, end);
     final plain = _plainTextForInlineNodes(range);
+    final htmlBlock = _htmlBlockForInlineSlice(htmlContextBlock, range);
+    return ClipboardCopyPayload(
+      wenzRichText: _encodeInlineNodes(range, plain: plain),
+      html: _htmlForBlocks(<BlockNode>[htmlBlock]),
+      plainText: plain,
+      legacyText: legacyText,
+    );
+  }
+
+  ClipboardCopyPayload _copyCodeBlockSlicePayload(
+    CodeBlockNode block,
+    int start,
+    int end,
+  ) {
+    final startOffset = _clampOffset(start, block.code.length);
+    final endOffset = _clampOffset(end, block.code.length);
+    final code = block.code.substring(startOffset, endOffset);
+    return _copyBlocksPayload(
+      <BlockNode>[
+        CodeBlockNode(
+          id: block.id,
+          code: code,
+          language: block.language,
+          attributes: block.attributes,
+        ),
+      ],
+      plain: code,
+      legacyText: code,
+    );
+  }
+
+  ClipboardCopyPayload _copyPlainTextPayload(
+    String text, {
+    String? legacyText,
+  }) {
+    final nodes = text.isEmpty
+        ? const <InlineNode>[]
+        : <InlineNode>[TextRun(text: text)];
+    return _copyInlineSlicePayload(
+      nodes,
+      0,
+      text.length,
+      legacyText: legacyText,
+    );
+  }
+
+  ClipboardCopyPayload _copyCrossBlockPayload(
+    RichTextDocument document,
+    DocumentPosition start,
+    DocumentPosition end,
+  ) {
+    final blocks = _copyCrossBlockSlice(document, start, end);
+    return _copyBlocksPayload(
+      blocks,
+      plain: _copyCrossBlockPlain(document, start, end),
+    );
+  }
+
+  ClipboardCopyPayload _copyBlocksPayload(
+    List<BlockNode> blocks, {
+    required String plain,
+    String? legacyText,
+  }) {
+    return ClipboardCopyPayload(
+      wenzRichText: _encodeBlockSlice(blocks, plain: plain),
+      html: _htmlForBlocks(blocks),
+      plainText: plain,
+      legacyText: legacyText,
+    );
+  }
+
+  String _encodeInlineNodes(List<InlineNode> nodes, {String? plain}) {
     final payload = jsonEncode(<String, Object?>{
       'type': 'inline',
-      'runs': range.map((node) => node.toJson()).toList(),
-      'plain': plain,
+      'runs': nodes.map((node) => node.toJson()).toList(),
+      'plain': plain ?? _plainTextForInlineNodes(nodes),
     });
     return '$wenzClipboardPrefix$payload';
   }
 
-  String _copyCrossBlockRich(
+  List<BlockNode> _copyCrossBlockSlice(
     RichTextDocument document,
     DocumentPosition start,
     DocumentPosition end,
@@ -264,6 +490,30 @@ class ClipboardService {
     for (var i = start.blockIndex; i <= end.blockIndex; i++) {
       final block = _blockAt(document, i);
       if (block == null) {
+        continue;
+      }
+      if (block is CodeBlockNode &&
+          (i == start.blockIndex || i == end.blockIndex)) {
+        final codeLength = block.code.length;
+        final startOffset =
+            i == start.blockIndex ? _clampOffset(start.offset, codeLength) : 0;
+        final endOffset = i == end.blockIndex
+            ? _clampOffset(end.offset, codeLength)
+            : codeLength;
+        final code = block.code.substring(startOffset, endOffset);
+        if (code.isEmpty &&
+            ((i == start.blockIndex && startOffset >= codeLength) ||
+                (i == end.blockIndex && endOffset == 0))) {
+          continue;
+        }
+        blocks.add(
+          CodeBlockNode(
+            id: block.id,
+            code: code,
+            language: block.language,
+            attributes: block.attributes,
+          ),
+        );
         continue;
       }
       final content = _blockTextContent(block);
@@ -278,7 +528,7 @@ class ClipboardService {
       final List<InlineNode> sliced;
       if (i == start.blockIndex && i == end.blockIndex) {
         // Same block, different paths — shouldn't reach here (same-path is
-        // handled by _copySameBlock), but guard anyway.
+        // handled by _copySameBlockPayload), but guard anyway.
         sliced = _sliceInline(content, start.offset, end.offset);
       } else if (i == start.blockIndex) {
         sliced = _sliceInline(
@@ -308,8 +558,7 @@ class ClipboardService {
         ),
       );
     }
-    return _encodeBlockSlice(blocks,
-        plain: _copyCrossBlockPlain(document, start, end));
+    return blocks;
   }
 
   String _encodeBlockSlice(List<BlockNode> blocks, {String? plain}) {
@@ -345,10 +594,10 @@ class ClipboardService {
         );
       } else if (i == start.blockIndex) {
         final text = _plainTextForBoundary(block, start);
-        lines.add(text.substring(start.offset.clamp(0, text.length)));
+        lines.add(text.substring(_clampOffset(start.offset, text.length)));
       } else if (i == end.blockIndex) {
         final text = _plainTextForBoundary(block, end);
-        lines.add(text.substring(0, end.offset.clamp(0, text.length)));
+        lines.add(text.substring(0, _clampOffset(end.offset, text.length)));
       } else {
         lines.add(content == null
             ? _plainTextForBlock(block)
@@ -387,6 +636,95 @@ class ClipboardService {
             ),
       _ => block.copy(),
     };
+  }
+
+  BlockNode _htmlBlockForInlineSlice(
+    BlockNode? context,
+    List<InlineNode> content,
+  ) {
+    if (context is TextBlockNode) {
+      return TextBlockNode(
+        id: context.id,
+        type: context.type,
+        attributes: context.attributes,
+        content: content,
+      );
+    }
+    return TextBlockNode(
+      id: context?.id ?? 'clipboard-inline',
+      type: BlockType.paragraph,
+      content: content,
+    );
+  }
+
+  String _htmlForBlocks(List<BlockNode> blocks) {
+    return htmlCodec.encodeBlocks(blocks);
+  }
+
+  TableBlockNode _sliceTableBlock(TableBlockNode block, TableCellRange range) {
+    final rows = <List<TableCellNode>>[];
+    for (var rowIndex = range.startRow; rowIndex <= range.endRow; rowIndex++) {
+      final row = <TableCellNode>[];
+      for (var columnIndex = range.startColumn;
+          columnIndex <= range.endColumn;
+          columnIndex++) {
+        final cell = block.table.cellAt(rowIndex, columnIndex);
+        row.add(
+          cell == null
+              ? TableCellNode(id: '${block.id}-r$rowIndex-c$columnIndex')
+              : _copyTableCellForRange(cell, rowIndex, columnIndex, range),
+        );
+      }
+      rows.add(row);
+    }
+    return TableBlockNode(
+      id: block.id,
+      table: TableModel(
+        rows: rows,
+        columnAlignments: _sliceTableColumnMap(
+          block.table.columnAlignments,
+          range,
+        ),
+        columnWidths: _sliceTableColumnMap(block.table.columnWidths, range),
+      ),
+      attributes: block.attributes,
+    );
+  }
+
+  TableCellNode _copyTableCellForRange(
+    TableCellNode cell,
+    int rowIndex,
+    int columnIndex,
+    TableCellRange range,
+  ) {
+    final maxRowSpan = range.endRow - rowIndex + 1;
+    final maxColumnSpan = range.endColumn - columnIndex + 1;
+    return TableCellNode(
+      id: cell.id,
+      blocks: cell.blocks.map((block) => block.copy()).toList(),
+      rowSpan: cell.rowSpan.clamp(1, maxRowSpan).toInt(),
+      columnSpan: cell.columnSpan.clamp(1, maxColumnSpan).toInt(),
+      isHeader: cell.isHeader,
+      backgroundColor: cell.backgroundColor,
+      covered: cell.covered,
+      alignment: cell.alignment,
+    );
+  }
+
+  Map<int, T> _sliceTableColumnMap<T>(
+    Map<int, T> source,
+    TableCellRange range,
+  ) {
+    final result = <int, T>{};
+    for (var columnIndex = range.startColumn;
+        columnIndex <= range.endColumn;
+        columnIndex++) {
+      final value = source[columnIndex];
+      if (value != null) {
+        result[columnIndex - range.startColumn] = value;
+      }
+    }
+    return result;
   }
 
   String _plainTextForBoundary(BlockNode block, DocumentPosition position) {
@@ -443,13 +781,21 @@ class ClipboardService {
       if (file.isEmpty) {
         continue;
       }
+      final fallbackLabel = _externalImageFallbackLabel(file);
+      final caption = _nonEmptyExternalImageMetadata(image.caption) ??
+          _nonEmptyExternalImageMetadata(image.altText) ??
+          fallbackLabel;
+      final altText =
+          _nonEmptyExternalImageMetadata(image.altText) ?? caption;
       blocks.add(
         ImageBlockNode(
           id: newBlockId(),
           assetId: '',
           file: file,
-          caption: image.caption,
-          altText: image.altText,
+          width: _positiveExternalImageDimension(image.width),
+          height: _positiveExternalImageDimension(image.height),
+          caption: caption,
+          altText: altText,
         ),
       );
     }
@@ -457,6 +803,46 @@ class ClipboardService {
       return null;
     }
     return ClipboardPaste.blocks(blocks);
+  }
+
+  int _positiveExternalImageDimension(int? value) {
+    return value == null || value <= 0 ? 0 : value;
+  }
+
+  String _externalImageFallbackLabel(String file) {
+    return _externalImageFileStem(file) ?? defaultExternalImageCaption;
+  }
+
+  String? _nonEmptyExternalImageMetadata(String value) {
+    final trimmed = value.trim();
+    return trimmed.isEmpty ? null : trimmed;
+  }
+
+  String? _externalImageFileStem(String value) {
+    final withoutQuery = value.split('?').first.split('#').first;
+    final slash = withoutQuery.lastIndexOf('/');
+    final backslash = withoutQuery.lastIndexOf('\\');
+    final segmentStart = slash > backslash ? slash : backslash;
+    final segment = segmentStart < 0
+        ? withoutQuery
+        : withoutQuery.substring(segmentStart + 1);
+    final decoded = _decodeExternalImageFileSegment(segment);
+    final normalized = _nonEmptyExternalImageMetadata(decoded);
+    if (normalized == null) {
+      return null;
+    }
+    final dot = normalized.lastIndexOf('.');
+    return _nonEmptyExternalImageMetadata(
+      dot <= 0 ? normalized : normalized.substring(0, dot),
+    );
+  }
+
+  String _decodeExternalImageFileSegment(String value) {
+    try {
+      return Uri.decodeComponent(value);
+    } on FormatException {
+      return value;
+    }
   }
 
   ClipboardPaste? _blocksPaste(RichTextDocument document) {
@@ -527,10 +913,40 @@ String _plainTextForInlineNode(InlineNode node) {
 }
 
 String _plainTextForBlock(BlockNode block) {
+  if (block is ImageBlockNode) {
+    return '[image: ${_imagePlainTextLabel(block)}]';
+  }
   if (block is VideoBlockNode) {
     return '[video: ${_videoPlainTextLabel(block)}]';
   }
+  if (block is FileBlockNode) {
+    return '[file: ${block.displayName}]';
+  }
+  if (block is DividerBlockNode) {
+    return '---';
+  }
+  if (block is TableBlockNode && block.plainText.isEmpty) {
+    return '[table]';
+  }
+  if (block is BlockEmbedNode) {
+    if (block.isFormula) {
+      final formula = block.formulaText.trim();
+      return formula.isEmpty ? '[formula]' : formula;
+    }
+    return '[embed:${block.normalizedEmbedType}: ${block.displayText}]';
+  }
   return block.plainText;
+}
+
+String _imagePlainTextLabel(ImageBlockNode image) {
+  final label = image.caption.trim().isNotEmpty
+      ? image.caption.trim()
+      : image.altText.trim().isNotEmpty
+          ? image.altText.trim()
+          : image.file.trim().isNotEmpty
+              ? image.file.trim()
+              : image.assetId.trim();
+  return label.isEmpty ? 'image' : label;
 }
 
 String _videoPlainTextLabel(VideoBlockNode video) {
@@ -555,6 +971,21 @@ BlockNode? _blockAt(RichTextDocument document, int index) {
     return null;
   }
   return document.blocks[index];
+}
+
+int _clampOffset(int offset, int length) {
+  return offset.clamp(0, length).toInt();
+}
+
+String? _nonEmptyClipboardString(String? value) {
+  final trimmed = value?.trim();
+  return trimmed == null || trimmed.isEmpty ? null : value;
+}
+
+String _ensureWenzClipboardPrefix(String value) {
+  return value.startsWith(wenzClipboardPrefix)
+      ? value
+      : '$wenzClipboardPrefix$value';
 }
 
 /// Extracts the inline nodes covering [start, end) within [nodes], splitting

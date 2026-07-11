@@ -174,6 +174,49 @@ void main() {
       controller.dispose();
     });
 
+    test('pastes drop-prepared image descriptions with fallback metadata', () {
+      final initialSelection = _collapsedTextSelection('p1', 0, 1);
+      final controller = WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'p1',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'ab')],
+            ),
+          ],
+        ),
+        selection: initialSelection,
+      );
+      final result = controller.pasteExternalImages(
+        const <ExternalImageBlockDescription>[
+          ExternalImageBlockDescription(
+            file: 'C:/tmp/Drop%20Image.png',
+            caption: '   ',
+            altText: '',
+            width: 640,
+            height: 360,
+          ),
+        ],
+      );
+      expect(result.status, ExternalImagePasteStatus.inserted);
+      expect(result.insertedImageCount, 1);
+      final image = controller.document.blocks[1] as ImageBlockNode;
+      expect(image.file, 'C:/tmp/Drop%20Image.png');
+      expect(image.caption, 'Drop Image');
+      expect(image.altText, 'Drop Image');
+      expect(image.width, 640);
+      expect(image.height, 360);
+      expect(controller.undo(), isTrue);
+      expect(controller.document.blocks, hasLength(1));
+      expect(controller.selection, initialSelection);
+      expect(controller.redo(), isTrue);
+      final redoneImage = controller.document.blocks[1] as ImageBlockNode;
+      expect(redoneImage.caption, 'Drop Image');
+      expect(redoneImage.width, 640);
+      controller.dispose();
+    });
+
     test('pastes multiple images through block paste history', () {
       final initialSelection = _collapsedTextSelection('p1', 0, 1);
       final controller = WenzRichTextController(

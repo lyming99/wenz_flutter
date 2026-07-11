@@ -9,6 +9,15 @@ bool canEditPaint(CanvasElement? element) {
       element is EllipseElement;
 }
 
+LineArrowStyle? lineArrowStyleOf(CanvasElement? element) {
+  return switch (element) {
+    final LineElement e => e.arrowStyle,
+    final PolylineElement e => e.arrowStyle,
+    final CurveElement e => e.arrowStyle,
+    _ => null,
+  };
+}
+
 Color? fillColorOf(CanvasElement? element) {
   return switch (element) {
     final DrawioShapeElement e => e.fillStyle?.color,

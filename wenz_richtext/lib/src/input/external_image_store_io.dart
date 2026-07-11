@@ -50,6 +50,7 @@ class ExternalImageIoStore implements ExternalImageStore {
         ),
       );
     }
+    final pixelSize = externalImagePixelSizeFromBytes(bytes);
 
     File? outputFile;
     try {
@@ -60,6 +61,7 @@ class ExternalImageIoStore implements ExternalImageStore {
         ExternalImageBlockDescription.fromInput(
           input: input,
           file: outputFile.path,
+          pixelSize: pixelSize,
         ),
       );
     } on Object catch (error) {
@@ -128,11 +130,13 @@ class ExternalImageIoStore implements ExternalImageStore {
           ),
         );
       }
+      final pixelSize = await _pixelSizeFromFile(file);
       final canonicalPath = await _canonicalFilePath(file);
       return ExternalImageStoreResult.success(
         ExternalImageBlockDescription.fromInput(
           input: input,
           file: canonicalPath,
+          pixelSize: pixelSize,
         ),
       );
     } on Object catch (error) {
@@ -231,6 +235,14 @@ class ExternalImageIoStore implements ExternalImageStore {
       return await file.resolveSymbolicLinks();
     } on FileSystemException {
       return file.absolute.path;
+    }
+  }
+
+  Future<ExternalImagePixelSize?> _pixelSizeFromFile(File file) async {
+    try {
+      return externalImagePixelSizeFromBytes(await file.readAsBytes());
+    } on Object {
+      return null;
     }
   }
 

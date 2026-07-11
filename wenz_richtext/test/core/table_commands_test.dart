@@ -1168,6 +1168,71 @@ void main() {
       expect(table.table.cellAt(1, 1)?.alignment, isNull);
     });
   });
+
+  test('update inline formula targets second adjacent formula in table cell', () {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TableBlockNode(
+            id: 't1',
+            table: TableModel(
+              rows: <List<TableCellNode>>[
+                <TableCellNode>[
+                  TableCellNode(
+                    id: 't1-r0-c0',
+                    blocks: <BlockNode>[
+                      TextBlockNode(
+                        id: 't1-r0-c0-text',
+                        type: BlockType.paragraph,
+                        content: <InlineNode>[
+                          InlineEmbed(
+                            embedType: 'formula',
+                            data: <String, Object?>{'latex': 'a+b'},
+                          ),
+                          InlineEmbed(
+                            embedType: 'formula',
+                            data: <String, Object?>{'latex': 'c+d'},
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+
+    controller.updateInlineFormula(
+      position: DocumentPosition.tableCell(
+        tableBlockId: 't1',
+        blockIndex: 0,
+        tableRowIndex: 0,
+        tableColumnIndex: 0,
+        offset: 1,
+      ),
+      text: 'z^2',
+    );
+
+    final table = controller.document.blocks.single as TableBlockNode;
+    final textBlock = table.table
+        .cellAt(0, 0)!
+        .blocks
+        .whereType<TextBlockNode>()
+        .single;
+    final first = textBlock.content[0] as InlineEmbed;
+    final second = textBlock.content[1] as InlineEmbed;
+    expect(first.data['latex'], 'a+b');
+    expect(first.data['text'], isNull);
+    expect(second.data['text'], 'z^2');
+    expect(second.data['latex'], 'z^2');
+    expect(second.data['value'], 'z^2');
+    expect(second.data['formula'], 'z^2');
+
+    controller.dispose();
+  });
 }
 
 RichTextDocument _tableDocument() {

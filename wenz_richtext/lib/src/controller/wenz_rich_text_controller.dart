@@ -1194,6 +1194,8 @@ class WenzRichTextController extends ChangeNotifier {
     String title = '',
     String description = '',
     double? aspectRatio,
+    double? showWidth,
+    double? showHeight,
     FileUploadStatus uploadStatus = FileUploadStatus.none,
     String uploadError = '',
     DocumentSelection? selection,
@@ -1209,6 +1211,8 @@ class WenzRichTextController extends ChangeNotifier {
         title: title,
         description: description,
         aspectRatio: aspectRatio,
+        showWidth: showWidth,
+        showHeight: showHeight,
         uploadStatus: uploadStatus,
         uploadError: uploadError,
         selection: selection,
@@ -1340,14 +1344,19 @@ class WenzRichTextController extends ChangeNotifier {
     );
   }
 
-  /// Serialises the current selection into a clipboard string (rich JSON for a
-  /// same-block range, plain text otherwise). Returns `null` when nothing is
-  /// selected. Does not touch the platform clipboard — the caller writes the
-  /// result via `Clipboard.setData`.
-  String? copySelection([DocumentSelection? selection]) {
+  /// Builds a structured copy payload for the current selection. Does not
+  /// touch the platform clipboard — the caller writes the prepared
+  /// internal/HTML/plain flavours through its clipboard adapter.
+  ClipboardCopyPayload? copySelectionPayload([DocumentSelection? selection]) {
     final target = selection ?? this.selection;
-    final payload = clipboardService.copy(document, target);
-    return payload;
+    return clipboardService.copyPayload(document, target);
+  }
+
+  /// Serialises the current selection into the legacy clipboard string.
+  /// Returns `null` when nothing is selected. Does not touch the platform
+  /// clipboard — the caller writes the result via `Clipboard.setData`.
+  String? copySelection([DocumentSelection? selection]) {
+    return copySelectionPayload(selection)?.legacyText;
   }
 
   String? copyVideoBlock({required int blockIndex}) {
@@ -1419,7 +1428,9 @@ class WenzRichTextController extends ChangeNotifier {
 
   ExternalImagePasteResult pasteExternalImages(
     List<ExternalImageBlockDescription> images,
-  ) {
+    {
+    DocumentSelection? selection,
+  }) {
     if (images.isEmpty) {
       return const ExternalImagePasteResult.emptyInput();
     }
@@ -1430,40 +1441,75 @@ class WenzRichTextController extends ChangeNotifier {
     if (paste == null || !paste.isBlocks || paste.blocks.isEmpty) {
       return const ExternalImagePasteResult.noInsertableImages();
     }
-    final change = _pasteExternalImageBlocks(paste.blocks);
+    final change = _pasteExternalImageBlocks(
+      paste.blocks,
+      selection: selection,
+    );
     return ExternalImagePasteResult.fromChange(
       change,
       insertedImageCount: paste.blocks.length,
     );
   }
 
-  ChangeSet _pasteExternalImageBlocks(List<BlockNode> blocks) {
-    final selection = session.selection;
-    if (selection == null || selection.extent.path.isTableCellText) {
+  ChangeSet _pasteExternalImageBlocks(
+    List<BlockNode> blocks, {
+    DocumentSelection? selection,
+  }) {
+    final effectiveSelection =
+        _normalizedExternalImagePasteSelection(selection) ??
+            _normalizedExternalImagePasteSelection(session.selection);
+    final selectionOverride =
+        selection != null &&
+            effectiveSelection != null &&
+            effectiveSelection != session.selection
+        ? effectiveSelection
+        : null;
+    if (effectiveSelection == null ||
+        _shouldInsertExternalImageBlocksDirectly(
+          effectiveSelection,
+          explicitSelection: selectionOverride != null,
+        )) {
       return _insertExternalImageBlocksAt(
-        _currentBlockInsertionIndex(),
+        _currentBlockInsertionIndexForSelection(effectiveSelection),
         blocks,
+        targetSelection: selectionOverride,
       );
     }
-    return execute(
-      PasteBlocksCommand(
-        blocks,
-        newBlockId: 'paste-${_pasteBlockCounter()}',
-      ),
+    final command = PasteBlocksCommand(
+      blocks,
+      newBlockId: 'paste-${_pasteBlockCounter()}',
     );
+    return selectionOverride == null
+        ? execute(command)
+        : execute(
+            _SelectionScopedCommand(
+              targetSelection: selectionOverride,
+              delegate: command,
+            ),
+          );
   }
 
-  ChangeSet _insertExternalImageBlocksAt(int index, List<BlockNode> blocks) {
-    return execute(
-      InsertBlocksCommand(
-        index: index,
-        blocks: blocks,
-        selection: _selectionForExternalImageBlock(
-          blocks.last,
-          index + blocks.length - 1,
-        ),
+  ChangeSet _insertExternalImageBlocksAt(
+    int index,
+    List<BlockNode> blocks, {
+    DocumentSelection? targetSelection,
+  }) {
+    final command = InsertBlocksCommand(
+      index: index,
+      blocks: blocks,
+      selection: _selectionForExternalImageBlock(
+        blocks.last,
+        index + blocks.length - 1,
       ),
     );
+    return targetSelection == null
+        ? execute(command)
+        : execute(
+            _SelectionScopedCommand(
+              targetSelection: targetSelection,
+              delegate: command,
+            ),
+          );
   }
 
   void _pasteClipboard(
@@ -1573,7 +1619,10 @@ class WenzRichTextController extends ChangeNotifier {
   }
 
   int _currentBlockInsertionIndex() {
-    final selection = session.selection;
+    return _currentBlockInsertionIndexForSelection(session.selection);
+  }
+
+  int _currentBlockInsertionIndexForSelection(DocumentSelection? selection) {
     final blockCount = document.blocks.length;
     if (selection == null) {
       return blockCount;
@@ -1587,6 +1636,73 @@ class WenzRichTextController extends ChangeNotifier {
       return (index + 1).clamp(0, blockCount).toInt();
     }
     return index;
+  }
+
+  bool _shouldInsertExternalImageBlocksDirectly(
+    DocumentSelection selection, {
+    required bool explicitSelection,
+  }) {
+    if (selection.extent.path.isTableCellText) {
+      return true;
+    }
+    if (!selection.isCollapsed) {
+      return false;
+    }
+    if (selection.extent.path.isBlockObject) {
+      return true;
+    }
+    return explicitSelection && selection.extent.path.isBlockCode;
+  }
+
+  DocumentSelection? _normalizedExternalImagePasteSelection(
+    DocumentSelection? selection,
+  ) {
+    if (selection == null) {
+      return null;
+    }
+    return _isValidExternalImagePasteSelection(selection) ? selection : null;
+  }
+
+  bool _isValidExternalImagePasteSelection(DocumentSelection selection) {
+    return _isValidExternalImagePastePosition(selection.base) &&
+        _isValidExternalImagePastePosition(selection.extent);
+  }
+
+  bool _isValidExternalImagePastePosition(DocumentPosition position) {
+    if (position.blockIndex < 0 || position.blockIndex >= document.blocks.length) {
+      return false;
+    }
+    final block = document.blocks[position.blockIndex];
+    if (position.blockId != block.id || position.path.blockId != block.id) {
+      return false;
+    }
+    if (position.path.isBlockText) {
+      return block is TextBlockNode || block is CalloutBlockNode;
+    }
+    if (position.path.isBlockCode) {
+      return block is CodeBlockNode;
+    }
+    if (position.path.isTableCellText) {
+      if (block is! TableBlockNode) {
+        return false;
+      }
+      final rowIndex = position.path.tableRowIndex;
+      final columnIndex = position.path.tableColumnIndex;
+      return rowIndex != null &&
+          columnIndex != null &&
+          rowIndex >= 0 &&
+          columnIndex >= 0 &&
+          rowIndex < block.table.rowCount &&
+          columnIndex < block.table.columnCount;
+    }
+    if (position.path.isBlockObject) {
+      return block is ImageBlockNode ||
+          block is DividerBlockNode ||
+          block is VideoBlockNode ||
+          block is BlockEmbedNode ||
+          block is FileBlockNode;
+    }
+    return false;
   }
 
   DocumentPosition _blockInsertionPosition(DocumentSelection selection) {
@@ -1610,6 +1726,42 @@ class WenzRichTextController extends ChangeNotifier {
 
   ChangeSet enter({String? newBlockId}) {
     return execute(EnterCommand(newBlockId: newBlockId));
+  }
+
+  ChangeSet insertTextBlockAbove({
+    String? blockId,
+    DocumentSelection? selection,
+  }) {
+    return _insertTextBlockAtSelection(
+      direction: TextBlockInsertionDirection.above,
+      blockId: blockId,
+      selection: selection,
+    );
+  }
+
+  ChangeSet insertTextBlockBelow({
+    String? blockId,
+    DocumentSelection? selection,
+  }) {
+    return _insertTextBlockAtSelection(
+      direction: TextBlockInsertionDirection.below,
+      blockId: blockId,
+      selection: selection,
+    );
+  }
+
+  ChangeSet _insertTextBlockAtSelection({
+    required TextBlockInsertionDirection direction,
+    String? blockId,
+    DocumentSelection? selection,
+  }) {
+    return execute(
+      InsertTextBlockAtSelectionCommand(
+        blockId: blockId ?? 'quick-text-${_pasteBlockCounter()}',
+        direction: direction,
+        selection: selection,
+      ),
+    );
   }
 
   ChangeSet insertBlocks({
@@ -1706,6 +1858,10 @@ class WenzRichTextController extends ChangeNotifier {
     String? description,
     double? aspectRatio,
     bool clearAspectRatio = false,
+    double? showWidth,
+    double? showHeight,
+    bool clearShowWidth = false,
+    bool clearShowHeight = false,
     FileUploadStatus? uploadStatus,
     String? uploadError,
   }) {
@@ -1720,6 +1876,10 @@ class WenzRichTextController extends ChangeNotifier {
         description: description,
         aspectRatio: aspectRatio,
         clearAspectRatio: clearAspectRatio,
+        showWidth: showWidth,
+        showHeight: showHeight,
+        clearShowWidth: clearShowWidth,
+        clearShowHeight: clearShowHeight,
         uploadStatus: uploadStatus,
         uploadError: uploadError,
       ),
@@ -1795,10 +1955,9 @@ class WenzRichTextController extends ChangeNotifier {
     TextAttributes attributes, {
     DocumentSelection? selection,
   }) {
-    // Font color follows the same inline-formatting contract as the other
-    // nullable [TextAttributes] fields: callers store `0xAARRGGBB` in
-    // [TextAttributes.color], `null` means no inline override, and merging a
-    // null color does not clear an existing color. A collapsed, missing,
+    // Inline color/background follow the same nullable-attribute contract:
+    // callers store `0xAARRGGBB`, `null` means no inline override, and merging
+    // a null value does not clear an existing value. A collapsed, missing,
     // empty-attributes, invalid, object-block, or non-text-only selection is a
     // no-op at the command layer; same-cell table selections are routed through
     // table-cell editing. Edit permission is still enforced by [execute].
@@ -1827,10 +1986,42 @@ class WenzRichTextController extends ChangeNotifier {
     return execute(ClearTextColorCommand(selection: selection));
   }
 
+  /// Applies an inline background/highlight [color] to the current selection.
+  ChangeSet setTextBackground(Color color, {DocumentSelection? selection}) {
+    return setTextBackgroundValue(color.toARGB32(), selection: selection);
+  }
+
+  /// Applies an inline background/highlight color encoded as `0xAARRGGBB`.
+  ChangeSet setTextBackgroundValue(
+    int background, {
+    DocumentSelection? selection,
+  }) {
+    return formatText(
+      TextAttributes(background: background),
+      selection: selection,
+    );
+  }
+
+  ChangeSet setTextHighlight(Color color, {DocumentSelection? selection}) {
+    return setTextBackground(color, selection: selection);
+  }
+
+  ChangeSet setTextHighlightValue(int color, {DocumentSelection? selection}) {
+    return setTextBackgroundValue(color, selection: selection);
+  }
+
+  /// Clears only inline background/highlight color for the current selection.
+  ChangeSet clearTextBackground({DocumentSelection? selection}) {
+    return execute(ClearTextBackgroundCommand(selection: selection));
+  }
+
+  ChangeSet clearTextHighlight({DocumentSelection? selection}) {
+    return clearTextBackground(selection: selection);
+  }
+
   ChangeSet clearStyle({DocumentSelection? selection}) {
-    // This clears the selected inline attributes as a whole. A future
-    // color-only clear entry should remove only [TextAttributes.color] while
-    // preserving unrelated attributes such as link, background, and emphasis.
+    // This clears the selected inline attributes as a whole. Use the dedicated
+    // color/background clear helpers to preserve unrelated inline attributes.
     return execute(ClearStyleCommand(selection: selection));
   }
 
@@ -2403,6 +2594,44 @@ class _InsertImageBlockCommand extends InsertBlocksCommand {
       recordHistory: result.recordHistory,
       metadata: result.metadata,
     );
+  }
+}
+
+class _SelectionScopedCommand extends EditorCommand {
+  const _SelectionScopedCommand({
+    required this.targetSelection,
+    required this.delegate,
+  });
+
+  final DocumentSelection targetSelection;
+  final EditorCommand delegate;
+
+  @override
+  String get description => delegate.description;
+
+  @override
+  WenzEditorPermission get requiredPermission => delegate.requiredPermission;
+
+  @override
+  bool canMergeWith(EditorCommand previous) {
+    final previousDelegate = previous is _SelectionScopedCommand
+        ? previous.delegate
+        : previous;
+    return delegate.canMergeWith(previousDelegate);
+  }
+
+  @override
+  bool get breaksMergeRun => delegate.breaksMergeRun;
+
+  @override
+  CommandResult execute(DocumentSession session) {
+    final previousSelection = session.selection;
+    session.selection = targetSelection;
+    final result = delegate.execute(session);
+    if (result.selection == null) {
+      session.selection = previousSelection;
+    }
+    return result;
   }
 }
 

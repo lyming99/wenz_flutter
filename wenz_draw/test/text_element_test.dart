@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wenz_draw/wenz_draw.dart';
@@ -205,55 +207,184 @@ void main() {
     expect(element.createTextPainter().width, lessThanOrEqualTo(300));
   });
 
-  test('select tool drags text handles to resize concrete box', () {
-    final controller = CanvasController();
-    controller.addElement(
-      TextElement(
-        id: 'text-1',
+  group('select tool text resize handles', () {
+    for (final handle in _TestTextHandle.cornerValues) {
+      test('${handle.name} scales the whole fixed text box', () {
+        final controller = CanvasController();
+        addTearDown(controller.dispose);
+        final before = _boxedText();
+        controller.addElement(before, record: false);
+        controller
+          ..setTool(SelectTool.idValue)
+          ..setSelection({before.id});
+
+        final draggedCorner = handle.pointFor(before.localBounds);
+        final anchor = handle.anchorFor(before.localBounds);
+        final target = anchor + (draggedCorner - anchor) * 1.5;
+        _dragSelectedHandle(controller, draggedCorner, [target]);
+
+        final after = controller.elementById(before.id)! as TextElement;
+        final expected = before.scaleElement(1.5, pivot: anchor);
+        _expectTextGeometry(after, expected);
+        expect(after.text, before.text);
+        expect(after.textAlign, before.textAlign);
+        expect(after.style.color, before.style.color);
+        expect(after.style.fontWeight, before.style.fontWeight);
+        expect(after.style.fontFamily, before.style.fontFamily);
+        expect(after.style.height, before.style.height);
+        _expectOffsetClose(handle.anchorFor(after.localBounds), anchor);
+        expect(controller.historyManager.undoStack, hasLength(1));
+
+        controller.undo();
+        _expectTextGeometry(
+          controller.elementById(before.id)! as TextElement,
+          before,
+        );
+        controller.redo();
+        _expectTextGeometry(
+          controller.elementById(before.id)! as TextElement,
+          expected,
+        );
+      });
+    }
+
+    for (final handle in _TestTextHandle.edgeValues) {
+      test('${handle.name} changes only the text layout box', () {
+        final controller = CanvasController();
+        addTearDown(controller.dispose);
+        final before = _boxedText();
+        controller.addElement(before, record: false);
+        controller
+          ..setTool(SelectTool.idValue)
+          ..setSelection({before.id});
+
+        final start = handle.pointFor(before.localBounds);
+        final delta = switch (handle) {
+          _TestTextHandle.top => const Offset(0, -20),
+          _TestTextHandle.bottom => const Offset(0, 30),
+          _TestTextHandle.left => const Offset(-30, 0),
+          _TestTextHandle.right => const Offset(40, 0),
+          _ => Offset.zero,
+        };
+        final target = start + delta;
+        _dragSelectedHandle(controller, start, [target]);
+
+        final after = controller.elementById(before.id)! as TextElement;
+        final expectedRect = _edgeResizeRect(before.localBounds, handle, target);
+        _expectOffsetClose(after.position, expectedRect.topLeft);
+        _expectSizeClose(after.boxSize!, expectedRect.size);
+        expect(after.maxWidth, closeTo(expectedRect.width, 1e-6));
+        expect(after.style.fontSize, before.style.fontSize);
+        expect(after.style, before.style);
+        expect(after.text, before.text);
+        expect(after.textAlign, before.textAlign);
+        expect(controller.historyManager.undoStack, hasLength(1));
+      });
+    }
+
+    test('rotated text scales identically at different viewport scales', () {
+      final before = _boxedText(
+        position: const Offset(120, 100),
+        boxSize: const Size(160, 80),
+        rotation: math.pi / 6,
+      );
+      const handle = _TestTextHandle.bottomRight;
+      final localCorner = handle.pointFor(before.localBounds);
+      final localAnchor = handle.anchorFor(before.localBounds);
+      final worldCorner = _rotatedTextPoint(before, localCorner);
+      final worldAnchor = _rotatedTextPoint(before, localAnchor);
+      final target = worldAnchor + (worldCorner - worldAnchor) * 1.5;
+      final expectedScaled = before.scaleElement(1.5, pivot: localAnchor);
+      final expected = expectedScaled.translate(
+        worldAnchor - _rotatedTextPoint(expectedScaled, localAnchor),
+      );
+
+      final results = <TextElement>[];
+      for (final transform in const [
+        CanvasTransform.identity,
+        CanvasTransform(scale: 2, offset: Offset(30, 20)),
+      ]) {
+        final controller = CanvasController();
+        addTearDown(controller.dispose);
+        controller.addElement(before, record: false);
+        controller
+          ..setTool(SelectTool.idValue)
+          ..setSelection({before.id});
+
+        final paddedBounds = before.localBounds.inflate(4 / transform.scale);
+        final visualCorner = _rotatedTextPoint(
+          before,
+          handle.pointFor(paddedBounds),
+        );
+        final visualTarget = visualCorner + (target - worldCorner);
+        _dragSelectedHandle(
+          controller,
+          visualCorner,
+          [visualTarget],
+          transform: transform,
+        );
+        final after = controller.elementById(before.id)! as TextElement;
+        results.add(after);
+        _expectTextGeometry(after, expected);
+        _expectOffsetClose(
+          _rotatedTextPoint(after, handle.anchorFor(after.localBounds)),
+          worldAnchor,
+        );
+        _expectOffsetClose(
+          _rotatedTextPoint(after, handle.pointFor(after.localBounds)),
+          target,
+        );
+        expect(controller.historyManager.undoStack, hasLength(1));
+        controller.undo();
+        _expectTextGeometry(
+          controller.elementById(before.id)! as TextElement,
+          before,
+        );
+        controller.redo();
+        _expectTextGeometry(
+          controller.elementById(before.id)! as TextElement,
+          expected,
+        );
+      }
+      _expectTextGeometry(results.first, results.last);
+    });
+
+    test('corner shrinking stops at valid box and font dimensions', () {
+      final controller = CanvasController();
+      addTearDown(controller.dispose);
+      final before = _boxedText(
         position: Offset.zero,
-        text: 'Resizable text',
-        maxWidth: 120,
-        boxSize: const Size(120, 60),
-      ),
-      record: false,
-    );
-    controller
-      ..setTool(SelectTool.idValue)
-      ..setSelection({'text-1'});
+        boxSize: const Size(240, 96),
+        fontSize: 24,
+      );
+      controller.addElement(before, record: false);
+      controller
+        ..setTool(SelectTool.idValue)
+        ..setSelection({before.id});
 
-    controller.dispatchCanvasEvent(
-      const CanvasPointerDownEvent(
-        screenPoint: Offset(120, 60),
-        worldPoint: Offset(120, 60),
-        transform: CanvasTransform.identity,
-      ),
-    );
-    controller.dispatchCanvasEvent(
-      const CanvasPointerMoveEvent(
-        screenPoint: Offset(200, 90),
-        worldPoint: Offset(200, 90),
-        transform: CanvasTransform.identity,
-        delta: Offset(80, 30),
-      ),
-    );
-    controller.dispatchCanvasEvent(
-      const CanvasPointerUpEvent(
-        screenPoint: Offset(200, 90),
-        worldPoint: Offset(200, 90),
-        transform: CanvasTransform.identity,
-      ),
-    );
+      const handle = _TestTextHandle.bottomRight;
+      final start = handle.pointFor(before.localBounds);
+      final anchor = handle.anchorFor(before.localBounds);
+      _dragSelectedHandle(
+        controller,
+        start,
+        [
+          anchor + (start - anchor) * 0.2,
+          anchor - (start - anchor),
+        ],
+      );
 
-    final element = controller.elementById('text-1') as TextElement;
-    expect(element.position, Offset.zero);
-    expect(element.boxSize, const Size(200, 90));
-    expect(element.maxWidth, 200);
-    expect(controller.canUndo, isTrue);
-    controller.undo();
-    expect(
-      (controller.elementById('text-1') as TextElement).boxSize,
-      const Size(120, 60),
-    );
+      final after = controller.elementById(before.id)! as TextElement;
+      _expectOffsetClose(after.position, Offset.zero);
+      _expectSizeClose(after.boxSize!, const Size(60, 24));
+      expect(after.maxWidth, closeTo(60, 1e-6));
+      expect(after.style.fontSize, closeTo(6, 1e-6));
+      expect(after.boxSize!.width, greaterThanOrEqualTo(24));
+      expect(after.boxSize!.height, greaterThanOrEqualTo(24));
+      expect(after.style.fontSize!.isFinite, isTrue);
+      expect(after.style.fontSize, greaterThan(0));
+      expect(controller.historyManager.undoStack, hasLength(1));
+    });
   });
 
   test('controller updates text style fields', () {
@@ -302,4 +433,170 @@ void main() {
       isNull,
     );
   });
+}
+
+TextElement _boxedText({
+  Offset position = const Offset(100, 80),
+  Size boxSize = const Size(120, 60),
+  double fontSize = 20,
+  double rotation = 0,
+}) {
+  return TextElement(
+    id: 'text-1',
+    position: position,
+    text: 'Resizable text',
+    maxWidth: boxSize.width,
+    boxSize: boxSize,
+    textAlign: TextAlign.right,
+    rotation: rotation,
+    style: TextStyle(
+      color: const Color(0xFF123456),
+      fontSize: fontSize,
+      fontWeight: FontWeight.bold,
+      height: 1.4,
+      fontFamily: 'Consolas',
+    ),
+  );
+}
+
+void _dragSelectedHandle(
+  CanvasController controller,
+  Offset worldStart,
+  List<Offset> worldMoves, {
+  CanvasTransform transform = CanvasTransform.identity,
+}) {
+  assert(worldMoves.isNotEmpty);
+  var previousScreen = transform.worldToScreen(worldStart);
+  controller.dispatchCanvasEvent(
+    CanvasPointerDownEvent(
+      screenPoint: previousScreen,
+      worldPoint: worldStart,
+      transform: transform,
+    ),
+  );
+  for (final worldPoint in worldMoves) {
+    final screenPoint = transform.worldToScreen(worldPoint);
+    controller.dispatchCanvasEvent(
+      CanvasPointerMoveEvent(
+        screenPoint: screenPoint,
+        worldPoint: worldPoint,
+        transform: transform,
+        delta: screenPoint - previousScreen,
+      ),
+    );
+    previousScreen = screenPoint;
+  }
+  final worldEnd = worldMoves.last;
+  controller.dispatchCanvasEvent(
+    CanvasPointerUpEvent(
+      screenPoint: transform.worldToScreen(worldEnd),
+      worldPoint: worldEnd,
+      transform: transform,
+    ),
+  );
+}
+
+Rect _edgeResizeRect(
+  Rect before,
+  _TestTextHandle handle,
+  Offset target,
+) {
+  return switch (handle) {
+    _TestTextHandle.top => Rect.fromLTRB(
+      before.left,
+      target.dy,
+      before.right,
+      before.bottom,
+    ),
+    _TestTextHandle.bottom => Rect.fromLTRB(
+      before.left,
+      before.top,
+      before.right,
+      target.dy,
+    ),
+    _TestTextHandle.left => Rect.fromLTRB(
+      target.dx,
+      before.top,
+      before.right,
+      before.bottom,
+    ),
+    _TestTextHandle.right => Rect.fromLTRB(
+      before.left,
+      before.top,
+      target.dx,
+      before.bottom,
+    ),
+    _ => before,
+  };
+}
+
+Offset _rotatedTextPoint(TextElement element, Offset point) {
+  final center = element.localBounds.center;
+  final translated = point - center;
+  final cosine = math.cos(element.rotation);
+  final sine = math.sin(element.rotation);
+  return Offset(
+    center.dx + translated.dx * cosine - translated.dy * sine,
+    center.dy + translated.dx * sine + translated.dy * cosine,
+  );
+}
+
+void _expectTextGeometry(TextElement actual, TextElement expected) {
+  _expectOffsetClose(actual.position, expected.position);
+  expect(actual.boxSize, isNotNull);
+  expect(expected.boxSize, isNotNull);
+  _expectSizeClose(actual.boxSize!, expected.boxSize!);
+  expect(actual.maxWidth, closeTo(expected.maxWidth!, 1e-6));
+  expect(actual.style.fontSize, closeTo(expected.style.fontSize!, 1e-6));
+  expect(actual.rotation, closeTo(expected.rotation, 1e-9));
+}
+
+void _expectOffsetClose(Offset actual, Offset expected) {
+  expect(actual.dx, closeTo(expected.dx, 1e-6));
+  expect(actual.dy, closeTo(expected.dy, 1e-6));
+}
+
+void _expectSizeClose(Size actual, Size expected) {
+  expect(actual.width, closeTo(expected.width, 1e-6));
+  expect(actual.height, closeTo(expected.height, 1e-6));
+}
+
+enum _TestTextHandle {
+  topLeft,
+  topRight,
+  bottomLeft,
+  bottomRight,
+  top,
+  bottom,
+  left,
+  right;
+
+  static const cornerValues = [topLeft, topRight, bottomLeft, bottomRight];
+  static const edgeValues = [top, bottom, left, right];
+
+  Offset pointFor(Rect rect) {
+    return switch (this) {
+      topLeft => rect.topLeft,
+      topRight => rect.topRight,
+      bottomLeft => rect.bottomLeft,
+      bottomRight => rect.bottomRight,
+      top => rect.topCenter,
+      bottom => rect.bottomCenter,
+      left => rect.centerLeft,
+      right => rect.centerRight,
+    };
+  }
+
+  Offset anchorFor(Rect rect) {
+    return switch (this) {
+      topLeft => rect.bottomRight,
+      topRight => rect.bottomLeft,
+      bottomLeft => rect.topRight,
+      bottomRight => rect.topLeft,
+      top => rect.bottomCenter,
+      bottom => rect.topCenter,
+      left => rect.centerRight,
+      right => rect.centerLeft,
+    };
+  }
 }

@@ -86,7 +86,6 @@ class EditorTextInputClient with DeltaTextInputClient {
         enableDeltaModel: true,
         inputType: TextInputType.multiline,
         autocorrect: false,
-        enableSuggestions: false,
         inputAction: TextInputAction.newline,
       ),
     );

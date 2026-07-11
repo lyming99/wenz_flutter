@@ -277,6 +277,62 @@ void main() {
     expect((textBlock.content[1] as TextRun).attributes.color, _fontColor);
   });
 
+  test('format text background spans runs and text blocks', () {
+    final session = DocumentSession(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[
+              TextRun(
+                text: 'ab',
+                attributes: TextAttributes(color: _fontColor),
+              ),
+              TextRun(text: 'cd', attributes: TextAttributes(bold: true)),
+            ],
+          ),
+          TextBlockNode(
+            id: 'p2',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'ef')],
+          ),
+        ],
+      ),
+      selection: DocumentSelection(
+        base: DocumentPosition.text(blockId: 'p1', blockIndex: 0, offset: 1),
+        extent: DocumentPosition.text(blockId: 'p2', blockIndex: 1, offset: 1),
+      ),
+    );
+    final executor = CommandExecutor(session);
+
+    executor.execute(
+      const FormatTextCommand(
+        attributes: TextAttributes(background: _backgroundColor),
+      ),
+    );
+
+    final first = session.document.blocks[0] as TextBlockNode;
+    final second = session.document.blocks[1] as TextBlockNode;
+    expect((first.content[1] as TextRun).text, 'b');
+    expect((first.content[1] as TextRun).attributes.color, _fontColor);
+    expect(
+      (first.content[1] as TextRun).attributes.background,
+      _backgroundColor,
+    );
+    expect((first.content[2] as TextRun).text, 'cd');
+    expect((first.content[2] as TextRun).attributes.bold, isTrue);
+    expect(
+      (first.content[2] as TextRun).attributes.background,
+      _backgroundColor,
+    );
+    expect((second.content.first as TextRun).text, 'e');
+    expect(
+      (second.content.first as TextRun).attributes.background,
+      _backgroundColor,
+    );
+  });
+
   test('clear text color preserves other inline attributes', () {
     final session = DocumentSession(
       document: const RichTextDocument(
@@ -315,6 +371,121 @@ void main() {
     expect(middle.attributes.url, 'https://example.com');
     expect((block.content.first as TextRun).attributes.color, _fontColor);
     expect((block.content.last as TextRun).attributes.color, _fontColor);
+  });
+
+  test('clear text background preserves other inline attributes', () {
+    final session = DocumentSession(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[
+              TextRun(
+                text: 'Hello',
+                attributes: TextAttributes(
+                  color: _fontColor,
+                  background: _backgroundColor,
+                  bold: true,
+                  italic: true,
+                  url: 'https://example.com',
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+      selection: textSelection('p1', 0, 1, 4),
+    );
+    final executor = CommandExecutor(session);
+
+    executor.execute(const ClearTextBackgroundCommand());
+
+    final block = session.document.blocks.single as TextBlockNode;
+    final middle = block.content[1] as TextRun;
+    expect(middle.text, 'ell');
+    expect(middle.attributes.background, isNull);
+    expect(middle.attributes.color, _fontColor);
+    expect(middle.attributes.bold, isTrue);
+    expect(middle.attributes.italic, isTrue);
+    expect(middle.attributes.url, 'https://example.com');
+    expect(
+      (block.content.first as TextRun).attributes.background,
+      _backgroundColor,
+    );
+    expect(
+      (block.content.last as TextRun).attributes.background,
+      _backgroundColor,
+    );
+  });
+
+  test('clear text background applies inside table cell text', () {
+    final session = DocumentSession(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TableBlockNode(
+            id: 't1',
+            table: TableModel(
+              rows: <List<TableCellNode>>[
+                <TableCellNode>[
+                  TableCellNode(
+                    id: 'c1',
+                    blocks: <BlockNode>[
+                      TextBlockNode(
+                        id: 'c1-p1',
+                        type: BlockType.paragraph,
+                        content: <InlineNode>[
+                          TextRun(
+                            text: 'Cell',
+                            attributes: TextAttributes(
+                              color: _fontColor,
+                              background: _backgroundColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+      selection: DocumentSelection(
+        base: DocumentPosition.tableCell(
+          tableBlockId: 't1',
+          blockIndex: 0,
+          tableRowIndex: 0,
+          tableColumnIndex: 0,
+          offset: 1,
+        ),
+        extent: DocumentPosition.tableCell(
+          tableBlockId: 't1',
+          blockIndex: 0,
+          tableRowIndex: 0,
+          tableColumnIndex: 0,
+          offset: 3,
+        ),
+      ),
+    );
+    final executor = CommandExecutor(session);
+
+    executor.execute(const ClearTextBackgroundCommand());
+
+    final textBlock = _singleCellTextBlock(session);
+    final middle = textBlock.content[1] as TextRun;
+    expect(middle.text, 'el');
+    expect(middle.attributes.background, isNull);
+    expect(middle.attributes.color, _fontColor);
+    expect(
+      (textBlock.content.first as TextRun).attributes.background,
+      _backgroundColor,
+    );
+    expect(
+      (textBlock.content.last as TextRun).attributes.background,
+      _backgroundColor,
+    );
   });
 
   test('format text color supports undo and redo', () {
@@ -399,6 +570,41 @@ void main() {
     expect(change.isNoop, isTrue);
     expect(change.metadata, containsPair('reason', 'permissionDenied'));
     expect((block.content.single as TextRun).attributes.color, isNull);
+    expect(controller.canUndo, isFalse);
+  });
+
+  test('controller blocks background formatting without edit permission', () {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[
+              TextRun(
+                text: 'Read only',
+                attributes: TextAttributes(background: _backgroundColor),
+              ),
+            ],
+          ),
+        ],
+      ),
+      selection: textSelection('p1', 0, 0, 4),
+      permission: WenzEditorPermission.comment,
+    );
+
+    final setChange = controller.setTextBackgroundValue(_secondFontColor);
+    final clearChange = controller.clearTextBackground();
+
+    final block = controller.document.blocks.single as TextBlockNode;
+    expect(setChange.isNoop, isTrue);
+    expect(setChange.metadata, containsPair('reason', 'permissionDenied'));
+    expect(clearChange.isNoop, isTrue);
+    expect(clearChange.metadata, containsPair('reason', 'permissionDenied'));
+    expect(
+      (block.content.single as TextRun).attributes.background,
+      _backgroundColor,
+    );
     expect(controller.canUndo, isFalse);
   });
 

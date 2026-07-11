@@ -487,14 +487,6 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "2.0.1"
-  merman:
-    dependency: transitive
-    description:
-      name: merman
-      sha256: c62aa3e671213370244d33297a052e90097fe44575d9d69f8cc2aaa5596114c5
-      url: "https://pub.flutter-io.cn"
-    source: hosted
-    version: "0.8.0-alpha.2"
   meta:
     dependency: transitive
     description:

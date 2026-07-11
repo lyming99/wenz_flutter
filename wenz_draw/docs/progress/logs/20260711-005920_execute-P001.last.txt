@@ -1,0 +1,5 @@
+P001 已完成，仅修改指定 scope：
+
+- [select_tool.dart](/D:/project/GitHub/wenz_flutter/wenz_draw/lib/src/tools/select_tool.dart)：文字角点改为等比缩放；边缘保持文本框调整；支持旋转锚点、缩放下限及单条历史记录。
+- [infinite_canvas_widget.dart](/D:/project/GitHub/wenz_flutter/wenz_draw/lib/src/infinite_canvas/infinite_canvas_widget.dart)：编辑态增加四个边缘手柄，角点同步缩放文字，旋转编辑框与手柄保持对齐，修改统一纳入编辑会话历史。
+- 未修改 plan。按要求未运行测试、构建、lint 或 analyze；已通过 `git diff --check`。

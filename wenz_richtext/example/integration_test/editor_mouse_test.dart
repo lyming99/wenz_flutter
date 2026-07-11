@@ -32,6 +32,39 @@ void main() {
       expect(isCaretVisible(tester), isTrue);
     });
 
+    testWidgets('Shift-click extends a collapsed caret and releases Shift', (
+      tester,
+    ) async {
+      await pumpWorkbench(
+        tester,
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'p1',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'abcdef')],
+            ),
+          ],
+        ),
+        selection: _collapsedTextSelection('p1', 0, 1),
+      );
+
+      await tapAtTextOffset(tester, 'abcdef', 5, shift: true);
+
+      final controller = _controllerOf(tester);
+      expect(controller.selection, isNotNull);
+      expect(controller.selection!.isCollapsed, isFalse);
+      expect(controller.selection!.base.offset, 1);
+      expect(controller.selection!.extent.offset, 5);
+      expect(isSelectionHighlightVisible(tester), isTrue);
+
+      await tapAtTextOffset(tester, 'abcdef', 3);
+
+      expect(controller.selection!.isCollapsed, isTrue);
+      expect(controller.selection!.extent.offset, 3);
+      expect(isCaretVisible(tester), isTrue);
+    });
+
     testWidgets('dragging selects a highlighted range', (tester) async {
       await pumpWorkbench(
         tester,
@@ -105,6 +138,47 @@ void main() {
       expect(controller.selection!.end.offset, 'hello world'.length);
     });
 
+    testWidgets('Shift-drag keeps the existing anchor across paragraphs', (
+      tester,
+    ) async {
+      await pumpWorkbench(
+        tester,
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'p1',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'abcdef')],
+            ),
+            TextBlockNode(
+              id: 'p2',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'ghijkl')],
+            ),
+          ],
+        ),
+        selection: _collapsedTextSelection('p1', 0, 2),
+      );
+
+      await dragBetweenText(
+        tester,
+        fromText: 'abcdef',
+        fromOffset: 5,
+        toText: 'ghijkl',
+        toOffset: 3,
+        shift: true,
+      );
+
+      final controller = _controllerOf(tester);
+      expect(controller.selection, isNotNull);
+      expect(controller.selection!.isCollapsed, isFalse);
+      expect(controller.selection!.base.blockId, 'p1');
+      expect(controller.selection!.base.offset, 2);
+      expect(controller.selection!.extent.blockId, 'p2');
+      expect(controller.selection!.extent.offset, 3);
+      expect(isSelectionHighlightVisible(tester), isTrue);
+    });
+
     testWidgets('cross-block drag extends selection into the next paragraph', (
       tester,
     ) async {
@@ -144,6 +218,18 @@ void main() {
   });
 }
 
+DocumentSelection _collapsedTextSelection(
+  String blockId,
+  int blockIndex,
+  int offset,
+) {
+  final position = DocumentPosition.text(
+    blockId: blockId,
+    blockIndex: blockIndex,
+    offset: offset,
+  );
+  return DocumentSelection(base: position, extent: position);
+}
 WenzRichTextController _controllerOf(WidgetTester tester) {
   // The controller is the same instance the test's TestWorkbench holds; the
   // widget exposes it via its constructor param.

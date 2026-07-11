@@ -343,6 +343,7 @@ final config = WenzEditorConfiguration(
 
   // 11) External image input policy.
   enableExternalImageInput: true,
+  enableExternalDragDrop: true,
   externalImageClipboardReader: myClipboardImageReader, // optional
   externalImageStore: myImageStore,                     // optional
 
@@ -477,29 +478,53 @@ with `copyWith(contextMenuConfiguration: null)`.
 
 ### External image input
 
-External image input is enabled by default. With the stock widget, external file
-drops enter through the built-in drop adapter and the default image store writes
+External image input is enabled by default. Clipboard image flavors and desktop
+external image drops share the same stable pipeline: platform data becomes an
+`ExternalImageInput`, the configured `ExternalImageStore` validates or
+materializes it, and `WenzRichTextController.pasteExternalImages` inserts image
+blocks through the normal command history. With the stock widget, external drops
+enter through the built-in drop adapter and the default image store writes
 memory-backed images to temporary files on IO platforms. Clipboard image flavors
 are intentionally represented by the stable `ExternalImageClipboardReader`
 contract; hosts that need screenshots, copied image files, or IM-app image
 flavors can pass their platform reader through
 `WenzEditorConfiguration.externalImageClipboardReader`.
 
+For memory-backed clipboard images, local file paths, and `file://` URI inputs,
+the default IO store reads PNG/JPEG/GIF/WebP/BMP byte headers when possible and
+stores the intrinsic pixel size in `ExternalImageBlockDescription.width` /
+`height`. The paste path passes those values through to `ImageBlockNode.width` /
+`height`, so the default renderer can choose a first display frame that keeps
+the real aspect ratio. If a file input validates but its dimensions cannot be
+read, insertion still proceeds without dimensions and the renderer uses the
+compatible missing-dimension fallback.
+
 ```dart
 final config = WenzEditorConfiguration(
   enableExternalImageInput: true,
+  enableExternalDragDrop: true,
   externalImageClipboardReader: MyClipboardImageReader(),
   externalImageStore: MyUploadingImageStore(),
 );
 ```
 
 Set `enableExternalImageInput: false` to keep ordinary text, Wenz rich JSON,
-HTML, and Markdown paste behavior while ignoring image clipboard flavors and
-external image file drops. Replacing `externalImageStore` is the handoff point
-for upload, permanent storage, security checks, temporary-file cleanup, or
-mapping a local path to an application asset id. The core package only produces
-image block descriptions and `ImageBlockNode.file`; it does not upload, retain,
-or clean application-owned media.
+HTML, and Markdown paste behavior while ignoring image clipboard flavors and all
+external image drops. Set `enableExternalDragDrop: false` when image clipboard
+paste should stay enabled but the desktop external drop target should not mount;
+mobile selection-ui platforms skip the external `DropRegion` regardless of this
+flag. Replacing `externalImageStore` is the handoff point for upload, permanent
+storage, security checks, temporary-file cleanup, or mapping a local path to an
+application asset id. Custom stores should set
+`ExternalImageBlockDescription.width` / `height` to the original pixel size when
+that information is available, and leave them `null` when it is not. Do not map
+those intrinsic dimensions to `showWidth` / `showHeight`; those fields are
+persisted user display-size overrides. Resolved image widgets are laid out inside
+the same finite frame as the default placeholder: `showWidth` / `showHeight`
+take priority, then intrinsic `width` / `height`, then the fallback ratio. The
+core package only produces image block descriptions plus `ImageBlockNode.file`
+and intrinsic `width` / `height` metadata when supplied; it does not upload,
+retain, or clean application-owned media.
 
 ---
 
@@ -649,6 +674,7 @@ This is the contract `WenzEditorConfiguration` (P002) implements and
 | `contextMenuConfiguration` | `WenzEditorContextMenuConfiguration?` | `buildEditor` | tier 2 |
 | `pasteTransformers` | `List<ClipboardPasteTransformer>` | `ClipboardService` | tier 2 |
 | `enableExternalImageInput` | `bool` (default `true`) | `buildEditor` | tier 1 |
+| `enableExternalDragDrop` | `bool` (default `true`) | `buildEditor` | tier 1 |
 | `externalImageClipboardReader` | `ExternalImageClipboardReader?` | `buildEditor` | tier 1 |
 | `externalImageStore` | `ExternalImageStore?` | `buildEditor` | tier 1 |
 | `blockRenderers` | `Map<BlockType, BlockRendererBuilder>` | registry | tier 2 |
