@@ -1,0 +1,35 @@
+[
+  {
+    "type": "text",
+    "level": 1,
+    "children": [
+      {
+        "type": "text",
+        "level": 0,
+        "text": "text 类型一级标题"
+      }
+    ]
+  },
+  {
+    "type": "text",
+    "level": 2,
+    "children": [
+      {
+        "type": "text",
+        "level": 0,
+        "text": "text 类型二级标题"
+      }
+    ]
+  },
+  {
+    "type": "text",
+    "level": 0,
+    "children": [
+      {
+        "type": "text",
+        "level": 0,
+        "text": "level 0 正文"
+      }
+    ]
+  }
+]

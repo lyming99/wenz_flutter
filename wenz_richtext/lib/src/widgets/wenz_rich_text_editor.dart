@@ -262,6 +262,190 @@ const int _kInlineRemarkColor = 0xFFC97B00;
 const int _kInlineRevisionBackgroundAlpha = 72;
 const double _kDefaultBlockExtent = 48.0;
 const double _kVirtualListOverscan = 600.0;
+
+/// Enables verbose virtual-scroll traces without changing release behavior by
+/// default. Start Flutter with
+/// `--dart-define=WENZ_RICHTEXT_SCROLL_DIAGNOSTICS=true` while reproducing a
+/// scrollbar-thumb jump. Geometry anomalies are still printed in debug builds
+/// when this flag is off.
+const bool _kVirtualScrollDiagnosticsTraceEnabled = bool.fromEnvironment(
+  'WENZ_RICHTEXT_SCROLL_DIAGNOSTICS',
+);
+
+/// Correlates scrollbar input, virtual-window builds, measured extents, and
+/// post-frame geometry checks for one editor instance.
+///
+/// Logs intentionally contain only ids, indexes, and geometry. Document text
+/// is never included. Routine high-frequency events are sampled so enabling
+/// diagnostics does not itself dominate scrollbar-drag timing.
+class _VirtualScrollDiagnostics {
+  _VirtualScrollDiagnostics() : instanceId = ++_nextInstanceId {
+    _clock.start();
+  }
+
+  static int _nextInstanceId = 0;
+
+  final int instanceId;
+  final Stopwatch _clock = Stopwatch();
+  int _sequence = 0;
+  int _buildSequence = 0;
+  int _lastScrollUpdateLogMillis = -1000000;
+  int _lastBuildLogMillis = -1000000;
+  double? _lastNotificationPixels;
+  double? _lastBuildOffset;
+  double? _lastBuildTotalExtent;
+  int? _lastBuildVisibleStart;
+  int? _lastBuildVisibleEndExclusive;
+  int? _lastBuildLayoutRevision;
+
+  bool get traceEnabled => _kVirtualScrollDiagnosticsTraceEnabled;
+
+  bool get anomalyChecksEnabled => traceEnabled || kDebugMode;
+
+  int nextBuildSequence() => ++_buildSequence;
+
+  void rememberNotificationPixels(double pixels) {
+    _lastNotificationPixels = pixels;
+  }
+
+  bool shouldTraceScrollUpdate(ScrollMetrics metrics) {
+    final previous = _lastNotificationPixels;
+    _lastNotificationPixels = metrics.pixels;
+    if (!traceEnabled) {
+      return false;
+    }
+    final offsetDelta = previous == null ? 0.0 : metrics.pixels - previous;
+    final largeJump =
+        offsetDelta.abs() >= math.max(240.0, metrics.viewportDimension * 0.5);
+    final now = _clock.elapsedMilliseconds;
+    if (largeJump || now - _lastScrollUpdateLogMillis >= 120) {
+      _lastScrollUpdateLogMillis = now;
+      return true;
+    }
+    return false;
+  }
+
+  bool shouldTraceBuild({
+    required double offset,
+    required double viewport,
+    required double totalExtent,
+    required int visibleStart,
+    required int visibleEndExclusive,
+    required int layoutRevision,
+    required bool predictedMetricsMismatch,
+  }) {
+    final previousOffset = _lastBuildOffset;
+    final previousTotalExtent = _lastBuildTotalExtent;
+    final previousStart = _lastBuildVisibleStart;
+    final previousEnd = _lastBuildVisibleEndExclusive;
+    final previousRevision = _lastBuildLayoutRevision;
+    _lastBuildOffset = offset;
+    _lastBuildTotalExtent = totalExtent;
+    _lastBuildVisibleStart = visibleStart;
+    _lastBuildVisibleEndExclusive = visibleEndExclusive;
+    _lastBuildLayoutRevision = layoutRevision;
+    if (!traceEnabled) {
+      return false;
+    }
+
+    final offsetJump = previousOffset == null
+        ? true
+        : (offset - previousOffset).abs() >= math.max(240.0, viewport * 0.5);
+    final totalShift = previousTotalExtent == null
+        ? true
+        : (totalExtent - previousTotalExtent).abs() >=
+            math.max(120.0, viewport * 0.25);
+    final disjointRange = previousStart != null &&
+        previousEnd != null &&
+        (visibleStart >= previousEnd || visibleEndExclusive <= previousStart);
+    final layoutChanged = previousRevision != layoutRevision;
+    final now = _clock.elapsedMilliseconds;
+    if (predictedMetricsMismatch ||
+        offsetJump ||
+        totalShift ||
+        disjointRange ||
+        layoutChanged ||
+        now - _lastBuildLogMillis >= 250) {
+      _lastBuildLogMillis = now;
+      return true;
+    }
+    return false;
+  }
+
+  void trace(String event, Map<String, Object?> fields) {
+    if (!traceEnabled) {
+      return;
+    }
+    _emit('TRACE', event, fields);
+  }
+
+  void anomaly(String event, Map<String, Object?> fields) {
+    if (!traceEnabled && !kDebugMode) {
+      return;
+    }
+    _emit('ANOMALY', event, fields);
+  }
+
+  void _emit(String level, String event, Map<String, Object?> fields) {
+    final buffer = StringBuffer('[WenzVirtualScroll#$instanceId]')
+      ..write(' level=$level')
+      ..write(' seq=${++_sequence}')
+      ..write(' ms=${_clock.elapsedMilliseconds}')
+      ..write(' event=$event');
+    for (final entry in fields.entries) {
+      buffer
+        ..write(' ')
+        ..write(entry.key)
+        ..write('=')
+        ..write(_formatValue(entry.value));
+    }
+    debugPrint(buffer.toString());
+  }
+
+  String _formatValue(Object? value) {
+    if (value == null) {
+      return 'null';
+    }
+    if (value is double) {
+      if (!value.isFinite) {
+        return value.toString();
+      }
+      return value.abs() >= 10000
+          ? value.toStringAsFixed(0)
+          : value.toStringAsFixed(1);
+    }
+    if (value is Iterable<Object?>) {
+      return '[${value.map(_formatValue).join(',')}]';
+    }
+    final text = value.toString();
+    return text.contains(RegExp(r'\s'))
+        ? '"${text.replaceAll('"', '\\"')}"'
+        : text;
+  }
+
+  String summarizeIndices(Iterable<int> indices) {
+    final values = indices.toList(growable: false);
+    if (values.isEmpty) {
+      return 'empty';
+    }
+    if (values.length <= 8) {
+      return values.join(',');
+    }
+    return '${values.first}..${values.last}(${values.length})';
+  }
+}
+
+Map<String, Object?> _scrollMetricsLogFields(ScrollMetrics metrics) {
+  return <String, Object?>{
+    'pixels': metrics.pixels,
+    'min': metrics.minScrollExtent,
+    'max': metrics.maxScrollExtent,
+    'viewport': metrics.viewportDimension,
+    'outOfRange': metrics.outOfRange,
+    'axis': metrics.axisDirection.name,
+  };
+}
+
 const double _kBlockReorderIndicatorHeight = 3.0;
 const double _kTableResizeHandleWidth = 12.0;
 const double _kMinTableColumnWidth = 48.0;
@@ -577,6 +761,13 @@ double _blockRowChromeWidth({
         tokens.blockChromeGapToContent;
   }
   if (reserveHeadingCollapseSlot) {
+    // Compact phone rows always reserve exactly one collapse-button width.
+    // Rows without a control use it as an empty leading inset; collapsible
+    // headings fill the same space with the button, so both content columns
+    // stay aligned without adding a second margin or content gap.
+    if (tokens.isMobile) {
+      return _kHeadingCollapseButtonSize;
+    }
     final collapseOnlyWidth =
         _kHeadingCollapseButtonSize + tokens.blockChromeGapToContent;
     if (!tokens.isMobile) {
@@ -596,7 +787,8 @@ bool _shouldReserveHeadingCollapseSlot({
   required bool outlineChromeAttached,
   required bool showHeadingCollapse,
 }) {
-  return showHeadingCollapse ||
+  return tokens.isMobile ||
+      showHeadingCollapse ||
       (tokens.reserveFullOutlineChromeRail && outlineChromeAttached);
 }
 
@@ -1374,6 +1566,7 @@ class WenzRichTextEditor extends StatefulWidget {
   const WenzRichTextEditor({
     super.key,
     required this.controller,
+    this.topWidget,
     this.padding = const EdgeInsets.fromLTRB(0, 16, 16, 16),
     this.blockSpacing = _kDefaultBlockSpacing,
     this.textStyle,
@@ -1394,6 +1587,7 @@ class WenzRichTextEditor extends StatefulWidget {
     this.onOpenLink,
     this.findController,
     this.onFindRequested,
+    this.onSelectionSearchRequested,
     this.onReplaceRequested,
     this.slashMenuController,
     this.outlineController,
@@ -1406,6 +1600,16 @@ class WenzRichTextEditor extends StatefulWidget {
   });
 
   final WenzRichTextController controller;
+
+  /// Optional host content rendered before the first document block inside the
+  /// editor's vertical scroll view.
+  ///
+  /// The widget is excluded from document selection and does not participate in
+  /// serialization, undo/redo, block indexing, or editing commands. Its measured
+  /// height is included in virtual-list positioning, so dynamic headers and empty
+  /// documents share the same scroll controller as the document body.
+  final Widget? topWidget;
+
   final EdgeInsetsGeometry padding;
   final double blockSpacing;
 
@@ -1512,6 +1716,13 @@ class WenzRichTextEditor extends StatefulWidget {
 
   /// Called for Ctrl/Cmd+F when a find surface is available.
   final VoidCallback? onFindRequested;
+
+  /// Called when the mobile expanded-selection toolbar requests a host search.
+  ///
+  /// The callback receives the selection's plain text. It is deliberately
+  /// separate from [onFindRequested], so hosts can open an application-wide
+  /// search page without changing Ctrl/Cmd+F or the editor find panel.
+  final ValueChanged<String>? onSelectionSearchRequested;
 
   /// Called for Ctrl/Cmd+H when a replace surface is available.
   final VoidCallback? onReplaceRequested;
@@ -1638,6 +1849,8 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
   late final ObjectBlockToolbarOverlayController
       _objectBlockToolbarOverlayController =
       ObjectBlockToolbarOverlayController();
+  final _VirtualScrollDiagnostics _virtualScrollDiagnostics =
+      _VirtualScrollDiagnostics();
   final _BlockExtentCache _extentCache = _BlockExtentCache();
   List<BlockNode>? _listMarkerBlocks;
   List<String?> _cachedListMarkers = const <String?>[];
@@ -1686,6 +1899,11 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
   /// Used to suppress extent-update scroll-to-caret retries while the user is
   /// actively moving the viewport away from the caret.
   DateTime? _lastUserScrollTime;
+
+  /// True while a drag owns the ScrollPosition (scrollbar thumb, touch drag,
+  /// or mouse drag). Wheel/pointer-scroll updates have no drag details and may
+  /// safely receive a viewport-anchor correction without cancelling a gesture.
+  bool _directScrollDragActive = false;
 
   /// Counts editor-owned scroll jumps so their notifications are not treated as
   /// user input by the scroll notification listener.
@@ -1819,7 +2037,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
       oldWidget.controller.attachFocusNode(null);
       widget.controller.addListener(_handleControllerChanged);
       _objectBlockToolbarOverlayController.hide();
-      _extentCache.clear();
+      _extentCache.clear(reason: 'editor-controller-changed');
       _layoutCache.clear();
     } else if (oldWidget.textStyle != widget.textStyle ||
         oldWidget.defaultTextColor != widget.defaultTextColor ||
@@ -1830,7 +2048,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
         oldWidget.onMentionTap != widget.onMentionTap ||
         oldWidget.findController != widget.findController ||
         oldWidget.slashMenuController != widget.slashMenuController) {
-      _extentCache.clear();
+      _extentCache.clear(reason: 'editor-render-configuration-changed');
       _layoutCache.clear();
     }
     if (oldWidget.findController != widget.findController) {
@@ -1984,19 +2202,118 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
   }
 
   bool _handleScrollNotification(ScrollNotification notification) {
-    if (_programmaticScrollDepth > 0 || notification.depth != 0) {
+    if (notification.depth != 0) {
+      return false;
+    }
+    if (_programmaticScrollDepth > 0) {
+      _virtualScrollDiagnostics.trace(
+        'scroll-notification-ignored-programmatic',
+        <String, Object?>{
+          ..._scrollMetricsLogFields(notification.metrics),
+          'notification': notification.runtimeType,
+          'programmaticDepth': _programmaticScrollDepth,
+        },
+      );
       return false;
     }
     if (notification is ScrollStartNotification &&
         notification.dragDetails != null) {
+      _directScrollDragActive = true;
       _markUserScrollInteraction();
+      _virtualScrollDiagnostics.rememberNotificationPixels(
+        notification.metrics.pixels,
+      );
+      _virtualScrollDiagnostics.trace(
+        'scroll-start',
+        <String, Object?>{
+          ..._scrollMetricsLogFields(notification.metrics),
+          'drag': true,
+          'kind': notification.dragDetails?.kind?.name,
+          'source': notification.dragDetails?.kind == null
+              ? 'synthetic-drag-or-scrollbar'
+              : 'content-pointer-drag',
+        },
+      );
+    } else if (notification is ScrollStartNotification) {
+      _virtualScrollDiagnostics.rememberNotificationPixels(
+        notification.metrics.pixels,
+      );
+      _virtualScrollDiagnostics.trace(
+        'scroll-start',
+        <String, Object?>{
+          ..._scrollMetricsLogFields(notification.metrics),
+          'drag': false,
+        },
+      );
     } else if (notification is ScrollUpdateNotification) {
+      if (notification.dragDetails != null) {
+        _directScrollDragActive = true;
+      }
       _markUserScrollInteraction();
+      if (_virtualScrollDiagnostics.shouldTraceScrollUpdate(
+        notification.metrics,
+      )) {
+        _virtualScrollDiagnostics.trace(
+          'scroll-update',
+          <String, Object?>{
+            ..._scrollMetricsLogFields(notification.metrics),
+            'scrollDelta': notification.scrollDelta,
+            'drag': notification.dragDetails != null,
+            'kind': notification.dragDetails?.kind?.name,
+            'source': notification.dragDetails == null
+                ? 'scroll-activity-or-jump'
+                : notification.dragDetails?.kind == null
+                    ? 'synthetic-drag-or-scrollbar'
+                    : 'content-pointer-drag',
+          },
+        );
+      }
     } else if (notification is OverscrollNotification) {
       _markUserScrollInteraction();
+      _virtualScrollDiagnostics.rememberNotificationPixels(
+        notification.metrics.pixels,
+      );
+      _virtualScrollDiagnostics.trace(
+        'overscroll',
+        <String, Object?>{
+          ..._scrollMetricsLogFields(notification.metrics),
+          'overscroll': notification.overscroll,
+          'velocity': notification.velocity,
+          'drag': notification.dragDetails != null,
+        },
+      );
+    } else if (notification is ScrollEndNotification) {
+      _directScrollDragActive = false;
+      _virtualScrollDiagnostics.rememberNotificationPixels(
+        notification.metrics.pixels,
+      );
+      _virtualScrollDiagnostics.trace(
+        'scroll-end',
+        <String, Object?>{
+          ..._scrollMetricsLogFields(notification.metrics),
+          'drag': notification.dragDetails != null,
+          'cooldown': _isInUserScrollCooldown(),
+        },
+      );
     } else if (notification is UserScrollNotification &&
         notification.direction != ScrollDirection.idle) {
       _markUserScrollInteraction();
+      _virtualScrollDiagnostics.trace(
+        'user-scroll-direction',
+        <String, Object?>{
+          ..._scrollMetricsLogFields(notification.metrics),
+          'direction': notification.direction.name,
+        },
+      );
+    } else if (notification is UserScrollNotification) {
+      _directScrollDragActive = false;
+      _virtualScrollDiagnostics.trace(
+        'user-scroll-idle',
+        <String, Object?>{
+          ..._scrollMetricsLogFields(notification.metrics),
+          'cooldown': _isInUserScrollCooldown(),
+        },
+      );
     }
     return false;
   }
@@ -2122,7 +2439,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
       // near-correct height instead of one frame of a wrong average.
       final dirty = widget.controller.lastChangedBlockIds;
       if (dirty == null) {
-        _extentCache.clear();
+        _extentCache.clear(reason: 'document-replaced-without-dirty-set');
       } else if (dirty.isNotEmpty) {
         for (final id in dirty) {
           _layoutCache.removeBlock(id);
@@ -2559,7 +2876,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     // only. The source document order, block ids/indexes, codecs, and edit
     // history remain unchanged while read-only and editable editors may toggle
     // the view state.
-    if (blocks.isEmpty) {
+    if (blocks.isEmpty && widget.topWidget == null) {
       return _buildEditorShell(
         context,
         focusNode,
@@ -2606,15 +2923,26 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
         onNotification: _handleScrollNotification,
         child: _MeasuredVirtualBlockList(
           controller: _scrollController,
+          topWidget: widget.topWidget == null
+              ? null
+              : _EditorTopWidgetSelectionExclusion(
+                  registry: _registry,
+                  child: widget.topWidget!,
+                ),
           padding: widget.padding,
           physics: widget.physics,
           blocks: blocks,
           blockIndexes: blockIndexes,
           blockSpacing: widget.blockSpacing,
           extentCache: _extentCache,
+          diagnostics: _virtualScrollDiagnostics,
           keepAliveIds: keepAliveIds,
           onExtentUpdated: _scrollCaretIntoViewIfNeeded,
           shouldSuppressExtentUpdate: _isInUserScrollCooldown,
+          shouldDeferViewportAnchor: () => _directScrollDragActive,
+          onViewportAnchorCorrection: (target) {
+            _jumpToScrollOffset(target);
+          },
           itemBuilder: (context, blockIndex) {
             final block = sourceBlocks[blockIndex];
             final blockMoveRange = _blockMoveRangeFor(blockIndex) ??
@@ -2708,7 +3036,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
           shouldCommitDeferredTapSelection:
               _shouldCommitInlineVideoResolverTapSelection,
           shouldRequestFocusForTapSelection: _shouldRequestFocusForTapSelection,
-          onMobileCaretTap: _handleMobileCaretTap,
+          onMobileCaretToolbarRequested: _handleMobileCaretToolbarRequested,
           onMobileCaretToolbarDismissed: _dismissMobileCaretToolbar,
           onTapBeyondContent: _handleTapBeyondContent,
           onContextMenuRequested: _handleContextMenuRequested,
@@ -2734,6 +3062,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
             scrollController: _scrollController,
             containerKey: _editorOverlayKey,
             caretToolbarPosition: _mobileCaretToolbarPosition,
+            caretToolbarBuilder: _buildMobileCaretToolbar,
             selectionToolbarBuilder: _buildMobileSelectionToolbar,
           ),
       ],
@@ -3633,7 +3962,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     return path.isBlockText || path.isBlockCode || path.isTableCellText;
   }
 
-  void _handleMobileCaretTap(
+  void _handleMobileCaretToolbarRequested(
     DocumentPosition caret,
     Offset _,
   ) {
@@ -3665,7 +3994,6 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     return widget.enableMobileSelectionHandles &&
         EditorTokens.shouldUseMobileSelectionUi(context) &&
         !widget.readOnly &&
-        widget.enableIme &&
         widget.controller.canEdit;
   }
 
@@ -3697,7 +4025,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
       controller: controller,
       canEdit: canEdit,
       canPaste: canEdit,
-      canSearch: widget.onFindRequested != null,
+      canSearch: widget.onSelectionSearchRequested != null,
       onSelectAll: () => _handleDefaultContextMenuAction(
         WenzEditorContextMenuDefaultAction.selectAll,
       ),
@@ -3714,11 +4042,146 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     );
   }
 
+  Widget _buildMobileCaretToolbar(
+    BuildContext _,
+    WenzRichTextController controller,
+  ) {
+    final canEdit = _canRunContextMenuMutation;
+    return WenzMobileCaretToolbar(
+      controller: controller,
+      canEdit: canEdit,
+      canPaste: canEdit,
+      onSelect: _selectWordAtMobileCaret,
+      onPaste: () => _handleDefaultContextMenuAction(
+        WenzEditorContextMenuDefaultAction.paste,
+      ),
+      onSelectAll: () => _handleDefaultContextMenuAction(
+        WenzEditorContextMenuDefaultAction.selectAll,
+      ),
+    );
+  }
+
+  void _selectWordAtMobileCaret() {
+    final caret = _mobileCaretToolbarPosition;
+    final selection = widget.controller.selection;
+    if (caret == null ||
+        selection == null ||
+        !selection.isCollapsed ||
+        selection.extent != caret ||
+        !_isTextInputPath(caret.path)) {
+      return;
+    }
+    final range = _nearbyTextRangeAtCaret(caret);
+    if (range == null) {
+      return;
+    }
+    _handleSelectionChanged(
+      DocumentSelection(
+        base: caret.copyWith(offset: range.start),
+        extent: caret.copyWith(offset: range.end),
+      ),
+    );
+  }
+
+  TextRange? _nearbyTextRangeAtCaret(DocumentPosition caret) {
+    final text = _textInputTextForPosition(caret);
+    if (text == null || text.isEmpty) {
+      return null;
+    }
+    final caretOffset = caret.offset.clamp(0, text.length).toInt();
+
+    TextRange? meaningfulWordRangeAt(int offset) {
+      final range = _registry.wordRangeAt(
+        caret.blockId,
+        offset,
+        path: caret.path,
+      );
+      if (range == null ||
+          range.isCollapsed ||
+          range.start < 0 ||
+          range.end > text.length ||
+          text.substring(range.start, range.end).trim().isEmpty) {
+        return null;
+      }
+      return range;
+    }
+
+    final directRange = meaningfulWordRangeAt(caretOffset);
+    if (directRange != null) {
+      return directRange;
+    }
+
+    int? leftTextOffset;
+    for (var offset = caretOffset - 1; offset >= 0; offset--) {
+      if (text[offset].trim().isNotEmpty) {
+        leftTextOffset = offset;
+        break;
+      }
+    }
+    int? rightTextOffset;
+    for (var offset = caretOffset; offset < text.length; offset++) {
+      if (text[offset].trim().isNotEmpty) {
+        rightTextOffset = offset;
+        break;
+      }
+    }
+
+    final candidateOffsets = <int>[];
+    if (leftTextOffset != null && rightTextOffset != null) {
+      final leftDistance = caretOffset - leftTextOffset - 1;
+      final rightDistance = rightTextOffset - caretOffset;
+      if (leftDistance <= rightDistance) {
+        candidateOffsets
+          ..add(leftTextOffset)
+          ..add(rightTextOffset);
+      } else {
+        candidateOffsets
+          ..add(rightTextOffset)
+          ..add(leftTextOffset);
+      }
+    } else if (leftTextOffset != null) {
+      candidateOffsets.add(leftTextOffset);
+    } else if (rightTextOffset != null) {
+      candidateOffsets.add(rightTextOffset);
+    }
+    for (final offset in candidateOffsets) {
+      final range = meaningfulWordRangeAt(offset);
+      if (range != null) {
+        return range;
+      }
+    }
+    return null;
+  }
+
+  String? _textInputTextForPosition(DocumentPosition position) {
+    final blocks = widget.controller.document.blocks;
+    if (position.blockIndex < 0 || position.blockIndex >= blocks.length) {
+      return null;
+    }
+    final block = blocks[position.blockIndex];
+    if (block.id != position.blockId) {
+      return null;
+    }
+    if (position.path.isBlockCode && block is CodeBlockNode) {
+      return block.code;
+    }
+    final nodes = _inlineNodesForPosition(position);
+    return nodes?.map((node) => node.plainText).join();
+  }
+
   void _handleMobileSelectionToolbarSearch() {
-    // Do not route this through shortcut handling: search should only request
-    // the host find surface and must leave the active selection, focus, and
-    // platform text-input connection untouched.
-    widget.onFindRequested?.call();
+    final callback = widget.onSelectionSearchRequested;
+    if (callback == null) {
+      return;
+    }
+    final query = widget.controller
+        .copySelectionPayload(widget.controller.selection)
+        ?.plainText
+        .trim();
+    if (query == null || query.isEmpty) {
+      return;
+    }
+    callback(query);
   }
 
   void _registerInlineVideoResolverTapTarget(
@@ -7664,6 +8127,15 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     if ((next - position.pixels).abs() <= 0.5) {
       return false;
     }
+    _virtualScrollDiagnostics.trace(
+      'programmatic-jump',
+      <String, Object?>{
+        ..._scrollMetricsLogFields(position),
+        'from': position.pixels,
+        'target': next,
+        'delta': next - position.pixels,
+      },
+    );
     _programmaticScrollDepth += 1;
     try {
       position.jumpTo(next);
@@ -8124,11 +8596,16 @@ class _BlockExtentCache {
   double _measuredExtentTotal = 0;
   int _epoch = 0;
   double? _contentWidth;
+  int _layoutRevision = 0;
+  String _lastLayoutSyncKind = 'none';
+  int _lastLayoutChangedCount = 0;
+  String? _pendingInvalidationReason = 'initial';
 
-  void clear() {
+  void clear({String reason = 'explicit-clear'}) {
     _epoch += 1;
     _extents.clear();
     _measuredExtentTotal = 0;
+    _pendingInvalidationReason = reason;
     _invalidateLayout();
   }
 
@@ -8141,7 +8618,7 @@ class _BlockExtentCache {
       return;
     }
     _contentWidth = width;
-    clear();
+    clear(reason: 'content-width-changed');
   }
 
   void removeBlock(String blockId) {
@@ -8194,7 +8671,12 @@ class _BlockExtentCache {
     return Object.hash(_epoch, _blockVersions[blockId] ?? 0);
   }
 
-  _ExtentRecordResult? record(String blockId, int token, double extent) {
+  _ExtentRecordResult? record(
+    String blockId,
+    int token,
+    double extent, {
+    bool includeDiagnostics = false,
+  }) {
     if (token != tokenFor(blockId)) {
       return null;
     }
@@ -8205,24 +8687,80 @@ class _BlockExtentCache {
     if (previous != null && (previous - extent).abs() <= 0.5) {
       return null;
     }
+    final previousAverageExtent = averageExtent;
     final layoutIndex = _layoutIndexesById[blockId];
     final previousLayoutExtent = layoutIndex == null
         ? extent
         : _layoutIndex?.extentAt(layoutIndex) ?? extent;
     final previousBlockTop =
         layoutIndex == null ? null : _layoutIndex?.topFor(layoutIndex);
+    final previousTotalExtent =
+        includeDiagnostics ? _layoutIndex?.totalExtent : null;
     _extents[blockId] = extent;
     _measuredExtentTotal += extent - (previous ?? 0);
+    final nextAverageExtent = averageExtent;
     if (layoutIndex != null && layoutIndex < (_layoutIndex?.length ?? 0)) {
       _layoutIndex!
         ..updateExtent(layoutIndex, extent)
-        ..updateEstimatedExtent(averageExtent);
+        ..updateEstimatedExtent(nextAverageExtent);
+      _recordLayoutSync('measured-extent-update', 1);
     }
     return _ExtentRecordResult(
+      blockId: blockId,
+      blockIndex: layoutIndex,
       previousBlockTop: previousBlockTop,
+      previousMeasuredExtent: previous,
+      previousLayoutExtent: previousLayoutExtent,
+      measuredExtent: extent,
       extentDelta: extent - previousLayoutExtent,
+      previousAverageExtent: previousAverageExtent,
+      nextAverageExtent: nextAverageExtent,
+      previousTotalExtent: previousTotalExtent,
+      nextTotalExtent: includeDiagnostics ? _layoutIndex?.totalExtent : null,
+      measuredBlockCount: _extents.length,
+      layoutBlockCount: _layoutIndex?.length,
     );
   }
+
+  _ExtentViewportAnchor? captureViewportAnchor(double contentOffset) {
+    final layoutIndex = _layoutIndex;
+    final layoutBlocks = _layoutBlocks;
+    if (layoutIndex == null ||
+        layoutBlocks == null ||
+        layoutBlocks.isEmpty ||
+        layoutIndex.length == 0) {
+      return null;
+    }
+    final safeOffset =
+        contentOffset.clamp(0.0, layoutIndex.totalExtent).toDouble();
+    final range = layoutIndex.visibleRange(safeOffset, safeOffset);
+    if (range.isEmpty || range.start >= layoutBlocks.length) {
+      return null;
+    }
+    final index = range.start;
+    return _ExtentViewportAnchor(
+      blockId: layoutBlocks[index].id,
+      blockIndex: index,
+      layoutTop: layoutIndex.topFor(index),
+    );
+  }
+
+  double? updateViewportAnchor(_ExtentViewportAnchor anchor) {
+    final layoutIndex = _layoutIndex;
+    final index = _layoutIndexesById[anchor.blockId];
+    if (layoutIndex == null ||
+        index == null ||
+        index < 0 ||
+        index >= layoutIndex.length) {
+      return null;
+    }
+    final nextTop = layoutIndex.topFor(index);
+    final delta = nextTop - anchor.layoutTop;
+    anchor.layoutTop = nextTop;
+    return delta;
+  }
+
+  double? get currentLayoutTotalExtent => _layoutIndex?.totalExtent;
 
   double get averageExtent {
     if (_extents.isEmpty) {
@@ -8250,6 +8788,11 @@ class _BlockExtentCache {
       blocks: blocks,
       index: _layoutIndex!,
       indexesById: _layoutIndexesById,
+      layoutRevision: _layoutRevision,
+      layoutSyncKind: _lastLayoutSyncKind,
+      layoutChangedCount: _lastLayoutChangedCount,
+      estimatedExtent: averageExtent,
+      measuredBlockCount: _extents.length,
     );
   }
 
@@ -8300,10 +8843,23 @@ class _BlockExtentCache {
             _layoutIndex!.updateTrailingSpacing(index, trailingSpacing);
           }
           _layoutBlocks = blocks;
+          _recordLayoutSync(
+            'incremental-persistent-delta',
+            delta.changedIndexes.length,
+          );
           return;
         }
       }
     }
+
+    final rebuildReason = _pendingInvalidationReason ??
+        (_layoutIndex == null
+            ? 'index-missing'
+            : _layoutSpacing != spacing
+                ? 'spacing-changed'
+                : previousBlocks?.length != blocks.length
+                    ? 'block-count-changed'
+                    : 'structure-or-list-identity-changed');
 
     final extents = <double>[];
     final measured = <bool>[];
@@ -8333,6 +8889,14 @@ class _BlockExtentCache {
     _layoutIndexesById = Map<String, int>.unmodifiable(indexesById);
     _layoutBlocks = blocks;
     _layoutSpacing = spacing;
+    _pendingInvalidationReason = null;
+    _recordLayoutSync('full-rebuild:$rebuildReason', blocks.length);
+  }
+
+  void _recordLayoutSync(String kind, int changedCount) {
+    _layoutRevision += 1;
+    _lastLayoutSyncKind = kind;
+    _lastLayoutChangedCount = changedCount;
   }
 
   void _invalidateLayout() {
@@ -8375,14 +8939,48 @@ class _BlockExtentCache {
   }
 }
 
-class _ExtentRecordResult {
-  const _ExtentRecordResult({
-    required this.previousBlockTop,
-    required this.extentDelta,
+class _ExtentViewportAnchor {
+  _ExtentViewportAnchor({
+    required this.blockId,
+    required this.blockIndex,
+    required this.layoutTop,
   });
 
+  final String blockId;
+  final int blockIndex;
+  double layoutTop;
+}
+
+class _ExtentRecordResult {
+  const _ExtentRecordResult({
+    required this.blockId,
+    required this.blockIndex,
+    required this.previousBlockTop,
+    required this.previousMeasuredExtent,
+    required this.previousLayoutExtent,
+    required this.measuredExtent,
+    required this.extentDelta,
+    required this.previousAverageExtent,
+    required this.nextAverageExtent,
+    required this.previousTotalExtent,
+    required this.nextTotalExtent,
+    required this.measuredBlockCount,
+    required this.layoutBlockCount,
+  });
+
+  final String blockId;
+  final int? blockIndex;
   final double? previousBlockTop;
+  final double? previousMeasuredExtent;
+  final double previousLayoutExtent;
+  final double measuredExtent;
   final double extentDelta;
+  final double previousAverageExtent;
+  final double nextAverageExtent;
+  final double? previousTotalExtent;
+  final double? nextTotalExtent;
+  final int measuredBlockCount;
+  final int? layoutBlockCount;
 }
 
 class _BlockMoveRange {
@@ -8505,15 +9103,27 @@ class _BlockLayoutMetrics {
     required this.blocks,
     required this.index,
     required this.indexesById,
+    required this.layoutRevision,
+    required this.layoutSyncKind,
+    required this.layoutChangedCount,
+    required this.estimatedExtent,
+    required this.measuredBlockCount,
   });
 
   final List<BlockNode> blocks;
   final BlockLayoutIndex index;
   final Map<String, int> indexesById;
+  final int layoutRevision;
+  final String layoutSyncKind;
+  final int layoutChangedCount;
+  final double estimatedExtent;
+  final int measuredBlockCount;
 
   double get totalExtent => index.totalExtent;
 
   double topFor(int blockIndex) => index.topFor(blockIndex);
+
+  double bottomFor(int blockIndex) => index.bottomFor(blockIndex);
 
   int? indexForBlockId(String blockId) => indexesById[blockId];
 
@@ -8528,26 +9138,81 @@ class _BlockLayoutMetrics {
   }
 }
 
+class _EditorTopWidgetSelectionExclusion extends StatefulWidget {
+  const _EditorTopWidgetSelectionExclusion({
+    required this.registry,
+    required this.child,
+  });
+
+  final BlockGeometryRegistry registry;
+  final Widget child;
+
+  @override
+  State<_EditorTopWidgetSelectionExclusion> createState() =>
+      _EditorTopWidgetSelectionExclusionState();
+}
+
+class _EditorTopWidgetSelectionExclusionState
+    extends State<_EditorTopWidgetSelectionExclusion> {
+  final GlobalKey _selectionExclusionKey = GlobalKey();
+
+  @override
+  void initState() {
+    super.initState();
+    widget.registry.registerSelectionExclusion(_selectionExclusionKey);
+  }
+
+  @override
+  void didUpdateWidget(covariant _EditorTopWidgetSelectionExclusion oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.registry != widget.registry) {
+      oldWidget.registry.unregisterSelectionExclusion(_selectionExclusionKey);
+      widget.registry.registerSelectionExclusion(_selectionExclusionKey);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.registry.unregisterSelectionExclusion(_selectionExclusionKey);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      key: _selectionExclusionKey,
+      width: double.infinity,
+      child: widget.child,
+    );
+  }
+}
+
 class _MeasuredVirtualBlockList extends StatefulWidget {
   const _MeasuredVirtualBlockList({
     required this.controller,
+    this.topWidget,
     required this.blocks,
     required this.blockIndexes,
     required this.blockSpacing,
     required this.extentCache,
+    required this.diagnostics,
     required this.keepAliveIds,
     required this.itemBuilder,
     this.padding = EdgeInsets.zero,
     this.physics,
     this.onExtentUpdated,
     this.shouldSuppressExtentUpdate,
+    this.shouldDeferViewportAnchor,
+    this.onViewportAnchorCorrection,
   });
 
   final ScrollController controller;
+  final Widget? topWidget;
   final List<BlockNode> blocks;
   final List<int> blockIndexes;
   final double blockSpacing;
   final _BlockExtentCache extentCache;
+  final _VirtualScrollDiagnostics diagnostics;
   final Set<String> keepAliveIds;
 
   /// Builds one top-level `Document.blocks` row. Editor-owned row chrome, such
@@ -8572,15 +9237,48 @@ class _MeasuredVirtualBlockList extends StatefulWidget {
   /// during an active user scroll does not kick off caret-into-view logic.
   final bool Function()? shouldSuppressExtentUpdate;
 
+  /// Returns true while a direct drag owns the ScrollPosition. Viewport-anchor
+  /// corrections are deferred in that state because jumpTo would cancel the
+  /// scrollbar/touch drag. Wheel and pointer-scroll updates return false.
+  final bool Function()? shouldDeferViewportAnchor;
+
+  /// Applies a layout-only viewport anchor correction through the editor's
+  /// programmatic-scroll guard so its notifications are not mistaken for new
+  /// user input.
+  final ValueChanged<double>? onViewportAnchorCorrection;
+
   @override
   State<_MeasuredVirtualBlockList> createState() =>
       _MeasuredVirtualBlockListState();
 }
 
+class _VirtualMountedSlot {
+  const _VirtualMountedSlot({
+    required this.top,
+    required this.bottom,
+  });
+
+  final double top;
+  final double bottom;
+
+  bool overlaps(double viewportTop, double viewportBottom) {
+    return bottom >= viewportTop && top <= viewportBottom;
+  }
+}
+
 class _MeasuredVirtualBlockListState extends State<_MeasuredVirtualBlockList> {
+  double _topWidgetExtent = 0;
   double _resolvedPaddingTop = 0;
+  double _resolvedPaddingBottom = 0;
+  double _pendingTopWidgetAnchorDelta = 0;
+  bool _topWidgetAnchorCorrectionScheduled = false;
   double _pendingScrollAnchorDelta = 0;
   bool _scrollAnchorUpdateScheduled = false;
+  _ExtentViewportAnchor? _userScrollViewportAnchor;
+  double _pendingUserScrollAnchorDelta = 0;
+  bool _userScrollAnchorCorrectionScheduled = false;
+  double? _lastControllerOffset;
+  int _latestDiagnosticsBuildSequence = 0;
 
   @override
   void initState() {
@@ -8594,31 +9292,204 @@ class _MeasuredVirtualBlockListState extends State<_MeasuredVirtualBlockList> {
     if (oldWidget.controller != widget.controller) {
       oldWidget.controller.removeListener(_handleScroll);
       widget.controller.addListener(_handleScroll);
+      _clearUserScrollViewportAnchor();
+    }
+    if (oldWidget.topWidget != null && widget.topWidget == null) {
+      final previousExtent = _topWidgetExtent;
+      final preserveViewport = widget.controller.hasClients &&
+          widget.controller.offset > _resolvedPaddingTop + 0.5;
+      _topWidgetExtent = 0;
+      if (preserveViewport && previousExtent > 0.5) {
+        _scheduleTopWidgetAnchorCorrection(-previousExtent);
+      }
     }
   }
 
   @override
   void dispose() {
     widget.controller.removeListener(_handleScroll);
+    _clearUserScrollViewportAnchor();
     super.dispose();
   }
 
+  void _handleTopWidgetExtentChanged(double extent) {
+    final nextExtent = math.max(0.0, extent);
+    final delta = nextExtent - _topWidgetExtent;
+    if (delta.abs() <= 0.5) {
+      return;
+    }
+    final preserveViewport = widget.controller.hasClients &&
+        widget.controller.offset > _resolvedPaddingTop + 0.5;
+    setState(() {
+      _topWidgetExtent = nextExtent;
+    });
+    if (preserveViewport) {
+      _scheduleTopWidgetAnchorCorrection(delta);
+    }
+  }
+
+  void _scheduleTopWidgetAnchorCorrection(double delta) {
+    _pendingTopWidgetAnchorDelta += delta;
+    if (_topWidgetAnchorCorrectionScheduled) {
+      return;
+    }
+    _topWidgetAnchorCorrectionScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _topWidgetAnchorCorrectionScheduled = false;
+      final correction = _pendingTopWidgetAnchorDelta;
+      _pendingTopWidgetAnchorDelta = 0;
+      if (!mounted ||
+          correction.abs() <= 0.5 ||
+          !widget.controller.hasClients ||
+          widget.shouldDeferViewportAnchor?.call() == true) {
+        return;
+      }
+      final position = widget.controller.position;
+      final target = (position.pixels + correction)
+          .clamp(position.minScrollExtent, position.maxScrollExtent)
+          .toDouble();
+      if ((target - position.pixels).abs() <= 0.5) {
+        return;
+      }
+      final applyCorrection = widget.onViewportAnchorCorrection;
+      if (applyCorrection != null) {
+        applyCorrection(target);
+      } else {
+        widget.controller.jumpTo(target);
+      }
+    });
+  }
+
   void _handleScroll() {
+    if (!_userScrollAnchorCorrectionScheduled) {
+      _clearUserScrollViewportAnchor();
+    }
+    if (widget.diagnostics.traceEnabled && widget.controller.hasClients) {
+      final position = widget.controller.position;
+      final previousOffset = _lastControllerOffset;
+      final offsetDelta =
+          previousOffset == null ? 0.0 : position.pixels - previousOffset;
+      _lastControllerOffset = position.pixels;
+      if (position.outOfRange ||
+          previousOffset == null ||
+          offsetDelta.abs() >=
+              math.max(240.0, position.viewportDimension * 0.5)) {
+        widget.diagnostics.trace(
+          'controller-offset-changed',
+          <String, Object?>{
+            ..._scrollMetricsLogFields(position),
+            'delta': offsetDelta,
+          },
+        );
+      }
+    }
     if (mounted) {
       setState(() {});
     }
   }
 
   void _handleExtentChanged(String blockId, int measureToken, double extent) {
-    final update = widget.extentCache.record(blockId, measureToken, extent);
+    final suppressExtentUpdate =
+        widget.shouldSuppressExtentUpdate?.call() == true;
+    final position =
+        widget.controller.hasClients ? widget.controller.position : null;
+    final deferViewportAnchor =
+        widget.shouldDeferViewportAnchor?.call() == true;
+    final stabilizeUserScrollViewport =
+        suppressExtentUpdate && !deferViewportAnchor && position != null;
+    _ExtentViewportAnchor? viewportAnchor;
+    if (stabilizeUserScrollViewport) {
+      viewportAnchor = _userScrollViewportAnchor;
+      if (viewportAnchor == null) {
+        viewportAnchor = widget.extentCache.captureViewportAnchor(
+          position.pixels - _resolvedPaddingTop,
+        );
+        _userScrollViewportAnchor = viewportAnchor;
+        if (viewportAnchor != null && widget.diagnostics.traceEnabled) {
+          widget.diagnostics.trace(
+            'user-scroll-viewport-anchor-captured',
+            <String, Object?>{
+              ..._scrollMetricsLogFields(position),
+              'blockId': viewportAnchor.blockId,
+              'blockIndex': viewportAnchor.blockIndex,
+              'layoutTop': viewportAnchor.layoutTop,
+            },
+          );
+        }
+      }
+    }
+    final update = widget.extentCache.record(
+      blockId,
+      measureToken,
+      extent,
+      includeDiagnostics: widget.diagnostics.traceEnabled,
+    );
     if (update != null && mounted) {
+      if (viewportAnchor != null) {
+        final viewportAnchorDelta =
+            widget.extentCache.updateViewportAnchor(viewportAnchor);
+        if (viewportAnchorDelta != null && viewportAnchorDelta.abs() > 0.01) {
+          _scheduleUserScrollViewportAnchorCorrection(
+            viewportAnchor,
+            viewportAnchorDelta,
+          );
+        }
+      }
+      final totalExtentDelta =
+          update.previousTotalExtent == null || update.nextTotalExtent == null
+              ? null
+              : update.nextTotalExtent! - update.previousTotalExtent!;
+      final traceExtentUpdate = widget.diagnostics.traceEnabled &&
+          _shouldTraceExtentUpdate(
+            update,
+            position,
+            totalExtentDelta,
+            suppressExtentUpdate,
+          );
+      if (traceExtentUpdate) {
+        widget.diagnostics.trace(
+          'measured-extent-updated',
+          <String, Object?>{
+            'blockId': update.blockId,
+            'blockIndex': update.blockIndex,
+            'oldMeasured': update.previousMeasuredExtent,
+            'oldLayout': update.previousLayoutExtent,
+            'measured': update.measuredExtent,
+            'extentDelta': update.extentDelta,
+            'oldEstimate': update.previousAverageExtent,
+            'newEstimate': update.nextAverageExtent,
+            'oldTotal': update.previousTotalExtent,
+            'newTotal': update.nextTotalExtent,
+            'totalDelta': totalExtentDelta,
+            'measuredCount': update.measuredBlockCount,
+            'blockCount': update.layoutBlockCount,
+            'scrollOffset': position?.pixels,
+            'scrollMax': position?.maxScrollExtent,
+            'userScrollCooldown': suppressExtentUpdate,
+          },
+        );
+      }
+      if (widget.diagnostics.anomalyChecksEnabled) {
+        _diagnoseMeasuredEstimateGap(update, position);
+      }
       setState(() {});
       // P003: If the user is actively scrolling, suppress the extent-updated
       // callback to avoid triggering caret-into-view logic during a user
       // gesture. P002's cooldown check in _scrollCaretIntoViewIfNeeded handles
       // most cases; this gate is a defense-in-depth supplement that avoids
       // even scheduling the post-frame callback during user scroll.
-      if (widget.shouldSuppressExtentUpdate?.call() == true) {
+      if (suppressExtentUpdate) {
+        if (traceExtentUpdate) {
+          widget.diagnostics.trace(
+            'extent-followup-suppressed',
+            <String, Object?>{
+              'blockId': update.blockId,
+              'blockIndex': update.blockIndex,
+              'reason': 'user-scroll-cooldown',
+              'extentDelta': update.extentDelta,
+            },
+          );
+        }
         return;
       }
       _preserveScrollAnchor(update);
@@ -8630,15 +9501,207 @@ class _MeasuredVirtualBlockListState extends State<_MeasuredVirtualBlockList> {
     }
   }
 
+  void _scheduleUserScrollViewportAnchorCorrection(
+    _ExtentViewportAnchor anchor,
+    double delta,
+  ) {
+    _pendingUserScrollAnchorDelta += delta;
+    if (widget.diagnostics.traceEnabled) {
+      widget.diagnostics.trace(
+        'user-scroll-viewport-anchor-scheduled',
+        <String, Object?>{
+          'blockId': anchor.blockId,
+          'blockIndex': anchor.blockIndex,
+          'delta': delta,
+          'pendingDelta': _pendingUserScrollAnchorDelta,
+        },
+      );
+    }
+    if (_userScrollAnchorCorrectionScheduled) {
+      return;
+    }
+    _userScrollAnchorCorrectionScheduled = true;
+    scheduleMicrotask(() {
+      _userScrollAnchorCorrectionScheduled = false;
+      final pendingAnchor = _userScrollViewportAnchor;
+      final correctionDelta = _pendingUserScrollAnchorDelta;
+      _userScrollViewportAnchor = null;
+      _pendingUserScrollAnchorDelta = 0;
+      if (!mounted ||
+          pendingAnchor == null ||
+          correctionDelta.abs() <= 0.5 ||
+          !widget.controller.hasClients) {
+        return;
+      }
+      if (widget.shouldDeferViewportAnchor?.call() == true) {
+        if (widget.diagnostics.traceEnabled) {
+          widget.diagnostics.trace(
+            'user-scroll-viewport-anchor-deferred',
+            <String, Object?>{
+              'blockId': pendingAnchor.blockId,
+              'blockIndex': pendingAnchor.blockIndex,
+              'delta': correctionDelta,
+              'reason': 'direct-scroll-drag-active',
+            },
+          );
+        }
+        return;
+      }
+
+      final position = widget.controller.position;
+      var safeMax = position.maxScrollExtent;
+      final currentLayoutTotalExtent =
+          widget.extentCache.currentLayoutTotalExtent;
+      if (currentLayoutTotalExtent != null) {
+        final predictedMax = math.max(
+          position.minScrollExtent,
+          _resolvedPaddingTop +
+              _resolvedPaddingBottom +
+              currentLayoutTotalExtent -
+              position.viewportDimension,
+        );
+        safeMax = math.min(safeMax, predictedMax);
+      }
+      final target = (position.pixels + correctionDelta)
+          .clamp(position.minScrollExtent, safeMax)
+          .toDouble();
+      if ((target - position.pixels).abs() <= 0.5) {
+        return;
+      }
+      if (widget.diagnostics.traceEnabled) {
+        widget.diagnostics.trace(
+          'user-scroll-viewport-anchor-applied',
+          <String, Object?>{
+            ..._scrollMetricsLogFields(position),
+            'blockId': pendingAnchor.blockId,
+            'blockIndex': pendingAnchor.blockIndex,
+            'delta': correctionDelta,
+            'target': target,
+            'safeMax': safeMax,
+          },
+        );
+      }
+      final applyCorrection = widget.onViewportAnchorCorrection;
+      if (applyCorrection != null) {
+        applyCorrection(target);
+      } else {
+        widget.controller.jumpTo(target);
+      }
+    });
+  }
+
+  void _clearUserScrollViewportAnchor() {
+    _userScrollViewportAnchor = null;
+    _pendingUserScrollAnchorDelta = 0;
+  }
+
+  bool _shouldTraceExtentUpdate(
+    _ExtentRecordResult update,
+    ScrollPosition? position,
+    double? totalExtentDelta,
+    bool suppressExtentUpdate,
+  ) {
+    if (update.previousMeasuredExtent != null) {
+      return true;
+    }
+    final viewport = position?.viewportDimension ?? 0.0;
+    final totalShiftThreshold = math.max(100.0, viewport * 0.25);
+    if (totalExtentDelta != null &&
+        totalExtentDelta.abs() >= totalShiftThreshold) {
+      return true;
+    }
+    if ((update.nextAverageExtent - update.previousAverageExtent).abs() >=
+        4.0) {
+      return true;
+    }
+    return suppressExtentUpdate && update.extentDelta.abs() >= 8.0;
+  }
+
+  void _diagnoseMeasuredEstimateGap(
+    _ExtentRecordResult update,
+    ScrollPosition? position,
+  ) {
+    final blockTop = update.previousBlockTop;
+    if (position == null ||
+        blockTop == null ||
+        update.measuredExtent >= update.previousLayoutExtent - 0.5 ||
+        position.viewportDimension <= 0) {
+      return;
+    }
+    final viewportTop = position.pixels - _resolvedPaddingTop;
+    final viewportBottom = viewportTop + position.viewportDimension;
+    final estimatedGapTop = blockTop + update.measuredExtent;
+    final estimatedGapBottom = blockTop + update.previousLayoutExtent;
+    final overlap = math.max(
+      0.0,
+      math.min(viewportBottom, estimatedGapBottom) -
+          math.max(viewportTop, estimatedGapTop),
+    );
+    final overlapRatio = overlap / position.viewportDimension;
+    if (overlapRatio < 0.5) {
+      return;
+    }
+    widget.diagnostics.anomaly(
+      'viewport-in-overestimated-block-gap',
+      <String, Object?>{
+        'blockId': update.blockId,
+        'blockIndex': update.blockIndex,
+        'viewportTop': viewportTop,
+        'viewportBottom': viewportBottom,
+        'blockTop': blockTop,
+        'estimatedBottom': estimatedGapBottom,
+        'measuredBottom': estimatedGapTop,
+        'blankOverlap': overlap,
+        'blankRatio': overlapRatio,
+        'oldEstimate': update.previousLayoutExtent,
+        'measured': update.measuredExtent,
+      },
+    );
+  }
+
   void _preserveScrollAnchor(_ExtentRecordResult update) {
     final blockTop = update.previousBlockTop;
-    if (blockTop == null ||
-        update.extentDelta.abs() <= 0.5 ||
-        !widget.controller.hasClients ||
-        blockTop + _resolvedPaddingTop >= widget.controller.offset) {
+    String? skipReason;
+    if (blockTop == null) {
+      skipReason = 'block-not-in-layout';
+    } else if (update.extentDelta.abs() <= 0.5) {
+      skipReason = 'delta-too-small';
+    } else if (!widget.controller.hasClients) {
+      skipReason = 'scroll-position-not-attached';
+    } else if (blockTop + _resolvedPaddingTop >= widget.controller.offset) {
+      skipReason = 'block-not-above-viewport';
+    }
+    if (skipReason != null) {
+      if (widget.diagnostics.traceEnabled && update.extentDelta.abs() > 0.5) {
+        widget.diagnostics.trace(
+          'scroll-anchor-skipped',
+          <String, Object?>{
+            'blockId': update.blockId,
+            'blockIndex': update.blockIndex,
+            'reason': skipReason,
+            'blockTop': blockTop,
+            'extentDelta': update.extentDelta,
+            'scrollOffset':
+                widget.controller.hasClients ? widget.controller.offset : null,
+          },
+        );
+      }
       return;
     }
     _pendingScrollAnchorDelta += update.extentDelta;
+    if (widget.diagnostics.traceEnabled) {
+      widget.diagnostics.trace(
+        'scroll-anchor-scheduled',
+        <String, Object?>{
+          'blockId': update.blockId,
+          'blockIndex': update.blockIndex,
+          'extentDelta': update.extentDelta,
+          'pendingDelta': _pendingScrollAnchorDelta,
+          'blockTop': blockTop,
+          'scrollOffset': widget.controller.offset,
+        },
+      );
+    }
     if (_scrollAnchorUpdateScheduled) {
       return;
     }
@@ -8647,10 +9710,23 @@ class _MeasuredVirtualBlockListState extends State<_MeasuredVirtualBlockList> {
       _scrollAnchorUpdateScheduled = false;
       final delta = _pendingScrollAnchorDelta;
       _pendingScrollAnchorDelta = 0;
+      final suppressExtentUpdate =
+          widget.shouldSuppressExtentUpdate?.call() == true;
       if (!mounted ||
           delta.abs() <= 0.5 ||
           !widget.controller.hasClients ||
-          widget.shouldSuppressExtentUpdate?.call() == true) {
+          suppressExtentUpdate) {
+        if (widget.diagnostics.traceEnabled) {
+          widget.diagnostics.trace(
+            'scroll-anchor-cancelled',
+            <String, Object?>{
+              'mounted': mounted,
+              'delta': delta,
+              'hasClients': widget.controller.hasClients,
+              'userScrollCooldown': suppressExtentUpdate,
+            },
+          );
+        }
         return;
       }
       final position = widget.controller.position;
@@ -8658,7 +9734,127 @@ class _MeasuredVirtualBlockListState extends State<_MeasuredVirtualBlockList> {
           .clamp(position.minScrollExtent, position.maxScrollExtent)
           .toDouble();
       if ((target - widget.controller.offset).abs() > 0.5) {
+        if (widget.diagnostics.traceEnabled) {
+          widget.diagnostics.trace(
+            'scroll-anchor-applied',
+            <String, Object?>{
+              ..._scrollMetricsLogFields(position),
+              'delta': delta,
+              'target': target,
+            },
+          );
+        }
         widget.controller.jumpTo(target);
+      } else if (widget.diagnostics.traceEnabled) {
+        widget.diagnostics.trace(
+          'scroll-anchor-noop',
+          <String, Object?>{
+            ..._scrollMetricsLogFields(position),
+            'delta': delta,
+            'target': target,
+          },
+        );
+      }
+    });
+  }
+
+  void _schedulePostFrameViewportCheck({
+    required int buildSequence,
+    required double rawBuildOffset,
+    required double layoutBuildOffset,
+    required double predictedMaxScrollExtent,
+    required double contentStart,
+    required double contentEnd,
+    required List<_VirtualMountedSlot> mountedSlots,
+    required String mountedIndices,
+    required int layoutRevision,
+  }) {
+    if (!kDebugMode && !widget.diagnostics.traceEnabled) {
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted ||
+          buildSequence != _latestDiagnosticsBuildSequence ||
+          !widget.controller.hasClients) {
+        return;
+      }
+      final position = widget.controller.position;
+      final viewportTop = position.pixels;
+      final viewportBottom = viewportTop + position.viewportDimension;
+      final contentViewportTop = math.max(viewportTop, contentStart);
+      final contentViewportBottom = math.min(viewportBottom, contentEnd);
+      final viewportContainsContent =
+          contentViewportBottom - contentViewportTop > 0.5;
+      final hasMountedCoverage = mountedSlots.any(
+        (slot) => slot.overlaps(
+          contentViewportTop,
+          contentViewportBottom,
+        ),
+      );
+      final offsetShift = position.pixels - layoutBuildOffset;
+      final maxExtentShift =
+          position.maxScrollExtent - predictedMaxScrollExtent;
+
+      if (!position.outOfRange &&
+          position.pixels > predictedMaxScrollExtent + 1.0) {
+        widget.diagnostics.anomaly(
+          'post-frame-offset-beyond-predicted-content',
+          <String, Object?>{
+            ..._scrollMetricsLogFields(position),
+            'build': buildSequence,
+            'rawBuildOffset': rawBuildOffset,
+            'layoutBuildOffset': layoutBuildOffset,
+            'predictedMax': predictedMaxScrollExtent,
+            'maxShift': maxExtentShift,
+            'mounted': mountedIndices,
+            'layoutRevision': layoutRevision,
+          },
+        );
+        return;
+      }
+
+      if (viewportContainsContent && !hasMountedCoverage) {
+        widget.diagnostics.anomaly(
+          'viewport-without-mounted-block',
+          <String, Object?>{
+            ..._scrollMetricsLogFields(position),
+            'build': buildSequence,
+            'rawBuildOffset': rawBuildOffset,
+            'layoutBuildOffset': layoutBuildOffset,
+            'offsetShift': offsetShift,
+            'predictedMax': predictedMaxScrollExtent,
+            'maxShift': maxExtentShift,
+            'contentStart': contentStart,
+            'contentEnd': contentEnd,
+            'mounted': mountedIndices,
+            'firstMountedTop':
+                mountedSlots.isEmpty ? null : mountedSlots.first.top,
+            'lastMountedBottom':
+                mountedSlots.isEmpty ? null : mountedSlots.last.bottom,
+            'layoutRevision': layoutRevision,
+          },
+        );
+        return;
+      }
+
+      if (widget.diagnostics.traceEnabled &&
+          (offsetShift.abs() > 0.5 ||
+              maxExtentShift.abs() > 1.0 ||
+              position.outOfRange)) {
+        widget.diagnostics.trace(
+          'post-frame-scroll-geometry',
+          <String, Object?>{
+            ..._scrollMetricsLogFields(position),
+            'build': buildSequence,
+            'rawBuildOffset': rawBuildOffset,
+            'layoutBuildOffset': layoutBuildOffset,
+            'offsetShift': offsetShift,
+            'predictedMax': predictedMaxScrollExtent,
+            'maxShift': maxExtentShift,
+            'mounted': mountedIndices,
+            'layoutRevision': layoutRevision,
+          },
+        );
       }
     });
   }
@@ -8666,7 +9862,8 @@ class _MeasuredVirtualBlockListState extends State<_MeasuredVirtualBlockList> {
   @override
   Widget build(BuildContext context) {
     final padding = widget.padding.resolve(Directionality.of(context));
-    _resolvedPaddingTop = padding.top;
+    _resolvedPaddingTop = _topWidgetExtent + padding.top;
+    _resolvedPaddingBottom = padding.bottom;
     return LayoutBuilder(
       builder: (context, constraints) {
         final contentWidth = constraints.maxWidth.isFinite
@@ -8681,13 +9878,31 @@ class _MeasuredVirtualBlockListState extends State<_MeasuredVirtualBlockList> {
         );
         final viewportHeight =
             constraints.maxHeight.isFinite ? constraints.maxHeight : 0.0;
-        final scrollOffset =
+        final rawScrollOffset =
             widget.controller.hasClients ? widget.controller.offset : 0.0;
-        final contentTop = (scrollOffset - padding.top - _kVirtualListOverscan)
-            .clamp(0.0, double.infinity)
-            .toDouble();
-        final contentBottom =
-            scrollOffset - padding.top + viewportHeight + _kVirtualListOverscan;
+        final height =
+            _topWidgetExtent + padding.vertical + metrics.totalExtent;
+        final predictedMaxScrollExtent = math.max(
+          0.0,
+          height - viewportHeight,
+        );
+        // A measured-height update can shrink the child below the max extent
+        // currently held by ScrollPosition. SingleChildScrollView corrects the
+        // position during the following layout phase, after this build has
+        // already selected its virtual children. Querying with the raw, stale
+        // offset would therefore mount the old window and paint a blank frame
+        // at the corrected offset. Pre-clamp to the same max that layout will
+        // apply so the mounted window and final paint offset stay in sync.
+        final layoutScrollOffset =
+            rawScrollOffset.clamp(0.0, predictedMaxScrollExtent).toDouble();
+        final contentTop =
+            (layoutScrollOffset - _resolvedPaddingTop - _kVirtualListOverscan)
+                .clamp(0.0, double.infinity)
+                .toDouble();
+        final contentBottom = layoutScrollOffset -
+            _resolvedPaddingTop +
+            viewportHeight +
+            _kVirtualListOverscan;
         final visible = metrics.visibleIndices(contentTop, contentBottom);
         final indices = <int>{...visible};
         for (final blockId in widget.keepAliveIds) {
@@ -8697,7 +9912,117 @@ class _MeasuredVirtualBlockListState extends State<_MeasuredVirtualBlockList> {
           }
         }
         final sortedIndices = indices.toList()..sort();
-        final height = padding.vertical + metrics.totalExtent;
+        if (widget.diagnostics.anomalyChecksEnabled) {
+          final position =
+              widget.controller.hasClients ? widget.controller.position : null;
+          final currentMaxScrollExtent = position?.maxScrollExtent;
+          final predictedMetricsMismatch = currentMaxScrollExtent != null &&
+              (currentMaxScrollExtent - predictedMaxScrollExtent).abs() > 1.0;
+          final rawOffsetWasClamped =
+              (rawScrollOffset - layoutScrollOffset).abs() > 1.0;
+          final visibleStart = visible.isEmpty ? -1 : visible.first;
+          final visibleEndExclusive = visible.isEmpty ? -1 : visible.last + 1;
+          final buildSequence = widget.diagnostics.nextBuildSequence();
+          _latestDiagnosticsBuildSequence = buildSequence;
+          final mountedIndices =
+              widget.diagnostics.summarizeIndices(sortedIndices);
+          final mountedSlots = <_VirtualMountedSlot>[
+            for (final index in sortedIndices)
+              _VirtualMountedSlot(
+                top: _resolvedPaddingTop + metrics.topFor(index),
+                bottom: _resolvedPaddingTop +
+                    (index + 1 < widget.blocks.length
+                        ? metrics.topFor(index + 1)
+                        : metrics.totalExtent),
+              ),
+          ];
+
+          if (widget.diagnostics.shouldTraceBuild(
+            offset: rawScrollOffset,
+            viewport: viewportHeight,
+            totalExtent: metrics.totalExtent,
+            visibleStart: visibleStart,
+            visibleEndExclusive: visibleEndExclusive,
+            layoutRevision: metrics.layoutRevision,
+            predictedMetricsMismatch: predictedMetricsMismatch,
+          )) {
+            widget.diagnostics.trace(
+              'virtual-window-build',
+              <String, Object?>{
+                'build': buildSequence,
+                'rawOffset': rawScrollOffset,
+                'layoutOffset': layoutScrollOffset,
+                'viewport': viewportHeight,
+                'contentTop': contentTop,
+                'contentBottom': contentBottom,
+                'visible': visible.isEmpty
+                    ? 'empty'
+                    : '$visibleStart..<$visibleEndExclusive',
+                'mounted': mountedIndices,
+                'keepAliveCount': widget.keepAliveIds.length,
+                'blockCount': widget.blocks.length,
+                'measuredCount': metrics.measuredBlockCount,
+                'estimate': metrics.estimatedExtent,
+                'totalExtent': metrics.totalExtent,
+                'childHeight': height,
+                'predictedMax': predictedMaxScrollExtent,
+                'currentMax': currentMaxScrollExtent,
+                'maxMismatch': predictedMetricsMismatch,
+                'rawOffsetWasClamped': rawOffsetWasClamped,
+                'layoutRevision': metrics.layoutRevision,
+                'layoutKind': metrics.layoutSyncKind,
+                'layoutChangedCount': metrics.layoutChangedCount,
+              },
+            );
+          }
+
+          if (viewportHeight > 0 &&
+              widget.blocks.isNotEmpty &&
+              visible.isEmpty) {
+            widget.diagnostics.anomaly(
+              'visible-range-empty',
+              <String, Object?>{
+                'build': buildSequence,
+                'rawOffset': rawScrollOffset,
+                'layoutOffset': layoutScrollOffset,
+                'viewport': viewportHeight,
+                'contentTop': contentTop,
+                'contentBottom': contentBottom,
+                'blockCount': widget.blocks.length,
+                'totalExtent': metrics.totalExtent,
+                'layoutRevision': metrics.layoutRevision,
+              },
+            );
+          }
+          if (rawOffsetWasClamped) {
+            widget.diagnostics.trace(
+              'virtual-offset-preclamped',
+              <String, Object?>{
+                'build': buildSequence,
+                'rawOffset': rawScrollOffset,
+                'layoutOffset': layoutScrollOffset,
+                'correction': layoutScrollOffset - rawScrollOffset,
+                'predictedMax': predictedMaxScrollExtent,
+                'currentMax': currentMaxScrollExtent,
+                'totalExtent': metrics.totalExtent,
+                'viewport': viewportHeight,
+                'layoutRevision': metrics.layoutRevision,
+                'layoutKind': metrics.layoutSyncKind,
+              },
+            );
+          }
+          _schedulePostFrameViewportCheck(
+            buildSequence: buildSequence,
+            rawBuildOffset: rawScrollOffset,
+            layoutBuildOffset: layoutScrollOffset,
+            predictedMaxScrollExtent: predictedMaxScrollExtent,
+            contentStart: _resolvedPaddingTop,
+            contentEnd: _resolvedPaddingTop + metrics.totalExtent,
+            mountedSlots: mountedSlots,
+            mountedIndices: mountedIndices,
+            layoutRevision: metrics.layoutRevision,
+          );
+        }
         return SingleChildScrollView(
           controller: widget.controller,
           physics: widget.physics,
@@ -8707,12 +10032,22 @@ class _MeasuredVirtualBlockListState extends State<_MeasuredVirtualBlockList> {
             child: Stack(
               clipBehavior: Clip.none,
               children: <Widget>[
+                if (widget.topWidget != null)
+                  Positioned(
+                    left: 0,
+                    top: 0,
+                    right: 0,
+                    child: _MeasuredTopWidgetExtent(
+                      onChanged: _handleTopWidgetExtentChanged,
+                      child: widget.topWidget!,
+                    ),
+                  ),
                 for (final index in sortedIndices)
                   Positioned(
                     key: ValueKey<String>(
                       'wenz-richtext-positioned-${widget.blocks[index].id}',
                     ),
-                    top: padding.top + metrics.topFor(index),
+                    top: _resolvedPaddingTop + metrics.topFor(index),
                     left: padding.left,
                     right: padding.right,
                     child: _MeasuredBlockExtent(
@@ -8736,6 +10071,55 @@ class _MeasuredVirtualBlockListState extends State<_MeasuredVirtualBlockList> {
         );
       },
     );
+  }
+}
+
+class _MeasuredTopWidgetExtent extends SingleChildRenderObjectWidget {
+  const _MeasuredTopWidgetExtent({
+    required this.onChanged,
+    required super.child,
+  });
+
+  final ValueChanged<double> onChanged;
+
+  @override
+  RenderObject createRenderObject(BuildContext context) {
+    return _RenderMeasuredTopWidgetExtent(onChanged);
+  }
+
+  @override
+  void updateRenderObject(
+    BuildContext context,
+    covariant _RenderMeasuredTopWidgetExtent renderObject,
+  ) {
+    renderObject.onChanged = onChanged;
+  }
+}
+
+class _RenderMeasuredTopWidgetExtent extends RenderProxyBox {
+  _RenderMeasuredTopWidgetExtent(this._onChanged);
+
+  ValueChanged<double> _onChanged;
+  double? _lastReportedExtent;
+
+  set onChanged(ValueChanged<double> value) {
+    _onChanged = value;
+  }
+
+  @override
+  void performLayout() {
+    super.performLayout();
+    final extent = size.height;
+    final previous = _lastReportedExtent;
+    if (previous != null && (previous - extent).abs() <= 0.5) {
+      return;
+    }
+    _lastReportedExtent = extent;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (attached) {
+        _onChanged(extent);
+      }
+    });
   }
 }
 
@@ -9279,7 +10663,8 @@ class _BlockDragHandleOverlayState extends State<_BlockDragHandleOverlay> {
       showHeadingCollapse: showHeadingCollapse,
     );
     // Desktop keeps a shared outline rail for cross-row alignment. Compact
-    // phones reserve the second slot only when this heading can collapse.
+    // phones always reserve one 24dp leading slot: an actual collapse button
+    // fills it when available, otherwise it remains the row's leading inset.
     if (!showDragHandle && !reserveHeadingCollapseSlot) {
       return widget.child;
     }

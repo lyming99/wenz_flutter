@@ -1,0 +1,13 @@
+[
+  {
+    "type": "title",
+    "level": 1,
+    "children": [
+      {
+        "type": "text",
+        "level": 0,
+        "text": "显式 title 标题"
+      }
+    ]
+  }
+]

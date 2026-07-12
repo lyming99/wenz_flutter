@@ -602,10 +602,11 @@ class WenzRichTextController extends ChangeNotifier {
   /// store documents from an older editor alongside documents written by this
   /// editor. It inspects the parsed JSON root:
   ///
-  ///   - top-level array  → legacy `wenz_editor` format (decoded via
-  ///     [LegacyWenJsonCodec]).
-  ///   - top-level object → current Rich JSON (decoded via
-  ///     [RichTextJsonCodec]).
+  ///   - top-level array → legacy `wenz_editor` format.
+  ///   - top-level object with legacy block signatures (`title`, `text`,
+  ///     `line`, `children`, `itemType`, legacy media/table fields) → wrapped
+  ///     legacy `wenz_editor` format.
+  ///   - other top-level objects → current Rich JSON.
   ///
   /// On success the document is replaced (history cleared, [onChanged] fired)
   /// and the result carries the detected [JsonLoadFormat] so the host can
@@ -628,7 +629,7 @@ class WenzRichTextController extends ChangeNotifier {
     } on Object catch (error) {
       return TryLoadJsonAutoResult.failed(error);
     }
-    final isLegacy = decoded is List;
+    final isLegacy = _isLegacyWenJsonRoot(decoded);
     try {
       final nextDocument = isLegacy
           ? _legacyWenJsonCodec.decode(source)
@@ -2749,6 +2750,51 @@ DocumentSelection _objectSelectionForInsertedBlock(
   return DocumentSelection(base: start, extent: start.copyWith(offset: 1));
 }
 
+bool _isLegacyWenJsonRoot(Object? decoded) {
+  if (decoded is List) {
+    return true;
+  }
+  if (decoded is! Map || decoded['blocks'] is! List) {
+    return false;
+  }
+  final blocks = decoded['blocks'] as List;
+  for (final value in blocks) {
+    if (value is Map &&
+        _looksLikeLegacyWenBlock(Map<String, Object?>.from(value))) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool _looksLikeLegacyWenBlock(Map<String, Object?> block) {
+  final type = block['type']?.toString().trim().toLowerCase() ?? '';
+  if (type == 'title' || type == 'text' || type == 'line') {
+    return true;
+  }
+  if (block.containsKey('children') || block.containsKey('itemType')) {
+    return true;
+  }
+  if (block.containsKey('text') && !block.containsKey('content')) {
+    return true;
+  }
+  switch (type) {
+    case 'quote':
+      return !block.containsKey('content');
+    case 'table':
+      return block.containsKey('rows') && !block.containsKey('table');
+    case 'image':
+    case 'video':
+      return !block.containsKey('assetId') &&
+          (block.containsKey('file') ||
+              block.containsKey('width') ||
+              block.containsKey('height'));
+    case 'code':
+      return !block.containsKey('id') && block.containsKey('code');
+  }
+  return false;
+}
+
 /// Outcome of [WenzRichTextController.tryLoadJson]. Immutable; read [ok] to
 /// branch, then either [document] (on success) or [error] (on failure). The
 /// [error] is the originating exception (typically a
@@ -2787,7 +2833,7 @@ enum JsonLoadFormat {
   /// Current Rich JSON — a top-level object with `version` and `blocks`.
   current,
 
-  /// Legacy `wenz_editor` JSON — a top-level bare array of blocks.
+  /// Legacy `wenz_editor` JSON — a bare block array or legacy `blocks` envelope.
   legacy,
 }
 

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math' as math;
 import 'dart:ui' show ImageByteFormat, LineMetrics, PointerDeviceKind, Tristate;
 
 import 'package:flutter/foundation.dart';
@@ -177,8 +178,7 @@ void main() {
     );
     await tester.pump();
 
-    const shellKey =
-        ValueKey<String>('wenz-richtext-divider-shell-divider1');
+    const shellKey = ValueKey<String>('wenz-richtext-divider-shell-divider1');
     const lineKey = ValueKey<String>('wenz-richtext-divider-line-divider1');
     const dotKey = ValueKey<String>('wenz-richtext-divider-dot-divider1');
     final shellFinder = find.byKey(shellKey);
@@ -194,7 +194,8 @@ void main() {
     final dotRect = tester.getRect(dotFinder);
     expect(lineRect.width, greaterThan(dotRect.width * 4));
     expect(lineRect.width.isFinite, isTrue);
-    expect(lineRect.width, lessThanOrEqualTo(tester.getSize(shellFinder).width));
+    expect(
+        lineRect.width, lessThanOrEqualTo(tester.getSize(shellFinder).width));
     expect(lineRect.center.dx, moreOrLessEquals(dotRect.center.dx, epsilon: 1));
     final lineDecoration =
         tester.widget<DecoratedBox>(lineFinder).decoration as BoxDecoration;
@@ -230,7 +231,8 @@ void main() {
   });
 
   group('editor context menu', () {
-    testWidgets('right-click opens default menu with shortcuts and disabled '
+    testWidgets(
+        'right-click opens default menu with shortcuts and disabled '
         'collapsed-selection actions', (tester) async {
       final controller = _contextMenuController(
         text: 'Alpha Beta',
@@ -325,7 +327,8 @@ void main() {
       expect(controller.document.plainText, isEmpty);
     });
 
-    testWidgets('right-click inside selection preserves it and outside updates '
+    testWidgets(
+        'right-click inside selection preserves it and outside updates '
         'the action context', (tester) async {
       final captured = <WenzEditorContextMenuContext>[];
       final controller = _contextMenuController(
@@ -370,7 +373,8 @@ void main() {
       expect(captured.single.controller, same(controller));
     });
 
-    testWidgets('read-only context menu disables write actions and leaves the '
+    testWidgets(
+        'read-only context menu disables write actions and leaves the '
         'document unchanged', (tester) async {
       final controller = _contextMenuController(
         text: 'Read only',
@@ -622,8 +626,8 @@ void main() {
     expect(controller.hasFocus, isTrue);
     expect(controller.undo(), isTrue);
     expect(controller.document.blocks, hasLength(1));
-    expect((controller.document.blocks.single as TextBlockNode).plainText,
-        'ab');
+    expect(
+        (controller.document.blocks.single as TextBlockNode).plainText, 'ab');
     expect(controller.selection, collapsedTextSelection('p1', 0, 1));
   });
 
@@ -1230,8 +1234,8 @@ void main() {
     );
     expect(controller.undo(), isTrue);
     expect(controller.document.blocks, hasLength(1));
-    expect((controller.document.blocks.single as TextBlockNode).plainText,
-        'ab');
+    expect(
+        (controller.document.blocks.single as TextBlockNode).plainText, 'ab');
     expect(controller.selection, collapsedTextSelection('p1', 0, 1));
   });
 
@@ -1419,7 +1423,8 @@ void main() {
     expect(find.byKey(_externalImageDropOverlayKey), findsNothing);
   });
 
-  testWidgets('drop ignores external image files when drag and drop is disabled',
+  testWidgets(
+      'drop ignores external image files when drag and drop is disabled',
       (tester) async {
     final controller = WenzRichTextController(
       document: const RichTextDocument(
@@ -2719,7 +2724,8 @@ void main() {
           TextBlockNode(
             id: 'quoted-task',
             type: BlockType.listItem,
-            attributes: BlockAttributes(listType: 'task', checked: true, quoted: true),
+            attributes:
+                BlockAttributes(listType: 'task', checked: true, quoted: true),
             content: <InlineNode>[TextRun(text: 'Quoted checked task')],
           ),
           TextBlockNode(
@@ -3372,7 +3378,8 @@ void main() {
     expect(_richText('Body three'), findsNothing);
   });
 
-  testWidgets('renders all blocks without a collapse button when no outline '
+  testWidgets(
+      'renders all blocks without a collapse button when no outline '
       'controller is attached', (tester) async {
     final controller = WenzRichTextController(
       document: const RichTextDocument(
@@ -3433,8 +3440,7 @@ void main() {
     expect(_richText('Section body'), findsOneWidget);
     expect(_richText('Next title'), findsOneWidget);
 
-    final sectionHandleRect =
-        tester.getRect(_blockDragHandleFinder('section'));
+    final sectionHandleRect = tester.getRect(_blockDragHandleFinder('section'));
     final bodyHandleRect = tester.getRect(_blockDragHandleFinder('body'));
     final nextHandleRect = tester.getRect(_blockDragHandleFinder('next'));
     expect(
@@ -3450,6 +3456,98 @@ void main() {
       tester.getTopLeft(_richText('Next title')).dx - nextHandleRect.right,
       moreOrLessEquals(BlockDragHandleSpec.gapToContent, epsilon: 0.5),
     );
+  });
+
+  testWidgets(
+      'mobile uses one collapse-button width for rows without collapse chrome',
+      (tester) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.android;
+    addTearDown(() {
+      debugDefaultTargetPlatformOverride = null;
+    });
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'mobile-section',
+            type: BlockType.heading,
+            attributes: BlockAttributes(level: 2),
+            content: <InlineNode>[TextRun(text: 'Mobile section')],
+          ),
+          TextBlockNode(
+            id: 'mobile-body',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'Mobile body')],
+          ),
+          TextBlockNode(
+            id: 'mobile-leaf',
+            type: BlockType.heading,
+            attributes: BlockAttributes(level: 2),
+            content: <InlineNode>[TextRun(text: 'Mobile leaf')],
+          ),
+        ],
+      ),
+    );
+    final outline = WenzOutlineController(editor: controller);
+    addTearDown(outline.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WenzRichTextEditor(
+            controller: controller,
+            outlineController: outline,
+            padding: EdgeInsets.zero,
+            readOnly: true,
+            enableIme: false,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    // The compact row geometry is resolved during the build above. Restore
+    // the foundation override before assertions so the test binding's global
+    // invariant check also sees the default platform state.
+    debugDefaultTargetPlatformOverride = null;
+
+    final collapseButton = find.byKey(
+      const ValueKey<String>(
+        'wenz-richtext-heading-collapse-mobile-section',
+      ),
+    );
+    expect(collapseButton, findsOneWidget);
+    expect(
+      find.byKey(
+        const ValueKey<String>(
+          'wenz-richtext-heading-collapse-mobile-leaf',
+        ),
+      ),
+      findsNothing,
+    );
+
+    final editorLeft = tester.getRect(find.byType(WenzRichTextEditor)).left;
+    final buttonRect = tester.getRect(collapseButton);
+    final sectionLeft = tester.getTopLeft(_richText('Mobile section')).dx;
+    final bodyLeft = tester.getTopLeft(_richText('Mobile body')).dx;
+    final leafLeft = tester.getTopLeft(_richText('Mobile leaf')).dx;
+
+    expect(buttonRect.left, moreOrLessEquals(editorLeft, epsilon: 0.5));
+    expect(buttonRect.width, moreOrLessEquals(24, epsilon: 0.5));
+    expect(
+      sectionLeft - buttonRect.right,
+      moreOrLessEquals(0, epsilon: 0.5),
+    );
+    expect(
+      bodyLeft - editorLeft,
+      moreOrLessEquals(buttonRect.width, epsilon: 0.5),
+    );
+    expect(bodyLeft, moreOrLessEquals(sectionLeft, epsilon: 0.5));
+    expect(leafLeft, moreOrLessEquals(sectionLeft, epsilon: 0.5));
   });
 
   testWidgets('read-only mode toggles heading collapse without editing', (
@@ -3606,8 +3704,7 @@ void main() {
     // standard gapToContent before the heading text.
     final sectionRect = tester.getRect(sectionButton);
     final sectionTextLeft = tester.getTopLeft(_richText('Section title')).dx;
-    final sectionHandleRect =
-        tester.getRect(_blockDragHandleFinder('section'));
+    final sectionHandleRect = tester.getRect(_blockDragHandleFinder('section'));
     expect(
       sectionRect.left - sectionHandleRect.right,
       moreOrLessEquals(BlockDragHandleSpec.chromeGap, epsilon: 0.5),
@@ -3873,11 +3970,13 @@ void main() {
       moreOrLessEquals(BlockDragHandleSpec.railWidth, epsilon: 0.5),
     );
     expect(
-      tester.getRect(
-            find.byKey(
-              const ValueKey<String>('wenz-richtext-code-block-code'),
-            ),
-          ).left -
+      tester
+              .getRect(
+                find.byKey(
+                  const ValueKey<String>('wenz-richtext-code-block-code'),
+                ),
+              )
+              .left -
           titleDragRect.left,
       moreOrLessEquals(BlockDragHandleSpec.railWidth, epsilon: 0.5),
     );
@@ -4167,7 +4266,8 @@ void main() {
     expect(controller.selection?.extent.blockId, isNot('body'));
   });
 
-  testWidgets('tap at hidden empty block position does not target empty child', (
+  testWidgets('tap at hidden empty block position does not target empty child',
+      (
     tester,
   ) async {
     final controller = WenzRichTextController(
@@ -4590,7 +4690,8 @@ void main() {
       findsOneWidget,
     );
     expect(
-      find.byKey(const ValueKey<String>('wenz-richtext-list-marker-plain-task')),
+      find.byKey(
+          const ValueKey<String>('wenz-richtext-list-marker-plain-task')),
       findsNothing,
     );
 
@@ -4701,9 +4802,10 @@ void main() {
     expect(secondQuoteRect.right, closeTo(expectedQuoteRight, 0.001));
     // quote2 closes the run: its top edge squares and it keeps only the
     // bottom-end corner, so the right join edge carries no inward notch.
-    final secondDecoration =
-        tester.widgetList<DecoratedBox>(backgroundFinder).last.decoration
-            as BoxDecoration;
+    final secondDecoration = tester
+        .widgetList<DecoratedBox>(backgroundFinder)
+        .last
+        .decoration as BoxDecoration;
     expect(
       secondDecoration.borderRadius,
       const BorderRadiusDirectional.only(
@@ -5544,18 +5646,21 @@ void main() {
     expect(_codeLineNumberText(tester, 'empty-code'), '1');
 
     final longBlockRect = tester.getRect(
-      find.byKey(const ValueKey<String>('wenz-richtext-code-block-long-language')),
+      find.byKey(
+          const ValueKey<String>('wenz-richtext-code-block-long-language')),
     );
     final longLabelRect = tester.getRect(find.text(longLanguage));
     final longCopyRect = tester.getRect(
-      find.byKey(const ValueKey<String>('wenz-richtext-code-copy-long-language')),
+      find.byKey(
+          const ValueKey<String>('wenz-richtext-code-copy-long-language')),
     );
     expect(longLabelRect.left, greaterThanOrEqualTo(longBlockRect.left));
     expect(longLabelRect.right, lessThanOrEqualTo(longCopyRect.left));
     expect(longCopyRect.right, lessThanOrEqualTo(longBlockRect.right));
 
     await tester.tap(
-      find.byKey(const ValueKey<String>('wenz-richtext-code-copy-empty-language')),
+      find.byKey(
+          const ValueKey<String>('wenz-richtext-code-copy-empty-language')),
     );
     await tester.pump();
     await tester.tap(
@@ -5606,8 +5711,8 @@ void main() {
     await pumpCode('trailing', 'one\ntwo\n');
     expect(_codeLineNumberText(tester, 'trailing'), '1\n2\n3');
 
-    final tenLineCode = List<String>.generate(10, (index) => 'line $index')
-        .join('\n');
+    final tenLineCode =
+        List<String>.generate(10, (index) => 'line $index').join('\n');
     await pumpCode('ten', tenLineCode);
     expect(
       _codeLineNumberText(tester, 'ten'),
@@ -5622,11 +5727,11 @@ void main() {
       _codeLineNumberText(tester, 'hundred'),
       List<String>.generate(100, (index) => '${index + 1}').join('\n'),
     );
-    final hundredWidth =
-        tester.getSize(_codeLineNumberFinder('hundred')).width;
+    final hundredWidth = tester.getSize(_codeLineNumberFinder('hundred')).width;
     expect(hundredWidth, greaterThan(tenWidth));
 
-    final lineNumberText = tester.widget<Text>(_codeLineNumberFinder('hundred'));
+    final lineNumberText =
+        tester.widget<Text>(_codeLineNumberFinder('hundred'));
     expect(lineNumberText.textAlign, TextAlign.right);
     expect(lineNumberText.style?.fontFamily, 'JetBrains Mono');
     expect(lineNumberText.style?.fontSize, 13.5);
@@ -6611,7 +6716,8 @@ void main() {
         expect(actionOpacity().opacity, BlockDragHandleSpec.idleOpacity);
 
         final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
-        await mouse.addPointer(location: tester.getCenter(_richText('Desktop block')));
+        await mouse.addPointer(
+            location: tester.getCenter(_richText('Desktop block')));
         await tester.pump();
         expect(actionOpacity().opacity, BlockDragHandleSpec.hoverOpacity);
         await mouse.removePointer();
@@ -7578,7 +7684,8 @@ void main() {
     );
   });
 
-  testWidgets('block drag handle menu moves heading range but not normal block', (
+  testWidgets('block drag handle menu moves heading range but not normal block',
+      (
     tester,
   ) async {
     final headingController = WenzRichTextController(
@@ -7829,7 +7936,7 @@ void main() {
       Offset(
         editorBox.left +
             (BlockDragHandleSpec.hitSize.width +
-                BlockDragHandleSpec.gapToContent) ~/
+                    BlockDragHandleSpec.gapToContent) ~/
                 2,
         editorBox.bottom - 8,
       ),
@@ -8942,8 +9049,8 @@ void main() {
       const ValueKey<String>('wenz-richtext-callout-callout-light'),
     );
     expect(calloutDecoration.color, _calloutSuccessBackground);
-    expect((calloutDecoration.border as Border).top.color,
-        _calloutSuccessBorder);
+    expect(
+        (calloutDecoration.border as Border).top.color, _calloutSuccessBorder);
     expect(
       _richTextSpan(tester, 'Success light').style?.color,
       _calloutSuccessForeground,
@@ -9930,7 +10037,8 @@ void main() {
     expect(alignOf('CellJustify'), TextAlign.justify);
   });
 
-  testWidgets('table renders 2x2 grid with all four cell alignments and headers', (
+  testWidgets(
+      'table renders 2x2 grid with all four cell alignments and headers', (
     tester,
   ) async {
     final controller = WenzRichTextController(
@@ -10692,7 +10800,10 @@ void main() {
             child: WenzRichTextEditor(
               controller: controller,
               padding: const EdgeInsets.only(
-                left: 16, top: 72, right: 16, bottom: 16,
+                left: 16,
+                top: 72,
+                right: 16,
+                bottom: 16,
               ),
               enableIme: false,
             ),
@@ -10755,7 +10866,10 @@ void main() {
             child: WenzRichTextEditor(
               controller: controller,
               padding: const EdgeInsets.only(
-                left: 16, top: 72, right: 16, bottom: 16,
+                left: 16,
+                top: 72,
+                right: 16,
+                bottom: 16,
               ),
               enableIme: false,
             ),
@@ -10790,8 +10904,7 @@ void main() {
     expect(toolbarRect.top, greaterThanOrEqualTo(-0.1));
   });
 
-  testWidgets(
-      'table floating toolbar hides offscreen and restores on reentry',
+  testWidgets('table floating toolbar hides offscreen and restores on reentry',
       (tester) async {
     final controller = WenzRichTextController(
       document: _scrollingToolbarTableDocument(),
@@ -10813,7 +10926,10 @@ void main() {
             child: WenzRichTextEditor(
               controller: controller,
               padding: const EdgeInsets.only(
-                left: 16, top: 72, right: 16, bottom: 16,
+                left: 16,
+                top: 72,
+                right: 16,
+                bottom: 16,
               ),
               enableIme: false,
             ),
@@ -11079,8 +11195,7 @@ void main() {
     expect(toolbarFinder, findsOneWidget);
     final toolbarRect = tester.getRect(toolbarFinder);
     final theme = Theme.of(tester.element(toolbarFinder));
-    final expectedDividerColor =
-        theme.colorScheme.outlineVariant.withAlpha(84);
+    final expectedDividerColor = theme.colorScheme.outlineVariant.withAlpha(84);
     final dividerFinder = find.descendant(
       of: toolbarFinder,
       matching: find.byWidgetPredicate(
@@ -11450,9 +11565,11 @@ void main() {
       );
 
       expect(_tableColumnResizeHandleFinder(0), findsOneWidget);
-      final visibleBoundary = tester.getRect(
-        _tableCellFinder('table-mixed', 1, 0),
-      ).centerRight;
+      final visibleBoundary = tester
+          .getRect(
+            _tableCellFinder('table-mixed', 1, 0),
+          )
+          .centerRight;
       await tester.dragFrom(visibleBoundary, const Offset(40, 0));
       await tester.pump();
 
@@ -11855,7 +11972,8 @@ void main() {
     expect(tallFormulaRect.height, lessThan(48));
   });
 
-  testWidgets('formula interaction entry points keep current renderer boundaries',
+  testWidgets(
+      'formula interaction entry points keep current renderer boundaries',
       (tester) async {
     final controller = WenzRichTextController(
       document: const RichTextDocument(
@@ -11956,7 +12074,10 @@ void main() {
 
     expect(find.byKey(_formulaEditorPopupKey), findsOneWidget);
     expect(
-      tester.widget<TextField>(find.byKey(_formulaEditorInputKey)).controller?.text,
+      tester
+          .widget<TextField>(find.byKey(_formulaEditorInputKey))
+          .controller
+          ?.text,
       'fallback_text',
     );
   });
@@ -11997,7 +12118,12 @@ void main() {
     await tester.pump();
 
     expect(find.byKey(_formulaEditorPopupKey), findsOneWidget);
-    expect(tester.widget<TextField>(find.byKey(_formulaEditorInputKey)).controller?.text, 'x^2');
+    expect(
+        tester
+            .widget<TextField>(find.byKey(_formulaEditorInputKey))
+            .controller
+            ?.text,
+        'x^2');
 
     await tester.enterText(find.byKey(_formulaEditorInputKey), 'y^2');
     await tester.tap(find.byKey(_formulaEditorConfirmKey));
@@ -12046,7 +12172,12 @@ void main() {
     await tester.pump();
 
     expect(find.byKey(_formulaEditorPopupKey), findsOneWidget);
-    expect(tester.widget<TextField>(find.byKey(_formulaEditorInputKey)).controller?.text, 'a+b');
+    expect(
+        tester
+            .widget<TextField>(find.byKey(_formulaEditorInputKey))
+            .controller
+            ?.text,
+        'a+b');
 
     await tester.enterText(find.byKey(_formulaEditorInputKey), 'c+d');
     await tester.tap(find.byKey(_formulaEditorConfirmKey));
@@ -12147,7 +12278,8 @@ void main() {
     await _verifyFormulaPopupOwnsArrowKeys(tester, controller, inputLength: 3);
   });
 
-  testWidgets('formula popup cancel close and empty input keep document unchanged',
+  testWidgets(
+      'formula popup cancel close and empty input keep document unchanged',
       (tester) async {
     final controller = WenzRichTextController(
       document: const RichTextDocument(
@@ -12350,7 +12482,8 @@ void main() {
           ),
         );
 
-    testWidgets('inline formula keeps rendering new content after popup confirm',
+    testWidgets(
+        'inline formula keeps rendering new content after popup confirm',
         (tester) async {
       final controller = WenzRichTextController(
         document: const RichTextDocument(
@@ -12612,7 +12745,8 @@ void main() {
 
       await tester.tap(find.byKey(_inlineFormulaKey));
       await tester.pump();
-      await tester.enterText(find.byKey(_formulaEditorInputKey), r'\frac{1}{2}');
+      await tester.enterText(
+          find.byKey(_formulaEditorInputKey), r'\frac{1}{2}');
       await tester.tap(find.byKey(_formulaEditorConfirmKey));
       await tester.pump();
 
@@ -12658,7 +12792,8 @@ void main() {
       await tester.tap(find.byKey(cardKey));
       await tester.pump();
       expect(
-        tester.widget<TextField>(find.byKey(_formulaEditorInputKey))
+        tester
+            .widget<TextField>(find.byKey(_formulaEditorInputKey))
             .controller
             ?.text,
         'a+b',
@@ -13305,8 +13440,7 @@ void main() {
 
   testWidgets('mention taps report details in mixed inline content',
       (tester) async {
-    const renderedText =
-        'Hi @Ada + 😄 formula $_formulaPlaceholder then @Lin';
+    const renderedText = 'Hi @Ada + 😄 formula $_formulaPlaceholder then @Lin';
     final controller = WenzRichTextController(
       document: const RichTextDocument(
         blocks: <BlockNode>[
@@ -13655,7 +13789,8 @@ void main() {
     expect(controller.selection?.extent.offset, 0);
   });
 
-  testWidgets('ctrl shift enter inserts an empty paragraph above the selection', (
+  testWidgets('ctrl shift enter inserts an empty paragraph above the selection',
+      (
     tester,
   ) async {
     final controller = WenzRichTextController(
@@ -14069,7 +14204,8 @@ void main() {
     expect(controller.selection?.end.offset, code.length);
   });
 
-  testWidgets('updated shortcut configuration is used without controller swap', (
+  testWidgets('updated shortcut configuration is used without controller swap',
+      (
     tester,
   ) async {
     final controller = WenzRichTextController(
@@ -14557,7 +14693,8 @@ void main() {
     expect(find.byTooltip('更多块操作'), findsOneWidget);
   });
 
-  testWidgets('inline video resolver handles the first tap '
+  testWidgets(
+      'inline video resolver handles the first tap '
       'without replacing its player', (tester) async {
     final resolver = _TappableVideoResolver();
     final controller = WenzRichTextController(
@@ -14871,9 +15008,8 @@ void main() {
       find.descendant(of: inlineFrame, matching: find.byType(ClipRRect)),
       findsWidgets,
     );
-    final inlineDecoration = tester
-        .widget<DecoratedBox>(inlineFrame)
-        .decoration as BoxDecoration;
+    final inlineDecoration =
+        tester.widget<DecoratedBox>(inlineFrame).decoration as BoxDecoration;
     expect(inlineDecoration.borderRadius, isNotNull);
     expect(inlineDecoration.boxShadow, isNotEmpty);
     await tester.tap(find.byTooltip('预览媒体'));
@@ -15372,7 +15508,10 @@ void main() {
             child: WenzRichTextEditor(
               controller: controller,
               padding: const EdgeInsets.only(
-                left: 16, top: 32, right: 16, bottom: 16,
+                left: 16,
+                top: 32,
+                right: 16,
+                bottom: 16,
               ),
               enableIme: false,
             ),
@@ -15453,7 +15592,10 @@ void main() {
             child: WenzRichTextEditor(
               controller: controller,
               padding: const EdgeInsets.only(
-                left: 16, top: 32, right: 16, bottom: 16,
+                left: 16,
+                top: 32,
+                right: 16,
+                bottom: 16,
               ),
               enableIme: false,
             ),
@@ -15535,7 +15677,10 @@ void main() {
             child: WenzRichTextEditor(
               controller: controller,
               padding: const EdgeInsets.only(
-                left: 16, top: 32, right: 16, bottom: 16,
+                left: 16,
+                top: 32,
+                right: 16,
+                bottom: 16,
               ),
               enableIme: false,
             ),
@@ -15672,8 +15817,7 @@ void main() {
             assetId: 'clip',
             playbackUrl:
                 'https://cdn.example.test/videos/very-long-custom-player-source.mp4',
-            coverUrl:
-                'assets/poster-with-a-very-long-custom-player-name.jpg',
+            coverUrl: 'assets/poster-with-a-very-long-custom-player-name.jpg',
             title: 'Custom resolver video with a long title',
             description: 'Custom renderer should stay inside the video frame.',
             aspectRatio: 9 / 16,
@@ -15707,9 +15851,11 @@ void main() {
     final frameRect = tester.getRect(find.byKey(
       const ValueKey<String>('wenz-richtext-video-frame-video1'),
     ));
-    expect(find.byKey(
-      const ValueKey<String>('oversized-video-player-video1'),
-    ), findsOneWidget);
+    expect(
+        find.byKey(
+          const ValueKey<String>('oversized-video-player-video1'),
+        ),
+        findsOneWidget);
     expect(frameRect.left, greaterThanOrEqualTo(blockRect.left));
     expect(frameRect.top, greaterThanOrEqualTo(blockRect.top));
     expect(frameRect.right, lessThanOrEqualTo(blockRect.right));
@@ -15937,8 +16083,7 @@ void main() {
       );
     });
 
-    testWidgets(
-        'image alignment positions placeholder frames in fixed width',
+    testWidgets('image alignment positions placeholder frames in fixed width',
         (tester) async {
       final controller = WenzRichTextController(
         document: const RichTextDocument(
@@ -15993,8 +16138,7 @@ void main() {
       expect(find.text('preview:left'), findsNothing);
     });
 
-    testWidgets(
-        'video alignment positions placeholder frames in fixed width',
+    testWidgets('video alignment positions placeholder frames in fixed width',
         (tester) async {
       final controller = WenzRichTextController(
         document: const RichTextDocument(
@@ -16414,7 +16558,8 @@ void main() {
     testWidgets(
         'selected aligned image keeps height and moves toolbar with frame changes',
         (tester) async {
-      const strokeKey = ValueKey<String>('wenz-richtext-media-selection-stroke');
+      const strokeKey =
+          ValueKey<String>('wenz-richtext-media-selection-stroke');
       final controller = WenzRichTextController(
         document: const RichTextDocument(
           blocks: <BlockNode>[
@@ -18031,8 +18176,8 @@ void main() {
     );
   });
 
-  testWidgets(
-      'within-table reverse drag normalizes table cell range rectangle', (
+  testWidgets('within-table reverse drag normalizes table cell range rectangle',
+      (
     tester,
   ) async {
     // Drag from (row=2, col=3) to (row=0, col=1): the bounding box must
@@ -18597,7 +18742,8 @@ void main() {
     expect(controller.selection?.end.offset, 6);
   });
 
-  testWidgets('Ctrl+A inside code block selects only that code', (tester) async {
+  testWidgets('Ctrl+A inside code block selects only that code',
+      (tester) async {
     const code = 'aa\nbb\ncc';
     final controller = WenzRichTextController(
       document: const RichTextDocument(
@@ -18805,9 +18951,9 @@ void main() {
         );
         await pumpMediaEditor(tester, controller);
 
-        final decoration =
-            tester.widget<DecoratedBox>(find.byKey(strokeKey)).decoration
-                as BoxDecoration;
+        final decoration = tester
+            .widget<DecoratedBox>(find.byKey(strokeKey))
+            .decoration as BoxDecoration;
         // Radius matches the media frame (_kMediaCornerRadius), not the old
         // loose BorderRadius.circular(6) overlay rectangle.
         expect(
@@ -18916,7 +19062,8 @@ void main() {
           tester,
           const <String>['预览媒体', '更多块操作'],
         );
-        expect(frameAfterCommitPump.width, moreOrLessEquals(240, epsilon: 0.75));
+        expect(
+            frameAfterCommitPump.width, moreOrLessEquals(240, epsilon: 0.75));
         expect(
           frameAfterCommitPump.height,
           moreOrLessEquals(120, epsilon: 0.75),
@@ -19192,9 +19339,9 @@ void main() {
         );
         await pumpMediaEditor(tester, controller);
 
-        final frameDecoration =
-            tester.widget<DecoratedBox>(find.byKey(videoFrameKey)).decoration
-                as BoxDecoration;
+        final frameDecoration = tester
+            .widget<DecoratedBox>(find.byKey(videoFrameKey))
+            .decoration as BoxDecoration;
         expect(frameDecoration.color, Colors.black);
         expect(
           frameDecoration.borderRadius,
@@ -19204,9 +19351,9 @@ void main() {
         expect(frameDecoration.boxShadow, isNotEmpty);
         expect(frameDecoration.border, isNull);
 
-        final decoration =
-            tester.widget<DecoratedBox>(find.byKey(strokeKey)).decoration
-                as BoxDecoration;
+        final decoration = tester
+            .widget<DecoratedBox>(find.byKey(strokeKey))
+            .decoration as BoxDecoration;
         expect(
           decoration.borderRadius,
           BorderRadius.circular(mediaCornerRadius),
@@ -19279,9 +19426,9 @@ void main() {
 
       expect(find.byKey(strokeKey), findsNothing);
       // The media frames themselves carry no selection border either.
-      final imageDecoration =
-          tester.widget<DecoratedBox>(find.byKey(imageFrameKey)).decoration
-              as BoxDecoration;
+      final imageDecoration = tester
+          .widget<DecoratedBox>(find.byKey(imageFrameKey))
+          .decoration as BoxDecoration;
       expect(imageDecoration.border, isNull);
     });
 
@@ -19316,7 +19463,8 @@ void main() {
 
         // Text/code selection highlight still renders normally.
         expect(
-          find.byKey(const ValueKey<String>('wenz-richtext-selection-highlight')),
+          find.byKey(
+              const ValueKey<String>('wenz-richtext-selection-highlight')),
           findsOneWidget,
         );
         // The media stroke does not appear for non-media selections.
@@ -20469,6 +20617,38 @@ void main() {
         });
     }
 
+    RichTextDocument estimateShrinkDocument(String prefix) {
+      return RichTextDocument(
+        blocks: <BlockNode>[
+          for (var index = 0; index < 160; index++)
+            TextBlockNode(
+              id: '$prefix-p$index',
+              type: BlockType.paragraph,
+              content: <InlineNode>[
+                TextRun(text: index < 19 ? 'tall' : 'short'),
+              ],
+            ),
+        ],
+      );
+    }
+
+    BlockRendererRegistry estimateShrinkRenderers() {
+      return BlockRendererRegistry()
+        ..register(BlockType.paragraph, (_, renderContext) {
+          final block = renderContext.block;
+          final text = plainText(block);
+          return SizedBox(
+            key: ValueKey<String>('measured-${block.id}'),
+            height: text == 'tall' ? 160 : 40,
+            width: double.infinity,
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(text),
+            ),
+          );
+        });
+    }
+
     testWidgets('only builds visible blocks for a large document', (
       tester,
     ) async {
@@ -20642,8 +20822,8 @@ void main() {
     });
 
     testWidgets(
-      'expanded heading does not pull user scroll back to unchanged caret',
-      (tester) async {
+        'expanded heading does not pull user scroll back to unchanged caret',
+        (tester) async {
       const preludeCount = 28;
       const hiddenCount = 14;
       const targetIndex = preludeCount + 1 + hiddenCount + 1;
@@ -20808,14 +20988,235 @@ void main() {
         greaterThan(maxBeforeTallMeasured + 200),
       );
 
-      controller.replaceDocument(measuredDocument(tallBlock: false));
-      await tester.pumpAndSettle();
+      final diagnosticMessages = <String>[];
+      final originalDebugPrint = debugPrint;
+      debugPrint = (message, {wrapWidth}) {
+        if (message != null) {
+          diagnosticMessages.add(message);
+        }
+        originalDebugPrint(message, wrapWidth: wrapWidth);
+      };
+      try {
+        controller.replaceDocument(measuredDocument(tallBlock: false));
+        await tester.pumpAndSettle();
+      } finally {
+        debugPrint = originalDebugPrint;
+      }
 
       expect(
         scrollable().position.maxScrollExtent,
         lessThan(maxAfterTallMeasured - 200),
       );
+      expect(
+        diagnosticMessages,
+        contains(
+          allOf(
+            contains('event=viewport-in-overestimated-block-gap'),
+            contains('blockId=p35'),
+            contains('oldEstimate=320.0'),
+            contains('measured=40.0'),
+          ),
+        ),
+      );
     });
+
+    testWidgets(
+      'pre-clamps the virtual window across two shrinking extent jumps',
+      (tester) async {
+        for (var run = 0; run < 2; run++) {
+          final prefix = 'preclamp-$run';
+          final controller = WenzRichTextController(
+            document: estimateShrinkDocument(prefix),
+          );
+          final renderers = estimateShrinkRenderers();
+
+          await tester.pumpWidget(
+            MaterialApp(
+              home: Scaffold(
+                body: SizedBox(
+                  height: 300,
+                  child: WenzRichTextEditor(
+                    key: ValueKey<String>('preclamp-editor-$run'),
+                    controller: controller,
+                    padding: EdgeInsets.zero,
+                    blockSpacing: 0,
+                    blockRenderers: renderers,
+                    enableIme: false,
+                  ),
+                ),
+              ),
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          final scrollable = tester.state<ScrollableState>(
+            find.descendant(
+              of: find.byType(WenzRichTextEditor),
+              matching: find.byType(Scrollable),
+            ),
+          );
+          final maxBeforeJump = scrollable.position.maxScrollExtent;
+          expect(maxBeforeJump, greaterThan(20000));
+
+          final drag = scrollable.position.drag(
+            DragStartDetails(globalPosition: Offset.zero),
+            () {},
+          );
+          drag.update(
+            DragUpdateDetails(
+              globalPosition: Offset.zero,
+              delta: Offset(0, -maxBeforeJump),
+              primaryDelta: -maxBeforeJump,
+            ),
+          );
+          await tester.pump();
+          final staleOffset = scrollable.position.pixels;
+
+          // The first target frame measures the short tail blocks. The next
+          // frame must build its virtual window from the smaller predicted max
+          // before SingleChildScrollView applies that max during layout.
+          await tester.pump();
+          final correctedMax = scrollable.position.maxScrollExtent;
+          drag.end(DragEndDetails(primaryVelocity: 0));
+          expect(staleOffset - correctedMax, greaterThan(300));
+          expect(
+            scrollable.position.pixels,
+            lessThanOrEqualTo(correctedMax + 0.5),
+          );
+
+          final mountedTailBlocks = find.byWidgetPredicate((widget) {
+            final key = widget.key;
+            return key is ValueKey<String> &&
+                key.value.startsWith('measured-$prefix-');
+          });
+          expect(mountedTailBlocks.evaluate().length, greaterThan(1));
+
+          final viewport = tester.getRect(find.byType(WenzRichTextEditor));
+          var coveredHeight = 0.0;
+          for (var index = 0; index < 160; index++) {
+            final block = find.byKey(
+              ValueKey<String>('measured-$prefix-p$index'),
+            );
+            if (block.evaluate().isEmpty) {
+              continue;
+            }
+            final rect = tester.getRect(block);
+            coveredHeight += math.max(
+              0.0,
+              math.min(rect.bottom, viewport.bottom) -
+                  math.max(rect.top, viewport.top),
+            );
+          }
+          expect(
+            coveredHeight,
+            greaterThan(200),
+            reason: 'run $run must not paint an empty corrected viewport',
+          );
+
+          await tester.pumpAndSettle();
+        }
+      },
+    );
+
+    testWidgets(
+      'keeps upward wheel displacement stable while extents converge',
+      (tester) async {
+        for (var run = 0; run < 2; run++) {
+          final prefix = 'wheel-anchor-$run';
+          final controller = WenzRichTextController(
+            document: estimateShrinkDocument(prefix),
+          );
+
+          await tester.pumpWidget(
+            MaterialApp(
+              home: Scaffold(
+                body: SizedBox(
+                  height: 300,
+                  child: WenzRichTextEditor(
+                    key: ValueKey<String>('wheel-anchor-editor-$run'),
+                    controller: controller,
+                    padding: EdgeInsets.zero,
+                    blockSpacing: 0,
+                    blockRenderers: estimateShrinkRenderers(),
+                    enableIme: false,
+                  ),
+                ),
+              ),
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          final scrollable = tester.state<ScrollableState>(
+            find.descendant(
+              of: find.byType(WenzRichTextEditor),
+              matching: find.byType(Scrollable),
+            ),
+          );
+          final maxBeforeJump = scrollable.position.maxScrollExtent;
+          final drag = scrollable.position.drag(
+            DragStartDetails(globalPosition: Offset.zero),
+            () {},
+          );
+          drag.update(
+            DragUpdateDetails(
+              globalPosition: Offset.zero,
+              delta: Offset(0, -maxBeforeJump),
+              primaryDelta: -maxBeforeJump,
+            ),
+          );
+          await tester.pump();
+          await tester.pump();
+          drag.end(DragEndDetails(primaryVelocity: 0));
+          await tester.pumpAndSettle();
+
+          final viewport = tester.getRect(find.byType(WenzRichTextEditor));
+          Finder? trackedBlock;
+          Rect? trackedRect;
+          for (var index = 159; index >= 0; index--) {
+            final candidate = find.byKey(
+              ValueKey<String>('measured-$prefix-p$index'),
+            );
+            if (candidate.evaluate().isEmpty) {
+              continue;
+            }
+            final rect = tester.getRect(candidate);
+            if (rect.top >= viewport.top + 50 &&
+                rect.bottom <= viewport.bottom - 120) {
+              trackedBlock = candidate;
+              trackedRect = rect;
+              break;
+            }
+          }
+          expect(trackedBlock, isNotNull);
+          expect(trackedRect, isNotNull);
+          final topBeforeWheel = trackedRect!.top;
+
+          scrollable.position.pointerScroll(-120);
+          // Sample at the end of layout/paint but before the measured-extent
+          // post-frame callbacks update the layout index. A correction runs in
+          // the following microtask and is consumed atomically by the next
+          // frame, so this is the position a user actually sees at each vsync.
+          for (var frame = 0; frame < 4; frame++) {
+            Rect? paintedRect;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (trackedBlock!.evaluate().isNotEmpty) {
+                paintedRect = tester.getRect(trackedBlock);
+              }
+            });
+            await tester.pump();
+            expect(trackedBlock, findsOneWidget);
+            expect(paintedRect, isNotNull);
+            final topAfterWheel = paintedRect!.top;
+            expect(
+              topAfterWheel - topBeforeWheel,
+              closeTo(120, 1),
+              reason: 'run $run frame $frame added layout drift',
+            );
+          }
+          await tester.pumpAndSettle();
+        }
+      },
+    );
 
     testWidgets('shrinks cached block extent after deleting content', (
       tester,
@@ -21439,7 +21840,8 @@ void main() {
   });
 
   group('table cell alignment selection', () {
-    testWidgets('centred collapsed table cell caret uses text layout position', (
+    testWidgets('centred collapsed table cell caret uses text layout position',
+        (
       tester,
     ) async {
       const text = 'Centered caret';
@@ -21742,8 +22144,7 @@ void main() {
 
         final cellRect =
             tester.getRect(_tableCellFinder('tbl-center-reverse', 0, 0));
-        final expectedRect =
-            _textRangeGlobalRect(tester, text, 4, text.length);
+        final expectedRect = _textRangeGlobalRect(tester, text, 4, text.length);
         final paintedRect = _textSelectionHighlightGlobalRect(
           tester,
           'tbl-center-reverse',
@@ -22266,9 +22667,8 @@ void main() {
         );
 
         // Verify cell alignment is preserved after selection.
-        final table = controller.document.blocks
-            .whereType<TableBlockNode>()
-            .single;
+        final table =
+            controller.document.blocks.whereType<TableBlockNode>().single;
         expect(table.table.cellAt(0, 0)?.alignment, 'left');
         expect(table.table.cellAt(0, 1)?.alignment, 'center');
         expect(table.table.cellAt(1, 0)?.alignment, 'right');
@@ -22511,395 +22911,394 @@ void main() {
     );
   });
 
-    group('Tab indent / Shift+Tab outdent', () {
-      testWidgets('Tab indents a paragraph block', (tester) async {
-        final controller = WenzRichTextController(
-          document: const RichTextDocument(
-            blocks: <BlockNode>[
-              TextBlockNode(
-                id: 'p1',
-                type: BlockType.paragraph,
-                content: <InlineNode>[TextRun(text: 'Hello')],
-              ),
-            ],
-          ),
-          selection: collapsedTextSelection('p1', 0, 0),
-        );
-
-        await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(
-              body: WenzRichTextEditor(
-                controller: controller,
-                enableIme: false,
-              ),
+  group('Tab indent / Shift+Tab outdent', () {
+    testWidgets('Tab indents a paragraph block', (tester) async {
+      final controller = WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'p1',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'Hello')],
             ),
-          ),
-        );
-        await tester.pump();
-
-        await tester.sendKeyEvent(LogicalKeyboardKey.tab);
-        await tester.pump();
-
-        final block = controller.document.blocks.first as TextBlockNode;
-        expect(block.attributes.indent, 1);
-      });
-
-      testWidgets('Shift+Tab outdents an indented paragraph', (tester) async {
-        final controller = WenzRichTextController(
-          document: const RichTextDocument(
-            blocks: <BlockNode>[
-              TextBlockNode(
-                id: 'p1',
-                type: BlockType.paragraph,
-                attributes: BlockAttributes(indent: 2),
-                content: <InlineNode>[TextRun(text: 'Hello')],
-              ),
-            ],
-          ),
-          selection: collapsedTextSelection('p1', 0, 0),
-        );
-
-        await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(
-              body: WenzRichTextEditor(
-                controller: controller,
-                enableIme: false,
-              ),
-            ),
-          ),
-        );
-        await tester.pump();
-
-        await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
-        await tester.sendKeyEvent(LogicalKeyboardKey.tab);
-        await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
-        await tester.pump();
-
-        final block = controller.document.blocks.first as TextBlockNode;
-        expect(block.attributes.indent, 1);
-      });
-
-      testWidgets('Tab at max indent 8 does nothing', (tester) async {
-        final controller = WenzRichTextController(
-          document: const RichTextDocument(
-            blocks: <BlockNode>[
-              TextBlockNode(
-                id: 'p1',
-                type: BlockType.paragraph,
-                attributes: BlockAttributes(indent: 8),
-                content: <InlineNode>[TextRun(text: 'Hello')],
-              ),
-            ],
-          ),
-          selection: collapsedTextSelection('p1', 0, 0),
-        );
-
-        await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(
-              body: WenzRichTextEditor(
-                controller: controller,
-                enableIme: false,
-              ),
-            ),
-          ),
-        );
-        await tester.pump();
-
-        await tester.sendKeyEvent(LogicalKeyboardKey.tab);
-        await tester.pump();
-
-        final block = controller.document.blocks.first as TextBlockNode;
-        expect(block.attributes.indent, 8);
-      });
-
-      testWidgets('Shift+Tab at indent 0 does nothing', (tester) async {
-        final controller = WenzRichTextController(
-          document: const RichTextDocument(
-            blocks: <BlockNode>[
-              TextBlockNode(
-                id: 'p1',
-                type: BlockType.paragraph,
-                content: <InlineNode>[TextRun(text: 'Hello')],
-              ),
-            ],
-          ),
-          selection: collapsedTextSelection('p1', 0, 0),
-        );
-
-        await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(
-              body: WenzRichTextEditor(
-                controller: controller,
-                enableIme: false,
-              ),
-            ),
-          ),
-        );
-        await tester.pump();
-
-        await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
-        await tester.sendKeyEvent(LogicalKeyboardKey.tab);
-        await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
-        await tester.pump();
-
-        final block = controller.document.blocks.first as TextBlockNode;
-        expect(block.attributes.indent, isNull);
-      });
-
-      testWidgets('Tab does not indent in read-only mode', (tester) async {
-        final controller = WenzRichTextController(
-          document: const RichTextDocument(
-            blocks: <BlockNode>[
-              TextBlockNode(
-                id: 'p1',
-                type: BlockType.paragraph,
-                content: <InlineNode>[TextRun(text: 'Hello')],
-              ),
-            ],
-          ),
-          selection: collapsedTextSelection('p1', 0, 0),
-        );
-
-        await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(
-              body: WenzRichTextEditor(
-                controller: controller,
-                readOnly: true,
-                enableIme: false,
-              ),
-            ),
-          ),
-        );
-        await tester.pump();
-
-        await tester.sendKeyEvent(LogicalKeyboardKey.tab);
-        await tester.pump();
-
-        final block = controller.document.blocks.first as TextBlockNode;
-        expect(block.attributes.indent, isNull);
-      });
-
-      testWidgets(
-        'Tab in code block uses indentCodeBlock not block indent',
-        (tester) async {
-          const code = 'line1\nline2';
-          final controller = WenzRichTextController(
-            document: const RichTextDocument(
-              blocks: <BlockNode>[
-                CodeBlockNode(id: 'c1', code: code),
-              ],
-            ),
-            selection: collapsedCodeSelection('c1', 0, code.length),
-          );
-
-          await tester.pumpWidget(
-            MaterialApp(
-              home: Scaffold(
-                body: WenzRichTextEditor(
-                  controller: controller,
-                  enableIme: false,
-                ),
-              ),
-            ),
-          );
-          await tester.pump();
-
-          await tester.sendKeyEvent(LogicalKeyboardKey.tab);
-          await tester.pump();
-
-          // Code block content should be indented, not block-level indent.
-          final codeBlock = controller.document.blocks.first as CodeBlockNode;
-          expect(codeBlock.code, 'line1\n  line2');
-        },
+          ],
+        ),
+        selection: collapsedTextSelection('p1', 0, 0),
       );
 
-      testWidgets('indent can be undone and redone', (tester) async {
-        final controller = WenzRichTextController(
-          document: const RichTextDocument(
-            blocks: <BlockNode>[
-              TextBlockNode(
-                id: 'p1',
-                type: BlockType.paragraph,
-                content: <InlineNode>[TextRun(text: 'Hello')],
-              ),
-            ],
-          ),
-          selection: collapsedTextSelection('p1', 0, 0),
-        );
-
-        await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(
-              body: WenzRichTextEditor(
-                controller: controller,
-                enableIme: false,
-              ),
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: WenzRichTextEditor(
+              controller: controller,
+              enableIme: false,
             ),
           ),
-        );
-        await tester.pump();
+        ),
+      );
+      await tester.pump();
 
-        // Indent twice.
-        await tester.sendKeyEvent(LogicalKeyboardKey.tab);
-        await tester.pump();
-        await tester.sendKeyEvent(LogicalKeyboardKey.tab);
-        await tester.pump();
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.pump();
 
-        var block = controller.document.blocks.first as TextBlockNode;
-        expect(block.attributes.indent, 2);
+      final block = controller.document.blocks.first as TextBlockNode;
+      expect(block.attributes.indent, 1);
+    });
 
-        // Undo — indent should go from 2 to 1.
-        await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
-        await tester.sendKeyEvent(LogicalKeyboardKey.keyZ);
-        await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
-        await tester.pump();
+    testWidgets('Shift+Tab outdents an indented paragraph', (tester) async {
+      final controller = WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'p1',
+              type: BlockType.paragraph,
+              attributes: BlockAttributes(indent: 2),
+              content: <InlineNode>[TextRun(text: 'Hello')],
+            ),
+          ],
+        ),
+        selection: collapsedTextSelection('p1', 0, 0),
+      );
 
-        block = controller.document.blocks.first as TextBlockNode;
-        expect(block.attributes.indent, 1);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: WenzRichTextEditor(
+              controller: controller,
+              enableIme: false,
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
 
-        // Redo — indent should go back to 2.
-        await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
-        await tester.sendKeyEvent(LogicalKeyboardKey.keyY);
-        await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
-        await tester.pump();
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+      await tester.pump();
 
-        block = controller.document.blocks.first as TextBlockNode;
-        expect(block.attributes.indent, 2);
-      });
+      final block = controller.document.blocks.first as TextBlockNode;
+      expect(block.attributes.indent, 1);
+    });
+
+    testWidgets('Tab at max indent 8 does nothing', (tester) async {
+      final controller = WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'p1',
+              type: BlockType.paragraph,
+              attributes: BlockAttributes(indent: 8),
+              content: <InlineNode>[TextRun(text: 'Hello')],
+            ),
+          ],
+        ),
+        selection: collapsedTextSelection('p1', 0, 0),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: WenzRichTextEditor(
+              controller: controller,
+              enableIme: false,
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.pump();
+
+      final block = controller.document.blocks.first as TextBlockNode;
+      expect(block.attributes.indent, 8);
+    });
+
+    testWidgets('Shift+Tab at indent 0 does nothing', (tester) async {
+      final controller = WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'p1',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'Hello')],
+            ),
+          ],
+        ),
+        selection: collapsedTextSelection('p1', 0, 0),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: WenzRichTextEditor(
+              controller: controller,
+              enableIme: false,
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+      await tester.pump();
+
+      final block = controller.document.blocks.first as TextBlockNode;
+      expect(block.attributes.indent, isNull);
+    });
+
+    testWidgets('Tab does not indent in read-only mode', (tester) async {
+      final controller = WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'p1',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'Hello')],
+            ),
+          ],
+        ),
+        selection: collapsedTextSelection('p1', 0, 0),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: WenzRichTextEditor(
+              controller: controller,
+              readOnly: true,
+              enableIme: false,
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.pump();
+
+      final block = controller.document.blocks.first as TextBlockNode;
+      expect(block.attributes.indent, isNull);
     });
 
     testWidgets(
-      'leaf heading hides collapse button when canCollapse is false',
+      'Tab in code block uses indentCodeBlock not block indent',
       (tester) async {
-        // A heading block with no child content must not mount a disabled
-        // collapse button, tooltip, or semantics button.
+        const code = 'line1\nline2';
         final controller = WenzRichTextController(
           document: const RichTextDocument(
             blocks: <BlockNode>[
-              TextBlockNode(
-                id: 'leaf-h',
-                type: BlockType.heading,
-                attributes: BlockAttributes(level: 2),
-                content: <InlineNode>[TextRun(text: 'Leaf heading')],
-              ),
-              TextBlockNode(
-                id: 'p1',
-                type: BlockType.paragraph,
-                content: <InlineNode>[TextRun(text: 'Plain paragraph')],
-              ),
+              CodeBlockNode(id: 'c1', code: code),
             ],
           ),
+          selection: collapsedCodeSelection('c1', 0, code.length),
         );
-        final outline = WenzOutlineController(editor: controller);
-        addTearDown(outline.dispose);
 
         await tester.pumpWidget(
           MaterialApp(
             home: Scaffold(
-              body: SizedBox(
-                width: 420,
-                height: 180,
-                child: WenzRichTextEditor(
-                  controller: controller,
-                  outlineController: outline,
-                  padding: EdgeInsets.zero,
-                  enableIme: false,
-                ),
+              body: WenzRichTextEditor(
+                controller: controller,
+                enableIme: false,
               ),
             ),
           ),
         );
-        await tester.pumpAndSettle();
+        await tester.pump();
 
-        final leafBtn = find.byKey(
-          const ValueKey<String>('wenz-richtext-heading-collapse-leaf-h'),
-        );
-        expect(leafBtn, findsNothing);
-        expect(find.byTooltip('无可折叠内容'), findsNothing);
+        await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+        await tester.pump();
 
-        // Heading text is still rendered.
-        expect(_richText('Leaf heading'), findsOneWidget);
-
-        // Paragraph block has no collapse button.
-        expect(
-          find.byKey(
-            const ValueKey<String>('wenz-richtext-heading-collapse-p1'),
-          ),
-          findsNothing,
-        );
+        // Code block content should be indented, not block-level indent.
+        final codeBlock = controller.document.blocks.first as CodeBlockNode;
+        expect(codeBlock.code, 'line1\n  line2');
       },
     );
 
-    testWidgets(
-      'heading collapse button spacing from drag handle is chromeGap',
-      (tester) async {
-        // P003: The heading collapse button starts exactly after the block
-        // drag handle plus BlockDragHandleSpec.chromeGap, and leaves
-        // gapToContent before heading text.
-        final controller = WenzRichTextController(
-          document: const RichTextDocument(
-            blocks: <BlockNode>[
-              TextBlockNode(
-                id: 'h',
-                type: BlockType.heading,
-                attributes: BlockAttributes(level: 2),
-                content: <InlineNode>[TextRun(text: 'Collapsible')],
-              ),
-              TextBlockNode(
-                id: 'child',
-                type: BlockType.paragraph,
-                content: <InlineNode>[TextRun(text: 'Child')],
-              ),
-            ],
-          ),
-        );
-        final outline = WenzOutlineController(editor: controller);
-        addTearDown(outline.dispose);
+    testWidgets('indent can be undone and redone', (tester) async {
+      final controller = WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'p1',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'Hello')],
+            ),
+          ],
+        ),
+        selection: collapsedTextSelection('p1', 0, 0),
+      );
 
-        await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(
-              body: SizedBox(
-                width: 420,
-                height: 180,
-                child: WenzRichTextEditor(
-                  controller: controller,
-                  outlineController: outline,
-                  padding: EdgeInsets.zero,
-                  enableIme: false,
-                ),
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: WenzRichTextEditor(
+              controller: controller,
+              enableIme: false,
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      // Indent twice.
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.pump();
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.pump();
+
+      var block = controller.document.blocks.first as TextBlockNode;
+      expect(block.attributes.indent, 2);
+
+      // Undo — indent should go from 2 to 1.
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyZ);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+      await tester.pump();
+
+      block = controller.document.blocks.first as TextBlockNode;
+      expect(block.attributes.indent, 1);
+
+      // Redo — indent should go back to 2.
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyY);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+      await tester.pump();
+
+      block = controller.document.blocks.first as TextBlockNode;
+      expect(block.attributes.indent, 2);
+    });
+  });
+
+  testWidgets(
+    'leaf heading hides collapse button when canCollapse is false',
+    (tester) async {
+      // A heading block with no child content must not mount a disabled
+      // collapse button, tooltip, or semantics button.
+      final controller = WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'leaf-h',
+              type: BlockType.heading,
+              attributes: BlockAttributes(level: 2),
+              content: <InlineNode>[TextRun(text: 'Leaf heading')],
+            ),
+            TextBlockNode(
+              id: 'p1',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'Plain paragraph')],
+            ),
+          ],
+        ),
+      );
+      final outline = WenzOutlineController(editor: controller);
+      addTearDown(outline.dispose);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 420,
+              height: 180,
+              child: WenzRichTextEditor(
+                controller: controller,
+                outlineController: outline,
+                padding: EdgeInsets.zero,
+                enableIme: false,
               ),
             ),
           ),
-        );
-        await tester.pumpAndSettle();
+        ),
+      );
+      await tester.pumpAndSettle();
 
-        // The drag handle is at x=0, heading collapse button starts after the
-        // handle's right edge plus chromeGap.
-        final dragHandleRect =
-            tester.getRect(_blockDragHandleFinder('h'));
-        final collapseRect = tester.getRect(
-          find.byKey(
-            const ValueKey<String>('wenz-richtext-heading-collapse-h'),
+      final leafBtn = find.byKey(
+        const ValueKey<String>('wenz-richtext-heading-collapse-leaf-h'),
+      );
+      expect(leafBtn, findsNothing);
+      expect(find.byTooltip('无可折叠内容'), findsNothing);
+
+      // Heading text is still rendered.
+      expect(_richText('Leaf heading'), findsOneWidget);
+
+      // Paragraph block has no collapse button.
+      expect(
+        find.byKey(
+          const ValueKey<String>('wenz-richtext-heading-collapse-p1'),
+        ),
+        findsNothing,
+      );
+    },
+  );
+
+  testWidgets(
+    'heading collapse button spacing from drag handle is chromeGap',
+    (tester) async {
+      // P003: The heading collapse button starts exactly after the block
+      // drag handle plus BlockDragHandleSpec.chromeGap, and leaves
+      // gapToContent before heading text.
+      final controller = WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'h',
+              type: BlockType.heading,
+              attributes: BlockAttributes(level: 2),
+              content: <InlineNode>[TextRun(text: 'Collapsible')],
+            ),
+            TextBlockNode(
+              id: 'child',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'Child')],
+            ),
+          ],
+        ),
+      );
+      final outline = WenzOutlineController(editor: controller);
+      addTearDown(outline.dispose);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 420,
+              height: 180,
+              child: WenzRichTextEditor(
+                controller: controller,
+                outlineController: outline,
+                padding: EdgeInsets.zero,
+                enableIme: false,
+              ),
+            ),
           ),
-        );
+        ),
+      );
+      await tester.pumpAndSettle();
 
-        expect(dragHandleRect.left, moreOrLessEquals(0, epsilon: 0.5));
-        expect(
-          collapseRect.left - dragHandleRect.right,
-          moreOrLessEquals(BlockDragHandleSpec.chromeGap, epsilon: 0.5),
-        );
-        expect(
-          tester.getTopLeft(_richText('Collapsible')).dx - collapseRect.right,
-          moreOrLessEquals(BlockDragHandleSpec.gapToContent, epsilon: 0.5),
-        );
-      },
-    );
+      // The drag handle is at x=0, heading collapse button starts after the
+      // handle's right edge plus chromeGap.
+      final dragHandleRect = tester.getRect(_blockDragHandleFinder('h'));
+      final collapseRect = tester.getRect(
+        find.byKey(
+          const ValueKey<String>('wenz-richtext-heading-collapse-h'),
+        ),
+      );
+
+      expect(dragHandleRect.left, moreOrLessEquals(0, epsilon: 0.5));
+      expect(
+        collapseRect.left - dragHandleRect.right,
+        moreOrLessEquals(BlockDragHandleSpec.chromeGap, epsilon: 0.5),
+      );
+      expect(
+        tester.getTopLeft(_richText('Collapsible')).dx - collapseRect.right,
+        moreOrLessEquals(BlockDragHandleSpec.gapToContent, epsilon: 0.5),
+      );
+    },
+  );
 
   group('mobile selection overlay platform gate', () {
     testWidgets(
@@ -22911,6 +23310,7 @@ void main() {
         );
 
         expect(find.byType(MobileSelectionHandlesOverlay), findsNothing);
+        expect(find.byType(WenzMobileCaretToolbar), findsNothing);
         expect(find.byType(WenzMobileSelectionToolbar), findsNothing);
         expect(tester.takeException(), isNull);
       },
@@ -22925,9 +23325,16 @@ void main() {
         );
 
         expect(find.byType(MobileSelectionHandlesOverlay), findsOneWidget);
+        expect(find.byType(WenzMobileCaretToolbar), findsNothing);
         expect(find.byType(WenzMobileSelectionToolbar), findsOneWidget);
 
-        await tester.tap(find.byTooltip('全选'));
+        await tester.tap(
+          find.byKey(
+            const ValueKey<String>(
+              'wenz.mobile-selection-toolbar.select-all',
+            ),
+          ),
+        );
         await tester.pump();
 
         expect(
@@ -22953,6 +23360,7 @@ void main() {
         );
 
         expect(find.byType(MobileSelectionHandlesOverlay), findsNothing);
+        expect(find.byType(WenzMobileCaretToolbar), findsNothing);
         expect(find.byType(WenzMobileSelectionToolbar), findsNothing);
         expect(tester.takeException(), isNull);
       },
@@ -22968,11 +23376,8 @@ Future<WenzRichTextController> _pumpMobileSelectionOverlayEditor(
   bool enableMobileSelectionHandles = true,
 }) async {
   debugDefaultTargetPlatformOverride = platform;
-  addTearDown(() {
-    debugDefaultTargetPlatformOverride = null;
-  });
-  await tester.binding.setSurfaceSize(const Size(320, 560));
-  addTearDown(() => tester.binding.setSurfaceSize(null));
+  tester.view.physicalSize = const Size(320, 560);
+  tester.view.devicePixelRatio = 1;
 
   final controller = WenzRichTextController(
     document: const RichTextDocument(
@@ -22989,27 +23394,33 @@ Future<WenzRichTextController> _pumpMobileSelectionOverlayEditor(
   );
   addTearDown(controller.dispose);
 
-  await tester.pumpWidget(
-    MaterialApp(
-      home: Scaffold(
-        body: SizedBox(
-          width: 320,
-          height: 560,
-          child: WenzRichTextEditor(
-            controller: controller,
-            padding: const EdgeInsets.all(24),
-            enableIme: false,
-            enableMobileSelectionHandles: enableMobileSelectionHandles,
+  try {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 320,
+            height: 560,
+            child: WenzRichTextEditor(
+              controller: controller,
+              padding: const EdgeInsets.all(24),
+              enableIme: false,
+              enableMobileSelectionHandles: enableMobileSelectionHandles,
+            ),
           ),
         ),
       ),
-    ),
-  );
-  await tester.pump();
-  controller.setSelection(textSelection('p-mobile-selection', 0, 0, 5));
-  await tester.pump();
-  await tester.pump(const Duration(milliseconds: 16));
-  return controller;
+    );
+    await tester.pump();
+    controller.setSelection(textSelection('p-mobile-selection', 0, 0, 5));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 16));
+    return controller;
+  } finally {
+    debugDefaultTargetPlatformOverride = null;
+    tester.view.resetPhysicalSize();
+    tester.view.resetDevicePixelRatio();
+  }
 }
 
 Future<void> _performPlatformSelectors(
@@ -23737,7 +24148,6 @@ void _expectVideoFrameSize(
   expect(frameRect.height, moreOrLessEquals(height, epsilon: 0.75));
 }
 
-
 /// Resolves the mouse cursor at [location] the same way Flutter's
 /// [MouseTracker] does: the nearest (innermost) [MouseRegion] in the hit-test
 /// path whose cursor is not [MouseCursor.defer] wins. The video and file
@@ -24105,9 +24515,12 @@ void _expectToolbarButtonSize(WidgetTester tester, String tooltip) {
       reason: '$tooltip should keep the shared fixed toolbar size.',
     );
     final background = buttonStyle.backgroundColor?.resolve(states);
-    expect(background, Colors.transparent,
+    expect(
+      background,
+      Colors.transparent,
       reason: '$tooltip should use transparent background — no independent '
-          'capsule. The shared surface provides the visual container.',);
+          'capsule. The shared surface provides the visual container.',
+    );
     final shape = buttonStyle.shape?.resolve(states);
     expect(shape, isA<RoundedRectangleBorder>());
     final roundedShape = shape! as RoundedRectangleBorder;
@@ -25106,7 +25519,8 @@ Offset _globalTextRangePoint(
 
 // Link hover / Ctrl+Cmd+click interaction helpers.
 const String _kLinkRenderedText = 'See our docs now';
-const int _kLinkStart = 4; // 'our docs' begins at offset 4 in the rendered text.
+const int _kLinkStart =
+    4; // 'our docs' begins at offset 4 in the rendered text.
 const int _kLinkEnd = 12; // 'our docs' ends at offset 12.
 const String _kLinkUrl = 'https://example.com';
 
@@ -25158,8 +25572,8 @@ Future<WenzRichTextController> _pumpLinkEditor(
   return controller;
 }
 
-Offset _linkPoint(WidgetTester tester) =>
-    _globalTextRangePoint(tester, _kLinkRenderedText, _kLinkStart, _kLinkEnd, 0.5);
+Offset _linkPoint(WidgetTester tester) => _globalTextRangePoint(
+    tester, _kLinkRenderedText, _kLinkStart, _kLinkEnd, 0.5);
 
 Offset _plainTextPoint(WidgetTester tester) => _globalTextRangePoint(
       tester,

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wenz_richtext/wenz_richtext.dart';
 
@@ -63,8 +65,7 @@ void main() {
       var changes = 0;
       controller.onChanged = (_) => changes++;
 
-      final result =
-          controller.tryLoadJson('{bad', legacy: true);
+      final result = controller.tryLoadJson('{bad', legacy: true);
 
       expect(result.ok, isFalse);
       expect(result.error, isA<DocumentDecodeException>());
@@ -181,6 +182,91 @@ void main() {
       expect(result.ok, isTrue);
       expect(result.format, JsonLoadFormat.current);
       expect(result.document!.plainText, 'current');
+
+      controller.dispose();
+    });
+
+    test('detects wrapped legacy blocks and preserves every known block type',
+        () {
+      final controller = WenzRichTextController(document: _doc('original'));
+      final wrappedLegacyJson = jsonEncode(<String, Object?>{
+        'blocks': <Object?>[
+          <String, Object?>{
+            'type': 'title',
+            'level': 2,
+            'text': 'Legacy heading',
+          },
+          <String, Object?>{'type': 'text', 'text': 'Legacy body'},
+          <String, Object?>{
+            'type': 'text',
+            'itemType': 'oli',
+            'text': 'Ordered item',
+          },
+          <String, Object?>{
+            'type': 'text',
+            'itemType': 'check',
+            'text': 'Task item',
+          },
+          <String, Object?>{
+            'type': 'quote',
+            'level': 2,
+            'text': 'Quoted heading',
+          },
+          <String, Object?>{
+            'type': 'code',
+            'language': 'dart',
+            'code': 'void main() {}',
+          },
+          <String, Object?>{
+            'type': 'image',
+            'id': 'legacy-image',
+            'file': 'legacy.png',
+            'width': 320,
+            'height': 180,
+          },
+          <String, Object?>{
+            'type': 'table',
+            'rows': <Object?>[
+              <Object?>[
+                <String, Object?>{'type': 'text', 'text': 'Cell'},
+              ],
+            ],
+          },
+          <String, Object?>{'type': 'line'},
+          <String, Object?>{
+            'type': 'video',
+            'id': 'legacy-video',
+            'file': 'legacy.mp4',
+            'width': 1920,
+            'height': 1080,
+          },
+        ],
+      });
+
+      final result = controller.tryLoadJsonAuto(wrappedLegacyJson);
+
+      expect(result.ok, isTrue);
+      expect(result.format, JsonLoadFormat.legacy);
+      final blocks = result.document!.blocks;
+      expect(blocks, hasLength(10));
+      expect(blocks[0].type, BlockType.heading);
+      expect(blocks[0].attributes.level, 2);
+      expect(blocks[1].type, BlockType.paragraph);
+      expect(blocks[2].type, BlockType.listItem);
+      expect(blocks[2].attributes.listType, 'ordered');
+      expect(blocks[3].type, BlockType.listItem);
+      expect(blocks[3].attributes.listType, 'task');
+      expect(blocks[3].attributes.checked, isFalse);
+      expect(blocks[4].type, BlockType.heading);
+      expect(blocks[4].attributes.isQuoted, isTrue);
+      expect(blocks[5], isA<CodeBlockNode>());
+      expect(blocks[6], isA<ImageBlockNode>());
+      expect((blocks[6] as ImageBlockNode).assetId, 'legacy-image');
+      expect(blocks[7], isA<TableBlockNode>());
+      expect(
+          (blocks[7] as TableBlockNode).table.cellAt(0, 0)?.plainText, 'Cell');
+      expect(blocks[8], isA<DividerBlockNode>());
+      expect(blocks[9], isA<VideoBlockNode>());
 
       controller.dispose();
     });

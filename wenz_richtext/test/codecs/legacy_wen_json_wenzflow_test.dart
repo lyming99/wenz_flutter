@@ -1,6 +1,7 @@
 // ignore_for_file: lines_longer_than_80_chars
 
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wenz_richtext/wenz_richtext.dart';
@@ -17,7 +18,7 @@ import 'package:wenz_richtext/wenz_richtext.dart';
 ///
 ///   - top-level bare array
 ///   - per-block `type` dispatch (`title`/`text`/`quote`/`code`/`image`/
-///     `table`/`line`)
+///     `table`/`line`), with text headings identified by `level > 0`
 ///   - inline fragments under `children`, each carrying its own style flags
 ///   - ARGB-int `color`/`background` values
 ///   - list marker under `itemType` (`li`/`oli`/`check`)
@@ -28,6 +29,72 @@ import 'package:wenz_richtext/wenz_richtext.dart';
 void main() {
   const codec = LegacyWenJsonCodec();
 
+  group('real wenz_editor JSON fixtures', () {
+    test('keeps an explicit type=title block as a heading', () {
+      final document = codec.decode(_fixture('title_type_title.json'));
+
+      expect(document.blocks, hasLength(1));
+      expect(document.blocks.single.type, BlockType.heading);
+      expect(document.blocks.single.attributes.level, 1);
+      expect(document.blocks.single.plainText, '显式 title 标题');
+    });
+
+    test('uses text block level exactly like BlockManager.parseContent', () {
+      final document = codec.decode(_fixture('title_type_text_levels.json'));
+
+      expect(document.blocks, hasLength(3));
+      expect(document.blocks[0].type, BlockType.heading);
+      expect(document.blocks[0].attributes.level, 1);
+      expect(document.blocks[0].plainText, 'text 类型一级标题');
+      expect(document.blocks[1].type, BlockType.heading);
+      expect(document.blocks[1].attributes.level, 2);
+      expect(document.blocks[1].plainText, 'text 类型二级标题');
+      expect(document.blocks[2].type, BlockType.paragraph);
+      expect(document.blocks[2].attributes.level, 0);
+      expect(document.blocks[2].plainText, 'level 0 正文');
+    });
+
+    test('preserves heading, inline style, quote, task and divider together',
+        () {
+      final document = codec.decode(
+        _fixture('mixed_wenz_editor_document.json'),
+      );
+
+      expect(document.blocks, hasLength(5));
+      expect(document.blocks[0].type, BlockType.heading);
+      expect(document.blocks[0].plainText, '项目复盘');
+
+      final body = document.blocks[1] as TextBlockNode;
+      expect(body.type, BlockType.paragraph);
+      expect(body.plainText, '本周完成历史格式兼容');
+      expect((body.content.first as TextRun).attributes.bold, isTrue);
+
+      expect(document.blocks[2].type, BlockType.paragraph);
+      expect(document.blocks[2].attributes.isQuoted, isTrue);
+      expect(document.blocks[2].plainText, '引用内容');
+
+      expect(document.blocks[3].type, BlockType.listItem);
+      expect(document.blocks[3].attributes.listType, 'task');
+      expect(document.blocks[3].attributes.checked, isTrue);
+      expect(document.blocks[4].type, BlockType.divider);
+    });
+
+    test('auto loader recognizes the fixture and exposes headings to hosts',
+        () {
+      final controller = WenzRichTextController();
+      addTearDown(controller.dispose);
+
+      final result = controller.tryLoadJsonAuto(
+        _fixture('title_type_text_levels.json'),
+      );
+
+      expect(result.ok, isTrue);
+      expect(result.format, JsonLoadFormat.legacy);
+      expect(controller.document.blocks.first.type, BlockType.heading);
+      expect(controller.document.blocks.first.attributes.level, 1);
+    });
+  });
+
   // ---------------------------------------------------------------------------
   // 1. Realistic mixed document (the headline case: can a wenzflow note round-
   //    trip through LegacyWenJsonCodec?)
@@ -36,9 +103,11 @@ void main() {
   test(
       'decodes a realistic wenzflow note with title, styled body, todo and quote',
       () {
-    // Shape mirrors `yDocToJson()` output: bare top-level array, title block
-    // carries level + children (styled inline fragments), plain paragraphs
-    // carry `"level": 0`, todo items use `itemType: "check"`.
+    // Shape mirrors one historical `yDocToJson()` variant: bare top-level
+    // array, an explicit title block carries level + children (styled inline
+    // fragments), plain paragraphs carry `"level": 0`, and todo items use
+    // `itemType: "check"`. The fixtures above additionally cover the more
+    // common `type: "text", level > 0` heading representation.
     final source = jsonEncode(<Object?>[
       <String, Object?>{
         'type': 'title',
@@ -121,32 +190,25 @@ void main() {
     final todo = document.blocks[3] as TextBlockNode;
     expect(todo.type, BlockType.listItem);
     expect(todo.attributes.checked, isTrue);
-    // ⚠️ Known divergence: itemType is stored verbatim, not normalized.
-    // wenzflow emits 'check'; the new model documents 'ordered'/'task'/null.
-    // See the dedicated test below.
-    expect(todo.attributes.listType, 'check');
+    expect(todo.attributes.listType, 'task');
 
-    // [4] legacy `type: "quote"` decodes as an independent quote block.
-    // ⚠️ Known divergence vs. the new-format decoder: see dedicated test.
-    expect(document.blocks[4].type, BlockType.quote);
+    // [4] legacy quote is normalized to the current paragraph + decoration.
+    expect(document.blocks[4].type, BlockType.paragraph);
+    expect(document.blocks[4].attributes.isQuoted, isTrue);
   });
 
   // ---------------------------------------------------------------------------
-  // 2. Known divergence: itemType is NOT normalized to the new model's
-  //    'ordered'/'task' vocabulary.
+  // 2. Legacy itemType aliases are normalized to the current vocabulary.
   // ---------------------------------------------------------------------------
 
-  test(
-      'KNOWN GAP: wenzflow list itemType values pass through un-normalized',
-      () {
+  test('normalizes wenzflow list itemType values', () {
     // wenz_editor uses `li` (unordered), `oli` (ordered), `check` (todo).
-    // BlockAttributes docs say listType should be 'ordered'/'task'/null, but
-    // LegacyWenJsonCodec stores the legacy string verbatim
-    // (legacy_wen_json_codec.dart line 179). Rendering / list commands that
-    // compare against 'ordered'/'task' will need to tolerate these aliases.
+    // The current model uses null (unordered), ordered and task.
     final source = jsonEncode(<Object?>[
       <String, Object?>{
         'type': 'text',
+        // A stray/non-zero level must not erase the stronger list semantic.
+        'level': 2,
         'itemType': 'li',
         'text': 'unordered item',
       },
@@ -167,55 +229,40 @@ void main() {
 
     final unordered = document.blocks[0] as TextBlockNode;
     expect(unordered.type, BlockType.listItem);
-    expect(unordered.attributes.listType, 'li'); // NOT normalized to null
+    expect(unordered.attributes.level, 2);
+    expect(unordered.attributes.listType, isNull);
 
     final ordered = document.blocks[1] as TextBlockNode;
     expect(ordered.type, BlockType.listItem);
-    expect(ordered.attributes.listType, 'oli'); // NOT normalized to 'ordered'
+    expect(ordered.attributes.listType, 'ordered');
 
     final todo = document.blocks[2] as TextBlockNode;
-    expect(todo.attributes.listType, 'check'); // NOT normalized to 'task'
+    expect(todo.attributes.listType, 'task');
     expect(todo.attributes.checked, isFalse);
   });
 
   // ---------------------------------------------------------------------------
-  // 3. Known divergence: legacy quote representation differs from new format.
+  // 3. Legacy quote representation is normalized to the current model.
   // ---------------------------------------------------------------------------
 
-  test(
-      'KNOWN GAP: legacy `type:"quote"` and new-format quote use incompatible '
-      'representations',
-      () {
-    // LegacyWenJsonCodec maps `type:"quote"` to an independent
-    // `BlockType.quote` block. But TextBlockNode.fromJson (the *new* format
-    // path) normalizes quote away into `type: paragraph` + `attrs.quoted: true`
-    // (block_node.dart lines 155-161). Two documents that look identical to a
-    // user can therefore have different in-memory representations depending on
-    // which codec produced them. Code that detects quotes MUST check both
-    // `block.type == BlockType.quote` AND `block.attributes.isQuoted`.
+  test('normalizes legacy quote to paragraph plus quoted attribute', () {
     final legacySource = jsonEncode(<Object?>[
       <String, Object?>{'type': 'quote', 'text': 'legacy quote'},
     ]);
 
     final legacyDoc = codec.decode(legacySource);
     final legacyQuote = legacyDoc.blocks.single as TextBlockNode;
-    expect(legacyQuote.type, BlockType.quote);
-    // The legacy codec does NOT set attrs.quoted, so isQuoted is false even
-    // though the block renders as a quote.
-    expect(legacyQuote.attributes.quoted, isNull);
-    expect(legacyQuote.attributes.isQuoted, isFalse);
+    expect(legacyQuote.type, BlockType.paragraph);
+    expect(legacyQuote.attributes.quoted, isTrue);
+    expect(legacyQuote.attributes.isQuoted, isTrue);
     expect(legacyQuote.plainText, 'legacy quote');
   });
 
   // ---------------------------------------------------------------------------
-  // 4. Known divergence: legacy codec never reads `quoted` attrs.
+  // 4. Transitional legacy payloads may already carry `quoted` attrs.
   // ---------------------------------------------------------------------------
 
-  test('KNOWN GAP: `quoted:true` on a legacy block is ignored', () {
-    // A forward-migrated document might attach `quoted: true` to a paragraph
-    // in the new style. The legacy decoder only recognizes `type: "quote"` and
-    // ignores the `quoted` attribute entirely, so such a block decodes as a
-    // plain paragraph.
+  test('preserves `quoted:true` on a legacy text block', () {
     final source = jsonEncode(<Object?>[
       <String, Object?>{
         'type': 'text',
@@ -227,7 +274,7 @@ void main() {
     final document = codec.decode(source);
     final block = document.blocks.single as TextBlockNode;
     expect(block.type, BlockType.paragraph);
-    expect(block.attributes.quoted, isNull);
+    expect(block.attributes.quoted, isTrue);
   });
 
   // ---------------------------------------------------------------------------
@@ -347,10 +394,9 @@ void main() {
 
     // Header cell with bold text.
     expect(table.table.cellAt(0, 0)?.plainText, '名称');
-    final headerRun =
-        (table.table.cellAt(0, 0)!.blocks.single as TextBlockNode)
-            .content
-            .first as TextRun;
+    final headerRun = (table.table.cellAt(0, 0)!.blocks.single as TextBlockNode)
+        .content
+        .first as TextRun;
     expect(headerRun.attributes.bold, isTrue);
 
     // Mixed cell: image carries a cell-level alignment that coexists with the
@@ -479,4 +525,8 @@ void main() {
       ),
     );
   });
+}
+
+String _fixture(String name) {
+  return File('test/fixtures/legacy_wenz_editor/$name').readAsStringSync();
 }

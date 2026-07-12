@@ -168,9 +168,8 @@ class WenzEditorBootstrap {
             outlineController: outlineController,
           )
         : null;
-    final toolbarController = configuration.enableToolbar
-        ? ToolbarController(controller)
-        : null;
+    final toolbarController =
+        configuration.enableToolbar ? ToolbarController(controller) : null;
     final statsController = configuration.enableStats
         ? WenzDocumentStatsController(editor: controller)
         : null;
@@ -519,6 +518,7 @@ class WenzEditorBootstrap {
   /// [WenzEditorPermission.read], and may be overridden explicitly.
   WenzRichTextEditor buildEditor({
     Key? key,
+    Widget? topWidget,
     EdgeInsetsGeometry? padding,
     double? blockSpacing,
     TextStyle? textStyle,
@@ -530,6 +530,7 @@ class WenzEditorBootstrap {
     bool showDebugOverlay = false,
     bool enableIme = true,
     VoidCallback? onFindRequested,
+    ValueChanged<String>? onSelectionSearchRequested,
     VoidCallback? onReplaceRequested,
     WenzLinkInteractionCallback? onOpenLink,
   }) {
@@ -543,6 +544,7 @@ class WenzEditorBootstrap {
     return WenzRichTextEditor(
       key: key,
       controller: controller,
+      topWidget: topWidget,
       padding: padding ?? const EdgeInsets.all(16),
       blockSpacing: blockSpacing ?? _kEditorDefaultBlockSpacing,
       textStyle: textStyle,
@@ -550,8 +552,8 @@ class WenzEditorBootstrap {
       physics: physics,
       focusNode: focusNode,
       autofocus: autofocus,
-      readOnly: readOnly ??
-          (configuration.permission == WenzEditorPermission.read),
+      readOnly:
+          readOnly ?? (configuration.permission == WenzEditorPermission.read),
       showDebugOverlay: showDebugOverlay,
       enableIme: enableIme,
       shortcutConfiguration: shortcutConfiguration,
@@ -565,13 +567,13 @@ class WenzEditorBootstrap {
       onOpenLink: onOpenLink ?? configuration.onOpenLink,
       findController: findReplaceController,
       onFindRequested: onFindRequested,
+      onSelectionSearchRequested: onSelectionSearchRequested,
       onReplaceRequested: onReplaceRequested,
       slashMenuController: slashMenuController,
       outlineController: outlineController,
       enableExternalImageInput: configuration.enableExternalImageInput,
       enableExternalDragDrop: configuration.enableExternalDragDrop,
-      enableMobileSelectionHandles:
-          configuration.enableMobileSelectionHandles,
+      enableMobileSelectionHandles: configuration.enableMobileSelectionHandles,
       externalImageClipboardReader: configuration.externalImageClipboardReader,
       externalImageStore: configuration.externalImageStore,
       accessibility: configuration.accessibility,

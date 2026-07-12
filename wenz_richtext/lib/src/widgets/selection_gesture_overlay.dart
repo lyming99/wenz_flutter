@@ -26,10 +26,9 @@ typedef TapSelectionFocusPredicate = bool Function(
   Offset globalPosition,
 );
 
-/// Reports a qualifying single-finger text tap after it has placed a collapsed
-/// caret. The editor uses this to decide whether its mobile caret toolbar may
-/// be shown; selection gestures deliberately do not own toolbar lifecycle.
-typedef MobileCaretTapHandler = void Function(
+/// Reports a qualifying mobile tap or long-press after it has placed a
+/// collapsed caret. The editor owns toolbar eligibility and lifecycle.
+typedef MobileCaretToolbarRequestHandler = void Function(
   DocumentPosition caret,
   Offset globalPosition,
 );
@@ -95,7 +94,7 @@ class SelectionGestureOverlay extends StatefulWidget {
     this.shouldDeferTapSelection,
     this.shouldCommitDeferredTapSelection,
     this.shouldRequestFocusForTapSelection,
-    this.onMobileCaretTap,
+    this.onMobileCaretToolbarRequested,
     this.onMobileCaretToolbarDismissed,
     this.onTapBeyondContent,
     this.onContextMenuRequested,
@@ -132,11 +131,12 @@ class SelectionGestureOverlay extends StatefulWidget {
   /// Controls whether a tap selection should also request text-input focus.
   final TapSelectionFocusPredicate? shouldRequestFocusForTapSelection;
 
-  /// Called only for a single-finger tap on an editable text-bearing path that
-  /// has just placed a collapsed caret. Object blocks, links, long-presses,
-  /// drags, double/triple taps, mouse input, and excluded chrome never reach
-  /// this callback.
-  final MobileCaretTapHandler? onMobileCaretTap;
+  /// Called after a qualifying single-finger tap on the existing collapsed
+  /// caret, or a long-press whose word range is empty, on an editable text path.
+  /// The first tap that only places/moves the caret does not request a toolbar.
+  /// Object blocks, links, selection drags, multi-taps, mouse input, and
+  /// excluded chrome never reach this callback.
+  final MobileCaretToolbarRequestHandler? onMobileCaretToolbarRequested;
 
   /// Called at the start of every touch sequence on a mobile selection
   /// surface. Toolbar widgets are layered above this surface, so touches on a
@@ -656,17 +656,19 @@ class _SelectionGestureOverlayState extends State<SelectionGestureOverlay> {
         } else if (anchor.path.isBlockObject) {
           _selectBlock(anchor);
         } else {
+          final tappedCurrentCaret = _isCurrentCollapsedCaret(anchor);
           widget.onSelectionChanged(
             DocumentSelection(base: anchor, extent: anchor),
           );
-          if (_shouldReportMobileCaretTap(
+          if (_shouldRequestMobileCaretToolbarForTap(
             event,
             anchor,
             position,
             tapCount: tapCount,
             isShiftSelecting: isShiftSelecting,
+            tappedCurrentCaret: tappedCurrentCaret,
           )) {
-            widget.onMobileCaretTap?.call(anchor, position);
+            widget.onMobileCaretToolbarRequested?.call(anchor, position);
           }
         }
       }
@@ -676,18 +678,38 @@ class _SelectionGestureOverlayState extends State<SelectionGestureOverlay> {
     _isShiftSelecting = false;
   }
 
-  bool _shouldReportMobileCaretTap(
+  bool _shouldRequestMobileCaretToolbarForTap(
     PointerUpEvent event,
     DocumentPosition anchor,
     Offset globalPosition, {
     required int tapCount,
     required bool isShiftSelecting,
+    required bool tappedCurrentCaret,
   }) {
     if (!widget.useMobileTouchGestures ||
         widget.readOnly ||
         event.kind != PointerDeviceKind.touch ||
         tapCount != 1 ||
         isShiftSelecting ||
+        !tappedCurrentCaret) {
+      return false;
+    }
+    return _canRequestMobileCaretToolbar(anchor, globalPosition);
+  }
+
+  bool _isCurrentCollapsedCaret(DocumentPosition anchor) {
+    final selection = widget.currentSelection;
+    return selection != null &&
+        selection.isCollapsed &&
+        selection.extent == anchor;
+  }
+
+  bool _canRequestMobileCaretToolbar(
+    DocumentPosition anchor,
+    Offset globalPosition,
+  ) {
+    if (!widget.useMobileTouchGestures ||
+        widget.readOnly ||
         !_isTextInputPath(anchor.path)) {
       return false;
     }
@@ -697,9 +719,7 @@ class _SelectionGestureOverlayState extends State<SelectionGestureOverlay> {
   }
 
   bool _isTextInputPath(PositionPath path) {
-    return path.isBlockText ||
-        path.isBlockCode ||
-        path.isTableCellText;
+    return path.isBlockText || path.isBlockCode || path.isTableCellText;
   }
 
   bool _shouldDeferTapSelection(
@@ -853,14 +873,19 @@ class _SelectionGestureOverlayState extends State<SelectionGestureOverlay> {
     if (anchor == null) {
       return;
     }
-    _longPressWordSelected = true;
-    widget.focusNode.requestFocus();
-    _selectWord(anchor, global);
     final range = widget.registry.wordRangeAt(
       anchor.blockId,
       anchor.offset,
       path: anchor.path,
     );
+    final selectedRangeIsCollapsed = range == null || range.isCollapsed;
+    _longPressWordSelected = true;
+    widget.focusNode.requestFocus();
+    _selectWord(anchor, global);
+    if (selectedRangeIsCollapsed &&
+        _canRequestMobileCaretToolbar(anchor, global)) {
+      widget.onMobileCaretToolbarRequested?.call(anchor, global);
+    }
     final baseOffset =
         range != null && !range.isCollapsed ? range.start : anchor.offset;
     _dragBase = anchor.copyWith(offset: baseOffset);

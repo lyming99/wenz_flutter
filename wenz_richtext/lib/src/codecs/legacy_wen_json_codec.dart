@@ -69,43 +69,69 @@ class LegacyWenJsonCodec {
   }
 
   BlockNode _decodeElement(Map<String, Object?> json, String id) {
-    final legacyType = json['type'] as String? ?? 'text';
+    final legacyType = _asString(json['type']).toLowerCase();
     switch (legacyType) {
       case 'title':
+      case 'heading':
+        final attributes = _blockAttributes(json);
         return TextBlockNode(
           id: id,
           type: BlockType.heading,
-          attributes: _blockAttributes(json, fallbackLevel: 1),
+          attributes: attributes.mergeWith(
+            BlockAttributes(level: _headingLevel(attributes.level)),
+          ),
           content: _textContent(json),
         );
       case 'quote':
+        final attributes = _blockAttributes(json, forceQuoted: true);
+        final isHeading = (attributes.level ?? 0) > 0;
         return TextBlockNode(
           id: id,
-          type: BlockType.quote,
-          attributes: _blockAttributes(json),
+          type: isHeading ? BlockType.heading : BlockType.paragraph,
+          attributes: isHeading
+              ? attributes.mergeWith(
+                  BlockAttributes(level: _headingLevel(attributes.level)),
+                )
+              : attributes,
           content: _textContent(json),
         );
       case 'text':
+      case 'paragraph':
+      case 'listitem':
         final attrs = _blockAttributes(json);
+        final itemType = _legacyListType(json);
+        final isList = _isListType(itemType) || attrs.checked != null;
+        // wenz_editor creates TitleBlock from WenTextElement.level, not from
+        // its type. In particular, the default empty title is serialized as
+        // {"type":"text","level":1,...}. Preserve list semantics first,
+        // then treat every non-list text element with level > 0 as a heading.
+        final isHeading = !isList && (attrs.level ?? 0) > 0;
         return TextBlockNode(
           id: id,
-          type:
-              attrs.listType == null ? BlockType.paragraph : BlockType.listItem,
-          attributes: attrs,
+          type: isList
+              ? BlockType.listItem
+              : isHeading
+                  ? BlockType.heading
+                  : BlockType.paragraph,
+          attributes: isHeading
+              ? attrs.mergeWith(
+                  BlockAttributes(level: _headingLevel(attrs.level)),
+                )
+              : attrs,
           content: _textContent(json),
         );
       case 'code':
         return CodeBlockNode(
           id: id,
-          code: json['code'] as String? ?? '',
-          language: json['language'] as String? ?? '',
+          code: _asString(json['code']),
+          language: _asString(json['language']),
           attributes: _blockAttributes(json),
         );
       case 'image':
         return ImageBlockNode(
           id: id,
-          assetId: json['id'] as String? ?? '',
-          file: json['file'] as String? ?? '',
+          assetId: _firstString(json, const <String>['assetId', 'id']),
+          file: _firstString(json, const <String>['file', 'src', 'url']),
           width: _asInt(json['width']),
           height: _asInt(json['height']),
           showWidth: _asDouble(json['showWidth']),
@@ -119,6 +145,7 @@ class LegacyWenJsonCodec {
           attributes: _blockAttributes(json),
         );
       case 'line':
+      case 'divider':
         return DividerBlockNode(id: id, attributes: _blockAttributes(json));
       case 'video':
         return _videoBlock(json, id);
@@ -169,16 +196,23 @@ class LegacyWenJsonCodec {
 
   BlockAttributes _blockAttributes(
     Map<String, Object?> json, {
-    int? fallbackLevel,
+    bool forceQuoted = false,
   }) {
-    final itemType = json['itemType'] as String?;
+    final itemType = _legacyListType(json);
+    final listType = _normalizedListType(itemType);
+    final checked = _asBool(_legacyBlockValue(json, 'checked'));
     return BlockAttributes(
-      level: _asNullableInt(json['level']) ?? fallbackLevel,
-      indent: _asNullableInt(json['indent']),
-      alignment: json['alignment'] as String?,
-      listType: _isListType(itemType) ? itemType : null,
-      checked: json['checked'] as bool?,
-      childNote: json['childNote'] as String?,
+      level: _asNullableInt(_legacyBlockValue(json, 'level')),
+      indent: _asNullableInt(_legacyBlockValue(json, 'indent')),
+      alignment: _nullableString(_legacyBlockValue(json, 'alignment')),
+      listType: listType,
+      checked: listType == 'task' ? checked ?? false : checked,
+      quoted: forceQuoted
+          ? true
+          : _asBool(_legacyBlockValue(json, 'quoted')) ??
+              _asBool(_legacyBlockValue(json, 'quote')),
+      childNote: _nullableString(_legacyBlockValue(json, 'childNote')),
+      anchor: _nullableString(_legacyBlockValue(json, 'anchor')),
     );
   }
 
@@ -190,7 +224,7 @@ class LegacyWenJsonCodec {
       result.add(TextRun(text: text, attributes: parentAttrs));
     }
 
-    final children = json['children'];
+    final children = json['children'] ?? json['content'];
     if (children is List) {
       for (final child in children.whereType<Map>()) {
         result.add(_inlineNode(Map<String, Object?>.from(child), parentAttrs));
@@ -274,15 +308,53 @@ class LegacyWenJsonCodec {
     return TableCellNode(
       id: id,
       blocks: <BlockNode>[_decodeElement(json, id)],
-      alignment:
-          alignment is String && alignment.isNotEmpty ? alignment : null,
+      alignment: alignment is String && alignment.isNotEmpty ? alignment : null,
     );
   }
 
+  String? _legacyListType(Map<String, Object?> json) {
+    final value = _legacyBlockValue(json, 'itemType') ??
+        _legacyBlockValue(json, 'listType');
+    final normalized = _asString(value).toLowerCase();
+    return normalized.isEmpty ? null : normalized;
+  }
+
   bool _isListType(String? itemType) {
-    return itemType == 'li' || itemType == 'oli' || itemType == 'check';
+    return itemType == 'li' ||
+        itemType == 'unordered' ||
+        itemType == 'bullet' ||
+        itemType == 'oli' ||
+        itemType == 'ordered' ||
+        itemType == 'numbered' ||
+        itemType == 'check' ||
+        itemType == 'task' ||
+        itemType == 'todo';
+  }
+
+  String? _normalizedListType(String? itemType) {
+    switch (itemType) {
+      case 'oli':
+      case 'ordered':
+      case 'numbered':
+        return 'ordered';
+      case 'check':
+      case 'task':
+      case 'todo':
+        return 'task';
+    }
+    return null;
   }
 }
+
+Object? _legacyBlockValue(Map<String, Object?> json, String key) {
+  if (json.containsKey(key)) {
+    return json[key];
+  }
+  final attrs = json['attrs'];
+  return attrs is Map ? attrs[key] : null;
+}
+
+int _headingLevel(int? value) => (value ?? 1).clamp(1, 6).toInt();
 
 int _asInt(Object? value) {
   if (value is int) {
@@ -328,6 +400,31 @@ String _asString(Object? value) {
     return value.trim();
   }
   return value.toString().trim();
+}
+
+String? _nullableString(Object? value) {
+  final text = _asString(value);
+  return text.isEmpty ? null : text;
+}
+
+bool? _asBool(Object? value) {
+  if (value is bool) {
+    return value;
+  }
+  if (value is num) {
+    return value != 0;
+  }
+  if (value is String) {
+    switch (value.trim().toLowerCase()) {
+      case 'true':
+      case '1':
+        return true;
+      case 'false':
+      case '0':
+        return false;
+    }
+  }
+  return null;
 }
 
 String _firstString(Map<String, Object?> json, List<String> keys) {

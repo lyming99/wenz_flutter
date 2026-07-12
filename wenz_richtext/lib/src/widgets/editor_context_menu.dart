@@ -280,6 +280,126 @@ const EdgeInsets _kSelectionToolbarPadding = EdgeInsets.symmetric(
 );
 const double _kSelectionToolbarButtonGap = 2.0;
 
+Widget _mobileTextToolbarSurface(
+  BuildContext context,
+  List<Widget> children,
+) {
+  final theme = Theme.of(context);
+  return Material(
+    color: theme.colorScheme.surfaceContainerLow,
+    elevation: _kSelectionToolbarElevation,
+    shadowColor: theme.colorScheme.shadow.withAlpha(30),
+    surfaceTintColor: Colors.transparent,
+    shape: RoundedRectangleBorder(
+      side: BorderSide(color: theme.colorScheme.outlineVariant),
+      borderRadius: BorderRadius.circular(_kSelectionToolbarRadius),
+    ),
+    clipBehavior: Clip.antiAlias,
+    child: Padding(
+      padding: _kSelectionToolbarPadding,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        primary: false,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: children,
+        ),
+      ),
+    ),
+  );
+}
+
+/// Action used by the mobile caret and expanded-selection toolbars.
+typedef WenzMobileSelectionToolbarAction = FutureOr<void> Function();
+
+/// Compact toolbar shown beside an explicitly tapped or long-pressed collapsed
+/// caret on a mobile surface.
+///
+/// A caret has no selected content, so only the useful insertion/selection
+/// actions are exposed: 全选、选择、粘贴. The editor resolves 选择 against the
+/// active text surface and supplies paste through its rich clipboard pipeline;
+/// direct users retain the controller-backed select-all fallback.
+class WenzMobileCaretToolbar extends StatelessWidget {
+  const WenzMobileCaretToolbar({
+    super.key,
+    required this.controller,
+    this.canEdit,
+    this.canPaste = false,
+    this.onSelect,
+    this.onPaste,
+    this.onSelectAll,
+  });
+
+  final WenzRichTextController controller;
+
+  /// Whether mutation actions are available for the active editor.
+  final bool? canEdit;
+
+  /// Whether the editor supplied a usable paste path.
+  final bool canPaste;
+
+  final WenzMobileSelectionToolbarAction? onSelect;
+  final WenzMobileSelectionToolbarAction? onPaste;
+  final WenzMobileSelectionToolbarAction? onSelectAll;
+
+  bool get _canEdit => canEdit ?? controller.canEdit;
+
+  bool get _canPaste => _canEdit && canPaste && onPaste != null;
+
+  @override
+  Widget build(BuildContext context) {
+    return _mobileTextToolbarSurface(
+      context,
+      <Widget>[
+        _SelectionToolbarTextButton(
+          id: 'caret-select-all',
+          label: '全选',
+          onPressed: _selectAll,
+        ),
+        _SelectionToolbarTextButton(
+          id: 'caret-select',
+          label: '选择',
+          onPressed: onSelect == null ? null : _select,
+        ),
+        _SelectionToolbarTextButton(
+          id: 'caret-paste',
+          label: '粘贴',
+          onPressed: _canPaste ? _paste : null,
+        ),
+      ],
+    );
+  }
+
+  void _select() {
+    final action = onSelect;
+    if (action != null) {
+      _run(action);
+    }
+  }
+
+  void _paste() {
+    final action = onPaste;
+    if (action != null) {
+      _run(action);
+    }
+  }
+
+  void _selectAll() => _run(onSelectAll ?? controller.selectAll);
+
+  void _run(WenzMobileSelectionToolbarAction action) {
+    unawaited(_runSafely(action));
+  }
+
+  Future<void> _runSafely(WenzMobileSelectionToolbarAction action) async {
+    try {
+      await action();
+    } on Object {
+      // Clipboard integrations may reject a platform request. The editor-level
+      // handler reports failures; this compact toolbar remains no-throw.
+    }
+  }
+}
+
 /// Compact touch selection toolbar shown above a non-collapsed selection on
 /// mobile surfaces.
 ///
@@ -289,7 +409,6 @@ const double _kSelectionToolbarButtonGap = 2.0;
 /// selection, rich clipboard priority, history, and text-input synchronization
 /// remain centralized there. The controller fallbacks preserve the previous
 /// standalone copy / cut / select-all behaviour for direct users of this widget.
-typedef WenzMobileSelectionToolbarAction = FutureOr<void> Function();
 
 class WenzMobileSelectionToolbar extends StatelessWidget {
   const WenzMobileSelectionToolbar({
@@ -315,7 +434,7 @@ class WenzMobileSelectionToolbar extends StatelessWidget {
   /// Whether a paste handler is available for the active editor.
   final bool canPaste;
 
-  /// Whether a find surface is available for the active editor.
+  /// Whether a host search action is available for the active selection.
   final bool canSearch;
 
   final WenzMobileSelectionToolbarAction? onSelectAll;
@@ -332,55 +451,36 @@ class WenzMobileSelectionToolbar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final canEdit = _canEdit;
-    return Material(
-      color: theme.colorScheme.surfaceContainerLow,
-      elevation: _kSelectionToolbarElevation,
-      shadowColor: theme.colorScheme.shadow.withAlpha(30),
-      surfaceTintColor: Colors.transparent,
-      shape: RoundedRectangleBorder(
-        side: BorderSide(color: theme.colorScheme.outlineVariant),
-        borderRadius: BorderRadius.circular(_kSelectionToolbarRadius),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Padding(
-        padding: _kSelectionToolbarPadding,
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          primary: false,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              _SelectionToolbarTextButton(
-                id: 'select-all',
-                label: '全选',
-                onPressed: _selectAll,
-              ),
-              _SelectionToolbarTextButton(
-                id: 'cut',
-                label: '剪切',
-                onPressed: _canEdit ? _cut : null,
-              ),
-              _SelectionToolbarTextButton(
-                id: 'copy',
-                label: '复制',
-                onPressed: _copy,
-              ),
-              _SelectionToolbarTextButton(
-                id: 'paste',
-                label: '粘贴',
-                onPressed: _canPaste ? _paste : null,
-              ),
-              _SelectionToolbarTextButton(
-                id: 'search',
-                label: '搜索',
-                onPressed: _canSearch ? _search : null,
-              ),
-            ],
-          ),
+    return _mobileTextToolbarSurface(
+      context,
+      <Widget>[
+        _SelectionToolbarTextButton(
+          id: 'select-all',
+          label: '全选',
+          onPressed: _selectAll,
         ),
-      ),
+        _SelectionToolbarTextButton(
+          id: 'cut',
+          label: '剪切',
+          onPressed: canEdit ? _cut : null,
+        ),
+        _SelectionToolbarTextButton(
+          id: 'copy',
+          label: '复制',
+          onPressed: _copy,
+        ),
+        _SelectionToolbarTextButton(
+          id: 'paste',
+          label: '粘贴',
+          onPressed: _canPaste ? _paste : null,
+        ),
+        _SelectionToolbarTextButton(
+          id: 'search',
+          label: '搜索',
+          onPressed: _canSearch ? _search : null,
+        ),
+      ],
     );
   }
 
