@@ -9,6 +9,13 @@ import '../core/model/inline_node.dart';
 import '../core/model/rich_text_document.dart';
 import '../core/model/table_model.dart';
 
+/// Versioned HTML metadata used to preserve Wenz block semantics on clipboard
+/// HTML without exposing document-local block identities.
+const String wenzHtmlFormatVersion = 'v1';
+const String wenzHtmlFormatAttribute = 'data-wenz-format';
+const String wenzHtmlContentAttribute = 'data-wenz-content';
+const String wenzHtmlAttributesAttribute = 'data-wenz-attrs';
+
 /// Exports and imports a [RichTextDocument] as an HTML fragment.
 ///
 /// **Export** (`encode`) maps each block to its HTML element and each inline
@@ -67,17 +74,22 @@ class HtmlCodec {
         final level = (text.attributes.level ?? 1).clamp(1, 6);
         return _quoteHtmlIfNeeded(
           text,
-          '<h$level>${_encodeInline(text.content)}</h$level>',
+          '<h$level${_blockMetadataAttributes(text)}>'
+          '${_encodeInline(text.content)}</h$level>',
         );
       case BlockType.paragraph:
         final text = block as TextBlockNode;
         final html = text.content.isEmpty
-            ? '<p></p>'
-            : '<p>${_encodeInline(text.content)}</p>';
+            ? '<p${_blockMetadataAttributes(text)}></p>'
+            : '<p${_blockMetadataAttributes(text)}>'
+                '${_encodeInline(text.content)}</p>';
         return _quoteHtmlIfNeeded(text, html);
       case BlockType.quote:
         final text = block as TextBlockNode;
-        return _quoteHtmlIfNeeded(text, '<p>${_encodeInline(text.content)}</p>');
+        return _quoteHtmlIfNeeded(
+          text,
+          '<p>${_encodeInline(text.content)}</p>',
+        );
       case BlockType.listItem:
         final text = block as TextBlockNode;
         return _quoteHtmlIfNeeded(text, _encodeListItem(text));
@@ -87,7 +99,8 @@ class HtmlCodec {
             ? ' class="language-${code.language}"'
             : '';
         final escaped = _escapeHtml(code.code);
-        return '<pre><code$langClass>$escaped</code></pre>';
+        return '<pre${_blockMetadataAttributes(code)}>'
+            '<code$langClass>$escaped</code></pre>';
       case BlockType.table:
         return _encodeTable(block as TableBlockNode);
       case BlockType.image:
@@ -103,7 +116,7 @@ class HtmlCodec {
         final file = block as FileBlockNode;
         return _encodeFileBlock(file);
       case BlockType.divider:
-        return '<hr>';
+        return '<hr${_blockMetadataAttributes(block)}>';
       case BlockType.callout:
         final callout = block as CalloutBlockNode;
         return _encodeCalloutBlock(callout);
@@ -114,33 +127,37 @@ class HtmlCodec {
     if (block.type != BlockType.quote && !block.attributes.isQuoted) {
       return html;
     }
-    return '<blockquote>$html</blockquote>';
+    final metadata =
+        block.type == BlockType.quote ? _blockMetadataAttributes(block) : '';
+    return '<blockquote$metadata>$html</blockquote>';
   }
 
   String _encodeListItem(TextBlockNode block) {
     final attrs = block.attributes;
     final body = _encodeInline(block.content);
+    final metadata = _blockMetadataAttributes(block);
     if (attrs.listType == 'task') {
       final checked = attrs.checked == true ? ' checked' : '';
-      return '<ul><li><input type="checkbox"$checked disabled> $body</li></ul>';
+      return '<ul><li$metadata><input type="checkbox"$checked disabled> '
+          '$body</li></ul>';
     }
     if (attrs.listType == 'ordered') {
       if (attrs.checked != null) {
         final checked = attrs.checked == true ? ' checked' : '';
-        return '<ol><li><input type="checkbox"$checked disabled> '
+        return '<ol><li$metadata><input type="checkbox"$checked disabled> '
             '$body</li></ol>';
       }
-      return '<ol><li>$body</li></ol>';
+      return '<ol><li$metadata>$body</li></ol>';
     }
-    return '<ul><li>$body</li></ul>';
+    return '<ul><li$metadata>$body</li></ul>';
   }
 
   String _encodeTable(TableBlockNode block) {
     final table = block.table;
     if (table.rows.isEmpty) {
-      return '<table></table>';
+      return '<table${_blockMetadataAttributes(block)}></table>';
     }
-    final buffer = StringBuffer('<table>');
+    final buffer = StringBuffer('<table${_blockMetadataAttributes(block)}>');
     for (var r = 0; r < table.rows.length; r++) {
       final row = table.rows[r];
       buffer.write('<tr>');
@@ -190,7 +207,12 @@ class HtmlCodec {
   }
 
   String _encodeTextRun(TextRun run) {
-    var text = _escapeHtml(run.text);
+    // A literal newline is collapsed by HTML renderers. Encode it as a line
+    // break so list-item bodies remain readable when pasted into external
+    // rich-text targets.
+    final normalizedText =
+        run.text.replaceAll('\r\n', '\n').replaceAll('\r', '\n');
+    var text = _escapeHtml(normalizedText).replaceAll('\n', '<br>');
     final attrs = run.attributes;
     if (attrs.bold == true) {
       text = '<strong>$text</strong>';
@@ -309,7 +331,8 @@ class HtmlCodec {
     if (image.height > 0) {
       sizeAttrs.write(' data-height="${image.height}"');
     }
-    final img = '<img src="$src" alt="$alt"$sizeAttrs>';
+    final img = '<img${_blockMetadataAttributes(image)} src="$src" '
+        'alt="$alt"$sizeAttrs>';
     final alignment = _imageBlockAlignment(image.attributes.alignment);
     final figureAttrs =
         alignment == null ? '' : ' style="text-align: $alignment"';
@@ -322,7 +345,9 @@ class HtmlCodec {
   String _encodeFileBlock(FileBlockNode file) {
     final href = _escapeHtml(file.effectiveDownloadUrl);
     final name = _escapeHtml(file.displayName);
-    final attrs = StringBuffer(' href="$href" data-wenz-block="file"');
+    final attrs = StringBuffer(
+      '${_blockMetadataAttributes(file)} href="$href" data-wenz-block="file"',
+    );
     if (file.assetId.isNotEmpty) {
       attrs.write(' data-asset-id="${_escapeHtml(file.assetId)}"');
     }
@@ -346,7 +371,9 @@ class HtmlCodec {
 
   String _encodeVideoBlock(VideoBlockNode video) {
     final src = _escapeHtml(_videoSource(video));
-    final attrs = StringBuffer(' src="$src" data-wenz-block="video"');
+    final attrs = StringBuffer(
+      '${_blockMetadataAttributes(video)} src="$src" data-wenz-block="video"',
+    );
     if (video.assetId.isNotEmpty) {
       attrs.write(' data-asset-id="${_escapeHtml(video.assetId)}"');
     }
@@ -391,7 +418,7 @@ class HtmlCodec {
 
   String _encodeBlockEmbed(BlockEmbedNode embed) {
     final attrs = StringBuffer(
-      ' data-wenz-block="embed"'
+      '${_blockMetadataAttributes(embed)} data-wenz-block="embed"'
       ' data-embed-type="${_escapeHtml(embed.normalizedEmbedType)}"',
     );
     final encodedData = _tryEncodeEmbedData(embed.data);
@@ -416,7 +443,8 @@ class HtmlCodec {
     final variant = callout.normalizedVariant;
     final icon = callout.effectiveIcon;
     final title = callout.effectiveTitle;
-    return '<aside class="wenz-callout" data-wenz-block="callout" '
+    return '<aside${_blockMetadataAttributes(callout)} class="wenz-callout" '
+        'data-wenz-block="callout" '
         'data-callout-variant="${_escapeHtml(variant)}" '
         'data-callout-icon="${_escapeHtml(icon)}">'
         '<div data-callout-title>${_escapeHtml(title)}</div>'
@@ -458,6 +486,26 @@ class HtmlCodec {
 
   String _hexByte(int value) {
     return value.toRadixString(16).padLeft(2, '0').toUpperCase();
+  }
+
+  String _blockMetadataAttributes(BlockNode block) {
+    final content = Map<String, Object?>.from(block.toJson())
+      ..remove('id')
+      ..remove('type')
+      ..remove('attrs');
+    final attrs = block.attributes.toJson();
+    final format = 'wenz-richtext:$wenzHtmlFormatVersion:${block.type.name}';
+    return ' $wenzHtmlFormatAttribute="$format"'
+        ' $wenzHtmlContentAttribute="${_escapeHtml(_encodeMetadataJson(content))}"'
+        ' $wenzHtmlAttributesAttribute="${_escapeHtml(_encodeMetadataJson(attrs))}"';
+  }
+
+  String _encodeMetadataJson(Object value) {
+    try {
+      return jsonEncode(value);
+    } on Object {
+      return '{}';
+    }
   }
 
   String _escapeHtml(String text) {
@@ -536,9 +584,14 @@ class HtmlCodec {
           return;
         case 'p':
           final inline = _parseInline(node);
+          final legacyListAttributes =
+              _wenzEditorListAttributes(node.attributes);
           blocks.add(TextBlockNode(
-            id: newId('p'),
-            type: BlockType.paragraph,
+            id: newId(legacyListAttributes == null ? 'p' : 'legacy-list'),
+            type: legacyListAttributes == null
+                ? BlockType.paragraph
+                : BlockType.listItem,
+            attributes: legacyListAttributes ?? const BlockAttributes(),
             content: inline,
           ));
           return;
@@ -547,11 +600,31 @@ class HtmlCodec {
           return;
         case 'ul':
         case 'ol':
-          final listType = tag == 'ol' ? 'ordered' : null;
-          for (final child in node.children) {
-            if (child.localName?.toLowerCase() == 'li') {
-              blocks.add(_decodeListItem(child, listType, newId));
-            }
+          // Clipboard producers commonly wrap list items in presentation
+          // elements. Collect every descendant item in source order instead
+          // of requiring a direct `<ul>/<ol> -> <li>` relationship.
+          for (final item in node.querySelectorAll('li')) {
+            blocks.add(_decodeListItem(
+              item,
+              _listTypeForItem(item, tag == 'ol' ? 'ordered' : null),
+              newId,
+            ));
+          }
+          return;
+        case 'li':
+          // Clipboard HTML can contain list-item fragments without their
+          // surrounding `<ul>` (or inside an otherwise unknown container).
+          // Treat those items as unordered lists rather than recursing into
+          // their text and turning them into paragraphs. Flatten any nested
+          // items in source order so a fragment like
+          // `<li>own<ul><li>child</li></ul></li>` keeps the child instead of
+          // dropping it (the parent's own body already excludes the nested
+          // list via the skipListContainers flag).
+          blocks.add(_decodeListItem(node, null, newId));
+          for (final nested in node.querySelectorAll('li')) {
+            blocks.add(
+              _decodeListItem(nested, _listTypeForItem(nested, null), newId),
+            );
           }
           return;
         case 'pre':
@@ -711,9 +784,8 @@ class HtmlCodec {
     String Function(String) newId,
   ) {
     if (block is TextBlockNode) {
-      final type = block.type == BlockType.quote
-          ? BlockType.paragraph
-          : block.type;
+      final type =
+          block.type == BlockType.quote ? BlockType.paragraph : block.type;
       return TextBlockNode(
         id: block.id,
         type: type,
@@ -951,34 +1023,44 @@ class HtmlCodec {
     String? listType,
     String Function(String) newId,
   ) {
-    // Detect a leading checkbox input for task list items.
+    // Clipboard task-list markup often wraps the checkbox in a label or span,
+    // so inspect descendants rather than only direct children.
     var checked = false;
     var isTask = false;
     dom.Element? checkboxInput;
-    for (final child in li.children) {
-      if (child.localName?.toLowerCase() == 'input') {
-        final type = child.attributes['type'];
-        if (type == 'checkbox') {
-          isTask = true;
-          checked = child.attributes.containsKey('checked');
-          checkboxInput = child;
-          break;
-        }
+    for (final input in li.querySelectorAll('input')) {
+      if (input.attributes['type']?.toLowerCase() == 'checkbox' &&
+          !_isInNestedList(input, li)) {
+        isTask = true;
+        checked = input.attributes.containsKey('checked');
+        checkboxInput = input;
+        break;
       }
     }
 
-    // Build the inline content, dropping the checkbox input node.
+    // Build the inline content, dropping the checkbox and any nested list.
+    // Nested list items are emitted separately by the enclosing list decoder;
+    // including their text here would duplicate it in the parent item. The
+    // skipListContainers flag drops nested lists even when they sit inside a
+    // wrapper element (`<li>own<div><ul>…</ul></div></li>`), so only this
+    // item's own text survives.
     final inline = <InlineNode>[];
     for (final child in li.nodes) {
       if (child == checkboxInput) {
         continue;
       }
-      inline.addAll(_parseInline(child));
+      // Iterate the list item's direct children directly as inline nodes,
+      // rather than via [_parseInline]. [_parseInline] walks a node's own
+      // children, so passing a bare text node (the common `<li>one</li>`
+      // case) would drop its text because text nodes have no children.
+      inline.addAll(
+        _parseInlineNode(child, const TextAttributes(),
+            skipListContainers: true),
+      );
     }
 
-    final effectiveListType = isTask
-        ? (listType == 'ordered' ? 'ordered' : 'task')
-        : listType;
+    final effectiveListType =
+        isTask ? (listType == 'ordered' ? 'ordered' : 'task') : listType;
     final idPrefix = isTask
         ? (listType == 'ordered' ? 'oli-task' : 'task')
         : (listType == 'ordered' ? 'oli' : 'li');
@@ -991,6 +1073,93 @@ class HtmlCodec {
       ),
       content: inline,
     );
+  }
+
+  /// Converts the custom list attributes emitted by the legacy `wenz_editor`.
+  ///
+  /// That editor serialises list rows as paragraphs instead of standard
+  /// `<ul>/<ol>/<li>` markup:
+  ///
+  /// - `<p itemType="li">` for an unordered item;
+  /// - `<p itemType="oli">` for an ordered item;
+  /// - `<p itemType="check">` for a task item.
+  ///
+  /// HTML attribute names are normalised to lower case by `package:html`, so
+  /// read `itemtype` even though the producer writes `itemType`.
+  BlockAttributes? _wenzEditorListAttributes(
+    Map<Object, String> attributes,
+  ) {
+    final itemType = attributes['itemtype']?.trim().toLowerCase();
+    if (itemType != 'li' && itemType != 'oli' && itemType != 'check') {
+      return null;
+    }
+
+    final indent = int.tryParse(attributes['indent']?.trim() ?? '');
+    switch (itemType) {
+      case 'oli':
+        return BlockAttributes(listType: 'ordered', indent: indent);
+      case 'check':
+        return BlockAttributes(
+          listType: 'task',
+          checked: _parseHtmlBoolean(attributes['checked']) ?? false,
+          indent: indent,
+        );
+      case 'li':
+        return BlockAttributes(indent: indent);
+    }
+    return null;
+  }
+
+  bool? _parseHtmlBoolean(String? value) {
+    if (value == null) {
+      return null;
+    }
+    switch (value.trim().toLowerCase()) {
+      case '':
+      case 'true':
+      case '1':
+      case 'checked':
+        return true;
+      case 'false':
+      case '0':
+      case 'unchecked':
+        return false;
+    }
+    return null;
+  }
+
+  String? _listTypeForItem(dom.Element item, String? fallback) {
+    for (dom.Node? ancestor = item.parentNode;
+        ancestor != null;
+        ancestor = ancestor.parentNode) {
+      if (ancestor is! dom.Element) {
+        continue;
+      }
+      final tag = ancestor.localName?.toLowerCase();
+      if (tag == 'ol') {
+        return 'ordered';
+      }
+      if (tag == 'ul') {
+        return null;
+      }
+    }
+    return fallback;
+  }
+
+  bool _isListContainer(dom.Element element) {
+    final tag = element.localName?.toLowerCase();
+    return tag == 'ul' || tag == 'ol';
+  }
+
+  bool _isInNestedList(dom.Element element, dom.Element listItem) {
+    for (dom.Node? ancestor = element.parentNode;
+        ancestor != null && !identical(ancestor, listItem);
+        ancestor = ancestor.parentNode) {
+      if (ancestor is dom.Element && _isListContainer(ancestor)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   BlockNode _decodePre(dom.Element pre, String Function(String) newId) {
@@ -1156,10 +1325,17 @@ class HtmlCodec {
 
   /// Parses a single DOM node as inline content, carrying inherited
   /// [attributes] for nested emphasis.
+  ///
+  /// When [skipListContainers] is true, nested `<ul>`/`<ol>` subtrees are
+  /// ignored. List-item decoding uses this so a nested list's text is emitted
+  /// by the enclosing list decoder instead of being duplicated into the parent
+  /// item's body — including when the nested list sits inside a wrapper element
+  /// such as `<li>own<div><ul>…</ul></div></li>`.
   List<InlineNode> _parseInlineNode(
     dom.Node node,
-    TextAttributes attributes,
-  ) {
+    TextAttributes attributes, {
+    bool skipListContainers = false,
+  }) {
     if (node is dom.Text) {
       final text = node.text;
       if (text.isEmpty) {
@@ -1169,31 +1345,45 @@ class HtmlCodec {
     }
     if (node is dom.Element) {
       final tag = node.localName!.toLowerCase();
+      if (skipListContainers && (tag == 'ul' || tag == 'ol')) {
+        return const <InlineNode>[];
+      }
       final elementAttributes = _attributesWithElementStyle(node, attributes);
       switch (tag) {
         case 'strong':
         case 'b':
-          return _parseChildren(node, elementAttributes.copyWith(bold: true));
+          return _parseChildren(
+            node,
+            elementAttributes.copyWith(bold: true),
+            skipListContainers: skipListContainers,
+          );
         case 'em':
         case 'i':
-          return _parseChildren(node, elementAttributes.copyWith(italic: true));
+          return _parseChildren(
+            node,
+            elementAttributes.copyWith(italic: true),
+            skipListContainers: skipListContainers,
+          );
         case 's':
         case 'del':
         case 'strike':
           return _parseChildren(
             node,
             elementAttributes.copyWith(lineThrough: true),
+            skipListContainers: skipListContainers,
           );
         case 'u':
           return _parseChildren(
             node,
             elementAttributes.copyWith(underline: true),
+            skipListContainers: skipListContainers,
           );
         case 'a':
           final href = node.attributes['href'] ?? '';
           return _parseChildren(
             node,
             elementAttributes.copyWith(url: href.isEmpty ? null : href),
+            skipListContainers: skipListContainers,
           );
         case 'br':
           return const <InlineNode>[TextRun(text: '\n')];
@@ -1230,9 +1420,17 @@ class HtmlCodec {
         case 'sup':
         case 'code':
           // Inline code / generic wrappers: recurse with current attrs.
-          return _parseChildren(node, elementAttributes);
+          return _parseChildren(
+            node,
+            elementAttributes,
+            skipListContainers: skipListContainers,
+          );
         default:
-          return _parseChildren(node, elementAttributes);
+          return _parseChildren(
+            node,
+            elementAttributes,
+            skipListContainers: skipListContainers,
+          );
       }
     }
     return const <InlineNode>[];
@@ -1263,7 +1461,8 @@ class HtmlCodec {
   }
 
   int? _parseElementColor(dom.Element element) {
-    return _parseCssColor(_styleProperty(element.attributes['style'], 'color')) ??
+    return _parseCssColor(
+            _styleProperty(element.attributes['style'], 'color')) ??
         _parseCssColor(element.attributes['color']);
   }
 
@@ -1370,11 +1569,18 @@ class HtmlCodec {
 
   List<InlineNode> _parseChildren(
     dom.Element element,
-    TextAttributes attributes,
-  ) {
+    TextAttributes attributes, {
+    bool skipListContainers = false,
+  }) {
     final runs = <InlineNode>[];
     for (final child in element.nodes) {
-      runs.addAll(_parseInlineNode(child, attributes));
+      runs.addAll(
+        _parseInlineNode(
+          child,
+          attributes,
+          skipListContainers: skipListContainers,
+        ),
+      );
     }
     return runs;
   }

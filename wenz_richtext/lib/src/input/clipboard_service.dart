@@ -9,12 +9,81 @@ import '../core/model/inline_node.dart';
 import '../core/model/rich_text_document.dart';
 import '../core/model/table_model.dart';
 import '../core/position/document_position.dart';
+import 'clipboard_debug_log.dart';
 import 'external_image_input.dart';
 
 /// Magic prefix marking a clipboard payload as wenz-richtext rich JSON. The
 /// platform clipboard only carries plain text reliably across Windows/Web, so
 /// rich payloads are encoded as `<prefix><json>` and detected on paste.
 const String wenzClipboardPrefix = 'wenz-richtext-json:v1\n';
+
+const String _wenzClipboardHeader = 'wenz-richtext-json:v1';
+
+/// Whether [value] starts with a Wenz private clipboard header.
+///
+/// Windows clipboard transports may rewrite the header's LF delimiter to CRLF
+/// and some platform codecs prepend a UTF-8 BOM, so detection deliberately
+/// accepts those transport variants.
+bool hasWenzClipboardPrefix(String value) {
+  return _leadingWenzClipboardPrefixLength(_stripLeadingClipboardBom(value)) !=
+      null;
+}
+
+/// Canonicalises private clipboard data to exactly one LF-terminated header.
+///
+/// Besides CRLF/LF transport differences, repeated headers are removed so data
+/// produced by older buggy paste normalisation remains recoverable.
+String normalizeWenzClipboardPayload(String value) {
+  var body = _stripLeadingClipboardBom(value);
+  var prefixCount = 0;
+  while (true) {
+    final prefixLength = _leadingWenzClipboardPrefixLength(body);
+    if (prefixLength == null) {
+      break;
+    }
+    body = _stripLeadingClipboardBom(body.substring(prefixLength));
+    prefixCount += 1;
+  }
+  while (body.endsWith('\u0000')) {
+    body = body.substring(0, body.length - 1);
+  }
+  WenzClipboardDebugLog.event(
+    'payload.prefix-normalized',
+    fields: <String, Object?>{
+      'inputLength': value.length,
+      'prefixCount': prefixCount,
+      'changed': prefixCount != 1 || !value.startsWith(wenzClipboardPrefix),
+      'outputLength': wenzClipboardPrefix.length + body.length,
+    },
+  );
+  return '$wenzClipboardPrefix$body';
+}
+
+int? _leadingWenzClipboardPrefixLength(String value) {
+  if (!value.startsWith(_wenzClipboardHeader)) {
+    return null;
+  }
+  const offset = _wenzClipboardHeader.length;
+  if (value.length == offset) {
+    return offset;
+  }
+  if (value.startsWith('\r\n', offset)) {
+    return offset + 2;
+  }
+  final delimiter = value.codeUnitAt(offset);
+  if (delimiter == 0x0A || delimiter == 0x0D) {
+    return offset + 1;
+  }
+  return null;
+}
+
+String _stripLeadingClipboardBom(String value) {
+  var result = value;
+  while (result.startsWith('\uFEFF')) {
+    result = result.substring(1);
+  }
+  return result;
+}
 
 /// Private clipboard format carrying Wenz rich-text JSON.
 const String wenzRichTextClipboardFormat = 'application/x-wenz-richtext';
@@ -33,6 +102,38 @@ enum ClipboardPasteFormat {
   plainText,
   markdown,
   html,
+}
+
+/// A rectangular clipboard fragment intended for table-cell paste.
+///
+/// Each item is a cell's block content. Keeping blocks (rather than only
+/// plain text) lets HTML and Wenz rich-text table payloads use the same shape
+/// as TSV while retaining their inline formatting for the table paste path.
+class ClipboardTableCellMatrix {
+  const ClipboardTableCellMatrix(this.cells);
+
+  final List<List<List<BlockNode>>> cells;
+
+  int get rowCount => cells.length;
+
+  int get columnCount => cells.fold<int>(
+        0,
+        (count, row) => row.length > count ? row.length : count,
+      );
+
+  /// A one-cell payload keeps the existing inline paste behaviour.
+  bool get isSingleCell => rowCount == 1 && columnCount == 1;
+
+  List<BlockNode>? cellAt(int rowIndex, int columnIndex) {
+    if (rowIndex < 0 || rowIndex >= cells.length) {
+      return null;
+    }
+    final row = cells[rowIndex];
+    if (columnIndex < 0 || columnIndex >= row.length) {
+      return null;
+    }
+    return row[columnIndex];
+  }
 }
 
 /// Structured copy result with all clipboard flavours prepared from the same
@@ -153,7 +254,20 @@ class ClipboardService {
     RichTextDocument document,
     DocumentSelection? selection,
   ) {
+    WenzClipboardDebugLog.event(
+      'copy.request',
+      fields: <String, Object?>{
+        'documentBlocks': document.blocks.length,
+        'selection': WenzClipboardDebugLog.selection(selection),
+      },
+    );
     if (selection == null || selection.isCollapsed) {
+      WenzClipboardDebugLog.event(
+        'copy.skipped',
+        fields: <String, Object?>{
+          'reason': selection == null ? 'no-selection' : 'collapsed-selection',
+        },
+      );
       return null;
     }
     final range = selection.tableCellRange;
@@ -179,29 +293,70 @@ class ClipboardService {
     String raw, {
     ClipboardPasteFormat format = ClipboardPasteFormat.auto,
   }) {
+    WenzClipboardDebugLog.event(
+      'parse.request',
+      fields: <String, Object?>{
+        'requestedFormat': format.name,
+        'hasWenzPrefix': hasWenzClipboardPrefix(raw),
+        'input': WenzClipboardDebugLog.text(raw),
+      },
+    );
     final context = ClipboardPasteContext(raw: raw, format: format);
     for (final transformer in pasteTransformers) {
       final paste = transformer.transform(context);
       if (paste != null) {
-        return paste;
+        return _tracePasteResult('transformer:${transformer.id}', paste);
       }
     }
     switch (format) {
       case ClipboardPasteFormat.markdown:
-        return parseMarkdown(raw) ?? ClipboardPaste.plain(raw);
+        return _tracePasteResult(
+          'markdown',
+          parseMarkdown(raw) ?? _plainPaste(raw),
+        );
       case ClipboardPasteFormat.html:
-        return parseHtml(raw) ?? ClipboardPaste.plain(raw);
+        return _tracePasteResult('html', parseHtml(raw) ?? _plainPaste(raw));
       case ClipboardPasteFormat.plainText:
-        return ClipboardPaste.plain(raw);
+        return _tracePasteResult('plain-text-explicit', _plainPaste(raw));
       case ClipboardPasteFormat.auto:
         break;
     }
-    if (raw.startsWith(wenzClipboardPrefix)) {
-      return _parseWenzRichTextPayload(raw);
+    if (hasWenzClipboardPrefix(raw)) {
+      return _tracePasteResult(
+        'wenz-private',
+        _parseWenzRichTextPayload(normalizeWenzClipboardPayload(raw)),
+      );
     }
     // Plain text. Split into lines: first line stays inline, the rest become
     // new blocks via Enter-on-paste.
-    return ClipboardPaste.plain(raw);
+    return _tracePasteResult('plain-text-auto', _plainPaste(raw));
+  }
+
+  ClipboardPaste _tracePasteResult(String source, ClipboardPaste paste) {
+    WenzClipboardDebugLog.event(
+      'parse.result',
+      fields: <String, Object?>{
+        'source': source,
+        'kind': paste.isBlocks
+            ? 'blocks'
+            : paste.isRich
+                ? 'inline'
+                : 'plain',
+        'blockCount': paste.blocks.length,
+        'blocks': _clipboardBlocksSummary(paste.blocks),
+        'inlineRunCount': paste.inlineRuns.length,
+        'hasTableMatrix': paste.tableCellMatrix != null,
+        'text': WenzClipboardDebugLog.text(paste.text),
+      },
+    );
+    return paste;
+  }
+
+  ClipboardPaste _plainPaste(String raw) {
+    return ClipboardPaste.plain(
+      raw,
+      tableCellMatrix: _tableCellMatrixFromPlainText(raw),
+    );
   }
 
   /// Parses already separated clipboard flavours using editor paste priority.
@@ -216,32 +371,91 @@ class ClipboardService {
     String? markdown,
     String? plainText,
   }) {
+    WenzClipboardDebugLog.event(
+      'parse.formats',
+      fields: <String, Object?>{
+        'wenz': WenzClipboardDebugLog.text(wenzRichText),
+        'html': WenzClipboardDebugLog.text(html),
+        'markdown': WenzClipboardDebugLog.text(markdown),
+        'plain': WenzClipboardDebugLog.text(plainText),
+      },
+    );
     final rich = _nonEmptyClipboardString(wenzRichText);
     if (rich != null) {
-      return parse(_ensureWenzClipboardPrefix(rich));
+      WenzClipboardDebugLog.event(
+        'parse.format-selected',
+        fields: const <String, Object?>{'format': wenzRichTextClipboardFormat},
+      );
+      final paste = parse(normalizeWenzClipboardPayload(rich));
+      if (paste.hasContent) {
+        return paste;
+      }
+      WenzClipboardDebugLog.event(
+        'parse.format-rejected',
+        fields: const <String, Object?>{
+          'format': wenzRichTextClipboardFormat,
+          'reason': 'parsed-empty',
+        },
+      );
     }
     final plain = _nonEmptyClipboardString(plainText);
-    if (plain != null && plain.startsWith(wenzClipboardPrefix)) {
-      return parse(plain);
+    if (plain != null && hasWenzClipboardPrefix(plain)) {
+      WenzClipboardDebugLog.event(
+        'parse.format-selected',
+        fields: const <String, Object?>{'format': 'legacy-wenz-in-text/plain'},
+      );
+      final paste = parse(normalizeWenzClipboardPayload(plain));
+      if (paste.hasContent) {
+        return paste;
+      }
+      WenzClipboardDebugLog.event(
+        'parse.format-rejected',
+        fields: const <String, Object?>{
+          'format': 'legacy-wenz-in-text/plain',
+          'reason': 'parsed-empty',
+        },
+      );
     }
     final htmlText = _nonEmptyClipboardString(html);
     if (htmlText != null) {
+      WenzClipboardDebugLog.event(
+        'parse.format-selected',
+        fields: const <String, Object?>{'format': htmlClipboardFormat},
+      );
       return parse(htmlText, format: ClipboardPasteFormat.html);
     }
     final markdownText = _nonEmptyClipboardString(markdown);
     if (markdownText != null) {
+      WenzClipboardDebugLog.event(
+        'parse.format-selected',
+        fields: const <String, Object?>{'format': markdownClipboardFormat},
+      );
       return parse(markdownText, format: ClipboardPasteFormat.markdown);
     }
     if (plain != null) {
+      WenzClipboardDebugLog.event(
+        'parse.format-selected',
+        fields: const <String, Object?>{'format': plainTextClipboardFormat},
+      );
       return parse(plain, format: ClipboardPasteFormat.plainText);
     }
+    WenzClipboardDebugLog.event(
+      'parse.format-selected',
+      fields: const <String, Object?>{'format': 'none'},
+    );
     return null;
   }
 
   ClipboardPaste _parseWenzRichTextPayload(String raw) {
     final decoded = _decodeWenzRichTextPayload(raw);
     if (decoded == null) {
-      return const ClipboardPaste.plain('');
+      WenzClipboardDebugLog.event(
+        'parse.wenz-payload-empty',
+        fields: <String, Object?>{
+          'input': WenzClipboardDebugLog.text(raw),
+        },
+      );
+      return _plainPaste('');
     }
     final plain = _plainFromDecodedWenzPayload(decoded);
     try {
@@ -254,7 +468,7 @@ class ClipboardService {
                   InlineNode.fromJson(Map<String, Object?>.from(node)))
               .toList();
           return runs.isEmpty && plain != null
-              ? ClipboardPaste.plain(plain)
+              ? _plainPaste(plain)
               : ClipboardPaste.inline(runs);
         }
       }
@@ -263,26 +477,55 @@ class ClipboardService {
         if (blocksJson is List) {
           final blocks = blocksJson
               .whereType<Map>()
-              .map((node) =>
-                  BlockNode.fromJson(Map<String, Object?>.from(node)))
+              .map(
+                  (node) => BlockNode.fromJson(Map<String, Object?>.from(node)))
               .toList();
           if (blocks.isNotEmpty) {
-            return ClipboardPaste.blocks(blocks);
+            return ClipboardPaste.blocks(
+              blocks,
+              tableCellMatrix: _tableCellMatrixFromBlocks(blocks),
+            );
           }
         }
       }
-    } on Object {
-      return ClipboardPaste.plain(plain ?? '');
+    } on Object catch (error, stackTrace) {
+      WenzClipboardDebugLog.event(
+        'parse.wenz-payload-failed',
+        fields: <String, Object?>{
+          'decodedType': decoded['type'],
+          'fallbackPlain': WenzClipboardDebugLog.text(plain),
+        },
+        error: error,
+        stackTrace: stackTrace,
+      );
+      return _plainPaste(plain ?? '');
     }
-    return ClipboardPaste.plain(plain ?? '');
+    WenzClipboardDebugLog.event(
+      'parse.wenz-payload-unsupported',
+      fields: <String, Object?>{
+        'decodedType': decoded['type'],
+        'keys': decoded.keys.join(','),
+        'fallbackPlain': WenzClipboardDebugLog.text(plain),
+      },
+    );
+    return _plainPaste(plain ?? '');
   }
 
   Map<Object?, Object?>? _decodeWenzRichTextPayload(String raw) {
     try {
-      final json = raw.substring(wenzClipboardPrefix.length);
+      final normalized = normalizeWenzClipboardPayload(raw);
+      final json = normalized.substring(wenzClipboardPrefix.length);
       final decoded = jsonDecode(json);
       return decoded is Map ? decoded : null;
-    } on Object {
+    } on Object catch (error, stackTrace) {
+      WenzClipboardDebugLog.event(
+        'parse.wenz-json-failed',
+        fields: <String, Object?>{
+          'input': WenzClipboardDebugLog.text(raw),
+        },
+        error: error,
+        stackTrace: stackTrace,
+      );
       return null;
     }
   }
@@ -350,6 +593,22 @@ class ClipboardService {
     }
     final content = block == null ? null : _blockTextContent(block);
     if (content != null && start.path.isBlockText) {
+      // A list item's marker is block-level state. Encoding a complete item as
+      // an inline payload makes same-editor paste prefer the private inline
+      // flavour over the correctly structured HTML flavour, which silently
+      // turns an unordered item (whose listType is intentionally null) into
+      // ordinary paragraph text. Preserve the whole block only when the full
+      // item body is selected; partial text selections remain inline as users
+      // expect.
+      if (block is TextBlockNode &&
+          block.type == BlockType.listItem &&
+          start.offset == 0 &&
+          end.offset == inlineNodesLength(content)) {
+        return _copyBlocksPayload(
+          <BlockNode>[block.copy()],
+          plain: _plainTextForBlock(block),
+        );
+      }
       return _copyInlineSlicePayload(
         content,
         start.offset,
@@ -402,12 +661,26 @@ class ClipboardService {
     final range = _sliceInline(nodes, start, end);
     final plain = _plainTextForInlineNodes(range);
     final htmlBlock = _htmlBlockForInlineSlice(htmlContextBlock, range);
-    return ClipboardCopyPayload(
+    final payload = ClipboardCopyPayload(
       wenzRichText: _encodeInlineNodes(range, plain: plain),
       html: _htmlForBlocks(<BlockNode>[htmlBlock]),
       plainText: plain,
       legacyText: legacyText,
     );
+    WenzClipboardDebugLog.event(
+      'copy.payload-built',
+      fields: <String, Object?>{
+        'kind': 'inline',
+        'contextBlock': htmlContextBlock?.type.name,
+        'contextListType': htmlContextBlock?.attributes.listType,
+        'sourceRange': '$start..$end',
+        'inlineRunCount': range.length,
+        'wenz': WenzClipboardDebugLog.text(payload.wenzRichText),
+        'html': WenzClipboardDebugLog.text(payload.html),
+        'plain': WenzClipboardDebugLog.text(payload.plainText),
+      },
+    );
+    return payload;
   }
 
   ClipboardCopyPayload _copyCodeBlockSlicePayload(
@@ -436,9 +709,8 @@ class ClipboardService {
     String text, {
     String? legacyText,
   }) {
-    final nodes = text.isEmpty
-        ? const <InlineNode>[]
-        : <InlineNode>[TextRun(text: text)];
+    final nodes =
+        text.isEmpty ? const <InlineNode>[] : <InlineNode>[TextRun(text: text)];
     return _copyInlineSlicePayload(
       nodes,
       0,
@@ -464,12 +736,24 @@ class ClipboardService {
     required String plain,
     String? legacyText,
   }) {
-    return ClipboardCopyPayload(
+    final payload = ClipboardCopyPayload(
       wenzRichText: _encodeBlockSlice(blocks, plain: plain),
       html: _htmlForBlocks(blocks),
       plainText: plain,
       legacyText: legacyText,
     );
+    WenzClipboardDebugLog.event(
+      'copy.payload-built',
+      fields: <String, Object?>{
+        'kind': 'blocks',
+        'blockCount': blocks.length,
+        'blocks': _clipboardBlocksSummary(blocks),
+        'wenz': WenzClipboardDebugLog.text(payload.wenzRichText),
+        'html': WenzClipboardDebugLog.text(payload.html),
+        'plain': WenzClipboardDebugLog.text(payload.plainText),
+      },
+    );
+    return payload;
   }
 
   String _encodeInlineNodes(List<InlineNode> nodes, {String? plain}) {
@@ -785,8 +1069,7 @@ class ClipboardService {
       final caption = _nonEmptyExternalImageMetadata(image.caption) ??
           _nonEmptyExternalImageMetadata(image.altText) ??
           fallbackLabel;
-      final altText =
-          _nonEmptyExternalImageMetadata(image.altText) ?? caption;
+      final altText = _nonEmptyExternalImageMetadata(image.altText) ?? caption;
       blocks.add(
         ImageBlockNode(
           id: newBlockId(),
@@ -849,8 +1132,82 @@ class ClipboardService {
     if (document.blocks.isEmpty) {
       return null;
     }
-    return ClipboardPaste.blocks(document.blocks);
+    return ClipboardPaste.blocks(
+      document.blocks,
+      tableCellMatrix: _tableCellMatrixFromBlocks(document.blocks),
+    );
   }
+
+  ClipboardTableCellMatrix? _tableCellMatrixFromBlocks(
+    List<BlockNode> blocks,
+  ) {
+    if (blocks.length != 1 || blocks.single is! TableBlockNode) {
+      return null;
+    }
+    final table = (blocks.single as TableBlockNode).table;
+    if (table.rowCount == 0 || table.columnCount == 0) {
+      return null;
+    }
+    return ClipboardTableCellMatrix(
+      table.rows
+          .map(
+            (row) => row
+                .map(
+                  (cell) => cell.blocks.map((block) => block.copy()).toList(),
+                )
+                .toList(),
+          )
+          .toList(),
+    );
+  }
+
+  ClipboardTableCellMatrix? _tableCellMatrixFromPlainText(String text) {
+    // A single plain-text value must remain an inline paste. A tab or line
+    // break is the explicit spreadsheet/table signal, including 1×N and N×1
+    // ranges.
+    if (!text.contains('\t') && !text.contains('\n') && !text.contains('\r')) {
+      return null;
+    }
+    final rows = text
+        .replaceAll('\r\n', '\n')
+        .replaceAll('\r', '\n')
+        .split('\n')
+        .map(
+          (line) => line
+              .split('\t')
+              .map(
+                (value) => <BlockNode>[
+                  TextBlockNode(
+                    id: '',
+                    type: BlockType.paragraph,
+                    content: value.isEmpty
+                        ? const <InlineNode>[]
+                        : <InlineNode>[TextRun(text: value)],
+                  ),
+                ],
+              )
+              .toList(),
+        )
+        .toList();
+    return ClipboardTableCellMatrix(rows);
+  }
+}
+
+String _clipboardBlocksSummary(List<BlockNode> blocks) {
+  if (blocks.isEmpty) {
+    return '[]';
+  }
+  const maxBlocks = 20;
+  final visible = blocks.take(maxBlocks).map((block) {
+    final attrs = block.attributes;
+    return '{id:${WenzClipboardDebugLog.preview(block.id)},'
+        'type:${block.type.name},listType:${attrs.listType},'
+        'checked:${attrs.checked},indent:${attrs.indent},'
+        'textLength:${block.plainText.length},'
+        'text:${WenzClipboardDebugLog.preview(block.plainText)}}';
+  }).join(',');
+  final hidden = blocks.length - maxBlocks;
+  return '[$visible${hidden > 0 ? ',…+$hidden blocks' : ''}]';
 }
 
 /// Result of parsing clipboard data.
@@ -858,16 +1215,17 @@ class ClipboardPaste {
   const ClipboardPaste.inline(this.inlineRuns)
       : blocks = const <BlockNode>[],
         plainText = null,
+        tableCellMatrix = null,
         isRich = true,
         isBlocks = false;
 
-  const ClipboardPaste.plain(this.plainText)
+  const ClipboardPaste.plain(this.plainText, {this.tableCellMatrix})
       : inlineRuns = const <InlineNode>[],
         blocks = const <BlockNode>[],
         isRich = false,
         isBlocks = false;
 
-  const ClipboardPaste.blocks(this.blocks)
+  const ClipboardPaste.blocks(this.blocks, {this.tableCellMatrix})
       : inlineRuns = const <InlineNode>[],
         plainText = null,
         isRich = true,
@@ -884,10 +1242,25 @@ class ClipboardPaste {
   /// Plain text when not [isRich], otherwise `null`.
   final String? plainText;
 
+  /// Table-shaped content detected from TSV, HTML, or a Wenz table payload.
+  /// This remains optional so callers outside a table retain normal paste
+  /// semantics for the original clipboard flavour.
+  final ClipboardTableCellMatrix? tableCellMatrix;
+
   final bool isRich;
 
   /// Whether this paste carries whole-block structure (cross-block copy).
   final bool isBlocks;
+
+  bool get hasContent {
+    if (isBlocks) {
+      return blocks.isNotEmpty;
+    }
+    if (isRich) {
+      return inlineRuns.isNotEmpty;
+    }
+    return (plainText ?? '').isNotEmpty;
+  }
 
   /// Plain-text view of the paste content regardless of flavour.
   String get text {
@@ -980,12 +1353,6 @@ int _clampOffset(int offset, int length) {
 String? _nonEmptyClipboardString(String? value) {
   final trimmed = value?.trim();
   return trimmed == null || trimmed.isEmpty ? null : value;
-}
-
-String _ensureWenzClipboardPrefix(String value) {
-  return value.startsWith(wenzClipboardPrefix)
-      ? value
-      : '$wenzClipboardPrefix$value';
 }
 
 /// Extracts the inline nodes covering [start, end) within [nodes], splitting

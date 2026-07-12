@@ -651,6 +651,16 @@ void main() {
       expect(items[2].attributes.listType, 'task');
       expect(items[2].attributes.checked, true);
       expect(items[3].attributes.checked, false);
+      // List item bodies must survive import. A bare-text `<li>one</li>` was
+      // previously dropped because _decodeListItem forwarded text-node
+      // children through _parseInline, which walks a node's own children and
+      // therefore saw nothing for a text node.
+      expect(items[0].plainText, 'one');
+      expect(items[1].plainText, 'two');
+      // The checkbox markup separates the input from its text with a space;
+      // that whitespace is preserved as leading text on the item body.
+      expect(items[2].plainText, ' done');
+      expect(items[3].plainText, ' todo');
     });
 
     test('ordered todo list imports ordered type with checked state', () {
@@ -671,6 +681,128 @@ void main() {
       expect(items[2].attributes.checked, isTrue);
       expect(items[3].attributes.listType, 'task');
       expect(items[3].attributes.checked, isTrue);
+    });
+
+    test('wrapped and nested list items decode without duplicating nested text',
+        () {
+      final doc = codec.decode(
+        // A presentation wrapper around the whole list still yields every
+        // item in source order (acceptance: 非直接子节点包裹 / 多列表项).
+        '<div><ul><li>first</li><li>second</li></ul></div>'
+        // A nested list wrapped in a div inside an item does not merge its
+        // text into the parent body (acceptance: 嵌套列表不重复合并到父项).
+        '<ul><li>parent<div><ul><li>child</li></ul></div></li></ul>'
+        // A directly-nested ordered list keeps its ordered type at every level.
+        '<ol><li>outer<ol><li>inner</li></ol></li></ol>',
+      );
+
+      final items = doc.blocks.cast<TextBlockNode>();
+      expect(items.every((b) => b.type == BlockType.listItem), isTrue);
+      expect(
+        items.map((item) => item.plainText).toList(),
+        orderedEquals(<String>[
+          'first',
+          'second',
+          'parent',
+          'child',
+          'outer',
+          'inner',
+        ]),
+      );
+      // The wrapped items inherit the enclosing <ul>; the nested <ol> items
+      // keep their ordered type top to bottom.
+      expect(items[0].attributes.listType, isNull);
+      expect(items[1].attributes.listType, isNull);
+      expect(items[4].attributes.listType, 'ordered');
+      expect(items[5].attributes.listType, 'ordered');
+    });
+
+    test('checkbox wrapped in label or span preserves task type and state', () {
+      final doc = codec.decode(
+        '<ul><li><label><input type="checkbox" checked>Done</label></li></ul>'
+        '<ul><li><span><input type="checkbox">Open</span></li></ul>'
+        '<ol><li><span><input type="checkbox" checked>Ordered done</span>'
+        '</li></ol>',
+      );
+
+      final items = doc.blocks.cast<TextBlockNode>();
+      expect(items, hasLength(3));
+      expect(items.every((b) => b.type == BlockType.listItem), isTrue);
+      // label-wrapped checked task.
+      expect(items[0].attributes.listType, 'task');
+      expect(items[0].attributes.checked, isTrue);
+      expect(items[0].plainText, 'Done');
+      // span-wrapped unchecked task.
+      expect(items[1].attributes.listType, 'task');
+      expect(items[1].attributes.checked, isFalse);
+      expect(items[1].plainText, 'Open');
+      // span-wrapped checkbox inside <ol> keeps ordered type (ordered task).
+      expect(items[2].attributes.listType, 'ordered');
+      expect(items[2].attributes.checked, isTrue);
+      expect(items[2].plainText, 'Ordered done');
+    });
+
+    test(
+        'standalone li fragments decode as unordered items and flatten nested lists',
+        () {
+      final doc = codec.decode(
+        '<li>solo</li>'
+        '<li>top<ul><li>bottom</li></ul></li>',
+      );
+
+      final items = doc.blocks.cast<TextBlockNode>();
+      expect(items, hasLength(3));
+      expect(items.every((b) => b.type == BlockType.listItem), isTrue);
+      // A bare <li> becomes an unordered list item rather than a paragraph.
+      expect(items[0].attributes.listType, isNull);
+      expect(items[0].plainText, 'solo');
+      // The parent keeps only its own text; the nested item is emitted
+      // separately in source order instead of being dropped or merged.
+      expect(items[1].attributes.listType, isNull);
+      expect(items[1].plainText, 'top');
+      expect(items[2].attributes.listType, isNull);
+      expect(items[2].plainText, 'bottom');
+    });
+
+    test('legacy wenz_editor paragraph lists preserve type and text', () {
+      final doc = codec.decode(
+        '<!DOCTYPE html><html><body>'
+        '<p itemType="li">无序内容</p>'
+        '<p itemType="oli" indent="2"><strong>有序内容</strong></p>'
+        '<p itemType="check" checked="true">已完成任务</p>'
+        '<p itemType="check" checked="false">未完成任务</p>'
+        '</body></html>',
+      );
+
+      final items = doc.blocks.cast<TextBlockNode>();
+      expect(items, hasLength(4));
+      expect(items.every((item) => item.type == BlockType.listItem), isTrue);
+
+      expect(items[0].attributes.listType, isNull);
+      expect(items[0].plainText, '无序内容');
+
+      expect(items[1].attributes.listType, 'ordered');
+      expect(items[1].attributes.indent, 2);
+      expect(items[1].plainText, '有序内容');
+      expect((items[1].content.single as TextRun).attributes.bold, isTrue);
+
+      expect(items[2].attributes.listType, 'task');
+      expect(items[2].attributes.checked, isTrue);
+      expect(items[2].plainText, '已完成任务');
+
+      expect(items[3].attributes.listType, 'task');
+      expect(items[3].attributes.checked, isFalse);
+      expect(items[3].plainText, '未完成任务');
+    });
+
+    test('legacy wenz_editor task list defaults missing checked to false', () {
+      final doc = codec.decode('<p itemType="check">待办内容</p>');
+      final item = doc.blocks.single as TextBlockNode;
+
+      expect(item.type, BlockType.listItem);
+      expect(item.attributes.listType, 'task');
+      expect(item.attributes.checked, isFalse);
+      expect(item.plainText, '待办内容');
     });
 
     test('pre + code with language class', () {

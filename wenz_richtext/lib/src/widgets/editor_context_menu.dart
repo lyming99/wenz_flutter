@@ -1,13 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-
 import '../controller/wenz_rich_text_controller.dart';
-import '../core/commands/inline_commands.dart';
-import '../core/commands/inline_editing.dart';
 import '../core/position/document_position.dart';
-import 'editor_tokens.dart';
+import '../input/rich_clipboard_adapter.dart';
 
 /// Action callback for an editor context-menu item.
 ///
@@ -287,25 +283,52 @@ const double _kSelectionToolbarButtonGap = 2.0;
 /// Compact touch selection toolbar shown above a non-collapsed selection on
 /// mobile surfaces.
 ///
-/// The action set (复制 / 剪切 / 全选 / 加粗 / 斜体) reuses the editor's
-/// [WenzEditorContextMenuDefaultAction] action system and the controller's
-/// existing clipboard / selection / command paths — no command logic is
-/// re-implemented. Copy / cut read the payload through
-/// [WenzRichTextController.copySelection] / [WenzRichTextController.cutSelection]
-/// and write it to the clipboard; 全选 calls [WenzRichTextController.selectAll];
-/// the format toggles dispatch [ToggleMarkCommand] via
-/// [WenzRichTextController.execute]. Button / icon sizes come from
-/// [EditorTokens.mobile]; the surface chrome uses the `_kSelectionToolbar*`
-/// tokens above (mirrors of the editor's `_kMinimalFloatingToolbar*` family).
+/// The action set (全选 / 剪切 / 复制 / 粘贴 / 搜索) is deliberately exposed as
+/// readable text buttons instead of icon-only controls. When the editor supplies
+/// callbacks, they dispatch through its established context-menu handlers so
+/// selection, rich clipboard priority, history, and text-input synchronization
+/// remain centralized there. The controller fallbacks preserve the previous
+/// standalone copy / cut / select-all behaviour for direct users of this widget.
+typedef WenzMobileSelectionToolbarAction = FutureOr<void> Function();
+
 class WenzMobileSelectionToolbar extends StatelessWidget {
   const WenzMobileSelectionToolbar({
     super.key,
     required this.controller,
+    this.canEdit,
+    this.canPaste = false,
+    this.canSearch = false,
+    this.onSelectAll,
+    this.onCut,
+    this.onCopy,
+    this.onPaste,
+    this.onSearch,
   });
 
   final WenzRichTextController controller;
 
-  bool get _canEdit => controller.canEdit;
+  /// Whether document-mutating actions are available. The editor supplies this
+  /// so widget-level read-only mode is respected in addition to controller
+  /// permissions; direct users fall back to [WenzRichTextController.canEdit].
+  final bool? canEdit;
+
+  /// Whether a paste handler is available for the active editor.
+  final bool canPaste;
+
+  /// Whether a find surface is available for the active editor.
+  final bool canSearch;
+
+  final WenzMobileSelectionToolbarAction? onSelectAll;
+  final WenzMobileSelectionToolbarAction? onCut;
+  final WenzMobileSelectionToolbarAction? onCopy;
+  final WenzMobileSelectionToolbarAction? onPaste;
+  final WenzMobileSelectionToolbarAction? onSearch;
+
+  bool get _canEdit => canEdit ?? controller.canEdit;
+
+  bool get _canPaste => _canEdit && canPaste && onPaste != null;
+
+  bool get _canSearch => canSearch && onSearch != null;
 
   @override
   Widget build(BuildContext context) {
@@ -323,148 +346,132 @@ class WenzMobileSelectionToolbar extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: Padding(
         padding: _kSelectionToolbarPadding,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            _SelectionToolbarButton(
-              icon: Icons.copy_all_outlined,
-              tooltip: '复制',
-              onTap: _copy,
-            ),
-            _SelectionToolbarButton(
-              icon: Icons.content_cut,
-              tooltip: '剪切',
-              enabled: canEdit,
-              onTap: _cut,
-            ),
-            _SelectionToolbarButton(
-              icon: Icons.select_all_outlined,
-              tooltip: '全选',
-              onTap: _selectAll,
-            ),
-            const _SelectionToolbarDivider(),
-            _SelectionToolbarButton(
-              icon: Icons.format_bold,
-              tooltip: '加粗',
-              enabled: canEdit,
-              onTap: _toggleBold,
-            ),
-            _SelectionToolbarButton(
-              icon: Icons.format_italic,
-              tooltip: '斜体',
-              enabled: canEdit,
-              onTap: _toggleItalic,
-            ),
-          ],
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          primary: false,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              _SelectionToolbarTextButton(
+                id: 'select-all',
+                label: '全选',
+                onPressed: _selectAll,
+              ),
+              _SelectionToolbarTextButton(
+                id: 'cut',
+                label: '剪切',
+                onPressed: _canEdit ? _cut : null,
+              ),
+              _SelectionToolbarTextButton(
+                id: 'copy',
+                label: '复制',
+                onPressed: _copy,
+              ),
+              _SelectionToolbarTextButton(
+                id: 'paste',
+                label: '粘贴',
+                onPressed: _canPaste ? _paste : null,
+              ),
+              _SelectionToolbarTextButton(
+                id: 'search',
+                label: '搜索',
+                onPressed: _canSearch ? _search : null,
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  // Action dispatch — reuses [WenzEditorContextMenuDefaultAction] identifiers
-  // and the controller's existing clipboard/selection logic.
+  void _copy() => _run(onCopy ?? _copyFallback);
 
-  void _copy() => _runDefault(WenzEditorContextMenuDefaultAction.copy);
+  void _cut() => _run(onCut ?? _cutFallback);
 
-  void _cut() => _runDefault(WenzEditorContextMenuDefaultAction.cut);
+  void _selectAll() => _run(onSelectAll ?? _selectAllFallback);
 
-  void _selectAll() =>
-      _runDefault(WenzEditorContextMenuDefaultAction.selectAll);
-
-  void _runDefault(WenzEditorContextMenuDefaultAction action) {
-    switch (action) {
-      case WenzEditorContextMenuDefaultAction.copy:
-        {
-          final payload = controller.copySelection();
-          if (payload != null) {
-            unawaited(Clipboard.setData(ClipboardData(text: payload)));
-          }
-          break;
-        }
-      case WenzEditorContextMenuDefaultAction.cut:
-        if (_canEdit) {
-          final payload = controller.cutSelection();
-          if (payload != null) {
-            unawaited(Clipboard.setData(ClipboardData(text: payload)));
-          }
-        }
-        break;
-      case WenzEditorContextMenuDefaultAction.selectAll:
-        controller.selectAll();
-        break;
-      default:
-        // The selection toolbar only surfaces clipboard/selection actions;
-        // insert* actions are not reachable here.
-        break;
+  void _paste() {
+    final action = onPaste;
+    if (action != null) {
+      _run(action);
     }
   }
 
-  void _toggleBold() {
-    if (_canEdit) {
-      controller.execute(const ToggleMarkCommand(TextMark.bold));
+  void _search() {
+    final action = onSearch;
+    if (action != null) {
+      _run(action);
     }
   }
 
-  void _toggleItalic() {
-    if (_canEdit) {
-      controller.execute(const ToggleMarkCommand(TextMark.italic));
+  void _run(WenzMobileSelectionToolbarAction action) {
+    unawaited(_runSafely(action));
+  }
+
+  Future<void> _runSafely(WenzMobileSelectionToolbarAction action) async {
+    try {
+      await action();
+    } on Object {
+      // Clipboard integrations may reject a platform request. The editor-level
+      // handlers already report failures; standalone fallbacks stay no-throw.
     }
+  }
+
+  Future<void> _copyFallback() async {
+    final payload = controller.copySelectionPayload();
+    if (payload != null) {
+      await defaultRichClipboardAdapter.writeCopyPayload(payload);
+    }
+  }
+
+  Future<void> _cutFallback() async {
+    final payload = controller.cutSelectionPayload();
+    if (payload != null) {
+      await defaultRichClipboardAdapter.writeCopyPayload(payload);
+    }
+  }
+
+  void _selectAllFallback() {
+    controller.selectAll();
   }
 }
 
-class _SelectionToolbarButton extends StatelessWidget {
-  const _SelectionToolbarButton({
-    required this.icon,
-    required this.tooltip,
-    required this.onTap,
-    this.enabled = true,
+class _SelectionToolbarTextButton extends StatelessWidget {
+  const _SelectionToolbarTextButton({
+    required this.id,
+    required this.label,
+    required this.onPressed,
   });
 
-  final IconData icon;
-  final String tooltip;
-  final bool enabled;
-  final VoidCallback onTap;
+  final String id;
+  final String label;
+  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final size = EditorTokens.mobile.minimalToolbarButtonSize;
+    final enabled = onPressed != null;
     return Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: _kSelectionToolbarButtonGap / 2,
       ),
-      child: IconButton(
-        tooltip: tooltip,
-        iconSize: EditorTokens.mobile.minimalToolbarIconSize,
-        visualDensity: VisualDensity.compact,
-        padding: EdgeInsets.zero,
-        constraints: BoxConstraints.tightFor(width: size, height: size),
-        onPressed: enabled ? onTap : null,
-        icon: Icon(
-          icon,
-          color: enabled
-              ? theme.colorScheme.onSurface
-              : theme.colorScheme.onSurface.withAlpha(96),
-        ),
-      ),
-    );
-  }
-}
-
-class _SelectionToolbarDivider extends StatelessWidget {
-  const _SelectionToolbarDivider();
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: _kSelectionToolbarButtonGap,
-      ),
-      child: SizedBox(
-        height: EditorTokens.mobile.minimalToolbarButtonSize * 0.6,
-        child: VerticalDivider(
-          width: 1,
-          color: Theme.of(context).colorScheme.outlineVariant,
+      child: Semantics(
+        button: true,
+        enabled: enabled,
+        label: label,
+        child: TextButton(
+          key: ValueKey<String>('wenz.mobile-selection-toolbar.$id'),
+          style: TextButton.styleFrom(
+            minimumSize: const Size(48, 48),
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            foregroundColor: enabled
+                ? theme.colorScheme.onSurface
+                : theme.colorScheme.onSurface.withAlpha(96),
+            textStyle: Theme.of(context).textTheme.labelLarge,
+          ),
+          onPressed: onPressed,
+          child: Text(label),
         ),
       ),
     );

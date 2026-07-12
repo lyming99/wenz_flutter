@@ -26,6 +26,20 @@ typedef TapSelectionFocusPredicate = bool Function(
   Offset globalPosition,
 );
 
+/// Reports a qualifying single-finger text tap after it has placed a collapsed
+/// caret. The editor uses this to decide whether its mobile caret toolbar may
+/// be shown; selection gestures deliberately do not own toolbar lifecycle.
+typedef MobileCaretTapHandler = void Function(
+  DocumentPosition caret,
+  Offset globalPosition,
+);
+
+/// Notifies the editor that a new mobile touch sequence has begun on the
+/// document surface. A previously shown caret toolbar must close before this
+/// gesture is resolved so excluded block chrome and link interactions cannot
+/// leave it behind.
+typedef MobileCaretToolbarDismissHandler = void Function();
+
 class SelectionContextMenuRequest {
   const SelectionContextMenuRequest({
     required this.globalPosition,
@@ -81,6 +95,8 @@ class SelectionGestureOverlay extends StatefulWidget {
     this.shouldDeferTapSelection,
     this.shouldCommitDeferredTapSelection,
     this.shouldRequestFocusForTapSelection,
+    this.onMobileCaretTap,
+    this.onMobileCaretToolbarDismissed,
     this.onTapBeyondContent,
     this.onContextMenuRequested,
     this.linkProbe,
@@ -116,13 +132,24 @@ class SelectionGestureOverlay extends StatefulWidget {
   /// Controls whether a tap selection should also request text-input focus.
   final TapSelectionFocusPredicate? shouldRequestFocusForTapSelection;
 
+  /// Called only for a single-finger tap on an editable text-bearing path that
+  /// has just placed a collapsed caret. Object blocks, links, long-presses,
+  /// drags, double/triple taps, mouse input, and excluded chrome never reach
+  /// this callback.
+  final MobileCaretTapHandler? onMobileCaretTap;
+
+  /// Called at the start of every touch sequence on a mobile selection
+  /// surface. Toolbar widgets are layered above this surface, so touches on a
+  /// toolbar action do not invoke it.
+  final MobileCaretToolbarDismissHandler? onMobileCaretToolbarDismissed;
+
   final bool Function(Offset globalPosition)? onTapBeyondContent;
   final SelectionContextMenuRequestHandler? onContextMenuRequested;
 
   /// Resolves a global pointer position to the hovered inline link run, or
   /// `null` when the position is not over a link. Supplied by the editor (which
-  /// owns the position→link resolver). Only consulted on mouse/pen hover, since
-  /// [PointerHoverEvent] is never delivered for touch.
+  /// owns the position→link resolver). Consulted on mouse/pen hover and to
+  /// suppress the mobile caret toolbar for a touch on a link.
   final WenzLinkHoverInfo? Function(Offset global)? linkProbe;
 
   /// Reports the link currently under the hovering pointer (`null` when the
@@ -351,6 +378,10 @@ class _SelectionGestureOverlayState extends State<SelectionGestureOverlay> {
   }
 
   void _onPointerDown(PointerDownEvent event) {
+    if (widget.useMobileTouchGestures &&
+        event.kind == PointerDeviceKind.touch) {
+      widget.onMobileCaretToolbarDismissed?.call();
+    }
     // A new pointer down starts a fresh gesture; clear any long-press word
     // selection flag left by a previous (interrupted) sequence so it cannot
     // suppress this press's caret placement.
@@ -628,12 +659,47 @@ class _SelectionGestureOverlayState extends State<SelectionGestureOverlay> {
           widget.onSelectionChanged(
             DocumentSelection(base: anchor, extent: anchor),
           );
+          if (_shouldReportMobileCaretTap(
+            event,
+            anchor,
+            position,
+            tapCount: tapCount,
+            isShiftSelecting: isShiftSelecting,
+          )) {
+            widget.onMobileCaretTap?.call(anchor, position);
+          }
         }
       }
     }
     _dragBase = null;
     _tapAnchor = null;
     _isShiftSelecting = false;
+  }
+
+  bool _shouldReportMobileCaretTap(
+    PointerUpEvent event,
+    DocumentPosition anchor,
+    Offset globalPosition, {
+    required int tapCount,
+    required bool isShiftSelecting,
+  }) {
+    if (!widget.useMobileTouchGestures ||
+        widget.readOnly ||
+        event.kind != PointerDeviceKind.touch ||
+        tapCount != 1 ||
+        isShiftSelecting ||
+        !_isTextInputPath(anchor.path)) {
+      return false;
+    }
+    // A link owns its touch interaction. It may still place a caret through the
+    // normal selection path, but must not expose the editable caret toolbar.
+    return widget.linkProbe?.call(globalPosition) == null;
+  }
+
+  bool _isTextInputPath(PositionPath path) {
+    return path.isBlockText ||
+        path.isBlockCode ||
+        path.isTableCellText;
   }
 
   bool _shouldDeferTapSelection(

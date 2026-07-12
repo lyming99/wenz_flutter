@@ -164,6 +164,7 @@ export 'src/core/transaction/document_session.dart';
 export 'src/exporters/document_conversion_plan.dart';
 export 'src/history/history_manager.dart';
 export 'src/input/clipboard_service.dart';
+export 'src/input/clipboard_debug_log.dart';
 export 'src/input/composition_state.dart';
 export 'src/input/editor_text_input_client.dart';
 export 'src/input/external_image_clipboard_reader.dart';

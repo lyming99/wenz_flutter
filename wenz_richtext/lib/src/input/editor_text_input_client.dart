@@ -68,16 +68,29 @@ class EditorTextInputClient with DeltaTextInputClient {
 
   /// Attaches to the platform text input, seeding the buffer from the
   /// controller's current selection.
-  void attach() {
+  void attach() => _attachAndShow();
+
+  /// Restores a platform input connection for an editor that already owns
+  /// focus, then asks the platform to show the keyboard.
+  ///
+  /// Android system Back can close the platform connection (or only hide the
+  /// keyboard) without changing the editor's [FocusNode]. A subsequent text
+  /// tap therefore cannot rely on another focus-change notification to reach
+  /// [attach]. This is intentionally idempotent: an attached connection is
+  /// reused and shown, while a closed connection is replaced exactly once.
+  void reconnectAndShow() => _attachAndShow();
+
+  void _attachAndShow() {
     _syncBuffer();
-    if (_connection != null && _connection!.attached) {
-      _connection!.show();
+    final existingConnection = _connection;
+    if (existingConnection != null && existingConnection.attached) {
+      existingConnection.show();
       _reportCaretGeometry();
       return;
     }
     final viewId = viewIdProvider?.call();
     _lastViewId = viewId;
-    _connection = TextInput.attach(
+    final connection = TextInput.attach(
       this,
       TextInputConfiguration(
         // A null viewId makes Android's engine reject setClient ("view ID is
@@ -89,13 +102,14 @@ class EditorTextInputClient with DeltaTextInputClient {
         inputAction: TextInputAction.newline,
       ),
     );
-    _connection!.show();
+    _connection = connection;
+    connection.show();
     // setEditingState must run only once the engine has a client bound (set in
     // attach). The connection is attached synchronously, so this is safe; the
     // guard avoids the "Set editing state has been invoked, but no client is
     // set" error that surfaces when attach races with a concurrent close.
-    if (_connection!.attached) {
-      _connection!.setEditingState(_buffer);
+    if (connection.attached) {
+      connection.setEditingState(_buffer);
     }
     _reportCaretGeometry();
   }

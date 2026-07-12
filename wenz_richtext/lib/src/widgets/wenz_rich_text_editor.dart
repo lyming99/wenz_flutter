@@ -20,10 +20,11 @@ import '../core/model/block_node.dart';
 import '../core/model/inline_node.dart';
 import '../core/model/table_model.dart';
 import '../core/position/document_position.dart';
-import '../input/clipboard_service.dart';
+import '../input/clipboard_debug_log.dart';
 import '../input/composition_state.dart';
 import '../input/editor_text_input_client.dart';
 import '../input/external_image_input.dart';
+import '../input/rich_clipboard_adapter.dart';
 import '../input/external_image_store_stub.dart'
     if (dart.library.io) '../input/external_image_store_io.dart'
     as external_image_store;
@@ -147,7 +148,8 @@ class _TouchLinkLongPressHandler extends StatefulWidget {
       _TouchLinkLongPressHandlerState();
 }
 
-class _TouchLinkLongPressHandlerState extends State<_TouchLinkLongPressHandler> {
+class _TouchLinkLongPressHandlerState
+    extends State<_TouchLinkLongPressHandler> {
   Timer? _timer;
   Offset? _downPosition;
 
@@ -245,7 +247,8 @@ const Duration _kBlinkHalfPeriod = Duration(milliseconds: 530);
 // this SDK rejects `EditorTokens.desktop.x` in const expressions, so the
 // literals are duplicated here). Mobile resolves a different set via
 // `EditorTokens.resolve(context)` at runtime.
-const double _kRichTextBodyFontSize = 16.0; // == EditorTokens.desktop.richTextBodyFontSize
+const double _kRichTextBodyFontSize =
+    16.0; // == EditorTokens.desktop.richTextBodyFontSize
 const double _kParagraphMarginEm = 0.55;
 const double _kHeadingMarginTopEm = 0.6;
 const double _kHeadingMarginBottomEm = 0.35;
@@ -266,7 +269,8 @@ const double _kTableFloatingToolbarEstimatedHeight = 36.0;
 const double _kTableFloatingToolbarEstimatedWidth = 304.0;
 const int _kTableToolbarBackgroundColor = 0xFFFFF3CD;
 const double _kTableSurfaceRadius = 8.0;
-const double _kTableCellFontSize = 15.0; // == EditorTokens.desktop.tableCellFontSize
+const double _kTableCellFontSize =
+    15.0; // == EditorTokens.desktop.tableCellFontSize
 const Color _kTableBorderColor = Color(0xFFECE9F5);
 const Color _kTableEvenRowBackgroundColor = Color(0xFFFAFAFF);
 
@@ -290,7 +294,8 @@ const double _kAdjacentQuoteSpacing = 0.0;
 const double _kHeadingCollapseSlotWidth = 24.0;
 const double _kHeadingCollapseButtonSize = 24.0;
 const double _kHeadingCollapseIconSize = 18.0;
-const double _kCodeBlockFontSize = 13.5; // == EditorTokens.desktop.codeBlockFontSize
+const double _kCodeBlockFontSize =
+    13.5; // == EditorTokens.desktop.codeBlockFontSize
 const double _kCodeBlockLineHeight = 1.6;
 const double _kCodeBlockPaddingVertical = 18.0;
 const double _kCodeBlockHeaderGap = 14.0;
@@ -329,12 +334,11 @@ const EdgeInsets _kMinimalMenuSurfacePadding =
 const EdgeInsets _kMinimalMenuItemPadding = EdgeInsets.zero;
 const EdgeInsets _kMinimalMenuItemContentPadding =
     EdgeInsets.symmetric(horizontal: 10);
-const double _kMinimalToolbarButtonSize = 32.0; // == EditorTokens.desktop.minimalToolbarButtonSize
-const double _kMinimalFloatingToolbarSurfaceRadius =
-    _kMinimalMenuSurfaceRadius;
+const double _kMinimalToolbarButtonSize =
+    32.0; // == EditorTokens.desktop.minimalToolbarButtonSize
+const double _kMinimalFloatingToolbarSurfaceRadius = _kMinimalMenuSurfaceRadius;
 const double _kMinimalFloatingToolbarSurfaceElevation = 3.0;
-const int _kMinimalFloatingToolbarShadowAlpha =
-    _kMinimalMenuSurfaceShadowAlpha;
+const int _kMinimalFloatingToolbarShadowAlpha = _kMinimalMenuSurfaceShadowAlpha;
 const EdgeInsets _kMinimalFloatingToolbarPadding = EdgeInsets.symmetric(
   horizontal: 4,
   vertical: 2,
@@ -698,9 +702,8 @@ class _PopupMenuItemContent extends StatelessWidget {
             : selected
                 ? colorScheme.onSurface
                 : colorScheme.onSurfaceVariant;
-    final selectedBackgroundColor = selected
-        ? _minimalMenuSelectedColor(theme)
-        : Colors.transparent;
+    final selectedBackgroundColor =
+        selected ? _minimalMenuSelectedColor(theme) : Colors.transparent;
     final labelStyle =
         (theme.textTheme.bodyMedium ?? const TextStyle()).copyWith(
       color: foregroundColor,
@@ -1097,8 +1100,8 @@ class _ImageDescriptionEditRequestScope extends InheritedWidget {
   static _ImageDescriptionEditRequestController? maybeOf(
     BuildContext context,
   ) {
-    final scope = context
-        .dependOnInheritedWidgetOfExactType<_ImageDescriptionEditRequestScope>();
+    final scope = context.dependOnInheritedWidgetOfExactType<
+        _ImageDescriptionEditRequestScope>();
     return scope?.controller;
   }
 
@@ -1617,6 +1620,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
   late final ScrollController _scrollController = ScrollController();
   late final SharedTextLayoutCache _layoutCache = SharedTextLayoutCache();
   final GlobalKey _editorOverlayKey = GlobalKey();
+  DocumentPosition? _mobileCaretToolbarPosition;
   OverlayEntry? _slashMenuOverlayEntry;
   bool _slashMenuOverlaySyncScheduled = false;
   bool _contextMenuOpen = false;
@@ -1629,7 +1633,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
       _tableToolbarOverlayController = TableFloatingToolbarOverlayController();
   late final ObjectBlockToolbarOverlayController
       _objectBlockToolbarOverlayController =
-          ObjectBlockToolbarOverlayController();
+      ObjectBlockToolbarOverlayController();
   final _BlockExtentCache _extentCache = _BlockExtentCache();
   BlockRendererRegistry? _ownedBlockRenderers;
   _FormulaEditTarget? _formulaEditTarget;
@@ -1879,6 +1883,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
       widget.controller.attachFocusNode(focusNode);
       _controllerAttachedFocusNode = focusNode;
     }
+    _synchronizeMobileCaretToolbar();
     _syncTableToolbarOverlayWithSelection();
     _syncObjectBlockToolbarOverlayWithSelection();
   }
@@ -2078,6 +2083,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
 
   void _handleControllerChanged() {
     if (mounted) {
+      _synchronizeMobileCaretToolbar(hideForDocumentChange: true);
       if (_contextMenuOpen) {
         _EditorPopupMenuDismissal.dismiss();
       }
@@ -2254,6 +2260,9 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     } else if (_hadEditorFocus) {
       widget.slashMenuController?.close();
       _closeMentionSearch();
+    }
+    if (!focusNode.hasFocus) {
+      _mobileCaretToolbarPosition = null;
     }
     setState(() {});
   }
@@ -2528,18 +2537,8 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     final showCaret = !widget.readOnly &&
         focusNode.hasFocus &&
         selection?.isCollapsed == true;
-    // On compact phone platforms there is no hover affordance. Keep the block
-    // operation button visible only for the top-level block that owns the
-    // focused, collapsed caret; desktop keeps its hover/focus/menu/drag rules.
     final useMobileSelectionUi =
         EditorTokens.shouldUseMobileSelectionUi(context);
-    final showMobileCurrentBlockAction = canEdit &&
-        useMobileSelectionUi &&
-        focusNode.hasFocus &&
-        selection?.isCollapsed == true;
-    final mobileCurrentBlockId = showMobileCurrentBlockAction
-        ? selection!.extent.blockId
-        : null;
     // Blocks that must stay mounted even when scrolled out of view: the caret
     // (collapsed selection) and the selection endpoints. Keeping these alive
     // means the caret and selection highlight always paint and the geometry
@@ -2594,7 +2593,6 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
                   _quoteGroupPositionFor(sourceBlocks, blockIndex),
               keepAlive: keepAliveIds.contains(block.id),
               blockChanged: dirtyIds == null || dirtyIds.contains(block.id),
-              showMobileCurrentBlockAction: mobileCurrentBlockId == block.id,
               selection: selection,
               compositionState: widget.controller.compositionState,
               registry: _registry,
@@ -2634,10 +2632,9 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
               tableToolbarOverlayController: _tableToolbarOverlayController,
               objectBlockToolbarOverlayController:
                   _objectBlockToolbarOverlayController,
-              onTableColumnResize:
-                  widget.readOnly || !widget.controller.canEdit
-                      ? null
-                      : _handleTableColumnResize,
+              onTableColumnResize: widget.readOnly || !widget.controller.canEdit
+                  ? null
+                  : _handleTableColumnResize,
               onImageBlockResize: widget.readOnly || !widget.controller.canEdit
                   ? null
                   : _handleMediaBlockResize,
@@ -2670,12 +2667,12 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
           useMobileTouchGestures: useMobileSelectionUi,
           onSelectionChanged: _handleSelectionChanged,
           currentSelection: widget.controller.selection,
-          shouldDeferTapSelection:
-              _shouldDeferInlineVideoResolverTapSelection,
+          shouldDeferTapSelection: _shouldDeferInlineVideoResolverTapSelection,
           shouldCommitDeferredTapSelection:
               _shouldCommitInlineVideoResolverTapSelection,
-          shouldRequestFocusForTapSelection:
-              _shouldRequestFocusForTapSelection,
+          shouldRequestFocusForTapSelection: _shouldRequestFocusForTapSelection,
+          onMobileCaretTap: _handleMobileCaretTap,
+          onMobileCaretToolbarDismissed: _dismissMobileCaretToolbar,
           onTapBeyondContent: _handleTapBeyondContent,
           onContextMenuRequested: _handleContextMenuRequested,
           linkProbe: _probeLinkAtGlobal,
@@ -2699,6 +2696,8 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
             controller: widget.controller,
             scrollController: _scrollController,
             containerKey: _editorOverlayKey,
+            caretToolbarPosition: _mobileCaretToolbarPosition,
+            selectionToolbarBuilder: _buildMobileSelectionToolbar,
           ),
       ],
     );
@@ -3050,7 +3049,8 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
             _clearExternalImageDropActive();
           },
           onPerformDrop: (dynamic event) async {
-            final insertionSelection = _selectionForExternalImageDropGlobalOffset(
+            final insertionSelection =
+                _selectionForExternalImageDropGlobalOffset(
               event.position.global,
             );
             _clearExternalImageDropActive();
@@ -3106,11 +3106,9 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
   }
 
   Future<super_drag.DropOperation> _syncExternalImageDropActiveForSession(
-    dynamic session,
-    {
+    dynamic session, {
     Offset? globalPosition,
-  }
-  ) async {
+  }) async {
     final epoch = ++_externalImageDropProbeEpoch;
     final operation = await _externalImageDropOperationFor(
       session,
@@ -3139,11 +3137,9 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
   }
 
   Future<super_drag.DropOperation> _externalImageDropOperationFor(
-    dynamic session,
-    {
+    dynamic session, {
     Offset? globalPosition,
-  }
-  ) async {
+  }) async {
     if (!_canAcceptExternalImageDrop ||
         !_dropSessionAllowsCopy(session) ||
         (globalPosition != null &&
@@ -3421,11 +3417,9 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
   }
 
   Future<void> _handleExternalImageDropInputs(
-    List<ExternalImageInput> inputs,
-    {
+    List<ExternalImageInput> inputs, {
     DocumentSelection? insertionSelection,
-  }
-  ) async {
+  }) async {
     final acceptedInputs = <ExternalImageInput>[
       for (final input in inputs)
         if (isUsableExternalImageInput(input)) input,
@@ -3518,13 +3512,11 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
       availableAbove: availableAbove,
       availableBelow: availableBelow,
     );
-    final preferredTop =
-        opensAbove ? preferredAboveBottom : preferredBelowTop;
+    final preferredTop = opensAbove ? preferredAboveBottom : preferredBelowTop;
     final maxTop = visibleBottom - _kPopupViewportInset;
     final topMin = maxTop >= _kPopupViewportInset ? _kPopupViewportInset : 0.0;
-    final clampedTop = preferredTop
-        .clamp(topMin, maxTop > 0 ? maxTop : 0)
-        .toDouble();
+    final clampedTop =
+        preferredTop.clamp(topMin, maxTop > 0 ? maxTop : 0).toDouble();
     final availableHeight = opensAbove
         ? math.max(0.0, clampedTop - _kPopupViewportInset)
         : math.max(0.0, visibleBottom - clampedTop - _kPopupViewportInset);
@@ -3570,7 +3562,126 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     _dispatchMentionTapForSelection(selection);
     // A selection change from the gesture overlay repositions the caret, so
     // refresh the IME buffer so the platform input follows the new location.
-    _inputClient.syncBuffer();
+    // Android system Back can close the TextInput connection without removing
+    // editor focus; a later text tap must restore that connection (or show its
+    // still-attached, hidden keyboard) even though focus did not change.
+    if (_shouldRestoreTextInputForSelection(selection)) {
+      _inputClient.reconnectAndShow();
+    } else {
+      _inputClient.syncBuffer();
+    }
+  }
+
+  bool _shouldRestoreTextInputForSelection(DocumentSelection selection) {
+    if (!EditorTokens.isMobileSelectionUiPlatform(defaultTargetPlatform) ||
+        widget.readOnly ||
+        !widget.enableIme ||
+        !widget.controller.canEdit ||
+        !_effectiveFocusNode.hasFocus) {
+      return false;
+    }
+    // The platform buffer represents a single text-bearing surface. Keeping
+    // the selection within one such surface avoids reopening the keyboard for
+    // atomic media selections or cross-target selections that cannot be edited
+    // by this input client.
+    final base = selection.base;
+    final extent = selection.extent;
+    return base.blockId == extent.blockId &&
+        base.blockIndex == extent.blockIndex &&
+        base.path == extent.path &&
+        _isTextInputPath(extent.path);
+  }
+
+  bool _isTextInputPath(PositionPath path) {
+    return path.isBlockText || path.isBlockCode || path.isTableCellText;
+  }
+
+  void _handleMobileCaretTap(
+    DocumentPosition caret,
+    Offset _,
+  ) {
+    final selection = widget.controller.selection;
+    if (!_canShowMobileCaretToolbar ||
+        selection == null ||
+        !selection.isCollapsed ||
+        selection.extent != caret) {
+      return;
+    }
+    if (_mobileCaretToolbarPosition == caret) {
+      return;
+    }
+    setState(() {
+      _mobileCaretToolbarPosition = caret;
+    });
+  }
+
+  void _dismissMobileCaretToolbar() {
+    if (_mobileCaretToolbarPosition == null) {
+      return;
+    }
+    setState(() {
+      _mobileCaretToolbarPosition = null;
+    });
+  }
+
+  bool get _canShowMobileCaretToolbar {
+    return widget.enableMobileSelectionHandles &&
+        EditorTokens.shouldUseMobileSelectionUi(context) &&
+        !widget.readOnly &&
+        widget.enableIme &&
+        widget.controller.canEdit;
+  }
+
+  void _synchronizeMobileCaretToolbar({bool hideForDocumentChange = false}) {
+    final caret = _mobileCaretToolbarPosition;
+    if (caret == null) {
+      return;
+    }
+    final selection = widget.controller.selection;
+    final contentChanged = hideForDocumentChange &&
+        (widget.controller.lastChangedBlockIds == null ||
+            widget.controller.lastChangedBlockIds!.isNotEmpty);
+    if (contentChanged ||
+        !_canShowMobileCaretToolbar ||
+        !_effectiveFocusNode.hasFocus ||
+        selection == null ||
+        !selection.isCollapsed ||
+        selection.extent != caret) {
+      _mobileCaretToolbarPosition = null;
+    }
+  }
+
+  Widget _buildMobileSelectionToolbar(
+    BuildContext _,
+    WenzRichTextController controller,
+  ) {
+    final canEdit = _canRunContextMenuMutation;
+    return WenzMobileSelectionToolbar(
+      controller: controller,
+      canEdit: canEdit,
+      canPaste: canEdit,
+      canSearch: widget.onFindRequested != null,
+      onSelectAll: () => _handleDefaultContextMenuAction(
+        WenzEditorContextMenuDefaultAction.selectAll,
+      ),
+      onCut: () => _handleDefaultContextMenuAction(
+        WenzEditorContextMenuDefaultAction.cut,
+      ),
+      onCopy: () => _handleDefaultContextMenuAction(
+        WenzEditorContextMenuDefaultAction.copy,
+      ),
+      onPaste: () => _handleDefaultContextMenuAction(
+        WenzEditorContextMenuDefaultAction.paste,
+      ),
+      onSearch: _handleMobileSelectionToolbarSearch,
+    );
+  }
+
+  void _handleMobileSelectionToolbarSearch() {
+    // Do not route this through shortcut handling: search should only request
+    // the host find surface and must leave the active selection, focus, and
+    // platform text-input connection untouched.
+    widget.onFindRequested?.call();
   }
 
   void _registerInlineVideoResolverTapTarget(
@@ -6235,11 +6346,12 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
       final showHeadingCollapse =
           _headingCollapseStateFor(block)?.canCollapse ?? false;
       final chromeWidth = _blockRowChromeWidth(
-        showDragHandle: BlockDragHandleSpec.canShow(
-          canEdit: !widget.readOnly && widget.controller.canEdit,
-          blockIndex: blockIndex,
-          blockCount: widget.controller.document.blocks.length,
-        ),
+        showDragHandle: !chromeTokens.isMobile &&
+            BlockDragHandleSpec.canShow(
+              canEdit: !widget.readOnly && widget.controller.canEdit,
+              blockIndex: blockIndex,
+              blockCount: widget.controller.document.blocks.length,
+            ),
         reserveHeadingCollapseSlot: _shouldReserveHeadingCollapseSlot(
           tokens: chromeTokens,
           outlineChromeAttached: _hasHeadingCollapseChrome,
@@ -7550,83 +7662,163 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
   }
 
   Future<void> _handleCopy() async {
-    final payload = widget.controller.copySelection();
+    WenzClipboardDebugLog.event(
+      'editor.copy-invoked',
+      fields: <String, Object?>{
+        'selection':
+            WenzClipboardDebugLog.selection(widget.controller.selection),
+        'documentBlocks': widget.controller.document.blocks.length,
+      },
+    );
+    final payload = widget.controller.copySelectionPayload();
     if (payload == null) {
+      WenzClipboardDebugLog.event(
+        'editor.copy-skipped',
+        fields: const <String, Object?>{'reason': 'payload=null'},
+      );
       return;
     }
-    await _copyTextToClipboard(payload);
+    final success =
+        await defaultRichClipboardAdapter.tryWriteCopyPayload(payload);
+    WenzClipboardDebugLog.event(
+      'editor.copy-finished',
+      fields: <String, Object?>{'success': success},
+    );
   }
 
   Future<void> _handleCut() async {
+    WenzClipboardDebugLog.event(
+      'editor.cut-invoked',
+      fields: <String, Object?>{
+        'selection':
+            WenzClipboardDebugLog.selection(widget.controller.selection),
+      },
+    );
     if (_revealCurrentSelectionIfHidden()) {
+      WenzClipboardDebugLog.event(
+        'editor.cut-skipped',
+        fields: const <String, Object?>{'reason': 'revealed-hidden-selection'},
+      );
       return;
     }
-    final payload = widget.controller.cutSelection();
+    final payload = widget.controller.cutSelectionPayload();
     if (payload == null) {
+      WenzClipboardDebugLog.event(
+        'editor.cut-skipped',
+        fields: const <String, Object?>{'reason': 'payload=null'},
+      );
       return;
     }
-    await _copyTextToClipboard(payload);
+    final success =
+        await defaultRichClipboardAdapter.tryWriteCopyPayload(payload);
+    WenzClipboardDebugLog.event(
+      'editor.cut-finished',
+      fields: <String, Object?>{'success': success},
+    );
   }
 
   Future<void> _copyTextToClipboard(String text) async {
-    await Clipboard.setData(ClipboardData(text: text));
+    await defaultRichClipboardAdapter.writePlainText(text);
   }
 
   Future<void> _handlePaste() async {
+    WenzClipboardDebugLog.event(
+      'editor.paste-invoked',
+      fields: <String, Object?>{
+        'selection':
+            WenzClipboardDebugLog.selection(widget.controller.selection),
+        'externalImagesEnabled': widget.enableExternalImageInput,
+      },
+    );
     _revealCurrentSelectionIfHidden();
-    final externalData = await _readExternalClipboardData();
-    final plainText =
-        _nonEmptyClipboardText(externalData.plainText) ?? await _readPlainText();
-    if (plainText != null && plainText.startsWith(wenzClipboardPrefix)) {
-      widget.controller.pasteText(plainText);
-      return;
+    final snapshot = await _clipboardAdapter.read(
+      includeExternalImages: widget.enableExternalImageInput,
+    );
+    final wenzRichText = snapshot.wenzRichTextForPaste;
+    if (wenzRichText != null) {
+      WenzClipboardDebugLog.event(
+        'editor.paste-route',
+        fields: <String, Object?>{
+          'route': 'wenz-private',
+          'value': WenzClipboardDebugLog.text(wenzRichText),
+        },
+      );
+      final parsed = widget.controller.clipboardService.parse(wenzRichText);
+      if (parsed.hasContent) {
+        widget.controller.pasteParsedClipboard(parsed);
+        return;
+      }
+      WenzClipboardDebugLog.event(
+        'editor.paste-route-rejected',
+        fields: const <String, Object?>{
+          'route': 'wenz-private',
+          'reason': 'parsed-empty',
+          'fallback': 'html/markdown/plain-text',
+        },
+      );
     }
 
-    final images = await _prepareExternalImages(externalData.images);
+    final images = await _prepareExternalImages(snapshot.images);
     if (images.isNotEmpty) {
+      WenzClipboardDebugLog.event(
+        'editor.paste-route',
+        fields: <String, Object?>{
+          'route': 'external-images',
+          'count': images.length,
+        },
+      );
       _pasteExternalImages(images);
       return;
     }
 
-    final html = _nonEmptyClipboardText(externalData.html);
+    final html = snapshot.html;
     if (html != null) {
+      WenzClipboardDebugLog.event(
+        'editor.paste-route',
+        fields: <String, Object?>{
+          'route': 'html',
+          'value': WenzClipboardDebugLog.text(html),
+        },
+      );
       widget.controller.pasteHtml(html);
       return;
     }
-    final markdown = _nonEmptyClipboardText(externalData.markdown);
+    final markdown = snapshot.markdown;
     if (markdown != null) {
+      WenzClipboardDebugLog.event(
+        'editor.paste-route',
+        fields: <String, Object?>{
+          'route': 'markdown',
+          'value': WenzClipboardDebugLog.text(markdown),
+        },
+      );
       widget.controller.pasteMarkdown(markdown);
       return;
     }
+    final plainText = snapshot.plainText;
     if (plainText == null) {
+      WenzClipboardDebugLog.event(
+        'editor.paste-skipped',
+        fields: const <String, Object?>{'reason': 'clipboard-empty'},
+      );
       return;
     }
+    WenzClipboardDebugLog.event(
+      'editor.paste-route',
+      fields: <String, Object?>{
+        'route': 'plain-text',
+        'value': WenzClipboardDebugLog.text(plainText),
+      },
+    );
     widget.controller.pasteText(plainText);
   }
 
-  Future<ExternalImageClipboardData> _readExternalClipboardData() async {
-    if (!widget.enableExternalImageInput) {
-      return const ExternalImageClipboardData();
-    }
+  RichClipboardAdapter get _clipboardAdapter {
     final reader = widget.externalImageClipboardReader;
     if (reader == null) {
-      return const ExternalImageClipboardData();
+      return defaultRichClipboardAdapter;
     }
-    try {
-      return await reader.read();
-    } on Object {
-      return const ExternalImageClipboardData();
-    }
-  }
-
-  Future<String?> _readPlainText() async {
-    try {
-      return _nonEmptyClipboardText(
-        (await Clipboard.getData('text/plain'))?.text,
-      );
-    } on Object {
-      return null;
-    }
+    return RichClipboardAdapter(externalImageClipboardReader: reader);
   }
 
   Future<List<ExternalImageBlockDescription>> _prepareExternalImages(
@@ -7649,8 +7841,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
         index,
         consumedIndexes,
       );
-      final relatedInput =
-          relatedIndex == null ? null : inputs[relatedIndex];
+      final relatedInput = relatedIndex == null ? null : inputs[relatedIndex];
       final fileInput = relatedInput == null
           ? null
           : _isFileExternalImageInput(input)
@@ -7755,8 +7946,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     for (var candidateIndex = 0;
         candidateIndex < inputs.length;
         candidateIndex++) {
-      if (candidateIndex == index ||
-          consumedIndexes.contains(candidateIndex)) {
+      if (candidateIndex == index || consumedIndexes.contains(candidateIndex)) {
         continue;
       }
       if (_externalImageInputsMayDescribeSameImage(
@@ -7876,13 +8066,6 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     if (result.isSuccess) {
       widget.controller.requestFocus();
     }
-  }
-
-  String? _nonEmptyClipboardText(String? value) {
-    if (value == null || value.isEmpty) {
-      return null;
-    }
-    return value;
   }
 
   String _nextBlockId() {
@@ -8489,7 +8672,6 @@ class _KeepAliveBlock extends StatefulWidget {
     this.quoteGroupPosition = QuoteGroupPosition.standalone,
     required this.keepAlive,
     required this.blockChanged,
-    required this.showMobileCurrentBlockAction,
     required this.selection,
     required this.compositionState,
     required this.registry,
@@ -8528,7 +8710,6 @@ class _KeepAliveBlock extends StatefulWidget {
   final QuoteGroupPosition quoteGroupPosition;
   final bool keepAlive;
   final bool blockChanged;
-  final bool showMobileCurrentBlockAction;
   final DocumentSelection? selection;
   final CompositionState? compositionState;
   final BlockGeometryRegistry registry;
@@ -8595,8 +8776,6 @@ class _KeepAliveBlockState extends State<_KeepAliveBlock>
         oldWidget.blockIndex != widget.blockIndex ||
         oldWidget.blockCount != widget.blockCount ||
         oldWidget.blockMoveRange != widget.blockMoveRange ||
-        oldWidget.showMobileCurrentBlockAction !=
-            widget.showMobileCurrentBlockAction ||
         selectionTouchedChanged ||
         selectionShiftedWhileTouched ||
         oldWidget.showCaret != widget.showCaret ||
@@ -8650,7 +8829,6 @@ class _KeepAliveBlockState extends State<_KeepAliveBlock>
       blockMoveRange: widget.blockMoveRange,
       listMarker: widget.listMarker,
       quoteGroupPosition: widget.quoteGroupPosition,
-      showMobileCurrentBlockAction: widget.showMobileCurrentBlockAction,
       selection: widget.selection,
       compositionState: widget.compositionState,
       registry: widget.registry,
@@ -8712,7 +8890,6 @@ class _BlockRenderer extends StatelessWidget {
     required this.blockMoveRange,
     this.listMarker,
     this.quoteGroupPosition = QuoteGroupPosition.standalone,
-    required this.showMobileCurrentBlockAction,
     required this.selection,
     required this.compositionState,
     required this.registry,
@@ -8748,7 +8925,6 @@ class _BlockRenderer extends StatelessWidget {
   final _BlockMoveRange blockMoveRange;
   final String? listMarker;
   final QuoteGroupPosition quoteGroupPosition;
-  final bool showMobileCurrentBlockAction;
   final DocumentSelection? selection;
   final CompositionState? compositionState;
   final BlockGeometryRegistry registry;
@@ -8802,8 +8978,7 @@ class _BlockRenderer extends StatelessWidget {
       onCalloutVariantChanged: onCalloutVariantChanged,
       onTableToolbarAction: onTableToolbarAction,
       tableToolbarOverlayController: tableToolbarOverlayController,
-      objectBlockToolbarOverlayController:
-          objectBlockToolbarOverlayController,
+      objectBlockToolbarOverlayController: objectBlockToolbarOverlayController,
       onTableColumnResize: onTableColumnResize,
       onImageBlockResize: onImageBlockResize,
       onTodoCheckedChanged: onTodoCheckedChanged,
@@ -8838,7 +9013,6 @@ class _BlockRenderer extends StatelessWidget {
       blockIndex: blockIndex,
       blockCount: blockCount,
       blockMoveRange: blockMoveRange,
-      showMobileCurrentBlockAction: showMobileCurrentBlockAction,
       chromeLineExtent: chromeLineExtent,
       chromeTopOffset: chromeTopOffset,
       reserveHeadingCollapseRail: reserveHeadingCollapseRail,
@@ -8864,7 +9038,6 @@ class _BlockDragHandleOverlay extends StatefulWidget {
     required this.blockIndex,
     required this.blockCount,
     required this.blockMoveRange,
-    required this.showMobileCurrentBlockAction,
     required this.chromeLineExtent,
     required this.chromeTopOffset,
     required this.reserveHeadingCollapseRail,
@@ -8886,7 +9059,6 @@ class _BlockDragHandleOverlay extends StatefulWidget {
   final int blockIndex;
   final int blockCount;
   final _BlockMoveRange blockMoveRange;
-  final bool showMobileCurrentBlockAction;
   final double chromeLineExtent;
   final double chromeTopOffset;
   final bool reserveHeadingCollapseRail;
@@ -8912,11 +9084,12 @@ class _BlockDragHandleOverlayState extends State<_BlockDragHandleOverlay> {
   @override
   Widget build(BuildContext context) {
     final chromeTokens = EditorTokens.resolveBlockChrome(context);
-    final showDragHandle = BlockDragHandleSpec.canShow(
-      canEdit: widget.canEdit,
-      blockIndex: widget.blockIndex,
-      blockCount: widget.blockCount,
-    );
+    final showDragHandle = !chromeTokens.isMobile &&
+        BlockDragHandleSpec.canShow(
+          canEdit: widget.canEdit,
+          blockIndex: widget.blockIndex,
+          blockCount: widget.blockCount,
+        );
     final headingCollapseState = widget.headingCollapseState;
     final showHeadingCollapse = headingCollapseState?.canCollapse ?? false;
     final reserveHeadingCollapseSlot = _shouldReserveHeadingCollapseSlot(
@@ -8987,8 +9160,6 @@ class _BlockDragHandleOverlayState extends State<_BlockDragHandleOverlay> {
                   blockCount: widget.blockCount,
                   blockMoveRange: widget.blockMoveRange,
                   blockHovered: _blockHovered,
-                  showMobileCurrentBlockAction:
-                      widget.showMobileCurrentBlockAction,
                   resolveDropTarget: widget.resolveBlockReorderDropTarget,
                   canEdit: widget.canEdit,
                   registry: widget.registry,
@@ -9097,8 +9268,7 @@ class _BlockReorderRowGeometryState extends State<_BlockReorderRowGeometry> {
 
   @override
   void dispose() {
-    widget.registry
-        .unregisterBlockRow(widget.blockId, widget.blockRowKey);
+    widget.registry.unregisterBlockRow(widget.blockId, widget.blockRowKey);
     super.dispose();
   }
 
@@ -9132,7 +9302,6 @@ class _BlockDragHandleButton extends StatefulWidget {
     required this.blockCount,
     required this.blockMoveRange,
     required this.blockHovered,
-    required this.showMobileCurrentBlockAction,
     this.resolveDropTarget,
     required this.canEdit,
     required this.registry,
@@ -9151,7 +9320,6 @@ class _BlockDragHandleButton extends StatefulWidget {
   final int blockCount;
   final _BlockMoveRange blockMoveRange;
   final bool blockHovered;
-  final bool showMobileCurrentBlockAction;
   final _BlockReorderDropTargetResolver? resolveDropTarget;
   final bool canEdit;
   final BlockGeometryRegistry registry;
@@ -9213,18 +9381,15 @@ class _BlockDragHandleButtonState extends State<_BlockDragHandleButton> {
   Widget build(BuildContext context) {
     final enabled = _enabled;
     final hovered = _hovered || widget.blockHovered;
-    final mobileCurrentBlockAction =
-        enabled && widget.showMobileCurrentBlockAction;
     final opacity = !enabled
         ? BlockDragHandleSpec.disabledOpacity
-        : mobileCurrentBlockAction || _menuOpen || _focused || _dragging
+        : _menuOpen || _focused || _dragging
             ? BlockDragHandleSpec.activeOpacity
             : hovered
                 ? BlockDragHandleSpec.hoverOpacity
                 : BlockDragHandleSpec.idleOpacity;
     final theme = Theme.of(context);
-    final active =
-        mobileCurrentBlockAction || _menuOpen || _focused || _dragging;
+    final active = _menuOpen || _focused || _dragging;
     final backgroundColor = active
         ? _minimalMenuSelectedColor(theme)
         : _hovered
@@ -9446,8 +9611,7 @@ class _BlockDragHandleButtonState extends State<_BlockDragHandleButton> {
     }
     final localPos = overlayBox.globalToLocal(_dragPointerPosition);
     final imageWidth = image.width.toDouble() / _kDragPreviewDevicePixelRatio;
-    final imageHeight =
-        image.height.toDouble() / _kDragPreviewDevicePixelRatio;
+    final imageHeight = image.height.toDouble() / _kDragPreviewDevicePixelRatio;
     final viewportHeight = MediaQuery.of(context).size.height;
     final maxPreviewHeight = viewportHeight * _kDragPreviewMaxHeightRatio;
     final previewHeight = imageHeight.clamp(0.0, maxPreviewHeight);
@@ -9463,8 +9627,7 @@ class _BlockDragHandleButtonState extends State<_BlockDragHandleButton> {
         child: DecoratedBox(
           decoration: BoxDecoration(
             color: Colors.white.withValues(alpha: _kDragPreviewOpacity),
-            borderRadius:
-                BorderRadius.circular(_kDragPreviewBorderRadius),
+            borderRadius: BorderRadius.circular(_kDragPreviewBorderRadius),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.15),
@@ -9474,8 +9637,7 @@ class _BlockDragHandleButtonState extends State<_BlockDragHandleButton> {
             ],
           ),
           child: ClipRRect(
-            borderRadius:
-                BorderRadius.circular(_kDragPreviewBorderRadius),
+            borderRadius: BorderRadius.circular(_kDragPreviewBorderRadius),
             clipBehavior: Clip.antiAlias,
             child: Opacity(
               opacity: _kDragPreviewOpacity,
@@ -10853,8 +11015,8 @@ void _showVideoPreview(
     context,
     MaterialLocalizations,
   );
-  final barrierLabel = materialLocalizations?.modalBarrierDismissLabel ??
-      'Dismiss';
+  final barrierLabel =
+      materialLocalizations?.modalBarrierDismissLabel ?? 'Dismiss';
   _VideoFullscreenRouteCoordinator.show(
     navigator: navigator,
     barrierLabel: barrierLabel,
@@ -10880,8 +11042,7 @@ class _VideoFullscreenRouteCoordinator {
     final session = Object();
     _activeNavigatorSessions[navigator] = session;
 
-    final toolbarController =
-        renderContext.objectBlockToolbarOverlayController;
+    final toolbarController = renderContext.objectBlockToolbarOverlayController;
     final handoff = toolbarController?.beginRouteHandoff(
       blockId: block.id,
       blockIndex: renderContext.blockIndex,
@@ -11194,11 +11355,12 @@ class _StableResolvedVideoMediaState extends State<_StableResolvedVideoMedia> {
             widget.renderContext,
             widget.position,
           );
-          return result.widget ?? _videoFallbackForResolve(
-            widget.block,
-            result,
-            widget.position,
-          );
+          return result.widget ??
+              _videoFallbackForResolve(
+                widget.block,
+                result,
+                widget.position,
+              );
         },
       ),
     );
@@ -11442,8 +11604,7 @@ class _SelectableImageBlockState extends State<_SelectableImageBlock> {
         child: widget.media,
       ),
       onPreview: widget.onPreview,
-      toolbarFrameWidth:
-          _previewToolbarFrameWidth ??
+      toolbarFrameWidth: _previewToolbarFrameWidth ??
           _committedToolbarFrameWidth ??
           _preferredImageFrameWidth(block),
     );
@@ -13564,8 +13725,8 @@ class _TableToolbarState {
     final anchor = block.table.cellAt(range.startRow, range.startColumn);
     final rowFull = range.startColumn == 0 &&
         range.endColumn >= block.table.columnCount - 1;
-    final columnFull = range.startRow == 0 &&
-        range.endRow >= block.table.rowCount - 1;
+    final columnFull =
+        range.startRow == 0 && range.endRow >= block.table.rowCount - 1;
     final tableSelected = rowFull && columnFull;
     return _TableToolbarState(
       canDeleteRow: _canDeleteRows(block, range),
@@ -14213,7 +14374,8 @@ String _tableCellDisplayText(TableCellNode cell) {
   return inline.map(_inlineDisplayText).join();
 }
 
-double _minimumTableCellHeight(TextStyle textStyle, EdgeInsets tableCellPadding) {
+double _minimumTableCellHeight(
+    TextStyle textStyle, EdgeInsets tableCellPadding) {
   return ((textStyle.fontSize ?? _kTableCellFontSize) *
           _kBlockMinHeightFactor) +
       tableCellPadding.vertical;
@@ -14456,8 +14618,8 @@ Rect? _caretRectForTableSelectionEndpoint({
     maxWidth: innerWidth,
   );
   final logicalOffset = position.offset.clamp(0, textLayout.textLength).toInt();
-  final renderOffset = textLayout.offsetMapper
-      .renderOffsetForLogicalOffset(logicalOffset);
+  final renderOffset =
+      textLayout.offsetMapper.renderOffsetForLogicalOffset(logicalOffset);
   final localTopLeft = layoutService.caretOffset(painter, renderOffset);
   final height = _caretHeightFor(
     painter,
@@ -16372,9 +16534,8 @@ class _VideoBlockPlaceholder extends StatelessWidget {
         key: ValueKey<String>('wenz-richtext-video-placeholder-${block.id}'),
         decoration: BoxDecoration(
           color: Colors.black,
-          borderRadius: squareCorners
-              ? null
-              : BorderRadius.circular(_kMediaCornerRadius),
+          borderRadius:
+              squareCorners ? null : BorderRadius.circular(_kMediaCornerRadius),
           boxShadow: squareCorners ? null : _kSurfaceBoxShadow,
         ),
         child: _VideoPlaceholderClip(
@@ -17098,8 +17259,8 @@ class _VideoBlockContentState extends State<_VideoBlockContent> {
       widget.block,
       availableWidth: metrics.maxWidth,
     );
-    final startWidth = _positiveFiniteDimension(measuredSize?.width) ??
-        metrics.displayWidth;
+    final startWidth =
+        _positiveFiniteDimension(measuredSize?.width) ?? metrics.displayWidth;
     final safeWidth = dragMetrics.clampWidth(startWidth);
     final previewSize = Size(
       safeWidth,
@@ -18983,11 +19144,10 @@ class _MediaSelectionStroke extends StatelessWidget {
 }
 
 double? _preferredImageFrameWidth(ImageBlockNode block) {
-  final hasPersistedSize =
-      _positiveFiniteDimension(block.showWidth) != null ||
-          _positiveFiniteDimension(block.showHeight) != null ||
-          _positiveFiniteDimension(block.width) != null ||
-          _positiveFiniteDimension(block.height) != null;
+  final hasPersistedSize = _positiveFiniteDimension(block.showWidth) != null ||
+      _positiveFiniteDimension(block.showHeight) != null ||
+      _positiveFiniteDimension(block.width) != null ||
+      _positiveFiniteDimension(block.height) != null;
   if (!hasPersistedSize) {
     return null;
   }
@@ -18995,9 +19155,8 @@ double? _preferredImageFrameWidth(ImageBlockNode block) {
 }
 
 double? _preferredVideoFrameWidth(VideoBlockNode block) {
-  final hasPersistedSize =
-      _positiveFiniteDimension(block.showWidth) != null ||
-          _positiveFiniteDimension(block.showHeight) != null;
+  final hasPersistedSize = _positiveFiniteDimension(block.showWidth) != null ||
+      _positiveFiniteDimension(block.showHeight) != null;
   if (!hasPersistedSize) {
     return null;
   }
@@ -20780,8 +20939,7 @@ bool _isMentionSearchBoundary(String character) {
   if (character == _kMentionSearchInlineBoundary || character.trim().isEmpty) {
     return true;
   }
-  return '.,;:!?()[]{}<>/\\|\'"`~#\$%^&*+=，。！？；：、（）【】《》'
-      .contains(character);
+  return '.,;:!?()[]{}<>/\\|\'"`~#\$%^&*+=，。！？；：、（）【】《》'.contains(character);
 }
 
 class _MentionSearchTrigger {

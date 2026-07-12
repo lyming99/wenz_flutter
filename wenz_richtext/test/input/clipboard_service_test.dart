@@ -100,6 +100,61 @@ void main() {
       expect(embeds.single.data['text'], 'x^2');
     });
 
+    test('complete unordered list item copies as a block payload', () {
+      const doc = RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'li1',
+            type: BlockType.listItem,
+            content: <InlineNode>[TextRun(text: 'bullet item')],
+          ),
+        ],
+      );
+
+      final payload = service.copyPayload(
+        doc,
+        textSelection('li1', 0, 0, 'bullet item'.length),
+      );
+
+      expect(payload, isNotNull);
+      final privatePaste = service.parse(payload!.wenzRichText);
+      expect(privatePaste.isBlocks, isTrue);
+      expect(privatePaste.blocks, hasLength(1));
+      final item = privatePaste.blocks.single as TextBlockNode;
+      expect(item.type, BlockType.listItem);
+      expect(item.attributes.listType, isNull);
+      expect(item.plainText, 'bullet item');
+
+      final htmlPaste = service.parse(
+        payload.html,
+        format: ClipboardPasteFormat.html,
+      );
+      expect(
+        (htmlPaste.blocks.single as TextBlockNode).type,
+        BlockType.listItem,
+      );
+      expect(htmlPaste.blocks.single.plainText, 'bullet item');
+    });
+
+    test('partial unordered list text keeps inline copy behaviour', () {
+      const doc = RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'li1',
+            type: BlockType.listItem,
+            content: <InlineNode>[TextRun(text: 'bullet item')],
+          ),
+        ],
+      );
+
+      final payload = service.copyPayload(doc, textSelection('li1', 0, 0, 6));
+      final paste = service.parse(payload!.wenzRichText);
+
+      expect(paste.isBlocks, isFalse);
+      expect(paste.isRich, isTrue);
+      expect(paste.text, 'bullet');
+    });
+
     test('object block selection produces a blocks payload', () {
       const doc = RichTextDocument(
         blocks: <BlockNode>[
@@ -491,6 +546,116 @@ void main() {
       expect((paste.blocks[1] as TextBlockNode).plainText, 'body');
     });
 
+    test('html format preserves list item body, type, and checked state', () {
+      final paste = service.parse(
+        '<ul><li>one</li></ul>'
+        '<ol><li>two</li></ol>'
+        '<ul><li><input type="checkbox" checked> done</li></ul>',
+        format: ClipboardPasteFormat.html,
+      );
+
+      expect(paste.isBlocks, isTrue);
+      final items = paste.blocks.cast<TextBlockNode>();
+      expect(items, hasLength(3));
+      expect(items[0].type, BlockType.listItem);
+      expect(items[0].attributes.listType, isNull);
+      expect(items[0].plainText, 'one');
+      expect(items[1].attributes.listType, 'ordered');
+      expect(items[1].plainText, 'two');
+      expect(items[2].attributes.listType, 'task');
+      expect(items[2].attributes.checked, isTrue);
+      // The checkbox markup separates the input from its text with a space;
+      // that whitespace is preserved as leading text on the item body.
+      expect(items[2].plainText, ' done');
+    });
+
+    test('list copy round-trips through private rich and HTML payloads', () {
+      const doc = RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'li1',
+            type: BlockType.listItem,
+            attributes: BlockAttributes(listType: 'ordered'),
+            content: <InlineNode>[TextRun(text: 'First')],
+          ),
+          TextBlockNode(
+            id: 'li2',
+            type: BlockType.listItem,
+            attributes: BlockAttributes(listType: 'task', checked: true),
+            content: <InlineNode>[TextRun(text: 'Done')],
+          ),
+        ],
+      );
+      final sel = DocumentSelection(
+        base: DocumentPosition(
+          blockId: 'li1',
+          blockIndex: 0,
+          path: PositionPath.blockText('li1'),
+          offset: 0,
+        ),
+        extent: DocumentPosition(
+          blockId: 'li2',
+          blockIndex: 1,
+          path: PositionPath.blockText('li2'),
+          offset: 4,
+        ),
+      );
+
+      final payload = service.copyPayload(doc, sel);
+      expect(payload, isNotNull);
+
+      // Private rich payload preserves block type, listType and checked state.
+      final richPaste = service.parse(payload!.wenzRichText);
+      expect(richPaste.isBlocks, isTrue);
+      expect(richPaste.blocks, hasLength(2));
+      final richItems = richPaste.blocks.cast<TextBlockNode>();
+      expect(richItems[0].type, BlockType.listItem);
+      expect(richItems[0].attributes.listType, 'ordered');
+      expect(richItems[0].attributes.checked, isNull);
+      expect(richItems[0].plainText, 'First');
+      expect(richItems[1].attributes.listType, 'task');
+      expect(richItems[1].attributes.checked, isTrue);
+      expect(richItems[1].plainText, 'Done');
+
+      // HTML payload re-parses back into the same structure, text and state.
+      final htmlPaste =
+          service.parse(payload.html, format: ClipboardPasteFormat.html);
+      expect(htmlPaste.isBlocks, isTrue);
+      expect(htmlPaste.blocks, hasLength(2));
+      final htmlItems = htmlPaste.blocks.cast<TextBlockNode>();
+      expect(htmlItems[0].type, BlockType.listItem);
+      expect(htmlItems[0].attributes.listType, 'ordered');
+      expect(htmlItems[0].attributes.checked, isNull);
+      expect(htmlItems[0].plainText, 'First');
+      expect(htmlItems[1].attributes.listType, 'task');
+      expect(htmlItems[1].attributes.checked, isTrue);
+      // The task checkbox markup separates input and body with a space.
+      expect(htmlItems[1].plainText, ' Done');
+    });
+
+    test('html format imports list paragraphs copied by legacy wenz_editor',
+        () {
+      final paste = service.parse(
+        '<!DOCTYPE html><html><body>'
+        '<p itemType="li">bullet text</p>'
+        '<p itemType="oli">ordered text</p>'
+        '<p itemType="check" checked="true">task text</p>'
+        '</body></html>',
+        format: ClipboardPasteFormat.html,
+      );
+
+      expect(paste.isBlocks, isTrue);
+      final items = paste.blocks.cast<TextBlockNode>();
+      expect(items, hasLength(3));
+      expect(items.every((item) => item.type == BlockType.listItem), isTrue);
+      expect(items.map((item) => item.plainText),
+          orderedEquals(<String>['bullet text', 'ordered text', 'task text']));
+      expect(items[0].attributes.listType, isNull);
+      expect(items[1].attributes.listType, 'ordered');
+      expect(items[2].attributes.listType, 'task');
+      expect(items[2].attributes.checked, isTrue);
+    });
+
     test('html format preserves inline font color', () {
       final paste = service.parse(
         '<p><span style="color: #d81b60">colored</span></p>',
@@ -667,7 +832,8 @@ void main() {
       expect(block.language, 'dart');
       expect(block.attributes.anchor, 'code-anchor');
       expect(block.code, 'a${pasted}b');
-      expect(controller.selection?.extent.path, PositionPath.blockCode('code1'));
+      expect(
+          controller.selection?.extent.path, PositionPath.blockCode('code1'));
       expect(controller.selection?.extent.offset, 1 + pasted.length);
     });
 
@@ -812,6 +978,36 @@ void main() {
       expect(embeds, hasLength(1));
       expect(embeds.single.embedType, 'formula');
       expect(embeds.single.data['text'], 'y');
+    });
+
+    test('copy and paste a complete unordered item preserves list structure',
+        () {
+      const source = RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'source-li',
+            type: BlockType.listItem,
+            content: <InlineNode>[TextRun(text: 'copied bullet')],
+          ),
+        ],
+      );
+      final payload = service.copyPayload(
+        source,
+        textSelection('source-li', 0, 0, 'copied bullet'.length),
+      )!;
+      final controller = WenzRichTextController(
+        document: _emptyDoc(),
+        selection: collapsedTextSelection('p1', 0, 0),
+      );
+
+      // The editor paste path prioritises this private flavour over HTML.
+      controller.pasteText(payload.wenzRichText);
+
+      expect(controller.document.blocks, hasLength(1));
+      final pasted = controller.document.blocks.single as TextBlockNode;
+      expect(pasted.type, BlockType.listItem);
+      expect(pasted.attributes.listType, isNull);
+      expect(pasted.plainText, 'copied bullet');
     });
 
     test('cut deletes the selection and returns the payload', () {
@@ -1243,7 +1439,8 @@ RichTextDocument _tableDoc([String plainTail = 'llo']) {
                     content: <InlineNode>[
                       const TextRun(
                         text: 'He',
-                        attributes: TextAttributes(bold: true, color: 0xFFD81B60),
+                        attributes:
+                            TextAttributes(bold: true, color: 0xFFD81B60),
                       ),
                       TextRun(text: plainTail),
                     ],

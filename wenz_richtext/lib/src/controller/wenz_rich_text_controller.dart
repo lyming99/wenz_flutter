@@ -33,6 +33,7 @@ import '../core/position/document_position.dart';
 import '../core/transaction/change_set.dart';
 import '../core/transaction/document_session.dart';
 import '../history/history_manager.dart';
+import '../input/clipboard_debug_log.dart';
 import '../input/clipboard_service.dart';
 import '../input/composition_state.dart';
 import '../input/external_image_input.dart';
@@ -1370,14 +1371,22 @@ class WenzRichTextController extends ChangeNotifier {
     return copySelection(selection);
   }
 
-  /// Copy then delete. Returns the copied payload (for the caller to write to
-  /// the platform clipboard), or `null` when nothing was selected.
-  String? cutSelection([DocumentSelection? selection]) {
-    final payload = copySelection(selection);
+  /// Builds the current selection's structured clipboard payload, then deletes
+  /// that selection. Returns `null` when nothing valid is selected.
+  ClipboardCopyPayload? cutSelectionPayload([DocumentSelection? selection]) {
+    final payload = copySelectionPayload(selection);
     if (payload != null) {
       deleteSelection(selection);
     }
     return payload;
+  }
+
+  /// Copy then delete using the legacy clipboard string.
+  ///
+  /// Prefer [cutSelectionPayload] for editor clipboard integrations so the
+  /// private Wenz, HTML, and readable plain-text flavours are all preserved.
+  String? cutSelection([DocumentSelection? selection]) {
+    return cutSelectionPayload(selection)?.legacyText;
   }
 
   /// Pastes a clipboard payload at the current selection. Rich inline payloads
@@ -1392,6 +1401,18 @@ class WenzRichTextController extends ChangeNotifier {
     }
     _pasteClipboard(
       clipboardService.parse(raw),
+      allowCodeBlockPlainTextFastPath: true,
+    );
+  }
+
+  /// Applies an already parsed clipboard value.
+  ///
+  /// The widget layer uses this after validating the preferred private format,
+  /// allowing it to fall back to HTML or plain text when private clipboard data
+  /// is corrupt instead of turning the paste into an empty no-op.
+  void pasteParsedClipboard(ClipboardPaste paste) {
+    _pasteClipboard(
+      paste,
       allowCodeBlockPlainTextFastPath: true,
     );
   }
@@ -1426,9 +1447,20 @@ class WenzRichTextController extends ChangeNotifier {
     );
   }
 
+  /// Returns a table-cell matrix only when the current paste target is inside
+  /// a table cell. The clipboard parser deliberately keeps the original paste
+  /// flavour alongside this matrix, so callers outside a table continue to use
+  /// the established rich/block/plain-text paste paths.
+  ClipboardTableCellMatrix? tableCellMatrixForPaste(ClipboardPaste paste) {
+    final target = selection;
+    if (target == null || !target.extent.path.isTableCellText) {
+      return null;
+    }
+    return paste.tableCellMatrix;
+  }
+
   ExternalImagePasteResult pasteExternalImages(
-    List<ExternalImageBlockDescription> images,
-    {
+    List<ExternalImageBlockDescription> images, {
     DocumentSelection? selection,
   }) {
     if (images.isEmpty) {
@@ -1458,8 +1490,7 @@ class WenzRichTextController extends ChangeNotifier {
     final effectiveSelection =
         _normalizedExternalImagePasteSelection(selection) ??
             _normalizedExternalImagePasteSelection(session.selection);
-    final selectionOverride =
-        selection != null &&
+    final selectionOverride = selection != null &&
             effectiveSelection != null &&
             effectiveSelection != session.selection
         ? effectiveSelection
@@ -1516,25 +1547,76 @@ class WenzRichTextController extends ChangeNotifier {
     ClipboardPaste paste, {
     required bool allowCodeBlockPlainTextFastPath,
   }) {
+    WenzClipboardDebugLog.event(
+      'controller.paste-dispatch',
+      fields: <String, Object?>{
+        'kind': paste.isBlocks
+            ? 'blocks'
+            : paste.isRich
+                ? 'inline'
+                : 'plain',
+        'blockCount': paste.blocks.length,
+        'blockTypes': paste.blocks.map((block) => block.type.name).join(','),
+        'inlineRunCount': paste.inlineRuns.length,
+        'text': WenzClipboardDebugLog.text(paste.text),
+        'selection': WenzClipboardDebugLog.selection(selection),
+        'allowCodeFastPath': allowCodeBlockPlainTextFastPath,
+      },
+    );
     if (paste.isBlocks) {
       execute(PasteBlocksCommand(paste.blocks,
           newBlockId: 'paste-${_pasteBlockCounter()}'));
+      WenzClipboardDebugLog.event(
+        'controller.paste-applied',
+        fields: <String, Object?>{
+          'branch': 'blocks',
+          'documentBlocks': document.blocks.length,
+          'selection': WenzClipboardDebugLog.selection(selection),
+        },
+      );
       return;
     }
     if (paste.isRich) {
       _pasteInline(paste.inlineRuns);
       notifyListeners();
+      WenzClipboardDebugLog.event(
+        'controller.paste-applied',
+        fields: <String, Object?>{
+          'branch': 'inline',
+          'documentBlocks': document.blocks.length,
+          'selection': WenzClipboardDebugLog.selection(selection),
+        },
+      );
       return;
     }
     final text = paste.text;
     if (text.isEmpty) {
+      WenzClipboardDebugLog.event(
+        'controller.paste-skipped',
+        fields: const <String, Object?>{'reason': 'empty-text'},
+      );
       return;
     }
     if (allowCodeBlockPlainTextFastPath && _pastePlainIntoCodeBlock(text)) {
+      WenzClipboardDebugLog.event(
+        'controller.paste-applied',
+        fields: <String, Object?>{
+          'branch': 'plain-code-fast-path',
+          'selection': WenzClipboardDebugLog.selection(selection),
+        },
+      );
       return;
     }
     _pastePlain(text);
     notifyListeners();
+    WenzClipboardDebugLog.event(
+      'controller.paste-applied',
+      fields: <String, Object?>{
+        'branch': 'plain',
+        'documentBlocks': document.blocks.length,
+        'selection': WenzClipboardDebugLog.selection(selection),
+      },
+    );
   }
 
   void _pasteInline(List<InlineNode> runs) {
@@ -1669,7 +1751,8 @@ class WenzRichTextController extends ChangeNotifier {
   }
 
   bool _isValidExternalImagePastePosition(DocumentPosition position) {
-    if (position.blockIndex < 0 || position.blockIndex >= document.blocks.length) {
+    if (position.blockIndex < 0 ||
+        position.blockIndex >= document.blocks.length) {
       return false;
     }
     final block = document.blocks[position.blockIndex];
@@ -1706,7 +1789,8 @@ class WenzRichTextController extends ChangeNotifier {
   }
 
   DocumentPosition _blockInsertionPosition(DocumentSelection selection) {
-    if (selection.start.path.isBlockObject || selection.end.path.isBlockObject) {
+    if (selection.start.path.isBlockObject ||
+        selection.end.path.isBlockObject) {
       return selection.end;
     }
     return selection.extent;
@@ -2614,9 +2698,8 @@ class _SelectionScopedCommand extends EditorCommand {
 
   @override
   bool canMergeWith(EditorCommand previous) {
-    final previousDelegate = previous is _SelectionScopedCommand
-        ? previous.delegate
-        : previous;
+    final previousDelegate =
+        previous is _SelectionScopedCommand ? previous.delegate : previous;
     return delegate.canMergeWith(previousDelegate);
   }
 

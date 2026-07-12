@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:flutter/services.dart';
 import 'package:super_clipboard/super_clipboard.dart' as super_clipboard;
 
+import 'clipboard_debug_log.dart';
 import 'clipboard_service.dart';
 import 'external_image_clipboard_reader.dart';
 import 'external_image_input.dart';
@@ -13,19 +14,19 @@ import 'external_image_input.dart';
 /// The stored value is the same string as [ClipboardCopyPayload.wenzRichText],
 /// including [wenzClipboardPrefix], so legacy plain-text rich payloads and the
 /// private format can share the same parser.
-final super_clipboard.ValueFormat<String> wenzRichTextSuperClipboardFormat =
+const super_clipboard.ValueFormat<String> wenzRichTextSuperClipboardFormat =
     super_clipboard.SimpleValueFormat<String>(
   fallback: super_clipboard.SimplePlatformCodec<String>(
-    formats: const <String>[wenzRichTextClipboardFormat],
+    formats: <String>[wenzRichTextClipboardFormat],
     onDecode: _decodeClipboardString,
   ),
 );
 
 /// `super_clipboard` value format for Markdown clipboard snippets.
-final super_clipboard.ValueFormat<String> markdownSuperClipboardFormat =
+const super_clipboard.ValueFormat<String> markdownSuperClipboardFormat =
     super_clipboard.SimpleValueFormat<String>(
   ios: super_clipboard.SimplePlatformCodec<String>(
-    formats: const <String>[
+    formats: <String>[
       'net.daringfireball.markdown',
       markdownClipboardFormat,
       'text/x-markdown',
@@ -33,7 +34,7 @@ final super_clipboard.ValueFormat<String> markdownSuperClipboardFormat =
     onDecode: _decodeClipboardString,
   ),
   macos: super_clipboard.SimplePlatformCodec<String>(
-    formats: const <String>[
+    formats: <String>[
       'net.daringfireball.markdown',
       markdownClipboardFormat,
       'text/x-markdown',
@@ -41,7 +42,7 @@ final super_clipboard.ValueFormat<String> markdownSuperClipboardFormat =
     onDecode: _decodeClipboardString,
   ),
   fallback: super_clipboard.SimplePlatformCodec<String>(
-    formats: const <String>[
+    formats: <String>[
       markdownClipboardFormat,
       'text/x-markdown',
     ],
@@ -84,10 +85,33 @@ class RichClipboardAdapter {
 
   /// Writes a structured copy payload and reports whether any write path worked.
   Future<bool> tryWriteCopyPayload(ClipboardCopyPayload payload) async {
+    WenzClipboardDebugLog.event(
+      'platform.write-request',
+      fields: <String, Object?>{
+        'wenz': WenzClipboardDebugLog.text(payload.wenzRichText),
+        'html': WenzClipboardDebugLog.text(payload.html),
+        'plain': WenzClipboardDebugLog.text(payload.plainText),
+      },
+    );
     if (await _tryWriteSuperClipboardPayload(payload)) {
+      WenzClipboardDebugLog.event(
+        'platform.write-result',
+        fields: const <String, Object?>{
+          'success': true,
+          'path': 'super_clipboard-multi-format',
+        },
+      );
       return true;
     }
-    return tryWritePlainText(payload.plainText);
+    final success = await tryWritePlainText(payload.plainText);
+    WenzClipboardDebugLog.event(
+      'platform.write-result',
+      fields: <String, Object?>{
+        'success': success,
+        'path': 'plain-text-fallback',
+      },
+    );
+    return success;
   }
 
   /// Writes readable plain text only.
@@ -121,14 +145,19 @@ class RichClipboardAdapter {
   Future<RichClipboardSnapshot> read({
     bool includeExternalImages = true,
   }) async {
+    WenzClipboardDebugLog.event(
+      'platform.read-request',
+      fields: <String, Object?>{
+        'includeExternalImages': includeExternalImages,
+      },
+    );
     final richData = await _readSuperClipboardFormats();
     final externalData = includeExternalImages
         ? await _readExternalClipboardData()
         : const ExternalImageClipboardData();
-    final fallbackPlainText = richData.plainText == null
-        ? await _readFlutterPlainText()
-        : richData.plainText;
-    return RichClipboardSnapshot(
+    final fallbackPlainText =
+        richData.plainText ?? await _readFlutterPlainText();
+    final snapshot = RichClipboardSnapshot(
       wenzRichText: richData.wenzRichText,
       html: _firstNonEmptyText(richData.html, externalData.html),
       markdown: _firstNonEmptyText(richData.markdown, externalData.markdown),
@@ -138,6 +167,19 @@ class RichClipboardAdapter {
       ),
       images: externalData.images,
     );
+    WenzClipboardDebugLog.event(
+      'platform.read-result',
+      fields: <String, Object?>{
+        'wenz': WenzClipboardDebugLog.text(snapshot.wenzRichText),
+        'legacyWenzInPlain': snapshot.hasLegacyWenzPlainText,
+        'html': WenzClipboardDebugLog.text(snapshot.html),
+        'markdown': WenzClipboardDebugLog.text(snapshot.markdown),
+        'plain': WenzClipboardDebugLog.text(snapshot.plainText),
+        'imageCount': snapshot.images.length,
+        'preferredFormat': snapshot.preferredText?.clipboardFormat,
+      },
+    );
+    return snapshot;
   }
 
   Future<bool> _tryWriteSuperClipboardPayload(
@@ -145,6 +187,12 @@ class RichClipboardAdapter {
   ) async {
     final clipboard = super_clipboard.SystemClipboard.instance;
     if (clipboard == null) {
+      WenzClipboardDebugLog.event(
+        'platform.write-multi-unavailable',
+        fields: const <String, Object?>{
+          'reason': 'SystemClipboard.instance=null'
+        },
+      );
       return false;
     }
     try {
@@ -152,7 +200,12 @@ class RichClipboardAdapter {
         createCopyPayloadItem(payload),
       ]);
       return true;
-    } on Object {
+    } on Object catch (error, stackTrace) {
+      WenzClipboardDebugLog.event(
+        'platform.write-multi-failed',
+        error: error,
+        stackTrace: stackTrace,
+      );
       return false;
     }
   }
@@ -160,14 +213,29 @@ class RichClipboardAdapter {
   Future<bool> _tryWriteSuperClipboardPlainText(String text) async {
     final clipboard = super_clipboard.SystemClipboard.instance;
     if (clipboard == null) {
+      WenzClipboardDebugLog.event(
+        'platform.write-plain-super-unavailable',
+        fields: const <String, Object?>{
+          'reason': 'SystemClipboard.instance=null'
+        },
+      );
       return false;
     }
     try {
       final item = super_clipboard.DataWriterItem()
         ..add(super_clipboard.Formats.plainText(text));
       await clipboard.write(<super_clipboard.DataWriterItem>[item]);
+      WenzClipboardDebugLog.event(
+        'platform.write-plain-super-success',
+        fields: <String, Object?>{'text': WenzClipboardDebugLog.text(text)},
+      );
       return true;
-    } on Object {
+    } on Object catch (error, stackTrace) {
+      WenzClipboardDebugLog.event(
+        'platform.write-plain-super-failed',
+        error: error,
+        stackTrace: stackTrace,
+      );
       return false;
     }
   }
@@ -175,8 +243,17 @@ class RichClipboardAdapter {
   Future<bool> _tryWriteFlutterPlainText(String text) async {
     try {
       await Clipboard.setData(ClipboardData(text: text));
+      WenzClipboardDebugLog.event(
+        'platform.write-plain-flutter-success',
+        fields: <String, Object?>{'text': WenzClipboardDebugLog.text(text)},
+      );
       return true;
-    } on Object {
+    } on Object catch (error, stackTrace) {
+      WenzClipboardDebugLog.event(
+        'platform.write-plain-flutter-failed',
+        error: error,
+        stackTrace: stackTrace,
+      );
       return false;
     }
   }
@@ -184,6 +261,12 @@ class RichClipboardAdapter {
   Future<RichClipboardSnapshot> _readSuperClipboardFormats() async {
     final clipboard = super_clipboard.SystemClipboard.instance;
     if (clipboard == null) {
+      WenzClipboardDebugLog.event(
+        'platform.read-multi-unavailable',
+        fields: const <String, Object?>{
+          'reason': 'SystemClipboard.instance=null'
+        },
+      );
       return const RichClipboardSnapshot();
     }
     try {
@@ -192,12 +275,30 @@ class RichClipboardAdapter {
         wenzRichText: await _readValue(
           reader,
           wenzRichTextSuperClipboardFormat,
+          wenzRichTextClipboardFormat,
         ),
-        html: await _readValue(reader, super_clipboard.Formats.htmlText),
-        markdown: await _readValue(reader, markdownSuperClipboardFormat),
-        plainText: await _readValue(reader, super_clipboard.Formats.plainText),
+        html: await _readValue(
+          reader,
+          super_clipboard.Formats.htmlText,
+          htmlClipboardFormat,
+        ),
+        markdown: await _readValue(
+          reader,
+          markdownSuperClipboardFormat,
+          markdownClipboardFormat,
+        ),
+        plainText: await _readValue(
+          reader,
+          super_clipboard.Formats.plainText,
+          plainTextClipboardFormat,
+        ),
       );
-    } on Object {
+    } on Object catch (error, stackTrace) {
+      WenzClipboardDebugLog.event(
+        'platform.read-multi-failed',
+        error: error,
+        stackTrace: stackTrace,
+      );
       return const RichClipboardSnapshot();
     }
   }
@@ -205,13 +306,36 @@ class RichClipboardAdapter {
   Future<String?> _readValue(
     super_clipboard.ClipboardDataReader reader,
     super_clipboard.ValueFormat<String> format,
+    String label,
   ) async {
     try {
-      if (!reader.canProvide(format)) {
+      final canProvide = reader.canProvide(format);
+      WenzClipboardDebugLog.event(
+        'platform.read-format-available',
+        fields: <String, Object?>{
+          'format': label,
+          'available': canProvide,
+        },
+      );
+      if (!canProvide) {
         return null;
       }
-      return _nonEmptyText(await reader.readValue(format));
-    } on Object {
+      final value = _nonEmptyText(await reader.readValue(format));
+      WenzClipboardDebugLog.event(
+        'platform.read-format-value',
+        fields: <String, Object?>{
+          'format': label,
+          'value': WenzClipboardDebugLog.text(value),
+        },
+      );
+      return value;
+    } on Object catch (error, stackTrace) {
+      WenzClipboardDebugLog.event(
+        'platform.read-format-failed',
+        fields: <String, Object?>{'format': label},
+        error: error,
+        stackTrace: stackTrace,
+      );
       return null;
     }
   }
@@ -219,19 +343,39 @@ class RichClipboardAdapter {
   Future<ExternalImageClipboardData> _readExternalClipboardData() async {
     final reader = externalImageClipboardReader;
     if (reader == null) {
+      WenzClipboardDebugLog.event(
+        'platform.read-external-images-skipped',
+        fields: const <String, Object?>{'reason': 'reader=null'},
+      );
       return const ExternalImageClipboardData();
     }
     try {
       return await reader.read();
-    } on Object {
+    } on Object catch (error, stackTrace) {
+      WenzClipboardDebugLog.event(
+        'platform.read-external-images-failed',
+        error: error,
+        stackTrace: stackTrace,
+      );
       return const ExternalImageClipboardData();
     }
   }
 
   Future<String?> _readFlutterPlainText() async {
     try {
-      return _nonEmptyText((await Clipboard.getData('text/plain'))?.text);
-    } on Object {
+      final value =
+          _nonEmptyText((await Clipboard.getData('text/plain'))?.text);
+      WenzClipboardDebugLog.event(
+        'platform.read-plain-flutter-result',
+        fields: <String, Object?>{'value': WenzClipboardDebugLog.text(value)},
+      );
+      return value;
+    } on Object catch (error, stackTrace) {
+      WenzClipboardDebugLog.event(
+        'platform.read-plain-flutter-failed',
+        error: error,
+        stackTrace: stackTrace,
+      );
       return null;
     }
   }
@@ -286,17 +430,17 @@ class RichClipboardSnapshot {
   /// Legacy rich payload stored in text/plain by older copy paths.
   String? get legacyWenzRichText {
     final text = _nonEmptyText(plainText);
-    if (text == null || !text.startsWith(wenzClipboardPrefix)) {
+    if (text == null || !hasWenzClipboardPrefix(text)) {
       return null;
     }
-    return text;
+    return normalizeWenzClipboardPayload(text);
   }
 
   /// Internal payload normalized for [ClipboardService.parse].
   String? get wenzRichTextForPaste {
     final rich = _nonEmptyText(wenzRichText);
     if (rich != null) {
-      return _ensureWenzClipboardPrefix(rich);
+      return normalizeWenzClipboardPayload(rich);
     }
     return legacyWenzRichText;
   }
@@ -306,7 +450,7 @@ class RichClipboardSnapshot {
     final privateRich = _nonEmptyText(wenzRichText);
     if (privateRich != null) {
       return RichClipboardTextData(
-        text: _ensureWenzClipboardPrefix(privateRich),
+        text: normalizeWenzClipboardPayload(privateRich),
         format: ClipboardPasteFormat.auto,
         clipboardFormat: wenzRichTextClipboardFormat,
       );
@@ -385,7 +529,7 @@ class RichClipboardTextData {
 
   bool get isWenzRichText =>
       clipboardFormat == wenzRichTextClipboardFormat ||
-      text.startsWith(wenzClipboardPrefix);
+      hasWenzClipboardPrefix(text);
 }
 
 Future<String?> _decodeClipboardString(
@@ -393,6 +537,16 @@ Future<String?> _decodeClipboardString(
   super_clipboard.PlatformFormat format,
 ) async {
   final value = await dataProvider.getData(format);
+  WenzClipboardDebugLog.event(
+    'platform.decode-value',
+    fields: <String, Object?>{
+      'platformFormat': format,
+      'runtimeType': value?.runtimeType,
+      'isNull': value == null,
+      'byteLength': value is List<int> ? value.length : null,
+      'string': value is String ? WenzClipboardDebugLog.text(value) : null,
+    },
+  );
   if (value == null) {
     return null;
   }
@@ -424,10 +578,4 @@ String? _firstNonEmptyText(String? first, String? second) {
 String? _nonEmptyText(String? value) {
   final trimmed = value?.trim();
   return trimmed == null || trimmed.isEmpty ? null : value;
-}
-
-String _ensureWenzClipboardPrefix(String value) {
-  return value.startsWith(wenzClipboardPrefix)
-      ? value
-      : '$wenzClipboardPrefix$value';
 }
