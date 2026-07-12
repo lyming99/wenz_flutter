@@ -1,6 +1,9 @@
+import 'dart:collection';
+
 import 'package:flutter/foundation.dart';
 
 import '../core/model/block_node.dart';
+import '../core/model/persistent_block_list.dart';
 import '../core/position/document_position.dart';
 import 'wenz_rich_text_controller.dart';
 
@@ -306,13 +309,11 @@ class OutlineBlockProjection {
   factory OutlineBlockProjection.all(List<BlockNode> blocks) {
     return OutlineBlockProjection._(
       sourceBlockCount: blocks.length,
-      visibleBlocks: List<BlockNode>.unmodifiable(blocks),
-      visibleBlockIndexes: List<int>.unmodifiable(
-        Iterable<int>.generate(blocks.length),
-      ),
-      visibleBlockIds: Set<String>.unmodifiable(
-        blocks.map((block) => block.id),
-      ),
+      visibleBlocks: blocks is PersistentBlockList
+          ? blocks
+          : UnmodifiableListView<BlockNode>(blocks),
+      visibleBlockIndexes: _IdentityIndexList(blocks.length),
+      visibleBlockIds: _ReadOnlyBlockIdSet(blocks),
       hiddenBlockIds: const <String>{},
       hiddenBlockIndexes: const <int>{},
     );
@@ -408,6 +409,75 @@ class OutlineBlockProjection {
   }
 }
 
+class _IdentityIndexList extends ListBase<int> {
+  _IdentityIndexList(this._length);
+
+  final int _length;
+
+  @override
+  int get length => _length;
+
+  @override
+  set length(int value) {
+    throw UnsupportedError('Identity index list is immutable.');
+  }
+
+  @override
+  int operator [](int index) {
+    RangeError.checkValidIndex(index, this, 'index', length);
+    return index;
+  }
+
+  @override
+  void operator []=(int index, int value) {
+    throw UnsupportedError('Identity index list is immutable.');
+  }
+}
+
+class _ReadOnlyBlockIdSet extends SetBase<String> {
+  _ReadOnlyBlockIdSet(this.blocks);
+
+  final List<BlockNode> blocks;
+
+  @override
+  int get length => blocks.length;
+
+  @override
+  bool contains(Object? element) {
+    if (element is! String) {
+      return false;
+    }
+    if (blocks case final PersistentBlockList persistent) {
+      return persistent.indexOfBlockId(element) != null;
+    }
+    return blocks.any((block) => block.id == element);
+  }
+
+  @override
+  String? lookup(Object? element) {
+    if (element is! String || !contains(element)) {
+      return null;
+    }
+    return element;
+  }
+
+  @override
+  Set<String> toSet() => Set<String>.of(this);
+
+  @override
+  Iterator<String> get iterator => blocks.map((block) => block.id).iterator;
+
+  @override
+  bool add(String value) {
+    throw UnsupportedError('Block id set is immutable.');
+  }
+
+  @override
+  bool remove(Object? value) {
+    throw UnsupportedError('Block id set is immutable.');
+  }
+}
+
 /// Derives a document outline from heading blocks.
 ///
 /// The controller listens to a [WenzRichTextController] and emits immutable
@@ -462,11 +532,27 @@ class WenzOutlineController extends ChangeNotifier {
   bool get lastCollapseChangeMovedSelection =>
       _lastCollapseChangeMovedSelection;
 
+  OutlineBlockProjection? _cachedProjection;
+  List<BlockNode>? _cachedProjectionBlocks;
+  List<BlockNode>? _observedBlocks;
+  int _recomputeCount = 0;
+
+  @visibleForTesting
+  int get recomputeCount => _recomputeCount;
+
   OutlineBlockProjection visibleBlockProjection() {
-    return OutlineBlockProjection.fromCollapsedItems(
+    final blocks = _host.document.blocks;
+    final cached = _cachedProjection;
+    if (cached != null && identical(blocks, _cachedProjectionBlocks)) {
+      return cached;
+    }
+    final projection = OutlineBlockProjection.fromCollapsedItems(
       blocks: _host.document.blocks,
       items: _items,
     );
+    _cachedProjection = projection;
+    _cachedProjectionBlocks = blocks;
+    return projection;
   }
 
   Set<String> get hiddenBlockIds => visibleBlockProjection().hiddenBlockIds;
@@ -797,6 +883,36 @@ class WenzOutlineController extends ChangeNotifier {
   }
 
   void _handleHostChanged() {
+    final changeSummary = _host.lastDocumentChangeSummary;
+    if (changeSummary != null && !changeSummary.documentChanged) {
+      expandToRevealSelection(_host.selection);
+      return;
+    }
+    final nextBlocks = _host.document.blocks;
+    final previousBlocks = _observedBlocks;
+    if (nextBlocks is PersistentBlockList && previousBlocks != null) {
+      final delta = nextBlocks.deltaSince(previousBlocks);
+      if (delta != null && nextBlocks.length == previousBlocks.length) {
+        var headingAffected = false;
+        for (final index in delta.changedIndexes) {
+          final previous = previousBlocks[index];
+          final next = nextBlocks[index];
+          if (previous.id != next.id ||
+              _isHeadingBlock(previous) ||
+              _isHeadingBlock(next)) {
+            headingAffected = true;
+            break;
+          }
+        }
+        if (!headingAffected) {
+          _observedBlocks = nextBlocks;
+          _cachedProjection = null;
+          _cachedProjectionBlocks = null;
+          expandToRevealSelection(_host.selection);
+          return;
+        }
+      }
+    }
     _recompute(changeReason: OutlineCollapseChangeReason.document);
     expandToRevealSelection(_host.selection);
   }
@@ -805,9 +921,13 @@ class WenzOutlineController extends ChangeNotifier {
     OutlineCollapseChangeReason? changeReason,
     bool selectionMoved = false,
   }) {
+    _recomputeCount++;
     final drafts = <_OutlineItemDraft>[];
     final collapsibleIds = <String>{};
     final blocks = _host.document.blocks;
+    _observedBlocks = blocks;
+    _cachedProjection = null;
+    _cachedProjectionBlocks = null;
     for (var i = 0; i < blocks.length; i++) {
       final block = blocks[i];
       if (block is! TextBlockNode || block.type != BlockType.heading) {
@@ -951,6 +1071,10 @@ class _OutlineItemDraft {
       isCollapsed: isCollapsed,
     );
   }
+}
+
+bool _isHeadingBlock(BlockNode block) {
+  return block is TextBlockNode && block.type == BlockType.heading;
 }
 
 /// Resolves the heading paragraph range for [headingIndex] from [blocks].

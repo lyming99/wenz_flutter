@@ -357,11 +357,9 @@ void _replaceTextBlock(
   TextBlockNode block, {
   required List<RevisionChange> revisions,
 }) {
-  final blocks = session.document.blocks.toList();
-  blocks[blockIndex] = block;
   session.document = RichTextDocument(
     version: session.document.version,
-    blocks: blocks,
+    blocks: session.document.replaceBlockAt(blockIndex, block).blocks,
     comments: session.document.comments,
     revisions: revisions,
   );

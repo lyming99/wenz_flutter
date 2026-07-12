@@ -38,6 +38,7 @@ import '../input/clipboard_service.dart';
 import '../input/composition_state.dart';
 import '../input/external_image_input.dart';
 import '../widgets/media_resolver.dart';
+import 'document_export_snapshot.dart';
 
 final RegExp _autoLinkCandidateRegex = RegExp(
   r'(?:(?:https?)://|www\.)',
@@ -174,6 +175,7 @@ class WenzRichTextController extends ChangeNotifier {
     }
     _permission = value;
     _lastChangedBlockIds = <String>{};
+    _lastDocumentChangeSummary = DocumentChangeSummary.none;
     notifyListeners();
   }
 
@@ -223,6 +225,7 @@ class WenzRichTextController extends ChangeNotifier {
   int _inputUpdateBatchDepth = 0;
   bool _hasPendingInputUpdateNotification = false;
   Set<String>? _batchedInputChangedBlockIds;
+  DocumentChangeSummary? _batchedInputChangeSummary;
   bool _batchedInputHasNonCompositionChange = false;
 
   RichTextDocument get document => session.document;
@@ -262,6 +265,13 @@ class WenzRichTextController extends ChangeNotifier {
   Set<String>? get lastChangedBlockIds => _lastChangedBlockIds;
   Set<String>? _lastChangedBlockIds;
 
+  /// Structured mutation metadata for the most recent notification.
+  /// Selection-, permission-, and composition-only notifications expose
+  /// [DocumentChangeSummary.none].
+  DocumentChangeSummary? get lastDocumentChangeSummary =>
+      _lastDocumentChangeSummary;
+  DocumentChangeSummary? _lastDocumentChangeSummary;
+
   /// Requests keyboard focus for the editor, if one is attached. No-op when no
   /// [WenzRichTextEditor] is bound to this controller (e.g. in headless logic
   /// tests). The focus node is injected by the widget on mount.
@@ -297,6 +307,7 @@ class WenzRichTextController extends ChangeNotifier {
     session.selection = selection;
     // Selection-only change: no block content changed.
     _lastChangedBlockIds = <String>{};
+    _lastDocumentChangeSummary = DocumentChangeSummary.none;
     _lastChangeWasCompositionOnly = false;
     onSelectionChanged?.call(selection);
     _notifyInputAwareListeners(
@@ -317,6 +328,7 @@ class WenzRichTextController extends ChangeNotifier {
     _compositionState = next;
     // Composition-only change: no block content changed.
     _lastChangedBlockIds = <String>{};
+    _lastDocumentChangeSummary = DocumentChangeSummary.none;
     _lastChangeWasCompositionOnly = true;
     _notifyInputAwareListeners(
       documentChanged: false,
@@ -339,6 +351,7 @@ class WenzRichTextController extends ChangeNotifier {
     if (isOuterBatch) {
       _hasPendingInputUpdateNotification = false;
       _batchedInputChangedBlockIds = null;
+      _batchedInputChangeSummary = null;
       _batchedInputHasNonCompositionChange = false;
     }
     _inputUpdateBatchDepth += 1;
@@ -368,6 +381,13 @@ class WenzRichTextController extends ChangeNotifier {
         batched.addAll(changedBlockIds);
       }
       _batchedInputChangedBlockIds = batched;
+      final summary = _lastDocumentChangeSummary;
+      if (summary != null) {
+        final previousSummary = _batchedInputChangeSummary;
+        _batchedInputChangeSummary = previousSummary == null
+            ? summary
+            : DocumentChangeSummary.merge(previousSummary, summary);
+      }
     }
     if (!compositionOnly) {
       _batchedInputHasNonCompositionChange = true;
@@ -382,9 +402,14 @@ class WenzRichTextController extends ChangeNotifier {
     if (changedBlockIds != null) {
       _lastChangedBlockIds = changedBlockIds;
     }
+    final changeSummary = _batchedInputChangeSummary;
+    if (changeSummary != null) {
+      _lastDocumentChangeSummary = changeSummary;
+    }
     _lastChangeWasCompositionOnly = !_batchedInputHasNonCompositionChange;
     _hasPendingInputUpdateNotification = false;
     _batchedInputChangedBlockIds = null;
+    _batchedInputChangeSummary = null;
     _batchedInputHasNonCompositionChange = false;
     notifyListeners();
   }
@@ -399,7 +424,12 @@ class WenzRichTextController extends ChangeNotifier {
     if (clearHistory) {
       session.history.clear();
     }
-    _lastChangedBlockIds = _changedBlockIds(before, session.document);
+    _lastDocumentChangeSummary = DocumentChangeSummary.between(
+      before,
+      session.document,
+      documentChanged: !identical(before, session.document),
+    );
+    _lastChangedBlockIds = _lastDocumentChangeSummary!.changedBlockIds;
     _lastChangeWasCompositionOnly = false;
     onChanged?.call(session.document);
     notifyListeners();
@@ -419,6 +449,7 @@ class WenzRichTextController extends ChangeNotifier {
     _revisionAuthorId = authorId;
     _revisionAuthorName = authorName;
     _lastChangedBlockIds = <String>{};
+    _lastDocumentChangeSummary = DocumentChangeSummary.none;
     notifyListeners();
   }
 
@@ -469,6 +500,11 @@ class WenzRichTextController extends ChangeNotifier {
   /// Exports the document as GitHub-Flavored Markdown. See [MarkdownCodec]
   /// for the supported block/inline syntax matrix.
   String toMarkdown() => _markdownCodec.encode(document);
+
+  /// Encodes JSON, Markdown, and plain text from the same document revision.
+  Future<DocumentExportSnapshot> exportSnapshot({bool useIsolate = false}) {
+    return buildDocumentExportSnapshot(document, useIsolate: useIsolate);
+  }
 
   /// Exports the document as an HTML fragment. See [HtmlCodec] for the
   /// supported tag matrix.
@@ -611,12 +647,12 @@ class WenzRichTextController extends ChangeNotifier {
     if (!canExecute(command)) {
       return _permissionDeniedChange(command);
     }
-    final before = session.document;
     final change = _executor.execute(command);
     final docChanged = !change.isNoop;
     final selectionChanged = change.selectionBefore != change.selectionAfter;
     if (docChanged || selectionChanged) {
-      _lastChangedBlockIds = _changedBlockIds(before, change.after);
+      _lastChangedBlockIds = change.changedBlockIds;
+      _lastDocumentChangeSummary = change.changeSummary;
       _lastChangeWasCompositionOnly = false;
       if (docChanged) {
         onChanged?.call(change.after);
@@ -638,11 +674,11 @@ class WenzRichTextController extends ChangeNotifier {
   }
 
   ChangeSet _permissionDeniedChange(EditorCommand command) {
-    final before = session.document.copy();
+    final before = session.document;
     final requiredPermission = command.requiredPermission;
     return ChangeSet(
       before: before,
-      after: before.copy(),
+      after: before,
       selectionBefore: session.selection,
       selectionAfter: session.selection,
       description: 'permission:blocked:${command.description}',
@@ -653,6 +689,7 @@ class WenzRichTextController extends ChangeNotifier {
         'requiredPermission': requiredPermission.name,
         'command': command.description,
       },
+      changeSummary: DocumentChangeSummary.none,
     );
   }
 
@@ -704,7 +741,12 @@ class WenzRichTextController extends ChangeNotifier {
     final before = session.document;
     final changed = session.undo();
     if (changed) {
-      _lastChangedBlockIds = _changedBlockIds(before, session.document);
+      _lastDocumentChangeSummary = DocumentChangeSummary.between(
+        before,
+        session.document,
+        documentChanged: !identical(before, session.document),
+      );
+      _lastChangedBlockIds = _lastDocumentChangeSummary!.changedBlockIds;
       _lastChangeWasCompositionOnly = false;
       onChanged?.call(session.document);
       if (session.selection != selectionBefore) {
@@ -723,7 +765,12 @@ class WenzRichTextController extends ChangeNotifier {
     final before = session.document;
     final changed = session.redo();
     if (changed) {
-      _lastChangedBlockIds = _changedBlockIds(before, session.document);
+      _lastDocumentChangeSummary = DocumentChangeSummary.between(
+        before,
+        session.document,
+        documentChanged: !identical(before, session.document),
+      );
+      _lastChangedBlockIds = _lastDocumentChangeSummary!.changedBlockIds;
       _lastChangeWasCompositionOnly = false;
       onChanged?.call(session.document);
       if (session.selection != selectionBefore) {
@@ -1320,7 +1367,7 @@ class WenzRichTextController extends ChangeNotifier {
       data: data,
       fallbackText: fallbackText,
     );
-    if (_blockFingerprint(block) == _blockFingerprint(nextBlock)) {
+    if (_sameBlockContent(block, nextBlock)) {
       return _noopChangeSet();
     }
     return replaceBlocks(
@@ -1336,12 +1383,13 @@ class WenzRichTextController extends ChangeNotifier {
   /// without mutating (e.g. [updateBlockEmbed] on a missing/unchanged block) to
   /// avoid recording history or firing change callbacks.
   ChangeSet _noopChangeSet() {
-    final snapshot = session.document.copy();
+    final snapshot = session.document;
     return ChangeSet(
       before: snapshot,
-      after: snapshot.copy(),
+      after: snapshot,
       selectionBefore: session.selection,
       selectionAfter: session.selection,
+      changeSummary: DocumentChangeSummary.none,
     );
   }
 
@@ -2592,39 +2640,11 @@ class WenzRichTextController extends ChangeNotifier {
     return DocumentSelection(base: start, extent: end);
   }
 
-  /// Diffs [before] against [after] and returns the set of block ids whose
-  /// rendering must refresh: every block id present in [after] whose
-  /// lightweight fingerprint changed or that is newly added. Removed block ids
-  /// are not included (there is nothing left to rebuild for them). Returns an
-  /// empty set when the two documents are content-identical.
-  ///
-  /// The fingerprint is intentionally cheap (`type` + `plainText` + attributes
-  /// JSON) — it catches text, structure, and attribute edits without a full
-  /// deep compare or [BlockNode.toJson] on every block. It may produce a false
-  /// positive (rebuild a block that did not visually change) but never a false
-  /// negative, so correctness is preserved.
-  Set<String> _changedBlockIds(
-      RichTextDocument before, RichTextDocument after) {
-    final beforeFingerprints = <String, String>{
-      for (final block in before.blocks) block.id: _blockFingerprint(block),
-    };
-    final changed = <String>{};
-    for (final block in after.blocks) {
-      final previous = beforeFingerprints[block.id];
-      if (previous == null || previous != _blockFingerprint(block)) {
-        changed.add(block.id);
-      }
+  bool _sameBlockContent(BlockNode first, BlockNode second) {
+    if (identical(first, second)) {
+      return true;
     }
-    return changed;
-  }
-
-  String _blockFingerprint(BlockNode block) {
-    // The full JSON shape (including inline content + run attributes, table
-    // cells, code language, media metadata) is the fingerprint. A coarser
-    // fingerprint based only on type + plainText would miss inline attribute
-    // changes (e.g. formatText toggling bold) and fail to mark the block dirty
-    // for incremental rebuild, leaving stale spans rendered.
-    return jsonEncode(block.toJson());
+    return jsonEncode(first.toJson()) == jsonEncode(second.toJson());
   }
 }
 

@@ -164,13 +164,12 @@ _MovedBlockRange? _moveBlocksToFinalStart(
     return null;
   }
 
-  final blocks = document.blocks.map((block) => block.copy()).toList();
+  final blocks = document.blocks.toList();
   final movedBlocks = blocks.sublist(fromIndex, endIndexExclusive);
   blocks.removeRange(fromIndex, endIndexExclusive);
   blocks.insertAll(finalStartIndex, movedBlocks);
   final blockIndexes = <String, int>{
-    for (var index = 0; index < blocks.length; index++)
-      blocks[index].id: index,
+    for (var index = 0; index < blocks.length; index++) blocks[index].id: index,
   };
 
   return _MovedBlockRange(
@@ -298,7 +297,7 @@ class IndentCommand extends EditorCommand {
     if (target == null || delta == 0) {
       return const CommandResult(recordHistory: false);
     }
-    final blocks = session.document.blocks.map((b) => b.copy()).toList();
+    final blocks = session.document.blocks.toList();
     var changed = false;
     for (var i = target.start.blockIndex; i <= target.end.blockIndex; i++) {
       if (i < 0 || i >= blocks.length) {
@@ -357,7 +356,7 @@ class ToggleTodoCommand extends EditorCommand {
     if (target == null) {
       return const CommandResult(recordHistory: false);
     }
-    final blocks = session.document.blocks.map((b) => b.copy()).toList();
+    final blocks = session.document.blocks.toList();
     var changed = false;
     for (var i = target.start.blockIndex; i <= target.end.blockIndex; i++) {
       if (i < 0 || i >= blocks.length) {
@@ -432,11 +431,9 @@ class SetTodoCheckedCommand extends EditorCommand {
         block.attributes.checked == checked) {
       return const CommandResult(recordHistory: false);
     }
-    final blocks = session.document.blocks.map((node) => node.copy()).toList();
-    blocks[blockIndex] = _textBlockWithChecked(block, checked);
-    session.document = RichTextDocument(
-      version: session.document.version,
-      blocks: blocks,
+    session.document = session.document.replaceBlockAt(
+      blockIndex,
+      _textBlockWithChecked(block, checked),
     );
     return const CommandResult();
   }
@@ -481,17 +478,13 @@ class SetCodeLanguageCommand extends EditorCommand {
     if (block is! CodeBlockNode || block.language == nextLanguage) {
       return const CommandResult(recordHistory: false);
     }
-    final blocks = session.document.blocks.map((b) => b.copy()).toList();
-    blocks[index] = CodeBlockNode(
+    final nextBlock = CodeBlockNode(
       id: block.id,
       code: block.code,
       language: nextLanguage,
       attributes: block.attributes,
     );
-    session.document = RichTextDocument(
-      version: session.document.version,
-      blocks: blocks,
-    );
+    session.document = session.document.replaceBlockAt(index, nextBlock);
     return const CommandResult();
   }
 }
@@ -540,11 +533,9 @@ class SetCalloutVariantCommand extends EditorCommand {
     if (block is! CalloutBlockNode || block.normalizedVariant == nextVariant) {
       return const CommandResult(recordHistory: false);
     }
-    final blocks = session.document.blocks.map((b) => b.copy()).toList();
-    blocks[index] = block.copyWith(variant: nextVariant);
-    session.document = RichTextDocument(
-      version: session.document.version,
-      blocks: blocks,
+    session.document = session.document.replaceBlockAt(
+      index,
+      block.copyWith(variant: nextVariant),
     );
     return const CommandResult();
   }
@@ -592,16 +583,12 @@ class UpdateCalloutBlockCommand extends EditorCommand {
       return const CommandResult(recordHistory: false);
     }
 
-    final blocks = session.document.blocks.map((b) => b.copy()).toList();
-    blocks[index] = block.copyWith(
+    final nextBlock = block.copyWith(
       variant: nextVariant,
       title: nextTitle,
       icon: nextIcon,
     );
-    session.document = RichTextDocument(
-      version: session.document.version,
-      blocks: blocks,
-    );
+    session.document = session.document.replaceBlockAt(index, nextBlock);
     return const CommandResult();
   }
 }
@@ -687,17 +674,13 @@ class IndentCodeBlockCommand extends EditorCommand {
       return const CommandResult(recordHistory: false);
     }
 
-    final blocks = session.document.blocks.map((b) => b.copy()).toList();
-    blocks[index] = CodeBlockNode(
+    final nextBlock = CodeBlockNode(
       id: block.id,
       code: nextCode,
       language: block.language,
       attributes: block.attributes,
     );
-    session.document = RichTextDocument(
-      version: session.document.version,
-      blocks: blocks,
-    );
+    session.document = session.document.replaceBlockAt(index, nextBlock);
     final base = target.base.copyWith(offset: baseOffset);
     final extent = target.extent.copyWith(offset: extentOffset);
     return CommandResult(
@@ -795,7 +778,7 @@ class ToggleQuoteCommand extends EditorCommand {
     if (target == null) {
       return const CommandResult(recordHistory: false);
     }
-    final blocks = session.document.blocks.map((b) => b.copy()).toList();
+    final blocks = session.document.blocks.toList();
     final quoted = !_allTextBlocksQuoted(target, blocks);
     var changed = false;
     for (var i = target.start.blockIndex; i <= target.end.blockIndex; i++) {

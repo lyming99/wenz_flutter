@@ -582,8 +582,7 @@ CommandResult replaceTable(
   Map<int, String>? columnAlignments,
   Map<int, double>? columnWidths,
 }) {
-  final blocks = session.document.blocks.map((block) => block.copy()).toList();
-  blocks[blockIndex] = TableBlockNode(
+  final nextBlock = TableBlockNode(
     id: original.id,
     attributes: original.attributes,
     table: TableModel(
@@ -594,10 +593,7 @@ CommandResult replaceTable(
           columnWidths ?? Map<int, double>.from(original.table.columnWidths),
     ),
   );
-  session.document = RichTextDocument(
-    version: session.document.version,
-    blocks: blocks,
-  );
+  session.document = session.document.replaceBlockAt(blockIndex, nextBlock);
   return const CommandResult();
 }
 

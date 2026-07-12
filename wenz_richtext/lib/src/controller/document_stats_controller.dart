@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 
 import '../core/model/block_node.dart';
 import '../core/model/inline_node.dart';
+import '../core/model/persistent_block_list.dart';
 import '../core/model/rich_text_document.dart';
 import 'wenz_rich_text_controller.dart';
 
@@ -68,8 +69,7 @@ class DocumentStats {
 
   Duration get readingTime => Duration(minutes: readingTimeMinutes);
 
-  bool get isEmpty =>
-      wordCount == 0 && characterCountExcludingWhitespace == 0;
+  bool get isEmpty => wordCount == 0 && characterCountExcludingWhitespace == 0;
 
   @override
   bool operator ==(Object other) {
@@ -112,16 +112,23 @@ class WenzDocumentStatsController extends ChangeNotifier {
         readingWordsPerMinute = _validateReadingWordsPerMinute(
           readingWordsPerMinute,
         ) {
-    _stats = DocumentStats.fromDocument(
-      _host.document,
-      readingWordsPerMinute: this.readingWordsPerMinute,
-    );
+    _rebuildAll(_host.document);
     _host.addListener(_handleHostChanged);
   }
 
   final WenzRichTextController _host;
   final int readingWordsPerMinute;
-  late DocumentStats _stats;
+  DocumentStats _stats = const DocumentStats();
+  late RichTextDocument _documentSnapshot;
+  final Map<String, DocumentStats> _blockStats = <String, DocumentStats>{};
+  int _recomputedBlockCount = 0;
+  int _paragraphCount = 0;
+  int _headingCount = 0;
+  int _imageCount = 0;
+  int _wordCount = 0;
+  int _characterCount = 0;
+  int _characterCountExcludingWhitespace = 0;
+  int _inlineEmbedCount = 0;
 
   DocumentStats get stats => _stats;
 
@@ -137,16 +144,111 @@ class WenzDocumentStatsController extends ChangeNotifier {
   int get readingTimeMinutes => _stats.readingTimeMinutes;
   Duration get readingTime => _stats.readingTime;
 
+  @visibleForTesting
+  int get recomputedBlockCount => _recomputedBlockCount;
+
   void _handleHostChanged() {
-    final next = DocumentStats.fromDocument(
-      _host.document,
+    final nextDocument = _host.document;
+    if (identical(nextDocument, _documentSnapshot) ||
+        identical(nextDocument.blocks, _documentSnapshot.blocks)) {
+      return;
+    }
+    final nextBlocks = nextDocument.blocks;
+    final previousBlocks = _documentSnapshot.blocks;
+    if (nextBlocks is PersistentBlockList &&
+        nextBlocks.length == previousBlocks.length) {
+      final delta = nextBlocks.deltaSince(previousBlocks);
+      if (delta != null) {
+        var sameStructure = true;
+        for (final index in delta.changedIndexes) {
+          if (nextBlocks[index].id != previousBlocks[index].id) {
+            sameStructure = false;
+            break;
+          }
+        }
+        if (sameStructure) {
+          for (final index in delta.changedIndexes) {
+            final block = nextBlocks[index];
+            final previous = _blockStats[block.id];
+            if (previous != null) {
+              _accumulate(previous, -1);
+            }
+            final next = _statsForBlock(block);
+            _blockStats[block.id] = next;
+            _accumulate(next, 1);
+          }
+          _documentSnapshot = nextDocument;
+          _commitAggregatedStats();
+          return;
+        }
+      }
+    }
+    _rebuildAll(nextDocument);
+  }
+
+  void _rebuildAll(RichTextDocument document) {
+    _blockStats.clear();
+    _resetTotals();
+    for (final block in document.blocks) {
+      final contribution = _statsForBlock(block);
+      _blockStats[block.id] = contribution;
+      _accumulate(contribution, 1);
+    }
+    _documentSnapshot = document;
+    _commitAggregatedStats(notify: false);
+  }
+
+  DocumentStats _statsForBlock(BlockNode block) {
+    _recomputedBlockCount++;
+    return DocumentStats.fromDocument(
+      RichTextDocument(blocks: <BlockNode>[block]),
       readingWordsPerMinute: readingWordsPerMinute,
+    );
+  }
+
+  void _commitAggregatedStats({bool notify = true}) {
+    final next = DocumentStats(
+      blockCount: _documentSnapshot.blocks.length,
+      paragraphCount: _paragraphCount,
+      headingCount: _headingCount,
+      imageCount: _imageCount,
+      wordCount: _wordCount,
+      characterCount: _characterCount,
+      characterCountExcludingWhitespace: _characterCountExcludingWhitespace,
+      inlineEmbedCount: _inlineEmbedCount,
+      readingTimeMinutes: _estimatedReadingTimeMinutes(
+        _wordCount,
+        readingWordsPerMinute,
+      ),
     );
     if (next == _stats) {
       return;
     }
     _stats = next;
-    notifyListeners();
+    if (notify) {
+      notifyListeners();
+    }
+  }
+
+  void _resetTotals() {
+    _paragraphCount = 0;
+    _headingCount = 0;
+    _imageCount = 0;
+    _wordCount = 0;
+    _characterCount = 0;
+    _characterCountExcludingWhitespace = 0;
+    _inlineEmbedCount = 0;
+  }
+
+  void _accumulate(DocumentStats contribution, int sign) {
+    _paragraphCount += contribution.paragraphCount * sign;
+    _headingCount += contribution.headingCount * sign;
+    _imageCount += contribution.imageCount * sign;
+    _wordCount += contribution.wordCount * sign;
+    _characterCount += contribution.characterCount * sign;
+    _characterCountExcludingWhitespace +=
+        contribution.characterCountExcludingWhitespace * sign;
+    _inlineEmbedCount += contribution.inlineEmbedCount * sign;
   }
 
   @override

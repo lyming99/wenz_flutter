@@ -1,3 +1,5 @@
+import 'dart:collection';
+
 import 'package:flutter/foundation.dart';
 
 import '../rendering/text_layout_service.dart';
@@ -21,12 +23,25 @@ import '../rendering/text_layout_service.dart';
 /// - [removeBlock] drops all entries for a removed block id.
 /// - [dispose] releases every entry (editor teardown).
 ///
-/// The cache is bounded by the number of distinct surfaces ever mounted; in
-/// practice that tracks the working set a user has scrolled through. It does
-/// not evict by size (a future LRU can be added if memory becomes a concern).
+/// Entries use access-order LRU eviction and both an entry cap and an estimated
+/// byte budget. The byte estimate is intentionally conservative because
+/// Flutter does not expose the retained size of a [TextPainter].
 @internal
 class SharedTextLayoutCache extends ChangeNotifier {
-  final Map<String, TextLayoutService> _entries = <String, TextLayoutService>{};
+  SharedTextLayoutCache({
+    this.maxEntries = 256,
+    this.maxEstimatedBytes = 16 * 1024 * 1024,
+    this.estimatedBytesPerEntry = 64 * 1024,
+  })  : assert(maxEntries > 0),
+        assert(maxEstimatedBytes > 0),
+        assert(estimatedBytesPerEntry > 0);
+
+  final int maxEntries;
+  final int maxEstimatedBytes;
+  final int estimatedBytesPerEntry;
+  final LinkedHashMap<String, TextLayoutService> _entries =
+      LinkedHashMap<String, TextLayoutService>();
+  int _evictionCount = 0;
 
   /// Cache key combining block id and path identity.
   static String _key(String blockId, String pathIdentity) {
@@ -38,7 +53,15 @@ class SharedTextLayoutCache extends ChangeNotifier {
   /// instance is returned across surface remounts.
   TextLayoutService entryFor(String blockId, String pathIdentity) {
     final key = _key(blockId, pathIdentity);
-    return _entries.putIfAbsent(key, () => TextLayoutService());
+    final existing = _entries.remove(key);
+    if (existing != null) {
+      _entries[key] = existing;
+      return existing;
+    }
+    final created = TextLayoutService();
+    _entries[key] = created;
+    _trimToBudget();
+    return created;
   }
 
   /// Drops the entry for [blockId] / [pathIdentity] when its content changed,
@@ -50,9 +73,8 @@ class SharedTextLayoutCache extends ChangeNotifier {
 
   /// Drops every entry whose block id matches [blockId] (block removed).
   void removeBlock(String blockId) {
-    final stale = _entries.keys
-        .where((key) => key.startsWith('$blockId\u0000'))
-        .toList();
+    final stale =
+        _entries.keys.where((key) => key.startsWith('$blockId\u0000')).toList();
     for (final key in stale) {
       _entries.remove(key)?.forget();
     }
@@ -70,6 +92,22 @@ class SharedTextLayoutCache extends ChangeNotifier {
   /// Number of cached entries (for tests / observation).
   @visibleForTesting
   int get length => _entries.length;
+
+  @visibleForTesting
+  int get evictionCount => _evictionCount;
+
+  @visibleForTesting
+  int get estimatedRetainedBytes => length * estimatedBytesPerEntry;
+
+  void _trimToBudget() {
+    while (_entries.length > 1 &&
+        (_entries.length > maxEntries ||
+            estimatedRetainedBytes > maxEstimatedBytes)) {
+      final leastRecentlyUsedKey = _entries.keys.first;
+      _entries.remove(leastRecentlyUsedKey)?.forget();
+      _evictionCount++;
+    }
+  }
 
   @override
   void dispose() {

@@ -42,13 +42,12 @@ class InsertBlocksCommand extends EditorCommand {
     );
     if (replacementIndex != null) {
       final nextBlocks = <BlockNode>[
-        for (var i = 0; i < replacementIndex; i++)
-          session.document.blocks[i].copy(),
+        for (var i = 0; i < replacementIndex; i++) session.document.blocks[i],
         ...blocks.map((block) => block.copy()),
         for (var i = replacementIndex + 1;
             i < session.document.blocks.length;
             i++)
-          session.document.blocks[i].copy(),
+          session.document.blocks[i],
       ];
       session.document = RichTextDocument(
         version: session.document.version,
@@ -67,12 +66,12 @@ class InsertBlocksCommand extends EditorCommand {
     if (splitInsertion != null) {
       final nextBlocks = <BlockNode>[
         for (var i = 0; i < splitInsertion.replacedIndex; i++)
-          session.document.blocks[i].copy(),
+          session.document.blocks[i],
         ...splitInsertion.replacementBlocks,
         for (var i = splitInsertion.replacedIndex + 1;
             i < session.document.blocks.length;
             i++)
-          session.document.blocks[i].copy(),
+          session.document.blocks[i],
       ];
       session.document = RichTextDocument(
         version: session.document.version,
@@ -87,10 +86,10 @@ class InsertBlocksCommand extends EditorCommand {
       );
     }
     final nextBlocks = <BlockNode>[
-      for (var i = 0; i < insertIndex; i++) session.document.blocks[i].copy(),
+      for (var i = 0; i < insertIndex; i++) session.document.blocks[i],
       ...blocks.map((block) => block.copy()),
       for (var i = insertIndex; i < session.document.blocks.length; i++)
-        session.document.blocks[i].copy(),
+        session.document.blocks[i],
     ];
     session.document = RichTextDocument(
       version: session.document.version,
@@ -125,9 +124,7 @@ class InsertTextBlockAtSelectionCommand extends EditorCommand {
   @override
   CommandResult execute(DocumentSession session) {
     final target = selection ?? session.selection;
-    if (blockId.isEmpty ||
-        target == null ||
-        session.document.blocks.isEmpty) {
+    if (blockId.isEmpty || target == null || session.document.blocks.isEmpty) {
       return const CommandResult(recordHistory: false);
     }
     final boundary = direction == TextBlockInsertionDirection.above
@@ -161,7 +158,8 @@ bool _isValidTopLevelSelectionPosition(
   RichTextDocument document,
   DocumentPosition position,
 ) {
-  if (position.blockIndex < 0 || position.blockIndex >= document.blocks.length) {
+  if (position.blockIndex < 0 ||
+      position.blockIndex >= document.blocks.length) {
     return false;
   }
   final isKnownPath = position.path.isBlockText ||
@@ -930,12 +928,12 @@ class ReplaceBlocksCommand extends EditorCommand {
     final safeDeleteCount =
         deleteCount.clamp(0, session.document.blocks.length - index).toInt();
     final nextBlocks = <BlockNode>[
-      for (var i = 0; i < index; i++) session.document.blocks[i].copy(),
+      for (var i = 0; i < index; i++) session.document.blocks[i],
       ...blocks.map((block) => block.copy()),
       for (var i = index + safeDeleteCount;
           i < session.document.blocks.length;
           i++)
-        session.document.blocks[i].copy(),
+        session.document.blocks[i],
     ];
     session.document = RichTextDocument(
       version: session.document.version,
@@ -1077,12 +1075,7 @@ class UpdateImageBlockCommand extends EditorCommand {
       return const CommandResult(recordHistory: false);
     }
 
-    final blocks = session.document.blocks.map((b) => b.copy()).toList();
-    blocks[blockIndex] = next;
-    session.document = RichTextDocument(
-      version: session.document.version,
-      blocks: blocks,
-    );
+    session.document = session.document.replaceBlockAt(blockIndex, next);
     return const CommandResult();
   }
 }
@@ -1147,12 +1140,7 @@ class UpdateFileBlockCommand extends EditorCommand {
       return const CommandResult(recordHistory: false);
     }
 
-    final blocks = session.document.blocks.map((b) => b.copy()).toList();
-    blocks[blockIndex] = next;
-    session.document = RichTextDocument(
-      version: session.document.version,
-      blocks: blocks,
-    );
+    session.document = session.document.replaceBlockAt(blockIndex, next);
     return const CommandResult();
   }
 }
@@ -1235,12 +1223,7 @@ class UpdateVideoBlockCommand extends EditorCommand {
       return const CommandResult(recordHistory: false);
     }
 
-    final blocks = session.document.blocks.map((b) => b.copy()).toList();
-    blocks[blockIndex] = next;
-    session.document = RichTextDocument(
-      version: session.document.version,
-      blocks: blocks,
-    );
+    session.document = session.document.replaceBlockAt(blockIndex, next);
     return const CommandResult();
   }
 }
@@ -1265,9 +1248,9 @@ class DeleteVideoBlockCommand extends EditorCommand {
     }
 
     final nextBlocks = <BlockNode>[
-      for (var i = 0; i < blockIndex; i++) session.document.blocks[i].copy(),
+      for (var i = 0; i < blockIndex; i++) session.document.blocks[i],
       for (var i = blockIndex + 1; i < session.document.blocks.length; i++)
-        session.document.blocks[i].copy(),
+        session.document.blocks[i],
     ];
     if (nextBlocks.isEmpty) {
       final paragraph = TextBlockNode(
@@ -1454,11 +1437,9 @@ class SetBlockAnchorCommand extends EditorCommand {
       return const CommandResult(recordHistory: false);
     }
 
-    final blocks = session.document.blocks.map((b) => b.copy()).toList();
-    blocks[blockIndex] = _blockWithAttributes(block, nextAttributes);
-    session.document = RichTextDocument(
-      version: session.document.version,
-      blocks: blocks,
+    session.document = session.document.replaceBlockAt(
+      blockIndex,
+      _blockWithAttributes(block, nextAttributes),
     );
     return const CommandResult();
   }

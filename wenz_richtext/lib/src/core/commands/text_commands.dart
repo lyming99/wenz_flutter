@@ -87,10 +87,12 @@ class InsertTextCommand extends EditorCommand {
       );
       _replaceBlock(session, position.blockIndex, nextBlock);
     } else if (block is CalloutBlockNode && position.path.isBlockText) {
-      final offset = position.offset.clamp(
-        0,
-        inlineNodesLength(block.content),
-      ).toInt();
+      final offset = position.offset
+          .clamp(
+            0,
+            inlineNodesLength(block.content),
+          )
+          .toInt();
       nextOffset = offset + text.length;
       final nextBlock = block.copyWith(
         content: insertInline(block.content, offset, text, attributes),
@@ -354,12 +356,11 @@ CommandResult _deleteAcrossBlocks(
   final trailing = _trailingRemainderForPosition(session, end);
 
   final before = <BlockNode>[
-    for (var i = 0; i < start.blockIndex; i++)
-      session.document.blocks[i].copy(),
+    for (var i = 0; i < start.blockIndex; i++) session.document.blocks[i],
   ];
   final after = <BlockNode>[
     for (var i = end.blockIndex + 1; i < session.document.blocks.length; i++)
-      session.document.blocks[i].copy(),
+      session.document.blocks[i],
   ];
 
   final rebuilt = <BlockNode>[];
@@ -1051,12 +1052,7 @@ BlockNode? _blockAt(RichTextDocument document, int index) {
 }
 
 void _replaceBlock(DocumentSession session, int index, BlockNode block) {
-  final blocks = session.document.blocks.map((node) => node.copy()).toList();
-  blocks[index] = block;
-  session.document = RichTextDocument(
-    version: session.document.version,
-    blocks: blocks,
-  );
+  session.document = session.document.replaceBlockAt(index, block);
 }
 
 /// Removes the object block at [index] (image/divider/video/file) and lands the
@@ -1179,10 +1175,10 @@ void _replaceBlocks(
   List<BlockNode> nextBlocks,
 ) {
   final blocks = <BlockNode>[
-    for (var i = 0; i < index; i++) session.document.blocks[i].copy(),
+    for (var i = 0; i < index; i++) session.document.blocks[i],
     ...nextBlocks.map((block) => block.copy()),
     for (var i = index + deleteCount; i < session.document.blocks.length; i++)
-      session.document.blocks[i].copy(),
+      session.document.blocks[i],
   ];
   session.document = RichTextDocument(
     version: session.document.version,

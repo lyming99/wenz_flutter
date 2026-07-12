@@ -1,4 +1,4 @@
-﻿import '../model/attributes.dart';
+import '../model/attributes.dart';
 import '../model/block_node.dart';
 import '../model/inline_node.dart';
 import '../model/rich_text_document.dart';
@@ -69,11 +69,9 @@ class SetLinkCommand extends EditorCommand {
       attributes: block.attributes,
       content: nextContent,
     );
-    final blocks = session.document.blocks.map((b) => b.copy()).toList();
-    blocks[start.blockIndex] = nextBlock;
-    session.document = RichTextDocument(
-      version: session.document.version,
-      blocks: blocks,
+    session.document = session.document.replaceBlockAt(
+      start.blockIndex,
+      nextBlock,
     );
     return CommandResult(selection: target);
   }
@@ -138,16 +136,15 @@ class AutoLinkUrlsCommand extends EditorCommand {
     if (!result.changed) {
       return const CommandResult(recordHistory: false);
     }
-    final blocks = session.document.blocks.map((b) => b.copy()).toList();
-    blocks[start.blockIndex] = TextBlockNode(
+    final nextBlock = TextBlockNode(
       id: block.id,
       type: block.type,
       attributes: block.attributes,
       content: result.content,
     );
-    session.document = RichTextDocument(
-      version: session.document.version,
-      blocks: blocks,
+    session.document = session.document.replaceBlockAt(
+      start.blockIndex,
+      nextBlock,
     );
     return CommandResult(selection: target);
   }
@@ -220,11 +217,9 @@ class ToggleMarkCommand extends EditorCommand {
         attributes: block.attributes,
         content: nextContent,
       );
-      final blocks = session.document.blocks.map((b) => b.copy()).toList();
-      blocks[start.blockIndex] = nextBlock;
-      session.document = RichTextDocument(
-        version: session.document.version,
-        blocks: blocks,
+      session.document = session.document.replaceBlockAt(
+        start.blockIndex,
+        nextBlock,
       );
     } else {
       final attrs = markAttributes(mark);
@@ -265,8 +260,7 @@ class InsertInlineEmbedCommand extends EditorCommand {
       return const CommandResult(recordHistory: false);
     }
     if (!target.isCollapsed) {
-      final deleteResult =
-          DeleteSelectionCommand(target).execute(session);
+      final deleteResult = DeleteSelectionCommand(target).execute(session);
       if (deleteResult.selection != null) {
         session.selection = deleteResult.selection;
       }
@@ -314,11 +308,9 @@ class InsertInlineEmbedCommand extends EditorCommand {
       attributes: block.attributes,
       content: cleaned,
     );
-    final blocks = session.document.blocks.map((b) => b.copy()).toList();
-    blocks[position.blockIndex] = nextBlock;
-    session.document = RichTextDocument(
-      version: session.document.version,
-      blocks: blocks,
+    session.document = session.document.replaceBlockAt(
+      position.blockIndex,
+      nextBlock,
     );
     final nextPosition = position.copyWith(offset: position.offset + 1);
     return CommandResult(
@@ -373,13 +365,9 @@ class UpdateInlineFormulaCommand extends EditorCommand {
       attributes: block.attributes,
       content: result.content,
     );
-    final blocks = session.document.blocks
-        .map((block) => block.copy())
-        .toList();
-    blocks[position.blockIndex] = nextBlock;
-    session.document = RichTextDocument(
-      version: session.document.version,
-      blocks: blocks,
+    session.document = session.document.replaceBlockAt(
+      position.blockIndex,
+      nextBlock,
     );
     return const CommandResult();
   }
@@ -417,14 +405,7 @@ class UpdateBlockFormulaCommand extends EditorCommand {
     if (_sameFormulaBlock(block, nextBlock)) {
       return const CommandResult(recordHistory: false);
     }
-    final blocks = session.document.blocks
-        .map((block) => block.copy())
-        .toList();
-    blocks[blockIndex] = nextBlock;
-    session.document = RichTextDocument(
-      version: session.document.version,
-      blocks: blocks,
-    );
+    session.document = session.document.replaceBlockAt(blockIndex, nextBlock);
     return const CommandResult();
   }
 }
@@ -537,8 +518,8 @@ Iterable<_AutoLinkMatch> _autoLinkMatches(
 
 int _trimAutoLinkEnd(String text, int start, int end) {
   var nextEnd = end;
-  while (nextEnd > start &&
-      _trailingUrlPunctuation.contains(text[nextEnd - 1])) {
+  while (
+      nextEnd > start && _trailingUrlPunctuation.contains(text[nextEnd - 1])) {
     nextEnd -= 1;
   }
   while (nextEnd > start &&

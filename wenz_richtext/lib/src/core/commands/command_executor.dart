@@ -1,4 +1,5 @@
 import '../../history/history_manager.dart';
+import '../model/persistent_block_list.dart';
 import '../position/document_position.dart';
 import '../transaction/change_set.dart';
 import '../transaction/document_session.dart';
@@ -28,7 +29,7 @@ class CommandExecutor {
       }
     }
 
-    final before = session.document.copy();
+    final before = session.document;
     final selectionBefore = session.selection;
     final result = command.execute(session);
     if (result.selection != null) {
@@ -36,14 +37,23 @@ class CommandExecutor {
     }
     // Enforce the document schema after every command so outputs are always
     // well-formed (non-empty, cells non-empty, attrs consistent with type).
-    session.document = session.schema.normalize(session.document);
+    final normalized = session.schema.normalize(session.document);
+    session.document = normalized.blocks is PersistentBlockList
+        ? normalized
+        : normalized.asPersistentSnapshot();
+    final after = session.document;
     final change = ChangeSet(
       before: before,
-      after: session.document.copy(),
+      after: after,
       selectionBefore: selectionBefore,
       selectionAfter: session.selection,
       description: command.description,
       metadata: result.metadata,
+      changeSummary: DocumentChangeSummary.between(
+        before,
+        after,
+        documentChanged: !identical(before, after),
+      ),
     );
     if (result.recordHistory) {
       final canMerge = _lastCommand != null &&

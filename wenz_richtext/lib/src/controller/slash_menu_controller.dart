@@ -216,12 +216,19 @@ class SlashMenuController extends ChangeNotifier {
     _editor.removeListener(_handleEditorChanged);
     _editor = editor;
     _editor.addListener(_handleEditorChanged);
+    _documentBlockIds = const <String>[];
     refresh();
   }
 
   void refresh() {
-    final nextDocumentBlockIds = _blockIdsFor(_editor.document.blocks);
-    final structureChanged =
+    final blocks = _editor.document.blocks;
+    final summary = _editor.lastDocumentChangeSummary;
+    final canReuseStructure = summary != null &&
+        !summary.structureChanged &&
+        _documentBlockIds.length == blocks.length;
+    final nextDocumentBlockIds =
+        canReuseStructure ? _documentBlockIds : _blockIdsFor(blocks);
+    final structureChanged = !canReuseStructure &&
         !listEquals(_documentBlockIds, nextDocumentBlockIds);
     // While the IME is mid-composition (e.g. pinyin), freeze the menu: never
     // open it on partial composing text, never refresh its query, and — when it
@@ -606,8 +613,7 @@ SlashMenuItem _slashHeadingItem({
 
 void _replaceTriggerWithTextBlock(
   WenzRichTextController editor,
-  SlashMenuContext context,
-  {
+  SlashMenuContext context, {
   required BlockType type,
   BlockAttributes attributes = const BlockAttributes(),
 }) {
@@ -718,9 +724,8 @@ void _replaceTriggerBlock(
     context,
     (block, content) {
       final nextBlock = buildBlock(block, content);
-      final caretOffset = context.trigger.start
-          .clamp(0, inlineNodesLength(content))
-          .toInt();
+      final caretOffset =
+          context.trigger.start.clamp(0, inlineNodesLength(content)).toInt();
       return _SlashReplacement(
         blocks: <BlockNode>[nextBlock],
         selection: buildSelection(nextBlock, context.blockIndex, caretOffset),

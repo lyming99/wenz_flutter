@@ -9,12 +9,15 @@ class DocumentSession {
     this.selection,
     HistoryManager? history,
     this.schema = const DocumentSchema(),
-  })  : document = schema.normalize(document ?? const RichTextDocument()),
-        history = history ?? HistoryManager();
+  }) : history = history ?? HistoryManager() {
+    this.document = schema
+        .normalize(document ?? const RichTextDocument())
+        .asPersistentSnapshot();
+  }
 
   final DocumentSchema schema;
 
-  RichTextDocument document;
+  late RichTextDocument document;
   DocumentSelection? selection;
   final HistoryManager history;
 
@@ -26,7 +29,7 @@ class DocumentSession {
     RichTextDocument nextDocument, {
     DocumentSelection? nextSelection,
   }) {
-    document = schema.normalize(nextDocument);
+    document = schema.normalize(nextDocument).asPersistentSnapshot();
     selection = nextSelection;
   }
 
@@ -35,7 +38,7 @@ class DocumentSession {
     if (change == null) {
       return false;
     }
-    document = change.before.copy();
+    document = change.before;
     selection = change.selectionBefore;
     return true;
   }
@@ -45,7 +48,7 @@ class DocumentSession {
     if (change == null) {
       return false;
     }
-    document = change.after.copy();
+    document = change.after;
     selection = change.selectionAfter;
     return true;
   }

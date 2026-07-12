@@ -1,4 +1,5 @@
 import '../core/model/block_node.dart';
+import '../core/model/list_numbering.dart';
 import '../core/model/rich_text_document.dart';
 
 /// Exports a [RichTextDocument] as plain text.
@@ -24,6 +25,7 @@ class PlainTextCodec {
 
   String encode(RichTextDocument document) {
     final lines = <String>[];
+    final orderedNumbers = orderedListNumbersFor(document.blocks);
     for (var index = 0; index < document.blocks.length; index++) {
       final block = document.blocks[index];
       if (omitEmptyBlocks && _isStructural(block)) {
@@ -31,7 +33,11 @@ class PlainTextCodec {
         // wants only textual content.
         continue;
       }
-      final rendered = _renderBlock(document.blocks, index);
+      final rendered = _renderBlock(
+        document.blocks,
+        index,
+        orderedNumbers[index],
+      );
       if (rendered == null || rendered.isEmpty) {
         if (omitEmptyBlocks) {
           continue;
@@ -69,7 +75,11 @@ class PlainTextCodec {
   /// has no textual representation at all (an empty paragraph / callout).
   /// Media blocks always go through their sentinel so file names / asset ids
   /// are not mistaken for body text.
-  String? _renderBlock(List<BlockNode> blocks, int index) {
+  String? _renderBlock(
+    List<BlockNode> blocks,
+    int index,
+    int? orderedNumber,
+  ) {
     final block = blocks[index];
     switch (block.type) {
       case BlockType.paragraph:
@@ -80,7 +90,7 @@ class PlainTextCodec {
       case BlockType.listItem:
         return _quotePlainTextIfNeeded(
           block,
-          _renderListItem(blocks, index, block as TextBlockNode),
+          _renderListItem(block as TextBlockNode, orderedNumber),
         );
       case BlockType.code:
         // Code is emitted verbatim (keeps internal newlines).
@@ -116,16 +126,12 @@ class PlainTextCodec {
         .join('\n');
   }
 
-  String _renderListItem(
-    List<BlockNode> blocks,
-    int index,
-    TextBlockNode block,
-  ) {
+  String _renderListItem(TextBlockNode block, int? orderedNumber) {
     final indent = block.attributes.indent ?? 0;
     final pad = '  ' * indent;
     final text = block.plainText;
     if (block.attributes.listType == 'ordered') {
-      final marker = '${_orderedListNumberFor(blocks, index, indent)}.';
+      final marker = '${orderedNumber ?? 1}.';
       if (block.attributes.checked != null) {
         final box = block.attributes.checked == true ? '[x]' : '[ ]';
         return '$pad$marker $box $text';
@@ -137,29 +143,6 @@ class PlainTextCodec {
       return '$pad- $box $text';
     }
     return '$pad- $text';
-  }
-
-  int _orderedListNumberFor(List<BlockNode> blocks, int index, int indent) {
-    var number = 1;
-    for (var previousIndex = index - 1; previousIndex >= 0; previousIndex--) {
-      final previous = blocks[previousIndex];
-      final previousIndent = previous.attributes.indent ?? 0;
-      if (previousIndent > indent) {
-        continue;
-      }
-      if (previousIndent < indent) {
-        break;
-      }
-      if (previous is TextBlockNode && previous.type == BlockType.listItem) {
-        if (previous.attributes.listType == 'ordered') {
-          number++;
-          continue;
-        }
-        break;
-      }
-      break;
-    }
-    return number;
   }
 
   String _imageLabel(ImageBlockNode image) {

@@ -18,6 +18,8 @@ import '../core/commands/inline_editing.dart';
 import '../core/model/attributes.dart';
 import '../core/model/block_node.dart';
 import '../core/model/inline_node.dart';
+import '../core/model/list_numbering.dart';
+import '../core/model/persistent_block_list.dart';
 import '../core/model/table_model.dart';
 import '../core/position/document_position.dart';
 import '../input/clipboard_debug_log.dart';
@@ -31,6 +33,7 @@ import '../input/external_image_store_stub.dart'
 import '../input/shortcut_manager.dart';
 import '../rendering/text_layout_service.dart';
 import 'block_geometry_registry.dart';
+import 'block_layout_index.dart';
 import 'block_renderer_registry.dart';
 import 'code_syntax_highlighter.dart';
 import 'editor_context_menu.dart';
@@ -297,6 +300,7 @@ const double _kHeadingCollapseIconSize = 18.0;
 const double _kCodeBlockFontSize =
     13.5; // == EditorTokens.desktop.codeBlockFontSize
 const double _kCodeBlockLineHeight = 1.6;
+const int _kMaxCodeSyntaxHighlightCharacters = 50000;
 const double _kCodeBlockPaddingVertical = 18.0;
 const double _kCodeBlockHeaderGap = 14.0;
 const double _kCodeBlockHeaderHeight = 36.0;
@@ -1635,6 +1639,8 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
       _objectBlockToolbarOverlayController =
       ObjectBlockToolbarOverlayController();
   final _BlockExtentCache _extentCache = _BlockExtentCache();
+  List<BlockNode>? _listMarkerBlocks;
+  List<String?> _cachedListMarkers = const <String?>[];
   BlockRendererRegistry? _ownedBlockRenderers;
   _FormulaEditTarget? _formulaEditTarget;
   _MentionSearchTrigger? _mentionSearchTrigger;
@@ -2294,6 +2300,37 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     return outline.visibleBlockProjection();
   }
 
+  List<String?> _listMarkersForDocument(List<BlockNode> blocks) {
+    if (identical(blocks, _listMarkerBlocks)) {
+      return _cachedListMarkers;
+    }
+    final previousBlocks = _listMarkerBlocks;
+    if (blocks is PersistentBlockList &&
+        previousBlocks != null &&
+        blocks.length == previousBlocks.length) {
+      final delta = blocks.deltaSince(previousBlocks);
+      if (delta != null) {
+        var markerSemanticsChanged = false;
+        for (final index in delta.changedIndexes) {
+          if (!_sameListMarkerSemantics(
+            previousBlocks[index],
+            blocks[index],
+          )) {
+            markerSemanticsChanged = true;
+            break;
+          }
+        }
+        if (!markerSemanticsChanged) {
+          _listMarkerBlocks = blocks;
+          return _cachedListMarkers;
+        }
+      }
+    }
+    _listMarkerBlocks = blocks;
+    _cachedListMarkers = List<String?>.unmodifiable(_listMarkersFor(blocks));
+    return _cachedListMarkers;
+  }
+
   void _syncFindControllerOutline() {
     widget.findController?.attachOutlineController(widget.outlineController);
   }
@@ -2554,7 +2591,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     final findMatches =
         widget.findController?.matches ?? const <FindReplaceMatch>[];
     final currentFindMatch = widget.findController?.currentMatch;
-    final listMarkers = _listMarkersFor(sourceBlocks);
+    final listMarkers = _listMarkersForDocument(sourceBlocks);
     final effectiveTextStyle = _effectiveEditorTextStyle(
       widget.textStyle,
       widget.defaultTextColor,
@@ -8079,12 +8116,20 @@ class _BlockExtentCache {
   final Map<String, int> _blockVersions = <String, int>{};
   final Map<String, Object> _measureSignatures = <String, Object>{};
   Set<String> _knownBlockIds = <String>{};
+  List<BlockNode>? _retainedBlocks;
+  List<BlockNode>? _layoutBlocks;
+  BlockLayoutIndex? _layoutIndex;
+  Map<String, int> _layoutIndexesById = const <String, int>{};
+  double? _layoutSpacing;
+  double _measuredExtentTotal = 0;
   int _epoch = 0;
   double? _contentWidth;
 
   void clear() {
     _epoch += 1;
     _extents.clear();
+    _measuredExtentTotal = 0;
+    _invalidateLayout();
   }
 
   void updateContentWidth(double? width) {
@@ -8100,12 +8145,38 @@ class _BlockExtentCache {
   }
 
   void removeBlock(String blockId) {
-    _extents.remove(blockId);
+    final removedExtent = _extents.remove(blockId);
+    if (removedExtent != null) {
+      _measuredExtentTotal -= removedExtent;
+    }
     _measureSignatures.remove(blockId);
     _blockVersions[blockId] = (_blockVersions[blockId] ?? 0) + 1;
   }
 
   void retainBlocks(List<BlockNode> blocks) {
+    if (identical(blocks, _retainedBlocks)) {
+      return;
+    }
+    final previousBlocks = _retainedBlocks;
+    if (blocks is PersistentBlockList && previousBlocks != null) {
+      final delta = blocks.deltaSince(previousBlocks);
+      if (delta != null && blocks.length == previousBlocks.length) {
+        var sameStructure = true;
+        for (final index in delta.changedIndexes) {
+          if (blocks[index].id != previousBlocks[index].id) {
+            sameStructure = false;
+            break;
+          }
+        }
+        if (sameStructure) {
+          for (final index in delta.changedIndexes) {
+            _syncMeasureSignature(blocks[index]);
+          }
+          _retainedBlocks = blocks;
+          return;
+        }
+      }
+    }
     final ids = blocks.map((block) => block.id).toSet();
     for (final id in _knownBlockIds.difference(ids)) {
       removeBlock(id);
@@ -8114,6 +8185,7 @@ class _BlockExtentCache {
       _syncMeasureSignature(block);
     }
     _knownBlockIds = ids;
+    _retainedBlocks = blocks;
     _extents.removeWhere((id, _) => !ids.contains(id));
     _measureSignatures.removeWhere((id, _) => !ids.contains(id));
   }
@@ -8122,27 +8194,41 @@ class _BlockExtentCache {
     return Object.hash(_epoch, _blockVersions[blockId] ?? 0);
   }
 
-  bool record(String blockId, int token, double extent) {
+  _ExtentRecordResult? record(String blockId, int token, double extent) {
     if (token != tokenFor(blockId)) {
-      return false;
+      return null;
     }
     if (!extent.isFinite || extent <= 0) {
-      return false;
+      return null;
     }
     final previous = _extents[blockId];
     if (previous != null && (previous - extent).abs() <= 0.5) {
-      return false;
+      return null;
     }
+    final layoutIndex = _layoutIndexesById[blockId];
+    final previousLayoutExtent = layoutIndex == null
+        ? extent
+        : _layoutIndex?.extentAt(layoutIndex) ?? extent;
+    final previousBlockTop =
+        layoutIndex == null ? null : _layoutIndex?.topFor(layoutIndex);
     _extents[blockId] = extent;
-    return true;
+    _measuredExtentTotal += extent - (previous ?? 0);
+    if (layoutIndex != null && layoutIndex < (_layoutIndex?.length ?? 0)) {
+      _layoutIndex!
+        ..updateExtent(layoutIndex, extent)
+        ..updateEstimatedExtent(averageExtent);
+    }
+    return _ExtentRecordResult(
+      previousBlockTop: previousBlockTop,
+      extentDelta: extent - previousLayoutExtent,
+    );
   }
 
   double get averageExtent {
     if (_extents.isEmpty) {
       return _kDefaultBlockExtent;
     }
-    final total = _extents.values.fold<double>(0, (sum, h) => sum + h);
-    return total / _extents.length;
+    return _measuredExtentTotal / _extents.length;
   }
 
   double extentFor(BlockNode block) {
@@ -8150,33 +8236,110 @@ class _BlockExtentCache {
   }
 
   double offsetFor(List<BlockNode> blocks, int blockIndex, double spacing) {
-    var offset = 0.0;
-    final safeIndex = blockIndex.clamp(0, blocks.length).toInt();
-    for (var i = 0; i < safeIndex; i++) {
-      offset += extentFor(blocks[i]);
-      if (i < blocks.length - 1) {
-        offset += _spacingBetweenBlocks(blocks[i], blocks[i + 1], spacing);
-      }
+    if (blocks.isEmpty || blockIndex <= 0) {
+      return 0;
     }
-    return offset;
+    final metrics = layoutFor(blocks, spacing);
+    final safeIndex = blockIndex.clamp(0, blocks.length - 1).toInt();
+    return metrics.topFor(safeIndex);
   }
 
   _BlockLayoutMetrics layoutFor(List<BlockNode> blocks, double spacing) {
-    final offsets = <double>[];
-    var offset = 0.0;
-    for (var i = 0; i < blocks.length; i++) {
-      offsets.add(offset);
-      offset += extentFor(blocks[i]);
-      if (i < blocks.length - 1) {
-        offset += _spacingBetweenBlocks(blocks[i], blocks[i + 1], spacing);
-      }
-    }
+    _syncLayout(blocks, spacing);
     return _BlockLayoutMetrics(
       blocks: blocks,
-      offsets: offsets,
-      totalExtent: offset,
-      cache: this,
+      index: _layoutIndex!,
+      indexesById: _layoutIndexesById,
     );
+  }
+
+  void _syncLayout(List<BlockNode> blocks, double spacing) {
+    if (_layoutIndex != null &&
+        identical(blocks, _layoutBlocks) &&
+        _layoutSpacing == spacing) {
+      return;
+    }
+
+    final previousBlocks = _layoutBlocks;
+    if (_layoutIndex != null &&
+        _layoutSpacing == spacing &&
+        blocks is PersistentBlockList &&
+        previousBlocks != null &&
+        blocks.length == previousBlocks.length) {
+      final delta = blocks.deltaSince(previousBlocks);
+      if (delta != null) {
+        var sameStructure = true;
+        for (final index in delta.changedIndexes) {
+          if (blocks[index].id != previousBlocks[index].id) {
+            sameStructure = false;
+            break;
+          }
+        }
+        if (sameStructure) {
+          final spacingIndexes = <int>{};
+          for (final index in delta.changedIndexes) {
+            final measuredExtent = _extents[blocks[index].id];
+            if (measuredExtent != null) {
+              _layoutIndex!.updateExtent(index, measuredExtent);
+            }
+            spacingIndexes
+              ..add(index)
+              ..add(index - 1);
+          }
+          for (final index in spacingIndexes) {
+            if (index < 0 || index >= blocks.length) {
+              continue;
+            }
+            final trailingSpacing = index < blocks.length - 1
+                ? _spacingBetweenBlocks(
+                    blocks[index],
+                    blocks[index + 1],
+                    spacing,
+                  )
+                : 0.0;
+            _layoutIndex!.updateTrailingSpacing(index, trailingSpacing);
+          }
+          _layoutBlocks = blocks;
+          return;
+        }
+      }
+    }
+
+    final extents = <double>[];
+    final measured = <bool>[];
+    final spacings = <double>[];
+    final indexesById = <String, int>{};
+    for (var index = 0; index < blocks.length; index++) {
+      final measuredExtent = _extents[blocks[index].id];
+      extents.add(measuredExtent ?? averageExtent);
+      measured.add(measuredExtent != null);
+      spacings.add(
+        index < blocks.length - 1
+            ? _spacingBetweenBlocks(
+                blocks[index],
+                blocks[index + 1],
+                spacing,
+              )
+            : 0.0,
+      );
+      indexesById[blocks[index].id] = index;
+    }
+    _layoutIndex = BlockLayoutIndex(
+      extents: extents,
+      trailingSpacings: spacings,
+      measured: measured,
+      estimatedExtent: averageExtent,
+    );
+    _layoutIndexesById = Map<String, int>.unmodifiable(indexesById);
+    _layoutBlocks = blocks;
+    _layoutSpacing = spacing;
+  }
+
+  void _invalidateLayout() {
+    _layoutBlocks = null;
+    _layoutIndex = null;
+    _layoutIndexesById = const <String, int>{};
+    _layoutSpacing = null;
   }
 
   void _syncMeasureSignature(BlockNode block) {
@@ -8210,6 +8373,16 @@ class _BlockExtentCache {
       block.caption,
     );
   }
+}
+
+class _ExtentRecordResult {
+  const _ExtentRecordResult({
+    required this.previousBlockTop,
+    required this.extentDelta,
+  });
+
+  final double? previousBlockTop;
+  final double extentDelta;
 }
 
 class _BlockMoveRange {
@@ -8330,61 +8503,28 @@ class _SlashMenuAnchor {
 class _BlockLayoutMetrics {
   const _BlockLayoutMetrics({
     required this.blocks,
-    required this.offsets,
-    required this.totalExtent,
-    required this.cache,
+    required this.index,
+    required this.indexesById,
   });
 
   final List<BlockNode> blocks;
-  final List<double> offsets;
-  final double totalExtent;
-  final _BlockExtentCache cache;
+  final BlockLayoutIndex index;
+  final Map<String, int> indexesById;
 
-  double topFor(int index) => offsets[index];
+  double get totalExtent => index.totalExtent;
 
-  double bottomFor(int index) => topFor(index) + cache.extentFor(blocks[index]);
+  double topFor(int blockIndex) => index.topFor(blockIndex);
+
+  int? indexForBlockId(String blockId) => indexesById[blockId];
 
   List<int> visibleIndices(double visibleTop, double visibleBottom) {
-    if (blocks.isEmpty) {
+    final range = index.visibleRange(visibleTop, visibleBottom);
+    if (range.isEmpty) {
       return const <int>[];
     }
-    final start = _firstIndexWithBottomAtOrAfter(visibleTop);
-    if (start >= blocks.length) {
-      return <int>[blocks.length - 1];
-    }
-    final endExclusive = _firstIndexWithTopAfter(visibleBottom);
-    final end = endExclusive <= start ? start + 1 : endExclusive;
     return <int>[
-      for (var i = start; i < end && i < blocks.length; i++) i,
+      for (var i = range.start; i < range.endExclusive; i++) i,
     ];
-  }
-
-  int _firstIndexWithBottomAtOrAfter(double y) {
-    var low = 0;
-    var high = blocks.length;
-    while (low < high) {
-      final mid = low + ((high - low) >> 1);
-      if (bottomFor(mid) < y) {
-        low = mid + 1;
-      } else {
-        high = mid;
-      }
-    }
-    return low;
-  }
-
-  int _firstIndexWithTopAfter(double y) {
-    var low = 0;
-    var high = offsets.length;
-    while (low < high) {
-      final mid = low + ((high - low) >> 1);
-      if (offsets[mid] <= y) {
-        low = mid + 1;
-      } else {
-        high = mid;
-      }
-    }
-    return low;
   }
 }
 
@@ -8438,6 +8578,10 @@ class _MeasuredVirtualBlockList extends StatefulWidget {
 }
 
 class _MeasuredVirtualBlockListState extends State<_MeasuredVirtualBlockList> {
+  double _resolvedPaddingTop = 0;
+  double _pendingScrollAnchorDelta = 0;
+  bool _scrollAnchorUpdateScheduled = false;
+
   @override
   void initState() {
     super.initState();
@@ -8466,7 +8610,8 @@ class _MeasuredVirtualBlockListState extends State<_MeasuredVirtualBlockList> {
   }
 
   void _handleExtentChanged(String blockId, int measureToken, double extent) {
-    if (widget.extentCache.record(blockId, measureToken, extent) && mounted) {
+    final update = widget.extentCache.record(blockId, measureToken, extent);
+    if (update != null && mounted) {
       setState(() {});
       // P003: If the user is actively scrolling, suppress the extent-updated
       // callback to avoid triggering caret-into-view logic during a user
@@ -8476,6 +8621,7 @@ class _MeasuredVirtualBlockListState extends State<_MeasuredVirtualBlockList> {
       if (widget.shouldSuppressExtentUpdate?.call() == true) {
         return;
       }
+      _preserveScrollAnchor(update);
       // A real height change may unlock a caret-into-view that the content
       // mutation frame could not perform (it ran with the pre-edit height).
       // Notify the editor so it can retry the scroll against the now-accurate
@@ -8484,9 +8630,43 @@ class _MeasuredVirtualBlockListState extends State<_MeasuredVirtualBlockList> {
     }
   }
 
+  void _preserveScrollAnchor(_ExtentRecordResult update) {
+    final blockTop = update.previousBlockTop;
+    if (blockTop == null ||
+        update.extentDelta.abs() <= 0.5 ||
+        !widget.controller.hasClients ||
+        blockTop + _resolvedPaddingTop >= widget.controller.offset) {
+      return;
+    }
+    _pendingScrollAnchorDelta += update.extentDelta;
+    if (_scrollAnchorUpdateScheduled) {
+      return;
+    }
+    _scrollAnchorUpdateScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scrollAnchorUpdateScheduled = false;
+      final delta = _pendingScrollAnchorDelta;
+      _pendingScrollAnchorDelta = 0;
+      if (!mounted ||
+          delta.abs() <= 0.5 ||
+          !widget.controller.hasClients ||
+          widget.shouldSuppressExtentUpdate?.call() == true) {
+        return;
+      }
+      final position = widget.controller.position;
+      final target = (widget.controller.offset + delta)
+          .clamp(position.minScrollExtent, position.maxScrollExtent)
+          .toDouble();
+      if ((target - widget.controller.offset).abs() > 0.5) {
+        widget.controller.jumpTo(target);
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final padding = widget.padding.resolve(Directionality.of(context));
+    _resolvedPaddingTop = padding.top;
     return LayoutBuilder(
       builder: (context, constraints) {
         final contentWidth = constraints.maxWidth.isFinite
@@ -8510,9 +8690,10 @@ class _MeasuredVirtualBlockListState extends State<_MeasuredVirtualBlockList> {
             scrollOffset - padding.top + viewportHeight + _kVirtualListOverscan;
         final visible = metrics.visibleIndices(contentTop, contentBottom);
         final indices = <int>{...visible};
-        for (var i = 0; i < widget.blocks.length; i++) {
-          if (widget.keepAliveIds.contains(widget.blocks[i].id)) {
-            indices.add(i);
+        for (final blockId in widget.keepAliveIds) {
+          final index = metrics.indexForBlockId(blockId);
+          if (index != null) {
+            indices.add(index);
           }
         }
         final sortedIndices = indices.toList()..sort();
@@ -13050,7 +13231,7 @@ class _TableBlockRenderer extends StatelessWidget {
       LayoutBuilder(
         builder: (context, constraints) {
           final direction = Directionality.of(context);
-          final metrics = _TableGridMetrics.compute(
+          final metrics = _tableGridMetricsCache.resolve(
             table: table,
             maxWidth: _tableMaxWidth(constraints, columnCount),
             textStyle: tableTextStyle,
@@ -14117,6 +14298,85 @@ class _TableGridMetrics {
       cells: cells,
     );
   }
+}
+
+final _TableGridMetricsCache _tableGridMetricsCache =
+    _TableGridMetricsCache(maxEntries: 8);
+
+class _TableGridMetricsCache {
+  _TableGridMetricsCache({required this.maxEntries});
+
+  final int maxEntries;
+  final Map<_TableGridMetricsCacheKey, _TableGridMetrics> _entries =
+      <_TableGridMetricsCacheKey, _TableGridMetrics>{};
+
+  _TableGridMetrics resolve({
+    required TableModel table,
+    required double maxWidth,
+    required TextStyle textStyle,
+    required TextDirection textDirection,
+    required EdgeInsets tableCellPadding,
+  }) {
+    final key = _TableGridMetricsCacheKey(
+      table: table,
+      maxWidth: maxWidth,
+      textStyle: textStyle,
+      textDirection: textDirection,
+      tableCellPadding: tableCellPadding,
+    );
+    final cached = _entries.remove(key);
+    if (cached != null) {
+      _entries[key] = cached;
+      return cached;
+    }
+    final metrics = _TableGridMetrics.compute(
+      table: table,
+      maxWidth: maxWidth,
+      textStyle: textStyle,
+      textDirection: textDirection,
+      tableCellPadding: tableCellPadding,
+    );
+    _entries[key] = metrics;
+    while (_entries.length > maxEntries) {
+      _entries.remove(_entries.keys.first);
+    }
+    return metrics;
+  }
+}
+
+class _TableGridMetricsCacheKey {
+  const _TableGridMetricsCacheKey({
+    required this.table,
+    required this.maxWidth,
+    required this.textStyle,
+    required this.textDirection,
+    required this.tableCellPadding,
+  });
+
+  final TableModel table;
+  final double maxWidth;
+  final TextStyle textStyle;
+  final TextDirection textDirection;
+  final EdgeInsets tableCellPadding;
+
+  @override
+  bool operator ==(Object other) {
+    return other is _TableGridMetricsCacheKey &&
+        identical(other.table, table) &&
+        other.maxWidth == maxWidth &&
+        other.textStyle == textStyle &&
+        other.textDirection == textDirection &&
+        other.tableCellPadding == tableCellPadding;
+  }
+
+  @override
+  int get hashCode => Object.hash(
+        identityHashCode(table),
+        maxWidth,
+        textStyle,
+        textDirection,
+        tableCellPadding,
+      );
 }
 
 class _TableGridCell {
@@ -20383,6 +20643,24 @@ TextSpan _codeSpan(
   TextStyle codeStyle,
   _LocalSelectionRange? compositionRange,
 ) {
+  if (code.length > _kMaxCodeSyntaxHighlightCharacters) {
+    final start = compositionRange?.start.clamp(0, code.length).toInt();
+    final end = compositionRange?.end.clamp(0, code.length).toInt();
+    if (start == null || end == null || start >= end) {
+      return TextSpan(text: code, style: codeStyle);
+    }
+    return TextSpan(
+      style: codeStyle,
+      children: <InlineSpan>[
+        if (start > 0) TextSpan(text: code.substring(0, start)),
+        TextSpan(
+          text: code.substring(start, end),
+          style: const TextStyle(decoration: TextDecoration.underline),
+        ),
+        if (end < code.length) TextSpan(text: code.substring(end)),
+      ],
+    );
+  }
   return CodeSyntaxHighlighter(
     language: language,
     baseStyle: codeStyle,
@@ -20707,46 +20985,29 @@ String? _prefixFor(TextBlockNode block) {
 }
 
 List<String?> _listMarkersFor(List<BlockNode> blocks) {
+  final orderedNumbers = orderedListNumbersFor(blocks);
   return <String?>[
     for (var index = 0; index < blocks.length; index++)
-      _listMarkerFor(blocks, index),
+      _listMarkerFor(blocks[index], orderedNumbers[index]),
   ];
 }
 
-String? _listMarkerFor(List<BlockNode> blocks, int index) {
-  final block = blocks[index];
+bool _sameListMarkerSemantics(BlockNode first, BlockNode second) {
+  return first.type == second.type &&
+      first.attributes.listType == second.attributes.listType &&
+      _blockIndentLevel(first) == _blockIndentLevel(second);
+}
+
+String? _listMarkerFor(BlockNode block, int? orderedNumber) {
   if (block is! TextBlockNode || block.type != BlockType.listItem) {
     return null;
   }
   final indent = _blockIndentLevel(block);
   return switch (block.attributes.listType) {
-    'ordered' => '${_orderedListNumberFor(blocks, index, indent)}.',
+    'ordered' => '${orderedNumber ?? 1}.',
     'task' => null,
     _ => _unorderedListBullet(indent),
   };
-}
-
-int _orderedListNumberFor(List<BlockNode> blocks, int index, int indent) {
-  var number = 1;
-  for (var previousIndex = index - 1; previousIndex >= 0; previousIndex--) {
-    final previous = blocks[previousIndex];
-    final previousIndent = _blockIndentLevel(previous);
-    if (previousIndent > indent) {
-      continue;
-    }
-    if (previousIndent < indent) {
-      break;
-    }
-    if (previous is TextBlockNode && previous.type == BlockType.listItem) {
-      if (previous.attributes.listType == 'ordered') {
-        number++;
-        continue;
-      }
-      break;
-    }
-    break;
-  }
-  return number;
 }
 
 String _unorderedListBullet(int indent) {

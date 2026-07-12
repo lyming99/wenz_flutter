@@ -307,6 +307,36 @@ void main() {
       expect(block.attributes.indent, 8);
     });
 
+    test('coalesces adjacent equal text runs during normalization', () {
+      const doc = RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[
+              TextRun(text: 'one'),
+              TextRun(text: ' two'),
+              TextRun(
+                text: ' bold',
+                attributes: TextAttributes(bold: true),
+              ),
+              TextRun(
+                text: ' run',
+                attributes: TextAttributes(bold: true),
+              ),
+            ],
+          ),
+        ],
+      );
+
+      final content =
+          (schema.normalize(doc).blocks.single as TextBlockNode).content;
+
+      expect(content, hasLength(2));
+      expect((content[0] as TextRun).text, 'one two');
+      expect((content[1] as TextRun).text, ' bold run');
+    });
+
     test('idempotent on an already-normal document', () {
       const doc = RichTextDocument(
         blocks: <BlockNode>[

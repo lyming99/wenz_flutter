@@ -304,10 +304,10 @@ void _replaceBlocks(
   List<BlockNode> nextBlocks,
 ) {
   final blocks = <BlockNode>[
-    for (var i = 0; i < index; i++) session.document.blocks[i].copy(),
+    for (var i = 0; i < index; i++) session.document.blocks[i],
     ...nextBlocks.map((block) => block.copy()),
     for (var i = index + deleteCount; i < session.document.blocks.length; i++)
-      session.document.blocks[i].copy(),
+      session.document.blocks[i],
   ];
   session.document = RichTextDocument(
     version: session.document.version,

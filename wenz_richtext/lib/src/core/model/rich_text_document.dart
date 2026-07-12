@@ -1,5 +1,6 @@
 import 'block_node.dart';
 import 'comment_model.dart';
+import 'persistent_block_list.dart';
 import 'revision_model.dart';
 
 class RichTextDocument {
@@ -18,6 +19,48 @@ class RichTextDocument {
   bool get isEmpty => blocks.isEmpty || plainText.isEmpty;
 
   String get plainText => blocks.map((block) => block.plainText).join('\n');
+
+  /// Creates a session snapshot whose top-level blocks are immutable and
+  /// support structurally shared point updates.
+  RichTextDocument asPersistentSnapshot() {
+    final persistent = PersistentBlockList.from(blocks);
+    if (identical(persistent, blocks)) {
+      return this;
+    }
+    return RichTextDocument(
+      version: version,
+      blocks: persistent,
+      comments: List<CommentThread>.unmodifiable(comments),
+      revisions: List<RevisionChange>.unmodifiable(revisions),
+    );
+  }
+
+  RichTextDocument replaceBlockAt(int index, BlockNode block) {
+    final persistent = blocks is PersistentBlockList
+        ? blocks as PersistentBlockList
+        : PersistentBlockList.from(blocks);
+    return RichTextDocument(
+      version: version,
+      blocks: persistent.replaceAt(index, block),
+      comments: comments,
+      revisions: revisions,
+    );
+  }
+
+  RichTextDocument replaceBlocksAt(Map<int, BlockNode> replacements) {
+    if (replacements.isEmpty) {
+      return this;
+    }
+    final persistent = blocks is PersistentBlockList
+        ? blocks as PersistentBlockList
+        : PersistentBlockList.from(blocks);
+    return RichTextDocument(
+      version: version,
+      blocks: persistent.replaceMany(replacements),
+      comments: comments,
+      revisions: revisions,
+    );
+  }
 
   RichTextDocument copy() {
     return RichTextDocument(

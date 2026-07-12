@@ -55,6 +55,38 @@ void main() {
       host.dispose();
     });
 
+    test('selection and non-heading edits do not rescan the outline', () {
+      final host = WenzRichTextController(document: _doc());
+      final outline = WenzOutlineController(editor: host);
+      expect(outline.recomputeCount, 1);
+
+      final paragraphCaret = DocumentPosition.text(
+        blockId: 'p1',
+        blockIndex: 1,
+        offset: 4,
+      );
+      host.setSelection(
+        DocumentSelection(base: paragraphCaret, extent: paragraphCaret),
+      );
+      host.insertText('!');
+
+      expect(outline.recomputeCount, 1);
+
+      final headingCaret = DocumentPosition.text(
+        blockId: 'h1',
+        blockIndex: 0,
+        offset: 5,
+      );
+      host.setSelection(
+        DocumentSelection(base: headingCaret, extent: headingCaret),
+      );
+      host.insertText('!');
+
+      expect(outline.recomputeCount, 2);
+      outline.dispose();
+      host.dispose();
+    });
+
     test('resolves heading move ranges including the heading block', () {
       final host = WenzRichTextController(document: _headingMoveRangeDoc());
       final outline = WenzOutlineController(editor: host);

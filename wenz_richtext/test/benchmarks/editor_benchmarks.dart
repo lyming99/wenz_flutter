@@ -58,9 +58,52 @@ Future<({double avgUs, double maxUs})> _timeFrames(
   );
 }
 
+typedef _CommandLatency = ({
+  double avgUs,
+  int p50Us,
+  int p95Us,
+  int p99Us,
+  int maxUs,
+});
+
+_CommandLatency _timeCommands({
+  required int iterations,
+  required void Function(int iteration) command,
+}) {
+  final samples = <int>[];
+  for (var i = 0; i < iterations; i++) {
+    final stopwatch = Stopwatch()..start();
+    command(i);
+    stopwatch.stop();
+    samples.add(stopwatch.elapsedMicroseconds);
+  }
+  samples.sort();
+  final total = samples.fold<int>(0, (sum, value) => sum + value);
+  return (
+    avgUs: total / samples.length,
+    p50Us: _percentile(samples, 0.50),
+    p95Us: _percentile(samples, 0.95),
+    p99Us: _percentile(samples, 0.99),
+    maxUs: samples.last,
+  );
+}
+
+int _percentile(List<int> sortedSamples, double percentile) {
+  final index = ((sortedSamples.length - 1) * percentile).round();
+  return sortedSamples[index.clamp(0, sortedSamples.length - 1)];
+}
+
 void _report(String label, ({double avgUs, double maxUs}) r) {
   print('  $label: avg ${r.avgUs.toStringAsFixed(0)}µs/frame, '
       'max ${r.maxUs.toStringAsFixed(0)}µs/frame');
+}
+
+void _reportCommand(String label, _CommandLatency result) {
+  print(
+    '  $label: avg ${result.avgUs.toStringAsFixed(0)}us, '
+    'p50 ${result.p50Us}us, p95 ${result.p95Us}us, '
+    'p99 ${result.p99Us}us, max ${result.maxUs}us',
+  );
 }
 
 Widget _harness(WenzRichTextController controller) {
@@ -84,6 +127,20 @@ RichTextDocument _largeBlockDocument({int count = 1000}) {
           content: <InlineNode>[
             TextRun(text: 'Paragraph $i — the quick brown fox jumps over.'),
           ],
+        ),
+    ],
+  );
+}
+
+RichTextDocument _largeOrderedListDocument({int count = 10000}) {
+  return RichTextDocument(
+    blocks: <BlockNode>[
+      for (var i = 0; i < count; i++)
+        TextBlockNode(
+          id: 'ordered-$i',
+          type: BlockType.listItem,
+          attributes: const BlockAttributes(listType: 'ordered'),
+          content: <InlineNode>[TextRun(text: 'Ordered item $i')],
         ),
     ],
   );
@@ -197,7 +254,8 @@ void main() {
     expect(r.avgUs, lessThan(50000), reason: '1k-block frame budget blew out');
   });
 
-  testWidgets('benchmark: 1k blocks caret-driven editing tick', (tester) async {
+  testWidgets('benchmark: 1k blocks synchronous typing latency',
+      (tester) async {
     tester.view.physicalSize = _benchViewport;
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -210,12 +268,58 @@ void main() {
     await tester.pumpWidget(_harness(controller));
     await tester.pump();
 
-    // Prime an editing tick (incremental rebuild path).
-    controller.insertText('x');
+    final latency = _timeCommands(
+      iterations: 50,
+      command: (_) => controller.insertText('x'),
+    );
+    _reportCommand('1k blocks insertText', latency);
     await tester.pump();
-    final r = await _timeFrames(tester, frames: 20);
-    _report('1k blocks editing', r);
-    expect(r.avgUs, lessThan(50000), reason: 'editing frame budget blew out');
+    expect(
+      latency.p95Us,
+      lessThan(8000),
+      reason: '1k-block insertText p95 budget blew out',
+    );
+  });
+
+  test('benchmark: 10k blocks synchronous typing latency', () {
+    final controller = WenzRichTextController(
+      document: _largeBlockDocument(count: 10000),
+      selection: _textPosition('p0', 0, 0),
+    );
+    addTearDown(controller.dispose);
+
+    final latency = _timeCommands(
+      iterations: 20,
+      command: (_) => controller.insertText('x'),
+    );
+    _reportCommand('10k blocks insertText', latency);
+    expect(
+      latency.p95Us,
+      lessThan(8000),
+      reason: '10k-block insertText p95 budget blew out',
+    );
+  });
+
+  testWidgets('benchmark: 10k ordered-list blocks initial mount',
+      (tester) async {
+    tester.view.physicalSize = _benchViewport;
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final controller = WenzRichTextController(
+      document: _largeOrderedListDocument(),
+    );
+    addTearDown(controller.dispose);
+    final stopwatch = Stopwatch()..start();
+    await tester.pumpWidget(_harness(controller));
+    await tester.pump();
+    stopwatch.stop();
+
+    print(
+      '  10k ordered-list mount: ${stopwatch.elapsedMilliseconds}ms',
+    );
+    expect(stopwatch.elapsed, lessThan(const Duration(seconds: 10)));
   });
 
   testWidgets('benchmark: 10k inline runs single-block mount', (tester) async {

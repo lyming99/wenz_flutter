@@ -55,6 +55,30 @@ abstract class InlineNode {
   }
 }
 
+/// Coalesces adjacent text runs with identical attributes while preserving the
+/// original list instance when it is already compact.
+List<InlineNode> mergeAdjacentTextRuns(List<InlineNode> nodes) {
+  List<InlineNode>? result;
+  for (var index = 0; index < nodes.length; index++) {
+    final node = nodes[index];
+    final previous = result == null
+        ? (index == 0 ? null : nodes[index - 1])
+        : (result.isEmpty ? null : result.last);
+    if (node is TextRun &&
+        previous is TextRun &&
+        previous.attributes == node.attributes) {
+      result ??= nodes.sublist(0, index);
+      result[result.length - 1] = TextRun(
+        text: previous.text + node.text,
+        attributes: previous.attributes,
+      );
+      continue;
+    }
+    result?.add(node);
+  }
+  return result ?? nodes;
+}
+
 class TextRun extends InlineNode {
   const TextRun({required this.text, this.attributes = const TextAttributes()});
 

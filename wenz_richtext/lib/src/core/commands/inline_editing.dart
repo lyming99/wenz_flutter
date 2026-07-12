@@ -382,24 +382,7 @@ InlineSplit splitInline(List<InlineNode> nodes, int offset) {
 }
 
 List<InlineNode> mergeTextRuns(List<InlineNode> nodes) {
-  final result = <InlineNode>[];
-  for (final node in nodes) {
-    if (node is TextRun &&
-        result.isNotEmpty &&
-        result.last is TextRun &&
-        (result.last as TextRun).attributes == node.attributes) {
-      final previous = result.removeLast() as TextRun;
-      result.add(
-        TextRun(
-          text: previous.text + node.text,
-          attributes: previous.attributes,
-        ),
-      );
-    } else {
-      result.add(node);
-    }
-  }
-  return result;
+  return mergeAdjacentTextRuns(nodes);
 }
 
 int inlineLength(InlineNode node) {

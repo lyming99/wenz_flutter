@@ -45,4 +45,34 @@ void main() {
 
     expect(session.history.undoDepth, 0);
   });
+
+  test('history enforces entry and estimated-byte budgets', () {
+    final history = HistoryManager(limit: 10, maxEstimatedBytes: 1000);
+    const document = RichTextDocument(
+      blocks: <BlockNode>[
+        TextBlockNode(id: 'p1', type: BlockType.paragraph),
+      ],
+    );
+
+    for (var index = 0; index < 4; index++) {
+      history.push(
+        ChangeSet(
+          before: document,
+          after: document,
+          description: 'change-$index',
+          changeSummary: const DocumentChangeSummary(
+            documentChanged: true,
+            changedBlockIds: <String>{'p1'},
+            estimatedChangedBytes: 400,
+          ),
+        ),
+      );
+    }
+
+    expect(history.undoDepth, 1);
+    expect(history.estimatedRetainedBytes, lessThanOrEqualTo(1000));
+    expect(history.undo(), isNotNull);
+    expect(history.redo(), isNotNull);
+    expect(history.estimatedRetainedBytes, lessThanOrEqualTo(1000));
+  });
 }

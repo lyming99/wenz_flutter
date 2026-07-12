@@ -23,7 +23,8 @@ void main() {
       expect(stats.readingTime, const Duration(minutes: 2));
     });
 
-    test('tracks host document changes without selection-only notifications', () {
+    test('tracks host document changes without selection-only notifications',
+        () {
       final host = WenzRichTextController(
         document: const RichTextDocument(
           blocks: <BlockNode>[
@@ -42,11 +43,13 @@ void main() {
       );
       var notifications = 0;
       stats.addListener(() => notifications++);
+      expect(stats.recomputedBlockCount, 1);
 
       host.setSelection(collapsedTextSelection('p1', 0, 1));
 
       expect(notifications, 0);
       expect(stats.wordCount, 1);
+      expect(stats.recomputedBlockCount, 1);
 
       host.insertText(' there');
 
@@ -54,6 +57,7 @@ void main() {
       expect(stats.wordCount, 2);
       expect(stats.characterCount, 8);
       expect(stats.readingTimeMinutes, 2);
+      expect(stats.recomputedBlockCount, 2);
 
       stats.dispose();
       host.dispose();

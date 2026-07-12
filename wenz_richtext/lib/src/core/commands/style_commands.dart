@@ -47,37 +47,31 @@ class FormatTextCommand extends EditorCommand {
       );
     }
 
-    final blocks =
-        session.document.blocks.map((block) => block.copy()).toList();
-    var changed = false;
+    final replacements = <int, BlockNode>{};
 
     for (var i = start.blockIndex; i <= end.blockIndex; i++) {
-      if (i < 0 || i >= blocks.length) {
+      if (i < 0 || i >= session.document.blocks.length) {
         continue;
       }
-      final block = blocks[i];
+      final block = session.document.blocks[i];
       if (block is! TextBlockNode) {
         continue;
       }
       final rangeStart = i == start.blockIndex ? start.offset : 0;
       final rangeEnd =
           i == end.blockIndex ? end.offset : inlineNodesLength(block.content);
-      blocks[i] = TextBlockNode(
+      replacements[i] = TextBlockNode(
         id: block.id,
         type: block.type,
         attributes: block.attributes,
         content: formatInline(block.content, rangeStart, rangeEnd, attributes),
       );
-      changed = true;
     }
 
-    if (!changed) {
+    if (replacements.isEmpty) {
       return const CommandResult(recordHistory: false);
     }
-    session.document = RichTextDocument(
-      version: session.document.version,
-      blocks: blocks,
-    );
+    session.document = session.document.replaceBlocksAt(replacements);
     return CommandResult(selection: target);
   }
 }
@@ -119,36 +113,30 @@ class ClearStyleCommand extends EditorCommand {
       );
     }
 
-    final blocks =
-        session.document.blocks.map((block) => block.copy()).toList();
-    var changed = false;
+    final replacements = <int, BlockNode>{};
     for (var i = start.blockIndex; i <= end.blockIndex; i++) {
-      if (i < 0 || i >= blocks.length) {
+      if (i < 0 || i >= session.document.blocks.length) {
         continue;
       }
-      final block = blocks[i];
+      final block = session.document.blocks[i];
       if (block is! TextBlockNode) {
         continue;
       }
       final rangeStart = i == start.blockIndex ? start.offset : 0;
       final rangeEnd =
           i == end.blockIndex ? end.offset : inlineNodesLength(block.content);
-      blocks[i] = TextBlockNode(
+      replacements[i] = TextBlockNode(
         id: block.id,
         type: block.type,
         attributes: block.attributes,
         content: clearInlineFormatting(block.content, rangeStart, rangeEnd),
       );
-      changed = true;
     }
 
-    if (!changed) {
+    if (replacements.isEmpty) {
       return const CommandResult(recordHistory: false);
     }
-    session.document = RichTextDocument(
-      version: session.document.version,
-      blocks: blocks,
-    );
+    session.document = session.document.replaceBlocksAt(replacements);
     return CommandResult(selection: target);
   }
 }
@@ -188,36 +176,30 @@ class ClearTextColorCommand extends EditorCommand {
       );
     }
 
-    final blocks =
-        session.document.blocks.map((block) => block.copy()).toList();
-    var changed = false;
+    final replacements = <int, BlockNode>{};
     for (var i = start.blockIndex; i <= end.blockIndex; i++) {
-      if (i < 0 || i >= blocks.length) {
+      if (i < 0 || i >= session.document.blocks.length) {
         continue;
       }
-      final block = blocks[i];
+      final block = session.document.blocks[i];
       if (block is! TextBlockNode) {
         continue;
       }
       final rangeStart = i == start.blockIndex ? start.offset : 0;
       final rangeEnd =
           i == end.blockIndex ? end.offset : inlineNodesLength(block.content);
-      blocks[i] = TextBlockNode(
+      replacements[i] = TextBlockNode(
         id: block.id,
         type: block.type,
         attributes: block.attributes,
         content: clearInlineTextColor(block.content, rangeStart, rangeEnd),
       );
-      changed = true;
     }
 
-    if (!changed) {
+    if (replacements.isEmpty) {
       return const CommandResult(recordHistory: false);
     }
-    session.document = RichTextDocument(
-      version: session.document.version,
-      blocks: blocks,
-    );
+    session.document = session.document.replaceBlocksAt(replacements);
     return CommandResult(selection: target);
   }
 }
@@ -257,36 +239,30 @@ class ClearTextBackgroundCommand extends EditorCommand {
       );
     }
 
-    final blocks =
-        session.document.blocks.map((block) => block.copy()).toList();
-    var changed = false;
+    final replacements = <int, BlockNode>{};
     for (var i = start.blockIndex; i <= end.blockIndex; i++) {
-      if (i < 0 || i >= blocks.length) {
+      if (i < 0 || i >= session.document.blocks.length) {
         continue;
       }
-      final block = blocks[i];
+      final block = session.document.blocks[i];
       if (block is! TextBlockNode) {
         continue;
       }
       final rangeStart = i == start.blockIndex ? start.offset : 0;
       final rangeEnd =
           i == end.blockIndex ? end.offset : inlineNodesLength(block.content);
-      blocks[i] = TextBlockNode(
+      replacements[i] = TextBlockNode(
         id: block.id,
         type: block.type,
         attributes: block.attributes,
         content: clearInlineTextBackground(block.content, rangeStart, rangeEnd),
       );
-      changed = true;
     }
 
-    if (!changed) {
+    if (replacements.isEmpty) {
       return const CommandResult(recordHistory: false);
     }
-    session.document = RichTextDocument(
-      version: session.document.version,
-      blocks: blocks,
-    );
+    session.document = session.document.replaceBlocksAt(replacements);
     return CommandResult(selection: target);
   }
 }
@@ -365,33 +341,29 @@ class SetBlockTypeCommand extends EditorCommand {
       return const CommandResult(recordHistory: false);
     }
 
-    final blocks =
-        session.document.blocks.map((block) => block.copy()).toList();
-    var changed = false;
+    final replacements = <int, BlockNode>{};
     for (var i = target.start.blockIndex; i <= target.end.blockIndex; i++) {
-      if (i < 0 || i >= blocks.length || blocks[i] is! TextBlockNode) {
+      if (i < 0 ||
+          i >= session.document.blocks.length ||
+          session.document.blocks[i] is! TextBlockNode) {
         continue;
       }
-      final block = blocks[i] as TextBlockNode;
+      final block = session.document.blocks[i] as TextBlockNode;
       final nextType = type == BlockType.quote
           ? (block.type == BlockType.quote ? BlockType.paragraph : block.type)
           : type;
-      blocks[i] = TextBlockNode(
+      replacements[i] = TextBlockNode(
         id: block.id,
         type: nextType,
         attributes: _attributesForType(block.attributes),
-        content: block.content.map((node) => node.copy()).toList(),
+        content: block.content,
       );
-      changed = true;
     }
 
-    if (!changed) {
+    if (replacements.isEmpty) {
       return const CommandResult(recordHistory: false);
     }
-    session.document = RichTextDocument(
-      version: session.document.version,
-      blocks: blocks,
-    );
+    session.document = session.document.replaceBlocksAt(replacements);
     return CommandResult(selection: target);
   }
 
@@ -453,36 +425,31 @@ class SetAlignmentCommand extends EditorCommand {
       return const CommandResult(recordHistory: false);
     }
 
-    final blocks =
-        session.document.blocks.map((block) => block.copy()).toList();
-    var changed = false;
+    final replacements = <int, BlockNode>{};
     var hasTargetBlock = false;
     for (var i = target.start.blockIndex; i <= target.end.blockIndex; i++) {
-      if (i < 0 || i >= blocks.length) {
+      if (i < 0 || i >= session.document.blocks.length) {
         continue;
       }
       hasTargetBlock = true;
-      final nextAttributes = _setAlignment(blocks[i].attributes, alignment);
-      if (nextAttributes == blocks[i].attributes) {
+      final block = session.document.blocks[i];
+      final nextAttributes = _setAlignment(block.attributes, alignment);
+      if (nextAttributes == block.attributes) {
         continue;
       }
-      blocks[i] = _copyBlockWithAttributes(
-        blocks[i],
+      replacements[i] = _copyBlockWithAttributes(
+        block,
         nextAttributes,
       );
-      changed = true;
     }
 
-    if (!changed) {
+    if (replacements.isEmpty) {
       return CommandResult(
         selection: hasTargetBlock ? target : null,
         recordHistory: false,
       );
     }
-    session.document = RichTextDocument(
-      version: session.document.version,
-      blocks: blocks,
-    );
+    session.document = session.document.replaceBlocksAt(replacements);
     return CommandResult(selection: target);
   }
 }

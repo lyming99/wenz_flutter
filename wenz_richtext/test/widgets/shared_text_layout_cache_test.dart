@@ -68,4 +68,39 @@ void main() {
     expect(identical(first, second), isFalse);
     cache.dispose();
   });
+
+  test('LRU cap evicts the least recently used surface', () {
+    final cache = SharedTextLayoutCache(
+      maxEntries: 2,
+      maxEstimatedBytes: 1024,
+      estimatedBytesPerEntry: 128,
+    );
+    final first = cache.entryFor('p1', 'block/p1');
+    final second = cache.entryFor('p2', 'block/p2');
+    expect(identical(cache.entryFor('p1', 'block/p1'), first), isTrue);
+
+    cache.entryFor('p3', 'block/p3');
+
+    expect(cache.length, 2);
+    expect(cache.evictionCount, 1);
+    expect(identical(cache.entryFor('p1', 'block/p1'), first), isTrue);
+    expect(identical(cache.entryFor('p2', 'block/p2'), second), isFalse);
+    cache.dispose();
+  });
+
+  test('estimated byte budget is enforced independently of entry cap', () {
+    final cache = SharedTextLayoutCache(
+      maxEntries: 100,
+      maxEstimatedBytes: 256,
+      estimatedBytesPerEntry: 128,
+    );
+
+    for (var index = 0; index < 10; index++) {
+      cache.entryFor('p$index', 'block/p$index');
+    }
+
+    expect(cache.length, 2);
+    expect(cache.estimatedRetainedBytes, lessThanOrEqualTo(256));
+    cache.dispose();
+  });
 }

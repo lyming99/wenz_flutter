@@ -1,6 +1,7 @@
 import '../model/attributes.dart';
 import '../model/block_node.dart';
 import '../model/inline_node.dart';
+import '../model/persistent_block_list.dart';
 import '../model/rich_text_document.dart';
 import '../model/table_model.dart';
 
@@ -42,6 +43,30 @@ class DocumentSchema {
             content: const <InlineNode>[],
           ),
         ],
+        comments: document.comments,
+        revisions: document.revisions,
+      );
+    }
+    if (blocks is PersistentBlockList) {
+      final dirtyIndexes = blocks.pendingNormalizationIndexes;
+      if (dirtyIndexes.isEmpty) {
+        return document;
+      }
+      var normalizedBlocks = blocks;
+      for (final index in dirtyIndexes) {
+        if (index < 0 || index >= normalizedBlocks.length) {
+          continue;
+        }
+        final block = normalizedBlocks[index];
+        final normalized = _normalizeBlock(block);
+        if (!identical(normalized, block)) {
+          normalizedBlocks = normalizedBlocks.replaceAt(index, normalized);
+        }
+      }
+      normalizedBlocks = normalizedBlocks.markNormalized();
+      return RichTextDocument(
+        version: document.version,
+        blocks: normalizedBlocks,
         comments: document.comments,
         revisions: document.revisions,
       );
@@ -202,15 +227,17 @@ class DocumentSchema {
     final variant = CalloutBlockNode.normalizeVariant(block.variant);
     final title = block.title.trim();
     final icon = block.icon.trim();
+    final content = mergeAdjacentTextRuns(block.content);
     if (attrs == block.attributes &&
         variant == block.variant &&
         title == block.title &&
-        icon == block.icon) {
+        icon == block.icon &&
+        identical(content, block.content)) {
       return block;
     }
     return CalloutBlockNode(
       id: block.id,
-      content: block.content,
+      content: content,
       variant: variant,
       title: title,
       icon: icon,
@@ -220,17 +247,19 @@ class DocumentSchema {
 
   TextBlockNode _normalizeTextBlock(TextBlockNode block) {
     final attrs = _normalizeAttributes(block.type, block.attributes);
-    final type = block.type == BlockType.quote
-        ? BlockType.paragraph
-        : block.type;
-    if (attrs == block.attributes && type == block.type) {
+    final type =
+        block.type == BlockType.quote ? BlockType.paragraph : block.type;
+    final content = mergeAdjacentTextRuns(block.content);
+    if (attrs == block.attributes &&
+        type == block.type &&
+        identical(content, block.content)) {
       return block;
     }
     return TextBlockNode(
       id: block.id,
       type: type,
       attributes: attrs,
-      content: block.content,
+      content: content,
     );
   }
 
@@ -257,11 +286,37 @@ class DocumentSchema {
               isHeader: cell.isHeader,
               backgroundColor: cell.backgroundColor,
               covered: cell.covered,
+              alignment: cell.alignment,
             ),
           );
           changed = true;
         } else {
-          nextRow.add(cell);
+          final normalizedCellBlocks = <BlockNode>[];
+          var cellChanged = false;
+          for (final nestedBlock in cell.blocks) {
+            final normalizedBlock = _normalizeBlock(nestedBlock);
+            normalizedCellBlocks.add(normalizedBlock);
+            if (!identical(normalizedBlock, nestedBlock)) {
+              cellChanged = true;
+            }
+          }
+          if (!cellChanged) {
+            nextRow.add(cell);
+          } else {
+            nextRow.add(
+              TableCellNode(
+                id: cell.id,
+                blocks: normalizedCellBlocks,
+                rowSpan: cell.rowSpan,
+                columnSpan: cell.columnSpan,
+                isHeader: cell.isHeader,
+                backgroundColor: cell.backgroundColor,
+                covered: cell.covered,
+                alignment: cell.alignment,
+              ),
+            );
+            changed = true;
+          }
         }
       }
       rows.add(nextRow);
@@ -312,7 +367,8 @@ class DocumentSchema {
           indent: indent,
           alignment: attrs.alignment,
           listType: canonical,
-          checked: canonical == 'task' ? (attrs.checked ?? false) : attrs.checked,
+          checked:
+              canonical == 'task' ? (attrs.checked ?? false) : attrs.checked,
           quoted: attrs.quoted,
           childNote: attrs.childNote,
           anchor: attrs.anchor,
