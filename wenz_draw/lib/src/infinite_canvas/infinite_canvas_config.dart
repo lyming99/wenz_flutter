@@ -14,6 +14,7 @@ class InfiniteCanvasConfig {
     this.maxScale = 10.0,
     this.scrollZoomSensitivity = 0.0015,
     this.gridBaseSize = 22.0,
+    this.imageContentMinScale = 0.0,
     this.enablePinch = true,
     this.enableWheelZoom = true,
     this.enableKeyboard = true,
@@ -32,6 +33,12 @@ class InfiniteCanvasConfig {
   final double maxScale;
   final double scrollZoomSensitivity;
   final double gridBaseSize;
+
+  /// Images below this canvas zoom are rendered as lightweight placeholders.
+  ///
+  /// Their raster data remains decoded and cached, so zooming back in restores
+  /// the content immediately. A value of zero disables this rendering LOD.
+  final double imageContentMinScale;
 
   /// Whether two-finger pinch-to-zoom is handled by the canvas. When `false`,
   /// multi-pointer gestures are ignored (a single finger still drives the

@@ -15,6 +15,7 @@ import '../input/shortcut_manager.dart';
 import '../plugins/editor_plugin.dart';
 import '../plugins/mermaid_diagram_plugin.dart';
 import '../widgets/block_renderer_registry.dart';
+import '../widgets/desktop_selection_toolbar_overlay.dart';
 import '../widgets/editor_context_menu.dart';
 import '../widgets/inline_embed_renderer.dart';
 import '../widgets/media_resolver.dart';
@@ -83,6 +84,7 @@ class WenzEditorConfiguration {
     this.autosaveDebounce = const Duration(seconds: 2),
     this.enableMermaidDiagrams = false,
     this.layout = WenzEditorLayout.auto,
+    this.desktopToolbarMode = WenzDesktopToolbarMode.fixed,
     this.enableMobileSelectionHandles = true,
     this.enableExternalDragDrop = true,
     this.mobileToolbarStyle,
@@ -276,6 +278,13 @@ class WenzEditorConfiguration {
   /// `WenzEditorBootstrap.resolveEditorLayout`.
   final WenzEditorLayout layout;
 
+  /// How the desktop formatting toolbar is presented.
+  ///
+  /// Defaults to [WenzDesktopToolbarMode.fixed], preserving the existing
+  /// host-rendered toolbar. Selection-floating mode is assembled by
+  /// [WenzEditorBootstrap.buildEditor] when the toolbar controller is enabled.
+  final WenzDesktopToolbarMode desktopToolbarMode;
+
   /// Whether touch selection handles may mount on mobile surfaces.
   ///
   /// Defaults to `true`; this is the final switch after the editor checks
@@ -340,6 +349,7 @@ class WenzEditorConfiguration {
     Duration? autosaveDebounce,
     bool? enableMermaidDiagrams,
     WenzEditorLayout? layout,
+    WenzDesktopToolbarMode? desktopToolbarMode,
     bool? enableMobileSelectionHandles,
     bool? enableExternalDragDrop,
     Object? mobileToolbarStyle = _unset,
@@ -411,6 +421,7 @@ class WenzEditorConfiguration {
       enableMermaidDiagrams:
           enableMermaidDiagrams ?? this.enableMermaidDiagrams,
       layout: layout ?? this.layout,
+      desktopToolbarMode: desktopToolbarMode ?? this.desktopToolbarMode,
       enableMobileSelectionHandles:
           enableMobileSelectionHandles ?? this.enableMobileSelectionHandles,
       enableExternalDragDrop:

@@ -610,6 +610,9 @@ class CanvasController extends ChangeNotifier {
   void setTool(String toolId) {
     commitCurrentInteraction();
     clearPreview();
+    if (toolId == PanTool.idValue && _state.selectedIds.isNotEmpty) {
+      _state = _state.copyWith(selectedIds: const <String>{});
+    }
     toolManager.setActiveTool(toolId, this);
     notifyListeners();
   }
@@ -1523,8 +1526,7 @@ class CanvasController extends ChangeNotifier {
       return;
     }
     _editingTextOriginal = element;
-    _editingTextUsesContentBounds =
-        fitToContent || element.hasContentSizedBox;
+    _editingTextUsesContentBounds = fitToContent || element.hasContentSizedBox;
     _editingTextElementId = id;
     if (_editingTextUsesContentBounds) {
       final fitted = element.fitToRenderedText();
@@ -1736,7 +1738,10 @@ class CanvasController extends ChangeNotifier {
             : element;
         addElement(insertedElement, bringToFront: true);
         if (insertedElement is TextElement) {
-          beginTextEditing(insertedElement.id);
+          // Text created by the text tool owns a content-sized boundary until
+          // the user explicitly drags a resize handle. Keep recalculating the
+          // selection border while typing instead of retaining the seed box.
+          beginTextEditing(insertedElement.id, fitToContent: true);
         } else if (selectAfter) {
           setSelection({insertedElement.id});
           setTool(SelectTool.idValue);

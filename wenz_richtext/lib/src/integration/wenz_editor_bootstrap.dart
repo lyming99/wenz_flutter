@@ -19,6 +19,7 @@ import '../plugins/mermaid_diagram_plugin.dart';
 import '../widgets/block_renderer_registry.dart';
 import '../widgets/default_desktop_toolbar.dart';
 import '../widgets/default_mobile_toolbar.dart';
+import '../widgets/desktop_selection_toolbar_overlay.dart';
 import '../widgets/editor_context_menu.dart';
 import '../widgets/editor_tokens.dart';
 import '../widgets/inline_embed_renderer.dart';
@@ -529,6 +530,16 @@ class WenzEditorBootstrap {
     bool? readOnly,
     bool showDebugOverlay = false,
     bool enableIme = true,
+    WenzDesktopToolbarMode? desktopToolbarMode,
+    WenzDefaultDesktopToolbarActions desktopToolbarActions =
+        const WenzDefaultDesktopToolbarActions(),
+    WenzDefaultDesktopToolbarStyle desktopToolbarStyle =
+        const WenzDefaultDesktopToolbarStyle(
+      showBackground: false,
+      showBottomBorder: false,
+      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+    ),
+    WenzDesktopSelectionToolbarBuilder? desktopSelectionToolbarBuilder,
     VoidCallback? onFindRequested,
     ValueChanged<String>? onSelectionSearchRequested,
     VoidCallback? onReplaceRequested,
@@ -540,6 +551,20 @@ class WenzEditorBootstrap {
         configuration.shortcutConfiguration,
       ],
     );
+    final effectiveDesktopToolbarMode =
+        desktopToolbarMode ?? configuration.desktopToolbarMode;
+    final toolbar = toolbarController;
+    final effectiveDesktopSelectionToolbarBuilder =
+        desktopSelectionToolbarBuilder ??
+            (toolbar == null
+                ? null
+                : (BuildContext context) => WenzDefaultDesktopToolbar(
+                      controller: controller,
+                      toolbar: toolbar,
+                      toolbarItemRegistry: toolbarItemRegistry,
+                      actions: desktopToolbarActions,
+                      style: desktopToolbarStyle,
+                    ));
 
     return WenzRichTextEditor(
       key: key,
@@ -574,6 +599,9 @@ class WenzEditorBootstrap {
       enableExternalImageInput: configuration.enableExternalImageInput,
       enableExternalDragDrop: configuration.enableExternalDragDrop,
       enableMobileSelectionHandles: configuration.enableMobileSelectionHandles,
+      desktopToolbarMode: effectiveDesktopToolbarMode,
+      desktopSelectionToolbarBuilder:
+          effectiveDesktopSelectionToolbarBuilder,
       externalImageClipboardReader: configuration.externalImageClipboardReader,
       externalImageStore: configuration.externalImageStore,
       accessibility: configuration.accessibility,

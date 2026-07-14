@@ -255,6 +255,9 @@ class DeleteBackwardCommand extends EditorCommand {
       return _mergeWithPreviousBlock(session, position);
     }
     if (block is CodeBlockNode) {
+      if (block.code.isEmpty) {
+        return _convertEmptyCodeBlockToParagraph(session, position, block);
+      }
       final offset = position.offset.clamp(0, block.code.length);
       if (offset > 0) {
         return _deleteCodeRange(session, position, offset - 1, offset);
@@ -273,6 +276,27 @@ class DeleteBackwardCommand extends EditorCommand {
     }
     return const CommandResult(recordHistory: false);
   }
+}
+
+CommandResult _convertEmptyCodeBlockToParagraph(
+  DocumentSession session,
+  DocumentPosition position,
+  CodeBlockNode block,
+) {
+  final nextBlock = TextBlockNode(
+    id: block.id,
+    type: BlockType.paragraph,
+    content: const <InlineNode>[],
+  );
+  _replaceBlock(session, position.blockIndex, nextBlock);
+  final nextPosition = DocumentPosition.text(
+    blockId: block.id,
+    blockIndex: position.blockIndex,
+    offset: 0,
+  );
+  return CommandResult(
+    selection: DocumentSelection(base: nextPosition, extent: nextPosition),
+  );
 }
 
 class DeleteForwardCommand extends EditorCommand {
@@ -329,6 +353,9 @@ class DeleteForwardCommand extends EditorCommand {
       return _mergeWithNextBlock(session, position);
     }
     if (block is CodeBlockNode) {
+      if (block.code.isEmpty) {
+        return _convertEmptyCodeBlockToParagraph(session, position, block);
+      }
       final offset = position.offset.clamp(0, block.code.length);
       if (offset < block.code.length) {
         return _deleteCodeRange(session, position, offset, offset + 1);

@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import '../canvas/canvas_controller.dart';
@@ -27,8 +28,11 @@ class SelectTool extends CanvasTool {
   static const idValue = 'select';
 
   Offset? _dragStart;
+  Offset? _dragStartScreen;
   Offset? _lastPoint;
   Rect? _selectionRect;
+  PointerDeviceKind? _selectionPointerKind;
+  bool _marqueeSelecting = false;
   bool _movingSelection = false;
   bool _scalingElement = false;
   bool _stretchingElement = false;
@@ -48,6 +52,7 @@ class SelectTool extends CanvasTool {
   static const double _minTextBoxWidth = 24;
   static const double _minTextBoxHeight = 24;
   static const double _minTextFontSize = 1;
+  static const double _precisionMarqueeSlop = 3;
   Map<String, CanvasElement> _moveBefore = const {};
   Map<String, CanvasElement> _rotateBefore = const {};
   Offset? _rotationCenter;
@@ -65,8 +70,11 @@ class SelectTool extends CanvasTool {
   @override
   void cancel(CanvasController controller) {
     _dragStart = null;
+    _dragStartScreen = null;
     _lastPoint = null;
     _selectionRect = null;
+    _selectionPointerKind = null;
+    _marqueeSelecting = false;
     _movingSelection = false;
     _scalingElement = false;
     _stretchingElement = false;
@@ -125,7 +133,10 @@ class SelectTool extends CanvasTool {
             ? _resizeTargetAt(controller, event)
             : null;
         _dragStart = event.worldPoint;
+        _dragStartScreen = event.screenPoint;
         _lastPoint = event.worldPoint;
+        _selectionPointerKind = event.kind;
+        _marqueeSelecting = false;
         if (curveControlTarget != null) {
           controller.setSelection({curveControlTarget.element.id});
           _movingSelection = false;
@@ -211,6 +222,8 @@ class SelectTool extends CanvasTool {
           return const ToolResultConsumed();
         }
 
+        // Selecting a stroke uses its geometric hitTest below. Once selected,
+        // the whole selection box becomes the drag target for easier moving.
         final selectionBounds = _selectionBounds(controller);
         if (selectionBounds != null &&
             selectionBounds.contains(event.worldPoint)) {
@@ -235,9 +248,9 @@ class SelectTool extends CanvasTool {
           return const ToolResultConsumed();
         }
         _movingSelection = false;
-        _selectionRect = Rect.fromPoints(event.worldPoint, event.worldPoint);
+        _selectionRect = null;
         controller.setSelection(const <String>{});
-        controller.setSelectionRect(_selectionRect);
+        controller.setSelectionRect(null);
         return const ToolResultConsumed();
       case CanvasPointerMoveEvent():
         final start = _dragStart;
@@ -290,6 +303,15 @@ class SelectTool extends CanvasTool {
           _lastPoint = event.worldPoint;
           return const ToolResultConsumed();
         }
+        final startScreen = _dragStartScreen;
+        if (!_marqueeSelecting) {
+          if (startScreen == null ||
+              (event.screenPoint - startScreen).distance <
+                  _marqueeSlop(_selectionPointerKind ?? event.kind)) {
+            return const ToolResultConsumed();
+          }
+          _marqueeSelecting = true;
+        }
         _selectionRect = normalizedRectFromPoints(start, event.worldPoint);
         controller.setSelectionRect(_selectionRect);
         return const ToolResultConsumed();
@@ -335,7 +357,7 @@ class SelectTool extends CanvasTool {
           return const ToolResultConsumed();
         }
         final rect = _selectionRect;
-        if (rect != null) {
+        if (_marqueeSelecting && rect != null) {
           controller.selectInRect(rect);
         }
         cancel(controller);
@@ -362,6 +384,10 @@ class SelectTool extends CanvasTool {
       default:
         return const ToolResultNone();
     }
+  }
+
+  double _marqueeSlop(PointerDeviceKind? kind) {
+    return kind == PointerDeviceKind.touch ? kTouchSlop : _precisionMarqueeSlop;
   }
 
   CanvasElement? _labelEditableElementAt(

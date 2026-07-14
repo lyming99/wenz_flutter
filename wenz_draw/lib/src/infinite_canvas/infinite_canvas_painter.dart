@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../elements/canvas_element.dart';
 import '../elements/element_registry.dart';
+import '../elements/image_element.dart';
 import '../elements/widget_element.dart';
 import '../layers/canvas_layer.dart';
 import '../rendering/grid_renderer.dart';
@@ -21,6 +22,7 @@ class InfiniteCanvasPainter extends CustomPainter {
 
   static const _gridRenderer = GridRenderer();
   static const _selectionRenderer = SelectionRenderer();
+  static const _imageElementRenderer = ImageElementRenderer();
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -35,6 +37,7 @@ class InfiniteCanvasPainter extends CustomPainter {
     canvas.scale(transform.scale);
 
     final visibleRect = transform.visibleWorldRect(size);
+    final showImageContent = transform.scale >= config.imageContentMinScale;
     final visibleElements = canvasController
         .elementsInViewport(visibleRect)
         .where((element) => element is! CanvasWidgetElement)
@@ -58,14 +61,20 @@ class InfiniteCanvasPainter extends CustomPainter {
         canvas,
         elementsByLayer[layer.id] ?? const <CanvasElement>[],
         layer,
+        showImageContent: showImageContent,
       );
     }
 
-    _paintLayer(canvas, unknownLayerElements, null);
+    _paintLayer(
+      canvas,
+      unknownLayerElements,
+      null,
+      showImageContent: showImageContent,
+    );
 
     final preview = canvasController.previewElement;
     if (preview != null && preview is! CanvasWidgetElement) {
-      ElementRendererRegistry.render(canvas, preview);
+      _renderElement(canvas, preview, showImageContent: showImageContent);
     }
 
     _selectionRenderer.render(canvas, canvasController, transform);
@@ -75,8 +84,9 @@ class InfiniteCanvasPainter extends CustomPainter {
   void _paintLayer(
     Canvas canvas,
     Iterable<CanvasElement> elements,
-    CanvasLayer? layer,
-  ) {
+    CanvasLayer? layer, {
+    required bool showImageContent,
+  }) {
     final opacity = (layer?.opacity ?? 1).clamp(0.0, 1.0).toDouble();
     final blendMode = layer?.blendMode ?? BlendMode.srcOver;
     final needsLayer = opacity < 1 || blendMode != BlendMode.srcOver;
@@ -91,12 +101,24 @@ class InfiniteCanvasPainter extends CustomPainter {
     }
 
     for (final element in elements) {
-      ElementRendererRegistry.render(canvas, element);
+      _renderElement(canvas, element, showImageContent: showImageContent);
     }
 
     if (needsLayer) {
       canvas.restore();
     }
+  }
+
+  void _renderElement(
+    Canvas canvas,
+    CanvasElement element, {
+    required bool showImageContent,
+  }) {
+    if (!showImageContent && element is ImageElement) {
+      _imageElementRenderer.renderPlaceholder(canvas, element);
+      return;
+    }
+    ElementRendererRegistry.render(canvas, element);
   }
 
   @override

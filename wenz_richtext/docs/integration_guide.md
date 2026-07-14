@@ -198,6 +198,13 @@ assembly.
 the same `controller`, `toolbarController`, and `toolbarItemRegistry` assembled
 by `create()`, renders registry `WenzToolbarItem`s by default, and does not wrap
 or position the editor; put it wherever your layout needs it. Resource buttons
+remain host-owned. To switch to a selection-following toolbar, configure
+`desktopToolbarMode: WenzDesktopToolbarMode.selectionFloating`, stop rendering
+the fixed toolbar, and pass the same resource callbacks to
+`buildEditor(desktopToolbarActions: ...)`. The editor then mounts the default
+toolbar only for editable, expanded ordinary-text selections on desktop and
+keeps it aligned while the document scrolls. The default mode is
+`WenzDesktopToolbarMode.fixed`, so existing layouts are unchanged.
 for image/video/file/business embeds are host policy, so pass
 `WenzDefaultDesktopToolbarActions` when you want those buttons visible. If the
 configuration sets `enableToolbar: false`, this helper throws `StateError`
@@ -683,6 +690,7 @@ This is the contract `WenzEditorConfiguration` (P002) implements and
 | `mentionSearch` | `WenzMentionSearchCallback?` | `buildEditor` | tier 1 |
 | `slashMenuItems` | `List<SlashMenuItem>` | `SlashMenuRegistry` | tier 2 |
 | `toolbarItems` | `List<WenzToolbarItem>` | `WenzToolbarItemRegistry`; rendered by the default desktop toolbar when used | tier 2 |
+| `desktopToolbarMode` | `WenzDesktopToolbarMode` (default `fixed`) | fixed host toolbar vs editor-owned selection-floating desktop toolbar | tier 2 |
 | `onMentionTap` | `WenzMentionTapCallback?` | `buildEditor` | tier 1 |
 | `onOpenLink` | `WenzLinkInteractionCallback?` | `buildEditor`; direct widget override may replace it | tier 2 |
 | `onChanged` | doc-changed callback | controller | tier 1 |
@@ -714,7 +722,9 @@ stretch the default image renderer.
 `buildEditor({...})` pass-through appearance params (all optional, all forwarded
 verbatim to `WenzRichTextEditor`): `padding`, `blockSpacing`, `textStyle`,
 `defaultTextColor`, `physics`, `focusNode`, `autofocus`, `readOnly`,
-`showDebugOverlay`, `enableIme`. The facade does not reinterpret any of them.
+`showDebugOverlay`, `enableIme`. Desktop toolbar presentation can additionally
+be overridden per build with `desktopToolbarMode`, `desktopToolbarActions`,
+`desktopToolbarStyle`, or a custom `desktopSelectionToolbarBuilder`.
 `onOpenLink` is also accepted as a per-widget callback override; omit it to use
 `configuration.onOpenLink`.
 

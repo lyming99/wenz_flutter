@@ -166,7 +166,7 @@ void main() {
     expect((controller.elementById('text-1') as TextElement).text, 'Changed');
   });
 
-  test('text tool creates a concrete resizable text box', () {
+  test('text tool creates a content-sized box that grows while typing', () {
     final controller = CanvasController();
     controller.setTool(TextTool.idValue);
     controller.dispatchCanvasEvent(
@@ -179,9 +179,15 @@ void main() {
 
     final element = controller.elements.single as TextElement;
     expect(element.position, const Offset(12, 18));
-    expect(element.boxSize, const Size(240, 96));
+    expect(element.boxSize, element.renderedSize);
     expect(element.maxWidth, 240);
-    expect(element.bounds, const Rect.fromLTWH(12, 18, 240, 96));
+    final initialBounds = element.bounds;
+
+    controller.updateEditingText('First line\nSecond line\nThird line');
+    final updated = controller.elements.single as TextElement;
+    expect(updated.boxSize, updated.renderedSize);
+    expect(updated.bounds.height, greaterThan(initialBounds.height));
+    expect(updated.bounds.width, lessThanOrEqualTo(240));
   });
 
   test('controller resizes text box and keeps wrapping width in sync', () {
@@ -270,7 +276,11 @@ void main() {
         _dragSelectedHandle(controller, start, [target]);
 
         final after = controller.elementById(before.id)! as TextElement;
-        final expectedRect = _edgeResizeRect(before.localBounds, handle, target);
+        final expectedRect = _edgeResizeRect(
+          before.localBounds,
+          handle,
+          target,
+        );
         _expectOffsetClose(after.position, expectedRect.topLeft);
         _expectSizeClose(after.boxSize!, expectedRect.size);
         expect(after.maxWidth, closeTo(expectedRect.width, 1e-6));
@@ -317,12 +327,9 @@ void main() {
           handle.pointFor(paddedBounds),
         );
         final visualTarget = visualCorner + (target - worldCorner);
-        _dragSelectedHandle(
-          controller,
-          visualCorner,
-          [visualTarget],
-          transform: transform,
-        );
+        _dragSelectedHandle(controller, visualCorner, [
+          visualTarget,
+        ], transform: transform);
         final after = controller.elementById(before.id)! as TextElement;
         results.add(after);
         _expectTextGeometry(after, expected);
@@ -365,14 +372,10 @@ void main() {
       const handle = _TestTextHandle.bottomRight;
       final start = handle.pointFor(before.localBounds);
       final anchor = handle.anchorFor(before.localBounds);
-      _dragSelectedHandle(
-        controller,
-        start,
-        [
-          anchor + (start - anchor) * 0.2,
-          anchor - (start - anchor),
-        ],
-      );
+      _dragSelectedHandle(controller, start, [
+        anchor + (start - anchor) * 0.2,
+        anchor - (start - anchor),
+      ]);
 
       final after = controller.elementById(before.id)! as TextElement;
       _expectOffsetClose(after.position, Offset.zero);
@@ -496,11 +499,7 @@ void _dragSelectedHandle(
   );
 }
 
-Rect _edgeResizeRect(
-  Rect before,
-  _TestTextHandle handle,
-  Offset target,
-) {
+Rect _edgeResizeRect(Rect before, _TestTextHandle handle, Offset target) {
   return switch (handle) {
     _TestTextHandle.top => Rect.fromLTRB(
       before.left,

@@ -779,7 +779,9 @@ class _EditorWorkbenchState extends State<EditorWorkbench> {
             controller: findController,
             onClose: () => setState(() => _showFindReplace = false),
           ),
-        if (!useMobileToolbar)
+        if (!useMobileToolbar &&
+            _bootstrap.configuration.desktopToolbarMode ==
+                WenzDesktopToolbarMode.fixed)
           _bootstrap.buildDefaultDesktopToolbar(
             actions: _desktopToolbarActions(),
           ),
@@ -906,6 +908,7 @@ class _EditorWorkbenchState extends State<EditorWorkbench> {
       defaultTextColor: theme.colorScheme.onSurface,
       autofocus: true,
       showDebugOverlay: _showDebugOverlay,
+      desktopToolbarActions: _desktopToolbarActions(),
     );
   }
 

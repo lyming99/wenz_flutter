@@ -293,7 +293,8 @@ void main() {
 
     expect(session.undo(), isTrue);
     block = session.document.blocks.single as CalloutBlockNode;
-    expect(block.content.map((node) => node.plainText).join(), 'Keep this body');
+    expect(
+        block.content.map((node) => node.plainText).join(), 'Keep this body');
     expect(block.variant, CalloutBlockNode.warningVariant);
     expect(block.title, 'Heads up');
     expect(block.icon, '!');
@@ -912,6 +913,29 @@ void main() {
     expect(session.selection?.extent.offset, 4);
   });
 
+  test('delete backward converts an empty code block to a paragraph', () {
+    final session = DocumentSession(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          CodeBlockNode(id: 'c1', code: '', language: 'dart'),
+        ],
+      ),
+      selection: collapsedCodeSelection('c1', 0, 0),
+    );
+    final executor = CommandExecutor(session);
+
+    executor.execute(const DeleteBackwardCommand());
+
+    final block = session.document.blocks.single;
+    expect(block, isA<TextBlockNode>());
+    expect(block.id, 'c1');
+    expect((block as TextBlockNode).type, BlockType.paragraph);
+    expect(block.content, isEmpty);
+    expect(session.selection?.isCollapsed, isTrue);
+    expect(session.selection?.extent.path, PositionPath.blockText('c1'));
+    expect(session.selection?.extent.offset, 0);
+  });
+
   test('delete backward merges text blocks at block start', () {
     final session = DocumentSession(
       document: const RichTextDocument(
@@ -1159,6 +1183,29 @@ void main() {
     expect(session.document.plainText, 'final a = 1;');
     expect(session.selection?.extent.blockId, 'c1');
     expect(session.selection?.extent.offset, 10);
+  });
+
+  test('delete forward converts an empty code block to a paragraph', () {
+    final session = DocumentSession(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          CodeBlockNode(id: 'c1', code: '', language: 'dart'),
+        ],
+      ),
+      selection: collapsedCodeSelection('c1', 0, 0),
+    );
+    final executor = CommandExecutor(session);
+
+    executor.execute(const DeleteForwardCommand());
+
+    final block = session.document.blocks.single;
+    expect(block, isA<TextBlockNode>());
+    expect(block.id, 'c1');
+    expect((block as TextBlockNode).type, BlockType.paragraph);
+    expect(block.content, isEmpty);
+    expect(session.selection?.isCollapsed, isTrue);
+    expect(session.selection?.extent.path, PositionPath.blockText('c1'));
+    expect(session.selection?.extent.offset, 0);
   });
 
   test('delete forward removes character inside callout body', () {

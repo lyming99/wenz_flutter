@@ -62,7 +62,7 @@ class _InfiniteCanvasWidgetState extends State<InfiniteCanvasWidget>
   final CanvasWidgetGestureController _widgetGestureController =
       CanvasWidgetGestureController();
   late final FocusNode _focusNode;
-  late final CanvasImageResolver _imageResolver;
+  late CanvasImageResolver _imageResolver;
   String? _observedToolId;
 
   Offset? _lastTapPosition;
@@ -105,6 +105,8 @@ class _InfiniteCanvasWidgetState extends State<InfiniteCanvasWidget>
     }
     oldCanvasController.removeListener(_handleCanvasControllerChanged);
     oldCanvasController.cancelCurrentInteraction();
+    _imageResolver.dispose();
+    _imageResolver = CanvasImageResolver(canvasController);
     _suppressAndClearWidgetGestures();
     _pointers.clear();
     _panPointers.clear();

@@ -19,6 +19,10 @@ import '../elements/image_element.dart';
 class CanvasImageResolver {
   CanvasImageResolver(this._controller) {
     _controller.addListener(_onChanged);
+    // The document may already contain deserialized image elements before the
+    // canvas widget attaches. Do not wait for an unrelated tool or selection
+    // change to trigger the first decode pass.
+    _onChanged();
   }
 
   final CanvasController _controller;
@@ -52,13 +56,18 @@ class CanvasImageResolver {
   Future<void> _resolve(ImageElement element) async {
     _pending.add(element.id);
     try {
-      final image = await _controller.imageLoaders.load(element.toImageSource());
+      final image = await _controller.imageLoaders.load(
+        element.toImageSource(),
+      );
       if (image == null) return;
       if (!_isCurrentElementStillRelevant(element.id, image)) {
         image.dispose();
         return;
       }
-      _controller.applyElementUpdated(element.id, element.copyWith(image: image));
+      _controller.applyElementUpdated(
+        element.id,
+        element.copyWith(image: image),
+      );
     } finally {
       _pending.remove(element.id);
     }

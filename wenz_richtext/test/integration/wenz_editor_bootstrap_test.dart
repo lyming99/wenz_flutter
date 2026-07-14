@@ -70,6 +70,165 @@ void main() {
   });
 
   group('default desktop toolbar factory', () {
+    test('desktop toolbar mode defaults to fixed and copyWith can opt in', () {
+      const configuration = WenzEditorConfiguration();
+
+      expect(
+        configuration.desktopToolbarMode,
+        WenzDesktopToolbarMode.fixed,
+      );
+      expect(
+        configuration
+            .copyWith(
+              desktopToolbarMode:
+                  WenzDesktopToolbarMode.selectionFloating,
+            )
+            .desktopToolbarMode,
+        WenzDesktopToolbarMode.selectionFloating,
+      );
+    });
+
+    testWidgets(
+      'selection-floating mode mounts the default toolbar only for expanded desktop selections',
+      (tester) async {
+        debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+        tester.view.physicalSize = const Size(800, 360);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        final bootstrap = WenzEditorBootstrap.create(
+          WenzEditorConfiguration(
+            document: const RichTextDocument(
+              blocks: <BlockNode>[
+                TextBlockNode(
+                  id: 'p1',
+                  type: BlockType.paragraph,
+                  content: <InlineNode>[
+                    TextRun(text: 'Desktop floating toolbar'),
+                  ],
+                ),
+              ],
+            ),
+            selection: textSelection('p1', 0, 0, 7),
+            desktopToolbarMode:
+                WenzDesktopToolbarMode.selectionFloating,
+          ),
+        );
+        addTearDown(bootstrap.dispose);
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: bootstrap.buildEditor(enableIme: false),
+            ),
+          ),
+        );
+        await tester.pump();
+        await tester.pump();
+
+        const floatingToolbarKey = ValueKey<String>(
+          'wenz-richtext-desktop-selection-toolbar',
+        );
+        expect(find.byKey(floatingToolbarKey), findsOneWidget);
+        expect(find.byType(WenzDefaultDesktopToolbar), findsOneWidget);
+        final toolbar = tester.widget<WenzDefaultDesktopToolbar>(
+          find.byType(WenzDefaultDesktopToolbar),
+        );
+        expect(toolbar.controller, same(bootstrap.controller));
+        expect(toolbar.toolbar, same(bootstrap.toolbarController));
+        expect(toolbar.toolbarItemRegistry, same(bootstrap.toolbarItemRegistry));
+        expect(
+          tester.getSize(find.byKey(floatingToolbarKey)).width,
+          lessThanOrEqualTo(720),
+        );
+
+        bootstrap.setSelection(collapsedTextSelection('p1', 0, 7));
+        await tester.pump();
+        expect(find.byKey(floatingToolbarKey), findsNothing);
+
+        bootstrap.setSelection(textSelection('p1', 0, 8, 16));
+        await tester.pump();
+        await tester.pump();
+        expect(find.byKey(floatingToolbarKey), findsOneWidget);
+
+        bootstrap.setSelection(null);
+        await tester.pump();
+        expect(find.byKey(floatingToolbarKey), findsNothing);
+        debugDefaultTargetPlatformOverride = null;
+      },
+    );
+
+    testWidgets(
+      'fixed mode and mobile surfaces do not mount the desktop selection toolbar',
+      (tester) async {
+        tester.view.physicalSize = const Size(360, 640);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        const floatingToolbarKey = ValueKey<String>(
+          'wenz-richtext-desktop-selection-toolbar',
+        );
+
+        final fixedBootstrap = WenzEditorBootstrap.create(
+          WenzEditorConfiguration(
+            document: const RichTextDocument(
+              blocks: <BlockNode>[
+                TextBlockNode(
+                  id: 'fixed',
+                  type: BlockType.paragraph,
+                  content: <InlineNode>[TextRun(text: 'Fixed toolbar')],
+                ),
+              ],
+            ),
+            selection: textSelection('fixed', 0, 0, 5),
+          ),
+        );
+        addTearDown(fixedBootstrap.dispose);
+
+        debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+        await tester.pumpWidget(
+          MaterialApp(
+            home: fixedBootstrap.buildEditor(enableIme: false),
+          ),
+        );
+        await tester.pump();
+        expect(find.byKey(floatingToolbarKey), findsNothing);
+
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.pump();
+
+        final mobileBootstrap = WenzEditorBootstrap.create(
+          WenzEditorConfiguration(
+            document: const RichTextDocument(
+              blocks: <BlockNode>[
+                TextBlockNode(
+                  id: 'mobile',
+                  type: BlockType.paragraph,
+                  content: <InlineNode>[TextRun(text: 'Mobile toolbar')],
+                ),
+              ],
+            ),
+            selection: textSelection('mobile', 0, 0, 6),
+            desktopToolbarMode:
+                WenzDesktopToolbarMode.selectionFloating,
+          ),
+        );
+        addTearDown(mobileBootstrap.dispose);
+        debugDefaultTargetPlatformOverride = TargetPlatform.android;
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: mobileBootstrap.buildEditor(enableIme: false),
+          ),
+        );
+        await tester.pump();
+        await tester.pump();
+        debugDefaultTargetPlatformOverride = null;
+        expect(find.byKey(floatingToolbarKey), findsNothing);
+      },
+    );
+
     test('buildDefaultDesktopToolbar reuses assembled controller and registry',
         () {
       final pluginOnly = WenzToolbarItem(

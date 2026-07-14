@@ -96,6 +96,15 @@ callbacks, `WenzDefaultDesktopToolbarStyle` for visual chrome, and extra
 same id. If `enableToolbar` is `false`, the bootstrap helper throws a
 `StateError` because there is no `ToolbarController` to observe.
 
+Desktop toolbar placement is selected with `WenzDesktopToolbarMode`. `fixed`
+is the backwards-compatible default and leaves layout to the host.
+`selectionFloating` makes `buildEditor()` mount a
+`WenzDesktopSelectionToolbarOverlay` for editable, expanded ordinary-text
+selections on desktop. The floating surface reuses the same default toolbar,
+toolbar controller, registry items, resource actions, and style overrides; it
+is not mounted for collapsed selections, mobile selection UI, table/object
+selections, or read-only editors.
+
 ### Configuration field → advanced extension point
 
 Every extension is a `WenzEditorConfiguration` field; the facade feeds it into

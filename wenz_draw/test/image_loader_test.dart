@@ -3,10 +3,18 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:wenz_draw/src/canvas/canvas_controller.dart';
 import 'package:wenz_draw/src/canvas/image_loader.dart';
 import 'package:wenz_draw/src/elements/image_element.dart';
+import 'package:wenz_draw/src/infinite_canvas/canvas_transform.dart';
+import 'package:wenz_draw/src/infinite_canvas/infinite_canvas_config.dart';
+import 'package:wenz_draw/src/infinite_canvas/infinite_canvas_controller.dart';
+import 'package:wenz_draw/src/infinite_canvas/infinite_canvas_widget.dart';
 import 'package:wenz_draw/src/serialization/canvas_serializer.dart';
+import 'package:wenz_draw/src/tools/pan_tool.dart';
+import 'package:wenz_draw/src/widgets/canvas_image_resolver.dart';
 
 void main() {
   group('ImageSource', () {
@@ -100,6 +108,179 @@ void main() {
     });
   });
 
+  group('CanvasImageResolver', () {
+    test(
+      'resolves existing images immediately while pan stays active',
+      () async {
+        final registry = _freshRegistry();
+        final fake = _FakeImageLoader();
+        registry.register(fake);
+        final controller = CanvasController()..imageLoaders = registry;
+        controller.addElement(
+          const ImageElement(
+            id: 'existing-image',
+            rect: Rect.fromLTWH(0, 0, 100, 80),
+            url: 'https://example.com/existing.png',
+          ),
+          record: false,
+        );
+        controller.setTool(PanTool.idValue);
+
+        final resolver = CanvasImageResolver(controller);
+        try {
+          await pumpEventQueue();
+
+          final resolved =
+              controller.elementById('existing-image') as ImageElement;
+          expect(resolved.image, same(fake.fakeImage));
+          expect(fake.loadCalls, 1);
+          expect(controller.currentTool?.id, PanTool.idValue);
+        } finally {
+          resolver.dispose();
+          controller.dispose();
+          registry.clear();
+        }
+      },
+    );
+
+    testWidgets('rebinds when the canvas widget controller changes', (
+      tester,
+    ) async {
+      final registry = _freshRegistry();
+      final fake = _FakeImageLoader();
+      registry.register(fake);
+      final firstCanvasController = CanvasController();
+      final firstViewController = InfiniteCanvasController(
+        canvasController: firstCanvasController,
+      );
+      final secondCanvasController = CanvasController()
+        ..imageLoaders = registry;
+      final secondViewController = InfiniteCanvasController(
+        canvasController: secondCanvasController,
+      );
+      secondCanvasController.addElement(
+        const ImageElement(
+          id: 'replacement-image',
+          // Keep the fake ui.Image outside the viewport so the engine never
+          // attempts to paint it; this test only exercises resolver rebinding.
+          rect: Rect.fromLTWH(10000, 10000, 100, 80),
+          url: 'https://example.com/replacement.png',
+        ),
+        record: false,
+      );
+
+      Widget board(InfiniteCanvasController controller) {
+        return Directionality(
+          textDirection: TextDirection.ltr,
+          child: SizedBox.square(
+            dimension: 100,
+            child: InfiniteCanvasWidget(controller: controller),
+          ),
+        );
+      }
+
+      try {
+        await tester.pumpWidget(board(firstViewController));
+        await tester.pump();
+        await tester.pumpWidget(board(secondViewController));
+        await tester.pump();
+
+        final resolved =
+            secondCanvasController.elementById('replacement-image')
+                as ImageElement;
+        expect(resolved.image, same(fake.fakeImage));
+        expect(fake.loadCalls, 1);
+      } finally {
+        await tester.pumpWidget(const SizedBox.shrink());
+        firstViewController.dispose();
+        firstCanvasController.dispose();
+        secondViewController.dispose();
+        secondCanvasController.dispose();
+        registry.clear();
+      }
+    });
+  });
+
+  group('Image rendering level of detail', () {
+    testWidgets(
+      'keeps image decoded below threshold and restores content after zoom',
+      (tester) async {
+        final sourceImage = (await tester.runAsync(
+          () => _solidImage(2, 2, const Color(0xFFFF0000)),
+        ))!;
+        final canvasController = CanvasController();
+        final viewController = InfiniteCanvasController(
+          canvasController: canvasController,
+          transform: const CanvasTransform(scale: 0.2),
+        );
+        canvasController.addElement(
+          ImageElement(
+            id: 'image-lod',
+            rect: const Rect.fromLTWH(0, 0, 100, 100),
+            image: sourceImage,
+          ),
+          record: false,
+        );
+        final boundaryKey = GlobalKey();
+
+        try {
+          await tester.pumpWidget(
+            Directionality(
+              textDirection: TextDirection.ltr,
+              child: Center(
+                child: SizedBox.square(
+                  dimension: 100,
+                  child: RepaintBoundary(
+                    key: boundaryKey,
+                    child: InfiniteCanvasWidget(
+                      controller: viewController,
+                      config: const InfiniteCanvasConfig(
+                        showGrid: false,
+                        gridType: GridType.none,
+                        backgroundColor: Colors.white,
+                        imageContentMinScale: 0.25,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+          // The first frame reports the viewport size; the second paints the
+          // now-visible element segment.
+          await tester.pump();
+          await tester.pump();
+
+          expect(
+            (canvasController.elementById('image-lod') as ImageElement).image,
+            same(sourceImage),
+          );
+          expect(
+            (await _pixelColor(tester, boundaryKey, 10, 10)).toARGB32(),
+            const Color(0xFFE5E7EB).toARGB32(),
+          );
+
+          viewController.zoomTo(0.5, focalPoint: Offset.zero);
+          await tester.pump();
+
+          expect(
+            (await _pixelColor(tester, boundaryKey, 10, 10)).toARGB32(),
+            const Color(0xFFFF0000).toARGB32(),
+          );
+          expect(
+            (canvasController.elementById('image-lod') as ImageElement).image,
+            same(sourceImage),
+          );
+        } finally {
+          await tester.pumpWidget(const SizedBox.shrink());
+          viewController.dispose();
+          canvasController.dispose();
+          sourceImage.dispose();
+        }
+      },
+    );
+  });
+
   group('ImageElement.toImageSource', () {
     test('imageData takes priority over url and filePath', () {
       const element = ImageElement(
@@ -138,10 +319,7 @@ void main() {
     });
 
     test('empty source when nothing is set', () {
-      const element = ImageElement(
-        id: 'i1',
-        rect: Rect.fromLTWH(0, 0, 10, 10),
-      );
+      const element = ImageElement(id: 'i1', rect: Rect.fromLTWH(0, 0, 10, 10));
       expect(element.toImageSource().isEmpty, isTrue);
     });
   });
@@ -213,6 +391,46 @@ Future<List<int>> _encodePng(int width, int height) async {
   return byteData!.buffer.asUint8List().toList();
 }
 
+Future<ui.Image> _solidImage(int width, int height, Color color) async {
+  final recorder = ui.PictureRecorder();
+  final canvas = ui.Canvas(recorder);
+  canvas.drawRect(
+    ui.Rect.fromLTWH(0, 0, width.toDouble(), height.toDouble()),
+    ui.Paint()..color = color,
+  );
+  final picture = recorder.endRecording();
+  final image = await picture.toImage(width, height);
+  picture.dispose();
+  return image;
+}
+
+Future<Color> _pixelColor(
+  WidgetTester tester,
+  GlobalKey boundaryKey,
+  int x,
+  int y,
+) async {
+  final boundary =
+      boundaryKey.currentContext!.findRenderObject()! as RenderRepaintBoundary;
+  return (await tester.runAsync(() async {
+    final rendered = await boundary.toImage();
+    try {
+      final data = await rendered.toByteData(
+        format: ui.ImageByteFormat.rawRgba,
+      );
+      final offset = (y * rendered.width + x) * 4;
+      return Color.fromARGB(
+        data!.getUint8(offset + 3),
+        data.getUint8(offset),
+        data.getUint8(offset + 1),
+        data.getUint8(offset + 2),
+      );
+    } finally {
+      rendered.dispose();
+    }
+  }))!;
+}
+
 String _base64(List<int> bytes) => base64.encode(bytes);
 
 class _FakeImageLoader extends ImageLoader {
@@ -221,7 +439,8 @@ class _FakeImageLoader extends ImageLoader {
   int loadCalls = 0;
 
   @override
-  bool supports(ImageSource source) => source.assetId != null;
+  bool supports(ImageSource source) =>
+      source.assetId != null || source.url != null;
 
   @override
   Future<ui.Image> load(ImageSource source) async {

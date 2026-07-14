@@ -8,6 +8,7 @@ import 'package:flutter/rendering.dart';
 import '../elements/canvas_element.dart';
 import '../elements/element_registry.dart';
 import '../elements/element_renderer.dart';
+import '../elements/image_element.dart';
 import '../elements/widget_element.dart';
 import '../infinite_canvas/canvas_transform.dart';
 import '../infinite_canvas/infinite_canvas_config.dart';
@@ -155,6 +156,7 @@ class _CanvasWidgetLayerState extends State<CanvasWidgetLayer> {
         Positioned.fill(
           child: _LayerMixedStack(
             controller: controller,
+            config: widget.config,
             layer: layer,
             visibleRect: visibleRect,
             elements: layerElements,
@@ -172,6 +174,7 @@ class _CanvasWidgetLayerState extends State<CanvasWidgetLayer> {
         Positioned.fill(
           child: _MixedElementStack(
             controller: controller,
+            config: widget.config,
             elements: unknownLayerElements,
             visibleRect: visibleRect,
             layer: null,
@@ -192,6 +195,7 @@ class _CanvasWidgetLayerState extends State<CanvasWidgetLayer> {
             child: CustomPaint(
               painter: _CanvasElementSegmentPainter(
                 controller: controller,
+                config: widget.config,
                 elements: [preview],
               ),
             ),
@@ -344,6 +348,7 @@ class _CanvasWidgetLayerState extends State<CanvasWidgetLayer> {
 class _LayerMixedStack extends StatelessWidget {
   const _LayerMixedStack({
     required this.controller,
+    required this.config,
     required this.layer,
     required this.visibleRect,
     required this.elements,
@@ -354,6 +359,7 @@ class _LayerMixedStack extends StatelessWidget {
   });
 
   final InfiniteCanvasController controller;
+  final InfiniteCanvasConfig config;
   final CanvasLayer layer;
   final Rect visibleRect;
   final List<CanvasElement> elements;
@@ -367,6 +373,7 @@ class _LayerMixedStack extends StatelessWidget {
     final opacity = layer.opacity.clamp(0.0, 1.0).toDouble();
     final child = _MixedElementStack(
       controller: controller,
+      config: config,
       layer: layer,
       visibleRect: visibleRect,
       elements: elements,
@@ -383,6 +390,7 @@ class _LayerMixedStack extends StatelessWidget {
 class _MixedElementStack extends StatelessWidget {
   const _MixedElementStack({
     required this.controller,
+    required this.config,
     required this.elements,
     required this.visibleRect,
     required this.layer,
@@ -393,6 +401,7 @@ class _MixedElementStack extends StatelessWidget {
   });
 
   final InfiniteCanvasController controller;
+  final InfiniteCanvasConfig config;
   final List<CanvasElement> elements;
   final Rect visibleRect;
   final CanvasLayer? layer;
@@ -416,6 +425,7 @@ class _MixedElementStack extends StatelessWidget {
             child: CustomPaint(
               painter: _CanvasElementSegmentPainter(
                 controller: controller,
+                config: config,
                 elements: List<CanvasElement>.of(paintBatch),
                 layer: layer,
               ),
@@ -732,11 +742,13 @@ class _CanvasBackgroundPainter extends CustomPainter {
 class _CanvasElementSegmentPainter extends CustomPainter {
   _CanvasElementSegmentPainter({
     required this.controller,
+    required this.config,
     required this.elements,
     this.layer,
   }) : revision = controller.canvasController.state.revision;
 
   final InfiniteCanvasController controller;
+  final InfiniteCanvasConfig config;
   final List<CanvasElement> elements;
   final CanvasLayer? layer;
   final int revision;
@@ -764,6 +776,11 @@ class _CanvasElementSegmentPainter extends CustomPainter {
         const SnapshotWidgetElementRenderer().render(canvas, element);
         continue;
       }
+      if (element is ImageElement &&
+          transform.scale < config.imageContentMinScale) {
+        const ImageElementRenderer().renderPlaceholder(canvas, element);
+        continue;
+      }
       ElementRendererRegistry.render(canvas, element);
     }
 
@@ -777,6 +794,7 @@ class _CanvasElementSegmentPainter extends CustomPainter {
   bool shouldRepaint(covariant _CanvasElementSegmentPainter oldDelegate) {
     return oldDelegate.revision != revision ||
         oldDelegate.controller.transform != controller.transform ||
+        oldDelegate.config != config ||
         oldDelegate.elements != elements ||
         oldDelegate.layer != layer;
   }

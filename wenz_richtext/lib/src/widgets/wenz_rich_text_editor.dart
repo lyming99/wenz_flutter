@@ -36,6 +36,7 @@ import 'block_geometry_registry.dart';
 import 'block_layout_index.dart';
 import 'block_renderer_registry.dart';
 import 'code_syntax_highlighter.dart';
+import 'desktop_selection_toolbar_overlay.dart';
 import 'editor_context_menu.dart';
 import 'editor_tokens.dart';
 import 'inline_embed_renderer.dart';
@@ -1594,6 +1595,8 @@ class WenzRichTextEditor extends StatefulWidget {
     this.enableExternalImageInput = true,
     this.enableExternalDragDrop = true,
     this.enableMobileSelectionHandles = true,
+    this.desktopToolbarMode = WenzDesktopToolbarMode.fixed,
+    this.desktopSelectionToolbarBuilder,
     this.externalImageClipboardReader,
     this.externalImageStore,
     this.accessibility = const WenzRichTextEditorAccessibility(),
@@ -1764,6 +1767,20 @@ class WenzRichTextEditor extends StatefulWidget {
   /// [WenzEditorConfiguration.enableMobileSelectionHandles], which the bootstrap
   /// forwards here.
   final bool enableMobileSelectionHandles;
+
+  /// Presentation mode for the desktop formatting toolbar.
+  ///
+  /// [WenzDesktopToolbarMode.fixed] preserves the existing host-owned layout;
+  /// [WenzDesktopToolbarMode.selectionFloating] lets the editor mount
+  /// [desktopSelectionToolbarBuilder] beside an expanded ordinary text
+  /// selection. Mobile selection chrome is unaffected.
+  final WenzDesktopToolbarMode desktopToolbarMode;
+
+  /// Toolbar surface used by desktop selection-floating mode.
+  ///
+  /// The editor owns placement only. Controller lifecycle and command binding
+  /// remain with the host/bootstrap that creates this builder.
+  final WenzDesktopSelectionToolbarBuilder? desktopSelectionToolbarBuilder;
 
   /// Optional reader for image-capable clipboard flavors.
   ///
@@ -3019,6 +3036,11 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     // overlay even when the editor is rendered in a narrow window.
     final showMobileSelectionHandles =
         widget.enableMobileSelectionHandles && useMobileSelectionUi;
+    final showDesktopSelectionToolbar = !useMobileSelectionUi &&
+        canEdit &&
+        widget.desktopToolbarMode ==
+            WenzDesktopToolbarMode.selectionFloating &&
+        widget.desktopSelectionToolbarBuilder != null;
     final editorStack = Stack(
       key: _editorOverlayKey,
       fit: StackFit.expand,
@@ -3064,6 +3086,14 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
             caretToolbarPosition: _mobileCaretToolbarPosition,
             caretToolbarBuilder: _buildMobileCaretToolbar,
             selectionToolbarBuilder: _buildMobileSelectionToolbar,
+          ),
+        if (showDesktopSelectionToolbar)
+          WenzDesktopSelectionToolbarOverlay(
+            registry: _registry,
+            controller: widget.controller,
+            scrollController: _scrollController,
+            containerKey: _editorOverlayKey,
+            toolbarBuilder: widget.desktopSelectionToolbarBuilder!,
           ),
       ],
     );

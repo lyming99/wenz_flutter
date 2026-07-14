@@ -209,6 +209,21 @@ class ImageElementRenderer extends ElementRenderer<ImageElement> {
 
   @override
   void render(Canvas canvas, ImageElement element) {
+    _render(canvas, element, showImageContent: true);
+  }
+
+  /// Paints the element's lightweight placeholder even when its image is
+  /// already decoded. Used as a zoomed-out level of detail to avoid expensive
+  /// image sampling while keeping the element visible on the canvas.
+  void renderPlaceholder(Canvas canvas, ImageElement element) {
+    _render(canvas, element, showImageContent: false);
+  }
+
+  void _render(
+    Canvas canvas,
+    ImageElement element, {
+    required bool showImageContent,
+  }) {
     if (!element.visible) {
       return;
     }
@@ -224,7 +239,7 @@ class ImageElementRenderer extends ElementRenderer<ImageElement> {
       ..color = Colors.black.withValues(alpha: element.opacity)
       ..filterQuality = FilterQuality.low;
     final image = element.image;
-    if (image == null) {
+    if (!showImageContent || image == null) {
       canvas.drawRect(
         element.rect,
         Paint()

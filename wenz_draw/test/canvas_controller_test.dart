@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/widgets.dart';
 import 'package:wenz_draw/wenz_draw.dart';
@@ -81,6 +82,19 @@ void main() {
     expect(controller.selectedIds, isEmpty);
   });
 
+  test('switching to pan tool clears the current selection', () {
+    final controller = CanvasController()
+      ..addElement(
+        const RectElement(id: 'rect-1', rect: Rect.fromLTWH(0, 0, 100, 80)),
+      )
+      ..setSelection({'rect-1'});
+
+    controller.setTool(PanTool.idValue);
+
+    expect(controller.currentTool?.id, PanTool.idValue);
+    expect(controller.selectedIds, isEmpty);
+  });
+
   test('hitTest returns topmost visible element', () {
     final controller = CanvasController()
       ..addElement(
@@ -101,6 +115,219 @@ void main() {
       );
 
     expect(controller.hitTest(const Offset(30, 0))?.id, 'top');
+  });
+
+  test('unselected stroke elements use path geometry instead of bounds', () {
+    for (final element in _strokeHitTestElements()) {
+      final controller = CanvasController()..addElement(element);
+
+      expect(
+        controller.hitTest(const Offset(20, 80)),
+        isNull,
+        reason: '${element.type} must not hit inside only its outer bounds',
+      );
+      expect(
+        controller.hitTest(const Offset(50, 50))?.id,
+        element.id,
+        reason: '${element.type} should still hit its visible path',
+      );
+    }
+  });
+
+  test(
+    'touch taps inside only unselected stroke bounds do not start marquee selection',
+    () {
+      for (final element in _strokeHitTestElements()) {
+        for (final jitter in const [Offset.zero, Offset(4, 4)]) {
+          final controller = CanvasController()
+            ..addElement(element)
+            ..setTool(SelectTool.idValue);
+          const downPoint = Offset(20, 80);
+          final upPoint = downPoint + jitter;
+
+          controller.dispatchCanvasEvent(
+            const CanvasPointerDownEvent(
+              pointer: 1,
+              kind: PointerDeviceKind.touch,
+              screenPoint: downPoint,
+              worldPoint: downPoint,
+              transform: CanvasTransform.identity,
+              buttons: 1,
+            ),
+          );
+          if (jitter != Offset.zero) {
+            controller.dispatchCanvasEvent(
+              CanvasPointerMoveEvent(
+                pointer: 1,
+                kind: PointerDeviceKind.touch,
+                screenPoint: upPoint,
+                worldPoint: upPoint,
+                transform: CanvasTransform.identity,
+                delta: jitter,
+                buttons: 1,
+              ),
+            );
+          }
+          controller.dispatchCanvasEvent(
+            CanvasPointerUpEvent(
+              pointer: 1,
+              kind: PointerDeviceKind.touch,
+              screenPoint: upPoint,
+              worldPoint: upPoint,
+              transform: CanvasTransform.identity,
+            ),
+          );
+
+          expect(
+            controller.selectedIds,
+            isEmpty,
+            reason:
+                '${element.id} must ignore a touch inside only its outer bounds',
+          );
+          expect(controller.selectionRect, isNull);
+        }
+      }
+    },
+  );
+
+  test(
+    'touch drag beyond slop still performs rectangular marquee selection',
+    () {
+      final controller = CanvasController()
+        ..addElement(
+          const LineElement(
+            id: 'line',
+            start: Offset.zero,
+            end: Offset(100, 100),
+          ),
+        )
+        ..setTool(SelectTool.idValue);
+
+      controller.dispatchCanvasEvent(
+        const CanvasPointerDownEvent(
+          pointer: 1,
+          kind: PointerDeviceKind.touch,
+          screenPoint: Offset(10, 90),
+          worldPoint: Offset(10, 90),
+          transform: CanvasTransform.identity,
+          buttons: 1,
+        ),
+      );
+      controller.dispatchCanvasEvent(
+        const CanvasPointerMoveEvent(
+          pointer: 1,
+          kind: PointerDeviceKind.touch,
+          screenPoint: Offset(60, 40),
+          worldPoint: Offset(60, 40),
+          transform: CanvasTransform.identity,
+          delta: Offset(50, -50),
+          buttons: 1,
+        ),
+      );
+
+      expect(controller.selectionRect, isNotNull);
+
+      controller.dispatchCanvasEvent(
+        const CanvasPointerUpEvent(
+          pointer: 1,
+          kind: PointerDeviceKind.touch,
+          screenPoint: Offset(60, 40),
+          worldPoint: Offset(60, 40),
+          transform: CanvasTransform.identity,
+        ),
+      );
+
+      expect(controller.selectedIds, {'line'});
+      expect(controller.selectionRect, isNull);
+    },
+  );
+
+  test('selected stroke elements use their rectangular selection bounds', () {
+    for (final element in _strokeHitTestElements()) {
+      final controller = CanvasController()
+        ..addElement(element)
+        ..setTool(SelectTool.idValue)
+        ..setSelection({element.id});
+
+      controller.dispatchCanvasEvent(
+        const CanvasPointerDownEvent(
+          pointer: 1,
+          screenPoint: Offset(20, 80),
+          worldPoint: Offset(20, 80),
+          transform: CanvasTransform.identity,
+          buttons: 1,
+        ),
+      );
+
+      expect(
+        controller.selectedIds,
+        {element.id},
+        reason: '${element.id} should remain selected inside its bounds',
+      );
+      expect(
+        controller.selectionRect,
+        isNull,
+        reason: '${element.id} should start moving instead of marquee select',
+      );
+
+      controller.dispatchCanvasEvent(
+        const CanvasPointerUpEvent(
+          pointer: 1,
+          screenPoint: Offset(20, 80),
+          worldPoint: Offset(20, 80),
+          transform: CanvasTransform.identity,
+        ),
+      );
+    }
+  });
+
+  test('selected stroke drags from empty area inside selection bounds', () {
+    final controller = CanvasController()
+      ..addElement(
+        const LineElement(
+          id: 'line',
+          start: Offset.zero,
+          end: Offset(100, 100),
+        ),
+      )
+      ..setTool(SelectTool.idValue)
+      ..setSelection({'line'});
+
+    controller.dispatchCanvasEvent(
+      const CanvasPointerDownEvent(
+        pointer: 1,
+        screenPoint: Offset(20, 80),
+        worldPoint: Offset(20, 80),
+        transform: CanvasTransform.identity,
+        buttons: 1,
+      ),
+    );
+
+    expect(controller.selectedIds, {'line'});
+    expect(controller.selectionRect, isNull);
+
+    controller.dispatchCanvasEvent(
+      const CanvasPointerMoveEvent(
+        pointer: 1,
+        screenPoint: Offset(30, 90),
+        worldPoint: Offset(30, 90),
+        transform: CanvasTransform.identity,
+        delta: Offset(10, 10),
+        buttons: 1,
+      ),
+    );
+    controller.dispatchCanvasEvent(
+      const CanvasPointerUpEvent(
+        pointer: 1,
+        screenPoint: Offset(30, 90),
+        worldPoint: Offset(30, 90),
+        transform: CanvasTransform.identity,
+      ),
+    );
+
+    final moved = controller.elementById('line')! as LineElement;
+    expect(moved.start, const Offset(10, 10));
+    expect(moved.end, const Offset(110, 110));
   });
 
   test('undo and redo restore element operations', () {
@@ -523,4 +750,35 @@ void main() {
     expect(redone.endArrow, isTrue);
     expect(redone.headSize, 24);
   });
+}
+
+List<CanvasElement> _strokeHitTestElements() {
+  const points = [
+    PathPoint(position: Offset.zero),
+    PathPoint(position: Offset(100, 100)),
+  ];
+  return [
+    const LineElement(id: 'line', start: Offset.zero, end: Offset(100, 100)),
+    PathElement(
+      id: 'pen',
+      points: points,
+      style: const PaintStyle(strokeWidth: 2),
+    ),
+    PathElement(
+      id: 'highlighter',
+      points: points,
+      style: const PaintStyle(strokeWidth: 12, opacity: 0.35),
+    ),
+    const PolylineElement(
+      id: 'polyline',
+      points: [Offset.zero, Offset(100, 100)],
+    ),
+    const CurveElement(
+      id: 'curve',
+      start: Offset.zero,
+      control: Offset(50, 100),
+      end: Offset(100, 0),
+    ),
+    const ArrowElement(id: 'arrow', start: Offset.zero, end: Offset(100, 100)),
+  ];
 }
