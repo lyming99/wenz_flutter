@@ -586,6 +586,7 @@ class WenzEditorBootstrap {
           const WenzEditorContextMenuConfiguration(),
       blockRenderers: blockRendererRegistry,
       mediaResolver: configuration.mediaResolver,
+      onMediaResourceAction: configuration.onMediaResourceAction,
       inlineEmbedRenderer: inlineEmbedRendererRegistry,
       mentionSearch: configuration.mentionSearch,
       onMentionTap: configuration.onMentionTap,

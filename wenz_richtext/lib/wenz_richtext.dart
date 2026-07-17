@@ -239,12 +239,15 @@ export 'src/integration/wenz_editor_configuration.dart';
 export 'src/widgets/block_renderer_registry.dart';
 export 'src/widgets/block_layout_index.dart';
 export 'src/widgets/comment_sidebar.dart';
+export 'src/widgets/code_syntax_highlighter.dart'
+    show CodeSyntaxHighlighter, CodeSyntaxPalette;
 export 'src/widgets/default_desktop_toolbar.dart';
 export 'src/widgets/default_mobile_toolbar.dart';
 export 'src/widgets/desktop_selection_toolbar_overlay.dart';
 export 'src/widgets/editor_context_menu.dart';
 export 'src/widgets/find_replace_panel.dart';
 export 'src/widgets/inline_embed_renderer.dart';
+export 'src/widgets/media_resource_action.dart';
 export 'src/widgets/link_edit_dialog.dart';
 export 'src/widgets/mermaid/mermaid_code_block_widget.dart'
     show MermaidCodeBlockWidget;

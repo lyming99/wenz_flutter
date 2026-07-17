@@ -18,6 +18,7 @@ import '../widgets/block_renderer_registry.dart';
 import '../widgets/desktop_selection_toolbar_overlay.dart';
 import '../widgets/editor_context_menu.dart';
 import '../widgets/inline_embed_renderer.dart';
+import '../widgets/media_resource_action.dart';
 import '../widgets/media_resolver.dart';
 import '../widgets/wenz_rich_text_editor.dart';
 
@@ -55,6 +56,7 @@ class WenzEditorConfiguration {
     this.permission = WenzEditorPermission.edit,
     this.richTextJsonCodec,
     this.mediaResolver,
+    this.onMediaResourceAction,
     this.accessibility = const WenzRichTextEditorAccessibility(),
     this.shortcutConfiguration = const EditorShortcutConfiguration(),
     this.contextMenuConfiguration,
@@ -118,6 +120,13 @@ class WenzEditorConfiguration {
   /// Media resolver for image/video/file blocks, or `null` to use the editor's
   /// built-in placeholders.
   final MediaResolver? mediaResolver;
+
+  /// Optional host callback for image/video resource actions.
+  ///
+  /// The editor forwards this callback to media block render contexts. When it
+  /// is `null`, no resource action is dispatched and existing hosts retain
+  /// their previous behaviour.
+  final MediaResourceActionHandler? onMediaResourceAction;
 
   /// Accessibility labels and high-contrast focus styling for the editor
   /// surface. Forwarded verbatim to [WenzRichTextEditor].
@@ -320,6 +329,7 @@ class WenzEditorConfiguration {
     WenzEditorPermission? permission,
     Object? richTextJsonCodec = _unset,
     Object? mediaResolver = _unset,
+    Object? onMediaResourceAction = _unset,
     WenzRichTextEditorAccessibility? accessibility,
     EditorShortcutConfiguration? shortcutConfiguration,
     Object? contextMenuConfiguration = _unset,
@@ -368,6 +378,9 @@ class WenzEditorConfiguration {
       mediaResolver: identical(mediaResolver, _unset)
           ? this.mediaResolver
           : mediaResolver as MediaResolver?,
+      onMediaResourceAction: identical(onMediaResourceAction, _unset)
+          ? this.onMediaResourceAction
+          : onMediaResourceAction as MediaResourceActionHandler?,
       accessibility: accessibility ?? this.accessibility,
       shortcutConfiguration: shortcutConfiguration ?? this.shortcutConfiguration,
       contextMenuConfiguration: identical(contextMenuConfiguration, _unset)

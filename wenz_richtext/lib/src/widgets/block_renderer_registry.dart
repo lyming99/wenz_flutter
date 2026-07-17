@@ -6,6 +6,7 @@ import '../core/position/document_position.dart';
 import '../input/composition_state.dart';
 import 'block_geometry_registry.dart';
 import 'inline_embed_renderer.dart';
+import 'media_resource_action.dart';
 import 'media_resolver.dart';
 import 'object_block_toolbar_overlay.dart';
 import 'table_floating_toolbar_overlay.dart';
@@ -314,6 +315,7 @@ class BlockRenderContext {
     this.showDebugOverlay = false,
     this.canEdit = true,
     this.mediaResolver,
+    this.onMediaResourceAction,
     this.inlineEmbedRenderer,
     this.listMarker,
     this.quoteGroupPosition = QuoteGroupPosition.standalone,
@@ -356,6 +358,12 @@ class BlockRenderContext {
   /// placeholder. `null` when no resolver is injected. Custom renderers may
   /// read it too if they want to share the same resolution logic.
   final MediaResolver? mediaResolver;
+
+  /// Optional host callback for resource operations on image/video blocks.
+  ///
+  /// This remains available in read-only render contexts because opening or
+  /// copying a resource does not mutate the document.
+  final MediaResourceActionHandler? onMediaResourceAction;
 
   /// Optional inline embed renderer injected via the editor. The built-in text
   /// renderers consult it for [InlineEmbed]s before falling back to their

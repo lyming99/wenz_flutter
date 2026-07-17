@@ -78,6 +78,12 @@ Windows 默认边框色 `#3C4043` 和原生宿主底色 `#000000` 定义在 `win
 
 完整示例见 [`example/lib/main.dart`](example/lib/main.dart)。
 
+### Windows 最大化与还原行为
+
+`borderWidth` 只在窗口处于还原状态时内缩 Flutter 视图。Windows 窗口最大化后，
+原生边框和圆角区域不再占用 Flutter 内容区域，Flutter 渲染表面会填满宿主客户区；
+窗口还原后则重新应用配置的边框内缩。
+
 ## Windows 原理
 
 插件通过 `PluginRegistrarWindows` 注册顶层窗口消息委托，在启用时移除 `WS_CAPTION`，接管 `WM_NCCALCSIZE`、`WM_NCHITTEST` 与 `WM_SIZE`。Flutter 子窗口会按配置的边框宽度同步向内布局，每次尺寸变化只调整一次渲染表面，并禁止 Win32 在新 Flutter 帧提交前擦除子窗口背景。外层 HWND 使用 GDI 填充边框及原生宿主背景，因此边框并不是 Flutter Widget。禁用插件时会恢复原始窗口样式和内容布局。

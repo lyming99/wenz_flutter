@@ -52,6 +52,8 @@ class WindowBorderPlugin : public flutter::Plugin {
   void ApplyWindowEffects();
   void RestoreWindowEffects();
   void LayoutFlutterView();
+  void ScheduleFlutterViewLayout();
+  void ShowWindowWithSynchronizedLayout(int command);
   void UpdateRoundedRegions(bool redraw = true);
   void PaintBorder(HDC device_context = nullptr);
   LRESULT HitTest(POINT screen_point) const;
@@ -80,6 +82,7 @@ class WindowBorderPlugin : public flutter::Plugin {
   bool native_corner_preference_supported_ = false;
   bool child_region_applied_ = false;
   bool fallback_window_region_applied_ = false;
+  bool layout_message_pending_ = false;
   uint32_t border_color_;
   uint32_t background_color_;
   HBRUSH border_brush_ = nullptr;

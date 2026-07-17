@@ -43,6 +43,7 @@ import 'inline_embed_renderer.dart';
 import 'link_edit_dialog.dart';
 import 'link_hover_overlay.dart';
 import 'lucide_toolbar_icons.dart';
+import 'media_resource_action.dart';
 import 'media_resolver.dart';
 import 'mention_search_overlay.dart';
 import 'mermaid/mermaid_code_block_widget.dart'
@@ -1582,6 +1583,7 @@ class WenzRichTextEditor extends StatefulWidget {
     this.contextMenuConfiguration = const WenzEditorContextMenuConfiguration(),
     this.blockRenderers,
     this.mediaResolver,
+    this.onMediaResourceAction,
     this.inlineEmbedRenderer,
     this.mentionSearch,
     this.onMentionTap,
@@ -1674,6 +1676,12 @@ class WenzRichTextEditor extends StatefulWidget {
   /// Throwing from the resolver is tolerated — the editor falls back to the
   /// placeholder rather than crashing.
   final MediaResolver? mediaResolver;
+
+  /// Optional host callback for non-mutating image/video resource actions.
+  ///
+  /// It is forwarded unchanged to each [BlockRenderContext], including when
+  /// [readOnly] is true.
+  final MediaResourceActionHandler? onMediaResourceAction;
 
   /// Optional renderer for inline embeds such as formula / mention. The
   /// built-in text renderers ask this first and use their compact fallback
@@ -2984,6 +2992,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
               showDebugOverlay: widget.showDebugOverlay,
               canEdit: canEdit,
               mediaResolver: widget.mediaResolver,
+              onMediaResourceAction: widget.onMediaResourceAction,
               inlineEmbedRenderer: widget.inlineEmbedRenderer,
               onMentionTap: widget.onMentionTap,
               reserveHeadingCollapseRail: _hasHeadingCollapseChrome,
@@ -10276,6 +10285,7 @@ class _KeepAliveBlock extends StatefulWidget {
     this.showDebugOverlay = false,
     this.canEdit = true,
     this.mediaResolver,
+    this.onMediaResourceAction,
     this.inlineEmbedRenderer,
     this.onMentionTap,
     this.reserveHeadingCollapseRail = false,
@@ -10314,6 +10324,7 @@ class _KeepAliveBlock extends StatefulWidget {
   final bool showDebugOverlay;
   final bool canEdit;
   final MediaResolver? mediaResolver;
+  final MediaResourceActionHandler? onMediaResourceAction;
   final InlineEmbedRenderer? inlineEmbedRenderer;
   final WenzMentionTapCallback? onMentionTap;
   final bool reserveHeadingCollapseRail;
@@ -10380,6 +10391,7 @@ class _KeepAliveBlockState extends State<_KeepAliveBlock>
         oldWidget.canEdit != widget.canEdit ||
         oldWidget.textStyle != widget.textStyle ||
         !identical(oldWidget.mediaResolver, widget.mediaResolver) ||
+        oldWidget.onMediaResourceAction != widget.onMediaResourceAction ||
         oldWidget.inlineEmbedRenderer != widget.inlineEmbedRenderer ||
         oldWidget.onMentionTap != widget.onMentionTap ||
         oldWidget.reserveHeadingCollapseRail !=
@@ -10433,6 +10445,7 @@ class _KeepAliveBlockState extends State<_KeepAliveBlock>
       showDebugOverlay: widget.showDebugOverlay,
       canEdit: widget.canEdit,
       mediaResolver: widget.mediaResolver,
+      onMediaResourceAction: widget.onMediaResourceAction,
       inlineEmbedRenderer: widget.inlineEmbedRenderer,
       reserveHeadingCollapseRail: widget.reserveHeadingCollapseRail,
       headingCollapseState: widget.headingCollapseState,
@@ -10494,6 +10507,7 @@ class _BlockRenderer extends StatelessWidget {
     this.showDebugOverlay = false,
     this.canEdit = true,
     this.mediaResolver,
+    this.onMediaResourceAction,
     this.inlineEmbedRenderer,
     this.reserveHeadingCollapseRail = false,
     this.headingCollapseState,
@@ -10529,6 +10543,7 @@ class _BlockRenderer extends StatelessWidget {
   final bool showDebugOverlay;
   final bool canEdit;
   final MediaResolver? mediaResolver;
+  final MediaResourceActionHandler? onMediaResourceAction;
   final InlineEmbedRenderer? inlineEmbedRenderer;
   final bool reserveHeadingCollapseRail;
   final HeadingCollapseState? headingCollapseState;
@@ -10565,6 +10580,7 @@ class _BlockRenderer extends StatelessWidget {
       showDebugOverlay: showDebugOverlay,
       canEdit: canEdit,
       mediaResolver: mediaResolver,
+      onMediaResourceAction: onMediaResourceAction,
       inlineEmbedRenderer: inlineEmbedRenderer,
       headingCollapseState: headingCollapseState,
       onHeadingCollapseToggled: onHeadingCollapseToggled,
@@ -13113,6 +13129,20 @@ Widget _withSelectableImageBlock(
       ),
       toolbarOverlayController: rc.objectBlockToolbarOverlayController,
       onAction: rc.onObjectBlockAction,
+      onMediaResourceAction: rc.onMediaResourceAction == null
+          ? null
+          : (action) {
+              unawaited(
+                rc.onMediaResourceAction!(
+                  MediaResourceActionIntent(
+                    action: action,
+                    blockIndex: rc.blockIndex,
+                    mediaType: MediaResourceType.image,
+                    block: block,
+                  ),
+                ),
+              );
+            },
       onEditImageDescription: imageDescriptionEditController == null
           ? null
           : () {
@@ -13362,6 +13392,20 @@ Widget _withSelectableVideoBlock(
         ),
         toolbarOverlayController: rc.objectBlockToolbarOverlayController,
         onAction: rc.onObjectBlockAction,
+        onMediaResourceAction: rc.onMediaResourceAction == null
+            ? null
+            : (action) {
+                unawaited(
+                  rc.onMediaResourceAction!(
+                    MediaResourceActionIntent(
+                      action: action,
+                      blockIndex: rc.blockIndex,
+                      mediaType: MediaResourceType.video,
+                      block: block,
+                    ),
+                  ),
+                );
+              },
         onPreview: onPreview,
         child: _BlockObjectSelectionSurface(
           blockId: block.id,
@@ -19340,6 +19384,7 @@ class _ObjectBlockToolbar extends StatelessWidget {
     this.imageAlignment,
     this.mediaActions = false,
     this.onAction,
+    this.onMediaResourceAction,
     this.onEditImageDescription,
     this.onPreview,
   });
@@ -19353,6 +19398,7 @@ class _ObjectBlockToolbar extends StatelessWidget {
   final String? imageAlignment;
   final bool mediaActions;
   final ObjectBlockActionHandler? onAction;
+  final ValueChanged<MediaResourceAction>? onMediaResourceAction;
   final VoidCallback? onEditImageDescription;
   final VoidCallback? onPreview;
 
@@ -19360,7 +19406,8 @@ class _ObjectBlockToolbar extends StatelessWidget {
   Widget build(BuildContext context) {
     final canDispatch = onAction != null;
     final canRunMutation = canEdit && canDispatch;
-    final hasMoreActions = canRunMutation;
+    final hasMoreActions =
+        canRunMutation || (mediaActions && onMediaResourceAction != null);
     if (mediaActions) {
       return Wrap(
         spacing: _kMinimalFloatingToolbarButtonGap,
@@ -19381,6 +19428,7 @@ class _ObjectBlockToolbar extends StatelessWidget {
               videoActions: videoActions,
               imageAlignment: imageAlignment,
               fileActions: fileActions,
+              onMediaResourceAction: onMediaResourceAction,
               onEditImageDescription: onEditImageDescription,
               onSelected: _dispatchSelection,
             ),
@@ -19408,6 +19456,7 @@ class _ObjectBlockToolbar extends StatelessWidget {
             videoActions: videoActions,
             imageAlignment: imageAlignment,
             fileActions: fileActions,
+            onMediaResourceAction: onMediaResourceAction,
             onEditImageDescription: onEditImageDescription,
             onSelected: _dispatchSelection,
           ),
@@ -19423,6 +19472,11 @@ class _ObjectBlockToolbar extends StatelessWidget {
     }
     if (selection.editImageDescription) {
       onEditImageDescription?.call();
+      return;
+    }
+    final mediaResourceAction = selection.mediaResourceAction;
+    if (mediaResourceAction != null) {
+      onMediaResourceAction?.call(mediaResourceAction);
     }
   }
 
@@ -19440,28 +19494,39 @@ class _ObjectBlockToolbar extends StatelessWidget {
 class _ObjectMenuSelection {
   const _ObjectMenuSelection.action(this.action, [this.value])
       : format = null,
+        mediaResourceAction = null,
         editImageDescription = false,
         more = false;
   const _ObjectMenuSelection.format(this.format)
       : action = null,
+        mediaResourceAction = null,
         editImageDescription = false,
         value = null,
+        more = false;
+  const _ObjectMenuSelection.mediaResourceAction(this.mediaResourceAction)
+      : action = null,
+        format = null,
+        value = null,
+        editImageDescription = false,
         more = false;
   const _ObjectMenuSelection.editImageDescription()
       : action = null,
         format = null,
+        mediaResourceAction = null,
         value = null,
         editImageDescription = true,
         more = false;
   const _ObjectMenuSelection.more()
       : action = null,
         format = null,
+        mediaResourceAction = null,
         value = null,
         editImageDescription = false,
         more = true;
 
   final ObjectBlockAction? action;
   final _RowBlockFormat? format;
+  final MediaResourceAction? mediaResourceAction;
   final Object? value;
   final bool editImageDescription;
   final bool more;
@@ -19493,6 +19558,23 @@ PopupMenuItem<_ObjectMenuSelection> _objectActionMenuItem({
   );
 }
 
+PopupMenuItem<_ObjectMenuSelection> _mediaResourceActionMenuItem({
+  required MediaResourceAction action,
+  required IconData icon,
+  required String label,
+}) {
+  return PopupMenuItem<_ObjectMenuSelection>(
+    value: _ObjectMenuSelection.mediaResourceAction(action),
+    height: _kPopupMenuItemHeight,
+    padding: _kPopupMenuItemPadding,
+    child: _PopupMenuItemContent(
+      icon: icon,
+      label: label,
+      enabled: true,
+    ),
+  );
+}
+
 class _ObjectMoreMenu extends StatefulWidget {
   const _ObjectMoreMenu({
     required this.blockIndex,
@@ -19503,6 +19585,7 @@ class _ObjectMoreMenu extends StatefulWidget {
     required this.videoActions,
     required this.onSelected,
     this.imageAlignment,
+    this.onMediaResourceAction,
     this.onEditImageDescription,
   });
 
@@ -19514,6 +19597,7 @@ class _ObjectMoreMenu extends StatefulWidget {
   final bool videoActions;
   final ValueChanged<_ObjectMenuSelection> onSelected;
   final String? imageAlignment;
+  final ValueChanged<MediaResourceAction>? onMediaResourceAction;
   final VoidCallback? onEditImageDescription;
 
   @override
@@ -19594,7 +19678,32 @@ class _ObjectMoreMenuState extends State<_ObjectMoreMenu> {
 
   List<PopupMenuEntry<_ObjectMenuSelection>> _items() {
     final entries = <PopupMenuEntry<_ObjectMenuSelection>>[];
+    if (widget.onMediaResourceAction != null &&
+        (widget.imageActions || widget.videoActions)) {
+      final mediaLabel = widget.videoActions ? '视频' : '图片';
+      entries.addAll(<PopupMenuEntry<_ObjectMenuSelection>>[
+        _mediaResourceActionMenuItem(
+          action: MediaResourceAction.openPath,
+          icon: Icons.folder_open_outlined,
+          label: '打开$mediaLabel路径',
+        ),
+        _mediaResourceActionMenuItem(
+          action: MediaResourceAction.copyPath,
+          icon: Icons.content_copy_outlined,
+          label: '复制$mediaLabel路径',
+        ),
+        if (widget.imageActions)
+          _mediaResourceActionMenuItem(
+            action: MediaResourceAction.copyImage,
+            icon: Icons.image_outlined,
+            label: '复制内存图片',
+          ),
+      ]);
+    }
     if (widget.canRunMutation && !widget.imageActions) {
+      if (entries.isNotEmpty) {
+        entries.add(_popupMenuDivider<_ObjectMenuSelection>());
+      }
       entries.add(
         _objectActionMenuItem(
           action: ObjectBlockAction.duplicate,
@@ -19844,6 +19953,7 @@ class _FloatingObjectBlockToolbar extends StatelessWidget {
     this.imageAlignment,
     this.mediaActions = false,
     this.onAction,
+    this.onMediaResourceAction,
     this.onEditImageDescription,
     this.onPreview,
   });
@@ -19857,6 +19967,7 @@ class _FloatingObjectBlockToolbar extends StatelessWidget {
   final String? imageAlignment;
   final bool mediaActions;
   final ObjectBlockActionHandler? onAction;
+  final ValueChanged<MediaResourceAction>? onMediaResourceAction;
   final VoidCallback? onEditImageDescription;
   final VoidCallback? onPreview;
 
@@ -19873,6 +19984,7 @@ class _FloatingObjectBlockToolbar extends StatelessWidget {
         imageAlignment: imageAlignment,
         mediaActions: mediaActions,
         onAction: onAction,
+        onMediaResourceAction: onMediaResourceAction,
         onEditImageDescription: onEditImageDescription,
         onPreview: onPreview,
       ),
@@ -20853,6 +20965,7 @@ class _MediaBlockChrome extends StatelessWidget {
     this.toolbarFrameAlignment,
     this.toolbarOverlayController,
     this.onAction,
+    this.onMediaResourceAction,
     this.onEditImageDescription,
     this.onPreview,
   });
@@ -20870,6 +20983,7 @@ class _MediaBlockChrome extends StatelessWidget {
   final AlignmentDirectional? toolbarFrameAlignment;
   final ObjectBlockToolbarOverlayController? toolbarOverlayController;
   final ObjectBlockActionHandler? onAction;
+  final ValueChanged<MediaResourceAction>? onMediaResourceAction;
   final VoidCallback? onEditImageDescription;
   final VoidCallback? onPreview;
 
@@ -20922,6 +21036,7 @@ class _MediaBlockChrome extends StatelessWidget {
       fileActions: false,
       mediaActions: true,
       onAction: onAction,
+      onMediaResourceAction: onMediaResourceAction,
       onEditImageDescription: onEditImageDescription,
       onPreview: onPreview,
     );
@@ -20929,7 +21044,8 @@ class _MediaBlockChrome extends StatelessWidget {
 
   double _mediaToolbarEstimatedWidth() {
     final canRunMutation = canEdit && onAction != null;
-    final buttonCount = canRunMutation ? 2 : 1;
+    final hasMoreActions = canRunMutation || onMediaResourceAction != null;
+    final buttonCount = hasMoreActions ? 2 : 1;
     return _kMinimalFloatingToolbarPadding.horizontal +
         (_kBlockToolbarButtonSize * buttonCount) +
         (_kMinimalFloatingToolbarButtonGap * (buttonCount - 1));

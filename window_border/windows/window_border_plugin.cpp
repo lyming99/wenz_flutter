@@ -21,6 +21,8 @@
 #include <string>
 #include <variant>
 
+#include "flutter_view_layout.h"
+
 namespace window_border {
 namespace {
 
@@ -315,13 +317,14 @@ void WindowBorderPlugin::HandleMethodCall(
     ShowWindow(window_, SW_MINIMIZE);
     result->Success();
   } else if (method == "maximize") {
-    ShowWindow(window_, SW_MAXIMIZE);
+    ShowWindowWithSynchronizedLayout(SW_MAXIMIZE);
     result->Success();
   } else if (method == "restore") {
-    ShowWindow(window_, SW_RESTORE);
+    ShowWindowWithSynchronizedLayout(SW_RESTORE);
     result->Success();
   } else if (method == "toggleMaximize") {
-    ShowWindow(window_, IsZoomed(window_) ? SW_RESTORE : SW_MAXIMIZE);
+    ShowWindowWithSynchronizedLayout(IsZoomed(window_) ? SW_RESTORE
+                                                       : SW_MAXIMIZE);
     result->Success();
   } else if (method == "close") {
     PostMessage(window_, WM_CLOSE, 0, 0);
@@ -389,21 +392,32 @@ std::optional<LRESULT> WindowBorderPlugin::HandleWindowProc(
       // Consume WM_SIZE so the stock Runner cannot first stretch the Flutter
       // child to the full client area. Resizing it once, synchronously, avoids
       // two consecutive Flutter surface recreations for every drag step.
-      PaintBorder();
       LayoutFlutterView();
+      PaintBorder();
       RedrawWindow(hwnd, nullptr, nullptr,
                    RDW_INVALIDATE | RDW_NOERASE | RDW_NOCHILDREN);
       NotifyStateChanged();
       return 0;
     case WM_DPICHANGED:
     case WM_DISPLAYCHANGE:
-      PostMessage(hwnd, kLayoutFlutterViewMessage, 0, 0);
+      // The Runner applies the suggested DPI bounds after plugin delegates
+      // return. Defer one coalesced pass so the final client rect and DPI are
+      // used; WM_SIZE may already have synchronized the child by then.
+      ScheduleFlutterViewLayout();
       return std::nullopt;
     case WM_DWMCOMPOSITIONCHANGED:
       ApplyWindowEffects();
-      PostMessage(hwnd, kLayoutFlutterViewMessage, 0, 0);
+      ScheduleFlutterViewLayout();
+      return std::nullopt;
+    case WM_DWMNCRENDERINGCHANGED:
+    case WM_DWMWINDOWMAXIMIZEDCHANGE:
+      // DWM can publish these after the window state and client bounds have
+      // changed. Share the coalesced follow-up used by DPI/display changes so
+      // the Flutter HWND observes the settled geometry exactly once.
+      ScheduleFlutterViewLayout();
       return std::nullopt;
     case kLayoutFlutterViewMessage:
+      layout_message_pending_ = false;
       LayoutFlutterView();
       InvalidateRect(hwnd, nullptr, FALSE);
       return 0;
@@ -411,6 +425,7 @@ std::optional<LRESULT> WindowBorderPlugin::HandleWindowProc(
       window_ = nullptr;
       enabled_ = false;
       has_original_style_ = false;
+      layout_message_pending_ = false;
       return std::nullopt;
     default:
       return std::nullopt;
@@ -535,6 +550,7 @@ bool WindowBorderPlugin::SetBorderEnabled(bool enabled, std::string* error) {
     InvalidateRect(window_, nullptr, FALSE);
   } else {
     enabled_ = false;
+    layout_message_pending_ = false;
     RestoreWindowEffects();
     RestoreWindowStyle();
     LayoutFlutterView();
@@ -583,8 +599,9 @@ void WindowBorderPlugin::ApplyWindowEffects() {
     return;
   }
 
+  const bool maximized = IsZoomed(window_) != FALSE;
   DWM_WINDOW_CORNER_PREFERENCE corner_preference = DWMWCP_DONOTROUND;
-  if (corner_radius_ > 0.0) {
+  if (corner_radius_ > 0.0 && !maximized) {
     corner_preference =
         corner_radius_ <= 8.0 ? DWMWCP_ROUNDSMALL : DWMWCP_ROUND;
   }
@@ -598,8 +615,9 @@ void WindowBorderPlugin::ApplyWindowEffects() {
       shadow_enabled_ ? DWMNCRP_ENABLED : DWMNCRP_DISABLED;
   DwmSetWindowAttribute(window_, DWMWA_NCRENDERING_POLICY,
                         &rendering_policy, sizeof(rendering_policy));
-  const MARGINS shadow_margins =
-      shadow_enabled_ ? MARGINS{1, 1, 1, 1} : MARGINS{0, 0, 0, 0};
+  const MARGINS shadow_margins = enabled_ && shadow_enabled_ && !maximized
+                                     ? MARGINS{1, 1, 1, 1}
+                                     : MARGINS{0, 0, 0, 0};
   DwmExtendFrameIntoClientArea(window_, &shadow_margins);
   UpdateRoundedRegions();
 }
@@ -638,11 +656,14 @@ void WindowBorderPlugin::LayoutFlutterView() {
   }
   RECT client{};
   GetClientRect(window_, &client);
-  const int inset = enabled_ ? ScaleLogicalPixels(border_width_) : 0;
-  const int width = std::max(
-      0, static_cast<int>(client.right - client.left) - inset * 2);
-  const int height = std::max(
-      0, static_cast<int>(client.bottom - client.top) - inset * 2);
+  UINT dpi = GetDpiForWindow(window_);
+  if (dpi == 0) {
+    dpi = 96;
+  }
+  const FlutterViewLayout layout = CalculateFlutterViewLayout(
+      static_cast<int>(client.right - client.left),
+      static_cast<int>(client.bottom - client.top), border_width_, dpi,
+      enabled_, IsZoomed(window_) != FALSE);
 
   RECT flutter_rect{};
   GetWindowRect(flutter_view_, &flutter_rect);
@@ -650,18 +671,39 @@ void WindowBorderPlugin::LayoutFlutterView() {
                           {flutter_rect.right, flutter_rect.bottom}};
   MapWindowPoints(HWND_DESKTOP, window_, flutter_points, 2);
   const bool geometry_changed =
-      flutter_points[0].x != inset || flutter_points[0].y != inset ||
-      flutter_points[1].x - flutter_points[0].x != width ||
-      flutter_points[1].y - flutter_points[0].y != height;
+      flutter_points[0].x != layout.x || flutter_points[0].y != layout.y ||
+      flutter_points[1].x - flutter_points[0].x != layout.width ||
+      flutter_points[1].y - flutter_points[0].y != layout.height;
   if (geometry_changed) {
     // Flutter synchronizes its render surface from the child HWND's WM_SIZE.
     // Resize only once, but allow the Flutter HWND to repaint the newly exposed
     // edge pixels. SWP_NOREDRAW leaves those pixels at the swapchain's default
     // clear color until a later frame, which appears as a white strip.
-    SetWindowPos(flutter_view_, nullptr, inset, inset, width, height,
-                 SWP_NOACTIVATE | SWP_NOZORDER);
+    SetWindowPos(flutter_view_, nullptr, layout.x, layout.y, layout.width,
+                 layout.height, SWP_NOACTIVATE | SWP_NOZORDER);
   }
   UpdateRoundedRegions(false);
+}
+
+void WindowBorderPlugin::ScheduleFlutterViewLayout() {
+  if (layout_message_pending_ || window_ == nullptr || !IsWindow(window_)) {
+    return;
+  }
+  if (PostMessage(window_, kLayoutFlutterViewMessage, 0, 0)) {
+    layout_message_pending_ = true;
+  }
+}
+
+void WindowBorderPlugin::ShowWindowWithSynchronizedLayout(int command) {
+  if (window_ == nullptr || !IsWindow(window_)) {
+    return;
+  }
+  ShowWindow(window_, command);
+  // ShowWindow normally sends WM_SIZE synchronously. Run a final pass after
+  // the state transition as well so the child geometry never depends on that
+  // implementation detail. LayoutFlutterView avoids a second SetWindowPos
+  // when WM_SIZE already applied the same bounds.
+  LayoutFlutterView();
 }
 
 void WindowBorderPlugin::UpdateRoundedRegions(bool redraw) {
@@ -670,8 +712,24 @@ void WindowBorderPlugin::UpdateRoundedRegions(bool redraw) {
     return;
   }
 
-  const bool should_round =
-      enabled_ && corner_radius_ > 0.0 && !IsZoomed(window_);
+  const bool maximized = IsZoomed(window_) != FALSE;
+  const bool should_round = enabled_ && corner_radius_ > 0.0 && !maximized;
+  if (native_corner_preference_supported_) {
+    DWM_WINDOW_CORNER_PREFERENCE corner_preference = DWMWCP_DONOTROUND;
+    if (should_round) {
+      corner_preference =
+          corner_radius_ <= 8.0 ? DWMWCP_ROUNDSMALL : DWMWCP_ROUND;
+    }
+    DwmSetWindowAttribute(window_, DWMWA_WINDOW_CORNER_PREFERENCE,
+                          &corner_preference, sizeof(corner_preference));
+  }
+  // Extending the DWM frame by one pixel gives restored frameless windows a
+  // compositor shadow. A maximized Flutter view owns every client pixel, so
+  // remove that extension until the window is restored.
+  const MARGINS shadow_margins = enabled_ && shadow_enabled_ && !maximized
+                                     ? MARGINS{1, 1, 1, 1}
+                                     : MARGINS{0, 0, 0, 0};
+  DwmExtendFrameIntoClientArea(window_, &shadow_margins);
   if (!should_round) {
     if (child_region_applied_) {
       AssignWindowRegion(flutter_view_, nullptr, redraw ? TRUE : FALSE);
@@ -720,6 +778,12 @@ void WindowBorderPlugin::PaintBorder(HDC device_context) {
       (border_brush_ == nullptr && background_brush_ == nullptr)) {
     return;
   }
+  // The maximized Flutter view occupies the entire client area. Painting the
+  // host in that state would cover pixels owned by Flutter, so leave both the
+  // background and border entirely to the child surface.
+  if (IsZoomed(window_)) {
+    return;
+  }
   const bool owns_context = device_context == nullptr;
   if (owns_context) {
     device_context = GetDC(window_);
@@ -729,6 +793,14 @@ void WindowBorderPlugin::PaintBorder(HDC device_context) {
   }
   RECT client{};
   GetClientRect(window_, &client);
+  UINT dpi = GetDpiForWindow(window_);
+  if (dpi == 0) {
+    dpi = 96;
+  }
+  const FlutterViewLayout layout = CalculateFlutterViewLayout(
+      static_cast<int>(client.right - client.left),
+      static_cast<int>(client.bottom - client.top), border_width_, dpi,
+      enabled_, false);
 
   // Explicitly subtract the Flutter HWND's visible region before filling the
   // native host. WS_CLIPCHILDREN normally does the same work, while this extra
@@ -759,22 +831,16 @@ void WindowBorderPlugin::PaintBorder(HDC device_context) {
     }
   }
 
-  const LONG client_width = client.right - client.left;
-  const LONG client_height = client.bottom - client.top;
-  const LONG maximum_border =
-      std::max<LONG>(0, std::min(client_width, client_height) / 2);
-  const LONG border = std::min<LONG>(
-      ScaleLogicalPixels(border_width_), maximum_border);
+  const LONG border = layout.x;
 
   if (border > 0 && border_brush_ != nullptr) {
     const int corner_radius =
-        corner_radius_ > 0.0 && !IsZoomed(window_)
-            ? EffectiveCornerRadiusPixels()
-            : 0;
+        corner_radius_ > 0.0 ? EffectiveCornerRadiusPixels() : 0;
     const int outer_radius =
         native_corner_preference_supported_ ? 0 : corner_radius;
-    const RECT inner{client.left + border, client.top + border,
-                     client.right - border, client.bottom - border};
+    const RECT inner{client.left + layout.x, client.top + layout.y,
+                     client.left + layout.x + layout.width,
+                     client.top + layout.y + layout.height};
     HRGN outer_region = CreateRegionForRect(client, outer_radius);
     HRGN inner_region = CreateRegionForRect(
         inner,
